@@ -7,8 +7,9 @@ import type {
 } from '@/scheduler/types'
 import { RunHalted } from '@/core/errors'
 import { advanceCron } from '@/core/utils/cron'
+import { computeBackoffMs } from '@/core/utils/retry'
 import { AGENT_CAP_MESSAGE, PAUSED_MESSAGE } from '@/engine/api'
-import { computeBackoffMs, RETRY_BASE_MS, RETRY_CAP_MS } from '@/scheduler/backoff'
+import { RETRY_BASE_MS, RETRY_CAP_MS } from '@/scheduler/backoff'
 
 export const CRON_AUTO_DISABLE_THRESHOLD = 3
 export const SHUTDOWN_MESSAGE = 'aborted (shutdown)'

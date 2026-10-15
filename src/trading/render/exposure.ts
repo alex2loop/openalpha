@@ -14,6 +14,13 @@ export function renderSleeveBreachLines(
 }
 
 function renderBreach(locale: Locale, breach: SleeveBreach): string {
+  if (breach.kind === 'etf-unmeasured') {
+    return t(locale, 'trading.render.exposure.etfUnmeasured', {
+      segment: renderDeclaredValue(locale, `trading.segment.${breach.segment}`),
+      cap: formatWholeFraction(locale, breach.capPctNav),
+    })
+  }
+
   return t(locale, 'trading.render.exposure.breach', {
     subject: subjectOf(locale, breach),
     combined: formatWholeFraction(locale, breach.combinedPctNav),
@@ -21,7 +28,10 @@ function renderBreach(locale: Locale, breach: SleeveBreach): string {
   })
 }
 
-function subjectOf(locale: Locale, breach: SleeveBreach): string {
+function subjectOf(
+  locale: Locale,
+  breach: Exclude<SleeveBreach, { kind: 'etf-unmeasured' }>
+): string {
   switch (breach.kind) {
     case 'position':
       return breach.ticker

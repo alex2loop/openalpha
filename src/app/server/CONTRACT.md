@@ -40,7 +40,9 @@ this document — neither imports the other.
   (`ServerFrame`/`ClientFrame`, `socket.ts`); WS **binary** frames are raw PCM dictation audio.
 - **Base path:** every route is under `/v1`.
 - **Concurrency:** the daemon caps concurrent `/v1/ws` sockets; over the cap the handshake is rejected
-  with `too_many_streams` (503). One socket per client is the norm.
+  with `too_many_streams` (503) before the upgrade. Two handshakes racing for the last seat can both
+  pass that check; the loser's socket is closed with WS code 1013 `too_many_streams`. One socket per
+  client is the norm.
 - **CORS:** the daemon ships no `Access-Control-*` headers, so browsers block cross-origin reads of
   the HTTP endpoints; the WS Origin allow-list above gates the one CORS-exempt protocol.
 
@@ -201,7 +203,8 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 
 - **The app is a delivery address.** While the api runs, the daemon delivers alerts, stop hits,
   the brief and movers addressed to channel `api` straight to the open sockets, and to `api` too
-  when no chat channel is attached. With no socket open the delivery fails and the daemon retries
+  when no chat channel is attached. A socket whose send was dropped (closed, or its buffer full) does
+  not count as reached: with no socket taking the frame the delivery fails and the daemon retries
   later, as it would for an offline chat.
 
 - **`weight`** ∈ `interrupt | nudge | sneak | quiet` — a hint; each client maps it to its own surface
@@ -241,7 +244,10 @@ The daemon replies with `ServerFrame`s tagged `type: 'chat'`:
   `message` is a sentence in the daemon's language, never the error's own text.
 
 A `chat` sent while a turn runs waits behind it (`queued`); a `cancel` or a disconnect aborts the
-running turn. On daemon shutdown the run still settles in the drain window.
+running turn. Shutdown starts by closing admission: no new connection, no new HTTP request, and a
+`chat` or `steer` frame on an open socket is answered with `{ type: 'chat', kind: 'error', code:
+'unavailable' }`; requests already running finish. A run already going still settles in the drain
+window, and the sockets close after it.
 
 ## 6. Errors
 

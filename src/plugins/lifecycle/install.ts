@@ -17,6 +17,7 @@ import { isBundledId } from '@/plugins/policy/trust'
 // rewritable by anyone on the path. HTTPS only.
 const DISALLOWED_GIT_TRANSPORT_RE = /^(ext::|file:\/\/|ssh:\/\/|git@|http:\/\/)/i
 const GIT_PREFIX_RE = /^git\+/
+const GIT_SUFFIX_RE = /\.git$/
 const REMOTE_SOURCE_RE = /^https:\/\//
 const REMOTE_METADATA_RE = /[?#]/
 // An authority is what separates a remote source from a local path: a Windows drive letter parses
@@ -78,7 +79,7 @@ async function installFetchedSource(
   canonicalSource: string
 ): Promise<InstallResult> {
   const manifest = await readInstallManifest(source)
-  const id = resolveId(source, options.id, manifest)
+  const id = resolveId(fallbackPluginId(source, canonicalSource), options.id, manifest)
   const target = assertPluginPath(id, options.pluginsDir)
 
   if (isBundledId(id, options.bundledIds ?? new Set())) {
@@ -209,8 +210,22 @@ async function assertLocalSource(path: string): Promise<void> {
   }
 }
 
-function resolveId(dir: string, override?: string, manifest?: PluginManifest): string {
-  const id = override ?? manifest?.id ?? basename(dir)
+// A remote source is cloned into a random temporary directory, so its name says nothing: the id a
+// manifest-less plugin falls back to is the repository's, which keeps a reinstall on the same id.
+function fallbackPluginId(dir: string, canonicalSource: string): string {
+  const url = canonicalSource.replace(GIT_PREFIX_RE, '')
+
+  if (!REMOTE_SOURCE_RE.test(url)) {
+    return basename(dir)
+  }
+
+  const repository = new URL(url).pathname.split('/').findLast((segment) => segment !== '')
+
+  return (repository ?? '').replace(GIT_SUFFIX_RE, '')
+}
+
+function resolveId(fallback: string, override?: string, manifest?: PluginManifest): string {
+  const id = override ?? manifest?.id ?? fallback
 
   if (!isPathId(id)) {
     throw new ToolError('invalid_input', `invalid plugin id: ${id}`)

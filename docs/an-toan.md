@@ -218,7 +218,8 @@ Mọi thứ ghi dưới thư mục dữ liệu đều chỉ của riêng bạn: 
 token của nhà cung cấp, tệp agent và kỹ năng, các bản cài plugin, log, thư mục nháp, đầu ra `db export`
 và các bản sao lưu cơ sở dữ liệu. Bản sao lưu chứa mọi phiên chat, mọi bộ nhớ và mọi dòng sổ, nên nó
 không bao giờ thừa hưởng một umask để lại quyền đọc cho người khác. Tệp xuất hiện bằng một lần rename
-nguyên tử, với quyền đã đặt **trước** lần rename đó, nên không ai thấy một tệp dở dang hay mở quyền.
+nguyên tử, với quyền đã đặt **trước** lần rename đó, nên không ai thấy một tệp dở dang hay mở quyền. Bản sao lưu là tệp duy nhất do chính cơ sở dữ liệu
+ghi ra, nên nó được ghi trong một thư mục tạm riêng tư `0700` và chỉ chuyển ra khi đã hoàn tất.
 Windows không có các bit quyền này: ở đó thư mục dữ liệu nằm trong hồ sơ người dùng của bạn
 (`%USERPROFILE%\.openalpha`), vốn đã chặn các tài khoản khác.
 
@@ -244,10 +245,14 @@ tới được.
 
 Đầu ra công cụ được chuẩn hóa trước khi quay lại ngữ cảnh của mô hình:
 
-1. Bỏ các chuỗi ANSI, lọc thông tin đăng nhập.
+1. Bỏ các chuỗi ANSI, lọc thông tin đăng nhập. Toàn bộ kết quả được lọc trước khi cắt ở bất kỳ chỗ nào,
+   nên một khối khóa không thể bị cắt đôi rồi để lộ nửa còn lại. Kết quả lớn hơn 4 MiB (chỉ một máy chủ
+   MCP từ xa mới gửi được) bị bỏ mà không đọc, thay bằng một dòng ghi chú.
 2. Phát hiện các mẫu tiêm prompt **trước** khi rút gọn mảng và áp trần dung lượng.
 3. Chuẩn hóa các mảng và giới hạn đầu ra: 32 KB trong một phiên chat, 64 KB cho một lời gọi MCP được
-   phục vụ mà client tự lo ngân sách ngữ cảnh. Phần nào dài hơn thì giữ phần đầu và phần cuối.
+   phục vụ mà client tự lo ngân sách ngữ cảnh. Phần nào dài hơn thì giữ phần đầu và phần cuối. Trần này
+   tính theo văn bản như mô hình nhận được, đã thoát ký tự và nằm trong lớp bọc, không tính theo văn bản
+   thô.
 4. Nội dung đáng ngờ nhận một thông báo bảo mật đi kèm ngay trong luồng.
 5. Kết quả được bọc lại thành tool result, nên mô hình coi nó là dữ liệu.
 
@@ -417,6 +422,7 @@ Lỗi đặt lệnh đến từ `/trade` và `order_place`. Chúng chia theo vi�
 | `order.below_minimum` | Khối lượng thấp hơn mức tối thiểu của sàn. | Tăng khối lượng. |
 | `order.unfilled` | Không khớp kịp và đã bị hủy. | Đặt lại nếu vẫn muốn. |
 | `order.book_moved` | Một lệnh khác đã đi ra trong lúc lệnh này chờ, nên hạn mức không còn cho phép. | Kiểm tra sổ rồi đặt lại. |
+| `order.book_unpriced` | Có khoản nắm chưa có giá nên không kiểm tra được hạn mức cho lệnh mua. | `/portfolio` cho biết mã nào; `/refresh` thị trường của mã đó rồi đặt lại. |
 | `order.approval_bypassed` | Lệnh cần bước duyệt, mà phiên này đang bỏ qua duyệt. | Chạy trong phiên `manual`, hoặc đặt thêm `[trading.orders] allow_unattended`. |
 | `order.buying_halted` | Chức năng mua đang tắt (`/trade halt`). Bán và lệnh thoát vẫn gửi được. | Chỉ bạn mới bật lại được. |
 | `order.sell_unsettled` | Hôm nay chỉ bán được phần đã về tài khoản. | Thông báo nêu khối lượng bán được ngay; chờ phần còn lại. |

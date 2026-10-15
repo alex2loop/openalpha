@@ -26,11 +26,19 @@ export type BootGate = (options: {
   readonly dataDir: string
 }) => Promise<BootCheck>
 
-/** Starts the HTTP/WS surface and returns its stop() — the daemon runs it as one more disposer. */
+/** What the daemon holds of a running HTTP/WS surface: `closeAdmission` is the first step down
+ *  (no new connection or request; in-flight ones finish), `stop` the last (sockets, then wait for
+ *  those in-flight requests). */
+export interface ApiHandle {
+  closeAdmission(): void
+  stop(): Promise<void>
+}
+
+/** Starts the HTTP/WS surface; the daemon wires its two steps into the shutdown order. */
 type ServerStarter = (
   app: App,
   env: Readonly<Record<string, string | undefined>>
-) => Promise<() => Promise<void>>
+) => Promise<ApiHandle>
 
 export interface ApiRouteContext {
   readonly app: App

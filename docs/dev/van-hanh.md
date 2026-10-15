@@ -39,7 +39,9 @@ Thị trường chạy liên tục không có giờ mở, nên chỉ neo vào l�
 giây thì gộp thành một lượt.
 
 Khi khởi động, lần làm mới đầu chạy trước các hệ con khác, chờ tối đa 60 giây rồi hoàn tất ở chế độ
-nền kèm cảnh báo. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
+nền kèm cảnh báo. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo `daemon.boot_refresh_failed` dù ở
+trong hay sau 60 giây và khởi động vẫn tiếp tục; lỗi khác là chí mạng, ném về nơi gọi trong ngân sách thời
+gian và qua bộ theo dõi tác vụ daemon sau đó. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
 chạy thì nó nhập vào đó, và nếu máy khởi động không có mạng, chính nhịp này là lượt chờ có mạng rồi đi
 vào chuỗi thử lại.
 
@@ -61,6 +63,13 @@ Lớp cách ly (`withQuarantine`) ghi `trading.loop_quarantined` ở mức error
 gọi tên vòng đó. Nó chạy lại vòng sau một giờ, tối đa ba lần. Vòng nào chạy trọn một ngày rồi mới lỗi
 lại thì được cấp lại đủ số lần; nếu không, lỗi kế tiếp để nó dừng đến khi daemon khởi động lại, và
 thông báo nói rõ điều đó. Các vòng và kênh khác không bị ảnh hưởng.
+
+Vòng cảnh báo là một nhịp ba bước: gửi (`alerts.tick`), rồi lượt dựng cảnh báo thoát, rồi lượt dựng cảnh báo
+sàng lọc. Bước gửi được phân loại như trên. Mỗi lượt dựng chạy dưới một lớp bảo vệ riêng
+(`trading.alert_arming_failed` ở mức warn, gọi tên bước), nên mọi lỗi ở một lượt - dù là lỗi biên hay không -
+để nguyên lượt kia và lần gửi của chu kỳ sau; chỉ lệnh hủy đi xuyên qua. Trong lượt thoát, `planAndTrail` bảo vệ
+từng mã một (`trading.exit_holding_failed`, kèm mã và bước): mã đó giữ kế hoạch mà bước bắt đầu từ đó, và lượt
+đi tiếp sang mã kế.
 
 Trước mỗi lượt, `waitUntilReachable` phân giải `example.com` qua bộ phân giải của hệ điều hành (đường
 mà mọi lần tải ra ngoài đều đi). Nếu thất bại, lượt bị bỏ qua: `trading.tick_offline` ghi một lần cho mỗi
@@ -156,7 +165,11 @@ chắc đã tới nơi. Lời gọi bị từ chối không bao giờ được c
 Lượt chạy không bao giờ tới `completed` để nguyên mốc hoàn tất gần nhất; không có phanh thì tác vụ lại
 đến hạn ngay ở nhịp kế tiếp, mãi mãi. Vì vậy mỗi lần hỏng tăng bộ đếm và hoãn lần nhận việc kế tiếp thêm
 `60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút. Một lượt hoàn tất xóa cả hai. Khoảng chờ chặn ở khâu
-nhận việc: tác vụ không bao giờ bị tắt.
+nhận việc: tác vụ không bao giờ bị tắt. Hai đường khác hoãn theo cùng cách qua
+`deferFailedHeartbeatTask` (`heartbeat/lease.ts`): lượt hoàn tất nhưng ghi `completeHeartbeatTask` thất bại
+(`{ kind: 'failed' }`; `lease_lost` giữ nguyên vì đã có bên khác nhận việc), và `runClaimedHeartbeatTask` ném
+lỗi, trừ khi tắt máy đã hủy tín hiệu. Ném lỗi sau khi đã hoàn tất vô hại: ghi lỗi khóa theo token thuê mà
+hoàn tất đã xóa.
 
 ### Hành vi khi hỏng
 

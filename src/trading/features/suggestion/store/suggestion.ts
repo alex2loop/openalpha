@@ -2,12 +2,13 @@ import type {
   CallAction,
   ListCallActionsOptions,
 } from '@/trading/features/suggestion/store/call-actions'
+import type { SuggestionStoreDeps } from '@/trading/features/suggestion/store/readable-row'
 import type { SuggestionPageOptions } from '@/trading/features/suggestion/store/suggestion-list'
 import type {
   ClearRestatedOptions,
   CloseUnscorableOptions,
   CoverageOptions,
-  FocusCount,
+  FocusCall,
   ListResolvedOptions,
   RaiseTrailingStopOptions,
   SuggestionCoverageRow,
@@ -28,12 +29,13 @@ import type { Page, PageOptions } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError } from '@/core/errors'
 import { listCallActions } from '@/trading/features/suggestion/store/call-actions'
+import { readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { listSuggestionPage } from '@/trading/features/suggestion/store/suggestion-list'
 import {
   clearRestated,
   closeUnscorable,
   coverage,
-  listFocusCounts,
+  listFocusCalls,
   listResolved,
   raiseTrailingStop,
   resolveOutcome,
@@ -140,13 +142,13 @@ export interface SuggestionStore {
   closeUnscorable(options: CloseUnscorableOptions): Promise<boolean>
   resolve(id: SuggestionId, outcome: SuggestionOutcome, signal: AbortSignal): Promise<boolean>
   listResolved(options: ListResolvedOptions): Promise<readonly ResolvedActionableSuggestion[]>
-  /** Scored calls and wins per focus, pooled across versions, whatever the row count. */
-  listFocusCounts(signal: AbortSignal): Promise<readonly FocusCount[]>
+  /** Every scored call, pooled across versions, whatever the row count; the caller folds repeats. */
+  listFocusCalls(signal: AbortSignal): Promise<readonly FocusCall[]>
   /** The lean read agreement is measured on: no payload, the newest row per focus, name and day. */
   listCallActions(options: ListCallActionsOptions): Promise<readonly CallAction[]>
 }
 
-export function createSuggestionStore(deps: StoreDeps): SuggestionStore {
+export function createSuggestionStore(deps: SuggestionStoreDeps): SuggestionStore {
   return {
     findCompleted: (identity, signal) => findCompleted(deps, identity, signal),
     findRecentCompleted: (options) => findRecentCompleted(deps, options),
@@ -164,7 +166,7 @@ export function createSuggestionStore(deps: StoreDeps): SuggestionStore {
     closeUnscorable: (options) => closeUnscorable(deps, options),
     resolve: (id, outcome, signal) => resolveOutcome(deps, { id, outcome, signal }),
     listResolved: (options) => listResolved(deps, options),
-    listFocusCounts: (signal) => listFocusCounts(deps, signal),
+    listFocusCalls: (signal) => listFocusCalls(deps, signal),
     listCallActions: (options) => listCallActions(deps, options),
   }
 }
@@ -247,18 +249,26 @@ async function findRecentCompleted(
  *  same way. Excludes a row whose outcome already resolved: once the stop or target has been hit,
  *  those levels are settled history. */
 async function findLatestExitPlan(
-  deps: StoreDeps,
+  deps: SuggestionStoreDeps,
   options: FindLatestExitPlanOptions
 ): Promise<StoredSuggestion | null> {
   assertNotAborted(options.signal)
 
-  const [newest] = await findLatestPlans(deps, options, 1)
+  const newestRows = await findLatestPlanRows(deps, options, 1)
 
-  if (newest === undefined || isExitPlan(newest)) {
-    return newest ?? null
+  if (newestRows.length === 0) {
+    return null
   }
 
-  const recent = await findLatestPlans(deps, options, EXIT_PLAN_LOOKBACK_ROWS)
+  // An unreadable newest row is passed over like a level-less one: the plan under it still stands.
+  const newest = newestRows.flatMap((row) => readableRow(row, toSuggestion, deps.logger))[0]
+
+  if (newest !== undefined && isExitPlan(newest)) {
+    return newest
+  }
+
+  const recentRows = await findLatestPlanRows(deps, options, EXIT_PLAN_LOOKBACK_ROWS)
+  const recent = recentRows.flatMap((row) => readableRow(row, toSuggestion, deps.logger))
 
   return recent.find(isExitPlan) ?? null
 }
@@ -309,11 +319,11 @@ async function findLatestVerdict(
   return row ? toSuggestion(row) : null
 }
 
-async function findLatestPlans(
+async function findLatestPlanRows(
   deps: StoreDeps,
   options: FindLatestExitPlanOptions,
   limit: number
-): Promise<readonly StoredSuggestion[]> {
+): Promise<readonly SuggestionRow[]> {
   const p = deps.dialect.param
   // A restated call keeps its old-basis levels with no return, so it is never a floor either.
   const status =
@@ -321,8 +331,9 @@ async function findLatestPlans(
       ? 'AND (outcome_status IS NULL OR return_pct IS NOT NULL) '
       : 'AND outcome_status IS NULL '
   const since = options.heldSince === undefined ? '' : `AND day >= ${p(4)} `
+
   // One book, one plan: a focus call never stands in for the operator's.
-  const rows = await deps.db.query<SuggestionRow>(
+  return deps.db.query<SuggestionRow>(
     `SELECT * FROM suggestions WHERE market = ${p(1)} AND ticker = ${p(2)} ` +
       `AND focus_key = ${p(3)} AND action IN ('buy', 'hold') ` +
       `${status}${since}ORDER BY created_at DESC LIMIT ${limit}`,
@@ -330,8 +341,6 @@ async function findLatestPlans(
       ? [options.market, options.ticker, DEFAULT_FOCUS_KEY]
       : [options.market, options.ticker, DEFAULT_FOCUS_KEY, options.heldSince]
   )
-
-  return rows.map(toSuggestion)
 }
 
 async function create(
@@ -406,7 +415,7 @@ function buildInsertParams(suggestion: StoredSuggestion): readonly unknown[] {
 }
 
 async function listPendingActionable(
-  deps: StoreDeps,
+  deps: SuggestionStoreDeps,
   options: PageOptions<SuggestionId>
 ): Promise<Page<ActionableStoredSuggestion, SuggestionId>> {
   assertNotAborted(options.signal)
@@ -433,20 +442,7 @@ async function listPendingActionable(
   const page = toPage(rows, options.limit, (row) => suggestionId(row.id))
 
   return {
-    items: page.items.flatMap(readableActionable),
+    items: page.items.flatMap((row) => readableRow(row, toActionable, deps.logger)),
     ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
-  }
-}
-
-/** Only a storage failure is dropped: anything else is a defect here, and belongs on the stack. */
-function readableActionable(row: SuggestionRow): readonly ActionableStoredSuggestion[] {
-  try {
-    return [toActionable(row)]
-  } catch (err: unknown) {
-    if (err instanceof StorageError) {
-      return []
-    }
-
-    throw err
   }
 }

@@ -87,7 +87,8 @@ interface OperandRead {
 
 /** Fills the percentile window's days that no pass ever caught. The live board is only written by a
  *  run that happens after the counter settles, so without this the series holds the handful of
- *  evenings someone happened to refresh. */
+ *  evenings someone happened to refresh. A forced pass re-derives the whole window and replaces
+ *  what is stored, the only way a day the store already holds is corrected. */
 export async function backfillPremium(
   input: PremiumBackfillDeps,
   request: MarketDataRefreshRequest
@@ -95,7 +96,10 @@ export async function backfillPremium(
   const toDay = resolveSettledDay(input.calendar, request.now)
   const fromDay = input.calendar.addTradingDays(toDay, -GOLD_VN_PREMIUM_WINDOW_DAYS)
   const window = { fromDay, toDay }
-  const wanted = await missingDays(input, request, window)
+  const held = await storedDays(input, request, window)
+  const wanted = windowDays(input.calendar, fromDay).filter(
+    (day) => request.forced || !held.has(day)
+  )
 
   if (wanted.length === 0) {
     return EMPTY_PREMIUM_PASS
@@ -107,7 +111,7 @@ export async function backfillPremium(
   if (operands === null) {
     return {
       ...EMPTY_PREMIUM_PASS,
-      missing: wanted,
+      missing: wanted.filter((day) => !held.has(day)),
       attempted: wanted.length,
       fetchFailed: true,
       provenance: read.provenance,
@@ -115,15 +119,40 @@ export async function backfillPremium(
     }
   }
 
+  const days = await deriveDays(input, request, { operands, wanted, held })
+
+  return {
+    ...days,
+    attempted: wanted.length,
+    fetchFailed: false,
+    provenance: read.provenance,
+    caveats: read.caveats,
+  }
+}
+
+interface DerivePlan {
+  readonly operands: Operands
+  readonly wanted: readonly TradingDay[]
+  /** Days the store already holds: a day that cannot be re-derived keeps its stored point and is
+   *  neither missing nor unpublished. */
+  readonly held: ReadonlySet<TradingDay>
+}
+
+async function deriveDays(
+  input: PremiumBackfillDeps,
+  request: MarketDataRefreshRequest,
+  plan: DerivePlan
+): Promise<Pick<PremiumPass, 'written' | 'missing' | 'unpublished'>> {
   const written: TradingDay[] = []
   const missing: TradingDay[] = []
   const unpublished: TradingDay[] = []
 
-  for (const day of wanted) {
-    const premium = premiumOn(input, operands, day)
+  for (const day of plan.wanted) {
+    const premium = premiumOn(input, plan.operands, day)
 
     if (premium !== undefined) {
-      // `wanted` held only days the store lacked, so a refusal means another pass got there first.
+      // Unforced, `wanted` held only days the store lacked, so a refusal means another pass got
+      // there first.
       const stored = await input.deps.marketDataStore.upsertSeriesPoint({
         seriesId: GOLD_VN_PREMIUM_SERIES,
         day,
@@ -140,7 +169,11 @@ export async function backfillPremium(
       continue
     }
 
-    if (isUnpublished(operands, day)) {
+    if (plan.held.has(day)) {
+      continue
+    }
+
+    if (isUnpublished(plan.operands, day)) {
       unpublished.push(day)
       continue
     }
@@ -148,33 +181,24 @@ export async function backfillPremium(
     missing.push(day)
   }
 
-  return {
-    written,
-    missing,
-    unpublished,
-    attempted: wanted.length,
-    fetchFailed: false,
-    provenance: read.provenance,
-    caveats: read.caveats,
-  }
+  return { written, missing, unpublished }
 }
 
-/** The window's trading days with no stored point, oldest first. One store read rather than one per
- *  day: the window is the percentile's, which runs to a hundred sessions. */
-async function missingDays(
+/** The window's days the store already holds a point for. One store read rather than one per day:
+ *  the window is the percentile's, which runs to a hundred sessions. */
+async function storedDays(
   input: PremiumBackfillDeps,
   request: MarketDataRefreshRequest,
   window: DaySpan
-): Promise<readonly TradingDay[]> {
+): Promise<ReadonlySet<TradingDay>> {
   const stored = await input.deps.marketDataStore.listSeriesPoints({
     seriesId: GOLD_VN_PREMIUM_SERIES,
     fromDay: window.fromDay,
     toDay: window.toDay,
     signal: request.signal,
   })
-  const have = new Set(stored.map((point) => point.day))
 
-  return windowDays(input.calendar, window.fromDay).filter((day) => !have.has(day))
+  return new Set(stored.map((point) => point.day))
 }
 
 /** Built by count rather than walked to a bound, so the list is bounded by construction and no loop

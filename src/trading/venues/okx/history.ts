@@ -27,23 +27,31 @@ export async function fetchFilledOrders(
   deps: OkxTransportDeps,
   lookup: FilledOrderLookup
 ): Promise<readonly OrderReceipt[]> {
-  const rows = await privateRequest(deps, {
-    method: 'GET',
-    path: historyPathFor(deps, lookup.since),
-    query: {
-      instType: SPOT_INST_TYPE,
-      instId: lookup.symbol,
-      state: FILLED_STATE,
-      begin: String(lookup.since),
-      limit: String(HISTORY_PAGE_SIZE),
-    },
-    signal: lookup.signal,
-    acceptedCodes: NOT_FOUND_CODES,
-  })
+  const receipts: OrderReceipt[] = []
 
-  return rows
-    .filter((row) => row.side === lookup.side)
-    .flatMap((row) => toReceipt(row, lookup.symbol) ?? [])
+  for (const path of historyPathsFor(deps, lookup.since)) {
+    const rows = await privateRequest(deps, {
+      method: 'GET',
+      path,
+      query: {
+        instType: SPOT_INST_TYPE,
+        instId: lookup.symbol,
+        state: FILLED_STATE,
+        begin: String(lookup.since),
+        limit: String(HISTORY_PAGE_SIZE),
+      },
+      signal: lookup.signal,
+      acceptedCodes: NOT_FOUND_CODES,
+    })
+
+    receipts.push(
+      ...rows
+        .filter((row) => row.side === lookup.side)
+        .flatMap((row) => toReceipt(row, lookup.symbol) ?? [])
+    )
+  }
+
+  return uniqueByOrderId(receipts)
 }
 
 /** What the venue filled across every symbol in the window. The unqualified counterpart of
@@ -57,7 +65,20 @@ export async function listFilledOrders(
   deps: OkxTransportDeps,
   window: FilledOrderWindow
 ): Promise<readonly OrderReceipt[]> {
-  const path = historyPathFor(deps, window.since)
+  const receipts: OrderReceipt[] = []
+
+  for (const path of historyPathsFor(deps, window.since)) {
+    receipts.push(...(await walkRoute(deps, path, window)))
+  }
+
+  return uniqueByOrderId(receipts)
+}
+
+async function walkRoute(
+  deps: OkxTransportDeps,
+  path: string,
+  window: FilledOrderWindow
+): Promise<readonly OrderReceipt[]> {
   const receipts: OrderReceipt[] = []
   let after: string | undefined
 
@@ -124,9 +145,25 @@ function isBehindWindow(rows: readonly OkxRow[], since: number): boolean {
   return stamps.length > 0 && stamps.every((stamp) => stamp < since)
 }
 
-/** The lookback picks the route rather than paging the near one and retrying the far one: a trade
- *  recorded weeks late is only ever in the archive, and one recorded today is only ever in the
- *  recent window the archive lags behind. */
-function historyPathFor(deps: OkxTransportDeps, since: number): string {
-  return deps.now() - since > RECENT_HISTORY_WINDOW_MS ? ORDERS_ARCHIVE_PATH : ORDERS_HISTORY_PATH
+/** A window reaching past the recent route reads the archive as well, never instead: the archive
+ *  lags the recent route, so a fill from today is only ever in the recent one and a trade recorded
+ *  weeks late only ever in the archive. A fill near the seam can sit in both, which
+ *  `uniqueByOrderId` folds. */
+function historyPathsFor(deps: OkxTransportDeps, since: number): readonly string[] {
+  return deps.now() - since > RECENT_HISTORY_WINDOW_MS
+    ? [ORDERS_HISTORY_PATH, ORDERS_ARCHIVE_PATH]
+    : [ORDERS_HISTORY_PATH]
+}
+
+/** The first receipt per order wins, and the recent route is read first. */
+function uniqueByOrderId(receipts: readonly OrderReceipt[]): readonly OrderReceipt[] {
+  const byOrderId = new Map<string, OrderReceipt>()
+
+  for (const receipt of receipts) {
+    if (!byOrderId.has(receipt.orderId)) {
+      byOrderId.set(receipt.orderId, receipt)
+    }
+  }
+
+  return [...byOrderId.values()]
 }

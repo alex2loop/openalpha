@@ -50,7 +50,9 @@ A market that never closes, such as crypto, refreshes at the UTC day rollover. A
 seconds of each other merge into one run.
 
 At boot the first refresh runs before other parts start. It waits up to 60 seconds, then finishes in
-the background with a warning. With no network at boot, the loop waits for it.
+the background with a warning. With no network at boot, the loop waits for it. A provider, storage or
+channel failure in that refresh is a warning (`daemon.boot_refresh_failed`) whether it lands inside the
+60 seconds or after them, and the daemon boots on; any other error stops the boot.
 
 A run that leaves any data kind `unavailable` (nothing fetched at all) retries after 2, 4, 8 and 16
 minutes, never past the next anchor. A fifth failure hands back to the anchor and the ladder starts
@@ -227,6 +229,8 @@ remembered, so the next eligible run retries it.
 
 A run that never finishes (aborted, errored or halted) delays the task's next run by
 `60 s x 2^(failures - 1)`, capped at 30 minutes - the same delay jobs use. A finished run clears it.
+The same delay applies to a finished run whose result could not be saved (a storage error), and to a
+run that throws: neither is allowed to repeat every 30 seconds.
 A task that is backing off is simply not picked: it is never disabled, and nothing is delivered
 while it waits.
 
@@ -237,10 +241,18 @@ while it waits.
 | File unreadable or over the size cap | No run |
 | Task malformed or not due | Dropped or skipped |
 | Engine abort or error | No notification; the failure count goes up and the next run is delayed |
+| Result could not be saved | The run counts as failed: the failure count goes up and the next run is delayed |
 | Invalid reply | Counted as done; nothing is sent |
 | Invalid delivery target | Warning; other targets continue |
 | Notifier rejects a target | Warning; that notification is not remembered |
 | Commitment cap reached | Existing ones kept; the counts are logged |
+
+## When the log file cannot be written
+
+A full or failing disk does not silence the daemon for good. After five writes in a row fail, file
+logging pauses for 30 seconds (one line on stderr says so) and then tries a fresh segment; when a
+write lands again another line on stderr says it recovered. Records that arrive during the pause are
+dropped, and a `fatal` crash line goes to the terminal instead.
 
 ## Run the API on a server
 
@@ -284,7 +296,12 @@ Run the daemon on a server you own and point a client app at it.
      wrong tokens lock out every client that sends a wrong one for 30 seconds, doubling up to an
      hour. A request with the right token is never refused by the lockout and clears it.
 6. **Connect the client.** Give it the address and the token; every request carries the token as
-   `Authorization: Bearer <token>`.
+   `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
+   handshake is refused with 503 `too_many_streams`.
+
+When the daemon stops, the API stops accepting connections and requests first, before the runs drain;
+requests already running finish. A chat or command sent on an open stream is answered with an
+`unavailable` error, a run already going settles in the drain window, and the streams close after it.
 
 Internals: [dev/operations.md](dev/operations.md).
 

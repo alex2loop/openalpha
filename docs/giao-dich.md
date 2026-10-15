@@ -337,6 +337,8 @@ Cỡ lệnh được lập ngân sách trên cắt lỗ lúc vào; chế độ (
 
 Hệ số chế độ của nhóm giảm cỡ cuối cùng, cùng với mức tin cậy và ý định của trader. Một nhận định risk-off nên thu nhỏ lệnh mua kể cả khi tiền mặt không phải trần ràng buộc. `suggestion.size-scaled-by-regime` báo khi chế độ là cái chặt nhất trong ba.
 
+Mọi mã trong một lượt `/suggest` đều được tính cỡ trên cùng cuốn sổ như nó đứng trước lượt đó, nên mỗi lệnh mua tự nó vừa với tiền mặt và phần rủi ro mở còn lại. Sau các kết luận, "Nếu bạn thực hiện mọi đề xuất ở trên" liệt kê những gì hai lệnh mua trở lên cùng vượt: trần ngành hoặc nhóm, số tiền mặt sổ có thể chi (và, khi venue của một thị trường chạm tới ít hơn, tiền mặt của thị trường đó), và phần còn lại dưới trần rủi ro mở. Lệnh bán chưa giải phóng tiền mặt hay rủi ro mở cho tới khi nó settle, nên chỉ lệnh mua được tính. Đó là một ghi chú, không phải lời từ chối; con số rủi ro mở đọc cắt lỗ đã lưu của từng lệnh mua, nên một cắt lỗ đã được nâng theo mức đang nắm khiến nó nghiêng về phía im lặng.
+
 #### Dùng lại trên thị trường không có ranh giới phiên
 
 Một ngày crypto chỉ là quy ước vẽ biểu đồ, nên việc dùng lại tính theo tuổi chứ không theo ngày. Lần chạy lúc 23:00 UTC và lúc 01:00 cách nhau hai giờ, không phải hai ngày. Một dòng trẻ hơn 4 giờ thỏa cổng dù rơi vào ngày nào. Thời gian chờ vẫn đếm theo phiên.
@@ -377,13 +379,13 @@ Một giá in nằm trong biên độ của chính phiên nó. Nếu nến phiê
 - Lệnh bán chốt mục tiêu vào trần kẹt vẫn khớp, vì bên mua xếp hàng ở trần.
 - Lời gọi mà trần chặn suốt cửa sổ đóng là `unfilled`: không giao dịch, không kết quả, nằm ngoài mọi phép đếm có chấm điểm.
 
-**Lệnh mua treo.** Lệnh mua treo khớp ở phiên đầu tiên giao dịch dưới limit của nó (chạm chưa phải khớp), ở giá mở cửa phiên đó nếu phiên mở thấp hơn. Trong ngày của chính lời gọi, chỉ mức dịch từ giá tới giá đóng được tính, vì đáy ngày có thể in trước khi lệnh tồn tại. Limit chưa khớp tới ngày cuối cùng của nó đóng là `unfilled` theo cách tương tự. `/reflect` đếm các lời gọi này riêng khỏi những lời gọi đã diễn ra.
+**Lệnh mua treo.** Lệnh mua treo khớp ở phiên đầu tiên giao dịch dưới limit của nó (chạm chưa phải khớp), ở giá mở cửa phiên đó nếu phiên mở thấp hơn. Trong ngày của chính lời gọi, chỉ mức dịch từ giá tới giá đóng được tính, vì đáy ngày có thể in trước khi lệnh tồn tại. Ở chính phiên khớp, mục tiêu chỉ được tính khi phiên mở thấp hơn limit (khớp lúc mở cửa do giá nhảy); phiên mở bằng hoặc cao hơn limit là khớp giữa chừng, và một nến ngày không nói được đỉnh có in trước hay không, nên mục tiêu được đọc từ phiên kế tiếp. Cắt lỗ vẫn được thử ngay ở phiên khớp, như ở mọi phiên, trước mục tiêu. Limit chưa khớp tới ngày cuối cùng của nó đóng là `unfilled` theo cách tương tự. `/reflect` đếm các lời gọi này riêng khỏi những lời gọi đã diễn ra.
 
 Biên độ được đọc là biên lưu cho phiên đặt lệnh, nên biên ngày đầu rộng hơn của một mã mới niêm yết cũng áp cho các phiên sau, và một khóa trong vài tuần đầu có thể bị bỏ sót.
 
 **Bảng thành tích cho thấy gì.** Nó mở bằng các lời gọi mà nó rút ra: đã có bao nhiêu đề xuất, bao nhiêu đã diễn ra, bao nhiêu còn mở, và bao nhiêu nằm trên thị trường không có chuỗi giá nên không bao giờ chấm được. Rồi nó báo tỷ lệ thắng, lợi suất trung bình và trung vị, phép so chuẩn, và **hiệu chỉnh theo dải mức tin cậy**. Một tỷ lệ không có mẫu số thì không nói lên gì. Nếu các lời gọi tin cậy cao không thắng nhiều hơn lời gọi tin cậy thấp, đó là con số đáng thấy cạnh con số tiêu đề.
 
-Mọi tỷ lệ đếm các lời gọi độc lập. Một lời gọi lặp lại lời gọi còn mở trên cùng mã và cùng chiều thì đi cùng một nhịp, nên được gộp vào lời gọi đầu. Bản tin tái phát hành một ý tưởng đang nắm mỗi phiên, và mỗi dòng nếu không sẽ bị đếm như một kết cục nữa. `/reflect` báo đã gộp bao nhiêu.
+Mọi tỷ lệ đếm các lời gọi độc lập. Một lời gọi lặp lại lời gọi còn mở trên cùng mã và cùng chiều thì đi cùng một nhịp, nên được gộp vào lời gọi đầu. Bản tin tái phát hành một ý tưởng đang nắm mỗi phiên, và mỗi dòng nếu không sẽ bị đếm như một kết cục nữa. `/reflect` báo đã gộp bao nhiêu. Hồ sơ theo phạm vi và theo agent bên dưới gộp cùng cách, trên các lời gọi của riêng từng phạm vi (như `/reflect` đọc một phạm vi), nên một phạm vi chạm mức tối thiểu để báo cáo bằng các lời gọi độc lập và mẫu của nó khớp với điều `/reflect` nói về nó.
 
 `/reflect` cũng nói bạn đã làm gì với các lời gọi đã diễn ra, đọc từ sổ lệnh lúc làm báo cáo và không bao giờ lưu. Một lời gọi được tính là đã làm theo khi có lần khớp cùng chiều trên cùng công cụ nằm giữa phiên đặt lệnh của nó và ngày nó được chấm xong. Nó in hai con số, mỗi con chỉ khi nhóm của nó đạt mức tối thiểu để báo cáo của bảng thành tích:
 
@@ -408,7 +410,7 @@ Mã mà danh sách niêm yết của thị trường vẫn gọi là đang hoạ
 
 `/reflect` cho thấy hồ sơ của chính bạn (chỉ phạm vi `default`), rồi một khối "Theo phạm vi" khi một agent đã gọi dưới phạm vi riêng. Với mỗi phạm vi nó cho thấy:
 
-- các lời gọi đã chốt và tỷ lệ thắng;
+- các lời gọi đã chốt (lời gọi độc lập, như trên) và tỷ lệ thắng;
 - tần suất nó chọn cùng hành động với các phạm vi khác trên cùng mã và ngày;
 - khi nó đi ngược các phạm vi khác và cả hai phía đã được chấm, ai đúng.
 
@@ -450,7 +452,9 @@ Công cụ `suggestion_track_record` trả hồ sơ và độ trùng của phạ
 | Mỗi đề xuất hành động đứng sau một vị thế bạn nắm (cảnh báo thoát) | Cắt lỗ của kế hoạch như đã trail tới hôm nay, và mục tiêu của nó |
 | Mọi mã trong danh sách theo dõi và đang nắm (cảnh báo sàng lọc) | Một dải mỗi bên của giá đóng đã settle |
 
-Thị trường nào khai một trail thì nâng cắt lỗ đã lưu mỗi phiên đã settle. Mức được nâng lên được dựng thành một cảnh báo mới và cảnh báo cũ nghỉ hẳn. Một lần chạy lại `/suggest` trong ngày mà thay một lệnh mua sẽ giữ mức mà trail đã đạt tới khi nó nằm trên cắt lỗ của kế hoạch mới: một mức cắt lỗ không bao giờ đi xuống.
+Thị trường nào khai một trail thì nâng cắt lỗ đã lưu mỗi phiên đã settle. Mức được nâng lên được dựng thành một cảnh báo mới và cảnh báo cũ nghỉ hẳn. Một lần chạy lại `/suggest` trong ngày mà thay một lệnh mua sẽ giữ mức mà trail đã đạt tới khi nó nằm trên cắt lỗ của kế hoạch mới: một mức cắt lỗ không bao giờ đi xuống. Một lần ghi hỏng được thử lại ở nhịp kế tiếp thay vì chờ phiên sau.
+
+Một nhịp cảnh báo gửi cái đến hạn trước, rồi chạy hai lượt dựng, mỗi lượt riêng. Một lượt hỏng được ghi log (`trading.alert_arming_failed`) và lượt kia vẫn chạy, nên cảnh báo giá vẫn được gửi dù các lượt dựng làm gì. Trong lượt thoát, việc lập kế hoạch hỏng ở một mã được ghi log kèm mã đó (`trading.exit_holding_failed`) và mã ấy giữ kế hoạch nó đang có, còn các mã khác vẫn được lập như thường. Chính bước gửi mà hỏng thì vẫn dừng vòng lặp, như trước.
 
 Cả hai lượt đều **đối soát** chứ không nối thêm: tính ra những cảnh báo nào nên tồn tại lúc này, dựng cái còn thiếu, và tắt cái không còn được kỳ vọng. Cảnh báo thoát đi theo cuốn sổ, nên một chỉnh sửa sổ lệnh làm đổi vị thế sẽ bật hoặc tắt cảnh báo ở nhịp kế tiếp. Một dải sàng lọc gắn với ngày settle của nó, nên các dải hôm qua nghỉ hẳn ở nhịp đầu tiên sau lần settle kế tiếp.
 
@@ -510,7 +514,7 @@ Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải 
 
 - `/brief enable 07:30` đặt giờ riêng của bạn.
 - `/brief enable` không kèm giờ thì theo `[trading.briefs] send_time`, nên sửa cấu hình sau này vẫn dời bản tin.
-- Bật lại sau khi bản tin hôm nay đã gửi thì bắt đầu từ ngày mai, và bị từ chối khi một bản tin đang được gửi.
+- Bật lại sau khi bản tin hôm nay đã gửi thì bắt đầu từ ngày mai, và bị từ chối khi một bản tin đang được gửi. Lời từ chối được giữ ngay lúc ghi, nên một lần gửi bắt đầu giữa lúc kiểm tra và lúc bật vẫn giữ quyền của nó và lệnh báo rằng một bản tin đang được gửi.
 - `/brief` đứng một mình hiện bản tin mới nhất, dựng một bản nếu chưa có.
 - `/brief disable` dừng việc gửi.
 
@@ -837,7 +841,7 @@ Cả cuốn sổ là `live` chỉ khi **mọi** vị thế đã định giá đ�
 
 **Lãi/lỗ đã thực hiện** là ngoại lệ. Nó bằng tiền mặt + giá vốn - nạp ròng, nên không có giá nào đi vào nó và nó có mặt cả khi NAV không có. Mọi khoản nạp không phải tiền mặt đang có cũng không phải giá vốn trong một vị thế đang mở thì đã bị tiêu hoặc mất trên một giao dịch đã đóng. Lãi/lỗ chưa thực hiện là biến động trên giấy của những gì bạn vẫn nắm; lãi/lỗ đã thực hiện là phần đã settle và ra đi. Chúng hiện thành hai dòng riêng.
 
-Khi có khoản nắm nào chưa định giá được, NAV bị giữ lại và bản đánh giá mang `portfolio.valuation-partial`. Các phép kiểm theo tỷ trọng tự bỏ qua thay vì chia cho một tổng thiếu. Các phép kiểm loại trừ và thanh khoản vẫn chạy, vì "bạn vẫn nắm thứ nằm trong danh sách loại trừ" đúng bất kể giá.
+Khi có khoản nắm nào chưa định giá được, NAV bị giữ lại và bản đánh giá mang `portfolio.valuation-partial`. Các phép kiểm theo tỷ trọng tự bỏ qua thay vì chia cho một tổng thiếu, và lệnh mua qua `/trade` hay `order_place` bị từ chối vì cùng lý do. Các phép kiểm loại trừ và thanh khoản vẫn chạy, vì "bạn vẫn nắm thứ nằm trong danh sách loại trừ" đúng bất kể giá.
 
 ### Danh mục đã đi thế nào
 
@@ -965,7 +969,7 @@ Một lần khớp đặt qua `/trade` hay `order_place` được ghi vào sổ 
 
 **`/record sync <sàn>`** là cách thứ ba để tạo các dòng đó, và nó đi cùng đường. Nó chỉ khác ở cách chọn: nó hỏi sàn đã khớp gì, rồi ghi những gì cuốn sổ chưa có dòng. Kiểm hợp lệ, phép tính và dòng xác nhận đều dùng chung.
 
-- Một lần khớp được đối chiếu theo order id của chính sàn (`<sàn>:<orderId>`), và theo chính các con số so với một dòng bạn gõ tay. Một lần khớp được để yên khi nó khớp một dòng gõ tay mà chưa lần khớp nào nhận, theo sàn, công cụ, ngày, chiều và khối lượng. Mỗi dòng gõ tay hấp thụ tối đa một lần khớp.
+- Một lần khớp được đối chiếu theo order id của chính sàn (`<sàn>:<orderId>`, cũng là khóa `/trade` ghi lần khớp của chính nó), và theo chính các con số so với một dòng bạn gõ tay. Một lần khớp được để yên khi nó khớp một dòng gõ tay mà chưa lần khớp nào nhận, theo sàn, công cụ, ngày, chiều và khối lượng. Mỗi dòng gõ tay hấp thụ tối đa một lần khớp.
 - Thị trường của mỗi lần khớp được xác định trong các thị trường mà sàn đó giữ, không thị trường nào khác. Khi không với tới được bộ nhận diện nào, danh sách niêm yết của chính sàn trả lời thay, đọc tối đa một lần mỗi lượt, và chỉ khi đúng một thị trường của sàn có thể nhận mã. Một mã mà thị trường nào cũng không niêm yết, hoặc có hai thị trường cùng nhận, thì bị bỏ qua thay vì đoán.
 - Các lần khớp được ghi từ cũ tới mới trên các công cụ. Một mã mà cuốn sổ chỉ nhận được một phần thì không nhận gì cả: nếu một lần sync hỏng hoặc bị hủy giữa chừng, nó rút lại những gì đã ghi của mọi mã chưa xong, nên không bao giờ để lại một vị thế ghi dở. Các dòng mà một lượt trước để lại là của bạn để xóa.
 
@@ -987,7 +991,7 @@ Mọi dòng tiền mặt nêu nơi lưu ký của nó, và một lệnh mua bị
 
 ## Đặt lệnh
 
-**Hãy bắt đầu trên tài khoản demo.** Ở 1.0.2, đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
+**Hãy bắt đầu trên tài khoản demo.** Ở 1.0.3, đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
 
 `/trade` và công cụ `order_place` đặt lệnh spot trên **OKX** hoặc **Binance**: lệnh thị trường và limit, mua và bán, kèm chốt lời/cắt lỗ tùy chọn trên lệnh mua. Mỗi lệnh bị chặn trần trước khi bạn được hỏi, được bạn duyệt trước khi đi ra, và được phản chiếu vào sổ lệnh khi khớp.
 
@@ -1047,7 +1051,9 @@ Bạn đổi tên các biến được ở `credentials` dưới `[trading.venue
 
 Công cụ `order_place` và `order_exits` theo cùng cổng đó, nên một bản cài chưa từng cấu hình sàn thì không có bề mặt đặt lệnh nào.
 
-**Duyệt.** `order_place` hỏi bạn ở mọi lời gọi, không đưa quyết định ghi nhớ, và từ chối thẳng khi chế độ duyệt của lần chạy là `bypass`, trừ khi đặt `[trading.orders] allow_unattended`. Chốt lời hoặc cắt lỗ chỉ đi kèm lệnh mua: `order_place` từ chối khi có trên lệnh bán, giống `/trade`. Lệnh chỉ được tính cỡ và kiểm tra theo giá trực tiếp; khi giá từ sàn chỉ là giá đóng đã lưu hoặc một lần in đã cũ, lệnh được giữ lại kèm một lời nhắn dễ hiểu để bạn thử lại. Lệnh mua làm một mã, một ngành hay một nhóm tài sản vượt mức trần cũng bị `order_place` từ chối, và agent sẽ báo bạn vượt ở đâu; bạn đặt lại bằng `/trade`, nơi mức vượt được hiện ra trước khi bạn xác nhận.
+**Duyệt.** `order_place` hỏi bạn ở mọi lời gọi, không đưa quyết định ghi nhớ, và từ chối thẳng khi chế độ duyệt của lần chạy là `bypass`, trừ khi đặt `[trading.orders] allow_unattended`. Chốt lời hoặc cắt lỗ chỉ đi kèm lệnh mua: `order_place` từ chối khi có trên lệnh bán, giống `/trade`. Lệnh chỉ được tính cỡ và kiểm tra theo giá trực tiếp; khi giá từ sàn chỉ là giá đóng đã lưu hoặc một lần in đã cũ, lệnh được giữ lại kèm một lời nhắn dễ hiểu để bạn thử lại. Lệnh mua làm một mã, một ngành hay một nhóm tài sản vượt mức trần cũng bị `order_place` từ chối, và agent sẽ báo bạn vượt ở đâu; bạn đặt lại bằng `/trade`, nơi mức vượt được hiện ra trước khi bạn xác nhận. Lệnh mua một ETF vào nhóm mà phần ETF không đo được (có khoản nắm ở đó chưa phân loại được) được tính là vượt mọi trần ETF mà nhóm đó đã khai: không kiểm tra được hạn mức thì không cho qua.
+
+Khi đã lưu hồ sơ, lệnh mua bị từ chối (`order.book_unpriced`) lúc còn khoản nắm nào chưa có giá, cả ở `/trade` lẫn `order_place`. Thiếu giá một khoản thì không có tổng, nên không đo được trần vị thế, nhóm hay ETF nào, và một lệnh bỏ qua các trần đó sẽ qua hết. `/portfolio` cho biết đó là mã nào; chạy `/refresh` cho thị trường của mã đó để lấy giá, rồi đặt lại lệnh. Lệnh bán, và lệnh mua khi chưa lưu hồ sơ, không bị giữ lại.
 
 Khi lệnh bị từ chối vì khối lượng (bán nhiều hơn phần đã về, hoặc nhiều hơn phần lệnh chốt lời/cắt lỗ đang treo chưa khóa), con số hiện trong phản hồi `/trade` của bạn nhưng không bao giờ nằm trong những gì agent đọc.
 
@@ -1055,7 +1061,7 @@ Khi lệnh bị từ chối vì khối lượng (bán nhiều hơn phần đã v
 
 - Mỗi lệnh đã dàn dựng có token riêng, được nhận trước khi chạm tới sàn. Một token đã dùng, đã đặt hay đã hết hạn thì bị từ chối, nên một `/trade confirm` trần không bao giờ đặt cùng một lệnh hai lần. Một lệnh đã mang order id hay một lỗi thì không bao giờ được liệt kê là đang chờ `/trade confirm`.
 - Trước khi một lệnh rời đi, một dấu đang-bay được ghi. Nếu tiến trình chết khi sàn đang giữ lệnh, dấu đó vẫn còn, `/trade reconcile` liệt kê nó, và các trần đếm nó cho tới khi nó được chốt. Một lệnh không ghi được dấu này thì không được gửi. Mọi kết cục sau đó thay dấu.
-- Nếu `/record sync` đã ghi lần khớp của một lệnh trong lúc `/trade` còn đang chờ, `/trade` dùng lại dòng đó thay vì ghi dòng thứ hai, nên tiền chỉ bị trừ một lần.
+- `/trade` ghi lần khớp của mình dưới chính order id của sàn, cùng khóa mà `/record sync` dùng, và ghi dòng theo phiên mà lần khớp diễn ra thay vì lúc bạn xác nhận. Bên nào ghi sau sẽ thấy dòng đã có sẵn, ngay trong khóa ghi của sổ lệnh, và không ghi thêm gì, nên tiền chỉ bị trừ một lần dù cả hai chạy cùng lúc. Nếu `/record sync` đã ghi lần khớp trong lúc `/trade` còn đang chờ, `/trade` dùng lại dòng đó.
 - Một lần chạy bị hủy sau khi sàn đã nhận lệnh vẫn đánh dấu lệnh cho `/trade reconcile` và, với lệnh còn treo, cố hủy nó.
 - Một lần chạy bị hủy giữa lúc khớp và lúc ghi sổ để lại một dòng chưa ghi với lý do `order.mirror_aborted`, vẫn bị tính vào các trần và được `/trade reconcile` liệt kê.
 
@@ -1199,7 +1205,7 @@ Mọi lần ghi lên một sàn (xác nhận, lối thoát, hủy) chạy từng
 - Các trần tính trên cả cuốn sổ: tiền mặt chi được và số lệnh đang mở. Hai lần xác nhận chạy cùng lúc sẽ mỗi cái đo một cuốn sổ mà cái kia chưa ghi vào, và cả hai cùng vượt qua một trần mà chỉ một cái được phép.
 - Hai lời gọi `/trade exit` chạy cùng lúc sẽ mỗi cái đọc *không có gì đang treo* và đặt, để lại lối thoát thứ hai mà chốt chặn xung đột sinh ra để ngăn.
 
-Các trần được đọc **lại** bên trong cửa sổ đó. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved` thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý.
+Các trần được đọc **lại** bên trong cửa sổ đó. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved` thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`.
 
 ### 9. Kiểm chứng, theo đúng thứ tự này
 

@@ -23,6 +23,7 @@ import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { agentId, LOCAL_USER_ID } from '@/core/ids'
 import { createPrivateFileAtomic } from '@/core/security/private-files'
+import { sanitizeDisplayText, toSingleLine } from '@/core/utils/text'
 import {
   assertValidAgentToml,
   isValidAgentId,
@@ -282,7 +283,7 @@ async function listAgents(_args: ParsedArgs, app: CliApp): Promise<number> {
 
   for (const agent of agents) {
     app.out(
-      `${style.heading(agent.id)}  ${hint(agent.model)}${pausedMark(locale, paused, agent.id)}`
+      `${style.heading(agent.id)}  ${hint(displayText(agent.model))}${pausedMark(locale, paused, agent.id)}`
     )
 
     for (const line of extra.get(agent.id) ?? []) {
@@ -291,6 +292,12 @@ async function listAgents(_args: ParsedArgs, app: CliApp): Promise<number> {
   }
 
   return 0
+}
+
+// Agent TOML is untrusted (user and plugin files): its free text reaches the terminal only after
+// control characters and escapes are gone, and one value never spans lines.
+function displayText(value: string): string {
+  return toSingleLine(sanitizeDisplayText(value))
 }
 
 function pausedMark(locale: Locale, paused: ReadonlySet<AgentId>, id: AgentId): string {
@@ -313,13 +320,15 @@ async function showAgent(args: ParsedArgs, app: CliApp): Promise<number> {
 
   const paused = await app.resolve('agentPauseStore').list()
 
-  app.out(`${style.heading(agent.id)}  ${hint(agent.model)}${pausedMark(locale, paused, agent.id)}`)
-  app.out(`  ${agent.description ?? t(locale, 'cli.agentNoDescription')}`)
+  const none = t(locale, 'cli.mcpNonePlaceholder')
+
   app.out(
-    `  ${t(locale, 'cli.agentFieldTools')}: ${agent.tools.join(', ') || t(locale, 'cli.mcpNonePlaceholder')}`
+    `${style.heading(agent.id)}  ${hint(displayText(agent.model))}${pausedMark(locale, paused, agent.id)}`
   )
+  app.out(`  ${displayText(agent.description ?? t(locale, 'cli.agentNoDescription'))}`)
+  app.out(`  ${t(locale, 'cli.agentFieldTools')}: ${displayText(agent.tools.join(', ')) || none}`)
   app.out(
-    `  ${t(locale, 'cli.agentFieldDelegates')}: ${agent.delegates.join(', ') || t(locale, 'cli.mcpNonePlaceholder')}`
+    `  ${t(locale, 'cli.agentFieldDelegates')}: ${displayText(agent.delegates.join(', ')) || none}`
   )
   app.out(`  ${t(locale, 'cli.agentFieldMaxTurns')}: ${agent.maxTurns}`)
 

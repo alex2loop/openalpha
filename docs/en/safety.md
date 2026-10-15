@@ -211,7 +211,9 @@ Everything written under the data directory is private to you: directories `0700
 That covers provider tokens, agent and skill files, plugin installs, logs, scratch directories,
 `db export` output and database backups. A backup holds every session, memory and ledger row, so it
 never inherits a umask that leaves it readable by others. Files appear by atomic rename with the
-mode set *before* the rename, so nobody sees a partial or permissive file. Windows has no mode bits:
+mode set *before* the rename, so nobody sees a partial or permissive file. A backup is the one file
+written by the database itself, so it is written inside a private `0700` staging folder and moved
+out only when complete. Windows has no mode bits:
 there the data directory sits in your user profile (`%USERPROFILE%\.openalpha`), whose access list
 already keeps other accounts out.
 
@@ -238,10 +240,13 @@ can reach.
 
 Tool output is normalised before it re-enters the model's context:
 
-1. ANSI sequences removed, credentials scrubbed.
+1. ANSI sequences removed, credentials scrubbed. The whole result is scrubbed before any cut, so a
+   key block cannot be split and left half exposed. A result over 4 MiB (only a remote MCP server can
+   send one) is dropped unread and replaced with a one-line note.
 2. Prompt-injection patterns detected **before** arrays are compacted or the size cap applies.
 3. Arrays normalised and output capped - 32 KB in a chat run, 64 KB for a served MCP call whose
-   client budgets its own context - keeping the head and tail of anything longer.
+   client budgets its own context - keeping the head and tail of anything longer. The cap counts the
+   text as the model receives it, escaped and inside its wrapper, not the raw text.
 4. Suspicious content gets an in-band security notice.
 5. The result is wrapped as a tool result, so the model treats it as data.
 
@@ -412,6 +417,7 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 | `order.below_minimum` | Quantity below the exchange minimum. | Raise the size. |
 | `order.unfilled` | Did not fill in time and was cancelled. | Place again if you still want it. |
 | `order.book_moved` | Another order went out while this one waited, so the caps no longer allow it. | Check the book and place again. |
+| `order.book_unpriced` | A holding in your book has no price right now, so the caps cannot be checked against it. | `/portfolio` names the holding; `/refresh` its market, then place again. |
 | `order.approval_bypassed` | Orders need an approval prompt, and this session bypassed it. | Run it in a `manual` session, or also set `[trading.orders] allow_unattended`. |
 | `order.buying_halted` | Buying is switched off (`/trade halt`). Sells and exits still go out. | Only you can switch buying back on. |
 | `order.sell_unsettled` | Only the settled part of the position can be sold today. | The message gives the quantity sellable now; wait for the rest. |

@@ -186,6 +186,10 @@ The daemon applies retention once at startup and then on a schedule. `db cleanup
 counts. `--older-than` is required, overrides the general window for that command only and must be
 at least `1d`. Inbox entries still use `inbox_days`, and `llm_attempts` keeps its own 400 days.
 
+Each kind of data is pruned in its own transaction. A kind that fails or runs slow is logged as
+`retention.scope_failed` and counted as zero, the other kinds are still pruned, and its rows wait for
+the next sweep.
+
 ### Export and import
 
 ```bash
@@ -243,7 +247,9 @@ openalpha db restore /safe/place/runtime.sqlite --yes
 
 **Backup** writes a consistent snapshot while the database is live and sets it to `0600`, wherever
 `--path` points. It holds every session, memory and ledger row, so it is never readable by the group
-or everyone. Automatic backup destinations keep the seven newest files. `--path` refuses a file that
+or everyone, not even while it is being written: the copy is made in a private `0700` staging folder
+next to the target and moved into place when it is complete. A crash can leave a `.staging-` folder
+behind; the automatic backups folder clears it on the next backup, anywhere else delete it by hand. Automatic backup destinations keep the seven newest files. `--path` refuses a file that
 already exists unless you pass `--force`.
 
 **Restore** needs the daemon stopped. It first checks that the source opens as a SQLite database and

@@ -323,7 +323,10 @@ openalpha skill list
 openalpha skill install <source>
 ```
 
-Plugin and skill installs validate ids, paths and source trust. An agent run sees only the read-only
+Plugin and skill installs validate ids, paths and source trust. A plugin takes its `id` from its
+`plugin.toml`; without one, a plugin from a git URL takes the repository name (without `.git`) and a
+local folder takes its own name, so installing the same source again replaces the plugin instead of
+adding a copy. An agent run sees only the read-only
 `skill_view` tool; package management stays on the CLI.
 
 ### Pausing agents

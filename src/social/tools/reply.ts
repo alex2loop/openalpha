@@ -35,13 +35,20 @@ const REFUSAL_KEYS: Readonly<Record<Refusal, MessageKey>> = Object.freeze({
  *  so it is never wrapped here. */
 export function renderSocialReply(locale: Locale, reply: SocialReply): ToolResult {
   if (reply.kind === 'text') {
-    return { content: reply.text, isError: false }
+    return { content: [reply.text, ...maybeLiveLines(locale, reply)].join('\n\n'), isError: false }
   }
 
   return {
     content: t(locale, REFUSAL_KEYS[reply.refusal], toLocalizedParams(locale, reply.params)),
     isError: reply.refusal !== 'drafted',
   }
+}
+
+/** What the model and the operator must read after a write the network never confirmed. */
+export function maybeLiveLines(locale: Locale, reply: SocialReply): readonly string[] {
+  return reply.kind === 'text' && reply.maybeLive === true
+    ? [t(locale, 'toolErrors.socialMayBeLive')]
+    : []
 }
 
 /** A draft's `reason` travels as its stored word (`outside-link`); the model reads it in words. */

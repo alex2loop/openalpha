@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { Transaction } from '@/core/types/storage'
+import type { SuggestionStoreDeps } from '@/trading/features/suggestion/store/readable-row'
 import type { SuggestionRow } from '@/trading/features/suggestion/store/suggestion-row'
 import type {
   ResolvedActionableSuggestion,
@@ -9,15 +10,17 @@ import type {
   SuggestionId,
   SuggestionOutcome,
 } from '@/trading/features/suggestion/types'
-import type { UnscoredStatus } from '@/trading/kernel/conviction'
-import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
+import type { SuggestionAction, UnscoredStatus } from '@/trading/kernel/conviction'
+import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
-import { assertNotAborted, StorageError } from '@/core/errors'
+import { assertNotAborted } from '@/core/errors'
+import { readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { toResolved } from '@/trading/features/suggestion/store/suggestion-row'
 import { framedDirectionOf, planStopOf } from '@/trading/features/suggestion/types'
-import { UNFILLED_STATUS } from '@/trading/kernel/conviction'
-import { marketRef } from '@/trading/kernel/instrument'
+import { SUGGESTION_ACTIONS, UNFILLED_STATUS } from '@/trading/kernel/conviction'
+import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
+import { toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson } from '@/trading/kernel/store/store-row'
 
 /** The stored object as written, merged into rather than parsed: the read-time degradations of a
@@ -225,22 +228,8 @@ export async function resolveOutcome(
   })
 }
 
-/** An unreadable row leaves the record rather than failing the whole read, as the pending reader
- *  does. Only a storage failure is dropped: anything else is a defect here. */
-function readableResolved(row: SuggestionRow): readonly ResolvedActionableSuggestion[] {
-  try {
-    return [toResolved(row)]
-  } catch (err: unknown) {
-    if (err instanceof StorageError) {
-      return []
-    }
-
-    throw err
-  }
-}
-
 export async function listResolved(
-  deps: StoreDeps,
+  deps: SuggestionStoreDeps,
   options: ListResolvedOptions
 ): Promise<readonly ResolvedActionableSuggestion[]> {
   assertNotAborted(options.signal)
@@ -290,41 +279,51 @@ export async function listResolved(
     params
   )
 
-  return rows.flatMap(readableResolved)
+  return rows.flatMap((row) => readableRow(row, toResolved, deps.logger))
 }
 
-/** How one focus's scored calls resolved. */
-export interface FocusCount {
+/** One scored call as the focus record reads it: no payload, only what the fold and the win
+ *  count need. */
+export interface FocusCall {
   readonly focusKey: FocusKey
-  readonly resolvedCount: number
-  readonly winCount: number
+  readonly instrument: InstrumentRef
+  readonly at: TradingDay
+  readonly action: SuggestionAction
+  readonly outcome: { readonly exitDay: TradingDay; readonly returnPct: number }
 }
 
-/** The rows `listResolved` reads, pooled across versions, counted per focus in SQL so no row limit
- *  can cut a busy book short. A win is `return_pct > 0`, which mirrors `isWinningReturn`. */
-export async function listFocusCounts(
+interface FocusCallRow {
+  readonly focus_key: string
+  readonly market: string
+  readonly ticker: string
+  readonly day: string
+  readonly action: string
+  readonly exit_day: string
+  readonly return_pct: number
+}
+
+/** The scored calls `listResolved` reads, pooled across versions, with no row limit so a busy book
+ *  is never cut short. Only the columns the fold reads leave the table; the caller folds repeats
+ *  with `independentCalls`, the one owner of that rule. */
+export async function listFocusCalls(
   deps: StoreDeps,
   signal: AbortSignal
-): Promise<readonly FocusCount[]> {
+): Promise<readonly FocusCall[]> {
   assertNotAborted(signal)
 
-  const rows = await deps.db.query<{
-    readonly focus_key: string
-    readonly resolved_count: number
-    readonly win_count: number
-  }>(
-    'SELECT focus_key, COUNT(*) AS resolved_count, ' +
-      'SUM(CASE WHEN return_pct > 0 THEN 1 ELSE 0 END) AS win_count ' +
-      `FROM suggestions WHERE ${SCORED_SQL} AND ${LATEST_OF_SAME_CALL_SQL} GROUP BY focus_key`,
+  const rows = await deps.db.query<FocusCallRow>(
+    'SELECT focus_key, market, ticker, day, action, exit_day, return_pct ' +
+      `FROM suggestions WHERE ${SCORED_SQL} AND exit_day IS NOT NULL AND ${LATEST_OF_SAME_CALL_SQL}`,
     []
   )
 
   return rows.map((row) => ({
     // why-safe: the column only ever holds `focusKey()` output.
     focusKey: row.focus_key as FocusKey,
-    // Postgres returns COUNT and SUM as bigints, which arrive as strings.
-    resolvedCount: Number(row.resolved_count),
-    winCount: Number(row.win_count),
+    instrument: { market: marketRef(row.market), ticker: brandTicker(row.ticker) },
+    at: tradingDay(row.day),
+    action: toMember<SuggestionAction>(row.action, SUGGESTION_ACTIONS, 'suggestion action'),
+    outcome: { exitDay: tradingDay(row.exit_day), returnPct: row.return_pct },
   }))
 }
 

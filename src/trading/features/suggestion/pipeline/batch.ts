@@ -4,6 +4,7 @@ import type {
   SuggestionBatchResult,
 } from '@/trading/features/suggestion/batch-types'
 import type {
+  OpenRisk,
   SuggestionPortfolioContext,
   SuggestionPortfolioReader,
   SuggestionRunDeps,
@@ -11,12 +12,14 @@ import type {
 import type { SuggestionRequest, SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { DebateMode } from '@/trading/kernel/config'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
-import { isAbortError } from '@/core/errors'
+import { isAbortError, StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { createBudgetSlicesWithin } from '@/engine/api'
 import { AGENT_BUDGET_FRACTION } from '@/trading/features/suggestion/debate/debate'
 import { breachedSleeves } from '@/trading/features/suggestion/pipeline/exposure'
+import { openRiskOf } from '@/trading/features/suggestion/pipeline/open-risk'
+import { overcommittedBook } from '@/trading/features/suggestion/pipeline/overcommit'
 import { runSuggestion } from '@/trading/features/suggestion/pipeline/suggestion'
 import { DEBATE_MODE_ROLES } from '@/trading/kernel/config'
 import { isBookFocus } from '@/trading/kernel/operator/focus'
@@ -58,21 +61,52 @@ export async function runSuggestionBatch(
   )
   options.budget.charge(decisionSpend(results))
 
-  // A second opinion is never an order against the book, so it has no sleeve to breach.
-  const breaches = isBookFocus(options.focus)
-    ? await breachedSleeves({
-        results,
-        markets: input.deps.markets,
-        readContext: () =>
-          deps.portfolio.read({
-            now: options.now,
-            signal: options.signal,
-            segments: options.segments,
-          }),
-      })
-    : []
+  return { results, ...(await batchExposure(deps, options, results)) }
+}
 
-  return { results, breaches }
+/** The facts about the set that no row carries: the sleeves its buys cross together, and the cash
+ *  and open-risk room they spend past. Advisory both ways. A second opinion is never an order
+ *  against the book, so it has neither. */
+async function batchExposure(
+  deps: SuggestionRunDeps,
+  options: SuggestionBatchOptions,
+  results: readonly SuggestionRunResult[]
+): Promise<Pick<SuggestionBatchResult, 'breaches' | 'overcommit'>> {
+  if (!isBookFocus(options.focus)) {
+    return { breaches: [], overcommit: [] }
+  }
+
+  const readContext = (): Promise<SuggestionPortfolioContext> =>
+    deps.portfolio.read({ now: options.now, signal: options.signal, segments: options.segments })
+  const breaches = await breachedSleeves({ results, markets: deps.markets, readContext })
+  const overcommit = await overcommittedBook({
+    results,
+    markets: deps.markets,
+    readContext,
+    readOpenRisk: (context) => readOpenRisk(deps, options.signal, context),
+  })
+
+  return { breaches, overcommit }
+}
+
+/** The ceilings the batch is weighed against are advisory, so an outage reading the plans of the
+ *  held names costs that one finding and never the verdicts the items already produced. */
+async function readOpenRisk(
+  deps: SuggestionRunDeps,
+  signal: AbortSignal,
+  context: SuggestionPortfolioContext
+): Promise<OpenRisk | undefined> {
+  try {
+    return await openRiskOf({ store: deps.store, signal }, context)
+  } catch (err: unknown) {
+    if (!(err instanceof StorageError)) {
+      throw err
+    }
+
+    deps.logger.warn('trading.batch_open_risk_unread', { err: formatErrForLog(err) })
+
+    return undefined
+  }
 }
 
 /** A persist outage (or any other post-guard throw) is that item's own result, never a synthesized

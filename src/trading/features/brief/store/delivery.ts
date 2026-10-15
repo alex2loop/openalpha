@@ -77,10 +77,14 @@ interface ReleaseDeliveryOptions {
 
 export interface BriefDeliveryStore {
   /** Enabling twice replaces the schedule rather than failing: there is one row to hold it, and an
-   *  operator re-running `/brief enable 07:30` means the new time, not a conflict. */
-  /** Scheduled in, scheduled out: the row is re-read after the upsert, and a concurrent disable is
-   *  an error rather than a delivery to report. */
-  enable(delivery: ScheduledBriefDelivery, signal: AbortSignal): Promise<ScheduledBriefDelivery>
+   *  operator re-running `/brief enable 07:30` means the new time, not a conflict. `null` when a
+   *  tick holds the row's lease: the write is refused in SQL, so the claim keeps it, as
+   *  `reschedule` does. Scheduled in, scheduled out: the row is re-read after the upsert, and a
+   *  concurrent disable is an error rather than a delivery to report. */
+  enable(
+    delivery: ScheduledBriefDelivery,
+    signal: AbortSignal
+  ): Promise<ScheduledBriefDelivery | null>
   find(signal: AbortSignal): Promise<BriefDelivery | null>
   /** Moves a still-scheduled row to a new send time, in one guarded write. False when the row is no
    *  longer scheduled: a tick that claimed it keeps its lease. */
@@ -119,21 +123,25 @@ export function createBriefDeliveryStore(deps: StoreDeps): BriefDeliveryStore {
 }
 
 /** An upsert, not an insert-or-conflict: re-enabling re-arms the one row from whatever state it
- *  was in, including `disabled`, and clears the retry state that state carried. */
+ *  was in, including `disabled`, and clears the retry state that state carried. Except `delivering`:
+ *  clearing that lease mid-send would let the day be sent again, so the conflict update does not
+ *  apply to it. The table is named in the guard because `state` alone is ambiguous with `excluded`
+ *  on Postgres. */
 async function enable(
   deps: StoreDeps,
   delivery: ScheduledBriefDelivery,
   signal: AbortSignal
-): Promise<ScheduledBriefDelivery> {
+): Promise<ScheduledBriefDelivery | null> {
   assertNotAborted(signal)
 
-  await deps.db.execute(
+  const result = await deps.db.execute(
     `${UPSERT_SQL}(${deps.dialect.paramList(9)}) ON CONFLICT (id) DO UPDATE SET ` +
       'region = excluded.region, ' +
       'channel = excluded.channel, chat_id = excluded.chat_id, send_time = excluded.send_time, ' +
       'state = excluded.state, next_delivery_day = excluded.next_delivery_day, ' +
       'next_due_at = excluded.next_due_at, attempts = 0, delivery_day = NULL, ' +
-      'lease_token = NULL, lease_until = NULL, last_error_code = NULL, disabled_at = NULL',
+      'lease_token = NULL, lease_until = NULL, last_error_code = NULL, disabled_at = NULL ' +
+      "WHERE brief_delivery.state <> 'delivering'",
     [
       DELIVERY_ROW_ID,
       delivery.region,
@@ -146,6 +154,10 @@ async function enable(
       0,
     ]
   )
+
+  if (result.changes === 0) {
+    return null
+  }
 
   const stored = await find(deps, signal)
 

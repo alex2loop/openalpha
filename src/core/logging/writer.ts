@@ -17,9 +17,12 @@ import { createPendingLogQueue } from './queue'
 
 const LOG_FILE_MODE = 0o600
 // A failed write drops its record and reopens a fresh segment for the next one; past this many in a
-// row the destination is treated as gone, so a dead disk neither spins nor litters empty segments.
+// row the destination is treated as gone for a cooldown, so a dead disk neither spins nor litters
+// empty segments and a transient fault does not silence the process for good.
 const MAX_CONSECUTIVE_WRITE_FAILURES = 5
-const RUNTIME_FAILURE_TEXT = 'Logging destination unavailable; further file logs were dropped.\n'
+const OUTAGE_COOLDOWN_MS = 30_000
+const OUTAGE_TEXT = 'Logging destination unavailable; file logs are dropped until it recovers.\n'
+const RECOVERED_TEXT = 'Logging destination recovered; file logging resumed.\n'
 const WRITE_FAILURE_TEXT = 'Log write failed; the record was dropped and logging will retry.\n'
 const ROTATION_FAILURE_TEXT =
   'Log rotation failed; the current segment keeps growing past its size cap.\n'
@@ -58,10 +61,10 @@ export class AsyncLogWriter {
   #generation = 0
   #inFlightWrites = 0
   #accepting = true
-  #failed = false
   #closed = false
   #closeWhenIdle = false
-  #fallbackWritten = false
+  #retryAt: number | null = null
+  #outageReported = false
   #rotationWarned = false
   #writeFailureWarned = false
   #consecutiveWriteFailures = 0
@@ -75,7 +78,7 @@ export class AsyncLogWriter {
   destination(): OwnedLogDestination {
     return {
       stream: { write: (msg) => this.enqueue(msg) },
-      isAvailable: () => this.isCurrent(this.#generation) && this.#accepting,
+      isAvailable: () => this.isCurrent(this.#generation) && this.#accepting && !this.isInOutage(),
       stopWrites: () => {
         this.#accepting = false
       },
@@ -86,7 +89,7 @@ export class AsyncLogWriter {
   }
 
   enqueue(msg: string): void {
-    if (!(this.#accepting && this.isCurrent(this.#generation))) {
+    if (!(this.#accepting && this.isCurrent(this.#generation)) || this.isInOutage()) {
       return
     }
 
@@ -102,7 +105,7 @@ export class AsyncLogWriter {
       buffer = Buffer.from(msg)
     } catch {
       this.#queue.release(bytes)
-      this.fail()
+      this.beginOutage()
       return
     }
 
@@ -209,20 +212,21 @@ export class AsyncLogWriter {
     this.#accepting = false
     this.#closed = true
     this.#generation += 1
-
-    if (this.#inFlightWrites > 0) {
-      this.#closeWhenIdle = true
-      return
-    }
-
-    this.closeOwnedFd()
+    this.releaseFdWhenIdle()
   }
 
   private async writeRecord(buffer: Buffer): Promise<void> {
     const generation = this.#generation
 
-    if (!this.isCurrent(generation)) {
+    if (!this.isCurrent(generation) || this.isInOutage()) {
       return
+    }
+
+    // The first record after the cooldown is a probe on a fresh segment: one more failure and the
+    // outage starts over, so a dead disk costs one record per cooldown.
+    if (this.#retryAt !== null) {
+      this.#retryAt = null
+      this.#consecutiveWriteFailures = MAX_CONSECUTIVE_WRITE_FAILURES - 1
     }
 
     if (this.#state.fd === null) {
@@ -246,20 +250,21 @@ export class AsyncLogWriter {
     if (this.isCurrent(generation)) {
       this.#state.size += buffer.length
       this.#consecutiveWriteFailures = 0
+      this.reportRecovery()
     }
   }
 
   // The record is lost either way; the segment may hold a torn line, so the next record starts a
   // new one instead of appending after it.
   private recoverFromWriteFailure(): void {
-    if (this.#closed || this.#failed) {
+    if (this.#closed || this.isInOutage()) {
       return
     }
 
     this.#consecutiveWriteFailures += 1
 
     if (this.#consecutiveWriteFailures >= MAX_CONSECUTIVE_WRITE_FAILURES) {
-      this.fail()
+      this.beginOutage()
       return
     }
 
@@ -435,17 +440,42 @@ export class AsyncLogWriter {
   }
 
   private isCurrent(generation: number): boolean {
-    return !(this.#closed || this.#failed) && generation === this.#generation
+    return !this.#closed && generation === this.#generation
   }
 
-  private fail(): void {
-    this.#failed = true
-    this.forceClose()
+  private isInOutage(): boolean {
+    return this.#retryAt !== null && performance.now() < this.#retryAt
+  }
 
-    if (!this.#fallbackWritten) {
-      this.#fallbackWritten = true
-      emitStderr(RUNTIME_FAILURE_TEXT)
+  // No timer: the cooldown is read off the clock when a record arrives, so nothing outlives close().
+  // Records drop until it ends; the stderr report is once per outage, not once per failed retry.
+  private beginOutage(): void {
+    this.#retryAt = performance.now() + OUTAGE_COOLDOWN_MS
+    this.#generation += 1
+    this.releaseFdWhenIdle()
+
+    if (!this.#outageReported) {
+      this.#outageReported = true
+      emitStderr(OUTAGE_TEXT)
     }
+  }
+
+  private reportRecovery(): void {
+    if (!this.#outageReported) {
+      return
+    }
+
+    this.#outageReported = false
+    emitStderr(RECOVERED_TEXT)
+  }
+
+  private releaseFdWhenIdle(): void {
+    if (this.#inFlightWrites > 0) {
+      this.#closeWhenIdle = true
+      return
+    }
+
+    this.closeOwnedFd()
   }
 }
 

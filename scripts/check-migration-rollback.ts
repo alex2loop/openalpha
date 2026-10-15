@@ -20,6 +20,7 @@ const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
 const ANSWER_MIGRATION_ID = '2026_10_11_101208_add_channel_inbox_answer'
+const RETRY_AT_MIGRATION_ID = '2026_10_15_182559_add_channel_inbox_retry_at'
 const FTS_MIGRATION_ID = '2026_10_10_123605_memory_fts_update_columns'
 const INITIAL_MIGRATION_ID = '2026_07_10_000001_initial_schema'
 const ORPHAN_MIGRATION_ID = '9999_12_31_235958_removed_extension'
@@ -80,10 +81,10 @@ async function updateTriggerSql(db: Storage): Promise<string> {
   return rows[0]?.sql ?? ''
 }
 
-async function hasInboxAnswer(db: Storage): Promise<boolean> {
+async function hasInboxColumn(db: Storage, column: string): Promise<boolean> {
   const rows = await db.query<{ readonly name: string }>(
     'SELECT name FROM pragma_table_info(?1) WHERE name = ?2',
-    ['channel_inbox', 'answer']
+    ['channel_inbox', column]
   )
   return rows.length === 1
 }
@@ -120,13 +121,21 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
-    assertState(await hasInboxAnswer(db), 'answer migration did not add the inbox column')
+    assertState(await hasInboxColumn(db, 'retry_at'), 'retry_at migration did not add the column')
+    const retryAtRolledBack = await rollbackMigration(db, sqliteDialect, {
+      expectedId: RETRY_AT_MIGRATION_ID,
+      logger: silentLogger,
+    })
+    assertState(retryAtRolledBack.kind === 'rolled_back', 'retry_at rollback did not complete')
+    assertState(!(await hasInboxColumn(db, 'retry_at')), 'retry_at rollback retained the column')
+
+    assertState(await hasInboxColumn(db, 'answer'), 'answer migration did not add the inbox column')
     const answerRolledBack = await rollbackMigration(db, sqliteDialect, {
       expectedId: ANSWER_MIGRATION_ID,
       logger: silentLogger,
     })
     assertState(answerRolledBack.kind === 'rolled_back', 'answer rollback did not complete')
-    assertState(!(await hasInboxAnswer(db)), 'answer rollback retained the inbox column')
+    assertState(!(await hasInboxColumn(db, 'answer')), 'answer rollback retained the inbox column')
 
     assertState(
       (await updateTriggerSql(db)).includes('UPDATE OF'),
@@ -162,7 +171,7 @@ async function main(): Promise<void> {
       'initial migration did not block rollback'
     )
 
-    assertState((await migrate(db, sqliteDialect, { logger: silentLogger })) === 3, 're-up failed')
+    assertState((await migrate(db, sqliteDialect, { logger: silentLogger })) === 4, 're-up failed')
     assertState(await hasTable(db, TRADING_TABLE), 're-up did not restore trading schema')
 
     await db.execute('INSERT INTO _migrations (id, applied_at) VALUES (?1, ?2)', [

@@ -53,6 +53,7 @@ type OrderErrorCode =
   | 'order.unpriced_fill'
   | 'order.unmirrorable'
   | 'order.book_moved'
+  | 'order.book_unpriced'
   | 'order.exit_oversized'
   | 'order.exit_unsupported'
   | 'order.exit_not_amendable'
@@ -193,9 +194,9 @@ export interface PrepareInput {
 export interface StageOrderInput {
   readonly request: OrderRequest
   readonly prepared: PreparedOrder
-  /** The surface's identity for this intent: the confirmation token, the exchange's
-   *  `clientOrderId` once hashed, and the ledger's idempotency key are all derived from this one
-   *  value. */
+  /** The surface's identity for this intent: the confirmation token and the exchange's
+   *  `clientOrderId` once hashed are both derived from this one value. The ledger row is keyed by
+   *  the venue's order id instead, once the exchange has named one. */
   readonly token: string
   readonly now: number
   readonly signal: AbortSignal

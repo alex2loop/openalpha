@@ -210,7 +210,7 @@ async function prepare(
   const market = resolution.market
   const asOf = resolveDay(market, request.now)
   const [context, factors, events] = await readRunInputs(options, resolution, asOf)
-  const openRisk = await openRiskOf(options, context)
+  const openRisk = await openRiskOf({ store: options.deps.store, signal: request.signal }, context)
   const calendar = toDraftCalendar(events, resolution.instrument, asOf)
   const horizon = runHorizon(request.focus, context.profile, market.manifest.segment)
   const direction = directionOf(resolution, {

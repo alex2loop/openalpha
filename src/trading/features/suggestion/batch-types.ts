@@ -68,10 +68,23 @@ export interface SuggestionBatchRequest {
   readonly progress?: StageReporter
 }
 
+/** A budget the batch's buys would spend past together, though each was sized to fit it alone:
+ *  every item sizes against the same pre-batch cash and open-risk room. Weights are fractions of
+ *  NAV, as in `SleeveBreach`. */
+export interface BatchOvercommit {
+  readonly kind: 'cash' | 'open-risk'
+  /** Cash only: set when the shortfall is what one market's venues can reach, not the whole
+   *  book's spendable cash. */
+  readonly market?: MarketRef
+  readonly needPctNav: number
+  readonly availablePctNav: number
+}
+
 /** What one batch produced: a verdict per name, and the ceilings every one of those calls taken
  *  together would cross. Batch-scoped and never stored — a breach is a fact about the set, and a
  *  row re-read alone was never part of one. */
 export interface SuggestionBatchResult {
   readonly results: readonly SuggestionRunResult[]
   readonly breaches: readonly SleeveBreach[]
+  readonly overcommit: readonly BatchOvercommit[]
 }

@@ -23,7 +23,8 @@ blocked call never reaches the executor.
   `scheduler` and `delegated` scopes, and any `oneTime` call, get `['deny', 'once']`; `session`
   and `mcp` get all three. Every approval surface (CLI, channels, MCP form, server WS) calls it, so
   no surface shows a button the gate refuses.
-- **Key.** `approvalKeyFor(call)` is `<tool>:<command with scrubbed args>` for `shell` tools,
+- **Key.** `approvalKeyFor(call)` is `<tool>:<sha256 of [command, ...args], unscrubbed>` for `shell`
+  tools (no secret kept in clear, and `["a b"]` differs from `["a", "b"]`),
   `<tool>:<sha256 of canonical input>` for external tools, and the tool name for the rest. The
   session manager stores keys per session in process memory only.
 - **Dedup.** Identical pending calls in one run share one prompt, keyed
@@ -105,7 +106,7 @@ failures. Every code in `OrderErrorCode` sits in one of two groups.
 
 **The book is untouched:** `order.auth`, `order.network`, `order.rate_limited`, `order.insufficient`,
 `order.rejected`, `order.clock_skew`, `order.below_minimum`, `order.exit_inverted`,
-`order.exit_oversized`, `order.book_moved`, `order.sell_unsettled`, `order.sell_guarded`,
+`order.exit_oversized`, `order.book_moved`, `order.book_unpriced`, `order.sell_unsettled`, `order.sell_guarded`,
 `order.no_position`, `order.exit_conflict`, `order.approval_bypassed`, `order.buying_halted`,
 `order.unfilled`, `order.exit_not_amendable`, `order.venue_unavailable`, `order.venue_ambiguous`,
 `order.venue_unreachable`.

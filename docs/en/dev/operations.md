@@ -38,7 +38,9 @@ A continuous market has no open and anchors on the UTC day rollover alone. Ancho
 merge into one pass.
 
 Boot runs the first refresh before the other subsystems start, waits up to 60 s, then lets it finish
-in the background with a warning. The loop's own first tick follows: it joins a boot sweep still in
+in the background with a warning. A boundary failure (`isBoundaryFailure`) from it warns as
+`daemon.boot_refresh_failed` on either side of the 60 s and boot continues; any other error is fatal,
+thrown to the caller inside the budget and through the daemon task tracker after it. The loop's own first tick follows: it joins a boot sweep still in
 flight, and after a boot with no network it is the pass that waits for the network and enters the
 retry ladder.
 
@@ -60,6 +62,13 @@ Quarantine (`withQuarantine`) logs `trading.loop_quarantined` at error and sends
 notice that names the loop. It restarts the loop after one hour, at most three times. A loop that ran
 a full day before failing again gets its restart count back; otherwise the next failure leaves it
 stopped until the daemon restarts, and the notice says so. Other loops and channels are unaffected.
+
+The alert loop is one tick of three steps: delivery (`alerts.tick`), then the exit arming pass, then the
+screener arming pass. Delivery is classified as above. Each arming pass runs under its own guard
+(`trading.alert_arming_failed` at warn, naming the step), so any failure in one - boundary or not - leaves
+the other and the next interval's delivery untouched; only an abort passes through. Inside the exit pass
+`planAndTrail` guards one holding at a time (`trading.exit_holding_failed`, with the ticker and the step): the
+holding keeps the plan the step started from, and the pass goes on to the next one.
 
 Before every tick, `waitUntilReachable` resolves `example.com` through the OS resolver (the path every
 outbound fetch takes). When it fails, the tick is skipped: `trading.tick_offline` is logged once per
@@ -153,7 +162,11 @@ delivered. A rejected call is never cached.
 A run that never reaches `completed` leaves the last-completed time untouched, which would make the
 task due again on the next tick forever. Instead the failure increments a count and defers the next
 claim by `60 s x 2^(failures - 1)`, capped at 30 minutes. A completed run clears both. Backoff gates
-the claim: the task is never disabled.
+the claim: the task is never disabled. Two more paths defer the same way through
+`deferFailedHeartbeatTask` (`heartbeat/lease.ts`): a completed run whose `completeHeartbeatTask` write
+failed (`{ kind: 'failed' }`; `lease_lost` stays as is, another claimant owns the task), and a
+`runClaimedHeartbeatTask` that throws, unless shutdown aborted the signal. A throw after completion is
+harmless: the failure write is keyed on the lease token completion already cleared.
 
 ### Failure behavior
 

@@ -123,6 +123,29 @@ function startSession(input: StartSessionOptions): Promise<void> {
   return Promise.resolve()
 }
 
+// The cache is filled by pushes, so a chat nobody has posted in since the daemon started (a proactive
+// brief, an inbox entry drained after a restart) misses it. Zalo lists the account's groups, so a
+// miss asks once and remembers the answer; an id outside that list is a direct thread. A failed
+// lookup throws rather than guessing, since a group id sent as a direct thread goes nowhere.
+async function resolveThreadType(
+  state: AdapterState,
+  api: API,
+  chatId: string
+): Promise<ThreadType> {
+  const cached = state.threadTypes.get(chatId)
+
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const { gridVerMap } = await api.getAllGroups()
+  const threadType = Object.hasOwn(gridVerMap, chatId) ? ThreadType.Group : ThreadType.User
+
+  state.threadTypes.set(chatId, threadType)
+
+  return threadType
+}
+
 async function sendMessage(
   state: AdapterState,
   throttle: SendThrottle,
@@ -135,7 +158,7 @@ async function sendMessage(
     throw new ChannelError('not_initialized', 'zalo_personal not connected')
   }
 
-  const threadType = state.threadTypes.get(out.chatId) ?? ThreadType.User
+  const threadType = await resolveThreadType(state, api, out.chatId)
   const result = await throttle.run(
     () => api.sendMessage(stripMarkdown(out.text), out.chatId, threadType),
     signal
@@ -159,7 +182,7 @@ async function sendTyping(
     return
   }
 
-  const threadType = state.threadTypes.get(chatId) ?? ThreadType.User
+  const threadType = await resolveThreadType(state, api, chatId)
   await throttle.run(() => api.sendTypingEvent(chatId, threadType))
 }
 
@@ -184,7 +207,7 @@ async function setReaction(
     return
   }
 
-  const threadType = state.threadTypes.get(request.chatId) ?? ThreadType.User
+  const threadType = await resolveThreadType(state, api, request.chatId)
   const icon = request.emoji === null ? Reactions.NONE : REACTION_MAP[request.emoji]
 
   await throttle.run(() =>

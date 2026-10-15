@@ -1,6 +1,7 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage, Transaction } from '@/core/types/storage'
 import type { RetentionConfig } from '@/persistence/types'
+import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { SESSION_ROUTE_KEY_PREFIX } from '@/persistence/stores/channel/chat-binding'
 import { detachAttemptsSql } from '@/persistence/stores/session/sql'
@@ -12,6 +13,19 @@ const BRIEF_SNAPSHOTS_KEEP_PER_LOCALE = 1
 const LLM_ATTEMPTS_RETENTION_MS = 400 * MS_PER_DAY
 const ROUTE_KEY_PATTERN = `${SESSION_ROUTE_KEY_PREFIX}%`
 const SQLITE_DIRECT_CHANGES_SQL = 'SELECT changes() AS n'
+
+const EMPTY_COUNTS = Object.freeze({
+  sessions: 0,
+  sessionRoutes: 0,
+  memory: 0,
+  schedulerRuns: 0,
+  inbox: 0,
+  inboxAbandoned: 0,
+  pairings: 0,
+  alertsTerminal: 0,
+  briefSnapshots: 0,
+  llmAttempts: 0,
+})
 
 export interface RetentionCounts {
   readonly sessions: number
@@ -35,6 +49,13 @@ interface RetentionCutoffs {
   readonly now: number
   readonly general: number
   readonly inbox: number
+}
+
+// One scope's delete, run in its own transaction: a slow or failing scope neither holds the
+// single sqlite connection for the whole sweep nor rolls back the others.
+interface RetentionScope {
+  readonly name: keyof RetentionCounts
+  run(tx: Transaction): Promise<number>
 }
 
 interface DeleteStatement {
@@ -68,23 +89,44 @@ export async function runRetention(
   dialect: Dialect,
   options: RetentionOptions
 ): Promise<RetentionCounts> {
-  const times = cutoffs(options.config)
+  const counts: Record<keyof RetentionCounts, number> = { ...EMPTY_COUNTS }
 
-  const counts = await db.transaction(async (tx) => ({
-    sessionRoutes: await deleteSessionRoutes(tx, dialect, times.general),
-    sessions: await deleteSessions(tx, dialect, times.general),
-    memory: await deleteMemory(tx, dialect, times),
-    schedulerRuns: await deleteSchedulerRuns(tx, dialect, times.general),
-    inbox: await deleteInbox(tx, dialect, times.inbox),
-    inboxAbandoned: await deleteInboxAbandoned(tx, dialect, times.general),
-    pairings: await deletePairings(tx, dialect, times.general),
-    alertsTerminal: await deleteAlertsTerminal(tx, dialect, times.general),
-    briefSnapshots: await deleteBriefSnapshots(tx, dialect, times.general),
-    llmAttempts: await deleteLlmAttempts(tx, dialect, times.now - LLM_ATTEMPTS_RETENTION_MS),
-  }))
+  for (const scope of toScopes(dialect, cutoffs(options.config))) {
+    counts[scope.name] = await runScope(db, scope, options.logger)
+  }
 
   options.logger.info('retention.pruned', counts)
+
   return counts
+}
+
+// Routes before sessions: the route delete selects through the sessions it is about to lose.
+function toScopes(dialect: Dialect, times: RetentionCutoffs): readonly RetentionScope[] {
+  const attempts = times.now - LLM_ATTEMPTS_RETENTION_MS
+
+  return [
+    { name: 'sessionRoutes', run: (tx) => deleteSessionRoutes(tx, dialect, times.general) },
+    { name: 'sessions', run: (tx) => deleteSessions(tx, dialect, times.general) },
+    { name: 'memory', run: (tx) => deleteMemory(tx, dialect, times) },
+    { name: 'schedulerRuns', run: (tx) => deleteSchedulerRuns(tx, dialect, times.general) },
+    { name: 'inbox', run: (tx) => deleteInbox(tx, dialect, times.inbox) },
+    { name: 'inboxAbandoned', run: (tx) => deleteInboxAbandoned(tx, dialect, times.general) },
+    { name: 'pairings', run: (tx) => deletePairings(tx, dialect, times.general) },
+    { name: 'alertsTerminal', run: (tx) => deleteAlertsTerminal(tx, dialect, times.general) },
+    { name: 'briefSnapshots', run: (tx) => deleteBriefSnapshots(tx, dialect, times.general) },
+    { name: 'llmAttempts', run: (tx) => deleteLlmAttempts(tx, dialect, attempts) },
+  ]
+}
+
+// A failed scope counts zero and the sweep goes on: the rows wait for the next sweep.
+async function runScope(db: Storage, scope: RetentionScope, logger: Logger): Promise<number> {
+  try {
+    return await db.transaction((tx) => scope.run(tx))
+  } catch (err: unknown) {
+    logger.warn('retention.scope_failed', { scope: scope.name, err: formatErrForLog(err) })
+
+    return 0
+  }
 }
 
 function cutoffs(config: RetentionConfig): RetentionCutoffs {

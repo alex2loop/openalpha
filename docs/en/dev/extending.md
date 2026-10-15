@@ -516,7 +516,8 @@ openalpha plugin update <id>
 openalpha plugin uninstall <id>
 ```
 
-Install and update validate ids and source transport, copy into the managed plugin root, and refuse to
+Install and update validate ids and source transport (a manifest-less plugin's fallback id is the
+repository name of its canonical URL, never the temporary clone directory's name), copy into the managed plugin root, and refuse to
 uninstall bundled ids. `openalpha plugin --help` lists the exact flags.
 
 ### Boot sequence

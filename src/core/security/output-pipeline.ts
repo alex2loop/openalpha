@@ -1,5 +1,5 @@
 import { scrubCredentials } from '@/core/security/credentials'
-import { scanOutput, type Threat, wrapToolResult } from '@/core/security/sanitize'
+import { escapeXml, scanOutput, type Threat, wrapToolResult } from '@/core/security/sanitize'
 import { estimateTextTokens } from '@/core/stream-events'
 import { isPlainRecord } from '@/core/utils/collections'
 import { isContinuationByte, reduceOutput, stripAnsi } from '@/core/utils/text'
@@ -7,9 +7,10 @@ import { isContinuationByte, reduceOutput, stripAnsi } from '@/core/utils/text'
 /** Of a capped result, the share kept from the start and from the end; the rest is the marker's. */
 const HEAD_SHARE = 0.7
 const TAIL_SHARE = 0.2
-/** The raw result is cut to this many result caps before the regex passes, so a multi-MiB page is
- *  never scrubbed whole. */
-const RAW_CAP_MULTIPLE = 4
+/** A raw result is scrubbed and scanned whole, since a secret straddling any cut would leak. Above
+ *  this the regex passes cost more than the result is worth (they run about 50 ms per MiB), and no
+ *  built-in tool returns more than about 2 MiB; only a remote server can, so it is dropped unread. */
+const RAW_SCRUB_MAX_BYTES = 4_194_304
 const STRUCTURED_INPUT_MAX_BYTES = 65_536
 const STRUCTURED_MAX_DEPTH = 2
 const STRUCTURED_MIN_ROWS = 3
@@ -37,16 +38,33 @@ interface CappedText {
 type JsonScalar = boolean | number | string | null
 
 function process(raw: string, options: ProcessOptions): ToolResultContent {
-  const bounded = headTailCap(raw, options.maxBytes * RAW_CAP_MULTIPLE)
-  const ansiStripped = stripAnsi(bounded.text)
-  const scrubbed = scrubCredentials(ansiStripped)
+  const rawBytes = Buffer.byteLength(raw, 'utf8')
+
+  if (rawBytes > RAW_SCRUB_MAX_BYTES) {
+    return toOversizeResult(rawBytes, options.toolName)
+  }
+
+  // Scrub before any cut: a PEM block or token straddling it would keep its body.
+  const scrubbed = scrubCredentials(stripAnsi(raw))
   // Scan before deriving a smaller view so compaction cannot hide an injection.
   const threats = scanOutput(scrubbed)
-  const compacted = normalizeOutput(scrubbed)
-  const capped = headTailCap(compacted, options.maxBytes)
-  const wrapped = wrapToolResult(capped.text, options.toolName, threats)
+  const escaped = escapeXml(normalizeOutput(scrubbed))
+  // Escaping grows a result up to fivefold, so it is capped escaped and net of the envelope it
+  // travels in: what reaches the model is at most `maxBytes`.
+  const envelopeBytes = Buffer.byteLength(wrapToolResult('', options.toolName, threats), 'utf8')
+  const capped = headTailCap(escaped, Math.max(0, options.maxBytes - envelopeBytes))
 
-  return { text: wrapped, truncated: bounded.truncated || capped.truncated, threats }
+  return {
+    text: wrapToolResult(capped.text, options.toolName, threats),
+    truncated: capped.truncated,
+    threats,
+  }
+}
+
+function toOversizeResult(rawBytes: number, toolName: string): ToolResultContent {
+  const marker = `[dropped ${rawBytes} bytes: too large to scrub]`
+
+  return { text: wrapToolResult(marker, toolName, []), truncated: true, threats: [] }
 }
 
 function normalizeOutput(text: string): string {

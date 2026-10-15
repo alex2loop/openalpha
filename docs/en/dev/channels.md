@@ -171,7 +171,9 @@ The drain then works through the inbox:
 - `recoverStalled` requeues entries whose lease expired (the run duration cap plus 5 minutes), so a dead
   daemon's work is picked up again.
 - A failed attempt retries until `inboxMaxAttempts` (3), then the entry is dead-lettered and logged as
-  `channel.inbox_dead_lettered`.
+  `channel.inbox_dead_lettered`. A requeued entry carries `retry_at` (10 s, doubling per attempt, capped
+  at 5 minutes) and both claim statements skip an entry not yet due, so a network blip does not burn every
+  attempt in under a second.
 
 Delivery is at-least-once, but a finished run is never executed twice. When the final write of an answer
 fails, the inbox keeps that answer on the entry (`answer`), and the retry sends only the final message,

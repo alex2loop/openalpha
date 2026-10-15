@@ -112,6 +112,7 @@ export function createTradingStoresProvider(config: TradingConfig): ServiceProvi
         createTradingStores({
           db: app.resolve('storage'),
           dialect: app.resolve('dialect'),
+          logger: app.resolve('logger'),
           maximumEntries: config.maximumLedgerEntries,
         })
       )

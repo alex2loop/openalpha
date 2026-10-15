@@ -377,7 +377,9 @@ function roleOf(deps: InboundHandlerDeps, msg: InboundMessage): CommandRole {
 }
 
 // Derived from the durable inbox payload, never minted per dispatch: an inbox retry after a failed
-// acknowledgement must reach the idempotency gates with the key its first attempt used.
+// acknowledgement must reach the idempotency gates with the key its first attempt used. A tap adds
+// its callback query id, which Telegram keeps across redelivery, so a second tap of the same
+// keyboard is a new request.
 function buildSlashContext(options: DispatchSlashOptions, role: CommandRole): SlashContext {
   const { deps, msg } = options
 
@@ -397,5 +399,7 @@ function buildSlashContext(options: DispatchSlashOptions, role: CommandRole): Sl
 }
 
 function requestIdOf(msg: InboundMessage): string {
-  return `${msg.channel}:${msg.chatId}:${msg.messageId}`
+  const key = `${msg.channel}:${msg.chatId}:${msg.messageId}`
+
+  return msg.tapId === undefined ? key : `${key}:${msg.tapId}`
 }

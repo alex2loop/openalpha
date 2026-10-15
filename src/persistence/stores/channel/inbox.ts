@@ -24,6 +24,7 @@ interface ChannelInboxEntry {
   readonly completedAt: number | null
   readonly error: string | null
   readonly answer: string | null
+  readonly attemptCount: number
 }
 
 // Persistence cannot import its consumer without reversing the DAG. The composition root assigns
@@ -54,6 +55,7 @@ interface ChannelInboxStore {
     readonly error: string
     readonly failedAt: number
     readonly maxAttempts: number
+    readonly retryAt: number
     readonly answer?: string
   }): Promise<InboxFailureDisposition>
   releaseClaim(input: {
@@ -85,6 +87,7 @@ interface InboxRow {
   readonly completed_at: number | null
   readonly error: string | null
   readonly answer: string | null
+  readonly attempt_count: number
 }
 
 interface InboxSql {
@@ -129,21 +132,7 @@ export function createChannelInbox(db: Storage, dialect: Dialect): ChannelInboxS
 
     complete: (input) => complete(db, sql.complete, input),
 
-    async failAttempt(input) {
-      assertMaxAttempts(input.maxAttempts)
-      const rows = await db.query<StatusRow>(sql.failAttempt, [
-        input.maxAttempts,
-        input.failedAt,
-        input.error,
-        input.channel,
-        input.updateId,
-        input.token,
-        input.answer ?? null,
-      ])
-      const status = rows[0]?.status
-
-      return status === undefined ? 'lost' : toFailureDisposition(status)
-    },
+    failAttempt: (input) => failAttempt(db, sql.failAttempt, input),
 
     releaseClaim: (input) => releaseClaim(db, sql.releaseClaim, input),
 
@@ -182,6 +171,27 @@ async function complete(
   ])
 
   return changes > 0 ? 'completed' : 'lost'
+}
+
+async function failAttempt(
+  db: Storage,
+  sql: string,
+  input: Parameters<ChannelInboxStore['failAttempt']>[0]
+): Promise<InboxFailureDisposition> {
+  assertMaxAttempts(input.maxAttempts)
+  const rows = await db.query<StatusRow>(sql, [
+    input.maxAttempts,
+    input.failedAt,
+    input.error,
+    input.channel,
+    input.updateId,
+    input.token,
+    input.answer ?? null,
+    input.retryAt,
+  ])
+  const status = rows[0]?.status
+
+  return status === undefined ? 'lost' : toFailureDisposition(status)
 }
 
 async function releaseClaim(
@@ -259,6 +269,7 @@ function toEntry(row: InboxRow): ChannelInboxEntry {
       completedAt: row.completed_at,
       error: row.error,
       answer: row.answer,
+      attemptCount: row.attempt_count,
     }
   } catch (err: unknown) {
     throw new StorageError('channel inbox returned an invalid row', err)
@@ -289,7 +300,7 @@ function buildSql(dialect: Dialect): InboxSql {
       dialect,
       `channel = ${dialect.param(4)} AND update_id = ${dialect.param(5)} ` +
         `AND status = 'processing' AND claim_token = ${dialect.param(6)}`,
-      `, answer = COALESCE(${dialect.param(7)}, answer)`
+      `, answer = COALESCE(${dialect.param(7)}, answer), retry_at = ${dialect.param(8)}`
     ),
     // Undoes the claim's attempt_count increment: an entry given back untouched must not have
     // spent one of its retries.
@@ -332,13 +343,14 @@ function buildPostgresClaimSql(dialect: Dialect): string {
   return (
     `WITH pending AS (SELECT channel, update_id FROM channel_inbox ` +
     `WHERE channel = ${dialect.param(3)} AND status = 'pending' ` +
+    `AND (retry_at IS NULL OR retry_at <= ${dialect.param(1)}) ` +
     `ORDER BY accepted_at ASC, update_id ASC FOR UPDATE SKIP LOCKED LIMIT ${dialect.param(4)}) ` +
     `UPDATE channel_inbox AS inbox SET status = 'processing', started_at = ${dialect.param(1)}, ` +
     `claim_token = ${dialect.param(2)}, attempt_count = inbox.attempt_count + 1 ` +
     `FROM pending WHERE inbox.channel = pending.channel AND inbox.update_id = pending.update_id ` +
     `AND inbox.status = 'pending' RETURNING inbox.channel, inbox.update_id, inbox.payload, ` +
     `inbox.status, inbox.accepted_at, inbox.started_at, inbox.completed_at, inbox.error, ` +
-    `inbox.answer`
+    `inbox.answer, inbox.attempt_count`
   )
 }
 
@@ -348,8 +360,9 @@ function buildSqliteClaimSql(dialect: Dialect): string {
     `claim_token = ${dialect.param(2)}, attempt_count = attempt_count + 1 ` +
     `WHERE (channel, update_id) IN (SELECT channel, update_id FROM channel_inbox ` +
     `WHERE channel = ${dialect.param(3)} AND status = 'pending' ` +
+    `AND (retry_at IS NULL OR retry_at <= ${dialect.param(1)}) ` +
     `ORDER BY accepted_at ASC, update_id ASC LIMIT ${dialect.param(4)}) ` +
     `AND status = 'pending' RETURNING channel, update_id, payload, status, accepted_at, ` +
-    `started_at, completed_at, error, answer`
+    `started_at, completed_at, error, answer, attempt_count`
   )
 }

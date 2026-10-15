@@ -12,8 +12,8 @@ import type {
   ResolvedActionableSuggestion,
 } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { ConvictionBand } from '@/trading/kernel/conviction'
-import type { TradingDay } from '@/trading/kernel/instrument'
+import type { ConvictionBand, SuggestionAction } from '@/trading/kernel/conviction'
+import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import { isMarked, REVIEW_MARK_IDS } from '@/trading/features/suggestion/pipeline/review-marks'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
@@ -82,14 +82,20 @@ interface Metrics {
   readonly beatsBenchmarkMajority?: boolean
 }
 
+/** What the fold reads of a resolved call, so a lean read can be folded without its payload. */
+interface FoldableCall {
+  readonly at: TradingDay
+  readonly instrument: InstrumentRef
+  readonly action: SuggestionAction
+  readonly outcome: { readonly exitDay: TradingDay }
+}
+
 /** A call repeating one still open on the same name and side rides the same move, so only the
  *  first counts: the brief re-issues a held idea every session, and each row would otherwise
  *  stand as another independent outcome. */
-export function independentCalls(
-  rows: readonly ResolvedActionableSuggestion[]
-): readonly ResolvedActionableSuggestion[] {
+export function independentCalls<T extends FoldableCall>(rows: readonly T[]): readonly T[] {
   const openUntil = new Map<string, TradingDay>()
-  const kept = new Set<ResolvedActionableSuggestion>()
+  const kept = new Set<T>()
 
   for (const row of [...rows].sort((left, right) => left.at.localeCompare(right.at))) {
     const key = `${buildInstrumentKey(row.instrument)}:${row.action}`

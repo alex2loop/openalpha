@@ -172,7 +172,9 @@ Sau đó khâu rút hàng đợi xử lý hộp nhận:
 - `recoverStalled` đưa các dòng hết lease trở lại hàng đợi (giới hạn thời lượng phiên chạy cộng 5 phút),
   nên việc dở của một daemon đã chết được nhặt lại.
 - Một lần thử hỏng sẽ được thử lại cho tới `inboxMaxAttempts` (3), rồi dòng đó bị đưa vào dead-letter và
-  ghi log `channel.inbox_dead_lettered`.
+  ghi log `channel.inbox_dead_lettered`. Dòng được xếp lại mang `retry_at` (10 giây, nhân đôi mỗi lần, trần
+  5 phút), và cả hai câu lệnh nhận việc bỏ qua dòng chưa tới giờ, nên một lần mạng chập chờn không đốt hết
+  các lần thử trong chưa đầy một giây.
 
 Việc giao là ít nhất một lần, nhưng một phiên chạy đã xong thì không bao giờ chạy hai lần. Khi lần ghi
 cuối của câu trả lời thất bại, hộp nhận giữ câu trả lời đó trên dòng (`answer`), và lần thử lại chỉ gửi

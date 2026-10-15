@@ -152,13 +152,25 @@ async function placeOrder(
 }
 
 function capBreachRefusal(breaches: readonly SleeveBreach[]): string {
-  const weights = breaches.map(({ combinedPctNav, capPctNav, ...subject }) => ({
+  return `${CAP_BREACH_REFUSED} ${toAgentJson(breaches.map(toBreachWeights))}`
+}
+
+/** Weights as percents, the unit an agent reads. An unmeasured ETF sleeve has no combined weight to
+ *  state, only the ceiling it could not be checked against. */
+function toBreachWeights(breach: SleeveBreach): Record<string, unknown> {
+  if (breach.kind === 'etf-unmeasured') {
+    const { capPctNav, ...subject } = breach
+
+    return { ...subject, capPct: fractionToPct(capPctNav) }
+  }
+
+  const { combinedPctNav, capPctNav, ...subject } = breach
+
+  return {
     ...subject,
     combinedPct: fractionToPct(combinedPctNav),
     capPct: fractionToPct(capPctNav),
-  }))
-
-  return `${CAP_BREACH_REFUSED} ${toAgentJson(weights)}`
+  }
 }
 
 /** The one thing `portfolio_view` cannot say. A model that can see a position but not whether a

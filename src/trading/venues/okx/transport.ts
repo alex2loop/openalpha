@@ -11,14 +11,14 @@ const transport: VenueTransport = createVenueTransport(OKX_HOSTS)
 // 200; every other non-2xx stays a failed attempt.
 const ERROR_BODY_STATUSES: readonly number[] = Object.freeze([400, 401])
 const OK_CODE = '0'
+// "Timestamp request expired" and "invalid OK-ACCESS-TIMESTAMP": the key is fine, the clock is not.
+const CLOCK_ERROR_CODES: ReadonlySet<string> = new Set(['50102', '50112'])
 const AUTH_ERROR_CODES: ReadonlySet<string> = new Set([
   '50100',
   '50101',
-  '50102',
   '50103',
   '50104',
   '50111',
-  '50112',
   '50113',
   '50114',
 ])
@@ -194,6 +194,10 @@ function toFailureError(failure: OkxFailure): OrderError {
 
   if (TRANSIENT_ERROR_CODES.has(failure.code)) {
     return new OrderError('order.network', `the venue is busy (${failure.code})`)
+  }
+
+  if (CLOCK_ERROR_CODES.has(failure.code)) {
+    return new OrderError('order.clock_skew', `the local clock was refused (${failure.code})`)
   }
 
   if (AUTH_ERROR_CODES.has(failure.code)) {

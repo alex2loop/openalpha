@@ -56,6 +56,15 @@ Một cảnh báo do hệ thống dựng mang một chuỗi origin mà lượt d
 
 Ngưỡng là một phần danh tính của cảnh báo thoát, nên một cắt lỗ mà trail đã nâng là một origin mới: nó được dựng, và cái cũ nghỉ hẳn. Cảnh báo của operator không mang origin.
 
+Bộ nhớ theo phiên của trail (`trailedThrough`) chỉ được đặt sau khi việc nâng đã ngã ngũ: đã ghi, thua một lần nâng đồng thời, hoặc không cần nâng. Một lần ghi hỏng để nó không được đặt, nên nhịp kế tiếp thử lại thay vì chờ một phiên. Cách vòng cảnh báo cô lập lỗi nằm ở [vận hành](van-hanh.md#phân-loại-lỗi-của-một-lượt).
+
+## Bảng thành tích và các lượt chạy hàng loạt
+
+- `independentCalls` (`pipeline/reporting.ts`) là chỗ duy nhất gộp một lời gọi lặp lại lời gọi còn mở trên cùng mã và cùng chiều. Nó chỉ đọc `FoldableCall` (`at`, `instrument`, `action`, `outcome.exitDay`), nên hồ sơ theo phạm vi gộp các dòng gọn `FocusCall` mà `listFocusCalls` trả về (không payload, không giới hạn số dòng) bằng cùng quy tắc `summarizeTrackRecord` dùng, từng phạm vi một. Không có bản cài đặt thứ hai trong SQL; `LATEST_OF_SAME_CALL_SQL` vẫn giữ dòng mới nhất của một lời gọi cùng ngày qua các phiên bản.
+- Một dòng mà payload không còn đọc được thì bị bỏ khỏi danh sách thay vì làm hỏng cả lần đọc: `readableRow` (`store/readable-row.ts`) bắt `StorageError`, ghi `trading.suggestion_row_unreadable` kèm id dòng và ném lại mọi lỗi khác. Các lần đọc đang chờ, đã chốt, kế hoạch thoát và trang danh sách dùng chung nó. `findLatestExitPlan` khi đó lùi về các dòng cũ hơn trong cửa sổ nhìn lại, nên một dòng mới nhất hỏng không bị đọc thành "không có kế hoạch".
+- Mỗi mã trong một lượt hàng loạt được tính cỡ trên cuốn sổ trước lượt. `breachedSleeves` (`pipeline/exposure.ts`) báo các trần ngành, nhóm và ETF bị hai lệnh mua trở lên vượt; `overcommittedBook` (`pipeline/overcommit.ts`) báo phần tiền mặt (cả sổ, và một thị trường mà venue chạm tới ít hơn) và phần rủi ro mở mà cũng các lệnh mua ấy tiêu vượt, ở `SuggestionBatchResult.overcommit`, tính bằng tỷ lệ NAV. Nó chỉ mang tính tư vấn: lần đọc kế hoạch của các mã đang nắm mà hỏng thì mất phát hiện đó và ghi `trading.batch_open_risk_unread`.
+- Lệnh mua treo khớp ở phiên đầu tiên giao dịch dưới limit. Ở phiên khớp đó, bộ chấm điểm chỉ đọc mục tiêu khi phiên mở thấp hơn limit; cắt lỗ được thử ở đó như ở mọi phiên.
+
 ## Các mục của bản tin
 
 Một số mục theo từng thị trường (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) đến từ bộ chuyển đổi overview của từng thị trường, trên một khuôn chung theo từng thị trường, không phải từ một builder của bản tin. Một thị trường thêm một khối, không bao giờ thêm một loại mục.

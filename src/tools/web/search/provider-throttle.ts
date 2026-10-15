@@ -53,17 +53,24 @@ async function waitForTurn(
   concurrency: number,
   signal: AbortSignal
 ): Promise<void> {
-  for (;;) {
-    if (signal.aborted) {
-      throw abortError(signal)
-    }
+  if (signal.aborted) {
+    throw abortError(signal)
+  }
 
+  for (;;) {
     if (!gate.starting && gate.active < concurrency) {
       gate.starting = true
       return
     }
 
     await nextTurn(gate, signal)
+
+    // A wake already took this waiter off the queue and its abort listener off the signal; if the
+    // abort landed before it resumed, nothing else would wake the next waiter.
+    if (signal.aborted) {
+      wakeNextWaiter(gate)
+      throw abortError(signal)
+    }
   }
 }
 

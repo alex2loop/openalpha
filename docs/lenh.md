@@ -314,7 +314,9 @@ openalpha skill list
 openalpha skill install <nguồn>
 ```
 
-Việc cài plugin và kỹ năng đều kiểm mã, đường dẫn và mức tin cậy của nguồn. Một phiên chạy agent chỉ
+Việc cài plugin và kỹ năng đều kiểm mã, đường dẫn và mức tin cậy của nguồn. Plugin lấy `id` từ
+`plugin.toml`; không có thì plugin từ URL git lấy tên kho (bỏ `.git`) còn thư mục cục bộ lấy tên của
+chính nó, nên cài lại cùng một nguồn là thay plugin chứ không thêm một bản sao. Một phiên chạy agent chỉ
 thấy công cụ chỉ-đọc `skill_view`; việc quản lý gói nằm trên CLI.
 
 ### Tạm dừng agent

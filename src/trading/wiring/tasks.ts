@@ -197,7 +197,9 @@ function intentTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
 }
 
 /** One service, one loop: it delivers what is already armed, then reconciles the two system-armed
- *  families against the book. Delivering first is what keeps a row out of the tick that armed it. */
+ *  families against the book. Delivering first is what keeps a row out of the tick that armed it. A
+ *  failure of the delivery itself quarantines the loop; an arming pass only adds and retires rows,
+ *  so its failure never reaches the delivery of the next interval. */
 function alertTask(deps: TradingDaemonDeps): DaemonTask {
   const { alerts, logger } = deps
   const policy = deps.config.operations.alerts
@@ -211,10 +213,28 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
       const options = { now: Date.now(), batchSize: policy.batchSize, signal }
 
       await alerts.tick(options)
-      await alerts.tickExits(options)
-      await alerts.tickScreeners(options)
+      await armingStep(logger, 'exits', () => alerts.tickExits(options))
+      await armingStep(logger, 'screeners', () => alerts.tickScreeners(options))
     },
   })
+}
+
+/** Each pass fails alone: the other still runs, and the next interval retries both. An abort is
+ *  shutdown, not a failure. */
+async function armingStep(
+  logger: Logger,
+  name: 'exits' | 'screeners',
+  run: () => Promise<void>
+): Promise<void> {
+  try {
+    await run()
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    logger.warn('trading.alert_arming_failed', { step: name, err: formatErrForLog(err) })
+  }
 }
 
 interface OperationTaskSpec {

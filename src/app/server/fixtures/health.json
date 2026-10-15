@@ -1,7 +1,7 @@
 {
   "ok": true,
   "status": "ready",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "contractVersion": 1,
   "capabilities": {
     "ohlcv": true,

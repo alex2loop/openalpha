@@ -63,6 +63,7 @@ async function routeCallback(deps: InboundHandlerDeps, query: ChannelCallbackQue
     userId: query.from,
     text,
     messageId: callbackMessageId(query),
+    tapId: query.id,
     receivedAt: Date.now(),
     ...(query.isGroup === undefined ? {} : { isGroup: query.isGroup }),
     // A tap is addressed to the bot by construction; it is the bot's own keyboard.

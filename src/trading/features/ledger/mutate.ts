@@ -56,10 +56,7 @@ const ENTRY_ID_SEPARATOR = ', '
 type CloseDraft = Extract<LedgerTxnDraftInput, { readonly quantity: typeof SELL_ALL }>
 
 /** The written row, plus the earlier one holding its exact content when there is one. */
-interface RecordedEntry {
-  readonly entry: LedgerEntry
-  readonly duplicateOf?: LedgerEntryId
-}
+type RecordedEntry = Pick<LedgerWriteResult, 'entry' | 'duplicateOf' | 'replayed'>
 
 type RecordMutation = Extract<LedgerMutation, { readonly kind: 'record' }>
 type ResolvedRecord = Omit<RecordMutation, 'draft'> & { readonly draft: LedgerTxnDraft }
@@ -153,10 +150,9 @@ async function recordMutation(
 
   return {
     kind: 'recorded',
-    entry: recorded.entry,
+    ...recorded,
     book: await bookAfter(deps, context.folded, mutation),
     fillSource: resolved.fillSource,
-    ...(recorded.duplicateOf === undefined ? {} : { duplicateOf: recorded.duplicateOf }),
     ...(planned === undefined ? {} : { planned }),
   }
 }
@@ -374,7 +370,7 @@ async function recordEntry(
       )
     }
 
-    return { entry: existing.entry }
+    return { entry: existing.entry, replayed: true }
   }
 
   const entry: LedgerEntry = {
@@ -391,9 +387,13 @@ async function recordEntry(
     mutation.signal
   )
 
-  return result.kind === 'inserted' && result.duplicateOf !== undefined
-    ? { entry: result.entry, duplicateOf: result.duplicateOf }
-    : { entry: result.entry }
+  if (result.kind === 'existing') {
+    return { entry: result.entry, replayed: true }
+  }
+
+  return result.duplicateOf === undefined
+    ? { entry: result.entry }
+    : { entry: result.entry, duplicateOf: result.duplicateOf }
 }
 
 /** Accepts the full id the agent reads out of history, or the short handle a human copies from a

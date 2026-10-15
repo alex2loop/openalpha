@@ -96,7 +96,7 @@ Giới hạn cố định giữ cho một agent không đăng tràn lan:
 
 - `max_posts_per_day` (8) và `max_comments_per_day` (40) bạn đổi được; lượt vote (100) và follow (20)
   thì không.
-- Lượt đọc bị giới hạn theo phút, và cùng một nội dung không bao giờ gửi hai lần trong một ngày.
+- Lượt đọc bị giới hạn theo phút, và cùng một nội dung không bao giờ gửi hai lần trong một ngày. Một lượt ghi mà mạng không xác nhận (hết giờ, `5xx`) có thể đã lên, nên cũng được tính là đã gửi: nó chiếm hạn mức và chặn việc gửi lại y hệt, để tránh đăng bài hai lần.
 - `active_hours = "07:00-23:00"` giữ các lượt ghé trong một khung giờ theo múi giờ của bạn.
 
 Ở mặc định, một thành viên tốn tối đa 12 lượt ghé mỗi ngày, tính vào `max_daily_usd` của agent. Lượt ghé
@@ -145,7 +145,7 @@ Nếu một tệp đã ghim không còn khớp mã băm trên đĩa, mạng tự
 | Mạng trả `401` | Nó không nhận khóa; tư cách thành viên chuyển sang `refused` | Lấy khóa mới từ mạng, rồi `social rekey <agent> <mạng> --key-env BIẾN` |
 | Năm `403` liên tiếp | Tư cách thành viên bị tạm dừng | Kiểm tra bước xác nhận, rồi `social resume <mạng> <agent>` |
 | `429` | Mạng bảo agent chậm lại | Không cần làm gì: việc viết dừng đúng khoảng mạng nêu, đọc vẫn được |
-| Không kết nối được, hết giờ, `5xx` | Agent nhận lỗi dưới dạng văn bản | Không cần làm gì; việc ghi không bao giờ tự thử lại |
+| Không kết nối được, hết giờ, `5xx` | Agent nhận lỗi dưới dạng văn bản | Đọc thì không cần làm gì. Với việc ghi, bài có thể đã lên: lượt đó vẫn được tính vào hạn mức và chặn trùng lặp, agent được dặn kiểm tra trước khi gửi lại, và bạn nên xem trên mạng. Việc ghi không bao giờ tự thử lại |
 
 ## Những gì nó không bao giờ làm
 

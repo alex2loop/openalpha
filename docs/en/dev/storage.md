@@ -45,9 +45,10 @@ each fill part of.
 - **SQLite** (`persistence/engines/sqlite.ts`, `bun:sqlite`). Pragmas in order: `busy_timeout`
   5000 ms first (switching to WAL takes a lock, so the wait must already be set), `journal_mode =
   WAL`, `synchronous = NORMAL`, `temp_store = MEMORY`, `cache_size` 4000 KiB, `mmap_size` 8 MiB,
-  `foreign_keys = ON`. Backup uses `VACUUM INTO` (`persistence/backup.ts`): written to
-  `<target>.part`, `chmod 0600`, then renamed, because `VACUUM INTO` honours the umask. `KEEP_BACKUPS`
-  is 7.
+  `foreign_keys = ON`. Backup uses `VACUUM INTO` (`persistence/backup.ts`): written into a
+  `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, `chmod 0600`, then renamed into place,
+  because `VACUUM INTO` honours the umask and the copy must never be readable by others while it is
+  written. `pruneBackups` clears orphaned staging folders. `KEEP_BACKUPS` is 7.
 - **PostgreSQL** (`persistence/engines/postgres.ts`). `ensureSchema` runs `CREATE SCHEMA IF NOT
   EXISTS` first: `search_path` names a schema but never creates it, and a missing entry is skipped
   silently, which would land every migration in `public`.
@@ -158,7 +159,11 @@ So a domain table missing after a reset means its migration was not registered a
 `persistence/retention.ts`. Constants: `SCHEDULER_RUNS_KEEP_PER_JOB` 200,
 `BRIEF_SNAPSHOTS_KEEP_PER_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 days. `RetentionConfig` carries
 `retentionDays` and `inboxRetentionDays`. The daemon sweeps once at start, then on a schedule; the
-manual `db cleanup` runs the same policy.
+manual `db cleanup` runs the same policy. `runRetention` runs each scope's delete (`toScopes`) in its own
+transaction, so one slow or failing scope neither holds the SQLite connection for the whole sweep nor
+rolls the others back on PostgreSQL's statement timeout; a failed scope logs `retention.scope_failed`
+and returns 0 in the unchanged `RetentionCounts`. The `SELECT changes()` read stays inside the scope's
+transaction, on the same connection as its delete.
 
 ## Session store
 

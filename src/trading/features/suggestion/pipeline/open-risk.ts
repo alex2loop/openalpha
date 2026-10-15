@@ -1,19 +1,25 @@
 import type {
   OpenRisk,
   SuggestionPortfolioContext,
-  SuggestionRunOptions,
 } from '@/trading/features/suggestion/pipeline/types'
+import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import { heldPositionOf } from '@/trading/features/suggestion/pipeline/concentration'
 import { planStopOf } from '@/trading/features/suggestion/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 
+/** What the read of a held name's plan needs: the store and the caller's cancellation. */
+interface OpenRiskReader {
+  readonly store: Pick<SuggestionStore, 'findLatestExitPlan'>
+  readonly signal: AbortSignal
+}
+
 /** Summed over priced, tradeable holdings against the stop each one's latest exit plan names. Absent
  *  without a NAV to be a share of. The plan is read once per instrument, however many venues hold
  *  it, and an unplanned name is listed on that first read, so the count is per name. */
 export async function openRiskOf(
-  options: SuggestionRunOptions,
+  reader: OpenRiskReader,
   context: SuggestionPortfolioContext
 ): Promise<OpenRisk | undefined> {
   const navBase = context.book.navBase
@@ -39,7 +45,7 @@ export async function openRiskOf(
     }
 
     if (!stops.has(key)) {
-      const planned = await plannedStop(options, {
+      const planned = await plannedStop(reader, {
         instrument,
         mark: valued.price,
         heldSince: heldPositionOf(context, instrument)?.openedOn,
@@ -68,7 +74,7 @@ export async function openRiskOf(
 /** The stop is the one the tick has trailed it to, as every other surface reads it. Only a
  *  long-framed plan is offered at all — `findLatestExitPlan` owns that. */
 async function plannedStop(
-  options: SuggestionRunOptions,
+  reader: OpenRiskReader,
   held: {
     readonly instrument: InstrumentRef
     readonly mark: number
@@ -76,11 +82,11 @@ async function plannedStop(
   }
 ): Promise<number | undefined> {
   const { instrument, mark, heldSince } = held
-  const plan = await options.deps.store.findLatestExitPlan({
+  const plan = await reader.store.findLatestExitPlan({
     market: instrument.market,
     ticker: instrument.ticker,
     ...(heldSince === undefined ? {} : { heldSince }),
-    signal: options.request.signal,
+    signal: reader.signal,
   })
 
   if (plan === null) {

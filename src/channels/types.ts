@@ -11,6 +11,9 @@ export interface InboundMessage {
   readonly userId: string
   readonly text: string
   readonly messageId: string
+  /** Set on a button tap: it files under the keyboard message's `messageId`, so this is what tells
+   *  one tap of that keyboard from the next. */
+  readonly tapId?: string
   readonly reactionRef?: string
   readonly receivedAt: number
   readonly isGroup?: boolean
@@ -170,6 +173,8 @@ export interface InboundInboxEntry {
   readonly error: string | null
   /** The encoded final answer a finished run left undelivered; present means never run again. */
   readonly answer: string | null
+  /** Claims taken so far, this one included. */
+  readonly attemptCount: number
 }
 
 export interface InboundInbox {
@@ -199,6 +204,8 @@ export interface InboundInbox {
     readonly error: string
     readonly failedAt: number
     readonly maxAttempts: number
+    /** Earliest instant the requeued entry may be claimed again; a dead-lettered one ignores it. */
+    readonly retryAt: number
     /** Recorded in the same write that returns the entry, so a requeue never exists without it. */
     readonly answer?: string
   }): Promise<InboxFailureDisposition>

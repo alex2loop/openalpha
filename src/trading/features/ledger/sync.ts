@@ -164,8 +164,10 @@ function bookSymbolsAt(input: VenueSyncInput): readonly string[] {
   return [...symbols]
 }
 
-/** The key a venue fill is booked under. Exported because the order path asks the book whether a
- *  fill it lost has since been recovered, and both sides must spell the key the same way. */
+/** The key a venue fill is booked under, whichever writer books it: this sync, the order mirror or
+ *  the exit tick. One fill has one identity, so the writer that comes second is recognised inside
+ *  the ledger's write lock and books nothing. Exported so every writer, and the order path asking
+ *  whether a fill it lost has since been recovered, spell the key the same way. */
 export function buildVenueFillKey(venue: VenueRef, orderId: string): string {
   return `${venue}${KEY_SEPARATOR}${orderId}`
 }

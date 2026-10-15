@@ -81,9 +81,8 @@ export async function editMessage(ctx: TelegramApiContext, req: EditRequest): Pr
 
   const body: TelegramBody = { chat_id: req.chatId, message_id: messageId, text: req.text }
 
-  if (req.useMarkup) {
-    body.parse_mode = 'MarkdownV2'
-  }
+  applyMarkup(body, req.useMarkup === true)
+
   if (req.buttons && req.buttons.length > 0) {
     body.reply_markup = toReplyMarkup(req.buttons)
   }
@@ -219,14 +218,15 @@ function assertWithinTextLimit(text: string, code: ChannelErrorCode): void {
 function buildSendBody(out: ChannelOutbound, text: string): TelegramBody {
   const body: TelegramBody = { chat_id: out.chatId, text }
 
-  if (out.useMarkup) {
-    body.parse_mode = 'MarkdownV2'
-    // A citation is a headline carrying its source, so four of them would otherwise append four
-    // preview cards to a message the whole plan exists to shorten.
-    body.disable_web_page_preview = true
-  }
+  applyMarkup(body, out.useMarkup === true)
+
+  // A deleted anchor must not fail the send: the placeholder and the answer matter more than the
+  // thread they hang from.
   if (out.replyToMessageId !== undefined) {
-    body.reply_to_message_id = Number(out.replyToMessageId)
+    body.reply_parameters = {
+      message_id: Number(out.replyToMessageId),
+      allow_sending_without_reply: true,
+    }
   }
   if (out.silent) {
     body.disable_notification = true
@@ -236,6 +236,18 @@ function buildSendBody(out: ChannelOutbound, text: string): TelegramBody {
   }
 
   return body
+}
+
+// Sends and edits share this so a message does not gain preview cards when it is edited.
+function applyMarkup(body: TelegramBody, useMarkup: boolean): void {
+  if (!useMarkup) {
+    return
+  }
+
+  body.parse_mode = 'MarkdownV2'
+  // A citation is a headline carrying its source, so four of them would otherwise append four
+  // preview cards to a message the whole plan exists to shorten.
+  body.link_preview_options = { is_disabled: true }
 }
 
 async function parseSendResponse(res: Response): Promise<SentRef> {

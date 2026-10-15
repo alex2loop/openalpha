@@ -26,7 +26,7 @@ import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { MarketRegistry } from '@/trading/markets/types'
-import { planHolding, trailPlanStop } from '@/trading/features/alerts/exit-plans'
+import { planAndTrail } from '@/trading/features/alerts/exit-plans'
 import { reconcileAlerts } from '@/trading/features/alerts/screeners'
 import { buildExitOrigin, isScreenOrigin } from '@/trading/features/alerts/types'
 import { isFirstExitTaken } from '@/trading/features/suggestion/exit-plan/first-exit'
@@ -87,23 +87,16 @@ async function expectedDrafts(
   const expected = new Map<AlertOrigin, AlertDraft>()
 
   for (const holding of holdings) {
-    const planned = await planHolding(deps, {
+    const plan = await planAndTrail(deps, {
       instrument: holding.instrument,
       standing: await findHoldingPlan(deps.suggestions, holding, options.signal),
       delivery,
       options,
     })
 
-    if (planned === null) {
+    if (plan === null) {
       continue
     }
-
-    const plan = await trailPlanStop(deps, {
-      instrument: holding.instrument,
-      plan: planned,
-      delivery,
-      options,
-    })
 
     const taken = isTakeProfitTaken(deps, holding, plan)
 

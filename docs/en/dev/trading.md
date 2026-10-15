@@ -56,6 +56,15 @@ A system-armed alert carries an origin string the arming pass reconciles against
 
 The threshold is part of the exit identity, so a stop the trail raised is a new origin: it arms, and the old one retires. Operator alerts carry no origin.
 
+The trail's per-session memo (`trailedThrough`) is set only once the raise has settled: written, lost to a concurrent raise, or not asked for. A failed write leaves it unset, so the next tick retries instead of waiting a session. The failure isolation of the alert loop is in [operations](operations.md#tick-failure-classification).
+
+## Track record and batches
+
+- `independentCalls` (`pipeline/reporting.ts`) is the one fold of a repeat of a still-open call on the same name and side. It reads only `FoldableCall` (`at`, `instrument`, `action`, `outcome.exitDay`), so the per-focus record folds the lean `FocusCall` rows `listFocusCalls` returns (no payload, no row limit) with the same rule `summarizeTrackRecord` uses, one focus at a time. No second implementation lives in SQL; `LATEST_OF_SAME_CALL_SQL` still keeps the newest row of a same-day call across versions.
+- A row whose payload no longer parses is dropped from a list rather than failing it: `readableRow` (`store/readable-row.ts`) catches `StorageError`, logs `trading.suggestion_row_unreadable` with the row id and rethrows anything else. The pending, resolved, exit-plan and page reads share it. `findLatestExitPlan` then falls back to the older rows in its look-back window, so a bad newest row does not read as "no plan".
+- A batch item sizes against the pre-batch book. `breachedSleeves` (`pipeline/exposure.ts`) reports sector, segment and ETF ceilings crossed by two or more buys; `overcommittedBook` (`pipeline/overcommit.ts`) reports the cash (whole book, and a market whose venues reach less) and open-risk room the same buys spend past, as `SuggestionBatchResult.overcommit` in fractions of NAV. It is advisory: a failed read of the held names' plans drops that finding and logs `trading.batch_open_risk_unread`.
+- A resting buy fills on the first session that trades below its limit. On that fill session the scorer reads the target only when the session opened under the limit; the stop is tested there as on every session.
+
 ## Brief sections
 
 Some per-market sections (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) come from each market's overview converter, off one shared per-market template, not from a brief builder. A market adds a block, never a section kind.
