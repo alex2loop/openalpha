@@ -1,6 +1,9 @@
 import type { ToolAudience, ToolInvocationContext } from '@/core/tool'
 import type { MarketDataService } from '@/trading/features/market-data/types'
-import type { SuggestionBatchResult } from '@/trading/features/suggestion/batch-types'
+import type {
+  BatchOvercommit,
+  SuggestionBatchResult,
+} from '@/trading/features/suggestion/batch-types'
 import type { HeldPosition } from '@/trading/features/suggestion/exposure'
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type {
@@ -118,6 +121,7 @@ type AgentRunResult = RunResultOf<AgentSuggestion>
 interface AgentBatchResult {
   readonly results: readonly AgentRunResult[]
   readonly breaches: readonly SleeveBreach[]
+  readonly overcommit: readonly BatchOvercommit[]
 }
 
 /** A scored call as the record lists it: which call, the levels it named and how it ended. */

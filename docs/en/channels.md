@@ -136,7 +136,7 @@ Details: [Commands](commands.md). Pairing fails closed in every direction:
 5. **The answer arrives**, split and escaped to fit the chat app, with a cost footer and a localized
    note if the run stopped early.
 
-If the daemon dies mid-run, the message is retried later, up to 3 attempts, then given up and logged.
+If the daemon dies mid-run, the message is retried later, up to 3 attempts, then given up and logged. If sending fails (a network blip, say), each retry waits longer than the last: about 10 seconds, then 20.
 If a run finished but sending the answer failed, only the final message is sent again; the agent is not
 run a second time. This holds for every part of a long answer: if one part is lost, the answer is sent
 again from the start, so parts that already arrived can appear twice. Two cases still re-run: the

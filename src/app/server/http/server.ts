@@ -1,6 +1,7 @@
 import type { Server } from 'bun'
 
 import type { WsData, WsServices } from '@/app/server/ws/socket'
+import type { ApiHandle } from '@/app/types'
 import type { App } from '@/core/container'
 import {
   isOriginAllowed,
@@ -8,9 +9,15 @@ import {
   resolveWebSocketCredential,
 } from '@/app/server/http/auth'
 import { apiError, handleHttp, toAuthRefusal } from '@/app/server/http/dispatch'
-import { closeAllSockets, wsHandlers } from '@/app/server/ws/socket'
+import {
+  closeAllSockets,
+  closeSocketAdmission,
+  hasSocketRoom,
+  wsHandlers,
+} from '@/app/server/ws/socket'
 import { BRAND } from '@/core/brand'
 import { isErrno, ValidationError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 
 const WS_PATH = '/v1/ws'
 const LOOPBACK_HOST = '127.0.0.1'
@@ -20,7 +27,7 @@ const MAX_WS_FRAME_BYTES = 1_048_576
 // Above the host's 120 s ceiling for a whole-market read; Bun's 10 s default cut those off.
 const IDLE_TIMEOUT_SECONDS = 150
 
-export function startApi(app: App, token: string): { readonly stop: () => Promise<void> } {
+export function startApi(app: App, token: string): ApiHandle {
   const wsServices = resolveWsServices(app)
   const server = listen(app, () =>
     Bun.serve({
@@ -42,12 +49,22 @@ export function startApi(app: App, token: string): { readonly stop: () => Promis
     })
   )
 
+  // `stop(false)` closes the listener at once and resolves when in-flight requests finish.
+  let stopping: Promise<void> | undefined
+  const stopListening = (): Promise<void> => (stopping ??= server.stop(false))
+
   return {
+    closeAdmission: (): void => {
+      closeSocketAdmission()
+      stopListening().catch((err: unknown) => {
+        app.resolve('logger').warn('api.admission-close-failed', { err: formatErrForLog(err) })
+      })
+    },
     stop: async (): Promise<void> => {
       // Sockets first: a client holding /v1/ws open would otherwise keep the server from closing.
       closeAllSockets()
       // Resolves once in-flight requests finish, so storage is not closed under one.
-      await server.stop(false)
+      await stopListening()
     },
   }
 }
@@ -89,6 +106,11 @@ function wsUpgradeResponse(
 
   if (refusal !== null) {
     return refusal
+  }
+
+  // After auth, so a peer without the token cannot learn whether the daemon is full.
+  if (!hasSocketRoom()) {
+    return apiError('too_many_streams')
   }
 
   return srv.upgrade(req, {

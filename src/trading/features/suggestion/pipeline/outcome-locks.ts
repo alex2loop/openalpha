@@ -39,6 +39,17 @@ export type EntryFill =
       readonly entry: number
     }
 
+/** Nothing can be sold before the purchase settles, so a level crossed then exits nothing; a stop
+ *  still crossed once it unlocks leaves at that session's open. */
+export function isUnsettled(
+  bar: Candle,
+  suggestion: Pick<ActionableSuggestion, 'settlement'>
+): boolean {
+  const sellableFrom = suggestion.settlement?.sellableFrom
+
+  return sellableFrom !== undefined && bar.at < sellableFrom
+}
+
 /** A long's way out is a sale, which a floor with no buyers cannot fill. */
 export function isExitLocked(input: LockInput, session: number): boolean {
   return limitLockAt(input, session) === (input.suggestion.action === 'buy' ? 'floor' : 'ceiling')

@@ -213,6 +213,9 @@ export interface LedgerWriteResult {
   /** An existing row holding this one's exact content. Reported, never refused: the same size
    *  traded twice in a day is real, and only the operator knows which this was. */
   readonly duplicateOf?: LedgerEntryId
+  /** The key already held this row, written by an earlier request or another writer: nothing new
+   *  was booked. */
+  readonly replayed?: true
   /** The levels-only hold a recorded buy earned, written by the same call that wrote the row.
    *  Absent on every other write, and on a buy a standing plan already covers. */
   readonly planned?: StoredSuggestion

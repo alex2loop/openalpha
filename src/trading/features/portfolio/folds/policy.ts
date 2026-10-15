@@ -1,5 +1,6 @@
 import type { SegmentValue } from '@/trading/features/portfolio/types'
 import type { RiskCapSet } from '@/trading/kernel/operator/profile'
+import { isEtfUnmeasured } from '@/trading/kernel/operator/exposure'
 
 // Named `_FRACTION`, not `_PCT`: applied directly as a multiplier (0.2 means 20%), never scaled
 // by 100 first.
@@ -93,7 +94,7 @@ export function etfCeilingPctNav(cap: RiskCapSet | undefined, sleeve?: SegmentVa
     return Number.POSITIVE_INFINITY
   }
 
-  return sleeve !== undefined && sleeve.etfPctNav === undefined ? 0 : ceiling
+  return isEtfUnmeasured(sleeve) ? 0 : ceiling
 }
 
 /** Room under a sleeve's ETF ceiling for a purchase added to what the sleeve already holds: the

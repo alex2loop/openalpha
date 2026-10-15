@@ -1,3 +1,4 @@
+import type { SuggestionStoreDeps } from '@/trading/features/suggestion/store/readable-row'
 import type { SuggestionRow } from '@/trading/features/suggestion/store/suggestion-row'
 import type {
   StoredSuggestion,
@@ -7,10 +8,11 @@ import type {
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { Page, PageOptions } from '@/trading/kernel/store/page'
-import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
+import { readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { LATEST_OF_SAME_CALL_SQL } from '@/trading/features/suggestion/store/suggestion-outcome'
 import { toSuggestion } from '@/trading/features/suggestion/store/suggestion-row'
+import { suggestionId } from '@/trading/features/suggestion/types'
 import { toPage } from '@/trading/kernel/store/store-row'
 
 export interface SuggestionPageOptions extends PageOptions<SuggestionId> {
@@ -42,7 +44,7 @@ const STATUS_SQL: Readonly<Record<SuggestionListStatus, string>> = {
 /** Open and all rows page newest first by id; ended rows newest close first, keyed on the cursor
  *  row's own close time so a page boundary inside one timestamp neither skips nor repeats a row. */
 export async function listSuggestionPage(
-  deps: StoreDeps,
+  deps: SuggestionStoreDeps,
   options: SuggestionPageOptions
 ): Promise<Page<StoredSuggestion, SuggestionId>> {
   assertNotAborted(options.signal)
@@ -78,5 +80,11 @@ export async function listSuggestionPage(
     params
   )
 
-  return toPage(rows.map(toSuggestion), options.limit, (suggestion) => suggestion.id)
+  // Paged on the rows, not on what they parsed to, so the cursor clears one it could not read.
+  const page = toPage(rows, options.limit, (row) => suggestionId(row.id))
+
+  return {
+    items: page.items.flatMap((row) => readableRow(row, toSuggestion, deps.logger)),
+    ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
+  }
 }

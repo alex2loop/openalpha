@@ -6,7 +6,17 @@ import type { Candle } from '@/trading/kernel/market/market-data'
 import type { MarketPriceLimit } from '@/trading/markets/price-limit'
 import type { MarketTrail, TrailBounds } from '@/trading/markets/types'
 import { bankedShareOf, firstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
-import { entryFillFor, isExitLocked } from '@/trading/features/suggestion/pipeline/outcome-locks'
+import {
+  entryFillFor,
+  isExitLocked,
+  isUnsettled,
+} from '@/trading/features/suggestion/pipeline/outcome-locks'
+import {
+  directionalReturn,
+  exitPriceAt,
+  exitPriceFor,
+  openedBeyondStop,
+} from '@/trading/features/suggestion/pipeline/outcome-prices'
 import { armsExit } from '@/trading/features/suggestion/types'
 
 /** Multiple of the holding window past which a suggestion expires at its last available bar even
@@ -71,6 +81,9 @@ interface OutcomeInput {
   readonly priceLimit?: MarketPriceLimit
   /** The session a limit lock rolled the entry to, set by the scorer itself. */
   readonly rolledTo?: TradingDay
+  /** Set by the scorer when a resting limit's fill bar opened under the limit: the fill was at the
+   *  open, so everything the bar printed came after it. */
+  readonly filledAtOpen?: true
 }
 
 /** The holding window, and where it starts in the full series the trail reads. `sessions` counts
@@ -119,11 +132,15 @@ function scoreWindow(input: OutcomeInput, window: HoldingWindow): OutcomeResolut
   let stop = input.suggestion.stop
   // A resting limit's stop goes on at its fill, so the fill bar keeps the plan's stop.
   const trailFrom = input.suggestion.restingEntry === undefined ? 0 : 1
+  // A bar that opened at or above the limit filled partway through, and a daily bar cannot say
+  // whether its high printed before that: the target is read from the next bar, as a stop is read
+  // before a target.
+  const targetFrom = trailFrom === 0 || input.filledAtOpen === true ? 0 : 1
 
   for (const [index, bar] of window.bars.entries()) {
     stop = index < trailFrom ? stop : trailedStop(input, window.start + index, stop)
 
-    if (isLocked(bar, input.suggestion) || isExitLocked(input, window.start + index)) {
+    if (isUnsettled(bar, input.suggestion) || isExitLocked(input, window.start + index)) {
       continue
     }
 
@@ -133,7 +150,7 @@ function scoreWindow(input: OutcomeInput, window: HoldingWindow): OutcomeResolut
       return stoppedOut(bar, input, stop)
     }
 
-    if (crossedLevel(bar, input.suggestion, profit)) {
+    if (index >= targetFrom && crossedLevel(bar, input.suggestion, profit)) {
       return resolveTarget(input, window, { index, stop })
     }
   }
@@ -161,6 +178,7 @@ function enterAt(
     input: {
       ...input,
       rolledTo: fill.session,
+      ...(gappedUnder ? { filledAtOpen: true as const } : {}),
       suggestion: {
         ...input.suggestion,
         entry: fill.entry,
@@ -250,14 +268,6 @@ function fillSessionOf(
       low: Math.min(placed, own.close),
     },
   }
-}
-
-/** Nothing can be sold before the purchase settles, so a level crossed then exits nothing; a stop
- *  still crossed once it unlocks leaves at that session's open. */
-function isLocked(bar: Candle, suggestion: ScoredCall): boolean {
-  const sellableFrom = suggestion.settlement?.sellableFrom
-
-  return sellableFrom !== undefined && bar.at < sellableFrom
 }
 
 /** Bar count is the real window and settles a complete series; elapsed sessions only catch one the
@@ -417,38 +427,6 @@ function outcomeOf(input: OutcomeInput, exit: OutcomeExit): OutcomeResolution {
       ...(benchmarkReturnPct === undefined ? {} : { benchmarkReturnPct }),
     },
   }
-}
-
-// A target exits at its level, unless the bar gapped through it before the session even opened —
-// a level inside the open-to-close range never actually traded there. An expiry exits at the last
-// close.
-function exitPriceFor(
-  status: Exclude<OutcomeStatus, 'stop'>,
-  bar: Candle,
-  suggestion: ScoredCall
-): number {
-  return status === 'target' ? exitPriceAt(bar, suggestion, suggestion.target) : bar.close
-}
-
-function exitPriceAt(bar: Candle, suggestion: ScoredCall, level: number): number {
-  return openedBeyond(bar, suggestion, level) ? bar.open : level
-}
-
-function openedBeyondStop(bar: Candle, suggestion: ScoredCall, stop: number): boolean {
-  return suggestion.action === 'buy' ? bar.open <= stop : bar.open >= stop
-}
-
-function openedBeyond(bar: Candle, suggestion: ScoredCall, level: number): boolean {
-  return suggestion.action === 'buy' ? bar.open >= level : bar.open <= level
-}
-
-/** A `reduce` returns the negation: a reduce that avoided a fall is a win. The round-trip fee is a
- *  cost regardless of direction, so it always subtracts. */
-function directionalReturn(suggestion: ScoredCall, exitPrice: number, fee: number): number {
-  const move = (exitPrice - suggestion.entry) / suggestion.entry
-  const directional = suggestion.action === 'buy' ? move : -move
-
-  return directional - fee
 }
 
 /** Anchored on the close the call's own window starts from, never a session later: the benchmark

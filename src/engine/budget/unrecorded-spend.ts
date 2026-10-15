@@ -53,12 +53,14 @@ export function createUnrecordedSpendLog(dataDir: string, timeZone: string): Unr
 }
 
 // fsync before returning: the caller has already paid the provider, and an entry still sitting in
-// the page cache when the machine dies is exactly the spend this log exists to survive.
+// the page cache when the machine dies is exactly the spend this log exists to survive. The leading
+// newline closes a record an earlier partial write left unterminated, so it stays one corrupt line
+// instead of swallowing this entry (readLog skips the blank line a clean file gains).
 async function appendDurably(path: string, entry: UnrecordedSpend): Promise<void> {
   const handle = await open(path, 'a', PRIVATE_FILE_MODE)
 
   try {
-    await handle.writeFile(serialize([entry]), 'utf8')
+    await handle.writeFile(`\n${serialize([entry])}`, 'utf8')
     await handle.sync()
   } finally {
     await handle.close()

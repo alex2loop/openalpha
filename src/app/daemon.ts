@@ -28,6 +28,12 @@ declare module '@/core/container' {
 
 type Disposer = () => void | Promise<void>
 
+/** What the way down runs: `admission` closers first and synchronously, `disposers` after the drain. */
+interface Teardown {
+  readonly admission: Array<() => void>
+  readonly disposers: Disposer[]
+}
+
 // The daemon-only half of the process: everything here is started on `start(signal)` and torn down
 // exactly once, in the order of spec §13 Pillar B — shed new work, then drain runs, then dispose.
 // `markStaleRuns` is NOT here: boot already ran it before any subsystem could open a run.
@@ -42,7 +48,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
       }
 
       const logger = app.resolve('logger')
-      const disposers: Disposer[] = []
+      const teardown: Teardown = { admission: [], disposers: [] }
       // `startup` owns the subsystems while boot is still acquiring them: a failure partway tears
       // every already-started subsystem down, and the wait below ends on either real shutdown or it.
       const startup = new AbortController()
@@ -80,7 +86,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
           logger,
           tasks,
           state: taskState,
-          disposers,
+          teardown,
         })
 
         logger.info('daemon.started')
@@ -95,7 +101,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
       } finally {
         startup.abort()
         abortWaiter.dispose()
-        await shutdown({ app, disposers, logger, tasks })
+        await shutdown({ app, teardown, logger, tasks })
       }
     },
   }
@@ -109,11 +115,12 @@ interface StartDaemonSubsystemsOptions {
   readonly logger: Logger
   readonly tasks: Array<Promise<void>>
   readonly state: DaemonTaskState
-  readonly disposers: Disposer[]
+  readonly teardown: Teardown
 }
 
 async function startDaemonSubsystems(options: StartDaemonSubsystemsOptions): Promise<void> {
-  const { app, delivery, startupSignal, startup, logger, tasks, state, disposers } = options
+  const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
+  const { disposers, admission } = teardown
 
   const channels = await startChannels(channelDeps(app, startupSignal))
   disposers.push(() => channels.stop())
@@ -167,7 +174,10 @@ async function startDaemonSubsystems(options: StartDaemonSubsystemsOptions): Pro
   attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
 
   if (app.config.api.enabled) {
-    disposers.push(await app.resolve('apiStarter')(app, process.env))
+    const api = await app.resolve('apiStarter')(app, process.env)
+
+    admission.push(api.closeAdmission)
+    disposers.push(api.stop)
     logger.info('api.started', { port: app.config.api.port })
   }
 }
@@ -379,29 +389,34 @@ function createAbortWaiter(signal: AbortSignal): AbortWaiter {
   }
 }
 
-// Shed new work first (admission stops before anything drains), then drain in-flight runs
-// (SHUTDOWN_DRAIN_MS to land), then dispose, then settle every task. The force timer throws
+// Shed new work first (the API stops admitting before anything drains; its in-flight requests finish
+// at its disposer), then drain in-flight runs (SHUTDOWN_DRAIN_MS to land), then dispose, then
+// settle every task. The force timer throws
 // through the process fatal boundary so its final diagnostic is flushed by the boot-owned logger
 // before the process exits.
 async function shutdown(options: {
   readonly app: App
-  readonly disposers: readonly Disposer[]
+  readonly teardown: Teardown
   readonly logger: Logger
   readonly tasks: readonly Promise<void>[]
 }): Promise<void> {
-  const { app, disposers, logger, tasks } = options
+  const { app, teardown, logger, tasks } = options
   const force = setTimeout(() => {
     throw new ConfigError('daemon shutdown exceeded its deadline')
   }, SHUTDOWN_TOTAL_MS)
   force.unref()
 
   try {
+    for (const close of teardown.admission) {
+      await runCleanup(logger, 'daemon.admission_failed', close)
+    }
+
     await runCleanup(logger, 'daemon.pause_failed', () => app.resolve('sessionQueue').pause())
     await runCleanup(logger, 'daemon.drain_failed', () =>
       app.resolve('runRegistry').drain(SHUTDOWN_DRAIN_MS)
     )
 
-    for (const dispose of disposers) {
+    for (const dispose of teardown.disposers) {
       await runCleanup(logger, 'daemon.dispose_failed', dispose)
     }
 

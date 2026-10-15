@@ -135,7 +135,7 @@ Chi tiết ở [Lệnh](lenh.md). Ghép nối luôn chặn lại khi có sự c�
 5. **Câu trả lời đến**, được cắt khúc và thoát ký tự cho vừa ứng dụng chat, kèm dòng chi phí, và một
    ghi chú đã bản địa hóa nếu phiên chạy dừng sớm.
 
-Nếu daemon chết giữa chừng, tin được thử lại sau, tối đa 3 lần, rồi bỏ và ghi log. Nếu phiên chạy đã xong
+Nếu daemon chết giữa chừng, tin được thử lại sau, tối đa 3 lần, rồi bỏ và ghi log. Nếu việc gửi thất bại (mạng chập chờn chẳng hạn), mỗi lần thử lại chờ lâu hơn lần trước, khoảng 10 giây rồi 20 giây. Nếu phiên chạy đã xong
 nhưng gửi câu trả lời thất bại, chỉ tin cuối được gửi lại; agent không chạy lần hai. Điều này đúng với
 mọi phần của một câu trả lời dài: nếu mất một phần, cả câu trả lời được gửi lại từ đầu, nên phần đã đến
 có thể hiện hai lần. Có hai trường hợp

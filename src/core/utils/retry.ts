@@ -54,7 +54,7 @@ function backoffMs(input: BackoffInput): number {
   const initialMs = Math.max(0, options.initialMs ?? RETRY_BACKOFF_INITIAL_MS)
   const maxMs = Math.max(0, options.maxMs ?? RETRY_MAX_DELAY_MS)
   const random = options.random ?? Math.random
-  const exponentialMs = Math.min(maxMs, initialMs * 2 ** (attempt - 1))
+  const exponentialMs = computeBackoffMs(attempt, initialMs, maxMs)
   const randomFraction = Math.min(1, Math.max(0, random()))
   const jitteredMs = exponentialMs * (1 + randomFraction * RETRY_JITTER_FACTOR)
   const serverFloorMs = Math.max(0, options.delayFor?.(err, attempt) ?? 0)
@@ -62,4 +62,10 @@ function backoffMs(input: BackoffInput): number {
   // The cap bounds our own backoff, never the provider's demand: clamping `Retry-After: 30` to a 5 s
   // ceiling re-sends inside the window it just refused.
   return Math.max(serverFloorMs, Math.min(maxMs, jitteredMs))
+}
+
+/** Doubling from `baseMs` per failure after the first, capped: the one backoff curve every retry
+ *  policy shares. */
+export function computeBackoffMs(failures: number, baseMs: number, capMs: number): number {
+  return Math.min(capMs, baseMs * 2 ** Math.max(0, failures - 1))
 }

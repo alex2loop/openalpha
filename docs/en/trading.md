@@ -337,6 +337,8 @@ Size is budgeted on the entry stop; the regime scales the whole order. The risk 
 
 The sleeve's regime scale reduces the final size alongside conviction and the trader's intent. A risk-off read therefore shrinks a buy even when cash is not the binding ceiling. `suggestion.size-scaled-by-regime` says when it was the tightest of the three.
 
+Every name in one `/suggest` batch is sized against the same book as it stood before the batch, so each buy fits the cash and open-risk room alone. After the verdicts, "If you took every call above" lists what two or more buys would cross together: a sector or sleeve ceiling, the cash the book can spend (and, where one market's venues reach less, that market's cash), and the room left under the open-risk ceiling. A sale frees neither cash nor open risk until it settles, so only buys count. It is a note, never a refusal; the open-risk figure reads each buy's stored stop, so a stop lifted to a held one makes it err toward silence.
+
 #### Reuse on a market with no session boundary
 
 A crypto day is only a charting convention, so reuse goes by age, not date. A run at 23:00 UTC and one at 01:00 are two hours apart, not two days. A row younger than 4 hours satisfies the gate whichever day it landed in. The cooldown still counts sessions.
@@ -377,13 +379,13 @@ A quote prints inside its own session's range. If a call's session bar no longer
 - A target sale into a ceiling lock still fills, because buyers are queued at the ceiling.
 - A call the ceiling kept out for its whole window closes `unfilled`: no trade, no result, out of every scored count.
 
-**Resting buys.** A resting buy fills on the first session that trades below its limit (a touch is not a fill), at that session's open where it opened below. On the call's own day only the move from the quote to the close counts, since the day's low may have printed before the order existed. A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from calls that played out.
+**Resting buys.** A resting buy fills on the first session that trades below its limit (a touch is not a fill), at that session's open where it opened below. On the call's own day only the move from the quote to the close counts, since the day's low may have printed before the order existed. On the fill session itself the target counts only when the session opened below the limit (a gap fill at the open); a session that opened at or above it filled partway through, and a daily bar cannot say whether its high printed first, so the target is read from the next session. The stop is still tested on the fill session, as it is on every session before the target. A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from calls that played out.
 
 The band read is the one stored for the order session, so a new listing's wider first-day band applies to its later sessions too, and a lock in its first weeks can be missed.
 
 **What the track record shows.** It opens with the calls it is drawn from: how many suggestions were made, how many played out, how many are open, and how many sit on a market with no price series and can never be scored. Then it reports win rate, mean and median return, the benchmark comparison and **calibration by conviction band**. A rate without its denominator says nothing. If high-conviction calls win no more often than low-conviction ones, that is the number worth seeing next to the headline.
 
-Every rate counts independent calls. A call repeating one still open on the same name and side rides the same move, so it is folded into the first. The brief re-issues a held idea every session, and each row would otherwise count as another outcome. `/reflect` says how many it folded.
+Every rate counts independent calls. A call repeating one still open on the same name and side rides the same move, so it is folded into the first. The brief re-issues a held idea every session, and each row would otherwise count as another outcome. `/reflect` says how many it folded. The per-focus and per-agent records below fold the same way, each over its own focus's calls (as `/reflect` reads one focus), so a focus reaches the reporting minimum on independent calls and its sample matches what `/reflect` says for it.
 
 `/reflect` also says what you did with the calls that played out, read from the ledger when the report is made and never stored. A call counts as taken when a fill on its side of the same instrument landed between its order session and the day it was scored out. It prints two figures, each only once its group reaches the track record's reporting minimum:
 
@@ -408,7 +410,7 @@ A name the market's listing still calls active waits thirty sessions instead of 
 
 `/reflect` shows your own record (the `default` focus only), then a "By focus" block once an agent has called under its own focus. Per focus it shows:
 
-- its resolved calls and win rate;
+- its resolved calls (independent calls, as above) and win rate;
 - how often it takes the action the others take on the same name and day;
 - where it went against them and both sides were scored, who was right.
 
@@ -450,7 +452,9 @@ The `suggestion_track_record` tool returns the asking agent's own focus record a
 | Each actionable suggestion behind a position you hold (exit alerts) | The plan's stop as trailed today, and its target |
 | Every watchlist and held name (screener alerts) | One band either side of the settled close |
 
-A market that declares a trail raises the stored stop every settled session. The raised level arms as a new alert and the old one retires. A same-day `/suggest` re-run that replaces a buy keeps the level the trail had reached when it sits above the new plan's stop: a stop never moves down.
+A market that declares a trail raises the stored stop every settled session. The raised level arms as a new alert and the old one retires. A write that fails is tried again on the next tick rather than waiting for the next session. A same-day `/suggest` re-run that replaces a buy keeps the level the trail had reached when it sits above the new plan's stop: a stop never moves down.
+
+One alert tick delivers what is due first, then runs the two arming passes, each on its own. A failing pass is logged (`trading.alert_arming_failed`) and the other still runs, so price alerts keep delivering whatever the arming passes do. Inside the exit pass one holding's planning failure is logged with its ticker (`trading.exit_holding_failed`) and that holding keeps the plan it had, while the other holdings are planned as usual. A failure of the delivery step itself still stops the loop, as before.
 
 Both passes **reconcile** rather than append: they work out which alerts should exist now, arm what is missing, and disable what is no longer expected. An exit alert follows the book, so a ledger edit that re-bases positions enables or disables alerts on the next tick. A screener band is tied to its settled day, so yesterday's bands retire on the first tick after the next settle.
 
@@ -510,7 +514,7 @@ A day whose three delivery attempts all fail is given up, not the subscription. 
 
 - `/brief enable 07:30` sets your own time.
 - `/brief enable` with no time follows `[trading.briefs] send_time`, so editing config later still moves the brief.
-- Enabling again after today's brief went out starts tomorrow, and is refused while a brief is being sent.
+- Enabling again after today's brief went out starts tomorrow, and is refused while a brief is being sent. The refusal is held at the write, so a send that starts between the check and the enable keeps its claim and the command says a brief is being sent.
 - `/brief` alone shows the latest brief, building one if none exists.
 - `/brief disable` stops delivery.
 
@@ -837,7 +841,7 @@ The book as a whole is `live` only when **every** priced position is live, other
 
 **Realized P/L** is the exception. It is cash + cost basis - net deposits, so no price enters it and it is present even when NAV is not. Every deposit that is neither cash on hand nor basis in an open position was spent or lost on a trade that has closed. Unrealized P/L is the paper move on what you still hold; realized P/L is what is settled and gone. They render as separate lines.
 
-When any holding is unpriced, NAV is withheld and the assessment carries `portfolio.valuation-partial`. Weight-based checks skip themselves rather than divide by a partial total. The exclusion and liquidity checks still run, because "you still hold something on your exclusion list" is true regardless of pricing.
+When any holding is unpriced, NAV is withheld and the assessment carries `portfolio.valuation-partial`. Weight-based checks skip themselves rather than divide by a partial total, and a buy placed through `/trade` or `order_place` is refused for the same reason. The exclusion and liquidity checks still run, because "you still hold something on your exclusion list" is true regardless of pricing.
 
 ### How your book has done
 
@@ -965,7 +969,7 @@ A fill placed through `/trade` or `order_place` is written to the ledger the sam
 
 **`/record sync <venue>`** is the third way those rows are created, and it takes the same path. It differs only in how it selects: it asks the venue what it filled, then books what the book has no row for. Validation, calculation and confirmation are shared.
 
-- A fill is matched by the venue's own order id (`<venue>:<orderId>`), and by the figures themselves against a row you typed by hand. A fill is left alone when it matches a hand-typed row that no fill has claimed yet, on venue, instrument, day, side and quantity. Each typed row absorbs at most one fill.
+- A fill is matched by the venue's own order id (`<venue>:<orderId>`, the key `/trade` books its own fills under too), and by the figures themselves against a row you typed by hand. A fill is left alone when it matches a hand-typed row that no fill has claimed yet, on venue, instrument, day, side and quantity. Each typed row absorbs at most one fill.
 - Each fill's market is resolved against the markets that venue holds, and no others. When no detector can be reached, the venue's own listing answers instead, read at most once per run, and only when exactly one of the venue's markets could claim the ticker. A ticker no market lists, or one that two claim, is skipped rather than guessed.
 - Fills are booked oldest first across instruments. A name the book could take only part of is not taken at all: if a sync fails or is cancelled part way, it takes back what it had booked of any name it had not finished, so it never leaves a half-booked position. Rows an earlier run left behind are yours to delete.
 
@@ -987,7 +991,7 @@ Every cash row names its custodian, and a buy is capped by the cash at the venue
 
 ## Orders
 
-**Start on a demo account.** In 1.0.2 the order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
+**Start on a demo account.** In 1.0.3 the order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
 
 `/trade` and the `order_place` tool place spot orders on **OKX** or **Binance**: market and limit, buy and sell, with an optional take-profit/stop-loss on a buy. Every order is capped before you are asked, approved by you before it goes out, and mirrored into the ledger when it fills.
 
@@ -1047,7 +1051,9 @@ You can rename the variables in `credentials` under `[trading.venues.okx]`, and 
 
 The `order_place` and `order_exits` tools follow the same gate, so an install that never configures an exchange has no order surface at all.
 
-**Approval.** `order_place` asks you on every call, offers no remembered decision, and refuses outright when the run's approval mode is `bypass`, unless `[trading.orders] allow_unattended` is set. A take-profit or stop-loss rides a buy only: `order_place` refuses one on a sell, as `/trade` does. Orders are sized and checked against a live price only; when the exchange reading is a stored close or a stale print, the order is held back with a plain note to try again. A buy that would take a holding, sector or sleeve past its cap is refused there too, and the agent tells you which; place it with `/trade`, which shows the breach before you confirm.
+**Approval.** `order_place` asks you on every call, offers no remembered decision, and refuses outright when the run's approval mode is `bypass`, unless `[trading.orders] allow_unattended` is set. A take-profit or stop-loss rides a buy only: `order_place` refuses one on a sell, as `/trade` does. Orders are sized and checked against a live price only; when the exchange reading is a stored close or a stale print, the order is held back with a plain note to try again. A buy that would take a holding, sector or sleeve past its cap is refused there too, and the agent tells you which; place it with `/trade`, which shows the breach before you confirm. A buy of an ETF into a sleeve whose ETF share cannot be measured (a holding there has no resolved kind) counts as a breach of any ETF ceiling the sleeve declares: the caps cannot be checked, so it is not waved through.
+
+With a saved profile, a buy is refused while any holding in the book has no price (`order.book_unpriced`), on `/trade` and `order_place` alike. Without a price for every holding there is no total, so no position, sleeve or ETF cap can be measured, and an order that skipped them would clear them all. `/portfolio` names the holding; `/refresh` its market to load a price, then place the order again. A sell, and a buy with no saved profile, are not held back.
 
 When an order is refused for size (a sale larger than what has settled, or than what a resting exit has frozen), the figure appears in your `/trade` reply but never in what an agent reads.
 
@@ -1055,7 +1061,7 @@ When an order is refused for size (a sale larger than what has settled, or than 
 
 - Each staged order has its own token, claimed before the exchange is reached. A token already used, placed or expired is refused, so a bare `/trade confirm` can never place the same order twice. An order that already carries an order id or a failure is never listed as waiting for `/trade confirm`.
 - Before an order leaves, an in-flight marker is written. If the process dies while the exchange holds the order, the marker survives, `/trade reconcile` lists it, and the caps count it until it is settled. An order that cannot be recorded this way is not sent. Every later outcome replaces the marker.
-- If `/record sync` has already booked an order's fill while `/trade` was still waiting on it, `/trade` adopts that row instead of writing a second one, so the cash is debited once.
+- `/trade` books its fill under the venue's own order id, the same key `/record sync` uses, and dates the row by the session the fill traded in rather than the moment you confirmed. Whichever of the two writes second finds the row already there, inside the ledger's write lock, and books nothing, so the cash is debited once even when both run at the same moment. If `/record sync` booked the fill while `/trade` was still waiting on it, `/trade` adopts that row.
 - A run cancelled after the exchange took an order still marks it for `/trade reconcile` and, for an order left resting, tries to cancel it.
 - One cancelled between the fill and the ledger write leaves an unrecorded row with the reason `order.mirror_aborted`, still charged against the caps and listed by `/trade reconcile`.
 
@@ -1199,7 +1205,7 @@ Every write to an exchange (a confirm, an exit, a cancel) runs one at a time. Th
 - The caps are whole-book: spendable cash and the open-trade count. Two confirms running together would each measure a book the other has not written to, and both clear a ceiling only one may.
 - Two `/trade exit` calls running together would each read *nothing resting* and place, leaving the second exit the conflict guard exists to prevent.
 
-The caps are read **again** inside that window. An order the book no longer allows is refused with `order.book_moved` rather than trimmed, because the size and the levels are what you said yes to.
+The caps are read **again** inside that window. An order the book no longer allows is refused with `order.book_moved` rather than trimmed, because the size and the levels are what you said yes to. A holding that lost its price in the meantime refuses the buy with `order.book_unpriced`.
 
 ### 9. Verify, in this order
 

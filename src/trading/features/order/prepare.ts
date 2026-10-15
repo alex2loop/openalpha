@@ -22,8 +22,9 @@ import type {
   VenueRef,
 } from '@/trading/kernel/instrument'
 import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { resolveDay, resolveInstrument } from '@/trading/features/market-data/resolve'
-import { breachedSleeves } from '@/trading/features/order/exposure'
+import { assertBookPriced, breachedSleeves } from '@/trading/features/order/exposure'
 import { assertBuyingAllowed } from '@/trading/features/order/halt'
 import { isExitInverted, validateOrderCaps } from '@/trading/features/order/policy'
 import { roundExitLevels, roundToInstrument } from '@/trading/features/order/precision'
@@ -314,7 +315,7 @@ interface Caps {
 async function capsFor(deps: OrderServiceDeps, caps: CapsInput): Promise<Caps> {
   const { input } = caps
   const book = await deps.portfolio.viewAbsolute({ now: input.now, signal: input.signal })
-  const [notionalBase, unmirrored] = await Promise.all([
+  const [notionalBase, unmirrored, profile] = await Promise.all([
     deps.toBaseCurrency({
       amount: caps.notional,
       currency: caps.currency,
@@ -322,11 +323,14 @@ async function capsFor(deps: OrderServiceDeps, caps: CapsInput): Promise<Caps> {
       signal: input.signal,
     }),
     deps.intents.unmirroredExposure(input.signal),
+    findBuyProfile(deps, input.request.side, input.signal),
   ])
+
+  assertBookPriced(book, profile)
 
   return {
     notionalBase,
-    breaches: await buyBreaches(deps, caps, { book, notionalBase }),
+    breaches: buyBreaches(profile, caps, { book, notionalBase }),
     rejections: rejectionsFor(deps, {
       side: input.request.side,
       orderType: input.request.orderType,
@@ -384,20 +388,23 @@ interface ValuedOrder {
   readonly notionalBase: number
 }
 
-/** A sell takes exposure off, so it reads no profile and crosses no ceiling. An operator who has
- *  saved none has declared no ceilings either, which states nothing rather than measuring against
- *  seeds they never chose. */
-async function buyBreaches(
+/** The profile a buy is held to, read where the book is: here when the order is prepared and again
+ *  inside the write window, so both judge it by the same rule. A sell takes exposure off, so it
+ *  reads none, and an operator who has saved none has declared no ceilings, which states nothing
+ *  rather than measuring against seeds they never chose. */
+export async function findBuyProfile(
   deps: OrderServiceDeps,
+  side: OrderSide,
+  signal: AbortSignal
+): Promise<UserProfile | null> {
+  return side === 'buy' ? await deps.findProfile(signal) : null
+}
+
+function buyBreaches(
+  profile: UserProfile | null,
   caps: CapsInput,
   valued: ValuedOrder
-): Promise<readonly SleeveBreach[]> {
-  if (caps.input.request.side !== 'buy') {
-    return []
-  }
-
-  const profile = await deps.findProfile(caps.input.signal)
-
+): readonly SleeveBreach[] {
   if (profile === null) {
     return []
   }

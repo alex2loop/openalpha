@@ -45,8 +45,10 @@ mỗi bên điền một phần.
 - **SQLite** (`persistence/engines/sqlite.ts`, `bun:sqlite`). Thứ tự pragma: `busy_timeout` 5000 ms
   đứng đầu (chuyển sang WAL cần một khóa, nên thời gian chờ phải được đặt trước), `journal_mode = WAL`,
   `synchronous = NORMAL`, `temp_store = MEMORY`, `cache_size` 4000 KiB, `mmap_size` 8 MiB,
-  `foreign_keys = ON`. Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`): ghi vào `<đích>.part`,
-  `chmod 0600`, rồi rename, vì `VACUUM INTO` theo umask chứ không theo đối số quyền. `KEEP_BACKUPS` là 7.
+  `foreign_keys = ON`. Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`): ghi vào một thư mục
+  tạm `mkdtemp` (`.staging-*`, `0700`) cạnh đích, `chmod 0600`, rồi rename vào chỗ, vì `VACUUM INTO` theo umask
+  chứ không theo đối số quyền và bản sao không được để người khác đọc được lúc đang ghi. `pruneBackups`
+  xóa các thư mục tạm mồ côi. `KEEP_BACKUPS` là 7.
 - **PostgreSQL** (`persistence/engines/postgres.ts`). `ensureSchema` chạy `CREATE SCHEMA IF NOT EXISTS`
   trước tiên: `search_path` nêu tên schema nhưng không bao giờ tạo nó, và mục thiếu bị bỏ qua lặng lẽ,
   khiến mọi migration rơi vào `public`.
@@ -154,7 +156,11 @@ Vậy nếu một bảng nghiệp vụ biến mất sau khi reset, nghĩa là mi
 `persistence/retention.ts`. Hằng số: `SCHEDULER_RUNS_KEEP_PER_JOB` 200,
 `BRIEF_SNAPSHOTS_KEEP_PER_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 ngày. `RetentionConfig` mang
 `retentionDays` và `inboxRetentionDays`. Daemon dọn một lần lúc khởi động rồi theo chu kỳ; `db cleanup`
-chạy tay đúng chính sách đó.
+chạy tay đúng chính sách đó. `runRetention` chạy câu xóa của từng phạm vi (`toScopes`) trong giao dịch riêng,
+nên một phạm vi chậm hoặc hỏng không giữ kết nối SQLite suốt cả lượt dọn và không làm PostgreSQL hoàn tác
+các phạm vi khác khi hết `statement_timeout`; phạm vi hỏng log `retention.scope_failed` và trả 0 trong
+`RetentionCounts` giữ nguyên hình dạng. Lệnh `SELECT changes()` vẫn nằm trong giao dịch của phạm vi, cùng
+kết nối với câu xóa.
 
 ## Kho phiên chat
 

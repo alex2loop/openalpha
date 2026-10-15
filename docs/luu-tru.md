@@ -184,6 +184,10 @@ sách đó bằng tay, cần daemon đã dừng, và thêm `--dry-run` thì ch�
 buộc, ghi đè cửa sổ chung chỉ cho lệnh đó và phải ít nhất `1d`. Các mục inbox vẫn dùng `inbox_days`,
 còn `llm_attempts` giữ cửa sổ 400 ngày riêng.
 
+Mỗi loại dữ liệu được dọn trong một giao dịch riêng. Loại nào hỏng hoặc chạy chậm thì được log
+`retention.scope_failed` và tính là không dọn được gì, các loại khác vẫn được dọn, còn các dòng của
+loại đó chờ lượt dọn kế tiếp.
+
 ### Xuất và nhập
 
 ```bash
@@ -240,7 +244,9 @@ openalpha db restore /safe/place/runtime.sqlite --yes
 
 **Sao lưu** ghi một bản chụp nhất quán ngay khi cơ sở dữ liệu đang chạy và đặt quyền `0600`, dù
 `--path` trỏ tới đâu. Nó chứa mọi phiên chat, mọi bộ nhớ và mọi dòng sổ, nên không bao giờ để nhóm hay
-người khác đọc được. Đích sao lưu tự động giữ bảy tệp mới nhất. `--path` từ chối tệp đã tồn tại trừ khi
+người khác đọc được, kể cả lúc đang ghi: bản sao được tạo trong một thư mục tạm riêng tư `0700` đặt cạnh
+đích rồi mới chuyển vào chỗ khi đã đủ. Nếu tiến trình chết giữa chừng, thư mục tạm `.staging-` còn sót
+lại: thư mục sao lưu tự động sẽ xóa nó ở lần sao lưu kế tiếp, còn chỗ khác thì bạn xóa tay. Đích sao lưu tự động giữ bảy tệp mới nhất. `--path` từ chối tệp đã tồn tại trừ khi
 bạn thêm `--force`.
 
 **Khôi phục** cần daemon đã dừng. Trước hết nó kiểm tra nguồn có mở được như một cơ sở dữ liệu SQLite

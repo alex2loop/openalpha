@@ -21,8 +21,8 @@ interface PlanSelectDeps {
 
 // Single-key Start/Edit/Cancel over an interactive input stream. The signal is checked before raw
 // mode and listener setup; Enter starts, `e` edits (the edit instruction is read with the existing
-// PromptFn), `q` or Escape cancels. Raw mode and the keypress listener are restored/removed in
-// finally — the same finally runs on abort, the early-return path, and any throw.
+// PromptFn), `q` or Escape cancels. Raw mode, the data listener and the detached keypress listeners
+// are restored in finally - the same finally runs on abort, the early-return path, and any throw.
 export async function selectPlanAction(deps: PlanSelectDeps): Promise<PlanSelectOutcome> {
   if (deps.signal.aborted) {
     return { kind: 'cancel' }
@@ -30,7 +30,18 @@ export async function selectPlanAction(deps: PlanSelectDeps): Promise<PlanSelect
 
   deps.write(reviewPrompt(deps.locale, deps.canEdit))
 
+  const first = await readSingleKey(deps)
+
+  if (first === 'start' || first === 'cancel') {
+    return { kind: first }
+  }
+
+  return await readEditOutcome(deps)
+}
+
+async function readSingleKey(deps: PlanSelectDeps): Promise<'start' | 'edit' | 'cancel'> {
   const wasRaw = deps.input.isTTY ? deps.input.isRaw : false
+  const reattach = detachKeypressListeners(deps.input)
 
   try {
     if (deps.input.isTTY) {
@@ -38,15 +49,30 @@ export async function selectPlanAction(deps: PlanSelectDeps): Promise<PlanSelect
       deps.input.resume()
     }
 
-    const first = await readFirstKeypress(deps)
-    if (first === 'start' || first === 'cancel') {
-      return { kind: first }
-    }
-
-    return await readEditOutcome(deps)
+    return await readFirstKeypress(deps)
   } finally {
     if (deps.input.isTTY) {
       deps.input.setRawMode(wasRaw)
+    }
+
+    reattach()
+  }
+}
+
+// A terminal readline keeps its own keypress listener on the stream and inserts every key into its
+// line buffer, so `q` or `e` would prefill the next prompt. Lifting those listeners for the choice
+// keeps the keys out of it; the returned function puts them back in their original order.
+function detachKeypressListeners(input: NodeJS.ReadStream): () => void {
+  const listeners = input.rawListeners('keypress')
+
+  for (const listener of listeners) {
+    // why-safe: the emitter only ever stores functions in its listener list.
+    input.removeListener('keypress', listener as (...args: unknown[]) => void)
+  }
+
+  return () => {
+    for (const listener of listeners) {
+      input.on('keypress', listener as (...args: unknown[]) => void)
     }
   }
 }

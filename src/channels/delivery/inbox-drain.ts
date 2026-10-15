@@ -16,10 +16,15 @@ import { channelId } from '@/core/channels'
 import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { isPlainRecord } from '@/core/utils/collections'
+import { computeBackoffMs } from '@/core/utils/retry'
 import { sleep } from '@/core/utils/time'
 
 const INBOX_DRAIN_INTERVAL_MS = 250
 const INBOX_CLAIM_LIMIT = 32
+// A failed attempt backs off so a network blip is outlasted instead of spending every attempt inside
+// the drain interval.
+const INBOX_RETRY_BASE_MS = 10_000
+const INBOX_RETRY_CAP_MS = 300_000
 const INBOX_RECOVERY_INTERVAL_MS = 60_000
 // A delivery holds its entry for the whole agent run, so the lease must outlast the run cap or
 // recovery would requeue live work. The slack covers the queue wait ahead of the run itself.
@@ -279,13 +284,16 @@ async function failEntry(deps: InboxDrainDeps, claimed: ClaimedEntry, err: unkno
 
   const error = formatErrForLog(err).message
   const answer = keptAnswer(deps, entry.updateId, err)
+  const failedAt = Date.now()
   const disposition = await deps.inbox.failAttempt({
     channel: deps.channelId,
     updateId: entry.updateId,
     token,
     error,
-    failedAt: Date.now(),
+    failedAt,
     maxAttempts: deps.inboxMaxAttempts,
+    retryAt:
+      failedAt + computeBackoffMs(entry.attemptCount, INBOX_RETRY_BASE_MS, INBOX_RETRY_CAP_MS),
     ...(answer === undefined ? {} : { answer }),
   })
 

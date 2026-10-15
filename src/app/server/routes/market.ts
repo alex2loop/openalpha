@@ -32,8 +32,6 @@ import { alertId, marketRef, region, SURFACE_LIMITS, ticker } from '@/trading/ap
 /** The kinds a screen can be narrowed to; the host refuses a market that holds no such kind. */
 const SCREEN_KINDS: ReadonlySet<string> = new Set<InstrumentKind>(['equity', 'etf', 'crypto'])
 const MAX_QUERY_LENGTH = 40
-// A shared board read outlives any one caller, so it runs under the host's own ceiling only.
-const SHARED_READ = new AbortController().signal
 const ALERT_BODY: z.ZodType<AlertCreateBody> = z.object({
   instrument: z.object({ ticker: z.string().min(1), market: z.string().min(1).exactOptional() }),
   condition: z.enum(['above', 'below']),
@@ -66,7 +64,9 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
       limit,
       // why-safe: checked against SCREEN_KINDS above, which holds InstrumentKind members only.
       ...(kind === null ? {} : { instrumentKind: kind as InstrumentKind }),
-      signal: SHARED_READ,
+      // A shared board read outlives any one caller: it ends on the host's own ceiling or shutdown,
+      // never on the hang-up of whichever request started it.
+      signal: ctx.app.signal,
     })
 
     return toScreenWire(market, answer)

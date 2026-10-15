@@ -2,7 +2,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { LedgerStore } from '@/trading/features/ledger/store/ledger'
-import type { LedgerEntry } from '@/trading/features/ledger/types'
+import type { LedgerEntry, LedgerWriteResult } from '@/trading/features/ledger/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
@@ -198,15 +198,20 @@ async function bookFills(
 
   for (const [index, fill] of fills.entries()) {
     try {
-      const entry = await recordFill(deps, ctx, fill)
+      const write = await recordFill(deps, ctx, fill)
 
-      if (entry === undefined) {
+      if (write === undefined) {
         partial.add(buildInstrumentKey(fill.draft.instrument))
         skipped.push({ symbol: fill.symbol, reason: 'refused' })
         continue
       }
 
-      entries.push(entry)
+      // Already booked under this key (the order mirror): not this pass's row to report or void.
+      if (write.replayed === true) {
+        continue
+      }
+
+      entries.push(write.entry)
     } catch (err: unknown) {
       await voidAfterFailure(deps, booked, fills.slice(index))
 
@@ -320,9 +325,9 @@ async function recordFill(
   deps: RecordCommandDeps,
   ctx: SlashContext,
   fill: SyncedFill
-): Promise<LedgerEntry | undefined> {
+): Promise<LedgerWriteResult | undefined> {
   try {
-    const write = await deps.portfolio.record({
+    return await deps.portfolio.record({
       draft: fill.draft,
       idempotencyKey: fill.idempotencyKey,
       // The figures are already the venue's own, which both records the provenance and stops the
@@ -331,8 +336,6 @@ async function recordFill(
       now: Date.now(),
       signal: ctx.signal,
     })
-
-    return write.entry
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err

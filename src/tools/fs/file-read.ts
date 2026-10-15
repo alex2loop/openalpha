@@ -119,7 +119,9 @@ async function closeReadHandle(handle: FileHandle | undefined, logger: Logger): 
 
 async function openReadFile(realPath: string, requestedPath: string): Promise<FileHandle> {
   try {
-    return await open(realPath, constants.O_RDONLY | constants.O_NOFOLLOW)
+    // O_NONBLOCK: opening a FIFO read-only would otherwise park a threadpool thread until a writer
+    // appears, with no way to abort. It is a no-op on regular files; the isFile check rejects the rest.
+    return await open(realPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
   } catch (err: unknown) {
     // No sibling listing: the parent is known only by name here, and a parent swapped for an
     // external symlink since resolution would put outside names in the error.

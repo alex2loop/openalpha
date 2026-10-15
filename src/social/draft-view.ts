@@ -3,7 +3,7 @@ import type { ApproveOutcome, SocialDraftView } from '@/social/drafts'
 import { sanitizeDisplayText, toFencedText, toSingleLine } from '@/core/utils/text'
 import { t } from '@/i18n'
 import { DRAFT_REASON_KEYS } from '@/social/notices'
-import { renderSocialReply } from '@/social/tools/reply'
+import { maybeLiveLines, renderSocialReply } from '@/social/tools/reply'
 
 /** The network's own answer, cut so one reply cannot flood a chat. */
 const ANSWER_SHOWN_CHARS = 2_000
@@ -65,6 +65,13 @@ export function renderApproveOutcome(
     const reason = renderSocialReply(locale, outcome.reply).content
 
     return { ok: false, lines: [t(locale, 'social.approveRefused', { id, reason })] }
+  }
+
+  if (outcome.kind === 'failed' && maybeLiveLines(locale, outcome.reply).length > 0) {
+    return {
+      ok: false,
+      lines: [t(locale, 'social.approveMaybeLive', { id }), ...answerLines(render, outcome.reply)],
+    }
   }
 
   if (outcome.kind === 'failed') {

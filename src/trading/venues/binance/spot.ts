@@ -46,6 +46,7 @@ import {
 } from '@/trading/venues/binance/transport'
 import { hashedClientOrderId } from '@/trading/venues/client-order-id'
 import { toDecimalString } from '@/trading/venues/decimal'
+import { assertClockWithin } from '@/trading/venues/transport'
 
 const TIME_PATH = '/api/v3/time'
 const ACCOUNT_PATH = '/api/v3/account'
@@ -91,8 +92,6 @@ export function createBinanceSpotAdapter(deps: BinanceTransportDeps): SpotAdapte
   }
 }
 
-/** The server stamps its time somewhere inside the round trip, so it is held against the trip's
- *  midpoint: read after the reply, the trip back alone would count as skew. */
 async function assertClockInSync(deps: BinanceTransportDeps, signal: AbortSignal): Promise<void> {
   const sentAt = deps.now()
   const time = await binancePublicRequest(deps.credentials.simulated, {
@@ -106,11 +105,13 @@ async function assertClockInSync(deps: BinanceTransportDeps, signal: AbortSignal
     throw new OrderError('order.network', 'exchange time is unreadable')
   }
 
-  const lead = (sentAt + receivedAt) / 2 - time.serverTime
-
-  if (lead > MAXIMUM_CLOCK_LEAD_MS || -lead > MAXIMUM_CLOCK_LAG_MS) {
-    throw new OrderError('order.clock_skew', 'the local clock is too far from exchange time')
-  }
+  assertClockWithin({
+    sentAt,
+    receivedAt,
+    serverMs: time.serverTime,
+    maximumLeadMs: MAXIMUM_CLOCK_LEAD_MS,
+    maximumLagMs: MAXIMUM_CLOCK_LAG_MS,
+  })
 }
 
 async function fetchLimits(

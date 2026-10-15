@@ -3,6 +3,91 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.3] - 2026-10-15
+
+A hardening release. Nothing new to learn: the same commands, with safer orders, a more honest
+track record and a daemon that rides out bad moments instead of losing your messages. The first
+start after upgrading adds one column to the database by itself (SQLite takes a backup first).
+
+### Orders and your book
+
+- **A buy waits until every holding has a price** - if something you hold can't be priced right
+  now, `/trade` and `order_place` hold the buy instead of skipping the caps they can't check. The
+  message says which command names the holding and that `/refresh` fixes it.
+- **ETF ceilings count when a holding's type is unknown** - a sleeve holding a name that hasn't been
+  classified yet now reads as having no ETF room, on orders and on `/suggest` alike, instead of as
+  holding no ETFs at all.
+- **One fill, one row** - a `/trade` fill, `/record sync` and the exit check now book a venue fill
+  under the same key, so running `/record sync` while an order fills can no longer record it twice.
+  A fill is dated on the session it filled in, not the moment you confirmed it.
+- **`/record sync` on OKX sees today's fills** - a book older than a week reads both OKX's recent
+  history and its archive, so the newest fills are no longer missed.
+- **OKX clock problems say so** - a refused timestamp reads as a clock that needs syncing, not as
+  bad credentials, and the clock check keeps a safety margin like Binance's.
+
+### Suggestions and track record
+
+- **Win rates count each idea once** - an agent's and a focus's record now fold a repeated call on
+  a still-open idea into the first, the same way `/reflect` does, so a held idea re-issued every
+  morning no longer inflates the numbers.
+- **Resting buys are scored conservatively** - when a limit fills on a bar that also touched the
+  target, that bar no longer counts as a win unless the price opened below your limit.
+- **A batch that asks for too much says so** - when the calls in one `/suggest` together need more
+  cash or open risk than the book has, the summary tells you.
+- **One damaged row no longer breaks `/suggest`** - an unreadable stored suggestion is skipped and
+  logged instead of failing every item or the whole `/suggestions` page.
+
+### Alerts, brief and data
+
+- **Price alerts keep running** - a problem planning one holding's exit, or arming a screener, no
+  longer stops price alerts for everything else; the other holdings carry on.
+- **A trailing stop is retried after a failed save** instead of waiting for the next session.
+- **The morning brief can't be sent twice** when you run `/brief enable` at the moment it goes out.
+- **`/refresh gold-vn force` rebuilds the gold premium history**, so a bad stored day is replaced
+  as the docs always said.
+- **Data providers that ask you to wait are believed** - a "come back in N seconds" longer than a
+  request can wait is now read as a rate limit and the provider is rested, instead of being logged
+  as a timeout and asked again. Waiting in our own queue no longer counts against a provider.
+
+### Telegram, Zalo and social
+
+- **Messages survive a network blip** - a reply that fails to send waits 10 s, then 20 s, before
+  trying again, instead of using up every attempt within a second and being dropped.
+- **Every button tap counts** - approving one draft and then another from the same `/social drafts`
+  list now works; the second tap used to be ignored for five minutes.
+- **Zalo personal finds your groups after a restart** - briefs and notices to a group chat no longer
+  go out as a direct message that never arrives.
+- **Telegram** - link previews stay off when an answer is filled in, and a reply still arrives if
+  you deleted the message it answers.
+- **Social posts are never sent twice by mistake** - when a network times out on a post, it is
+  counted as possibly live, and the agent is told to check before trying again.
+
+### Daemon and safety
+
+- **Shutdown stops taking new requests first** - the API closes its door before the daemon drains
+  running work, so nothing new starts on the way down.
+- **A slow provider at startup no longer stops the daemon** - it starts with what it has and catches
+  up, whether the refresh fails early or late.
+- **Background tasks back off after a failure** - a heartbeat task whose result could not be saved
+  waits before running again instead of re-running (and re-billing) every 30 seconds.
+- **Logging comes back by itself** after a full disk or a write error, instead of staying silent
+  until a restart.
+- **Backups are private from the first byte** - `openalpha db backup` writes inside a private folder
+  and only then moves the file into place.
+- **Retention cleans each table on its own**, so one slow table no longer holds up or rolls back the
+  rest.
+- **Secrets are removed before a tool's output is shortened**, so a key cut in half at the edge can
+  no longer slip through, and a tool result now stays within its size limit. A result over 4 MiB
+  is replaced by a short note rather than read.
+- **"Remember this approval" for shell commands covers exactly that command** and its arguments as
+  given, and stores only a fingerprint of them.
+- **Safer CLI** - keys typed while reviewing a research plan no longer leak into your next message,
+  and `agent show`/`agent list` strip terminal control codes from agent descriptions.
+- **The app API rejects a connection over the stream limit up front** with a clear error, and no
+  longer reports a notice as delivered when it was dropped.
+- **Remote plugins install under their repository name** when they don't declare an id, so
+  installing one twice no longer leaves two copies.
+
 ## [1.0.2] - 2026-10-15
 
 The first public release of OpenAlpha: a self-hosted trading research analyst for Vietnamese
@@ -188,4 +273,5 @@ Each market brings its own factors, sources, calendar and execution playbook.
 - **Self-healing background loops** - a loop that hits an unexpected error tells you in plain words
   and restarts after an hour, up to three times, while the rest of the daemon keeps running.
 
+[1.0.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.3
 [1.0.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.2

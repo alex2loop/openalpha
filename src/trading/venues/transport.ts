@@ -102,3 +102,25 @@ export function unretried<T>(
 ): Promise<T> {
   return once(AbortSignal.any([signal, AbortSignal.timeout(REQUEST_BUDGET_MS)]))
 }
+
+interface ClockReading {
+  /** Local clock before the time request left and after its reply arrived. */
+  readonly sentAt: number
+  readonly receivedAt: number
+  readonly serverMs: number
+  /** How far the local clock may run ahead of the venue, and how far behind it. */
+  readonly maximumLeadMs: number
+  readonly maximumLagMs: number
+}
+
+/** The venue stamps its time somewhere inside the round trip, so it is held against the trip's
+ *  midpoint: read after the reply, the trip back alone would count as skew. The bounds are the
+ *  venue's own signature window less a margin the caller chooses, because a stamp that passes here
+ *  can still be refused by the time the signed request lands. */
+export function assertClockWithin(reading: ClockReading): void {
+  const lead = (reading.sentAt + reading.receivedAt) / 2 - reading.serverMs
+
+  if (lead > reading.maximumLeadMs || -lead > reading.maximumLagMs) {
+    throw new OrderError('order.clock_skew', 'the local clock is too far from exchange time')
+  }
+}

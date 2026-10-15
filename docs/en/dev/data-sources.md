@@ -411,11 +411,16 @@ One request, in order:
    polling. The bucket holds a quarter of the minute's budget (`BURST_FRACTION`, at least one token): a cold process spending
    the whole minute at once is refused by a provider that meters a shorter window. Sustained throughput is still the declared
    rate. Pacing happens *before* the call rather than recovering after a 429: without it a wide watchlist trips the breaker and
-   loses the provider for a cooldown. Every retry takes its own token, since a retry is another request the provider serves.
+   loses the provider for a cooldown. Every retry takes its own token, since a retry is another request the provider serves. A call whose budget runs out
+   while it waits for a token never reached the provider, so it answers `source.timeout` without touching the breaker: a deep
+   queue behind a healthy provider must not open it.
 5. **Send, with retry.** `isRetryable` covers timeouts and `408 425 500 502 503 504`; any other status is the provider's answer
    and repeating it returns the same. A 429 is decided by its headers: retried only if it carries `Retry-After`, because an
    allowance that is used up says nothing and repeating the call spends more of what ran out - how a month's quota disappears in
-   an afternoon. A `Retry-After` on a 429/503 is also a server-set floor: backoff applies on top but never waits less.
+   an afternoon. A `Retry-After` on a 429/503 is also a server-set floor: backoff applies on top but never waits less. A floor
+   longer than what is left of the request budget is not waited out: the retry is skipped, so the 429 itself is what gets
+   mapped (`source.rate-limited`, with its `Retry-After` handed to the breaker) rather than a budget that expired mid-sleep
+   and read as `source.timeout`.
 6. **Record health, then map.** The breaker sees the round trip whether or not the body maps, because a schema mismatch is not a
    transport failure.
 7. **Log.** One `trading.source_request` debug line per round trip with `sourceId`, `path`, `status`, `elapsedMs` and `pacedMs`
@@ -541,7 +546,7 @@ registry raise; adapters and markets add their own, all in `kernel/caveat.ts`.
 
 | Code | Cause | Health effect |
 |---|---|---|
-| `source.timeout` | attempt or budget deadline spent | counts as a failure |
+| `source.timeout` | attempt or budget deadline spent | counts as a failure; a budget that expired while the call was still queued behind the pacer is returned as a timeout but not counted, because nothing was sent |
 | `source.rate-limited` | HTTP 429 | counts; `Retry-After` opens the breaker immediately, and without it the request is not retried |
 | `source.unavailable` | any other HTTP failure, or an unroutable target | counts |
 | `source.breaker-open` | request refused before the network | none - it is the effect |

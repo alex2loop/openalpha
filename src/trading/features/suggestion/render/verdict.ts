@@ -2,10 +2,12 @@ import type { HaltCode, HaltDetail } from '@/core/errors'
 import type { Locale } from '@/core/types/locale'
 import type { RunResultReason } from '@/core/types/run'
 import type { MessageKey } from '@/i18n'
-import type { SuggestionBatchResult } from '@/trading/features/suggestion/batch-types'
+import type {
+  BatchOvercommit,
+  SuggestionBatchResult,
+} from '@/trading/features/suggestion/batch-types'
 import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
 import type { RunFocus } from '@/trading/kernel/operator/focus'
 import type { ProfileStamp } from '@/trading/kernel/operator/profile'
 import { BRAND } from '@/core/brand'
@@ -15,7 +17,7 @@ import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { renderSleeveBreachLines } from '@/trading/render/exposure'
 import { renderFocusLabel } from '@/trading/render/focus'
-import { renderDeclaredValue } from '@/trading/render/format'
+import { formatFraction, renderDeclaredValue } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
 
 /** One verdict per line, because a hold carries the reason that held it and those are sentences.
@@ -24,7 +26,7 @@ export function renderBatchVerdicts(
   locale: Locale,
   batch: SuggestionBatchResult
 ): string | undefined {
-  const { breaches, results } = batch
+  const { breaches, overcommit, results } = batch
 
   if (results.length === 0) {
     return undefined
@@ -36,20 +38,53 @@ export function renderBatchVerdicts(
   ]
   const verdicts = lines.map((line) => `${INDENT[1]}${line}`).join('\n')
 
-  return `\n${verdicts}${renderBreachBlock(locale, breaches)}`
+  return `\n${verdicts}${renderCombinedBlock(locale, { breaches, overcommit })}`
 }
 
-/** Under the verdicts, not among them: a breach is a fact about the set, and a line inside the
- *  one-per-name list would read as a verdict on whichever name it followed. */
-function renderBreachBlock(locale: Locale, breaches: readonly SleeveBreach[]): string {
-  if (breaches.length === 0) {
+/** Under the verdicts, not among them: a ceiling crossed is a fact about the set, and a line inside
+ *  the one-per-name list would read as a verdict on whichever name it followed. */
+function renderCombinedBlock(
+  locale: Locale,
+  combined: Pick<SuggestionBatchResult, 'breaches' | 'overcommit'>
+): string {
+  const lines = [
+    ...renderSleeveBreachLines(locale, combined.breaches),
+    ...renderOvercommitLines(locale, combined.overcommit),
+  ]
+
+  if (lines.length === 0) {
     return ''
   }
 
-  return `\n${[
-    `${INDENT[1]}${t(locale, 'trading.render.suggestion.combinedLead')}`,
-    ...renderSleeveBreachLines(locale, breaches),
-  ].join('\n')}`
+  return `\n${[`${INDENT[1]}${t(locale, 'trading.render.suggestion.combinedLead')}`, ...lines].join('\n')}`
+}
+
+/** One sentence per budget the set spends past, written under the breaches' lead. */
+function renderOvercommitLines(
+  locale: Locale,
+  overcommit: readonly BatchOvercommit[]
+): readonly string[] {
+  return overcommit.map((item) => `${INDENT[1]}${renderOvercommit(locale, item)}`)
+}
+
+function renderOvercommit(locale: Locale, item: BatchOvercommit): string {
+  const params = {
+    need: formatFraction(locale, item.needPctNav),
+    available: formatFraction(locale, item.availablePctNav),
+  }
+
+  if (item.kind === 'open-risk') {
+    return t(locale, 'trading.render.suggestion.overcommitOpenRisk', params)
+  }
+
+  if (item.market === undefined) {
+    return t(locale, 'trading.render.suggestion.overcommitCash', params)
+  }
+
+  return t(locale, 'trading.render.suggestion.overcommitMarketCash', {
+    ...params,
+    market: renderDeclaredValue(locale, `trading.market.${item.market}`),
+  })
 }
 
 /** One read shapes every name in a batch, so the policy is stated once above them. Absent when no

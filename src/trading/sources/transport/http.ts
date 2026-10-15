@@ -245,12 +245,13 @@ async function sendRequest<T>(
   }
 
   const prepared = prepareOutbound(state.facts, request, target)
+  const deadlineTick = performance.now() + REQUEST_BUDGET_MS
   const budget = AbortSignal.any([request.signal, AbortSignal.timeout(REQUEST_BUDGET_MS)])
 
   // Pace before calling rather than recovering after a 429: without this a wide watchlist trips the
   // breaker and loses the provider for a whole cooldown.
   if ((await state.pacer.acquire(request.sourceId, budget)) === 'aborted') {
-    return { outcome: abortedOutcome(state, request) }
+    return { outcome: queueExpiredOutcome(request) }
   }
 
   const sentTick = performance.now()
@@ -258,7 +259,7 @@ async function sendRequest<T>(
   let fetchedAt: number
 
   try {
-    text = await sendWithRetry({ state, target, request, prepared, budget })
+    text = await sendWithRetry({ state, target, request, prepared, budget, deadlineTick })
     fetchedAt = state.now()
   } catch (err: unknown) {
     const outcome = budget.aborted
@@ -301,6 +302,9 @@ interface RetriedSend {
   readonly request: SourceRequest
   readonly prepared: PreparedRequest
   readonly budget: AbortSignal
+  /** `performance.now()` tick the budget expires at, so a retry can tell whether a server-set wait
+   *  fits in what is left. */
+  readonly deadlineTick: number
 }
 
 /** The caller took the first token before it started the clock, so a queue wait still reads apart
@@ -324,7 +328,7 @@ function sendWithRetry(input: RetriedSend): Promise<string> {
         signal: attemptSignal(budget, request),
       })
     },
-    retryOptions(state, budget, request)
+    retryOptions(state, input)
   )
 }
 
@@ -350,6 +354,16 @@ function abortedOutcome<T>(state: SourceHttpState, request: SourceRequest): Sour
   return { kind: 'error', code }
 }
 
+/** Nothing was sent: the budget ran out while the call queued behind the pacer, which says nothing
+ *  about the provider, so the breaker is not told. */
+function queueExpiredOutcome<T>(request: SourceRequest): SourceFetchOutcome<T> {
+  if (request.signal.aborted) {
+    throw abortError(request.signal)
+  }
+
+  return { kind: 'error', code: 'source.timeout' }
+}
+
 function send(
   target: RequestTarget,
   request: SourceRequest,
@@ -373,23 +387,29 @@ function send(
   }).then((response) => response.text)
 }
 
-function retryOptions(
-  state: SourceHttpState,
-  signal: AbortSignal,
-  request: SourceRequest
-): Parameters<typeof withRetry>[1] {
+// A 429/503's Retry-After, capped at the breaker cooldown. The one parse behind both the retry
+// floor and the breaker's backoff, so the two cannot disagree.
+function serverFloorMs(state: SourceHttpState, err: unknown): number | undefined {
+  return err instanceof HttpRequestError
+    ? parseRetryAfterMs(err.retryAfter, state.now(), BREAKER_COOLDOWN_MS)
+    : undefined
+}
+
+function retryOptions(state: SourceHttpState, input: RetriedSend): Parameters<typeof withRetry>[1] {
+  const { budget, request, deadlineTick } = input
+
   return {
-    signal,
+    signal: budget,
     maxAttempts: request.maxAttempts ?? RETRY_MAXIMUM_ATTEMPTS,
     initialMs: RETRY_INITIAL_DELAY_MS,
     maxMs: RETRY_MAXIMUM_DELAY_MS,
-    isRetryable,
-    // A 429/503's Retry-After is a server-supplied floor, not a suggestion: withRetry's backoff
-    // still applies on top, but never sleeps less than the provider asked for.
-    delayFor: (err: unknown) =>
-      err instanceof HttpRequestError
-        ? (parseRetryAfterMs(err.retryAfter, state.now(), BREAKER_COOLDOWN_MS) ?? 0)
-        : 0,
+    // A floor longer than what is left would abort the sleep mid-way and read as our own timeout;
+    // not retrying lets the 429 itself reach mapFetchError, which records the Retry-After.
+    isRetryable: (err: unknown) =>
+      isRetryable(err) && (serverFloorMs(state, err) ?? 0) < deadlineTick - performance.now(),
+    // A server-supplied floor, not a suggestion: withRetry's backoff still applies on top, but
+    // never sleeps less than the provider asked for.
+    delayFor: (err: unknown) => serverFloorMs(state, err) ?? 0,
   }
 }
 
@@ -433,10 +453,7 @@ function mapFetchError<T>(
 
   state.failures.report(request, code, err)
 
-  const retryAfterMs =
-    err instanceof HttpRequestError
-      ? parseRetryAfterMs(err.retryAfter, state.now(), BREAKER_COOLDOWN_MS)
-      : undefined
+  const retryAfterMs = serverFloorMs(state, err)
 
   state.health.recordFailure(request.sourceId, {
     code,

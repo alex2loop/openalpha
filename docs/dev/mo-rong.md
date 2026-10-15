@@ -520,7 +520,8 @@ openalpha plugin update <id>
 openalpha plugin uninstall <id>
 ```
 
-Cài và cập nhật kiểm tra mã và kênh truyền của nguồn, chép vào gốc plugin được quản lý, và không cho gỡ
+Cài và cập nhật kiểm tra mã và kênh truyền của nguồn (id dự phòng của plugin không có manifest là tên kho
+của URL chuẩn hóa, không bao giờ là tên thư mục clone tạm), chép vào gốc plugin được quản lý, và không cho gỡ
 các mã đi kèm. Xem `openalpha plugin --help` để biết chính xác các cờ.
 
 ### Trình tự khởi động

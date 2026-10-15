@@ -1,11 +1,11 @@
-import { chmod, mkdir, readdir, rename, rm } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { chmod, mkdir, mkdtemp, readdir, rename, rm } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 
 import type { Storage } from '@/core/types/storage'
 import { PRIVATE_DIRECTORY_MODE, PRIVATE_FILE_MODE } from '@/core/security/private-files'
 
 const BACKUP_EXT = '.db'
-const PARTIAL_EXT = '.part'
+const STAGING_PREFIX = '.staging-'
 const KEEP_BACKUPS = 7
 
 export const BACKUPS_SUBDIR = 'backups'
@@ -14,30 +14,35 @@ export function backupTarget(dir: string): string {
   return join(dir, `${new Date().toISOString().replaceAll(':', '-')}${BACKUP_EXT}`)
 }
 
-// Written aside and renamed last, so a crash mid-write never leaves a half-written `.db`
-// behind that occupies a retention slot.
+// Written into a private staging directory beside the target and renamed last: VACUUM INTO honours
+// the umask, so the copy is unreadable to others from its first byte, and a crash mid-write never
+// leaves a half-written `.db` that occupies a retention slot. Same filesystem, so the rename is
+// atomic.
 export async function backupSqlite(db: Storage, target: string): Promise<void> {
-  const partial = `${target}${PARTIAL_EXT}`
+  const parent = dirname(target)
 
-  await mkdir(dirname(target), { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
+  await mkdir(parent, { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
+
+  const staging = await mkdtemp(join(parent, STAGING_PREFIX))
 
   try {
+    await chmod(staging, PRIVATE_DIRECTORY_MODE)
+
+    const partial = join(staging, basename(target))
+
     // VACUUM INTO takes a string literal, not a bind parameter, so quote-doubling is the escape.
     await db.execute(`VACUUM INTO '${partial.replaceAll("'", "''")}'`)
-    // VACUUM INTO honours the umask, not a mode argument, so the whole database would otherwise
-    // land group- and world-readable wherever `--path` points.
     await chmod(partial, PRIVATE_FILE_MODE)
     await rename(partial, target)
-  } catch (err: unknown) {
-    await removeQuietly(partial)
-    throw err
+  } finally {
+    await removeQuietly(staging)
   }
 }
 
 export async function pruneBackups(dir: string): Promise<void> {
   const names = await readdir(dir)
 
-  for (const orphan of names.filter((name) => name.endsWith(PARTIAL_EXT))) {
+  for (const orphan of names.filter((name) => name.startsWith(STAGING_PREFIX))) {
     await removeQuietly(join(dir, orphan))
   }
 
@@ -49,5 +54,5 @@ export async function pruneBackups(dir: string): Promise<void> {
 }
 
 async function removeQuietly(path: string): Promise<void> {
-  await rm(path, { force: true }).catch(() => undefined)
+  await rm(path, { recursive: true, force: true }).catch(() => undefined)
 }

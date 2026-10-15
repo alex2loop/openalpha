@@ -165,7 +165,7 @@ Time and size:
 
 - A request gets 35 seconds in all, including waiting its turn and retries. Each try gets 10 seconds, up to 3 tries, backing off from 0.5 s to 5 s.
 - Prices (`/price`, the watchlist pulse, every alert tick) get 1 try of 8 seconds, so a dead provider costs one short wait before the next is asked. The US macro providers also get one try each, because the read waits for the slowest.
-- Only timeouts and temporary errors (408, 425, 500, 502, 503, 504) are retried. A 429 is retried only if the provider says when to come back.
+- Only timeouts and temporary errors (408, 425, 500, 502, 503, 504) are retried. A 429 is retried only if the provider says when to come back, and only if that wait fits in what is left of the 35 seconds; otherwise it is reported as rate-limited and the provider is paused for the time it asked.
 - A reply over 2 MiB is rejected.
 - A paged read follows at most 20 pages or 120 seconds. If it stops while the last page is still full, you get "This is the first slice only - there were more results than fit here."
 - A provider is paused for 5 minutes after 3 failures in a row, half of its last 20 calls failing, or a reply telling OpenAlpha when to come back.

@@ -165,7 +165,7 @@ Thời gian và kích thước:
 
 - Một yêu cầu có tổng cộng 35 giây, gồm cả chờ đến lượt và các lần thử lại. Mỗi lần thử có 10 giây, tối đa 3 lần, giãn cách tăng dần từ 0,5 giây tới 5 giây.
 - Giá (`/price`, nhịp danh sách theo dõi, mỗi nhịp cảnh báo) chỉ có 1 lần thử, 8 giây, nên một nhà cung cấp chết chỉ tốn một lần chờ ngắn trước khi hỏi bên kế tiếp. Các nhà cung cấp vĩ mô Mỹ cũng chỉ có một lần thử mỗi bên, vì lần đọc phải chờ bên chậm nhất.
-- Chỉ hết giờ và lỗi tạm thời (408, 425, 500, 502, 503, 504) mới được thử lại. Mã 429 chỉ được thử lại nếu nhà cung cấp nói khi nào quay lại.
+- Chỉ hết giờ và lỗi tạm thời (408, 425, 500, 502, 503, 504) mới được thử lại. Mã 429 chỉ được thử lại nếu nhà cung cấp nói khi nào quay lại và khoảng chờ đó còn nằm trong phần 35 giây còn lại; nếu không, nó được báo là bị chặn vì gọi quá nhiều và nhà cung cấp bị tạm dừng đúng khoảng thời gian nó yêu cầu.
 - Phản hồi trên 2 MiB bị từ chối.
 - Một lần đọc phân trang đi theo tối đa 20 trang hoặc 120 giây. Nếu nó dừng khi trang cuối còn đầy, bạn nhận "Đây mới là phần đầu - kết quả thực tế còn nhiều hơn."
 - Một nhà cung cấp bị tạm dừng 5 phút sau 3 lần hỏng liên tiếp, một nửa trong 20 lời gọi gần nhất bị hỏng, hoặc một phản hồi cho OpenAlpha biết khi nào quay lại.

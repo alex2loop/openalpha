@@ -4,6 +4,7 @@ import type { FundingSnapshot } from '@/trading/kernel/market/market-data'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { TradingCalendar } from '@/trading/markets/types'
+import { isAbortError } from '@/core/errors'
 import { available } from '@/trading/kernel/source/source-result'
 import { lastSettledDay } from '@/trading/markets/bars'
 import { CRYPTO_MARKET_REF } from '@/trading/markets/crypto/policy'
@@ -48,8 +49,25 @@ export async function cryptoFunding(
   })
 
   if (live.kind === 'available') {
-    await deps.marketDataStore.upsertFunding([live.value], request.signal)
+    await cacheFunding(deps, live.value, request.signal)
   }
 
   return live
+}
+
+/** A cache write: the live value is already in hand, so a store that fails costs the next read one
+ *  more provider call and must not discard it. A cancel still propagates. Markets hold no logger,
+ *  so the failure is not reported here. */
+async function cacheFunding(
+  deps: MarketDeps,
+  snapshot: FundingSnapshot,
+  signal: AbortSignal
+): Promise<void> {
+  try {
+    await deps.marketDataStore.upsertFunding([snapshot], signal)
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+  }
 }

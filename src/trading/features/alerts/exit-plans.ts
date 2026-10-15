@@ -67,6 +67,54 @@ interface PlanHoldingInput {
   readonly options: OperationTickOptions
 }
 
+/** The plan a holding arms from this tick: planned, then trailed. Each step fails alone, on that one
+ *  holding, and the plan it started from stays armed: a replacement that threw leaves the standing
+ *  plan, a tape that threw leaves the plan untrailed. The other holdings are planned as usual; only
+ *  an abort stops the pass. */
+export async function planAndTrail(
+  deps: ExitPlanDeps,
+  input: PlanHoldingInput
+): Promise<StoredSuggestion | null> {
+  const { instrument, standing, delivery, options } = input
+  const planned = await isolated(deps, instrument, {
+    name: 'plan',
+    run: () => planHolding(deps, input),
+    fallback: standing,
+  })
+
+  if (planned === null) {
+    return null
+  }
+
+  return isolated(deps, instrument, {
+    name: 'trail',
+    run: () => trailPlanStop(deps, { instrument, plan: planned, delivery, options }),
+    fallback: planned,
+  })
+}
+
+async function isolated<T>(
+  deps: ExitPlanDeps,
+  instrument: InstrumentRef,
+  step: { readonly name: 'plan' | 'trail'; readonly fallback: T; run(): Promise<T> }
+): Promise<T> {
+  try {
+    return await step.run()
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    deps.logger.warn('trading.exit_holding_failed', {
+      ticker: instrument.ticker,
+      step: step.name,
+      err: formatErrForLog(err),
+    })
+
+    return step.fallback
+  }
+}
+
 /** True at most once a settled session per plan, and only for one an older strategy version
  *  priced: a replacement the store refuses that day is not re-read from the bars every tick. */
 function claimsReplan(
@@ -122,7 +170,7 @@ async function planCaught(
 /** Plans a held name nothing watches, and replaces a plan an older strategy version priced, both
  *  from the settled close. The operator is told when a level is new or moved. The notice is
  *  best-effort: the plan is already stored and arms below whether or not the send lands. */
-export async function planHolding(
+async function planHolding(
   deps: ExitPlanDeps,
   input: PlanHoldingInput
 ): Promise<StoredSuggestion | null> {
@@ -191,10 +239,7 @@ interface TrailPlanInput {
  *  plan, only a market that trails, only upward, and only below the settled close. A series the
  *  market cannot serve leaves the plan as it stands - an unreadable tape is not a reason to move a
  *  stop. A raise is told to the operator, because no order at an exchange follows it. */
-export async function trailPlanStop(
-  deps: ExitPlanDeps,
-  input: TrailPlanInput
-): Promise<StoredSuggestion> {
+async function trailPlanStop(deps: ExitPlanDeps, input: TrailPlanInput): Promise<StoredSuggestion> {
   const { instrument, plan, options } = input
   const market = deps.markets.find(instrument.market)
   const bars = market?.capabilities.bars
@@ -233,35 +278,52 @@ export async function trailPlanStop(
     signal: options.signal,
   })
 
-  deps.trailedThrough.set(plan.id, settled)
+  const raise = raiseOf(
+    plan,
+    market.trail.stopFor(series.value, bounds),
+    series.value.at(-1)?.close
+  )
 
-  const trailed = market.trail.stopFor(series.value, bounds)
-  const current = planStopOf(plan)
-  const close = series.value.at(-1)?.close
+  if (raise === undefined) {
+    deps.trailedThrough.set(plan.id, settled)
 
-  if (trailed === undefined || current === undefined || close === undefined) {
-    return plan
-  }
-
-  // A trail past the close is a pullback deeper than it allows, which `buildLevels` answers by
-  // keeping the entry stop. Writing it would put the stop above the market, read everywhere as breached.
-  if (trailed <= current || trailed >= close) {
     return plan
   }
 
   const raised = await deps.suggestions.raiseTrailingStop({
     id: plan.id,
-    stop: trailed,
+    stop: raise.to,
     signal: options.signal,
   })
+
+  // Only once the write has settled: a failed one throws past this, so the next tick tries again
+  // instead of waiting a session for a raise nothing stored.
+  deps.trailedThrough.set(plan.id, settled)
 
   if (!raised) {
     return plan
   }
 
-  await noticeStopRaised(deps, { ...input, market, from: current, to: trailed })
+  await noticeStopRaised(deps, { ...input, market, ...raise })
 
-  return { ...plan, trailingStop: trailed }
+  return { ...plan, trailingStop: raise.to }
+}
+
+/** The raise the trail asks for, or nothing where it asks for none. A trail past the close is a
+ *  pullback deeper than it allows, which `buildLevels` answers by keeping the entry stop. Writing it
+ *  would put the stop above the market, read everywhere as breached. */
+function raiseOf(
+  plan: StoredSuggestion,
+  trailed: number | undefined,
+  close: number | undefined
+): { readonly from: number; readonly to: number } | undefined {
+  const from = planStopOf(plan)
+
+  if (trailed === undefined || from === undefined || close === undefined) {
+    return undefined
+  }
+
+  return trailed <= from || trailed >= close ? undefined : { from, to: trailed }
 }
 
 interface StopRaisedNotice extends TrailPlanInput {

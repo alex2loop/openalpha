@@ -235,21 +235,22 @@ export function toVisibleText(s: string): string {
   return out
 }
 
+/** `escapedContent` must already pass `escapeXml`: the caller caps the escaped body, so escaping here
+ *  would grow the wrapped text past that cap. */
 export function wrapToolResult(
-  content: string,
+  escapedContent: string,
   toolName: string,
   notices: readonly Threat[]
 ): string {
   const safeName = escapeXmlAttr(toolName)
   const attrs = notices.length > 0 ? `name="${safeName}" status="suspicious"` : `name="${safeName}"`
-  const safeContent = escapeXml(content)
 
   if (notices.length === 0) {
-    return `<tool_result ${attrs}>\n${safeContent}\n</tool_result>`
+    return `<tool_result ${attrs}>\n${escapedContent}\n</tool_result>`
   }
 
   const noticeLines = notices.map(describeThreat).join('\n')
-  return `<tool_result ${attrs}>\n${noticeLines}\n---\n${safeContent}\n</tool_result>`
+  return `<tool_result ${attrs}>\n${noticeLines}\n---\n${escapedContent}\n</tool_result>`
 }
 
 // Inverse of wrapToolResult for display paths (CLI/channels): strips the model-facing envelope

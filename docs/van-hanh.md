@@ -50,7 +50,9 @@ Thị trường không bao giờ đóng cửa như crypto thì làm mới lúc s
 giây thì gộp làm một lượt.
 
 Lúc khởi động, lần làm mới đầu tiên chạy trước các phần khác, chờ tối đa 60 giây rồi hoàn tất ở chế
-độ nền kèm một cảnh báo. Khởi động mà không có mạng thì vòng lặp chờ có mạng.
+độ nền kèm một cảnh báo. Khởi động mà không có mạng thì vòng lặp chờ có mạng. Lần làm mới đầu mà gặp
+lỗi nhà cung cấp, lưu trữ hay kênh thì chỉ là một cảnh báo (`daemon.boot_refresh_failed`), dù lỗi đến
+trong 60 giây hay sau đó, và daemon vẫn khởi động; lỗi nào khác thì dừng khởi động.
 
 Lượt nào để bất kỳ loại dữ liệu nào ở trạng thái `unavailable` (không lấy được gì) sẽ thử lại sau 2,
 4, 8 và 16 phút, không bao giờ quá mốc kế tiếp. Lần hỏng thứ năm trả việc về cho mốc, và chuỗi thử
@@ -224,7 +226,8 @@ hết sức và chỉ nằm trong bộ nhớ, trong một danh sách giới hạ
 
 Lần chạy không bao giờ xong (bị hủy, lỗi hay bị dừng) làm lần chạy kế tiếp của tác vụ bị hoãn thêm
 `60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút - cùng khoảng chờ với việc theo lịch. Một lần chạy
-xong xóa nó. Tác vụ đang chờ đơn giản là không được chọn: nó không bao giờ bị tắt, và không có gì
+xong xóa nó. Cùng khoảng chờ áp dụng cho lần chạy đã xong nhưng không lưu được kết quả (lỗi lưu trữ) và lần
+chạy ném lỗi: cả hai không được lặp lại mỗi 30 giây. Tác vụ đang chờ đơn giản là không được chọn: nó không bao giờ bị tắt, và không có gì
 được gửi đi trong lúc chờ.
 
 ### Hành vi khi hỏng
@@ -234,10 +237,18 @@ xong xóa nó. Tác vụ đang chờ đơn giản là không được chọn: n�
 | Tệp không đọc được hoặc quá cỡ | Không chạy |
 | Tác vụ sai định dạng hoặc chưa tới hạn | Bỏ hoặc bỏ qua |
 | Engine hủy hoặc lỗi | Không thông báo; bộ đếm lỗi tăng và lần chạy kế tiếp bị hoãn |
+| Không lưu được kết quả | Lần chạy tính là hỏng: bộ đếm lỗi tăng và lần chạy kế tiếp bị hoãn |
 | Phản hồi không hợp lệ | Vẫn tính là xong; không gửi gì |
 | Đích gửi không hợp lệ | Cảnh báo; các đích khác vẫn tiếp tục |
 | Bộ thông báo từ chối một đích | Cảnh báo; thông báo đó không được nhớ |
 | Chạm trần cam kết | Giữ các cam kết hiện có; số lượng được ghi log |
+
+## Khi không ghi được tệp log
+
+Đĩa đầy hay hỏng không làm daemon câm mãi mãi. Sau năm lần ghi liên tiếp thất bại, việc ghi log ra tệp
+tạm dừng 30 giây (một dòng trên stderr báo điều đó) rồi thử lại bằng một đoạn mới; khi một lần ghi
+thành công trở lại, một dòng stderr khác báo đã phục hồi. Bản ghi đến trong lúc tạm dừng bị bỏ, và dòng
+log `fatal` của một lần sập được ghi ra terminal thay vào đó.
 
 ## Chạy API trên máy chủ
 
@@ -281,7 +292,12 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
      mọi máy gửi mã sai trong 30 giây, tăng gấp đôi mỗi lần, tối đa một giờ. Yêu cầu mang đúng mã không
      bao giờ bị khóa chặn và còn xóa khóa đó.
 6. **Nối ứng dụng khách.** Nhập địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
-   `Authorization: Bearer <mã>`.
+   `Authorization: Bearer <mã>`. Tối đa 8 luồng ứng dụng (`/v1/ws`) mở cùng lúc; lần bắt tay thứ chín bị từ
+   chối với 503 `too_many_streams`.
+
+Khi daemon dừng, API ngừng nhận kết nối và yêu cầu trước tiên, trước khi các lượt chạy được chờ xong; yêu
+cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi `unavailable`,
+lượt chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
 
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 

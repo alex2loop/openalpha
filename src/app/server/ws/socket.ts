@@ -64,9 +64,23 @@ export interface WsData {
 // Process-local: these are this process's live sockets, capped at MAX_SOCKETS.
 const sockets = new Set<ServerWebSocket<WsData>>()
 
+// Set once the daemon starts down: the listener is closed, but an open socket still reaches the
+// dispatcher, so the frames that start work are refused here.
+let admissionClosed = false
+
+export function closeSocketAdmission(): void {
+  admissionClosed = true
+}
+
+/** The handshake asks before upgrading; `open` asks again for the upgrades that race to the last
+ *  seat. Both answer the same question. */
+export function hasSocketRoom(): boolean {
+  return sockets.size < MAX_SOCKETS
+}
+
 export const wsHandlers: WebSocketHandler<WsData> = {
   open(ws): void {
-    if (sockets.size >= MAX_SOCKETS) {
+    if (!hasSocketRoom()) {
       ws.close(1013, 'too_many_streams')
 
       return
@@ -156,6 +170,17 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
     return
   }
 
+  if (admissionClosed) {
+    send(ws, {
+      type: 'chat',
+      kind: 'error',
+      code: 'unavailable',
+      message: bindLocale(ws.data.services.locale).translate('halt.shutdown'),
+    })
+
+    return
+  }
+
   const session = resolveSessionId(frame.sessionId)
 
   if (frame.type === 'steer' && steer(ws, session, frame.message)) {
@@ -195,13 +220,17 @@ function steerDroppedText(ws: ServerWebSocket<WsData>, count: number): string {
   return bindLocale(ws.data.services.locale).translate(key, { count })
 }
 
-/** Sends one event to every open socket and says how many it reached. */
+/** Sends one event to every open socket and says how many took it; a dropped frame is not one. */
 export function broadcast(event: WireEvent): number {
+  let delivered = 0
+
   for (const ws of sockets) {
-    relay(ws, event)
+    if (relay(ws, event)) {
+      delivered += 1
+    }
   }
 
-  return sockets.size
+  return delivered
 }
 
 /** Force-close every live socket. Registered as a disposer next to the api's stop(). */
@@ -238,8 +267,8 @@ function closeSocket(ws: ServerWebSocket<WsData>): void {
   }
 }
 
-function relay(ws: ServerWebSocket<WsData>, event: WireEvent): void {
-  send(ws, { type: 'wire_event', ...event })
+function relay(ws: ServerWebSocket<WsData>, event: WireEvent): boolean {
+  return send(ws, { type: 'wire_event', ...event })
 }
 
 function parseFrame(raw: string): ClientFrame | null {

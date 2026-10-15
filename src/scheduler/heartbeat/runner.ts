@@ -4,16 +4,11 @@ import { join } from 'node:path'
 import type { AgentId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { AgentProfile } from '@/engine/api'
-import type {
-  ClaimHeartbeatTaskOutcome,
-  HeartbeatDeps,
-  HeartbeatTask,
-} from '@/scheduler/heartbeat/types'
+import type { HeartbeatDeps, HeartbeatTask } from '@/scheduler/heartbeat/types'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sanitizeDisplayText, toFencedText } from '@/core/utils/text'
 import { isWithinDailyWindow } from '@/core/utils/time'
-import { AGENT_CAP_MESSAGE, PAUSED_MESSAGE, RUN_LEASE_SLACK_MS } from '@/engine/api'
-import { computeBackoffMs, RETRY_BASE_MS, RETRY_CAP_MS } from '@/scheduler/backoff'
+import { AGENT_CAP_MESSAGE, PAUSED_MESSAGE } from '@/engine/api'
 import {
   completeHeartbeatTask,
   loadDueCommitments,
@@ -25,6 +20,11 @@ import {
   type HeartbeatRuntimeState,
 } from '@/scheduler/heartbeat/delivery'
 import { loadHeartbeatFile } from '@/scheduler/heartbeat/file'
+import {
+  claimHeartbeatTask,
+  deferFailedHeartbeatTask,
+  releaseHeartbeatTask,
+} from '@/scheduler/heartbeat/lease'
 import { parseHeartbeat } from '@/scheduler/heartbeat/parse'
 import {
   type HeartbeatResponse,
@@ -252,59 +252,22 @@ async function runHeartbeatTask(input: RunHeartbeatTaskInput): Promise<void> {
 
   try {
     await runClaimedHeartbeatTask(input, token, claim.consecutiveFailures)
+  } catch (err: unknown) {
+    // A run that rejects never completed, so without a retry floor the next tick claims it again.
+    // Shutdown is not a failure. A throw after completion is harmless: the token is already cleared.
+    if (!input.signal.aborted) {
+      await deferFailedHeartbeatTask({
+        deps,
+        agentId: agent.id,
+        task,
+        token,
+        consecutiveFailures: claim.consecutiveFailures,
+      })
+    }
+
+    throw err
   } finally {
     await releaseHeartbeatTask(deps, { agentId: agent.id, taskName: task.name, token })
-  }
-}
-
-interface ClaimHeartbeatTaskArgs {
-  readonly deps: HeartbeatDeps
-  readonly agentId: AgentProfile['id']
-  readonly task: HeartbeatTask
-  readonly operationNow: number
-  readonly token: string
-}
-
-async function claimHeartbeatTask(
-  args: ClaimHeartbeatTaskArgs
-): Promise<ClaimHeartbeatTaskOutcome> {
-  const { deps, agentId, task, operationNow, token } = args
-  // Tasks run one after another, so the lease is stamped at this claim, not at the batch's
-  // due-selection instant: an earlier task may have run for minutes since that was read.
-  const claimedAt = Date.now()
-
-  try {
-    return await deps.store.claimTask({
-      agentId,
-      taskName: task.name,
-      token,
-      now: claimedAt,
-      dueBefore: operationNow - task.intervalMs,
-      leaseExpiresBefore: claimedAt - (deps.runMaxDurationMs + RUN_LEASE_SLACK_MS),
-    })
-  } catch (err: unknown) {
-    deps.logger.warn('heartbeat.claim_failed', {
-      agentId,
-      task: task.name,
-      err: formatErrForLog(err),
-    })
-
-    return { kind: 'not_claimed' }
-  }
-}
-
-async function releaseHeartbeatTask(
-  deps: HeartbeatDeps,
-  input: { readonly agentId: AgentProfile['id']; readonly taskName: string; readonly token: string }
-): Promise<void> {
-  try {
-    await deps.store.releaseTask(input)
-  } catch (err: unknown) {
-    deps.logger.warn('heartbeat.release_failed', {
-      agentId: input.agentId,
-      task: input.taskName,
-      err: formatErrForLog(err),
-    })
   }
 }
 
@@ -348,11 +311,17 @@ async function runClaimedHeartbeatTask(
     ? SILENT_HEARTBEAT_RESPONSE
     : parseHeartbeatResponse(result.text)
 
-  await settleCompletedHeartbeatTask(input, { token, response, commitments })
+  await settleCompletedHeartbeatTask(input, {
+    token,
+    consecutiveFailures,
+    response,
+    commitments,
+  })
 }
 
 interface CompletedHeartbeatRun {
   readonly token: string
+  readonly consecutiveFailures: number
   readonly response: HeartbeatResponse
   readonly commitments: Awaited<ReturnType<typeof loadDueCommitments>>
 }
@@ -362,7 +331,7 @@ async function settleCompletedHeartbeatTask(
   run: CompletedHeartbeatRun
 ): Promise<void> {
   const { agent, deps, state, task } = input
-  const { token, commitments, response } = run
+  const { token, consecutiveFailures, commitments, response } = run
   const drafted = toHeartbeatTaskOutcome(
     response,
     commitments.map((commitment) => commitment.id)
@@ -389,6 +358,12 @@ async function settleCompletedHeartbeatTask(
     outcome,
   })
 
+  // A failed write leaves last_completed_at untouched, so the paid run would repeat every tick.
+  // A lost lease means another claimant owns the task now.
+  if (completion.kind === 'failed') {
+    await deferFailedHeartbeatTask({ deps, agentId: agent.id, task, token, consecutiveFailures })
+  }
+
   if (completion.kind !== 'completed') {
     return
   }
@@ -413,33 +388,6 @@ async function settleCompletedHeartbeatTask(
       logger: deps.logger,
       notifier: deps.notifier,
       state,
-    })
-  }
-}
-
-// A run that never reached 'completed' (aborted, errored, or otherwise halted) leaves
-// last_completed_at untouched, so without this the task is immediately due again on the next
-// tick -- forever, at whatever cadence the tick runs. Backing off the next eligible claim by the
-// same shape jobs use keeps a permanently failing task from hammering the LLM unbounded.
-async function deferFailedHeartbeatTask(input: {
-  readonly deps: HeartbeatDeps
-  readonly agentId: AgentProfile['id']
-  readonly task: HeartbeatTask
-  readonly token: string
-  readonly consecutiveFailures: number
-}): Promise<void> {
-  const { deps, agentId, task, token, consecutiveFailures } = input
-  const failedAt = Date.now()
-  const nextFailures = consecutiveFailures + 1
-  const nextRetryAt = failedAt + computeBackoffMs(nextFailures, RETRY_BASE_MS, RETRY_CAP_MS)
-
-  try {
-    await deps.store.recordFailure({ agentId, taskName: task.name, token, nextRetryAt })
-  } catch (err: unknown) {
-    deps.logger.warn('heartbeat.failure_record_failed', {
-      agentId,
-      task: task.name,
-      err: formatErrForLog(err),
     })
   }
 }

@@ -1,4 +1,4 @@
-import type { ApiRouteSpec } from '@/app/types'
+import type { ApiHandle, ApiRouteSpec } from '@/app/types'
 import type { App, ServiceProvider } from '@/core/container'
 import { ensureApiToken } from '@/app/server/http/auth'
 import { startApi } from '@/app/server/http/server'
@@ -54,10 +54,13 @@ export const apiServiceProvider: ServiceProvider = {
         detachAppSurface = attachAppSurface(app)
         const stopIdeaWatch = startIdeaWatch(app)
 
-        return async () => {
-          stopIdeaWatch()
-          detachAppSurface?.()
-          await server.stop()
+        return {
+          closeAdmission: server.closeAdmission,
+          stop: async () => {
+            stopIdeaWatch()
+            detachAppSurface?.()
+            await server.stop()
+          },
         }
       } catch (err: unknown) {
         detachAppSurface?.()
@@ -69,10 +72,7 @@ export const apiServiceProvider: ServiceProvider = {
   },
 }
 
-async function stopAfterFailedStart(
-  app: App,
-  server: { readonly stop: () => Promise<void> }
-): Promise<void> {
+async function stopAfterFailedStart(app: App, server: ApiHandle): Promise<void> {
   try {
     await server.stop()
   } catch (err: unknown) {

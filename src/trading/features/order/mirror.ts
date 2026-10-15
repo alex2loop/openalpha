@@ -2,9 +2,12 @@ import type { LedgerWriteResult } from '@/trading/features/ledger/types'
 import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { RoutedVenue } from '@/trading/features/order/routing'
 import type { ExecuteInput, OrderReceipt, OrderSide } from '@/trading/features/order/types'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { BookedFill, FeePriceLookup } from '@/trading/kernel/venue/fee'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { buildVenueFillKey } from '@/trading/features/ledger/sync'
+import { resolveDay } from '@/trading/features/market-data/resolve'
 import { OrderError } from '@/trading/features/order/types'
 import { isBookableFill, toBookedFill } from '@/trading/kernel/venue/fee'
 
@@ -119,7 +122,7 @@ async function record(
   deps: OrderServiceDeps,
   filled: Omit<FilledOrder, 'write'>
 ): Promise<LedgerWriteResult> {
-  const { input, numbers, receipt } = filled
+  const { input, numbers, receipt, venue } = filled
 
   try {
     return (
@@ -127,7 +130,7 @@ async function record(
       (await deps.portfolio.record({
         draft: {
           kind: input.staged.side,
-          at: input.prepared.day,
+          at: fillDayOf(deps, filled),
           currency: input.prepared.currency,
           instrument: input.staged.instrument,
           venue: input.staged.venue,
@@ -135,9 +138,9 @@ async function record(
           unitPrice: receipt.averagePrice,
           fee: numbers.fee,
         },
-        // The raw token, never the hashed `clientOrderId`: the ledger's key space is this tree's, and only
-        // the exchange gets the derived form.
-        idempotencyKey: input.staged.token,
+        // The venue's key, the one `/record sync` and the exit tick book the same fill under: a
+        // writer that comes second finds the row in the ledger's write lock and books nothing.
+        idempotencyKey: buildVenueFillKey(venue.id, receipt.orderId),
         fillSource: 'venue',
         now: input.now,
         signal: input.signal,
@@ -167,8 +170,21 @@ async function record(
   }
 }
 
-/** `/record sync` may book this fill under the venue's key while the order is still polling; a
- *  second row under the token's would debit the same cash twice, so the row it wrote is the mirror. */
+/** The day the fill traded in, from its own stamp: the order may fill a session before this runs
+ *  to its end, and the confirm's clock would put the trade on a day it did not happen. A fill the
+ *  venue left unstamped falls back to the day it was prepared on. */
+function fillDayOf(deps: OrderServiceDeps, filled: Omit<FilledOrder, 'write'>): TradingDay {
+  const { input, receipt } = filled
+  const market = deps.markets.find(input.staged.instrument.market)
+
+  return market === null || receipt.filledAt === undefined
+    ? input.prepared.day
+    : resolveDay(market, receipt.filledAt)
+}
+
+/** `/record sync` may book this fill under the venue's key while the order is still polling. The
+ *  row it wrote is the mirror, even where its figures differ in a hair from this receipt's, which
+ *  the ledger would otherwise refuse as one key reused with another request. */
 async function bookedFill(
   deps: OrderServiceDeps,
   filled: Omit<FilledOrder, 'write'>

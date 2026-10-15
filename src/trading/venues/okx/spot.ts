@@ -32,6 +32,7 @@ import {
   publicRequest,
   SPOT_INST_TYPE,
 } from '@/trading/venues/okx/transport'
+import { assertClockWithin } from '@/trading/venues/transport'
 
 const ORDER_PATH = '/api/v5/trade/order'
 const CANCEL_ORDER_PATH = '/api/v5/trade/cancel-order'
@@ -48,7 +49,9 @@ const BASE_QUANTITY = 'base_ccy'
 // "Fill at market when triggered". A stop carrying a limit price is a stop that does not execute in
 // the move it exists for.
 const TRIGGER_AT_MARKET = '-1'
-const MAXIMUM_CLOCK_SKEW_MS = 30_000
+// OKX refuses a stamp more than 30 s from its clock in either direction; each side keeps half for
+// the network.
+const MAXIMUM_CLOCK_SKEW_MS = 15_000
 
 /** The one endpoint whose page nests a second list rather than being one flat row. */
 interface OkxAccountRow {
@@ -90,16 +93,22 @@ export function createOkxSpotAdapter(deps: OkxTransportDeps): SpotAdapter {
 }
 
 async function assertClockInSync(deps: OkxTransportDeps, signal: AbortSignal): Promise<void> {
+  const sentAt = deps.now()
   const rows = await publicRequest(SERVER_TIME_PATH, {}, signal)
+  const receivedAt = deps.now()
   const serverMs = Number(rows[0]?.ts ?? Number.NaN)
 
   if (!Number.isFinite(serverMs)) {
     throw new OrderError('order.network', 'exchange time is unreadable')
   }
 
-  if (Math.abs(serverMs - deps.now()) > MAXIMUM_CLOCK_SKEW_MS) {
-    throw new OrderError('order.clock_skew', 'the local clock is too far from exchange time')
-  }
+  assertClockWithin({
+    sentAt,
+    receivedAt,
+    serverMs,
+    maximumLeadMs: MAXIMUM_CLOCK_SKEW_MS,
+    maximumLagMs: MAXIMUM_CLOCK_SKEW_MS,
+  })
 }
 
 async function fetchLimits(instId: string, signal: AbortSignal): Promise<InstrumentLimits> {

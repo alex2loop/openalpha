@@ -3,7 +3,7 @@ import type {
   AgentFocusStore,
 } from '@/trading/features/suggestion/store/agent-focus'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
-import type { FocusCount } from '@/trading/features/suggestion/store/suggestion-outcome'
+import type { FocusCall } from '@/trading/features/suggestion/store/suggestion-outcome'
 import type {
   FocusAgreement,
   FocusOverlap,
@@ -13,7 +13,11 @@ import type { AgentFocus, FocusKey } from '@/trading/kernel/operator/focus'
 import { ValidationError } from '@/core/errors'
 import { dayInZone, MS_PER_DAY } from '@/core/utils/time'
 import { MAXIMUM_OUTCOME_LOOKBACK_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
-import { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
+import {
+  independentCalls,
+  isWinningReturn,
+  MINIMUM_TRACK_RECORD_SAMPLE,
+} from '@/trading/features/suggestion/pipeline/reporting'
 import {
   isOverlapping,
   summarizeAgreement,
@@ -23,7 +27,7 @@ import { tradingDay } from '@/trading/kernel/instrument'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 
 interface AgentRecordDeps {
-  readonly store: Pick<SuggestionStore, 'listFocusCounts' | 'listCallActions'>
+  readonly store: Pick<SuggestionStore, 'listFocusCalls' | 'listCallActions'>
   readonly agentFocuses: Pick<AgentFocusStore, 'listAll'>
 }
 
@@ -88,7 +92,34 @@ function toCounts(rows: readonly RecordCounts[]): RecordCounts {
   }
 }
 
-function countsOf(counts: ReadonlyMap<FocusKey, FocusCount>, key: FocusKey): RecordCounts {
+/** Each focus's own calls, repeats folded as `/reflect` folds them, so the two never disagree on a
+ *  focus's sample. */
+function countByFocus(calls: readonly FocusCall[]): ReadonlyMap<FocusKey, RecordCounts> {
+  const byFocus = new Map<FocusKey, FocusCall[]>()
+
+  for (const call of calls) {
+    const group = byFocus.get(call.focusKey) ?? []
+
+    group.push(call)
+    byFocus.set(call.focusKey, group)
+  }
+
+  return new Map(
+    [...byFocus].map(([focusKey, group]) => {
+      const independent = independentCalls(group)
+
+      return [
+        focusKey,
+        {
+          resolvedCount: independent.length,
+          winCount: independent.filter((call) => isWinningReturn(call.outcome.returnPct)).length,
+        },
+      ]
+    })
+  )
+}
+
+function countsOf(counts: ReadonlyMap<FocusKey, RecordCounts>, key: FocusKey): RecordCounts {
   const count = counts.get(key)
 
   return toCounts(count === undefined ? [] : [count])
@@ -121,13 +152,13 @@ function currentOf(views: readonly AgentFocusView[]): AgentFocusView | undefined
 
 interface RecordInputs {
   readonly focuses: readonly AgentFocusRecord[]
-  readonly counts: ReadonlyMap<FocusKey, FocusCount>
+  readonly counts: ReadonlyMap<FocusKey, RecordCounts>
   readonly agreements: ReadonlyMap<FocusKey, FocusAgreement>
   readonly overlapping: readonly FocusOverlap[]
 }
 
-/** Three reads, once per listing: the focuses agents have used, the scored calls counted per focus,
- *  and the lean call actions. Never one read per agent. */
+/** Three reads, once per listing: the focuses agents have used, the scored calls, and the lean call
+ *  actions. Never one read per agent. */
 async function readRecordInputs(
   deps: AgentRecordDeps,
   options: ReadOptions
@@ -136,16 +167,16 @@ async function readRecordInputs(
   const sinceDay = tradingDay(
     dayInZone(options.now - MAXIMUM_OUTCOME_LOOKBACK_DAYS * MS_PER_DAY, options.timezone)
   )
-  const [focuses, counts, calls] = await Promise.all([
+  const [focuses, scored, calls] = await Promise.all([
     deps.agentFocuses.listAll(signal),
-    deps.store.listFocusCounts(signal),
+    deps.store.listFocusCalls(signal),
     deps.store.listCallActions({ sinceDay, signal }),
   ])
   const comparisons = { calls, siblings: siblingsOf(focuses) }
 
   return {
     focuses,
-    counts: new Map(counts.map((row) => [row.focusKey, row])),
+    counts: countByFocus(scored),
     agreements: new Map(summarizeAgreement(comparisons).map((row) => [row.focusKey, row])),
     overlapping: summarizeOverlaps(comparisons).filter(isOverlapping),
   }
@@ -216,7 +247,7 @@ interface ViewInput {
   readonly configured: FocusKey | undefined
   readonly timezone: string
   readonly focuses: readonly AgentFocusRecord[]
-  readonly counts: ReadonlyMap<FocusKey, FocusCount>
+  readonly counts: ReadonlyMap<FocusKey, RecordCounts>
 }
 
 function toView(input: ViewInput): AgentRecordView {

@@ -23,8 +23,9 @@ gọi bị chặn không bao giờ tới được bộ thực thi.
   đưa ra. Phạm vi `scheduler` và `delegated`, cùng mọi lời gọi `oneTime`, nhận `['deny', 'once']`;
   `session` và `mcp` nhận cả ba. Mọi bề mặt phê duyệt (CLI, kênh, form MCP, server WS) đều gọi nó, nên
   không bề mặt nào hiện nút mà cổng từ chối.
-- **Khóa.** `approvalKeyFor(call)` là `<tool>:<lệnh kèm đối số đã lọc>` với công cụ `shell`,
-  `<tool>:<sha256 của đầu vào chuẩn tắc>` với công cụ bên ngoài, và là tên công cụ với phần còn lại.
+- **Khóa.** `approvalKeyFor(call)` là `<tool>:<sha256 của [lệnh, ...đối số] chưa lọc>` với công cụ
+  `shell` (không lưu bí mật dạng rõ, và `["a b"]` khác `["a", "b"]`), `<tool>:<sha256 của đầu vào
+  chuẩn tắc>` với công cụ bên ngoài, và là tên công cụ với phần còn lại.
   Bộ quản lý theo phiên chỉ giữ khóa trong bộ nhớ tiến trình.
 - **Gộp trùng.** Các lời gọi giống hệt đang chờ trong một phiên chạy dùng chung một ô hỏi, khóa là
   `<runId>:<tool>:<JSON đầu vào>`.
@@ -107,7 +108,7 @@ mình. Mọi mã trong `OrderErrorCode` nằm ở một trong hai nhóm.
 
 **Sổ nguyên vẹn:** `order.auth`, `order.network`, `order.rate_limited`, `order.insufficient`,
 `order.rejected`, `order.clock_skew`, `order.below_minimum`, `order.exit_inverted`,
-`order.exit_oversized`, `order.book_moved`, `order.sell_unsettled`, `order.sell_guarded`,
+`order.exit_oversized`, `order.book_moved`, `order.book_unpriced`, `order.sell_unsettled`, `order.sell_guarded`,
 `order.no_position`, `order.exit_conflict`, `order.approval_bypassed`, `order.buying_halted`,
 `order.unfilled`, `order.exit_not_amendable`, `order.venue_unavailable`, `order.venue_ambiguous`,
 `order.venue_unreachable`.

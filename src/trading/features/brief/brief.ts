@@ -163,7 +163,12 @@ async function enable(
     return { kind: 'rejected', reason: scheduled }
   }
 
-  return { kind: 'enabled', delivery: await deps.deliveries.enable(scheduled, options.signal) }
+  const stored = await deps.deliveries.enable(scheduled, options.signal)
+
+  // A tick claimed the row between the read and the write.
+  return stored === null
+    ? { kind: 'rejected', reason: 'delivering' }
+    : { kind: 'enabled', delivery: stored }
 }
 
 /** The delivery a request would store, or the reason it cannot be. */

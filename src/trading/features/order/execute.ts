@@ -17,6 +17,7 @@ import {
   placeExit,
   setRestingExit,
 } from '@/trading/features/order/exit'
+import { assertBookPriced } from '@/trading/features/order/exposure'
 import { assertBuyingAllowed, setHalted } from '@/trading/features/order/halt'
 import { createOrderIntents } from '@/trading/features/order/intents'
 import { mirrorFilledOrder, settleSignal } from '@/trading/features/order/mirror'
@@ -24,6 +25,7 @@ import { sweepOrphanExits } from '@/trading/features/order/orphan-exits'
 import { pollUntilTerminal } from '@/trading/features/order/poll'
 import {
   assertSellable,
+  findBuyProfile,
   prepareOrder,
   rejectionsFor,
   stageOrder,
@@ -143,17 +145,21 @@ async function assertBookStillAllows(deps: OrderServiceDeps, input: ExecuteInput
 
 /** The caps as they stand now. `prepare` measured them against a book an order still going out
  *  has not written to yet, so the verdict is taken again where nothing else can be placed in
- *  between; otherwise two confirms read one book and both clear a ceiling only one may. Every
- *  other term is this order's own. */
+ *  between; otherwise two confirms read one book and both clear a ceiling only one may. A holding
+ *  that lost its price since then refuses the buy here too. Every other term is this order's
+ *  own. */
 async function bookCapRejections(
   deps: OrderServiceDeps,
   input: ExecuteInput
 ): Promise<readonly CapRejection[]> {
   const { prepared, staged } = input
-  const [book, unmirrored] = await Promise.all([
+  const [book, unmirrored, profile] = await Promise.all([
     deps.portfolio.viewAbsolute({ now: input.now, signal: input.signal }),
     deps.intents.unmirroredExposure(input.signal),
+    findBuyProfile(deps, staged.side, input.signal),
   ])
+
+  assertBookPriced(book, profile)
 
   return rejectionsFor(deps, {
     side: staged.side,

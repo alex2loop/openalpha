@@ -1,7 +1,8 @@
+import type { SocialWriteRow } from '@/core/types/social'
 import type { RequestContext, RequestDeps, RequestRefusal } from '@/social/request/checks'
 import type { SocialHttpResponse } from '@/social/request/send'
 import { ToolError } from '@/core/errors'
-import { parseRetryAfterMs } from '@/core/http-client'
+import { HttpRequestError, parseRetryAfterMs } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { stripControls } from '@/core/utils/text'
 import { MS_PER_DAY, MS_PER_MINUTE } from '@/core/utils/time'
@@ -20,13 +21,21 @@ const RATE_LIMIT_CAP_MS = MS_PER_DAY
 const KEY_MASK = '[key]'
 const MAX_RATE_HEADERS = 6
 const RATE_HEADER_RE = /^(retry-after|x-ratelimit-)/i
+const HTTP_SERVER_ERROR = 500
 const HTTP_UNAUTHORIZED = 401
 const HTTP_FORBIDDEN = 403
 const HTTP_TOO_MANY = 429
 
 export type SocialReply =
   /** `status` is absent when no answer came back at all (timeout, refused connection, oversize). */
-  | { readonly kind: 'text'; readonly text: string; readonly status?: number }
+  | {
+      readonly kind: 'text'
+      readonly text: string
+      readonly status?: number
+      /** A write got no answer that settles it (timeout, 5xx, cut body), so it may have landed. It
+       *  is recorded like a sent one: the duplicate guard and the daily cap count it. */
+      readonly maybeLive?: true
+    }
   | {
       readonly kind: 'refused'
       readonly refusal: RequestRefusal | 'unknown-file' | 'drafted'
@@ -62,13 +71,50 @@ export async function executeRequest(
   } catch (err: unknown) {
     // A 3xx, a 5xx, an oversize body and a timeout are all a `ToolError`; an abort is not.
     if (err instanceof ToolError) {
-      return { kind: 'text', text: redactKey(err.message, apiKey) }
+      return await unansweredReply(deps, context, err)
     }
 
     throw err
   }
 
   return await classify(deps, context, response)
+}
+
+async function unansweredReply(
+  deps: RequestDeps,
+  context: RequestContext,
+  err: ToolError
+): Promise<SocialReply> {
+  const text = redactKey(err.message, context.apiKey)
+
+  if (context.label === 'read' || !mayHaveLanded(err)) {
+    return { kind: 'text', text }
+  }
+
+  const now = deps.now()
+
+  try {
+    await deps.store.recordWrite(toWriteRow(context, now))
+  } catch (storeErr: unknown) {
+    deps.logger.error('social.uncertain_write_record_failed', {
+      network: context.input.network,
+      err: formatErrForLog(storeErr),
+    })
+  }
+
+  return { kind: 'text', text, maybeLive: true }
+}
+
+// A refusal before the dial (host vetting) never reached the network. A 4xx or a 3xx answer says the
+// network declined; everything else leaves the outcome unknown.
+function mayHaveLanded(err: ToolError): boolean {
+  if (err.code === 'timeout') {
+    return true
+  }
+
+  return (
+    err instanceof HttpRequestError && (err.status === undefined || err.status >= HTTP_SERVER_ERROR)
+  )
 }
 
 async function recordStatus(deps: RequestDeps, outcome: Outcome): Promise<void> {
@@ -119,22 +165,26 @@ async function recordSuccess(deps: RequestDeps, outcome: Outcome): Promise<void>
   const { input, label, membership } = context
 
   if (label !== 'read') {
-    const returnedId = returnedIdOf(response.text)
-
-    await deps.store.recordWrite({
-      id: Bun.randomUUIDv7(),
-      agentId: input.agentId,
-      network: input.network,
-      label,
-      bodyHash: context.bodyHash ?? '',
-      excerpt: stripControls(context.bodyText ?? '').slice(0, EXCERPT_CHARS),
-      ...(returnedId === undefined ? {} : { returnedId }),
-      at: now,
-    })
+    await deps.store.recordWrite(toWriteRow(context, now, returnedIdOf(response.text)))
   }
 
   if (membership.forbiddenStreak > 0) {
     await deps.store.clearForbidden(input.agentId, input.network)
+  }
+}
+
+function toWriteRow(context: RequestContext, at: number, returnedId?: string): SocialWriteRow {
+  const { input, label } = context
+
+  return {
+    id: Bun.randomUUIDv7(),
+    agentId: input.agentId,
+    network: input.network,
+    label,
+    bodyHash: context.bodyHash ?? '',
+    excerpt: stripControls(context.bodyText ?? '').slice(0, EXCERPT_CHARS),
+    ...(returnedId === undefined ? {} : { returnedId }),
+    at,
   }
 }
 

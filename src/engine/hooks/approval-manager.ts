@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto'
 import type { SessionId } from '@/core/ids'
 import type { ApprovalManager } from '@/engine/hooks/approval'
 import type { PreparedToolCall, ToolGateResult } from '@/engine/types/run'
-import { scrubCredentials } from '@/core/security/credentials'
 import { canonicalJson } from '@/core/utils/hash'
 import { MAX_TRACKED_APPROVAL_SESSIONS } from '@/engine/constants'
 
@@ -63,25 +62,26 @@ function evictOldest<K, V>(map: Map<K, V>, max: number): void {
 }
 
 // A remembered approval covers the exact call the operator saw, never the tool by name: the shell
-// tool is unsandboxed and an external tool's server decides what its arguments do. Shell keys on the
-// command as given (`/usr/bin/ls` and `./ls` differ) plus its argv, an external tool on a digest of
-// its whole input; a different call re-prompts. Only this key carries the full call - the prompt
-// stays short.
+// tool is unsandboxed and an external tool's server decides what its arguments do. Shell keys on a
+// digest of the command as given (`/usr/bin/ls` and `./ls` differ) and its unscrubbed argv, an
+// external tool on a digest of its whole input; a different call re-prompts. Digesting keeps a
+// secret argument out of memory in clear and lets `["a b"]` and `["a", "b"]` differ. Only this key
+// carries the full call - the prompt stays short.
 export function approvalKeyFor(call: PreparedToolCall): string {
   if (call.tool.capability === 'shell') {
     const command = commandOf(call.input)
 
-    return command === undefined ? call.name : `${call.name}:${command}`
+    return command === undefined ? call.name : `${call.name}:${digest(command)}`
   }
 
-  return call.tool.isExternal === true ? `${call.name}:${inputDigest(call.input)}` : call.name
+  return call.tool.isExternal === true ? `${call.name}:${digest(call.input)}` : call.name
 }
 
-function inputDigest(input: unknown): string {
-  return createHash('sha256').update(canonicalJson(input)).digest('hex')
+function digest(value: unknown): string {
+  return createHash('sha256').update(canonicalJson(value)).digest('hex')
 }
 
-function commandOf(input: unknown): string | undefined {
+function commandOf(input: unknown): readonly string[] | undefined {
   if (typeof input !== 'object' || input === null || !('command' in input)) {
     return undefined
   }
@@ -92,9 +92,7 @@ function commandOf(input: unknown): string | undefined {
     return undefined
   }
 
-  const argv = scrubCredentials(argsOf(input).join(' '))
-
-  return argv === '' ? command : `${command} ${argv}`
+  return [command, ...argsOf(input)]
 }
 
 function argsOf(input: object): readonly string[] {

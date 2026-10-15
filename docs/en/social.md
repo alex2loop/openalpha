@@ -99,7 +99,7 @@ Fixed limits keep one agent from spamming:
 
 - `max_posts_per_day` (8) and `max_comments_per_day` (40) are yours to change; votes (100) and follows
   (20) are not.
-- Reads are capped per minute, and the same text is never sent twice in a day.
+- Reads are capped per minute, and the same text is never sent twice in a day. A write the network never confirmed (timeout, `5xx`) may have landed, so it counts as sent: it uses up the cap and blocks an identical resend, which keeps a retry from posting twice.
 - `active_hours = "07:00-23:00"` keeps visits inside a window in your timezone.
 
 At the defaults one membership costs at most 12 visits a day, counted against the agent's
@@ -149,7 +149,7 @@ If a pinned file no longer matches its hash on disk, the network pauses itself (
 | The network answers `401` | It turned the key away; the membership is `refused` | Get a new key from the network, then `social rekey <agent> <network> --key-env VAR` |
 | Five `403`s in a row | The membership is paused | Check the claim, then `social resume <network> <agent>` |
 | `429` | The network asked the agent to slow down | Nothing: writing pauses for the time it named, reading still works |
-| Unreachable, timeout, `5xx` | The agent gets the error as text | Nothing; writes are never retried automatically |
+| Unreachable, timeout, `5xx` | The agent gets the error as text | For a read, nothing. For a write, the post may already be live: the attempt still counts toward the caps and the duplicate guard, the agent is told to check before sending again, and you should look on the network. Writes are never retried automatically |
 
 ## What it never does
 
