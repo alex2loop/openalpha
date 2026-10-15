@@ -1,0 +1,203 @@
+import type {
+  AdapterHandlers,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelOutbound,
+  InboundInbox,
+  SentRef,
+} from '@/channels/types'
+import type { Logger } from '@/core/logging/logger'
+import { plainRenderer, stripMarkdown } from '@/channels/renderer'
+import { channelId } from '@/core/channels'
+import { OperatorConfigError } from '@/core/config/resolve'
+import { ChannelError, ConfigError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
+import { withRetry } from '@/core/utils/retry'
+
+import { getMe, sendChatAction, sendMessage, ZALO_MAX_LEN, ZALO_UNAUTHORIZED_CODE } from './client'
+import { runZaloPollLoop } from './poll'
+
+const ZALO_CAPABILITIES: ChannelCapabilities = {
+  inlineButtons: false,
+  markdown: 'none',
+  typing: true,
+  reactions: false,
+  canEdit: false,
+  maxTextLen: ZALO_MAX_LEN,
+}
+
+const ZALO_CHANNEL_ID = channelId('zalo')
+const ZALO_RATE_LIMITED_CODE = 429
+const ZALO_GET_ME_MAX_ATTEMPTS = 4
+const ZALO_GET_ME_RETRY_INITIAL_MS = 1_000
+// Zalo publishes no retry-after hint, so a rate-limited send gets one fixed pause instead of the
+// provider-named one telegram gets. reply.ts clamps it and retries the final write only.
+const ZALO_RATE_LIMIT_RETRY_MS = 5_000
+
+interface CreateZaloAdapterOptions {
+  readonly token: string
+  readonly inbox: InboundInbox
+  readonly logger: Logger
+}
+
+export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAdapter {
+  // The poll loop is torn down by the abort signal handed to start(); the adapter keeps a handle to
+  // it so outbound calls (send/typing) can be shut down in lockstep rather than hanging on a dead
+  // bot, and dispose() can join the task after abort.
+  let lifetimeSignal: AbortSignal | undefined
+  let pollTask: Promise<void> | undefined
+
+  return {
+    id: ZALO_CHANNEL_ID,
+    capabilities: ZALO_CAPABILITIES,
+    renderer: plainRenderer,
+
+    async start(handlers: AdapterHandlers, signal: AbortSignal): Promise<void> {
+      lifetimeSignal = signal
+
+      if (!options.token) {
+        throw new OperatorConfigError(
+          'zalo channel enabled but no token resolved (set channels.zalo.token_env or token_file)',
+          {
+            key: 'errors.channelTokenMissing',
+            params: { channel: 'Zalo', section: 'channels.zalo' },
+          },
+          { path: ['channels', 'zalo', 'token_env'] }
+        )
+      }
+
+      await verifyToken(options, handlers, signal)
+
+      pollTask = runZaloPollLoop({
+        token: options.token,
+        handlers,
+        inbox: options.inbox,
+        signal,
+        logger: options.logger,
+      })
+
+      pollTask.catch((err: unknown) => {
+        options.logger.error('zalo.poll_loop_terminated', { err: formatErrForLog(err) })
+        handlers.setStatus({ running: false, connected: false, lastError: 'poll_loop_terminated' })
+      })
+    },
+
+    async send(
+      out: ChannelOutbound,
+      sendOpts?: { readonly signal?: AbortSignal }
+    ): Promise<SentRef> {
+      return sendZaloMessage(options.token, out, zaloSignalOf(sendOpts?.signal, lifetimeSignal))
+    },
+
+    async chatAction(chatId: string, action: 'typing'): Promise<void> {
+      await sendChatAction({
+        token: options.token,
+        chatId,
+        action,
+        ...(lifetimeSignal === undefined ? {} : { signal: lifetimeSignal }),
+      })
+    },
+
+    async dispose(): Promise<void> {
+      lifetimeSignal = undefined
+
+      if (pollTask !== undefined) {
+        await pollTask
+        pollTask = undefined
+      }
+    },
+  }
+}
+
+// A refused token is fatal. A network failure leaves the channel up and unconnected: the poll loop
+// keeps retrying with its own backoff and reports connected on its first good poll.
+async function verifyToken(
+  options: CreateZaloAdapterOptions,
+  handlers: AdapterHandlers,
+  signal: AbortSignal
+): Promise<void> {
+  try {
+    await withRetry(() => assertZaloTokenAccepted(options.token, signal), {
+      maxAttempts: ZALO_GET_ME_MAX_ATTEMPTS,
+      initialMs: ZALO_GET_ME_RETRY_INITIAL_MS,
+      signal,
+      isRetryable: (err) => !(err instanceof ConfigError),
+    })
+    handlers.setStatus({ connected: true, lastError: null })
+  } catch (err: unknown) {
+    if (err instanceof ConfigError || signal.aborted) {
+      throw err
+    }
+
+    options.logger.warn('zalo.get_me_failed', { err: formatErrForLog(err) })
+    handlers.setStatus({ connected: false, lastError: 'get_me_failed' })
+  }
+}
+
+// Only a token Zalo itself refuses is the operator's to fix; a 5xx, a rate limit or a malformed
+// reply is transient and is retried.
+async function assertZaloTokenAccepted(token: string, signal: AbortSignal): Promise<void> {
+  const me = await getMe({ token, signal })
+
+  if (me.ok && me.result) {
+    return
+  }
+
+  if (me.error_code === ZALO_UNAUTHORIZED_CODE) {
+    throw new ConfigError('zalo: bot token rejected by the Zalo Bot API')
+  }
+
+  throw new ChannelError(
+    'not_initialized',
+    `zalo getMe failed (${me.error_code ?? 'no status'}): ${me.description ?? 'no description'}`
+  )
+}
+
+function zaloSignalOf(
+  caller: AbortSignal | undefined,
+  lifetime: AbortSignal | undefined
+): AbortSignal | undefined {
+  if (caller === undefined) {
+    return lifetime
+  }
+
+  if (lifetime === undefined) {
+    return caller
+  }
+
+  return AbortSignal.any([caller, lifetime])
+}
+
+async function sendZaloMessage(
+  token: string,
+  out: ChannelOutbound,
+  signal: AbortSignal | undefined
+): Promise<SentRef> {
+  const res = await sendMessage({
+    token,
+    chatId: out.chatId,
+    text: stripMarkdown(out.text),
+    ...(signal === undefined ? {} : { signal }),
+  })
+
+  if (!(res.ok && res.result)) {
+    throw sendFailure(res.error_code, res.description)
+  }
+
+  return { messageId: String(res.result.message_id) }
+}
+
+// Rate limiting carries retryAfterMs so the shared 429 path in reply.ts engages for zalo too;
+// everything else is a plain failure the caller reports.
+function sendFailure(errorCode: number | undefined, description: string | undefined): ChannelError {
+  const detail = description ?? String(errorCode ?? 'unknown')
+
+  if (errorCode === ZALO_RATE_LIMITED_CODE) {
+    return new ChannelError('send_failed', `zalo_send_rate_limited: ${detail}`, {
+      cause: errorCode,
+      retryAfterMs: ZALO_RATE_LIMIT_RETRY_MS,
+    })
+  }
+
+  return new ChannelError('send_failed', `zalo_send_failed: ${detail}`)
+}

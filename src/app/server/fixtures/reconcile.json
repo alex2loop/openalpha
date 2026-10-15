@@ -1,0 +1,30 @@
+{
+  "text": {
+    "matched": null,
+    "cashNote": "Cash isn't compared here - the book knows what each venue should hold, but nothing asks the venue what it actually has."
+  },
+  "venues": [
+    {
+      "venue": "okx",
+      "mismatches": [
+        {
+          "asset": "ETH",
+          "booked": 0.5,
+          "held": 0.512,
+          "delta": -0.012
+        }
+      ]
+    },
+    {
+      "venue": "binance",
+      "mismatches": [],
+      "uncompared": "keyless",
+      "missingCredentials": ["BINANCE_API_KEY", "BINANCE_API_SECRET"]
+    },
+    {
+      "venue": "vps",
+      "mismatches": [],
+      "uncompared": "unsupported"
+    }
+  ]
+}

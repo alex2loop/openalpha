@@ -1,0 +1,8 @@
+{
+  "checks": [
+    { "name": "config", "ok": true, "detail": "/Users/me/.openalpha/config.toml" },
+    { "name": "database", "ok": true, "detail": "reachable" },
+    { "name": "provider: openrouter", "ok": true, "detail": "key set" },
+    { "name": "api: token", "ok": true, "detail": "file (ok)" }
+  ]
+}

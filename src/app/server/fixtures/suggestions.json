@@ -1,0 +1,144 @@
+{
+  "suggestions": [
+    {
+      "at": "2026-10-06",
+      "authoredLocale": "vi",
+      "strategyId": "default",
+      "strategyVersion": "1.0.0",
+      "focusKey": "default",
+      "calculationVersions": [
+        {
+          "name": "levels",
+          "version": "1.0.0"
+        }
+      ],
+      "createdAt": 1791300000000,
+      "provenance": [
+        {
+          "sourceId": "vndirect",
+          "fetchedAt": 1791384062789,
+          "freshness": "live"
+        }
+      ],
+      "caveats": [],
+      "id": "sg_1",
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPG"
+      },
+      "conviction": "high",
+      "action": "buy",
+      "thesis": "Giá giữ nền tích luỹ, dòng tiền đang xác nhận.",
+      "entry": 28400,
+      "stop": 27000,
+      "target": 31000,
+      "riskReward": 1.9,
+      "sizePctNav": 0.04,
+      "trailingStop": 27810.0,
+      "raisedStopFrom": 27000
+    },
+    {
+      "at": "2026-10-06",
+      "authoredLocale": "vi",
+      "strategyId": "default",
+      "strategyVersion": "1.0.0",
+      "focusKey": "default",
+      "calculationVersions": [
+        {
+          "name": "levels",
+          "version": "1.0.0"
+        }
+      ],
+      "createdAt": 1791300000000,
+      "provenance": [
+        {
+          "sourceId": "vndirect",
+          "fetchedAt": 1791384062789,
+          "freshness": "live"
+        }
+      ],
+      "caveats": [],
+      "id": "sg_2",
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "PVP"
+      },
+      "conviction": "medium",
+      "action": "buy",
+      "thesis": "Biên lợi nhuận cải thiện.",
+      "entry": 18650,
+      "stop": 17000,
+      "target": 24350,
+      "riskReward": 3.5,
+      "outcome": {
+        "status": "target",
+        "resolvedAt": 1791200000000,
+        "exitDay": "2026-10-02",
+        "returnPct": 0.3016,
+        "benchmarkReturnPct": -0.035
+      }
+    },
+    {
+      "at": "2026-10-06",
+      "authoredLocale": "vi",
+      "strategyId": "default",
+      "strategyVersion": "1.0.0",
+      "focusKey": "default",
+      "calculationVersions": [
+        {
+          "name": "levels",
+          "version": "1.0.0"
+        }
+      ],
+      "createdAt": 1791300000000,
+      "provenance": [
+        {
+          "sourceId": "vndirect",
+          "fetchedAt": 1791384062789,
+          "freshness": "live"
+        }
+      ],
+      "caveats": [],
+      "id": "sg_3",
+      "instrument": {
+        "market": "crypto",
+        "ticker": "BTC"
+      },
+      "conviction": "low",
+      "action": "hold",
+      "holdReasonCodes": ["regime.defensive"]
+    },
+    {
+      "at": "2026-10-06",
+      "authoredLocale": "vi",
+      "strategyId": "default",
+      "strategyVersion": "1.0.0",
+      "focusKey": "default",
+      "calculationVersions": [
+        {
+          "name": "levels",
+          "version": "1.0.0"
+        }
+      ],
+      "createdAt": 1791300000000,
+      "provenance": [
+        {
+          "sourceId": "vndirect",
+          "fetchedAt": 1791384062789,
+          "freshness": "live"
+        }
+      ],
+      "caveats": [],
+      "id": "sg_3-undecided",
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPG"
+      },
+      "conviction": "low",
+      "action": "hold",
+      "holdReasonCodes": ["debate-unresolved"],
+      "undecided": true
+    }
+  ],
+  "nextCursor": "sg_3"
+}

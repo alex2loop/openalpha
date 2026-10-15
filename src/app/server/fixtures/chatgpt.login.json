@@ -1,0 +1,9 @@
+{
+  "signedIn": false,
+  "login": {
+    "state": "waiting",
+    "method": "device",
+    "userCode": "ABCD-1234",
+    "verificationUrl": "https://auth.openai.com/codex/device"
+  }
+}

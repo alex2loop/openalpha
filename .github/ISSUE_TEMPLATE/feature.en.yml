@@ -1,0 +1,28 @@
+name: Feature request (English)
+description: Something you want OpenAlpha to do that it does not do yet.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Placing orders on its own and backtesting are settled no-gos - see "Things that will be turned down" in
+        [CONTRIBUTING.en.md](https://github.com/alex2loop/openalpha/blob/main/CONTRIBUTING.en.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are running into
+      description: Describe what you want to do and where you get stuck, before any solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How you picture it working
+      description: The command you would type, or the output you want to see. Optional.
+  - type: dropdown
+    id: market
+    attributes:
+      label: Market
+      options: [equity-vn, crypto, gold, gold-vn, not market-specific]
+    validations:
+      required: true

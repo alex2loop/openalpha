@@ -1,0 +1,50 @@
+{
+  "quotes": [
+    {
+      "ticker": "VNINDEX",
+      "label": "vn-index:VNINDEX",
+      "region": "vn",
+      "currency": "VND",
+      "last": 1281.4,
+      "changePct": 0.6,
+      "closedOn": "2026-10-07",
+      "provenance": [
+        {
+          "sourceId": "vndirect",
+          "fetchedAt": 1791384062789,
+          "freshness": "live"
+        }
+      ],
+      "caveats": [],
+      "kind": "index",
+      "market": "vn-index",
+      "assetClass": "equity"
+    },
+    {
+      "ticker": "BTC",
+      "label": "crypto:BTC",
+      "region": "crypto",
+      "currency": "USD",
+      "last": 80249.58,
+      "staleAt": 1791380462789,
+      "provenance": [
+        {
+          "sourceId": "vndirect",
+          "fetchedAt": 1791384062789,
+          "freshness": "live"
+        }
+      ],
+      "caveats": [
+        {
+          "code": "source.no-day-change",
+          "severity": "warn",
+          "text": "trading.caveat.source.no-day-change"
+        }
+      ],
+      "kind": "crypto",
+      "market": "crypto",
+      "assetClass": "crypto"
+    }
+  ],
+  "caveats": []
+}

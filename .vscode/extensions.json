@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    // settings.json names biome as the formatter for seven languages, and `biome check`
+    // (not --write) is a gate, so without this a contributor's PR fails on formatting.
+    "biomejs.biome",
+    // .editorconfig is tracked; VS Code honours it only through this extension.
+    "EditorConfig.EditorConfig"
+  ]
+}

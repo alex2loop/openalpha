@@ -1,0 +1,20 @@
+# Line endings are normalised in the repository, not left to whoever commits. install.sh is the
+# reason this file exists: a CRLF in it turns the shebang into `#!/bin/sh\r`, every user's one-line
+# install fails with "bad interpreter", and no diff shows anything wrong. Biome formats src/** and
+# six named files, .editorconfig only asks an editor nicely; this is the part git enforces.
+* text=auto eol=lf
+
+# Shell and config are read by programs that do not tolerate a stray \r.
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Generated, not written. Collapsed in pull requests so a review reads the change, not the lockfile.
+bun.lock linguist-generated=true
+scripts/sdk-surface.snapshot linguist-generated=true
+src/persistence/migrations/registry.generated.ts linguist-generated=true
+
+# 9,600 lines of reference prose in two languages, which would otherwise dominate the language bar.
+docs/** linguist-documentation=true

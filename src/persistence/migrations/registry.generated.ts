@@ -1,0 +1,15 @@
+// AUTO-GENERATED registry.generated.ts by scripts/gen-migrations.ts — do not edit.
+// Every valid migration file is registered here in filename order; an exported down marks it reversible.
+
+import type { Migration } from '@/persistence/types'
+import * as migrationInitialSchema from '@/persistence/migrations/2026_07_10_000001_initial_schema'
+import * as migrationTradingTables from '@/persistence/migrations/2026_07_10_000002_trading_tables'
+import * as migrationMemoryFtsUpdateColumns from '@/persistence/migrations/2026_10_10_123605_memory_fts_update_columns'
+import * as migrationAddChannelInboxAnswer from '@/persistence/migrations/2026_10_11_101208_add_channel_inbox_answer'
+
+export const MIGRATIONS = [
+  { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
+  { id: '2026_07_10_000002_trading_tables', reversibility: 'reversible', up: migrationTradingTables.up, down: migrationTradingTables.down },
+  { id: '2026_10_10_123605_memory_fts_update_columns', reversibility: 'reversible', up: migrationMemoryFtsUpdateColumns.up, down: migrationMemoryFtsUpdateColumns.down },
+  { id: '2026_10_11_101208_add_channel_inbox_answer', reversibility: 'reversible', up: migrationAddChannelInboxAnswer.up, down: migrationAddChannelInboxAnswer.down },
+] as const satisfies readonly Migration[]

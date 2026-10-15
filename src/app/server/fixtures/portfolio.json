@@ -1,0 +1,44 @@
+{
+  "asOf": "2026-10-07",
+  "baseCurrency": "VND",
+  "navBase": 250000000,
+  "cashBase": 50000000,
+  "availableCashBase": 45000000,
+  "positions": [
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPG"
+      },
+      "quantity": 2000,
+      "belowMinimumSize": false,
+      "settledQuantity": 1500,
+      "heldSince": "2026-08-14",
+      "marketValueBase": 56800000,
+      "investedBase": 55000000,
+      "unrealizedPnlBase": 1800000,
+      "weightPctNav": 22.72,
+      "caveats": [],
+      "unitCostNative": 27150
+    },
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "XYZ"
+      },
+      "quantity": 100,
+      "belowMinimumSize": false,
+      "settledQuantity": 100,
+      "heldSince": "2026-09-02",
+      "investedBase": 1000000,
+      "caveats": [
+        {
+          "code": "portfolio.unpriced",
+          "severity": "warn",
+          "text": "trading.caveat.portfolio.unpriced"
+        }
+      ]
+    }
+  ],
+  "caveats": []
+}

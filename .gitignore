@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+
+# Build output
+/dist/
+/build/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+
+# Operator config. config.sample.toml is the tracked template; anything a real
+# run reads stays local, because it names the env vars holding live keys.
+config.toml
+config.*.toml
+!config.sample.toml
+!config.minimal.toml
+
+# Runtime data. data_dir defaults to ~/.openalpha, but --data-dir can point it
+# at the working tree — without these a contributor would commit their ledger,
+# their database and the API token file under <data_dir>/auth/.
+.backup
+/data/
+/auth/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.pid
+/logs/
+*.log
+
+# Coverage
+/coverage/
+*.lcov
+.nyc_output
+
+# Editors. settings.json and extensions.json are shared project config; the
+# rest of .vscode/ is per-developer.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Legacy Bun binary lockfile. The text bun.lock is tracked.
+bun.lockb
+
+# Local tooling and scratch
+.claude/
+.codex
+.opencode/
+.superpowers/
+.worktrees/
+*.tmp

@@ -1,0 +1,40 @@
+{
+  "alerts": [
+    {
+      "id": "01a1199a-c001-7a00-9c00-000000000001",
+      "instrument": { "market": "equity-vn", "ticker": "HPG" },
+      "condition": "above",
+      "threshold": 31000,
+      "source": "you",
+      "channel": "api",
+      "createdAt": 1791430000000,
+      "state": "active"
+    },
+    {
+      "id": "01a1199a-c001-7a00-9c00-000000000002",
+      "instrument": { "market": "equity-vn", "ticker": "VCB" },
+      "condition": "below",
+      "threshold": 90500,
+      "source": "plan",
+      "level": "stop",
+      "channel": "api",
+      "createdAt": 1791420000000,
+      "state": "fired",
+      "triggeredAt": 1791429000000,
+      "observedPrice": 89800,
+      "firedAt": 1791429005000
+    },
+    {
+      "id": "01a1199a-c001-7a00-9c00-000000000003",
+      "instrument": { "market": "equity-vn", "ticker": "FPT" },
+      "condition": "below",
+      "threshold": 118000,
+      "source": "you",
+      "channel": "telegram",
+      "createdAt": 1791410000000,
+      "state": "disabled",
+      "disabledAt": 1791415000000
+    }
+  ],
+  "activeCount": 1
+}

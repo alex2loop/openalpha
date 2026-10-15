@@ -1,0 +1,43 @@
+name: Bug report (English)
+description: Something behaved differently than it says it does.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Anything with security impact goes through
+        [SECURITY.en.md](https://github.com/alex2loop/openalpha/blob/main/SECURITY.en.md) instead, not an issue.
+  - type: input
+    id: command
+    attributes:
+      label: The command you ran
+      placeholder: openalpha chat --message "/suggest FPT"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what you got
+      description: Paste the output. Redact your own figures - no amounts or fill prices are needed to reproduce anything.
+    validations:
+      required: true
+  - type: dropdown
+    id: market
+    attributes:
+      label: Market
+      description: Behaviour is market-specific in more places than you would guess.
+      options: [equity-vn, crypto, gold, gold-vn, not market-specific, not sure]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and platform
+      description: "`openalpha version`, plus your OS and `bun --version`."
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`openalpha doctor` output, if it says anything"
+      description: It redacts credentials itself. Optional.

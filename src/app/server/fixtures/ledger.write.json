@@ -1,0 +1,26 @@
+{
+  "kind": "recorded",
+  "entry": {
+    "id": "01a1199a-a947-74d5-8ee7-912ff8032846",
+    "recordedAt": 1791430928711,
+    "at": "2026-10-02",
+    "settledAt": "2026-10-06",
+    "venue": "vps",
+    "kind": "buy",
+    "instrument": {
+      "market": "equity-vn",
+      "ticker": "HPG"
+    },
+    "currency": "VND",
+    "quantity": 1000,
+    "unitPrice": 28400,
+    "fee": 42600,
+    "conversion": {
+      "fromCurrency": "VND",
+      "toCurrency": "VND",
+      "rate": 1,
+      "source": "identity"
+    }
+  },
+  "fillSource": "operator"
+}

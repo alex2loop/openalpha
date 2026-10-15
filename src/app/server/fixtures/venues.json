@@ -1,0 +1,20 @@
+{
+  "venues": [
+    {
+      "venue": "okx",
+      "markets": ["crypto"]
+    },
+    {
+      "venue": "binance",
+      "markets": ["crypto"]
+    },
+    {
+      "venue": "vps",
+      "markets": ["equity-vn"]
+    },
+    {
+      "venue": "gold-shop",
+      "markets": ["gold-vn"]
+    }
+  ]
+}

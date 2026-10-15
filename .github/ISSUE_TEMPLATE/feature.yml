@@ -1,0 +1,28 @@
+name: Đề xuất tính năng
+description: Một việc bạn muốn OpenAlpha làm được mà hiện chưa làm.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tự động đặt lệnh và backtest là hai thứ đã chốt sẽ không làm - xem mục "Những thứ sẽ bị từ chối" trong
+        [CONTRIBUTING.md](https://github.com/alex2loop/openalpha/blob/main/CONTRIBUTING.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Bạn đang gặp chuyện gì
+      description: Kể việc bạn muốn làm và chỗ bạn bị vướng, chưa cần nói cách giải.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Bạn hình dung nó chạy thế nào
+      description: Lệnh bạn sẽ gõ, hoặc kết quả bạn muốn thấy. Không bắt buộc.
+  - type: dropdown
+    id: market
+    attributes:
+      label: Thị trường
+      options: [equity-vn, crypto, gold, gold-vn, không phụ thuộc thị trường]
+    validations:
+      required: true

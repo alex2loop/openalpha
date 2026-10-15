@@ -1,0 +1,98 @@
+# OpenAlpha user-agent definition (<data_dir>/agents/<id>/agent.toml)
+# Hướng dẫn viết agent bằng tiếng Việt: https://github.com/alex2loop/openalpha/blob/main/docs/tro-ly.md
+#
+# `openalpha agent add <id>` writes a starter file and checks it; `agent edit <id>` opens it.
+#
+# Required: system_prompt
+# Optional: id, name, description, max_turns, max_tokens, max_duration_ms, max_daily_usd,
+#           [focus], [capabilities]
+# Trusted agents only: model_tier, reasoning.
+# Unknown keys or invalid values are logged, and that user agent is skipped at boot.
+#
+# Identity:
+#   id - lowercase [a-z0-9][a-z0-9._-]{0,63}. Defaults to the directory name and,
+#        when declared, must match it. Built-in and trusted plugin IDs are reserved.
+#   name - display name. Defaults to id.
+
+id = "web-researcher"
+name = "Web Researcher"
+description = "Read-only web research assistant"
+
+system_prompt = """
+You are a focused research assistant. Use web tools to gather sources, store
+findings in memory, and produce a concise summary. Do not write to disk.
+"""
+
+# ---- Limits -----------------------------------------------------------------
+# max_turns = 20                  # per-run turn cap; defaults to [loop].max_turns
+# max_tokens = 4096               # caps this agent's replies; the default is 8192 plus reasoning room
+# max_duration_ms = 900000        # per-run duration cap (ms); defaults to [loop].max_duration_ms
+# max_daily_usd = 0.5             # this agent's share of the day, under [budget] max_daily_usd.
+#                                 # 0 or absent = only your overall cap. Debates it starts count too.
+#                                 # A top-level key: it must stay above the first [table] below.
+
+# ---- Model selection (trusted agents only) ----------------------------------
+# model_tier picks a named fallback chain from [model_tiers]. A user agent always
+# runs on the primary configured model, and one that sets model_tier or reasoning
+# is skipped at boot. Built-in work uses its own tiers (research, research-heavy,
+# delegate, debate, decisions, extraction, themes); a trusted agent can name any
+# tier you define.
+#
+# model_tier = "research"         # named fallback chain from [model_tiers]
+# reasoning = "medium"            # default | off | low | medium | high; overrides the entry's setting.
+#                                 # Thinking is billed and waited on even when nobody reads it.
+#                                 # Claude after Opus 5 / Sonnet 5 may always think: `off` runs it at `low`.
+#
+# Under `openalpha mcp serve` every agent runs on the connected app's model,
+# whatever model_tier says.
+
+# ---- Focus (what this agent looks at) ---------------------------------------
+# Leave it out and the agent shares your own focus, and its calls drive your book.
+# Set it and the agent becomes a second opinion: its calls are stored and scored
+# separately, and never move a stop, fire an alert or change the morning brief.
+# Focus only narrows: markets must be ones your book trades; sectors need a
+# market that keeps sector data (today: equity-vn). The tables below go above
+# `[capabilities]`: written after it they would land inside it.
+#
+# [focus]
+# markets = ["equity-vn"]     # equity-vn | crypto | gold | gold-vn
+# sectors = ["banks"]         # sector slugs as the market files them (banks, oil-gas, ...);
+#                             # `market_sector_strength` lists them
+# horizon = "long"            # short | long: the window this agent's calls are scored over
+
+# ---- On a social network ----------------------------------------------------
+# `social join <this agent> <network>` needs its own [focus] and only tools a
+# networked agent may hold: social_request and social_skill, the suggestion
+# tools, the read-only market tools, now and calc, plus anything in [social]
+# allowed_tools. Anything that writes, runs commands, schedules or
+# delegates is refused, and so is tools = "*".
+
+# ---- Capabilities (security ceiling) ----------------------------------------
+# An agent gets only what it names. Omit the whole section and it can call
+# nothing; each field below is a ceiling, never a floor:
+#   tools     - tool-name allowlist, or "*" for every registered tool.
+#               Omitted or empty = deny all.
+#               Trading tools are named the same way, e.g. "market_price" or
+#               "market_accounts" (a VN company's filed annual accounts).
+#   delegates - agent IDs callable through `delegate` (also include `delegate`
+#               in tools). Omitted or empty = delegation disabled.
+#   hosts     - hostnames web_fetch may reach. Omitted = any host allowed by the
+#               SSRF policy; `*.example.com` matches example.com and its subdomains.
+#   skills    - SKILL.md names this agent may list and read. Omitted = all.
+
+[capabilities]
+tools = [
+  "web_search",
+  "web_fetch",
+  "memory_store",
+  "memory_recall",
+  # "delegate",
+]
+# delegates = ["reviewer"]
+# hosts = ["*.wikipedia.org", "arxiv.org"]
+# skills = ["market-research"]
+
+# ---- Workspace boundary -----------------------------------------------------
+# File tools are rooted at <data_dir>/workspaces/<id>/. An approved shell starts
+# there but is not an operating-system sandbox. Each agent has a separate root
+# and memory scope; delegation passes prompts and results between agents.

@@ -1,0 +1,205 @@
+import type { ChannelAddress } from '@/core/channels'
+import type {
+  RawApi,
+  RawBudget,
+  RawConfig,
+  RawLlm,
+  RawLoop,
+  RawSchedule,
+} from '@/core/config/schema'
+import type { Locale } from '@/core/types/locale'
+import { parseChannelAddress } from '@/core/channels'
+import { OperatorConfigError } from '@/core/config/operator-errors'
+import { ConfigError } from '@/core/errors'
+import { DEFAULT_MAX_DURATION_MS, DEFAULT_MAX_TOOL_CALLS, DEFAULT_MAX_TURNS } from '@/core/limits'
+
+// Caps are opt-in guardrails: 0 = uncapped, only tracked.
+const DEFAULT_MAX_DAILY_USD = 0
+const DEFAULT_MAX_MONTHLY_USD = 0
+const DEFAULT_MAX_PER_RUN_USD = 0
+const DEFAULT_SOFT_WARN_RATIO = 0.8
+const DEFAULT_LANGUAGE = 'vi'
+const FALLBACK_TIMEZONE = 'UTC'
+const DEFAULT_TICK_SECONDS = 30
+const DEFAULT_MAX_PER_TICK = 5
+const DEFAULT_MAX_GLOBAL = 50
+const DEFAULT_SCHEDULER_APPROVAL_TIMEOUT_MS = 900_000
+const DEFAULT_COMPACTION_THRESHOLD = 0.75
+const DEFAULT_MAX_COMPACTION_PASSES = 3
+const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000
+const DEFAULT_SESSION_MESSAGE_CAP = 500
+const DEFAULT_MAX_CALLS_PER_MINUTE = 60
+const DEFAULT_LLM_MAX_RETRIES = 2
+const DEFAULT_LLM_RETRY_BACKOFF_MS = 500
+const DEFAULT_LLM_TRANSIENT_COOLDOWN_MS = 60_000
+const DEFAULT_LLM_CREDENTIAL_COOLDOWN_MS = 900_000
+const DEFAULT_DELEGATION_DEPTH = 3
+const DEFAULT_MAX_DELEGATIONS = 32
+const DEFAULT_MAX_PARALLEL_DELEGATIONS = 5
+const DEFAULT_API_PORT = 8765
+
+export interface ResolvedBudget {
+  readonly maxDailyUsd: number
+  readonly maxMonthlyUsd: number
+  readonly softWarnRatio: number
+  readonly maxPerRunUsd: number
+}
+
+export interface ResolvedLocale {
+  readonly language: Locale
+  readonly timezone: string
+  readonly currency?: string
+  readonly region?: string
+}
+
+export interface ResolvedSchedule {
+  readonly tickSeconds: number
+  readonly maxPerTick: number
+  readonly maxGlobal: number
+  readonly approvalTimeoutMs: number
+  readonly failureTarget?: ChannelAddress
+}
+
+export interface ResolvedLoop {
+  readonly maxTurns: number
+  readonly maxToolCalls: number
+  readonly maxDurationMs: number
+  readonly compactionThreshold: number
+  readonly maxCompactionPasses: number
+  readonly approvalTimeoutMs: number
+  readonly sessionMessageCap: number
+  readonly delegationDepth: number
+  readonly maxDelegations: number
+  readonly maxParallelDelegations: number
+}
+
+export interface ResolvedLlm {
+  readonly maxCallsPerMinute: number
+  readonly maxRetries: number
+  readonly retryBackoffMs: number
+  readonly transientCooldownMs: number
+  readonly credentialCooldownMs: number
+}
+
+export interface ResolvedApi {
+  readonly enabled: boolean
+  readonly port: number
+  readonly tokenEnv?: string
+}
+
+type MutableSchedule = { -readonly [K in keyof ResolvedSchedule]: ResolvedSchedule[K] }
+
+export function resolveBudget(raw: RawBudget | undefined): ResolvedBudget {
+  return {
+    maxDailyUsd: raw?.max_daily_usd ?? DEFAULT_MAX_DAILY_USD,
+    maxMonthlyUsd: raw?.max_monthly_usd ?? DEFAULT_MAX_MONTHLY_USD,
+    softWarnRatio: raw?.soft_warn_ratio ?? DEFAULT_SOFT_WARN_RATIO,
+    maxPerRunUsd: raw?.max_per_run_usd ?? DEFAULT_MAX_PER_RUN_USD,
+  }
+}
+
+export function resolveLocale(raw: RawConfig['locale']): ResolvedLocale {
+  const language = raw?.language ?? DEFAULT_LANGUAGE
+
+  if (language !== 'en' && language !== 'vi') {
+    throw new OperatorConfigError(
+      `invalid locale.language: "${language}" — must be "en" or "vi"`,
+      { key: 'errors.configLanguage', params: { language } },
+      { path: ['locale', 'language'] }
+    )
+  }
+
+  const timezone = raw?.timezone ?? hostTimeZone()
+
+  if (!isTimeZone(timezone)) {
+    throw new OperatorConfigError(
+      `invalid locale.timezone: "${timezone}" is not a valid IANA timezone`,
+      { key: 'errors.configTimezone', params: { timezone } },
+      { path: ['locale', 'timezone'] }
+    )
+  }
+
+  return {
+    language,
+    timezone,
+    ...(raw?.currency === undefined ? {} : { currency: raw.currency }),
+    ...(raw?.region === undefined ? {} : { region: raw.region }),
+  }
+}
+
+export function resolveSchedule(raw: RawSchedule | undefined): ResolvedSchedule {
+  const schedule: MutableSchedule = {
+    tickSeconds: DEFAULT_TICK_SECONDS,
+    maxPerTick: DEFAULT_MAX_PER_TICK,
+    maxGlobal: DEFAULT_MAX_GLOBAL,
+    approvalTimeoutMs: raw?.approval_timeout_ms ?? DEFAULT_SCHEDULER_APPROVAL_TIMEOUT_MS,
+  }
+
+  if (raw?.failure_target !== undefined) {
+    try {
+      schedule.failureTarget = parseChannelAddress(raw.failure_target)
+    } catch (err: unknown) {
+      if (err instanceof ConfigError) {
+        throw new OperatorConfigError(
+          err.message,
+          {
+            key: 'errors.configFailureTarget',
+            params: { target: raw.failure_target },
+          },
+          { path: ['schedule', 'failure_target'] }
+        )
+      }
+      throw err
+    }
+  }
+
+  return schedule
+}
+
+export function resolveLoop(raw: RawLoop | undefined): ResolvedLoop {
+  return {
+    maxTurns: raw?.max_turns ?? DEFAULT_MAX_TURNS,
+    maxToolCalls: raw?.max_tool_calls ?? DEFAULT_MAX_TOOL_CALLS,
+    maxDurationMs: raw?.max_duration_ms ?? DEFAULT_MAX_DURATION_MS,
+    compactionThreshold: DEFAULT_COMPACTION_THRESHOLD,
+    maxCompactionPasses: DEFAULT_MAX_COMPACTION_PASSES,
+    approvalTimeoutMs: raw?.approval_timeout_ms ?? DEFAULT_APPROVAL_TIMEOUT_MS,
+    sessionMessageCap: DEFAULT_SESSION_MESSAGE_CAP,
+    delegationDepth: raw?.delegation_depth ?? DEFAULT_DELEGATION_DEPTH,
+    maxDelegations: raw?.max_delegations ?? DEFAULT_MAX_DELEGATIONS,
+    maxParallelDelegations: raw?.max_parallel_delegations ?? DEFAULT_MAX_PARALLEL_DELEGATIONS,
+  }
+}
+
+export function resolveLlm(raw: RawLlm | undefined): ResolvedLlm {
+  return {
+    maxCallsPerMinute: raw?.max_calls_per_minute ?? DEFAULT_MAX_CALLS_PER_MINUTE,
+    maxRetries: DEFAULT_LLM_MAX_RETRIES,
+    retryBackoffMs: DEFAULT_LLM_RETRY_BACKOFF_MS,
+    transientCooldownMs: DEFAULT_LLM_TRANSIENT_COOLDOWN_MS,
+    credentialCooldownMs: DEFAULT_LLM_CREDENTIAL_COOLDOWN_MS,
+  }
+}
+
+export function resolveApi(raw: RawApi | undefined): ResolvedApi {
+  return {
+    enabled: raw?.enabled ?? false,
+    port: raw?.port ?? DEFAULT_API_PORT,
+    ...(raw?.token_env === undefined ? {} : { tokenEnv: raw.token_env }),
+  }
+}
+
+// Cron, one-shot jobs, and the prompt's date block all read this one value, and every time the
+// operator names is wall clock on their own machine. A host with no zone set reports UTC.
+function hostTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || FALLBACK_TIMEZONE
+}
+
+function isTimeZone(timezone: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: timezone })
+    return true
+  } catch {
+    return false
+  }
+}

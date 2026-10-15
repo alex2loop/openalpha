@@ -1,0 +1,129 @@
+import type { DeliveryHub } from '@/app/services'
+import type {
+  ChannelHealth,
+  ConfigSummaryReader,
+  HealthCode,
+  HealthSummaryReader,
+  SpendReader,
+} from '@/commands/api'
+import type { ChannelId } from '@/core/channels'
+import type { App } from '@/core/container'
+import type { LLMUsageTotals, SpendBreakdownRow } from '@/core/types/usage'
+
+// A corrupt persisted row must not render as a nonsense balance.
+const MAX_PERSISTED_USAGE_VALUE = Number.MAX_SAFE_INTEGER
+
+// Reads the attempt ledger, never the process-local cost tracker: the CLI and the daemon are
+// separate processes and only the ledger is visible to both.
+export function createSpendReader(app: App): SpendReader {
+  const attempts = app.resolve('llmAttemptStore')
+  const sessionTotals = app.resolve('priorTotals')
+
+  return {
+    forPeriod: async (period, nowMs) => boundedUsage(await attempts.totalFor(period, nowMs)),
+    forRange: async (range) => boundedUsage(await attempts.totalRange(range)),
+    dailyForRange: async (range) =>
+      (await attempts.dailyRange(range)).map((spend) => ({
+        day: spend.day,
+        costUsd: boundedUsage(spend.costUsd),
+      })),
+    forSession: async (sessionId) => boundedTotals(await sessionTotals(sessionId)),
+    breakdownForPeriod: async (period, nowMs) =>
+      (await attempts.breakdownFor(period, nowMs)).map(boundedBreakdownRow),
+    breakdownForRange: async (range) =>
+      (await attempts.breakdownRange(range)).map(boundedBreakdownRow),
+  }
+}
+
+// The same configured-channel list `/health` reports, so the two commands never disagree about
+// which channels exist.
+export function createConfigSummary(app: App): ConfigSummaryReader {
+  return {
+    read: () => ({
+      locale: app.config.locale.language,
+      timezone: app.config.locale.timezone,
+      model: app.config.models[0]?.selector ?? '',
+      maxDailyUsd: app.config.budget.maxDailyUsd,
+      maxMonthlyUsd: app.config.budget.maxMonthlyUsd,
+      channels: configuredChannels(app),
+    }),
+  }
+}
+
+// Configuration names the channels so every surface lists the same ones; liveness is overlaid
+// only where this process runs them.
+export function createHealthSummary(app: App, delivery: DeliveryHub): HealthSummaryReader {
+  return {
+    read: async () => ({ runtime: 'ok', channels: toChannelHealth(app, delivery) }),
+  }
+}
+
+function toChannelHealth(app: App, delivery: DeliveryHub): readonly ChannelHealth[] {
+  const attached = delivery.attached()
+  const live = new Map(delivery.snapshots().map((snapshot) => [snapshot.channel, snapshot]))
+
+  return configuredChannels(app).map((channel) => ({
+    channel,
+    code: attached ? toHealthCode(live.get(channel)) : 'unknown',
+  }))
+}
+
+// The predicate the daemon starts channels from.
+function configuredChannels(app: App): readonly ChannelId[] {
+  return app
+    .resolve('channels')
+    .filter((definition) =>
+      definition.isEnabled(definition.resolveConfig(app.config.channels[definition.id]))
+    )
+    .map((definition) => definition.id)
+}
+
+function toHealthCode(
+  status: { readonly running: boolean; readonly connected: boolean } | undefined
+): HealthCode {
+  if (status === undefined || !status.running) {
+    return 'down'
+  }
+
+  return status.connected ? 'ok' : 'degraded'
+}
+
+function boundedTotals(totals: LLMUsageTotals): LLMUsageTotals {
+  return {
+    inputTokens: boundedCount(totals.inputTokens),
+    outputTokens: boundedCount(totals.outputTokens),
+    cacheReadTokens: boundedCount(totals.cacheReadTokens),
+    cacheWriteTokens: boundedCount(totals.cacheWriteTokens),
+    reasoningTokens: boundedCount(totals.reasoningTokens),
+    modelCalls: boundedCount(totals.modelCalls),
+    costUsd: boundedUsage(totals.costUsd),
+    // Carried through: this function clamps counts, and the name is neither a count nor something
+    // a bound could repair. Rebuilding the totals field by field is what dropped it.
+    ...(totals.modelName === undefined ? {} : { modelName: totals.modelName }),
+  }
+}
+
+function boundedBreakdownRow(row: SpendBreakdownRow): SpendBreakdownRow {
+  return {
+    ...row,
+    calls: boundedCount(row.calls),
+    failedCalls: boundedCount(row.failedCalls),
+    costUsd: boundedUsage(row.costUsd),
+    inputTokens: boundedCount(row.inputTokens),
+    cacheReadTokens: boundedCount(row.cacheReadTokens),
+    cacheWriteTokens: boundedCount(row.cacheWriteTokens),
+    outputTokens: boundedCount(row.outputTokens),
+    reasoningTokens: boundedCount(row.reasoningTokens),
+    ...(row.averageLatencyMs === undefined
+      ? {}
+      : { averageLatencyMs: boundedCount(row.averageLatencyMs) }),
+  }
+}
+
+function boundedUsage(value: number): number {
+  return Number.isFinite(value) ? Math.min(MAX_PERSISTED_USAGE_VALUE, Math.max(0, value)) : 0
+}
+
+function boundedCount(value: number): number {
+  return Math.floor(boundedUsage(value))
+}

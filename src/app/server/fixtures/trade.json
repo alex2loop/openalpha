@@ -1,0 +1,63 @@
+{
+  "staged": [
+    {
+      "token": "5f0c2a7e-1b8d-4c33-9a61-2f4b8e7d9c10",
+      "instrument": {
+        "market": "crypto",
+        "ticker": "BTC"
+      },
+      "venue": "okx",
+      "side": "buy",
+      "orderType": "limit",
+      "quantity": 0.02,
+      "limitPrice": 61200,
+      "takeProfit": 66000,
+      "stopLoss": 58500,
+      "quotePrice": 61350,
+      "notionalBase": 31824000,
+      "createdAt": 1791535800000
+    }
+  ],
+  "exits": [
+    {
+      "instrument": {
+        "market": "crypto",
+        "ticker": "ETH"
+      },
+      "venue": "okx",
+      "quantity": 0.5,
+      "takeProfit": 3900,
+      "stopLoss": 3100,
+      "currency": "USDT",
+      "placedAt": 1791449400000
+    }
+  ],
+  "unguarded": [
+    {
+      "instrument": {
+        "market": "crypto",
+        "ticker": "SOL"
+      },
+      "venue": "okx",
+      "quantity": 4,
+      "guarded": 0
+    }
+  ],
+  "unguardedResidue": ["HYPE"],
+  "unmirrored": [
+    {
+      "token": "9a1d3c5e-7f20-4b8a-8c6d-1e2f3a4b5c6d",
+      "instrument": {
+        "market": "crypto",
+        "ticker": "BTC"
+      },
+      "venue": "okx",
+      "side": "buy",
+      "quantity": 0.01,
+      "createdAt": 1791190200000,
+      "failure": "unreconciled",
+      "orderId": "2741958301"
+    }
+  ],
+  "haltedAt": 1791535000000
+}

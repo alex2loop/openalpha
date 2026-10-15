@@ -1,0 +1,42 @@
+{
+  "preferredLocale": "vi",
+  "baseCurrency": "VND",
+  "riskLevel": "balanced",
+  "riskCapacity": "balanced",
+  "riskWillingness": "balanced",
+  "horizons": {
+    "equity-vn": "long",
+    "crypto": "short"
+  },
+  "goal": "grow",
+  "watchlist": [
+    {
+      "market": "equity-vn",
+      "ticker": "HPG"
+    }
+  ],
+  "exclusions": [
+    {
+      "market": "equity-vn",
+      "ticker": "NVL"
+    }
+  ],
+  "segmentTargets": {
+    "equity-vn": 0.6,
+    "crypto": 0.1
+  },
+  "caps": {
+    "equity-vn": {
+      "maximumPositionPctNav": 0.1,
+      "maximumSegmentPctNav": 0.8
+    },
+    "crypto": {
+      "maximumPositionPctNav": 0.05,
+      "maximumSegmentPctNav": 0.2
+    }
+  },
+  "maximumSectorPctNav": 0.3,
+  "reservePctNav": 0.05,
+  "regimeScale": 1,
+  "riskPerTradePctNav": 0.01
+}

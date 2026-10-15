@@ -1,0 +1,28 @@
+{
+  "card": {
+    "verdict": "CRV (08/10/2026): Mua, Mức tin cậy thấp. Mua khoảng 139,4375 CRV (~55,02 USDT, chiếm 0,7% danh mục). Giá mua 0,3946 USDT, cắt lỗ 0,3366 USDT (▼ -14,7%), chốt 33% tại 0,4526 USDT (▲ 14,7%), mục tiêu xa 0,5106 USDT (▲ 29,4%), lợi/rủi ro 1,00 tại mức chốt.",
+    "facts": ["Giá CRV lúc 08:12 · 08/10/2026: 0,3946 USDT"],
+    "reasons": [],
+    "levels": [
+      "Đừng mua đuổi trên 0,4236 USDT (▲ 7,35%). Qua mức đó, chặng tăng đầu tiên coi như đã xong, phần còn lại không còn đáng với rủi ro.",
+      "Mua trước 69,7187 CRV, phần còn lại mua sau nếu giá quay lại quanh 0,3946 USDT và đứng vững.",
+      "Tại 0,4526 USDT (▲ 14,7%), bán 33% và để phần còn lại chạy theo mức cắt lỗ đang nâng dần - phần này không có điểm bán cố định. Mục tiêu đầy đủ 0,5106 USDT (▲ 29,4%) chỉ là mốc xa cho phần còn lại, không phải giá để bán.",
+      "Hãy để sẵn mức cắt lỗ thành lệnh dừng ở công ty chứng khoán hoặc sàn, và nâng lệnh lên mỗi khi mức cắt lỗ được nâng - lệnh kích hoạt ngay khi có giao dịch chạm hoặc thủng mức này, không chờ giá đóng cửa. Nếu giá mở cửa nhảy qua mức cắt lỗ hoặc mã nằm sàn, lệnh có thể khớp thấp hơn; lệnh hết hiệu lực thì hãy đặt lại.",
+      "Nếu trong khoảng 28 ngày giá không chạm cắt lỗ cũng không chạm mục tiêu, hãy đóng vị thế - tôi đã ghi nhận lệnh này, và đó là ngày tôi chấm kết quả. Việc mã rơi khỏi danh sách sàng lọc hôm sau không phải lý do để bán sớm: bảng xếp hạng đổi mỗi ngày, còn vị thế này chỉ thoát theo các mức của chính nó.",
+      "Trong 5 phiên sau một phiên bất kỳ trong lịch sử của mã, giá rẻ nhất có trung vị ▼ -6,05% so với giá đóng cửa phiên đó.",
+      "Tính cả những lần lệnh chờ không khớp là không nắm giữ gì, cách đặt lệnh chờ ở mức giá đó cho kết quả ▼ -3,2% so với mua ngay ở giá tham chiếu, đo trên 28 phiên nắm giữ.",
+      "Đó là nơi thị trường có giao dịch, không phải nơi bạn chắc chắn mua được - hãy coi đây là mức trần của khả năng mua rẻ hơn, không phải khả năng thật."
+    ],
+    "notes": [
+      "Đã trừ phí: nếu chạm cắt lỗ, bạn mất khoảng 8,20 USDT (0,1% danh mục); tại mức chốt, vị thế lãi khoảng 7,98 USDT (0,1%), chưa tính phần còn lại chạy theo cắt lỗ nâng dần.",
+      "Phí trọn vòng mua-bán khoảng 0,11 USDT (0,2% giá trị lệnh); giá phải lên 0,3954 USDT mới hòa vốn.",
+      "Mỗi phiên mã này thường dao động khoảng 0,02898 USDT (7,34% giá vào lệnh); mức cắt lỗ đặt cách 2,00 lần biên độ đó.",
+      "Khối lượng này tính trên tiền mặt bạn đang có. Nếu dùng ký quỹ, hãy xem đây là mức trần, không phải mức nên mua."
+    ],
+    "details": [
+      ["**Vì sao**", "Xu hướng tăng đều, khối lượng xác nhận."],
+      ["**Điều làm luận điểm sai**", "Giá đóng cửa dưới 0,3366 USDT."]
+    ],
+    "disclaimer": "Đây là phân tích, không phải lệnh đặt - quyết định luôn thuộc về bạn."
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "note": "File-size exceptions read by scripts/check-line-limits.ts, which counts non-blank lines against a 400 limit. Repo-relative paths; every entry needs a reason in the PR that adds it. The morning-brief composer is the spec's one standing exception, split by section family and still over; the trading-tables migration is one DDL block that cannot be split without splitting the schema. Split by concern rather than adding an entry; never widen this list to land a change, and drop an entry once its file falls under the limit.",
+  "files": [
+    "src/trading/markets/equity-vn/brief/compose.ts",
+    "src/persistence/migrations/2026_07_10_000002_trading_tables.ts",
+    "src/trading/markets/equity-vn/policy.ts"
+  ]
+}

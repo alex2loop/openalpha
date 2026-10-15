@@ -1,0 +1,46 @@
+{
+  "agents": [
+    {
+      "id": "analyst",
+      "name": "analyst",
+      "paused": false,
+      "maxDailyUsd": 0.5,
+      "spentTodayUsd": 0.12,
+      "focusKey": "default",
+      "focusLabel": "Your book (your own focus)",
+      "record": {
+        "resolvedCount": 11,
+        "winCount": 7,
+        "winRate": 0.6364
+      },
+      "agreement": {
+        "comparedCount": 24,
+        "matchedCount": 20
+      },
+      "contrarian": {
+        "count": 3,
+        "wins": 2,
+        "crowdWins": 1
+      },
+      "overlapsWith": [],
+      "social": []
+    },
+    {
+      "id": "bank",
+      "name": "bank",
+      "paused": true,
+      "spentTodayUsd": 0,
+      "focusKey": "f-05a184fec6ab1d83",
+      "focusLabel": "Vietnam stock market · Banks · Long term",
+      "overlapsWith": [],
+      "social": [
+        {
+          "network": "moltbook",
+          "state": "active",
+          "reviewAll": true,
+          "drafts": 1
+        }
+      ]
+    }
+  ]
+}

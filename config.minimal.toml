@@ -1,0 +1,59 @@
+# Cấu hình gọn nhẹ để bắt đầu với OpenAlpha.
+#
+# Cách dùng:
+#   1. Tải file này: curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -o ~/.openalpha/config.toml --create-dirs
+#      Windows (PowerShell): New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
+#   2. Lấy một khóa ở openrouter.ai, rồi đặt: export OPENROUTER_API_KEY="..."
+#   3. Kiểm tra lại: openalpha config validate
+#
+# Vậy là đủ để chạy. Khi cần thêm (Telegram, ngân sách, sàn giao dịch...),
+# mở config.sample.toml trên GitHub, mỗi tùy chọn đều có giải thích đi kèm.
+
+# Mọi mô hình bên dưới đều đi qua OpenRouter, dùng chung một khóa.
+# "latency" nghĩa là ưu tiên máy chủ trả lời nhanh nhất.
+[model_defaults]
+provider = "openrouter"
+api_key_env = "OPENROUTER_API_KEY"
+provider_sort = "latency"
+
+# Mô hình chính: lo phần trò chuyện hằng ngày. Một mô hình rẻ và nhanh là đủ dùng.
+[[models]]
+model = "deepseek/deepseek-v4.1-flash"
+
+# Các việc cần suy nghĩ kỹ hơn thì giao cho mô hình mạnh hơn một chút.
+# Bỏ phần nào thì việc đó quay về dùng mô hình chính.
+
+# Hội đồng tranh luận: các "chuyên gia" phe mua, phe bán, quản trị rủi ro
+# phản biện nhau trước khi đưa ra gợi ý. Nên chọn mô hình nhanh.
+[[model_tiers.debate]]
+model = "openai/gpt-6-luna"
+
+# Đọc lướt tin tức trước buổi tranh luận để lọc ra tin đáng chú ý.
+# Bỏ phần này thì tin chỉ được gom theo nguồn, không chấm mức độ quan trọng.
+[[model_tiers.decisions]]
+provider = "openrouter-decisions"
+model = "typesafe/jev-1.14"
+
+# Nghiên cứu trên web: lên kế hoạch, tổng hợp và tự soát lại báo cáo.
+[[model_tiers.research]]
+model = "anthropic/claude-haiku-5.5"
+
+# Phần đọc nhiều nhất của nghiên cứu: lấy dẫn chứng từ từng trang web.
+[[model_tiers.research-heavy]]
+model = "anthropic/claude-haiku-5.5"
+
+# Rút số liệu vĩ mô Việt Nam (GDP, lạm phát...) từ báo cáo và báo chí.
+[[model_tiers.extraction]]
+model = "anthropic/claude-haiku-5.5"
+
+# Phân tích các chủ đề đầu tư đang nổi, dùng cho lệnh /themes.
+[[model_tiers.themes]]
+model = "anthropic/claude-haiku-5.5"
+
+# Bạn mở tài khoản ở công ty chứng khoán khác VPS (ví dụ SSI)?
+# Bỏ dấu # ở 3 dòng dưới và sửa phí cho đúng biểu phí của bạn, để lãi lỗ
+# tính ra sát với thực tế. Khi đó lệnh "/record deposit ssi ..." dùng được ngay.
+# Phí ghi dạng tỷ lệ: 0.0015 là 0,15%; sell_tax là thuế bán 0,1%.
+# [trading.venues.ssi]
+# default_for = ["equity-vn"]
+# fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }

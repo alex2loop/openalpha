@@ -1,0 +1,117 @@
+{
+  "markets": [
+    {
+      "market": "gold",
+      "asOf": "2026-10-07",
+      "sessionState": "open",
+      "currency": "USD",
+      "priceCurrency": "USD",
+      "rows": [
+        {
+          "instrument": {
+            "market": "gold",
+            "ticker": "XAUUSD"
+          },
+          "price": 4159,
+          "changePct": 0.44195425894172924,
+          "observedAt": 1791430371000
+        }
+      ],
+      "caveats": [
+        {
+          "code": "source.futures-proxy",
+          "data": {
+            "source": "yahoo"
+          },
+          "severity": "info",
+          "text": "World metal prices from yahoo come from the busiest COMEX contract, which carries cost of carry, not the spot fix."
+        }
+      ]
+    },
+    {
+      "market": "gold-vn",
+      "asOf": "2026-10-08",
+      "sessionState": "open",
+      "currency": "VND",
+      "priceCurrency": "VND",
+      "rows": [
+        {
+          "instrument": {
+            "market": "gold-vn",
+            "ticker": "PNJ-RING"
+          },
+          "price": 142500000
+        },
+        {
+          "instrument": {
+            "market": "gold-vn",
+            "ticker": "SJC-BAR"
+          },
+          "price": 143000000
+        }
+      ],
+      "caveats": [
+        {
+          "code": "source.futures-proxy",
+          "data": {
+            "source": "yahoo"
+          },
+          "severity": "info",
+          "text": "World metal prices from yahoo come from the busiest COMEX contract, which carries cost of carry, not the spot fix."
+        }
+      ]
+    },
+    {
+      "market": "equity-vn",
+      "asOf": "2026-10-08",
+      "sessionState": "open",
+      "currency": "VND",
+      "rows": [],
+      "caveats": [
+        {
+          "code": "market-data.no-coverage",
+          "severity": "warn",
+          "text": "None of the sources on hand cover this instrument."
+        }
+      ]
+    },
+    {
+      "market": "crypto",
+      "asOf": "2026-10-08",
+      "sessionState": "open",
+      "currency": "USDT",
+      "rows": [
+        {
+          "instrument": {
+            "market": "crypto",
+            "ticker": "BTC"
+          },
+          "price": 82858.21751585303,
+          "changePct": -1.4700000286102295,
+          "observedAt": 1791430909554
+        },
+        {
+          "instrument": {
+            "market": "crypto",
+            "ticker": "ETH"
+          },
+          "price": 2569.353359215698,
+          "changePct": -1.5199999809265137,
+          "observedAt": 1791430909554
+        }
+      ],
+      "breadth": {
+        "advancers": 68,
+        "decliners": 80,
+        "measured": 148
+      },
+      "caveats": [
+        {
+          "code": "market-data.evidence-settled-only",
+          "severity": "info",
+          "text": "The price history behind the ranking runs to the last settled close; continuous readings are current."
+        }
+      ]
+    }
+  ]
+}

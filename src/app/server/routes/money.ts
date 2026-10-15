@@ -1,0 +1,190 @@
+import type { LedgerPageResponse } from '@/app/server/wire/money'
+import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
+import { apiError, json } from '@/app/server/http/dispatch'
+import {
+  toLedgerEntryWire,
+  toLedgerWriteWire,
+  toRebalanceWire,
+  toReconcileWire,
+  toStopsWire,
+  toVenuesWire,
+} from '@/app/server/mappers/money'
+import {
+  hostOf,
+  localeOf,
+  MAX_IDEMPOTENCY_KEY_LENGTH,
+  parseLimit,
+  parseOptionalBranded,
+  parseOptionalInstrument,
+  parsePathId,
+} from '@/app/server/routes/params'
+import { ledgerEntryId, SURFACE_LIMITS, tradingDay } from '@/trading/api'
+
+async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const query = new URL(req.url).searchParams
+  const limit = parseLimit(query.get('limit'), SURFACE_LIMITS.maximumHistoryItems)
+  const cursor = parseOptionalBranded(query.get('cursor'), ledgerEntryId)
+  const fromDay = parseOptionalBranded(query.get('fromDay'), tradingDay)
+  const toDay = parseOptionalBranded(query.get('toDay'), tradingDay)
+  const instrument = parseOptionalInstrument(query)
+
+  if (
+    limit === null ||
+    cursor === null ||
+    fromDay === null ||
+    toDay === null ||
+    instrument === null
+  ) {
+    return apiError('invalid_body')
+  }
+
+  const page = await hostOf(ctx).listLedger({
+    limit,
+    ...(cursor === undefined ? {} : { cursor }),
+    ...(instrument === undefined ? {} : { instrument }),
+    range: {
+      ...(fromDay === undefined ? {} : { fromDay }),
+      ...(toDay === undefined ? {} : { toDay }),
+    },
+    signal: req.signal,
+  })
+
+  return json({
+    entries: page.items.map(toLedgerEntryWire),
+    ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
+  } satisfies LedgerPageResponse)
+}
+
+/** The key is the client's, one per user action: a retried POST with the same key records nothing
+ *  new, and the same key with a different draft is a 409. */
+async function handleLedgerRecord(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const idempotencyKey = req.headers.get('idempotency-key')?.trim() ?? ''
+
+  if (idempotencyKey === '' || idempotencyKey.length > MAX_IDEMPOTENCY_KEY_LENGTH) {
+    return apiError('invalid_body')
+  }
+
+  const draft = await readDraft(req)
+
+  if (draft === undefined) {
+    return apiError('invalid_json')
+  }
+
+  const result = await hostOf(ctx).recordLedger({ draft, idempotencyKey, signal: req.signal })
+
+  return json(toLedgerWriteWire(result, localeOf(ctx)))
+}
+
+/** A full entry id only: the short handle chat prints can match more than one row. */
+async function handleLedgerUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const entryId = parsePathId(req, ledgerEntryId)
+  const draft = await readDraft(req)
+
+  if (entryId === null) {
+    return apiError('invalid_body')
+  }
+
+  if (draft === undefined) {
+    return apiError('invalid_json')
+  }
+
+  const result = await hostOf(ctx).updateLedgerEntry({ entryId, draft, signal: req.signal })
+
+  return json(toLedgerWriteWire(result, localeOf(ctx)))
+}
+
+async function handleLedgerDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const entryId = parsePathId(req, ledgerEntryId)
+
+  if (entryId === null) {
+    return apiError('invalid_body')
+  }
+
+  const result = await hostOf(ctx).deleteLedgerEntry({ entryId, signal: req.signal })
+
+  return json(toLedgerWriteWire(result, localeOf(ctx)))
+}
+
+async function handleStops(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  return json(toStopsWire(await hostOf(ctx).getStopDistances({ signal: req.signal })))
+}
+
+async function handleRebalance(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  return json(
+    toRebalanceWire(await hostOf(ctx).getRebalance({ signal: req.signal }), localeOf(ctx))
+  )
+}
+
+async function handleReconcile(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  return json(toReconcileWire(await hostOf(ctx).getReconcile({ signal: req.signal })))
+}
+
+async function handleVenues(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  return json(toVenuesWire(await hostOf(ctx).listVenues({ signal: req.signal })))
+}
+
+/** `{ draft }`. The draft itself is validated by the host, which owns the one schema that knows the
+ *  registered markets and venues. `undefined` means the body was not a JSON object. */
+async function readDraft(req: Request): Promise<unknown> {
+  const body: unknown = await req.json().catch(() => null)
+
+  if (typeof body !== 'object' || body === null || !('draft' in body)) {
+    return undefined
+  }
+
+  return body.draft
+}
+
+/** The operator's own money, so every route here reads the portfolio capability. */
+export const MONEY_ROUTES = [
+  {
+    method: 'GET',
+    path: '/v1/ledger',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleLedgerList,
+  },
+  {
+    method: 'POST',
+    path: '/v1/ledger',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleLedgerRecord,
+  },
+  {
+    method: 'PATCH',
+    path: '/v1/ledger/:id',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleLedgerUpdate,
+  },
+  {
+    method: 'DELETE',
+    path: '/v1/ledger/:id',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleLedgerDelete,
+  },
+  { method: 'GET', path: '/v1/stops', auth: true, capability: 'portfolio', handler: handleStops },
+  {
+    method: 'GET',
+    path: '/v1/venues',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleVenues,
+  },
+  {
+    method: 'GET',
+    path: '/v1/rebalance',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleRebalance,
+  },
+  {
+    method: 'GET',
+    path: '/v1/reconcile',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleReconcile,
+  },
+] as const satisfies readonly ApiRouteSpec[]

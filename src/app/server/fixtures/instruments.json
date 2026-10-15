@@ -1,0 +1,42 @@
+{
+  "matches": [
+    {
+      "instrument": {
+        "market": "crypto",
+        "ticker": "HP"
+      }
+    },
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPA"
+      },
+      "name": "CTCP Phát triển Nông nghiệp Hòa Phát",
+      "kind": "equity"
+    },
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPG"
+      },
+      "name": "Công ty Cổ phần Tập đoàn Hòa Phát",
+      "kind": "equity"
+    },
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPX"
+      },
+      "name": "Công ty cổ phần Đầu tư Hải Phát",
+      "kind": "equity"
+    },
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HHP"
+      },
+      "name": "Công ty Cổ phần HHP Global",
+      "kind": "equity"
+    }
+  ]
+}

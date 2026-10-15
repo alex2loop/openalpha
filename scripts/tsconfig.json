@@ -1,0 +1,29 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "../src/*"
+      ],
+      "@openalpha/runtime": [
+        "../src/index.ts"
+      ],
+      "@openalpha/runtime/app": [
+        "../src/app/api.ts"
+      ],
+      "zod": [
+        "../node_modules/zod"
+      ]
+    }
+  },
+  "include": [
+    "../src/markdown.d.ts",
+    "./check-research-integrity-regressions.ts",
+    "./check-trading-locale.ts",
+    "./check-vi-terminology.ts",
+    "./evaluate-research-routing.ts",
+    "./research-*.ts",
+    "./research-*/**/*.ts",
+    "./sdk-embedder-smoke.ts"
+  ]
+}

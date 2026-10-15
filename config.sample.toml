@@ -1,0 +1,467 @@
+# OpenAlpha config (~/.openalpha/config.toml)
+# Giải thích từng khóa bằng tiếng Việt: https://github.com/alex2loop/openalpha/blob/main/docs/cau-hinh.md
+#
+# Download: curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml -o ~/.openalpha/config.toml --create-dirs
+#   Windows (PowerShell): New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml -OutFile "$HOME\.openalpha\config.toml"
+# Short start instead: config.minimal.toml, a working file with only the usual keys.
+# Edit: at minimum, set one [[models]] entry. Everything else has defaults.
+#   (Not needed if you only use OpenAlpha through `openalpha mcp serve`.)
+#
+# `openalpha onboard` writes a minimal version of this file interactively, and changes one part of it later.
+# `openalpha config validate` runs the same checks as boot, [trading] included.
+# `openalpha doctor` goes further; `--online` also probes keys, tokens and web search.
+#
+# This file is the key list, in six groups: AI models, basics, trading, channels, agent runs,
+# connections. What each setting means, why the defaults are what they are, and what was
+# measured to pick them: docs/cau-hinh.md (Vietnamese), docs/en/configuration.md (English).
+#
+# Sections are strict: an unknown KEY inside a known section is a boot error.
+
+
+# ==== AI models ===============================================================
+
+# ---- Models (required) ------------------------------------------------------
+# At least one entry, in fallback order. Every entry needs model; provider and
+# api_key_env must exist after merging [model_defaults]. A server on this machine
+# needs no api_key_env. `openalpha provider list` prints the known providers.
+#
+# [model_defaults] is inherited by every [[models]] and [[model_tiers]] entry,
+# and an entry's own fields win. That is why the entries below are one line. An
+# entry that names another provider keeps api_key_env (optional there, so a
+# server on this machine runs without it) but leaves base_url and provider_*
+# behind; give a hosted provider its own api_key_env.
+
+[model_defaults]
+provider = "openrouter"
+api_key_env = "OPENROUTER_API_KEY"
+provider_sort = "latency"
+
+[[models]]
+model = "deepseek/deepseek-v4.1-flash"
+# alias = "primary"          # optional selector for /model and trusted agents
+# Do not declare cost_* for a router model: OpenRouter's own feed prices these
+# every 6h, and a declared price is an override that would outlive the real one.
+
+# Fallback on another provider:
+# [[models]]
+# provider = "anthropic"
+# model = "claude-sonnet-5-5"
+# api_key_env = "ANTHROPIC_API_KEY"
+
+# Signed in with your cloud account, no API key (docs/en/configuration.md, Cloud accounts):
+# [[models]]
+# provider = "vertex"               # reads GOOGLE_APPLICATION_CREDENTIALS
+# model = "google/gemini-3-flash"
+# base_url = "https://aiplatform.googleapis.com/v1/projects/<project>/locations/global/endpoints/openapi"
+#
+# [[models]]
+# provider = "bedrock"              # Claude on Amazon Bedrock
+# model = "anthropic.claude-sonnet-5-5"
+# api_key_env = "AWS_BEARER_TOKEN_BEDROCK"
+
+# Per-entry tuning (also settable in [model_defaults], except max_tokens: the
+# decisions tier below takes no output cap):
+# reasoning = "default"            # default | off | low | medium | high
+# max_tokens = 8192                # cap on the reply for this entry
+# reasoning_required = false       # endpoint rejects a disable payload outright
+# provider_sort = "throughput"     # price | throughput | latency (OpenRouter)
+# provider_only = ["deepinfra/bf16"]   # restrict to these router endpoints
+# provider_order = ["deepinfra/bf16"]  # try in this order
+# provider_allow_fallbacks = true  # false = fail rather than leave the list
+# ttft_timeout_ms = 180000         # no first token this long -> next entry (max 2147483647)
+# stream_idle_timeout_ms = 180000  # stream silent this long -> next entry (max 2147483647)
+
+# Self-hosted / OpenAI-compatible endpoints set base_url. These have no live price
+# feed, so declare pricing for a model the static table does not know; 0 = free.
+# [[models]]
+# provider = "openai"
+# model = "llama3.3:70b"
+# base_url = "http://127.0.0.1:11434/v1"
+# cost_input_per_m = 0                # USD per million tokens; set input+output together
+# cost_output_per_m = 0
+# cost_cache_read_per_m = 0           # optional; omitted cache usage is uncharged
+# cost_cache_write_per_m = 0
+
+# ChatGPT subscription: run `openalpha auth login chatgpt` once, then omit api_key_env.
+# [[models]]
+# provider = "openai-chatgpt"
+# model = "gpt-5.6-sol"
+
+
+# ---- Model tiers ------------------------------------------------------------
+# Named fallback chains. An omitted tier falls back to [[models]]; first entry is
+# primary; a tier an agent runs on must support tool calls. A tier that runs out ends on the
+# first [[models]] entry before the caller fails. Research workers map crawler ->
+# research-heavy and planner/synthesizer/reviewer -> research; /research writes its
+# answer on research too.
+
+[[model_tiers.research-heavy]]
+model = "anthropic/claude-haiku-5.5"
+
+[[model_tiers.research]]
+model = "anthropic/claude-haiku-5.5"
+
+# Off the router instead, so one provider stall cannot take both lanes:
+# [[model_tiers.research]]
+# provider = "gemini"
+# model = "gemini-2.5-flash"
+# api_key_env = "GOOGLE_API_KEY"
+
+# The six debate personas. Pick a fast model: the debate is four serial calls.
+[[model_tiers.debate]]
+model = "openai/gpt-6-luna"
+
+# Reads VN macro figures out of the statistics office's report and the press.
+[[model_tiers.extraction]]
+model = "anthropic/claude-haiku-5.5"
+# model = "google/gemini-3.8-flash"   # measured alternative on the same router
+
+# The theme analyst behind /themes. Entries must support tool calls.
+[[model_tiers.themes]]
+model = "anthropic/claude-haiku-5.5"
+# model = "google/gemini-3.8-flash"   # measured alternative on the same router
+
+# Reads every headline before the debate. Omit the tier and the debate groups
+# headlines by feed instead.
+[[model_tiers.decisions]]
+provider = "openrouter-decisions"     # answers with calibrated probabilities
+model = "typesafe/jev-1.14"           # pin a version, never an alias
+
+# Or on your own machine:
+# [[model_tiers.decisions]]
+# provider = "lmstudio"
+# model = "your-local-decision-model"
+
+# Workers reached through `delegate` / `delegate_parallel`.
+# [[model_tiers.delegate]]
+# model = "anthropic/claude-haiku-5.5"
+
+
+# ---- LLM transport ----------------------------------------------------------
+
+# [llm]
+# max_calls_per_minute = 60
+
+
+# ---- Budget -----------------------------------------------------------------
+# USD caps; the day and month roll over in [locale] timezone.
+# `openalpha cost --period week --breakdown` shows where it went.
+
+# [budget]
+# max_daily_usd = 0         # 0 = uncapped
+# max_monthly_usd = 0       # 0 = uncapped
+# soft_warn_ratio = 0.8     # warn once when an enabled cap passes this fraction
+# max_per_run_usd = 0       # 0 = uncapped
+# Each agent can also have its own `max_daily_usd` in its agent.toml.
+
+
+# ==== Basics ==================================================================
+
+# ---- Locale -----------------------------------------------------------------
+
+# [locale]
+# language = "vi"                 # vi | en
+# timezone = "UTC"                # IANA tz; defaults to the host zone
+# currency = "VND"                # ISO 4217 operator base currency
+# region = "vn"                   # home market: vn (world gold owns global but is reference only). Leads the brief,
+                                  # and a new profile starts in its own sleeves. Set currency to match.
+
+
+# ---- Paths ------------------------------------------------------------------
+# Precedence: --data-dir > OPENALPHA_DATA_DIR > [paths].data_dir > ~/.openalpha
+
+# [paths]
+# data_dir = "~/.openalpha"
+# skills_dirs = ["~/my-skills"]      # extra SKILL.md directories
+
+
+# ---- Storage ----------------------------------------------------------------
+# SQLite is the default. A relative path joins data_dir; ~/ expands.
+
+# [storage]
+# engine = "sqlite"
+# path = "data/openalpha.sqlite"
+
+# PostgreSQL reads its URL from the environment. schema is required, and every
+# operation including `db reset` is confined to it.
+# [storage]
+# engine = "postgres"
+# url_env = "OPENALPHA_DATABASE_URL"
+# schema = "openalpha"
+
+
+# ---- Retention --------------------------------------------------------------
+
+# [retention]
+# days = 90                       # prune old sessions/runs and removed-agent log dirs
+# inbox_days = 7                  # prune delivered/dead inbox rows
+# The cost ledger (llm_attempts) is kept 400 days whatever days is set to.
+
+
+# ---- Logging ----------------------------------------------------------------
+
+# [log]
+# level = "info"            # debug | info | warn | error | fatal
+# file = "logs/daemon.log"  # relative paths join data_dir
+# max_file_mb = 50          # rotate before the current segment exceeds this
+# max_files = 7             # rotated segments retained, plus the current one
+
+
+# ---- Updates ----------------------------------------------------------------
+# Once a day the CLI asks GitHub whether a newer release is out and prints one
+# line; the morning brief on your channel ends with it too. Nothing is installed
+# until you run `openalpha upgrade`. Source checkouts and CI never ask.
+
+# [update]
+# check = true
+
+
+# ==== Trading =================================================================
+
+# ---- Trading ----------------------------------------------------------------
+# What runs, when, and how far stops and targets sit. How much to buy is your
+# profile's job: risk per trade, position caps and cash reserve live in
+# `/profile set`, not here. A trading loop that fails on an unexpected error
+# pauses for an hour and restarts, up to three times, and each stop is sent to
+# you; the other loops keep running.
+
+# [trading.suggestions]
+# cooldown_sessions = 0              # repeat a suggestion after this many sessions; 0 = no wait.
+#                                    # The track record folds a repeat of a still-open call into it.
+# debate_mode = "full"               # full: bull and bear argue, a manager decides, a trader plans.
+#                                    # lean: one analyst reads it - cheaper and faster.
+
+# Per market. Ids: equity-vn, crypto, gold, gold-vn. Every key is optional. A
+# level key left out keeps the market's own default, shown as short / long
+# horizon (your profile picks the horizon per sleeve). Setting any level key
+# starts a separate track record for that market. Restart after editing.
+# [trading.markets.equity-vn]
+# holidays = ["2027-01-01"]          # closures announced after your build; added to the built-in ones
+# maximum_stop_loss = 0.08           # never more than 8% below entry (0.02-0.30); none by default
+# stop_loss_atr = 3                  # stop distance in average daily ranges (1-5); 1.5 / 3
+# reward_risk = 3                    # target as a multiple of that risk (1-5); 1.5 / 3
+# Defaults elsewhere - crypto: stop_loss_atr 2 / 2.5, reward_risk 2 / 3.
+# gold: 1.5 / 2 and 1.5 / 3. gold-vn: 1.5 / 2 and 1.5 / 1.5; its maximum_stop_loss
+# counts from the shop's buy-back price, so the buy/sell gap comes on top.
+# Crypto also rests a buy that ran 25% or more in a week half an ATR under the live price, for
+# five days - that is the market's own policy, not a key here.
+
+# A morning brief that still cannot be delivered after a few tries is skipped for
+# that day, with a notice; tomorrow's goes out as usual. Only /brief disable stops it.
+# [trading.briefs]
+# send_time = "08:15"                # morning brief delivery (HH:MM, market timezone)
+
+# Mid-session report for the market of your [locale] region (VN stocks by
+# default), on that market's hours and trading days. Off by default; name the
+# times to turn it on.
+# [trading.intraday]
+# send_times = ["10:30", "14:00"]
+
+# Watchlist breakout alerts. /screen's universe and gates are code-owned.
+# [trading.alerts]
+# breakout_range = 1.5               # a move must travel this many average daily ranges to alert
+# breakout_sessions = 14             # sessions that average range is measured over
+
+# Orders on okx and binance.
+# [trading.orders]
+# maximum_stake_quote = 0            # most one buy may spend, in USDT; 0 = uncapped
+# maximum_open_trades = 0            # max concurrent open trades a buy may add to; 0 = uncapped
+# maximum_price_drift = 0.005        # how far a limit may sit from the live quote, and the live quote
+#                                    # from the one you were shown (market orders), as a fraction
+# allow_unattended = false           # true = allow orders without interactive approval
+# require_stop_loss = true           # refuse a buy with no `sl`; false allows it
+# The kill switch is not a setting: /trade halt holds every new buy until /trade resume.
+
+# One table per venue: the markets it is the default for, its fees, and (okx,
+# binance) its credentials. okx, binance, vps and gold-shop are built in with
+# their published fees; set a key only to change it. fees replaces the built-in
+# rates whole, and credentials name environment variables, never values. Every
+# rule: docs/en/configuration.md#trading.
+# Give an exchange key Reading and Spot & Margin Trading only, never Withdrawals,
+# and pin it to your server's IP. `openalpha doctor venues --online` checks both.
+# [trading.venues.binance]
+# default_for = ["crypto"]
+# fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }
+# credentials = { apiKey = "BINANCE_API_KEY", secret = "BINANCE_API_SECRET" }
+# simulated = false                  # true = the exchange's demo environment
+#
+# [trading.venues.vps]
+# fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
+#
+# A broker you trade by hand (any id not built in) is recorded, never placed on,
+# prints as its id in capitals (SSI), and must declare its fees. Here ssi
+# replaces vps as the default for VN stocks:
+# [trading.venues.ssi]
+# default_for = ["equity-vn"]
+# fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
+
+# Only markets you still use refresh: a sleeve on in /profile, or one where you
+# hold, watch or wait on a scored call. `/refresh <market>` loads any of them.
+# [trading.refresh]
+# interval_ms = 43200000             # ~12h ceiling; refresh anchors to each session's open and close
+
+# Rename a source's credential env var. Only coingecko and fred take credentials.
+# [trading.sources]
+# coingecko = "MY_COINGECKO_KEY"     # default: COINGECKO_API_KEY
+# fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
+
+# [trading.themes]
+# max_cost_usd = 1.0                 # most one /themes run may spend; [budget] still caps it
+
+
+# ==== Channels ================================================================
+
+# ---- Channels ---------------------------------------------------------------
+# CLI is always available; the rest are opt-in. Token resolution:
+# token_env > token_file. Pairing defaults ON when enabled with
+# no allowed_ids: an unknown chat gets a code for `openalpha pair approve <code>`.
+
+# [channels.telegram]
+# enabled = true
+# token_env = "TELEGRAM_BOT_TOKEN"
+# token_file = "~/.secrets/telegram-token"
+# allowed_ids = [123456789]          # setting this turns pairing off by default
+# operator_user_ids = [123456789]    # restrict pairing commands in group chats
+# pairing = true
+# agent = "web-researcher"           # bind this channel to one agent
+# markdown = true                    # bold, links and expandable detail blocks; false sends
+#                                    # plain text, streamed replies included
+# require_mention = true             # groups: only answer when mentioned
+# slash_commands = true              # intercept /new /stop /cancel /help and the core commands
+# typing_indicator = true
+# use_reactions = true
+# mid_stream_updates = true          # edit the placeholder while streaming
+# notify_max_per_minute = 3
+# fallback_chat_id = "-1001234567"   # where a scheduled job with no --to delivers
+
+# Zalo takes the same token, operator and delivery fields. There is no open mode.
+# [channels.zalo]
+# enabled = true
+# token_env = "ZALO_BOT_TOKEN"
+# allowed_ids = ["1234567890"]
+# dm_policy = "pairing"              # pairing | allowlist | disabled
+
+# Zalo Personal uses an unofficial personal-account API, not a bot token. It never
+# pairs strangers: risk acceptance and an allowlist are both required. Link the account
+# first with `openalpha zalo login`; it reconnects on its own after a drop.
+# [channels.zalo_personal]
+# enabled = true
+# i_accept_ban_risk = true
+# profile = "default"                # which saved QR login to use
+# allowed_ids = ["1234567890"]
+# operator_user_ids = ["1234567890"]
+
+
+# ---- Scheduler --------------------------------------------------------------
+
+# [schedule]
+# approval_timeout_ms = 900000       # a scheduled run's approval window (max 2147483647)
+# failure_target = "telegram:123456" # where "job disabled after N failures" goes
+
+
+# ==== Agent runs ==============================================================
+
+# ---- Loop -------------------------------------------------------------------
+# Bounds for a single agent run.
+
+# [loop]
+# max_turns = 40
+# max_tool_calls = 120               # tool calls one run may make in total
+# max_duration_ms = 900000           # wall clock (max 2147483647); under mcp serve, 90% of it (max 10 min)
+# approval_timeout_ms = 120000       # interactive approval window (max 2147483647)
+# delegation_depth = 3               # max parent -> child delegate chain
+# max_delegations = 32               # total delegate calls per run tree
+# max_parallel_delegations = 5       # most children one delegate_parallel accepts
+
+
+# ---- Memory -----------------------------------------------------------------
+
+# [memory]
+# ttl_days = 90
+
+
+# ---- Web search -------------------------------------------------------------
+# Backend for the web_search tool. duckduckgo is the default: free, no key.
+# anysearch takes an optional key (anonymous has a lower quota); brave, exa,
+# serper and tavily need one; searxng is your own instance at base_url.
+
+# A paid provider, with a self-hosted SearXNG behind it:
+# [web_search]
+# provider = "tavily"
+# api_key_env = "TAVILY_API_KEY"
+# cost_per_search_usd = 0.001            # brave|serper|tavily bill per query without reporting it
+# fallback_provider = "searxng"          # after an error or an empty result
+# fallback_base_url = "http://localhost:8080"
+# safe_search = 1                        # SearXNG only: 0 off, 1 moderate, 2 strict
+# cache_ttl_seconds = 300                # 0 disables the query cache
+
+# exa, with its search mode:
+# [web_search]
+# provider = "exa"
+# api_key_env = "EXA_API_KEY"
+# exa_search_type = "auto"               # auto|fast|instant|deep-lite|deep|deep-reasoning
+
+
+# ==== Connections =============================================================
+
+# ---- API server -------------------------------------------------------------
+# HTTP/WS API for client apps (off by default).
+# Binds 127.0.0.1 only; on a server, reach it through an SSH tunnel or a reverse
+# proxy on the same host (docs/en/operations.md). Bearer token at
+# <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
+# `openalpha api token`, replace it with `openalpha api rotate`.
+
+# [api]
+# enabled = false
+# port = 8765
+# token_env = "OPENALPHA_API_TOKEN"
+
+
+# ---- Serving OpenAlpha over MCP ---------------------------------------------
+# `openalpha mcp serve` lets another AI app use OpenAlpha's tools. That app's own
+# model does the thinking, so mcp serve never reads [[models]] or [web_search].
+# A configured [[model_tiers.decisions]] still sorts headlines. The app gets the
+# quantity to buy or sell, never cash, costs or trade history.
+# `openalpha mcp install --host <app>` prints the server entry in that app's format.
+
+
+# ---- MCP servers ------------------------------------------------------------
+# One [[mcp.servers]] table per server: stdio spawns a command, http connects.
+# A server that drops is redialed by the next call, at most once every 30 seconds.
+# If its tool list changed meanwhile, calls fail until it matches again or you restart.
+# Its calls ask for approval; "remember" covers that exact call only, and a call
+# too long to show whole can be approved once, never remembered.
+
+# [[mcp.servers]]
+# name = "filesystem"
+# transport = "stdio"
+# command = "npx"
+# args = ["-y", "@modelcontextprotocol/server-filesystem", "/data"]
+# env = { AUTH_TOKEN = "${MCP_AUTH_TOKEN}" }
+# enabled = true
+
+# [[mcp.servers]]
+# name = "remote-tools"
+# transport = "http"
+# url = "https://mcp.example.com/v1/mcp"
+
+
+# ---- Plugins ----------------------------------------------------------------
+
+# [plugins]
+# dirs = ["~/.openalpha/plugins"]    # extra plugin directories
+# allow_untrusted = false            # read declarative contributions (agents, workflows, skills)
+# allow_code = false                 # execute a plugin's sources.ts - full process trust
+
+
+# ---- Social networks --------------------------------------------------------
+# Your own agents can join agent social networks (Moltbook and the like) from the
+# network's skill.md: `social add <url>`, then `social join <agent> <network>`.
+# Every key is optional; these are the defaults.
+
+# [social]
+# allowed_tools = []                # tool names added to what a networked agent may hold
+# heartbeat_interval_ms = 7200000   # 2 hours between visits; `social join --every` sets one agent's
+# active_hours = ""                 # "07:00-23:00" on your [locale] timezone; empty = all day
+# max_posts_per_day = 8             # per agent and network
+# max_comments_per_day = 40

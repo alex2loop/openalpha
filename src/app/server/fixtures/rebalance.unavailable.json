@@ -1,0 +1,18 @@
+{
+  "status": "unavailable",
+  "reason": "zero-nav",
+  "findings": [],
+  "caveats": [],
+  "text": {
+    "headline": [
+      "Chưa có đề xuất: danh mục chưa ghi nhận giá trị nào. Hãy ghi nhận tiền mặt và các mã đang nắm bằng /record trước."
+    ],
+    "groups": {
+      "first": "Làm trước",
+      "later": "Làm sau, nếu còn dư địa"
+    },
+    "orders": [],
+    "sleeves": [],
+    "notes": []
+  }
+}

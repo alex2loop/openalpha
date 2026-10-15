@@ -1,0 +1,111 @@
+{
+  "snapshot": {
+    "id": "br_1",
+    "region": "vn",
+    "day": "2026-10-07",
+    "authoredLocale": "vi",
+    "createdAt": 1791380000000,
+    "sections": [
+      {
+        "kind": "next-actions",
+        "status": "ready",
+        "rows": [
+          {
+            "action": "reduce",
+            "ticker": "VCB",
+            "reason": "stop-breached"
+          },
+          {
+            "action": "buy",
+            "ticker": "HPG"
+          }
+        ],
+        "provenance": [
+          {
+            "sourceId": "vndirect",
+            "fetchedAt": 1791384062789,
+            "freshness": "live"
+          }
+        ],
+        "caveats": []
+      },
+      {
+        "kind": "screen-delta",
+        "status": "ready",
+        "market": "equity-vn",
+        "asOf": "2026-10-07",
+        "rows": [
+          {
+            "ticker": "HPG",
+            "direction": "entered"
+          },
+          {
+            "ticker": "MWG",
+            "direction": "left"
+          }
+        ],
+        "provenance": [
+          {
+            "sourceId": "vndirect",
+            "fetchedAt": 1791384062789,
+            "freshness": "live"
+          }
+        ],
+        "caveats": []
+      },
+      {
+        "kind": "foreign-desk-flow",
+        "status": "unavailable",
+        "caveats": [
+          {
+            "code": "source.unavailable",
+            "data": {
+              "source": "vndirect",
+              "sourceKind": "bars"
+            },
+            "severity": "warn",
+            "text": "Could not read price history from vndirect, so that part is missing here."
+          }
+        ]
+      },
+      {
+        "kind": "cost",
+        "status": "omitted-by-policy",
+        "caveats": []
+      }
+    ],
+    "caveats": []
+  },
+  "text": {
+    "title": "Bản tin sáng 08/10/2026 lúc 07:30",
+    "verdict": [
+      "VN-Index đứng trên đường trung bình 50 phiên, thanh khoản ở mức bình thường.",
+      "Độ rộng: 58% mã trên đường trung bình 50 phiên."
+    ],
+    "sections": [
+      {
+        "id": "book-summary",
+        "kind": "book-summary",
+        "status": "ready",
+        "heading": "Danh mục",
+        "lines": ["Tổng tài sản 93.525.900 VND", "1 mã đang gần mức cắt lỗ."]
+      },
+      {
+        "id": "market-prices:equity-vn",
+        "kind": "market-prices",
+        "market": "Thị trường chứng khoán Việt Nam",
+        "status": "ready",
+        "heading": "Giá thị trường",
+        "lines": ["HPG 28.400 ▲ 1,2%", "VCB 89.800 ▼ 0,3%"]
+      },
+      {
+        "id": "fired-alerts",
+        "kind": "fired-alerts",
+        "status": "unavailable",
+        "heading": "Cảnh báo đã chạm",
+        "lines": ["Một phần dữ liệu đang thiếu hoặc trễ."]
+      }
+    ],
+    "caveats": ["ℹ Một phần dữ liệu đang thiếu hoặc trễ."]
+  }
+}

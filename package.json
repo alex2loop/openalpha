@@ -1,0 +1,59 @@
+{
+  "name": "@openalpha/runtime",
+  "version": "1.0.2",
+  "license": "MIT",
+  "private": true,
+  "productName": "OpenAlpha",
+  "description": "Self-hosted AI trading research analyst. Screens, scores, debates and sizes trade ideas across VN equities, gold and crypto - and never places an order you did not approve.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alex2loop/openalpha.git"
+  },
+  "homepage": "https://github.com/alex2loop/openalpha#readme",
+  "bugs": {
+    "url": "https://github.com/alex2loop/openalpha/issues"
+  },
+  "type": "module",
+  "bin": {
+    "openalpha": "./src/app/main.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./app": "./src/app/api.ts",
+    "./cli": "./src/cli/api.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "check": "biome check && bun run typecheck && bun scripts/check-cycles.ts && bun scripts/check-dag.ts && bun scripts/check-imports.ts && bun scripts/check-sdk-exports.ts && bun scripts/check-conventions.ts && bun scripts/check-log-keys.ts && bun scripts/check-display-contract.ts && bun scripts/check-line-limits.ts && bun scripts/check-cli-contract.ts && bun scripts/check-migration-rollback.ts && bun scripts/check-table-registry.ts && bun scripts/check-unused-exports.ts && bun scripts/check-reachability.ts && bun scripts/check-version-pairs.ts && bun scripts/check-dep-licenses.ts",
+    "lint": "biome check --write --unsafe",
+    "lint:arch": "bun scripts/check-depth.ts && bun scripts/check-trading-gates.ts && bun scripts/check-registry-isolation.ts && bun scripts/check-trading-locale.ts && bun scripts/check-report-figures.ts && bun scripts/check-caveat-details.ts && bun scripts/check-error-messages.ts && bun scripts/check-vi-terminology.ts && bun scripts/check-reasoning-capability.ts && bun scripts/check-pricing.ts && bun scripts/check-agent-skills.ts && bun scripts/check-feature-isolation.ts --strict && bun scripts/check-strategy-version.ts && bun scripts/check-research-i18n.ts && bun scripts/check-research-integrity-regressions.ts",
+    "typecheck": "bun run gen && tsc -p tsconfig.json && tsc -p scripts/tsconfig.json",
+    "dev": "bun run gen && bun run src/app/main.ts",
+    "build": "bun run gen && bun build src/app/main.ts --compile --outfile dist/openalpha",
+    "build:all": "bun run gen && bun build src/app/main.ts --compile --target=bun-linux-x64 --outfile dist/openalpha-linux-x64 && bun build src/app/main.ts --compile --target=bun-linux-arm64 --outfile dist/openalpha-linux-arm64 && bun build src/app/main.ts --compile --target=bun-darwin-arm64 --outfile dist/openalpha-darwin-arm64 && bun build src/app/main.ts --compile --target=bun-darwin-x64 --outfile dist/openalpha-darwin-x64 && bun build src/app/main.ts --compile --target=bun-windows-x64 --outfile dist/openalpha-windows-x64.exe",
+    "gen": "bun scripts/gen-migrations.ts",
+    "migration:new": "bun scripts/new-migration.ts",
+    "version:bump": "bun scripts/bump-version.ts",
+    "db:snapshot": "bun run src/app/main.ts db export --out ./.backup --force --config ./config.toml"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "smol-toml": "^1.9.1",
+    "turndown": "^7.2.4",
+    "zca-js": "2.2.0",
+    "zod": "^4.6.7"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "^26.6.5",
+    "@types/pg": "^8.20.0",
+    "@types/turndown": "^5.0.6",
+    "bun-types": "^1.4.3",
+    "typescript": "^7.0.2"
+  }
+}

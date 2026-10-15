@@ -1,0 +1,8 @@
+{
+  "commands": [
+    { "name": "/new", "summary": "Start a new session" },
+    { "name": "/agent", "summary": "Switch the entry agent", "args": ["chat", "reviewer"] },
+    { "name": "/cost", "summary": "Show today's cost" },
+    { "name": "/schedule", "summary": "Manage scheduled runs", "args": ["add", "list", "remove"] }
+  ]
+}

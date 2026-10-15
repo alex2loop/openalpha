@@ -1,0 +1,77 @@
+{
+  "homeRegion": "vn",
+  "markets": [
+    {
+      "market": "gold",
+      "currency": "USD",
+      "quoteUnit": "currency-per-troy-ounce",
+      "region": "global",
+      "ownsRegion": true,
+      "segment": "gold",
+      "label": "Vàng thế giới",
+      "segmentLabel": "Vàng thế giới",
+      "regionLabel": "Toàn cầu",
+      "icon": "🪙",
+      "hasBoard": false,
+      "hasBrief": false,
+      "hasEvents": false
+    },
+    {
+      "market": "gold-vn",
+      "currency": "VND",
+      "quoteUnit": "currency-per-luong",
+      "region": "vn",
+      "ownsRegion": false,
+      "segment": "gold-vn",
+      "label": "Vàng trong nước",
+      "segmentLabel": "Vàng trong nước",
+      "regionLabel": "Việt Nam",
+      "icon": "🏦",
+      "hasBoard": false,
+      "hasBrief": false,
+      "hasEvents": false
+    },
+    {
+      "market": "equity-vn",
+      "currency": "VND",
+      "quoteUnit": "currency-per-share",
+      "priceDisplay": {
+        "divisor": 1000,
+        "decimals": 2
+      },
+      "region": "vn",
+      "ownsRegion": true,
+      "segment": "equity-vn",
+      "label": "Thị trường chứng khoán Việt Nam",
+      "segmentLabel": "Cổ phiếu Việt Nam",
+      "regionLabel": "Việt Nam",
+      "icon": "🇻🇳",
+      "benchmark": {
+        "market": "equity-vn",
+        "ticker": "VNINDEX"
+      },
+      "hasBoard": true,
+      "hasBrief": true,
+      "hasEvents": true
+    },
+    {
+      "market": "crypto",
+      "currency": "USDT",
+      "quoteUnit": "currency-per-coin",
+      "region": "global",
+      "ownsRegion": false,
+      "segment": "crypto",
+      "label": "Thị trường tiền mã hóa",
+      "segmentLabel": "Tiền mã hóa",
+      "regionLabel": "Toàn cầu",
+      "icon": "₿",
+      "benchmark": {
+        "market": "crypto",
+        "ticker": "BTC"
+      },
+      "hasBoard": true,
+      "hasBrief": false,
+      "hasEvents": false
+    }
+  ]
+}

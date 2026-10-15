@@ -1,0 +1,28 @@
+{
+  "region": "vn",
+  "items": [
+    {
+      "title": "Khối ngoại mua ròng phiên thứ ba",
+      "url": "https://example.com/news/1",
+      "sourceIds": ["rss"],
+      "publishedAt": 1791383220000
+    }
+  ],
+  "provenance": [
+    {
+      "sourceId": "rss",
+      "fetchedAt": 1791384062789,
+      "freshness": "live"
+    }
+  ],
+  "caveats": [
+    {
+      "code": "source.content-sanitized",
+      "data": {
+        "field": "title"
+      },
+      "severity": "warn",
+      "text": "Untrusted text in title was stripped out before anything read it."
+    }
+  ]
+}

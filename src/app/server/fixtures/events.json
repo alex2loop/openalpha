@@ -1,0 +1,32 @@
+{
+  "market": "equity-vn",
+  "ticker": "FPT",
+  "events": [
+    {
+      "at": "2026-09-21",
+      "kind": "split",
+      "title": "Cổ phiếu thưởng",
+      "detail": "Tỷ lệ 100:10"
+    },
+    {
+      "at": "2026-05-28",
+      "kind": "dividend-ex-date",
+      "title": "Cổ tức bằng tiền",
+      "detail": "Trả cổ tức đợt 2/2025 (1000 đ/cp)"
+    },
+    {
+      "at": "2026-05-08",
+      "kind": "additional-listing",
+      "title": "GD bổ sung",
+      "detail": "Số lượng 5,485,050 CP"
+    }
+  ],
+  "provenance": [
+    {
+      "sourceId": "vndirect",
+      "fetchedAt": 1791535856825,
+      "freshness": "live"
+    }
+  ],
+  "caveats": []
+}

@@ -1,0 +1,42 @@
+// The /v1 error contract. Every non-2xx JSON response is `{ error: { code } }` — a stable,
+// machine-readable code, never a leaked internal message. Clients switch on `error.code`, not on a
+// brittle status+string. One source of truth for "which code → which HTTP status".
+
+/** The codes actually emitted (no dead codes). Each maps to a call site: forbidden=loopback guard,
+ *  unauthorized=auth guard, not_found=dispatch miss, too_many_streams=/v1/ws socket cap;
+ *  the rest are body/symbol/upstream validation. */
+export type ApiErrorCode =
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not_found'
+  | 'invalid_json'
+  | 'invalid_body'
+  | 'conflict'
+  | 'upstream_failed'
+  | 'too_many_streams'
+  | 'unavailable'
+  | 'timeout'
+  | 'internal'
+
+/** The JSON body of any non-2xx response. */
+export interface ApiError {
+  /** `message` is the runtime's own sentence for a refusal it explains to the operator (a ledger
+   *  row the book cannot hold, say), in the daemon's language. Absent on every other error. */
+  readonly error: { readonly code: ApiErrorCode; readonly message?: string }
+}
+
+/** Canonical code → HTTP status. The response helper reads this; a client MAY use it to map a status
+ *  back to a code when the body is unavailable (e.g. a transport-level failure). */
+export const API_ERROR_STATUS: Readonly<Record<ApiErrorCode, number>> = {
+  unauthorized: 401,
+  forbidden: 403,
+  not_found: 404,
+  invalid_json: 400,
+  invalid_body: 400,
+  conflict: 409,
+  upstream_failed: 502,
+  too_many_streams: 503,
+  unavailable: 503,
+  timeout: 504,
+  internal: 500,
+}

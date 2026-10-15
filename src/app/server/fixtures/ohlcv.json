@@ -1,0 +1,30 @@
+{
+  "market": "crypto",
+  "ticker": "BTC",
+  "bars": [
+    {
+      "at": "2026-08-26",
+      "open": 78539.13,
+      "high": 79251.6,
+      "low": 77632.58,
+      "close": 79023.75,
+      "volume": 14613.75
+    },
+    {
+      "at": "2026-08-27",
+      "open": 79023.75,
+      "high": 80848.74,
+      "low": 78546.13,
+      "close": 80249.58,
+      "volume": 16265.53
+    }
+  ],
+  "provenance": [
+    {
+      "sourceId": "vndirect",
+      "fetchedAt": 1791384062789,
+      "freshness": "live"
+    }
+  ],
+  "caveats": []
+}

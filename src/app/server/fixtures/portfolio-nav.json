@@ -1,0 +1,25 @@
+{
+  "window": "3m",
+  "baseCurrency": "VND",
+  "firstDay": "2026-10-10",
+  "recordedCount": 2,
+  "points": [
+    { "day": "2026-10-10", "nav": 100000000, "index": 1 },
+    { "day": "2026-10-13", "nav": 111000000, "index": 1.01 }
+  ],
+  "periodReturn": 0.01,
+  "maximumDrawdown": 0,
+  "currentDrawdown": 0,
+  "benchmark": {
+    "legs": [
+      {
+        "segment": "equity-vn",
+        "weight": 0.57,
+        "instrument": { "market": "equity-vn", "ticker": "VNINDEX" }
+      },
+      { "segment": "cash", "weight": 0.43 }
+    ],
+    "points": [{ "day": "2026-10-10", "index": 1 }, { "day": "2026-10-13", "index": 1.0057 }],
+    "periodReturn": 0.0057
+  }
+}

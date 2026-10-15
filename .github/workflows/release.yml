@@ -1,0 +1,98 @@
+name: release
+
+# A push that sets a new package.json version publishes it: the gates run, the five binaries are
+# built, then the tag and the GitHub Release are created together with them attached. Run it by hand to retry a release whose gates failed.
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+  workflow_dispatch:
+
+# Declared per job instead of here: only the release job writes, and it needs `contents: write`
+# for the tag and the Release.
+permissions:
+  contents: read
+
+# Never cancelled: a half-finished release would leave a tag without its Release.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # macOS: a darwin binary must be re-signed after Bun appends the bundle, and only codesign does
+    # that. Bun cross-compiles the Linux binaries from here.
+    runs-on: macos-latest
+    # The tag and the Release are the only writes this workflow makes.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Read version
+        id: version
+        run: |
+          version="$(jq -r .version package.json)"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "v$version is already released"
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.version.outputs.new == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      - if: steps.version.outputs.new == 'true'
+        run: bun install --frozen-lockfile
+
+      - if: steps.version.outputs.new == 'true'
+        run: bun run check
+
+      - if: steps.version.outputs.new == 'true'
+        run: bun run lint:arch
+
+      # Built on the Bun the gates just ran on, so a user runs exactly that build. The x64 darwin
+      # binary keeps Bun's own signature, which the appended bundle invalidates, so both are
+      # re-signed ad hoc, as a native compile already is.
+      - name: Build binaries
+        if: steps.version.outputs.new == 'true'
+        run: |
+          bun run build:all
+          for binary in dist/openalpha-darwin-*; do
+            codesign --remove-signature "$binary"
+            codesign --force --sign - "$binary"
+          done
+          cd dist
+          shasum -a 256 openalpha-* > SHA256SUMS
+
+      - name: Extract release notes
+        if: steps.version.outputs.new == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          awk -v v="${TAG#v}" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            /^## \[/ || /^\[[^]]+\]: / { found = 0 }
+            found
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "CHANGELOG.md has no section for $TAG"
+            exit 1
+          fi
+
+      # A prerelease is marked as one, so releases/latest (what installs and update checks read)
+      # keeps pointing at the last full release.
+      - name: Publish release
+        if: steps.version.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md $prerelease \
+            dist/openalpha-* dist/SHA256SUMS

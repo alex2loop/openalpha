@@ -1,0 +1,56 @@
+{
+  "version": "1.0.2",
+  "health": {
+    "running": true,
+    "pid": 42
+  },
+  "cost": {
+    "todayUsd": 0.42
+  },
+  "schedules": [
+    {
+      "id": "morning-scan",
+      "name": "Morning VN scan",
+      "nextRunAt": 1722499200000,
+      "enabled": true,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 7 * * 1-5",
+        "timezone": "Asia/Ho_Chi_Minh"
+      }
+    },
+    {
+      "id": "weekly-review",
+      "name": "Weekly review",
+      "nextRunAt": 1722531600000,
+      "enabled": false,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 20 * * 0",
+        "timezone": "Asia/Ho_Chi_Minh"
+      }
+    },
+    {
+      "id": "news-sweep",
+      "nextRunAt": 1722503000000,
+      "schedule": {
+        "kind": "interval",
+        "everyMs": 7200000
+      }
+    }
+  ],
+  "capabilities": {
+    "ohlcv": true,
+    "quotes": true,
+    "portfolio": false,
+    "suggestions": false,
+    "orders": false
+  },
+  "timeZone": "Asia/Ho_Chi_Minh",
+  "brief": {
+    "state": "scheduled",
+    "channel": "api",
+    "sendTime": "07:30",
+    "nextDeliveryDay": "2026-10-09"
+  }
+}

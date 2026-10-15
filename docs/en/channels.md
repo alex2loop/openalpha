@@ -1,0 +1,155 @@
+# Channels
+
+A channel is a chat app you talk to OpenAlpha from. Telegram and Zalo ship in the box.
+
+The assistant behind them is the same whichever one you use. A channel only decides who gets in, saves
+your message safely, tells commands from ordinary questions, and formats the answer so the chat app can
+show it.
+
+## Built-in channels
+
+| Channel id | Connects through | Formatting | Buttons | Typing | Reactions | Live edits |
+|---|---|---|---:|---:|---:|---:|
+| `telegram` | Telegram Bot API | MarkdownV2 | yes | yes | yes | yes |
+| `zalo` | Zalo bot | plain text | no | yes | no | no |
+| `zalo_personal` | Your own Zalo account (unofficial) | plain text | no | yes | yes | no |
+
+A channel starts only once its config and credentials are in place, and it runs inside the daemon.
+
+### Zalo Personal
+
+`zalo_personal` is opt-in because it drives an unofficial personal-account API, and Zalo can ban the
+account for it. It refuses to start unless you set `i_accept_ban_risk = true` and list at least one
+allowed id.
+
+Link the account once:
+
+```bash
+openalpha zalo login
+```
+
+It saves a QR image for you to scan in the Zalo app, then stores the login under the channel's
+`profile`. From then on the channel logs in from that saved login each time it connects.
+
+- If the connection drops, the channel reconnects on its own, waiting a little longer after each
+  failure, up to five minutes.
+- Opening Zalo Web or Zalo PC on the same account takes the session over. `openalpha logs` records it
+  as `zalo_personal.session_ended` with reason `duplicate_connection`.
+- A login made while the daemon runs is picked up on the next try. No restart.
+- `openalpha doctor channels` tells you which of the three things is still missing: the opt-in, an
+  allowed id, or a saved login.
+
+In a group, the Zalo bot answers whatever reaches it. Zalo only delivers a group message to a bot that
+was @mentioned, and admission still decides which groups may use it.
+
+## Configure a channel
+
+One `[channels.<id>]` table per channel in `config.toml`. The annotated version is in
+`config.sample.toml`.
+
+For Telegram you can skip the editing: `openalpha onboard` asks for the variable that holds the bot
+token and writes the table, with pairing on. Start the daemon, send the bot any message, then approve
+the code it replies with (`openalpha pair approve <code>`). The `/start` Telegram sends when you first
+open the bot shows the command list.
+
+```toml
+[channels.telegram]
+token_env = "TELEGRAM_BOT_TOKEN"
+allowed_ids = [123456789]
+operator_user_ids = [123456789]
+```
+
+| Key | Applies to | Meaning |
+|---|---|---|
+| `enabled` | all | Set `false` to switch a configured channel off |
+| `token_env`, `token_file` | `telegram`, `zalo` | Bot token, read in that order. `zalo_personal` has no token; it uses the stored `profile` |
+| `allowed_ids` | all | Chats or users let in. On `telegram`, setting it turns pairing off unless `pairing = true` |
+| `operator_user_ids` | all | Who may run the pairing controls, notably in group chats |
+| `pairing` | `telegram` | Force pairing on or off |
+| `dm_policy` | `zalo` | `pairing` (default), `allowlist` or `disabled` |
+| `i_accept_ban_risk`, `profile` | `zalo_personal` | The required opt-in, and which saved QR login to use |
+| `agent` | all | Bind the channel to one agent instead of the default |
+| `require_mention`, `slash_commands` | all | Group mention rule, and whether slash commands are intercepted |
+| `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, that id is used |
+
+The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions` and
+`notify_max_per_minute`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
+key fails validation, so a typo shows up at startup and not at 09:00.
+
+If startup finds a misconfigured channel, it stops with an error. Only a token the provider itself
+rejects counts as a configuration error (HTTP 401 or 403 from Telegram, 401 from Zalo). Any other
+failure to check the token is a connection problem: the check is tried four times with a growing pause,
+and if the network is still down the channel stays up, shows as degraded, and keeps retrying in the
+background with a capped pause until it connects or the daemon stops. Zalo Personal has no token to
+reject; it keeps retrying its login in the background the same way. If no channel is up, running from
+the CLI alone still works.
+
+## Who gets in
+
+There are two modes and no open one. A channel either admits from a list or pairs.
+
+| Mode | What happens |
+|---|---|
+| `allowlist` | Only the chats or users in `allowed_ids` get in |
+| `pairing` | Listed ids get in. An unknown chat gets a one-time code to hand to an operator |
+
+- **Telegram** pairs when `pairing = true`. If you leave `pairing` out, it defaults to on only when you
+  set no `allowed_ids`. Pairing with no allowed ids lets any Telegram user ask for a code, and the daemon
+  logs a warning (`telegram.pairing_open`).
+- **Zalo** follows `dm_policy`, which defaults to `pairing`.
+- **Zalo Personal** is always allowlist only.
+
+### Pairing
+
+An unknown user on a pairing channel gets a one-time code and a note to contact an operator. More
+messages from them do nothing until the request is approved, denied or expires. You handle requests
+from the terminal:
+
+```bash
+openalpha pair list --channel telegram
+openalpha pair approve <code>
+openalpha pair deny <code>
+openalpha pair revoke <chat-id> --channel telegram
+```
+
+Details: [Commands](commands.md). Pairing fails closed in every direction:
+
+- only a configured operator can list, approve, deny or revoke pairings;
+- a paired chat cannot pair other chats, and a paired user is not automatically an operator;
+- repeated messages from a stranger do not create unlimited codes;
+- if storage fails, the message is rejected, not waved through;
+- pending codes expire.
+
+## What happens to a message
+
+1. **It is saved first.** The message is written to a durable inbox before the chat app is told it was
+   received. A crash in between replays the message; the other order would lose it. Under `allowlist`, a
+   message from someone who could never get in is not saved at all, so a stranger cannot fill the
+   inbox. Under `pairing` everything is saved, since an unknown chat is offered a code.
+2. **It is checked.** Stop and pairing commands are handled first. Slash commands go to the normal
+   command dispatcher. Ordinary text is batched for a moment, then sent to the chat's agent and session.
+3. **It waits its turn.** Each chat session runs one task at a time, and the daily and monthly budget
+   checks run before anything new starts.
+4. **You see it progress.** With `mid_stream_updates = true` on a channel that can edit messages
+   (Telegram), one message updates live with the tool being used and the time elapsed. Elsewhere you get
+   the final answer. Typing indicators and reactions show only where the channel and your config allow.
+5. **The answer arrives**, split and escaped to fit the chat app, with a cost footer and a localized
+   note if the run stopped early.
+
+If the daemon dies mid-run, the message is retried later, up to 3 attempts, then given up and logged.
+If a run finished but sending the answer failed, only the final message is sent again; the agent is not
+run a second time. This holds for every part of a long answer: if one part is lost, the answer is sent
+again from the start, so parts that already arrived can appear twice. Two cases still re-run: the
+daemon died while the final write was in flight, and the
+answer was over 256 KiB, so it was not kept. Messages folded into one reply get that reply once.
+
+A few things to know:
+
+- **Forwarded messages are data.** Their text is wrapped as pasted content and never starts with `/`, so
+  a forwarded command does not run and the agent will not act on it unless your own words ask it to.
+- **Buttons are commands.** Tapping one does exactly what typing that command would, with the same
+  admission, role and rate checks, and it runs on today's data.
+- **Chats stay separate.** Each channel and chat has its own conversation; two chat apps never share one.
+- **The assistant never shows raw tool arguments.** A channel only sees what the engine marks safe to show.
+
+Internals: [dev/channels.md](dev/channels.md).

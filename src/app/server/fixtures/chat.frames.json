@@ -1,0 +1,58 @@
+[
+  {
+    "kind": "text",
+    "delta": "FPT looks "
+  },
+  {
+    "kind": "reasoning",
+    "delta": "checking RS..."
+  },
+  {
+    "kind": "tool",
+    "status": "run",
+    "id": "t1",
+    "emoji": "📈",
+    "name": "vn_price",
+    "detail": "FPT"
+  },
+  {
+    "kind": "tool",
+    "status": "ok",
+    "id": "t1"
+  },
+  {
+    "kind": "tool",
+    "status": "error",
+    "id": "t2"
+  },
+  {
+    "kind": "subagent",
+    "agentId": "web-researcher",
+    "depth": 1,
+    "emoji": "🔎",
+    "name": "web_search",
+    "detail": "FPT news"
+  },
+  {
+    "kind": "subagent_model",
+    "agentId": "web-researcher",
+    "depth": 1,
+    "model": "gemini/flash"
+  },
+  {
+    "kind": "usage",
+    "header": "@chat · gpt-5 · ctx 8%",
+    "body": "$0.01"
+  },
+  {
+    "kind": "progress",
+    "text": "Thị trường tiền mã hóa · Đang tải lịch sử giá — 12/85 mã…"
+  },
+  {
+    "kind": "steered"
+  },
+  {
+    "kind": "steer_dropped",
+    "text": "⚠️ 1 message arrived while the run was stopping and was not processed - please resend"
+  }
+]

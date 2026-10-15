@@ -1,0 +1,50 @@
+{
+  "market": "crypto",
+  "asOf": "2026-10-08",
+  "dataThroughDay": "2026-10-07",
+  "board": "rank",
+  "universeSize": 88,
+  "candidates": [
+    {
+      "instrument": {
+        "market": "crypto",
+        "ticker": "RAY"
+      },
+      "name": "Raydium",
+      "price": 2.465193575321037,
+      "changePct": -0.10561733847812688
+    },
+    {
+      "instrument": {
+        "market": "crypto",
+        "ticker": "PUMP"
+      },
+      "name": "Pump.fun",
+      "price": 0.0062719085231847695,
+      "changePct": 0.5435800446420302
+    }
+  ],
+  "card": {
+    "title": "Đây là 2 mã nổi bật nhất trong tổng số 88 mã đã sàng lọc ở Thị trường tiền mã hóa · số liệu ngày 07/10/2026",
+    "notes": [
+      "Mỗi chỉ số chấm điểm từ -1 đến +1: qua +0,20 là đã nghiêng rõ, qua +0,50 là tín hiệu rất mạnh."
+    ],
+    "rows": [
+      {
+        "key": "crypto:RAY",
+        "line": "1. RAY · Nên mua · điểm chung +0,50",
+        "evidence": ["▲▲▲▲▲ Xu hướng +1,00"]
+      },
+      {
+        "key": "crypto:PUMP",
+        "line": "2. PUMP · Nên mua · điểm chung +0,50",
+        "evidence": ["▲▲▲▲▲ Xu hướng +1,00"]
+      }
+    ],
+    "metrics": [],
+    "provenance": [],
+    "rejections": [],
+    "movers": [],
+    "caveats": []
+  }
+}

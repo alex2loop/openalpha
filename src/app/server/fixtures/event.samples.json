@@ -1,0 +1,166 @@
+[
+  {
+    "v": 1,
+    "kind": "run_started",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc"
+  },
+  {
+    "v": 1,
+    "kind": "usage",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc",
+    "usage": { "costUsd": 0.01, "tokens": 1200 }
+  },
+  {
+    "v": 1,
+    "kind": "run_finished",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc"
+  },
+  {
+    "v": 1,
+    "kind": "tool_result",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc",
+    "tool": { "name": "vn_price", "ok": true }
+  },
+  {
+    "v": 1,
+    "kind": "approval_requested",
+    "weight": "interrupt",
+    "source": { "channel": "telegram", "agentId": "chat" },
+    "runId": "run_abc",
+    "requestId": "call_123",
+    "approval": {
+      "toolName": "vn_price",
+      "argsSummary": "ticker: FPT, days: 365",
+      "decisions": ["deny", "approve", "always"],
+      "dangerous": false
+    }
+  },
+  {
+    "v": 1,
+    "kind": "approval_resolved",
+    "weight": "quiet",
+    "source": { "channel": "telegram", "agentId": "chat" },
+    "runId": "run_abc",
+    "requestId": "call_123",
+    "resolution": { "decision": "approve", "by": "api" }
+  },
+  {
+    "v": 1,
+    "kind": "clarification_requested",
+    "weight": "interrupt",
+    "source": { "channel": "telegram", "agentId": "" },
+    "clarification": { "text": "Which broker account?", "sessionId": "tg_123456789" }
+  },
+  {
+    "v": 1,
+    "kind": "budget_warning",
+    "weight": "nudge",
+    "source": { "channel": "cron", "agentId": "chat" },
+    "budget": { "period": "daily", "spent": 8.4, "cap": 10 }
+  },
+  {
+    "v": 1,
+    "kind": "provider_fallback",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc",
+    "fallback": { "from": "openrouter/free", "to": "gemini/flash", "reason": "rate", "attempt": 1 }
+  },
+  {
+    "v": 1,
+    "kind": "pairing_requested",
+    "weight": "interrupt",
+    "source": { "channel": "telegram", "agentId": "" },
+    "pairing": {
+      "channel": "telegram",
+      "chatId": "123456789",
+      "code": "K7QM2X",
+      "expiresAt": 1791431800000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "alert_fired",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "HPG reached 31,000",
+    "alert": {
+      "alertId": "01a1199a-c001-7a00-9c00-000000000001",
+      "instrument": { "market": "equity-vn", "ticker": "HPG" },
+      "condition": "above",
+      "threshold": 31000,
+      "observedPrice": 31050
+    }
+  },
+  {
+    "v": 1,
+    "kind": "stop_breached",
+    "weight": "interrupt",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "VCB fell below its stop at 90,500",
+    "alert": {
+      "alertId": "01a1199a-c001-7a00-9c00-000000000002",
+      "instrument": { "market": "equity-vn", "ticker": "VCB" },
+      "condition": "below",
+      "threshold": 90500,
+      "observedPrice": 89800,
+      "level": "stop"
+    }
+  },
+  {
+    "v": 1,
+    "kind": "brief_ready",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "Morning brief for 24/09 is ready",
+    "brief": { "snapshotId": "01a1199a-d001-7a00-9c00-000000000001", "day": "2026-09-24" }
+  },
+  {
+    "v": 1,
+    "kind": "mover",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "DGC up 6.8% today, well past its usual range",
+    "mover": {
+      "instrument": { "market": "equity-vn", "ticker": "DGC" },
+      "condition": "above",
+      "observedPrice": 118200,
+      "movePct": 6.8,
+      "benchmark": { "ticker": "VNINDEX", "movePct": 0.3 }
+    }
+  },
+  {
+    "v": 1,
+    "kind": "idea",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "idea": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000001",
+      "instrument": { "market": "equity-vn", "ticker": "HPG" },
+      "action": "buy",
+      "conviction": "high"
+    }
+  },
+  {
+    "v": 1,
+    "kind": "schedule_result",
+    "weight": "sneak",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "Morning scan: 3 ideas"
+  },
+  {
+    "v": 1,
+    "kind": "notice",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "Price alerts to telegram are off after repeated failed sends"
+  }
+]

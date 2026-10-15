@@ -1,0 +1,38 @@
+# Two ecosystems, both grouped into one PR each: a gate run costs the same whether it checks one
+# bump or ten, and ten separate PRs each need the same review of the same two commands.
+version: 2
+updates:
+  # Actions are SHA-pinned, so a tag move cannot reach CI. Dependabot is what then keeps them
+  # current: it bumps the SHA and rewrites the trailing version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:17"
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+
+  # `bun`, not `npm`: this repo has bun.lock, and the npm_and_yarn ecosystem refuses it outright
+  # ("cannot update bun.lock. Set package-ecosystem: \"bun\""). The bun ecosystem does version
+  # updates only - GitHub lists security updates and private registries as unsupported for it, so
+  # a vulnerability fix arrives on the weekly run rather than the moment it is published.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:23"
+    # Majors land by hand: this project pins zca-js exactly and reads provider payloads through
+    # zod, so a major in either is a behaviour change to measure rather than a version to accept.
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+    groups:
+      dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore

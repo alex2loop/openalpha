@@ -1,0 +1,14 @@
+{
+  "crypto": {
+    "version": "1.0.0",
+    "digest": "3e03a681c3983261"
+  },
+  "equity-vn": {
+    "version": "1.0.0",
+    "digest": "deaef57e66fc9ee6"
+  },
+  "gold": {
+    "version": "1.0.0",
+    "digest": "e4831b4022df7661"
+  }
+}

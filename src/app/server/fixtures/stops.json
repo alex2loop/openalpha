@@ -1,0 +1,37 @@
+{
+  "stops": [
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPG"
+      },
+      "plan": "distance",
+      "stop": 26600,
+      "takeProfit": 31000,
+      "distanceToStopPct": 6.3,
+      "review": false,
+      "price": 28388,
+      "cover": "none"
+    },
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "VCB"
+      },
+      "plan": "distance",
+      "stop": 90500,
+      "takeProfit": 102000,
+      "distanceToStopPct": -0.8,
+      "review": false,
+      "price": 89782
+    },
+    {
+      "instrument": {
+        "market": "crypto",
+        "ticker": "BTC"
+      },
+      "plan": "none",
+      "review": false
+    }
+  ]
+}

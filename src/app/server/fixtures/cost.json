@@ -1,0 +1,48 @@
+{
+  "fromDay": "2026-10-01",
+  "toDay": "2026-10-08",
+  "totalUsd": 1.84,
+  "caps": { "dailyUsd": 2, "monthlyUsd": 30, "warnRatio": 0.8 },
+  "days": [
+    { "day": "2026-10-01", "costUsd": 0.31 },
+    { "day": "2026-10-02", "costUsd": 0.28 },
+    { "day": "2026-10-03", "costUsd": 0 },
+    { "day": "2026-10-04", "costUsd": 0 },
+    { "day": "2026-10-05", "costUsd": 0.33 },
+    { "day": "2026-10-06", "costUsd": 0.3 },
+    { "day": "2026-10-07", "costUsd": 0.36 },
+    { "day": "2026-10-08", "costUsd": 0.26 }
+  ],
+  "rows": [
+    {
+      "billingAgentId": "suggest",
+      "agentId": "suggest",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet",
+      "calls": 42,
+      "failedCalls": 1,
+      "costUsd": 1.52,
+      "inputTokens": 310000,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "outputTokens": 41000,
+      "reasoningTokens": 0,
+      "averageLatencyMs": 8200
+    },
+    {
+      "billingAgentId": "chat",
+      "agentId": "chat",
+      "provider": "openrouter",
+      "model": "google/gemini-flash",
+      "calls": 18,
+      "failedCalls": 0,
+      "costUsd": 0.32,
+      "inputTokens": 96000,
+      "cacheReadTokens": 12000,
+      "cacheWriteTokens": 0,
+      "outputTokens": 9000,
+      "reasoningTokens": 0,
+      "averageLatencyMs": 2100
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "region": "us",
+  "status": "unavailable",
+  "caveats": [
+    {
+      "code": "source.unavailable",
+      "data": { "source": "vndirect", "sourceKind": "bars" },
+      "severity": "warn",
+      "text": "Could not read price history from vndirect, so that part is missing here."
+    }
+  ]
+}

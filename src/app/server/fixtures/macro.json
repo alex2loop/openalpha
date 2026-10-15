@@ -1,0 +1,107 @@
+{
+  "region": "vn",
+  "status": "ready",
+  "asOf": "2026-10-07",
+  "readAt": 1791380000000,
+  "regime": "risk-off",
+  "scoreRegime": "neutral",
+  "score": 0.09777999999999992,
+  "coverage": 0.5,
+  "drivers": [
+    {
+      "id": "us-real-rate",
+      "unit": "percent",
+      "value": 2.92,
+      "asOf": "2026-10-07",
+      "weight": 0.2,
+      "bearishAt": 3,
+      "bullishAt": 0,
+      "contribution": -0.18933333333333335,
+      "label": "Tỷ lệ mã trên trung bình 50 phiên"
+    },
+    {
+      "id": "usd-index",
+      "unit": "level",
+      "value": 121.3848,
+      "asOf": "2026-10-02",
+      "weight": 0.2,
+      "bearishAt": 128,
+      "bullishAt": 112,
+      "contribution": -0.03461999999999996,
+      "label": "usd-index"
+    },
+    {
+      "id": "us-volatility",
+      "unit": "level",
+      "value": 15.01,
+      "asOf": "2026-10-06",
+      "weight": 0.2,
+      "bearishAt": 30,
+      "bullishAt": 15,
+      "contribution": 0.19973333333333335,
+      "label": "us-volatility"
+    },
+    {
+      "id": "deposit-rate-12m",
+      "unit": "percent",
+      "value": 5.86875,
+      "asOf": "2026-10-07",
+      "weight": 0.4,
+      "bearishAt": 7.5,
+      "bullishAt": 5,
+      "contribution": 0.12199999999999989,
+      "label": "deposit-rate-12m"
+    }
+  ],
+  "missing": [
+    {
+      "id": "vn-index-trend",
+      "reason": "no-observation"
+    },
+    {
+      "id": "vn-breadth",
+      "reason": "no-observation"
+    }
+  ],
+  "caveats": [
+    {
+      "code": "macro.coverage-below-floor",
+      "data": {
+        "coverage": 0.5
+      },
+      "severity": "warn",
+      "text": "Too little of the macro model reported in to trust it, so the regime stays defensive until the series return."
+    },
+    {
+      "code": "macro.regime-lowered",
+      "data": {
+        "reasons": ""
+      },
+      "severity": "warn",
+      "text": "The score alone is not defensive, but  is under strain, so the read was stepped down one band."
+    },
+    {
+      "code": "macro.confirmers-abstained",
+      "data": {
+        "confirmers": "margin, foreign-flow"
+      },
+      "severity": "warn",
+      "text": "No data for margin pressure, foreign flow today, so the regime read rests on fewer stress checks than usual."
+    },
+    {
+      "code": "macro.confirmers-warming-up",
+      "data": {
+        "confirmers": "fx"
+      },
+      "severity": "info",
+      "text": "Still building the stored history USD/VND reads, so it has nothing to say yet."
+    }
+  ],
+  "lean": "Thị trường đang ở thế Trung lập - kéo mạnh nhất là Tỷ lệ mã trên trung bình 50 phiên · Chỉ số biến động Mỹ (VIX, 30 ngày).",
+  "scoreRange": {
+    "min": -1,
+    "max": 1,
+    "riskOffAt": -0.25,
+    "riskOnAt": 0.25
+  }
+}

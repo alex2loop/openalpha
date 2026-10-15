@@ -1,0 +1,43 @@
+name: Báo lỗi
+description: Có thứ chạy khác với những gì nó nói.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Mọi chuyện có ảnh hưởng tới bảo mật xin đi qua
+        [SECURITY.md](https://github.com/alex2loop/openalpha/blob/main/SECURITY.md), đừng mở issue.
+  - type: input
+    id: command
+    attributes:
+      label: Lệnh bạn đã chạy
+      placeholder: openalpha chat --message "/suggest FPT"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Bạn mong đợi gì, và bạn nhận được gì
+      description: Dán kết quả vào đây. Xóa các con số của riêng bạn - không cần số tiền hay giá khớp nào để tái hiện lỗi.
+    validations:
+      required: true
+  - type: dropdown
+    id: market
+    attributes:
+      label: Thị trường
+      description: Hành vi phụ thuộc thị trường ở nhiều chỗ hơn bạn tưởng.
+      options: [equity-vn, crypto, gold, gold-vn, không phụ thuộc thị trường, không rõ]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Phiên bản và hệ điều hành
+      description: "`openalpha version`, kèm hệ điều hành và `bun --version`."
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "Kết quả `openalpha doctor`, nếu nó có nói gì"
+      description: Lệnh này tự che thông tin đăng nhập. Không bắt buộc.

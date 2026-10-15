@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "status": "ready",
+  "version": "1.0.2",
+  "contractVersion": 1,
+  "capabilities": {
+    "ohlcv": true,
+    "quotes": true,
+    "portfolio": false,
+    "suggestions": false,
+    "orders": false
+  }
+}

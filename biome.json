@@ -1,0 +1,268 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "src/**",
+      "package.json",
+      "tsconfig.json",
+      "tsconfig.base.json",
+      "scripts/check-research-*.ts",
+      "scripts/evaluate-research-routing.ts",
+      "scripts/research-*/**",
+      "!node_modules",
+      "!dist",
+      "!.claude",
+      "!.gitnexus",
+      "!**/*.generated.*"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "useConst": "error",
+        "useTemplate": "error",
+        "useImportType": "error",
+        "noDefaultExport": "error",
+        "noNonNullAssertion": "error",
+        "useBlockStatements": "error",
+        "useDeprecatedReason": "error",
+        "noNestedTernary": "error",
+        "noParameterAssign": "error",
+        "noUselessElse": "warn",
+        "useThrowOnlyError": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "querystring": "Deprecated since Node 14. Use URLSearchParams instead.",
+              "node:querystring": "Deprecated since Node 14. Use URLSearchParams instead.",
+              "punycode": "Deprecated since Node 7. Use the userland 'punycode/' package if needed.",
+              "node:punycode": "Deprecated since Node 7. Use the userland 'punycode/' package if needed.",
+              "domain": "Deprecated. Use AsyncLocalStorage or AbortController instead.",
+              "node:domain": "Deprecated. Use AsyncLocalStorage or AbortController instead.",
+              "node:sys": "Deprecated alias of node:util. Use 'node:util' directly.",
+              "url": "Use the global URL/URLSearchParams. The legacy url.parse/format API is deprecated.",
+              "constants": "Deprecated. Import from the relevant module (e.g. 'node:os'.constants, 'node:fs'.constants).",
+              "node:constants": "Deprecated. Import from the relevant module (e.g. 'node:os'.constants, 'node:fs'.constants)."
+            }
+          }
+        },
+        "noRestrictedGlobals": {
+          "level": "error",
+          "options": {
+            "deniedGlobals": {
+              "escape": "Deprecated since ES5. Use encodeURIComponent or encodeURI instead.",
+              "unescape": "Deprecated since ES5. Use decodeURIComponent or decodeURI instead."
+            }
+          }
+        }
+      },
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "error",
+        "noUnusedFunctionParameters": "warn"
+      },
+      "suspicious": {
+        "noConsole": "error",
+        "noExplicitAny": "error",
+        "noEmptyBlockStatements": "warn",
+        "noEvolvingTypes": "warn",
+        "noShadow": "error"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        },
+        "noExcessiveLinesPerFunction": {
+          "level": "warn",
+          "options": {
+            "maxLines": 45,
+            "skipBlankLines": true
+          }
+        },
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 3
+          }
+        },
+        "useDateNow": "error",
+        "noVoid": "warn",
+        "noUselessUndefinedInitialization": "error",
+        "noForEach": "warn",
+        "noUselessCatch": "warn",
+        "noUselessSwitchCase": "warn",
+        "noUselessTernary": "warn",
+        "useFlatMap": "warn",
+        "useOptionalChain": "warn",
+        "useSimplifiedLogicExpression": "warn"
+      },
+      "performance": {
+        "useTopLevelRegex": "warn",
+        "noReExportAll": "error",
+        "noBarrelFile": "error"
+      },
+      "nursery": {
+        "useExplicitType": "off"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "asNeeded",
+      "arrowParentheses": "always",
+      "quoteStyle": "single"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.d.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "scripts/check-research-*.ts",
+        "scripts/evaluate-research-routing.ts",
+        "scripts/research-*/**"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          },
+          "complexity": {
+            "noExcessiveLinesPerFunction": {
+              "level": "warn",
+              "options": {
+                "maxLines": 50,
+                "skipBlankLines": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/cli/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/core/**", "src/ai/**", "src/persistence/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": {
+              "level": "error",
+              "options": {
+                "maxAllowedComplexity": 15
+              }
+            },
+            "noExcessiveLinesPerFunction": {
+              "level": "error",
+              "options": {
+                "maxLines": 45,
+                "skipBlankLines": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/index.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off",
+            "noReExportAll": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/*/api.ts", "src/trading/markets/*/api.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    }
+  ],
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentWidth": 2
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              {
+                "type": true,
+                "source": [":NODE:", ":BUN:"]
+              },
+              [":NODE:", ":BUN:"],
+              ":BLANK_LINE:",
+              {
+                "type": true,
+                "source": [":PACKAGE:"]
+              },
+              ":PACKAGE:",
+              ":BLANK_LINE:",
+              {
+                "type": true,
+                "source": ["@/**"]
+              },
+              "@/**",
+              ":BLANK_LINE:",
+              {
+                "type": true,
+                "source": [":PATH:"]
+              },
+              ":PATH:"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

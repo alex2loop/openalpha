@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Hỏi đáp / Questions (Zalo)
+    url: https://zalo.me/g/yl7iqyfovvtyosujulea
+    about: Hỏi cách cài và cách dùng, nhận tin bản mới. Không bàn mã nào nên mua.
+  - name: Lỗ hổng bảo mật / Security vulnerability
+    url: https://github.com/alex2loop/openalpha/security/advisories/new
+    about: Báo riêng, không bao giờ qua issue công khai - xem SECURITY.md.
+  - name: Hướng dẫn góp phần / Contributing guide
+    url: https://github.com/alex2loop/openalpha/blob/main/CONTRIBUTING.md
+    about: Cài đặt, những quy tắc đáng kể, và những thứ sẽ bị từ chối.

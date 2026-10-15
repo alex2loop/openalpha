@@ -1,0 +1,104 @@
+import type { VenueRef } from '@/trading/kernel/instrument'
+import type { Position } from '@/trading/kernel/operator/book'
+import type { VenueBalance } from '@/trading/kernel/venue/spot-adapter'
+import { QUANTITY_EPSILON } from '@/trading/features/ledger/position'
+import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
+
+/** One asset the book and the custodian disagree about. Absent from either side is zero, never
+ *  unknown: a venue omits what it holds none of, and the book omits what it never bought. */
+interface ReconciledAsset {
+  readonly asset: string
+  readonly booked: number
+  readonly held: number
+  /** Book minus venue. Positive is a holding the exchange cannot find. */
+  readonly delta: number
+}
+
+export interface VenueReconciliation {
+  readonly venue: VenueRef
+  /** Only the assets that disagree, so a venue that matches renders as one line rather than an
+   *  inventory. Empty where `uncompared` says why the venue was left out. */
+  readonly mismatches: readonly ReconciledAsset[]
+  /** Why this venue is outside the reading, and absent on one that answered. A venue left out of
+   *  the reading entirely reads as a venue that agreed, which is what this names instead:
+   *  `unreachable` was asked and did not answer, so asking again may work; `keyless` waits for the
+   *  key `missingCredentials` names; `unsupported` has no balances client at all, so no retry ever
+   *  will. */
+  readonly uncompared?: 'unreachable' | 'keyless' | 'unsupported'
+  readonly missingCredentials?: readonly string[]
+}
+
+interface ReconcileInput {
+  readonly venue: VenueRef
+  readonly positions: readonly Position[]
+  readonly balances: readonly VenueBalance[]
+  /** What cash sits in at this venue. Not compared: the book holds cash per venue in its base
+   *  currency while the venue reports its quote asset, and nothing here converts one to the other. */
+  readonly cashAsset: string
+  /** The venue's own floor under each asset it trades. Empty where no catalog answered, which
+   *  reports every residue rather than hiding a break behind a lookup that failed. */
+  readonly minimumSizes: ReadonlyMap<string, number>
+}
+
+export function reconcileVenue(input: ReconcileInput): VenueReconciliation {
+  const booked = bookedByAsset(input.positions, input.venue)
+  const held = heldByAsset(input.balances)
+  const mismatches: ReconciledAsset[] = []
+
+  for (const asset of [...new Set([...booked.keys(), ...held.keys()])].sort()) {
+    if (asset === input.cashAsset) {
+      continue
+    }
+
+    const bookedQuantity = booked.get(asset) ?? 0
+    const heldQuantity = held.get(asset) ?? 0
+    const delta = bookedQuantity - heldQuantity
+
+    if (Math.abs(delta) <= QUANTITY_EPSILON) {
+      continue
+    }
+
+    if (isUnclaimedDust(input.minimumSizes.get(asset), bookedQuantity, heldQuantity)) {
+      continue
+    }
+
+    mismatches.push({
+      asset,
+      booked: bookedQuantity,
+      held: heldQuantity,
+      delta,
+    })
+  }
+
+  return { venue: input.venue, mismatches }
+}
+
+/** Dust the operator cannot act on: the book claims none of it, and what the venue holds is below
+ *  the smallest order that venue accepts, so there is no trade that would clear it and nothing to
+ *  record. A venue that publishes no floor reports everything. */
+function isUnclaimedDust(minimumSize: number | undefined, booked: number, held: number): boolean {
+  return booked <= QUANTITY_EPSILON && isBelowMinimumSize(held, minimumSize)
+}
+
+/** Summed rather than assigned: nothing stops two markets listing one ticker at the same venue, and
+ *  the exchange reports a single balance for both. */
+function bookedByAsset(
+  positions: readonly Position[],
+  venue: VenueRef
+): ReadonlyMap<string, number> {
+  const booked = new Map<string, number>()
+
+  for (const position of positions) {
+    if (position.venue === venue) {
+      const asset = position.instrument.ticker
+
+      booked.set(asset, (booked.get(asset) ?? 0) + position.quantity)
+    }
+  }
+
+  return booked
+}
+
+function heldByAsset(balances: readonly VenueBalance[]): ReadonlyMap<string, number> {
+  return new Map(balances.map((balance) => [balance.asset, balance.quantity]))
+}

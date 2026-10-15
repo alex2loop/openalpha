@@ -1,0 +1,35 @@
+{
+  "kind": "executed",
+  "order": {
+    "token": "5f0c2a7e-1b8d-4c33-9a61-2f4b8e7d9c10",
+    "instrument": {
+      "market": "crypto",
+      "ticker": "BTC"
+    },
+    "venue": "okx",
+    "side": "buy",
+    "orderType": "limit",
+    "quantity": 0.02,
+    "limitPrice": 61200,
+    "takeProfit": 66000,
+    "stopLoss": 58500,
+    "quotePrice": 61350,
+    "notionalBase": 31824000,
+    "createdAt": 1791535800000
+  },
+  "fill": {
+    "orderId": "2741958399",
+    "state": "filled",
+    "averagePrice": 61190.5,
+    "filledQuantity": 0.02,
+    "fee": 1.22381,
+    "feeCurrency": "USDT",
+    "filledAt": 1791535830000
+  },
+  "currency": "USDT",
+  "exitPlaced": false,
+  "exitFailure": {
+    "code": "order.exit_failed",
+    "text": "The order filled but the take-profit/stop-loss could not be placed."
+  }
+}

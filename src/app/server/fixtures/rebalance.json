@@ -1,0 +1,246 @@
+{
+  "status": "ready",
+  "baseCurrency": "VND",
+  "navBase": 93525900,
+  "deploymentScale": 1,
+  "segments": [
+    {
+      "segment": "cash",
+      "currentPctNav": 82.59305711038333,
+      "targetPctNav": 26.666666666666668,
+      "afterPlanPctNav": 82.59305711038333,
+      "driftBandPctNav": 5
+    },
+    {
+      "segment": "crypto",
+      "currentPctNav": 0,
+      "targetPctNav": 6.666666666666667,
+      "afterPlanPctNav": 0,
+      "driftBandPctNav": 1.6666666666666667,
+      "capPctNav": 11.666666666666666
+    },
+    {
+      "segment": "gold",
+      "currentPctNav": 0,
+      "targetPctNav": 0,
+      "afterPlanPctNav": 0,
+      "driftBandPctNav": 0,
+      "capPctNav": 0
+    },
+    {
+      "segment": "gold-vn",
+      "currentPctNav": 0,
+      "targetPctNav": 13.333333333333334,
+      "afterPlanPctNav": 0,
+      "driftBandPctNav": 3.3333333333333335,
+      "capPctNav": 18.333333333333336
+    },
+    {
+      "segment": "equity-vn",
+      "currentPctNav": 17.406942889616673,
+      "targetPctNav": 53.333333333333336,
+      "afterPlanPctNav": 17.406942889616673,
+      "driftBandPctNav": 5,
+      "capPctNav": 66.66666666666666
+    }
+  ],
+  "changes": [
+    {
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "HPG"
+      },
+      "segment": "equity-vn",
+      "sector": "Tài nguyên cơ bản",
+      "instrumentKind": "stock",
+      "currentPctNav": 17.4,
+      "targetPctNav": 10,
+      "changePctNav": -7.4,
+      "reason": "trim",
+      "order": {
+        "valueBase": 6920000,
+        "quantity": 200,
+        "boardLot": 100,
+        "unitPrice": 34600,
+        "currency": "VND"
+      },
+      "caveats": []
+    }
+  ],
+  "cash": {
+    "cashPctNav": 82.59305711038333,
+    "liquidReservePctNav": 20,
+    "termDepositEligiblePctNav": 62.59305711038332,
+    "posture": "term-deposit-eligible"
+  },
+  "findings": [
+    {
+      "code": "position-cap-breach",
+      "direction": "negative",
+      "data": {
+        "ticker": "HPG",
+        "segment": "equity-vn",
+        "weight": 0.17406942889616672,
+        "cap": 0.1
+      }
+    },
+    {
+      "code": "segment-drift",
+      "direction": "negative",
+      "data": {
+        "segment": "equity-vn",
+        "weight": 0.17406942889616672,
+        "target": 0.5333333333333333
+      }
+    }
+  ],
+  "caveats": [
+    {
+      "code": "portfolio.regime-risk",
+      "data": {
+        "segment": "gold-vn",
+        "regime": "risk-off",
+        "deployment": 0.6
+      },
+      "severity": "warn",
+      "text": "Vietnam gold: the market is reading Risk-off, so buying here is held to 60% of normal · /overview"
+    },
+    {
+      "code": "macro.coverage-below-floor",
+      "data": {
+        "coverage": 0.5
+      },
+      "severity": "warn",
+      "text": "Too little of the macro model reported in to trust it, so the regime stays defensive until the series return."
+    },
+    {
+      "code": "macro.regime-lowered",
+      "data": {
+        "reasons": ""
+      },
+      "severity": "warn",
+      "text": "The score alone is not defensive, but  is under strain, so the read was stepped down one band."
+    },
+    {
+      "code": "macro.confirmers-abstained",
+      "data": {
+        "confirmers": "margin, foreign-flow"
+      },
+      "severity": "warn",
+      "text": "No data for margin pressure, foreign flow today, so the regime read rests on fewer stress checks than usual."
+    },
+    {
+      "code": "macro.confirmers-warming-up",
+      "data": {
+        "confirmers": "fx"
+      },
+      "severity": "info",
+      "text": "Still building the stored history USD/VND reads, so it has nothing to say yet."
+    },
+    {
+      "code": "portfolio.regime-risk",
+      "data": {
+        "segment": "equity-vn",
+        "regime": "risk-off",
+        "deployment": 0.6
+      },
+      "severity": "warn",
+      "text": "Vietnam equities: the market is reading Risk-off, so buying here is held to 60% of normal · /overview"
+    },
+    {
+      "code": "portfolio.regime-risk",
+      "data": {
+        "segment": "crypto",
+        "regime": "neutral",
+        "deployment": 0.85
+      },
+      "severity": "warn",
+      "text": "Crypto: the market is reading Neutral, so buying here is held to 85% of normal · /overview"
+    },
+    {
+      "code": "portfolio.segment-no-candidates",
+      "data": {
+        "segment": "equity-vn"
+      },
+      "severity": "warn",
+      "text": "Vietnam equities: nothing to buy here yet"
+    },
+    {
+      "code": "portfolio.segment-no-candidates",
+      "data": {
+        "segment": "gold-vn"
+      },
+      "severity": "warn",
+      "text": "Vietnam gold: nothing to buy here yet"
+    },
+    {
+      "code": "portfolio.segment-no-candidates",
+      "data": {
+        "segment": "crypto"
+      },
+      "severity": "warn",
+      "text": "Crypto: nothing to buy here yet"
+    },
+    {
+      "code": "portfolio.candidate-illiquid",
+      "data": {
+        "ticker": "HPG",
+        "weight": 0.17406942889616672
+      },
+      "severity": "warn",
+      "text": "HPG is 17.41% of NAV with no volume data, so the usual liquidity cap is not limiting its size."
+    },
+    {
+      "code": "portfolio.candidates-by-name",
+      "data": {
+        "segment": "equity-vn"
+      },
+      "severity": "info",
+      "text": "Vietnam equities: no new name to suggest here - add one yourself with /watchlist add <ticker>"
+    },
+    {
+      "code": "portfolio.candidates-by-name",
+      "data": {
+        "segment": "gold-vn"
+      },
+      "severity": "info",
+      "text": "Vietnam gold: no new name to suggest here - add one yourself with /watchlist add <ticker>"
+    },
+    {
+      "code": "portfolio.candidates-available",
+      "data": {
+        "segment": "crypto",
+        "names": "RAY, PUMP, CRV, AAVE, STX"
+      },
+      "severity": "info",
+      "text": "Crypto: the best-looking names here today are RAY, PUMP, CRV, AAVE, STX - add the ones you want with /watchlist add"
+    }
+  ],
+  "text": {
+    "headline": [
+      "Nếu chỉ làm một việc: BÁN 200 HPG (~6.920.000 VND, quanh 34.600)",
+      "Nếu không làm gì: vẫn còn 1 mã vượt trần tỷ trọng.",
+      "Kế hoạch này bán 6.920.000 VND và mua 0 VND - tiền mặt thay đổi ▲ 6.920.000 VND.",
+      "Tổng tài sản 93.525.900 VND (~94 triệu) · đóng cửa 08/10/2026"
+    ],
+    "groups": {
+      "first": "Làm trước",
+      "later": "Làm sau, nếu còn dư địa"
+    },
+    "orders": [
+      {
+        "instrument": {
+          "market": "equity-vn",
+          "ticker": "HPG"
+        },
+        "group": "first",
+        "line": "🔴 BÁN 200 HPG (~6.920.000 VND, quanh 34.600)\ntỷ trọng 17,40% -> 10,00% NAV\ncắt giảm vì vượt trần tỷ trọng một mã"
+      }
+    ],
+    "sleeves": [
+      "Cổ phiếu VN   17,41%  53,33%  thiếu 35,93%",
+      "Tiền mặt   82,59%  26,67%  dư 55,93%"
+    ],
+    "notes": ["Đã về tài khoản 80% NAV; dự phòng 20% NAV."]
+  }
+}

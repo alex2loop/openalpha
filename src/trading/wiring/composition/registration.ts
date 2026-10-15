@@ -1,0 +1,388 @@
+import type { App, Bind, Extend, ServiceProvider } from '@/core/container'
+import type { Logger } from '@/core/logging/logger'
+import type { Hooks } from '@/engine/api'
+import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { TradingConfig } from '@/trading/kernel/config'
+import type { FxRates } from '@/trading/kernel/market/fx-rates'
+import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
+import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { MarketDeps } from '@/trading/markets/deps'
+import type { StageRegistry } from '@/trading/markets/stage'
+import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
+import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
+import type { VenueRegistry } from '@/trading/venues/types'
+import type {
+  KeyValidator,
+  TradingContributions,
+} from '@/trading/wiring/composition/registry-checks'
+import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
+import type { TradingStores } from '@/trading/wiring/composition/stores'
+import type { WithThemes } from '@/trading/wiring/composition/themes'
+import { ConfigError } from '@/core/errors'
+import { createConfiguredRunBudget } from '@/engine/api'
+import { createFxRates } from '@/trading/features/market-data/reads/fx'
+import { createRunDebate } from '@/trading/features/suggestion/debate/debate'
+import { toPlaybookLibrary } from '@/trading/features/suggestion/debate/playbook'
+import { createAdmissionStage } from '@/trading/features/suggestion/pipeline/admission'
+import { createAveragingDownStage } from '@/trading/features/suggestion/pipeline/averaging-down'
+import { createDeploymentStage } from '@/trading/features/suggestion/pipeline/deployment'
+import { createExclusionStage } from '@/trading/features/suggestion/pipeline/exclusion'
+import { createRoundTripStage } from '@/trading/features/suggestion/pipeline/round-trip'
+import { createStageRegistry } from '@/trading/features/suggestion/pipeline/stage-registry'
+import { DECISIONS_MODEL_TIER } from '@/trading/kernel/config'
+import { createCryptoMarket } from '@/trading/markets/crypto/market'
+import { createVnEquityMarket } from '@/trading/markets/equity-vn/market'
+import { createGoldMarket } from '@/trading/markets/gold/market'
+import { createVnGoldMarket } from '@/trading/markets/gold-vn/market'
+import { macroCache } from '@/trading/markets/macro-cache'
+import { createMarketRegistry } from '@/trading/markets/registry'
+import { SURFACE_LIMITS } from '@/trading/surface-limits'
+import { createVenueListings } from '@/trading/venues/listings'
+import { buildTradingAgents, personaVersions } from '@/trading/wiring/catalog/agents'
+import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
+import { toAggregate } from '@/trading/wiring/composition/aggregate'
+import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
+import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
+import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
+import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
+import { buildRefreshCoordinator, buildRefreshTick } from '@/trading/wiring/composition/refresh'
+import {
+  assertRegistryConsistency,
+  reportOutdatedHolidayTables,
+} from '@/trading/wiring/composition/registry-checks'
+import { createDomainServices } from '@/trading/wiring/composition/services'
+import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
+import { createTradingStores } from '@/trading/wiring/composition/stores'
+import { buildThemeService } from '@/trading/wiring/composition/themes'
+import { buildVenues } from '@/trading/wiring/composition/venues'
+import { createTradingHost } from '@/trading/wiring/host/host'
+import { createTradingHooks } from '@/trading/wiring/profile-context'
+
+/** How long one host-mediated request may run before its scope aborts. A ceiling on a surface
+ *  call, not an operator preference: a stuck upstream must not hold an HTTP connection open. */
+const HOST_REQUEST_TIMEOUT_MS = 30_000
+/** The same ceiling for a screen, a rebalance or an overview: each can refresh a cold market first,
+ *  which the boot refresh budgets a minute for. */
+const HOST_SLOW_REQUEST_TIMEOUT_MS = 120_000
+
+/** Only what the container cannot supply. Everything else — the logger, the runner, the locale,
+ *  the budget policy — is resolved from `App` inside the lazy factory, so nothing here duplicates
+ *  a value the container already owns. */
+interface TradingRegistrationOptions {
+  readonly tradingConfig: TradingConfig
+  /** Injected, never read from `process`: source credentials resolve from named variables the
+   *  code owns, so the value reaches the transport without passing through a config object. */
+  readonly env: Readonly<Record<string, string | undefined>>
+  readonly sender: TradingNoticeSender
+  /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
+   *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
+  recipient(): DeliveryAddress | undefined
+  readonly keys: KeyValidator
+  readonly pluginModules: readonly LoadedSourceModule[]
+}
+
+declare module '@/core/container' {
+  interface Services {
+    tradingStores: TradingStores
+    tradingServices: TradingServices
+  }
+}
+
+interface BuiltTrading {
+  readonly services: TradingServices
+  readonly contributions: TradingContributions
+}
+
+interface Registries {
+  readonly markets: MarketRegistry
+  readonly sources: SourceRegistry
+  readonly stages: StageRegistry
+  readonly venues: VenueRegistry
+  /** Not a registry, but built here: the markets read rates through the same path the ledger and
+   *  the portfolio do, so one outage cannot leave a book converted and a brief unconverted. */
+  readonly fx: FxRates
+}
+
+/** Provider step 2: the stores need storage and the dialect, and nothing else needs them yet. */
+export function createTradingStoresProvider(config: TradingConfig): ServiceProvider {
+  return {
+    name: 'trading-stores',
+    register(bind: Bind): void {
+      bind('tradingStores', (app) =>
+        createTradingStores({
+          db: app.resolve('storage'),
+          dialect: app.resolve('dialect'),
+          maximumEntries: config.maximumLedgerEntries,
+        })
+      )
+    },
+  }
+}
+
+/** Provider step 9: after the registries it extends, because `extend` before the matching `bind`
+ *  throws, and before plugins so a plugin merges against a registry that already holds every
+ *  first-party name. Trading is not a plugin and has no plugin shape. */
+export function createTradingRegistrationProvider(
+  options: TradingRegistrationOptions
+): ServiceProvider {
+  // Provider-closure state, never module scope: the tools and commands are built once, validated
+  // against both locale catalogs, and then handed to each extend rather than rebuilt per target.
+  let built: BuiltTrading | null = null
+  const contributions = (app: App): TradingContributions => {
+    app.resolve('tradingServices')
+
+    if (built === null) {
+      throw new ConfigError('trading contributions were read before registration completed')
+    }
+
+    return built.contributions
+  }
+
+  return {
+    name: 'trading-registration',
+    register(bind: Bind, extend: Extend): void {
+      bind('tradingServices', (app) => {
+        built = buildTrading(app, options)
+
+        return built.services
+      })
+
+      // The one trading surface the server sees. Bound here because it is derived purely from the
+      // aggregate above; the operator identity and shutdown signal come from the container.
+      bind('tradingHost', (app) =>
+        createTradingHost({
+          limits: SURFACE_LIMITS,
+          services: app.resolve('tradingServices'),
+          defaultLocale: app.config.locale.language,
+          baseCurrency: options.tradingConfig.baseCurrency,
+          shutdownSignal: app.signal,
+          requestTimeoutMs: HOST_REQUEST_TIMEOUT_MS,
+          slowRequestTimeoutMs: HOST_SLOW_REQUEST_TIMEOUT_MS,
+        })
+      )
+
+      extend('tools', (current, app) =>
+        mergeUniqueByKey({
+          current,
+          additions: contributions(app).tools,
+          keyOf: (tool) => tool.name,
+          label: 'tool name',
+        })
+      )
+
+      extend('commands', (current, app) => [...current, ...contributions(app).commands])
+
+      extend('cliCommands', (current, app) => [...current, ...contributions(app).cliCommands])
+
+      // Trusted, and registered before plugins: a debate persona is code-owned, so a plugin can
+      // never shadow one.
+      extend('agents', (current, app) => {
+        const trading = buildTradingAgents(app.config, [...app.resolve('tools').keys()])
+
+        return mergeUniqueByKey({
+          current,
+          additions: trading.values(),
+          keyOf: (agent) => agent.id,
+          label: 'agent id',
+        })
+      })
+
+      extend('hooks', (current, app) => mergeHooks(current, app))
+    },
+  }
+}
+
+function buildTrading(app: App, options: TradingRegistrationOptions): BuiltTrading {
+  const stores = app.resolve('tradingStores')
+  const logger = app.resolve('logger')
+  const registries = buildRegistries(app, options)
+  const budget = (): ReturnType<typeof createConfiguredRunBudget> =>
+    createConfiguredRunBudget(app.config)
+  const refresh = buildRefreshCoordinator(app, options, registries.markets)
+  const services = buildServices(app, options, {
+    registries,
+    stores,
+    refresh,
+    logger,
+    createSuggestionBudget: budget,
+  })
+  const refreshMarketData = buildRefreshTick({
+    markets: registries.markets,
+    stores,
+    portfolio: services.portfolio,
+    refresh,
+    logger,
+  })
+
+  const contributions = buildSurfaces(options, {
+    services,
+    registries,
+    stores,
+    refreshMarketData,
+    logger,
+  })
+
+  return {
+    services: toAggregate(
+      {
+        services,
+        refresh,
+        refreshMarketData,
+        macroExtractTick: buildMacroExtractTick(app, registries.sources),
+        stores,
+        logger,
+        defaultLocale: app.config.locale.language,
+        createSuggestionBudget: budget,
+      },
+      options,
+      registries
+    ),
+    contributions,
+  }
+}
+
+interface SurfaceParts {
+  readonly services: ReturnType<typeof createDomainServices> & WithThemes
+  readonly registries: Registries
+  readonly stores: TradingStores
+  readonly refreshMarketData: TradingServices['refreshMarketData']
+  readonly logger: Logger
+}
+
+/** The tools and commands, built once and checked before the first surface can render: a
+ *  misconfigured install, or a key added to a code tuple without its two catalog entries, fails
+ *  during composition rather than at first use. */
+function buildSurfaces(
+  options: TradingRegistrationOptions,
+  parts: SurfaceParts
+): TradingContributions {
+  const { services, registries, stores } = parts
+  const contributions = buildContributions({
+    services,
+    config: options.tradingConfig,
+    refreshMarketData: parts.refreshMarketData,
+    markets: registries.markets,
+    venues: registries.venues,
+    intradaySettings: stores.intradaySettings,
+    ledger: stores.ledger,
+    logger: parts.logger,
+  })
+
+  assertRegistryConsistency(registries.markets, options.tradingConfig, {
+    keys: options.keys,
+    contributions,
+    venues: registries.venues,
+  })
+
+  return contributions
+}
+
+interface ServiceParts {
+  readonly registries: Registries
+  readonly stores: TradingStores
+  readonly refresh: RefreshMarketData
+  readonly logger: Logger
+  createSuggestionBudget(): ReturnType<typeof createConfiguredRunBudget>
+}
+
+function buildServices(
+  app: App,
+  options: TradingRegistrationOptions,
+  parts: ServiceParts
+): ReturnType<typeof createDomainServices> & WithThemes {
+  const { logger, registries, stores } = parts
+  const domain = createDomainServices({
+    ...registries,
+    stores,
+    refresh: parts.refresh,
+    logger,
+    sender: options.sender,
+    config: options.tradingConfig,
+    // Composed here rather than passed in: the debate reads the closed market registry, which does
+    // not exist until this function has built it.
+    runDebate: createRunDebate({
+      runner: { run: (input, runOptions) => app.resolve('runner').run(input, runOptions) },
+      logger,
+      maximumTurnsPerRole: app.config.loop.maxTurns,
+      markets: registries.markets,
+      // An absent `decisions` tier turns the headline read off rather than binding a dead chain.
+      decisionsChain: app.resolve('llmChains').findTier(DECISIONS_MODEL_TIER),
+      recordAttempt: app.resolve('attemptRecorder'),
+      store: stores.suggestion,
+      playbooks: toPlaybookLibrary(TRADING_SKILLS),
+    }),
+    createSuggestionBudget: () => parts.createSuggestionBudget(),
+    defaultLocale: app.config.locale.language,
+    skillVersions: skillVersions(),
+    personaVersions: personaVersions(),
+  })
+
+  return {
+    ...domain,
+    themes: buildThemeService(app, {
+      sources: registries.sources,
+      markets: registries.markets,
+      marketData: domain.marketData,
+      policy: options.tradingConfig.themes,
+    }),
+  }
+}
+
+/** Created and closed once, inside the lazy factory. Nothing above this function ever sees a
+ *  registry, mutable or otherwise. */
+function buildRegistries(app: App, options: TradingRegistrationOptions): Registries {
+  const logger = app.resolve('logger')
+  const stores = app.resolve('tradingStores')
+  const sources = withNewsArchive(
+    createConfiguredSourceRegistry({
+      env: options.env,
+      logger,
+      pluginModules: options.pluginModules,
+      credentialEnv: options.tradingConfig.sourceCredentialEnv,
+      defaultVenues: options.tradingConfig.defaultVenues,
+    }),
+    { archive: stores.newsArchive, logger }
+  )
+  const stages = createStageRegistry()
+  const markets = createMarketRegistry()
+  const venues = buildVenues(options, logger)
+  const fx = createFxRates({ sources, store: stores.fxRate, logger })
+  const deps: MarketDeps = {
+    config: options.tradingConfig,
+    sources,
+    fx,
+    marketDataStore: stores.marketData,
+    macro: macroCache(sources),
+    stages,
+    venueListings: createVenueListings(venues, logger),
+    briefServices: lazyBriefServices(app, options.tradingConfig),
+  }
+
+  stages.register(createAdmissionStage())
+  stages.register(createExclusionStage())
+  stages.register(createDeploymentStage())
+  stages.register(createAveragingDownStage())
+  stages.register(createRoundTripStage())
+  markets.register(createGoldMarket(deps))
+  markets.register(createVnGoldMarket(deps))
+  markets.register(createVnEquityMarket(deps))
+  markets.register(createCryptoMarket(deps))
+  markets.close()
+  stages.close()
+  reportOutdatedHolidayTables(markets, logger, Date.now())
+
+  return { markets, sources, stages, venues, fx }
+}
+
+/** The profile reader is the store, not the portfolio service: injecting the service here would
+ *  make every LLM request depend on a valuation the modifier never reads. */
+function mergeHooks(current: Hooks, app: App): Hooks {
+  const trading = createTradingHooks({
+    find: (signal) => app.resolve('tradingStores').profile.find(signal),
+  })
+
+  return {
+    ...current,
+    llmRequestModifiers: [...current.llmRequestModifiers, ...trading.llmRequestModifiers],
+  }
+}

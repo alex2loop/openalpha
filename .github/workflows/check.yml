@@ -1,0 +1,76 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the first: the gates are the only
+# job here, and an outdated run tells a contributor nothing.
+# A gate job reads the tree and nothing else. Without this the token inherits the repository
+# default, which can be read/write.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Pinned, not `latest`: a Bun release should fail a deliberate bump here rather
+      # than a contributor's unrelated PR. package.json `engines.bun` is the floor.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      # --frozen-lockfile so a PR cannot change resolved versions without
+      # changing bun.lock in the same diff.
+      - run: bun install --frozen-lockfile
+
+      # lint + typecheck + the contract gates. biome check (not --write) so a
+      # formatting drift fails rather than being silently repaired.
+      - run: bun run check
+
+      # module depth, market isolation, locale coverage, pricing, skills.
+      - run: bun run lint:arch
+
+  # No gate here runs Windows code paths; this builds the Windows binary natively and drives the
+  # lifecycle a Windows operator uses: install script syntax, version, background start, stop.
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      OPENROUTER_API_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Parse install.ps1
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/install.ps1", [ref]$null, [ref]$errors) | Out-Null
+          if ($errors) { $errors; exit 1 }
+
+      - run: bun run gen && bun build src/app/main.ts --compile --outfile dist/openalpha.exe
+
+      - name: Start and stop the daemon
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $dataDir = New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/openalpha"
+          $flags = @('--config', "$PWD/config.minimal.toml", '--data-dir', $dataDir.FullName)
+          ./dist/openalpha.exe @flags version
+          ./dist/openalpha.exe @flags start --background
+          ./dist/openalpha.exe @flags status
+          ./dist/openalpha.exe @flags stop
