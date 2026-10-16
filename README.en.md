@@ -158,7 +158,20 @@ A bare ticker is usually enough (`/price FPT`). Qualify it only where two market
   <img src="assets/readme/sources.en.png" alt="35 data sources, routed per market" width="100%" />
 </p>
 
-Data lives in SQLite, already on your machine. Dozens of AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo or Zalo Personal.
+Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo or Zalo Personal.
+
+<details>
+<summary><b>Supported AI providers</b></summary>
+
+Already have a key from a lab? Use it directly: Anthropic, OpenAI, Google Gemini, xAI, Mistral, DeepSeek, Cohere, Meta AI, Moonshot Kimi, Z.AI, MiniMax, Alibaba Qwen, StepFun, Xiaomi MiMo, Perplexity and more.
+
+For one key that reaches many models, go through a router such as OpenRouter, Requesty, Vercel AI Gateway, Hugging Face or GitHub Models. For speed or price there are Groq, Cerebras, SambaNova, Fireworks, Together, DeepInfra, Novita, Nebius, NVIDIA and Cloudflare Workers AI.
+
+Paying for ChatGPT already? Sign in with `openalpha auth login`, no key needed. If your company runs on Azure, Google Cloud or AWS, reach the models through Azure OpenAI, Vertex AI or Bedrock with the account you have. In China there are Baidu ERNIE, Doubao, Hunyuan, Yi, Baichuan, iFlytek Spark, SiliconFlow, ModelScope, and mainland endpoints for Kimi, Qwen, GLM and MiniMax. To run everything on your own machine, use Ollama, LM Studio or vLLM.
+
+Run `openalpha provider list` for the full list with the name each one takes in the config ([guide](docs/en/configuration.md)). No key at all works too: plug OpenAlpha into Claude Code, Codex or Cursor over MCP and that app's model does the thinking ([Advanced](#advanced)).
+
+</details>
 
 ---
 
