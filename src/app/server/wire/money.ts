@@ -143,8 +143,8 @@ interface PortfolioFindingWire {
 
 /** The CLI's lines for a rebalance plan; the numbers beside them are for prefilling a ledger row. */
 export interface RebalanceTextWire {
-  /** The answer first: the one thing to do, what happens if nothing is done, the totals. When the
-   *  plan is unavailable, the reason sentence and nothing else. */
+  /** The answer first: the plan in one line, what leaving it undone costs, what it leaves behind.
+   *  When the plan is unavailable, the reason sentence and nothing else. */
   readonly headline: readonly string[]
   /** The words the two order groups sit under. */
   readonly groups: { readonly first: string; readonly later: string }

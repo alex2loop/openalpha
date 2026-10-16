@@ -2,16 +2,24 @@ import type { Locale } from '@/core/types/locale'
 import type { WriteAudience } from '@/trading/features/ledger/fee-rows'
 import type { LedgerEntry, LedgerTxn } from '@/trading/features/ledger/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
+import type { Book } from '@/trading/kernel/operator/book'
 import type { QuoteConvention } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
+import { paysFromCurrencyCash } from '@/trading/features/ledger/fx-rate'
 import { ledgerEntryHandle } from '@/trading/features/ledger/types'
 import { formatQuantity, renderVenueName } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
-import { formatRecordedMoney, formatRecordedPrice, quotedInOf } from '@/trading/render/money'
+import {
+  formatMoney,
+  formatRecordedMoney,
+  formatRecordedPrice,
+  quotedInOf,
+} from '@/trading/render/money'
 
 interface EntryFieldOptions {
   readonly quoteConventions: ReadonlyMap<MarketRef, QuoteConvention>
   readonly audience: WriteAudience
+  readonly book: Book
 }
 
 /** One written row as labelled fields. A confirmation is read alone, against what the operator
@@ -40,10 +48,37 @@ export function renderEntryFields(
       : []),
     ...(options.audience === 'receipt'
       ? renderSubjectTicker(locale, transaction)
-      : renderSubjectFields(locale, transaction, options.quoteConventions)),
+      : [
+          ...renderSubjectFields(locale, transaction, options.quoteConventions),
+          ...renderFxField(locale, transaction, options.book),
+        ]),
     ...(transaction.note === undefined
       ? []
       : [renderField(locale, 'note', { note: transaction.note })]),
+  ]
+}
+
+/** The rate a foreign row converted at, and whose it was. */
+function renderFxField(locale: Locale, txn: LedgerTxn, book: Book): readonly string[] {
+  if (!('conversion' in txn) || txn.conversion.fromCurrency === txn.conversion.toCurrency) {
+    return []
+  }
+
+  const { conversion } = txn
+
+  if (paysFromCurrencyCash(book, txn)) {
+    return [renderField(locale, 'fxRatePaidFromCash', { currency: conversion.fromCurrency })]
+  }
+
+  // `formatMoney`, not `formatRecordedMoney`: a provider rate carries four decimals nobody paid.
+  const params = {
+    rate: formatMoney(locale, conversion.rate, conversion.toCurrency),
+    currency: conversion.fromCurrency,
+    day: formatDay(locale, conversion.asOf),
+  }
+
+  return [
+    renderField(locale, conversion.source === 'operator' ? 'fxRateStated' : 'fxRateMarket', params),
   ]
 }
 
@@ -100,12 +135,13 @@ function renderTradeFields(
   const ticker = txn.instrument.ticker
   const price = formatRecordedPrice(locale, txn.unitPrice, {
     currency: txn.currency,
+    ticker,
     ...quotedInOf(quoteConventions.get(txn.instrument.market)),
   })
 
   return [
     renderField(locale, 'quantity', { quantity: formatQuantity(locale, txn.quantity), ticker }),
-    renderField(locale, 'price', { price, ticker }),
+    renderField(locale, 'price', { price }),
     renderField(locale, 'fee', { fee: formatRecordedMoney(locale, txn.fee, txn.currency) }),
   ]
 }
@@ -123,6 +159,9 @@ type FieldName =
   | 'amount'
   | 'delta'
   | 'note'
+  | 'fxRateStated'
+  | 'fxRateMarket'
+  | 'fxRatePaidFromCash'
 
 function renderField(locale: Locale, name: FieldName, params: Record<string, string>): string {
   return `${INDENT[1]}${t(locale, `trading.render.ledger.field.${name}`, params)}`

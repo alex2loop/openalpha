@@ -213,7 +213,12 @@ function mergeSubjects(caveats: readonly RenderedCaveat[]): readonly RenderedCav
       continue
     }
 
-    merged.detail[field] = `${merged.detail[field]}${CAVEAT_SUBJECT_SEPARATOR}${subject}`
+    // Several reads of one name each report it: the subject is listed once.
+    const named = `${merged.detail[field]}`.split(CAVEAT_SUBJECT_SEPARATOR)
+
+    if (!named.includes(`${subject}`)) {
+      merged.detail[field] = `${merged.detail[field]}${CAVEAT_SUBJECT_SEPARATOR}${subject}`
+    }
   }
 
   return lines

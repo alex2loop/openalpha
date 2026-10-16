@@ -1,13 +1,8 @@
 import type { Locale } from '@/core/types/locale'
 import type { SuggestionDetail } from '@/trading/features/suggestion/render/debate'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
-import type {
-  FactorAttribution,
-  FactorComposite,
-  FactorId,
-  FactorResult,
-} from '@/trading/kernel/factor'
-import type { FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { FactorAttribution, FactorComposite, FactorResult } from '@/trading/kernel/factor'
+import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import type { RenderContext } from '@/trading/render/format'
 import type { QuotedIn } from '@/trading/render/money'
 import { t } from '@/i18n'
@@ -72,7 +67,6 @@ export function renderFactorLines(input: FactorSectionInput): readonly string[] 
     factors: suggestion.factorScores,
     context: input.context,
     ...(input.quote === undefined ? {} : { quote: input.quote }),
-    ...(input.detail === 'full' ? { contributions: contributionsOf(ranked) } : {}),
   })
 
   if (checklist === undefined) {
@@ -140,7 +134,11 @@ function compositeRow(locale: Locale, composite: FactorComposite): readonly stri
     score: formatScoreValue(locale, composite.score),
     // Every market's composite sits on its own scale, so the band travels beside the number rather
     // than the cut points that produced it — those mean nothing without naming the market too.
-    band: renderDeclaredValue(locale, `trading.conviction.${composite.band}`),
+    // Too little data behind it is low confidence, however far the few readings lean.
+    band: renderDeclaredValue(
+      locale,
+      `trading.conviction.${composite.coverageBelowMinimum ? 'low' : composite.band}`
+    ),
     coverage: formatWholeFraction(locale, composite.coverage),
   }
   const key = composite.agreement === undefined ? 'factorCompositeSplit' : 'factorComposite'
@@ -198,14 +196,6 @@ function isPrinted(factor: FactorResult): factor is FactorResult & { readonly we
   return factor.weight !== undefined && movedBy(factor) > 0
 }
 
-function contributionsOf(ranked: readonly RankedFactor[]): ReadonlyMap<FactorId, number> {
-  return new Map(
-    ranked.flatMap((entry) =>
-      entry.contribution === undefined ? [] : [[entry.factor.id, entry.contribution] as const]
-    )
-  )
-}
-
 function groupedFactorRows(
   input: FactorSectionInput,
   scored: readonly RankedFactor[],
@@ -257,20 +247,36 @@ interface FoldInput {
 function factorFold(input: FactorSectionInput, fold: FoldInput): readonly string[] {
   const { locale } = input
   const body = [
-    ...fold.rows.flatMap((entry) =>
-      detailRow(
-        renderMetricLine(
-          locale,
-          entry.factor.metrics?.filter((metric) => !fold.shown.has(metric.id)),
-          input.quote
-        )
-      )
-    ),
+    ...foldMetricLines(input, fold),
     ...fold.rows.flatMap((entry) => detailRow(recordLine(input, entry.factor))),
     ...fold.sources,
   ]
 
   return toFoldLines(t(locale, 'trading.render.suggestion.factorFold'), body)
+}
+
+/** Each reading once: two factors scored against the same peer board both carry its size, and the
+ *  fold states it on the first row that does. */
+function foldMetricLines(input: FactorSectionInput, fold: FoldInput): readonly string[] {
+  const seen = new Set<string>()
+
+  return fold.rows.flatMap((entry) => {
+    const fresh = (entry.factor.metrics ?? []).filter(
+      (metric) => !(fold.shown.has(metric.id) || seen.has(metricKey(metric)))
+    )
+
+    for (const metric of fresh) {
+      seen.add(metricKey(metric))
+    }
+
+    return detailRow(renderMetricLine(input.locale, fresh, input.quote))
+  })
+}
+
+/** A reading is the same one only at the same value: a peer count on a filtered board is not the
+ *  count on the whole one. */
+function metricKey(metric: FactorMetric): string {
+  return `${metric.id}:${metric.value}:${metric.sessions ?? ''}`
 }
 
 function detailRow(text: string | undefined): readonly string[] {

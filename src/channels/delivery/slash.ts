@@ -264,7 +264,7 @@ async function dispatchSlash(options: DispatchSlashOptions): Promise<SlashRunReq
 
   switch (result.kind) {
     case 'message':
-      await deps.sendText(msg.chatId, renderMessages(bindLocale(deps.locale), result.messages))
+      await deps.sendText(msg.chatId, renderMessages(bindLocale(deps.locale), result))
       return null
     case 'text': {
       const footer = hasRunFooter(resolved?.policy, result)

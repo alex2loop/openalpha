@@ -4,6 +4,7 @@ import type { ToolDefinition } from '@/core/tool'
 import type { LedgerTxnDraftInput } from '@/trading/features/ledger/types'
 import type { LedgerToolDeps } from '@/trading/features/portfolio/tools/types'
 import { createTool } from '@/core/tool'
+import { assertFxRateStated } from '@/trading/features/ledger/confirm'
 import { renderWriteReceipt } from '@/trading/features/ledger/render'
 import { renderDraftLine } from '@/trading/features/ledger/rows'
 import { SELL_ALL } from '@/trading/features/ledger/types'
@@ -40,10 +41,14 @@ export function createPortfolioRecordTool(
       detail: (input, locale) => renderDraftLine(locale, input.draft, markets),
     },
     async execute(args, ctx): Promise<string> {
+      const now = Date.now()
+
+      await assertFxRateStated(deps, { draft: args.draft, now, signal: ctx.signal })
+
       const result = await portfolio.record({
         draft: args.draft,
         idempotencyKey: ledgerIdempotencyKey(ctx),
-        now: Date.now(),
+        now,
         signal: ctx.signal,
       })
 

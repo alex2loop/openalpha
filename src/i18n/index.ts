@@ -223,6 +223,8 @@ export const DAY_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
 })
 // One per locale, so bounded by construction.
 const dayFormatters = new Map<Locale, Intl.DateTimeFormat>()
+// One per locale and currency precision, so bounded by construction.
+const amountFormatters = new Map<string, Intl.NumberFormat>()
 
 /** A `YYYY-MM-DD` calendar day in the reader's date order: `2026-08-24` reads as `24/08/2026`. It
  *  names a date, not an instant, so it is pinned to UTC to survive any host timezone. */
@@ -238,11 +240,12 @@ export function formatDay(locale: Locale, day: string): string {
 }
 
 /** A value a message interpolates. A keyed one is localized, and prints `fallback` where the catalog
- *  has no such key; a `day` is put in the reader's date order. */
+ *  has no such key; a `day` is put in the reader's date order; an `amount` in their separators. */
 export type DisplayParam =
   | string
   | number
   | { readonly day: string }
+  | { readonly amount: number; readonly digits: number }
   | {
       readonly key: string
       readonly params?: Readonly<Record<string, string | number>>
@@ -291,7 +294,28 @@ function displayParamText(locale: Locale, value: DisplayParam): string | number 
     return value
   }
 
-  return 'day' in value ? formatDay(locale, value.day) : translateDisplayText(locale, value)
+  if ('day' in value) {
+    return formatDay(locale, value.day)
+  }
+
+  return 'amount' in value
+    ? formatParamAmount(locale, value.amount, value.digits)
+    : translateDisplayText(locale, value)
+}
+
+function formatParamAmount(locale: Locale, amount: number, digits: number): string {
+  const id = `${locale}:${digits}`
+  let formatter = amountFormatters.get(id)
+
+  if (formatter === undefined) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    })
+    amountFormatters.set(id, formatter)
+  }
+
+  return formatter.format(amount)
 }
 
 /** Binds a locale into a closure-based lookup pair for the command renderer (commands/render.ts),

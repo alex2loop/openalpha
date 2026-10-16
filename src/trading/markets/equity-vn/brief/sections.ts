@@ -101,6 +101,7 @@ export async function buildResolvedSuggestions(context: BriefContext): Promise<B
         'resolved-suggestions',
         rows.map((row) => ({
           ticker: row.instrument.ticker,
+          at: row.at,
           status: row.outcome.status,
           returnPct: row.outcome.returnPct,
         })),
@@ -161,13 +162,14 @@ export async function buildPositionsInLoss(context: BriefContext): Promise<Brief
   })
   const stops = stopTally(losing, distances)
 
+  // A stop tally of zero is a count with nothing behind it; the losing count already bounds them.
   return ready('positions-in-loss', [
     {
       losingCount: losing.length,
       losingReturnPct: aggregateReturnPct(losing),
-      stopClearCount: stops.clear,
-      stopBreachedCount: stops.breached,
-      stopUnmeasuredCount: stops.unmeasured,
+      ...(stops.clear === 0 ? {} : { stopClearCount: stops.clear }),
+      ...(stops.breached === 0 ? {} : { stopBreachedCount: stops.breached }),
+      ...(stops.unmeasured === 0 ? {} : { stopUnmeasuredCount: stops.unmeasured }),
     },
   ])
 }

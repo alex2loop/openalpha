@@ -42,15 +42,19 @@ interface LedgerTxnDraftBase {
   readonly note?: string
 }
 
+/** The token that ends a row with the rate it converted at, and the word that accepts the day's
+ *  market rate instead. */
+export const FX_TOKEN = 'fx'
+export const FX_AUTO = 'auto'
+
 interface MonetaryLedgerTxnDraftBase extends LedgerTxnDraftBase {
   readonly currency: CurrencyCode
-}
-
-/** A row whose market may quote in something other than the book's currency, and where the operator
- *  may state the rate it converted at. Cash is not one: a cash row is booked in the base currency,
- *  so its conversion is always identity and a stated rate could only be ignored. */
-interface ConvertedLedgerTxnDraftBase extends MonetaryLedgerTxnDraftBase {
+  /** Base-currency units per unit of `currency`, as the operator paid it. */
   readonly operatorFxRate?: number
+  /** The operator accepted the day's market rate for a row in another currency. */
+  readonly fxRateConfirmed?: true
+  /** The market rate a held row was previewed at, so its confirm books the figures it showed. */
+  readonly previewedConversion?: FxConversion
 }
 
 /** An instrument and the venue holding it. A cash row names a venue too, but no instrument — money
@@ -77,7 +81,7 @@ export interface TransferTxnDraft extends MonetaryLedgerTxnDraftBase {
   readonly fee: number
 }
 
-export interface TradeTxnDraft extends ConvertedLedgerTxnDraftBase, HeldInstrument {
+export interface TradeTxnDraft extends MonetaryLedgerTxnDraftBase, HeldInstrument {
   readonly kind: TradeTxnKind
   readonly quantity: number
   readonly unitPrice: number
@@ -89,7 +93,7 @@ export interface TradeTxnDraft extends ConvertedLedgerTxnDraftBase, HeldInstrume
  *  resolution, so a stored row always carries one. */
 export type TradeTxnDraftInput = Omit<TradeTxnDraft, 'fee'> & { readonly fee?: number }
 
-export interface DividendTxnDraft extends ConvertedLedgerTxnDraftBase, HeldInstrument {
+export interface DividendTxnDraft extends MonetaryLedgerTxnDraftBase, HeldInstrument {
   readonly kind: 'dividend'
   readonly amount: number
 }
@@ -109,7 +113,7 @@ export type LedgerTxnDraft =
 /** Closing out, where the size is the book's answer rather than the operator's. Stated as an
  *  instruction and resolved to a quantity before anything is stored, so a recorded row stays a plain
  *  sell and an in-place correction to an earlier row cannot re-base what this one meant. */
-interface SellAllDraft extends ConvertedLedgerTxnDraftBase, HeldInstrument {
+interface SellAllDraft extends MonetaryLedgerTxnDraftBase, HeldInstrument {
   readonly kind: 'sell'
   readonly quantity: typeof SELL_ALL
   readonly unitPrice: number
@@ -131,7 +135,10 @@ export function isSellAllDraft(draft: LedgerTxnDraftInput): draft is SellAllDraf
   return 'quantity' in draft && draft.quantity === SELL_ALL
 }
 
-type Resolved<T extends LedgerTxnDraftBase> = Omit<T, 'operatorFxRate'> & {
+type Resolved<T extends LedgerTxnDraftBase> = Omit<
+  T,
+  'operatorFxRate' | 'fxRateConfirmed' | 'previewedConversion'
+> & {
   readonly settledAt: TradingDay
 }
 
@@ -144,6 +151,9 @@ export type QuantityAdjustmentTxn = Resolved<QuantityAdjustmentTxnDraft>
 export type TransferTxn = Monetary<Resolved<TransferTxnDraft>>
 
 export type LedgerTxn = CashTxn | TradeTxn | DividendTxn | QuantityAdjustmentTxn | TransferTxn
+
+/** The kinds that move cash. The quantity adjustments are the rest of `LedgerTxn`. */
+export type MonetaryTxn = CashTxn | TradeTxn | DividendTxn | TransferTxn
 
 /** A recorded transaction as it stands now. `recordedAt` is when the row was first written and
  *  `updatedAt` when it was last edited — both instants, distinct from the transaction's own

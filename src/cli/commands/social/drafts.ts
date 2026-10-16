@@ -24,7 +24,7 @@ export const socialDraftsCommand: Command = createCommand({
         app.out('')
       }
 
-      for (const line of renderDraftView({ locale }, draft)) {
+      for (const line of renderDraftView({ locale, timeZone: app.config.locale.timezone }, draft)) {
         app.out(line)
       }
     })
@@ -51,7 +51,10 @@ export const socialApproveCommand: Command = createCommand({
     const service = app.resolve('socialService')
 
     // The operator approves what they just read.
-    for (const line of renderDraftView({ locale }, await service.findDraft(id))) {
+    for (const line of renderDraftView(
+      { locale, timeZone: app.config.locale.timezone },
+      await service.findDraft(id)
+    )) {
       app.out(line)
     }
 
@@ -61,7 +64,11 @@ export const socialApproveCommand: Command = createCommand({
       return declined(app)
     }
 
-    const outcome = renderApproveOutcome({ locale }, id, await service.approveDraft(id, app.signal))
+    const outcome = renderApproveOutcome(
+      { locale, timeZone: app.config.locale.timezone },
+      id,
+      await service.approveDraft(id, app.signal)
+    )
     const [first = '', ...rest] = outcome.lines
 
     app.out(outcome.ok ? success(first) : fail(first))

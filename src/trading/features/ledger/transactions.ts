@@ -7,8 +7,10 @@ import type { CurrencyCode, Region, TradingDay } from '@/trading/kernel/instrume
 import type { LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
+import { foldBook } from '@/trading/features/ledger/book'
 import { renderLedgerText } from '@/trading/features/ledger/rows'
 import { ledgerEntryHandle } from '@/trading/features/ledger/types'
+import { orderLedger } from '@/trading/features/ledger/validate'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { tradingDay } from '@/trading/kernel/instrument'
@@ -36,7 +38,7 @@ const DAYS_PER_WEEK = 7
 interface TransactionsCommandDeps {
   readonly portfolio: Pick<PortfolioService, 'historyAbsolute'>
   readonly marketData: Pick<MarketDataService, 'quoteConvention'>
-  readonly ledger: Pick<LedgerStore, 'listIdsMatching'>
+  readonly ledger: Pick<LedgerStore, 'listAll' | 'listIdsMatching'>
   readonly markets: MarketRegistry
   readonly defaultRegion: Region
   readonly baseCurrency: CurrencyCode
@@ -81,6 +83,12 @@ async function run(deps: TransactionsCommandDeps, ctx: SlashContext): Promise<Sl
     signal: ctx.signal,
   })
 
+  const book = foldBook(
+    orderLedger(await deps.ledger.listAll(ctx.signal)),
+    today,
+    deps.baseCurrency
+  )
+
   const quoteConventions = quoteConventionsFor(
     deps.marketData,
     page.items.flatMap((entry) =>
@@ -94,6 +102,7 @@ async function run(deps: TransactionsCommandDeps, ctx: SlashContext): Promise<Sl
     affordances: pageAffordances(ctx.locale, cursorHandleOf(page.nextCursor), rangeToken),
     text: renderLedgerText(ctx.locale, page, {
       baseCurrency: deps.baseCurrency,
+      book,
       quoteConventions,
       ...(parsed.range === undefined ? {} : { range: parsed.range }),
     }),

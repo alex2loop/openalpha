@@ -8,7 +8,7 @@ import {
   verdictOf,
 } from '@/trading/features/suggestion/render/headline'
 import { renderHeldExit } from '@/trading/features/suggestion/render/held-exit'
-import { renderHoldLevels } from '@/trading/features/suggestion/render/hold-levels'
+import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
 import { renderOrderNotes } from '@/trading/features/suggestion/render/order'
 import { renderPlanLines } from '@/trading/features/suggestion/render/plan'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
@@ -21,7 +21,7 @@ import {
   planOptions,
   renderCalibrationLine,
   renderDetailBlocks,
-  renderFactLines,
+  renderFacts,
 } from '@/trading/features/suggestion/render/suggestion'
 import { inconclusiveBanner, isInconclusive } from '@/trading/features/suggestion/render/verdict'
 
@@ -46,11 +46,13 @@ export function renderSuggestionCard(view: RenderView, call: StoredSuggestion): 
   const quote = levelQuote(view, suggestion)
   const inconclusive = isInconclusive(suggestion)
   const [calibration] = renderCalibrationLine(view, suggestion)
+  const facts = renderFacts(view, suggestion)
 
   return {
     verdict: verdictOf(view, suggestion),
     facts: trimmed([
-      ...renderFactLines(view, suggestion),
+      ...facts.head,
+      ...facts.context,
       ...(inconclusive ? inconclusiveBanner(view.locale, suggestion) : []),
     ]),
     reasons: trimmed([
@@ -85,29 +87,29 @@ export function renderSuggestionCard(view: RenderView, call: StoredSuggestion): 
   }
 }
 
-/** A buy's plan without its bold section title, or a hold's watch levels. */
+/** The plan's levels, then a buy's plan without its bold section title. */
 function levelLines(
   view: RenderView,
   suggestion: StoredSuggestion,
   quote: QuotedIn | undefined
 ): readonly string[] {
-  if (suggestion.action === 'buy') {
-    return renderPlanLines(view.locale, suggestion, planOptions(view, quote)).slice(1)
-  }
-
-  if (suggestion.action !== 'hold' || isInconclusive(suggestion)) {
+  if (isInconclusive(suggestion)) {
     return []
   }
 
-  return renderHoldLevels({
-    locale: view.locale,
-    suggestion,
-    context: view.context,
-    trailsStop: view.trailsStop === true,
-    operatorFigures: view.operatorFigures,
-    ...(view.boardLot === undefined ? {} : { boardLot: view.boardLot }),
-    ...(quote === undefined ? {} : { quoted: quote }),
-  })
+  return [
+    ...renderLevelLines({
+      locale: view.locale,
+      suggestion,
+      trailsStop: view.trailsStop === true,
+      operatorFigures: view.operatorFigures,
+      ...(view.boardLot === undefined ? {} : { boardLot: view.boardLot }),
+      ...(quote === undefined ? {} : { quoted: quote }),
+    }),
+    ...(suggestion.action === 'buy'
+      ? renderPlanLines(view.locale, suggestion, planOptions(view, quote)).slice(1)
+      : []),
+  ]
 }
 
 function trimmed(lines: readonly string[]): readonly string[] {

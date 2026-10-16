@@ -9,6 +9,7 @@ import type { CostRange, DaySpend, LLMUsageTotals, SpendBreakdownRow } from '@/c
 import { formatUsd } from '@/core/utils/cost'
 
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
+  'slash.costTitle',
   'slash.costLine',
   'slash.costLineUncapped',
   'slash.costSession',
@@ -50,6 +51,7 @@ export function createCostCommand(deps: SpendCommandDeps): SlashCommand {
 
       return {
         kind: 'message',
+        title: { key: 'slash.costTitle' },
         messages: [toDailyLine(spent, deps.maxDailyUsd), toSessionLine(session)],
       }
     },

@@ -1,3 +1,4 @@
+import type { PreviewLedgerOptions, RecordPreview } from '@/trading/features/ledger/preview'
 import type {
   LedgerEntry,
   LedgerEntryView,
@@ -33,6 +34,7 @@ import type { QuoteFreshness, RegimeScale } from '@/trading/kernel/market/market
 import type {
   Book,
   CashPosture,
+  CurrencyCash,
   LedgerEntryId,
   Position,
   PriceFreshness,
@@ -136,6 +138,11 @@ export interface BookDayChange {
   readonly at: TradingDay
 }
 
+export interface ValuedCurrencyCash {
+  readonly cash: CurrencyCash
+  readonly valueBase?: number
+}
+
 export interface ValuedBook {
   readonly book: Book
   readonly positions: readonly ValuedPosition[]
@@ -145,7 +152,8 @@ export interface ValuedBook {
   /** Absent when no priced holding's market published a day change, or when NAV is unknown. */
   readonly dayChange?: BookDayChange
   /** What the open positions cost all-in, fees included, not what they are worth now: cash + this +
-   *  `unrealizedPnlBase` is NAV, which is what lets a reader check the block against itself. */
+   *  `unrealizedPnlBase` + `currencyCashGainBase` is NAV, which is what lets a reader check the block
+   *  against itself. */
   readonly investedBase?: number
   /** How much of `investedBase` was fee rather than fill — a part of it, never a term to add to
    *  it. Absent whenever `investedBase` is. */
@@ -156,6 +164,10 @@ export interface ValuedBook {
    *  them. The remainder is the market's own move at today's rate; the two sum exactly to the
    *  total. Absent when every holding is in the base currency or when NAV is unknown. */
   readonly unrealizedFxPnlBase?: number
+  readonly currencyCash: readonly ValuedCurrencyCash[]
+  /** Today's value of the currency cash over its cost. Absent when the book holds none or NAV is
+   *  unknown. */
+  readonly currencyCashGainBase?: number
   /** Never absent, unlike the three above: cash and cost basis alone settle what the closed trades
    *  did, so an unpriced position withholds NAV without withholding this. */
   readonly realizedPnlBase: number
@@ -323,6 +335,7 @@ export interface SegmentTarget {
 export type AgentPortfolio = Pick<
   PortfolioService,
   | 'record'
+  | 'previewRecord'
   | 'recordVenues'
   | 'venuesHolding'
   | 'update'
@@ -375,6 +388,7 @@ export interface SizedValuedBook {
 
 export interface PortfolioService {
   record(options: RecordLedgerOptions): Promise<LedgerWriteResult>
+  previewRecord(options: PreviewLedgerOptions): Promise<RecordPreview>
   /** Which custodians a recorded row may land at when the operator names none — one member is the
    *  answer, more is a choice only the operator can make. */
   recordVenues(market: MarketRef): readonly VenueRef[]

@@ -1,4 +1,9 @@
-import type { CommandDescription, CommandMessage, CommandMessageValue } from '@/core/types/command'
+import type {
+  CommandDescription,
+  CommandMessage,
+  CommandMessageValue,
+  SlashResult,
+} from '@/core/types/command'
 import { scrubCredentials } from '@/core/security/credentials'
 import { stripControls } from '@/core/utils/text'
 
@@ -10,12 +15,15 @@ const MAX_RENDER_MESSAGES = 20
 const MAX_RENDER_CHARS = 4_000
 // Untrusted plugin descriptions are capped before display.
 const PLUGIN_DESC_MAX_LEN = 256
+const ROW_INDENT = '  '
 
 /**
  * Locale lookup + presence check, injected so this module owns command rendering without a direct
  * i18n import — commands may not depend on i18n per the DAG. The surface that owns the locale
  * supplies a bound lookup (locale already captured in the closure).
  */
+type MessageResult = Extract<SlashResult, { readonly kind: 'message' }>
+
 export interface LocaleLookup {
   translate: (key: string, params?: Record<string, string | number>) => string
   has: (key: string) => boolean
@@ -35,10 +43,16 @@ function renderMessage(i18n: LocaleLookup, message: CommandMessage): string {
   return i18n.translate(message.key, scrubParams(i18n, message.values))
 }
 
-/** Renders a command's message list: bounded count, one scrubbed line each, capped total size. */
-export function renderMessages(i18n: LocaleLookup, messages: readonly CommandMessage[]): string {
-  const bounded = messages.slice(0, MAX_RENDER_MESSAGES)
-  const rendered = bounded.map((message) => renderMessage(i18n, message)).join('\n')
+/** Renders a command's message list: bounded count, one scrubbed line each, capped total size.
+ *  Under a title the lines sit one level in. */
+export function renderMessages(i18n: LocaleLookup, result: MessageResult): string {
+  const bounded = result.messages.slice(0, MAX_RENDER_MESSAGES)
+  const lines = bounded.map((message) => renderMessage(i18n, message))
+  const rendered = (
+    result.title === undefined
+      ? lines
+      : [renderMessage(i18n, result.title), ...lines.map((line) => `${ROW_INDENT}${line}`)]
+  ).join('\n')
 
   return rendered.length <= MAX_RENDER_CHARS
     ? rendered

@@ -131,7 +131,7 @@ function handleSlashResult(
 ): ChatRunRequest | null {
   switch (result.kind) {
     case 'message':
-      sendChat(ws, renderMessages(bindLocale(locale), result.messages))
+      sendChat(ws, renderMessages(bindLocale(locale), result))
       return null
     case 'text':
       sendChat(ws, result.text)

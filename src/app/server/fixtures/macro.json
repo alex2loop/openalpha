@@ -73,14 +73,6 @@
       "text": "Too little of the macro model reported in to trust it, so the regime stays defensive until the series return."
     },
     {
-      "code": "macro.regime-lowered",
-      "data": {
-        "reasons": ""
-      },
-      "severity": "warn",
-      "text": "The score alone is not defensive, but  is under strain, so the read was stepped down one band."
-    },
-    {
       "code": "macro.confirmers-abstained",
       "data": {
         "confirmers": "margin, foreign-flow"

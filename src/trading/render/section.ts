@@ -15,7 +15,7 @@ import { formatInstant, isTradingDayText } from '@/trading/render/datetime'
 import {
   INDENT,
   INLINE_SEPARATOR,
-  toFactLines,
+  toRowLines,
   withoutUnfilledWindow,
 } from '@/trading/render/layout'
 import { renderPricePair } from '@/trading/render/price-pair'
@@ -42,6 +42,7 @@ const TITLE_FIELD = 'title'
 const URL_FIELD = 'url'
 
 const SELF_EVIDENT_FIELDS: ReadonlySet<BriefField> = new Set([
+  'action',
   'aggressorSide',
   'at',
   'board',
@@ -60,6 +61,7 @@ const SELF_EVIDENT_FIELDS: ReadonlySet<BriefField> = new Set([
   'rate',
   'sector',
   'segment',
+  'status',
   'ticker',
   'title',
   'valuePct',
@@ -135,9 +137,9 @@ function fieldRows(
   }
 
   return [
-    ...toFactLines(headRowFacts(locale, first, unitOf(currency)), context, 1),
+    ...toRowLines(headRowFacts(locale, first, unitOf(currency)), context, 1),
     ...rest.flatMap((row) =>
-      toFactLines(labelledRowFacts(locale, row, unitOf(currency)), context, 1)
+      toRowLines(labelledRowFacts(locale, row, unitOf(currency)), context, 1)
     ),
   ]
 }
@@ -157,9 +159,9 @@ export function headRowFacts(
 
     return [
       linkedValue(
+        locale,
         renderValue(locale, only, unitOf(currencyOf(row, unit.currency), unit.stated)),
-        field,
-        row
+        { field, row }
       ),
     ]
   }
@@ -256,7 +258,10 @@ function renderRow(locale: Locale, row: BriefSectionRow, currency?: CurrencyCode
   if (entries.length === 1 && only !== undefined) {
     const [field] = only
 
-    return linkedValue(renderValue(locale, only, unitOf(currencyOf(row, currency))), field, row)
+    return linkedValue(locale, renderValue(locale, only, unitOf(currencyOf(row, currency))), {
+      field,
+      row,
+    })
   }
 
   return renderLabelledRow(locale, row, unitOf(currency))
@@ -319,7 +324,7 @@ export function labelledRowFacts(
     const [field] = entry
     const rendered = renderValue(locale, entry, cells)
 
-    const value = linkedValue(rendered, field, row)
+    const value = linkedValue(locale, rendered, { field, row })
 
     return SELF_EVIDENT_FIELDS.has(field) ? value : `${t(locale, fieldKey(field), params)} ${value}`
   })
@@ -349,8 +354,15 @@ function fieldEntries(row: BriefSectionRow): readonly (readonly [BriefField, Bri
 }
 
 /** The headline as a link where the row carries a target, the headline alone where it does not. */
-function linkedValue(rendered: string, field: BriefField, row: BriefSectionRow): string {
+function linkedValue(
+  locale: Locale,
+  rendered: string,
+  cell: { readonly field: BriefField; readonly row: BriefSectionRow }
+): string {
+  const { field, row } = cell
   const url = row[URL_FIELD]
 
-  return field === TITLE_FIELD && typeof url === 'string' ? toLink(rendered, url) : rendered
+  return field === TITLE_FIELD && typeof url === 'string'
+    ? toLink(rendered, url, { reader: locale })
+    : rendered
 }

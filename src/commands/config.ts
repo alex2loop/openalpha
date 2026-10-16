@@ -9,10 +9,13 @@ import type {
 import type { Locale } from '@/core/types/locale'
 
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
+  'slash.configTitle',
   'slash.configLocale',
   'slash.configModel',
   'slash.configBudget',
   'slash.configBudgetUncapped',
+  'slash.configBudgetDailyOnly',
+  'slash.configBudgetMonthlyOnly',
   'slash.configChannels',
   'slash.configNoChannels',
 ]
@@ -46,6 +49,7 @@ export function createConfigCommand(reader: ConfigSummaryReader): SlashCommand {
     policy: POLICY,
     run: async (): Promise<SlashResult> => ({
       kind: 'message',
+      title: { key: 'slash.configTitle' },
       messages: toSummaryLines(reader.read()),
     }),
   }
@@ -65,13 +69,24 @@ function toSummaryLines(summary: ConfigSummary): readonly CommandMessage[] {
 
 /** 0 means uncapped, not "no spend allowed" — rendering it as `$0` would read as a hard stop. */
 function toBudgetLine(summary: ConfigSummary): CommandMessage {
-  if (summary.maxDailyUsd === UNCAPPED && summary.maxMonthlyUsd === UNCAPPED) {
+  const daily = summary.maxDailyUsd
+  const monthly = summary.maxMonthlyUsd
+
+  if (daily === UNCAPPED && monthly === UNCAPPED) {
     return { key: 'slash.configBudgetUncapped' }
+  }
+
+  if (monthly === UNCAPPED) {
+    return { key: 'slash.configBudgetDailyOnly', values: { daily } }
+  }
+
+  if (daily === UNCAPPED) {
+    return { key: 'slash.configBudgetMonthlyOnly', values: { monthly } }
   }
 
   return {
     key: 'slash.configBudget',
-    values: { daily: summary.maxDailyUsd, monthly: summary.maxMonthlyUsd },
+    values: { daily, monthly },
   }
 }
 

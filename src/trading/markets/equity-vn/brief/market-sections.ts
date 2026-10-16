@@ -36,7 +36,9 @@ import {
 import { NEWS_ITEMS_PER_SECTION } from '@/trading/markets/news'
 import { boardRows, breadthRows, MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
 import { apportion, SCORE_QUANTUM } from '@/trading/render/number'
-import { quoteBoardMoveOf } from '@/trading/render/price-pair'
+
+/** Below half a whole percent, coverage prints as 100%. */
+const PRINTED_COVERAGE_GAP = 0.005
 
 // The market-wide half of the brief: sections that describe the exchange rather than the user.
 // Split from the user-scoped half purely for size — both families share the result constructors
@@ -113,7 +115,10 @@ export async function buildMacro(context: BriefContext): Promise<BriefSectionRes
       { compositeScore: macro.view.score },
       ...driverRows(macro.view.drivers),
       ...macro.view.missing.map((entry) => ({ driverMissing: entry.id })),
-      { coverage: macro.view.coverage, formulaVersion: macro.view.formulaVersion },
+      // Partial data is the fact worth a row; a read that prints as whole states nothing new.
+      ...(1 - macro.view.coverage < PRINTED_COVERAGE_GAP
+        ? []
+        : [{ coverage: macro.view.coverage, formulaVersion: macro.view.formulaVersion }]),
       ...(deployment === undefined ? [] : [{ deploymentScale: deployment }]),
     ],
     {
@@ -370,44 +375,6 @@ export async function buildFx(context: BriefContext): Promise<BriefSectionResult
     caveats: result.caveats,
     provenance: result.provenance,
   })
-}
-
-/** One instrument failing omits its row, not the section; every instrument failing is the only case
- *  that makes the section unavailable. With nothing watchlisted the section is omitted: every market
- *  now carries its own block, so a brief is never silent about gold or crypto. */
-export async function buildCrossAssetPulse(context: BriefContext): Promise<BriefSectionResult> {
-  const { names, caveats: capped } = context.crossAssetNames
-
-  if (names.length === 0) {
-    return omitted('cross-asset-pulse')
-  }
-
-  const quoteBoard = await context.services.quoteBoard({
-    instruments: names,
-    signal: context.request.signal,
-  })
-  const caveats = [...capped, ...quoteBoard.caveats]
-
-  return quoteBoard.items.length === 0
-    ? absent('cross-asset-pulse', caveats)
-    : ready(
-        'cross-asset-pulse',
-        // The one section whose rows come from different markets, so each carries the market it
-        // belongs to and the currency its price is in - USD/oz, VND/lượng and USD/coin otherwise
-        // read as one column of comparable numbers.
-        quoteBoard.items.map((item) => {
-          const changePct = quoteBoardMoveOf(item)
-
-          return {
-            ticker: item.ticker,
-            market: item.market,
-            last: item.last,
-            currency: item.currency,
-            ...(changePct === undefined ? {} : { changePct }),
-          }
-        }),
-        { caveats }
-      )
 }
 
 /** The VN30 future against spot: a discount is the derivatives desk voting bearish. */

@@ -176,7 +176,7 @@ export function deriveVnMacroRisk(input: VnMacroInput): MacroRiskView {
     regime,
     caveats: [
       ...base.caveats,
-      ...loweredCaveats({ regime, scoreRegime: base.scoreRegime }, fired, input.bias),
+      ...loweredCaveats({ regime, baseRegime: base.regime }, fired, input.bias),
       ...confirmerCaveats('macro.confirmers-abstained', withKind(input.confirmers, 'abstain')),
       ...confirmerCaveats('macro.confirmers-warming-up', withKind(input.confirmers, 'no-history')),
     ],
@@ -190,13 +190,14 @@ function withKind(
   return confirmers.filter((entry) => entry.kind === kind)
 }
 
-/** A lowered regime that never says what lowered it reads as the formula disagreeing with itself. */
+/** A lowered regime that never says what lowered it reads as the formula disagreeing with itself.
+ *  Compared with the base read: thin coverage already names itself in the base's caveats. */
 function loweredCaveats(
-  banded: { readonly regime: MarketRegime; readonly scoreRegime: MarketRegime },
+  banded: { readonly regime: MarketRegime; readonly baseRegime: MarketRegime },
   fired: readonly StressSignal[],
   bias: PolicyBias
 ): readonly Caveat[] {
-  if (banded.regime === banded.scoreRegime) {
+  if (banded.regime === banded.baseRegime) {
     return []
   }
 

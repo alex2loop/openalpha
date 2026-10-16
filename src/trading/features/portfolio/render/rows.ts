@@ -193,9 +193,9 @@ function renderPosition(
 
 type PricedPosition = Extract<ValuedPosition, { readonly kind: 'priced' }>
 
-/** What the holding has done, how old it is, and what leaving it costs - in as many facts as the
- *  destination's line fits. What it cost to open is quantity × the unit cost on the rows above, so
- *  the row does not restate it. */
+/** What the holding has done and how old it is, then what leaving it costs on its own line, so the
+ *  exit levels never share a line with the return. What it cost to open is quantity × the unit
+ *  cost on the rows above, so the row does not restate it. */
 function positionFactLines(
   locale: Locale,
   valued: PricedPosition,
@@ -205,24 +205,30 @@ function positionFactLines(
   const investedBase = valued.position.costBasisBase
   const pnlBase = valued.valueBase - investedBase
 
-  return toFactLines(
-    [
-      t(locale, 'trading.render.portfolio.positionDetail', {
-        pnl: formatSignedMoney(locale, pnlBase, display.currency),
-        pct: returnFraction(locale, pnlBase, investedBase),
-      }),
-      heldSinceFact(locale, valued),
-      ...riskFacts({
+  return [
+    ...toFactLines(
+      [
+        t(locale, 'trading.render.portfolio.positionDetail', {
+          pnl: formatSignedMoney(locale, pnlBase, display.currency),
+          pct: returnFraction(locale, pnlBase, investedBase),
+        }),
+        heldSinceFact(locale, valued),
+      ],
+      display.context,
+      2
+    ),
+    ...toFactLines(
+      riskFacts({
         locale,
         distance: display.stopDistances?.get(key),
         resting: display.restingStops?.get(key),
         fund: display.instrumentKinds?.get(key) === ETF_KIND,
         price: { at: valued.price, quote: display.quote, context: display.context },
       }),
-    ],
-    display.context,
-    2
-  )
+      display.context,
+      2
+    ),
+  ]
 }
 
 /** Only where the holding actually spans custodians. A one-venue holding has no split, and printing

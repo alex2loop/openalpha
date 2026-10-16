@@ -72,7 +72,25 @@ export interface PendingCash {
   readonly entryId: LedgerEntryId
   readonly venue: VenueRef
   readonly availableAt: TradingDay
+  /** Where the money lands: the base, or the venue's currency cash. */
+  readonly currency: CurrencyCode
+  /** In `currency`. */
+  readonly amount: number
   readonly amountBase: number
+}
+
+/** Cash a venue holds in a currency other than the book's: USDT at an exchange. `costBase` is what
+ *  it cost in the base, averaged over every inflow, so spending it carries that cost into what it
+ *  buys and the rest of its value is currency movement. Once opened it stays, at zero if spent:
+ *  the venue keeps paying for that currency's trades in it, and every reader asks this list. */
+export interface CurrencyCash {
+  readonly venue: VenueRef
+  readonly currency: CurrencyCode
+  /** The day of its first inflow: a row dated before it was paid in the base. */
+  readonly openedAt: TradingDay
+  readonly amount: number
+  readonly available: number
+  readonly costBase: number
 }
 
 /** One venue's cash. `cash` is everything booked there; `available` is what has cleared and can
@@ -89,8 +107,11 @@ export interface Book {
   readonly availableCashBase: number
   readonly netDepositsBase: number
   /** Cash split by the venue holding it. The totals above stay the whole-book figures every
-   *  NAV, return and reserve reading wants; this answers what a buy at one venue can reach. */
+   *  NAV, return and reserve reading wants; this answers what a buy at one venue can reach. Each
+   *  venue's figure includes its currency cash at cost, so every reader of reachable cash keeps
+   *  working; a base-currency outflow is checked against the figure less that currency cash. */
   readonly cashByVenue: ReadonlyMap<VenueRef, VenueCash>
+  readonly currencyCash: readonly CurrencyCash[]
   readonly pendingCash: readonly PendingCash[]
   readonly positions: readonly Position[]
   /** Every sale, in ledger order. */

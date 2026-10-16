@@ -42,7 +42,6 @@ import { exitPriceOf } from '@/trading/markets/stored-quote'
 
 export interface ExitReconcileDeps {
   readonly alerts: Pick<AlertService, 'create' | 'disable'>
-  readonly timezone: string
   readonly store: AlertStore
   readonly suggestions: SuggestionStore
   readonly markets: MarketRegistry

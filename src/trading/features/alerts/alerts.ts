@@ -59,7 +59,6 @@ interface AlertServiceDeps {
   /** Delivery language. With one operator it can only ever be `[locale] language`, so it is read
    *  at send time rather than frozen onto each alert when it was armed. */
   readonly defaultLocale: Locale
-  readonly timezone: string
   /** The arming passes read the book and the plans behind it; both arm through this same service,
    *  which is why they are its dependencies rather than services of their own. */
   readonly suggestions: SuggestionStore
@@ -156,7 +155,6 @@ function exitReconcileDeps(
 ): ExitReconcileDeps {
   return {
     alerts,
-    timezone: deps.timezone,
     store: deps.store,
     suggestions: deps.suggestions,
     markets: deps.markets,

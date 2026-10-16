@@ -2,10 +2,17 @@ import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/comma
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
-import { isResolvedDraft, parseLedgerDraft } from '@/trading/features/ledger/draft'
+import type { CurrencyCode } from '@/trading/kernel/instrument'
+import { t } from '@/i18n'
+import {
+  fieldIssueMessages,
+  isResolvedDraft,
+  LEDGER_FIELD_KEYS,
+  parseLedgerDraft,
+} from '@/trading/features/ledger/draft'
+import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { usage } from '@/trading/kernel/surface/surface'
-import { resolveRenderContext } from '@/trading/render/format'
 
 const UPDATE_USAGE: 'slash.tradingUpdateUsage' = 'slash.tradingUpdateUsage'
 const DELETE_USAGE: 'slash.tradingDeleteUsage' = 'slash.tradingDeleteUsage'
@@ -16,16 +23,19 @@ interface EditCommandDeps {
   readonly portfolio: Editor
   readonly marketData: Pick<MarketDataService, 'quoteConvention' | 'trailsStop' | 'boardLot'>
   readonly costs: TradingCosts
-  readonly timezone: string
+}
+
+interface UpdateCommandDeps extends EditCommandDeps {
+  readonly baseCurrency: CurrencyCode
 }
 
 /** Both commands name an entry by the handle `/transactions` prints beside it, so an operator never
  *  has to copy a UUID out of a chat line. */
-export function createUpdateCommand(deps: EditCommandDeps): SlashCommand {
+export function createUpdateCommand(deps: UpdateCommandDeps): SlashCommand {
   return {
     name: 'update',
     description: { kind: 'localized', key: 'slash.tradingUpdateHelp' },
-    messageKeys: [UPDATE_USAGE],
+    messageKeys: [UPDATE_USAGE, ...Object.values(LEDGER_FIELD_KEYS)],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
@@ -51,22 +61,35 @@ export function createDeleteCommand(deps: EditCommandDeps): SlashCommand {
   }
 }
 
-async function runUpdate(deps: EditCommandDeps, ctx: SlashContext): Promise<SlashResult> {
+async function runUpdate(deps: UpdateCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const [ref, ...rest] = ctx.args
-  const draft = parseLedgerDraft(rest)
+  const parsed = parseLedgerDraft(rest)
 
-  if (ref === undefined || draft === null || !isResolvedDraft(draft)) {
+  if (parsed.kind === 'invalid') {
+    return {
+      kind: 'message',
+      messages: [...fieldIssueMessages(parsed.issue), { key: UPDATE_USAGE }],
+    }
+  }
+
+  const { draft } = parsed
+
+  if (ref === undefined || !isResolvedDraft(draft)) {
     return usage(UPDATE_USAGE)
+  }
+
+  if (asksForFxRate(draft, deps.baseCurrency) && 'currency' in draft) {
+    return {
+      kind: 'text',
+      text: t(ctx.locale, 'trading.render.ledger.updateNeedsFx', { currency: draft.currency }),
+    }
   }
 
   const result = await deps.portfolio.update({ ref, draft, now: Date.now(), signal: ctx.signal })
 
   return {
     kind: 'text',
-    text: renderWriteConfirmation(ctx.locale, result, {
-      ...deps,
-      context: resolveRenderContext(deps.timezone, ctx.surface),
-    }),
+    text: renderWriteConfirmation(ctx.locale, result, deps),
   }
 }
 
@@ -81,9 +104,6 @@ async function runDelete(deps: EditCommandDeps, ctx: SlashContext): Promise<Slas
 
   return {
     kind: 'text',
-    text: renderWriteConfirmation(ctx.locale, result, {
-      ...deps,
-      context: resolveRenderContext(deps.timezone, ctx.surface),
-    }),
+    text: renderWriteConfirmation(ctx.locale, result, deps),
   }
 }

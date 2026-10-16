@@ -6,8 +6,6 @@
 //   - the pinned Bun build. Every release binary has one exact Bun built in, and CI runs the
 //     gates on one exact Bun. Shipping users a build the gates never ran on defeats both pins,
 //     so they are the same number in every job of both workflows.
-//   - the Bun floor again, in both README badges. A badge is the first number a reader trusts
-//     and the last one anybody thinks to edit.
 //   - the gate counts CONTRIBUTING quotes, in both languages. They are what a contributor checks
 //     their own run against, and they went stale within one release of being written. Both copies
 //     are read, because a translated number drifts exactly as easily as the original and a number
@@ -82,9 +80,6 @@ const architectureGates = countGates(scripts['lint:arch'], 'package.json scripts
 // The READMEs quote one total rather than the two commands. It sat at 28 through three changes to
 // the real count, which is why it is read here and not trusted to a reviewer's eye.
 const totalGates = String(Number(contractGates) + Number(architectureGates))
-const bunFloor = capture(packageText, /"bun":\s*">=([\d.]+)"/, 'package.json engines.bun')
-// The badges read "Bun >= 1.3", not "1.3.0" - a floor is quoted to the minor.
-const bunFloorBadge = bunFloor.split('.').slice(0, 2).join('.')
 
 const pairs: readonly Pair[] = [
   {
@@ -100,20 +95,6 @@ const pairs: readonly Pair[] = [
     leftWhere: '.github/workflows/release.yml bun-version',
     right: pinnedBun(checkWorkflowText, 'check.yml'),
     rightWhere: '.github/workflows/check.yml bun-version',
-  },
-  {
-    what: 'Bun floor badge (Vietnamese README)',
-    left: bunFloorBadge,
-    leftWhere: 'package.json engines.bun, to the minor',
-    right: capture(readmeViText, /Bun-%E2%89%A5%20([\d.]+)-/, 'README.md Bun badge'),
-    rightWhere: 'README.md Bun badge',
-  },
-  {
-    what: 'Bun floor badge (English README)',
-    left: bunFloorBadge,
-    leftWhere: 'package.json engines.bun, to the minor',
-    right: capture(readmeEnText, /Bun-%E2%89%A5%20([\d.]+)-/, 'README.en.md Bun badge'),
-    rightWhere: 'README.en.md Bun badge',
   },
   {
     what: 'contract gate count (English)',

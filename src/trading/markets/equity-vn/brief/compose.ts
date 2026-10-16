@@ -17,6 +17,7 @@ import {
 } from '@/trading/kernel/operator/brief-section'
 import { unavailable } from '@/trading/kernel/source/source-result'
 import { loadBriefContext } from '@/trading/markets/equity-vn/brief/context'
+import { buildCrossAssetPulse } from '@/trading/markets/equity-vn/brief/cross-asset-section'
 import { buildDisclosures } from '@/trading/markets/equity-vn/brief/disclosure-section'
 import { buildEvents } from '@/trading/markets/equity-vn/brief/events'
 import {
@@ -27,7 +28,6 @@ import { buildIndexReview } from '@/trading/markets/equity-vn/brief/index-review
 import {
   buildBasis,
   buildBreadth,
-  buildCrossAssetPulse,
   buildDepositRate,
   buildForeignDeskFlow,
   buildFx,

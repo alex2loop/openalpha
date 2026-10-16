@@ -109,21 +109,24 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
 function missingKeyEnvOf(input: ResolveModelInput, owner: string): string | undefined {
   const { entry, defaults, path } = input
   const apiKeyEnv = entry.api_key_env ?? defaults?.api_key_env
-  // A key borrowed from another provider's defaults is offered, never required: a server on this
-  // machine needs none, and a sibling endpoint of the same vendor finds it set.
-  const keyOptional =
-    input.apiKeyOptional === true ||
-    (entry.api_key_env === undefined && connectionDefaults(entry, defaults) === undefined)
+  // A key borrowed from another provider's defaults is never required here: a local server needs
+  // none. A deferred resolve keeps it, and the client asks whether that provider needs it.
+  const borrowed =
+    entry.api_key_env === undefined && connectionDefaults(entry, defaults) === undefined
 
-  if (apiKeyEnv === undefined || keyOptional) {
+  if (apiKeyEnv === undefined || input.apiKeyOptional === true) {
     return undefined
   }
 
-  if (input.deferMissingKey !== true) {
-    throw new MissingEnvError(apiKeyEnv, owner, [...path, 'api_key_env'])
+  if (input.deferMissingKey === true) {
+    return apiKeyEnv
   }
 
-  return apiKeyEnv
+  if (borrowed) {
+    return undefined
+  }
+
+  throw new MissingEnvError(apiKeyEnv, owner, [...path, 'api_key_env'])
 }
 
 /** The address and router preferences in `[model_defaults]` belong to its provider, so an entry

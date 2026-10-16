@@ -2,7 +2,6 @@ import type { Locale } from '@/core/types/locale'
 import type { OperatorFigures } from '@/trading/features/suggestion/render/sections'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { BoardLotPolicy, Ticker } from '@/trading/kernel/instrument'
-import type { RenderContext } from '@/trading/render/format'
 import type { QuotedIn } from '@/trading/render/money'
 import { t } from '@/i18n'
 import {
@@ -16,6 +15,7 @@ import {
   armsExit,
   framedDirectionOf,
   isRecordedPlan,
+  planStopOf,
   planTakeProfitOf,
 } from '@/trading/features/suggestion/types'
 import { isNearStop } from '@/trading/kernel/operator/alert'
@@ -28,14 +28,13 @@ import {
   formatSignedFraction,
   formatWholeFraction,
 } from '@/trading/render/format'
-import { INDENT, toFactLines } from '@/trading/render/layout'
+import { INDENT } from '@/trading/render/layout'
 import { formatPriceIn } from '@/trading/render/money'
 import { FRACTION_QUANTUM } from '@/trading/render/number'
 
 interface HoldLevelsInput {
   readonly locale: Locale
   readonly suggestion: StoredSuggestion
-  readonly context: RenderContext
   /** How the market prints a price. */
   readonly quoted?: Partial<QuotedIn>
   /** Whether the market raises a held name's stop as it runs. Absent reads as no. */
@@ -45,14 +44,11 @@ interface HoldLevelsInput {
   readonly operatorFigures: OperatorFigures
 }
 
-/** The plan's own levels. Each is its own fact, so a narrow destination stacks them rather than
- *  wrapping one line through the middle of a price the reader is meant to act on. */
 interface HeldLevelsInput {
   readonly locale: Locale
   readonly suggestion: StoredSuggestion
   readonly quoted: Partial<QuotedIn>
   readonly isReduce: boolean
-  readonly context: RenderContext
   readonly levels: { readonly stop: number; readonly target: number }
   readonly held: NonNullable<StoredSuggestion['held']>
   readonly entry: number
@@ -89,14 +85,10 @@ function heldLevelLines(input: HeldLevelsInput): readonly string[] {
 
   return [
     `${INDENT[1]}${t(locale, `trading.render.suggestion.holdLevelsIntroHeld${suffix}${withheld}`)}`,
-    ...toFactLines(
-      [
-        t(locale, `trading.render.suggestion.holdLevelsStop${suffix}`, exits),
-        t(locale, 'trading.render.suggestion.holdLevelsTakeProfit', exits),
-      ],
-      input.context,
-      2
-    ),
+    ...levelRows([
+      t(locale, `trading.render.suggestion.holdLevelsStop${suffix}`, exits),
+      t(locale, 'trading.render.suggestion.holdLevelsTakeProfit', exits),
+    ]),
     ...bookRiskLines(locale, { held, mark, stop: levels.stop, suffix, operatorFigures }),
     ...(input.isReduce ? [] : heldTrancheLines(input)),
   ]
@@ -140,15 +132,19 @@ function trancheKeyOf(
     : 'holdLevelsTranche'
 }
 
-export function renderHoldLevels(input: HoldLevelsInput): readonly string[] {
-  const { locale, suggestion, context } = input
+/** The plan's levels one per row. Under an actionable headline they are the order itself; on a
+ *  hold they follow an intro saying what they are, since a declined call's levels are no order. */
+export function renderLevelLines(input: HoldLevelsInput): readonly string[] {
+  const { locale, suggestion } = input
   const quoted = input.quoted ?? {}
 
-  if (suggestion.action !== 'hold' || suggestion.entry === undefined) {
+  if (suggestion.entry === undefined) {
     return []
   }
 
-  const { entry, stop, target, takeProfit, riskReward, held } = suggestion
+  const { entry, target, takeProfit, riskReward, held } = suggestion
+  // An actionable headline prices the plan's live stop, as the order notes under it do.
+  const stop = suggestion.action === 'hold' ? suggestion.stop : planStopOf(suggestion)
 
   if (stop === undefined || target === undefined || riskReward === undefined) {
     return []
@@ -156,7 +152,21 @@ export function renderHoldLevels(input: HoldLevelsInput): readonly string[] {
 
   const isReduce = framedDirectionOf(suggestion) === 'reduce'
   const arm = isReduce ? 'Reduce' : ''
-  const levels = { stop, target }
+  const shared = {
+    entry: formatPriceIn(locale, entry, quoted),
+    ...levelParams(locale, { stop, target, reference: entry }, quoted),
+    rr: formatRatio(locale, riskReward),
+  }
+  const rows = [
+    t(locale, `trading.render.suggestion.holdLevelsEntry${arm}`, shared),
+    t(locale, `trading.render.suggestion.holdLevelsStop${stopArmOf(suggestion, arm)}`, shared),
+    ...exitRows(input, { entry, stop, target, takeProfit: takeProfit ?? target }, shared),
+  ]
+
+  if (suggestion.action !== 'hold') {
+    return rows.map((row) => `${INDENT[1]}${row}`)
+  }
+
   const armedStop = heldStopOf(suggestion, stop)
   const proximity = closingLines(input, { entry, stop: armedStop, isReduce })
 
@@ -176,29 +186,25 @@ export function renderHoldLevels(input: HoldLevelsInput): readonly string[] {
     ]
   }
 
-  const shared = {
-    entry: formatPriceIn(locale, entry, quoted),
-    ...levelParams(locale, { ...levels, reference: entry }, quoted),
-    rr: formatRatio(locale, riskReward),
-  }
-
   // A recorded plan is not a declined call, so its intro says what the position is watched against
   // rather than offering the buy the run never weighed. The held arm above already reads that way.
   const tail = isRecordedPlan(suggestion) ? 'Recorded' : arm
 
   return [
     `${INDENT[1]}${t(locale, `trading.render.suggestion.holdLevelsIntro${tail}`)}`,
-    ...toFactLines(
-      [
-        t(locale, `trading.render.suggestion.holdLevelsEntry${arm}`, shared),
-        t(locale, `trading.render.suggestion.holdLevelsStop${arm}`, shared),
-        ...exitRows(input, { entry, stop, target, takeProfit: takeProfit ?? target }, shared),
-      ],
-      context,
-      2
-    ),
+    ...levelRows(rows),
     ...proximity,
   ]
+}
+
+/** A level that arms nothing is where the plan is reviewed, never a stop. */
+function stopArmOf(suggestion: StoredSuggestion, arm: '' | 'Reduce'): '' | 'Reduce' | 'Fund' {
+  return arm === '' && !armsExit(suggestion) ? 'Fund' : arm
+}
+
+/** One level per row, so a price the reader acts on never shares a line with the next one. */
+function levelRows(levels: readonly string[]): readonly string[] {
+  return levels.map((level) => `${INDENT[2]}${level}`)
 }
 
 /** The stop a holding is watched against: the level the exit tick trailed to, else the standing
@@ -213,9 +219,9 @@ function holdingMarkOf(suggestion: StoredSuggestion, entry: number): number {
   return suggestion.quote === undefined ? entry : exitPriceOf(suggestion.quote)
 }
 
-/** The exits past the stop, as the headline states them: a tranche banked before the target is its
- *  own row and the R:R is the take-profit's. A sale, a fund and a market with no trail exit whole at
- *  the target, so they keep the single target row and the row's own ratio. */
+/** The exits past the stop in the order the operator meets them: a tranche banked before the
+ *  target is its own row and the R:R is the take-profit's. A sale, a fund and a market with no
+ *  trail exit whole at the target, so they keep the single target row and the row's own ratio. */
 function exitRows(
   input: HoldLevelsInput,
   levels: { entry: number; stop: number; takeProfit: number; target: number },

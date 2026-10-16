@@ -7,7 +7,9 @@ import type {
   ThemeRead,
   ThemeReport,
   ThemeRunNote,
+  ThemeStepFailure,
 } from '@/trading/features/themes/types'
+import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 import { MAXIMUM_NEWS_ITEMS } from '@/trading/features/themes/evidence/news'
 import { renderTopSectors, renderTopStocks } from '@/trading/features/themes/render/opportunities'
@@ -256,7 +258,7 @@ function renderNotes(themeId: ThemeId, context: ReportContext): readonly string[
 }
 
 function renderNote(note: ThemeRunNote, locale: Locale): string {
-  const cause = t(locale, `trading.themes.failure.${note.cause}`)
+  const cause = renderFailure(locale, note.cause)
 
   if (note.level === 'theme') {
     return t(locale, 'trading.render.themes.stale', { cause })
@@ -275,7 +277,7 @@ function renderProposed(lines: readonly ThemeLine[], context: ReportContext): re
       ? []
       : [
           t(locale, 'trading.render.themes.discoveryFailed', {
-            cause: t(locale, `trading.themes.failure.${discovery.cause}`),
+            cause: renderFailure(locale, discovery.cause),
           }),
         ]
   const ranked = sortByScore(lines, (line) => line.read?.score)
@@ -294,4 +296,8 @@ function renderProposed(lines: readonly ThemeLine[], context: ReportContext): re
     ...joinEntries(ranked.map((line, index) => renderTheme(line, { context, rank: index + 1 }))),
     ...status,
   ]
+}
+
+function renderFailure(locale: Locale, cause: ThemeStepFailure): string {
+  return t(locale, `trading.themes.failure.${cause}`, { brand: BRAND.name })
 }

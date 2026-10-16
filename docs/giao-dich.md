@@ -204,7 +204,7 @@ Một lần chạy kết thúc theo một trong bốn cách:
 
 | Kết quả | Nghĩa là |
 |---|---|
-| `completed` | Bạn nhận đề xuất. Đánh dấu `reused` khi mã đã được đề xuất trong ngày, hoặc một lệnh mua trước đó vẫn còn hiệu lực. |
+| `completed` | Bạn nhận đề xuất. Đánh dấu `reused` khi mã đã được đề xuất trong ngày trên giá đóng cửa mới nhất đã lưu, hoặc một lệnh mua trước đó vẫn còn hiệu lực. |
 | `unsupported` | Không thị trường nào nhận mã, hoặc có hai thị trường nhận và bạn phải nói rõ. |
 | `cooldown` | Mã vừa được đề xuất quá gần. Báo ngày nó đủ điều kiện trở lại. |
 | `error` | Lần chạy qua hết các cổng rồi không ghi được (nhiều khả năng do kho lưu). Chạy lại là an toàn. |
@@ -273,16 +273,16 @@ Các yếu tố chỉ được tính trên nến đã settle. Tính trên nến 
 
 Mỗi thị trường tự quyết khi nào trả lời được giá trực tiếp, và lùi về giá đóng cuối khi không, nên trước giờ mở và phiên đóng không đổi. Một số đọc có trực tiếp hay không do phiên của nó quyết định, không do dấu thời gian. Phiên khớp lệnh đóng cửa in sau chuông, nên khi bảng giá settle, bản in đóng cửa của chính thị trường thành giá đóng của phiên và dòng trực tiếp bị bỏ.
 
-Bằng chứng và giá có thể kết thúc ở hai phiên khác nhau, nên mọi dòng đã lưu mang một ngày **bằng chứng tới**: phiên đã settle mới nhất mà các yếu tố và mức giá của nó được đọc từ đó. Tiêu đề in ngày này mỗi khi nó khác ngày chạy. Trên thị trường liên tục thì lần chạy nào cũng vậy, vì nến của ngày lịch đóng vào nửa đêm UTC kế tiếp. Ngày của lời gọi vẫn là ngày nó được định giá, thứ mà danh tính dùng-lại và cửa sổ kết cục dựa vào.
+Bằng chứng và giá có thể kết thúc ở hai phiên khác nhau, nên mọi dòng đã lưu mang một ngày **bằng chứng tới**: phiên đã settle mới nhất mà các yếu tố và mức giá của nó được đọc từ đó. Phần cuối báo cáo in ngày này mỗi khi nó khác ngày chạy. Trên thị trường liên tục thì lần chạy nào cũng vậy, vì nến của ngày lịch đóng vào nửa đêm UTC kế tiếp. Ngày của lời gọi vẫn là ngày nó được định giá, thứ mà danh tính dùng-lại và cửa sổ kết cục dựa vào.
 
 #### Riêng cổ phiếu VN
 
 **Giá VN ra ngoài biên của chính phiên nghĩa là lịch sử đã cũ, không phải mã bị tạm dừng.** Không giao dịch nào in ngoài biên. Nếu giá trực tiếp rơi ra ngoài biên dựng từ giá đóng đã lưu, thì giá đóng đó đang ở cơ sở cũ - thường là ngày giao dịch không hưởng quyền mà nguồn chưa điều chỉnh. Lần chạy giữ nguyên với `history-not-adjusted` thay vì định giá trên nó. Phép kiểm này chạy trước khối chạm-biên, thứ nếu không sẽ đọc mức rơi đó như một mã kẹt sàn. Lần refresh kế tiếp thấy giá đóng đã điều chỉnh sẽ dựng lại mã.
 
-**Các yếu tố của một cổ phiếu VN in thành danh sách "nhìn nhanh":** tăng trưởng, khả năng sinh lời, sức khỏe tài chính, định giá, rồi xu hướng, đỉnh gần nhất, dòng tiền và phần còn lại. Mỗi dòng mang thang điểm riêng của yếu tố và các số đọc chính, không bao giờ là một ngưỡng cố định.
+**Các yếu tố của một cổ phiếu VN in thành danh sách "nhìn nhanh"**, chia theo phía: điểm cộng, điểm trừ, rồi thông tin thêm. Trong mỗi nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng mang thang điểm riêng của yếu tố và các số đọc chính, không bao giờ là một ngưỡng cố định.
 
-- Tăng trưởng không có yếu tố riêng, nên chỉ in số.
-- Khả năng sinh lời và sức khỏe tài chính dùng chung điểm chất lượng, nên dòng thứ hai in `"` thay vì đếm hai lần.
+- Tăng trưởng không có yếu tố riêng, nên chỉ in số, trong nhóm thông tin thêm. Yếu tố có điểm gần 0 cũng nằm ở đó.
+- Khả năng sinh lời và sức khỏe tài chính dùng chung điểm chất lượng, nên dòng thứ hai để trống vạch thay vì đếm hai lần.
 - Yếu tố không có số đọc in `—`.
 - REPL in dạng lưới; chat in mỗi dòng một hàng.
 
@@ -480,10 +480,18 @@ Một bản tin đọc theo thứ tự này: khối **operator** mở đầu b�
 
 Mỗi thị trường chỉ công bố các mục riêng mà nó có dữ liệu, nên thêm một thị trường là thêm một khối chứ không thêm mục mới. Thị trường nào công bố chỉ số tổng hợp riêng mà không giữ khu vực của mình (crypto) thì mang nó trên khối `/overview` của chính nó, với cùng các dòng điểm, yếu tố dẫn dắt, thiếu và độ phủ. Số đọc khu vực phía trên nó là của thị trường giữ khu vực.
 
+**Thứ tự đọc.** Báo cáo nào cũng mở đầu bằng câu trả lời và kết thúc bằng phần chú thích:
+
+- `/suggest` mở bằng kết luận (`nên MUA`, `CHƯA MUA hôm nay`...), rồi mỗi mức giá một dòng, rồi lập luận và điều sẽ chứng minh nó sai, sau đó mới tới các yếu tố và phần tranh luận. Ngày dữ liệu, hồ sơ, đơn vị giá và ghi chú rổ chỉ số nằm cuối báo cáo.
+- `/rebalance` lấy chính kế hoạch làm tiêu đề (nên mua hoặc bán bao nhiêu mã, tổng bao nhiêu tiền); mỗi lệnh chỉ còn phần mua trước và tỷ trọng, tổng tài sản và hồ sơ nằm cuối.
+- `/portfolio` đặt cảnh báo tiền mặt cao hơn mục tiêu ngay dưới dòng tổng tài sản, và tách tiền mặt khỏi lãi/lỗ.
+- `/overview` chỉ in bảng yếu tố vĩ mô một lần: thị trường thứ hai dùng cùng chỉ số tổng hợp sẽ ghi một dòng thay vì in lại.
+- Tiêu đề tin và trích dẫn in nguyên văn theo nguồn; tin viết bằng ngôn ngữ khác với bạn được ghi chú, ví dụ `(tiếng Anh)`.
+
 **Thang** cho thấy một số đọc nằm ở đâu giữa hai đầu. Đầu bên trái **luôn** là đầu bất lợi cho người đọc, và `●` là chính số đọc đó. Số đọc vượt quá một trong hai đầu thì nằm ngoài khung.
 
 - `/overview` vẽ chỉ số tổng hợp trên thang `-1`..`+1` với `┼` ở các ngưỡng chế độ, và vẽ từng yếu tố dẫn dắt giữa các neo bearish và bullish của nó. Với lãi suất, neo bearish là con số lớn hơn, nên thang tự làm phép đảo giúp bạn.
-- Mỗi dòng `/portfolio` có kế hoạch vẽ giá trực tiếp của nó giữa mức cắt lỗ và mức chốt lời.
+- Mỗi dòng `/portfolio` có kế hoạch vẽ giá trực tiếp của nó giữa mức cắt lỗ và mức chốt lời, trên một dòng riêng, có ghi rõ hai mức giá.
 - Một đề xuất thì không vẽ gì. Mức chốt lời đầu tiên của một kế hoạch mới nằm đúng một đơn vị rủi ro trên giá vào, nên cái dấu sẽ luôn nằm giữa và chẳng nói gì.
 - Kết quả công cụ do mô hình chuyển tiếp in bằng chữ thường, không có glyph nào.
 
@@ -828,6 +836,19 @@ Giá trị thị trường được quy đổi theo tỷ giá hôm nay của đ�
 
 `USDTVND` chỉ đến từ các nguồn coin. Khi tất cả đều hỏng thì không lùi về `USDVND`, vì một tỷ giá bị lặng lẽ thay thế còn tệ hơn không có. Vị thế đọc là unpriced với `valuation.fx-missing` và NAV bị giữ lại.
 
+Một dòng có thể mang tỷ giá của chính bạn thay vì tỷ giá thị trường: `fx <giá>` ở cuối dòng `/record` lưu đúng giá bạn đã trả, với nguồn ghi là `operator`, còn `fx auto` cố ý lấy tỷ giá thị trường của ngày đó. Dòng tiền mặt giờ cũng có thể ghi bằng đồng tiền mà thị trường của sàn niêm yết, nên `/record deposit binance 1000 USDT 2026-08-14 fx 26600` là một dòng hợp lệ. Không có `fx` thì dòng bằng ngoại tệ được xem trước và giữ lại chờ `/record confirm`, thay vì ghi theo một tỷ giá bạn chưa chọn; `/record sync` ghi theo tỷ giá thị trường và nói rõ đồng tiền nào đã ghi như vậy.
+
+#### Tiền ngoại tệ tại sàn
+
+Khoản nạp bằng đồng tiền mà thị trường của sàn niêm yết, ví dụ `/record deposit binance 1000 USDT 2026-08-14 fx 26600`, làm sàn đó giữ USDT như một số dư tiền mặt riêng, kèm giá vốn bình quân tính theo đồng gốc của sổ (ở đây là 26,6 triệu VND).
+
+- **Dòng nào làm nó đổi.** Nạp, rút, phí, loss hay chuyển USDT luôn làm nó đổi. Khi sàn đã giữ USDT, mọi lệnh mua và bán USDT ở đó cũng vậy: lệnh mua dùng USDT theo giá vốn bình quân và mang giá vốn ấy sang thứ vừa mua, còn lệnh bán trả tiền về lại cho số USDT. USDT đầu tiên ghi ở một sàn làm đổi cách trả của các lệnh sau đó ở sàn ấy, kể cả khoản nạp ghi lùi ngày trước những lệnh sàn đã trả bằng VND, và các lệnh đó khi ấy có thể bị từ chối. Muốn đổi một sàn đang nạp VND sang USDT, hãy rút số VND ra rồi nạp USDT kèm `fx`.
+- **Tỷ giá ghi ở dòng nạp, không ở dòng mua.** Lệnh mua, bán, phí hay chuyển trả bằng USDT sàn đang giữ thì không dùng tỷ giá, nên `fx` trên dòng đó bị từ chối kèm lý do thay vì bị bỏ qua. Giá P2P bạn trả thuộc về dòng nạp USDT.
+- **Rút ra là chốt phần chênh tỷ giá.** USDT ra đi theo giá vốn bình quân, nhưng tiền nạp ròng giảm đúng bằng giá trị của nó hôm đó. Nạp 1.000 ở 26.600 rồi rút 1.000 ở 27.000 thì lãi đã chốt là +400.000 VND và tiền mặt về lại 0.
+- **Hai đồng tiền không tự đổi sang nhau.** Lệnh USDT ở một sàn chỉ dùng USDT của nó và bị từ chối, nêu tên đồng tiền và sàn, khi thiếu. Rút, phí hay chuyển VND ở đó chỉ dùng VND của nó, dù sàn đang giữ USDT.
+- **Dòng chênh tỷ giá âm ngay sau khi nạp qua P2P.** USDT được tính theo tỷ giá USD/VND thị trường, còn giá vốn là giá P2P bạn đã trả, nên ngay sau khoản nạp ở 26.600 dòng đó đọc khoảng -2% khi tỷ giá thị trường là khoảng 26.036.
+- **Xem ở đâu.** `/portfolio` liệt kê USDT cạnh tiền mặt cùng giá vốn và giá trị hôm nay, và in phần chênh tỷ giá. `/reconcile` đối chiếu nó với số USDT thật trên sàn.
+
 #### Mọi mức giá đều nói nó được lấy thế nào
 
 Một vị thế đã định giá được đánh dấu là:
@@ -991,7 +1012,7 @@ Mọi dòng tiền mặt nêu nơi lưu ký của nó, và một lệnh mua bị
 
 ## Đặt lệnh
 
-**Hãy bắt đầu trên tài khoản demo.** Ở 1.0.3, đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
+**Hãy bắt đầu trên tài khoản demo.** Ở 1.0.4, đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
 
 `/trade` và công cụ `order_place` đặt lệnh spot trên **OKX** hoặc **Binance**: lệnh thị trường và limit, mua và bán, kèm chốt lời/cắt lỗ tùy chọn trên lệnh mua. Mỗi lệnh bị chặn trần trước khi bạn được hỏi, được bạn duyệt trước khi đi ra, và được phản chiếu vào sổ lệnh khi khớp.
 

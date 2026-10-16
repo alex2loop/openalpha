@@ -355,7 +355,6 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     briefs,
     alerts: createAlertService({
       defaultLocale: deps.defaultLocale,
-      timezone: deps.config.displayTimezone,
       store: deps.stores.alert,
       markets: deps.markets,
       marketData,

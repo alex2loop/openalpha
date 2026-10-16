@@ -7,10 +7,13 @@ import type {
 import type { Logger } from '@/core/logging/logger'
 import type {
   CommandMessageKey,
+  CommandSurface,
   SlashCommand,
   SlashContext,
+  SlashInvocationPolicy,
   SlashResult,
 } from '@/core/types/command'
+import { BRAND } from '@/core/brand'
 import { isAbortError, RunHalted, ValidationError } from '@/core/errors'
 import { withCorrelation } from '@/core/logging/correlation'
 
@@ -195,6 +198,23 @@ function rejectMessage(key: CommandMessageKey): AdmissionResult {
   }
 }
 
+/** Says where the command does run, and what to use here when the command names it. */
+function rejectSurface(policy: SlashInvocationPolicy, surface: CommandSurface): AdmissionResult {
+  const where = surface === 'repl' ? 'slash.commandChannelOnly' : 'slash.commandTerminalOnly'
+  const hint = policy.surfaceHint
+
+  return {
+    kind: 'rejected',
+    result: {
+      kind: 'message',
+      messages: [
+        { key: where },
+        ...(hint === undefined ? [] : [{ key: hint, values: { brand: BRAND.name } }]),
+      ],
+    },
+  }
+}
+
 function rejectHandled(): AdmissionResult {
   return { kind: 'rejected', result: { kind: 'handled' } }
 }
@@ -204,7 +224,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
   const { policy, command } = resolved
 
   if (!policy.surfaces.includes(context.surface)) {
-    return rejectMessage('slash.commandUnexpected')
+    return rejectSurface(policy, context.surface)
   }
 
   if (!isRoleAllowed(policy.role, context.role)) {

@@ -13,11 +13,13 @@ import {
 } from '@/trading/features/profile/patch'
 import { renderProfileText } from '@/trading/features/profile/render'
 import { SEGMENT_TOGGLES } from '@/trading/features/profile/types'
+import { INVESTMENT_GOALS } from '@/trading/kernel/operator/profile'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
 import { resolveRenderContext } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 
 const USAGE: 'slash.tradingProfileUsage' = 'slash.tradingProfileUsage'
+const GOAL_OPTIONS = INVESTMENT_GOALS.join('|')
 const SHOW_ACTION = 'show'
 const SET_ACTION = 'set'
 const RESET_ACTION = 'reset'
@@ -190,7 +192,10 @@ function completeProfile(profiles: Profiles, args: readonly string[]): readonly 
 
 /** The usage line names the sleeves a venue holds; a reference-only one is refused by name. */
 function usageFor(profiles: Profiles): SlashResult {
-  return usage(USAGE, { segments: profiles.heldSegments().join(INLINE_SEPARATOR) })
+  return usage(USAGE, {
+    segments: profiles.heldSegments().join(INLINE_SEPARATOR),
+    goals: GOAL_OPTIONS,
+  })
 }
 
 /** A profile is a rendered section like every other surface, not a bag of messages: it carries a

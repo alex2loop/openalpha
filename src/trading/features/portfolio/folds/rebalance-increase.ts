@@ -159,22 +159,13 @@ export function sleeveBudgets(rows: RowInput): SleeveBudgets {
   const availablePctNav = rows.input.valued.book.availableCashBase / rows.nav
   const spendable = Math.max(0, availablePctNav - profile.reservePctNav)
   const funded = fundedTargets(rows)
-  const targeted = [...funded.values()].reduce((sum, target) => sum + target, 0)
 
-  if (targeted <= 0) {
-    return {
-      bySegment: new Map(),
-      deploymentScale: deploymentScale(FULL_DEPLOYMENT_SCALE, profile.regimeScale),
-    }
+  if (funded.size === 0) {
+    // Nothing to buy today: the scale still states what the sleeves' macro would allow.
+    return { bySegment: new Map(), deploymentScale: blendedScale(rows, allTargets(rows)) }
   }
 
-  const shares = new Map(
-    [...funded].map(([segment, target]) => [
-      segment,
-      (target / targeted) *
-        deploymentScale(regimeFor(rows.input.regimes, segment).scale, profile.regimeScale),
-    ])
-  )
+  const shares = scaleShares(rows, funded)
   const markets = marketBySegment(rows)
 
   return {
@@ -184,8 +175,45 @@ export function sleeveBudgets(rows: RowInput): SleeveBudgets {
         clampToReachable(rows, { segment, markets, slice: spendable * share }),
       ])
     ),
-    deploymentScale: [...shares.values()].reduce((sum, share) => sum + share, 0),
+    deploymentScale: sumOf(shares),
   }
+}
+
+/** Each sleeve's weight in the targets times the scale its macro allows. */
+function scaleShares(
+  rows: RowInput,
+  targets: ReadonlyMap<PortfolioSegment, number>
+): ReadonlyMap<PortfolioSegment, number> {
+  const { profile } = rows.input
+  const targeted = sumOf(targets)
+
+  return new Map(
+    [...targets].map(([segment, target]) => [
+      segment,
+      targeted <= 0
+        ? 0
+        : (target / targeted) *
+          deploymentScale(regimeFor(rows.input.regimes, segment).scale, profile.regimeScale),
+    ])
+  )
+}
+
+function blendedScale(rows: RowInput, targets: ReadonlyMap<PortfolioSegment, number>): number {
+  return sumOf(targets) > 0
+    ? sumOf(scaleShares(rows, targets))
+    : deploymentScale(FULL_DEPLOYMENT_SCALE, rows.input.profile.regimeScale)
+}
+
+function allTargets(rows: RowInput): ReadonlyMap<PortfolioSegment, number> {
+  return new Map(
+    segmentEntries(rows.input.profile.segmentTargets).filter(
+      ([segment, target]) => target > 0 && rows.input.regimes.has(segment)
+    )
+  )
+}
+
+function sumOf(values: ReadonlyMap<PortfolioSegment, number>): number {
+  return [...values.values()].reduce((sum, value) => sum + value, 0)
 }
 
 /** One sleeve's market, read off its candidates: a segment belongs to exactly one market, so the

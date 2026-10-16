@@ -32,9 +32,7 @@ export const apiCommand: Group = createGroup({
 
 async function printToken(app: CliApp): Promise<number> {
   if (!app.config.api.enabled) {
-    app.out(t(app.config.locale.language, 'cli.authApiDisabled'))
-
-    return 0
+    return printApiDisabled(app)
   }
 
   const tokenEnv = app.config.api.tokenEnv
@@ -67,6 +65,10 @@ async function printToken(app: CliApp): Promise<number> {
 }
 
 async function rotateToken(app: CliApp): Promise<number> {
+  if (!app.config.api.enabled) {
+    return printApiDisabled(app)
+  }
+
   const tokenEnv = app.config.api.tokenEnv
 
   if (tokenEnv !== undefined) {
@@ -85,6 +87,13 @@ async function rotateToken(app: CliApp): Promise<number> {
 
   app.out(token)
   app.out(t(app.config.locale.language, 'cli.authTokenRestart', { brand: BRAND.name }))
+
+  return 0
+}
+
+/** A disabled server reads no token, so neither showing nor minting one means anything yet. */
+function printApiDisabled(app: CliApp): number {
+  app.out(t(app.config.locale.language, 'cli.authApiDisabled'))
 
   return 0
 }

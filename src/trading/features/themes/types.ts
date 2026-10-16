@@ -51,7 +51,7 @@ export const THEME_TRANSITION_RULES: Readonly<Record<ThemeTransition, Transition
     retire: { from: ['active', 'weakening', 'invalidated'], to: 'retired' },
   })
 
-export const THEME_STEP_FAILURES = Object.freeze(['budget', 'halted', 'invalid'] as const)
+export const THEME_STEP_FAILURES = Object.freeze(['budget', 'halted', 'invalid', 'setup'] as const)
 export type ThemeStepFailure = (typeof THEME_STEP_FAILURES)[number]
 
 export const THEME_READ_LEVELS = Object.freeze(['theme', 'sector', 'stock'] as const)

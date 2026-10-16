@@ -14,6 +14,12 @@ import {
   TRANSFER_TXN_KIND,
 } from '@/trading/features/ledger/types'
 import {
+  cashCurrency,
+  fxRateConfirmed,
+  operatorFxRate,
+} from '@/trading/features/portfolio/tools/fx-input'
+import { currencyCode } from '@/trading/kernel/instrument'
+import {
   INVESTMENT_GOALS,
   INVESTMENT_HORIZONS,
   RISK_LEVELS,
@@ -56,15 +62,10 @@ const note = z
   .describe(
     `Free-text note, up to ${MAXIMUM_NOTE_LENGTH} characters. Omit unless the operator said something worth keeping with the row.`
   )
-const operatorFxRate = positiveAmount
-  .optional()
-  .describe(
-    "Units of book currency per unit of the instrument's currency, only when the operator stated the rate they were charged. Omit otherwise."
-  )
 const at = dayInput.describe('Trading day the transaction settled or was executed, YYYY-MM-DD.')
 
-/** Booked in the book's own currency, so it takes neither a currency nor an FX rate: its conversion
- *  is always identity. The venue is required: with no instrument there is no market to resolve a
+/** Booked in the book's base currency unless it names another: a venue may hold cash in a currency
+ *  its markets quote in. The venue is required: with no instrument there is no market to resolve a
  *  sole holder from. */
 const cashDraft = z.strictObject({
   kind: z
@@ -75,7 +76,10 @@ const cashDraft = z.strictObject({
   at,
   note,
   venue: venueInput.describe('The venue holding the cash.'),
-  amount: positiveAmount.describe("Amount in the book's base currency."),
+  amount: positiveAmount.describe('Amount, in `currency`.'),
+  currency: cashCurrency,
+  operatorFxRate,
+  fxRateConfirmed,
 })
 
 /** Cash moving between two of the operator's own venues. The fee is stated, never priced from a
@@ -86,8 +90,11 @@ const transferDraft = z.strictObject({
   note,
   fromVenue: venueInput.describe('The venue the cash leaves.'),
   venue: venueInput.describe('The venue the cash arrives at.'),
-  amount: positiveAmount.describe("Amount in the book's base currency."),
-  fee: z.number().min(0).describe('What moving it cost, in the base currency.'),
+  amount: positiveAmount.describe('Amount, in `currency`.'),
+  fee: z.number().min(0).describe('What moving it cost, in `currency`.'),
+  currency: cashCurrency,
+  operatorFxRate,
+  fxRateConfirmed,
 })
 
 const riskLevel = z.enum(RISK_LEVELS)
@@ -119,11 +126,10 @@ interface LedgerDraftScope {
 /** What a new transaction may say. `all` rides the quantity slot rather than a second union arm:
  *  `kind` discriminates the union, and a close is a sell however its size is stated.
  *
- *  The currency is never asked for: a market quotes in exactly one currency and
- *  cash is booked in the book's base, so a caller stating either could only restate it or be
- *  refused after the operator had already approved the row. A cash row still names its venue, which
- *  has no market to resolve it from. A share-count adjustment moves no money
- *  and carries no currency at all. */
+ *  An instrument row never states its currency: a market quotes in exactly one, so a caller stating
+ *  it could only restate it or be refused after the operator had already approved the row. A cash
+ *  row may name one other than the base, and still names its venue, which has no market to resolve
+ *  it from. A share-count adjustment moves no money and carries no currency at all. */
 export function ledgerDraftInput(scope: LedgerDraftScope): z.ZodType<LedgerTxnDraftInput> {
   const instrument = instrumentInputOf(scope.markets)
   const venue = venueInput.optional()
@@ -138,7 +144,12 @@ export function ledgerDraftInput(scope: LedgerDraftScope): z.ZodType<LedgerTxnDr
     ])
     .transform((parsed, ctx): LedgerTxnDraftInput => {
       if (!('instrument' in parsed)) {
-        return definedOnly({ ...parsed, currency: scope.baseCurrency })
+        const { currency, ...rest } = parsed
+
+        return definedOnly({
+          ...rest,
+          currency: currency === undefined ? scope.baseCurrency : currencyCode(currency),
+        })
       }
 
       const held = heldVenue(scope.venues, parsed, ctx)
@@ -186,6 +197,7 @@ function dividendDraftInput(
     at,
     note,
     operatorFxRate,
+    fxRateConfirmed,
     instrument,
     venue,
     amount: positiveAmount.describe(
@@ -226,6 +238,7 @@ function tradeDraftInput(
         at,
         note,
         operatorFxRate,
+        fxRateConfirmed,
         instrument,
         venue,
         quantity: z

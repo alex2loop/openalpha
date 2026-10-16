@@ -14,11 +14,12 @@ import type {
   TradingDay,
   VenueRef,
 } from '@/trading/kernel/instrument'
-import type { LedgerEntryId } from '@/trading/kernel/operator/book'
+import type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { Page } from '@/trading/kernel/store/page'
 import type { QuoteConvention } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { cashDeltaBase } from '@/trading/features/ledger/book'
+import { paysFromCurrencyCash } from '@/trading/features/ledger/fx-rate'
 import { ledgerEntryHandle, SELL_ALL } from '@/trading/features/ledger/types'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import {
@@ -40,6 +41,7 @@ import {
   formatRecordedPrice,
   formatSignedMoney,
   quotedInOf,
+  renderBoardScaleNotes,
 } from '@/trading/render/money'
 import { ABSENT_CELL } from '@/trading/render/number'
 
@@ -47,9 +49,15 @@ import { ABSENT_CELL } from '@/trading/render/number'
  *  the sync confirmation, so no two surfaces describe one transaction differently. */
 const PRICE_AT = '@'
 const NOTE_DASH = '—'
+/** A note is the operator's own free text; on a page of rows only its start is read, and the full
+ *  text stays on the row `/update` shows. */
+const NOTE_PREVIEW_CHARACTERS = 60
+const NOTE_ELLIPSIS = '…'
 
 interface LedgerView {
   readonly baseCurrency: CurrencyCode
+  /** The book today, to tell which rows moved cash at the venue's currency-cash cost. */
+  readonly book: Book
   readonly quoteConventions: ReadonlyMap<MarketRef, QuoteConvention>
   readonly range?: LedgerDayRange
 }
@@ -82,8 +90,9 @@ export function renderLedgerText(
       ...entries.map((entry) => `${INDENT[1]}${renderDayEntry(locale, entry, view)}`),
     ]),
     [
-      renderPageSummary(locale, page.items, view.baseCurrency),
+      renderPageSummary(locale, page.items, view),
       ...(page.nextCursor === undefined ? [] : [renderMoreLine(locale)]),
+      ...renderBoardScaleLines(locale, page.items, view),
     ],
   ])
 }
@@ -134,23 +143,63 @@ function dayGroups(
 function renderDayEntry(locale: Locale, entry: LedgerEntry, view: LedgerView): string {
   const detail = renderTxnDetail(locale, entry.transaction, view.quoteConventions)
   const kind = t(locale, `trading.ledger.kind.${entry.transaction.kind}`)
-  const note = entry.transaction.note === undefined ? '' : ` ${NOTE_DASH} ${entry.transaction.note}`
+  const { note: raw } = entry.transaction
+  const note = raw === undefined ? '' : ` ${NOTE_DASH} ${notePreview(raw)}`
 
   return `${kind} ${detail}${note}${INLINE_SEPARATOR}${ledgerEntryHandle(entry.id)}`
+}
+
+/** Counted in characters, not UTF-16 units, so a cut never splits an emoji. */
+function notePreview(note: string): string {
+  const characters = Array.from(note)
+
+  return characters.length <= NOTE_PREVIEW_CHARACTERS
+    ? note
+    : `${characters.slice(0, NOTE_PREVIEW_CHARACTERS).join('').trimEnd()}${NOTE_ELLIPSIS}`
+}
+
+/** A board-scaled price prints no currency, so the page says once what scale those rows are in, as
+ *  every other list mixing boards does. */
+function renderBoardScaleLines(
+  locale: Locale,
+  entries: readonly LedgerEntry[],
+  view: LedgerView
+): readonly string[] {
+  const quotes = entries.flatMap(({ transaction: txn }) => {
+    if (!('unitPrice' in txn)) {
+      return []
+    }
+
+    const display = view.quoteConventions.get(txn.instrument.market)?.display
+
+    return [
+      {
+        market: txn.instrument.market,
+        currency: txn.currency,
+        ...(display === undefined ? {} : { display }),
+      },
+    ]
+  })
+
+  return renderBoardScaleNotes(locale, quotes).map((line) => `${INDENT[1]}${line}`)
 }
 
 function renderMoreLine(locale: Locale): string {
   return `${INDENT[1]}${t(locale, 'trading.render.ledger.more')}`
 }
 
+/** What this page holds, never the book: a running balance would need a fold from the first row
+ *  ever written, and the page is a newest-first window of the most recent rows. Each row's cash
+ *  moves at its own recorded rate, so a row that moved currency cash at its cost is called out. */
 function renderPageSummary(
   locale: Locale,
   entries: readonly LedgerEntry[],
-  baseCurrency: CurrencyCode
+  view: Pick<LedgerView, 'baseCurrency' | 'book'>
 ): string {
   const counts = new Map<LedgerTxnKind, number>()
   let cash = 0
   let hasCash = false
+  let foreign: CurrencyCode | undefined
 
   for (const entry of entries) {
     const { transaction } = entry
@@ -159,6 +208,10 @@ function renderPageSummary(
     cash += cashDeltaBase(transaction)
     if ('conversion' in transaction) {
       hasCash = true
+
+      if (movesAtCurrencyCashCost(view.book, transaction)) {
+        foreign ??= transaction.conversion.fromCurrency
+      }
     }
   }
 
@@ -169,17 +222,29 @@ function renderPageSummary(
     })
   )
 
-  return `${INDENT[1]}${t(locale, 'trading.render.ledger.pageSummary', {
+  const summary = `${INDENT[1]}${t(locale, 'trading.render.ledger.pageSummary', {
     kinds: kinds.join(INLINE_SEPARATOR),
-    cash: hasCash ? formatSignedMoney(locale, cash, baseCurrency) : ABSENT_CELL,
+    cash: hasCash ? formatSignedMoney(locale, cash, view.baseCurrency) : ABSENT_CELL,
   })}`
+
+  return foreign === undefined
+    ? summary
+    : `${summary}\n${INDENT[1]}${t(locale, 'trading.render.ledger.pageCashAtRowRates', { currency: foreign })}`
+}
+
+/** A withdrawal of currency cash leaves at its average cost, like a row paid from it. */
+function movesAtCurrencyCashCost(book: Book, txn: LedgerTxn): boolean {
+  return (
+    paysFromCurrencyCash(book, txn) ||
+    (txn.kind === 'withdrawal' && txn.currency !== book.baseCurrency)
+  )
 }
 
 /** A draft renders through the same line a recorded entry does, so an approval prompt and the
  *  history row that follows it can never describe the same transaction differently. */
 export function renderDraftLine(
   locale: Locale,
-  draft: LedgerTxnDraftInput,
+  draft: LedgerTxn | LedgerTxnDraftInput,
   markets: Pick<MarketDataService, 'quoteConvention'>
 ): string {
   const instruments = 'instrument' in draft ? [draft.instrument] : []

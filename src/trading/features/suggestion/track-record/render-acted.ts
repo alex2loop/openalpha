@@ -15,7 +15,7 @@ export function renderActedLines(
   const { actedMeanReturnPct, passedMeanReturnPct, shortfallPct } = acted
 
   return [
-    renderSectionTitle(SECTION_ICONS.reflect, t(locale, 'trading.render.reflect.actedHeading')),
+    renderSectionTitle(SECTION_ICONS.actions, t(locale, 'trading.render.reflect.actedHeading')),
     `${INDENT[1]}${t(locale, 'trading.render.reflect.actedLine', {
       acted: formatCount(locale, acted.actedCount),
       n: formatCount(locale, acted.resolvedCount),

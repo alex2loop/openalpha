@@ -142,7 +142,7 @@ export function parseSegmentPolicyRequest(options: ParsePatchOptions): SegmentPo
   const segment = parseMember(options.values[0], options.segments)
   const pctNav = parseFiniteNumber(options.values[1])
 
-  if (segment === null || pctNav === null || pctNav < 0 || pctNav > 1) {
+  if (segment === null || pctNav === null) {
     return null
   }
 
@@ -181,7 +181,8 @@ function parseFractionPatch(
   const name = parseMember(field, FRACTION_FIELDS)
   const value = parseFiniteNumber(raw)
 
-  if (name === null || value === null || value < 0 || value > 1) {
+  // Range is the validator's: it names the field and the bounds, which usage cannot.
+  if (name === null || value === null) {
     return null
   }
 

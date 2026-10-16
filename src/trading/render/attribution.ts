@@ -52,18 +52,31 @@ export function renderAttributionSections(
     }
 
     sections.push([
-      t(locale, 'trading.attribution.groupHeading', {
+      `${INDENT[1]}${t(locale, 'trading.attribution.groupHeading', {
         market: renderDeclaredValue(locale, `trading.market.${first.market}`),
         version: first.strategyVersion,
-      }),
+      })}`,
+      ...groupLines(locale, group),
     ])
-
-    for (const row of roundedWeights(group)) {
-      sections.push(renderFactorLines(locale, row))
-    }
   }
 
   return sections
+}
+
+/** A group none of whose factors has a rate yet is one line: a factor name with only its fire count
+ *  answers nothing the reader asked. */
+function groupLines(locale: Locale, group: readonly FactorAttribution[]): readonly string[] {
+  const rated = group.some((row) => row.buckets.some((bucket) => bucket.hitRate !== undefined))
+
+  if (!rated) {
+    return [
+      `${INDENT[2]}${t(locale, 'trading.attribution.groupThin', {
+        count: formatCount(locale, group.length),
+      })}`,
+    ]
+  }
+
+  return roundedWeights(group).flatMap((row) => renderFactorLines(locale, row))
 }
 
 /** Rows arrive sorted by market, then newest version first, so the first versions seen per market
@@ -119,7 +132,7 @@ function renderFactorLines(locale: Locale, row: FactorAttribution): readonly str
   const shared = { factor: name, n: formatCount(locale, row.firedCount) }
 
   return [
-    `${INDENT[1]}${
+    `${INDENT[2]}${
       row.weight === undefined
         ? t(locale, 'trading.attribution.factorLine', shared)
         : t(locale, 'trading.attribution.factorLineWeighted', {
@@ -141,7 +154,7 @@ function renderBucketLine(locale: Locale, bucket: FactorAttributionBucket): read
   }
 
   return [
-    `${INDENT[2]}${t(locale, 'trading.attribution.readingLine', {
+    `${INDENT[3]}${t(locale, 'trading.attribution.readingLine', {
       reading: t(locale, READING_KEYS[bucket.reading]),
       hits: formatCount(locale, bucket.hitCount),
       n: formatCount(locale, bucket.resolvedCount),

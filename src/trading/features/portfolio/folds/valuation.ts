@@ -21,8 +21,19 @@ import type { Book, PriceFreshness } from '@/trading/kernel/operator/book'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { utcDay } from '@/core/utils/time'
+import {
+  totalCostBase,
+  totalFeesBase,
+  unrealizedFxPnlBase,
+} from '@/trading/features/portfolio/folds/book-totals'
+import {
+  heldCurrencyCash,
+  type Rates,
+  valueCurrencyCash,
+} from '@/trading/features/portfolio/folds/currency-cash'
 import { toHoldings } from '@/trading/features/portfolio/folds/holdings'
 import { staleQuoteCaveats, staleRateCaveats } from '@/trading/features/portfolio/folds/staleness'
+import { valuationCaveats } from '@/trading/features/portfolio/folds/valuation-caveats'
 import { CASH_SEGMENT, ETF_KIND, tradingDay } from '@/trading/kernel/instrument'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 import { changeAgainstClose } from '@/trading/sources/rows/normalization'
@@ -30,8 +41,6 @@ import { changeAgainstClose } from '@/trading/sources/rows/normalization'
 const VALUATION_CONCURRENCY = 5
 /** `changePct` is percent-valued, as the provider publishes it. */
 const PERCENT_PER_UNIT = 100
-
-type Rates = ReadonlyMap<CurrencyCode, SourceResult<FxQuote>>
 
 type PricedPosition = Extract<ValuedPosition, { kind: 'priced' }>
 
@@ -55,7 +64,6 @@ interface ValueBookOptions {
 
 /** Separate from `foldBook` so a missing price never alters ledger truth. */
 export async function valueBook(options: ValueBookOptions): Promise<ValuedBook> {
-  const caveats: Caveat[] = []
   const rates = await resolveRates(options)
   const outcomes = await mapWithConcurrency(
     toHoldings(options.book.positions),
@@ -63,22 +71,15 @@ export async function valueBook(options: ValueBookOptions): Promise<ValuedBook> 
     (holding) => valuePosition(holding, options, rates)
   )
   const valued = outcomes.map((outcome) => outcome.valued)
-  const complete = valued.every((entry) => entry.kind === 'priced')
-
-  if (!complete) {
-    caveats.push({ code: 'valuation.partial-nav' })
-  }
-
-  // Both arms: a holding priced off a degraded read is still priced. Deduped below.
-  caveats.push(...dedupeCaveats(outcomes.flatMap((outcome) => outcome.sourceCaveats)))
-  caveats.push(...uncheckedSectorCaveats(valued, options.sectorFor))
+  const cash = valueCurrencyCash(options.book, rates, options.settledDay)
+  const complete = valued.every((entry) => entry.kind === 'priced') && cash.priced
 
   const positionsValue = valued.reduce(
     (sum, entry) => sum + (entry.kind === 'priced' ? entry.valueBase : 0),
     0
   )
   // Absent, not a partial sum: a NAV over priced positions only reads authoritative and is wrong.
-  const navBase = complete ? positionsValue + options.book.cashBase : undefined
+  const navBase = complete ? positionsValue + options.book.cashBase + cash.gainBase : undefined
   const investedBase = totalCostBase(options.book)
   const feesBase = totalFeesBase(options.book)
   const freshness = complete ? priceFreshness(valued) : undefined
@@ -97,12 +98,20 @@ export async function valueBook(options: ValueBookOptions): Promise<ValuedBook> 
           feesBase,
           unrealizedPnlBase: positionsValue - investedBase,
           ...(fxPnlBase === undefined ? {} : { unrealizedFxPnlBase: fxPnlBase }),
+          ...(cash.valued.length === 0 ? {} : { currencyCashGainBase: cash.gainBase }),
           ...dayChangeOf(valued, navBase),
         }),
+    currencyCash: cash.valued,
     ...(freshness === undefined ? {} : { freshness }),
-    segmentValues: navBase === undefined ? [] : segmentValues(valued, options, navBase),
+    segmentValues:
+      navBase === undefined
+        ? []
+        : segmentValues(valued, options, {
+            navBase,
+            cashBase: options.book.cashBase + cash.gainBase,
+          }),
     sectorValues: navBase === undefined ? [] : sectorValues(valued, options, navBase),
-    caveats,
+    caveats: valuationCaveats({ complete, outcomes, valued, cash, sectorFor: options.sectorFor }),
   }
 }
 
@@ -175,7 +184,12 @@ function priceFreshness(valued: readonly ValuedPosition[]): PriceFreshness | und
 
 /** One conversion per distinct currency, not per holding. */
 async function resolveRates(options: ValueBookOptions): Promise<Rates> {
-  const currencies = [...new Set(options.book.positions.map((position) => position.currency))]
+  const currencies = [
+    ...new Set([
+      ...options.book.positions.map((position) => position.currency),
+      ...heldCurrencyCash(options.book).map((cash) => cash.currency),
+    ]),
+  ]
   const entries = await mapWithConcurrency(
     currencies,
     VALUATION_CONCURRENCY,
@@ -297,29 +311,19 @@ function dealerBuyCaveat(position: Holding): Caveat {
   return { code: 'valuation.dealer-buy-price', detail: { ticker: position.instrument.ticker } }
 }
 
-/** Keyed on whole caveat: distinct reasons stay distinct, one cold refresh collapses to one. */
-function dedupeCaveats(caveats: readonly Caveat[]): readonly Caveat[] {
-  const seen = new Map<string, Caveat>()
-
-  for (const caveat of caveats) {
-    seen.set(JSON.stringify([caveat.code, caveat.detail ?? null]), caveat)
-  }
-
-  return [...seen.values()]
-}
-
 /** Weights divide by NAV — cash included — never by invested value alone. */
 function segmentValues(
   valued: readonly ValuedPosition[],
   options: ValueBookOptions,
-  navBase: number
+  totals: { readonly navBase: number; readonly cashBase: number }
 ): readonly SegmentValue[] {
-  const totals = aggregateValues(valued, options.segmentFor, [
-    [CASH_SEGMENT, options.book.cashBase],
+  const { navBase } = totals
+  const segmentTotals = aggregateValues(valued, options.segmentFor, [
+    [CASH_SEGMENT, totals.cashBase],
   ])
   const etfTotals = etfValues(valued, options)
 
-  return [...totals].map(([segment, valueBase]) => {
+  return [...segmentTotals].map(([segment, valueBase]) => {
     const etfBase = etfTotals.get(segment)
 
     return {
@@ -362,31 +366,6 @@ function etfValues(
   }
 
   return totals
-}
-
-/** A holding the sector fold could not place is dropped; only names in a market placed elsewhere
- *  count, so a sectorless market (crypto) stays outside the check by nature. */
-function uncheckedSectorCaveats(
-  valued: readonly ValuedPosition[],
-  sectorFor: (instrument: InstrumentRef) => string | undefined
-): readonly Caveat[] {
-  const priced = valued.filter((entry) => entry.kind === 'priced')
-  const placed = new Set(
-    priced
-      .filter((entry) => sectorFor(entry.position.instrument) !== undefined)
-      .map((entry) => entry.position.instrument.market)
-  )
-
-  return priced
-    .filter(
-      (entry) =>
-        sectorFor(entry.position.instrument) === undefined &&
-        placed.has(entry.position.instrument.market)
-    )
-    .map((entry) => ({
-      code: 'portfolio.concentration-unchecked' as const,
-      detail: { ticker: entry.position.instrument.ticker },
-    }))
 }
 
 function sectorValues(
@@ -433,31 +412,4 @@ function aggregateValues<K>(
 
 function weightOfNav(valueBase: number, navBase: number): number {
   return navBase === 0 ? 0 : valueBase / navBase
-}
-
-function totalCostBase(book: Book): number {
-  return book.positions.reduce((sum, position) => sum + position.costBasisBase, 0)
-}
-
-function totalFeesBase(book: Book): number {
-  return book.positions.reduce((sum, position) => sum + position.costBasisFeesBase, 0)
-}
-
-/** Currency-move share of unrealized P/L; undefined, not zero, for an all-base book. */
-function unrealizedFxPnlBase(book: Book, rates: Rates): number | undefined {
-  const foreign = book.positions.filter((position) => position.currency !== book.baseCurrency)
-
-  if (foreign.length === 0) {
-    return undefined
-  }
-
-  return foreign.reduce((sum, position) => {
-    const rate = rates.get(position.currency)
-
-    if (rate === undefined || rate.kind === 'unavailable') {
-      return sum
-    }
-
-    return sum + (position.costBasisNative * rate.value.rate - position.costBasisBase)
-  }, 0)
 }

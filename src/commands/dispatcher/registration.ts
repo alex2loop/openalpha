@@ -14,6 +14,7 @@ const ALLOWED_COMMAND_KEYS: ReadonlySet<string> = new Set<string>([
   'messageKeys',
   'policy',
   'policyFor',
+  'group',
   'run',
 ])
 
@@ -51,6 +52,10 @@ export function collectSlashCommandIssues(
 
   if (command.description.kind === 'localized') {
     issues.push(...collectKeyIssues(`description on /${normalized}`, command.description.key, keys))
+  }
+
+  if (command.group !== undefined) {
+    issues.push(...collectKeyIssues(`help group on /${normalized}`, command.group.key, keys))
   }
 
   return issues

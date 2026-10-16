@@ -174,6 +174,10 @@ chạm sàn. Cú pháp cố định theo vị trí, ngày dạng `YYYY-MM-DD`:
 /record dividend <nơi giữ> <thị trường:mã> <số tiền> <tiền tệ> <ngày>
 /record split|distribution <nơi giữ> <thị trường:mã> <thay đổi khối lượng> <ngày>
 /record sync <sàn>                      # lấy thẳng các lệnh sàn đã khớp mà sổ chưa có
+/record confirm                         # ghi dòng ngoại tệ đang chờ, theo tỷ giá thị trường đã xem
+
+# Dòng bằng USDT: thêm fx <giá bạn trả> hoặc fx auto ở cuối
+/record deposit binance 1000 USDT 2026-08-14 fx 26600
 
 /update <mã bút toán> <các trường như /record>
 /delete <mã bút toán>
@@ -219,6 +223,63 @@ Bốn điều cần nhớ:
   bằng `/update 0f9838 <các trường như /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
   hay bỏ trống phí), xóa bằng `/delete 0f9838`. Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh
   sửa, và sửa một bút toán sẽ tính lại cả những khuyến nghị cũ.
+
+#### Crypto qua P2P: từng bước cho người mới
+
+Tiền đi một vòng: VND, mua USDT qua P2P, nạp USDT vào sàn, mua coin, bán coin ra USDT, rút USDT, bán
+lấy VND. Mỗi lần tiền qua sàn thì ghi một dòng. Điều cần nhớ: **giá bạn trả cho USDT ghi ở dòng nạp**,
+các lệnh mua bán sau đó sổ tự tính theo giá ấy.
+
+1. **Nạp USDT, kèm giá bạn đã trả.** Mua 1.000 USDT qua P2P giá 26.600 trong khi tỷ giá thị trường
+   hôm đó là 26.036: phần chênh là tiền thật bạn đã bỏ ra, nên ghi đúng giá bạn trả.
+2. **Mua coin bằng USDT, không cần `fx`.** Lệnh trả bằng số USDT vừa nạp theo giá vốn ấy. Ghi `fx` ở
+   đây thì sổ từ chối và nhắc bạn bỏ đi. Mã coin luôn có `crypto:` phía trước, phí bỏ trống được.
+3. **Bán coin.** Tiền bán về lại số USDT ở sàn; `all` là bán hết.
+4. **Rút USDT, kèm giá bạn bán ra.** Phần chênh giữa giá mua và giá bán USDT thành lãi hoặc lỗ đã chốt.
+5. **Xem lại** bằng `/portfolio` (số USDT, giá vốn, giá trị hôm nay), `/transactions`, và `/reconcile`
+   nếu đã khai khóa API của sàn.
+
+```bash
+> /record deposit binance 1000 USDT 2026-08-14 fx 26600
+> /record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14
+> /record sell binance crypto:BTC all 65000 USDT 2026-09-01
+> /record withdrawal binance 500 USDT 2026-09-20 fx 26900
+```
+
+Không thêm `fx` thì trợ lý chưa ghi vội. Nó cho bạn xem tỷ giá thị trường của ngày đó và tiền mặt sẽ
+thay đổi bao nhiêu, rồi chờ: gõ `/record confirm` nếu thấy giá đó đúng, hoặc gõ lại lệnh kèm `fx`.
+Lệnh chờ 10 phút, mỗi cuộc trò chuyện giữ một lệnh. Muốn dùng thẳng tỷ giá thị trường mà không bị hỏi
+thì thêm `fx auto`. `/record sync` không bao giờ hỏi, nhưng nói rõ dòng nào đã ghi theo giá thị trường
+để bạn sửa bằng `/update <mã> ... fx <giá>`.
+
+Từ khi sàn giữ USDT, nó giữ luôn cả giá vốn. Nạp 1.000 USDT ở 26.600 thì sổ ghi 1.000 USDT với giá vốn 26,6 triệu. Mua 0,01 BTC giá 60.000 (phí 0,6) dùng hết 600,6 USDT, tức 15.975.960 đồng giá vốn, và còn lại 399,4 USDT. Sau này rút 399,4 USDT lúc tỷ giá 27.000 thì lãi đã chốt thêm đúng phần chênh +159.760 đồng, tức khoảng 400 đồng cho mỗi USDT. `/portfolio` cho thấy phần chênh đó ngay từ lúc còn giữ USDT, ở dòng "Chênh tỷ giá trên ngoại tệ đang giữ".
+
+**Sàn đã có sẵn USDT hoặc coin khi bắt đầu dùng sổ.** Ghi số dư hiện tại, ngày hôm nay, không cần
+ghi lại lịch sử:
+
+- **Chỉ có USDT:** một dòng nạp đúng số USDT đang có, kèm `fx <giá vốn bình quân>`, hoặc `fx auto` nếu
+  không nhớ (lãi lỗ tỷ giá trước ngày này khi đó không được tính).
+- **Có cả coin:** nạp USDT bằng số đang có cộng với số đã bỏ ra mua coin, rồi ghi mỗi coin một lệnh mua
+  theo khối lượng hiện có, giá vốn bình quân và phí `0`. Số USDT trong sổ sau đó về đúng số trên sàn.
+  Dòng phí `0` có kèm câu "Phí lệch" - với số dư ban đầu thì bỏ qua.
+
+```bash
+> /record deposit okx 1300 USDT 2026-10-16 fx auto        # 1.000 USDT đang có + 300 đã bỏ vào BTC
+> /record buy okx crypto:BTC 0.005 60000 USDT 0 2026-10-16
+```
+
+`/record sync` chỉ lấy lệnh khớp từ dòng đầu tiên của sổ trở đi, nên không tự ghi được số coin mua
+trước đó. Đã khai khóa API thì chạy `/reconcile` để so sổ với số dư thật.
+
+Mấy điều hay làm người mới bối rối:
+
+- **Vừa nạp đã thấy lỗ nhẹ tỷ giá.** P2P thường đắt hơn giá thị trường 0,5-3%, mà sổ tính USDT theo
+  giá thị trường. Phần chênh là chi phí thật bạn đã trả.
+- **Báo "không đủ USDT".** Chưa ghi khoản nạp USDT, hoặc ngày nạp muộn hơn ngày mua. Câu báo nêu số
+  USDT sàn có vào ngày đó; ghi khoản nạp trước.
+- **Trước giờ ghi nạp VND vào sàn.** Sổ vẫn đúng, nhưng tiền ở sàn nằm dưới dạng VND nên không theo
+  tỷ giá và `/reconcile` chưa so được. Muốn chuyển sang USDT: ghi một dòng rút hết số VND đang ở sàn,
+  rồi một dòng nạp đúng số USDT đang có kèm `fx`, cả hai ngày hôm nay. Các dòng cũ giữ nguyên.
 
 Biểu phí khai trong `config.toml` **theo từng sàn**, dạng phân số (`0.0015` là 0,15%):
 
@@ -289,7 +350,7 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/market` | `/market` \| `enable` \| `disable` | không |
 | `/watchlist` | `/watchlist` \| `add <mã>...` \| `remove <mã>...` - `remove` với tên trần xóa mã đó ở mọi thị trường | không |
 | `/screen` | `/screen [thị trường] [số lượng] [loại]` | không |
-| `/overview` | `/overview` | không |
+| `/overview` | `/overview [thị trường]...` | không |
 | `/portfolio` | `/portfolio` \| `nav [1m\|3m\|6m\|1y\|all]` | không |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` | không |
 | `/record` | xem [mục 2.4](#24-ghi-sổ-danh-mục) | không |
@@ -310,7 +371,7 @@ Viết `thị-trường:mã` ở bất kỳ lệnh nào khi tên trần có th�
 **`/suggest`:**
 
 - Hỏi lại một mã đã có kết luận trong ngày thì **dùng lại miễn phí** (crypto: mọi kết luận trong 4
-  giờ gần nhất).
+  giờ gần nhất). Kết luận làm lúc phiên còn chạy sẽ được chạy lại khi đã có giá đóng cửa của phiên đó.
 - Mã vừa được đề xuất gần đây thì báo **đang chờ** kèm ngày được hỏi lại - chỉ khi bạn đặt
   `cooldown_sessions` trong `[trading.suggestions]`; mặc định 0 (không chờ).
 - `force` bỏ qua cả hai và thay kết luận cũ, ở độ sâu `full` trừ khi bạn gõ rõ `lean`.
@@ -455,7 +516,7 @@ thuận lợi, `●` là giá trị hôm nay.
   (phải); `●` lọt hẳn ra ngoài khung nghĩa là giá đã vượt một trong hai mức.
 
 **Thanh `████▌░░○░░`** (trên điện thoại, ở `/portfolio` và `/rebalance`): mỗi nhóm một thanh trên
-thang 0-100% tổng tài sản. `█` là phần đang nắm, `○` là trần của nhóm (`/portfolio`) hoặc định mức
+thang 0-100% tổng tài sản. `█` là phần đang nắm, `○` là trần của nhóm (`/portfolio`) hoặc mục tiêu
 (`/rebalance`); dòng chú thích dưới bảng luôn ghi rõ `○` là gì.
 
 ### 5.2 Chỉ chơi crypto
@@ -638,11 +699,11 @@ lúc lưu - chạy lại an toàn, không tạo bản trùng.
 
 **"Giữ nguyên" là một câu trả lời thật**, kèm các mã lý do - không phải đề xuất thất bại.
 
-**Cổ phiếu VN có bảng "Nhìn nhanh".** Thay bảng điểm từng yếu tố, đề xuất in các yếu tố theo thứ tự
-đọc một doanh nghiệp: tăng trưởng, khả năng sinh lời, sức khỏe tài chính, định giá, xu hướng, khoảng
-cách tới đỉnh gần nhất, rồi dòng tiền khối ngoại, tự doanh và mức độ đầu cơ. Mỗi dòng có vạch điểm
-(`▲` cộng, `▼` trừ, càng nhiều vạch càng rõ) cùng vài con số chính như P/E, P/B, ROE, nợ xấu. Không
-có ngưỡng cứng kiểu "ROE > 15%": điểm đã so với chính ngành của mã.
+**Cổ phiếu VN có bảng "Nhìn nhanh".** Thay bảng điểm từng yếu tố, đề xuất chia các yếu tố thành ba
+nhóm: điểm cộng, điểm trừ và thông tin thêm (tăng trưởng, cùng các yếu tố có điểm gần 0). Trong mỗi
+nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có vạch điểm (`▲` cộng, `▼` trừ, càng nhiều vạch càng rõ)
+cùng vài con số chính như P/E, P/B, ROE, nợ xấu. Không có ngưỡng cứng kiểu "ROE > 15%": điểm đã so
+với chính ngành của mã.
 
 **Bản in nói luôn phí.** Dưới dòng quy mô lệnh có một dòng dạng *"Phí trọn vòng mua-bán khoảng 141 VND
 (0,4% giá trị lệnh); giá phải lên 35,46 mới hòa vốn"*, tỷ lệ lấy từ `fees` của sàn mặc định. Với mã

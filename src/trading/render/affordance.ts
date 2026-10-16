@@ -38,15 +38,14 @@ export function planAffordances(locale: Locale): readonly Affordance[] {
   ]
 }
 
-/** One per market the read covers, so a block cut to a headline keeps the command that prints it in
- *  full beside it. */
+/** One per market the full page covers, each opening that market's block alone. */
 export function marketAffordances(
   locale: Locale,
   markets: readonly MarketRef[]
 ): readonly Affordance[] {
   return markets.map((market) => ({
     label: renderDeclaredValue(locale, `trading.market.${market}`),
-    command: `/market ${market}`,
+    command: `/overview ${market}`,
   }))
 }
 

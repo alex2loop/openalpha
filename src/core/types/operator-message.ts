@@ -8,11 +8,13 @@ export interface OperatorMessage {
 }
 
 /** Mirrors i18n's `DisplayParam`, which `core` cannot import: a keyed phrase with the raw text to
- *  print where the catalog has none, or a `YYYY-MM-DD` day for the reader's date order. */
+ *  print where the catalog has none, a `YYYY-MM-DD` day for the reader's date order, or an amount
+ *  at a fixed number of decimals in the reader's separators. */
 type OperatorParam =
   | string
   | number
   | { readonly day: string }
+  | { readonly amount: number; readonly digits: number }
   | {
       readonly key: string
       readonly params?: Readonly<Record<string, string | number>>

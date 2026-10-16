@@ -335,7 +335,7 @@ async function failoverSources<K extends SourceKind>(
     // is the one that looked. What is true here is that every provider was tried.
     return unavailable('failed', attempted, [
       ...caveats,
-      { code: 'source.no-available-provider', detail: { sourceKind: options.kind } },
+      ...exhaustedCaveats(options.kind, { attempted, caveats }),
     ])
   }
 
@@ -349,6 +349,18 @@ async function failoverSources<K extends SourceKind>(
     ),
     ...unlistedCaveats(silent, options.context),
   ])
+}
+
+/** A lone provider's own failure line already says the kind is missing. */
+function exhaustedCaveats(
+  kind: SourceKind,
+  tried: { readonly attempted: readonly SourceId[]; readonly caveats: readonly Caveat[] }
+): readonly Caveat[] {
+  if (tried.attempted.length === 1 && tried.caveats.length > 0) {
+    return []
+  }
+
+  return [{ code: 'source.no-available-provider', detail: { sourceKind: kind } }]
 }
 
 /** What a recovered route reports: the outage notes are replaced by one info line naming the

@@ -24,6 +24,7 @@ import {
   renderOverflowLine,
   renderSectionTitle,
   toFactLines,
+  toRowLines,
   withoutUnfilledWindow,
 } from '@/trading/render/layout'
 import { renderBoardScaleNotes } from '@/trading/render/money'
@@ -260,7 +261,7 @@ function renderSession(
       ? 'trading.intraday.session.title'
       : 'trading.intraday.session.closedTitle'
   const title = renderSectionTitle(
-    SECTION_ICONS.reflect,
+    SECTION_ICONS.session,
     t(locale, key, {
       day: formatDay(locale, session.at),
     })
@@ -282,7 +283,7 @@ function renderSession(
 function renderSettled(context: RowContext, settled: IntradaySettled): string {
   const { locale } = context
   const title = renderSectionTitle(
-    SECTION_ICONS.portfolio,
+    SECTION_ICONS.settled,
     t(locale, 'trading.intraday.settled.title', {
       day: formatDay(locale, settled.day),
     })
@@ -325,7 +326,7 @@ function renderSettledField(
   const [lead, ...tail] = headRowFacts(locale, first, unit)
 
   return [
-    ...toFactLines([`${label} ${lead ?? missing(locale)}`, ...tail], context, 1),
+    ...toRowLines([`${label} ${lead ?? missing(locale)}`, ...tail], context, 1),
     ...rest.flatMap((entryRow) =>
       toFactLines(labelledRowFacts(locale, entryRow, unit), context, 2)
     ),

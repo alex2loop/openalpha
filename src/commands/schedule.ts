@@ -18,6 +18,7 @@ const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   'slash.scheduleRow',
   'slash.scheduleRunDone',
   'slash.scheduleRunRejected',
+  'slash.scheduleTitle',
 ]
 
 const SCHEDULE_VERBS = Object.freeze(['show', 'pause', 'resume', 'run', 'remove'] as const)
@@ -173,7 +174,7 @@ function listResult(jobs: readonly Job[]): SlashResult {
 
   return visible.length === 0
     ? { kind: 'message', messages: [{ key: 'slash.scheduleEmpty' }] }
-    : { kind: 'message', messages: visible.map(rowFor) }
+    : { kind: 'message', title: { key: 'slash.scheduleTitle' }, messages: visible.map(rowFor) }
 }
 
 function failureResult(

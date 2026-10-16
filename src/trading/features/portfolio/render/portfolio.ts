@@ -13,12 +13,9 @@ import type { ProfileStamp, RiskCapSet } from '@/trading/kernel/operator/profile
 import type { RenderContext } from '@/trading/render/format'
 import type { BoardQuoted, QuoteConvention } from '@/trading/render/money'
 import { formatDay, pluralKey, t } from '@/i18n'
-import {
-  renderAllocationSection,
-  renderConcentrationSection,
-} from '@/trading/features/portfolio/render/allocation'
+import { renderAllocationSection } from '@/trading/features/portfolio/render/allocation'
 import { renderAttentionLines } from '@/trading/features/portfolio/render/attention'
-import { renderCashSection } from '@/trading/features/portfolio/render/cash'
+import { renderCashSections } from '@/trading/features/portfolio/render/cash'
 import { renderPositionSection } from '@/trading/features/portfolio/render/rows'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { buildInstrumentKey, CASH_SEGMENT, ETF_KIND } from '@/trading/kernel/instrument'
@@ -30,6 +27,7 @@ import {
   formatSignedFraction,
   renderDeclaredValue,
   SECTION_ICONS,
+  SEVERITY_MARKS,
 } from '@/trading/render/format'
 import { renderFreshness } from '@/trading/render/freshness'
 import { INDENT, joinSections, renderSectionTitle, toFactLines } from '@/trading/render/layout'
@@ -100,17 +98,18 @@ export function renderPortfolioText(
 
   return joinSections([
     renderHeadline(locale, book, options),
-    renderAttentionLines(
-      locale,
-      [...(options.stopDistances?.values() ?? [])],
-      (distance) =>
-        options.instrumentKinds?.get(buildInstrumentKey(distance.instrument)) === ETF_KIND
-    ),
-    renderCashSection(locale, book, display),
+    [
+      ...renderAttentionLines(
+        locale,
+        [...(options.stopDistances?.values() ?? [])],
+        (distance) =>
+          options.instrumentKinds?.get(buildInstrumentKey(distance.instrument)) === ETF_KIND
+      ),
+      ...renderCashNudge(locale, display, options),
+    ],
+    ...renderCashSections(locale, book, display),
     renderAllocationSection(locale, book, display),
-    renderConcentrationSection(locale, book, display),
     renderPositionSection(locale, book, display),
-    renderBoardScaleNote(locale, book, options),
     renderUpcoming(locale, options.upcoming ?? []),
     // The headline already states a partial valuation and names how many holdings caused it, so the
     // generic caveat would be the same sentence twice.
@@ -118,7 +117,10 @@ export function renderPortfolioText(
       locale,
       book.caveats.filter((caveat) => caveat.code !== PARTIAL_NAV_CAVEAT)
     ),
-    renderCashNudge(locale, display, options),
+    [
+      ...renderBoardScaleNote(locale, book, options),
+      renderProfileStamp(locale, options.profile),
+    ].map((line) => line.trimStart()),
   ])
 }
 
@@ -165,7 +167,6 @@ function renderHeadline(
   options: PortfolioRenderOptions
 ): readonly string[] {
   const currency = book.book.baseCurrency
-  const stamp = `${INDENT[1]}${renderProfileStamp(locale, options.profile)}`
 
   if (book.navBase === undefined) {
     const unpriced = book.positions.filter((valued) => valued.kind === 'unpriced').length
@@ -183,7 +184,6 @@ function renderHeadline(
           { count: formatCount(locale, unpriced) }
         )
       ),
-      stamp,
     ]
   }
 
@@ -197,7 +197,6 @@ function renderHeadline(
     )}${renderFreshness(locale, book.freshness, options.context.timezone)}`,
     ...renderTotalPnl(locale, book, options.context),
     ...renderLatestMoveLine(locale, book),
-    stamp,
   ]
 }
 
@@ -280,7 +279,8 @@ function renderUpcoming(locale: Locale, events: readonly UpcomingEvent[]): reado
   ]
 }
 
-/** A surplus points at `/rebalance`; a shortfall is what rebalance itself sells down. */
+/** A surplus points at `/rebalance`, as a warning under the headline; a shortfall is what rebalance
+ *  itself sells down. */
 function renderCashNudge(
   locale: Locale,
   display: BookDisplay,
@@ -300,7 +300,7 @@ function renderCashNudge(
   }
 
   return [
-    `${INDENT[1]}${t(locale, 'trading.render.portfolio.cashNudge', {
+    `${INDENT[1]}${SEVERITY_MARKS.warn} ${t(locale, 'trading.render.portfolio.cashNudge', {
       current: formatFixedFraction(locale, current),
       target: formatFixedFraction(locale, options.cashTargetPctNav),
       gap: formatFixedFraction(locale, gap),

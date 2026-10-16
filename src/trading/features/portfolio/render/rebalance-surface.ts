@@ -8,11 +8,11 @@ import { fractionDirection, renderDeclaredValue } from '@/trading/render/format'
 import type { RebalanceRenderOptions } from './rebalance'
 import {
   renderAfterPlan,
-  renderDeploymentLines,
+  renderBreachLine,
   renderNavLine,
   renderNotes,
-  renderPlanTotals,
-  renderWeakHoldingLines,
+  renderRebalanceTitle,
+  renderStanceLines,
 } from './rebalance'
 import { emptyPlanLine, groupHeading, renderOrderRows } from './rebalance-orders'
 import { renderCashLine, renderEtfCapLines, renderSleeves } from './sleeves'
@@ -20,7 +20,7 @@ import { renderCashLine, renderEtfCapLines, renderSleeves } from './sleeves'
 type RebalanceGroup = 'first' | 'later'
 
 export interface RebalanceText {
-  /** The answer first: the one thing to do, what happens if nothing is done, the totals. */
+  /** The answer first: the plan in one line, what leaving it undone costs, what it leaves behind. */
   readonly headline: readonly string[]
   /** The words the two order groups sit under. */
   readonly groups: { readonly first: string; readonly later: string }
@@ -79,8 +79,7 @@ export function renderRebalanceForSurface(
       ...(advice.rebalance.some((row) => fractionDirection(row.changePctNav) !== 'down')
         ? [t(locale, 'trading.render.rebalance.evidenceCheck')]
         : []),
-      ...renderDeploymentLines(locale, advice.policy),
-      ...renderWeakHoldingLines(locale, advice),
+      ...renderStanceLines(locale, advice),
       ...renderNotes(locale, advice.findings, [...advice.cashSleeve.caveats, ...advice.caveats]),
     ]),
   }
@@ -92,8 +91,9 @@ function headlineOf(
   options: RebalanceRenderOptions
 ): readonly string[] {
   return trimmed([
+    renderRebalanceTitle(locale, advice, options),
     ...(advice.rebalance.length === 0 ? [emptyPlanLine(locale, advice)] : []),
-    ...renderPlanTotals(locale, advice, options),
+    ...renderBreachLine(locale, advice),
     ...renderAfterPlan(locale, advice, options),
     ...renderNavLine(locale, options.sizing ?? null, options),
     renderProfileStamp(locale, advice.policy.profile),

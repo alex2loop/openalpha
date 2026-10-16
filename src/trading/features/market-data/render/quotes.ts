@@ -32,7 +32,7 @@ export function renderQuotesText(
 ): string {
   if (quoteBoard.items.length === 0) {
     return joinSections([
-      [renderEmptyLine(SECTION_ICONS.quote, t(locale, 'trading.render.quotes.empty'))],
+      [renderEmptyLine(SECTION_ICONS.watchlist, t(locale, 'trading.render.quotes.empty'))],
       renderCaveatLines(locale, quoteBoard.caveats),
     ])
   }
@@ -45,7 +45,7 @@ export function renderQuotesText(
   return joinSections([
     [
       renderSectionTitle(
-        SECTION_ICONS.quote,
+        SECTION_ICONS.watchlist,
         t(locale, 'trading.render.quotes.title', {
           count: formatCount(locale, quoteBoard.items.length),
         })
@@ -54,7 +54,7 @@ export function renderQuotesText(
         locale,
         toMarketBlocks(quoteBoard.items, (item) => item.market),
         {
-          icon: SECTION_ICONS.quote,
+          icon: SECTION_ICONS.watchlist,
           renderRows: (items) =>
             items.map((item) => rowLine(locale, item, { tickerWidth, options })),
         }

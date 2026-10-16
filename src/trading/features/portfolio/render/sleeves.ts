@@ -5,11 +5,10 @@ import type {
   RebalanceSizing,
   SegmentTarget,
 } from '@/trading/features/portfolio/types'
-import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { RenderContext } from '@/trading/render/format'
 import type { SleeveBlock, SleeveColumn, SleeveRow } from '@/trading/render/sleeve-block'
 import { t } from '@/i18n'
-import { buildInstrumentKey, CASH_SEGMENT } from '@/trading/kernel/instrument'
+import { CASH_SEGMENT } from '@/trading/kernel/instrument'
 import {
   formatFixedFraction,
   formatFraction,
@@ -34,62 +33,6 @@ interface SleeveShares {
   readonly currentPctNav: number
   readonly afterPlanPctNav: number
   readonly targetPctNav: number
-}
-
-/** Where one order leaves its sleeve, twice over: the two figures printed from it tie to different
- *  things. */
-export interface SegmentProgress {
-  /** The weights the table below prints, so no line states one sleeve's weight two ways. */
-  readonly from: number
-  readonly to: number
-  /** The same points unrounded, which the money reads: an opening amount plus the order on that
-   *  line has to reach its closing amount. */
-  readonly fromExact: number
-  readonly toExact: number
-}
-
-/** Each order's `from`/`to` as its segment's running weight, walked in plan order, so several buys in
- *  one sleeve read as a climb rather than each restating its own instrument from the start. The
- *  printed ends are the table's own: rounded off this walk instead, the first `from` sat a rounding
- *  unit from the row stating the same weight, and one message called the crypto sleeve 3,12% and
- *  3,11%. */
-export function cumulativeSegmentWeights(
-  advice: RebalancePlanReady
-): ReadonlyMap<string, SegmentProgress> {
-  const sleeves = new Map(
-    printedSleeveShares(advice.allocation).map(([row, shares]) => [row.segment, { row, shares }])
-  )
-  const closing = new Map<PortfolioSegment, string>()
-
-  for (const row of advice.rebalance) {
-    closing.set(row.segment, buildInstrumentKey(row.instrument))
-  }
-
-  const running = new Map<PortfolioSegment, number>()
-  const result = new Map<string, SegmentProgress>()
-
-  for (const change of advice.rebalance) {
-    const sleeve = sleeves.get(change.segment)
-
-    if (sleeve === undefined) {
-      continue
-    }
-
-    const key = buildInstrumentKey(change.instrument)
-    const opening = running.get(change.segment)
-    const fromExact = opening ?? sleeve.row.currentPctNav
-    const toExact = fromExact + change.changePctNav
-
-    running.set(change.segment, toExact)
-    result.set(key, {
-      from: opening ?? sleeve.shares.currentPctNav,
-      to: closing.get(change.segment) === key ? sleeve.shares.afterPlanPctNav : toExact,
-      fromExact,
-      toExact,
-    })
-  }
-
-  return result
 }
 
 export function renderSleeves(

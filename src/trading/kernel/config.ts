@@ -222,6 +222,13 @@ export interface ThemePolicy {
   readonly maximumCostUsd: number
 }
 
+export interface LedgerPolicy {
+  /** How long a held row waits for `/record confirm`. */
+  readonly confirmTtlMs: number
+  /** Held rows kept at once, one per chat session. */
+  readonly maximumStagedRecords: number
+}
+
 export interface TradingConfig {
   /** The operator's own clock, from `[locale] timezone`. Every rendered instant reads in it, so one
    *  message never mixes a market's session clock with another market's. A market's *trading day*
@@ -236,6 +243,7 @@ export interface TradingConfig {
   readonly intraday: IntradayPolicy
   readonly alerts: AlertPolicy
   readonly orders: OrderPolicy
+  readonly ledger: LedgerPolicy
   readonly themes: ThemePolicy
   /** Market ref to everything that market is configured with. A market absent here runs on its own
    *  defaults; a market whose universe is fetched ignores the section entirely. */

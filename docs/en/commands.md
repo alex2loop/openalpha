@@ -109,8 +109,8 @@ so a command behaves the same in the REPL and in a group chat.
 
 | Command | Purpose |
 |---|---|
-| `/agent` | Show the entry agent; an authorized channel operator can change it |
-| `/model` | Show or select a configured model selector |
+| `/agent` | Show the entry agent; an authorized channel operator can change it. In the terminal, pick it with `chat --agent <id>` |
+| `/model` | Show a configured model selector anywhere; select one in a chat channel |
 | `/research` | Run bounded, cited research without changing the selected agent |
 | `/health` | Show runtime and channel health codes |
 | `/memory` | List, recall, search, store or remove memory |
@@ -120,6 +120,8 @@ so a command behaves the same in the REPL and in a group chat.
 | `/new` | Switch to a fresh chat session |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
+
+`/help` lists commands in groups: general, portfolio and trades, markets, analysis and suggestions.
 
 Channels add `/stop` and the pairing controls. `/stop` and `/help` also answer to a bot-addressed form
 such as `/stop@MyBot`, the way a Telegram group sends them. The REPL has `/help`, `/exit` and `/quit`,
@@ -460,7 +462,7 @@ The rest fit in a line.
 |---|---|
 | `/setup` | `/setup` - what the assistant does and how to set it up |
 | `/record` | Writes a ledger row. See [The ledger](#the-ledger) |
-| `/update` | `/update <handle> <the same fields as /record>` - edit one entry in place, venue included. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
+| `/update` | `/update <handle> <the same fields as /record>` - edit one entry in place, venue included. A row in a currency other than VND needs `fx <rate>` or `fx auto`. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
 | `/delete` | `/delete <handle>` - remove one entry |
 | `/transactions` | `/transactions [rows] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
@@ -469,7 +471,7 @@ The rest fit in a line.
 | `/watchlist` | `/watchlist` - live quotes for what you follow and what you hold, at most twelve names (a longer list is truncated and says so); `/watchlist add <ticker>...`; `/watchlist remove <ticker>...` |
 | `/price` | `/price <ticker>`, or `market:ticker` where a bare name is ambiguous. A market that quotes a two-sided dealer board (VN gold) prints both sides and the spread instead of a settled/live pair: a board states no last trade and keeps no daily series to close against |
 | `/market` | `/market` - where one market is right now, beside the last session that settled; `/market enable\|disable` - turn the scheduled sends on or off (they go to the default chat, not necessarily this one) |
-| `/overview` | `/overview` - how every market is doing, macro block included |
+| `/overview` | `/overview` - how every market is doing, macro block included; `/overview <market>...` - only those markets, e.g. `/overview crypto` |
 | `/screen` | `/screen [market] [limit] [kind]`, in any order. The market defaults to the one whose calendar `[locale] region` names; `kind` narrows to one instrument kind the market lists. A name on your exclusion list still ranks and is marked, never hidden |
 | `/suggest` | Spends LLM budget on one name. See [Suggestions](#suggestions) |
 | `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme and looks for no new ones, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
@@ -547,7 +549,16 @@ reading of the book.
 /record split|distribution <venue> <market:ticker> <quantity-delta> <day>
 /record transfer <from-venue> <to-venue> <amount> <currency> <fee> <day>
 /record sync <venue>
+/record confirm
 ```
+
+Any row that moves money, cash deposits, withdrawals and transfers included, may end with `fx <rate>` or
+`fx auto`. It is the rate into VND for the row's currency, and only applies to a row in a currency other
+than VND, such as USDT.
+
+A mistyped field (a ticker without its market, a bad date, a negative number, an unreadable `fx`)
+writes nothing; the reply names that field and the form it expects, then prints the usage. `/update`
+does the same.
 
 **Buy and sell.** A sale may write `all` instead of a count; the ledger resolves it to the settled
 quantity held *at that venue* on that day. You may leave out the fee, and the venue's `fees` rate in
@@ -560,6 +571,20 @@ fill is matched, is in [Trading](trading.md).
 **Other row types.** A rights issue is not brokered at the standard rate, so it always states its
 fee. A `transfer` moves cash between two of your own venues without touching net deposits. A 2:1
 split on a name held at two brokers is two rows, not one applied pro rata.
+
+**Exchange rate (`fx`).** `fx <rate>` books the row at what you actually paid per unit of the currency, and
+the rate's source is stored as `operator`. `fx auto` books it at that day's market rate with no question
+asked. A row in a currency other than VND with no `fx` is not recorded yet: the assistant shows a preview
+(the market rate it would use, the cash change, and why P2P can differ) and waits. Type `/record confirm`
+to record it exactly as previewed, or type the command again with `fx <rate>`.
+
+- A row waiting for confirmation is held for 10 minutes. Each chat holds one, and a new one replaces it.
+- Any other `/record` that parses drops the held row and says so. One that fails to parse keeps it.
+- `/record confirm` with nothing waiting says so and writes nothing.
+- `/update` of a row in a currency other than VND requires `fx <rate>` or `fx auto`; it never holds a row.
+- `/record confirm` asks only where the rate changes the book: deposits and withdrawals, and trades at a venue holding none of that currency. A venue that already holds USDT pays its USDT trades from it at cost, so they are not asked. `/reconcile` now compares a venue's USDT too.
+- `/record sync` never asks: it books at each day's market rate and ends with one line per currency booked
+  that way, so you can fix a row with `/update` if you bought over P2P.
 
 **`/record sync <venue>`** books every fill the venue reports that your book has no row for, using
 the exchange's own quantity, price and fee.
@@ -588,7 +613,9 @@ the exchange's own quantity, price and fee.
 Options go in any order after the ticker; use `market:ticker` where a bare name is ambiguous. This
 spends LLM budget, so it is built to avoid spending it twice.
 
-Today's answer is reused for free - on a continuous market, any answer under 4 hours old. `force`
+Today's answer is reused for free - on a continuous market, any answer under 4 hours old - until a
+newer close is stored than the one it read: a call made while the session traded runs again after
+`/refresh` loads that session. `force`
 re-runs past that and past the cooldown, at full depth unless you type a mode. A name the book already
 holds at target runs `lean` by default, because the expensive question is already answered.
 

@@ -19,7 +19,10 @@ const SUBCOMMANDS = ['drafts', 'approve', 'discard'] as const
 
 /** `/social drafts`, `/social approve <id>`, `/social discard <id>`: the operator's drafts from any
  *  chat. Operator role only; an approval re-runs every check, as the CLI does. */
-export function createSocialSlashCommand(service: () => SocialService): SlashCommand {
+export function createSocialSlashCommand(
+  service: () => SocialService,
+  timeZone: string
+): SlashCommand {
   return {
     name: 'social',
     description: { kind: 'localized', key: 'slash.socialHelp' },
@@ -27,16 +30,22 @@ export function createSocialSlashCommand(service: () => SocialService): SlashCom
     policy: READ_POLICY,
     policyFor: (args) => (args[0] === 'drafts' || args.length === 0 ? READ_POLICY : MUTATE_POLICY),
     completeFor: (args) => (args.length === 1 ? [...SUBCOMMANDS] : []),
-    run: (ctx) => runSocialSlash(service(), ctx),
+    run: (ctx) => runSocialSlash(service(), { ctx, timeZone }),
   }
 }
 
-async function runSocialSlash(service: SocialService, ctx: SlashContext): Promise<SlashResult> {
+interface SocialRun {
+  readonly ctx: SlashContext
+  readonly timeZone: string
+}
+
+async function runSocialSlash(service: SocialService, run: SocialRun): Promise<SlashResult> {
+  const { ctx } = run
   const [action, id] = ctx.args
 
   try {
     if (action === undefined || action === 'drafts') {
-      return await listResult(service, ctx)
+      return await listResult(service, run)
     }
 
     if (id === undefined || (action !== 'approve' && action !== 'discard')) {
@@ -44,7 +53,7 @@ async function runSocialSlash(service: SocialService, ctx: SlashContext): Promis
     }
 
     return action === 'approve'
-      ? await approveResult(service, ctx, id)
+      ? await approveResult(service, run, id)
       : await discardResult(service, ctx, id)
   } catch (err: unknown) {
     const operator = operatorMessageOf(err)
@@ -58,15 +67,16 @@ async function runSocialSlash(service: SocialService, ctx: SlashContext): Promis
   }
 }
 
-function chatRender(ctx: SlashContext): DraftRender {
-  return { locale: ctx.locale, fenced: true }
+function chatRender(run: SocialRun): DraftRender {
+  return { locale: run.ctx.locale, timeZone: run.timeZone, fenced: true }
 }
 
 function usage(): SlashResult {
   return { kind: 'message', messages: [{ key: 'slash.socialUsage' }] }
 }
 
-async function listResult(service: SocialService, ctx: SlashContext): Promise<SlashResult> {
+async function listResult(service: SocialService, run: SocialRun): Promise<SlashResult> {
+  const { ctx } = run
   const drafts = await service.listDrafts()
 
   if (drafts.length === 0) {
@@ -86,7 +96,7 @@ async function listResult(service: SocialService, ctx: SlashContext): Promise<Sl
 
   return {
     kind: 'text',
-    text: drafts.map((draft) => renderDraftView(chatRender(ctx), draft).join('\n')).join('\n\n'),
+    text: drafts.map((draft) => renderDraftView(chatRender(run), draft).join('\n')).join('\n\n'),
     affordances,
   }
 }
@@ -95,12 +105,12 @@ async function listResult(service: SocialService, ctx: SlashContext): Promise<Sl
 // the confirmation.
 async function approveResult(
   service: SocialService,
-  ctx: SlashContext,
+  run: SocialRun,
   id: string
 ): Promise<SlashResult> {
-  const outcome = await service.approveDraft(id, ctx.signal)
+  const outcome = await service.approveDraft(id, run.ctx.signal)
 
-  return { kind: 'text', text: renderApproveOutcome(chatRender(ctx), id, outcome).lines.join('\n') }
+  return { kind: 'text', text: renderApproveOutcome(chatRender(run), id, outcome).lines.join('\n') }
 }
 
 async function discardResult(

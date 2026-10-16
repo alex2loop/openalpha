@@ -27,6 +27,7 @@ const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   ...Object.values(RUNTIME_KEYS),
   ...Object.values(CHANNEL_KEYS),
   'slash.healthNoChannels',
+  'slash.healthTitle',
 ]
 
 export interface ChannelHealth {
@@ -55,6 +56,7 @@ export function createHealthCommand(reader: HealthSummaryReader): SlashCommand {
 
       return {
         kind: 'message',
+        title: { key: 'slash.healthTitle' },
         messages: [{ key: RUNTIME_KEYS[summary.runtime] }, ...toChannelLines(summary.channels)],
       }
     },

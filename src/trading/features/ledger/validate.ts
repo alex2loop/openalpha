@@ -1,4 +1,4 @@
-import type { FoldState } from '@/trading/features/ledger/book'
+import type { FoldState } from '@/trading/features/ledger/fold-state'
 import type {
   DividendTxn,
   LedgerEntry,
@@ -10,15 +10,17 @@ import type { CurrencyCode, MarketRef, TradingDay, VenueRef } from '@/trading/ke
 import type { MarketManifest } from '@/trading/markets/types'
 import type { VenueManifest } from '@/trading/venues/types'
 import { ValidationError } from '@/core/errors'
+import { applyTransaction, positionAt, promoteSettled } from '@/trading/features/ledger/book'
 import {
-  applyTransaction,
-  createFoldState,
-  positionAt,
-  promoteSettled,
-} from '@/trading/features/ledger/book'
+  currencyCashAt,
+  currencyCashAvailableBase,
+  currencyCashSpend,
+} from '@/trading/features/ledger/currency-cash'
+import { createFoldState } from '@/trading/features/ledger/fold-state'
 import { closingOvershootOf, settledQuantityAt } from '@/trading/features/ledger/position'
 import { CASH_TXN_KINDS } from '@/trading/features/ledger/types'
 import { venueParam } from '@/trading/render/format'
+import { moneyParam } from '@/trading/render/money'
 
 // Cash and quantity comparisons run against float sums, so an exact `>` would reject a sale of
 // exactly the position it holds. Relative to the operands, because the same book holds share counts
@@ -81,11 +83,11 @@ export function assertLedgerValid(
     assertNotAhead(entry.transaction, options.today)
   }
 
-  replayForValidity(ordered)
+  replayForValidity(ordered, options.baseCurrency)
 }
 
-function replayForValidity(ordered: readonly LedgerEntry[]): void {
-  const state = createFoldState()
+function replayForValidity(ordered: readonly LedgerEntry[], baseCurrency: CurrencyCode): void {
+  const state = createFoldState(baseCurrency)
 
   for (const entry of ordered) {
     promoteSettled(state, entry.transaction.at)
@@ -96,6 +98,14 @@ function replayForValidity(ordered: readonly LedgerEntry[]): void {
 }
 
 function assertAffordable(state: FoldState, txn: LedgerTxn): void {
+  const spend = currencyCashSpend(state, txn)
+
+  if (spend !== undefined) {
+    assertCurrencyCashCovers(state, txn, spend)
+
+    return
+  }
+
   const outflow = cashOutflowBase(txn)
 
   if (outflow === 0) {
@@ -103,12 +113,46 @@ function assertAffordable(state: FoldState, txn: LedgerTxn): void {
   }
 
   const venue = payingVenue(txn)
-  const available = state.byVenue.get(venue)?.available ?? 0
+  // The venue's figure carries its currency cash at cost; base cash cannot spend that.
+  const available =
+    (state.byVenue.get(venue)?.available ?? 0) - currencyCashAvailableBase(state, venue)
 
   if (isShortfall(available, outflow)) {
     throw new ValidationError(
       `${txn.kind} on ${txn.at} needs more settled cash than ${venue} holds`,
-      { key: 'errors.ledgerCashShort', params: { venue: venueParam(venue), day: { day: txn.at } } }
+      {
+        key: 'errors.ledgerCashShort',
+        params: {
+          venue: venueParam(venue),
+          day: { day: txn.at },
+          available: moneyParam(Math.max(available, 0), state.baseCurrency),
+          currency: state.baseCurrency,
+        },
+      }
+    )
+  }
+}
+
+function assertCurrencyCashCovers(
+  state: FoldState,
+  txn: LedgerTxn,
+  spend: { readonly venue: VenueRef; readonly currency: CurrencyCode; readonly amount: number }
+): void {
+  const available = currencyCashAt(state, spend.venue, spend.currency)?.available ?? 0
+
+  if (isShortfall(available, spend.amount)) {
+    throw new ValidationError(
+      `${txn.kind} on ${txn.at} needs more ${spend.currency} than ${spend.venue} holds`,
+      {
+        key: 'errors.ledgerCurrencyShort',
+        params: {
+          available: moneyParam(Math.max(available, 0), spend.currency),
+          currency: spend.currency,
+          base: state.baseCurrency,
+          venue: venueParam(spend.venue),
+          day: { day: txn.at },
+        },
+      }
     )
   }
 }
@@ -200,18 +244,43 @@ function assertCurrencyMatchesMarket(txn: LedgerTxn, options: LedgerValidationOp
     case 'withdrawal':
     case 'fee':
     case 'loss':
+      assertCashCurrency(txn.currency, txn.venue, options)
+
+      return
     case 'transfer':
-      if (txn.currency !== options.baseCurrency) {
-        throw new ValidationError('cash movements must use the book base currency', {
-          key: 'errors.ledgerCashCurrency',
-          params: { currency: options.baseCurrency },
-        })
-      }
+      assertCashCurrency(txn.currency, txn.fromVenue, options)
+      assertCashCurrency(txn.currency, txn.venue, options)
 
       return
     default:
       assertMarketCurrency(txn, options)
   }
+}
+
+/** Cash sits in the base currency, or in a currency one of the venue's markets is quoted in: USDT
+ *  at an exchange that trades coins against it. */
+function assertCashCurrency(
+  currency: CurrencyCode,
+  venue: VenueRef,
+  options: LedgerValidationOptions
+): void {
+  if (currency === options.baseCurrency || quoteCurrenciesAt(venue, options).has(currency)) {
+    return
+  }
+
+  throw new ValidationError(`cash at ${venue} cannot be held in ${currency}`, {
+    key: 'errors.ledgerCashCurrency',
+    params: { currency, base: options.baseCurrency, venue: venueParam(venue) },
+  })
+}
+
+function quoteCurrenciesAt(
+  venue: VenueRef,
+  options: LedgerValidationOptions
+): ReadonlySet<CurrencyCode> {
+  const markets = options.venueFor(venue)?.markets ?? []
+
+  return new Set(markets.flatMap((market) => options.marketFor(market)?.currency ?? []))
 }
 
 function assertMarketCurrency(txn: TradeTxn | DividendTxn, options: LedgerValidationOptions): void {
@@ -257,10 +326,7 @@ function assertVenueHoldsMarket(txn: LedgerTxn, options: LedgerValidationOptions
   const venue = options.venueFor(txn.venue)
 
   if (venue === undefined) {
-    throw new ValidationError(`no registered venue ${txn.venue}`, {
-      key: 'errors.ledgerUnknownVenue',
-      params: { venue: txn.venue },
-    })
+    throw venueRemovedError(txn.venue, txn.at)
   }
 
   if (!venue.markets.includes(txn.instrument.market)) {
@@ -281,20 +347,38 @@ function assertVenueRegistered(txn: LedgerTxn, options: LedgerValidationOptions)
     return
   }
 
-  if (txn.kind === 'transfer') {
-    assertRegistered(txn.fromVenue, options)
-  }
+  const missing = venuesOf(txn).find((venue) => options.venueFor(venue) === undefined)
 
-  assertRegistered(txn.venue, options)
+  if (missing !== undefined) {
+    throw venueRemovedError(missing, txn.at)
+  }
 }
 
-function assertRegistered(venue: VenueRef, options: LedgerValidationOptions): void {
-  if (options.venueFor(venue) === undefined) {
-    throw new ValidationError(`no registered venue ${venue}`, {
+/** Every venue a row names exists, checked on the row being written so a mistyped venue reads as
+ *  one. Past that check, a venue missing from the book is one the config no longer declares. */
+export function assertVenuesKnown(
+  txn: LedgerTxn,
+  venueFor: LedgerValidationOptions['venueFor']
+): void {
+  const missing = venuesOf(txn).find((venue) => venueFor(venue) === undefined)
+
+  if (missing !== undefined) {
+    throw new ValidationError(`no registered venue ${missing}`, {
       key: 'errors.ledgerUnknownVenue',
-      params: { venue },
+      params: { venue: missing },
     })
   }
+}
+
+function venuesOf(txn: LedgerTxn): readonly VenueRef[] {
+  return txn.kind === 'transfer' ? [txn.fromVenue, txn.venue] : [txn.venue]
+}
+
+function venueRemovedError(venue: VenueRef, day: TradingDay): ValidationError {
+  return new ValidationError(`row on ${day} names venue ${venue}, which is no longer configured`, {
+    key: 'errors.ledgerVenueRemoved',
+    params: { venue, day: { day } },
+  })
 }
 
 function assertTransferCrossesVenues(txn: LedgerTxn): void {

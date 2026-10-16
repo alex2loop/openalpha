@@ -243,7 +243,9 @@ function cashSleeveAdvice(
   plan: readonly PositionChange[]
 ): CashSleeveTarget {
   const purchases = plan.reduce((sum, row) => sum + Math.max(row.changePctNav, 0), 0)
-  const cashPctNav = Math.max(input.valued.book.availableCashBase / nav - purchases, 0)
+  // Currency cash is held at cost in the book; NAV and the sleeve table mark it at today's rate.
+  const settledBase = input.valued.book.availableCashBase + (input.valued.currencyCashGainBase ?? 0)
+  const cashPctNav = Math.max(settledBase / nav - purchases, 0)
   const liquidReservePctNav = Math.min(cashPctNav, input.profile.reservePctNav)
   const termDepositEligiblePctNav = Math.max(cashPctNav - liquidReservePctNav, 0)
 
