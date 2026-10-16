@@ -158,7 +158,20 @@ Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã 
   <img src="assets/readme/sources.vi.png" alt="35 nguồn dữ liệu, chia theo từng thị trường" width="100%" />
 </p>
 
-Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hàng chục nhà cung cấp AI, nhà nào treo thì tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo hoặc Zalo cá nhân.
+Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo hoặc Zalo cá nhân.
+
+<details>
+<summary><b>Các nhà cung cấp AI dùng được</b></summary>
+
+Đã có khóa của hãng nào thì dùng luôn hãng đó: Anthropic, OpenAI, Google Gemini, xAI, Mistral, DeepSeek, Cohere, Meta AI, Moonshot Kimi, Z.AI, MiniMax, Alibaba Qwen, StepFun, Xiaomi MiMo, Perplexity và nhiều hãng khác.
+
+Muốn một khóa dùng được nhiều mô hình thì qua cổng trung gian như OpenRouter, Requesty, Vercel AI Gateway, Hugging Face hay GitHub Models. Cần nhanh hoặc rẻ thì có Groq, Cerebras, SambaNova, Fireworks, Together, DeepInfra, Novita, Nebius, NVIDIA, Cloudflare Workers AI.
+
+Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login`, khỏi cần khóa. Công ty dùng Azure, Google Cloud hay AWS thì gọi mô hình qua Azure OpenAI, Vertex AI hoặc Bedrock bằng tài khoản sẵn có. Ở Trung Quốc có Baidu ERNIE, Doubao, Hunyuan, Yi, Baichuan, iFlytek Spark, SiliconFlow, ModelScope và cổng nội địa của Kimi, Qwen, GLM, MiniMax. Muốn chạy hẳn trên máy mình thì dùng Ollama, LM Studio hoặc vLLM.
+
+Gõ `openalpha provider list` để xem đủ danh sách cùng tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md)). Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
+
+</details>
 
 ---
 
