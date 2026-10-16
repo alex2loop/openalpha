@@ -115,6 +115,3 @@ For context when you assess a finding — these are enforced, not aspirational:
 | The book | a model sees weights and percentages, never money, quantities or cost basis - omitted at the type level |
 | Execution | one order path, human approval, session-scoped and never remembered |
 | Spend | daily, monthly and per-run caps, soft-warned at 80% |
-
-These are listed with their enforcement points in
-[the README](README.en.md#16-safety-systems).

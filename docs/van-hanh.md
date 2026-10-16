@@ -255,7 +255,7 @@ log `fatal` của một lần sập được ghi ra terminal thay vào đó.
 Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.
 
 1. **Cài đặt.** Trên Linux hoặc macOS, chạy script cài đặt trong
-   [README](../README.md#bắt-đầu-từng-bước) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
+   [README](../README.md#bắt-đầu) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
    dẫn mà `command -v openalpha` in ra (mặc định `~/.local/bin/openalpha`); unit bên dưới phải dùng
    đường dẫn đó.
 2. **Cấu hình.** `openalpha setup write <nhà cung cấp> <mô hình>` ghi `~/.openalpha/config.toml` với

@@ -259,7 +259,7 @@ dropped, and a `fatal` crash line goes to the terminal instead.
 Run the daemon on a server you own and point a client app at it.
 
 1. **Install.** On Linux or macOS, run the install script from the
-   [README](../../README.en.md#getting-started-step-by-step) with `OPENALPHA_NO_ONBOARD=1` set. The
+   [README](../../README.en.md#getting-started) with `OPENALPHA_NO_ONBOARD=1` set. The
    command it installs is the path `command -v openalpha` prints (by default
    `~/.local/bin/openalpha`); the unit below must use it.
 2. **Configure.** `openalpha setup write <provider> <model>` writes `~/.openalpha/config.toml` with
