@@ -22,6 +22,7 @@ import type { RegimeScale } from '@/trading/kernel/market/market-data'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { mutateLedger } from '@/trading/features/ledger/mutate'
+import { previewRecord } from '@/trading/features/ledger/preview'
 import { toEntryView } from '@/trading/features/ledger/write'
 import { resolveRegimeScale } from '@/trading/features/market-data/reads/regime'
 import { loadInstrumentStatistics } from '@/trading/features/market-data/reads/statistics'
@@ -48,7 +49,7 @@ import {
 } from '@/trading/features/portfolio/folds/rebalance-advice'
 import { withRegimeCaveats } from '@/trading/features/portfolio/folds/rebalance-caveat'
 import { reconcileBook } from '@/trading/features/portfolio/reconcile'
-import { sleeveCandidateCaveats } from '@/trading/features/portfolio/sleeve-candidates'
+import { withSleeveCandidateCaveats } from '@/trading/features/portfolio/sleeve-candidates'
 import { venueChoices, venuesFor, venuesHolding } from '@/trading/features/portfolio/venues'
 import {
   loadBook,
@@ -82,6 +83,7 @@ interface PortfolioServiceDeps extends PortfolioViewDeps {
 export function createPortfolioService(deps: PortfolioServiceDeps): PortfolioService {
   return {
     record: (options) => mutateLedger(deps, { ...options, kind: 'record' }),
+    previewRecord: (options) => previewRecord(deps, options),
 
     recordVenues: (market) => venuesFor(deps.venues, deps.config.defaultVenues, market),
     venuesHolding: (market) => venuesHolding(deps.venues, market),
@@ -237,14 +239,12 @@ async function withSleeveCandidates(
   plan: AbsoluteRebalancePlan,
   clock: Omit<SleeveCandidateOptions, 'caveats'>
 ): Promise<AbsoluteRebalancePlan> {
-  const suggested = await sleeveCandidateCaveats(deps, { ...clock, caveats: plan.advice.caveats })
+  const caveats = await withSleeveCandidateCaveats(deps, {
+    ...clock,
+    caveats: plan.advice.caveats,
+  })
 
-  return suggested.length === 0
-    ? plan
-    : {
-        ...plan,
-        advice: { ...plan.advice, caveats: [...plan.advice.caveats, ...suggested] },
-      }
+  return caveats === plan.advice.caveats ? plan : { ...plan, advice: { ...plan.advice, caveats } }
 }
 
 /** This arm returns before the macro read, so it states the defensive regime rather than a scale

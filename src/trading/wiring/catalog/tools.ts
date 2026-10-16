@@ -85,7 +85,12 @@ export function createTradingTools(deps: TradingToolDeps): readonly ToolDefiniti
   }
   const draft = ledgerDraftInput(draftScope)
   const editDraft = ledgerEditDraftInput(draftScope)
-  const ledgerToolDeps = { portfolio, markets: marketData, costs: deps.costs }
+  const ledgerToolDeps = {
+    portfolio,
+    markets: marketData,
+    costs: deps.costs,
+    baseCurrency: deps.baseCurrency,
+  }
 
   return [
     createMarketPriceTool(marketData, markets),

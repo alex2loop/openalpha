@@ -46,9 +46,6 @@ const BRIEF_SUMMARY_KINDS = [
   'stale-positions',
 ] as const satisfies readonly BriefSectionKind[]
 
-/** What a market block keeps. Everything else it carries is a live read `/market <ref>` prints in
- *  full, and printing all of it made the brief three screens per market. Compose still builds every
- *  section and the snapshot still stores them, so the record of what the morning knew is intact. */
 /** Reference the reader taps open rather than scrolls past: the composite's working, whose regime
  *  and deployment cap the verdict block above already states, and the headlines, which are context
  *  for a decision rather than one. */
@@ -84,7 +81,9 @@ export function renderBriefText(
   snapshot: BriefSnapshot,
   context: RenderContext
 ): string {
-  const renderable = snapshot.sections.filter(isRenderable).filter(isShown)
+  // The verdict quotes the market sections the blocks below fold away, so it reads them all.
+  const readable = snapshot.sections.filter(isRenderable)
+  const renderable = readable.filter(isShown)
 
   if (renderable.length === 0) {
     return renderEmptyLine(
@@ -97,7 +96,7 @@ export function renderBriefText(
 
   return joinSections([
     [title(locale, snapshot, context.timezone)],
-    renderVerdictBlock(locale, renderable, context),
+    renderVerdictBlock(locale, readable, context),
     ...toBlocks(renderable).flatMap((block) => renderBlock(locale, block, context)),
     renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }),
     footer === null ? [] : footer,
@@ -149,8 +148,8 @@ function toBlocks(sections: readonly BriefSectionResult[]): readonly BriefBlock[
   return blocks
 }
 
-/** A market keeps its headline reading; the rest of its sections are a tap away on `/market`, and
- *  a pushed message is read on a phone. */
+/** A market keeps its headline reading; the rest of its sections are a tap away on
+ *  `/overview <market>`, and a pushed message is read on a phone. */
 export function isShown(section: BriefSectionResult): boolean {
   return section.market === undefined || MARKET_HEADLINE_KINDS.some((kind) => kind === section.kind)
 }

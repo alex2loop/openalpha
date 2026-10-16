@@ -13,6 +13,7 @@ const MESSAGE_KEYS = [
   'slash.memoryRememberStored',
   'slash.memoryForgetDone',
   'slash.memoryActionFail',
+  'slash.memoryTitle',
 ] as const
 
 const MEMORY_VERBS = Object.freeze(['find', 'remember', 'forget'] as const)
@@ -129,7 +130,7 @@ async function listMemory(memory: Memory, scope: MemoryScope): Promise<SlashResu
 
   return entries.length === 0
     ? { kind: 'message', messages: [{ key: 'slash.memoryNone' }] }
-    : { kind: 'message', messages: rowsToMessages(entries) }
+    : { kind: 'message', title: { key: 'slash.memoryTitle' }, messages: rowsToMessages(entries) }
 }
 
 async function findMemory(memory: Memory, scope: MemoryScope, query: string): Promise<SlashResult> {
@@ -137,7 +138,7 @@ async function findMemory(memory: Memory, scope: MemoryScope, query: string): Pr
 
   return hits.length === 0
     ? { kind: 'message', messages: [{ key: 'slash.memoryFindNone' }] }
-    : { kind: 'message', messages: rowsToMessages(hits) }
+    : { kind: 'message', title: { key: 'slash.memoryTitle' }, messages: rowsToMessages(hits) }
 }
 
 async function rememberMemory(options: {

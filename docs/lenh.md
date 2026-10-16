@@ -109,8 +109,8 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 
 | Lệnh | Mục đích |
 |---|---|
-| `/agent` | Xem agent cửa vào; operator kênh có quyền thì đổi được |
-| `/model` | Xem hoặc chọn một bộ chọn mô hình đã cấu hình |
+| `/agent` | Xem agent cửa vào; operator kênh có quyền thì đổi được. Trong terminal, chọn bằng `chat --agent <id>` |
+| `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat |
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
 | `/health` | Xem các mã sức khỏe của runtime và kênh |
 | `/memory` | Liệt kê, gọi lại, tìm, ghi hoặc xóa bộ nhớ |
@@ -120,6 +120,8 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/new` | Chuyển sang một phiên chat mới |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
+
+`/help` liệt kê câu lệnh theo nhóm: chung, danh mục và giao dịch, thị trường, phân tích và đề xuất.
 
 Kênh có thêm `/stop` và các lệnh ghép nối. `/stop` và `/help` cũng nhận dạng gọi kèm tên bot như
 `/stop@MyBot`, đúng cách nhóm Telegram gửi lệnh. REPL có `/help`, `/exit` và `/quit`, và Ctrl+D cũng
@@ -449,7 +451,7 @@ ghi sổ và `/trade`.
 |---|---|
 | `/setup` | `/setup` - trợ lý làm gì và cách thiết lập |
 | `/record` | Ghi một dòng vào sổ. Xem [Sổ lệnh](#sổ-lệnh) |
-| `/update` | `/update <mã bút toán> <các trường như /record>` - sửa trực tiếp một mục, kể cả sàn. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
+| `/update` | `/update <mã bút toán> <các trường như /record>` - sửa trực tiếp một mục, kể cả sàn. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto`. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
 | `/delete` | `/delete <mã bút toán>` - xóa một mục |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
 | `/portfolio` | `/portfolio` - giá trị và phân bổ, mỗi dòng nói rõ vị thế đang cách mức dừng bao xa. Xem [Mức dừng dự kiến không phải một lệnh đang treo](#mức-dừng-dự-kiến-không-phải-một-lệnh-đang-treo) |
@@ -458,7 +460,7 @@ ghi sổ và `/trade`.
 | `/watchlist` | `/watchlist` - giá trực tiếp của những gì bạn theo dõi và đang nắm, tối đa mười hai mã (danh sách dài hơn bị cắt và có nói rõ); `/watchlist add <mã>...`; `/watchlist remove <mã>...` |
 | `/price` | `/price <mã>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ. Thị trường niêm yết bảng hai chiều của đại lý (vàng VN) in cả hai chiều và chênh lệch giữa chúng, chứ không in cặp đóng cửa/trực tiếp: một bảng không nêu giá khớp cuối, và không giữ chuỗi ngày nào để đối chiếu giá đóng |
 | `/market` | `/market` - một thị trường đang ở đâu ngay lúc này, đặt cạnh phiên gần nhất đã chốt; `/market enable\|disable` - bật hoặc tắt các lần gửi theo lịch (chúng đi tới chat mặc định, không nhất thiết là chat này) |
-| `/overview` | `/overview` - mọi thị trường đang thế nào, kèm khối vĩ mô |
+| `/overview` | `/overview` - mọi thị trường đang thế nào, kèm khối vĩ mô; `/overview <thị trường>...` - chỉ in các thị trường đó, ví dụ `/overview crypto` |
 | `/screen` | `/screen [thị-trường] [số lượng] [loại]`, thứ tự tùy ý. Thị trường mặc định là thị trường mà lịch của `[locale] region` nêu tên; `loại` thu hẹp về một loại công cụ mà thị trường đó niêm yết. Mã nằm trong danh sách loại trừ của bạn vẫn được xếp hạng và được đánh dấu, không bị ẩn |
 | `/suggest` | Tiêu ngân sách LLM cho một mã. Xem [Đề xuất](#đề-xuất) |
 | `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - kiểm lại một chủ đề đang theo dõi và không tìm chủ đề mới, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
@@ -535,7 +537,14 @@ thế với hai giá vốn. Dòng đó cũng nêu thị trường ngay trong cù
 /record split|distribution <sàn> <thị-trường:mã> <thay-đổi-số-lượng> <ngày>
 /record transfer <từ-sàn> <đến-sàn> <số tiền> <tiền tệ> <phí> <ngày>
 /record sync <sàn>
+/record confirm
 ```
+
+Mọi dòng có tiền (kể cả nạp, rút, chuyển tiền) có thể kết thúc bằng `fx <giá>` hoặc `fx auto`. Đây là
+tỷ giá quy ra VND của đồng tiền ghi trên dòng đó, và chỉ dùng khi dòng ghi bằng đồng khác VND, ví dụ USDT.
+
+Gõ sai một ô (mã thiếu thị trường, ngày sai, số âm, `fx` không đọc được) thì dòng không được ghi, và
+câu trả lời nêu đúng ô đó cùng dạng nó cần, rồi in cách dùng. `/update` cũng vậy.
 
 **Mua và bán.** Lệnh bán có thể ghi `all` thay cho một con số, và sổ tính thành khối lượng đã thanh toán
 đang nắm *ở sàn đó* vào ngày đó. Có thể bỏ trống phí, khi đó tỷ lệ `fees` của sàn trong
@@ -548,6 +557,21 @@ Một sàn mang khóa giao dịch thì lấy dòng từ lệnh khớp duy nhất
 **Các loại dòng khác.** Phát hành quyền mua không được môi giới theo mức phí chuẩn, nên nó luôn tự nêu
 phí. `transfer` chuyển tiền giữa hai sàn của chính bạn mà không đụng tới tiền nạp ròng. Một lần chia tách
 2:1 của mã nắm ở hai công ty môi giới là hai dòng, không phải một dòng áp theo tỷ lệ.
+
+**Tỷ giá (`fx`).** `fx <giá>` ghi dòng theo giá bạn thật sự trả cho mỗi đơn vị tiền tệ, và nguồn của tỷ giá
+được lưu là `operator`. `fx auto` ghi theo tỷ giá thị trường của ngày đó mà không hỏi lại. Dòng bằng đồng
+khác VND mà không có `fx` thì chưa được ghi: trợ lý hiện bản xem trước (tỷ giá thị trường sẽ dùng, tiền mặt
+thay đổi bao nhiêu, vì sao giá P2P có thể khác) rồi chờ. Gõ `/record confirm` để ghi đúng như bản xem
+trước, hoặc gõ lại lệnh kèm `fx <giá>`.
+
+- Dòng chờ xác nhận giữ 10 phút. Mỗi cuộc trò chuyện giữ một dòng, dòng mới thay dòng cũ.
+- Một lệnh `/record` khác gõ đúng cú pháp thì bỏ dòng đang chờ và báo cho bạn biết. Gõ sai cú pháp thì dòng
+  vẫn được giữ.
+- `/record confirm` khi không có gì đang chờ thì cho biết và không ghi gì.
+- `/update` một dòng bằng đồng khác VND bắt buộc ghi `fx <giá>` hoặc `fx auto`; nó không bao giờ giữ dòng.
+- `/record confirm` chỉ hỏi khi tỷ giá làm đổi sổ: khi nạp hoặc rút, và khi mua bán ở sàn chưa giữ đồng tiền đó. Sàn đã giữ USDT thì lệnh USDT ở đó trả theo giá vốn của USDT nên không bị hỏi. `/reconcile` giờ so cả số USDT của sàn.
+- `/record sync` không bao giờ hỏi: nó ghi theo tỷ giá thị trường từng ngày, và cuối câu trả lời có một dòng
+  cho mỗi đồng tiền đã ghi như vậy để bạn sửa bằng `/update` nếu đã mua qua P2P.
 
 **`/record sync <sàn>`** ghi mọi lệnh khớp mà sàn báo còn sổ của bạn chưa có dòng, dùng khối lượng, giá và
 phí của chính sàn.
@@ -578,7 +602,8 @@ Tùy chọn đứng theo thứ tự bất kỳ sau mã; dùng `thị-trường:m
 sách LLM, nên được dựng để khỏi tiêu hai lần.
 
 Câu trả lời hôm nay được dùng lại miễn phí - ở thị trường chạy liên tục, là mọi câu trả lời trong 4 giờ
-gần nhất. `force` chạy lại bất chấp cửa sổ đó và cả thời gian nghỉ, ở độ sâu đầy đủ trừ khi bạn gõ một
+gần nhất - cho tới khi có giá đóng cửa mới hơn phiên nó đã đọc: đề xuất làm lúc phiên đang chạy sẽ
+chạy lại sau khi `/refresh` nạp xong phiên đó. `force` chạy lại bất chấp cửa sổ đó và cả thời gian nghỉ, ở độ sâu đầy đủ trừ khi bạn gõ một
 chế độ. Một mã mà sổ đang nắm ở đúng mức mục tiêu mặc định chạy `lean`, vì câu hỏi tốn kém ở đó đã có
 lời đáp.
 

@@ -1,5 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
-import type { SlashCommand } from '@/core/types/command'
+import type { CommandGroup, SlashCommand } from '@/core/types/command'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
 import type { LedgerStore } from '@/trading/features/ledger/store/ledger'
@@ -21,6 +21,7 @@ import { createAlertCommand } from '@/trading/features/alerts/command'
 import { createBriefCommand } from '@/trading/features/brief/command'
 import { createRecordCommand } from '@/trading/features/ledger/command'
 import { createDeleteCommand, createUpdateCommand } from '@/trading/features/ledger/edit'
+import { createStagedRecords } from '@/trading/features/ledger/staged'
 import { createTransactionsCommand } from '@/trading/features/ledger/transactions'
 import { createMarketCommand } from '@/trading/features/market-data/command/market'
 import { createOverviewCommand } from '@/trading/features/market-data/command/overview'
@@ -38,14 +39,29 @@ import { createSuggestCommand } from '@/trading/features/suggestion/command'
 import { suggestionReportDeps } from '@/trading/features/suggestion/report'
 import { createReflectCommand } from '@/trading/features/suggestion/track-record/command'
 import { createThemesCommand } from '@/trading/features/themes/command'
+import { SECTION_ICONS } from '@/trading/render/format'
 import { createSetupCommand } from '@/trading/wiring/catalog/setup'
 import { resolveRefreshMarkets } from '@/trading/wiring/composition/refresh'
+
+const BOOK_GROUP: CommandGroup = Object.freeze({
+  key: 'slash.tradingGroupBook',
+  icon: SECTION_ICONS.portfolio,
+})
+const MARKET_GROUP: CommandGroup = Object.freeze({
+  key: 'slash.tradingGroupMarket',
+  icon: SECTION_ICONS.overview,
+})
+const ANALYSIS_GROUP: CommandGroup = Object.freeze({
+  key: 'slash.tradingGroupAnalysis',
+  icon: SECTION_ICONS.suggestion,
+})
 
 interface TradingCommandDeps {
   readonly themes: ThemeService
   readonly portfolio: Pick<
     PortfolioService,
     | 'record'
+    | 'previewRecord'
     | 'update'
     | 'remove'
     | 'viewAbsolute'
@@ -73,6 +89,7 @@ interface TradingCommandDeps {
     | 'boardLot'
     | 'trailsStop'
     | 'overview'
+    | 'describeMarkets'
     | 'events'
     | 'listSources'
   >
@@ -102,50 +119,68 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
 
   return [
     createSetupCommand(),
-    ...ledgerWriteCommands(deps),
-    createAlertCommand({ alerts, markets: deps.markets, marketData }),
-    createProfileCommand({ profiles, timezone }),
-    createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone }),
-    createThemesCommand({ themes: deps.themes, timezone }),
+    ...inGroup(BOOK_GROUP, [
+      ...ledgerWriteCommands(deps),
+      ...bookCommands(deps),
+      createTransactionsCommand({
+        portfolio,
+        marketData,
+        ledger: deps.ledger,
+        markets: deps.markets,
+        defaultRegion,
+        baseCurrency: deps.config.baseCurrency,
+      }),
+      createAlertCommand({ alerts, markets: deps.markets, marketData }),
+      createTradeCommand({
+        marketData,
+        costs,
+        timezone,
+        venues: deps.venues,
+        ...(deps.order === undefined ? {} : { order: deps.order }),
+      }),
+    ]),
+    ...inGroup(MARKET_GROUP, marketCommands(deps)),
+    ...inGroup(ANALYSIS_GROUP, [
+      ...suggestionCommands(deps),
+      createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone }),
+      createThemesCommand({ themes: deps.themes, timezone }),
+      createProfileCommand({ profiles, timezone }),
+    ]),
+  ]
+}
+
+function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
+  const { defaultRegion, marketData, portfolio, profiles } = deps
+  const timezone = deps.config.displayTimezone
+
+  return [
     createPriceCommand({ marketData, timezone }),
-    createSourcesCommand({ marketData, timezone }),
     createOverviewCommand({
       marketData,
       defaultRegion,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
     }),
-    ...bookCommands(deps),
-    createTransactionsCommand({
-      portfolio,
-      marketData,
-      ledger: deps.ledger,
-      markets: deps.markets,
-      defaultRegion,
-      baseCurrency: deps.config.baseCurrency,
-    }),
-    createScreenCommand({ marketData, timezone, ...screenDefaultMarket(deps) }),
     createMarketCommand({
       report: { marketData, book: portfolio, profiles, timezone },
       markets: deps.markets,
       config: deps.config,
       settings: deps.intradaySettings,
     }),
-    ...suggestionCommands(deps),
+    createScreenCommand({ marketData, timezone, ...screenDefaultMarket(deps) }),
     createRefreshCommand({
       refreshMarketData: deps.refreshMarketData,
       markets: resolveRefreshMarkets(deps.markets),
       registered: deps.markets.list().map((market) => market.manifest.id),
       timezone,
     }),
-    createTradeCommand({
-      marketData,
-      costs,
-      timezone,
-      venues: deps.venues,
-      ...(deps.order === undefined ? {} : { order: deps.order }),
-    }),
+    createSourcesCommand({ marketData, timezone }),
   ]
+}
+
+/** The `/help` heading a run of commands lists under. */
+function inGroup(group: CommandGroup, commands: readonly SlashCommand[]): readonly SlashCommand[] {
+  return commands.map((command) => ({ ...command, group }))
 }
 
 /** The four the portfolio feature owns: what the book holds, what to change, what settled where,
@@ -183,8 +218,13 @@ function bookCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
  *  books what the exchange filled — so only it carries the registries and the store. */
 function ledgerWriteCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
   const { portfolio, marketData, markets, venues, ledger, logger } = deps
-  const timezone = deps.config.displayTimezone
   const costs = deps.config.costs
+  const policy = deps.config.ledger
+  const staged = createStagedRecords({
+    ttlMs: policy.confirmTtlMs,
+    max: policy.maximumStagedRecords,
+  })
+  const baseCurrency = deps.config.baseCurrency
 
   return [
     createRecordCommand({
@@ -195,10 +235,12 @@ function ledgerWriteCommands(deps: TradingCommandDeps): readonly SlashCommand[] 
       markets,
       ledger,
       logger,
-      timezone,
+      staged,
+      baseCurrency,
+      policy,
     }),
-    createUpdateCommand({ portfolio, marketData, costs, timezone }),
-    createDeleteCommand({ portfolio, marketData, costs, timezone }),
+    createUpdateCommand({ portfolio, marketData, costs, baseCurrency }),
+    createDeleteCommand({ portfolio, marketData, costs }),
   ]
 }
 

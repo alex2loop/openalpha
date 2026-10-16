@@ -142,8 +142,12 @@ function ladderFact(input: RiskSuffixInput): readonly string[] {
       from: stop,
       to: takeProfit,
       at: price.at,
-      fromLabel: formatPriceIn(locale, stop, price.quote),
-      toLabel: formatPriceIn(locale, takeProfit, price.quote),
+      fromLabel: t(locale, 'trading.render.portfolio.ladderStop', {
+        price: formatPriceIn(locale, stop, price.quote),
+      }),
+      toLabel: t(locale, 'trading.render.portfolio.ladderTakeProfit', {
+        price: formatPriceIn(locale, takeProfit, price.quote),
+      }),
     },
     CHART_CELLS.fact,
     price.context

@@ -56,7 +56,18 @@ export function renderOverviewText(
     [renderSectionTitle(SECTION_ICONS.overview, title(locale, view, context.timezone))],
     leanLine(locale, view.macro),
     ...macroBlock(locale, view, context),
-    ...overviews.flatMap((overview) => marketBlock(locale, { overview, view, context })),
+    ...overviews.flatMap((overview, index) => {
+      const sharedWith = overviews
+        .slice(0, index)
+        .find((earlier) => isSharedExpandedMacro(earlier, overview, view.macro))
+
+      return marketBlock(locale, {
+        overview,
+        view,
+        context,
+        ...(sharedWith === undefined ? {} : { sharedWith }),
+      })
+    }),
     renderCaveatLines(locale, caveatsOf(view), { collapseInfo: true }),
     [`${INDENT[1]}${t(locale, 'trading.render.macro.next')}`],
   ])
@@ -133,21 +144,27 @@ function macroBlock(
  *  a settled close beside an open one is the difference between a fact and a number still moving. */
 function marketBlock(
   locale: Locale,
-  block: { readonly overview: MarketDataOverview; readonly view: MarketsView } & {
+  block: {
+    readonly overview: MarketDataOverview
+    readonly view: MarketsView
     readonly context: RenderContext
+    /** An earlier market reading the same macro, whose driver rows this block does not repeat. */
+    readonly sharedWith?: MarketDataOverview
   }
 ): readonly (readonly string[])[] {
   const { overview, view, context } = block
   const name = renderDeclaredValue(locale, `trading.market.${overview.market}`)
+  const [macro = [], ...macroRest] = sleeveMacroSections(locale, {
+    overview,
+    region: view.macro,
+    context,
+    held: view.heldMarkets.has(overview.market),
+    ...(block.sharedWith === undefined ? {} : { sharedWith: block.sharedWith }),
+  })
 
   return [
-    [`${renderBlockRule(overview.icon, name)}${blockStamp(locale, overview)}`],
-    ...sleeveMacroSections(locale, {
-      overview,
-      region: view.macro,
-      context,
-      held: view.heldMarkets.has(overview.market),
-    }),
+    [`${renderBlockRule(overview.icon, name)}${blockStamp(locale, overview)}`, ...macro],
+    ...macroRest,
     ...wholeMarketSections(overview).map((section) => [
       renderBriefSection(locale, section, context),
     ]),
@@ -160,6 +177,28 @@ interface SleeveMacroInput {
   readonly region: SourceResult<MacroRiskView>
   readonly context: RenderContext
   readonly held: boolean
+  readonly sharedWith?: MarketDataOverview
+}
+
+/** An earlier market whose own driver table printed, read on the same composite as this one: gold
+ *  and VN gold weigh the same US series, and printing the table twice reads as two findings. A
+ *  market that only printed the region's one-liner has no table to point back to. */
+function isSharedExpandedMacro(
+  earlier: MarketDataOverview,
+  current: MarketDataOverview,
+  region: SourceResult<MacroRiskView>
+): boolean {
+  const { macro } = earlier
+
+  return (
+    macro !== undefined &&
+    current.macro !== undefined &&
+    !isRegionMacro(macro, region) &&
+    macro.regime === current.macro.regime &&
+    macro.score === current.macro.score &&
+    macro.asOf === current.macro.asOf &&
+    macro.formulaVersion === current.macro.formulaVersion
+  )
 }
 
 /** A sleeve reading the region's own macro states it in one line - the drivers are already above,
@@ -229,7 +268,19 @@ function expandedMacroSections(
     held: input.held,
   })
 
-  return [[heading, ...composite], ...rest]
+  if (input.sharedWith === undefined) {
+    return [[heading, ...composite], ...rest]
+  }
+
+  return [
+    [
+      heading,
+      ...composite,
+      `${INDENT[1]}${t(locale, 'trading.render.macro.sameDrivers', {
+        market: renderDeclaredValue(locale, `trading.market.${input.sharedWith.market}`),
+      })}`,
+    ],
+  ]
 }
 
 function blockStamp(locale: Locale, overview: MarketDataOverview): string {

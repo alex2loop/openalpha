@@ -31,6 +31,8 @@ import {
 import { INDENT, renderProvenanceLine } from '@/trading/render/layout'
 import { apportion, SCORE_QUANTUM, WEIGHT_QUANTUM } from '@/trading/render/number'
 
+const FULL_COVERAGE = 1
+
 /** The region and the regime it is in, which is what a reader wants before any of the arithmetic.
  *  `/overview` heads its macro block with it. */
 export function renderMacroHeading(locale: Locale, view: MacroRiskView): string {
@@ -67,13 +69,22 @@ export function renderMacroSections(
         : []),
       ...roundedDrivers(view.drivers).flatMap((driver) => renderDriver(locale, driver, context)),
       ...view.missing.map((entry) => renderMissing(locale, entry)),
-      t(locale, 'trading.render.macro.coverage', {
-        coverage: formatWholeFraction(locale, view.coverage),
-        version: view.formulaVersion,
-      }),
+      ...coverageLines(locale, view),
       ...renderProvenanceLine(locale, view.provenance, context.timezone),
     ]),
   ]
+}
+
+/** Partial data is the fact worth a line, judged on the printed figure: a full read states nothing
+ *  the rows do not, and a coverage that rounds to whole prints none. */
+function coverageLines(locale: Locale, view: MacroRiskView): readonly string[] {
+  const coverage = formatWholeFraction(locale, view.coverage)
+
+  if (coverage === formatWholeFraction(locale, FULL_COVERAGE)) {
+    return []
+  }
+
+  return [t(locale, 'trading.render.macro.coverage', { coverage, version: view.formulaVersion })]
 }
 
 /** The gauge says where the score sits better than the sentence spelling out the thresholds, so

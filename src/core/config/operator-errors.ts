@@ -6,13 +6,22 @@ import { ConfigError } from '@/core/errors'
 const ROOT_FIELD = '(root)'
 const ISSUE_DETAILS: ReadonlySet<string> = new Set([
   'divisor',
-  'expected',
   'format',
   'keys',
   'maximum',
   'minimum',
   'values',
 ])
+// The words an operator editing TOML knows a value by; a type outside it reads as the generic line.
+const TOML_VALUE_KINDS: Readonly<Record<string, string>> = Object.freeze({
+  array: 'list',
+  boolean: 'boolean',
+  number: 'number',
+  object: 'table',
+  record: 'table',
+  string: 'string',
+  tuple: 'list',
+})
 
 type ConfigPath = readonly (string | number)[]
 
@@ -87,6 +96,12 @@ function issueParam(issue: z.core.$ZodIssue): IssueParam {
 function issueKind(issue: z.core.$ZodIssue): string {
   if (issue.code === 'invalid_format' && issue.format === 'regex') {
     return 'invalid_pattern'
+  }
+
+  if (issue.code === 'invalid_type') {
+    const kind = TOML_VALUE_KINDS[issue.expected]
+
+    return kind === undefined ? issue.code : `${issue.code}_${kind}`
   }
 
   return 'inclusive' in issue && issue.inclusive === false ? `${issue.code}_exclusive` : issue.code

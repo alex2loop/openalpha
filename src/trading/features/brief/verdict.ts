@@ -21,7 +21,7 @@ const QUOTED_SECTION: BriefSectionKind = 'reading'
  *  would misreport. The prices are deliberately absent — the distances below say what the level
  *  means, and the block that states them sits three lines down. */
 const QUOTED_FIELDS = Object.freeze([
-  { kind: 'breadth', fields: ['aboveMa50Ratio', 'ma50Measured', 'indexToMa50Pct', 'ma50SlopePct'] },
+  { kind: 'breadth', fields: ['aboveMa50Ratio', 'indexToMa50Pct', 'ma50SlopePct'] },
   { kind: 'tape', fields: ['turnover', 'turnoverRatio'] },
   { kind: 'range', fields: ['supportPct', 'resistancePct'] },
 ] as const satisfies readonly { kind: BriefSectionKind; fields: readonly BriefField[] }[])

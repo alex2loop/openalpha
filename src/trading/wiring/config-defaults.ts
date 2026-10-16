@@ -3,6 +3,7 @@ import type {
   BriefPolicy,
   DefaultVenues,
   IntradayPolicy,
+  LedgerPolicy,
   OperationsPolicy,
   OrderPolicy,
   RetryPolicy,
@@ -13,7 +14,7 @@ import type {
 } from '@/trading/kernel/config'
 import type { VenueRef } from '@/trading/kernel/instrument'
 import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
-import { MS_PER_HOUR } from '@/core/utils/time'
+import { MS_PER_HOUR, MS_PER_MINUTE } from '@/core/utils/time'
 import { currencyCode, marketRef, region, venueRef } from '@/trading/kernel/instrument'
 
 // Starting point for a knob `[trading]` exposes: what an operator gets before they state a
@@ -125,6 +126,15 @@ const DEFAULT_ORDER_POLICY: OrderPolicy = Object.freeze({
   requireStopLoss: true,
 })
 
+const LEDGER_CONFIRM_TTL_MS = 10 * MS_PER_MINUTE
+/** Far above the chat sessions one install serves; the cap only bounds a runaway. */
+const MAXIMUM_STAGED_RECORDS = 256
+
+const DEFAULT_LEDGER_POLICY: LedgerPolicy = Object.freeze({
+  confirmTtlMs: LEDGER_CONFIRM_TTL_MS,
+  maximumStagedRecords: MAXIMUM_STAGED_RECORDS,
+})
+
 const DEFAULT_OPERATIONS_POLICY: OperationsPolicy = Object.freeze({
   alerts: Object.freeze({ intervalMs: ALERT_INTERVAL_MS, batchSize: DEFAULT_OPERATION_BATCH_SIZE }),
   outcomes: Object.freeze({
@@ -196,6 +206,7 @@ export const DEFAULT_TRADING_CONFIG: TradingConfig = Object.freeze({
   intraday: DEFAULT_INTRADAY_POLICY,
   alerts: DEFAULT_ALERT_POLICY,
   orders: DEFAULT_ORDER_POLICY,
+  ledger: DEFAULT_LEDGER_POLICY,
   themes: Object.freeze({ maximumCostUsd: DEFAULT_THEME_MAXIMUM_COST_USD }),
   markets: Object.freeze({}),
   venues: DEFAULT_VENUE_CONFIGS,

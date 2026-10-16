@@ -13,6 +13,7 @@ const MESSAGE_KEYS = [
   'slash.agentUnknown',
   'slash.agentSet',
   'slash.agentPausedSelected',
+  'slash.agentTerminalHint',
 ] as const
 const DEFAULT_AGENT = 'default'
 
@@ -27,6 +28,7 @@ const SELECT_POLICY = {
   role: 'operator' as const,
   action: 'mutate' as const,
   idempotencyKey: (ctx: SlashContext) => ctx.requestId,
+  surfaceHint: 'slash.agentTerminalHint' as const,
 }
 
 export interface AgentCommandDeps {

@@ -55,7 +55,13 @@ function toMessageResult(command: SlashCommand, result: Record<string, unknown>)
     messages.push(message)
   }
 
-  return { kind: 'message', messages }
+  if (result.title === undefined) {
+    return { kind: 'message', messages }
+  }
+
+  const title = toCommandMessage(command, result.title)
+
+  return title === undefined ? unexpected() : { kind: 'message', title, messages }
 }
 
 function toCommandMessage(command: SlashCommand, entry: unknown): CommandMessage | undefined {

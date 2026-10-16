@@ -88,6 +88,8 @@ const SENSITIVE_KEY_PARTS: ReadonlySet<string> = new Set([
 // Plural-only counts, never credentials: `maxTokens`/`inputTokens` are numbers, and depluralizing
 // them into `token` hides the whole usage record from the operator.
 const COUNT_KEY_PARTS: ReadonlySet<string> = new Set(['tokens'])
+// A duration names a number by convention (`*Ms`), so `credentialCooldownMs` is a wait, not a secret.
+const DURATION_KEY_SUFFIX = 'ms'
 
 /** How far a logged error's cause chain is followed. Three reaches the driver's own message under
  *  the usual wrap-once-per-boundary shape, and bounds a self-referential chain. */
@@ -262,6 +264,10 @@ export function hasLikelySecret(input: string): boolean {
 
 export function isSensitiveKey(key: string): boolean {
   const words = key.replace(CAMEL_BOUNDARY_RE, '$1 $2').toLowerCase().split(KEY_WORD_SPLIT_RE)
+
+  if (words.length > 1 && words.at(-1) === DURATION_KEY_SUFFIX) {
+    return false
+  }
 
   return words.some(isSensitiveKeyWord)
 }

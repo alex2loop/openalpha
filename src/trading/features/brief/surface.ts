@@ -49,13 +49,14 @@ export function renderBriefForSurface(
   timezone: string
 ): BriefText {
   const context = resolveRenderContext(timezone, NOTICE_SURFACE)
-  const renderable = snapshot.sections.filter(isRenderable).filter(isShown)
+  const readable = snapshot.sections.filter(isRenderable)
+  const renderable = readable.filter(isShown)
   const order = (kind: BriefSectionKind): number => BRIEF_SECTION_ORDER.indexOf(kind)
 
   return {
     title: briefTitle(locale, snapshot, timezone),
     // The first line is the block's own rule, which the app replaces with its card.
-    verdict: renderVerdictBlock(locale, renderable, context).slice(1).map(trim),
+    verdict: renderVerdictBlock(locale, readable, context).slice(1).map(trim),
     sections: renderable
       .filter(
         (section) => !HIDDEN_KINDS.has(section.kind) && section.status !== 'omitted-by-policy'

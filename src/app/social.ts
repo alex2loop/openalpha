@@ -42,7 +42,7 @@ export function createSocialProvider(input: SocialProviderInput): ServiceProvide
       )
       extend('commands', (current, app) => [
         ...current,
-        createSocialSlashCommand(() => app.resolve('socialService')),
+        createSocialSlashCommand(() => app.resolve('socialService'), app.config.locale.timezone),
       ])
       extend('tools', (current, app) => {
         const tools = new Map(current)

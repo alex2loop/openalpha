@@ -1,21 +1,27 @@
+import type { FoldState } from '@/trading/features/ledger/fold-state'
 import type {
   CashTxn,
   DividendTxn,
   LedgerEntry,
   LedgerTxn,
+  MonetaryTxn,
   QuantityAdjustmentTxn,
   TradeTxn,
   TransferTxn,
 } from '@/trading/features/ledger/types'
 import type { CurrencyCode, InstrumentRef, TradingDay, VenueRef } from '@/trading/kernel/instrument'
-import type {
-  Book,
-  PendingCash,
-  Position,
-  SaleRecord,
-  VenueCash,
-} from '@/trading/kernel/operator/book'
+import type { Book, PendingCash, Position } from '@/trading/kernel/operator/book'
 import { ValidationError } from '@/core/errors'
+import {
+  applyCurrencyCashTxn,
+  currencyCashAt,
+  isCurrencyCashRow,
+  movesCurrencyCash,
+  receiveCurrencyCash,
+  spendCurrencyCash,
+  toCurrencyCash,
+} from '@/trading/features/ledger/currency-cash'
+import { createFoldState, moveVenueCash } from '@/trading/features/ledger/fold-state'
 import {
   clearFlatPosition,
   consumeLots,
@@ -28,21 +34,6 @@ import {
 import { buildPositionKey } from '@/trading/kernel/instrument'
 import { venueParam } from '@/trading/render/format'
 
-/** The kinds that move cash. The quantity adjustments are the rest of `LedgerTxn`. */
-type MonetaryTxn = CashTxn | TradeTxn | DividendTxn | TransferTxn
-
-/** Module-internal: `ledger.ts` replays validation over the same state machine the fold uses, so
- *  "what is valid" can never drift from "what is computed". Nothing outside `portfolio/` sees it. */
-export interface FoldState {
-  readonly positions: Map<string, MutablePosition>
-  readonly sales: SaleRecord[]
-  pending: PendingCash[]
-  cashBase: number
-  availableCashBase: number
-  netDepositsBase: number
-  byVenue: Map<VenueRef, VenueCash>
-}
-
 /** Precondition: `transactions` arrives through `orderLedger` — the store returns rows unordered and
  *  an edit can move an entry's day — and has already passed `assertLedgerValid`, so a sell never
  *  exceeds settled quantity here. The fold carries no defensive re-check. */
@@ -51,7 +42,7 @@ export function foldBook(
   asOf: TradingDay,
   baseCurrency: CurrencyCode
 ): Book {
-  const state = createFoldState()
+  const state = createFoldState(baseCurrency)
 
   for (const entry of transactions) {
     // Valid only because `orderLedger` sorted by day: once one entry is past asOf, every later one
@@ -73,6 +64,7 @@ export function foldBook(
     availableCashBase: state.availableCashBase,
     netDepositsBase: state.netDepositsBase,
     cashByVenue: new Map(state.byVenue),
+    currencyCash: toCurrencyCash(state),
     pendingCash: state.pending,
     positions: [...state.positions.values()]
       .filter((position) => position.quantity > QUANTITY_EPSILON)
@@ -99,29 +91,14 @@ function assertRecordedInBase(entry: LedgerEntry, baseCurrency: CurrencyCode): v
   }
 }
 
-export function createFoldState(): FoldState {
-  return {
-    positions: new Map(),
-    sales: [],
-    pending: [],
-    cashBase: 0,
-    availableCashBase: 0,
-    netDepositsBase: 0,
-    byVenue: new Map(),
-  }
-}
-
-function moveVenueCash(state: FoldState, venue: VenueRef, delta: VenueCash): void {
-  const current = state.byVenue.get(venue) ?? { cash: 0, available: 0 }
-
-  state.byVenue.set(venue, {
-    cash: current.cash + delta.cash,
-    available: current.available + delta.available,
-  })
-}
-
 export function applyTransaction(state: FoldState, entry: LedgerEntry): void {
   const txn = entry.transaction
+
+  if (isCurrencyCashRow(txn) && movesCurrencyCash(state, txn)) {
+    applyCurrencyCashTxn(state, txn)
+
+    return
+  }
 
   switch (txn.kind) {
     case 'buy':
@@ -166,7 +143,8 @@ function cashDeltaNative(txn: MonetaryTxn): number {
 }
 
 /** Narrowed by shape, like `renderTxnDetail`: a quantity adjustment carries no conversion and moves
- *  no money. */
+ *  no money. Each row converts at its own rate, which is what a page summary states; a row paid
+ *  from currency cash moved the book by that cash's average cost instead. */
 export function cashDeltaBase(txn: LedgerTxn): number {
   return 'conversion' in txn ? cashDeltaNative(txn) * txn.conversion.rate : 0
 }
@@ -181,6 +159,14 @@ export function promoteSettled(state: FoldState, asOf: TradingDay): void {
 
     state.availableCashBase += row.amountBase
     moveVenueCash(state, row.venue, { cash: 0, available: row.amountBase })
+
+    if (row.currency !== state.baseCurrency) {
+      const held = currencyCashAt(state, row.venue, row.currency)
+
+      if (held !== undefined) {
+        held.available += row.amount
+      }
+    }
 
     return false
   })
@@ -199,7 +185,7 @@ export function positionAt(
 function applyBuy(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
   const position = positionFor(state, txn)
   const costNative = -cashDeltaNative(txn)
-  const costBase = -cashDeltaBase(txn)
+  const costBase = payForBuy(state, txn, costNative)
 
   if (position.quantity === 0) {
     position.cycleSoldQuantity = 0
@@ -217,11 +203,7 @@ function applyBuy(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
   position.costBasisNative += costNative
   position.costBasisBase += costBase
   position.costBasisFeesNative += txn.fee
-  position.costBasisFeesBase += txn.fee * txn.conversion.rate
-  state.cashBase -= costBase
-  // Committed now, not at settlement: this is the debit that closes the unsettled double-spend.
-  state.availableCashBase -= costBase
-  moveVenueCash(state, txn.venue, { cash: -costBase, available: -costBase })
+  position.costBasisFeesBase += costNative === 0 ? 0 : txn.fee * (costBase / costNative)
   position.lots.push({
     entryId: entry.id,
     acquiredAt: txn.at,
@@ -229,6 +211,21 @@ function applyBuy(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
     quantity: txn.quantity,
     remainingQuantity: txn.quantity,
   })
+}
+
+/** What a buy cost in the base: the venue's currency cash at its average cost when it holds that
+ *  currency, the row's own rate otherwise. Committed now, not at settlement: this is the debit that
+ *  closes the unsettled double-spend. */
+function payForBuy(state: FoldState, txn: TradeTxn, costNative: number): number {
+  const held = currencyCashAt(state, txn.venue, txn.currency)
+  const costBase =
+    held === undefined ? costNative * txn.conversion.rate : spendCurrencyCash(held, costNative)
+
+  state.cashBase -= costBase
+  state.availableCashBase -= costBase
+  moveVenueCash(state, txn.venue, { cash: -costBase, available: -costBase })
+
+  return costBase
 }
 
 function applySell(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
@@ -259,7 +256,20 @@ function applySell(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
 
   state.cashBase += proceedsBase
   moveVenueCash(state, txn.venue, { cash: proceedsBase, available: 0 })
-  state.pending.push(pendingCash(entry, txn, proceedsBase))
+
+  const held = currencyCashAt(state, txn.venue, txn.currency)
+
+  if (held !== undefined) {
+    receiveCurrencyCash(held, { amount: proceedsNative, costBase: proceedsBase })
+  }
+
+  state.pending.push(
+    pendingCash(entry, txn, {
+      currency: held === undefined ? state.baseCurrency : txn.currency,
+      amount: held === undefined ? proceedsBase : proceedsNative,
+      amountBase: proceedsBase,
+    })
+  )
   consumeLots(position, txn.quantity)
   state.sales.push({
     instrument: txn.instrument,
@@ -284,7 +294,9 @@ function applyCashTxn(state: FoldState, entry: LedgerEntry, txn: CashTxn | Divid
   // cash directly the way a buy does. That is correct only because a cash kind's settledAt always
   // equals its at, so promoteSettled clears it on the same pass. If cash settlement ever gains a
   // lag, a withdrawal must debit availableCashBase at the trade day.
-  state.pending.push(pendingCash(entry, txn, delta))
+  state.pending.push(
+    pendingCash(entry, txn, { currency: state.baseCurrency, amount: delta, amountBase: delta })
+  )
 
   // A dividend and a fee move cash without changing what the operator put in or took out.
   if (txn.kind === 'deposit' || txn.kind === 'withdrawal') {
@@ -374,12 +386,16 @@ function positionFor(state: FoldState, txn: TradeTxn): MutablePosition {
   return created
 }
 
-function pendingCash(entry: LedgerEntry, txn: MonetaryTxn, amountBase: number): PendingCash {
+function pendingCash(
+  entry: LedgerEntry,
+  txn: MonetaryTxn,
+  landing: Pick<PendingCash, 'currency' | 'amount' | 'amountBase'>
+): PendingCash {
   return {
     entryId: entry.id,
     venue: txn.venue,
     availableAt: txn.settledAt,
-    amountBase,
+    ...landing,
   }
 }
 

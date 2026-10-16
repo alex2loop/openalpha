@@ -1,9 +1,9 @@
 import type { Locale } from '@/core/types/locale'
+import type { MessageKey } from '@/i18n'
 import type {
   PortfolioFinding,
   RebalancePlanReady,
   RebalancePlanResult,
-  RebalancePolicyView,
   RebalanceSizing,
   ValuedBook,
 } from '@/trading/features/portfolio/types'
@@ -27,13 +27,21 @@ import {
 } from '@/trading/render/format'
 import { renderFreshness } from '@/trading/render/freshness'
 import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layout'
-import { formatMoney, formatSignedMoney } from '@/trading/render/money'
+import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
-import { renderOrders, sizedAction, splitBreaches } from './rebalance-orders'
+import { renderOrders, splitBreaches } from './rebalance-orders'
 import { renderCashLine, renderEtfCapLines, renderSleeves } from './sleeves'
 
 const DRIFT_FINDING = 'segment-drift'
+const REGIME_CAVEAT = 'portfolio.regime-risk'
+
+interface PlanSums {
+  readonly sold: number
+  readonly bought: number
+  readonly sells: number
+  readonly buys: number
+}
 
 export interface RebalanceRenderOptions {
   readonly context: RenderContext
@@ -52,9 +60,8 @@ export interface RebalanceRenderOptions {
   readonly maximumSectorPctNav?: number
 }
 
-/** Four blocks, blank-line separated: what to do, where the book stands, what to know, and the
- *  policy it was all measured against. The order is urgency, and the blanks are what let a reader
- *  stop at the first block. */
+/** The plan and its orders first; the book, the notes, then the NAV and profile it was measured
+ *  against follow, blank-line separated so a reader can stop after the first block. */
 export function renderRebalanceText(
   locale: Locale,
   advice: RebalancePlanResult,
@@ -71,11 +78,9 @@ export function renderRebalanceText(
 
   return joinSections([
     [
-      renderSectionTitle(SECTION_ICONS.advice, t(locale, 'trading.render.rebalance.title')),
-      ...renderNavLine(locale, sizing, options),
-      `${INDENT[1]}${renderProfileStamp(locale, advice.policy.profile)}`,
+      renderSectionTitle(SECTION_ICONS.advice, renderRebalanceTitle(locale, advice, options)),
       ...renderOrders(locale, advice, options),
-      ...renderPlanTotals(locale, advice, options),
+      ...renderBreachLine(locale, advice),
       ...renderAfterPlan(locale, advice, options),
     ],
     [
@@ -83,10 +88,74 @@ export function renderRebalanceText(
       ...renderEtfCapLines(locale, advice.allocation),
       renderCashLine(locale, advice, sizing),
     ],
-    [...renderDeploymentLines(locale, advice.policy), ...renderWeakHoldingLines(locale, advice)],
+    renderStanceLines(locale, advice),
     renderNotes(locale, advice.findings, [...advice.cashSleeve.caveats, ...advice.caveats]),
+    [
+      ...renderNavLine(locale, sizing, options),
+      `${INDENT[1]}${renderProfileStamp(locale, advice.policy.profile)}`,
+    ].map((line) => line.trimStart()),
     ...(options.listedOnly ? [[t(locale, 'trading.render.rebalance.listedOnly')]] : []),
   ])
+}
+
+/** The plan in one line, as the page's own title: how many orders on each side and what they move
+ *  in money. A plan with nothing sized keeps the generic title and its rows say why. */
+export function renderRebalanceTitle(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  options: RebalanceRenderOptions
+): string {
+  const sizing = options.sizing ?? null
+  const sums = sizing === null ? undefined : planSums(advice, sizing)
+
+  if (sizing === null || sums === undefined || sums.buys + sums.sells === 0) {
+    return t(locale, 'trading.render.rebalance.title')
+  }
+
+  return t(locale, titleKey(sums), {
+    buys: formatCount(locale, sums.buys),
+    sells: formatCount(locale, sums.sells),
+    bought: formatMoney(locale, sums.bought, sizing.baseCurrency),
+    sold: formatMoney(locale, sums.sold, sizing.baseCurrency),
+  })
+}
+
+/** A plan that only buys or only sells names the one side: "sells 0 VND" is a figure with nothing
+ *  behind it. */
+function titleKey(sums: PlanSums): MessageKey {
+  if (sums.sells === 0) {
+    return 'trading.render.rebalance.titleBuy'
+  }
+
+  return sums.buys === 0
+    ? 'trading.render.rebalance.titleSell'
+    : 'trading.render.rebalance.titleBoth'
+}
+
+/** Each order's money read from the sizing map, the one place it was computed. */
+function planSums(advice: RebalancePlanReady, sizing: RebalanceSizing): PlanSums {
+  let sold = 0
+  let bought = 0
+  let sells = 0
+  let buys = 0
+
+  for (const row of advice.rebalance) {
+    const size = sizing.byInstrument.get(buildInstrumentKey(row.instrument))
+
+    if (size === undefined) {
+      continue
+    }
+
+    if (fractionDirection(row.changePctNav) === 'down') {
+      sold += size.valueBase
+      sells += 1
+    } else {
+      bought += size.valueBase
+      buys += 1
+    }
+  }
+
+  return { sold, bought, sells, buys }
 }
 
 /** The number every percentage on the page is a share of. Operator surfaces only: relative advice
@@ -108,93 +177,23 @@ export function renderNavLine(
   ]
 }
 
-// A book whose every segment sits inside its drift band has nothing to trade, which is an answer
-// rather than a gap.
-/** What the plan does to cash, so the reader is not adding rows by hand. Summed from the sizing map
- *  that already keys them, never from the rows a second time. */
-export function renderPlanTotals(
-  locale: Locale,
-  advice: RebalancePlanReady,
-  options: RebalanceRenderOptions
-): readonly string[] {
-  const sizing = options.sizing ?? null
+/** What leaving the plan undone costs, stated only where it costs something: positions still
+ *  outside the operator's policy. A breach smaller than a board lot leaves a finding and no order,
+ *  and the notes below carry it. */
+export function renderBreachLine(locale: Locale, advice: RebalancePlanReady): readonly string[] {
+  const count = splitBreaches(advice.rebalance).breaches.length
 
-  if (sizing === null || advice.rebalance.length === 0) {
+  if (count === 0) {
     return []
   }
 
-  let bought = 0
-  let sold = 0
+  const key = pluralKey(
+    count,
+    'trading.render.rebalance.doNothingBreachOne',
+    'trading.render.rebalance.doNothingBreach'
+  )
 
-  for (const row of advice.rebalance) {
-    const size = sizing.byInstrument.get(buildInstrumentKey(row.instrument))
-
-    if (size === undefined) {
-      continue
-    }
-
-    if (fractionDirection(row.changePctNav) === 'down') {
-      sold += size.valueBase
-    } else {
-      bought += size.valueBase
-    }
-  }
-
-  return [
-    ...renderSingleAndNull(locale, advice, options),
-    `${INDENT[1]}${t(locale, 'trading.render.rebalance.planTotals', {
-      sold: formatMoney(locale, sold, sizing.baseCurrency),
-      bought: formatMoney(locale, bought, sizing.baseCurrency),
-      net: formatSignedMoney(locale, sold - bought, sizing.baseCurrency),
-    })}`,
-  ]
-}
-
-/** The one thing to do and what happens if nothing is done. Absent when the plan has no rows at
- *  all, since `noChanges` already answers that. */
-function renderSingleAndNull(
-  locale: Locale,
-  advice: RebalancePlanReady,
-  options: RebalanceRenderOptions
-): readonly string[] {
-  const sizing = options.sizing ?? null
-  const { breaches } = splitBreaches(advice.rebalance)
-  const first = breaches[0] ?? advice.rebalance[0]
-  const action =
-    first === undefined || sizing === null
-      ? undefined
-      : sizedAction(locale, first, {
-          sizing,
-          ...(options.quoteConventions === undefined
-            ? {}
-            : { quoteConventions: options.quoteConventions }),
-        })
-
-  return [
-    ...(action === undefined
-      ? []
-      : [`${INDENT[1]}${t(locale, 'trading.render.rebalance.onlyOne', { action })}`]),
-    `${INDENT[1]}${doNothingLine(locale, advice, breaches.length)}`,
-  ]
-}
-
-/** Three states, because "no cap is breached" is a claim about the book and a plan row is not the
- *  only thing that can breach one: a breach smaller than a board lot leaves a finding and no order,
- *  and a clean line printed above that finding contradicts it. */
-function doNothingLine(locale: Locale, advice: RebalancePlanReady, breachCount: number): string {
-  if (breachCount > 0) {
-    const key = pluralKey(
-      breachCount,
-      'trading.render.rebalance.doNothingBreachOne',
-      'trading.render.rebalance.doNothingBreach'
-    )
-
-    return t(locale, key, { count: formatCount(locale, breachCount) })
-  }
-
-  return advice.findings.length > 0
-    ? t(locale, 'trading.render.rebalance.doNothingUnchanged')
-    : t(locale, 'trading.render.rebalance.doNothingClean')
+  return [`${INDENT[1]}${t(locale, key, { count: formatCount(locale, count) })}`]
 }
 
 /** What the book looks like once the plan's orders are placed: cash lands where the sleeve says,
@@ -252,17 +251,27 @@ function largestSectorAfter(
   return largest
 }
 
-export function renderDeploymentLines(
-  locale: Locale,
-  policy: RebalancePolicyView
-): readonly string[] {
-  return policy.deploymentScale >= 1
-    ? []
-    : [
-        `${INDENT[1]}${t(locale, 'trading.render.rebalance.deployment', {
-          deployment: formatFraction(locale, policy.deploymentScale),
-        })}`,
-      ]
+/** How hard today's plan leans: what share of the planned buying it may spend, and which held
+ *  names read weak without being sold. */
+export function renderStanceLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
+  return [...renderDeploymentLines(locale, advice), ...renderWeakHoldingLines(locale, advice)]
+}
+
+/** The share of the planned buying today's scale allows. A sleeve whose regime set it already says
+ *  so in its own warning, so the line speaks only where nothing else does: the profile's own
+ *  ceiling binding on a calm day. */
+function renderDeploymentLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
+  const statedByRegime = advice.caveats.some((caveat) => caveat.code === REGIME_CAVEAT)
+
+  if (advice.policy.deploymentScale >= 1 || statedByRegime) {
+    return []
+  }
+
+  return [
+    `${INDENT[1]}${t(locale, 'trading.render.rebalance.deployment', {
+      deployment: formatFraction(locale, advice.policy.deploymentScale),
+    })}`,
+  ]
 }
 
 export function renderNotes(
@@ -278,10 +287,7 @@ export function renderNotes(
 
 /** A name the plan already sells carries the score that condemned it on its own row, so the note
  *  would be the same fact with less of it. */
-export function renderWeakHoldingLines(
-  locale: Locale,
-  advice: RebalancePlanReady
-): readonly string[] {
+function renderWeakHoldingLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
   const sold = new Set(
     advice.rebalance
       .filter((row) => row.reason.kind === 'weak-signal')

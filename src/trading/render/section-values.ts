@@ -49,6 +49,11 @@ import {
 } from '@/trading/render/format'
 import { formatFixedPrice, formatSpendUsd } from '@/trading/render/money'
 
+const NOTE_SEPARATOR = ', '
+
+const VIETNAMESE_LETTER_RE =
+  /[ăâđêôơưàảãáạằẳẵắặầẩẫấậèẻẽéẹềểễếệìỉĩíịòỏõóọồổỗốộờởỡớợùủũúụừửữứựỳỷỹýỵ]/iu
+
 const NUMERIC_FIELDS: ReadonlySet<string> = new Set(BRIEF_NUMERIC_FIELDS)
 
 // Every map below is exhaustive by `satisfies`: a value with no entry renders as its raw slug, and
@@ -113,9 +118,9 @@ const INDEX_REVIEW_KEYS = Object.freeze({
 const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, MessageKey>>>>> =
   Object.freeze({
     action: {
-      buy: 'trading.action.buy',
-      hold: 'trading.action.hold',
-      reduce: 'trading.action.reduce',
+      buy: 'trading.brief.call.buy',
+      hold: 'trading.brief.call.hold',
+      reduce: 'trading.brief.call.reduce',
     } satisfies Record<SuggestionAction, MessageKey>,
     aggressorSide: AGGRESSOR_SIDE_KEYS,
     code: ACTION_CODE_KEYS,
@@ -329,16 +334,39 @@ const LABEL_BRACKET_RE = /[[\]]/g
 const LABEL_BRACKET = Object.freeze({ '[': '(', ']': ')' })
 const LABEL_BREAK_RE = /\s*[\r\n]+\s*/g
 
+interface LinkNotes {
+  readonly reader: Locale
+  readonly dated?: string
+}
+
 /** A headline that carries its source: the label is what prints, and the target travels behind it.
  *  Telegram reads a bare `)` as the end of a link, so the parentheses are encoded here - where the
- *  link is built is the only place that knows where the URL really ends. */
-export function toLink(label: string, url: string): string {
+ *  link is built is the only place that knows where the URL really ends. Notes follow in one
+ *  parenthetical: the caller's own, then the headline's language where it is not the reader's,
+ *  since sources publish verbatim. */
+export function toLink(label: string, url: string, notes?: LinkNotes): string {
   const target = url.replace(
     URL_PARENTHESIS_RE,
     (char) => URL_PARENTHESIS[char as keyof typeof URL_PARENTHESIS]
   )
+  const link = `[${linkLabel(label)}](${target})`
 
-  return `[${linkLabel(label)}](${target})`
+  if (notes === undefined) {
+    return link
+  }
+
+  const written = writtenIn(label)
+  const all = [
+    ...(notes.dated === undefined ? [] : [notes.dated]),
+    ...(written === notes.reader ? [] : [t(notes.reader, `trading.render.language.${written}`)]),
+  ]
+
+  return all.length === 0 ? link : `${link} (${all.join(NOTE_SEPARATOR)})`
+}
+
+/** The two catalog languages part on script: Vietnamese spells with letters English never uses. */
+function writtenIn(text: string): Locale {
+  return VIETNAMESE_LETTER_RE.test(text) ? 'vi' : 'en'
 }
 
 /** A headline is a third party's text: an unbalanced bracket would end the label early, and

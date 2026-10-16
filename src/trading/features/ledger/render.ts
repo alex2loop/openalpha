@@ -14,14 +14,13 @@ import type {
   VenueRef,
 } from '@/trading/kernel/instrument'
 import type { Position } from '@/trading/kernel/operator/book'
-import type { RenderContext } from '@/trading/render/format'
 import type { QuoteConvention } from '@/trading/render/money'
 import { t } from '@/i18n'
 import { renderFeeRows } from '@/trading/features/ledger/fee-rows'
 import { renderEntryFields } from '@/trading/features/ledger/fields'
 import { ledgerEntryHandle } from '@/trading/features/ledger/types'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
-import { renderHoldLevels } from '@/trading/features/suggestion/render/hold-levels'
+import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
 import { isSameInstrument } from '@/trading/kernel/instrument'
 import {
   formatCount,
@@ -41,7 +40,6 @@ interface WriteReceiptOptions {
 /** The operator's confirmation also prints the plan's levels, so it states where it is going. */
 interface WriteRenderOptions extends WriteReceiptOptions {
   readonly marketData: Pick<MarketDataService, 'quoteConvention' | 'trailsStop' | 'boardLot'>
-  readonly context: RenderContext
 }
 
 /** One field-list shape for write, edit and delete. The operator's form: it closes with the book
@@ -69,7 +67,6 @@ export function renderWriteConfirmation(
           plannedSection(locale, result.planned, {
             transaction: result.entry.transaction,
             quoteConventions,
-            context: options.context,
             marketData: options.marketData,
           }),
         ]),
@@ -83,7 +80,6 @@ function plannedSection(
   display: {
     readonly transaction: LedgerTxn
     readonly quoteConventions: ReadonlyMap<MarketRef, QuoteConvention>
-    readonly context: RenderContext
     readonly marketData: Pick<MarketDataService, 'trailsStop' | 'boardLot'>
   }
 ): readonly string[] {
@@ -95,10 +91,9 @@ function plannedSection(
 
   return [
     t(locale, 'trading.render.ledger.exitPlanned'),
-    ...renderHoldLevels({
+    ...renderLevelLines({
       locale,
       suggestion: planned,
-      context: display.context,
       quoted,
       trailsStop: display.marketData.trailsStop(planned.instrument.market),
       operatorFigures: 'shown',
@@ -169,6 +164,7 @@ export function renderWriteBody(
     ...renderEntryFields(locale, result.entry, {
       quoteConventions: options.quoteConventions,
       audience: options.audience,
+      book: result.book,
     }),
     ...renderFeeRows(locale, result.entry.transaction, {
       costs: options.costs,
@@ -321,7 +317,3 @@ interface PositionSubject {
 function subjectOf(txn: LedgerTxn): PositionSubject | undefined {
   return 'instrument' in txn ? { instrument: txn.instrument, venue: txn.venue } : undefined
 }
-
-/** What this page holds, never the book: a running balance would need a fold from the first row
- *  ever written, and the page is a newest-first window of the most recent rows. A page-scoped
- *  summary is computable from what is in hand and cannot disagree with the fold. */

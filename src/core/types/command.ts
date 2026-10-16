@@ -56,7 +56,12 @@ export interface Affordance {
 }
 
 export type SlashResult =
-  | { readonly kind: 'message'; readonly messages: readonly CommandMessage[] }
+  | {
+      readonly kind: 'message'
+      /** A heading the lines sit under, one level in, as every report does. */
+      readonly title?: CommandMessage
+      readonly messages: readonly CommandMessage[]
+    }
   | {
       readonly kind: 'text'
       readonly text: string
@@ -121,10 +126,17 @@ export interface SlashInvocationPolicy {
   readonly cooldownMs?: number
   readonly idempotencyKey?: (ctx: SlashContext) => string
   readonly execution?: LongRunningExecution
+  /** What to use instead, shown where a surface this policy leaves out refuses the command. */
+  readonly surfaceHint?: CommandMessageKey
   /** `'echo'` records the invocation and its `text` output in the session transcript, so the next
    *  agent turn in this session can be asked about it. Commands that only confirm a mutation, and
    *  commands that report runtime state, leave it unset. */
   readonly transcript?: 'echo'
+}
+
+export interface CommandGroup {
+  readonly key: CommandMessageKey
+  readonly icon: string
 }
 
 export interface SlashCommand {
@@ -145,5 +157,7 @@ export interface SlashCommand {
    * position; the caller filters by prefix.
    */
   completeFor?(args: readonly string[]): readonly string[]
+  /** The `/help` heading the command lists under; a command naming none lists under the general one. */
+  readonly group?: CommandGroup
   run(ctx: SlashContext): Promise<SlashResult>
 }

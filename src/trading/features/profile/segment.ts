@@ -162,6 +162,13 @@ export function updateSegmentPolicy(
     })
   }
 
+  if (!(request.pctNav >= 0 && request.pctNav <= 1)) {
+    throw new ValidationError(`${request.field} must be a share between 0 and 1`, {
+      key: 'errors.profileOutOfBounds',
+      params: { field: request.field, minimum: 0, maximum: 1 },
+    })
+  }
+
   if (request.field === 'segment-target') {
     const pinned = { ...current.pinnedTargets, [request.segment]: request.pctNav }
 

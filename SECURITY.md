@@ -119,6 +119,3 @@ phải mong muốn:
 | Danh mục | mô hình thấy tỷ trọng và phần trăm, không bao giờ thấy tiền, khối lượng hay giá vốn - bỏ ngay ở mức kiểu |
 | Đặt lệnh | một đường duy nhất, có người chấp thuận, giới hạn trong phiên và không bao giờ được ghi nhớ |
 | Chi phí | hạn mức ngày, tháng và mỗi lượt chạy, cảnh báo mềm ở mức 80% |
-
-Những thứ này được liệt kê kèm chỗ thực thi trong
-[README](README.md#16-lớp-an-toàn).

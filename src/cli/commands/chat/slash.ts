@@ -179,7 +179,7 @@ function toSlashTurn(
 
   switch (result.kind) {
     case 'message':
-      app.out(renderMessages(bindLocale(app.config.locale.language), result.messages))
+      app.out(renderMessages(bindLocale(app.config.locale.language), result))
       return null
     case 'text':
       app.out(toPlainText(withAffordances(app, result)))

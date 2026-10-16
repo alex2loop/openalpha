@@ -70,7 +70,7 @@ export function renderInvalidatorLines(
 
   return [
     renderSectionTitle(
-      SECTION_ICONS.unverified,
+      SECTION_ICONS.invalidators,
       t(locale, 'trading.render.suggestion.invalidators')
     ),
     ...shown.map((invalidator) => `${INDENT[1]}${invalidator}`),
@@ -236,20 +236,16 @@ export function renderQuoteLine(
   return [`${INDENT[1]}${line}`]
 }
 
-/** The levels the market computed before the run decided against acting, fenced by the intro line:
- *  a hold printing a bare entry and target reads as the buy the run just declined. The actionable
- *  header already carries them, so only a hold renders them separately. */
 /** The title carries the read counts, because the list below it carries only what a role quoted.
- *  A run that read six headlines and cited none still prints the title: that it read and did not
- *  cite is the fact. */
+ *  Silent where nothing was cited. */
 export function renderSourceLines(
   locale: Locale,
   suggestion: StoredSuggestion,
   detail: SuggestionDetail = 'compact'
 ): readonly string[] {
-  const { citations, headlinesRead } = suggestion
+  const { citations } = suggestion
 
-  if (citations.length === 0 && headlinesRead === undefined) {
+  if (citations.length === 0) {
     return []
   }
 
@@ -293,12 +289,19 @@ function hostOf(url: string): string {
  *  base64, which is a tenth of the message and nothing a reader can act on. A citation with no
  *  headline has only that target to show, so it states the source it came from instead. */
 function renderCitation(locale: Locale, citation: SuggestionCitation): string {
-  const name =
-    citation.title === undefined
-      ? toLink(hostOf(citation.url), citation.url)
-      : toLink(citation.title, citation.url)
+  const dated =
+    citation.publishedAt === undefined
+      ? undefined
+      : formatPublishedDay(locale, citation.publishedAt)
 
-  return citation.publishedAt === undefined
-    ? name
-    : `${name} (${formatPublishedDay(locale, citation.publishedAt)})`
+  if (citation.title === undefined) {
+    const link = toLink(hostOf(citation.url), citation.url)
+
+    return dated === undefined ? link : `${link} (${dated})`
+  }
+
+  return toLink(citation.title, citation.url, {
+    reader: locale,
+    ...(dated === undefined ? {} : { dated }),
+  })
 }

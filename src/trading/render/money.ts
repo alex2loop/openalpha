@@ -88,6 +88,15 @@ export function formatMoney(locale: Locale, value: number, currency: CurrencyCod
     : `${formatFixedDigits(locale, value, minorUnitsOf(currency))} ${currency}`
 }
 
+/** An amount for an error message, which is worded later in the reader's locale: the currency's
+ *  own precision travels with it, and the copy names the currency. */
+export function moneyParam(
+  value: number,
+  currency: CurrencyCode
+): { readonly amount: number; readonly digits: number } {
+  return { amount: value, digits: minorUnitsOf(currency) }
+}
+
 /** LLM spend, in the reader's digit separators — unlike core's log-facing helper, which is read by
  *  a machine and by the cost command, where a stable `$0.0142` is right. */
 export function formatSpendUsd(locale: Locale, usd: number): string {
@@ -170,16 +179,22 @@ function priceDecimals(value: number, currency: CurrencyCode): number {
   return Math.max(minor, SUB_UNIT_SIGNIFICANT_DIGITS - wholeDigits)
 }
 
+/** A recorded price may name the instrument it is per; a declared unit already says what one is. */
+interface RecordedQuote extends QuotedIn {
+  readonly ticker?: string
+}
+
 /** The same price where the reader is checking it against a fill rather than reading a board: a
  *  recorded row prints every digit it holds. A board-scaled market keeps its board form, which is
  *  the scale the operator stated the price in. */
-export function formatRecordedPrice(locale: Locale, value: number, quote: QuotedIn): string {
+export function formatRecordedPrice(locale: Locale, value: number, quote: RecordedQuote): string {
   const price =
     quote.display === undefined
       ? formatExactAmount(locale, value)
       : boardPrice(locale, value, quote.display)
+  const text = labelled(locale, price, quote)
 
-  return labelled(locale, price, quote)
+  return quote.ticker === undefined || namesUnit(quote.unit) ? text : `${text}/${quote.ticker}`
 }
 
 /** Money on the same surface, for the same reason: a fee is checked against what the venue billed. */
@@ -248,9 +263,13 @@ export function renderBoardScale(
 }
 
 function quotedIn(locale: Locale, currency: CurrencyCode, unit?: QuoteUnit): string {
-  return unit === undefined || IMPLIED_UNITS.has(unit)
-    ? currency
-    : renderDeclaredValue(locale, `trading.quote-unit.${unit}`, { currency })
+  return namesUnit(unit)
+    ? renderDeclaredValue(locale, `trading.quote-unit.${unit}`, { currency })
+    : currency
+}
+
+function namesUnit(unit: QuoteUnit | undefined): unit is QuoteUnit {
+  return unit !== undefined && !IMPLIED_UNITS.has(unit)
 }
 
 export function formatSignedMoney(locale: Locale, value: number, currency: CurrencyCode): string {

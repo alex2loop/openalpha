@@ -1,6 +1,5 @@
 import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
-import type { SegmentProgress } from '@/trading/features/portfolio/render/sleeves'
 import type {
   ChangeReason,
   PositionChange,
@@ -9,7 +8,6 @@ import type {
   SegmentTarget,
 } from '@/trading/features/portfolio/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
-import type { RenderContext } from '@/trading/render/format'
 import type { QuoteConvention } from '@/trading/render/money'
 import { t } from '@/i18n'
 import { WEAK_HOLDING_SIGNAL_THRESHOLD } from '@/trading/features/portfolio/folds/policy'
@@ -23,10 +21,8 @@ import {
   SIDE_MARKS,
 } from '@/trading/render/format'
 import { renderKindBadge } from '@/trading/render/kind-badge'
-import { INDENT, toFactLines } from '@/trading/render/layout'
+import { INDENT } from '@/trading/render/layout'
 import { formatMoney, formatQuotedPrice, quotedInOf } from '@/trading/render/money'
-
-import { cumulativeSegmentWeights } from './sleeves'
 
 /** A row the policy no longer permits, as against one that merely drifted. Only these two arms name
  *  a position the plan is correcting rather than tuning. */
@@ -50,7 +46,6 @@ export function splitBreaches(rows: readonly PositionChange[]): BreachSplit {
 /** What each helper below needs to price a row, narrowed from the command's own option bag so no
  *  order renderer reaches for a field it does not read. */
 interface OrderPricing {
-  readonly context: RenderContext
   readonly sizing?: RebalanceSizing | null
   readonly entryTranchePct?: number
   readonly quoteConventions?: ReadonlyMap<MarketRef, QuoteConvention>
@@ -85,15 +80,12 @@ export function renderOrderRows(
   options: OrderPricing
 ): readonly RenderedOrder[] {
   const sizing = options.sizing ?? null
-  const progress = cumulativeSegmentWeights(advice)
   const { breaches, drifts } = splitBreaches(advice.rebalance)
   const render = (row: PositionChange, group: OrderGroup): RenderedOrder => ({
     row,
     group,
     text: renderOrder(locale, row, {
-      context: options.context,
       sizing,
-      progress: progress.get(buildInstrumentKey(row.instrument)),
       ...(options.entryTranchePct === undefined
         ? {}
         : { entryTranchePct: options.entryTranchePct }),
@@ -156,45 +148,25 @@ export function groupHeading(locale: Locale, heading: 'groupBreach' | 'groupDrif
 }
 
 /** Verb first, then what to hand a broker. A weight alone is not an order, so the amount and unit
- *  count lead wherever the surface is allowed to see them. */
+ *  count lead wherever the surface is allowed to see them. The sleeve each order moves reads in the
+ *  table below, so the row states only the name's own weight and any reason beyond the gap. */
 function renderOrder(
   locale: Locale,
   row: PositionChange,
   options: {
-    readonly context: RenderContext
     readonly sizing: RebalanceSizing | null
-    readonly progress: SegmentProgress | undefined
     readonly entryTranchePct?: number
     readonly quoteConventions?: ReadonlyMap<MarketRef, QuoteConvention>
   }
 ): string {
-  const { sizing, progress } = options
+  const { sizing } = options
   const side = fractionDirection(row.changePctNav) === 'down' ? 'sell' : 'buy'
-  // Each line shows the segment's running weight, so several buys in one sleeve read as a climb.
-  const seg = progress ?? {
-    from: row.currentPctNav,
-    to: row.targetPctNav,
-    fromExact: row.currentPctNav,
-    toExact: row.targetPctNav,
-  }
-  // Money off the unrounded points, so an opening amount plus this order reaches the closing one.
-  const segAmounts =
-    sizing === null
-      ? {}
-      : {
-          segFromAmount: formatMoney(locale, seg.fromExact * sizing.navBase, sizing.baseCurrency),
-          segToAmount: formatMoney(locale, seg.toExact * sizing.navBase, sizing.baseCurrency),
-        }
   const shared = {
     ticker: `${row.instrument.ticker}${renderKindBadge(locale, row.instrumentKind)}`,
     change: formatFixedFraction(locale, Math.abs(row.changePctNav)),
     current: formatFixedFraction(locale, row.currentPctNav),
     target: formatFixedFraction(locale, row.targetPctNav),
-    segFrom: formatFixedFraction(locale, seg.from),
-    segTo: formatFixedFraction(locale, seg.to),
-    ...segAmounts,
     reason: renderChangeReason(locale, row),
-    segment: renderDeclaredValue(locale, `trading.segment.${row.segment}`),
   }
 
   const action =
@@ -214,28 +186,9 @@ function renderOrder(
   return [
     `${SIDE_MARKS[side]} ${action}`,
     ...entryTranche(locale, row, options),
-    ...detailLines(locale, { side, shared }, options.context),
+    `${INDENT[2]}${t(locale, 'trading.render.rebalance.detailWeight', shared)}`,
+    ...(row.reason.kind === 'fill-gap' ? [] : [`${INDENT[2]}${shared.reason}`]),
   ].join('\n')
-}
-
-/** What the order does to the name's weight and to its sleeve, and why - each its own fact, so the
- *  destination decides how many fit on a line. */
-function detailLines(
-  locale: Locale,
-  order: { readonly side: 'buy' | 'sell'; readonly shared: Record<string, string> },
-  context: RenderContext
-): readonly string[] {
-  const { side, shared } = order
-
-  return toFactLines(
-    [
-      t(locale, 'trading.render.rebalance.detailWeight', shared),
-      t(locale, `trading.render.rebalance.${side}Sleeve`, shared),
-      shared.reason ?? '',
-    ],
-    context,
-    2
-  )
 }
 
 /** The first order of a staged buy, in units the venue accepts. A sell states none — the plan sells
@@ -274,9 +227,8 @@ function entryTranche(
   ]
 }
 
-/** The one-line order a sized row prints, and what the one-thing pointer quotes: one author so the
- *  pointer can never restate the row. Absent when the row was never sized. */
-export function sizedAction(
+/** The one-line order a sized row prints. Absent when the row was never sized. */
+function sizedAction(
   locale: Locale,
   row: PositionChange,
   pricing: {

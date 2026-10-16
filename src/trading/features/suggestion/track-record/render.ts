@@ -29,6 +29,9 @@ import {
 } from '@/trading/render/format'
 import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layout'
 
+/** Versions sort as numbers in every host locale. */
+const VERSION_COLLATION_LOCALE = 'en'
+
 /** Only the listing is trimmed; the summary above it still scores every row the caller asked for. */
 const LISTED_OUTCOME_COUNT = 5
 
@@ -234,7 +237,7 @@ function renderReviewLines(locale: Locale, splits: readonly ReviewSplit[]): read
   }
 
   return [
-    renderSectionTitle(SECTION_ICONS.reflect, t(locale, 'trading.render.reflect.byReview')),
+    renderSectionTitle(SECTION_ICONS.breakdown, t(locale, 'trading.render.reflect.byReview')),
     ...rated.map(
       (split) =>
         `${INDENT[1]}${t(locale, 'trading.render.reflect.reviewLine', {
@@ -252,20 +255,41 @@ function renderVersionLines(
   locale: Locale,
   versions: readonly TrackRecordVersionCount[]
 ): readonly string[] {
-  if (versions.length < 2) {
+  const counts = countsByVersion(versions)
+
+  if (counts.length < 2) {
     return []
   }
 
   return [
-    renderSectionTitle(SECTION_ICONS.reflect, t(locale, 'trading.render.reflect.byVersion')),
-    ...versions.map(
-      (entry) =>
+    renderSectionTitle(SECTION_ICONS.breakdown, t(locale, 'trading.render.reflect.byVersion')),
+    ...counts.map(
+      ([version, count]) =>
         `${INDENT[1]}${t(locale, 'trading.render.reflect.versionLine', {
-          version: entry.strategyVersion,
-          n: formatCount(locale, entry.resolvedCount),
+          version,
+          n: formatCount(locale, count),
         })}`
     ),
   ]
+}
+
+/** One line per strategy version, newest first. Rows that differ only in a calculation version read
+ *  as the same version twice to the operator, so their counts sum. */
+function countsByVersion(
+  versions: readonly TrackRecordVersionCount[]
+): readonly (readonly [string, number])[] {
+  const counts = new Map<string, number>()
+
+  for (const entry of versions) {
+    counts.set(
+      entry.strategyVersion,
+      (counts.get(entry.strategyVersion) ?? 0) + entry.resolvedCount
+    )
+  }
+
+  return [...counts].sort(([left], [right]) =>
+    right.localeCompare(left, VERSION_COLLATION_LOCALE, { numeric: true })
+  )
 }
 
 function renderDebateModelLines(
@@ -277,7 +301,7 @@ function renderDebateModelLines(
   }
 
   return [
-    renderSectionTitle(SECTION_ICONS.reflect, t(locale, 'trading.render.reflect.byDebateModel')),
+    renderSectionTitle(SECTION_ICONS.breakdown, t(locale, 'trading.render.reflect.byDebateModel')),
     ...models.map((entry) => `${INDENT[1]}${renderDebateModelLine(locale, entry)}`),
   ]
 }
@@ -307,7 +331,7 @@ export function renderCalibrationLines(
   }
 
   return [
-    renderSectionTitle(SECTION_ICONS.portfolio, t(locale, 'trading.render.reflect.byConviction')),
+    renderSectionTitle(SECTION_ICONS.calibration, t(locale, 'trading.render.reflect.byConviction')),
     ...rated.flatMap((bucket) => [
       `${INDENT[1]}${renderConvictionLine(locale, bucket)}`,
       ...renderStatedLine(locale, bucket),
@@ -398,7 +422,7 @@ function renderOutcomeLines(
   })
 
   return [
-    renderSectionTitle(SECTION_ICONS.alert, header),
+    renderSectionTitle(SECTION_ICONS.outcomes, header),
     ...listed.map((row) => `${INDENT[1]}${renderOutcomeLine(locale, row)}`),
   ]
 }
@@ -409,6 +433,7 @@ export function renderOutcomeLine(locale: Locale, row: ResolvedActionableSuggest
   const { outcome } = row
   const shared = {
     ticker: row.instrument.ticker,
+    at: formatDay(locale, row.at),
     ret: formatSignedFraction(locale, outcome.returnPct),
     day: formatDay(locale, outcome.exitDay),
   }

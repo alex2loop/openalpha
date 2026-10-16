@@ -2,8 +2,8 @@ import type { Locale } from '@/core/types/locale'
 import type { SourceSummary } from '@/trading/kernel/source/source-result'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/render/datetime'
-import { renderProvidedValue } from '@/trading/render/format'
-import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
+import { renderProvidedValue, SECTION_ICONS } from '@/trading/render/format'
+import { INDENT, INLINE_SEPARATOR, renderSectionTitle } from '@/trading/render/layout'
 
 interface SourcesRenderInput {
   readonly summaries: readonly SourceSummary[]
@@ -22,13 +22,16 @@ export function renderSourcesText(input: SourcesRenderInput): string {
     const answered = summaries.some((summary) => summary.lastSuccessAt !== undefined)
     const state = answered ? 'slash.tradingSourcesHealthy' : 'slash.tradingSourcesIdle'
 
-    return `${t(locale, 'slash.tradingSourcesTitle')}${INLINE_SEPARATOR}${t(locale, state)}`
+    return [title(locale), `${INDENT[1]}${t(locale, state)}`].join('\n')
   }
 
-  return [
-    t(locale, 'slash.tradingSourcesTitle'),
-    ...degraded.map((summary) => `${INDENT[1]}${toRow(summary, input)}`),
-  ].join('\n')
+  return [title(locale), ...degraded.map((summary) => `${INDENT[1]}${toRow(summary, input)}`)].join(
+    '\n'
+  )
+}
+
+function title(locale: Locale): string {
+  return renderSectionTitle(SECTION_ICONS.sources, t(locale, 'slash.tradingSourcesTitle'))
 }
 
 function isDegraded(summary: SourceSummary): boolean {

@@ -168,7 +168,16 @@ function toResult<T, R>(
         }),
   })
 
-  return { kind: 'failed', cause: last.result.reason === 'budget' ? 'budget' : 'halted' }
+  return { kind: 'failed', cause: haltCauseOf(last.result) }
+}
+
+/** A failure worded for the operator is setup they must fix, such as an unset key. */
+function haltCauseOf(result: RunResult): ThemeStepFailure {
+  if (result.reason === 'budget') {
+    return 'budget'
+  }
+
+  return result.operator === undefined ? 'halted' : 'setup'
 }
 
 /** At most two runs: one repair for an answer that failed its schema or checks, one retry for a

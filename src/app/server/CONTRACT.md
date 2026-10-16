@@ -133,8 +133,9 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
 - **Position `heldSince`.** The day of the first buy since the position last opened from flat, so a
   chart can set the time before it apart from the time it has been held.
 - **Absent, not zero.** An unpriced position has no `marketValueBase`, `unrealizedPnlBase` or
-  `weightPctNav`, and the book then has no `navBase`. A quote with no day change has no
-  `changePct`. A client shows these as missing, never as 0.
+  `weightPctNav`, and the book then has no `navBase`. While the book holds USDT, `navBase` is its cash plus its
+  positions plus the USDT's move over its cost; the wire carries no field for that move. A quote with
+  no day change has no `changePct`. A client shows these as missing, never as 0.
 - **`/v1/quotes`** returns the **profile-resolved** pulse board; each quote names its own
   `market` and `ticker`, the pair `/v1/ohlcv` takes. `closedOn` is the session a settled close
   belongs to; a live reading has none. `staleAt` dates a price too old to be live from a session

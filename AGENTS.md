@@ -302,7 +302,7 @@ Plan lifecycle:
 - Open risk is whole-book: `openRiskOf` sums `units x (mark - planned stop)` over priced tradeable holdings once per instrument across venues; a buy is sized into the room under `maximumOpenRiskPctNav`. A held name with no planned stop makes it a floor and is named (`suggestion.open-risk-unplanned`), never zero.
 - A fund answers to its sleeve's ETF ceiling instead of the single-name cap where declared (`positionCapOf`, `isCappedAsFund`).
 - The book never reads a suggestion row: it states the seam (`ReduceVerdicts`), `app` binds it.
-- A stored suggestion carries `held` and `evidenceThrough` on both arms (`SuggestionBase`; `sharedPayload` writes, `toBase` reads; the header prints `evidenceThrough` wherever it differs from `at`). `settlement`, `priceBand`, `concentration` stay on the actionable arm.
+- A stored suggestion carries `held` and `evidenceThrough` on both arms (`SuggestionBase`; `sharedPayload` writes, `toBase` reads; the report's closing lines print `evidenceThrough` wherever it differs from `at`). `settlement`, `priceBand`, `concentration` stay on the actionable arm.
 
 Reduce reasons:
 - `reduce` carries a `reduceReasonCode`: `over-target` is the plan's trim; `structure-broken`, `regime-risk-off`, `thesis-weakening`, `overheated`, `stale` are evidence turning on a held name.

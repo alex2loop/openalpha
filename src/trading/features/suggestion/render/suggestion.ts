@@ -17,7 +17,7 @@ import {
 } from '@/trading/features/suggestion/render/headline'
 import { renderHeldExit } from '@/trading/features/suggestion/render/held-exit'
 import { renderHistoryLines } from '@/trading/features/suggestion/render/history'
-import { renderHoldLevels } from '@/trading/features/suggestion/render/hold-levels'
+import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
 import { renderOrderNotes } from '@/trading/features/suggestion/render/order'
 import { renderPlanLines } from '@/trading/features/suggestion/render/plan'
 import { renderRecordHint } from '@/trading/features/suggestion/render/record-hint'
@@ -135,11 +135,12 @@ function renderStored(view: RenderView, call: StoredSuggestion): readonly (reado
   const verdict = verdictOf(view, suggestion)
   const holdReasons = holdReasonLines(locale, suggestion, inconclusive)
   const quote = levelQuote(view, suggestion)
+  const facts = renderFacts(view, suggestion)
 
   return [
     [
       renderSectionTitle(SECTION_ICONS.suggestion, verdict),
-      ...renderFactLines(view, suggestion),
+      ...facts.head,
       ...renderReduceReasonLines(locale, suggestion),
       ...renderHeldExit({
         locale,
@@ -155,10 +156,9 @@ function renderStored(view: RenderView, call: StoredSuggestion): readonly (reado
       ...holdReasons,
       ...(inconclusive
         ? []
-        : renderHoldLevels({
+        : renderLevelLines({
             locale,
             suggestion,
-            context: view.context,
             trailsStop: view.trailsStop === true,
             operatorFigures: view.operatorFigures,
             ...(view.boardLot === undefined ? {} : { boardLot: view.boardLot }),
@@ -166,32 +166,43 @@ function renderStored(view: RenderView, call: StoredSuggestion): readonly (reado
           })),
       ...renderCalibrationLine(view, suggestion),
     ],
-    ...renderBodyBlocks(view, suggestion),
+    ...renderBodyBlocks(view, suggestion, facts.context),
   ]
 }
 
-/** What the run read and when, under the verdict: the evidence day, earlier calls on the name, the
- *  stamp, the quote and its scale, and the holding. */
-export function renderFactLines(view: RenderView, suggestion: StoredSuggestion): readonly string[] {
-  const { locale } = view
-
-  return [
-    ...secondOpinionLine(view, suggestion),
-    ...evidenceLine(locale, suggestion),
-    ...renderHistoryLines(locale, view.previous),
-    ...renderStampLine(locale, suggestion),
-    ...renderQuoteLine(locale, suggestion, view.quote?.display),
-    ...renderBoardScaleLines(locale, suggestion, levelQuote(view, suggestion)),
-    ...renderIndexTierLine(locale, suggestion),
-    ...renderHeldLine(locale, suggestion, view.operatorFigures),
-  ]
-}
-
-/** The degraded-debate caveat is absent when hoisted: it already sits under the price as the
- *  banner, and printing it twice reads as two failures. */
-function renderBodyBlocks(
+/** The lines that frame the verdict. `head` sits under it: whose call it is, earlier calls on the
+ *  name, the quote and the holding. `context` closes the report: the evidence day, the profile
+ *  stamp, the board scale and the index tier say how to read the numbers rather than what they say,
+ *  so the decision reads before its fine print. */
+export function renderFacts(
   view: RenderView,
   suggestion: StoredSuggestion
+): { readonly head: readonly string[]; readonly context: readonly string[] } {
+  const { locale } = view
+
+  return {
+    head: [
+      ...secondOpinionLine(view, suggestion),
+      ...renderHistoryLines(locale, view.previous),
+      ...renderQuoteLine(locale, suggestion, view.quote?.display),
+      ...renderHeldLine(locale, suggestion, view.operatorFigures),
+    ],
+    context: [
+      ...evidenceLine(locale, suggestion),
+      ...renderStampLine(locale, suggestion),
+      ...renderBoardScaleLines(locale, suggestion, levelQuote(view, suggestion)),
+      ...renderIndexTierLine(locale, suggestion),
+    ],
+  }
+}
+
+/** The plan, its notes and the detail, then the fine print the verdict was read under. The
+ *  degraded-debate caveat is absent when hoisted: it already sits under the price as the banner,
+ *  and printing it twice reads as two failures. */
+function renderBodyBlocks(
+  view: RenderView,
+  suggestion: StoredSuggestion,
+  context: readonly string[]
 ): readonly (readonly string[])[] {
   const { locale } = view
   const quote = levelQuote(view, suggestion)
@@ -206,6 +217,7 @@ function renderBodyBlocks(
       trailsStop: view.trailsStop === true,
     }),
     ...renderDetailBlocks(view, suggestion),
+    context.map((line) => line.trimStart()),
     [t(locale, 'trading.render.suggestion.disclaimer')],
     renderRecordHint({
       locale,
@@ -216,8 +228,8 @@ function renderBodyBlocks(
   ]
 }
 
-/** Why the call reads as it does, after the plan: the factors, the debate, the thesis, what would
- *  break it, the sources and the caveats. */
+/** Why the call reads as it does, after the plan: the thesis and what would break it first, then
+ *  the factors, the debate, the sources and the caveats behind them. */
 export function renderDetailBlocks(
   view: RenderView,
   suggestion: StoredSuggestion
@@ -226,6 +238,8 @@ export function renderDetailBlocks(
   const quote = levelQuote(view, suggestion)
 
   return [
+    renderThesisLines(locale, suggestion),
+    renderInvalidatorLines(locale, suggestion),
     renderFactorLines({
       locale,
       suggestion,
@@ -247,8 +261,6 @@ export function renderDetailBlocks(
           suggestion.debate
         ),
     renderUnsupportedClaims(view, suggestion),
-    renderThesisLines(locale, suggestion),
-    renderInvalidatorLines(locale, suggestion),
     renderSourceLines(locale, suggestion, view.detail),
     renderCaveatLines(locale, filteredCaveats(suggestion)),
   ]

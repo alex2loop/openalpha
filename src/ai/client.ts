@@ -34,7 +34,7 @@ export function createClient(input: CreateClientInput): ProviderChain {
   }
 
   // An entry whose key is unset steps aside; with none left, every call names the variable to set.
-  const keyed = input.models.filter((model) => model.missingKeyEnv === undefined)
+  const keyed = input.models.filter((model) => !isUnkeyed(model))
   const [first] = input.models
 
   if (keyed.length === 0 && first?.missingKeyEnv !== undefined) {
@@ -54,6 +54,18 @@ export function createClient(input: CreateClientInput): ProviderChain {
     tuning: input.tuning,
     ...(input.bus === undefined ? {} : { bus: input.bus }),
   })
+}
+
+/** A key borrowed from another provider's defaults is reported unset as well; it only takes the
+ *  entry out of the chain where the provider cannot answer without one. */
+function isUnkeyed(model: ResolvedModel): boolean {
+  if (model.missingKeyEnv === undefined) {
+    return false
+  }
+
+  const provider = providerById(model.provider)
+
+  return requiresApiKey(provider, model.baseUrl ?? provider.baseUrl)
 }
 
 interface ChainEntryInput {

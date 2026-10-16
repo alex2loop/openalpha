@@ -41,10 +41,12 @@ export async function reuseOrCooldown(
   const asOf = resolveDay(resolution.market, request.now)
   const identity = identityOf(resolution, asOf, request.focus.key)
   const existing = await findReusable(options, resolution, identity)
-
   // An undecided row is not an answer, so it neither satisfies the gate nor starts a cooldown:
   // serving it back would let one outage stand as today's decision for this name.
-  if (existing !== null && isStandingAnswer(existing, deps)) {
+  const answered = existing !== null && isStandingAnswer(existing, deps)
+  const superseded = answered && (await hasNewerEvidence(options, resolution, existing))
+
+  if (answered && !superseded) {
     const standing = await resolveStanding(options, resolution, existing)
 
     return { kind: 'completed', suggestion: standing, reused: true }
@@ -58,7 +60,7 @@ export async function reuseOrCooldown(
 
   const sessions = deps.policy.cooldownSessions
 
-  if (sessions <= 0) {
+  if (sessions <= 0 || superseded) {
     return undefined
   }
 
@@ -102,9 +104,12 @@ export async function persistSuggestion(
 
   const existing = await readHolder(options, stored)
 
-  // The identity is held by a row this run outranks — never decided, a shallower debate, or one the
-  // operator forced past — so this run takes it over; a lost race means another writer already did.
-  if (request.force === true || !isStandingAnswer(existing, deps)) {
+  // The identity is held by a row this run outranks — never decided, a shallower debate, forced past,
+  // or read off an older close — so this run takes it over; a lost race means another writer did.
+  const outranked = request.force === true || !isStandingAnswer(existing, deps)
+  const fresher = isStandingAnswer(stored, deps) && evidenceDayOf(stored) > evidenceDayOf(existing)
+
+  if (outranked || fresher) {
     const replaced = await deps.store.replace({
       previousId: existing.id,
       suggestion: stored,
@@ -172,6 +177,22 @@ async function findReusable(
   return recent !== null && request.now - recent.createdAt < deps.policy.reuseWindowMs
     ? recent
     : null
+}
+
+/** A call that read an earlier close stops answering for its day once a later close is stored. */
+async function hasNewerEvidence(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
+  suggestion: StoredSuggestion
+): Promise<boolean> {
+  const through = evidenceDayOf(suggestion)
+  const bars = await readBarsSince(options, resolution, through)
+
+  return bars?.kind === 'available' && bars.value.some((candle) => candle.at > through)
+}
+
+function evidenceDayOf(suggestion: Suggestion): TradingDay {
+  return suggestion.evidenceThrough ?? suggestion.at
 }
 
 /** On a market with no session boundary a fresh entry is the live quote, which moves far between

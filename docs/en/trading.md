@@ -204,7 +204,7 @@ A run ends in one of four ways:
 
 | Result | Meaning |
 |---|---|
-| `completed` | You get the suggestion. It is marked `reused` when the same name was already suggested today, or an earlier buy still stands. |
+| `completed` | You get the suggestion. It is marked `reused` when the same name was already suggested today on the latest stored close, or an earlier buy still stands. |
 | `unsupported` | No market claims the ticker, or two do and you must say which. |
 | `cooldown` | The name was suggested too recently. Shows the day it becomes eligible again. |
 | `error` | The run passed every stage guard, then failed to record (most likely storage). Rerunning is safe. |
@@ -273,16 +273,16 @@ Factors are computed only on settled bars. On a forming bar a factor would repai
 
 Each market decides when a live quote can be answered and falls back to the last close, so pre-open and closed sessions are unchanged. Whether a reading is live depends on the session it belongs to, not its timestamp. A closing auction prints after the bell, so once the tape settles the market's own closing print becomes that session's close and the live row is dropped.
 
-Evidence and price can end on different sessions, so every stored row carries an *evidence through* date: the newest settled session its factors and levels were read from. The header prints it whenever it differs from the run's own day. On a continuous market that is every run, because its bar for the calendar day closes at the next midnight UTC. The call's own date stays the day it was priced, which the reuse identity and the outcome window key on.
+Evidence and price can end on different sessions, so every stored row carries an *evidence through* date: the newest settled session its factors and levels were read from. The report's closing lines print it whenever it differs from the run's own day. On a continuous market that is every run, because its bar for the calendar day closes at the next midnight UTC. The call's own date stays the day it was priced, which the reuse identity and the outcome window key on.
 
 #### VN specifics
 
 **A VN price outside its own session's band means stale history, not a halted name.** No trade prints outside the band. If the live price lands beyond the band built from the stored close, that close is on an old basis, usually an ex-rights day the source has not adjusted yet. The run holds with `history-not-adjusted` instead of pricing levels on it. This runs ahead of the band-edge block, which would otherwise read the drop as a stock pinned at its floor. The next refresh that sees the restated close rebuilds the name.
 
-**A VN stock's factors print as an "at a glance" checklist:** growth, profitability, financial health, value, then trend, trailing high, flows and the rest. Each row carries its factor's own score gauge and headline readings, never a fixed threshold.
+**A VN stock's factors print as an "at a glance" checklist** grouped by side: in its favour, against it, then context. Within a group the strongest reading leads. Each row carries its factor's own score gauge and headline readings, never a fixed threshold.
 
-- Growth has no factor of its own, so it prints numbers only.
-- Profitability and financial health share the quality score, so the second row prints `"` rather than counting it twice.
+- Growth has no factor of its own, so it prints numbers only, under context. A factor reading near zero sits there too.
+- Profitability and financial health share the quality score, so the second row leaves its gauge blank rather than counting it twice.
 - A factor with no reading prints `—`.
 - The REPL prints a grid; chat prints one row per line.
 
@@ -480,10 +480,18 @@ A brief reads in this order: an **operator** block opening with the book (what y
 
 Each market publishes only the per-market sections it has data for, so adding a market adds its block and no new section. A market that publishes its own composite and does not own its region (crypto) carries it on its own `/overview` block, with the same score, driver, missing and coverage rows. The region read above it is the owner's.
 
+**Reading order.** Every report opens with its answer and closes with its fine print:
+
+- `/suggest` heads with the call (`BUY`, `NO ENTRY today`...), then one price level per line, then the reasoning and what would prove it wrong, then the factors and debate. The evidence day, profile, board scale and index-tier note close the report.
+- `/rebalance` titles itself with the plan in one line (how many names to buy or sell and the money involved); each order keeps its first tranche and weight, and NAV and profile close the page.
+- `/portfolio` puts a cash-above-target warning right under the headline, and splits cash on hand from profit and loss.
+- `/overview` prints a macro driver table once: a second market reading the same composite says so in one line instead of repeating it.
+- Headlines and citations print as their sources publish them; one in a language other than yours is marked, e.g. `(Vietnamese)`.
+
 **Ladders** show where a reading sits between two ends. The left end is always the one against the reader, and `●` is the reading itself. A reading past either end sits outside the bracket.
 
 - `/overview` draws the composite on a `-1`..`+1` gauge with `┼` at the regime thresholds, and each driver between its bearish and bullish anchors. For a rate the bearish anchor is the larger number, so the ladder does the flip for you.
-- Each `/portfolio` row with a plan draws its live price between the stop and the take-profit.
+- Each `/portfolio` row with a plan draws its live price between the stop and the take-profit, on its own line and labelled with both prices.
 - A suggestion draws none. A fresh plan's first take-profit sits one risk unit above entry, so the dot would always sit in the middle and say nothing.
 - Tool results relayed by the model print plain wording, with no glyphs to copy.
 
@@ -828,6 +836,47 @@ The currency belongs to the market. Crypto settles in **USDT** and gold in **USD
 
 `USDTVND` comes from the coin sources only. When they are all out there is no fallback to `USDVND`, because a silently substituted rate is worse than none. The position reads as unpriced with `valuation.fx-missing` and NAV is withheld.
 
+A row may carry the operator's own rate instead of the market's: `fx <rate>` at the end of a `/record` line stores the rate you actually paid, with its source recorded as `operator`, and `fx auto` takes the day's market rate on purpose. Cash rows may now also be in a currency a venue's markets are quoted in, so `/record deposit binance 1000 USDT 2026-08-14 fx 26600` is a valid row. Without `fx`, a row in a foreign currency is previewed and held for `/record confirm` rather than written at a rate you never chose; `/record sync` books at the market rate and says which currencies it did so for.
+
+#### Foreign cash at a venue
+
+A deposit in a venue's quote currency, such as `/record deposit binance 1000 USDT 2026-08-14 fx 26600`, makes that venue hold USDT as its own cash balance, with an average cost in the book's currency (26.6 million VND here).
+
+
+A crypto round trip, step by step, with the rate you paid recorded once, on the deposit:
+
+1. **Deposit USDT with the rate you paid.** `/record deposit binance 1000 USDT 2026-08-14 fx 26600`.
+2. **Buy with that USDT, no `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14`. It
+   spends the USDT at its cost; an `fx` here is refused with the reason.
+3. **Sell back into USDT.** `/record sell binance crypto:BTC all 65000 USDT 2026-09-01`.
+4. **Withdraw USDT with the rate you sold at.** `/record withdrawal binance 500 USDT 2026-09-20 fx 26900`
+   books the gap between the two rates as realized P/L.
+5. **Check** with `/portfolio`, `/transactions`, and `/reconcile` once the venue's key is set.
+
+Already holding USDT or coins at the venue when you start the book? Record today's balance, not the
+history:
+
+- **USDT only:** one deposit of the USDT you hold, with `fx <its average cost>`, or `fx auto` if you
+  do not know it (currency P/L before that day is then not counted).
+- **USDT and coins:** deposit the USDT you hold plus what the coins cost, then one buy per coin at its
+  current quantity, average cost and a fee of `0`. The book's USDT then matches the exchange. The `0`
+  fee prints a "fee differs" note, which an opening balance can ignore.
+
+```text
+/record deposit okx 1300 USDT 2026-10-16 fx auto        # 1,000 USDT held + 300 spent on BTC
+/record buy okx crypto:BTC 0.005 60000 USDT 0 2026-10-16
+```
+
+`/record sync` reads fills only from the book's first row on, so it cannot book coins bought earlier.
+With the venue's key set, `/reconcile` checks the result against the real balance.
+
+- **Which rows move it.** A USDT deposit, withdrawal, fee, loss or transfer always does. Once a venue holds USDT, every USDT buy and sale there does too: a buy spends USDT at its average cost and carries that cost into what it buys, and a sale returns its proceeds to the USDT. The first USDT recorded at a venue changes how later trades there are paid, a deposit dated before trades the venue funded in VND included, and those trades can then be refused. To switch a VND-funded venue over, withdraw the VND, then deposit the USDT with `fx`.
+- **The rate goes on the deposit, not the buy.** A buy, sale, fee or transfer paid from USDT the venue holds takes no rate, so `fx` on that row is refused with the reason rather than dropped. The P2P price you paid belongs on the USDT deposit.
+- **A withdrawal realizes the currency move.** The USDT leaves at its average cost, but net deposits fall by what it was worth that day. Deposit 1,000 at 26,600, then withdraw 1,000 at 27,000, and realized P/L is +400,000 VND with cash back at zero.
+- **Neither currency quietly converts into the other.** A USDT trade at a venue spends only its USDT and is refused with the currency and venue named when it runs short. A VND withdrawal, fee or transfer there spends only its VND, even if the venue holds USDT.
+- **The currency line starts negative after a P2P deposit.** USDT is marked at the market USD/VND rate while its cost is the P2P rate you paid, so right after a deposit at 26,600 the line reads about -2% when the market rate is about 26,036.
+- **Where you see it.** `/portfolio` lists the USDT beside cash with its cost and today's value, and prints its currency move. `/reconcile` compares it with the exchange's own USDT balance.
+
 #### Every mark says how it was taken
 
 A priced position is marked either:
@@ -991,7 +1040,7 @@ Every cash row names its custodian, and a buy is capped by the cash at the venue
 
 ## Orders
 
-**Start on a demo account.** In 1.0.3 the order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
+**Start on a demo account.** In 1.0.4 the order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
 
 `/trade` and the `order_place` tool place spot orders on **OKX** or **Binance**: market and limit, buy and sell, with an optional take-profit/stop-loss on a buy. Every order is capped before you are asked, approved by you before it goes out, and mirrored into the ledger when it fills.
 

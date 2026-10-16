@@ -55,6 +55,18 @@ export function toFactLines(
   return current === '' ? lines : [...lines, `${indent}${current}`]
 }
 
+/** One row's facts where a wrap continues one level deeper: at the row's own depth, a wrapped
+ *  continuation reads as the next row. */
+export function toRowLines(
+  facts: readonly string[],
+  context: RenderContext,
+  depth: number
+): readonly string[] {
+  const [head, ...wrapped] = toFactLines(facts, context, depth)
+
+  return head === undefined ? [] : [head, ...wrapped.map((line) => `${ROW_INDENT}${line}`)]
+}
+
 /** One blank line between entries of a list, so where one ends and the next begins reads at a
  *  glance. */
 export function joinEntries(entries: readonly (readonly string[])[]): readonly string[] {

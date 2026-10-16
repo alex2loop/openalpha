@@ -1,7 +1,8 @@
 import type { Locale } from '@/core/types/locale'
 import type { ApproveOutcome, SocialDraftView } from '@/social/drafts'
 import { sanitizeDisplayText, toFencedText, toSingleLine } from '@/core/utils/text'
-import { t } from '@/i18n'
+import { dayInZone } from '@/core/utils/time'
+import { formatDay, t } from '@/i18n'
 import { DRAFT_REASON_KEYS } from '@/social/notices'
 import { maybeLiveLines, renderSocialReply } from '@/social/tools/reply'
 
@@ -11,6 +12,8 @@ const INDENT = '  '
 
 export interface DraftRender {
   readonly locale: Locale
+  /** `[locale] timezone`, the day a draft's date is read on. */
+  readonly timeZone: string
   /** A chat renders markdown: what the network or the agent wrote goes inside a code block, so a
    *  link or bold in it shows as the characters that will be sent. */
   readonly fenced?: boolean
@@ -28,15 +31,17 @@ export function renderDraftView(render: DraftRender, view: SocialDraftView): rea
   const { locale } = render
 
   return [
-    t(locale, 'social.draftLine', {
+    t(locale, 'social.draftTitle', {
       id: view.id,
       agent: view.agentId,
       network: view.network,
+      day: formatDay(locale, dayInZone(view.createdAt, render.timeZone)),
+    }),
+    `${INDENT}${t(locale, 'social.draftTarget', {
       method: view.method,
       path: view.path,
       reason: t(locale, DRAFT_REASON_KEYS[view.reason]),
-      when: new Date(view.createdAt).toISOString(),
-    }),
+    })}`,
     ...untrustedBlock(render, [
       // One line per pair: a newline in a value must not start a line that looks like ours.
       ...Object.entries(view.query ?? {}).map(

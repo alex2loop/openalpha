@@ -2,7 +2,10 @@ import type { Locale } from '@/core/types/locale'
 import type { SkippedFill, SkipReason, VenueSyncResult } from '@/trading/features/ledger/sync'
 import type { LedgerEntry } from '@/trading/features/ledger/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
+import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { Book } from '@/trading/kernel/operator/book'
 import { formatDay, pluralKey, t } from '@/i18n'
+import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
 import { renderEntry } from '@/trading/features/ledger/rows'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
@@ -22,6 +25,8 @@ interface SyncRenderOptions {
    *  each carrying what stopped it. */
   readonly skipped: readonly SkippedFill[]
   readonly marketData: Pick<MarketDataService, 'quoteConvention'>
+  /** The book after the last write; absent when the pass wrote nothing. */
+  readonly book?: Book | undefined
 }
 
 /** What a venue's fills added to the book, in the same unlabelled row the history prints: a list
@@ -66,10 +71,45 @@ export function renderSyncResult(
           ),
           ...entries.map((entry) => `${INDENT[1]}${renderEntry(locale, entry, conventions)}`),
         ],
+    renderMarketFxLines(locale, entries, options.book),
     alreadyBookedLine(locale, result.alreadyBooked),
     coverageLine(locale, result, venue),
     options.skipped.length === 0 ? [] : skippedLines(locale, options.skipped),
   ])
+}
+
+/** Fills convert at each day's market rate; one line per currency names that, and how to restate a
+ *  row the operator funded over P2P. */
+function renderMarketFxLines(
+  locale: Locale,
+  entries: readonly LedgerEntry[],
+  book: Book | undefined
+): readonly string[] {
+  const counts = new Map<CurrencyCode, number>()
+
+  for (const { transaction } of entries) {
+    if ('conversion' in transaction && transaction.conversion.source === 'provider') {
+      const { fromCurrency, toCurrency } = transaction.conversion
+
+      const ratePriced = book === undefined || fxRateApplies(book, transaction)
+
+      if (fromCurrency !== toCurrency && ratePriced) {
+        counts.set(fromCurrency, (counts.get(fromCurrency) ?? 0) + 1)
+      }
+    }
+  }
+
+  return [...counts].map(([currency, count]) =>
+    t(
+      locale,
+      pluralKey(
+        count,
+        'trading.render.ledger.syncMarketFxOne',
+        'trading.render.ledger.syncMarketFx'
+      ),
+      { count: formatCount(locale, count), currency }
+    )
+  )
 }
 
 /** On every run, not only an empty one: a venue that lists fills by symbol can miss a round trip on

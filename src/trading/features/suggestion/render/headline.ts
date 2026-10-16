@@ -6,19 +6,16 @@ import type {
 } from '@/trading/features/suggestion/types'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
-import { renderHeadlineLevels } from '@/trading/features/suggestion/render/order'
 import { isInconclusive, renderHoldReason } from '@/trading/features/suggestion/render/verdict'
-import { framedDirectionOf, isRecordedPlan, planStopOf } from '@/trading/features/suggestion/types'
+import { framedDirectionOf, isRecordedPlan } from '@/trading/features/suggestion/types'
 import {
   formatAmount,
   formatFraction,
   formatQuantity,
-  formatRatio,
-  formatSignedFraction,
   renderDeclaredValue,
 } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
-import { formatMoney, formatPriceIn, quotedInOf } from '@/trading/render/money'
+import { formatMoney, quotedInOf } from '@/trading/render/money'
 
 /** The headline `/suggest` opens with. An inconclusive debate may not claim a verdict. */
 export function verdictOf(view: RenderView, suggestion: StoredSuggestion): string {
@@ -80,37 +77,17 @@ export function holdReasonLines(
     .map((code) => `${INDENT[1]}${renderHoldReason(locale, code)}`)
 }
 
-/** The size clause exists only when a size does. An unvalued book still gets the call, the levels,
- *  and a caveat saying why no size travelled with them. */
+/** The size clause exists only when a size does. An unvalued book still gets the call and a caveat
+ *  saying why no size travelled with it. The levels follow as their own rows, and the verb sits in
+ *  capitals in each arm's own copy, as `/rebalance` writes MUA and BÁN. */
 function renderActionable(view: RenderView, suggestion: ActionableStoredSuggestion): string {
   const { locale } = view
-  const quote = levelQuote(view, suggestion)
-  const stop = planStopOf(suggestion)
-  const shared = {
+  const arm = suggestion.action === 'reduce' ? 'Reduce' : ''
+  const params = {
     ticker: suggestion.instrument.ticker,
     at: formatDay(locale, suggestion.at),
-    action: renderDeclaredValue(locale, `trading.action.${suggestion.action}`),
     conviction: renderDeclaredValue(locale, `trading.conviction.${suggestion.conviction}`),
-    entry: formatPriceIn(locale, suggestion.entry, quote),
-    stop: formatPriceIn(locale, stop, quote),
-    stopPct: formatSignedFraction(locale, (stop - suggestion.entry) / suggestion.entry),
-    target: formatPriceIn(locale, suggestion.target, quote),
-    targetPct: formatSignedFraction(
-      locale,
-      (suggestion.target - suggestion.entry) / suggestion.entry
-    ),
-    rr: formatRatio(locale, suggestion.riskReward),
   }
-
-  // A reduce sells into a stop above its own price, so every headline it reaches is a separate
-  // key rather than the buy copy with a verb swapped.
-  const arm = suggestion.action === 'reduce' ? 'Reduce' : ''
-  const levels = renderHeadlineLevels(locale, suggestion, {
-    shared,
-    trailsStop: view.trailsStop === true,
-    ...(quote === undefined ? {} : { quote }),
-  })
-  const params = arm === '' ? { ...shared, levels } : shared
 
   if (suggestion.sizePctNav === undefined) {
     return t(locale, `trading.render.suggestion.actionableUnsized${arm}`, params)

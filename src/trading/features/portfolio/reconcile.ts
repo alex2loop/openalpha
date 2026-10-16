@@ -1,7 +1,7 @@
 import type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
 import type { PortfolioAtOptions } from '@/trading/features/portfolio/options'
 import type { PortfolioViewDeps } from '@/trading/features/portfolio/view'
-import type { Position } from '@/trading/kernel/operator/book'
+import type { Book } from '@/trading/kernel/operator/book'
 import type { Venue, VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
@@ -16,7 +16,7 @@ interface ReconcileDeps extends PortfolioViewDeps {
 
 interface ReconcileOneInput {
   readonly venue: Venue
-  readonly positions: readonly Position[]
+  readonly book: Book
   readonly signal: AbortSignal
 }
 
@@ -42,9 +42,12 @@ async function reconcileOne(input: ReconcileOneInput): Promise<VenueReconciliati
 
     return reconcileVenue({
       venue,
-      positions: input.positions,
+      positions: input.book.positions,
       balances,
       cashAsset: adapter.quoteAsset,
+      bookedCash: input.book.currencyCash.find(
+        (cash) => cash.venue === venue && cash.currency === adapter.quoteAsset
+      )?.amount,
       minimumSizes,
     })
   } catch (err: unknown) {
@@ -63,8 +66,8 @@ export async function reconcileBook(
   options: PortfolioAtOptions
 ): Promise<readonly VenueReconciliation[]> {
   const asOf = resolveRegionDay(deps.markets, deps.defaultRegion, options.now)
-  const { positions } = await loadBook(deps, { ...options, asOf })
+  const book = await loadBook(deps, { ...options, asOf })
   const { signal } = options
 
-  return Promise.all(deps.venues.list().map((venue) => reconcileOne({ venue, positions, signal })))
+  return Promise.all(deps.venues.list().map((venue) => reconcileOne({ venue, book, signal })))
 }

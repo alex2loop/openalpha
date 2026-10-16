@@ -11,10 +11,11 @@ import { isAbortError } from '@/core/errors'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { CAVEAT_SUBJECT_SEPARATOR } from '@/trading/render/format'
 
+const NO_CANDIDATES_CODE: CaveatCode = 'portfolio.segment-no-candidates'
 /** A sleeve short of its target because the operator has named too few instruments for it. Both
  *  read "go and find some", which is the question this module answers with names. */
 const SHORTFALL_CODES: ReadonlySet<CaveatCode> = new Set([
-  'portfolio.segment-no-candidates',
+  NO_CANDIDATES_CODE,
   'portfolio.too-few-candidates',
 ])
 /** Enough to close a sleeve at the usual per-name cap, and still a line the operator can retype. */
@@ -39,22 +40,33 @@ export interface SleeveCandidateOptions {
  *  and says so. The shortfall caveats state that gap and nothing else, because the way out of it
  *  belongs to the market: these carry the top of its ranked board where it has one and the manual
  *  route where it has none. Either way the operator still adds each name. */
-export async function sleeveCandidateCaveats(
+export async function withSleeveCandidateCaveats(
   deps: SleeveCandidateDeps,
   options: SleeveCandidateOptions
 ): Promise<readonly Caveat[]> {
   const segments = shortfallSegments(options.caveats)
 
   if (segments.length === 0) {
-    return []
+    return options.caveats
   }
 
   const known = new Set(options.considered.map(buildInstrumentKey))
   const found = await Promise.all(
     segments.map((segment) => sleeveNames(deps, { segment, known, options }))
   )
+  const suggested = found.filter((caveat): caveat is Caveat => caveat !== null)
 
-  return found.filter((caveat): caveat is Caveat => caveat !== null)
+  if (suggested.length === 0) {
+    return options.caveats
+  }
+
+  // A sleeve's names line already says it has nothing to buy, so it stands in for the bare one.
+  const named = new Set(suggested.map((caveat) => caveat.detail?.segment))
+  const kept = options.caveats.filter(
+    (caveat) => caveat.code !== NO_CANDIDATES_CODE || !named.has(caveat.detail?.segment)
+  )
+
+  return [...kept, ...suggested]
 }
 
 function shortfallSegments(caveats: readonly Caveat[]): readonly PortfolioSegment[] {

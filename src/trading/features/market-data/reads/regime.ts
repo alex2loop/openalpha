@@ -20,9 +20,11 @@ export async function resolveRegimeScale(
     return { scale: 1, rated: false, caveats: [] }
   }
 
+  // Dated by the settled session like every printed macro read, so the sleeve is gated by what
+  // the operator sees.
   const result = await capability.run({
     region: market.manifest.region,
-    asOf: options.asOf,
+    asOf: resolveSettledDay(market.manifest.calendar, options.now),
     now: options.now,
     signal: options.signal,
   })

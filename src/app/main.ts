@@ -30,6 +30,8 @@ import {
 import { formatErrForLog } from '@/core/security/credentials'
 
 const CRASH_EXIT_CODE = 1
+/** The reader closed the pipe (`| head`): the output it wanted was written, so nothing failed. */
+const BROKEN_PIPE_CODE = 'EPIPE'
 const EXIT_USAGE_DEFAULT = 2
 const NEVER_ABORTING_SIGNAL = AbortSignal.any([])
 /** The API's own commands; they need the app layer (the token path, the starter config), so they
@@ -276,6 +278,11 @@ function installCrashHandlers(): FatalBoundary {
     }
 
     terminating = true
+
+    if (isBrokenPipe(err)) {
+      process.exit(0)
+    }
+
     terminate(err, resource).catch(() => process.exit(CRASH_EXIT_CODE))
   }
   const onUncaught = (err: Error): void => die(err)
@@ -293,6 +300,10 @@ function installCrashHandlers(): FatalBoundary {
       process.off('unhandledRejection', onRejected)
     },
   }
+}
+
+function isBrokenPipe(err: unknown): boolean {
+  return err instanceof Error && 'code' in err && err.code === BROKEN_PIPE_CODE
 }
 
 async function terminate(err: unknown, resource: LoggerResource | undefined): Promise<never> {

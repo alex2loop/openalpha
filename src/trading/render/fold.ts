@@ -3,7 +3,7 @@ import { INDENT } from '@/trading/render/layout'
 const QUOTE_PREFIX = '> '
 const EMPHASIS_RE = /\*\*([^*\n]+)\*\*/g
 const LINK_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g
-const QUOTE_PREFIX_RE = /^> ?/gm
+const QUOTE_PREFIX_RE = /^> ?/
 const FENCED_BLOCK_RE = /(```[\s\S]*?```)/
 const INDENT_RE = /^(?: {2})*/
 const INDENT_WIDTH = 2
@@ -14,7 +14,7 @@ const BULLET = '- '
 
 /** A named block of detail the destination may fold away. Telegram turns the run into an expandable
  *  blockquote the reader taps open; the plain channels and the terminal strip the markers and print
- *  the detail inline, which is what a scrollable surface wants anyway.
+ *  the detail inline under an indented title, which is what a scrollable surface wants anyway.
  *
  *  A fold hides detail, never a decision: a stop, a target, a size, a warning and a refusal reason
  *  all stay outside one. */
@@ -39,7 +39,23 @@ export function toPlainText(text: string): string {
 }
 
 function stripSurfaceMarkup(text: string): string {
-  return text.replace(EMPHASIS_RE, '$1').replace(LINK_RE, '$1').replace(QUOTE_PREFIX_RE, '')
+  const lines = text.split('\n')
+
+  return lines
+    .map((line, index) => plainFoldLine(line, lines[index + 1]))
+    .join('\n')
+    .replace(EMPHASIS_RE, '$1')
+    .replace(LINK_RE, '$1')
+}
+
+/** A fold sits inside the section above it, so its title takes a row's indent and its detail the
+ *  level under that. */
+function plainFoldLine(line: string, next: string | undefined): string {
+  if (line.startsWith(QUOTE_PREFIX.trimEnd())) {
+    return `${INDENT[1]}${quotedRow(line.replace(QUOTE_PREFIX_RE, ''))}`
+  }
+
+  return isFoldLine(line, next) ? `${INDENT[1]}${line}` : line
 }
 
 /** The same text for a destination that renders markdown, where a single newline joins two lines

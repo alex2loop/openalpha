@@ -14,7 +14,7 @@ import type { Market, MarketRegistry } from '@/trading/markets/types'
 import type { StopPlacement } from '@/trading/render/stop-raised'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { renderHoldLevels } from '@/trading/features/suggestion/render/hold-levels'
+import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
 import {
   armsExit,
   framedDirectionOf,
@@ -25,7 +25,6 @@ import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { sendCaught } from '@/trading/kernel/operator/delivery-retry'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { LEVEL_BARS_SESSIONS, resolveTrailBounds } from '@/trading/markets/levels'
-import { NOTICE_SURFACE, resolveRenderContext } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 import { renderBoardScaleNotes } from '@/trading/render/money'
 import { renderStopRaised } from '@/trading/render/stop-raised'
@@ -47,7 +46,6 @@ interface ExitPlanDeps {
   readonly sender: TradingNoticeSender
   readonly logger: Logger
   readonly defaultLocale: Locale
-  readonly timezone: string
   /** Plan id to the settled session its trail was last computed for. The trail is a function of
    *  settled closes, so asking again inside one session re-reads a year of bars to reach the same
    *  answer - and reaches the provider whenever the store has not caught up yet. */
@@ -208,10 +206,9 @@ async function noticePlanned(deps: ExitPlanDeps, input: PlannedNotice): Promise<
       locale: deps.defaultLocale,
       payload: {
         kind: 'exit-plan',
-        lines: renderHoldLevels({
+        lines: renderLevelLines({
           locale: deps.defaultLocale,
           suggestion: input.plan,
-          context: resolveRenderContext(deps.timezone, NOTICE_SURFACE),
           trailsStop: market?.trail !== undefined,
           operatorFigures: 'shown',
           ...(market?.manifest.boardLot === undefined

@@ -1,7 +1,7 @@
 {
   "text": {
     "matched": null,
-    "cashNote": "Cash isn't compared here - the book knows what each venue should hold, but nothing asks the venue what it actually has."
+    "cashNote": "Cash at a venue is compared only when the book records the venue's own currency (like USDT) deposited there. With only VND at the venue, there's nothing to compare yet."
   },
   "venues": [
     {

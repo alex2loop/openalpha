@@ -16,6 +16,7 @@ import type { FxConversion } from '@/trading/kernel/market/market-capability'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
 import { sha256Hex } from '@/core/utils/hash'
+import { namesFxRate } from '@/trading/features/ledger/fx-rate'
 import { resolveSettlementDay } from '@/trading/features/ledger/settlement'
 import { toConversion } from '@/trading/features/market-data/reads/fx'
 
@@ -70,19 +71,22 @@ function economicFields(draft: LedgerTxnDraft): readonly (string | number | null
         draft.fee,
       ]
     case 'transfer':
-      return [
-        draft.fromVenue,
-        draft.venue,
-        null,
-        draft.amount,
-        draft.currency,
-        draft.fee,
-        null,
-        null,
-      ]
+      return transferFields(draft)
     default:
-      return [draft.venue, null, null, draft.amount, draft.currency, null, null, null]
+      return cashFields(draft)
   }
+}
+
+function transferFields(draft: TransferTxnDraft): readonly (string | number | null)[] {
+  const { fromVenue, venue, amount, currency, fee } = draft
+
+  return [fromVenue, venue, null, amount, currency, fee, draft.operatorFxRate ?? null, null]
+}
+
+function cashFields(draft: CashTxnDraft): readonly (string | number | null)[] {
+  const { venue, amount, currency } = draft
+
+  return [venue, null, null, amount, currency, draft.operatorFxRate ?? null, null, null]
 }
 
 /** The custodian is part of a held row's identity: the same figures on two venues are two real
@@ -116,8 +120,9 @@ function isMonetaryDraft(draft: LedgerTxnDraft): draft is MonetaryDraft {
   return draft.kind !== 'split' && draft.kind !== 'distribution'
 }
 
-/** Rebuilt per arm rather than spread from the union: `operatorFxRate` is request input and must
- *  not survive onto the persisted transaction, and a spread over a union loses that guarantee. */
+/** Rebuilt per arm rather than spread from the union: `operatorFxRate` and `fxRateConfirmed` are
+ *  request input and must not survive onto the persisted transaction, and a spread over a union
+ *  loses that guarantee. */
 function toMonetaryTxn(
   draft: MonetaryDraft,
   settledAt: TradingDay,
@@ -194,9 +199,14 @@ async function resolveConversion(
   draft: MonetaryDraft,
   signal: AbortSignal
 ): Promise<FxConversion> {
-  // Narrowed by shape: only an instrument-bearing row can quote outside the base currency, so it
-  // is the only one that can carry a rate.
-  const operatorFxRate = 'instrument' in draft ? draft.operatorFxRate : undefined
+  const { operatorFxRate } = draft
+
+  if (namesFxRate(draft) && draft.currency === deps.baseCurrency) {
+    throw new ValidationError(`${draft.currency} row carries an exchange rate`, {
+      key: 'errors.ledgerFxSameCurrency',
+      params: { currency: draft.currency },
+    })
+  }
 
   if (operatorFxRate !== undefined) {
     return assertOperatorRate(operatorFxRate, {
@@ -204,6 +214,10 @@ async function resolveConversion(
       toCurrency: deps.baseCurrency,
       asOf: draft.at,
     })
+  }
+
+  if (draft.previewedConversion !== undefined) {
+    return draft.previewedConversion
   }
 
   const result = await deps.fx.convert({

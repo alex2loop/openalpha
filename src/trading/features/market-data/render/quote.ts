@@ -30,14 +30,17 @@ export function renderQuoteText(
   options: QuoteRenderOptions
 ): string {
   if (result.kind === 'unavailable') {
-    return joinSections([
-      [
-        t(locale, 'trading.render.quote.unavailable', {
-          reason: t(locale, `trading.source.unavailable.${result.reason}`),
-        }),
-      ],
-      renderCaveatLines(locale, result.caveats),
-    ])
+    // A caveat already says why, so it follows the headline directly instead of a generic reason.
+    if (result.caveats.length > 0) {
+      return [
+        t(locale, 'trading.render.quote.unavailableBelow'),
+        ...renderCaveatLines(locale, result.caveats),
+      ].join('\n')
+    }
+
+    return t(locale, 'trading.render.quote.unavailable', {
+      reason: t(locale, `trading.source.unavailable.${result.reason}`),
+    })
   }
 
   const { quote, observed, display } = result.value

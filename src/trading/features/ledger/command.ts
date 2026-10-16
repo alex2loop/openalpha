@@ -1,37 +1,50 @@
 import type { Logger } from '@/core/logging/logger'
 import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
+import type { FxStageDeps } from '@/trading/features/ledger/confirm'
+import type { LedgerFieldIssue } from '@/trading/features/ledger/draft'
 import type { LedgerStore } from '@/trading/features/ledger/store/ledger'
-import type { LedgerEntry, LedgerWriteResult } from '@/trading/features/ledger/types'
+import type {
+  LedgerEntry,
+  LedgerTxnDraftInput,
+  LedgerWriteResult,
+} from '@/trading/features/ledger/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
 import type { TradingDay, VenueRef } from '@/trading/kernel/instrument'
+import type { Book } from '@/trading/kernel/operator/book'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { Venue, VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { parseIsoDay } from '@/core/utils/time'
 import { t } from '@/i18n'
-import { parseLedgerDraft, parseSyncRequest } from '@/trading/features/ledger/draft'
+import { stageForFxRate } from '@/trading/features/ledger/confirm'
+import {
+  fieldIssueMessages,
+  LEDGER_FIELD_KEYS,
+  parseLedgerDraft,
+  parseSyncRequest,
+  SYNC_ACTION,
+} from '@/trading/features/ledger/draft'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { resolveVenueSync, type SkippedFill, type SyncedFill } from '@/trading/features/ledger/sync'
 import { renderSyncResult } from '@/trading/features/ledger/sync-render'
 import { LEDGER_TXN_KINDS } from '@/trading/features/ledger/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
-import { usage } from '@/trading/kernel/surface/surface'
-import { renderVenueName, resolveRenderContext } from '@/trading/render/format'
+import { renderVenueName } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingRecordUsage' = 'slash.tradingRecordUsage'
 const VOID_TIMEOUT_MS = 30_000
+const CONFIRM_ACTION = 'confirm'
 
-type Recorder = Pick<PortfolioService, 'record' | 'remove'>
+type Recorder = Pick<PortfolioService, 'record' | 'remove' | 'previewRecord'>
 
-interface RecordCommandDeps {
+interface RecordCommandDeps extends FxStageDeps {
   readonly portfolio: Recorder
   readonly marketData: Pick<MarketDataService, 'quoteConvention' | 'trailsStop' | 'boardLot'>
   readonly costs: TradingCosts
-  readonly timezone: string
   readonly venues: VenueRegistry
   readonly markets: MarketRegistry
   readonly ledger: Pick<LedgerStore, 'listAll' | 'findByIdempotency'>
@@ -49,57 +62,127 @@ export function createRecordCommand(deps: RecordCommandDeps): SlashCommand {
   return {
     name: 'record',
     description: { kind: 'localized', key: 'slash.tradingRecordHelp' },
-    messageKeys: [USAGE],
+    messageKeys: [USAGE, ...Object.values(LEDGER_FIELD_KEYS)],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
       action: 'mutate',
       idempotencyKey: (ctx) => ctx.requestId,
     },
-    completeFor: (args) => (args.length === 1 ? LEDGER_TXN_KINDS : []),
+    completeFor: (args) =>
+      args.length === 1 ? [...LEDGER_TXN_KINDS, SYNC_ACTION, CONFIRM_ACTION] : [],
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
 
-async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashResult> {
-  const venue = parseSyncRequest(ctx.args)
+type RecordRequest =
+  | { readonly venue: VenueRef }
+  | { readonly draft: LedgerTxnDraftInput }
+  | { readonly invalid: LedgerFieldIssue | undefined }
 
-  if (venue !== null) {
-    return runSync(deps, ctx, venue)
+async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashResult> {
+  if (ctx.args.length === 1 && ctx.args[0] === CONFIRM_ACTION) {
+    return { kind: 'text', text: await confirmStaged(deps, ctx) }
   }
 
-  const draft = parseLedgerDraft(ctx.args)
+  const request = parseRecordRequest(ctx.args)
 
-  if (draft === null) {
-    return recordUsage(deps)
+  if ('invalid' in request) {
+    return recordUsage(deps, request.invalid)
+  }
+
+  const held = deps.staged.peek(ctx.sessionId) !== undefined
+  const outcome =
+    'venue' in request
+      ? { text: await runSync(deps, ctx, request.venue), staged: false }
+      : await recordDraft(deps, ctx, request.draft)
+
+  // Dropped only once the new command went through: a typo or a refusal leaves the held row
+  // confirmable, and a newly held row has already replaced it.
+  if (held && !outcome.staged) {
+    deps.staged.discard(ctx.sessionId)
+  }
+
+  return { kind: 'text', text: held ? withDroppedNotice(ctx.locale, outcome.text) : outcome.text }
+}
+
+function parseRecordRequest(args: readonly string[]): RecordRequest {
+  const venue = parseSyncRequest(args)
+
+  if (venue !== null) {
+    return { venue }
+  }
+
+  const parsed = parseLedgerDraft(args)
+
+  return parsed.kind === 'draft' ? { draft: parsed.draft } : { invalid: parsed.issue }
+}
+
+async function recordDraft(
+  deps: RecordCommandDeps,
+  ctx: SlashContext,
+  draft: LedgerTxnDraftInput
+): Promise<{ readonly text: string; readonly staged: boolean }> {
+  const now = Date.now()
+  const preview = await stageForFxRate(deps, ctx, { draft, now })
+
+  if (preview !== undefined) {
+    return { text: preview, staged: true }
   }
 
   const result = await deps.portfolio.record({
     draft,
     idempotencyKey: ctx.requestId,
+    now,
+    signal: ctx.signal,
+  })
+
+  return { text: renderWriteConfirmation(ctx.locale, result, deps), staged: false }
+}
+
+/** Writes the held row under the request id it was previewed with, then lets it go. A write that
+ *  throws keeps the row for another try; a repeated confirm replays the same key, so the row is
+ *  booked once. `fillSource` stops the write path from asking the venue again. */
+async function confirmStaged(deps: RecordCommandDeps, ctx: SlashContext): Promise<string> {
+  const staged = deps.staged.peek(ctx.sessionId)
+
+  if (staged === undefined) {
+    return t(ctx.locale, 'trading.render.ledger.confirmNothing')
+  }
+
+  const result = await deps.portfolio.record({
+    draft: staged.draft,
+    fillSource: staged.fillSource,
+    idempotencyKey: staged.requestId,
     now: Date.now(),
     signal: ctx.signal,
   })
 
-  return {
-    kind: 'text',
-    text: renderWriteConfirmation(ctx.locale, result, {
-      ...deps,
-      context: resolveRenderContext(deps.timezone, ctx.surface),
-    }),
-  }
+  deps.staged.discard(ctx.sessionId)
+
+  return renderWriteConfirmation(ctx.locale, result, deps)
+}
+
+function withDroppedNotice(locale: Locale, text: string): string {
+  return `${t(locale, 'trading.render.ledger.stagedDiscarded')}\n\n${text}`
 }
 
 /** Only markets a venue holds: the ledger refuses a row in any other, so the usage never offers
  *  one. */
-function recordUsage(deps: RecordCommandDeps): SlashResult {
+function recordUsage(deps: RecordCommandDeps, issue: LedgerFieldIssue | undefined): SlashResult {
   const held = deps.venues.heldMarkets()
   const markets = deps.markets
     .list()
     .map((entry) => entry.manifest.id)
     .filter((market) => held.has(market))
 
-  return usage(USAGE, { markets: markets.join(', ') })
+  return {
+    kind: 'message',
+    messages: [
+      ...fieldIssueMessages(issue),
+      { key: USAGE, values: { markets: markets.join(', ') } },
+    ],
+  }
 }
 
 /** Booked one at a time, oldest first: each write re-folds the whole book, so a buy has to land
@@ -108,22 +191,19 @@ async function runSync(
   deps: RecordCommandDeps,
   ctx: SlashContext,
   venue: VenueRef
-): Promise<SlashResult> {
+): Promise<string> {
   const found = deps.venues.find(venue)
 
   if (found?.adapter === undefined || found.adapter.listFilledOrders === undefined) {
     const known = deps.venues.list().map((entry) => entry.manifest.id)
 
-    return {
-      kind: 'text',
-      text: renderSyncUnavailable(ctx.locale, { venue, found, known }),
-    }
+    return renderSyncUnavailable(ctx.locale, { venue, found, known })
   }
 
   const window = await resolveSyncWindow(deps, ctx.signal)
 
   if (window === undefined) {
-    return { kind: 'text', text: t(ctx.locale, 'trading.render.ledger.syncNoBook') }
+    return t(ctx.locale, 'trading.render.ledger.syncNoBook')
   }
 
   const result = await resolveVenueSync({
@@ -140,14 +220,12 @@ async function runSync(
   const booked = await bookFills(deps, ctx, result.fills)
   const { entries, skipped } = await voidPartialInstruments(deps, ctx.signal, booked)
 
-  return {
-    kind: 'text',
-    text: renderSyncResult(ctx.locale, result, {
-      entries,
-      skipped: [...result.skipped, ...skipped],
-      marketData: deps.marketData,
-    }),
-  }
+  return renderSyncResult(ctx.locale, result, {
+    entries,
+    skipped: [...result.skipped, ...skipped],
+    marketData: deps.marketData,
+    book: booked.book,
+  })
 }
 
 interface SyncUnavailableInput {
@@ -182,6 +260,8 @@ interface BookedFills {
   readonly entries: readonly LedgerEntry[]
   readonly skipped: readonly SkippedFill[]
   readonly partial: ReadonlySet<string>
+  /** The book the last write left, which says what each currency the sync touched was paid from. */
+  book?: Book
 }
 
 /** Oldest first across every instrument, because the write order is the economic one: a buy has to
@@ -212,6 +292,7 @@ async function bookFills(
       }
 
       entries.push(write.entry)
+      booked.book = write.book
     } catch (err: unknown) {
       await voidAfterFailure(deps, booked, fills.slice(index))
 

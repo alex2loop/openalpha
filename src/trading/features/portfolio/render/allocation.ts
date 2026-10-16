@@ -10,9 +10,8 @@ import {
   formatFlow,
   renderDeclaredValue,
   renderProvidedValue,
-  SECTION_ICONS,
 } from '@/trading/render/format'
-import { INDENT, renderOverflowLine, renderSectionTitle } from '@/trading/render/layout'
+import { INDENT, renderOverflowLine } from '@/trading/render/layout'
 import { renderSleeveBlock } from '@/trading/render/sleeve-block'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
@@ -27,27 +26,31 @@ const PORTFOLIO_COLUMNS: readonly SleeveColumn[] = Object.freeze([
   { labelKey: 'trading.render.sleeve.columnEtfCap', align: 'right' },
 ])
 
+/** The sleeve table, then where the book is concentrated by sector beneath it. */
 export function renderAllocationSection(
   locale: Locale,
   book: ValuedBook,
   display: BookDisplay
 ): readonly string[] {
-  return renderSleeveBlock(
-    locale,
-    {
-      columns: PORTFOLIO_COLUMNS,
-      rows: book.segmentValues.map((entry) =>
-        toSleeveRow(
-          locale,
-          { entry, weightPctNav: display.sleeveWeights.get(entry.segment) ?? entry.weightPctNav },
-          display
-        )
-      ),
-      disabled: namesOf(locale, disabledSegments(display.segmentCaps)),
-      legend: 'trading.render.sleeve.legendPortfolio',
-    },
-    display.context
-  )
+  return [
+    ...renderSleeveBlock(
+      locale,
+      {
+        columns: PORTFOLIO_COLUMNS,
+        rows: book.segmentValues.map((entry) =>
+          toSleeveRow(
+            locale,
+            { entry, weightPctNav: display.sleeveWeights.get(entry.segment) ?? entry.weightPctNav },
+            display
+          )
+        ),
+        disabled: namesOf(locale, disabledSegments(display.segmentCaps)),
+        legend: 'trading.render.sleeve.legendPortfolio',
+      },
+      display.context
+    ),
+    ...renderConcentrationLines(locale, book, display),
+  ]
 }
 
 /** A sleeve and the weight this table will print for it, which is the apportioned share rather than
@@ -87,9 +90,10 @@ function namesOf(locale: Locale, segments: ReadonlySet<string>): readonly string
   return [...segments].map((segment) => renderDeclaredValue(locale, `trading.segment.${segment}`))
 }
 
-/** The sector fold the book already computes, capped and ranked by weight: the question is where
- *  the operator is concentrated, not an inventory of every sleeve. */
-export function renderConcentrationSection(
+/** The sector fold the book already computes, capped and ranked by weight, as a sub-block of the
+ *  allocation section: the question is where the operator is concentrated, not an inventory of
+ *  every sleeve. */
+function renderConcentrationLines(
   locale: Locale,
   book: ValuedBook,
   display: BookDisplay
@@ -104,17 +108,17 @@ export function renderConcentrationSection(
   const hidden = book.sectorValues.length - sectors.length
 
   return [
-    renderSectionTitle(SECTION_ICONS.sources, t(locale, 'trading.render.portfolio.concentration')),
+    `${INDENT[1]}${t(locale, 'trading.render.portfolio.concentration')}`,
     ...sectors.map(
       (entry) =>
-        `${INDENT[1]}${t(locale, 'trading.render.portfolio.sectorRow', {
+        `${INDENT[2]}${t(locale, 'trading.render.portfolio.sectorRow', {
           sector: renderProvidedValue(locale, `trading.sector.${entry.sector}`, entry.sector),
           weight: formatFixedFraction(locale, entry.weightPctNav),
           value: formatFlow(locale, entry.valueBase),
           cap: formatFixedFraction(locale, display.sectorCapPctNav),
         })}`
     ),
-    ...(hidden > 0 ? [renderOverflowLine(locale, hidden)] : []),
+    ...(hidden > 0 ? [`${INDENT[1]}${renderOverflowLine(locale, hidden)}`] : []),
   ]
 }
 

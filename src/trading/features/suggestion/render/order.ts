@@ -3,11 +3,7 @@ import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { TradeCost } from '@/trading/markets/cost'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
-import {
-  bankedShareOf,
-  firstExitOf,
-  firstExitRiskReward,
-} from '@/trading/features/suggestion/exit-plan/first-exit'
+import { bankedShareOf, firstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { armsExit } from '@/trading/features/suggestion/types'
 import { isBookCall } from '@/trading/kernel/operator/focus'
 import { costBreakevenPrice, estimatedFee, roundTripRate } from '@/trading/markets/cost'
@@ -16,8 +12,6 @@ import {
   formatFraction,
   formatPercent,
   formatRatio,
-  formatSignedFraction,
-  formatWholeFraction,
   renderProvidedValue,
 } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
@@ -267,46 +261,4 @@ function renderSettlementLine(input: OrderNotesInput, suggestion: Actionable): r
       pct: formatPercent(locale, settlement.worstCaseDrawdownPct),
     })}`,
   ]
-}
-
-interface HeadlineLevelsOptions {
-  /** The headline's own formatted fields, which the clause repeats in its own words. */
-  readonly shared: Readonly<Record<string, string>>
-  readonly quote?: QuotedIn
-  readonly trailsStop: boolean
-}
-
-/** A buy's exits in the order the operator meets them: where a tranche banks before the target, the
- *  headline leads with that price and calls the target the far one. The R:R is the first exit's, as
- *  the stake line states it, not the full-target ratio the void line and the floor use. */
-export function renderHeadlineLevels(
-  locale: Locale,
-  suggestion: Actionable,
-  options: HeadlineLevelsOptions
-): string {
-  const { entry, takeProfit } = suggestion
-  const banked = bankedShareOf(suggestion, options.trailsStop)
-
-  return t(locale, `trading.render.suggestion.${headlineLevelsKeyOf(suggestion, banked)}`, {
-    ...options.shared,
-    tranche: formatWholeFraction(locale, banked),
-    takeProfit: formatPriceIn(locale, takeProfit, options.quote),
-    takeProfitPct: formatSignedFraction(locale, (takeProfit - entry) / entry),
-    rr: formatRatio(locale, firstExitRiskReward(suggestion, banked)),
-  })
-}
-
-function headlineLevelsKeyOf(
-  suggestion: Actionable,
-  banked: number
-): 'headlineLevels' | 'headlineLevelsLadder' | 'headlineLevelsTrail' | 'headlineLevelsFund' {
-  if (!armsExit(suggestion)) {
-    return 'headlineLevelsFund'
-  }
-
-  if (banked >= 1) {
-    return 'headlineLevels'
-  }
-
-  return suggestion.takeProfit < suggestion.target ? 'headlineLevelsLadder' : 'headlineLevelsTrail'
 }

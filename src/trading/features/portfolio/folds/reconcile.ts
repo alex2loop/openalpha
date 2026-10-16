@@ -32,9 +32,13 @@ interface ReconcileInput {
   readonly venue: VenueRef
   readonly positions: readonly Position[]
   readonly balances: readonly VenueBalance[]
-  /** What cash sits in at this venue. Not compared: the book holds cash per venue in its base
-   *  currency while the venue reports its quote asset, and nothing here converts one to the other. */
+  /** What cash sits in at this venue: its quote asset. It is compared only where the book holds
+   *  that currency's cash here (`bookedCash`); otherwise the book keeps this venue's cash in its base
+   *  currency and nothing converts one to the other. */
   readonly cashAsset: string
+  /** The book's currency cash in `cashAsset` at this venue; absent when the book holds none, which
+   *  leaves the asset uncompared. */
+  readonly bookedCash?: number | undefined
   /** The venue's own floor under each asset it trades. Empty where no catalog answered, which
    *  reports every residue rather than hiding a break behind a lookup that failed. */
   readonly minimumSizes: ReadonlyMap<string, number>
@@ -45,12 +49,21 @@ export function reconcileVenue(input: ReconcileInput): VenueReconciliation {
   const held = heldByAsset(input.balances)
   const mismatches: ReconciledAsset[] = []
 
-  for (const asset of [...new Set([...booked.keys(), ...held.keys()])].sort()) {
-    if (asset === input.cashAsset) {
+  const assets = new Set([...booked.keys(), ...held.keys()])
+
+  // The exchange omits a zero balance, so a book holding cash against an exchange holding none
+  // would never be visited.
+  if (input.bookedCash !== undefined) {
+    assets.add(input.cashAsset)
+  }
+
+  for (const asset of [...assets].sort()) {
+    if (asset === input.cashAsset && input.bookedCash === undefined) {
       continue
     }
 
-    const bookedQuantity = booked.get(asset) ?? 0
+    const bookedQuantity =
+      asset === input.cashAsset ? (input.bookedCash ?? 0) : (booked.get(asset) ?? 0)
     const heldQuantity = held.get(asset) ?? 0
     const delta = bookedQuantity - heldQuantity
 
