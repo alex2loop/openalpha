@@ -5,7 +5,7 @@ limit instead of after it.
 
 Caps are opt-in. With none set, spend is uncapped and simply tracked, so you can always find out what it cost.
 Search providers share the same ledger: Exa's reported charge and the `[web_search] cost_per_search_usd` you set
-for Brave, Serper or Tavily land in the same totals as model spend.
+for Brave, DeepSeek, Serper or Tavily land in the same totals as model spend.
 
 ## Setting a limit
 
@@ -156,8 +156,9 @@ arithmetic bites until you set a cap.
 | `medium` | 0.10 | 0.45 | 0.25 | 0.20 |
 | `deep` | 0.10 | 0.50 | 0.20 | 0.20 |
 
-Search fees arrive two ways. Exa reports its real charge and that number is used as-is. Brave, Serper and Tavily
+Search fees arrive two ways. Exa reports its real charge and that number is used as-is. Brave, DeepSeek, Serper and Tavily
 bill per query but return nothing, so each is charged the `cost_per_search_usd` you set; unset means uncharged.
+DeepSeek is charged only when a search returns results.
 DuckDuckGo and a self-hosted SearXNG are genuinely free. A cache hit and a failed call are never charged.
 
 ### When a slice runs out

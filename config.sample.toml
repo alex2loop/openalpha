@@ -403,8 +403,8 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 
 # ---- Web search -------------------------------------------------------------
 # Backend for the web_search tool. duckduckgo is the default: free, no key.
-# anysearch takes an optional key (anonymous has a lower quota); brave, exa,
-# serper and tavily need one; searxng is your own instance at base_url.
+# anysearch takes an optional key (anonymous has a lower quota); brave, deepseek,
+# exa, serper and tavily need one; searxng is your own instance at base_url.
 # If api_key_env names a variable that is empty, only web search stops (the tool
 # and /research refuse, doctor and `config validate` say which variable to set);
 # an empty fallback_api_key_env just turns the fallback off.
@@ -413,7 +413,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # [web_search]
 # provider = "tavily"
 # api_key_env = "TAVILY_API_KEY"
-# cost_per_search_usd = 0.001            # brave|serper|tavily bill per query without reporting it
+# cost_per_search_usd = 0.001            # brave|deepseek|serper|tavily bill per query without reporting it
 # fallback_provider = "searxng"          # after an error or an empty result
 # fallback_base_url = "http://localhost:8080"
 # safe_search = 1                        # SearXNG only: 0 off, 1 moderate, 2 strict
@@ -424,6 +424,14 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # provider = "exa"
 # api_key_env = "EXA_API_KEY"
 # exa_search_type = "auto"               # auto|fast|instant|deep-lite|deep|deep-reasoning
+
+# deepseek: the cheap one. About $0.75 per 1,000 searches, nothing for an empty
+# result, reads Vietnamese and English sources well and filters by date. It uses
+# the same key as DeepSeek models:
+# [web_search]
+# provider = "deepseek"
+# api_key_env = "DEEPSEEK_API_KEY"
+# cost_per_search_usd = 0.00075
 
 
 # ==== Connections =============================================================

@@ -122,8 +122,8 @@ Nó giữ chỗ đúng 85% một lần và chia theo giai đoạn (`PHASE_WEIGHT
 `pool.take(phase, count, knownFutureCalls)` cắt một nhóm theo tỷ lệ `count / (count + knownFutureCalls)`, nên một nhóm chạy
 sớm không bỏ đói phần việc mà kế hoạch đã biết là sắp tới. Giai đoạn crawl giữ `CRAWL_EXTERNAL_COST_RESERVE` (25%) không chia
 được: phí tìm kiếm rơi vào chính ngân sách crawl, và một nhóm giữ chỗ cả giai đoạn sẽ khiến khoản phí đầu tiên làm dừng luôn
-khâu crawl. Khoản Exa báo được dùng nguyên; Brave, Serper và Tavily tính theo `cost_per_search_usd` đã khai (không khai thì
-không tính); DuckDuckGo và SearXNG tự dựng miễn phí; trúng cache và lời gọi hỏng không bao giờ bị tính tiền.
+khâu crawl. Khoản Exa báo được dùng nguyên; Brave, DeepSeek, Serper và Tavily tính theo `cost_per_search_usd` đã khai (không khai thì
+không tính), riêng DeepSeek chỉ tính khi lượt tìm có kết quả; DuckDuckGo và SearXNG tự dựng miễn phí; trúng cache và lời gọi hỏng không bao giờ bị tính tiền.
 
 ### Khi một lát cạn
 

@@ -213,7 +213,7 @@ way the general `web_search` tool does. With no fallback configured, a failed de
 `provider_unavailable` gap. If the default's `api_key_env` names an empty variable, `/research`
 refuses up front and names the variable to set.
 
-A paid provider's charge comes out of the crawl budget. Exa reports its own cost; Brave, Serper and
+A paid provider's charge comes out of the crawl budget. Exa reports its own cost; Brave, DeepSeek, Serper and
 Tavily bill per query without reporting it, so set `[web_search] cost_per_search_usd` to your plan's
 rate or their spend stays invisible.
 

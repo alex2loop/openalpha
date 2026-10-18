@@ -464,10 +464,10 @@ bỏ qua và không công cụ web nào được chào; client tự mang của n
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `provider` | chuỗi | `duckduckgo` | `duckduckgo`, `anysearch`, `tavily`, `brave`, `exa`, `serper` hoặc `searxng`. |
-| `api_key_env` | chuỗi | - | Biến môi trường chứa khóa API. Bắt buộc với tavily, brave, exa và serper; `ANYSEARCH_API_KEY` là tùy chọn với anysearch. |
+| `provider` | chuỗi | `duckduckgo` | `duckduckgo`, `anysearch`, `tavily`, `brave`, `deepseek`, `exa`, `serper` hoặc `searxng`. |
+| `api_key_env` | chuỗi | - | Biến môi trường chứa khóa API. Bắt buộc với tavily, brave, deepseek, exa và serper; `ANYSEARCH_API_KEY` là tùy chọn với anysearch. |
 | `base_url` | chuỗi | - | URL instance SearXNG. Bắt buộc với `searxng`, bị từ chối với mọi nhà cung cấp khác. Instance phải bật định dạng `json` trong `settings.yml` (`search.formats`). |
-| `cost_per_search_usd` | số thực | - | Chi phí tính cho mỗi truy vấn với `brave`, `serper` và `tavily` - các bên có tính tiền nhưng không trả về chi phí. Bị từ chối với `duckduckgo`, `searxng` (miễn phí), `exa` (tự báo chi phí) và `anysearch` (báo 0). Đặt đúng đơn giá gói của bạn; `0` thì tắt việc tính. |
+| `cost_per_search_usd` | số thực | - | Chi phí tính cho mỗi truy vấn với `brave`, `deepseek`, `serper` và `tavily` - các bên có tính tiền nhưng không trả về chi phí. DeepSeek chỉ bị tính khi lượt tìm có kết quả, đúng như cách DeepSeek tính tiền. Bị từ chối với `duckduckgo`, `searxng` (miễn phí), `exa` (tự báo chi phí) và `anysearch` (báo 0). Đặt đúng đơn giá gói của bạn; `0` thì tắt việc tính. |
 | `fallback_provider` | chuỗi | - | Nhà cung cấp thứ hai, được thử sau một lỗi hoặc kết quả rỗng. Phải khác `provider`. Các khóa `fallback_*` cần nó. |
 | `fallback_api_key_env` | chuỗi | - | Như `api_key_env`, cho bên dự phòng. |
 | `fallback_base_url` | chuỗi | - | Như `base_url`, chỉ cho bên dự phòng `searxng`. |
@@ -490,6 +490,8 @@ chính lẫn bên dự phòng. `ANYSEARCH_API_KEY` là tùy chọn; không có n
 thấp hơn. Nó trả tối đa 20 kết quả, gửi `[locale] language`, và không hỗ trợ lọc theo độ mới, nên một
 yêu cầu về độ mới được báo là chưa kiểm chứng.
 
+`deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng. DeepSeek chỉ nhận truy vấn ngắn (128 ký tự), nên truy vấn dài bị cắt bớt từ cuối. Lọc từ hai tên miền trở lên thì được áp lên kết quả thay vì gửi kèm truy vấn. Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
+
 Khóa chỉ lấy từ biến môi trường mà `api_key_env` và `fallback_api_key_env` nêu tên. Một lời gọi nhà
 cung cấp hết giờ sau 15 giây và thử lại lỗi tạm thời tối đa 3 lần, độ lùi cơ sở 800 ms. Nhà cung cấp
 hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục mỗi TTL, và mỗi đoạn trích kết quả bị cắt
@@ -499,6 +501,7 @@ hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục m�
 |---|---|---|
 | `tavily` | `TAVILY_API_KEY` | https://app.tavily.com/ |
 | `brave` | `BRAVE_API_KEY` | https://api-dashboard.search.brave.com/ |
+| `deepseek` | `DEEPSEEK_API_KEY` | https://platform.deepseek.com/api_keys |
 | `exa` | `EXA_API_KEY` | https://dashboard.exa.ai/ |
 | `serper` | `SERPER_API_KEY` | https://serper.dev/ |
 
