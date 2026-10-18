@@ -14,6 +14,9 @@ const DEEPSEEK_ENDPOINT = 'https://api.deepseek.com/v1/tools/search'
 const DEEPSEEK_AUTHORIZATION_HEADER = 'Authorization'
 const DEEPSEEK_BEARER_PREFIX = 'Bearer '
 const DEEPSEEK_QUERY_MAX_CHARS = 128
+// Below this, a trimmed query has lost its subject, and the site list is the better thing to drop.
+const DEEPSEEK_QUERY_MIN_CHARS = 40
+const DEEPSEEK_SITE_SEPARATOR = ' OR '
 // Results are dated at midnight Beijing time, and after:/before: read their day in the same zone.
 const DEEPSEEK_TIME_ZONE = 'Asia/Shanghai'
 const DEEPSEEK_FIELDS = {
@@ -49,14 +52,18 @@ export const deepseekSearch: SearchBackend = (request) =>
 
 function buildDeepSeekQuery(request: SearchRequest, nowMs: number): string {
   const dateTerms = buildDeepSeekDateTerms(request, nowMs)
-  const full = [request.query, ...buildDeepSeekDomainTerms(request), ...dateTerms].join(' ')
+  const includeTerms = buildDeepSeekIncludeTerms(request)
+  const excludeTerms = (request.excludeDomains ?? []).map((domain) => `-site:${domain}`)
+  const full = [request.query, ...includeTerms, ...excludeTerms, ...dateTerms].join(' ')
 
   if (codePointLength(full) <= DEEPSEEK_QUERY_MAX_CHARS) {
     return full
   }
 
-  // Domain terms go first: the runner's domain filter still enforces them on the results.
-  return fitDeepSeekQuery(request.query, dateTerms)
+  // Exclusions are dropped first; without the site list most results would be filtered out.
+  const withSites = [...includeTerms, ...dateTerms]
+
+  return fitDeepSeekQuery(request.query, leavesQueryRoom(withSites) ? withSites : dateTerms)
 }
 
 function buildDeepSeekDateTerms(request: SearchRequest, nowMs: number): readonly string[] {
@@ -75,19 +82,26 @@ function buildDeepSeekDateTerms(request: SearchRequest, nowMs: number): readonly
   ]
 }
 
-// DeepSeek returns only one site for `site:a OR site:b` and nothing for a parenthesised group,
-// so two or more include domains are left to the runner's filter.
-function buildDeepSeekDomainTerms(request: SearchRequest): readonly string[] {
-  const [onlyDomain, ...otherDomains] = request.includeDomains ?? []
-  const include =
-    onlyDomain !== undefined && otherDomains.length === 0 ? [`site:${onlyDomain}`] : []
+function buildDeepSeekIncludeTerms(request: SearchRequest): readonly string[] {
+  const domains = request.includeDomains ?? []
 
-  return [...include, ...(request.excludeDomains ?? []).map((domain) => `-site:${domain}`)]
+  return domains.length === 0
+    ? []
+    : [domains.map((domain) => `site:${domain}`).join(DEEPSEEK_SITE_SEPARATOR)]
 }
 
-function fitDeepSeekQuery(query: string, dateTerms: readonly string[]): string {
-  const suffix = dateTerms.join(' ')
-  const budget = DEEPSEEK_QUERY_MAX_CHARS - (suffix === '' ? 0 : codePointLength(suffix) + 1)
+function leavesQueryRoom(terms: readonly string[]): boolean {
+  return queryBudget(terms) >= DEEPSEEK_QUERY_MIN_CHARS
+}
+
+function queryBudget(terms: readonly string[]): number {
+  const suffix = terms.join(' ')
+
+  return DEEPSEEK_QUERY_MAX_CHARS - (suffix === '' ? 0 : codePointLength(suffix) + 1)
+}
+
+function fitDeepSeekQuery(query: string, terms: readonly string[]): string {
+  const budget = queryBudget(terms)
   const words = query.trim().split(WHITESPACE_RE)
 
   while (words.length > 1 && codePointLength(words.join(' ')) > budget) {
@@ -96,7 +110,7 @@ function fitDeepSeekQuery(query: string, dateTerms: readonly string[]): string {
 
   const fitted = Array.from(words.join(' ')).slice(0, budget).join('')
 
-  return [fitted, ...dateTerms].join(' ')
+  return [fitted, ...terms].join(' ')
 }
 
 function toDeepSeekItems(value: unknown): readonly unknown[] {
