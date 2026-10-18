@@ -1,4 +1,4 @@
-import type { ChannelAdapter, OutboundButton, ReactionEmoji } from '@/channels/types'
+import type { ChannelAdapter, OutboundButton, ReactionEmoji, SentRef } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import { assertNotAborted, ChannelError } from '@/core/errors'
@@ -26,11 +26,13 @@ interface UpdateOptions {
 
 export interface Reply {
   open(text: string, options?: { readonly cancelData?: string }): Promise<boolean>
-  update(text: string, options?: UpdateOptions): Promise<void>
+  /** The message now showing the text: the placeholder, or a fresh one. Absent when a non-final
+   *  send failed and was only logged. */
+  update(text: string, options?: UpdateOptions): Promise<SentRef | undefined>
   overflow(
     text: string,
     options?: { readonly useMarkup?: boolean; readonly signal?: AbortSignal }
-  ): Promise<void>
+  ): Promise<SentRef>
   react(emoji: ReactionEmoji | null): Promise<void>
   typing(on: boolean): void
   /** Takes the cancel button off a placeholder that will stay as it is, because the answer went
@@ -77,12 +79,10 @@ export function createReply(deps: ReplyDeps): Reply {
       return placeholderId !== null
     },
 
-    async update(text, options): Promise<void> {
+    async update(text, options): Promise<SentRef | undefined> {
       // A channel that cannot edit gets a fresh message instead; the placeholder stays as-is.
       if (!(canEdit && placeholderId)) {
-        await sendFresh(deps, text, options)
-
-        return
+        return await sendFresh(deps, text, options)
       }
 
       const buttons =
@@ -95,7 +95,7 @@ export function createReply(deps: ReplyDeps): Reply {
         ...(options?.useMarkup === undefined ? {} : { useMarkup: options.useMarkup }),
       }
 
-      await editOrResend(
+      return await editOrResend(
         deps,
         { messageId: placeholderId, text, ...(buttons === undefined ? {} : { buttons }) },
         options ?? {}
@@ -104,8 +104,8 @@ export function createReply(deps: ReplyDeps): Reply {
 
     // Chunks past the first are new messages threaded under the placeholder. Each carries the final
     // write's guarantee: a lost chunk is a lost part of the answer, so its failure reaches the caller.
-    async overflow(text, options): Promise<void> {
-      await sendFinal(deps, {
+    async overflow(text, options): Promise<SentRef> {
+      return await sendFinal(deps, {
         text,
         useMarkup: options?.useMarkup,
         under: placeholderId,
@@ -132,7 +132,7 @@ async function sendFresh(
   deps: ReplyDeps,
   text: string,
   options: UpdateOptions | undefined
-): Promise<void> {
+): Promise<SentRef | undefined> {
   assertNotAborted(options?.signal)
 
   const send = {
@@ -141,11 +141,7 @@ async function sendFresh(
     ...(options?.signal === undefined ? {} : { signal: options.signal }),
   }
 
-  if (options?.retryOn429) {
-    await sendFinal(deps, send)
-  } else {
-    await sendThreaded(deps, send)
-  }
+  return options?.retryOn429 ? await sendFinal(deps, send) : await sendThreaded(deps, send)
 }
 
 // Null means the channel would not even take the placeholder — the caller must give up rather than run a turn.
@@ -199,8 +195,8 @@ interface ThreadedSend {
   readonly signal?: AbortSignal
 }
 
-async function postThreaded(deps: ReplyDeps, send: ThreadedSend): Promise<void> {
-  await deps.adapter.send(
+async function postThreaded(deps: ReplyDeps, send: ThreadedSend): Promise<SentRef> {
+  return await deps.adapter.send(
     {
       channel: deps.adapter.id,
       chatId: deps.chatId,
@@ -212,22 +208,24 @@ async function postThreaded(deps: ReplyDeps, send: ThreadedSend): Promise<void> 
   )
 }
 
-async function sendThreaded(deps: ReplyDeps, send: ThreadedSend): Promise<void> {
+async function sendThreaded(deps: ReplyDeps, send: ThreadedSend): Promise<SentRef | undefined> {
   try {
-    await postThreaded(deps, send)
+    return await postThreaded(deps, send)
   } catch (err: unknown) {
     deps.logger.warn('reply.send_failed', {
       channel: deps.adapter.id,
       err: formatErrForLog(err),
     })
+
+    return undefined
   }
 }
 
 // The final write has no other route to the operator, so its failure reaches the caller, after one
 // wait for a rate-limit hint.
-async function sendFinal(deps: ReplyDeps, send: ThreadedSend): Promise<void> {
+async function sendFinal(deps: ReplyDeps, send: ThreadedSend): Promise<SentRef> {
   try {
-    await postThreaded(deps, send)
+    return await postThreaded(deps, send)
   } catch (err: unknown) {
     const waitMs = retryDelayFor(err, FINAL_WRITE)
 
@@ -237,7 +235,8 @@ async function sendFinal(deps: ReplyDeps, send: ThreadedSend): Promise<void> {
 
     await sleep(waitMs, send.signal)
     assertNotAborted(send.signal)
-    await postThreaded(deps, send)
+
+    return await postThreaded(deps, send)
   }
 }
 
@@ -370,16 +369,19 @@ async function editOrResend(
   deps: ReplyDeps,
   target: EditTarget,
   options: UpdateOptions
-): Promise<void> {
+): Promise<SentRef> {
   try {
     await editWithRetry(deps, target, options)
+
+    return { messageId: target.messageId }
   } catch (err: unknown) {
     if (!options.retryOn429 || options.signal?.aborted) {
       throw err
     }
 
     logFailedEdit(deps, err, options)
-    await sendFinal(deps, {
+
+    return await sendFinal(deps, {
       text: target.text,
       useMarkup: options.useMarkup,
       under: target.messageId,

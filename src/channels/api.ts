@@ -3,6 +3,7 @@
 export type { ChannelDeliveryConfig, ChannelSettings } from '@/channels/schema'
 export type { AcknowledgedRouter, StartChannelsDeps, StartChannelsResult } from '@/channels/start'
 export type {
+  AcknowledgedSendOptions,
   AcknowledgedSendResult,
   AdapterHandlers,
   ChannelAdapter,

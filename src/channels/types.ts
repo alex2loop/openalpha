@@ -269,6 +269,13 @@ export interface ChannelRuntimeSnapshot extends ChannelStatus {
  *  Enqueueing is never acceptance. */
 export type AcknowledgedSendResult = 'accepted' | 'unavailable' | 'aborted'
 
+export interface AcknowledgedSendOptions {
+  readonly signal?: AbortSignal
+  /** Set only for a reading the operator may reply to; the runtime files the delivered chunks
+   *  under it. */
+  readonly noticeLabel?: string
+}
+
 /** A line meant for the operator alone, at most as often as its owner allows. Null when there is
  *  nothing to say right now. `chat` is the operator's private chat the message came from. */
 export interface OperatorNotices {
@@ -287,6 +294,6 @@ export interface ChannelRuntime {
   notify(
     target: OutboundTarget,
     text: string,
-    signal?: AbortSignal
+    options?: AcknowledgedSendOptions
   ): Promise<AcknowledgedSendResult>
 }

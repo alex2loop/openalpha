@@ -1,7 +1,8 @@
 import type { FinalAnswer } from '@/channels/delivery/answer'
 import type { Reply } from '@/channels/delivery/reply'
+import type { SentMessages } from '@/channels/delivery/sent-messages'
 import type { ChannelSettings } from '@/channels/schema'
-import type { ChannelAdapter, InboundMessage } from '@/channels/types'
+import type { ChannelAdapter, InboundMessage, SentRef } from '@/channels/types'
 import type { EventBus } from '@/core/events'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
@@ -32,6 +33,9 @@ export interface OrchestratorDeps {
   readonly locale: Locale
   readonly logger: Logger
   readonly signal: AbortSignal
+  /** Where every answer chunk is filed, so a reply to it can be told apart from a reply to
+   *  anything else. */
+  readonly sent: SentMessages
   /** Channel-owned deep-plan review; the prompted chat supplies the explicit start or cancel. */
   readonly reviewPlan: (chatId: string, input: ResearchPlanReview) => Promise<ResearchPlanDecision>
 }
@@ -189,11 +193,13 @@ async function reportRunnerFailure(
 
   // Same ordering rule as the answer: a prompt sits below the placeholder, so editing it would
   // report the failure above the approval that preceded it.
-  await runNonMasking(deps, 'orchestrator.failure_update_failed', () =>
-    target.afterApproval
-      ? reply.overflow(text, { signal: deps.signal })
-      : reply.update(text, { retryOn429: true, signal: deps.signal })
-  )
+  await runNonMasking(deps, 'orchestrator.failure_update_failed', async () => {
+    if (target.afterApproval) {
+      await reply.overflow(text, { signal: deps.signal })
+    } else {
+      await reply.update(text, { retryOn429: true, signal: deps.signal })
+    }
+  })
   await runNonMasking(deps, 'orchestrator.failure_reaction_failed', () => reply.react('❌'))
 }
 
@@ -320,21 +326,53 @@ async function sendAnswer(deps: OrchestratorDeps, send: AnswerSend): Promise<voi
   const renderedFooter = renderer.escape(answer.footer)
   const bodyChunks = renderer.chunk(normalized, maxLen)
 
-  const [head, ...rest] = buildFooterChunks(bodyChunks, renderedFooter, maxLen)
+  const chunks = buildFooterChunks(bodyChunks, renderedFooter, maxLen)
+  const [head, ...rest] = chunks
+  const refs: (SentRef | undefined)[] = []
 
   // Editing the placeholder would file the answer above the approval prompt it answers, so a run
   // that prompted sends its answer as a new message and leaves the live preview standing.
   if (head !== undefined) {
-    if (send.afterApproval) {
-      await reply.overflow(head, { useMarkup, signal: deps.signal })
-    } else {
-      await reply.update(head, { useMarkup, retryOn429: true, signal: deps.signal })
-    }
+    refs.push(
+      send.afterApproval
+        ? await reply.overflow(head, { useMarkup, signal: deps.signal })
+        : await reply.update(head, { useMarkup, retryOn429: true, signal: deps.signal })
+    )
   }
 
   for (const chunk of rest) {
-    await reply.overflow(chunk, { useMarkup, signal: deps.signal })
+    refs.push(await reply.overflow(chunk, { useMarkup, signal: deps.signal }))
   }
 
+  recordAnswerChunks(deps.sent, {
+    chatId: answer.chatId,
+    refs,
+    bodyCount: bodyChunks.length,
+    footerJoined: chunks.length === bodyChunks.length,
+  })
   await reply.react(answer.completed ? '✅' : '❌')
+}
+
+interface AnswerChunks {
+  readonly chatId: string
+  /** One entry per sent chunk, in order. */
+  readonly refs: readonly (SentRef | undefined)[]
+  readonly bodyCount: number
+  /** False when the footer did not fit and went out as a chunk of its own. */
+  readonly footerJoined: boolean
+}
+
+// A footer-only chunk is nothing but LLM spend, so it is never filed: a reply to it gets the unknown
+// lead.
+function recordAnswerChunks(sent: SentMessages, chunks: AnswerChunks): void {
+  for (const [index, ref] of chunks.refs.slice(0, chunks.bodyCount).entries()) {
+    if (ref === undefined) {
+      continue
+    }
+
+    sent.record(chunks.chatId, ref.messageId, {
+      kind: 'answer',
+      hasFooter: chunks.footerJoined && index === chunks.bodyCount - 1,
+    })
+  }
 }

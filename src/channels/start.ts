@@ -1,6 +1,7 @@
 import type { BudgetCaps } from '@/channels/delivery/queue'
 import type { ChannelSettings } from '@/channels/schema'
 import type {
+  AcknowledgedSendOptions,
   AcknowledgedSendResult,
   ChannelAdapter,
   ChannelDefinition,
@@ -60,7 +61,7 @@ export interface StartChannelsDeps {
 export type AcknowledgedRouter = (
   target: OutboundTarget,
   text: string,
-  signal?: AbortSignal
+  options?: AcknowledgedSendOptions
 ) => Promise<AcknowledgedSendResult>
 
 /** A channel left down because the operator can fix its credential (missing or rejected), with the
@@ -277,10 +278,10 @@ function buildResult(
     return base
   }
 
-  const notifier: AcknowledgedRouter = async (target, text, signal) => {
+  const notifier: AcknowledgedRouter = async (target, text, options) => {
     const runtime = byChannel.get(target.channel)
 
-    return runtime === undefined ? 'unavailable' : runtime.notify(target, text, signal)
+    return runtime === undefined ? 'unavailable' : runtime.notify(target, text, options)
   }
 
   return {

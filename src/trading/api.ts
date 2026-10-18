@@ -54,6 +54,14 @@ export { isBoundaryFailure } from '@/trading/wiring/loop'
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
 export type {
   Alert,
   AlertListPage,
@@ -167,6 +175,7 @@ export type {
 export type { Page } from '@/trading/kernel/store/page'
 export type { AgentRecordSummary } from '@/trading/wiring/host/types'
 export { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
+export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
 
 // ── Values ───────────────────────────────────────────────────────────────────
 

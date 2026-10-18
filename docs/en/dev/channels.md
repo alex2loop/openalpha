@@ -208,6 +208,15 @@ A channel never reads raw tool arguments. The engine decides what is safe to sho
 `tool_execution_start` and `tool_progress` events, so no adapter has to be trusted with a shell
 command's text.
 
+### What the bot remembers it sent
+
+Each channel runtime keeps a bounded in-memory map from `(chat, message id)` to the kind of thing the
+bot sent there: an answer chunk (and whether the run footer is on it) or a notice (and its label). It
+holds ids, kinds and labels, never message text, it holds up to 2,000 entries, and it is gone after a
+restart. A message that is not in the map, whether pushed out, sent before a restart, slash output, or a
+footer that went out as a chunk of its own, is simply unknown, and the reader of the map degrades to a
+pointer rather than the text.
+
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and

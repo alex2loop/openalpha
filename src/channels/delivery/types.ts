@@ -3,6 +3,7 @@ import type { FinalAnswer } from '@/channels/delivery/answer'
 import type { Gate } from '@/channels/delivery/gate'
 import type { Exchange } from '@/channels/delivery/orchestrator'
 import type { InboundQueue } from '@/channels/delivery/queue'
+import type { SentMessages } from '@/channels/delivery/sent-messages'
 import type { ChannelSettings } from '@/channels/schema'
 import type {
   ChannelAdapter,
@@ -30,6 +31,7 @@ export interface InboundHandlerDeps {
   readonly runRegistry: RunRegistry
   /** Shared with the callback path, so a cancel button aborts a slash run the way /stop does. */
   readonly slashRuns: ActiveSlashRuns
+  readonly sent: SentMessages
   readonly bindings: ChatBindingStore
   readonly agents: AgentRegistry
   readonly operatorNotices: OperatorNotices

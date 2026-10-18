@@ -210,6 +210,15 @@ Kênh không bao giờ đọc tham số thô của công cụ. Engine quyết đ
 dưới dạng sự kiện `tool_execution_start` và `tool_progress`, nên không adapter nào phải được tin tưởng
 với nội dung một câu lệnh shell.
 
+### Bot nhớ đã gửi gì
+
+Mỗi runtime kênh giữ trong bộ nhớ một bảng có giới hạn, từ `(cuộc chat, id tin)` sang loại tin bot đã gửi
+ở đó: một khúc câu trả lời (kèm việc dòng chi phí cuối tin có nằm trong khúc ấy không) hoặc một bản tin
+chủ động (kèm nhãn của nó). Bảng chỉ giữ id, loại và nhãn, không bao giờ giữ nội dung tin, tối đa 2.000
+mục, và mất sau khi khởi động lại. Tin không có trong bảng, dù bị đẩy ra, gửi từ trước lần khởi động lại,
+là kết quả của lệnh gạch chéo, hay là dòng chi phí đã đi thành một khúc riêng, đơn giản là "không biết",
+và nơi đọc bảng lùi về một dòng chỉ dẫn thay vì nội dung.
+
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động

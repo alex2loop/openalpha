@@ -6,6 +6,7 @@ import { readUpdateLine } from '@/cli/api'
 import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 import {
+  NOTICE_KINDS,
   renderAlertNotice,
   renderBriefText,
   renderIntradayText,
@@ -109,6 +110,18 @@ function renderKeyMissing(
   })
 }
 
+// A reading the operator may reply to carries its label, so the channel can file what it sent. The
+// four kinds that report on a delivery are not readings and carry none.
+function noticeLabelOf(notice: TradingNotice): { readonly noticeLabel?: string } {
+  const { kind } = notice.payload
+
+  return isNoticeKind(kind) ? { noticeLabel: t(notice.locale, `trading.notice.${kind}`) } : {}
+}
+
+function isNoticeKind(kind: string): kind is NoticeKind {
+  return NOTICE_KINDS.some((known) => known === kind)
+}
+
 /** The one adapter between trading's typed notices and the channel layer. Trading imports no
  *  channel code and renders no text; `app` owns both, and `accepted` here means the channel's own
  *  sender call completed — never that the notice was queued. */
@@ -121,7 +134,11 @@ export function createTradingNoticeSender(
     send: async (notice, signal) => {
       const text = await renderWithUpdate(notice, config, timezone)
 
-      return await delivery.sendAcknowledged(notice.target, { text, notice }, signal)
+      return await delivery.sendAcknowledged(
+        notice.target,
+        { text, notice },
+        { ...(signal === undefined ? {} : { signal }), ...noticeLabelOf(notice) }
+      )
     },
     // The attached channel runtimes plus the attached notice surfaces are the whole routing table:
     // `cli` is a surface a person types at, never one the daemon can push to.
