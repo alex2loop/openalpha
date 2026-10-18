@@ -1,5 +1,5 @@
 import type { DeliveryHub } from '@/app/delivery'
-import type { StartChannelsDeps } from '@/channels/api'
+import type { StartChannelsDeps, StartChannelsResult } from '@/channels/api'
 import type { App, DaemonReadyHandler, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
@@ -136,20 +136,7 @@ async function startDaemonSubsystems(
     )
   )
 
-  // Only now does a proactive notice have anywhere to go. Detached first on the way down, so
-  // nothing is queued against an adapter that is already closing.
-  if (channels.notifier !== undefined) {
-    disposers.unshift(
-      delivery.attach({
-        notifier: channels.notifier,
-        snapshots: channels.snapshots,
-        isWorking: () => channels.isWorking() || isAnyTaskWorking(tradingTasks),
-        ...(channels.defaultRecipient === undefined
-          ? {}
-          : { recipient: channels.defaultRecipient }),
-      })
-    )
-  }
+  attachDelivery({ delivery, channels, tradingTasks, disposers })
 
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has
   // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.
@@ -246,6 +233,30 @@ interface TrackDaemonTaskOptions {
   readonly startup: AbortController
   readonly name: string
   readonly task: Promise<void>
+}
+
+/** Only now does a proactive notice have anywhere to go. Detached first on the way down, so nothing
+ *  is queued against an adapter that is already closing. */
+function attachDelivery(options: {
+  readonly delivery: DeliveryHub
+  readonly channels: StartChannelsResult
+  readonly tradingTasks: readonly DaemonTask[]
+  readonly disposers: Disposer[]
+}): void {
+  const { delivery, channels, tradingTasks } = options
+
+  if (channels.notifier === undefined) {
+    return
+  }
+
+  options.disposers.unshift(
+    delivery.attach({
+      notifier: channels.notifier,
+      snapshots: channels.snapshots,
+      isWorking: () => channels.isWorking() || isAnyTaskWorking(tradingTasks),
+      ...(channels.defaultRecipient === undefined ? {} : { recipient: channels.defaultRecipient }),
+    })
+  )
 }
 
 /** A trading pass in flight, a brief's debate or a refresh, is work a self-upgrade waits for. */
