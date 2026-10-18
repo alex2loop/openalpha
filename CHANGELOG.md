@@ -16,6 +16,7 @@ All notable changes to this project are documented here. The format follows
 - A buy too small for its stop-loss to be placed on the exchange is now refused up front, instead of leaving the position unprotected.
 - Win rates in /reflect now come with a likely range, so a rate built on a handful of calls doesn't look more certain than it is.
 - Syncing from Binance or OKX now picks up a limit order that only partly filled before it was cancelled, so the book matches what you actually hold.
+- For plans that take partial profit and let the rest run, OpenAlpha now tells you to rest only the stop, and the target alert walks you through the partial sale.
 
 ## [1.0.5] - 2026-10-18
 

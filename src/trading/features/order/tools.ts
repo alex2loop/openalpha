@@ -30,7 +30,8 @@ export function createOrderPlaceTool(
     description:
       'Place one spot order on an operator exchange, with a take-profit and a stop-loss. ' +
       'A buy without a stop-loss is refused unless the operator turned `require_stop_loss` off. ' +
-      'Every call asks the operator for approval first.',
+      'Every call asks the operator for approval first. ' +
+      "When the suggestion's takeProfitTranchePct is below 1 (it sells only part at its take-profit and trails the rest), set only stopLoss: a takeProfit here would sell the whole position at that price. The take-profit alert prompts the partial sale.",
     inputSchema: orderPlaceInput(tickerSchema),
     capability: 'write',
     requiresApproval: () => true,
@@ -69,7 +70,7 @@ function orderPlaceInput(tickerSchema: z.ZodType<Ticker>) {
           .positive()
           .optional()
           .describe(
-            `Price at which a resting take-profit closes the position. Buys only; omit for none. ${PRICE_INPUT_UNITS}`
+            `Price at which a resting take-profit closes the position. Buys only; omit for none. Omit it on a plan that trails; see above. ${PRICE_INPUT_UNITS}`
           ),
         stopLoss: z
           .number()

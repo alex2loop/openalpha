@@ -19,6 +19,11 @@ import { INDENT, joinSections, renderEmptyLine, renderSectionTitle } from '@/tra
 import { renderMarketBlocks, toMarketBlocks } from '@/trading/render/market-blocks'
 import { formatPriceIn, quotedInOf, renderBoardScaleNotes } from '@/trading/render/money'
 
+const EXIT_REACHED_KEYS = {
+  stop: 'trading.exit.stopReached',
+  target: 'trading.exit.targetReached',
+} as const
+
 type AlertNotice = Extract<TradingNoticePayload, { readonly alert: DeliveringAlert }>
 type ScreenerNotice = Extract<AlertNotice, { readonly kind: 'screener-alert' }>
 
@@ -102,7 +107,7 @@ export function renderAlertNotice(locale: Locale, notice: AlertNotice): string {
   return [
     t(locale, `trading.notice.${notice.kind}`),
     priceLine(locale, notice),
-    ...(notice.kind === 'exit-alert' ? stopReachedLines(locale, alert) : []),
+    ...(notice.kind === 'exit-alert' ? exitReachedLines(locale, alert) : []),
     ...(notice.kind === 'screener-alert'
       ? [
           ...sessionLines(locale, notice),
@@ -124,9 +129,12 @@ function priceLine(locale: Locale, notice: AlertNotice): string {
   return `${alert.instrument.ticker} ${label}${condition} ${threshold} (${observed})`
 }
 
-/** Only the stop: it is the level a resting order may already have filled at. */
-function stopReachedLines(locale: Locale, alert: DeliveringAlert): readonly string[] {
-  return parseExitLevel(alert.origin) === 'stop' ? [t(locale, 'trading.exit.stopReached')] : []
+/** Each level says what may already have happened at the venue: a resting stop may have filled, and
+ *  a target sells the whole position or only the share the plan banks there. */
+function exitReachedLines(locale: Locale, alert: DeliveringAlert): readonly string[] {
+  const level = parseExitLevel(alert.origin)
+
+  return level === null ? [] : [t(locale, EXIT_REACHED_KEYS[level])]
 }
 
 /** The benchmark's move beside the name's, with no verdict: how much of a move is the market
