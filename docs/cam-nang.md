@@ -293,10 +293,13 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
   hai phiên tới sổ chưa cho bán mã đó.
 - **Khoản lỗ ghi bằng `loss`**, đừng dùng `withdrawal` hay `fee`. Ghi `withdrawal` thì sổ tưởng bạn
   rút tiền về túi và lãi lỗ trông đẹp hơn thực tế. Ghi `fee` thì khoản lỗ thành phí môi giới. `loss`
-  trừ tiền mà vẫn giữ nguyên số tiền bạn đã nạp, nên `/portfolio` ghi rõ "Lãi/lỗ đã chốt: -15.000.000
+  trừ tiền mà vẫn giữ nguyên số tiền bạn đã nạp, nên `/portfolio` ghi rõ "Lãi/lỗ đã chốt: ▼ -15.000.000
   VND".
 - **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
   báo ngay.
+- **Mỗi mã ghi vào được đặt luôn kế hoạch thoát**, tính theo giá vốn bạn ghi. Mã đang lỗ sâu so với giá
+  vốn thì giá hôm nay có thể đã nằm dưới mức cắt lỗ đó, và `/portfolio` sẽ báo "đã xuyên mức cắt lỗ".
+  Đó là nhắc bạn xem lại mã ấy, không phải sổ ghi sai.
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
 nạp, trừ 95 triệu FPT, 52 triệu HPG và 15 triệu lỗ, còn 38 triệu. Lệch thì thường do nhớ sai tổng lỗ

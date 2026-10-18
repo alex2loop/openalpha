@@ -1,4 +1,4 @@
-import type { DeliveryHub } from '@/app/services'
+import type { DeliveryHub } from '@/app/delivery'
 import type { App, ServiceProvider } from '@/core/container'
 import type { AgentProfile } from '@/engine/api'
 import type { HeartbeatTask } from '@/scheduler/api'

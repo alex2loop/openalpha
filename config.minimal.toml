@@ -9,6 +9,10 @@
 # Vậy là đủ để chạy. Khi cần thêm (Telegram, sàn giao dịch...),
 # mở config.sample.toml trên GitHub, mỗi tùy chọn đều có giải thích đi kèm.
 
+# Ngôn ngữ trả lời, báo cáo và thông báo lỗi. Đổi thành "en" để dùng tiếng Anh.
+[locale]
+language = "vi"
+
 # Mọi mô hình bên dưới đều đi qua OpenRouter, dùng chung một khóa.
 # "latency" nghĩa là ưu tiên máy chủ trả lời nhanh nhất.
 [model_defaults]

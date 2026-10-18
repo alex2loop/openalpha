@@ -25,7 +25,8 @@ hình, nó đổi một phần (mô hình, bot Telegram, mức chi hoặc ngôn 
 ghi lại làm mất các dòng chú thích.
 
 Có hai tệp mẫu để tải: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
-chạy được ngay với mức chi 2 USD/ngày, chỉ cần `OPENROUTER_API_KEY`; [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
+chạy được ngay với mức chi 2 USD/ngày, chỉ cần `OPENROUTER_API_KEY` (bản trả lời bằng tiếng Anh là
+[config.minimal.en.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml)); [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
 liệt kê mọi khóa kèm giải thích.
 
 ## Thứ tự ưu tiên
@@ -358,12 +359,10 @@ Thứ tự ưu tiên của mức log: `--log-level`, rồi `OPENALPHA_LOG_LEVEL`
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `check` | bool | `true` | Mỗi ngày hỏi GitHub một lần xem đã có bản mới chưa. |
+| `check` | bool | `true` | Hỏi GitHub hai lần mỗi ngày xem đã có bản mới chưa. |
+| `auto` | bool | `false` | Tự cài bản sửa lỗi (chỉ đổi số cuối, như 1.0.5 lên 1.0.6) lúc 00:00-06:00 theo `[locale] timezone`, khi daemon chạy nền; không bao giờ cài khi thị trường bạn theo dõi đang trong phiên, kể cả giờ nghỉ trưa (crypto chạy cả ngày nên không tính). |
 
-Khi có bản mới, CLI in một dòng sau lệnh (tối đa mỗi ngày một lần), chat hiện dòng đó dưới lời chào,
-`version` và `doctor version` báo lại, daemon ghi vào log, và bản tin buổi sáng gửi qua kênh có thêm
-dòng nhắc ở cuối. Không có gì được cài cho tới khi bạn chạy `openalpha upgrade`. Bản chạy từ mã nguồn và
-CI không bao giờ kiểm tra.
+Khi có bản mới, CLI in một thông báo ngắn sau lệnh (tối đa mỗi ngày một lần), chat hiện thông báo đó dưới lời chào, `version` và `doctor version` báo lại, daemon ghi vào nhật ký, bản tin sáng gửi qua kênh kết thúc bằng thông báo đó, và bot nhắc trong chat riêng của bạn. Không có gì tự cài cho tới khi bạn chạy `openalpha upgrade` hoặc `/upgrade confirm`, trừ khi bật `auto`: khi đó daemon chạy nền tự cài bản sửa lỗi trong khung giờ ấy, nhắn bạn khi đã chạy lại (vào chat riêng bạn nhắn bot gần nhất), và quay về bản cũ nếu bản mới không khởi động được. Trên máy chủ, hãy đặt `[locale] timezone` để khung giờ rơi vào ban đêm. Bản chạy từ mã nguồn không bao giờ kiểm tra; trong CI chỉ `version` và `doctor --online` kiểm tra.
 
 ### `[channels.telegram]`
 

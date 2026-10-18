@@ -7,6 +7,8 @@ export interface ActiveSlashRuns {
   /** A chat-wide session reset knows no session id, so this keys on the chat alone. */
   abortChat(chatId: string): boolean
   abortAll(): void
+  /** Whether a long-running slash command is in flight in any chat. */
+  isWorking(): boolean
 }
 
 export function createActiveSlashRuns(): ActiveSlashRuns {
@@ -69,6 +71,8 @@ export function createActiveSlashRuns(): ActiveSlashRuns {
 
       return aborted
     },
+
+    isWorking: () => active.size > 0,
 
     abortAll(): void {
       for (const byChat of active.values()) {

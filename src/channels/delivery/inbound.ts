@@ -4,9 +4,11 @@ import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { AgentId } from '@/core/ids'
 import { COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
 import { handleControlCallback } from '@/channels/delivery/control'
-import { resolveSlashRunRequest, type SlashRunRequest } from '@/channels/delivery/slash'
+import { resolveSlashRunRequest, roleOf, type SlashRunRequest } from '@/channels/delivery/slash'
+import { commandHeadOf, UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { observe } from '@/core/events'
 import { agentId as brandAgentId, DEFAULT_AGENT_ID } from '@/core/ids'
+import { formatErrForLog } from '@/core/security/credentials'
 
 import '@/channels/events'
 
@@ -101,6 +103,8 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
     return
   }
 
+  await offerOperatorNotice(deps, msg)
+
   const routeLease = await deps.sessionQueue.acquireRoute({
     channel: deps.channelId,
     chatId: msg.chatId,
@@ -136,6 +140,31 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
     await receipt
   } finally {
     routeLease.release()
+  }
+}
+
+/** A reminder never blocks an answer, so a failure to produce or send one is logged and dropped. */
+async function offerOperatorNotice(deps: InboundHandlerDeps, msg: InboundMessage): Promise<void> {
+  if (
+    msg.isGroup === true ||
+    roleOf(deps, msg) !== 'operator' ||
+    // The answer to /upgrade already carries the notice.
+    commandHeadOf(msg.text) === UPGRADE_CHAT_COMMAND
+  ) {
+    return
+  }
+
+  try {
+    const text = await deps.operatorNotices.take({ channel: deps.channelId, chatId: msg.chatId })
+
+    if (text !== null) {
+      await deps.sendText(msg.chatId, text)
+    }
+  } catch (err: unknown) {
+    deps.logger.warn('channel.operator_notice_failed', {
+      channel: deps.channelId,
+      err: formatErrForLog(err),
+    })
   }
 }
 

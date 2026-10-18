@@ -6,6 +6,7 @@ import { z } from 'zod'
 import type { CliApp } from '@/cli/types'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { MessageKey } from '@/i18n'
+import { isBackgroundLaunch } from '@/cli/daemon-env'
 import { getEnv } from '@/cli/env'
 import { fail, hint } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
@@ -23,15 +24,21 @@ const PID_LOCK_MAX_ATTEMPTS = 3
 const STOP_POLL_MS = 500
 // ps prints lstart in the caller's locale; the daemon (launchd/systemd) and the CLI must agree.
 const IDENTITY_ENV = { LC_ALL: 'C' } as const
+// Between the start time and the image path in a Windows identity; the ISO time has no space.
+const IDENTITY_SEPARATOR = ' '
 
 interface ProcessIdentity {
   readonly pid: number
   readonly started: string
   // Absent from a pid file written by a daemon that predates it; that daemon is still live.
   readonly version?: string
+  // Absent from a pid file written before upgrade could restart a daemon; absent reads as foreground.
+  readonly background?: boolean
+  // The config file the daemon loaded, so a restart reads the same one from any directory.
+  readonly configPath?: string
 }
 
-export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version'>
+export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version' | 'background' | 'configPath'>
 
 /** What a daemon started without, worded once in its own language so any reader prints it as is. */
 const DEGRADED_ENTRY: z.ZodType<DegradedEntry> = z.object({
@@ -101,7 +108,13 @@ export async function writePidFile(app: CliApp, pid: number): Promise<void> {
     throw new ConfigError('cannot read daemon process identity')
   }
 
-  const identity = { pid, started, version: BRAND.version }
+  const identity = {
+    pid,
+    started,
+    version: BRAND.version,
+    background: isBackgroundLaunch(),
+    configPath: app.configPath,
+  }
 
   for (let attempt = 0; attempt < PID_LOCK_MAX_ATTEMPTS; attempt++) {
     if (await tryCreatePidFile(pidPath, identity)) {
@@ -388,7 +401,7 @@ function parseProcessIdentity(raw: string): ProcessIdentity | null {
     return null
   }
 
-  const { pid, started, version } = value
+  const { pid, started, version, background, configPath } = value
 
   if (
     !Number.isSafeInteger(pid) ||
@@ -399,9 +412,13 @@ function parseProcessIdentity(raw: string): ProcessIdentity | null {
     return null
   }
 
-  return typeof version === 'string' && version !== ''
-    ? { pid: Number(pid), started, version }
-    : { pid: Number(pid), started }
+  return {
+    pid: Number(pid),
+    started,
+    ...(typeof version === 'string' && version !== '' ? { version } : {}),
+    ...(typeof background === 'boolean' ? { background } : {}),
+    ...(typeof configPath === 'string' && configPath !== '' ? { configPath } : {}),
+  }
 }
 
 async function identityState(identity: ProcessIdentity): Promise<'match' | 'mismatch' | 'unknown'> {
@@ -421,7 +438,22 @@ async function identityState(identity: ProcessIdentity): Promise<'match' | 'mism
     return 'unknown'
   }
 
-  return current === identity.started ? 'match' : 'mismatch'
+  return isSameStart(current, identity.started) ? 'match' : 'mismatch'
+}
+
+/** On Windows the recorded identity is the start time and then the image path, and the install
+ *  script renames a running exe aside, so the path may differ from the one recorded. The start time,
+ *  to the tick, still tells this daemon from a process that reused its pid. */
+function isSameStart(current: string, recorded: string): boolean {
+  if (process.platform !== 'win32') {
+    return current === recorded
+  }
+
+  return startTimeOf(current) === startTimeOf(recorded)
+}
+
+function startTimeOf(identity: string): string {
+  return identity.split(IDENTITY_SEPARATOR, 1)[0] ?? ''
 }
 
 /** Start time plus command line: together they tell this daemon from a later process that reused

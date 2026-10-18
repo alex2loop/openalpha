@@ -82,6 +82,7 @@ export interface SuggestionSink {
   }): Promise<boolean>
   listResolved(options: {
     readonly resolvedAfter?: number
+    readonly calledOnOrBefore?: TradingDay
     readonly strategyVersion?: string
     readonly focusKeys?: readonly FocusKey[]
     readonly market?: MarketRef
@@ -113,6 +114,11 @@ export interface DebateInput {
   /** This name's own dated corporate actions inside the holding window: timing a persona must weigh
    *  but may not speculate past. */
   readonly upcomingEvents?: readonly MarketEvent[]
+  /** The calendar read failed, which an empty `upcomingEvents` would otherwise read as nothing
+   *  scheduled. */
+  readonly calendarFailed?: true
+  readonly name?: string
+  readonly sector?: string
   readonly proposedLevels?: TradeLevels
   /** Read by the roles that decide, never by the two that argue: a researcher handed the book
    *  argues portfolio construction instead of this name's evidence, which is not its question. */
@@ -199,12 +205,14 @@ export interface Prepared {
   readonly levels?: TradeLevels
   readonly dailyBand?: DailyPriceBand
   readonly medianTurnover?: number
+  readonly name?: string
   /** What the market files this name under, when it keeps a sector. Sizing weighs a buy against the
    *  book's existing exposure to it. */
   readonly sector?: string
   /** The record's own kind, for the segment's ETF ceiling. */
   readonly instrumentKind?: InstrumentKind
   readonly upcomingEvents: readonly MarketEvent[]
+  readonly calendarFailed?: true
   readonly openRisk?: OpenRisk
   readonly direction: DraftDirection
   readonly draft: Suggestion

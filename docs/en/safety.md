@@ -18,7 +18,7 @@ code, use a container or a restricted service account.
    off unless you have read that plugin's `sources.ts`.
 5. Give each agent only the tools, capabilities and outbound hosts it needs.
 
-Run `openalpha doctor` after any change. Configuration is merged and frozen at boot, so restart the
+Run `openalpha doctor` after any change, or `openalpha doctor safety` to see which risky switches are on. Configuration is merged and frozen at boot, so restart the
 process for a security change to take effect.
 
 ---
@@ -417,6 +417,7 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 | `order.rejected` | The exchange rejected the order. | Read the detail. |
 | `order.clock_skew` | Your clock is too far from the exchange's. | Fix the system clock. |
 | `order.below_minimum` | Quantity below the exchange minimum. | Raise the size. |
+| `order.exit_below_minimum` | At the stop price the position would be below the exchange's minimum order, so its stop could not be placed. | Raise the size a little. |
 | `order.unfilled` | Did not fill in time and was cancelled. | Place again if you still want it. |
 | `order.book_moved` | Another order went out while this one waited, so the caps no longer allow it. | Check the book and place again. |
 | `order.book_unpriced` | A holding in your book has no price right now, so the caps cannot be checked against it. | `/portfolio` names the holding; `/refresh` its market, then place again. |

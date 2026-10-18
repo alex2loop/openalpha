@@ -269,11 +269,19 @@ export interface ChannelRuntimeSnapshot extends ChannelStatus {
  *  Enqueueing is never acceptance. */
 export type AcknowledgedSendResult = 'accepted' | 'unavailable' | 'aborted'
 
+/** A line meant for the operator alone, at most as often as its owner allows. Null when there is
+ *  nothing to say right now. `chat` is the operator's private chat the message came from. */
+export interface OperatorNotices {
+  take(chat: OutboundTarget): Promise<string | null>
+}
+
 export interface ChannelRuntime {
   readonly channelId: ChannelId
   start(): Promise<void>
   dispose(): Promise<void>
   snapshot(): ChannelRuntimeSnapshot
+  /** A long-running slash command is in flight, so a restart now would cut it off. */
+  isWorking(): boolean
   /** Submits through this channel's own queue — the same one ordinary delivery uses, so rate
    *  limiting and ordering are not duplicated — and resolves only once the send has settled. */
   notify(

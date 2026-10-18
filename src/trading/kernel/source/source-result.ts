@@ -233,6 +233,11 @@ export function unavailable(
   return { kind: 'unavailable', reason, attemptedSourceIds, caveats }
 }
 
+/** An outage, not an empty window or a feed the market lacks. */
+export function isSourceFailed(result: SourceResult<unknown> | undefined): boolean {
+  return result?.kind === 'unavailable' && result.reason === 'failed'
+}
+
 export function available<T>(
   value: T,
   provenance: readonly SourceProvenance[],

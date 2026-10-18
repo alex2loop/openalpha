@@ -178,6 +178,7 @@ export const RetentionSchema = z.strictObject({
 
 export const UpdateSchema = z.strictObject({
   check: z.boolean().optional(),
+  auto: z.boolean().optional(),
 })
 
 export const ApiSchema = z.strictObject({

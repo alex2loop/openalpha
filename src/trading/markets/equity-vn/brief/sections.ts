@@ -25,7 +25,7 @@ import { stopStandingOf } from '@/trading/kernel/operator/alert'
 import {
   HEADLINES_PER_SECTION,
   normalizeTitle,
-  registrableDomain,
+  publisherOf,
   withPublisherQuota,
 } from '@/trading/markets/news'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -358,7 +358,7 @@ export function toHeadlineSection(
 
   const fresh = result.value.filter((item) => !taken.has(normalizeTitle(item.title)))
   const rows = withPublisherQuota(fresh, HEADLINES_PER_SECTION).map((item) => {
-    const publisher = registrableDomain(item.url)
+    const publisher = publisherOf(item)
 
     return {
       title: item.title,

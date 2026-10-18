@@ -1,14 +1,14 @@
 import type { Subprocess } from 'bun'
-import { closeSync, openSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { open, readFile, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
 import { printDaemonSummary } from '@/cli/commands/daemon/summary'
-import { isDaemonReady, liveDaemonPid, readDaemonDegraded } from '@/cli/daemon-guard'
-import { getEnv } from '@/cli/env'
+import { buildBackgroundEnv, buildForegroundEnv } from '@/cli/daemon-env'
+import { isDaemonReady, liveDaemon, liveDaemonPid, readDaemonDegraded } from '@/cli/daemon-guard'
 import { terminalErrorMessage } from '@/cli/error-output'
-import { resolveSelfCommand } from '@/cli/services'
+import { CLI_COMMAND_METADATA } from '@/cli/metadata'
+import { buildSelfArgv } from '@/cli/services'
 import { hint, style, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -24,9 +24,19 @@ const START_TIMEOUT_MS = 90_000
 const DAEMON_STDOUT_LOG = 'daemon.stdout.log'
 // Kept apart from stdout so a failed start can quote the daemon's own error and nothing else.
 const DAEMON_STDERR_LOG = 'daemon.stderr.log'
+const FAILED_DAEMON_STDERR_LOG = 'daemon.stderr.failed.log'
+const UPGRADE_STDOUT_LOG = 'upgrade.stdout.log'
+const UPGRADE_STDERR_LOG = 'upgrade.stderr.log'
 const EXIT_REASON_LINES = 3
 // Bounds the warnings a ready start relays; the daemon prints one line per degraded item.
 const RELAYED_WARNING_LINES = 20
+
+interface DetachedSpawn {
+  readonly argv: readonly string[]
+  readonly stdoutPath: string
+  readonly stderrPath: string
+  readonly env: Readonly<Record<string, string | undefined>>
+}
 
 interface DetachedDaemon {
   readonly child: Subprocess
@@ -34,14 +44,65 @@ interface DetachedDaemon {
   readonly errorLogPath: string
 }
 
-export async function runBackground(app: CliApp): Promise<number> {
+/** Starts the daemon in the background on the config file the stopped one loaded and this data dir. */
+export async function startBackgroundDaemon(app: CliApp, configPath: string): Promise<number> {
+  const argv = await buildSelfArgv({
+    dataDir: app.config.paths.dataDir,
+    configPath,
+    tail: [CLI_COMMAND_METADATA.start.name],
+  })
+
+  return await runBackground(app, argv)
+}
+
+/** Moves a failed start's error log aside before the next start truncates it. Null when there was
+ *  none to keep. */
+export async function keepFailedStartLog(dataDir: string): Promise<string | null> {
+  const kept = join(dataDir, FAILED_DAEMON_STDERR_LOG)
+
+  try {
+    await rename(join(dataDir, DAEMON_STDERR_LOG), kept)
+
+    return kept
+  } catch {
+    // Missing or not movable: the next start overwrites it, and the reason lines already relayed
+    // are all there is.
+    return null
+  }
+}
+
+/** Runs `upgrade` as its own detached process, for a daemon that cannot replace itself. The process
+ *  is not a daemon, so it goes without the background mark; the daemon it starts carries one. */
+export async function spawnUpgradeProcess(
+  app: Pick<CliApp, 'config' | 'configPath'>
+): Promise<Subprocess> {
+  const { dataDir } = app.config.paths
+  const argv = await buildSelfArgv({
+    dataDir,
+    configPath: app.configPath,
+    tail: [CLI_COMMAND_METADATA.upgrade.name],
+  })
+
+  return await spawnDetached({
+    argv,
+    stdoutPath: join(dataDir, UPGRADE_STDOUT_LOG),
+    stderrPath: join(dataDir, UPGRADE_STDERR_LOG),
+    env: buildForegroundEnv(),
+  })
+}
+
+/** A pre-boot caller has no logger, so a spawn failure logs only when one exists. */
+export async function runBackground(app: CliApp, argv: readonly string[]): Promise<number> {
   const locale = app.config.locale.language
   let started: DetachedDaemon
 
   try {
-    started = startDetachedDaemon(app)
+    started = await startDetachedDaemon(app, argv)
   } catch (err: unknown) {
-    app.resolve('logger').error('daemon.background_spawn_failed', { err: formatErrForLog(err) })
+    if (app.has('logger')) {
+      app.resolve('logger').error('daemon.background_spawn_failed', { err: formatErrForLog(err) })
+    }
+
     app.err(
       style.error(
         t(locale, 'cli.daemonBackgroundSpawnFailed', {
@@ -64,7 +125,8 @@ export async function runBackground(app: CliApp): Promise<number> {
       success(
         t(locale, 'cli.daemonStartedBackground', {
           pid: child.pid,
-          version: BRAND.version,
+          // The daemon may run a release other than this process's, as right after `upgrade`.
+          version: (await liveDaemon(app))?.version ?? BRAND.version,
           path: logPath,
         })
       )
@@ -189,50 +251,44 @@ export async function pollUntil<T>(
 }
 
 // Admission already ran pre-boot, so a live daemon never reaches here.
-function startDetachedDaemon(app: CliApp): DetachedDaemon {
+async function startDetachedDaemon(app: CliApp, argv: readonly string[]): Promise<DetachedDaemon> {
   const { dataDir } = app.config.paths
   const logPath = join(dataDir, DAEMON_STDOUT_LOG)
   const errorLogPath = join(dataDir, DAEMON_STDERR_LOG)
-  // Truncated per start, so each file holds the running daemon's stray output and never grows
-  // across restarts. Admission guarantees no other daemon is writing to them.
-  const output = openSync(logPath, 'w', PRIVATE_FILE_MODE)
+  const child = await spawnDetached({
+    argv,
+    stdoutPath: logPath,
+    stderrPath: errorLogPath,
+    env: buildBackgroundEnv(),
+  })
+
+  return { child, logPath, errorLogPath }
+}
+
+/** Truncates both log files per start, so each holds the running process's stray output and never
+ *  grows across restarts. The child holds its own copies; closing ours never silences it. */
+async function spawnDetached(spawn: DetachedSpawn): Promise<Subprocess> {
+  const output = await open(spawn.stdoutPath, 'w', PRIVATE_FILE_MODE)
 
   try {
-    const errors = openSync(errorLogPath, 'w', PRIVATE_FILE_MODE)
+    const errors = await open(spawn.stderrPath, 'w', PRIVATE_FILE_MODE)
 
     try {
-      const proc = Bun.spawn(buildForegroundArgv(), {
-        env: getEnv(),
+      const proc = Bun.spawn([...spawn.argv], {
+        env: spawn.env,
         detached: true,
         windowsHide: true,
         stdin: 'ignore',
-        stdout: output,
-        stderr: errors,
+        stdout: output.fd,
+        stderr: errors.fd,
       })
       proc.unref()
 
-      return { child: proc, logPath, errorLogPath }
+      return proc
     } finally {
-      closeSync(errors)
+      await errors.close()
     }
   } finally {
-    // The child holds its own copies; closing ours never silences it.
-    closeSync(output)
+    await output.close()
   }
-}
-
-// Same command line minus the background flag. Global flags ride along untouched because they
-// were never the command tree's to strip.
-function buildForegroundArgv(): string[] {
-  const { command, args } = resolveSelfCommand()
-
-  return [command, ...args, ...withoutBackgroundFlag(process.argv.slice(2))]
-}
-
-function withoutBackgroundFlag(argv: readonly string[]): string[] {
-  return argv.filter((token) => !isBackgroundToken(token))
-}
-
-function isBackgroundToken(token: string): boolean {
-  return token === '--background' || token === '-b' || token.startsWith('--background=')
 }

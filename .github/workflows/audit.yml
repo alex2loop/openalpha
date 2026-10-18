@@ -1,0 +1,23 @@
+name: audit
+
+# Dependabot's bun ecosystem gets no security updates, so a published vulnerability is found here.
+on:
+  schedule:
+    - cron: '31 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      # Reads bun.lock directly, so no install is needed.
+      - run: bun audit --audit-level=high --prod

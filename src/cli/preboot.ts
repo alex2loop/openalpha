@@ -12,7 +12,7 @@ export interface PreBootOptions {
   readonly configPath?: string
   readonly dataDir?: string
   readonly logLevel?: LogLevel
-  readonly assertResolved: (config: ResolvedConfig) => void
+  readonly bootRefusals: (config: ResolvedConfig) => readonly unknown[]
   readonly assertComposes: () => Promise<void>
 }
 
@@ -44,7 +44,7 @@ export async function preBootApp(options: PreBootOptions): Promise<CliApp> {
       configMissing: probed.missing,
       configKeyMissing: probed.keyMissing,
       explicitConfig: options.configPath !== undefined,
-      assertResolved: options.assertResolved,
+      bootRefusals: options.bootRefusals,
       assertComposes: options.assertComposes,
     },
   }

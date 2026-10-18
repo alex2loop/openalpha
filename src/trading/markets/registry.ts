@@ -335,6 +335,7 @@ function resolvedMarket(matched: MatchedMarket, caveats: readonly Caveat[]): Mar
     kind: 'resolved',
     market: matched.market,
     instrument: detection.instrument,
+    ...(detection.name === undefined ? {} : { name: detection.name }),
     ...(detection.sector === undefined ? {} : { sector: detection.sector }),
     ...(detection.indexTier === undefined ? {} : { indexTier: detection.indexTier }),
     ...(detection.instrumentKind === undefined ? {} : { instrumentKind: detection.instrumentKind }),

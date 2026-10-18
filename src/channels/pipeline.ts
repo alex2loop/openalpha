@@ -7,7 +7,13 @@ import type { BudgetCaps, InboundQueue } from '@/channels/delivery/queue'
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { OperatorContext } from '@/channels/operator'
 import type { ChannelSettings } from '@/channels/schema'
-import type { AdmissionMode, ChannelAdapter, InboundInbox, OutboundButton } from '@/channels/types'
+import type {
+  AdmissionMode,
+  ChannelAdapter,
+  InboundInbox,
+  OperatorNotices,
+  OutboundButton,
+} from '@/channels/types'
 import type { SlashDispatcher, SpendReader } from '@/commands/api'
 import type { EventBus } from '@/core/events'
 import type { Logger } from '@/core/logging/logger'
@@ -64,6 +70,7 @@ export interface ChannelRuntimeDeps {
   readonly dispatcher: SlashDispatcher
   readonly spend: SpendReader
   readonly agents: AgentRegistry
+  readonly operatorNotices: OperatorNotices
   readonly bus: EventBus
   readonly logger: Logger
   readonly locale: Locale
@@ -77,6 +84,7 @@ export interface Pipeline {
   readonly planReviewer: ChannelPlanReviewer
   readonly handler: InboundHandler
   readonly gate: Gate
+  readonly isWorking: () => boolean
 }
 
 interface NotifierSend {
@@ -211,7 +219,7 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
 
   subscribeNotices(deps, sendText)
 
-  return { notifier, queue, proactive, planReviewer, handler, gate }
+  return { notifier, queue, proactive, planReviewer, handler, gate, isWorking: slashRuns.isWorking }
 }
 
 // Two things the agent does that the operator would otherwise never see: a question it is blocked
@@ -349,6 +357,7 @@ function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHand
     slashRuns: parts.slashRuns,
     bindings: deps.bindings,
     agents: deps.agents,
+    operatorNotices: deps.operatorNotices,
     bus: deps.bus,
     settings,
     signal: deps.shutdownSignal,

@@ -13,6 +13,7 @@ import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion
 import type { ConvictionBand, OutcomeStatus } from '@/trading/kernel/conviction'
 import type { FactorAttribution } from '@/trading/kernel/factor'
 import { formatDay, type MessageKey, t } from '@/i18n'
+import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { renderActedLines } from '@/trading/features/suggestion/track-record/render-acted'
 import { renderCoverageLine } from '@/trading/features/suggestion/track-record/render-coverage'
 import { renderFocusLines } from '@/trading/features/suggestion/track-record/render-focus'
@@ -177,6 +178,7 @@ function renderAverageLine(
     ret,
     median: formatSignedFraction(locale, summary.medianReturnPct),
     rate: formatWholeFraction(locale, summary.winRate),
+    range: renderRateRange(locale, summary, formatWholeFraction),
     wins: formatCount(locale, summary.winCount),
     n: formatCount(locale, summary.resolvedCount),
   })
@@ -317,6 +319,7 @@ function renderDebateModelLine(locale: Locale, entry: TrackRecordModelCount): st
     : t(locale, 'trading.render.reflect.debateModelRatedLine', {
         ...params,
         rate: formatWholeFraction(locale, entry.winRate),
+        range: renderRateRange(locale, entry, formatWholeFraction),
       })
 }
 
@@ -375,6 +378,7 @@ function renderConvictionLine(locale: Locale, bucket: RatedBucket): string {
     hits: formatCount(locale, bucket.winCount),
     n: formatCount(locale, bucket.resolvedCount),
     rate: formatFraction(locale, bucket.winRate),
+    range: renderRateRange(locale, bucket, formatFraction),
     avg: formatSignedFraction(locale, bucket.meanReturnPct),
   }
 

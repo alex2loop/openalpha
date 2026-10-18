@@ -25,31 +25,42 @@ interface LoopSpec {
   readonly reachability: Reachability
 }
 
+/** Whether a tick is running, so a self-upgrade waits for it instead of cutting it short. */
+interface LoopState {
+  ticking: boolean
+}
+
 /** The one loop. There is no `setInterval` anywhere in trading: an interval that fires while the
  *  previous tick is still running is how a bounded loop becomes concurrent with itself. */
 export function createLoopTask(spec: LoopSpec): DaemonTask {
-  return {
-    name: spec.name,
-    async start(signal) {
-      await runLoop(spec, signal)
-    },
-  }
+  return createTask(spec, { delayed: false })
 }
 
 export function createDelayedLoopTask(spec: LoopSpec): DaemonTask {
+  return createTask(spec, { delayed: true })
+}
+
+function createTask(spec: LoopSpec, options: { readonly delayed: boolean }): DaemonTask {
+  const state: LoopState = { ticking: false }
+
   return {
     name: spec.name,
+    isWorking: () => state.ticking,
     async start(signal) {
-      if (!(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
+      if (options.delayed && !(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
         return
       }
 
-      await runLoop(spec, signal)
+      await runLoop(spec, { signal, state })
     },
   }
 }
 
-async function runLoop(spec: LoopSpec, signal: AbortSignal): Promise<void> {
+async function runLoop(
+  spec: LoopSpec,
+  run: { readonly signal: AbortSignal; readonly state: LoopState }
+): Promise<void> {
+  const { signal, state } = run
   const keyWarning = { warned: false }
 
   while (!signal.aborted) {
@@ -57,8 +68,14 @@ async function runLoop(spec: LoopSpec, signal: AbortSignal): Promise<void> {
       return
     }
 
-    if (!(await runTick(spec, signal, keyWarning))) {
-      return
+    state.ticking = true
+
+    try {
+      if (!(await runTick(spec, signal, keyWarning))) {
+        return
+      }
+    } finally {
+      state.ticking = false
     }
 
     if (!(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {

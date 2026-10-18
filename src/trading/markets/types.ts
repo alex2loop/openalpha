@@ -298,6 +298,7 @@ export type MarketDetection =
   | {
       readonly kind: 'match'
       readonly instrument: InstrumentRef
+      readonly name?: string
       /** What the market's own record files this name under, when it keeps one. Carried from
        *  detection because that lookup already holds the record, and the exposure caps a buy is
        *  sized against are grouped by it. */
@@ -359,6 +360,7 @@ export type MarketResolution =
       readonly kind: 'resolved'
       readonly market: Market
       readonly instrument: InstrumentRef
+      readonly name?: string
       readonly sector?: string
       readonly indexTier?: string
       /** The record's own kind, carried for the same reason as `sector`: the detection lookup

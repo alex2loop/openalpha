@@ -1,0 +1,35 @@
+name: Daemon lifecycle
+description: Drives the lifecycle an operator uses on one built binary - version, background start, status, stop.
+
+inputs:
+  binary:
+    description: Path to the built binary, relative to the checkout.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # A downloaded artifact loses its mode bits.
+    - name: Make the binary executable
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        BINARY: ${{ inputs.binary }}
+      run: chmod +x "$BINARY"
+
+    # pwsh ships on every hosted runner, so one script serves all of them.
+    - name: Start and stop the daemon
+      shell: pwsh
+      env:
+        BINARY: ${{ inputs.binary }}
+        # The config names a model; nothing here calls it.
+        OPENROUTER_API_KEY: ci-placeholder
+      run: |
+        $PSNativeCommandUseErrorActionPreference = $true
+        $binary = Join-Path $PWD $env:BINARY
+        $dataDir = New-Item -ItemType Directory -Force -Path (Join-Path $env:RUNNER_TEMP 'openalpha')
+        $flags = @('--config', (Join-Path $PWD 'config.minimal.toml'), '--data-dir', $dataDir.FullName)
+        & $binary @flags version
+        & $binary @flags start --background
+        & $binary @flags status
+        & $binary @flags stop

@@ -46,6 +46,12 @@ export function differenceOf(
   return minuend === undefined || subtrahend === undefined ? undefined : minuend - subtrahend
 }
 
+/** Core operating profit is gross profit less selling and admin. The filing's own operating profit
+ *  line already nets financial income and interest. */
+export function coreOperatingProfitOf(lines: AccountLines): number | undefined {
+  return differenceOf(lines.grossProfit, sumOf([lines.sellingExpenses, lines.adminExpenses]))
+}
+
 export function averageOf(
   first: number | undefined,
   second: number | undefined

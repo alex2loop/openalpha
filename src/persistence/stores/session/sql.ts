@@ -49,15 +49,15 @@ export interface SessionSql {
   readonly updateStatus: string
   readonly listRecent: string
   readonly latestIdForChannel: string
-  readonly selectStatus: string
+  readonly selectRun: string
   readonly removeRoutes: string
   readonly removeMessages: string
   readonly detachAttempts: string
   readonly remove: string
   readonly countAll: string
   readonly countByAgent: string
-  readonly countActiveAll: string
-  readonly countActiveByAgent: string
+  readonly countRunningAll: string
+  readonly countRunningByAgent: string
   readonly clearRoutesAll: string
   readonly clearRoutesByAgent: string
   readonly clearMessagesAll: string
@@ -145,12 +145,12 @@ function buildClaimSql(d: Dialect): ClaimSql {
 
 type RemoveSql = Pick<
   SessionSql,
-  'selectStatus' | 'removeRoutes' | 'removeMessages' | 'detachAttempts' | 'remove'
+  'selectRun' | 'removeRoutes' | 'removeMessages' | 'detachAttempts' | 'remove'
 >
 
 function buildRemoveSql(d: Dialect): RemoveSql {
   return {
-    selectStatus: `SELECT status FROM sessions WHERE id = ${d.param(1)}`,
+    selectRun: `SELECT active_run_id FROM sessions WHERE id = ${d.param(1)}`,
     removeRoutes: `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} AND value = ${d.param(2)}`,
     removeMessages: `DELETE FROM session_messages WHERE session_id = ${d.param(1)}`,
     detachAttempts: detachAttemptsSql(`session_id = ${d.param(1)}`),
@@ -169,8 +169,8 @@ type ClearSql = Pick<
   SessionSql,
   | 'countAll'
   | 'countByAgent'
-  | 'countActiveAll'
-  | 'countActiveByAgent'
+  | 'countRunningAll'
+  | 'countRunningByAgent'
   | 'clearRoutesAll'
   | 'clearRoutesByAgent'
   | 'clearMessagesAll'
@@ -185,8 +185,8 @@ function buildClearSql(d: Dialect): ClearSql {
   return {
     countAll: 'SELECT COUNT(*) AS n FROM sessions',
     countByAgent: `SELECT COUNT(*) AS n FROM sessions WHERE agent_id = ${d.param(1)}`,
-    countActiveAll: "SELECT COUNT(*) AS n FROM sessions WHERE status = 'active'",
-    countActiveByAgent: `SELECT COUNT(*) AS n FROM sessions WHERE status = 'active' AND agent_id = ${d.param(1)}`,
+    countRunningAll: 'SELECT COUNT(*) AS n FROM sessions WHERE active_run_id IS NOT NULL',
+    countRunningByAgent: `SELECT COUNT(*) AS n FROM sessions WHERE active_run_id IS NOT NULL AND agent_id = ${d.param(1)}`,
     clearRoutesAll:
       `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} ` +
       'AND value IN (SELECT id FROM sessions)',

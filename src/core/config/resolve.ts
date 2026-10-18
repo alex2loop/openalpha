@@ -85,6 +85,7 @@ const DEFAULT_COMMANDS_RATE_PER_MINUTE = 20
 const DEFAULT_RETENTION_DAYS = 90
 const DEFAULT_INBOX_MAX_ATTEMPTS = 3
 const DEFAULT_UPDATE_CHECK = true
+const DEFAULT_UPDATE_AUTO = false
 const DEFAULT_INBOX_RETENTION_DAYS = 7
 
 export type ModelSource = 'config' | 'client'
@@ -137,6 +138,7 @@ interface ResolvedInbox {
 
 interface ResolvedUpdate {
   readonly check: boolean
+  readonly auto: boolean
 }
 
 export interface ResolvedConfig {
@@ -200,7 +202,10 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
       inboxDays: raw.retention?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
     },
     inbox: { maxAttempts: DEFAULT_INBOX_MAX_ATTEMPTS },
-    update: { check: raw.update?.check ?? DEFAULT_UPDATE_CHECK },
+    update: {
+      check: raw.update?.check ?? DEFAULT_UPDATE_CHECK,
+      auto: raw.update?.auto ?? DEFAULT_UPDATE_AUTO,
+    },
     storage: resolveStorageConfig(raw.storage, dataDir),
     webSearch: resolveWebSearch(isClientModelSource(modelSource) ? undefined : raw.web_search),
     research: RESEARCH_LIMITS,

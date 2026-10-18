@@ -17,6 +17,15 @@ export function compareVersions(left: string, right: string): number {
   return 0
 }
 
+/** True when `candidate` is newer than `current` within the same major and minor: a 1.0.x fix, never a
+ *  1.1.0 feature release. A prerelease suffix is ignored, as in `compareVersions`. */
+export function isPatchRelease(candidate: string, current: string): boolean {
+  const [major, minor] = releaseOf(candidate)
+  const [currentMajor, currentMinor] = releaseOf(current)
+
+  return major === currentMajor && minor === currentMinor && compareVersions(candidate, current) > 0
+}
+
 function releaseOf(version: string): readonly number[] {
   return (RELEASE_RE.exec(version)?.[1] ?? version).split('.').map(Number)
 }

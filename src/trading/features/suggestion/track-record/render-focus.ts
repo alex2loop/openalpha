@@ -7,6 +7,7 @@ import type {
 import type { FocusAgreement } from '@/trading/features/suggestion/track-record/agreement'
 import { formatDay, pluralKey, t } from '@/i18n'
 import { hasAgreementSample } from '@/trading/features/suggestion/track-record/agreement'
+import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { renderFocusLabel } from '@/trading/render/focus'
 import { formatCount, formatFraction, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, renderSectionTitle } from '@/trading/render/layout'
@@ -22,6 +23,7 @@ function countParams(locale: Locale, counts: Counts): Record<string, string> {
     count: formatCount(locale, counts.resolvedCount),
     wins: formatCount(locale, counts.winCount),
     rate: counts.winRate === undefined ? '' : formatFraction(locale, counts.winRate),
+    range: counts.winRate === undefined ? '' : renderRateRange(locale, counts, formatFraction),
   }
 }
 

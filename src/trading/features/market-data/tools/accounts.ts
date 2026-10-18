@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { ToolDefinition } from '@/core/tool'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import { createTool } from '@/core/tool'
+import { ACCOUNTS_QUARTER_ROWS } from '@/trading/kernel/market/annual-accounts'
 import { toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { instrumentQueryInput, type MarketSchema } from '@/trading/kernel/surface/surface'
 import { renderAccountsLines } from '@/trading/render/accounts'
@@ -13,8 +14,7 @@ export function createMarketAccountsTool(
 ): ToolDefinition {
   return createTool({
     name: 'market_accounts',
-    description:
-      "One listed company's audited annual accounts from our own filings store, oldest year first, then the last four quarters as one unaudited year where they run past the newest audit: revenue, margin, core operating profit, cash flow, capex, free cash flow, cash dividends paid, cash raised from share issues, share count, net debt, ROIC and interest cover (a bank's NII/assets, cost/income and CAR instead), the multi-year growth and cash conversion, and any flags. VN equities only; never a web figure.",
+    description: `One listed company's audited annual accounts from our own filings store, oldest year first, then the last four quarters as one unaudited year where they run past the newest audit, and the ${ACCOUNTS_QUARTER_ROWS} newest quarters, each against the same quarter a year earlier (unaudited): revenue, margin, core operating profit, cash flow, capex, free cash flow, cash dividends paid, cash raised from share issues, share count, net debt, ROIC and interest cover (a bank's NII/assets, cost/income and CAR instead; a bank's quarters show net interest income, operating income, credit provisions and pre-tax profit), the multi-year growth and cash conversion, and any flags. VN equities only; never a web figure.`,
     inputSchema: z.strictObject(instrumentQueryInput(markets)),
     capability: 'net',
     presentation: { label: 'Accounts', emoji: '📒', detailKeys: ['ticker'] },

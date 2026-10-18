@@ -110,13 +110,13 @@ async function countSessions(store: StoreDeps, agentId?: AgentId): Promise<numbe
 async function clearSessions(store: StoreDeps, agentId?: AgentId): Promise<SessionClearResult> {
   return await store.db.transaction(async (tx) => {
     const params = agentId === undefined ? [] : [agentId]
-    const activeSql =
-      agentId === undefined ? store.sql.countActiveAll : store.sql.countActiveByAgent
-    const activeRows = await tx.query<{ readonly n: number }>(activeSql, params)
-    const active = activeRows[0]?.n ?? 0
+    const runningSql =
+      agentId === undefined ? store.sql.countRunningAll : store.sql.countRunningByAgent
+    const runningRows = await tx.query<{ readonly n: number }>(runningSql, params)
+    const running = runningRows[0]?.n ?? 0
 
-    if (active > 0) {
-      return { kind: 'active', count: active }
+    if (running > 0) {
+      return { kind: 'active', count: running }
     }
 
     const countSql = agentId === undefined ? store.sql.countAll : store.sql.countByAgent
@@ -218,18 +218,22 @@ async function finalizeRun(input: FinalizeRunInput): Promise<void> {
   }
 }
 
-// Status is read inside the transaction: an active session's next message flush would fail on the
-// cascaded delete, leaving its run unfinalized.
+interface RunRow {
+  readonly active_run_id: string | null
+}
+
+// The run is read inside the transaction: a running session's next message flush would fail on the
+// cascaded delete, leaving its run unfinalized. A session open with no run holds nothing to lose.
 async function removeSession(store: StoreDeps, id: SessionId): Promise<SessionRemoval> {
   return await store.db.transaction(async (tx) => {
-    const rows = await tx.query<{ readonly status: string }>(store.sql.selectStatus, [id])
-    const status = rows[0]?.status
+    const rows = await tx.query<RunRow>(store.sql.selectRun, [id])
+    const row = rows[0]
 
-    if (status === undefined) {
+    if (row === undefined) {
       return 'not_found'
     }
 
-    if (status === 'active') {
+    if (row.active_run_id !== null) {
       return 'active'
     }
 

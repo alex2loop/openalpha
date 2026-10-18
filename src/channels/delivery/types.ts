@@ -4,7 +4,12 @@ import type { Gate } from '@/channels/delivery/gate'
 import type { Exchange } from '@/channels/delivery/orchestrator'
 import type { InboundQueue } from '@/channels/delivery/queue'
 import type { ChannelSettings } from '@/channels/schema'
-import type { ChannelAdapter, ChannelCallbackQuery, OutboundButton } from '@/channels/types'
+import type {
+  ChannelAdapter,
+  ChannelCallbackQuery,
+  OperatorNotices,
+  OutboundButton,
+} from '@/channels/types'
 import type { SlashDispatcher, SpendReader } from '@/commands/api'
 import type { ChannelId } from '@/core/channels'
 import type { EventBus } from '@/core/events'
@@ -27,6 +32,7 @@ export interface InboundHandlerDeps {
   readonly slashRuns: ActiveSlashRuns
   readonly bindings: ChatBindingStore
   readonly agents: AgentRegistry
+  readonly operatorNotices: OperatorNotices
   readonly bus: EventBus
   readonly settings: ChannelSettings
   readonly signal: AbortSignal

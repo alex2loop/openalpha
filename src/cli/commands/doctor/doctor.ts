@@ -36,6 +36,7 @@ import {
 import { probeModels } from './model-probes'
 import { probeBotTokenCheck, probeProviders, probeWebSearch } from './online-probes'
 import { labelWidthOf, renderDoctorProbe } from './render'
+import { probeSafety } from './safety-probe'
 import { probeVenueKeys } from './venue-probes'
 import { probeVersion } from './version-probe'
 
@@ -188,6 +189,8 @@ function createCheckRegistry(ctx: DoctorContext): Readonly<Record<CheckName, Che
       configFailed || trading === undefined
         ? awaitingConfig('trading', locale)
         : [await probeComposition(ctx.app, locale)],
+    safety: async () =>
+      configFailed ? awaitingConfig('safety', locale) : probeSafety(config, trading, locale),
     venues: async () => probeVenueKeys({ config, online: ctx.online, env: ctx.env, locale }),
     'web-search': async () => [await probeWebSearch(config, ctx.online, locale)],
     providers: async () =>

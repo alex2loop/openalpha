@@ -183,6 +183,7 @@ export async function repl(session: ChatSession): Promise<number> {
     process.off('SIGINT', onSigint)
     process.off('SIGTERM', onSigterm)
     approvals.close()
+    await closeIdleSession(app, state.sessionId)
   }
 }
 
@@ -326,7 +327,7 @@ export async function singleShot(session: ChatSession, message: string): Promise
     const turn = message.startsWith('/') ? await runSlash(activeSession, message) : { message }
 
     if (turn === null) {
-      await closeCommandSession(app, state.sessionId)
+      await closeIdleSession(app, state.sessionId)
 
       return 0
     }
@@ -360,9 +361,9 @@ export async function singleShot(session: ChatSession, message: string): Promise
   }
 }
 
-// A command that answered itself ran no turn to finalize the session, and a one-shot never comes
-// back to it: left active, the next daemon start would file it as interrupted.
-async function closeCommandSession(app: CliApp, id: SessionId): Promise<void> {
+// A command that answered itself ran no turn to finalize the session; left active once the chat ends,
+// the next daemon start files it as interrupted. The store leaves a session a run still holds alone.
+async function closeIdleSession(app: CliApp, id: SessionId): Promise<void> {
   try {
     await app.resolve('sessionStore').updateStatus(id, 'done')
   } catch (err: unknown) {

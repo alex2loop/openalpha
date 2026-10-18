@@ -279,6 +279,7 @@ export interface NewsItem {
   readonly publishedAt: number
   readonly sourceIds: readonly SourceId[]
   readonly summary?: string
+  readonly publisherUrl?: string
 }
 
 export interface AnalystRecommendation extends SourceStamp {

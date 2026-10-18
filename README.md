@@ -84,7 +84,7 @@ https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
 
 ## Bắt đầu nhanh
 
-Bạn chỉ cần một máy macOS, Linux hoặc Windows 10/11, và một khóa API của nhà cung cấp AI. [OpenRouter](https://openrouter.ai) có cả mô hình miễn phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
+Bạn chỉ cần một máy macOS, Linux hoặc Windows 10/11 (máy chip ARM cần Windows 11), và một khóa API của nhà cung cấp AI. [OpenRouter](https://openrouter.ai) có cả mô hình miễn phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
 
 ### Thử ngay trong 3 lệnh
 
@@ -209,7 +209,8 @@ Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là b
 <summary><b>Windows, cấu hình tối giản, cập nhật, gỡ cài đặt</b></summary>
 
 - **Không cần quyền admin.** `openalpha.exe` nằm ở `%USERPROFILE%\.local\bin` và thư mục này được thêm vào PATH của tài khoản bạn. Gõ `openalpha` mà báo không nhận ra lệnh thì mở một cửa sổ PowerShell mới, hoặc chạy thẳng `& "$HOME\.local\bin\openalpha.exe"`. Dữ liệu và cấu hình nằm ở `%USERPROFILE%\.openalpha`, cũng chính là `~/.openalpha` trong hướng dẫn này.
-- **Windows Defender chặn `openalpha.exe`?** Tệp chạy chưa được ký số nên đôi khi bị báo nhầm. Trình cài đã đối chiếu tệp với `SHA256SUMS` của bản phát hành; muốn tự kiểm thì chạy `Get-FileHash "$HOME\.local\bin\openalpha.exe"` rồi so với dòng `openalpha-windows-x64.exe` trên trang [Releases](https://github.com/alex2loop/openalpha/releases). Khớp rồi thì thêm ngoại lệ cho cả thư mục, trong PowerShell chạy bằng quyền Admin: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Đừng tắt hẳn diệt virus.
+- **Windows Defender chặn `openalpha.exe`?** Tệp chạy chưa được ký số nên đôi khi bị báo nhầm. Trình cài đã đối chiếu tệp với `SHA256SUMS` của bản phát hành; muốn tự kiểm thì chạy `Get-FileHash "$HOME\.local\bin\openalpha.exe"` rồi so với dòng của bản bạn cài (`openalpha-windows-x64.exe`, hoặc `openalpha-windows-arm64.exe` trên máy ARM) trên trang [Releases](https://github.com/alex2loop/openalpha/releases). Khớp rồi thì thêm ngoại lệ cho cả thư mục, trong PowerShell chạy bằng quyền Admin: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Đừng tắt hẳn diệt virus.
+- **Máy Windows chip ARM?** Trình cài tự chọn bản ARM chạy thẳng trên máy; bản x64 cài trước đó sẽ chuyển sang bản ARM khi bạn chạy lại lệnh cài.
 - **Tiếng Việt hiện thành ký tự lạ?** Dùng Windows Terminal thay cho cửa sổ console cũ. **Thích WSL2?** Lệnh `curl ... | sh` chạy được trong WSL2, với thư mục `~/.openalpha` riêng.
 - **Không muốn trả lời từng câu lúc cài?** Lấy [config.minimal.toml](config.minimal.toml): chạy được ngay, chỉ cần khóa OpenRouter, mỗi dòng đều có chú thích. Lệnh này ghi đè `config.toml` nếu bạn đã có:
 
@@ -223,7 +224,7 @@ Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là b
 
 - **Mọi tùy chọn cấu hình:** [config.sample.toml](config.sample.toml) · [docs/cau-hinh.md](docs/cau-hinh.md). Không muốn dùng khóa AI thì chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
 - **Cài trên máy chủ hay trong CI?** Đặt `OPENALPHA_NO_ONBOARD=1` để bỏ bước hỏi; đầu [install.sh](install.sh) và [install.ps1](install.ps1) liệt kê đủ các tùy chọn, ví dụ `OPENALPHA_VERSION` để cài đúng một bản.
-- **Cập nhật:** CLI nhắc mỗi ngày một lần khi có bản mới; `openalpha upgrade` lên bản mới mà giữ nguyên dữ liệu và cấu hình.
+- **Cập nhật:** CLI nhắc mỗi ngày một lần, kèm điều đáng chú ý của bản mới; trong chat riêng, bot nhắc mỗi tuần (bản quan trọng thì mỗi ngày). `openalpha upgrade` lên bản mới mà giữ nguyên dữ liệu và cấu hình.
 - **Gỡ cài đặt:** `openalpha stop`, rồi xóa tệp `openalpha` (mặc định ở `~/.local/bin`; trên Windows là `openalpha.exe` và `openalpha.exe.old` nếu có). Thư mục `~/.openalpha` chứa toàn bộ sổ và cấu hình: chạy `openalpha db export --out <thư-mục>` trước nếu muốn giữ.
 
 </details>

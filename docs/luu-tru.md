@@ -328,7 +328,8 @@ các tin nhắn theo thứ tự, tổng token và chi phí lũy kế, cùng các
 của trợ lý. Những lần gọi không gắn với tin nhắn nào, như khi nén hội thoại, được hiện riêng.
 
 `history delete` xóa một phiên chat mà không hỏi lại. `history clear` cần daemon đã dừng và hỏi xác
-nhận trừ khi bạn thêm `--yes`. Cả hai từ chối phiên chat đang chạy.
+nhận trừ khi bạn thêm `--yes`. Cả hai từ chối phiên chat đang có một lượt chạy dở; phiên chat chỉ còn mở mà
+không chạy gì thì xóa được.
 
 ### Vòng đời
 

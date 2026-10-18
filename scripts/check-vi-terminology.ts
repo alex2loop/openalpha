@@ -18,6 +18,7 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
   'tools.listChanged',
   'trading.render.quote.price',
   'trading.render.quotes.row',
+  'trading.accounts-quarter.fact',
   'trading.render.quotes.rowChange',
   'trading.render.portfolio.positionWeight',
   'trading.render.portfolio.sectorRow',

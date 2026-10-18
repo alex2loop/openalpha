@@ -26,18 +26,21 @@ import {
   type PromptMetricInput,
   renderPromptMetricLine,
 } from '@/trading/features/suggestion/pipeline/metric-lines'
+import {
+  consensusSection,
+  headlines,
+  MAXIMUM_EVIDENCE_NEWS_ITEMS,
+  MAXIMUM_SUMMARY_CHARS,
+  marketNewsSection,
+  newsSection,
+  withoutStories,
+} from '@/trading/features/suggestion/pipeline/news-evidence'
 import { portfolioSection } from '@/trading/features/suggestion/pipeline/portfolio-evidence'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
-import { normalizeTitle, rankHeadlines } from '@/trading/markets/news'
 import { promptWholePercent } from '@/trading/prompt-text'
-import { renderScoreBand } from '@/trading/render/format'
+import { renderDeclaredValue, renderProvidedValue, renderScoreBand } from '@/trading/render/format'
 import { formatPrice } from '@/trading/render/money'
-import { utcDayOf } from '@/trading/sources/rows/normalization'
-
-const MAXIMUM_NEWS_ITEMS = 8
-const MAXIMUM_HEADLINE_CHARS = 200
-const MAXIMUM_SUMMARY_CHARS = 320
 
 /** An event that moves no price, told as such: a bare ex-date reads as a reset worth waiting out. */
 const EVENT_NOTES: Partial<Record<MarketEventKind, string>> = Object.freeze({
@@ -70,6 +73,12 @@ const FRAMINGS = Object.freeze({
     target: 'below entry: where the sale has paid off',
   },
 } as const satisfies Record<SuggestionDirection, DecisionFraming>)
+
+const MAXIMUM_INSTRUMENT_NAME_CHARS = 120
+const WHITESPACE_RE = /\s+/g
+
+const EVENTS_UNAVAILABLE =
+  'UPCOMING EVENTS: unavailable - the corporate calendar failed this run; never assume nothing is scheduled.'
 
 const RUNNER_TARGET =
   'above entry: the far level the reward is measured to, which few entries reach; nothing is sold there'
@@ -104,21 +113,30 @@ interface EvidenceBundleOptions {
   readonly logger: Logger
 }
 
+interface EvidenceReads {
+  readonly news: SourceResult<readonly NewsItem[]> | undefined
+  readonly marketNews: SourceResult<readonly NewsItem[]> | undefined
+  readonly recommendations: SourceResult<readonly AnalystRecommendation[]> | undefined
+  readonly accounts: SourceResult<AccountsHistory> | undefined
+}
+
+/** What names the instrument beyond its ticker, shared by the evidence line and the headline read. */
+interface InstrumentFacts {
+  readonly name?: string
+  readonly sectorLabel?: string
+}
+
 export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promise<EvidenceBundle> {
   const { market, input } = options
   const { instrument } = input.draft
-  const asOf = input.draft.at
   const now = input.request.now
   const signal = input.request.signal
-  const [news, marketNews, recommendations, accounts] = await Promise.all([
-    market.capabilities.news?.run({ instrument, asOf, now, limit: MAXIMUM_NEWS_ITEMS, signal }),
-    market.capabilities.news?.run({ asOf, now, limit: MAXIMUM_NEWS_ITEMS, signal }),
-    market.capabilities.recommendations?.run({ instrument, asOf, now, signal }),
-    market.capabilities.accounts?.run({ instrument, asOf, now, signal }),
-  ])
-  const consensus = recommendations?.kind === 'available' ? recommendations.value : []
+  const reads = await readEvidenceSources(market, input)
+  const { news, marketNews, recommendations, accounts } = reads
   const ownRanked = headlines(news, now)
+  const facts = instrumentFactsOf(input)
   const read = await readHeadlines({
+    ...facts,
     ...(options.decisionsChain === undefined ? {} : { chain: options.decisionsChain }),
     recordAttempt: options.recordAttempt,
     logger: options.logger,
@@ -142,25 +160,49 @@ export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promi
     headlinesRead: { own: read.own.length, market: read.market.length, costUsd: read.costUsd },
     adjudication: adjudicationSection(input),
     portfolio: portfolioSection(input.exposure),
-    text: evidenceText(input, market, { read, consensus, accounts }),
+    text: evidenceText(input, market, { read, reads, facts }),
   }
 }
 
-function evidenceText(
-  input: DebateInput,
-  market: Market,
-  sections: {
-    readonly read: HeadlineReads
-    readonly consensus: readonly AnalystRecommendation[]
-    readonly accounts: SourceResult<AccountsHistory> | undefined
-  }
-): string {
+function readEvidenceSources(market: Market, input: DebateInput): Promise<EvidenceReads> {
+  const { instrument } = input.draft
+  const { now, signal } = input.request
+  const asOf = input.draft.at
+
+  return Promise.all([
+    market.capabilities.news?.run({
+      instrument,
+      asOf,
+      now,
+      limit: MAXIMUM_EVIDENCE_NEWS_ITEMS,
+      signal,
+    }),
+    market.capabilities.news?.run({ asOf, now, limit: MAXIMUM_EVIDENCE_NEWS_ITEMS, signal }),
+    market.capabilities.recommendations?.run({ instrument, asOf, now, signal }),
+    market.capabilities.accounts?.run({ instrument, asOf, now, signal }),
+  ]).then(([news, marketNews, recommendations, accounts]) => ({
+    news,
+    marketNews,
+    recommendations,
+    accounts,
+  }))
+}
+
+interface EvidenceSections {
+  readonly read: HeadlineReads
+  readonly reads: EvidenceReads
+  readonly facts: InstrumentFacts
+}
+
+function evidenceText(input: DebateInput, market: Market, sections: EvidenceSections): string {
   const display = market.manifest.priceDisplay
+  const { reads } = sections
+  const consensus = reads.recommendations?.kind === 'available' ? reads.recommendations.value : []
 
   return [
-    instrumentSection(input),
+    instrumentSection(input, sections.facts),
     factorSection(input, display),
-    accountsSection(sections.accounts, {
+    accountsSection(reads.accounts, {
       locale: input.request.locale,
       currency: market.manifest.currency,
     }),
@@ -171,10 +213,19 @@ function evidenceText(
       locale: input.request.locale,
       display,
     }),
-    eventsSection(input.upcomingEvents),
-    newsSection(sections.read.own),
-    marketNewsSection(sections.read.market, input.draft.instrument.ticker),
-    consensusSection(sections.consensus, input.request.locale, display),
+    eventsSection(input),
+    newsSection(sections.read.own, reads.news),
+    marketNewsSection({
+      items: sections.read.market,
+      subject: input.draft.instrument.ticker,
+      read: reads.marketNews,
+    }),
+    consensusSection({
+      rows: consensus,
+      locale: input.request.locale,
+      display,
+      read: reads.recommendations,
+    }),
   ]
     .filter((section) => section.length > 0)
     .join('\n\n')
@@ -188,12 +239,51 @@ function reportableCaveats(caveats: readonly Caveat[]): readonly Caveat[] {
   return dedupeCaveats(caveats.filter((caveat) => caveat.code !== 'source.empty-window'))
 }
 
-function instrumentSection(input: DebateInput): string {
+/** The name is a provider's string: one line and a bounded length, so it can never break the prompt
+ *  layout. A name that is only the ticker adds nothing. */
+function instrumentName(name: string | undefined, ticker: Ticker): string | undefined {
+  const line = name
+    ?.replace(WHITESPACE_RE, ' ')
+    .trim()
+    .slice(0, MAXIMUM_INSTRUMENT_NAME_CHARS)
+    .trim()
+
+  return line === undefined || line === '' || line.toLowerCase() === ticker.toLowerCase()
+    ? undefined
+    : line
+}
+
+function instrumentFactsOf(input: DebateInput): InstrumentFacts {
+  const name = instrumentName(input.name, input.draft.instrument.ticker)
+  const { sector } = input
+
+  return {
+    ...(name === undefined ? {} : { name }),
+    ...(sector === undefined
+      ? {}
+      : {
+          sectorLabel: renderProvidedValue(
+            input.request.locale,
+            `trading.sector.${sector}`,
+            sector
+          ),
+        }),
+  }
+}
+
+function instrumentSection(input: DebateInput, facts: InstrumentFacts): string {
+  const { locale } = input.request
+  const { ticker, market } = input.draft.instrument
   const tier = input.draft.indexTier
   const basket = tier === undefined ? '' : ` (${tier} constituent)`
+  const marketLabel = renderDeclaredValue(locale, `trading.market.${market}`)
+  const subject = [ticker, facts.name, facts.sectorLabel, `on ${marketLabel}${basket}`]
+    .filter((part) => part !== undefined)
+    .join(' - ')
 
   return [
-    `INSTRUMENT: ${input.draft.instrument.ticker} on ${input.draft.instrument.market}${basket}`,
+    `INSTRUMENT: ${subject}`,
+    'Every claim is about this instrument; never substitute another company, coin, or ticker.',
     `AS OF: ${input.draft.evidenceThrough ?? input.draft.at}`,
     `DECISION: ${FRAMINGS[framedDirectionOf(input.draft)].question}`,
   ].join('\n')
@@ -323,9 +413,11 @@ function entryPurpose(levels: TradeLevels, framing: DecisionFraming): string {
 
 /** Dated facts, not forecasts: a persona weighs when the tape resets, it does not guess the size of
  *  the dividend or the market's reaction to it. */
-function eventsSection(events: readonly MarketEvent[] | undefined): string {
-  if (events === undefined || events.length === 0) {
-    return ''
+function eventsSection(input: DebateInput): string {
+  const events = input.upcomingEvents ?? []
+
+  if (events.length === 0) {
+    return input.calendarFailed === true ? EVENTS_UNAVAILABLE : ''
   }
 
   return [
@@ -341,116 +433,4 @@ function eventRow(event: MarketEvent): string {
   const suffix = notes.length === 0 ? '' : ` (${notes.join('; ')})`
 
   return `- ${event.at} ${event.kind}: ${event.title}${suffix}`
-}
-
-function newsSection(items: readonly NewsItem[]): string {
-  if (items.length === 0) {
-    return ''
-  }
-
-  return [
-    'HEADLINES (cite by url; do not assert anything they do not say):',
-    ...items.map(evidenceRow),
-  ].join('\n')
-}
-
-/** Held apart from the instrument's own headlines. Most names have no coverage on a given day, so
- *  the market's is what a persona would otherwise reason without — but it names other companies,
- *  and folding it into the section above is how it gets attributed to this one. */
-function marketNewsSection(items: readonly NewsItem[], subject: Ticker): string {
-  if (items.length === 0) {
-    return ''
-  }
-
-  return [
-    'MARKET HEADLINES (background only; never attribute these to this instrument):',
-    ...items.map((item) => `- (background, not ${subject}) ${headlineText(item)}`),
-  ].join('\n')
-}
-
-/** Analyst coverage is evidence to weigh, exactly like a headline — never a factor or a conviction
- *  input. The positivity-bias note travels with it because sell-side coverage skews bullish. */
-function consensusSection(
-  rows: readonly AnalystRecommendation[],
-  locale: Locale,
-  display: PriceDisplay | undefined
-): string {
-  if (rows.length === 0) {
-    return ''
-  }
-
-  const totals = rows.reduce(
-    (sum, row) => ({
-      buy: sum.buy + row.buyCount,
-      hold: sum.hold + row.holdCount,
-      sell: sum.sell + row.sellCount,
-    }),
-    { buy: 0, hold: 0, sell: 0 }
-  )
-
-  const target = meanTargetPrice(rows)
-
-  return [
-    'ANALYST COVERAGE (sell-side coverage skews bullish; weigh accordingly):',
-    `- buy ${totals.buy}, hold ${totals.hold}, sell ${totals.sell}`,
-    ...(target === undefined
-      ? []
-      : [`- mean target price ${formatPrice(locale, target, display)}`]),
-  ].join('\n')
-}
-
-/** The reports that named a target, averaged. A report without one is coverage, not a price view,
- *  so it counts toward the ratings above and not toward this. */
-function meanTargetPrice(rows: readonly AnalystRecommendation[]): number | undefined {
-  const targets = rows.flatMap((row) => (row.targetPrice === undefined ? [] : [row.targetPrice]))
-
-  if (targets.length === 0) {
-    return undefined
-  }
-
-  return Math.round(targets.reduce((sum, price) => sum + price, 0) / targets.length)
-}
-
-/** Ranked rather than sliced: a scope reads several feeds, merged in feed order, so taking the
- *  first rows hands every slot to whichever publisher files most often. */
-/** A story the instrument's own read already carried is not background: printed in both sections it
- *  would arrive once inviting citation and once forbidding it. Keyed by title, because an
- *  aggregator and the publisher it carries give one story two urls. */
-function withoutStories(
-  items: readonly NewsItem[],
-  carried: readonly NewsItem[]
-): readonly NewsItem[] {
-  const titles = new Set(carried.map((item) => normalizeTitle(item.title)))
-
-  return items.filter((item) => !titles.has(normalizeTitle(item.title)))
-}
-
-function headlines(
-  result: SourceResult<readonly NewsItem[]> | undefined,
-  now: number
-): readonly NewsItem[] {
-  return result?.kind === 'available'
-    ? rankHeadlines(result.value, { now, limit: MAXIMUM_NEWS_ITEMS })
-    : []
-}
-
-function headlineRow(item: NewsItem): string {
-  return `- ${headlineText(item)}`
-}
-
-function headlineText(item: NewsItem): string {
-  const day = utcDayOf(item.publishedAt)
-
-  return `${item.title.slice(0, MAXIMUM_HEADLINE_CHARS)} (${day}) ${item.url}`
-}
-
-/** The instrument's own coverage carries its abstract, because this is the text a claim is verified
- *  against and a headline often cannot settle one. Market background stays headline-only: the
- *  personas are told not to reason from it about this name, so paying tokens to expand it buys
- *  nothing. */
-function evidenceRow(item: NewsItem): string {
-  const head = headlineRow(item)
-  const summary = item.summary?.trim() ?? ''
-
-  return summary === '' ? head : `${head}\n    ${summary.slice(0, MAXIMUM_SUMMARY_CHARS)}`
 }

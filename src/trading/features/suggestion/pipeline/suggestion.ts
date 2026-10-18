@@ -49,6 +49,7 @@ import {
   standingMarginEvent,
 } from '@/trading/kernel/market/margin-status'
 import { isOutsideFocus, runHorizon } from '@/trading/kernel/operator/focus'
+import { isSourceFailed } from '@/trading/kernel/source/source-result'
 import { regimeFor } from '@/trading/markets/macro-risk'
 
 /** The one ordered runner: resolve, reuse and cooldown gates, prepare, deterministic gate stages,
@@ -235,7 +236,7 @@ async function prepare(
     instrument: resolution.instrument,
     horizon,
     identity: identityOf(resolution, asOf, request.focus.key),
-    upcomingEvents: calendar.events,
+    ...calendarFieldsOf(calendar),
     direction,
     ...(openRisk === undefined ? {} : { openRisk }),
     ...optionalFields(resolution, priced),
@@ -279,6 +280,7 @@ function optionalFields(
   const available = priced.result.kind === 'available' ? priced.result : undefined
 
   return {
+    ...(resolution.name === undefined ? {} : { name: resolution.name }),
     ...(resolution.sector === undefined ? {} : { sector: resolution.sector }),
     ...(resolution.instrumentKind === undefined
       ? {}
@@ -337,6 +339,7 @@ function readRunInputs(
 interface DraftCalendar {
   readonly events: readonly MarketEvent[]
   readonly standingMargin?: MarketEvent
+  readonly calendarFailed?: true
 }
 
 function toDraftCalendar(
@@ -350,6 +353,16 @@ function toDraftCalendar(
   return {
     events: upcomingEvents(own, asOf),
     ...(standing === undefined ? {} : { standingMargin: standing }),
+    ...(isSourceFailed(events) ? { calendarFailed: true } : {}),
+  }
+}
+
+function calendarFieldsOf(
+  calendar: DraftCalendar
+): Pick<Prepared, 'upcomingEvents' | 'calendarFailed'> {
+  return {
+    upcomingEvents: calendar.events,
+    ...(calendar.calendarFailed === true ? { calendarFailed: true } : {}),
   }
 }
 

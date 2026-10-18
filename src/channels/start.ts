@@ -7,6 +7,7 @@ import type {
   ChannelRuntime,
   ChannelRuntimeSnapshot,
   InboundInbox,
+  OperatorNotices,
   OutboundTarget,
 } from '@/channels/types'
 import type { SlashDispatcher, SpendReader } from '@/commands/api'
@@ -45,6 +46,7 @@ export interface StartChannelsDeps {
   readonly dispatcher: SlashDispatcher
   readonly spend: SpendReader
   readonly agents: AgentRegistry
+  readonly operatorNotices: OperatorNotices
   readonly bus: EventBus
   readonly logger: Logger
   /** Injected so no adapter reads process.env directly. */
@@ -71,6 +73,7 @@ interface SkippedChannel {
 export interface StartChannelsResult {
   stop(): Promise<void>
   snapshots(): readonly ChannelRuntimeSnapshot[]
+  isWorking(): boolean
   readonly skipped: readonly SkippedChannel[]
   /** Routes an acknowledged send to whichever runtime owns its channel. Undefined if none started. */
   notifier?: AcknowledgedRouter
@@ -206,6 +209,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     dispatcher: deps.dispatcher,
     spend: deps.spend,
     agents: deps.agents,
+    operatorNotices: deps.operatorNotices,
     bus: deps.bus,
     logger: deps.logger,
     locale: deps.config.locale.language,
@@ -264,6 +268,7 @@ function buildResult(
       await Promise.allSettled(started.map((entry) => entry.runtime.dispose()))
     },
     snapshots: () => started.map((entry) => entry.runtime.snapshot()),
+    isWorking: () => started.some((entry) => entry.runtime.isWorking()),
     skipped,
   }
 

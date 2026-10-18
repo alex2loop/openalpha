@@ -24,9 +24,10 @@ openalpha config edit       # open it in $VISUAL or $EDITOR
 on an existing config, it changes one part (model, Telegram bot, budget or language) and saves the
 old file beside it first, because the rewrite drops comments.
 
-Two templates to download: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
-works with just `OPENROUTER_API_KEY` and a 2 USD daily cap, and [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
-lists every key with a comment.
+Two templates to download: [config.minimal.en.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml)
+works with just `OPENROUTER_API_KEY` and a 2 USD daily cap (its Vietnamese twin is
+[config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)), and
+[config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml) lists every key with a comment.
 
 ## Precedence
 
@@ -356,12 +357,10 @@ Priority for the level: `--log-level`, then `OPENALPHA_LOG_LEVEL`, then `[log].l
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `check` | bool | `true` | Ask GitHub once a day whether a newer release is out. |
+| `check` | bool | `true` | Ask GitHub twice a day whether a newer release is out. |
+| `auto` | bool | `false` | Install patch releases (1.0.5 to 1.0.6, say) by itself between 00:00 and 06:00 on `[locale] timezone`, when the daemon runs in the background; never while a market you follow is in session, lunch break included (crypto trades around the clock, so it does not count). |
 
-When one is out, the CLI prints a line after a command (at most once a day), chat shows it under the
-welcome, `version` and `doctor version` report it, the daemon logs it, and the morning brief sent to
-a channel ends with it. Nothing installs until you run `openalpha upgrade`. Source checkouts and CI
-never check.
+When one is out, the CLI prints a short notice after a command (at most once a day), chat shows it under the welcome, `version` and `doctor version` report it, the daemon logs it, the morning brief sent to a channel ends with it, and the bot mentions it in your private chat. Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on: then a background daemon installs a patch release by itself in that window, messages you when it is back (in the private chat you last wrote to it from), and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night. A source checkout never checks; under CI only `version` and `doctor --online` do.
 
 ### `[channels.telegram]`
 

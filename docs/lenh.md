@@ -66,8 +66,8 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `status` | Tổng quan daemon, kênh và chi tiêu | không có |
 | `version` | In phiên bản và báo nếu đã có bản mới; `--version` và `-v` cũng được | không có |
 | `help` | In trợ giúp: `help` cho danh sách, `help <lệnh> [lệnh con]` cho một lệnh | không có; tên lệnh |
-| `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo |
-| `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
+| `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo, `--rollback` quay về bản cài trước |
+| `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
 | `onboard` | Thiết lập lần đầu, hoặc đổi mô hình, bot Telegram, mức chi hay ngôn ngữ | không có |
 | `setup` | Chỉ dành cho ứng dụng desktop. Lần chạy đầu của một ứng dụng khách: danh mục nhà cung cấp, và tệp cấu hình khởi điểm có bật API (một dòng JSON) | `catalog`, `write <nhà cung cấp> <mô hình>` |
 | `api` | Mã API (bearer token) của `/v1` | `token`, `rotate` |
@@ -116,6 +116,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat |
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
 | `/health` | Xem các mã sức khỏe của runtime và kênh |
+| `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
 | `/memory` | Liệt kê, gọi lại, tìm, ghi hoặc xóa bộ nhớ |
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại hoặc chạy ngay một việc của bạn |
@@ -237,13 +238,14 @@ AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin 
 cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có daemon khác chạy và lỗi lưu trữ
 vẫn chặn `start`.
 
-`status` cho biết daemon đang chạy bản nào. Cài bản mới bằng script cài đặt trong lúc daemon đang chạy
-thì daemon vẫn giữ bản cũ; `status` sẽ nhắc bạn chạy `stop` rồi `start` để chuyển sang bản mới.
+`status` cho biết daemon đang chạy bản nào. Chạy lại script cài đặt thì daemon chạy nền được bật lại trên
+bản mới; cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì daemon vẫn chạy bản cũ tới khi bạn tự khởi
+động lại, và `status` nhắc chạy `stop` rồi `start --background` để chuyển sang bản đó.
 Khi daemon đang chạy mà thiếu khóa, `status` liệt kê lại đúng các dòng cảnh báo lúc `start`: kênh nào bị
 bỏ qua và vì sao, khóa nào chưa đặt và việc gì đang chờ nó, kể cả sau khi máy khởi động lại. Khóa sàn và
 khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn": thiếu chúng thì bạn vẫn ghi lệnh bằng tay, và
 `start` không cảnh báo. App desktop đọc cùng danh sách đó từ `/v1/state`.
-`upgrade` tự dừng daemon nên không để lại bản cũ.
+`upgrade` tự bật lại daemon chạy nền trên bản mới.
 
 `doctor` luôn chỉ đọc. Chạy offline thì nó chỉ kiểm phần nhìn được ở máy; `--online` thêm các phép thử
 thật tới PostgreSQL, nhà cung cấp, token kênh, tìm kiếm web và khóa sàn. Phép thử nhà cung cấp gửi cho
@@ -257,20 +259,21 @@ thống y như `chat` nhưng không khởi chạy hay migrate gì, nên khu vự
 `doctor version` đọc câu trả lời gần nhất từ GitHub (cũ nhất một ngày); `doctor version --online` hỏi
 lại ngay. Chậm phiên bản chỉ là cảnh báo, không bao giờ là lỗi.
 
+`doctor safety` cảnh báo từng công tắc cho phép OpenAlpha hành động mà không hỏi: `orders.allow_unattended`, `plugins.allow_untrusted`, và `plugins.allow_code` khi nó bật cùng công tắc thứ hai. Không có công tắc nào bật thì báo một dòng sạch. Lệnh này không bao giờ làm lần chạy thất bại.
+
 Hãy chạy `doctor venues --online` một lần sau khi thêm khóa sàn. Nó đọc xem khóa Binance thật được phép
 làm gì, và cảnh báo khi khóa còn rút được tiền, còn dùng được từ mọi IP, hoặc đang tắt giao dịch spot.
 Khóa demo thì không bị kiểm.
 
 ### Luôn dùng bản mới
 
-Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh. `upgrade` tải tệp chạy của bản mới cho
-đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới tạm
-dừng daemon (nếu đang chạy), thay tệp bằng một lần đổi tên, rồi nhắc bạn cách bật lại daemon. Thư mục dữ
-liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và thông báo cho bạn biết
-daemon đang dừng cùng cách bật lại. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước
-bước đổi tên, nên bản cũ vẫn nguyên và daemon vẫn chạy. Windows không cho thay một `openalpha.exe` đang
-chạy, nên ở đó bản cũ được đổi tên thành `openalpha.exe.old` trước; lần nâng cấp sau sẽ ghi đè lên nó.
-`upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
+Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh: có gì mới, bạn đang chậm bao nhiêu bản và có bản nào quan trọng không. Trong chat riêng với người vận hành, bot nhắc mỗi tuần, hoặc mỗi ngày khi có bản quan trọng đang chờ.
+
+`upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới thay tệp. Daemon bật bằng `start --background` được tạm dừng trong lúc thay rồi tự bật lại trên bản mới, với cùng tệp cấu hình và thư mục dữ liệu; nếu nó không khởi động được, `upgrade` quay về bản đã chạy, báo cho bạn và giữ lỗi khởi động của bản mới trong `daemon.stderr.failed.log`. Daemon chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý vẫn chạy bản cũ tới khi bạn tự khởi động lại, và `upgrade` in sẵn lệnh cần chạy; riêng Windows không thay được tệp đang chạy, nên daemon bị dừng trong lúc thay và bạn bật lại. Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và daemon đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước bước thay tệp, nên bản cũ vẫn nguyên và daemon vẫn chạy.
+
+Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`), và `upgrade --rollback` đổi ngược về nó. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
+
+Trên máy Windows chip ARM, trình cài tự chọn bản ARM chạy thẳng trên máy; bản x64 cài trước đó vẫn nâng cấp theo x64 cho tới khi bạn chạy lại lệnh cài, lúc đó nó chuyển sang bản ARM.
 
 ## Cấu hình và khởi tạo
 
@@ -616,7 +619,8 @@ trước, hoặc gõ lại lệnh kèm `fx <giá>`.
   cho mỗi đồng tiền đã ghi như vậy để bạn sửa bằng `/update` nếu đã mua qua P2P.
 
 **`/record sync <sàn>`** ghi mọi lệnh khớp mà sàn báo còn sổ của bạn chưa có dòng, dùng khối lượng, giá và
-phí của chính sàn.
+phí của chính sàn. Một lệnh giới hạn chỉ khớp một phần trước khi bạn hủy được đồng bộ cho phần đã
+khớp.
 
 - Binance liệt kê giao dịch theo từng coin, nên lần đồng bộ của nó đọc các coin có trong sổ cùng các coin
   bạn đang nắm, và nói rõ điều đó.

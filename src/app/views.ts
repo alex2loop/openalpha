@@ -1,4 +1,4 @@
-import type { DeliveryHub } from '@/app/services'
+import type { DeliveryHub } from '@/app/delivery'
 import type {
   ChannelHealth,
   ConfigSummaryReader,

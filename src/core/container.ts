@@ -61,6 +61,8 @@ export interface DaemonTask {
   readonly name: string
   /** Resolves on shutdown; `onReady` fires once every subsystem, channels included, is up. */
   start(signal: AbortSignal, onReady?: DaemonReadyHandler): Promise<void>
+  /** True while a pass is in flight that a restart would cut short. Absent: the task never says. */
+  isWorking?(): boolean
 }
 
 interface Registration<K extends keyof Services> {

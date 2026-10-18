@@ -87,6 +87,10 @@ interface HeadlineReadInput {
    *  and the read abstains. */
   readonly chain?: ProviderChain
   readonly instrument: InstrumentRef
+  /** The company or coin's name, already capped to one line. */
+  readonly name?: string
+  /** The sector in the operator's language: the read has no locale of its own. */
+  readonly sectorLabel?: string
   readonly assetClass: AssetClass
   readonly own: readonly NewsItem[]
   readonly market: readonly NewsItem[]
@@ -216,7 +220,9 @@ function toQueries(input: HeadlineReadInput, items: readonly NewsItem[]): Decisi
     state: {
       instrument: {
         ticker: input.instrument.ticker,
+        ...(input.name === undefined ? {} : { name: input.name }),
         kind: ASSET_WORDS[input.assetClass],
+        ...(input.sectorLabel === undefined ? {} : { sector: input.sectorLabel }),
         market: input.instrument.market,
       },
       headlines: items.map(toHeadlineState),

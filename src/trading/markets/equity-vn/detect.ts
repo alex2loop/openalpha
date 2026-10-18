@@ -56,6 +56,7 @@ export async function detect(deps: MarketDeps, options: DetectOptions): Promise<
   return {
     kind: 'match',
     instrument: record.instrument,
+    name: record.name,
     ...(sector === undefined ? {} : { sector }),
     ...(record.indexTier === undefined ? {} : { indexTier: record.indexTier }),
     ...(record.kind === undefined ? {} : { instrumentKind: record.kind }),

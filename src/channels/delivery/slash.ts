@@ -374,7 +374,7 @@ function helpText(deps: InboundHandlerDeps, role: CommandRole, request: HelpRequ
   })
 }
 
-function roleOf(deps: InboundHandlerDeps, msg: InboundMessage): CommandRole {
+export function roleOf(deps: InboundHandlerDeps, msg: InboundMessage): CommandRole {
   const context = operatorContextOf(msg.isGroup, msg.chatId)
   return deps.gate.isOperatorUser(msg.userId, context) ? 'operator' : 'member'
 }

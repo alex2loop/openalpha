@@ -15,6 +15,9 @@ export interface InstrumentLimits {
   readonly lotSize: number
   readonly minimumSize: number
   readonly tickSize: number
+  /** The venue's value floor in quote currency for an order that executes as a market order; absent
+   *  where the venue sets none. */
+  readonly minimumNotional?: number
 }
 
 /** One asset the venue says it holds, named as the venue names it. Absent from a venue's list means

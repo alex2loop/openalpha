@@ -91,7 +91,7 @@ Chỉ số vĩ mô tổng hợp được chuẩn hóa lại khi công bố: chu�
 
 Khóa đến từ biến môi trường và không bao giờ nằm trong cấu hình. Tên biến, tiền tố `OPENALPHA_` và việc đổi tên bằng `[trading.sources]` nằm ở [Nguồn dữ liệu](nguon-du-lieu.md#định-tuyến).
 
-#### Báo cáo tài chính VN: các năm đã kiểm toán, rồi bốn quý gần nhất
+#### Báo cáo tài chính VN: các năm đã kiểm toán, rồi các quý gần nhất
 
 `vietcap-statements` trả báo cáo cả năm và các quý riêng lẻ của một mã cùng lúc. Những năm đã qua cửa sổ kiểm toán in mỗi năm một dòng, cũ nhất trước.
 
@@ -102,6 +102,8 @@ Khi các quý chạy vượt qua năm đã kiểm toán mới nhất, bốn quý
 - thiếu một khoản dòng tiền ở bất kỳ quý nào trong bốn quý thì khoản đó bị bỏ, chứ không đọc trên ít quý hơn.
 
 Một cửa sổ kết thúc trong năm đã kiểm toán mới nhất, hoặc ở quý IV của nó, thì chỉ lặp lại bản kiểm toán nên không in gì. Cuộc tranh luận được dặn phải cân dòng này thấp hơn một bản kiểm toán.
+
+Ngoài các năm đã kiểm toán, OpenAlpha còn cho xem 5 quý gần nhất, mỗi quý so với cùng kỳ năm trước, để thấy doanh nghiệp đang tốt lên hay xấu đi ngay lúc này. Số quý chưa kiểm toán nên chỉ dùng để tham khảo.
 
 Báo cáo được tải lại mỗi 30 ngày, và mỗi hai ngày khi quý mới nhất đã đến hạn mà chưa được lưu. Đó là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
 
@@ -237,12 +239,14 @@ Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lạ
 
 Con số nào còn lại được báo bằng `suggestion.figure-unmatched`, một caveat thông tin. Nó không bao giờ làm đổi kết luận. Một tổng hay một khoảng cách do nhà phân tích tự tính không khớp với số nào, và một khẳng định văn bản tự do không nêu chỉ số hay kỳ nào để đối chiếu, nên con số nào thuộc dòng nào vẫn do bên kiểm chứng quyết định.
 
-**Các tiêu đề được đọc trước khi có ai lập luận từ chúng.** Một yêu cầu tới nhóm mô hình `decisions` hỏi hai câu cho mỗi tiêu đề: nó nói về cái gì (mã này, ngành của mã, thị trường chung, hay không liên quan) và nó có báo xung đột, lệnh trừng phạt hay tình trạng khẩn cấp của nhà nước không.
+**Các tiêu đề được đọc trước khi có ai lập luận từ chúng.** Một yêu cầu tới nhóm mô hình `decisions` hỏi hai câu cho mỗi tiêu đề: nó nói về cái gì (mã này, ngành của mã, thị trường chung, hay không liên quan) và nó có báo xung đột, lệnh trừng phạt hay tình trạng khẩn cấp của nhà nước không. Lần đọc này được cho biết tên công ty và ngành của mã, nên một mã ba chữ cái ngắn không bị nhầm với doanh nghiệp khác.
 
 - Câu trả lời chắc chắn: tiêu đề chuyển giữa phần tin về chính mã và phần bối cảnh thị trường, hoặc bị bỏ.
 - Không chắc: cách nhóm của feed được giữ nguyên.
 - Từ hai câu chuyện rủi ro khác nhau trở lên thì nêu `market.risk-event-headlines`.
 - Không có lần đọc: lần chạy nói rõ bằng `suggestion.headlines-unread`, giữ cách nhóm của feed và dùng bảng từ khóa cho cảnh báo rủi ro.
+
+Khi nguồn tin, nguồn khuyến nghị của nhà phân tích hoặc lịch doanh nghiệp bị gián đoạn, phần phân tích được báo rõ và không bao giờ coi sự im lặng là bình yên.
 
 Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh. Các lần đọc đi tới chuỗi `[[model_tiers.decisions]]`; không cấu hình nhóm `decisions` thì chúng tắt.
 
@@ -358,6 +362,8 @@ Một đề xuất được định danh bằng thị trường, mã, phiên b�
 
 Mọi thứ đọc "lời gọi trước" đều đọc theo phạm vi: các cổng thời gian chờ và dùng lại, luận điểm đang đứng mà một lần chạy mới kiểm, và phép hiệu chỉnh định cỡ một lệnh mua. Phạm vi chỉ có kỳ hạn không được hòa vào của bạn. Kế hoạch thoát, kết luận mà `/rebalance` đọc và trail nâng cắt lỗ chỉ đọc `default`: một cuốn sổ, một kế hoạch. Mọi phạm vi đều được chấm điểm, và lịch sử giá được viết lại sẽ vô hiệu các lời gọi đang mở của mọi phạm vi trên mã đó.
 
+Phép hiệu chỉnh làm hạ độ tin cậy và định cỡ lệnh mua chỉ đọc những lời gọi đã hết cửa sổ theo dõi, nên các lệnh bị cắt lỗ sớm không làm bảng thành tích trông tệ hơn thực tế.
+
 Một mã nằm ngoài phạm vi của agent gọi thì bị từ chối trước mọi lời gọi mô hình, kèm tên phạm vi. Màn hình sàng lọc nó chạy được thu hẹp về các thị trường và ngành của nó trước khi xếp hạng, nên bảng và tiêu đề đếm ngành, không phải cả thị trường. `/suggest`, bản tin, `/suggest stops` và kế hoạch đã ghi luôn là phạm vi của chính bạn.
 
 Một lời gọi phạm vi đọc như một ý kiến thứ hai. Nó mở bằng dòng đó và mang mức giá, luận điểm, tranh luận và caveat, nhưng không có cỡ lệnh, số đơn vị, số tiền, ghi chú lệnh hay gợi ý `/record`, và cả JSON lẫn thẻ của nó đều không mang vị thế đang nắm. Hành động theo nó sẽ mở một vị thế mà không kế hoạch nào theo dõi.
@@ -386,6 +392,8 @@ Biên độ được đọc là biên lưu cho phiên đặt lệnh, nên biên 
 **Bảng thành tích cho thấy gì.** Nó mở bằng các lời gọi mà nó rút ra: đã có bao nhiêu đề xuất, bao nhiêu đã diễn ra, bao nhiêu còn mở, và bao nhiêu nằm trên thị trường không có chuỗi giá nên không bao giờ chấm được. Rồi nó báo tỷ lệ thắng, lợi suất trung bình và trung vị, phép so chuẩn, và **hiệu chỉnh theo dải mức tin cậy**. Một tỷ lệ không có mẫu số thì không nói lên gì. Nếu các lời gọi tin cậy cao không thắng nhiều hơn lời gọi tin cậy thấp, đó là con số đáng thấy cạnh con số tiêu đề.
 
 Mọi tỷ lệ đếm các lời gọi độc lập. Một lời gọi lặp lại lời gọi còn mở trên cùng mã và cùng chiều thì đi cùng một nhịp, nên được gộp vào lời gọi đầu. Bản tin tái phát hành một ý tưởng đang nắm mỗi phiên, và mỗi dòng nếu không sẽ bị đếm như một kết cục nữa. `/reflect` báo đã gộp bao nhiêu. Hồ sơ theo phạm vi và theo agent bên dưới gộp cùng cách, trên các lời gọi của riêng từng phạm vi (như `/reflect` đọc một phạm vi), nên một phạm vi chạm mức tối thiểu để báo cáo bằng các lời gọi độc lập và mẫu của nó khớp với điều `/reflect` nói về nó.
+
+Khoảng nằm cạnh mỗi tỷ lệ cho biết con số đó chắc đến đâu: ít lời gọi thì khoảng rộng, và hai tỷ lệ có khoảng chồng lên nhau thì thực ra chưa khác nhau.
 
 `/reflect` cũng nói bạn đã làm gì với các lời gọi đã diễn ra, đọc từ sổ lệnh lúc làm báo cáo và không bao giờ lưu. Một lời gọi được tính là đã làm theo khi có lần khớp cùng chiều trên cùng công cụ nằm giữa phiên đặt lệnh của nó và ngày nó được chấm xong. Nó in hai con số, mỗi con chỉ khi nhóm của nó đạt mức tối thiểu để báo cáo của bảng thành tích:
 
@@ -1049,6 +1057,8 @@ Một lần khớp đặt qua `/trade` hay `order_place` được ghi vào sổ 
 
 **`/record sync <sàn>`** là cách thứ ba để tạo các dòng đó, và nó đi cùng đường. Nó chỉ khác ở cách chọn: nó hỏi sàn đã khớp gì, rồi ghi những gì cuốn sổ chưa có dòng. Kiểm hợp lệ, phép tính và dòng xác nhận đều dùng chung.
 
+Một lệnh giới hạn chỉ khớp một phần trước khi bạn hủy giờ được đồng bộ cho phần đã khớp.
+
 - Một lần khớp được đối chiếu theo order id của chính sàn (`<sàn>:<orderId>`, cũng là khóa `/trade` ghi lần khớp của chính nó), và theo chính các con số so với một dòng bạn gõ tay. Một lần khớp được để yên khi nó khớp một dòng gõ tay mà chưa lần khớp nào nhận, theo sàn, công cụ, ngày, chiều và khối lượng. Mỗi dòng gõ tay hấp thụ tối đa một lần khớp.
 - Thị trường của mỗi lần khớp được xác định trong các thị trường mà sàn đó giữ, không thị trường nào khác. Khi không với tới được bộ nhận diện nào, danh sách niêm yết của chính sàn trả lời thay, đọc tối đa một lần mỗi lượt, và chỉ khi đúng một thị trường của sàn có thể nhận mã. Một mã mà thị trường nào cũng không niêm yết, hoặc có hai thị trường cùng nhận, thì bị bỏ qua thay vì đoán.
 - Các lần khớp được ghi từ cũ tới mới trên các công cụ. Một mã mà cuốn sổ chỉ nhận được một phần thì không nhận gì cả: nếu một lần sync hỏng hoặc bị hủy giữa chừng, nó rút lại những gì đã ghi của mọi mã chưa xong, nên không bao giờ để lại một vị thế ghi dở. Các dòng mà một lượt trước để lại là của bạn để xóa.
@@ -1241,6 +1251,12 @@ Vì nó không tiêu được tiền mặt, không mở được vị thế và 
 ```
 
 Giữa hai dòng đó, không gì bảo vệ vị thế. Hãy chạy chúng liền nhau.
+
+**Kế hoạch chốt một phần chỉ để lệnh cắt lỗ trên sàn.** Kế hoạch bán một phần vị thế ở mục tiêu rồi để phần còn lại chạy được chấm điểm đúng như vậy, nên trên sàn chỉ nên để lệnh cắt lỗ: đặt chốt lời đúng mục tiêu của kế hoạch sẽ bán hết vị thế ở mức đó. Khi cảnh báo mục tiêu đến, hãy tự bán phần đó và giữ mức cắt lỗ cho phần còn lại:
+
+- **OKX:** lệnh thoát đang chờ giữ số coin phía sau nó, nên phải thu nhỏ nó trước rồi mới bán. Chạy `/trade exit <mã> qty <khối lượng> sl <giá>` để sửa ngay tại chỗ về phần giữ lại, rồi bán phần chốt lời.
+- **Binance:** lệnh thoát không sửa được và số coin phía sau nó bị khóa, nên chạy `/trade cancel <mã>`, bán phần đó, rồi `/trade exit <mã> sl <giá>` cho phần còn lại. Giữa các bước không có gì bảo vệ vị thế, nên hãy chạy liền nhau.
+- **Sàn tự giao dịch (cổ phiếu VN, vàng VN):** bán phần đó trong ứng dụng của nơi bạn giao dịch.
 
 ### Mỗi sàn làm được gì
 

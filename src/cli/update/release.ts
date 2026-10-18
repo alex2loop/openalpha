@@ -1,15 +1,14 @@
-import { stat } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
-
 import { BRAND } from '@/core/brand'
 import { BROWSER_HEADERS } from '@/core/http-client'
 
-const PACKAGE_ROOT = resolve(import.meta.dir, '../../..')
+import { parseChangelog, type ReleaseNote } from './changelog'
+
 const LATEST_RELEASE_URL = `${BRAND.repository}/releases/latest`
 const RELEASE_TAG_RE = /\/releases\/tag\/v(\d+\.\d+\.\d+)$/
 const HTTP_ERROR_STATUS = 400
 const HTTP_NOT_FOUND = 404
 const CHECKSUMS_ASSET = 'SHA256SUMS'
+const CHANGELOG_ASSET = 'CHANGELOG.md'
 const WHITESPACE_RE = /\s+/
 // A compiled binary runs its bundle from Bun's virtual filesystem (`/$bunfs/` on POSIX, a `~BUN`
 // drive path on Windows); a source run has a real path.
@@ -20,7 +19,7 @@ const RELEASE_PLATFORM_NAMES: Readonly<Partial<Record<NodeJS.Platform, string>>>
 }
 const WINDOWS_EXECUTABLE_SUFFIX = '.exe'
 
-export type LatestRead =
+type LatestRead =
   | { readonly reached: true; readonly latest: string | null }
   | { readonly reached: false }
 
@@ -95,14 +94,6 @@ export async function readLatestRelease(signal: AbortSignal): Promise<LatestRead
   return { reached: true, latest: RELEASE_TAG_RE.exec(location)?.[1] ?? null }
 }
 
-/** A clone runs from git, so it updates with git and never nags about releases. */
-export async function isSourceCheckout(): Promise<boolean> {
-  return await stat(join(PACKAGE_ROOT, '.git')).then(
-    () => true,
-    () => false
-  )
-}
-
 export function buildReleaseUrl(version: string): string {
   return `${BRAND.repository}/releases/tag/${buildReleaseTag(version)}`
 }
@@ -136,4 +127,16 @@ export async function downloadReleaseBinary(
   await Bun.write(dest, binary)
 
   return (await sha256OfFile(dest)) === expected
+}
+
+/** The release's published CHANGELOG, parsed. Null when the release carries none (up to v1.0.5).
+ *  Network errors throw. */
+export async function readReleaseNotes(
+  version: string,
+  signal: AbortSignal
+): Promise<readonly ReleaseNote[] | null> {
+  const base = `${BRAND.repository}/releases/download/${buildReleaseTag(version)}`
+  const res = await fetchAsset(`${base}/${CHANGELOG_ASSET}`, signal)
+
+  return res === null ? null : parseChangelog(await res.text())
 }

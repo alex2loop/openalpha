@@ -1,4 +1,4 @@
-import type { DeliveryHub } from '@/app/services'
+import type { DeliveryHub } from '@/app/delivery'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import type { NoticeKind, TradingNotice, TradingNoticeSender } from '@/trading/api'

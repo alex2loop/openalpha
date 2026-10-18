@@ -1,4 +1,4 @@
-import type { DeliveryHub } from '@/app/services'
+import type { DeliveryHub } from '@/app/delivery'
 import type { ChannelDefinition } from '@/channels/api'
 import type { Command, Group } from '@/cli/api'
 import type { KeyValidator } from '@/commands/api'

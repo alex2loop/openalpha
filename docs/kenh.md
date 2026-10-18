@@ -62,7 +62,7 @@ operator_user_ids = [123456789]
 | `enabled` | tất cả | Đặt `false` để tắt một kênh đã cấu hình |
 | `token_env`, `token_file` | `telegram`, `zalo` | Token bot, đọc theo đúng thứ tự đó. `zalo_personal` không có token: nó dùng `profile` đã lưu |
 | `allowed_ids` | tất cả | Các chat hoặc người dùng được nhận. Trên `telegram`, khai khóa này sẽ tắt ghép nối trừ khi `pairing = true` |
-| `operator_user_ids` | tất cả | Ai được chạy các lệnh ghép nối, đáng kể nhất là trong chat nhóm |
+| `operator_user_ids` | tất cả | Ai được chạy các lệnh ghép nối, đáng kể nhất là trong chat nhóm, cùng `/trade` và `/upgrade`. Bỏ trống thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên hãy đặt khi bạn dùng chung bot |
 | `pairing` | `telegram` | Ép bật hoặc tắt ghép nối |
 | `dm_policy` | `zalo` | `pairing` (mặc định), `allowlist`, hoặc `disabled` |
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | Lời chấp nhận bắt buộc, và kênh dùng lần đăng nhập QR đã lưu nào |
@@ -121,6 +121,14 @@ Chi tiết ở [Lệnh](lenh.md). Ghép nối luôn chặn lại khi có sự c�
 - người lạ gửi tin liên tục không sinh ra vô hạn mã;
 - lưu trữ hỏng thì tin bị từ chối, chứ không cho qua;
 - mã đang chờ sẽ hết hạn.
+
+## Cập nhật từ chat
+
+Trong chat riêng với người vận hành, bot nhắc về bản mới nhiều nhất mỗi tuần một lần (mỗi ngày khi có bản quan trọng đang chờ), không bao giờ nhắc trong nhóm, và báo một lần là đã chạy bản mới.
+
+`/upgrade` cho biết có gì mới, còn `/upgrade confirm` (hoặc nút "Cập nhật ngay") sẽ cài bản mới. Bot im khoảng một phút để khởi động lại, rồi nhắn bạn là đã chạy bản mới. Nếu bản mới không khởi động được, bot tự quay về bản cũ và báo cho bạn.
+
+Cách này chỉ dùng được với daemon bật bằng `start --background`, và chỉ khi bot không còn câu trả lời, lượt nghiên cứu, phê duyệt, bản tin hay lượt nạp dữ liệu nào đang dở; nếu không, bot nhờ bạn thử lại sau. Chỉ người vận hành dùng được, như `/trade`: không đặt `operator_user_ids` thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên ai dùng chung bot hãy đặt khóa này.
 
 ## Một tin nhắn đi qua những bước nào
 

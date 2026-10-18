@@ -1,4 +1,5 @@
-import type { DeliveryHub, KernelDeps } from '@/app/services'
+import type { DeliveryHub } from '@/app/delivery'
+import type { KernelDeps } from '@/app/services'
 import type { BootExtensionOptions } from '@/app/types'
 import type { SessionModelSelection } from '@/commands/api'
 import type { App, Bind, ServiceProvider } from '@/core/container'
@@ -23,6 +24,8 @@ import {
   extendHooks,
   toAgentRegistry,
 } from '@/app/services'
+import { createSelfUpgrade } from '@/app/update/install'
+import { createOperatorNotices, createReleaseUpdates } from '@/app/update/releases'
 import { createHealthSummary, createSpendReader } from '@/app/views'
 import { channelsProvider } from '@/channels/api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
@@ -354,6 +357,9 @@ function createAppProvider(
       bind('modelControl', (app) => resolveModelSelection(app).control)
       bind('agentForRun', (app) => resolveModelSelection(app).agentForRun)
       bind('healthSummary', (app) => createHealthSummary(app, delivery))
+      bind('operatorNotices', createOperatorNotices)
+      bind('selfUpgrade', (app) => createSelfUpgrade(app, delivery))
+      bind('releaseUpdates', (app) => createReleaseUpdates(app, app.resolve('selfUpgrade')))
       bind('spendReader', (app) => createSpendReader(app))
       bind('toolServices', buildToolServices)
       bind('mcpSessionLifecycle', createMcpSessionLifecycle)

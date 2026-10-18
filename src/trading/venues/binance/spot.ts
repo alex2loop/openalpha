@@ -141,6 +141,10 @@ async function fetchLimits(
     lotSize: filters.lotSize,
     minimumSize: minimumSizeOf(filters, price),
     tickSize: filters.tickSize,
+    // The resting stop triggers as a market order, so a floor that skips market orders never binds it.
+    ...(filters.minimumNotional > 0 && filters.minimumNotionalAppliesToMarket
+      ? { minimumNotional: filters.minimumNotional }
+      : {}),
   }
 }
 

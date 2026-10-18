@@ -17,8 +17,8 @@ export interface ConfigProbe {
   /** Only a model key is unset: the command runs, and a model call says which variable to set. */
   readonly configKeyMissing: boolean
   readonly explicitConfig: boolean
-  /** The checks boot runs past core's resolve; throws on a tree the daemon would refuse. */
-  readonly assertResolved: (config: ResolvedConfig) => void
+  /** Every refusal boot raises past core's resolve; empty for a tree the daemon would accept. */
+  readonly bootRefusals: (config: ResolvedConfig) => readonly unknown[]
   /** Composes the app the way a command boots it, then disposes it, starting nothing; throws what
    *  that composition refuses (a home region no venue trades, a `default_for` on the wrong venue). */
   readonly assertComposes: () => Promise<void>

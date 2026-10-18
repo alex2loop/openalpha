@@ -1,5 +1,5 @@
-import type { DeliveryHub } from '@/app/services'
-import type { StartChannelsDeps } from '@/channels/api'
+import type { DeliveryHub } from '@/app/delivery'
+import type { StartChannelsDeps, StartChannelsResult } from '@/channels/api'
 import type { App, DaemonReadyHandler, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
@@ -7,7 +7,7 @@ import { retentionCutoffAt, runWorkspaceTmpRetention, startRetention } from '@/a
 import { ApiTokenError } from '@/app/server/http/auth'
 import { toAgentRegistry } from '@/app/services'
 import { startSocialUpkeep } from '@/app/social-upkeep'
-import { startUpdateWatch } from '@/app/update-watch'
+import { startUpdateWatch } from '@/app/update/watch'
 import { startChannels } from '@/channels/api'
 import { AppError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -86,8 +86,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
           teardown,
         })
 
-        logger.info('daemon.started')
-        onReady?.(warnings)
+        markReady({ app, logger, warnings, onReady })
 
         await abortWaiter.promise
 
@@ -123,6 +122,7 @@ async function startDaemonSubsystems(
   const { disposers } = teardown
 
   const channels = await startChannels(channelDeps(app, startupSignal))
+  const tradingTasks = app.resolve('tradingServices').daemonTasks
   disposers.push(() => channels.stop())
   disposers.push(
     startScheduledWorkflows(
@@ -136,19 +136,7 @@ async function startDaemonSubsystems(
     )
   )
 
-  // Only now does a proactive notice have anywhere to go. Detached first on the way down, so
-  // nothing is queued against an adapter that is already closing.
-  if (channels.notifier !== undefined) {
-    disposers.unshift(
-      delivery.attach({
-        notifier: channels.notifier,
-        snapshots: channels.snapshots,
-        ...(channels.defaultRecipient === undefined
-          ? {}
-          : { recipient: channels.defaultRecipient }),
-      })
-    )
-  }
+  attachDelivery({ delivery, channels, disposers })
 
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has
   // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.
@@ -163,12 +151,12 @@ async function startDaemonSubsystems(
   // After delivery is attached: an alert or brief that fires on the first tick must have a channel
   // to reach. Each task goes through the same tracker as the scheduler's, but a trading loop
   // quarantines its own failure first, so a bad tick stops that loop and not the daemon.
-  for (const task of app.resolve('tradingServices').daemonTasks) {
+  for (const task of tradingTasks) {
     trackDaemonTask({ tasks, state, startup, name: task.name, task: task.start(startupSignal) })
   }
 
   disposers.push(startRetention(app, logger))
-  disposers.push(startUpdateWatch(app, logger))
+  disposers.push(startUpdateWatch(app, { logger, upgrade: app.resolve('selfUpgrade') }))
   disposers.push(startSocialUpkeep(app, logger))
 
   attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
@@ -247,6 +235,29 @@ interface TrackDaemonTaskOptions {
   readonly task: Promise<void>
 }
 
+/** Only now does a proactive notice have anywhere to go. Detached first on the way down, so nothing
+ *  is queued against an adapter that is already closing. */
+function attachDelivery(options: {
+  readonly delivery: DeliveryHub
+  readonly channels: StartChannelsResult
+  readonly disposers: Disposer[]
+}): void {
+  const { delivery, channels } = options
+
+  if (channels.notifier === undefined) {
+    return
+  }
+
+  options.disposers.unshift(
+    delivery.attach({
+      notifier: channels.notifier,
+      snapshots: channels.snapshots,
+      isWorking: channels.isWorking,
+      ...(channels.defaultRecipient === undefined ? {} : { recipient: channels.defaultRecipient }),
+    })
+  )
+}
+
 function trackDaemonTask(options: TrackDaemonTaskOptions): void {
   const { tasks, state, startup, name, task } = options
   tasks.push(
@@ -274,6 +285,7 @@ function channelDeps(app: App, signal: AbortSignal): StartChannelsDeps {
     bindings: app.resolve('chatBindingStore'),
     dispatcher: app.resolve('slashDispatcher'),
     agents: toAgentRegistry(app.resolve('agents')),
+    operatorNotices: app.resolve('operatorNotices'),
     bus: app.resolve('bus'),
     logger: app.resolve('logger'),
     // Injected once here so no adapter reaches for process.env on its own.
@@ -359,4 +371,26 @@ async function runCleanup(
   } catch (err: unknown) {
     logger.warn(event, { err: formatErrForLog(err) })
   }
+}
+
+function markReady(options: {
+  readonly app: App
+  readonly logger: Logger
+  readonly warnings: readonly DegradedItem[]
+  readonly onReady: DaemonReadyHandler | undefined
+}): void {
+  options.logger.info('daemon.started')
+  options.onReady?.(options.warnings)
+  reportUpgradeOutcome(options.app, options.logger)
+}
+
+/** Only once the daemon is ready: a release that dies late in its start must not tell the chat it
+ *  arrived, and the upgrade child rolls it back before anyone is told otherwise. */
+function reportUpgradeOutcome(app: App, logger: Logger): void {
+  app
+    .resolve('selfUpgrade')
+    .announceOutcome()
+    .catch((err: unknown) => {
+      logger.warn('update.announce_crashed', { err: formatErrForLog(err) })
+    })
 }

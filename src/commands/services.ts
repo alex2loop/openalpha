@@ -16,6 +16,7 @@ import { createModelCommand, type ModelCommandDeps, type ModelControl } from '@/
 import { createResearchCommand } from '@/commands/research'
 import { createScheduleCommand } from '@/commands/schedule'
 import { createNewSessionCommand, type SessionReset } from '@/commands/session'
+import { createUpgradeCommand, type ReleaseUpdates } from '@/commands/upgrade'
 
 declare module '@/core/container' {
   interface Services {
@@ -24,6 +25,7 @@ declare module '@/core/container' {
     commandCatalog: CommandCatalog
     modelControl: ModelControl
     healthSummary: HealthSummaryReader
+    releaseUpdates: ReleaseUpdates
     spendReader: SpendReader
   }
 }
@@ -34,6 +36,7 @@ export interface CoreCommandDeps {
   readonly memory: Memory
   readonly spend: SpendCommandDeps
   readonly healthSummary: HealthSummaryReader
+  readonly releases: ReleaseUpdates
   readonly modelControl: ModelControl
   readonly schedulerCommands: Parameters<typeof createScheduleCommand>[0]
   readonly scopeFor: (ctx: SlashContext) => Promise<MemoryScope>
@@ -62,6 +65,7 @@ export function createCoreCommands(deps: CoreCommandDeps): readonly SlashCommand
     createModelCommand(modelDeps),
     createResearchCommand(),
     createHealthCommand(deps.healthSummary),
+    createUpgradeCommand(deps.releases),
     createMemoryCommand(deps.memory, deps.scopeFor, deps.logger),
     createCostCommand(deps.spend),
     createScheduleCommand(deps.schedulerCommands),

@@ -71,6 +71,13 @@ const EVIDENCE_INSTRUCTIONS = [
   'it, and never lower conviction for it.',
 ].join(' ')
 
+const TRADER_TRADEABILITY_INSTRUCTIONS = [
+  'You cannot see the order book, spreads, lots, ticks, or price-band room, and must not mention',
+  'them: tradeability is a deterministic stage that runs after you and again before the operator',
+  'acts. Playbook lines about lots, ticks, bands, settlement, foreign room, or rounding belong to',
+  'the order stage after you; do not apply them here.',
+].join('\n')
+
 /** What every prompt needs: the run being argued about and the evidence it must argue from. */
 interface PromptContext {
   readonly input: DebateInput
@@ -211,9 +218,8 @@ export function traderPrompt(
       'entryTiming is never empty: for wait, say what you are waiting for; for avoid, say what would have to change.',
       'You do not choose a size: sizingIntent is an intent, not a quantity. On a wait it is the size',
       'you would take once the conditions are met; none belongs with avoid.',
-      'You cannot see the order book, spreads, lots, ticks, or price-band room, and must not mention',
-      'them: tradeability is a deterministic stage that runs after you and again before the operator',
-      'acts. A condition that says nothing needs to happen is not a condition; leave it out.',
+      TRADER_TRADEABILITY_INSTRUCTIONS,
+      'A condition that says nothing needs to happen is not a condition; leave it out.',
       'A condition that turns on a price sets "above" or "below" to that level, written as the',
       'evidence quotes it, and leaves both null otherwise. "above" is checked against the current',
       'price and "below" against the entry, and one already met is dropped, so compare the numbers',
@@ -252,6 +258,8 @@ export function riskPrompt(
       'You cannot see venue microstructure, portfolio weights, position limits, or correlation.',
       'Sizing and portfolio fit are computed deterministically after you, so never block for their',
       'absence, and reach your own verdict rather than restating the reads below.',
+      'Playbook lines about caps, sector limits, correlation, or price bands belong to the sizing',
+      'and order stages after you; do not apply them here.',
       'Timing is not a risk finding either: an idea whose entry has not triggered yet is still',
       'accepted, at whatever conviction the evidence supports.',
       `Every verdict carries notes, at most ${MAXIMUM_CLAIMS}.`,

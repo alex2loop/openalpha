@@ -13,6 +13,10 @@ const FILTER = z.object({
   stepSize: DECIMAL.optional(),
   tickSize: DECIMAL.optional(),
   minNotional: DECIMAL.optional(),
+  // The two filters name the same switch differently: NOTIONAL `applyMinToMarket`, MIN_NOTIONAL
+  // `applyToMarket`.
+  applyMinToMarket: z.boolean().optional(),
+  applyToMarket: z.boolean().optional(),
 })
 const SYMBOL_INFO = z.object({
   symbol: z.string(),
@@ -34,6 +38,7 @@ interface SymbolFilters {
   readonly minimumQuantity: number
   readonly tickSize: number
   readonly minimumNotional: number
+  readonly minimumNotionalAppliesToMarket: boolean
 }
 
 export function parseSymbolInfo(raw: unknown): SymbolInfo | undefined {
@@ -60,6 +65,7 @@ export function toSymbolFilters(info: SymbolInfo): SymbolFilters | undefined {
     minimumQuantity: lot?.minQty ?? 0,
     tickSize,
     minimumNotional: notional?.minNotional ?? 0,
+    minimumNotionalAppliesToMarket: notional?.applyMinToMarket ?? notional?.applyToMarket ?? false,
   }
 }
 

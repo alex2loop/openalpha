@@ -56,6 +56,12 @@ export function registrableDomain(url: string): string | undefined {
   }
 }
 
+/** The outlet a headline is credited to: the publisher behind an aggregator link when the feed
+ *  names one, otherwise the host of the link itself. */
+export function publisherOf(item: NewsItem): string | undefined {
+  return registrableDomain(item.publisherUrl ?? item.url)
+}
+
 interface HeadlineRankOptions {
   readonly now: number
   readonly limit: number
@@ -78,7 +84,7 @@ export function groupStories(items: readonly NewsItem[]): readonly StoryGroup[] 
       continue
     }
 
-    const domain = registrableDomain(item.url)
+    const domain = publisherOf(item)
     const group = groups.get(key)
 
     if (group === undefined) {
@@ -135,7 +141,7 @@ function corroborationWeight(group: StoryGroup, now: number): number {
  *  Applied again at the render limit, where a wider ranking window can still hand one publisher
  *  every row a section shows. */
 export function withPublisherQuota(items: readonly NewsItem[], limit: number): readonly NewsItem[] {
-  const attributed = items.map((item) => ({ item, publisher: registrableDomain(item.url) }))
+  const attributed = items.map((item) => ({ item, publisher: publisherOf(item) }))
   const publishers = new Set(attributed.map((entry) => entry.publisher))
   const cap = Math.ceil(limit / Math.max(publishers.size, 1))
   const taken = new Map<string | undefined, number>()

@@ -17,7 +17,7 @@ export const versionCommand: Command = createCommand({
 async function printVersion(app: CliApp): Promise<number> {
   app.out(`${style.heading(BRAND.display)} ${style.muted(`v${BRAND.version}`)}`)
 
-  if (hasConfigError(app) || !(await isUpdateCheckEnabled(app.config))) {
+  if (hasConfigError(app) || !isUpdateCheckEnabled(app.config)) {
     return 0
   }
 

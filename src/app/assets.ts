@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 
+import type { DeliveryHub } from '@/app/delivery'
 import type { RuntimeAssets } from '@/app/providers'
-import type { DeliveryHub } from '@/app/services'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { ToolDefinition } from '@/core/tool'

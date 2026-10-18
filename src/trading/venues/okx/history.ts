@@ -5,10 +5,12 @@ import type {
 } from '@/trading/kernel/venue/spot-adapter'
 import type { OkxRow, OkxTransportDeps } from '@/trading/venues/okx/transport'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { toReceipt } from '@/trading/venues/okx/receipt'
+import { optionalNumber, toReceipt } from '@/trading/venues/okx/receipt'
 import { NOT_FOUND_CODES, privateRequest, SPOT_INST_TYPE } from '@/trading/venues/okx/transport'
 
 const FILLED_STATE = 'filled'
+// A limit order cancelled after a part fill still moved coins; one cancelled with no fill never did.
+const CANCELED_STATES: ReadonlySet<string> = new Set(['canceled', 'mmp_canceled'])
 const ORDERS_HISTORY_PATH = '/api/v5/trade/orders-history'
 const ORDERS_ARCHIVE_PATH = '/api/v5/trade/orders-history-archive'
 // What the recent orders route retains; the archive holds three months behind it.
@@ -36,7 +38,6 @@ export async function fetchFilledOrders(
       query: {
         instType: SPOT_INST_TYPE,
         instId: lookup.symbol,
-        state: FILLED_STATE,
         begin: String(lookup.since),
         limit: String(HISTORY_PAGE_SIZE),
       },
@@ -46,7 +47,7 @@ export async function fetchFilledOrders(
 
     receipts.push(
       ...rows
-        .filter((row) => row.side === lookup.side)
+        .filter((row) => isSettledFill(row) && row.side === lookup.side)
         .flatMap((row) => toReceipt(row, lookup.symbol) ?? [])
     )
   }
@@ -88,7 +89,6 @@ async function walkRoute(
       path,
       query: {
         instType: SPOT_INST_TYPE,
-        state: FILLED_STATE,
         limit: String(HISTORY_PAGE_SIZE),
         ...(after === undefined ? {} : { after }),
       },
@@ -126,20 +126,32 @@ async function walkRoute(
  *  attribute a fill to, and one the venue dated before the window is a page-boundary straggler the
  *  cursor reached without the walk being done. */
 function receiptsWithin(rows: readonly OkxRow[], since: number): readonly OrderReceipt[] {
-  return rows.flatMap((row) => {
+  return rows.filter(isSettledFill).flatMap((row) => {
     const receipt = row.instId === undefined ? undefined : toReceipt(row, row.instId)
 
     return receipt !== undefined && (receipt.filledAt ?? 0) >= since ? [receipt] : []
   })
 }
 
-/** Whether every dated row on the page fell before the window. An undated row settles nothing, so it
- *  never ends the walk on its own. */
+/** Filled, or cancelled after filling in part. The state is read here rather than sent as a query
+ *  filter, which would drop the cancelled ones. */
+function isSettledFill(row: OkxRow): boolean {
+  if (row.state === FILLED_STATE) {
+    return true
+  }
+
+  return CANCELED_STATES.has(row.state ?? '') && optionalNumber(row.accFillSz, 0) > 0
+}
+
+/** Whether every dated row on the page fell before the window. A row is dated by its fill, or by its
+ *  creation where it never filled: creation precedes any fill, so a row created before the window is
+ *  behind it. An undated row settles nothing, so it never ends the walk on its own. */
 function isBehindWindow(rows: readonly OkxRow[], since: number): boolean {
   const stamps = rows.flatMap((row) => {
-    const filledAt = Number(row.fillTime)
+    const filledAt = optionalNumber(row.fillTime, 0)
+    const at = filledAt > 0 ? filledAt : optionalNumber(row.cTime, 0)
 
-    return Number.isFinite(filledAt) && filledAt > 0 ? [filledAt] : []
+    return at > 0 ? [at] : []
   })
 
   return stamps.length > 0 && stamps.every((stamp) => stamp < since)

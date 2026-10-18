@@ -41,6 +41,7 @@ type OrderErrorCode =
   | 'order.venue_unavailable'
   | 'order.venue_unreachable'
   | 'order.below_minimum'
+  | 'order.exit_below_minimum'
   | 'order.sell_unsettled'
   | 'order.sell_guarded'
   | 'order.approval_bypassed'

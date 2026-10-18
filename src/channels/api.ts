@@ -22,6 +22,7 @@ export type {
   InboundMessage,
   InboxPayload,
   InboxStatus,
+  OperatorNotices,
   OutboundButton,
   OutboundTarget,
   ReactionEmoji,

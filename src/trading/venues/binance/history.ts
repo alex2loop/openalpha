@@ -18,7 +18,14 @@ import {
 } from '@/trading/venues/binance/transport'
 
 const ALL_ORDERS_PATH = '/api/v3/allOrders'
-const FILLED_STATUS = 'FILLED'
+// A limit order cancelled or expired after a part fill still moved coins, so it is kept when it
+// filled anything; one that filled nothing never reaches a receipt.
+const SETTLED_STATUSES: ReadonlySet<string> = new Set([
+  'FILLED',
+  'CANCELED',
+  'EXPIRED',
+  'EXPIRED_IN_MATCH',
+])
 // The most orders one page returns. Sent explicitly: the endpoint's own default is half of it.
 const PAGE_SIZE = 1000
 // The widest span Binance lets one time-bounded page cover.
@@ -99,7 +106,10 @@ async function filledOrdersOf(
       : []
 
   return [...older, ...newest].filter(
-    (order) => order.status === FILLED_STATUS && order.updateTime >= request.since
+    (order) =>
+      SETTLED_STATUSES.has(order.status) &&
+      order.executedQty > 0 &&
+      order.updateTime >= request.since
   )
 }
 

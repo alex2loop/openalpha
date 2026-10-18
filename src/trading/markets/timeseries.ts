@@ -4,6 +4,8 @@
 
 import type { Candle } from '@/trading/kernel/market/market-data'
 
+const WIN_RATE_CONFIDENCE_Z = 1.96
+
 interface AlignedCloses {
   readonly a: readonly number[]
   readonly b: readonly number[]
@@ -65,6 +67,28 @@ export function nSessionReturn(closes: readonly number[], sessions: number): num
   const end = closes[closes.length - 1]
 
   return start === undefined || end === undefined || start <= 0 ? undefined : end / start - 1
+}
+
+interface RateInterval {
+  readonly low: number
+  readonly high: number
+}
+
+/** The Wilson score interval for a share of wins at 95%: unlike the plain normal one it stays inside
+ *  [0, 1] and does not collapse to a point at zero or all wins. Absent without a population. */
+export function wilsonInterval(wins: number, total: number): RateInterval | undefined {
+  if (!(total > 0)) {
+    return undefined
+  }
+
+  const z2 = WIN_RATE_CONFIDENCE_Z ** 2
+  const rate = wins / total
+  const scale = 1 + z2 / total
+  const centre = (rate + z2 / (2 * total)) / scale
+  const margin =
+    (WIN_RATE_CONFIDENCE_Z * Math.sqrt((rate * (1 - rate)) / total + z2 / (4 * total ** 2))) / scale
+
+  return { low: Math.max(0, centre - margin), high: Math.min(1, centre + margin) }
 }
 
 /** The middle of a population, averaging the two middle readings on an even count so the answer

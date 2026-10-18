@@ -91,7 +91,7 @@ This holds for what you see, not only what is stored. Shares printed under their
 
 Credentials come from environment variables and never appear in config. Variable names, the `OPENALPHA_` prefix and `[trading.sources]` renaming are in [Data sources](data-sources.md#routing).
 
-#### VN financial statements: audited years, then the last four quarters
+#### VN financial statements: audited years, then the newest quarters
 
 `vietcap-statements` returns a name's full-year reports and discrete quarters together. Years that have cleared their audit window print one line each, oldest first.
 
@@ -102,6 +102,8 @@ When quarters run past the newest audited year, the four newest quarters publish
 - a flow missing from any of the four is left out, never read off fewer quarters.
 
 A window that ends inside the newest audited year, or on its fourth quarter, restates the audit and prints nothing. The debate is told to weigh this line below an audit.
+
+Beyond the audited years, OpenAlpha also shows the 5 newest quarters, each against the same quarter a year earlier, so you can see whether the business is improving or fading right now. Quarters are unaudited, so they are a reading, not a final figure.
 
 Accounts are refetched every 30 days, and every two days while the latest quarter is due and not stored yet. That is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
 
@@ -237,12 +239,14 @@ A row the book holds is also exempt from the depth ratchet on reuse. Otherwise t
 
 Any figure left over raises `suggestion.figure-unmatched` as an information caveat. It never changes a verdict. A sum or gap the analyst worked out matches nothing, and a free-text claim names no metric or period to check against, so which figure belongs to which line stays the verifier's call.
 
-**Headlines are read before anyone argues from them.** One request to the `decisions` model tier asks two questions per headline: what it is about (this instrument, its sector, the market, or nothing here) and whether it reports a conflict, sanctions or a state emergency.
+**Headlines are read before anyone argues from them.** One request to the `decisions` model tier asks two questions per headline: what it is about (this instrument, its sector, the market, or nothing here) and whether it reports a conflict, sanctions or a state emergency. The read is told the company's name and sector, so a short ticker is not mistaken for another business.
 
 - Confident answer: the headline moves between the instrument's own coverage and the market background, or is dropped.
 - Unsure: the feed's grouping stays.
 - Two or more distinct risk stories raise `market.risk-event-headlines`.
 - Read unavailable: the run says `suggestion.headlines-unread`, keeps the feed grouping and uses a keyword table for the risk warning.
+
+When a news, coverage or calendar feed is down, the analysis is told so and never reads the silence as calm.
 
 None of this changes confidence, levels or size. The reads go to the `[[model_tiers.decisions]]` chain; with no `decisions` tier configured, they are off.
 
@@ -358,6 +362,8 @@ A suggestion is identified by market, ticker, strategy version, **focus key** an
 
 Everything that reads "the previous call" reads it per focus: the cooldown and reuse gates, the standing thesis a new run checks, and the calibration that sizes a buy. A horizon-only focus must not blend into yours. The exit plan, the verdict `/rebalance` reads and the trail that raises stops read only `default`: one book, one plan. Every focus is scored, and a restated price history voids every focus's open calls on the name.
 
+The calibration that tempers conviction and sizes a buy reads only calls whose window has finished, so quick stop-outs cannot make the record look worse than it is.
+
 A name outside the calling agent's focus is refused before any model call, naming the focus. The screen it runs is narrowed to its markets and sectors before ranking, so its board and header count the sector, not the whole market. `/suggest`, the brief, `/suggest stops` and recorded plans are always your own focus.
 
 A focus call reads as a second opinion. It opens with that line and carries levels, thesis, debate and caveats, but no size, units, amount, order notes or `/record` hint, and neither its JSON nor its card carries the holding. Acting on one would open a position no plan watches.
@@ -386,6 +392,8 @@ The band read is the one stored for the order session, so a new listing's wider 
 **What the track record shows.** It opens with the calls it is drawn from: how many suggestions were made, how many played out, how many are open, and how many sit on a market with no price series and can never be scored. Then it reports win rate, mean and median return, the benchmark comparison and **calibration by confidence band**. A rate without its denominator says nothing. If high-confidence calls win no more often than low-confidence ones, that is the number worth seeing next to the headline.
 
 Every rate counts independent calls. A call repeating one still open on the same name and side rides the same move, so it is folded into the first. The brief re-issues a held idea every session, and each row would otherwise count as another outcome. `/reflect` says how many it folded. The per-focus and per-agent records below fold the same way, each over its own focus's calls (as `/reflect` reads one focus), so a focus reaches the reporting minimum on independent calls and its sample matches what `/reflect` says for it.
+
+The range next to each rate shows how sure that number is: with few calls it is wide, and two rates whose ranges overlap are not really different.
 
 `/reflect` also says what you did with the calls that played out, read from the ledger when the report is made and never stored. A call counts as taken when a fill on its side of the same instrument landed between its order session and the day it was scored out. It prints two figures, each only once its group reaches the track record's reporting minimum:
 
@@ -888,9 +896,12 @@ you sold.
   book for two sessions.
 - **Book the loss as `loss`**, not `withdrawal` or `fee`. A withdrawal reads as money you took home and
   flatters your return; a fee reads as brokerage. `loss` takes the cash out but leaves what you deposited
-  alone, so `/portfolio` shows it as "Realised P/L on closed trades: -15,000,000 VND".
+  alone, so `/portfolio` shows it as "Realised P/L on closed trades: ▼ -15,000,000 VND".
 - **The deposit has to come first.** Every write checks the whole book, and a buy or loss with no cash
   behind it is refused.
+- **Each name gets an exit plan straight away**, measured from the cost you typed. A name trading well
+  below that cost may already sit under its stop, and `/portfolio` then says it is "through its stop".
+  That is a prompt to review the name, not a booking error.
 
 Then open `/portfolio` and compare its cash with your broker's balance. Here: 200 million in, less 95
 million FPT, 52 million HPG and the 15 million loss, leaves 38 million. A gap usually means the loss or
@@ -1072,6 +1083,8 @@ Terminal chat and channels share one slash-command registry, so a transaction sy
 A fill placed through `/trade` or `order_place` is written to the ledger the same way a manual `/record` is. The book stays one calculation over one set of rows, and a position opened at the exchange looks the same as one typed in by hand. A sell written by a triggered exit names which leg filled (`stopped out` / `target hit`); a sale you make yourself names none.
 
 **`/record sync <venue>`** is the third way those rows are created, and it takes the same path. It differs only in how it selects: it asks the venue what it filled, then books what the book has no row for. Validation, calculation and confirmation are shared.
+
+A limit order that filled only partly before you cancelled it is now synced for the part that filled.
 
 - A fill is matched by the venue's own order id (`<venue>:<orderId>`, the key `/trade` books its own fills under too), and by the figures themselves against a row you typed by hand. A fill is left alone when it matches a hand-typed row that no fill has claimed yet, on venue, instrument, day, side and quantity. Each typed row absorbs at most one fill.
 - Each fill's market is resolved against the markets that venue holds, and no others. When no detector can be reached, the venue's own listing answers instead, read at most once per run, and only when exactly one of the venue's markets could claim the ticker. A ticker no market lists, or one that two claim, is skipped rather than guessed.
@@ -1265,6 +1278,12 @@ This is also the answer to the divergence warning: when the reconcile tick logs 
 ```
 
 Nothing protects the position between those two lines. Run them back to back.
+
+**A plan that trails rests only its stop.** A plan that sells part of the position at its target and lets the rest run is scored that way, so only the stop should rest on the exchange: a take-profit set to the plan's target would sell the whole position there. When the target alert arrives, sell that part yourself and keep a stop on the rest:
+
+- **OKX:** the resting exit holds the coins behind it, so a sale comes after it shrinks. First `/trade exit <ticker> qty <quantity> sl <price>` amends it in place to the part you keep, then sell the take-profit part.
+- **Binance:** an exit cannot be amended and the coins behind it are locked, so run `/trade cancel <ticker>`, sell the part, then `/trade exit <ticker> sl <price>` on the rest. Nothing protects the position between the steps, so run them back to back.
+- **A hand-traded venue (VN shares, VN gold):** sell the part in the app of the place you trade with.
 
 ### What each venue can do
 

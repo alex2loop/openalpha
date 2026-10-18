@@ -3,6 +3,58 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+Each released section opens with an English summary paragraph followed by one `> ` line in
+Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
+carries ` [IMPORTANT]` after its date.
+
+## [1.0.6] - 2026-10-18
+
+Updates are easy to see and install from chat, the debate reads its evidence more carefully, and
+Windows on ARM gets a native build. No database change.
+> Bản mới dễ thấy và cài được ngay trong chat, phần tranh luận đọc dữ liệu kỹ hơn, và Windows chip ARM có bản riêng.
+
+### Updates
+
+- The notice says what changed, how many releases behind and whether one is important; checked
+  twice a day.
+- `/upgrade` shows what is new; `/upgrade confirm` installs it, restarts the bot and reports back.
+- `upgrade` and the install scripts restart a background daemon, roll back a release that will not
+  start, and `upgrade --rollback` goes back. A daemon started by v1.0.5 or earlier needs one
+  restart by hand. Outside Windows, a daemon in a terminal or under a service keeps running until
+  you restart it.
+- The operator is reminded in a private chat: weekly, daily for an important release.
+- `[update] auto = true` installs patch releases between 00:00 and 06:00, never mid-session.
+- A native build for Windows on ARM.
+
+### The debate
+
+- VN accounts show the five newest quarters; a failed news, coverage or calendar feed is said.
+- The company and sector are named, a price says when it was read, and the roles share one set of
+  rules.
+- Gold headlines credit the real newspaper behind Google News.
+- Win rates count only calls whose window has passed, and `/reflect` shows how certain each is.
+- The last closed call on a name gives the day it was made and the day it closed, and the debate
+  writes dates the way you do.
+
+### Your book
+
+- A buy too small to rest its stop-loss is refused.
+- Binance and OKX sync picks up a limit order that filled in part before it was cancelled.
+- A partial-profit plan rests only the stop; the target alert walks you through the sale.
+
+### Commands and setup
+
+- `doctor` warns about switches that act without asking and no longer flags the database after a
+  failed start; `config validate` reports an unknown section with the `[trading]` mistakes.
+- `config.minimal.en.toml`, an English starter config.
+- Leaving the chat closes its session; `history` deletes an idle open session.
+- `/overview` prints the gold macro table once; `plugin uninstall` refuses a plugin not installed.
+
+### For contributors
+
+- Release binaries are start-tested on their own platforms before publishing (`dry_run` rehearses
+  it); dependencies are audited weekly.
+
 ## [1.0.5] - 2026-10-18
 
 A friendlier first run: OpenAlpha starts without any key, says what each missing key holds back, and
@@ -143,6 +195,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.6
 [1.0.5]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.5
 [1.0.4]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.4
 [1.0.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.3

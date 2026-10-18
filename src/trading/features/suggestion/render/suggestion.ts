@@ -39,6 +39,7 @@ import {
   renderStampLine,
   renderUnsupportedReason,
 } from '@/trading/features/suggestion/render/verdict'
+import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { framedDirectionOf, isInconclusive } from '@/trading/features/suggestion/types'
 import { isBookCall } from '@/trading/kernel/operator/focus'
 import { renderCaveatLines } from '@/trading/render/caveat'
@@ -292,6 +293,7 @@ export function renderCalibrationLine(
     `${INDENT[1]}${t(locale, 'trading.render.suggestion.calibration', {
       conviction: renderDeclaredValue(locale, `trading.conviction.${suggestion.conviction}`),
       rate: formatFraction(locale, calibration.winRate),
+      range: renderRateRange(locale, calibration, formatFraction),
       count: formatCount(locale, calibration.resolvedCount),
     })}`,
   ]

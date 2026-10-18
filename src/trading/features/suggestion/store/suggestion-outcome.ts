@@ -39,9 +39,13 @@ export const LATEST_OF_SAME_CALL_SQL =
 
 /** A restated close is resolved with no return: it has no verdict to count. */
 const SCORED_SQL = 'resolved_at IS NOT NULL AND return_pct IS NOT NULL'
+// A scoring pass resolves a batch at one instant: the later exit, then the newer call, breaks ties.
+const RESOLVED_ORDER_SQL = 'resolved_at DESC, exit_day DESC, id DESC'
 
 export interface ListResolvedOptions {
   readonly resolvedAfter?: number
+  /** Only calls made on or before this day: the ones whose outcome window has elapsed. */
+  readonly calledOnOrBefore?: TradingDay
   readonly strategyVersion?: string
   /** Only these focuses' calls. Omitted, every focus is read. */
   readonly focusKeys?: readonly FocusKey[]
@@ -228,6 +232,27 @@ export async function resolveOutcome(
   })
 }
 
+/** The optional day bounds, pushed into the query so the limit counts only rows that pass them. */
+function dayClauses(
+  options: ListResolvedOptions,
+  params: unknown[],
+  p: (index: number) => string
+): string {
+  let clauses = ''
+
+  if (options.resolvedAfter !== undefined) {
+    params.push(options.resolvedAfter)
+    clauses += ` AND resolved_at > ${p(params.length)}`
+  }
+
+  if (options.calledOnOrBefore !== undefined) {
+    params.push(options.calledOnOrBefore)
+    clauses += ` AND day <= ${p(params.length)}`
+  }
+
+  return clauses
+}
+
 export async function listResolved(
   deps: SuggestionStoreDeps,
   options: ListResolvedOptions
@@ -236,12 +261,7 @@ export async function listResolved(
 
   const p = deps.dialect.param
   const params: unknown[] = []
-  let where = SCORED_SQL
-
-  if (options.resolvedAfter !== undefined) {
-    params.push(options.resolvedAfter)
-    where += ` AND resolved_at > ${p(params.length)}`
-  }
+  let where = SCORED_SQL + dayClauses(options, params, p)
 
   if (options.strategyVersion === undefined) {
     where += ` AND ${LATEST_OF_SAME_CALL_SQL}`
@@ -275,7 +295,8 @@ export async function listResolved(
   params.push(options.limit)
 
   const rows = await deps.db.query<SuggestionRow>(
-    `SELECT * FROM suggestions WHERE ${where} ORDER BY resolved_at DESC LIMIT ${p(params.length)}`,
+    `SELECT * FROM suggestions WHERE ${where} ` +
+      `ORDER BY ${RESOLVED_ORDER_SQL} LIMIT ${p(params.length)}`,
     params
   )
 
@@ -313,7 +334,8 @@ export async function listFocusCalls(
 
   const rows = await deps.db.query<FocusCallRow>(
     'SELECT focus_key, market, ticker, day, action, exit_day, return_pct ' +
-      `FROM suggestions WHERE ${SCORED_SQL} AND exit_day IS NOT NULL AND ${LATEST_OF_SAME_CALL_SQL}`,
+      `FROM suggestions WHERE ${SCORED_SQL} AND exit_day IS NOT NULL ` +
+      `AND ${LATEST_OF_SAME_CALL_SQL}`,
     []
   )
 

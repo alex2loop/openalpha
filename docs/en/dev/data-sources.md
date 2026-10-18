@@ -283,7 +283,7 @@ rank one commodity against the other: `vndirect`'s exchange feed is daily and `f
 the monthly series no free daily feed has.
 
 - A `vietcap-statements` call returns eight years, so `annual_accounts` is neither durable nor archived: a refetch rebuilds it.
-  The 34 quarters go to `quarterly_accounts` and are read only as a trailing year past the newest audited one.
+  The 34 quarters go to `quarterly_accounts` and are read as a trailing year past the newest audited one, and the newest five also as quarter rows against the same quarter a year earlier (`AccountsHistory.quarters`, built in `markets/equity-vn/accounts/quarters.ts`).
 - A bank is recognised from its balance sheet, never its sector. The provider zero-fills the codes of other families, so a
   positive customer-loans line (`bsb104`) marks a bank and `isBankLines` (`kernel/market/annual-accounts.ts`) tests for it. The
   optional `NOTE` section costs only the bank lines when absent. Negative lines are stored sign-flipped (`NEGATIVE_LINES`).
