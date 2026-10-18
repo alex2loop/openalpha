@@ -95,4 +95,4 @@ jobs:
           prerelease=""
           case "$TAG" in *-*) prerelease="--prerelease" ;; esac
           gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md $prerelease \
-            dist/openalpha-* dist/SHA256SUMS
+            dist/openalpha-* dist/SHA256SUMS CHANGELOG.md

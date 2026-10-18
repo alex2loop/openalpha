@@ -2,12 +2,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import { BRAND } from '@/core/brand'
 
 import { buildReleaseUrl } from './release'
-import {
-  isUpdateCheckEnabled,
-  isUpdateStateFresh,
-  readUpdateState,
-  refreshUpdateState,
-} from './state'
+import { isUpdateCheckEnabled, readFreshUpdateState } from './state'
 
 /** What an app shows about updates: the running version and the newest release with its page. An
  *  app compares both with its own version, which may differ from the daemon's on another machine. */
@@ -30,11 +25,7 @@ export async function readReleaseStatus(
     return null
   }
 
-  const dataDir = config.paths.dataDir
-  const cached = await readUpdateState(dataDir)
-  const state = isUpdateStateFresh(cached, options.now)
-    ? cached
-    : await refreshUpdateState({ dataDir, now: options.now, signal: options.signal })
+  const state = await readFreshUpdateState(config.paths.dataDir, options)
   const { latest } = state
 
   return {
