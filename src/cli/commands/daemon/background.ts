@@ -1,6 +1,5 @@
 import type { Subprocess } from 'bun'
-import { closeSync, openSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { open, readFile, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
@@ -25,6 +24,7 @@ const START_TIMEOUT_MS = 90_000
 const DAEMON_STDOUT_LOG = 'daemon.stdout.log'
 // Kept apart from stdout so a failed start can quote the daemon's own error and nothing else.
 const DAEMON_STDERR_LOG = 'daemon.stderr.log'
+const FAILED_DAEMON_STDERR_LOG = 'daemon.stderr.failed.log'
 const UPGRADE_STDOUT_LOG = 'upgrade.stdout.log'
 const UPGRADE_STDERR_LOG = 'upgrade.stderr.log'
 const EXIT_REASON_LINES = 3
@@ -55,6 +55,22 @@ export async function startBackgroundDaemon(app: CliApp, configPath: string): Pr
   return await runBackground(app, argv)
 }
 
+/** Moves a failed start's error log aside before the next start truncates it. Null when there was
+ *  none to keep. */
+export async function keepFailedStartLog(dataDir: string): Promise<string | null> {
+  const kept = join(dataDir, FAILED_DAEMON_STDERR_LOG)
+
+  try {
+    await rename(join(dataDir, DAEMON_STDERR_LOG), kept)
+
+    return kept
+  } catch {
+    // Missing or not movable: the next start overwrites it, and the reason lines already relayed
+    // are all there is.
+    return null
+  }
+}
+
 /** Runs `upgrade` as its own detached process, for a daemon that cannot replace itself. The process
  *  is not a daemon, so it goes without the background mark; the daemon it starts carries one. */
 export async function spawnUpgradeProcess(
@@ -67,7 +83,7 @@ export async function spawnUpgradeProcess(
     tail: [CLI_COMMAND_METADATA.upgrade.name],
   })
 
-  return spawnDetached({
+  return await spawnDetached({
     argv,
     stdoutPath: join(dataDir, UPGRADE_STDOUT_LOG),
     stderrPath: join(dataDir, UPGRADE_STDERR_LOG),
@@ -81,7 +97,7 @@ export async function runBackground(app: CliApp, argv: readonly string[]): Promi
   let started: DetachedDaemon
 
   try {
-    started = startDetachedDaemon(app, argv)
+    started = await startDetachedDaemon(app, argv)
   } catch (err: unknown) {
     if (app.has('logger')) {
       app.resolve('logger').error('daemon.background_spawn_failed', { err: formatErrForLog(err) })
@@ -235,11 +251,11 @@ export async function pollUntil<T>(
 }
 
 // Admission already ran pre-boot, so a live daemon never reaches here.
-function startDetachedDaemon(app: CliApp, argv: readonly string[]): DetachedDaemon {
+async function startDetachedDaemon(app: CliApp, argv: readonly string[]): Promise<DetachedDaemon> {
   const { dataDir } = app.config.paths
   const logPath = join(dataDir, DAEMON_STDOUT_LOG)
   const errorLogPath = join(dataDir, DAEMON_STDERR_LOG)
-  const child = spawnDetached({
+  const child = await spawnDetached({
     argv,
     stdoutPath: logPath,
     stderrPath: errorLogPath,
@@ -251,11 +267,11 @@ function startDetachedDaemon(app: CliApp, argv: readonly string[]): DetachedDaem
 
 /** Truncates both log files per start, so each holds the running process's stray output and never
  *  grows across restarts. The child holds its own copies; closing ours never silences it. */
-function spawnDetached(spawn: DetachedSpawn): Subprocess {
-  const output = openSync(spawn.stdoutPath, 'w', PRIVATE_FILE_MODE)
+async function spawnDetached(spawn: DetachedSpawn): Promise<Subprocess> {
+  const output = await open(spawn.stdoutPath, 'w', PRIVATE_FILE_MODE)
 
   try {
-    const errors = openSync(spawn.stderrPath, 'w', PRIVATE_FILE_MODE)
+    const errors = await open(spawn.stderrPath, 'w', PRIVATE_FILE_MODE)
 
     try {
       const proc = Bun.spawn([...spawn.argv], {
@@ -263,16 +279,16 @@ function spawnDetached(spawn: DetachedSpawn): Subprocess {
         detached: true,
         windowsHide: true,
         stdin: 'ignore',
-        stdout: output,
-        stderr: errors,
+        stdout: output.fd,
+        stderr: errors.fd,
       })
       proc.unref()
 
       return proc
     } finally {
-      closeSync(errors)
+      await errors.close()
     }
   } finally {
-    closeSync(output)
+    await output.close()
   }
 }

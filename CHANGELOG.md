@@ -19,7 +19,9 @@ Windows on ARM gets a native build. No database change.
   twice a day.
 - `/upgrade` shows what is new; `/upgrade confirm` installs it, restarts the bot and reports back.
 - `upgrade` and the install scripts restart a background daemon, roll back a release that will not
-  start, and `upgrade --rollback` goes back. From v1.0.5, start the daemon once by hand.
+  start, and `upgrade --rollback` goes back. A daemon started by v1.0.5 or earlier needs one
+  restart by hand. Outside Windows, a daemon in a terminal or under a service keeps running until
+  you restart it.
 - The operator is reminded in a private chat: weekly, daily for an important release.
 - `[update] auto = true` installs patch releases between 00:00 and 06:00, never mid-session.
 - A native build for Windows on ARM.

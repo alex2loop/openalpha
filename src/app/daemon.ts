@@ -136,7 +136,7 @@ async function startDaemonSubsystems(
     )
   )
 
-  attachDelivery({ delivery, channels, tradingTasks, disposers })
+  attachDelivery({ delivery, channels, disposers })
 
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has
   // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.
@@ -240,10 +240,9 @@ interface TrackDaemonTaskOptions {
 function attachDelivery(options: {
   readonly delivery: DeliveryHub
   readonly channels: StartChannelsResult
-  readonly tradingTasks: readonly DaemonTask[]
   readonly disposers: Disposer[]
 }): void {
-  const { delivery, channels, tradingTasks } = options
+  const { delivery, channels } = options
 
   if (channels.notifier === undefined) {
     return
@@ -253,15 +252,10 @@ function attachDelivery(options: {
     delivery.attach({
       notifier: channels.notifier,
       snapshots: channels.snapshots,
-      isWorking: () => channels.isWorking() || isAnyTaskWorking(tradingTasks),
+      isWorking: channels.isWorking,
       ...(channels.defaultRecipient === undefined ? {} : { recipient: channels.defaultRecipient }),
     })
   )
-}
-
-/** A trading pass in flight, a brief's debate or a refresh, is work a self-upgrade waits for. */
-function isAnyTaskWorking(tasks: readonly DaemonTask[]): boolean {
-  return tasks.some((task) => task.isWorking?.() === true)
 }
 
 function trackDaemonTask(options: TrackDaemonTaskOptions): void {

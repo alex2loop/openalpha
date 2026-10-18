@@ -7,7 +7,8 @@ const BINARY_MODE = 0o755
 // upgrades running at once never write into one file.
 export const DOWNLOAD_PATH = `${BINARY_PATH}.download-${process.pid}`
 const PREVIOUS_PATH = `${BINARY_PATH}.old`
-const STAGED_PATH = `${BINARY_PATH}.staged-${process.pid}`
+// One fixed name: a copy a failed step leaves behind is cleared by the next swap, never piled up.
+const STAGED_PATH = `${BINARY_PATH}.staged`
 
 /** Installs the downloaded release and keeps the one it replaces as the rollback copy. */
 export async function installDownloadedBinary(): Promise<void> {
@@ -31,7 +32,15 @@ export async function hasPreviousBinary(): Promise<boolean> {
  *  rollback copy is replaced only once the new binary is in place, so a failed step loses neither,
  *  and no step deletes a running file. */
 async function promote(source: string): Promise<void> {
-  await keepAside(BINARY_PATH, STAGED_PATH)
+  try {
+    await keepAside(BINARY_PATH, STAGED_PATH)
+  } catch (err: unknown) {
+    // A copy cut short (a full disk) is not a rollback copy. On Windows the rename either happened
+    // or did not, and the binary is still in place.
+    await rm(STAGED_PATH, { force: true }).catch(() => undefined)
+
+    throw err
+  }
 
   try {
     await rename(source, BINARY_PATH)

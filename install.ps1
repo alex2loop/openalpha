@@ -36,7 +36,6 @@
     throw $(if ($UseVietnamese) { $Vi } else { $En })
   }
 
-  # The machine's processor, not the process's: a PowerShell running under emulation still reads ARM.
   # The machine's processor, not this PowerShell's: an emulated x64 shell on ARM still reads ARM.
   # Without CIM, the variable Windows sets for an emulated process names the machine as well.
   function Get-Architecture {
@@ -112,12 +111,17 @@
       # the leftover. It is paused once, through the pid file, and the swap tried again.
       Say 'Pausing the daemon while I swap the binary.' 'Tạm dừng daemon trong lúc tôi thay bản cài.'
       & $Target stop | Out-Null
-      $script:PausedDaemon = $true
+      $script:PausedDaemon = $LASTEXITCODE -eq 0
     }
 
     try {
       Move-Item -Force -Path $Target -Destination "$Target.old"
     } catch {
+      if ($script:PausedDaemon) {
+        Fail "An older openalpha.exe is still running. Close it, then run this again. The daemon is paused; start it with: $Command start --background" `
+          "Một bản openalpha.exe cũ vẫn đang chạy. Đóng nó rồi chạy lại nhé. Daemon đang tạm dừng, bạn bật lại bằng: $Command start --background"
+      }
+
       Fail "An older openalpha.exe is still running. Close it, then run this again." `
         'Một bản openalpha.exe cũ vẫn đang chạy. Đóng nó rồi chạy lại nhé.'
     }

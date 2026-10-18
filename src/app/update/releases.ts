@@ -6,22 +6,20 @@ import type { Locale } from '@/core/types/locale'
 import {
   formatInstalledNotice,
   formatUpdateNotice,
-  isCompiledBinary,
   isUpdateCheckEnabled,
   newerVersionOf,
+  patchUpdateState,
   readFreshUpdateState,
   takeChatNotice,
   toChatText,
   UPGRADE_COMMAND,
   type UpdateState,
-  writeUpdateState,
 } from '@/cli/api'
-import { UPGRADE_COMMAND_NAME, UPGRADE_CONFIRM_ARG } from '@/commands/api'
+import { UPGRADE_CONFIRM_COMMAND } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 
 const CHANNEL_SURFACE = 'channel'
-const CONFIRM_COMMAND = `/${UPGRADE_COMMAND_NAME} ${UPGRADE_CONFIRM_ARG}`
 
 export function createReleaseUpdates(app: App, upgrade: SelfUpgrade): ReleaseUpdates {
   return {
@@ -37,7 +35,7 @@ export function createOperatorNotices(app: App): OperatorNotices {
 
 async function describeRelease(app: App, request: UpgradeRequest): Promise<UpgradeReply> {
   const { locale } = request
-  const unavailable = await explainUnavailable(app, locale)
+  const unavailable = explainUnavailable(app, locale)
 
   if (unavailable !== null) {
     return { text: unavailable }
@@ -53,22 +51,20 @@ async function describeRelease(app: App, request: UpgradeRequest): Promise<Upgra
     return { text: toUpToDateText(locale, state) }
   }
 
-  if (request.surface !== CHANNEL_SURFACE) {
-    return { text: toChatText(formatUpdateNotice(locale, state, UPGRADE_COMMAND)) }
-  }
+  const isChannel = request.surface === CHANNEL_SURFACE
+  const shown = isChannel ? { chatNotifiedAt: now } : { notifiedAt: now }
 
-  // Shown here, so the private-chat reminder does not repeat it.
-  await writeUpdateState(app.config.paths.dataDir, { ...state, chatNotifiedAt: now }).catch(() => {
+  // Shown here, so the reminder on the same surface does not repeat it.
+  await patchUpdateState(app.config.paths.dataDir, shown).catch(() => {
     // A cache that cannot be written only lets the reminder repeat this once.
   })
 
-  // Only a compiled binary can install itself; anything else is told the terminal command.
-  if (!isCompiledBinary()) {
+  if (!isChannel) {
     return { text: toChatText(formatUpdateNotice(locale, state, UPGRADE_COMMAND)) }
   }
 
   return {
-    text: toChatText(formatUpdateNotice(locale, state, CONFIRM_COMMAND)),
+    text: toChatText(formatUpdateNotice(locale, state, UPGRADE_CONFIRM_COMMAND)),
     confirmLabel: t(locale, 'cli.upgradeConfirmLabel'),
   }
 }
@@ -84,14 +80,10 @@ async function installRelease(
     return { text: t(locale, 'cli.upgradeFromTerminal', { command: UPGRADE_COMMAND }) }
   }
 
-  const unavailable = await explainUnavailable(app, locale)
+  const unavailable = explainUnavailable(app, locale)
 
   if (unavailable !== null) {
     return { text: unavailable }
-  }
-
-  if (!isCompiledBinary()) {
-    return { text: t(locale, 'cli.upgradeSourceCheckout') }
   }
 
   const state = await readFreshUpdateState(app.config.paths.dataDir, {
@@ -110,8 +102,8 @@ async function installRelease(
 }
 
 /** Why there is nothing to show: checks off, or a source checkout that updates with git. */
-async function explainUnavailable(app: App, locale: Locale): Promise<string | null> {
-  if (await isUpdateCheckEnabled(app.config)) {
+function explainUnavailable(app: App, locale: Locale): string | null {
+  if (isUpdateCheckEnabled(app.config)) {
     return null
   }
 
@@ -121,7 +113,7 @@ async function explainUnavailable(app: App, locale: Locale): Promise<string | nu
 function toUpToDateText(locale: Locale, state: UpdateState): string {
   const verdict = t(locale, state.failed ? 'cli.updateUnchecked' : 'cli.updateUpToDate')
 
-  return `${toChatText(formatInstalledNotice(locale, state))}\n${verdict}`
+  return `${toChatText(formatInstalledNotice(locale, state, { upgraded: false }))}\n${verdict}`
 }
 
 function toStartText(locale: Locale, started: UpgradeStart, latest: string): string {
@@ -134,7 +126,7 @@ function toStartText(locale: Locale, started: UpgradeStart, latest: string): str
     case 'busy':
       return t(locale, 'cli.upgradeInProgress')
     case 'working':
-      return t(locale, 'cli.upgradeWhileWorking', { command: CONFIRM_COMMAND })
+      return t(locale, 'cli.upgradeWhileWorking', { command: UPGRADE_CONFIRM_COMMAND })
     case 'failed':
       return t(locale, 'cli.upgradeFailed', { current: `v${BRAND.version}` })
     case 'started':

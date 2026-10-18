@@ -33,25 +33,21 @@ interface LoopState {
 /** The one loop. There is no `setInterval` anywhere in trading: an interval that fires while the
  *  previous tick is still running is how a bounded loop becomes concurrent with itself. */
 export function createLoopTask(spec: LoopSpec): DaemonTask {
-  const state: LoopState = { ticking: false }
-
-  return {
-    name: spec.name,
-    isWorking: () => state.ticking,
-    async start(signal) {
-      await runLoop(spec, { signal, state })
-    },
-  }
+  return createTask(spec, { delayed: false })
 }
 
 export function createDelayedLoopTask(spec: LoopSpec): DaemonTask {
+  return createTask(spec, { delayed: true })
+}
+
+function createTask(spec: LoopSpec, options: { readonly delayed: boolean }): DaemonTask {
   const state: LoopState = { ticking: false }
 
   return {
     name: spec.name,
     isWorking: () => state.ticking,
     async start(signal) {
-      if (!(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
+      if (options.delayed && !(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
         return
       }
 

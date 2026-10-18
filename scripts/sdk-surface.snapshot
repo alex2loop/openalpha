@@ -41,6 +41,7 @@ cli:lazyCommand
 cli:newerVersionOf
 cli:offerOnboard
 cli:parseGlobalFlags
+cli:patchUpdateState
 cli:preBootApp
 cli:preflightCommand
 cli:printError
@@ -61,7 +62,6 @@ cli:takeChatNotice
 cli:toChatText
 cli:usage
 cli:writeCommandCache
-cli:writeUpdateState
 core/brand
 core/channels
 core/config/load

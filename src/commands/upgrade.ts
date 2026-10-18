@@ -7,10 +7,12 @@ import type {
 import type { Locale } from '@/core/types/locale'
 import type { DeliveryTarget } from '@/scheduler/api'
 
-export const UPGRADE_COMMAND_NAME = 'upgrade'
-export const UPGRADE_CONFIRM_ARG = 'confirm'
+const UPGRADE_COMMAND_NAME = 'upgrade'
+const UPGRADE_CONFIRM_ARG = 'confirm'
+export const UPGRADE_CHAT_COMMAND = `/${UPGRADE_COMMAND_NAME}`
+export const UPGRADE_CONFIRM_COMMAND = `${UPGRADE_CHAT_COMMAND} ${UPGRADE_CONFIRM_ARG}`
 
-// `/trade` is operator-only too, so a member never saw a suggestion to run it either.
+// Operator only: an update restarts the bot for every chat it serves.
 const READ_POLICY = {
   surfaces: ['channel', 'repl'],
   role: 'operator',
@@ -74,8 +76,6 @@ function toAffordances(reply: UpgradeReply): { readonly affordances?: readonly A
   }
 
   return {
-    affordances: [
-      { label: reply.confirmLabel, command: `/${UPGRADE_COMMAND_NAME} ${UPGRADE_CONFIRM_ARG}` },
-    ],
+    affordances: [{ label: reply.confirmLabel, command: UPGRADE_CONFIRM_COMMAND }],
   }
 }

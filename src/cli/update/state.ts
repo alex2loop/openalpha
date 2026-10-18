@@ -10,13 +10,16 @@ import { MS_PER_HOUR, MS_PER_SECOND } from '@/core/utils/time'
 import { compareVersions } from '@/core/utils/version'
 
 import type { ReleaseNote } from './changelog'
-import { isSourceCheckout, readLatestRelease, readReleaseNotes } from './release'
+import { isCompiledBinary, readLatestRelease, readReleaseNotes } from './release'
 
 const STATE_FILE_NAME = 'update-check.json'
 const CHECK_TIMEOUT_MS = 2 * MS_PER_SECOND
 const NOTES_TIMEOUT_MS = 3 * MS_PER_SECOND
 const CHECKED_FRESH_MS = 12 * MS_PER_HOUR
 const FAILED_FRESH_MS = MS_PER_HOUR
+
+// The one file every update writer shares; chained so read-then-write never interleaves.
+let writeQueue: Promise<unknown> = Promise.resolve()
 
 const releaseNoteSchema = z.object({
   version: z.string(),
@@ -31,24 +34,25 @@ const pendingUpgradeSchema = z.object({
   target: z.object({ channel: z.string(), chatId: z.string() }).optional(),
 })
 
-// Every field after `notifiedAt` has a default so a file written by v1.0.5 still parses, and a
-// field a later release adds is dropped rather than failing the whole file after a downgrade.
+// Not strict: a field a later release adds is dropped rather than failing the file after a downgrade.
 const updateStateSchema = z.object({
   checkedAt: z.number().int().nonnegative(),
   latest: z.string().nullable(),
   failed: z.boolean(),
   notifiedAt: z.number().int().nonnegative(),
-  releases: z.array(releaseNoteSchema).default([]),
-  chatNotifiedAt: z.number().int().nonnegative().default(0),
-  announcedVersion: z.string().nullable().default(null),
-  chatAnnouncedVersion: z.string().nullable().default(null),
-  pendingUpgrade: pendingUpgradeSchema.nullable().default(null),
-  rolledBackVersion: z.string().nullable().default(null),
+  releases: z.array(releaseNoteSchema),
+  chatNotifiedAt: z.number().int().nonnegative(),
+  announcedVersion: z.string().nullable(),
+  chatAnnouncedVersion: z.string().nullable(),
+  pendingUpgrade: pendingUpgradeSchema.nullable(),
+  rolledBackVersion: z.string().nullable(),
 })
 
 export type UpdateState = z.infer<typeof updateStateSchema>
 
 export type PendingUpgrade = z.infer<typeof pendingUpgradeSchema>
+
+type StatePatch = Partial<UpdateState>
 
 const NEVER_CHECKED: UpdateState = Object.freeze({
   checkedAt: 0,
@@ -63,8 +67,9 @@ const NEVER_CHECKED: UpdateState = Object.freeze({
   rolledBackVersion: null,
 })
 
-export async function isUpdateCheckEnabled(config: ResolvedConfig): Promise<boolean> {
-  return config.update.check && !(await isSourceCheckout())
+/** Only a compiled release checks: a clone runs from git and updates with git. */
+export function isUpdateCheckEnabled(config: ResolvedConfig): boolean {
+  return config.update.check && isCompiledBinary()
 }
 
 /** The cache is a hint, never an authority: missing, unreadable or malformed reads as never checked. */
@@ -79,16 +84,32 @@ export async function readUpdateState(dataDir: string): Promise<UpdateState> {
   }
 }
 
-export async function writeUpdateState(dataDir: string, state: UpdateState): Promise<void> {
-  await replacePrivateFileAtomic({
-    path: statePath(dataDir),
-    content: `${JSON.stringify(state)}\n`,
+/** Reads the file afresh and writes `patch` over it. Patches run one at a time in this process, so
+ *  no writer drops a field another just wrote. A patch function sees the state it is applied to. */
+export async function patchUpdateState(
+  dataDir: string,
+  patch: StatePatch | ((state: UpdateState) => StatePatch)
+): Promise<UpdateState> {
+  const run = writeQueue.then(async () => {
+    const state = await readUpdateState(dataDir)
+    const next = { ...state, ...(typeof patch === 'function' ? patch(state) : patch) }
+
+    await replacePrivateFileAtomic({
+      path: statePath(dataDir),
+      content: `${JSON.stringify(next)}\n`,
+    })
+
+    return next
   })
+
+  writeQueue = run.catch(() => undefined)
+
+  return await run
 }
 
 /** A failed read keeps the last known release, so going offline never hides a notice already due.
- *  The file is read after the fetch, not before: chat records a shown notice while this runs, and a
- *  copy read earlier would write that record away. An aborted caller records nothing. */
+ *  Only the fields read here are written, so a notice recorded during the fetch survives. An aborted
+ *  caller records nothing. */
 export async function refreshUpdateState(options: {
   readonly dataDir: string
   readonly now: number
@@ -106,7 +127,7 @@ export async function refreshUpdateState(options: {
   }
 
   if (read === null || !read.reached) {
-    return await saveRefreshed(dataDir, { ...previous, checkedAt: now, failed: true })
+    return await saveRefreshed(dataDir, previous, { checkedAt: now, failed: true })
   }
 
   const releases = await readNotesFor(read.latest, previous, signal)
@@ -115,11 +136,7 @@ export async function refreshUpdateState(options: {
     return previous
   }
 
-  // Read again: the notes fetch can take seconds, and a notice recorded meanwhile must survive.
-  const current = await readUpdateState(dataDir)
-
-  return await saveRefreshed(dataDir, {
-    ...current,
+  return await saveRefreshed(dataDir, previous, {
     checkedAt: now,
     failed: false,
     latest: read.latest,
@@ -209,10 +226,12 @@ async function readNotesFor(
 }
 
 // An unwritable data dir must not fail an explicit check; the answer still serves this run.
-async function saveRefreshed(dataDir: string, next: UpdateState): Promise<UpdateState> {
-  await writeUpdateState(dataDir, next).catch(() => undefined)
-
-  return next
+async function saveRefreshed(
+  dataDir: string,
+  previous: UpdateState,
+  refreshed: StatePatch
+): Promise<UpdateState> {
+  return await patchUpdateState(dataDir, refreshed).catch(() => ({ ...previous, ...refreshed }))
 }
 
 /** The notes newer than the running version up to the latest release, newest first. Empty while the

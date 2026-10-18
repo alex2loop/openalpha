@@ -244,8 +244,9 @@ no messages from anyone. `doctor` still reports a missing key as a failure on it
 failure still stop `start`.
 
 `status` names the version the running daemon was started from. Re-running the install script
-restarts a background daemon on the new binary; an install pinned with `OPENALPHA_VERSION` leaves
-the daemon for you, and `status` flags it, with the `stop` and `start` that switch it over. When the
+restarts a background daemon on the new binary; an install pinned with `OPENALPHA_VERSION` keeps
+the daemon on its old release until you restart it, and `status` flags it, with the `stop` and
+`start --background` that switch it over. When the
 running daemon started without some keys, `status` repeats the `start` warnings: which channels were
 skipped and why, which keys are unset and what waits for them, even after a reboot. Exchange keys
 and the keys of optional data sources are listed apart under "optional keys": without them you
@@ -277,7 +278,7 @@ switched off. A demo key is not audited.
 
 When a newer release is out, the CLI says so once a day, under the command's output: what changed, how many releases you are behind and whether one of them is important. In a private chat with the operator the bot says it weekly, or daily while an important release is waiting.
 
-`upgrade` downloads the release binary for your machine next to the installed one and checks it against the release's SHA256SUMS. Only then does it pause a running daemon and swap the binary in. A daemon started with `start --background` is started again on the new release by itself, from the same config file and data folder, and if it will not start, `upgrade` goes back to the release that ran and says so. A daemon running in a terminal window or under a service is left for you, with the command to run. Your data folder and config are never touched. If the swap itself fails, the old version stays in place and the stopped daemon is started again, or the message says how to. A cut download, a checksum mismatch or Ctrl-C all end before the swap, so your current version stays and a running daemon keeps running.
+`upgrade` downloads the release binary for your machine next to the installed one and checks it against the release's SHA256SUMS. Only then does it swap the binary in. A daemon started with `start --background` is paused for the swap and started again on the new release by itself, from the same config file and data folder; if it will not start, `upgrade` goes back to the release that ran, says so, and keeps the new release's startup error in `daemon.stderr.failed.log`. A daemon running in a terminal window or under a service keeps running the old release until you restart it, and `upgrade` prints the commands; on Windows, which cannot replace a running binary, it is stopped for the swap and you start it again. Your data folder and config are never touched. If the swap itself fails, the old version stays in place and the stopped daemon is started again, or the message says how to. A cut download, a checksum mismatch or Ctrl-C all end before the swap, so your current version stays and a running daemon keeps running.
 
 The release you replaced stays next to the new one as `openalpha.old` (`openalpha.exe.old` on Windows), and `upgrade --rollback` swaps back to it. `upgrade --check` only reports. A source checkout updates with `git pull`.
 

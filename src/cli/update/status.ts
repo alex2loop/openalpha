@@ -21,7 +21,7 @@ export async function readReleaseStatus(
   config: ResolvedConfig,
   options: { readonly now: number; readonly signal: AbortSignal }
 ): Promise<ReleaseStatus | null> {
-  if (!(await isUpdateCheckEnabled(config))) {
+  if (!isUpdateCheckEnabled(config)) {
     return null
   }
 

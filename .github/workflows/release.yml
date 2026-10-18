@@ -44,15 +44,14 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           version="$(jq -r .version package.json)"
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          new=true
           if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
             echo "v$version is already released"
-            echo "new=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "new=true" >> "$GITHUB_OUTPUT"
-            new=true
+            new=false
           fi
-          if [ "${new:-false}" = true ] || [ "$DRY_RUN" = true ]; then
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          if [ "$new" = true ] || [ "$DRY_RUN" = true ]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -117,7 +116,6 @@ jobs:
             awk -v n="$name" '$2 == n { found = 1 } END { exit !found }' dist/SHA256SUMS \
               || { echo "$name has no line in SHA256SUMS"; exit 1; }
           done
-          [ -s CHANGELOG.md ] || { echo "CHANGELOG.md is missing"; exit 1; }
 
       - if: steps.version.outputs.build == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -138,8 +136,7 @@ jobs:
     needs: build
     if: needs.build.outputs.build == 'true'
     runs-on: ${{ matrix.runner }}
-    env:
-      OPENROUTER_API_KEY: ci-placeholder
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -171,9 +168,10 @@ jobs:
         with:
           binary: dist/${{ matrix.asset }}
 
+  # Only main publishes: a manual run on another branch rehearses at most.
   publish:
     needs: [build, start-test]
-    if: needs.build.outputs.new == 'true' && !inputs.dry_run
+    if: needs.build.outputs.new == 'true' && !inputs.dry_run && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # The tag and the Release are the only writes this workflow makes.
     permissions:

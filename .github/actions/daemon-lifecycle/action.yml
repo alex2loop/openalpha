@@ -22,6 +22,8 @@ runs:
       shell: pwsh
       env:
         BINARY: ${{ inputs.binary }}
+        # The config names a model; nothing here calls it.
+        OPENROUTER_API_KEY: ci-placeholder
       run: |
         $PSNativeCommandUseErrorActionPreference = $true
         $binary = Join-Path $PWD $env:BINARY

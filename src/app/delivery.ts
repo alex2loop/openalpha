@@ -43,8 +43,8 @@ export interface DeliveryHub {
   attached(): boolean
   /** Live channel lifecycle snapshots; empty while no daemon channels are attached. */
   snapshots(): readonly ChannelRuntimeSnapshot[]
-  /** True while a channel runs a long slash command, or a trading pass such as a brief's debate is
-   *  in flight: work a restart would cut off. False with no channels. */
+  /** True while a channel runs a long slash command: work a restart would cut off. False with no
+   *  channels. */
   isWorking(): boolean
   /** Delivers and reports whether the send actually completed. The delivery state machines in
    *  trading are only correct if `accepted` means the sender call finished — `sink.notify` is

@@ -1,12 +1,8 @@
-import { stat } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
-
 import { BRAND } from '@/core/brand'
 import { BROWSER_HEADERS } from '@/core/http-client'
 
 import { parseChangelog, type ReleaseNote } from './changelog'
 
-const PACKAGE_ROOT = resolve(import.meta.dir, '../../..')
 const LATEST_RELEASE_URL = `${BRAND.repository}/releases/latest`
 const RELEASE_TAG_RE = /\/releases\/tag\/v(\d+\.\d+\.\d+)$/
 const HTTP_ERROR_STATUS = 400
@@ -96,14 +92,6 @@ export async function readLatestRelease(signal: AbortSignal): Promise<LatestRead
   const location = res.headers.get('location') ?? ''
 
   return { reached: true, latest: RELEASE_TAG_RE.exec(location)?.[1] ?? null }
-}
-
-/** A clone runs from git, so it updates with git and never nags about releases. */
-export async function isSourceCheckout(): Promise<boolean> {
-  return await stat(join(PACKAGE_ROOT, '.git')).then(
-    () => true,
-    () => false
-  )
 }
 
 export function buildReleaseUrl(version: string): string {

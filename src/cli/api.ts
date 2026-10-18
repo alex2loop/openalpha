@@ -38,9 +38,9 @@ export { isCompiledBinary } from '@/cli/update/release'
 export {
   isUpdateCheckEnabled,
   newerVersionOf,
+  patchUpdateState,
   readFreshUpdateState,
   readUpdateState,
   refreshUpdateState,
-  writeUpdateState,
 } from '@/cli/update/state'
 export { readReleaseStatus } from '@/cli/update/status'

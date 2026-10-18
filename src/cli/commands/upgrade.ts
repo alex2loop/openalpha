@@ -3,9 +3,10 @@ import { rm } from 'node:fs/promises'
 import type { RunningDaemon } from '@/cli/daemon-guard'
 import type { CliApp } from '@/cli/types'
 import { type Command, createCommand } from '@/cli/command'
-import { startBackgroundDaemon } from '@/cli/commands/daemon/background'
+import { keepFailedStartLog, startBackgroundDaemon } from '@/cli/commands/daemon/background'
 import { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
 import { liveDaemon } from '@/cli/daemon-guard'
+import { isInteractiveStderr } from '@/cli/env'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { formatArgIssue } from '@/cli/parsing/arg-issue'
 import { fail, hint, info, success } from '@/cli/ui/colors'
@@ -19,10 +20,9 @@ import { formatUpdateStatus } from '@/cli/update/notice'
 import { downloadReleaseBinary, isCompiledBinary } from '@/cli/update/release'
 import {
   newerVersionOf,
-  readUpdateState,
+  patchUpdateState,
   refreshUpdateState,
   type UpdateState,
-  writeUpdateState,
 } from '@/cli/update/state'
 import { BRAND } from '@/core/brand'
 import { MS_PER_MINUTE } from '@/core/utils/time'
@@ -114,6 +114,8 @@ async function installRelease(app: CliApp, latest: string): Promise<number> {
 
   try {
     const signal = AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS)
+    // A network error or an install dir that cannot be written leaves the old binary in place, as a
+    // checksum mismatch does.
     const verified = await downloadReleaseBinary(latest, DOWNLOAD_PATH, signal).catch(() => false)
 
     if (!verified) {
@@ -129,15 +131,16 @@ async function installRelease(app: CliApp, latest: string): Promise<number> {
 }
 
 /** The daemon is paused only once a verified binary is in hand, so a failed download never stops
- *  it; left running, it would keep serving the old version. */
+ *  it. */
 async function switchRelease(app: CliApp, latest: string): Promise<number> {
   const locale = app.config.locale.language
   const daemon = await liveDaemon(app)
+  const paused = toPause(daemon)
 
-  if (daemon !== null) {
+  if (paused !== null) {
     app.out(info(t(locale, 'cli.upgradeStoppingDaemon')))
 
-    const stopped = await stopForSwap(app, daemon)
+    const stopped = await stopForSwap(app, paused)
 
     if (stopped !== 0) {
       return stopped
@@ -148,12 +151,17 @@ async function switchRelease(app: CliApp, latest: string): Promise<number> {
     await installDownloadedBinary()
   } catch {
     app.err(fail(t(locale, 'cli.upgradeFailed', { current: `v${BRAND.version}` })))
-    await recoverStoppedDaemon(app, daemon)
+    await recoverStoppedDaemon(app, paused)
 
     return 1
   }
 
-  await patchUpdateState(app, { announcedVersion: latest })
+  // Only a reader at a terminal saw the line below; a daemon's own upgrade writes to a log, and the
+  // next command there says which release now runs.
+  if (isInteractiveStderr()) {
+    await recordUpdateState(app, { announcedVersion: latest })
+  }
+
   app.out(success(t(locale, 'cli.upgradeDone', { brand: BRAND.display, latest: `v${latest}` })))
 
   return await resumeDaemon(app, { daemon, version: latest })
@@ -189,29 +197,22 @@ async function recoverStoppedDaemon(app: CliApp, daemon: RunningDaemon | null): 
 }
 
 async function resumeDaemon(app: CliApp, change: DaemonSwitch): Promise<number> {
-  const { daemon } = change
-  const locale = app.config.locale.language
+  const daemon = restartableOrHint(app, change.daemon)
 
   if (daemon === null) {
     return 0
   }
 
-  if (!isRestartable(daemon)) {
-    printRestartHint(app)
-
-    return 0
-  }
-
-  app.out(info(t(locale, 'cli.upgradeRestartingDaemon')))
+  app.out(info(t(app.config.locale.language, 'cli.upgradeRestartingDaemon')))
 
   const started = await startBackgroundDaemon(app, daemon.configPath)
 
   return started === 0 ? 0 : await restorePreviousRelease(app, { ...change, daemon })
 }
 
-/** A release that will not start is swapped out for the one that ran. There is no second rollback:
- *  if the old one will not start either, the operator is told and left to look, and the release is
- *  not marked bad, because the cause lies elsewhere. */
+/** A release that will not start is swapped out for the one that ran, and recorded before the old
+ *  one starts: that daemon tells the chat as soon as it is ready, and must read the rollback. If the
+ *  old one will not start either, the operator is told and left to look. */
 async function restorePreviousRelease(
   app: CliApp,
   change: DaemonSwitch & { readonly daemon: RestartableDaemon }
@@ -226,27 +227,34 @@ async function restorePreviousRelease(
     return 1
   }
 
-  if ((await startBackgroundDaemon(app, change.daemon.configPath)) !== 0) {
-    app.err(hint(t(locale, 'cli.upgradeFailedDaemonDown', { command: START_COMMAND })))
-
-    return 1
-  }
+  const failedLog = await keepFailedStartLog(app.config.paths.dataDir)
 
   // The version announced to the operator is the one that runs again, so a later upgrade to this
   // release still announces itself.
-  await patchUpdateState(app, {
+  await recordUpdateState(app, {
     rolledBackVersion: change.version,
     announcedVersion: BRAND.version,
   })
-  app.err(
-    fail(
-      t(locale, 'cli.upgradeRolledBack', {
-        brand: BRAND.display,
-        failed: `v${change.version}`,
-        current: `v${BRAND.version}`,
-      })
+
+  const started = await startBackgroundDaemon(app, change.daemon.configPath)
+
+  if (started === 0) {
+    app.err(
+      fail(
+        t(locale, 'cli.upgradeRolledBack', {
+          brand: BRAND.display,
+          failed: `v${change.version}`,
+          current: `v${BRAND.version}`,
+        })
+      )
     )
-  )
+  } else {
+    app.err(hint(t(locale, 'cli.upgradeFailedDaemonDown', { command: START_COMMAND })))
+  }
+
+  if (failedLog !== null) {
+    app.err(hint(t(locale, 'cli.upgradeFailedLog', { path: failedLog })))
+  }
 
   return 1
 }
@@ -265,16 +273,7 @@ async function restartStaleDaemon(app: CliApp): Promise<number> {
   }
 
   if (!isRestartable(daemon)) {
-    const locale = app.config.locale.language
-
-    app.err(
-      hint(
-        t(locale, 'cli.statusDaemonVersionMismatch', {
-          installed: BRAND.version,
-          brand: BRAND.name,
-        })
-      )
-    )
+    printVersionMismatch(app)
 
     return 0
   }
@@ -294,7 +293,8 @@ async function rollbackRelease(app: CliApp): Promise<number> {
   }
 
   const daemon = await liveDaemon(app)
-  const stopped = daemon === null ? 0 : await stopForSwap(app, daemon)
+  const paused = toPause(daemon)
+  const stopped = paused === null ? 0 : await stopForSwap(app, paused)
 
   if (stopped !== 0) {
     return stopped
@@ -304,47 +304,74 @@ async function rollbackRelease(app: CliApp): Promise<number> {
     await swapWithPreviousBinary()
   } catch {
     app.err(fail(t(locale, 'cli.upgradeRollbackFailed', { command: START_COMMAND })))
-    await recoverStoppedDaemon(app, daemon)
+    await recoverStoppedDaemon(app, paused)
 
     return 1
   }
 
-  // The release being left is not reinstalled by an automatic update, and the one coming back is
-  // announced on both surfaces as if new.
-  await patchUpdateState(app, {
+  // The release being left is not reinstalled by an automatic update. Both surfaces record the one
+  // coming back without announcing it, so a later upgrade to the release left still announces.
+  await recordUpdateState(app, {
     rolledBackVersion: BRAND.version,
     announcedVersion: null,
     chatAnnouncedVersion: null,
   })
   app.out(success(t(locale, 'cli.upgradeRollbackDone')))
 
-  if (daemon === null) {
-    return 0
-  }
+  const restartable = restartableOrHint(app, daemon)
 
-  if (!isRestartable(daemon)) {
-    printRestartHint(app)
-
-    return 0
-  }
-
-  return await startBackgroundDaemon(app, daemon.configPath)
+  return restartable === null ? 0 : await startBackgroundDaemon(app, restartable.configPath)
 }
 
 function isRestartable(daemon: RunningDaemon): daemon is RestartableDaemon {
   return daemon.background === true && daemon.configPath !== undefined
 }
 
-function printRestartHint(app: CliApp): void {
-  app.out(
-    hint(t(app.config.locale.language, 'cli.upgradeRestartDaemon', { command: START_COMMAND }))
-  )
+/** The daemon to stop for a swap. Windows cannot replace a running binary, so every daemon stops
+ *  there; elsewhere only one this command starts again, and a terminal or service daemon keeps
+ *  running the old release until its owner restarts it. */
+function toPause(daemon: RunningDaemon | null): RunningDaemon | null {
+  if (daemon === null) {
+    return null
+  }
+
+  return isRestartable(daemon) || process.platform === 'win32' ? daemon : null
+}
+
+/** The daemon to start again after a swap, or null after telling the operator how to move the one
+ *  that ran onto the binary now in place. */
+function restartableOrHint(app: CliApp, daemon: RunningDaemon | null): RestartableDaemon | null {
+  if (daemon === null) {
+    return null
+  }
+
+  if (isRestartable(daemon)) {
+    return daemon
+  }
+
+  if (toPause(daemon) === null) {
+    printVersionMismatch(app)
+  } else {
+    app.out(
+      hint(t(app.config.locale.language, 'cli.upgradeRestartDaemon', { command: START_COMMAND }))
+    )
+  }
+
+  return null
 }
 
 // The data dir is only a hint store: one that cannot be written never fails an upgrade.
-async function patchUpdateState(app: CliApp, patch: Partial<UpdateState>): Promise<void> {
-  const dataDir = app.config.paths.dataDir
-  const state = await readUpdateState(dataDir)
+async function recordUpdateState(app: CliApp, patch: Partial<UpdateState>): Promise<void> {
+  await patchUpdateState(app.config.paths.dataDir, patch).catch(() => undefined)
+}
 
-  await writeUpdateState(dataDir, { ...state, ...patch }).catch(() => undefined)
+function printVersionMismatch(app: CliApp): void {
+  app.err(
+    hint(
+      t(app.config.locale.language, 'cli.statusDaemonVersionMismatch', {
+        installed: BRAND.version,
+        brand: BRAND.name,
+      })
+    )
+  )
 }

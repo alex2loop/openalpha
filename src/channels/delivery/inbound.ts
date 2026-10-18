@@ -5,7 +5,7 @@ import type { AgentId } from '@/core/ids'
 import { COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
 import { handleControlCallback } from '@/channels/delivery/control'
 import { resolveSlashRunRequest, roleOf, type SlashRunRequest } from '@/channels/delivery/slash'
-import { commandHeadOf, UPGRADE_COMMAND_NAME } from '@/commands/api'
+import { commandHeadOf, UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { observe } from '@/core/events'
 import { agentId as brandAgentId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -13,8 +13,6 @@ import { formatErrForLog } from '@/core/security/credentials'
 import '@/channels/events'
 
 const SLASH_PREFIX = '/'
-// The answer to /upgrade already carries the notice.
-const UPGRADE_COMMAND_HEAD = `${SLASH_PREFIX}${UPGRADE_COMMAND_NAME}`
 
 export interface InboundHandler {
   handleMessage(msg: InboundMessage): Promise<void>
@@ -150,7 +148,8 @@ async function offerOperatorNotice(deps: InboundHandlerDeps, msg: InboundMessage
   if (
     msg.isGroup === true ||
     roleOf(deps, msg) !== 'operator' ||
-    commandHeadOf(msg.text) === UPGRADE_COMMAND_HEAD
+    // The answer to /upgrade already carries the notice.
+    commandHeadOf(msg.text) === UPGRADE_CHAT_COMMAND
   ) {
     return
   }

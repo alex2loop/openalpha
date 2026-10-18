@@ -35,7 +35,6 @@ interface UpdateWatchOptions {
 interface WatchMemory {
   loggedLatest: string | null
   skippedLatest: string | null
-  blockedLatest: string | null
   attemptedLatest: string | null
 }
 
@@ -48,6 +47,7 @@ interface TickOptions extends UpdateWatchOptions {
 interface AutoUpdateInput {
   readonly config: ResolvedConfig
   readonly state: UpdateState
+  readonly latest: string
   readonly window: DailyWindow
   readonly now: number
 }
@@ -62,7 +62,6 @@ export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => P
   const memory: WatchMemory = {
     loggedLatest: null,
     skippedLatest: null,
-    blockedLatest: null,
     attemptedLatest: null,
   }
   let inFlight: Promise<void> | null = null
@@ -98,7 +97,7 @@ export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => P
 async function runUpdateCheck(app: App, options: TickOptions): Promise<void> {
   const { config } = app
 
-  if (!(await isUpdateCheckEnabled(config))) {
+  if (!isUpdateCheckEnabled(config)) {
     return
   }
 
@@ -115,7 +114,7 @@ async function runUpdateCheck(app: App, options: TickOptions): Promise<void> {
     options.logger.info('update.available', { current: BRAND.version, latest })
   }
 
-  if (isAutoUpdateDue({ config, state, window: options.window, now })) {
+  if (isAutoUpdateDue({ config, state, latest, window: options.window, now })) {
     await installWhenSessionsClosed(app, options, { latest, now })
   }
 }
@@ -137,16 +136,8 @@ async function installWhenSessionsClosed(
 
   const sessionOpen = await isSessionOpen(app, options, due.now)
 
-  if (signal.aborted) {
-    return
-  }
-
-  if (sessionOpen) {
-    if (memory.blockedLatest !== latest) {
-      memory.blockedLatest = latest
-      logger.info('update.auto_blocked', { latest })
-    }
-
+  // Open now, so the next hourly tick in the window asks again.
+  if (signal.aborted || sessionOpen) {
     return
   }
 
@@ -156,6 +147,7 @@ async function installWhenSessionsClosed(
     memory.attemptedLatest = latest
   }
 
+  // Waiting never changes it, so it is said once per release.
   if (started === 'foreground' && memory.skippedLatest !== latest) {
     memory.skippedLatest = latest
     logger.info('update.auto_skipped', { latest })
@@ -182,12 +174,10 @@ async function isSessionOpen(app: App, options: TickOptions, now: number): Promi
 
 /** Everything but the session, which costs a read of the book and is asked only after this. */
 function isAutoUpdateDue(input: AutoUpdateInput): boolean {
-  const { config, state, now } = input
-  const latest = newerVersionOf(state)
+  const { config, state, latest, now } = input
 
   return (
     config.update.auto &&
-    latest !== null &&
     isPatchRelease(latest, BRAND.version) &&
     latest !== state.rolledBackVersion &&
     isWithinDailyWindow(now, input.window)

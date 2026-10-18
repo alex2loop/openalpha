@@ -110,13 +110,17 @@ install_binary() {
 }
 
 # The release being replaced stays next to the new one as `.old`, as `openalpha upgrade` keeps it,
-# so `upgrade --rollback` goes back to it. A filesystem without hard links gets a copy.
+# so `upgrade --rollback` goes back to it. A filesystem without hard links gets a copy, written under
+# a temporary name first so a copy cut short (a full disk) never becomes the rollback copy.
 keep_previous() {
   [ -x "$INSTALL_DIR/$COMMAND" ] || return 0
   rm -f "$INSTALL_DIR/$COMMAND.old"
-  ln "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null \
-    || cp -p "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null \
-    || true
+  ln "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null && return 0
+  if cp -p "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old.part" 2>/dev/null; then
+    mv -f "$INSTALL_DIR/$COMMAND.old.part" "$INSTALL_DIR/$COMMAND.old"
+  else
+    rm -f "$INSTALL_DIR/$COMMAND.old.part"
+  fi
 }
 
 wire_path() {

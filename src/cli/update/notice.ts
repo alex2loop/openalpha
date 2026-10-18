@@ -3,8 +3,8 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import { isInteractiveStderr } from '@/cli/env'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
-import { hint, warn } from '@/cli/ui/colors'
-import { UPGRADE_COMMAND_NAME } from '@/commands/api'
+import { hint, success, warn } from '@/cli/ui/colors'
+import { UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { compareVersions } from '@/core/utils/version'
@@ -16,11 +16,11 @@ import {
   isUpdateCheckEnabled,
   isUpdateStateFresh,
   newerVersionOf,
+  patchUpdateState,
   readUpdateState,
   refreshUpdateState,
   releaseNoteOf,
   releasesBehind,
-  writeUpdateState,
 } from './state'
 
 const CLI_NOTICE_MS = MS_PER_DAY
@@ -28,10 +28,10 @@ const CHAT_NOTICE_MS = 7 * MS_PER_DAY
 const CHAT_IMPORTANT_NOTICE_MS = MS_PER_DAY
 const EXIT_SUCCESS = 0
 export const UPGRADE_COMMAND = `${BRAND.name} ${CLI_COMMAND_METADATA.upgrade.name}`
-const CHAT_UPGRADE_COMMAND = `/${UPGRADE_COMMAND_NAME}`
 const LINE_SEPARATOR = '\n'
 const MESSAGE_SEPARATOR = ' '
 const FLAG_PREFIX = '-'
+const TONES = Object.freeze({ success, warn, hint })
 // These print their own version status, speak a protocol on stdio, or are the daemon (which logs
 // the notice instead, and would otherwise print it only when it shuts down).
 const QUIET_COMMANDS: ReadonlySet<string> = new Set([
@@ -53,7 +53,7 @@ const IDLE_NOTICE: UpdateNotice = Object.freeze({ finish: async () => undefined 
 
 interface NoticeLine {
   readonly text: string
-  readonly tone: 'warn' | 'hint'
+  readonly tone: keyof typeof TONES
 }
 
 interface NoticeCadence {
@@ -77,7 +77,7 @@ const CHAT_CADENCE: NoticeCadence = Object.freeze({
   announcedField: 'chatAnnouncedVersion',
   everyMs: CHAT_NOTICE_MS,
   importantEveryMs: CHAT_IMPORTANT_NOTICE_MS,
-  command: CHAT_UPGRADE_COMMAND,
+  command: UPGRADE_CHAT_COMMAND,
 })
 
 /** Starts the refresh alongside the command so the answer is usually in before it finishes; a
@@ -119,12 +119,12 @@ export async function takeChatNotice(config: ResolvedConfig): Promise<string | n
 /** The line the morning brief ends with, read from the cache the daemon keeps fresh: a brief never
  *  waits on the release feed. */
 export async function readUpdateLine(config: ResolvedConfig): Promise<string | null> {
-  if (!(await isUpdateCheckEnabled(config))) {
+  if (!isUpdateCheckEnabled(config)) {
     return null
   }
 
   const state = await readUpdateState(config.paths.dataDir)
-  const lines = formatUpdateNotice(config.locale.language, state, CHAT_UPGRADE_COMMAND)
+  const lines = formatUpdateNotice(config.locale.language, state, UPGRADE_CHAT_COMMAND)
 
   return lines.length === 0 ? null : toChatText(lines)
 }
@@ -177,14 +177,19 @@ export function formatUpdateNotice(
   return lines
 }
 
-export function formatInstalledNotice(locale: Locale, state: UpdateState): readonly NoticeLine[] {
+/** `upgraded`: said once after an update lands, rather than in answer to a version check. */
+export function formatInstalledNotice(
+  locale: Locale,
+  state: UpdateState,
+  options: { readonly upgraded: boolean }
+): readonly NoticeLine[] {
   return [
     {
-      text: t(locale, 'cli.updateInstalled', {
+      text: t(locale, options.upgraded ? 'cli.updateCompleted' : 'cli.updateInstalled', {
         brand: BRAND.display,
         version: `v${BRAND.version}`,
       }),
-      tone: 'warn',
+      tone: 'success',
     },
     ...summaryLines(locale, releaseNoteOf(state, BRAND.version)?.summary[locale]),
   ]
@@ -199,7 +204,7 @@ function formatAvailable(locale: Locale, latest: string): string {
 }
 
 function toTerminalLines(lines: readonly NoticeLine[]): readonly string[] {
-  return lines.map((line) => (line.tone === 'warn' ? warn(line.text) : hint(line.text)))
+  return lines.map((line) => TONES[line.tone](line.text))
 }
 
 /** A chat never gets colour codes or the terminal's warning icon. */
@@ -216,14 +221,14 @@ function summaryLines(locale: Locale, summary: string | undefined): readonly Not
 }
 
 /** Each showing is recorded before it prints, so a data dir that cannot be written stays quiet
- *  instead of repeating itself. The first run only records the running version: a fresh install, or
- *  the first run after v1.0.5, announces nothing. */
+ *  instead of repeating itself. The first run only records the running version, so a fresh install
+ *  announces nothing. */
 async function takeNotice(
   config: ResolvedConfig,
   cadence: NoticeCadence
 ): Promise<readonly NoticeLine[]> {
   try {
-    if (!(await isUpdateCheckEnabled(config))) {
+    if (!isUpdateCheckEnabled(config)) {
       return []
     }
 
@@ -232,16 +237,16 @@ async function takeNotice(
     const now = Date.now()
     const state = await readUpdateState(dataDir)
     const announced = state[cadence.announcedField]
-    const seen = { ...state, [cadence.announcedField]: BRAND.version }
+    const seen: Partial<UpdateState> = { [cadence.announcedField]: BRAND.version }
 
     if (announced !== null && compareVersions(announced, BRAND.version) < 0) {
-      await writeUpdateState(dataDir, seen)
+      await patchUpdateState(dataDir, seen)
 
-      return formatInstalledNotice(locale, state)
+      return formatInstalledNotice(locale, state, { upgraded: true })
     }
 
     if (announced === null) {
-      await writeUpdateState(dataDir, seen)
+      await patchUpdateState(dataDir, seen)
     }
 
     if (
@@ -251,7 +256,7 @@ async function takeNotice(
       return []
     }
 
-    await writeUpdateState(dataDir, { ...seen, [cadence.notifiedField]: now })
+    await patchUpdateState(dataDir, { ...seen, [cadence.notifiedField]: now })
 
     return formatUpdateNotice(locale, state, cadence.command)
   } catch {
@@ -276,7 +281,7 @@ async function refreshWhenStale(config: ResolvedConfig): Promise<void> {
     const dataDir = config.paths.dataDir
     const now = Date.now()
 
-    if (!(await isUpdateCheckEnabled(config))) {
+    if (!isUpdateCheckEnabled(config)) {
       return
     }
 
@@ -286,8 +291,9 @@ async function refreshWhenStale(config: ResolvedConfig): Promise<void> {
       return
     }
 
-    // Marked failed first: an unwritable cache stops here instead of paying the timeout every run.
-    await writeUpdateState(dataDir, { ...state, checkedAt: now, failed: true })
+    // Written back unchanged first: an unwritable cache stops here instead of paying the timeout
+    // every run. Marking it failed here would answer a `/upgrade` asked during the fetch.
+    await patchUpdateState(dataDir, {})
     await refreshUpdateState({ dataDir, now })
   } catch {
     // Started before the command and awaited after it: a rejection here would surface as an
