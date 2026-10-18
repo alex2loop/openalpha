@@ -114,7 +114,7 @@ function matched(record: MarketCapRecord): MarketDetection {
     }
   }
 
-  return { kind: 'match', instrument: record.instrument }
+  return { kind: 'match', instrument: record.instrument, name: record.name }
 }
 
 /** A provider that did not answer is "not today", not "not listed". Without the caveat the registry

@@ -239,7 +239,7 @@ Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lạ
 
 Con số nào còn lại được báo bằng `suggestion.figure-unmatched`, một caveat thông tin. Nó không bao giờ làm đổi kết luận. Một tổng hay một khoảng cách do nhà phân tích tự tính không khớp với số nào, và một khẳng định văn bản tự do không nêu chỉ số hay kỳ nào để đối chiếu, nên con số nào thuộc dòng nào vẫn do bên kiểm chứng quyết định.
 
-**Các tiêu đề được đọc trước khi có ai lập luận từ chúng.** Một yêu cầu tới nhóm mô hình `decisions` hỏi hai câu cho mỗi tiêu đề: nó nói về cái gì (mã này, ngành của mã, thị trường chung, hay không liên quan) và nó có báo xung đột, lệnh trừng phạt hay tình trạng khẩn cấp của nhà nước không.
+**Các tiêu đề được đọc trước khi có ai lập luận từ chúng.** Một yêu cầu tới nhóm mô hình `decisions` hỏi hai câu cho mỗi tiêu đề: nó nói về cái gì (mã này, ngành của mã, thị trường chung, hay không liên quan) và nó có báo xung đột, lệnh trừng phạt hay tình trạng khẩn cấp của nhà nước không. Lần đọc này được cho biết tên công ty và ngành của mã, nên một mã ba chữ cái ngắn không bị nhầm với doanh nghiệp khác.
 
 - Câu trả lời chắc chắn: tiêu đề chuyển giữa phần tin về chính mã và phần bối cảnh thị trường, hoặc bị bỏ.
 - Không chắc: cách nhóm của feed được giữ nguyên.

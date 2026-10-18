@@ -280,6 +280,7 @@ function optionalFields(
   const available = priced.result.kind === 'available' ? priced.result : undefined
 
   return {
+    ...(resolution.name === undefined ? {} : { name: resolution.name }),
     ...(resolution.sector === undefined ? {} : { sector: resolution.sector }),
     ...(resolution.instrumentKind === undefined
       ? {}

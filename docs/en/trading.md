@@ -239,7 +239,7 @@ A row the book holds is also exempt from the depth ratchet on reuse. Otherwise t
 
 Any figure left over raises `suggestion.figure-unmatched` as an information caveat. It never changes a verdict. A sum or gap the analyst worked out matches nothing, and a free-text claim names no metric or period to check against, so which figure belongs to which line stays the verifier's call.
 
-**Headlines are read before anyone argues from them.** One request to the `decisions` model tier asks two questions per headline: what it is about (this instrument, its sector, the market, or nothing here) and whether it reports a conflict, sanctions or a state emergency.
+**Headlines are read before anyone argues from them.** One request to the `decisions` model tier asks two questions per headline: what it is about (this instrument, its sector, the market, or nothing here) and whether it reports a conflict, sanctions or a state emergency. The read is told the company's name and sector, so a short ticker is not mistaken for another business.
 
 - Confident answer: the headline moves between the instrument's own coverage and the market background, or is dropped.
 - Unsure: the feed's grouping stays.

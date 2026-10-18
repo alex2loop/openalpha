@@ -8,7 +8,7 @@ import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
 import type { SuggestionDirection } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorResult, FactorScore, TradeLevels } from '@/trading/kernel/factor'
-import type { PriceDisplay } from '@/trading/kernel/instrument'
+import type { PriceDisplay, Ticker } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
 import type {
   AnalystRecommendation,
@@ -39,7 +39,7 @@ import { portfolioSection } from '@/trading/features/suggestion/pipeline/portfol
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { promptWholePercent } from '@/trading/prompt-text'
-import { renderScoreBand } from '@/trading/render/format'
+import { renderDeclaredValue, renderProvidedValue, renderScoreBand } from '@/trading/render/format'
 import { formatPrice } from '@/trading/render/money'
 
 /** An event that moves no price, told as such: a bare ex-date reads as a reset worth waiting out. */
@@ -73,6 +73,9 @@ const FRAMINGS = Object.freeze({
     target: 'below entry: where the sale has paid off',
   },
 } as const satisfies Record<SuggestionDirection, DecisionFraming>)
+
+const MAXIMUM_INSTRUMENT_NAME_CHARS = 120
+const WHITESPACE_RE = /\s+/g
 
 const EVENTS_UNAVAILABLE =
   'UPCOMING EVENTS: unavailable - the corporate calendar failed this run; never assume nothing is scheduled.'
@@ -117,6 +120,12 @@ interface EvidenceReads {
   readonly accounts: SourceResult<AccountsHistory> | undefined
 }
 
+/** What names the instrument beyond its ticker, shared by the evidence line and the headline read. */
+interface InstrumentFacts {
+  readonly name?: string
+  readonly sectorLabel?: string
+}
+
 export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promise<EvidenceBundle> {
   const { market, input } = options
   const { instrument } = input.draft
@@ -125,7 +134,9 @@ export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promi
   const reads = await readEvidenceSources(market, input)
   const { news, marketNews, recommendations, accounts } = reads
   const ownRanked = headlines(news, now)
+  const facts = instrumentFactsOf(input)
   const read = await readHeadlines({
+    ...facts,
     ...(options.decisionsChain === undefined ? {} : { chain: options.decisionsChain }),
     recordAttempt: options.recordAttempt,
     logger: options.logger,
@@ -149,7 +160,7 @@ export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promi
     headlinesRead: { own: read.own.length, market: read.market.length, costUsd: read.costUsd },
     adjudication: adjudicationSection(input),
     portfolio: portfolioSection(input.exposure),
-    text: evidenceText(input, market, { read, reads }),
+    text: evidenceText(input, market, { read, reads, facts }),
   }
 }
 
@@ -180,6 +191,7 @@ function readEvidenceSources(market: Market, input: DebateInput): Promise<Eviden
 interface EvidenceSections {
   readonly read: HeadlineReads
   readonly reads: EvidenceReads
+  readonly facts: InstrumentFacts
 }
 
 function evidenceText(input: DebateInput, market: Market, sections: EvidenceSections): string {
@@ -188,7 +200,7 @@ function evidenceText(input: DebateInput, market: Market, sections: EvidenceSect
   const consensus = reads.recommendations?.kind === 'available' ? reads.recommendations.value : []
 
   return [
-    instrumentSection(input),
+    instrumentSection(input, sections.facts),
     factorSection(input, display),
     accountsSection(reads.accounts, {
       locale: input.request.locale,
@@ -227,12 +239,51 @@ function reportableCaveats(caveats: readonly Caveat[]): readonly Caveat[] {
   return dedupeCaveats(caveats.filter((caveat) => caveat.code !== 'source.empty-window'))
 }
 
-function instrumentSection(input: DebateInput): string {
+/** The name is a provider's string: one line and a bounded length, so it can never break the prompt
+ *  layout. A name that is only the ticker adds nothing. */
+function instrumentName(name: string | undefined, ticker: Ticker): string | undefined {
+  const line = name
+    ?.replace(WHITESPACE_RE, ' ')
+    .trim()
+    .slice(0, MAXIMUM_INSTRUMENT_NAME_CHARS)
+    .trim()
+
+  return line === undefined || line === '' || line.toLowerCase() === ticker.toLowerCase()
+    ? undefined
+    : line
+}
+
+function instrumentFactsOf(input: DebateInput): InstrumentFacts {
+  const name = instrumentName(input.name, input.draft.instrument.ticker)
+  const { sector } = input
+
+  return {
+    ...(name === undefined ? {} : { name }),
+    ...(sector === undefined
+      ? {}
+      : {
+          sectorLabel: renderProvidedValue(
+            input.request.locale,
+            `trading.sector.${sector}`,
+            sector
+          ),
+        }),
+  }
+}
+
+function instrumentSection(input: DebateInput, facts: InstrumentFacts): string {
+  const { locale } = input.request
+  const { ticker, market } = input.draft.instrument
   const tier = input.draft.indexTier
   const basket = tier === undefined ? '' : ` (${tier} constituent)`
+  const marketLabel = renderDeclaredValue(locale, `trading.market.${market}`)
+  const subject = [ticker, facts.name, facts.sectorLabel, `on ${marketLabel}${basket}`]
+    .filter((part) => part !== undefined)
+    .join(' - ')
 
   return [
-    `INSTRUMENT: ${input.draft.instrument.ticker} on ${input.draft.instrument.market}${basket}`,
+    `INSTRUMENT: ${subject}`,
+    'Every claim is about this instrument; never substitute another company, coin, or ticker.',
     `AS OF: ${input.draft.evidenceThrough ?? input.draft.at}`,
     `DECISION: ${FRAMINGS[framedDirectionOf(input.draft)].question}`,
   ].join('\n')

@@ -80,6 +80,8 @@ export function debateInputFor(input: DebatePlanInput): DebateInput {
       since: roundTripWindowStart(prepared.market.manifest.calendar, prepared.draft.at),
       ...(prepared.sector === undefined ? {} : { sector: prepared.sector }),
     }),
+    ...(prepared.name === undefined ? {} : { name: prepared.name }),
+    ...(prepared.sector === undefined ? {} : { sector: prepared.sector }),
     ...(prepared.upcomingEvents.length === 0 ? {} : { upcomingEvents: prepared.upcomingEvents }),
     ...(prepared.calendarFailed === true ? { calendarFailed: true } : {}),
     ...(prepared.levels === undefined ? {} : { proposedLevels: prepared.levels }),

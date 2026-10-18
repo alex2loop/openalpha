@@ -116,6 +116,8 @@ export interface DebateInput {
   /** The calendar read failed, which an empty `upcomingEvents` would otherwise read as nothing
    *  scheduled. */
   readonly calendarFailed?: true
+  readonly name?: string
+  readonly sector?: string
   readonly proposedLevels?: TradeLevels
   /** Read by the roles that decide, never by the two that argue: a researcher handed the book
    *  argues portfolio construction instead of this name's evidence, which is not its question. */
@@ -202,6 +204,7 @@ export interface Prepared {
   readonly levels?: TradeLevels
   readonly dailyBand?: DailyPriceBand
   readonly medianTurnover?: number
+  readonly name?: string
   /** What the market files this name under, when it keeps a sector. Sizing weighs a buy against the
    *  book's existing exposure to it. */
   readonly sector?: string
