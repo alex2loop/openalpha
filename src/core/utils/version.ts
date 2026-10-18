@@ -18,7 +18,7 @@ export function compareVersions(left: string, right: string): number {
 }
 
 /** True when `candidate` is newer than `current` within the same major and minor: a 1.0.x fix, never a
- *  1.1.0 feature release. */
+ *  1.1.0 feature release. A prerelease suffix is ignored, as in `compareVersions`. */
 export function isPatchRelease(candidate: string, current: string): boolean {
   const [major, minor] = releaseOf(candidate)
   const [currentMajor, currentMinor] = releaseOf(current)

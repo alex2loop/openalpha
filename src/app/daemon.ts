@@ -122,6 +122,7 @@ async function startDaemonSubsystems(
   const { disposers } = teardown
 
   const channels = await startChannels(channelDeps(app, startupSignal))
+  const tradingTasks = app.resolve('tradingServices').daemonTasks
   disposers.push(() => channels.stop())
   disposers.push(
     startScheduledWorkflows(
@@ -142,7 +143,7 @@ async function startDaemonSubsystems(
       delivery.attach({
         notifier: channels.notifier,
         snapshots: channels.snapshots,
-        isBusy: channels.isBusy,
+        isWorking: () => channels.isWorking() || isAnyTaskWorking(tradingTasks),
         ...(channels.defaultRecipient === undefined
           ? {}
           : { recipient: channels.defaultRecipient }),
@@ -163,7 +164,7 @@ async function startDaemonSubsystems(
   // After delivery is attached: an alert or brief that fires on the first tick must have a channel
   // to reach. Each task goes through the same tracker as the scheduler's, but a trading loop
   // quarantines its own failure first, so a bad tick stops that loop and not the daemon.
-  for (const task of app.resolve('tradingServices').daemonTasks) {
+  for (const task of tradingTasks) {
     trackDaemonTask({ tasks, state, startup, name: task.name, task: task.start(startupSignal) })
   }
 
@@ -245,6 +246,11 @@ interface TrackDaemonTaskOptions {
   readonly startup: AbortController
   readonly name: string
   readonly task: Promise<void>
+}
+
+/** A trading pass in flight, a brief's debate or a refresh, is work a self-upgrade waits for. */
+function isAnyTaskWorking(tasks: readonly DaemonTask[]): boolean {
+  return tasks.some((task) => task.isWorking?.() === true)
 }
 
 function trackDaemonTask(options: TrackDaemonTaskOptions): void {

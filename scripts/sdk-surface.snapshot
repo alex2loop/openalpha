@@ -23,7 +23,6 @@ cli:UPGRADE_COMMAND
 cli:UpdateState
 cli:Writer
 cli:admitCommand
-cli:buildSelfArgv
 cli:createCommand
 cli:createGroup
 cli:createRoot
@@ -54,7 +53,7 @@ cli:readUpdateState
 cli:refreshUpdateState
 cli:resolveContributedCliCommands
 cli:runCli
-cli:spawnDetached
+cli:spawnUpgradeProcess
 cli:startUpdateNotice
 cli:starterConfigToml
 cli:stopDaemonIfRunning

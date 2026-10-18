@@ -105,7 +105,18 @@ install_binary() {
          "Tệp tải về không khớp mã kiểm tra nên tôi chưa cài. Chạy lại script này nhé."
 
   chmod 755 "$part"
+  keep_previous
   mv -f "$part" "$INSTALL_DIR/$COMMAND"
+}
+
+# The release being replaced stays next to the new one as `.old`, as `openalpha upgrade` keeps it,
+# so `upgrade --rollback` goes back to it. A filesystem without hard links gets a copy.
+keep_previous() {
+  [ -x "$INSTALL_DIR/$COMMAND" ] || return 0
+  rm -f "$INSTALL_DIR/$COMMAND.old"
+  ln "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null \
+    || cp -p "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null \
+    || true
 }
 
 wire_path() {
@@ -171,12 +182,12 @@ main() {
   NEW_TERMINAL="no"
   wire_path
 
+  "$INSTALL_DIR/$COMMAND" version
+
   # An upgrade moves a background daemon onto the new binary; a pinned install must not be pulled
-  # past the release it asked for, so it only prints the version.
+  # past the release it asked for.
   if [ "$FIRST_INSTALL" = "no" ] && [ -z "${OPENALPHA_VERSION:-}" ]; then
     "$INSTALL_DIR/$COMMAND" upgrade || true
-  else
-    "$INSTALL_DIR/$COMMAND" version
   fi
 
   ONBOARD="skipped"

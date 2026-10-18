@@ -73,7 +73,7 @@ interface SkippedChannel {
 export interface StartChannelsResult {
   stop(): Promise<void>
   snapshots(): readonly ChannelRuntimeSnapshot[]
-  isBusy(): boolean
+  isWorking(): boolean
   readonly skipped: readonly SkippedChannel[]
   /** Routes an acknowledged send to whichever runtime owns its channel. Undefined if none started. */
   notifier?: AcknowledgedRouter
@@ -268,7 +268,7 @@ function buildResult(
       await Promise.allSettled(started.map((entry) => entry.runtime.dispose()))
     },
     snapshots: () => started.map((entry) => entry.runtime.snapshot()),
-    isBusy: () => started.some((entry) => entry.runtime.isBusy()),
+    isWorking: () => started.some((entry) => entry.runtime.isWorking()),
     skipped,
   }
 

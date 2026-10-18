@@ -7,6 +7,8 @@ import { sanitizeDisplayText } from '@/core/utils/text'
 
 const WHITESPACE_RE = /\s+/
 const SOURCE_ENTRY_SUFFIX = 'main.ts'
+// Read once at load: a binary replaced while it runs may report a changed path afterwards.
+const SELF_PATH = process.execPath
 
 // CLI commands receive typed service access through this wiring layer rather than calling the
 // container directly from command behavior.
@@ -41,21 +43,22 @@ export function resolveSelfCommand(): SelfCommand {
   const entry = process.argv[1]
 
   return {
-    command: process.execPath,
+    command: SELF_PATH,
     args: entry?.endsWith(SOURCE_ENTRY_SUFFIX) === true ? [entry] : [],
   }
 }
 
-/** Both paths are always named, so a restart loads the same files whatever directory it runs from.
- *  A config file the daemon never had stays unnamed: an explicit `--config` to a missing file is an
- *  error where the default one is simply absent. */
-export function buildSelfArgv(options: {
+/** The data dir is always named, and the config file whenever it exists, so a restart loads the same
+ *  files whatever directory it runs from. A missing one stays unnamed: an explicit `--config` to a
+ *  missing file is an error where the default one is simply absent. */
+export async function buildSelfArgv(options: {
   readonly dataDir: string
-  readonly configPath?: string | undefined
+  readonly configPath: string
   readonly tail: readonly string[]
-}): string[] {
+}): Promise<string[]> {
   const { command, args } = resolveSelfCommand()
-  const config = options.configPath === undefined ? [] : ['--config', options.configPath]
+  const hasConfig = await Bun.file(options.configPath).exists()
+  const config = hasConfig ? ['--config', options.configPath] : []
 
   return [command, ...args, '--data-dir', options.dataDir, ...config, ...options.tail]
 }

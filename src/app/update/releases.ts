@@ -58,13 +58,18 @@ async function describeRelease(app: App, request: UpgradeRequest): Promise<Upgra
   }
 
   // Shown here, so the private-chat reminder does not repeat it.
-  await writeUpdateState(app.config.paths.dataDir, { ...state, chatNotifiedAt: now }).catch(
-    () => undefined
-  )
+  await writeUpdateState(app.config.paths.dataDir, { ...state, chatNotifiedAt: now }).catch(() => {
+    // A cache that cannot be written only lets the reminder repeat this once.
+  })
+
+  // Only a compiled binary can install itself; anything else is told the terminal command.
+  if (!isCompiledBinary()) {
+    return { text: toChatText(formatUpdateNotice(locale, state, UPGRADE_COMMAND)) }
+  }
 
   return {
     text: toChatText(formatUpdateNotice(locale, state, CONFIRM_COMMAND)),
-    ...(isCompiledBinary() ? { confirmLabel: t(locale, 'cli.upgradeConfirmLabel') } : {}),
+    confirmLabel: t(locale, 'cli.upgradeConfirmLabel'),
   }
 }
 
@@ -83,6 +88,10 @@ async function installRelease(
 
   if (unavailable !== null) {
     return { text: unavailable }
+  }
+
+  if (!isCompiledBinary()) {
+    return { text: t(locale, 'cli.upgradeSourceCheckout') }
   }
 
   const state = await readFreshUpdateState(app.config.paths.dataDir, {
@@ -125,7 +134,7 @@ function toStartText(locale: Locale, started: UpgradeStart, latest: string): str
     case 'busy':
       return t(locale, 'cli.upgradeInProgress')
     case 'working':
-      return t(locale, 'cli.upgradeWhileWorking')
+      return t(locale, 'cli.upgradeWhileWorking', { command: CONFIRM_COMMAND })
     case 'failed':
       return t(locale, 'cli.upgradeFailed', { current: `v${BRAND.version}` })
     case 'started':

@@ -8,7 +8,7 @@ export interface ActiveSlashRuns {
   abortChat(chatId: string): boolean
   abortAll(): void
   /** Whether a long-running slash command is in flight in any chat. */
-  isBusy(): boolean
+  isWorking(): boolean
 }
 
 export function createActiveSlashRuns(): ActiveSlashRuns {
@@ -72,7 +72,7 @@ export function createActiveSlashRuns(): ActiveSlashRuns {
       return aborted
     },
 
-    isBusy: () => active.size > 0,
+    isWorking: () => active.size > 0,
 
     abortAll(): void {
       for (const byChat of active.values()) {

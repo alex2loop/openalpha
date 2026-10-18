@@ -116,7 +116,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/model` | Show a configured model selector anywhere; select one in a chat channel |
 | `/research` | Run bounded, cited research without changing the selected agent |
 | `/health` | Show runtime and channel health codes |
-| `/upgrade` | Operator only: shows your version, the latest release and what it brings |
+| `/upgrade` | Operator only: shows your version, the latest release and what it brings; `/upgrade confirm` (or the button) installs it from Telegram/Zalo |
 | `/memory` | List, recall, search, store or remove memory |
 | `/cost` | Show this chat's usage and today's spend against the cap |
 | `/schedule` | List, inspect, pause, resume or run one of your jobs |
@@ -243,13 +243,14 @@ no messages from anyone. `doctor` still reports a missing key as a failure on it
 (bad TOML, an invalid value), an API port already taken, a daemon already running and a storage
 failure still stop `start`.
 
-`status` names the version the running daemon was started from. Re-running the install
-script restarts a background daemon on the new binary; an install pinned with `OPENALPHA_VERSION` leaves
-the daemon for you, and `status` flags it, with the `stop` and `start` that switch it over. When the running daemon started without some keys, `status` repeats the
-`start` warnings: which channels were skipped and why, which keys are unset and what waits for them,
-even after a reboot. Exchange keys and the keys of optional data sources are listed apart under
-"optional keys": without them you record trades by hand, and `start` does not warn. The desktop app
-reads the same list from `/v1/state`. `upgrade` brings a background daemon back up on the new release itself.
+`status` names the version the running daemon was started from. Re-running the install script
+restarts a background daemon on the new binary; an install pinned with `OPENALPHA_VERSION` leaves
+the daemon for you, and `status` flags it, with the `stop` and `start` that switch it over. When the
+running daemon started without some keys, `status` repeats the `start` warnings: which channels were
+skipped and why, which keys are unset and what waits for them, even after a reboot. Exchange keys
+and the keys of optional data sources are listed apart under "optional keys": without them you
+record trades by hand, and `start` does not warn. The desktop app reads the same list from
+`/v1/state`. `upgrade` brings a background daemon back up on the new release itself.
 
 `doctor` is always read-only. Offline it checks only what it can see locally; `--online` adds live
 probes of PostgreSQL, providers, channel tokens, web search and exchange keys. The provider probe
@@ -278,7 +279,7 @@ When a newer release is out, the CLI says so once a day, under the command's out
 
 `upgrade` downloads the release binary for your machine next to the installed one and checks it against the release's SHA256SUMS. Only then does it pause a running daemon and swap the binary in. A daemon started with `start --background` is started again on the new release by itself, from the same config file and data folder, and if it will not start, `upgrade` goes back to the release that ran and says so. A daemon running in a terminal window or under a service is left for you, with the command to run. Your data folder and config are never touched. If the swap itself fails, the old version stays in place and the stopped daemon is started again, or the message says how to. A cut download, a checksum mismatch or Ctrl-C all end before the swap, so your current version stays and a running daemon keeps running.
 
-The release you replaced stays next to the new one as `openalpha.old`, on every platform, and `upgrade --rollback` swaps back to it. `upgrade --check` only reports. A source checkout updates with `git pull`.
+The release you replaced stays next to the new one as `openalpha.old` (`openalpha.exe.old` on Windows), and `upgrade --rollback` swaps back to it. `upgrade --check` only reports. A source checkout updates with `git pull`.
 
 On a Windows machine with an ARM chip, the installer picks the native ARM build; an older x64 install keeps upgrading as x64 until you re-run the install command, which moves it to the native one.
 

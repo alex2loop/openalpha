@@ -1,18 +1,14 @@
-import { join } from 'node:path'
-
 import type { DeliveryHub } from '@/app/delivery'
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveryTarget } from '@/scheduler/api'
 import {
-  buildSelfArgv,
   formatInstalledNotice,
-  getEnv,
   isBackgroundLaunch,
   type PendingUpgrade,
   readUpdateState,
-  spawnDetached,
+  spawnUpgradeProcess,
   toChatText,
   type UpdateState,
   writeUpdateState,
@@ -22,22 +18,24 @@ import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_MINUTE } from '@/core/utils/time'
+import { compareVersions } from '@/core/utils/version'
 import { t } from '@/i18n'
 
 // Longer than the upgrade's own 5-minute download timeout plus the 90-second daemon start.
 const PENDING_UPGRADE_MS = 10 * MS_PER_MINUTE
-const UPGRADE_STDOUT_LOG = 'upgrade.stdout.log'
-const UPGRADE_STDERR_LOG = 'upgrade.stderr.log'
+const CHAT_UPGRADE_COMMAND = `/${UPGRADE_COMMAND_NAME}`
 
 /** `busy`: an upgrade is already under way. `working`: the bot is mid-run, and a restart would cut
  *  it off. */
 export type UpgradeStart = 'started' | 'busy' | 'working' | 'foreground' | 'failed'
 
+interface UpgradeRequest {
+  readonly latest: string
+  readonly target?: DeliveryTarget
+}
+
 export interface SelfUpgrade {
-  start(request: {
-    readonly latest: string
-    readonly target?: DeliveryTarget
-  }): Promise<UpgradeStart>
+  start(request: UpgradeRequest): Promise<UpgradeStart>
   announceOutcome(): Promise<void>
 }
 
@@ -71,10 +69,7 @@ export function createSelfUpgrade(app: App, delivery: DeliveryHub): SelfUpgrade 
   }
 }
 
-async function startUpgrade(
-  parts: UpgradeParts,
-  request: { readonly latest: string; readonly target?: DeliveryTarget }
-): Promise<UpgradeStart> {
+async function startUpgrade(parts: UpgradeParts, request: UpgradeRequest): Promise<UpgradeStart> {
   const { app, delivery } = parts
 
   // A daemon in a terminal or under a service is not ours to restart.
@@ -84,67 +79,60 @@ async function startUpgrade(
 
   // A restart drains for up to 30 s and then aborts: an answer, a research run or a tool approval
   // waiting for its tap would be lost.
-  if (app.resolve('runRegistry').active().length > 0 || delivery.isBusy()) {
+  if (app.resolve('runRegistry').active().length > 0 || delivery.isWorking()) {
     return 'working'
   }
 
-  const { dataDir } = app.config.paths
   const now = Date.now()
-  const state = await readUpdateState(dataDir)
+  const state = await readUpdateState(app.config.paths.dataDir)
 
   if (isPending(state.pendingUpgrade, now)) {
     return 'busy'
   }
 
-  const target = request.target ?? delivery.defaultRecipient()
+  return await spawnUpgrade(parts, { request, state, now })
+}
+
+/** The pending record goes down before the process starts, so the next daemon knows whom to tell.
+ *  A record that cannot be written, or a process that cannot start, is a failed start. */
+async function spawnUpgrade(
+  parts: UpgradeParts,
+  begin: { readonly request: UpgradeRequest; readonly state: UpdateState; readonly now: number }
+): Promise<UpgradeStart> {
+  const { app, delivery, logger } = parts
+  const { dataDir } = app.config.paths
+  const target = begin.request.target ?? delivery.defaultRecipient()
   const pendingUpgrade: PendingUpgrade = {
     from: BRAND.version,
-    to: request.latest,
-    requestedAt: now,
+    to: begin.request.latest,
+    requestedAt: begin.now,
     ...(target === undefined ? {} : { target: { channel: target.channel, chatId: target.chatId } }),
   }
 
-  await writeUpdateState(dataDir, { ...state, pendingUpgrade })
-
-  return await spawnUpgrade(parts, { target, latest: request.latest })
-}
-
-async function spawnUpgrade(
-  parts: UpgradeParts,
-  request: { readonly target: DeliveryTarget | undefined; readonly latest: string }
-): Promise<UpgradeStart> {
-  const { app, logger } = parts
-  const { dataDir } = app.config.paths
-  const hasConfig = await Bun.file(app.configPath).exists()
-
   try {
-    const child = spawnDetached({
-      argv: buildSelfArgv({
-        dataDir,
-        configPath: hasConfig ? app.configPath : undefined,
-        tail: [UPGRADE_COMMAND_NAME],
-      }),
-      stdoutPath: join(dataDir, UPGRADE_STDOUT_LOG),
-      stderrPath: join(dataDir, UPGRADE_STDERR_LOG),
-      env: getEnv(),
-    })
+    await writeUpdateState(dataDir, { ...begin.state, pendingUpgrade })
+
+    const child = await spawnUpgradeProcess(app)
 
     child.exited
-      .then((code) => reportUpgradeExit(parts, { code, ...request }))
+      .then((code) => reportUpgradeExit(parts, { code, target, latest: begin.request.latest }))
       .catch((err: unknown) => {
         logger.warn('update.install_report_failed', { err: formatErrForLog(err) })
       })
 
     return 'started'
   } catch (err: unknown) {
-    logger.error('update.install_spawn_failed', { err: formatErrForLog(err) })
-    await clearPendingUpgrade(dataDir)
+    logger.error('update.install_start_failed', { err: formatErrForLog(err) })
+    await clearPendingUpgrade(dataDir).catch(() => {
+      // The record expires on its own after PENDING_UPGRADE_MS.
+    })
 
     return 'failed'
   }
 }
 
-/** A daemon the upgrade replaced reports nothing here: the new one does, from its first check. */
+/** A daemon the upgrade replaced reports nothing here: the new one does, once it is ready. Any exit
+ *  while this daemon still runs means it is still on its own release. */
 async function reportUpgradeExit(
   parts: UpgradeParts,
   exit: {
@@ -154,26 +142,27 @@ async function reportUpgradeExit(
   }
 ): Promise<void> {
   const { app, logger } = parts
+  const locale = app.config.locale.language
+  const current = `v${BRAND.version}`
 
   if (app.signal.aborted) {
     return
   }
 
-  if (exit.code === 0) {
-    await clearPendingUpgrade(app.config.paths.dataDir)
+  // A failed install is remembered like a rollback, so auto update does not try the same release
+  // again every night; an exit that changed nothing leaves it free to.
+  await clearPendingUpgrade(app.config.paths.dataDir, exit.code === 0 ? undefined : exit.latest)
 
-    return
+  if (exit.code !== 0) {
+    logger.error('update.install_failed', { code: exit.code })
   }
 
-  // Auto update must not try this release again on its own: a failure that repeats would restart
-  // the bot every night.
-  await clearPendingUpgrade(app.config.paths.dataDir, exit.latest)
+  const text =
+    exit.code === 0
+      ? t(locale, 'cli.upgradeNotSwitched', { current, command: CHAT_UPGRADE_COMMAND })
+      : t(locale, 'cli.upgradeFailed', { current })
 
-  logger.error('update.install_failed', { code: exit.code })
-  await sendToTarget(parts, {
-    target: exit.target,
-    text: t(app.config.locale.language, 'cli.upgradeFailed', { current: `v${BRAND.version}` }),
-  })
+  await sendToTarget(parts, { target: exit.target, text })
 }
 
 async function announceUpgradeOutcome(parts: UpgradeParts): Promise<void> {
@@ -188,7 +177,7 @@ async function announceUpgradeOutcome(parts: UpgradeParts): Promise<void> {
 
   // Too old to be this run's upgrade: the daemon restarted for some other reason.
   const current = isPending(pending, Date.now())
-  const failed = current && BRAND.version !== pending.to
+  const failed = current && !isUpgradedFrom(pending)
 
   // Cleared before sending, so a crash never repeats the message. A failed install is remembered
   // like a rollback, so auto update does not try the same release again tonight.
@@ -198,12 +187,8 @@ async function announceUpgradeOutcome(parts: UpgradeParts): Promise<void> {
     return
   }
 
-  const target =
-    pending.target === undefined
-      ? undefined
-      : { channel: channelId(pending.target.channel), chatId: pending.target.chatId }
   const result = await sendToTarget(parts, {
-    target,
+    target: toDeliveryTarget(pending),
     text: toOutcomeText(app.config.locale.language, state, pending),
   })
 
@@ -213,22 +198,25 @@ async function announceUpgradeOutcome(parts: UpgradeParts): Promise<void> {
     return
   }
 
-  if (BRAND.version === pending.to) {
-    const fresh = await readUpdateState(dataDir)
+  // Whatever the outcome, the operator now knows which release runs.
+  const fresh = await readUpdateState(dataDir)
 
-    await writeUpdateState(dataDir, { ...fresh, chatAnnouncedVersion: BRAND.version })
-  }
+  await writeUpdateState(dataDir, { ...fresh, chatAnnouncedVersion: BRAND.version })
 }
 
+/** Newer than where it started is a success even when a later release than the one asked for came
+ *  out in between; the upgrade always takes the newest. */
 function toOutcomeText(locale: Locale, state: UpdateState, pending: PendingUpgrade): string {
-  if (BRAND.version === pending.to) {
+  if (isUpgradedFrom(pending)) {
     return toChatText(formatInstalledNotice(locale, state))
   }
 
-  if (state.rolledBackVersion === pending.to) {
+  const failed = state.rolledBackVersion
+
+  if (failed !== null && compareVersions(failed, pending.from) > 0) {
     return t(locale, 'cli.upgradeRolledBack', {
       brand: BRAND.display,
-      failed: `v${pending.to}`,
+      failed: `v${failed}`,
       current: `v${BRAND.version}`,
     })
   }
@@ -249,6 +237,18 @@ async function sendToTarget(
   }
 
   return await delivery.sendAcknowledged(to, { text: message.text }, app.signal)
+}
+
+function toDeliveryTarget(pending: PendingUpgrade): DeliveryTarget | undefined {
+  if (pending.target === undefined) {
+    return undefined
+  }
+
+  return { channel: channelId(pending.target.channel), chatId: pending.target.chatId }
+}
+
+function isUpgradedFrom(pending: PendingUpgrade): boolean {
+  return compareVersions(BRAND.version, pending.from) > 0
 }
 
 function isPending(pending: PendingUpgrade | null, now: number): boolean {

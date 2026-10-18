@@ -217,10 +217,11 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # Twice a day OpenAlpha asks GitHub whether a newer release is out and tells you
 # what it brings: in the CLI, at the foot of the morning brief, and in your
 # private chat with the bot. `/upgrade` in chat or `openalpha upgrade` installs
-# it. With auto = true, a background daemon installs patch releases (1.0.x) by
-# itself between 00:00 and 06:00 on your [locale] timezone, never while one of
-# your markets is in session, and messages you when it is back; it goes back to
-# the old release by itself if the new one will not start. On a server, set
+# it. With auto = true, a background daemon installs patch releases (1.0.5 to
+# 1.0.6, say) by itself between 00:00 and 06:00 on your [locale] timezone, never
+# while one of your markets is in session (crypto never closes, so it does not
+# count), and messages you when it is back; it goes back to the old release by
+# itself if the new one will not start. On a server, set
 # [locale] timezone so the window falls at night. A source checkout never asks;
 # under CI only `version` and `doctor --online` do.
 

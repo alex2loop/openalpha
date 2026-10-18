@@ -30,11 +30,13 @@ interface UpdateWatchOptions {
   readonly upgrade: SelfUpgrade
 }
 
-/** The newest release each log line has already said, so an hourly tick repeats nothing. */
+/** The newest release each log line has already said, and the last one tried, so an hourly tick
+ *  repeats nothing. */
 interface WatchMemory {
   loggedLatest: string | null
   skippedLatest: string | null
   blockedLatest: string | null
+  attemptedLatest: string | null
 }
 
 interface TickOptions extends UpdateWatchOptions {
@@ -45,8 +47,6 @@ interface TickOptions extends UpdateWatchOptions {
 
 interface AutoUpdateInput {
   readonly config: ResolvedConfig
-  readonly enabled: boolean
-  readonly sessionOpen: boolean
   readonly state: UpdateState
   readonly window: DailyWindow
   readonly now: number
@@ -59,7 +59,12 @@ export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => P
   const { logger } = options
   const controller = new AbortController()
   const window = parseDailyWindow(AUTO_UPDATE_WINDOW, app.config.locale.timezone)
-  const memory: WatchMemory = { loggedLatest: null, skippedLatest: null, blockedLatest: null }
+  const memory: WatchMemory = {
+    loggedLatest: null,
+    skippedLatest: null,
+    blockedLatest: null,
+    attemptedLatest: null,
+  }
   let inFlight: Promise<void> | null = null
 
   const check = (): void => {
@@ -92,9 +97,8 @@ export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => P
 
 async function runUpdateCheck(app: App, options: TickOptions): Promise<void> {
   const { config } = app
-  const enabled = await isUpdateCheckEnabled(config)
 
-  if (!enabled) {
+  if (!(await isUpdateCheckEnabled(config))) {
     return
   }
 
@@ -111,23 +115,29 @@ async function runUpdateCheck(app: App, options: TickOptions): Promise<void> {
     options.logger.info('update.available', { current: BRAND.version, latest })
   }
 
-  if (config.update.auto) {
-    await installWhenDue(app, options, { config, enabled, state, now })
+  if (isAutoUpdateDue({ config, state, window: options.window, now })) {
+    await installWhenSessionsClosed(app, options, { latest, now })
   }
 }
 
-async function installWhenDue(
+/** One attempt per release per daemon run: a release that fails to download or install waits for
+ *  the operator's `/upgrade confirm` instead of retrying every hour. The session is read last, only
+ *  for a release that is otherwise due, so the book is not read on every tick. */
+async function installWhenSessionsClosed(
   app: App,
   options: TickOptions,
-  tick: Pick<AutoUpdateInput, 'config' | 'enabled' | 'state' | 'now'>
+  due: { readonly latest: string; readonly now: number }
 ): Promise<void> {
-  const { memory, logger, window } = options
-  const latest = newerVersionOf(tick.state)
-  const sessionOpen = await readSessionOpen(app, options, tick.now)
-  const input: AutoUpdateInput = { ...tick, sessionOpen, window }
+  const { memory, logger, signal } = options
+  const { latest } = due
 
-  // Every condition but the session decides whether a blocked night is worth a line.
-  if (latest === null || !isAutoUpdateDue({ ...input, sessionOpen: false })) {
+  if (memory.attemptedLatest === latest) {
+    return
+  }
+
+  const sessionOpen = await isSessionOpen(app, options, due.now)
+
+  if (signal.aborted) {
     return
   }
 
@@ -142,6 +152,10 @@ async function installWhenDue(
 
   const started = await options.upgrade.start({ latest })
 
+  if (started === 'started' || started === 'failed') {
+    memory.attemptedLatest = latest
+  }
+
   if (started === 'foreground' && memory.skippedLatest !== latest) {
     memory.skippedLatest = latest
     logger.info('update.auto_skipped', { latest })
@@ -152,28 +166,30 @@ async function installWhenDue(
   }
 }
 
-/** When in doubt, a session is open: an unreadable book never installs. */
-async function readSessionOpen(app: App, options: TickOptions, now: number): Promise<boolean> {
+/** When in doubt, a session is open: an unreadable book never installs. A tick cut short by
+ *  shutdown reads as open too, so nothing starts while the daemon goes down. */
+async function isSessionOpen(app: App, options: TickOptions, now: number): Promise<boolean> {
   try {
     return await app.resolve('tradingServices').isSessionOpen(now, options.signal)
   } catch (err: unknown) {
-    options.logger.warn('update.session_check_failed', { err: formatErrForLog(err) })
+    if (!options.signal.aborted) {
+      options.logger.warn('update.session_check_failed', { err: formatErrForLog(err) })
+    }
 
     return true
   }
 }
 
+/** Everything but the session, which costs a read of the book and is asked only after this. */
 function isAutoUpdateDue(input: AutoUpdateInput): boolean {
   const { config, state, now } = input
   const latest = newerVersionOf(state)
 
   return (
-    input.enabled &&
     config.update.auto &&
     latest !== null &&
     isPatchRelease(latest, BRAND.version) &&
     latest !== state.rolledBackVersion &&
-    isWithinDailyWindow(now, input.window) &&
-    !input.sessionOpen
+    isWithinDailyWindow(now, input.window)
   )
 }

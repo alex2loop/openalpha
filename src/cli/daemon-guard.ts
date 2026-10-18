@@ -6,6 +6,7 @@ import { z } from 'zod'
 import type { CliApp } from '@/cli/types'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { MessageKey } from '@/i18n'
+import { isBackgroundLaunch } from '@/cli/daemon-env'
 import { getEnv } from '@/cli/env'
 import { fail, hint } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
@@ -23,11 +24,8 @@ const PID_LOCK_MAX_ATTEMPTS = 3
 const STOP_POLL_MS = 500
 // ps prints lstart in the caller's locale; the daemon (launchd/systemd) and the CLI must agree.
 const IDENTITY_ENV = { LC_ALL: 'C' } as const
-
-/** Set only by the process that starts a background daemon: it marks a daemon no terminal or
- *  service owns, the only kind `upgrade` may restart by itself. */
-const BACKGROUND_ENV = `${BRAND.envPrefix}BACKGROUND`
-const BACKGROUND_ENV_VALUE = '1'
+// Between the start time and the image path in a Windows identity; the ISO time has no space.
+const IDENTITY_SEPARATOR = ' '
 
 interface ProcessIdentity {
   readonly pid: number
@@ -66,14 +64,6 @@ function stopFilePath(app: CliApp): string {
 
 function readyFilePath(app: { readonly config: Pick<ResolvedConfig, 'paths'> }): string {
   return join(app.config.paths.dataDir, BRAND.readyFile)
-}
-
-export function buildBackgroundEnv(): Record<string, string | undefined> {
-  return { ...getEnv(), [BACKGROUND_ENV]: BACKGROUND_ENV_VALUE }
-}
-
-export function isBackgroundLaunch(): boolean {
-  return getEnv()[BACKGROUND_ENV] === BACKGROUND_ENV_VALUE
 }
 
 export async function liveDaemonPid(app: CliApp): Promise<number | null> {
@@ -448,7 +438,22 @@ async function identityState(identity: ProcessIdentity): Promise<'match' | 'mism
     return 'unknown'
   }
 
-  return current === identity.started ? 'match' : 'mismatch'
+  return isSameStart(current, identity.started) ? 'match' : 'mismatch'
+}
+
+/** On Windows the recorded identity is the start time and then the image path, and the install
+ *  script renames a running exe aside, so the path may differ from the one recorded. The start time,
+ *  to the tick, still tells this daemon from a process that reused its pid. */
+function isSameStart(current: string, recorded: string): boolean {
+  if (process.platform !== 'win32') {
+    return current === recorded
+  }
+
+  return startTimeOf(current) === startTimeOf(recorded)
+}
+
+function startTimeOf(identity: string): string {
+  return identity.split(IDENTITY_SEPARATOR, 1)[0] ?? ''
 }
 
 /** Start time plus command line: together they tell this daemon from a later process that reused

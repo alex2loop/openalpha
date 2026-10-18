@@ -43,8 +43,9 @@ export interface DeliveryHub {
   attached(): boolean
   /** Live channel lifecycle snapshots; empty while no daemon channels are attached. */
   snapshots(): readonly ChannelRuntimeSnapshot[]
-  /** True while a channel runs a long slash command a restart would cut off; false with no channels. */
-  isBusy(): boolean
+  /** True while a channel runs a long slash command, or a trading pass such as a brief's debate is
+   *  in flight: work a restart would cut off. False with no channels. */
+  isWorking(): boolean
   /** Delivers and reports whether the send actually completed. The delivery state machines in
    *  trading are only correct if `accepted` means the sender call finished — `sink.notify` is
    *  fire-and-forget by comparison. */
@@ -57,7 +58,7 @@ export interface DeliveryHub {
   attach(options: {
     readonly notifier: AcknowledgedRouter
     readonly snapshots: () => readonly ChannelRuntimeSnapshot[]
-    readonly isBusy: () => boolean
+    readonly isWorking: () => boolean
     readonly recipient?: DeliveryTarget
   }): () => Promise<void>
 }
@@ -92,7 +93,7 @@ export function createDeliveryHub(): DeliveryHub {
   let notifier: AcknowledgedRouter | null = null
   let recipient: DeliveryTarget | undefined
   let readSnapshots: (() => readonly ChannelRuntimeSnapshot[]) | null = null
-  let readBusy: (() => boolean) | null = null
+  let readWorking: (() => boolean) | null = null
 
   // Read once per call: a detach racing the await would otherwise leave the second read null and
   // turn a completed send into a thrown "no channel attached".
@@ -144,13 +145,13 @@ export function createDeliveryHub(): DeliveryHub {
     },
     attached: () => readSnapshots !== null,
     snapshots: () => readSnapshots?.() ?? [],
-    isBusy: () => readBusy?.() ?? false,
+    isWorking: () => readWorking?.() ?? false,
 
     attach(options): () => Promise<void> {
       notifier = options.notifier
       recipient = options.recipient
       readSnapshots = options.snapshots
-      readBusy = options.isBusy
+      readWorking = options.isWorking
 
       return () => {
         // Both: a detached channel must not leave a stale address behind. The queues belong to the
@@ -158,7 +159,7 @@ export function createDeliveryHub(): DeliveryHub {
         notifier = null
         recipient = undefined
         readSnapshots = null
-        readBusy = null
+        readWorking = null
 
         return Promise.resolve()
       }

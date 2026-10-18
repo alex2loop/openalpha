@@ -43,7 +43,7 @@ export function createChannelRuntime(deps: ChannelRuntimeDeps): ChannelRuntime {
     dispose: () =>
       disposeChannel({ deps: runtimeDeps, adapter, parts: pipeline, runtimeAbort, state }),
     snapshot: () => ({ channel: adapter.id, ...state.status }),
-    isBusy: pipeline.isBusy,
+    isWorking: pipeline.isWorking,
     notify: async (target, text, signal) => {
       const outcome = await sendChunked(
         { notifier: pipeline.notifier, adapter, settings: deps.settings },

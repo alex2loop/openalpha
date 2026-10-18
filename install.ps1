@@ -13,6 +13,8 @@
 
 & {
   $ErrorActionPreference = 'Stop'
+  # Set when a daemon had to be paused for the swap, so the end says how to start it again.
+  $script:PausedDaemon = $false
   # PowerShell 5.1 redraws its progress bar per chunk, which slows a large download to a crawl.
   $ProgressPreference = 'SilentlyContinue'
   # Windows PowerShell 5.1 writes with the legacy code page, which turns Vietnamese into question marks.
@@ -35,8 +37,17 @@
   }
 
   # The machine's processor, not the process's: a PowerShell running under emulation still reads ARM.
+  # The machine's processor, not this PowerShell's: an emulated x64 shell on ARM still reads ARM.
+  # Without CIM, the variable Windows sets for an emulated process names the machine as well.
   function Get-Architecture {
-    switch ((Get-CimInstance Win32_Processor | Select-Object -First 1).Architecture) {
+    try {
+      $code = (Get-CimInstance Win32_Processor -ErrorAction Stop | Select-Object -First 1).Architecture
+    } catch {
+      $name = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
+      $code = switch ($name) { 'ARM64' { 12 } 'AMD64' { 9 } default { -1 } }
+    }
+
+    switch ($code) {
       12 { return 'arm64' }
       9 { return 'x64' }
       default { Fail 'There is no OpenAlpha build for this processor.' 'Chưa có bản OpenAlpha cho bộ xử lý này.' }
@@ -95,6 +106,17 @@
 
     try {
       Move-Item -Force -Path $Target -Destination "$Target.old"
+      return
+    } catch {
+      # A daemon `upgrade` could not restart (in a terminal, or left by an older release) still runs
+      # the leftover. It is paused once, through the pid file, and the swap tried again.
+      Say 'Pausing the daemon while I swap the binary.' 'Tạm dừng daemon trong lúc tôi thay bản cài.'
+      & $Target stop | Out-Null
+      $script:PausedDaemon = $true
+    }
+
+    try {
+      Move-Item -Force -Path $Target -Destination "$Target.old"
     } catch {
       Fail "An older openalpha.exe is still running. Close it, then run this again." `
         'Một bản openalpha.exe cũ vẫn đang chạy. Đóng nó rồi chạy lại nhé.'
@@ -127,11 +149,17 @@
     Install-Binary
     Add-ToPath
 
-    # A pinned install must not be pulled past the release it asked for, so it only prints the version.
+    & $Target version
+
+    # An upgrade moves a background daemon onto the new binary; a pinned install must not be pulled
+    # past the release it asked for.
     if (-not $firstInstall -and -not $env:OPENALPHA_VERSION) {
       & $Target upgrade
-    } else {
-      & $Target version
+    }
+
+    if ($script:PausedDaemon) {
+      Say "The daemon was paused for the swap. Start it again with: $Command start --background" `
+        "Daemon đã tạm dừng để thay bản cài. Bạn bật lại bằng: $Command start --background"
     }
 
     # Left for the operator on an upgrade, in CI, or when asked. A setup that stops prints its own

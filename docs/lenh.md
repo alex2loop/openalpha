@@ -116,7 +116,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat |
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
 | `/health` | Xem các mã sức khỏe của runtime và kênh |
-| `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại |
+| `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
 | `/memory` | Liệt kê, gọi lại, tìm, ghi hoặc xóa bộ nhớ |
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại hoặc chạy ngay một việc của bạn |
@@ -271,7 +271,7 @@ Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả 
 
 `upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới tạm dừng daemon (nếu đang chạy) rồi thay tệp. Daemon bật bằng `start --background` được tự bật lại trên bản mới, với cùng tệp cấu hình và thư mục dữ liệu; nếu nó không khởi động được, `upgrade` quay về bản đã chạy và báo cho bạn. Daemon chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý thì được để cho bạn, kèm lệnh cần chạy. Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và daemon đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước bước thay tệp, nên bản cũ vẫn nguyên và daemon vẫn chạy.
 
-Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old`, trên mọi hệ điều hành, và `upgrade --rollback` đổi ngược về nó. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
+Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`), và `upgrade --rollback` đổi ngược về nó. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
 
 Trên máy Windows chip ARM, trình cài tự chọn bản ARM chạy thẳng trên máy; bản x64 cài trước đó vẫn nâng cấp theo x64 cho tới khi bạn chạy lại lệnh cài, lúc đó nó chuyển sang bản ARM.
 

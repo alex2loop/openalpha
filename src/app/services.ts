@@ -48,6 +48,7 @@ const JOB_SESSION_PREFIX = 'job_'
 const HEARTBEAT_SESSION_PREFIX = 'hb_'
 // A scheduled run has no operator watching, so an unaddressed one has nowhere to prompt.
 const UNATTENDED_CHANNEL = LOCAL_CHANNEL_ID
+
 declare module '@/core/container' {
   interface Services {
     logger: Logger

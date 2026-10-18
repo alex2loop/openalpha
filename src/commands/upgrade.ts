@@ -17,7 +17,8 @@ const READ_POLICY = {
   action: 'read',
 } as const satisfies SlashInvocationPolicy
 
-// A tapped button or a re-delivered message carries the same request id, so it installs once.
+// A re-delivered message carries the same request id, so it installs once. A second tap is a new
+// request; the install's own pending record answers it.
 const CONFIRM_POLICY = {
   ...READ_POLICY,
   action: 'mutate',

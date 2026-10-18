@@ -31,8 +31,9 @@ const pendingUpgradeSchema = z.object({
   target: z.object({ channel: z.string(), chatId: z.string() }).optional(),
 })
 
-// Every field after `notifiedAt` has a default so a file written by v1.0.5 still parses.
-const updateStateSchema = z.strictObject({
+// Every field after `notifiedAt` has a default so a file written by v1.0.5 still parses, and a
+// field a later release adds is dropped rather than failing the whole file after a downgrade.
+const updateStateSchema = z.object({
   checkedAt: z.number().int().nonnegative(),
   latest: z.string().nullable(),
   failed: z.boolean(),
@@ -110,8 +111,15 @@ export async function refreshUpdateState(options: {
 
   const releases = await readNotesFor(read.latest, previous, signal)
 
+  if (signal?.aborted) {
+    return previous
+  }
+
+  // Read again: the notes fetch can take seconds, and a notice recorded meanwhile must survive.
+  const current = await readUpdateState(dataDir)
+
   return await saveRefreshed(dataDir, {
-    ...previous,
+    ...current,
     checkedAt: now,
     failed: false,
     latest: read.latest,
@@ -207,11 +215,13 @@ async function saveRefreshed(dataDir: string, next: UpdateState): Promise<Update
   return next
 }
 
-/** The notes newer than the running version up to the latest release, newest first. */
+/** The notes newer than the running version up to the latest release, newest first. Empty while the
+ *  notes stop short of the latest release (their read failed): a count, an important flag or a
+ *  summary from an older release would misdescribe the newest one. */
 export function releasesBehind(state: UpdateState): readonly ReleaseNote[] {
   const { latest } = state
 
-  if (latest === null) {
+  if (latest === null || state.releases[0]?.version !== latest) {
     return []
   }
 

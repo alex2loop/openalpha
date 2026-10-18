@@ -14,7 +14,7 @@ release is important, `/upgrade` in chat installs it and the bot restarts and re
 > Cập nhật giờ dễ thấy và chỉ một bước để cài: thông báo cho biết có gì mới và bản nào quan trọng, `/upgrade` trong chat sẽ cài bản mới, bot tự khởi động lại rồi báo lại cho bạn.
 
 - Windows machines with an ARM chip now get a native build, picked by the install script, and CI runs the Windows lifecycle on ARM too.
-- New `[update] auto = true` lets a background daemon install patch releases (1.0.x) by itself between 00:00 and 06:00 on your timezone, never while one of your markets is in session; it is off by default.
+- New `[update] auto = true` lets a background daemon install patch releases (1.0.5 to 1.0.6, say) by itself between 00:00 and 06:00 on your timezone, never while one of your markets is in session; it is off by default.
 - The bot now mentions a new release to the operator in a private chat, weekly (daily for an important one), and says once that it is on the new version.
 - `/upgrade confirm` in chat now installs the new release, restarts the bot, reports back and rolls back by itself if the new release will not start; it waits while the bot is in the middle of an answer or approval.
 - `/upgrade` in chat now shows your version, the latest release and what it brings, and `/upgrde` no longer suggests `/trade`.

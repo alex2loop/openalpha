@@ -81,7 +81,7 @@ const CHAT_CADENCE: NoticeCadence = Object.freeze({
 })
 
 /** Starts the refresh alongside the command so the answer is usually in before it finishes; a
- *  command that ends first waits at most the check timeout, once a day. */
+ *  command that ends first waits at most the refresh's timeouts, at most twice a day. */
 export function startUpdateNotice(app: CliApp, command: string | undefined): UpdateNotice {
   if (!(isNoticeCommand(command) && isInteractiveStderr())) {
     return IDLE_NOTICE
@@ -139,11 +139,7 @@ export function formatUpdateStatus(locale: Locale, state: UpdateState): readonly
 
 export function formatUpdateMessage(locale: Locale, latest: string): string {
   return [
-    t(locale, 'cli.updateAvailable', {
-      brand: BRAND.display,
-      latest: `v${latest}`,
-      current: `v${BRAND.version}`,
-    }),
+    formatAvailable(locale, latest),
     t(locale, 'cli.updateAction', { command: UPGRADE_COMMAND }),
   ].join(MESSAGE_SEPARATOR)
 }
@@ -162,16 +158,7 @@ export function formatUpdateNotice(
   }
 
   const behind = releasesBehind(state)
-  const lines: NoticeLine[] = [
-    {
-      text: t(locale, 'cli.updateAvailable', {
-        brand: BRAND.display,
-        latest: `v${latest}`,
-        current: `v${BRAND.version}`,
-      }),
-      tone: 'warn',
-    },
-  ]
+  const lines: NoticeLine[] = [{ text: formatAvailable(locale, latest), tone: 'warn' }]
 
   if (behind.length > 1) {
     lines.push({ text: t(locale, 'cli.updateBehind', { count: behind.length }), tone: 'hint' })
@@ -201,6 +188,14 @@ export function formatInstalledNotice(locale: Locale, state: UpdateState): reado
     },
     ...summaryLines(locale, releaseNoteOf(state, BRAND.version)?.summary[locale]),
   ]
+}
+
+function formatAvailable(locale: Locale, latest: string): string {
+  return t(locale, 'cli.updateAvailable', {
+    brand: BRAND.display,
+    latest: `v${latest}`,
+    current: `v${BRAND.version}`,
+  })
 }
 
 function toTerminalLines(lines: readonly NoticeLine[]): readonly string[] {

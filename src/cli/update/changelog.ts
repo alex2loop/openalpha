@@ -1,4 +1,5 @@
 import type { Locale } from '@/core/types/locale'
+import { sanitizeDisplayText } from '@/core/utils/text'
 
 const RELEASE_HEADING_RE = /^## \[(\d+\.\d+\.\d+)\](.*)$/
 const IMPORTANT_TAG = '[IMPORTANT]'
@@ -44,8 +45,14 @@ function toParagraphs(lines: readonly string[]): readonly (readonly string[])[] 
   return paragraphs
 }
 
+/** Only a leading quote mark goes; a `>` inside the text is the text's own. The summary arrives with
+ *  the release, so it is shown as plain text. */
 function joinParagraph(paragraph: readonly string[]): string {
-  return paragraph.map((line) => line.replace(QUOTE_MARK, '').trim()).join(' ')
+  const text = paragraph
+    .map((line) => (isQuote(line) ? line.slice(QUOTE_MARK.length) : line).trim())
+    .join(' ')
+
+  return sanitizeDisplayText(text)
 }
 
 function toSummary(body: readonly string[]): ReleaseSummary {
