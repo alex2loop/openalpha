@@ -265,7 +265,7 @@ Khóa demo thì không bị kiểm.
 
 ### Luôn dùng bản mới
 
-Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh. `upgrade` tải tệp chạy của bản mới cho
+Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh: có gì mới, bạn đang chậm bao nhiêu bản và có bản nào quan trọng không. Trong chat riêng với người vận hành, bot nhắc mỗi tuần, hoặc mỗi ngày khi có bản quan trọng đang chờ. `upgrade` tải tệp chạy của bản mới cho
 đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới tạm
 dừng daemon (nếu đang chạy), thay tệp bằng một lần đổi tên, rồi nhắc bạn cách bật lại daemon. Thư mục dữ
 liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và thông báo cho bạn biết

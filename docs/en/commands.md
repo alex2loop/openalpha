@@ -273,7 +273,7 @@ switched off. A demo key is not audited.
 
 ### Staying up to date
 
-When a newer release is out, the CLI says so once a day, under the command's output. `upgrade`
+When a newer release is out, the CLI says so once a day, under the command's output: what changed, how many releases you are behind and whether one of them is important. In a private chat with the operator the bot says it weekly, or daily while an important release is waiting. `upgrade`
 downloads the release binary for your machine next to the installed one and checks it against the
 release's SHA256SUMS. Only then does it pause a running daemon, swap the binary in with one rename,
 and tell you how to start the daemon again. Your data folder and config are never touched. If the

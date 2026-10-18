@@ -223,7 +223,7 @@ Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là b
 
 - **Mọi tùy chọn cấu hình:** [config.sample.toml](config.sample.toml) · [docs/cau-hinh.md](docs/cau-hinh.md). Không muốn dùng khóa AI thì chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
 - **Cài trên máy chủ hay trong CI?** Đặt `OPENALPHA_NO_ONBOARD=1` để bỏ bước hỏi; đầu [install.sh](install.sh) và [install.ps1](install.ps1) liệt kê đủ các tùy chọn, ví dụ `OPENALPHA_VERSION` để cài đúng một bản.
-- **Cập nhật:** CLI nhắc mỗi ngày một lần khi có bản mới; `openalpha upgrade` lên bản mới mà giữ nguyên dữ liệu và cấu hình.
+- **Cập nhật:** CLI nhắc mỗi ngày một lần, kèm điều đáng chú ý của bản mới; trong chat riêng, bot nhắc mỗi tuần (bản quan trọng thì mỗi ngày). `openalpha upgrade` lên bản mới mà giữ nguyên dữ liệu và cấu hình.
 - **Gỡ cài đặt:** `openalpha stop`, rồi xóa tệp `openalpha` (mặc định ở `~/.local/bin`; trên Windows là `openalpha.exe` và `openalpha.exe.old` nếu có). Thư mục `~/.openalpha` chứa toàn bộ sổ và cấu hình: chạy `openalpha db export --out <thư-mục>` trước nếu muốn giữ.
 
 </details>

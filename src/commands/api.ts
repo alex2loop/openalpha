@@ -40,4 +40,5 @@ export { describeCommand, type LocaleLookup, renderMessages } from '@/commands/d
 export { commandHeadOf, HELP_COMMAND } from '@/commands/dispatcher/resolve'
 export { createSessionModelSelection } from '@/commands/model'
 export { createCommandsProvider, createCoreCommands } from '@/commands/services'
+export { UPGRADE_COMMAND_NAME } from '@/commands/upgrade'
 export { isSlashCommandName } from '@/core/utils/text'
