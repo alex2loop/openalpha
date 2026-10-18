@@ -8,6 +8,8 @@ import { t } from '@/i18n'
 
 const REPLY_CONTEXT_MAX_CHARS = 1_500
 
+type AnswerMessage = Extract<SentMessage, { readonly kind: 'answer' }>
+
 interface ReplyLeadInput {
   readonly message: InboundMessage
   readonly sent: Pick<SentMessages, 'get'>
@@ -50,8 +52,6 @@ function toKnownLead(
     }
   }
 }
-
-type AnswerMessage = Extract<SentMessage, { readonly kind: 'answer' }>
 
 // A quote that reaches into the footer falls back to the whole body.
 function toAnswerLead(sent: AnswerMessage, replyTo: InboundReply): string | undefined {

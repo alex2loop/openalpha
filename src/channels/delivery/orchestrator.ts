@@ -81,7 +81,9 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
   try {
     reply.typing(true)
     await reply.react('👀')
+
     const lead = await composeLead(deps, exchange)
+
     result = await deps.runner.run(
       {
         agentId,

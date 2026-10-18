@@ -236,8 +236,8 @@ the replied text, and a quote that touches it falls back to the whole footer-les
 out as a message of its own is never filed, so a reply to it gets the pointer. A replayed inbox entry
 keeps `replyTo` and meets an empty map after a restart, so it too gets the pointer.
 
-A message steered into a run that is still going carries no lead, and a burst of messages batched into one
-run keeps only the reply of its last message.
+A reply is never steered into a run that is still going: it waits for that run and gets its own, so it
+carries its lead. A burst of messages batched into one run keeps only the reply of its last message.
 
 ### Quiet-gap note
 

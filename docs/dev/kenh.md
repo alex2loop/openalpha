@@ -239,8 +239,8 @@ thân không có dòng chân. Dòng chân gửi thành một tin riêng không b
 chỉ nhận dòng chỉ dẫn. Một tin trong hộp thư được phát lại vẫn giữ `replyTo` nhưng gặp bảng rỗng sau khi
 khởi động lại, nên cũng chỉ nhận dòng chỉ dẫn.
 
-Tin được đưa vào một lượt chạy đang dở không có đoạn dẫn, và khi nhiều tin gom vào một lượt thì chỉ giữ
-tin trả lời của tin cuối.
+Một tin trả lời không bao giờ được đưa vào lượt chạy đang dở: nó chờ lượt đó xong rồi chạy thành lượt
+riêng, để mang theo đoạn dẫn. Khi nhiều tin gom vào một lượt thì chỉ giữ tin trả lời của tin cuối.
 
 ### Ghi chú về khoảng im lặng
 
