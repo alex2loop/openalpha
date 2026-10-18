@@ -28,10 +28,20 @@ export function probeSafety(
   ]
   const findings = switches.filter((entry) => entry.on)
   const values = { brand: BRAND.display }
+  // A `[trading]` section that does not parse leaves allow_unattended unread, so the row never
+  // reads clean on it; the plugin switches come from the core config and are still reported.
+  const unread: readonly DoctorProbe[] =
+    trading === undefined
+      ? [{ name, status: 'warn', detail: t(locale, 'cli.doctorConfigNotLoaded') }]
+      : []
+  const rows = [
+    ...unread,
+    ...findings.map(
+      (entry): DoctorProbe => ({ name, status: 'warn', detail: t(locale, entry.key, values) })
+    ),
+  ]
 
-  return findings.length === 0
+  return rows.length === 0
     ? [{ name, status: 'ok', detail: t(locale, 'cli.doctorSafetyClean', values) }]
-    : findings.map(
-        (entry): DoctorProbe => ({ name, status: 'warn', detail: t(locale, entry.key, values) })
-      )
+    : rows
 }
