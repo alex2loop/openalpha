@@ -274,6 +274,8 @@ export interface ChannelRuntime {
   start(): Promise<void>
   dispose(): Promise<void>
   snapshot(): ChannelRuntimeSnapshot
+  /** A long-running slash command is in flight, so a restart now would cut it off. */
+  isBusy(): boolean
   /** Submits through this channel's own queue — the same one ordinary delivery uses, so rate
    *  limiting and ordering are not duplicated — and resolves only once the send has settled. */
   notify(

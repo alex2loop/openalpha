@@ -1,3 +1,4 @@
+import type { SelfUpgrade } from '@/app/update/install'
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { isUpdateCheckEnabled, newerVersionOf, refreshUpdateState } from '@/cli/api'
@@ -7,18 +8,28 @@ import { MS_PER_DAY } from '@/core/utils/time'
 
 const UPDATE_WATCH_INTERVAL_MS = MS_PER_DAY
 
-/** Logs a newer release on start and once a day. A channel hears of it only at the foot of the
- *  morning brief (`readUpdateLine`): it carries signals, not maintenance notices. */
-export function startUpdateWatch(app: App, logger: Logger): () => Promise<void> {
+interface UpdateWatchOptions {
+  readonly logger: Logger
+  readonly upgrade: SelfUpgrade
+}
+
+/** Logs a newer release on start and once a day, and reports how an upgrade started from chat
+ *  ended. A channel hears of a release only at the foot of the morning brief (`readUpdateLine`) and
+ *  in the operator's private chat: alerts carry signals, not maintenance notices. */
+export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => Promise<void> {
+  const { logger } = options
   const controller = new AbortController()
   let inFlight: Promise<void> | null = null
+  let reported = false
 
   const check = (): void => {
     if (inFlight !== null) {
       return
     }
 
-    inFlight = logNewerRelease(app, logger, controller.signal)
+    const announce = !reported
+    reported = true
+    inFlight = runUpdateCheck(app, { ...options, announce, signal: controller.signal })
       .catch((err: unknown) => {
         logger.warn('update.check_failed', { err: formatErrForLog(err) })
       })
@@ -39,6 +50,19 @@ export function startUpdateWatch(app: App, logger: Logger): () => Promise<void> 
       await inFlight
     }
   }
+}
+
+async function runUpdateCheck(
+  app: App,
+  options: UpdateWatchOptions & { readonly announce: boolean; readonly signal: AbortSignal }
+): Promise<void> {
+  // Ahead of the checks-on guard: an upgrade started from chat reports back even if checks were
+  // turned off since.
+  if (options.announce) {
+    await options.upgrade.announceOutcome()
+  }
+
+  await logNewerRelease(app, options.logger, options.signal)
 }
 
 async function logNewerRelease(app: App, logger: Logger, signal: AbortSignal): Promise<void> {

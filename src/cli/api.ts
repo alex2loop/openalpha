@@ -5,6 +5,7 @@ export type { ArgIssue } from '@/cli/parsing/args'
 export type { GlobalFlags } from '@/cli/parsing/global-flags'
 export type { PreBootOptions } from '@/cli/preboot'
 export type { CliApp, ConfigProbe, Writer } from '@/cli/types'
+export type { PendingUpgrade, UpdateState } from '@/cli/update/state'
 export type { ReleaseStatus } from '@/cli/update/status'
 export { admitCommand, createCommand, createGroup, lazyCommand } from '@/cli/command'
 export { readCommandCacheStubs, writeCommandCache } from '@/cli/command-cache'
@@ -32,10 +33,12 @@ export {
   toChatText,
   UPGRADE_COMMAND,
 } from '@/cli/update/notice'
+export { isCompiledBinary } from '@/cli/update/release'
 export {
   isUpdateCheckEnabled,
   newerVersionOf,
   readFreshUpdateState,
+  readUpdateState,
   refreshUpdateState,
   writeUpdateState,
 } from '@/cli/update/state'

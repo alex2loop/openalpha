@@ -13,9 +13,11 @@ Updates are now easy to see and one step to install: the notice says what change
 release is important, `/upgrade` in chat installs it and the bot restarts and reports back.
 > Cập nhật giờ dễ thấy và chỉ một bước để cài: thông báo cho biết có gì mới và bản nào quan trọng, `/upgrade` trong chat sẽ cài bản mới, bot tự khởi động lại rồi báo lại cho bạn.
 
+- `/upgrade confirm` in chat now installs the new release, restarts the bot, reports back and rolls back by itself if the new release will not start; it waits while the bot is in the middle of an answer or approval.
 - `/upgrade` in chat now shows your version, the latest release and what it brings, and `/upgrde` no longer suggests `/trade`.
 - Re-running the install script now moves a running background daemon onto the new binary.
 - `openalpha upgrade` now starts a background daemon again on the new release by itself, goes back to the old release if the new one will not start, and `upgrade --rollback` returns to the previous release; coming from v1.0.5, start the daemon once by hand after this upgrade.
+- OpenAlpha now checks for a new release twice a day instead of once.
 - Every update notice now says what the new release changes, how many releases you are behind and whether one of them is important.
 - The accounts table now shows the five newest quarters next to the audited years, so a turn in the business is visible before the annual report.
 - The debate's roles now work from one set of rules, so a trade plan no longer talks about lot sizes or caps it cannot see.

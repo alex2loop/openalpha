@@ -77,6 +77,7 @@ export interface Pipeline {
   readonly planReviewer: ChannelPlanReviewer
   readonly handler: InboundHandler
   readonly gate: Gate
+  readonly isBusy: () => boolean
 }
 
 interface NotifierSend {
@@ -211,7 +212,7 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
 
   subscribeNotices(deps, sendText)
 
-  return { notifier, queue, proactive, planReviewer, handler, gate }
+  return { notifier, queue, proactive, planReviewer, handler, gate, isBusy: slashRuns.isBusy }
 }
 
 // Two things the agent does that the operator would otherwise never see: a question it is blocked

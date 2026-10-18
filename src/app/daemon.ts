@@ -1,4 +1,4 @@
-import type { DeliveryHub } from '@/app/services'
+import type { DeliveryHub } from '@/app/delivery'
 import type { StartChannelsDeps } from '@/channels/api'
 import type { App, DaemonReadyHandler, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
@@ -143,6 +143,7 @@ async function startDaemonSubsystems(
       delivery.attach({
         notifier: channels.notifier,
         snapshots: channels.snapshots,
+        isBusy: channels.isBusy,
         ...(channels.defaultRecipient === undefined
           ? {}
           : { recipient: channels.defaultRecipient }),
@@ -168,7 +169,7 @@ async function startDaemonSubsystems(
   }
 
   disposers.push(startRetention(app, logger))
-  disposers.push(startUpdateWatch(app, logger))
+  disposers.push(startUpdateWatch(app, { logger, upgrade: app.resolve('selfUpgrade') }))
   disposers.push(startSocialUpkeep(app, logger))
 
   attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
