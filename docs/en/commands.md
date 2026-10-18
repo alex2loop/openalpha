@@ -66,7 +66,7 @@ leave, because one failed turn is not a failed session.
 | `version` | Print the version and whether a newer release is out; `--version` and `-v` work too | none |
 | `help` | Print help: `help` for the list, `help <command> [subcommand]` for one command | none; a command name |
 | `upgrade` | Install the latest release | none; `--check` only reports |
-| `doctor` | Check config, credentials and storage | none; optional check name (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) and `--online` |
+| `doctor` | Check config, credentials and storage | none; optional check name (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) and `--online` |
 | `onboard` | First setup, or change the model, Telegram bot, budget or language | none |
 | `setup` | Desktop app only. A client app's first run: provider catalog, and a starter config with the API on (one JSON line) | `catalog`, `write <provider> <model>` |
 | `api` | The `/v1` API's bearer token | `token`, `rotate` |
@@ -264,6 +264,8 @@ exists.
 
 `doctor version` reads the last answer GitHub gave (at most a day old); `doctor version --online`
 asks again. Being behind is a warning, never a failure.
+
+`doctor safety` warns for each switch that lets OpenAlpha act without asking: `orders.allow_unattended`, `plugins.allow_untrusted`, and `plugins.allow_code` when it is on beside the second. With none on, it reports one clean row. It never fails the run.
 
 Run `doctor venues --online` once after you add an exchange key. It reads what the live Binance key
 may actually do and warns while it can withdraw funds, works from any IP, or has spot trading

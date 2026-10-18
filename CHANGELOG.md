@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The format follows
 - The analysis now names the company and its sector up front, so a three-letter ticker can't be mistaken for another business.
 - Win rates used to temper conviction now count only calls that have had their full time to work out.
 - Price answers now say what time the price was read.
+- `openalpha doctor` now warns when a switch that lets OpenAlpha act without asking is on.
 
 ## [1.0.5] - 2026-10-18
 

@@ -20,7 +20,7 @@ làm việc chỉ là điểm xuất phát, **không** phải sandbox của hệ
    trừ khi bạn đã đọc `sources.ts` của plugin đó.
 5. Chỉ cho mỗi agent những công cụ, năng lực và host đi ra mà nó cần.
 
-Chạy `openalpha doctor` sau mọi thay đổi. Cấu hình được trộn và đóng băng lúc khởi động, nên phải khởi
+Chạy `openalpha doctor` sau mọi thay đổi, hoặc `openalpha doctor safety` để xem công tắc rủi ro nào đang bật. Cấu hình được trộn và đóng băng lúc khởi động, nên phải khởi
 động lại tiến trình thì thay đổi về bảo mật mới có hiệu lực.
 
 ---

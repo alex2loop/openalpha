@@ -67,7 +67,7 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `version` | In phiên bản và báo nếu đã có bản mới; `--version` và `-v` cũng được | không có |
 | `help` | In trợ giúp: `help` cho danh sách, `help <lệnh> [lệnh con]` cho một lệnh | không có; tên lệnh |
 | `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo |
-| `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
+| `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
 | `onboard` | Thiết lập lần đầu, hoặc đổi mô hình, bot Telegram, mức chi hay ngôn ngữ | không có |
 | `setup` | Chỉ dành cho ứng dụng desktop. Lần chạy đầu của một ứng dụng khách: danh mục nhà cung cấp, và tệp cấu hình khởi điểm có bật API (một dòng JSON) | `catalog`, `write <nhà cung cấp> <mô hình>` |
 | `api` | Mã API (bearer token) của `/v1` | `token`, `rotate` |
@@ -256,6 +256,8 @@ thống y như `chat` nhưng không khởi chạy hay migrate gì, nên khu vự
 
 `doctor version` đọc câu trả lời gần nhất từ GitHub (cũ nhất một ngày); `doctor version --online` hỏi
 lại ngay. Chậm phiên bản chỉ là cảnh báo, không bao giờ là lỗi.
+
+`doctor safety` cảnh báo từng công tắc cho phép OpenAlpha hành động mà không hỏi: `orders.allow_unattended`, `plugins.allow_untrusted`, và `plugins.allow_code` khi nó bật cùng công tắc thứ hai. Không có công tắc nào bật thì báo một dòng sạch. Lệnh này không bao giờ làm lần chạy thất bại.
 
 Hãy chạy `doctor venues --online` một lần sau khi thêm khóa sàn. Nó đọc xem khóa Binance thật được phép
 làm gì, và cảnh báo khi khóa còn rút được tiền, còn dùng được từ mọi IP, hoặc đang tắt giao dịch spot.

@@ -18,7 +18,7 @@ code, use a container or a restricted service account.
    off unless you have read that plugin's `sources.ts`.
 5. Give each agent only the tools, capabilities and outbound hosts it needs.
 
-Run `openalpha doctor` after any change. Configuration is merged and frozen at boot, so restart the
+Run `openalpha doctor` after any change, or `openalpha doctor safety` to see which risky switches are on. Configuration is merged and frozen at boot, so restart the
 process for a security change to take effect.
 
 ---
