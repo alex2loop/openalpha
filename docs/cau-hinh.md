@@ -490,7 +490,7 @@ chính lẫn bên dự phòng. `ANYSEARCH_API_KEY` là tùy chọn; không có n
 thấp hơn. Nó trả tối đa 20 kết quả, gửi `[locale] language`, và không hỗ trợ lọc theo độ mới, nên một
 yêu cầu về độ mới được báo là chưa kiểm chứng.
 
-`deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng. DeepSeek chỉ nhận truy vấn ngắn (128 ký tự), nên truy vấn dài bị cắt bớt từ cuối. Lọc từ hai tên miền trở lên thì được áp lên kết quả thay vì gửi kèm truy vấn. Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
+`deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng. DeepSeek chỉ nhận truy vấn ngắn (128 ký tự). Truy vấn dài bị cắt bớt từ cuối và bộ lọc tên miền chuyển từ truy vấn sang kết quả, nên bạn vẫn chỉ nhận đúng các trang đã chọn. Lọc từ hai tên miền trở lên thì luôn làm theo cách đó. Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
 
 Khóa chỉ lấy từ biến môi trường mà `api_key_env` và `fallback_api_key_env` nêu tên. Một lời gọi nhà
 cung cấp hết giờ sau 15 giây và thử lại lỗi tạm thời tối đa 3 lần, độ lùi cơ sở 800 ms. Nhà cung cấp

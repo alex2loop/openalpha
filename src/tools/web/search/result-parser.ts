@@ -65,10 +65,6 @@ export function toFreeSearchResponse(
   }
 }
 
-export function isPublishedFreshness(freshness: ResearchFreshness | undefined): boolean {
-  return freshness?.field === 'publishedOn' || freshness?.field === 'either'
-}
-
 export function withPushedFreshness(
   response: SearchBackendResponse,
   request: SearchRequest
@@ -80,6 +76,10 @@ export function withPushedFreshness(
   const pushedDown = request.recency !== undefined || isPublishedFreshness(request.freshness)
 
   return { ...response, freshness: pushedDown ? 'pushed_down' : 'unverified' }
+}
+
+export function isPublishedFreshness(freshness: ResearchFreshness | undefined): boolean {
+  return freshness?.field === 'publishedOn' || freshness?.field === 'either'
 }
 
 export function capSearchResults(

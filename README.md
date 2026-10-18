@@ -333,7 +333,7 @@ Mới bắt đầu thì đọc [Cẩm nang sử dụng](docs/cam-nang.md) trư�
 
 Hỏi một câu cần dữ liệu mới từ bên ngoài, nhận về một báo cáo mà mỗi nhận định đều chỉ ra được nó đến từ đâu. Mô hình không tự lên mạng: code tìm và tải trang trước, nên mô hình không bịa ra được nguồn, và chỗ nào thiếu bằng chứng thì báo cáo nói thẳng là thiếu.
 
-**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: miễn phí, không cần khóa, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Khai `[web_search]` bằng Exa, Tavily, Brave, Serper hay DeepSeek, rẻ nhất và mạnh về nguồn tiếng Việt ([cấu hình](docs/cau-hinh.md)) thì báo cáo có nhiều nguồn hơn hẳn.
+**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: miễn phí, không cần khóa, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Khai `[web_search]` bằng Exa, Tavily, Brave, Serper hay DeepSeek, rẻ nhất và mạnh về nguồn tiếng Việt ([cấu hình](docs/cau-hinh.md)), thì báo cáo có nhiều nguồn hơn hẳn.
 
 Chi tiết: [docs/nghien-cuu.md](docs/nghien-cuu.md)
 

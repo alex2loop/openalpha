@@ -23,6 +23,8 @@ const DEEPSEEK_FIELDS = {
   publishedOn: 'publishedOn',
 } as const
 const WHITESPACE_RE = /\s+/
+// Most summaries open by repeating the result title as a markdown heading.
+const LEADING_HEADING_RE = /^#[^\n]*(?:\n|$)/
 
 export const deepseekSearch: SearchBackend = (request) =>
   runApiKeyProvider({
@@ -46,8 +48,8 @@ export const deepseekSearch: SearchBackend = (request) =>
   })
 
 function buildDeepSeekQuery(request: SearchRequest, nowMs: number): string {
-  const dateTerms = deepSeekDateTerms(request, nowMs)
-  const full = [request.query, ...deepSeekDomainTerms(request), ...dateTerms].join(' ')
+  const dateTerms = buildDeepSeekDateTerms(request, nowMs)
+  const full = [request.query, ...buildDeepSeekDomainTerms(request), ...dateTerms].join(' ')
 
   if (codePointLength(full) <= DEEPSEEK_QUERY_MAX_CHARS) {
     return full
@@ -57,21 +59,7 @@ function buildDeepSeekQuery(request: SearchRequest, nowMs: number): string {
   return fitDeepSeekQuery(request.query, dateTerms)
 }
 
-function fitDeepSeekQuery(query: string, dateTerms: readonly string[]): string {
-  const suffix = dateTerms.join(' ')
-  const budget = DEEPSEEK_QUERY_MAX_CHARS - (suffix === '' ? 0 : codePointLength(suffix) + 1)
-  const words = query.split(WHITESPACE_RE)
-
-  while (words.length > 1 && codePointLength(words.join(' ')) > budget) {
-    words.pop()
-  }
-
-  const fitted = Array.from(words.join(' ')).slice(0, budget).join('')
-
-  return [fitted, ...dateTerms].join(' ')
-}
-
-function deepSeekDateTerms(request: SearchRequest, nowMs: number): readonly string[] {
+function buildDeepSeekDateTerms(request: SearchRequest, nowMs: number): readonly string[] {
   const { recency, freshness } = request
   const pushed = isPublishedFreshness(freshness)
   const researchStart = pushed ? freshness?.fromOn : undefined
@@ -89,7 +77,7 @@ function deepSeekDateTerms(request: SearchRequest, nowMs: number): readonly stri
 
 // DeepSeek returns only one site for `site:a OR site:b` and nothing for a parenthesised group,
 // so two or more include domains are left to the runner's filter.
-function deepSeekDomainTerms(request: SearchRequest): readonly string[] {
+function buildDeepSeekDomainTerms(request: SearchRequest): readonly string[] {
   const [onlyDomain, ...otherDomains] = request.includeDomains ?? []
   const include =
     onlyDomain !== undefined && otherDomains.length === 0 ? [`site:${onlyDomain}`] : []
@@ -97,26 +85,41 @@ function deepSeekDomainTerms(request: SearchRequest): readonly string[] {
   return [...include, ...(request.excludeDomains ?? []).map((domain) => `-site:${domain}`)]
 }
 
+function fitDeepSeekQuery(query: string, dateTerms: readonly string[]): string {
+  const suffix = dateTerms.join(' ')
+  const budget = DEEPSEEK_QUERY_MAX_CHARS - (suffix === '' ? 0 : codePointLength(suffix) + 1)
+  const words = query.trim().split(WHITESPACE_RE)
+
+  while (words.length > 1 && codePointLength(words.join(' ')) > budget) {
+    words.pop()
+  }
+
+  const fitted = Array.from(words.join(' ')).slice(0, budget).join('')
+
+  return [fitted, ...dateTerms].join(' ')
+}
+
 function toDeepSeekItems(value: unknown): readonly unknown[] {
   if (!(isPlainRecord(value) && Array.isArray(value.results))) {
     return []
   }
 
-  return value.results.map((item: unknown) => {
-    if (!isPlainRecord(item)) {
-      return item
-    }
+  return value.results.map(toDeepSeekItem)
+}
 
-    const publishedOn = toDeepSeekDay(item.date)
+function toDeepSeekItem(item: unknown): unknown {
+  if (!isPlainRecord(item)) {
+    return item
+  }
 
-    return {
-      title: item.title,
-      url: item.url,
-      snippet:
-        typeof item.summary === 'string' && item.summary !== '' ? item.summary : item.snippet,
-      ...(publishedOn === undefined ? {} : { publishedOn }),
-    }
-  })
+  const publishedOn = toDeepSeekDay(item.date)
+
+  return {
+    title: item.title,
+    url: item.url,
+    snippet: toDeepSeekSnippet(item),
+    ...(publishedOn === undefined ? {} : { publishedOn }),
+  }
 }
 
 function toDeepSeekDay(value: unknown): string | undefined {
@@ -127,6 +130,16 @@ function toDeepSeekDay(value: unknown): string | undefined {
   const ms = Date.parse(value)
 
   return Number.isNaN(ms) ? undefined : dayInZone(ms, DEEPSEEK_TIME_ZONE)
+}
+
+function toDeepSeekSnippet(item: Readonly<Record<string, unknown>>): unknown {
+  if (typeof item.summary !== 'string') {
+    return item.snippet
+  }
+
+  const text = item.summary.replace(LEADING_HEADING_RE, '').trim().split(WHITESPACE_RE).join(' ')
+
+  return text === '' ? item.snippet : text
 }
 
 function codePointLength(text: string): number {
