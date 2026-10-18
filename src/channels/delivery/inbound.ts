@@ -4,13 +4,17 @@ import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { AgentId } from '@/core/ids'
 import { COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
 import { handleControlCallback } from '@/channels/delivery/control'
-import { resolveSlashRunRequest, type SlashRunRequest } from '@/channels/delivery/slash'
+import { resolveSlashRunRequest, roleOf, type SlashRunRequest } from '@/channels/delivery/slash'
+import { commandHeadOf, UPGRADE_COMMAND_NAME } from '@/commands/api'
 import { observe } from '@/core/events'
 import { agentId as brandAgentId, DEFAULT_AGENT_ID } from '@/core/ids'
+import { formatErrForLog } from '@/core/security/credentials'
 
 import '@/channels/events'
 
 const SLASH_PREFIX = '/'
+// The answer to /upgrade already carries the notice.
+const UPGRADE_COMMAND_HEAD = `${SLASH_PREFIX}${UPGRADE_COMMAND_NAME}`
 
 export interface InboundHandler {
   handleMessage(msg: InboundMessage): Promise<void>
@@ -101,6 +105,8 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
     return
   }
 
+  await offerOperatorNotice(deps, msg)
+
   const routeLease = await deps.sessionQueue.acquireRoute({
     channel: deps.channelId,
     chatId: msg.chatId,
@@ -136,6 +142,30 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
     await receipt
   } finally {
     routeLease.release()
+  }
+}
+
+/** A reminder never blocks an answer, so a failure to produce or send one is logged and dropped. */
+async function offerOperatorNotice(deps: InboundHandlerDeps, msg: InboundMessage): Promise<void> {
+  if (
+    msg.isGroup === true ||
+    roleOf(deps, msg) !== 'operator' ||
+    commandHeadOf(msg.text) === UPGRADE_COMMAND_HEAD
+  ) {
+    return
+  }
+
+  try {
+    const text = await deps.operatorNotices.take()
+
+    if (text !== null) {
+      await deps.sendText(msg.chatId, text)
+    }
+  } catch (err: unknown) {
+    deps.logger.warn('channel.operator_notice_failed', {
+      channel: deps.channelId,
+      err: formatErrForLog(err),
+    })
   }
 }
 

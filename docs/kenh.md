@@ -124,6 +124,8 @@ Chi tiết ở [Lệnh](lenh.md). Ghép nối luôn chặn lại khi có sự c�
 
 ## Cập nhật từ chat
 
+Trong chat riêng với người vận hành, bot nhắc về bản mới nhiều nhất mỗi tuần một lần (mỗi ngày khi có bản quan trọng đang chờ), không bao giờ nhắc trong nhóm, và báo một lần là đã chạy bản mới.
+
 `/upgrade` cho biết có gì mới, còn `/upgrade confirm` (hoặc nút "Cập nhật ngay") sẽ cài bản mới. Bot im khoảng một phút để khởi động lại, rồi nhắn bạn là đã chạy bản mới. Nếu bản mới không khởi động được, bot tự quay về bản cũ và báo cho bạn.
 
 Cách này chỉ dùng được với daemon bật bằng `start --background`, và chỉ khi bot không còn câu trả lời, lượt nghiên cứu hay phê duyệt nào đang dở; nếu không, bot nhờ bạn thử lại sau. Chỉ người vận hành dùng được, như `/trade`: không đặt `operator_user_ids` thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên ai dùng chung bot hãy đặt khóa này.

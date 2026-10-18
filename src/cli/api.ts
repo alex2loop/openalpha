@@ -30,6 +30,7 @@ export {
   formatUpdateNotice,
   readUpdateLine,
   startUpdateNotice,
+  takeChatNotice,
   toChatText,
   UPGRADE_COMMAND,
 } from '@/cli/update/notice'

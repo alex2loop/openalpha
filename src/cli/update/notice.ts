@@ -51,7 +51,7 @@ interface UpdateNotice {
 
 const IDLE_NOTICE: UpdateNotice = Object.freeze({ finish: async () => undefined })
 
-export interface NoticeLine {
+interface NoticeLine {
   readonly text: string
   readonly tone: 'warn' | 'hint'
 }

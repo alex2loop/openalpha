@@ -58,6 +58,7 @@ cli:spawnDetached
 cli:startUpdateNotice
 cli:starterConfigToml
 cli:stopDaemonIfRunning
+cli:takeChatNotice
 cli:toChatText
 cli:usage
 cli:writeCommandCache

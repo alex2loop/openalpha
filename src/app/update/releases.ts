@@ -1,4 +1,5 @@
 import type { SelfUpgrade, UpgradeStart } from '@/app/update/install'
+import type { OperatorNotices } from '@/channels/api'
 import type { ReleaseUpdates, UpgradeReply, UpgradeRequest } from '@/commands/api'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
@@ -9,6 +10,7 @@ import {
   isUpdateCheckEnabled,
   newerVersionOf,
   readFreshUpdateState,
+  takeChatNotice,
   toChatText,
   UPGRADE_COMMAND,
   type UpdateState,
@@ -26,6 +28,11 @@ export function createReleaseUpdates(app: App, upgrade: SelfUpgrade): ReleaseUpd
     describe: (request) => describeRelease(app, request),
     install: (request) => installRelease(app, { request, upgrade }),
   }
+}
+
+/** The private-chat reminder, read from the cache the update watch keeps fresh. */
+export function createOperatorNotices(app: App): OperatorNotices {
+  return { take: () => takeChatNotice(app.config) }
 }
 
 async function describeRelease(app: App, request: UpgradeRequest): Promise<UpgradeReply> {

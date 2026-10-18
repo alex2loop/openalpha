@@ -269,6 +269,12 @@ export interface ChannelRuntimeSnapshot extends ChannelStatus {
  *  Enqueueing is never acceptance. */
 export type AcknowledgedSendResult = 'accepted' | 'unavailable' | 'aborted'
 
+/** A line meant for the operator alone, at most as often as its owner allows. Null when there is
+ *  nothing to say right now. */
+export interface OperatorNotices {
+  take(): Promise<string | null>
+}
+
 export interface ChannelRuntime {
   readonly channelId: ChannelId
   start(): Promise<void>

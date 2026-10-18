@@ -7,6 +7,7 @@ import type {
   ChannelRuntime,
   ChannelRuntimeSnapshot,
   InboundInbox,
+  OperatorNotices,
   OutboundTarget,
 } from '@/channels/types'
 import type { SlashDispatcher, SpendReader } from '@/commands/api'
@@ -45,6 +46,7 @@ export interface StartChannelsDeps {
   readonly dispatcher: SlashDispatcher
   readonly spend: SpendReader
   readonly agents: AgentRegistry
+  readonly operatorNotices: OperatorNotices
   readonly bus: EventBus
   readonly logger: Logger
   /** Injected so no adapter reads process.env directly. */
@@ -207,6 +209,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     dispatcher: deps.dispatcher,
     spend: deps.spend,
     agents: deps.agents,
+    operatorNotices: deps.operatorNotices,
     bus: deps.bus,
     logger: deps.logger,
     locale: deps.config.locale.language,

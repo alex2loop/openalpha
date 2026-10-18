@@ -275,6 +275,7 @@ function channelDeps(app: App, signal: AbortSignal): StartChannelsDeps {
     bindings: app.resolve('chatBindingStore'),
     dispatcher: app.resolve('slashDispatcher'),
     agents: toAgentRegistry(app.resolve('agents')),
+    operatorNotices: app.resolve('operatorNotices'),
     bus: app.resolve('bus'),
     logger: app.resolve('logger'),
     // Injected once here so no adapter reaches for process.env on its own.

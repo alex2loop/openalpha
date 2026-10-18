@@ -1,5 +1,5 @@
 import type { ChannelSettings } from '@/channels/schema'
-import type { ChannelDefinition } from '@/channels/types'
+import type { ChannelDefinition, OperatorNotices } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
 import type { App, ServiceProvider } from '@/core/container'
 import type { ChannelDefinitionRef, DeclarativeChannelSource } from '@/core/types/plugin'
@@ -24,6 +24,7 @@ const NO_CHANNEL_OVERRIDE: readonly string[] = []
 declare module '@/core/container' {
   interface Services {
     channels: readonly ChannelDefinition[]
+    operatorNotices: OperatorNotices
   }
 }
 
