@@ -3,6 +3,7 @@ import type { Locale } from '@/core/types/locale'
 import type { createConfiguredRunBudget } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { OperationPolicy, TradingConfig } from '@/trading/kernel/config'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
   RefreshAllMarketDataOptions,
   RefreshMarketDataResult,
@@ -17,11 +18,11 @@ import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
 import { isVenueFillBooked } from '@/trading/features/ledger/sync'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
+import { sessionPhase } from '@/trading/markets/calendar'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
 import { buildRebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import { resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
-import { isAnySessionOpen } from '@/trading/wiring/composition/session-open'
 import { buildSuggestionCards } from '@/trading/wiring/composition/suggestion-cards'
 import { createTradingDaemonTasks } from '@/trading/wiring/tasks'
 
@@ -116,4 +117,29 @@ function toMarketReads(
     isSessionOpen: async (now, signal) =>
       isAnySessionOpen(deps.markets, await marketsInUse(signal), now),
   }
+}
+
+/** Whether any of these markets is trading, lunch break included. A continuous market (crypto) has
+ *  no session to protect, and `pre-open` / `post-close` do not count: a VN trading day reads
+ *  `pre-open` from midnight to the open, which would hold every night. */
+function isAnySessionOpen(
+  markets: MarketRegistry,
+  refs: ReadonlySet<MarketRef>,
+  now: number
+): boolean {
+  for (const ref of refs) {
+    const calendar = markets.find(ref)?.manifest.calendar
+
+    if (calendar === undefined || calendar.continuous) {
+      continue
+    }
+
+    const phase = sessionPhase(calendar, now)
+
+    if (phase === 'open' || phase === 'break') {
+      return true
+    }
+  }
+
+  return false
 }
