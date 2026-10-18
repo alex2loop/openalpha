@@ -1,5 +1,6 @@
 import type {
   AcknowledgedRouter,
+  AcknowledgedSendOptions,
   AcknowledgedSendResult,
   ChannelRuntimeSnapshot,
 } from '@/channels/api'
@@ -52,7 +53,7 @@ export interface DeliveryHub {
   sendAcknowledged(
     target: DeliveryTarget,
     message: SurfaceMessage,
-    signal?: AbortSignal
+    options?: AcknowledgedSendOptions
   ): Promise<AcknowledgedSendResult>
   /** Called once the channels are up. Returns the disposer that detaches the router. */
   attach(options: {
@@ -126,7 +127,7 @@ export function createDeliveryHub(): DeliveryHub {
       },
     },
 
-    async sendAcknowledged(target, message, signal): Promise<AcknowledgedSendResult> {
+    async sendAcknowledged(target, message, options): Promise<AcknowledgedSendResult> {
       const router = capture()
       const surface = surfaces.find(target.channel)
 
@@ -134,7 +135,7 @@ export function createDeliveryHub(): DeliveryHub {
         return surface.deliver(message)
       }
 
-      return router === null ? 'unavailable' : router(target, message.text, signal)
+      return router === null ? 'unavailable' : router(target, message.text, options)
     },
 
     // A channel's own default chat first; with none attached, a surface that shows everything.

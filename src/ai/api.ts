@@ -36,6 +36,6 @@ export {
 export { classifyModel } from '@/ai/classify'
 export { type CreateClientInput, createClient, missingKeyErrors } from '@/ai/client'
 export { withClientModelJob } from '@/ai/client-model/job-context'
-export { cacheRatesOf, createPricing, FALLBACK_PRICE } from '@/ai/cost/pricing'
+export { cacheRatesOf } from '@/ai/cost/pricing'
 export { reasoningBudgetOf } from '@/ai/reasoning/core'
 export { createAiProvider } from '@/ai/services'

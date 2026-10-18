@@ -7,6 +7,39 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [1.0.7] - 2026-10-19
+
+Telegram replies keep their context, a quiet chat rechecks prices, and web search can use DeepSeek.
+No database change.
+> Trả lời một tin trong Telegram là OpenAlpha biết bạn hỏi tiếp tin nào, chat để lâu thì xem lại giá trước khi trả lời, tìm kiếm web dùng được DeepSeek.
+
+### Chat
+
+- In a private Telegram chat, replying to an answer continues from it; replying to an alert or brief
+  tells OpenAlpha which kind of message you mean, never your amounts.
+- After a quiet spell, the next answer rechecks prices. `gap_note_minutes` sets the quiet time per
+  channel (default `30`, `0` off).
+
+### Search
+
+- `[web_search] provider = "deepseek"`: about $0.75 per 1,000 searches, empty ones free, strong on
+  Vietnamese sources. Uses `DEEPSEEK_API_KEY`; set `cost_per_search_usd = 0.00075` to count the spend.
+  Queries over 128 characters are trimmed but keep the sites you chose.
+
+### Setup
+
+- `config validate`, `start` and `status` now name a wrong `[channels.*]` value or misspelt key
+  instead of failing with an unexplained error.
+
+### Fixes
+
+- DeepSeek web search no longer returns a site's machine-translated copies (a Dutch or German page
+  beside the Vietnamese original).
+- A chat replaced by `/new` or an agent switch now reads "done" in `history list` instead of staying
+  "open".
+- Reinstalling over an existing install prints "you're on the latest release" once, and
+  `upgrade` names the version you run.
+
 ## [1.0.6] - 2026-10-18
 
 Updates are easy to see and install from chat, the debate reads its evidence more carefully, and
@@ -195,6 +228,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.7
 [1.0.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.6
 [1.0.5]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.5
 [1.0.4]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.4

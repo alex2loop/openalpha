@@ -19,7 +19,4 @@ export type {
   SchedulerRunNowInput,
   SchedulerRunOutcome,
 } from '@/scheduler/types'
-export { parseHeartbeat } from '@/scheduler/heartbeat/parse'
-export { startHeartbeats } from '@/scheduler/heartbeat/runner'
-export { startScheduler } from '@/scheduler/runner'
 export { createSchedulerProvider } from '@/scheduler/services'

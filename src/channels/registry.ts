@@ -55,6 +55,14 @@ export function resolveRegisteredChannelSettings(
     : resolveChannelSettings(definition.resolveConfig(configured[definition.id]))
 }
 
+/** Parses each built-in channel's section the way the daemon will, so a wrong value refuses at
+ *  boot and in `config validate` instead of when the channel opens. */
+export function assertChannelConfigs(configured: Readonly<Record<string, unknown>>): void {
+  for (const definition of BUILT_IN_CHANNELS) {
+    definition.resolveConfig(configured[definition.id])
+  }
+}
+
 function mergeContributions(
   current: readonly ChannelDefinition[],
   app: App

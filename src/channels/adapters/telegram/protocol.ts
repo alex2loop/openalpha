@@ -1,11 +1,16 @@
-import { randomBytes } from 'node:crypto'
-
 import { z } from 'zod'
 
-import type { ChannelCallbackQuery, InboundMessage, OutboundButton } from '@/channels/types'
+import type {
+  ChannelCallbackQuery,
+  InboundMessage,
+  InboundReply,
+  OutboundButton,
+} from '@/channels/types'
+import { toPastedContent } from '@/channels/pasted-content'
 import { HELP_COMMAND } from '@/commands/api'
-import { channelId } from '@/core/channels'
 import { MS_PER_SECOND } from '@/core/utils/time'
+
+import { TELEGRAM_CHANNEL_ID } from './config'
 
 export const TELEGRAM_API_BASE = 'https://api.telegram.org'
 export const TELEGRAM_MAX_LEN = 4096
@@ -25,11 +30,6 @@ const COMMAND_HEAD_RE = /^\/([a-zA-Z0-9_]{1,32})(?:@([a-zA-Z0-9_]+))?(?:\s|$)/i
 // Telegram sends this itself when someone first opens the bot. No command owns the name, so it opens
 // the help rather than an unknown-command reply.
 const BOT_OPENED_COMMAND = 'start'
-const TELEGRAM_CHANNEL_ID = channelId('telegram')
-// The chat agent's prompt names this tag: forwarded text is data unless the operator's own words
-// ask it to act, and an id it cannot guess stops that text from closing the tag itself.
-const PASTED_CONTENT_TAG = 'pasted_content'
-const PASTED_CONTENT_ID_BYTES = 4
 
 const telegramUserSchema = z.object({
   id: z.number(),
@@ -58,7 +58,16 @@ const telegramMessageSchema = z.object({
   text: z.string().optional(),
   caption: z.string().optional(),
   entities: z.array(telegramEntitySchema).optional(),
-  reply_to_message: z.object({ from: telegramUserSchema.optional() }).optional(),
+  reply_to_message: z
+    .object({
+      message_id: z.number(),
+      from: telegramUserSchema.optional(),
+      text: z.string().optional(),
+      caption: z.string().optional(),
+    })
+    .optional(),
+  // The part of the replied message the operator selected.
+  quote: z.object({ text: z.string() }).optional(),
   forward_origin: z.object({ type: z.string() }).optional(),
   date: z.number(),
 })
@@ -154,6 +163,9 @@ function parseMessage(
   }
 
   const isGroup = m.chat.type !== undefined && GROUP_CHAT_TYPES.has(m.chat.type)
+  // Direct chats only: sent messages are remembered per chat, not per user, so a group reply could
+  // pull another member's answer into this session.
+  const replyTo = isGroup ? undefined : toReplyTo(m, identity)
 
   return {
     msg: {
@@ -165,20 +177,36 @@ function parseMessage(
       receivedAt: m.date * MS_PER_SECOND,
       isGroup,
       addressedToBot: isGroup ? isAddressedToBot(m, text, identity) : true,
+      ...(replyTo === undefined ? {} : { replyTo }),
     },
+  }
+}
+
+function toReplyTo(
+  m: TelegramMessage,
+  identity: BotIdentity | undefined
+): InboundReply | undefined {
+  const replied = m.reply_to_message
+
+  if (identity === undefined || replied === undefined) {
+    return undefined
+  }
+
+  if (replied.from?.id !== identity.id) {
+    return undefined
+  }
+
+  const text = replied.text ?? replied.caption
+
+  return {
+    messageId: String(replied.message_id),
+    ...(text === undefined ? {} : { text }),
+    ...(m.quote === undefined ? {} : { quote: m.quote.text }),
   }
 }
 
 function toCommandText(text: string): string {
   return parseCommandHead(text)?.name.toLowerCase() === BOT_OPENED_COMMAND ? HELP_COMMAND : text
-}
-
-function toPastedContent(text: string): string {
-  const id = randomBytes(PASTED_CONTENT_ID_BYTES).toString('hex')
-  const open = `<${PASTED_CONTENT_TAG} id="${id}">`
-  const close = `</${PASTED_CONTENT_TAG} id="${id}">`
-
-  return `${open}\n${text}\n${close}`
 }
 
 // A command is always addressed if unqualified; a qualified command is addressed only when the

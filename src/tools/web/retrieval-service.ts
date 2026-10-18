@@ -19,6 +19,7 @@ import type {
 import { abortError, ToolError } from '@/core/errors'
 import { anysearchSearch } from '@/tools/web/search/backends/anysearch'
 import { braveSearch } from '@/tools/web/search/backends/brave'
+import { deepseekSearch } from '@/tools/web/search/backends/deepseek'
 import { duckduckgoSearch } from '@/tools/web/search/backends/duckduckgo'
 import { exaSearch } from '@/tools/web/search/backends/exa'
 import { exaContents } from '@/tools/web/search/backends/exa-contents'
@@ -51,6 +52,7 @@ const DIRECT_FETCH_MAX_READ_BYTES = 1_024 * 1_024
 const PROVIDERS = {
   anysearch: anysearchSearch,
   brave: braveSearch,
+  deepseek: deepseekSearch,
   duckduckgo: duckduckgoSearch,
   exa: exaSearch,
   searxng: searxngSearch,

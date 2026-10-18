@@ -4,17 +4,15 @@ import {
   resolveSecret,
   SAFE_DELIVERY_OVERRIDE_FIELDS,
 } from '@/channels/schema'
-import { channelId } from '@/core/channels'
 
 import { createZaloAdapter } from './adapter'
 import {
   isZaloEnabled,
   parseZaloConfig,
   type ResolvedZaloConfig,
+  ZALO_CHANNEL_ID,
   zaloAdmissionMode,
 } from './config'
-
-const ZALO_CHANNEL_ID = channelId('zalo')
 
 export const zaloDefinition: ChannelDefinition<ResolvedZaloConfig> = {
   id: ZALO_CHANNEL_ID,

@@ -170,7 +170,12 @@ export function parseRawConfig(input: unknown): RawConfig {
   const parsed = KnownSectionsSchema.safeParse(known)
 
   if (!parsed.success) {
-    throw toInvalidConfigError(parsed.error, KnownSectionsSchema, { unchecked: extensions })
+    // Core takes `[channels]` without looking inside, so each channel's own check still runs on it.
+    const unchecked = isPlainRecord(known.channels)
+      ? { ...extensions, channels: known.channels }
+      : extensions
+
+    throw toInvalidConfigError(parsed.error, KnownSectionsSchema, { unchecked })
   }
 
   return assembleRaw(parsed.data, extensions)

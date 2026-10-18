@@ -3,9 +3,13 @@ import { z } from 'zod'
 import {
   allowlistField,
   deliveryFields,
+  parseChannelSection,
   resolveAdmissionIds,
   secretFields,
 } from '@/channels/schema'
+import { channelId } from '@/core/channels'
+
+export const TELEGRAM_CHANNEL_ID = channelId('telegram')
 
 const telegramSchema = z.strictObject({
   ...deliveryFields,
@@ -20,7 +24,8 @@ type TelegramChannelConfig = z.infer<typeof telegramSchema>
 export type ResolvedTelegramConfig = TelegramChannelConfig & { readonly configured: boolean }
 
 export function parseTelegramConfig(raw: unknown): ResolvedTelegramConfig {
-  const parsed = telegramSchema.parse(raw ?? {})
+  const parsed = parseChannelSection(telegramSchema, raw, TELEGRAM_CHANNEL_ID)
+
   return { ...parsed, configured: raw !== undefined }
 }
 

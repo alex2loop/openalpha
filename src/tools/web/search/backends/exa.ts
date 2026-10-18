@@ -1,4 +1,4 @@
-import type { SearchBackend, SearchBackendResponse } from '@/tools/web/search/types'
+import type { SearchBackend } from '@/tools/web/search/types'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { runApiKeyProvider } from '@/tools/web/search/backends/api-key-provider'
 import {
@@ -9,13 +9,8 @@ import {
   exaSearchBody,
   parseExaSearchResponse,
 } from '@/tools/web/search/backends/exa-protocol'
-
-const RECENCY_DAYS = {
-  day: 1,
-  week: 7,
-  month: 30,
-  year: 365,
-} as const
+import { withPushedFreshness } from '@/tools/web/search/result-parser'
+import { RECENCY_DAYS } from '@/tools/web/search/types'
 
 export const exaSearch: SearchBackend = (request) =>
   runApiKeyProvider({
@@ -25,7 +20,7 @@ export const exaSearch: SearchBackend = (request) =>
     toHeaderValue: (apiKey) => `${EXA_BEARER_PREFIX}${apiKey}`,
     body: buildExaSearchBody,
     parse: (value, maxResults) =>
-      withFreshness(
+      withPushedFreshness(
         parseExaSearchResponse(value, request.exaSearchType ?? 'auto', maxResults),
         request
       ),
@@ -57,20 +52,4 @@ function buildExaSearchBody(request: Parameters<SearchBackend>[0]): string {
     ...(startPublishedDate === undefined ? {} : { startPublishedDate }),
     ...(endPublishedDate === undefined ? {} : { endPublishedDate }),
   })
-}
-
-function withFreshness(
-  response: SearchBackendResponse,
-  request: Parameters<SearchBackend>[0]
-): SearchBackendResponse {
-  if (request.recency === undefined && request.freshness === undefined) {
-    return response
-  }
-
-  const pushedDown =
-    request.recency !== undefined ||
-    request.freshness?.field === 'publishedOn' ||
-    request.freshness?.field === 'either'
-
-  return { ...response, freshness: pushedDown ? 'pushed_down' : 'unverified' }
 }

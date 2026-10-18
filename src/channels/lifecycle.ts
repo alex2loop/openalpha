@@ -1,3 +1,4 @@
+import type { SentMessages } from '@/channels/delivery/sent-messages'
 import type { ChannelRuntimeDeps, Pipeline } from '@/channels/pipeline'
 import type {
   ChannelAdapter,
@@ -44,17 +45,46 @@ export function createChannelRuntime(deps: ChannelRuntimeDeps): ChannelRuntime {
       disposeChannel({ deps: runtimeDeps, adapter, parts: pipeline, runtimeAbort, state }),
     snapshot: () => ({ channel: adapter.id, ...state.status }),
     isWorking: pipeline.isWorking,
-    notify: async (target, text, signal) => {
-      const outcome = await sendChunked(
+    notify: async (target, text, options) => {
+      const { outcome, messageIds } = await sendChunked(
         { notifier: pipeline.notifier, adapter, settings: deps.settings },
-        { target, text, markup: true, ...(signal === undefined ? {} : { signal }) }
+        {
+          target,
+          text,
+          markup: true,
+          ...(options?.signal === undefined ? {} : { signal: options.signal }),
+        }
       )
 
       if (outcome === 'delivered') {
+        fileNotice(pipeline.sent, {
+          chatId: target.chatId,
+          messageIds,
+          label: options?.noticeLabel,
+        })
+
         return 'accepted'
       }
+
       return outcome === 'aborted' ? 'aborted' : 'unavailable'
     },
+  }
+}
+
+interface NoticeFiling {
+  readonly chatId: string
+  readonly messageIds: readonly string[]
+  readonly label: string | undefined
+}
+
+// Only a fully delivered notice is filed; a partly sent one is retried whole.
+function fileNotice(sent: SentMessages, filing: NoticeFiling): void {
+  if (filing.label === undefined) {
+    return
+  }
+
+  for (const messageId of filing.messageIds) {
+    sent.record(filing.chatId, messageId, { kind: 'notice', label: filing.label })
   }
 }
 

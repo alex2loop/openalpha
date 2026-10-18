@@ -131,8 +131,8 @@ by phase (`PHASE_WEIGHTS`):
 `pool.take(phase, count, knownFutureCalls)` carves a cohort in proportion to `count / (count + knownFutureCalls)`,
 so an early cohort cannot starve work the plan already knows is coming. Crawl keeps `CRAWL_EXTERNAL_COST_RESERVE`
 (25%) of its phase unsliceable: search fees land on the same crawl budget, and a cohort that reserved the whole
-phase would make the first fee halt the crawl. Exa's reported charge is used as-is; Brave, Serper and Tavily charge
-the configured `cost_per_search_usd` (unset means uncharged); DuckDuckGo and self-hosted SearXNG are free; a cache
+phase would make the first fee halt the crawl. Exa's reported charge is used as-is; Brave, DeepSeek, Serper and Tavily charge
+the configured `cost_per_search_usd` (unset means uncharged), DeepSeek only for a search that returns results; DuckDuckGo and self-hosted SearXNG are free; a cache
 hit and a failed call are never charged.
 
 ### When a slice runs out

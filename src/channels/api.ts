@@ -3,6 +3,7 @@
 export type { ChannelDeliveryConfig, ChannelSettings } from '@/channels/schema'
 export type { AcknowledgedRouter, StartChannelsDeps, StartChannelsResult } from '@/channels/start'
 export type {
+  AcknowledgedSendOptions,
   AcknowledgedSendResult,
   AdapterHandlers,
   ChannelAdapter,
@@ -54,12 +55,10 @@ export {
 } from '@/channels/adapters/zalo-personal/login'
 export { type ChannelDefinitionInput, createChannel } from '@/channels/define'
 export {
+  assertChannelConfigs,
   channelsProvider,
   findChannelDefinition,
   resolveRegisteredChannelSettings,
 } from '@/channels/registry'
-export {
-  resolveChannelSettings,
-  resolveSecret,
-} from '@/channels/schema'
+export { resolveSecret } from '@/channels/schema'
 export { startChannels } from '@/channels/start'

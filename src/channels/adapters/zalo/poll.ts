@@ -1,7 +1,6 @@
 import type { AdapterHandlers, InboundInbox, InboundMessage } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
 import { acceptInbound } from '@/channels/delivery/inbox-accept'
-import { channelId } from '@/core/channels'
 import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
@@ -13,8 +12,8 @@ import {
   ZALO_LONG_POLL_TIMEOUT_SEC,
   ZALO_UNAUTHORIZED_CODE,
 } from './client'
+import { ZALO_CHANNEL_ID } from './config'
 
-const ZALO_CHANNEL_ID = channelId('zalo')
 const AUTH_FAILURE_THRESHOLD = 3
 const POLL_BACKOFF_INITIAL_MS = 1_000
 const POLL_BACKOFF_MAX_MS = 30_000

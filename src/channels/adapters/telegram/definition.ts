@@ -9,16 +9,14 @@ import {
   resolveSecret,
   SAFE_DELIVERY_OVERRIDE_FIELDS,
 } from '@/channels/schema'
-import { channelId } from '@/core/channels'
 
 import { createTelegramAdapter } from './adapter'
 import {
   isTelegramPairingEnabled,
   parseTelegramConfig,
   type ResolvedTelegramConfig,
+  TELEGRAM_CHANNEL_ID,
 } from './config'
-
-const TELEGRAM_CHANNEL_ID = channelId('telegram')
 
 export const telegramDefinition: ChannelDefinition<ResolvedTelegramConfig> = {
   id: TELEGRAM_CHANNEL_ID,

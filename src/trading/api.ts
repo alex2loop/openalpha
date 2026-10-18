@@ -167,6 +167,7 @@ export type {
 export type { Page } from '@/trading/kernel/store/page'
 export type { AgentRecordSummary } from '@/trading/wiring/host/types'
 export { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
+export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
 
 // ── Values ───────────────────────────────────────────────────────────────────
 
@@ -192,8 +193,6 @@ export { alertId } from '@/trading/kernel/operator/alert'
 export { ledgerEntryId } from '@/trading/kernel/operator/book'
 export { isBookFocus, resolveRunFocus, validateAgentFocus } from '@/trading/kernel/operator/focus'
 export { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
-export { boardMedians } from '@/trading/markets/factor-scoring'
-export { type ScreenRating, screenRating } from '@/trading/markets/screen-rating'
 export { describeCaveat } from '@/trading/render/caveat'
 export { formatInstant } from '@/trading/render/datetime'
 export { renderFocusLabel } from '@/trading/render/focus'

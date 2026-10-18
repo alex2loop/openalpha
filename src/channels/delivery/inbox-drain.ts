@@ -6,6 +6,7 @@ import type {
   InboundInbox,
   InboundInboxEntry,
   InboundMessage,
+  InboundReply,
   InboxPayload,
 } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
@@ -385,6 +386,8 @@ function toInboundMessage(value: unknown): InboundMessage | undefined {
     isOptionalBoolean(value.addressedToBot) &&
     isOptionalString(value.reactionRef)
   ) {
+    const replyTo = toInboundReply(value.replyTo)
+
     return {
       channel: channelId(value.channel),
       chatId: value.chatId,
@@ -397,10 +400,29 @@ function toInboundMessage(value: unknown): InboundMessage | undefined {
       ...(typeof value.addressedToBot === 'boolean'
         ? { addressedToBot: value.addressedToBot }
         : {}),
+      ...(replyTo === undefined ? {} : { replyTo }),
     }
   }
 
   return undefined
+}
+
+// A malformed reply costs the turn its context, never the message.
+function toInboundReply(value: unknown): InboundReply | undefined {
+  if (
+    !isPlainRecord(value) ||
+    typeof value.messageId !== 'string' ||
+    !isOptionalString(value.text) ||
+    !isOptionalString(value.quote)
+  ) {
+    return undefined
+  }
+
+  return {
+    messageId: value.messageId,
+    ...(typeof value.text === 'string' ? { text: value.text } : {}),
+    ...(typeof value.quote === 'string' ? { quote: value.quote } : {}),
+  }
 }
 
 function toCallbackQuery(value: unknown): ChannelCallbackQuery | undefined {

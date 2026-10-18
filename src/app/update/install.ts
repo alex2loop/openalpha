@@ -250,7 +250,11 @@ async function sendOutcome(
     return
   }
 
-  const result = await delivery.sendAcknowledged(message.target, { text: message.text }, app.signal)
+  const result = await delivery.sendAcknowledged(
+    message.target,
+    { text: message.text },
+    { signal: app.signal }
+  )
 
   if (result !== 'accepted') {
     logger.warn('update.announce_failed', { result })

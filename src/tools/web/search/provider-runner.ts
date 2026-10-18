@@ -1,4 +1,8 @@
-import type { ResolvedSearchProvider, ResolvedWebSearch } from '@/core/config/resolve'
+import type {
+  ResolvedSearchProvider,
+  ResolvedWebSearch,
+  WebSearchProvider,
+} from '@/core/config/resolve'
 import type { ExternalCharge } from '@/core/types/usage'
 import type { ResearchProviderAttempt, ResearchProviderFailureCode } from '@/engine/api'
 import type {
@@ -27,6 +31,8 @@ import {
 import { createProviderBreaker } from '@/tools/web/search/provider-breaker'
 import { runThrottled } from '@/tools/web/search/provider-throttle'
 import { ZERO_PROVIDER_COST_USD } from '@/tools/web/search/types'
+
+const EMPTY_SEARCH_UNBILLED_PROVIDERS: readonly WebSearchProvider[] = ['deepseek']
 
 interface BoundedOperationInput<T> {
   readonly provider: ResolvedSearchProvider['provider']
@@ -121,7 +127,7 @@ async function runSearch(
       ...response,
       results: filterSearchResults(response.results, request, input.requestedMaxResults),
     }
-    const billedUsd = resolveBilledCostUsd(input.configured, filtered.costUsd)
+    const billedUsd = resolveBilledCostUsd(input.configured, response)
 
     await recordBilledCost(input, 'search', billedUsd)
 
@@ -392,10 +398,20 @@ async function recordBilledCost(
   }
 }
 
-// These providers bill the query whether or not it returned results.
-function resolveBilledCostUsd(configured: ResolvedSearchProvider, reportedUsd: number): number {
-  if (reportedUsd > ZERO_PROVIDER_COST_USD) {
-    return reportedUsd
+// Most providers bill every query; DeepSeek bills only a search that returns results.
+function resolveBilledCostUsd(
+  configured: ResolvedSearchProvider,
+  response: SearchBackendResponse
+): number {
+  if (response.costUsd > ZERO_PROVIDER_COST_USD) {
+    return response.costUsd
+  }
+
+  if (
+    EMPTY_SEARCH_UNBILLED_PROVIDERS.includes(configured.provider) &&
+    response.results.length === 0
+  ) {
+    return ZERO_PROVIDER_COST_USD
   }
 
   return configured.costPerSearchUsd ?? ZERO_PROVIDER_COST_USD

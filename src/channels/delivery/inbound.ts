@@ -120,9 +120,11 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
     }
 
     // A plain message lands in the session's active run at its next turn boundary; only when no
-    // run accepts it does it queue as a new exchange. Slash commands always take the queue path.
+    // run accepts it does it queue as a new exchange. Slash commands and replies always queue: a
+    // steered message carries its text only, so a reply would lose the message it answers.
     if (
       !msg.text.startsWith(SLASH_PREFIX) &&
+      msg.replyTo === undefined &&
       deps.runRegistry.steer(sessionId, msg.chatId, request.text)
     ) {
       return

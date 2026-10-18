@@ -17,6 +17,12 @@ interface ChunkedSendOptions {
   readonly signal?: AbortSignal
 }
 
+interface ChunkedSendResult {
+  readonly outcome: NotifyOutcome
+  /** Ids of the chunks that went out, in order. */
+  readonly messageIds: readonly string[]
+}
+
 /** Escaped chunks must be sent with `parse_mode` and plain chunks without: an escaped chunk sent as
  *  plain text reaches the chat as visible backslashes, and markup sent without `parse_mode` never
  *  renders. One owner for both decisions is what keeps them in agreement, on every send path. */
@@ -45,22 +51,28 @@ export function selectRenderer(adapter: ChannelAdapter, useMarkup: boolean): Cha
 export async function sendChunked(
   deps: ChunkedSendDeps,
   options: ChunkedSendOptions
-): Promise<NotifyOutcome> {
+): Promise<ChunkedSendResult> {
   const { notifier, adapter, settings } = deps
   const { target, text, signal } = options
   const useMarkup = resolveOutboundMarkup(adapter, settings, options.markup)
   const chunks = selectRenderer(adapter, useMarkup).chunk(text, adapter.capabilities.maxTextLen)
 
+  const messageIds: string[] = []
+
   for (const chunk of chunks) {
-    const outcome = await notifier.notify(target, chunk, {
+    const { outcome, ref } = await notifier.notify(target, chunk, {
       ...(signal === undefined ? {} : { signal }),
       ...(useMarkup ? { useMarkup: true as const } : {}),
     })
 
     if (outcome !== 'delivered') {
-      return outcome
+      return { outcome, messageIds }
+    }
+
+    if (ref !== undefined) {
+      messageIds.push(ref.messageId)
     }
   }
 
-  return 'delivered'
+  return { outcome: 'delivered', messageIds }
 }

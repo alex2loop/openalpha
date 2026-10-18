@@ -14,19 +14,18 @@ import type {
 import type { Logger } from '@/core/logging/logger'
 import type { LruMap } from '@/core/utils/collections'
 import { plainRenderer, stripMarkdown } from '@/channels/renderer'
-import { channelId } from '@/core/channels'
 import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { lruMap } from '@/core/utils/collections'
 
 import type { ProfileLocation } from './credentials'
+import { ZALO_PERSONAL_CHANNEL_ID } from './config'
 import { runZaloPersonalSession } from './session'
 import { createSendThrottle, type SendThrottle } from './throttle'
 
 const ZALO_PERSONAL_MAX_LEN = 2_000
 const ZALO_PERSONAL_THREAD_CACHE_MAX = 256
 const DISPOSE_SETTLE_MS = 5_000
-const ZALO_PERSONAL_CHANNEL_ID = channelId('zalo_personal')
 
 const ZALO_PERSONAL_CAPABILITIES: ChannelCapabilities = {
   inlineButtons: false,

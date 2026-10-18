@@ -1,8 +1,4 @@
 // Public API of engine/. Other modules import from here — never from engine/ internals.
-//
-// The SDK-facing `runAgent(options)` one-shot wrapper is NOT defined here: composing it needs
-// app/boot.ts machinery this module does not own. The SDK barrel (packages/runtime/src/index.ts)
-// builds it from `engineProvider` + `runOnce` in the Integration phase.
 
 export type { ResearchDepth } from '@/core/config/resolve'
 export type {
@@ -148,34 +144,27 @@ export {
   RESERVED_AGENT_IDS,
 } from '@/engine/agents/builder'
 export { buildAgentDefinition, createAgent } from '@/engine/agents/define'
-export {
-  buildBuiltInAgents,
-  DEEP_RESEARCHER_ID,
-} from '@/engine/agents/registry'
+export { DEEP_RESEARCHER_ID } from '@/engine/agents/registry'
 export { buildUserAgents, readUserAgents, userAgentFile, userAgentsDir } from '@/engine/agents/user'
-export { createCostTracker } from '@/engine/budget/cost-tracker'
 export { createDelegationQuota } from '@/engine/budget/delegation-quota'
 export { createBudget, createConfiguredRunBudget } from '@/engine/budget/run-budget'
 export { createBudgetSlicesWithin } from '@/engine/budget/slices'
-export { addExternalCost } from '@/engine/budget/usage'
 export {
   AGENT_BUDGET_FRACTION,
   MCP_CALL_WAIT_MS,
   RUN_LEASE_SLACK_MS,
   WORKSPACES_DIR_NAME,
 } from '@/engine/constants'
-export { createRunFinishedEmit } from '@/engine/hooks/after-run'
 export { createDelegatedApproval, decisionsFor } from '@/engine/hooks/approval'
 export { createAvailableDelegatesModifier } from '@/engine/hooks/available-delegates'
 export { createAvailableSkillsModifier } from '@/engine/hooks/available-skills'
-export { canRequireApproval, isDangerousCall } from '@/engine/hooks/dangerous'
+export { canRequireApproval } from '@/engine/hooks/dangerous'
 export { createSessionPersistenceHooks } from '@/engine/hooks/persistence'
 export { languageName, reminderModifier } from '@/engine/hooks/prompt-blocks'
 export { appendSystemBlock } from '@/engine/hooks/system-block'
 export { createUserPreferencesHooks } from '@/engine/hooks/user-preferences'
 export { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
 export { AGENT_CAP_MESSAGE, PAUSED_MESSAGE } from '@/engine/loop/preflight'
-export { runOnce } from '@/engine/loop/run'
 export {
   formatTodoBlock,
   TODO_GLYPHS,
@@ -185,7 +174,6 @@ export {
 } from '@/engine/loop/todo'
 export { isToolDetailComplete, TOOL_DETAIL_MAX_LENGTH } from '@/engine/loop/tools/presentation'
 export { connectServer } from '@/engine/mcp/connect'
-export { createMcpToolInvoker } from '@/engine/mcp/invoke'
 export {
   ANALYST_AGENT_NAME,
   ANSWERED_REPLY_KIND,
@@ -200,34 +188,13 @@ export {
   REQUESTS_REPLY_KIND,
   WORKING_REPLY_KIND,
 } from '@/engine/mcp/jobs/tools'
-export {
-  buildServerInstructions,
-  buildSkillsCatalog,
-  exposedToolNames,
-  toAdvertisedTools,
-} from '@/engine/mcp/serve-core'
+export { toAdvertisedTools } from '@/engine/mcp/serve-core'
 export { buildHostSkill } from '@/engine/mcp/skill'
-export { createMcpSurface } from '@/engine/mcp/surface'
-export { createRateLimiter } from '@/engine/rate-limiter'
 export { toAgentResearchResult } from '@/engine/research/agent-result'
+export { RESEARCH_QUERY_MAX_CHARS } from '@/engine/research/contracts'
+export { toResearchIssueGroups } from '@/engine/research/display/issue-summary'
 export {
-  RESEARCH_FAILURE_CODES,
-  RESEARCH_QUERY_MAX_CHARS,
-  RESEARCH_WORKER_IDS,
-} from '@/engine/research/contracts'
-export { createResearchCoordinator } from '@/engine/research/coordinator'
-export {
-  toResearchIssueGroups,
-  toResearchIssueSummaries,
-} from '@/engine/research/display/issue-summary'
-export {
-  RESEARCH_CONFLICT_DISPLAY_KEYS,
-  RESEARCH_DATE_CONFIDENCE_KEYS,
   RESEARCH_FRESHNESS_FIELD_KEYS,
-  RESEARCH_GAP_DISPLAY_KEYS,
-  RESEARCH_NUMERIC_CONFLICT_REASON_KEYS,
-  toResearchFailureActionDisplay,
-  toResearchGapDisplay,
   toResearchQuestionProgressDisplay,
   toResearchResultDisplay,
   toResearchStageDisplay,
@@ -235,12 +202,8 @@ export {
   toResearchTotalsDisplays,
   toResearchWarningDisplay,
 } from '@/engine/research/display/progress'
-export {
-  CONTRACT_REPAIR_TOOLS,
-  parseResearchJson,
-  toResearchOutputContract,
-} from '@/engine/research/evidence/parse'
-export { composeAbort, createRunRegistry, TIMEOUT_ABORT } from '@/engine/run-registry'
+export { parseResearchJson, toResearchOutputContract } from '@/engine/research/evidence/parse'
+export { composeAbort, TIMEOUT_ABORT } from '@/engine/run-registry'
 export { engineProvider } from '@/engine/services'
 export { resolveSkillPlatform } from '@/engine/skills/availability'
 export { createSkillCatalog } from '@/engine/skills/catalog'
@@ -251,12 +214,7 @@ export { readLock, resolveLockPath, writeLock } from '@/engine/skills/lockfile'
 export { evaluateSkillContent, isAllowed } from '@/engine/skills/validate'
 export { APPROVAL_DECISIONS } from '@/engine/types/approval'
 export { critical, isRetryableHalt } from '@/engine/types/run'
-export {
-  addWorkflow,
-  BUILT_IN_WORKFLOWS,
-  loadUserWorkflows,
-  loadWorkflowToml,
-} from '@/engine/workflows/discover'
+export { addWorkflow, loadUserWorkflows, loadWorkflowToml } from '@/engine/workflows/discover'
 export { runWorkflow, startScheduledWorkflows } from '@/engine/workflows/run'
 export {
   applyWorkspaceScratchCleanup,

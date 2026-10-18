@@ -208,6 +208,53 @@ A channel never reads raw tool arguments. The engine decides what is safe to sho
 `tool_execution_start` and `tool_progress` events, so no adapter has to be trusted with a shell
 command's text.
 
+### What the bot remembers it sent
+
+Each channel runtime keeps a bounded in-memory map from `(chat, message id)` to the kind of thing the
+bot sent there: an answer chunk (and whether the run footer is on it) or a notice (and its label). It
+holds ids, kinds and labels, never message text, it holds up to 2,000 entries, and it is gone after a
+restart. A message that is not in the map, whether pushed out, sent before a restart, slash output, or a
+footer that went out as a chunk of its own, is simply unknown, and the reader of the map degrades to a
+pointer rather than the text.
+
+### Reply context
+
+On a Telegram direct chat, a message that replies to one of the bot's own messages carries `replyTo` (the
+replied message's id and text, and the `quote` the operator selected). Group chats never set it: the
+sent-message map is per chat, not per user, so one member's reply could otherwise pull another member's
+answer into their session.
+
+`runExchange` turns it into a lead with `toReplyLead`:
+
+- for an answer, the replied text (or the selected quote, if it lies inside the answer body) wrapped as
+  pasted content and cut to a fixed length;
+- for a notice, only its label;
+- for anything else, a one-line pointer.
+
+The run footer (LLM cost, tokens, model calls) is hidden from models like an operator figure: it is cut off
+the replied text, and a quote that touches it falls back to the whole footer-less body. A footer that went
+out as a message of its own is never filed, so a reply to it gets the pointer. A replayed inbox entry
+keeps `replyTo` and meets an empty map after a restart, so it too gets the pointer.
+
+A reply is never steered into a run that is still going: it waits for that run and gets its own, so it
+carries its lead. A burst of messages batched into one run keeps only the reply of its last message.
+
+### Quiet-gap note
+
+The gap is measured from the newest `session_messages` row (`SessionActivity.lastMessageAt`), never
+`sessions.last_activity_at`, which slash commands also touch. When that row is older than
+`gap_note_minutes`, the lead opens with one line saying how long the chat was quiet and that earlier prices
+may be out of date. A failed read logs `channel.gap_note_lookup_failed` and skips the note, so it never fails
+the turn. The key is in `deliveryFields` but not in `SAFE_DELIVERY_OVERRIDE_FIELDS`, so a declarative plugin
+channel cannot override it.
+
+### The lead is never stored
+
+`runExchange` passes the gap note and the reply lead as `RunInput.lead`, once per run. The engine appends it
+as a transient user message just ahead of the operator's text, as it does for the restored todo list: the
+model reads it for that run, and `history show` and `/v1` chat history show only what the operator typed.
+The session, its route and its history do not change, and `/new` stays the explicit fresh start.
+
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and

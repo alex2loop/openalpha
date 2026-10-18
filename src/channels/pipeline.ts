@@ -4,6 +4,7 @@ import type { Notifier as NotifierType } from '@/channels/delivery/outbound/noti
 import type { ProactiveSubscription } from '@/channels/delivery/outbound/proactive'
 import type { ChannelPlanReviewer } from '@/channels/delivery/plan-review'
 import type { BudgetCaps, InboundQueue } from '@/channels/delivery/queue'
+import type { SentMessages } from '@/channels/delivery/sent-messages'
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { OperatorContext } from '@/channels/operator'
 import type { ChannelSettings } from '@/channels/schema'
@@ -21,6 +22,7 @@ import type { Locale } from '@/core/types/locale'
 import type {
   ChatBindingStore,
   PairingStore,
+  SessionActivity,
   SessionOpener,
   SessionQueue,
   SessionRouter,
@@ -44,6 +46,7 @@ import { Notifier } from '@/channels/delivery/outbound/notifier'
 import { subscribeProactive } from '@/channels/delivery/outbound/proactive'
 import { createChannelPlanReviewer } from '@/channels/delivery/plan-review'
 import { createInboundQueue } from '@/channels/delivery/queue'
+import { createSentMessages } from '@/channels/delivery/sent-messages'
 import { ChannelError } from '@/core/errors'
 import { observe } from '@/core/events'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -65,7 +68,7 @@ export interface ChannelRuntimeDeps {
   readonly caps: BudgetCaps
   readonly pairingStore: PairingStore
   readonly sessionRouter: SessionRouter
-  readonly sessions: SessionOpener
+  readonly sessions: SessionOpener & SessionActivity
   readonly bindings: ChatBindingStore
   readonly dispatcher: SlashDispatcher
   readonly spend: SpendReader
@@ -84,6 +87,7 @@ export interface Pipeline {
   readonly planReviewer: ChannelPlanReviewer
   readonly handler: InboundHandler
   readonly gate: Gate
+  readonly sent: SentMessages
   readonly isWorking: () => boolean
 }
 
@@ -110,7 +114,7 @@ function createNotifier(deps: ChannelRuntimeDeps): NotifierSend {
 
   // A dropped notice is a failed send, not a silent one: the caller decides what to undo.
   const sendText = async (chatId: string, text: string): Promise<void> => {
-    const outcome = await sendChunked(
+    const { outcome } = await sendChunked(
       { notifier, adapter, settings },
       { target: { channel: adapter.id, chatId }, text, markup: false }
     )
@@ -187,6 +191,7 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
   const { adapter, logger, locale, settings, shutdownSignal } = deps
   const { notifier, sendText } = createNotifier(deps)
   const sendReply = createReplySender(deps)
+  const sent = createSentMessages()
   const queue = createInboundQueue({
     costTracker: deps.costTracker,
     sessionQueue: deps.sessionQueue,
@@ -214,12 +219,22 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
   const { proactive, planReviewer } = createOperatorSurfaces(deps, gate)
   const slashRuns = createActiveSlashRuns()
   const handler = createInboundHandler(
-    handlerDeps(deps, { gate, queue, proactive, planReviewer, slashRuns, sendText: sendReply })
+    handlerDeps(deps, {
+      gate,
+      queue,
+      proactive,
+      planReviewer,
+      slashRuns,
+      sent,
+      sendText: sendReply,
+    })
   )
 
   subscribeNotices(deps, sendText)
 
-  return { notifier, queue, proactive, planReviewer, handler, gate, isWorking: slashRuns.isWorking }
+  const { isWorking } = slashRuns
+
+  return { notifier, queue, proactive, planReviewer, handler, gate, sent, isWorking }
 }
 
 // Two things the agent does that the operator would otherwise never see: a question it is blocked
@@ -324,6 +339,7 @@ interface HandlerParts {
   readonly proactive: ProactiveSubscription
   readonly planReviewer: ChannelPlanReviewer
   readonly slashRuns: ActiveSlashRuns
+  readonly sent: SentMessages
   readonly sendText: (
     chatId: string,
     text: string,
@@ -331,18 +347,24 @@ interface HandlerParts {
   ) => Promise<void>
 }
 
-function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHandlerDeps {
-  const { adapter, logger, locale, settings } = deps
-  const orchestrator: OrchestratorDeps = {
-    adapter,
+function orchestratorDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): OrchestratorDeps {
+  return {
+    adapter: deps.adapter,
     runner: deps.runner,
     bus: deps.bus,
-    settings,
-    locale,
-    logger,
+    settings: deps.settings,
+    locale: deps.locale,
+    logger: deps.logger,
     signal: deps.shutdownSignal,
+    sent: parts.sent,
+    sessions: deps.sessions,
     reviewPlan: (chatId, input) => parts.planReviewer.reviewPlan(chatId, input),
   }
+}
+
+function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHandlerDeps {
+  const { adapter, logger, locale, settings } = deps
+  const orchestrator = orchestratorDeps(deps, parts)
 
   return {
     channelId: adapter.id,

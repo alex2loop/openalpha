@@ -210,6 +210,55 @@ Kênh không bao giờ đọc tham số thô của công cụ. Engine quyết đ
 dưới dạng sự kiện `tool_execution_start` và `tool_progress`, nên không adapter nào phải được tin tưởng
 với nội dung một câu lệnh shell.
 
+### Bot nhớ đã gửi gì
+
+Mỗi runtime kênh giữ trong bộ nhớ một bảng có giới hạn, từ `(cuộc chat, id tin)` sang loại tin bot đã gửi
+ở đó: một khúc câu trả lời (kèm việc dòng chi phí cuối tin có nằm trong khúc ấy không) hoặc một bản tin
+chủ động (kèm nhãn của nó). Bảng chỉ giữ id, loại và nhãn, không bao giờ giữ nội dung tin, tối đa 2.000
+mục, và mất sau khi khởi động lại. Tin không có trong bảng, dù bị đẩy ra, gửi từ trước lần khởi động lại,
+là kết quả của lệnh gạch chéo, hay là dòng chi phí đã đi thành một khúc riêng, đơn giản là "không biết",
+và nơi đọc bảng lùi về một dòng chỉ dẫn thay vì nội dung.
+
+### Ngữ cảnh trả lời
+
+Ở chat riêng Telegram, một tin trả lời một tin của chính bot mang theo `replyTo` (id và nội dung tin được
+trả lời, cùng đoạn `quote` người vận hành đã bôi chọn). Chat nhóm không bao giờ đặt nó: bảng tin đã gửi
+lưu theo chat chứ không theo người, nên nếu không thì một thành viên trả lời có thể kéo câu trả lời của
+thành viên khác vào phiên của mình.
+
+`runExchange` biến nó thành một đoạn dẫn bằng `toReplyLead`:
+
+- với một câu trả lời, nội dung tin được trả lời (hoặc đoạn bôi chọn, nếu nằm trong phần thân câu trả lời)
+  bọc như nội dung dán vào và cắt ở một độ dài cố định;
+- với một thông báo, chỉ nhãn của nó;
+- với mọi thứ khác, một dòng chỉ dẫn.
+
+Dòng chân của lượt chạy (chi phí LLM, token, số lần gọi model) được giấu khỏi model như một con số của
+người vận hành: nó bị cắt khỏi nội dung tin được trả lời, và đoạn bôi chọn chạm vào nó thì lùi về cả phần
+thân không có dòng chân. Dòng chân gửi thành một tin riêng không bao giờ được ghi lại, nên trả lời vào nó
+chỉ nhận dòng chỉ dẫn. Một tin trong hộp thư được phát lại vẫn giữ `replyTo` nhưng gặp bảng rỗng sau khi
+khởi động lại, nên cũng chỉ nhận dòng chỉ dẫn.
+
+Một tin trả lời không bao giờ được đưa vào lượt chạy đang dở: nó chờ lượt đó xong rồi chạy thành lượt
+riêng, để mang theo đoạn dẫn. Khi nhiều tin gom vào một lượt thì chỉ giữ tin trả lời của tin cuối.
+
+### Ghi chú về khoảng im lặng
+
+Khoảng im lặng được đo từ dòng `session_messages` mới nhất (`SessionActivity.lastMessageAt`), không bao giờ
+từ `sessions.last_activity_at`, vì lệnh gạch chéo cũng làm mới cột đó. Khi dòng ấy cũ hơn
+`gap_note_minutes`, đoạn dẫn mở đầu bằng một dòng nói chat đã im lặng bao lâu và giá trước đó có thể đã cũ. Đọc
+thất bại thì ghi log `channel.gap_note_lookup_failed` và bỏ qua ghi chú, nên không bao giờ làm hỏng lượt.
+Khóa này nằm trong `deliveryFields` nhưng không nằm trong `SAFE_DELIVERY_OVERRIDE_FIELDS`, nên một kênh
+plugin khai báo không ghi đè được nó.
+
+### Đoạn dẫn không bao giờ được lưu
+
+`runExchange` truyền ghi chú khoảng im lặng và đoạn dẫn trả lời qua `RunInput.lead`, một lần cho mỗi lượt
+chạy. Engine thêm nó thành một tin người dùng tạm thời ngay trước lời của người vận hành, giống cách nó
+khôi phục danh sách việc cần làm: model đọc được trong lượt đó, còn `history show` và lịch sử chat qua
+`/v1` chỉ hiện đúng những gì người vận hành đã gõ. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn là cách
+bắt đầu mới một cách tường minh.
+
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động

@@ -18,6 +18,12 @@ type SenderFn = (
 
 export type NotifyOutcome = 'delivered' | 'dropped' | 'aborted'
 
+interface NotifyResult {
+  readonly outcome: NotifyOutcome
+  /** Present only when the outcome is `delivered`. */
+  readonly ref?: SentRef
+}
+
 interface NotifyOptions {
   readonly signal?: AbortSignal
   readonly useMarkup?: boolean
@@ -40,6 +46,7 @@ interface Note {
   readonly sendSignal: AbortSignal
   readonly callerSignal?: AbortSignal
   attempts: number
+  ref?: SentRef
   /** Epoch-ms the note is next due, set by the failure that queued it again. */
   noRetryBefore?: number
   settle: (outcome: NotifyOutcome) => void
@@ -61,16 +68,16 @@ export class Notifier {
   // rejects: callers that must record a failed delivery branch on the outcome. Every send goes
   // through the queue and the single-flight flush: a direct dispatch would let two in-flight
   // transports race and deliver out of order.
-  notify(target: OutboundTarget, text: string, options?: NotifyOptions): Promise<NotifyOutcome> {
+  notify(target: OutboundTarget, text: string, options?: NotifyOptions): Promise<NotifyResult> {
     const signal = options?.signal
     const useMarkup = options?.useMarkup
     // Guarded before any enqueue or listener: arming and immediately tearing down would leave a
     // note in the queue for a caller that already gave up on it.
     if (signal?.aborted === true) {
-      return Promise.resolve('aborted')
+      return Promise.resolve({ outcome: 'aborted' })
     }
     if (this.disposed || this.deps.signal.aborted) {
-      return Promise.resolve('dropped')
+      return Promise.resolve({ outcome: 'dropped' })
     }
 
     const note: Note = {
@@ -94,7 +101,9 @@ export class Notifier {
     this.armAbort(note, signal)
     this.kick()
 
-    return done
+    return done.then((outcome) =>
+      note.ref === undefined ? { outcome } : { outcome, ref: note.ref }
+    )
   }
 
   /** A caller that gives up releases its note rather than holding a slot until the queue evicts it.
@@ -202,7 +211,7 @@ export class Notifier {
     this.sentAt.push(sentAt)
 
     try {
-      await this.deps.sender(note.out, { signal: note.sendSignal })
+      note.ref = await this.deps.sender(note.out, { signal: note.sendSignal })
       // One success means the backlog is moving again, so the next drop is worth warning about.
       this.dropWarned = false
       note.settle('delivered')
@@ -350,7 +359,9 @@ export class Notifier {
       }
 
       try {
-        await this.deps.sender(note.out, { signal: AbortSignal.any([signal, note.sendSignal]) })
+        note.ref = await this.deps.sender(note.out, {
+          signal: AbortSignal.any([signal, note.sendSignal]),
+        })
         note.settle('delivered')
       } catch (err: unknown) {
         if (this.callerAborted(note)) {

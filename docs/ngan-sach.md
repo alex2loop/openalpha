@@ -5,7 +5,7 @@ hạn mức chứ không phải sau đó.
 
 Hạn mức là tùy chọn. Không khai gì thì chi tiêu không bị chặn, chỉ được theo dõi - bạn luôn biết được nó tốn bao nhiêu.
 Nhà cung cấp tìm kiếm dùng chung cuốn sổ đó: khoản Exa tự báo, và `[web_search] cost_per_search_usd` bạn khai cho Brave,
-Serper hay Tavily, đều rơi vào cùng một tổng với chi phí mô hình.
+DeepSeek, Serper hay Tavily, đều rơi vào cùng một tổng với chi phí mô hình.
 
 ## Đặt hạn mức
 
@@ -155,9 +155,9 @@ cho nổi một lời gọi. Ở phiên chạy không bị chặn thì toàn b�
 | `medium` | 0,10 | 0,45 | 0,25 | 0,20 |
 | `deep` | 0,10 | 0,50 | 0,20 | 0,20 |
 
-Phí tìm kiếm đến theo hai đường. Exa báo đúng khoản thật và con số đó được dùng nguyên. Brave, Serper và Tavily tính tiền
+Phí tìm kiếm đến theo hai đường. Exa báo đúng khoản thật và con số đó được dùng nguyên. Brave, DeepSeek, Serper và Tavily tính tiền
 theo mỗi truy vấn nhưng không trả về gì, nên mỗi lần bị tính theo `cost_per_search_usd` bạn khai - không khai thì không bị
-tính. DuckDuckGo và SearXNG tự dựng thì miễn phí thật. Một lần trúng cache và một lời gọi hỏng không bao giờ bị tính tiền.
+tính. DeepSeek chỉ bị tính khi lượt tìm có kết quả. DuckDuckGo và SearXNG tự dựng thì miễn phí thật. Một lần trúng cache và một lời gọi hỏng không bao giờ bị tính tiền.
 
 ### Khi một lát cạn
 

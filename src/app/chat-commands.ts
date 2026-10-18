@@ -160,7 +160,18 @@ async function startFreshSession(options: FreshSessionOptions): Promise<SessionI
     throw err
   }
 
+  await closeReplacedSession(app, ctx.sessionId)
+
   return freshSessionId
+}
+
+// The store skips a session a run still holds; that run records its own end.
+async function closeReplacedSession(app: App, sessionId: SessionId): Promise<void> {
+  try {
+    await app.resolve('sessionStore').updateStatus(sessionId, 'done')
+  } catch (err: unknown) {
+    app.resolve('logger').warn('agent.session_close_failed', { err: formatErrForLog(err) })
+  }
 }
 
 async function discardFreshSession(app: App, freshSessionId: SessionId): Promise<void> {

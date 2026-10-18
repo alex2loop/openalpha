@@ -153,12 +153,12 @@
     Install-Binary
     Add-ToPath
 
-    & $Target version
-
-    # An upgrade moves a background daemon onto the new binary; a pinned install must not be pulled
-    # past the release it asked for.
+    # An upgrade moves a background daemon onto the new binary and prints the version itself; a pinned
+    # install must not be pulled past the release it asked for.
     if (-not $firstInstall -and -not $env:OPENALPHA_VERSION) {
       & $Target upgrade
+    } else {
+      & $Target version
     }
 
     if ($script:PausedDaemon) {

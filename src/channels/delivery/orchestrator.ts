@@ -1,11 +1,13 @@
 import type { FinalAnswer } from '@/channels/delivery/answer'
 import type { Reply } from '@/channels/delivery/reply'
+import type { SentMessages } from '@/channels/delivery/sent-messages'
 import type { ChannelSettings } from '@/channels/schema'
-import type { ChannelAdapter, InboundMessage } from '@/channels/types'
+import type { ChannelAdapter, InboundMessage, SentRef } from '@/channels/types'
 import type { EventBus } from '@/core/events'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
+import type { SessionActivity } from '@/core/types/session'
 import type { ResearchPlanDecision, ResearchPlanReview, Runner, RunResult } from '@/engine/api'
 import { AnswerUndelivered } from '@/channels/delivery/answer'
 import { buildAbortCallbackData } from '@/channels/delivery/callbacks'
@@ -15,14 +17,18 @@ import {
   formatPlanBlock,
   formatRunResultBody,
 } from '@/channels/delivery/format'
+import { resolveGapNote } from '@/channels/delivery/gap-note'
 import { resolveOutboundMarkup, selectRenderer } from '@/channels/delivery/outbound/chunked-send'
 import { createReply } from '@/channels/delivery/reply'
+import { toReplyLead } from '@/channels/delivery/reply-context'
 import { type ChunkStream, createChunkStream } from '@/channels/delivery/stream'
 import { AppError, ChannelError, RunHalted } from '@/core/errors'
 import { observe } from '@/core/events'
 import { LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
+
+const LEAD_SEPARATOR = '\n\n'
 
 export interface OrchestratorDeps {
   readonly adapter: ChannelAdapter
@@ -32,6 +38,8 @@ export interface OrchestratorDeps {
   readonly locale: Locale
   readonly logger: Logger
   readonly signal: AbortSignal
+  readonly sent: SentMessages
+  readonly sessions: SessionActivity
   /** Channel-owned deep-plan review; the prompted chat supplies the explicit start or cancel. */
   readonly reviewPlan: (chatId: string, input: ResearchPlanReview) => Promise<ResearchPlanDecision>
 }
@@ -73,6 +81,9 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
   try {
     reply.typing(true)
     await reply.react('👀')
+
+    const lead = await composeLead(deps, exchange)
+
     result = await deps.runner.run(
       {
         agentId,
@@ -80,6 +91,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
         userId: LOCAL_USER_ID,
         channel: combined.channel,
         userMessage: combined.text,
+        ...(lead === undefined ? {} : { lead }),
         onChunk: (event) => stream.onChunk(event),
       },
       {
@@ -107,6 +119,28 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     afterApproval: prompts.prompted(),
     elapsedMs: performance.now() - startedAt,
   })
+}
+
+// Batched messages arrive here as one: one lead per run, and a burst keeps only its last reply.
+async function composeLead(
+  deps: OrchestratorDeps,
+  exchange: Exchange
+): Promise<string | undefined> {
+  const gapNote = await resolveGapNote({
+    sessionId: exchange.sessionId,
+    sessions: deps.sessions,
+    gapNoteMs: deps.settings.gapNoteMs,
+    locale: deps.locale,
+    logger: deps.logger,
+  })
+  const replyLead = toReplyLead({
+    message: exchange.combined,
+    sent: deps.sent,
+    locale: deps.locale,
+  })
+  const parts = [gapNote, replyLead].filter((part) => part !== undefined)
+
+  return parts.length === 0 ? undefined : parts.join(LEAD_SEPARATOR)
 }
 
 interface ApprovalPromptWatch {
@@ -189,11 +223,13 @@ async function reportRunnerFailure(
 
   // Same ordering rule as the answer: a prompt sits below the placeholder, so editing it would
   // report the failure above the approval that preceded it.
-  await runNonMasking(deps, 'orchestrator.failure_update_failed', () =>
-    target.afterApproval
-      ? reply.overflow(text, { signal: deps.signal })
-      : reply.update(text, { retryOn429: true, signal: deps.signal })
-  )
+  await runNonMasking(deps, 'orchestrator.failure_update_failed', async () => {
+    if (target.afterApproval) {
+      await reply.overflow(text, { signal: deps.signal })
+    } else {
+      await reply.update(text, { retryOn429: true, signal: deps.signal })
+    }
+  })
   await runNonMasking(deps, 'orchestrator.failure_reaction_failed', () => reply.react('❌'))
 }
 
@@ -320,21 +356,51 @@ async function sendAnswer(deps: OrchestratorDeps, send: AnswerSend): Promise<voi
   const renderedFooter = renderer.escape(answer.footer)
   const bodyChunks = renderer.chunk(normalized, maxLen)
 
-  const [head, ...rest] = buildFooterChunks(bodyChunks, renderedFooter, maxLen)
+  const chunks = buildFooterChunks(bodyChunks, renderedFooter, maxLen)
+  const [head, ...rest] = chunks
+  const refs: (SentRef | undefined)[] = []
 
   // Editing the placeholder would file the answer above the approval prompt it answers, so a run
   // that prompted sends its answer as a new message and leaves the live preview standing.
   if (head !== undefined) {
-    if (send.afterApproval) {
-      await reply.overflow(head, { useMarkup, signal: deps.signal })
-    } else {
-      await reply.update(head, { useMarkup, retryOn429: true, signal: deps.signal })
-    }
+    refs.push(
+      send.afterApproval
+        ? await reply.overflow(head, { useMarkup, signal: deps.signal })
+        : await reply.update(head, { useMarkup, retryOn429: true, signal: deps.signal })
+    )
   }
 
   for (const chunk of rest) {
-    await reply.overflow(chunk, { useMarkup, signal: deps.signal })
+    refs.push(await reply.overflow(chunk, { useMarkup, signal: deps.signal }))
   }
 
+  recordAnswerChunks(deps.sent, {
+    chatId: answer.chatId,
+    refs,
+    bodyCount: bodyChunks.length,
+    footerJoined: chunks.length === bodyChunks.length,
+  })
+
   await reply.react(answer.completed ? '✅' : '❌')
+}
+
+interface AnswerChunks {
+  readonly chatId: string
+  readonly refs: readonly (SentRef | undefined)[]
+  readonly bodyCount: number
+  readonly footerJoined: boolean
+}
+
+// A footer-only chunk is all LLM spend, so it is never filed.
+function recordAnswerChunks(sent: SentMessages, chunks: AnswerChunks): void {
+  for (const [index, ref] of chunks.refs.slice(0, chunks.bodyCount).entries()) {
+    if (ref === undefined) {
+      continue
+    }
+
+    sent.record(chunks.chatId, ref.messageId, {
+      kind: 'answer',
+      hasFooter: chunks.footerJoined && index === chunks.bodyCount - 1,
+    })
+  }
 }

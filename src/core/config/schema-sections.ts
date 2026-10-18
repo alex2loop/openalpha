@@ -10,6 +10,7 @@ export const WEB_SEARCH_PROVIDERS = [
   'duckduckgo',
   'anysearch',
   'brave',
+  'deepseek',
   'exa',
   'serper',
   'tavily',

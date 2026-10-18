@@ -381,6 +381,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `mid_stream_updates` | bool | `true` | Edit the reply while it streams. |
 | `slash_commands` | bool | `true` | Enable slash commands and the command menu. |
 | `notify_max_per_minute` | int | `3` | Rate cap on proactive messages. |
+| `gap_note_minutes` | int | `30` | Quiet minutes after which the next answer is told to check prices again; `0` turns it off. |
 | `fallback_chat_id` | string | - | Fallback target for proactive messages. |
 | `pairing` | bool | `true` with no allowlist | Let unknown chats pair. |
 
@@ -461,10 +462,10 @@ the section is ignored and no web tools are offered; the client brings its own.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `provider` | string | `duckduckgo` | `duckduckgo`, `anysearch`, `tavily`, `brave`, `exa`, `serper` or `searxng`. |
-| `api_key_env` | string | - | Environment variable holding the API key. Required for tavily, brave, exa and serper; optional `ANYSEARCH_API_KEY` for anysearch. |
+| `provider` | string | `duckduckgo` | `duckduckgo`, `anysearch`, `tavily`, `brave`, `deepseek`, `exa`, `serper` or `searxng`. |
+| `api_key_env` | string | - | Environment variable holding the API key. Required for tavily, brave, deepseek, exa and serper; optional `ANYSEARCH_API_KEY` for anysearch. |
 | `base_url` | string | - | SearXNG instance URL. Required for `searxng`, rejected for every other provider. The instance must enable the `json` format in `settings.yml` (`search.formats`). |
-| `cost_per_search_usd` | float | - | Cost charged per query for `brave`, `serper` and `tavily`, which bill but report no cost. Rejected for `duckduckgo`, `searxng` (free), `exa` (reports its own cost) and `anysearch` (reports zero). Set your plan's rate; `0` disables the charge. |
+| `cost_per_search_usd` | float | - | Cost charged per query for `brave`, `deepseek`, `serper` and `tavily`, which bill but report no cost. DeepSeek is charged only when a search returns results, the way DeepSeek bills. Rejected for `duckduckgo`, `searxng` (free), `exa` (reports its own cost) and `anysearch` (reports zero). Set your plan's rate; `0` disables the charge. |
 | `fallback_provider` | string | - | Second provider, tried after an error or empty result. Must differ from `provider`. The `fallback_*` keys need it. |
 | `fallback_api_key_env` | string | - | Same as `api_key_env`, for the fallback. |
 | `fallback_base_url` | string | - | Same as `base_url`, for a `searxng` fallback only. |
@@ -488,6 +489,8 @@ the fallback. `ANYSEARCH_API_KEY` is optional; without it you get anonymous acce
 It returns at most 20 results, sends your `[locale] language`, and does not support recency, so a
 requested recency is reported as unverified.
 
+`deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set `cost_per_search_usd = 0.00075` so the spend shows in your totals. DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the sites you chose; only a site list long enough to crowd out the question moves to filtering the results. Excluded sites are always filtered from the results, so you still get only the sites you asked for. DeepSeek takes no language, so a page's machine-translated copies (paths like `/nl/`, `/de/`) are dropped and only pages in your language are kept. Searches are paced to DeepSeek's limit of 5 a second.
+
 Keys come only from the environment variables named by `api_key_env` and `fallback_api_key_env`.
 A provider call times out after 15 seconds and retries transient failures up to 3 times from an
 800 ms base backoff. A provider that fails 3 times in a row is skipped for 1 minute. The cache holds
@@ -497,6 +500,7 @@ A provider call times out after 15 seconds and retries transient failures up to 
 |---|---|---|
 | `tavily` | `TAVILY_API_KEY` | https://app.tavily.com/ |
 | `brave` | `BRAVE_API_KEY` | https://api-dashboard.search.brave.com/ |
+| `deepseek` | `DEEPSEEK_API_KEY` | https://platform.deepseek.com/api_keys |
 | `exa` | `EXA_API_KEY` | https://dashboard.exa.ai/ |
 | `serper` | `SERPER_API_KEY` | https://serper.dev/ |
 
@@ -882,8 +886,8 @@ an unknown key inside a claimed section is.
 
 ## Validation errors
 
-`config validate` runs the same checks as boot: parse, resolve, then `[trading]` and any section
-nobody owns. A config it accepts is a config that boots. The API's config validate and save use the
+`config validate` runs the same checks as boot: parse, resolve, then `[trading]`, `[channels.*]`
+and any section nobody owns. A config it accepts is a config that boots. The API's config validate and save use the
 same checks. A config value that names an unregistered market, venue or default region fails here
 too, not on first use.
 

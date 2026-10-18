@@ -1,15 +1,13 @@
 import type { ChannelAdmission, ChannelContext, ChannelDefinition } from '@/channels/types'
 import { resolveAdmissionIds } from '@/channels/schema'
-import { channelId } from '@/core/channels'
 
 import { createZaloPersonalAdapter } from './adapter'
 import {
   isZaloPersonalEnabled,
   parseZaloPersonalConfig,
+  ZALO_PERSONAL_CHANNEL_ID,
   type ZaloPersonalChannelConfig,
 } from './config'
-
-const ZALO_PERSONAL_CHANNEL_ID = channelId('zalo_personal')
 
 export const zaloPersonalDefinition: ChannelDefinition<ZaloPersonalChannelConfig> = {
   id: ZALO_PERSONAL_CHANNEL_ID,

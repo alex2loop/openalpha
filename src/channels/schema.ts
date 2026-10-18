@@ -2,10 +2,16 @@ import { readFileSync } from 'node:fs'
 
 import { z } from 'zod'
 
+import type { ChannelId } from '@/core/channels'
+import { toInvalidConfigError } from '@/core/config/resolve'
+import { MS_PER_MINUTE } from '@/core/utils/time'
+
+const CHANNELS_CONFIG_SECTION = 'channels'
 const DEFAULT_DEBOUNCE_MS = 600
 const DEFAULT_NEAR_SPLIT_DEBOUNCE_MS = 2_000
 const DEFAULT_MID_STREAM_THROTTLE_MS = 1_500
 const DEFAULT_NOTIFY_MAX_PER_MINUTE = 3
+const DEFAULT_GAP_NOTE_MINUTES = 30
 const DEFAULT_NOTIFY_QUEUE_MAX = 50
 const DEFAULT_NOTIFY_MAX_ATTEMPTS = 3
 // How long shutdown waits for the queue to drain before it settles the rest as dropped.
@@ -42,6 +48,7 @@ export const deliveryFields = {
   typing_indicator: z.boolean().optional(),
   use_reactions: z.boolean().optional(),
   notify_max_per_minute: z.number().int().positive().optional(),
+  gap_note_minutes: z.number().int().nonnegative().optional(),
   fallback_chat_id: z.string().min(1).optional(),
 }
 
@@ -64,6 +71,8 @@ export interface ChannelSettings {
   readonly notifyQueueMax: number
   readonly notifyMaxAttempts: number
   readonly notifyDrainTimeoutMs: number
+  /** Quiet time after which a run is told its prices are stale; 0 turns it off. */
+  readonly gapNoteMs: number
   readonly fallbackChatId?: string
 }
 
@@ -77,6 +86,23 @@ interface AdmissionIdConfig {
 interface AdmissionIds {
   readonly allowedIds: readonly string[]
   readonly operatorUserIds: readonly string[]
+}
+
+/** A wrong value refuses the way any other section does, naming `channels.<id>.<key>`. */
+export function parseChannelSection<T extends z.ZodType>(
+  schema: T,
+  raw: unknown,
+  channel: ChannelId
+): z.output<T> {
+  const parsed = schema.safeParse(raw ?? {})
+
+  if (parsed.success) {
+    return parsed.data
+  }
+
+  throw toInvalidConfigError(parsed.error, schema, {
+    section: `${CHANNELS_CONFIG_SECTION}.${channel}`,
+  })
 }
 
 export function resolveChannelSettings(cfg: ChannelDeliveryConfig): ChannelSettings {
@@ -95,6 +121,7 @@ export function resolveChannelSettings(cfg: ChannelDeliveryConfig): ChannelSetti
     notifyQueueMax: DEFAULT_NOTIFY_QUEUE_MAX,
     notifyMaxAttempts: DEFAULT_NOTIFY_MAX_ATTEMPTS,
     notifyDrainTimeoutMs: DEFAULT_NOTIFY_DRAIN_TIMEOUT_MS,
+    gapNoteMs: (cfg.gap_note_minutes ?? DEFAULT_GAP_NOTE_MINUTES) * MS_PER_MINUTE,
   }
 
   if (cfg.agent !== undefined) {

@@ -17,7 +17,12 @@ type SearchProvider = (typeof WEB_SEARCH_PROVIDERS)[number]
 export type WebSearchProvider = SearchProvider
 
 // Bill per query without reporting it; exa reports its own cost, the rest are free.
-const PER_SEARCH_COST_PROVIDERS: readonly SearchProvider[] = ['brave', 'serper', 'tavily']
+const PER_SEARCH_COST_PROVIDERS: readonly SearchProvider[] = [
+  'brave',
+  'deepseek',
+  'serper',
+  'tavily',
+]
 const KEY_OPTIONAL_PROVIDERS: readonly SearchProvider[] = ['duckduckgo', 'anysearch']
 
 interface SearchProviderConfig {

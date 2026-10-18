@@ -214,7 +214,7 @@ khóa như công cụ `web_search` chung. Chưa cấu hình dự phòng thì nh�
 thành khoảng trống `provider_unavailable`. Nếu `api_key_env` của nhà cung cấp mặc định trỏ tới một biến
 rỗng thì `/research` từ chối ngay và nêu biến cần đặt.
 
-Phí của nhà cung cấp trả tiền được trừ vào ngân sách giai đoạn crawl. Exa tự báo chi phí; Brave, Serper
+Phí của nhà cung cấp trả tiền được trừ vào ngân sách giai đoạn crawl. Exa tự báo chi phí; Brave, DeepSeek, Serper
 và Tavily tính tiền theo truy vấn nhưng không báo lại, nên hãy đặt `[web_search] cost_per_search_usd`
 theo đơn giá gói của bạn, nếu không khoản chi đó sẽ không hiện ra.
 

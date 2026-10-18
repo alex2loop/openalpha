@@ -1,7 +1,16 @@
 import { z } from 'zod'
 
 import type { AdmissionMode } from '@/channels/types'
-import { allowlistField, deliveryFields, dmPolicyField, secretFields } from '@/channels/schema'
+import {
+  allowlistField,
+  deliveryFields,
+  dmPolicyField,
+  parseChannelSection,
+  secretFields,
+} from '@/channels/schema'
+import { channelId } from '@/core/channels'
+
+export const ZALO_CHANNEL_ID = channelId('zalo')
 
 const zaloSchema = z.strictObject({
   ...deliveryFields,
@@ -16,7 +25,8 @@ type ZaloChannelConfig = z.infer<typeof zaloSchema>
 export type ResolvedZaloConfig = ZaloChannelConfig & { readonly configured: boolean }
 
 export function parseZaloConfig(raw: unknown): ResolvedZaloConfig {
-  const parsed = zaloSchema.parse(raw ?? {})
+  const parsed = parseChannelSection(zaloSchema, raw, ZALO_CHANNEL_ID)
+
   return { ...parsed, configured: raw !== undefined }
 }
 

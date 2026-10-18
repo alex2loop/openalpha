@@ -16,7 +16,7 @@ import {
   installDownloadedBinary,
   swapWithPreviousBinary,
 } from '@/cli/update/binary'
-import { formatUpdateStatus } from '@/cli/update/notice'
+import { formatUpdateStatus, formatVersionLine } from '@/cli/update/notice'
 import { downloadReleaseBinary, isCompiledBinary } from '@/cli/update/release'
 import {
   newerVersionOf,
@@ -98,7 +98,12 @@ async function runUpgrade(app: CliApp, options: UpgradeOptions): Promise<number>
   return (await restartStaleDaemon(app)) || statusCode
 }
 
+// A newer release's notice already names the running one.
 function printStatus(app: CliApp, state: UpdateState): void {
+  if (newerVersionOf(state) === null) {
+    app.out(formatVersionLine())
+  }
+
   for (const line of formatUpdateStatus(app.config.locale.language, state)) {
     app.out(line)
   }

@@ -333,7 +333,7 @@ This section sums up each area. Every topic has a full page in the table at the 
 
 Ask a question that needs fresh outside data, and get back a report where every claim can show where it came from. The model never goes online itself: code searches and fetches the pages first, so the model cannot invent a source, and where evidence is missing the report says so.
 
-**The search provider sets the depth.** The default is DuckDuckGo: free and keyless, but thin, so a question about fresh figures often comes back empty. Set `[web_search]` to Exa, Tavily, Brave or Serper ([configuration](docs/en/configuration.md)) and the report draws on far more sources.
+**The search provider sets the depth.** The default is DuckDuckGo: free and keyless, but thin, so a question about fresh figures often comes back empty. Set `[web_search]` to Exa, Tavily, Brave, Serper or DeepSeek, the cheapest and strong on Vietnamese sources ([configuration](docs/en/configuration.md)), and the report draws on far more sources.
 
 Details: [docs/en/research.md](docs/en/research.md)
 
