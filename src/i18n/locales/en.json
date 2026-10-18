@@ -1729,6 +1729,8 @@
   },
   "channel": {
     "clarification": "❓ {question}",
+    "replyContext.notice": "(The operator is replying to your \"{label}\" message.)",
+    "replyContext.unknown": "(The operator is replying to an earlier message of yours that isn't shown here.)",
     "affordanceLine": "{label}: {command}",
     "turnRestarted": "⚠️ retrying on a fallback provider ({reason}) - the partial reply above is superseded",
     "steeringDroppedOne": "⚠️ {count} message arrived while the run was stopping and was not processed - please resend",

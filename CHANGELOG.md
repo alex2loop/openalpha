@@ -7,6 +7,15 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+Replying to an answer in a private Telegram chat now keeps the conversation on that answer. No database change.
+> Trả lời một câu trả lời trong chat riêng Telegram giờ giữ cuộc trò chuyện đúng câu đó.
+
+### Chat
+
+- In a private Telegram chat, replying to one of OpenAlpha's answers now keeps the conversation on that answer.
+
 ## [1.0.6] - 2026-10-18
 
 Updates are easy to see and install from chat, the debate reads its evidence more carefully, and

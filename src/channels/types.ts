@@ -5,6 +5,14 @@ import type { PollOffsetStore } from '@/core/types/session'
 
 export type ReactionEmoji = '👀' | '✅' | '❌'
 
+/** The bot message an operator's message replies to. `text` is what the channel shows of it, and
+ *  `quote` the part the operator selected. */
+export interface InboundReply {
+  readonly messageId: string
+  readonly text?: string
+  readonly quote?: string
+}
+
 export interface InboundMessage {
   readonly channel: ChannelId
   readonly chatId: string
@@ -18,6 +26,7 @@ export interface InboundMessage {
   readonly receivedAt: number
   readonly isGroup?: boolean
   readonly addressedToBot?: boolean
+  readonly replyTo?: InboundReply
 }
 
 export interface ChannelCallbackQuery {

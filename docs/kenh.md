@@ -158,6 +158,9 @@ Vài điều nên biết:
 - **Tin chuyển tiếp là dữ liệu.** Nội dung của chúng được bọc như nội dung dán vào và không bao giờ bắt
   đầu bằng `/`, nên một lệnh được chuyển tiếp sẽ không chạy, và agent không hành động theo nó trừ khi
   chính lời của bạn yêu cầu.
+- **Trả lời đúng tin.** Trong chat riêng, bạn cứ bấm trả lời vào một câu trả lời của OpenAlpha, nó sẽ biết
+  bạn đang hỏi tiếp câu nào. Với cảnh báo giá và bản tin sáng, nó chỉ biết đó là loại tin gì, không bao giờ
+  thấy số tiền của bạn.
 - **Nút bấm là lệnh.** Bấm một nút y như gõ lệnh đó: cùng khâu xét duyệt, cùng cổng quyền, cùng giới hạn
   tần suất, và chạy trên dữ liệu của hôm nay.
 - **Các chat tách biệt.** Mỗi kênh và mỗi chat có cuộc hội thoại riêng; hai ứng dụng chat không bao giờ

@@ -219,6 +219,27 @@ mục, và mất sau khi khởi động lại. Tin không có trong bảng, dù 
 là kết quả của lệnh gạch chéo, hay là dòng chi phí đã đi thành một khúc riêng, đơn giản là "không biết",
 và nơi đọc bảng lùi về một dòng chỉ dẫn thay vì nội dung.
 
+### Ngữ cảnh trả lời
+
+Ở chat riêng Telegram, một tin trả lời một tin của chính bot mang theo `replyTo` (id và nội dung tin được
+trả lời, cùng đoạn `quote` người vận hành đã bôi chọn). Chat nhóm không bao giờ đặt nó: tuyến của nhóm là
+theo từng người, nhưng bảng tin đã gửi không có người dùng, nên nếu không thì một thành viên trả lời có thể
+kéo câu trả lời của thành viên khác vào phiên của mình.
+
+`route` ghép nó một lần, sau khi xử lý lệnh gạch chéo và chỉ với tin thường, nên một tin trả lời mà chính
+nó là lệnh gạch chéo (`/stop`) vẫn chạy như lệnh. `withReplyContext` đặt trước lời của người vận hành:
+
+- với một câu trả lời, nội dung tin được trả lời (hoặc đoạn bôi chọn, nếu nằm trong thân câu trả lời) bọc
+  như nội dung dán vào và cắt theo độ dài cố định;
+- với một bản tin chủ động, chỉ nhãn của nó;
+- với mọi thứ khác, một dòng chỉ dẫn.
+
+Dòng chi phí cuối tin (chi phí LLM, token, số lần gọi mô hình) bị giấu khỏi mô hình như một con số của người
+vận hành: nó bị cắt khỏi nội dung được trả lời, và đoạn bôi chọn chạm vào nó thì lùi về cả thân tin không có
+dòng đó. Dòng chi phí đã đi thành một tin riêng thì không được ghi vào bảng, nên trả lời nó chỉ nhận dòng chỉ
+dẫn. Tin trong hộp nhận được phát lại vẫn giữ `replyTo` và gặp một bảng trống sau khi khởi động lại, nên
+cũng chỉ nhận dòng chỉ dẫn.
+
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động

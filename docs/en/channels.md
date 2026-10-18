@@ -158,6 +158,8 @@ A few things to know:
 
 - **Forwarded messages are data.** Their text is wrapped as pasted content and never starts with `/`, so
   a forwarded command does not run and the agent will not act on it unless your own words ask it to.
+- **Replying keeps the thread.** Reply to any answer from OpenAlpha in a private chat and it knows which
+  one you mean. For alerts and briefs it only sees which kind of message it was, never your amounts.
 - **Buttons are commands.** Tapping one does exactly what typing that command would, with the same
   admission, role and rate checks, and it runs on today's data.
 - **Chats stay separate.** Each channel and chat has its own conversation; two chat apps never share one.

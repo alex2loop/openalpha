@@ -217,6 +217,26 @@ restart. A message that is not in the map, whether pushed out, sent before a res
 footer that went out as a chunk of its own, is simply unknown, and the reader of the map degrades to a
 pointer rather than the text.
 
+### Reply context
+
+On a Telegram direct chat, a message that replies to one of the bot's own messages carries `replyTo` (the
+replied message's id and text, and the `quote` the operator selected). Group chats never set it: a group
+route is per user, but the sent-message map has no user, so one member's reply could otherwise pull another
+member's answer into their session.
+
+`route` composes it once, after slash resolution and only for a plain message, so a reply that is itself a
+slash command (`/stop`) still runs as the command. `withReplyContext` leads the operator's text with:
+
+- for an answer, the replied text (or the selected quote, if it lies inside the answer body) wrapped as
+  pasted content and cut to a fixed length;
+- for a notice, only its label;
+- for anything else, a one-line pointer.
+
+The run footer (LLM cost, tokens, model calls) is hidden from models like an operator figure: it is cut off
+the replied text, and a quote that touches it falls back to the whole footer-less body. A footer that went
+out as a message of its own is never filed, so a reply to it gets the pointer. A replayed inbox entry
+keeps `replyTo` and meets an empty map after a restart, so it too gets the pointer.
+
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and

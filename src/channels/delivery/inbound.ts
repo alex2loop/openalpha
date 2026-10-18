@@ -4,6 +4,7 @@ import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { AgentId } from '@/core/ids'
 import { COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
 import { handleControlCallback } from '@/channels/delivery/control'
+import { withReplyContext } from '@/channels/delivery/reply-context'
 import { resolveSlashRunRequest, roleOf, type SlashRunRequest } from '@/channels/delivery/slash'
 import { commandHeadOf, UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { observe } from '@/core/events'
@@ -119,19 +120,18 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
       return
     }
 
+    const text = toRunText(deps, msg, request)
+
     // A plain message lands in the session's active run at its next turn boundary; only when no
     // run accepts it does it queue as a new exchange. Slash commands always take the queue path.
-    if (
-      !msg.text.startsWith(SLASH_PREFIX) &&
-      deps.runRegistry.steer(sessionId, msg.chatId, request.text)
-    ) {
+    if (!msg.text.startsWith(SLASH_PREFIX) && deps.runRegistry.steer(sessionId, msg.chatId, text)) {
       return
     }
 
     const selectedAgent = request.agentId ?? (await resolveAgentId(deps, msg.chatId))
     const receipt = deps.queue.enqueueInbound({
       sessionId,
-      msg: { ...msg, text: request.text },
+      msg: { ...msg, text },
       run: (combined) => deps.runExchange({ combined, sessionId, agentId: selectedAgent }),
       route: routeLease.register(),
     })
@@ -141,6 +141,19 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
   } finally {
     routeLease.release()
   }
+}
+
+// A slash command never carries reply context: it runs as the command it is, whatever it replied to.
+function toRunText(
+  deps: InboundHandlerDeps,
+  msg: InboundMessage,
+  request: SlashRunRequest
+): string {
+  if (msg.text.startsWith(SLASH_PREFIX)) {
+    return request.text
+  }
+
+  return withReplyContext({ message: msg, sent: deps.sent, locale: deps.locale })
 }
 
 /** A reminder never blocks an answer, so a failure to produce or send one is logged and dropped. */

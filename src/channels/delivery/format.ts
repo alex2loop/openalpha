@@ -285,6 +285,13 @@ export function joinFooter(body: string, footer: string): string {
   return `${body}${FOOTER_GAP}${footer}`
 }
 
+/** The text before the footer `joinFooter` put after the last gap. */
+export function stripFooter(text: string): string {
+  const gap = text.lastIndexOf(FOOTER_GAP)
+
+  return gap < 0 ? text : text.slice(0, gap)
+}
+
 /** Keeps the footer on the last body chunk while it fits, so it is never cut in half. */
 export function buildFooterChunks(
   bodyChunks: readonly string[],

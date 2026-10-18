@@ -3,7 +3,7 @@ import { lruMap } from '@/core/utils/collections'
 // An entry is about 100 bytes, so the map stays around 200 KB.
 const SENT_MESSAGE_CAPACITY = 2_000
 
-type SentMessage =
+export type SentMessage =
   | { readonly kind: 'answer'; readonly hasFooter: boolean }
   | { readonly kind: 'notice'; readonly label: string }
 

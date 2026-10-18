@@ -1729,6 +1729,8 @@
   },
   "channel": {
     "clarification": "❓ {question}",
+    "replyContext.notice": "(Người dùng đang trả lời tin \"{label}\" của bạn.)",
+    "replyContext.unknown": "(Người dùng đang trả lời một tin trước đó của bạn, nội dung không có ở đây.)",
     "affordanceLine": "{label}: {command}",
     "turnRestarted": "⚠️ đang thử lại trên nhà cung cấp dự phòng ({reason}) - phần trả lời dở ở trên sẽ được thay thế",
     "steeringDroppedOne": "⚠️ {count} tin nhắn đến khi phiên chat đang dừng nên chưa được xử lý - vui lòng gửi lại",
