@@ -251,6 +251,7 @@
     "configProblemsMore": "- và còn {count} chỗ nữa",
     "configIssue.invalid_type": "giá trị chưa đúng kiểu, xem ví dụ trong {sample}",
     "configIssue.invalid_type_number": "cần một con số, viết không có ngoặc kép (ví dụ 5)",
+    "configIssue.invalid_type_integer": "cần một số nguyên, không có phần lẻ (ví dụ 5)",
     "configIssue.invalid_type_string": "cần một đoạn chữ đặt trong ngoặc kép",
     "configIssue.invalid_type_boolean": "chỉ nhận true hoặc false",
     "configIssue.invalid_type_list": "cần một danh sách trong ngoặc vuông, ví dụ [\"a\", \"b\"]",

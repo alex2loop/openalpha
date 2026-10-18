@@ -55,6 +55,7 @@ export {
 } from '@/channels/adapters/zalo-personal/login'
 export { type ChannelDefinitionInput, createChannel } from '@/channels/define'
 export {
+  assertChannelConfigs,
   channelsProvider,
   findChannelDefinition,
   resolveRegisteredChannelSettings,

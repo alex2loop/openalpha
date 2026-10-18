@@ -2,8 +2,15 @@
 
 import { z } from 'zod'
 
-import { allowlistField, deliveryFields, resolveAdmissionIds } from '@/channels/schema'
+import {
+  allowlistField,
+  deliveryFields,
+  parseChannelSection,
+  resolveAdmissionIds,
+} from '@/channels/schema'
+import { channelId } from '@/core/channels'
 
+export const ZALO_PERSONAL_CHANNEL_ID = channelId('zalo_personal')
 const ZALO_PERSONAL_DEFAULT_PROFILE = 'default'
 
 const zaloPersonalSchema = z.strictObject({
@@ -21,7 +28,7 @@ export type ZaloPersonalChannelConfig = z.infer<typeof zaloPersonalSchema>
 export type ZaloPersonalBlocker = 'disabled' | 'ban_risk_not_accepted' | 'no_allowed_ids'
 
 export function parseZaloPersonalConfig(raw: unknown): ZaloPersonalChannelConfig {
-  return zaloPersonalSchema.parse(raw ?? {})
+  return parseChannelSection(zaloPersonalSchema, raw, ZALO_PERSONAL_CHANNEL_ID)
 }
 
 export function isZaloPersonalEnabled(config: ZaloPersonalChannelConfig): boolean {

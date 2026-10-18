@@ -2,8 +2,11 @@ import { readFileSync } from 'node:fs'
 
 import { z } from 'zod'
 
+import type { ChannelId } from '@/core/channels'
+import { toInvalidConfigError } from '@/core/config/resolve'
 import { MS_PER_MINUTE } from '@/core/utils/time'
 
+const CHANNELS_CONFIG_SECTION = 'channels'
 const DEFAULT_DEBOUNCE_MS = 600
 const DEFAULT_NEAR_SPLIT_DEBOUNCE_MS = 2_000
 const DEFAULT_MID_STREAM_THROTTLE_MS = 1_500
@@ -83,6 +86,23 @@ interface AdmissionIdConfig {
 interface AdmissionIds {
   readonly allowedIds: readonly string[]
   readonly operatorUserIds: readonly string[]
+}
+
+/** A wrong value refuses the way any other section does, naming `channels.<id>.<key>`. */
+export function parseChannelSection<T extends z.ZodType>(
+  schema: T,
+  raw: unknown,
+  channel: ChannelId
+): z.output<T> {
+  const parsed = schema.safeParse(raw ?? {})
+
+  if (parsed.success) {
+    return parsed.data
+  }
+
+  throw toInvalidConfigError(parsed.error, schema, {
+    section: `${CHANNELS_CONFIG_SECTION}.${channel}`,
+  })
 }
 
 export function resolveChannelSettings(cfg: ChannelDeliveryConfig): ChannelSettings {

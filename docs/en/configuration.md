@@ -886,8 +886,8 @@ an unknown key inside a claimed section is.
 
 ## Validation errors
 
-`config validate` runs the same checks as boot: parse, resolve, then `[trading]` and any section
-nobody owns. A config it accepts is a config that boots. The API's config validate and save use the
+`config validate` runs the same checks as boot: parse, resolve, then `[trading]`, `[channels.*]`
+and any section nobody owns. A config it accepts is a config that boots. The API's config validate and save use the
 same checks. A config value that names an unregistered market, venue or default region fails here
 too, not on first use.
 

@@ -2,6 +2,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { ConfigCheck } from '@/core/config/validate'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
+import { assertChannelConfigs } from '@/channels/api'
 import { assertExtensionsClaimed } from '@/core/config/resolve'
 import { validateConfigTree } from '@/core/config/validate'
 import { resolveSocialConfig, SOCIAL_CONFIG_SECTION } from '@/social/api'
@@ -22,6 +23,7 @@ interface BootExtensions {
 export function resolveBootExtensions(config: ResolvedConfig): BootExtensions {
   // Run first: a whole section nobody owns is a worse problem than a typo in one that is read.
   assertExtensionsClaimed(config.extensions, CLAIMED_CONFIG_SECTIONS)
+  assertChannelConfigs(config.channels)
 
   return resolveClaimedSections(config)
 }
@@ -31,6 +33,7 @@ export function resolveBootExtensions(config: ResolvedConfig): BootExtensions {
 export function bootRefusals(config: ResolvedConfig): readonly unknown[] {
   return [
     refusalOf(() => assertExtensionsClaimed(config.extensions, CLAIMED_CONFIG_SECTIONS)),
+    refusalOf(() => assertChannelConfigs(config.channels)),
     refusalOf(() => resolveClaimedSections(config)),
   ].filter((refusal) => refusal !== undefined)
 }

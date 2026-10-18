@@ -251,6 +251,7 @@
     "configProblemsMore": "- and {count} more",
     "configIssue.invalid_type": "it has the wrong kind of value; {sample} shows one",
     "configIssue.invalid_type_number": "it needs a number, written without quotes (like 5)",
+    "configIssue.invalid_type_integer": "it needs a whole number (like 5)",
     "configIssue.invalid_type_string": "it needs text in double quotes",
     "configIssue.invalid_type_boolean": "it takes only true or false",
     "configIssue.invalid_type_list": "it needs a list in square brackets, like [\"a\", \"b\"]",

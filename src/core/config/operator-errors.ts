@@ -20,6 +20,7 @@ const ISSUE_DETAILS: ReadonlySet<string> = new Set([
 const TOML_VALUE_KINDS: Readonly<Record<string, string>> = Object.freeze({
   array: 'list',
   boolean: 'boolean',
+  int: 'integer',
   number: 'number',
   object: 'table',
   record: 'table',

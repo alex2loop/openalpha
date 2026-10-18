@@ -887,8 +887,8 @@ như một khóa lạ bên trong một mục có chủ.
 
 ## Lỗi kiểm tra
 
-`config validate` chạy đúng các bước kiểm tra như lúc khởi động: phân tích, phân giải, rồi `[trading]` và
-mọi mục không module nào nhận. Cấu hình nó chấp nhận thì khởi động được. Xác thực và lưu cấu hình qua
+`config validate` chạy đúng các bước kiểm tra như lúc khởi động: phân tích, phân giải, rồi `[trading]`,
+`[channels.*]` và mọi mục không module nào nhận. Cấu hình nó chấp nhận thì khởi động được. Xác thực và lưu cấu hình qua
 API cũng dùng đúng các bước đó. Giá trị cấu hình nêu tên thị trường, sàn hay khu vực mặc định chưa đăng
 ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên.
 
