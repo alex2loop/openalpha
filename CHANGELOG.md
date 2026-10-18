@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 - The accounts table now shows the five newest quarters next to the audited years, so a turn in the business is visible before the annual report.
+- The debate's roles now work from one set of rules, so a trade plan no longer talks about lot sizes or caps it cannot see.
 
 ## [1.0.5] - 2026-10-18
 
