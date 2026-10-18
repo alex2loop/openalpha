@@ -182,7 +182,9 @@ interface SegmentMacroInput {
 
 /** An earlier market whose own driver table printed, read on the same composite as this one: gold
  *  and VN gold weigh the same US series, and printing the table twice reads as two findings. A
- *  market that only printed the region's one-liner has no table to point back to. */
+ *  market that only printed the region's one-liner has no table to point back to. The composite's
+ *  own day is not compared: VN gold trades Saturdays, so on a weekend it stamps the same readings a
+ *  session later than world gold. */
 function isSharedExpandedMacro(
   earlier: MarketDataOverview,
   current: MarketDataOverview,
@@ -196,8 +198,25 @@ function isSharedExpandedMacro(
     !isRegionMacro(macro, region) &&
     macro.regime === current.macro.regime &&
     macro.score === current.macro.score &&
-    macro.asOf === current.macro.asOf &&
-    macro.formulaVersion === current.macro.formulaVersion
+    macro.formulaVersion === current.macro.formulaVersion &&
+    hasSameReadings(macro, current.macro)
+  )
+}
+
+function hasSameReadings(earlier: MacroRiskView, current: MacroRiskView): boolean {
+  return (
+    earlier.drivers.length === current.drivers.length &&
+    earlier.drivers.every((driver, index) => {
+      const other = current.drivers[index]
+
+      return (
+        other !== undefined &&
+        other.id === driver.id &&
+        other.value === driver.value &&
+        other.asOf === driver.asOf &&
+        other.weight === driver.weight
+      )
+    })
   )
 }
 
