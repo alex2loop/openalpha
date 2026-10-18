@@ -93,7 +93,7 @@ export function createTradingTools(deps: TradingToolDeps): readonly ToolDefiniti
   }
 
   return [
-    createMarketPriceTool(marketData, markets),
+    createMarketPriceTool(marketData, markets, deps.displayTimezone),
     createMarketBarsTool(marketData, markets),
     createMarketOverviewTool(marketData),
     createMarketEventsTool(marketData, markets),

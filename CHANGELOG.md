@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The format follows
 - When a news or calendar feed is down, the analysis now says so instead of reading the silence as good news.
 - The analysis now names the company and its sector up front, so a three-letter ticker can't be mistaken for another business.
 - Win rates used to temper conviction now count only calls that have had their full time to work out.
+- Price answers now say what time the price was read.
 
 ## [1.0.5] - 2026-10-18
 
