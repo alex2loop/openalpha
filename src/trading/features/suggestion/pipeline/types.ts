@@ -82,6 +82,7 @@ export interface SuggestionSink {
   }): Promise<boolean>
   listResolved(options: {
     readonly resolvedAfter?: number
+    readonly calledOnOrBefore?: TradingDay
     readonly strategyVersion?: string
     readonly focusKeys?: readonly FocusKey[]
     readonly market?: MarketRef

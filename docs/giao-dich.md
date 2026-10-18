@@ -362,6 +362,8 @@ Một đề xuất được định danh bằng thị trường, mã, phiên b�
 
 Mọi thứ đọc "lời gọi trước" đều đọc theo phạm vi: các cổng thời gian chờ và dùng lại, luận điểm đang đứng mà một lần chạy mới kiểm, và phép hiệu chỉnh định cỡ một lệnh mua. Phạm vi chỉ có kỳ hạn không được hòa vào của bạn. Kế hoạch thoát, kết luận mà `/rebalance` đọc và trail nâng cắt lỗ chỉ đọc `default`: một cuốn sổ, một kế hoạch. Mọi phạm vi đều được chấm điểm, và lịch sử giá được viết lại sẽ vô hiệu các lời gọi đang mở của mọi phạm vi trên mã đó.
 
+Phép hiệu chỉnh làm hạ độ tin cậy và định cỡ lệnh mua chỉ đọc những lời gọi đã hết cửa sổ theo dõi, nên các lệnh bị cắt lỗ sớm không làm bảng thành tích trông tệ hơn thực tế.
+
 Một mã nằm ngoài phạm vi của agent gọi thì bị từ chối trước mọi lời gọi mô hình, kèm tên phạm vi. Màn hình sàng lọc nó chạy được thu hẹp về các thị trường và ngành của nó trước khi xếp hạng, nên bảng và tiêu đề đếm ngành, không phải cả thị trường. `/suggest`, bản tin, `/suggest stops` và kế hoạch đã ghi luôn là phạm vi của chính bạn.
 
 Một lời gọi phạm vi đọc như một ý kiến thứ hai. Nó mở bằng dòng đó và mang mức giá, luận điểm, tranh luận và caveat, nhưng không có cỡ lệnh, số đơn vị, số tiền, ghi chú lệnh hay gợi ý `/record`, và cả JSON lẫn thẻ của nó đều không mang vị thế đang nắm. Hành động theo nó sẽ mở một vị thế mà không kế hoạch nào theo dõi.

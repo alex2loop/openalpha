@@ -362,6 +362,8 @@ A suggestion is identified by market, ticker, strategy version, **focus key** an
 
 Everything that reads "the previous call" reads it per focus: the cooldown and reuse gates, the standing thesis a new run checks, and the calibration that sizes a buy. A horizon-only focus must not blend into yours. The exit plan, the verdict `/rebalance` reads and the trail that raises stops read only `default`: one book, one plan. Every focus is scored, and a restated price history voids every focus's open calls on the name.
 
+The calibration that tempers conviction and sizes a buy reads only calls whose window has finished, so quick stop-outs cannot make the record look worse than it is.
+
 A name outside the calling agent's focus is refused before any model call, naming the focus. The screen it runs is narrowed to its markets and sectors before ranking, so its board and header count the sector, not the whole market. `/suggest`, the brief, `/suggest stops` and recorded plans are always your own focus.
 
 A focus call reads as a second opinion. It opens with that line and carries levels, thesis, debate and caveats, but no size, units, amount, order notes or `/record` hint, and neither its JSON nor its card carries the holding. Acting on one would open a position no plan watches.
