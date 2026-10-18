@@ -7,18 +7,29 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.0.7] - 2026-10-18
 
-Replying to an answer in a private Telegram chat now keeps the conversation on that answer, and a
-chat that sat quiet checks prices again before it answers. No database change.
-> Trong chat riêng Telegram, bấm trả lời vào một câu trả lời là OpenAlpha biết bạn hỏi tiếp câu nào; quay lại sau một lúc lâu thì nó xem lại giá trước khi trả lời.
+Telegram replies keep their context, a quiet chat rechecks prices, and web search can use DeepSeek.
+No database change.
+> Trả lời một tin trong Telegram là OpenAlpha biết bạn hỏi tiếp tin nào, chat để lâu thì xem lại giá trước khi trả lời, tìm kiếm web dùng được DeepSeek.
 
 ### Chat
 
-- In a private Telegram chat, replying to one of OpenAlpha's answers now keeps the conversation on
-  that answer.
-- Come back to a chat after a quiet spell and the next answer checks prices again instead of reusing
-  the ones from earlier.
+- In a private Telegram chat, replying to an answer continues from it; replying to an alert or brief
+  tells OpenAlpha which kind of message you mean, never your amounts.
+- After a quiet spell, the next answer rechecks prices. `gap_note_minutes` sets the quiet time per
+  channel (default `30`, `0` off).
+
+### Search
+
+- `[web_search] provider = "deepseek"`: about $0.75 per 1,000 searches, empty ones free, strong on
+  Vietnamese sources. Uses `DEEPSEEK_API_KEY`; set `cost_per_search_usd = 0.00075` to count the spend.
+  Queries over 128 characters are trimmed but keep the sites you chose.
+
+### Setup
+
+- `config validate`, `start` and `status` now name a wrong `[channels.*]` value or misspelt key
+  instead of failing with an unexplained error.
 
 ## [1.0.6] - 2026-10-18
 
@@ -208,6 +219,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.7
 [1.0.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.6
 [1.0.5]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.5
 [1.0.4]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.4
