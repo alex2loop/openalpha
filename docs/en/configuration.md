@@ -356,7 +356,7 @@ Priority for the level: `--log-level`, then `OPENALPHA_LOG_LEVEL`, then `[log].l
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `check` | bool | `true` | Ask GitHub once a day whether a newer release is out. |
+| `check` | bool | `true` | Ask GitHub twice a day whether a newer release is out. |
 
 When one is out, the CLI prints a line after a command (at most once a day), chat shows it under the
 welcome, `version` and `doctor version` report it, the daemon logs it, and the morning brief sent to

@@ -15,7 +15,7 @@ export interface ReleaseStatus {
   readonly checkedAt: number
 }
 
-/** The cache while it is fresh, the release feed otherwise, so asking often costs one request a day.
+/** The cache while it is fresh, the release feed otherwise, so asking often costs two requests a day.
  *  Null when update checks are off (config, or a source checkout that updates with git). */
 export async function readReleaseStatus(
   config: ResolvedConfig,

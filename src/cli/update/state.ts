@@ -6,7 +6,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import { BRAND } from '@/core/brand'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { LOCALES } from '@/core/types/locale'
-import { MS_PER_DAY, MS_PER_HOUR, MS_PER_SECOND } from '@/core/utils/time'
+import { MS_PER_HOUR, MS_PER_SECOND } from '@/core/utils/time'
 import { compareVersions } from '@/core/utils/version'
 
 import type { ReleaseNote } from './changelog'
@@ -15,7 +15,7 @@ import { isSourceCheckout, readLatestRelease, readReleaseNotes } from './release
 const STATE_FILE_NAME = 'update-check.json'
 const CHECK_TIMEOUT_MS = 2 * MS_PER_SECOND
 const NOTES_TIMEOUT_MS = 3 * MS_PER_SECOND
-const CHECKED_FRESH_MS = MS_PER_DAY
+const CHECKED_FRESH_MS = 12 * MS_PER_HOUR
 const FAILED_FRESH_MS = MS_PER_HOUR
 
 const releaseNoteSchema = z.object({
@@ -46,6 +46,8 @@ const updateStateSchema = z.strictObject({
 })
 
 export type UpdateState = z.infer<typeof updateStateSchema>
+
+export type PendingUpgrade = z.infer<typeof pendingUpgradeSchema>
 
 const NEVER_CHECKED: UpdateState = Object.freeze({
   checkedAt: 0,
@@ -117,7 +119,7 @@ export async function refreshUpdateState(options: {
   })
 }
 
-/** The cache while it is fresh, the release feed otherwise, so asking often costs one request a day. */
+/** The cache while it is fresh, the release feed otherwise, so asking often costs two requests a day. */
 export async function readFreshUpdateState(
   dataDir: string,
   options: { readonly now: number; readonly signal?: AbortSignal }

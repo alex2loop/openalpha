@@ -358,7 +358,7 @@ Thứ tự ưu tiên của mức log: `--log-level`, rồi `OPENALPHA_LOG_LEVEL`
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `check` | bool | `true` | Mỗi ngày hỏi GitHub một lần xem đã có bản mới chưa. |
+| `check` | bool | `true` | Hỏi GitHub hai lần mỗi ngày xem đã có bản mới chưa. |
 
 Khi có bản mới, CLI in một dòng sau lệnh (tối đa mỗi ngày một lần), chat hiện dòng đó dưới lời chào,
 `version` và `doctor version` báo lại, daemon ghi vào log, và bản tin buổi sáng gửi qua kênh có thêm
