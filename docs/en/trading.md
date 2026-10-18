@@ -896,9 +896,12 @@ you sold.
   book for two sessions.
 - **Book the loss as `loss`**, not `withdrawal` or `fee`. A withdrawal reads as money you took home and
   flatters your return; a fee reads as brokerage. `loss` takes the cash out but leaves what you deposited
-  alone, so `/portfolio` shows it as "Realised P/L on closed trades: -15,000,000 VND".
+  alone, so `/portfolio` shows it as "Realised P/L on closed trades: ▼ -15,000,000 VND".
 - **The deposit has to come first.** Every write checks the whole book, and a buy or loss with no cash
   behind it is refused.
+- **Each name gets an exit plan straight away**, measured from the cost you typed. A name trading well
+  below that cost may already sit under its stop, and `/portfolio` then says it is "through its stop".
+  That is a prompt to review the name, not a booking error.
 
 Then open `/portfolio` and compare its cash with your broker's balance. Here: 200 million in, less 95
 million FPT, 52 million HPG and the 15 million loss, leaves 38 million. A gap usually means the loss or
