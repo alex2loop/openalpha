@@ -66,7 +66,7 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `status` | Tổng quan daemon, kênh và chi tiêu | không có |
 | `version` | In phiên bản và báo nếu đã có bản mới; `--version` và `-v` cũng được | không có |
 | `help` | In trợ giúp: `help` cho danh sách, `help <lệnh> [lệnh con]` cho một lệnh | không có; tên lệnh |
-| `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo |
+| `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo, `--rollback` quay về bản cài trước |
 | `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
 | `onboard` | Thiết lập lần đầu, hoặc đổi mô hình, bot Telegram, mức chi hay ngôn ngữ | không có |
 | `setup` | Chỉ dành cho ứng dụng desktop. Lần chạy đầu của một ứng dụng khách: danh mục nhà cung cấp, và tệp cấu hình khởi điểm có bật API (một dòng JSON) | `catalog`, `write <nhà cung cấp> <mô hình>` |
@@ -243,7 +243,7 @@ Khi daemon đang chạy mà thiếu khóa, `status` liệt kê lại đúng các
 bỏ qua và vì sao, khóa nào chưa đặt và việc gì đang chờ nó, kể cả sau khi máy khởi động lại. Khóa sàn và
 khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn": thiếu chúng thì bạn vẫn ghi lệnh bằng tay, và
 `start` không cảnh báo. App desktop đọc cùng danh sách đó từ `/v1/state`.
-`upgrade` tự dừng daemon nên không để lại bản cũ.
+`upgrade` tự bật lại daemon chạy nền trên bản mới.
 
 `doctor` luôn chỉ đọc. Chạy offline thì nó chỉ kiểm phần nhìn được ở máy; `--online` thêm các phép thử
 thật tới PostgreSQL, nhà cung cấp, token kênh, tìm kiếm web và khóa sàn. Phép thử nhà cung cấp gửi cho
@@ -265,14 +265,11 @@ Khóa demo thì không bị kiểm.
 
 ### Luôn dùng bản mới
 
-Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh: có gì mới, bạn đang chậm bao nhiêu bản và có bản nào quan trọng không. Trong chat riêng với người vận hành, bot nhắc mỗi tuần, hoặc mỗi ngày khi có bản quan trọng đang chờ. `upgrade` tải tệp chạy của bản mới cho
-đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới tạm
-dừng daemon (nếu đang chạy), thay tệp bằng một lần đổi tên, rồi nhắc bạn cách bật lại daemon. Thư mục dữ
-liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và thông báo cho bạn biết
-daemon đang dừng cùng cách bật lại. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước
-bước đổi tên, nên bản cũ vẫn nguyên và daemon vẫn chạy. Windows không cho thay một `openalpha.exe` đang
-chạy, nên ở đó bản cũ được đổi tên thành `openalpha.exe.old` trước; lần nâng cấp sau sẽ ghi đè lên nó.
-`upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
+Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh: có gì mới, bạn đang chậm bao nhiêu bản và có bản nào quan trọng không. Trong chat riêng với người vận hành, bot nhắc mỗi tuần, hoặc mỗi ngày khi có bản quan trọng đang chờ.
+
+`upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới tạm dừng daemon (nếu đang chạy) rồi thay tệp. Daemon bật bằng `start --background` được tự bật lại trên bản mới, với cùng tệp cấu hình và thư mục dữ liệu; nếu nó không khởi động được, `upgrade` quay về bản đã chạy và báo cho bạn. Daemon chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý thì được để cho bạn, kèm lệnh cần chạy. Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và daemon đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước bước thay tệp, nên bản cũ vẫn nguyên và daemon vẫn chạy.
+
+Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old`, trên mọi hệ điều hành, và `upgrade --rollback` đổi ngược về nó. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
 
 ## Cấu hình và khởi tạo
 

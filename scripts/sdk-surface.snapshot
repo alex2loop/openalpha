@@ -20,6 +20,7 @@ cli:PreBootOptions
 cli:ReleaseStatus
 cli:Writer
 cli:admitCommand
+cli:buildSelfArgv
 cli:createCommand
 cli:createGroup
 cli:createRoot
@@ -27,6 +28,7 @@ cli:fail
 cli:formatArgIssue
 cli:formatTerminalError
 cli:getEnv
+cli:isBackgroundLaunch
 cli:isConfigPresent
 cli:isUpdateCheckEnabled
 cli:isVerbose
@@ -44,6 +46,7 @@ cli:readUpdateLine
 cli:refreshUpdateState
 cli:resolveContributedCliCommands
 cli:runCli
+cli:spawnDetached
 cli:startUpdateNotice
 cli:starterConfigToml
 cli:stopDaemonIfRunning

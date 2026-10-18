@@ -5,10 +5,16 @@ import { join } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
 import { printDaemonSummary } from '@/cli/commands/daemon/summary'
-import { isDaemonReady, liveDaemonPid, readDaemonDegraded } from '@/cli/daemon-guard'
-import { getEnv } from '@/cli/env'
+import {
+  buildBackgroundEnv,
+  isDaemonReady,
+  liveDaemon,
+  liveDaemonPid,
+  readDaemonDegraded,
+} from '@/cli/daemon-guard'
 import { terminalErrorMessage } from '@/cli/error-output'
-import { resolveSelfCommand } from '@/cli/services'
+import { CLI_COMMAND_METADATA } from '@/cli/metadata'
+import { buildSelfArgv } from '@/cli/services'
 import { hint, style, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -28,20 +34,50 @@ const EXIT_REASON_LINES = 3
 // Bounds the warnings a ready start relays; the daemon prints one line per degraded item.
 const RELAYED_WARNING_LINES = 20
 
+interface DetachedSpawn {
+  readonly argv: readonly string[]
+  readonly stdoutPath: string
+  readonly stderrPath: string
+  readonly env: Readonly<Record<string, string | undefined>>
+}
+
 interface DetachedDaemon {
   readonly child: Subprocess
   readonly logPath: string
   readonly errorLogPath: string
 }
 
-export async function runBackground(app: CliApp): Promise<number> {
+/** Starts the daemon in the background from the stopped one's own command line, so it loads the
+ *  same config and data dir. A pre-boot caller has no logger, so a spawn failure logs only when one
+ *  exists. */
+export function startBackgroundDaemon(app: CliApp, configPath: string): Promise<number> {
+  const tail = [CLI_COMMAND_METADATA.start.name]
+
+  return Bun.file(configPath)
+    .exists()
+    .then((present) =>
+      runBackground(
+        app,
+        buildSelfArgv({
+          dataDir: app.config.paths.dataDir,
+          configPath: present ? configPath : undefined,
+          tail,
+        })
+      )
+    )
+}
+
+export async function runBackground(app: CliApp, argv: readonly string[]): Promise<number> {
   const locale = app.config.locale.language
   let started: DetachedDaemon
 
   try {
-    started = startDetachedDaemon(app)
+    started = startDetachedDaemon(app, argv)
   } catch (err: unknown) {
-    app.resolve('logger').error('daemon.background_spawn_failed', { err: formatErrForLog(err) })
+    if (app.has('logger')) {
+      app.resolve('logger').error('daemon.background_spawn_failed', { err: formatErrForLog(err) })
+    }
+
     app.err(
       style.error(
         t(locale, 'cli.daemonBackgroundSpawnFailed', {
@@ -64,7 +100,8 @@ export async function runBackground(app: CliApp): Promise<number> {
       success(
         t(locale, 'cli.daemonStartedBackground', {
           pid: child.pid,
-          version: BRAND.version,
+          // The daemon may run a release other than this process's, as right after `upgrade`.
+          version: (await liveDaemon(app))?.version ?? BRAND.version,
           path: logPath,
         })
       )
@@ -189,20 +226,31 @@ export async function pollUntil<T>(
 }
 
 // Admission already ran pre-boot, so a live daemon never reaches here.
-function startDetachedDaemon(app: CliApp): DetachedDaemon {
+function startDetachedDaemon(app: CliApp, argv: readonly string[]): DetachedDaemon {
   const { dataDir } = app.config.paths
   const logPath = join(dataDir, DAEMON_STDOUT_LOG)
   const errorLogPath = join(dataDir, DAEMON_STDERR_LOG)
-  // Truncated per start, so each file holds the running daemon's stray output and never grows
-  // across restarts. Admission guarantees no other daemon is writing to them.
-  const output = openSync(logPath, 'w', PRIVATE_FILE_MODE)
+  const child = spawnDetached({
+    argv,
+    stdoutPath: logPath,
+    stderrPath: errorLogPath,
+    env: buildBackgroundEnv(),
+  })
+
+  return { child, logPath, errorLogPath }
+}
+
+/** Truncates both log files per start, so each holds the running process's stray output and never
+ *  grows across restarts. The child holds its own copies; closing ours never silences it. */
+export function spawnDetached(spawn: DetachedSpawn): Subprocess {
+  const output = openSync(spawn.stdoutPath, 'w', PRIVATE_FILE_MODE)
 
   try {
-    const errors = openSync(errorLogPath, 'w', PRIVATE_FILE_MODE)
+    const errors = openSync(spawn.stderrPath, 'w', PRIVATE_FILE_MODE)
 
     try {
-      const proc = Bun.spawn(buildForegroundArgv(), {
-        env: getEnv(),
+      const proc = Bun.spawn([...spawn.argv], {
+        env: spawn.env,
         detached: true,
         windowsHide: true,
         stdin: 'ignore',
@@ -211,28 +259,11 @@ function startDetachedDaemon(app: CliApp): DetachedDaemon {
       })
       proc.unref()
 
-      return { child: proc, logPath, errorLogPath }
+      return proc
     } finally {
       closeSync(errors)
     }
   } finally {
-    // The child holds its own copies; closing ours never silences it.
     closeSync(output)
   }
-}
-
-// Same command line minus the background flag. Global flags ride along untouched because they
-// were never the command tree's to strip.
-function buildForegroundArgv(): string[] {
-  const { command, args } = resolveSelfCommand()
-
-  return [command, ...args, ...withoutBackgroundFlag(process.argv.slice(2))]
-}
-
-function withoutBackgroundFlag(argv: readonly string[]): string[] {
-  return argv.filter((token) => !isBackgroundToken(token))
-}
-
-function isBackgroundToken(token: string): boolean {
-  return token === '--background' || token === '-b' || token.startsWith('--background=')
 }

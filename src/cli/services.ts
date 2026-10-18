@@ -46,6 +46,20 @@ export function resolveSelfCommand(): SelfCommand {
   }
 }
 
+/** Both paths are always named, so a restart loads the same files whatever directory it runs from.
+ *  A config file the daemon never had stays unnamed: an explicit `--config` to a missing file is an
+ *  error where the default one is simply absent. */
+export function buildSelfArgv(options: {
+  readonly dataDir: string
+  readonly configPath?: string | undefined
+  readonly tail: readonly string[]
+}): string[] {
+  const { command, args } = resolveSelfCommand()
+  const config = options.configPath === undefined ? [] : ['--config', options.configPath]
+
+  return [command, ...args, '--data-dir', options.dataDir, ...config, ...options.tail]
+}
+
 export function resolveChatDisplay(app: CliApp, agentId: AgentId): ChatDisplay {
   const agent = app.resolve('agents').get(agentId)
 

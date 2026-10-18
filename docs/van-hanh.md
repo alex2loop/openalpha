@@ -297,7 +297,8 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    ```
 
    Chạy `systemctl --user enable --now openalpha`, rồi `loginctl enable-linger $USER` để nó vẫn chạy
-   khi bạn đăng xuất.
+   khi bạn đăng xuất. Để nâng cấp, chạy `systemctl --user stop openalpha && openalpha upgrade && systemctl --user start openalpha`:
+   daemon do dịch vụ quản lý thì `upgrade` không tự khởi động lại.
 4. **Lấy mã API.** `openalpha api token` in mã ra (mã được tạo ở lần chạy đầu).
 5. **Nối vào.** API chỉ nghe trên `127.0.0.1` của máy chủ. Chọn một cách:
    - **Đường hầm SSH**, không cần tên miền: `ssh -N -L 18765:127.0.0.1:8765 user@server`, rồi dùng

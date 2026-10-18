@@ -65,7 +65,7 @@ leave, because one failed turn is not a failed session.
 | `status` | Daemon, channel and spend overview | none |
 | `version` | Print the version and whether a newer release is out; `--version` and `-v` work too | none |
 | `help` | Print help: `help` for the list, `help <command> [subcommand]` for one command | none; a command name |
-| `upgrade` | Install the latest release | none; `--check` only reports |
+| `upgrade` | Install the latest release | none; `--check` only reports, `--rollback` goes back to the previous release |
 | `doctor` | Check config, credentials and storage | none; optional check name (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) and `--online` |
 | `onboard` | First setup, or change the model, Telegram bot, budget or language | none |
 | `setup` | Desktop app only. A client app's first run: provider catalog, and a starter config with the API on (one JSON line) | `catalog`, `write <provider> <model>` |
@@ -248,7 +248,7 @@ install script while a daemon runs and it keeps the old one; `status` flags that
 `start` warnings: which channels were skipped and why, which keys are unset and what waits for them,
 even after a reboot. Exchange keys and the keys of optional data sources are listed apart under
 "optional keys": without them you record trades by hand, and `start` does not warn. The desktop app
-reads the same list from `/v1/state`. `upgrade` stops the daemon itself, so it never leaves one behind.
+reads the same list from `/v1/state`. `upgrade` brings a background daemon back up on the new release itself.
 
 `doctor` is always read-only. Offline it checks only what it can see locally; `--online` adds live
 probes of PostgreSQL, providers, channel tokens, web search and exchange keys. The provider probe
@@ -273,16 +273,11 @@ switched off. A demo key is not audited.
 
 ### Staying up to date
 
-When a newer release is out, the CLI says so once a day, under the command's output: what changed, how many releases you are behind and whether one of them is important. In a private chat with the operator the bot says it weekly, or daily while an important release is waiting. `upgrade`
-downloads the release binary for your machine next to the installed one and checks it against the
-release's SHA256SUMS. Only then does it pause a running daemon, swap the binary in with one rename,
-and tell you how to start the daemon again. Your data folder and config are never touched. If the
-swap itself fails, the old version stays in place and the message says the daemon is stopped and
-how to start it. A cut
-download, a checksum mismatch or Ctrl-C all end before the rename, so your current version stays and a
-running daemon keeps running. Windows will not replace a running `openalpha.exe`, so there the old one
-is renamed to `openalpha.exe.old` first; the next upgrade overwrites it. `upgrade --check` only
-reports. A source checkout updates with `git pull`.
+When a newer release is out, the CLI says so once a day, under the command's output: what changed, how many releases you are behind and whether one of them is important. In a private chat with the operator the bot says it weekly, or daily while an important release is waiting.
+
+`upgrade` downloads the release binary for your machine next to the installed one and checks it against the release's SHA256SUMS. Only then does it pause a running daemon and swap the binary in. A daemon started with `start --background` is started again on the new release by itself, from the same config file and data folder, and if it will not start, `upgrade` goes back to the release that ran and says so. A daemon running in a terminal window or under a service is left for you, with the command to run. Your data folder and config are never touched. If the swap itself fails, the old version stays in place and the stopped daemon is started again, or the message says how to. A cut download, a checksum mismatch or Ctrl-C all end before the swap, so your current version stays and a running daemon keeps running.
+
+The release you replaced stays next to the new one as `openalpha.old`, on every platform, and `upgrade --rollback` swaps back to it. `upgrade --check` only reports. A source checkout updates with `git pull`.
 
 ## Configuration and onboarding
 

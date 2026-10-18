@@ -24,14 +24,23 @@ const STOP_POLL_MS = 500
 // ps prints lstart in the caller's locale; the daemon (launchd/systemd) and the CLI must agree.
 const IDENTITY_ENV = { LC_ALL: 'C' } as const
 
+/** Set only by the process that starts a background daemon: it marks a daemon no terminal or
+ *  service owns, the only kind `upgrade` may restart by itself. */
+const BACKGROUND_ENV = `${BRAND.envPrefix}BACKGROUND`
+const BACKGROUND_ENV_VALUE = '1'
+
 interface ProcessIdentity {
   readonly pid: number
   readonly started: string
   // Absent from a pid file written by a daemon that predates it; that daemon is still live.
   readonly version?: string
+  // Absent from a pid file written before upgrade could restart a daemon; absent reads as foreground.
+  readonly background?: boolean
+  // The config file the daemon loaded, so a restart reads the same one from any directory.
+  readonly configPath?: string
 }
 
-export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version'>
+export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version' | 'background' | 'configPath'>
 
 /** What a daemon started without, worded once in its own language so any reader prints it as is. */
 const DEGRADED_ENTRY: z.ZodType<DegradedEntry> = z.object({
@@ -57,6 +66,14 @@ function stopFilePath(app: CliApp): string {
 
 function readyFilePath(app: { readonly config: Pick<ResolvedConfig, 'paths'> }): string {
   return join(app.config.paths.dataDir, BRAND.readyFile)
+}
+
+export function buildBackgroundEnv(): Record<string, string | undefined> {
+  return { ...getEnv(), [BACKGROUND_ENV]: BACKGROUND_ENV_VALUE }
+}
+
+export function isBackgroundLaunch(): boolean {
+  return getEnv()[BACKGROUND_ENV] === BACKGROUND_ENV_VALUE
 }
 
 export async function liveDaemonPid(app: CliApp): Promise<number | null> {
@@ -101,7 +118,13 @@ export async function writePidFile(app: CliApp, pid: number): Promise<void> {
     throw new ConfigError('cannot read daemon process identity')
   }
 
-  const identity = { pid, started, version: BRAND.version }
+  const identity = {
+    pid,
+    started,
+    version: BRAND.version,
+    background: isBackgroundLaunch(),
+    configPath: app.configPath,
+  }
 
   for (let attempt = 0; attempt < PID_LOCK_MAX_ATTEMPTS; attempt++) {
     if (await tryCreatePidFile(pidPath, identity)) {
@@ -388,7 +411,7 @@ function parseProcessIdentity(raw: string): ProcessIdentity | null {
     return null
   }
 
-  const { pid, started, version } = value
+  const { pid, started, version, background, configPath } = value
 
   if (
     !Number.isSafeInteger(pid) ||
@@ -399,9 +422,13 @@ function parseProcessIdentity(raw: string): ProcessIdentity | null {
     return null
   }
 
-  return typeof version === 'string' && version !== ''
-    ? { pid: Number(pid), started, version }
-    : { pid: Number(pid), started }
+  return {
+    pid: Number(pid),
+    started,
+    ...(typeof version === 'string' && version !== '' ? { version } : {}),
+    ...(typeof background === 'boolean' ? { background } : {}),
+    ...(typeof configPath === 'string' && configPath !== '' ? { configPath } : {}),
+  }
 }
 
 async function identityState(identity: ProcessIdentity): Promise<'match' | 'mismatch' | 'unknown'> {

@@ -25,6 +25,7 @@ import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
 import { toKeylessItems } from '@/cli/missing-keys'
 import { flagBool, type ParsedArgs } from '@/cli/parsing/args'
+import { resolveSelfCommand } from '@/cli/services'
 import { hint, info, style, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -73,7 +74,23 @@ export async function stopDaemonIfRunning(app: CliApp): Promise<number> {
 }
 
 function runInChosenMode(args: ParsedArgs, app: CliApp): Promise<number> {
-  return flagBool(args, 'background') ? runBackground(app) : runDaemon(app)
+  return flagBool(args, 'background') ? runBackground(app, buildForegroundArgv()) : runDaemon(app)
+}
+
+// Same command line minus the background flag. Global flags ride along untouched because they
+// were never the command tree's to strip.
+function buildForegroundArgv(): string[] {
+  const { command, args } = resolveSelfCommand()
+
+  return [command, ...args, ...withoutBackgroundFlag(process.argv.slice(2))]
+}
+
+function withoutBackgroundFlag(argv: readonly string[]): string[] {
+  return argv.filter((token) => !isBackgroundToken(token))
+}
+
+function isBackgroundToken(token: string): boolean {
+  return token === '--background' || token === '-b' || token.startsWith('--background=')
 }
 
 async function runDaemon(app: CliApp): Promise<number> {
