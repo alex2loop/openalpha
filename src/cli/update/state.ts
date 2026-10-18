@@ -27,11 +27,13 @@ const releaseNoteSchema = z.object({
   summary: z.partialRecord(z.enum(LOCALES), z.string()),
 })
 
+const chatSchema = z.object({ channel: z.string(), chatId: z.string() })
+
 const pendingUpgradeSchema = z.object({
   from: z.string(),
   to: z.string(),
   requestedAt: z.number().int().nonnegative(),
-  target: z.object({ channel: z.string(), chatId: z.string() }).optional(),
+  target: chatSchema.optional(),
 })
 
 // Not strict: a field a later release adds is dropped rather than failing the file after a downgrade.
@@ -46,11 +48,15 @@ const updateStateSchema = z.object({
   chatAnnouncedVersion: z.string().nullable(),
   pendingUpgrade: pendingUpgradeSchema.nullable(),
   rolledBackVersion: z.string().nullable(),
+  // The private chat the operator last wrote from, where an automatic update reports back.
+  operatorChat: chatSchema.nullable(),
 })
 
 export type UpdateState = z.infer<typeof updateStateSchema>
 
 export type PendingUpgrade = z.infer<typeof pendingUpgradeSchema>
+
+export type UpdateChat = z.infer<typeof chatSchema>
 
 type StatePatch = Partial<UpdateState>
 
@@ -65,6 +71,7 @@ const NEVER_CHECKED: UpdateState = Object.freeze({
   chatAnnouncedVersion: null,
   pendingUpgrade: null,
   rolledBackVersion: null,
+  operatorChat: null,
 })
 
 /** Only a compiled release checks: a clone runs from git and updates with git. */

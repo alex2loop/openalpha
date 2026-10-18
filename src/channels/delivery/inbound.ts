@@ -155,7 +155,7 @@ async function offerOperatorNotice(deps: InboundHandlerDeps, msg: InboundMessage
   }
 
   try {
-    const text = await deps.operatorNotices.take()
+    const text = await deps.operatorNotices.take({ channel: deps.channelId, chatId: msg.chatId })
 
     if (text !== null) {
       await deps.sendText(msg.chatId, text)

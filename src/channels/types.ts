@@ -270,9 +270,9 @@ export interface ChannelRuntimeSnapshot extends ChannelStatus {
 export type AcknowledgedSendResult = 'accepted' | 'unavailable' | 'aborted'
 
 /** A line meant for the operator alone, at most as often as its owner allows. Null when there is
- *  nothing to say right now. */
+ *  nothing to say right now. `chat` is the operator's private chat the message came from. */
 export interface OperatorNotices {
-  take(): Promise<string | null>
+  take(chat: OutboundTarget): Promise<string | null>
 }
 
 export interface ChannelRuntime {

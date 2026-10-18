@@ -10,7 +10,7 @@ import { MS_PER_DAY } from '@/core/utils/time'
 import { compareVersions } from '@/core/utils/version'
 import { t } from '@/i18n'
 
-import type { UpdateState } from './state'
+import type { UpdateChat, UpdateState } from './state'
 import { buildReleaseUrl } from './release'
 import {
   isUpdateCheckEnabled,
@@ -110,7 +110,18 @@ export async function takeUpdateNotice(config: ResolvedConfig): Promise<readonly
 }
 
 /** The private-chat reminder: weekly, daily while a release behind is important. */
-export async function takeChatNotice(config: ResolvedConfig): Promise<string | null> {
+export async function takeChatNotice(
+  config: ResolvedConfig,
+  chat: UpdateChat
+): Promise<string | null> {
+  if (!isUpdateCheckEnabled(config)) {
+    return null
+  }
+
+  await rememberOperatorChat(config.paths.dataDir, chat).catch(() => {
+    // Unwritable data dir: the chat remembered before, or none, is where an update reports.
+  })
+
   const lines = await takeNotice(config, CHAT_CADENCE)
 
   return lines.length === 0 ? null : toChatText(lines)
@@ -263,6 +274,17 @@ async function takeNotice(
     // Unwritable data dir: no notice beats the same notice on every run.
     return []
   }
+}
+
+/** Written only when it changes, so an ordinary message costs a read. */
+async function rememberOperatorChat(dataDir: string, chat: UpdateChat): Promise<void> {
+  const known = (await readUpdateState(dataDir)).operatorChat
+
+  if (known?.channel === chat.channel && known.chatId === chat.chatId) {
+    return
+  }
+
+  await patchUpdateState(dataDir, { operatorChat: chat })
 }
 
 function intervalOf(state: UpdateState, cadence: NoticeCadence): number {

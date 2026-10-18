@@ -20,6 +20,7 @@ cli:PendingUpgrade
 cli:PreBootOptions
 cli:ReleaseStatus
 cli:UPGRADE_COMMAND
+cli:UpdateChat
 cli:UpdateState
 cli:Writer
 cli:admitCommand

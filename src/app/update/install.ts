@@ -11,6 +11,7 @@ import {
   readUpdateState,
   spawnUpgradeProcess,
   toChatText,
+  type UpdateChat,
   type UpdateState,
 } from '@/cli/api'
 import { UPGRADE_CHAT_COMMAND } from '@/commands/api'
@@ -111,9 +112,9 @@ async function spawnUpgrade(
   parts: UpgradeParts,
   request: UpgradeStartRequest & { readonly requestedAt: number }
 ): Promise<UpgradeStart> {
-  const { app, delivery, logger } = parts
+  const { app, logger } = parts
   const { dataDir } = app.config.paths
-  const target = request.target ?? delivery.defaultRecipient()
+  const { target } = request
   const pendingUpgrade: PendingUpgrade = {
     from: BRAND.version,
     to: request.latest,
@@ -168,7 +169,7 @@ async function reportUpgradeExit(
 
   // A failed install is remembered like a rollback, so auto update does not try the same release
   // again every night; an exit that changed nothing leaves it free to.
-  await clearPendingUpgrade(
+  const state = await clearPendingUpgrade(
     app.config.paths.dataDir,
     exit.code === 0 ? {} : { failedVersion: exit.latest }
   )
@@ -182,13 +183,13 @@ async function reportUpgradeExit(
       ? t(locale, 'cli.upgradeNotSwitched', { current, command: UPGRADE_CHAT_COMMAND })
       : t(locale, 'cli.upgradeFailed', { current })
 
-  await sendOutcome(parts, { target: exit.target, text })
+  await sendOutcome(parts, { target: reportTarget(parts, exit.target, state), text })
 }
 
 /** Cleared before sending, so a crash never repeats the message. The chat is marked as told in the
  *  same write, so an operator message arriving meanwhile does not get the installed notice twice. */
 async function announceUpgradeOutcome(parts: UpgradeParts): Promise<void> {
-  const { app, delivery } = parts
+  const { app } = parts
   const { dataDir } = app.config.paths
   const state = await readUpdateState(dataDir)
   const pending = state.pendingUpgrade
@@ -200,7 +201,7 @@ async function announceUpgradeOutcome(parts: UpgradeParts): Promise<void> {
   // Too old to be this run's upgrade: the daemon restarted for some other reason.
   const current = isPending(pending, Date.now())
   const failed = current && !isUpgradedFrom(pending)
-  const target = toDeliveryTarget(pending) ?? delivery.defaultRecipient()
+  const target = reportTarget(parts, pending.target, state)
 
   await clearPendingUpgrade(dataDir, {
     told: current && target !== undefined,
@@ -256,12 +257,20 @@ async function sendOutcome(
   }
 }
 
-function toDeliveryTarget(pending: PendingUpgrade): DeliveryTarget | undefined {
-  if (pending.target === undefined) {
-    return undefined
+/** The chat that asked, else the operator's own private chat, else the channel's fallback chat: an
+ *  automatic update has no chat that asked, and a fallback chat may be a group. */
+function reportTarget(
+  parts: UpgradeParts,
+  asked: UpdateChat | undefined,
+  state: UpdateState
+): DeliveryTarget | undefined {
+  const chat = asked ?? state.operatorChat
+
+  if (chat === null) {
+    return parts.delivery.defaultRecipient()
   }
 
-  return { channel: channelId(pending.target.channel), chatId: pending.target.chatId }
+  return { channel: channelId(chat.channel), chatId: chat.chatId }
 }
 
 function isUpgradedFrom(pending: PendingUpgrade): boolean {
@@ -281,10 +290,10 @@ function laterOf(recorded: string | null, failed: string): string {
 async function clearPendingUpgrade(
   dataDir: string,
   close: { readonly failedVersion?: string; readonly told?: boolean } = {}
-): Promise<void> {
+): Promise<UpdateState> {
   const { failedVersion, told } = close
 
-  await patchUpdateState(dataDir, (state) => ({
+  return await patchUpdateState(dataDir, (state) => ({
     pendingUpgrade: null,
     ...(failedVersion === undefined
       ? {}

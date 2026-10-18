@@ -30,7 +30,7 @@ export function createReleaseUpdates(app: App, upgrade: SelfUpgrade): ReleaseUpd
 
 /** The private-chat reminder, read from the cache the update watch keeps fresh. */
 export function createOperatorNotices(app: App): OperatorNotices {
-  return { take: () => takeChatNotice(app.config) }
+  return { take: (chat) => takeChatNotice(app.config, chat) }
 }
 
 async function describeRelease(app: App, request: UpgradeRequest): Promise<UpgradeReply> {
