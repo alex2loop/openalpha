@@ -116,6 +116,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/model` | Show a configured model selector anywhere; select one in a chat channel |
 | `/research` | Run bounded, cited research without changing the selected agent |
 | `/health` | Show runtime and channel health codes |
+| `/upgrade` | Operator only: shows your version, the latest release and what it brings |
 | `/memory` | List, recall, search, store or remove memory |
 | `/cost` | Show this chat's usage and today's spend against the cap |
 | `/schedule` | List, inspect, pause, resume or run one of your jobs |

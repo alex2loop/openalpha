@@ -116,6 +116,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat |
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
 | `/health` | Xem các mã sức khỏe của runtime và kênh |
+| `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại |
 | `/memory` | Liệt kê, gọi lại, tìm, ghi hoặc xóa bộ nhớ |
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại hoặc chạy ngay một việc của bạn |

@@ -27,7 +27,7 @@ const CLI_NOTICE_MS = MS_PER_DAY
 const CHAT_NOTICE_MS = 7 * MS_PER_DAY
 const CHAT_IMPORTANT_NOTICE_MS = MS_PER_DAY
 const EXIT_SUCCESS = 0
-const UPGRADE_COMMAND = `${BRAND.name} ${CLI_COMMAND_METADATA.upgrade.name}`
+export const UPGRADE_COMMAND = `${BRAND.name} ${CLI_COMMAND_METADATA.upgrade.name}`
 const CHAT_UPGRADE_COMMAND = `/${UPGRADE_COMMAND_NAME}`
 const LINE_SEPARATOR = '\n'
 const MESSAGE_SEPARATOR = ' '
@@ -203,7 +203,7 @@ export function formatInstalledNotice(locale: Locale, state: UpdateState): reado
   ]
 }
 
-export function toTerminalLines(lines: readonly NoticeLine[]): readonly string[] {
+function toTerminalLines(lines: readonly NoticeLine[]): readonly string[] {
   return lines.map((line) => (line.tone === 'warn' ? warn(line.text) : hint(line.text)))
 }
 

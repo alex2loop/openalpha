@@ -71,6 +71,7 @@
     "healthChannelUnknown": "Channel {channel}: unknown (no channel runs in this process)",
     "healthNoChannels": "Channels: none configured",
     "healthHelp": "Show runtime and channel health codes.",
+    "upgradeHelp": "See your version and the latest release, and update",
     "memoryNone": "🧠 No memory entries yet.",
     "memoryNoneKey": "🧠 No memory entry under the key {key}.",
     "memoryUsage": "Usage\n/memory [key]\n/memory find <query>\n/memory remember <key> <value>\n/memory forget <key>",

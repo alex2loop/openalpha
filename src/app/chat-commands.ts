@@ -40,6 +40,7 @@ export function coreCommands(app: App): readonly SlashCommand[] {
       maxDailyUsd: app.config.budget.maxDailyUsd,
     },
     healthSummary: app.resolve('healthSummary'),
+    releases: app.resolve('releaseUpdates'),
     modelControl: app.resolve('modelControl'),
     schedulerCommands: app.resolve('schedulerCommands'),
     scopeFor: async (ctx) => ({ agentId: await entryAgent(app, ctx), userId: ctx.userId }),

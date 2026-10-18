@@ -71,6 +71,7 @@
     "healthChannelUnknown": "Kênh {channel}: không rõ (tiến trình này không chạy kênh nào)",
     "healthNoChannels": "Kênh: chưa cấu hình kênh nào",
     "healthHelp": "Hiển thị mã trạng thái của hệ thống và các kênh.",
+    "upgradeHelp": "Xem bản đang dùng, bản mới nhất và cập nhật",
     "memoryNone": "🧠 Chưa có mục bộ nhớ nào.",
     "memoryNoneKey": "🧠 Không có mục bộ nhớ nào mang khóa {key}.",
     "memoryUsage": "Cách dùng\n/memory [key]\n/memory find <từ khóa>\n/memory remember <key> <giá trị>\n/memory forget <key>",

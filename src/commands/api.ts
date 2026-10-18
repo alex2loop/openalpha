@@ -23,6 +23,11 @@ export type {
   ResolvedSlashCommand,
   SlashDispatcher,
 } from '@/commands/types'
+export type {
+  ReleaseUpdates,
+  UpgradeReply,
+  UpgradeRequest,
+} from '@/commands/upgrade'
 export type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 export { createSlashDispatcher } from '@/commands/dispatcher/dispatcher'
 export {

@@ -7,7 +7,7 @@ import { retentionCutoffAt, runWorkspaceTmpRetention, startRetention } from '@/a
 import { ApiTokenError } from '@/app/server/http/auth'
 import { toAgentRegistry } from '@/app/services'
 import { startSocialUpkeep } from '@/app/social-upkeep'
-import { startUpdateWatch } from '@/app/update-watch'
+import { startUpdateWatch } from '@/app/update/watch'
 import { startChannels } from '@/channels/api'
 import { AppError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'

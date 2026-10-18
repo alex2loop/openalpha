@@ -24,6 +24,19 @@ export { BUILT_IN_COMMANDS } from '@/cli/registry'
 export { createRoot } from '@/cli/root'
 export { buildSelfArgv } from '@/cli/services'
 export { fail } from '@/cli/ui/colors'
-export { readUpdateLine, startUpdateNotice } from '@/cli/update/notice'
-export { isUpdateCheckEnabled, newerVersionOf, refreshUpdateState } from '@/cli/update/state'
+export {
+  formatInstalledNotice,
+  formatUpdateNotice,
+  readUpdateLine,
+  startUpdateNotice,
+  toChatText,
+  UPGRADE_COMMAND,
+} from '@/cli/update/notice'
+export {
+  isUpdateCheckEnabled,
+  newerVersionOf,
+  readFreshUpdateState,
+  refreshUpdateState,
+  writeUpdateState,
+} from '@/cli/update/state'
 export { readReleaseStatus } from '@/cli/update/status'

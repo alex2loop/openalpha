@@ -23,6 +23,7 @@ import {
   extendHooks,
   toAgentRegistry,
 } from '@/app/services'
+import { createReleaseUpdates } from '@/app/update/releases'
 import { createHealthSummary, createSpendReader } from '@/app/views'
 import { channelsProvider } from '@/channels/api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
@@ -354,6 +355,7 @@ function createAppProvider(
       bind('modelControl', (app) => resolveModelSelection(app).control)
       bind('agentForRun', (app) => resolveModelSelection(app).agentForRun)
       bind('healthSummary', (app) => createHealthSummary(app, delivery))
+      bind('releaseUpdates', createReleaseUpdates)
       bind('spendReader', (app) => createSpendReader(app))
       bind('toolServices', buildToolServices)
       bind('mcpSessionLifecycle', createMcpSessionLifecycle)
