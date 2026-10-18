@@ -9,31 +9,60 @@ carries ` [IMPORTANT]` after its date.
 
 ## [Unreleased]
 
-Updates are now easy to see and one step to install: the notice says what changed and whether a
-release is important, `/upgrade` in chat installs it and the bot restarts and reports back.
-> Cập nhật giờ dễ thấy và chỉ một bước để cài: thông báo cho biết có gì mới và bản nào quan trọng, `/upgrade` trong chat sẽ cài bản mới, bot tự khởi động lại rồi báo lại cho bạn.
+Updates are easy to see and take one step: the notice says what changed, `/upgrade` installs from
+chat, and the bot restarts and reports back. The debate reads its evidence more carefully, and
+Windows on ARM gets a native build. No database change.
+> Bản mới dễ thấy và chỉ một bước để cài: thông báo cho biết có gì mới, `/upgrade` cài ngay trong chat, bot tự khởi động lại rồi báo cho bạn. Phần tranh luận đọc dữ liệu kỹ hơn, và Windows chip ARM có bản riêng.
 
-- Windows machines with an ARM chip now get a native build, picked by the install script, and CI runs the Windows lifecycle on ARM too.
-- New `[update] auto = true` lets a background daemon install patch releases (1.0.5 to 1.0.6, say) by itself between 00:00 and 06:00 on your timezone, never while one of your markets is in session; it is off by default.
-- The bot now mentions a new release to the operator in a private chat, weekly (daily for an important one), and says once that it is on the new version.
-- `/upgrade confirm` in chat now installs the new release, restarts the bot, reports back and rolls back by itself if the new release will not start; it waits while the bot is in the middle of an answer or approval.
-- `/upgrade` in chat now shows your version, the latest release and what it brings, and `/upgrde` no longer suggests `/trade`.
-- Re-running the install script now moves a running background daemon onto the new binary.
-- `openalpha upgrade` now starts a background daemon again on the new release by itself, goes back to the old release if the new one will not start, and `upgrade --rollback` returns to the previous release; coming from v1.0.5, start the daemon once by hand after this upgrade.
-- OpenAlpha now checks for a new release twice a day instead of once.
-- Every update notice now says what the new release changes, how many releases you are behind and whether one of them is important.
-- The accounts table now shows the five newest quarters next to the audited years, so a turn in the business is visible before the annual report.
-- The debate's roles now work from one set of rules, so a trade plan no longer talks about lot sizes or caps it cannot see.
-- When a news or calendar feed is down, the analysis now says so instead of reading the silence as good news.
-- The analysis now names the company and its sector up front, so a three-letter ticker can't be mistaken for another business.
-- Win rates used to temper conviction now count only calls that have had their full time to work out.
-- Price answers now say what time the price was read.
-- `openalpha doctor` now warns when a switch that lets OpenAlpha act without asking is on.
-- Gold headlines now credit the real newspaper behind each Google News story, so a story several papers carry ranks higher.
-- A buy too small for its stop-loss to be placed on the exchange is now refused up front, instead of leaving the position unprotected.
-- Win rates in /reflect now come with a likely range, so a rate built on a handful of calls doesn't look more certain than it is.
-- Syncing from Binance or OKX now picks up a limit order that only partly filled before it was cancelled, so the book matches what you actually hold.
-- For plans that take partial profit and let the rest run, OpenAlpha now tells you to rest only the stop, and the target alert walks you through the partial sale.
+### Updates
+
+- **Every update notice says what changed**: the release's summary, how many releases you are
+  behind and whether one is important. OpenAlpha checks twice a day.
+- **`/upgrade` in chat** shows your version and what the new release brings; `/upgrade confirm`
+  (or the button) installs it, restarts the bot and reports back. Operator only, and it waits
+  while the bot is busy.
+- **The bot keeps running across upgrades.** `openalpha upgrade` and the install scripts bring a
+  background daemon back on the new release, a release that will not start is rolled back by
+  itself, and `upgrade --rollback` returns to the previous one. Coming from v1.0.5, start the daemon
+  once by hand after this upgrade.
+- **The operator hears of a new release in a private chat**, weekly (daily for an important one),
+  and once when the bot is on it.
+- **`[update] auto = true`** (off by default) installs patch releases, 1.0.5 to 1.0.6 say, between
+  00:00 and 06:00 on your timezone, never while one of your markets is in session.
+- **Windows on ARM** gets a native build, which the install script picks.
+
+### The debate
+
+- VN accounts show the five newest quarters next to the audited years.
+- The roles work from one set of rules, so a trade plan no longer talks about lot sizes or caps it
+  cannot see.
+- A news, coverage or calendar feed that is down is said, not read as good news.
+- The company and its sector are named up front, and a price says when it was read.
+- Gold headlines credit the real newspaper behind each Google News story.
+- Win rates that temper conviction count only calls whose window has passed, and `/reflect` shows
+  how certain each rate is.
+
+### Your book
+
+- A buy too small for its stop-loss to rest on the exchange is refused up front.
+- Syncing Binance or OKX picks up a limit order that filled in part before it was cancelled.
+- A plan that takes partial profit tells you to rest only the stop, and the target alert walks you
+  through the partial sale.
+
+### Commands and setup
+
+- `doctor` warns when a switch that lets OpenAlpha act without asking is on, and no longer flags the
+  database after a start that failed on a bad config.
+- `config validate` lists an unknown section together with the mistakes inside `[trading]`.
+- `config.minimal.en.toml`: an English starter config for the README's quick setup.
+- Leaving the chat closes its session, and `history` can delete a session that is open but idle.
+- `/overview` prints the gold macro table once, weekends included.
+- `plugin uninstall` refuses a plugin that is not installed instead of reporting it removed.
+
+### For contributors
+
+- Each release binary is started on a machine of its kind before the release is published, and a
+  manual run with `dry_run` rehearses it. Dependencies are audited weekly.
 
 ## [1.0.5] - 2026-10-18
 
