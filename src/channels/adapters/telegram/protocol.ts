@@ -66,7 +66,7 @@ const telegramMessageSchema = z.object({
       caption: z.string().optional(),
     })
     .optional(),
-  // The part of the replied message the operator selected before replying.
+  // The part of the replied message the operator selected.
   quote: z.object({ text: z.string() }).optional(),
   forward_origin: z.object({ type: z.string() }).optional(),
   date: z.number(),
@@ -163,6 +163,8 @@ function parseMessage(
   }
 
   const isGroup = m.chat.type !== undefined && GROUP_CHAT_TYPES.has(m.chat.type)
+  // Direct chats only: sent messages are remembered per chat, not per user, so a group reply could
+  // pull another member's answer into this session.
   const replyTo = isGroup ? undefined : toReplyTo(m, identity)
 
   return {
@@ -180,8 +182,6 @@ function parseMessage(
   }
 }
 
-// Direct chats only: a group route is per user, but what the bot remembers sending has no user, so a
-// group reply could pull another member's answer into this one's session.
 function toReplyTo(
   m: TelegramMessage,
   identity: BotIdentity | undefined

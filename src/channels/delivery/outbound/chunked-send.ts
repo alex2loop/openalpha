@@ -19,7 +19,7 @@ interface ChunkedSendOptions {
 
 interface ChunkedSendResult {
   readonly outcome: NotifyOutcome
-  /** One id per chunk that went out, in order; on a partial send, the chunks before the failure. */
+  /** Ids of the chunks that went out, in order. */
   readonly messageIds: readonly string[]
 }
 

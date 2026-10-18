@@ -17,15 +17,18 @@ import {
   formatPlanBlock,
   formatRunResultBody,
 } from '@/channels/delivery/format'
-import { withGapNote } from '@/channels/delivery/gap-note'
+import { resolveGapNote } from '@/channels/delivery/gap-note'
 import { resolveOutboundMarkup, selectRenderer } from '@/channels/delivery/outbound/chunked-send'
 import { createReply } from '@/channels/delivery/reply'
+import { toReplyLead } from '@/channels/delivery/reply-context'
 import { type ChunkStream, createChunkStream } from '@/channels/delivery/stream'
 import { AppError, ChannelError, RunHalted } from '@/core/errors'
 import { observe } from '@/core/events'
 import { LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
+
+const LEAD_SEPARATOR = '\n\n'
 
 export interface OrchestratorDeps {
   readonly adapter: ChannelAdapter
@@ -35,10 +38,7 @@ export interface OrchestratorDeps {
   readonly locale: Locale
   readonly logger: Logger
   readonly signal: AbortSignal
-  /** Where every answer chunk is filed, so a reply to it can be told apart from a reply to
-   *  anything else. */
   readonly sent: SentMessages
-  /** Read once per run for how long the chat was quiet. */
   readonly sessions: SessionActivity
   /** Channel-owned deep-plan review; the prompted chat supplies the explicit start or cancel. */
   readonly reviewPlan: (chatId: string, input: ResearchPlanReview) => Promise<ResearchPlanDecision>
@@ -81,13 +81,15 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
   try {
     reply.typing(true)
     await reply.react('👀')
+    const lead = await composeLead(deps, exchange)
     result = await deps.runner.run(
       {
         agentId,
         sessionId,
         userId: LOCAL_USER_ID,
         channel: combined.channel,
-        userMessage: await composeUserMessage(deps, exchange),
+        userMessage: combined.text,
+        ...(lead === undefined ? {} : { lead }),
         onChunk: (event) => stream.onChunk(event),
       },
       {
@@ -117,17 +119,26 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
   })
 }
 
-// The debounced, combined text is seen exactly once, here, so a note composed per message would
-// repeat for each one batched into the run.
-function composeUserMessage(deps: OrchestratorDeps, exchange: Exchange): Promise<string> {
-  return withGapNote({
-    text: exchange.combined.text,
+// Batched messages arrive here as one: one lead per run, and a burst keeps only its last reply.
+async function composeLead(
+  deps: OrchestratorDeps,
+  exchange: Exchange
+): Promise<string | undefined> {
+  const gapNote = await resolveGapNote({
     sessionId: exchange.sessionId,
     sessions: deps.sessions,
     gapNoteMs: deps.settings.gapNoteMs,
     locale: deps.locale,
     logger: deps.logger,
   })
+  const replyLead = toReplyLead({
+    message: exchange.combined,
+    sent: deps.sent,
+    locale: deps.locale,
+  })
+  const parts = [gapNote, replyLead].filter((part) => part !== undefined)
+
+  return parts.length === 0 ? undefined : parts.join(LEAD_SEPARATOR)
 }
 
 interface ApprovalPromptWatch {
@@ -367,20 +378,18 @@ async function sendAnswer(deps: OrchestratorDeps, send: AnswerSend): Promise<voi
     bodyCount: bodyChunks.length,
     footerJoined: chunks.length === bodyChunks.length,
   })
+
   await reply.react(answer.completed ? '✅' : '❌')
 }
 
 interface AnswerChunks {
   readonly chatId: string
-  /** One entry per sent chunk, in order. */
   readonly refs: readonly (SentRef | undefined)[]
   readonly bodyCount: number
-  /** False when the footer did not fit and went out as a chunk of its own. */
   readonly footerJoined: boolean
 }
 
-// A footer-only chunk is nothing but LLM spend, so it is never filed: a reply to it gets the unknown
-// lead.
+// A footer-only chunk is all LLM spend, so it is never filed.
 function recordAnswerChunks(sent: SentMessages, chunks: AnswerChunks): void {
   for (const [index, ref] of chunks.refs.slice(0, chunks.bodyCount).entries()) {
     if (ref === undefined) {

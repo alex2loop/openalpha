@@ -6,47 +6,40 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from '@/core/utils/time'
 import { pluralKey, t } from '@/i18n'
 
-// How the operator would say it: whole minutes under an hour, whole hours under two days, whole
-// days beyond.
-const HOURS_FROM_MS = MS_PER_HOUR
-const DAYS_FROM_MS = 2 * MS_PER_DAY
+// Minutes under an hour, hours under two days, days beyond.
+const HOURS_AFTER_MS = MS_PER_HOUR
+const DAYS_AFTER_MS = 2 * MS_PER_DAY
 
 interface GapNoteInput {
-  readonly text: string
   readonly sessionId: SessionId
   readonly sessions: SessionActivity
-  /** Zero turns the note off. */
   readonly gapNoteMs: number
   readonly locale: Locale
   readonly logger: Logger
 }
 
-/** The run's message, led by how long the chat sat quiet when that is long enough for the prices
- *  quoted earlier to have gone stale. Measured from the newest transcript row, not the session's
- *  activity stamp, which a slash command moves without saying anything to the model. A failed read
- *  skips the note: it must never fail the turn. */
-export async function withGapNote(input: GapNoteInput): Promise<string> {
-  const { text, gapNoteMs, locale } = input
+/** Measured from the newest transcript row, not the session's activity stamp, which a slash command
+ *  moves without telling the model. A failed read skips the note rather than failing the turn. */
+export async function resolveGapNote(input: GapNoteInput): Promise<string | undefined> {
+  const { gapNoteMs, locale } = input
 
   if (gapNoteMs === 0) {
-    return text
+    return undefined
   }
 
   const lastAt = await readLastMessageAt(input)
 
   if (lastAt === null) {
-    return text
+    return undefined
   }
 
   const gapMs = Date.now() - lastAt
 
   if (gapMs < gapNoteMs) {
-    return text
+    return undefined
   }
 
-  const lead = t(locale, 'channel.gapNote.lead', { elapsed: formatElapsed(locale, gapMs) })
-
-  return `${lead}\n\n${text}`
+  return t(locale, 'channel.gapNote.lead', { elapsed: formatElapsed(locale, gapMs) })
 }
 
 async function readLastMessageAt(input: GapNoteInput): Promise<number | null> {
@@ -60,7 +53,7 @@ async function readLastMessageAt(input: GapNoteInput): Promise<number | null> {
 }
 
 function formatElapsed(locale: Locale, gapMs: number): string {
-  if (gapMs < HOURS_FROM_MS) {
+  if (gapMs < HOURS_AFTER_MS) {
     const count = Math.floor(gapMs / MS_PER_MINUTE)
 
     return t(locale, pluralKey(count, 'channel.gapNote.minutesOne', 'channel.gapNote.minutes'), {
@@ -68,7 +61,7 @@ function formatElapsed(locale: Locale, gapMs: number): string {
     })
   }
 
-  if (gapMs < DAYS_FROM_MS) {
+  if (gapMs < DAYS_AFTER_MS) {
     const count = Math.floor(gapMs / MS_PER_HOUR)
 
     return t(locale, pluralKey(count, 'channel.gapNote.hoursOne', 'channel.gapNote.hours'), {

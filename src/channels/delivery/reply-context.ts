@@ -8,42 +8,42 @@ import { t } from '@/i18n'
 
 const REPLY_CONTEXT_MAX_CHARS = 1_500
 
-type AnswerMessage = Extract<SentMessage, { readonly kind: 'answer' }>
-
-interface ReplyContextInput {
+interface ReplyLeadInput {
   readonly message: InboundMessage
   readonly sent: Pick<SentMessages, 'get'>
   readonly locale: Locale
 }
 
-/** The operator's text, led by what they are replying to. Only an answer lets text through, with
- *  its run footer (LLM spend) removed; a notice passes its label alone, and anything else a pointer,
- *  so no amount or cost figure the bot once sent reaches a model through a reply. */
-export function withReplyContext(input: ReplyContextInput): string {
+/** Only an answer lets text through, footer cut; a notice passes its label and anything else a
+ *  pointer, so no figure the bot sent reaches a model through a reply. */
+export function toReplyLead(input: ReplyLeadInput): string | undefined {
   const { message, locale } = input
   const { replyTo } = message
 
   if (replyTo === undefined) {
-    return message.text
+    return undefined
   }
 
   const sent = input.sent.get(message.chatId, replyTo.messageId)
 
-  return `${toLead(sent, replyTo, locale)}\n\n${message.text}`
+  return toKnownLead(sent, replyTo, locale) ?? t(locale, 'channel.replyContext.unknown')
 }
 
-function toLead(sent: SentMessage | undefined, replyTo: InboundReply, locale: Locale): string {
+function toKnownLead(
+  sent: SentMessage | undefined,
+  replyTo: InboundReply,
+  locale: Locale
+): string | undefined {
   if (sent === undefined) {
-    return t(locale, 'channel.replyContext.unknown')
+    return undefined
   }
 
   switch (sent.kind) {
     case 'answer':
-      return toAnswerLead(sent, replyTo) ?? t(locale, 'channel.replyContext.unknown')
+      return toAnswerLead(sent, replyTo)
     case 'notice':
       return t(locale, 'channel.replyContext.notice', { label: sent.label })
     default: {
-      // Exhaustive - unreachable per SentMessage union.
       const _exhaustive: never = sent
 
       return _exhaustive
@@ -51,8 +51,9 @@ function toLead(sent: SentMessage | undefined, replyTo: InboundReply, locale: Lo
   }
 }
 
-// The operator's own selection wins, but only when it lies inside the body: a quote that touches
-// the footer falls back to the whole footer-less body.
+type AnswerMessage = Extract<SentMessage, { readonly kind: 'answer' }>
+
+// A quote that reaches into the footer falls back to the whole body.
 function toAnswerLead(sent: AnswerMessage, replyTo: InboundReply): string | undefined {
   if (replyTo.text === undefined) {
     return undefined

@@ -187,6 +187,10 @@ async function prepareRun(input: PrepareRunInput): Promise<PreparedRun> {
     )
   }
 
+  if (runInput.lead !== undefined) {
+    run.state.messages.appendTransient({ role: 'user', content: runInput.lead })
+  }
+
   run.state.messages.appendDirect({ role: 'user', content: userMessage })
 
   return { run, bookkeeping }

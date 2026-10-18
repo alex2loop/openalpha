@@ -377,7 +377,6 @@ function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHand
     adapter,
     runRegistry: deps.runRegistry,
     slashRuns: parts.slashRuns,
-    sent: parts.sent,
     bindings: deps.bindings,
     agents: deps.agents,
     operatorNotices: deps.operatorNotices,

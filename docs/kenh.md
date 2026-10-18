@@ -160,8 +160,8 @@ Vài điều nên biết:
   chính lời của bạn yêu cầu.
 - **Cuộc trò chuyện giữ nguyên cho tới khi bạn gõ /new.** Nếu bạn quay lại sau một lúc lâu, OpenAlpha sẽ
   xem lại giá mới chứ không dùng lại con số đã nói trước đó.
-- **Trả lời đúng tin.** Trong chat riêng, bạn cứ bấm trả lời vào một câu trả lời của OpenAlpha, nó sẽ biết
-  bạn đang hỏi tiếp câu nào. Với cảnh báo giá và bản tin sáng, nó chỉ biết đó là loại tin gì, không bao giờ
+- **Trả lời đúng tin.** Trong chat riêng Telegram, bạn cứ bấm trả lời vào một câu trả lời của OpenAlpha,
+  nó sẽ biết bạn đang hỏi tiếp câu nào. Với cảnh báo giá và bản tin sáng, nó chỉ biết đó là loại tin gì, không bao giờ
   thấy số tiền của bạn.
 - **Nút bấm là lệnh.** Bấm một nút y như gõ lệnh đó: cùng khâu xét duyệt, cùng cổng quyền, cùng giới hạn
   tần suất, và chạy trên dữ liệu của hôm nay.

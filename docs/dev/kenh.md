@@ -222,34 +222,42 @@ và nơi đọc bảng lùi về một dòng chỉ dẫn thay vì nội dung.
 ### Ngữ cảnh trả lời
 
 Ở chat riêng Telegram, một tin trả lời một tin của chính bot mang theo `replyTo` (id và nội dung tin được
-trả lời, cùng đoạn `quote` người vận hành đã bôi chọn). Chat nhóm không bao giờ đặt nó: tuyến của nhóm là
-theo từng người, nhưng bảng tin đã gửi không có người dùng, nên nếu không thì một thành viên trả lời có thể
-kéo câu trả lời của thành viên khác vào phiên của mình.
+trả lời, cùng đoạn `quote` người vận hành đã bôi chọn). Chat nhóm không bao giờ đặt nó: bảng tin đã gửi
+lưu theo chat chứ không theo người, nên nếu không thì một thành viên trả lời có thể kéo câu trả lời của
+thành viên khác vào phiên của mình.
 
-`route` ghép nó một lần, sau khi xử lý lệnh gạch chéo và chỉ với tin thường, nên một tin trả lời mà chính
-nó là lệnh gạch chéo (`/stop`) vẫn chạy như lệnh. `withReplyContext` đặt trước lời của người vận hành:
+`runExchange` biến nó thành một đoạn dẫn bằng `toReplyLead`:
 
-- với một câu trả lời, nội dung tin được trả lời (hoặc đoạn bôi chọn, nếu nằm trong thân câu trả lời) bọc
-  như nội dung dán vào và cắt theo độ dài cố định;
-- với một bản tin chủ động, chỉ nhãn của nó;
+- với một câu trả lời, nội dung tin được trả lời (hoặc đoạn bôi chọn, nếu nằm trong phần thân câu trả lời)
+  bọc như nội dung dán vào và cắt ở một độ dài cố định;
+- với một thông báo, chỉ nhãn của nó;
 - với mọi thứ khác, một dòng chỉ dẫn.
 
-Dòng chi phí cuối tin (chi phí LLM, token, số lần gọi mô hình) bị giấu khỏi mô hình như một con số của người
-vận hành: nó bị cắt khỏi nội dung được trả lời, và đoạn bôi chọn chạm vào nó thì lùi về cả thân tin không có
-dòng đó. Dòng chi phí đã đi thành một tin riêng thì không được ghi vào bảng, nên trả lời nó chỉ nhận dòng chỉ
-dẫn. Tin trong hộp nhận được phát lại vẫn giữ `replyTo` và gặp một bảng trống sau khi khởi động lại, nên
-cũng chỉ nhận dòng chỉ dẫn.
+Dòng chân của lượt chạy (chi phí LLM, token, số lần gọi model) được giấu khỏi model như một con số của
+người vận hành: nó bị cắt khỏi nội dung tin được trả lời, và đoạn bôi chọn chạm vào nó thì lùi về cả phần
+thân không có dòng chân. Dòng chân gửi thành một tin riêng không bao giờ được ghi lại, nên trả lời vào nó
+chỉ nhận dòng chỉ dẫn. Một tin trong hộp thư được phát lại vẫn giữ `replyTo` nhưng gặp bảng rỗng sau khi
+khởi động lại, nên cũng chỉ nhận dòng chỉ dẫn.
+
+Tin được đưa vào một lượt chạy đang dở không có đoạn dẫn, và khi nhiều tin gom vào một lượt thì chỉ giữ
+tin trả lời của tin cuối.
 
 ### Ghi chú về khoảng im lặng
 
-`runExchange` ghép ghi chú một lần cho mỗi lượt chạy, nên nhiều tin gom vào một lượt dùng chung một ghi chú.
 Khoảng im lặng được đo từ dòng `session_messages` mới nhất (`SessionActivity.lastMessageAt`), không bao giờ
-từ `sessions.last_activity_at`, vì lệnh gạch chéo cũng làm mới cột đó. Khi dòng ấy cũ hơn `gap_note_minutes`,
-tin của lượt chạy được mở đầu bằng một dòng nói chat đã im lặng bao lâu và giá trước đó đã cũ. Ghi chú được
-lưu cùng lượt của người dùng, vì đọc lại về sau nó vẫn đúng. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn
-là cách bắt đầu mới một cách tường minh. Đọc thất bại thì ghi log `channel.gap_note_lookup_failed` và bỏ qua
-ghi chú, nên không bao giờ làm hỏng lượt. Khóa này nằm trong `deliveryFields` nhưng không nằm trong
-`SAFE_DELIVERY_OVERRIDE_FIELDS`, nên một kênh plugin khai báo không ghi đè được nó.
+từ `sessions.last_activity_at`, vì lệnh gạch chéo cũng làm mới cột đó. Khi dòng ấy cũ hơn
+`gap_note_minutes`, đoạn dẫn mở đầu bằng một dòng nói chat đã im lặng bao lâu và giá trước đó có thể đã cũ. Đọc
+thất bại thì ghi log `channel.gap_note_lookup_failed` và bỏ qua ghi chú, nên không bao giờ làm hỏng lượt.
+Khóa này nằm trong `deliveryFields` nhưng không nằm trong `SAFE_DELIVERY_OVERRIDE_FIELDS`, nên một kênh
+plugin khai báo không ghi đè được nó.
+
+### Đoạn dẫn không bao giờ được lưu
+
+`runExchange` truyền ghi chú khoảng im lặng và đoạn dẫn trả lời qua `RunInput.lead`, một lần cho mỗi lượt
+chạy. Engine thêm nó thành một tin người dùng tạm thời ngay trước lời của người vận hành, giống cách nó
+khôi phục danh sách việc cần làm: model đọc được trong lượt đó, còn `history show` và lịch sử chat qua
+`/v1` chỉ hiện đúng những gì người vận hành đã gõ. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn là cách
+bắt đầu mới một cách tường minh.
 
 ## Khởi động và tắt
 

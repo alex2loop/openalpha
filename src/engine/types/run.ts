@@ -161,6 +161,9 @@ export interface RunInput {
   readonly userId: UserId
   readonly channel: ChannelId
   readonly userMessage: string
+  /** Read by the model just ahead of `userMessage`, for this run only; never stored, so a history
+   *  surface shows only what the operator typed. */
+  readonly lead?: string
   readonly onChunk?: OnStreamEvent
 }
 

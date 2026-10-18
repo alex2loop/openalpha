@@ -1731,7 +1731,7 @@
     "clarification": "❓ {question}",
     "replyContext.notice": "(The operator is replying to your \"{label}\" message.)",
     "replyContext.unknown": "(The operator is replying to an earlier message of yours that isn't shown here.)",
-    "gapNote.lead": "(The last message in this chat was about {elapsed} ago. Prices and figures from earlier turns are out of date; fetch them again before you use them.)",
+    "gapNote.lead": "(The last message in this chat was about {elapsed} ago. Prices and figures from earlier turns may be out of date; check them again before you use them.)",
     "gapNote.minutesOne": "{count} minute",
     "gapNote.minutes": "{count} minutes",
     "gapNote.hoursOne": "{count} hour",

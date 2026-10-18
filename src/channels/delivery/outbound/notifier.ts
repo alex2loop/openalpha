@@ -20,7 +20,7 @@ export type NotifyOutcome = 'delivered' | 'dropped' | 'aborted'
 
 interface NotifyResult {
   readonly outcome: NotifyOutcome
-  /** The message the transport made; present only when the outcome is `delivered`. */
+  /** Present only when the outcome is `delivered`. */
   readonly ref?: SentRef
 }
 
@@ -46,7 +46,6 @@ interface Note {
   readonly sendSignal: AbortSignal
   readonly callerSignal?: AbortSignal
   attempts: number
-  /** Set by the send that delivered it. */
   ref?: SentRef
   /** Epoch-ms the note is next due, set by the failure that queued it again. */
   noRetryBefore?: number

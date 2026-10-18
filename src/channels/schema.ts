@@ -8,7 +8,6 @@ const DEFAULT_DEBOUNCE_MS = 600
 const DEFAULT_NEAR_SPLIT_DEBOUNCE_MS = 2_000
 const DEFAULT_MID_STREAM_THROTTLE_MS = 1_500
 const DEFAULT_NOTIFY_MAX_PER_MINUTE = 3
-// A chat quiet this long has likely lost its prices; the next answer is told so.
 const DEFAULT_GAP_NOTE_MINUTES = 30
 const DEFAULT_NOTIFY_QUEUE_MAX = 50
 const DEFAULT_NOTIFY_MAX_ATTEMPTS = 3
@@ -69,7 +68,7 @@ export interface ChannelSettings {
   readonly notifyQueueMax: number
   readonly notifyMaxAttempts: number
   readonly notifyDrainTimeoutMs: number
-  /** Quiet time after which a run is told so; 0 turns the note off. */
+  /** Quiet time after which a run is told its prices are stale; 0 turns it off. */
   readonly gapNoteMs: number
   readonly fallbackChatId?: string
 }

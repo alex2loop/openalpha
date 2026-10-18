@@ -26,8 +26,8 @@ interface UpdateOptions {
 
 export interface Reply {
   open(text: string, options?: { readonly cancelData?: string }): Promise<boolean>
-  /** The message now showing the text: the placeholder, or a fresh one. Absent when a non-final
-   *  send failed and was only logged. */
+  /** Reliable only for a final write: a failed non-final edit is logged and still names the
+   *  placeholder. */
   update(text: string, options?: UpdateOptions): Promise<SentRef | undefined>
   overflow(
     text: string,

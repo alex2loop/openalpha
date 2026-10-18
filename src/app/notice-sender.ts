@@ -110,8 +110,7 @@ function renderKeyMissing(
   })
 }
 
-// A reading the operator may reply to carries its label, so the channel can file what it sent. The
-// four kinds that report on a delivery are not readings and carry none.
+// Only a reading the operator may reply to is labelled; a delivery report is not one.
 function noticeLabelOf(notice: TradingNotice): { readonly noticeLabel?: string } {
   const { kind } = notice.payload
 

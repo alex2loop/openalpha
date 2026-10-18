@@ -132,7 +132,6 @@ export interface SessionOpener {
   create(session: OpenedSession): Promise<void>
 }
 
-/** When a chat last said or heard something, read off the transcript. */
 export interface SessionActivity {
   /** When the session's newest transcript row was written; null for a session with none. */
   lastMessageAt(id: SessionId): Promise<number | null>

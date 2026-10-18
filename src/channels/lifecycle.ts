@@ -77,8 +77,7 @@ interface NoticeFiling {
   readonly label: string | undefined
 }
 
-// Only a fully delivered notice is filed: a partly sent one is retried whole, and its first chunks
-// would otherwise sit on the map as a reading the operator never finished receiving.
+// Only a fully delivered notice is filed; a partly sent one is retried whole.
 function fileNotice(sent: SentMessages, filing: NoticeFiling): void {
   if (filing.label === undefined) {
     return

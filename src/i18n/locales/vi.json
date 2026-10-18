@@ -1731,7 +1731,7 @@
     "clarification": "❓ {question}",
     "replyContext.notice": "(Người dùng đang trả lời tin \"{label}\" của bạn.)",
     "replyContext.unknown": "(Người dùng đang trả lời một tin trước đó của bạn, nội dung không có ở đây.)",
-    "gapNote.lead": "(Tin trước trong cuộc trò chuyện này cách đây khoảng {elapsed}. Giá và số liệu ở các lượt trước đã cũ, hãy lấy lại trước khi dùng.)",
+    "gapNote.lead": "(Tin trước trong cuộc trò chuyện này cách đây khoảng {elapsed}. Giá và số liệu ở các lượt trước có thể đã cũ, hãy kiểm tra lại trước khi dùng.)",
     "gapNote.minutesOne": "{count} phút",
     "gapNote.minutes": "{count} phút",
     "gapNote.hoursOne": "{count} giờ",
