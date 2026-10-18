@@ -4,6 +4,19 @@ import { sleep } from '@/core/utils/time'
 
 const DUCKDUCKGO_CONCURRENCY = 2
 const DUCKDUCKGO_MIN_GAP_MS = 1_500
+// DeepSeek allows 5 searches a second per account.
+const DEEPSEEK_MIN_GAP_MS = 200
+
+interface ProviderPace {
+  readonly concurrency: number
+  readonly minGapMs: number
+}
+
+const DEFAULT_PACE: ProviderPace = { concurrency: 8, minGapMs: 0 }
+const PROVIDER_PACE: Readonly<Partial<Record<string, ProviderPace>>> = {
+  duckduckgo: { concurrency: DUCKDUCKGO_CONCURRENCY, minGapMs: DUCKDUCKGO_MIN_GAP_MS },
+  deepseek: { ...DEFAULT_PACE, minGapMs: DEEPSEEK_MIN_GAP_MS },
+}
 
 interface ThrottledInput<T> {
   readonly gates: Map<string, ProviderGate>
@@ -28,8 +41,7 @@ export async function runThrottled<T>(input: ThrottledInput<T>): Promise<T> {
 }
 
 async function acquire(gate: ProviderGate, provider: string, signal: AbortSignal): Promise<void> {
-  const concurrency = provider === 'duckduckgo' ? DUCKDUCKGO_CONCURRENCY : 8
-  const minGapMs = provider === 'duckduckgo' ? DUCKDUCKGO_MIN_GAP_MS : 0
+  const { concurrency, minGapMs } = PROVIDER_PACE[provider] ?? DEFAULT_PACE
 
   await waitForTurn(gate, concurrency, signal)
 
