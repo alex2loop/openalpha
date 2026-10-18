@@ -1,14 +1,21 @@
 name: release
 
-# A push that sets a new package.json version publishes it: the gates run, the five binaries are
-# built, then the tag and the GitHub Release are created together with them attached. Run it by hand to retry a release whose gates failed.
+# A push that sets a new package.json version publishes it: the gates run, the binaries are built
+# and checked, each is started on a machine of its kind, and only then are the tag and the GitHub
+# Release created with them attached. Run it by hand to retry a release whose gates failed, or with
+# dry_run to rehearse every step but the publish.
 on:
   push:
     branches: [main]
     paths: [package.json]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and start-test the binaries, but create no tag and no Release.
+        type: boolean
+        default: false
 
-# Declared per job instead of here: only the release job writes, and it needs `contents: write`
+# Declared per job instead of here: only the publish job writes, and it needs `contents: write`
 # for the tag and the Release.
 permissions:
   contents: read
@@ -19,18 +26,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     # macOS: a darwin binary must be re-signed after Bun appends the bundle, and only codesign does
-    # that. Bun cross-compiles the Linux binaries from here.
+    # that. Bun cross-compiles the other binaries from here.
     runs-on: macos-latest
-    # The tag and the Release are the only writes this workflow makes.
-    permissions:
-      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      new: ${{ steps.version.outputs.new }}
+      build: ${{ steps.version.outputs.build }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # A dry run builds even a version already released, so the workflow itself can be rehearsed.
       - name: Read version
         id: version
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           version="$(jq -r .version package.json)"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
@@ -39,27 +50,31 @@ jobs:
             echo "new=false" >> "$GITHUB_OUTPUT"
           else
             echo "new=true" >> "$GITHUB_OUTPUT"
+            new=true
+          fi
+          if [ "${new:-false}" = true ] || [ "$DRY_RUN" = true ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - if: steps.version.outputs.new == 'true'
+      - if: steps.version.outputs.build == 'true'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2
 
-      - if: steps.version.outputs.new == 'true'
+      - if: steps.version.outputs.build == 'true'
         run: bun install --frozen-lockfile
 
-      - if: steps.version.outputs.new == 'true'
+      - if: steps.version.outputs.build == 'true'
         run: bun run check
 
-      - if: steps.version.outputs.new == 'true'
+      - if: steps.version.outputs.build == 'true'
         run: bun run lint:arch
 
       # Built on the Bun the gates just ran on, so a user runs exactly that build. The x64 darwin
       # binary keeps Bun's own signature, which the appended bundle invalidates, so both are
       # re-signed ad hoc, as a native compile already is.
       - name: Build binaries
-        if: steps.version.outputs.new == 'true'
+        if: steps.version.outputs.build == 'true'
         run: |
           bun run build:all
           for binary in dist/openalpha-darwin-*; do
@@ -70,7 +85,7 @@ jobs:
           shasum -a 256 openalpha-* > SHA256SUMS
 
       - name: Extract release notes
-        if: steps.version.outputs.new == 'true'
+        if: steps.version.outputs.build == 'true'
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
@@ -84,13 +99,97 @@ jobs:
             exit 1
           fi
 
+      # An immutable Release can never gain a missing file, so the set is checked before anything is
+      # published: exactly the binaries `build:all` names, none empty, each with its checksum line.
+      - name: Check the release files
+        if: steps.version.outputs.build == 'true'
+        run: |
+          expected="$(jq -r '.scripts["build:all"]' package.json | grep -oE 'dist/openalpha-[^ ]+' | sort)"
+          built="$(ls dist/openalpha-* | sort)"
+          if [ "$expected" != "$built" ]; then
+            echo "Built binaries differ from build:all:"
+            diff <(echo "$expected") <(echo "$built") || true
+            exit 1
+          fi
+          for binary in $expected; do
+            name="${binary#dist/}"
+            [ -s "$binary" ] || { echo "$name is empty"; exit 1; }
+            awk -v n="$name" '$2 == n { found = 1 } END { exit !found }' dist/SHA256SUMS \
+              || { echo "$name has no line in SHA256SUMS"; exit 1; }
+          done
+          [ -s CHANGELOG.md ] || { echo "CHANGELOG.md is missing"; exit 1; }
+
+      - if: steps.version.outputs.build == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-files
+          path: |
+            dist/openalpha-*
+            dist/SHA256SUMS
+            notes.md
+            CHANGELOG.md
+          if-no-files-found: error
+          retention-days: 1
+
+  # Each binary a machine of its kind can run is started the way an operator starts it, from the
+  # very file that will be published. darwin-x64 has no free hosted runner and is checked by its
+  # checksum only.
+  start-test:
+    needs: build
+    if: needs.build.outputs.build == 'true'
+    runs-on: ${{ matrix.runner }}
+    env:
+      OPENROUTER_API_KEY: ci-placeholder
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-latest, asset: openalpha-darwin-arm64 }
+          - { runner: ubuntu-latest, asset: openalpha-linux-x64 }
+          - { runner: ubuntu-24.04-arm, asset: openalpha-linux-arm64 }
+          - { runner: windows-latest, asset: openalpha-windows-x64.exe }
+          - { runner: windows-11-arm, asset: openalpha-windows-arm64.exe }
+          - { runner: windows-11-arm, asset: openalpha-windows-x64.exe }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-files
+
+      - name: Check the checksum
+        shell: pwsh
+        env:
+          ASSET: ${{ matrix.asset }}
+        run: |
+          $line = Get-Content dist/SHA256SUMS | Where-Object { ($_ -split '\s+')[1] -eq $env:ASSET }
+          $expected = if ($line) { ($line -split '\s+')[0] } else { '' }
+          $actual = (Get-FileHash -Algorithm SHA256 "dist/$env:ASSET").Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { "dist/$env:ASSET does not match SHA256SUMS"; exit 1 }
+
+      - uses: ./.github/actions/daemon-lifecycle
+        with:
+          binary: dist/${{ matrix.asset }}
+
+  publish:
+    needs: [build, start-test]
+    if: needs.build.outputs.new == 'true' && !inputs.dry_run
+    runs-on: ubuntu-latest
+    # The tag and the Release are the only writes this workflow makes.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-files
+
       # A prerelease is marked as one, so releases/latest (what installs and update checks read)
       # keeps pointing at the last full release.
       - name: Publish release
-        if: steps.version.outputs.new == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
         run: |
           prerelease=""
           case "$TAG" in *-*) prerelease="--prerelease" ;; esac
