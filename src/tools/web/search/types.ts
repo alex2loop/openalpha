@@ -23,6 +23,13 @@ export type SearchOperation = 'search' | 'contents'
 
 export type Recency = 'day' | 'week' | 'month' | 'year'
 
+export const RECENCY_DAYS = {
+  day: 1,
+  week: 7,
+  month: 30,
+  year: 365,
+} as const satisfies Readonly<Record<Recency, number>>
+
 export interface SearchResult {
   readonly title: string
   readonly url: string
