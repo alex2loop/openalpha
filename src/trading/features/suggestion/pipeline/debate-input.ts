@@ -81,6 +81,7 @@ export function debateInputFor(input: DebatePlanInput): DebateInput {
       ...(prepared.sector === undefined ? {} : { sector: prepared.sector }),
     }),
     ...(prepared.upcomingEvents.length === 0 ? {} : { upcomingEvents: prepared.upcomingEvents }),
+    ...(prepared.calendarFailed === true ? { calendarFailed: true } : {}),
     ...(prepared.levels === undefined ? {} : { proposedLevels: prepared.levels }),
   }
 }

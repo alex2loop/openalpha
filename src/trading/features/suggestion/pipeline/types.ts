@@ -113,6 +113,9 @@ export interface DebateInput {
   /** This name's own dated corporate actions inside the holding window: timing a persona must weigh
    *  but may not speculate past. */
   readonly upcomingEvents?: readonly MarketEvent[]
+  /** The calendar read failed, which an empty `upcomingEvents` would otherwise read as nothing
+   *  scheduled. */
+  readonly calendarFailed?: true
   readonly proposedLevels?: TradeLevels
   /** Read by the roles that decide, never by the two that argue: a researcher handed the book
    *  argues portfolio construction instead of this name's evidence, which is not its question. */
@@ -205,6 +208,7 @@ export interface Prepared {
   /** The record's own kind, for the segment's ETF ceiling. */
   readonly instrumentKind?: InstrumentKind
   readonly upcomingEvents: readonly MarketEvent[]
+  readonly calendarFailed?: true
   readonly openRisk?: OpenRisk
   readonly direction: DraftDirection
   readonly draft: Suggestion

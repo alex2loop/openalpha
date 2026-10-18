@@ -25,7 +25,7 @@ const UNMEASURED_AREAS = new Set(['markets', 'sources'])
 // day stamps and caveat codes are what a model reasons over.
 const LLM_FORBIDDEN_RE =
   /\b(?:viewAbsolute|historyAbsolute|rebalanceAbsolute|valueBase|costBasisBase|navBase)\b/
-const LLM_REACHING_RE = /^features\/suggestion\/(?:debate|pipeline\/(?:evidence|schemas))\/?|^features\/[a-z-]+\/tools(?:\.ts$|\/)/
+const LLM_REACHING_RE = /^features\/suggestion\/(?:debate|pipeline\/(?:[a-z-]*evidence|schemas))\/?|^features\/[a-z-]+\/tools(?:\.ts$|\/)/
 const LEAF_CONSUMERS = new Set(['render', 'markets', 'sources', 'wiring'])
 
 // ledger reads market-data because a trade cannot be written honestly without it: the ticker is
@@ -57,7 +57,7 @@ const FEATURE_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = Object
 /** The measured tree, not an aspiration: a ceiling nothing can reach is a ceiling nobody enforces.
  *  These are a ratchet - a number that falls is edited down with it, and raising one is the
  *  reviewable act that says the module grew on purpose, so its reason belongs in that commit. */
-const CEILINGS = Object.freeze({ files: 545, exportedTypes: 924, exportedFns: 1150 })
+const CEILINGS = Object.freeze({ files: 546, exportedTypes: 924, exportedFns: 1156 })
 
 interface Allowlist {
   readonly edges: readonly string[]

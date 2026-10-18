@@ -246,6 +246,8 @@ Con số nào còn lại được báo bằng `suggestion.figure-unmatched`, m�
 - Từ hai câu chuyện rủi ro khác nhau trở lên thì nêu `market.risk-event-headlines`.
 - Không có lần đọc: lần chạy nói rõ bằng `suggestion.headlines-unread`, giữ cách nhóm của feed và dùng bảng từ khóa cho cảnh báo rủi ro.
 
+Khi nguồn tin, nguồn khuyến nghị của nhà phân tích hoặc lịch doanh nghiệp bị gián đoạn, phần phân tích được báo rõ và không bao giờ coi sự im lặng là bình yên.
+
 Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh. Các lần đọc đi tới chuỗi `[[model_tiers.decisions]]`; không cấu hình nhóm `decisions` thì chúng tắt.
 
 #### Bán một mã đang nắm

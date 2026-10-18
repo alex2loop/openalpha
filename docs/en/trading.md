@@ -246,6 +246,8 @@ Any figure left over raises `suggestion.figure-unmatched` as an information cave
 - Two or more distinct risk stories raise `market.risk-event-headlines`.
 - Read unavailable: the run says `suggestion.headlines-unread`, keeps the feed grouping and uses a keyword table for the risk warning.
 
+When a news, coverage or calendar feed is down, the analysis is told so and never reads the silence as calm.
+
 None of this changes confidence, levels or size. The reads go to the `[[model_tiers.decisions]]` chain; with no `decisions` tier configured, they are off.
 
 #### Selling a held name
