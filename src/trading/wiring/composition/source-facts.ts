@@ -1,3 +1,4 @@
+import type { MessageKey } from '@/i18n'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { RegisteredSource } from '@/trading/kernel/source/source-result'
 import type { SourceAdapterOptions } from '@/trading/sources/define'
@@ -198,12 +199,26 @@ export const PLAIN_USER_AGENT_SOURCES: ReadonlySet<SourceId> = new Set([
   sourceId('fred-csv'),
 ])
 
+interface SourceCredentialFacts {
+  readonly variable: string
+  /** What setting it adds. Every credentialed source is optional: a keyless provider covers its
+   *  kind, so the catalog line says what is lost without it, never that anything is broken. */
+  readonly adds: MessageKey
+}
+
 /** The default variable *name* per source, which `[trading.sources]` may override. The value only
  *  ever comes from the environment, so no key is written to a config file. */
-export const SOURCE_CREDENTIAL_ENV: Readonly<Partial<Record<SourceId, string>>> = Object.freeze({
-  [sourceId('coingecko')]: 'COINGECKO_API_KEY',
-  [sourceId('fred')]: 'FRED_API_KEY',
+export const SOURCE_CREDENTIALS: Readonly<Record<string, SourceCredentialFacts>> = Object.freeze({
+  [sourceId('coingecko')]: {
+    variable: 'COINGECKO_API_KEY',
+    adds: 'trading.source.credential.coingecko',
+  },
+  [sourceId('fred')]: { variable: 'FRED_API_KEY', adds: 'trading.source.credential.fred' },
 })
+
+export const SOURCE_CREDENTIAL_ENV: Readonly<Partial<Record<SourceId, string>>> = Object.freeze(
+  Object.fromEntries(Object.entries(SOURCE_CREDENTIALS).map(([id, facts]) => [id, facts.variable]))
+)
 
 export function createBuiltInSources(adapters: SourceAdapterOptions): readonly RegisteredSource[] {
   return [

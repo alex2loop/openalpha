@@ -155,7 +155,7 @@ export interface RebalanceTextWire {
     readonly group: 'first' | 'later'
     readonly line: string
   }[]
-  readonly sleeves: readonly string[]
+  readonly segments: readonly string[]
   readonly notes: readonly string[]
 }
 

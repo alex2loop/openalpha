@@ -168,8 +168,9 @@ still check its target; the output pipeline still treats the result as data, not
 ### Credentials and logs
 
 Model credentials come from the environment variable named by `api_key_env`; storage and search
-credentials work the same way. A missing required value fails at boot rather than starting a
-half-configured service.
+credentials work the same way. A missing storage value fails at boot rather than starting a
+half-configured service; a missing model key only makes model calls wait, and `start` warns about it;
+an empty search key only turns web search off and says so.
 
 A few credentials are their own files under the data directory, mode `0600`: a model provider's
 subscription login, the generated API token, social network keys and the Zalo personal session. They
@@ -345,7 +346,8 @@ Which spend cap a `budget` stop names:
 
 ### Model errors
 
-Behind a `llm_error` stop the sentence names what the provider said:
+Behind a `llm_error` stop, the codes you have to act on (`auth`, `billing`, `not_found`, `rate`) get their own
+sentence and fix; the rest read as a general provider error, with the detail in the log:
 
 | Code | What it means | What to do |
 |---|---|---|

@@ -29,7 +29,7 @@ import {
 import { averageTrueRange } from '@/trading/markets/levels'
 import { trailingHigh } from '@/trading/markets/timeseries'
 
-/** The horizon the crypto sleeve is planned on, which selects the stop and target multiple. */
+/** The horizon the crypto segment is planned on, which selects the stop and target multiple. */
 const HORIZON = 'short'
 /** Sessions a name must carry before it trades here: the longest window this prices, plus room for
  *  the windows to be measured against something. */

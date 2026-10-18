@@ -81,9 +81,9 @@ Ba nguyên tắc:
 | **Hồ sơ** (profile) | Khẩu vị rủi ro của bạn: mức rủi ro, kỳ hạn, mục tiêu, các trần an toàn. Khai một lần. |
 | **Danh sách theo dõi** (watchlist) | Mã bạn đang cân nhắc mua, dù chưa nắm. Nuôi `/market`, `/rebalance` và bản tin sáng. |
 | **Sổ lệnh** (ledger) | Các bút toán đã ghi (nạp tiền, mua, bán, cổ tức...). Sửa hay xóa từng bút toán bằng `/update`, `/delete`. Vị thế hiện tại được **tính lại** từ sổ mỗi lần cần. |
-| **NAV** | Giá trị ròng của danh mục, gồm cả tiền mặt. Mọi trần tỷ trọng tính theo % NAV. |
+| **Tổng tài sản** (NAV) | Giá trị ròng của danh mục, gồm cả tiền mặt. Mọi trần tỷ trọng tính theo % tổng tài sản. |
 | **Điểm yếu tố** (factor score) | Điểm tổng hợp từ nhiều chỉ báo của chính thị trường đó, thang -1 tới +1. Càng dương càng hấp dẫn. |
-| **Chế độ rủi ro** (regime) | Phông nền vĩ mô: `risk-on`, `neutral` hay `risk-off`. Chỉ dùng để **co** cỡ vị thế, không bao giờ phóng to. |
+| **Trạng thái thị trường** (regime) | Phông nền vĩ mô: `risk-on` (thuận lợi cho tài sản rủi ro), `neutral` (trung lập) hay `risk-off` (phòng thủ). Chỉ dùng để **co** cỡ vị thế, không bao giờ phóng to. |
 
 ---
 
@@ -92,7 +92,7 @@ Ba nguyên tắc:
 ### 2.1 Cài đặt
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài, rồi tự chạy onboard
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài, rồi tự chạy onboard; xong thì mở terminal mới
 # Windows: mở PowerShell rồi chạy
 #   powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"
 
@@ -128,14 +128,16 @@ phân số 0 tới 1 (`0.2` là 20%).
 | `risk-willingness` | như trên | mức sẵn sàng chịu rủi ro (tâm lý) |
 | `horizon <nhóm>` | `short` / `long` | kỳ hạn nắm giữ của từng nhóm |
 | `goal` | `preserve` / `income` / `grow` | giữ vốn / lấy dòng tiền / tăng trưởng |
-| `maximum-sector-pct-nav` | phân số NAV | trần cho một ngành |
-| `maximum-open-risk-pct-nav` | phân số NAV | trần tổng rủi ro đang mở |
-| `reserve-pct-nav` | phân số NAV | phần tiền mặt luôn giữ lại |
-| `regime-scale` | phân số | mức phản ứng với chế độ rủi ro vĩ mô |
-| `risk-per-trade-pct-nav` | phân số NAV | rủi ro tối đa cho một lệnh |
-| `segment-target <nhóm> <tỷ lệ>` | phân số NAV | tỷ trọng mục tiêu của một nhóm (các nhóm còn lại nhường phần chênh nên tổng vẫn 100%) |
-| `segment-cap <nhóm> <tỷ lệ>` | phân số NAV | mức tối đa một nhóm được chiếm |
-| `position-cap <nhóm> <tỷ lệ>` | phân số NAV | mức tối đa cho một mã trong nhóm |
+| `maximum-sector-pct-nav` | phân số tổng tài sản | trần cho một ngành |
+| `maximum-open-risk-pct-nav` | phân số tổng tài sản | trần tổng mức lỗ nếu mọi vị thế đang nắm cùng chạm cắt lỗ |
+| `reserve-pct-nav` | phân số tổng tài sản | phần tiền mặt luôn giữ lại |
+| `regime-scale` | phân số | mỗi lần mua chỉ dùng tối đa chừng này số tiền định mua (`0.75` là 75%); thị trường phòng thủ có thể hạ thấp hơn nữa |
+| `entry-tranche-pct` | phân số | phần của lệnh mua mới vào trước (`0.5` là một nửa, nửa còn lại khi kế hoạch vẫn đứng vững) |
+| `take-profit-tranche-pct` | phân số | phần bán ra ở mục tiêu đầu; phần còn lại đi tiếp với mức cắt lỗ tự nâng theo giá |
+| `risk-per-trade-pct-nav` | phân số tổng tài sản | mức lỗ tối đa nếu một lệnh mua chạm cắt lỗ |
+| `segment-target <nhóm> <tỷ lệ>` | phân số tổng tài sản | tỷ trọng mục tiêu của một nhóm (các nhóm còn lại nhường phần chênh nên tổng vẫn 100%) |
+| `segment-cap <nhóm> <tỷ lệ>` | phân số tổng tài sản | mức tối đa một nhóm được chiếm |
+| `position-cap <nhóm> <tỷ lệ>` | phân số tổng tài sản | mức tối đa cho một mã trong nhóm |
 | `preferred-locale` | `vi` / `en` | ngôn ngữ trả lời |
 
 Bật hoặc tắt cả nhóm: `/profile enable <nhóm>` / `/profile disable <nhóm>`. Nhóm đang tắt thì không
@@ -270,6 +272,62 @@ ghi lại lịch sử:
 
 `/record sync` chỉ lấy lệnh khớp từ dòng đầu tiên của sổ trở đi, nên không tự ghi được số coin mua
 trước đó. Đã khai khóa API thì chạy `/reconcile` để so sổ với số dư thật.
+
+#### Đã có danh mục, không muốn ghi lại từng lệnh cũ
+
+Bạn đang giữ vài mã, đã bán vài mã và lỗ một khoản, nhưng không muốn ngồi gõ lại cả chục lệnh cũ? Không
+cần. Sổ chỉ cần biết ba điều: bạn đã bỏ vào bao nhiêu tiền, đang giữ gì với giá vốn bao nhiêu, và đã
+lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
+
+```bash
+> /record deposit vps 200000000 VND 2026-10-01                 # tổng tiền đã nạp vào tài khoản
+> /record buy vps equity-vn:FPT 1000 95000 VND 0 2026-10-01    # mỗi mã đang giữ một dòng
+> /record buy vps equity-vn:HPG 2000 26000 VND 0 2026-10-01
+> /record loss vps 15000000 VND 2026-10-16                     # tổng lỗ của các mã đã bán
+```
+
+- **Mã đang giữ:** lấy khối lượng và giá vốn bình quân trong app công ty chứng khoán, phí ghi `0`. Giá
+  bình quân ở đó đã gồm phí, bỏ trống phí thì sổ cộng phí thêm lần nữa. Dòng xác nhận sẽ kèm câu
+  "Phí lệch -100%", cứ bỏ qua.
+- **Ngày mua nên lùi về trước vài hôm.** Cổ phiếu VN về tài khoản sau T+2, nên ghi ngày hôm nay thì
+  hai phiên tới sổ chưa cho bán mã đó.
+- **Khoản lỗ ghi bằng `loss`**, đừng dùng `withdrawal` hay `fee`. Ghi `withdrawal` thì sổ tưởng bạn
+  rút tiền về túi và lãi lỗ trông đẹp hơn thực tế. Ghi `fee` thì khoản lỗ thành phí môi giới. `loss`
+  trừ tiền mà vẫn giữ nguyên số tiền bạn đã nạp, nên `/portfolio` ghi rõ "Lãi/lỗ đã chốt: -15.000.000
+  VND".
+- **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
+  báo ngay.
+
+Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
+nạp, trừ 95 triệu FPT, 52 triệu HPG và 15 triệu lỗ, còn 38 triệu. Lệch thì thường do nhớ sai tổng lỗ
+hoặc giá vốn, sửa bằng `/update <mã>` chứ đừng thêm dòng mới.
+
+**Với crypto** thì y hệt, chỉ khác là mọi thứ tính bằng USDT:
+
+```bash
+> /record deposit binance 2000 USDT 2026-10-16 fx 26500        # tổng USDT đã nạp, kèm giá bạn trả
+> /record buy binance crypto:BTC 0.01 60000 USDT 0 2026-10-16  # mỗi coin đang giữ một dòng
+> /record buy binance crypto:ETH 0.2 2500 USDT 0 2026-10-16
+> /record loss binance 300 USDT 2026-10-16                     # tổng lỗ của các coin đã bán
+```
+
+- **Dòng lỗ không ghi `fx`.** Sàn đã có USDT nên khoản lỗ trừ vào số USDT đó theo giá vốn bạn ghi ở
+  dòng nạp. Thêm `fx` thì sổ từ chối và nhắc bỏ đi.
+- **Ghi ngày hôm nay cũng được**, vì coin không phải chờ T+2.
+- Dòng mua coin với phí `0` kèm hai câu nhắc: "Phí lệch" và "Binance trừ phí bằng BTC...". Với số dư
+  ban đầu thì cứ bỏ qua cả hai, miễn khối lượng bạn ghi đúng số đang có trên sàn.
+- **Mỗi coin ghi vào được đặt luôn kế hoạch thoát** (cắt lỗ, chốt lời), tính theo giá vốn bạn ghi. Coin
+  đã chạy xa khỏi giá vốn thì các mức này có thể nằm khá xa giá hôm nay; `/portfolio` cho biết cách bao
+  xa.
+- **Đối chiếu:** số USDT trong `/portfolio` phải bằng số USDT trên sàn. Ví dụ trên: 2.000 nạp, trừ 600
+  mua BTC, 500 mua ETH và 300 lỗ, còn 600 USDT. Đã khai khóa API thì `/reconcile` so giúp bạn.
+
+Không cần sổ nhớ khoản lỗ cũ thì đơn giản hơn nữa: nạp đúng số tiền mặt đang có cộng giá vốn các mã
+đang giữ, bỏ dòng `loss`. Lãi lỗ khi đó tính từ hôm nay.
+
+Gộp như vậy thì mất lịch sử từng mã đã bán: `/transactions` chỉ thấy một dòng lỗ. Đề xuất cũ của
+trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm khuyến nghị chứ không chấm giao dịch của
+bạn.
 
 Mấy điều hay làm người mới bối rối:
 
@@ -422,7 +480,7 @@ Binance (OKX: bỏ quyền Trade của key) - cách này chặn cả lệnh bán
 
 | Lệnh | Dùng để |
 |---|---|
-| `/help` | Liệt kê mọi lệnh đang có |
+| `/help` | Liệt kê mọi lệnh đang có; `/help <tên>` cho cách dùng một lệnh |
 | `/cost` | Chi tiêu LLM hôm nay, cùng số token và chi phí của phiên chat này |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách, kênh đang chạy |
 | `/model` | Xem hoặc đổi mô hình |
@@ -624,7 +682,7 @@ Chỉ `equity-vn` và `crypto` có sàng lọc. Với `gold` và `gold-vn`, hỏ
 
 ### 6.2 Chế độ rủi ro vĩ mô
 
-Mỗi nhóm tài sản có chế độ riêng, chấm từ những yếu tố hợp với thị trường đó. Mỗi yếu tố quy về
+Mỗi nhóm tài sản có trạng thái thị trường riêng, chấm từ những yếu tố hợp với thị trường đó. Mỗi yếu tố quy về
 thang [-1, 1] theo dải định sẵn, rồi cộng có trọng số (chia cho tổng trọng số của các yếu tố đã có
 dữ liệu):
 
@@ -636,13 +694,13 @@ dữ liệu):
 
 Từ 0.25 trở lên là `risk-on`, từ -0.25 trở xuống là `risk-off`, còn lại `neutral`. Riêng
 `equity-vn`, đã ở `risk-on` hay `risk-off` thì giữ nguyên cho tới khi điểm lùi sâu thêm 0.1 qua
-ngưỡng, để điểm lởn vởn quanh vạch không làm chế độ đổi hằng ngày.
+ngưỡng, để điểm lởn vởn quanh vạch không làm trạng thái đổi hằng ngày.
 
 **Thiếu dữ liệu không phải trung tính.** Các yếu tố đã có dữ liệu chiếm dưới 60% tổng trọng số thì
-chế độ là `risk-off`: một nguồn sập không được mở đường giải ngân tối đa.
+trạng thái là `risk-off`: một nguồn sập không được mở đường giải ngân tối đa.
 
-`equity-vn` có thêm lớp phủ chỉ được **hạ** chế độ, không bao giờ nâng: mỗi tín hiệu căng thẳng (áp
-lực margin, khối ngoại bán ròng, đồng mất giá) và thiên hướng tin chính sách tăng lãi suất hạ thêm
+`equity-vn` có thêm lớp phủ chỉ được **hạ** trạng thái, không bao giờ nâng: mỗi tín hiệu căng thẳng (áp
+lực vay ký quỹ, khối ngoại bán ròng, đồng mất giá) và thiên hướng tin chính sách tăng lãi suất hạ thêm
 một bậc. Tin chính sách đếm theo **bản tin gốc**, không theo số trang báo: cần ít nhất hai bản tin
 khác nhau và nhiều hơn số tin giảm lãi suất; một bản tin hãng thông tấn đăng lại ở năm nơi vẫn là
 một.
@@ -690,7 +748,7 @@ chặn -> tranh luận -> cổng giao dịch và rủi ro -> chốt -> lưu**. G
 4. **Ngân sách theo vai**: mỗi vai một phần, cắt từ 80% ngân sách còn lại của lần chạy. Cạn ngân sách
    thì kết quả đổ về "giữ nguyên", không báo lỗi giữa chừng.
 5. **Định cỡ**: theo rủi ro mỗi lệnh trong hồ sơ, kẹp bởi trần vị thế, tiền mặt khả dụng, lô giao
-   dịch và thang chế độ vĩ mô (chỉ co).
+   dịch và thang trạng thái vĩ mô (chỉ co).
 6. **Lưu**: đề xuất lưu kèm phiên bản chiến lược và phiên bản công thức.
 
 Một lần chạy kết thúc theo một trong bốn cách: có đề xuất; mã chưa được hỗ trợ (không thị trường nào
@@ -753,7 +811,7 @@ cảnh báo khi có cảnh báo nổ.
 | Trường hợp | Nghĩa là | Bạn nên |
 |---|---|---|
 | Có nội dung | Có dữ liệu để nói | Đọc |
-| Bị bỏ qua theo quy tắc | Chạy tốt nhưng không có gì để nói (không cảnh báo nào nổ, chế độ rủi ro không đổi, không mã nào lệch biên) | Bỏ qua - đây là tin tốt |
+| Bị bỏ qua theo quy tắc | Chạy tốt nhưng không có gì để nói (không cảnh báo nào nổ, trạng thái thị trường không đổi, không mã nào lệch biên) | Bỏ qua - đây là tin tốt |
 | Không lấy được dữ liệu | Nguồn không trả lời | Để ý; lặp lại nhiều ngày thì xem `openalpha logs` |
 
 Một mục hỏng **không bao giờ** làm mất các mục còn lại: bản tin thà thiếu một mục còn hơn không giao.
@@ -902,7 +960,7 @@ cổ phiếu VN.
 | Dữ liệu VN có vẻ cũ | `/refresh equity-vn`, hoặc `/refresh equity-vn force` để nạp lại toàn bộ |
 | Không rõ đang tốn bao nhiêu | `/cost` trong chat, hoặc `openalpha cost` |
 | Đĩa đầy | Dừng daemon rồi `openalpha db cleanup --older-than 90d` (thêm `--dry-run` để xem trước); xem thêm `openalpha db --help` |
-| Quên lệnh | `/help` trong chat, `openalpha --help` ở terminal |
+| Quên lệnh | `/help` hoặc `/help <tên>` trong chat, `openalpha help` hoặc `openalpha help <lệnh>` ở terminal |
 
 Muốn đọc sâu hơn về dữ liệu, nguồn và luồng xử lý: [Giao dịch](giao-dich.md),
 [Nguồn dữ liệu](nguon-du-lieu.md).

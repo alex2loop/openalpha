@@ -38,6 +38,7 @@ cli:preBootApp
 cli:preflightCommand
 cli:printError
 cli:readCommandCacheStubs
+cli:readDaemonDegraded
 cli:readReleaseStatus
 cli:readUpdateLine
 cli:refreshUpdateState

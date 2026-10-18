@@ -109,7 +109,13 @@ export type SchedulerRunOutcome =
       // success (it ran and was billed); the delivery error is recorded for visibility only.
       readonly deliveryError?: string
     }
-  | { readonly status: 'failed'; readonly endedAtMs: number; readonly errorMessage: string }
+  | {
+      readonly status: 'failed'
+      readonly endedAtMs: number
+      readonly errorMessage: string
+      /** The unset key variable that stopped the run: the job is healthy and waits for a restart. */
+      readonly missingEnv?: string
+    }
 
 export type SchedulerOccurrenceClaim =
   | { readonly kind: 'claimed'; readonly runId: number; readonly token: string }

@@ -7,7 +7,7 @@ import type { MarketRef, VenueRef } from '@/trading/kernel/instrument'
 export const FEE_MISMATCH_TOLERANCE = 0.25
 
 /** What a round trip costs where no venue prices the market. A flat haircut keeps a benchmark-only
- *  sleeve honest rather than exact; a priced venue supplies its own rate. */
+ *  segment honest rather than exact; a priced venue supplies its own rate. */
 const DEFAULT_ROUND_TRIP_FEE_FRACTION = 0.001
 
 /** A venue that bills the money spent delivers the whole order, which is the assumption that makes

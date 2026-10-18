@@ -6,6 +6,7 @@ import type {
 } from '@/trading/features/suggestion/pipeline/types'
 import type { Suggestion, SuggestionDirection } from '@/trading/features/suggestion/types'
 import type { EvidenceReduceReasonCode, HoldReasonCode } from '@/trading/kernel/caveat'
+import type { LeanDebateReason } from '@/trading/kernel/config'
 import type { FactorComposite, FactorScore } from '@/trading/kernel/factor'
 import type {
   InstrumentKind,
@@ -32,21 +33,34 @@ import { regimeFor } from '@/trading/markets/macro-risk'
  *  is a holder deciding whether to exit, and the argument is the product: `CASE_SIDES.reduce`
  *  frames one side as keeping the position and the other as selling down, which is the question
  *  they actually have. */
+const FACTOR_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonCode>([
+  'factors-bearish',
+  'factors-neutral',
+  'factors-contested',
+])
 const BOOK_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonCode>([
   'no-rebalance-needed',
   'evidence-sold',
   'increase-unfunded',
   'segment-off',
   'reference-only',
-  'factors-bearish',
-  'factors-neutral',
-  'factors-contested',
+  ...FACTOR_HOLD_REASONS,
 ])
 
-export function isBookHold(suggestion: Suggestion): boolean {
+/** Who settled a hold no debate can change: the scores or the portfolio. */
+export function bookHoldOf(
+  suggestion: Suggestion
+): Extract<LeanDebateReason, 'factors-hold' | 'book-hold'> | undefined {
+  if (hasHoldReasonIn(suggestion, FACTOR_HOLD_REASONS)) {
+    return 'factors-hold'
+  }
+
+  return hasHoldReasonIn(suggestion, BOOK_HOLD_REASONS) ? 'book-hold' : undefined
+}
+
+function hasHoldReasonIn(suggestion: Suggestion, reasons: ReadonlySet<HoldReasonCode>): boolean {
   return (
-    suggestion.action === 'hold' &&
-    suggestion.holdReasonCodes.some((code) => BOOK_HOLD_REASONS.has(code))
+    suggestion.action === 'hold' && suggestion.holdReasonCodes.some((code) => reasons.has(code))
   )
 }
 
@@ -79,8 +93,8 @@ export function draftDirectionFor(input: DirectionInput): DraftDirection {
     return sale
   }
 
-  // Selling stays open in a sleeve the operator turned off; only adding to it is closed.
-  if (isSleeveOff(context.profile, input.market.manifest.segment)) {
+  // Selling stays open in a segment the operator turned off; only adding to it is closed.
+  if (isSegmentOff(context.profile, input.market.manifest.segment)) {
     const traded = context.heldMarkets.has(input.market.manifest.id)
 
     return { action: 'hold', reasonCode: traded ? 'segment-off' : 'reference-only' }
@@ -103,7 +117,7 @@ export function draftDirectionFor(input: DirectionInput): DraftDirection {
   }
 
   // No row from a plan that could have produced one. That is the book sitting where policy wants
-  // it — unless the plan wanted more of this sleeve and could not fund it, which is a shortfall
+  // it — unless the plan wanted more of this segment and could not fund it, which is a shortfall
   // wearing a conformance answer.
   return isUnfundedIncrease(context, input.market.manifest.segment)
     ? { action: 'hold', reasonCode: 'increase-unfunded' }
@@ -170,13 +184,13 @@ function largerSaleOf(
  *  A failed breakout and a position that went nowhere are both readings of a short holding window:
  *  the first is the Turtle exit for a twenty-session entry, the second asks whether one outcome
  *  window decided anything. Over a quarter a ten-session low is noise and a flat quarter is the
- *  ordinary state of a holding, so neither reaches a long sleeve. */
+ *  ordinary state of a holding, so neither reaches a long segment. */
 function reduceReasonFor(
   input: DirectionInput,
   held: HeldPosition
 ): EvidenceReduceReasonCode | undefined {
   const { factors, context, market, horizon } = input
-  // Masked, not returned: a long sleeve whose breakout failed is still read for a risk-off regime
+  // Masked, not returned: a long segment whose breakout failed is still read for a risk-off regime
   // and a bearish composite, exactly as one whose structure held.
   const signal =
     factors.reduceSignal === 'structure-broken' && horizon === 'long'
@@ -199,7 +213,7 @@ function reduceReasonFor(
   // Selling half a holding is a costlier act than declining to buy, so the bar is the band the
   // policy itself calls medium, not the draft's bearish floor. A fund is exempt for the reason the
   // averaging-down stage already states: an index has no single-name thesis to be wrong about, so a
-  // bearish composite on one is a call on the market, which the sleeve's own weight answers. The
+  // bearish composite on one is a call on the market, which the segment's own weight answers. The
   // regime arm above still sells it, because a rated risk-off tape is exactly that call.
   if (
     conclusive &&
@@ -279,7 +293,7 @@ interface DirectionInput {
   readonly context: SuggestionPortfolioContext
   readonly instrument: InstrumentRef
   readonly market: Market
-  /** The window the call is for: the focus's own, else the sleeve's. */
+  /** The window the call is for: the focus's own, else the segment's. */
   readonly horizon: InvestmentHorizon
   readonly asOf: TradingDay
   readonly factors: FactorScore
@@ -289,14 +303,14 @@ interface DirectionInput {
   readonly instrumentKind: InstrumentKind | undefined
 }
 
-function isSleeveOff(profile: UserProfile, segment: PortfolioSegment): boolean {
+function isSegmentOff(profile: UserProfile, segment: PortfolioSegment): boolean {
   const caps = profile.caps[segment]
 
   return caps !== undefined && isSegmentDisabled(caps)
 }
 
-/** The plan stopped this sleeve short of policy and named cash as the reason. Read per sleeve,
- *  because each gets its own slice of the deployable pool: a sleeve that ran out says nothing about
+/** The plan stopped this segment short of policy and named cash as the reason. Read per segment,
+ *  because each gets its own slice of the deployable pool: a segment that ran out says nothing about
  *  a neighbour whose budget went unspent. */
 function isUnfundedIncrease(
   context: SuggestionPortfolioContext,
@@ -306,13 +320,13 @@ function isUnfundedIncrease(
     return false
   }
 
-  const sleeve = context.advice.allocation.find((entry) => entry.segment === segment)
+  const entry = context.advice.allocation.find((row) => row.segment === segment)
   const underfunded = context.advice.caveats.some(
     (caveat) =>
       caveat.code === 'portfolio.increases-underfunded' && caveat.detail?.segment === segment
   )
 
-  return underfunded && sleeve !== undefined && sleeve.afterPlanPctNav < sleeve.targetPctNav
+  return underfunded && entry !== undefined && entry.afterPlanPctNav < entry.targetPctNav
 }
 
 /** Conviction reads strength, not sign, so nothing downstream except the debate would stop a

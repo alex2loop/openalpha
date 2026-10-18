@@ -48,6 +48,7 @@ export function createBriefCommand(deps: BriefCommandDeps): SlashCommand {
       execution: { progressKey: 'slash.tradingBriefProgress' },
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
+    usage: () => ({ key: USAGE }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }

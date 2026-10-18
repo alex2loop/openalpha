@@ -12,7 +12,7 @@ import { noInput } from '@/trading/kernel/surface/surface'
 import { renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
 import { joinToolDetail, renderToolAction } from '@/trading/render/tool-detail'
 
-/** The profile's three agent tools: read it, patch its fields, and switch a sleeve. */
+/** The profile's three agent tools: read it, patch its fields, and switch a segment. */
 export function createProfileTools(
   profiles: AgentProfile,
   patch: z.ZodType<ProfilePatch>
@@ -78,7 +78,7 @@ function createProfileViewTool(profiles: AgentProfile): ToolDefinition {
   })
 }
 
-/** Switching a sleeve is its own tool rather than a `profile_update` field: that patch is also the
+/** Switching a segment is its own tool rather than a `profile_update` field: that patch is also the
  *  `/v1/profile` body, and a toggle re-seeds the targets the way `/profile enable|disable` does. */
 function createProfileSegmentTool(profiles: AgentProfile): ToolDefinition {
   const segments = profiles.heldSegments().join(', ')
@@ -86,14 +86,14 @@ function createProfileSegmentTool(profiles: AgentProfile): ToolDefinition {
   return createTool({
     name: 'profile_segment',
     description:
-      'Switch one portfolio sleeve on or off. Off means nothing in it is screened, sized or bought, and the other sleeves take over its target. Use it when the operator says which markets they trade; a new profile starts with its default sleeves on.',
+      'Switch one portfolio segment on or off. Off means nothing in it is screened, sized or bought, and the other segments take over its target. Use it when the operator says which markets they trade; a new profile starts with its default segments on.',
     inputSchema: z.strictObject({
-      action: z.enum(SEGMENT_TOGGLES).describe('enable switches the sleeve on, disable off.'),
-      segment: z.string().describe(`The sleeve, one of: ${segments}.`),
+      action: z.enum(SEGMENT_TOGGLES).describe('enable switches the segment on, disable off.'),
+      segment: z.string().describe(`The segment, one of: ${segments}.`),
     }),
     capability: 'write',
     presentation: {
-      label: 'Switch sleeve',
+      label: 'Switch segment',
       emoji: SECTION_ICONS.segments,
       detail: (input, locale) =>
         joinToolDetail([

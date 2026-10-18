@@ -105,7 +105,7 @@ function assertTargets(
   }
 }
 
-/** A pin is only ever a claim about a registered sleeve, and the targets it was applied to must
+/** A pin is only ever a claim about a registered segment, and the targets it was applied to must
  *  already honour it — anything else means the two records were written apart. */
 function assertPinnedTargets(
   pinned: Readonly<Partial<Record<PortfolioSegment, number>>> | undefined,
@@ -173,7 +173,7 @@ function assertCaps(
   }
 }
 
-/** A disabled sleeve is the one cap set below its category floor: zero room is a decision, not a
+/** A disabled segment is the one cap set below its category floor: zero room is a decision, not a
  *  number to be floored back up. The ceiling check beside this still forces its target to zero. */
 function assertCategoryBounds(
   entry: RiskCapSet,
@@ -301,7 +301,7 @@ function assertExactKeys(
   }
 }
 
-/** A sleeve no venue trades is read for reference only: nothing could fill a position in it. */
+/** A segment no venue trades is read for reference only: nothing could fill a position in it. */
 export function assertSegmentHeld(descriptor: SegmentDescriptor): void {
   if (!descriptor.held) {
     throw new ValidationError(`segment ${descriptor.id} has no venue to trade it`, {

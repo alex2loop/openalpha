@@ -3,6 +3,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import type { NoticeKind, TradingNotice, TradingNoticeSender } from '@/trading/api'
 import { readUpdateLine } from '@/cli/api'
+import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 import {
   renderAlertNotice,
@@ -78,6 +79,10 @@ function render(notice: TradingNotice, timezone: string): string {
     return renderDeliverySkipped(locale, payload.subject)
   }
 
+  if (payload.kind === 'key-missing') {
+    return renderKeyMissing(locale, payload)
+  }
+
   return renderDeliveryDisabled(locale, payload.subject)
 }
 
@@ -90,6 +95,17 @@ function renderDeliveryDisabled(locale: Locale, subject: NoticeKind): string {
 function renderDeliverySkipped(locale: Locale, subject: NoticeKind): string {
   return t(locale, 'trading.deliverySkipped', {
     subject: t(locale, `trading.notice.${subject}`),
+  })
+}
+
+function renderKeyMissing(
+  locale: Locale,
+  payload: { readonly subject: NoticeKind; readonly env: string }
+): string {
+  return t(locale, 'trading.deliveryKeyMissing', {
+    subject: t(locale, `trading.notice.${payload.subject}`),
+    env: payload.env,
+    command: setEnvCommand(payload.env),
   })
 }
 

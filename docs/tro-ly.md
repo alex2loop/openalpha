@@ -536,8 +536,8 @@ api_key_env = "OPENROUTER_API_KEY"
 phải khai một mô hình. [Cấu hình](cau-hinh.md) liệt kê mọi khóa, kể cả các khóa thử lại, nghỉ và tần suất dưới `[llm]`.
 
 Bộ chọn của một mục là `alias` của nó, hoặc `<provider>:<model>` khi không có alias. Các bộ chọn phải duy nhất. Biến môi
-trường nêu trong `api_key_env` chứa khóa (chưa đặt thì daemon không chạy, còn các lệnh khác bỏ qua mục đó; xem
-[Cấu hình](cau-hinh.md)); khóa dạng văn bản thuần không được chấp nhận
+trường nêu trong `api_key_env` chứa khóa (chưa đặt thì mục đó đứng ngoài: daemon vẫn chạy và cảnh báo, còn việc nào
+cần mô hình sẽ nói rõ phải đặt biến nào; xem [Cấu hình](cau-hinh.md)); khóa dạng văn bản thuần không được chấp nhận
 trong cấu hình mô hình. Một server chạy trên chính máy này (`base_url` loopback, như Ollama hay LM Studio) không cần
 `api_key_env`.
 
@@ -667,7 +667,7 @@ phiên chạy dừng với lý do `rate` trước khi gọi nhà cung cấp.
 | Điều kiện | Kết quả |
 | --- | --- |
 | Chuỗi mô hình rỗng hoặc mơ hồ | Khởi động hỏng với lỗi cấu hình. |
-| Chưa đặt biến môi trường chứa khóa của một mô hình | Daemon không chịu chạy. Lệnh CLI vẫn chạy; chuỗi bỏ qua mô hình đó, và khi không còn mô hình nào thì lúc gọi AI sẽ báo cần đặt biến nào. |
+| Chưa đặt biến môi trường chứa khóa của một mô hình | Daemon và lệnh CLI vẫn chạy, `start` in một dòng cảnh báo. Chuỗi bỏ qua mô hình đó, và khi không còn mô hình nào thì lúc gọi AI (chat, `/suggest`, bản tin sáng, công việc định kỳ cần AI) sẽ báo cần đặt biến nào; việc không cần AI vẫn chạy. |
 | Bộ chọn ưu tiên chưa được cấu hình | Khâu kiểm agent hỏng; không lặng lẽ thay bằng mô hình khác. |
 | Giới hạn tần suất đầy | Phiên chạy dừng với lý do `rate` trước khi gọi nhà cung cấp. |
 | Lỗi thử lại được xảy ra trước khi có đầu ra | Thử lại cùng mục, rồi thử các mục dự phòng đủ điều kiện. |

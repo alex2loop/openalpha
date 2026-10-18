@@ -268,7 +268,7 @@ export interface MarketDataOverview {
   /** The manifest's block glyph, carried on the read so a renderer can head this market's block
    *  without reaching into the market registry. */
   readonly icon: string
-  /** The composite this market's sleeve is actually gated by. Absent only where that same read
+  /** The composite this market's segment is actually gated by. Absent only where that same read
    *  already heads the whole message — the owner of the operator's own region — and on a market
    *  with no macro capability. A market owning any other region publishes here or nowhere. */
   readonly macro?: MacroRiskView

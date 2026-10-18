@@ -11,11 +11,13 @@ import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { RunFocus } from '@/trading/kernel/operator/focus'
 import type { ProfileStamp } from '@/trading/kernel/operator/profile'
 import { BRAND } from '@/core/brand'
+import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
+import { isInconclusive } from '@/trading/features/suggestion/types'
 import { renderCaveatLines } from '@/trading/render/caveat'
-import { renderSleeveBreachLines } from '@/trading/render/exposure'
+import { renderCapBreachLines } from '@/trading/render/exposure'
 import { renderFocusLabel } from '@/trading/render/focus'
 import { formatFraction, renderDeclaredValue } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
@@ -48,7 +50,7 @@ function renderCombinedBlock(
   combined: Pick<SuggestionBatchResult, 'breaches' | 'overcommit'>
 ): string {
   const lines = [
-    ...renderSleeveBreachLines(locale, combined.breaches),
+    ...renderCapBreachLines(locale, combined.breaches),
     ...renderOvercommitLines(locale, combined.overcommit),
   ]
 
@@ -111,7 +113,7 @@ function storedProfile(result: SuggestionRunResult): ProfileStamp | undefined {
 }
 
 /** The horizon prints beside the stamp because it is the suggestion's own fact, not the profile's:
- *  a sleeve horizon is overridden per sleeve, and the run recorded the one it sized against. */
+ *  a segment horizon is overridden per segment, and the run recorded the one it sized against. */
 export function renderStampLine(locale: Locale, suggestion: StoredSuggestion): readonly string[] {
   const stamp = renderProfileStamp(locale, suggestion.profile)
   const horizon = t(locale, 'trading.render.suggestion.horizon', {
@@ -247,13 +249,6 @@ type InconclusiveCause =
   | 'setup'
 
 const DEFAULT_INCONCLUSIVE_HINT_KEY: MessageKey = 'trading.render.suggestion.inconclusiveHintRetry'
-export function isInconclusive(suggestion: StoredSuggestion): boolean {
-  return (
-    suggestion.debate === undefined &&
-    suggestion.caveats.some((caveat) => caveat.code === 'suggestion.debate-degraded')
-  )
-}
-
 export function filteredCaveats(suggestion: StoredSuggestion): readonly Caveat[] {
   return isInconclusive(suggestion)
     ? suggestion.caveats.filter((caveat) => caveat.code !== 'suggestion.debate-degraded')
@@ -270,12 +265,18 @@ export function inconclusiveBanner(
   const degraded = suggestion.caveats.filter(
     (caveat) => caveat.code === 'suggestion.debate-degraded'
   )
-  const hintKey = hintKeyFor(causeOf(degraded))
+  const params = { ticker: suggestion.instrument.ticker, brand: BRAND.name }
+  const env = envOf(degraded)
+  const hint =
+    env === undefined
+      ? t(locale, hintKeyFor(causeOf(degraded)), params)
+      : t(locale, 'trading.render.suggestion.inconclusiveHintKeyMissing', {
+          ...params,
+          env,
+          command: setEnvCommand(env),
+        })
 
-  return [
-    ...renderCaveatLines(locale, degraded),
-    `${INDENT[1]}${t(locale, hintKey, { ticker: suggestion.instrument.ticker, brand: BRAND.name })}`,
-  ]
+  return [...renderCaveatLines(locale, degraded), `${INDENT[1]}${hint}`]
 }
 
 /** Widened to a plain lookup so an unrecognised cause — a stored row from an older build — reads as
@@ -292,6 +293,14 @@ function causeOf(degraded: readonly Caveat[]): string {
   const cause = degraded[0]?.detail?.cause
 
   return typeof cause === 'string' ? cause : ''
+}
+
+/** The unset key variable the stopped debate names, so the hint says which one to set rather than
+ *  pointing at `doctor`. A row stored before a failure carried it has none. */
+function envOf(degraded: readonly Caveat[]): string | undefined {
+  const env = degraded[0]?.detail?.env
+
+  return typeof env === 'string' ? env : undefined
 }
 
 /** The band's own record, not the book's: a reader deciding how much to trust this call is asking

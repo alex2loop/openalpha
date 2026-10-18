@@ -6,7 +6,7 @@ import { INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
  *  calendar days rather than sessions. A wait is what the operator lives through, and one session
  *  count is four weeks on a five-day market and under three on a continuous one - which left
  *  /reflect pooling outcomes measured over different spans. Per horizon for the same reason: a long
- *  sleeve is sized for an edge that runs for quarters, so four weeks of nothing falsifies its thesis
+ *  segment is sized for an edge that runs for quarters, so four weeks of nothing falsifies its thesis
  *  no more than four days would falsify a swing call, and one span over both pooled the two records
  *  into a number describing neither. The long arm is one fiscal quarter, which is the cycle a long
  *  thesis is re-underwritten on, and is bounded above by `MAXIMUM_OUTCOME_LOOKBACK_DAYS`.
@@ -36,7 +36,7 @@ export function outcomeWindowSessions(
   return toSessions(calendar, OUTCOME_WINDOW_DAYS[horizon])
 }
 
-/** The widest window any sleeve can declare, for a read that must span the horizon before the
+/** The widest window any segment can declare, for a read that must span the horizon before the
  *  profile naming it has been read. Its consumers narrow; guessing a horizon here would not. */
 export function longestOutcomeWindowSessions(calendar: CalendarPolicy): number {
   return Math.max(...INVESTMENT_HORIZONS.map((horizon) => outcomeWindowSessions(calendar, horizon)))

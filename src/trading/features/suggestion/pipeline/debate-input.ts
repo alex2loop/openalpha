@@ -9,7 +9,7 @@ import type { CalibrationBucket } from '@/trading/features/suggestion/track-reco
 import type { Suggestion } from '@/trading/features/suggestion/types'
 import type { DebateMode, LeanDebateReason } from '@/trading/kernel/config'
 import { exposureOf } from '@/trading/features/suggestion/pipeline/concentration'
-import { isBookHold } from '@/trading/features/suggestion/pipeline/direction'
+import { bookHoldOf } from '@/trading/features/suggestion/pipeline/direction'
 import { calculationVersionsFor } from '@/trading/features/suggestion/pipeline/draft'
 import { OUTCOME_FORMULA_VERSION } from '@/trading/features/suggestion/pipeline/outcomes'
 import {
@@ -99,8 +99,10 @@ function debateDepthFor(options: SuggestionRunOptions, draft: Suggestion): Debat
     return { mode: 'full' }
   }
 
-  if (isBookHold(draft)) {
-    return { mode: 'lean', reason: 'book-hold' }
+  const settled = bookHoldOf(draft)
+
+  if (settled !== undefined) {
+    return { mode: 'lean', reason: settled }
   }
 
   return depthOf(deps.policy.debateMode, 'configured')

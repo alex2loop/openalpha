@@ -122,9 +122,9 @@ export function resetProfile(
 
 /** A patch that moves the risk level without naming the numbers it implies re-seeds them, so a
  *  first-time operator answering "conservative" is not left sized as balanced under a conservative
- *  label. A number the patch names still wins. A sleeve the operator switched off stays off: the
+ *  label. A number the patch names still wins. A segment the operator switched off stays off: the
  *  level says how much risk they want, not which markets they will hold, and re-seeding a closed
- *  sleeve would put one back in front of them under a command that never mentioned it. `/profile
+ *  segment would put one back in front of them under a command that never mentioned it. `/profile
  *  reset` names the caps outright, so it still re-enables. */
 function resolveRiskPolicy(
   current: UserProfile,
@@ -147,13 +147,13 @@ interface SeedRiskPolicyOptions {
   readonly off: ReadonlySet<PortfolioSegment>
 }
 
-/** Today's numbers at a risk level with some sleeves off, built the way a fresh profile is when
- *  those sleeves never seed: their weight spreads across the rest, and every open sleeve's caps
+/** Today's numbers at a risk level with some segments off, built the way a fresh profile is when
+ *  those segments never seed: their weight spreads across the rest, and every open segment's caps
  *  follow its target. A toggle and a level change both read this, so a book with gold off looks
  *  the same whichever command closed it.
  *
  *  `off` overrides the manifest's `seedsDefaultTarget`, which answers only what a first-ever
- *  profile holds. Once one is stored, its caps are the standing answer, and a sleeve the operator
+ *  profile holds. Once one is stored, its caps are the standing answer, and a segment the operator
  *  switched on must seed a target however its market shipped. */
 export function seedRiskPolicy(options: SeedRiskPolicyOptions): UserProfile {
   const seeded = defaultProfile({
@@ -165,7 +165,7 @@ export function seedRiskPolicy(options: SeedRiskPolicyOptions): UserProfile {
     })),
     riskLevel: options.riskLevel,
   })
-  // A pin on a sleeve this seeding closes is dropped: a target for a sleeve nothing may hold is a
+  // A pin on a segment this seeding closes is dropped: a target for a segment nothing may hold is a
   // number no later re-seed could satisfy.
   const pinned = openPins(options.current.pinnedTargets, options.off)
   const retargeted = { ...seeded, ...applyPinnedTargets({ ...seeded, pinned, ...options.context }) }
@@ -173,7 +173,7 @@ export function seedRiskPolicy(options: SeedRiskPolicyOptions): UserProfile {
   return { ...retargeted, pinnedTargets: pinned, etfCores: options.current.etfCores }
 }
 
-/** Caps the operator wrote state their core, unless the sleeve is off or the core only repeats the
+/** Caps the operator wrote state their core, unless the segment is off or the core only repeats the
  *  held one: a clamped value is not what they asked for. */
 function askedEtfCores(
   current: UserProfile,
@@ -198,8 +198,8 @@ function askedEtfCores(
   )
 }
 
-/** Each asked core held under its sleeve's current ceilings, so a clamped core comes back once they
- *  widen. A closed sleeve carries none. */
+/** Each asked core held under its segment's current ceilings, so a clamped core comes back once they
+ *  widen. A closed segment carries none. */
 function heldEtfCores(caps: UserProfile['caps'], cores: EtfCores): UserProfile['caps'] {
   return Object.fromEntries(
     Object.entries(caps).map(([segment, cap]) => [
@@ -231,7 +231,7 @@ function openPins(
   )
 }
 
-/** Mutable on purpose: a toggle adds or removes one sleeve before seeding. Read off the kernel's
+/** Mutable on purpose: a toggle adds or removes one segment before seeding. Read off the kernel's
  *  caps answer and restricted to the registered segments, so a stored cap no market registers
  *  cannot seed. */
 export function offSegments(current: UserProfile, context: ProfileContext): Set<PortfolioSegment> {
@@ -286,7 +286,7 @@ function applyOptional(patch: ProfilePatch): Partial<UserProfile> {
   }
 }
 
-/** A patch names the sleeves it changes; the rest keep what they had. Written as a fold rather than
+/** A patch names the segments it changes; the rest keep what they had. Written as a fold rather than
  *  a spread because a partial record spreads as possibly-undefined under `exactOptionalPropertyTypes`. */
 function mergeHorizons(
   current: Readonly<Record<PortfolioSegment, InvestmentHorizon>>,

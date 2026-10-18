@@ -173,8 +173,9 @@ dẫn và mạng vẫn kiểm đích của nó; đường ống đầu ra vẫn 
 ### Thông tin đăng nhập và log
 
 Thông tin đăng nhập của mô hình đọc từ biến môi trường mà `api_key_env` nêu tên; của lưu trữ và tìm
-kiếm cũng theo cách đó. Thiếu một giá trị bắt buộc thì khởi động hỏng ngay, thay vì chạy lên một dịch
-vụ cấu hình dở dang.
+kiếm cũng theo cách đó. Thiếu giá trị lưu trữ thì khởi động hỏng ngay, thay vì chạy lên một
+dịch vụ cấu hình dở dang; thiếu khóa mô hình chỉ làm các lượt gọi mô hình phải chờ và `start` sẽ cảnh báo;
+khóa tìm kiếm rỗng chỉ tắt tìm kiếm web và báo rõ điều đó.
 
 Một vài thông tin đăng nhập là tệp riêng dưới thư mục dữ liệu, quyền `0600`: lần đăng nhập thuê bao
 của nhà cung cấp mô hình, token API tự sinh, khóa mạng xã hội và phiên Zalo cá nhân. Chúng không đi
@@ -350,7 +351,8 @@ Một lần dừng `budget` nêu trần nào bị chạm:
 
 ### Lỗi mô hình
 
-Sau một lần dừng `llm_error`, câu báo cho biết nhà cung cấp nói gì:
+Sau một lần dừng `llm_error`, các mã cần bạn ra tay (`auth`, `billing`, `not_found`, `rate`) có câu báo và cách sửa
+riêng; các mã còn lại báo chung là lỗi nhà cung cấp, chi tiết nằm trong log:
 
 | Mã | Nghĩa là | Việc cần làm |
 |---|---|---|

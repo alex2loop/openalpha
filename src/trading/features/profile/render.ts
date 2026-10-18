@@ -9,7 +9,7 @@ import type {
   UserProfile,
 } from '@/trading/kernel/operator/profile'
 import type { RenderContext } from '@/trading/render/format'
-import type { SleeveBlock, SleeveColumn, SleeveRow } from '@/trading/render/sleeve-block'
+import type { SegmentBlock, SegmentColumn, SegmentRow } from '@/trading/render/segment-block'
 import { pluralKey, t } from '@/i18n'
 import { CASH_SEGMENT } from '@/trading/kernel/instrument'
 import { disabledSegments, isSegmentDisabled } from '@/trading/kernel/operator/profile'
@@ -28,18 +28,18 @@ import {
   toFactLines,
 } from '@/trading/render/layout'
 import { ABSENT_CELL, apportion, FRACTION_QUANTUM } from '@/trading/render/number'
-import { renderSleeveBlock } from '@/trading/render/sleeve-block'
+import { renderSegmentBlock } from '@/trading/render/segment-block'
 
-/** What the operator's own settings allow, sleeve by sleeve. The per-name cap sits beside the
- *  sleeve cap because a position cap read apart from the sleeve it sits in says nothing about how
- *  much of that sleeve one name may take. */
-const PROFILE_COLUMNS: readonly SleeveColumn[] = Object.freeze([
-  { labelKey: 'trading.render.sleeve.columnHorizon', align: 'left' },
-  { labelKey: 'trading.render.sleeve.columnTarget', align: 'right' },
-  { labelKey: 'trading.render.sleeve.columnPositionCap', align: 'right' },
-  { labelKey: 'trading.render.sleeve.columnCap', align: 'right' },
-  { labelKey: 'trading.render.sleeve.columnEtfCap', align: 'right' },
-  { labelKey: 'trading.render.sleeve.columnEtfCore', align: 'right' },
+/** What the operator's own settings allow, segment by segment. The per-name cap sits beside the
+ *  segment cap because a position cap read apart from the segment it sits in says nothing about how
+ *  much of that segment one name may take. */
+const PROFILE_COLUMNS: readonly SegmentColumn[] = Object.freeze([
+  { labelKey: 'trading.render.segment.columnHorizon', align: 'left' },
+  { labelKey: 'trading.render.segment.columnTarget', align: 'right' },
+  { labelKey: 'trading.render.segment.columnPositionCap', align: 'right' },
+  { labelKey: 'trading.render.segment.columnCap', align: 'right' },
+  { labelKey: 'trading.render.segment.columnEtfCap', align: 'right' },
+  { labelKey: 'trading.render.segment.columnEtfCore', align: 'right' },
 ])
 
 /** The allocation policy and the caps are what `/rebalance` measures every gap against, so a profile
@@ -89,7 +89,7 @@ export function renderProfileText(
         1
       ),
     ],
-    renderSleeveBlock(locale, sleeveBlockOf(locale, profile, disabled), context),
+    renderSegmentBlock(locale, segmentBlockOf(locale, profile, disabled), context),
     [
       `${INDENT[1]}${t(locale, 'trading.render.profile.locale', {
         locale: t(locale, `trading.render.language.${profile.preferredLocale}`),
@@ -139,16 +139,16 @@ function renderLimitsLine(
   )
 }
 
-/** Targets are the superset: `seedTargets` seeds every sleeve there, cash included, while caps seed
- *  only the ones a ceiling can bind. A switched-off sleeve leaves the rows and is named once under
+/** Targets are the superset: `seedTargets` seeds every segment there, cash included, while caps seed
+ *  only the ones a ceiling can bind. A switched-off segment leaves the rows and is named once under
  *  them. */
-function sleeveBlockOf(
+function segmentBlockOf(
   locale: Locale,
   profile: UserProfile,
   disabled: ReadonlySet<string>
-): SleeveBlock {
+): SegmentBlock {
   const rows = enabledTargets(profile.segmentTargets, disabled).map(([segment, target]) =>
-    toSleeveRow(locale, sleeveInputOf(profile, segment, target))
+    toSegmentRow(locale, segmentInputOf(profile, segment, target))
   )
 
   return {
@@ -163,7 +163,7 @@ function sleeveBlockOf(
   }
 }
 
-interface SleeveInput {
+interface SegmentInput {
   readonly segment: string
   readonly target: number
   readonly cap?: RiskCapSet
@@ -171,9 +171,9 @@ interface SleeveInput {
 }
 
 /** Keyed by a plain string because `Object.entries` hands one back, and a plain string cannot index
- *  a record keyed by the branded segment type. A sleeve with no cap set carries the field absent
+ *  a record keyed by the branded segment type. A segment with no cap set carries the field absent
  *  rather than present-and-undefined: under `exactOptionalPropertyTypes` only the first assigns. */
-function sleeveInputOf(profile: UserProfile, segment: string, target: number): SleeveInput {
+function segmentInputOf(profile: UserProfile, segment: string, target: number): SegmentInput {
   const cap = new Map(Object.entries(profile.caps)).get(segment)
   const horizon = new Map(Object.entries(profile.horizons)).get(segment)
 
@@ -185,7 +185,7 @@ function sleeveInputOf(profile: UserProfile, segment: string, target: number): S
   }
 }
 
-function toSleeveRow(locale: Locale, input: SleeveInput): SleeveRow {
+function toSegmentRow(locale: Locale, input: SegmentInput): SegmentRow {
   const { cap, horizon } = input
 
   return {
@@ -228,9 +228,9 @@ function renderTargets(
     .join(INLINE_SEPARATOR)
 }
 
-/** The sleeves a surface actually prints, their shares rounded together: `seedTargets` renormalizes
- *  the enabled sleeves to one, and five rounded on their own print a column summing to 100,01%. A
- *  switched-off sleeve is dropped first, so the shares add to whatever the printed rows cover. */
+/** The segments a surface actually prints, their shares rounded together: `seedTargets` renormalizes
+ *  the enabled segments to one, and five rounded on their own print a column summing to 100,01%. A
+ *  switched-off segment is dropped first, so the shares add to whatever the printed rows cover. */
 function enabledTargets(
   targets: Readonly<Record<PortfolioSegment, number>>,
   disabled: ReadonlySet<string>
@@ -244,8 +244,8 @@ function enabledTargets(
   return enabled.map(([segment, target], index) => [segment, shares[index] ?? target] as const)
 }
 
-/** One entry per sleeve, both ceilings together: a position cap read apart from its segment cap says
- *  nothing about how much of the sleeve one name may take. */
+/** One entry per segment, both ceilings together: a position cap read apart from its segment cap says
+ *  nothing about how much of the segment one name may take. */
 function renderCaps(locale: Locale, caps: Readonly<Record<PortfolioSegment, RiskCapSet>>): string {
   return Object.entries(caps)
     .filter(([, cap]) => !isSegmentDisabled(cap))
@@ -256,15 +256,15 @@ function renderCaps(locale: Locale, caps: Readonly<Record<PortfolioSegment, Risk
     .join(INLINE_SEPARATOR)
 }
 
-/** A switched-off sleeve never reaches this renderer: the targets and caps lines filter it, and one
- *  `segmentsOff` line names every closed sleeve. */
+/** A switched-off segment never reaches this renderer: the targets and caps lines filter it, and one
+ *  `segmentsOff` line names every closed segment. */
 function renderCapSet(locale: Locale, cap: RiskCapSet): string {
   const pair = `${formatFraction(locale, cap.maximumPositionPctNav)} / ${formatFraction(locale, cap.maximumSegmentPctNav)}`
 
   return `${pair}${renderEtfBand(locale, cap)}`
 }
 
-/** The sleeve's ETF band, where it declares one: a core, a ceiling, or both, in that order because
+/** The segment's ETF band, where it declares one: a core, a ceiling, or both, in that order because
  *  the floor is read before the room above it. */
 function renderEtfBand(locale: Locale, cap: RiskCapSet): string {
   const core =

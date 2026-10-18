@@ -74,6 +74,7 @@ mục ở đó là một lời gọi mô hình. Đổi gì ở đây cũng cần
 | Lỗi | Kết quả |
 | --- | --- |
 | Lỗi lưu trữ, kênh hay LLM, hoặc lệnh dừng vì ngân sách/tần suất | Ghi log `trading.tick_failed` (warn) và thử lại ở lượt sau. Thế giới bên ngoài không với tới được chính là lý do có lượt sau. |
+| Chưa đặt khóa của mô hình | Ghi log `trading.tick_key_missing` (warn) một lần, chỉ ghi lại sau khi có lỗi khác, và thử lại ở lượt sau. |
 | Mọi lỗi khác: lỗi kiểm tra, bất biến bị phá, cấu hình sai | Vòng đó bị cách ly, các vòng khác vẫn chạy. Log `trading.loop_quarantined` (error) và bạn nhận thông báo gọi tên vòng đó bằng lời thường. Một giờ sau vòng chạy lại, tối đa ba lần; lỗi kế tiếp thì nó dừng hẳn đến khi daemon khởi động lại, và thông báo nói rõ điều này. Vòng nào chạy trọn một ngày rồi mới lỗi lại thì được cấp lại đủ ba lần. |
 | Hủy | Bạn đã tắt daemon. Không phải lỗi. |
 | Mất mạng (máy gập nắp tự thức dậy chạy nền) | Lượt đó bị bỏ qua, không tính là lỗi. `trading.tick_offline` (warn) ghi một lần cho mỗi đợt mất mạng, rồi kiểm tra lại mỗi phút. Không lần gửi nào bị trừ lượt thử, không nguồn nào bị ngắt; lượt quá hạn chạy ngay khi có mạng lại. |
@@ -81,6 +82,16 @@ mục ở đó là một lời gọi mô hình. Đổi gì ở đây cũng cần
 
 Các vòng giao dịch khởi động sau khi khâu gửi của kênh đã gắn vào, nên cảnh báo ở lượt đầu tiên vẫn có
 nơi để gửi tới.
+
+### Khi thiếu khóa
+
+`openalpha start` vẫn khởi động khi thiếu khóa AI, khóa tìm kiếm web, biến của máy chủ MCP, token API
+hay bot token của kênh, và in mỗi mục một dòng cảnh báo (xem [Lệnh](lenh.md#daemon-và-chẩn-đoán)). Làm
+mới dữ liệu, cảnh báo giá, sổ giao dịch và mọi vòng không cần AI vẫn chạy. Việc cần mô hình thì chờ:
+vòng đọc số liệu vĩ mô ghi `trading.tick_key_missing` (warn) một lần rồi vẫn thử ở mỗi lượt; bản tin sáng
+vẫn gửi các mục không cần AI, còn hôm nào không dựng được thì bạn nhận một tin nêu tên biến và cách đặt;
+một công việc theo lịch cần AI thì bỏ qua lượt đó mà không tính là lỗi, nên không bao giờ bị tắt vì thiếu
+khóa. `status` liệt kê những gì đang chờ khóa. Đặt khóa rồi `restart` là mọi thứ chạy lại.
 
 ---
 
@@ -133,6 +144,11 @@ Việc cron hay theo chu kỳ chạy thành công thì lần kế tiếp tính t
 tự tắt. Lần chạy hỏng được thử lại với khoảng chờ tăng gấp đôi, `60 giây x 2^(số lần hỏng - 1)`, tối
 đa 30 phút: một phút sau lần hỏng đầu, hai phút sau lần thứ hai, rồi **tắt hẳn ở lần hỏng liên tiếp
 thứ ba**. Một lần thành công đặt lại bộ đếm.
+
+Thiếu khóa cũng không tính: một lần chạy hỏng vì biến môi trường của khóa AI chưa đặt được bỏ qua kèm một
+cảnh báo trong nhật ký, việc vẫn bật và chạy lại ở lần tới, nên đặt khóa rồi `restart` là xong, không cần
+`schedule resume`. Bản tin sáng cũng vậy: hôm đó bạn nhận một tin nói thiếu biến nào và cách đặt, thay cho
+câu "gửi không được sau nhiều lần thử".
 
 Tắt máy không bao giờ tính vào việc tự tắt. Việc chạy một lần bị cắt ngang vì tắt máy vẫn đến hạn và
 chạy ở lần khởi động sau. Còn phê duyệt bị từ chối hay quá hạn thì việc vẫn kết thúc, vì chạy lại chỉ
@@ -255,7 +271,7 @@ log `fatal` của một lần sập được ghi ra terminal thay vào đó.
 Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.
 
 1. **Cài đặt.** Trên Linux hoặc macOS, chạy script cài đặt trong
-   [README](../README.md#bắt-đầu) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
+   [README](../README.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
    dẫn mà `command -v openalpha` in ra (mặc định `~/.local/bin/openalpha`); unit bên dưới phải dùng
    đường dẫn đó.
 2. **Cấu hình.** `openalpha setup write <nhà cung cấp> <mô hình>` ghi `~/.openalpha/config.toml` với

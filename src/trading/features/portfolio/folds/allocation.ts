@@ -27,7 +27,7 @@ export interface AdviceInput {
   readonly assessment: PortfolioAssessment
   readonly candidates: readonly PortfolioCandidate[]
   readonly rebalancePolicy: RebalancePolicy
-  /** The macro ceiling on deployment, per sleeve. Clamped to at most 1 before use: macro may reduce
+  /** The macro ceiling on deployment, per segment. Clamped to at most 1 before use: macro may reduce
    *  deployment, never license more risk. */
   readonly regimes: ReadonlyMap<PortfolioSegment, RegimeScale>
   /** Per held instrument, keyed by `buildInstrumentKey`, in [-1, 1]. Absent means no opinion, not 0. */
@@ -36,7 +36,7 @@ export interface AdviceInput {
    *  here takes no increase, however far under target it sits. Required, not optional: an omitted
    *  map would open every name a verdict had closed, and silently. */
   readonly standingReduces: ReadonlyMap<string, EvidenceReduceReasonCode>
-  /** Available cash each market's tradable venues hold, keyed by market. A sleeve whose market is
+  /** Available cash each market's tradable venues hold, keyed by market. A segment whose market is
    *  absent here is one the operator trades by hand, so its budget is not bounded by cash at all. */
   readonly reachableCashBase: ReadonlyMap<MarketRef, number>
   /** False when no profile has been stored, so `profile` is the seeded default. */
@@ -44,13 +44,13 @@ export interface AdviceInput {
 }
 
 /** The limit that froze the largest single weight. With residue left over it is the one holding the
- *  sleeve back, and it is the one worth naming. */
+ *  segment back, and it is the one worth naming. */
 
 export interface DesiredWeights {
   /** Desired portfolio weight per candidate, keyed by `buildInstrumentKey`. */
   readonly byInstrument: ReadonlyMap<string, number>
   readonly caveats: readonly Caveat[]
-  /** Each sleeve's core tracker, by instrument key. */
+  /** Each segment's core tracker, by instrument key. */
   readonly cores: ReadonlySet<string>
 }
 
@@ -114,7 +114,7 @@ function capOf(profile: UserProfile, segment: PortfolioSegment): { readonly capP
   return cap === undefined ? {} : { capPctNav: cap }
 }
 
-/** The sleeve's ETF holding and its ceiling travel together or not at all: a ceiling with no
+/** The segment's ETF holding and its ceiling travel together or not at all: a ceiling with no
  *  reading cannot be placed, and a reading under no ceiling bounds nothing. */
 function etfOf(
   input: AdviceInput,
@@ -145,7 +145,7 @@ function plannedDeltas(plan: readonly PositionChange[]): ReadonlyMap<PortfolioSe
 /** Each investable segment's target is split proportional to positive market score, clamped by
  *  every applicable cap, and the overflow redistributed among uncapped candidates. Held names in
  *  the zone between a positive read and the weak-holding line keep their current weight first,
- *  except what a sleeve held past its target has to give back. */
+ *  except what a segment held past its target has to give back. */
 export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights {
   const byInstrument = new Map<string, number>()
   const caveats: Caveat[] = []
@@ -160,15 +160,15 @@ export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights 
       continue
     }
 
-    const sleeve = weighSleeve({ input, nav, segment, target, held, excluded, rooms })
+    const weights = weighSegment({ input, nav, segment, target, held, excluded, rooms })
 
-    for (const [key, weight] of sleeve.byInstrument) {
+    for (const [key, weight] of weights.byInstrument) {
       byInstrument.set(key, weight)
     }
 
-    caveats.push(...sleeve.caveats)
+    caveats.push(...weights.caveats)
 
-    for (const key of sleeve.cores) {
+    for (const key of weights.cores) {
       cores.add(key)
     }
   }
@@ -176,7 +176,7 @@ export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights 
   return { byInstrument, caveats, cores }
 }
 
-interface WeighSleeveInput {
+interface WeighSegmentInput {
   readonly input: AdviceInput
   readonly nav: number
   readonly segment: PortfolioSegment
@@ -186,10 +186,10 @@ interface WeighSleeveInput {
   readonly rooms: RoomTracker
 }
 
-/** One sleeve's target split: the core and the held names it must reserve, then the score
+/** One segment's target split: the core and the held names it must reserve, then the score
  *  distribution over whatever target is left. */
-function weighSleeve(sleeve: WeighSleeveInput): DesiredWeights {
-  const { input, segment, target, excluded, rooms } = sleeve
+function weighSegment(request: WeighSegmentInput): DesiredWeights {
+  const { input, segment, target, excluded, rooms } = request
   const byInstrument = new Map<string, number>()
   const caveats: Caveat[] = []
   const named = input.candidates.filter((candidate) => candidate.segment === segment)
@@ -201,7 +201,7 @@ function weighSleeve(sleeve: WeighSleeveInput): DesiredWeights {
   }
 
   const kept = keptHoldings(named, {
-    held: sleeve.held,
+    held: request.held,
     excluded,
     target,
     ...(core === undefined ? {} : { core }),
@@ -229,7 +229,7 @@ function weighSleeve(sleeve: WeighSleeveInput): DesiredWeights {
     .filter((candidate) => !excluded.has(buildInstrumentKey(candidate.instrument)))
     .sort(compareCandidates)
   const distributed = distribute(eligible, openTarget, {
-    ceilingFor: ceilingsFor(input, sleeve.nav, rooms),
+    ceilingFor: ceilingsFor(input, request.nav, rooms),
     onAssign: (candidate, delta) => rooms.record(candidate, delta),
   })
 
@@ -250,11 +250,11 @@ interface HoldingContext {
   readonly held: ReadonlyMap<string, number>
   readonly excluded: ReadonlySet<string>
   readonly target: number
-  /** The sleeve's core: its tracker's instrument key, and the weight that tracker is owed. */
+  /** The segment's core: its tracker's instrument key, and the weight that tracker is owed. */
   readonly core?: readonly [string, number]
 }
 
-/** The sleeve's core and the tracker that carries it. One tracker, not every ETF in the sleeve: two
+/** The segment's core and the tracker that carries it. One tracker, not every ETF in the segment: two
  *  trackers of the same index buy that exposure twice and pay the spread twice, so the floor goes to
  *  the best-ranked one and the rest compete on score like any other name. */
 function coreOf(
@@ -276,7 +276,7 @@ function coreOf(
 
 /** Held, unfunded, and not being exited either: entry needs a positive read while exit waits for
  *  the weak-holding line, and an excluded name was declined, never asked to be sold. Their weight
- *  is reserved rather than skipped, or the sleeve would buy past its target on top of it. The core
+ *  is reserved rather than skipped, or the segment would buy past its target on top of it. The core
  *  reserves at its floor whatever its score says, which is the whole of what a core means. */
 function keptHoldings(
   candidates: readonly PortfolioCandidate[],
@@ -312,7 +312,7 @@ function coreFloorOf(context: HoldingContext, key: string): number {
   return context.core?.[0] === key ? context.core[1] : 0
 }
 
-/** A sleeve held past its target gives the overshoot back from its neutral names, weakest first.
+/** A segment held past its target gives the overshoot back from its neutral names, weakest first.
  *  Reserving them whole left the whole trim to the names the score still rates positive, which
  *  sells what the evidence likes to keep what it does not. An excluded name and the core's floor
  *  are never cut. */
@@ -412,7 +412,7 @@ function createRoomTracker(input: AdviceInput): RoomTracker {
   const { profile } = input
   const sectorUsed = new Map<string, number>()
   const etfUsed = new Map<PortfolioSegment, number>()
-  const sleeves = new Map(input.valued.segmentValues.map((value) => [value.segment, value]))
+  const segments = new Map(input.valued.segmentValues.map((value) => [value.segment, value]))
 
   return {
     roomFor(candidate, current) {
@@ -428,7 +428,7 @@ function createRoomTracker(input: AdviceInput): RoomTracker {
 
       const ceiling = etfCeilingPctNav(
         profile.caps[candidate.segment],
-        sleeves.get(candidate.segment)
+        segments.get(candidate.segment)
       )
 
       return ceiling - (etfUsed.get(candidate.segment) ?? 0) + current
@@ -469,6 +469,6 @@ function ceilingsFor(input: AdviceInput, nav: number, rooms: RoomTracker): Ceili
 }
 
 /** The widest frozen weight seen so far, carried across passes so the reported cap is the one
- *  holding the sleeve back rather than whichever froze last. */
+ *  holding the segment back rather than whichever froze last. */
 
 // Each pass assigns the unallocated remainder proportional to risk-adjusted score, freezes

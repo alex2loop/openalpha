@@ -9,7 +9,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { ParentLink, Runner, RunResult } from '@/engine/api'
 import type { CheckResult } from '@/trading/features/themes/analyst/checks'
-import type { ThemeStepFailure } from '@/trading/features/themes/types'
+import type { ThemeRunNote, ThemeStepFailure } from '@/trading/features/themes/types'
 import { agentId, LOCAL_USER_ID, sessionId } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
 import { isRetryableHalt, parseResearchJson } from '@/engine/api'
@@ -49,7 +49,7 @@ interface AnalystCall<T, R> {
 
 export type AnalystResult<R> =
   | { readonly kind: 'value'; readonly value: R; readonly model?: string }
-  | { readonly kind: 'failed'; readonly cause: ThemeStepFailure }
+  | { readonly kind: 'failed'; readonly failure: Pick<ThemeRunNote, 'cause' | 'env'> }
 
 type Attempt<R> =
   | { readonly kind: 'value'; readonly value: R; readonly model?: string }
@@ -152,7 +152,7 @@ function toResult<T, R>(
       issues: last.issues.slice(0, MAXIMUM_LOGGED_ISSUES),
     })
 
-    return { kind: 'failed', cause: 'invalid' }
+    return { kind: 'failed', failure: { cause: 'invalid' } }
   }
 
   deps.logger.warn('trading.theme_halted', {
@@ -168,7 +168,13 @@ function toResult<T, R>(
         }),
   })
 
-  return { kind: 'failed', cause: haltCauseOf(last.result) }
+  return {
+    kind: 'failed',
+    failure: {
+      cause: haltCauseOf(last.result),
+      ...(last.result.missingEnv === undefined ? {} : { env: last.result.missingEnv }),
+    },
+  }
 }
 
 /** A failure worded for the operator is setup they must fix, such as an unset key. */

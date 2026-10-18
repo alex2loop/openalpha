@@ -5,7 +5,7 @@ import type {
   SlashInvocationPolicy,
   SlashResult,
 } from '@/core/types/command'
-import { levenshtein } from '@/core/utils/text'
+import { closestName } from '@/core/utils/text'
 
 import type { ResolvedSlashCommand } from '../types'
 
@@ -13,7 +13,6 @@ const COMMAND_PREFIX = '/'
 const BOT_MENTION_RE = /@[^\s]+$/
 const LEADING_SLASH_RE = /^\//
 const WHITESPACE_RE = /\s+/
-const SUGGEST_MAX_DISTANCE = 2
 const UNKNOWN_COMMAND_KEY = 'slash.unknownCommand'
 const NEAR_COMMAND_KEY = 'slash.unknownCommandNear'
 // Each surface answers it before the dispatcher; a typo can still mean it.
@@ -82,19 +81,7 @@ export function suggestCommandName(options: SuggestCommandNameOptions): string |
   const visible = [...commands.values()]
     .filter((cmd) => isCommandVisible(cmd.policy, surface, role))
     .map((cmd) => cmd.name)
-  let best: string | null = null
-  let bestDistance = SUGGEST_MAX_DISTANCE + 1
-
-  for (const name of [HELP_COMMAND_NAME, ...visible]) {
-    const distance = levenshtein(target, name)
-
-    if (distance <= SUGGEST_MAX_DISTANCE && distance < bestDistance) {
-      best = name
-      bestDistance = distance
-    }
-  }
-
-  return best
+  return closestName(target, [HELP_COMMAND_NAME, ...visible]) ?? null
 }
 
 interface DispatchLineOptions {

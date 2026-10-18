@@ -457,7 +457,7 @@ export const VN_MACRO_FORMULA_VERSION = '1.0.0-vn'
 
 /** The local tape and the price of local money carry the regime; the US price of capital and its
  *  stress gauge still vote, lighter, because foreign flows answer to them. Read off the US alone,
- *  the sleeve sat defensive through local rallies whenever US real rates ran high. The index trend
+ *  the segment sat defensive through local rallies whenever US real rates ran high. The index trend
  *  is its 200-session distance and slope averaged; breadth is the share of the board above its own
  *  50-session average, banded like crypto's; the 12-month deposit rate is bullish near the 2024
  *  trough (~4,6%) and bearish near the April 2023 stress peak (~7,95%). Chosen anchors, not fitted

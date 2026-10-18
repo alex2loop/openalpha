@@ -1,4 +1,5 @@
 import type { ResolvedConfig } from '@/core/config/resolve'
+import type { OperatorMessage } from '@/core/types/operator-message'
 import { ConfigError } from '@/core/errors'
 
 // resolve() is a service locator: call it ONLY in app/providers.ts and per-module
@@ -33,9 +34,33 @@ export interface ServiceProvider {
   register(bind: Bind, extend: Extend): void
 }
 
+export const DEGRADED_KINDS = ['channel', 'api', 'key', 'optional-key'] as const
+
+type DegradedKind = (typeof DEGRADED_KINDS)[number]
+
+/** One thing a start left down or off for the operator to fix. `subject` names it (a channel id, an
+ *  environment variable, `api`); an `optional-key` only trims a feature that has a keyless fallback,
+ *  so nothing prints it at start. */
+interface Degraded<Message> {
+  readonly kind: DegradedKind
+  readonly subject: string
+  readonly message: Message
+}
+
+/** Worded later, in the reader's language. */
+export type DegradedItem = Degraded<OperatorMessage>
+
+/** Worded in the daemon's language: what the ready file records and `status` and `/v1/state` print
+ *  as is. */
+export type DegradedEntry = Degraded<string>
+
+/** What a start left down, once every subsystem is up. */
+export type DaemonReadyHandler = (degraded: readonly DegradedItem[]) => void
+
 export interface DaemonTask {
   readonly name: string
-  start(signal: AbortSignal): Promise<void>
+  /** Resolves on shutdown; `onReady` fires once every subsystem, channels included, is up. */
+  start(signal: AbortSignal, onReady?: DaemonReadyHandler): Promise<void>
 }
 
 interface Registration<K extends keyof Services> {

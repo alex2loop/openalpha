@@ -5,7 +5,7 @@ import { flagString } from '@/cli/parsing/args'
 import { fail, hint, style, success } from '@/cli/ui/colors'
 import { formatUsd } from '@/core/utils/cost'
 import { runWorkflow } from '@/engine/api'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 
 const workflowListCommand = createCommand({
   name: 'list',
@@ -73,7 +73,10 @@ const workflowRunCommand = createCommand({
 
     app.out(
       success(
-        t(locale, 'cli.workflowDone', { steps: result.steps, cost: formatUsd(result.costUsd) })
+        t(locale, pluralKey(result.steps, 'cli.workflowDoneOne', 'cli.workflowDone'), {
+          steps: result.steps,
+          cost: formatUsd(result.costUsd),
+        })
       )
     )
 

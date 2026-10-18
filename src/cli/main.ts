@@ -1,9 +1,10 @@
 import type { Command, CommandRejection, Group, Needs } from '@/cli/command'
 import type { CliApp } from '@/cli/types'
-import { createRoot, DEFAULT_NEEDS } from '@/cli/command'
+import { DEFAULT_NEEDS } from '@/cli/command'
 import { isVerbose } from '@/cli/env'
 import { printError } from '@/cli/error-output'
 import { BUILT_IN_COMMANDS } from '@/cli/registry'
+import { createRoot } from '@/cli/root'
 
 type CommandPreflight =
   | { readonly kind: 'ready'; readonly needs: Required<Needs> }
@@ -20,7 +21,7 @@ export async function preflightCommand(
   if (rejection !== undefined) {
     // A head no static command claims may be a contributed command that only exists after boot:
     // run the full boot and let the booted root resolve or reject it with complete suggestions.
-    if (isUnknownRootHead(argv, known)) {
+    if (isUnknownRootHead(argv, root.subcommands)) {
       return { kind: 'ready', needs: DEFAULT_NEEDS }
     }
 

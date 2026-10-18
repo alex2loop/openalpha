@@ -2,6 +2,7 @@ import type { SlashTurn } from '@/cli/commands/chat/slash'
 import type { ChatFlags, ChatSession } from '@/cli/commands/chat/types'
 import type { CliApp, CompletionSource, Writer } from '@/cli/types'
 import type { PromptFn } from '@/cli/ui/prompt'
+import type { HelpRequest } from '@/commands/api'
 import type { SessionId } from '@/core/ids'
 import { subscribeCliApproval } from '@/cli/commands/chat/approval'
 import { runSlash } from '@/cli/commands/chat/slash'
@@ -12,7 +13,7 @@ import { exitCodeForResult, terminalErrorMessage } from '@/cli/error-output'
 import { hint, style } from '@/cli/ui/colors'
 import { multiPrompt } from '@/cli/ui/prompt'
 import { takeUpdateNotice } from '@/cli/update/notice'
-import { HELP_COMMAND, renderCommandHelp } from '@/commands/api'
+import { HELP_COMMAND, parseHelpLine, renderCommandHelp } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale, t } from '@/i18n'
@@ -215,8 +216,10 @@ async function handleLine(
     return 'exit'
   }
 
-  if (line === HELP_COMMAND) {
-    printHelp(session)
+  const help = parseHelpLine(line)
+
+  if (help !== null) {
+    printHelp(session, help)
     return 'continue'
   }
 
@@ -247,7 +250,7 @@ async function runSlashCaught(session: ChatSession, line: string): Promise<Slash
 
 /** The REPL's own verbs never reach the dispatcher, so `/help` would otherwise list every command
  *  except the three the reader is currently using. */
-function printHelp(session: ChatSession): void {
+function printHelp(session: ChatSession, request: HelpRequest): void {
   const { app } = session
   const language = app.config.locale.language
 
@@ -259,6 +262,7 @@ function printHelp(session: ChatSession): void {
         { verb: '/quit', description: t(language, 'slash.helpExit') },
       ],
       commands: app.resolve('slashDispatcher').all('repl', 'operator'),
+      ...request,
     })
   )
 }
@@ -296,8 +300,10 @@ export async function singleShot(session: ChatSession, message: string): Promise
 
   // The dispatcher does not own `/help` — the REPL answers it directly — so without this the one
   // mode where it is unreachable is the one whose unknown-command reply says to try it.
-  if (message === HELP_COMMAND) {
-    printHelp(session)
+  const help = parseHelpLine(message)
+
+  if (help !== null) {
+    printHelp(session, help)
 
     return 0
   }

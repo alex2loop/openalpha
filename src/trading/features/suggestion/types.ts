@@ -38,6 +38,7 @@ export type SuggestionListStatus = (typeof SUGGESTION_LIST_STATUSES)[number]
 export const SUGGESTION_UNSUPPORTED_REASONS = Object.freeze([
   'market-not-registered',
   'market-data-unavailable',
+  'market-data-not-loaded',
   'ticker-not-supported',
   'ambiguous-market',
   'outside-focus',
@@ -95,7 +96,7 @@ interface SuggestionBase {
   /** The policy this run was sized and gated under. Stored, not re-read: a replayed suggestion
    *  states the profile its numbers came from, not the one in force when it is read. */
   readonly profile: ProfileStamp
-  /** The sleeve horizon the stop distance was sized for, as it stood on the run day. */
+  /** The segment horizon the stop distance was sized for, as it stood on the run day. */
   readonly horizon: InvestmentHorizon
   readonly strategyId: StrategyId
   readonly strategyVersion: string
@@ -365,6 +366,15 @@ export interface PriorThesis {
  *  its action; a hold recorded it at draft time. */
 export function framedDirectionOf(suggestion: Suggestion): SuggestionDirection {
   return suggestion.action === 'hold' ? suggestion.direction : suggestion.action
+}
+
+/** A run whose debate never answered (an unset key, a failed role, no budget left): it decided
+ *  nothing, so nothing of it is stored and the plan already standing keeps watching the name. */
+export function isInconclusive(suggestion: Suggestion): boolean {
+  return (
+    suggestion.debate === undefined &&
+    suggestion.caveats.some((caveat) => caveat.code === 'suggestion.debate-degraded')
+  )
 }
 
 /** A levels-only row the system wrote for a position the operator booked: the plan the name is

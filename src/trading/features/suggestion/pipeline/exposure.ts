@@ -1,13 +1,13 @@
 import type { SuggestionPortfolioContext } from '@/trading/features/suggestion/pipeline/types'
 import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import { etfBreaches, isBreached } from '@/trading/kernel/operator/exposure'
 
 /** One buy against a ceiling is the sizer's own answer, and repeating it here would second-guess
- *  it. A sleeve is only reported once two of the batch's buys land in it, which is the fact no
+ *  it. A cap is only reported once two of the batch's buys land under it, which is the fact no
  *  individual row can carry. */
 const MINIMUM_BUYS = 2
 
@@ -27,29 +27,29 @@ type SizedCall = StoredSuggestion & {
   readonly sizePctNav: number
 }
 
-interface SleeveKey<K> {
+interface CapKey<K> {
   readonly key: K
 }
 
-interface Sleeve<K> extends SleeveKey<K> {
+interface Capped<K> extends CapKey<K> {
   readonly heldPctNav: number
   readonly capPctNav: number
 }
 
-/** A sleeve with what the set's calls add to it. */
+/** A capped weight with what the set's calls add to it. */
 type Netted<S> = S & {
   netPctNav: number
   buys: number
 }
 
-/** Where one call lands: the sleeve and what the book already holds there, or nothing when the row
- *  names no sleeve of this kind. */
-type SleeveOf<S extends SleeveKey<unknown>> = (call: SizedCall) => S | undefined
+/** Where one call lands: the cap and what the book already holds under it, or nothing when the row
+ *  names no cap of this kind. */
+type CappedOf<S extends CapKey<unknown>> = (call: SizedCall) => S | undefined
 
 /** Every item in a batch sizes against the same pre-batch book, so each row's own concentration
  *  note is right about that row and silent about the set. This is the only reader of the set: buys
- *  add, reduces take away, and a sleeve is named when what is left crosses its ceiling. */
-export async function breachedSleeves(input: BatchExposureInput): Promise<readonly SleeveBreach[]> {
+ *  add, reduces take away, and a cap is named when what is left crosses its ceiling. */
+export async function breachedCaps(input: BatchExposureInput): Promise<readonly CapBreach[]> {
   const calls = input.results.flatMap((result) =>
     result.kind === 'completed' && isSizedCall(result.suggestion) ? [result.suggestion] : []
   )
@@ -62,10 +62,10 @@ export async function breachedSleeves(input: BatchExposureInput): Promise<readon
 
   return [
     ...breachedBy(calls, sectorOf(context)).map(
-      (sleeve): SleeveBreach => ({ kind: 'sector', sector: sleeve.key, ...combinedOf(sleeve) })
+      (capped): CapBreach => ({ kind: 'sector', sector: capped.key, ...combinedOf(capped) })
     ),
     ...breachedBy(calls, segmentOf(context, input.markets)).map(
-      (sleeve): SleeveBreach => ({ kind: 'segment', segment: sleeve.key, ...combinedOf(sleeve) })
+      (capped): CapBreach => ({ kind: 'segment', segment: capped.key, ...combinedOf(capped) })
     ),
     ...etfBreachedBy(calls, context, input.markets),
   ]
@@ -77,7 +77,7 @@ function isSizedCall(suggestion: StoredSuggestion): suggestion is SizedCall {
 
 /** The sector the row's own note names, weighed against what the book holds there — the same two
  *  reads `concentrationOf` makes, so the set and each row are measured by one rule. */
-function sectorOf(context: SuggestionPortfolioContext): SleeveOf<Sleeve<string>> {
+function sectorOf(context: SuggestionPortfolioContext): CappedOf<Capped<string>> {
   return (call) => {
     const sector = call.concentration?.sector
 
@@ -97,7 +97,7 @@ function sectorOf(context: SuggestionPortfolioContext): SleeveOf<Sleeve<string>>
 function segmentOf(
   context: SuggestionPortfolioContext,
   markets: MarketRegistry
-): SleeveOf<Sleeve<PortfolioSegment>> {
+): CappedOf<Capped<PortfolioSegment>> {
   return (call) => {
     const segment = markets.find(call.instrument.market)?.manifest.segment
 
@@ -114,26 +114,26 @@ function segmentOf(
   }
 }
 
-/** The same sleeve as `segmentOf`, measured over its ETF share alone, by the reading a single order
+/** The same segment as `segmentOf`, measured over its ETF share alone, by the reading a single order
  *  makes of it. */
 function etfBreachedBy(
   calls: readonly SizedCall[],
   context: SuggestionPortfolioContext,
   markets: MarketRegistry
-): readonly SleeveBreach[] {
-  return nettedSleeves(calls, etfSegmentOf(markets)).flatMap((sleeve) =>
+): readonly CapBreach[] {
+  return nettedCaps(calls, etfSegmentOf(markets)).flatMap((capped) =>
     etfBreaches({
-      segment: sleeve.key,
-      sleeve: context.book.segmentValues.find((value) => value.segment === sleeve.key),
-      addedPctNav: sleeve.netPctNav,
-      ceilingPctNav: context.profile.caps[sleeve.key]?.maximumEtfPctNav,
+      segment: capped.key,
+      segmentValue: context.book.segmentValues.find((value) => value.segment === capped.key),
+      addedPctNav: capped.netPctNav,
+      ceilingPctNav: context.profile.caps[capped.key]?.maximumEtfPctNav,
     })
   )
 }
 
-/** The sleeve a row's ETF share is measured in: only an ETF adds to it, so a row of any other kind
- *  names no sleeve here and one whose kind never resolved names none either. */
-function etfSegmentOf(markets: MarketRegistry): SleeveOf<SleeveKey<PortfolioSegment>> {
+/** The segment a row's ETF share is measured in: only an ETF adds to it, so a row of any other kind
+ *  names no segment here and one whose kind never resolved names none either. */
+function etfSegmentOf(markets: MarketRegistry): CappedOf<CapKey<PortfolioSegment>> {
   return (call) => {
     const segment =
       call.instrumentKind === ETF_KIND
@@ -146,40 +146,40 @@ function etfSegmentOf(markets: MarketRegistry): SleeveOf<SleeveKey<PortfolioSegm
 
 function breachedBy<K>(
   calls: readonly SizedCall[],
-  sleeveOf: SleeveOf<Sleeve<K>>
-): readonly Netted<Sleeve<K>>[] {
-  return nettedSleeves(calls, sleeveOf).filter((sleeve) =>
-    isBreached(sleeve.heldPctNav + sleeve.netPctNav, sleeve.capPctNav)
+  cappedOf: CappedOf<Capped<K>>
+): readonly Netted<Capped<K>>[] {
+  return nettedCaps(calls, cappedOf).filter((capped) =>
+    isBreached(capped.heldPctNav + capped.netPctNav, capped.capPctNav)
   )
 }
 
-/** Every sleeve two or more of the set's buys land in, with the net the set adds to it. */
-function nettedSleeves<S extends SleeveKey<unknown>>(
+/** Every cap two or more of the set's buys land under, with the net the set adds to it. */
+function nettedCaps<S extends CapKey<unknown>>(
   calls: readonly SizedCall[],
-  sleeveOf: SleeveOf<S>
+  cappedOf: CappedOf<S>
 ): readonly Netted<S>[] {
-  const sleeves = new Map<S['key'], Netted<S>>()
+  const byKey = new Map<S['key'], Netted<S>>()
 
   for (const call of calls) {
-    const found = sleeveOf(call)
+    const found = cappedOf(call)
 
     if (found === undefined) {
       continue
     }
 
-    const sleeve = sleeves.get(found.key) ?? { ...found, netPctNav: 0, buys: 0 }
+    const capped = byKey.get(found.key) ?? { ...found, netPctNav: 0, buys: 0 }
 
-    sleeve.netPctNav += call.action === 'reduce' ? -call.sizePctNav : call.sizePctNav
-    sleeve.buys += call.action === 'buy' ? 1 : 0
-    sleeves.set(found.key, sleeve)
+    capped.netPctNav += call.action === 'reduce' ? -call.sizePctNav : call.sizePctNav
+    capped.buys += call.action === 'buy' ? 1 : 0
+    byKey.set(found.key, capped)
   }
 
-  return [...sleeves.values()].filter((sleeve) => sleeve.buys >= MINIMUM_BUYS)
+  return [...byKey.values()].filter((capped) => capped.buys >= MINIMUM_BUYS)
 }
 
-function combinedOf<K>(sleeve: Netted<Sleeve<K>>): {
+function combinedOf<K>(capped: Netted<Capped<K>>): {
   readonly combinedPctNav: number
   readonly capPctNav: number
 } {
-  return { combinedPctNav: sleeve.heldPctNav + sleeve.netPctNav, capPctNav: sleeve.capPctNav }
+  return { combinedPctNav: capped.heldPctNav + capped.netPctNav, capPctNav: capped.capPctNav }
 }

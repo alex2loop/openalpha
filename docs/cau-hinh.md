@@ -25,7 +25,7 @@ hình, nó đổi một phần (mô hình, bot Telegram, mức chi hoặc ngôn 
 ghi lại làm mất các dòng chú thích.
 
 Có hai tệp mẫu để tải: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
-chạy được ngay, chỉ cần `OPENROUTER_API_KEY`; [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
+chạy được ngay với mức chi 2 USD/ngày, chỉ cần `OPENROUTER_API_KEY`; [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
 liệt kê mọi khóa kèm giải thích.
 
 ## Thứ tự ưu tiên
@@ -271,6 +271,9 @@ Bố cục dưới `data_dir`:
 {data_dir}/
   data/openalpha.sqlite             cơ sở dữ liệu SQLite mặc định (dữ liệu + bộ nhớ)
   openalpha.pid                     tệp khóa của daemon
+  openalpha.ready                   ghi khi daemon đã sẵn sàng; những gì nó đang thiếu
+  daemon.stdout.log                 đầu ra lạc của daemon chạy nền, xóa trắng mỗi lần khởi động
+  daemon.stderr.log                 cảnh báo và lỗi của daemon chạy nền, xóa trắng mỗi lần khởi động
   logs/daemon.log                   log chung mặc định (`[log] file`)
   logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/
@@ -473,6 +476,12 @@ bỏ qua và không công cụ web nào được chào; client tự mang của n
 | `exa_search_type` | chuỗi | `auto` | Chỉ Exa: `auto`, `fast`, `instant`, `deep-lite`, `deep`, `deep-reasoning`. |
 | `safe_search` | số nguyên | theo instance | Chỉ SearXNG: `0`, `1` hoặc `2`. Bỏ trống thì giữ thiết lập của instance. |
 
+Nếu `api_key_env` trỏ tới một biến rỗng hoặc chưa đặt, mọi thứ khác vẫn chạy, chỉ riêng tìm kiếm web
+dừng: công cụ `web_search` và `/research` từ chối và nói bạn cần đặt biến nào, chứ không tự rơi về
+DuckDuckGo. `doctor`, `config validate` và `start` cũng báo điều này. Nếu chỉ `fallback_api_key_env`
+rỗng thì bên dự phòng bị bỏ, bên chính vẫn chạy, và `doctor` cho biết bên dự phòng đang tắt. Nhà cung
+cấp cần khóa mà không khai `api_key_env` nào thì vẫn là lỗi cấu hình.
+
 SearXNG không cần khóa, do bạn tự dựng, và yêu cầu kết quả theo `[locale] language`. Instance loopback
 dùng HTTP hay HTTPS đều được; instance ở xa bắt buộc HTTPS và bị giới hạn ở đúng tên miền đã cấu hình.
 
@@ -500,7 +509,9 @@ chạy một lần không bao giờ mở cổng. API chỉ nghe trên `127.0.0.1
 phải nối qua đường hầm SSH hoặc một reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)).
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
-0600). Daemon không khởi động nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự.
+0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
+không được dùng thay) và `start` in cảnh báo, phần còn lại của daemon vẫn chạy; cổng đã bị dùng thì
+`start` vẫn dừng.
 `openalpha api token` in mã ra; `openalpha api rotate` thay mã mới.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
@@ -878,15 +889,23 @@ mọi mục không module nào nhận. Cấu hình nó chấp nhận thì khởi
 API cũng dùng đúng các bước đó. Giá trị cấu hình nêu tên thị trường, sàn hay khu vực mặc định chưa đăng
 ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên.
 
-Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. `--verbose` in thêm
-toàn bộ danh sách lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn dòng lệnh đặt nó cho
+Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. Một lần chạy liệt
+kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn sửa một lượt rồi mới
+chạy lại. Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`. `config
+validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục, và báo biến môi trường của
+khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó. `--verbose` in thêm toàn bộ danh sách
+lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn dòng lệnh đặt nó cho
 shell của bạn: `export` trên macOS và Linux, còn trên Windows là `$env:NAME="..."; setx NAME "..."`,
 đặt ngay và giữ cho mọi cửa sổ PowerShell mở sau đó. Thiếu khóa của mô hình chỉ chặn những việc cần
 gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
-`openalpha start` sẽ chờ tới khi bạn đặt khóa.
+`openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn đặt
+khóa rồi khởi động lại.
 
 ```text
-config.toml có chỗ cần sửa ở `loop.max_turns`: giá trị phải lớn hơn 0. Sửa xong rồi chạy lại nhé.
+config.toml có chỗ cần sửa:
+- `loop.max_turns`: giá trị phải lớn hơn 0
+- `budget.max_daly_usd`: không phải thiết lập tôi biết, có phải ý bạn là `max_daily_usd`?
+Sửa xong rồi chạy lại nhé.
 
 Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `export ANTHROPIC_API_KEY=...` trong terminal bạn đang dùng rồi chạy lại nhé.
 ```

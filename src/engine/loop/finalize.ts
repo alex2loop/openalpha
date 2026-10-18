@@ -9,6 +9,7 @@ import type {
   RunState,
   RunView,
 } from '@/engine/types/run'
+import { missingEnvOf } from '@/core/config/resolve'
 import { operatorMessageOf, RunHalted } from '@/core/errors'
 import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
 import { textOf, toolCallIdsOf } from '@/core/utils/message'
@@ -55,6 +56,7 @@ export interface CaughtVerdict {
   readonly haltDetail?: HaltDetail
   readonly errorMessage?: string
   readonly operator?: OperatorMessage
+  readonly missingEnv?: string
 }
 
 interface BuildRunResultOptions {
@@ -64,6 +66,7 @@ interface BuildRunResultOptions {
   readonly haltDetail?: HaltDetail
   readonly errorMessage?: string
   readonly operator?: OperatorMessage
+  readonly missingEnv?: string
   readonly completionCode?: RunCompletionCode
   readonly model?: string
 }
@@ -136,8 +139,19 @@ export function buildRunResult(
     ...(options.haltDetail === undefined ? {} : { haltDetail: options.haltDetail }),
     ...(options.errorMessage === undefined ? {} : { errorMessage: options.errorMessage }),
     ...(options.operator === undefined ? {} : { operator: options.operator }),
+    ...(options.missingEnv === undefined ? {} : { missingEnv: options.missingEnv }),
     ...(options.completionCode === undefined ? {} : { completionCode: options.completionCode }),
     ...(options.model === undefined ? {} : { model: options.model }),
+  }
+}
+
+/** What a failure carries for the operator: their sentence and the unset key behind it. */
+export function operatorFieldsOf(
+  verdict: CaughtVerdict
+): Pick<CaughtVerdict, 'operator' | 'missingEnv'> {
+  return {
+    ...(verdict.operator === undefined ? {} : { operator: verdict.operator }),
+    ...(verdict.missingEnv === undefined ? {} : { missingEnv: verdict.missingEnv }),
   }
 }
 
@@ -170,12 +184,14 @@ export function classifyCaught(
 
   const formatted = formatErrForLog(err)
   const operator = operatorMessageOf(err)
+  const missingEnv = missingEnvOf(err)?.env
   run.services.logger.error('engine.run_uncaught', { err: formatted })
 
   return {
     reason: 'error',
     errorMessage: formatted.message,
     ...(operator === undefined ? {} : { operator }),
+    ...(missingEnv === undefined ? {} : { missingEnv }),
   }
 }
 

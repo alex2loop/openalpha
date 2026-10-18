@@ -55,6 +55,7 @@ never past the next anchor; a fifth failure hands back to the anchor and the lad
 | Error | Result |
 | --- | --- |
 | `StorageError`, `ChannelError`, `LLMError`, or `RunHalted` with code `budget` or `rate` | Boundary failure: `trading.tick_failed` at warn, retried next interval. |
+| `MissingEnvError` | Boundary failure: `trading.tick_key_missing` at warn once per loop until another failure is logged, retried next interval. |
 | Any other error | Escapes to the quarantine wrapper around the loop. Retrying forever would hide the code being wrong. |
 | Abort | Shutdown; the loop exits normally. |
 

@@ -62,36 +62,15 @@ export function buildVnLevels(
     return { kind: 'unavailable', reasonCode: 'insufficient-data' }
   }
 
-  if (isOutsideOwnBand(entry.price, bands.priced)) {
-    return HISTORY_NOT_ADJUSTED
+  const placement = placementOf({ deps, request, evidence, entryPrice: entry.price, bands })
+
+  if (placement.kind === 'refused') {
+    return placement.result
   }
 
   const tradeability = bands.order
-  const direction = resolveDirectionBlock(bands.priced, request.direction, entry.price)
-
-  if (direction.kind === 'blocked') {
-    return {
-      kind: 'unavailable',
-      reasonCode: 'market-not-tradeable',
-      caveats: [...tradeability.caveats, direction.caveat],
-    }
-  }
-
-  const roomExhausted = isForeignRoomExhausted(request, tradeability, evidence)
-  const roomCaveats: readonly Caveat[] = roomExhausted
-    ? [{ code: 'market.foreign-room-exhausted', detail: { ticker: request.instrument.ticker } }]
-    : []
+  const { roomCaveats } = placement
   const roomUnverified = unverifiedRoomCaveats(deps, request, tradeability)
-
-  // The cap binds foreign buyers, so only a foreign operator is blocked by it. A domestic one still
-  // sees the caveat: a full room is a crowding signal either way.
-  if (roomExhausted && deps.config.defaultRegion !== VN_MARKET_REGION) {
-    return {
-      kind: 'unavailable',
-      reasonCode: 'market-not-tradeable',
-      caveats: [...tradeability.caveats, ...roomCaveats],
-    }
-  }
 
   const result = buildLevels({
     ...request,
@@ -105,7 +84,7 @@ export function buildVnLevels(
   }
 
   // A VN fund is reviewed, never stopped: its wrapper trades too thinly to arm an exit against, and
-  // the sleeve's own weight answers a drawdown in the index it tracks.
+  // the segment's own weight answers a drawdown in the index it tracks.
   return {
     ...result,
     ...(evidence.record.kind === ETF_KIND
@@ -119,6 +98,66 @@ export function buildVnLevels(
       ...result.caveats,
     ],
   }
+}
+
+interface PlacementInput {
+  readonly deps: MarketDeps
+  readonly request: MarketLevelRequest
+  readonly evidence: NameEvidence
+  readonly entryPrice: number
+  readonly bands: SessionBands
+}
+
+type Placement =
+  | { readonly kind: 'refused'; readonly result: LevelResult }
+  | { readonly kind: 'open'; readonly roomCaveats: readonly Caveat[] }
+
+/** Own band, direction and foreign room gate a new order. A held position's entry is a fill already
+ *  made, so none of them applies. */
+function placementOf(input: PlacementInput): Placement {
+  const { deps, request, evidence, entryPrice, bands } = input
+
+  if (request.forHolding === true) {
+    return { kind: 'open', roomCaveats: [] }
+  }
+
+  if (isOutsideOwnBand(entryPrice, bands.priced)) {
+    return { kind: 'refused', result: HISTORY_NOT_ADJUSTED }
+  }
+
+  const tradeability = bands.order
+  const direction = resolveDirectionBlock(bands.priced, request.direction, entryPrice)
+
+  if (direction.kind === 'blocked') {
+    return {
+      kind: 'refused',
+      result: {
+        kind: 'unavailable',
+        reasonCode: 'market-not-tradeable',
+        caveats: [...tradeability.caveats, direction.caveat],
+      },
+    }
+  }
+
+  const roomExhausted = isForeignRoomExhausted(request, tradeability, evidence)
+  const roomCaveats: readonly Caveat[] = roomExhausted
+    ? [{ code: 'market.foreign-room-exhausted', detail: { ticker: request.instrument.ticker } }]
+    : []
+
+  // The cap binds foreign buyers, so only a foreign operator is blocked by it. A domestic one still
+  // sees the caveat: a full room is a crowding signal either way.
+  if (roomExhausted && deps.config.defaultRegion !== VN_MARKET_REGION) {
+    return {
+      kind: 'refused',
+      result: {
+        kind: 'unavailable',
+        reasonCode: 'market-not-tradeable',
+        caveats: [...tradeability.caveats, ...roomCaveats],
+      },
+    }
+  }
+
+  return { kind: 'open', roomCaveats }
 }
 
 /** A fund's levels are review points, a share's are exits; the operator's market settings apply to

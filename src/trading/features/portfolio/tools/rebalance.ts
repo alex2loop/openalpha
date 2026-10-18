@@ -10,7 +10,7 @@ export function createPortfolioRebalanceTool(portfolio: AgentPortfolio): ToolDef
   return createTool({
     name: 'portfolio_rebalance',
     description:
-      'Propose portfolio changes: segment targets, per-position buys and sells, and the cash sleeve. A line carrying `units` states the quantity to buy or sell: always give that number.',
+      'Propose portfolio changes: segment targets, per-position buys and sells, and the cash segment. A line carrying `units` states the quantity to buy or sell: always give that number.',
     inputSchema: noInput,
     capability: 'read',
     presentation: { label: 'Rebalance', emoji: '⚖️' },

@@ -9,7 +9,7 @@ import type {
   VenueRef,
 } from '@/trading/kernel/instrument'
 import type { StopCover } from '@/trading/kernel/operator/alert'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type {
   ExitReceipt,
   OrderReceipt,
@@ -286,7 +286,7 @@ export interface PreparedOrder {
   /** Ceilings this buy would cross, stated on the prompt and never enforced: the operator overriding
    *  their own cap is what approving an order means. Always empty on a sell, which takes exposure
    *  off. */
-  readonly breaches: readonly SleeveBreach[]
+  readonly breaches: readonly CapBreach[]
 }
 
 type CapRejectionCode = 'stake' | 'openTrades' | 'cash' | 'stopLossRequired'

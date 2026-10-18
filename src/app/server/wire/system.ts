@@ -13,6 +13,15 @@ export interface Capabilities {
   readonly orders: boolean
 }
 
+/** One thing the daemon started without, worded in its language: a channel left down with the
+ *  reason (`subject` is the channel id), the API itself, or a key variable that is unset with what
+ *  waits for it. An `optional-key` only trims a feature that has a keyless fallback. */
+interface DegradedWire {
+  readonly kind: 'channel' | 'api' | 'key' | 'optional-key'
+  readonly subject: string
+  readonly message: string
+}
+
 /** GET /v1/health — the only unauthenticated route. Liveness + version + capabilities. */
 export interface HealthResponse {
   readonly ok: boolean
@@ -68,6 +77,9 @@ export interface StatePayload {
   readonly capabilities: Capabilities
   /** The IANA zone the daemon's days are counted in: cost caps, `/v1/cost` days, suggestion days. */
   readonly timeZone: string
+  /** What the daemon started without; empty when everything is configured. Behind auth, since it
+   *  names unset variables and channels that are down. */
+  readonly degraded: readonly DegradedWire[]
   /** Absent when the brief was never enabled or trading is off. */
   readonly brief?: BriefScheduleWire
 }

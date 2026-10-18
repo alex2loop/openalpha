@@ -28,7 +28,7 @@ advisory land together, and you are credited unless you ask otherwise.
 ## Supported versions
 
 Only `main` is supported — fixes land there and nothing older is backported. Pin
-a tag or a commit if you need stability, and read [the stability notice](README.en.md#development)
+a tag or a commit if you need stability, and read [the stability notice](README.en.md#stability-license-and-disclaimer)
 before relying on any of it.
 
 ## What is in scope
@@ -46,7 +46,7 @@ the whole-book caps read stale state inside the write window.
 
 **Risk limits hold.** This is financial software, so *a bug that mis-sizes an order, lets
 a cap be exceeded, or turns a refusal into a pass is a security issue here*, not merely a
-correctness one. `maximumOpenRiskPctNav` and the sleeve caps are load-bearing.
+correctness one. `maximumOpenRiskPctNav` and the segment caps are load-bearing.
 
 **The model never sees your book in money.** Positions, cash, NAV and cost basis are
 projected before anything reaches a persona or a tool. What a model can see is the *shape*

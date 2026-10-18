@@ -10,7 +10,7 @@ import {
   POSTGRES_MIGRATIONS_TABLE_SQL,
 } from '@/persistence/api'
 
-import type { DoctorProbe, DoctorStatus } from './types'
+import type { DoctorFinding, DoctorStatus } from './types'
 import { migrationsUpToDate } from './local-probes'
 
 interface MigrationRow {
@@ -32,7 +32,7 @@ export async function probePostgresDatabase(
   storage: Extract<ResolvedStorageConfig, { readonly engine: 'postgres' }>,
   migrations: readonly Migration[],
   locale: Locale
-): Promise<DoctorProbe> {
+): Promise<DoctorFinding> {
   let opened: Awaited<ReturnType<typeof openPersistence>> | undefined
 
   try {
@@ -75,7 +75,7 @@ function migrationProbe(options: {
   readonly migrations: readonly Migration[]
   readonly applied: readonly MigrationRow[]
   readonly locale: Locale
-}): DoctorProbe {
+}): DoctorFinding {
   const appliedIds = new Set(options.applied.map((m) => m.id))
   const declaredIds = new Set(options.migrations.map((m) => m.id))
   const pending = options.migrations.filter((m) => !appliedIds.has(m.id)).map((m) => m.id)
@@ -102,9 +102,8 @@ function migrationProbe(options: {
   })
 }
 
-function databaseProbe(options: PostgresDatabaseProbeOptions): DoctorProbe {
+function databaseProbe(options: PostgresDatabaseProbeOptions): DoctorFinding {
   return {
-    name: 'database',
     status: options.status,
     detail: t(options.locale, 'cli.doctorPostgresSchema', {
       schema: options.storage.schema,

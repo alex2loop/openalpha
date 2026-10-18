@@ -12,6 +12,7 @@ import type { DeliveryErrorCode } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { TradingNotice, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
+import { missingEnvOf } from '@/core/config/resolve'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { buildLeaseToken } from '@/trading/features/alerts/types'
@@ -131,6 +132,15 @@ async function deliverScheduled(deps: BriefServiceDeps, context: DeliveryContext
       deliveryDay: context.subscription.deliveryDay,
       err: formatErrForLog(err),
     })
+
+    const missing = missingEnvOf(err)
+
+    if (missing !== undefined) {
+      // A key arrives with a restart, so retrying today cannot succeed: one notice for the day.
+      await abandonDay(deps, context, { errorCode: 'render-failed', missingEnv: missing.env })
+      return
+    }
+
     await deferClaimed(deps, context, 'render-failed')
   }
 }
@@ -292,7 +302,7 @@ async function deferClaimed(
   // A day that never becomes deliverable must not retry forever, but only that day is lost: a
   // channel or model blip at send time must not switch the morning brief off until `/brief enable`.
   if (subscription.attempts >= deps.config.operations.deliveryRetry.maximumAttempts) {
-    await abandonDay(deps, context, errorCode)
+    await abandonDay(deps, context, errorCode === undefined ? {} : { errorCode })
     return
   }
 
@@ -316,9 +326,10 @@ async function deferClaimed(
 async function abandonDay(
   deps: BriefServiceDeps,
   context: DeliveryContext,
-  errorCode?: DeliveryErrorCode
+  cause: { readonly errorCode?: DeliveryErrorCode; readonly missingEnv?: string }
 ): Promise<void> {
   const { subscription, options } = context
+  const { errorCode, missingEnv } = cause
   const abandoned = await deps.deliveries.abandonDelivery({
     ...completion(context),
     ...(errorCode === undefined ? {} : { errorCode }),
@@ -338,6 +349,7 @@ async function abandonDay(
     target: subscription.delivery,
     locale: deps.defaultLocale,
     subject: 'brief',
+    ...(missingEnv === undefined ? {} : { missingEnv }),
     logger: deps.logger,
     signal: options.signal,
   })

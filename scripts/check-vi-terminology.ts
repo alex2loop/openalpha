@@ -29,7 +29,7 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
   'trading.render.alert.row',
   'trading.order.prompt.line',
   'trading.render.refresh.records',
-  'trading.render.sleeve.cell',
+  'trading.render.segment.cell',
   'trading.intraday.header',
   'trading.intraday.index.row',
   'trading.intraday.index.rowChange',

@@ -12,22 +12,22 @@ import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { CAVEAT_SUBJECT_SEPARATOR } from '@/trading/render/format'
 
 const NO_CANDIDATES_CODE: CaveatCode = 'portfolio.segment-no-candidates'
-/** A sleeve short of its target because the operator has named too few instruments for it. Both
+/** A segment short of its target because the operator has named too few instruments for it. Both
  *  read "go and find some", which is the question this module answers with names. */
 const SHORTFALL_CODES: ReadonlySet<CaveatCode> = new Set([
   NO_CANDIDATES_CODE,
   'portfolio.too-few-candidates',
 ])
-/** Enough to close a sleeve at the usual per-name cap, and still a line the operator can retype. */
+/** Enough to close a segment at the usual per-name cap, and still a line the operator can retype. */
 const MAXIMUM_SUGGESTED_NAMES = 5
 /** Deep enough that the names already held or watched do not crowd out every fresh one. */
 const SCREEN_BOARD_LIMIT = 20
 
-interface SleeveCandidateDeps {
+interface SegmentCandidateDeps {
   readonly markets: MarketRegistry
 }
 
-export interface SleeveCandidateOptions {
+export interface SegmentCandidateOptions {
   readonly caveats: readonly Caveat[]
   /** Everything the plan already weighed, so a name it holds is never offered as new. */
   readonly considered: readonly InstrumentRef[]
@@ -36,13 +36,13 @@ export interface SleeveCandidateOptions {
   readonly signal: AbortSignal
 }
 
-/** The plan sizes what the operator chose, so a sleeve with too few chosen names resolves to cash
+/** The plan sizes what the operator chose, so a segment with too few chosen names resolves to cash
  *  and says so. The shortfall caveats state that gap and nothing else, because the way out of it
  *  belongs to the market: these carry the top of its ranked board where it has one and the manual
  *  route where it has none. Either way the operator still adds each name. */
-export async function withSleeveCandidateCaveats(
-  deps: SleeveCandidateDeps,
-  options: SleeveCandidateOptions
+export async function withSegmentCandidateCaveats(
+  deps: SegmentCandidateDeps,
+  options: SegmentCandidateOptions
 ): Promise<readonly Caveat[]> {
   const segments = shortfallSegments(options.caveats)
 
@@ -52,7 +52,7 @@ export async function withSleeveCandidateCaveats(
 
   const known = new Set(options.considered.map(buildInstrumentKey))
   const found = await Promise.all(
-    segments.map((segment) => sleeveNames(deps, { segment, known, options }))
+    segments.map((segment) => segmentNames(deps, { segment, known, options }))
   )
   const suggested = found.filter((caveat): caveat is Caveat => caveat !== null)
 
@@ -60,7 +60,7 @@ export async function withSleeveCandidateCaveats(
     return options.caveats
   }
 
-  // A sleeve's names line already says it has nothing to buy, so it stands in for the bare one.
+  // A segment's names line already says it has nothing to buy, so it stands in for the bare one.
   const named = new Set(suggested.map((caveat) => caveat.detail?.segment))
   const kept = options.caveats.filter(
     (caveat) => caveat.code !== NO_CANDIDATES_CODE || !named.has(caveat.detail?.segment)
@@ -78,17 +78,17 @@ function shortfallSegments(caveats: readonly Caveat[]): readonly PortfolioSegmen
   return [...new Set(segments)]
 }
 
-interface SleeveNamesInput {
+interface SegmentNamesInput {
   readonly segment: PortfolioSegment
   readonly known: ReadonlySet<string>
-  readonly options: SleeveCandidateOptions
+  readonly options: SegmentCandidateOptions
 }
 
 /** Names where the board can offer them, and the manual route where it cannot. `null` only for a
  *  segment no registered market owns, where neither route leads anywhere. */
-async function sleeveNames(
-  deps: SleeveCandidateDeps,
-  input: SleeveNamesInput
+async function segmentNames(
+  deps: SegmentCandidateDeps,
+  input: SegmentNamesInput
 ): Promise<Caveat | null> {
   const market = deps.markets.list().find((entry) => entry.manifest.segment === input.segment)
 
@@ -109,7 +109,7 @@ async function sleeveNames(
 /** The top of the market's own board, less everything the plan already weighed. Empty for a market
  *  with no screen — domestic gold ranks nothing against anything — and for a board that failed or
  *  held only names the plan has seen. */
-async function freshNames(market: Market, input: SleeveNamesInput): Promise<readonly Ticker[]> {
+async function freshNames(market: Market, input: SegmentNamesInput): Promise<readonly Ticker[]> {
   const screen = market.capabilities.screen
 
   if (screen === undefined) {
@@ -131,7 +131,7 @@ async function freshNames(market: Market, input: SleeveNamesInput): Promise<read
 async function screenBoard(
   screen: NonNullable<Market['capabilities']['screen']>,
   market: Market,
-  options: SleeveCandidateOptions
+  options: SegmentCandidateOptions
 ): Promise<ScreenResult | null> {
   try {
     return await screen.run({

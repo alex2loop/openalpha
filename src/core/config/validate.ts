@@ -47,3 +47,19 @@ function formatPath(path: readonly (string | number)[]): string {
     return acc === '' ? segment : `${acc}.${segment}`
   }, '')
 }
+
+/** What the sections core does not own refuse on their own, read over defaults for everything else
+ *  the way boot reads them; undefined when they pass. Lets a caller still report them after core
+ *  refused its own sections first. */
+export function extensionConfigError(
+  extensions: Readonly<Record<string, unknown>>,
+  assertResolved: (config: ResolvedConfig) => void
+): unknown {
+  try {
+    assertResolved(resolveConfig(parseRawConfig(extensions)))
+
+    return undefined
+  } catch (err: unknown) {
+    return err
+  }
+}

@@ -6,6 +6,8 @@ import { scrubCredentials } from '@/core/security/credentials'
 // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require ESC and CSI control chars
 const ANSI_ESCAPE_RE = /[\x1b\x9b][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nq-uy=><]|\x1b\][^\x07\x1b]{0,4096}(?:\x07|\x1b\\)/g
 const ELLIPSIS = '...'
+const MAX_SUGGESTION_DISTANCE = 3
+const SUGGESTION_DISTANCE_DIVISOR = 3
 const MIN_RUN = 2
 const MIDDLE_ELISION = '\n\n[...]\n\n'
 const MIDDLE_ELISION_BYTES = Buffer.byteLength(MIDDLE_ELISION, 'utf8')
@@ -244,9 +246,32 @@ export function reduceOutput(s: string): string {
   return out.join('\n').replace(EDGE_BLANKS_RE, '')
 }
 
+/** The name within a third of `attempted`'s length in edits, rounded up and at most three; the first
+ *  of equals wins. The attempt itself is never suggested: a key one schema arm refuses can be valid
+ *  in another, and "did you mean" what was typed helps no one. */
+export function closestName(attempted: string, names: readonly string[]): string | undefined {
+  const maxDistance = Math.min(
+    MAX_SUGGESTION_DISTANCE,
+    Math.ceil(attempted.length / SUGGESTION_DISTANCE_DIVISOR)
+  )
+  let best: string | undefined
+  let bestDistance = maxDistance + 1
+
+  for (const name of names) {
+    const distance = levenshtein(attempted, name)
+
+    if (name !== attempted && distance < bestDistance) {
+      best = name
+      bestDistance = distance
+    }
+  }
+
+  return best
+}
+
 // Iterative Levenshtein over two rows; bounded by the shorter argument length, so a
 // typo against a short command name never allocates a full matrix.
-export function levenshtein(a: string, b: string): number {
+function levenshtein(a: string, b: string): number {
   if (a === b) {
     return 0
   }

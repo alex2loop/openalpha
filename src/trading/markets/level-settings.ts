@@ -6,7 +6,7 @@ import { hashString } from '@/core/utils/hash'
 const SETTINGS_FINGERPRINT_LENGTH = 8
 
 /** The market's own policy with the operator's `[trading.markets.<id>]` level keys laid over it.
- *  One number serves both horizons: a sleeve runs one horizon at a time. */
+ *  One number serves both horizons: a segment runs one horizon at a time. */
 export function resolveLevelPolicy(
   policy: LevelPolicy,
   settings: MarketConfig | undefined

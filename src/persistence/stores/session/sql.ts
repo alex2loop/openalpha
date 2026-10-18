@@ -122,11 +122,13 @@ type ClaimSql = Pick<SessionSql, 'create' | 'insertIfAbsent' | 'claim' | 'select
 function buildClaimSql(d: Dialect): ClaimSql {
   return {
     // A slash command needs the row to exist and be billable; it never displaces a run's claim.
+    // How the last run ended stays: a command is not a run, and `/continue` reads it. The next
+    // claim clears it.
     create:
       `INSERT INTO sessions (id, agent_id, user_id, channel, chat_id, status, started_at, ` +
       `last_activity_at) VALUES (${d.paramList(5)}, 'active', ${d.param(6)}, ${d.param(7)}) ` +
-      `ON CONFLICT (id) DO UPDATE SET status = 'active', end_reason = NULL, ` +
-      `error_message = NULL, ended_at = NULL, last_activity_at = excluded.last_activity_at ` +
+      `ON CONFLICT (id) DO UPDATE SET status = 'active', ended_at = NULL, ` +
+      `last_activity_at = excluded.last_activity_at ` +
       `WHERE sessions.active_run_id IS NULL`,
     insertIfAbsent:
       `INSERT INTO sessions (id, agent_id, user_id, channel, chat_id, status, started_at, ` +

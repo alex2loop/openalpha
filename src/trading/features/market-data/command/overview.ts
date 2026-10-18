@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { MarketRef, Region } from '@/trading/kernel/instrument'
 import { renderOverviewText } from '@/trading/features/market-data/render/overview'
@@ -37,6 +42,7 @@ export function createOverviewCommand(deps: OverviewCommandDeps): SlashCommand {
       execution: { progressKey: 'slash.tradingOverviewProgress' },
       transcript: 'echo',
     },
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -48,7 +54,7 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
   const named = ctx.args.map((arg) => parseMember(arg, known))
 
   if (named.some((market) => market === null)) {
-    return usage(USAGE, { markets: known.join(', ') })
+    return usage(USAGE, buildUsageValues(deps))
   }
 
   const markets = named.filter((market): market is MarketRef => market !== null)
@@ -91,6 +97,10 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
       resolveRenderContext(deps.timezone, ctx.surface)
     ),
   }
+}
+
+function buildUsageValues(deps: OverviewCommandDeps): CommandMessageValues {
+  return { markets: deps.marketData.markets().join(', ') }
 }
 
 function readsRegion(deps: OverviewCommandDeps, markets: readonly MarketRef[]): boolean {

@@ -41,7 +41,7 @@ nothing to do returns at once.
 
 `trading.refresh` does not run on a plain timer. It runs at the earliest of:
 
-- shortly after each market's session closes, once the tape is final;
+- shortly after each market's session closes, once the day's trading data is final;
 - 60 minutes before each market's open, so briefs and screens read warm data (the earliest brief goes
   at 08:15 for a 09:00 open);
 - the configured interval, which is only a ceiling.
@@ -74,6 +74,7 @@ at 3, because each of its items is a model call. Restart the daemon after changi
 | Failure | Result |
 | --- | --- |
 | Storage, channel or LLM error, or a budget or rate stop | Logged as `trading.tick_failed` (warn) and retried on the next run. The outside world being unreachable is what the next run is for. |
+| A model key not set yet | Logged once as `trading.tick_key_missing` (warn), again only after something else was logged, and retried on the next run. |
 | Anything else: a validation failure, a broken invariant, a misconfiguration | That loop is quarantined and the rest keep running. It is logged as `trading.loop_quarantined` (error) and you get a notice naming the loop in plain words. The loop restarts after one hour, at most three times; the next failure leaves it stopped until the daemon restarts, and the notice says so. A loop that runs a full day before failing again gets its three restarts back. |
 | Cancel | You stopped the daemon. Not a failure. |
 | No network (a closed laptop's background wake) | The run is skipped, not failed. `trading.tick_offline` (warn) is logged once per offline stretch, then the network is re-checked every minute. Nothing burns a delivery attempt or trips a source breaker; the overdue run goes once the network is back. |
@@ -81,6 +82,18 @@ at 3, because each of its items is a model call. Restart the daemon after changi
 
 Trading loops start after channel delivery is attached, so an alert on the first run has somewhere to
 go.
+
+### When a key is missing
+
+`openalpha start` still starts without an AI key, a web search key, an MCP server's variable, the API
+token or a channel's bot token, and prints one warning per item (see
+[Commands](commands.md#daemon-and-diagnostics)). Data refresh, price alerts, the ledger and every loop
+that needs no model keep running. Work that needs the model waits: the macro-figure loop logs
+`trading.tick_key_missing` (warn) once and keeps trying each run; the morning brief still sends the
+sections that need no model, and on a day it cannot build you get one message naming the variable and
+how to set it; a scheduled job that needs the model skips that run without counting it as a failure,
+so it is never switched off for a missing key. `status` lists what is waiting for a key. Set the key
+and `restart`, and everything runs again.
 
 ---
 
@@ -135,6 +148,12 @@ A successful cron or interval job schedules its next run from the moment it fini
 disables itself. A failed run retries with a doubling delay, `60 s x 2^(failures - 1)` capped at 30
 minutes: one minute after the first failure, two after the second, then **disabled on the third
 consecutive failure**. A success resets the count.
+
+A missing key does not count either: a run that fails because an AI key variable is unset is
+skipped with one warning in the log, and the job stays on and runs at its next time, so setting the
+key and restarting is enough, with no `schedule resume`. The morning brief works the same way: that
+day you get a message naming the variable and how to set it, instead of "didn't get through after
+several tries".
 
 Shutdown never counts toward auto-disable. A one-time job cut short by shutdown stays due and runs on
 the next start. A denied or timed-out approval still ends it, because running it again would only
@@ -259,7 +278,7 @@ dropped, and a `fatal` crash line goes to the terminal instead.
 Run the daemon on a server you own and point a client app at it.
 
 1. **Install.** On Linux or macOS, run the install script from the
-   [README](../../README.en.md#getting-started) with `OPENALPHA_NO_ONBOARD=1` set. The
+   [README](../../README.en.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The
    command it installs is the path `command -v openalpha` prints (by default
    `~/.local/bin/openalpha`); the unit below must use it.
 2. **Configure.** `openalpha setup write <provider> <model>` writes `~/.openalpha/config.toml` with

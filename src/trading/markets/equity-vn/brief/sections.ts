@@ -238,7 +238,7 @@ export async function buildDiscipline(context: BriefContext): Promise<BriefSecti
 }
 
 /** Reuses the portfolio's own drift band. The brief never re-derives it: two owners of the 5/25
- *  rule would eventually nudge a user about a sleeve the rebalancer considers in band. */
+ *  rule would eventually nudge a user about a segment the rebalancer considers in band. */
 export async function buildDriftNudge(context: BriefContext): Promise<BriefSectionResult> {
   const advice = await context.rebalance()
 
@@ -380,9 +380,9 @@ function sinceOptions(context: BriefContext): ListSinceOptions {
   }
 }
 
-/** A sleeve that has not moved from its target has not drifted, whatever band it carries. A
- *  switched-off sleeve sits at nothing against a target of nothing under a band of nothing, which a
- *  bare `>=` reports as drifted — and the brief nudged about a sleeve the operator had closed. */
+/** A segment that has not moved from its target has not drifted, whatever band it carries. A
+ *  switched-off segment sits at nothing against a target of nothing under a band of nothing, which a
+ *  bare `>=` reports as drifted — and the brief nudged about a segment the operator had closed. */
 function isOutsideBand(row: SegmentTarget): boolean {
   const drift = Math.abs(row.currentPctNav - row.targetPctNav)
 

@@ -1,10 +1,9 @@
 import { z } from 'zod'
 
 import type { CliApp } from '@/cli/types'
-import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
+import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import type { TradingConfig } from '@/trading/api'
-import { findProviderById, hasIdentityEnv, IDENTITY_ENV, requiresApiKey } from '@/ai/api'
 import {
   parseZaloPersonalConfig,
   readZaloPersonalCredentials,
@@ -20,22 +19,23 @@ import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { fail, success } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { probeConfig } from '@/core/config/load'
-import { type MessageKey, t } from '@/i18n'
+import { type MessageKey, pluralKey, t } from '@/i18n'
 import { MIGRATIONS } from '@/persistence/api'
 
-import type { DoctorEnvironment, DoctorProbe, ResolvedProviderModel } from './types'
+import type { DoctorEnvironment, DoctorProbe } from './types'
 import { probeComposition } from './composition-probe'
 import { probeDatabase } from './database-probe'
+import { CHECK_NAMES, type CheckName, checkLabel, subjectLabel } from './labels'
 import {
   probeDaemon,
   probeDataDirectory,
   probeLogging,
   probeSources,
   tradingConfigOf,
-  unknownProviderProbe,
 } from './local-probes'
+import { probeModels } from './model-probes'
 import { probeBotTokenCheck, probeProviders, probeWebSearch } from './online-probes'
-import { renderDoctorProbe } from './render'
+import { labelWidthOf, renderDoctorProbe } from './render'
 import { probeVenueKeys } from './venue-probes'
 import { probeVersion } from './version-probe'
 
@@ -47,24 +47,6 @@ const ZALO_PERSONAL_BLOCKER_KEYS = {
   ban_risk_not_accepted: 'cli.doctorZaloPersonalRiskNotAccepted',
   no_allowed_ids: 'cli.doctorZaloPersonalNoAllowedIds',
 } as const satisfies Record<ZaloPersonalBlocker, MessageKey>
-const CHECK_NAMES = [
-  'config',
-  'models',
-  'data-dir',
-  'logging',
-  'database',
-  'daemon',
-  'channels',
-  'delivery',
-  'sources',
-  'trading',
-  'venues',
-  'web-search',
-  'providers',
-  'telegram',
-  'zalo',
-  'version',
-] as const
 
 const channelConfigSchema = z.looseObject({
   enabled: z.boolean().optional(),
@@ -87,8 +69,6 @@ interface DoctorContext {
 }
 
 type CheckRunner = () => Promise<readonly DoctorProbe[]>
-
-type CheckName = (typeof CHECK_NAMES)[number]
 
 export const doctorCommand: Command = createCommand({
   ...CLI_COMMAND_METADATA.doctor,
@@ -118,8 +98,10 @@ export const doctorCommand: Command = createCommand({
     const quiet = isQuiet()
     const visible = quiet ? probes.filter((probe) => probe.status === 'fail') : probes
 
+    const labelWidth = labelWidthOf(visible)
+
     for (const probe of visible) {
-      app.out(renderDoctorProbe(probe))
+      app.out(renderDoctorProbe(probe, labelWidth))
     }
 
     const failed = probes.filter((probe) => probe.status === 'fail')
@@ -136,7 +118,15 @@ export const doctorCommand: Command = createCommand({
       return 0
     }
 
-    app.err(fail(t(locale, 'cli.doctorProblemsFound', { count: failed.length })))
+    app.err(
+      fail(
+        t(
+          locale,
+          pluralKey(failed.length, 'cli.doctorProblemsFoundOne', 'cli.doctorProblemsFound'),
+          { count: failed.length }
+        )
+      )
+    )
 
     return EXIT_ISSUES_FOUND
   },
@@ -166,14 +156,21 @@ async function runProbe(
   try {
     return await run()
   } catch {
-    return [{ name, status: 'fail', detail: t(locale, 'cli.doctorProbeFailed') }]
+    return [
+      {
+        name: checkLabel(locale, name),
+        status: 'fail',
+        detail: t(locale, 'cli.doctorProbeFailed'),
+      },
+    ]
   }
 }
 
 function createCheckRegistry(ctx: DoctorContext): Readonly<Record<CheckName, CheckRunner>> {
   const config = ctx.app.config
   const locale = ctx.locale
-  const configFailed = hasConfigError(ctx.app)
+  // A config whose only fault is an unset key still loads: the key is reported under models.
+  const configFailed = hasConfigError(ctx.app) && ctx.app.configProbe?.configKeyMissing !== true
   const trading = tradingConfigOf(config)
 
   return {
@@ -186,7 +183,7 @@ function createCheckRegistry(ctx: DoctorContext): Readonly<Record<CheckName, Che
     daemon: async () => [await probeDaemon(ctx.app)],
     channels: async () => await probeChannels(config, ctx.env, locale),
     delivery: async () => [probeDeliveryAddressing(config, locale)],
-    sources: async () => [probeSources({ config, env: ctx.env, locale })],
+    sources: async () => probeSources({ config, env: ctx.env, locale }),
     trading: async () =>
       configFailed || trading === undefined
         ? awaitingConfig('trading', locale)
@@ -219,7 +216,13 @@ function databaseProbeOptions(
 }
 
 function awaitingConfig(name: CheckName, locale: Locale): readonly DoctorProbe[] {
-  return [{ name, status: 'warn', detail: t(locale, 'cli.doctorConfigNotLoaded') }]
+  return [
+    {
+      name: checkLabel(locale, name),
+      status: 'warn',
+      detail: t(locale, 'cli.doctorConfigNotLoaded'),
+    },
+  ]
 }
 
 function isCheckName(value: string): value is CheckName {
@@ -227,97 +230,25 @@ function isCheckName(value: string): value is CheckName {
 }
 
 async function probeConfiguration(app: CliApp, locale: Locale): Promise<DoctorProbe> {
+  const name = checkLabel(locale, 'config')
+
   try {
     if (app.configProbe !== undefined) {
-      return app.configProbe.configError === null
-        ? { name: 'config', status: 'ok', detail: app.configProbe.configPath }
-        : { name: 'config', status: 'fail', detail: app.configProbe.configError }
+      const { configError, configKeyMissing, configPath } = app.configProbe
+
+      return configError === null || configKeyMissing
+        ? { name, status: 'ok', detail: configPath }
+        : { name, status: 'fail', detail: configError }
     }
 
     const result = await probeConfig()
 
     return result.error === null
-      ? { name: 'config', status: 'ok', detail: result.configPath }
-      : { name: 'config', status: 'fail', detail: terminalErrorMessage(result.error, locale) }
+      ? { name, status: 'ok', detail: result.configPath }
+      : { name, status: 'fail', detail: terminalErrorMessage(result.error, locale) }
   } catch {
-    return { name: 'config', status: 'fail', detail: t(locale, 'cli.doctorCannotBeInspected') }
+    return { name, status: 'fail', detail: t(locale, 'cli.doctorCannotBeInspected') }
   }
-}
-
-function probeModels(
-  config: ResolvedConfig,
-  env: DoctorEnvironment,
-  locale: Locale
-): readonly DoctorProbe[] {
-  if (config.models.length === 0) {
-    return [{ name: 'models', status: 'fail', detail: t(locale, 'cli.doctorNoModels') }]
-  }
-
-  const summary: DoctorProbe = {
-    name: 'models',
-    status: 'ok',
-    detail: config.models.map((model) => `${model.provider}/${model.model}`).join(', '),
-  }
-
-  return [
-    summary,
-    ...missingApiKeyEnvProbes(config.models, locale),
-    ...missingSignInProbes(config.models, env, locale),
-  ]
-}
-
-// A model whose entry names no api_key_env at all resolves with no key and no error — resolvers/model.ts
-// only rejects a *named* env var that is empty. The catalog is what knows which providers need a key,
-// so this pre-flight check lives here rather than in core/config, which stays finance-vocab-free.
-// `[[models]] provider` is a free string (core/config never validates it against the catalog), so a
-// typo must degrade to a fail probe here, never throw and take the whole doctor report down with it.
-function missingApiKeyEnvProbes(
-  models: readonly ResolvedModel[],
-  locale: Locale
-): readonly DoctorProbe[] {
-  const resolved = models.map((model) => ({ model, provider: findProviderById(model.provider) }))
-  const unknown = resolved
-    .filter((entry) => entry.provider === undefined)
-    .map((entry) => unknownProviderProbe('models', entry.model, locale))
-
-  const missingKey = resolved
-    .filter((entry): entry is ResolvedProviderModel => entry.provider !== undefined)
-    .filter(({ model, provider }) => model.apiKey === undefined && provider.apiKeyEnv !== '')
-    .filter(({ model, provider }) => requiresApiKey(provider, model.baseUrl ?? provider.baseUrl))
-    .map(({ model, provider }) => ({
-      name: 'models',
-      status: 'fail' as const,
-      detail: t(locale, 'cli.doctorModelMissingApiKeyEnv', {
-        provider: provider.id,
-        model: model.model,
-        key: provider.apiKeyEnv,
-      }),
-    }))
-
-  return [...unknown, ...missingKey]
-}
-
-// A cloud provider with no key signs in with the operator's cloud account, so its check is whether
-// that account's variables are set, the same rule boot applies.
-function missingSignInProbes(
-  models: readonly ResolvedModel[],
-  env: DoctorEnvironment,
-  locale: Locale
-): readonly DoctorProbe[] {
-  return models.flatMap((model) => {
-    const identity = findProviderById(model.provider)?.identity
-
-    if (identity === undefined || model.apiKey !== undefined || hasIdentityEnv(identity, env)) {
-      return []
-    }
-
-    const detail = t(locale, 'errors.configModelNoSignIn', {
-      model: `${model.provider}/${model.model}`,
-      env: IDENTITY_ENV[identity].join(', '),
-    })
-
-    return [{ name: 'models', status: 'fail' as const, detail }]
-  })
 }
 
 async function probeChannels(
@@ -329,7 +260,11 @@ async function probeChannels(
 
   if (entries.length === 0) {
     return [
-      { name: 'channels', status: 'ok', detail: t(locale, 'cli.doctorChannelsNoneConfigured') },
+      {
+        name: checkLabel(locale, 'channels'),
+        status: 'ok',
+        detail: t(locale, 'cli.doctorChannelsNoneConfigured'),
+      },
     ]
   }
 
@@ -349,8 +284,8 @@ async function probeZaloPersonal(options: {
   readonly dataDir: string
   readonly locale: Locale
 }): Promise<DoctorProbe> {
-  const name = `channel.${ZALO_PERSONAL_CHANNEL}`
   const { locale } = options
+  const name = subjectLabel(locale, 'channel', ZALO_PERSONAL_CHANNEL)
   let config: ZaloPersonalChannelConfig
 
   try {
@@ -391,10 +326,11 @@ function probeChannel(options: {
   readonly locale: Locale
 }): DoctorProbe {
   const parsed = channelConfigSchema.safeParse(options.raw)
+  const name = subjectLabel(options.locale, 'channel', options.channel)
 
   if (!parsed.success) {
     return {
-      name: `channel.${options.channel}`,
+      name,
       status: 'fail',
       detail: t(options.locale, 'cli.doctorChannelInvalidConfig'),
     }
@@ -404,7 +340,7 @@ function probeChannel(options: {
 
   if (data.enabled === false) {
     return {
-      name: `channel.${options.channel}`,
+      name,
       status: 'warn',
       detail: t(options.locale, 'cli.doctorChannelDisabled'),
     }
@@ -417,7 +353,7 @@ function probeChannel(options: {
 
     if (token === '') {
       return {
-        name: `channel.${options.channel}`,
+        name,
         status: 'fail',
         detail: t(options.locale, 'cli.doctorTokenNotResolved'),
       }
@@ -425,7 +361,7 @@ function probeChannel(options: {
   }
 
   return {
-    name: `channel.${options.channel}`,
+    name,
     status: 'ok',
     detail: t(options.locale, 'cli.doctorChannelEnabled'),
   }
@@ -449,11 +385,15 @@ function probeDeliveryAddressing(config: ResolvedConfig, locale: Locale): Doctor
   }
 
   if (ambiguous.length === 0) {
-    return { name: 'delivery', status: 'ok', detail: t(locale, 'cli.doctorDeliveryAddressed') }
+    return {
+      name: checkLabel(locale, 'delivery'),
+      status: 'ok',
+      detail: t(locale, 'cli.doctorDeliveryAddressed'),
+    }
   }
 
   return {
-    name: 'delivery',
+    name: checkLabel(locale, 'delivery'),
     status: 'warn',
     detail: t(locale, 'cli.doctorDeliveryAmbiguous', { channels: ambiguous.join(', ') }),
   }

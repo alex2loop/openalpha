@@ -21,24 +21,29 @@ import {
   countDaemonLogs,
 } from '@/core/logging/retention'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
+
+interface CountedMessage {
+  readonly one: MessageKey
+  readonly many: MessageKey
+}
 
 interface ClearMessages {
-  readonly confirm: MessageKey
-  readonly preview: MessageKey
-  readonly cleared: MessageKey
+  readonly confirm: CountedMessage
+  readonly preview: CountedMessage
+  readonly cleared: CountedMessage
 }
 
 const AGENT_MESSAGES = {
-  confirm: 'cli.logsClearConfirm',
-  preview: 'cli.logsClearPreview',
-  cleared: 'cli.logsCleared',
+  confirm: { one: 'cli.logsClearConfirmOne', many: 'cli.logsClearConfirm' },
+  preview: { one: 'cli.logsClearPreviewOne', many: 'cli.logsClearPreview' },
+  cleared: { one: 'cli.logsClearedOne', many: 'cli.logsCleared' },
 } as const satisfies ClearMessages
 
 const DAEMON_MESSAGES = {
-  confirm: 'cli.logsClearDaemonConfirm',
-  preview: 'cli.logsClearDaemonPreview',
-  cleared: 'cli.logsDaemonCleared',
+  confirm: { one: 'cli.logsClearDaemonConfirmOne', many: 'cli.logsClearDaemonConfirm' },
+  preview: { one: 'cli.logsClearDaemonPreviewOne', many: 'cli.logsClearDaemonPreview' },
+  cleared: { one: 'cli.logsDaemonClearedOne', many: 'cli.logsDaemonCleared' },
 } as const satisfies ClearMessages
 
 interface ClearScope {
@@ -197,7 +202,10 @@ async function runClear(target: ClearScope, args: ParsedArgs, ops: ClearOps): Pr
 
   app.out(
     success(
-      t(locale, target.messages.cleared, { count: result.count, bytes: formatBytes(result.bytes) })
+      t(locale, countedKey(target.messages.cleared, result.count), {
+        count: result.count,
+        bytes: formatBytes(result.bytes),
+      })
     )
   )
 
@@ -211,14 +219,18 @@ function confirmClear(target: ClearScope, args: ParsedArgs, count: number): Prom
     return Promise.resolve(true)
   }
 
-  return confirm(defaultPrompt(), t(locale, target.messages.confirm, { count, scope }), locale)
+  return confirm(
+    defaultPrompt(),
+    t(locale, countedKey(target.messages.confirm, count), { count, scope }),
+    locale
+  )
 }
 
 function reportDryRun(target: ClearScope, preview: ClearOutcome): number {
   const { app, locale, scope } = target
 
   app.out(
-    t(locale, target.messages.preview, {
+    t(locale, countedKey(target.messages.preview, preview.count), {
       count: preview.count,
       bytes: formatBytes(preview.bytes),
       scope,
@@ -234,7 +246,15 @@ function reportFailures(target: ClearScope, result: ClearOutcome): number {
     return 0
   }
 
-  target.app.err(fail(t(target.locale, 'cli.logsClearFailures', { count: result.failures })))
+  target.app.err(
+    fail(
+      t(
+        target.locale,
+        pluralKey(result.failures, 'cli.logsClearFailuresOne', 'cli.logsClearFailures'),
+        { count: result.failures }
+      )
+    )
+  )
 
   return 1
 }
@@ -267,4 +287,8 @@ function resolveCutoff(olderThan: string | undefined, locale: Locale): CutoffRes
   }
 
   return { kind: 'value', value: Date.now() - parsed.ms }
+}
+
+function countedKey(message: CountedMessage, count: number): MessageKey {
+  return pluralKey(count, message.one, message.many)
 }

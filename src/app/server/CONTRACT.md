@@ -92,7 +92,7 @@ this document — neither imports the other.
 | GET | `/v1/screen` | yes | `?market` (required) `&kind&limit` | `ScreenResponse` | `screen.json` |
 | GET | `/v1/instruments` | yes | `?q` (required, at most 40 chars) `&limit` | `InstrumentSearchResponse` | `instruments.json` |
 | GET | `/v1/overview` | yes | — | `OverviewResponse` (the home region's markets first) | `overview.json` |
-| GET | `/v1/markets` | yes | — | `MarketsResponse` (`homeRegion`; per market: price convention, region, `ownsRegion`, sleeve, names in the daemon's language, benchmark, and whether it has a board, a brief and events) | `markets.json` |
+| GET | `/v1/markets` | yes | — | `MarketsResponse` (`homeRegion`; per market: price convention, region, `ownsRegion`, segment, names in the daemon's language, benchmark, and whether it has a board, a brief and events) | `markets.json` |
 | GET | `/v1/macro` | yes | `?region` (optional) | `MacroResponse` (`readAt`: when the sources were read; `lean`: the CLI's one-sentence lean; `scoreRange`: the score's scale and the regime cuts; each driver has its `label`) | `macro.json`, `macro.unavailable.json` |
 | GET | `/v1/ledger` | yes | `?limit&cursor&fromDay&toDay` (optional) `&market&ticker` (both or neither: one name's rows) | `LedgerPageResponse` | `ledger.json` |
 | POST | `/v1/ledger` | yes | `{ draft }` + `Idempotency-Key` header (required) | `LedgerWriteResponse` | `ledger.write.json` |
@@ -174,6 +174,12 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   distinguishable from a stopped one — the client shows "Starting…" + retries rather than "stopped".
   `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client
   can tell a daemon too old for it before opening the socket.
+- **`/v1/state` degraded**: what the daemon started without, one entry per item, worded in the
+  daemon's language: `channel` (a chat channel left down, `subject` its id), `api`, `key` (an unset
+  key variable or an exchange with no keys, with what waits for it) and `optional-key` (a feature with
+  a keyless fallback). Empty when everything is configured. It names variables, never their values,
+  and sits behind auth rather than on `/v1/health` for that reason. The client shows each `message`
+  as is.
 
 ## 4. `/v1/ws` — the proactive event feed
 

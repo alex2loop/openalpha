@@ -57,7 +57,12 @@ export const DEBATE_MODE_ROLES = Object.freeze({
 /** Why a run argued at the shallow depth. Only `lean` carries one: `full` is the depth a reader
  *  expects. Decided once and carried, because a stored row cannot tell a typed `lean` from a
  *  configured one afterwards. */
-export const LEAN_DEBATE_REASONS = Object.freeze(['requested', 'configured', 'book-hold'] as const)
+export const LEAN_DEBATE_REASONS = Object.freeze([
+  'requested',
+  'configured',
+  'book-hold',
+  'factors-hold',
+] as const)
 export type LeanDebateReason = (typeof LEAN_DEBATE_REASONS)[number]
 
 /** Every wave either mode can run, deduped in first-appearance order. The locale gate derives one
@@ -209,7 +214,7 @@ export interface MarketConfig {
   readonly holidays: readonly TradingDay[]
   /** The farthest below entry a stop may sit, as a fraction of entry. Absent means no ceiling. */
   readonly maximumStopLoss?: number
-  /** Stop distance in ATRs, for whichever horizon the sleeve runs. Absent keeps the market's own. */
+  /** Stop distance in ATRs, for whichever horizon the segment runs. Absent keeps the market's own. */
   readonly stopLossAtr?: number
   /** Target as a multiple of the risk distance. Absent keeps the market's own. */
   readonly rewardRisk?: number

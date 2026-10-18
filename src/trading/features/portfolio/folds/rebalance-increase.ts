@@ -1,4 +1,4 @@
-// The buy side of a plan: what each sleeve's slice of free cash pays for, and what it leaves
+// The buy side of a plan: what each segment's slice of free cash pays for, and what it leaves
 // unfunded. Paired with `rebalance-reduce.ts`, which frees rather than spends.
 
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
@@ -29,9 +29,9 @@ interface Increases {
   readonly shortfallBySegment: ReadonlyMap<PortfolioSegment, number>
 }
 
-interface SleeveBudgets {
+interface SegmentBudgets {
   readonly bySegment: ReadonlyMap<PortfolioSegment, number>
-  /** The share of free cash the sleeve budgets actually opened, for the header that states it. */
+  /** The share of free cash the segment budgets actually opened, for the header that states it. */
   readonly deploymentScale: number
 }
 
@@ -52,7 +52,7 @@ export function increaseRows(
       continue
     }
 
-    // Before the budget is touched, so a suppressed name never spends its sleeve's slice. Adding to
+    // Before the budget is touched, so a suppressed name never spends its segment's slice. Adding to
     // a holding the evidence has turned against is the one buy this plan must not propose.
     if (rows.input.standingReduces.has(key)) {
       caveats.push(standingReduceCaveat(candidate))
@@ -122,7 +122,7 @@ interface FundInput {
   readonly shortfall: number
 }
 
-/** The lot-rounded step this sleeve's budget pays for, and what cash left uncovered. A step too
+/** The lot-rounded step this segment's budget pays for, and what cash left uncovered. A step too
  *  small to clear the gate even with unlimited cash reports no shortfall: a turnover clamp or lot
  *  residue was never a funding gap. */
 function fundedStep(input: FundInput): FundedStep {
@@ -143,25 +143,25 @@ function fundedStep(input: FundInput): FundedStep {
 }
 
 function increaseStep(shortfall: number, segment: PortfolioSegment, rows: RowInput): number {
-  const sleeve = rows.sleeves.get(segment)
+  const gap = rows.segments.get(segment)
   const under = Math.max(0, -(rows.drifting.get(segment) ?? 0))
 
-  return pacedStep(shortfall, under, sleeve?.shortfall ?? 0)
+  return pacedStep(shortfall, under, gap?.shortfall ?? 0)
 }
 
-/** The pool is split by profile target weight and each slice held to its own sleeve's macro, so a
- *  defensive sleeve holds back its share instead of the whole book. An unspent slice stays cash:
- *  one sleeve's macro never licenses spending another's. Each slice is then clamped to the cash its
+/** The pool is split by profile target weight and each slice held to its own segment's macro, so a
+ *  defensive segment holds back its share instead of the whole book. An unspent slice stays cash:
+ *  one segment's macro never licenses spending another's. Each slice is then clamped to the cash its
  *  own market can reach — a plan that budgets money sitting at another venue is one the sizer
  *  trims back with a caveat, so the plan states what is fundable up front. */
-export function sleeveBudgets(rows: RowInput): SleeveBudgets {
+export function segmentBudgets(rows: RowInput): SegmentBudgets {
   const { profile } = rows.input
   const availablePctNav = rows.input.valued.book.availableCashBase / rows.nav
   const spendable = Math.max(0, availablePctNav - profile.reservePctNav)
   const funded = fundedTargets(rows)
 
   if (funded.size === 0) {
-    // Nothing to buy today: the scale still states what the sleeves' macro would allow.
+    // Nothing to buy today: the scale still states what the segments' macro would allow.
     return { bySegment: new Map(), deploymentScale: blendedScale(rows, allTargets(rows)) }
   }
 
@@ -179,7 +179,7 @@ export function sleeveBudgets(rows: RowInput): SleeveBudgets {
   }
 }
 
-/** Each sleeve's weight in the targets times the scale its macro allows. */
+/** Each segment's weight in the targets times the scale its macro allows. */
 function scaleShares(
   rows: RowInput,
   targets: ReadonlyMap<PortfolioSegment, number>
@@ -216,8 +216,8 @@ function sumOf(values: ReadonlyMap<PortfolioSegment, number>): number {
   return [...values.values()].reduce((sum, value) => sum + value, 0)
 }
 
-/** One sleeve's market, read off its candidates: a segment belongs to exactly one market, so the
- *  first candidate holding it names the sleeve's. Absent where the sleeve holds nothing yet. */
+/** One segment's market, read off its candidates: a segment belongs to exactly one market, so the
+ *  first candidate holding it names the segment's. Absent where the segment holds nothing yet. */
 function marketBySegment(rows: RowInput): ReadonlyMap<PortfolioSegment, MarketRef> {
   const markets = new Map<PortfolioSegment, MarketRef>()
 
@@ -230,28 +230,28 @@ function marketBySegment(rows: RowInput): ReadonlyMap<PortfolioSegment, MarketRe
   return markets
 }
 
-/** A sleeve may draw on the whole book's spendable pool only up to what its own market's venues
+/** A segment may draw on the whole book's spendable pool only up to what its own market's venues
  *  hold. A market no order-placing venue serves is one the operator trades by hand, so its slice
  *  is unclamped rather than zeroed. */
 function clampToReachable(
   rows: RowInput,
-  sleeve: {
+  segment: {
     readonly segment: PortfolioSegment
     readonly markets: ReadonlyMap<PortfolioSegment, MarketRef>
     readonly slice: number
   }
 ): number {
-  const market = sleeve.markets.get(sleeve.segment)
+  const market = segment.markets.get(segment.segment)
   const reachable = market === undefined ? undefined : rows.input.reachableCashBase.get(market)
 
   if (reachable === undefined) {
-    return sleeve.slice
+    return segment.slice
   }
 
-  return Math.min(sleeve.slice, reachable / rows.nav)
+  return Math.min(segment.slice, reachable / rows.nav)
 }
 
-/** Only sleeves with a name to add share the pool: one with nothing to buy would hold back a slice
+/** Only segments with a name to add share the pool: one with nothing to buy would hold back a slice
  *  no order could spend. */
 function fundedTargets(rows: RowInput): ReadonlyMap<PortfolioSegment, number> {
   const targets = new Map(segmentEntries(rows.input.profile.segmentTargets))

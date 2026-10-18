@@ -24,12 +24,12 @@ import {
   OUTCOME_PENDING_REASONS,
   SUGGESTION_UNSUPPORTED_REASONS,
 } from '@/trading/features/suggestion/types'
+import { SCORECARD_LEVELS } from '@/trading/features/themes/outcomes/scorecard-types'
 import {
   EARNINGS_VERDICTS,
   EXPOSURE_LABELS,
   SCORE_CONFIDENCES,
   SCORE_PARTS,
-  SCORECARD_LEVELS,
   SECTOR_EFFECTS,
   SECTOR_LINKAGES,
   THEME_GAPS,

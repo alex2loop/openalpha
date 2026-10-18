@@ -40,6 +40,29 @@ To chat with that agent directly, use `openalpha chat --agent deep-researcher`. 
 A top-level `thorough` run needs someone to review the plan interactively. With nobody attached, it
 is cancelled before spending anything rather than running the most expensive depth unreviewed.
 
+### A real run
+
+A real `quick` run, trimmed and translated from Vietnamese. With no eight-month figure found, the report says so and gives the latest one, flagging with ⚠️ the claims it could not source well enough:
+
+```
+You:  /research quick What did FPT earn in the first eight months of 2026,
+      and what do brokers forecast for the year?
+
+2 searches · 3 pages read
+2 sources used · 4 supported claims
+⚠️ 2 evidence issues
+  • Not enough source support was found for a claim. ×2
+✓ Complete with gaps · Evidence level: mixed
+
+⏺ No eight-month 2026 profit figure for FPT was found, and no broker full-year
+forecast either. The latest figures found:
+- Five months: net profit to parent VND 4,199 bn, +16% (Vietcap).
+- Six months: pre-tax profit VND 5,714 bn, +18.1% (Bao Dau tu).
+- FPT's own full-year plan (not a forecast): pre-tax profit VND 11,629 bn.
+
+$0.0111 · done in 34.4 seconds
+```
+
 ## How a run works
 
 ```mermaid
@@ -187,7 +210,8 @@ A profile may narrow a limit but never raise it.
 Search providers are set under `[web_search]`. Research uses two explicit roles - the configured
 default and an optional distinct fallback - and never silently falls back to keyless DuckDuckGo the
 way the general `web_search` tool does. With no fallback configured, a failed default shows up as a
-`provider_unavailable` gap.
+`provider_unavailable` gap. If the default's `api_key_env` names an empty variable, `/research`
+refuses up front and names the variable to set.
 
 A paid provider's charge comes out of the crawl budget. Exa reports its own cost; Brave, Serper and
 Tavily bill per query without reporting it, so set `[web_search] cost_per_search_usd` to your plan's

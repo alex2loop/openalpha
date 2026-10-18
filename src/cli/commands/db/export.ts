@@ -13,7 +13,7 @@ import { ensurePrivateDirectory, PRIVATE_FILE_MODE } from '@/core/security/priva
 import { t } from '@/i18n'
 import { ALL_TABLE_NAMES, DURABLE_TABLES, findTable, hasTable } from '@/persistence/api'
 
-import { printTableCounts, type TableCount } from './report'
+import { countedTotals, printTableCounts, type TableCount } from './report'
 
 const EXPORT_FORMATS = ['json', 'csv'] as const
 const PAGE_SIZE = 5000
@@ -144,7 +144,12 @@ async function writeExport(req: ExportRequest): Promise<number> {
     const rows = printTableCounts(req.app, counts)
 
     req.app.out(
-      success(t(locale, 'cli.dbExportWrote', { rows, files: counts.length, dir: req.dir }))
+      success(
+        t(locale, 'cli.dbExportWrote', {
+          ...countedTotals(locale, rows, counts.length),
+          dir: req.dir,
+        })
+      )
     )
 
     return 0

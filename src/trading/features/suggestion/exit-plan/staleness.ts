@@ -12,7 +12,7 @@ interface OutcomeWindowInput {
   readonly market: Pick<Market, 'manifest'>
   readonly held: HeldPosition
   readonly asOf: TradingDay
-  /** The sleeve horizon this holding sits in, so the wait it is judged against is the one its own
+  /** The segment horizon this holding sits in, so the wait it is judged against is the one its own
    *  calls are scored over. Resolved by the caller through `horizonFor`, never from the manifest's
    *  seed, which the operator's profile overrides. */
   readonly horizon: InvestmentHorizon
@@ -27,7 +27,7 @@ interface PositionStaleInput extends OutcomeWindowInput {
  *  without a price so a caller can skip the quote for a position too young to be stale whatever it
  *  is worth. The window is counted in the market's default sessions and stepped on its own calendar
  *  — a window in sessions is a different span in days, and the two are not interchangeable — over
- *  the sleeve's own horizon, and from the day half the position was held, so a fresh add is not
+ *  the segment's own horizon, and from the day half the position was held, so a fresh add is not
  *  sold as stale on its first lot's clock. False without an open lot, which is a fold that saw
  *  nothing to wait on. */
 export function isPastOutcomeWindow(input: OutcomeWindowInput): boolean {

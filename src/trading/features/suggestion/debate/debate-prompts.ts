@@ -272,7 +272,7 @@ export function riskPrompt(
 
 /** A proper score: the role's best answer is its true belief, because a probability stated to
  *  persuade scores worse than one stated to be right. Built per call rather than once, because the
- *  window it names is the one this sleeve's horizon is scored over. */
+ *  window it names is the one this segment's horizon is scored over. */
 function probabilityInstructions(context: PromptContext): string {
   return [
     'probability is your own estimate, 0 to 1, that this call closes with a positive return within',

@@ -109,7 +109,7 @@ export const REGIME_SCALE: Readonly<Record<MarketRegime, number>> = Object.freez
  *  table is what makes it the ceiling. */
 export const FULL_DEPLOYMENT_SCALE = REGIME_SCALE['risk-on']
 
-/** A sleeve whose own market published no regime is read defensively, for the reason `ABSENT_REGIME`
+/** A segment whose own market published no regime is read defensively, for the reason `ABSENT_REGIME`
  *  states: an unresolved read must not license deployment. */
 export function regimeFor(
   regimes: ReadonlyMap<PortfolioSegment, RegimeScale>,

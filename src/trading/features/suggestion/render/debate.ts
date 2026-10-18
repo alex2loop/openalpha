@@ -86,6 +86,7 @@ interface DebateView {
   /** The side the debate argued over, so the bull and bear labels name the decision on the table. */
   readonly direction: SuggestionDirection
   readonly unsupported: ReadonlySet<string>
+  readonly ticker: string
   readonly thesis?: string
 }
 
@@ -103,6 +104,7 @@ export function renderDebateLines(view: DebateView, debate: StoredDebate): reado
     return [
       renderSectionTitle(SECTION_ICONS.debate, t(view.locale, 'trading.render.suggestion.debate')),
       leanReasonRow(view.locale, debate.reason),
+      ...fullDebateRow(view, debate.reason),
       ...trimNotice(view, debate),
       ...skillsRow(view, debate),
       ...proseFold(view, [debateRow(analyst.mark, row)]),
@@ -136,6 +138,17 @@ function leanReasonRow(locale: Locale, reason: LeanDebateReason): string {
     steps: formatCount(locale, DEBATE_MODE_ROLES.lean.length),
     reason: renderDeclaredValue(locale, `trading.debate.lean.${reason}`),
   })}`
+}
+
+/** Only a lean the pipeline chose points at the full run; a typed or configured one was asked for. */
+function fullDebateRow(view: DebateView, reason: LeanDebateReason): readonly string[] {
+  if (reason !== 'book-hold' && reason !== 'factors-hold') {
+    return []
+  }
+
+  return [
+    `${INDENT[1]}${t(view.locale, 'trading.render.suggestion.debateLeanFull', { ticker: view.ticker })}`,
+  ]
 }
 
 /** What each role decided, and what each side argued. The two travel apart because only the first

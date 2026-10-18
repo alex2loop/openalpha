@@ -10,6 +10,7 @@ import type {
   ThemeStepFailure,
 } from '@/trading/features/themes/types'
 import { BRAND } from '@/core/brand'
+import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 import { MAXIMUM_NEWS_ITEMS } from '@/trading/features/themes/evidence/news'
 import { renderTopSectors, renderTopStocks } from '@/trading/features/themes/render/opportunities'
@@ -258,7 +259,7 @@ function renderNotes(themeId: ThemeId, context: ReportContext): readonly string[
 }
 
 function renderNote(note: ThemeRunNote, locale: Locale): string {
-  const cause = renderFailure(locale, note.cause)
+  const cause = renderFailure(locale, note)
 
   if (note.level === 'theme') {
     return t(locale, 'trading.render.themes.stale', { cause })
@@ -277,7 +278,7 @@ function renderProposed(lines: readonly ThemeLine[], context: ReportContext): re
       ? []
       : [
           t(locale, 'trading.render.themes.discoveryFailed', {
-            cause: renderFailure(locale, discovery.cause),
+            cause: renderFailure(locale, discovery),
           }),
         ]
   const ranked = sortByScore(lines, (line) => line.read?.score)
@@ -298,6 +299,16 @@ function renderProposed(lines: readonly ThemeLine[], context: ReportContext): re
   ]
 }
 
-function renderFailure(locale: Locale, cause: ThemeStepFailure): string {
-  return t(locale, `trading.themes.failure.${cause}`, { brand: BRAND.name })
+function renderFailure(
+  locale: Locale,
+  failure: { readonly cause: ThemeStepFailure; readonly env?: string }
+): string {
+  if (failure.env !== undefined) {
+    return t(locale, 'trading.themes.keyMissing', {
+      env: failure.env,
+      command: setEnvCommand(failure.env),
+    })
+  }
+
+  return t(locale, `trading.themes.failure.${failure.cause}`, { brand: BRAND.name })
 }

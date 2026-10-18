@@ -15,7 +15,7 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import type { TradeCost } from '@/trading/markets/cost'
 import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
 import type { VenueRegistry } from '@/trading/venues/types'
-import { t, translateToolError } from '@/i18n'
+import { translateToolError } from '@/i18n'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import {
   confirmTokenOf,
@@ -127,20 +127,31 @@ export function createTradeCommand(options: TradeCommandOptions): SlashCommand {
     // The action only: a staged order's side sits behind an optional venue, so its slot is not
     // known until the line is finished.
     completeFor: (args) => (args.length === 1 ? TRADE_ACTIONS : []),
+    usage: () => ({ key: USAGE }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
 
+// A line it cannot parse (`help`, a typo) still gets the syntax, so the operator can learn the
+// command before setting a key; anything well-formed is told which keys would place it.
 function createKeylessTradeCommand(venues: Pick<VenueRegistry, 'list'>): SlashCommand {
   return {
     name: 'trade',
     description: { kind: 'localized', key: 'slash.tradingTradeHelp' },
-    messageKeys: [NEEDS_KEY],
+    messageKeys: [USAGE, NEEDS_KEY],
     policy: KEYLESS_POLICY,
-    run: async (ctx): Promise<SlashResult> => ({
-      kind: 'text',
-      text: t(ctx.locale, NEEDS_KEY, { venues: renderKeylessVenues(ctx.locale, venues) }),
-    }),
+    usage: () => ({ key: USAGE }),
+    run: async (ctx): Promise<SlashResult> => {
+      const needsKey = {
+        key: NEEDS_KEY,
+        values: { venues: renderKeylessVenues(ctx.locale, venues) },
+      }
+
+      return {
+        kind: 'message',
+        messages: parseTradeArgs(ctx.args) === null ? [{ key: USAGE }, needsKey] : [needsKey],
+      }
+    },
   }
 }
 

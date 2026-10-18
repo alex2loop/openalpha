@@ -28,6 +28,8 @@ export { createSlashDispatcher } from '@/commands/dispatcher/dispatcher'
 export {
   type CommandHelpOptions,
   type HelpControl,
+  type HelpRequest,
+  parseHelpLine,
   renderCommandHelp,
 } from '@/commands/dispatcher/help'
 export {

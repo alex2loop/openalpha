@@ -15,6 +15,7 @@ const ALLOWED_COMMAND_KEYS: ReadonlySet<string> = new Set<string>([
   'policy',
   'policyFor',
   'group',
+  'usage',
   'run',
 ])
 

@@ -25,9 +25,11 @@ export function printCommandHelp(
   const locale = output.config.locale.language
   const full = [...path, def.name].filter(Boolean).join(' ')
   const positionals = def.spec?.positional ?? []
-  const positionalUsage = positionals
-    .map((name) => (def.spec?.positionalOptional ? `[${name}]` : `<${name}>`))
-    .join(' ')
+  const rest = def.spec?.positionalRest
+  const positionalUsage = [
+    ...positionals.map((name) => (def.spec?.positionalOptional ? `[${name}]` : `<${name}>`)),
+    ...(rest === undefined ? [] : [`[${rest}...]`]),
+  ].join(' ')
   output.out(style.heading(full))
   output.out(`  ${renderLocalized(locale, def.summary)}`)
   output.out('')

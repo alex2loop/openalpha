@@ -91,7 +91,7 @@ function segmentWeightFindings(input: AssessInput): readonly PortfolioFinding[] 
     .flatMap((value) => segmentFindingsFor(input, value))
 }
 
-/** A sleeve can breach its ceiling and sit off its target at once, and each states a different
+/** A segment can breach its ceiling and sit off its target at once, and each states a different
  *  second number, so the two rules are built apart rather than sharing one subject. */
 function segmentFindingsFor(input: AssessInput, value: SegmentValue): readonly PortfolioFinding[] {
   const ceiling = input.profile.caps[value.segment]?.maximumSegmentPctNav
@@ -147,9 +147,9 @@ function positionWeightFindings(input: AssessInput): readonly PortfolioFinding[]
   )
 }
 
-/** A name over its sleeve's per-name cap is usually also concentrated, and both rows are wanted:
+/** A name over its segment's per-name cap is usually also concentrated, and both rows are wanted:
  *  one names a policy the operator set, the other a level that is heavy under any policy. Neither
- *  describes a fund that answers to the sleeve's ETF ceiling, whose own finding reports it. */
+ *  describes a fund that answers to the segment's ETF ceiling, whose own finding reports it. */
 function positionFindingsFor(
   input: AssessInput,
   entry: Extract<ValuedPosition, { readonly kind: 'priced' }>,
@@ -275,7 +275,7 @@ function liquidityFindings(input: AssessInput): readonly PortfolioFinding[] {
 interface FindingSpec {
   readonly kind: PortfolioFinding['kind']
   readonly evidenceKind: PortfolioEvidence['kind']
-  /** Which holding, sleeve, sector, or group this finding is about. Every rule supplies it, so two
+  /** Which holding, segment, sector, or group this finding is about. Every rule supplies it, so two
    *  breaches of one kind can never render as the same sentence. */
   readonly subject: CaveatDetail
 }

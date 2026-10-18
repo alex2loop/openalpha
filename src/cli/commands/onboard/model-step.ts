@@ -9,8 +9,8 @@ import {
   requiresApiKey,
 } from '@/ai/api'
 import { getEnv } from '@/cli/env'
-import { closestName } from '@/cli/suggestion'
 import { hint, warn } from '@/cli/ui/colors'
+import { closestName } from '@/core/utils/text'
 import { t } from '@/i18n'
 
 import type { StarterModel } from './config-file'

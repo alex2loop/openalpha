@@ -1,5 +1,4 @@
 import type { MarketRange } from '@/trading/kernel/market/market-overview'
-import { buildPriceRange } from '@/trading/markets/levels'
 
 /** An overview's leader lists cover the one session it reports, never a trailing window: its
  *  market-wide totals are that session's, and a list summing more would contradict them. */
@@ -33,6 +32,23 @@ export function rangeFromCloses(closes: readonly number[], from?: number): Marke
     supportPct: (price - range.support) / price,
     resistancePct: (range.resistance - price) / price,
   }
+}
+
+interface PriceRange {
+  readonly support: number
+  readonly resistance: number
+  readonly last: number
+}
+
+function buildPriceRange(closes: readonly number[]): PriceRange | undefined {
+  const usable = closes.filter((close) => Number.isFinite(close) && close > 0)
+  const last = usable[usable.length - 1]
+
+  if (last === undefined) {
+    return undefined
+  }
+
+  return { support: Math.min(...usable), resistance: Math.max(...usable), last }
 }
 
 /** The same-day round-trip cost on a two-sided board: (sell - buy) / sell. Undefined when either side

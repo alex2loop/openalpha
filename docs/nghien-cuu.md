@@ -41,6 +41,29 @@ tự.
 Chạy `thorough` ở tầng gốc **cần** một người duyệt kế hoạch tương tác. Không có người duyệt thì nó bị
 hủy trước khi tốn đồng nào, thay vì chạy mức đắt nhất mà không ai soát.
 
+### Một lần chạy thật
+
+Một lần `quick` thật, đã rút gọn. Không tìm được số 8 tháng thì báo cáo nói chưa có và đưa số gần nhất, kèm cờ ⚠️ cho những nhận định chưa đủ nguồn:
+
+```
+Bạn:  /research quick Lợi nhuận 8 tháng 2026 của FPT là bao nhiêu,
+      và các công ty chứng khoán dự báo cả năm thế nào?
+
+2 lượt tìm kiếm · 3 trang đã đọc
+2 nguồn được dùng · 4 nhận định có bằng chứng
+⚠️ 2 vấn đề về bằng chứng
+  • Chưa tìm thấy đủ nguồn ủng hộ cho một nhận định. ×2
+✓ Hoàn tất nhưng còn thiếu sót · Mức độ bằng chứng: một phần
+
+⏺ Chưa tìm thấy số liệu lợi nhuận 8 tháng 2026 của FPT, cũng chưa có dự báo cả năm
+từ công ty chứng khoán nào. Số liệu gần nhất tìm được:
+- 5 tháng: lợi nhuận sau thuế cổ đông công ty mẹ 4.199 tỷ đồng, +16% (Vietcap).
+- 6 tháng: lợi nhuận trước thuế 5.714 tỷ đồng, +18,1% (Báo Đầu tư).
+- Kế hoạch cả năm do FPT đặt (không phải dự báo): lợi nhuận trước thuế 11.629 tỷ đồng.
+
+$0.0111 · xong trong 34,4 giây
+```
+
 ## Một lần nghiên cứu làm việc thế nào
 
 ```mermaid
@@ -188,7 +211,8 @@ Hồ sơ có thể thu hẹp một giới hạn nhưng không bao giờ nâng n�
 Nhà cung cấp tìm kiếm cấu hình dưới `[web_search]`. Nghiên cứu dùng hai vai rõ ràng - nhà cung cấp mặc
 định và một nhà cung cấp dự phòng riêng (tùy chọn) - và không bao giờ ngầm rơi về DuckDuckGo không cần
 khóa như công cụ `web_search` chung. Chưa cấu hình dự phòng thì nhà cung cấp mặc định hỏng sẽ hiện
-thành khoảng trống `provider_unavailable`.
+thành khoảng trống `provider_unavailable`. Nếu `api_key_env` của nhà cung cấp mặc định trỏ tới một biến
+rỗng thì `/research` từ chối ngay và nêu biến cần đặt.
 
 Phí của nhà cung cấp trả tiền được trừ vào ngân sách giai đoạn crawl. Exa tự báo chi phí; Brave, Serper
 và Tavily tính tiền theo truy vấn nhưng không báo lại, nên hãy đặt `[web_search] cost_per_search_usd`

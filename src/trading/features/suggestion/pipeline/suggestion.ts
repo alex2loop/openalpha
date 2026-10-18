@@ -173,7 +173,7 @@ async function afterDebate(
   })
 }
 
-/** The sleeve this item sits in, which is the only macro read that may cap it. */
+/** The segment this item sits in, which is the only macro read that may cap it. */
 function itemRegime(prepared: Prepared): RegimeScale {
   return regimeFor(prepared.context.regimes, prepared.market.manifest.segment)
 }
@@ -290,7 +290,7 @@ function optionalFields(
 }
 
 /** The book, the factors and the corporate calendar share nothing until the direction reads them,
- *  so none waits behind another; the book read alone reaches every provider the sleeve's macro
+ *  so none waits behind another; the book read alone reaches every provider the segment's macro
  *  sits on. The calendar is read back far enough that the margin row in force is inside it. */
 function readRunInputs(
   options: SuggestionRunOptions,

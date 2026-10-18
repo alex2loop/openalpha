@@ -46,7 +46,7 @@ export function segmentHeadroomPctNavOf(
   )
 }
 
-/** Room under the sleeve's ETF ceiling, for an ETF only. A stock is not bounded by it, and a sleeve
+/** Room under the segment's ETF ceiling, for an ETF only. A stock is not bounded by it, and a segment
  *  that declares none does not bind — the position and segment caps still do. */
 export function etfHeadroomPctNavOf(
   context: SuggestionPortfolioContext,
@@ -91,8 +91,8 @@ interface ConcentrationInput {
 }
 
 /** Where the order leaves the sector, against the cap it is measured by. The caveat names the
- *  ceiling that bound the size; this answers the different question of how full the sleeve now is.
- *  A reduce takes its size off the sleeve: the same note on a trim read as if it were a buy. */
+ *  ceiling that bound the size; this answers the different question of how full the segment now is.
+ *  A reduce takes its size off the segment: the same note on a trim read as if it were a buy. */
 export function concentrationOf(
   context: SuggestionPortfolioContext,
   input: ConcentrationInput

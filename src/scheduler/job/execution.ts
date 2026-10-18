@@ -310,6 +310,11 @@ async function finishScheduledExecution(options: FinishScheduledExecutionOptions
 
   const finalized = finalization === 'finalized'
 
+  // Debug, once per run: the unset key itself is warned at start and listed by `status`.
+  if (outcome.status === 'failed' && outcome.missingEnv !== undefined) {
+    deps.logger.debug('scheduler.job_key_missing', { jobId: job.id, env: outcome.missingEnv })
+  }
+
   if (finalized) {
     await notifyIfAutoDisabled({ job, transition, outcome, deps })
   }

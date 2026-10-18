@@ -110,7 +110,7 @@ function parseSocialPatch(raw: unknown): SocialPatch {
     return parsed.data
   }
 
-  throw toInvalidConfigError(parsed.error, SOCIAL_CONFIG_SECTION)
+  throw toInvalidConfigError(parsed.error, SOCIAL_SCHEMA, { section: SOCIAL_CONFIG_SECTION })
 }
 
 function resolveActiveHours(raw: string | undefined, timeZone: string): DailyWindow | undefined {

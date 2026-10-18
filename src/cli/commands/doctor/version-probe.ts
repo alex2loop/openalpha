@@ -6,8 +6,7 @@ import { newerVersionOf, readUpdateState, refreshUpdateState } from '@/cli/updat
 import { t } from '@/i18n'
 
 import type { DoctorProbe } from './types'
-
-const PROBE_NAME = 'version'
+import { checkLabel } from './labels'
 
 /** Never fails: being behind is a warning, and not knowing is fine. */
 export async function probeVersion(
@@ -15,12 +14,14 @@ export async function probeVersion(
   online: boolean,
   locale: Locale
 ): Promise<DoctorProbe> {
+  const name = checkLabel(locale, 'version')
+
   if (!config.update.check) {
-    return { name: PROBE_NAME, status: 'ok', detail: t(locale, 'cli.updateCheckOff') }
+    return { name, status: 'ok', detail: t(locale, 'cli.updateCheckOff') }
   }
 
   if (await isSourceCheckout()) {
-    return { name: PROBE_NAME, status: 'ok', detail: t(locale, 'cli.upgradeSourceCheckout') }
+    return { name, status: 'ok', detail: t(locale, 'cli.upgradeSourceCheckout') }
   }
 
   const dataDir = config.paths.dataDir
@@ -30,13 +31,13 @@ export async function probeVersion(
   const latest = newerVersionOf(state)
 
   if (latest !== null) {
-    return { name: PROBE_NAME, status: 'warn', detail: formatUpdateMessage(locale, latest) }
+    return { name, status: 'warn', detail: formatUpdateMessage(locale, latest) }
   }
 
   const known = state.checkedAt > 0 && !state.failed
 
   return {
-    name: PROBE_NAME,
+    name,
     status: 'ok',
     detail: t(locale, known ? 'cli.updateUpToDate' : 'cli.updateUnchecked'),
   }

@@ -36,11 +36,10 @@ import {
 import {
   filteredCaveats,
   inconclusiveBanner,
-  isInconclusive,
   renderStampLine,
   renderUnsupportedReason,
 } from '@/trading/features/suggestion/render/verdict'
-import { framedDirectionOf } from '@/trading/features/suggestion/types'
+import { framedDirectionOf, isInconclusive } from '@/trading/features/suggestion/types'
 import { isBookCall } from '@/trading/kernel/operator/focus'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
@@ -256,6 +255,7 @@ export function renderDetailBlocks(
             action: suggestion.action,
             direction: framedDirectionOf(suggestion),
             unsupported: unsupportedSet(suggestion),
+            ticker: suggestion.instrument.ticker,
             ...(suggestion.thesis === undefined ? {} : { thesis: suggestion.thesis }),
           },
           suggestion.debate

@@ -5,15 +5,16 @@ import type { TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import { t } from '@/i18n'
 import {
-  fieldIssueMessages,
+  buildInvalidLineMessages,
   isResolvedDraft,
-  LEDGER_FIELD_KEYS,
+  LEDGER_ISSUE_KEYS,
   parseLedgerDraft,
 } from '@/trading/features/ledger/draft'
 import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { usage } from '@/trading/kernel/surface/surface'
 
+const UPDATE_COMMAND = 'update'
 const UPDATE_USAGE: 'slash.tradingUpdateUsage' = 'slash.tradingUpdateUsage'
 const DELETE_USAGE: 'slash.tradingDeleteUsage' = 'slash.tradingDeleteUsage'
 
@@ -33,15 +34,16 @@ interface UpdateCommandDeps extends EditCommandDeps {
  *  has to copy a UUID out of a chat line. */
 export function createUpdateCommand(deps: UpdateCommandDeps): SlashCommand {
   return {
-    name: 'update',
+    name: UPDATE_COMMAND,
     description: { kind: 'localized', key: 'slash.tradingUpdateHelp' },
-    messageKeys: [UPDATE_USAGE, ...Object.values(LEDGER_FIELD_KEYS)],
+    messageKeys: [UPDATE_USAGE, ...LEDGER_ISSUE_KEYS],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
       action: 'mutate',
       idempotencyKey: (ctx) => ctx.requestId,
     },
+    usage: () => ({ key: UPDATE_USAGE }),
     run: async (ctx): Promise<SlashResult> => runUpdate(deps, ctx),
   }
 }
@@ -57,18 +59,19 @@ export function createDeleteCommand(deps: EditCommandDeps): SlashCommand {
       action: 'mutate',
       idempotencyKey: (ctx) => ctx.requestId,
     },
+    usage: () => ({ key: DELETE_USAGE }),
     run: async (ctx): Promise<SlashResult> => runDelete(deps, ctx),
   }
 }
 
 async function runUpdate(deps: UpdateCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const [ref, ...rest] = ctx.args
-  const parsed = parseLedgerDraft(rest)
+  const parsed = parseLedgerDraft(rest, deps.baseCurrency)
 
   if (parsed.kind === 'invalid') {
     return {
       kind: 'message',
-      messages: [...fieldIssueMessages(parsed.issue), { key: UPDATE_USAGE }],
+      messages: buildInvalidLineMessages(parsed.issue, { key: UPDATE_USAGE }, UPDATE_COMMAND),
     }
   }
 

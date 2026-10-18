@@ -1,6 +1,12 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { ProfileService } from '@/trading/features/profile/types'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { renderQuotesText } from '@/trading/features/market-data/render/quotes'
 import { renderWatchlistText } from '@/trading/features/portfolio/render/watchlist'
@@ -27,6 +33,7 @@ export function createWatchlistCommand(deps: WatchlistCommandDeps): SlashCommand
     messageKeys: [USAGE],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps.marketData.markets()) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -43,7 +50,7 @@ async function run(deps: WatchlistCommandDeps, ctx: SlashContext): Promise<Slash
   const tickers = parseTickers(rest, markets)
 
   if (kind === null || tickers === null) {
-    return usage(USAGE, { markets: markets.join(', ') })
+    return usage(USAGE, buildUsageValues(markets))
   }
 
   const result = await deps.profiles.updateWatchlist({
@@ -54,6 +61,10 @@ async function run(deps: WatchlistCommandDeps, ctx: SlashContext): Promise<Slash
   })
 
   return { kind: 'text', text: renderWatchlistText(ctx.locale, result) }
+}
+
+function buildUsageValues(markets: readonly MarketRef[]): CommandMessageValues {
+  return { markets: markets.join(', ') }
 }
 
 async function runShow(deps: WatchlistCommandDeps, ctx: SlashContext): Promise<SlashResult> {

@@ -215,6 +215,8 @@ async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
   // Resolved eagerly so registry construction and its consistency checks run at boot, not at the
   // first tool call: a misconfigured install must fail during composition.
   app.resolve('tradingServices')
+  // Also resolved at boot, so an unset search key is logged once at start, not at the first search.
+  app.resolve('webRetrieval')
   assertSocialToolRules(app, socialConfig)
   await loggerResource.configureAgentRegistry(app.resolve('agents').keys())
   if (startup === 'hydrate') {
@@ -236,7 +238,7 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
     ...(options.dataDir === undefined ? {} : { dataDir: options.dataDir }),
     ...(options.logLevel === undefined ? {} : { logLevel: options.logLevel }),
     ...(options.modelSource === undefined ? {} : { modelSource: options.modelSource }),
-    ...(options.mode === 'daemon' ? {} : { deferMissingModelKeys: true }),
+    deferMissingKeys: true,
   })
   const { trading: tradingConfig, social: socialConfig } = resolveBootExtensions(config)
   const check = await (options.bootGate ?? passThroughBootGate)({

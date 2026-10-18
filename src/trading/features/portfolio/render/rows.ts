@@ -52,14 +52,14 @@ export interface BookDisplay {
   /** The cap on one sector, so a concentration row is read against the limit it will be measured by
    *  rather than in isolation. */
   readonly sectorCapPctNav: number
-  /** Per-sleeve caps, so an allocation row is read against the limit its weight will be measured
+  /** Per-segment caps, so an allocation row is read against the limit its weight will be measured
    *  by rather than in isolation. */
   readonly segmentCaps?: Readonly<Record<PortfolioSegment, RiskCapSet>>
   /** Per instrument key, the smallest order any venue holding it accepts. */
   readonly minimumSizes?: ReadonlyMap<string, number>
-  /** The weight each sleeve prints at. Apportioned once for the whole message, because a sleeve
+  /** The weight each segment prints at. Apportioned once for the whole message, because a segment
    *  stated by the allocation table and again by a line below it must not read two ways. */
-  readonly sleeveWeights: ReadonlyMap<PortfolioSegment, number>
+  readonly segmentWeights: ReadonlyMap<PortfolioSegment, number>
 }
 
 export function renderPositionSection(

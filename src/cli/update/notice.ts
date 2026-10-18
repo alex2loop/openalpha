@@ -28,6 +28,7 @@ const FLAG_PREFIX = '-'
 const QUIET_COMMANDS: ReadonlySet<string> = new Set([
   CLI_COMMAND_METADATA.upgrade.name,
   CLI_COMMAND_METADATA.version.name,
+  CLI_COMMAND_METADATA.help.name,
   CLI_COMMAND_METADATA.doctor.name,
   CLI_COMMAND_METADATA.mcp.name,
   CLI_COMMAND_METADATA.start.name,

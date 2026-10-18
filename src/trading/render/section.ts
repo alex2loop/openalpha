@@ -32,7 +32,7 @@ import { type RowUnit, renderValue, toLink } from '@/trading/render/section-valu
 // the basis, which used to share the field, now has `basisPct` and keeps its label. A board names
 // itself the way a ticker does, and only ever appears under a section that already says these are
 // boards. `premium` has one emitter and one section, whose title already says what it is. The rest
-// are values whose own words are the answer: a sleeve, a sector, a side, a headline, a next step, a
+// are values whose own words are the answer: a segment, a sector, a side, a headline, a next step, a
 // dated event and its date, an alert's condition, and the one rate a foreign-exchange row states.
 // A level is the only bare number on its row the way a price is, and its section title says which
 // index it is a level of.

@@ -182,7 +182,7 @@ function cryptoManifest(config: TradingConfig): MarketManifest {
     // Every listed name is a coin, so narrowing to that kind is the identity — declared anyway so a
     // caller asking for the crypto board by kind is answered rather than refused.
     screenableKinds: ['crypto'],
-    // What an altcoin is measured against: holding BTC is the alternative a crypto sleeve always has.
+    // What an altcoin is measured against: holding BTC is the alternative a crypto segment always has.
     benchmark: { market: CRYPTO_MARKET_REF, ticker: BTC_TICKER },
     admission: CRYPTO_ADMISSION,
   }

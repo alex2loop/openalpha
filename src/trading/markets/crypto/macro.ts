@@ -52,7 +52,7 @@ interface DriverDays {
 
 /** Crypto's own regime: Bitcoin against its long average, ETH against Bitcoin, and how much of the
  *  liquid board rose this week. Every input is a read the screen already pays for, so
- *  the composite costs the sleeve no new provider. It runs through the shared fold with its own
+ *  the composite costs the segment no new provider. It runs through the shared fold with its own
  *  driver table, so every surface renders it with the same rows and sums as the US one. */
 export async function resolveCryptoMacroRisk(
   deps: MarketDeps,

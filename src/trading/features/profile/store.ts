@@ -134,7 +134,7 @@ async function upsert(
 }
 
 /** Which profile this is, as a digest of the row it would write. A derived artifact built against
- *  the profile keys its reuse on this: the operator closing a sleeve changes every target the
+ *  the profile keys its reuse on this: the operator closing a segment changes every target the
  *  artifact printed, and a cache keyed only on the day would serve the old ones back. Key order is
  *  sorted rather than inherited from whatever built the record, because a digest that drifted
  *  between two equal profiles would rebuild that artifact for nothing. */
@@ -161,7 +161,7 @@ function toPayload(profile: UserProfile): z.infer<typeof payloadSchema> {
   }
 }
 
-/** Only the sleeves that carry a number. A partial record's values read as possibly absent, and a
+/** Only the segments that carry a number. A partial record's values read as possibly absent, and a
  *  key stored with no number is a pin or a core nothing could later apply. */
 function definedOnly(
   record: Readonly<Partial<Record<PortfolioSegment, number>>>

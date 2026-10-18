@@ -151,7 +151,7 @@ Mọi yêu cầu đi ra đều mang `BROWSER_HEADERS` từ `core/http-client.ts`
 
 Một endpoint có thể là một danh sách (`giavang` có một origin dự phòng). Đó là dự phòng ở tầng kênh truyền trên cùng một backend, khác với dự phòng ở tầng tuyến giữa các nhà cung cấp. `buildEndpointMaps` giữ origin làm danh sách host đáng tin, còn tiền tố đường dẫn của endpoint được giữ riêng, nên `/api/v3` của CoinGecko không bị mất.
 
-Thông tin đăng nhập: `SOURCE_CREDENTIAL_ENV` khai **tên** biến mặc định cho từng nguồn (`COINGECKO_API_KEY`, `FRED_API_KEY`). `[trading.sources]` đổi được tên biến, nhưng không bao giờ ghi giá trị hay host. Đổi tên cho một nguồn không nhận thông tin đăng nhập gây `OperatorConfigError` lúc khởi động (`errors.configSourceNoCredential`). `resolveCredential` (`core/security/credentials.ts`) đọc biến đó, rồi cùng tên đó với tiền tố sản phẩm (`OPENALPHA_FRED_API_KEY`). Một yêu cầu khai vị trí đặt thông tin đăng nhập (`header` kèm một tiền tố tùy chọn, hoặc `query`) mà không có bí mật nào được phân giải là `OperatorConfigError`.
+Thông tin đăng nhập: `SOURCE_CREDENTIALS` khai, cho từng nguồn, **tên** biến mặc định (`COINGECKO_API_KEY`, `FRED_API_KEY`) và dòng catalog nói đặt khóa đó thêm được gì (`trading.source.credential.<id>`, do `doctor` in ra); `SOURCE_CREDENTIAL_ENV` suy ra từ đó. `[trading.sources]` đổi được tên biến, nhưng không bao giờ ghi giá trị hay host. Đổi tên cho một nguồn không nhận thông tin đăng nhập gây `OperatorConfigError` lúc khởi động (`errors.configSourceNoCredential`). `resolveCredential` (`core/security/credentials.ts`) đọc biến đó, rồi cùng tên đó với tiền tố sản phẩm (`OPENALPHA_FRED_API_KEY`). Một yêu cầu khai vị trí đặt thông tin đăng nhập (`header` kèm một tiền tố tùy chọn, hoặc `query`) mà không có bí mật nào được phân giải là `OperatorConfigError`.
 
 Nguồn cần khóa mà không có thì không được đăng ký, nên loại dữ liệu đó chuyển sang nhà cung cấp kế tiếp. Lúc khởi động hệ thống ghi một cảnh báo `trading.source.skipped`, nêu tên từng nguồn bị bỏ qua và biến mà nó cần. Bản cài không có khóa là chế độ hạn chế **được hỗ trợ**. `unavailableSources` trả lời đúng câu hỏi đó dưới dạng dữ liệu thuần, nên `doctor` dùng chung phép kiểm này mà không cần khởi động hệ thống (nguồn từ plugin nằm ngoài: dữ kiện đăng nhập của chúng đến cùng module, mà chỉ lúc khởi động mới nạp).
 
@@ -490,7 +490,7 @@ export function createSources(kit) {
 ## Thêm một nguồn first-party
 
 1. Viết `sources/adapters/<provider>.ts` export ra `<PROVIDER>_DEFAULT_ENDPOINT` và `create<Provider>Sources(options: SourceAdapterOptions): readonly RegisteredSource[]`, một lời gọi `createSource` cho mỗi loại.
-2. Thêm endpoint vào `SOURCE_ENDPOINTS`, một tốc độ vào `SOURCE_RATE_LIMITS` (composition từ chối một mã đã định tuyến mà thiếu nó), và một tên biến vào `SOURCE_CREDENTIAL_ENV` nếu nó cần khóa.
+2. Thêm endpoint vào `SOURCE_ENDPOINTS`, một tốc độ vào `SOURCE_RATE_LIMITS` (composition từ chối một mã đã định tuyến mà thiếu nó), và một tên biến kèm dòng catalog `adds` vào `SOURCE_CREDENTIALS` nếu nó cần khóa.
 3. Thêm factory đó vào `createBuiltInSources` (`composition/source-facts.ts`) bằng spread.
 4. Cho mỗi cặp `(kind, id)` một vị trí trong `SOURCE_ROUTES`. Khâu đăng ký ném lỗi nếu thiếu.
 5. Nếu nó đưa vào một mã caveat mới, thêm nó vào `kernel/caveat.ts` kèm mức nghiêm trọng, và thêm câu chữ của nó vào **cả** `en.json` lẫn `vi.json`.

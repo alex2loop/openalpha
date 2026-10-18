@@ -113,9 +113,9 @@ export function resolveRefreshMarkets(markets: MarketRegistry): readonly MarketR
     .map((market) => market.manifest.id)
 }
 
-/** The markets something the operator relies on still reads: a sleeve switched on, a holding, a
+/** The markets something the operator relies on still reads: a segment switched on, a holding, a
  *  watched name, a call waiting to be scored, or the market a scheduled brief is built on. A
- *  switched-off sleeve drops out only once none of those needs its prices. With no profile yet
+ *  switched-off segment drops out only once none of those needs its prices. With no profile yet
  *  nothing is known to be unused, so every market stays in. */
 export async function resolveMarketsInUse(
   deps: MarketsInUseDeps,

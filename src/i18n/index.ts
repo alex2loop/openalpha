@@ -240,20 +240,22 @@ export function formatDay(locale: Locale, day: string): string {
 }
 
 /** A value a message interpolates. A keyed one is localized, and prints `fallback` where the catalog
- *  has no such key; a `day` is put in the reader's date order; an `amount` in their separators. */
+ *  has no such key; a `day` is put in the reader's date order; an `amount` in their separators; a
+ *  list prints one item per line. */
 export type DisplayParam =
   | string
   | number
   | { readonly day: string }
   | { readonly amount: number; readonly digits: number }
+  | readonly DisplayParam[]
   | {
       readonly key: string
-      readonly params?: Readonly<Record<string, string | number>>
+      readonly params?: Readonly<Record<string, DisplayParam>>
       readonly fallback?: string
     }
 
 /** Resolves display text: keyed messages are localized, plain text passes
- *  through. A param may itself be a keyed message (one level), e.g. a gap
+ *  through. A param may itself be a keyed message or a list of them, e.g. a gap
  *  whose reason is a failure display. */
 export function translateDisplayText(
   locale: Locale,
@@ -298,9 +300,15 @@ function displayParamText(locale: Locale, value: DisplayParam): string | number 
     return formatDay(locale, value.day)
   }
 
-  return 'amount' in value
-    ? formatParamAmount(locale, value.amount, value.digits)
-    : translateDisplayText(locale, value)
+  if ('amount' in value) {
+    return formatParamAmount(locale, value.amount, value.digits)
+  }
+
+  if ('key' in value) {
+    return translateDisplayText(locale, value)
+  }
+
+  return value.map((item) => displayParamText(locale, item)).join('\n')
 }
 
 function formatParamAmount(locale: Locale, amount: number, digits: number): string {

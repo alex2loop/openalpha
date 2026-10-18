@@ -33,8 +33,8 @@ export interface HeldPosition {
   readonly openedOn?: TradingDay
 }
 
-/** One sleeve's weight against the cap it is measured by. */
-export interface SleeveExposure {
+/** One weight against the cap it is measured by. */
+export interface CapExposure {
   readonly name: string
   readonly pctNav: number
   readonly capPctNav: number
@@ -53,7 +53,7 @@ export interface RoundTripHistory {
  *  the deciding roles reason in weights and the sizer enforces in weights. */
 export interface BookExposure {
   readonly held?: HeldPosition
-  readonly sector?: SleeveExposure
+  readonly sector?: CapExposure
   /** Absent when the operator has not closed this name inside the re-entry window. */
   readonly roundTrips?: RoundTripHistory
 }

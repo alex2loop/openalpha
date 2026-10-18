@@ -5,6 +5,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { OnStreamEvent } from '@/core/stream-events'
 import type { SettledProviderResponse } from '@/engine/llm-turn'
 import type { Hooks, LLMRequestModifier, RunView } from '@/engine/types/run'
+import { haltDetailOf } from '@/ai/api'
 import { LLMError, RunHalted } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { appendSystemBlock } from '@/engine/hooks/system-block'
@@ -80,7 +81,7 @@ export async function callProvider(
       err: formatErrForLog(err),
     })
 
-    throw new RunHalted('llm_error', err.message, err.code)
+    throw new RunHalted('llm_error', err.message, haltDetailOf(err))
   }
 }
 

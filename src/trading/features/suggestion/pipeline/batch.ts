@@ -17,7 +17,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { createBudgetSlicesWithin } from '@/engine/api'
 import { AGENT_BUDGET_FRACTION } from '@/trading/features/suggestion/debate/debate'
-import { breachedSleeves } from '@/trading/features/suggestion/pipeline/exposure'
+import { breachedCaps } from '@/trading/features/suggestion/pipeline/exposure'
 import { openRiskOf } from '@/trading/features/suggestion/pipeline/open-risk'
 import { overcommittedBook } from '@/trading/features/suggestion/pipeline/overcommit'
 import { runSuggestion } from '@/trading/features/suggestion/pipeline/suggestion'
@@ -64,7 +64,7 @@ export async function runSuggestionBatch(
   return { results, ...(await batchExposure(deps, options, results)) }
 }
 
-/** The facts about the set that no row carries: the sleeves its buys cross together, and the cash
+/** The facts about the set that no row carries: the segments its buys cross together, and the cash
  *  and open-risk room they spend past. Advisory both ways. A second opinion is never an order
  *  against the book, so it has neither. */
 async function batchExposure(
@@ -78,7 +78,7 @@ async function batchExposure(
 
   const readContext = (): Promise<SuggestionPortfolioContext> =>
     deps.portfolio.read({ now: options.now, signal: options.signal, segments: options.segments })
-  const breaches = await breachedSleeves({ results, markets: deps.markets, readContext })
+  const breaches = await breachedCaps({ results, markets: deps.markets, readContext })
   const overcommit = await overcommittedBook({
     results,
     markets: deps.markets,
@@ -152,7 +152,7 @@ function errorResult(
  *  gates run before `runSuggestion` asks for a context at all, so a batch over a fifty-name
  *  watchlist where forty-five are already suggested today performs the reads the remaining five
  *  need — not fifty. The map lives for one batch call, so it is bounded by the batch. Every item
- *  asks for its own sleeve; the one read is scoped to the batch's, which covers each of them. */
+ *  asks for its own segment; the one read is scoped to the batch's, which covers each of them. */
 function sharedReader(
   reader: SuggestionPortfolioReader,
   segments: readonly PortfolioSegment[]

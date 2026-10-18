@@ -4,7 +4,7 @@ import type { LedgerMutateDeps } from '@/trading/features/ledger/mutate'
 import type { BaseStatistics } from '@/trading/features/market-data/reads/statistics'
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
 import type { PortfolioAtOptions, RebalanceOptions } from '@/trading/features/portfolio/options'
-import type { SleeveCandidateOptions } from '@/trading/features/portfolio/sleeve-candidates'
+import type { SegmentCandidateOptions } from '@/trading/features/portfolio/segment-candidates'
 import type {
   AbsoluteRebalancePlan,
   PortfolioAssessment,
@@ -49,7 +49,7 @@ import {
 } from '@/trading/features/portfolio/folds/rebalance-advice'
 import { withRegimeCaveats } from '@/trading/features/portfolio/folds/rebalance-caveat'
 import { reconcileBook } from '@/trading/features/portfolio/reconcile'
-import { withSleeveCandidateCaveats } from '@/trading/features/portfolio/sleeve-candidates'
+import { withSegmentCandidateCaveats } from '@/trading/features/portfolio/segment-candidates'
 import { venueChoices, venuesFor, venuesHolding } from '@/trading/features/portfolio/venues'
 import {
   loadBook,
@@ -218,13 +218,13 @@ async function rebalance(
     regimes: withRegimeCaveats(regimes, disabledSegments(profile.caps)),
   })
 
-  // A plan scoped to the caller's sleeves is read for its rows, never for the candidate caveats,
+  // A plan scoped to the caller's segments is read for its rows, never for the candidate caveats,
   // so screening a board for names would be a read nobody prints.
   if (options.segments !== undefined) {
     return plan
   }
 
-  return withSleeveCandidates(deps, plan, {
+  return withSegmentCandidates(deps, plan, {
     considered: instruments,
     asOf,
     now: options.now,
@@ -232,14 +232,14 @@ async function rebalance(
   })
 }
 
-/** Read after the plan, not before: only the sleeves it could not fill need names, and screening a
- *  market whose sleeve came out at target would be a board nobody reads. */
-async function withSleeveCandidates(
+/** Read after the plan, not before: only the segments it could not fill need names, and screening a
+ *  market whose segment came out at target would be a board nobody reads. */
+async function withSegmentCandidates(
   deps: PortfolioServiceDeps,
   plan: AbsoluteRebalancePlan,
-  clock: Omit<SleeveCandidateOptions, 'caveats'>
+  clock: Omit<SegmentCandidateOptions, 'caveats'>
 ): Promise<AbsoluteRebalancePlan> {
-  const caveats = await withSleeveCandidateCaveats(deps, {
+  const caveats = await withSegmentCandidateCaveats(deps, {
     ...clock,
     caveats: plan.advice.caveats,
   })
@@ -273,8 +273,8 @@ async function namedInstruments(
 /** All the unsizable path needs: every finding rule reads only what the operator holds, so pricing
  *  a watchlist name there would change no finding it could report. */
 
-/** One read per sleeve, from the market that owns it: a sleeve is capped by its own market's macro,
- *  never by the calendar owner's. `segments` names the sleeves the caller reads; every other takes
+/** One read per segment, from the market that owns it: a segment is capped by its own market's macro,
+ *  never by the calendar owner's. `segments` names the segments the caller reads; every other takes
  *  the absent reading. Undefined is the whole book, as the operator's own plan is. */
 async function resolveSegmentRegimes(
   deps: PortfolioServiceDeps,

@@ -42,7 +42,7 @@ const authLoginCommand = createCommand({
     const authProvider = resolveProvider(args)
 
     if (authProvider === undefined) {
-      return usage(app, unknownProviderMessage(args, locale))
+      return usage(app, buildUnknownLoginProviderMessage(args, locale))
     }
 
     try {
@@ -81,7 +81,7 @@ const authStatusCommand = createCommand({
     const authProvider = authProviderByLoginName(name)
 
     if (authProvider === undefined) {
-      return usage(app, unknownProviderMessage(args, locale))
+      return usage(app, buildUnknownLoginProviderMessage(args, locale))
     }
 
     app.out(await statusLine(authProvider, app, now))
@@ -100,7 +100,7 @@ const authLogoutCommand = createCommand({
     const authProvider = resolveProvider(args)
 
     if (authProvider === undefined) {
-      return usage(app, unknownProviderMessage(args, locale))
+      return usage(app, buildUnknownLoginProviderMessage(args, locale))
     }
 
     await createTokenFile(app.config.paths.dataDir, authProvider.id).clear()
@@ -313,7 +313,7 @@ function resolveProvider(args: ParsedArgs): AuthProvider | undefined {
   return name === undefined ? undefined : authProviderByLoginName(name)
 }
 
-function unknownProviderMessage(args: ParsedArgs, locale: Locale): string {
+function buildUnknownLoginProviderMessage(args: ParsedArgs, locale: Locale): string {
   return t(locale, 'cli.authProviderUnknown', {
     provider: flagString(args, 'provider') ?? '',
     supported: loginNames().join(', '),

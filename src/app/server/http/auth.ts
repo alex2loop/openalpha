@@ -24,6 +24,10 @@ interface PeerState {
   violations: number
 }
 
+/** The token the operator named cannot serve. The stored one never stands in for it: the API
+ *  stays closed. */
+export class ApiTokenError extends OperatorConfigError {}
+
 // Process-local by design: one daemon process owns the surface, so the lockout table is
 // process-wide security state, not per-run state. Bounded by MAX_PEERS (see prunePeers).
 const peers = new Map<string, PeerState>()
@@ -171,7 +175,7 @@ export async function ensureApiToken(
       return value
     }
 
-    throw new OperatorConfigError(
+    throw new ApiTokenError(
       `[api].token_env = "${tokenEnv}" is set but that variable is empty or shorter than ${MIN_TOKEN_LEN} chars`,
       { key: 'errors.configApiTokenShort', params: { env: tokenEnv, minimum: MIN_TOKEN_LEN } }
     )

@@ -353,6 +353,7 @@ function attributeProviderError(
     latencyMs: input.latencyMs,
     ...(err.retryAfterMs === undefined ? {} : { retryAfterMs: err.retryAfterMs }),
     ...(err.fallbackAllowed ? { fallbackAllowed: true } : {}),
+    ...(err.answeredByProvider ? { answeredByProvider: true } : {}),
   })
 }
 

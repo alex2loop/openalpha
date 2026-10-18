@@ -38,7 +38,7 @@ const RISK_FIELDS = Object.freeze(['risk-level', 'risk-capacity', 'risk-willingn
 const LOCALE_FIELD = 'preferred-locale'
 const HORIZON_FIELD = 'horizon'
 const GOAL_FIELD = 'goal'
-/** The fields that take two words: the sleeve, then the value it carries. */
+/** The fields that take two words: the segment, then the value it carries. */
 const SEGMENT_VALUE_COUNT = 2
 
 /** Every field name `/profile set` accepts, in the order the usage line reads them. */

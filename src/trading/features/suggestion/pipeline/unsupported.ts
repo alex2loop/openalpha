@@ -15,10 +15,21 @@ export function unsupported(
   }
 
   if (resolution.kind === 'unavailable') {
-    return { ...base, reason: 'market-data-unavailable' }
+    return { ...base, reason: unavailableReasonOf(resolution) }
   }
 
   return { ...base, reason: 'ticker-not-supported' }
+}
+
+// A market with no stored universe has never been refreshed, and /refresh is the step that helps
+// even when another market's detector failed beside it: after the refresh, a failure left over
+// reads as the provider's.
+function unavailableReasonOf(
+  resolution: Extract<MarketResolution, { readonly kind: 'unavailable' }>
+): Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>['reason'] {
+  return resolution.caveats.some((caveat) => caveat.code === 'market-data.universe-empty')
+    ? 'market-data-not-loaded'
+    : 'market-data-unavailable'
 }
 
 export function outsideFocus(

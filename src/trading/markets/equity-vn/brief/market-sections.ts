@@ -96,8 +96,8 @@ function driverRows(drivers: readonly MacroRiskDriver[]): readonly BriefSectionR
  *  struck for, and a Treasury yield lags it by a day while a CPI print lags it by a month. The
  *  drivers that did not vote are named beside the coverage they cost, because a composite
  *  renormalized over the rest reads exactly like a whole one otherwise. The deployment figure is
- *  the whole book's, blended across funded sleeves, so the per-sleeve regimes that produced it
- *  travel with it — one sleeve's regime cannot explain a number the other sleeves also moved. */
+ *  the whole book's, blended across funded segments, so the per-segment regimes that produced it
+ *  travel with it — one segment's regime cannot explain a number the other segments also moved. */
 export async function buildMacro(context: BriefContext): Promise<BriefSectionResult> {
   const { macro } = context
 
@@ -165,10 +165,10 @@ export async function buildDepositRate(context: BriefContext): Promise<BriefSect
     'deposit-rate',
     [
       {
-        posture: advice.cashSleeve.posture,
-        cashAfterPlanPctNav: advice.cashSleeve.cashPctNav,
-        liquidReservePctNav: advice.cashSleeve.liquidReservePctNav,
-        termDepositEligiblePctNav: advice.cashSleeve.termDepositEligiblePctNav,
+        posture: advice.cashSegment.posture,
+        cashAfterPlanPctNav: advice.cashSegment.cashPctNav,
+        liquidReservePctNav: advice.cashSegment.liquidReservePctNav,
+        termDepositEligiblePctNav: advice.cashSegment.termDepositEligiblePctNav,
         // Macro series carry percent units; the rest of this payload is fractions, and so is the
         // renderer that prints them.
         ...(rate === undefined ? {} : { depositRate12m: rate / PERCENT_PER_UNIT }),

@@ -24,12 +24,6 @@ export function longestBarWindow(evidenceSessions: number): number {
 
 type TickRounding = 'nearest' | 'down' | 'up'
 
-interface PriceRange {
-  readonly support: number
-  readonly resistance: number
-  readonly last: number
-}
-
 // Binary division leaves a price a hair under its own tick multiple; the tolerance keeps a
 // directional round from stepping a whole tick away for a value that is already on the grid.
 const TICK_STEP_EPSILON = 1e-9
@@ -91,10 +85,7 @@ export function buildLevels(request: BuildLevelsInput): LevelResult {
     return { kind: 'unavailable', reasonCode: 'insufficient-data' }
   }
 
-  if (
-    request.dailyBand !== undefined &&
-    !isWithinDailyBand(roundToTick(entry, tickSize, 'nearest'), request.dailyBand)
-  ) {
+  if (isOutsideBandForOrder(request, entry)) {
     return { kind: 'unavailable', reasonCode: 'market-not-tradeable' }
   }
 
@@ -125,6 +116,15 @@ export function buildLevels(request: BuildLevelsInput): LevelResult {
   const priced = resting === undefined ? result : withResting(result, resting)
 
   return distances.capped ? withCaveat(priced, STOP_CAPPED_CAVEAT) : priced
+}
+
+/** A held position's entry is a fill already made, so only a new order must sit inside the band. */
+function isOutsideBandForOrder(request: BuildLevelsInput, entry: number): boolean {
+  return (
+    request.forHolding !== true &&
+    request.dailyBand !== undefined &&
+    !isWithinDailyBand(roundToTick(entry, request.tickSize, 'nearest'), request.dailyBand)
+  )
 }
 
 function takeProfitMultiplierOf(
@@ -293,18 +293,6 @@ export function voidPrice(
   const bound = (target + minimumRiskReward * stop) / (1 + minimumRiskReward)
 
   return stop < target ? Math.min(bound, takeProfit) : Math.max(bound, takeProfit)
-}
-
-/** Shared support/resistance range over positive closes. */
-export function buildPriceRange(closes: readonly number[]): PriceRange | undefined {
-  const usable = closes.filter((close) => Number.isFinite(close) && close > 0)
-  const last = usable[usable.length - 1]
-
-  if (last === undefined) {
-    return undefined
-  }
-
-  return { support: Math.min(...usable), resistance: Math.max(...usable), last }
 }
 
 interface RoundedLevelsInput {

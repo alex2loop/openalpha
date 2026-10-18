@@ -1,13 +1,17 @@
 import type { z } from 'zod'
 
 import type { OperatorMessage } from '@/core/types/operator-message'
+import { BRAND } from '@/core/brand'
+import { knownKeysAt } from '@/core/config/schema-keys'
 import { ConfigError } from '@/core/errors'
+import { closestName } from '@/core/utils/text'
 
 const ROOT_FIELD = '(root)'
+const MAX_REPORTED_PROBLEMS = 8
+const MISSING_ENV_CAUSE_DEPTH = 4
 const ISSUE_DETAILS: ReadonlySet<string> = new Set([
   'divisor',
   'format',
-  'keys',
   'maximum',
   'minimum',
   'values',
@@ -51,32 +55,168 @@ export class OperatorConfigError extends ConfigError {
   }
 }
 
+/** What a key switches off, as a catalog key under `errors.keyEffect`: named in the operator's
+ *  sentence, so the reader learns what waits for it and not only which variable is unset. */
+export type KeyEffect = 'model' | 'search'
+
+interface MissingEnvLocation {
+  readonly path: ConfigPath
+  /** What the key switches off. Absent for a setting the whole owner depends on. */
+  readonly effect?: KeyEffect
+}
+
 export class MissingEnvError extends OperatorConfigError {
-  constructor(env: string, owner: string, path: ConfigPath) {
+  readonly env: string
+
+  constructor(env: string, owner: string, location: MissingEnvLocation) {
+    const { path, effect } = location
+    const command = setEnvCommand(env)
+
     super(
-      `${owner}: env var "${env}" is not set`,
-      { key: 'errors.configEnvMissing', params: { env, owner, command: setEnvCommand(env) } },
+      `${owner}: env var "${env}" is not set; set it with \`${command}\``,
+      effect === undefined
+        ? { key: 'errors.configEnvMissing', params: { env, owner, command } }
+        : {
+            key: 'errors.configEnvMissingEffect',
+            params: { env, command, effect: { key: `errors.keyEffect.${effect}` } },
+          },
       { path }
     )
+    this.env = env
   }
 }
 
-/** A schema refusal, worded from its first issue. `section` prefixes the path for a section a module
- *  validates itself; an unknown key is added to the error's path, not to the field it names. */
-export function toInvalidConfigError(err: z.ZodError, section?: string): OperatorConfigError {
-  const [first] = err.issues
-  const prefix = section === undefined ? [] : [section]
-  const field = [...prefix, ...issuePath(first)]
-  const unknownKey = first?.code === 'unrecognized_keys' ? first.keys.slice(0, 1) : []
+/** The unset key behind a failure, found through the causes a wrapper adds: a typed marker for
+ *  callers that act on a missing key (skip, warn once) and must not match on text. */
+export function missingEnvOf(err: unknown, depth = 0): MissingEnvError | undefined {
+  if (!(err instanceof Error) || depth >= MISSING_ENV_CAUSE_DEPTH) {
+    return undefined
+  }
 
-  return new OperatorConfigError(
+  return err instanceof MissingEnvError ? err : missingEnvOf(err.cause, depth + 1)
+}
+
+interface ConfigProblem {
+  readonly path: ConfigPath
+  readonly issue: IssueParam
+}
+
+interface InvalidConfigDetails {
+  readonly cause?: unknown
+  readonly unchecked?: Readonly<Record<string, unknown>>
+}
+
+/** A schema refusal listing every issue, the first `MAX_REPORTED_PROBLEMS` by name and the rest as a
+ *  count. It keeps its problems so refusals from sections validated apart (core's, then a module's)
+ *  read as one list. `unchecked` holds the sections the refusing pass never reached: core refuses
+ *  before any module reads its own. */
+export class InvalidConfigError extends OperatorConfigError {
+  readonly problems: readonly ConfigProblem[]
+  readonly unchecked?: Readonly<Record<string, unknown>>
+
+  constructor(message: string, problems: readonly ConfigProblem[], details: InvalidConfigDetails) {
+    super(
+      message,
+      { key: 'errors.configInvalid', params: { problems: problemLines(problems) } },
+      { path: problems[0]?.path ?? [], cause: details.cause }
+    )
+    this.problems = problems
+
+    if (details.unchecked !== undefined) {
+      this.unchecked = details.unchecked
+    }
+  }
+}
+
+interface InvalidConfigOptions {
+  /** Prefixes the path for a section a module validates itself. */
+  readonly section?: string
+  readonly unchecked?: Readonly<Record<string, unknown>>
+  /** Where every accepted key is listed; the sample config unless the file is another one. */
+  readonly sample?: string
+}
+
+/** `schema` is the refused section's, where a misspelt key looks for the name it was meant to be. */
+export function toInvalidConfigError(
+  err: z.ZodError,
+  schema: z.core.$ZodType,
+  options: InvalidConfigOptions = {}
+): InvalidConfigError {
+  const prefix = options.section === undefined ? [] : [options.section]
+
+  return new InvalidConfigError(
     `invalid config:\n  ${formatIssues(err, prefix)}`,
-    {
-      key: 'errors.configInvalid',
-      params: { field: fieldText(field), issue: first === undefined ? '' : issueParam(first) },
-    },
-    { path: [...field, ...unknownKey], cause: err }
+    toProblems(err, schema, { prefix, sample: options.sample ?? BRAND.sampleConfigUrl }),
+    { cause: err, ...(options.unchecked === undefined ? {} : { unchecked: options.unchecked }) }
   )
+}
+
+/** One refusal listing both sets of problems, the first's ahead. */
+export function combineInvalidConfigErrors(
+  first: InvalidConfigError,
+  second: InvalidConfigError
+): InvalidConfigError {
+  return new InvalidConfigError(
+    `${first.message}\n${second.message}`,
+    [...first.problems, ...second.problems],
+    { cause: first.cause }
+  )
+}
+
+// An unknown key is one problem per key, so each gets its own did-you-mean.
+interface ProblemScope {
+  readonly prefix: readonly string[]
+  readonly sample: string
+}
+
+function toProblems(
+  err: z.ZodError,
+  schema: z.core.$ZodType,
+  scope: ProblemScope
+): readonly ConfigProblem[] {
+  return err.issues.flatMap((issue) => {
+    const table = issuePath(issue)
+    const path = [...scope.prefix, ...table]
+
+    if (issue.code !== 'unrecognized_keys') {
+      return [{ path, issue: issueParam(issue, scope.sample) }]
+    }
+
+    const known = knownKeysAt(schema, table)
+
+    return issue.keys.map((key) => ({
+      path: [...path, key],
+      issue: unknownKeyParam({ key, known, sample: scope.sample }, issue.message),
+    }))
+  })
+}
+
+interface UnknownKey {
+  readonly key: string
+  readonly known: readonly string[]
+  readonly sample: string
+}
+
+function unknownKeyParam(unknown: UnknownKey, fallback: string): IssueParam {
+  const near = closestName(unknown.key, unknown.known)
+
+  return {
+    key: `errors.configIssue.unrecognized_keys${near === undefined ? '' : '_near'}`,
+    params: { sample: unknown.sample, ...(near === undefined ? {} : { near }) },
+    fallback,
+  }
+}
+
+function problemLines(problems: readonly ConfigProblem[]): readonly OperatorMessage[] {
+  const shown = problems.slice(0, MAX_REPORTED_PROBLEMS).map((problem) => ({
+    key: 'errors.configProblem',
+    params: { field: fieldText(problem.path), issue: problem.issue },
+  }))
+  const hidden = problems.length - shown.length
+
+  return hidden > 0
+    ? [...shown, { key: 'errors.configProblemsMore', params: { count: hidden } }]
+    : shown
 }
 
 interface IssueParam {
@@ -85,10 +225,10 @@ interface IssueParam {
   readonly fallback: string
 }
 
-function issueParam(issue: z.core.$ZodIssue): IssueParam {
+function issueParam(issue: z.core.$ZodIssue, sample: string): IssueParam {
   return {
     key: `errors.configIssue.${issueKind(issue)}`,
-    params: issueParams(issue),
+    params: { sample, ...issueParams(issue) },
     fallback: issue.message,
   }
 }

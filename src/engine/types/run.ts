@@ -257,6 +257,9 @@ export interface RunResult {
   readonly errorMessage?: string
   /** The failure in the operator's own words, when the error carried them. */
   readonly operator?: OperatorMessage
+  /** The unset key variable the failure came from. A key arrives with a restart, so a caller that
+   *  would retry or count the failure skips it instead. */
+  readonly missingEnv?: string
   readonly completionCode?: RunCompletionCode
   readonly model?: string
 }

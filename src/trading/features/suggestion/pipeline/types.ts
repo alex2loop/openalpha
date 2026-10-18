@@ -172,7 +172,7 @@ export interface FinalizeInput {
   readonly medianTurnover?: number
   /** The market's own sector for this name, when it keeps one. */
   readonly sector?: string
-  /** The record's own kind, for the sleeve's ETF ceiling. */
+  /** The record's own kind, for the segment's ETF ceiling. */
   readonly instrumentKind?: InstrumentKind
   /** The instrument's own daily band, from the level read that resolved it. */
   readonly dailyBand?: DailyPriceBand
@@ -202,7 +202,7 @@ export interface Prepared {
   /** What the market files this name under, when it keeps a sector. Sizing weighs a buy against the
    *  book's existing exposure to it. */
   readonly sector?: string
-  /** The record's own kind, for the sleeve's ETF ceiling. */
+  /** The record's own kind, for the segment's ETF ceiling. */
   readonly instrumentKind?: InstrumentKind
   readonly upcomingEvents: readonly MarketEvent[]
   readonly openRisk?: OpenRisk
@@ -251,7 +251,7 @@ export interface SuggestionPortfolioContext {
   /** The operator's closed round trips, oldest first, split at the same floors. */
   readonly closedRoundTrips: readonly ClosedRoundTrip[]
   readonly advice: RebalancePlanResult
-  /** One macro read per sleeve, shared with the rebalance plan. An item is capped by the sleeve its
+  /** One macro read per segment, shared with the rebalance plan. An item is capped by the segment its
    *  own market sits in, so a defensive VN read cannot size a crypto order. */
   readonly regimes: ReadonlyMap<PortfolioSegment, RegimeScale>
   /** Market currency to base currency. Levels are quoted in the market's own currency while NAV and
@@ -270,8 +270,8 @@ interface SuggestionPortfolioReadOptions {
    *  a per-item day would key the shared read on something the read itself ignores. */
   readonly now: number
   readonly signal: AbortSignal
-  /** The sleeves the run reads rows for. A batch widens this to every sleeve its items resolved
-   *  to, so one read serves the batch and no other sleeve's macro is fetched. */
+  /** The segments the run reads rows for. A batch widens this to every segment its items resolved
+   *  to, so one read serves the batch and no other segment's macro is fetched. */
   readonly segments: readonly PortfolioSegment[]
 }
 

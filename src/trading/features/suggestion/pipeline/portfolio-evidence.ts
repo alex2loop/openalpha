@@ -1,12 +1,12 @@
 import type {
   BookExposure,
+  CapExposure,
   HeldPosition,
   RoundTripHistory,
-  SleeveExposure,
 } from '@/trading/features/suggestion/exposure'
 import { promptPercent } from '@/trading/prompt-text'
 
-/** What the book holds of this name and of the sleeves it belongs to, against the caps the sizer
+/** What the book holds of this name and of the sector it belongs to, against the caps the sizer
  *  will enforce anyway. Weights only: a role reasoning about concentration needs the share, and the
  *  absolute size of the account is not its business. */
 export function portfolioSection(exposure: BookExposure | undefined): string {
@@ -18,8 +18,8 @@ export function portfolioSection(exposure: BookExposure | undefined): string {
     "PORTFOLIO (already held, as a share of the book; quantity is the sizer's, not yours):",
     ...heldRows(exposure.held),
     ...roundTripRows(exposure.roundTrips),
-    ...(exposure.sector === undefined ? [] : [sleeveRow('sector', exposure.sector)]),
-    'These caps are enforced deterministically after this step, so a sleeve under its cap is never',
+    ...(exposure.sector === undefined ? [] : [capRow('sector', exposure.sector)]),
+    'These caps are enforced deterministically after this step, so a holding under its cap is never',
     'a reason to hold the idea; one at or near its cap is a reason for caution in your rationale.',
   ].join('\n')
 }
@@ -59,6 +59,6 @@ function roundTripRows(history: RoundTripHistory | undefined): readonly string[]
   ]
 }
 
-function sleeveRow(label: string, sleeve: SleeveExposure): string {
-  return `- ${label} ${sleeve.name}: ${promptPercent(sleeve.pctNav)} held, cap ${promptPercent(sleeve.capPctNav)}`
+function capRow(label: string, exposure: CapExposure): string {
+  return `- ${label} ${exposure.name}: ${promptPercent(exposure.pctNav)} held, cap ${promptPercent(exposure.capPctNav)}`
 }

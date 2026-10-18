@@ -15,12 +15,17 @@ interface McpConnections {
   close(): Promise<void>
 }
 
-// connectServer never throws: a refused, misconfigured or timed-out server logs and yields nothing.
+// connectServer never throws: a refused, misconfigured or timed-out server logs and yields nothing,
+// and so does one whose env var is unset.
 // The daemon comes up either way — an MCP server being down is not a reason to have no agent.
 export async function connectMcpServers(
   config: ResolvedConfig,
   logger: Logger
 ): Promise<McpConnections> {
+  for (const err of config.mcp.unset) {
+    logger.warn('mcp.env_missing', { err: formatErrForLog(err) })
+  }
+
   const connections = (
     await Promise.all(config.mcp.servers.map((server) => connectMcpServer(server, logger)))
   ).filter((connection) => connection !== undefined)

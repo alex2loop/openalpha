@@ -108,8 +108,8 @@ Resolution and regions:
 - Resolution is local-first. `manifest.detection` is `'stored' | 'fetched'` (where `detect` reads from); declare `stored` only for a detector that does not fetch.
 - An unqualified ticker asks stored markets first; one match ends it. The operator names the other market to reach it (`/suggest crypto:HDB`). Ambiguity is reported only within one tier.
 - One market speaks for each region: `ownsRegion` elects it; boot rejects none or two. Its calendar is the region's trading day and its macro capability the region's composite. Never pick a market by registration order for a region-level read.
-- A non-owner market declaring `macroRisk` still gates its own sleeve and publishes the composite on its `/overview` block (`MarketDataOverview.macro`). A read that gates must be printed.
-- A region's regime reads its own market first: driver tables sit beside the policy (`VN_MACRO_DRIVERS`, `CRYPTO_MACRO_DRIVERS`); `US_MACRO_DRIVERS` is what US-priced sleeves read. A table weighing a US series takes its band from `US_DRIVER_BANDS`. VN stress confirmers only lower what its drivers produce.
+- A non-owner market declaring `macroRisk` still gates its own segment and publishes the composite on its `/overview` block (`MarketDataOverview.macro`). A read that gates must be printed.
+- A region's regime reads its own market first: driver tables sit beside the policy (`VN_MACRO_DRIVERS`, `CRYPTO_MACRO_DRIVERS`); `US_MACRO_DRIVERS` is what US-priced segments read. A table weighing a US series takes its band from `US_DRIVER_BANDS`. VN stress confirmers only lower what its drivers produce.
 
 Calendars:
 - A market's weekend is what its tape publishes, verified, not assumed from the asset class (VN gold quotes Saturdays). `isSettled` requires `isTradingDay`, so a wrong weekend silently drops days.
@@ -140,7 +140,7 @@ Anything not listed is derived or gate-checked.
 3. One `markets.register(...)` line in `trading/wiring/composition/registration.ts`.
 4. Providers under `sources/`, routed in `SOURCE_ROUTES`, registered in `trading/wiring/composition/source-registry.ts`.
 5. Locale keys in both `src/i18n/locales/en.json` and `vi.json`: `trading.market.<ref>`, `trading.region.<region>`, `trading.segment.<segment>`, `trading.factor.<id>` per factor. Composition throws listing what is missing.
-6. A venue that lists it. A market no venue holds is read for reference only (world gold): its sleeve stays off (`SegmentDescriptor.held`) and `/profile enable` refuses it.
+6. A venue that lists it. A market no venue holds is read for reference only (world gold): its segment stays off (`SegmentDescriptor.held`) and `/profile enable` refuses it.
 7. `manifest.playbook`: skills for debate roles, split into `analysis` and `execution` (omit `execution` if orders carry no rules). Typed against `SkillName`.
 
 `Region` and `PortfolioSegment` are brands (nothing to widen); `AssetClass` is closed. `MarketRegistry.register` rejects a duplicate `id`, `(region, assetClass)` or `segment`, and a second `ownsRegion` in a region.
@@ -298,9 +298,9 @@ Plan lifecycle:
 
 - Stages: detect, factors, debate, stages, persist. A blocked stage forces hold. A scheduled delisting or last trading day holds a buy (`draftDirectionFor`); selling out stays open. A stage dated by when an order trades reads `orderSessionOf`, never the run's calendar day.
 - Conviction only lowers, and so does size. The realized-record scale caps the conviction multiplier and never raises it; it reads only the population stamped with this run's calculation versions, counted in independent calls (`independentCalls` folds a repeat of a still-open call on the same name and side into the first, as every track-record rate does).
-- The sleeve's regime scale attenuates final size beside conviction and intent, not inside the cash ceiling. A sleeve's unfunded appetite is named per sleeve (each gets its own slice of the pool).
+- The segment's regime scale attenuates final size beside conviction and intent, not inside the cash ceiling. A segment's unfunded appetite is named per segment (each gets its own slice of the pool).
 - Open risk is whole-book: `openRiskOf` sums `units x (mark - planned stop)` over priced tradeable holdings once per instrument across venues; a buy is sized into the room under `maximumOpenRiskPctNav`. A held name with no planned stop makes it a floor and is named (`suggestion.open-risk-unplanned`), never zero.
-- A fund answers to its sleeve's ETF ceiling instead of the single-name cap where declared (`positionCapOf`, `isCappedAsFund`).
+- A fund answers to its segment's ETF ceiling instead of the single-name cap where declared (`positionCapOf`, `isCappedAsFund`).
 - The book never reads a suggestion row: it states the seam (`ReduceVerdicts`), `app` binds it.
 - A stored suggestion carries `held` and `evidenceThrough` on both arms (`SuggestionBase`; `sharedPayload` writes, `toBase` reads; the report's closing lines print `evidenceThrough` wherever it differs from `at`). `settlement`, `priceBand`, `concentration` stay on the actionable arm.
 
@@ -312,14 +312,14 @@ Reduce reasons:
 - Where the market reads annual reports (VN, `FactorScore.businessWeakening`) the latest final report decides: Piotroski at or below `VN_ACCOUNTS_POLICY.weakAtScore` sells, above keeps; the quality lean is the fallback only where no final report could be scored, except `readingOnlySectors`, where the report prints and the quality lean decides. A year counts only after its audit window closes.
 - Banks carry a books line (bad debt, watch list, cover, CASA) that informs and never sells. The accounts history (`markets/equity-vn/accounts/`: per-year figures, trend over `VN_ACCOUNTS_POLICY.trendYears`, flags; read once per board day) prints on the quality line and reaches the debate (ANNUAL ACCOUNTS) and chat agent (`market_accounts`); it informs and never sells, gates or scores. On a buy the accounts score is a factor line only: add no buy gate from it. A developer's cash-timing flags stay silent.
 - A standing evidence reduce or its `evidence-sold` hold closes the name to `/rebalance` (`EvidenceReduceReasonCode` is exactly the closing set; `over-target` is excluded).
-- The drift rule sells weakest first: an over-target sleeve takes the overshoot from neutral holdings (score between the weak-holding line and zero), lowest first, before any positive-scoring name; an excluded name and the core's floor are never cut.
+- The drift rule sells weakest first: an over-target segment takes the overshoot from neutral holdings (score between the weak-holding line and zero), lowest first, before any positive-scoring name; an excluded name and the core's floor are never cut.
 
 ### Macro composite and shares
 
 - A macro driver publishes its share of the vote actually cast: a series with no reading does not vote, the composite renormalizes, and partial data is reported via `coverage` and the missing list on every surface publishing the composite. The macro kind's targets are the drivers; a partial pass names absent ones in `missingTargets` for the repair pass.
 - The snapshot is stamped with the settled session both it and its refresh share, never the calendar day; the region read deriving the composite dates it the same way.
-- Published weights sum to one and contributions sum to the score, in rendered figures too. `apportion` owns every set of shares printed under their whole (macro drivers, factor contributions, the profile's sleeve targets, both sleeve tables in `/portfolio` and `/rebalance`); `WEIGHT_QUANTUM`, `SCORE_QUANTUM`, `FRACTION_QUANTUM` set each resolution.
-- A sleeve's weight in its table and in the order lines above it comes from one apportionment; money beside order weights reads unrounded points. Apportion only rows that print a share.
+- Published weights sum to one and contributions sum to the score, in rendered figures too. `apportion` owns every set of shares printed under their whole (macro drivers, factor contributions, the profile's segment targets, both segment tables in `/portfolio` and `/rebalance`); `WEIGHT_QUANTUM`, `SCORE_QUANTUM`, `FRACTION_QUANTUM` set each resolution.
+- A segment's weight in its table and in the order lines above it comes from one apportionment; money beside order weights reads unrounded points. Apportion only rows that print a share.
 - A factor composite divides by the fired total and publishes the quotient, not raw policy weights. A driver names its unit (rate = percentage; index = level against its base year).
 
 ### Ledger and book

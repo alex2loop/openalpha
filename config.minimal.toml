@@ -4,9 +4,9 @@
 #   1. Tải file này: curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -o ~/.openalpha/config.toml --create-dirs
 #      Windows (PowerShell): New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
 #   2. Lấy một khóa ở openrouter.ai, rồi đặt: export OPENROUTER_API_KEY="..."
-#   3. Kiểm tra lại: openalpha config validate
+#   3. Kiểm tra lại: openalpha doctor --online
 #
-# Vậy là đủ để chạy. Khi cần thêm (Telegram, ngân sách, sàn giao dịch...),
+# Vậy là đủ để chạy. Khi cần thêm (Telegram, sàn giao dịch...),
 # mở config.sample.toml trên GitHub, mỗi tùy chọn đều có giải thích đi kèm.
 
 # Mọi mô hình bên dưới đều đi qua OpenRouter, dùng chung một khóa.
@@ -49,6 +49,11 @@ model = "anthropic/claude-haiku-5.5"
 # Phân tích các chủ đề đầu tư đang nổi, dùng cho lệnh /themes.
 [[model_tiers.themes]]
 model = "anthropic/claude-haiku-5.5"
+
+# Mức chi tối đa mỗi ngày cho AI, tính bằng USD. Chạm mức thì dừng gọi mô hình
+# tới nửa đêm, để daemon chạy nền không bao giờ tiêu quá tay. Đặt 0 là không giới hạn.
+[budget]
+max_daily_usd = 2
 
 # Bạn mở tài khoản ở công ty chứng khoán khác VPS (ví dụ SSI)?
 # Bỏ dấu # ở 3 dòng dưới và sửa phí cho đúng biểu phí của bạn, để lãi lỗ

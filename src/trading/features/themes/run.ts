@@ -213,7 +213,7 @@ function toResults(
 ): RunResults {
   const proposals = discovery?.kind === 'value' ? discovery.value : []
   const discoveryNotes: ThemeRunNote[] =
-    discovery?.kind === 'failed' ? [{ level: 'theme', cause: discovery.cause }] : []
+    discovery?.kind === 'failed' ? [{ level: 'theme', ...discovery.failure }] : []
 
   return {
     reads: [
@@ -223,7 +223,7 @@ function toResults(
     proposals,
     notes: [
       ...updates.flatMap(({ themeId, result }): ThemeRunNote[] =>
-        result.kind === 'failed' ? [{ level: 'theme', themeId, cause: result.cause }] : []
+        result.kind === 'failed' ? [{ level: 'theme', themeId, ...result.failure }] : []
       ),
       ...discoveryNotes,
     ],

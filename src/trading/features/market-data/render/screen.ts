@@ -180,7 +180,7 @@ function renderEmptyTitle(
  *  market score different factors and are otherwise identical in the output.
  *
  *  A gate board takes its own heading, selected from what the board declares itself to be and never
- *  from the market's id: "top 2 of 3" claims a selection a sleeve of correlated names cannot make. */
+ *  from the market's id: "top 2 of 3" claims a selection a segment of correlated names cannot make. */
 function renderTitle(locale: Locale, request: ScreenRenderRequest, result: ScreenResult): string {
   const shared = {
     market: renderDeclaredValue(locale, `trading.market.${request.market}`),

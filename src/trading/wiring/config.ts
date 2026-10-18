@@ -54,7 +54,9 @@ export function resolveTradingConfig(options: ResolveTradingConfigOptions): Trad
   const parsed = tradingConfigPatchSchema.safeParse(raw)
 
   if (!parsed.success) {
-    throw toInvalidConfigError(parsed.error, TRADING_CONFIG_SECTION)
+    throw toInvalidConfigError(parsed.error, tradingConfigPatchSchema, {
+      section: TRADING_CONFIG_SECTION,
+    })
   }
 
   try {

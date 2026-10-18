@@ -10,8 +10,8 @@ import type {
 } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
 import type { PollOffsetStore } from '@/core/types/session'
+import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
 import { channelId } from '@/core/channels'
-import { OperatorConfigError } from '@/core/config/resolve'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { withRetry } from '@/core/utils/retry'
@@ -35,6 +35,7 @@ import { telegramMarkdownV2Renderer } from './renderer'
 const UNAUTHORIZED_STATUS = 401
 const FORBIDDEN_STATUS = 403
 const TELEGRAM_CHANNEL_ID = channelId('telegram')
+const TELEGRAM_TOKEN_OWNER = { id: TELEGRAM_CHANNEL_ID, label: 'Telegram' } as const
 const TELEGRAM_POLL_RESTART_INITIAL_MS = 1_000
 const TELEGRAM_POLL_RESTART_MAX_MS = 60_000
 const TELEGRAM_GET_ME_MAX_ATTEMPTS = 4
@@ -132,14 +133,7 @@ function buildApiContext(
   signal: AbortSignal
 ): TelegramApiContext {
   if (!options.token) {
-    throw new OperatorConfigError(
-      'telegram: no bot token resolved (set channels.telegram.token_env or token_file)',
-      {
-        key: 'errors.channelTokenMissing',
-        params: { channel: 'Telegram', section: 'channels.telegram' },
-      },
-      { path: ['channels', 'telegram', 'token_env'] }
-    )
+    throw toTokenMissingError(TELEGRAM_TOKEN_OWNER)
   }
 
   return {
@@ -221,8 +215,9 @@ async function runRestartLoop(deps: RestartLoopDeps): Promise<void> {
   }
 }
 
-// The first attempt decides the channel's fate: a rejected token is fatal (ConfigError), while a
-// network failure leaves the channel up and unconnected for the restart loop to keep retrying.
+// The first attempt decides the channel's fate: a rejected token (ConfigError) keeps it from
+// starting, while a network failure leaves the channel up and unconnected for the restart loop to
+// keep retrying.
 async function connectOrDefer(
   ctx: TelegramApiContext,
   handlers: AdapterHandlers
@@ -261,9 +256,7 @@ async function fetchBotIdentity(ctx: TelegramApiContext): Promise<BotIdentity> {
     })
   } catch (err: unknown) {
     if (isTokenRejected(err)) {
-      throw new ConfigError(
-        `telegram: bot token rejected by Telegram API (${formatErrForLog(err).message})`
-      )
+      throw toTokenRejectedError(TELEGRAM_TOKEN_OWNER, formatErrForLog(err).message)
     }
 
     throw err

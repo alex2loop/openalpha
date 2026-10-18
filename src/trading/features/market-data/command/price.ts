@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketEvent } from '@/trading/kernel/market/market-data'
@@ -32,6 +37,7 @@ export function createPriceCommand(deps: PriceCommandDeps): SlashCommand {
       execution: { progressKey: 'slash.tradingPriceProgress' },
       transcript: 'echo',
     },
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -41,7 +47,7 @@ async function run(deps: PriceCommandDeps, ctx: SlashContext): Promise<SlashResu
   const request = parseTickerRequest(raw, deps.marketData.markets())
 
   if (rest.length > 0 || request === null) {
-    return usage(USAGE, { markets: deps.marketData.markets().join(', ') })
+    return usage(USAGE, buildUsageValues(deps))
   }
 
   const now = Date.now()
@@ -73,6 +79,10 @@ async function run(deps: PriceCommandDeps, ctx: SlashContext): Promise<SlashResu
       }),
     }),
   }
+}
+
+function buildUsageValues(deps: PriceCommandDeps): CommandMessageValues {
+  return { markets: deps.marketData.markets().join(', ') }
 }
 
 /** An enrichment, never the answer: a calendar that could not be read costs the quote a line, not

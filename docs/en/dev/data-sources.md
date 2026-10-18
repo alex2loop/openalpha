@@ -106,7 +106,7 @@ questions and a reading must pass both:
 
 `toLiveReading` (`markets/live-reading.ts`), the path for `/overview` and `/market`, applies the same age test
 (`isRecentObservation`) to the settled day its caller already holds. The settle rule underneath is in
-[Trading](../trading.md#a-session-settles-when-its-tape-does-not-when-its-bell-rings).
+[Trading](../trading.md#a-session-settles-when-its-data-does-not-when-its-bell-rings).
 
 A reading that fails either test is not an error. The market answers with the settled close the store holds, tagged
 `market-data.quote-not-live`, so the screen says which price it is; it refuses only for a name the store cannot price at all.
@@ -196,7 +196,7 @@ An endpoint may be a list (`giavang` has a fallback origin). That is transport f
 route failover across providers. `buildEndpointMaps` keeps the origin (the trusted-host list) and the endpoint's path prefix
 separately, so CoinGecko's `/api/v3` is not lost.
 
-Credentials: `SOURCE_CREDENTIAL_ENV` declares the default variable *name* per source (`COINGECKO_API_KEY`, `FRED_API_KEY`).
+Credentials: `SOURCE_CREDENTIALS` declares, per source, the default variable *name* (`COINGECKO_API_KEY`, `FRED_API_KEY`) and the catalog line saying what setting it adds (`trading.source.credential.<id>`, which `doctor` prints); `SOURCE_CREDENTIAL_ENV` is derived from it.
 `[trading.sources]` may rename a variable, never name a value or a host. A rename aimed at a source that takes no credential is
 a boot-time `OperatorConfigError` (`errors.configSourceNoCredential`). `resolveCredential` (`core/security/credentials.ts`) reads
 the variable, then the same name with the product prefix (`OPENALPHA_FRED_API_KEY`). A request that declares a credential
@@ -784,7 +784,7 @@ export function createSources(kit) {
 1. Write `sources/adapters/<provider>.ts` exporting `<PROVIDER>_DEFAULT_ENDPOINT` and
    `create<Provider>Sources(options: SourceAdapterOptions): readonly RegisteredSource[]`, one `createSource` call per kind.
 2. Add the endpoint to `SOURCE_ENDPOINTS`, a rate to `SOURCE_RATE_LIMITS` (composition refuses a routed id without one), and a
-   variable name to `SOURCE_CREDENTIAL_ENV` if it needs a key.
+   variable name and its `adds` catalog line to `SOURCE_CREDENTIALS` if it needs a key.
 3. Spread the factory into `createBuiltInSources` (`composition/source-facts.ts`).
 4. Give every `(kind, id)` a position in `SOURCE_ROUTES`. Registration throws without one.
 5. If it introduces a caveat code, add it to `kernel/caveat.ts` with its severity, and its copy to both `en.json` and `vi.json`.

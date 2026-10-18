@@ -1,5 +1,3 @@
-import { lookup } from 'node:dns/promises'
-
 import type { DaemonTask } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { AlertService } from '@/trading/features/alerts/types'
@@ -14,7 +12,7 @@ import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
 import type { FactorLogService } from '@/trading/features/suggestion/track-record/factor-log-types'
 import type { ThemeService } from '@/trading/features/themes/types'
-import type { OperationPolicy, OperationsPolicy, TradingConfig } from '@/trading/kernel/config'
+import type { OperationPolicy, TradingConfig } from '@/trading/kernel/config'
 import type {
   RefreshAllMarketDataOptions,
   RefreshMarketDataResult,
@@ -23,10 +21,8 @@ import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
-import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
+import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { settleWithin } from '@/core/utils/concurrency'
-import { sleep } from '@/core/utils/time'
 import { createBriefTick } from '@/trading/features/brief/tick'
 import { resolveIntradayPlan } from '@/trading/features/market-data/intraday/schedule'
 import {
@@ -44,13 +40,13 @@ import { createFactorLogTick } from '@/trading/features/suggestion/track-record/
 import { createOutcomeTick } from '@/trading/features/suggestion/track-record/tick'
 import { createThemeOutcomeTick } from '@/trading/features/themes/outcomes/tick'
 import { nextAttemptAt } from '@/trading/kernel/operator/delivery-retry'
+import {
+  createDelayedLoopTask,
+  createLoopTask,
+  type OperationTick,
+  type Reachability,
+} from '@/trading/wiring/loop'
 import { withQuarantine } from '@/trading/wiring/quarantine'
-
-type OperationTick = (signal: AbortSignal) => Promise<void>
-type Reachability = Pick<
-  OperationsPolicy,
-  'reachabilityHost' | 'reachabilityTimeoutMs' | 'offlineRetryMs'
->
 
 interface TradingDaemonDeps {
   readonly config: TradingConfig
@@ -75,14 +71,6 @@ interface TradingDaemonDeps {
     options: RefreshAllMarketDataOptions
   ): Promise<readonly RefreshMarketDataResult[]>
   readonly logger: Logger
-}
-
-interface LoopSpec {
-  readonly name: string
-  nextDelayMs(now: number): number
-  readonly tick: OperationTick
-  readonly logger: Logger
-  readonly reachability: Reachability
 }
 
 /** Eight bounded loops behind one factory, plus the exit reconciler when some venue accepts orders
@@ -319,125 +307,4 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
       logger: deps.logger,
     }),
   })
-}
-
-/** The one loop. There is no `setInterval` anywhere in trading: an interval that fires while the
- *  previous tick is still running is how a bounded loop becomes concurrent with itself. */
-function createLoopTask(spec: LoopSpec): DaemonTask {
-  return {
-    name: spec.name,
-    async start(signal) {
-      await runLoop(spec, signal)
-    },
-  }
-}
-
-function createDelayedLoopTask(spec: LoopSpec): DaemonTask {
-  return {
-    name: spec.name,
-    async start(signal) {
-      if (!(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
-        return
-      }
-
-      await runLoop(spec, signal)
-    },
-  }
-}
-
-async function runLoop(spec: LoopSpec, signal: AbortSignal): Promise<void> {
-  while (!signal.aborted) {
-    if (!(await waitUntilReachable(spec, signal))) {
-      return
-    }
-
-    if (!(await runTick(spec, signal))) {
-      return
-    }
-
-    if (!(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
-      return
-    }
-  }
-}
-
-/** `false` means stop. A tick waits out an offline stretch instead of running into it, so a fetch
- *  trips no source breaker and a send burns no delivery attempt. One warning per stretch. */
-async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<boolean> {
-  const { reachabilityHost, reachabilityTimeoutMs, offlineRetryMs } = spec.reachability
-  let warned = false
-
-  for (;;) {
-    // The OS resolver, the path every outbound fetch takes: raw DNS or an address policy would gate
-    // on a different question than the one the tick is about to ask.
-    const resolved = lookup(reachabilityHost).then(
-      () => true,
-      () => false
-    )
-    const reachable = (await settleWithin(resolved, reachabilityTimeoutMs)) && (await resolved)
-
-    if (reachable) {
-      return true
-    }
-
-    if (signal.aborted) {
-      return false
-    }
-
-    if (!warned) {
-      spec.logger.warn('trading.tick_offline', { operation: spec.name, host: reachabilityHost })
-      warned = true
-    }
-
-    if (!(await waitForNextTick(offlineRetryMs, signal))) {
-      return false
-    }
-  }
-}
-
-/** `false` means stop. A boundary failure is logged and retried on the next interval; an invariant
- *  failure escapes to the quarantine around the loop rather than spinning forever getting the same
- *  thing wrong; an abort is shutdown, not a failure. */
-async function runTick(spec: LoopSpec, signal: AbortSignal): Promise<boolean> {
-  try {
-    await spec.tick(signal)
-    return true
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      return false
-    }
-
-    if (!isBoundaryFailure(err)) {
-      throw err
-    }
-
-    spec.logger.warn('trading.tick_failed', { operation: spec.name, err: formatErrForLog(err) })
-    return true
-  }
-}
-
-/** A storage, channel, or provider failure is the outside world being unreachable, and the next
- *  interval is the right response. Everything else — a validation failure, a lost invariant, a
- *  misconfiguration — is this code being wrong, and retrying it forever would hide that. */
-export function isBoundaryFailure(err: unknown): boolean {
-  if (err instanceof RunHalted) {
-    return err.code === 'budget' || err.code === 'rate'
-  }
-
-  return err instanceof StorageError || err instanceof ChannelError || err instanceof LLMError
-}
-
-/** `sleep` rejects on abort, which here means shutdown rather than a task failure, so the loop
- *  exits normally instead of propagating it to the tracker. */
-async function waitForNextTick(delayMs: number, signal: AbortSignal): Promise<boolean> {
-  try {
-    await sleep(delayMs, signal)
-    return true
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      return false
-    }
-
-    throw err
-  }
 }

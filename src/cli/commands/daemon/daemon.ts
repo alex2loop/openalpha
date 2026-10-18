@@ -1,0 +1,223 @@
+import type { CliApp } from '@/cli/types'
+import type { DegradedItem } from '@/core/container'
+import { type Command, createCommand } from '@/cli/command'
+import { pollUntil, runBackground } from '@/cli/commands/daemon/background'
+import {
+  configuredChannels,
+  printServed,
+  printStartSetup,
+  renderDegraded,
+  reportMissingKeys,
+} from '@/cli/commands/daemon/summary'
+import {
+  clearMalformedPidFile,
+  clearReadyFile,
+  inspectDaemon,
+  liveDaemonPid,
+  removePidFile,
+  requestDaemonStop,
+  watchStopRequest,
+  writePidFile,
+  writeReadyFile,
+} from '@/cli/daemon-guard'
+import { getEnv } from '@/cli/env'
+import { terminalErrorMessage } from '@/cli/error-output'
+import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
+import { toKeylessItems } from '@/cli/missing-keys'
+import { flagBool, type ParsedArgs } from '@/cli/parsing/args'
+import { hint, info, style, success, warn } from '@/cli/ui/colors'
+import { BRAND } from '@/core/brand'
+import { formatErrForLog } from '@/core/security/credentials'
+import { t } from '@/i18n'
+
+// Outlasts the daemon's own shutdown deadline (app/daemon.ts SHUTDOWN_TOTAL_MS, 30s) plus room to
+// exit: giving up earlier reports a healthy but slow drain as a stop failure.
+const STOP_TIMEOUT_MS = 35_000
+// 128 + SIGINT(2), the shell convention for "killed by Ctrl-C".
+const FORCED_EXIT_CODE = 130
+
+const BACKGROUND_SPEC = {
+  flags: {
+    background: {
+      type: 'boolean',
+      alias: 'b',
+      describe: CLI_FLAG_DESCRIPTIONS.runInBackground,
+    },
+  },
+} as const
+
+export const startCommand: Command = createCommand({
+  ...CLI_COMMAND_METADATA.start,
+  spec: BACKGROUND_SPEC,
+  needs: { daemon: 'stopped', bootMode: 'daemon' },
+  run: runInChosenMode,
+})
+
+export const stopCommand: Command = createCommand({
+  ...CLI_COMMAND_METADATA.stop,
+  needs: { boot: false, configFile: 'optional', daemon: 'any' },
+  run: (_args, app) => stopDaemon(app),
+})
+
+// The relaunched child runs `restart` again in the foreground; the daemon is already down by then,
+// so its own stop step finds nothing to stop.
+export const restartCommand: Command = createCommand({
+  ...CLI_COMMAND_METADATA.restart,
+  spec: BACKGROUND_SPEC,
+  needs: { daemon: 'any', bootMode: 'daemon', prepareDaemon: 'stop' },
+  run: runInChosenMode,
+})
+
+export async function stopDaemonIfRunning(app: CliApp): Promise<number> {
+  return (await inspectDaemon(app)) === 'absent' ? 0 : stopDaemon(app)
+}
+
+function runInChosenMode(args: ParsedArgs, app: CliApp): Promise<number> {
+  return flagBool(args, 'background') ? runBackground(app) : runDaemon(app)
+}
+
+async function runDaemon(app: CliApp): Promise<number> {
+  const locale = app.config.locale.language
+  const abortDaemon = app.abortDaemon
+
+  if (abortDaemon === undefined) {
+    app.err(style.error(t(locale, 'cli.daemonShutdownUnavailable')))
+
+    return 1
+  }
+
+  const logger = app.resolve('logger')
+  const keyless = toKeylessItems(app.config, getEnv())
+  let wrotePidFile = false
+  let exitCode = 0
+
+  // A second Ctrl-C while the drain is running means the operator is done waiting: leave now.
+  const onSignal = (): void => {
+    if (app.signal.aborted) {
+      process.exit(FORCED_EXIT_CODE)
+    }
+
+    abortDaemon()
+  }
+
+  process.on('SIGINT', onSignal)
+  process.on('SIGTERM', onSignal)
+  const unwatchStop = watchStopRequest(app, abortDaemon)
+
+  try {
+    await writePidFile(app, process.pid)
+    wrotePidFile = true
+    await clearReadyFile(app)
+    printStartBanner(app, keyless)
+
+    await app
+      .resolve('daemonTask')
+      .start(app.signal, (degraded) => announceReady(app, [...keyless, ...degraded]))
+  } catch (err: unknown) {
+    logger.error('daemon.failed', { err: formatErrForLog(err) })
+    app.err(style.error(terminalErrorMessage(err, locale)))
+
+    exitCode = 1
+  } finally {
+    // Every arm comes down together, whichever way we leave: signals, pid file, abort.
+    process.off('SIGINT', onSignal)
+    process.off('SIGTERM', onSignal)
+    unwatchStop()
+    abortDaemon()
+    const removed = wrotePidFile && (await removePidFile(app))
+
+    if (wrotePidFile && !removed) {
+      logger.error('daemon.pid_cleanup_failed', { path: app.config.paths.dataDir })
+      app.err(style.error(t(locale, 'cli.daemonPidCleanupFailed')))
+      exitCode = 1
+    } else if (removed) {
+      app.out(success(t(locale, 'cli.daemonStopped')))
+    }
+  }
+
+  return exitCode
+}
+
+function printStartBanner(app: CliApp, keyless: readonly DegradedItem[]): void {
+  const locale = app.config.locale.language
+
+  app.out(info(t(locale, 'cli.daemonRunning', { pid: process.pid, version: BRAND.version })))
+  printStartSetup(app)
+  reportMissingKeys(app, keyless)
+
+  // Boot loads market data before any channel opens, so a bot messaged right now stays silent.
+  if (configuredChannels(app).length > 0) {
+    app.out(hint(t(locale, 'cli.daemonChannelsWarmup')))
+  }
+}
+
+// What a channel or the API left down goes out before the ready file, so a background start relays
+// it with its confirmation; the ready file then records the whole list for `status`. A failed write
+// never stops the running daemon, but says so: a background start would otherwise wait it out.
+function announceReady(app: CliApp, degraded: readonly DegradedItem[]): void {
+  const entries = degraded.map((item) => renderDegraded(app, item))
+
+  printServed(app, entries)
+
+  for (const entry of entries.filter(({ kind }) => kind === 'channel' || kind === 'api')) {
+    app.err(warn(entry.message))
+  }
+
+  writeReadyFile(app, entries).catch((err: unknown) => {
+    app.resolve('logger').warn('daemon.ready_file_failed', { err: formatErrForLog(err) })
+    app.err(warn(t(app.config.locale.language, 'cli.daemonReadyFileFailed')))
+  })
+}
+
+async function stopDaemon(app: CliApp): Promise<number> {
+  const locale = app.config.locale.language
+  const state = await inspectDaemon(app)
+
+  if (state === 'unreadable') {
+    app.err(style.error(t(locale, 'cli.daemonPidUnreadable')))
+
+    return 1
+  }
+
+  const pid = await liveDaemonPid(app)
+
+  if (pid === null) {
+    if (await clearMalformedPidFile(app)) {
+      app.out(success(t(locale, 'cli.daemonMalformedPidRemoved')))
+
+      return 0
+    }
+
+    app.out(hint(t(locale, 'cli.daemonNotRunning')))
+
+    return 0
+  }
+
+  await requestDaemonStop(app, pid)
+
+  if (await waitForDaemon(app, 'down', STOP_TIMEOUT_MS)) {
+    app.out(success(t(locale, 'cli.daemonStoppedWithPid', { pid })))
+
+    return 0
+  }
+
+  // The daemon did not go down on its own: say so rather than escalating to SIGKILL behind the operator's back.
+  app.err(style.error(t(locale, 'cli.daemonStopTimeout', { pid, timeout: STOP_TIMEOUT_MS })))
+
+  return 1
+}
+
+// Polls the pid file until the daemon is `up` or `down`; false when the timeout passes first.
+async function waitForDaemon(
+  app: CliApp,
+  target: 'up' | 'down',
+  timeoutMs: number
+): Promise<boolean> {
+  const wantLive = target === 'up'
+  const reached = await pollUntil(
+    async () => (((await liveDaemonPid(app)) !== null) === wantLive ? true : undefined),
+    timeoutMs
+  )
+
+  return reached ?? false
+}

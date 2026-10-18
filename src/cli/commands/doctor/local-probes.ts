@@ -5,44 +5,51 @@ import type { CliApp } from '@/cli/types'
 import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import type { TradingConfig } from '@/trading/api'
+import { buildUnknownProviderMessage, findProviderById } from '@/ai/api'
 import { inspectDaemon } from '@/cli/daemon-guard'
 import { terminalErrorMessage } from '@/cli/error-output'
+import { BRAND } from '@/core/brand'
 import { ConfigError, isErrno } from '@/core/errors'
 import { inspectLogDestination, isMissingLogPath } from '@/core/logging/inspection'
-import { pluralKey, t } from '@/i18n'
+import { bindLocale, pluralKey, t } from '@/i18n'
 import { resolveTradingConfig, unavailableSources } from '@/trading/api'
 
-import type { DoctorEnvironment, DoctorProbe } from './types'
+import type { DoctorEnvironment, DoctorProbe, DoctorStatus } from './types'
+import { checkLabel } from './labels'
 
 export async function probeDataDirectory(dataDir: string, locale: Locale): Promise<DoctorProbe> {
+  const name = checkLabel(locale, 'data-dir')
+
   try {
     const info = await lstat(dataDir)
 
     if (info.isSymbolicLink() || !info.isDirectory()) {
-      return failProbe('data-dir', t(locale, 'cli.doctorDataDirNotReal'))
+      return probeRow(name, 'fail', t(locale, 'cli.doctorDataDirNotReal'))
     }
 
     await access(dataDir, constants.W_OK)
-    return okProbe('data-dir', dataDir)
+    return probeRow(name, 'ok', dataDir)
   } catch (err: unknown) {
     if (isErrno(err, 'ENOENT')) {
-      return warnProbe('data-dir', t(locale, 'cli.doctorDataDirFresh', { path: dataDir }))
+      return probeRow(name, 'info', t(locale, 'cli.doctorDataDirFresh', { path: dataDir }))
     }
 
-    return failProbe('data-dir', t(locale, 'cli.doctorCannotInspectDataDir'))
+    return probeRow(name, 'fail', t(locale, 'cli.doctorCannotInspectDataDir'))
   }
 }
 
 export function probeLogging(file: string, locale: Locale): DoctorProbe {
+  const name = checkLabel(locale, 'logging')
+
   try {
     inspectLogDestination(file)
-    return okProbe('logging', file)
+    return probeRow(name, 'ok', file)
   } catch (err: unknown) {
     if (isMissingLogPath(err)) {
-      return warnProbe('logging', t(locale, 'cli.doctorLoggingFresh', { path: file }))
+      return probeRow(name, 'info', t(locale, 'cli.doctorLoggingFresh', { path: file }))
     }
 
-    return failProbe('logging', logFailureDetail(err, locale))
+    return probeRow(name, 'fail', logFailureDetail(err, locale))
   }
 }
 
@@ -55,8 +62,9 @@ export function probeSources(options: {
   readonly config: ResolvedConfig
   readonly env: DoctorEnvironment
   readonly locale: Locale
-}): DoctorProbe {
+}): readonly DoctorProbe[] {
   const { locale } = options
+  const name = checkLabel(locale, 'sources')
 
   try {
     const missing = unavailableSources({
@@ -65,21 +73,33 @@ export function probeSources(options: {
     })
 
     if (missing.length === 0) {
-      return okProbe('sources', t(locale, 'cli.doctorSourcesReady'))
+      return [probeRow(name, 'ok', t(locale, 'cli.doctorSourcesReady'))]
     }
 
-    return warnProbe(
-      'sources',
-      t(locale, 'cli.doctorSourcesSkipped', {
-        sources: missing.map((entry) => `${entry.source} (${entry.variable})`).join(', '),
-      })
+    // Optional by construction: a keyless provider covers each of these kinds.
+    return missing.map((entry) =>
+      probeRow(
+        name,
+        'info',
+        t(locale, 'cli.doctorSourceOptional', {
+          source: entry.source,
+          variable: entry.variable,
+          adds: t(locale, entry.adds),
+        })
+      )
     )
   } catch (err: unknown) {
     // `[trading]` is otherwise parsed only on the boot path, so this is where an operator learns
     // their section is malformed before the daemon refuses to start on it.
-    return err instanceof ConfigError
-      ? failProbe('sources', terminalErrorMessage(err, locale))
-      : failProbe('sources', t(locale, 'cli.doctorCannotBeInspected'))
+    return [
+      probeRow(
+        name,
+        'fail',
+        err instanceof ConfigError
+          ? terminalErrorMessage(err, locale)
+          : t(locale, 'cli.doctorCannotBeInspected')
+      ),
+    ]
   }
 }
 
@@ -99,52 +119,55 @@ function credentialEnvOf(config: ResolvedConfig): TradingConfig['sourceCredentia
 
 export async function probeDaemon(app: CliApp): Promise<DoctorProbe> {
   const locale = app.config.locale.language
+  const name = checkLabel(locale, 'daemon')
 
   try {
     const state = await inspectDaemon(app)
 
     if (state === 'live') {
-      return okProbe('daemon', t(locale, 'cli.doctorDaemonLive'))
+      return probeRow(name, 'ok', t(locale, 'cli.doctorDaemonLive'))
     }
 
     if (state === 'absent') {
-      return warnProbe('daemon', t(locale, 'cli.doctorDaemonAbsent'))
+      return probeRow(name, 'info', t(locale, 'cli.doctorDaemonAbsent', { brand: BRAND.name }))
     }
 
-    return failProbe('daemon', state)
+    return probeRow(name, 'fail', state)
   } catch {
-    return failProbe('daemon', t(locale, 'cli.doctorCannotInspectDaemon'))
+    return probeRow(name, 'fail', t(locale, 'cli.doctorCannotInspectDaemon'))
   }
 }
 
 // `[[models]] provider` is a free string (core/config never validates it against the catalog), so a
 // typo must degrade to a fail probe here rather than throw — shared by every caller that resolves a
-// model's provider against the catalog (`doctor.ts`, `online-probes.ts`), each under its own probe name.
+// model's provider against the catalog (`doctor.ts`, `online-probes.ts`), each under its own probe
+// name.
+export function unknownProviderProbes(
+  models: readonly ResolvedModel[],
+  name: string,
+  locale: Locale
+): readonly DoctorProbe[] {
+  return models
+    .filter((model) => findProviderById(model.provider) === undefined)
+    .map((model) => unknownProviderProbe(name, model, locale))
+}
+
 export function unknownProviderProbe(
   name: string,
   model: ResolvedModel,
   locale: Locale
 ): DoctorProbe {
+  const message = buildUnknownProviderMessage(model)
+
   return {
     name,
     status: 'fail',
-    detail: t(locale, 'cli.doctorUnknownProvider', {
-      provider: model.provider,
-      model: model.model,
-    }),
+    detail: bindLocale(locale).translate(message.key, message.params),
   }
 }
 
-function okProbe(name: string, detail: string): DoctorProbe {
-  return { name, status: 'ok', detail }
-}
-
-function warnProbe(name: string, detail: string): DoctorProbe {
-  return { name, status: 'warn', detail }
-}
-
-function failProbe(name: string, detail: string): DoctorProbe {
-  return { name, status: 'fail', detail }
+function probeRow(name: string, status: DoctorStatus, detail: string): DoctorProbe {
+  return { name, status, detail }
 }
 
 function logFailureDetail(err: unknown, locale: Locale): string {

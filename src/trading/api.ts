@@ -44,7 +44,7 @@ export {
   logRefreshDegradations,
   refreshDegradations,
 } from '@/trading/features/market-data/ops/refresh'
-export { isBoundaryFailure } from '@/trading/wiring/tasks'
+export { isBoundaryFailure } from '@/trading/wiring/loop'
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 

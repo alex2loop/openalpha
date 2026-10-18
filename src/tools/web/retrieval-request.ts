@@ -1,6 +1,7 @@
 import type { ResolvedConfig, ResolvedSearchProvider } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { ResearchSearchInput } from '@/engine/api'
+import { toMissingSearchKeyError } from '@/core/config/resolve'
 
 import type { Recency, SearchRequest } from './search/types'
 
@@ -11,7 +12,15 @@ type RetrievalSearchInput = ResearchSearchInput & {
   readonly safeSearch?: 0 | 1 | 2
 }
 
+/** The one place search is refused: throws when `api_key_env` names a variable that is empty, so
+ *  no caller falls back to a keyless provider the operator did not choose. */
 export function defaultSearchProvider(config: ResolvedConfig): ResolvedSearchProvider {
+  const missing = toMissingSearchKeyError(config.webSearch)
+
+  if (missing !== undefined) {
+    throw missing
+  }
+
   return config.webSearch
 }
 

@@ -1,4 +1,6 @@
 import type { CliApp } from '@/cli/types'
+import type { Locale } from '@/core/types/locale'
+import { pluralKey, t } from '@/i18n'
 import { TABLE_NAME_WIDTH } from '@/persistence/api'
 
 export interface TableCount {
@@ -18,4 +20,15 @@ export function printTableCounts(app: CliApp, counts: readonly TableCount[]): nu
   app.out('')
 
   return rows
+}
+
+export function countedTotals(
+  locale: Locale,
+  rows: number,
+  files: number
+): { readonly rows: string; readonly files: string } {
+  return {
+    rows: t(locale, pluralKey(rows, 'cli.dbRowCountOne', 'cli.dbRowCount'), { count: rows }),
+    files: t(locale, pluralKey(files, 'cli.dbFileCountOne', 'cli.dbFileCount'), { count: files }),
+  }
 }

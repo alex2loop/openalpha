@@ -7,8 +7,8 @@ import { FULL_DEPLOYMENT_SCALE } from '@/trading/markets/macro-risk'
 import { FRACTION_QUANTUM } from '@/trading/render/number'
 
 interface UnderfundedInput {
-  /** The unfunded appetite per sleeve, as a fraction of NAV. Per sleeve because each gets its own
-   *  slice of the deployable pool, so one sleeve running out says nothing about another. */
+  /** The unfunded appetite per segment, as a fraction of NAV. Per segment because each gets its own
+   *  slice of the deployable pool, so one segment running out says nothing about another. */
   readonly shortfallBySegment: ReadonlyMap<PortfolioSegment, number>
   readonly nav: number
   readonly baseCurrency: CurrencyCode
@@ -79,7 +79,7 @@ export function isReportableGap(gap: number): boolean {
   return gap >= FRACTION_QUANTUM
 }
 
-/** A sleeve the operator turned off is sized by nothing, so the ceiling its macro read would impose
+/** A segment the operator turned off is sized by nothing, so the ceiling its macro read would impose
  *  constrains nothing either — and a warning beside a target of zero buries the ones that bind. */
 export function withRegimeCaveats(
   regimes: ReadonlyMap<PortfolioSegment, RegimeScale>,
@@ -98,7 +98,7 @@ export function withRegimeCaveats(
   )
 }
 
-/** The ceiling a sleeve's macro read imposed, stated only where it bit. A scale of 1 caps nothing,
+/** The ceiling a segment's macro read imposed, stated only where it bit. A scale of 1 caps nothing,
  *  and warning about a constraint that did not apply teaches the reader to skip the line that
  *  matters. The codes travel, not a rendered block: a caveat carrying prose renders in the wrong
  *  locale and buries a whole section inside a warning line. */

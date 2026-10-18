@@ -204,7 +204,7 @@ export interface ScreenResult {
   /** The clock `asOf` and `dataThroughDay` are days of — a crypto board is dated by the UTC day. */
   readonly timezone?: string
   /** What kind of board this is. `rank` orders a population against itself and is the default every
-   *  market with a population produces. `gate` states, per name, whether it cleared - a sleeve whose
+   *  market with a population produces. `gate` states, per name, whether it cleared - a segment whose
    *  members are correlated has no population to rank, and a heading that said "top 2 of 3" would
    *  claim a selection the composite cannot make. */
   readonly board?: 'rank' | 'gate'

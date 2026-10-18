@@ -248,7 +248,14 @@ function haltFailure(deps: RoleRunDeps, role: DebateRole, result: RunResult): Ro
 
   return {
     kind: 'failed',
-    caveat: { code: 'suggestion.debate-degraded', detail: { role, cause: haltCause(result) } },
+    caveat: {
+      code: 'suggestion.debate-degraded',
+      detail: {
+        role,
+        cause: haltCause(result),
+        ...(result.missingEnv === undefined ? {} : { env: result.missingEnv }),
+      },
+    },
   }
 }
 

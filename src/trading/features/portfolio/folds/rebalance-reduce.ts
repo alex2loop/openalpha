@@ -155,14 +155,14 @@ function reductionChange(
 }
 
 function reductionStep(excess: number, segment: PortfolioSegment, rows: RowInput): number {
-  const sleeve = rows.sleeves.get(segment)
+  const gap = rows.segments.get(segment)
   const over = Math.max(0, rows.drifting.get(segment) ?? 0)
 
-  return pacedStep(excess, over, sleeve?.excess ?? 0)
+  return pacedStep(excess, over, gap?.excess ?? 0)
 }
 
 /** A weight the plan still wants is being cut back by the allocation math; one at zero means the
- *  name is leaving, and only its score separates a weak read from a sleeve policy stopped funding. */
+ *  name is leaving, and only its score separates a weak read from a segment policy stopped funding. */
 function reductionReason(candidate: PortfolioCandidate, wanted: number): ChangeReason {
   if (wanted > 0) {
     return { kind: 'trim' }

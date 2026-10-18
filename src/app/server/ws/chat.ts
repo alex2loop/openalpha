@@ -6,7 +6,13 @@ import type { ChatRunRequest } from '@/app/server/ws/slash'
 import type { WsData, WsServices } from '@/app/server/ws/socket'
 import type { AgentId, SessionId } from '@/core/ids'
 import { API_CHANNEL } from '@/app/server/channel'
-import { registerSocketRun, send, sendRunError, unregisterSocketRun } from '@/app/server/ws/runs'
+import {
+  registerSocketRun,
+  send,
+  sendOperatorFailure,
+  sendRunError,
+  unregisterSocketRun,
+} from '@/app/server/ws/runs'
 import { createChatFrameMapper } from '@/app/server/ws/stream-events'
 import { sessionId as brandSessionId, DEFAULT_AGENT_ID, LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -68,6 +74,10 @@ export async function runChat(
 
     if (controller.signal.aborted || result === null) {
       return
+    }
+
+    if (result.operator !== undefined) {
+      sendOperatorFailure(ws, result.operator)
     }
 
     send(ws, {

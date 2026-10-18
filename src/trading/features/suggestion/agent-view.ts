@@ -21,7 +21,7 @@ import type {
 } from '@/trading/features/suggestion/types'
 import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { PriceWriter, WrittenQuote } from '@/trading/kernel/surface/agent-json'
 import { bankedShareOf, heldFirstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
@@ -120,7 +120,7 @@ type AgentRunResult = RunResultOf<AgentSuggestion>
 
 interface AgentBatchResult {
   readonly results: readonly AgentRunResult[]
-  readonly breaches: readonly SleeveBreach[]
+  readonly breaches: readonly CapBreach[]
   readonly overcommit: readonly BatchOvercommit[]
 }
 

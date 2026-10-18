@@ -2,17 +2,20 @@ import type { CredentialSource } from '@/ai/auth/types'
 import type { ProviderEntry } from '@/ai/catalog'
 import type { Pricing } from '@/ai/cost/pricing'
 import type { ChainEntry } from '@/ai/types'
-import type { ResolvedLlm, ResolvedModel } from '@/core/config/resolve'
+import type { ResolvedConfig, ResolvedLlm, ResolvedModel } from '@/core/config/resolve'
 import type { EventBus } from '@/core/events'
 import type { ProviderChain } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
 import { IDENTITY_ENV } from '@/ai/auth/cloud/identity'
-import { providerById, requiresApiKey } from '@/ai/catalog'
+import { buildUnknownProviderMessage, findProviderById, requiresApiKey } from '@/ai/catalog'
 import { createProviderChain } from '@/ai/chain/provider-chain'
 import { createConfiguredPricing } from '@/ai/cost/pricing'
 import { resolveReasoning } from '@/ai/reasoning/resolve'
 import { MissingEnvError, OperatorConfigError } from '@/core/config/resolve'
 import { DEFAULT_MAX_TOKENS } from '@/core/stream-events'
+
+const MODELS_SECTION = 'models'
+const TIERS_SECTION = 'model_tiers'
 
 export interface CreateClientInput {
   readonly models: readonly ResolvedModel[]
@@ -37,8 +40,8 @@ export function createClient(input: CreateClientInput): ProviderChain {
   const keyed = input.models.filter((model) => !isUnkeyed(model))
   const [first] = input.models
 
-  if (keyed.length === 0 && first?.missingKeyEnv !== undefined) {
-    return createUnkeyedChain(first, first.missingKeyEnv, input.configPath)
+  if (keyed.length === 0 && first !== undefined && isUnkeyed(first)) {
+    return createUnkeyedChain(toMissingKeyError(first, input.configPath))
   }
 
   const pricing = input.pricing ?? createConfiguredPricing(keyed, input.logger)
@@ -56,16 +59,51 @@ export function createClient(input: CreateClientInput): ProviderChain {
   })
 }
 
+type UnkeyedModel = ResolvedModel & { readonly missingEnv: string }
+
+/** One error per unset key variable, for the configured chain and tier entries whose provider
+ *  cannot answer without it: what a deferred resolve leaves for the caller to report. */
+export function missingKeyErrors(
+  config: Pick<ResolvedConfig, 'models' | 'modelTiers'>
+): readonly MissingEnvError[] {
+  const firstByEnv = new Map<string, MissingEnvError>()
+  const entries = [
+    ...config.models.map((model, index) => ({ model, path: [MODELS_SECTION, index] })),
+    ...Object.entries(config.modelTiers).flatMap(([tier, models]) =>
+      models.map((model, index) => ({ model, path: [TIERS_SECTION, tier, index] }))
+    ),
+  ]
+
+  for (const { model, path } of entries) {
+    if (isUnkeyed(model) && !firstByEnv.has(model.missingEnv)) {
+      firstByEnv.set(model.missingEnv, toMissingKeyError(model, path))
+    }
+  }
+
+  return [...firstByEnv.values()]
+}
+
 /** A key borrowed from another provider's defaults is reported unset as well; it only takes the
- *  entry out of the chain where the provider cannot answer without one. */
-function isUnkeyed(model: ResolvedModel): boolean {
-  if (model.missingKeyEnv === undefined) {
+ *  entry out of the chain where the provider cannot answer without one. An unknown provider stays
+ *  in, for `toChainEntry` to refuse by name. */
+function isUnkeyed(model: ResolvedModel): model is UnkeyedModel {
+  if (model.missingEnv === undefined) {
     return false
   }
 
-  const provider = providerById(model.provider)
+  const provider = findProviderById(model.provider)
 
-  return requiresApiKey(provider, model.baseUrl ?? provider.baseUrl)
+  return provider !== undefined && requiresApiKey(provider, model.baseUrl ?? provider.baseUrl)
+}
+
+function toMissingKeyError(
+  model: UnkeyedModel,
+  configPath: readonly (string | number)[]
+): MissingEnvError {
+  return new MissingEnvError(model.missingEnv, `model ${model.provider}/${model.model}`, {
+    path: [...configPath, 'api_key_env'],
+    effect: 'model',
+  })
 }
 
 interface ChainEntryInput {
@@ -144,9 +182,26 @@ function assertSignIn(input: AssertEntryInput): void {
   }
 }
 
+function catalogProvider(
+  model: ResolvedModel,
+  configPath: readonly (string | number)[]
+): ProviderEntry {
+  const provider = findProviderById(model.provider)
+
+  if (provider === undefined) {
+    throw new OperatorConfigError(
+      `model ${model.provider}/${model.model}: unknown provider`,
+      buildUnknownProviderMessage(model),
+      { path: [...configPath, 'provider'] }
+    )
+  }
+
+  return provider
+}
+
 function toChainEntry(input: ChainEntryInput): ChainEntry {
   const { model, logger, configPath } = input
-  const provider = providerById(model.provider)
+  const provider = catalogProvider(model, configPath)
   const baseUrl = model.baseUrl ?? provider.baseUrl
 
   if (baseUrl === '') {
@@ -210,14 +265,7 @@ function toChainEntry(input: ChainEntryInput): ChainEntry {
   }
 }
 
-function createUnkeyedChain(
-  model: ResolvedModel,
-  env: string,
-  configPath: readonly (string | number)[]
-): ProviderChain {
-  const owner = `model ${model.provider}/${model.model}`
-  const error = new MissingEnvError(env, owner, [...configPath, 'api_key_env'])
-
+function createUnkeyedChain(error: MissingEnvError): ProviderChain {
   return Object.freeze({
     stream: () => Promise.reject(error),
     estimateMaxCost: () => 0,

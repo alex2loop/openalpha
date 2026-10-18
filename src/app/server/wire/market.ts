@@ -192,7 +192,7 @@ interface MarketWire {
   readonly region: string
   /** Its calendar is its region's trading day; the owner of `homeRegion` is the default market. */
   readonly ownsRegion: boolean
-  /** The profile sleeve it fills. */
+  /** The profile segment it fills. */
   readonly segment: string
   readonly label: string
   readonly segmentLabel: string

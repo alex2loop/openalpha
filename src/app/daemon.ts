@@ -1,23 +1,20 @@
 import type { DeliveryHub } from '@/app/services'
 import type { StartChannelsDeps } from '@/channels/api'
-import type { App, DaemonTask } from '@/core/container'
+import type { App, DaemonReadyHandler, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import type { WorkspaceCleanupResult } from '@/engine/api'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
+import { retentionCutoffAt, runWorkspaceTmpRetention, startRetention } from '@/app/retention'
+import { ApiTokenError } from '@/app/server/http/auth'
 import { toAgentRegistry } from '@/app/services'
 import { startSocialUpkeep } from '@/app/social-upkeep'
 import { startUpdateWatch } from '@/app/update-watch'
 import { startChannels } from '@/channels/api'
 import { AppError, ConfigError } from '@/core/errors'
-import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
-import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
-import { pruneExpiredWorkspaceTmp, startScheduledWorkflows } from '@/engine/api'
-import { runRetention } from '@/persistence/api'
+import { startScheduledWorkflows } from '@/engine/api'
 
 const SHUTDOWN_DRAIN_MS = 5_000
 const SHUTDOWN_TOTAL_MS = 30_000
-const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
 
 declare module '@/core/container' {
   interface Services {
@@ -40,7 +37,7 @@ interface Teardown {
 export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
   return {
     name: 'daemon',
-    async start(signal: AbortSignal): Promise<void> {
+    async start(signal: AbortSignal, onReady?: DaemonReadyHandler): Promise<void> {
       // Guard before side effects: an already-aborted signal must not arm subsystems that would
       // then wait forever for an 'abort' event that has already fired.
       if (signal.aborted) {
@@ -78,7 +75,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
           return
         }
 
-        await startDaemonSubsystems({
+        const warnings = await startDaemonSubsystems({
           app,
           delivery,
           startupSignal,
@@ -90,6 +87,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
         })
 
         logger.info('daemon.started')
+        onReady?.(warnings)
 
         await abortWaiter.promise
 
@@ -118,9 +116,11 @@ interface StartDaemonSubsystemsOptions {
   readonly teardown: Teardown
 }
 
-async function startDaemonSubsystems(options: StartDaemonSubsystemsOptions): Promise<void> {
+async function startDaemonSubsystems(
+  options: StartDaemonSubsystemsOptions
+): Promise<readonly DegradedItem[]> {
   const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
-  const { disposers, admission } = teardown
+  const { disposers } = teardown
 
   const channels = await startChannels(channelDeps(app, startupSignal))
   disposers.push(() => channels.stop())
@@ -173,12 +173,40 @@ async function startDaemonSubsystems(options: StartDaemonSubsystemsOptions): Pro
 
   attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
 
-  if (app.config.api.enabled) {
+  const apiSkipped = app.config.api.enabled ? await startApi(app, teardown) : []
+
+  return [
+    ...channels.skipped.map(
+      ({ channel, error }): DegradedItem => ({
+        kind: 'channel',
+        subject: channel,
+        message: error.operator,
+      })
+    ),
+    ...apiSkipped,
+  ]
+}
+
+// A token the operator named but cannot serve keeps the API closed; any other failure stops the start.
+async function startApi(app: App, teardown: Teardown): Promise<readonly DegradedItem[]> {
+  const logger = app.resolve('logger')
+
+  try {
     const api = await app.resolve('apiStarter')(app, process.env)
 
-    admission.push(api.closeAdmission)
-    disposers.push(api.stop)
+    teardown.admission.push(api.closeAdmission)
+    teardown.disposers.push(api.stop)
     logger.info('api.started', { port: app.config.api.port })
+
+    return []
+  } catch (err: unknown) {
+    if (!(err instanceof ApiTokenError)) {
+      throw err
+    }
+
+    logger.warn('api.token_unusable', { err: formatErrForLog(err) })
+
+    return [{ kind: 'api', subject: 'api', message: err.operator }]
   }
 }
 
@@ -188,42 +216,6 @@ function toDaemonStartupError(err: unknown): AppError {
   }
 
   return new ConfigError('daemon startup failed', err)
-}
-
-function retentionCutoffAt(app: App): number {
-  return Date.now() - app.config.retention.days * MS_PER_DAY
-}
-
-async function runWorkspaceTmpRetention(app: App, logger: Logger, cutoffAt: number): Promise<void> {
-  try {
-    const result = await pruneExpiredWorkspaceTmp({
-      dataDir: app.config.paths.dataDir,
-      cutoffAt,
-    })
-    const summary = summarizeWorkspaceResult(result)
-
-    logger.info('workspace.tmp_retention', summary)
-  } catch (err: unknown) {
-    logger.warn('workspace.tmp_retention_failed', { err: formatErrForLog(err) })
-  }
-}
-
-function summarizeWorkspaceResult(result: WorkspaceCleanupResult): {
-  readonly removedFiles: number
-  readonly removedBytes: number
-  readonly failures: number
-} {
-  let removedFiles = 0
-  let removedBytes = 0
-  let failures = 0
-
-  for (const agent of result.agents.values()) {
-    removedFiles += agent.removedFiles
-    removedBytes += agent.removedBytes
-    failures += agent.failures
-  }
-
-  return { removedFiles, removedBytes, failures }
 }
 
 interface AttachPluginTasksOptions {
@@ -287,76 +279,6 @@ function channelDeps(app: App, signal: AbortSignal): StartChannelsDeps {
     // Injected once here so no adapter reaches for process.env on its own.
     env: process.env,
     shutdownSignal: signal,
-  }
-}
-
-function startRetention(app: App, logger: Logger): Disposer {
-  const configuredAgentIds = Object.freeze(new Set(app.resolve('agents').keys()))
-  let inFlight: Promise<void> | null = null
-
-  const sweep = (): void => {
-    if (inFlight !== null) {
-      return
-    }
-
-    inFlight = runRetentionSweep(app, logger, configuredAgentIds)
-      .catch((err: unknown) => {
-        logger.warn('retention.failed', { err: formatErrForLog(err) })
-      })
-      .finally(() => {
-        inFlight = null
-      })
-  }
-
-  const timer = setInterval(sweep, RETENTION_INTERVAL_MS)
-  // A pruning sweep is never worth holding the process open for.
-  timer.unref()
-  // Run the first sweep immediately so a long-lived daemon does not wait half an hour
-  // before reclaiming anything created while it was down.
-  sweep()
-
-  return async () => {
-    clearInterval(timer)
-    if (inFlight !== null) {
-      await inFlight
-    }
-  }
-}
-
-async function runRetentionSweep(
-  app: App,
-  logger: Logger,
-  configuredAgentIds: ReadonlySet<string>
-): Promise<void> {
-  const cutoffAt = retentionCutoffAt(app)
-
-  await runRetention(app.resolve('storage'), app.resolve('dialect'), {
-    config: {
-      retentionDays: app.config.retention.days,
-      inboxRetentionDays: app.config.retention.inboxDays,
-    },
-    logger,
-  }).catch((err: unknown) => {
-    logger.warn('retention.database_failed', { err: formatErrForLog(err) })
-  })
-
-  await runWorkspaceTmpRetention(app, logger, cutoffAt)
-
-  const logResult = await pruneRemovedAgentLogs({
-    dataDir: app.config.paths.dataDir,
-    configuredAgentIds,
-    cutoffAt,
-  }).catch((err: unknown) => {
-    logger.warn('retention.agent_logs_failed', { err: formatErrForLog(err) })
-    return undefined
-  })
-
-  if (logResult !== undefined) {
-    logger.info('retention.agent_logs', {
-      removedDirectories: logResult.removedDirectories,
-      removedBytes: logResult.removedBytes,
-      failures: logResult.failures,
-    })
   }
 }
 

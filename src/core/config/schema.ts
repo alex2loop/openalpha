@@ -89,7 +89,7 @@ const KnownSectionsSchema = z.strictObject({
   model_tiers: ModelTiersSchema.optional(),
 })
 
-const KNOWN_TOP_LEVEL = new Set([
+export const KNOWN_TOP_LEVEL: ReadonlySet<string> = new Set([
   'models',
   'model_defaults',
   'budget',
@@ -170,7 +170,7 @@ export function parseRawConfig(input: unknown): RawConfig {
   const parsed = KnownSectionsSchema.safeParse(known)
 
   if (!parsed.success) {
-    throw toInvalidConfigError(parsed.error)
+    throw toInvalidConfigError(parsed.error, KnownSectionsSchema, { unchecked: extensions })
   }
 
   return assembleRaw(parsed.data, extensions)

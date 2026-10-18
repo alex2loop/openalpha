@@ -1,7 +1,7 @@
 import type { AdviceInput } from '@/trading/features/portfolio/folds/allocation'
 import type {
   AbsoluteRebalancePlan,
-  CashSleeveTarget,
+  CashSegmentTarget,
   PositionChange,
   RebalancePolicyView,
   RebalanceUnavailableReason,
@@ -50,7 +50,7 @@ export function buildRebalancePlan(input: AdviceInput): AbsoluteRebalancePlan {
   // disagree about the same segment on the same run.
   const desired = desiredWeights(input, nav)
   const weak = weakHoldingRows(input)
-  // Before the sleeve rows: each one reports where the plan leaves it, so the plan has to exist.
+  // Before the segment rows: each one reports where the plan leaves it, so the plan has to exist.
   const plan = rebalanceRows(input, nav, desired)
   const allocation = allocationRows(input, plan.rows)
 
@@ -60,7 +60,7 @@ export function buildRebalancePlan(input: AdviceInput): AbsoluteRebalancePlan {
       policy: advicePolicy(input, plan.deploymentScale),
       allocation,
       rebalance: plan.rows,
-      cashSleeve: cashSleeveAdvice(input, nav, plan.rows),
+      cashSegment: cashSegmentAdvice(input, nav, plan.rows),
       weakHoldings: weak.rows,
       findings,
       caveats: [
@@ -208,7 +208,7 @@ function weakHoldingRows(input: AdviceInput): WeakHoldingFold {
 
 // A holding whose turnover the market could not measure keeps its row; the caveat says the
 // liquidity ceiling was not applied to it. Folded by position, not candidate, so the same name in
-// two sleeves is one disclosure — and the weight tells the operator how much exposure is unmeasured.
+// two segments is one disclosure — and the weight tells the operator how much exposure is unmeasured.
 function liquidityCaveats(input: AdviceInput): readonly Caveat[] {
   const liquidKeys = new Set(
     input.candidates
@@ -237,13 +237,13 @@ function liquidityCaveats(input: AdviceInput): readonly Caveat[] {
  *  `reserve-below-target` finding measures against: money that has not cleared can fund neither a
  *  purchase nor a deposit. Today's purchases are netted out, sale proceeds are not — they settle
  *  later. No rate, product, or banking action is invented. */
-function cashSleeveAdvice(
+function cashSegmentAdvice(
   input: AdviceInput,
   nav: number,
   plan: readonly PositionChange[]
-): CashSleeveTarget {
+): CashSegmentTarget {
   const purchases = plan.reduce((sum, row) => sum + Math.max(row.changePctNav, 0), 0)
-  // Currency cash is held at cost in the book; NAV and the sleeve table mark it at today's rate.
+  // Currency cash is held at cost in the book; NAV and the segment table mark it at today's rate.
   const settledBase = input.valued.book.availableCashBase + (input.valued.currencyCashGainBase ?? 0)
   const cashPctNav = Math.max(settledBase / nav - purchases, 0)
   const liquidReservePctNav = Math.min(cashPctNav, input.profile.reservePctNav)

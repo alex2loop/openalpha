@@ -72,6 +72,10 @@ const STATUS_CODES: Readonly<Record<number, LLMErrorCode>> = {
   425: 'transient',
 }
 
+// Codes whose wording blames the provider (a rejected key, no credit, no such model): true only
+// of a refusal the provider sent, never of a sign-in, catalog or chain failure that shares the code.
+const PROVIDER_VERDICT_CODES: ReadonlySet<LLMErrorCode> = new Set(['auth', 'billing', 'not_found'])
+
 const SERVER_ERROR_STATUS = 500
 const TOO_MANY_REQUESTS_STATUS = 429
 
@@ -120,36 +124,36 @@ export function classifyHttpError(
   options?: HttpErrorOptions
 ): LLMError {
   if (status === 402 && RATE_LIMITED_402_RE.test(body)) {
-    return new LLMError('rate', body, options)
+    return toProviderError('rate', body, options)
   }
 
   if (status === TOO_MANY_REQUESTS_STATUS && hasMatchingPattern(body, QUOTA_PATTERNS)) {
-    return new LLMError('billing', body, options)
+    return toProviderError('billing', body, options)
   }
 
   const mapped = STATUS_CODES[status]
 
   if (mapped) {
-    return new LLMError(mapped, body, options)
+    return toProviderError(mapped, body, options)
   }
 
   if (status >= SERVER_ERROR_STATUS) {
-    return new LLMError('transient', body, options)
+    return toProviderError('transient', body, options)
   }
 
   if (
     CONTEXT_OVERFLOW_STATUSES.has(status) &&
     hasMatchingPattern(body, CONTEXT_OVERFLOW_PATTERNS)
   ) {
-    return new LLMError('context_overflow', body)
+    return toProviderError('context_overflow', body)
   }
 
   if (status === 400 && hasMatchingPattern(body, UNKNOWN_MODEL_PATTERNS)) {
-    return new LLMError('not_found', body)
+    return toProviderError('not_found', body)
   }
 
   if (status === 400 && hasMatchingPattern(body, QUOTA_PATTERNS)) {
-    return new LLMError('billing', body)
+    return toProviderError('billing', body)
   }
 
   if (
@@ -157,10 +161,24 @@ export function classifyHttpError(
     (hasMatchingPattern(body, ANTHROPIC_RECOVERY_PATTERNS) ||
       hasMatchingPattern(body, SCHEMA_REJECTION_PATTERNS))
   ) {
-    return new LLMError('fatal', body, { fallbackAllowed: true })
+    return toProviderError('fatal', body, { fallbackAllowed: true })
   }
 
-  return new LLMError('fatal', body)
+  return toProviderError('fatal', body)
+}
+
+/** The detail a halt carries for a failed model call. Absent where the code's wording would
+ *  misplace the fault, and the run reads as its broad `llm_error`. */
+export function haltDetailOf(err: LLMError): LLMErrorCode | undefined {
+  return PROVIDER_VERDICT_CODES.has(err.code) && !err.answeredByProvider ? undefined : err.code
+}
+
+function toProviderError(
+  code: LLMErrorCode,
+  body: string,
+  options?: HttpErrorOptions | { readonly fallbackAllowed: true }
+): LLMError {
+  return new LLMError(code, body, { ...options, answeredByProvider: true })
 }
 
 // A failure that lands after the response has started arrives as an SSE frame rather than an HTTP

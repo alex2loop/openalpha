@@ -71,7 +71,7 @@ export interface BriefSnapshot {
   readonly scorecardMonth?: string
   readonly asOf: TradingDay
   readonly authoredLocale: Locale
-  /** The profile this was built against. Its sleeve targets, caps and discipline numbers are
+  /** The profile this was built against. Its segment targets, caps and discipline numbers are
    *  printed straight into the sections, so a snapshot written under a different profile answers a
    *  different question and is rebuilt rather than served. */
   readonly profileRevision: string
@@ -315,7 +315,7 @@ export interface BriefServices {
   positionExits(options: PositionExitOptions): Promise<readonly BriefAlertRow[]>
   /** Held names the exit watch is not protecting: no stored plan, or a hold without levels. */
   unwatchedPositions(options: PositionExitOptions): Promise<readonly InstrumentRef[]>
-  /** Held names past the window their sleeve is scored over, with the price gone nowhere. */
+  /** Held names past the window their segment is scored over, with the price gone nowhere. */
   stalePositions(options: StopDistanceOptions): Promise<readonly InstrumentRef[]>
   stopDistances(options: StopDistanceOptions): Promise<readonly StopDistance[]>
   /** The previous brief's sections, for the block that says what changed since. Null when no

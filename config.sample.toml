@@ -30,6 +30,11 @@
 # entry that names another provider keeps api_key_env (optional there, so a
 # server on this machine runs without it) but leaves base_url and provider_*
 # behind; give a hosted provider its own api_key_env.
+#
+# An unset key variable never stops `openalpha start`: the daemon prints one warning
+# and keeps refreshing data, firing alerts and running the ledger. Chat, /suggest,
+# research and the morning brief's model sections wait until you set the variable
+# and restart. `openalpha doctor` and `openalpha config validate` still report it.
 
 [model_defaults]
 provider = "openrouter"
@@ -144,7 +149,8 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 
 
 # ---- Budget -----------------------------------------------------------------
-# USD caps; the day and month roll over in [locale] timezone.
+# USD caps; the day and month roll over in [locale] timezone. Left out, spend is only tracked;
+# `openalpha onboard` and config.minimal.toml start you at max_daily_usd = 2.
 # `openalpha cost --period week --breakdown` shows where it went.
 
 # [budget]
@@ -164,7 +170,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # timezone = "UTC"                # IANA tz; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
 # region = "vn"                   # home market: vn (world gold owns global but is reference only). Leads the brief,
-                                  # and a new profile starts in its own sleeves. Set currency to match.
+                                  # and a new profile starts in its own segments. Set currency to match.
 
 
 # ---- Paths ------------------------------------------------------------------
@@ -233,7 +239,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 
 # Per market. Ids: equity-vn, crypto, gold, gold-vn. Every key is optional. A
 # level key left out keeps the market's own default, shown as short / long
-# horizon (your profile picks the horizon per sleeve). Setting any level key
+# horizon (your profile picks the horizon per segment). Setting any level key
 # starts a separate track record for that market. Restart after editing.
 # [trading.markets.equity-vn]
 # holidays = ["2027-01-01"]          # closures announced after your build; added to the built-in ones
@@ -243,7 +249,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # Defaults elsewhere - crypto: stop_loss_atr 2 / 2.5, reward_risk 2 / 3.
 # gold: 1.5 / 2 and 1.5 / 3. gold-vn: 1.5 / 2 and 1.5 / 1.5; its maximum_stop_loss
 # counts from the shop's buy-back price, so the buy/sell gap comes on top.
-# Crypto also rests a buy that ran 25% or more in a week half an ATR under the live price, for
+# Crypto also rests a buy that ran 25% or more in a week half an average daily range under the live price, for
 # five days - that is the market's own policy, not a key here.
 
 # A morning brief that still cannot be delivered after a few tries is skipped for
@@ -295,7 +301,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # default_for = ["equity-vn"]
 # fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
 
-# Only markets you still use refresh: a sleeve on in /profile, or one where you
+# Only markets you still use refresh: a segment on in /profile, or one where you
 # hold, watch or wait on a scored call. `/refresh <market>` loads any of them.
 # [trading.refresh]
 # interval_ms = 43200000             # ~12h ceiling; refresh anchors to each session's open and close
@@ -315,6 +321,9 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # CLI is always available; the rest are opt-in. Token resolution:
 # token_env > token_file. Pairing defaults ON when enabled with
 # no allowed_ids: an unknown chat gets a code for `openalpha pair approve <code>`.
+# A channel whose token is unset or rejected by the platform does not start: the
+# daemon warns, runs without it and answers nobody there until you fix the token
+# and restart.
 
 # [channels.telegram]
 # enabled = true
@@ -384,6 +393,9 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # Backend for the web_search tool. duckduckgo is the default: free, no key.
 # anysearch takes an optional key (anonymous has a lower quota); brave, exa,
 # serper and tavily need one; searxng is your own instance at base_url.
+# If api_key_env names a variable that is empty, only web search stops (the tool
+# and /research refuse, doctor and `config validate` say which variable to set);
+# an empty fallback_api_key_env just turns the fallback off.
 
 # A paid provider, with a self-hosted SearXNG behind it:
 # [web_search]
@@ -431,6 +443,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # If its tool list changed meanwhile, calls fail until it matches again or you restart.
 # Its calls ask for approval; "remember" covers that exact call only, and a call
 # too long to show whole can be approved once, never remembered.
+# A server naming a ${VAR} that is unset is skipped with a warning; the rest connect.
 
 # [[mcp.servers]]
 # name = "filesystem"

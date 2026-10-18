@@ -5,7 +5,7 @@ import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { ExitCoverage, OrderRequest, OrderService } from '@/trading/features/order/types'
 import type { Ticker } from '@/trading/kernel/instrument'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import { createTool } from '@/core/tool'
 import { renderOrderLine } from '@/trading/features/order/render'
 import { exitLevelsOf } from '@/trading/features/order/types'
@@ -151,13 +151,13 @@ async function placeOrder(
   })
 }
 
-function capBreachRefusal(breaches: readonly SleeveBreach[]): string {
+function capBreachRefusal(breaches: readonly CapBreach[]): string {
   return `${CAP_BREACH_REFUSED} ${toAgentJson(breaches.map(toBreachWeights))}`
 }
 
-/** Weights as percents, the unit an agent reads. An unmeasured ETF sleeve has no combined weight to
+/** Weights as percents, the unit an agent reads. An unmeasured ETF segment has no combined weight to
  *  state, only the ceiling it could not be checked against. */
-function toBreachWeights(breach: SleeveBreach): Record<string, unknown> {
+function toBreachWeights(breach: CapBreach): Record<string, unknown> {
   if (breach.kind === 'etf-unmeasured') {
     const { capPctNav, ...subject } = breach
 

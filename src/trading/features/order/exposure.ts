@@ -1,6 +1,6 @@
 import type { ValuedBook } from '@/trading/features/portfolio/types'
 import type { InstrumentKind, InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { OrderError } from '@/trading/features/order/types'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
@@ -12,7 +12,7 @@ interface OrderExposureInput {
   readonly book: ValuedBook
   readonly instrument: InstrumentRef
   readonly segment: PortfolioSegment
-  /** Absent where the market publishes none, which leaves the sleeve's ETF ceiling unmeasured
+  /** Absent where the market publishes none, which leaves the segment's ETF ceiling unmeasured
    *  rather than assuming the name is not one. */
   readonly instrumentKind?: InstrumentKind
   /** The order's value in the book's own currency, as the caps beside it are measured. */
@@ -36,7 +36,7 @@ export function assertBookPriced(book: ValuedBook, profile: UserProfile | null):
  *  is not among them: a name's sector needs a provider read the order path does not make, and a
  *  network call on the confirmation prompt is worse than a limit stated one short. It is still
  *  reported once the fill is booked, by the ledger fold `/portfolio` and `/rebalance` read. */
-export function breachedSleeves(input: OrderExposureInput): readonly SleeveBreach[] {
+export function breachedCaps(input: OrderExposureInput): readonly CapBreach[] {
   const navBase = input.book.navBase
 
   // No denominator, no weights. `assertBookPriced` has already refused an unpriced book, so what
@@ -54,7 +54,7 @@ export function breachedSleeves(input: OrderExposureInput): readonly SleeveBreac
   ]
 }
 
-function positionBreach(input: OrderExposureInput, addedPctNav: number): readonly SleeveBreach[] {
+function positionBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {
   const crossed = crossedWeights({
     heldPctNav: heldWeightOf(input.book, input.instrument),
     addedPctNav,
@@ -66,7 +66,7 @@ function positionBreach(input: OrderExposureInput, addedPctNav: number): readonl
     : [{ kind: 'position', ticker: input.instrument.ticker, ...crossed }]
 }
 
-function segmentBreach(input: OrderExposureInput, addedPctNav: number): readonly SleeveBreach[] {
+function segmentBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {
   const { book, profile, segment } = input
   const crossed = crossedWeights({
     heldPctNav: book.segmentValues.find((value) => value.segment === segment)?.weightPctNav ?? 0,
@@ -77,8 +77,8 @@ function segmentBreach(input: OrderExposureInput, addedPctNav: number): readonly
   return crossed === undefined ? [] : [{ kind: 'segment', segment, ...crossed }]
 }
 
-/** The sleeve's ETF share, which only an ETF adds to. */
-function etfBreach(input: OrderExposureInput, addedPctNav: number): readonly SleeveBreach[] {
+/** The segment's ETF share, which only an ETF adds to. */
+function etfBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {
   if (input.instrumentKind !== ETF_KIND) {
     return []
   }
@@ -87,7 +87,7 @@ function etfBreach(input: OrderExposureInput, addedPctNav: number): readonly Sle
 
   return etfBreaches({
     segment,
-    sleeve: book.segmentValues.find((value) => value.segment === segment),
+    segmentValue: book.segmentValues.find((value) => value.segment === segment),
     addedPctNav,
     ceilingPctNav: profile.caps[segment]?.maximumEtfPctNav,
   })

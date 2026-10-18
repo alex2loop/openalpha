@@ -208,7 +208,7 @@ export const CRYPTO_BOARD_LOT: BoardLotPolicy = Object.freeze({ size: 0.0001 })
 
 /** `stopVolatilityMultiplier` is wider than gold's: a 2x ATR stop on a crypto asset is inside its
  *  ordinary daily range. The target is a multiple of that risk, so it moves out with the stop by
- *  itself, and 2 puts it four ATRs out on the short horizon this sleeve is held on, which is where
+ *  itself, and 2 puts it four ATRs out on the short horizon this segment is held on, which is where
  *  the multiplier was always aimed. Measured on the stored bars, entered at the 20-session breakout
  *  and trailed: 1.3 is worse on 15 of the 23 names with enough windows to read, and 2 beats 1.6 on
  *  17 of them but by 0.02R equal-weighted, a gap that is carried by three high-count names and
@@ -271,7 +271,7 @@ export const CRYPTO_LEVEL_POLICY: LevelPolicy = Object.freeze({
  *  position.
  *
  *  Bitcoin's own regime and the market-wide sentiment index are deliberately absent. Both are one
- *  number for the whole board, so neither can order it, and the regime already sizes this sleeve
+ *  number for the whole board, so neither can order it, and the regime already sizes this segment
  *  through `CRYPTO_MACRO_DRIVERS`. Relative strength against Bitcoin is absent too: it is a coin's
  *  return less Bitcoin's, which orders the board exactly as the coin's own return does and moves
  *  every band with Bitcoin. */
@@ -300,7 +300,7 @@ export const CRYPTO_FACTOR_POLICY: FactorPolicy<CryptoFactorId> = Object.freeze(
  *  the week rather than names beating Bitcoin: in a Bitcoin-led bull the rest of the board can rise
  *  and still lag it, and counting only the ones that beat it read that board as defensive. Its
  *  anchors sit fifteen points either side of an even split; the trend bands are the distances the
- *  rotation literature calls decisive. No backtest here. The sleeve is not sized on the US
+ *  rotation literature calls decisive. No backtest here. The segment is not sized on the US
  *  composite: real rates and the dollar read defensive through an entire crypto bull once rates are
  *  high. */
 export const CRYPTO_MACRO_DRIVERS: MacroDriverPolicy = Object.freeze({
