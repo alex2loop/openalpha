@@ -109,7 +109,7 @@
     } catch {
       # A daemon `upgrade` could not restart (in a terminal, or left by an older release) still runs
       # the leftover. It is paused once, through the pid file, and the swap tried again.
-      Say 'Pausing the daemon while I swap the binary.' 'Tạm dừng daemon trong lúc tôi thay bản cài.'
+      Say 'Pausing the daemon while I swap the binary.' 'Tạm dừng daemon trong lúc tôi thay phiên bản.'
       & $Target stop | Out-Null
       $script:PausedDaemon = $LASTEXITCODE -eq 0
     }
@@ -163,7 +163,7 @@
 
     if ($script:PausedDaemon) {
       Say "The daemon was paused for the swap. Start it again with: $Command start --background" `
-        "Daemon đã tạm dừng để thay bản cài. Bạn bật lại bằng: $Command start --background"
+        "Daemon đã tạm dừng để thay phiên bản. Bạn bật lại bằng: $Command start --background"
     }
 
     # Left for the operator on an upgrade, in CI, or when asked. A setup that stops prints its own
