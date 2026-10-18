@@ -25,7 +25,8 @@ hình, nó đổi một phần (mô hình, bot Telegram, mức chi hoặc ngôn 
 ghi lại làm mất các dòng chú thích.
 
 Có hai tệp mẫu để tải: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
-chạy được ngay với mức chi 2 USD/ngày, chỉ cần `OPENROUTER_API_KEY`; [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
+chạy được ngay với mức chi 2 USD/ngày, chỉ cần `OPENROUTER_API_KEY` (bản trả lời bằng tiếng Anh là
+[config.minimal.en.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml)); [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
 liệt kê mọi khóa kèm giải thích.
 
 ## Thứ tự ưu tiên

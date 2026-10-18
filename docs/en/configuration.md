@@ -24,9 +24,10 @@ openalpha config edit       # open it in $VISUAL or $EDITOR
 on an existing config, it changes one part (model, Telegram bot, budget or language) and saves the
 old file beside it first, because the rewrite drops comments.
 
-Two templates to download: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
-works with just `OPENROUTER_API_KEY` and a 2 USD daily cap, and [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
-lists every key with a comment.
+Two templates to download: [config.minimal.en.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml)
+works with just `OPENROUTER_API_KEY` and a 2 USD daily cap (its Vietnamese twin is
+[config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)), and
+[config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml) lists every key with a comment.
 
 ## Precedence
 

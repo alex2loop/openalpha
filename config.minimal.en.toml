@@ -1,0 +1,68 @@
+# A small config to get started with OpenAlpha, in English.
+#
+# How to use it:
+#   1. Download it: curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -o ~/.openalpha/config.toml --create-dirs
+#      Windows (PowerShell): New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
+#   2. Get a key at openrouter.ai, then set it: export OPENROUTER_API_KEY="..."
+#   3. Check it: openalpha doctor --online
+#
+# That is enough to run. When you want more (Telegram, an exchange...),
+# open config.sample.toml on GitHub: every option comes with an explanation.
+
+# Replies, reports and errors in English. Set "vi" for Vietnamese.
+[locale]
+language = "en"
+
+# Every model below goes through OpenRouter, sharing one key.
+# "latency" means prefer whichever server answers fastest.
+[model_defaults]
+provider = "openrouter"
+api_key_env = "OPENROUTER_API_KEY"
+provider_sort = "latency"
+
+# The main model: everyday chat. A cheap, fast model is plenty.
+[[models]]
+model = "deepseek/deepseek-v4.1-flash"
+
+# Work that needs more thought goes to a slightly stronger model.
+# Remove a section and that job falls back to the main model.
+
+# The debate: bull, bear and risk "experts" argue it out before a
+# suggestion is made. Pick a fast model.
+[[model_tiers.debate]]
+model = "openai/gpt-6-luna"
+
+# Skims the news before the debate to pick out what matters.
+# Without it, news is only grouped by source, not ranked by importance.
+[[model_tiers.decisions]]
+provider = "openrouter-decisions"
+model = "typesafe/jev-1.14"
+
+# Web research: planning, writing and checking the report.
+[[model_tiers.research]]
+model = "anthropic/claude-haiku-5.5"
+
+# The heaviest part of research: pulling evidence out of each web page.
+[[model_tiers.research-heavy]]
+model = "anthropic/claude-haiku-5.5"
+
+# Pulls Vietnamese macro figures (GDP, inflation...) out of reports and the press.
+[[model_tiers.extraction]]
+model = "anthropic/claude-haiku-5.5"
+
+# Reads the investment themes in play, for /themes.
+[[model_tiers.themes]]
+model = "anthropic/claude-haiku-5.5"
+
+# The most AI can spend per day, in USD. Once reached, model calls stop until
+# midnight, so a background daemon never overspends. 0 means no cap.
+[budget]
+max_daily_usd = 2
+
+# Trading through a broker other than VPS (SSI, for example)?
+# Remove the # from the 3 lines below and set your broker's fees, so profit
+# and loss come out close to reality. "/record deposit ssi ..." then works.
+# Fees are fractions: 0.0015 is 0.15%; sell_tax is the 0.1% sales tax.
+# [trading.venues.ssi]
+# default_for = ["equity-vn"]
+# fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }

@@ -212,14 +212,14 @@ To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells 
 - **Windows Defender blocks `openalpha.exe`?** The binary is not code-signed, so it is sometimes flagged by mistake. The installer already checked it against the release's `SHA256SUMS`; to check yourself, run `Get-FileHash "$HOME\.local\bin\openalpha.exe"` and compare it with the line for your build (`openalpha-windows-x64.exe`, or `openalpha-windows-arm64.exe` on ARM) on the [Releases](https://github.com/alex2loop/openalpha/releases) page. If it matches, exclude the folder, in PowerShell run as Administrator: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Don't turn antivirus off.
 - **A Windows machine with an ARM chip?** The installer picks the native ARM build, and an older x64 install moves to it when you re-run the install command.
 - **Vietnamese text shows garbage?** Use Windows Terminal instead of the old console window. **Prefer WSL2?** The `curl ... | sh` line works there, with its own `~/.openalpha`.
-- **Rather not answer questions during install?** Take [config.minimal.toml](config.minimal.toml): it runs as is with just an OpenRouter key, every line commented. This overwrites an existing `config.toml`:
+- **Rather not answer questions during install?** Take [config.minimal.en.toml](config.minimal.en.toml): it runs as is with just an OpenRouter key, every line commented. This overwrites an existing `config.toml`:
 
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -o ~/.openalpha/config.toml --create-dirs
+  curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -o ~/.openalpha/config.toml --create-dirs
   ```
 
   ```powershell
-  New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
+  New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
 - **Every config option:** [config.sample.toml](config.sample.toml) · [docs/en/configuration.md](docs/en/configuration.md). No AI key? Run a local model through Ollama or vLLM.
