@@ -47,6 +47,8 @@ export interface TradingServices {
   ): Promise<readonly RefreshMarketDataResult[]>
   /** The markets something the operator relies on still reads (`composition/refresh.ts`). */
   marketsInUse(signal: AbortSignal): Promise<ReadonlySet<MarketRef>>
+  /** Whether any market the operator relies on is trading right now. */
+  isSessionOpen(now: number, signal: AbortSignal): Promise<boolean>
   readonly daemonTasks: readonly DaemonTask[]
   /** The configured default region. It lives on the aggregate so no surface carries a fallback of
    *  its own — a slash-command default and a route default that disagree are two products. */

@@ -357,11 +357,9 @@ Priority for the level: `--log-level`, then `OPENALPHA_LOG_LEVEL`, then `[log].l
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `check` | bool | `true` | Ask GitHub twice a day whether a newer release is out. |
+| `auto` | bool | `false` | Install patch releases (1.0.x) by itself between 00:00 and 06:00 on `[locale] timezone`, when the daemon runs in the background; never while a market you follow is in session. |
 
-When one is out, the CLI prints a line after a command (at most once a day), chat shows it under the
-welcome, `version` and `doctor version` report it, the daemon logs it, and the morning brief sent to
-a channel ends with it. Nothing installs until you run `openalpha upgrade`. Source checkouts and CI
-never check.
+When one is out, the CLI prints a line after a command (at most once a day), chat shows it under the welcome, `version` and `doctor version` report it, the daemon logs it, the morning brief sent to a channel ends with it, and the bot mentions it in your private chat. Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on: then a background daemon installs a patch release by itself in that window, messages you when it is back, and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night. A source checkout never checks; under CI only `version` and `doctor --online` do.
 
 ### `[channels.telegram]`
 

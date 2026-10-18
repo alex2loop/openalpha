@@ -21,6 +21,7 @@ import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
 import { buildRebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import { resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
+import { isAnySessionOpen } from '@/trading/wiring/composition/session-open'
 import { buildSuggestionCards } from '@/trading/wiring/composition/suggestion-cards'
 import { createTradingDaemonTasks } from '@/trading/wiring/tasks'
 
@@ -58,11 +59,11 @@ export function toAggregate(
     ...parts.services,
     refresh: parts.refresh,
     refreshMarketData: parts.refreshMarketData,
-    marketsInUse: (signal: AbortSignal) =>
-      resolveMarketsInUse(
-        { markets: registries.markets, stores: parts.stores, portfolio: parts.services.portfolio },
-        signal
-      ),
+    ...toMarketReads({
+      markets: registries.markets,
+      stores: parts.stores,
+      portfolio: parts.services.portfolio,
+    }),
     defaultRegion: options.tradingConfig.defaultRegion,
     focusScope: toFocusScope(parts.services.marketData.markets(), registries.markets),
     suggestionCards: buildSuggestionCards(parts.services, options.tradingConfig, parts.stores),
@@ -102,4 +103,17 @@ export function toAggregate(
       logger: parts.logger,
     }),
   })
+}
+
+function toMarketReads(
+  deps: Parameters<typeof resolveMarketsInUse>[0]
+): Pick<TradingServices, 'marketsInUse' | 'isSessionOpen'> {
+  const marketsInUse = (signal: AbortSignal): ReturnType<typeof resolveMarketsInUse> =>
+    resolveMarketsInUse(deps, signal)
+
+  return {
+    marketsInUse,
+    isSessionOpen: async (now, signal) =>
+      isAnySessionOpen(deps.markets, await marketsInUse(signal), now),
+  }
 }
