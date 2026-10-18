@@ -170,7 +170,14 @@ main() {
 
   NEW_TERMINAL="no"
   wire_path
-  "$INSTALL_DIR/$COMMAND" version
+
+  # An upgrade moves a background daemon onto the new binary; a pinned install must not be pulled
+  # past the release it asked for, so it only prints the version.
+  if [ "$FIRST_INSTALL" = "no" ] && [ -z "${OPENALPHA_VERSION:-}" ]; then
+    "$INSTALL_DIR/$COMMAND" upgrade || true
+  else
+    "$INSTALL_DIR/$COMMAND" version
+  fi
 
   ONBOARD="skipped"
   [ "$FIRST_INSTALL" = "yes" ] || ONBOARD="upgraded"

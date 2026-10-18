@@ -242,9 +242,9 @@ no messages from anyone. `doctor` still reports a missing key as a failure on it
 (bad TOML, an invalid value), an API port already taken, a daemon already running and a storage
 failure still stop `start`.
 
-`status` names the version the running daemon was started from. Install a new release with the
-install script while a daemon runs and it keeps the old one; `status` flags that, with the `stop` and
-`start` that switch it over. When the running daemon started without some keys, `status` repeats the
+`status` names the version the running daemon was started from. Re-running the install
+script restarts a background daemon on the new binary; an install pinned with `OPENALPHA_VERSION` leaves
+the daemon for you, and `status` flags it, with the `stop` and `start` that switch it over. When the running daemon started without some keys, `status` repeats the
 `start` warnings: which channels were skipped and why, which keys are unset and what waits for them,
 even after a reboot. Exchange keys and the keys of optional data sources are listed apart under
 "optional keys": without them you record trades by hand, and `start` does not warn. The desktop app

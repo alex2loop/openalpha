@@ -237,8 +237,9 @@ AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin 
 cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có daemon khác chạy và lỗi lưu trữ
 vẫn chặn `start`.
 
-`status` cho biết daemon đang chạy bản nào. Cài bản mới bằng script cài đặt trong lúc daemon đang chạy
-thì daemon vẫn giữ bản cũ; `status` sẽ nhắc bạn chạy `stop` rồi `start` để chuyển sang bản mới.
+`status` cho biết daemon đang chạy bản nào. Chạy lại script cài đặt thì daemon chạy nền được bật lại trên
+bản mới; cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì daemon được để cho bạn, và `status` nhắc chạy `stop`
+rồi `start` để chuyển sang bản đó.
 Khi daemon đang chạy mà thiếu khóa, `status` liệt kê lại đúng các dòng cảnh báo lúc `start`: kênh nào bị
 bỏ qua và vì sao, khóa nào chưa đặt và việc gì đang chờ nó, kể cả sau khi máy khởi động lại. Khóa sàn và
 khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn": thiếu chúng thì bạn vẫn ghi lệnh bằng tay, và

@@ -1,7 +1,8 @@
 # Installs or upgrades OpenAlpha on Windows from its latest GitHub release:
 #   powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"
 # It installs one self-contained openalpha.exe with Bun built in, so nothing else is set up. Your
-# data dir and config are never touched; a daemon running from the old binary is paused for the swap.
+# data dir and config are never touched; on an upgrade, `openalpha upgrade` moves a background daemon
+# onto the new binary.
 # Settings, all optional:
 #   OPENALPHA_VERSION=v1.2.0     install that release instead of the latest
 #   OPENALPHA_INSTALL_DIR=<dir>  where the binary goes (default %USERPROFILE%\.local\bin)
@@ -46,7 +47,6 @@
 
   # Downloads next to the target and renames into place, so a cut download never leaves a broken
   # command on PATH. A running openalpha.exe cannot be replaced, but it can be renamed aside.
-  # Returns whether a daemon was paused, so the caller can say how to start it again.
   function Install-Binary {
     $base = Get-ReleaseBase
     $part = Join-Path $InstallDir ".$Command.download"
@@ -72,31 +72,11 @@
           'Tệp tải về không khớp mã kiểm tra nên tôi chưa cài. Chạy lại nhé.'
       }
 
-      $paused = Stop-Daemon
       Move-Aside
       Move-Item -Force -Path $part -Destination $Target
-
-      return $paused
     } finally {
       Remove-Item -Force -ErrorAction SilentlyContinue -Path $part, $sums
     }
-  }
-
-  # Paused only once a verified binary is in hand, as `openalpha upgrade` does: a daemon left running
-  # keeps serving the old version, and a second install would find its file locked. The command line
-  # tells the daemon from a chat running off the same file.
-  function Stop-Daemon {
-    $daemon = Get-CimInstance Win32_Process -Filter "Name = '$Command.exe'" -ErrorAction SilentlyContinue |
-      Where-Object { $_.ExecutablePath -in @($Target, "$Target.old") -and $_.CommandLine -match '\sstart(\s|$)' }
-
-    if (-not ($daemon -and (Test-Path $Target))) {
-      return $false
-    }
-
-    Say 'Pausing the daemon while I swap the binary.' 'Tạm dừng daemon trong lúc tôi thay bản cài.'
-    & $Target stop | Out-Null
-
-    return $LASTEXITCODE -eq 0
   }
 
   # The previous upgrade's leftover is replaced; it is locked only while that version still runs.
@@ -136,13 +116,14 @@
     $firstInstall = -not (Test-Path $Target)
 
     Say 'Installing OpenAlpha...' 'Đang cài OpenAlpha...'
-    $paused = Install-Binary
+    Install-Binary
     Add-ToPath
-    & $Target version
 
-    if ($paused) {
-      Say "The daemon was running before, so start it again with: $Command start --background" `
-        "Trước đó daemon đang chạy, bạn bật lại bằng: $Command start --background"
+    # A pinned install must not be pulled past the release it asked for, so it only prints the version.
+    if (-not $firstInstall -and -not $env:OPENALPHA_VERSION) {
+      & $Target upgrade
+    } else {
+      & $Target version
     }
 
     # Left for the operator on an upgrade, in CI, or when asked. A setup that stops prints its own
