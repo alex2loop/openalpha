@@ -91,7 +91,7 @@ Chỉ số vĩ mô tổng hợp được chuẩn hóa lại khi công bố: chu�
 
 Khóa đến từ biến môi trường và không bao giờ nằm trong cấu hình. Tên biến, tiền tố `OPENALPHA_` và việc đổi tên bằng `[trading.sources]` nằm ở [Nguồn dữ liệu](nguon-du-lieu.md#định-tuyến).
 
-#### Báo cáo tài chính VN: các năm đã kiểm toán, rồi bốn quý gần nhất
+#### Báo cáo tài chính VN: các năm đã kiểm toán, rồi các quý gần nhất
 
 `vietcap-statements` trả báo cáo cả năm và các quý riêng lẻ của một mã cùng lúc. Những năm đã qua cửa sổ kiểm toán in mỗi năm một dòng, cũ nhất trước.
 
@@ -102,6 +102,8 @@ Khi các quý chạy vượt qua năm đã kiểm toán mới nhất, bốn quý
 - thiếu một khoản dòng tiền ở bất kỳ quý nào trong bốn quý thì khoản đó bị bỏ, chứ không đọc trên ít quý hơn.
 
 Một cửa sổ kết thúc trong năm đã kiểm toán mới nhất, hoặc ở quý IV của nó, thì chỉ lặp lại bản kiểm toán nên không in gì. Cuộc tranh luận được dặn phải cân dòng này thấp hơn một bản kiểm toán.
+
+Ngoài các năm đã kiểm toán, OpenAlpha còn cho xem 5 quý gần nhất, mỗi quý so với cùng kỳ năm trước, để thấy doanh nghiệp đang tốt lên hay xấu đi ngay lúc này. Số quý chưa kiểm toán nên chỉ dùng để tham khảo.
 
 Báo cáo được tải lại mỗi 30 ngày, và mỗi hai ngày khi quý mới nhất đã đến hạn mà chưa được lưu. Đó là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
 

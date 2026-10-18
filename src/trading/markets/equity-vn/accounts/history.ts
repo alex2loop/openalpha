@@ -14,11 +14,13 @@ import { isBankLines } from '@/trading/kernel/market/annual-accounts'
 import { accountsFlags } from '@/trading/markets/equity-vn/accounts/flags'
 import {
   averageOf,
+  coreOperatingProfitOf,
   differenceOf,
   ratioOf,
   sumOf,
   totalOf,
 } from '@/trading/markets/equity-vn/accounts/lines'
+import { toAccountsQuarters } from '@/trading/markets/equity-vn/accounts/quarters'
 import { finalFiscalYear } from '@/trading/markets/equity-vn/accounts/score'
 import { trailingLinesOf } from '@/trading/markets/equity-vn/accounts/trailing'
 import { VN_ACCOUNTS_POLICY } from '@/trading/markets/equity-vn/factor-policy'
@@ -53,6 +55,7 @@ export function toAccountsHistory(input: HistoryInput): AccountsHistory | undefi
     instrument: input.instrument,
     years,
     ...(trailing === undefined ? {} : { trailing }),
+    quarters: toAccountsQuarters(input.quarters, input.asOf),
     ...(trend === undefined ? {} : { trend }),
     caveats: accountsFlags({
       reports,
@@ -219,10 +222,6 @@ function bankFigures(lines: AccountLines, prior: AccountLines | undefined): Year
     costToIncome: ratioOf(lines.operatingExpenses, lines.operatingIncome),
     capitalAdequacy: positiveOf(lines.capitalAdequacy),
   })
-}
-
-function coreOperatingProfitOf(lines: AccountLines): number | undefined {
-  return differenceOf(lines.grossProfit, sumOf([lines.sellingExpenses, lines.adminExpenses]))
 }
 
 function netDebtOf(lines: AccountLines): number | undefined {

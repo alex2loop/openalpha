@@ -91,7 +91,7 @@ This holds for what you see, not only what is stored. Shares printed under their
 
 Credentials come from environment variables and never appear in config. Variable names, the `OPENALPHA_` prefix and `[trading.sources]` renaming are in [Data sources](data-sources.md#routing).
 
-#### VN financial statements: audited years, then the last four quarters
+#### VN financial statements: audited years, then the newest quarters
 
 `vietcap-statements` returns a name's full-year reports and discrete quarters together. Years that have cleared their audit window print one line each, oldest first.
 
@@ -102,6 +102,8 @@ When quarters run past the newest audited year, the four newest quarters publish
 - a flow missing from any of the four is left out, never read off fewer quarters.
 
 A window that ends inside the newest audited year, or on its fourth quarter, restates the audit and prints nothing. The debate is told to weigh this line below an audit.
+
+Beyond the audited years, OpenAlpha also shows the 5 newest quarters, each against the same quarter a year earlier, so you can see whether the business is improving or fading right now. Quarters are unaudited, so they are a reading, not a final figure.
 
 Accounts are refetched every 30 days, and every two days while the latest quarter is due and not stored yet. That is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
 

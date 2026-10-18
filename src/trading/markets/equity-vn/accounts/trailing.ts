@@ -7,7 +7,7 @@ import type {
 import { totalOf } from '@/trading/markets/equity-vn/accounts/lines'
 
 const TRAILING_QUARTERS = 4
-const QUARTERS_PER_YEAR = 4
+export const QUARTERS_PER_YEAR = 4
 
 /** Lines that measure a period, which a trailing year sums. Every other line is a balance, read at
  *  the last quarter's close. */
@@ -108,6 +108,6 @@ function isUnbroken(window: readonly QuarterlyAccounts[]): boolean {
   })
 }
 
-function periodIndexOf(report: QuarterlyAccounts): number {
+export function periodIndexOf(report: QuarterlyAccounts): number {
   return report.fiscalYear * QUARTERS_PER_YEAR + report.quarter
 }

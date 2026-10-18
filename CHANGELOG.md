@@ -3,6 +3,10 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+- The accounts table now shows the five newest quarters next to the audited years, so a turn in the business is visible before the annual report.
+
 ## [1.0.5] - 2026-10-18
 
 A friendlier first run: OpenAlpha starts without any key, says what each missing key holds back, and

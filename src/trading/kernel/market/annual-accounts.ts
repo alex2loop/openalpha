@@ -45,6 +45,25 @@ export const ACCOUNTS_TREND_FIELDS = Object.freeze([
 ] as const)
 export type AccountsTrendField = (typeof ACCOUNTS_TREND_FIELDS)[number]
 
+export const ACCOUNTS_QUARTER_ROWS = 5
+
+/** One quarter's figures, in the order a row prints them: the corporate ones, then a bank's. */
+export const ACCOUNTS_QUARTER_FIELDS = Object.freeze([
+  'netRevenue',
+  'grossMargin',
+  'coreOperatingProfit',
+  'netProfitToParent',
+  'operatingCashFlow',
+  'customerAdvances',
+  'nonCoreShare',
+  'netInterestIncome',
+  'operatingIncome',
+  'costToIncome',
+  'provisionExpense',
+  'preTaxProfit',
+] as const)
+export type AccountsQuarterField = (typeof ACCOUNTS_QUARTER_FIELDS)[number]
+
 /** One audited annual report's lines, in dong. Expenses are stored as positive amounts, so a
  *  reversal reads as a negative one. A line the provider did not publish is absent, and every score
  *  that needs it abstains rather than reading zero. */
@@ -119,12 +138,30 @@ export interface AccountsTrend extends Readonly<Partial<Record<AccountsTrendFiel
   readonly spanYears: number
 }
 
+/** A quarter's figure against the same quarter a year earlier. A fraction names its year-earlier
+ *  value, never a percent of a percent; a profit that changed sign names the turn. */
+export type AccountsQuarterComparison =
+  | { readonly kind: 'growth'; readonly value: number }
+  | { readonly kind: 'year-earlier'; readonly value: number }
+  | { readonly kind: 'turned-profit' }
+  | { readonly kind: 'turned-loss' }
+
+export interface AccountsQuarter {
+  readonly fiscalYear: number
+  readonly quarter: FiscalQuarter
+  readonly publishedOn: TradingDay
+  readonly figures: Readonly<Partial<Record<AccountsQuarterField, number>>>
+  readonly comparisons: Readonly<Partial<Record<AccountsQuarterField, AccountsQuarterComparison>>>
+}
+
 export interface AccountsHistory {
   readonly instrument: InstrumentRef
   /** Oldest first, and only the newest unbroken run of final years. */
   readonly years: readonly AccountsYear[]
   /** Only when the quarters run past the newest audited year. */
   readonly trailing?: TrailingAccounts
+  /** The newest quarters published by the as-of day, newest first; empty when none is filed. */
+  readonly quarters: readonly AccountsQuarter[]
   readonly trend?: AccountsTrend
   readonly caveats: readonly Caveat[]
   readonly sourceId: SourceId

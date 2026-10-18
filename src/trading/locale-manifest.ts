@@ -58,6 +58,7 @@ import {
   VN_INDEX_TIERS,
 } from '@/trading/kernel/instrument'
 import {
+  ACCOUNTS_QUARTER_FIELDS,
   ACCOUNTS_TREND_FIELDS,
   ACCOUNTS_WARNING_SIGNS,
   ACCOUNTS_YEAR_FIELDS,
@@ -143,6 +144,7 @@ export const TRADING_CODE_GROUPS: readonly CodeGroup[] = Object.freeze([
   { prefix: 'trading.macro.series', members: MACRO_SERIES_IDS },
   { prefix: 'trading.accounts.sign', members: ACCOUNTS_WARNING_SIGNS },
   { prefix: 'trading.accounts-field', members: ACCOUNTS_YEAR_FIELDS },
+  { prefix: 'trading.accounts-field', members: ACCOUNTS_QUARTER_FIELDS },
   { prefix: 'trading.accounts-trend', members: ACCOUNTS_TREND_FIELDS },
   { prefix: 'trading.instrument-kind', members: INSTRUMENT_KINDS },
   { prefix: 'trading.sector', members: ICB_SUPERSECTORS },
