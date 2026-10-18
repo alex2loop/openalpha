@@ -3,7 +3,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import { isInteractiveStderr } from '@/cli/env'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
-import { hint, success, warn } from '@/cli/ui/colors'
+import { hint, style, success, warn } from '@/cli/ui/colors'
 import { UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { MS_PER_DAY } from '@/core/utils/time'
@@ -138,6 +138,10 @@ export async function readUpdateLine(config: ResolvedConfig): Promise<string | n
   const lines = formatUpdateNotice(config.locale.language, state, UPGRADE_CHAT_COMMAND)
 
   return lines.length === 0 ? null : toChatText(lines)
+}
+
+export function formatVersionLine(): string {
+  return `${style.heading(BRAND.display)} ${style.muted(`v${BRAND.version}`)}`
 }
 
 export function formatUpdateStatus(locale: Locale, state: UpdateState): readonly string[] {
