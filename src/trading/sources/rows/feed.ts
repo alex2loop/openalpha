@@ -17,11 +17,13 @@ import {
 } from '@/trading/sources/rows/normalization'
 
 const GOOGLE_NEWS_DOMAIN = 'google.com'
+const PUBLISHER_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:'])
 const ITEM_RE = /<(item|entry)\b[\s\S]*?<\/\1>/g
 const TITLE_RE = /<title\b[^>]*>([\s\S]*?)<\/title>/
 const LINK_RE = /<link\b[^>]*>([\s\S]*?)<\/link>/
 const LINK_HREF_RE = /<link\b[^>]*\bhref="([^"]+)"/
 const DATE_RE = /<(pubDate|published|updated|dc:date)\b[^>]*>([\s\S]*?)<\/\1>/
+const SOURCE_URL_RE = /<source\b[^>]*\burl="([^"]+)"/
 const CDATA_RE = /^<!\[CDATA\[([\s\S]*?)\]\]>$/
 
 export function toFeedItems(
@@ -53,6 +55,8 @@ function toNewsItem(entry: string, source: SourceId, now: number): ParsedSource<
   // The one boundary, so a NewsItem that exists has already been sanitized.
   const sanitized = untrustedText(title, 'title')
   const url = canonicalUrl(link)
+  const publisherUrl =
+    registrableDomain(url) === GOOGLE_NEWS_DOMAIN ? publisherUrlOf(entry) : undefined
 
   return parsedSource(
     {
@@ -60,6 +64,7 @@ function toNewsItem(entry: string, source: SourceId, now: number): ParsedSource<
       url,
       publishedAt: publishedAt(date, now, NEWS_MAXIMUM_AGE_MS),
       sourceIds: [source],
+      ...(publisherUrl === undefined ? {} : { publisherUrl }),
     },
     sanitized.caveats
   )
@@ -69,6 +74,17 @@ function toNewsItem(entry: string, source: SourceId, now: number): ParsedSource<
  *  reads the aggregator rather than guessing from the text. */
 function toDisplayTitle(title: string, url: string): string {
   return registrableDomain(url) === GOOGLE_NEWS_DOMAIN ? stripTrailingSource(title) : title
+}
+
+/** Google News links every story through itself and names the outlet only in `<source url>`. In
+ *  plain RSS 2.0 that tag names the origin feed, so it is read for the aggregator alone. The link
+ *  is optional evidence: one that does not parse leaves the headline on the aggregator's host
+ *  rather than failing it. */
+function publisherUrlOf(entry: string): string | undefined {
+  const raw = tagValue(entry, SOURCE_URL_RE, 1)
+  const parsed = raw === undefined ? null : URL.parse(raw)
+
+  return parsed !== null && PUBLISHER_PROTOCOLS.has(parsed.protocol) ? parsed.href : undefined
 }
 
 function tagValue(entry: string, re: RegExp, group: number): string | undefined {
