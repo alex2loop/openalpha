@@ -1,14 +1,12 @@
 <h1 align="center">OpenAlpha</h1>
-<h3 align="center">Hội đồng AI tranh luận. Nhiều lớp kiểm tra. Không tự đặt một lệnh nào.</h3>
+<h3 align="center">Khi TradingAgents gặp OpenClaw 👀</h3>
 
 <p align="center">
-  <strong>🇻🇳 Tiếng Việt</strong> &bull; <strong><a href="README.en.md">🇬🇧 English</a></strong>
+  <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như TradingAgents, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như OpenClaw.<br/>Đó là OpenAlpha, nhà phân tích đầu tư AI mã nguồn mở.</strong>
 </p>
 
 <p align="center">
-  Trợ lý phân tích đầu tư chạy ngay trên máy bạn, mạnh nhất ở <strong>cổ phiếu Việt Nam</strong> nhờ nguồn dữ liệu trong nước, và theo dõi cả <strong>crypto</strong> lẫn vàng.<br/>
-  Mỗi sáng trước giờ mở cửa, nó lọc cả thị trường, chọn ra vài mã đáng xem, tính sẵn nên mua bao nhiêu cho vừa danh mục của bạn, và nêu cả lý do nên mua lẫn lý do nên tránh.<br/>
-  <strong>Nó dừng ở đó. Đặt lệnh hay không là quyết định của riêng bạn.</strong>
+  <strong>🇻🇳 Tiếng Việt</strong> &bull; <strong><a href="README.en.md">🇬🇧 English</a></strong>
 </p>
 
 <p align="center">
@@ -17,64 +15,41 @@
 </p>
 
 <p align="center">
-  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a><br/>
-  <sub>Cài chưa được, hay muốn nhận tin bản mới? Hỏi trong <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">nhóm Zalo OpenAlpha</a>, bằng tiếng Việt.</sub>
+  <img src="assets/readme/hero.vi.png" alt="Đề xuất yếu bị loại trước khi tới tay bạn, qua sáu bước: dữ liệu, bằng chứng, cổng chặn, tranh luận, kiểm tra, kết luận" width="100%" />
 </p>
 
 <p align="center">
-  <img src="assets/readme/hero.vi.png" alt="Đề xuất yếu bị loại trước khi tới tay bạn, qua sáu bước: dữ liệu, bằng chứng, cổng chặn, tranh luận, kiểm tra, kết luận" width="100%" />
+  Mỗi sáng trước giờ mở cửa, nó lọc cả thị trường, chọn ra vài mã đáng xem, tính sẵn nên mua bao nhiêu cho vừa danh mục của bạn, và nói rõ lý do nên mua lẫn lý do nên tránh.<br/>
+  Mạnh nhất ở <strong>cổ phiếu Việt Nam</strong> nhờ dữ liệu trong nước, theo dõi thêm <strong>crypto</strong> và vàng.<br/>
+  <strong>Nó dừng ở đó: đặt lệnh hay không vẫn do bạn quyết.</strong>
 </p>
 
 <p align="center">
   <em>AI đọc được mọi thứ về mã bạn hỏi, trừ một thứ: số tiền của bạn.</em>
 </p>
 
+<p align="center">
+  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a><br/>
+  <sub>Cài chưa được, hay muốn nhận tin bản mới? Hỏi trong <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">nhóm Zalo OpenAlpha</a>, bằng tiếng Việt.</sub>
+</p>
+
 ---
 
 <p align="center">
-  <a href="#chạy-thử-trong-3-lệnh">Chạy thử</a> · <a href="#bắt-đầu">Bắt đầu</a> · <a href="#dùng-mỗi-ngày">Dùng mỗi ngày</a> · <a href="#an-toàn">An toàn</a> · <a href="#câu-hỏi-thường-gặp">Hỏi đáp</a> · <a href="#nâng-cao">Nâng cao</a>
+  <a href="#xem-nó-làm-việc">Xem demo</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="#vì-sao-dùng-openalpha">Vì sao và an toàn</a> · <a href="#tài-liệu">Tài liệu</a> · <a href="#góp-sức-cho-openalpha">Góp sức</a> · <a href="#độ-ổn-định-giấy-phép-và-miễn-trừ">Giấy phép</a>
 </p>
 
-## Vì sao dùng OpenAlpha
+## Xem nó làm việc
 
-- **Con số do code tính, AI chỉ giải thích.** Giá vào, cắt lỗ, mục tiêu và khối lượng được tính sẵn; AI tranh luận vì sao nên mua và vì sao nên tránh.
-- **AI không thấy tiền của bạn.** Khối lượng gợi ý vừa với danh mục của bạn, nhưng mô hình chỉ biết tỷ trọng.
-- **Mạnh ở cổ phiếu Việt Nam.** Dữ liệu trong nước, số liệu vĩ mô chính thức kèm câu trích gốc, và luôn tính đến T+2.
-- **Không tự đặt lệnh.** Bạn quyết, bạn đặt, rồi ghi sổ. Vài tuần sau, `/reflect` cho biết nó đúng được bao nhiêu.
-
-**Hợp với bạn nếu** bạn tự quản danh mục của mình, muốn thấy lập luận đằng sau mỗi đề xuất thay vì chỉ thấy một mã được phím, và muốn khóa API nằm trên máy mình. **Không hợp nếu** bạn tìm một con bot tự chạy lệnh, hoặc muốn có ai đó quyết định thay bạn. Cả hai đều không có ở đây, và đó là chủ ý.
-
-## Chạy thử trong 3 lệnh
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài đặt
-export OPENROUTER_API_KEY="..."   # khóa AI, lấy ở openrouter.ai
-openalpha chat                    # rồi gõ /refresh, nạp xong thì gõ /suggest FPT
-```
+Gõ `/suggest FPT`, nhận về một kế hoạch: mua ở đâu, cắt lỗ ở đâu, chốt lời ở đâu và mua bao nhiêu.
 
 <p align="center">
   <img src="assets/readme/demo.vi.gif" alt="Gõ /suggest và nhận về kế hoạch: giá vào, cắt lỗ, chốt lời, khối lượng, cách quản lý vị thế" width="100%" />
 </p>
 
-Windows, công ty chứng khoán khác VPS, crypto, vàng và bản tin sáng: xem [Bắt đầu](#bắt-đầu).
+### Một lần chạy thật
 
-## Khác gì hỏi một chatbot AI
-
-| | Chatbot thông thường | OpenAlpha |
-|---|---|---|
-| Số liệu Việt Nam | có thể tự đoán, không nguồn | lấy từ nguồn trong nước, kèm câu trích gốc |
-| Giá vào, cắt lỗ | AI tự nghĩ ra | code tính, chạy lại cho kết quả y hệt |
-| Nên mua bao nhiêu | không biết danh mục của bạn | tính theo sổ của bạn, AI không thấy số tiền |
-| Đúng hay sai | không ai chấm | `/reflect` chấm từng đề xuất cũ |
-| Sổ của bạn | nằm trên dịch vụ của bên khác | nằm trên máy bạn |
-
----
-
-## Hỏi một câu, nhận về cái này
-
-Trước khi mua, bạn cần biết hai điều: mã này có đáng mua không, và lời khuyên đó dựa vào đâu.
-
-Một lần chạy thật, rút gọn, mã và giá đã che:
+Ngoài kế hoạch, mỗi đề xuất còn cho biết lý do nên mua, lý do nên chờ, và điều gì sẽ chứng minh nó sai. Đây là một lần chạy thật, đã rút gọn, che mã và giá:
 
 ```
 Bạn:  /suggest XXX
@@ -97,98 +72,31 @@ Bạn:  /suggest XXX
   Sau khi khớp lệnh, dán dòng này: /record buy vps equity-vn:XXX 400 xxxxx VND 2026-10-16
 ```
 
-Sáu nhà phân tích AI đã tranh luận về mã này: phe mua, phe bán, người tổng hợp, rồi bên giao dịch, quản trị rủi ro và người soát lại số liệu. Mười bước kiểm tra của cổ phiếu Việt Nam đều có quyền chặn nó lại. **Nhưng không ai trong số đó được viết ra một con số nào.** Giá vào, cắt lỗ, mục tiêu, khối lượng đều do mã nguồn tính xong trước khi cuộc tranh luận bắt đầu. AI chỉ lo phần *vì sao* và phần *điều gì có thể khiến nhận định đó sai*.
-
-<p align="center">
-  <img src="assets/readme/debate.vi.png" alt="Hội đồng AI tranh luận theo ba vòng: hai phe, tổng hợp, kế hoạch và soát lại" width="100%" />
-</p>
-
----
+### Một ngày dùng OpenAlpha
 
 https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
 
 <p align="center">
-  <sub>Một ngày của dân văn phòng (70 giây)</sub>
+  <sub>70 giây</sub>
 </p>
 
 ---
 
-## Kỷ luật thay cho cảm xúc
+## Bắt đầu nhanh
 
-<p align="center"><img src="assets/readme/discipline.vi.png" alt="Bỏ cảm xúc, giữ kỷ luật: thói quen cảm xúc và quy tắc OpenAlpha thay thế" width="100%" /></p>
+Bạn chỉ cần một máy macOS, Linux hoặc Windows 10/11, và một khóa API của nhà cung cấp AI. [OpenRouter](https://openrouter.ai) có cả mô hình miễn phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
 
-**Không FOMO, không gồng lỗ, không "chắc nó hồi".** Cái khó hiếm khi là kiến thức, mà là lúc bấm nút. OpenAlpha chốt kế hoạch khi bạn còn tỉnh táo, rồi giữ bạn đi đúng kế hoạch đó.
+### Thử ngay trong 3 lệnh
 
-<details>
-<summary><b>Cách nó giữ kỷ luật, kể cả khi thị trường đi xuống</b></summary>
+```bash
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài đặt, xong thì mở terminal mới
+export OPENROUTER_API_KEY="..."   # khóa AI, lấy ở openrouter.ai
+openalpha chat                    # rồi gõ /refresh, nạp xong thì gõ /suggest FPT
+```
 
-- **Con số chốt trước, không mặc cả giữa chừng.** Giá vào, cắt lỗ, chốt lời và khối lượng do mã nguồn tính, AI không sửa được.
-- **Cắt lỗ chỉ được nâng, không được hạ.** Không có nút "dời xuống thêm chút nữa".
-- **Không cần dán mắt vào bảng điện.** Trong Telegram hoặc Zalo, đặt mốc bằng `/alert create FPT above 130` (giá bảng điện), giá chạm là hệ thống nhắn bạn.
-- **Đoán sai thì bị ghi lại, và lần sau bớt tự tin.** Thành tích trong `/reflect` giới hạn mức tin cậy của các đề xuất tiếp theo.
+Như vậy là đủ để xem một đề xuất. Muốn đề xuất có khối lượng vừa với túi tiền của bạn thì làm thêm bước 4 bên dưới.
 
-**Khi thị trường đi xuống,** mục tiêu không phải đoán đáy, mà là còn đủ vốn để chơi tiếp:
-
-- **Thị trường xấu thì tự thu nhỏ.** Trần từng nhóm tài sản siết lại và khối lượng đề xuất nhỏ đi.
-- **Có trần cho cả danh mục.** Nhiều lệnh nhỏ không cộng dồn thành một khoản cược lớn.
-- **Một lệnh tắt mua.** Khi đã khai khóa sàn, `/trade halt` chặn mọi lệnh mua mới qua OpenAlpha cho tới khi bạn gõ `/trade resume`; bán và cắt lỗ vẫn chạy.
-
-</details>
-
-OpenAlpha không hứa bạn không lỗ. Nó giúp mỗi khoản lỗ nhỏ, có kế hoạch và biết trước.
-
----
-
-## Thị trường và dữ liệu
-
-<p align="center">
-  <img src="assets/readme/markets.vi.png" alt="Một trợ lý, bốn thị trường: cổ phiếu Việt Nam, tiền mã hóa, vàng thế giới, vàng trong nước" width="100%" />
-</p>
-
-| Thị trường | Mã thị trường | Có gì |
-|---|---|---|
-| **Cổ phiếu Việt Nam** | `equity-vn` | Sâu nhất: theo dõi khối ngoại và tự doanh, lịch công bố thông tin, sức khỏe tài chính, và luôn tính đến T+2. |
-| **Tiền mã hóa** | `crypto` | Chỉ giao ngay. Mua khi giá vượt đỉnh gần đây, cắt lỗ dời lên theo giá, đọc thêm dữ liệu phái sinh để biết thị trường đang dùng đòn bẩy nhiều hay ít. |
-| **Vàng trong nước** | `gold-vn` | So với giá thế giới để biết vàng thật sự tăng hay chỉ là tiệm nới chênh lệch. |
-| **Vàng thế giới** | `gold` | Chỉ để tham chiếu: xem giá và làm mốc cho vàng trong nước. |
-
-Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã thì ghi thêm tên thị trường: `/suggest crypto:UNI`.
-
-<p align="center">
-  <img src="assets/readme/sources.vi.png" alt="35 nguồn dữ liệu, chia theo từng thị trường" width="100%" />
-</p>
-
-Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo hoặc Zalo cá nhân.
-
-<details>
-<summary><b>Các nhà cung cấp AI dùng được</b></summary>
-
-Đã có khóa của hãng nào thì dùng luôn hãng đó: Anthropic, OpenAI, Google Gemini, xAI, Mistral, DeepSeek, Cohere, Meta AI, Moonshot Kimi, Z.AI, MiniMax, Alibaba Qwen, StepFun, Xiaomi MiMo, Perplexity và nhiều hãng khác.
-
-Muốn một khóa dùng được nhiều mô hình thì qua cổng trung gian như OpenRouter, Requesty, Vercel AI Gateway, Hugging Face hay GitHub Models. Cần nhanh hoặc rẻ thì có Groq, Cerebras, SambaNova, Fireworks, Together, DeepInfra, Novita, Nebius, NVIDIA, Cloudflare Workers AI.
-
-Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login`, khỏi cần khóa. Công ty dùng Azure, Google Cloud hay AWS thì gọi mô hình qua Azure OpenAI, Vertex AI hoặc Bedrock bằng tài khoản sẵn có. Ở Trung Quốc có Baidu ERNIE, Doubao, Hunyuan, Yi, Baichuan, iFlytek Spark, SiliconFlow, ModelScope và cổng nội địa của Kimi, Qwen, GLM, MiniMax. Muốn chạy hẳn trên máy mình thì dùng Ollama, LM Studio hoặc vLLM.
-
-Gõ `openalpha provider list` để xem đủ danh sách cùng tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md)). Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
-
-</details>
-
----
-
-## An toàn
-
-- **AI không thấy tiền của bạn.** Nhà phân tích chỉ biết tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
-- **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận.
-- **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa API chỉ đọc từ biến môi trường, không ghi vào tệp nào.
-- **Có trần chi phí AI** theo ngày và theo tháng, để một vòng lặp lỗi không đốt tiền của bạn.
-
-Đủ 16 lớp bảo vệ: [SECURITY.md](SECURITY.md).
-
----
-
-## Bắt đầu
-
-Bạn cần một máy macOS, Linux hoặc Windows 10/11 và một khóa API của nhà cung cấp AI. [OpenRouter](https://openrouter.ai) có cả mô hình miễn phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
+### Cài đầy đủ trong 5 bước
 
 **1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Muốn đổi lại thì chạy `openalpha onboard`.
 
@@ -212,11 +120,11 @@ Trên Windows: `setx OPENROUTER_API_KEY "..."`, mở PowerShell mới, rồi `op
 **3. Nạp dữ liệu và khai khẩu vị.** Chạy `openalpha chat`, rồi gõ:
 
 ```text
-/refresh     # lần đầu: nạp danh sách mã, giá, báo cáo tài chính (miễn phí, vài phút)
+/refresh     # lần đầu: nạp danh sách mã, giá, báo cáo tài chính (miễn phí, khoảng 5 phút)
 /setup       # chọn mức rủi ro và thị trường bạn chơi
 ```
 
-**4. Ghi số tiền bạn có, theo thị trường bạn chơi.** Khối lượng của mọi gợi ý đều tính từ sổ này, nên đây là bước không được bỏ.
+**4. Ghi số tiền bạn có, theo thị trường bạn chơi.** Khối lượng của mọi gợi ý đều tính từ sổ này, nên đừng bỏ qua.
 
 <details open>
 <summary><b>Cổ phiếu Việt Nam</b></summary>
@@ -320,9 +228,7 @@ Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là b
 
 </details>
 
----
-
-## Dùng mỗi ngày
+### Dùng mỗi ngày
 
 Phần lớn việc hằng ngày đều **miễn phí**: các lệnh đó chỉ tính trên dữ liệu đã có trong máy, không gọi AI. Các con số dưới đây đo thật ngày 2026-10-15 với mô hình rẻ (`gpt-6-luna` cho tranh luận, `claude-haiku-5.5` cho nghiên cứu); mô hình đắt hơn thì tốn hơn, và `[budget]` luôn chặn trần.
 
@@ -338,68 +244,99 @@ Phần lớn việc hằng ngày đều **miễn phí**: các lệnh đó chỉ 
 | Bảng giá, vĩ mô, một mã | `/market` · `/overview` · `/price FPT` | **miễn phí** |
 | Xem danh mục, kéo về tỷ trọng mục tiêu | `/portfolio` · `/rebalance` | **miễn phí** |
 | Danh mục thật sự lời lỗ bao nhiêu, đã trừ tiền nạp rút | `/portfolio nav` | **miễn phí** |
-| Ghi nạp, rút, mua, bán | `/record` | **miễn phí** |
 | Đồng bộ sổ với sàn (cần khóa API của sàn) | `/record sync okx` · `/reconcile` | **miễn phí** |
 | Xem mình đúng được bao nhiêu | `/reflect` | **miễn phí** |
-| Đặt lệnh (cần khóa API của sàn và xác nhận) | `/trade` rồi `/trade confirm` | - |
 
 Các con số trong README chỉ minh họa cú pháp, không phải gợi ý mua bán. Đầy đủ: `/help` trong chat, hoặc [cẩm nang tiếng Việt](docs/cam-nang.md).
 
 ---
 
-## Nghiên cứu có trích nguồn
+## Vì sao dùng OpenAlpha
 
-Hỏi một câu cần dữ liệu mới từ bên ngoài, nhận về một báo cáo mà mỗi nhận định đều chỉ ra được nó đến từ đâu. Ví dụ dưới đây là một lần chạy thật, rút gọn.
+- **Con số do code tính, AI chỉ giải thích.** Giá vào, cắt lỗ, mục tiêu và khối lượng được tính sẵn; AI tranh luận vì sao nên mua và vì sao nên tránh.
+- **Kỷ luật được viết sẵn.** Kế hoạch chốt khi bạn còn tỉnh táo, rồi giữ bạn đi đúng kế hoạch đó, kể cả khi thị trường đi xuống.
+- **Mạnh ở cổ phiếu Việt Nam.** Dữ liệu trong nước, số liệu vĩ mô chính thức kèm câu trích gốc, và luôn tính đến T+2.
+- **Đúng sai đều được chấm.** Mỗi đề xuất được theo dõi tới khi khép lại; `/reflect` cho biết nó đúng được bao nhiêu, và đề xuất sau bớt tự tin khi đề xuất trước sai nhiều.
+
+**Hợp với bạn nếu** bạn tự quản danh mục của mình, muốn thấy lập luận đằng sau mỗi đề xuất thay vì chỉ thấy một mã được phím, và muốn khóa API nằm trên máy mình. **Không hợp nếu** bạn tìm một con bot tự chạy lệnh, hoặc muốn có ai đó quyết định thay bạn. Cả hai đều không có ở đây, và đó là chủ ý.
+
+### Thị trường và dữ liệu
+
+<p align="center">
+  <img src="assets/readme/markets.vi.png" alt="Một trợ lý, bốn thị trường: cổ phiếu Việt Nam, tiền mã hóa, vàng thế giới, vàng trong nước" width="100%" />
+</p>
+
+| Thị trường | Mã thị trường | Có gì |
+|---|---|---|
+| **Cổ phiếu Việt Nam** | `equity-vn` | Sâu nhất: theo dõi khối ngoại và tự doanh, lịch công bố thông tin, sức khỏe tài chính, và luôn tính đến T+2. |
+| **Tiền mã hóa** | `crypto` | Chỉ giao ngay. Mua khi giá vượt đỉnh gần đây, cắt lỗ dời lên theo giá, đọc thêm dữ liệu phái sinh để biết thị trường đang dùng đòn bẩy nhiều hay ít. |
+| **Vàng trong nước** | `gold-vn` | So với giá thế giới để biết vàng thật sự tăng hay chỉ là tiệm nới chênh lệch. |
+| **Vàng thế giới** | `gold` | Chỉ để tham chiếu: xem giá và làm mốc cho vàng trong nước. |
+
+Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã thì ghi thêm tên thị trường: `/suggest crypto:UNI`.
+
+<p align="center">
+  <img src="assets/readme/sources.vi.png" alt="35 nguồn dữ liệu, chia theo từng thị trường" width="100%" />
+</p>
+
+Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo hoặc Zalo cá nhân.
+
+Từ OpenAI, Anthropic, Gemini, DeepSeek tới cổng trung gian như OpenRouter hay mô hình chạy ngay trên máy qua Ollama: gõ `openalpha provider list` để xem đủ danh sách và tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md)). Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login`, khỏi cần khóa. Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
+
+### Cách nó hoạt động
+
+Với mỗi mã bạn hỏi, sáu nhà phân tích AI tranh luận: phe mua, phe bán, người tổng hợp, rồi bên giao dịch, quản trị rủi ro và người soát lại số liệu. Với cổ phiếu Việt Nam, còn cả loạt bước kiểm tra có quyền chặn đề xuất lại. **Nhưng không ai trong số đó được viết ra một con số nào.** Giá vào, cắt lỗ, mục tiêu, khối lượng đều do mã nguồn tính xong trước khi cuộc tranh luận bắt đầu. AI chỉ lo phần *vì sao* và phần *điều gì có thể khiến nhận định đó sai*.
+
+<p align="center">
+  <img src="assets/readme/debate.vi.png" alt="Hội đồng AI tranh luận theo ba vòng: hai phe, tổng hợp, kế hoạch và soát lại" width="100%" />
+</p>
+
+### Kỷ luật thay cho cảm xúc
+
+<p align="center"><img src="assets/readme/discipline.vi.png" alt="Bỏ cảm xúc, giữ kỷ luật: thói quen cảm xúc và quy tắc OpenAlpha thay thế" width="100%" /></p>
+
+**Không FOMO, không gồng lỗ, không "chắc nó hồi".** Cái khó hiếm khi là kiến thức, mà là lúc bấm nút.
 
 <details>
-<summary><b>Xem một lần chạy thật và cách nó kiểm nguồn</b></summary>
+<summary><b>Cách nó giữ kỷ luật, kể cả khi thị trường đi xuống</b></summary>
 
-```
-Bạn:  /research quick Lợi nhuận 8 tháng 2026 của FPT là bao nhiêu,
-      và các công ty chứng khoán dự báo cả năm thế nào?
+- **Cắt lỗ chỉ được nâng, không được hạ.** Không có nút "dời xuống thêm chút nữa".
+- **Không cần dán mắt vào bảng điện.** Trong Telegram hoặc Zalo, đặt mốc bằng `/alert create FPT above 130` (giá bảng điện), giá chạm là hệ thống nhắn bạn.
 
-2 lượt tìm kiếm · 3 trang đã đọc
-2 nguồn được dùng · 4 nhận định có bằng chứng
-⚠️ 2 vấn đề về bằng chứng
-  • Chưa tìm thấy đủ nguồn ủng hộ cho một nhận định. ×2
-✓ Hoàn tất nhưng còn thiếu sót · Mức độ bằng chứng: một phần
+**Khi thị trường đi xuống,** mục tiêu không phải đoán đáy, mà là còn đủ vốn để chơi tiếp:
 
-⏺ Chưa tìm thấy số liệu lợi nhuận 8 tháng 2026 của FPT, cũng chưa có dự báo cả năm
-từ công ty chứng khoán nào. Số liệu gần nhất tìm được:
-- 5 tháng: lợi nhuận sau thuế cổ đông công ty mẹ 4.199 tỷ đồng, +16% (Vietcap).
-- 6 tháng: lợi nhuận trước thuế 5.714 tỷ đồng, +18,1% (Báo Đầu tư).
-- Kế hoạch cả năm do FPT đặt (không phải dự báo): lợi nhuận trước thuế 11.629 tỷ đồng.
-
-$0.0111 · xong trong 34,4 giây
-```
-
-- **Mô hình không tự lên mạng.** Code tìm và tải trang trước, mô hình chỉ đọc những gì code đã lấy về, nên không thể bịa ra một nguồn.
-- **Trích dẫn được kiểm từng chữ.** Một nhận định phải dựa trên đoạn trích có thật trên trang đã tải; trích dẫn không khớp, hay nhận định chưa đủ nguồn, đều bị gắn cờ như dòng ⚠️ ở trên.
-- **Dự báo là dự báo.** Giá mục tiêu, ước tính hay kế hoạch công ty được đánh dấu và trình bày đúng là dự báo của ai, không bao giờ thành "đã đạt".
-- **Thiếu thì nói thiếu.** Không có số 8 tháng thì báo cáo nói chưa có và đưa số gần nhất, chứ không đoán. Hai nguồn lệch nhau về một con số thì báo là mâu thuẫn.
-- **Ba mức sâu:** `quick`, `standard` (mặc định) và `thorough`, ở mức `thorough` bạn được xem và sửa kế hoạch nghiên cứu một lần trước khi chạy.
+- **Thị trường xấu thì tự thu nhỏ.** Trần từng nhóm tài sản siết lại và khối lượng đề xuất nhỏ đi.
+- **Có trần cho cả danh mục.** Nhiều lệnh nhỏ không cộng dồn thành một khoản cược lớn.
+- **Một lệnh tắt mua.** Khi đã khai khóa sàn, `/trade halt` chặn mọi lệnh mua mới qua OpenAlpha cho tới khi bạn gõ `/trade resume`; bán và cắt lỗ vẫn chạy.
 
 </details>
 
-- **Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: miễn phí, không cần khóa, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Khai `[web_search]` bằng Exa, Tavily, Brave hay Serper ([cấu hình](docs/cau-hinh.md)) thì báo cáo có nhiều nguồn hơn hẳn.
+OpenAlpha không hứa bạn không lỗ. Nó giúp mỗi khoản lỗ nhỏ, có kế hoạch và biết trước.
+
+### An toàn
+
+- **AI không thấy tiền của bạn.** Nhà phân tích chỉ biết tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
+- **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận.
+- **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa API chỉ đọc từ biến môi trường, không ghi vào tệp nào.
+- **Có trần chi phí AI** theo ngày và theo tháng, để một vòng lặp lỗi không đốt tiền của bạn.
+
+Mọi lớp bảo vệ còn lại: [SECURITY.md](SECURITY.md).
+
+---
+
+## Tài liệu
+
+Mới bắt đầu thì đọc [Cẩm nang sử dụng](docs/cam-nang.md) trước: cài đặt, hồ sơ đầu tư, ghi sổ, bản đồ lệnh và ý nghĩa từng con số, viết cho nhà đầu tư và không cần biết lập trình. Phần dưới đây tóm tắt từng mảng, bảng cuối trỏ tới trang đầy đủ.
+
+### Nghiên cứu có trích nguồn
+
+Hỏi một câu cần dữ liệu mới từ bên ngoài, nhận về một báo cáo mà mỗi nhận định đều chỉ ra được nó đến từ đâu. Mô hình không tự lên mạng: code tìm và tải trang trước, nên mô hình không bịa ra được nguồn, và chỗ nào thiếu bằng chứng thì báo cáo nói thẳng là thiếu.
+
+**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: miễn phí, không cần khóa, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Khai `[web_search]` bằng Exa, Tavily, Brave hay Serper ([cấu hình](docs/cau-hinh.md)) thì báo cáo có nhiều nguồn hơn hẳn.
 
 Chi tiết: [docs/nghien-cuu.md](docs/nghien-cuu.md)
 
----
-
-## Câu hỏi thường gặp
-
-- **Tốn bao nhiêu tiền?** Phần mềm miễn phí, bạn chỉ trả cho nhà cung cấp AI: soi một mã khoảng $0,01, nghiên cứu nhanh khoảng $0,03 với mô hình rẻ. Phần lớn lệnh còn lại không gọi AI. Bạn đặt trần chi tiêu mỗi ngày lúc cài.
-- **Có cần máy mạnh không?** Không. AI chạy ở nhà cung cấp, máy bạn chỉ chạy một tệp nhỏ. Chỉ khi muốn chạy mô hình ngay trên máy (Ollama) mới cần máy mạnh.
-- **Không biết lập trình có dùng được không?** Được. Bạn chỉ cần chép vài lệnh vào terminal một lần; sau đó hỏi bằng tiếng Việt, hoặc chat qua Telegram, Zalo.
-- **AI có thấy tiền hay tự đặt lệnh không?** Không. Xem [An toàn](#an-toàn).
-- **Tôi không dùng VPS, hoặc có crypto, vàng?** Đều ghi được. Xem các khối trong [Bắt đầu](#bắt-đầu).
-- **Đề xuất có đáng tin không?** Có thể sai. `/reflect` cho thấy thành tích thật, và đề xuất sau bị hạ mức tin cậy khi các đề xuất trước đoán sai nhiều.
-- **Dữ liệu của tôi nằm ở đâu?** Trong thư mục `~/.openalpha` trên máy bạn. Sao lưu bằng `openalpha db export --out <thư-mục>`.
-
----
-
-## Nâng cao
+### Nâng cao
 
 <details>
 <summary><b>Nhà phân tích của riêng bạn</b></summary>
@@ -430,7 +367,7 @@ Hỏi nó bằng `openalpha chat --agent ngan-hang`, hoặc gắn nó vào một
 <details>
 <summary><b>Cắm vào Claude Code, Cursor, VS Code... (MCP)</b></summary>
 
-Cắm vào Claude Code, Codex, Cursor, VS Code, Gemini CLI... như một máy chủ MCP - khi đó AI của chính ứng dụng ấy làm phần suy nghĩ, bạn không cần khóa AI riêng:
+Chạy OpenAlpha như một máy chủ MCP trong Claude Code, Codex, Cursor, VS Code hay Gemini CLI: AI của chính ứng dụng ấy làm phần suy nghĩ, bạn không cần khóa AI riêng.
 
 ```bash
 openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, opencode, zed
@@ -440,38 +377,42 @@ openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, openco
 
 </details>
 
-<details>
-<summary><b>Nhúng như thư viện (SDK)</b></summary>
+### Câu hỏi thường gặp
 
-Runtime vừa là chương trình chạy độc lập, vừa là thư viện (SDK) để nhúng. Hiện nhúng từ bản clone của repo; gói chưa phát hành lên npm:
+- **Tốn bao nhiêu tiền?** Phần mềm miễn phí, bạn chỉ trả cho nhà cung cấp AI; bảng [Dùng mỗi ngày](#dùng-mỗi-ngày) ghi chi phí từng lệnh. Bạn đặt trần chi tiêu mỗi ngày lúc cài.
+- **Có cần máy mạnh không?** Không. AI chạy ở nhà cung cấp, máy bạn chỉ chạy một tệp nhỏ. Chỉ khi muốn chạy mô hình ngay trên máy (Ollama) mới cần máy mạnh.
+- **Không biết lập trình có dùng được không?** Được. Bạn chỉ cần chép vài lệnh vào terminal một lần; sau đó hỏi bằng tiếng Việt, hoặc chat qua Telegram, Zalo.
+- **Đề xuất có đáng tin không?** Có thể sai, và nó không giấu điều đó: `/reflect` cho thấy thành tích thật của từng đề xuất cũ.
 
-```ts
-import { boot } from '@openalpha/runtime/app'
-const { app, dispose } = await boot({
-  mode: 'cli',
-  env: process.env,
-  configPath: './config.toml',
-  shutdownSignal: AbortSignal.timeout(60_000),
-  tools: [],
-  agents: [],
-})
-```
+### Tra cứu đầy đủ
 
-</details>
-
----
-
-## Hỗ trợ
-
-- **Hỏi cách cài, cách dùng, nhận tin bản mới:** [nhóm Zalo OpenAlpha](https://zalo.me/g/yl7iqyfovvtyosujulea). Nhóm chỉ hỗ trợ dùng phần mềm, không bàn mã nào nên mua. Che khóa API trước khi dán cấu hình. Admin không bao giờ nhắn riêng để xin khóa hay tiền.
-- **Báo lỗi, đề xuất tính năng:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). Lỗi chỉ được theo dõi khi có issue.
-- **Lỗ hổng bảo mật:** báo riêng theo [SECURITY.md](SECURITY.md), không đăng lên nhóm hay issue.
-
-Thấy hữu ích? Cho repo một ⭐ để nhiều người biết tới, và vào [nhóm Zalo](https://zalo.me/g/yl7iqyfovvtyosujulea) để nhận tin bản mới.
+| Chủ đề | Trang |
+|---|---|
+| Thị trường, đề xuất, sổ lệnh, danh mục, đặt lệnh | [giao-dich.md](docs/giao-dich.md) |
+| Mọi lệnh CLI và lệnh chat | [lenh.md](docs/lenh.md) |
+| Mọi khóa trong `config.toml` | [cau-hinh.md](docs/cau-hinh.md) |
+| Nguồn dữ liệu nào trả lời việc gì | [nguon-du-lieu.md](docs/nguon-du-lieu.md) |
+| Tích hợp AI: nhà phân tích riêng, kỹ năng, chọn mô hình | [tro-ly.md](docs/tro-ly.md) |
+| Nghiên cứu web có trích nguồn | [nghien-cuu.md](docs/nghien-cuu.md) |
+| Telegram và Zalo | [kenh.md](docs/kenh.md) |
+| Phê duyệt và các lớp bảo vệ | [an-toan.md](docs/an-toan.md) |
+| Ngân sách, vận hành nền, lưu trữ | [ngan-sach.md](docs/ngan-sach.md) · [van-hanh.md](docs/van-hanh.md) · [luu-tru.md](docs/luu-tru.md) |
+| SDK, MCP và mở rộng | [dev/mo-rong.md](docs/dev/mo-rong.md) |
 
 ---
 
-## Phát triển
+## Góp sức cho OpenAlpha
+
+OpenAlpha là mã nguồn mở và hiện do một người vận hành, nên mỗi lần góp sức đều tạo khác biệt thật. Bạn không cần biết lập trình mới giúp được.
+
+- **Dùng thật rồi kể lại.** Một lỗi kèm lệnh bạn đã chạy, điều bạn mong đợi và điều nhận được (nhớ nêu thị trường) giúp nhiều hơn mọi lời khen. Mở ở [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose).
+- **Tài liệu và câu chữ.** Câu nào khó hiểu, thuật ngữ nào chưa chuẩn, chỗ nào tiếng Việt và tiếng Anh lệch nhau: sửa thẳng trong `docs/` hoặc trong hai catalog `src/i18n/locales/`.
+- **Nguồn dữ liệu, sàn, công ty chứng khoán, thị trường mới.** Mỗi thứ là một thay đổi cục bộ: một adapter, một dòng đăng ký và các khóa ngôn ngữ. Mở issue trước cho mọi thay đổi về cấu trúc.
+- **Agent và skill.** Một nhà phân tích riêng chỉ là một tệp TOML; một nguồn dữ liệu dạng plugin là một tệp `sources.ts`.
+
+**Việc vừa sức cho người mới:** các issue gắn nhãn [good first issue](https://github.com/alex2loop/openalpha/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22). **Lộ trình:** chưa có trang riêng; việc định làm và ý tưởng mới được bàn trong [Issues](https://github.com/alex2loop/openalpha/issues). Những hướng đã chốt là sẽ không làm (tự đặt lệnh, bộ backtest...) nằm trong [CONTRIBUTING.md](CONTRIBUTING.md#những-thứ-sẽ-bị-từ-chối), kèm lý do.
+
+### Chạy từ mã nguồn
 
 ```bash
 git clone https://github.com/alex2loop/openalpha.git && cd openalpha
@@ -486,17 +427,22 @@ Một thay đổi chỉ được nhận khi cả hai lệnh trên đều qua. Qu
 
 Kiến trúc: 15 mô-đun, phụ thuộc một chiều về phía lõi, không vòng lặp; 30 cổng chặn tự động làm build thất bại ngay khi một mô-đun vượt ranh giới. Góp mã: [CONTRIBUTING.md](CONTRIBUTING.md) · [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
 
-**Nói trước về độ ổn định.** Đây là giai đoạn đầu của một công cụ đã được dùng thật hằng ngày trong nhiều tháng: ổn định ở những việc dùng mỗi ngày, còn thô ở những phần khác. Chưa có bộ test; giữa hai phiên bản có thể có thay đổi không tương thích; và chưa chuyển được tài sản giữa các sàn.
+### Hỗ trợ và cộng đồng
+
+- **Hỏi cách cài, cách dùng, nhận tin bản mới:** [nhóm Zalo OpenAlpha](https://zalo.me/g/yl7iqyfovvtyosujulea). Nhóm chỉ hỗ trợ dùng phần mềm, không bàn mã nào nên mua. Che khóa API trước khi dán cấu hình. Admin không bao giờ nhắn riêng để xin khóa hay tiền.
+- **Báo lỗi, đề xuất tính năng:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). Lỗi chỉ được theo dõi khi có issue.
+- **Lỗ hổng bảo mật:** báo riêng theo [SECURITY.md](SECURITY.md), không đăng lên nhóm hay issue.
+
+Thấy hữu ích? Cho repo một ⭐ để nhiều người biết tới.
 
 ---
 
-## Giấy phép và miễn trừ
+## Độ ổn định, giấy phép và miễn trừ
 
-Mã nguồn theo giấy phép MIT, dùng thế nào tùy bạn. Tên, logo và Bé Alpha thì không nằm trong giấy phép:
-xem [NOTICE.md](NOTICE.md#tên-và-logo-không-đi-kèm-giấy-phép).
+**Độ ổn định.** Đây là giai đoạn đầu của một công cụ đã được dùng thật hằng ngày trong nhiều tháng: ổn định ở những việc dùng mỗi ngày, còn thô ở những phần khác. Chưa có bộ test; giữa hai phiên bản có thể có thay đổi không tương thích; và chưa chuyển được tài sản giữa các sàn.
 
-**Dữ liệu là chuyện khác.** OpenAlpha không đóng gói sẵn dữ liệu thị trường nào: nó lấy dữ liệu từ
-từng nhà cung cấp khi chạy, ngay trên máy bạn, và điều khoản sử dụng là chuyện giữa bạn với họ.
-[NOTICE.md](NOTICE.md) liệt kê mọi trang mà nó có thể đọc, và những gì nên kiểm tra trước khi bật một nguồn.
+**Giấy phép.** Mã nguồn theo giấy phép MIT, dùng thế nào tùy bạn. Tên, logo và Bé Alpha thì không nằm trong giấy phép: xem [NOTICE.md](NOTICE.md#tên-và-logo-không-đi-kèm-giấy-phép).
+
+**Dữ liệu là chuyện khác.** OpenAlpha không đóng gói sẵn dữ liệu thị trường nào: nó lấy dữ liệu từ từng nhà cung cấp khi chạy, ngay trên máy bạn, và điều khoản sử dụng là chuyện giữa bạn với họ. [NOTICE.md](NOTICE.md) liệt kê mọi trang mà nó có thể đọc, và những gì nên kiểm tra trước khi bật một nguồn.
 
 OpenAlpha là trợ lý nghiên cứu và ghi sổ. Đề xuất ở đây mang tính tham khảo, **có thể sai, và không phải lời khuyên đầu tư**. OpenAlpha không biết hết hoàn cảnh của bạn, chỉ đặt lệnh khi bạn duyệt, và không ai đoán chắc được thị trường. Mọi quyết định là của bạn. Đừng đầu tư số tiền bạn không chịu mất được.

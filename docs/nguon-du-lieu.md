@@ -28,7 +28,7 @@ Nhà cung cấp thiếu khóa đơn giản là không được dùng, và dữ l
 openalpha doctor sources
 ```
 
-Lệnh in `mọi nguồn dữ liệu đều đã có thông tin xác thực cần thiết`, hoặc `chưa đăng ký vì thiếu biến môi trường:` kèm danh sách. Chạy không khóa là chế độ hạn chế được hỗ trợ.
+Lệnh in `mọi nguồn dữ liệu đều đã có thông tin xác thực cần thiết`, hoặc mỗi nhà cung cấp tùy chọn chưa đặt biến một dòng `i`, nêu tên biến và khóa đó sẽ thêm được gì. Chạy không khóa là chế độ hạn chế được hỗ trợ.
 
 Endpoint và URL feed nằm cố định trong mã. Không cài đặt nào chuyển hướng một yêu cầu sang host khác.
 

@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import { renderScreenText } from '@/trading/features/market-data/render/screen'
@@ -49,6 +54,7 @@ export function createScreenCommand(deps: ScreenCommandDeps): SlashCommand {
       ...deps.marketData.markets(),
       ...screenableKindList(deps.marketData.screenableKinds()),
     ],
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -60,10 +66,7 @@ async function run(deps: ScreenCommandDeps, ctx: SlashContext): Promise<SlashRes
   })
 
   if (parsed === null) {
-    return usage(USAGE, {
-      markets: deps.marketData.markets().join(', '),
-      kinds: screenableKindsText(deps.marketData.screenableKinds()),
-    })
+    return usage(USAGE, buildUsageValues(deps))
   }
 
   const { market, limit, instrumentKind } = parsed
@@ -90,6 +93,13 @@ async function run(deps: ScreenCommandDeps, ctx: SlashContext): Promise<SlashRes
       },
       result
     ),
+  }
+}
+
+function buildUsageValues(deps: ScreenCommandDeps): CommandMessageValues {
+  return {
+    markets: deps.marketData.markets().join(', '),
+    kinds: screenableKindsText(deps.marketData.screenableKinds()),
   }
 }
 

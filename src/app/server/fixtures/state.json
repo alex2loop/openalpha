@@ -47,6 +47,18 @@
     "orders": false
   },
   "timeZone": "Asia/Ho_Chi_Minh",
+  "degraded": [
+    {
+      "kind": "key",
+      "subject": "OPENROUTER_API_KEY",
+      "message": "OPENROUTER_API_KEY is not set, so the AI model cannot answer: chat, the written debate in /suggest, /research, /themes and the brief's written parts wait for it, while prices, scores and levels keep working. Set it with `export OPENROUTER_API_KEY=...` in the terminal you run from, then restart."
+    },
+    {
+      "kind": "channel",
+      "subject": "telegram",
+      "message": "Telegram rejected the current bot token: it is mistyped, revoked or was regenerated. Issue a fresh token for the bot, set the environment variable named in token_env again, then restart."
+    }
+  ],
   "brief": {
     "state": "scheduled",
     "channel": "api",

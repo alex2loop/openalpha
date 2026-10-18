@@ -59,7 +59,7 @@ Each row is a rule with exactly one enforcement path. If you find a second, that
 | What the operator's policy is | `features/profile/profile.ts` — the book reads it and never decides it |
 | Whether a suggestion may be made | `features/suggestion/pipeline/` stages; a blocked stage forces hold |
 | Conviction | The debate may only *lower* it, never raise it. Bands and cut points: `kernel/conviction.ts` |
-| How long a call has to work | `OUTCOME_WINDOW_DAYS` in `features/suggestion/pipeline/outcomes.ts` — calendar days per sleeve horizon, converted to each market's own sessions |
+| How long a call has to work | `OUTCOME_WINDOW_DAYS` in `features/suggestion/pipeline/outcomes.ts` — calendar days per segment horizon, converted to each market's own sessions |
 | Which market claims a ticker | The registry, closed in `wiring/composition/registration.ts` |
 | Which source answers a kind | `SOURCE_ROUTES` in `sources/routes.ts` — adapters never choose |
 | A day, a session, a holiday | The market's own calendar (`markets/calendar.ts`). Never `Date` arithmetic. |

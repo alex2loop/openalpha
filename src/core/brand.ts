@@ -7,13 +7,18 @@ interface Brand {
   readonly envPrefix: string
   readonly pidFile: string
   readonly stopFile: string
+  readonly readyFile: string
   readonly version: string
   readonly repository: string
+  readonly sampleConfigUrl: string
+  readonly pluginGuideUrl: string
   readonly packageName: string
 }
 
 const GIT_URL_PREFIX_RE = /^git\+/
 const GIT_URL_SUFFIX_RE = /\.git$/
+const SAMPLE_CONFIG_PATH = 'blob/main/config.sample.toml'
+const PLUGIN_GUIDE_PATH = 'blob/main/docs/en/dev/extending.md'
 
 // The product name, not the package name: `@openalpha/runtime` is a workspace path, and deriving
 // from it would brand the whole product "runtime". Falls back to the unscoped package name.
@@ -33,7 +38,10 @@ export const BRAND: Brand = Object.freeze({
   envPrefix: `${name.toUpperCase().replace(/-/g, '_')}_`,
   pidFile: `${name}.pid`,
   stopFile: `${name}.stop`,
+  readyFile: `${name}.ready`,
   version,
   repository,
+  sampleConfigUrl: `${repository}/${SAMPLE_CONFIG_PATH}`,
+  pluginGuideUrl: `${repository}/${PLUGIN_GUIDE_PATH}`,
   packageName: pkg.name,
 })

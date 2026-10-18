@@ -16,8 +16,8 @@ export const FULLY_INVESTED_PCT_NAV = 0.95
  *  the hysteresis that keeps a read wobbling around zero from forcing a liquidation. */
 export const WEAK_HOLDING_SIGNAL_THRESHOLD = -0.3
 
-/** How much of a rotation — the part of a move that is not the sleeve closing its gap — one run may
- *  take. Suggestions accumulate; the sleeve's own gap is closed promptly and is not scaled here. */
+/** How much of a rotation — the part of a move that is not the segment closing its gap — one run may
+ *  take. Suggestions accumulate; the segment's own gap is closed promptly and is not scaled here. */
 export const ROTATION_STEP_FRACTION = 1 / 3
 
 /** Below this, dividing by volatility explodes the weight of a name that simply has not moved. */
@@ -78,27 +78,27 @@ export function deploymentScale(regimeScale: number, profileScale: number): numb
 
 /** The 5/25 band: the TIGHTER of the two thresholds. The canonical rule is "5 percentage points
  *  absolute for large targets, 25% relative for small ones", and the two cross at a 20% target.
- *  Using `max` would make bands 2-4x too wide — a 5% sleeve would not rebalance until it doubled. */
+ *  Using `max` would make bands 2-4x too wide — a 5% segment would not rebalance until it doubled. */
 export function driftBand(target: number, policy: RebalancePolicy): number {
   return Math.min(policy.absoluteDriftPctPoints, target * policy.relativeDriftPct)
 }
 
-/** The weight a sleeve's ETFs may reach together, for a plan that sets absolute weights: unbounded
- *  where the sleeve declares no ceiling, and none at all where it holds a priced position whose
+/** The weight a segment's ETFs may reach together, for a plan that sets absolute weights: unbounded
+ *  where the segment declares no ceiling, and none at all where it holds a priced position whose
  *  kind never resolved — a ceiling that cannot see the weight must not act as if there were room,
  *  the same way `capFor` fails closed on a missing cap. */
-export function etfCeilingPctNav(cap: RiskCapSet | undefined, sleeve?: SegmentValue): number {
+export function etfCeilingPctNav(cap: RiskCapSet | undefined, segment?: SegmentValue): number {
   const ceiling = cap?.maximumEtfPctNav
 
   if (ceiling === undefined) {
     return Number.POSITIVE_INFINITY
   }
 
-  return isEtfUnmeasured(sleeve) ? 0 : ceiling
+  return isEtfUnmeasured(segment) ? 0 : ceiling
 }
 
-/** Room under a sleeve's ETF ceiling for a purchase added to what the sleeve already holds: the
+/** Room under a segment's ETF ceiling for a purchase added to what the segment already holds: the
  *  whole ceiling where the book holds nothing there yet. */
-export function etfHeadroomPctNav(cap: RiskCapSet | undefined, sleeve?: SegmentValue): number {
-  return Math.max(0, etfCeilingPctNav(cap, sleeve) - (sleeve?.etfPctNav ?? 0))
+export function etfHeadroomPctNav(cap: RiskCapSet | undefined, segment?: SegmentValue): number {
+  return Math.max(0, etfCeilingPctNav(cap, segment) - (segment?.etfPctNav ?? 0))
 }

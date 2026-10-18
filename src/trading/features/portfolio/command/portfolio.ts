@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { NavService } from '@/trading/features/portfolio/nav/types'
 import type { UpcomingEvent } from '@/trading/features/portfolio/render/portfolio'
@@ -77,6 +82,7 @@ export function createPortfolioCommand(deps: PortfolioCommandDeps): SlashCommand
       execution: { progressKey: 'slash.tradingPortfolioProgress' },
     },
     completeFor: completePortfolioArgs,
+    usage: () => ({ key: USAGE, values: buildUsageValues() }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -90,11 +96,15 @@ function completePortfolioArgs(args: readonly string[]): readonly string[] {
 }
 
 function portfolioUsage(): SlashResult {
-  return usage(USAGE, {
+  return usage(USAGE, buildUsageValues())
+}
+
+function buildUsageValues(): CommandMessageValues {
+  return {
     nav: NAV_ARG,
     windows: NAV_WINDOWS.join('|'),
     fallback: DEFAULT_NAV_WINDOW,
-  })
+  }
 }
 
 async function runNav(

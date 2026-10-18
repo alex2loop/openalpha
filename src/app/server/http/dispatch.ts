@@ -6,6 +6,7 @@ import type { Locale } from '@/core/types/locale'
 import { isLoopback, resolveAuthOutcome, resolveBearerCredential } from '@/app/server/http/auth'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
+import { missingEnvOf } from '@/core/config/resolve'
 import { ChannelError, ConflictError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
@@ -115,11 +116,11 @@ async function runHandler(
 /** The runtime's own sentence for a refusal it wrote for the operator, in the operator's language.
  *  Any other error stays a code: its message is for the log, not the screen. */
 export function operatorText(locale: Locale, err: unknown): string | undefined {
-  if (!(err instanceof ValidationError) || err.operator === undefined) {
-    return undefined
-  }
+  const operator = err instanceof ValidationError ? err.operator : missingEnvOf(err)?.operator
 
-  return bindLocale(locale).translate(err.operator.key, err.operator.params)
+  return operator === undefined
+    ? undefined
+    : bindLocale(locale).translate(operator.key, operator.params)
 }
 
 /** A rejected request is the caller's fault and says so; anything else is ours and stays opaque. */
@@ -130,6 +131,10 @@ export function toErrorCode(err: unknown): ApiErrorCode {
 
   if (err instanceof ConflictError) {
     return 'conflict'
+  }
+
+  if (missingEnvOf(err) !== undefined) {
+    return 'unavailable'
   }
 
   if (err instanceof Error && err.name === 'TimeoutError') {

@@ -5,9 +5,9 @@ import { t } from '@/i18n'
 import { auditVenueKeys, resolveTradingConfig } from '@/trading/api'
 
 import type { DoctorEnvironment, DoctorProbe } from './types'
+import { checkLabel, subjectLabel } from './labels'
 import { ONLINE_TIMEOUT_MS } from './online-probes'
 
-const CHECK_NAME = 'venues'
 /** What a venue answers when it refuses the key itself: a wrong key, a demo key, or an IP outside
  *  the key's allow list. */
 const AUTH_REFUSED_CODE = 'order.auth'
@@ -19,9 +19,10 @@ export async function probeVenueKeys(options: {
   readonly locale: Locale
 }): Promise<readonly DoctorProbe[]> {
   const { config, locale } = options
+  const name = checkLabel(locale, 'venues')
 
   if (!options.online) {
-    return [{ name: CHECK_NAME, status: 'ok', detail: t(locale, 'cli.doctorNotProbed') }]
+    return [{ name, status: 'ok', detail: t(locale, 'cli.doctorNotProbed') }]
   }
 
   const trading = resolveTradingConfig({ extensions: config.extensions, locale: config.locale })
@@ -32,14 +33,14 @@ export async function probeVenueKeys(options: {
   })
 
   if (audits.length === 0) {
-    return [{ name: CHECK_NAME, status: 'ok', detail: t(locale, 'cli.doctorVenueKeysNone') }]
+    return [{ name, status: 'ok', detail: t(locale, 'cli.doctorVenueKeysNone') }]
   }
 
   return audits.flatMap((audit) => auditProbes(audit, locale))
 }
 
 function auditProbes(audit: VenueKeyAudit, locale: Locale): readonly DoctorProbe[] {
-  const name = `venue.${audit.venue}`
+  const name = subjectLabel(locale, 'venue', audit.venue)
   const values = { venue: audit.venue }
 
   if (audit.kind === 'failed') {

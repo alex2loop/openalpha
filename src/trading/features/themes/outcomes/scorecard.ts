@@ -1,18 +1,18 @@
-import type { ThemeOutcome } from '@/trading/features/themes/outcomes/store'
 import type {
   BucketResult,
   ScoreBucket,
   ScorecardLine,
   ThemeScorecard,
-} from '@/trading/features/themes/types'
+} from '@/trading/features/themes/outcomes/scorecard-types'
+import type { ThemeOutcome } from '@/trading/features/themes/outcomes/store'
 import type { TradingDay } from '@/trading/kernel/instrument'
-import { meanOf } from '@/trading/features/themes/score/compose'
 import {
-  OUTCOME_HORIZONS_MONTHS,
   SCORE_BUCKET_FLOORS,
   SCORE_BUCKETS,
   SCORECARD_LEVELS,
-} from '@/trading/features/themes/types'
+} from '@/trading/features/themes/outcomes/scorecard-types'
+import { meanOf } from '@/trading/features/themes/score/compose'
+import { OUTCOME_HORIZONS_MONTHS } from '@/trading/features/themes/types'
 
 /** Fewer independent reads than this and a bucket's mean is noise: it is counted, never judged. */
 const MINIMUM_BUCKET_READS = 20

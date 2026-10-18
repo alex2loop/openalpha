@@ -1,19 +1,19 @@
 import type { Locale } from '@/core/types/locale'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import { t } from '@/i18n'
 import { formatWholeFraction, renderDeclaredValue } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 
 /** One sentence per breach, whichever surface asked. A fold over weights takes the whole-percent
  *  form: the second decimal claims resolution the fold never had. */
-export function renderSleeveBreachLines(
+export function renderCapBreachLines(
   locale: Locale,
-  breaches: readonly SleeveBreach[]
+  breaches: readonly CapBreach[]
 ): readonly string[] {
   return breaches.map((breach) => `${INDENT[1]}${renderBreach(locale, breach)}`)
 }
 
-function renderBreach(locale: Locale, breach: SleeveBreach): string {
+function renderBreach(locale: Locale, breach: CapBreach): string {
   if (breach.kind === 'etf-unmeasured') {
     return t(locale, 'trading.render.exposure.etfUnmeasured', {
       segment: renderDeclaredValue(locale, `trading.segment.${breach.segment}`),
@@ -28,10 +28,7 @@ function renderBreach(locale: Locale, breach: SleeveBreach): string {
   })
 }
 
-function subjectOf(
-  locale: Locale,
-  breach: Exclude<SleeveBreach, { kind: 'etf-unmeasured' }>
-): string {
+function subjectOf(locale: Locale, breach: Exclude<CapBreach, { kind: 'etf-unmeasured' }>): string {
   switch (breach.kind) {
     case 'position':
       return breach.ticker

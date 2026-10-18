@@ -3,7 +3,7 @@ import { BRAND } from '@/core/brand'
 
 export const CLI_ROOT_SUMMARY = {
   key: 'cliHelp.rootSummary',
-  params: { brand: BRAND.display },
+  params: { brand: BRAND.display, command: BRAND.name },
 } satisfies LocalizedText
 
 interface CommandMetadata {
@@ -31,6 +31,10 @@ export const CLI_COMMAND_METADATA = {
   status: {
     name: 'status',
     summary: { key: 'cliHelp.commandStatusSummary', params: { brand: BRAND.display } },
+  },
+  help: {
+    name: 'help',
+    summary: { key: 'cliHelp.commandHelpSummary' },
   },
   version: {
     name: 'version',

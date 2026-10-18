@@ -31,7 +31,7 @@ import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
 import { renderOrders, splitBreaches } from './rebalance-orders'
-import { renderCashLine, renderEtfCapLines, renderSleeves } from './sleeves'
+import { renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
 const DRIFT_FINDING = 'segment-drift'
 const REGIME_CAVEAT = 'portfolio.regime-risk'
@@ -84,12 +84,12 @@ export function renderRebalanceText(
       ...renderAfterPlan(locale, advice, options),
     ],
     [
-      ...renderSleeves(locale, advice.allocation, options.context),
+      ...renderSegments(locale, advice.allocation, options.context),
       ...renderEtfCapLines(locale, advice.allocation),
       renderCashLine(locale, advice, sizing),
     ],
     renderStanceLines(locale, advice),
-    renderNotes(locale, advice.findings, [...advice.cashSleeve.caveats, ...advice.caveats]),
+    renderNotes(locale, advice.findings, [...advice.cashSegment.caveats, ...advice.caveats]),
     [
       ...renderNavLine(locale, sizing, options),
       `${INDENT[1]}${renderProfileStamp(locale, advice.policy.profile)}`,
@@ -124,12 +124,22 @@ export function renderRebalanceTitle(
  *  behind it. */
 function titleKey(sums: PlanSums): MessageKey {
   if (sums.sells === 0) {
-    return 'trading.render.rebalance.titleBuy'
+    return pluralKey(
+      sums.buys,
+      'trading.render.rebalance.titleBuyOne',
+      'trading.render.rebalance.titleBuy'
+    )
   }
 
-  return sums.buys === 0
-    ? 'trading.render.rebalance.titleSell'
-    : 'trading.render.rebalance.titleBoth'
+  if (sums.buys === 0) {
+    return pluralKey(
+      sums.sells,
+      'trading.render.rebalance.titleSellOne',
+      'trading.render.rebalance.titleSell'
+    )
+  }
+
+  return 'trading.render.rebalance.titleBoth'
 }
 
 /** Each order's money read from the sizing map, the one place it was computed. */
@@ -196,7 +206,7 @@ export function renderBreachLine(locale: Locale, advice: RebalancePlanReady): re
   return [`${INDENT[1]}${t(locale, key, { count: formatCount(locale, count) })}`]
 }
 
-/** What the book looks like once the plan's orders are placed: cash lands where the sleeve says,
+/** What the book looks like once the plan's orders are placed: cash lands where the segment says,
  *  and the largest industry reads against the cap that binds it. Absent when any of the three is
  *  unknown — a consequence stated from a partial read would disagree with the rows above it. */
 export function renderAfterPlan(
@@ -257,7 +267,7 @@ export function renderStanceLines(locale: Locale, advice: RebalancePlanReady): r
   return [...renderDeploymentLines(locale, advice), ...renderWeakHoldingLines(locale, advice)]
 }
 
-/** The share of the planned buying today's scale allows. A sleeve whose regime set it already says
+/** The share of the planned buying today's scale allows. A segment whose regime set it already says
  *  so in its own warning, so the line speaks only where nothing else does: the profile's own
  *  ceiling binding on a calm day. */
 function renderDeploymentLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
@@ -306,7 +316,7 @@ function renderWeakHoldingLines(locale: Locale, advice: RebalancePlanReady): rea
     )
 }
 
-/** The sleeve table states drift in numbers, so the finding that says the same in words would be
+/** The segment table states drift in numbers, so the finding that says the same in words would be
  *  the fact twice. */
 function renderFindingLines(
   locale: Locale,

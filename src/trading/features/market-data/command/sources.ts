@@ -19,6 +19,7 @@ export function createSourcesCommand(deps: SourcesCommandDeps): SlashCommand {
     description: { kind: 'localized', key: 'slash.tradingSourcesHelp' },
     messageKeys: [USAGE],
     policy: { surfaces: ['channel', 'repl'], role: 'member', action: 'read' },
+    usage: () => ({ key: USAGE }),
     run: (ctx: SlashContext): Promise<SlashResult> => Promise.resolve(run(deps, ctx)),
   }
 }

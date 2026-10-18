@@ -20,7 +20,7 @@ export async function resolveRegimeScale(
     return { scale: 1, rated: false, caveats: [] }
   }
 
-  // Dated by the settled session like every printed macro read, so the sleeve is gated by what
+  // Dated by the settled session like every printed macro read, so the segment is gated by what
   // the operator sees.
   const result = await capability.run({
     region: market.manifest.region,
@@ -49,7 +49,7 @@ export async function resolveRegimeScale(
 
 /** No `asOf`: this read dates itself by the market's own settled session rather than by the day a
  *  caller is viewing, which is what keeps it from stamping a different day than the region read. */
-interface SleeveMacroOptions {
+interface SegmentMacroOptions {
   readonly now: number
   readonly signal: AbortSignal
   /** The region whose composite already heads the message this block belongs to — the operator's
@@ -58,14 +58,14 @@ interface SleeveMacroOptions {
   readonly headlineRegion: Region
 }
 
-/** The composite that gates this market's sleeve, for the block that sleeve is printed on. Skipped
+/** The composite that gates this market's segment, for the block that segment is printed on. Skipped
  *  only where the same read already heads the message: owning *a* region is not that test, because
  *  a message heads with one region and `gold` owns another. Read at the settled session, as the
  *  region read is, so the two never stamp one day two ways. Unavailable travels as caveats, never
  *  as a block. */
-export async function sleeveMacroOf(
+export async function segmentMacroOf(
   market: Market,
-  options: SleeveMacroOptions
+  options: SegmentMacroOptions
 ): Promise<SourceResult<MacroRiskView> | undefined> {
   const capability = market.capabilities.macroRisk
   const headlines = market.manifest.ownsRegion && market.manifest.region === options.headlineRegion

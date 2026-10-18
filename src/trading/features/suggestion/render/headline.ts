@@ -6,8 +6,12 @@ import type {
 } from '@/trading/features/suggestion/types'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
-import { isInconclusive, renderHoldReason } from '@/trading/features/suggestion/render/verdict'
-import { framedDirectionOf, isRecordedPlan } from '@/trading/features/suggestion/types'
+import { renderHoldReason } from '@/trading/features/suggestion/render/verdict'
+import {
+  framedDirectionOf,
+  isInconclusive,
+  isRecordedPlan,
+} from '@/trading/features/suggestion/types'
 import {
   formatAmount,
   formatFraction,

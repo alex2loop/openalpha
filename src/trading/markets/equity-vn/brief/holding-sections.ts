@@ -19,7 +19,7 @@ export async function buildUnwatchedPositions(context: BriefContext): Promise<Br
       )
 }
 
-/** Held past the window its sleeve is scored over with the price gone nowhere: capital that could be
+/** Held past the window its segment is scored over with the price gone nowhere: capital that could be
  *  working elsewhere. Each ticker is one `/suggest stops` run from a fresh read. */
 export async function buildStalePositions(context: BriefContext): Promise<BriefSectionResult> {
   const marks = await valuedMarks(context)

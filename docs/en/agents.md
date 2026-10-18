@@ -539,9 +539,9 @@ supply a model. [Configuration](configuration.md) lists every key, including the
 cooldown and rate keys under [`[llm]`](configuration.md).
 
 An entry's selector is its `alias`, or `<provider>:<model>` when it has none. Selectors must be unique. The
-environment variable named by `api_key_env` holds the key (unset, the daemon will not start and other commands skip that
-entry; see [Configuration](configuration.md)); plaintext keys are not accepted in
-model configuration. A server on this machine (a loopback `base_url`, such as Ollama or LM Studio) needs no
+environment variable named by `api_key_env` holds the key (unset, that entry steps aside: the daemon still starts and
+warns, and anything that needs the model says which variable to set; see [Configuration](configuration.md));
+plaintext keys are not accepted in model configuration. A server on this machine (a loopback `base_url`, such as Ollama or LM Studio) needs no
 `api_key_env`.
 
 Reasoning accepts `default`, `off`, `low`, `medium` or `high`. It is hidden, so you pay for it in latency and
@@ -672,7 +672,7 @@ run stops with the `rate` reason before any provider call.
 | Condition | Result |
 | --- | --- |
 | Model chain is empty or ambiguous | Boot fails with a configuration error. |
-| A model's key variable is unset | The daemon refuses to start. A CLI command still runs; the chain skips that model, and with none left a model call says which variable to set. |
+| A model's key variable is unset | The daemon and every CLI command still run, and `start` prints one warning. The chain skips that model, and with none left a model call (chat, `/suggest`, the brief, a scheduled job that needs the model) says which variable to set; work that needs no model keeps running. |
 | Preferred selector is not configured | Agent validation fails; no silent substitute. |
 | Rate limit is full | Run halts with the `rate` reason before a provider call. |
 | Retryable failure before output | Same entry retries, then eligible fallbacks are tried. |

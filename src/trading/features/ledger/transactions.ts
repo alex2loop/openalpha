@@ -63,6 +63,7 @@ export function createTransactionsCommand(deps: TransactionsCommandDeps): SlashC
       role: 'operator',
       action: 'read',
     },
+    usage: () => ({ key: USAGE }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }

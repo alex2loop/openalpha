@@ -21,10 +21,10 @@ import type {
   TradingDay,
   VenueRef,
 } from '@/trading/kernel/instrument'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { resolveDay, resolveInstrument } from '@/trading/features/market-data/resolve'
-import { assertBookPriced, breachedSleeves } from '@/trading/features/order/exposure'
+import { assertBookPriced, breachedCaps } from '@/trading/features/order/exposure'
 import { assertBuyingAllowed } from '@/trading/features/order/halt'
 import { isExitInverted, validateOrderCaps } from '@/trading/features/order/policy'
 import { roundExitLevels, roundToInstrument } from '@/trading/features/order/precision'
@@ -307,7 +307,7 @@ interface CapsInput {
 interface Caps {
   readonly notionalBase: number
   readonly rejections: readonly CapRejection[]
-  readonly breaches: readonly SleeveBreach[]
+  readonly breaches: readonly CapBreach[]
 }
 
 /** The book plus the orders that placed and never reached it: the ledger cannot see a position
@@ -404,12 +404,12 @@ function buyBreaches(
   profile: UserProfile | null,
   caps: CapsInput,
   valued: ValuedOrder
-): readonly SleeveBreach[] {
+): readonly CapBreach[] {
   if (profile === null) {
     return []
   }
 
-  return breachedSleeves({
+  return breachedCaps({
     profile,
     book: valued.book,
     instrument: caps.instrument,

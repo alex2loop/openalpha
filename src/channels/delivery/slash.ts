@@ -1,6 +1,6 @@
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { InboundMessage, OutboundButton } from '@/channels/types'
-import type { ResolvedSlashCommand } from '@/commands/api'
+import type { HelpRequest, ResolvedSlashCommand } from '@/commands/api'
 import type { AgentId, SessionId } from '@/core/ids'
 import type {
   Affordance,
@@ -16,7 +16,7 @@ import { channelControlHelp, handleSessionControl } from '@/channels/delivery/co
 import { formatChannelFooter, joinFooter } from '@/channels/delivery/format'
 import { openSlashNotice, type SlashNotice } from '@/channels/delivery/slash-notice'
 import { operatorContextOf } from '@/channels/operator'
-import { commandHeadOf, HELP_COMMAND, renderCommandHelp, renderMessages } from '@/commands/api'
+import { parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
 import {
   abortError,
   ChannelError,
@@ -119,8 +119,10 @@ async function runSlashRequest(options: ResolveSlashOptions): Promise<SlashRunRe
     return null
   }
 
-  if (commandHeadOf(msg.text) === HELP_COMMAND) {
-    await deps.sendText(msg.chatId, helpText(deps, roleOf(deps, msg)))
+  const help = parseHelpLine(msg.text)
+
+  if (help !== null) {
+    await deps.sendText(msg.chatId, helpText(deps, roleOf(deps, msg), help))
     return null
   }
 
@@ -364,10 +366,11 @@ async function openChatSession(options: DispatchSlashOptions, ctx: SlashContext)
   })
 }
 
-function helpText(deps: InboundHandlerDeps, role: CommandRole): string {
+function helpText(deps: InboundHandlerDeps, role: CommandRole, request: HelpRequest): string {
   return renderCommandHelp(bindLocale(deps.locale), {
     controls: channelControlHelp(deps.locale),
     commands: deps.dispatcher.all(CHANNEL_COMMAND_SURFACE, role),
+    ...request,
   })
 }
 

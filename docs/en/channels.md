@@ -76,8 +76,11 @@ The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `u
 `notify_max_per_minute`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
 key fails validation, so a typo shows up at startup and not at 09:00.
 
-If startup finds a misconfigured channel, it stops with an error. Only a token the provider itself
-rejects counts as a configuration error (HTTP 401 or 403 from Telegram, 401 from Zalo). Any other
+A channel with no token (the `token_env` variable unset, or an empty `token_file`) or with a token the
+provider itself rejects (HTTP 401 or 403 from Telegram, 401 from Zalo) is not opened. The daemon still
+starts: `start` prints one warning for that channel, the other channels and everything else run, and a
+channel without a valid token accepts no messages from anyone. Fix the token and `restart` to open it.
+A bad configuration value (wrong type, misspelt key) still stops `start` with an error. Any other
 failure to check the token is a connection problem: the check is tried four times with a growing pause,
 and if the network is still down the channel stays up, shows as degraded, and keeps retrying in the
 background with a capped pause until it connects or the daemon stops. Zalo Personal has no token to

@@ -12,7 +12,6 @@ import type {
   ThemeGap,
   ThemeRead,
   ThemeRunNote,
-  ThemeStepFailure,
 } from '@/trading/features/themes/types'
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { Candle } from '@/trading/kernel/market/market-data'
@@ -160,7 +159,7 @@ async function mapAllSectors(
       if (result.kind === 'value') {
         values.push({ entry, reads: result.value })
       } else {
-        notes.push({ level: 'sector', themeId, cause: result.cause })
+        notes.push({ level: 'sector', themeId, ...result.failure })
       }
     }
   }
@@ -271,7 +270,7 @@ async function analyseStock(
   assertNotAborted(chain.session.signal)
 
   if (halt.spent || facts === undefined) {
-    return { kind: 'note', note: toStockNote(job, 'budget') }
+    return { kind: 'note', note: toStockNote(job, { cause: 'budget' }) }
   }
 
   chain.progress?.('trading.progress.themes.company', { ticker: job.ticker })
@@ -289,18 +288,18 @@ async function analyseStock(
     return { kind: 'value', value: result.value }
   }
 
-  halt.spent ||= result.cause === 'budget'
+  halt.spent ||= result.failure.cause === 'budget'
 
-  return { kind: 'note', note: toStockNote(job, result.cause) }
+  return { kind: 'note', note: toStockNote(job, result.failure) }
 }
 
-function toStockNote(job: StockJob, cause: ThemeStepFailure): ThemeRunNote {
+function toStockNote(job: StockJob, failure: Pick<ThemeRunNote, 'cause' | 'env'>): ThemeRunNote {
   return {
     level: 'stock',
     themeId: job.entry.theme.id,
     subject: job.ticker,
     sector: job.sector.sector,
-    cause,
+    ...failure,
   }
 }
 

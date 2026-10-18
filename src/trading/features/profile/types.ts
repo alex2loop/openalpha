@@ -30,7 +30,7 @@ export interface SegmentPolicyRequest {
   readonly pctNav: number
 }
 
-/** What a profile is validated against: the sleeves the registry holds and the ranges their numbers
+/** What a profile is validated against: the segments the registry holds and the ranges their numbers
  *  must fall in. Owned here rather than by the merge, so the merge and the validator can both read
  *  it without depending on each other. */
 export interface ProfileContext {
@@ -79,16 +79,16 @@ export interface ProfileService {
   isSaved(options: GetProfileOptions): Promise<boolean>
   update(options: UpdateProfileOptions): Promise<UserProfile>
   reset(options: GetProfileOptions): Promise<UserProfile>
-  /** The sleeves a profile allocates to. Cash is absent: it is the residual every other sleeve is
+  /** The segments a profile allocates to. Cash is absent: it is the residual every other segment is
    *  funded from, not a registered market's segment. */
   segments(): readonly PortfolioSegment[]
   /** Those of them some venue holds, the only ones that can be switched on. */
   heldSegments(): readonly PortfolioSegment[]
-  /** Switches one sleeve off or back on. Off is a cap of zero, which every sizer already reads as
+  /** Switches one segment off or back on. Off is a cap of zero, which every sizer already reads as
    *  no room, so nothing there is screened, sized, or bought. */
   updateSegment(options: UpdateSegmentOptions): Promise<UserProfile>
-  /** Sets one sleeve's target or either of its ceilings. A target is what the book is steered to
-   *  and the other sleeves absorb the change; a ceiling is only room, so moving one moves no
+  /** Sets one segment's target or either of its ceilings. A target is what the book is steered to
+   *  and the other segments absorb the change; a ceiling is only room, so moving one moves no
    *  money. */
   updateSegmentPolicy(options: UpdateSegmentPolicyOptions): Promise<UserProfile>
   updateWatchlist(options: UpdateWatchlistOptions): Promise<WatchlistResult>

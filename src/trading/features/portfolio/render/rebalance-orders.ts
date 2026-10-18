@@ -51,8 +51,8 @@ interface OrderPricing {
   readonly quoteConventions?: ReadonlyMap<MarketRef, QuoteConvention>
 }
 
-/** A plan with no orders is two different messages, and the sleeve table below decides which: every
- *  sleeve inside its band is nothing to do, while a sleeve outside one that still placed nothing is
+/** A plan with no orders is two different messages, and the segment table below decides which: every
+ *  segment inside its band is nothing to do, while a segment outside one that still placed nothing is
  *  blocked, not balanced. Saying the first over the second told an operator holding three quarters
  *  of NAV in cash that everything was close enough to target. */
 function emptyPlanKey(allocation: readonly SegmentTarget[]): MessageKey {
@@ -148,7 +148,7 @@ export function groupHeading(locale: Locale, heading: 'groupBreach' | 'groupDrif
 }
 
 /** Verb first, then what to hand a broker. A weight alone is not an order, so the amount and unit
- *  count lead wherever the surface is allowed to see them. The sleeve each order moves reads in the
+ *  count lead wherever the surface is allowed to see them. The segment each order moves reads in the
  *  table below, so the row states only the name's own weight and any reason beyond the gap. */
 function renderOrder(
   locale: Locale,
@@ -279,5 +279,5 @@ function renderChangeReason(locale: Locale, row: PositionChange): string {
   }
 }
 
-/** A full scale is the absence of a limit, so it earns no line. The scale blends the sleeves, so it
- *  names none of them: each capped sleeve states its own regime in its own caveat. */
+/** A full scale is the absence of a limit, so it earns no line. The scale blends the segments, so it
+ *  names none of them: each capped segment states its own regime in its own caveat. */

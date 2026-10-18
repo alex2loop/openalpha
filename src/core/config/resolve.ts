@@ -13,6 +13,7 @@ import type {
   ResolvedSchedule,
 } from '@/core/config/resolvers/runtime'
 import type { RawConfig, RawModel, RawModelDefaults, RawModelTiers } from '@/core/config/schema'
+import { BRAND } from '@/core/brand'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { expandHome, resolveDataDir, resolveDataRelative } from '@/core/config/paths'
 import { resolveLog } from '@/core/config/resolvers/log'
@@ -29,7 +30,9 @@ import {
 } from '@/core/config/resolvers/runtime'
 import { type ResolvedStorageConfig, resolveStorageConfig } from '@/core/config/resolvers/storage'
 import { type ResolvedWebSearch, resolveWebSearch } from '@/core/config/resolvers/web-search'
+import { KNOWN_TOP_LEVEL } from '@/core/config/schema'
 import { freezeDeep } from '@/core/utils/freeze'
+import { closestName } from '@/core/utils/text'
 
 export type { LogLevel, ResolvedLog } from '@/core/config/resolvers/log'
 export type { ResolvedMcp, ResolvedMcpServer } from '@/core/config/resolvers/mcp'
@@ -50,7 +53,11 @@ export type {
 } from '@/core/config/resolvers/web-search'
 // biome-ignore lint/performance/noBarrelFile: config/resolve is the sanctioned config facade.
 export {
+  combineInvalidConfigErrors,
+  InvalidConfigError,
+  type KeyEffect,
   MissingEnvError,
+  missingEnvOf,
   OperatorConfigError,
   setEnvCommand,
   toInvalidConfigError,
@@ -65,6 +72,7 @@ export {
   type ResearchStageId,
   type ResolvedResearch,
 } from '@/core/config/resolvers/research'
+export { toMissingSearchKeyError } from '@/core/config/resolvers/web-search'
 export {
   EXA_SEARCH_TYPES,
   type ExaSearchType,
@@ -89,9 +97,11 @@ export interface ConfigResolveOptions {
   readonly dataDir?: string
   readonly logLevel?: LogLevel
   readonly modelSource?: ModelSource
-  /** A one-off CLI run keeps an entry whose key variable is unset, so commands that never call a
-   *  model still run; the daemon leaves this off and refuses to start. */
-  readonly deferMissingModelKeys?: true
+  /** Keeps a model entry whose key variable is unset, and leaves out an MCP server whose
+   *  placeholder is unset, recording both for the caller to report. Boot defers, so a command or
+   *  the daemon that never needs the missing key still runs; the strict resolve `doctor` probes
+   *  with throws. */
+  readonly deferMissingKeys?: true
 }
 
 interface ResolvedPaths {
@@ -163,7 +173,7 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
   const modelSource = options?.modelSource ?? 'config'
   const { models, modelTiers } = resolveModelSection(raw, {
     source: modelSource,
-    ...(options?.deferMissingModelKeys === undefined ? {} : { deferMissingKey: true }),
+    ...(options?.deferMissingKeys === undefined ? {} : { deferMissingKey: true }),
   })
 
   const resolved: ResolvedConfig = {
@@ -182,7 +192,7 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
       maxValueBytes: DEFAULT_MAX_VALUE_BYTES,
       ttlDays: raw.memory?.ttl_days ?? DEFAULT_MEMORY_TTL_DAYS,
     },
-    mcp: resolveMcp(raw.mcp),
+    mcp: resolveMcp(raw.mcp, { deferMissingEnv: options?.deferMissingKeys === true }),
     commands: { ratePerMinute: DEFAULT_COMMANDS_RATE_PER_MINUTE },
     api: resolveApi(raw.api),
     retention: {
@@ -224,10 +234,20 @@ export function assertExtensionsClaimed(
   }
 
   const named = unclaimed.map((section) => `[${section}]`).join(', ')
+  // Several unknown sections name no single nearest.
+  const near =
+    unclaimed.length === 1 ? closestName(first, [...KNOWN_TOP_LEVEL, ...owned]) : undefined
 
   throw new OperatorConfigError(
     `unknown config ${unclaimed.length === 1 ? 'section' : 'sections'}: ${named}`,
-    { key: 'errors.configUnknownSection', params: { sections: named } },
+    {
+      key: near === undefined ? 'errors.configUnknownSection' : 'errors.configUnknownSectionNear',
+      params: {
+        sections: named,
+        sample: BRAND.sampleConfigUrl,
+        ...(near === undefined ? {} : { near }),
+      },
+    },
     { path: [first] }
   )
 }

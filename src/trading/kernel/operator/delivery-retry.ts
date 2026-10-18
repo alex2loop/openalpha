@@ -74,6 +74,8 @@ interface DeliveryNoticeInput {
   readonly target: DeliveryAddress
   readonly locale: Locale
   readonly subject: NoticeKind
+  /** The unset key variable that stopped the delivery, when one did. */
+  readonly missingEnv?: string
   readonly logger: Logger
   readonly signal: AbortSignal
 }
@@ -85,7 +87,10 @@ export async function notifyDeliveryStopped(input: DeliveryNoticeInput): Promise
   const notice: TradingNotice = {
     target: input.target,
     locale: input.locale,
-    payload: { kind: input.kind, subject: input.subject },
+    payload:
+      input.missingEnv === undefined
+        ? { kind: input.kind, subject: input.subject }
+        : { kind: 'key-missing', subject: input.subject, env: input.missingEnv },
   }
   const outcome = await sendCaught(input.sender, notice, input.signal)
 

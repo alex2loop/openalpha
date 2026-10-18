@@ -17,7 +17,7 @@ import { apiError, json } from '@/app/server/http/dispatch'
 import { toBriefScheduleWire } from '@/app/server/mappers/brief'
 import { localeOf } from '@/app/server/routes/params'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
-import { readReleaseStatus } from '@/cli/api'
+import { readDaemonDegraded, readReleaseStatus } from '@/cli/api'
 import { describeCommand } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { probeConfig } from '@/core/config/load'
@@ -28,24 +28,23 @@ import { tradingDay } from '@/trading/api'
 
 // The only unauthenticated route. It answers 'ready' unconditionally: the api starts as the last
 // daemon step, so a socket that connects at all is talking to a booted daemon.
-function handleHealth(_req: Request, ctx: ApiRouteContext): Promise<Response> {
-  return Promise.resolve(
-    json({
-      ok: true,
-      status: 'ready',
-      version: BRAND.version,
-      contractVersion: CONTRACT_VERSION,
-      capabilities: buildCapabilities(ctx.app),
-    } satisfies HealthResponse)
-  )
+async function handleHealth(_req: Request, ctx: ApiRouteContext): Promise<Response> {
+  return json({
+    ok: true,
+    status: 'ready',
+    version: BRAND.version,
+    contractVersion: CONTRACT_VERSION,
+    capabilities: buildCapabilities(ctx.app),
+  } satisfies HealthResponse)
 }
 
 async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const { app } = ctx
-  const [todayUsd, jobs, brief] = await Promise.all([
+  const [todayUsd, jobs, brief, degraded] = await Promise.all([
     app.resolve('llmAttemptStore').totalFor('day', Date.now()),
     app.resolve('jobStore').list(),
     readBriefSchedule(app, req.signal),
+    readDaemonDegraded(app, process.pid),
   ])
 
   return json({
@@ -57,6 +56,7 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     schedules: jobs.map((job) => ({ ...job })),
     capabilities: buildCapabilities(app),
     timeZone: app.config.locale.timezone,
+    degraded,
     ...(brief === undefined ? {} : { brief }),
   } satisfies StatePayload)
 }

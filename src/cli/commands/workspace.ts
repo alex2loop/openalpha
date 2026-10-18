@@ -25,7 +25,7 @@ import {
   RESERVED_AGENT_IDS,
   WORKSPACES_DIR_NAME,
 } from '@/engine/api'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 
 const DELETE_GUARD = 'DELETE'
 
@@ -82,7 +82,15 @@ async function cleanup(args: ParsedArgs, app: CliApp): Promise<number> {
   }
 
   if (plan.failures > 0) {
-    app.err(fail(t(locale, 'cli.workspaceScanFailures', { count: plan.failures })))
+    app.err(
+      fail(
+        t(
+          locale,
+          pluralKey(plan.failures, 'cli.workspaceScanFailuresOne', 'cli.workspaceScanFailures'),
+          { count: plan.failures }
+        )
+      )
+    )
   }
 
   if (plan.agents.size === 0) {
@@ -214,11 +222,19 @@ async function approveCleanup(
 
   if (options.scope.kind === 'all' && options.olderThanMs === undefined) {
     const answer = await prompt(
-      t(locale, 'cli.workspaceDeleteAllConfirm', {
-        count: plan.agents.size,
-        size: formatBytes(bytes),
-        guard: DELETE_GUARD,
-      })
+      t(
+        locale,
+        pluralKey(
+          plan.agents.size,
+          'cli.workspaceDeleteAllConfirmOne',
+          'cli.workspaceDeleteAllConfirm'
+        ),
+        {
+          count: plan.agents.size,
+          size: formatBytes(bytes),
+          guard: DELETE_GUARD,
+        }
+      )
     )
 
     return answer === DELETE_GUARD
@@ -230,10 +246,18 @@ async function approveCleanup(
 
   return confirm(
     prompt,
-    t(locale, 'cli.workspaceDeleteEligibleConfirm', {
-      count: plan.agents.size,
-      size: formatBytes(bytes),
-    }),
+    t(
+      locale,
+      pluralKey(
+        plan.agents.size,
+        'cli.workspaceDeleteEligibleConfirmOne',
+        'cli.workspaceDeleteEligibleConfirm'
+      ),
+      {
+        count: plan.agents.size,
+        size: formatBytes(bytes),
+      }
+    ),
     locale
   )
 }
@@ -255,7 +279,19 @@ function reportResult(result: WorkspaceCleanupResult, app: CliApp, locale: Local
   )
 
   if (totalFailures > 0) {
-    app.err(fail(t(locale, 'cli.workspaceCleanupFailures', { count: totalFailures })))
+    app.err(
+      fail(
+        t(
+          locale,
+          pluralKey(
+            totalFailures,
+            'cli.workspaceCleanupFailuresOne',
+            'cli.workspaceCleanupFailures'
+          ),
+          { count: totalFailures }
+        )
+      )
+    )
     return 1
   }
 

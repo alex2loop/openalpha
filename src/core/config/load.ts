@@ -45,7 +45,7 @@ interface ProbedConfig {
   /** null when the config both loaded and resolved. Kept whole, so a surface can word it. */
   readonly error: Error | null
   readonly missing: boolean
-  /** The file is sound and only a model key is unset, so `config` still carries its paths. */
+  /** The file is sound and only a key variable is unset, so `config` still carries its paths. */
   readonly keyMissing: boolean
 }
 
@@ -78,10 +78,10 @@ export async function probeConfig(options?: ConfigProbeOptions): Promise<ProbedC
   }
 }
 
-/** The config without its model chain; undefined when another unset key (storage, search) fails it. */
+/** The config with its unset keys deferred; undefined when another unset variable (storage) fails it. */
 function keylessConfig(raw: RawConfig, options?: ConfigProbeOptions): ResolvedConfig | undefined {
   try {
-    return resolveConfig(raw, { ...options, modelSource: 'client' })
+    return resolveConfig(raw, { ...options, deferMissingKeys: true })
   } catch {
     return undefined
   }

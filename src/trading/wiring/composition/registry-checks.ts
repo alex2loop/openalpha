@@ -120,7 +120,7 @@ function assertDistinctScopeNames(markets: MarketRegistry, venues: VenueRegistry
 
 /** A config value naming something that was never built is silently inert otherwise: the refresh
  *  scope never runs. A home region must be one whose owning market a venue holds: a reference-only
- *  owner (world gold) has no brief and seeds no sleeve of its own. */
+ *  owner (world gold) has no brief and seeds no segment of its own. */
 function assertConfiguredReferencesExist(
   markets: MarketRegistry,
   config: TradingConfig,
@@ -165,7 +165,7 @@ function assertConfiguredHolidaysAreSessions(markets: MarketRegistry, config: Tr
   }
 }
 
-/** A candidate list under a market nobody built is a sleeve that silently never runs. Whether each
+/** A candidate list under a market nobody built is a segment that silently never runs. Whether each
  *  *ticker* is listed is a venue read, so it is answered at the market's first refresh rather than
  *  here: a network call at composition would make an offline install unbootable. */
 function assertConfiguredMarketsExist(markets: MarketRegistry, config: TradingConfig): void {

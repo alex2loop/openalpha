@@ -174,8 +174,8 @@ export interface StopDistanceOptions extends PositionExitOptions {
   readonly marks?: ReadonlyMap<string, number>
 }
 
-/** The stale read needs the operator's sleeve horizons, because the window a holding is judged
- *  against is the one its own sleeve is scored over. On this shape rather than on
+/** The stale read needs the operator's segment horizons, because the window a holding is judged
+ *  against is the one its own segment is scored over. On this shape rather than on
  *  `StopDistanceOptions`, since the stop-distance read beside it asks a question no horizon enters
  *  and would carry a required field it never looks at. */
 export interface StalePositionOptions extends StopDistanceOptions {

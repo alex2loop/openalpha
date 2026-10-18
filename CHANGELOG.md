@@ -3,6 +3,51 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.5] - 2026-10-18
+
+A friendlier first run: OpenAlpha starts without any key, says what each missing key holds back, and
+the README walks you from install to a daily routine. No database change.
+
+### Running without keys
+
+- **`start` never stops for a missing key.** An unset AI, web search or MCP variable, a missing or
+  rejected bot token and a short API token each print one `!` line; data, alerts and the ledger run
+  on.
+- **`start` lists only what opened**, and `start --background` waits until the channels are up.
+- **`status` repeats what is missing** and flags a daemon left on an older release; `upgrade` stops
+  it.
+- **Commands that need a key name it.** `/suggest` shows the numbers and stores no undecided call;
+  `/trade` still prints its syntax; search refuses rather than fall back to DuckDuckGo; a scheduled
+  job or brief waits for the key instead of switching itself off.
+- **`doctor` and `config validate` list every problem in one pass**, suggest the nearest name for a
+  typo, and count an unset key once.
+- `config.minimal.toml` starts at a 2 USD daily AI cap, like `onboard`.
+
+### Your book
+
+- **Grouped numbers are refused, not guessed:** `100.000.000` or `58.400 VND` gets its plain form.
+- **A holding recorded near the price limit gets its exit plan**, and keeps it after `/brief`.
+- **Bring in an existing book** in a few lines, past losses included (trading guide).
+
+### Words and commands
+
+- **One word for a portfolio bucket: segment** (Vietnamese: nhóm); plain words replace jargon.
+- **`/suggest <ticker> full` always runs the whole debate**; a short run says who settled the hold.
+- **`openalpha help`, `--version`, `-v`**; `/help <name>` works with or without `/` and suggests the
+  nearest command.
+- **`/continue`** finds a stopped run; **`db reset`** offers a backup first; `db restore`, plugin
+  errors and `history` read in plain words.
+- Piped output shows progress on stderr only; English counts read "1 problem"; the brief says its
+  deployment figure covers the whole portfolio.
+- **README rebuilt** around a three-command try-out, a five-step install and a daily routine.
+
+### For integrators
+
+- `/v1/state` adds `degraded`: what the daemon started without, worded in its language.
+- `/v1/rebalance` renames the text field `sleeves` to `segments`.
+- An unset model key answers `unavailable` with the operator's sentence, and as an `error` frame on
+  `/v1/ws` chat.
+
 ## [1.0.4] - 2026-10-16
 
 A readability and bookkeeping release: every report opens with its answer, and the ledger records
@@ -98,5 +143,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.5]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.5
+[1.0.4]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.4
 [1.0.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.3
 [1.0.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.2

@@ -14,16 +14,16 @@ import type { MarketResolution } from '@/trading/markets/types'
 import { StorageError } from '@/core/errors'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { calendarSessionsBetween, resolveDay } from '@/trading/features/market-data/resolve'
-import { isBookHold } from '@/trading/features/suggestion/pipeline/direction'
 import {
   outcomeLookbackSessions,
   outcomeWindowSessions,
 } from '@/trading/features/suggestion/pipeline/outcome-window'
 import {
-  buildSuggestionId,
-  isRecordedPlan,
-  isUndecidedHold,
-} from '@/trading/features/suggestion/types'
+  isLapsedLimit,
+  isStandingAnswer,
+  lookbackOf,
+} from '@/trading/features/suggestion/pipeline/standing-answer'
+import { buildSuggestionId, isInconclusive } from '@/trading/features/suggestion/types'
 import { strategyId } from '@/trading/kernel/instrument'
 import { voidPrice } from '@/trading/markets/levels'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
@@ -43,7 +43,7 @@ export async function reuseOrCooldown(
   const existing = await findReusable(options, resolution, identity)
   // An undecided row is not an answer, so it neither satisfies the gate nor starts a cooldown:
   // serving it back would let one outage stand as today's decision for this name.
-  const answered = existing !== null && isStandingAnswer(existing, deps)
+  const answered = existing !== null && isStandingAnswer(existing, options)
   const superseded = answered && (await hasNewerEvidence(options, resolution, existing))
 
   if (answered && !superseded) {
@@ -72,7 +72,7 @@ export async function reuseOrCooldown(
     signal: request.signal,
   })
 
-  if (recent === null || !isStandingAnswer(recent, deps)) {
+  if (recent === null || !isStandingAnswer(recent, options)) {
     return undefined
   }
 
@@ -96,6 +96,11 @@ export async function persistSuggestion(
     id: buildSuggestionId(request.now),
     createdAt: request.now,
   }
+
+  if (isInconclusive(stored)) {
+    return { kind: 'completed', suggestion: stored, reused: false }
+  }
+
   const created = await deps.store.create(stored, request.signal)
 
   if (created) {
@@ -106,8 +111,9 @@ export async function persistSuggestion(
 
   // The identity is held by a row this run outranks — never decided, a shallower debate, forced past,
   // or read off an older close — so this run takes it over; a lost race means another writer did.
-  const outranked = request.force === true || !isStandingAnswer(existing, deps)
-  const fresher = isStandingAnswer(stored, deps) && evidenceDayOf(stored) > evidenceDayOf(existing)
+  const outranked = request.force === true || !isStandingAnswer(existing, options)
+  const fresher =
+    isStandingAnswer(stored, options) && evidenceDayOf(stored) > evidenceDayOf(existing)
 
   if (outranked || fresher) {
     const replaced = await deps.store.replace({
@@ -222,7 +228,7 @@ async function findStandingBuy(
     latest.action !== 'buy' ||
     latest.outcome !== undefined ||
     isLapsedLimit(latest, identity.asOf) ||
-    !isStandingAnswer(latest, deps) ||
+    !isStandingAnswer(latest, options) ||
     calendarSessionsBetween(market, latest.at, identity.asOf) >
       outcomeWindowSessions(manifest.defaultCalendar, latest.horizon)
   ) {
@@ -381,71 +387,6 @@ function isSetupVoid(
 
 function withCaveat(suggestion: StoredSuggestion, caveat: Caveat): StoredSuggestion {
   return { ...suggestion, caveats: [...suggestion.caveats, caveat] }
-}
-
-function lookbackOf(
-  identity: SuggestionIdentity,
-  sinceDay: TradingDay
-): Omit<SuggestionIdentity, 'asOf'> & { readonly sinceDay: TradingDay } {
-  return {
-    market: identity.market,
-    ticker: identity.ticker,
-    strategyId: identity.strategyId,
-    strategyVersion: identity.strategyVersion,
-    focusKey: identity.focusKey,
-    sinceDay,
-  }
-}
-
-/** What a run may serve back as today's answer and cool down on. An undecided row is not an answer,
- *  so serving it back would let one outage stand as today's decision; a recorded plan is levels the
- *  system wrote, not a call, so it may neither answer nor block one; a restated call prices levels on
- *  a basis the market no longer publishes, and an unfilled call has no trade behind it to stand on.
- *  The three sites that ask —
- *  reuse, cooldown, and the persist takeover — read this one predicate so they cannot drift. */
-function isStandingAnswer(
-  suggestion: StoredSuggestion,
-  deps: SuggestionRunOptions['deps']
-): boolean {
-  return !(
-    isUndecidedHold(suggestion) ||
-    isRecordedPlan(suggestion) ||
-    isRestatedCall(suggestion) ||
-    isUnfilledCall(suggestion) ||
-    isShallowerDebate(suggestion, deps)
-  )
-}
-
-function isRestatedCall(suggestion: StoredSuggestion): boolean {
-  return suggestion.action !== 'hold' && suggestion.restatedAt !== undefined
-}
-
-function isUnfilledCall(suggestion: StoredSuggestion): boolean {
-  return suggestion.action !== 'hold' && suggestion.unfilledAt !== undefined
-}
-
-/** Its order stood through `until` and is gone, even before the daemon closes the row. */
-function isLapsedLimit(suggestion: StoredSuggestion, asOf: TradingDay): boolean {
-  return (
-    suggestion.action === 'buy' &&
-    suggestion.restingEntry !== undefined &&
-    suggestion.restingEntry.until < asOf
-  )
-}
-
-/** Depth ratchets up, never down: a full-debate request re-runs past a lean verdict and supersedes
- *  it, while a lean request happily reuses a full one. A row with no stored debate was decided by
- *  the deterministic gates, and a hold the book decided by neither - no depth can overturn either,
- *  so both satisfy any request. */
-function isShallowerDebate(
-  suggestion: StoredSuggestion,
-  deps: SuggestionRunOptions['deps']
-): boolean {
-  return (
-    deps.policy.debateMode === 'full' &&
-    suggestion.debate?.mode === 'lean' &&
-    !isBookHold(suggestion)
-  )
 }
 
 export function identityOf(

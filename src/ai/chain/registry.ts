@@ -4,7 +4,7 @@ import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
 import type { EventBus } from '@/core/events'
 import type { ProviderChain } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
-import { createClient } from '@/ai/client'
+import { createClient, missingKeyErrors } from '@/ai/client'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
@@ -54,6 +54,8 @@ export function createProviderChainRegistry(
   const tiers: TierCache = { input, built: new Map() }
 
   if (input.primary === undefined) {
+    logMissingKeys(input)
+
     for (const name of Object.keys(input.config.modelTiers)) {
       tierChain(tiers, name)
     }
@@ -72,6 +74,14 @@ export function createProviderChainRegistry(
       return chain
     },
   })
+}
+
+// The unset keys are named once, here at boot, where the chains are built: a call that needs one
+// then fails with the same message instead of the log staying silent until then.
+function logMissingKeys(input: ProviderChainRegistryInput): void {
+  for (const err of missingKeyErrors(input.config)) {
+    input.logger.warn('llm.key_missing', { err: formatErrForLog(err) })
+  }
 }
 
 /** Built once per name, an absent or skipped tier included, so a failure warns once. */

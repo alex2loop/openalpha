@@ -9,7 +9,8 @@ import { t } from '@/i18n'
 import { MIGRATION_IDS_SQL, MIGRATIONS_TABLE, SQLITE_MIGRATIONS_TABLE_SQL } from '@/persistence/api'
 import { PROFILE_CURRENCY_SQL } from '@/trading/api'
 
-import type { DoctorProbe, DoctorStatus } from './types'
+import type { DoctorFinding, DoctorProbe, DoctorStatus } from './types'
+import { checkLabel } from './labels'
 import { migrationsUpToDate } from './local-probes'
 import { probePostgresDatabase } from './postgres-probe'
 
@@ -37,14 +38,20 @@ interface TableRow {
   readonly name: string | null
 }
 
-export async function probeDatabase(options: {
+interface DatabaseProbeOptions {
   readonly storage: ResolvedStorageConfig
   readonly migrations: readonly Migration[]
   readonly online: boolean
   readonly locale: Locale
   /** The `[locale] currency` the book must have been opened in. */
   readonly currency?: string
-}): Promise<DoctorProbe> {
+}
+
+export async function probeDatabase(options: DatabaseProbeOptions): Promise<DoctorProbe> {
+  return { name: checkLabel(options.locale, 'database'), ...(await inspectDatabase(options)) }
+}
+
+async function inspectDatabase(options: DatabaseProbeOptions): Promise<DoctorFinding> {
   const locale = options.locale
 
   if (options.storage.engine === 'sqlite') {
@@ -57,7 +64,7 @@ export async function probeDatabase(options: {
   }
 
   if (!options.online) {
-    return databaseProbe('ok', postgresTarget(options.storage), 'not probed (use --online)')
+    return databaseProbe('ok', postgresTarget(options.storage), t(locale, 'cli.doctorNotProbed'))
   }
 
   return probePostgresDatabase(options.storage, options.migrations, locale)
@@ -70,7 +77,7 @@ interface SqliteProbeOptions {
   readonly currency?: string
 }
 
-async function probeSqliteDatabase(options: SqliteProbeOptions): Promise<DoctorProbe> {
+async function probeSqliteDatabase(options: SqliteProbeOptions): Promise<DoctorFinding> {
   const { path, locale } = options
   const preflight = await preflightDatabase(path, locale)
 
@@ -116,8 +123,8 @@ async function probeSqliteDatabase(options: SqliteProbeOptions): Promise<DoctorP
 function currencyProbe(
   database: Database,
   options: SqliteProbeOptions,
-  migrated: DoctorProbe
-): DoctorProbe {
+  migrated: DoctorFinding
+): DoctorFinding {
   const stored = database.query<ProfileCurrencyRow, []>(PROFILE_CURRENCY_SQL).get()?.base_currency
 
   if (options.currency === undefined || stored === undefined || stored === options.currency) {
@@ -134,7 +141,7 @@ function currencyProbe(
   )
 }
 
-async function preflightDatabase(path: string, locale: Locale): Promise<DoctorProbe | null> {
+async function preflightDatabase(path: string, locale: Locale): Promise<DoctorFinding | null> {
   try {
     const info = await lstat(path)
 
@@ -145,7 +152,7 @@ async function preflightDatabase(path: string, locale: Locale): Promise<DoctorPr
     return null
   } catch (err: unknown) {
     if (isErrno(err, 'ENOENT')) {
-      return databaseProbe('warn', path, t(locale, 'cli.doctorNotCreatedYet'))
+      return databaseProbe('info', path, t(locale, 'cli.doctorNotCreatedYet'))
     }
 
     return databaseProbe('fail', path, t(locale, 'cli.doctorCannotBeInspected'))
@@ -203,7 +210,7 @@ function migrationProbe(options: {
   readonly migrations: readonly Migration[]
   readonly applied: readonly MigrationRow[]
   readonly locale: Locale
-}): DoctorProbe {
+}): DoctorFinding {
   const appliedIds = new Set(options.applied.map((migration) => migration.id))
   const declaredIds = new Set(options.migrations.map((migration) => migration.id))
   const pending = options.migrations
@@ -232,8 +239,8 @@ function migrationProbe(options: {
   )
 }
 
-function databaseProbe(status: DoctorStatus, path: string, detail: string): DoctorProbe {
-  return { name: 'database', status, detail: `${path} (${detail})` }
+function databaseProbe(status: DoctorStatus, path: string, detail: string): DoctorFinding {
+  return { status, detail: `${path} (${detail})` }
 }
 
 function postgresTarget(

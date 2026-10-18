@@ -335,7 +335,7 @@ function segmentValues(
   })
 }
 
-/** Per-sleeve ETF value; absent for a sleeve with a kind-unknown holding, since a partial sum read
+/** Per-segment ETF value; absent for a segment with a kind-unknown holding, since a partial sum read
  *  as a total understates it. */
 function etfValues(
   valued: readonly ValuedPosition[],

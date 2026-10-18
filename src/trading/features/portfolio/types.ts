@@ -62,8 +62,8 @@ export interface SegmentValue {
   readonly valueBase: number
   /** Share of NAV as a fraction: 0.583 is 58,3%. Every `*PctNav` in this module is a fraction. */
   readonly weightPctNav: number
-  /** The ETF share of NAV inside this sleeve, as a fraction. `0` is measured and none; absent means
-   *  a priced holding here resolved no kind, so the sleeve cannot be measured — which every ETF
+  /** The ETF share of NAV inside this segment, as a fraction. `0` is measured and none; absent means
+   *  a priced holding here resolved no kind, so the segment cannot be measured — which every ETF
    *  ceiling reads as no room, never as compliant. */
   readonly etfPctNav?: number
 }
@@ -214,7 +214,7 @@ export interface RebalancePlanReady extends PortfolioAssessment {
   readonly policy: RebalancePolicyView
   readonly allocation: readonly SegmentTarget[]
   readonly rebalance: readonly PositionChange[]
-  readonly cashSleeve: CashSleeveTarget
+  readonly cashSegment: CashSegmentTarget
   readonly weakHoldings: readonly WeakHoldingNote[]
 }
 
@@ -255,8 +255,8 @@ export interface RebalanceSizing {
 export interface AbsoluteRebalancePlan {
   readonly advice: RebalancePlanResult
   readonly sizing: RebalanceSizing | null
-  /** The macro read behind every number above, per sleeve: each market's own macro caps its own
-   *  sleeve, so VN stress cannot size a crypto order. Empty on the arm that returns before the
+  /** The macro read behind every number above, per segment: each market's own macro caps its own
+   *  segment, so VN stress cannot size a crypto order. Empty on the arm that returns before the
    *  read, which `regimeFor` reads defensively. */
   readonly regimes: ReadonlyMap<PortfolioSegment, RegimeScale>
   /** How the marks behind this advice were taken; absent when nothing was priced. */
@@ -280,7 +280,7 @@ interface RebalancePlanUnavailable extends PortfolioAssessment {
 
 /** Which of the five limits held a candidate back. Naming it is what turns "every name hit a size
  *  limit" into something the operator can act on, since each one is raised a different way. The
- *  segment ceiling is not among them: a sleeve is distributed up to its target, and the profile
+ *  segment ceiling is not among them: a segment is distributed up to its target, and the profile
  *  validator holds the ceiling at or above that target, so it can never be the binding one here. */
 export const CAP_REASONS = Object.freeze([
   'position',
@@ -291,12 +291,12 @@ export const CAP_REASONS = Object.freeze([
 ] as const)
 export type CapReason = (typeof CAP_REASONS)[number]
 
-export interface CashSleeveTarget {
+export interface CashSegmentTarget {
   /** Settled cash once this plan's purchases are paid for. Unsettled sale proceeds are excluded:
    *  the reserve and the deposit can only be funded by money that has cleared. */
   readonly cashPctNav: number
   /** The reserve actually held, which is `reservePctNav` capped by the cash there is — not a target
-   *  the book is steered toward. The sleeve's own target is the cash row in `allocation`. */
+   *  the book is steered toward. The segment's own target is the cash row in `allocation`. */
   readonly liquidReservePctNav: number
   readonly termDepositEligiblePctNav: number
   readonly posture: CashPosture
@@ -304,8 +304,8 @@ export interface CashSleeveTarget {
 }
 
 /** Two different questions, so two fields: `targetPctNav` is policy and never moves, while
- *  `afterPlanPctNav` is where the sleeve lands once the plan's orders are placed — already net of
- *  lot rounding, available cash, and the deployment cap. Why a sleeve stops short of policy is the
+ *  `afterPlanPctNav` is where the segment lands once the plan's orders are placed — already net of
+ *  lot rounding, available cash, and the deployment cap. Why a segment stops short of policy is the
  *  residue caveats' job, in words; a second number for it only invites the two to disagree. */
 export interface SegmentTarget {
   readonly kind: 'segment-target'
@@ -313,11 +313,11 @@ export interface SegmentTarget {
   readonly currentPctNav: number
   readonly targetPctNav: number
   readonly afterPlanPctNav: number
-  /** The drift this sleeve was allowed, from the policy the plan was built with. Inside it the
-   *  planner passed over the sleeve on purpose; carrying it here is what keeps a surface from
+  /** The drift this segment was allowed, from the policy the plan was built with. Inside it the
+   *  planner passed over the segment on purpose; carrying it here is what keeps a surface from
    *  re-deriving the band and disagreeing with the plan it is printing. */
   readonly driftBandPctNav: number
-  /** The segment ceiling the sleeve is held under, so the plan can be checked against the cap that
+  /** The segment ceiling the segment is held under, so the plan can be checked against the cap that
    *  sized it, not only against the target it drifts toward. Absent for cash, which is bounded by a
    *  reserve floor and has no ceiling to report. */
   readonly capPctNav?: number

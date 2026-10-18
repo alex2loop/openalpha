@@ -17,7 +17,7 @@ export interface ResolvedModel {
   readonly model: string
   readonly apiKey?: string
   /** Set only by a deferred resolve: the chain refuses the call instead of the boot. */
-  readonly missingKeyEnv?: string
+  readonly missingEnv?: string
   readonly baseUrl?: string
   readonly prices?: ResolvedModelPrices
   readonly reasoningMode: ReasoningMode
@@ -66,8 +66,8 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
 
   const envKey = apiKeyEnv === undefined ? undefined : process.env[apiKeyEnv]
   const apiKey = envKey === '' ? undefined : envKey
-  const missingKeyEnv =
-    apiKey === undefined ? missingKeyEnvOf(input, `model ${provider}/${entry.model}`) : undefined
+  const missingEnv =
+    apiKey === undefined ? missingEnvOf(input, `model ${provider}/${entry.model}`) : undefined
 
   const selector = entry.alias ?? `${provider}${MODEL_SELECTOR_SEPARATOR}${entry.model}`
   const out: MutableModel = {
@@ -81,8 +81,8 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
     out.baseUrl = baseUrl
   }
 
-  if (missingKeyEnv !== undefined) {
-    out.missingKeyEnv = missingKeyEnv
+  if (missingEnv !== undefined) {
+    out.missingEnv = missingEnv
   }
 
   if (apiKey !== undefined) {
@@ -106,7 +106,7 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
 
 /** The key variable an entry names but the environment leaves unset: thrown, or kept on the entry
  *  when the resolve defers it. */
-function missingKeyEnvOf(input: ResolveModelInput, owner: string): string | undefined {
+function missingEnvOf(input: ResolveModelInput, owner: string): string | undefined {
   const { entry, defaults, path } = input
   const apiKeyEnv = entry.api_key_env ?? defaults?.api_key_env
   // A key borrowed from another provider's defaults is never required here: a local server needs
@@ -126,7 +126,7 @@ function missingKeyEnvOf(input: ResolveModelInput, owner: string): string | unde
     return undefined
   }
 
-  throw new MissingEnvError(apiKeyEnv, owner, [...path, 'api_key_env'])
+  throw new MissingEnvError(apiKeyEnv, owner, { path: [...path, 'api_key_env'], effect: 'model' })
 }
 
 /** The address and router preferences in `[model_defaults]` belong to its provider, so an entry

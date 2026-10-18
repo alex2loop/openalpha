@@ -4,12 +4,12 @@ import type { ModelSource } from '@/core/config/resolve'
 import { isDaemonRunning, isDaemonStopped } from '@/cli/daemon-guard'
 import { usage } from '@/cli/error-output'
 import { printCommandHelp, printGroupHelp, renderLocalized } from '@/cli/help'
-import { CLI_ROOT_SUMMARY } from '@/cli/metadata'
 import { formatArgIssue } from '@/cli/parsing/arg-issue'
 import { parseArgs } from '@/cli/parsing/args'
-import { closestName } from '@/cli/suggestion'
 import { fail, hint, style } from '@/cli/ui/colors'
+import { BRAND } from '@/core/brand'
 import { ConfigError } from '@/core/errors'
+import { closestName } from '@/core/utils/text'
 import { t } from '@/i18n'
 
 const HELP_FLAGS = new Set(['--help', '-h'])
@@ -185,7 +185,7 @@ function rejectValidation(
   return usage(
     output,
     t(output.config.locale.language, 'cliHelp.runHelpForUsage', {
-      command: commandPath(path, def.name),
+      command: runnablePath(path, def.name),
     })
   )
 }
@@ -215,7 +215,7 @@ function configAdmissionError(
     return undefined
   }
 
-  // An unset model key fails the model call, or the daemon's own boot, never the command.
+  // An unset key fails the call that needs it, never the command or the daemon's boot.
   if (policy === 'probe' || probe.configKeyMissing) {
     return undefined
   }
@@ -251,7 +251,7 @@ function rejectArgs(
   return usage(
     output,
     t(output.config.locale.language, 'cliHelp.runHelpForUsage', {
-      command: commandPath(options.path, options.def.name),
+      command: runnablePath(options.path, options.def.name),
     })
   )
 }
@@ -341,7 +341,7 @@ export function createGroup(def: GroupDef): Group {
       if (head === undefined || HELP_FLAGS.has(head)) {
         printGroupHelp(def, app, path)
 
-        return head === undefined ? 1 : 0
+        return 0
       }
 
       const match = def.subcommands.find((sub) => sub.name === head)
@@ -388,17 +388,16 @@ async function groupNeedsFor(
   return mergeGroupNeeds(await match.needsFor(rest), needs)
 }
 
-export function createRoot(subcommands: readonly (Command | Group)[]): Group {
-  return createGroup({ name: '', summary: CLI_ROOT_SUMMARY, subcommands })
-}
-
 function rejectSubcommand(def: GroupDef, output: CommandOutput, miss: Miss): number {
   if (def.name === '' && miss.attempted.startsWith('-')) {
     output.err(
       fail(t(output.config.locale.language, 'cliHelp.issueUnknownFlag', { token: miss.attempted }))
     )
 
-    return usage(output, t(output.config.locale.language, 'cliHelp.runRootHelp'))
+    return usage(
+      output,
+      t(output.config.locale.language, 'cliHelp.runHelpAvailable', { command: BRAND.name })
+    )
   }
 
   return unknownSubcommand(def, output, miss)
@@ -412,7 +411,6 @@ function unknownSubcommand(def: GroupDef, output: CommandOutput, miss: Miss): nu
   )
   const locale = output.config.locale.language
   const attemptedPath = commandPath(path, attempted)
-  const parentPath = commandPath(path, '')
 
   output.err(style.error(t(locale, 'cliHelp.unknownCommand', { command: attemptedPath })))
 
@@ -420,19 +418,18 @@ function unknownSubcommand(def: GroupDef, output: CommandOutput, miss: Miss): nu
     output.err(hint(t(locale, 'cliHelp.didYouMean', { command: suggestion })))
   }
 
-  output.err(
-    hint(
-      t(locale, parentPath === '' ? 'cliHelp.runRootHelp' : 'cliHelp.runHelpAvailable', {
-        command: parentPath,
-      })
-    )
-  )
+  output.err(hint(t(locale, 'cliHelp.runHelpAvailable', { command: runnablePath(path, '') })))
 
   return 1
 }
 
 function commandPath(path: readonly string[], name: string): string {
   return [...path, name].filter(Boolean).join(' ')
+}
+
+// The program first: a message that tells the operator what to run must be pasteable as it stands.
+function runnablePath(path: readonly string[], name: string): string {
+  return commandPath([BRAND.name, ...path], name)
 }
 
 function hasHelp(argv: readonly string[]): boolean {

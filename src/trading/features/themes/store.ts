@@ -89,6 +89,7 @@ const NOTES = z.array(
     subject: z.string().exactOptional(),
     sector: z.enum(ICB_SUPERSECTORS).exactOptional(),
     cause: z.enum(THEME_STEP_FAILURES),
+    env: z.string().exactOptional(),
   })
 )
 

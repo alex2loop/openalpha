@@ -73,8 +73,8 @@ export const VN_GOLD_TICK: TickSizePolicy = Object.freeze({
 })
 
 /** One chi, a tenth of a luong: the smallest bar or ring a counter sells, so a sized step is
- *  always something the operator can buy. A whole-luong lot exceeded every sleeve cap a retail
- *  book carries and left the sleeve permanently unfunded. */
+ *  always something the operator can buy. A whole-luong lot exceeded every segment cap a retail
+ *  book carries and left the segment permanently unfunded. */
 export const VN_GOLD_BOARD_LOT: BoardLotPolicy = Object.freeze({ size: 0.1 })
 
 /** Preference order, most preferred first. A ring displaces the bar only on a material discount. */

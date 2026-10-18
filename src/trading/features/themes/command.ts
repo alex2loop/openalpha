@@ -156,6 +156,7 @@ export function createThemesCommand(deps: ThemesCommandDeps): SlashCommand {
       return args[0] === SHOW_ACTION ? SHOW_POLICY : CHANGE_POLICY
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
+    usage: () => ({ key: USAGE }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }

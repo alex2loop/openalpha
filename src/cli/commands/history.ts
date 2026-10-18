@@ -14,12 +14,12 @@ import { renderLocalized } from '@/cli/help'
 import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
 import { flagBool, flagString, parseIntFlagStrict } from '@/cli/parsing/args'
 import { fail, style, success } from '@/cli/ui/colors'
-import { formatSessionRow, formatSessionStatus } from '@/cli/ui/format'
+import { formatSessionEnd, formatSessionRow, formatSessionStatus } from '@/cli/ui/format'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { agentId, sessionId as brandSessionId, type SessionId } from '@/core/ids'
 import { formatUsd } from '@/core/utils/cost'
 import { sanitizeDisplayText } from '@/core/utils/text'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
 const DEFAULT_LIMIT = 20
@@ -129,7 +129,9 @@ function printMetadata(app: CliApp, session: SessionDetails): void {
   )
 
   if (session.endReason !== undefined) {
-    app.out(t(locale, 'cli.historyFieldEnd', { value: session.endReason }))
+    app.out(
+      t(locale, 'cli.historyFieldEnd', { value: formatSessionEnd(locale, session.endReason) })
+    )
   }
 
   if (session.errorMessage !== undefined && session.errorMessage.length > 0) {
@@ -369,6 +371,32 @@ function parseSessionId(app: CliApp, raw: string): SessionId | undefined {
   }
 }
 
+function reportCleared(
+  app: CliApp,
+  result: { readonly kind: 'removed' | 'active'; readonly count: number }
+): number {
+  const locale = app.config.locale.language
+  const { count } = result
+
+  if (result.kind === 'active') {
+    app.err(
+      fail(
+        t(locale, pluralKey(count, 'cli.historyActiveSessionsOne', 'cli.historyActiveSessions'), {
+          count,
+        })
+      )
+    )
+
+    return 1
+  }
+
+  app.out(
+    success(t(locale, pluralKey(count, 'cli.historyClearedOne', 'cli.historyCleared'), { count }))
+  )
+
+  return 0
+}
+
 const historyClearCommand = createCommand({
   name: 'clear',
   summary: { key: 'cliHelp.historyClearSummary' },
@@ -409,7 +437,10 @@ const historyClearCommand = createCommand({
         flagBool(args, 'yes') ||
         (await confirm(
           defaultPrompt(),
-          t(locale, 'cli.historyClearConfirm', { count, scope }),
+          t(locale, pluralKey(count, 'cli.historyClearConfirmOne', 'cli.historyClearConfirm'), {
+            count,
+            scope,
+          }),
           locale
         ))
       )
@@ -417,17 +448,7 @@ const historyClearCommand = createCommand({
       return declined(app)
     }
 
-    const result = await store.clear(agent)
-
-    if (result.kind === 'active') {
-      app.err(fail(t(locale, 'cli.historyActiveSessions', { count: result.count })))
-
-      return 1
-    }
-
-    app.out(success(t(locale, 'cli.historyCleared', { count: result.count })))
-
-    return 0
+    return reportCleared(app, await store.clear(agent))
   },
 })
 

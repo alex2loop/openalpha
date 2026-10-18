@@ -25,7 +25,7 @@ on an existing config, it changes one part (model, Telegram bot, budget or langu
 old file beside it first, because the rewrite drops comments.
 
 Two templates to download: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
-works with just `OPENROUTER_API_KEY`, and [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
+works with just `OPENROUTER_API_KEY` and a 2 USD daily cap, and [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
 lists every key with a comment.
 
 ## Precedence
@@ -253,7 +253,7 @@ cap are in [Cost and budgets](budgets.md).
 | `language` | string | `vi` | `en` or `vi`. |
 | `timezone` | string | host zone (`UTC` if none) | IANA name, for example `Asia/Ho_Chi_Minh`. New cron jobs snapshot this value unless `--tz` overrides it; interval schedules reject `--tz`. |
 | `currency` | string | `VND` | ISO 4217 code (three capital letters). Trading's base currency. Fixed once your book has a profile: a later change is refused, and `doctor` names the mismatch on its `database` row. |
-| `region` | string | `vn` | Home region; only `vn` today. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national sleeves plus crypto. |
+| `region` | string | `vn` | Home region; only `vn` today. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national segments plus crypto. |
 
 All keys are optional. `[locale]` accepts no other keys. `currency` and `region` say where you are,
 so trading reads them here rather than keeping copies under `[trading]`.
@@ -271,6 +271,9 @@ Layout under `data_dir`:
 {data_dir}/
   data/openalpha.sqlite             default SQLite database (data + memory)
   openalpha.pid                     daemon lockfile
+  openalpha.ready                   written once the daemon is up; what it started without
+  daemon.stdout.log                 a background daemon's stray output, truncated each start
+  daemon.stderr.log                 a background daemon's warnings and errors, truncated each start
   logs/daemon.log                   default global log (`[log] file`)
   logs/agents/<agentId>/agent.log   per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots
@@ -471,6 +474,13 @@ the section is ignored and no web tools are offered; the client brings its own.
 | `exa_search_type` | string | `auto` | Exa only: `auto`, `fast`, `instant`, `deep-lite`, `deep`, `deep-reasoning`. |
 | `safe_search` | int | instance default | SearXNG only: `0`, `1` or `2`. Omitted keeps the instance setting. |
 
+If `api_key_env` names a variable that is empty or unset, everything else keeps working and only
+web search stops: the `web_search` tool and `/research` refuse and tell you which variable to set,
+and they never fall back to DuckDuckGo on their own. `doctor`, `config validate` and `start` report
+it too. If only `fallback_api_key_env` is empty, the fallback is dropped, the primary keeps working,
+and `doctor` says the fallback is off. A key-requiring provider with no `api_key_env` at all is still
+a config error.
+
 SearXNG is keyless and self-hosted, and requests results in your `[locale] language`. A loopback
 instance may use HTTP or HTTPS; a remote one must use HTTPS and is limited to its configured host.
 
@@ -499,8 +509,9 @@ client on another machine connects through an SSH tunnel or a reverse proxy on t
 [Operations](operations.md)).
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
-first start, mode 0600). The daemon refuses to start if `token_env` is set but the variable is empty
-or shorter than 32 characters. `openalpha api token` prints the token; `openalpha api rotate`
+first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
+characters, the API stays closed (the saved token never stands in) and `start` warns while the rest of
+the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token; `openalpha api rotate`
 replaces it.
 
 | Key | Type | Default | Notes |
@@ -732,7 +743,7 @@ market and must declare `fees`:
 
 Built-in defaults: `equity-vn` at `vps`, `gold-vn` at `gold-shop`, `crypto` at `binance`. World gold
 (`gold`) has no venue. It is read for reference (its price, and the premium `gold-vn` is quoted
-against), so its sleeve stays off and `/profile enable gold` is refused.
+against), so its segment stays off and `/profile enable gold` is refused.
 
 A venue's `default_for` overrides the built-in default for that market, and decides whose fees a
 suggestion is weighed and graded on. Two venues claiming one market is a boot error naming both, and
@@ -877,15 +888,23 @@ nobody owns. A config it accepts is a config that boots. The API's config valida
 same checks. A config value that names an unregistered market, venue or default region fails here
 too, not on first use.
 
-Every error is reported in your `[locale]` language and names the setting to fix. `--verbose` adds
-the full list of schema issues. A missing key variable comes with the line that sets it in your
+Every error is reported in your `[locale]` language and names the setting to fix. One run lists every
+problem in the file (up to 8, the rest as a count), so you fix them in one pass before running again.
+A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
+`config validate` also checks each `[[models]]` provider name against the catalog, and reports an
+unset key variable as one item in the same list instead of stopping there. `--verbose` adds the full
+list of schema issues. A missing key variable comes with the line that sets it in your
 shell: `export` on macOS and Linux, and on Windows `$env:NAME="..."; setx NAME "..."`, which sets it
 now and for every later PowerShell window. A missing model key stops only what needs the model:
-`status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, while
-`openalpha start` refuses until the key is set.
+`status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
+`openalpha start` starts with a warning, running everything that needs no model until you set the key
+and restart.
 
 ```text
-config.toml has something to fix at `loop.max_turns`: it should be greater than 0. Correct it, then run again.
+config.toml has things to fix:
+- `loop.max_turns`: it should be greater than 0
+- `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
+Correct them, then run again.
 
 The environment variable ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start. Set it with `export ANTHROPIC_API_KEY=...` in the terminal you run from, then try again.
 ```

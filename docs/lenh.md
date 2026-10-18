@@ -3,12 +3,14 @@
 Hai cách dùng, một danh mục lệnh. `openalpha <lệnh>` là CLI. `/lệnh` chạy trong chat terminal và trong
 mọi kênh đã cấu hình. Phần giao dịch chỉ có lệnh gạch chéo, không có lệnh CLI riêng.
 
-Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha --help` hoặc
-`openalpha <lệnh> --help`.
+Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha help`,
+`openalpha help <lệnh>` hoặc `openalpha <lệnh> --help`.
 
 ## Hành vi chung
 
-- Thành công thì thoát `0`. Lệnh lạ và lỗi thông thường thoát `1`.
+- Thành công thì thoát `0`. Lệnh lạ và lỗi thông thường thoát `1`. Hỏi trợ giúp (`openalpha` không kèm gì,
+  `help`, `--help`) không phải lỗi nên thoát `0`.
+- `--version` và `-v` làm đúng việc của `version`.
 - Cờ sai, thiếu giá trị, lựa chọn không hợp lệ, lỗi cấu hình hoặc lỗi kiểm tra đầu vào đều thoát `2`
   **trước khi** lệnh làm bất cứ điều gì. Lệnh sai cú pháp không bao giờ chạy dở.
 - Cờ chung đặt trước hay sau lệnh đều được, trừ sau dấu `--`.
@@ -62,7 +64,8 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `stop` | Dừng daemon | không có |
 | `restart` | Dừng rồi chạy lại | không có; `--background`/`-b` để tách nền |
 | `status` | Tổng quan daemon, kênh và chi tiêu | không có |
-| `version` | In phiên bản và báo nếu đã có bản mới | không có |
+| `version` | In phiên bản và báo nếu đã có bản mới; `--version` và `-v` cũng được | không có |
+| `help` | In trợ giúp: `help` cho danh sách, `help <lệnh> [lệnh con]` cho một lệnh | không có; tên lệnh |
 | `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo |
 | `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
 | `onboard` | Thiết lập lần đầu, hoặc đổi mô hình, bot Telegram, mức chi hay ngôn ngữ | không có |
@@ -118,10 +121,12 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại hoặc chạy ngay một việc của bạn |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
 | `/new` | Chuyển sang một phiên chat mới |
-| `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu |
+| `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 
 `/help` liệt kê câu lệnh theo nhóm: chung, danh mục và giao dịch, thị trường, phân tích và đề xuất.
+`/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì tôi
+gợi ý câu lệnh gần nhất.
 
 Kênh có thêm `/stop` và các lệnh ghép nối. `/stop` và `/help` cũng nhận dạng gọi kèm tên bot như
 `/stop@MyBot`, đúng cách nhóm Telegram gửi lệnh. REPL có `/help`, `/exit` và `/quit`, và Ctrl+D cũng
@@ -130,7 +135,7 @@ một câu hỏi phê duyệt; REPL báo ngay để bạn gõ lại.
 
 Hai quy ước giải thích đầu ra bạn thấy:
 
-- Lệnh nào phải chờ mạng thì hiện một dòng tiến độ khi chạy và một dòng cuối khi xong. Lệnh trả lời từ
+- Lệnh nào phải chờ mạng thì hiện một dòng tiến độ khi chạy và một dòng cuối khi xong. Khi đầu ra không phải terminal (qua pipe, hoặc `chat -m "/refresh"` chạy một lần), tiến độ hiện thành các dòng thuần trên stderr, chỉ khi lệnh chạy lâu hơn một chút và tối đa mười giây một dòng, nên stdout chỉ chứa câu trả lời và lệnh trả lời ngay không in gì. Lệnh trả lời từ
   dữ liệu cục bộ (`/watchlist`, `/profile`, `/alert`, `/sources`) không có cả hai.
 - Nếu phiên chạy phải đổi nhà cung cấp, một dòng ngay phía trên dòng cuối nói rõ chuyển từ đâu, sang
   đâu, vì sao - mỗi lần đổi một dòng. Dòng này giải thích vì sao dòng cuối không nêu tên mô hình, và
@@ -211,15 +216,40 @@ openalpha doctor [--online]
 ```
 
 `start` trần chạy ở tiền cảnh, và Ctrl-C sẽ dừng nó. `--background`/`-b` chạy lại đúng dòng lệnh đó ở
-nền, rồi in pid và đường dẫn đầu ra khi daemon đã ghi tệp pid. Daemon chết giữa chừng khi khởi động thì
-được báo ngay kèm mã thoát. Daemon vẫn đang khởi động có 90 giây (lần chạy đầu phải tạo cơ sở dữ liệu).
-Cả hai trường hợp lệnh đều thoát với mã khác 0 và kèm đường dẫn đầu ra. `stop` và `status` hoạt động như
-nhau ở cả hai chế độ. Khi chạy ở tiền cảnh, `start` còn in mô hình, các kênh nó mở, cổng API khi bật
-`[api]`, và tệp nhật ký. `restart` nhận cùng cờ `--background`.
+nền và chờ tới khi daemon thật sự sẵn sàng: đã tải xong dữ liệu thị trường và mở xong các kênh chat,
+thường khoảng một phút. Chỉ khi đó nó mới báo thành công, in pid và đường dẫn đầu ra. Daemon chết giữa
+chừng khi khởi động (ví dụ cổng API đã có tiến trình khác dùng) thì được báo ngay kèm chính thông báo lỗi của nó và
+mã thoát, rồi lệnh thoát với mã khác 0. Chờ quá 90 giây mà daemon vẫn chạy nhưng chưa sẵn sàng (nguồn dữ
+liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và thoát với mã 0; daemon không chạy lên được thì
+thoát với mã khác 0. `stop` và `status` hoạt động như nhau ở cả hai chế độ. `start` in phiên bản đang
+chạy, mô hình, các kênh nó mở, cổng API khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
+được cấu hình, nó còn báo bot chỉ bắt đầu trả lời sau khi dữ liệu thị trường tải xong; nhật ký ghi lại lúc
+các kênh mở. `restart` nhận cùng cờ `--background`.
+
+Thiếu khóa không chặn `start`. Biến môi trường của khóa AI (mô hình chính, các tầng và dự phòng), của
+tìm kiếm web hay của một máy chủ MCP chưa đặt, hoặc bot token Telegram/Zalo chưa đặt hay bị nền tảng từ
+chối, đều chỉ làm phần cần đến nó chưa chạy: daemon in mỗi mục một dòng cảnh báo (dấu `!`, ra stderr) nói
+việc gì đang chờ và cách sửa. Ở tiền cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt; dòng về kênh
+hiện khi các kênh mở, sau khi tải xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng
+báo thành công. Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ giao dịch và các việc không cần
+AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn đặt khóa rồi
+`restart`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
+cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có daemon khác chạy và lỗi lưu trữ
+vẫn chặn `start`.
+
+`status` cho biết daemon đang chạy bản nào. Cài bản mới bằng script cài đặt trong lúc daemon đang chạy
+thì daemon vẫn giữ bản cũ; `status` sẽ nhắc bạn chạy `stop` rồi `start` để chuyển sang bản mới.
+Khi daemon đang chạy mà thiếu khóa, `status` liệt kê lại đúng các dòng cảnh báo lúc `start`: kênh nào bị
+bỏ qua và vì sao, khóa nào chưa đặt và việc gì đang chờ nó, kể cả sau khi máy khởi động lại. Khóa sàn và
+khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn": thiếu chúng thì bạn vẫn ghi lệnh bằng tay, và
+`start` không cảnh báo. App desktop đọc cùng danh sách đó từ `/v1/state`.
+`upgrade` tự dừng daemon nên không để lại bản cũ.
 
 `doctor` luôn chỉ đọc. Chạy offline thì nó chỉ kiểm phần nhìn được ở máy; `--online` thêm các phép thử
 thật tới PostgreSQL, nhà cung cấp, token kênh, tìm kiếm web và khóa sàn. Phép thử nhà cung cấp gửi cho
-mô hình đầu tiên của mỗi nhà cung cấp một tin ngắn, và nói rõ khi máy chủ chạy trên máy bạn chưa bật. `doctor models` còn nêu tên
+mô hình đầu tiên của mỗi nhà cung cấp một tin ngắn, và nói rõ khi máy chủ chạy trên máy bạn chưa bật. Nhãn mỗi dòng theo `[locale] language`
+của bạn. Dòng đánh dấu `i` là trạng thái chưa cần làm gì, không phải cảnh báo: cơ sở dữ liệu, thư mục log hay thư mục dữ liệu mà lần chạy đầu sẽ tạo,
+daemon chưa được bật, và nguồn dữ liệu tùy chọn chưa đặt khóa. Dòng nguồn dữ liệu nói rõ khóa đó sẽ thêm được gì. `doctor models` còn nêu tên
 các biến tài khoản đám mây mà một mục Vertex hay Azure không có khóa vẫn cần. `doctor trading` dựng thử hệ
 thống y như `chat` nhưng không khởi chạy hay migrate gì, nên khu vực chính không sàn nào giao dịch hay
 `default_for` trỏ nhầm sàn sẽ lộ ra ngay ở đây. Nó chờ tới khi đã có cơ sở dữ liệu.
@@ -255,7 +285,8 @@ openalpha config edit
 
 `show` che thông tin bí mật, và `get` từ chối mọi đường dẫn đi qua một khóa bí mật. `validate` chạy đủ
 các bước kiểm tra lúc khởi động, kể cả `[trading]`, nên một cấu hình nó chấp nhận là một cấu hình khởi
-động được; nếu không, nó thoát `1` kèm lý do. `config get` nhận đường dẫn vào cấu hình đã phân giải, viết
+động được; nếu không, nó thoát `1` và liệt kê mọi lý do một lượt, kể cả tên nhà cung cấp gõ sai và biến
+môi trường của khóa còn thiếu. `config get` nhận đường dẫn vào cấu hình đã phân giải, viết
 kiểu camelCase (`budget.maxDailyUsd`). `edit` dùng `VISUAL`, không có thì `EDITOR`, rồi đến `nano`; giá
 trị trống coi như chưa đặt. Giá trị được đọc như git đọc, nên có thể kèm cờ hoặc đường dẫn đặt trong
 dấu nháy (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
@@ -400,6 +431,8 @@ phí. Chưa có workflow nào là bình thường, không phải lỗi.
 
 Các lệnh ghi vào cơ sở dữ liệu (`db migrate`, `cleanup`, `import`, `restore`, `reset`) chỉ chạy khi
 daemon đã dừng. `restore`, `reset` và việc lùi một migration sẽ hỏi xác nhận, trừ khi bạn đưa `--yes`.
+Với SQLite, `reset` hỏi trước có sao lưu không (Enter là có): bản sao nằm trong `backups/` giống
+`db backup`, nên lỡ tay thì `db restore` lại được. `--yes` bỏ qua cả câu này.
 `db cleanup` cần `--older-than` (tối thiểu `1d`); `--dry-run` cho xem trước những gì nó sẽ dọn.
 
 `db integrity`, `db stats`, `db export` và `db backup` chỉ khởi động tầng lưu trữ, nên chạy được khi chưa
@@ -544,7 +577,16 @@ Mọi dòng có tiền (kể cả nạp, rút, chuyển tiền) có thể kết 
 tỷ giá quy ra VND của đồng tiền ghi trên dòng đó, và chỉ dùng khi dòng ghi bằng đồng khác VND, ví dụ USDT.
 
 Gõ sai một ô (mã thiếu thị trường, ngày sai, số âm, `fx` không đọc được) thì dòng không được ghi, và
-câu trả lời nêu đúng ô đó cùng dạng nó cần, rồi in cách dùng. `/update` cũng vậy.
+câu trả lời nêu đúng ô đó cùng dạng nó cần, rồi nhắc gõ `/record` không kèm gì để xem đủ cú pháp. Sai cả
+hình dạng dòng (thiếu hay thừa ô) thì in luôn cách dùng. `/update` cũng vậy.
+
+Số viết liền, không dấu ngăn hàng nghìn: `100000000`, không phải `100.000.000`. Dấu chấm là dấu thập phân
+(`0.5`, `1.250` USDT). Số có dấu ngăn kiểu `100.000.000` hay `1,000,000` bị từ chối kèm dạng viết liền của
+nó, chứ không bị đoán. Với đồng tiền không có số lẻ như VND, giá, số tiền, phí và cả khối lượng dạng
+`58.400` hay `1.000` cũng bị từ chối như vậy: không có giá 58,4 đồng, và `1.000` có thể là một nghìn cổ
+phiếu hay một lượng vàng. Tỷ giá sau `fx` trong sổ tính bằng đồng cũng vậy, và số cổ phiếu tăng thêm khi
+chia tách hay phân phối thì bị từ chối ở mọi thị trường. Lời nhắn chỉ cách viết `1000` cho một nghìn, hoặc
+`1.5` cho số lẻ.
 
 **Mua và bán.** Lệnh bán có thể ghi `all` thay cho một con số, và sổ tính thành khối lượng đã thanh toán
 đang nắm *ở sàn đó* vào ngày đó. Có thể bỏ trống phí, khi đó tỷ lệ `fees` của sàn trong
@@ -646,7 +688,8 @@ Tiền tố `sàn:` là tùy chọn và chỉ cần khi có nhiều hơn một s
 các ứng viên được nêu tên, không bao giờ bị định tuyến theo cách đoán.
 
 `/trade` chỉ đặt được lệnh khi một sàn đã đăng ký mang khóa giao dịch. Trước đó nó trả lời bằng tên các
-biến mà từng sàn còn chờ và nhắc bạn ghi sổ bằng `/record`. Cách định tuyến, thiết lập và lần chạy đầu
+biến mà từng sàn còn chờ và nhắc bạn ghi sổ bằng `/record`; `/trade help` (hoặc một dòng gõ sai) vẫn in đủ cú pháp
+để bạn làm quen trước. Cách định tuyến, thiết lập và lần chạy đầu
 nằm ở [Giao dịch](giao-dich.md).
 
 ## MCP

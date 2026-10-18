@@ -1,4 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
+import type { MessageKey } from '@/i18n'
 import type { DefaultVenues } from '@/trading/kernel/config'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { RegisteredSource } from '@/trading/kernel/source/source-result'
@@ -19,6 +20,7 @@ import {
   createBuiltInSources,
   PLAIN_USER_AGENT_SOURCES,
   SOURCE_CREDENTIAL_ENV,
+  SOURCE_CREDENTIALS,
   SOURCE_ENDPOINTS,
   SOURCE_RATE_LIMITS,
 } from '@/trading/wiring/composition/source-facts'
@@ -268,12 +270,15 @@ function warnSkipped(
 interface UnavailableSource {
   readonly source: SourceId
   readonly variable: string
+  /** Catalog line for what the operator gains by setting the variable. */
+  readonly adds: MessageKey
 }
 
-/** Which sources cannot register because the variable naming their credential is unset, and what
- *  that variable is called. Pure data — no adapter, no network, no boot — so `doctor` can answer
- *  the same question the registry answers, from the same predicate. Plugin sources are outside it:
- *  their credential facts arrive with the module, which only boot loads. */
+/** Which built-in sources cannot register because the variable naming their credential is unset,
+ *  what that variable is called and what it would add. Pure data - no adapter, no network, no boot
+ *  - so `doctor` can answer the same question the registry answers, from the same predicate.
+ *  Plugin sources are outside it: their credential facts arrive with the module, which only boot
+ *  loads. */
 export function unavailableSources(options: {
   readonly env: Readonly<Record<string, string | undefined>>
   readonly credentialEnv: Readonly<Partial<Record<SourceId, string>>>
@@ -282,11 +287,12 @@ export function unavailableSources(options: {
   const credentials = resolveCredentials(options.env, credentialEnv)
   const missing: UnavailableSource[] = []
 
-  for (const [id, variable] of Object.entries(credentialEnv)) {
+  for (const [id, facts] of Object.entries(SOURCE_CREDENTIALS)) {
     const source = sourceId(id)
+    const variable = credentialEnv[source] ?? facts.variable
 
-    if (variable !== undefined && !isProviderAvailable(credentials, credentialEnv, source)) {
-      missing.push({ source, variable })
+    if (!isProviderAvailable(credentials, credentialEnv, source)) {
+      missing.push({ source, variable, adds: facts.adds })
     }
   }
 

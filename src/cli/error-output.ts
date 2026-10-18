@@ -2,6 +2,7 @@ import type { Writer } from '@/cli/types'
 import type { HaltCode } from '@/core/errors'
 import type { Locale } from '@/core/types/locale'
 import type { RunResultReason } from '@/core/types/run'
+import { haltDetailOf } from '@/ai/api'
 import { fail, hint, style } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import {
@@ -92,10 +93,19 @@ export function printError(err: unknown, options: ErrorOutput): number {
       options.write(style.muted(line))
     }
   } else if (operatorMessageOf(err) === undefined) {
-    options.write(hint(t(locale, 'cli.errorsVerboseHint')))
+    options.write(hint(failureHintOf(err, locale) ?? t(locale, 'cli.errorsVerboseHint')))
   }
 
   return code
+}
+
+/** The fix for a provider failure the operator can act on, in place of the --verbose pointer. */
+function failureHintOf(err: unknown, locale: Locale): string | undefined {
+  const spec = err instanceof LLMError ? providerFailureSpecOf(err) : undefined
+
+  return spec === undefined || !('hintKey' in spec)
+    ? undefined
+    : t(locale, spec.hintKey, failureHintParams(BRAND.name))
 }
 
 export function formatTerminalError(
@@ -166,11 +176,17 @@ function describe(
   }
 
   if (err instanceof ToolError) {
-    return { text: err.message, code: EXIT_TOOL }
+    return { text: operatorText(err, locale) ?? err.message, code: EXIT_TOOL }
   }
 
+  // A provider's refusal the operator can act on reads in their language; any other keeps the
+  // diagnostic, the only clue to what failed.
   if (err instanceof LLMError) {
-    return { text: err.message, code: HALT_SPEC.llm_error.exitCode }
+    const spec = providerFailureSpecOf(err)
+    const text =
+      spec === undefined ? err.message : t(locale, spec.messageKey, { brand: BRAND.name })
+
+    return { text, code: HALT_SPEC.llm_error.exitCode }
   }
 
   if (err instanceof Error) {
@@ -178,6 +194,12 @@ function describe(
   }
 
   return { text: safeUnknownText(err, locale), code: EXIT_FAILURE }
+}
+
+function providerFailureSpecOf(err: LLMError): ReturnType<typeof failureSpecOf> {
+  const haltDetail = haltDetailOf(err)
+
+  return haltDetail === undefined ? undefined : failureSpecOf({ haltDetail })
 }
 
 /** The line an error was written for the operator to read, in their language. Absent means the

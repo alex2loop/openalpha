@@ -28,7 +28,7 @@ và thông báo bảo mật ra cùng lúc, và bạn được ghi công trừ kh
 ## Phiên bản được hỗ trợ
 
 Chỉ `main` được hỗ trợ - bản sửa về đó và không có gì cũ hơn được vá lùi. Hãy ghim một tag
-hoặc một commit nếu bạn cần sự ổn định, và đọc [lưu ý về độ ổn định](README.md#phát-triển)
+hoặc một commit nếu bạn cần sự ổn định, và đọc [lưu ý về độ ổn định](README.md#độ-ổn-định-giấy-phép-và-miễn-trừ)
 trước khi dựa vào bất cứ phần nào.
 
 ## Những gì nằm trong phạm vi

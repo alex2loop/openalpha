@@ -89,6 +89,7 @@ function startSteps(ctx: AskContext, input: NextStepsInput): readonly string[] {
 
   return [
     t(ctx.locale, 'cli.onboardStepChat', params),
+    t(ctx.locale, 'cli.onboardStepDeposit'),
     t(ctx.locale, 'cli.onboardStepDaemon', params),
     ...pair,
     t(ctx.locale, 'cli.onboardStepDoctor', params),

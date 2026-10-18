@@ -213,16 +213,19 @@ với nội dung một câu lệnh shell.
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động
-chúng bằng `Promise.allSettled`, nên một token cũ không chặn được các kênh còn lại. `ConfigError` là
-lỗi nghiêm trọng (mọi runtime được giải phóng và lỗi được ném lại). Mọi lỗi khác chỉ loại đúng kênh đó
-và ghi log `channel.start_failed`. Nếu không kênh nào chạy, chạy riêng CLI vẫn hợp lệ.
+chúng bằng `Promise.allSettled`, nên một token cũ không chặn được các kênh còn lại. Lỗi khởi động
+không bao giờ nghiêm trọng: kênh có `start()` ném lỗi bị giải phóng và loại, nên nó không bao giờ lắng
+nghe và không cho ai vào. `OperatorConfigError` (token thiếu hoặc bị từ chối) ghi log
+`channel.start_skipped` và được trả về trong `StartChannelsResult.skipped` để daemon báo; mọi lỗi khác
+ghi log `channel.start_failed`. Lỗi lúc dựng runtime (agent không có, giá trị sai) vẫn ném trước khi
+kênh nào khởi động. Nếu không kênh nào chạy, chạy riêng CLI vẫn hợp lệ.
 
 Chỉ một token mà chính nhà cung cấp từ chối mới tính là cấu hình: HTTP 401 hoặc 403 từ Telegram, và 401
 từ Zalo, vì bảng mã lỗi của chính Zalo xếp 403 là lỗi máy chủ. Mọi lỗi `getMe` khác là lỗi đường truyền,
 và cả hai adapter thử tối đa bốn lần với khoảng chờ có trần trước khi bỏ kênh. Zalo Personal không có
 token để bị từ chối: nó thử đăng nhập lại ở nền (đầu tiên 5 giây, tối đa 5 phút).
 
-`startChannels` trả về `{ stop, snapshots, notifier?, defaultRecipient? }`: hàm tắt, ảnh chụp sức khỏe,
+`startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient? }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
 một bộ gửi chiều ra định tuyến tới runtime sở hữu kênh (`AcknowledgedRouter`), và người nhận mặc định
 cho tin chủ động. Người nhận đó là `fallback_chat_id` của kênh, hoặc id được phép duy nhất khi kênh chỉ
 có đúng một. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để một lần dọn hỏng chặn những lần còn

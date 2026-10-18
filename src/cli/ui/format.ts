@@ -1,5 +1,6 @@
 import type { ChannelDefinition } from '@/channels/api'
 import type { Locale } from '@/core/types/locale'
+import type { RunResultReason } from '@/core/types/run'
 import type { MessageKey } from '@/i18n'
 import type { SessionStatus, SessionSummary } from '@/persistence/api'
 import { formatUsd } from '@/core/utils/cost'
@@ -16,6 +17,18 @@ const SESSION_STATUS_KEYS = Object.freeze({
   done: 'cli.sessionStatusDone',
   stale: 'cli.sessionStatusStale',
 } as const satisfies Record<SessionStatus, MessageKey>)
+// Every run end a session row stores, plus the sweep's mark for a run a restart cut off.
+const SESSION_END_KEYS = Object.freeze({
+  completed: 'cli.sessionEndCompleted',
+  aborted: 'cli.sessionEndAborted',
+  budget: 'cli.sessionEndBudget',
+  error: 'cli.sessionEndError',
+  turn_limit: 'cli.sessionEndTurnLimit',
+  loop: 'cli.sessionEndLoop',
+  timeout: 'cli.sessionEndTimeout',
+  daemon_restarted: 'cli.sessionEndRestarted',
+} as const satisfies Record<RunResultReason | 'daemon_restarted', MessageKey>)
+const END_KEY_BY_REASON: ReadonlyMap<string, MessageKey> = new Map(Object.entries(SESSION_END_KEYS))
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -64,6 +77,13 @@ export function availableChannelIds(definitions: readonly ChannelDefinition[]): 
 
 export function formatSessionStatus(locale: Locale, status: SessionStatus): string {
   return t(locale, SESSION_STATUS_KEYS[status])
+}
+
+/** A stored end reason in the reader's language; one written by an older build prints as stored. */
+export function formatSessionEnd(locale: Locale, reason: string): string {
+  const key = END_KEY_BY_REASON.get(reason)
+
+  return key === undefined ? reason : t(locale, key)
 }
 
 /** One row per session, on the operator's own clock, for every command that lists them. */

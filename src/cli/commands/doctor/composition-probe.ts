@@ -6,24 +6,24 @@ import { terminalErrorMessage } from '@/cli/error-output'
 import { t } from '@/i18n'
 
 import type { DoctorProbe } from './types'
-
-const CHECK_NAME = 'trading'
+import { checkLabel } from './labels'
 
 /** Composing the app opens the database, so a first run, which has none yet, waits rather than
  *  have a diagnostic create it. */
 export async function probeComposition(app: CliApp, locale: Locale): Promise<DoctorProbe> {
   const { storage } = app.config
+  const name = checkLabel(locale, 'trading')
 
   if (storage.engine === 'sqlite' && !(await exists(storage.path))) {
-    return { name: CHECK_NAME, status: 'warn', detail: t(locale, 'cli.doctorTradingAfterFirstRun') }
+    return { name, status: 'info', detail: t(locale, 'cli.doctorTradingAfterFirstRun') }
   }
 
   try {
     await app.configProbe?.assertComposes()
 
-    return { name: CHECK_NAME, status: 'ok', detail: t(locale, 'cli.doctorTradingReady') }
+    return { name, status: 'ok', detail: t(locale, 'cli.doctorTradingReady') }
   } catch (err: unknown) {
-    return { name: CHECK_NAME, status: 'fail', detail: terminalErrorMessage(err, locale) }
+    return { name, status: 'fail', detail: terminalErrorMessage(err, locale) }
   }
 }
 

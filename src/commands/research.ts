@@ -1,5 +1,6 @@
 import type {
   CommandDescription,
+  CommandMessage,
   SlashCommand,
   SlashContext,
   SlashInvocationPolicy,
@@ -9,7 +10,8 @@ import { RESEARCH_PROFILE_DEPTHS } from '@/core/config/resolve'
 import { agentId } from '@/core/ids'
 import { DEEP_RESEARCHER_ID, RESEARCH_QUERY_MAX_CHARS } from '@/engine/api'
 
-const MESSAGE_KEYS = ['slash.researchUsage', 'slash.researchQueryTooLong'] as const
+const USAGE: CommandMessage = { key: 'slash.researchUsage' }
+const MESSAGE_KEYS = [USAGE.key, 'slash.researchQueryTooLong'] as const
 const DESCRIPTION: CommandDescription = { kind: 'localized', key: 'slash.researchHelp' }
 const POLICY = {
   surfaces: ['channel', 'repl'],
@@ -29,6 +31,7 @@ export function createResearchCommand(): SlashCommand {
     description: DESCRIPTION,
     messageKeys: [...MESSAGE_KEYS],
     policy: POLICY,
+    usage: () => USAGE,
     run: runResearchCommand,
   }
 }
@@ -40,7 +43,7 @@ async function runResearchCommand(ctx: SlashContext): Promise<SlashResult> {
   const query = (profile === undefined ? ctx.args : rest).join(' ').trim()
 
   if (query === '') {
-    return { kind: 'message', messages: [{ key: 'slash.researchUsage' }] }
+    return { kind: 'message', messages: [USAGE] }
   }
 
   if (query.length > RESEARCH_QUERY_MAX_CHARS) {

@@ -1,6 +1,8 @@
 import { CHATGPT_PROVIDER_ID } from '@/ai/auth/providers/chatgpt'
-import { LLMError } from '@/core/errors'
+import { BRAND } from '@/core/brand'
+import { LLMError, type OperatorMessage } from '@/core/errors'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
+import { closestName } from '@/core/utils/text'
 
 const OPENAI_CHAT = {
   transport: 'openai_chat',
@@ -231,6 +233,30 @@ export function providerById(id: string): ProviderEntry {
   }
 
   return entry
+}
+
+/** What to tell the operator when a `[[models]]` entry names a provider outside the catalog. */
+export function buildUnknownProviderMessage(model: {
+  readonly provider: string
+  readonly model: string
+}): OperatorMessage {
+  const near = closestName(
+    model.provider,
+    PROVIDERS.map((entry) => entry.id)
+  )
+
+  return {
+    key:
+      near === undefined
+        ? 'errors.configModelProviderUnknown'
+        : 'errors.configModelProviderUnknownNear',
+    params: {
+      provider: model.provider,
+      model: model.model,
+      brand: BRAND.name,
+      ...(near === undefined ? {} : { near }),
+    },
+  }
 }
 
 // A subscription or a cloud account signs in instead, and a server on this machine answers without a key.

@@ -383,7 +383,7 @@ export interface MarketCapRecord extends SourceStamp {
   readonly priceUsd: number
   readonly changePct?: number
   /** One-week change, percent-valued: the window every board provider publishes, and the one the
-   *  crypto sleeve's alt-breadth driver counts rising names over. */
+   *  crypto segment's alt-breadth driver counts rising names over. */
   readonly change7dPct?: number
   /** When the provider last observed the price, not when we read it: a sweep answers a board of
    *  rows whose readings were taken at their own moments. */

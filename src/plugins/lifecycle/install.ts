@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { cp, lstat, readdir, readFile, rename, rm, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
-import { ToolError } from '@/core/errors'
+import { BRAND } from '@/core/brand'
+import { ToolError, ValidationError } from '@/core/errors'
 import { isPathId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, ensurePrivateDirectory } from '@/core/security/private-files'
@@ -83,10 +84,16 @@ async function installFetchedSource(
   const target = assertPluginPath(id, options.pluginsDir)
 
   if (isBundledId(id, options.bundledIds ?? new Set())) {
-    throw new ToolError('invalid_input', `bundled plugin id: ${id}`)
+    throw new ValidationError(`bundled plugin id: ${id}`, {
+      key: 'errors.pluginBundledId',
+      params: { id, brand: BRAND.display },
+    })
   }
   if (!options.force && (await isPathPresent(target))) {
-    throw new ToolError('invalid_input', `plugin already installed: ${id}`)
+    throw new ValidationError(`plugin already installed: ${id}`, {
+      key: 'errors.pluginAlreadyInstalled',
+      params: { id, brand: BRAND.name },
+    })
   }
 
   const staging = join(dirname(target), `.staging-${randomUUID()}`)
@@ -150,7 +157,10 @@ export async function uninstallPlugin(
   bundledIds: ReadonlySet<string>
 ): Promise<void> {
   if (isBundledId(id, bundledIds)) {
-    throw new ToolError('invalid_input', `bundled plugin cannot be uninstalled: ${id}`)
+    throw new ValidationError(`bundled plugin cannot be uninstalled: ${id}`, {
+      key: 'errors.pluginBundledFixed',
+      params: { id, brand: BRAND.display },
+    })
   }
 
   const target = assertPluginPath(id, pluginsDir)
@@ -173,11 +183,17 @@ export async function updatePlugin(
     .catch(() => '')
 
   if (!source) {
-    throw new ToolError('invalid_input', `plugin has no source: ${id}`)
+    throw new ValidationError(`plugin has no source: ${id}`, {
+      key: 'errors.pluginNoSource',
+      params: { id, brand: BRAND.name },
+    })
   }
 
   if (isBundledId(id, bundledIds)) {
-    throw new ToolError('invalid_input', `bundled plugin cannot be updated: ${id}`)
+    throw new ValidationError(`bundled plugin cannot be updated: ${id}`, {
+      key: 'errors.pluginBundledFixed',
+      params: { id, brand: BRAND.display },
+    })
   }
 
   await installPlugin({ source, pluginsDir, id, force: true, bundledIds })
@@ -202,11 +218,17 @@ async function assertLocalSource(path: string): Promise<void> {
   const stats = await stat(path).catch(() => undefined)
 
   if (stats === undefined) {
-    throw new ToolError('invalid_input', `plugin source not found: ${path}`)
+    throw new ValidationError(`plugin source not found: ${path}`, {
+      key: 'errors.pluginSourceMissing',
+      params: { path },
+    })
   }
 
   if (!stats.isDirectory()) {
-    throw new ToolError('invalid_input', `plugin source is not a directory: ${path}`)
+    throw new ValidationError(`plugin source is not a directory: ${path}`, {
+      key: 'errors.pluginSourceNotFolder',
+      params: { path },
+    })
   }
 }
 
@@ -228,7 +250,7 @@ function resolveId(fallback: string, override?: string, manifest?: PluginManifes
   const id = override ?? manifest?.id ?? fallback
 
   if (!isPathId(id)) {
-    throw new ToolError('invalid_input', `invalid plugin id: ${id}`)
+    throw invalidIdError(id)
   }
   return id
 }
@@ -237,7 +259,7 @@ async function readInstallManifest(dir: string): Promise<PluginManifest | undefi
   const result = await readPluginManifest(dir)
 
   if (result.kind === 'invalid') {
-    throw new ToolError('invalid_input', `invalid plugin manifest: ${result.reason}`)
+    throw new ToolError('invalid_input', `invalid plugin manifest: ${result.reason}`, result.cause)
   }
 
   return result.kind === 'valid' ? result.manifest : undefined
@@ -249,24 +271,33 @@ function canonicalPluginSource(source: string): string {
   const urlCandidate = source.replace(GIT_PREFIX_RE, '')
 
   if (DISALLOWED_GIT_TRANSPORT_RE.test(urlCandidate)) {
-    throw new ToolError('invalid_input', `disallowed git transport: ${source}`)
+    throw new ValidationError(`disallowed git transport: ${source}`, {
+      key: 'errors.pluginSourceTransport',
+      params: { source },
+    })
   }
 
   if (URL_AUTHORITY_RE.test(source) && URL.canParse(source)) {
     const url = new URL(source)
 
     if (url.username !== '' || url.password !== '') {
-      throw new ToolError('invalid_input', 'plugin source URL must not contain credentials')
+      throw new ValidationError('plugin source URL must not contain credentials', {
+        key: 'errors.pluginSourceCredentials',
+      })
     }
     if (url.search !== '' || url.hash !== '') {
-      throw new ToolError('invalid_input', 'plugin source URL must not contain a query or fragment')
+      throw new ValidationError('plugin source URL must not contain a query or fragment', {
+        key: 'errors.pluginSourceQuery',
+      })
     }
     return url.toString()
   }
 
   if (REMOTE_SOURCE_RE.test(urlCandidate)) {
     if (REMOTE_METADATA_RE.test(source)) {
-      throw new ToolError('invalid_input', 'plugin source must not contain query or fragment data')
+      throw new ValidationError('plugin source must not contain query or fragment data', {
+        key: 'errors.pluginSourceQuery',
+      })
     }
 
     return source
@@ -314,7 +345,7 @@ async function isPathPresent(path: string): Promise<boolean> {
 // Validates id + containment: without this, `plugin uninstall ..` escapes pluginsDir.
 function assertPluginPath(id: string, pluginsDir: string): string {
   if (!isPathId(id)) {
-    throw new ToolError('invalid_input', `invalid plugin id: ${id}`)
+    throw invalidIdError(id)
   }
 
   const root = resolve(pluginsDir)
@@ -327,6 +358,13 @@ function assertPluginPath(id: string, pluginsDir: string): string {
   }
 
   return target
+}
+
+function invalidIdError(id: string): ValidationError {
+  return new ValidationError(`invalid plugin id: ${id}`, {
+    key: 'errors.pluginInvalidId',
+    params: { id },
+  })
 }
 
 // A plugin's installed content never legitimately needs symlinks.

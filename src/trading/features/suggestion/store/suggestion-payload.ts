@@ -74,7 +74,7 @@ const readableGoalSchema = readableEnum(investmentGoalSchema, 'preserve')
 const readableDirectionSchema = readableEnum(directionSchema, 'reduce').optional()
 
 // No kind can stand in for another - an ETF ceiling is not a stock's - so an unreadable one is
-// dropped instead of guessed. The row then reads as a non-ETF, which is the ETF sleeve ceiling
+// dropped instead of guessed. The row then reads as a non-ETF, which is the ETF segment ceiling
 // going unchecked for it; a renamed kind therefore still wants the stored rows migrated.
 const readableInstrumentKindSchema = z
   .union([instrumentKindSchema, z.string().transform(() => undefined)])

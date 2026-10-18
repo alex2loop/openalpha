@@ -154,7 +154,7 @@ function marketBlock(
 ): readonly (readonly string[])[] {
   const { overview, view, context } = block
   const name = renderDeclaredValue(locale, `trading.market.${overview.market}`)
-  const [macro = [], ...macroRest] = sleeveMacroSections(locale, {
+  const [macro = [], ...macroRest] = segmentMacroSections(locale, {
     overview,
     region: view.macro,
     context,
@@ -172,7 +172,7 @@ function marketBlock(
   ]
 }
 
-interface SleeveMacroInput {
+interface SegmentMacroInput {
   readonly overview: MarketDataOverview
   readonly region: SourceResult<MacroRiskView>
   readonly context: RenderContext
@@ -201,13 +201,13 @@ function isSharedExpandedMacro(
   )
 }
 
-/** A sleeve reading the region's own macro states it in one line - the drivers are already above,
- *  and printing them per market drew the same table five times. A sleeve whose read genuinely
+/** A segment reading the region's own macro states it in one line - the drivers are already above,
+ *  and printing them per market drew the same table five times. A segment whose read genuinely
  *  differs expands into its own: that number is what gated it, and this is the only place it is
  *  shown. */
-function sleeveMacroSections(
+function segmentMacroSections(
   locale: Locale,
-  input: SleeveMacroInput
+  input: SegmentMacroInput
 ): readonly (readonly string[])[] {
   const { macro } = input.overview
 
@@ -216,11 +216,11 @@ function sleeveMacroSections(
   }
 
   return isRegionMacro(macro, input.region)
-    ? [[sleeveMacroLine(locale, input.overview, macro)]]
+    ? [[segmentMacroLine(locale, input.overview, macro)]]
     : expandedMacroSections(locale, input)
 }
 
-/** Three fields, not a deep compare: two reads of the same region agree on all three, and a sleeve
+/** Three fields, not a deep compare: two reads of the same region agree on all three, and a segment
  *  that genuinely differs differs in the score. */
 function isRegionMacro(macro: MacroRiskView, region: SourceResult<MacroRiskView>): boolean {
   return (
@@ -231,13 +231,13 @@ function isRegionMacro(macro: MacroRiskView, region: SourceResult<MacroRiskView>
   )
 }
 
-/** The one line a sleeve keeps when its read is the region's: what gated it, and how hard. */
-function sleeveMacroLine(
+/** The one line a segment keeps when its read is the region's: what gated it, and how hard. */
+function segmentMacroLine(
   locale: Locale,
   overview: MarketDataOverview,
   macro: MacroRiskView
 ): string {
-  return `${INDENT[1]}${t(locale, 'trading.render.macro.sleeveLine', {
+  return `${INDENT[1]}${t(locale, 'trading.render.macro.segmentLine', {
     market: renderDeclaredValue(locale, `trading.market.${overview.market}`),
     regime: renderDeclaredValue(locale, `trading.regime.${macro.regime}`),
     score: formatScoreValue(locale, macro.score),
@@ -247,7 +247,7 @@ function sleeveMacroLine(
 /** The market's own composite, score and driver rows, under its own title. */
 function expandedMacroSections(
   locale: Locale,
-  input: SleeveMacroInput
+  input: SegmentMacroInput
 ): readonly (readonly string[])[] {
   const { overview } = input
 

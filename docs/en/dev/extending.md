@@ -83,7 +83,7 @@ export const helloCommand = createCommand({
 | `scrubCredentials` | root | Strip secrets from text before display |
 | `boot`, `passThroughBootGate` | `/app` | Boot the container. Returns `{ app, delivery, dispose }` |
 | `main` | `/app` | Full entry: boot, then run the CLI with extra providers, commands and a boot gate |
-| `createCommand`, `createGroup`, `createRoot` | `/cli` | Define a terminal command, group subcommands, build the executable root tree |
+| `createCommand`, `createGroup`, `createRoot` | `/cli` | Define a terminal command, group subcommands, build the executable root tree (it adds `help` and the `--version` alias) |
 | `lazyCommand` | `/cli` | Defer a command's module load until it runs |
 | `admitCommand`, `preflightCommand` | `/cli` | Admission and preflight gates around dispatch |
 | `preBootApp`, `runCli` | `/cli` | Config-only app for no-boot commands; run the tree against argv |
@@ -197,7 +197,7 @@ option.
 | Tool | `ToolDefinition`, from `createTool(...)` |
 | Channel | `ChannelDefinition`, from `createChannel(...)`, producing a `ChannelAdapter` |
 | Agent | `AgentDefinition`, from `createAgent(...)`, or a validated `agent.toml` |
-| Slash command | `SlashCommand`, from `createSlashCommand(...)`, or `DeclarativeSlashCommandSource` |
+| Slash command | `SlashCommand`, from `createSlashCommand(...)` (an optional `usage()` is what `/help <name>` prints), or `DeclarativeSlashCommandSource` |
 | Workflow | `WorkflowSource` (file and config discovery only) |
 | Plugin | `Plugin` with `PluginContributions` |
 | Trading service | `PortfolioService`, `MarketDataService`, `SuggestionService`, `AlertService`, `BriefService`. Resolved from the container, never constructed by an embedder |

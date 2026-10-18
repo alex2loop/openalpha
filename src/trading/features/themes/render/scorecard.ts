@@ -4,13 +4,13 @@ import type {
   ScoreBucket,
   ScorecardLine,
   ThemeScorecard,
-} from '@/trading/features/themes/types'
+} from '@/trading/features/themes/outcomes/scorecard-types'
 import { t } from '@/i18n'
 import {
-  OUTCOME_HORIZONS_MONTHS,
   SCORE_BUCKET_FLOORS,
   SCORE_BUCKETS,
-} from '@/trading/features/themes/types'
+} from '@/trading/features/themes/outcomes/scorecard-types'
+import { OUTCOME_HORIZONS_MONTHS } from '@/trading/features/themes/types'
 import { formatSignedFraction } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
 

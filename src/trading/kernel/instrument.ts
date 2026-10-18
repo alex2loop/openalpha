@@ -37,7 +37,7 @@ export const INSTRUMENT_KINDS = Object.freeze([
 ] as const)
 export type InstrumentKind = (typeof INSTRUMENT_KINDS)[number]
 
-/** The one kind a sleeve puts its own ceiling on, so the fold that measures it, the ceilings that
+/** The one kind a segment puts its own ceiling on, so the fold that measures it, the ceilings that
  *  bind it and the row that names it all compare against one spelling. */
 export const ETF_KIND: InstrumentKind = 'etf'
 

@@ -25,6 +25,7 @@ import type {
 import type { AgentRegistry, CostTracker, Runner, RunRegistry } from '@/engine/api'
 import { createChannelRuntime } from '@/channels/lifecycle'
 import { resolveChannelSettings } from '@/channels/schema'
+import { OperatorConfigError } from '@/core/config/resolve'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
@@ -60,9 +61,17 @@ export type AcknowledgedRouter = (
   signal?: AbortSignal
 ) => Promise<AcknowledgedSendResult>
 
+/** A channel left down because the operator can fix its credential (missing or rejected), with the
+ *  reason worded for them. Such a channel never listens, so nobody is admitted through it. */
+interface SkippedChannel {
+  readonly channel: ChannelId
+  readonly error: OperatorConfigError
+}
+
 export interface StartChannelsResult {
   stop(): Promise<void>
   snapshots(): readonly ChannelRuntimeSnapshot[]
+  readonly skipped: readonly SkippedChannel[]
   /** Routes an acknowledged send to whichever runtime owns its channel. Undefined if none started. */
   notifier?: AcknowledgedRouter
   /** Where an unaddressed proactive notice goes. Undefined if no channel declared a fallback chat. */
@@ -78,6 +87,7 @@ interface Started {
 export async function startChannels(deps: StartChannelsDeps): Promise<StartChannelsResult> {
   const built = await buildRuntimes(deps)
   const started: Started[] = []
+  const skipped: SkippedChannel[] = []
 
   // Settled, not all: one channel with a stale token must not keep the others from coming up.
   const outcomes = await Promise.allSettled(built.map((entry) => entry.runtime.start()))
@@ -94,10 +104,18 @@ export async function startChannels(deps: StartChannelsDeps): Promise<StartChann
       continue
     }
 
-    await onStartFailed(deps, built, { entry, reason: outcome.reason })
+    const operatorError = await onStartFailed(deps, { entry, reason: outcome.reason })
+
+    if (operatorError !== undefined) {
+      skipped.push({ channel: entry.adapter.id, error: operatorError })
+    }
   }
 
-  return buildResult(started)
+  if (started.length > 0) {
+    deps.logger.info('channel.started', { channels: started.map((entry) => entry.adapter.id) })
+  }
+
+  return buildResult(started, skipped)
 }
 
 async function buildRuntimes(deps: StartChannelsDeps): Promise<readonly Started[]> {
@@ -115,23 +133,37 @@ async function buildRuntimes(deps: StartChannelsDeps): Promise<readonly Started[
   return built
 }
 
-// A ConfigError is fatal; anything else just drops that one channel.
+// A channel that fails to start is dropped and the daemon carries on. A failure the operator can fix
+// (token missing or rejected) is returned for the start to report; anything else is logged only.
 async function onStartFailed(
   deps: StartChannelsDeps,
-  built: readonly Started[],
   failure: { readonly entry: Started; readonly reason: unknown }
-): Promise<void> {
-  if (failure.reason instanceof ConfigError) {
-    await Promise.allSettled(built.map((entry) => entry.runtime.dispose()))
+): Promise<OperatorConfigError | undefined> {
+  const { entry, reason } = failure
 
-    throw failure.reason
+  // The runtime never started; a dispose that throws must not strand the channels that did.
+  await entry.runtime.dispose().catch((err: unknown) => {
+    deps.logger.warn('channel.start_dispose_failed', {
+      channel: entry.adapter.id,
+      err: formatErrForLog(err),
+    })
+  })
+
+  if (reason instanceof OperatorConfigError) {
+    deps.logger.warn('channel.start_skipped', {
+      channel: entry.adapter.id,
+      err: formatErrForLog(reason),
+    })
+
+    return reason
   }
 
   deps.logger.error('channel.start_failed', {
-    channel: failure.entry.adapter.id,
-    err: formatErrForLog(failure.reason),
+    channel: entry.adapter.id,
+    err: formatErrForLog(reason),
   })
-  await failure.entry.runtime.dispose()
+
+  return undefined
 }
 
 function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): readonly Started[] {
@@ -218,7 +250,10 @@ function budgetCaps(config: ResolvedConfig): BudgetCaps {
   }
 }
 
-function buildResult(started: readonly Started[]): StartChannelsResult {
+function buildResult(
+  started: readonly Started[],
+  skipped: readonly SkippedChannel[]
+): StartChannelsResult {
   const byChannel = new Map<ChannelId, ChannelRuntime>(
     started.map((entry) => [entry.adapter.id, entry.runtime])
   )
@@ -229,6 +264,7 @@ function buildResult(started: readonly Started[]): StartChannelsResult {
       await Promise.allSettled(started.map((entry) => entry.runtime.dispose()))
     },
     snapshots: () => started.map((entry) => entry.runtime.snapshot()),
+    skipped,
   }
 
   // No channel came up: the caller binds a no-op sink rather than crashing a CLI-only install.

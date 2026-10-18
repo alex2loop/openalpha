@@ -77,20 +77,6 @@ export type BudgetHaltDetail =
  *  classification rides along. The two arms share no member, so a reader narrows on value. */
 export type HaltDetail = BudgetHaltDetail | LLMErrorCode
 
-const BUDGET_HALT_SPEC = {
-  run_budget: { messageKey: 'errors.budgetRun', hintKey: 'errors.budgetRunHint' },
-  daily_cap: { messageKey: 'errors.budgetDaily', hintKey: 'errors.budgetDailyHint' },
-  monthly_cap: { messageKey: 'errors.budgetMonthly', hintKey: 'errors.budgetMonthlyHint' },
-  agent_daily_cap: {
-    messageKey: 'errors.budgetAgentDaily',
-    hintKey: 'errors.budgetAgentDailyHint',
-  },
-  ledger_unavailable: {
-    messageKey: 'errors.budgetLedger',
-    hintKey: 'errors.budgetLedgerHint',
-  },
-} as const satisfies Record<BudgetHaltDetail, FailureTextSpec>
-
 export const HALT_SPEC = {
   abort: {
     exitCode: 130,
@@ -154,24 +140,45 @@ export const HALT_SPEC = {
   agent_paused: { exitCode: 16, messageKey: 'halt.agentPaused', emoji: '⏸️' },
 } as const satisfies Record<HaltCode, HaltSpecEntry>
 
-/** The localized text a halted run reads as, from its own halt: the ceiling that refused it when it
- *  was a budget halt, else its halt code. Absent where the run carries neither, and the caller
- *  falls back to the broad `RUN_FAILURE_SPEC` entry for its reason. */
+// Halt details worded apart from their halt code: which ceiling refused a budget halt, or the
+// provider classification that changes what the operator does next. Any other detail reads as
+// its halt code.
+const HALT_DETAIL_SPEC = {
+  run_budget: { messageKey: 'errors.budgetRun', hintKey: 'errors.budgetRunHint' },
+  daily_cap: { messageKey: 'errors.budgetDaily', hintKey: 'errors.budgetDailyHint' },
+  monthly_cap: { messageKey: 'errors.budgetMonthly', hintKey: 'errors.budgetMonthlyHint' },
+  agent_daily_cap: {
+    messageKey: 'errors.budgetAgentDaily',
+    hintKey: 'errors.budgetAgentDailyHint',
+  },
+  ledger_unavailable: {
+    messageKey: 'errors.budgetLedger',
+    hintKey: 'errors.budgetLedgerHint',
+  },
+  auth: { messageKey: 'errors.llmAuth', hintKey: 'errors.llmAuthHint' },
+  billing: { messageKey: 'errors.llmBilling', hintKey: 'errors.llmBillingHint' },
+  not_found: { messageKey: 'errors.llmNotFound', hintKey: 'errors.llmNotFoundHint' },
+  rate: HALT_SPEC.rate,
+} as const satisfies Partial<Record<HaltDetail, FailureTextSpec>>
+
+type WordedHaltDetail = keyof typeof HALT_DETAIL_SPEC
+
+/** The localized text a halted run reads as: its detail's wording where the detail has one, else
+ *  its halt code's. Absent where the run carries neither, and the caller falls back to the broad
+ *  `RUN_FAILURE_SPEC` entry for its reason. */
 export function failureSpecOf(result: {
   readonly haltCode?: HaltCode
   readonly haltDetail?: HaltDetail
-}): (typeof BUDGET_HALT_SPEC)[BudgetHaltDetail] | (typeof HALT_SPEC)[HaltCode] | undefined {
-  if (result.haltDetail !== undefined && isBudgetHaltDetail(result.haltDetail)) {
-    return BUDGET_HALT_SPEC[result.haltDetail]
+}): (typeof HALT_DETAIL_SPEC)[WordedHaltDetail] | (typeof HALT_SPEC)[HaltCode] | undefined {
+  if (result.haltDetail !== undefined && isWordedHaltDetail(result.haltDetail)) {
+    return HALT_DETAIL_SPEC[result.haltDetail]
   }
 
   return result.haltCode === undefined ? undefined : HALT_SPEC[result.haltCode]
 }
 
-/** A halt detail is either a ceiling or the provider's own error code; only the first names a row
- *  in the budget table, and the two arms share no member. */
-function isBudgetHaltDetail(detail: HaltDetail): detail is BudgetHaltDetail {
-  return detail in BUDGET_HALT_SPEC
+function isWordedHaltDetail(detail: HaltDetail): detail is WordedHaltDetail {
+  return Object.hasOwn(HALT_DETAIL_SPEC, detail)
 }
 
 // Broad non-completed run reasons mapped to the same message/hint entries where the semantics
@@ -214,6 +221,7 @@ interface LLMErrorOptions {
   /** The stream showed the user content before failing; the chain must not silently fall back. */
   readonly interruptedVisibleOutput?: boolean
   readonly latencyMs?: number
+  readonly answeredByProvider?: boolean
 }
 
 interface AttemptUsageFailure {
@@ -249,6 +257,7 @@ export class LLMError extends AppError {
   readonly fallbackAllowed: boolean
   readonly interruptedVisibleOutput: boolean
   readonly latencyMs: number | undefined
+  readonly answeredByProvider: boolean
 
   constructor(
     readonly code: LLMErrorCode,
@@ -265,6 +274,7 @@ export class LLMError extends AppError {
     this.fallbackAllowed = options?.fallbackAllowed ?? false
     this.interruptedVisibleOutput = options?.interruptedVisibleOutput ?? false
     this.latencyMs = options?.latencyMs
+    this.answeredByProvider = options?.answeredByProvider ?? false
   }
 }
 
@@ -329,6 +339,7 @@ function cloneLLMError(err: LLMError, input: LLMErrorCloneInput): LLMError {
       ? { interruptedVisibleOutput: true }
       : {}),
     ...(err.latencyMs === undefined ? {} : { latencyMs: err.latencyMs }),
+    ...(err.answeredByProvider ? { answeredByProvider: true } : {}),
   })
 }
 

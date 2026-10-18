@@ -221,10 +221,10 @@ export function toRebalanceWire(view: RebalanceView, locale: Locale): RebalanceR
     })),
     changes: advice.rebalance.map((change) => toChangeWire(change, sizing, locale)),
     cash: {
-      cashPctNav: percent(advice.cashSleeve.cashPctNav),
-      liquidReservePctNav: percent(advice.cashSleeve.liquidReservePctNav),
-      termDepositEligiblePctNav: percent(advice.cashSleeve.termDepositEligiblePctNav),
-      posture: advice.cashSleeve.posture,
+      cashPctNav: percent(advice.cashSegment.cashPctNav),
+      liquidReservePctNav: percent(advice.cashSegment.liquidReservePctNav),
+      termDepositEligiblePctNav: percent(advice.cashSegment.termDepositEligiblePctNav),
+      posture: advice.cashSegment.posture,
     },
     findings,
     caveats: toCaveatWires(advice.caveats, locale),
@@ -241,7 +241,7 @@ function toRebalanceTextWire(text: RebalanceText): RebalanceTextWire {
       group: order.group,
       line: order.line,
     })),
-    sleeves: [...text.sleeves],
+    segments: [...text.segments],
     notes: [...text.notes],
   }
 }

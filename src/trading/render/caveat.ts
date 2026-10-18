@@ -188,7 +188,7 @@ const SUBJECT_FIELD: Readonly<Record<string, string>> = Object.freeze({
   'source.symbol-not-found': 'ticker',
 })
 
-/** Three sleeves with no eligible names, or four holdings marked on the same stale day, emit the
+/** Three segments with no eligible names, or four holdings marked on the same stale day, emit the
  *  same sentence three and four times. Merging keeps the fact and drops the repetition; anything
  *  differing beyond the subject stays its own line. */
 function mergeSubjects(caveats: readonly RenderedCaveat[]): readonly RenderedCaveat[] {

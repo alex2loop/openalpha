@@ -47,6 +47,7 @@ export async function openSseStream(
       usage: REFUSED_USAGE,
       usageSource: 'estimated',
       ...(err.fallbackAllowed ? { fallbackAllowed: true } : {}),
+      ...(err.answeredByProvider ? { answeredByProvider: true } : {}),
       ...(retryAfterMs === undefined ? {} : { retryAfterMs }),
     })
   }

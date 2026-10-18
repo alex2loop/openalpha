@@ -85,7 +85,7 @@ Macro is the only kind that **merges** instead of failing over: no provider publ
 
 The macro composite renormalizes when published: a series with no reading today does not vote. Each driver publishes its share of the vote actually cast, and its contribution is measured against the score it moved. Published weights sum to one, contributions sum to the score, and partial data shows up in `coverage` and the missing list. A driver names its unit: rate series are percentages, while the dollar index (Jan-2006 = 100) and the VIX are levels and print without a percent sign.
 
-This holds for what you see, not only what is stored. Shares printed under their whole are rounded together so the column adds up on screen. The same goes for a suggestion's factor contributions under its composite and for the profile's sleeve targets (renormalized to one). Only rows that print a share take part.
+This holds for what you see, not only what is stored. Shares printed under their whole are rounded together so the column adds up on screen. The same goes for a suggestion's factor contributions under its composite and for the profile's segment targets (renormalized to one). Only rows that print a share take part.
 
 **A source that needs a key and has none is not registered**, so its kind falls through to the next source. At startup one `trading.source.skipped` warning names each skipped source and the variable it wanted. Running without keys is a supported, degraded mode, never fatal.
 
@@ -147,7 +147,7 @@ The result carries `market-data.evidence-settled-only`: the price history runs t
 
 Re-ranking on a partial session would move names up and down the board all morning on volume that has not finished arriving.
 
-#### A session settles when its tape does, not when its bell rings
+#### A session settles when its data does, not when its bell rings
 
 A board stops trading at its close and publishes the closing auction some minutes later. In between, the source answers with a session that looks complete and is missing its last print. On HOSE that meant 18 of the 25 busiest names carried a wrong close and the market's traded value was 10% short.
 
@@ -161,9 +161,9 @@ The live pass writes only settled sessions. A backfill pass then fills the perce
 
 **Stored refresh stamps.** A refresh attempt is stamped with the day it covers, and the next run reuses it instead of refetching. A pass that ran inside the settle gap would stamp a day still forming, and every later run would read that stamp as current. It would not heal on its own: the kind stays pinned to that forming tape until the cadence window moves past it, which across a Friday is three days. So a stamp counts as current only if the day was already final when the pass claimed it, before age is even considered.
 
-**Live prices.** A market's live quote is dropped when its own session is not newer than the settled close, or when its age is more than a closing print or a quiet tape can explain. The market owns that call, not the source, the way `gold-vn` already checks board age. How a reading is judged is in [Data sources](data-sources.md). It catches three things that all arrive well-formed:
+**Live prices.** A market's live quote is dropped when its own session is not newer than the settled close, or when its age is more than a closing print or a quiet market can explain. The market owns that call, not the source, the way `gold-vn` already checks board age. How a reading is judged is in [Data sources](data-sources.md). It catches three things that all arrive well-formed:
 
-- A venue that halts a pair keeps serving its last trade indefinitely, so levels would anchor an entry on a dead tape.
+- A venue that halts a pair keeps serving its last trade indefinitely, so levels would anchor an entry on a market that stopped trading.
 - A settled session answers every later request with the close it already holds. A screen would print that as the price the market is making now. On HOSE that is every request from 15:15 to the next open, about three quarters of the day.
 - A feed that stops advancing keeps answering with a bar from hours ago that carries today's date. `/price`, `/overview` and `/market` could each print a different stale index bar, all showing a rise on a session the index spent down.
 
@@ -187,7 +187,7 @@ Freshness (`live` or `cached`) sits on each provenance row, never as one aggrega
 
 A block dated to one session reads every figure in it at that session or drops the ones it cannot. VN breadth counts each name at the settled session and withholds its index-trend figures whenever the index series stops short of it. The index endpoint holds the settled bar back for hours after the shares have theirs, and the block names the session that series actually reached. A heading whose window is missing states the heading alone.
 
-That session is what dates the block, never the newest day anything in it reports. The two differ every morning until the refresh lands: the index endpoint publishes today while the stored tape still ends yesterday. Dating by the later one would stamp one session's breadth, turnover, flows, leaders, movers and boards under the next one's date. It would also suppress the note that today's turnover and foreign flow are not measured yet.
+That session is what dates the block, never the newest day anything in it reports. The two differ every morning until the refresh lands: the index endpoint publishes today while the stored price history still ends yesterday. Dating by the later one would stamp one session's breadth, turnover, flows, leaders, movers and boards under the next one's date. It would also suppress the note that today's turnover and foreign flow are not measured yet.
 
 Each price row carries its own `closedOn` date. The agent tool groups the same roll-ups under `settledSession`.
 
@@ -196,7 +196,7 @@ Each price row carries its own `closedOn` date. The agent tool groups the same r
 Five stages, in order: **detect, factors, debate, stages, persist**.
 
 - A **blocked stage forces a hold.** A suggestion cannot route around a failed check.
-- **Conviction only moves down.** The debate may lower it; nothing raises it.
+- **Confidence only moves down.** The debate may lower it; nothing raises it.
 - Every suggestion records its strategy version and calculation versions, including the skill versions. Editing a skill splits the recorded populations exactly as editing a strategy does.
 - Every stored debate lists the chat models that answered its roles, so a model swap splits the track record too.
 
@@ -226,10 +226,10 @@ Depth is chosen once, first match wins:
 
 1. A mode you typed stands.
 2. `force` means full.
-3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it.
+3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it. The report says whether the scores (the three `factors-*` reasons) or the portfolio settled it, and names `/suggest <ticker> full` for the whole argument.
 4. Anything else uses the configured mode.
 
-A row the book holds is also exempt from the depth ratchet on reuse. Otherwise the lean default would re-run it daily against a full config.
+A row the book holds is also exempt from the depth ratchet on reuse. Otherwise the lean default would re-run it daily against a full config. A typed `full` is the exception: it re-runs past that lean row and replaces it, so asking for the argument never hands back the short one.
 
 #### Checks on what the debate says
 
@@ -244,19 +244,19 @@ Any figure left over raises `suggestion.figure-unmatched` as an information cave
 - Two or more distinct risk stories raise `market.risk-event-headlines`.
 - Read unavailable: the run says `suggestion.headlines-unread`, keeps the feed grouping and uses a keyword table for the risk warning.
 
-None of this changes conviction, levels or size. The reads go to the `[[model_tiers.decisions]]` chain; with no `decisions` tier configured, they are off.
+None of this changes confidence, levels or size. The reads go to the `[[model_tiers.decisions]]` chain; with no `decisions` tier configured, they are off.
 
 #### Selling a held name
 
 `reduce` carries a reason. `over-target` is the plan's trim. The rest are evidence turning against a name you hold, each selling its own share of the position:
 
 - `structure-broken` - a close below the low of the sessions before it, from the market's own read.
-- `regime-risk-off`
+- `regime-risk-off` - the segment's market state turned defensive.
 - `thesis-weakening`
 - `overheated` - longs paying crowded funding.
 - `stale` - a full holding window at cost.
 
-`structure-broken` and `stale` are read on a short-horizon sleeve only. A long sleeve is not sold on a ten-session low or a flat quarter.
+`structure-broken` and `stale` are read on a short-horizon segment only. A long segment is not sold on a ten-session low or a flat quarter.
 
 When a trim and an evidence reason both fire, the larger share wins and the row carries that reason. `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit signal has drifted that far. Ranking them the other way would put a routine trim's size on a structure the market broke. The debate asks whether to keep or sell, as it does for a trim, and can only decline.
 
@@ -265,7 +265,7 @@ When a trim and an evidence reason both fire, the larger share wins and the row 
 The pipeline's own stages run ahead of any market's gate, for every market:
 
 - `profile-exclusion` - your exclusion list.
-- `deployment` - refuses to add risk into a risk-off tape on a fully invested book.
+- `deployment` - refuses to add risk into a defensive market on a fully invested book.
 
 #### Signals are settled; the price is live
 
@@ -288,7 +288,7 @@ Evidence and price can end on different sessions, so every stored row carries an
 
 Readings the rows do not show stay in the calculation. Any market with a factor the checklist has no row for keeps the factor table.
 
-**The VN regime holds until the score clearly leaves it.** A regime is entered at +-0.25 and left only once the score is back inside +-0.15, so a composite hovering on the line does not move deployment every day. `macro.regime-held` says when the band held where the bare score would have flipped. The memory is the last stored rated read within five sessions; an older one means the daemon was off, not that the market was calm. It applies to VN only, the one market that stores its reads.
+**The VN market state holds until the score clearly leaves it.** A state is entered at +-0.25 and left only once the score is back inside +-0.15, so a composite hovering on the line does not move deployment every day. `macro.regime-held` says when the band held where the bare score would have flipped. The memory is the last stored rated read within five sessions; an older one means the daemon was off, not that the market was calm. It applies to VN only, the one market that stores its reads.
 
 #### A held name is planned without being asked
 
@@ -296,7 +296,7 @@ A buy recorded with no plan standing gets a levels-only hold row (`recorded-entr
 
 The alert tick writes the same row, from the settled close, for any held name nothing watches, and sends one notice.
 
-This is the plan the name is stopped, targeted and trailed against until `/suggest` replaces it. A recorded plan never satisfies the reuse gate or starts a cooldown.
+This is the plan the name is stopped, targeted and trailed against until `/suggest` replaces it. A recorded plan never satisfies the reuse gate or starts a cooldown. A run whose debate never answered (no model key, a role that failed, no budget left) decided nothing: it is shown with the reason but not stored, so it never replaces the plan already standing.
 
 - A call's plan expires when the outcome tick resolves it; a recorded plan expires once the settled close has passed either level.
 - Either way, the next tick plans afresh from where the name trades, floored at the old stop while that stop is still below the price.
@@ -321,7 +321,7 @@ The plan's chase ceiling is that same threshold solved for price: (target + R x 
 - `reward_risk` - the target as a multiple of the risk;
 - `maximum_stop_loss` - a hard ceiling as a fraction of entry.
 
-`stop_loss_atr` and `reward_risk` replace the market's own value for both horizons. When the ATR stop would sit further out than the ceiling, the stop is pulled in to just inside it, never a tick past. The target and first take-profit are placed off that smaller risk, so R:R is unchanged and size grows into the shorter distance. The plan then carries `market.stop-capped`. For `gold-vn` the ceiling counts down from the shop's buy-back price, so the buy/sell gap comes on top.
+`stop_loss_atr` and `reward_risk` replace the market's own value for both horizons. When the ATR stop would sit further out than the ceiling, the stop is pulled in to just inside it, never a tick past. The target and first take-profit are placed off that smaller risk, so reward/risk is unchanged and size grows into the shorter distance. The plan then carries `market.stop-capped`. For `gold-vn` the ceiling counts down from the shop's buy-back price, so the buy/sell gap comes on top.
 
 Setting any of the three adds a suffix to that market's strategy version (`1.0.0+3f9a1c0b`). Plans priced under your keys keep their own track record, are never served back once the keys change, and a held name is re-planned once. A stop only ratchets up, so loosening the keys never lowers a stop you hold. Keys and ranges: [Configuration](configuration.md).
 
@@ -333,11 +333,11 @@ Measured 2026-10-15 on 81 names' hourly bars, with the limit filled only on a tr
 
 #### Size
 
-Size is budgeted on the entry stop; the regime scales the whole order. The risk ceiling divides the per-trade budget by the ATR distance from entry to stop, never by a stop that a trail or ratchet moved closer. A tighter exit is not a smaller bet.
+Size is budgeted on the entry stop; the market state scales the whole order. The risk ceiling divides the per-trade budget by the ATR distance from entry to stop, never by a stop that a trail or ratchet moved closer. A tighter exit is not a smaller bet.
 
-The sleeve's regime scale reduces the final size alongside conviction and the trader's intent. A risk-off read therefore shrinks a buy even when cash is not the binding ceiling. `suggestion.size-scaled-by-regime` says when it was the tightest of the three.
+The segment's market-state scale reduces the final size alongside confidence and the trader's intent. A defensive read therefore shrinks a buy even when cash is not the binding ceiling. `suggestion.size-scaled-by-regime` says when it was the tightest of the three.
 
-Every name in one `/suggest` batch is sized against the same book as it stood before the batch, so each buy fits the cash and open-risk room alone. After the verdicts, "If you took every call above" lists what two or more buys would cross together: a sector or sleeve ceiling, the cash the book can spend (and, where one market's venues reach less, that market's cash), and the room left under the open-risk ceiling. A sale frees neither cash nor open risk until it settles, so only buys count. It is a note, never a refusal; the open-risk figure reads each buy's stored stop, so a stop lifted to a held one makes it err toward silence.
+Every name in one `/suggest` batch is sized against the same book as it stood before the batch, so each buy fits the cash and open-risk room alone. After the verdicts, "If you took every call above" lists what two or more buys would cross together: a sector or segment ceiling, the cash the book can spend (and, where one market's venues reach less, that market's cash), and the room left under the open-risk ceiling. A sale frees neither cash nor open risk until it settles, so only buys count. It is a note, never a refusal; the open-risk figure reads each buy's stored stop, so a stop lifted to a held one makes it err toward silence.
 
 #### Reuse on a market with no session boundary
 
@@ -383,7 +383,7 @@ A quote prints inside its own session's range. If a call's session bar no longer
 
 The band read is the one stored for the order session, so a new listing's wider first-day band applies to its later sessions too, and a lock in its first weeks can be missed.
 
-**What the track record shows.** It opens with the calls it is drawn from: how many suggestions were made, how many played out, how many are open, and how many sit on a market with no price series and can never be scored. Then it reports win rate, mean and median return, the benchmark comparison and **calibration by conviction band**. A rate without its denominator says nothing. If high-conviction calls win no more often than low-conviction ones, that is the number worth seeing next to the headline.
+**What the track record shows.** It opens with the calls it is drawn from: how many suggestions were made, how many played out, how many are open, and how many sit on a market with no price series and can never be scored. Then it reports win rate, mean and median return, the benchmark comparison and **calibration by confidence band**. A rate without its denominator says nothing. If high-confidence calls win no more often than low-confidence ones, that is the number worth seeing next to the headline.
 
 Every rate counts independent calls. A call repeating one still open on the same name and side rides the same move, so it is folded into the first. The brief re-issues a held idea every session, and each row would otherwise count as another outcome. `/reflect` says how many it folded. The per-focus and per-agent records below fold the same way, each over its own focus's calls (as `/reflect` reads one focus), so a focus reaches the reporting minimum on independent calls and its sample matches what `/reflect` says for it.
 
@@ -398,9 +398,9 @@ A VN gold fill is recorded in the shop's unit while its suggestion is quoted per
 
 Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board (composite, factor scores and close) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade.
 
-`/reflect` prints it as a second attribution block. It is the sample the factor weights and conviction bands are fitted to as it grows. Each factor is scored per strategy version, newest two per market, because a version change redefines what the factor measures.
+`/reflect` prints it as a second attribution block. It is the sample the factor weights and confidence bands are fitted to as it grows. Each factor is scored per strategy version, newest two per market, because a version change redefines what the factor measures.
 
-A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over 2025-01 to 2026-07, it is why the VN stock composite carries no `size` or `sector-strength`, why `quality` is read but carries no weight in the score, and why the conviction cut points are fitted on its 75 weekly boards. Over that stretch a sector that had already run picked weaker names, and the best-run businesses did not beat the board; both pulled medium-conviction buys back to where low ones sat. The population is today's listings, so read it as a shape. Quality still prints on the profit and health lines, still shortlists theme names, and still decides a long holding's thesis sale where no annual report scores.
+A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over 2025-01 to 2026-07, it is why the VN stock composite carries no `size` or `sector-strength`, why `quality` is read but carries no weight in the score, and why the confidence cut points are fitted on its 75 weekly boards. Over that stretch a sector that had already run picked weaker names, and the best-run businesses did not beat the board; both pulled medium-confidence buys back to where low ones sat. The population is today's listings, so read it as a shape. Quality still prints on the profit and health lines, still shortlists theme names, and still decides a long holding's thesis sale where no annual report scores.
 
 A name that stops trading while its market's benchmark keeps printing resolves at its last close, marked as stopped, once the benchmark has printed ten sessions without it and has reached the window end. `/reflect` says how many. Nothing is imputed.
 
@@ -463,7 +463,7 @@ The screener band is `average daily range x breakout_range` either side of the s
 **Briefs** are the one daily run: a single pre-open morning brief. There is no after-close run. Resolved suggestions and fired alerts fold into the next morning's brief.
 
 - Sections that could not be built are marked `unavailable`.
-- Sections with nothing to say that day (no alert fired, no regime change) are `omitted-by-policy`.
+- Sections with nothing to say that day (no alert fired, no market-state change) are `omitted-by-policy`.
 
 The two are kept apart because only one of them is a problem.
 
@@ -483,19 +483,19 @@ Each market publishes only the per-market sections it has data for, so adding a 
 **Reading order.** Every report opens with its answer and closes with its fine print:
 
 - `/suggest` heads with the call (`BUY`, `NO ENTRY today`...), then one price level per line, then the reasoning and what would prove it wrong, then the factors and debate. The evidence day, profile, board scale and index-tier note close the report.
-- `/rebalance` titles itself with the plan in one line (how many names to buy or sell and the money involved); each order keeps its first tranche and weight, and NAV and profile close the page.
+- `/rebalance` titles itself with the plan in one line (how many names to buy or sell and the money involved); each order keeps its first slice and weight, and NAV and profile close the page.
 - `/portfolio` puts a cash-above-target warning right under the headline, and splits cash on hand from profit and loss.
 - `/overview` prints a macro driver table once: a second market reading the same composite says so in one line instead of repeating it.
 - Headlines and citations print as their sources publish them; one in a language other than yours is marked, e.g. `(Vietnamese)`.
 
 **Ladders** show where a reading sits between two ends. The left end is always the one against the reader, and `●` is the reading itself. A reading past either end sits outside the bracket.
 
-- `/overview` draws the composite on a `-1`..`+1` gauge with `┼` at the regime thresholds, and each driver between its bearish and bullish anchors. For a rate the bearish anchor is the larger number, so the ladder does the flip for you.
+- `/overview` draws the composite on a `-1`..`+1` gauge with `┼` at the market-state thresholds, and each driver between its bearish and bullish anchors. For a rate the bearish anchor is the larger number, so the ladder does the flip for you.
 - Each `/portfolio` row with a plan draws its live price between the stop and the take-profit, on its own line and labelled with both prices.
 - A suggestion draws none. A fresh plan's first take-profit sits one risk unit above entry, so the dot would always sit in the middle and say nothing.
 - Tool results relayed by the model print plain wording, with no glyphs to copy.
 
-**Sleeve bars** appear only on phones, under each sleeve's head line: 20 cells of 5% of NAV, so bars compare across rows. `█` is held (`▌` a half cell) and `○` is the one level the row is read against: the target in `/rebalance`, the cap in `/portfolio`. A legend under each table names it. The `○` is hollow so it stays visible inside the filled part. The REPL keeps the plain grid, whose aligned numbers already carry the reading. `/profile` draws no bar: it shows settings, not holdings.
+**Segment bars** appear only on phones, under each segment's head line: 20 cells of 5% of NAV, so bars compare across rows. `█` is held (`▌` a half cell) and `○` is the one level the row is read against: the target in `/rebalance`, the cap in `/portfolio`. A legend under each table names it. The `○` is hollow so it stays visible inside the filled part. The REPL keeps the plain grid, whose aligned numbers already carry the reading. `/profile` draws no bar: it shows settings, not holdings.
 
 **Next index rebalance.** The brief names the next FTSE GEIS or VN30 rebalance session, worked out from the review rule rather than a maintained list. On the eve, every VN suggestion on an index constituent carries the date as a caveat. On the session itself a new buy is refused and held names read the caveat instead. There is no setting: the dates are the exchange's.
 
@@ -505,7 +505,7 @@ A held name is never cut, because its run is what re-prices the plan:
 
 - a fresh stop (ratcheted, never below the standing one);
 - a fresh target;
-- the standing take-profit, kept until its first tranche is sold;
+- the standing take-profit, kept until its first slice is sold;
 - any reduce reason, which the exit alerts arm on the next tick.
 
 A name already suggested today is served from its row at no cost.
@@ -604,7 +604,7 @@ Only the `[trading.refresh]` cadence is configurable. The alert loop and resting
 
 Refresh follows the trading calendar, not a fixed interval. It fires when each session settles (the close plus the auction lag, the same instant that decides whether a session counts as settled) and 60 minutes before each open, so the morning brief and the first screen read fresh data without paying for the fetch inline. Every market with its own hours anchors a tick. The configured interval survives as a ceiling for continuous markets and for an empty registry.
 
-Refresh covers every market you still use: a sleeve switched on in the profile, or a market where you hold a name, watch one, wait on a call to be scored, or get a scheduled brief built on it. A switched-off sleeve drops out only when none of those still reads it, so a holding's stop is never left without prices. With no profile yet, every market refreshes. A failed read of that set refreshes everything. The morning brief describes the same set, and naming a market on `/refresh` refreshes it regardless.
+Refresh covers every market you still use: a segment switched on in the profile, or a market where you hold a name, watch one, wait on a call to be scored, or get a scheduled brief built on it. A switched-off segment drops out only when none of those still reads it, so a holding's stop is never left without prices. With no profile yet, every market refreshes. A failed read of that set refreshes everything. The morning brief describes the same set, and naming a market on `/refresh` refreshes it regardless.
 
 Markets run together, not one after another. They share almost no source, the pacer meters the few they do, and making each wait for the last would only add up independent hosts.
 
@@ -622,11 +622,11 @@ Inside the VN board the same idea applies. Price history, financial ratios and t
 
 The refresh anchors put two passes inside that window (15:15 and 08:00 for a VN board). After the open the session is gone for good. A name the sweep could not record is therefore named under its market in the `/refresh` view, since a miss no later pass can fill is a hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends no VN source's budget.
 
-A name neither held nor watched is never swept, which is every buy candidate. `/suggest` reads the tape itself for the session it is judging and stores nothing; a stored row would otherwise join a brief section that lists what you follow. Both readers ask for the same day, so a stored row from an earlier session never stands in for the session being judged.
+A name neither held nor watched is never swept, which is every buy candidate. `/suggest` reads the buy/sell split itself for the session it is judging and stores nothing; a stored row would otherwise join a brief section that lists what you follow. Both readers ask for the same day, so a stored row from an earlier session never stands in for the session being judged.
 
-**One tape signal on every VN screen row:** a *foreign flip*. Foreign net selling, as a share of turnover, is two standard deviations below a trailing mean that was net buying, after a rise of 3% or more over four sessions. It changes no score. A suggestion on a name showing it carries it as a caveat, and the factor log carries it so the forward record can say what it was worth before it earns a weight.
+**One trading-flow signal on every VN screen row:** a *foreign flip*. Foreign net selling, as a share of turnover, is two standard deviations below a trailing mean that was net buying, after a rise of 3% or more over four sessions. It changes no score. A suggestion on a name showing it carries it as a caveat, and the factor log carries it so the forward record can say what it was worth before it earns a weight.
 
-**Crypto reads its own tape.** Two signals ride on every crypto screen row and are logged with its factor scores:
+**Crypto reads its own trading flow.** Two signals ride on every crypto screen row and are logged with its factor scores:
 
 - A *washout that held*: a session down at least 5% over four sessions, on relative volume of at least 1.5, closing in the bottom fifth of its range, whose low every later session has held, read for the two to four sessions after it.
 - A *leverage-led rally*: open-interest contracts up at least twice as much as price over the same three sessions, on a rise of 5% or more.
@@ -826,7 +826,7 @@ A valued position is either:
 
 A missing price is never rendered as zero. Zero is a claim the valuation did not make, and it matters when it is your whole position in a suspended name.
 
-A coin held at two custodians is merged into one exposure, so it is quoted once, weighted once and converted at one rate. Sector caps, sleeve caps and the rebalancer all work from that merged exposure.
+A coin held at two custodians is merged into one exposure, so it is quoted once, weighted once and converted at one rate. Sector caps, segment caps and the rebalancer all work from that merged exposure.
 
 #### Two rates, and which currency each market settles in
 
@@ -870,6 +870,58 @@ history:
 `/record sync` reads fills only from the book's first row on, so it cannot book coins bought earlier.
 With the venue's key set, `/reconcile` checks the result against the real balance.
 
+Holding a few shares, sold a few at a loss, and don't want to retype every old trade? You don't have
+to. The book needs three things: what you put in, what you hold at what cost, and what you lost on what
+you sold.
+
+```text
+/record deposit vps 200000000 VND 2026-10-01                 # everything you deposited
+/record buy vps equity-vn:FPT 1000 95000 VND 0 2026-10-01    # one line per name you hold
+/record buy vps equity-vn:HPG 2000 26000 VND 0 2026-10-01
+/record loss vps 15000000 VND 2026-10-16                     # the total lost on what you sold
+```
+
+- **Holdings:** take quantity and average cost from your broker's app, with a fee of `0`. That average
+  already includes fees; leave the fee out and the book charges it again. The confirmation adds a
+  "Fee is -100% off" note; ignore it.
+- **Date the buys a few days back.** VN shares settle T+2, so a buy dated today cannot be sold in the
+  book for two sessions.
+- **Book the loss as `loss`**, not `withdrawal` or `fee`. A withdrawal reads as money you took home and
+  flatters your return; a fee reads as brokerage. `loss` takes the cash out but leaves what you deposited
+  alone, so `/portfolio` shows it as "Realised P/L on closed trades: -15,000,000 VND".
+- **The deposit has to come first.** Every write checks the whole book, and a buy or loss with no cash
+  behind it is refused.
+
+Then open `/portfolio` and compare its cash with your broker's balance. Here: 200 million in, less 95
+million FPT, 52 million HPG and the 15 million loss, leaves 38 million. A gap usually means the loss or
+an average cost is off; fix it with `/update <id>` rather than adding a row.
+
+**Crypto works the same way**, in USDT:
+
+```text
+/record deposit binance 2000 USDT 2026-10-16 fx 26500        # all the USDT you deposited, at the rate you paid
+/record buy binance crypto:BTC 0.01 60000 USDT 0 2026-10-16  # one line per coin you hold
+/record buy binance crypto:ETH 0.2 2500 USDT 0 2026-10-16
+/record loss binance 300 USDT 2026-10-16                     # the total lost on coins you sold
+```
+
+- **No `fx` on the loss.** The venue already holds USDT, so the loss comes out of it at the cost on your
+  deposit line. Add `fx` and the book refuses it and asks you to drop it.
+- **Today's date is fine**, since coins don't wait for T+2.
+- A coin buy with a `0` fee prints two notes, "Fee is -100% off" and "Binance takes the fee in BTC...".
+  For an opening balance ignore both, as long as the quantity matches what the exchange shows.
+- **Each coin gets an exit plan straight away** (stop and take-profit), measured from the cost you
+  typed. A coin that has run far from its cost can have levels well away from today's price;
+  `/portfolio` shows how far.
+- **Check:** the USDT in `/portfolio` should equal the exchange's. Here: 2,000 in, less 600 on BTC, 500
+  on ETH and the 300 loss, leaves 600 USDT. With the venue's key set, `/reconcile` checks it for you.
+
+If the book doesn't need to remember the old loss, skip it: deposit your current cash plus what your
+holdings cost, and drop the `loss` line. Profit and loss then start from today.
+
+Either way, the history of each name you sold is gone: `/transactions` shows one loss line. `/reflect`
+is unaffected, because it scores the assistant's calls, not your trades.
+
 - **Which rows move it.** A USDT deposit, withdrawal, fee, loss or transfer always does. Once a venue holds USDT, every USDT buy and sale there does too: a buy spends USDT at its average cost and carries that cost into what it buys, and a sale returns its proceeds to the USDT. The first USDT recorded at a venue changes how later trades there are paid, a deposit dated before trades the venue funded in VND included, and those trades can then be refused. To switch a VND-funded venue over, withdraw the VND, then deposit the USDT with `fx`.
 - **The rate goes on the deposit, not the buy.** A buy, sale, fee or transfer paid from USDT the venue holds takes no rate, so `fx` on that row is refused with the reason rather than dropped. The P2P price you paid belongs on the USDT deposit.
 - **A withdrawal realizes the currency move.** The USDT leaves at its average cost, but net deposits fall by what it was worth that day. Deposit 1,000 at 26,600, then withdraw 1,000 at 27,000, and realized P/L is +400,000 VND with cash back at zero.
@@ -910,17 +962,17 @@ The health rules produce these findings, each carrying the **subject** it is abo
 
 | Finding | Fires when |
 |---|---|
-| `segment-cap-breach` | a sleeve is above its ceiling |
-| `etf-cap-breach` | a sleeve's ETFs together are above that sleeve's ETF ceiling |
-| `segment-drift` | a sleeve is 5 points or more from its target |
+| `segment-cap-breach` | a segment is above its ceiling |
+| `etf-cap-breach` | a segment's ETFs together are above that segment's ETF ceiling |
+| `segment-drift` | a segment is 5 points or more from its target |
 | `position-cap-breach` | one name is above the per-position ceiling for its segment |
-| `concentration` | one name is 20% or more of NAV (a fund under its sleeve's ETF ceiling is exempt) |
+| `concentration` | one name is 20% or more of NAV (a fund under its segment's ETF ceiling is exempt) |
 | `sector-cap-breach` | a sector is above `maximum-sector-pct-nav` |
 | `reserve-below-target` | cash is below `reserve-pct-nav` |
 | `excluded-holding` | you still hold something on your exclusion list |
 | `illiquid-position` | a position would take more than 5 sessions to exit |
 
-An ETF never counts toward a sector weight: its source sector names the vehicle, not the basket, so the sleeve's ETF ceiling bounds it instead. That ceiling replaces the per-name cap for the fund, here and when a suggestion sizes one; a sleeve with no ETF ceiling keeps the per-name cap for its funds too.
+An ETF never counts toward a sector weight: its source sector names the vehicle, not the basket, so the segment's ETF ceiling bounds it instead. That ceiling replaces the per-name cap for the fund, here and when a suggestion sizes one; a segment with no ETF ceiling keeps the per-name cap for its funds too.
 
 Every finding that crosses a numeric limit names both sides of it, the weight it measured and the cap or target it breached, so you can check the sentence against the book. Both are printed at one resolution on every surface. `excluded-holding` and `illiquid-position` carry no such pair: neither breaches a number, and the second already names its own sessions.
 
@@ -939,36 +991,39 @@ openalpha chat --message "/profile reset"
 **Settable fields:**
 
 - `preferred-locale`, `risk-level`, `risk-capacity`, `risk-willingness`, `horizon`, `goal`
-- `maximum-sector-pct-nav`, `reserve-pct-nav`, `regime-scale`
-- `risk-per-trade-pct-nav`, `maximum-open-risk-pct-nav`
+- `maximum-sector-pct-nav` - the most of your total assets one sector may take
+- `reserve-pct-nav` - the cash you always keep
+- `regime-scale` - the most of a planned buy that is used each time (0.75 uses 75%); a defensive market can lower it further
+- `risk-per-trade-pct-nav` - the most one new buy may lose at its stop-loss
+- `maximum-open-risk-pct-nav` - the most every holding may lose together at their stops
 - `entry-tranche-pct` - the share of a new buy placed first (0.5 by default)
 - `take-profit-tranche-pct` - the share sold at the first target and in a reduce (a third by default)
 
-Both tranche fields take 0.2 to 1.
+Both fields take 0.2 to 1.
 
-**Sleeve policy** has its own forms:
+**Segment policy** has its own forms:
 
-- `horizon <sleeve> <short|long>`
-- `segment-target`, `segment-cap` and `position-cap`, each taking a sleeve and a fraction
-- `/profile enable|disable <sleeve>` turns a sleeve on or off
+- `horizon <segment> <short|long>`
+- `segment-target`, `segment-cap` and `position-cap`, each taking a segment and a fraction
+- `/profile enable|disable <segment>` turns a segment on or off
 
-A sleeve no venue trades (world gold, kept for its price and the `gold-vn` premium) stays off, and enabling it is refused. `/suggest` on one of its names still gives the factor read and levels, as a hold with the reason `reference-only`, and runs no debate. The usage text of `/profile`, `/record` and `/rebalance` leaves it out, and `/overview` prints its macro read without the line on how much of a planned buy to spend, since nothing is bought there.
+A segment no venue trades (world gold, kept for its price and the `gold-vn` premium) stays off, and enabling it is refused. `/suggest` on one of its names still gives the factor read and levels, as a hold with the reason `reference-only`, and runs no debate. The usage text of `/profile`, `/record` and `/rebalance` leaves it out, and `/overview` prints its macro read without the line on how much of a planned buy to spend, since nothing is bought there.
 
 `maximum-open-risk-pct-nav` bounds what every held name may lose at its planned stop together. A new buy is sized into the room left under it, and a held name with no planned stop is reported rather than counted as safe.
 
 `risk-level` and the pair `risk-capacity`/`risk-willingness` are **mutually exclusive**. The level is the shorthand and the pair is the derivation behind it. A write that sends both is rejected. The `profile_update` tool builds that rule into its own schema, so the model is told to retry before you are asked to approve a write that cannot land.
 
-**Units.** Profile policy fields are **fractions** (`0.25`), while every weight shown in a view is a **percentage** (`25`). The suffix `pct-nav` appears on both.
+**Units.** Profile policy fields are **fractions** (`0.25`), while every weight shown in a view is a **percentage** (`25`). The suffix `pct-nav` means a share of NAV, your total assets, and appears on both.
 
 Risk level sets the defaults, and bounds limit what you may set. A per-trade risk of 40% of NAV is rejected, not accepted and then quietly ignored. The refusal names the field you typed and the range it allows.
 
-Changing the risk level re-seeds the caps for the new level, but two things you set yourself stay: a sleeve's target and a sleeve's ETF core. A core above the new ETF cap is held at the cap and comes back to your number once the cap widens again. Turning a sleeve off and on keeps it too. `/profile reset` clears both.
+Changing the risk level re-seeds the caps for the new level, but two things you set yourself stay: a segment's target and a segment's ETF core. A core above the new ETF cap is held at the cap and comes back to your number once the cap widens again. Turning a segment off and on keeps it too. `/profile reset` clears both.
 
 Every screen whose numbers the profile shaped names it once, in the last line of its headline: `/portfolio`, `/rebalance` and a stored suggestion. The stamp is identity only (risk, horizon, goal, plus a marker when nothing was saved), because every limit already prints where it binds. A stored suggestion carries the stamp it was sized under, so viewing it again states the policy its numbers came from, not the one in force when you look. `/reflect` carries none for the same reason: its rows were sized under whatever applied on each of their days.
 
 ### Advice
 
-Advice is either **ready** (segment allocation, per-position rebalance, a cash-sleeve posture and weak holdings) or **unavailable**, with one of four reasons:
+Advice is either **ready** (segment allocation, per-position rebalance, a cash segment posture and weak holdings) or **unavailable**, with one of four reasons:
 
 | Reason | Meaning |
 |---|---|
@@ -979,20 +1034,20 @@ Advice is either **ready** (segment allocation, per-position rebalance, a cash-s
 
 An unavailable answer still carries the findings, because "you are over your sector cap" stays true when one holding is unpriced.
 
-A sleeve the plan could not fund to target raises one caveat naming that sleeve. Each sleeve gets its own slice of the deployable pool, so a plan-wide shortfall would otherwise blame a neighbour's exhausted budget on whichever name sat below target.
+A segment the plan could not fund to target raises one caveat naming that segment. Each segment gets its own slice of the deployable pool, so a plan-wide shortfall would otherwise blame a neighbour's exhausted budget on whichever name sat below target.
 
-The deployment ceiling that gets printed is the whole book's, not one sleeve's. The pool is split by profile target weight and each slice is held to its own sleeve's macro read, so a defensive sleeve beside a neutral one produces a blend that matches neither. Every screen that prints the figure also states the per-sleeve regimes behind it.
+The deployment ceiling that gets printed is the whole book's, not one segment's. The pool is split by profile target weight and each slice is held to its own segment's macro read, so a defensive segment beside a neutral one produces a blend that matches neither. Every screen that prints the figure also states the market state of each segment behind it.
 
 **`/rebalance` and `/suggest` size the same name against different things, and both answers are correct.**
 
-- The plan takes the gap to target and holds it to the sleeve budget, the per-name cap and the board lot.
-- The suggestion takes the tightest of its own ceilings and scales it by the tightest of conviction, the trader's intent and the regime (never their product).
+- The plan takes the gap to target and holds it to the segment budget, the per-name cap and the board lot.
+- The suggestion takes the tightest of its own ceilings and scales it by the tightest of confidence, the trader's intent and the market state (never their product).
 
 So a name the plan lists may be one the suggestion declines that day. The plan says so where it lists a buy. It does not run the debate, so it costs nothing in model calls.
 
 A gap the plan cannot close in one lot is said out loud rather than left to look like convergence, but only while it is a gap you can act on. Below the resolution the sentence prints at, the name is at target for every practical purpose, and a note claiming it sits `0%` off would read as the plan arguing with itself.
 
-One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. An `over-target` trim is not that verdict. It is this plan's own drift rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the sleeve's unfilled gap stays unfilled and is reported as cash.
+One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. An `over-target` trim is not that verdict. It is this plan's own drift rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
 
 With no names, `/rebalance` sizes your holdings plus the saved watchlist. Naming tickers sizes exactly those. Each order line states the amount in the book's base currency and the price in the market's own quote currency (what the venue takes), so a board-scaled market prints its points with no currency while a coin prints its own. A price takes the decimals its currency actually has: VND, JPY and KRW have no minor unit, so a dong price prints whole.
 
@@ -1100,9 +1155,9 @@ You can rename the variables in `credentials` under `[trading.venues.okx]`, and 
 
 The `order_place` and `order_exits` tools follow the same gate, so an install that never configures an exchange has no order surface at all.
 
-**Approval.** `order_place` asks you on every call, offers no remembered decision, and refuses outright when the run's approval mode is `bypass`, unless `[trading.orders] allow_unattended` is set. A take-profit or stop-loss rides a buy only: `order_place` refuses one on a sell, as `/trade` does. Orders are sized and checked against a live price only; when the exchange reading is a stored close or a stale print, the order is held back with a plain note to try again. A buy that would take a holding, sector or sleeve past its cap is refused there too, and the agent tells you which; place it with `/trade`, which shows the breach before you confirm. A buy of an ETF into a sleeve whose ETF share cannot be measured (a holding there has no resolved kind) counts as a breach of any ETF ceiling the sleeve declares: the caps cannot be checked, so it is not waved through.
+**Approval.** `order_place` asks you on every call, offers no remembered decision, and refuses outright when the run's approval mode is `bypass`, unless `[trading.orders] allow_unattended` is set. A take-profit or stop-loss rides a buy only: `order_place` refuses one on a sell, as `/trade` does. Orders are sized and checked against a live price only; when the exchange reading is a stored close or a stale print, the order is held back with a plain note to try again. A buy that would take a holding, sector or segment past its cap is refused there too, and the agent tells you which; place it with `/trade`, which shows the breach before you confirm. A buy of an ETF into a segment whose ETF share cannot be measured (a holding there has no resolved kind) counts as a breach of any ETF ceiling the segment declares: the caps cannot be checked, so it is not waved through.
 
-With a saved profile, a buy is refused while any holding in the book has no price (`order.book_unpriced`), on `/trade` and `order_place` alike. Without a price for every holding there is no total, so no position, sleeve or ETF cap can be measured, and an order that skipped them would clear them all. `/portfolio` names the holding; `/refresh` its market to load a price, then place the order again. A sell, and a buy with no saved profile, are not held back.
+With a saved profile, a buy is refused while any holding in the book has no price (`order.book_unpriced`), on `/trade` and `order_place` alike. Without a price for every holding there is no total, so no position, segment or ETF cap can be measured, and an order that skipped them would clear them all. `/portfolio` names the holding; `/refresh` its market to load a price, then place the order again. A sell, and a buy with no saved profile, are not held back.
 
 When an order is refused for size (a sale larger than what has settled, or than what a resting exit has frozen), the figure appears in your `/trade` reply but never in what an agent reads.
 

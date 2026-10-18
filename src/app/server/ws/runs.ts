@@ -2,9 +2,10 @@ import type { ServerWebSocket } from 'bun'
 
 import type { ServerFrame } from '@/app/server/wire/socket'
 import type { WsData } from '@/app/server/ws/socket'
+import type { OperatorMessage } from '@/core/errors'
 import type { SessionId } from '@/core/ids'
 import { operatorText, toErrorCode } from '@/app/server/http/dispatch'
-import { t } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 
 /** False when the socket dropped the frame (closed, or its buffer is full): Bun answers 0 then,
  *  -1 for a frame queued behind backpressure, and the byte count otherwise. */
@@ -21,6 +22,19 @@ export function sendRunError(ws: ServerWebSocket<WsData>, err: unknown): void {
     kind: 'error',
     code: toErrorCode(err),
     message: operatorText(locale, err) ?? t(locale, 'errors.unexpected'),
+  })
+}
+
+/** A run that failed on something the operator can fix (a model key not set): their sentence goes
+ *  in an error frame, and the `done` that follows still closes the turn. */
+export function sendOperatorFailure(ws: ServerWebSocket<WsData>, operator: OperatorMessage): void {
+  const { locale } = ws.data.services
+
+  send(ws, {
+    type: 'chat',
+    kind: 'error',
+    code: 'unavailable',
+    message: bindLocale(locale).translate(operator.key, operator.params),
   })
 }
 

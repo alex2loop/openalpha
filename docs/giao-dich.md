@@ -226,10 +226,10 @@ Mỗi vai được hỏi tối đa hai lần. Nếu câu trả lời sai schema,
 
 1. Chế độ bạn đã gõ rõ thì giữ nguyên.
 2. `force` nghĩa là full.
-3. Bản nháp mà cuốn sổ đã quyết (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) chạy lean, vì tranh luận chỉ hạ được xuống nên không đổi được nó.
+3. Bản nháp mà cuốn sổ đã quyết (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) chạy lean, vì tranh luận chỉ hạ được xuống nên không đổi được nó. Báo cáo nói rõ là điểm số (ba lý do `factors-*`) hay danh mục đã chốt kết quả, và chỉ lệnh `/suggest <mã> full` để đọc đủ lập luận.
 4. Mọi trường hợp khác dùng chế độ đã cấu hình.
 
-Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lại. Nếu không, mặc định lean sẽ khiến nó bị chạy lại mỗi ngày trên cấu hình full.
+Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lại. Nếu không, mặc định lean sẽ khiến nó bị chạy lại mỗi ngày trên cấu hình full. Riêng khi bạn gõ rõ `full`, lệnh chạy lại qua dòng lean đó và thay nó, nên hỏi lập luận đầy đủ thì không bao giờ nhận lại bản rút gọn.
 
 #### Kiểm tra những gì cuộc tranh luận nói
 
@@ -251,7 +251,7 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 `reduce` mang theo một lý do. `over-target` là phần cắt bớt (trim) theo kế hoạch. Các lý do còn lại là bằng chứng đang quay sang chống lại một mã bạn nắm, mỗi lý do bán một phần tỷ lệ riêng của vị thế:
 
 - `structure-broken` - một giá đóng dưới mức thấp của các phiên trước nó, từ chính số đọc của thị trường.
-- `regime-risk-off`
+- `regime-risk-off` - trạng thái thị trường của nhóm chuyển sang phòng thủ.
 - `thesis-weakening`
 - `overheated` - bên long đang trả funding chen chúc.
 - `stale` - một cửa sổ nắm giữ đầy mà vẫn ở giá vốn.
@@ -288,7 +288,7 @@ Bằng chứng và giá có thể kết thúc ở hai phiên khác nhau, nên m�
 
 Các số đọc mà dòng không hiện vẫn nằm trong phép tính. Thị trường nào có yếu tố mà danh sách chưa có dòng thì giữ bảng yếu tố.
 
-**Chế độ VN giữ nguyên cho tới khi điểm rời hẳn nó.** Vào một chế độ ở +-0,25 và chỉ rời khi điểm quay lại trong +-0,15, nên một chỉ số tổng hợp lởn vởn trên ngưỡng không làm dịch triển khai mỗi ngày. `macro.regime-held` báo khi dải giữ được chỗ mà điểm trần lẽ ra đã lật. Trí nhớ là lần đọc đã xếp hạng gần nhất đã lưu trong vòng năm phiên; cũ hơn nghĩa là daemon đã tắt, không phải thị trường lặng. Nó chỉ áp với VN, thị trường duy nhất lưu các số đọc của mình.
+**Trạng thái thị trường VN giữ nguyên cho tới khi điểm rời hẳn nó.** Vào một trạng thái ở +-0,25 và chỉ rời khi điểm quay lại trong +-0,15, nên một chỉ số tổng hợp lởn vởn trên ngưỡng không làm dịch triển khai mỗi ngày. `macro.regime-held` báo khi dải giữ được chỗ mà điểm trần lẽ ra đã lật. Trí nhớ là lần đọc đã xếp hạng gần nhất đã lưu trong vòng năm phiên; cũ hơn nghĩa là daemon đã tắt, không phải thị trường lặng. Nó chỉ áp với VN, thị trường duy nhất lưu các số đọc của mình.
 
 #### Một mã đang nắm được lập kế hoạch mà không cần ai hỏi
 
@@ -296,7 +296,7 @@ Lệnh mua được ghi mà chưa có kế hoạch nào đang đứng sẽ nhậ
 
 Nhịp cảnh báo cũng ghi đúng dòng đó, từ giá đóng đã settle, cho mã đang nắm nào chưa có gì theo dõi, rồi gửi một thông báo.
 
-Đây là kế hoạch mà mã được cắt lỗ, đặt mục tiêu và trail theo, cho tới khi `/suggest` thay nó. Kế hoạch đã ghi không bao giờ thỏa cổng dùng lại và không bắt đầu thời gian chờ.
+Đây là kế hoạch mà mã được cắt lỗ, đặt mục tiêu và trail theo, cho tới khi `/suggest` thay nó. Kế hoạch đã ghi không bao giờ thỏa cổng dùng lại và không bắt đầu thời gian chờ. Một lượt chạy mà phần tranh luận không trả lời được (chưa có khóa mô hình, một vai bị lỗi, hết ngân sách) thì chưa quyết định gì: bạn vẫn thấy kết quả kèm lý do, nhưng nó không được lưu, nên không bao giờ thay kế hoạch đang có.
 
 - Kế hoạch của một lời gọi hết hiệu lực khi nhịp kết cục chốt nó; kế hoạch đã ghi hết hiệu lực khi giá đóng đã settle vượt qua một trong hai mức.
 - Dù cách nào, nhịp kế tiếp lập kế hoạch mới từ mức mã đang giao dịch, với sàn là mức cắt lỗ cũ chừng nào mức đó còn dưới giá.
@@ -321,7 +321,7 @@ Trần đuổi giá trong kế hoạch chính là ngưỡng đó quy ra giá: (m
 - `reward_risk` - mục tiêu bằng bao nhiêu lần khoảng rủi ro;
 - `maximum_stop_loss` - trần cứng, tính bằng phần của giá vào.
 
-`stop_loss_atr` và `reward_risk` thay giá trị riêng của thị trường cho cả hai tầm nhìn. Khi cắt lỗ theo ATR nằm xa hơn trần, cắt lỗ được kéo vào sát ngay trong trần, không bao giờ vượt một tick. Mục tiêu và chốt lời đầu tiên được đặt theo khoảng rủi ro nhỏ hơn đó, nên R:R không đổi và cỡ lệnh lớn lên theo khoảng ngắn hơn. Kế hoạch khi đó mang `market.stop-capped`. Với `gold-vn`, trần tính xuống từ giá cửa hàng mua lại, nên chênh lệch mua/bán cộng thêm ở trên.
+`stop_loss_atr` và `reward_risk` thay giá trị riêng của thị trường cho cả hai tầm nhìn. Khi cắt lỗ theo ATR nằm xa hơn trần, cắt lỗ được kéo vào sát ngay trong trần, không bao giờ vượt một tick. Mục tiêu và chốt lời đầu tiên được đặt theo khoảng rủi ro nhỏ hơn đó, nên tỷ lệ lợi/rủi ro không đổi và cỡ lệnh lớn lên theo khoảng ngắn hơn. Kế hoạch khi đó mang `market.stop-capped`. Với `gold-vn`, trần tính xuống từ giá cửa hàng mua lại, nên chênh lệch mua/bán cộng thêm ở trên.
 
 Đặt bất kỳ khóa nào trong ba khóa này sẽ thêm hậu tố vào phiên bản chiến lược của thị trường đó (`1.0.0+3f9a1c0b`). Kế hoạch định giá theo khóa của bạn giữ bảng thành tích riêng, không bao giờ được phục vụ lại khi khóa đổi, và mã đang nắm được lập kế hoạch lại một lần. Cắt lỗ chỉ nâng lên, nên nới khóa không bao giờ hạ một mức cắt lỗ bạn đang giữ. Các khóa và khoảng giá trị: [Cấu hình](cau-hinh.md).
 
@@ -333,9 +333,9 @@ Khi một mã đã tăng 25% trở lên qua bảy phiên đã settle gần nhấ
 
 #### Cỡ lệnh
 
-Cỡ lệnh được lập ngân sách trên cắt lỗ lúc vào; chế độ (regime) co cả lệnh. Trần rủi ro chia ngân sách mỗi lệnh cho khoảng ATR từ giá vào tới cắt lỗ, không bao giờ cho một mức cắt lỗ đã bị trail hay ratchet kéo gần lại. Lối thoát chặt hơn không phải một ván cược nhỏ hơn.
+Cỡ lệnh được lập ngân sách trên cắt lỗ lúc vào; trạng thái thị trường (regime) co cả lệnh. Trần rủi ro chia ngân sách mỗi lệnh cho khoảng ATR từ giá vào tới cắt lỗ, không bao giờ cho một mức cắt lỗ đã bị trail hay ratchet kéo gần lại. Lối thoát chặt hơn không phải một ván cược nhỏ hơn.
 
-Hệ số chế độ của nhóm giảm cỡ cuối cùng, cùng với mức tin cậy và ý định của trader. Một nhận định risk-off nên thu nhỏ lệnh mua kể cả khi tiền mặt không phải trần ràng buộc. `suggestion.size-scaled-by-regime` báo khi chế độ là cái chặt nhất trong ba.
+Hệ số trạng thái thị trường của nhóm giảm cỡ cuối cùng, cùng với mức tin cậy và ý định của trader. Một nhận định phòng thủ nên thu nhỏ lệnh mua kể cả khi tiền mặt không phải trần ràng buộc. `suggestion.size-scaled-by-regime` báo khi trạng thái thị trường là cái chặt nhất trong ba.
 
 Mọi mã trong một lượt `/suggest` đều được tính cỡ trên cùng cuốn sổ như nó đứng trước lượt đó, nên mỗi lệnh mua tự nó vừa với tiền mặt và phần rủi ro mở còn lại. Sau các kết luận, "Nếu bạn thực hiện mọi đề xuất ở trên" liệt kê những gì hai lệnh mua trở lên cùng vượt: trần ngành hoặc nhóm, số tiền mặt sổ có thể chi (và, khi venue của một thị trường chạm tới ít hơn, tiền mặt của thị trường đó), và phần còn lại dưới trần rủi ro mở. Lệnh bán chưa giải phóng tiền mặt hay rủi ro mở cho tới khi nó settle, nên chỉ lệnh mua được tính. Đó là một ghi chú, không phải lời từ chối; con số rủi ro mở đọc cắt lỗ đã lưu của từng lệnh mua, nên một cắt lỗ đã được nâng theo mức đang nắm khiến nó nghiêng về phía im lặng.
 
@@ -463,7 +463,7 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` mỗi bê
 **Bản tin** là lần chạy hằng ngày duy nhất: một bản tin sáng trước giờ mở. Không có lần chạy sau giờ đóng. Đề xuất đã chốt và cảnh báo đã nổ được gộp vào bản tin sáng hôm sau.
 
 - Mục không dựng được thì đánh dấu `unavailable`.
-- Mục không có gì để nói hôm đó (không cảnh báo nào nổ, không đổi chế độ) là `omitted-by-policy`.
+- Mục không có gì để nói hôm đó (không cảnh báo nào nổ, không đổi trạng thái thị trường) là `omitted-by-policy`.
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
@@ -490,7 +490,7 @@ Mỗi thị trường chỉ công bố các mục riêng mà nó có dữ liệu
 
 **Thang** cho thấy một số đọc nằm ở đâu giữa hai đầu. Đầu bên trái **luôn** là đầu bất lợi cho người đọc, và `●` là chính số đọc đó. Số đọc vượt quá một trong hai đầu thì nằm ngoài khung.
 
-- `/overview` vẽ chỉ số tổng hợp trên thang `-1`..`+1` với `┼` ở các ngưỡng chế độ, và vẽ từng yếu tố dẫn dắt giữa các neo bearish và bullish của nó. Với lãi suất, neo bearish là con số lớn hơn, nên thang tự làm phép đảo giúp bạn.
+- `/overview` vẽ chỉ số tổng hợp trên thang `-1`..`+1` với `┼` ở các ngưỡng trạng thái, và vẽ từng yếu tố dẫn dắt giữa các neo bearish và bullish của nó. Với lãi suất, neo bearish là con số lớn hơn, nên thang tự làm phép đảo giúp bạn.
 - Mỗi dòng `/portfolio` có kế hoạch vẽ giá trực tiếp của nó giữa mức cắt lỗ và mức chốt lời, trên một dòng riêng, có ghi rõ hai mức giá.
 - Một đề xuất thì không vẽ gì. Mức chốt lời đầu tiên của một kế hoạch mới nằm đúng một đơn vị rủi ro trên giá vào, nên cái dấu sẽ luôn nằm giữa và chẳng nói gì.
 - Kết quả công cụ do mô hình chuyển tiếp in bằng chữ thường, không có glyph nào.
@@ -849,6 +849,62 @@ Khoản nạp bằng đồng tiền mà thị trường của sàn niêm yết, 
 - **Dòng chênh tỷ giá âm ngay sau khi nạp qua P2P.** USDT được tính theo tỷ giá USD/VND thị trường, còn giá vốn là giá P2P bạn đã trả, nên ngay sau khoản nạp ở 26.600 dòng đó đọc khoảng -2% khi tỷ giá thị trường là khoảng 26.036.
 - **Xem ở đâu.** `/portfolio` liệt kê USDT cạnh tiền mặt cùng giá vốn và giá trị hôm nay, và in phần chênh tỷ giá. `/reconcile` đối chiếu nó với số USDT thật trên sàn.
 
+#### Đã có danh mục, không muốn ghi lại từng lệnh cũ
+
+Bạn đang giữ vài mã, đã bán vài mã và lỗ một khoản, nhưng không muốn ngồi gõ lại cả chục lệnh cũ? Không
+cần. Sổ chỉ cần biết ba điều: bạn đã bỏ vào bao nhiêu tiền, đang giữ gì với giá vốn bao nhiêu, và đã
+lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
+
+```text
+/record deposit vps 200000000 VND 2026-10-01                 # tổng tiền đã nạp vào tài khoản
+/record buy vps equity-vn:FPT 1000 95000 VND 0 2026-10-01    # mỗi mã đang giữ một dòng
+/record buy vps equity-vn:HPG 2000 26000 VND 0 2026-10-01
+/record loss vps 15000000 VND 2026-10-16                     # tổng lỗ của các mã đã bán
+```
+
+- **Mã đang giữ:** lấy khối lượng và giá vốn bình quân trong app công ty chứng khoán, phí ghi `0`. Giá
+  bình quân ở đó đã gồm phí, bỏ trống phí thì sổ cộng phí thêm lần nữa. Dòng xác nhận sẽ kèm câu
+  "Phí lệch -100%", cứ bỏ qua.
+- **Ngày mua nên lùi về trước vài hôm.** Cổ phiếu VN về tài khoản sau T+2, nên ghi ngày hôm nay thì
+  hai phiên tới sổ chưa cho bán mã đó.
+- **Khoản lỗ ghi bằng `loss`**, đừng dùng `withdrawal` hay `fee`. Ghi `withdrawal` thì sổ tưởng bạn
+  rút tiền về túi và lãi lỗ trông đẹp hơn thực tế. Ghi `fee` thì khoản lỗ thành phí môi giới. `loss`
+  trừ tiền mà vẫn giữ nguyên số tiền bạn đã nạp, nên `/portfolio` ghi rõ "Lãi/lỗ đã chốt: -15.000.000
+  VND".
+- **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
+  báo ngay.
+
+Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
+nạp, trừ 95 triệu FPT, 52 triệu HPG và 15 triệu lỗ, còn 38 triệu. Lệch thì thường do nhớ sai tổng lỗ
+hoặc giá vốn, sửa bằng `/update <mã>` chứ đừng thêm dòng mới.
+
+**Với crypto** thì y hệt, chỉ khác là mọi thứ tính bằng USDT:
+
+```text
+/record deposit binance 2000 USDT 2026-10-16 fx 26500        # tổng USDT đã nạp, kèm giá bạn trả
+/record buy binance crypto:BTC 0.01 60000 USDT 0 2026-10-16  # mỗi coin đang giữ một dòng
+/record buy binance crypto:ETH 0.2 2500 USDT 0 2026-10-16
+/record loss binance 300 USDT 2026-10-16                     # tổng lỗ của các coin đã bán
+```
+
+- **Dòng lỗ không ghi `fx`.** Sàn đã có USDT nên khoản lỗ trừ vào số USDT đó theo giá vốn bạn ghi ở
+  dòng nạp. Thêm `fx` thì sổ từ chối và nhắc bỏ đi.
+- **Ghi ngày hôm nay cũng được**, vì coin không phải chờ T+2.
+- Dòng mua coin với phí `0` kèm hai câu nhắc: "Phí lệch" và "Binance trừ phí bằng BTC...". Với số dư
+  ban đầu thì cứ bỏ qua cả hai, miễn khối lượng bạn ghi đúng số đang có trên sàn.
+- **Mỗi coin ghi vào được đặt luôn kế hoạch thoát** (cắt lỗ, chốt lời), tính theo giá vốn bạn ghi. Coin
+  đã chạy xa khỏi giá vốn thì các mức này có thể nằm khá xa giá hôm nay; `/portfolio` cho biết cách bao
+  xa.
+- **Đối chiếu:** số USDT trong `/portfolio` phải bằng số USDT trên sàn. Ví dụ trên: 2.000 nạp, trừ 600
+  mua BTC, 500 mua ETH và 300 lỗ, còn 600 USDT. Đã khai khóa API thì `/reconcile` so giúp bạn.
+
+Không cần sổ nhớ khoản lỗ cũ thì đơn giản hơn nữa: nạp đúng số tiền mặt đang có cộng giá vốn các mã
+đang giữ, bỏ dòng `loss`. Lãi lỗ khi đó tính từ hôm nay.
+
+Gộp như vậy thì mất lịch sử từng mã đã bán: `/transactions` chỉ thấy một dòng lỗ. Đề xuất cũ của
+trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm khuyến nghị chứ không chấm giao dịch của
+bạn.
+
 #### Mọi mức giá đều nói nó được lấy thế nào
 
 Một vị thế đã định giá được đánh dấu là:
@@ -911,12 +967,15 @@ openalpha chat --message "/profile reset"
 **Các trường đặt được:**
 
 - `preferred-locale`, `risk-level`, `risk-capacity`, `risk-willingness`, `horizon`, `goal`
-- `maximum-sector-pct-nav`, `reserve-pct-nav`, `regime-scale`
-- `risk-per-trade-pct-nav`, `maximum-open-risk-pct-nav`
+- `maximum-sector-pct-nav` - phần tối đa của tổng tài sản được dồn vào một ngành
+- `reserve-pct-nav` - phần tiền mặt luôn giữ lại
+- `regime-scale` - mỗi lần mua chỉ dùng tối đa chừng này số tiền định mua (0,75 là 75%); thị trường phòng thủ có thể hạ thấp hơn nữa
+- `risk-per-trade-pct-nav` - mức lỗ tối đa nếu một lệnh mua mới chạm cắt lỗ
+- `maximum-open-risk-pct-nav` - mức lỗ tối đa nếu mọi vị thế đang nắm cùng chạm cắt lỗ
 - `entry-tranche-pct` - phần của lệnh mua mới được vào trước (mặc định 0,5)
 - `take-profit-tranche-pct` - phần bán ở mục tiêu đầu tiên và trong một reduce (mặc định một phần ba)
 
-Cả hai trường tranche nhận từ 0,2 tới 1.
+Cả hai trường này nhận từ 0,2 tới 1.
 
 **Chính sách nhóm** có các dạng riêng:
 
@@ -930,7 +989,7 @@ Một nhóm mà sàn nào cũng không giao dịch (vàng thế giới, giữ l�
 
 `risk-level` và cặp `risk-capacity`/`risk-willingness` **loại trừ lẫn nhau**. Level là cách viết tắt và cặp kia là phép suy ra đứng sau nó. Một lần ghi gửi cả hai bị từ chối. Công cụ `profile_update` dựng quy tắc đó vào chính schema của nó, nên mô hình được bảo thử lại trước khi bạn bị hỏi duyệt một lần ghi không thể hạ cánh.
 
-**Đơn vị.** Các trường chính sách trong hồ sơ là **phân số** (`0.25`), còn mọi tỷ trọng hiện trong một khung nhìn là **phần trăm** (`25`). Hậu tố `pct-nav` xuất hiện ở cả hai.
+**Đơn vị.** Các trường chính sách trong hồ sơ là **phân số** (`0.25`), còn mọi tỷ trọng hiện trong một khung nhìn là **phần trăm** (`25`). Hậu tố `pct-nav` là một phần của tổng tài sản (NAV) và xuất hiện ở cả hai.
 
 Risk level đặt các mặc định, và các biên giới hạn những gì bạn đặt được. Rủi ro mỗi lệnh 40% NAV bị từ chối, không phải được nhận rồi lặng lẽ bỏ qua. Lời từ chối nêu tên trường bạn gõ và khoảng nó cho phép.
 
@@ -958,7 +1017,7 @@ Trần triển khai được in ra là của cả cuốn sổ, không phải c�
 **`/rebalance` và `/suggest` định cỡ cùng một mã theo các thứ khác nhau, và cả hai câu trả lời đều đúng.**
 
 - Kế hoạch lấy khoảng cách tới mục tiêu và giữ nó trong ngân sách nhóm, trần mỗi mã và lô chẵn.
-- Đề xuất lấy trần chặt nhất trong các trần của chính nó và co nó theo cái chặt nhất trong mức tin cậy, ý định của trader và chế độ (không bao giờ là tích của chúng).
+- Đề xuất lấy trần chặt nhất trong các trần của chính nó và co nó theo cái chặt nhất trong mức tin cậy, ý định của trader và trạng thái thị trường (không bao giờ là tích của chúng).
 
 Nên một mã mà kế hoạch liệt kê có thể là mã mà đề xuất từ chối hôm đó. Kế hoạch nói vậy ở chỗ nó liệt kê một lệnh mua. Nó không chạy tranh luận, nên không tốn lời gọi mô hình nào.
 

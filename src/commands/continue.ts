@@ -7,7 +7,7 @@ import type {
 } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 
-const MESSAGE_KEYS = ['slash.continueNudge'] as const
+const MESSAGE_KEYS = ['slash.continueNudge', 'slash.continueNothing'] as const
 const DESCRIPTION: CommandDescription = { kind: 'localized', key: 'slash.continueHelp' }
 const POLICY = {
   surfaces: ['channel', 'repl'],
@@ -20,15 +20,28 @@ const POLICY = {
  *  surface, and `commands` has no i18n edge. */
 export type ContinueNudge = (locale: Locale) => string
 
-export function createContinueCommand(nudge: ContinueNudge): SlashCommand {
+/** Whether the chat's session holds a run that ended before finishing; a fresh session or one
+ *  whose last run completed has nothing to resume. */
+type StoppedRunCheck = (ctx: SlashContext) => Promise<boolean>
+
+export interface ContinueCommandDeps {
+  readonly nudge: ContinueNudge
+  readonly hasStoppedRun: StoppedRunCheck
+}
+
+export function createContinueCommand(deps: ContinueCommandDeps): SlashCommand {
   return {
     name: 'continue',
     description: DESCRIPTION,
     messageKeys: [...MESSAGE_KEYS],
     policy: POLICY,
-    run: async (ctx: SlashContext): Promise<SlashResult> => ({
-      kind: 'agent',
-      retryMessage: nudge(ctx.locale),
-    }),
+    run: async (ctx: SlashContext): Promise<SlashResult> => {
+      // Nudging a session with nothing stopped would only send the model a bare "carry on".
+      if (!(await deps.hasStoppedRun(ctx))) {
+        return { kind: 'message', messages: [{ key: 'slash.continueNothing' }] }
+      }
+
+      return { kind: 'agent', retryMessage: deps.nudge(ctx.locale) }
+    },
   }
 }

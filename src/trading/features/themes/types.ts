@@ -2,6 +2,7 @@ import type { ChannelId } from '@/core/channels'
 import type { BrandTag, SessionId } from '@/core/ids'
 import type { ProgressReporter } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
+import type { ThemeScorecard } from '@/trading/features/themes/outcomes/scorecard-types'
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { FiscalQuarter } from '@/trading/kernel/market/annual-accounts'
 import type { ICB_SUPERSECTORS } from '@/trading/kernel/market/market-data'
@@ -143,20 +144,6 @@ export type ScoreConfidence = (typeof SCORE_CONFIDENCES)[number]
 
 /** Months after a stock read at which its return is measured against VN-Index. */
 export const OUTCOME_HORIZONS_MONTHS: readonly number[] = Object.freeze([3, 6, 12])
-
-export const SCORE_BUCKETS = Object.freeze(['high', 'middle', 'low'] as const)
-export type ScoreBucket = (typeof SCORE_BUCKETS)[number]
-/** The lowest score each bucket holds: 80 and up, 60 to 80, below 60. */
-export const SCORE_BUCKET_FLOORS: Readonly<Record<ScoreBucket, number>> = Object.freeze({
-  high: 80,
-  middle: 60,
-  low: 0,
-})
-
-/** A sector's outcome is the equal-weight average of the names read under it; a theme read is
- *  not measured. */
-export const SCORECARD_LEVELS = Object.freeze(['sector', 'stock'] as const)
-type ScorecardLevel = (typeof SCORECARD_LEVELS)[number]
 
 export type ThemeId = string & BrandTag<'ThemeId'>
 
@@ -354,6 +341,8 @@ export interface ThemeRunNote {
   /** The sector a failed company read was shortlisted under. */
   readonly sector?: ThemeSector
   readonly cause: ThemeStepFailure
+  /** The unset key variable behind a `setup` failure. */
+  readonly env?: string
 }
 
 export interface ThemeRun {
@@ -367,27 +356,6 @@ export interface ThemeRun {
   readonly costUsd: number
   readonly gaps: readonly ThemeGap[]
   readonly notes: readonly ThemeRunNote[]
-}
-
-export interface BucketResult {
-  readonly bucket: ScoreBucket
-  readonly reads: number
-  /** Mean return over VN-Index, a fraction; absent while the bucket holds too few reads to judge. */
-  readonly excessReturn?: number
-}
-
-export interface ScorecardLine {
-  readonly level: ScorecardLevel
-  readonly horizonMonths: number
-  /** Highest bucket first. */
-  readonly buckets: readonly BucketResult[]
-  /** Each bucket beat the one below it; absent until every bucket can be judged. */
-  readonly separates?: boolean
-}
-
-export interface ThemeScorecard {
-  /** Only the horizons and levels with at least one resolved read. */
-  readonly lines: readonly ScorecardLine[]
 }
 
 export interface ThemeOutcomeBatch {

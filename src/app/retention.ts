@@ -1,0 +1,122 @@
+import type { App } from '@/core/container'
+import type { Logger } from '@/core/logging/logger'
+import type { WorkspaceCleanupResult } from '@/engine/api'
+import { pruneRemovedAgentLogs } from '@/core/logging/retention'
+import { formatErrForLog } from '@/core/security/credentials'
+import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
+import { pruneExpiredWorkspaceTmp } from '@/engine/api'
+import { runRetention } from '@/persistence/api'
+
+const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
+
+/** Sweeps every retention scope now and then every few hours; the returned stop waits out a sweep
+ *  in flight. */
+export function startRetention(app: App, logger: Logger): () => Promise<void> {
+  const configuredAgentIds = Object.freeze(new Set(app.resolve('agents').keys()))
+  let inFlight: Promise<void> | null = null
+
+  const sweep = (): void => {
+    if (inFlight !== null) {
+      return
+    }
+
+    inFlight = runRetentionSweep(app, logger, configuredAgentIds)
+      .catch((err: unknown) => {
+        logger.warn('retention.failed', { err: formatErrForLog(err) })
+      })
+      .finally(() => {
+        inFlight = null
+      })
+  }
+
+  const timer = setInterval(sweep, RETENTION_INTERVAL_MS)
+  // A pruning sweep is never worth holding the process open for.
+  timer.unref()
+  // Run the first sweep immediately so a long-lived daemon does not wait half an hour
+  // before reclaiming anything created while it was down.
+  sweep()
+
+  return async () => {
+    clearInterval(timer)
+    if (inFlight !== null) {
+      await inFlight
+    }
+  }
+}
+
+async function runRetentionSweep(
+  app: App,
+  logger: Logger,
+  configuredAgentIds: ReadonlySet<string>
+): Promise<void> {
+  const cutoffAt = retentionCutoffAt(app)
+
+  await runRetention(app.resolve('storage'), app.resolve('dialect'), {
+    config: {
+      retentionDays: app.config.retention.days,
+      inboxRetentionDays: app.config.retention.inboxDays,
+    },
+    logger,
+  }).catch((err: unknown) => {
+    logger.warn('retention.database_failed', { err: formatErrForLog(err) })
+  })
+
+  await runWorkspaceTmpRetention(app, logger, cutoffAt)
+
+  const logResult = await pruneRemovedAgentLogs({
+    dataDir: app.config.paths.dataDir,
+    configuredAgentIds,
+    cutoffAt,
+  }).catch((err: unknown) => {
+    logger.warn('retention.agent_logs_failed', { err: formatErrForLog(err) })
+    return undefined
+  })
+
+  if (logResult !== undefined) {
+    logger.info('retention.agent_logs', {
+      removedDirectories: logResult.removedDirectories,
+      removedBytes: logResult.removedBytes,
+      failures: logResult.failures,
+    })
+  }
+}
+
+export function retentionCutoffAt(app: App): number {
+  return Date.now() - app.config.retention.days * MS_PER_DAY
+}
+
+export async function runWorkspaceTmpRetention(
+  app: App,
+  logger: Logger,
+  cutoffAt: number
+): Promise<void> {
+  try {
+    const result = await pruneExpiredWorkspaceTmp({
+      dataDir: app.config.paths.dataDir,
+      cutoffAt,
+    })
+    const summary = summarizeWorkspaceResult(result)
+
+    logger.info('workspace.tmp_retention', summary)
+  } catch (err: unknown) {
+    logger.warn('workspace.tmp_retention_failed', { err: formatErrForLog(err) })
+  }
+}
+
+function summarizeWorkspaceResult(result: WorkspaceCleanupResult): {
+  readonly removedFiles: number
+  readonly removedBytes: number
+  readonly failures: number
+} {
+  let removedFiles = 0
+  let removedBytes = 0
+  let failures = 0
+
+  for (const agent of result.agents.values()) {
+    removedFiles += agent.removedFiles
+    removedBytes += agent.removedBytes
+    failures += agent.failures
+  }
+
+  return { removedFiles, removedBytes, failures }
+}

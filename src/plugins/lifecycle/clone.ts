@@ -3,7 +3,7 @@ import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { ToolError } from '@/core/errors'
+import { ToolError, ValidationError } from '@/core/errors'
 import { settleWithin } from '@/core/utils/concurrency'
 import { toPluginError } from '@/plugins/policy/errors'
 
@@ -20,7 +20,9 @@ const CLONE_KILL_GRACE_MS = 5_000
 /** Returns the temporary directory the clone landed in; the caller owns removing it. */
 export async function cloneRemoteSource(url: string, signal?: AbortSignal): Promise<string> {
   if (!HTTPS_SOURCE_RE.test(url)) {
-    throw new ToolError('invalid_input', 'plugin clone source must be an https URL')
+    throw new ValidationError('plugin clone source must be an https URL', {
+      key: 'errors.pluginSourceHttps',
+    })
   }
 
   if (signal?.aborted) {

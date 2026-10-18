@@ -50,7 +50,7 @@ const minorUnits = new Map<string, number>()
 /** How many decimals a currency actually has. VND, JPY and KRW have none, and printing two states a
  *  denomination that does not exist. Asked of `Intl` rather than tabulated here, so an ISO currency
  *  the system has never seen still prints correctly. */
-function minorUnitsOf(currency: CurrencyCode): number {
+export function minorUnitsOf(currency: CurrencyCode): number {
   const cached = minorUnits.get(currency)
 
   if (cached !== undefined) {

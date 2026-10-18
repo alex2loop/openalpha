@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type {
   ProfileService,
   SegmentPolicyRequest,
@@ -47,6 +52,7 @@ export function createProfileCommand(deps: ProfileCommandDeps): SlashCommand {
     messageKeys: [USAGE],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     completeFor: (args) => completeProfile(deps.profiles, args),
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps.profiles) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -190,12 +196,16 @@ function completeProfile(profiles: Profiles, args: readonly string[]): readonly 
     : profileFieldValues({ field, index: args.length - 3, segments: profiles.segments() })
 }
 
-/** The usage line names the sleeves a venue holds; a reference-only one is refused by name. */
+/** The usage line names the segments a venue holds; a reference-only one is refused by name. */
 function usageFor(profiles: Profiles): SlashResult {
-  return usage(USAGE, {
+  return usage(USAGE, buildUsageValues(profiles))
+}
+
+function buildUsageValues(profiles: Profiles): CommandMessageValues {
+  return {
     segments: profiles.heldSegments().join(INLINE_SEPARATOR),
     goals: GOAL_OPTIONS,
-  })
+  }
 }
 
 /** A profile is a rendered section like every other surface, not a bag of messages: it carries a

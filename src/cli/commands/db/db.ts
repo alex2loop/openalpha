@@ -16,17 +16,18 @@ import { flagBool, flagString } from '@/cli/parsing/args'
 import { parseDurationFlag } from '@/cli/parsing/duration'
 import { fail, hint, style, success } from '@/cli/ui/colors'
 import { formatBytes } from '@/cli/ui/format'
-import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
+import { confirm, confirmDefaultYes, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { expandHome } from '@/core/config/resolve'
 import { silentLogger } from '@/core/logging/logger'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 import {
   ALL_TABLES,
   BACKUPS_SUBDIR,
   backupSqlite,
   backupTarget,
   countRetention,
+  openPersistence,
   pruneBackups,
   type RetentionConfig,
   type RetentionCounts,
@@ -211,18 +212,16 @@ const dbBackupCommand = createCommand({
 
     const explicitPath = flagString(args, 'path')
     const explicit = explicitPath === undefined ? undefined : expandHome(explicitPath)
-    const dir = join(app.config.paths.dataDir, BACKUPS_SUBDIR)
-    const target = explicit ?? backupTarget(dir)
 
     if (explicit !== undefined && !flagBool(args, 'force') && (await Bun.file(explicit).exists())) {
       return usage(app, t(locale, 'cli.dbBackupTargetExists', { target: explicit }))
     }
 
-    await backupSqlite(app.resolve('storage'), target)
-
-    if (explicit === undefined) {
-      await pruneBackups(dir)
-    }
+    const storage = app.resolve('storage')
+    const target =
+      explicit === undefined
+        ? await backupToDataDir(app, storage)
+        : await backupSqlite(storage, explicit).then(() => explicit)
 
     app.out(success(t(locale, 'cli.dbBackedUp', { target })))
 
@@ -250,6 +249,18 @@ const dbRestoreCommand = createCommand({
 
     if (source === undefined) {
       return usage(app, t(locale, 'cli.dbRestoreUsage'))
+    }
+
+    // Asked before the confirmation, so a mistyped path never reaches the prompt.
+    const found = await stat(source).then(
+      (info) => info.isFile(),
+      () => false
+    )
+
+    if (!found) {
+      app.err(fail(t(locale, 'cli.dbRestoreSourceMissing', { path: source })))
+
+      return 1
     }
 
     const dbPath = app.config.storage.path
@@ -297,18 +308,65 @@ const dbResetCommand = createCommand({
     const locale = app.config.locale.language
     const target = resetTarget(app.config.storage)
     const question = t(locale, 'cli.dbResetConfirm', { target })
+    const skipPrompts = flagBool(args, 'yes')
 
-    if (!(flagBool(args, 'yes') || (await confirm(defaultPrompt(), question, locale)))) {
+    if (!skipPrompts) {
+      await offerBackupBeforeReset(app)
+    }
+
+    if (!(skipPrompts || (await confirm(defaultPrompt(), question, locale)))) {
       return declined(app)
     }
 
     const applied = await resetPersistence(app.config.storage, silentLogger)
 
-    app.out(success(t(locale, 'cli.dbResetComplete', { target, count: applied })))
+    app.out(
+      success(
+        t(locale, pluralKey(applied, 'cli.dbResetCompleteOne', 'cli.dbResetComplete'), {
+          target,
+          count: applied,
+        })
+      )
+    )
 
     return 0
   },
 })
+
+// Only a sqlite file can be copied here; Postgres is backed up with pg_dump. Opened without
+// migrating, so a database too broken to boot can still be saved before it is wiped.
+async function offerBackupBeforeReset(app: CliApp): Promise<void> {
+  const locale = app.config.locale.language
+  const { storage: config } = app.config
+
+  if (config.engine !== 'sqlite' || !(await Bun.file(config.path).exists())) {
+    return
+  }
+
+  if (!(await confirmDefaultYes(defaultPrompt(), t(locale, 'cli.dbResetBackupFirst'), locale))) {
+    return
+  }
+
+  const { storage } = await openPersistence(config, silentLogger)
+
+  try {
+    const target = await backupToDataDir(app, storage)
+
+    app.out(success(t(locale, 'cli.dbBackedUp', { target })))
+  } finally {
+    await storage.close()
+  }
+}
+
+async function backupToDataDir(app: CliApp, storage: Storage): Promise<string> {
+  const dir = join(app.config.paths.dataDir, BACKUPS_SUBDIR)
+  const target = backupTarget(dir)
+
+  await backupSqlite(storage, target)
+  await pruneBackups(dir)
+
+  return target
+}
 
 function resetTarget(storage: ResolvedStorageConfig): string {
   if (storage.engine === 'sqlite') {

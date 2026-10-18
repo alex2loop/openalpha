@@ -69,7 +69,7 @@ answers only for the present:
 
 - `daily_trade_sides`, `series_points`, `series_provenance`, `news_items`, `macro_documents`;
 - `fundamental_snapshots` (the ratios endpoint serves the latest period only);
-- `macro_snapshots` (a refresh stamps only the current session's regime).
+- `macro_snapshots` (a refresh stamps only the current session's market state).
 
 **Ledger.** `ledger_entries` has a `close_reason` column: which leg of a resting exit filled (`stop`
 or `target`), empty on every sale you made by hand. `from_venue` is a `transfer` row's source,

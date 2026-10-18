@@ -6,7 +6,8 @@ import type { ProgressReporter, SlashContext, SlashResult } from '@/core/types/c
 import { watchProviderFallbacks } from '@/cli/commands/chat/fallback-notice'
 import { printRunFooter } from '@/cli/commands/chat/render'
 import { CLI_CHAT_ID } from '@/cli/commands/chat/types'
-import { createSpinner, type Spinner } from '@/cli/ui/spinner'
+import { isInteractiveStdout } from '@/cli/env'
+import { createLineProgress, createSpinner, type Spinner } from '@/cli/ui/spinner'
 import { renderMessages } from '@/commands/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { LOCAL_USER_ID } from '@/core/ids'
@@ -91,7 +92,8 @@ function openChatSession(session: ChatSession): Promise<void> {
   })
 }
 
-// Only a long-running command gets a spinner, and it wears the label that command declared.
+// Only a long-running command shows progress, and it wears the label that command declared: a
+// spinner on a terminal, plain lines on stderr anywhere else so stdout stays the answer alone.
 function startSlashProgress(
   session: ChatSession,
   resolved: ResolvedSlashCommand | null
@@ -102,8 +104,9 @@ function startSlashProgress(
     return undefined
   }
 
-  const spinner = createSpinner(session.app.write)
-  spinner.start(bindLocale(session.app.config.locale.language).translate(execution.progressKey))
+  const { app } = session
+  const spinner = isInteractiveStdout() ? createSpinner(app.write) : createLineProgress(app.err)
+  spinner.start(bindLocale(app.config.locale.language).translate(execution.progressKey))
 
   return spinner
 }

@@ -155,6 +155,13 @@ Config layers are parsed, validated, merged and frozen before providers start. R
 [src/app/providers.ts](../../../src/app/providers.ts) is fixed; do not reorder it without rechecking its
 documented constraints.
 
+Web search is optional, so a `[web_search]` key variable that is named but empty does not fail config.
+`ResolvedWebSearch` carries it as `missingEnv` (primary) or `fallbackMissingEnv` (the fallback,
+which is dropped). `defaultSearchProvider` in `src/tools/web/retrieval-request.ts` is the one refusal:
+every search and contents call takes the primary through it, so none falls back to a keyless
+provider. `doctor`, `config validate` and the `start` summary read the same field through
+`toMissingSearchKeyError`; boot logs `web_search.key_missing` and `web_search.fallback_key_missing`.
+
 *Why:* one boot-time owner prevents config drift and order-dependent behavior.
 
 ### Verification
@@ -322,6 +329,24 @@ work, close services. CLI cancellation propagates into active runs and exits cle
 commands are `BUILT_IN_COMMANDS` in [src/cli/registry.ts](../../../src/cli/registry.ts); trading adds no
 CLI command. For the programmatic surface see [Extending](./extending.md#the-sdk-surface).
 
+**Keys never stop a start.** Boot resolves with `deferMissingKeys`: a model entry whose key variable is
+unset keeps `missingEnv` (the chain skips it, and with none left every call rejects with the
+localized `MissingEnvError`), and an MCP server naming an unset `${VAR}` lands in `ResolvedMcp.unset`
+instead of failing the resolve. `doctor` and `probeConfig` resolve strictly, so they still fail. Each
+detector logs once where it finds the gap (`llm.key_missing` when the chain registry is built,
+`web_search.key_missing`, `mcp.env_missing`), and `toMissingKeyErrors` in `src/cli/missing-keys.ts` is
+the one list the terminal prints and `config validate` reports. A channel whose `start()` throws
+`OperatorConfigError` (token missing or rejected) is disposed and logged `channel.start_skipped`;
+`startChannels` returns it in `skipped`, so a channel that never listened admits nobody. An
+`ApiTokenError` from the API starter is handled the same way (`api.token_unusable`). The daemon task
+hands both lists to its `onReady` handler (`DaemonReadyHandler`); the foreground `start` prints them on
+stderr, and a background child's stderr log is relayed under the parent's success line. The handler
+then writes the ready file (`BRAND.readyFile`, atomically, `{ pid, degraded }`) that a background start
+waits on and `status` and `/v1/state` read back; a start clears it as it claims the pid file, so a file a
+crashed daemon left behind never reads as ready for a reused pid. A loop tick
+failing with `MissingEnvError` is a boundary failure (`trading.tick_key_missing` once per loop until
+another failure is logged, retried next interval), never a quarantine.
+
 **Limits of order execution.** `/trade` and `order_place` place spot orders on a registered venue, and
 nothing else in the codebase can submit one: a new exchange adds a `SpotAdapter` behind that same
 feature. Until a venue carries credentials, `order_place` is not registered. `/trade halt` switches every
@@ -450,6 +475,12 @@ Interactive chat shows sparse state, not every transport delta: a spinner while 
 runs; the safe tool label, detail and progress milestones; success or failure summaries from
 tool-result events; model, latency and context metrics when available; final text and usage once the turn
 settles. Control characters and credentials are scrubbed first.
+
+A slash command that declares `execution` shows its progress through one of two renderers chosen by
+`isInteractiveStdout`: the spinner on a terminal, and on anything else (a pipe, a log, `CI`) a line
+writer on stderr that prints a changed label at most once per `LINE_PROGRESS_INTERVAL_MS`. Both take the
+same labels from the command's reporter, so `/refresh` lines stay built in one place, and the line
+writer holds no timer or listener. Stdout stays the answer alone.
 
 ### Channel live HUD
 

@@ -3,12 +3,14 @@
 Two ways in, one catalog. `openalpha <command>` is the CLI. `/command` works in terminal chat and in
 every configured channel. Trading has slash commands only, no CLI command of its own.
 
-This page is the map. For the exact syntax of the version you installed, run `openalpha --help` or
-`openalpha <command> --help`.
+This page is the map. For the exact syntax of the version you installed, run `openalpha help`,
+`openalpha help <command>` or `openalpha <command> --help`.
 
 ## Global behavior
 
-- Success exits `0`. Unknown commands and ordinary failures exit `1`.
+- Success exits `0`. Unknown commands and ordinary failures exit `1`. Asking for help (`openalpha` alone,
+  `help`, `--help`) is not a failure and exits `0`.
+- `--version` and `-v` do what `version` does.
 - Invalid flags, missing values, invalid choices, and config or validation errors exit `2`
   **before** the command does anything. A malformed command never half-runs.
 - Global flags may come before or after the command, but not after a `--`.
@@ -61,7 +63,8 @@ leave, because one failed turn is not a failed session.
 | `stop` | Stop the daemon | none |
 | `restart` | Stop, then start again | none; `--background`/`-b` to detach |
 | `status` | Daemon, channel and spend overview | none |
-| `version` | Print the version and whether a newer release is out | none |
+| `version` | Print the version and whether a newer release is out; `--version` and `-v` work too | none |
+| `help` | Print help: `help` for the list, `help <command> [subcommand]` for one command | none; a command name |
 | `upgrade` | Install the latest release | none; `--check` only reports |
 | `doctor` | Check config, credentials and storage | none; optional check name (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) and `--online` |
 | `onboard` | First setup, or change the model, Telegram bot, budget or language | none |
@@ -118,10 +121,12 @@ so a command behaves the same in the REPL and in a group chat.
 | `/schedule` | List, inspect, pause, resume or run one of your jobs |
 | `/config` | Show the live language, model, budget and channels |
 | `/new` | Switch to a fresh chat session |
-| `/continue` | Resume a run that stopped before finishing, without retyping the request |
+| `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
 
 `/help` lists commands in groups: general, portfolio and trades, markets, analysis and suggestions.
+`/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt
+name gets the closest command.
 
 Channels add `/stop` and the pairing controls. `/stop` and `/help` also answer to a bot-addressed form
 such as `/stop@MyBot`, the way a Telegram group sends them. The REPL has `/help`, `/exit` and `/quit`,
@@ -132,7 +137,9 @@ Two conventions explain the output you see:
 
 - A command that waits on the network shows a progress line while it runs and a footer when it
   finishes. A command that answers from local data (`/watchlist`, `/profile`, `/alert`, `/sources`)
-  has neither.
+  has neither. When the output is not a terminal (piped, or a one-shot `chat -m "/refresh"`), the
+  progress shows as plain lines on stderr, only once the command has run a moment and at most one
+  every ten seconds, so stdout carries only the answer and an instant reply prints nothing.
 - If a run switched providers, one line above the footer says what it moved from, to, and why - one
   line per distinct switch. It explains a footer with no model name, and covers a slash command's
   child runs as well as the chat turn's own calls.
@@ -212,18 +219,45 @@ openalpha doctor [--online]
 ```
 
 Bare `start` runs in the foreground and Ctrl-C stops it. `--background`/`-b` runs the same command
-detached and prints the pid and the output path once the daemon has written its pid file. A daemon
-that dies while starting is reported at once with its exit code. One still booting gets 90 seconds (a
-first start migrates the database). Either way the command exits non-zero and names the output path.
-`stop` and `status` work the same in both modes. A foreground start also prints the model, the
-channels it opens, the API port when `[api]` is on, and the log file. `restart` takes the same
-`--background` flag.
+detached and waits until the daemon is actually ready: market data loaded and chat channels open,
+usually about a minute. Only then does it report success with the pid and the output path. A daemon
+that dies while starting (the API port already in use, say) is reported at once with its own
+error message and exit code, and the command exits non-zero. After 90 seconds a daemon that is
+running but not ready yet (a slow data source) is left running: the command says how to follow it
+and exits zero; one that never came up exits non-zero. `stop` and `status` work the same in both
+modes. A start prints the version it runs, the model, the channels it opens, the API port when
+`[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
+starts answering once market data has loaded; the log records when the channels open. `restart`
+takes the same `--background` flag.
+
+A missing key does not stop `start`. An unset key variable for a model (the main one, a tier or a
+fallback), for web search or for an MCP server, and a Telegram or Zalo bot token that is unset or that
+the platform rejects, each take down only what needs them: one warning line per item (marked `!`, on
+stderr) says what waits and how to fix it. In the foreground the variable warnings print right under
+the summary and the channel warnings when the channels open, after market data has loaded; with
+`--background` they sit under the success line. Everything else keeps running: data refresh, price
+alerts, the ledger and every job that needs no model. Chat over a channel, `/suggest`, research and the
+brief's model sections wait until you set the key and `restart`, and a channel without a token accepts
+no messages from anyone. `doctor` still reports a missing key as a failure on its models row, and runs every other check as usual. A configuration error
+(bad TOML, an invalid value), an API port already taken, a daemon already running and a storage
+failure still stop `start`.
+
+`status` names the version the running daemon was started from. Install a new release with the
+install script while a daemon runs and it keeps the old one; `status` flags that, with the `stop` and
+`start` that switch it over. When the running daemon started without some keys, `status` repeats the
+`start` warnings: which channels were skipped and why, which keys are unset and what waits for them,
+even after a reboot. Exchange keys and the keys of optional data sources are listed apart under
+"optional keys": without them you record trades by hand, and `start` does not warn. The desktop app
+reads the same list from `/v1/state`. `upgrade` stops the daemon itself, so it never leaves one behind.
 
 `doctor` is always read-only. Offline it checks only what it can see locally; `--online` adds live
 probes of PostgreSQL, providers, channel tokens, web search and exchange keys. The provider probe
 sends the first model of each provider one short message, and says so plainly when a server on your machine is not
-running. `doctor models` also names the cloud-account variables a keyless Vertex or Azure entry
-still needs. `doctor trading`
+running. Rows are labelled in your `[locale] language`. A row marked `i` is a state that needs no
+action yet, never a warning: a database, log folder or data folder that the first run creates, a
+daemon that has not been started, and an optional data source whose key is unset. The source row
+says what the key would add. `doctor models` also names the cloud-account variables a keyless Vertex
+or Azure entry still needs. `doctor trading`
 composes the app the way `chat` would, without starting or migrating anything, so a home region no
 venue trades or a `default_for` on the wrong venue shows up here first. It waits until the database
 exists.
@@ -261,7 +295,8 @@ openalpha config edit
 
 `show` masks secrets, and `get` refuses any path through a secret key. `validate` runs every check
 boot does, `[trading]` included, so a config it accepts is a config that boots; when it does not, it
-exits `1` with the reason. `config get` takes a path into the resolved config, which is camelCase
+exits `1` and lists every reason in one pass, a mistyped provider name and an unset key variable
+included. `config get` takes a path into the resolved config, which is camelCase
 (`budget.maxDailyUsd`). `edit` uses `VISUAL`, then `EDITOR`, then `nano`; a blank value counts as
 unset. The value is read the way git reads it, so it may carry flags or a quoted path
 (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
@@ -412,7 +447,9 @@ and cost. Having no workflows is normal, not an error.
 
 Commands that write to the database (`db migrate`, `cleanup`, `import`, `restore`, `reset`) run only
 while the daemon is stopped. `restore`, `reset` and a migration rollback ask for confirmation unless
-you pass `--yes`. `db cleanup` needs `--older-than` (at least `1d`); `--dry-run` previews what it
+you pass `--yes`. On SQLite, `reset` first offers a backup (Enter means yes): the copy lands in
+`backups/` like `db backup`, so a mistake can be undone with `db restore`. `--yes` skips that question
+too. `db cleanup` needs `--older-than` (at least `1d`); `--dry-run` previews what it
 would prune.
 
 `db integrity`, `db stats`, `db export` and `db backup` start only the storage layer, so they run
@@ -467,7 +504,7 @@ The rest fit in a line.
 | `/transactions` | `/transactions [rows] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | `/portfolio nav 3m` - how your book has done: the return with deposits and withdrawals taken out, the deepest drop from a peak, and a yardstick from your own target mix. Default `3m` |
-| `/profile` | `/profile show`; `/profile set <field> <value>`; `/profile enable\|disable <sleeve>`; `/profile reset` |
+| `/profile` | `/profile show`; `/profile set <field> <value>`; `/profile enable\|disable <segment>`; `/profile reset` |
 | `/watchlist` | `/watchlist` - live quotes for what you follow and what you hold, at most twelve names (a longer list is truncated and says so); `/watchlist add <ticker>...`; `/watchlist remove <ticker>...` |
 | `/price` | `/price <ticker>`, or `market:ticker` where a bare name is ambiguous. A market that quotes a two-sided dealer board (VN gold) prints both sides and the spread instead of a settled/live pair: a board states no last trade and keeps no daily series to close against |
 | `/market` | `/market` - where one market is right now, beside the last session that settled; `/market enable\|disable` - turn the scheduled sends on or off (they go to the default chat, not necessarily this one) |
@@ -479,7 +516,7 @@ The rest fit in a line.
 | `/reflect` | `/reflect` - how past suggestions actually performed |
 | `/alert` | `/alert list [limit]`; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <alert-id>`. The list includes system-armed exit and screener rows beside your own |
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. See [A brief with no watchlist](#a-brief-with-no-watchlist) |
-| `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a sleeve switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
+| `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
 | `/reconcile` | `/reconcile` - compare the book against what the venue reports; an exchange with no API key yet is named with the variables it is waiting for |
 | `/trade` | Stages, confirms and cancels real orders. See [Orders](#orders) |
@@ -497,9 +534,9 @@ Names passed to `/rebalance` stand in for the saved watchlist for that run and a
 you hold is always sized. With no names, holdings plus the saved watchlist are used. Write
 `market:ticker` where a bare name is ambiguous.
 
-Rows are sized to close the gap to target under the sleeve budget, the per-name cap and the board
+Rows are sized to close the gap to target under the segment budget, the per-name cap and the board
 lot. No evidence is weighed and no model is called, so a block containing a buy ends by naming
-`/suggest <ticker>`, which scales the same ceiling by conviction and can decline a name the plan
+`/suggest <ticker>`, which scales the same ceiling by confidence and can decline a name the plan
 lists.
 
 #### A brief with no watchlist
@@ -557,8 +594,17 @@ Any row that moves money, cash deposits, withdrawals and transfers included, may
 than VND, such as USDT.
 
 A mistyped field (a ticker without its market, a bad date, a negative number, an unreadable `fx`)
-writes nothing; the reply names that field and the form it expects, then prints the usage. `/update`
+writes nothing; the reply names that field and the form it expects, then points at `/record` on its own
+for the full syntax. A line of the wrong shape (too few or too many fields) prints the usage. `/update`
 does the same.
+
+Write numbers without thousands separators: `100000000`, not `100.000.000`. The dot is the decimal
+point (`0.5`, `1.250` USDT). A grouped number such as `100.000.000` or `1,000,000` is refused with its
+plain form, never guessed. In a currency with no minor units, such as VND, a price, amount, fee or
+quantity written `58.400` or `1.000` is refused the same way: there is no 58.4 đồng, and `1.000` could
+be a thousand shares or one tael of gold. The same goes for a rate after `fx` in a đồng book, and for
+the share change of a split or distribution in any market. The reply says to write `1000` for a
+thousand, or `1.5` for a decimal.
 
 **Buy and sell.** A sale may write `all` instead of a count; the ledger resolves it to the settled
 quantity held *at that venue* on that day. You may leave out the fee, and the venue's `fees` rate in
@@ -661,7 +707,8 @@ The `venue:` prefix is optional and needed only when more than one venue could a
 order is refused with the candidates named, never routed by guess.
 
 `/trade` places orders only once a registered venue carries exchange credentials. Until then it
-answers with the variables each exchange is waiting for and points you to `/record`. Routing, setup
+answers with the variables each exchange is waiting for and points you to `/record`; `/trade help` (or a
+mistyped line) still prints the full syntax so you can learn it first. Routing, setup
 and the first run are in [Trading](trading.md).
 
 ## MCP

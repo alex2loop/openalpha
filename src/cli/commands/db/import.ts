@@ -15,7 +15,7 @@ import { isPlainRecord } from '@/core/utils/collections'
 import { type MessageKey, t } from '@/i18n'
 import { ALL_TABLE_NAMES, ALL_TABLES, bindChunkSize, findTable } from '@/persistence/api'
 
-import { printTableCounts, type TableCount } from './report'
+import { countedTotals, printTableCounts, type TableCount } from './report'
 
 // csv cannot round-trip: it renders null and an empty string identically and carries no types, so
 // the reverse mapping would be a guess made from a column name. json is the only format read back.
@@ -120,7 +120,9 @@ async function readInto(req: ImportRequest): Promise<number> {
   })
   const rows = printTableCounts(app, counts)
 
-  app.out(success(t(locale, 'cli.dbImportRead', { rows, files: counts.length, dir })))
+  app.out(
+    success(t(locale, 'cli.dbImportRead', { ...countedTotals(locale, rows, counts.length), dir }))
+  )
 
   return 0
 }

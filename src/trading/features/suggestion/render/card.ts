@@ -23,7 +23,8 @@ import {
   renderDetailBlocks,
   renderFacts,
 } from '@/trading/features/suggestion/render/suggestion'
-import { inconclusiveBanner, isInconclusive } from '@/trading/features/suggestion/render/verdict'
+import { inconclusiveBanner } from '@/trading/features/suggestion/render/verdict'
+import { isInconclusive } from '@/trading/features/suggestion/types'
 
 export interface SuggestionCard {
   readonly verdict: string

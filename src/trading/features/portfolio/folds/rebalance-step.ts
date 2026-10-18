@@ -1,6 +1,6 @@
 // How one row's step is sized, clamped, and rounded — the vocabulary both sides of a plan speak.
 // It lives apart from either side because a reduction and an increase share the arithmetic and
-// nothing else: the sell side clamps on settled quantity, the buy side on a sleeve's cash budget.
+// nothing else: the sell side clamps on settled quantity, the buy side on a segment's cash budget.
 
 import type { AdviceInput } from '@/trading/features/portfolio/folds/allocation'
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
@@ -9,8 +9,8 @@ import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import { ROTATION_STEP_FRACTION } from '@/trading/features/portfolio/folds/policy'
 import { floorToLot, roundToStep, STEP_DIGITS } from '@/trading/kernel/instrument'
 
-/** How far a sleeve's names sit from their desired weights, each way. */
-export interface SleeveGap {
+/** How far a segment's names sit from their desired weights, each way. */
+export interface SegmentGap {
   readonly excess: number
   readonly shortfall: number
 }
@@ -23,8 +23,8 @@ export interface RowInput {
   readonly current: ReadonlyMap<string, number>
   readonly drifting: ReadonlyMap<PortfolioSegment, number>
   readonly candidates: ReadonlyMap<string, PortfolioCandidate>
-  readonly sleeves: ReadonlyMap<PortfolioSegment, SleeveGap>
-  /** A buy into one of these fills the sleeve's core, not a score. */
+  readonly segments: ReadonlyMap<PortfolioSegment, SegmentGap>
+  /** A buy into one of these fills the segment's core, not a score. */
   readonly cores: ReadonlySet<string>
 }
 
@@ -55,11 +55,11 @@ export function minimumStep(
   return (quantity * sizing.unitPriceBase) / rows.nav
 }
 
-/** A move is two things: the sleeve closing its gap to target, taken in full because it is why the
+/** A move is two things: the segment closing its gap to target, taken in full because it is why the
  *  plan trades, and a preference among the names inside it. The second is a rotation, and
  *  suggestions accumulate, so it arrives a step per run. */
-export function pacedStep(gap: number, sleeveGap: number, sleeveTotal: number): number {
-  const prompt = sleeveTotal > 0 ? gap * Math.min(1, sleeveGap / sleeveTotal) : 0
+export function pacedStep(gap: number, segmentGap: number, segmentTotal: number): number {
+  const prompt = segmentTotal > 0 ? gap * Math.min(1, segmentGap / segmentTotal) : 0
 
   return prompt + (gap - prompt) * ROTATION_STEP_FRACTION
 }

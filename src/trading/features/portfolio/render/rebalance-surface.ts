@@ -15,7 +15,7 @@ import {
   renderStanceLines,
 } from './rebalance'
 import { emptyPlanLine, groupHeading, renderOrderRows } from './rebalance-orders'
-import { renderCashLine, renderEtfCapLines, renderSleeves } from './sleeves'
+import { renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
 type RebalanceGroup = 'first' | 'later'
 
@@ -29,7 +29,7 @@ export interface RebalanceText {
     readonly group: RebalanceGroup
     readonly line: string
   }[]
-  readonly sleeves: readonly string[]
+  readonly segments: readonly string[]
   readonly notes: readonly string[]
 }
 
@@ -52,7 +52,7 @@ export function renderRebalanceForSurface(
       headline: [renderDeclaredValue(locale, `trading.advice.unavailable.${advice.reason}`)],
       groups,
       orders: [],
-      sleeves: [],
+      segments: [],
       notes: trimmed(renderNotes(locale, advice.findings, advice.caveats)),
     }
   }
@@ -70,8 +70,8 @@ export function renderRebalanceForSurface(
         .map((line) => line.trimStart())
         .join('\n'),
     })),
-    sleeves: trimmed([
-      ...renderSleeves(locale, advice.allocation, options.context),
+    segments: trimmed([
+      ...renderSegments(locale, advice.allocation, options.context),
       ...renderEtfCapLines(locale, advice.allocation),
       renderCashLine(locale, advice, plan.sizing),
     ]),
@@ -80,7 +80,7 @@ export function renderRebalanceForSurface(
         ? [t(locale, 'trading.render.rebalance.evidenceCheck')]
         : []),
       ...renderStanceLines(locale, advice),
-      ...renderNotes(locale, advice.findings, [...advice.cashSleeve.caveats, ...advice.caveats]),
+      ...renderNotes(locale, advice.findings, [...advice.cashSegment.caveats, ...advice.caveats]),
     ]),
   }
 }

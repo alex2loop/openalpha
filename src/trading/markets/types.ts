@@ -107,12 +107,12 @@ export interface MarketManifest {
   readonly segmentCategory: PositionCategory
   /** Whether the seeded default profile gives this segment a share of its category. A fresh book
    *  starts with crypto and the home region's own markets only; every other market is analyzed and
-   *  quoted like any other but starts at zero, and its category's share goes to the seeded sleeves.
-   *  Absent means seeded. An operator who wants the sleeve opens it with
-   *  `/profile enable <sleeve>`, which seeds it by `seedWeight` like any other.
+   *  quoted like any other but starts at zero, and its category's share goes to the seeded segments.
+   *  Absent means seeded. An operator who wants the segment opens it with
+   *  `/profile enable <segment>`, which seeds it by `seedWeight` like any other.
    *  `'home'` seeds a national market only for an operator whose home region it trades in. */
   readonly seedsDefaultTarget?: boolean | 'home'
-  /** This sleeve's share of its category's seeded allocation, relative to its siblings. Absent is an
+  /** This segment's share of its category's seeded allocation, relative to its siblings. Absent is an
    *  even split, which is right where they are the same kind of claim; declared below one where they
    *  are not. Seeds only - every ceiling follows from the target, and the operator's own override. */
   readonly seedWeight?: number
@@ -138,7 +138,7 @@ export interface MarketManifest {
   readonly evidenceSessions: number
   /** How long this market's edge lasts, which is what the stop distance is sized for. Crypto
    *  momentum decays inside a month; equity momentum runs for quarters. Seeds the operator's
-   *  per-sleeve horizon and is overridden there, never here. */
+   *  per-segment horizon and is overridden there, never here. */
   readonly horizon: InvestmentHorizon
   readonly boardLot: BoardLotPolicy
   readonly tickSize: TickSizePolicy
@@ -306,7 +306,7 @@ export type MarketDetection =
        *  `sector`: the record is already in hand, and refetching it downstream would cost a read. */
       readonly indexTier?: string
       /** The record's own kind, carried for the same reason as `sector`: the detection lookup
-       *  already holds the record, and a sleeve's ETF ceiling is measured by it. */
+       *  already holds the record, and a segment's ETF ceiling is measured by it. */
       readonly instrumentKind?: InstrumentKind
     }
   | { readonly kind: 'no-match'; readonly caveats?: readonly Caveat[] }
@@ -362,7 +362,7 @@ export type MarketResolution =
       readonly sector?: string
       readonly indexTier?: string
       /** The record's own kind, carried for the same reason as `sector`: the detection lookup
-       *  already holds the record, and a sleeve's ETF ceiling is measured by it. */
+       *  already holds the record, and a segment's ETF ceiling is measured by it. */
       readonly instrumentKind?: InstrumentKind
       readonly caveats: readonly Caveat[]
     }

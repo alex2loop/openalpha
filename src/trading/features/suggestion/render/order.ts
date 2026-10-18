@@ -198,7 +198,7 @@ function volatilityKeyOf(
   return armsExit(suggestion) ? 'stopVolatility' : 'stopVolatilityFund'
 }
 
-/** The caveat names the ceiling that bound the size; this says how full the sleeve is once the
+/** The caveat names the ceiling that bound the size; this says how full the segment is once the
  *  order is filled, which is what decides whether the next idea in the same sector can be taken. */
 function renderConcentrationLine(
   input: OrderNotesInput,

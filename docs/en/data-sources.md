@@ -28,7 +28,7 @@ A provider whose key is missing is simply not used, and its data falls through t
 openalpha doctor sources
 ```
 
-It prints `every data source has the credential it needs`, or `not registered, credential variable unset:` and the list. Running without keys is a supported, reduced mode.
+It prints `every data source has the credential it needs`, or one `i` row per optional provider whose variable is unset, naming the variable and what setting it would add. Running without keys is a supported, reduced mode.
 
 Endpoints and feed URLs are fixed in the code. No setting redirects a request to another host.
 
@@ -82,7 +82,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | FX rates | `coinbase`, `okx`, `coingecko`, `yahoo`, `er-api` |
 | FX history | `yahoo` |
 | Commodity prices | `vndirect`, `fred-csv` |
-| News for the macro tape | `rss` |
+| News for the macro picture | `rss` |
 
 What the less obvious ones do:
 
@@ -139,7 +139,7 @@ A parse failure on one kind of data (the provider changed its format) is reporte
 A provider that stops updating does not report an error. It keeps answering with a bar from hours ago, stamped with today's date. So a price counts as live only if both are true:
 
 - it belongs to a session newer than the last settled close, and
-- it is at most 90 minutes old: 30 minutes for the closing print to land, plus up to 60 minutes for a quiet tape (the one-hour halt in CME metals trading). During the Vietnamese lunch break the last print before the break stands for the whole break.
+- it is at most 90 minutes old: 30 minutes for the closing print to land, plus up to 60 minutes for a quiet market (the one-hour halt in CME metals trading). During the Vietnamese lunch break the last print before the break stands for the whole break.
 
 A price that fails either test is not an error. OpenAlpha shows the last settled close it holds and says so: "`{ticker}` has not printed a price newer than the last settled close, so that close is shown rather than a live one." It refuses only for a name it has no stored close for at all.
 

@@ -8,8 +8,8 @@ import type {
 } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
 import { plainRenderer, stripMarkdown } from '@/channels/renderer'
+import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
 import { channelId } from '@/core/channels'
-import { OperatorConfigError } from '@/core/config/resolve'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { withRetry } from '@/core/utils/retry'
@@ -27,6 +27,7 @@ const ZALO_CAPABILITIES: ChannelCapabilities = {
 }
 
 const ZALO_CHANNEL_ID = channelId('zalo')
+const ZALO_TOKEN_OWNER = { id: ZALO_CHANNEL_ID, label: 'Zalo' } as const
 const ZALO_RATE_LIMITED_CODE = 429
 const ZALO_GET_ME_MAX_ATTEMPTS = 4
 const ZALO_GET_ME_RETRY_INITIAL_MS = 1_000
@@ -56,14 +57,7 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
       lifetimeSignal = signal
 
       if (!options.token) {
-        throw new OperatorConfigError(
-          'zalo channel enabled but no token resolved (set channels.zalo.token_env or token_file)',
-          {
-            key: 'errors.channelTokenMissing',
-            params: { channel: 'Zalo', section: 'channels.zalo' },
-          },
-          { path: ['channels', 'zalo', 'token_env'] }
-        )
+        throw toTokenMissingError(ZALO_TOKEN_OWNER)
       }
 
       await verifyToken(options, handlers, signal)
@@ -109,7 +103,7 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
   }
 }
 
-// A refused token is fatal. A network failure leaves the channel up and unconnected: the poll loop
+// A refused token keeps the channel from starting. A network failure leaves the channel up and unconnected: the poll loop
 // keeps retrying with its own backoff and reports connected on its first good poll.
 async function verifyToken(
   options: CreateZaloAdapterOptions,
@@ -144,7 +138,7 @@ async function assertZaloTokenAccepted(token: string, signal: AbortSignal): Prom
   }
 
   if (me.error_code === ZALO_UNAUTHORIZED_CODE) {
-    throw new ConfigError('zalo: bot token rejected by the Zalo Bot API')
+    throw toTokenRejectedError(ZALO_TOKEN_OWNER, me.description ?? String(me.error_code))
   }
 
   throw new ChannelError(

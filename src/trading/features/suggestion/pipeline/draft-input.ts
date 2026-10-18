@@ -27,7 +27,7 @@ const WEAK_FACTOR_CODES: ReadonlySet<CaveatCode> = new Set([
   'factor.coverage-below-minimum',
   'factor.agreement-below-minimum',
 ])
-// The share of a sleeve's intended buying its macro read allows. Sized into a buy and nothing else.
+// The share of a segment's intended buying its macro read allows. Sized into a buy and nothing else.
 const DEPLOYMENT_CEILING_CAVEAT: CaveatCode = 'portfolio.regime-risk'
 const CHASING_GAP_CAVEAT: CaveatCode = 'suggestion.chasing-gap'
 
@@ -196,7 +196,7 @@ function levelCaveats(input: DraftCaveatsInput): readonly Caveat[] {
     : caveats.filter((caveat) => caveat.code !== CHASING_GAP_CAVEAT)
 }
 
-/** What the sleeve's macro read reported, less its deployment ceiling on anything but a buy: only
+/** What the segment's macro read reported, less its deployment ceiling on anything but a buy: only
  *  `sizeBuy` reads the regime scale, so a sale sized by `sizeReduce` was never held to it and a
  *  line saying buying is capped at 60% describes a limit that did not apply. The macro's own
  *  qualifications stay on every direction — they describe the evidence the verdict rests on. */

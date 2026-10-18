@@ -8,8 +8,9 @@ import type {
   DeclarativeSlashCommandSource,
   McpToolSource,
 } from '@/core/types/plugin'
+import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError, toInvalidConfigError } from '@/core/config/resolve'
 import { agentId, isPathId } from '@/core/ids'
 import { isSlashCommandName } from '@/core/utils/text'
 
@@ -54,7 +55,7 @@ type ParsedCommand = Exclude<ParsedManifest['commands'], undefined>[number]
 
 type PluginManifestRead =
   | { readonly kind: 'missing' }
-  | { readonly kind: 'invalid'; readonly reason: string }
+  | { readonly kind: 'invalid'; readonly reason: string; readonly cause: unknown }
   | { readonly kind: 'valid'; readonly manifest: PluginManifest }
 
 export interface PluginManifest {
@@ -76,7 +77,11 @@ export async function readPluginManifest(dir: string): Promise<PluginManifestRea
   try {
     return { kind: 'valid', manifest: parsePluginToml(await file.text()) }
   } catch (err: unknown) {
-    return { kind: 'invalid', reason: err instanceof Error ? err.message : 'unreadable manifest' }
+    return {
+      kind: 'invalid',
+      reason: err instanceof Error ? err.message : 'unreadable manifest',
+      cause: err,
+    }
   }
 }
 
@@ -85,9 +90,14 @@ export function parsePluginToml(content: string): PluginManifest {
   const parsed = PluginManifestSchema.safeParse(value)
 
   if (!parsed.success) {
+    // The same problem lines config.toml gets, pointing at the plugin guide for the keys it takes.
+    const problems = toInvalidConfigError(parsed.error, PluginManifestSchema, {
+      sample: BRAND.pluginGuideUrl,
+    }).operator.params
+
     throw new OperatorConfigError(formatManifestIssue(parsed.error), {
       key: 'errors.pluginManifestInvalid',
-      params: { detail: formatManifestIssue(parsed.error) },
+      ...(problems === undefined ? {} : { params: problems }),
     })
   }
 

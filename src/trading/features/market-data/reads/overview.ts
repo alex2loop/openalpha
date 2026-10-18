@@ -13,7 +13,7 @@ import {
   requireMarket,
 } from '@/trading/features/market-data/market-data-run'
 import { settledEvidenceCaveats } from '@/trading/features/market-data/reads/freshness'
-import { sleeveMacroOf } from '@/trading/features/market-data/reads/regime'
+import { segmentMacroOf } from '@/trading/features/market-data/reads/regime'
 import { resolveDay } from '@/trading/features/market-data/resolve'
 import { failedOverview, unsupportedOverview } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -62,7 +62,7 @@ async function runOverview(
   const market = requireMarket(deps, options.market)
   const asOf = resolveDay(market, options.now)
   const ensured = await deps.ensure(buildEnsureOptions(options.market, options))
-  const macro = await sleeveMacroOf(market, {
+  const macro = await segmentMacroOf(market, {
     now: options.now,
     signal: options.signal,
     headlineRegion: deps.config.defaultRegion,

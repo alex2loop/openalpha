@@ -1,6 +1,7 @@
 import type {
   ResolvedConfig,
   ResolvedSearchProvider,
+  ResolvedWebSearch,
   WebSearchProvider,
 } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
@@ -117,6 +118,8 @@ export function createWebRetrievalService(
   config: ResolvedConfig,
   logger: Logger
 ): WebRetrievalService {
+  logUnsetKeys(config.webSearch, logger)
+
   const runner = createProviderRunner(config.webSearch)
   const state = { config, logger, runner }
 
@@ -131,6 +134,16 @@ export function createWebRetrievalService(
       assertRetrievalActive(input.signal)
       return fetchGeneralPage(input, GENERAL_WEB_MAX_BYTES)
     },
+  }
+}
+
+function logUnsetKeys(search: ResolvedWebSearch, logger: Logger): void {
+  if (search.missingEnv !== undefined) {
+    logger.warn('web_search.key_missing', { env: search.missingEnv })
+  }
+
+  if (search.fallbackMissingEnv !== undefined) {
+    logger.warn('web_search.fallback_key_missing', { env: search.fallbackMissingEnv })
   }
 }
 

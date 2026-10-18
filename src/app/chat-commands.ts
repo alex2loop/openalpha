@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { App } from '@/core/container'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { SlashCommand, SlashContext } from '@/core/types/command'
+import type { RunResultReason } from '@/core/types/run'
 import { toAgentRegistry } from '@/app/services'
 import { createConfigSummary } from '@/app/views'
 import { resolveRegisteredChannelSettings } from '@/channels/api'
@@ -10,6 +11,8 @@ import { createCoreCommands } from '@/commands/api'
 import { agentId as brandAgentId, sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
+
+const COMPLETED_RUN: RunResultReason = 'completed'
 
 interface EntryAgentSelectionOptions {
   readonly app: App
@@ -45,9 +48,20 @@ export function coreCommands(app: App): readonly SlashCommand[] {
     selectAgent: (ctx, target) => selectEntryAgent(app, ctx, target),
     resetSession: (ctx) => resetChatSession(app, ctx),
     configSummary: createConfigSummary(app),
-    continueNudge: (locale) => t(locale, 'slash.continueNudge'),
+    continueCommand: {
+      nudge: (locale) => t(locale, 'slash.continueNudge'),
+      hasStoppedRun: (ctx) => hasStoppedRun(app, ctx),
+    },
     logger: app.resolve('logger'),
   })
+}
+
+// Any end but a completed one left the request unfinished; a session that never ran has no end.
+async function hasStoppedRun(app: App, ctx: SlashContext): Promise<boolean> {
+  const snapshot = await app.resolve('sessionStore').loadDetails(ctx.sessionId)
+  const endReason = snapshot?.session.endReason
+
+  return endReason !== undefined && endReason !== COMPLETED_RUN
 }
 
 // The chat's bound agent, or the default when nothing is bound yet. One lookup, used by every

@@ -7,7 +7,7 @@ metadata:
 
 # Drawdown response
 
-Use when a holding or a whole sleeve is under water. `exit-management` owns the exit itself; this one covers the harder half, which is the add.
+Use when a holding or a whole segment is under water. `exit-management` owns the exit itself; this one covers the harder half, which is the add.
 
 ## The only question
 

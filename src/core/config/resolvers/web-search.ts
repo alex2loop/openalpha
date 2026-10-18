@@ -2,6 +2,7 @@ import type { ExaSearchType, RawWebSearch, WEB_SEARCH_PROVIDERS } from '@/core/c
 import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
 
 const DEFAULT_SEARCH_CACHE_TTL_SECONDS = 300
+const SEARCH_KEY_OWNER = '[web_search]'
 const SEARCH_BOUNDS = Object.freeze({
   cacheMaxEntries: 100,
   timeoutMs: 15_000,
@@ -34,6 +35,10 @@ export interface ResolvedWebSearch {
   readonly baseUrl?: string
   readonly costPerSearchUsd?: number
   readonly fallback?: SearchProviderConfig
+  /** `api_key_env` names this variable and the environment leaves it empty: search is off. */
+  readonly missingEnv?: string
+  /** The same for `fallback_api_key_env`: the fallback is dropped and the primary keeps working. */
+  readonly fallbackMissingEnv?: string
   readonly cacheTtlSeconds: number
   readonly cacheMaxEntries: number
   readonly timeoutMs: number
@@ -48,19 +53,24 @@ export interface ResolvedWebSearch {
 
 export function resolveWebSearch(raw: RawWebSearch | undefined): ResolvedWebSearch {
   const provider = raw?.provider ?? 'duckduckgo'
-  const apiKey = envApiKey(raw?.api_key_env, 'api_key_env')
+  const { apiKey, missingEnv } = readEnvKey(raw?.api_key_env)
   const baseUrl = raw?.base_url
   const costPerSearchUsd = raw?.cost_per_search_usd
-  const fallbackApiKey = envApiKey(raw?.fallback_api_key_env, 'fallback_api_key_env')
-  const fallbackBaseUrl = raw?.fallback_base_url
+  const fallbackKey = readEnvKey(raw?.fallback_api_key_env)
 
-  assertProviderRequirements({ provider, apiKey, baseUrl, label: 'provider' })
+  assertProviderRequirements({
+    provider,
+    apiKeyEnv: raw?.api_key_env,
+    baseUrl,
+    label: 'provider',
+  })
   assertCostPerSearch(provider, costPerSearchUsd, 'cost_per_search_usd')
 
   const fallback = toFallbackConfig({
     provider: raw?.fallback_provider,
-    apiKey: fallbackApiKey,
-    baseUrl: fallbackBaseUrl,
+    apiKeyEnv: raw?.fallback_api_key_env,
+    apiKey: fallbackKey.apiKey,
+    baseUrl: raw?.fallback_base_url,
     costPerSearchUsd: raw?.fallback_cost_per_search_usd,
   })
 
@@ -77,7 +87,9 @@ export function resolveWebSearch(raw: RawWebSearch | undefined): ResolvedWebSear
     ...(apiKey === undefined ? {} : { apiKey }),
     ...(baseUrl === undefined ? {} : { baseUrl }),
     ...(costPerSearchUsd === undefined ? {} : { costPerSearchUsd }),
-    ...(fallback === undefined ? {} : { fallback }),
+    ...(missingEnv === undefined ? {} : { missingEnv: missingEnv }),
+    ...(fallback === undefined || fallbackKey.missingEnv !== undefined ? {} : { fallback }),
+    ...(fallbackKey.missingEnv === undefined ? {} : { fallbackMissingEnv: fallbackKey.missingEnv }),
     ...SEARCH_BOUNDS,
     cacheTtlSeconds: raw?.cache_ttl_seconds ?? DEFAULT_SEARCH_CACHE_TTL_SECONDS,
     exaSearchType: raw?.exa_search_type ?? 'auto',
@@ -85,15 +97,25 @@ export function resolveWebSearch(raw: RawWebSearch | undefined): ResolvedWebSear
   }
 }
 
+/** The refusal for search whose `api_key_env` names a variable the environment leaves empty. */
+export function toMissingSearchKeyError(search: ResolvedWebSearch): MissingEnvError | undefined {
+  return search.missingEnv === undefined
+    ? undefined
+    : new MissingEnvError(search.missingEnv, SEARCH_KEY_OWNER, {
+        path: ['web_search', 'api_key_env'],
+        effect: 'search',
+      })
+}
+
 interface ProviderRequirementInput {
   readonly provider: SearchProvider
-  readonly apiKey: string | undefined
+  readonly apiKeyEnv: string | undefined
   readonly baseUrl: string | undefined
   readonly label: string
 }
 
 function assertProviderRequirements(input: ProviderRequirementInput): void {
-  const { provider, apiKey, baseUrl, label } = input
+  const { provider, apiKeyEnv, baseUrl, label } = input
   if (provider === 'searxng') {
     assertSearxngBaseUrl(label, baseUrl)
     return
@@ -101,7 +123,7 @@ function assertProviderRequirements(input: ProviderRequirementInput): void {
 
   assertHostedProviderBaseUrl(label, baseUrl)
 
-  if (!KEY_OPTIONAL_PROVIDERS.includes(provider) && apiKey === undefined) {
+  if (!KEY_OPTIONAL_PROVIDERS.includes(provider) && apiKeyEnv === undefined) {
     throw new OperatorConfigError(
       `web_search ${label} "${provider}" requires api_key_env`,
       { key: 'errors.configSearchKeyMissing', params: { provider } },
@@ -154,16 +176,17 @@ function assertHostedProviderBaseUrl(label: string, baseUrl: string | undefined)
 
 interface FallbackConfigInput {
   readonly provider: SearchProvider | undefined
+  readonly apiKeyEnv: string | undefined
   readonly apiKey: string | undefined
   readonly baseUrl: string | undefined
   readonly costPerSearchUsd: number | undefined
 }
 
 function toFallbackConfig(input: FallbackConfigInput): SearchProviderConfig | undefined {
-  const { provider, apiKey, baseUrl, costPerSearchUsd } = input
+  const { provider, apiKeyEnv, apiKey, baseUrl, costPerSearchUsd } = input
 
   if (provider === undefined) {
-    if (apiKey !== undefined || baseUrl !== undefined || costPerSearchUsd !== undefined) {
+    if (apiKeyEnv !== undefined || baseUrl !== undefined || costPerSearchUsd !== undefined) {
       throw new OperatorConfigError(
         'web_search fallback settings require fallback_provider',
         { key: 'errors.configSearchFallbackMissing' },
@@ -174,7 +197,7 @@ function toFallbackConfig(input: FallbackConfigInput): SearchProviderConfig | un
     return undefined
   }
 
-  assertProviderRequirements({ provider, apiKey, baseUrl, label: 'fallback_provider' })
+  assertProviderRequirements({ provider, apiKeyEnv, baseUrl, label: 'fallback_provider' })
   assertCostPerSearch(provider, costPerSearchUsd, 'fallback_cost_per_search_usd')
 
   return {
@@ -185,17 +208,19 @@ function toFallbackConfig(input: FallbackConfigInput): SearchProviderConfig | un
   }
 }
 
-/** A named variable that is empty fails here, naming it, rather than reading as no key at all. */
-function envApiKey(name: string | undefined, field: string): string | undefined {
+interface EnvKeyRead {
+  readonly apiKey?: string
+  readonly missingEnv?: string
+}
+
+/** A named variable that is empty reads as `missingEnv`, not as no key at all: the operator asked
+ *  for a key and the environment did not supply it. */
+function readEnvKey(name: string | undefined): EnvKeyRead {
   if (name === undefined) {
-    return undefined
+    return {}
   }
 
   const value = process.env[name]?.trim()
 
-  if (value === undefined || value === '') {
-    throw new MissingEnvError(name, '[web_search]', ['web_search', field])
-  }
-
-  return value
+  return value === undefined || value === '' ? { missingEnv: name } : { apiKey: value }
 }

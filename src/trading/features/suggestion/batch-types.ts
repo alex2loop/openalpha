@@ -5,7 +5,7 @@ import type { Locale } from '@/core/types/locale'
 import type { SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { DebateMode, SuggestionPolicy } from '@/trading/kernel/config'
 import type { MarketRef, PortfolioSegment, Ticker } from '@/trading/kernel/instrument'
-import type { SleeveBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { RunFocus } from '@/trading/kernel/operator/focus'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 
@@ -24,7 +24,7 @@ export interface SuggestionBatchItem {
  *  applies is supplied, because a pipeline function reads no config. */
 export interface SuggestionBatchOptions {
   readonly items: readonly SuggestionBatchItem[]
-  /** Every sleeve the items resolved to: the scope of the batch's one portfolio read. */
+  /** Every segment the items resolved to: the scope of the batch's one portfolio read. */
   readonly segments: readonly PortfolioSegment[]
   readonly channel: ChannelId
   readonly billingSessionId: SessionId | null
@@ -70,7 +70,7 @@ export interface SuggestionBatchRequest {
 
 /** A budget the batch's buys would spend past together, though each was sized to fit it alone:
  *  every item sizes against the same pre-batch cash and open-risk room. Weights are fractions of
- *  NAV, as in `SleeveBreach`. */
+ *  NAV, as in `CapBreach`. */
 export interface BatchOvercommit {
   readonly kind: 'cash' | 'open-risk'
   /** Cash only: set when the shortfall is what one market's venues can reach, not the whole
@@ -85,6 +85,6 @@ export interface BatchOvercommit {
  *  row re-read alone was never part of one. */
 export interface SuggestionBatchResult {
   readonly results: readonly SuggestionRunResult[]
-  readonly breaches: readonly SleeveBreach[]
+  readonly breaches: readonly CapBreach[]
   readonly overcommit: readonly BatchOvercommit[]
 }

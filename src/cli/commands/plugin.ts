@@ -7,7 +7,7 @@ import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
 import { flagBool, flagString } from '@/cli/parsing/args'
 import { hint, style, success } from '@/cli/ui/colors'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 import {
   discoverInstalledPlugins,
   installPlugin,
@@ -72,7 +72,7 @@ async function listPlugins(_args: ParsedArgs, app: CliApp): Promise<number> {
   for (const plugin of found) {
     const agents = plugin.contributions.agents?.length ?? 0
     app.out(
-      `${style.heading(plugin.id)}  ${hint(t(locale, 'cli.pluginAgentCount', { count: agents }))}`
+      `${style.heading(plugin.id)}  ${hint(t(locale, pluralKey(agents, 'cli.pluginAgentCountOne', 'cli.pluginAgentCount'), { count: agents }))}`
     )
   }
 

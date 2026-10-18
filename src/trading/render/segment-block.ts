@@ -11,21 +11,21 @@ import { ABSENT_CELL } from '@/trading/render/number'
 import { toTable } from '@/trading/render/table'
 
 /** The column every block leads with. It carries a header in the grid and no label in the stacked
- *  shape, because a reader looking at a sleeve's name does not need to be told it is one. */
-const NAME_COLUMN: SleeveColumn = Object.freeze({
-  labelKey: 'trading.render.sleeve.columnSegment',
+ *  shape, because a reader looking at a segment's name does not need to be told it is one. */
+const NAME_COLUMN: SegmentColumn = Object.freeze({
+  labelKey: 'trading.render.segment.columnSegment',
   align: 'left',
 })
 
-export interface SleeveColumn {
+export interface SegmentColumn {
   readonly labelKey: MessageKey
   readonly align: ColumnAlign
 }
 
-/** One sleeve's answers: one entry per declared value column, in that order. `undefined` is a cell
- *  this sleeve cannot answer - a dash in the grid, and nothing at all on a phone line, because a
+/** One segment's answers: one entry per declared value column, in that order. `undefined` is a cell
+ *  this segment cannot answer - a dash in the grid, and nothing at all on a phone line, because a
  *  narrow line should not spend itself on a dash where a number would be. */
-export interface SleeveRow {
+export interface SegmentRow {
   readonly name: string
   readonly cash: boolean
   readonly cells: readonly (string | undefined)[]
@@ -33,14 +33,14 @@ export interface SleeveRow {
   readonly bar?: BarShares
 }
 
-export interface SleeveBlock {
+export interface SegmentBlock {
   /** The value columns, in order. The first answers "how much" and rides the header line in the
    *  stacked shape; the rest are the ceilings on its detail line. */
-  readonly columns: readonly SleeveColumn[]
-  readonly rows: readonly SleeveRow[]
-  /** Sleeves the operator switched off, named once under the rows instead of as rows of zeros. */
+  readonly columns: readonly SegmentColumn[]
+  readonly rows: readonly SegmentRow[]
+  /** Segments the operator switched off, named once under the rows instead of as rows of zeros. */
   readonly disabled: readonly string[]
-  /** Sleeves whose target the operator set by hand. Absent where the surface does not track them;
+  /** Segments whose target the operator set by hand. Absent where the surface does not track them;
    *  a pin that re-seeding honours has to be visible, or a target that will not move on a
    *  risk-level change reads as a bug. */
   readonly pinned?: readonly string[]
@@ -48,33 +48,33 @@ export interface SleeveBlock {
   readonly legend?: MessageKey
 }
 
-/** The one place the sleeve facts are drawn. A grid where the reader has a monospace font, and one
- *  sleeve per two-line block where they do not - never two sleeves on one line, so a wrap can only
+/** The one place the segment facts are drawn. A grid where the reader has a monospace font, and one
+ *  segment per two-line block where they do not - never two segments on one line, so a wrap can only
  *  ever orphan a number under the name it belongs to. */
-export function renderSleeveBlock(
+export function renderSegmentBlock(
   locale: Locale,
-  block: SleeveBlock,
+  block: SegmentBlock,
   context: RenderContext
 ): readonly string[] {
-  const off = namedSleeves(locale, 'trading.render.sleeve.off', block.disabled)
+  const off = namedSegments(locale, 'trading.render.segment.off', block.disabled)
 
   if (block.rows.length === 0 && off.length === 0) {
     return []
   }
 
   return [
-    renderSectionTitle(SECTION_ICONS.segments, t(locale, 'trading.render.sleeve.title')),
+    renderSectionTitle(SECTION_ICONS.segments, t(locale, 'trading.render.segment.title')),
     ...bodyLines(locale, block, context),
     ...legendLines(locale, block, context),
-    ...namedSleeves(locale, 'trading.render.sleeve.pinned', block.pinned ?? []),
+    ...namedSegments(locale, 'trading.render.segment.pinned', block.pinned ?? []),
     ...off,
   ]
 }
 
-/** Empty for an empty sleeve list: a grid built from no rows is a header naming columns nothing
+/** Empty for an empty segment list: a grid built from no rows is a header naming columns nothing
  *  fills, while the disabled line under it still stands on its own. */
-function bodyLines(locale: Locale, block: SleeveBlock, context: RenderContext): readonly string[] {
-  const rows = orderSleeves(block.rows)
+function bodyLines(locale: Locale, block: SegmentBlock, context: RenderContext): readonly string[] {
+  const rows = orderSegments(block.rows)
 
   if (rows.length === 0) {
     return []
@@ -87,7 +87,7 @@ function bodyLines(locale: Locale, block: SleeveBlock, context: RenderContext): 
 
 function legendLines(
   locale: Locale,
-  block: SleeveBlock,
+  block: SegmentBlock,
   context: RenderContext
 ): readonly string[] {
   const drawn =
@@ -98,15 +98,15 @@ function legendLines(
     : []
 }
 
-/** Cash last, because it is what the other sleeves leave behind. */
-function orderSleeves(rows: readonly SleeveRow[]): readonly SleeveRow[] {
+/** Cash last, because it is what the other segments leave behind. */
+function orderSegments(rows: readonly SegmentRow[]): readonly SegmentRow[] {
   return [...rows.filter((row) => !row.cash), ...rows.filter((row) => row.cash)]
 }
 
 function gridLines(
   locale: Locale,
-  columns: readonly SleeveColumn[],
-  rows: readonly SleeveRow[]
+  columns: readonly SegmentColumn[],
+  rows: readonly SegmentRow[]
 ): readonly string[] {
   const header = [NAME_COLUMN, ...columns].map((column) => t(locale, column.labelKey))
   const cells = rows.map((row) => [row.name, ...row.cells.map((cell) => cell ?? ABSENT_CELL)])
@@ -116,13 +116,13 @@ function gridLines(
 }
 
 /** The name and the one number that answers "how much", then the ceilings indented under it. The
- *  detail line is dropped where a sleeve has no ceilings, which is why cash is one line. */
+ *  detail line is dropped where a segment has no ceilings, which is why cash is one line. */
 function stackedLines(
   locale: Locale,
-  sleeve: { readonly columns: readonly SleeveColumn[]; readonly row: SleeveRow },
+  segment: { readonly columns: readonly SegmentColumn[]; readonly row: SegmentRow },
   context: RenderContext
 ): readonly string[] {
-  const { columns, row } = sleeve
+  const { columns, row } = segment
   const [lead, ...rest] = columns
   const [leadCell, ...restCells] = row.cells
   const head =
@@ -144,13 +144,13 @@ function stackedLines(
   ]
 }
 
-function labelled(locale: Locale, column: SleeveColumn, value: string): string {
-  return t(locale, 'trading.render.sleeve.cell', { label: t(locale, column.labelKey), value })
+function labelled(locale: Locale, column: SegmentColumn, value: string): string {
+  return t(locale, 'trading.render.segment.cell', { label: t(locale, column.labelKey), value })
 }
 
-/** A set of sleeves stated under the rows rather than as a column: both answers are the same shape,
+/** A set of segments stated under the rows rather than as a column: both answers are the same shape,
  *  and a column of mostly-empty flags costs every row to tell the reader about two of them. */
-function namedSleeves(
+function namedSegments(
   locale: Locale,
   key: MessageKey,
   segments: readonly string[]

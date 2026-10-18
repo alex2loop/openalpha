@@ -9,15 +9,15 @@ export const BUILT_IN_COMMANDS: readonly (Command | Group)[] = [
   }),
   lazyCommand({
     ...CLI_COMMAND_METADATA.start,
-    load: async () => (await import('@/cli/commands/daemon')).startCommand,
+    load: async () => (await import('@/cli/commands/daemon/daemon')).startCommand,
   }),
   lazyCommand({
     ...CLI_COMMAND_METADATA.stop,
-    load: async () => (await import('@/cli/commands/daemon')).stopCommand,
+    load: async () => (await import('@/cli/commands/daemon/daemon')).stopCommand,
   }),
   lazyCommand({
     ...CLI_COMMAND_METADATA.restart,
-    load: async () => (await import('@/cli/commands/daemon')).restartCommand,
+    load: async () => (await import('@/cli/commands/daemon/daemon')).restartCommand,
   }),
   lazyCommand({
     ...CLI_COMMAND_METADATA.status,

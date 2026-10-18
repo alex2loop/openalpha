@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { RenderView } from '@/trading/features/suggestion/render/view'
 import type { SuggestionReportDeps } from '@/trading/features/suggestion/report'
@@ -69,6 +74,7 @@ export function createSuggestCommand(deps: SuggestCommandDeps): SlashCommand {
     },
     // The subject is a ticker and `stops` is its exception, so only the options complete.
     completeFor: (args) => (args.length === 1 ? [] : OPTIONS),
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -113,12 +119,16 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
 }
 
 function suggestUsage(deps: SuggestCommandDeps): SlashResult {
-  return usage(USAGE, {
+  return usage(USAGE, buildUsageValues(deps))
+}
+
+function buildUsageValues(deps: SuggestCommandDeps): CommandMessageValues {
+  return {
     modes: DEBATE_MODE_OPTIONS,
     force: FORCE_ARG,
     stops: STOPS_ARG,
     markets: deps.marketData.markets().join(', '),
-  })
+  }
 }
 
 interface SuggestSlots {

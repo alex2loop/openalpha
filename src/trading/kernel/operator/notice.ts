@@ -61,6 +61,9 @@ export type TradingNoticePayload =
   | { readonly kind: 'delivery-disabled'; readonly subject: NoticeKind }
   // One scheduled delivery given up: the subscription stays on and the next one is still due.
   | { readonly kind: 'delivery-skipped'; readonly subject: NoticeKind }
+  // One scheduled delivery given up because a key variable is unset: retrying cannot help, since a
+  // key arrives with a restart, so it names the variable instead of reporting failed tries.
+  | { readonly kind: 'key-missing'; readonly subject: NoticeKind; readonly env: string }
   // A background loop stopped on an error that is this code being wrong. `retryInMs` is absent once
   // the loop has used its restarts and stays stopped until the daemon restarts.
   | { readonly kind: 'loop-quarantined'; readonly operation: string; readonly retryInMs?: number }

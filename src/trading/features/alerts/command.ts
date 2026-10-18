@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
@@ -41,6 +46,7 @@ export function createAlertCommand(deps: AlertCommandDeps): SlashCommand {
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     // The verb only: everything after it is the name being typed and its condition.
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -235,7 +241,11 @@ async function runDisable(
 }
 
 function alertUsage(deps: AlertCommandDeps): SlashResult {
-  return usage(USAGE, { markets: registeredMarkets(deps).join(', ') })
+  return usage(USAGE, buildUsageValues(deps))
+}
+
+function buildUsageValues(deps: AlertCommandDeps): CommandMessageValues {
+  return { markets: registeredMarkets(deps).join(', ') }
 }
 
 /** The set a qualifier is checked against, and the set the usage line names — one derivation, so

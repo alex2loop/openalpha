@@ -83,7 +83,7 @@ export const helloCommand = createCommand({
 | `scrubCredentials` | gốc | Xóa bí mật khỏi văn bản trước khi hiển thị |
 | `boot`, `passThroughBootGate` | `/app` | Khởi động container. Trả về `{ app, delivery, dispose }` |
 | `main` | `/app` | Entry đầy đủ: khởi động, rồi chạy CLI với provider, lệnh và cổng khởi động thêm |
-| `createCommand`, `createGroup`, `createRoot` | `/cli` | Khai báo lệnh terminal, gom các lệnh con, dựng cây gốc chạy được |
+| `createCommand`, `createGroup`, `createRoot` | `/cli` | Khai báo lệnh terminal, gom các lệnh con, dựng cây gốc chạy được (cây gốc tự thêm `help` và bí danh `--version`) |
 | `lazyCommand` | `/cli` | Chỉ nạp module của lệnh khi nó chạy |
 | `admitCommand`, `preflightCommand` | `/cli` | Cổng cho phép và cổng kiểm tra trước, bao quanh bước điều phối lệnh |
 | `preBootApp`, `runCli` | `/cli` | Ứng dụng chỉ có cấu hình cho các lệnh không cần khởi động; chạy cây lệnh với argv |
@@ -200,7 +200,7 @@ sẵn.
 | Công cụ | `ToolDefinition`, tạo bằng `createTool(...)` |
 | Kênh | `ChannelDefinition`, tạo bằng `createChannel(...)`, sinh ra một `ChannelAdapter` |
 | Agent | `AgentDefinition`, tạo bằng `createAgent(...)`, hoặc một `agent.toml` đã qua kiểm |
-| Lệnh gạch chéo | `SlashCommand`, tạo bằng `createSlashCommand(...)`, hoặc `DeclarativeSlashCommandSource` |
+| Lệnh gạch chéo | `SlashCommand`, tạo bằng `createSlashCommand(...)` (`usage()` tùy chọn là thứ `/help <tên>` in ra), hoặc `DeclarativeSlashCommandSource` |
 | Workflow | `WorkflowSource` (chỉ khám phá từ tệp và cấu hình) |
 | Plugin | `Plugin` kèm `PluginContributions` |
 | Dịch vụ giao dịch | `PortfolioService`, `MarketDataService`, `SuggestionService`, `AlertService`, `BriefService`. Phân giải từ container, không bao giờ do người nhúng tự dựng |

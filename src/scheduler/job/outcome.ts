@@ -68,6 +68,7 @@ export function computeOutcome(
     status: 'failed',
     endedAtMs: now,
     errorMessage: result.errorMessage ?? result.reason,
+    ...(result.missingEnv === undefined ? {} : { missingEnv: result.missingEnv }),
   }
 }
 
@@ -78,6 +79,10 @@ export function computeTransition(
 ): SchedulerJobTransition {
   if (outcome.status === 'success') {
     return nextTransition(job, now)
+  }
+
+  if (outcome.missingEnv !== undefined) {
+    return keylessTransition(job, now)
   }
 
   if (UNCOUNTED_HALT_MESSAGES.has(outcome.errorMessage)) {
@@ -94,14 +99,29 @@ export function computeTransition(
   return { kind: 'retry', failures, nextRunAt: now + delay }
 }
 
+// A key arrives with a restart, never by waiting, so the job keeps its place and no failure is
+// counted. A once job has no later occurrence, so it stays due and is asked again after the cap.
+function keylessTransition(job: Job, now: number): SchedulerJobTransition {
+  if (job.schedule.kind === 'once') {
+    return deferredTransition(job, now)
+  }
+
+  return { kind: 'skip', nextRunAt: nextScheduledRunAt(job, now) }
+}
+
 // A paused or capped agent's one-shot is deferred without a failure counted, so it runs once the
 // agent is resumed or the day rolls over instead of being disabled for a halt that is not the job's.
 function onceHaltTransition(job: Job, message: string, now: number): SchedulerJobTransition {
   if (message === PAUSED_MESSAGE || message === AGENT_CAP_MESSAGE) {
-    return { kind: 'retry', failures: job.consecutiveFailures, nextRunAt: now + RETRY_CAP_MS }
+    return deferredTransition(job, now)
   }
 
   return message === SHUTDOWN_MESSAGE ? { kind: 'skip', nextRunAt: now } : { kind: 'disable' }
+}
+
+// Asked again after the longest backoff with no failure counted.
+function deferredTransition(job: Job, now: number): SchedulerJobTransition {
+  return { kind: 'retry', failures: job.consecutiveFailures, nextRunAt: now + RETRY_CAP_MS }
 }
 
 function haltTransition(job: Job, message: string, now: number): SchedulerJobTransition {

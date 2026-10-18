@@ -2,7 +2,7 @@ import { chmod, rename, rm } from 'node:fs/promises'
 
 import type { CliApp } from '@/cli/types'
 import { type Command, createCommand } from '@/cli/command'
-import { stopDaemonIfRunning } from '@/cli/commands/daemon'
+import { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
 import { liveDaemonPid } from '@/cli/daemon-guard'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { fail, hint, info, success } from '@/cli/ui/colors'

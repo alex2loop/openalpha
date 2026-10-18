@@ -68,7 +68,7 @@ tại:
 
 - `daily_trade_sides`, `series_points`, `series_provenance`, `news_items`, `macro_documents`;
 - `fundamental_snapshots` (endpoint tỷ số chỉ trả kỳ mới nhất);
-- `macro_snapshots` (mỗi lần refresh chỉ ghi regime của phiên hiện tại).
+- `macro_snapshots` (mỗi lần refresh chỉ ghi trạng thái thị trường của phiên hiện tại).
 
 **Sổ lệnh.** `ledger_entries` có cột `close_reason`: vế nào (`stop` hay `target`) của lệnh thoát đang
 treo đã khớp; để trống ở mọi lần bán do bạn tự làm. Cột `from_venue` là nguồn của một dòng `transfer`,

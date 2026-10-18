@@ -1,6 +1,9 @@
 import type { RawMcp } from '@/core/config/schema'
 import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
 
+const PLACEHOLDER_RE = /\$\{([^}]*)\}/g
+const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
+
 export type ResolvedMcpServer =
   | {
       readonly name: string
@@ -13,18 +16,25 @@ export type ResolvedMcpServer =
 
 export interface ResolvedMcp {
   readonly servers: readonly ResolvedMcpServer[]
+  /** Servers left out because an env var their config names is unset. Only a deferred resolve
+   *  fills it; otherwise the resolve throws. */
+  readonly unset: readonly MissingEnvError[]
 }
 
-const PLACEHOLDER_RE = /\$\{([^}]*)\}/g
-const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
+interface ResolveMcpOptions {
+  readonly deferMissingEnv: boolean
+}
+
+type RawMcpServer = NonNullable<RawMcp['servers']>[number]
 
 // A server disabled in config is dropped here, so nothing downstream has to re-check the flag.
-export function resolveMcp(raw: RawMcp | undefined): ResolvedMcp {
+export function resolveMcp(raw: RawMcp | undefined, options: ResolveMcpOptions): ResolvedMcp {
   const seen = new Set<string>()
+  const unset: MissingEnvError[] = []
   const servers = (raw?.servers ?? [])
     .map((server, index) => ({ server, index }))
     .filter(({ server }) => server.enabled !== false)
-    .map(({ server, index }): ResolvedMcpServer => {
+    .flatMap(({ server, index }): readonly ResolvedMcpServer[] => {
       if (seen.has(server.name)) {
         throw new OperatorConfigError(
           `mcp server "${server.name}" is declared twice`,
@@ -35,40 +45,45 @@ export function resolveMcp(raw: RawMcp | undefined): ResolvedMcp {
 
       seen.add(server.name)
 
-      if (server.transport === 'stdio') {
-        return {
-          name: server.name,
-          transport: 'stdio',
-          command: interpolateEnv(server.command, server.name, [
-            'mcp',
-            'servers',
-            index,
-            'command',
-          ]),
-          args:
-            server.args?.map((arg, argIndex) =>
-              interpolateEnv(arg, server.name, ['mcp', 'servers', index, 'args', argIndex])
-            ) ?? [],
-          env: Object.fromEntries(
-            Object.entries(server.env ?? {}).map(([key, value]) => [
-              key,
-              interpolateEnv(value, server.name, ['mcp', 'servers', index, 'env', key]),
-            ])
-          ),
+      try {
+        return [resolveServer(server, index)]
+      } catch (err: unknown) {
+        if (options.deferMissingEnv && err instanceof MissingEnvError) {
+          unset.push(err)
+
+          return []
         }
-      }
 
-      const url = interpolateEnv(server.url, server.name, ['mcp', 'servers', index, 'url'])
-      assertMcpUrl(url, server.name, ['mcp', 'servers', index, 'url'])
-
-      return {
-        name: server.name,
-        transport: 'http',
-        url,
+        throw err
       }
     })
 
-  return { servers }
+  return { servers, unset }
+}
+
+function resolveServer(server: RawMcpServer, index: number): ResolvedMcpServer {
+  if (server.transport === 'stdio') {
+    return {
+      name: server.name,
+      transport: 'stdio',
+      command: interpolateEnv(server.command, server.name, ['mcp', 'servers', index, 'command']),
+      args:
+        server.args?.map((arg, argIndex) =>
+          interpolateEnv(arg, server.name, ['mcp', 'servers', index, 'args', argIndex])
+        ) ?? [],
+      env: Object.fromEntries(
+        Object.entries(server.env ?? {}).map(([key, value]) => [
+          key,
+          interpolateEnv(value, server.name, ['mcp', 'servers', index, 'env', key]),
+        ])
+      ),
+    }
+  }
+
+  const url = interpolateEnv(server.url, server.name, ['mcp', 'servers', index, 'url'])
+  assertMcpUrl(url, server.name, ['mcp', 'servers', index, 'url'])
+
+  return { name: server.name, transport: 'http', url }
 }
 
 function assertMcpUrl(raw: string, serverName: string, path: readonly (string | number)[]): void {
@@ -119,7 +134,7 @@ function interpolateEnv(
     const resolved = process.env[name]
 
     if (resolved === undefined || resolved === '') {
-      throw new MissingEnvError(name, `mcp server "${serverName}"`, path)
+      throw new MissingEnvError(name, `mcp server "${serverName}"`, { path })
     }
 
     return resolved

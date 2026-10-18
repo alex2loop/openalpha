@@ -22,7 +22,7 @@ export interface SegmentDescriptor {
   readonly category: PositionCategory
   readonly seedsDefaultTarget: boolean
   /** Whether any venue holds this market. One no venue holds is a reference read (world gold, which
-   *  domestic gold prices against): its sleeve stays off, because nothing could fill it. */
+   *  domestic gold prices against): its segment stays off, because nothing could fill it. */
   readonly held: boolean
   /** Share of the category's allocation relative to its siblings; one is an even split. */
   readonly seedWeight: number
@@ -34,7 +34,7 @@ const SEGMENT_CEILING_FLOOR_PCT_POINTS = 0.05
 
 const SEGMENT_CEILING_RELATIVE_FRACTION = 0.25
 
-/** A sleeve that declares no weight takes an even share of its category. */
+/** A segment that declares no weight takes an even share of its category. */
 export const DEFAULT_SEED_WEIGHT = 1
 
 const DEFAULT_RISK_LEVEL: RiskLevel = 'balanced'
@@ -52,9 +52,9 @@ export interface PolicyBound {
 
 export interface ProfileBounds {
   readonly positionPctNavByCategory: Readonly<Partial<Record<PositionCategory, PolicyBound>>>
-  /** How far a sleeve's own ceiling may be set. A seeded ceiling follows its target and needs no
+  /** How far a segment's own ceiling may be set. A seeded ceiling follows its target and needs no
    *  bound; `profile_update` writes the whole caps record on an agent's word, and nothing else
-   *  stops one sleeve being opened to the entire book. */
+   *  stops one segment being opened to the entire book. */
   readonly segmentPctNavByCategory: Readonly<Partial<Record<PositionCategory, PolicyBound>>>
   readonly maximumSectorPctNav: PolicyBound
   readonly reservePctNav: PolicyBound
@@ -79,10 +79,10 @@ interface RiskRow {
   readonly maximumOpenRiskPctNav: number
 }
 
-/** A tracker correlates near-1 with its sleeve, so the aggressive book — the one most concentrated
+/** A tracker correlates near-1 with its segment, so the aggressive book — the one most concentrated
  *  in single names — gets the smallest tracker allowance, not the largest. There is no `etf` target:
  *  no segment declares category `etf`, so ETF exposure lives only in the `maximumEtfPctNav` sub-cap
- *  on sleeves that hold ETFs. Allowances fall with risk appetite: 0.35/0.25/0.15. */
+ *  on segments that hold ETFs. Allowances fall with risk appetite: 0.35/0.25/0.15. */
 const RISK_TABLE: Readonly<Record<RiskLevel, RiskRow>> = Object.freeze({
   conservative: {
     stock: 0.25,
@@ -140,7 +140,7 @@ export const PROFILE_BOUNDS: ProfileBounds = Object.freeze({
     crypto: { minimum: 0.01, maximum: 0.2 },
   }),
   // The floor is the seeded ceiling's own floor, so every seed clears it. A seeded ceiling is clamped
-  // to the maximum: one sleeve left on takes the others' share, and its ceiling would pass it.
+  // to the maximum: one segment left on takes the others' share, and its ceiling would pass it.
   segmentPctNavByCategory: Object.freeze({
     stock: { minimum: SEGMENT_CEILING_FLOOR_PCT_POINTS, maximum: 0.9 },
     gold: { minimum: SEGMENT_CEILING_FLOOR_PCT_POINTS, maximum: 0.5 },
@@ -156,7 +156,7 @@ export const PROFILE_BOUNDS: ProfileBounds = Object.freeze({
   takeProfitTranchePct: { minimum: 0.2, maximum: 1 },
 })
 
-/** The two records that only ever move together: a sleeve's target and the ceiling above it. */
+/** The two records that only ever move together: a segment's target and the ceiling above it. */
 interface SegmentPolicy {
   readonly segmentTargets: Readonly<Record<PortfolioSegment, number>>
   readonly caps: Readonly<Record<PortfolioSegment, RiskCapSet>>
@@ -232,7 +232,7 @@ function seedTargets(
   const targets: Record<PortfolioSegment, number> = { [CASH_SEGMENT]: row.cash }
 
   for (const category of POSITION_CATEGORIES) {
-    // No segment declares category `etf`; its row would have no sleeve to land on.
+    // No segment declares category `etf`; its row would have no segment to land on.
     if (category === 'etf') {
       continue
     }
@@ -272,7 +272,7 @@ function seedCaps(
 
   return Object.fromEntries(
     segments.map((segment) => {
-      // A sleeve that seeds no target seeds no room either: the ceiling floor would otherwise hand
+      // A segment that seeds no target seeds no room either: the ceiling floor would otherwise hand
       // it a buyable cap the seeded allocation never asked for.
       if (!segment.seedsDefaultTarget) {
         return [segment.id, DISABLED_CAPS]
@@ -308,7 +308,7 @@ interface PinnedTargetsInput {
 }
 
 /** The hand-set targets laid over a set of seeded ones: each pin keeps its exact number and every
- *  other sleeve keeps its share of what is left, so the set still sums to one. Cash is not in the
+ *  other segment keeps its share of what is left, so the set still sums to one. Cash is not in the
  *  pool — it is the reserve the operator chose, not slack for a pin to spend — and pins that would
  *  eat into it are refused rather than shaved. */
 export function applyPinnedTargets(input: PinnedTargetsInput): SegmentPolicy {
@@ -341,12 +341,12 @@ function pinnedTargets(input: PinnedTargetsInput): Record<PortfolioSegment, numb
   }
 
   if (othersTotal <= 0 && remainder > TARGET_SUM_EPSILON) {
-    throw new ValidationError('no other sleeve can absorb the pinned targets', {
+    throw new ValidationError('no other segment can absorb the pinned targets', {
       key: 'errors.profilePinsNoAbsorber',
     })
   }
 
-  // Float residue inside the epsilon must not leave another sleeve a negative weight.
+  // Float residue inside the epsilon must not leave another segment a negative weight.
   const scale = othersTotal > 0 ? Math.max(remainder, 0) / othersTotal : 0
 
   return {

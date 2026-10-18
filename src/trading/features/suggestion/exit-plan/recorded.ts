@@ -211,6 +211,7 @@ async function buildRecordedPlan(
     orderSession: orderSessionOf(manifest.calendar, input.now),
     signal,
     direction: 'buy',
+    forHolding: true,
     horizon,
     candles: input.candles,
     ...(entry === undefined ? {} : { entry }),

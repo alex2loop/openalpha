@@ -1,10 +1,17 @@
-import type { Affordance, SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  Affordance,
+  CommandMessage,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { SocialService } from '@/social/service'
 import { operatorMessageOf } from '@/core/errors'
 import { bindLocale, t } from '@/i18n'
 import { type DraftRender, renderApproveOutcome, renderDraftView } from '@/social/draft-view'
 
-const MESSAGE_KEYS = ['slash.socialUsage'] as const
+const USAGE: CommandMessage = { key: 'slash.socialUsage' }
+const MESSAGE_KEYS = [USAGE.key] as const
 const READ_POLICY = {
   surfaces: ['channel', 'repl'] as const,
   role: 'operator' as const,
@@ -30,6 +37,7 @@ export function createSocialSlashCommand(
     policy: READ_POLICY,
     policyFor: (args) => (args[0] === 'drafts' || args.length === 0 ? READ_POLICY : MUTATE_POLICY),
     completeFor: (args) => (args.length === 1 ? [...SUBCOMMANDS] : []),
+    usage: () => USAGE,
     run: (ctx) => runSocialSlash(service(), { ctx, timeZone }),
   }
 }
@@ -72,7 +80,7 @@ function chatRender(run: SocialRun): DraftRender {
 }
 
 function usage(): SlashResult {
-  return { kind: 'message', messages: [{ key: 'slash.socialUsage' }] }
+  return { kind: 'message', messages: [USAGE] }
 }
 
 async function listResult(service: SocialService, run: SocialRun): Promise<SlashResult> {

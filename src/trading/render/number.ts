@@ -5,7 +5,7 @@ import type { Locale } from '@/core/types/locale'
 import { SPEND_DECIMALS } from '@/core/utils/cost'
 import { cachedFormatter } from '@/trading/render/datetime'
 
-/** What a cell prints where the value it would carry does not exist - a sleeve bounded by a floor
+/** What a cell prints where the value it would carry does not exist - a segment bounded by a floor
  *  rather than a cap, a lot acquired at no cost, a figure that was never a finite number. Absent is
  *  not zero, and an empty cell reads as a rendering fault rather than as a fact. */
 export const ABSENT_CELL = '—'

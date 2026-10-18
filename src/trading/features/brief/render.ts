@@ -22,7 +22,7 @@ import { renderBlockRule, toBriefSectionText } from '@/trading/render/section'
 
 const FOOTER_RULE = '─'.repeat(25)
 /** `/rebalance`'s own plan notes, printed twice a day in two commands. What bears on today's
- *  stance - the regime throttle, and a sleeve with nothing to buy - stays; the rest is the plan
+ *  stance - the regime throttle, and a segment with nothing to buy - stays; the rest is the plan
  *  talking about itself, and the button beside the brief opens the plan. */
 const REBALANCE_OWN_CAVEATS: ReadonlySet<string> = new Set([
   'portfolio.candidates-available',

@@ -1,5 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type { CommandMessage, SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { FxStageDeps } from '@/trading/features/ledger/confirm'
 import type { LedgerFieldIssue } from '@/trading/features/ledger/draft'
@@ -12,7 +12,7 @@ import type {
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
-import type { TradingDay, VenueRef } from '@/trading/kernel/instrument'
+import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { Venue, VenueRegistry } from '@/trading/venues/types'
@@ -22,8 +22,8 @@ import { parseIsoDay } from '@/core/utils/time'
 import { t } from '@/i18n'
 import { stageForFxRate } from '@/trading/features/ledger/confirm'
 import {
-  fieldIssueMessages,
-  LEDGER_FIELD_KEYS,
+  buildInvalidLineMessages,
+  LEDGER_ISSUE_KEYS,
   parseLedgerDraft,
   parseSyncRequest,
   SYNC_ACTION,
@@ -35,6 +35,7 @@ import { LEDGER_TXN_KINDS } from '@/trading/features/ledger/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { renderVenueName } from '@/trading/render/format'
 
+const RECORD_COMMAND = 'record'
 const USAGE: 'slash.tradingRecordUsage' = 'slash.tradingRecordUsage'
 const VOID_TIMEOUT_MS = 30_000
 const CONFIRM_ACTION = 'confirm'
@@ -60,9 +61,9 @@ interface SyncWindow {
 
 export function createRecordCommand(deps: RecordCommandDeps): SlashCommand {
   return {
-    name: 'record',
+    name: RECORD_COMMAND,
     description: { kind: 'localized', key: 'slash.tradingRecordHelp' },
-    messageKeys: [USAGE, ...Object.values(LEDGER_FIELD_KEYS)],
+    messageKeys: [USAGE, ...LEDGER_ISSUE_KEYS],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
@@ -71,6 +72,7 @@ export function createRecordCommand(deps: RecordCommandDeps): SlashCommand {
     },
     completeFor: (args) =>
       args.length === 1 ? [...LEDGER_TXN_KINDS, SYNC_ACTION, CONFIRM_ACTION] : [],
+    usage: () => buildUsageMessage(deps),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -85,7 +87,7 @@ async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashRes
     return { kind: 'text', text: await confirmStaged(deps, ctx) }
   }
 
-  const request = parseRecordRequest(ctx.args)
+  const request = parseRecordRequest(ctx.args, deps.baseCurrency)
 
   if ('invalid' in request) {
     return recordUsage(deps, request.invalid)
@@ -106,14 +108,14 @@ async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashRes
   return { kind: 'text', text: held ? withDroppedNotice(ctx.locale, outcome.text) : outcome.text }
 }
 
-function parseRecordRequest(args: readonly string[]): RecordRequest {
+function parseRecordRequest(args: readonly string[], baseCurrency: CurrencyCode): RecordRequest {
   const venue = parseSyncRequest(args)
 
   if (venue !== null) {
     return { venue }
   }
 
-  const parsed = parseLedgerDraft(args)
+  const parsed = parseLedgerDraft(args, baseCurrency)
 
   return parsed.kind === 'draft' ? { draft: parsed.draft } : { invalid: parsed.issue }
 }
@@ -167,22 +169,23 @@ function withDroppedNotice(locale: Locale, text: string): string {
   return `${t(locale, 'trading.render.ledger.stagedDiscarded')}\n\n${text}`
 }
 
+function recordUsage(deps: RecordCommandDeps, issue: LedgerFieldIssue | undefined): SlashResult {
+  return {
+    kind: 'message',
+    messages: buildInvalidLineMessages(issue, buildUsageMessage(deps), RECORD_COMMAND),
+  }
+}
+
 /** Only markets a venue holds: the ledger refuses a row in any other, so the usage never offers
  *  one. */
-function recordUsage(deps: RecordCommandDeps, issue: LedgerFieldIssue | undefined): SlashResult {
+function buildUsageMessage(deps: RecordCommandDeps): CommandMessage {
   const held = deps.venues.heldMarkets()
   const markets = deps.markets
     .list()
     .map((entry) => entry.manifest.id)
     .filter((market) => held.has(market))
 
-  return {
-    kind: 'message',
-    messages: [
-      ...fieldIssueMessages(issue),
-      { key: USAGE, values: { markets: markets.join(', ') } },
-    ],
-  }
+  return { key: USAGE, values: { markets: markets.join(', ') } }
 }
 
 /** Booked one at a time, oldest first: each write re-folds the whole book, so a buy has to land

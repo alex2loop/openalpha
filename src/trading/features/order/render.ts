@@ -17,7 +17,7 @@ import { t } from '@/i18n'
 import { renderBookAfter, renderWriteBody } from '@/trading/features/ledger/render'
 import { estimatedFee } from '@/trading/markets/cost'
 import { formatInstant } from '@/trading/render/datetime'
-import { renderSleeveBreachLines } from '@/trading/render/exposure'
+import { renderCapBreachLines } from '@/trading/render/exposure'
 import {
   formatCount,
   formatQuantity,
@@ -105,7 +105,7 @@ export function renderOrderPrompt(input: PromptInput): string {
     )
   }
 
-  lines.push(...renderSleeveBreachLines(locale, prepared.breaches))
+  lines.push(...renderCapBreachLines(locale, prepared.breaches))
 
   return [...lines, ...exitLines(input), confirmLine(input)].join('\n')
 }

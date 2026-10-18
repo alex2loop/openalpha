@@ -20,24 +20,24 @@ export type InvestmentGoal = (typeof INVESTMENT_GOALS)[number]
 export interface RiskCapSet {
   readonly maximumPositionPctNav: number
   readonly maximumSegmentPctNav: number
-  /** Ceiling on the ETF share of this sleeve, as a fraction of NAV. Absent on a sleeve whose market
-   *  lists no ETFs; `0` closes the sleeve to them. Never above `maximumSegmentPctNav`. */
+  /** Ceiling on the ETF share of this segment, as a fraction of NAV. Absent on a segment whose market
+   *  lists no ETFs; `0` closes the segment to them. Never above `maximumSegmentPctNav`. */
   readonly maximumEtfPctNav?: number
-  /** Floor under the ETF share of this sleeve: the core the operator wants held in the index
-   *  whatever the scores say. Absent on a sleeve with no core, which is most of them. Never above
+  /** Floor under the ETF share of this segment: the core the operator wants held in the index
+   *  whatever the scores say. Absent on a segment with no core, which is most of them. Never above
    *  `maximumEtfPctNav` where that is declared, nor above `maximumSegmentPctNav`. */
   readonly minimumEtfPctNav?: number
 }
 
-/** A sleeve the operator switched off. Both ceilings at zero rather than a separate flag: every cap
+/** A segment the operator switched off. Both ceilings at zero rather than a separate flag: every cap
  *  reader already fails closed on zero room, so nothing can disagree with the caps. */
 export const DISABLED_CAPS: RiskCapSet = Object.freeze({
   maximumPositionPctNav: 0,
   maximumSegmentPctNav: 0,
 })
 
-/** A fund answers to its sleeve's ETF ceiling instead of the single-name cap: that cap guards
- *  against one issuer failing, which a basket does not carry. A sleeve with no ETF ceiling keeps
+/** A fund answers to its segment's ETF ceiling instead of the single-name cap: that cap guards
+ *  against one issuer failing, which a basket does not carry. A segment with no ETF ceiling keeps
  *  the single-name cap for its funds too. */
 export function isCappedAsFund(
   caps: RiskCapSet | undefined,
@@ -46,7 +46,7 @@ export function isCappedAsFund(
   return instrumentKind === ETF_KIND && caps?.maximumEtfPctNav !== undefined
 }
 
-/** The most one position may weigh. Fails closed at zero where the sleeve records no caps. */
+/** The most one position may weigh. Fails closed at zero where the segment records no caps. */
 export function positionCapOf(
   caps: RiskCapSet | undefined,
   instrumentKind: InstrumentKind | undefined
@@ -64,7 +64,7 @@ export function isSegmentDisabled(caps: RiskCapSet): boolean {
   return caps.maximumPositionPctNav === 0 && caps.maximumSegmentPctNav === 0
 }
 
-/** Every sleeve the operator switched off. A noun phrase, not a predicate: the caller names them
+/** Every segment the operator switched off. A noun phrase, not a predicate: the caller names them
  *  rather than testing one. A patch that carries no caps can tell nothing apart and names none. */
 export function disabledSegments(
   caps: Readonly<Record<PortfolioSegment, RiskCapSet>> | undefined
@@ -100,8 +100,8 @@ export interface UserProfile extends ProfilePolicyNumbers {
   readonly riskLevel: RiskLevel
   readonly riskCapacity: RiskLevel
   readonly riskWillingness: RiskLevel
-  /** One per registered sleeve, seeded from each market's own horizon. A crypto sleeve is held
-   *  for weeks and an equity sleeve for quarters by the same operator. */
+  /** One per registered segment, seeded from each market's own horizon. A crypto segment is held
+   *  for weeks and an equity segment for quarters by the same operator. */
   readonly horizons: Readonly<Record<PortfolioSegment, InvestmentHorizon>>
   /** Advisory only: read by the debate personas, never by sizing or seeding. `riskLevel` already
    *  seeds allocation the way preservation and growth would. */
@@ -109,12 +109,12 @@ export interface UserProfile extends ProfilePolicyNumbers {
   readonly watchlist: readonly InstrumentRef[]
   readonly exclusions: readonly InstrumentRef[]
   readonly segmentTargets: Readonly<Record<PortfolioSegment, number>>
-  /** The sleeves whose target the operator set by hand. Every re-seed honours them and moves the
+  /** The segments whose target the operator set by hand. Every re-seed honours them and moves the
    *  rest around them, so a risk-level change cannot quietly overwrite a number they chose. Empty
    *  for a profile that has never pinned one, which is most of them. */
   readonly pinnedTargets: Readonly<Partial<Record<PortfolioSegment, number>>>
-  /** The ETF core the operator asked for, per sleeve. `caps` holds it clamped to the current
-   *  ceilings, and drops it while the sleeve is off. */
+  /** The ETF core the operator asked for, per segment. `caps` holds it clamped to the current
+   *  ceilings, and drops it while the segment is off. */
   readonly etfCores: Readonly<Partial<Record<PortfolioSegment, number>>>
   readonly caps: Readonly<Record<PortfolioSegment, RiskCapSet>>
 }
@@ -163,7 +163,7 @@ export function toProfileStamp(input: {
   }
 }
 
-/** A stored profile names every registered sleeve exactly once, so an absent horizon is the
+/** A stored profile names every registered segment exactly once, so an absent horizon is the
  *  registry and the row disagreeing, not a value to default. */
 export function horizonFor(profile: UserProfile, segment: PortfolioSegment): InvestmentHorizon {
   const horizon = profile.horizons[segment]

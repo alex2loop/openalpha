@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
   RefreshAllMarketDataOptions,
@@ -44,6 +49,7 @@ export function createRefreshCommand(deps: RefreshCommandDeps): SlashCommand {
     },
     // Classified rather than positional, so both slots are offered at either position.
     completeFor: () => [...deps.markets, FORCE_ARG],
+    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -88,8 +94,12 @@ function refusal(deps: RefreshCommandDeps, args: readonly string[]): SlashResult
     .find((market): market is MarketRef => market !== null && !deps.markets.includes(market))
 
   return live === undefined
-    ? usage(USAGE, { markets: deps.markets.join(', ') })
+    ? usage(USAGE, buildUsageValues(deps))
     : usage(LIVE_ONLY, { market: { key: `trading.market.${live}` } })
+}
+
+function buildUsageValues(deps: RefreshCommandDeps): CommandMessageValues {
+  return { markets: deps.markets.join(', ') }
 }
 
 /** `null` for a token that names neither slot, or one that names a slot already filled — either is

@@ -1,4 +1,9 @@
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  CommandMessageValues,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { ProfileService } from '@/trading/features/profile/types'
@@ -17,7 +22,7 @@ interface AdviceCommandDeps {
   readonly portfolio: Pick<PortfolioService, 'rebalanceAbsolute'>
   readonly profiles: Pick<ProfileService, 'get'>
   readonly marketData: Pick<MarketDataService, 'markets' | 'quoteConvention'>
-  /** A market no venue holds has no sleeve to rebalance, so a ticker in it is not accepted. */
+  /** A market no venue holds has no segment to rebalance, so a ticker in it is not accepted. */
   readonly heldMarkets: ReadonlySet<MarketRef>
   /** The operator's own clock, so every rendered instant reads in one zone. */
   readonly timezone: string
@@ -34,17 +39,18 @@ export function createRebalanceCommand(deps: AdviceCommandDeps): SlashCommand {
       action: 'read',
       execution: { progressKey: 'slash.tradingRebalanceProgress' },
     },
+    usage: () => ({ key: USAGE, values: buildUsageValues(heldMarketsOf(deps)) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
 
 async function run(deps: AdviceCommandDeps, ctx: SlashContext): Promise<SlashResult> {
-  const markets = deps.marketData.markets().filter((market) => deps.heldMarkets.has(market))
+  const markets = heldMarketsOf(deps)
   const listedOnly = ctx.args.length > 0
   const tickers = listedOnly ? parseTickers(ctx.args, markets) : null
 
   if (listedOnly && tickers === null) {
-    return usage(USAGE, { markets: markets.join(', ') })
+    return usage(USAGE, buildUsageValues(markets))
   }
 
   const { advice, sizing, freshness, book } = await deps.portfolio.rebalanceAbsolute({
@@ -75,4 +81,12 @@ async function run(deps: AdviceCommandDeps, ctx: SlashContext): Promise<SlashRes
           }),
     }),
   }
+}
+
+function heldMarketsOf(deps: AdviceCommandDeps): readonly MarketRef[] {
+  return deps.marketData.markets().filter((market) => deps.heldMarkets.has(market))
+}
+
+function buildUsageValues(markets: readonly MarketRef[]): CommandMessageValues {
+  return { markets: markets.join(', ') }
 }

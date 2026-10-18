@@ -14,6 +14,7 @@ import {
   buildRunResult,
   type CaughtVerdict,
   classifyCaught,
+  operatorFieldsOf,
   RUN_REASON_TO_LIFECYCLE,
   runFinally,
 } from '@/engine/loop/finalize'
@@ -164,7 +165,7 @@ export async function driveRun(scope: TurnScope): Promise<RunResult> {
       ...(caught.haltCode === undefined ? {} : { haltCode: caught.haltCode }),
       ...(caught.haltDetail === undefined ? {} : { haltDetail: caught.haltDetail }),
       ...(caught.errorMessage === undefined ? {} : { errorMessage: caught.errorMessage }),
-      ...(caught.operator === undefined ? {} : { operator: caught.operator }),
+      ...operatorFieldsOf(caught),
       ...(completionCode === undefined ? {} : { completionCode }),
     })
 

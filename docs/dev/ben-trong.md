@@ -163,6 +163,14 @@ runtime dùng `ResolvedConfig`; chúng không đọc biến môi trường và k
 provider trong [src/app/providers.ts](../../src/app/providers.ts) là cố định; đừng đổi nó khi chưa kiểm
 lại các ràng buộc đã ghi.
 
+Tìm kiếm web là tùy chọn, nên biến khóa của `[web_search]` được nêu tên mà rỗng thì không làm hỏng cấu
+hình. `ResolvedWebSearch` mang nó dưới dạng `missingEnv` (bên chính) hoặc `fallbackMissingEnv`
+(bên dự phòng, bị bỏ). `defaultSearchProvider` trong `src/tools/web/retrieval-request.ts` là nơi từ chối
+duy nhất: mọi lời gọi tìm kiếm và lấy nội dung đều lấy bên chính qua nó, nên không lời gọi nào rơi về một
+nhà cung cấp không khóa. `doctor`, `config validate` và phần tóm tắt của `start` đọc cùng trường đó qua
+`toMissingSearchKeyError`; lúc khởi động hệ thống ghi `web_search.key_missing` và
+`web_search.fallback_key_missing`.
+
 *Vì sao:* chỉ một bên sở hữu cấu hình lúc khởi động, nên cấu hình không bị lệch và hành vi runtime không
 phụ thuộc thứ tự.
 
@@ -341,6 +349,22 @@ phiên chạy đang hoạt động và thoát sạch. Các lệnh CLI tầng cao
 [src/cli/registry.ts](../../src/cli/registry.ts); phần giao dịch không đóng góp lệnh CLI nào. Về bề mặt lập
 trình, xem [Mở rộng](./mo-rong.md#bề-mặt-sdk).
 
+**Khóa không bao giờ chặn lúc khởi động.** Boot resolve với `deferMissingKeys`: một mô hình có biến khóa
+chưa đặt giữ `missingEnv` (chuỗi bỏ qua nó, và khi không còn mô hình nào thì mọi lời gọi bị từ chối
+bằng `MissingEnvError` đã bản địa hóa), còn máy chủ MCP nêu `${VAR}` chưa đặt thì vào `ResolvedMcp.unset`
+thay vì làm hỏng bước resolve. `doctor` và `probeConfig` resolve chặt nên vẫn báo lỗi. Mỗi bộ phát hiện ghi
+log một lần ở nơi nó thấy chỗ thiếu (`llm.key_missing` lúc dựng registry chuỗi, `web_search.key_missing`,
+`mcp.env_missing`), và `toMissingKeyErrors` trong `src/cli/missing-keys.ts` là danh sách duy nhất mà
+terminal in ra và `config validate` báo. Kênh có `start()` ném `OperatorConfigError` (token thiếu hoặc bị
+từ chối) thì được đóng và ghi `channel.start_skipped`; `startChannels` trả nó trong `skipped`, nên kênh chưa
+từng lắng nghe thì không cho ai vào. `ApiTokenError` từ bộ khởi động API được xử lý giống vậy
+(`api.token_unusable`). Tác vụ daemon đưa cả hai danh sách cho `onReady` (`DaemonReadyHandler`); `start`
+tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
+tiến trình cha. Sau đó handler ghi tệp sẵn sàng (`BRAND.readyFile`, ghi nguyên khối, `{ pid, degraded }`) mà
+lần khởi động nền chờ, còn `status` và `/v1/state` đọc lại; mỗi lần khởi động xóa tệp này ngay khi giữ được
+tệp pid, nên tệp do một daemon chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Một nhịp vòng lặp lỗi với `MissingEnvError` là lỗi biên (`trading.tick_key_missing` một lần
+mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở khoảng sau), không bao giờ vào cách ly.
+
 **Giới hạn của việc thực thi lệnh.** `/trade` và `order_place` đặt lệnh spot trên một sàn đã đăng ký, và
 không có gì khác trong mã nguồn gửi được lệnh: một sàn mới chỉ là thêm một `SpotAdapter` phía sau cùng tính
 năng đó. Cho tới khi có một sàn có khóa giao dịch, `order_place` không được đăng ký. `/trade halt` tắt mọi
@@ -473,6 +497,11 @@ Chat tương tác chỉ hiện trạng thái **thưa**, không hiện từng m�
 hình hoặc công cụ đang chạy; nhãn công cụ an toàn, phần chi tiết và các mốc tiến độ; phần tóm tắt thành
 công hoặc thất bại từ các sự kiện kết quả công cụ; mô hình, độ trễ và các chỉ số ngữ cảnh khi có; văn bản
 cuối và lượng dùng sau khi lượt đã xong. Ký tự điều khiển và thông tin đăng nhập được lọc trước.
+
+Một lệnh slash khai báo `execution` hiện tiến độ qua một trong hai bộ dựng, chọn bằng `isInteractiveStdout`: spinner
+trên terminal, còn ở nơi khác (pipe, log, `CI`) là bộ ghi dòng thuần ra stderr, chỉ in nhãn đã đổi tối đa một lần mỗi
+`LINE_PROGRESS_INTERVAL_MS`. Cả hai nhận cùng nhãn từ bộ báo cáo của lệnh, nên các dòng `/refresh` vẫn dựng ở một nơi,
+và bộ ghi dòng không giữ timer hay listener. Stdout vẫn chỉ chứa câu trả lời.
 
 ### Bảng trực tiếp trên kênh
 

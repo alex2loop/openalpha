@@ -27,6 +27,8 @@ export type CommandMessageKey = `slash.${string}`
  *  can interpolate a coded state (e.g. an alert-disable result) without owning an i18n import. */
 export type CommandMessageValue = string | number | boolean | { readonly key: string }
 
+export type CommandMessageValues = Readonly<Record<string, CommandMessageValue>>
+
 /**
  * One localized line a command wants rendered. The key is resolved against the
  * locale catalog; values are interpolated by the renderer. Missing keys fail
@@ -34,7 +36,7 @@ export type CommandMessageValue = string | number | boolean | { readonly key: st
  */
 export interface CommandMessage {
   readonly key: CommandMessageKey
-  readonly values?: Readonly<Record<string, CommandMessageValue>>
+  readonly values?: CommandMessageValues
 }
 
 /**
@@ -159,5 +161,8 @@ export interface SlashCommand {
   completeFor?(args: readonly string[]): readonly string[]
   /** The `/help` heading the command lists under; a command naming none lists under the general one. */
   readonly group?: CommandGroup
+  /** The message a bad argument line answers with, so `/help <command>` shows the same text. A
+   *  function because its values (the registered markets) are known only once the command runs. */
+  usage?(): CommandMessage
   run(ctx: SlashContext): Promise<SlashResult>
 }

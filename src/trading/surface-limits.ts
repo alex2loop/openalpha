@@ -24,6 +24,6 @@ export const SURFACE_LIMITS = Object.freeze({
   maximumCalendarNames: 40,
   calendarConcurrency: 5,
   /** Sector rows a book report lists before it counts the rest. The question
-   *  is where the operator is concentrated, not an inventory of every sleeve they touch. */
+   *  is where the operator is concentrated, not an inventory of every segment they touch. */
   maximumConcentrationRows: 6,
 } as const)

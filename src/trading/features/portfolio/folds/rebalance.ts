@@ -1,10 +1,10 @@
-// The plan itself: which sleeves have drifted far enough to trade, how far each name sits from its
+// The plan itself: which segments have drifted far enough to trade, how far each name sits from its
 // desired weight, and the two sides run against that. The sides live in `rebalance-reduce.ts` and
 // `rebalance-increase.ts`; the arithmetic they share lives in `rebalance-step.ts`.
 
 import type { AdviceInput, DesiredWeights } from '@/trading/features/portfolio/folds/allocation'
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
-import type { RowInput, SleeveGap } from '@/trading/features/portfolio/folds/rebalance-step'
+import type { RowInput, SegmentGap } from '@/trading/features/portfolio/folds/rebalance-step'
 import type {
   AbsoluteRebalancePlan,
   OrderSize,
@@ -21,7 +21,7 @@ import {
 } from '@/trading/features/portfolio/folds/allocation'
 import { driftBand } from '@/trading/features/portfolio/folds/policy'
 import { underfundedCaveats } from '@/trading/features/portfolio/folds/rebalance-caveat'
-import { increaseRows, sleeveBudgets } from '@/trading/features/portfolio/folds/rebalance-increase'
+import { increaseRows, segmentBudgets } from '@/trading/features/portfolio/folds/rebalance-increase'
 import { reductionRows } from '@/trading/features/portfolio/folds/rebalance-reduce'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 
@@ -29,7 +29,7 @@ interface RebalancePlan {
   readonly rows: readonly PositionChange[]
   readonly sizes: ReadonlyMap<string, OrderSize>
   readonly caveats: readonly Caveat[]
-  /** The share of free cash the sleeve budgets actually opened, for the header that states it. */
+  /** The share of free cash the segment budgets actually opened, for the header that states it. */
   readonly deploymentScale: number
 }
 
@@ -53,11 +53,11 @@ export function rebalanceRows(
     current,
     drifting,
     candidates,
-    sleeves: sleeveGaps(desired.byInstrument, current, candidates),
+    segments: segmentGaps(desired.byInstrument, current, candidates),
     cores: desired.cores,
   }
   const sizes = new Map<string, OrderSize>()
-  const budgets = sleeveBudgets(rows)
+  const budgets = segmentBudgets(rows)
   const reductions = reductionRows(rows, sizes)
   const increases = increaseRows(rows, sizes, new Map(budgets.bySegment))
 
@@ -97,14 +97,14 @@ function driftingSegments(input: AdviceInput, nav: number): ReadonlyMap<Portfoli
   return nav > 0 ? drifting : new Map<PortfolioSegment, number>()
 }
 
-/** How far a sleeve's names sit from their desired weights, each way. The sleeve's own gap is shared
+/** How far a segment's names sit from their desired weights, each way. The segment's own gap is shared
  *  in proportion to these, so the prompt parts add up to exactly that gap and no more. */
-function sleeveGaps(
+function segmentGaps(
   desired: ReadonlyMap<string, number>,
   current: ReadonlyMap<string, number>,
   candidates: ReadonlyMap<string, PortfolioCandidate>
-): ReadonlyMap<PortfolioSegment, SleeveGap> {
-  const gaps = new Map<PortfolioSegment, SleeveGap>()
+): ReadonlyMap<PortfolioSegment, SegmentGap> {
+  const gaps = new Map<PortfolioSegment, SegmentGap>()
   const keys = new Set([...current.keys(), ...desired.keys()])
 
   for (const key of keys) {

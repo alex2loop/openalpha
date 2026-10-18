@@ -45,7 +45,7 @@ export interface UpcomingEvent {
   readonly event: MarketEvent
 }
 
-/** The profile's cash-sleeve target as a fraction of NAV — policy is advice territory, never
+/** The profile's cash-segment target as a fraction of NAV — policy is advice territory, never
  *  pricing. */
 interface PortfolioRenderOptions {
   /** Where the text is going: its clock, its line width, and whether it can hold a padded column.
@@ -60,7 +60,7 @@ interface PortfolioRenderOptions {
   readonly sectorCapPctNav: number
   /** The policy the caps below were read off, stated once at the top instead of per row. */
   readonly profile: ProfileStamp
-  /** Per-sleeve caps, so each allocation row is read against the limit its weight is measured by. */
+  /** Per-segment caps, so each allocation row is read against the limit its weight is measured by. */
   readonly segmentCaps?: Readonly<Record<PortfolioSegment, RiskCapSet>>
   /** Per instrument key, the kind the stored record files it under. A renderer cannot reach the
    *  store, so the command resolves one map for the whole book. */
@@ -85,7 +85,7 @@ export function renderPortfolioText(
     currency: book.book.baseCurrency,
     context: options.context,
     sectorCapPctNav: options.sectorCapPctNav,
-    sleeveWeights: apportionedSleeveWeights(book),
+    segmentWeights: apportionedSegmentWeights(book),
     ...(options.quoteConventions === undefined
       ? {}
       : { quoteConventions: options.quoteConventions }),
@@ -124,10 +124,10 @@ export function renderPortfolioText(
   ])
 }
 
-/** The weight column divides NAV over these sleeves, so it is rounded as a set rather than cell by
- *  cell, as `/rebalance` already rounds its own sleeve table: singly it printed 100,01%. Read by
- *  every line of this message that states a sleeve's weight, so none of them can round apart. */
-function apportionedSleeveWeights(book: ValuedBook): ReadonlyMap<PortfolioSegment, number> {
+/** The weight column divides NAV over these segments, so it is rounded as a set rather than cell by
+ *  cell, as `/rebalance` already rounds its own segment table: singly it printed 100,01%. Read by
+ *  every line of this message that states a segment's weight, so none of them can round apart. */
+function apportionedSegmentWeights(book: ValuedBook): ReadonlyMap<PortfolioSegment, number> {
   const weights = apportion(
     book.segmentValues.map((entry) => entry.weightPctNav),
     FRACTION_QUANTUM
@@ -292,7 +292,7 @@ function renderCashNudge(
 
   // The weight the allocation table above already printed, not the fold's own: the three figures on
   // this line are read against that table, and one of them rounded apart is the whole defect.
-  const current = display.sleeveWeights.get(CASH_SEGMENT) ?? 0
+  const current = display.segmentWeights.get(CASH_SEGMENT) ?? 0
   const gap = current - options.cashTargetPctNav
 
   if (gap < CASH_NUDGE_MIN_GAP) {

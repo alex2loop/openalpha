@@ -211,17 +211,20 @@ command's text.
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and
-starts them with `Promise.allSettled`, so one stale token cannot stop the others. A `ConfigError` is
-fatal (all runtimes are disposed and it rethrows). Anything else drops only that channel and logs
-`channel.start_failed`. If none start, CLI-only operation is valid.
+starts them with `Promise.allSettled`, so one stale token cannot stop the others. A start failure is
+never fatal: a channel whose `start()` throws is disposed and dropped, so it never listens and admits
+nobody. An `OperatorConfigError` (token missing or rejected) logs `channel.start_skipped` and comes
+back in `StartChannelsResult.skipped` for the daemon to report; anything else logs
+`channel.start_failed`. A problem found while building a runtime (an unknown agent, a bad value) still
+throws before any channel starts. If none start, CLI-only operation is valid.
 
 Only a token the provider refuses counts as configuration: HTTP 401 or 403 from Telegram, and 401 from
 Zalo, whose own error table lists 403 as a server fault. Any other `getMe` failure is transport, and both
 adapters try it up to four times with a capped backoff before dropping the channel. Zalo Personal has no
 token to refuse; it retries its login in the background (5 seconds initial, 5 minutes maximum).
 
-`startChannels` returns `{ stop, snapshots, notifier?, defaultRecipient? }`: shutdown, health snapshots,
-an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default
+`startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient? }`: shutdown, health
+snapshots, the channels left down, an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default
 proactive recipient. That recipient is the channel's `fallback_chat_id`, or its only allowed id when it
 has exactly one. `stop` settles every runtime disposal and never lets one failed cleanup block the rest.
 

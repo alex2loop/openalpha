@@ -222,7 +222,7 @@ function mergeNews(
 }
 
 /** The region's own market answers, never whichever sibling registered first: a region holds several
- *  markets and only its owner publishes the composite that sizes the region's sleeves. Dated by the
+ *  markets and only its owner publishes the composite that sizes the region's segments. Dated by the
  *  settled session the refresh files the snapshot under, so a derived read and a stored one never
  *  date one composite two ways — the calendar day is a weekend often enough to date it to no
  *  session at all. */

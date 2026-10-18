@@ -7,7 +7,7 @@ import type { Memory, MemoryScope } from '@/core/types/memory'
 import type { AgentRegistry } from '@/engine/api'
 import { type AgentCommandDeps, createAgentCommand } from '@/commands/agent'
 import { type ConfigSummaryReader, createConfigCommand } from '@/commands/config'
-import { type ContinueNudge, createContinueCommand } from '@/commands/continue'
+import { type ContinueCommandDeps, createContinueCommand } from '@/commands/continue'
 import { createCostCommand, type SpendCommandDeps, type SpendReader } from '@/commands/cost'
 import { createSlashDispatcher } from '@/commands/dispatcher/dispatcher'
 import { createHealthCommand, type HealthSummaryReader } from '@/commands/health'
@@ -41,7 +41,7 @@ export interface CoreCommandDeps {
   readonly selectAgent: (ctx: SlashContext, target: AgentId | 'default') => Promise<void>
   readonly resetSession: SessionReset
   readonly configSummary: ConfigSummaryReader
-  readonly continueNudge: ContinueNudge
+  readonly continueCommand: ContinueCommandDeps
   readonly logger: Logger
 }
 
@@ -66,7 +66,7 @@ export function createCoreCommands(deps: CoreCommandDeps): readonly SlashCommand
     createCostCommand(deps.spend),
     createScheduleCommand(deps.schedulerCommands),
     createNewSessionCommand(deps.resetSession),
-    createContinueCommand(deps.continueNudge),
+    createContinueCommand(deps.continueCommand),
     createConfigCommand(deps.configSummary),
   ]
 }

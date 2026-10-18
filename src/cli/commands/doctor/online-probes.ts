@@ -4,8 +4,16 @@ import type { CredentialSource, ProviderEntry, StoredTokens } from '@/ai/api'
 import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
 import type { LLMErrorCode } from '@/core/llm'
 import type { Locale } from '@/core/types/locale'
-import { createClient, createCredentialSources, createTokenFile, findProviderById } from '@/ai/api'
+import {
+  createClient,
+  createCredentialSources,
+  createTokenFile,
+  findProviderById,
+  missingKeyErrors,
+} from '@/ai/api'
 import { resolveSecret, TELEGRAM_API_BASE, ZALO_API_BASE } from '@/channels/api'
+import { terminalErrorMessage } from '@/cli/error-output'
+import { setEnvCommand, toMissingSearchKeyError } from '@/core/config/resolve'
 import { LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
 import { silentLogger } from '@/core/logging/logger'
@@ -14,6 +22,7 @@ import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
 import type { DoctorEnvironment, DoctorProbe, ResolvedProviderModel } from './types'
+import { checkLabel, subjectLabel } from './labels'
 import { unknownProviderProbe } from './local-probes'
 
 export const ONLINE_TIMEOUT_MS = 10_000
@@ -55,18 +64,16 @@ export async function probeProviders(
   options: ProviderProbeOptions
 ): Promise<readonly DoctorProbe[]> {
   const { config, online, env, locale } = options
+  const name = checkLabel(locale, 'providers')
 
   if (config.models.length === 0) {
-    return [{ name: 'providers', status: 'fail', detail: t(locale, 'cli.doctorNoModels') }]
+    return [{ name, status: 'fail', detail: t(locale, 'cli.doctorNoModels') }]
   }
 
   const loginProbes = await probeSubscriptionLogins(config, locale)
 
   if (!online) {
-    return [
-      { name: 'providers', status: 'ok', detail: t(locale, 'cli.doctorNotProbed') },
-      ...loginProbes,
-    ]
+    return [{ name, status: 'ok', detail: t(locale, 'cli.doctorNotProbed') }, ...loginProbes]
   }
 
   const credentials = createCredentialSources({
@@ -74,8 +81,13 @@ export async function probeProviders(
     logger: silentLogger,
     env,
   })
+  // An unset key already fails the models row; probing it would report the same cause twice.
+  const unset = new Set(missingKeyErrors(config).map((err) => err.env))
+  const keyed = config.models.filter(
+    (model) => model.missingEnv === undefined || !unset.has(model.missingEnv)
+  )
   const keyProbes = await Promise.all(
-    firstModelPerProvider(config.models).map((model) =>
+    firstModelPerProvider(keyed).map((model) =>
       probeProviderKey({ config, model, credentials, locale })
     )
   )
@@ -117,7 +129,7 @@ async function probeLogin(options: {
   readonly locale: Locale
 }): Promise<DoctorProbe> {
   const { config, provider, now, locale } = options
-  const name = `${provider.id} login`
+  const name = subjectLabel(locale, 'login', provider.id)
   let stored: StoredTokens | undefined
 
   try {
@@ -165,7 +177,11 @@ export async function probeBotTokenCheck(
 
   if (!options.online) {
     return [
-      { name: options.channel, status: 'ok', detail: t(options.locale, 'cli.doctorNotProbed') },
+      {
+        name: checkLabel(options.locale, options.channel),
+        status: 'ok',
+        detail: t(options.locale, 'cli.doctorNotProbed'),
+      },
     ]
   }
 
@@ -179,7 +195,43 @@ export async function probeWebSearch(
   online: boolean,
   locale: Locale
 ): Promise<DoctorProbe> {
+  const { webSearch } = config
+  const missing = toMissingSearchKeyError(webSearch)
+
+  if (missing !== undefined) {
+    return {
+      name: checkLabel(locale, 'web-search'),
+      status: 'fail',
+      detail: terminalErrorMessage(missing, locale),
+    }
+  }
+
+  const row = await probeSearchProvider(config, online, locale)
+
+  if (webSearch.fallbackMissingEnv === undefined || row.status === 'fail') {
+    return row
+  }
+
+  const env = webSearch.fallbackMissingEnv
+
+  return {
+    name: row.name,
+    status: 'warn',
+    detail: t(locale, 'cli.doctorSearchFallbackOff', {
+      detail: row.detail,
+      env,
+      command: setEnvCommand(env),
+    }),
+  }
+}
+
+async function probeSearchProvider(
+  config: ResolvedConfig,
+  online: boolean,
+  locale: Locale
+): Promise<DoctorProbe> {
   const search = config.webSearch
+  const name = checkLabel(locale, 'web-search')
 
   if (search.provider === 'duckduckgo') {
     return online
@@ -189,11 +241,7 @@ export async function probeWebSearch(
 
   if (search.provider === 'searxng') {
     if (search.baseUrl === undefined) {
-      return {
-        name: 'web search',
-        status: 'fail',
-        detail: t(locale, 'cli.doctorSearxngRequiresBaseUrl'),
-      }
+      return { name, status: 'fail', detail: t(locale, 'cli.doctorSearxngRequiresBaseUrl') }
     }
 
     return online
@@ -208,7 +256,7 @@ export async function probeWebSearch(
 
   if (search.provider === 'anysearch' && search.apiKey === undefined) {
     return {
-      name: 'web search',
+      name,
       status: 'ok',
       detail: t(locale, 'cli.doctorAnonymousAccess', { provider: search.provider }),
     }
@@ -216,14 +264,14 @@ export async function probeWebSearch(
 
   if (search.apiKey === undefined) {
     return {
-      name: 'web search',
+      name,
       status: 'fail',
       detail: t(locale, 'cli.doctorApiKeyNotSet', { provider: search.provider }),
     }
   }
 
   return {
-    name: 'web search',
+    name,
     status: 'ok',
     detail: t(locale, 'cli.doctorApiKeyPresent', { provider: search.provider }),
   }
@@ -293,6 +341,7 @@ async function probeProviderKey(options: {
 
 async function probeBotToken(options: BotProbeOptions): Promise<DoctorProbe | null> {
   const { channel, config, env, locale } = options
+  const name = checkLabel(locale, channel)
   const parsed = botConfigSchema.safeParse(config.channels[channel])
 
   if (!parsed.success || parsed.data.enabled === false) {
@@ -302,7 +351,7 @@ async function probeBotToken(options: BotProbeOptions): Promise<DoctorProbe | nu
   const token = resolveSecret(parsed.data, env)
 
   if (token === '') {
-    return { name: channel, status: 'fail', detail: t(locale, 'cli.doctorTokenNotResolved') }
+    return { name, status: 'fail', detail: t(locale, 'cli.doctorTokenNotResolved') }
   }
 
   try {
@@ -314,10 +363,10 @@ async function probeBotToken(options: BotProbeOptions): Promise<DoctorProbe | nu
     const body = getMeSchema.safeParse(JSON.parse(res.text))
 
     return body.success && body.data.ok
-      ? { name: channel, status: 'ok', detail: t(locale, 'cli.doctorGetMeOk') }
-      : { name: channel, status: 'fail', detail: t(locale, 'cli.doctorGetMeFailed') }
+      ? { name, status: 'ok', detail: t(locale, 'cli.doctorGetMeOk') }
+      : { name, status: 'fail', detail: t(locale, 'cli.doctorGetMeFailed') }
   } catch (err: unknown) {
-    return { name: channel, status: 'fail', detail: probeFailure(err, locale) }
+    return { name, status: 'fail', detail: probeFailure(err, locale) }
   }
 }
 
@@ -327,6 +376,8 @@ async function reachProbe(options: {
   readonly query: Record<string, string>
   readonly locale: Locale
 }): Promise<DoctorProbe> {
+  const name = checkLabel(options.locale, 'web-search')
+
   try {
     await httpRequest({
       hosts: [options.host],
@@ -335,19 +386,15 @@ async function reachProbe(options: {
       signal: AbortSignal.timeout(ONLINE_TIMEOUT_MS),
     })
 
-    return {
-      name: 'web search',
-      status: 'ok',
-      detail: t(options.locale, 'cli.doctorEndpointReachable'),
-    }
+    return { name, status: 'ok', detail: t(options.locale, 'cli.doctorEndpointReachable') }
   } catch (err: unknown) {
-    return { name: 'web search', status: 'fail', detail: probeFailure(err, options.locale) }
+    return { name, status: 'fail', detail: probeFailure(err, options.locale) }
   }
 }
 
 function offlineWebSearchRow(provider: string, locale: Locale): DoctorProbe {
   return {
-    name: 'web search',
+    name: checkLabel(locale, 'web-search'),
     status: 'ok',
     detail: t(locale, 'cli.doctorWebSearchOffline', { provider }),
   }

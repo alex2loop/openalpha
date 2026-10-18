@@ -13,20 +13,20 @@ import { assertSegmentHeld } from '@/trading/features/profile/validate'
 import { CASH_SEGMENT } from '@/trading/kernel/instrument'
 import { DISABLED_CAPS, isSegmentDisabled } from '@/trading/kernel/operator/profile'
 
-/** A sleeve the registry has that a stored profile does not name, filled so the row is structurally
+/** A segment the registry has that a stored profile does not name, filled so the row is structurally
  *  complete again. Registering a market makes every profile saved before it incomplete for that
- *  sleeve - no horizon, no target, no caps - and `horizonFor` throws on the first one rather than
- *  defaulting, because for every other sleeve an absent entry really is the registry and the row
+ *  segment - no horizon, no target, no caps - and `horizonFor` throws on the first one rather than
+ *  defaulting, because for every other segment an absent entry really is the registry and the row
  *  disagreeing. A profile is operator data no reset regenerates, so it must read.
  *
  *  Seeded **off**, never allocated: zero target and `DISABLED_CAPS`, which is exactly the state
  *  `seedsDefaultTarget: false` already describes for world gold - analyzed and quoted like any
  *  other, starting at zero so its share is not parked in cash under a target nobody chose. Adding
- *  a sleeve must not silently move NAV into it, and the targets still sum to one. The operator
- *  admits it with `/profile enable <segment>`, which re-seeds every sleeve with the new set on.
+ *  a segment must not silently move NAV into it, and the targets still sum to one. The operator
+ *  admits it with `/profile enable <segment>`, which re-seeds every segment with the new set on.
  *
- *  The same in reverse: a sleeve the registry no longer has is dropped, and any target it carried
- *  goes back to cash, because a profile naming a sleeve no market owns is refused on its next
+ *  The same in reverse: a segment the registry no longer has is dropped, and any target it carried
+ *  goes back to cash, because a profile naming a segment no market owns is refused on its next
  *  write.
  *
  *  A read, never a write: the stored row is untouched and `isSaved` still answers true. */
@@ -89,18 +89,18 @@ function entriesOf<TValue>(
   return Object.fromEntries(segments.map((segment) => [segment.id, pick(segment)]))
 }
 
-/** Switching a sleeve re-seeds every sleeve's target and caps at the current risk level with the
+/** Switching a segment re-seeds every segment's target and caps at the current risk level with the
  *  new set off, so the book reads as a fresh profile that never held it: the freed weight spreads
  *  across the rest and their caps follow. A pinned target survives — re-seeding moves the other
- *  sleeves around it — but the switched sleeve's own pin goes with it, and a hand-set cap does
+ *  segments around it — but the switched segment's own pin goes with it, and a hand-set cap does
  *  not, the same trade a risk-level change already makes. An ETF core survives, even on the
- *  switched sleeve. */
+ *  switched segment. */
 export function updateSegment(
   current: UserProfile,
   request: SegmentRequest,
   context: ProfileContext
 ): UserProfile {
-  // A stored profile names every registered sleeve exactly once, so an absent entry is a sleeve no
+  // A stored profile names every registered segment exactly once, so an absent entry is a segment no
   // market registers rather than a gap to seed.
   if (current.caps[request.segment] === undefined) {
     throw new ValidationError(`profile has no segment ${request.segment}`)
@@ -139,9 +139,9 @@ export function updateSegment(
   )
 }
 
-/** One sleeve's own number, hand-set, merged into records the patch grammar can only replace whole.
- *  A target is where the book is steered and the rest of the sleeves absorb the change; a ceiling
- *  is only room, so raising one moves nothing into the sleeve. Both land through the same
+/** One segment's own number, hand-set, merged into records the patch grammar can only replace whole.
+ *  A target is where the book is steered and the rest of the segments absorb the change; a ceiling
+ *  is only room, so raising one moves nothing into the segment. Both land through the same
  *  validation a seeded profile passes. */
 export function updateSegmentPolicy(
   current: UserProfile,
@@ -154,7 +154,7 @@ export function updateSegmentPolicy(
     throw new ValidationError(`profile has no segment ${request.segment}`)
   }
 
-  // Either edit on a closed sleeve would reopen it under a command that never said so.
+  // Either edit on a closed segment would reopen it under a command that never said so.
   if (isSegmentDisabled(entry)) {
     throw new ValidationError(`segment ${request.segment} is off; enable it before setting it`, {
       key: 'errors.profileSegmentOff',
@@ -191,8 +191,8 @@ export function updateSegmentPolicy(
   )
 }
 
-/** Every sub-ceiling is bounded by the sleeve's own, so lowering it lowers whatever sat above it.
- *  The other direction is refused rather than clamped: widening a sleeve is its own instruction. */
+/** Every sub-ceiling is bounded by the segment's own, so lowering it lowers whatever sat above it.
+ *  The other direction is refused rather than clamped: widening a segment is its own instruction. */
 function withSegmentCeiling(entry: RiskCapSet, pctNav: number): RiskCapSet {
   const etfCap = entry.maximumEtfPctNav
   const etfCore = entry.minimumEtfPctNav

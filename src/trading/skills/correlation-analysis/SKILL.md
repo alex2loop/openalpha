@@ -33,7 +33,7 @@ That gap is yours to close. When a candidate shares a driver with something alre
 ## Cross-asset notes
 
 - Domestic VN gold carries a premium over the global price. The premium is its own exposure - a policy and import-quota bet - and does not move with the global metal.
-- Crypto behaves as a high-beta liquidity asset most of the time. Treat a crypto sleeve alongside high-beta equities as one liquidity bet, even though the segment caps price them separately.
+- Crypto behaves as a high-beta liquidity asset most of the time. Treat a crypto segment alongside high-beta equities as one liquidity bet, even though the segment caps price them separately.
 - FX exposure hides inside foreign-listed holdings. A base-currency investor holding a USD-priced asset owns two positions.
 
 ## Output

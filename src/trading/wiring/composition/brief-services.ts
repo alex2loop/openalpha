@@ -81,7 +81,7 @@ export function lazyBriefServices(app: App, config: TradingConfig): BriefService
   }
 }
 
-/** The brief describes only markets the operator still reads: a switched-off sleeve would otherwise
+/** The brief describes only markets the operator still reads: a switched-off segment would otherwise
  *  be warmed on the brief's first morning and then reported stale every morning after. */
 async function marketsInUse(services: TradingServices, signal: AbortSignal): Promise<MarketRef[]> {
   return [...(await services.marketsInUse(signal))]

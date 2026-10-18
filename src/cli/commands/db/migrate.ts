@@ -10,7 +10,7 @@ import { flagBool } from '@/cli/parsing/args'
 import { fail, hint, success } from '@/cli/ui/colors'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { formatErrForLog } from '@/core/security/credentials'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 import {
   BACKUPS_SUBDIR,
   backupSqlite,
@@ -55,7 +55,9 @@ const dbMigrateUpCommand = createCommand({
       success(
         applied === 0
           ? t(locale, 'cli.dbMigrationUpToDate')
-          : t(locale, 'cli.dbMigrationApplied', { count: applied })
+          : t(locale, pluralKey(applied, 'cli.dbMigrationAppliedOne', 'cli.dbMigrationApplied'), {
+              count: applied,
+            })
       )
     )
 

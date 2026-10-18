@@ -102,7 +102,7 @@ interface BuySizingInput {
   readonly riskDistanceBase: number
   /** Cash a buy may actually spend: the book's available cash less the operator's reserve, capped
    *  by what the routed market can reach. The reserve comes off the whole book at the call site,
-   *  because it is one obligation — subtracting it per market would charge it once per sleeve. */
+   *  because it is one obligation — subtracting it per market would charge it once per segment. */
   readonly spendableCashBase: number
   /** Room left under the operator's whole-book open-risk ceiling, as a fraction of NAV. Positive
    *  infinity where the book could not be read. */
@@ -115,8 +115,8 @@ interface BuySizingInput {
    *  market files the name under no sector: an unknown sector must not bind, and the remaining
    *  ceilings still do. */
   readonly sectorHeadroomPctNav: number
-  /** Room left under the sleeve's ETF ceiling, as a fraction of NAV. Positive infinity for a name
-   *  that is not an ETF and for a sleeve that declares no ceiling. */
+  /** Room left under the segment's ETF ceiling, as a fraction of NAV. Positive infinity for a name
+   *  that is not an ETF and for a segment that declares no ceiling. */
   readonly etfHeadroomPctNav: number
   /** Room left under the operator's segment ceiling, as a fraction of NAV. Every name files under a
    *  segment, so this binds whenever the per-name and sector ceilings have not already. */
@@ -199,7 +199,7 @@ function buildCeilings(input: BuySizingInput, distance: number): SizingCeilings 
   const { navBase, entryBase } = input
   // A level nothing acts on caps no loss, so neither ceiling priced off it binds — and because such
   // an instrument is the calm one, dividing by its small distance would have sized it largest of
-  // all. Its weight is the position and sleeve ceilings' decision instead.
+  // all. Its weight is the position and segment ceilings' decision instead.
   const risk = input.armsExit
     ? (input.profile.riskPerTradePctNav * navBase) / distance
     : Number.POSITIVE_INFINITY

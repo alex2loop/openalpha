@@ -1,10 +1,11 @@
 import type { Logger } from '@/core/logging/logger'
-import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type { CommandMessage, SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 import type { Memory, MemoryScope } from '@/core/types/memory'
 import { formatErrForLog } from '@/core/security/credentials'
 
+const USAGE: CommandMessage = { key: 'slash.memoryUsage' }
 const MESSAGE_KEYS = [
-  'slash.memoryUsage',
+  USAGE.key,
   'slash.memoryNone',
   'slash.memoryNoneKey',
   'slash.memoryFindNone',
@@ -61,6 +62,7 @@ export function createMemoryCommand(
     },
     // The verb only: any other first word is a recall key, which lives in the store.
     completeFor: (args) => (args.length === 1 ? MEMORY_VERBS : []),
+    usage: () => USAGE,
     run: async (ctx: SlashContext): Promise<SlashResult> => {
       const scope = await scopeFor(ctx)
       return runMemoryOperation({
@@ -193,7 +195,7 @@ async function recallMemory(memory: Memory, scope: MemoryScope, key: string): Pr
 }
 
 function usageResult(): SlashResult {
-  return { kind: 'message', messages: [{ key: 'slash.memoryUsage' }] }
+  return { kind: 'message', messages: [USAGE] }
 }
 
 // Each bounded row becomes one message with primitive values only — never a nested object or

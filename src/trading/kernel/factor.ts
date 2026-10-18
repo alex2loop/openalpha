@@ -212,7 +212,7 @@ export interface LevelPolicy {
   /** Stop distance, in ATRs, per horizon: a wave trade is ejected before ordinary noise becomes a
    *  drawdown, a long hold is not. The target is a multiple of this, so R:R is unchanged. */
   readonly stopVolatilityMultiplier: Readonly<Record<InvestmentHorizon, number>>
-  /** Per horizon, like the stop beside it: a target is a multiple of the risk distance, and a sleeve
+  /** Per horizon, like the stop beside it: a target is a multiple of the risk distance, and a segment
    *  held three times as long should not take profit at a swing multiple. It is what the plan's R:R
    *  and every reward gate read. */
   readonly targetRiskMultiplier: Readonly<Record<InvestmentHorizon, number>>
@@ -263,7 +263,7 @@ export interface TradeLevels {
   /** Entry to the entry-relative stop, before a trail or a ratchet moved the stop closer. Size is
    *  budgeted on this: a stop that trails a run is an exit level, not a smaller bet. */
   readonly riskDistance: number
-  /** The stop is a level the sleeve's weight answers, with nothing armed under it: a fund on a market
+  /** The stop is a level the segment's weight answers, with nothing armed under it: a fund on a market
    *  that reviews its funds rather than stopping them. Absent where the stop is an exit to arm. */
   readonly reviewOnly?: true
   /** Present when `entry` is a resting limit below the quote rather than the quote itself: the run
@@ -292,6 +292,9 @@ export interface LevelRequest {
    *  read off them already pays the spread. */
   readonly exitPrice?: number
   readonly dailyBand?: DailyPriceBand
+  /** Levels for a position already held, as its exit plan: nothing is bought at `entry`, so no gate
+   *  on whether a buy could be placed there (a band edge, a full foreign room) applies. */
+  readonly forHolding?: boolean
 }
 
 export interface MarketLevelRequest extends LevelRequest {

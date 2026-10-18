@@ -107,7 +107,7 @@ export const FACTOR_POLICY: FactorPolicy<GoldFactorId> = Object.freeze({
     // 17.8; the bullish end is the stress reading the US regime bands it at, and the bearish end
     // sits near its calmest decile. Deliberately not the regime composite: that folds in real rates
     // and the dollar, which score gold the other way above, and a risk-off read already shrinks
-    // this sleeve.
+    // this segment.
     'safe-haven': Object.freeze({
       kind: 'linear',
       bearishAt: 12,
