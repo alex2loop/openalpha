@@ -4,7 +4,7 @@ import type { CliApp, Command, GlobalFlags, Group, Needs, Writer } from '@/cli/a
 import type { LoggerResource } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import { boot } from '@/app/boot'
-import { resolveBootExtensions } from '@/app/config-tree'
+import { bootRefusals } from '@/app/config-tree'
 import { apiCommand } from '@/app/server/cli/api-command'
 import { setupCommand } from '@/app/server/cli/setup-command'
 import {
@@ -192,7 +192,7 @@ function pathFlags(flags: GlobalFlags): Pick<GlobalFlags, 'configPath' | 'dataDi
 function createPreBootCliApp(flags: GlobalFlags): Promise<CliApp> {
   return preBootApp({
     ...stdio,
-    assertResolved: resolveBootExtensions,
+    bootRefusals,
     assertComposes: () => composeOnce(flags),
     ...pathFlags(flags),
   })

@@ -23,6 +23,23 @@ export function resolveBootExtensions(config: ResolvedConfig): BootExtensions {
   // Run first: a whole section nobody owns is a worse problem than a typo in one that is read.
   assertExtensionsClaimed(config.extensions, CLAIMED_CONFIG_SECTIONS)
 
+  return resolveClaimedSections(config)
+}
+
+/** Every refusal `resolveBootExtensions` could raise, each checked on its own, so `config validate`
+ *  names an unknown section and a typo inside `[trading]` in the same run. */
+export function bootRefusals(config: ResolvedConfig): readonly unknown[] {
+  return [
+    refusalOf(() => assertExtensionsClaimed(config.extensions, CLAIMED_CONFIG_SECTIONS)),
+    refusalOf(() => resolveClaimedSections(config)),
+  ].filter((refusal) => refusal !== undefined)
+}
+
+export function validateBootConfigTree(tree: unknown): ConfigCheck {
+  return validateConfigTree(tree, resolveBootExtensions)
+}
+
+function resolveClaimedSections(config: ResolvedConfig): BootExtensions {
   return {
     trading: resolveTradingConfig({ extensions: config.extensions, locale: config.locale }),
     social: resolveSocialConfig({
@@ -33,6 +50,12 @@ export function resolveBootExtensions(config: ResolvedConfig): BootExtensions {
   }
 }
 
-export function validateBootConfigTree(tree: unknown): ConfigCheck {
-  return validateConfigTree(tree, resolveBootExtensions)
+function refusalOf(check: () => unknown): unknown {
+  try {
+    check()
+
+    return undefined
+  } catch (err: unknown) {
+    return err
+  }
 }

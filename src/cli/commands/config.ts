@@ -20,7 +20,7 @@ import {
   InvalidConfigError,
   resolveConfig,
 } from '@/core/config/resolve'
-import { extensionConfigError } from '@/core/config/validate'
+import { extensionConfigErrors } from '@/core/config/validate'
 import { isSensitiveKey, redact } from '@/core/security/credentials'
 import { isPlainRecord } from '@/core/utils/collections'
 import { bindLocale, t } from '@/i18n'
@@ -194,15 +194,15 @@ function refusalProblems(err: unknown, app: CliApp): readonly string[] {
     return [terminalErrorMessage(err, locale)]
   }
 
-  const extension = extensionConfigError(err.unchecked, probe.assertResolved)
+  const extensions = extensionConfigErrors(err.unchecked, probe.bootRefusals)
+  const invalid = extensions.filter((extension) => extension instanceof InvalidConfigError)
+  const other = extensions.filter((extension) => !(extension instanceof InvalidConfigError))
+  const combined = invalid.reduce(
+    (all, extension) => combineInvalidConfigErrors(all, extension),
+    err
+  )
 
-  if (extension === undefined) {
-    return [terminalErrorMessage(err, locale)]
-  }
-
-  return extension instanceof InvalidConfigError
-    ? [terminalErrorMessage(combineInvalidConfigErrors(err, extension), locale)]
-    : [terminalErrorMessage(err, locale), terminalErrorMessage(extension, locale)]
+  return [combined, ...other].map((refusal) => terminalErrorMessage(refusal, locale))
 }
 
 function modelProblems(config: ResolvedConfig, locale: Locale): readonly string[] {
@@ -223,12 +223,8 @@ function modelProblems(config: ResolvedConfig, locale: Locale): readonly string[
 }
 
 function bootProblems(config: ResolvedConfig, app: CliApp): readonly string[] {
-  try {
-    // Absent only once booted, and a booted process already passed these checks.
-    app.configProbe?.assertResolved(config)
+  // Absent only once booted, and a booted process already passed these checks.
+  const refusals = app.configProbe?.bootRefusals(config) ?? []
 
-    return []
-  } catch (err: unknown) {
-    return [terminalErrorMessage(err, app.config.locale.language)]
-  }
+  return refusals.map((refusal) => terminalErrorMessage(refusal, app.config.locale.language))
 }

@@ -49,17 +49,15 @@ function formatPath(path: readonly (string | number)[]): string {
 }
 
 /** What the sections core does not own refuse on their own, read over defaults for everything else
- *  the way boot reads them; undefined when they pass. Lets a caller still report them after core
+ *  the way boot reads them; empty when they pass. Lets a caller still report them after core
  *  refused its own sections first. */
-export function extensionConfigError(
+export function extensionConfigErrors(
   extensions: Readonly<Record<string, unknown>>,
-  assertResolved: (config: ResolvedConfig) => void
-): unknown {
+  refusals: (config: ResolvedConfig) => readonly unknown[]
+): readonly unknown[] {
   try {
-    assertResolved(resolveConfig(parseRawConfig(extensions)))
-
-    return undefined
+    return refusals(resolveConfig(parseRawConfig(extensions)))
   } catch (err: unknown) {
-    return err
+    return [err]
   }
 }
