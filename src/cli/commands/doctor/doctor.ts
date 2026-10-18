@@ -189,7 +189,8 @@ function createCheckRegistry(ctx: DoctorContext): Readonly<Record<CheckName, Che
       configFailed || trading === undefined
         ? awaitingConfig('trading', locale)
         : [await probeComposition(ctx.app, locale)],
-    safety: async () => probeSafety(config, trading, locale),
+    safety: async () =>
+      configFailed ? awaitingConfig('safety', locale) : probeSafety(config, trading, locale),
     venues: async () => probeVenueKeys({ config, online: ctx.online, env: ctx.env, locale }),
     'web-search': async () => [await probeWebSearch(config, ctx.online, locale)],
     providers: async () =>
