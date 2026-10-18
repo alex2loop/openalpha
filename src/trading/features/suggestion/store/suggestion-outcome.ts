@@ -39,6 +39,8 @@ export const LATEST_OF_SAME_CALL_SQL =
 
 /** A restated close is resolved with no return: it has no verdict to count. */
 const SCORED_SQL = 'resolved_at IS NOT NULL AND return_pct IS NOT NULL'
+// A scoring pass resolves a batch at one instant: the later exit, then the newer call, breaks ties.
+const RESOLVED_ORDER_SQL = 'resolved_at DESC, exit_day DESC, id DESC'
 
 export interface ListResolvedOptions {
   readonly resolvedAfter?: number
@@ -293,7 +295,8 @@ export async function listResolved(
   params.push(options.limit)
 
   const rows = await deps.db.query<SuggestionRow>(
-    `SELECT * FROM suggestions WHERE ${where} ORDER BY resolved_at DESC LIMIT ${p(params.length)}`,
+    `SELECT * FROM suggestions WHERE ${where} ` +
+      `ORDER BY ${RESOLVED_ORDER_SQL} LIMIT ${p(params.length)}`,
     params
   )
 

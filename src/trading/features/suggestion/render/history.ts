@@ -17,7 +17,8 @@ export function renderHistoryLines(
   return [
     `${INDENT[1]}${t(locale, 'trading.render.suggestion.lastCall', {
       ticker: previous.instrument.ticker,
-      day: formatDay(locale, previous.outcome.exitDay),
+      callDay: formatDay(locale, previous.at),
+      exitDay: formatDay(locale, previous.outcome.exitDay),
       action: renderDeclaredValue(locale, `trading.action.${previous.action}`),
       returnPct: formatSignedFixedFraction(locale, previous.outcome.returnPct),
     })}`,

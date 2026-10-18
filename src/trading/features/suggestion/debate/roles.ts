@@ -17,6 +17,7 @@ import {
   parseResearchJson,
   toResearchOutputContract,
 } from '@/engine/api'
+import { formatDay } from '@/i18n'
 import { languageIssues } from '@/trading/features/suggestion/debate/language'
 
 // A failed role is diagnosed from its log line alone — the persona's own transcript is hidden and
@@ -26,6 +27,8 @@ const MAXIMUM_LOGGED_ISSUES = 3
 const MAXIMUM_LOGGED_ERROR_CHARS = 200
 const MAXIMUM_REPAIR_ISSUES = 5
 const SETUP_HALT_CAUSE = 'setup'
+// Evidence dates are YYYY-MM-DD, and without an example a persona copies that form into prose.
+const DATE_EXAMPLE_DAY = '2026-08-24'
 
 export interface RoleRunDeps {
   readonly runner: Runner
@@ -212,10 +215,13 @@ async function attemptRole<T>(
  *  not the process locale the engine's system block carries — is what a persona writes in. Naming
  *  the ids and enums keeps a translated `stance` from failing the schema. */
 function localizedMessage(message: string, locale: Locale): string {
+  const exampleDate = formatDay(locale, DATE_EXAMPLE_DAY)
+
   return [
     message,
     '',
     `Write every free-text field in ${languageName(locale)}.`,
+    `Write a date in prose as the reader does: ${DATE_EXAMPLE_DAY} as ${exampleDate}.`,
     'Leave ids, enum values, and URLs exactly as specified.',
   ].join('\n')
 }
