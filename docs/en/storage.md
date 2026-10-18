@@ -332,7 +332,8 @@ status, the messages in order, cumulative token and cost totals, and the model a
 assistant message. Attempts not tied to a message, such as compaction, are shown separately.
 
 `history delete` removes one session without asking. `history clear` needs the daemon stopped and
-asks for confirmation unless you pass `--yes`. Both refuse a session that is still running.
+asks for confirmation unless you pass `--yes`. Both refuse a session with a turn still running; one that
+is merely open with nothing running can be deleted.
 
 ### Lifecycle
 
