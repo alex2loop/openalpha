@@ -164,6 +164,17 @@ export async function uninstallPlugin(
   }
 
   const target = assertPluginPath(id, pluginsDir)
+  const installed = await stat(target).then(
+    (info) => info.isDirectory(),
+    () => false
+  )
+
+  if (!installed) {
+    throw new ValidationError(`plugin is not installed: ${id}`, {
+      key: 'errors.pluginNotInstalled',
+      params: { id, brand: BRAND.name },
+    })
+  }
 
   try {
     await rm(target, { recursive: true, force: true })

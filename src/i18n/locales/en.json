@@ -384,6 +384,7 @@
     "pluginBundledId": "{id} is the id of a plugin that ships with {brand}. Install yours under another id.",
     "pluginAlreadyInstalled": "Plugin {id} is already installed. Update it with `{brand} plugin update {id}`, or uninstall it first.",
     "pluginBundledFixed": "{id} ships with {brand} and is updated with it, so it cannot be changed on its own.",
+    "pluginNotInstalled": "Plugin {id} is not installed, so there is nothing to remove. `{brand} plugin list` shows what is installed.",
     "pluginNoSource": "Plugin {id} is not installed, or was installed without a source to update from. Install it again from its folder or URL with `{brand} plugin install`.",
     "pluginSourceMissing": "No plugin folder at {path}. Check the path and try again.",
     "pluginSourceNotFolder": "{path} is a file, not a plugin folder. Point at the folder that holds plugin.toml.",

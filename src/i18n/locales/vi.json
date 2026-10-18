@@ -384,6 +384,7 @@
     "pluginBundledId": "{id} trùng id với một plugin có sẵn của {brand}. Hãy cài plugin của bạn với id khác nhé.",
     "pluginAlreadyInstalled": "Plugin {id} đã được cài. Cập nhật bằng `{brand} plugin update {id}`, hoặc gỡ nó trước nhé.",
     "pluginBundledFixed": "{id} là plugin có sẵn của {brand}, được cập nhật cùng {brand} nên không đổi riêng được.",
+    "pluginNotInstalled": "Chưa cài plugin {id} nên không có gì để gỡ. `{brand} plugin list` liệt kê các plugin đang cài.",
     "pluginNoSource": "Plugin {id} chưa được cài, hoặc được cài mà không ghi nguồn để cập nhật. Cài lại từ thư mục hoặc địa chỉ của nó bằng `{brand} plugin install` nhé.",
     "pluginSourceMissing": "Không thấy thư mục plugin ở {path}. Kiểm tra lại đường dẫn rồi thử lại nhé.",
     "pluginSourceNotFolder": "{path} là một tệp, không phải thư mục plugin. Hãy trỏ tới thư mục chứa plugin.toml nhé.",
