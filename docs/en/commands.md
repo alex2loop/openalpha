@@ -280,6 +280,8 @@ When a newer release is out, the CLI says so once a day, under the command's out
 
 The release you replaced stays next to the new one as `openalpha.old`, on every platform, and `upgrade --rollback` swaps back to it. `upgrade --check` only reports. A source checkout updates with `git pull`.
 
+On a Windows machine with an ARM chip, the installer picks the native ARM build; an older x64 install keeps upgrading as x64 until you re-run the install command, which moves it to the native one.
+
 ## Configuration and onboarding
 
 ```text

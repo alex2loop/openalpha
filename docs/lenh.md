@@ -273,6 +273,8 @@ Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả 
 
 Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old`, trên mọi hệ điều hành, và `upgrade --rollback` đổi ngược về nó. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
 
+Trên máy Windows chip ARM, trình cài tự chọn bản ARM chạy thẳng trên máy; bản x64 cài trước đó vẫn nâng cấp theo x64 cho tới khi bạn chạy lại lệnh cài, lúc đó nó chuyển sang bản ARM.
+
 ## Cấu hình và khởi tạo
 
 ```text

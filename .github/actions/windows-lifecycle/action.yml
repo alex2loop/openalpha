@@ -1,0 +1,34 @@
+name: Windows lifecycle
+description: Builds the Windows binary for one Bun compile target and drives the lifecycle a Windows operator uses.
+
+inputs:
+  target:
+    description: The Bun compile target to build and run, such as bun-windows-x64.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Parse install.ps1
+      shell: pwsh
+      run: |
+        $errors = $null
+        [System.Management.Automation.Language.Parser]::ParseFile("$PWD/install.ps1", [ref]$null, [ref]$errors) | Out-Null
+        if ($errors) { $errors; exit 1 }
+
+    - name: Build
+      shell: pwsh
+      env:
+        TARGET: ${{ inputs.target }}
+      run: bun run gen && bun build src/app/main.ts --compile --target=$env:TARGET --outfile dist/openalpha.exe
+
+    - name: Start and stop the daemon
+      shell: pwsh
+      run: |
+        $PSNativeCommandUseErrorActionPreference = $true
+        $dataDir = New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/openalpha"
+        $flags = @('--config', "$PWD/config.minimal.toml", '--data-dir', $dataDir.FullName)
+        ./dist/openalpha.exe @flags version
+        ./dist/openalpha.exe @flags start --background
+        ./dist/openalpha.exe @flags status
+        ./dist/openalpha.exe @flags stop

@@ -84,7 +84,7 @@ https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
 
 ## Quick start
 
-All you need is a Mac, a Linux machine or Windows 10/11, and one AI provider key. [OpenRouter](https://openrouter.ai) has free models too; a paid model usually costs a few dollars a month.
+All you need is a Mac, a Linux machine or Windows 10/11 (ARM machines need Windows 11), and one AI provider key. [OpenRouter](https://openrouter.ai) has free models too; a paid model usually costs a few dollars a month.
 
 ### Try it in 3 commands
 
@@ -210,6 +210,7 @@ To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells 
 
 - **No admin rights needed.** `openalpha.exe` goes in `%USERPROFILE%\.local\bin`, and that folder is added to your user PATH. If `openalpha` is not recognized, open a new PowerShell window, or run `& "$HOME\.local\bin\openalpha.exe"` directly. Data and config live in `%USERPROFILE%\.openalpha`, the `~/.openalpha` this guide refers to.
 - **Windows Defender blocks `openalpha.exe`?** The binary is not code-signed, so it is sometimes flagged by mistake. The installer already checked it against the release's `SHA256SUMS`; to check yourself, run `Get-FileHash "$HOME\.local\bin\openalpha.exe"` and compare it with the `openalpha-windows-x64.exe` line on the [Releases](https://github.com/alex2loop/openalpha/releases) page. If it matches, exclude the folder, in PowerShell run as Administrator: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Don't turn antivirus off.
+- **A Windows machine with an ARM chip?** The installer picks the native ARM build, and an older x64 install moves to it when you re-run the install command.
 - **Vietnamese text shows garbage?** Use Windows Terminal instead of the old console window. **Prefer WSL2?** The `curl ... | sh` line works there, with its own `~/.openalpha`.
 - **Rather not answer questions during install?** Take [config.minimal.toml](config.minimal.toml): it runs as is with just an OpenRouter key, every line commented. This overwrites an existing `config.toml`:
 

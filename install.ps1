@@ -21,8 +21,6 @@
 
   $Repository = 'alex2loop/openalpha'
   $Command = 'openalpha'
-  # x64 only: Windows on ARM runs it through its own x64 emulation.
-  $Asset = "$Command-windows-x64.exe"
   $InstallDir = if ($env:OPENALPHA_INSTALL_DIR) { $env:OPENALPHA_INSTALL_DIR } else { Join-Path $HOME '.local\bin' }
   $Target = Join-Path $InstallDir "$Command.exe"
   $UseVietnamese = (Get-Culture).Name -like 'vi*'
@@ -34,6 +32,15 @@
 
   function Fail([string]$En, [string]$Vi) {
     throw $(if ($UseVietnamese) { $Vi } else { $En })
+  }
+
+  # The machine's processor, not the process's: a PowerShell running under emulation still reads ARM.
+  function Get-Architecture {
+    switch ((Get-CimInstance Win32_Processor | Select-Object -First 1).Architecture) {
+      12 { return 'arm64' }
+      9 { return 'x64' }
+      default { Fail 'There is no OpenAlpha build for this processor.' 'Chưa có bản OpenAlpha cho bộ xử lý này.' }
+    }
   }
 
   # `releases/latest/download` follows the newest full release without an API call.
@@ -49,6 +56,7 @@
   # command on PATH. A running openalpha.exe cannot be replaced, but it can be renamed aside.
   function Install-Binary {
     $base = Get-ReleaseBase
+    $asset = "$Command-windows-$(Get-Architecture).exe"
     $part = Join-Path $InstallDir ".$Command.download"
     $sums = Join-Path $InstallDir ".$Command.sha256sums"
 
@@ -57,13 +65,13 @@
     try {
       try {
         Invoke-WebRequest -UseBasicParsing -Uri "$base/SHA256SUMS" -OutFile $sums
-        Invoke-WebRequest -UseBasicParsing -Uri "$base/$Asset" -OutFile $part
+        Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $part
       } catch {
         Fail "I couldn't download OpenAlpha. Run this again in a minute." `
           'Chưa tải được OpenAlpha. Đợi một phút rồi chạy lại nhé.'
       }
 
-      $line = Get-Content $sums | Where-Object { ($_ -split '\s+')[1] -eq $Asset } | Select-Object -First 1
+      $line = Get-Content $sums | Where-Object { ($_ -split '\s+')[1] -eq $asset } | Select-Object -First 1
       $expected = if ($line) { ($line -split '\s+')[0] } else { '' }
       $actual = (Get-FileHash -Algorithm SHA256 -Path $part).Hash.ToLowerInvariant()
 
