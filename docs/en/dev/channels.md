@@ -246,7 +246,7 @@ The gap is measured from the newest `session_messages` row (`SessionActivity.las
 earlier prices are out of date. The note is stored with the user turn, since it stays true when read back.
 The session, its route and its history do not change, and `/new` stays the explicit fresh start. A failed
 read logs `channel.gap_note_lookup_failed` and skips the note, so it never fails the turn. The key is in
-`deliveryFields` but not in `SAFE_DELIVERY_OVERRIDE_FIELDS`, so Zalo Personal runs on the default.
+`deliveryFields` but not in `SAFE_DELIVERY_OVERRIDE_FIELDS`, so a declarative plugin channel cannot override it.
 
 ## Startup and shutdown
 

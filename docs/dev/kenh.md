@@ -249,7 +249,7 @@ tin của lượt chạy được mở đầu bằng một dòng nói chat đã 
 lưu cùng lượt của người dùng, vì đọc lại về sau nó vẫn đúng. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn
 là cách bắt đầu mới một cách tường minh. Đọc thất bại thì ghi log `channel.gap_note_lookup_failed` và bỏ qua
 ghi chú, nên không bao giờ làm hỏng lượt. Khóa này nằm trong `deliveryFields` nhưng không nằm trong
-`SAFE_DELIVERY_OVERRIDE_FIELDS`, nên Zalo Personal chạy theo mặc định.
+`SAFE_DELIVERY_OVERRIDE_FIELDS`, nên một kênh plugin khai báo không ghi đè được nó.
 
 ## Khởi động và tắt
 

@@ -381,7 +381,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `mid_stream_updates` | bool | `true` | Edit the reply while it streams. |
 | `slash_commands` | bool | `true` | Enable slash commands and the command menu. |
 | `notify_max_per_minute` | int | `3` | Rate cap on proactive messages. |
-| `gap_note_minutes` | int | `30` | Quiet minutes after which the next answer is told to check prices again; `0` turns it off. Zalo Personal accepts no overrides, so it always runs on the default. |
+| `gap_note_minutes` | int | `30` | Quiet minutes after which the next answer is told to check prices again; `0` turns it off. |
 | `fallback_chat_id` | string | - | Fallback target for proactive messages. |
 | `pairing` | bool | `true` with no allowlist | Let unknown chats pair. |
 

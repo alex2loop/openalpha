@@ -163,7 +163,7 @@ function parseMessage(
   }
 
   const isGroup = m.chat.type !== undefined && GROUP_CHAT_TYPES.has(m.chat.type)
-  const replyTo = toReplyTo(m, isGroup, identity)
+  const replyTo = isGroup ? undefined : toReplyTo(m, identity)
 
   return {
     msg: {
@@ -184,12 +184,11 @@ function parseMessage(
 // group reply could pull another member's answer into this one's session.
 function toReplyTo(
   m: TelegramMessage,
-  isGroup: boolean,
   identity: BotIdentity | undefined
 ): InboundReply | undefined {
   const replied = m.reply_to_message
 
-  if (isGroup || identity === undefined || replied === undefined) {
+  if (identity === undefined || replied === undefined) {
     return undefined
   }
 
