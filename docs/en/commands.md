@@ -635,6 +635,8 @@ to record it exactly as previewed, or type the command again with `fx <rate>`.
   that way, so you can fix a row with `/update` if you bought over P2P.
 
 **`/record sync <venue>`** books every fill the venue reports that your book has no row for, using
+
+A limit order that filled only partly before you cancelled it is now synced for the part that filled.
 the exchange's own quantity, price and fee.
 
 - Binance lists trades coin by coin, so its sync reads the coins in your book plus the ones you hold,

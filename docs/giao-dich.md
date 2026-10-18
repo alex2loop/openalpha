@@ -1057,6 +1057,8 @@ Một lần khớp đặt qua `/trade` hay `order_place` được ghi vào sổ 
 
 **`/record sync <sàn>`** là cách thứ ba để tạo các dòng đó, và nó đi cùng đường. Nó chỉ khác ở cách chọn: nó hỏi sàn đã khớp gì, rồi ghi những gì cuốn sổ chưa có dòng. Kiểm hợp lệ, phép tính và dòng xác nhận đều dùng chung.
 
+Một lệnh giới hạn chỉ khớp một phần trước khi bạn hủy giờ được đồng bộ cho phần đã khớp.
+
 - Một lần khớp được đối chiếu theo order id của chính sàn (`<sàn>:<orderId>`, cũng là khóa `/trade` ghi lần khớp của chính nó), và theo chính các con số so với một dòng bạn gõ tay. Một lần khớp được để yên khi nó khớp một dòng gõ tay mà chưa lần khớp nào nhận, theo sàn, công cụ, ngày, chiều và khối lượng. Mỗi dòng gõ tay hấp thụ tối đa một lần khớp.
 - Thị trường của mỗi lần khớp được xác định trong các thị trường mà sàn đó giữ, không thị trường nào khác. Khi không với tới được bộ nhận diện nào, danh sách niêm yết của chính sàn trả lời thay, đọc tối đa một lần mỗi lượt, và chỉ khi đúng một thị trường của sàn có thể nhận mã. Một mã mà thị trường nào cũng không niêm yết, hoặc có hai thị trường cùng nhận, thì bị bỏ qua thay vì đoán.
 - Các lần khớp được ghi từ cũ tới mới trên các công cụ. Một mã mà cuốn sổ chỉ nhận được một phần thì không nhận gì cả: nếu một lần sync hỏng hoặc bị hủy giữa chừng, nó rút lại những gì đã ghi của mọi mã chưa xong, nên không bao giờ để lại một vị thế ghi dở. Các dòng mà một lượt trước để lại là của bạn để xóa.

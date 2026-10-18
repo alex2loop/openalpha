@@ -1081,6 +1081,8 @@ A fill placed through `/trade` or `order_place` is written to the ledger the sam
 
 **`/record sync <venue>`** is the third way those rows are created, and it takes the same path. It differs only in how it selects: it asks the venue what it filled, then books what the book has no row for. Validation, calculation and confirmation are shared.
 
+A limit order that filled only partly before you cancelled it is now synced for the part that filled.
+
 - A fill is matched by the venue's own order id (`<venue>:<orderId>`, the key `/trade` books its own fills under too), and by the figures themselves against a row you typed by hand. A fill is left alone when it matches a hand-typed row that no fill has claimed yet, on venue, instrument, day, side and quantity. Each typed row absorbs at most one fill.
 - Each fill's market is resolved against the markets that venue holds, and no others. When no detector can be reached, the venue's own listing answers instead, read at most once per run, and only when exactly one of the venue's markets could claim the ticker. A ticker no market lists, or one that two claim, is skipped rather than guessed.
 - Fills are booked oldest first across instruments. A name the book could take only part of is not taken at all: if a sync fails or is cancelled part way, it takes back what it had booked of any name it had not finished, so it never leaves a half-booked position. Rows an earlier run left behind are yours to delete.
