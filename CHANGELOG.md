@@ -7,6 +7,17 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+### Fixes
+
+- DeepSeek web search no longer returns a site's machine-translated copies (a Dutch or German page
+  beside the Vietnamese original).
+- A chat replaced by `/new` or an agent switch now reads "done" in `history list` instead of staying
+  "open".
+- Reinstalling over an existing install prints "you're on the latest release" once, and
+  `upgrade` names the version you run.
+
 ## [1.0.7] - 2026-10-18
 
 Telegram replies keep their context, a quiet chat rechecks prices, and web search can use DeepSeek.
