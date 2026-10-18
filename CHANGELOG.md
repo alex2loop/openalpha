@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format follows
 - `openalpha doctor` now warns when a switch that lets OpenAlpha act without asking is on.
 - Gold headlines now credit the real newspaper behind each Google News story, so a story several papers carry ranks higher.
 - A buy too small for its stop-loss to be placed on the exchange is now refused up front, instead of leaving the position unprotected.
+- Win rates in /reflect now come with a likely range, so a rate built on a handful of calls doesn't look more certain than it is.
 
 ## [1.0.5] - 2026-10-18
 

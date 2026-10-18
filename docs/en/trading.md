@@ -393,6 +393,8 @@ The band read is the one stored for the order session, so a new listing's wider 
 
 Every rate counts independent calls. A call repeating one still open on the same name and side rides the same move, so it is folded into the first. The brief re-issues a held idea every session, and each row would otherwise count as another outcome. `/reflect` says how many it folded. The per-focus and per-agent records below fold the same way, each over its own focus's calls (as `/reflect` reads one focus), so a focus reaches the reporting minimum on independent calls and its sample matches what `/reflect` says for it.
 
+The range next to each rate shows how sure that number is: with few calls it is wide, and two rates whose ranges overlap are not really different.
+
 `/reflect` also says what you did with the calls that played out, read from the ledger when the report is made and never stored. A call counts as taken when a fill on its side of the same instrument landed between its order session and the day it was scored out. It prints two figures, each only once its group reaches the track record's reporting minimum:
 
 - the average return of taken calls against passed-on ones;

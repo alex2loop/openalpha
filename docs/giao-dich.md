@@ -393,6 +393,8 @@ Biên độ được đọc là biên lưu cho phiên đặt lệnh, nên biên 
 
 Mọi tỷ lệ đếm các lời gọi độc lập. Một lời gọi lặp lại lời gọi còn mở trên cùng mã và cùng chiều thì đi cùng một nhịp, nên được gộp vào lời gọi đầu. Bản tin tái phát hành một ý tưởng đang nắm mỗi phiên, và mỗi dòng nếu không sẽ bị đếm như một kết cục nữa. `/reflect` báo đã gộp bao nhiêu. Hồ sơ theo phạm vi và theo agent bên dưới gộp cùng cách, trên các lời gọi của riêng từng phạm vi (như `/reflect` đọc một phạm vi), nên một phạm vi chạm mức tối thiểu để báo cáo bằng các lời gọi độc lập và mẫu của nó khớp với điều `/reflect` nói về nó.
 
+Khoảng nằm cạnh mỗi tỷ lệ cho biết con số đó chắc đến đâu: ít lời gọi thì khoảng rộng, và hai tỷ lệ có khoảng chồng lên nhau thì thực ra chưa khác nhau.
+
 `/reflect` cũng nói bạn đã làm gì với các lời gọi đã diễn ra, đọc từ sổ lệnh lúc làm báo cáo và không bao giờ lưu. Một lời gọi được tính là đã làm theo khi có lần khớp cùng chiều trên cùng công cụ nằm giữa phiên đặt lệnh của nó và ngày nó được chấm xong. Nó in hai con số, mỗi con chỉ khi nhóm của nó đạt mức tối thiểu để báo cáo của bảng thành tích:
 
 - lợi suất trung bình của các lời gọi đã làm theo so với các lời gọi bạn bỏ qua;
