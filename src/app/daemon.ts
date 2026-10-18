@@ -86,8 +86,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
           teardown,
         })
 
-        logger.info('daemon.started')
-        onReady?.(warnings)
+        markReady({ app, logger, warnings, onReady })
 
         await abortWaiter.promise
 
@@ -361,4 +360,26 @@ async function runCleanup(
   } catch (err: unknown) {
     logger.warn(event, { err: formatErrForLog(err) })
   }
+}
+
+function markReady(options: {
+  readonly app: App
+  readonly logger: Logger
+  readonly warnings: readonly DegradedItem[]
+  readonly onReady: DaemonReadyHandler | undefined
+}): void {
+  options.logger.info('daemon.started')
+  options.onReady?.(options.warnings)
+  reportUpgradeOutcome(options.app, options.logger)
+}
+
+/** Only once the daemon is ready: a release that dies late in its start must not tell the chat it
+ *  arrived, and the upgrade child rolls it back before anyone is told otherwise. */
+function reportUpgradeOutcome(app: App, logger: Logger): void {
+  app
+    .resolve('selfUpgrade')
+    .announceOutcome()
+    .catch((err: unknown) => {
+      logger.warn('update.announce_crashed', { err: formatErrForLog(err) })
+    })
 }

@@ -271,7 +271,8 @@ async function rollbackRelease(app: CliApp): Promise<number> {
   }
 
   await swapWithPreviousBinary()
-  await patchUpdateState(app, { announcedVersion: null })
+  // The release left behind is the one running this command; auto update must not reinstall it.
+  await patchUpdateState(app, { announcedVersion: null, rolledBackVersion: BRAND.version })
   app.out(success(t(locale, 'cli.upgradeRollbackDone')))
 
   if (daemon === null) {

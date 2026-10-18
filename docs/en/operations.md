@@ -304,7 +304,7 @@ Run the daemon on a server you own and point a client app at it.
    ```
 
    Run `systemctl --user enable --now openalpha`, then `loginctl enable-linger $USER` so it outlives
-   your login. To upgrade, run `systemctl --user stop openalpha && openalpha upgrade && systemctl --user start openalpha`:
+   your login. To upgrade, run `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
    a daemon the service owns is never restarted by `upgrade` itself.
 4. **Copy the token.** `openalpha api token` prints it (created on the first start).
 5. **Reach it.** The API listens on the server's `127.0.0.1` only. Pick one:

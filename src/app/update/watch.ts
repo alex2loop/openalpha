@@ -52,30 +52,22 @@ interface AutoUpdateInput {
   readonly now: number
 }
 
-/** Logs a newer release as it appears, installs patch releases by itself when asked to, and reports
- *  how an upgrade started from chat ended. A channel hears of a release only at the foot of the
- *  morning brief (`readUpdateLine`) and in the operator's private chat: alerts carry signals, not
- *  maintenance notices. */
+/** Logs a newer release as it appears and installs patch releases by itself when asked to. A channel
+ *  hears of a release only at the foot of the morning brief (`readUpdateLine`) and in the
+ *  operator's private chat: alerts carry signals, not maintenance notices. */
 export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => Promise<void> {
   const { logger } = options
   const controller = new AbortController()
   const window = parseDailyWindow(AUTO_UPDATE_WINDOW, app.config.locale.timezone)
   const memory: WatchMemory = { loggedLatest: null, skippedLatest: null, blockedLatest: null }
   let inFlight: Promise<void> | null = null
-  let reported = false
 
   const check = (): void => {
     if (inFlight !== null) {
       return
     }
 
-    const announce = !reported
-    reported = true
-    inFlight = runUpdateCheck(
-      app,
-      { ...options, window, memory, signal: controller.signal },
-      announce
-    )
+    inFlight = runUpdateCheck(app, { ...options, window, memory, signal: controller.signal })
       .catch((err: unknown) => {
         logger.warn('update.check_failed', { err: formatErrForLog(err) })
       })
@@ -98,13 +90,7 @@ export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => P
   }
 }
 
-async function runUpdateCheck(app: App, options: TickOptions, announce: boolean): Promise<void> {
-  // Ahead of the checks-on guard: an upgrade started from chat reports back even if checks were
-  // turned off since.
-  if (announce) {
-    await options.upgrade.announceOutcome()
-  }
-
+async function runUpdateCheck(app: App, options: TickOptions): Promise<void> {
   const { config } = app
   const enabled = await isUpdateCheckEnabled(config)
 

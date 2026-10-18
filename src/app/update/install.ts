@@ -106,12 +106,12 @@ async function startUpgrade(
 
   await writeUpdateState(dataDir, { ...state, pendingUpgrade })
 
-  return await spawnUpgrade(parts, target)
+  return await spawnUpgrade(parts, { target, latest: request.latest })
 }
 
 async function spawnUpgrade(
   parts: UpgradeParts,
-  target: DeliveryTarget | undefined
+  request: { readonly target: DeliveryTarget | undefined; readonly latest: string }
 ): Promise<UpgradeStart> {
   const { app, logger } = parts
   const { dataDir } = app.config.paths
@@ -130,7 +130,7 @@ async function spawnUpgrade(
     })
 
     child.exited
-      .then((code) => reportUpgradeExit(parts, { code, target }))
+      .then((code) => reportUpgradeExit(parts, { code, ...request }))
       .catch((err: unknown) => {
         logger.warn('update.install_report_failed', { err: formatErrForLog(err) })
       })
@@ -147,7 +147,11 @@ async function spawnUpgrade(
 /** A daemon the upgrade replaced reports nothing here: the new one does, from its first check. */
 async function reportUpgradeExit(
   parts: UpgradeParts,
-  exit: { readonly code: number; readonly target: DeliveryTarget | undefined }
+  exit: {
+    readonly code: number
+    readonly target: DeliveryTarget | undefined
+    readonly latest: string
+  }
 ): Promise<void> {
   const { app, logger } = parts
 
@@ -155,11 +159,15 @@ async function reportUpgradeExit(
     return
   }
 
-  await clearPendingUpgrade(app.config.paths.dataDir)
-
   if (exit.code === 0) {
+    await clearPendingUpgrade(app.config.paths.dataDir)
+
     return
   }
+
+  // Auto update must not try this release again on its own: a failure that repeats would restart
+  // the bot every night.
+  await clearPendingUpgrade(app.config.paths.dataDir, exit.latest)
 
   logger.error('update.install_failed', { code: exit.code })
   await sendToTarget(parts, {
@@ -178,11 +186,15 @@ async function announceUpgradeOutcome(parts: UpgradeParts): Promise<void> {
     return
   }
 
-  // Cleared before sending, so a crash never repeats the message.
-  await writeUpdateState(dataDir, { ...state, pendingUpgrade: null })
-
   // Too old to be this run's upgrade: the daemon restarted for some other reason.
-  if (!isPending(pending, Date.now())) {
+  const current = isPending(pending, Date.now())
+  const failed = current && BRAND.version !== pending.to
+
+  // Cleared before sending, so a crash never repeats the message. A failed install is remembered
+  // like a rollback, so auto update does not try the same release again tonight.
+  await clearPendingUpgrade(dataDir, failed ? pending.to : undefined)
+
+  if (!current) {
     return
   }
 
@@ -243,8 +255,12 @@ function isPending(pending: PendingUpgrade | null, now: number): boolean {
   return pending !== null && now - pending.requestedAt < PENDING_UPGRADE_MS
 }
 
-async function clearPendingUpgrade(dataDir: string): Promise<void> {
+async function clearPendingUpgrade(dataDir: string, failedVersion?: string): Promise<void> {
   const state = await readUpdateState(dataDir)
 
-  await writeUpdateState(dataDir, { ...state, pendingUpgrade: null })
+  await writeUpdateState(dataDir, {
+    ...state,
+    pendingUpgrade: null,
+    ...(failedVersion === undefined ? {} : { rolledBackVersion: failedVersion }),
+  })
 }
