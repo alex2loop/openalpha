@@ -22,6 +22,7 @@ import type { Locale } from '@/core/types/locale'
 import type {
   ChatBindingStore,
   PairingStore,
+  SessionActivity,
   SessionOpener,
   SessionQueue,
   SessionRouter,
@@ -67,7 +68,7 @@ export interface ChannelRuntimeDeps {
   readonly caps: BudgetCaps
   readonly pairingStore: PairingStore
   readonly sessionRouter: SessionRouter
-  readonly sessions: SessionOpener
+  readonly sessions: SessionOpener & SessionActivity
   readonly bindings: ChatBindingStore
   readonly dispatcher: SlashDispatcher
   readonly spend: SpendReader
@@ -346,19 +347,24 @@ interface HandlerParts {
   ) => Promise<void>
 }
 
-function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHandlerDeps {
-  const { adapter, logger, locale, settings } = deps
-  const orchestrator: OrchestratorDeps = {
-    adapter,
+function orchestratorDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): OrchestratorDeps {
+  return {
+    adapter: deps.adapter,
     runner: deps.runner,
     bus: deps.bus,
-    settings,
-    locale,
-    logger,
+    settings: deps.settings,
+    locale: deps.locale,
+    logger: deps.logger,
     signal: deps.shutdownSignal,
     sent: parts.sent,
+    sessions: deps.sessions,
     reviewPlan: (chatId, input) => parts.planReviewer.reviewPlan(chatId, input),
   }
+}
+
+function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHandlerDeps {
+  const { adapter, logger, locale, settings } = deps
+  const orchestrator = orchestratorDeps(deps, parts)
 
   return {
     channelId: adapter.id,

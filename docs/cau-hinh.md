@@ -383,6 +383,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `mid_stream_updates` | bool | `true` | Sửa câu trả lời trong lúc truyền luồng. |
 | `slash_commands` | bool | `true` | Bật lệnh gạch chéo và menu lệnh. |
 | `notify_max_per_minute` | số nguyên | `3` | Trần tần suất tin chủ động. |
+| `gap_note_minutes` | số nguyên | `30` | Số phút im lặng để câu trả lời kế tiếp được nhắc xem lại giá; `0` là tắt. Zalo Personal không nhận ghi đè nên luôn chạy theo mặc định. |
 | `fallback_chat_id` | chuỗi | - | Đích dự phòng cho tin chủ động. |
 | `pairing` | bool | `true` khi không có danh sách cho phép | Cho chat lạ ghép nối. |
 

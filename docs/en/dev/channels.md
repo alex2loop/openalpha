@@ -237,6 +237,17 @@ the replied text, and a quote that touches it falls back to the whole footer-les
 out as a message of its own is never filed, so a reply to it gets the pointer. A replayed inbox entry
 keeps `replyTo` and meets an empty map after a restart, so it too gets the pointer.
 
+### Quiet-gap note
+
+`runExchange` composes the note once per run, so several messages batched into one run share one note.
+The gap is measured from the newest `session_messages` row (`SessionActivity.lastMessageAt`), never
+`sessions.last_activity_at`, which slash commands also touch. When that row is older than
+`gap_note_minutes`, the run's message is led by one line saying how long the chat was quiet and that
+earlier prices are out of date. The note is stored with the user turn, since it stays true when read back.
+The session, its route and its history do not change, and `/new` stays the explicit fresh start. A failed
+read logs `channel.gap_note_lookup_failed` and skips the note, so it never fails the turn. The key is in
+`deliveryFields` but not in `SAFE_DELIVERY_OVERRIDE_FIELDS`, so Zalo Personal runs on the default.
+
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and

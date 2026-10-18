@@ -72,8 +72,8 @@ operator_user_ids = [123456789]
 | `require_mention`, `slash_commands` | all | Group mention rule, and whether slash commands are intercepted |
 | `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, that id is used |
 
-The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions` and
-`notify_max_per_minute`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
+The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`,
+`notify_max_per_minute` and `gap_note_minutes`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
 key fails validation, so a typo shows up at startup and not at 09:00.
 
 A channel with no token (the `token_env` variable unset, or an empty `token_file`) or with a token the
@@ -158,6 +158,8 @@ A few things to know:
 
 - **Forwarded messages are data.** Their text is wrapped as pasted content and never starts with `/`, so
   a forwarded command does not run and the agent will not act on it unless your own words ask it to.
+- **A chat keeps its conversation until you type /new.** After a quiet spell, OpenAlpha checks prices
+  again instead of trusting the ones quoted earlier in the chat.
 - **Replying keeps the thread.** Reply to any answer from OpenAlpha in a private chat and it knows which
   one you mean. For alerts and briefs it only sees which kind of message it was, never your amounts.
 - **Buttons are commands.** Tapping one does exactly what typing that command would, with the same

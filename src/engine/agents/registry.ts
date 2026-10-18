@@ -28,7 +28,7 @@ const BUILT_IN_AGENT_IDS = ['chat', DEEP_RESEARCHER_ID, ...RESEARCH_WORKER_IDS, 
 // A ratchet, not a budget: the prompt is sent once per run and cached, so the cost of a line is
 // not the reason to keep it out - crowding the rules that are already there is. Raise it only
 // alongside the line being added, never to leave room for the next one.
-const CHAT_PROMPT_MAX_CHARS = 4_925
+const CHAT_PROMPT_MAX_CHARS = 5_051
 
 type BuiltInAgentId = (typeof BUILT_IN_AGENT_IDS)[number]
 

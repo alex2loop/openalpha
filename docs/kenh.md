@@ -71,7 +71,7 @@ operator_user_ids = [123456789]
 | `fallback_chat_id` | tất cả | Nơi một việc theo lịch không có `--to` sẽ gửi tới. Chỉ có đúng một id được phép thì dùng id đó |
 
 Các khóa còn lại tinh chỉnh việc gửi: `markdown`, `mid_stream_updates`, `typing_indicator`,
-`use_reactions`, `notify_max_per_minute`. Nhịp gom tin, nhịp sửa tin trực tiếp và hàng đợi gửi đi là cố
+`use_reactions`, `notify_max_per_minute`, `gap_note_minutes`. Nhịp gom tin, nhịp sửa tin trực tiếp và hàng đợi gửi đi là cố
 định. Một khóa lạ sẽ làm hỏng khâu kiểm tra, nên gõ sai là biết ngay lúc khởi động, thay vì biết lúc 9
 giờ sáng.
 
@@ -158,6 +158,8 @@ Vài điều nên biết:
 - **Tin chuyển tiếp là dữ liệu.** Nội dung của chúng được bọc như nội dung dán vào và không bao giờ bắt
   đầu bằng `/`, nên một lệnh được chuyển tiếp sẽ không chạy, và agent không hành động theo nó trừ khi
   chính lời của bạn yêu cầu.
+- **Cuộc trò chuyện giữ nguyên cho tới khi bạn gõ /new.** Nếu bạn quay lại sau một lúc lâu, OpenAlpha sẽ
+  xem lại giá mới chứ không dùng lại con số đã nói trước đó.
 - **Trả lời đúng tin.** Trong chat riêng, bạn cứ bấm trả lời vào một câu trả lời của OpenAlpha, nó sẽ biết
   bạn đang hỏi tiếp câu nào. Với cảnh báo giá và bản tin sáng, nó chỉ biết đó là loại tin gì, không bao giờ
   thấy số tiền của bạn.

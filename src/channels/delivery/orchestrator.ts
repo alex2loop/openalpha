@@ -7,6 +7,7 @@ import type { EventBus } from '@/core/events'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
+import type { SessionActivity } from '@/core/types/session'
 import type { ResearchPlanDecision, ResearchPlanReview, Runner, RunResult } from '@/engine/api'
 import { AnswerUndelivered } from '@/channels/delivery/answer'
 import { buildAbortCallbackData } from '@/channels/delivery/callbacks'
@@ -16,6 +17,7 @@ import {
   formatPlanBlock,
   formatRunResultBody,
 } from '@/channels/delivery/format'
+import { withGapNote } from '@/channels/delivery/gap-note'
 import { resolveOutboundMarkup, selectRenderer } from '@/channels/delivery/outbound/chunked-send'
 import { createReply } from '@/channels/delivery/reply'
 import { type ChunkStream, createChunkStream } from '@/channels/delivery/stream'
@@ -36,6 +38,8 @@ export interface OrchestratorDeps {
   /** Where every answer chunk is filed, so a reply to it can be told apart from a reply to
    *  anything else. */
   readonly sent: SentMessages
+  /** Read once per run for how long the chat was quiet. */
+  readonly sessions: SessionActivity
   /** Channel-owned deep-plan review; the prompted chat supplies the explicit start or cancel. */
   readonly reviewPlan: (chatId: string, input: ResearchPlanReview) => Promise<ResearchPlanDecision>
 }
@@ -83,7 +87,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
         sessionId,
         userId: LOCAL_USER_ID,
         channel: combined.channel,
-        userMessage: combined.text,
+        userMessage: await composeUserMessage(deps, exchange),
         onChunk: (event) => stream.onChunk(event),
       },
       {
@@ -110,6 +114,19 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     useMarkup,
     afterApproval: prompts.prompted(),
     elapsedMs: performance.now() - startedAt,
+  })
+}
+
+// The debounced, combined text is seen exactly once, here, so a note composed per message would
+// repeat for each one batched into the run.
+function composeUserMessage(deps: OrchestratorDeps, exchange: Exchange): Promise<string> {
+  return withGapNote({
+    text: exchange.combined.text,
+    sessionId: exchange.sessionId,
+    sessions: deps.sessions,
+    gapNoteMs: deps.settings.gapNoteMs,
+    locale: deps.locale,
+    logger: deps.logger,
   })
 }
 

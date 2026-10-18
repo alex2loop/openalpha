@@ -20,6 +20,7 @@ import type {
   ChatBindingStore,
   PairingStore,
   PollOffsetStore,
+  SessionActivity,
   SessionOpener,
   SessionQueue,
   SessionRouter,
@@ -40,7 +41,7 @@ export interface StartChannelsDeps {
   readonly costTracker: CostTracker
   readonly pairingStore: PairingStore
   readonly sessionRouter: SessionRouter
-  readonly sessions: SessionOpener
+  readonly sessions: SessionOpener & SessionActivity
   readonly pollOffsets: PollOffsetStore
   readonly inbox: InboundInbox
   readonly bindings: ChatBindingStore

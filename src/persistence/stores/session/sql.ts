@@ -42,6 +42,7 @@ export interface SessionSql {
   readonly loadTotals: string
   readonly insertMessage: string
   readonly nextIdx: string
+  readonly lastMessageAt: string
   readonly linkAttempt: string
   readonly linkedGroup: string
   readonly touchActivity: string
@@ -92,6 +93,10 @@ export function buildSessionSql(d: Dialect): SessionSql {
       `INSERT INTO session_messages (session_id, idx, run_id, ${PAYLOAD_COLS}, created_at) ` +
       `VALUES (${d.paramList(9)})`,
     nextIdx: `SELECT MAX(idx) + 1 AS next FROM session_messages WHERE session_id = ${d.param(1)}`,
+    // The primary key is (session_id, idx), so the newest row is one index step.
+    lastMessageAt:
+      `SELECT created_at FROM session_messages WHERE session_id = ${d.param(1)} ` +
+      `ORDER BY idx DESC LIMIT 1`,
     linkAttempt:
       `UPDATE llm_attempts SET message_idx = ${d.param(1)} ` +
       `WHERE id = ${d.param(2)} AND session_id = ${d.param(3)} AND kind = 'turn' AND message_idx IS NULL`,

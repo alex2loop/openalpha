@@ -9,12 +9,14 @@ carries ` [IMPORTANT]` after its date.
 
 ## [Unreleased]
 
-Replying to an answer in a private Telegram chat now keeps the conversation on that answer. No database change.
-> Trả lời một câu trả lời trong chat riêng Telegram giờ giữ cuộc trò chuyện đúng câu đó.
+Replying to an answer in a private Telegram chat now keeps the conversation on that answer, and a chat that
+sat quiet checks prices again before it answers. No database change.
+> Trả lời một câu trả lời trong chat riêng Telegram giờ giữ cuộc trò chuyện đúng câu đó, và chat im lặng một lúc sẽ xem lại giá trước khi trả lời.
 
 ### Chat
 
 - In a private Telegram chat, replying to one of OpenAlpha's answers now keeps the conversation on that answer.
+- Come back to a chat after a quiet spell and the next answer checks prices again instead of reusing the ones from earlier.
 
 ## [1.0.6] - 2026-10-18
 

@@ -72,6 +72,12 @@ export function createSessionStore(db: Storage, dialect: Dialect): SessionStore 
       return row === undefined ? null : sessionId(row.id)
     },
 
+    async lastMessageAt(id: SessionId): Promise<number | null> {
+      const rows = await db.query<{ readonly created_at: number }>(sql.lastMessageAt, [id])
+
+      return rows[0]?.created_at ?? null
+    },
+
     async loadTotals(id: SessionId): Promise<LLMUsageTotals> {
       const rows = await db.query<TotalsRow>(sql.loadTotals, [id])
       return toTotals(rows[0])

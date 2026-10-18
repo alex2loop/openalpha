@@ -349,6 +349,10 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # use_reactions = true
 # mid_stream_updates = true          # edit the placeholder while streaming
 # notify_max_per_minute = 3
+# After this many quiet minutes, the next answer checks prices again instead of trusting the ones
+# quoted earlier. The conversation itself carries on; /new starts a fresh one. 0 turns it off.
+# Default 30.
+# gap_note_minutes = 30
 # fallback_chat_id = "-1001234567"   # where a scheduled job with no --to delivers
 
 # Zalo takes the same token, operator and delivery fields. There is no open mode.

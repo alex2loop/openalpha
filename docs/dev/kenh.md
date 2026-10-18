@@ -240,6 +240,17 @@ dòng đó. Dòng chi phí đã đi thành một tin riêng thì không được
 dẫn. Tin trong hộp nhận được phát lại vẫn giữ `replyTo` và gặp một bảng trống sau khi khởi động lại, nên
 cũng chỉ nhận dòng chỉ dẫn.
 
+### Ghi chú về khoảng im lặng
+
+`runExchange` ghép ghi chú một lần cho mỗi lượt chạy, nên nhiều tin gom vào một lượt dùng chung một ghi chú.
+Khoảng im lặng được đo từ dòng `session_messages` mới nhất (`SessionActivity.lastMessageAt`), không bao giờ
+từ `sessions.last_activity_at`, vì lệnh gạch chéo cũng làm mới cột đó. Khi dòng ấy cũ hơn `gap_note_minutes`,
+tin của lượt chạy được mở đầu bằng một dòng nói chat đã im lặng bao lâu và giá trước đó đã cũ. Ghi chú được
+lưu cùng lượt của người dùng, vì đọc lại về sau nó vẫn đúng. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn
+là cách bắt đầu mới một cách tường minh. Đọc thất bại thì ghi log `channel.gap_note_lookup_failed` và bỏ qua
+ghi chú, nên không bao giờ làm hỏng lượt. Khóa này nằm trong `deliveryFields` nhưng không nằm trong
+`SAFE_DELIVERY_OVERRIDE_FIELDS`, nên Zalo Personal chạy theo mặc định.
+
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động

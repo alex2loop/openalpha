@@ -3,7 +3,7 @@ import type { AgentId, LLMAttemptId, RunId, SessionId, UserId } from '@/core/ids
 import type { LLMMessage, SessionMessageWrite } from '@/core/llm'
 import type { CommandExchange } from '@/core/types/command'
 import type { RunResultReason } from '@/core/types/run'
-import type { OpenedSession } from '@/core/types/session'
+import type { OpenedSession, SessionActivity } from '@/core/types/session'
 import type { Dialect, Transaction } from '@/core/types/storage'
 import type {
   CostRange,
@@ -107,7 +107,7 @@ export interface SessionClaim {
   readonly leaseExpiresBefore: number
 }
 
-export interface SessionStore {
+export interface SessionStore extends SessionActivity {
   create(record: OpenedSession): Promise<void>
   /** Take ownership of the session for one run. False when a live run already holds it. */
   claimRun(claim: SessionClaim): Promise<boolean>
