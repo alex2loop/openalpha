@@ -19,6 +19,7 @@ const INTEGRITY_CHECK_SQL = 'PRAGMA integrity_check'
 const OPEN_PROBE_SQL = 'SELECT 1'
 /** Makes the fallback handle refuse writes, so read-only is enforced rather than merely asked for. */
 const QUERY_ONLY_SQL = 'PRAGMA query_only = 1'
+const SCHEMA_OBJECT_SQL = 'SELECT name FROM sqlite_master LIMIT 1'
 
 type DatabaseOptions = NonNullable<ConstructorParameters<typeof Database>[1]>
 
@@ -97,6 +98,11 @@ async function probeSqliteDatabase(options: SqliteProbeOptions): Promise<DoctorF
 
     if (result !== 'ok') {
       return databaseProbe('fail', path, t(locale, 'cli.doctorIntegrityCheckFailed', { result }))
+    }
+
+    // A boot that failed after opening the file leaves it empty; the next good start migrates it.
+    if (isEmptySchema(database)) {
+      return databaseProbe('info', path, t(locale, 'cli.doctorNotCreatedYet'))
     }
 
     if (!hasMigrationLedger(database)) {
@@ -199,6 +205,10 @@ function closeQuietly(database: Database | undefined): void {
   } catch {
     // Nothing here can improve on the result the caller already has.
   }
+}
+
+function isEmptySchema(database: Database): boolean {
+  return database.query<TableRow, []>(SCHEMA_OBJECT_SQL).get() === null
 }
 
 function hasMigrationLedger(database: Database): boolean {
