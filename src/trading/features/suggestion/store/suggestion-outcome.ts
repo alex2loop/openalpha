@@ -334,7 +334,8 @@ export async function listFocusCalls(
 
   const rows = await deps.db.query<FocusCallRow>(
     'SELECT focus_key, market, ticker, day, action, exit_day, return_pct ' +
-      `FROM suggestions WHERE ${SCORED_SQL} AND exit_day IS NOT NULL AND ${LATEST_OF_SAME_CALL_SQL}`,
+      `FROM suggestions WHERE ${SCORED_SQL} AND exit_day IS NOT NULL ` +
+      `AND ${LATEST_OF_SAME_CALL_SQL}`,
     []
   )
 
