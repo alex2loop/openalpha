@@ -33,6 +33,8 @@ Windows on ARM gets a native build. No database change.
   rules.
 - Gold headlines credit the real newspaper behind Google News.
 - Win rates count only calls whose window has passed, and `/reflect` shows how certain each is.
+- The last closed call on a name gives the day it was made and the day it closed, and the debate
+  writes dates the way you do.
 
 ### Your book
 

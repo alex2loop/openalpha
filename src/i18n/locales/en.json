@@ -3220,7 +3220,7 @@
     "render.suggestion.planPullback": "Over the {sessions} sessions after a typical session in its history, the cheapest price has been {best} against that session's close, as a median.",
     "render.suggestion.planPullbackEdge": "Counting the times it never filled as holding nothing, resting an order at that price has come out {edge} against buying at the reference price, over a {hold} session hold.",
     "render.suggestion.planPullbackFill": "That is where the market traded, not where you would have been filled - treat it as the ceiling on your chance of buying lower, never the chance itself.",
-    "render.suggestion.lastCall": "My last call on {ticker} ({day}): {action} · resolved {returnPct}",
+    "render.suggestion.lastCall": "My last closed call on {ticker}: {action} on {callDay}, closed {exitDay} · {returnPct}",
     "render.suggestion.invalidators": "I am wrong if",
     "render.suggestion.entryLadder": "Buy {shares} {ticker} first, and add the rest later if the price comes back to around {entry} and holds there.",
     "render.suggestion.stopBasis": "Leave the stop resting as a stop order with your broker and move it up as the stop rises - it fires on the first trade at or below it, not on the close. A gap or a session locked at its limit can fill it lower, and if the order expires, place it again.",

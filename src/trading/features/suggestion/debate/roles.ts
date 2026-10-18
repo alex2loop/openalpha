@@ -17,6 +17,7 @@ import {
   parseResearchJson,
   toResearchOutputContract,
 } from '@/engine/api'
+import { formatDay } from '@/i18n'
 import { languageIssues } from '@/trading/features/suggestion/debate/language'
 
 // A failed role is diagnosed from its log line alone — the persona's own transcript is hidden and
@@ -26,6 +27,9 @@ const MAXIMUM_LOGGED_ISSUES = 3
 const MAXIMUM_LOGGED_ERROR_CHARS = 200
 const MAXIMUM_REPAIR_ISSUES = 5
 const SETUP_HALT_CAUSE = 'setup'
+// The evidence dates every row YYYY-MM-DD, and a persona copies that into prose unless shown the
+// reader's own order.
+const DATE_EXAMPLE_DAY = '2026-08-24'
 
 export interface RoleRunDeps {
   readonly runner: Runner
@@ -216,6 +220,7 @@ function localizedMessage(message: string, locale: Locale): string {
     message,
     '',
     `Write every free-text field in ${languageName(locale)}.`,
+    `Write a date in prose the way the reader writes it: ${DATE_EXAMPLE_DAY} as ${formatDay(locale, DATE_EXAMPLE_DAY)}.`,
     'Leave ids, enum values, and URLs exactly as specified.',
   ].join('\n')
 }

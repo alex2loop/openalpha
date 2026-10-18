@@ -3220,7 +3220,7 @@
     "render.suggestion.planPullback": "Trong {sessions} phiên sau một phiên bất kỳ trong lịch sử của mã, giá rẻ nhất có trung vị {best} so với giá đóng cửa phiên đó.",
     "render.suggestion.planPullbackEdge": "Tính cả những lần lệnh chờ không khớp là không nắm giữ gì, cách đặt lệnh chờ ở mức giá đó cho kết quả {edge} so với mua ngay ở giá tham chiếu, đo trên {hold} phiên nắm giữ.",
     "render.suggestion.planPullbackFill": "Đó là nơi thị trường có giao dịch, không phải nơi bạn chắc chắn mua được - hãy coi đây là mức trần của khả năng mua rẻ hơn, không phải khả năng thật.",
-    "render.suggestion.lastCall": "Lần gần nhất tôi khuyến nghị {ticker} ({day}): {action} · kết quả {returnPct}",
+    "render.suggestion.lastCall": "Khuyến nghị {ticker} gần nhất đã có kết quả: {action} ngày {callDay}, đóng ngày {exitDay} · {returnPct}",
     "render.suggestion.invalidators": "Tôi sai khi",
     "render.suggestion.entryLadder": "Mua trước {shares} {ticker}, phần còn lại mua sau nếu giá quay lại quanh {entry} và đứng vững.",
     "render.suggestion.stopBasis": "Hãy để sẵn mức cắt lỗ thành lệnh dừng ở công ty chứng khoán hoặc sàn, và nâng lệnh lên mỗi khi mức cắt lỗ được nâng - lệnh kích hoạt ngay khi có giao dịch chạm hoặc thủng mức này, không chờ giá đóng cửa. Nếu giá mở cửa nhảy qua mức cắt lỗ hoặc mã nằm sàn, lệnh có thể khớp thấp hơn; lệnh hết hiệu lực thì hãy đặt lại.",
