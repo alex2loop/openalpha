@@ -7,7 +7,7 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.0.6] - 2026-10-18
 
 Updates are easy to see and install from chat, the debate reads its evidence more carefully, and
 Windows on ARM gets a native build. No database change.
@@ -195,6 +195,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.6
 [1.0.5]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.5
 [1.0.4]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.4
 [1.0.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.3
