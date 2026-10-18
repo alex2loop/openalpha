@@ -1,16 +1,15 @@
 import type { AdapterHandlers, InboundInbox } from '@/channels/types'
 import type { PollOffsetStore } from '@/core/types/session'
 import { acceptInbound } from '@/channels/delivery/inbox-accept'
-import { channelId } from '@/core/channels'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
 
 import type { TelegramApiContext } from './client'
 import type { BotIdentity, TelegramUpdate } from './protocol'
 import { answerCallbackQuery, deleteWebhook, getUpdates, telegramErrorStatus } from './client'
+import { TELEGRAM_CHANNEL_ID } from './config'
 import { parseUpdate } from './protocol'
 
-const POLL_CHANNEL = channelId('telegram')
 // Kept under the request timeout so our abort never races Telegram's long-poll.
 const TELEGRAM_POLL_TIMEOUT_SEC = 10
 const POLL_BACKOFF_INITIAL_MS = 1_000
@@ -41,7 +40,7 @@ export async function runPollLoop(deps: PollDeps): Promise<void> {
   await deleteWebhook(deps.api)
 
   const state: PollState = {
-    offset: (await deps.pollOffsets.get(POLL_CHANNEL)) ?? 0,
+    offset: (await deps.pollOffsets.get(TELEGRAM_CHANNEL_ID)) ?? 0,
     backoffMs: POLL_BACKOFF_INITIAL_MS,
     authFailures: 0,
     connected: false,
@@ -87,7 +86,7 @@ async function processUpdates(
 
     // Always advances: a poison update must never wedge the offset. Assignment happens only after
     // the durable checkpoint succeeds, so an in-process retry cannot skip a failed write.
-    await deps.pollOffsets.set(POLL_CHANNEL, nextOffset)
+    await deps.pollOffsets.set(TELEGRAM_CHANNEL_ID, nextOffset)
     state.offset = nextOffset
   }
 }
@@ -118,7 +117,7 @@ async function dispatchUpdate(deps: PollDeps, update: TelegramUpdate): Promise<v
   if (msg && canStore(deps, msg.chatId, msg.userId)) {
     await acceptInbound({
       inbox: deps.inbox,
-      channel: POLL_CHANNEL,
+      channel: TELEGRAM_CHANNEL_ID,
       updateId: update.update_id.toString(),
       payload: { kind: 'message', msg },
       acceptedAt,
@@ -128,7 +127,7 @@ async function dispatchUpdate(deps: PollDeps, update: TelegramUpdate): Promise<v
   if (cq && canStore(deps, cq.chatId, cq.from)) {
     await acceptInbound({
       inbox: deps.inbox,
-      channel: POLL_CHANNEL,
+      channel: TELEGRAM_CHANNEL_ID,
       updateId: `${update.update_id.toString()}:cq`,
       payload: { kind: 'callback', cq },
       acceptedAt,

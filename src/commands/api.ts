@@ -29,7 +29,6 @@ export type {
   UpgradeRequest,
 } from '@/commands/upgrade'
 export type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
-export { createSlashDispatcher } from '@/commands/dispatcher/dispatcher'
 export {
   type CommandHelpOptions,
   type HelpControl,
@@ -46,4 +45,3 @@ export { commandHeadOf, HELP_COMMAND } from '@/commands/dispatcher/resolve'
 export { createSessionModelSelection } from '@/commands/model'
 export { createCommandsProvider, createCoreCommands } from '@/commands/services'
 export { UPGRADE_CHAT_COMMAND, UPGRADE_CONFIRM_COMMAND } from '@/commands/upgrade'
-export { isSlashCommandName } from '@/core/utils/text'

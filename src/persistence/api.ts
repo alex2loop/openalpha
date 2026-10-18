@@ -51,7 +51,7 @@ export {
 } from '@/persistence/migrations/runner'
 export { countRetention, type RetentionCounts, runRetention } from '@/persistence/retention'
 export { createPersistenceProvider } from '@/persistence/services'
-export { bindChunkSize, SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
+export { bindChunkSize } from '@/persistence/sql/syntax'
 export { createChannelInbox } from '@/persistence/stores/channel/inbox'
 export {
   ALL_TABLE_NAMES,

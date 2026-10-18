@@ -11,7 +11,6 @@ import type {
 import type { Logger } from '@/core/logging/logger'
 import type { PollOffsetStore } from '@/core/types/session'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
-import { channelId } from '@/core/channels'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { withRetry } from '@/core/utils/retry'
@@ -27,6 +26,7 @@ import {
   type TelegramApiContext,
   telegramErrorStatus,
 } from './client'
+import { TELEGRAM_CHANNEL_ID } from './config'
 import { publishCommandMenu } from './menu'
 import { runPollLoop } from './poll'
 import { TELEGRAM_MAX_LEN } from './protocol'
@@ -34,7 +34,6 @@ import { telegramMarkdownV2Renderer } from './renderer'
 
 const UNAUTHORIZED_STATUS = 401
 const FORBIDDEN_STATUS = 403
-const TELEGRAM_CHANNEL_ID = channelId('telegram')
 const TELEGRAM_TOKEN_OWNER = { id: TELEGRAM_CHANNEL_ID, label: 'Telegram' } as const
 const TELEGRAM_POLL_RESTART_INITIAL_MS = 1_000
 const TELEGRAM_POLL_RESTART_MAX_MS = 60_000

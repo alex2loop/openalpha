@@ -60,8 +60,5 @@ export {
   findChannelDefinition,
   resolveRegisteredChannelSettings,
 } from '@/channels/registry'
-export {
-  resolveChannelSettings,
-  resolveSecret,
-} from '@/channels/schema'
+export { resolveSecret } from '@/channels/schema'
 export { startChannels } from '@/channels/start'

@@ -9,12 +9,12 @@ import type {
 import type { Logger } from '@/core/logging/logger'
 import { plainRenderer, stripMarkdown } from '@/channels/renderer'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
-import { channelId } from '@/core/channels'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { withRetry } from '@/core/utils/retry'
 
 import { getMe, sendChatAction, sendMessage, ZALO_MAX_LEN, ZALO_UNAUTHORIZED_CODE } from './client'
+import { ZALO_CHANNEL_ID } from './config'
 import { runZaloPollLoop } from './poll'
 
 const ZALO_CAPABILITIES: ChannelCapabilities = {
@@ -26,7 +26,6 @@ const ZALO_CAPABILITIES: ChannelCapabilities = {
   maxTextLen: ZALO_MAX_LEN,
 }
 
-const ZALO_CHANNEL_ID = channelId('zalo')
 const ZALO_TOKEN_OWNER = { id: ZALO_CHANNEL_ID, label: 'Zalo' } as const
 const ZALO_RATE_LIMITED_CODE = 429
 const ZALO_GET_ME_MAX_ATTEMPTS = 4

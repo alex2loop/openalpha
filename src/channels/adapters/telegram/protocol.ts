@@ -8,8 +8,9 @@ import type {
 } from '@/channels/types'
 import { toPastedContent } from '@/channels/pasted-content'
 import { HELP_COMMAND } from '@/commands/api'
-import { channelId } from '@/core/channels'
 import { MS_PER_SECOND } from '@/core/utils/time'
+
+import { TELEGRAM_CHANNEL_ID } from './config'
 
 export const TELEGRAM_API_BASE = 'https://api.telegram.org'
 export const TELEGRAM_MAX_LEN = 4096
@@ -29,7 +30,6 @@ const COMMAND_HEAD_RE = /^\/([a-zA-Z0-9_]{1,32})(?:@([a-zA-Z0-9_]+))?(?:\s|$)/i
 // Telegram sends this itself when someone first opens the bot. No command owns the name, so it opens
 // the help rather than an unknown-command reply.
 const BOT_OPENED_COMMAND = 'start'
-const TELEGRAM_CHANNEL_ID = channelId('telegram')
 
 const telegramUserSchema = z.object({
   id: z.number(),
