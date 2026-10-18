@@ -1278,9 +1278,9 @@ Nothing protects the position between those two lines. Run them back to back.
 
 **A plan that trails rests only its stop.** A plan that sells part of the position at its target and lets the rest run is scored that way, so only the stop should rest on the exchange: a take-profit set to the plan's target would sell the whole position there. When the target alert arrives, sell that part yourself and keep a stop on the rest:
 
-- **OKX:** `/trade exit <ticker> qty <quantity> sl <price>` amends the resting exit in place, sized to what stays.
+- **OKX:** the resting exit holds the coins behind it, so a sale comes after it shrinks. First `/trade exit <ticker> qty <quantity> sl <price>` amends it in place to the part you keep, then sell the take-profit part.
 - **Binance:** an exit cannot be amended and the coins behind it are locked, so run `/trade cancel <ticker>`, sell the part, then `/trade exit <ticker> sl <price>` on the rest. Nothing protects the position between the steps, so run them back to back.
-- **A hand-traded venue (VN shares, VN gold):** sell the part in the broker's app.
+- **A hand-traded venue (VN shares, VN gold):** sell the part in the app of the place you trade with.
 
 ### What each venue can do
 

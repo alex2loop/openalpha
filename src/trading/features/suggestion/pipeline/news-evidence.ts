@@ -18,19 +18,6 @@ const MARKET_HEADLINES_UNAVAILABLE =
 const COVERAGE_UNAVAILABLE =
   'ANALYST COVERAGE: unavailable - the coverage feed failed this run; never read it as no coverage.'
 
-interface MarketNewsSectionInput {
-  readonly items: readonly NewsItem[]
-  readonly subject: Ticker
-  readonly read: SourceResult<unknown> | undefined
-}
-
-interface ConsensusSectionInput {
-  readonly rows: readonly AnalystRecommendation[]
-  readonly locale: Locale
-  readonly display: PriceDisplay | undefined
-  readonly read: SourceResult<unknown> | undefined
-}
-
 export function newsSection(
   items: readonly NewsItem[],
   read: SourceResult<unknown> | undefined
@@ -43,6 +30,12 @@ export function newsSection(
     'HEADLINES (cite by url; do not assert anything they do not say):',
     ...items.map(evidenceRow),
   ].join('\n')
+}
+
+interface MarketNewsSectionInput {
+  readonly items: readonly NewsItem[]
+  readonly subject: Ticker
+  readonly read: SourceResult<unknown> | undefined
 }
 
 /** Held apart from the instrument's own headlines. Most names have no coverage on a given day, so
@@ -59,6 +52,13 @@ export function marketNewsSection(input: MarketNewsSectionInput): string {
     'MARKET HEADLINES (background only; never attribute these to this instrument):',
     ...items.map((item) => `- (background, not ${subject}) ${headlineText(item)}`),
   ].join('\n')
+}
+
+interface ConsensusSectionInput {
+  readonly rows: readonly AnalystRecommendation[]
+  readonly locale: Locale
+  readonly display: PriceDisplay | undefined
+  readonly read: SourceResult<unknown> | undefined
 }
 
 /** Analyst coverage is evidence to weigh, exactly like a headline — never a factor or a conviction
@@ -102,8 +102,6 @@ function meanTargetPrice(rows: readonly AnalystRecommendation[]): number | undef
   return Math.round(targets.reduce((sum, price) => sum + price, 0) / targets.length)
 }
 
-/** Ranked rather than sliced: a scope reads several feeds, merged in feed order, so taking the
- *  first rows hands every slot to whichever publisher files most often. */
 /** A story the instrument's own read already carried is not background: printed in both sections it
  *  would arrive once inviting citation and once forbidding it. Keyed by title, because an
  *  aggregator and the publisher it carries give one story two urls. */
@@ -116,6 +114,8 @@ export function withoutStories(
   return items.filter((item) => !titles.has(normalizeTitle(item.title)))
 }
 
+/** Ranked rather than sliced: a scope reads several feeds, merged in feed order, so taking the
+ *  first rows hands every slot to whichever publisher files most often. */
 export function headlines(
   result: SourceResult<readonly NewsItem[]> | undefined,
   now: number

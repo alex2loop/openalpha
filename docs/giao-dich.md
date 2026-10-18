@@ -1254,9 +1254,9 @@ Giữa hai dòng đó, không gì bảo vệ vị thế. Hãy chạy chúng li�
 
 **Kế hoạch chốt một phần chỉ để lệnh cắt lỗ trên sàn.** Kế hoạch bán một phần vị thế ở mục tiêu rồi để phần còn lại chạy được chấm điểm đúng như vậy, nên trên sàn chỉ nên để lệnh cắt lỗ: đặt chốt lời đúng mục tiêu của kế hoạch sẽ bán hết vị thế ở mức đó. Khi cảnh báo mục tiêu đến, hãy tự bán phần đó và giữ mức cắt lỗ cho phần còn lại:
 
-- **OKX:** `/trade exit <mã> qty <khối lượng> sl <giá>` sửa lệnh thoát đang chờ ngay tại chỗ, theo phần còn lại.
+- **OKX:** lệnh thoát đang chờ giữ số coin phía sau nó, nên phải thu nhỏ nó trước rồi mới bán. Chạy `/trade exit <mã> qty <khối lượng> sl <giá>` để sửa ngay tại chỗ về phần giữ lại, rồi bán phần chốt lời.
 - **Binance:** lệnh thoát không sửa được và số coin phía sau nó bị khóa, nên chạy `/trade cancel <mã>`, bán phần đó, rồi `/trade exit <mã> sl <giá>` cho phần còn lại. Giữa các bước không có gì bảo vệ vị thế, nên hãy chạy liền nhau.
-- **Sàn tự giao dịch (cổ phiếu VN, vàng VN):** bán phần đó trong ứng dụng của công ty chứng khoán.
+- **Sàn tự giao dịch (cổ phiếu VN, vàng VN):** bán phần đó trong ứng dụng của nơi bạn giao dịch.
 
 ### Mỗi sàn làm được gì
 

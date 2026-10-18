@@ -148,7 +148,8 @@ function isSettledFill(row: OkxRow): boolean {
  *  behind it. An undated row settles nothing, so it never ends the walk on its own. */
 function isBehindWindow(rows: readonly OkxRow[], since: number): boolean {
   const stamps = rows.flatMap((row) => {
-    const at = optionalNumber(row.fillTime, 0) || optionalNumber(row.cTime, 0)
+    const filledAt = optionalNumber(row.fillTime, 0)
+    const at = filledAt > 0 ? filledAt : optionalNumber(row.cTime, 0)
 
     return at > 0 ? [at] : []
   })

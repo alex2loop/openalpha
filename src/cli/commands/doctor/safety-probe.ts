@@ -7,6 +7,11 @@ import { type MessageKey, t } from '@/i18n'
 import type { DoctorProbe } from './types'
 import { checkLabel } from './labels'
 
+interface SafetySwitch {
+  readonly on: boolean
+  readonly key: MessageKey
+}
+
 /** Switches that let {brand} act without asking, or run what a plugin ships. `allow_code` only
  *  counts beside `allow_untrusted`: the loader reads it after that gate, so alone it does nothing. */
 export function probeSafety(
@@ -16,14 +21,17 @@ export function probeSafety(
 ): readonly DoctorProbe[] {
   const name = checkLabel(locale, 'safety')
   const { allowUntrusted, allowCode } = config.plugins
-  const findings: readonly MessageKey[] = [
-    ...(trading?.orders.allowUnattended === true ? ['cli.doctorSafetyUnattended' as const] : []),
-    ...(allowUntrusted ? ['cli.doctorSafetyUntrustedPlugins' as const] : []),
-    ...(allowUntrusted && allowCode ? ['cli.doctorSafetyPluginCode' as const] : []),
+  const switches: readonly SafetySwitch[] = [
+    { on: trading?.orders.allowUnattended === true, key: 'cli.doctorSafetyUnattended' },
+    { on: allowUntrusted, key: 'cli.doctorSafetyUntrustedPlugins' },
+    { on: allowUntrusted && allowCode, key: 'cli.doctorSafetyPluginCode' },
   ]
+  const findings = switches.filter((entry) => entry.on)
   const values = { brand: BRAND.display }
 
   return findings.length === 0
     ? [{ name, status: 'ok', detail: t(locale, 'cli.doctorSafetyClean', values) }]
-    : findings.map((key) => ({ name, status: 'warn' as const, detail: t(locale, key, values) }))
+    : findings.map(
+        (entry): DoctorProbe => ({ name, status: 'warn', detail: t(locale, entry.key, values) })
+      )
 }

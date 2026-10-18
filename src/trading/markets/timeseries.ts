@@ -4,6 +4,8 @@
 
 import type { Candle } from '@/trading/kernel/market/market-data'
 
+const WIN_RATE_CONFIDENCE_Z = 1.96
+
 interface AlignedCloses {
   readonly a: readonly number[]
   readonly b: readonly number[]
@@ -66,8 +68,6 @@ export function nSessionReturn(closes: readonly number[], sessions: number): num
 
   return start === undefined || end === undefined || start <= 0 ? undefined : end / start - 1
 }
-
-const WIN_RATE_CONFIDENCE_Z = 1.96
 
 interface RateInterval {
   readonly low: number

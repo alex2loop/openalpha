@@ -21,14 +21,6 @@ import {
 } from '@/trading/markets/equity-vn/accounts/lines'
 import { periodIndexOf, QUARTERS_PER_YEAR } from '@/trading/markets/equity-vn/accounts/trailing'
 
-type QuarterFigures = AccountsQuarter['figures']
-
-interface ComparisonInput {
-  readonly field: AccountsQuarterField
-  readonly now: number
-  readonly before: number
-}
-
 const FRACTION_FIELDS: ReadonlySet<AccountsQuarterField> = new Set([
   'grossMargin',
   'costToIncome',
@@ -39,6 +31,8 @@ const PROFIT_FIELDS: ReadonlySet<AccountsQuarterField> = new Set([
   'netProfitToParent',
   'preTaxProfit',
 ])
+
+type QuarterFigures = AccountsQuarter['figures']
 
 /** The newest quarters published by `asOf`, newest first, each against the same quarter a year
  *  earlier from the same published set. A year-earlier quarter that is not filed leaves its figures
@@ -94,6 +88,12 @@ function comparisonsOf(
   }
 
   return comparisons
+}
+
+interface ComparisonInput {
+  readonly field: AccountsQuarterField
+  readonly now: number
+  readonly before: number
 }
 
 function comparisonOf(input: ComparisonInput): AccountsQuarterComparison | undefined {

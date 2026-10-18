@@ -71,8 +71,9 @@ interface FactInput {
   readonly quote: Partial<QuotedIn>
 }
 
-/** One line per final fiscal year, oldest first, then the trend and the flags. A figure the filing
- *  could not support is left out of its line, never printed as zero. */
+/** One line per final fiscal year, oldest first, then the trailing year, the newest quarters newest
+ *  first, the trend and the flags. A figure the filing could not support is left out of its line,
+ *  never printed as zero. */
 export function renderAccountsLines(
   locale: Locale,
   history: AccountsHistory,

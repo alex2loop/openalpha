@@ -618,9 +618,8 @@ trước, hoặc gõ lại lệnh kèm `fx <giá>`.
   cho mỗi đồng tiền đã ghi như vậy để bạn sửa bằng `/update` nếu đã mua qua P2P.
 
 **`/record sync <sàn>`** ghi mọi lệnh khớp mà sàn báo còn sổ của bạn chưa có dòng, dùng khối lượng, giá và
-
-Một lệnh giới hạn chỉ khớp một phần trước khi bạn hủy giờ được đồng bộ cho phần đã khớp.
-phí của chính sàn.
+phí của chính sàn. Một lệnh giới hạn chỉ khớp một phần trước khi bạn hủy được đồng bộ cho phần đã
+khớp.
 
 - Binance liệt kê giao dịch theo từng coin, nên lần đồng bộ của nó đọc các coin có trong sổ cùng các coin
   bạn đang nắm, và nói rõ điều đó.

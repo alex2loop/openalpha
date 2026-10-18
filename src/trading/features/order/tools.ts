@@ -17,6 +17,8 @@ import { ORDER_SIDES } from '@/trading/kernel/venue/spot-adapter'
 import { formatScaledPrice } from '@/trading/render/money'
 
 const REASON_SEPARATOR = ', '
+// The model reads takeProfitTranchePct as a percent, so the whole position is this many.
+const WHOLE_POSITION_PCT = fractionToPct(1)
 const CLAIM_REFUSED = 'order refused: the staged order was already used or has expired'
 const CAP_BREACH_REFUSED =
   'order refused: this buy takes a holding past its cap. Tell the operator; they can review it and place it with /trade, which shows the breach before they confirm. Breaches:'
@@ -31,7 +33,7 @@ export function createOrderPlaceTool(
       'Place one spot order on an operator exchange, with a take-profit and a stop-loss. ' +
       'A buy without a stop-loss is refused unless the operator turned `require_stop_loss` off. ' +
       'Every call asks the operator for approval first. ' +
-      "When the suggestion's takeProfitTranchePct is below 1 (it sells only part at its take-profit and trails the rest), set only stopLoss: a takeProfit here would sell the whole position at that price. The take-profit alert prompts the partial sale.",
+      `When the suggestion's takeProfitTranchePct is below ${WHOLE_POSITION_PCT} (it sells only part at its take-profit and trails the rest), set only stopLoss: a takeProfit here would sell the whole position at that price. The take-profit alert prompts the partial sale.`,
     inputSchema: orderPlaceInput(tickerSchema),
     capability: 'write',
     requiresApproval: () => true,
