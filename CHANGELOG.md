@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The format follows
 - Price answers now say what time the price was read.
 - `openalpha doctor` now warns when a switch that lets OpenAlpha act without asking is on.
 - Gold headlines now credit the real newspaper behind each Google News story, so a story several papers carry ranks higher.
+- A buy too small for its stop-loss to be placed on the exchange is now refused up front, instead of leaving the position unprotected.
 
 ## [1.0.5] - 2026-10-18
 

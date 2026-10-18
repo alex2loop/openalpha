@@ -5,6 +5,7 @@ import type { UnmirroredExposure } from '@/trading/features/order/store/order-in
 import type {
   CapRejection,
   ExitLevels,
+  InstrumentLimits,
   OrderSide,
   OrderType,
   PreparedOrder,
@@ -173,8 +174,27 @@ async function resolveExecutionTerms(
   const terms = { ...rounded, quotePrice, reference, ...(exit === undefined ? {} : { exit }) }
 
   assertTradableTerms(deps, terms, input.stagedQuote)
+  assertExitAboveMinimum(limits, rounded.quantity, exit)
 
   return { ...terms, symbol }
+}
+
+/** A buy whose stop leg could not be placed would fill and then sit unprotected, so it is refused
+ *  before anything is sent. Refused, never resized: the size is the operator's call. */
+function assertExitAboveMinimum(
+  limits: InstrumentLimits,
+  quantity: number,
+  exit: ExitLevels | undefined
+): void {
+  const { minimumNotional } = limits
+
+  if (exit?.stopLoss === undefined || minimumNotional === undefined) {
+    return
+  }
+
+  if (quantity * exit.stopLoss < minimumNotional) {
+    throw new OrderError('order.exit_below_minimum', 'stop leg below venue minimum')
+  }
 }
 
 interface TradableTerms {

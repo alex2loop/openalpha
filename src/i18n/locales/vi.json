@@ -741,6 +741,7 @@
     "order.unfilled": "Lệnh không khớp kịp và đã bị hủy.",
     "order.clock_skew": "Đồng hồ máy lệch quá xa so với sàn.",
     "order.below_minimum": "Khối lượng thấp hơn mức tối thiểu của sàn.",
+    "order.exit_below_minimum": "Tính theo giá cắt lỗ, vị thế này nhỏ hơn mức lệnh tối thiểu của sàn nên không đặt được lệnh bảo vệ. Hãy tăng khối lượng mua một chút.",
     "order.sell_unsettled": "Hôm nay chỉ bán được phần đã về tài khoản; phần còn lại chưa thanh toán xong. Bán được",
     "order.sell_guarded": "Một lệnh chốt lời/cắt lỗ đang chờ đã khóa một phần vị thế tại sàn. Hủy bằng /trade cancel, hoặc bán tối đa",
     "order.exit_unsupported": "Sàn này không giữ lệnh chốt lời/cắt lỗ, nên vị thế chỉ được cảnh báo theo dõi.",

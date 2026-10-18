@@ -110,7 +110,7 @@ failures. Every code in `OrderErrorCode` sits in one of two groups.
 (still live at the exchange), `order.exit_failed` (open position, no stop).
 
 **The book is untouched:** `order.auth`, `order.network`, `order.rate_limited`, `order.insufficient`,
-`order.rejected`, `order.clock_skew`, `order.below_minimum`, `order.exit_inverted`,
+`order.rejected`, `order.clock_skew`, `order.below_minimum`, `order.exit_below_minimum`, `order.exit_inverted`,
 `order.exit_oversized`, `order.book_moved`, `order.book_unpriced`, `order.sell_unsettled`, `order.sell_guarded`,
 `order.no_position`, `order.exit_conflict`, `order.approval_bypassed`, `order.buying_halted`,
 `order.unfilled`, `order.exit_not_amendable`, `order.venue_unavailable`, `order.venue_ambiguous`,

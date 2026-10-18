@@ -741,6 +741,7 @@
     "order.unfilled": "The order did not fill in time and was cancelled.",
     "order.clock_skew": "The local clock is too far from the exchange's.",
     "order.below_minimum": "The quantity is below the exchange minimum.",
+    "order.exit_below_minimum": "At the stop price this position would be worth less than the exchange's minimum order, so its protective stop couldn't be placed. Raise the quantity a little.",
     "order.sell_unsettled": "Only the settled part of this position can be sold today; the rest has not been delivered yet. Sellable now",
     "order.sell_guarded": "A resting take-profit/stop-loss has frozen part of this position at the exchange. Cancel it with /trade cancel, or sell at most",
     "order.exit_unsupported": "This venue rests no take-profit/stop-loss orders, so the position is guarded by alerts alone.",
