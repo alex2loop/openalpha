@@ -7,6 +7,19 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+The macOS install no longer freezes at its setup questions, and a missing key for a fallback model is
+a warning rather than a failed config check.
+> Cài trên macOS không còn treo ở bước hỏi thiết lập, và thiếu khóa của mô hình dự phòng chỉ còn là cảnh báo, không làm kiểm tra cấu hình thất bại.
+
+### Fixes
+
+- On macOS, `curl ... install.sh | sh` froze at the first setup question: no key reached it, Ctrl-C
+  included. The installer now reads your answers from the terminal itself.
+- `config validate` no longer fails when only a fallback model's key is unset: it warns that the model
+  is skipped while the rest of the chain answers. `start` and `status` word that key the same way.
+
 ## [1.0.8] - 2026-10-19
 
 OpenAlpha is safer to leave running and easier to drive: a daily backup, start at login, keys kept in a
@@ -331,6 +344,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[Unreleased]: https://github.com/alex2loop/openalpha/compare/v1.0.8...HEAD
 [1.0.8]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.8
 [1.0.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.7
 [1.0.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.6

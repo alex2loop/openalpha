@@ -65,7 +65,7 @@ export class OperatorConfigError extends ConfigError {
 
 /** What a key switches off, as a catalog key under `errors.keyEffect`: named in the operator's
  *  sentence, so the reader learns what waits for it and not only which variable is unset. */
-export type KeyEffect = 'model' | 'search'
+export type KeyEffect = 'model' | 'fallback' | 'search'
 
 interface MissingEnvLocation {
   readonly path: ConfigPath
@@ -75,6 +75,7 @@ interface MissingEnvLocation {
 
 export class MissingEnvError extends OperatorConfigError {
   readonly env: string
+  readonly effect?: KeyEffect
 
   constructor(env: string, owner: string, location: MissingEnvLocation) {
     const { path, effect } = location
@@ -91,6 +92,10 @@ export class MissingEnvError extends OperatorConfigError {
       { path }
     )
     this.env = env
+
+    if (effect !== undefined) {
+      this.effect = effect
+    }
   }
 }
 

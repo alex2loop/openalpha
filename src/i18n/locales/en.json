@@ -252,6 +252,7 @@
     "configPathMissing": "The config file you passed to --config isn't at {path}. Check the path and try again.",
     "configEnvMissing": "The environment variable {env} is not set, so {owner} cannot start. Set it with `{command}` in the terminal you run from, then try again.",
     "configEnvMissingEffect": "{env} is not set, so {effect}. Set it with `{command}` in the terminal you run from, then restart.",
+    "keyEffect.fallback": "only that model is skipped, and the other models in the chain still answer",
     "keyEffect.model": "the AI model cannot answer: chat, the written debate in /suggest, /research, /themes and the brief's written parts wait for it, while prices, scores and levels keep working",
     "keyEffect.search": "web search is off: the assistant and /research cannot look things up online",
     "configInvalid": "config.toml has things to fix:\n{problems}\nCorrect them, then run again.",

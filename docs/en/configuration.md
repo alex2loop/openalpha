@@ -897,7 +897,8 @@ an unknown key inside a claimed section is.
 `config validate` runs the same checks as boot: parse, resolve, then `[trading]`, `[channels.*]`
 and any section nobody owns. A config it accepts is a config that boots. The API's config validate and save use the
 same checks. A config value that names an unregistered market, venue or default region fails here
-too, not on first use.
+too, not on first use. An unset key for a model whose chain still has another model to answer is a
+warning, and the run does not fail on it.
 
 Every error is reported in your `[locale]` language and names the setting to fix. One run lists every
 problem in the file (up to 8, the rest as a count), so you fix them in one pass before running again.

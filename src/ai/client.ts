@@ -2,7 +2,7 @@ import type { CredentialSource } from '@/ai/auth/types'
 import type { ProviderEntry } from '@/ai/catalog'
 import type { Pricing } from '@/ai/cost/pricing'
 import type { ChainEntry } from '@/ai/types'
-import type { ResolvedConfig, ResolvedLlm, ResolvedModel } from '@/core/config/resolve'
+import type { KeyEffect, ResolvedConfig, ResolvedLlm, ResolvedModel } from '@/core/config/resolve'
 import type { EventBus } from '@/core/events'
 import type { ProviderChain } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
@@ -41,7 +41,7 @@ export function createClient(input: CreateClientInput): ProviderChain {
   const [first] = input.models
 
   if (keyed.length === 0 && first !== undefined && isUnkeyed(first)) {
-    return createUnkeyedChain(toMissingKeyError(first, input.configPath))
+    return createUnkeyedChain(toMissingKeyError(first, input.configPath, 'model'))
   }
 
   const pricing = input.pricing ?? createConfiguredPricing(keyed, input.logger)
@@ -62,25 +62,32 @@ export function createClient(input: CreateClientInput): ProviderChain {
 type UnkeyedModel = ResolvedModel & { readonly missingEnv: string }
 
 /** One error per unset key variable, for the configured chain and tier entries whose provider
- *  cannot answer without it: what a deferred resolve leaves for the caller to report. */
+ *  cannot answer without it: what a deferred resolve leaves for the caller to report. A key is a
+ *  fallback's while every chain missing it still has a keyed entry to answer. */
 export function missingKeyErrors(
   config: Pick<ResolvedConfig, 'models' | 'modelTiers'>
 ): readonly MissingEnvError[] {
-  const firstByEnv = new Map<string, MissingEnvError>()
-  const entries = [
-    ...config.models.map((model, index) => ({ model, path: [MODELS_SECTION, index] })),
-    ...Object.entries(config.modelTiers).flatMap(([tier, models]) =>
-      models.map((model, index) => ({ model, path: [TIERS_SECTION, tier, index] }))
-    ),
+  const byEnv = new Map<string, MissingEnvError>()
+  const chains = [
+    { models: config.models, path: [MODELS_SECTION] },
+    ...Object.entries(config.modelTiers).map(([tier, models]) => ({
+      models,
+      path: [TIERS_SECTION, tier],
+    })),
   ]
 
-  for (const { model, path } of entries) {
-    if (isUnkeyed(model) && !firstByEnv.has(model.missingEnv)) {
-      firstByEnv.set(model.missingEnv, toMissingKeyError(model, path))
+  for (const chain of chains) {
+    const answers = chain.models.some((model) => !isUnkeyed(model))
+    const effect: KeyEffect = answers ? 'fallback' : 'model'
+
+    for (const [index, model] of chain.models.entries()) {
+      if (isUnkeyed(model) && byEnv.get(model.missingEnv)?.effect !== 'model') {
+        byEnv.set(model.missingEnv, toMissingKeyError(model, [...chain.path, index], effect))
+      }
     }
   }
 
-  return [...firstByEnv.values()]
+  return [...byEnv.values()]
 }
 
 /** A key borrowed from another provider's defaults is reported unset as well; it only takes the
@@ -98,11 +105,12 @@ function isUnkeyed(model: ResolvedModel): model is UnkeyedModel {
 
 function toMissingKeyError(
   model: UnkeyedModel,
-  configPath: readonly (string | number)[]
+  configPath: readonly (string | number)[],
+  effect: KeyEffect
 ): MissingEnvError {
   return new MissingEnvError(model.missingEnv, `model ${model.provider}/${model.model}`, {
     path: [...configPath, 'api_key_env'],
-    effect: 'model',
+    effect,
   })
 }
 

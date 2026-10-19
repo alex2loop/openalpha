@@ -898,7 +898,8 @@ như một khóa lạ bên trong một mục có chủ.
 `config validate` chạy đúng các bước kiểm tra như lúc khởi động: phân tích, phân giải, rồi `[trading]`,
 `[channels.*]` và mọi mục không module nào nhận. Cấu hình nó chấp nhận thì khởi động được. Xác thực và lưu cấu hình qua
 API cũng dùng đúng các bước đó. Giá trị cấu hình nêu tên thị trường, sàn hay khu vực mặc định chưa đăng
-ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên.
+ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên. Khóa chưa đặt của một mô hình mà chuỗi của nó vẫn còn
+mô hình khác trả lời được chỉ là cảnh báo, không làm lệnh thất bại.
 
 Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. Một lần chạy liệt
 kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn sửa một lượt rồi mới

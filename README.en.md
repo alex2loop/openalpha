@@ -88,9 +88,17 @@ All you need is a Mac, a Linux machine or Windows 10/11 (ARM machines need Windo
 
 ### Try it in 3 commands
 
+Open a terminal (macOS: press ⌘ + Space and type `Terminal`; Windows: open PowerShell from the Start menu), paste each line and press Enter:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # install, then open a new terminal
-export OPENROUTER_API_KEY="..."   # AI key, from openrouter.ai
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux: install, then open a new terminal
+openalpha key set OPENROUTER_API_KEY   # paste your AI key (from openrouter.ai/keys); it is remembered. Skip it if setup already saved the key
+openalpha chat                    # then type /refresh, and once it finishes, /suggest FPT
+```
+
+```powershell
+powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows: install, then open a new PowerShell window
+openalpha key set OPENROUTER_API_KEY   # paste your AI key (from openrouter.ai/keys); it is remembered. Skip it if setup already saved the key
 openalpha chat                    # then type /refresh, and once it finishes, /suggest FPT
 ```
 
@@ -101,7 +109,7 @@ That is enough to see a suggestion. For one sized to your own money, also do ste
 **1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
 ```
 
 ```powershell
@@ -124,7 +132,7 @@ openalpha doctor --online              # sends the model one short test message
 /setup       # pick your risk level and the markets you trade
 ```
 
-**4. Record the money you have, for the markets you trade.** Every suggestion is sized from this book, so don't skip it.
+**4. Record the money you have, for the markets you trade.** Every suggestion is sized from this book, so don't skip it. Lines starting with `/` go into `openalpha chat` (or Telegram, Zalo), not straight into the terminal.
 
 <details open>
 <summary><b>Vietnamese stocks</b></summary>
@@ -135,7 +143,7 @@ openalpha doctor --online              # sends the model one short test message
 /record buy FPT 100 62000                                 # place the order yourself, record it once it fills (venue, VND and today filled in)
 ```
 
-Prices are in whole VND: a board price of `62.00` is recorded as `62000`. Leave the fee out and the book prices it. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
+Prices are in whole VND: a board price of `62.00` is recorded as `62000`, and a price ten times or more away from the latest one is asked back before it is saved. Leave the fee out and the book prices it. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
 
 ```toml
 [trading.venues.ssi]
@@ -201,7 +209,7 @@ Smaller amounts are recorded in taels: 1 chỉ is `0.1`, and the price stays per
 
 </details>
 
-To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells the whole position, or give a quantity). To withdraw: `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day. Recorded something wrong? `/transactions` shows each row's id, then `/update <id> ...` fixes it or `/delete <id>` shows the row and then `/delete <id> confirm` removes it. Type `/record` on its own to see every kind of row (dividends, splits, transfers...). Config is read at start, so restart afterwards: `openalpha restart --background`.
+To sell: `/record sell FPT all 65000` (`all` sells the whole position, or give a quantity). To withdraw: `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day. Recorded something wrong? `/transactions` shows each row's id, then `/update <id> ...` fixes it or `/delete <id>` shows the row and then `/delete <id> confirm` removes it. Type `/record` on its own to see every kind of row (dividends, splits, transfers...). Config is read at start, so restart afterwards: `openalpha restart --background`.
 
 **5. Turn on the morning brief.** `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
 
@@ -220,6 +228,20 @@ To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells 
 
   ```powershell
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
+  ```
+
+- **Change the model, add a fallback AI provider:** run `openalpha onboard` and pick "AI model", or edit `[[models]]` in `config.toml`. The first entry is the main model; the next ones are used only when the one before fails or stalls. `openalpha provider list` gives the provider names, `openalpha provider models` the models and their prices. Details: [models and providers](docs/en/agents.md#models-and-providers) · [provider catalog](docs/en/configuration.md#provider-catalog).
+
+  ```toml
+  [[models]]                                   # main model
+  provider = "openrouter"
+  model = "deepseek/deepseek-v4.1-flash"
+  api_key_env = "OPENROUTER_API_KEY"
+
+  [[models]]                                   # fallback when OpenRouter fails
+  provider = "anthropic"
+  model = "claude-sonnet-4-6"
+  api_key_env = "ANTHROPIC_API_KEY"
   ```
 
 - **Every config option:** [config.sample.toml](config.sample.toml) · [docs/en/configuration.md](docs/en/configuration.md). No AI key? Run a local model through Ollama or vLLM.
@@ -282,7 +304,7 @@ A bare ticker is usually enough (`/price FPT`). Qualify it only where two market
 
 Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo or Zalo Personal.
 
-From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md)). Paying for ChatGPT already? Sign in with `openalpha auth login`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
+From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md#provider-catalog)). Paying for ChatGPT already? Sign in with `openalpha auth login`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
 
 ### How it works
 
@@ -319,6 +341,7 @@ OpenAlpha does not promise you will never lose. It keeps each loss small, planne
 - **The AI never sees your money.** The analyst gets weights only, never a balance, a price paid or your total assets.
 - **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation.
 - **Everything stays on your machine.** The book and the config live locally; keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
+- **Your book is backed up every day.** While it runs in the background, OpenAlpha copies the SQLite book into `~/.openalpha/backups/daily/` and keeps the newest three ([backup and restore](docs/en/storage.md#sqlite-backup-and-restore)).
 - **AI spend has a ceiling.** `onboard` sets a daily cap; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill.
 
 Every other safeguard: [SECURITY.en.md](SECURITY.en.md).

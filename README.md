@@ -88,9 +88,17 @@ Bạn chỉ cần một máy macOS, Linux hoặc Windows 10/11 (máy chip ARM c�
 
 ### Thử ngay trong 3 lệnh
 
+Mở Terminal (macOS: nhấn ⌘ + Space, gõ `Terminal`; Windows: mở PowerShell từ menu Start), chép từng dòng vào rồi nhấn Enter:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài đặt, xong thì mở terminal mới
-export OPENROUTER_API_KEY="..."   # khóa AI, lấy ở openrouter.ai
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux: cài đặt, xong thì mở terminal mới
+openalpha key set OPENROUTER_API_KEY   # dán khóa AI (lấy ở openrouter.ai/keys), máy nhớ luôn; lúc cài đã lưu khóa thì bỏ qua dòng này
+openalpha chat                    # rồi gõ /refresh, nạp xong thì gõ /suggest FPT
+```
+
+```powershell
+powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows: cài đặt, xong thì mở cửa sổ PowerShell mới
+openalpha key set OPENROUTER_API_KEY   # dán khóa AI (lấy ở openrouter.ai/keys), máy nhớ luôn; lúc cài đã lưu khóa thì bỏ qua dòng này
 openalpha chat                    # rồi gõ /refresh, nạp xong thì gõ /suggest FPT
 ```
 
@@ -101,7 +109,7 @@ Như vậy là đủ để xem một đề xuất. Muốn đề xuất có khố
 **1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, tiền tệ của sổ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Tiền tệ chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được. Muốn đổi phần còn lại thì chạy `openalpha onboard`.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
 ```
 
 ```powershell
@@ -124,7 +132,7 @@ openalpha doctor --online              # gửi một tin ngắn để thử mô 
 /setup       # chọn mức rủi ro và thị trường bạn chơi
 ```
 
-**4. Ghi số tiền bạn có, theo thị trường bạn chơi.** Khối lượng của mọi gợi ý đều tính từ sổ này, nên đừng bỏ qua.
+**4. Ghi số tiền bạn có, theo thị trường bạn chơi.** Khối lượng của mọi gợi ý đều tính từ sổ này, nên đừng bỏ qua. Các dòng bắt đầu bằng `/` gõ trong `openalpha chat` (hoặc Telegram, Zalo), không gõ thẳng ở terminal.
 
 <details open>
 <summary><b>Cổ phiếu Việt Nam</b></summary>
@@ -135,7 +143,7 @@ openalpha doctor --online              # gửi một tin ngắn để thử mô 
 /record buy FPT 100 62000                                 # tự đặt lệnh, khớp rồi thì ghi lại (tự điền sàn, VND và hôm nay)
 ```
 
-Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`. Phí bỏ trống thì sổ tự tính. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:
+Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`; giá gõ lệch từ 10 lần trở lên so với giá đang giao dịch thì sổ hỏi lại trước khi lưu. Phí bỏ trống thì sổ tự tính. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:
 
 ```toml
 [trading.venues.ssi]
@@ -201,7 +209,7 @@ Mua lẻ thì ghi theo lượng: 1 chỉ là `0.1`, giá vẫn ghi theo lượng
 
 </details>
 
-Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là bán hết, hoặc ghi số lượng). Rút tiền: `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn ghi theo dạng năm-tháng-ngày. Ghi nhầm thì gõ `/transactions` để xem mã giao dịch, rồi `/update <mã> ...` để sửa hoặc `/delete <mã>` để xem dòng đó, rồi `/delete <mã> confirm` để xóa. Gõ `/record` không kèm gì để xem mọi loại dòng ghi được (cổ tức, chia tách, chuyển tiền...). Cấu hình được đọc lúc khởi động, nên sửa xong hãy chạy lại: `openalpha restart --background`.
+Bán thì `/record sell FPT all 65000` (`all` là bán hết, hoặc ghi số lượng). Rút tiền: `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn ghi theo dạng năm-tháng-ngày. Ghi nhầm thì gõ `/transactions` để xem mã giao dịch, rồi `/update <mã> ...` để sửa hoặc `/delete <mã>` để xem dòng đó, rồi `/delete <mã> confirm` để xóa. Gõ `/record` không kèm gì để xem mọi loại dòng ghi được (cổ tức, chia tách, chuyển tiền...). Cấu hình được đọc lúc khởi động, nên sửa xong hãy chạy lại: `openalpha restart --background`.
 
 **5. Bật bản tin sáng.** `openalpha start --background` để chương trình chạy nền (dữ liệu cũng tự nạp từ đó); `openalpha autostart enable` để nó tự chạy mỗi lần đăng nhập. Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó. `openalpha status` cho biết nó còn chạy không, `openalpha stop` để dừng. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
 
@@ -220,6 +228,20 @@ Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là b
 
   ```powershell
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
+  ```
+
+- **Đổi mô hình, thêm nhà cung cấp AI dự phòng:** chạy `openalpha onboard` rồi chọn "Mô hình AI", hoặc sửa `[[models]]` trong `config.toml`. Mục đầu là mô hình chính, các mục sau chỉ được dùng khi nhà cung cấp trước lỗi hay treo. `openalpha provider list` cho biết tên nhà cung cấp, `openalpha provider models` cho biết mô hình và giá. Chi tiết: [mô hình và nhà cung cấp](docs/tro-ly.md#mô-hình-và-nhà-cung-cấp) · [danh mục nhà cung cấp](docs/cau-hinh.md#danh-mục-nhà-cung-cấp).
+
+  ```toml
+  [[models]]                                   # mô hình chính
+  provider = "openrouter"
+  model = "deepseek/deepseek-v4.1-flash"
+  api_key_env = "OPENROUTER_API_KEY"
+
+  [[models]]                                   # dự phòng khi OpenRouter lỗi
+  provider = "anthropic"
+  model = "claude-sonnet-4-6"
+  api_key_env = "ANTHROPIC_API_KEY"
   ```
 
 - **Mọi tùy chọn cấu hình:** [config.sample.toml](config.sample.toml) · [docs/cau-hinh.md](docs/cau-hinh.md). Không muốn dùng khóa AI thì chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
@@ -282,7 +304,7 @@ Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã 
 
 Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo hoặc Zalo cá nhân.
 
-Từ OpenAI, Anthropic, Gemini, DeepSeek tới cổng trung gian như OpenRouter hay mô hình chạy ngay trên máy qua Ollama: gõ `openalpha provider list` để xem đủ danh sách và tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md)). Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login`, khỏi cần khóa. Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
+Từ OpenAI, Anthropic, Gemini, DeepSeek tới cổng trung gian như OpenRouter hay mô hình chạy ngay trên máy qua Ollama: gõ `openalpha provider list` để xem đủ danh sách và tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md#danh-mục-nhà-cung-cấp)). Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login`, khỏi cần khóa. Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
 
 ### Cách nó hoạt động
 
@@ -319,6 +341,7 @@ OpenAlpha không hứa bạn không lỗ. Nó giúp mỗi khoản lỗ nhỏ, c�
 - **AI không thấy tiền của bạn.** Nhà phân tích chỉ biết tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
 - **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận.
 - **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa lấy từ biến môi trường hoặc từ `~/.openalpha/env` (chỉ bạn đọc được). OpenAlpha chỉ ghi vào tệp đó khi bạn nhập khóa qua `onboard` hoặc `openalpha key set`, và không bao giờ in khóa ra.
+- **Sổ được sao lưu mỗi ngày.** Khi chạy nền, OpenAlpha chép sổ SQLite vào `~/.openalpha/backups/daily/` và giữ ba bản mới nhất ([sao lưu và khôi phục](docs/luu-tru.md#sao-lưu-và-khôi-phục-sqlite)).
 - **Chi tiêu AI có trần.** `onboard` đặt trần theo ngày; thêm trần theo tháng hoặc theo lượt trong `[budget]`, để một vòng lặp lỗi không đốt tiền.
 
 Mọi lớp bảo vệ còn lại: [SECURITY.md](SECURITY.md).

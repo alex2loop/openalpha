@@ -252,6 +252,7 @@
     "configPathMissing": "Không thấy file config bạn truyền qua --config ở {path}. Kiểm tra lại đường dẫn rồi chạy lại nhé.",
     "configEnvMissing": "Chưa đặt biến môi trường {env} nên {owner} chưa chạy được. Đặt bằng `{command}` trong terminal bạn đang dùng rồi chạy lại nhé.",
     "configEnvMissingEffect": "Chưa đặt biến môi trường {env} nên {effect}. Đặt bằng `{command}` trong terminal bạn đang dùng rồi khởi động lại nhé.",
+    "keyEffect.fallback": "riêng mô hình này bị bỏ qua, các mô hình còn lại trong chuỗi vẫn trả lời bình thường",
     "keyEffect.model": "mô hình AI chưa trả lời được: trò chuyện, phần tranh luận trong /suggest, /research, /themes và phần viết của bản tin sáng phải chờ, còn giá, điểm số và các mức giá vẫn dùng bình thường",
     "keyEffect.search": "tìm kiếm web đang tắt: trợ lý và /research chưa tra cứu được trên mạng",
     "configInvalid": "config.toml có chỗ cần sửa:\n{problems}\nSửa xong rồi chạy lại nhé.",
