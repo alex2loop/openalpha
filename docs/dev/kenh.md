@@ -280,6 +280,17 @@ theo thứ tự registry có chat dự phòng, chỉ đọc từ cấu hình. `r
 chat dự phòng của một kênh (`fallback_chat_id`, nếu không thì một id được phép duy nhất) và `start.ts` cũng
 dùng nó. `AlertService.create` và `scheduleOf` của bản tin quy một lần, nên không bề mặt nào tự làm.
 
+## Theo dõi kênh mất kết nối lâu
+
+Kênh chỉ báo trạng thái qua `setStatus`, không có sự kiện trên bus, nên `app/channel-watch.ts` chạy một vòng
+lặp năm phút trên `delivery.snapshots()` (góc nhìn `/health` hiển thị) khi daemon đang chạy. Kênh có
+`toHealthCode` khác `ok` suốt `CHANNEL_DOWN_GRACE_MS` (15 phút, đo bằng `performance.now()`) được báo một lần
+trên kênh khác đang chạy đầu tiên trong `DeliveryHub.recipients()` (chat mặc định riêng của mỗi kênh đã chạy,
+từ `resolveFallbackChat`), và một `watchUp` khi nó trở lại; trạng thái là một map giới hạn theo số kênh đã cấu
+hình. Kênh khởi động hỏng không có trong snapshots: danh sách `degraded` lúc boot đã nêu tên nó. Tập kênh mất kết
+nối đổi thì đi tới `DaemonStartOptions.onHealth`, và `runDaemon` ghi lại tệp sẵn sàng gồm danh sách lúc boot cộng
+các mục kênh.
+
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động

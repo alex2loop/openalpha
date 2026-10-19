@@ -37,7 +37,7 @@ interface ProcessIdentity {
   readonly startedAt?: number
 }
 
-type PidFileClaim =
+export type PidFileClaim =
   | { readonly kind: 'fresh' }
   | { readonly kind: 'reclaimed'; readonly startedAt?: number }
 

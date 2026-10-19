@@ -3,6 +3,7 @@ import type { StartChannelsDeps, StartChannelsResult } from '@/channels/api'
 import type { App, DaemonStartOptions, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
+import { startChannelWatch } from '@/app/channel-watch'
 import { retentionCutoffAt, runWorkspaceTmpRetention, startRetention } from '@/app/retention'
 import { ApiTokenError } from '@/app/server/http/auth'
 import { toAgentRegistry } from '@/app/services'
@@ -81,6 +82,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
         const warnings = await startDaemonSubsystems({
           app,
           delivery,
+          onHealth: options?.onHealth,
           startupSignal,
           startup,
           logger,
@@ -110,6 +112,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
 interface StartDaemonSubsystemsOptions {
   readonly app: App
   readonly delivery: DeliveryHub
+  readonly onHealth: DaemonStartOptions['onHealth']
   readonly startupSignal: AbortSignal
   readonly startup: AbortController
   readonly logger: Logger
@@ -123,6 +126,7 @@ async function startDaemonSubsystems(
 ): Promise<readonly DegradedItem[]> {
   const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
   const { disposers } = teardown
+  const { onHealth } = options
 
   const channels = await startChannels(channelDeps(app, startupSignal))
   const tradingTasks = app.resolve('tradingServices').daemonTasks
@@ -140,6 +144,16 @@ async function startDaemonSubsystems(
   )
 
   attachDelivery({ delivery, channels, disposers })
+  // Before `channels.stop()` in the teardown (disposers run in push order, and the channels were
+  // pushed first), so the loop cannot announce a channel that is only being closed.
+  disposers.unshift(
+    startChannelWatch({
+      delivery,
+      locale: app.config.locale.language,
+      logger,
+      ...(onHealth === undefined ? {} : { onHealth }),
+    })
+  )
 
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has
   // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.
@@ -256,6 +270,7 @@ function attachDelivery(options: {
       notifier: channels.notifier,
       snapshots: channels.snapshots,
       isWorking: channels.isWorking,
+      recipients: channels.recipients,
       ...(channels.defaultRecipient === undefined ? {} : { recipient: channels.defaultRecipient }),
     })
   )

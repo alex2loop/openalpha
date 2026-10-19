@@ -277,6 +277,17 @@ enabled definition in registry order with a fallback chat, from config alone. `r
 one rule for a channel's fallback chat (`fallback_chat_id`, else a lone allowed id) and `start.ts` uses it
 too. `AlertService.create` and the brief's `scheduleOf` resolve once, so no surface does.
 
+## Watching for a channel that stays down
+
+Channels report status only through `setStatus`, with no bus event, so `app/channel-watch.ts` runs one
+five-minute loop over `delivery.snapshots()` (the view `/health` shows) while the daemon runs. A channel
+whose `toHealthCode` is not `ok` for `CHANNEL_DOWN_GRACE_MS` (15 minutes, by `performance.now()`) gets one
+announcement on the first other up channel in `DeliveryHub.recipients()` (each started channel's own default
+chat, from `resolveFallbackChat`), and one `watchUp` when it returns; state is one map bounded by the
+configured channels. A channel whose start failed is not in the snapshots: the boot `degraded` list already
+names it. A changed down set goes to `DaemonStartOptions.onHealth`, and `runDaemon` rewrites the ready file
+with the boot list plus the channel entries.
+
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and

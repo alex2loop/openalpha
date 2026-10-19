@@ -70,6 +70,9 @@ SQLite book comes first.
 - `DaemonTask.start(signal, options?)` takes a `DaemonStartOptions` object (`onReady`, `onHealth`,
   `previousRun`) in place of the positional `onReady` handler.
 
+- A chat channel that stays down for 15 minutes is reported on another channel (with the reason), once
+  when it drops and once when it returns, and `status` lists it as `down`.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

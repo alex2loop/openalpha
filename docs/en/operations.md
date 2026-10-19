@@ -105,6 +105,13 @@ skipped and the chat gets one "OpenAlpha wasn't running before the open" line; t
 schedule. A brief whose build starts before the open but finishes after it is still sent, with a line first
 saying prices have moved since it was written.
 
+A chat channel that stays down is reported too. Every five minutes the daemon looks at each channel, and one
+that has been down (or connected-but-failing) for 15 minutes is announced once, on another channel that is up,
+with the reason: a refused bot token, an expired Zalo login, the account open somewhere else, or a connection
+that keeps dropping. When it is back, you get one "is back" line. `status` lists the channel as `down: <reason>`
+while it is. With no other channel to tell, it is logged only (`channel.watch_no_route`). A restart forgets it,
+so a channel still down afterwards is announced once more.
+
 ---
 
 ## Scheduled jobs

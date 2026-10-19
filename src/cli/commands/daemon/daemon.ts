@@ -1,5 +1,6 @@
+import type { PidFileClaim } from '@/cli/daemon-guard'
 import type { CliApp } from '@/cli/types'
-import type { DegradedItem } from '@/core/container'
+import type { DaemonStartOptions, DegradedEntry, DegradedItem } from '@/core/container'
 import { type Command, createCommand } from '@/cli/command'
 import { pollUntil, runBackground } from '@/cli/commands/daemon/background'
 import {
@@ -127,12 +128,7 @@ async function runDaemon(app: CliApp): Promise<number> {
     await clearReadyFile(app)
     printStartBanner(app, keyless)
 
-    await app.resolve('daemonTask').start(app.signal, {
-      onReady: (degraded) => announceReady(app, [...keyless, ...degraded]),
-      ...(claim.kind === 'reclaimed'
-        ? { previousRun: claim.startedAt === undefined ? {} : { startedAt: claim.startedAt } }
-        : {}),
-    })
+    await app.resolve('daemonTask').start(app.signal, toStartOptions(app, { keyless, claim }))
   } catch (err: unknown) {
     logger.error('daemon.failed', { err: formatErrForLog(err) })
     app.err(style.error(terminalErrorMessage(err, locale)))
@@ -156,6 +152,32 @@ async function runDaemon(app: CliApp): Promise<number> {
   }
 
   return exitCode
+}
+
+/** What the daemon task is told about this start. The boot list is kept so a channel that drops
+ *  later is written beside it in the ready file `status` reads. */
+function toStartOptions(
+  app: CliApp,
+  start: { readonly keyless: readonly DegradedItem[]; readonly claim: PidFileClaim }
+): DaemonStartOptions {
+  const { keyless, claim } = start
+  let bootDegraded: readonly DegradedItem[] = keyless
+
+  return {
+    onReady: (degraded) => {
+      bootDegraded = [...keyless, ...degraded]
+      announceReady(app, bootDegraded)
+    },
+    onHealth: (channelItems) => {
+      recordReady(
+        app,
+        [...bootDegraded, ...channelItems].map((item) => renderDegraded(app, item))
+      )
+    },
+    ...(claim.kind === 'reclaimed'
+      ? { previousRun: claim.startedAt === undefined ? {} : { startedAt: claim.startedAt } }
+      : {}),
+  }
 }
 
 function printStartBanner(app: CliApp, keyless: readonly DegradedItem[]): void {
@@ -183,6 +205,10 @@ function announceReady(app: CliApp, degraded: readonly DegradedItem[]): void {
     app.err(warn(entry.message))
   }
 
+  recordReady(app, entries)
+}
+
+function recordReady(app: CliApp, entries: readonly DegradedEntry[]): void {
   writeReadyFile(app, entries).catch((err: unknown) => {
     app.resolve('logger').warn('daemon.ready_file_failed', { err: formatErrForLog(err) })
     app.err(warn(t(app.config.locale.language, 'cli.daemonReadyFileFailed')))

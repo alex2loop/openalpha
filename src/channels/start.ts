@@ -82,6 +82,9 @@ export interface StartChannelsResult {
   notifier?: AcknowledgedRouter
   /** Where an unaddressed proactive notice goes. Undefined if no channel declared a fallback chat. */
   defaultRecipient?: OutboundTarget
+  /** Every started channel's own default chat, in start order: where one channel can reach the
+   *  operator about another. */
+  recipients(): ReadonlyMap<ChannelId, OutboundTarget>
 }
 
 interface Started {
@@ -249,6 +252,16 @@ function budgetCaps(config: ResolvedConfig): BudgetCaps {
   }
 }
 
+function toRecipients(started: readonly Started[]): ReadonlyMap<ChannelId, OutboundTarget> {
+  return new Map(
+    started.flatMap((entry): [ChannelId, OutboundTarget][] =>
+      entry.fallbackChatId === undefined
+        ? []
+        : [[entry.adapter.id, { channel: entry.adapter.id, chatId: entry.fallbackChatId }]]
+    )
+  )
+}
+
 function buildResult(
   started: readonly Started[],
   skipped: readonly SkippedChannel[]
@@ -263,6 +276,7 @@ function buildResult(
       await Promise.allSettled(started.map((entry) => entry.runtime.dispose()))
     },
     snapshots: () => started.map((entry) => entry.runtime.snapshot()),
+    recipients: () => toRecipients(started),
     isWorking: () => started.some((entry) => entry.runtime.isWorking()),
     skipped,
   }

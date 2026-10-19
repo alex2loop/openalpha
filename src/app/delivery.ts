@@ -42,6 +42,8 @@ export interface DeliveryHub {
   defaultRecipient(): DeliveryTarget | undefined
   /** False in any process that runs no channels, where `snapshots()` proves nothing about liveness. */
   attached(): boolean
+  /** Every started channel's own default chat; empty while no daemon channels are attached. */
+  recipients(): ReadonlyMap<ChannelId, DeliveryTarget>
   /** Live channel lifecycle snapshots; empty while no daemon channels are attached. */
   snapshots(): readonly ChannelRuntimeSnapshot[]
   /** True while a channel runs a long slash command: work a restart would cut off. False with no
@@ -61,6 +63,7 @@ export interface DeliveryHub {
     readonly snapshots: () => readonly ChannelRuntimeSnapshot[]
     readonly isWorking: () => boolean
     readonly recipient?: DeliveryTarget
+    readonly recipients: () => ReadonlyMap<ChannelId, DeliveryTarget>
   }): () => Promise<void>
 }
 
@@ -82,6 +85,13 @@ function createNoticeSurfaces(): NoticeSurfaces {
   }
 }
 
+/** What the attached channels answer for: the live reads the hub forwards. */
+interface AttachedReaders {
+  snapshots(): readonly ChannelRuntimeSnapshot[]
+  isWorking(): boolean
+  recipients(): ReadonlyMap<ChannelId, DeliveryTarget>
+}
+
 /**
  * The seam between "who wants to deliver" and "who can". The scheduler binds its `DeliverySink` when
  * the container is assembled, but no adapter exists until the daemon starts the channels — so the
@@ -93,8 +103,7 @@ function createNoticeSurfaces(): NoticeSurfaces {
 export function createDeliveryHub(): DeliveryHub {
   let notifier: AcknowledgedRouter | null = null
   let recipient: DeliveryTarget | undefined
-  let readSnapshots: (() => readonly ChannelRuntimeSnapshot[]) | null = null
-  let readWorking: (() => boolean) | null = null
+  let readers: AttachedReaders | null = null
 
   // Read once per call: a detach racing the await would otherwise leave the second read null and
   // turn a completed send into a thrown "no channel attached".
@@ -144,23 +153,22 @@ export function createDeliveryHub(): DeliveryHub {
 
       return recipient ?? (channel === undefined ? undefined : { channel, chatId: SURFACE_CHAT_ID })
     },
-    attached: () => readSnapshots !== null,
-    snapshots: () => readSnapshots?.() ?? [],
-    isWorking: () => readWorking?.() ?? false,
+    attached: () => readers !== null,
+    recipients: () => readers?.recipients() ?? new Map(),
+    snapshots: () => readers?.snapshots() ?? [],
+    isWorking: () => readers?.isWorking() ?? false,
 
     attach(options): () => Promise<void> {
       notifier = options.notifier
       recipient = options.recipient
-      readSnapshots = options.snapshots
-      readWorking = options.isWorking
+      readers = options
 
       return () => {
         // Both: a detached channel must not leave a stale address behind. The queues belong to the
         // channel runtimes, which dispose themselves — this hub owns no queue to drain.
         notifier = null
         recipient = undefined
-        readSnapshots = null
-        readWorking = null
+        readers = null
 
         return Promise.resolve()
       }
