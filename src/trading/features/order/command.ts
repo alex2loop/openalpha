@@ -15,6 +15,7 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import type { TradeCost } from '@/trading/markets/cost'
 import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
 import type { VenueRegistry } from '@/trading/venues/types'
+import { BRAND } from '@/core/brand'
 import { translateToolError } from '@/i18n'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import {
@@ -144,7 +145,7 @@ function createKeylessTradeCommand(venues: Pick<VenueRegistry, 'list'>): SlashCo
     run: async (ctx): Promise<SlashResult> => {
       const needsKey = {
         key: NEEDS_KEY,
-        values: { venues: renderKeylessVenues(ctx.locale, venues) },
+        values: { venues: renderKeylessVenues(ctx.locale, venues), brand: BRAND.name },
       }
 
       return {

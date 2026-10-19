@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 // Function-size gate: a top-level function body over MAX_FUNCTION_LINES code lines is a violation
 // unless it is listed in known-long-functions.json at its measured size. The list only shrinks: a
-// listed function may not grow, and one that drops to the limit must leave the list.
+// listed function may not grow, one that shrinks must lower its number, and one that drops to the
+// limit must leave the list.
 //
 // Biome's `noExcessiveLinesPerFunction` stops counting correctly after a blank line followed by a
 // comment, so long functions pass it; this counter relies on the formatter instead. Biome puts a
@@ -9,14 +10,14 @@
 // cannot assume but a line scanner can.
 //
 // A body counts the lines that are not blank, not `//` lines and not inside `/* ... */`. Nested
-// functions count toward the outer one, as Biome counts them. Methods and arrow functions assigned
-// without a one-line head are not top-level declarations and are not measured.
+// functions count toward the outer one, as Biome counts them. Methods, and arrow functions whose
+// head does not end its line with `=> {`, are not measured.
 //
 // `--update` rewrites the list from the current measurement: use it once to seed, and after
 // splitting a function, so the diff shows in review.
 //
-// Exit 0 = clean. Exit 1 if a function is over the limit and unlisted, listed and grown, or listed
-// and no longer over the limit.
+// Exit 0 = clean. Exit 1 if a function is over the limit and unlisted, listed at a size it no longer
+// has, or listed and no longer over the limit.
 import { Glob } from 'bun'
 import { resolve } from 'node:path'
 
@@ -30,7 +31,8 @@ const FUNCTION_HEAD_RE = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\*?
 const ARROW_HEAD_RE = /^(?:export\s+)?const\s+(\w+)\b.*=>\s*\{$/
 const SIGNATURE_OPEN_ENDINGS = ['(', ',', '<']
 const RETURN_TYPE_OBJECT_ENDINGS = [': {', '<{']
-const SIGNATURE_CLOSE_STARTS = [')', '}']
+const SIGNATURE_CLOSE_STARTS = [')', '}', '>']
+const INDENTED_RE = /^\s/
 
 interface KnownList {
   readonly note: string
@@ -120,15 +122,22 @@ function toHead(line: string): string | undefined {
   return FUNCTION_HEAD_RE.exec(line)?.[1] ?? ARROW_HEAD_RE.exec(line)?.[1]
 }
 
-/** The index of the first body line, or undefined for an overload or a one-line function. */
+/** The index of the first body line, or undefined for an overload or a one-line function. A head
+ *  ending in `{` still continues when that brace opens a parameter or a return-type object. */
 function findBodyStart(lines: readonly string[], head: number): number | undefined {
   const line = (lines[head] ?? '').trimEnd()
 
-  if (!line.endsWith('{') || RETURN_TYPE_OBJECT_ENDINGS.some((ending) => line.endsWith(ending))) {
+  if (!line.endsWith('{')) {
     return endsSignatureOpen(line) ? findSignatureClose(lines, head) : undefined
   }
 
-  return isHuggedParameter(line) ? findSignatureClose(lines, head) : head + 1
+  const continues = isHuggedParameter(line) || isReturnTypeObject(line)
+
+  return continues ? findSignatureClose(lines, head) : head + 1
+}
+
+function isReturnTypeObject(line: string): boolean {
+  return RETURN_TYPE_OBJECT_ENDINGS.some((ending) => line.endsWith(ending))
 }
 
 function endsSignatureOpen(line: string): boolean {
@@ -140,14 +149,21 @@ function isHuggedParameter(line: string): boolean {
 }
 
 /** A signature that spans lines opens its body on the first column-0 closer that ends with `{`,
- *  unless that closer only ends a return-type object literal. */
+ *  unless that closer only opens a return-type object. Any other column-0 line ends the search: an
+ *  overload has no body, and scanning on would pair its head with the next function's. */
 function findSignatureClose(lines: readonly string[], head: number): number | undefined {
   for (let j = head + 1; j < lines.length; j++) {
     const line = (lines[j] ?? '').trimEnd()
-    const closes = SIGNATURE_CLOSE_STARTS.some((start) => line.startsWith(start))
-    const isReturnObject = RETURN_TYPE_OBJECT_ENDINGS.some((ending) => line.endsWith(ending))
 
-    if (closes && line.endsWith('{') && !isReturnObject) {
+    if (line === '' || INDENTED_RE.test(line)) {
+      continue
+    }
+
+    if (!SIGNATURE_CLOSE_STARTS.some((start) => line.startsWith(start))) {
+      return undefined
+    }
+
+    if (line.endsWith('{') && !isReturnTypeObject(line)) {
       return j + 1
     }
   }
@@ -214,6 +230,8 @@ function changed(measured: Measured, known: KnownList): readonly Violation[] {
       violations.push({ key, message: 'gone or within the limit: drop it from known-long-functions.json' })
     } else if (lines > listed) {
       violations.push({ key, message: `it grew from ${listed} to ${lines}: split it` })
+    } else if (lines < listed) {
+      violations.push({ key, message: `it shrank from ${listed} to ${lines}: lower its number` })
     }
   }
 

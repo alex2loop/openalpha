@@ -23,7 +23,7 @@ export async function runWithPriceConfirm(
   surface: PriceConfirmSurface,
   write: (typed: SlashContext, typedPrice: TypedPrice) => Promise<SlashResult>
 ): Promise<SlashResult> {
-  const confirmed = ctx.args.at(-1) === CONFIRM_TOKEN
+  const confirmed = ctx.args.at(-1)?.toLowerCase() === CONFIRM_TOKEN
 
   try {
     return confirmed

@@ -296,7 +296,7 @@ const WHEN_RUNNING_HINT_KEYS: Readonly<Record<WhenRunning, MessageKey>> = Object
 
 export async function isDaemonStopped(app: CliApp, whenRunning: WhenRunning): Promise<boolean> {
   const locale = app.config.locale.language
-  const stopFirst = hint(t(locale, WHEN_RUNNING_HINT_KEYS[whenRunning], { brand: BRAND.name }))
+  const params = { brand: BRAND.name }
   const state = await inspectDaemon(app)
 
   if (state === 'live') {
@@ -307,14 +307,15 @@ export async function isDaemonStopped(app: CliApp, whenRunning: WhenRunning): Pr
         : t(locale, 'cli.daemonAlreadyRunning', { pid })
 
     app.err(fail(running))
-    app.err(stopFirst)
+    app.err(hint(t(locale, WHEN_RUNNING_HINT_KEYS[whenRunning], params)))
 
     return false
   }
 
   if (state === 'unreadable' || state === 'malformed') {
+    // Whether a daemon runs is unknown here, so only the stop that clears the doubt is offered.
     app.err(fail(t(locale, UNCLEARABLE_PID_FILE_KEYS[state])))
-    app.err(stopFirst)
+    app.err(hint(t(locale, 'cli.daemonStopFirst', params)))
 
     return false
   }

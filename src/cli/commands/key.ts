@@ -106,7 +106,7 @@ async function printSaveHints(app: CliApp, name: string): Promise<void> {
   }
 
   // A hint, never a refusal: a key saved before the config names it is legitimate.
-  if (known !== undefined && !known.includes(name)) {
+  if (known !== undefined && known.length > 0 && !known.includes(name)) {
     app.out(hint(renderUnreadName(locale, name, known)))
   }
 

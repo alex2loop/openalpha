@@ -84,7 +84,7 @@ type RecordRequest =
   | { readonly invalid: LedgerFieldIssue | undefined }
 
 async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashResult> {
-  if (ctx.args.length === 1 && ctx.args[0] === CONFIRM_ACTION) {
+  if (ctx.args.length === 1 && ctx.args[0]?.toLowerCase() === CONFIRM_ACTION) {
     return { kind: 'text', text: await confirmStaged(deps, ctx) }
   }
 

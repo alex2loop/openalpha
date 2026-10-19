@@ -8,6 +8,7 @@ const ANSI_ESCAPE_RE = /[\x1b\x9b][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9
 const ELLIPSIS = '...'
 const MAX_SUGGESTION_DISTANCE = 3
 const SUGGESTION_DISTANCE_DIVISOR = 3
+const NAME_WORD_SEPARATOR_RE = /[-_]/
 const MIN_RUN = 2
 const MIDDLE_ELISION = '\n\n[...]\n\n'
 const MIDDLE_ELISION_BYTES = Buffer.byteLength(MIDDLE_ELISION, 'utf8')
@@ -247,9 +248,14 @@ export function reduceOutput(s: string): string {
 }
 
 /** The name within a third of `attempted`'s length in edits, rounded up and at most three; the first
- *  of equals wins. The attempt itself is never suggested: a key one schema arm refuses can be valid
- *  in another, and "did you mean" what was typed helps no one. */
+ *  of equals wins. Failing that, the one name holding every word typed, in order. The attempt itself
+ *  is never suggested: a key one schema arm refuses can be valid in another, and "did you mean" what
+ *  was typed helps no one. */
 export function closestName(attempted: string, names: readonly string[]): string | undefined {
+  return nearestByEdits(attempted, names) ?? soleNameHoldingWords(attempted, names)
+}
+
+function nearestByEdits(attempted: string, names: readonly string[]): string | undefined {
   const maxDistance = Math.min(
     MAX_SUGGESTION_DISTANCE,
     Math.ceil(attempted.length / SUGGESTION_DISTANCE_DIVISOR)
@@ -267,6 +273,33 @@ export function closestName(attempted: string, names: readonly string[]): string
   }
 
   return best
+}
+
+/** A short form drops whole words, which edit distance prices as a rewrite: `reserve` for
+ *  `reserve-pct-nav`, `OPENROUTER_KEY` for `OPENROUTER_API_KEY`. Several holders suggest none. */
+function soleNameHoldingWords(attempted: string, names: readonly string[]): string | undefined {
+  const words = toNameWords(attempted)
+  const holders = names.filter(
+    (name) => name !== attempted && hasWordsInOrder(toNameWords(name), words)
+  )
+
+  return holders.length === 1 ? holders[0] : undefined
+}
+
+function toNameWords(name: string): readonly string[] {
+  return name.toLowerCase().split(NAME_WORD_SEPARATOR_RE)
+}
+
+function hasWordsInOrder(candidate: readonly string[], words: readonly string[]): boolean {
+  let matched = 0
+
+  for (const word of candidate) {
+    if (word === words[matched]) {
+      matched += 1
+    }
+  }
+
+  return matched === words.length
 }
 
 // Iterative Levenshtein over two rows; bounded by the shorter argument length, so a

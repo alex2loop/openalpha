@@ -63,6 +63,7 @@
     "src/core/events.ts#onceWithTimeout": 44,
     "src/core/logging/agent-router.ts#createAgentLogRouter": 42,
     "src/core/logging/logger.ts#createLoggerResource": 41,
+    "src/core/logging/logger.ts#loggerResource": 45,
     "src/core/logging/queue.ts#createPendingLogQueue": 43,
     "src/core/session-queue.ts#createSessionQueue": 57,
     "src/core/ssrf/dns.ts#defaultDnsLookup": 43,

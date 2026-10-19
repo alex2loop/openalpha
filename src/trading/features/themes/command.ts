@@ -163,11 +163,13 @@ export function createThemesCommand(deps: ThemesCommandDeps): SlashCommand {
     ],
     policy: RUN_POLICY,
     policyFor: (args) => {
-      if (args.length === 0 || args[0] === RUN_ACTION) {
+      const action = parseMember(args[0], ACTIONS)
+
+      if (args.length === 0 || action === RUN_ACTION) {
         return RUN_POLICY
       }
 
-      return args[0] === SHOW_ACTION ? SHOW_POLICY : CHANGE_POLICY
+      return action === SHOW_ACTION ? SHOW_POLICY : CHANGE_POLICY
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE }),

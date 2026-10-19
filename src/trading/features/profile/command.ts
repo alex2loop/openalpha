@@ -70,7 +70,8 @@ export function createProfileCommand(deps: ProfileCommandDeps): SlashCommand {
 }
 
 async function run(deps: ProfileCommandDeps, ctx: SlashContext): Promise<SlashResult> {
-  const [action, ...rest] = ctx.args
+  // Every word the grammar reads is lower case, values included, so case never decides a parse.
+  const [action, ...rest] = ctx.args.map((arg) => arg.toLowerCase())
 
   if (action === undefined || action === SHOW_ACTION) {
     return rest.length === 0 ? runShow(deps, ctx) : usageFor(deps.profiles)
@@ -210,10 +211,10 @@ function completeProfile(profiles: Profiles, args: readonly string[]): readonly 
 
 /** One line a phone fits: what this field takes and an example of it, never the whole usage text. */
 function buildSetRefusal(profiles: Profiles, field: string): SlashResult {
-  return { kind: 'message', messages: [toRefusalMessage(profiles, field)] }
+  return { kind: 'message', messages: [buildRefusalMessage(profiles, field)] }
 }
 
-function toRefusalMessage(profiles: Profiles, field: string): CommandMessage {
+function buildRefusalMessage(profiles: Profiles, field: string): CommandMessage {
   const shape = toFieldShape(field)
 
   if (shape === 'unknown') {
@@ -239,11 +240,11 @@ function toRefusalMessage(profiles: Profiles, field: string): CommandMessage {
 
   return {
     key: 'slash.tradingProfileSetSegment',
-    values: { field, example: toSegmentExample(profiles, field) },
+    values: { field, example: buildSegmentExample(profiles, field) },
   }
 }
 
-function toSegmentExample(profiles: Profiles, field: string): string {
+function buildSegmentExample(profiles: Profiles, field: string): string {
   const [segment = EXAMPLE_SEGMENT] = profiles.heldSegments()
   const isPolicy = parseMember(field, SEGMENT_POLICY_FIELDS) !== null
   const value = isPolicy ? EXAMPLE_SHARE : INVESTMENT_HORIZONS.at(-1)

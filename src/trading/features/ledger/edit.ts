@@ -87,7 +87,8 @@ export function createDeleteCommand(deps: EditCommandDeps): SlashCommand {
     description: { kind: 'localized', key: 'slash.tradingDeleteHelp' },
     messageKeys: [DELETE_USAGE],
     policy: DELETE_READ_POLICY,
-    policyFor: (args) => (args[1] === CONFIRM_ACTION ? DELETE_CONFIRM_POLICY : DELETE_READ_POLICY),
+    policyFor: (args) =>
+      args[1]?.toLowerCase() === CONFIRM_ACTION ? DELETE_CONFIRM_POLICY : DELETE_READ_POLICY,
     usage: () => ({ key: DELETE_USAGE }),
     run: async (ctx): Promise<SlashResult> => runDelete(deps, ctx),
   }
@@ -153,7 +154,8 @@ function renderUpdated(
 }
 
 async function runDelete(deps: EditCommandDeps, ctx: SlashContext): Promise<SlashResult> {
-  const [ref, action] = ctx.args
+  const [ref, rawAction] = ctx.args
+  const action = rawAction?.toLowerCase()
 
   if (
     ref === undefined ||

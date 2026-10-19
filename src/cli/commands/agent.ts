@@ -181,7 +181,7 @@ async function addAgent(args: ParsedArgs, app: CliApp): Promise<number> {
       assertValidAgentToml(content, id)
     },
   })
-  app.out(success(t(locale, 'cli.agentCreated', { path })))
+  app.out(success(t(locale, 'cli.agentCreated', { path, brand: BRAND.name })))
 
   return 0
 }
@@ -264,7 +264,7 @@ async function removeAgent(args: ParsedArgs, app: CliApp): Promise<number> {
   // the id is never born paused.
   await app.resolve('agentPauseStore').resume([id])
   await rm(dir, { recursive: true, force: true })
-  app.out(success(t(locale, 'cli.agentRemoved', { path: dir })))
+  app.out(success(t(locale, 'cli.agentRemoved', { path: dir, brand: BRAND.name })))
 
   return 0
 }

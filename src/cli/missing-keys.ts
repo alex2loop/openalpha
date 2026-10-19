@@ -1,5 +1,6 @@
 import type { DegradedItem } from '@/core/container'
 import { missingKeyErrors } from '@/ai/api'
+import { BRAND } from '@/core/brand'
 import {
   type MissingEnvError,
   type ResolvedConfig,
@@ -67,7 +68,11 @@ function toKeylessVenues(
         subject: venue,
         message: {
           key: 'cli.keylessVenue',
-          params: { venue: { key: `trading.venue.${venue}` }, variables: variables.join(', ') },
+          params: {
+            venue: { key: `trading.venue.${venue}` },
+            variables: variables.join(', '),
+            brand: BRAND.name,
+          },
         },
       },
     ]
@@ -83,6 +88,7 @@ export function keyEnvNames(config: ResolvedConfig): readonly string[] {
     ...models.map((model) => model.apiKeyEnv),
     config.webSearch.apiKeyEnv,
     config.webSearch.fallbackApiKeyEnv,
+    config.api.tokenEnv,
     ...config.mcp.envNames,
     ...Object.values(config.channels).map(channelTokenEnv),
     ...Object.values(trading.venues).flatMap((venue) => Object.values(venue?.credentialEnv ?? {})),

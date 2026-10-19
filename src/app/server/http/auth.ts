@@ -3,6 +3,7 @@ import { chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { ResolvedConfig } from '@/core/config/resolve'
+import { BRAND } from '@/core/brand'
 import { OperatorConfigError } from '@/core/config/resolve'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 
@@ -177,7 +178,10 @@ export async function ensureApiToken(
 
     throw new ApiTokenError(
       `[api].token_env = "${tokenEnv}" is set but that variable is empty or shorter than ${MIN_TOKEN_LEN} chars`,
-      { key: 'errors.configApiTokenShort', params: { env: tokenEnv, minimum: MIN_TOKEN_LEN } }
+      {
+        key: 'errors.configApiTokenShort',
+        params: { env: tokenEnv, minimum: MIN_TOKEN_LEN, brand: BRAND.name },
+      }
     )
   }
 

@@ -373,7 +373,7 @@ function probeChannel(options: {
 
 function doctorTokenDetail(locale: Locale, tokenEnv: string | undefined): string {
   if (tokenEnv === undefined) {
-    return t(locale, 'cli.doctorTokenNotResolved')
+    return t(locale, 'cli.doctorTokenNotResolved', { brand: BRAND.name })
   }
 
   return t(locale, 'cli.doctorTokenEnvEmpty', { env: tokenEnv, command: setEnvCommand(tokenEnv) })

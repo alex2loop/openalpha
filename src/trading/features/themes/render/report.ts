@@ -320,6 +320,7 @@ function renderFailure(
     return t(locale, 'trading.themes.keyMissing', {
       env: failure.env,
       command: setEnvCommand(failure.env),
+      brand: BRAND.name,
     })
   }
 

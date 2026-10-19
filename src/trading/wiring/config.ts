@@ -287,7 +287,7 @@ function assertKnownCredentials(
   credentials: Readonly<Record<string, string>> | undefined,
   known: Readonly<Record<string, string>>
 ): void {
-  const field = Object.keys(credentials ?? {}).find((name) => !(name in known))
+  const field = Object.keys(credentials ?? {}).find((name) => !Object.hasOwn(known, name))
 
   if (field === undefined) {
     return
