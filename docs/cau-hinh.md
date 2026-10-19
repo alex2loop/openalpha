@@ -331,6 +331,7 @@ vào cấu hình bạn xem.
 |---|---|---|---|
 | `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, lượt chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, và bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
+| `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
 
 `days` còn điều khiển hai quy tắc về tệp:
 

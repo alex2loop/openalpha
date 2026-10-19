@@ -7,6 +7,17 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+OpenAlpha is easier to leave running and to drive from the terminal and Zalo: a daily backup of the
+SQLite book comes first.
+> OpenAlpha dễ để chạy lâu dài và dễ dùng hơn từ dòng lệnh và Zalo: bắt đầu bằng bản sao lưu SQLite mỗi ngày.
+
+### Storage
+
+- The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three
+  (`[retention] daily_backups`, `0` turns it off). PostgreSQL is skipped; use `pg_dump`.
+
 ## [1.0.7] - 2026-10-19
 
 Telegram replies keep their context, a quiet chat rechecks prices, and web search can use DeepSeek.

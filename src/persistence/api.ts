@@ -25,7 +25,12 @@ export type {
   SessionSummary,
   StoredSessionMessage,
 } from '@/persistence/types'
-export { BACKUPS_SUBDIR, backupSqlite, backupTarget, pruneBackups } from '@/persistence/backup'
+export {
+  BACKUPS_SUBDIR,
+  backupAndPrune,
+  backupSqlite,
+  newestBackupAt,
+} from '@/persistence/backup'
 export {
   type OpenedPersistence,
   openPersistence,

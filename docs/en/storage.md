@@ -249,7 +249,12 @@ openalpha db restore /safe/place/runtime.sqlite --yes
 `--path` points. It holds every session, memory and ledger row, so it is never readable by the group
 or everyone, not even while it is being written: the copy is made in a private `0700` staging folder
 next to the target and moved into place when it is complete. A crash can leave a `.staging-` folder
-behind; the automatic backups folder clears it on the next backup, anywhere else delete it by hand. Automatic backup destinations keep the seven newest files. `--path` refuses a file that
+behind; the automatic backups folder clears it on the next backup, anywhere else delete it by hand. Automatic backup destinations keep the seven newest files.
+
+The daemon also takes one backup a day by itself, into `backups/daily/`, and keeps the newest three
+(`[retention] daily_backups`, `0` turns it off). The first lands when the daemon starts, and a later
+one follows whenever the newest is about a day old. They are ordinary backups, so any of them can go
+to `db restore`. PostgreSQL is skipped: use `pg_dump`. `--path` refuses a file that
 already exists unless you pass `--force`.
 
 **Restore** needs the daemon stopped. It first checks that the source opens as a SQLite database and

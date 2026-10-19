@@ -175,6 +175,7 @@ export const McpSchema = z.strictObject({
 export const RetentionSchema = z.strictObject({
   days: z.number().int().positive().optional(),
   inbox_days: z.number().int().positive().optional(),
+  daily_backups: z.number().int().nonnegative().optional(),
 })
 
 export const UpdateSchema = z.strictObject({

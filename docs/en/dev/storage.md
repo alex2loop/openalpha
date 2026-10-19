@@ -48,7 +48,10 @@ each fill part of.
   `foreign_keys = ON`. Backup uses `VACUUM INTO` (`persistence/backup.ts`): written into a
   `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, `chmod 0600`, then renamed into place,
   because `VACUUM INTO` honours the umask and the copy must never be readable by others while it is
-  written. `pruneBackups` clears orphaned staging folders. `KEEP_BACKUPS` is 7.
+  written. `backupAndPrune` writes a copy then clears orphaned staging folders and drops the oldest past `keep`
+  (`KEEP_BACKUPS`, 7, unless the caller passes a count). The retention sweep calls it for `backups/daily/`
+  when `newestBackupAt` is missing, in the future or at least a day less one sweep interval old, with
+  `[retention] daily_backups` as the count; SQLite only, failures log `retention.backup_failed`.
 - **PostgreSQL** (`persistence/engines/postgres.ts`). `ensureSchema` runs `CREATE SCHEMA IF NOT
   EXISTS` first: `search_path` names a schema but never creates it, and a missing entry is skipped
   silently, which would land every migration in `public`.

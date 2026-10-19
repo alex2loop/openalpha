@@ -13,11 +13,9 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { pluralKey, t } from '@/i18n'
 import {
   BACKUPS_SUBDIR,
-  backupSqlite,
-  backupTarget,
+  backupAndPrune,
   migrate,
   migrationStatus,
-  pruneBackups,
   resolveMigrationRollback,
   rollbackMigration,
 } from '@/persistence/api'
@@ -198,22 +196,14 @@ function printMigrationRollbackBackup(app: CliApp, backup: MigrationRollbackBack
 
 async function takeMigrationRollbackBackup(app: CliApp): Promise<MigrationRollbackBackup> {
   const dir = join(app.config.paths.dataDir, BACKUPS_SUBDIR, PRE_ROLLBACK_SUBDIR)
-  const target = backupTarget(dir)
 
   try {
-    await backupSqlite(app.resolve('storage'), target)
+    const path = await backupAndPrune({ db: app.resolve('storage'), dir })
+
+    return { kind: 'backed_up', path }
   } catch (err: unknown) {
-    return { kind: 'failed', path: target, err }
+    return { kind: 'failed', path: dir, err }
   }
-
-  await pruneBackups(dir).catch((err: unknown) => {
-    app.resolve('logger').warn('migration.rollback_backup_prune_failed', {
-      path: target,
-      err: formatErrForLog(err),
-    })
-  })
-
-  return { kind: 'backed_up', path: target }
 }
 
 export const dbMigrateGroup: Group = createGroup({

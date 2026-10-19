@@ -330,6 +330,7 @@ you see.
 |---|---|---|---|
 | `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, and brief snapshots past the newest per language. |
 | `inbox_days` | int | `7` | Positive. How long to keep completed and failed inbox entries, payloads included. |
+| `daily_backups` | int | `3` | `0` or more. How many daily SQLite snapshots to keep in `backups/daily/`; `0` turns them off. PostgreSQL is skipped (use `pg_dump`). |
 
 `days` also drives two file rules:
 

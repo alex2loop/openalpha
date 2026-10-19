@@ -1,3 +1,5 @@
+import { join } from 'node:path'
+
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { WorkspaceCleanupResult } from '@/engine/api'
@@ -5,9 +7,10 @@ import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
 import { pruneExpiredWorkspaceTmp } from '@/engine/api'
-import { runRetention } from '@/persistence/api'
+import { BACKUPS_SUBDIR, backupAndPrune, newestBackupAt, runRetention } from '@/persistence/api'
 
 const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
+const DAILY_BACKUPS_SUBDIR = 'daily'
 
 /** Sweeps every retention scope now and then every few hours; the returned stop waits out a sweep
  *  in flight. */
@@ -79,6 +82,40 @@ async function runRetentionSweep(
       failures: logResult.failures,
     })
   }
+
+  await backupDaily(app, logger)
+}
+
+// The margin keeps a sweep every RETENTION_INTERVAL_MS from sliding the copy to one every
+// MS_PER_DAY + RETENTION_INTERVAL_MS: copies land 18 to 24 hours apart.
+async function backupDaily(app: App, logger: Logger): Promise<void> {
+  const { storage, retention, paths } = app.config
+
+  if (storage.engine !== 'sqlite' || retention.dailyBackups === 0) {
+    return
+  }
+
+  const dir = join(paths.dataDir, BACKUPS_SUBDIR, DAILY_BACKUPS_SUBDIR)
+
+  try {
+    if (!isBackupDue(await newestBackupAt(dir), Date.now())) {
+      return
+    }
+
+    const path = await backupAndPrune({
+      db: app.resolve('storage'),
+      dir,
+      keep: retention.dailyBackups,
+    })
+
+    logger.info('retention.backup_taken', { path })
+  } catch (err: unknown) {
+    logger.warn('retention.backup_failed', { err: formatErrForLog(err) })
+  }
+}
+
+function isBackupDue(newestAt: number | null, now: number): boolean {
+  return newestAt === null || newestAt > now || now - newestAt >= MS_PER_DAY - RETENTION_INTERVAL_MS
 }
 
 export function retentionCutoffAt(app: App): number {

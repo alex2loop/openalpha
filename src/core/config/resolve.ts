@@ -87,6 +87,7 @@ const DEFAULT_INBOX_MAX_ATTEMPTS = 3
 const DEFAULT_UPDATE_CHECK = true
 const DEFAULT_UPDATE_AUTO = false
 const DEFAULT_INBOX_RETENTION_DAYS = 7
+const DEFAULT_DAILY_BACKUPS = 3
 
 export type ModelSource = 'config' | 'client'
 
@@ -130,6 +131,7 @@ interface ResolvedCommands {
 interface ResolvedRetention {
   readonly days: number
   readonly inboxDays: number
+  readonly dailyBackups: number
 }
 
 interface ResolvedInbox {
@@ -200,6 +202,7 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
     retention: {
       days: raw.retention?.days ?? DEFAULT_RETENTION_DAYS,
       inboxDays: raw.retention?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
+      dailyBackups: raw.retention?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
     },
     inbox: { maxAttempts: DEFAULT_INBOX_MAX_ATTEMPTS },
     update: {

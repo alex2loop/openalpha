@@ -47,8 +47,11 @@ mỗi bên điền một phần.
   `synchronous = NORMAL`, `temp_store = MEMORY`, `cache_size` 4000 KiB, `mmap_size` 8 MiB,
   `foreign_keys = ON`. Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`): ghi vào một thư mục
   tạm `mkdtemp` (`.staging-*`, `0700`) cạnh đích, `chmod 0600`, rồi rename vào chỗ, vì `VACUUM INTO` theo umask
-  chứ không theo đối số quyền và bản sao không được để người khác đọc được lúc đang ghi. `pruneBackups`
-  xóa các thư mục tạm mồ côi. `KEEP_BACKUPS` là 7.
+  chứ không theo đối số quyền và bản sao không được để người khác đọc được lúc đang ghi. `backupAndPrune`
+  ghi một bản, xóa các thư mục tạm mồ côi và bỏ các bản cũ nhất quá `keep` (`KEEP_BACKUPS` là 7 nếu nơi gọi
+  không truyền số). Lượt quét lưu giữ gọi nó cho `backups/daily/` khi `newestBackupAt` không có, nằm
+  ở tương lai hoặc đã cũ ít nhất một ngày trừ một chu kỳ quét, với số bản là `[retention] daily_backups`;
+  chỉ SQLite, lỗi log `retention.backup_failed`.
 - **PostgreSQL** (`persistence/engines/postgres.ts`). `ensureSchema` chạy `CREATE SCHEMA IF NOT EXISTS`
   trước tiên: `search_path` nêu tên schema nhưng không bao giờ tạo nó, và mục thiếu bị bỏ qua lặng lẽ,
   khiến mọi migration rơi vào `public`.

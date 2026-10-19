@@ -201,6 +201,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # [retention]
 # days = 90                       # prune old sessions/runs and removed-agent log dirs
 # inbox_days = 7                  # prune delivered/dead inbox rows
+# daily_backups = 3               # one SQLite snapshot a day in backups/daily/, this many kept; 0 turns it off
 # The cost ledger (llm_attempts) is kept 400 days whatever days is set to.
 
 
