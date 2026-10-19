@@ -46,7 +46,8 @@ export type TradingNoticePayload =
         readonly benchmark?: { readonly ticker: Ticker; readonly movePct: number }
       }
     }
-  | { readonly kind: 'brief'; readonly snapshot: BriefSnapshot }
+  /** `sentAfterOpen`: the build outlasted the open, so the brief carries a late-send line first. */
+  | { readonly kind: 'brief'; readonly snapshot: BriefSnapshot; readonly sentAfterOpen?: true }
   | { readonly kind: 'intraday'; readonly report: IntradayReport }
   /** Levels the system set for a held name nothing was watching, or a held plan's stop the trail
    *  raised. Not a call, so neither carries a verdict: the levels are the whole message. Rendered by
@@ -59,6 +60,9 @@ export type TradingNoticePayload =
   | { readonly kind: 'series-restated'; readonly tickers: readonly string[] }
   // Terminal, and named by what stopped: the operator re-enables it through that subject's tool.
   | { readonly kind: 'delivery-disabled'; readonly subject: NoticeKind }
+  // The daemon was down through today's pre-open window, so today's was skipped; the next is still
+  // on schedule.
+  | { readonly kind: 'delivery-missed'; readonly subject: NoticeKind }
   // One scheduled delivery given up: the subscription stays on and the next one is still due.
   | { readonly kind: 'delivery-skipped'; readonly subject: NoticeKind }
   // One scheduled delivery given up because a key variable is unset: retrying cannot help, since a

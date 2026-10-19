@@ -54,11 +54,15 @@ function render(notice: TradingNotice, timezone: string): string {
   }
 
   if (payload.kind === 'brief') {
-    return renderBriefText(
+    const body = renderBriefText(
       locale,
       payload.snapshot,
       resolveRenderContext(timezone, UNATTENDED_SURFACE)
     )
+
+    return payload.sentAfterOpen === true
+      ? `${t(locale, 'trading.brief.sentAfterOpen')}\n\n${body}`
+      : body
   }
 
   if (payload.kind === 'intraday') {
@@ -85,11 +89,26 @@ function render(notice: TradingNotice, timezone: string): string {
     return renderDeliverySkipped(locale, payload.subject)
   }
 
+  if (payload.kind === 'delivery-missed') {
+    return renderDeliveryMissed(locale, payload.subject)
+  }
+
   if (payload.kind === 'key-missing') {
     return renderKeyMissing(locale, payload)
   }
 
-  return renderDeliveryDisabled(locale, payload.subject)
+  // Exhaustive: a new kind must be rendered here, not fall through to "delivery is now off".
+  if (payload.kind === 'delivery-disabled') {
+    return renderDeliveryDisabled(locale, payload.subject)
+  }
+
+  const unhandled: never = payload
+
+  return unhandled
+}
+
+function renderDeliveryMissed(locale: Locale, subject: NoticeKind): string {
+  return t(locale, 'trading.deliveryMissed', { subject: t(locale, `trading.notice.${subject}`) })
 }
 
 function renderDeliveryDisabled(locale: Locale, subject: NoticeKind): string {

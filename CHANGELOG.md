@@ -58,6 +58,18 @@ SQLite book comes first.
   stored, never over the network, and only when exactly one market matches. Every confirmation now prints
   the market beside the ticker.
 
+### Operations
+
+- `status` says when the daemon stopped unexpectedly, and the next start tells your chat once. A morning brief
+  skipped because the daemon was down before the open now says so. A brief whose build crosses the open still
+  goes out, with a line first saying prices have moved. A button tapped after its prompt was answered or
+  timed out replies that it is already answered or expired.
+
+### For integrators
+
+- `DaemonTask.start(signal, options?)` takes a `DaemonStartOptions` object (`onReady`, `onHealth`,
+  `previousRun`) in place of the positional `onReady` handler.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

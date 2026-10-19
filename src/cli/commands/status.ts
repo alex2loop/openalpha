@@ -3,13 +3,15 @@ import type { DegradedEntry } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import type { SessionSummary } from '@/persistence/api'
 import { type Command, createCommand } from '@/cli/command'
-import { liveDaemon, type RunningDaemon, readDaemonDegraded } from '@/cli/daemon-guard'
+import { liveDaemon, type RunningDaemon, readStalePid } from '@/cli/daemon-guard'
+import { readDaemonDegraded } from '@/cli/daemon-ready'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { hint, style, success, warn } from '@/cli/ui/colors'
 import { formatSessionRow } from '@/cli/ui/format'
 import { BRAND } from '@/core/brand'
 import { formatSpend } from '@/core/utils/cost'
 import { pluralKey, t } from '@/i18n'
+import { formatInstant } from '@/trading/api'
 
 const RECENT_SESSIONS_LIMIT = 5
 
@@ -20,7 +22,7 @@ export const statusCommand: Command = createCommand({
     app.out(style.heading(t(locale, 'cli.statusTitle', { brand: BRAND.display })))
     const daemon = await liveDaemon(app)
 
-    printDaemon(app, daemon, locale)
+    printDaemon(app, daemon, daemon === null ? await readStalePid(app) : null)
     app.out('')
 
     const degraded = daemon === null ? [] : await readDaemonDegraded(app, daemon.pid)
@@ -39,9 +41,15 @@ export const statusCommand: Command = createCommand({
   },
 })
 
-function printDaemon(app: CliApp, daemon: RunningDaemon | null, locale: Locale): void {
+function printDaemon(
+  app: CliApp,
+  daemon: RunningDaemon | null,
+  stale: { readonly startedAt?: number } | null
+): void {
+  const locale = app.config.locale.language
+
   if (daemon === null) {
-    app.out(warn(t(locale, 'cli.statusDaemonNotRunning')))
+    app.out(warn(toNotRunningLine(app, locale, stale)))
     return
   }
 
@@ -65,6 +73,28 @@ function printDaemon(app: CliApp, daemon: RunningDaemon | null, locale: Locale):
       )
     )
   }
+}
+
+/** A pid file left behind by a dead process is a daemon that never stopped cleanly; a clean stop
+ *  removes it. The line sends the operator to the log and the restart. */
+function toNotRunningLine(
+  app: CliApp,
+  locale: Locale,
+  stale: { readonly startedAt?: number } | null
+): string {
+  if (stale === null) {
+    return t(locale, 'cli.statusDaemonNotRunning')
+  }
+
+  const params = { brand: BRAND.name }
+
+  if (stale.startedAt === undefined) {
+    return t(locale, 'cli.statusDaemonStoppedUnexpectedlyNoTime', params)
+  }
+
+  const started = formatInstant(locale, stale.startedAt, app.config.locale.timezone)
+
+  return t(locale, 'cli.statusDaemonStoppedUnexpectedly', { ...params, started })
 }
 
 // The configured channel list `/health` reports, with the ones the running daemon left down marked.

@@ -93,6 +93,15 @@ vẫn gửi các mục không cần AI, còn hôm nào không dựng được th
 một công việc theo lịch cần AI thì bỏ qua lượt đó mà không tính là lỗi, nên không bao giờ bị tắt vì thiếu
 khóa. `status` liệt kê những gì đang chờ khóa. Đặt khóa rồi `restart` là mọi thứ chạy lại.
 
+### Khi daemon dừng hoặc lỡ bản tin
+
+Daemon chết mà chưa dừng đàng hoàng (sập, `kill -9`, mất điện) để lại tệp pid, và `status` khi đó in
+`daemon: đã dừng đột ngột (khởi động lúc <giờ>)` kèm gợi ý xem `openalpha logs`, thay vì dòng "chưa chạy"
+trơn. Lần khởi động kế tiếp cũng nhắn chat của bạn một lần, nói cảnh báo và bản tin đã tạm ngưng tới giờ.
+Nếu daemon tắt suốt khung trước giờ mở cửa của bản tin, bản tin hôm đó bị bỏ và chat nhận một dòng
+"trước giờ mở cửa OpenAlpha không chạy"; bản tin sau vẫn theo lịch. Bản tin bắt đầu dựng trước giờ mở cửa
+nhưng xong sau đó vẫn được gửi, kèm một dòng đầu báo giá đã chạy từ lúc viết.
+
 ---
 
 ## Việc theo lịch

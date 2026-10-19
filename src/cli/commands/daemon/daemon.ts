@@ -11,15 +11,14 @@ import {
 } from '@/cli/commands/daemon/summary'
 import {
   clearMalformedPidFile,
-  clearReadyFile,
   inspectDaemon,
   liveDaemonPid,
   removePidFile,
   requestDaemonStop,
   watchStopRequest,
   writePidFile,
-  writeReadyFile,
 } from '@/cli/daemon-guard'
+import { clearReadyFile, writeReadyFile } from '@/cli/daemon-ready'
 import { getEnv } from '@/cli/env'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
@@ -122,14 +121,18 @@ async function runDaemon(app: CliApp): Promise<number> {
   const unwatchStop = watchStopRequest(app, abortDaemon)
 
   try {
-    await writePidFile(app, process.pid)
+    const claim = await writePidFile(app, process.pid)
+
     wrotePidFile = true
     await clearReadyFile(app)
     printStartBanner(app, keyless)
 
-    await app
-      .resolve('daemonTask')
-      .start(app.signal, (degraded) => announceReady(app, [...keyless, ...degraded]))
+    await app.resolve('daemonTask').start(app.signal, {
+      onReady: (degraded) => announceReady(app, [...keyless, ...degraded]),
+      ...(claim.kind === 'reclaimed'
+        ? { previousRun: claim.startedAt === undefined ? {} : { startedAt: claim.startedAt } }
+        : {}),
+    })
   } catch (err: unknown) {
     logger.error('daemon.failed', { err: formatErrForLog(err) })
     app.err(style.error(terminalErrorMessage(err, locale)))

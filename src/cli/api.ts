@@ -15,7 +15,7 @@ export { isConfigPresent, starterConfigToml } from '@/cli/commands/onboard/confi
 export { offerOnboard } from '@/cli/commands/onboard/onboard'
 export { resolveContributedCliCommands } from '@/cli/contributed'
 export { isBackgroundLaunch } from '@/cli/daemon-env'
-export { readDaemonDegraded } from '@/cli/daemon-guard'
+export { readDaemonDegraded } from '@/cli/daemon-ready'
 export { getEnv, isVerbose } from '@/cli/env'
 export { type EnvFileLoad, loadEnvFile, reportKeyFile } from '@/cli/env-file'
 export { formatTerminalError, printError, usage } from '@/cli/error-output'

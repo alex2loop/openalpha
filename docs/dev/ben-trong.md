@@ -370,11 +370,13 @@ log một lần ở nơi nó thấy chỗ thiếu (`llm.key_missing` lúc dựng
 terminal in ra và `config validate` báo. Kênh có `start()` ném `OperatorConfigError` (token thiếu hoặc bị
 từ chối) thì được đóng và ghi `channel.start_skipped`; `startChannels` trả nó trong `skipped`, nên kênh chưa
 từng lắng nghe thì không cho ai vào. `ApiTokenError` từ bộ khởi động API được xử lý giống vậy
-(`api.token_unusable`). Tác vụ daemon đưa cả hai danh sách cho `onReady` (`DaemonReadyHandler`); `start`
+(`api.token_unusable`). Tác vụ daemon đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
 tiến trình cha. Sau đó handler ghi tệp sẵn sàng (`BRAND.readyFile`, ghi nguyên khối, `{ pid, degraded }`) mà
 lần khởi động nền chờ, còn `status` và `/v1/state` đọc lại; mỗi lần khởi động xóa tệp này ngay khi giữ được
-tệp pid, nên tệp do một daemon chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Một nhịp vòng lặp lỗi với `MissingEnvError` là lỗi biên (`trading.tick_key_missing` một lần
+tệp pid, nên tệp do một daemon chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Tệp pid còn ghi `startedAt`. Lần khởi động giành lại một tệp pid cũ (`PidFileClaim` `reclaimed`) truyền
+`DaemonStartOptions.previousRun`, nên daemon nhắn chat mặc định một lần (`cli.daemonStoppedUnexpectedly`), và
+`status` đọc cùng tệp qua `readStalePid`. Một nhịp vòng lặp lỗi với `MissingEnvError` là lỗi biên (`trading.tick_key_missing` một lần
 mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở khoảng sau), không bao giờ vào cách ly.
 
 **Giới hạn của việc thực thi lệnh.** `/trade` và `order_place` đặt lệnh spot trên một sàn đã đăng ký, và

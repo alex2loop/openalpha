@@ -26,7 +26,7 @@ interface CallbackDeps {
   /** Owned by outbound/proactive.ts, which holds the pending-approval map. */
   readonly resolveApproval: (input: ApprovalResolution) => Promise<void>
   /** Owned by delivery/plan-review.ts, which holds the pending research-plan map. */
-  readonly resolvePlanDecision: (input: PlanDecisionResolution) => void
+  readonly resolvePlanDecision: (input: PlanDecisionResolution) => Promise<void>
 }
 
 export async function dispatchCallbackQuery(
@@ -68,7 +68,7 @@ export async function dispatchCallbackQuery(
   const planDecision = toPlanDecision(action)
 
   if (planDecision !== undefined) {
-    deps.resolvePlanDecision({
+    await deps.resolvePlanDecision({
       decision: planDecision,
       requestId: rest,
       chatId: query.chatId,

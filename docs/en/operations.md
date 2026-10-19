@@ -95,6 +95,16 @@ how to set it; a scheduled job that needs the model skips that run without count
 so it is never switched off for a missing key. `status` lists what is waiting for a key. Set the key
 and `restart`, and everything runs again.
 
+### When the daemon stops, or misses a brief
+
+A daemon that dies without stopping cleanly (a crash, a `kill -9`, a power cut) leaves its pid file behind,
+and `status` then prints `daemon: stopped unexpectedly (started <time>)` with a pointer to `openalpha logs`
+instead of the plain "not running". The next start also messages your chat once, saying alerts and the brief
+were paused until now. If the daemon was down through the brief's pre-open window, the day's brief is
+skipped and the chat gets one "OpenAlpha wasn't running before the open" line; the next one stays on
+schedule. A brief whose build starts before the open but finishes after it is still sent, with a line first
+saying prices have moved since it was written.
+
 ---
 
 ## Scheduled jobs

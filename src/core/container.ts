@@ -55,12 +55,22 @@ export type DegradedItem = Degraded<OperatorMessage>
 export type DegradedEntry = Degraded<string>
 
 /** What a start left down, once every subsystem is up. */
-export type DaemonReadyHandler = (degraded: readonly DegradedItem[]) => void
+type DaemonReadyHandler = (degraded: readonly DegradedItem[]) => void
+
+export interface DaemonStartOptions {
+  /** Fires once every subsystem, channels included, is up. */
+  readonly onReady?: DaemonReadyHandler
+  /** Called with what a channel has left down whenever that set changes while the daemon runs. */
+  readonly onHealth?: (degraded: readonly DegradedItem[]) => void
+  /** Set when this start reclaimed the pid file of a daemon that never stopped cleanly; the old
+   *  run's start time when its pid file recorded one. */
+  readonly previousRun?: { readonly startedAt?: number }
+}
 
 export interface DaemonTask {
   readonly name: string
-  /** Resolves on shutdown; `onReady` fires once every subsystem, channels included, is up. */
-  start(signal: AbortSignal, onReady?: DaemonReadyHandler): Promise<void>
+  /** Resolves on shutdown. */
+  start(signal: AbortSignal, options?: DaemonStartOptions): Promise<void>
   /** True while a pass is in flight that a restart would cut short. Absent: the task never says. */
   isWorking?(): boolean
 }

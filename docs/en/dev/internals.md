@@ -346,11 +346,13 @@ the one list the terminal prints and `config validate` reports. A channel whose 
 `OperatorConfigError` (token missing or rejected) is disposed and logged `channel.start_skipped`;
 `startChannels` returns it in `skipped`, so a channel that never listened admits nobody. An
 `ApiTokenError` from the API starter is handled the same way (`api.token_unusable`). The daemon task
-hands both lists to its `onReady` handler (`DaemonReadyHandler`); the foreground `start` prints them on
+hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on
 stderr, and a background child's stderr log is relayed under the parent's success line. The handler
 then writes the ready file (`BRAND.readyFile`, atomically, `{ pid, degraded }`) that a background start
 waits on and `status` and `/v1/state` read back; a start clears it as it claims the pid file, so a file a
-crashed daemon left behind never reads as ready for a reused pid. A loop tick
+crashed daemon left behind never reads as ready for a reused pid. The pid file also records `startedAt`. A start that reclaims a stale pid file (`PidFileClaim` `reclaimed`)
+passes `DaemonStartOptions.previousRun`, so the daemon messages the default chat once (`cli.daemonStoppedUnexpectedly`),
+and `status` reads the same file through `readStalePid`. A loop tick
 failing with `MissingEnvError` is a boundary failure (`trading.tick_key_missing` once per loop until
 another failure is logged, retried next interval), never a quarantine.
 

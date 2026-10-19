@@ -8,6 +8,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { ApprovalScope } from '@/engine/api'
 import type { MessageKey } from '@/i18n'
+import { replyChoiceGone } from '@/channels/delivery/choice-gone'
 import { formatToolDisplay } from '@/channels/delivery/format'
 import { operatorContextOf } from '@/channels/operator'
 import { ChannelError } from '@/core/errors'
@@ -84,8 +85,15 @@ export function subscribeProactive(deps: ProactiveDeps): ProactiveSubscription {
     async resolveApproval({ decision, requestId, chatId, approvedBy, isGroup }): Promise<void> {
       const entry = outstanding.get(requestId)
 
-      // Unknown, already resolved, already retired, or not yet delivered.
-      if (!entry) {
+      // Claimed but not yet registered: nothing to answer yet.
+      if (entry === null) {
+        return
+      }
+
+      // Unknown, already resolved or already retired: an operator who tapped it hears so.
+      if (entry === undefined) {
+        await replyChoiceGone(deps, chatId)
+
         return
       }
 

@@ -8,6 +8,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { ResearchPlanDecision, ResearchPlanReview } from '@/engine/api'
 import type { MessageKey } from '@/i18n'
+import { replyChoiceGone } from '@/channels/delivery/choice-gone'
 import { operatorContextOf } from '@/channels/operator'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
@@ -43,7 +44,7 @@ export interface PlanDecisionResolution {
 
 export interface ChannelPlanReviewer {
   reviewPlan(chatId: string, input: ResearchPlanReview): Promise<ResearchPlanDecision>
-  resolveDecision(input: PlanDecisionResolution): void
+  resolveDecision(input: PlanDecisionResolution): Promise<void>
   dispose(): void
 }
 
@@ -102,11 +103,13 @@ export function createChannelPlanReviewer(deps: ChannelPlanReviewerDeps): Channe
       return awaitDecision({ deps, pending, chatId, input, requestId, offer })
     },
 
-    resolveDecision(input): void {
+    async resolveDecision(input): Promise<void> {
       const entry = pending.get(input.requestId)
 
-      // Unknown, already resolved, or retired by timeout/abort.
+      // Unknown, already resolved, or retired by timeout/abort: an operator who tapped it hears so.
       if (entry === undefined) {
+        await replyChoiceGone(deps, input.chatId)
+
         return
       }
 

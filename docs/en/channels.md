@@ -137,7 +137,7 @@ Zalo has no buttons, so an approval prompt or a `/research thorough` plan arrive
 as `/4821` for each choice. Type one back in the same chat to answer. A code works once, only for the
 operator, and only until the prompt times out; typing it again, or after the time is up, answers that it
 was already answered or has expired. Two prompts open at once get different codes, and answering one
-leaves the other's codes live.
+leaves the other's codes live. A button tapped after its prompt was answered or timed out gets the same reply.
 
 `fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, or a lone allowed id.
 

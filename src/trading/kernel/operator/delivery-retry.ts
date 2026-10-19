@@ -69,7 +69,7 @@ export async function sendCaught(
 }
 
 interface DeliveryNoticeInput {
-  readonly kind: 'delivery-disabled' | 'delivery-skipped'
+  readonly kind: 'delivery-disabled' | 'delivery-skipped' | 'delivery-missed'
   readonly sender: TradingNoticeSender
   readonly target: DeliveryAddress
   readonly locale: Locale

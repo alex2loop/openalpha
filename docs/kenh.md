@@ -136,7 +136,7 @@ Zalo không có nút bấm, nên một ô xin phê duyệt hay một kế hoạc
 như `/4821` cho từng lựa chọn. Gõ lại một mã trong cùng chat để trả lời. Mỗi mã dùng một lần, chỉ dành
 cho operator, và chỉ tới khi câu hỏi hết hạn; gõ lại lần nữa, hoặc sau khi hết giờ, sẽ nhận câu trả lời
 rằng câu đó đã được trả lời hoặc đã hết hạn. Hai câu hỏi mở cùng lúc nhận hai bộ mã khác nhau, và trả
-lời một câu không làm mất mã của câu kia.
+lời một câu không làm mất mã của câu kia. Bấm một nút sau khi câu hỏi đã được trả lời hoặc hết giờ cũng nhận đúng câu trả lời đó.
 
 `fallback_chat_id` cũng quyết định cảnh báo hay bản tin sáng đặt từ terminal sẽ gửi đi đâu: kênh được cấu hình đầu tiên (Telegram, Zalo, Zalo Personal) có chat dự phòng, hoặc một id được phép duy nhất.
 
