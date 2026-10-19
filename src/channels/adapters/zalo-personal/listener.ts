@@ -1,7 +1,7 @@
 import type { API, GroupMessage, Message } from 'zca-js'
 import { CloseReason, ThreadType } from 'zca-js'
 
-import type { AdapterHandlers, InboundInbox, InboxPayload } from '@/channels/types'
+import type { AdapterHandlers, InboundInbox, InboundReply, InboxPayload } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
 import type { Logger } from '@/core/logging/logger'
 import type { LruMap } from '@/core/utils/collections'
@@ -315,6 +315,7 @@ function toInboundMessage(message: Message, mention: MentionContext, channelId: 
 
   const isGroup = message.type === ThreadType.Group
   const receivedAtMs = Number.parseInt(message.data.ts, 10)
+  const replyTo = isGroup ? undefined : toReplyTo(message, mention)
 
   return {
     channel: channelId,
@@ -328,6 +329,23 @@ function toInboundMessage(message: Message, mention: MentionContext, channelId: 
       : {}),
     isGroup,
     addressedToBot: isGroup ? isAddressedToBot(message, mention, text) : true,
+    ...(replyTo === undefined ? {} : { replyTo }),
+  }
+}
+
+// Direct chats only, for the same reason as Telegram: sent messages are remembered per chat, so a
+// group reply could pull another member's answer into this session. `globalMsgId` is the replied
+// message's `msgId`, which is what `send` returns and the sent-message map records.
+function toReplyTo(message: Message, mention: MentionContext): InboundReply | undefined {
+  const { quote } = message.data
+
+  if (quote === undefined || quote.ownerId !== mention.ownId) {
+    return undefined
+  }
+
+  return {
+    messageId: String(quote.globalMsgId),
+    ...(typeof quote.msg === 'string' && quote.msg !== '' ? { text: quote.msg } : {}),
   }
 }
 

@@ -230,10 +230,12 @@ pointer rather than the text.
 
 ### Reply context
 
-On a Telegram direct chat, a message that replies to one of the bot's own messages carries `replyTo` (the
+On a Telegram or Zalo Personal direct chat, a message that replies to one of the bot's own messages carries `replyTo` (the
 replied message's id and text, and the `quote` the operator selected). Group chats never set it: the
 sent-message map is per chat, not per user, so one member's reply could otherwise pull another member's
-answer into their session.
+answer into their session. Zalo Personal fills it from `data.quote` when `quote.ownerId` is the bot's own
+id, with `globalMsgId` as the replied message's id (what `send` returns and the map records). The Zalo
+Bot API sends no quote.
 
 `runExchange` turns it into a lead with `toReplyLead`:
 

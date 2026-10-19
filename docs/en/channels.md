@@ -168,8 +168,8 @@ A few things to know:
   a forwarded command does not run and the agent will not act on it unless your own words ask it to.
 - **A chat keeps its conversation until you type /new.** After a quiet spell, OpenAlpha checks prices
   again instead of trusting the ones quoted earlier in the chat.
-- **Replying keeps the thread.** In a private Telegram chat, reply to any answer from OpenAlpha and it
-  knows which one you mean. For alerts and briefs it only sees which kind of message it was, never your amounts.
+- **Replying keeps the thread.** In a private Telegram or Zalo Personal chat, reply to any answer from OpenAlpha and it
+  knows which one you mean. For alerts and briefs it only sees which kind of message it was, never your amounts. The Zalo Bot API sends no quote, so it is not covered.
 - **Buttons are commands.** Tapping one does exactly what typing that command would, with the same
   admission, role and rate checks, and it runs on today's data.
 - **Chats stay separate.** Each channel and chat has its own conversation; two chat apps never share one.

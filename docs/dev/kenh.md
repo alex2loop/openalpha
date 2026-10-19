@@ -232,10 +232,11 @@ và nơi đọc bảng lùi về một dòng chỉ dẫn thay vì nội dung.
 
 ### Ngữ cảnh trả lời
 
-Ở chat riêng Telegram, một tin trả lời một tin của chính bot mang theo `replyTo` (id và nội dung tin được
+Ở chat riêng Telegram hay Zalo Personal, một tin trả lời một tin của chính bot mang theo `replyTo` (id và nội dung tin được
 trả lời, cùng đoạn `quote` người vận hành đã bôi chọn). Chat nhóm không bao giờ đặt nó: bảng tin đã gửi
 lưu theo chat chứ không theo người, nên nếu không thì một thành viên trả lời có thể kéo câu trả lời của
-thành viên khác vào phiên của mình.
+thành viên khác vào phiên của mình. Zalo Personal điền nó từ `data.quote` khi `quote.ownerId` là id của chính bot, với
+`globalMsgId` là id của tin được trả lời (cái `send` trả về và bảng ghi lại). Zalo Bot API không gửi quote.
 
 `runExchange` biến nó thành một đoạn dẫn bằng `toReplyLead`:
 

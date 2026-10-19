@@ -41,6 +41,7 @@ SQLite book comes first.
 - Approval prompts and `/research thorough` plan reviews work on Zalo: each choice arrives as a short
   code such as `/4821` to type back in the same chat. Only the operator's code counts, and a second
   answer says it was already answered or has expired.
+- In a private Zalo Personal chat, replying to an answer continues from it, as on Telegram.
 
 ### Storage
 
