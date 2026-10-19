@@ -367,7 +367,7 @@ ngày như `30d` hay `2026-09-01..2026-09-25`, hoặc mã bút toán để xem t
 |---|---|
 | `/price <mã>` | Giá mới nhất kèm đơn vị và ngày số liệu |
 | `/market` | Giá mã đang nắm và mã theo dõi, bên cạnh phiên gần nhất đã chốt |
-| `/screen [thị trường] [số lượng] [loại]` | Top mã theo mô hình yếu tố (mặc định 10, tối đa 50); thứ tự tham số tùy ý |
+| `/screen [thị trường] [số dòng] [loại]` | Top mã theo mô hình yếu tố (mặc định 10, tối đa 50); thứ tự tham số tùy ý |
 | `/overview` | Mọi thị trường đang ra sao, kèm khối vĩ mô và các yếu tố dẫn dắt |
 | `/portfolio` | Giá trị, lãi/lỗ chưa thực hiện, tỷ trọng theo nhóm |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | Danh mục đã đi thế nào: lợi nhuận đã loại tiền nạp và rút, mức sụt sâu nhất từ đỉnh, thước đo từ tỷ trọng mục tiêu |
@@ -412,7 +412,7 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/price` | `/price <mã>`, hoặc `thị-trường:mã` khi tên trần có thể trùng | không |
 | `/market` | `/market` \| `enable` \| `disable` | không |
 | `/watchlist` | `/watchlist` \| `add <mã>...` \| `remove <mã>...` - `remove` với tên trần xóa mã đó ở mọi thị trường | không |
-| `/screen` | `/screen [thị trường] [số lượng] [loại]` | không |
+| `/screen` | `/screen [thị trường] [số dòng] [loại]` | không |
 | `/overview` | `/overview [thị trường]...` | không |
 | `/portfolio` | `/portfolio` \| `nav [1m\|3m\|6m\|1y\|all]` | không |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` | không |

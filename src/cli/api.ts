@@ -25,7 +25,7 @@ export { parseGlobalFlags } from '@/cli/parsing/global-flags'
 export { preBootApp } from '@/cli/preboot'
 export { BUILT_IN_COMMANDS } from '@/cli/registry'
 export { createRoot } from '@/cli/root'
-export { fail } from '@/cli/ui/colors'
+export { fail, hint } from '@/cli/ui/colors'
 export {
   formatInstalledNotice,
   formatUpdateNotice,

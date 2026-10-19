@@ -216,6 +216,11 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
     forbidden: [/(?<!\p{L})tôi(?!\p{L})/iu],
     why: 'the assistant calls itself "mình" in Vietnamese; "tôi" reads stiff beside it',
   },
+  {
+    key: '*',
+    forbidden: ['số lượng'],
+    why: 'a quantity of shares or coins is "khối lượng"; a count of rows is "số dòng"',
+  },
 ])
 
 /** The old tone-mark placement: on the second vowel of a closing `oa`, `oe` or `uy` ("khoá",
