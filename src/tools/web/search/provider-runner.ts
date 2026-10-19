@@ -21,7 +21,6 @@ import type {
 import { abortError, RunHalted } from '@/core/errors'
 import { ttlCache } from '@/core/utils/collections'
 import { withRetry } from '@/core/utils/retry'
-import { MS_PER_SECOND } from '@/core/utils/time'
 import { contentsCacheKey, filterSearchResults, searchCacheKey } from '@/tools/web/search/domains'
 import {
   SEARCH_RETRY_AFTER_MAX_MS,
@@ -72,12 +71,9 @@ interface ExternalCostRun {
 
 export function createProviderRunner(config: ResolvedWebSearch): ProviderRunner {
   const cache =
-    config.cacheTtlSeconds === 0
+    config.cacheTtlMs === 0
       ? undefined
-      : ttlCache<string, RetrievalCacheEntry>(
-          config.cacheTtlSeconds * MS_PER_SECOND,
-          config.cacheMaxEntries
-        )
+      : ttlCache<string, RetrievalCacheEntry>(config.cacheTtlMs, config.cacheMaxEntries)
   const gates = new Map<string, ProviderGate>()
   const breaker = createProviderBreaker({
     threshold: config.breakerThreshold,

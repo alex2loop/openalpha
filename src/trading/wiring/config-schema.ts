@@ -103,5 +103,5 @@ export const tradingConfigPatchSchema = z.strictObject({
       z.string().regex(ENV_VAR_RE, 'must be an environment variable name')
     )
     .optional(),
-  themes: z.strictObject({ max_cost_usd: z.number().positive().optional() }).optional(),
+  themes: z.strictObject({ maximum_cost_usd: z.number().positive().optional() }).optional(),
 })

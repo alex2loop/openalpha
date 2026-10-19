@@ -259,7 +259,7 @@ riêng, để mang theo đoạn dẫn. Khi nhiều tin gom vào một lượt th
 
 Khoảng im lặng được đo từ dòng `session_messages` mới nhất (`SessionActivity.lastMessageAt`), không bao giờ
 từ `sessions.last_activity_at`, vì lệnh gạch chéo cũng làm mới cột đó. Khi dòng ấy cũ hơn
-`gap_note_minutes`, đoạn dẫn mở đầu bằng một dòng nói chat đã im lặng bao lâu và giá trước đó có thể đã cũ. Đọc
+`gap_note_ms`, đoạn dẫn mở đầu bằng một dòng nói chat đã im lặng bao lâu và giá trước đó có thể đã cũ. Đọc
 thất bại thì ghi log `channel.gap_note_lookup_failed` và bỏ qua ghi chú, nên không bao giờ làm hỏng lượt.
 Khóa này nằm trong `deliveryFields` nhưng không nằm trong `SAFE_DELIVERY_OVERRIDE_FIELDS`, nên một kênh
 plugin khai báo không ghi đè được nó.

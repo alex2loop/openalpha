@@ -141,7 +141,7 @@ export const WebSearchSchema = z.strictObject({
   fallback_base_url: z.url().optional(),
   cost_per_search_usd: z.number().nonnegative().optional(),
   fallback_cost_per_search_usd: z.number().nonnegative().optional(),
-  cache_ttl_seconds: z.number().int().nonnegative().optional(),
+  cache_ttl_ms: z.number().int().nonnegative().optional(),
   exa_search_type: z.enum(EXA_SEARCH_TYPES).optional(),
   safe_search: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
 })

@@ -1,7 +1,8 @@
 import type { ExaSearchType, RawWebSearch, WEB_SEARCH_PROVIDERS } from '@/core/config/schema'
 import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
+import { MS_PER_MINUTE } from '@/core/utils/time'
 
-const DEFAULT_SEARCH_CACHE_TTL_SECONDS = 300
+const DEFAULT_SEARCH_CACHE_TTL_MS = 5 * MS_PER_MINUTE
 const SEARCH_KEY_OWNER = '[web_search]'
 const SEARCH_BOUNDS = Object.freeze({
   cacheMaxEntries: 100,
@@ -47,7 +48,7 @@ export interface ResolvedWebSearch {
   readonly missingEnv?: string
   /** The same for `fallback_api_key_env`: the fallback is dropped and the primary keeps working. */
   readonly fallbackMissingEnv?: string
-  readonly cacheTtlSeconds: number
+  readonly cacheTtlMs: number
   readonly cacheMaxEntries: number
   readonly timeoutMs: number
   readonly retryAttempts: number
@@ -103,7 +104,7 @@ export function resolveWebSearch(raw: RawWebSearch | undefined): ResolvedWebSear
     ...(fallback === undefined || fallbackKey.missingEnv !== undefined ? {} : { fallback }),
     ...(fallbackKey.missingEnv === undefined ? {} : { fallbackMissingEnv: fallbackKey.missingEnv }),
     ...SEARCH_BOUNDS,
-    cacheTtlSeconds: raw?.cache_ttl_seconds ?? DEFAULT_SEARCH_CACHE_TTL_SECONDS,
+    cacheTtlMs: raw?.cache_ttl_ms ?? DEFAULT_SEARCH_CACHE_TTL_MS,
     exaSearchType: raw?.exa_search_type ?? 'auto',
     ...(raw?.safe_search === undefined ? {} : { safeSearch: raw.safe_search }),
   }

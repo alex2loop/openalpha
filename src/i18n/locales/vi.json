@@ -309,6 +309,7 @@
     "configVenueBuiltInMarkets": "{venue} là sàn có sẵn và đã biết nó giữ thị trường nào, nên không đặt markets trong [trading.venues.{venue}] được. Bỏ dòng đó đi nhé.",
     "configVenueNoMarket": "[trading.venues.{venue}] chưa giữ thị trường nào. Thêm default_for hoặc markets, ví dụ markets = [\"equity-vn\"].",
     "configVenueNoOrders": "{venue} là nơi bạn giao dịch bằng tay, nên credentials và simulated không áp dụng. Bỏ chúng khỏi [trading.venues.{venue}] nhé.",
+    "configVenueCredentialUnknown": "[trading.venues.{venue}] credentials có {field}, nhưng {venue} không dùng trường này. Các trường nó nhận: {fields}.",
     "configVenueFeesMissing": "[trading.venues.{venue}] cần khai phí, ví dụ fees = { buy = 0.0015, sell = 0.0015 }. Không có mức phí thì mọi khoản phí sẽ bị ghi bằng 0.",
     "configVenueFeesRestate": "fees trong [trading.venues.{venue}] thay toàn bộ mức phí có sẵn, nên cần ghi lại cả {fields} ở đó.",
     "configVenueDefaultClaimed": "Cả {rival} và {venue} cùng nhận default_for {market}. Chỉ để ở một sàn thôi nhé.",

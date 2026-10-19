@@ -943,7 +943,7 @@ cổ phiếu VN.
   soát lại chủ đề đó cùng ngành và mã của nó, không đụng chủ đề khác, không tìm chủ đề mới, nên rẻ
   hơn hẳn một phiên đầy đủ. `/themes show` hiện mỗi chủ đề theo lần soát gần nhất của nó; chủ đề nào
   được soát từ trước lần chạy gần nhất thì có thêm dòng "Soát lần cuối" ghi rõ ngày.
-- **Chi phí.** Mỗi lần chạy có trần riêng (`[trading.themes] max_cost_usd`, mặc định $1). Chủ đề được
+- **Chi phí.** Mỗi lần chạy có trần riêng (`[trading.themes] maximum_cost_usd`, mặc định $1). Chủ đề được
   cập nhật, tìm mới, rồi lập danh sách ngành và mã theo thứ tự đó; chạm trần thì dừng giai đoạn đang
   làm và nêu tên những mã bị bỏ qua. `/themes show` đọc lại kết quả đã lưu, không tốn gì. Qua MCP chỉ
   có công cụ đọc `themes_view`.

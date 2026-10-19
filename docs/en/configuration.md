@@ -383,7 +383,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `mid_stream_updates` | bool | `true` | Edit the reply while it streams. |
 | `slash_commands` | bool | `true` | Enable slash commands and the command menu. |
 | `notify_max_per_minute` | int | `3` | Rate cap on proactive messages. |
-| `gap_note_minutes` | int | `30` | Quiet minutes after which the next answer is told to check prices again; `0` turns it off. |
+| `gap_note_ms` | int | `1800000` | Quiet milliseconds (30 minutes by default) after which the next answer is told to check prices again; `0` turns it off. |
 | `fallback_chat_id` | string | the one allowed id, or the one paired chat | Fallback target for proactive messages. |
 | `pairing` | bool | `true` with no allowlist | Let unknown chats pair. |
 
@@ -472,7 +472,7 @@ the section is ignored and no web tools are offered; the client brings its own.
 | `fallback_api_key_env` | string | - | Same as `api_key_env`, for the fallback. |
 | `fallback_base_url` | string | - | Same as `base_url`, for a `searxng` fallback only. |
 | `fallback_cost_per_search_usd` | float | - | Same as `cost_per_search_usd`, for the fallback. |
-| `cache_ttl_seconds` | int | `300` | Result cache lifetime per query; `0` disables caching. |
+| `cache_ttl_ms` | int | `300000` | Result cache lifetime per query, in milliseconds; `0` disables caching. |
 | `exa_search_type` | string | `auto` | Exa only: `auto`, `fast`, `instant`, `deep-lite`, `deep`, `deep-reasoning`. |
 | `safe_search` | int | instance default | SearXNG only: `0`, `1` or `2`. Omitted keeps the instance setting. |
 
@@ -724,7 +724,7 @@ fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
 interval_ms = 43_200_000       # ceiling only; refresh follows the trading calendar
 
 [trading.themes]
-max_cost_usd = 1.0             # most one /themes run may spend, research included
+maximum_cost_usd = 1.0             # most one /themes run may spend, research included
 ```
 
 A venue table takes `default_for`, `markets` (hand-traded venues only), `fees` and, for OKX and
@@ -803,7 +803,7 @@ recorded at `gold-shop` stay there, since assets cannot move between venues. Sel
 gate is consulted. Placing an order unattended therefore takes two decisions from you, not one; see
 [Safety](safety.md).
 
-`credentials` holds **variable names**, never values. The key names are the venue's own. Each is read
+`credentials` holds **variable names**, never values. The key names are the venue's own: `okx` takes `apiKey`, `secret` and `passphrase`, `binance` takes `apiKey` and `secret`, and any other field stops boot with the ones the venue takes named. Each is read
 as the named variable or, failing that, the same name prefixed with `OPENALPHA_`. A missing one is
 not a boot error: the venue gets no adapter, no order can be placed, `/trade` only names the keys to
 set, and the daemon starts anyway. The venue stays registered as a custodian you record trades

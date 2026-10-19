@@ -554,7 +554,7 @@ It gives no prices. `/suggest <ticker>` gives entry, stop, target and size.
 
 Commands:
 
-- `/themes` runs it. It costs model calls, capped by `[trading.themes] max_cost_usd`.
+- `/themes` runs it. It costs model calls, capped by `[trading.themes] maximum_cost_usd`.
 - `/themes run <id>` re-checks one tracked theme with its sectors and companies and looks for no new ones.
 - `/themes show` shows each theme as it was last read, for free.
 - `/themes approve|reject|retire <id>` moves a theme.
@@ -576,7 +576,7 @@ The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]`
 - A theme is marked `invalidated` only when one of its own conditions is backed by hard data.
 - Only you make a theme `active`, reject it or retire it.
 
-**One budget, one run at a time.** A run draws on one budget, the lower of `[trading.themes] max_cost_usd` and `[budget]`, and on one research quota. Only one run goes at a time per process.
+**One budget, one run at a time.** A run draws on one budget, the lower of `[trading.themes] maximum_cost_usd` and `[budget]`, and on one research quota. Only one run goes at a time per process.
 
 - It writes nothing until every step has answered, and status changes touch only themes still tracked.
 - A budget halt ends the stage and names the steps it skipped.

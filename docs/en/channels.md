@@ -73,7 +73,7 @@ operator_user_ids = [123456789]
 | `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, or exactly one paired chat, that chat is used |
 
 The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`,
-`notify_max_per_minute` and `gap_note_minutes`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
+`notify_max_per_minute` and `gap_note_ms`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
 key fails validation, so a typo shows up at startup and not at 09:00.
 
 A channel with no token (the `token_env` variable unset, or an empty `token_file`) or with a token the

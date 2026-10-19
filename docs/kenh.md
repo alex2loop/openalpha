@@ -71,7 +71,7 @@ operator_user_ids = [123456789]
 | `fallback_chat_id` | tất cả | Nơi một việc theo lịch không có `--to` sẽ gửi tới. Chỉ có đúng một id được phép, hoặc đúng một chat đã ghép nối, thì dùng chat đó |
 
 Các khóa còn lại tinh chỉnh việc gửi: `markdown`, `mid_stream_updates`, `typing_indicator`,
-`use_reactions`, `notify_max_per_minute`, `gap_note_minutes`. Nhịp gom tin, nhịp sửa tin trực tiếp và hàng đợi gửi đi là cố
+`use_reactions`, `notify_max_per_minute`, `gap_note_ms`. Nhịp gom tin, nhịp sửa tin trực tiếp và hàng đợi gửi đi là cố
 định. Một khóa lạ sẽ làm hỏng khâu kiểm tra, nên gõ sai là biết ngay lúc khởi động, thay vì biết lúc 9
 giờ sáng.
 

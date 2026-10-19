@@ -31,7 +31,7 @@ A day and a month follow `[locale] timezone` (the host zone, `UTC` when the host
 
 A run's ceiling is the lower of `max_per_run_usd` and `max_daily_usd`. With both at `0` there is no ceiling.
 `chat --max-cost-usd <amount>` replaces that ceiling for one run; the daily and monthly checks still apply on top.
-A `/themes` run also stops at `[trading.themes] max_cost_usd` (default `1.0`) when that is lower.
+A `/themes` run also stops at `[trading.themes] maximum_cost_usd` (default `1.0`) when that is lower.
 
 ### Per-agent cap
 

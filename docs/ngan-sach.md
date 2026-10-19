@@ -31,7 +31,7 @@ Ngày và tháng tính theo `[locale] timezone` (múi giờ của máy, `UTC` kh
 
 Trần của một phiên chạy là số nhỏ hơn giữa `max_per_run_usd` và `max_daily_usd`. Để cả hai bằng `0` thì không có trần
 nào. `chat --max-cost-usd <số tiền>` thay trần đó cho đúng một phiên chạy; các cổng kiểm theo ngày và theo tháng vẫn áp lên
-trên. Một lượt `/themes` còn dừng ở `[trading.themes] max_cost_usd` (mặc định `1.0`) khi đó là con số nhỏ hơn.
+trên. Một lượt `/themes` còn dừng ở `[trading.themes] maximum_cost_usd` (mặc định `1.0`) khi đó là con số nhỏ hơn.
 
 ### Mức trần theo agent
 

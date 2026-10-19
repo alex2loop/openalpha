@@ -309,6 +309,7 @@
     "configVenueBuiltInMarkets": "{venue} is built in and already knows which markets it holds, so markets cannot be set under [trading.venues.{venue}]. Remove that line.",
     "configVenueNoMarket": "[trading.venues.{venue}] holds no market yet. Add default_for or markets, for example markets = [\"equity-vn\"].",
     "configVenueNoOrders": "{venue} is a broker you trade by hand, so credentials and simulated do not apply to it. Remove them from [trading.venues.{venue}].",
+    "configVenueCredentialUnknown": "[trading.venues.{venue}] credentials has {field}, which {venue} does not use. It takes: {fields}.",
     "configVenueFeesMissing": "[trading.venues.{venue}] needs its fees, for example fees = { buy = 0.0015, sell = 0.0015 }. Without a rate every fee would book as zero.",
     "configVenueFeesRestate": "fees under [trading.venues.{venue}] replaces the built-in rates whole, so restate {fields} there too.",
     "configVenueDefaultClaimed": "Both {rival} and {venue} claim default_for {market}. Keep it on one of them.",

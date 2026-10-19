@@ -385,7 +385,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `mid_stream_updates` | bool | `true` | Sửa câu trả lời trong lúc truyền luồng. |
 | `slash_commands` | bool | `true` | Bật lệnh gạch chéo và menu lệnh. |
 | `notify_max_per_minute` | số nguyên | `3` | Trần tần suất tin chủ động. |
-| `gap_note_minutes` | số nguyên | `30` | Số phút im lặng để câu trả lời kế tiếp được nhắc xem lại giá; `0` là tắt. |
+| `gap_note_ms` | số nguyên | `1800000` | Số mili giây im lặng (mặc định 30 phút) để câu trả lời kế tiếp được nhắc xem lại giá; `0` là tắt. |
 | `fallback_chat_id` | chuỗi | id được phép duy nhất, hoặc chat ghép nối duy nhất | Đích dự phòng cho tin chủ động. |
 | `pairing` | bool | `true` khi không có danh sách cho phép | Cho chat lạ ghép nối. |
 
@@ -474,7 +474,7 @@ bỏ qua và không công cụ web nào được chào; client tự mang của n
 | `fallback_api_key_env` | chuỗi | - | Như `api_key_env`, cho bên dự phòng. |
 | `fallback_base_url` | chuỗi | - | Như `base_url`, chỉ cho bên dự phòng `searxng`. |
 | `fallback_cost_per_search_usd` | số thực | - | Như `cost_per_search_usd`, cho bên dự phòng. |
-| `cache_ttl_seconds` | số nguyên | `300` | Thời gian sống của cache kết quả theo truy vấn; `0` thì tắt cache. |
+| `cache_ttl_ms` | số nguyên | `300000` | Thời gian sống của cache kết quả theo truy vấn, tính bằng mili giây; `0` thì tắt cache. |
 | `exa_search_type` | chuỗi | `auto` | Chỉ Exa: `auto`, `fast`, `instant`, `deep-lite`, `deep`, `deep-reasoning`. |
 | `safe_search` | số nguyên | theo instance | Chỉ SearXNG: `0`, `1` hoặc `2`. Bỏ trống thì giữ thiết lập của instance. |
 
@@ -724,7 +724,7 @@ fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
 interval_ms = 43_200_000       # chỉ là trần; refresh bám theo lịch giao dịch
 
 [trading.themes]
-max_cost_usd = 1.0             # mức tối đa một lượt /themes được tiêu, gồm cả nghiên cứu
+maximum_cost_usd = 1.0             # mức tối đa một lượt /themes được tiêu, gồm cả nghiên cứu
 ```
 
 Bảng của một sàn nhận `default_for`, `markets` (chỉ sàn ghi tay), `fees` và, với OKX và Binance,
@@ -801,7 +801,7 @@ Chỉ `[trading.orders]` quyết định một lệnh có được đặt hay kh
 hỏi. Nên đặt lệnh khi không có người trông cần **hai** quyết định của bạn, không phải một; xem
 [An toàn](an-toan.md).
 
-`credentials` chứa **tên biến**, không bao giờ chứa giá trị. Tên khóa là của chính sàn. Mỗi cái được đọc
+`credentials` chứa **tên biến**, không bao giờ chứa giá trị. Tên khóa là của chính sàn: `okx` nhận `apiKey`, `secret` và `passphrase`, `binance` nhận `apiKey` và `secret`, còn trường nào khác sẽ làm khởi động dừng lại và nêu các trường sàn đó nhận. Mỗi cái được đọc
 theo đúng tên biến đó, hoặc nếu không có thì đọc cùng tên với tiền tố `OPENALPHA_`. Thiếu một cái không
 phải lỗi khởi động: sàn không có bộ nối, không đặt được lệnh nào, `/trade` chỉ nêu tên các khóa cần đặt,
 và daemon vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ giao dịch; chỉ là không bao giờ được

@@ -554,7 +554,7 @@ Nó không đưa giá. `/suggest <mã>` mới đưa giá vào, cắt lỗ, mục
 
 Các lệnh:
 
-- `/themes` chạy nó. Nó tốn lời gọi mô hình, bị chặn bởi `[trading.themes] max_cost_usd`.
+- `/themes` chạy nó. Nó tốn lời gọi mô hình, bị chặn bởi `[trading.themes] maximum_cost_usd`.
 - `/themes run <id>` kiểm lại một chủ đề đang theo dõi cùng các ngành và công ty của nó, và không tìm chủ đề mới.
 - `/themes show` hiện từng chủ đề như lần đọc cuối, miễn phí.
 - `/themes approve|reject|retire <id>` chuyển trạng thái một chủ đề.
@@ -576,7 +576,7 @@ Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi đượ
 - Một chủ đề chỉ bị đánh dấu `invalidated` khi một điều kiện của chính nó được dữ liệu cứng chống lưng.
 - Chỉ bạn mới đặt một chủ đề thành `active`, từ chối hay cho nghỉ hẳn.
 
-**Một ngân sách, một lần chạy tại một thời điểm.** Một lượt chạy dùng một ngân sách, thấp hơn giữa `[trading.themes] max_cost_usd` và `[budget]`, và một hạn mức research. Mỗi tiến trình chỉ chạy một lượt tại một thời điểm.
+**Một ngân sách, một lần chạy tại một thời điểm.** Một lượt chạy dùng một ngân sách, thấp hơn giữa `[trading.themes] maximum_cost_usd` và `[budget]`, và một hạn mức research. Mỗi tiến trình chỉ chạy một lượt tại một thời điểm.
 
 - Nó không ghi gì cho tới khi mọi bước đã trả lời, và đổi trạng thái chỉ chạm các chủ đề còn đang theo dõi.
 - Hết ngân sách thì dừng giai đoạn đó và nêu tên các bước bị bỏ.
