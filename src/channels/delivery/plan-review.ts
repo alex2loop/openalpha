@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import type { TextChoices } from '@/channels/delivery/choices'
 import type { OperatorContext } from '@/channels/operator'
 import type { ChannelAdapter, OutboundButton } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
@@ -24,6 +25,8 @@ interface ChannelPlanReviewerDeps {
   readonly logger: Logger
   /** Channel-runtime lifetime: every pending review fails closed when it aborts. */
   readonly signal: AbortSignal
+  /** Typed codes for a channel without a keyboard; shared with the approval prompts. */
+  readonly choices: TextChoices
   /** Operator authority for a decision tap; fail closed when the chat is unconfigured. */
   readonly isOperatorUser: (userId: string | undefined, context: OperatorContext) => boolean
 }
@@ -76,17 +79,27 @@ export function createChannelPlanReviewer(deps: ChannelPlanReviewerDeps): Channe
         return { kind: 'cancel' }
       }
 
-      if (!deps.adapter.capabilities.inlineButtons) {
-        await notifyUnsupported(deps, chatId, input.signal)
-        return { kind: 'cancel' }
-      }
-
       if (pending.size >= MAX_PENDING_REVIEWS) {
         deps.logger.warn('plan_review.pending_full', { channel: deps.channelId })
         return { kind: 'cancel' }
       }
 
-      return awaitDecision({ deps, pending, chatId, input, requestId: randomUUID() })
+      // One instant for the typed codes' lifetime and the review timer, so both end together.
+      const expiresAt = Date.now() + PLAN_REVIEW_TIMEOUT_MS
+      const requestId = randomUUID()
+      const buttons = planButtons(deps.locale, requestId)
+      const keyboard = deps.adapter.capabilities.inlineButtons
+      const choiceLines = keyboard ? [] : deps.choices.offer({ chatId, buttons, expiresAt })
+
+      // No keyboard and no free code: nothing could answer, so the run is not left waiting.
+      if (!keyboard && choiceLines.length === 0) {
+        await notifyUnsupported(deps, chatId, input.signal)
+        return { kind: 'cancel' }
+      }
+
+      const offer: PlanOffer = { buttons: keyboard ? buttons : [], choiceLines, expiresAt }
+
+      return awaitDecision({ deps, pending, chatId, input, requestId, offer })
     },
 
     resolveDecision(input): void {
@@ -120,12 +133,20 @@ export function createChannelPlanReviewer(deps: ChannelPlanReviewerDeps): Channe
   }
 }
 
+/** How the prompt asks: buttons on a keyboard, else lines naming the codes to type back. */
+interface PlanOffer {
+  readonly buttons: readonly OutboundButton[]
+  readonly choiceLines: readonly string[]
+  readonly expiresAt: number
+}
+
 interface AwaitDecisionInput {
   readonly deps: ChannelPlanReviewerDeps
   readonly pending: Map<string, PendingReview>
   readonly chatId: string
   readonly input: ResearchPlanReview
   readonly requestId: string
+  readonly offer: PlanOffer
 }
 
 // Every path settles exactly once: tap, timeout, run abort, channel shutdown, or dispose. The slot
@@ -167,7 +188,7 @@ async function deliverPrompt(
   state: ReviewState,
   settle: SettleReview
 ): Promise<void> {
-  const { deps, pending, chatId, input, requestId } = wait
+  const { deps, pending, chatId, input, requestId, offer } = wait
   let messageId: string
 
   try {
@@ -175,8 +196,8 @@ async function deliverPrompt(
       {
         channel: deps.channelId,
         chatId,
-        text: renderPlanText(deps, input),
-        buttons: planButtons(deps.locale, requestId),
+        text: renderPlanText(deps, input, offer.choiceLines),
+        ...(offer.buttons.length === 0 ? {} : { buttons: offer.buttons }),
       },
       { signal: AbortSignal.any([input.signal, deps.signal]) }
     )
@@ -202,7 +223,7 @@ async function deliverPrompt(
   state.messageId = messageId
   state.timer = setTimeout(
     () => settle('cancel', 'channel.researchPlanTimedOut'),
-    PLAN_REVIEW_TIMEOUT_MS
+    Math.max(0, offer.expiresAt - Date.now())
   )
 }
 
@@ -217,7 +238,11 @@ function planButtons(locale: Locale, requestId: string): readonly OutboundButton
   ]
 }
 
-function renderPlanText(deps: ChannelPlanReviewerDeps, input: ResearchPlanReview): string {
+function renderPlanText(
+  deps: ChannelPlanReviewerDeps,
+  input: ResearchPlanReview,
+  choiceLines: readonly string[]
+): string {
   const { locale } = deps
   const lines = [
     t(locale, 'channel.researchPlanReview'),
@@ -231,7 +256,11 @@ function renderPlanText(deps: ChannelPlanReviewerDeps, input: ResearchPlanReview
     }),
   ]
 
-  return lines.join('\n').slice(0, deps.adapter.capabilities.maxTextLen)
+  // The plan yields to the codes, so the cut never lands inside one.
+  const codes = choiceLines.length === 0 ? '' : `\n${choiceLines.join('\n')}`
+  const room = deps.adapter.capabilities.maxTextLen - codes.length
+
+  return `${lines.join('\n').slice(0, room)}${codes}`
 }
 
 async function notifyUnsupported(
@@ -253,24 +282,25 @@ async function notifyUnsupported(
   }
 }
 
-// Replaces the live prompt with its outcome so the buttons cannot be tapped a second time.
+// Replaces the live prompt with its outcome so the buttons cannot be tapped a second time; a
+// channel that cannot edit hears the outcome as a message of its own.
 async function editNotice(
   deps: ChannelPlanReviewerDeps,
   target: { readonly chatId: string; readonly messageId: string },
   notice: MessageKey
 ): Promise<void> {
   const { adapter } = deps
-
-  if (!(adapter.capabilities.canEdit && adapter.edit)) {
-    return
-  }
+  const text = t(deps.locale, notice)
 
   try {
-    await adapter.edit({
-      chatId: target.chatId,
-      messageId: target.messageId,
-      text: t(deps.locale, notice),
-    })
+    if (adapter.capabilities.canEdit && adapter.edit) {
+      await adapter.edit({ chatId: target.chatId, messageId: target.messageId, text })
+    } else {
+      await adapter.send(
+        { channel: deps.channelId, chatId: target.chatId, text },
+        { signal: deps.signal }
+      )
+    }
   } catch (err: unknown) {
     deps.logger.warn('plan_review.notice_failed', {
       channel: deps.channelId,

@@ -1776,6 +1776,8 @@
     "approvalDelegatedOnce": "Tác vụ con phải xin duyệt cho từng hành động nguy hiểm.",
     "approvalUnsupported": "⚠️ Kênh này không hiển thị được nút phê duyệt nên hành động đã bị chặn.",
     "approvalTimedOut": "⏳ Hết hạn chờ - đã từ chối",
+    "choiceIntro": "Trả lời bằng một trong các câu lệnh sau:",
+    "choiceGone": "Câu này đã được trả lời hoặc đã hết hạn, nên mình không làm gì thêm.",
     "deniedOutcome": "✗ Đã từ chối",
     "approvedOnceOutcome": "✓ Đã duyệt lần này",
     "approvedRememberedOutcome": "★ Đã duyệt - ghi nhớ cho phiên chat này",

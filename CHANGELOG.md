@@ -36,6 +36,12 @@ SQLite book comes first.
 - `config.sample.toml` starts with the `[budget]` daily cap (`max_daily_usd = 2`) and `[locale]` on, and the
   long guides carry a contents list.
 
+### Zalo
+
+- Approval prompts and `/research thorough` plan reviews work on Zalo: each choice arrives as a short
+  code such as `/4821` to type back in the same chat. Only the operator's code counts, and a second
+  answer says it was already answered or has expired.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

@@ -1776,6 +1776,8 @@
     "approvalDelegatedOnce": "Delegated child calls require approval for each dangerous action.",
     "approvalUnsupported": "⚠️ This channel cannot show approval buttons, so the action was blocked.",
     "approvalTimedOut": "⏳ Timed out - denied",
+    "choiceIntro": "Reply with one of these:",
+    "choiceGone": "That one was already answered or has expired, so nothing changed.",
     "deniedOutcome": "✗ Denied",
     "approvedOnceOutcome": "✓ Approved this once",
     "approvedRememberedOutcome": "★ Approved - remembered for this session",

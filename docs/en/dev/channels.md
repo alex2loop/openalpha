@@ -101,6 +101,17 @@ interface ChannelCapabilities {
 Declare these honestly. Claiming `canEdit` when you cannot is how a live progress line turns into forty
 duplicate messages.
 
+### Typed choices
+
+A channel without `inlineButtons` cannot show a keyboard, so `delivery/choices.ts` mints one four-digit
+code per button (`/4821`), keyed by chat, and the approval prompt and the plan review append them as
+lines. `handleTypedChoice` runs first in `route`, before the mention rule, and turns a live code into
+the same `ChannelCallbackQuery` a tap makes. Admission (`gate.admitCallback`) runs before the code is
+consumed, so a member who is not the operator leaves it live for the one who is; `discard` then drops
+the code and its siblings. Each entry carries the prompt's own `expiresAt` and the LRU only bounds
+memory, so the expiry is cleanup: the resolvers still decide, and an unknown request answers
+"already answered or expired".
+
 ### Button payloads
 
 `callback_data` is `action:rest`. Besides `abort` and the approval and plan decisions, `cmd:` carries a

@@ -40,6 +40,7 @@ export function definedOnly<T extends object>(value: T): DefinedOnly<T> {
 export interface LruMap<K, V> {
   get(key: K): V | undefined
   set(key: K, value: V): void
+  delete(key: K): void
   readonly size: number
   values(): IterableIterator<V>
   clear(): void
@@ -89,6 +90,9 @@ export function lruMap<K, V>(capacity: number, onEvict?: (value: V) => void): Lr
       while (map.size > capacity) {
         evictOldest(map, onEvict)
       }
+    },
+    delete(key) {
+      map.delete(key)
     },
     get size() {
       return map.size

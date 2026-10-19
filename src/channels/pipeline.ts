@@ -30,6 +30,7 @@ import type {
 import type { AgentRegistry, CostTracker, Runner, RunRegistry } from '@/engine/api'
 import { type ActiveSlashRuns, createActiveSlashRuns } from '@/channels/delivery/active-runs'
 import { dispatchCallbackQuery } from '@/channels/delivery/callbacks'
+import { createTextChoices, type TextChoices } from '@/channels/delivery/choices'
 import { createGate } from '@/channels/delivery/gate'
 import { createInboundHandler } from '@/channels/delivery/inbound'
 import {
@@ -160,8 +161,9 @@ function createReplySender(
 
 function createOperatorSurfaces(
   deps: ChannelRuntimeDeps,
-  gate: Gate
+  surfaces: { readonly gate: Gate; readonly choices: TextChoices }
 ): Pick<Pipeline, 'proactive' | 'planReviewer'> {
+  const { gate, choices } = surfaces
   const { adapter, logger, locale, shutdownSignal } = deps
   const isOperatorUser = (userId: string | undefined, context: OperatorContext): boolean =>
     gate.isOperatorUser(userId, context)
@@ -174,6 +176,7 @@ function createOperatorSurfaces(
       channelId: adapter.id,
       locale,
       signal: shutdownSignal,
+      choices,
       isOperatorUser,
     }),
     planReviewer: createChannelPlanReviewer({
@@ -182,6 +185,7 @@ function createOperatorSurfaces(
       locale,
       logger,
       signal: shutdownSignal,
+      choices,
       isOperatorUser,
     }),
   }
@@ -216,12 +220,14 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
     locale,
   })
 
-  const { proactive, planReviewer } = createOperatorSurfaces(deps, gate)
+  const choices = createTextChoices(locale)
+  const { proactive, planReviewer } = createOperatorSurfaces(deps, { gate, choices })
   const slashRuns = createActiveSlashRuns()
   const handler = createInboundHandler(
     handlerDeps(deps, {
       gate,
       queue,
+      choices,
       proactive,
       planReviewer,
       slashRuns,
@@ -336,6 +342,7 @@ function notify(notice: Notice, chatId: string, text: string): void {
 interface HandlerParts {
   readonly gate: Gate
   readonly queue: InboundQueue
+  readonly choices: TextChoices
   readonly proactive: ProactiveSubscription
   readonly planReviewer: ChannelPlanReviewer
   readonly slashRuns: ActiveSlashRuns
@@ -370,6 +377,7 @@ function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHand
     channelId: adapter.id,
     gate: parts.gate,
     queue: parts.queue,
+    choices: parts.choices,
     sessionQueue: deps.sessionQueue,
     sessions: deps.sessions,
     dispatcher: deps.dispatcher,

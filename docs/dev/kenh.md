@@ -100,6 +100,17 @@ interface ChannelCapabilities {
 Hãy khai trung thực. Khai `canEdit` mà thực tế không sửa được, đó chính là cách một dòng tiến độ đang
 chạy biến thành bốn mươi tin nhắn trùng nhau.
 
+### Lựa chọn gõ tay
+
+Kênh không có `inlineButtons` không hiện được bàn phím, nên `delivery/choices.ts` cấp một mã bốn chữ
+số cho mỗi nút (`/4821`), khóa theo chat, và ô xin phê duyệt cùng ô duyệt kế hoạch thêm chúng vào thành các
+dòng. `handleTypedChoice` chạy đầu tiên trong `route`, trước quy tắc nhắc tên, và biến một mã còn sống
+thành đúng `ChannelCallbackQuery` mà một lần bấm tạo ra. Khâu xét duyệt (`gate.admitCallback`) chạy trước
+khi mã bị dùng, nên một thành viên không phải operator để mã còn nguyên cho người đúng; sau đó `discard`
+bỏ mã cùng các mã anh em. Mỗi mục mang `expiresAt` của chính câu hỏi và LRU chỉ chặn bộ nhớ, nên hạn
+chỉ là dọn dẹp: các resolver vẫn quyết định, và một yêu cầu không biết thì trả lời "đã trả lời hoặc đã
+hết hạn".
+
 ### Dữ liệu nút bấm
 
 `callback_data` có dạng `action:rest`. Bên cạnh `abort` và các quyết định phê duyệt, kế hoạch, `cmd:`

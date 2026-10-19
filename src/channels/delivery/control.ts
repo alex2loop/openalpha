@@ -18,16 +18,59 @@ interface ControlHelpEntry {
   readonly description: string
 }
 
+/** Whether the query was admitted: a refused one reaches no resolver, so nothing it names is used. */
 export async function handleControlCallback(
   deps: InboundHandlerDeps,
   query: ChannelCallbackQuery
-): Promise<void> {
+): Promise<boolean> {
   if (!(await deps.gate.admitCallback(query))) {
     deps.logger.warn('inbound.callback_rejected', { channel: deps.channelId })
-    return
+
+    return false
   }
 
   await deps.onCallback(query)
+
+  return true
+}
+
+/** On a channel without a keyboard, a code the bot minted in this chat answers its prompt as a tap
+ *  would. Admission runs before the code is consumed, so a member who is not the operator leaves it
+ *  live for the one who is. True when the message was a code this path handled. */
+export async function handleTypedChoice(
+  deps: InboundHandlerDeps,
+  msg: InboundMessage
+): Promise<boolean> {
+  if (deps.adapter.capabilities.inlineButtons || !deps.choices.isCode(msg.text)) {
+    return false
+  }
+
+  const data = deps.choices.peek(msg.chatId, msg.text)
+  const query: ChannelCallbackQuery = {
+    channel: deps.channelId,
+    id: msg.messageId,
+    data: data ?? '',
+    from: msg.userId,
+    chatId: msg.chatId,
+    ...(msg.isGroup === undefined ? {} : { isGroup: msg.isGroup }),
+  }
+
+  if (data === undefined) {
+    // A code nobody here holds is the sender's own text unless they could have held one.
+    if (!(await deps.gate.admitCallback(query))) {
+      return false
+    }
+
+    await ackOrLog(deps, msg.chatId, t(deps.locale, 'channel.choiceGone'))
+
+    return true
+  }
+
+  if (await handleControlCallback(deps, query)) {
+    deps.choices.discard(msg.chatId, msg.text)
+  }
+
+  return true
 }
 
 export async function handleSessionControl(options: SessionControlOptions): Promise<boolean> {

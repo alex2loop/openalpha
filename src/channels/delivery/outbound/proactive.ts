@@ -1,3 +1,4 @@
+import type { TextChoices } from '@/channels/delivery/choices'
 import type { OperatorContext } from '@/channels/operator'
 import type { ChannelAdapter, ChannelOutbound, OutboundButton, SentRef } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
@@ -38,6 +39,8 @@ interface ProactiveDeps {
   readonly signal: AbortSignal
   /** Operator authority for an approval tap; fail closed when the chat is unconfigured. */
   readonly isOperatorUser: (userId: string | undefined, context: OperatorContext) => boolean
+  /** Typed codes for a channel without a keyboard; shared with the plan reviewer. */
+  readonly choices: TextChoices
 }
 
 export interface ApprovalResolution {
@@ -57,7 +60,8 @@ export interface ProactiveSubscription {
 
 interface PendingApproval {
   readonly chatId: string
-  readonly messageId: string | null
+  /** Null until the prompt lands; set by the send, which registers the entry before it starts. */
+  messageId: string | null
   /** Exactly what this prompt rendered; a callback naming anything else was not offered. */
   readonly allowed: readonly ApprovalDecision[]
   /** Tool line and detail, replayed under the outcome so the chat keeps what was authorized. */
@@ -180,7 +184,7 @@ interface ApprovalRequest {
 }
 
 interface PromptContext {
-  /** Every request owed a resolution; `null` until its prompt lands. */
+  /** Every request owed a resolution; `null` until its prompt is registered. */
   readonly outstanding: Map<string, PendingApproval | null>
   readonly signal: AbortSignal
 }
@@ -193,14 +197,6 @@ function handleRequest(deps: ProactiveDeps, event: ApprovalRequest, ctx: PromptC
 
   // Claimed before the async send, or concurrent requests all pass the cap check below.
   ctx.outstanding.set(event.requestId, null)
-
-  // No buttons, no way to answer: an unanswerable prompt stalls the run to its deadline.
-  if (!deps.adapter.capabilities.inlineButtons) {
-    failClosed(deps, ctx, event.requestId)
-    notifyUnsupported(deps, event.chatId, ctx.signal)
-
-    return
-  }
 
   if (ctx.outstanding.size > MAX_PENDING_PROMPTS) {
     deps.logger.warn('proactive.pending_full', { channel: deps.channelId })
@@ -235,55 +231,93 @@ async function promptForApproval(
   }
 
   const allowed = decisionsFor(event.scope, event.oneTime)
+  const buttons = approvalButtons(deps, event.requestId, allowed)
+  const choiceLines = deps.adapter.capabilities.inlineButtons
+    ? []
+    : deps.choices.offer({ chatId: event.chatId, buttons, expiresAt: event.expiresAt })
+
+  // No keyboard and no free code: an unanswerable prompt stalls the run to its deadline.
+  if (choiceLines.length === 0 && !deps.adapter.capabilities.inlineButtons) {
+    failClosed(deps, ctx, event.requestId)
+    notifyUnsupported(deps, event.chatId, ctx.signal)
+
+    return
+  }
+
   const title = t(locale, 'channel.approvalRequired')
   const policy = t(locale, resolveApprovalPolicyKey(event.scope))
-  // Two newlines join the three parts; what the fixed copy leaves is the detail's room.
+  const choiceText = choiceLines.join('\n')
+  // Newlines join the parts; what the fixed copy and the offered codes leave is the detail's room.
   const body = promptBody(
     locale,
     event,
-    deps.adapter.capabilities.maxTextLen - title.length - policy.length - 2
+    deps.adapter.capabilities.maxTextLen -
+      title.length -
+      policy.length -
+      2 -
+      (choiceText === '' ? 0 : choiceText.length + 1)
   )
+  const text = `${title}\n${body}\n${policy}${choiceText === '' ? '' : `\n${choiceText}`}`
+  // Registered before the send, so an answer typed while the prompt is still landing is heard.
+  const entry = registerPending(deps, ctx, { event, allowed, body })
   // A send that outlives the gate must not land buttons it has stopped listening for.
   const delivery = composeAbort([ctx.signal], sendWindowMs)
   const sent = await sendPastRateLimit(deps.adapter, {
     out: {
       channel: deps.channelId,
       chatId: event.chatId,
-      text: `${title}\n${body}\n${policy}`,
-      buttons: approvalButtons(deps, event.requestId, allowed),
+      text,
+      ...(choiceLines.length === 0 ? { buttons } : {}),
     },
     signal: delivery.controller.signal,
     expiresAt: event.expiresAt,
   }).finally(() => delivery.dispose())
 
-  const remainingMs = event.expiresAt - Date.now()
+  // Torn down, answered or expired mid-send: nothing left to attach the message to.
+  if (ctx.outstanding.get(event.requestId) === entry) {
+    entry.messageId = sent.messageId
+  }
+}
 
-  // Torn down or expired mid-send: registering now would leave live buttons that resolve nothing.
-  if (ctx.signal.aborted || remainingMs <= 0) {
-    failClosed(deps, ctx, event.requestId)
+interface PendingInput {
+  readonly event: ApprovalRequest
+  readonly allowed: readonly ApprovalDecision[]
+  readonly body: string
+}
 
-    return
+// The timer takes the buttons away when the gate gives up; the gate denies on its own timer.
+function registerPending(
+  deps: ProactiveDeps,
+  ctx: PromptContext,
+  input: PendingInput
+): PendingApproval {
+  const { event } = input
+  const timer = setTimeout(
+    () => {
+      const entry = ctx.outstanding.get(event.requestId)
+      ctx.outstanding.delete(event.requestId)
+
+      if (entry) {
+        editNotice(deps, entry, t(deps.locale, 'channel.approvalTimedOut')).catch(
+          (err: unknown) => {
+            deps.logger.debug('proactive.timeout_notice_failed', { err: formatErrForLog(err) })
+          }
+        )
+      }
+    },
+    Math.max(0, event.expiresAt - Date.now())
+  )
+  const entry: PendingApproval = {
+    chatId: event.chatId,
+    messageId: null,
+    allowed: input.allowed,
+    body: input.body,
+    timer,
   }
 
-  // Takes the buttons away when the gate gives up; the gate denies on its own timer.
-  const timer = setTimeout(() => {
-    const entry = ctx.outstanding.get(event.requestId)
-    ctx.outstanding.delete(event.requestId)
+  ctx.outstanding.set(event.requestId, entry)
 
-    if (entry) {
-      editNotice(deps, entry, t(locale, 'channel.approvalTimedOut')).catch((err: unknown) => {
-        deps.logger.debug('proactive.timeout_notice_failed', { err: formatErrForLog(err) })
-      })
-    }
-  }, remainingMs)
-
-  ctx.outstanding.set(event.requestId, {
-    chatId: event.chatId,
-    messageId: sent.messageId,
-    allowed,
-    body,
-    timer,
-  })
+  return entry
 }
 
 interface RateLimitedSend {
@@ -379,7 +413,17 @@ async function editNotice(
 ): Promise<void> {
   const { adapter } = deps
 
-  if (!(entry.messageId && adapter.capabilities.canEdit && adapter.edit)) {
+  // No edit to make on this channel: the outcome is a message of its own.
+  if (!(adapter.capabilities.canEdit && adapter.edit)) {
+    await adapter.send(
+      { channel: deps.channelId, chatId: entry.chatId, text: `${outcome}\n${entry.body}` },
+      { signal: deps.signal }
+    )
+
+    return
+  }
+
+  if (entry.messageId === null) {
     return
   }
 

@@ -1,5 +1,6 @@
 import type { ActiveSlashRuns } from '@/channels/delivery/active-runs'
 import type { FinalAnswer } from '@/channels/delivery/answer'
+import type { TextChoices } from '@/channels/delivery/choices'
 import type { Gate } from '@/channels/delivery/gate'
 import type { Exchange } from '@/channels/delivery/orchestrator'
 import type { InboundQueue } from '@/channels/delivery/queue'
@@ -22,6 +23,8 @@ export interface InboundHandlerDeps {
   readonly channelId: ChannelId
   readonly gate: Gate
   readonly queue: InboundQueue
+  /** Typed codes standing in for buttons on a channel without a keyboard. */
+  readonly choices: TextChoices
   readonly sessionQueue: SessionQueue
   readonly sessions: SessionOpener
   readonly dispatcher: SlashDispatcher

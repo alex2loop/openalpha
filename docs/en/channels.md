@@ -131,6 +131,14 @@ In a private chat with the operator, the bot mentions a new release at most once
 
 This works only for a daemon started with `start --background`, and only once the bot has no answer, research run, approval, brief or data refresh in progress; otherwise it asks you to try again. Only the operator may use it, as for `/trade`: without `operator_user_ids`, everyone the bot admits counts as the operator in their own private chat, so anyone sharing the bot should set it.
 
+## Approvals and plan reviews on Zalo
+
+Zalo has no buttons, so an approval prompt or a `/research thorough` plan arrives with short codes such
+as `/4821` for each choice. Type one back in the same chat to answer. A code works once, only for the
+operator, and only until the prompt times out; typing it again, or after the time is up, answers that it
+was already answered or has expired. Two prompts open at once get different codes, and answering one
+leaves the other's codes live.
+
 ## What happens to a message
 
 1. **It is saved first.** The message is written to a durable inbox before the chat app is told it was

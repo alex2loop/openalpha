@@ -130,6 +130,14 @@ Trong chat riêng với người vận hành, bot nhắc về bản mới nhiề
 
 Cách này chỉ dùng được với daemon bật bằng `start --background`, và chỉ khi bot không còn câu trả lời, lượt nghiên cứu, phê duyệt, bản tin hay lượt nạp dữ liệu nào đang dở; nếu không, bot nhờ bạn thử lại sau. Chỉ người vận hành dùng được, như `/trade`: không đặt `operator_user_ids` thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên ai dùng chung bot hãy đặt khóa này.
 
+## Phê duyệt và duyệt kế hoạch trên Zalo
+
+Zalo không có nút bấm, nên một ô xin phê duyệt hay một kế hoạch `/research thorough` đến kèm các mã ngắn
+như `/4821` cho từng lựa chọn. Gõ lại một mã trong cùng chat để trả lời. Mỗi mã dùng một lần, chỉ dành
+cho operator, và chỉ tới khi câu hỏi hết hạn; gõ lại lần nữa, hoặc sau khi hết giờ, sẽ nhận câu trả lời
+rằng câu đó đã được trả lời hoặc đã hết hạn. Hai câu hỏi mở cùng lúc nhận hai bộ mã khác nhau, và trả
+lời một câu không làm mất mã của câu kia.
+
 ## Một tin nhắn đi qua những bước nào
 
 1. **Lưu trước.** Tin được ghi vào hộp nhận bền vững trước khi ứng dụng chat được báo là đã nhận. Sập
