@@ -30,6 +30,7 @@ export const zaloDefinition: ChannelDefinition<ResolvedZaloConfig> = {
   create(config: ResolvedZaloConfig, context: ChannelContext) {
     return createZaloAdapter({
       token: resolveSecret(config, context.env),
+      ...(config.token_env === undefined ? {} : { tokenEnv: config.token_env }),
       inbox: context.inbox,
       logger: context.logger,
     })

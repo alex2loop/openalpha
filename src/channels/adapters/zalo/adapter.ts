@@ -36,6 +36,7 @@ const ZALO_RATE_LIMIT_RETRY_MS = 5_000
 
 interface CreateZaloAdapterOptions {
   readonly token: string
+  readonly tokenEnv?: string
   readonly inbox: InboundInbox
   readonly logger: Logger
 }
@@ -56,7 +57,7 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
       lifetimeSignal = signal
 
       if (!options.token) {
-        throw toTokenMissingError(ZALO_TOKEN_OWNER)
+        throw toTokenMissingError(ZALO_TOKEN_OWNER, options.tokenEnv)
       }
 
       await verifyToken(options, handlers, signal)

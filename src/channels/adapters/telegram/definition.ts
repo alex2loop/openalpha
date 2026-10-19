@@ -34,6 +34,7 @@ export const telegramDefinition: ChannelDefinition<ResolvedTelegramConfig> = {
 
     return createTelegramAdapter({
       token: resolveSecret(config, context.env),
+      ...(config.token_env === undefined ? {} : { tokenEnv: config.token_env }),
       pollOffsets: context.pollOffsets,
       inbox: context.inbox,
       logger: context.logger,

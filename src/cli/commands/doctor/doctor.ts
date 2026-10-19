@@ -19,6 +19,7 @@ import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { fail, success } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { probeConfig } from '@/core/config/load'
+import { setEnvCommand } from '@/core/config/resolve'
 import { type MessageKey, pluralKey, t } from '@/i18n'
 import { MIGRATIONS } from '@/persistence/api'
 
@@ -358,7 +359,7 @@ function probeChannel(options: {
       return {
         name,
         status: 'fail',
-        detail: t(options.locale, 'cli.doctorTokenNotResolved'),
+        detail: doctorTokenDetail(options.locale, data.token_env),
       }
     }
   }
@@ -368,6 +369,14 @@ function probeChannel(options: {
     status: 'ok',
     detail: t(options.locale, 'cli.doctorChannelEnabled'),
   }
+}
+
+function doctorTokenDetail(locale: Locale, tokenEnv: string | undefined): string {
+  if (tokenEnv === undefined) {
+    return t(locale, 'cli.doctorTokenNotResolved')
+  }
+
+  return t(locale, 'cli.doctorTokenEnvEmpty', { env: tokenEnv, command: setEnvCommand(tokenEnv) })
 }
 
 function probeDeliveryAddressing(config: ResolvedConfig, locale: Locale): DoctorProbe {
