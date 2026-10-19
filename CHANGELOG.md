@@ -15,9 +15,11 @@ a missing key for a fallback model is only a warning.
 
 ### Setup
 
-- `onboard` lists are picked with ↑ and ↓ and Enter, and a value not on the list (another currency,
+- `onboard` lists are picked with ↑ and ↓ and Enter, ← goes back to the list question before it with the earlier answer marked, and a value not on the list (another currency,
   model or provider) is the last line, which then asks you to type it. Without a terminal the list
   stays numbered.
+- Re-running `onboard` on an existing config comes back to its menu after each saved change, so several
+  parts can be changed in one go; "Done, exit" leaves, and declining a save keeps the file as it was.
 
 ### Fixes
 

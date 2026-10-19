@@ -15,7 +15,15 @@ import { closestName } from '@/core/utils/text'
 import { t } from '@/i18n'
 
 import type { StarterModel } from './config-file'
-import { type AskContext, accept, askChoice, askUntilValid, type Parsed, refuse } from './ask'
+import {
+  type AskContext,
+  accept,
+  askChoice,
+  askUntilValid,
+  indexOrLast,
+  type Parsed,
+  refuse,
+} from './ask'
 
 // The short list a newcomer picks from; every other provider is one typed id away.
 const FEATURED_PROVIDERS = [
@@ -34,9 +42,18 @@ export interface ModelAnswer {
   readonly starter: StarterModel
 }
 
-export async function askModel(ctx: AskContext): Promise<ModelAnswer> {
-  const provider = await askProvider(ctx)
-  const model = await askModelName(ctx, provider)
+/** The model, endpoint and key variable for a picked provider; a previous answer for the same
+ *  provider is the marked default. */
+export async function askModelFor(
+  ctx: AskContext,
+  provider: ProviderEntry,
+  previous?: ModelAnswer
+): Promise<ModelAnswer> {
+  const model = await askModelName(
+    ctx,
+    provider,
+    previous?.provider.id === provider.id ? previous.starter.model : undefined
+  )
   const baseUrl = provider.baseUrl === '' ? await askBaseUrl(ctx) : undefined
   const apiKeyEnv = await askKeyEnv(ctx, provider, baseUrl ?? provider.baseUrl)
 
@@ -51,9 +68,13 @@ export async function askModel(ctx: AskContext): Promise<ModelAnswer> {
   }
 }
 
-async function askProvider(ctx: AskContext): Promise<ProviderEntry> {
+export async function askProvider(
+  ctx: AskContext,
+  previous?: ProviderEntry
+): Promise<ProviderEntry> {
   const featured = FEATURED_PROVIDERS.map(providerById)
   const keyed = featured.findIndex((provider) => isEnvSet(provider.apiKeyEnv))
+  const listed = featured.findIndex((provider) => provider.id === previous?.id)
 
   ctx.app.out(t(ctx.locale, 'cli.onboardProviderIntro'))
 
@@ -67,7 +88,7 @@ async function askProvider(ctx: AskContext): Promise<ProviderEntry> {
       })),
       { label: t(ctx.locale, 'cli.onboardOtherProvider'), value: undefined },
     ],
-    defaultIndex: Math.max(keyed, 0),
+    defaultIndex: previous === undefined ? Math.max(keyed, 0) : indexOrLast(listed, featured),
   })
 
   return picked ?? (await askOtherProvider(ctx))
@@ -102,7 +123,11 @@ function parseProviderId(answer: string, locale: Locale): Parsed<ProviderEntry> 
   )
 }
 
-async function askModelName(ctx: AskContext, provider: ProviderEntry): Promise<string> {
+async function askModelName(
+  ctx: AskContext,
+  provider: ProviderEntry,
+  previous?: string
+): Promise<string> {
   const known = knownModels(provider)
 
   if (known.length === 0) {
@@ -119,7 +144,7 @@ async function askModelName(ctx: AskContext, provider: ProviderEntry): Promise<s
       ...known.map((model) => ({ label: model, value: model })),
       { label: t(ctx.locale, 'cli.onboardModelOther'), value: undefined },
     ],
-    defaultIndex: 0,
+    defaultIndex: previous === undefined ? 0 : indexOrLast(known.indexOf(previous), known),
   })
 
   return (

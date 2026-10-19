@@ -24,19 +24,23 @@ interface SelectQuestion<O extends SelectOption> {
   readonly hint: string
   readonly options: readonly O[]
   readonly selected: number
+  /** Left goes back to the question before this one. */
+  readonly back?: true
 }
 
 type SelectKey =
   | { readonly kind: 'move'; readonly to: number }
   | { readonly kind: 'pick' }
+  | { readonly kind: 'back' }
   | { readonly kind: 'cancel' }
 
 /** Up and Down move the mark, Enter picks, Escape, Ctrl-C or a closed terminal cancels with the
- *  abort a cancelled question raises. Leaves one answered line in place of the menu. Raw mode, the
- *  cursor and every keypress listener another prompt held are restored on every path. */
+ *  abort a cancelled question raises. Leaves one answered line in place of the menu; undefined is
+ *  Left on a question that allows going back, and erases the menu. Raw mode, the cursor and every
+ *  keypress listener another prompt held are restored on every path. */
 export async function selectOption<O extends SelectOption>(
   question: SelectQuestion<O>
-): Promise<O> {
+): Promise<O | undefined> {
   const wasRaw = process.stdin.isRaw
   const restoreKeys = suspendKeypressListeners(process.stdin)
   let rows = 0
@@ -53,7 +57,10 @@ export async function selectOption<O extends SelectOption>(
     })
 
     clearRows(rows)
-    process.stdout.write(`${ask(question.question)} ${style.accent(picked.label)}\n`)
+
+    if (picked !== undefined) {
+      process.stdout.write(`${ask(question.question)} ${style.accent(picked.label)}\n`)
+    }
 
     return picked
   } finally {
@@ -66,12 +73,17 @@ export async function selectOption<O extends SelectOption>(
 function readSelection<O extends SelectOption>(
   question: SelectQuestion<O>,
   move: (to: number) => void
-): Promise<O> {
+): Promise<O | undefined> {
   let current = question.selected
 
   return new Promise((resolve, reject) => {
     const onKeypress = (_character: string | undefined, key: Key | undefined): void => {
-      const action = toSelectKey({ key, size: question.options.length, current })
+      const action = toSelectKey({
+        key,
+        size: question.options.length,
+        current,
+        back: question.back === true,
+      })
 
       if (action?.kind === 'move') {
         current = action.to
@@ -80,19 +92,21 @@ function readSelection<O extends SelectOption>(
       }
 
       if (action !== undefined) {
-        settle(action.kind === 'pick' ? question.options[current] : undefined)
+        settle(action.kind === 'pick' ? question.options[current] : action.kind)
       }
     }
-    const onEnd = (): void => settle(undefined)
-    const settle = (picked: O | undefined): void => {
+    const onEnd = (): void => settle('cancel')
+    const settle = (answer: O | 'back' | 'cancel' | undefined): void => {
       process.stdin.off('keypress', onKeypress)
       process.stdin.off('end', onEnd)
 
-      if (picked === undefined) {
+      if (answer === 'back') {
+        resolve(undefined)
+      } else if (answer === 'cancel' || answer === undefined) {
         // The same DOM abort a cancelled readline question raises, which callers already read.
         reject(AbortSignal.abort().reason)
       } else {
-        resolve(picked)
+        resolve(answer)
       }
     }
 
@@ -105,10 +119,11 @@ interface KeyInput {
   readonly key: Key | undefined
   readonly size: number
   readonly current: number
+  readonly back: boolean
 }
 
 function toSelectKey(input: KeyInput): SelectKey | undefined {
-  const { key, size, current } = input
+  const { key, size, current, back } = input
   const step = key?.name === undefined ? undefined : STEP_BY_KEY[key.name]
 
   if (step !== undefined) {
@@ -117,6 +132,10 @@ function toSelectKey(input: KeyInput): SelectKey | undefined {
 
   if (key?.name === 'return' || key?.name === 'enter') {
     return { kind: 'pick' }
+  }
+
+  if (back && key?.name === 'left') {
+    return { kind: 'back' }
   }
 
   if (key?.name === 'escape' || (key?.ctrl === true && key.name === 'c')) {

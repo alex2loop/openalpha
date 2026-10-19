@@ -5,12 +5,15 @@ import type { Locale } from '@/core/types/locale'
 import { fail, hint, style } from '@/cli/ui/colors'
 import { isInteractiveTerminal } from '@/cli/ui/ghost-prompt'
 import { MENU_MARKER, selectOption } from '@/cli/ui/select'
+import { AppError } from '@/core/errors'
 import { t } from '@/i18n'
 
 export interface AskContext {
   readonly app: CliApp
   readonly prompt: PromptFn
   readonly locale: Locale
+  /** A list question may go back to the one before it, which the caller asks again. */
+  readonly canGoBack?: true
 }
 
 /** An accepted answer, or the line that says why it was refused. */
@@ -26,6 +29,17 @@ interface ChoiceQuestion<T> {
   readonly question: string
   readonly choices: readonly Choice<T>[]
   readonly defaultIndex: number
+}
+
+/** Left on a list question: the caller asks the question before it again. */
+export class StepBack extends AppError {
+  readonly code = 'onboard.step_back'
+}
+
+/** Where a previous answer sits in a list whose last line is "another...": off the list, it was
+ *  typed on that last line. */
+export function indexOrLast(index: number, listed: readonly unknown[]): number {
+  return index === -1 ? listed.length : index
 }
 
 export function accept<T>(value: T): Parsed<T> {
@@ -62,10 +76,15 @@ export async function askChoice<T>(ctx: AskContext, question: ChoiceQuestion<T>)
 
   const picked = await selectOption({
     question: question.question,
-    hint: t(ctx.locale, 'cli.onboardSelectHint'),
+    hint: t(ctx.locale, ctx.canGoBack ? 'cli.onboardSelectHintBack' : 'cli.onboardSelectHint'),
     options: question.choices,
     selected: question.defaultIndex,
+    ...(ctx.canGoBack ? { back: true } : {}),
   })
+
+  if (picked === undefined) {
+    throw new StepBack('the operator went back to the previous question')
+  }
 
   return picked.value
 }

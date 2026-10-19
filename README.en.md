@@ -84,27 +84,29 @@ https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
 
 ## Quick start
 
-All you need is a Mac, a Linux machine or Windows 10/11 (ARM machines need Windows 11), and one AI provider key. [OpenRouter](https://openrouter.ai) has free models too; a paid model usually costs a few dollars a month.
+All you need is a Mac, a Linux machine or Windows 10/11 (ARM machines need Windows 11), and one AI key: sign up at [OpenRouter](https://openrouter.ai) and create one at [openrouter.ai/keys](https://openrouter.ai/keys) (keep it like a password). OpenRouter has free models too; a paid model usually costs a few dollars a month.
 
 ### Try it in 3 commands
 
-Open a terminal (macOS: press ⌘ + Space and type `Terminal`; Windows: open PowerShell from the Start menu), paste each line and press Enter:
+Open a terminal (macOS: press ⌘ + Space and type `Terminal`; Windows: open PowerShell from the Start menu), use the one block for your machine, paste each line and press Enter. Anything after `#` is a note, not something to type:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux: install, then open a new terminal
-openalpha key set OPENROUTER_API_KEY   # paste your AI key (from openrouter.ai/keys); it is remembered. Skip it if setup already saved the key
-openalpha chat                    # then type /refresh, and once it finishes, /suggest FPT
+openalpha key set OPENROUTER_API_KEY   # paste the key and press Enter (nothing shows, that's normal); skip if setup saved it
+openalpha chat                    # then type /refresh (about 5 minutes), then /suggest FPT
 ```
 
 ```powershell
 powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows: install, then open a new PowerShell window
-openalpha key set OPENROUTER_API_KEY   # paste your AI key (from openrouter.ai/keys); it is remembered. Skip it if setup already saved the key
-openalpha chat                    # then type /refresh, and once it finishes, /suggest FPT
+openalpha key set OPENROUTER_API_KEY   # paste the key and press Enter (nothing shows, that's normal); skip if setup saved it
+openalpha chat                    # then type /refresh (about 5 minutes), then /suggest FPT
 ```
 
 That is enough to see a suggestion. For one sized to your own money, also do step 4 below.
 
 ### Full setup in 5 steps
+
+Already ran the 3 commands above? Start at step 3.
 
 **1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
 
@@ -132,7 +134,7 @@ openalpha doctor --online              # sends the model one short test message
 /setup       # pick your risk level and the markets you trade
 ```
 
-**4. Record the money you have, for the markets you trade.** Every suggestion is sized from this book, so don't skip it. Lines starting with `/` go into `openalpha chat` (or Telegram, Zalo), not straight into the terminal.
+**4. Record the money you have, for the markets you trade.** Every suggestion is sized from this book, so don't skip it. It is only a record on your machine; no money moves. Lines starting with `/` go into `openalpha chat` (or Telegram, Zalo), not straight into the terminal.
 
 <details open>
 <summary><b>Vietnamese stocks</b></summary>
@@ -140,11 +142,11 @@ openalpha doctor --online              # sends the model one short test message
 ```text
 /record deposit vps 100000000 VND 2026-08-14              # 100 million VND into the VPS account
 /suggest FPT                                              # take a deep look at one name
-/record buy FPT 100 62000                                 # place the order yourself, record it once it fills (venue, VND and today filled in)
-/record sell FPT all 65000                                # sell it all once the shares have settled (T+2); for part of it, give a quantity instead of all
+/record buy FPT 100 62000                                 # place the order in your VPS app, record it here once it fills (venue, VND, today filled in)
+/record sell FPT all 65000                                # sell it all once the shares settle (T+2: two working days later); for part, give a quantity
 ```
 
-Prices are in whole VND: a board price of `62.00` is recorded as `62000`, and a price ten times or more away from the latest one is asked back before it is saved. Leave the fee out and the book prices it. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
+Prices are in whole VND: a board price of `62.00` is recorded as `62000`, and a price ten times or more away from the latest one is asked back before it is saved. Leave the fee out and the book prices it. Only at VPS? Skip the rest of this section. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
 
 ```toml
 [trading.venues.ssi]
@@ -177,7 +179,7 @@ VND paid into the exchange: a USDT buy converts at that day's market rate. The a
 
 - New to crypto? A round trip from USDT deposit to withdrawal, currency moves and checking USDT against the exchange: [trading guide](docs/en/trading.md#foreign-cash-at-a-venue).
 - `binance` and `okx` are built in. For another exchange (Bybit, Bitget...), declare it like SSI above, with `markets = ["crypto"]` and `fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }`.
-- With Binance or OKX API keys set, `/record sync binance` pulls in your fills, and `/trade` stages an order for you to approve:
+- With Binance or OKX API keys set, `/record sync binance` pulls in your fills, and `/trade` stages a real order for you to approve:
 
 ```text
 /trade spot binance:BTC buy 0.001 limit 60000 tp 70000 sl 56000   # limit buy with take-profit and stop-loss
@@ -211,9 +213,9 @@ A few things that work the same in every market:
 - **Taking money out:** type `/record withdrawal` with the venue, amount, currency and date, for example `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day.
 - **Recorded something wrong?** Type `/transactions` to see each row's id. Fix it with `/update <id> ...`. To remove it, `/delete <id>` shows the row first so you can check, then `/delete <id> confirm`.
 - **Dividends, splits, moving cash between two places:** type `/record` on its own and it lists every kind of row and how to write each one.
-- **Just edited `config.toml`** (say, to add a broker or a gold shop)? Leave `openalpha chat` and open it again, and that's it. If OpenAlpha runs in the background, also run `openalpha restart --background`.
+- **Just edited `config.toml`** (say, to add a broker or a gold shop)? Type `/exit`, open `openalpha chat` again, and that's it. If OpenAlpha runs in the background, also run `openalpha restart --background`.
 
-**5. Turn on the morning brief.** `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
+**5. Turn on the morning brief (optional).** Type `/exit` to leave the chat, then run `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
 
 <details>
 <summary><b>Windows, minimal config, updates, uninstall</b></summary>

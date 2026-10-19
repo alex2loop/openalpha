@@ -84,27 +84,29 @@ https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
 
 ## Bắt đầu nhanh
 
-Bạn chỉ cần một máy macOS, Linux hoặc Windows 10/11 (máy chip ARM cần Windows 11), và một khóa API của nhà cung cấp AI. [OpenRouter](https://openrouter.ai) có cả mô hình miễn phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
+Bạn chỉ cần một máy macOS, Linux hoặc Windows 10/11 (máy chip ARM cần Windows 11), và một khóa AI: đăng ký [OpenRouter](https://openrouter.ai) rồi tạo khóa ở [openrouter.ai/keys](https://openrouter.ai/keys) (giữ như mật khẩu, đừng gửi ai). OpenRouter có cả mô hình miễn phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
 
 ### Thử ngay trong 3 lệnh
 
-Mở Terminal (macOS: nhấn ⌘ + Space, gõ `Terminal`; Windows: mở PowerShell từ menu Start), chép từng dòng vào rồi nhấn Enter:
+Mở Terminal (macOS: nhấn ⌘ + Space, gõ `Terminal`; Windows: mở PowerShell từ menu Start), chọn đúng một khối theo máy của bạn, chép từng dòng vào rồi nhấn Enter. Phần sau dấu `#` chỉ là ghi chú, không cần gõ:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux: cài đặt, xong thì mở terminal mới
-openalpha key set OPENROUTER_API_KEY   # dán khóa AI (lấy ở openrouter.ai/keys), máy nhớ luôn; lúc cài đã lưu khóa thì bỏ qua dòng này
-openalpha chat                    # rồi gõ /refresh, nạp xong thì gõ /suggest FPT
+openalpha key set OPENROUTER_API_KEY   # dán khóa rồi Enter (màn hình không hiện gì là bình thường); lúc cài đã lưu thì bỏ qua
+openalpha chat                    # rồi gõ /refresh (chờ khoảng 5 phút), xong thì gõ /suggest FPT
 ```
 
 ```powershell
 powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows: cài đặt, xong thì mở cửa sổ PowerShell mới
-openalpha key set OPENROUTER_API_KEY   # dán khóa AI (lấy ở openrouter.ai/keys), máy nhớ luôn; lúc cài đã lưu khóa thì bỏ qua dòng này
-openalpha chat                    # rồi gõ /refresh, nạp xong thì gõ /suggest FPT
+openalpha key set OPENROUTER_API_KEY   # dán khóa rồi Enter (màn hình không hiện gì là bình thường); lúc cài đã lưu thì bỏ qua
+openalpha chat                    # rồi gõ /refresh (chờ khoảng 5 phút), xong thì gõ /suggest FPT
 ```
 
 Như vậy là đủ để xem một đề xuất. Muốn đề xuất có khối lượng vừa với túi tiền của bạn thì làm thêm bước 4 bên dưới.
 
 ### Cài đầy đủ trong 5 bước
+
+Đã chạy 3 lệnh ở trên thì bắt đầu từ bước 3.
 
 **1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, tiền tệ của sổ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Tiền tệ chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được. Muốn đổi phần còn lại thì chạy `openalpha onboard`.
 
@@ -132,7 +134,7 @@ openalpha doctor --online              # gửi một tin ngắn để thử mô 
 /setup       # chọn mức rủi ro và thị trường bạn chơi
 ```
 
-**4. Ghi số tiền bạn có, theo thị trường bạn chơi.** Khối lượng của mọi gợi ý đều tính từ sổ này, nên đừng bỏ qua. Các dòng bắt đầu bằng `/` gõ trong `openalpha chat` (hoặc Telegram, Zalo), không gõ thẳng ở terminal.
+**4. Ghi số tiền bạn có, theo thị trường bạn chơi.** Khối lượng của mọi gợi ý đều tính từ sổ này, nên đừng bỏ qua. Đây chỉ là sổ ghi chép trong máy, không chuyển tiền thật. Các dòng bắt đầu bằng `/` gõ trong `openalpha chat` (hoặc Telegram, Zalo), không gõ thẳng ở terminal.
 
 <details open>
 <summary><b>Cổ phiếu Việt Nam</b></summary>
@@ -140,11 +142,11 @@ openalpha doctor --online              # gửi một tin ngắn để thử mô 
 ```text
 /record deposit vps 100000000 VND 2026-08-14              # nạp 100 triệu vào tài khoản VPS
 /suggest FPT                                              # soi một mã
-/record buy FPT 100 62000                                 # tự đặt lệnh, khớp rồi thì ghi lại (tự điền sàn, VND và hôm nay)
-/record sell FPT all 65000                                # bán hết khi cổ phiếu đã về (T+2); bán một phần thì ghi số lượng thay cho all
+/record buy FPT 100 62000                                 # đặt lệnh trên app VPS, khớp rồi ghi lại ở đây (tự điền sàn, VND, hôm nay)
+/record sell FPT all 65000                                # bán hết khi cổ phiếu đã về (T+2: sau 2 ngày làm việc); bán một phần thì ghi số lượng
 ```
 
-Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`; giá gõ lệch từ 10 lần trở lên so với giá đang giao dịch thì sổ hỏi lại trước khi lưu. Phí bỏ trống thì sổ tự tính. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:
+Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`; giá gõ lệch từ 10 lần trở lên so với giá đang giao dịch thì sổ hỏi lại trước khi lưu. Phí bỏ trống thì sổ tự tính. Chỉ dùng VPS thì bỏ qua phần còn lại của mục này. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:
 
 ```toml
 [trading.venues.ssi]
@@ -177,7 +179,7 @@ Nạp VND vào sàn thì lệnh mua bằng USDT được quy theo tỷ giá th�
 
 - Mới chơi crypto? Từng bước từ nạp USDT tới rút về, chênh lệch tỷ giá và đối chiếu USDT với sàn: [cẩm nang](docs/cam-nang.md#crypto-qua-p2p-từng-bước-cho-người-mới).
 - `binance` và `okx` có sẵn. Sàn khác (Bybit, Bitget...) thì khai như SSI ở trên, với `markets = ["crypto"]` và `fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }`.
-- Đã đặt khóa API của Binance hoặc OKX thì `/record sync binance` tự lấy lệnh đã khớp, và `/trade` dựng sẵn lệnh để bạn duyệt:
+- Đã đặt khóa API của Binance hoặc OKX thì `/record sync binance` tự lấy lệnh đã khớp, và `/trade` dựng sẵn lệnh thật để bạn duyệt:
 
 ```text
 /trade spot binance:BTC buy 0.001 limit 60000 tp 70000 sl 56000   # mua giới hạn, kèm chốt lời và cắt lỗ
@@ -211,9 +213,9 @@ Vài điều dùng được cho mọi thị trường:
 - **Rút tiền về:** gõ `/record withdrawal` kèm nơi giữ, số tiền, tiền tệ và ngày, ví dụ `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn viết theo kiểu năm-tháng-ngày.
 - **Lỡ ghi nhầm?** Gõ `/transactions` để thấy mã của từng dòng. Sửa bằng `/update <mã> ...`. Muốn xóa thì gõ `/delete <mã>` để xem lại cho chắc, rồi `/delete <mã> confirm`.
 - **Cổ tức, chia tách, chuyển tiền giữa hai nơi:** gõ riêng `/record`, trợ lý sẽ liệt kê đủ các kiểu ghi và cách viết từng kiểu.
-- **Vừa sửa `config.toml`** (ví dụ thêm công ty chứng khoán hay tiệm vàng)? Thoát `openalpha chat` rồi mở lại là xong. Nếu OpenAlpha đang chạy nền thì gõ thêm `openalpha restart --background`.
+- **Vừa sửa `config.toml`** (ví dụ thêm công ty chứng khoán hay tiệm vàng)? Gõ `/exit` để thoát rồi mở lại `openalpha chat` là xong. Nếu OpenAlpha đang chạy nền thì gõ thêm `openalpha restart --background`.
 
-**5. Bật bản tin sáng.** `openalpha start --background` để chương trình chạy nền (dữ liệu cũng tự nạp từ đó); `openalpha autostart enable` để nó tự chạy mỗi lần đăng nhập. Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó. `openalpha status` cho biết nó còn chạy không, `openalpha stop` để dừng. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
+**5. Bật bản tin sáng (không bắt buộc).** Gõ `/exit` để thoát chat, rồi chạy `openalpha start --background` để chương trình chạy nền (dữ liệu cũng tự nạp từ đó); `openalpha autostart enable` để nó tự chạy mỗi lần đăng nhập. Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó. `openalpha status` cho biết nó còn chạy không, `openalpha stop` để dừng. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
 
 <details>
 <summary><b>Windows, cấu hình tối giản, cập nhật, gỡ cài đặt</b></summary>

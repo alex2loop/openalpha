@@ -40,7 +40,7 @@ export type ConfigEdit =
   | { readonly kind: 'budget'; readonly dailyUsd: number }
   | { readonly kind: 'language'; readonly language: Locale }
 
-interface ExistingConfig {
+export interface ExistingConfig {
   readonly text: string
   readonly table: Table
 }

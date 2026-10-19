@@ -317,13 +317,13 @@ dấu nháy (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -
 
 `onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, nhà cung cấp AI và mô hình, URL endpoint nếu nhà cung
 cấp cần, tên biến môi trường chứa key, mức chi tối đa mỗi ngày ($2 nếu bạn không đổi) và, nếu muốn, một bot
-Telegram. Câu có danh sách thì bạn chọn bằng phím ↑ ↓ rồi nhấn Enter; muốn một giá trị không có sẵn (tiền
+Telegram. Câu có danh sách thì bạn chọn bằng phím ↑ ↓ rồi nhấn Enter, và ← quay lại câu danh sách trước đó với đáp án cũ vẫn được đánh dấu; muốn một giá trị không có sẵn (tiền
 tệ, mô hình hay nhà cung cấp khác) thì chọn dòng cuối rồi gõ vào. Không chạy trong terminal thì danh sách được
 đánh số và bạn gõ số. Trả lời sai thì nó hỏi lại chứ không dừng cả quá trình. Nếu key đã được đặt, nó gửi thử một tin
 ngắn tới mô hình; nếu bạn chọn gói ChatGPT, nó mời bạn đăng nhập ngay; cuối cùng nó in danh sách đánh số
 những việc còn lại.
 
-Chạy lại khi đã có cấu hình để đổi một phần: mô hình, bot Telegram, mức chi hoặc ngôn ngữ. Lần ghi lại này
+Chạy lại khi đã có cấu hình để đổi từng phần: mô hình, bot Telegram, mức chi hoặc ngôn ngữ. Lưu xong một phần thì menu hiện lại để bạn đổi tiếp, tới khi chọn "Xong, thoát"; ← ở câu danh sách đầu tiên của một phần đưa bạn về menu. Lần ghi lại này
 làm mất các dòng chú thích trong tệp, nên tệp cũ được sao lưu trước, nằm cạnh nó với tên
 `config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một bản sao lưu riêng; bản nào không cần nữa thì bạn cứ
 xóa. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình

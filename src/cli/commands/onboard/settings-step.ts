@@ -6,7 +6,7 @@ import { CURRENCY_CODE_PATTERN } from '@/core/config/resolve'
 import { LOCALES } from '@/core/types/locale'
 import { t } from '@/i18n'
 
-import { type AskContext, accept, askChoice, askUntilValid, refuse } from './ask'
+import { type AskContext, accept, askChoice, askUntilValid, indexOrLast, refuse } from './ask'
 import { parseEnvName } from './model-step'
 
 const TELEGRAM_TOKEN_ENV = 'TELEGRAM_BOT_TOKEN'
@@ -37,14 +37,16 @@ export async function askLanguage(ctx: AskContext): Promise<Locale> {
 
 /** The book's currency is fixed by the first saved profile, and nothing before onboard asks, so a USD
  *  user would lock into VND before touching config. VND leads; another 3-letter code may be typed. */
-export async function askCurrency(ctx: AskContext): Promise<string> {
+export async function askCurrency(ctx: AskContext, previous?: string): Promise<string> {
+  const listed: readonly string[] = CURRENCY_CHOICES
+
   const picked = await askChoice<string | undefined>(ctx, {
     question: t(ctx.locale, 'cli.onboardCurrencyQuestion'),
     choices: [
       ...CURRENCY_CHOICES.map((code) => ({ label: code, value: code })),
       { label: t(ctx.locale, 'cli.onboardCurrencyOther'), value: undefined },
     ],
-    defaultIndex: 0,
+    defaultIndex: previous === undefined ? 0 : indexOrLast(listed.indexOf(previous), listed),
   })
 
   return (
