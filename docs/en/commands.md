@@ -249,8 +249,8 @@ running but not ready yet (a slow data source) is left running: the command says
 and exits zero; one that never came up exits non-zero. `stop` and `status` work the same in both
 modes. A start prints the version it runs, the model, the channels it opens, the API port when
 `[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
-starts answering once market data has loaded; the log records when the channels open. `restart`
-takes the same `--background` flag.
+starts answering once market data has loaded; the log records when the channels open.
+`restart` takes the same `--background` flag.
 
 A missing key does not stop `start`. An unset key variable for a model (the main one, a tier or a
 fallback), for web search or for an MCP server, and a Telegram or Zalo bot token that is unset or that
