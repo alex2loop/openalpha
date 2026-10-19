@@ -6,6 +6,7 @@ import type { ProfilePatch } from '@/trading/kernel/operator/profile'
 import { LOCALES } from '@/core/types/locale'
 import { definedOnly } from '@/core/utils/collections'
 import { isResolvedDraft } from '@/trading/features/ledger/draft'
+import { resolveRecordVenue } from '@/trading/features/ledger/shorthand'
 import {
   CASH_TXN_KINDS,
   QUANTITY_TXN_KINDS,
@@ -302,20 +303,19 @@ function soleVenue(
   market: MarketRef,
   ctx: z.RefinementCtx
 ): VenueRef | undefined {
-  const candidates = venues.recordVenues(market)
-  const [only] = candidates
+  const resolved = resolveRecordVenue(venues.recordVenues(market))
 
-  if (candidates.length === 1 && only !== undefined) {
-    return only
+  if (resolved.kind === 'sole') {
+    return resolved.venue
   }
 
   ctx.addIssue({
     code: 'custom',
     path: ['venue'],
     message:
-      candidates.length === 0
+      resolved.kind === 'none'
         ? noHolderMessage(market)
-        : `more than one venue holds ${market}; name the one holding it: ${candidates.join(', ')}`,
+        : `more than one venue holds ${market}; name the one holding it: ${resolved.venues.join(', ')}`,
   })
 
   return undefined

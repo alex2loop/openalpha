@@ -588,8 +588,8 @@ thế với hai giá vốn. Dòng đó cũng nêu thị trường ngay trong cù
 
 ```text
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>
-/record buy|sell <sàn> <thị-trường:mã> <số lượng|all> <đơn giá> <tiền tệ> [phí] <ngày>
-/record rights <sàn> <thị-trường:mã> <số lượng> <đơn giá> <tiền tệ> <phí> <ngày>
+/record buy|sell [sàn] <mã> <số lượng|all> <đơn giá> [tiền tệ] [phí] [ngày]
+/record rights [sàn] <mã> <số lượng> <đơn giá> [tiền tệ] <phí> [ngày]
 /record dividend <sàn> <thị-trường:mã> <số tiền> <tiền tệ> <ngày>
 /record split|distribution <sàn> <thị-trường:mã> <thay-đổi-số-lượng> <ngày>
 /record transfer <từ-sàn> <đến-sàn> <số tiền> <tiền tệ> <phí> <ngày>
@@ -619,6 +619,13 @@ chia tách hay phân phối thì bị từ chối ở mọi thị trường. L�
 **Khối lượng được lưu đúng như bạn gõ**, nên hãy nhập con số sàn đã ghi có, không phải con số bạn đã đặt.
 Một sàn mang khóa giao dịch thì lấy dòng từ lệnh khớp duy nhất phù hợp. Lý do, và cách khớp lệnh đó, nằm
 ở [Giao dịch](giao-dich.md).
+
+**Dòng ngắn.** Bỏ sàn khi đúng một sàn giữ thị trường đó, bỏ tiền tệ để dùng tiền của thị trường, bỏ ngày để
+lấy hôm nay. Mã đứng một mình chỉ được tìm trong các danh sách đã lưu, trong các thị trường mà một sàn giữ
+(chỉ sàn được nêu, nếu có nêu), không gửi yêu cầu mạng nào, và chỉ được nhận khi đúng một thị trường khớp;
+nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Mọi xác nhận đều in thị trường cạnh mã. Dòng được
+mở rộng ra dạng đầy đủ trước khi đọc bất kỳ con số nào, nên số có dấu nhóm như `58.400` bị từ chối y như dạng
+đầy đủ. Ví dụ: `/record buy FPT 100 58400`.
 
 **Các loại dòng khác.** Phát hành quyền mua không được môi giới theo mức phí chuẩn, nên nó luôn tự nêu
 phí. `transfer` chuyển tiền giữa hai sàn của chính bạn mà không đụng tới tiền nạp ròng. Một lần chia tách

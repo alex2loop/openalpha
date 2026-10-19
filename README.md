@@ -132,7 +132,7 @@ openalpha doctor --online              # gửi một tin ngắn để thử mô 
 ```text
 /record deposit vps 100000000 VND 2026-08-14              # nạp 100 triệu vào tài khoản VPS
 /suggest FPT                                              # soi một mã
-/record buy vps equity-vn:FPT 100 62000 VND 2026-08-14    # tự đặt lệnh, khớp rồi thì ghi lại
+/record buy FPT 100 62000                                 # tự đặt lệnh, khớp rồi thì ghi lại (tự điền sàn, VND và hôm nay)
 ```
 
 Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`. Phí bỏ trống thì sổ tự tính. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:

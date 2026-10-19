@@ -62,6 +62,7 @@ interface TradingCommandDeps {
     PortfolioService,
     | 'record'
     | 'previewRecord'
+    | 'recordVenues'
     | 'update'
     | 'remove'
     | 'viewAbsolute'
@@ -241,6 +242,7 @@ function ledgerWriteCommands(deps: TradingCommandDeps): readonly SlashCommand[] 
       staged,
       baseCurrency,
       policy,
+      defaultRegion: deps.defaultRegion,
     }),
     createUpdateCommand({ portfolio, marketData, costs, baseCurrency }),
     createDeleteCommand({ portfolio, marketData, costs, ledger }),

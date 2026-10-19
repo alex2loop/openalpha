@@ -132,7 +132,7 @@ openalpha doctor --online              # sends the model one short test message
 ```text
 /record deposit vps 100000000 VND 2026-08-14              # 100 million VND into the VPS account
 /suggest FPT                                              # take a deep look at one name
-/record buy vps equity-vn:FPT 100 62000 VND 2026-08-14    # place the order yourself, record it once it fills
+/record buy FPT 100 62000                                 # place the order yourself, record it once it fills (venue, VND and today filled in)
 ```
 
 Prices are in whole VND: a board price of `62.00` is recorded as `62000`. Leave the fee out and the book prices it. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:

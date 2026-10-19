@@ -506,7 +506,8 @@ A scope narrowing a name is written `scope:ticker`, one token. `kernel/surface/s
 |---|---|---|
 | named field | every MCP tool input | JSON has named keys; `instrumentQueryInput` is the one ticker-and-optional-market pair |
 | `scope:ticker`, optional | `/price`, `/suggest`, `/alert`, `/watchlist`, `/rebalance`, `/trade` | disambiguates a name inside a variadic or labelled line |
-| `scope:ticker`, required | `/record`, `/update`, `instrumentInputOf` | a write states the market it books against |
+| `scope:ticker`, required | `/update`, `instrumentInputOf` | a write states the market it books against |
+| `scope:ticker`, optional, stored lists only | `/record` | a write may drop the market only when the lists already stored, among markets a venue holds, name exactly one; no network lookup; the confirmation names the market |
 | bare token, order-free | `/screen`, `/refresh`, `market_sentiment`, `sector_strength` | the market is the subject; no ticker to collide with |
 
 Markets and venues share `SLUG_RE`; `assertDistinctScopeNames` refuses, at composition, a venue id that also names a market. `/screen crypto` resolves market-before-kind by declaration order.

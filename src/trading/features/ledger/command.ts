@@ -18,7 +18,7 @@ import type {
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
-import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
+import type { CurrencyCode, Region, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
@@ -35,6 +35,7 @@ import {
   SYNC_ACTION,
 } from '@/trading/features/ledger/draft'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
+import { SHORTHAND_KEYS, toFullRecordLine } from '@/trading/features/ledger/shorthand'
 import { resolveVenueSync, type SkippedFill, type SyncedFill } from '@/trading/features/ledger/sync'
 import { renderSyncResult, renderSyncUnavailable } from '@/trading/features/ledger/sync-render'
 import { LEDGER_TXN_KINDS } from '@/trading/features/ledger/types'
@@ -45,7 +46,7 @@ const USAGE: 'slash.tradingRecordUsage' = 'slash.tradingRecordUsage'
 const VOID_TIMEOUT_MS = 30_000
 const CONFIRM_ACTION = 'confirm'
 
-type Recorder = Pick<PortfolioService, 'record' | 'remove' | 'previewRecord'>
+type Recorder = Pick<PortfolioService, 'record' | 'remove' | 'previewRecord' | 'recordVenues'>
 
 interface RecordCommandDeps extends FxStageDeps {
   readonly portfolio: Recorder
@@ -53,6 +54,7 @@ interface RecordCommandDeps extends FxStageDeps {
   readonly costs: TradingCosts
   readonly venues: VenueRegistry
   readonly markets: MarketRegistry
+  readonly defaultRegion: Region
   readonly ledger: Pick<LedgerStore, 'listAll' | 'findByIdempotency'>
   readonly logger: Logger
 }
@@ -68,7 +70,7 @@ export function createRecordCommand(deps: RecordCommandDeps): SlashCommand {
   return {
     name: RECORD_COMMAND,
     description: { kind: 'localized', key: 'slash.tradingRecordHelp' },
-    messageKeys: [USAGE, ...LEDGER_ISSUE_KEYS],
+    messageKeys: [USAGE, ...SHORTHAND_KEYS, ...LEDGER_ISSUE_KEYS],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
@@ -92,7 +94,15 @@ async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashRes
     return { kind: 'text', text: await confirmStaged(deps, ctx) }
   }
 
-  const request = parseRecordRequest(ctx.args, deps.baseCurrency)
+  // One clock read for the shorthand's "today" and the write's validator, so they agree.
+  const now = Date.now()
+  const expanded = await toFullRecordLine(deps, { tokens: ctx.args, now, signal: ctx.signal })
+
+  if (expanded.kind === 'refused') {
+    return { kind: 'message', messages: expanded.messages }
+  }
+
+  const request = parseRecordRequest(expanded.tokens, deps.baseCurrency)
 
   if ('invalid' in request) {
     return recordUsage(deps, request.invalid)
@@ -102,7 +112,7 @@ async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashRes
   const outcome =
     'venue' in request
       ? { text: await runSync(deps, ctx, request.venue), staged: false }
-      : await recordDraft(deps, ctx, request.draft)
+      : await recordDraft(deps, ctx, { draft: request.draft, now })
 
   // Dropped only once the new command went through: a typo or a refusal leaves the held row
   // confirmable, and a newly held row has already replaced it.
@@ -139,9 +149,9 @@ function parseRecordRequest(args: readonly string[], baseCurrency: CurrencyCode)
 async function recordDraft(
   deps: RecordCommandDeps,
   ctx: SlashContext,
-  draft: LedgerTxnDraftInput
+  input: { readonly draft: LedgerTxnDraftInput; readonly now: number }
 ): Promise<{ readonly text: string; readonly staged: boolean }> {
-  const now = Date.now()
+  const { draft, now } = input
   const preview = await stageForFxRate(deps, ctx, { draft, now })
 
   if (preview !== undefined) {

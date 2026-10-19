@@ -51,6 +51,13 @@ SQLite book comes first.
   Windows Run key), so the brief and alerts survive a restart. The Linux and Windows launchers are
   untested on real machines.
 
+### Trading
+
+- `/record buy|sell|rights` takes shorter lines: leave out the venue when one holds the market, the
+  currency, and the date (`/record buy FPT 100 58400`). A bare ticker is found only in lists already
+  stored, never over the network, and only when exactly one market matches. Every confirmation now prints
+  the market beside the ticker.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

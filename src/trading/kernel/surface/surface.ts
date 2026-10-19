@@ -153,8 +153,10 @@ export function parseVenueTickerRequest(raw: string | undefined): VenueTickerReq
 }
 
 /** `market:ticker` with the market required: a ledger row states the market it books against rather
- *  than resolving one, because the row re-bases every reading taken from the book. Brands only —
- *  `ledger/validate.ts` owns membership, which keeps this parser pure and config-free. */
+ *  than resolving one, because the row re-bases every reading taken from the book. `/record` alone
+ *  may drop the market, and only after `ledger/shorthand.ts` has settled it from the stored lists
+ *  and written it back in. Brands only - `ledger/validate.ts` owns membership, which keeps this
+ *  parser pure and config-free. */
 export function parseQualifiedInstrument(raw: string | undefined): InstrumentRef | null {
   const scoped = splitScopedTicker(raw)
 

@@ -860,7 +860,7 @@ A deposit in a venue's quote currency, such as `/record deposit binance 1000 USD
 A crypto round trip, step by step, with the rate you paid recorded once, on the deposit:
 
 1. **Deposit USDT with the rate you paid.** `/record deposit binance 1000 USDT 2026-08-14 fx 26600`.
-2. **Buy with that USDT, no `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14`. It
+2. **Buy with that USDT, no `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14` (or `/record buy binance BTC 0.01 60000`, when BTC is listed in one market only). It
    spends the USDT at its cost; an `fx` here is refused with the reason.
 3. **Sell back into USDT.** `/record sell binance crypto:BTC all 65000 USDT 2026-09-01`.
 4. **Withdraw USDT with the rate you sold at.** `/record withdrawal binance 500 USDT 2026-09-20 fx 26900`

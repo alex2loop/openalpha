@@ -603,8 +603,8 @@ reading of the book.
 
 ```text
 /record deposit|withdrawal|fee|loss <venue> <amount> <currency> <day>
-/record buy|sell <venue> <market:ticker> <quantity|all> <unit-price> <currency> [fee] <day>
-/record rights <venue> <market:ticker> <quantity> <unit-price> <currency> <fee> <day>
+/record buy|sell [venue] <ticker> <quantity|all> <unit-price> [currency] [fee] [day]
+/record rights [venue] <ticker> <quantity> <unit-price> [currency] <fee> [day]
 /record dividend <venue> <market:ticker> <amount> <currency> <day>
 /record split|distribution <venue> <market:ticker> <quantity-delta> <day>
 /record transfer <from-venue> <to-venue> <amount> <currency> <fee> <day>
@@ -636,6 +636,13 @@ quantity held *at that venue* on that day. You may leave out the fee, and the ve
 **Quantity is stored as typed**, so enter the count the venue credited, not the one you ordered. A
 venue with exchange credentials takes the row from the one matching fill instead. Why, and how the
 fill is matched, is in [Trading](trading.md).
+
+**Short lines.** Leave out the venue when exactly one holds the market, the currency to use the market's, and
+the day for today. A bare ticker is looked up only in the lists already stored, among the markets a venue
+holds (only the named venue's, when one is named), with no network request, and is accepted only when exactly
+one market matches; otherwise the reply names the `market:ticker` forms to type. Every confirmation prints
+the market beside the ticker. The line expands to the full form before any number is read, so a grouped
+number such as `58.400` is refused exactly as in the full form. Example: `/record buy FPT 100 58400`.
 
 **Other row types.** A rights issue is not brokered at the standard rate, so it always states its
 fee. A `transfer` moves cash between two of your own venues without touching net deposits. A 2:1
