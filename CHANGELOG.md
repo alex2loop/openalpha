@@ -19,6 +19,11 @@ SQLite book comes first.
   and the system commands (`/help`, `/stop` and the rest) close the list. The menu now lists `/help`
   and `/stop` too.
 
+- Buttons where no money moves: the rate check of a USDT `/record` and a proposed `/themes` theme
+  each offer their confirm as a button (a typed line on Zalo and the terminal).
+- `/delete <id>` now shows the row first; `/delete <id> confirm` removes it. Scripts that delete in one
+  step must add `confirm`.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

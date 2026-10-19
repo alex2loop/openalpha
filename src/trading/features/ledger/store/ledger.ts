@@ -62,6 +62,7 @@ interface LedgerPatch {
 }
 
 export interface LedgerStore {
+  findById(id: LedgerEntryId, signal: AbortSignal): Promise<LedgerEntry | null>
   findByIdempotency(options: FindByIdempotencyOptions): Promise<StoredLedgerRequest | null>
   insertValidated(
     insert: LedgerInsert,
@@ -104,6 +105,7 @@ interface LedgerStoreDeps extends StoreDeps {
 
 export function createLedgerStore(deps: LedgerStoreDeps): LedgerStore {
   return {
+    findById: (id, signal) => findById(deps, id, signal),
     findByIdempotency: (options) => findByIdempotency(deps, options),
     insertValidated: (insert, assertValid, signal) =>
       insertValidated(deps, { subject: insert, assertValid, signal }),
@@ -117,6 +119,22 @@ export function createLedgerStore(deps: LedgerStoreDeps): LedgerStore {
     listIdsMatching: (ref, signal) => listIdsMatching(deps, ref, signal),
     listPage: (options) => listPage(deps, options),
   }
+}
+
+async function findById(
+  deps: LedgerStoreDeps,
+  id: LedgerEntryId,
+  signal: AbortSignal
+): Promise<LedgerEntry | null> {
+  assertNotAborted(signal)
+
+  const rows = await deps.db.query<LedgerRow>(
+    `SELECT * FROM ledger_entries WHERE id = ${deps.dialect.param(1)}`,
+    [id]
+  )
+  const row = rows[0]
+
+  return row ? toEntry(row) : null
 }
 
 async function findByIdempotency(

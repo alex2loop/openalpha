@@ -45,6 +45,11 @@ export interface LedgerMutateDeps extends LedgerWriteDeps {
   readonly exitPlans: ExitPlanner
 }
 
+/** All that finding a row by ref needs of the store. */
+interface LedgerReader {
+  readonly ledger: Pick<LedgerStore, 'findById' | 'listIdsMatching'>
+}
+
 /** What a full UUIDv7 id or a slice of its tail can be made of. Checked before the lookup because
  *  the store matches a handle with `LIKE`, where an unfiltered `%` or `_` from an operator would
  *  become a wildcard and could resolve to a row they never named. */
@@ -265,11 +270,29 @@ async function recordEntry(
     : { entry: result.entry, duplicateOf: result.duplicateOf }
 }
 
+/** The row a ref names, for a caller that shows it before changing it. */
+export async function resolveEntry(
+  deps: LedgerReader,
+  options: { readonly ref: string; readonly signal: AbortSignal }
+): Promise<LedgerEntry> {
+  const id = await resolveEntryId(deps, options.ref, options.signal)
+  const entry = await deps.ledger.findById(id, options.signal)
+
+  if (entry === null) {
+    throw new ValidationError(`no ledger entry ${options.ref}`, {
+      key: 'errors.ledgerEntryUnknown',
+      params: { ref: options.ref },
+    })
+  }
+
+  return entry
+}
+
 /** Accepts the full id the agent reads out of history, or the short handle a human copies from a
  *  chat line. Ambiguity is refused rather than guessed — two entries answering to one handle is the
  *  case where picking either would silently edit the wrong trade. */
 async function resolveEntryId(
-  deps: LedgerMutateDeps,
+  deps: LedgerReader,
   ref: string,
   signal: AbortSignal
 ): Promise<LedgerEntryId> {

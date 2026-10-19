@@ -1,5 +1,11 @@
 import type { Logger } from '@/core/logging/logger'
-import type { CommandMessage, SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  Affordance,
+  CommandMessage,
+  SlashCommand,
+  SlashContext,
+  SlashResult,
+} from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { FxStageDeps } from '@/trading/features/ledger/confirm'
 import type { LedgerFieldIssue } from '@/trading/features/ledger/draft'
@@ -15,7 +21,7 @@ import type { TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 import type { MarketRegistry } from '@/trading/markets/types'
-import type { Venue, VenueRegistry } from '@/trading/venues/types'
+import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { parseIsoDay } from '@/core/utils/time'
@@ -30,10 +36,9 @@ import {
 } from '@/trading/features/ledger/draft'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { resolveVenueSync, type SkippedFill, type SyncedFill } from '@/trading/features/ledger/sync'
-import { renderSyncResult } from '@/trading/features/ledger/sync-render'
+import { renderSyncResult, renderSyncUnavailable } from '@/trading/features/ledger/sync-render'
 import { LEDGER_TXN_KINDS } from '@/trading/features/ledger/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
-import { renderVenueName } from '@/trading/render/format'
 
 const RECORD_COMMAND = 'record'
 const USAGE: 'slash.tradingRecordUsage' = 'slash.tradingRecordUsage'
@@ -105,7 +110,18 @@ async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashRes
     deps.staged.discard(ctx.sessionId)
   }
 
-  return { kind: 'text', text: held ? withDroppedNotice(ctx.locale, outcome.text) : outcome.text }
+  const text = held ? withDroppedNotice(ctx.locale, outcome.text) : outcome.text
+
+  return outcome.staged
+    ? { kind: 'text', text, affordances: [buildBookAffordance(ctx.locale)] }
+    : { kind: 'text', text }
+}
+
+function buildBookAffordance(locale: Locale): Affordance {
+  return {
+    label: t(locale, 'trading.render.affordance.bookRecord'),
+    command: `/${RECORD_COMMAND} ${CONFIRM_ACTION}`,
+  }
 }
 
 function parseRecordRequest(args: readonly string[], baseCurrency: CurrencyCode): RecordRequest {
@@ -229,32 +245,6 @@ async function runSync(
     marketData: deps.marketData,
     book: booked.book,
   })
-}
-
-interface SyncUnavailableInput {
-  readonly venue: VenueRef
-  readonly found: Venue | null
-  readonly known: readonly VenueRef[]
-}
-
-/** Why `/record sync` reads nothing from a venue: none by that name, one waiting for its key, or
- *  one traded by hand. */
-function renderSyncUnavailable(locale: Locale, input: SyncUnavailableInput): string {
-  const { found } = input
-
-  if (found === null) {
-    return t(locale, 'trading.render.ledger.syncUnknownVenue', {
-      venue: input.venue,
-      venues: input.known.join(', '),
-    })
-  }
-
-  const venue = renderVenueName(locale, found.manifest.id)
-  const missing = found.manifest.missingCredentials
-
-  return missing === undefined
-    ? t(locale, 'trading.render.ledger.syncByHand', { venue })
-    : t(locale, 'trading.render.ledger.syncKeyless', { venue, variables: missing.join(', ') })
 }
 
 /** What one pass over the fills left behind: the rows it wrote, the fills it could not write, and

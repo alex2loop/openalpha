@@ -502,7 +502,7 @@ The rest fit in a line.
 | `/setup` | `/setup` - what the assistant does and how to set it up |
 | `/record` | Writes a ledger row. See [The ledger](#the-ledger) |
 | `/update` | `/update <handle> <the same fields as /record>` - edit one entry in place, venue included. A row in a currency other than VND needs `fx <rate>` or `fx auto`. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
-| `/delete` | `/delete <handle>` - remove one entry |
+| `/delete` | `/delete <handle>` - show one entry; `/delete <handle> confirm` removes it |
 | `/transactions` | `/transactions [rows] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | `/portfolio nav 3m` - how your book has done: the return with deposits and withdrawals taken out, the deepest drop from a peak, and a yardstick from your own target mix. Default `3m` |

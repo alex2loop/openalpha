@@ -20,6 +20,7 @@ import { bindLocale } from '@/i18n'
 // Time we are willing to wait for the inbox drain to settle after the adapter has disposed. Past this the
 // runtime is considered stopped, but the late-settling task is still observed so it cannot leak silently.
 const CHANNEL_DRAIN_TIMEOUT_MS = 5_000
+const COMMAND_PREFIX = '/'
 
 interface RuntimeState {
   status: ChannelStatus
@@ -249,7 +250,7 @@ function visibleCommands(
 
   return sections.flatMap((section) =>
     section.entries.map((entry) => ({
-      name: entry.verb.replace(/^\//, ''),
+      name: entry.verb.slice(COMMAND_PREFIX.length),
       description: entry.description,
     }))
   )

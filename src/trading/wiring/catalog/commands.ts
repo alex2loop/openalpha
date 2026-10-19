@@ -105,7 +105,10 @@ interface TradingCommandDeps {
   readonly venues: VenueRegistry
   readonly config: TradingConfig
   readonly intradaySettings: IntradaySettingsStore
-  readonly ledger: Pick<LedgerStore, 'listAll' | 'findByIdempotency' | 'listIdsMatching'>
+  readonly ledger: Pick<
+    LedgerStore,
+    'listAll' | 'findById' | 'findByIdempotency' | 'listIdsMatching'
+  >
   readonly logger: Logger
   readonly defaultRegion: Region
   /** Absent when no exchange key is configured: `/trade` then only names the keys it needs. */
@@ -240,7 +243,7 @@ function ledgerWriteCommands(deps: TradingCommandDeps): readonly SlashCommand[] 
       policy,
     }),
     createUpdateCommand({ portfolio, marketData, costs, baseCurrency }),
-    createDeleteCommand({ portfolio, marketData, costs }),
+    createDeleteCommand({ portfolio, marketData, costs, ledger }),
   ]
 }
 
