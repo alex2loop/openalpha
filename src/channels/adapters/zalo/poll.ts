@@ -1,7 +1,6 @@
 import type { AdapterHandlers, InboundInbox, InboundMessage } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
 import { acceptInbound } from '@/channels/delivery/inbox-accept'
-import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
 import type { FetchFn, ZaloApiResponse, ZaloEvent } from './client'
@@ -89,10 +88,14 @@ async function pollOnce(deps: ZaloPollDeps, state: PollState): Promise<boolean> 
     return false
   }
 
-  state.authFailures = 0
-  state.backoffMs = POLL_BACKOFF_INITIAL_MS
+  resetPollState(state)
   deps.handlers.setStatus({ connected: true, lastError: null })
   return false
+}
+
+function resetPollState(state: PollState): void {
+  state.authFailures = 0
+  state.backoffMs = POLL_BACKOFF_INITIAL_MS
 }
 
 type AcceptOutcome = 'accepted' | 'dropped' | 'aborted'
@@ -158,6 +161,7 @@ async function handlePollFailure(
   // An idle long poll ends as a server answer: a quiet channel's only success, and what restores a
   // connection a network error marked down.
   if (res.error_code === LONG_POLL_TIMEOUT_ERROR_CODE) {
+    resetPollState(state)
     deps.handlers.setStatus({ connected: true, lastError: null })
 
     return false
@@ -165,11 +169,17 @@ async function handlePollFailure(
 
   if (res.error_code === ZALO_UNAUTHORIZED_CODE) {
     state.authFailures += 1
+    deps.logger.warn('zalo.poll_unauthorized', { failures: state.authFailures })
+
     if (state.authFailures >= AUTH_FAILURE_THRESHOLD) {
-      deps.handlers.setStatus({ connected: false, lastError: 'auth_failed' })
-      throw new ChannelError('get_updates_failed', 'zalo auth failure threshold reached')
+      deps.logger.error('zalo.auth_failed', { failures: state.authFailures })
+      deps.handlers.setStatus({ running: false, connected: false, lastError: 'auth_failed' })
+
+      return true
     }
+
     await backOff(deps, state)
+
     return false
   }
 
