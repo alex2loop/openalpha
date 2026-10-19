@@ -45,7 +45,9 @@ mỗi bên điền một phần.
 - **SQLite** (`persistence/engines/sqlite.ts`, `bun:sqlite`). Thứ tự pragma: `busy_timeout` 5000 ms
   đứng đầu (chuyển sang WAL cần một khóa, nên thời gian chờ phải được đặt trước), `journal_mode = WAL`,
   `synchronous = NORMAL`, `temp_store = MEMORY`, `cache_size` 4000 KiB, `mmap_size` 8 MiB,
-  `foreign_keys = ON`. Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`): ghi vào một thư mục
+  `foreign_keys = ON`. Lượt quét lưu giữ còn chạy `PRAGMA optimize` mỗi 6 giờ trên SQLite
+  (`optimizeSqlite` trong `persistence/upkeep.ts`, lỗi log `retention.optimize_failed`); không có timer của
+  engine. Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`): ghi vào một thư mục
   tạm `mkdtemp` (`.staging-*`, `0700`) cạnh đích, `chmod 0600`, rồi rename vào chỗ, vì `VACUUM INTO` theo umask
   chứ không theo đối số quyền và bản sao không được để người khác đọc được lúc đang ghi. `backupAndPrune`
   ghi một bản, xóa các thư mục tạm mồ côi và bỏ các bản cũ nhất quá `keep` (`KEEP_BACKUPS` là 7 nếu nơi gọi

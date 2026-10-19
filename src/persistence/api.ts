@@ -67,3 +67,4 @@ export {
   findTable,
   TABLE_NAME_WIDTH,
 } from '@/persistence/tables'
+export { optimizeSqlite } from '@/persistence/upkeep'

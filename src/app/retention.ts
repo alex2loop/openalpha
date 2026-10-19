@@ -7,7 +7,13 @@ import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
 import { pruneExpiredWorkspaceTmp } from '@/engine/api'
-import { BACKUPS_SUBDIR, backupAndPrune, newestBackupAt, runRetention } from '@/persistence/api'
+import {
+  BACKUPS_SUBDIR,
+  backupAndPrune,
+  newestBackupAt,
+  optimizeSqlite,
+  runRetention,
+} from '@/persistence/api'
 
 const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
 const DAILY_BACKUPS_SUBDIR = 'daily'
@@ -84,6 +90,21 @@ async function runRetentionSweep(
   }
 
   await backupDaily(app, logger)
+  await optimizeDatabase(app, logger)
+}
+
+// The sweep is the schedule: it runs every RETENTION_INTERVAL_MS. No engine timer, so there is nothing
+// to leak through a closed handle, and short commands do not pay for it.
+async function optimizeDatabase(app: App, logger: Logger): Promise<void> {
+  if (app.config.storage.engine !== 'sqlite') {
+    return
+  }
+
+  try {
+    await optimizeSqlite(app.resolve('storage'))
+  } catch (err: unknown) {
+    logger.warn('retention.optimize_failed', { err: formatErrForLog(err) })
+  }
 }
 
 // The margin keeps a sweep every RETENTION_INTERVAL_MS from sliding the copy to one every
