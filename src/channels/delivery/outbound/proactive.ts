@@ -29,6 +29,7 @@ import {
 const MAX_PENDING_PROMPTS = 256
 // Bounded: an absurd Retry-After would idle the prompt to its expiry.
 const MAX_RETRY_AFTER_MS = 30_000
+const PROMPT_LINE_BREAK = '\n'
 
 interface ProactiveDeps {
   readonly bus: EventBus
@@ -227,8 +228,6 @@ async function promptForApproval(
   event: ApprovalRequest,
   ctx: PromptContext
 ): Promise<void> {
-  const { locale } = deps
-
   // One read for the guard and the send's own deadline: they measure the same instant.
   const sendWindowMs = event.expiresAt - Date.now()
 
@@ -252,20 +251,7 @@ async function promptForApproval(
     return
   }
 
-  const title = t(locale, 'channel.approvalRequired')
-  const policy = t(locale, resolveApprovalPolicyKey(event.scope))
-  const choiceText = choiceLines.join('\n')
-  // Newlines join the parts; what the fixed copy and the offered codes leave is the detail's room.
-  const body = promptBody(
-    locale,
-    event,
-    deps.adapter.capabilities.maxTextLen -
-      title.length -
-      policy.length -
-      2 -
-      (choiceText === '' ? 0 : choiceText.length + 1)
-  )
-  const text = `${title}\n${body}\n${policy}${choiceText === '' ? '' : `\n${choiceText}`}`
+  const { text, body } = buildPromptText(deps, event, choiceLines)
   // Registered before the send, so an answer typed while the prompt is still landing is heard.
   const entry = registerPending(deps, ctx, { event, allowed, body })
   // A send that outlives the gate must not land buttons it has stopped listening for.
@@ -285,6 +271,24 @@ async function promptForApproval(
   if (ctx.outstanding.get(event.requestId) === entry) {
     entry.messageId = sent.messageId
   }
+}
+
+/** Title, detail, policy and any codes, one per line. The detail gets what the rest leave of the
+ *  channel's limit, separators included. */
+function buildPromptText(
+  deps: ProactiveDeps,
+  event: ApprovalRequest,
+  choiceLines: readonly string[]
+): { readonly text: string; readonly body: string } {
+  const title = t(deps.locale, 'channel.approvalRequired')
+  const policy = t(deps.locale, resolveApprovalPolicyKey(event.scope))
+  const fixed = [title, policy, ...choiceLines]
+  const room =
+    deps.adapter.capabilities.maxTextLen -
+    fixed.reduce((used, part) => used + part.length + PROMPT_LINE_BREAK.length, 0)
+  const body = promptBody(deps.locale, event, room)
+
+  return { body, text: [title, body, policy, ...choiceLines].join(PROMPT_LINE_BREAK) }
 }
 
 interface PendingInput {

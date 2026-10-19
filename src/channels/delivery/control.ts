@@ -1,6 +1,7 @@
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { SessionId } from '@/core/ids'
+import { replyChoiceGone } from '@/channels/delivery/choice-gone'
 import { commandHeadOf } from '@/commands/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
@@ -18,25 +19,21 @@ interface ControlHelpEntry {
   readonly description: string
 }
 
-/** Whether the query was admitted: a refused one reaches no resolver, so nothing it names is used. */
 export async function handleControlCallback(
   deps: InboundHandlerDeps,
   query: ChannelCallbackQuery
-): Promise<boolean> {
+): Promise<void> {
   if (!(await deps.gate.admitCallback(query))) {
     deps.logger.warn('inbound.callback_rejected', { channel: deps.channelId })
 
-    return false
+    return
   }
 
   await deps.onCallback(query)
-
-  return true
 }
 
 /** On a channel without a keyboard, a code the bot minted in this chat answers its prompt as a tap
- *  would. Admission runs before the code is consumed, so a member who is not the operator leaves it
- *  live for the one who is. True when the message was a code this path handled. */
+ *  would, through the same admission. True when the message was a code. */
 export async function handleTypedChoice(
   deps: InboundHandlerDeps,
   msg: InboundMessage
@@ -45,30 +42,34 @@ export async function handleTypedChoice(
     return false
   }
 
-  const data = deps.choices.peek(msg.chatId, msg.text)
+  const found = deps.choices.lookup(msg.chatId, msg.text)
+
+  // Never handed out in this chat: the sender's own text.
+  if (found === undefined) {
+    return false
+  }
+
   const query: ChannelCallbackQuery = {
     channel: deps.channelId,
     id: msg.messageId,
-    data: data ?? '',
+    data: found.kind === 'live' ? found.callbackId : '',
     from: msg.userId,
     chatId: msg.chatId,
     ...(msg.isGroup === undefined ? {} : { isGroup: msg.isGroup }),
   }
 
-  if (data === undefined) {
-    // A code nobody here holds is the sender's own text unless they could have held one.
-    if (!(await deps.gate.admitCallback(query))) {
-      return false
-    }
-
-    await ackOrLog(deps, msg.chatId, t(deps.locale, 'channel.choiceGone'))
+  if (found.kind === 'live') {
+    await handleControlCallback(deps, query)
 
     return true
   }
 
-  if (await handleControlCallback(deps, query)) {
-    deps.choices.discard(msg.chatId, msg.text)
+  // Only the operator could have held the code; anyone else typed four digits of their own.
+  if (!(await deps.gate.admitCallback(query))) {
+    return false
   }
+
+  await replyChoiceGone(deps, msg.chatId)
 
   return true
 }

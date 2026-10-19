@@ -14,6 +14,7 @@ import { pluralKey, t } from '@/i18n'
 import {
   BACKUPS_SUBDIR,
   backupAndPrune,
+  backupTarget,
   migrate,
   migrationStatus,
   resolveMigrationRollback,
@@ -195,14 +196,14 @@ function printMigrationRollbackBackup(app: CliApp, backup: MigrationRollbackBack
 }
 
 async function takeMigrationRollbackBackup(app: CliApp): Promise<MigrationRollbackBackup> {
-  const dir = join(app.config.paths.dataDir, BACKUPS_SUBDIR, PRE_ROLLBACK_SUBDIR)
+  const target = backupTarget(join(app.config.paths.dataDir, BACKUPS_SUBDIR, PRE_ROLLBACK_SUBDIR))
 
   try {
-    const path = await backupAndPrune({ db: app.resolve('storage'), dir })
+    await backupAndPrune({ db: app.resolve('storage'), target, logger: app.resolve('logger') })
 
-    return { kind: 'backed_up', path }
+    return { kind: 'backed_up', path: target }
   } catch (err: unknown) {
-    return { kind: 'failed', path: dir, err }
+    return { kind: 'failed', path: target, err }
   }
 }
 

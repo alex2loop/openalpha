@@ -4,12 +4,12 @@ import type {
   FillSource,
   LedgerTxnDraft,
   LedgerTxnDraftInput,
-  SELL_ALL,
   TradeTxnDraft,
   TradeTxnDraftInput,
 } from '@/trading/features/ledger/types'
 import type { TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { SELL_ALL } from '@/trading/kernel/surface/surface'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError, ValidationError } from '@/core/errors'

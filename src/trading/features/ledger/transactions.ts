@@ -22,10 +22,6 @@ const USAGE: 'slash.tradingTransactionsUsage' = 'slash.tradingTransactionsUsage'
 /** A page size is at most three digits, and a handle is six characters off a UUID tail - so a token
  *  is read as a count only where it could be one. */
 const COUNT_RE = /^\d{1,3}$/
-/** A full id or a slice of its tail. The last UUID group holds no hyphen, so a slice with one is at
- *  least thirteen characters, and a mistyped day (`2026-02-30`) is never looked up as a handle.
- *  Checked before the lookup because the store matches with `LIKE`, where `%` or `_` would be a
- *  wildcard. */
 const DAY_RANGE_SEPARATOR = '..'
 const LAST_DAYS_RE = /^(\d{1,3})d$/
 const TODAY_WINDOW = 'today'

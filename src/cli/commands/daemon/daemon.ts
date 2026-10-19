@@ -16,6 +16,7 @@ import {
   liveDaemonPid,
   removePidFile,
   requestDaemonStop,
+  restoreStalePidFile,
   watchStopRequest,
   writePidFile,
 } from '@/cli/daemon-guard'
@@ -46,6 +47,11 @@ const BACKGROUND_SPEC = {
     },
   },
 } as const
+
+/** Whether this start reached ready, which decides what its pid file leaves behind. */
+interface StartRun {
+  ready: boolean
+}
 
 export const startCommand: Command = createCommand({
   ...CLI_COMMAND_METADATA.start,
@@ -105,7 +111,8 @@ async function runDaemon(app: CliApp): Promise<number> {
 
   const logger = app.resolve('logger')
   const keyless = toKeylessItems(app.config, getEnv())
-  let wrotePidFile = false
+  const run: StartRun = { ready: false }
+  let claim: PidFileClaim | undefined
   let exitCode = 0
 
   // A second Ctrl-C while the drain is running means the operator is done waiting: leave now.
@@ -122,13 +129,11 @@ async function runDaemon(app: CliApp): Promise<number> {
   const unwatchStop = watchStopRequest(app, abortDaemon)
 
   try {
-    const claim = await writePidFile(app, process.pid)
-
-    wrotePidFile = true
+    claim = await writePidFile(app, process.pid)
     await clearReadyFile(app)
     printStartBanner(app, keyless)
 
-    await app.resolve('daemonTask').start(app.signal, toStartOptions(app, { keyless, claim }))
+    await app.resolve('daemonTask').start(app.signal, toStartOptions(app, { keyless, claim, run }))
   } catch (err: unknown) {
     logger.error('daemon.failed', { err: formatErrForLog(err) })
     app.err(style.error(terminalErrorMessage(err, locale)))
@@ -140,9 +145,10 @@ async function runDaemon(app: CliApp): Promise<number> {
     process.off('SIGTERM', onSignal)
     unwatchStop()
     abortDaemon()
-    const removed = wrotePidFile && (await removePidFile(app))
+    const removed =
+      claim !== undefined && (await releasePidFile(app, run.ready ? undefined : claim))
 
-    if (wrotePidFile && !removed) {
+    if (claim !== undefined && !removed) {
       logger.error('daemon.pid_cleanup_failed', { path: app.config.paths.dataDir })
       app.err(style.error(t(locale, 'cli.daemonPidCleanupFailed')))
       exitCode = 1
@@ -154,17 +160,43 @@ async function runDaemon(app: CliApp): Promise<number> {
   return exitCode
 }
 
+/** Drops this run's pid file. A start that never got ready puts back the stale file it reclaimed,
+ *  so the next start still tells the operator the run before it stopped unexpectedly. */
+async function releasePidFile(
+  app: CliApp,
+  unannounced: PidFileClaim | undefined
+): Promise<boolean> {
+  const removed = await removePidFile(app)
+
+  if (
+    removed &&
+    unannounced?.kind === 'reclaimed' &&
+    !(await restoreStalePidFile(app, unannounced.stale))
+  ) {
+    app.resolve('logger').warn('daemon.stale_pid_restore_failed', {
+      path: app.config.paths.dataDir,
+    })
+  }
+
+  return removed
+}
+
 /** What the daemon task is told about this start. The boot list is kept so a channel that drops
  *  later is written beside it in the ready file `status` reads. */
 function toStartOptions(
   app: CliApp,
-  start: { readonly keyless: readonly DegradedItem[]; readonly claim: PidFileClaim }
+  start: {
+    readonly keyless: readonly DegradedItem[]
+    readonly claim: PidFileClaim
+    readonly run: StartRun
+  }
 ): DaemonStartOptions {
-  const { keyless, claim } = start
+  const { keyless, claim, run } = start
   let bootDegraded: readonly DegradedItem[] = keyless
 
   return {
     onReady: (degraded) => {
+      run.ready = true
       bootDegraded = [...keyless, ...degraded]
       announceReady(app, bootDegraded)
     },

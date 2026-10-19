@@ -420,6 +420,8 @@ function announceUncleanStop(
   const target = delivery.defaultRecipient()
 
   if (target === undefined) {
+    logger.warn('daemon.unclean_stop_unannounced')
+
     return
   }
 

@@ -92,6 +92,10 @@ const MAXIMUM_PARSED_TICKERS = 100
  *  a scope reads exactly one way. */
 const SCOPE_QUALIFIER = ':'
 
+/** The whole settled position, in the quantity slot a count would occupy. Kernel vocabulary because
+ *  `/record` reads it and an exit alert writes it into the line it suggests. */
+export const SELL_ALL = 'all'
+
 interface ScopedTicker {
   readonly symbol: Ticker
   /** Raw, because which registry qualifies it is the caller's question, not this split's. */

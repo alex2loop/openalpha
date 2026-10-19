@@ -29,8 +29,8 @@ import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const ACTIONS = Object.freeze(['list', 'create', 'disable'] as const)
 const USAGE: 'slash.tradingAlertUsage' = 'slash.tradingAlertUsage'
-/** The most handles an ambiguous short id lists. */
-const MAXIMUM_LISTED_HANDLES = 3
+/** The most ids an ambiguous short id lists. */
+const MAXIMUM_LISTED_IDS = 3
 /** Ticker, condition, threshold. */
 const CREATE_ARGUMENTS = 3
 
@@ -244,7 +244,8 @@ async function runDisable(
   const resolved = await deps.alerts.resolveAlertRef(ref, ctx.signal)
 
   if (resolved.kind === 'several') {
-    const ids = resolved.ids.slice(0, MAXIMUM_LISTED_HANDLES).map(toIdHandle).join(', ')
+    // Full ids: two alerts can share a handle.
+    const ids = resolved.ids.slice(0, MAXIMUM_LISTED_IDS).join(', ')
 
     return { kind: 'message', messages: [{ key: 'slash.tradingAlertAmbiguous', values: { ids } }] }
   }

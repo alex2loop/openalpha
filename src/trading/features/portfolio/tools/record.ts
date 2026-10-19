@@ -7,7 +7,7 @@ import { createTool } from '@/core/tool'
 import { assertFxRateStated } from '@/trading/features/ledger/confirm'
 import { renderWriteReceipt } from '@/trading/features/ledger/render'
 import { renderDraftLine } from '@/trading/features/ledger/rows'
-import { SELL_ALL } from '@/trading/features/ledger/types'
+import { SELL_ALL } from '@/trading/kernel/surface/surface'
 import { ledgerIdempotencyKey } from '@/trading/kernel/surface/tool-approval'
 
 /** Answers with the receipt, so the model relays the rate the fee was checked against and a stated

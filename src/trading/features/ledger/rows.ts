@@ -20,9 +20,9 @@ import type { QuoteConvention } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { cashDeltaBase } from '@/trading/features/ledger/book'
 import { paysFromCurrencyCash } from '@/trading/features/ledger/fx-rate'
-import { SELL_ALL } from '@/trading/features/ledger/types'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { toIdHandle } from '@/trading/kernel/instrument'
+import { SELL_ALL } from '@/trading/kernel/surface/surface'
 import {
   formatCount,
   formatQuantity,

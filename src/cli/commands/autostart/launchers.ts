@@ -21,6 +21,9 @@ const XML_SPECIAL_RE = /[&<>]/g
 const SYSTEMD_ESCAPE_RE = /[\\"]/g
 const SYSTEMD_SPECIFIER_RE = /[%$]/g
 
+/** A tool and its arguments: the tool always comes first. */
+type ToolArgv = readonly [string, ...string[]]
+
 /** Starts `start --background` at login. Each platform keeps its own entry, named for the brand with
  *  an `-autostart` suffix, so it never overwrites the hand-written service the operations guide
  *  documents for an API server. */
@@ -48,14 +51,15 @@ function macLauncher(): Launcher {
   const domain = `gui/${process.getuid?.() ?? 0}`
 
   return {
-    isInstalled: () => exists(plist),
+    isInstalled: () => isPresent(plist),
     async install(argv): Promise<void> {
-      await writePrivate(plist, buildPlist(argv))
-      await runTool(['launchctl', 'bootout', `${domain}/${LABEL}`]).catch(() => undefined)
-      // Right after a bootout the bootstrap can fail with an I/O error; one retry settles it.
-      await runTool(['launchctl', 'bootstrap', domain, plist]).catch(async () => {
-        await sleep(BOOTSTRAP_RETRY_MS)
-        await runTool(['launchctl', 'bootstrap', domain, plist])
+      await writeAndRegister(plist, buildPlist(argv), async () => {
+        await runTool(['launchctl', 'bootout', `${domain}/${LABEL}`]).catch(() => undefined)
+        // Right after a bootout the bootstrap can fail with an I/O error; one retry settles it.
+        await runTool(['launchctl', 'bootstrap', domain, plist]).catch(async () => {
+          await sleep(BOOTSTRAP_RETRY_MS)
+          await runTool(['launchctl', 'bootstrap', domain, plist])
+        })
       })
     },
     async uninstall(): Promise<void> {
@@ -99,11 +103,12 @@ function linuxLauncher(): Launcher {
   const service = `${LABEL}.service`
 
   return {
-    isInstalled: () => exists(unit),
+    isInstalled: () => isPresent(unit),
     async install(argv): Promise<void> {
-      await writePrivate(unit, buildUnit(argv))
-      await runTool(['systemctl', '--user', 'daemon-reload'])
-      await runTool(['systemctl', '--user', 'enable', service])
+      await writeAndRegister(unit, buildUnit(argv), async () => {
+        await runTool(['systemctl', '--user', 'daemon-reload'])
+        await runTool(['systemctl', '--user', 'enable', service])
+      })
     },
     async uninstall(): Promise<void> {
       await runTool(['systemctl', '--user', 'disable', service]).catch(() => undefined)
@@ -169,30 +174,61 @@ function windowsLauncher(): Launcher {
   }
 }
 
-async function exists(path: string): Promise<boolean> {
+async function isPresent(path: string): Promise<boolean> {
   return await Bun.file(path).exists()
 }
 
-async function writePrivate(path: string, content: string): Promise<void> {
+/** Writes the entry, then registers it. A first install that fails takes its file back out, so
+ *  `status` never reports an entry the system was never told about. */
+async function writeAndRegister(
+  path: string,
+  content: string,
+  register: () => Promise<void>
+): Promise<void> {
+  const existed = await isPresent(path)
+
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, content, { mode: PRIVATE_FILE_MODE })
+
+  try {
+    await register()
+  } catch (err: unknown) {
+    if (!existed) {
+      await rm(path, { force: true }).catch(() => undefined)
+    }
+
+    throw err
+  }
 }
 
 /** Every external call has one bound; a non-zero exit is the operator's to read. */
-async function runTool(argv: readonly string[]): Promise<void> {
-  const child = Bun.spawn([...argv], {
-    stdout: 'ignore',
-    stderr: 'pipe',
-    signal: AbortSignal.timeout(LAUNCHER_TIMEOUT_MS),
-  })
+async function runTool(argv: ToolArgv): Promise<void> {
+  const [tool] = argv
+  const deadline = AbortSignal.timeout(LAUNCHER_TIMEOUT_MS)
+  const child = spawnTool(argv, deadline)
   const [stderr, code] = await Promise.all([new Response(child.stderr).text(), child.exited])
 
-  if (code !== 0) {
-    const detail = stderr.trim() || `${argv[0] ?? 'command'} exited with ${code}`
-
-    throw new OperatorConfigError(`autostart tool failed: ${detail}`, {
-      key: 'cli.autostartFailed',
-      params: { detail },
-    })
+  if (deadline.aborted) {
+    throw toolFailed(`${tool} did not finish within ${LAUNCHER_TIMEOUT_MS / MS_PER_SECOND}s`)
   }
+
+  if (code !== 0) {
+    throw toolFailed(stderr.trim() || `${tool} exited with ${code}`)
+  }
+}
+
+function spawnTool(argv: ToolArgv, signal: AbortSignal) {
+  try {
+    return Bun.spawn([...argv], { stdout: 'ignore', stderr: 'pipe', signal })
+  } catch {
+    // Spawn throws when the tool is not installed (no systemd in a container or WSL).
+    throw toolFailed(`${argv[0]} was not found`)
+  }
+}
+
+function toolFailed(detail: string): OperatorConfigError {
+  return new OperatorConfigError(`autostart tool failed: ${detail}`, {
+    key: 'cli.autostartFailed',
+    params: { detail },
+  })
 }

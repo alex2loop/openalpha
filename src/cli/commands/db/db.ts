@@ -26,6 +26,7 @@ import {
   BACKUPS_SUBDIR,
   backupAndPrune,
   backupSqlite,
+  backupTarget,
   countRetention,
   openPersistence,
   type RetentionConfig,
@@ -358,7 +359,11 @@ async function offerBackupBeforeReset(app: CliApp): Promise<void> {
 }
 
 async function backupToDataDir(app: CliApp, storage: Storage): Promise<string> {
-  return await backupAndPrune({ db: storage, dir: join(app.config.paths.dataDir, BACKUPS_SUBDIR) })
+  const target = backupTarget(join(app.config.paths.dataDir, BACKUPS_SUBDIR))
+
+  await backupAndPrune({ db: storage, target, logger: app.resolve('logger') })
+
+  return target
 }
 
 function resetTarget(storage: ResolvedStorageConfig): string {

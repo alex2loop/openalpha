@@ -18,11 +18,18 @@ const BYTE_ORDER_MARK = '\uFEFF'
 const LINE_BREAK_RE = /\r?\n/
 const EXPORT_PREFIX_RE = /^export\s+/
 const ESCAPED_RE = /\\(["\\])/g
+// A quoted value ends at its closing quote; only a `# comment` may follow it.
+const QUOTED_VALUE_RE = /^(?:"((?:[^"\\]|\\.)*)"|'([^']*)')\s*(?:#.*)?$/
+// Unquoted, `#` after whitespace starts a comment, as in a shell.
+const INLINE_COMMENT_RE = /\s+#.*$/
+/** What a loader or runtime reads to decide how a program starts. The file holds service keys, and
+ *  one of these would reach every child the CLI spawns, the background daemon included. */
+const RUNTIME_ENV_PREFIXES: readonly string[] = ['LD_', 'DYLD_', 'NODE_', 'BUN_']
+const RUNTIME_ENV_NAMES: ReadonlySet<string> = new Set(['PATH', 'HOME', 'SHELL', 'TMPDIR', 'TZ'])
 const QUOTE_NEEDED_RE = /[\s#"']/
 const ESCAPE_RE = /["\\]/g
 const OTHERS_MODE_MASK = 0o077
 const DOUBLE_QUOTE = '"'
-const SINGLE_QUOTE = "'"
 
 export interface KeyFile {
   readonly path: string
@@ -33,6 +40,7 @@ export interface KeyFile {
 export type EnvFileLoad =
   | { readonly kind: 'missing'; readonly file: KeyFile }
   | { readonly kind: 'open'; readonly file: KeyFile }
+  | { readonly kind: 'unreadable'; readonly file: KeyFile }
   | { readonly kind: 'loaded'; readonly file: KeyFile; readonly badLines: readonly number[] }
 
 interface EnvFileEntry {
@@ -56,8 +64,8 @@ export function loadEnvFile(path: string, env: NodeJS.ProcessEnv): EnvFileLoad {
     return { kind: 'missing', file: { path, loaded: new Set() } }
   }
 
-  if (text === null) {
-    return { kind: 'open', file: { path, loaded: new Set() } }
+  if (text === 'open' || text === 'unreadable') {
+    return { kind: text, file: { path, loaded: new Set() } }
   }
 
   const parsed = parseEnvText(text)
@@ -81,6 +89,8 @@ export function reportKeyFile(app: Pick<CliApp, 'config' | 'err'>, load: EnvFile
 
   if (load.kind === 'open') {
     app.err(warn(t(locale, 'cli.envFileOpen', { path })))
+  } else if (load.kind === 'unreadable') {
+    app.err(warn(t(locale, 'cli.envFileUnreadable', { path })))
   } else if (load.kind === 'loaded' && load.badLines[0] !== undefined) {
     app.err(warn(t(locale, 'cli.envFileBadLine', { path, line: load.badLines[0] })))
   }
@@ -123,8 +133,9 @@ export async function removeEnvFileValue(path: string, name: string): Promise<bo
   return true
 }
 
-/** undefined: no file. null: a file other users can read, which is not read at all. */
-function readPrivateText(path: string): string | null | undefined {
+/** undefined: no file. `open`: other users can read it, so it is not read at all. `unreadable`:
+ *  this user cannot open it (one left behind by `sudo`), which must not stop every command. */
+function readPrivateText(path: string): string | 'open' | 'unreadable' | undefined {
   let fd: number
 
   try {
@@ -132,6 +143,10 @@ function readPrivateText(path: string): string | null | undefined {
   } catch (err: unknown) {
     if (isErrno(err, 'ENOENT') || isErrno(err, 'ENOTDIR')) {
       return undefined
+    }
+
+    if (isErrno(err, 'EACCES') || isErrno(err, 'EPERM')) {
+      return 'unreadable'
     }
 
     throw err
@@ -145,7 +160,7 @@ function readPrivateText(path: string): string | null | undefined {
     }
 
     if (HAS_DIRECTORY_MODES && (info.mode & OTHERS_MODE_MASK) !== 0) {
-      return null
+      return 'open'
     }
 
     return readFileSync(fd, 'utf8')
@@ -181,7 +196,7 @@ function parseEnvText(text: string): ParsedEnv {
 
     if (entry === undefined) {
       badLines.push(index + 1)
-    } else if (!isReserved(entry.name)) {
+    } else if (!(isReserved(entry.name) || isRuntimeEnvName(entry.name))) {
       applyEntry(entries, entry)
     }
   }
@@ -193,6 +208,14 @@ function parseEnvText(text: string): ParsedEnv {
  *  a terminal daemon), and a systemd EnvironmentFile may hold them for the unit: skipped silently. */
 function isReserved(name: string): boolean {
   return name.startsWith(BRAND.envPrefix)
+}
+
+/** A name that steers how a program starts rather than which service it reaches: skipped when the
+ *  file loads, refused by `key set`. */
+export function isRuntimeEnvName(name: string): boolean {
+  return (
+    RUNTIME_ENV_NAMES.has(name) || RUNTIME_ENV_PREFIXES.some((prefix) => name.startsWith(prefix))
+  )
 }
 
 /** An empty value counts as unset, as it does in the environment, and unsets an earlier line. */
@@ -221,17 +244,15 @@ function parseEntry(line: string): { readonly name: string; readonly value: stri
 }
 
 function parseValue(raw: string): string {
-  const quote = raw[0]
+  const quoted = QUOTED_VALUE_RE.exec(raw)
 
-  if (raw.length < 2 || raw.at(-1) !== quote) {
-    return raw
+  if (quoted === null) {
+    return raw.replace(INLINE_COMMENT_RE, '')
   }
 
-  if (quote === DOUBLE_QUOTE) {
-    return raw.slice(1, -1).replace(ESCAPED_RE, '$1')
-  }
+  const [, double, single] = quoted
 
-  return quote === SINGLE_QUOTE ? raw.slice(1, -1) : raw
+  return double === undefined ? (single ?? '') : double.replace(ESCAPED_RE, '$1')
 }
 
 function formatValue(value: string): string {

@@ -166,6 +166,7 @@ index:Compactor
 index:ContentBlock
 index:CostTracker
 index:CurrencyCode
+index:DaemonStartOptions
 index:DaemonTask
 index:DeclarativeChannelSource
 index:DeclarativeSlashCommandSource

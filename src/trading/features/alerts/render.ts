@@ -8,6 +8,7 @@ import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
 import { pluralKey, t } from '@/i18n'
 import { parseExitLevel } from '@/trading/features/alerts/types'
 import { buildInstrumentKey, toIdHandle } from '@/trading/kernel/instrument'
+import { SELL_ALL } from '@/trading/kernel/surface/surface'
 import {
   formatCount,
   formatFraction,
@@ -25,9 +26,6 @@ import {
 import { renderMarketBlocks, toMarketBlocks } from '@/trading/render/market-blocks'
 import { formatPriceIn, quotedInOf, renderBoardScaleNotes } from '@/trading/render/money'
 
-/** The quantity `/record sell` reads as the whole position. Alerts may not import the ledger, which
- *  owns the token. */
-const SELL_WHOLE_POSITION = 'all'
 const EXIT_REACHED_KEYS = {
   stop: 'trading.exit.stopReached',
   target: 'trading.exit.targetReached',
@@ -144,8 +142,7 @@ function exitLines(locale: Locale, alert: DeliveringAlert): readonly string[] {
     return []
   }
 
-  const quantity =
-    level === 'stop' ? SELL_WHOLE_POSITION : t(locale, 'trading.exit.recordHintQuantity')
+  const quantity = level === 'stop' ? SELL_ALL : t(locale, 'trading.exit.recordHintQuantity')
 
   return [
     t(locale, EXIT_REACHED_KEYS[level]),

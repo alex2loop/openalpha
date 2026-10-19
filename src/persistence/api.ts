@@ -29,6 +29,7 @@ export {
   BACKUPS_SUBDIR,
   backupAndPrune,
   backupSqlite,
+  backupTarget,
   newestBackupAt,
 } from '@/persistence/backup'
 export {

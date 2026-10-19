@@ -80,6 +80,8 @@ export async function promptSecret(question: string, signal?: AbortSignal): Prom
   const restoreKeys = interactive ? suspendKeypressListeners() : undefined
   // Closing a readline pauses stdin; a prompt held open elsewhere needs it flowing again.
   const wasFlowing = process.stdin.readableFlowing === true
+  // Closing a terminal readline also leaves raw mode, which the held-open prompt needs back.
+  const wasRaw = process.stdin.isTTY && process.stdin.isRaw
   const rl = createInterface({
     input: process.stdin,
     output: interactive ? SILENT_OUTPUT : undefined,
@@ -104,6 +106,10 @@ export async function promptSecret(question: string, signal?: AbortSignal): Prom
   } finally {
     rl.close()
     restoreKeys?.()
+
+    if (wasRaw) {
+      process.stdin.setRawMode(true)
+    }
 
     if (wasFlowing) {
       process.stdin.resume()

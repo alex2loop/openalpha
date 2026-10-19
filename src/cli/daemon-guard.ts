@@ -37,9 +37,10 @@ interface ProcessIdentity {
   readonly startedAt?: number
 }
 
+/** `stale` is the file a reclaim removed, kept so a start that fails can put it back. */
 export type PidFileClaim =
   | { readonly kind: 'fresh' }
-  | { readonly kind: 'reclaimed'; readonly startedAt?: number }
+  | { readonly kind: 'reclaimed'; readonly stale: string; readonly startedAt?: number }
 
 export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version' | 'background' | 'configPath'>
 
@@ -179,13 +180,13 @@ async function tryCreatePidFile(pidPath: string, identity: ProcessIdentity): Pro
   }
 }
 
-// 'retry': the file is gone but not by our hand (another reader removed it, or it changed) - try the
-// create again. 'reclaimed': we removed a stale file, which is how an unclean stop shows. 'live': the
-// pid names a running daemon and the caller must give up.
+// 'retry': the file is gone (another reader removed it, it changed, or it named no run and we removed
+// it) - try the create again. 'reclaimed': we removed a stale file, which is how an unclean stop
+// shows. 'live': the pid names a running daemon and the caller must give up.
 type StaleClaim =
   | { readonly kind: 'retry' }
   | { readonly kind: 'live' }
-  | { readonly kind: 'reclaimed'; readonly startedAt?: number }
+  | { readonly kind: 'reclaimed'; readonly stale: string; readonly startedAt?: number }
 
 async function claimStalePidFile(pidPath: string, raw: string): Promise<StaleClaim> {
   const identity = parseProcessIdentity(raw)
@@ -217,9 +218,26 @@ async function claimStalePidFile(pidPath: string, raw: string): Promise<StaleCla
     throw err
   }
 
-  return identity?.startedAt === undefined
-    ? { kind: 'reclaimed' }
-    : { kind: 'reclaimed', startedAt: identity.startedAt }
+  // A file that names no run (empty, cut short) shows no crash.
+  if (identity === null) {
+    return { kind: 'retry' }
+  }
+
+  return identity.startedAt === undefined
+    ? { kind: 'reclaimed', stale: raw }
+    : { kind: 'reclaimed', stale: raw, startedAt: identity.startedAt }
+}
+
+/** Puts back a pid file a reclaim removed; false when it could not or another start holds the path. */
+export async function restoreStalePidFile(app: CliApp, stale: string): Promise<boolean> {
+  try {
+    await writeFile(pidFilePath(app), stale, { mode: PID_FILE_MODE, flag: 'wx' })
+
+    return true
+  } catch {
+    // The caller logs it: a failed restore costs one notice.
+    return false
+  }
 }
 
 export async function removePidFile(app: CliApp): Promise<boolean> {

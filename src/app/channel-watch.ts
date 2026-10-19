@@ -13,6 +13,8 @@ import { t } from '@/i18n'
 const CHANNEL_WATCH_INTERVAL_MS = 5 * MS_PER_MINUTE
 // Absorbs the reconnects every channel makes on its own before anyone is told.
 const CHANNEL_DOWN_GRACE_MS = 15 * MS_PER_MINUTE
+// One stuck send must not hold the in-flight guard, and with it every later tick.
+const CHANNEL_WATCH_SEND_TIMEOUT_MS = MS_PER_MINUTE
 const REASON_KEYS: ReadonlyMap<string, MessageKey> = new Map([
   ['auth_failed', 'channel.watchReason.auth_failed'],
   ['not_authenticated', 'channel.watchReason.not_authenticated'],
@@ -31,7 +33,8 @@ interface ChannelWatchInput {
 
 interface DownPeriod {
   readonly downSinceMs: number
-  announced: boolean
+  /** The channel the drop was told on, so the return is told there too. */
+  toldOn?: ChannelId
   noRouteLogged: boolean
 }
 
@@ -41,6 +44,7 @@ interface DownPeriod {
 export function startChannelWatch(input: ChannelWatchInput): () => void {
   const periods = new Map<ChannelId, DownPeriod>()
   const known = { downSet: '' }
+  const stop = new AbortController()
   let inFlight: Promise<void> | null = null
 
   const tick = (): void => {
@@ -48,7 +52,9 @@ export function startChannelWatch(input: ChannelWatchInput): () => void {
       return
     }
 
-    inFlight = watchOnce({ input, periods, known, nowMs: performance.now() }).finally(() => {
+    const pass = { input, periods, known, nowMs: performance.now(), signal: stop.signal }
+
+    inFlight = watchOnce(pass).finally(() => {
       inFlight = null
     })
   }
@@ -59,6 +65,7 @@ export function startChannelWatch(input: ChannelWatchInput): () => void {
 
   return () => {
     clearInterval(timer)
+    stop.abort()
   }
 }
 
@@ -67,6 +74,7 @@ interface WatchPass {
   readonly periods: Map<ChannelId, DownPeriod>
   readonly known: { downSet: string }
   readonly nowMs: number
+  readonly signal: AbortSignal
 }
 
 async function watchOnce(pass: WatchPass): Promise<void> {
@@ -103,19 +111,18 @@ async function noteDown(
   upChannels: ReadonlySet<ChannelId>
 ): Promise<void> {
   const { input, periods, nowMs } = pass
-  const period = periods.get(snapshot.channel) ?? {
+  const period: DownPeriod = periods.get(snapshot.channel) ?? {
     downSinceMs: nowMs,
-    announced: false,
     noRouteLogged: false,
   }
 
   periods.set(snapshot.channel, period)
 
-  if (period.announced || nowMs - period.downSinceMs < CHANNEL_DOWN_GRACE_MS) {
+  if (period.toldOn !== undefined || nowMs - period.downSinceMs < CHANNEL_DOWN_GRACE_MS) {
     return
   }
 
-  const route = pickRoute(input.delivery, upChannels, snapshot.channel)
+  const route = pickRoute(input.delivery, upChannels, { except: snapshot.channel })
 
   if (route === undefined) {
     if (!period.noRouteLogged) {
@@ -127,9 +134,9 @@ async function noteDown(
   }
 
   // Before the send: a failed send is not retried, and the next state change has its own message.
-  period.announced = true
+  period.toldOn = route.channel
   await sendTo(
-    input,
+    pass,
     route,
     t(input.locale, 'channel.watchDown', {
       channel: snapshot.channel,
@@ -148,25 +155,30 @@ async function recover(
 
   periods.delete(channel)
 
-  if (period?.announced !== true) {
+  if (period?.toldOn === undefined) {
     return
   }
 
-  const route = pickRoute(input.delivery, upChannels, undefined)
+  const route =
+    pickRoute(input.delivery, upChannels, { only: period.toldOn }) ??
+    pickRoute(input.delivery, upChannels, {})
 
   if (route !== undefined) {
-    await sendTo(input, route, t(input.locale, 'channel.watchUp', { channel }))
+    await sendTo(pass, route, t(input.locale, 'channel.watchUp', { channel }))
   }
 }
 
-/** The first started channel that is up and has a chat of its own, other than the one named. */
+/** The first started channel that is up and has a chat of its own, limited to `only`, never
+ *  `except`. */
 function pickRoute(
   delivery: DeliveryHub,
   upChannels: ReadonlySet<ChannelId>,
-  except: ChannelId | undefined
+  filter: { readonly only?: ChannelId; readonly except?: ChannelId }
 ): { readonly channel: ChannelId; readonly chatId: string } | undefined {
   for (const [channel, target] of delivery.recipients()) {
-    if (channel !== except && upChannels.has(channel)) {
+    const wanted = filter.only === undefined || channel === filter.only
+
+    if (wanted && channel !== filter.except && upChannels.has(channel)) {
       return target
     }
   }
@@ -175,12 +187,14 @@ function pickRoute(
 }
 
 async function sendTo(
-  input: ChannelWatchInput,
+  pass: WatchPass,
   target: { readonly channel: ChannelId; readonly chatId: string },
   text: string
 ): Promise<void> {
+  const { input } = pass
+  const signal = AbortSignal.any([pass.signal, AbortSignal.timeout(CHANNEL_WATCH_SEND_TIMEOUT_MS)])
   const outcome = await input.delivery
-    .sendAcknowledged(target, { text })
+    .sendAcknowledged(target, { text }, { signal })
     .catch((err: unknown) => err)
 
   if (outcome !== 'accepted') {

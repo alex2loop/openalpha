@@ -11,7 +11,6 @@ import {
   FX_TOKEN,
   isSellAllDraft,
   QUANTITY_TXN_KINDS,
-  SELL_ALL,
   TRADE_TXN_KINDS,
   TRANSFER_TXN_KIND,
 } from '@/trading/features/ledger/types'
@@ -21,6 +20,7 @@ import {
   parseFiniteNumber,
   parseMember,
   parseQualifiedInstrument,
+  SELL_ALL,
 } from '@/trading/kernel/surface/surface'
 import { minorUnitsOf } from '@/trading/render/money'
 

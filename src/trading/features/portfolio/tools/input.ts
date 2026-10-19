@@ -10,7 +10,6 @@ import { resolveRecordVenue } from '@/trading/features/ledger/shorthand'
 import {
   CASH_TXN_KINDS,
   QUANTITY_TXN_KINDS,
-  SELL_ALL,
   TRADE_TXN_KINDS,
   TRANSFER_TXN_KIND,
 } from '@/trading/features/ledger/types'
@@ -29,6 +28,7 @@ import {
   dayInput,
   type MarketSchema,
   PRICE_INPUT_UNITS,
+  SELL_ALL,
   tickerInput,
   venueInput,
 } from '@/trading/kernel/surface/surface'

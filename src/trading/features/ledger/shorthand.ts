@@ -1,16 +1,17 @@
 import type { CommandMessage, CommandMessageKey } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
+import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef, Region, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
-import { SELL_ALL } from '@/trading/features/ledger/types'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { currencyCode, tradingDay, venueRef } from '@/trading/kernel/instrument'
-import { parseBranded, parseTickerRequest } from '@/trading/kernel/surface/surface'
+import { parseBranded, parseTickerRequest, SELL_ALL } from '@/trading/kernel/surface/surface'
 
 /** Every refusal the shorthand can answer, for the command's `messageKeys`. */
 export const SHORTHAND_KEYS = Object.freeze([
   'slash.tradingRecordMarketChoice',
+  'slash.tradingRecordMarketUnchecked',
   'slash.tradingRecordMarketUnknown',
   'slash.tradingRecordVenueChoice',
   'slash.tradingRecordNoVenue',
@@ -22,6 +23,7 @@ const FX_TOKEN = 'fx'
 const FX_TOKENS = 2
 const NUMBER_RE = /^\d[\d.,]*$/
 const CHOICE_SEPARATOR = ', '
+const PARTIAL_DETECTION = 'market.detection-partial'
 /** A venue and an instrument may precede the quantity; either alone is the instrument. */
 const LONGEST_HEAD = 2
 
@@ -97,10 +99,10 @@ export async function toFullRecordLine(
 
   const filled = { venue, market: market.ref, ticker: market.ticker, currency, day }
 
-  return { kind: 'tokens', tokens: assemble(typed, filled) }
+  return { kind: 'tokens', tokens: buildFullLine(typed, filled) }
 }
 
-function assemble(
+function buildFullLine(
   typed: TypedLine,
   filled: {
     readonly venue: string
@@ -206,7 +208,7 @@ async function resolveMarket(
   const request = parseTickerRequest(typed.instrument, registered)
 
   if (request === null) {
-    return { messages: [unknown(typed.instrument)] }
+    return { messages: [buildUnknownReply(typed.instrument)] }
   }
 
   if (request.market !== undefined) {
@@ -224,23 +226,41 @@ async function resolveMarket(
   })
 
   if (result.kind === 'resolved') {
-    return { ref: result.market.manifest.id, ticker: request.ticker }
+    const unchecked = uncheckedMarkets(result.caveats)
+
+    // A list that could not be read may hold the name too: one match among the readable lists is
+    // still a guess.
+    return unchecked.length === 0
+      ? { ref: result.market.manifest.id, ticker: request.ticker }
+      : marketChoice('slash.tradingRecordMarketUnchecked', request.ticker, [
+          result.market.manifest.id,
+          ...unchecked,
+        ])
   }
 
   if (result.kind === 'ambiguous-market') {
-    const choices = result.candidates.map((market) => `${market}:${request.ticker}`)
-
-    return {
-      messages: [
-        {
-          key: 'slash.tradingRecordMarketChoice',
-          values: { ticker: request.ticker, choices: choices.join(CHOICE_SEPARATOR) },
-        },
-      ],
-    }
+    return marketChoice('slash.tradingRecordMarketChoice', request.ticker, result.candidates)
   }
 
-  return { messages: [unknown(request.ticker)] }
+  return { messages: [buildUnknownReply(request.ticker)] }
+}
+
+function uncheckedMarkets(caveats: readonly Caveat[]): readonly string[] {
+  return caveats.flatMap((caveat) =>
+    caveat.code === PARTIAL_DETECTION && typeof caveat.detail?.market === 'string'
+      ? [caveat.detail.market]
+      : []
+  )
+}
+
+function marketChoice(
+  key: 'slash.tradingRecordMarketChoice' | 'slash.tradingRecordMarketUnchecked',
+  ticker: string,
+  markets: readonly string[]
+): MarketAnswer {
+  const choices = markets.map((market) => `${market}:${ticker}`).join(CHOICE_SEPARATOR)
+
+  return { messages: [{ key, values: { ticker, choices } }] }
 }
 
 function resolveVenue(
@@ -278,7 +298,7 @@ function resolveVenue(
   }
 }
 
-function unknown(ticker: string): CommandMessage {
+function buildUnknownReply(ticker: string): CommandMessage {
   return { key: 'slash.tradingRecordMarketUnknown', values: { ticker } }
 }
 

@@ -3,6 +3,7 @@ import type { CurrencyCode, InstrumentRef, TradingDay, VenueRef } from '@/tradin
 import type { FxConversion } from '@/trading/kernel/market/market-capability'
 import type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { PageOptions } from '@/trading/kernel/store/page'
+import { SELL_ALL } from '@/trading/kernel/surface/surface'
 
 // `loss` is money the book lost before it started keeping records — the closed trades a
 // snapshot import can only state as a total. It leaves cash like a fee but is not one: a fee is a
@@ -29,9 +30,6 @@ export const LEDGER_TXN_KINDS = Object.freeze([
   TRANSFER_TXN_KIND,
 ] as const)
 export type LedgerTxnKind = (typeof LEDGER_TXN_KINDS)[number]
-
-/** The whole settled position, in the quantity slot a count would occupy. */
-export const SELL_ALL = 'all'
 
 /** Where a stored trade row's figures came from. `venue` is the whole row. `venueSized` is the
  *  venue's quantity and price against a fee the operator stated, which is never overridden. */

@@ -3,7 +3,12 @@ import type { CliApp } from '@/cli/types'
 import { createCommand, createGroup, type Group, type Needs } from '@/cli/command'
 import { liveDaemon } from '@/cli/daemon-guard'
 import { getEnv } from '@/cli/env'
-import { readEnvFile, removeEnvFileValue, writeEnvFileValue } from '@/cli/env-file'
+import {
+  isRuntimeEnvName,
+  readEnvFile,
+  removeEnvFileValue,
+  writeEnvFileValue,
+} from '@/cli/env-file'
 import { usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { keyEnvNames } from '@/cli/missing-keys'
@@ -58,11 +63,15 @@ async function setKey(args: ParsedArgs, app: CliApp): Promise<number> {
   const name = flagString(args, 'name') ?? ''
 
   if (!isEnvName(name)) {
-    return usage(app, t(locale, 'cli.keyNameInvalid', { name }))
+    return usage(app, t(locale, 'cli.keyNameInvalid', { brand: BRAND.name }))
   }
 
   if (name.startsWith(BRAND.envPrefix)) {
     return usage(app, t(locale, 'cli.keyNameReserved', { prefix: BRAND.envPrefix }))
+  }
+
+  if (isRuntimeEnvName(name)) {
+    return usage(app, t(locale, 'cli.keyNameRuntime', { name }))
   }
 
   const value = await readSecret(app, name)
@@ -148,6 +157,11 @@ function sourceKeyOf(
 async function unsetKey(args: ParsedArgs, app: CliApp): Promise<number> {
   const locale = app.config.locale.language
   const name = flagString(args, 'name') ?? ''
+
+  if (!isEnvName(name)) {
+    return usage(app, t(locale, 'cli.keyNameInvalid', { brand: BRAND.name }))
+  }
+
   const { path } = app.keyFile
   const removed = await removeEnvFileValue(path, name)
 

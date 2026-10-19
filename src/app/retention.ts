@@ -10,6 +10,7 @@ import { pruneExpiredWorkspaceTmp } from '@/engine/api'
 import {
   BACKUPS_SUBDIR,
   backupAndPrune,
+  backupTarget,
   newestBackupAt,
   optimizeSqlite,
   runRetention,
@@ -123,13 +124,15 @@ async function backupDaily(app: App, logger: Logger): Promise<void> {
       return
     }
 
-    const path = await backupAndPrune({
+    const target = backupTarget(dir)
+
+    await backupAndPrune({
       db: app.resolve('storage'),
-      dir,
+      target,
+      logger,
       keep: retention.dailyBackups,
     })
-
-    logger.info('retention.backup_taken', { path })
+    logger.info('retention.backup_taken', { path: target })
   } catch (err: unknown) {
     logger.warn('retention.backup_failed', { err: formatErrForLog(err) })
   }

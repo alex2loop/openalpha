@@ -1,8 +1,10 @@
 import { chmod, mkdir, mkdtemp, readdir, rename, rm, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
+import type { Logger } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
 import { isErrno } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 import { PRIVATE_DIRECTORY_MODE, PRIVATE_FILE_MODE } from '@/core/security/private-files'
 
 const BACKUP_EXT = '.db'
@@ -13,11 +15,13 @@ export const BACKUPS_SUBDIR = 'backups'
 
 interface BackupAndPrune {
   readonly db: Storage
-  readonly dir: string
+  /** From `backupTarget`, so a caller that fails can still name the file it was writing. */
+  readonly target: string
+  readonly logger: Logger
   readonly keep?: number
 }
 
-function backupTarget(dir: string): string {
+export function backupTarget(dir: string): string {
   return join(dir, `${new Date().toISOString().replaceAll(':', '-')}${BACKUP_EXT}`)
 }
 
@@ -46,15 +50,16 @@ export async function backupSqlite(db: Storage, target: string): Promise<void> {
   }
 }
 
-/** Writes one timestamped copy into `dir`, then drops the oldest beyond `keep`; returns the file. */
-export async function backupAndPrune(input: BackupAndPrune): Promise<string> {
-  const { db, dir, keep } = input
-  const target = backupTarget(dir)
+/** Writes `target`, then drops the oldest copies beside it beyond `keep`. Only the copy can fail
+ *  it: a failed prune leaves a good snapshot and one copy too many. */
+export async function backupAndPrune(input: BackupAndPrune): Promise<void> {
+  const { db, target, logger, keep } = input
+  const dir = dirname(target)
 
   await backupSqlite(db, target)
-  await pruneBackups(dir, keep)
-
-  return target
+  await pruneBackups(dir, keep).catch((err: unknown) => {
+    logger.warn('backup.prune_failed', { path: dir, err: formatErrForLog(err) })
+  })
 }
 
 /** The modification time of the newest backup in `dir` (names are ISO timestamps, so the last name
