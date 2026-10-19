@@ -1,7 +1,10 @@
-import { chmod, mkdir, mkdtemp, readdir, rename, rm } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readdir, rename, rm, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
+import type { Logger } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
+import { isErrno } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 import { PRIVATE_DIRECTORY_MODE, PRIVATE_FILE_MODE } from '@/core/security/private-files'
 
 const BACKUP_EXT = '.db'
@@ -9,6 +12,14 @@ const STAGING_PREFIX = '.staging-'
 const KEEP_BACKUPS = 7
 
 export const BACKUPS_SUBDIR = 'backups'
+
+interface BackupAndPrune {
+  readonly db: Storage
+  /** From `backupTarget`, so a caller that fails can still name the file it was writing. */
+  readonly target: string
+  readonly logger: Logger
+  readonly keep?: number
+}
 
 export function backupTarget(dir: string): string {
   return join(dir, `${new Date().toISOString().replaceAll(':', '-')}${BACKUP_EXT}`)
@@ -39,7 +50,41 @@ export async function backupSqlite(db: Storage, target: string): Promise<void> {
   }
 }
 
-export async function pruneBackups(dir: string): Promise<void> {
+/** Writes `target`, then drops the oldest copies beside it beyond `keep`. Only the copy can fail
+ *  it: a failed prune leaves a good snapshot and one copy too many. */
+export async function backupAndPrune(input: BackupAndPrune): Promise<void> {
+  const { db, target, logger, keep } = input
+  const dir = dirname(target)
+
+  await backupSqlite(db, target)
+  await pruneBackups(dir, keep).catch((err: unknown) => {
+    logger.warn('backup.prune_failed', { path: dir, err: formatErrForLog(err) })
+  })
+}
+
+/** The modification time of the newest backup in `dir` (names are ISO timestamps, so the last name
+ *  is the newest); null when the directory is missing or holds none. */
+export async function newestBackupAt(dir: string): Promise<number | null> {
+  const names = await readdir(dir).catch((err: unknown) => {
+    if (isErrno(err, 'ENOENT')) {
+      return []
+    }
+
+    throw err
+  })
+  const newest = names
+    .filter((name) => name.endsWith(BACKUP_EXT))
+    .sort()
+    .at(-1)
+
+  if (newest === undefined) {
+    return null
+  }
+
+  return (await stat(join(dir, newest))).mtimeMs
+}
+
+async function pruneBackups(dir: string, keep = KEEP_BACKUPS): Promise<void> {
   const names = await readdir(dir)
 
   for (const orphan of names.filter((name) => name.startsWith(STAGING_PREFIX))) {
@@ -48,7 +93,7 @@ export async function pruneBackups(dir: string): Promise<void> {
 
   const files = names.filter((name) => name.endsWith(BACKUP_EXT)).sort()
 
-  for (const stale of files.slice(0, Math.max(0, files.length - KEEP_BACKUPS))) {
+  for (const stale of files.slice(0, Math.max(0, files.length - keep))) {
     await rm(join(dir, stale), { force: true })
   }
 }

@@ -7,7 +7,8 @@ import type { Page } from '@/trading/kernel/store/page'
 import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
 import { pluralKey, t } from '@/i18n'
 import { parseExitLevel } from '@/trading/features/alerts/types'
-import { buildInstrumentKey } from '@/trading/kernel/instrument'
+import { buildInstrumentKey, toIdHandle } from '@/trading/kernel/instrument'
+import { SELL_ALL } from '@/trading/kernel/surface/surface'
 import {
   formatCount,
   formatFraction,
@@ -15,7 +16,13 @@ import {
   renderDeclaredValue,
   SECTION_ICONS,
 } from '@/trading/render/format'
-import { INDENT, joinSections, renderEmptyLine, renderSectionTitle } from '@/trading/render/layout'
+import {
+  INDENT,
+  INLINE_SEPARATOR,
+  joinSections,
+  renderEmptyLine,
+  renderSectionTitle,
+} from '@/trading/render/layout'
 import { renderMarketBlocks, toMarketBlocks } from '@/trading/render/market-blocks'
 import { formatPriceIn, quotedInOf, renderBoardScaleNotes } from '@/trading/render/money'
 
@@ -32,6 +39,7 @@ type ScreenerNotice = Extract<AlertNotice, { readonly kind: 'screener-alert' }>
 interface AlertRenderOptions {
   readonly priceByInstrument?: ReadonlyMap<string, number>
   readonly quoteConventions?: ReadonlyMap<string, QuoteConvention>
+  readonly marketIcons: ReadonlyMap<MarketRef, string>
 }
 
 /** Every row carries its id because `/alert disable` names an alert by id and nothing else prints
@@ -39,7 +47,7 @@ interface AlertRenderOptions {
 export function renderAlertListText(
   locale: Locale,
   page: Page<Alert, AlertId>,
-  options: AlertRenderOptions = {}
+  options: AlertRenderOptions
 ): string {
   if (page.items.length === 0) {
     return renderEmptyLine(SECTION_ICONS.alert, t(locale, 'trading.render.alert.empty'))
@@ -53,7 +61,7 @@ export function renderAlertListText(
     [
       renderSectionTitle(SECTION_ICONS.alert, renderTitle(locale, page.items.length, onlyMarket)),
       ...renderMarketBlocks(locale, blocks, {
-        icon: SECTION_ICONS.alert,
+        icons: options.marketIcons,
         renderRows: (alerts) =>
           alerts.map((alert) => `${INDENT[1]}${renderRow(locale, alert, options)}`),
       }),
@@ -94,28 +102,56 @@ function renderRow(locale: Locale, alert: Alert, options: AlertRenderOptions): s
     ticker: alert.instrument.ticker,
     condition: renderDeclaredValue(locale, `trading.alert.condition.${alert.condition}`),
     threshold: formatPriceIn(locale, alert.threshold, quoteOf(options, alert)),
-    id: alert.id,
+    id: toIdHandle(alert.id),
   })}${renderDistance(locale, alert, options)}`
 }
 
-/** Every alert keeps its id line: a crash between `accepted` and `markFired` may re-deliver, and a
- *  duplicate the reader can recognise beats a lost alert. A screener notice is detection, not a
+/** Leads with the action: the headline, then for an exit alert what it means and how to record the
+ *  sale, then where to look again. The short id closes every notice: a crash between `accepted` and
+ *  `markFired` may re-deliver, and a duplicate the reader can recognise beats a lost alert. A fired
+ *  alert is already spent, so there is no "turn off" line. A screener notice is detection, not a
  *  suggestion, so it points at an on-demand `/suggest`. */
 export function renderAlertNotice(locale: Locale, notice: AlertNotice): string {
   const { alert } = notice
+  const headline = [t(locale, `trading.notice.${notice.kind}`), priceLine(locale, notice)]
 
   return [
-    t(locale, `trading.notice.${notice.kind}`),
-    priceLine(locale, notice),
-    ...(notice.kind === 'exit-alert' ? exitReachedLines(locale, alert) : []),
+    `${SECTION_ICONS.alert} ${headline.join(INLINE_SEPARATOR)}`,
+    ...(notice.kind === 'exit-alert' ? exitLines(locale, alert) : []),
     ...(notice.kind === 'screener-alert'
       ? [
           ...sessionLines(locale, notice),
           t(locale, 'trading.screener.hint', { ticker: alert.instrument.ticker }),
         ]
-      : []),
-    alert.id,
+      : [
+          t(locale, 'trading.alert.reviewHint', {
+            instrument: buildInstrumentKey(alert.instrument),
+          }),
+        ]),
+    t(locale, 'trading.alert.handle', { handle: toIdHandle(alert.id) }),
   ].join('\n')
+}
+
+/** What the level means, then the line that books the sale. The fill can sit below the price that
+ *  was observed and a board-scaled price is not what `/record` reads, so the price stays a
+ *  placeholder; the quantity is the whole position at a stop and unknown at a target, because the
+ *  tranche size is not in the payload. */
+function exitLines(locale: Locale, alert: DeliveringAlert): readonly string[] {
+  const level = parseExitLevel(alert.origin)
+
+  if (level === null) {
+    return []
+  }
+
+  const quantity = level === 'stop' ? SELL_ALL : t(locale, 'trading.exit.recordHintQuantity')
+
+  return [
+    t(locale, EXIT_REACHED_KEYS[level]),
+    t(locale, 'trading.exit.recordHint', {
+      instrument: buildInstrumentKey(alert.instrument),
+      quantity,
+    }),
+  ]
 }
 
 function priceLine(locale: Locale, notice: AlertNotice): string {
@@ -127,14 +163,6 @@ function priceLine(locale: Locale, notice: AlertNotice): string {
   const observed = formatPriceIn(locale, alert.observedPrice, quote)
 
   return `${alert.instrument.ticker} ${label}${condition} ${threshold} (${observed})`
-}
-
-/** Each level says what may already have happened at the venue: a resting stop may have filled, and
- *  a target sells the whole position or only the share the plan banks there. */
-function exitReachedLines(locale: Locale, alert: DeliveringAlert): readonly string[] {
-  const level = parseExitLevel(alert.origin)
-
-  return level === null ? [] : [t(locale, EXIT_REACHED_KEYS[level])]
 }
 
 /** The benchmark's move beside the name's, with no verdict: how much of a move is the market

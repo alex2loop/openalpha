@@ -98,7 +98,7 @@ Như vậy là đủ để xem một đề xuất. Muốn đề xuất có khố
 
 ### Cài đầy đủ trong 5 bước
 
-**1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Muốn đổi lại thì chạy `openalpha onboard`.
+**1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, tiền tệ của sổ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Tiền tệ chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được. Muốn đổi phần còn lại thì chạy `openalpha onboard`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh
@@ -108,14 +108,14 @@ curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh
 powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows
 ```
 
-**2. Đặt khóa AI và kiểm tra.** Mở một terminal mới:
+**2. Lưu khóa AI và kiểm tra.** `onboard` sẽ hỏi lưu giúp; nếu chưa thì mở một terminal mới:
 
 ```bash
-export OPENROUTER_API_KEY="..."   # thêm dòng này vào cuối ~/.zshrc (macOS) hoặc ~/.bashrc (Linux) để giữ lâu
-openalpha doctor --online         # gửi một tin ngắn để thử mô hình
+openalpha key set OPENROUTER_API_KEY   # gõ khóa ở chế độ ẩn; khóa được giữ trong ~/.openalpha/env
+openalpha doctor --online              # gửi một tin ngắn để thử mô hình
 ```
 
-Trên Windows: `setx OPENROUTER_API_KEY "..."`, mở PowerShell mới, rồi `openalpha doctor --online`.
+`openalpha key` cho biết khóa nào đã có và lấy từ đâu. Hai lệnh này dùng được cả trên Windows.
 
 **3. Nạp dữ liệu và khai khẩu vị.** Chạy `openalpha chat`, rồi gõ:
 
@@ -132,7 +132,7 @@ Trên Windows: `setx OPENROUTER_API_KEY "..."`, mở PowerShell mới, rồi `op
 ```text
 /record deposit vps 100000000 VND 2026-08-14              # nạp 100 triệu vào tài khoản VPS
 /suggest FPT                                              # soi một mã
-/record buy vps equity-vn:FPT 100 62000 VND 2026-08-14    # tự đặt lệnh, khớp rồi thì ghi lại
+/record buy FPT 100 62000                                 # tự đặt lệnh, khớp rồi thì ghi lại (tự điền sàn, VND và hôm nay)
 ```
 
 Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`. Phí bỏ trống thì sổ tự tính. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:
@@ -201,9 +201,9 @@ Mua lẻ thì ghi theo lượng: 1 chỉ là `0.1`, giá vẫn ghi theo lượng
 
 </details>
 
-Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là bán hết, hoặc ghi số lượng). Rút tiền: `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn ghi theo dạng năm-tháng-ngày. Ghi nhầm thì gõ `/transactions` để xem mã giao dịch, rồi `/update <mã> ...` để sửa hoặc `/delete <mã>` để xóa. Gõ `/record` không kèm gì để xem mọi loại dòng ghi được (cổ tức, chia tách, chuyển tiền...).
+Bán thì `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` là bán hết, hoặc ghi số lượng). Rút tiền: `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn ghi theo dạng năm-tháng-ngày. Ghi nhầm thì gõ `/transactions` để xem mã giao dịch, rồi `/update <mã> ...` để sửa hoặc `/delete <mã>` để xem dòng đó, rồi `/delete <mã> confirm` để xóa. Gõ `/record` không kèm gì để xem mọi loại dòng ghi được (cổ tức, chia tách, chuyển tiền...). Cấu hình được đọc lúc khởi động, nên sửa xong hãy chạy lại: `openalpha restart --background`.
 
-**5. Bật bản tin sáng.** `openalpha start --background` để chương trình chạy nền (dữ liệu cũng tự nạp từ đó). Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó. `openalpha status` cho biết nó còn chạy không, `openalpha stop` để dừng. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
+**5. Bật bản tin sáng.** `openalpha start --background` để chương trình chạy nền (dữ liệu cũng tự nạp từ đó); `openalpha autostart enable` để nó tự chạy mỗi lần đăng nhập. Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó. `openalpha status` cho biết nó còn chạy không, `openalpha stop` để dừng. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
 
 <details>
 <summary><b>Windows, cấu hình tối giản, cập nhật, gỡ cài đặt</b></summary>
@@ -302,7 +302,7 @@ Với mỗi mã bạn hỏi, sáu nhà phân tích AI tranh luận: phe mua, phe
 <summary><b>Cách nó giữ kỷ luật, kể cả khi thị trường đi xuống</b></summary>
 
 - **Cắt lỗ chỉ được nâng, không được hạ.** Không có nút "dời xuống thêm chút nữa".
-- **Không cần dán mắt vào bảng điện.** Trong Telegram hoặc Zalo, đặt mốc bằng `/alert create FPT above 130` (giá bảng điện), giá chạm là hệ thống nhắn bạn.
+- **Không cần dán mắt vào bảng điện.** Trong Telegram hoặc Zalo, đặt mốc bằng `/alert create FPT above 130000` (giá đầy đủ, như khi `/record`), giá chạm là hệ thống nhắn bạn.
 
 **Khi thị trường đi xuống,** mục tiêu không phải đoán đáy, mà là còn đủ vốn để chơi tiếp:
 
@@ -318,8 +318,8 @@ OpenAlpha không hứa bạn không lỗ. Nó giúp mỗi khoản lỗ nhỏ, c�
 
 - **AI không thấy tiền của bạn.** Nhà phân tích chỉ biết tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
 - **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận.
-- **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa API chỉ đọc từ biến môi trường, không ghi vào tệp nào.
-- **Có trần chi phí AI** theo ngày và theo tháng, để một vòng lặp lỗi không đốt tiền của bạn.
+- **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa lấy từ biến môi trường hoặc từ `~/.openalpha/env` (chỉ bạn đọc được). OpenAlpha chỉ ghi vào tệp đó khi bạn nhập khóa qua `onboard` hoặc `openalpha key set`, và không bao giờ in khóa ra.
+- **Chi tiêu AI có trần.** `onboard` đặt trần theo ngày; thêm trần theo tháng hoặc theo lượt trong `[budget]`, để một vòng lặp lỗi không đốt tiền.
 
 Mọi lớp bảo vệ còn lại: [SECURITY.md](SECURITY.md).
 

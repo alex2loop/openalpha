@@ -1,8 +1,12 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { ChannelDefinition } from '@/channels/api'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
+import type { PairingStore } from '@/core/types/session'
 import type { NoticeKind, TradingNotice, TradingNoticeSender } from '@/trading/api'
+import { resolveDefaultRecipient } from '@/channels/api'
 import { readUpdateLine } from '@/cli/api'
+import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 import {
@@ -14,6 +18,8 @@ import {
   renderRestatementNotice,
   resolveRenderContext,
 } from '@/trading/api'
+
+type DeliveryAddress = Parameters<TradingNoticeSender['resolveRecipient']>[0]
 
 /** Unattended delivery has no invoking surface to resolve a context from, and it is only ever sent
  *  to a channel - so it states the destination rather than inventing one to read it from. */
@@ -49,11 +55,15 @@ function render(notice: TradingNotice, timezone: string): string {
   }
 
   if (payload.kind === 'brief') {
-    return renderBriefText(
+    const body = renderBriefText(
       locale,
       payload.snapshot,
       resolveRenderContext(timezone, UNATTENDED_SURFACE)
     )
+
+    return payload.sentAfterOpen === true
+      ? `${t(locale, 'trading.brief.sentAfterOpen')}\n\n${body}`
+      : body
   }
 
   if (payload.kind === 'intraday') {
@@ -80,11 +90,26 @@ function render(notice: TradingNotice, timezone: string): string {
     return renderDeliverySkipped(locale, payload.subject)
   }
 
+  if (payload.kind === 'delivery-missed') {
+    return renderDeliveryMissed(locale, payload.subject)
+  }
+
   if (payload.kind === 'key-missing') {
     return renderKeyMissing(locale, payload)
   }
 
-  return renderDeliveryDisabled(locale, payload.subject)
+  // Exhaustive: a new kind must be rendered here, not fall through to "delivery is now off".
+  if (payload.kind === 'delivery-disabled') {
+    return renderDeliveryDisabled(locale, payload.subject)
+  }
+
+  const unhandled: never = payload
+
+  return unhandled
+}
+
+function renderDeliveryMissed(locale: Locale, subject: NoticeKind): string {
+  return t(locale, 'trading.deliveryMissed', { subject: t(locale, `trading.notice.${subject}`) })
 }
 
 function renderDeliveryDisabled(locale: Locale, subject: NoticeKind): string {
@@ -121,14 +146,22 @@ function isNoticeKind(kind: string): kind is NoticeKind {
   return NOTICE_KINDS.some((known) => known === kind)
 }
 
+interface NoticeSenderOptions {
+  readonly delivery: DeliveryHub
+  readonly config: ResolvedConfig
+  readonly timezone: string
+  /** A thunk: the sender is built while the providers are assembled, before the container can
+   *  answer for the registered channel definitions. */
+  readonly channels: () => readonly ChannelDefinition[]
+  readonly pairingStore: () => PairingStore
+}
+
 /** The one adapter between trading's typed notices and the channel layer. Trading imports no
  *  channel code and renders no text; `app` owns both, and `accepted` here means the channel's own
  *  sender call completed — never that the notice was queued. */
-export function createTradingNoticeSender(
-  delivery: DeliveryHub,
-  config: ResolvedConfig,
-  timezone: string
-): TradingNoticeSender {
+export function createTradingNoticeSender(options: NoticeSenderOptions): TradingNoticeSender {
+  const { delivery, config, timezone } = options
+
   return {
     send: async (notice, signal) => {
       const text = await renderWithUpdate(notice, config, timezone)
@@ -140,9 +173,35 @@ export function createTradingNoticeSender(
       )
     },
     // The attached channel runtimes plus the attached notice surfaces are the whole routing table:
-    // `cli` is a surface a person types at, never one the daemon can push to.
-    canDeliver: (target) =>
-      delivery.surfaces.find(target.channel) !== undefined ||
-      delivery.snapshots().some((snapshot) => snapshot.channel === target.channel),
+    // `cli` is a surface a person types at, never one the daemon can push to, so it resolves to the
+    // chat the daemon would use.
+    resolveRecipient: async (origin) => {
+      if (await delivery.isDeliverable(origin)) {
+        return origin
+      }
+
+      return origin.channel === LOCAL_CHANNEL_ID ? await resolveLocalRecipient(options) : undefined
+    },
   }
+}
+
+// In the daemon the live default recipient, unless its pairing was revoked since it was last read;
+// in a terminal process, whichever configured or paired chat the daemon would pick - the alert or
+// brief waits in the book until the daemon runs.
+async function resolveLocalRecipient(
+  options: NoticeSenderOptions
+): Promise<DeliveryAddress | undefined> {
+  const { delivery, config } = options
+
+  if (!delivery.attached()) {
+    return await resolveDefaultRecipient(
+      options.channels(),
+      config.channels,
+      options.pairingStore()
+    )
+  }
+
+  const target = delivery.defaultRecipient()
+
+  return target !== undefined && (await delivery.isDeliverable(target)) ? target : undefined
 }

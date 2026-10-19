@@ -189,7 +189,7 @@ export function createOrderExitsTool(
       "Show whether each position in the book has a take-profit/stop-loss standing at its exchange, and at what levels. `guardedShare` is the share of that position covered: 1 is fully covered, 0 is nothing standing under it, and anything between is a partial exit the operator set deliberately. A position at 0 is unprotected right now - say so before advising anything that assumes a stop, and never read a suggestion's stop level as one that was placed. Only positions at an exchange this tree can place on appear at all: a holding recorded by hand can carry no resting order, so it is absent rather than reported unguarded. Levels are absent where more than one exit rests on one position. Set or move an exit with the operator's own /trade exit - this tool reads and never places.",
     inputSchema: noInput,
     capability: 'read',
-    presentation: { label: 'Exits', emoji: '🛡️' },
+    presentation: { label: 'Exits', emoji: '🛒' },
     async execute(_args, ctx): Promise<string> {
       const coverage = await order.exitCoverage({ now: Date.now(), signal: ctx.signal })
 

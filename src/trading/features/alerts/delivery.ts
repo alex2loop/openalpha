@@ -112,13 +112,19 @@ async function deliverClaimedAlert(
     return
   }
 
+  // No retry reaches a chat whose pairing was revoked, whoever armed the alert.
+  if (outcome === 'recipient-revoked') {
+    await disableUndeliverable(deps, context, outcome)
+    return
+  }
+
   // A channel that never accepts must not retry forever, so a system-armed row ends disabled and
   // reconcile re-arms it. An operator alert has no origin to re-arm it and disabling would lose a
   // crossing they never saw, so it stays on the backoff ladder, whose ceiling holds it to one try
   // an hour.
   if (alert.attempts >= retry.maximumAttempts) {
     if (alert.origin !== undefined) {
-      await disableExhausted(deps, context, outcome)
+      await disableUndeliverable(deps, context, outcome)
       return
     }
 
@@ -139,22 +145,26 @@ async function deliverClaimedAlert(
   tally.deferred += defer ? 1 : 0
 }
 
-async function disableExhausted(
+/** A revoked chat gets no notice: the send would be refused like the alert was. */
+async function disableUndeliverable(
   deps: AlertDeliveryDeps,
   context: ClaimedAlertDelivery,
   errorCode: DeliveryErrorCode
 ): Promise<void> {
   const { alert, options } = context
 
-  await notifyDeliveryStopped({
-    kind: 'delivery-disabled',
-    sender: deps.sender,
-    target: alert.delivery,
-    locale: deps.defaultLocale,
-    subject: alertPayload(alert).kind,
-    logger: deps.logger,
-    signal: options.signal,
-  })
+  if (errorCode !== 'recipient-revoked') {
+    await notifyDeliveryStopped({
+      kind: 'delivery-disabled',
+      sender: deps.sender,
+      target: alert.delivery,
+      locale: deps.defaultLocale,
+      subject: alertPayload(alert).kind,
+      logger: deps.logger,
+      signal: options.signal,
+    })
+  }
+
   await deps.store.disable({
     alertId: alert.id,
     disabledAt: options.now,

@@ -6,6 +6,12 @@ If you read only one section, read [The book](#the-book). Sizing, drift, open ri
 
 ---
 
+**Contents**
+
+- [Market data and suggestions](#market-data-and-suggestions)
+- [The book](#the-book)
+- [Orders](#orders)
+
 ## Market data and suggestions
 
 OpenAlpha gathers the data, runs the numbers, argues both sides and hands you a call. Then it stops.
@@ -445,6 +451,8 @@ The `suggestion_track_record` tool returns the asking agent's own focus record a
 - a brief's day is dropped and tomorrow's is scheduled;
 - an alert you created with `/alert` is never disabled for a failed send. It is yours alone and nothing re-arms it, so it keeps retrying, waiting at most an hour between tries, until the channel accepts it or you run `/alert disable`.
 
+A chat whose pairing was revoked with `pair revoke` is different: no retry can reach it, so at the first refused send the alert is disabled, yours or system-armed alike, and so is the morning brief. Exit and screener alerts go to the brief's chat, so while that chat stays revoked they are not armed, even if the brief was already off; pair the chat again, or run `/brief enable` from another chat, and they are armed again.
+
 **Evaluation** is bounded and shared:
 
 - A tick pages through every active alert, so a stop or target is checked each minute however many are live.
@@ -524,7 +532,7 @@ What the read cost sits below a rule at the very end, since it belongs to the wh
 
 **Timing.** The default send time is 08:15 in the **market's** timezone (08:15 in Ho Chi Minh City, not 08:15 UTC and not wherever you are). A brief is only sent while the session is pre-open (a market that trades round the clock, or a day it is shut, counts as pre-open), so one is never built or sent mid-session or after the close, and a pre-flight check confirms the previous session produced a bar before any tokens are spent.
 
-After downtime the missed mornings are not replayed. A scheduled day that has already passed is skipped with a `trading.brief_stale_day_skipped` warning and the schedule moves to today. Today's brief still goes out late if the daemon starts after the send time but before the open. If the daemon starts after the open, today's brief is skipped with a `trading.brief_past_open_skipped` warning and the next morning's is due.
+After downtime the missed mornings are not replayed. A scheduled day that has already passed is skipped with a `trading.brief_stale_day_skipped` warning and the schedule moves to today. Today's brief still goes out late if the daemon starts after the send time but before the open. If the daemon starts after the open, or a retry lands after it, today's brief is skipped with a `trading.brief_past_open_skipped` warning, the chat gets one line saying so, and the next morning's is due. A brief whose build starts before the open but finishes after it is still sent, with a first line saying prices have moved since it was written.
 
 A day whose three delivery attempts all fail is given up, not the subscription. The schedule moves to tomorrow, `trading.brief_day_abandoned` is logged, and a notice says today's brief was dropped (sent best-effort through the channel that just failed, so it may not arrive). Only `/brief disable` turns the morning brief off.
 
@@ -687,7 +695,9 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-`/alert create` and `/brief enable` need a chat that can receive messages, such as Telegram or Zalo. The terminal refuses them; type them in a connected channel.
+Alerts are named by a six-character id (the tail of the long one) in `/alert list`, the confirmation and every notice; `/alert disable <id>` takes it, and lists the full ids when it matches several. A fired price or exit alert opens with the headline and the next step: for an exit, the sale's `/record sell` line to fill in, then `/suggest` for a fresh look. In a chat `/transactions` shows 10 rows by default, and `/portfolio` lists positions right after the warnings, then cash, profit and loss and allocation, with at most three closed trips on a phone.
+
+`/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo. Typed in a connected channel they deliver to that chat. Typed in the terminal they go to your chat: the first configured channel wins (Telegram, then Zalo, then Zalo Personal), and `fallback_chat_id` picks the chat, else the one paired chat. With no channel configured they are refused. They arrive only while OpenAlpha runs in the background (`openalpha start --background`).
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
@@ -766,12 +776,12 @@ Anything else leaves the row as typed: a venue with no client, a day outside the
 
 ```bash
 openalpha chat --message "/update 0f9838 buy VPS equity-vn:ACB 600 21900 VND 12000 2026-06-16"
-openalpha chat --message "/delete 0f9838"
+openalpha chat --message "/delete 0f9838 confirm"
 ```
 
 `/update` takes the handle followed by the same fields `/record` takes: the whole transaction, not a patch. It must state its own quantity and fee, where `/record` may write `all` or leave the fee to a rate. An edit names a row that already carries both, and re-resolving either against a later book or a changed rate would move a settled figure you never restated.
 
-`/delete` removes the row outright (a duplicate, or a trade that never happened). Both accept a full entry id too, which is what the agent passes via `portfolio_update` or `portfolio_remove`.
+`/delete <handle>` shows the row and asks first (a button on Telegram, a line to type elsewhere); `/delete <handle> confirm` removes it outright (a duplicate, or a trade that never happened). A script that deletes in one step must add `confirm`. Both accept a full entry id too, which is what the agent passes via `portfolio_update` or `portfolio_remove`.
 
 The handle is the last six characters of the entry id, not the first: ids open with a timestamp, so rows recorded in the same millisecond share leading characters. A handle that matches more than one row is refused rather than guessed.
 
@@ -787,6 +797,10 @@ sell of 600 ACB exceeds 0 settled on 2026-06-15
 ```
 
 A row dated after today, on the home region's calendar, is refused too. A trade that has not happened yet is a typo, and the book would otherwise hold it out of sight until the day came.
+
+A price is always the full figure, such as `58400`, never the board figure (`58,40`, meaning x1,000 VND). A Vietnamese share price below 1,000 VND while the name trades above that is refused, with the full price to send instead. An `/alert` threshold is checked the same way.
+
+A price you type that sits ten times or more above or below the name's latest stored close on or before its day (for VN gold, or a name with no stored close, the price it trades at now) is not saved straight away, in every market: the reply shows both figures and asks whether you meant it, since a gap that wide is nearly always a zero or three gone missing. Tap "That price is right, save it", or send the same command again with `confirm` at the end, and it is saved as typed. Nothing is held in between: ignore the question and nothing is written. `/record`, `/update` and `/alert create` all ask; deposits, withdrawals and fees have no price to compare and are never asked about, and a name with no price to compare, or whose price does not arrive within 3 seconds, is saved without asking. A trade the venue's own fill priced (`/trade`, `/record sync`, an exit that filled) is never asked about either, nor is a `rights` row, whose price the issuer sets, often at par far under the market. The assistant is refused the same way and has to ask you before it records the price. `[trading.typed_prices] confirm_multiple` sets the multiple (default 10). The desktop app's ledger and alert requests check the same way when they send `typedPrice`.
 
 #### What a write confirmation says about the fee
 
@@ -854,7 +868,7 @@ A deposit in a venue's quote currency, such as `/record deposit binance 1000 USD
 A crypto round trip, step by step, with the rate you paid recorded once, on the deposit:
 
 1. **Deposit USDT with the rate you paid.** `/record deposit binance 1000 USDT 2026-08-14 fx 26600`.
-2. **Buy with that USDT, no `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14`. It
+2. **Buy with that USDT, no `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14` (or `/record buy binance BTC 0.01 60000`, when BTC is listed in one market only). It
    spends the USDT at its cost; an `fx` here is refused with the reason.
 3. **Sell back into USDT.** `/record sell binance crypto:BTC all 65000 USDT 2026-09-01`.
 4. **Withdraw USDT with the rate you sold at.** `/record withdrawal binance 500 USDT 2026-09-20 fx 26900`
@@ -1108,7 +1122,7 @@ Every cash row names its custodian, and a buy is capped by the cash at the venue
 
 ## Orders
 
-**Start on a demo account.** In 1.0.4 the order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
+**Start on a demo account.** The order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
 
 `/trade` and the `order_place` tool place spot orders on **OKX** or **Binance**: market and limit, buy and sell, with an optional take-profit/stop-loss on a buy. Every order is capped before you are asked, approved by you before it goes out, and mirrored into the ledger when it fills.
 
@@ -1141,7 +1155,9 @@ fees = { buy = 0.0008, sell = 0.0008, fee_asset = "base" }   # fractions of noti
 ```
 
 ```bash
-export OKX_API_KEY=... OKX_API_SECRET=... OKX_API_PASSPHRASE=...
+openalpha key set OKX_API_KEY
+openalpha key set OKX_API_SECRET
+openalpha key set OKX_API_PASSPHRASE
 ```
 
 For Binance:
@@ -1152,7 +1168,8 @@ simulated = true                 # every call goes to demo-api.binance.com
 ```
 
 ```bash
-export BINANCE_API_KEY=... BINANCE_API_SECRET=...
+openalpha key set BINANCE_API_KEY
+openalpha key set BINANCE_API_SECRET
 ```
 
 With keys for both exchanges, name the venue on every buy: `/trade spot binance:BTC buy 0.001 sl 100000`.

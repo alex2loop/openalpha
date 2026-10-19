@@ -5,7 +5,7 @@ import { BRAND } from '@/core/brand'
 
 const LOG_LEVELS: readonly LogLevel[] = ['debug', 'info', 'warn', 'error', 'fatal']
 const VALUE_FLAG_NAMES = ['--config', '--data-dir', '--log-level'] as const
-const ENV_LOG_LEVEL = `${BRAND.envPrefix}LOG_LEVEL` as const
+const ENV_LOG_LEVEL = BRAND.controlEnv.logLevel
 
 export interface GlobalFlags {
   /** argv with the global flags stripped out, ready for the command tree. */

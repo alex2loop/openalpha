@@ -47,7 +47,6 @@ export function renderFxPreview(
       : []),
     previewLine(locale, 'trading.render.ledger.confirmWhy', { currency }),
     '',
-    previewLine(locale, 'trading.render.ledger.confirmAccept', {}),
     previewLine(locale, 'trading.render.ledger.confirmStated', {}),
     previewLine(locale, 'trading.render.ledger.confirmExpiry', {
       minutes: formatCount(locale, minutes),

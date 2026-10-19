@@ -7,6 +7,7 @@ import type { AlertCondition, AlertId, StopDistance } from '@/trading/kernel/ope
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { OperationTickOptions, Page, PageOptions } from '@/trading/kernel/store/page'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 
 export type LeaseToken = string & BrandTag<'LeaseToken'>
 
@@ -132,9 +133,10 @@ export interface AlertListPage extends Page<Alert, AlertId> {
 
 export interface AlertService {
   create(options: CreateAlertOptions): Promise<Alert>
-  /** Whether an alert armed for this address could ever be delivered. Asked by the operator-facing
-   *  arming paths only: the system arming passes reuse an address a stored row already carries. */
-  canDeliver(target: DeliveryAddress): boolean
+  /** Where an alert armed from this address would be delivered, or undefined when nowhere. The
+   *  operator-facing arming paths ask it; `create` asks it itself for an operator-armed alert, and
+   *  the system arming passes reuse an address a stored row already carries. */
+  resolveRecipient(origin: DeliveryAddress): Promise<DeliveryAddress | undefined>
   list(options: PageOptions<AlertId>): Promise<Page<Alert, AlertId>>
   /** A page plus how many alerts are active in all, for a surface that shows the total. */
   listWithActiveCount(options: PageOptions<AlertId>): Promise<AlertListPage>
@@ -144,6 +146,9 @@ export interface AlertService {
     readonly signal: AbortSignal
   }): Promise<readonly FiredAlert[]>
   disable(options: DisableAlertOptions): Promise<DisableAlertResult>
+  /** The alert a short id names. More than one is ambiguous and the caller asks for more characters;
+   *  a ref that cannot be an id names none and never reaches the store. */
+  resolveAlertRef(ref: string, signal: AbortSignal): Promise<AlertRefResolution>
   poll(options: OperationTickOptions<AlertId>): Promise<AlertDeliveryBatch>
   /** One daemon sweep over every active alert. The scan position lives in the service: a pool
    *  past one tick's page ceiling resumes where the last tick stopped, since alerts that never
@@ -203,9 +208,16 @@ export interface AlertDraft {
 
 export interface CreateAlertOptions {
   readonly draft: AlertDraft
+  /** Read for an operator-armed alert only; a system-armed threshold is computed. */
+  readonly typedPrice?: TypedPrice
   readonly now: number
   readonly signal: AbortSignal
 }
+
+export type AlertRefResolution =
+  | { readonly kind: 'one'; readonly id: AlertId }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'several'; readonly ids: readonly AlertId[] }
 
 export interface DisableAlertOptions {
   readonly alertId: AlertId

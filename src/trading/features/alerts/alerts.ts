@@ -9,6 +9,7 @@ import type {
   ActiveAlert,
   Alert,
   AlertDeliveryBatch,
+  AlertRefResolution,
   AlertService,
   CreateAlertOptions,
   DisableAlertOptions,
@@ -38,8 +39,9 @@ import {
 import { observePrice, toCrossing } from '@/trading/features/alerts/observation'
 import { reconcileScreenerAlerts } from '@/trading/features/alerts/screeners'
 import { stopDistances } from '@/trading/features/alerts/stop-distances'
+import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
-import { buildInstrumentKey } from '@/trading/kernel/instrument'
+import { buildInstrumentKey, isIdRef } from '@/trading/kernel/instrument'
 import { buildAlertId } from '@/trading/kernel/operator/alert'
 
 const ALERT_EVALUATION_CONCURRENCY = 4
@@ -64,7 +66,7 @@ interface AlertServiceDeps {
   readonly suggestions: SuggestionStore
   /** Writes the levels a held name is watched against when nothing does. */
   readonly exitPlans: ExitPlanner
-  readonly briefs: Pick<BriefService, 'find'>
+  readonly briefs: Pick<BriefService, 'find' | 'resolveRecipient'>
   readonly marketDataStore: ScreenerReconcileDeps['marketDataStore']
   tradeableHoldingsAt: ExitReconcileDeps['tradeableHoldingsAt']
   instrumentKinds: ExitWatchDeps['instrumentKinds']
@@ -98,7 +100,8 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
 
   return {
     ...arming,
-    canDeliver: (target) => deps.sender.canDeliver(target),
+    resolveRecipient: (origin) => deps.sender.resolveRecipient(origin),
+    resolveAlertRef: (ref, signal) => resolveAlertRef(deps, ref, signal),
     list: (options) => deps.store.listPage(options),
     listWithActiveCount: async (options) => {
       const [page, activeCount] = await Promise.all([
@@ -226,6 +229,28 @@ function addDelivery(tally: { delivered: number; deferred: number }, result: Del
   tally.deferred += result.deferred
 }
 
+async function resolveAlertRef(
+  deps: AlertServiceDeps,
+  ref: string,
+  signal: AbortSignal
+): Promise<AlertRefResolution> {
+  const wanted = ref.trim().toLowerCase()
+
+  // Before any query: `%` and `_` never reach `LIKE`.
+  if (!isIdRef(wanted)) {
+    return { kind: 'none' }
+  }
+
+  const ids = await deps.store.listIdsMatching(wanted, signal)
+  const [only] = ids
+
+  if (only === undefined) {
+    return { kind: 'none' }
+  }
+
+  return ids.length === 1 ? { kind: 'one', id: only } : { kind: 'several', ids }
+}
+
 /** Both rejections happen before the insert: an unsupported instrument can never be evaluated,
  *  and a non-positive threshold would fire on the first quote. */
 async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Promise<Alert> {
@@ -248,6 +273,31 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     throw new ValidationError(`instrument is not supported: ${named}${instrument.ticker}`)
   }
 
+  // An operator-armed level is typed; a system-armed one is computed and never a board figure.
+  if (draft.origin === undefined) {
+    await assertTypedPrice(deps, {
+      instrument: resolution.instrument,
+      market: resolution.market,
+      price: draft.threshold,
+      day: resolution.market.manifest.calendar.dayAt(options.now),
+      typedPrice: options.typedPrice,
+      confirmMultiple: deps.config.typedPrices.confirmMultiple,
+      signal: options.signal,
+    })
+  }
+
+  // An operator-armed alert (no origin) lands where the sender can reach; a system-armed one reuses
+  // the address its stored row already carries. Before the write: an alert armed at an address the
+  // router cannot reach would poll, trigger, fail every send and disable itself in silence.
+  const delivery =
+    draft.origin === undefined ? await deps.sender.resolveRecipient(draft.delivery) : draft.delivery
+
+  if (delivery === undefined) {
+    throw new ValidationError('alert target cannot receive notices', {
+      key: 'slash.tradingAlertUndeliverable',
+    })
+  }
+
   const alert: ActiveAlert = {
     id: buildAlertId(options.now),
     // The resolved ref, never the request: a stored row is polled for months and must name the
@@ -255,7 +305,7 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     instrument: resolution.instrument,
     condition: draft.condition,
     threshold: draft.threshold,
-    delivery: draft.delivery,
+    delivery,
     ...(draft.origin === undefined ? {} : { origin: draft.origin }),
     state: 'active',
     createdAt: options.now,

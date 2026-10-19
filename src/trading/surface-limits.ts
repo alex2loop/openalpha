@@ -7,6 +7,11 @@ export const SURFACE_LIMITS = Object.freeze({
   /** Rows a ticker or company-name search answers with: a picker list, not a browse. */
   maximumSearchItems: 20,
   maximumHistoryItems: 100,
+  /** Rows `/transactions` answers with in a chat by default: a phone screen, not a ledger dump. The
+   *  next-page button carries no count, so pages stay the same size. */
+  channelHistoryItems: 10,
+  /** Closed round trips a line-layout `/portfolio` lists before it counts the rest. */
+  closedTripsOnLines: 3,
   maximumAlertItems: 100,
   maximumTrackRecordItems: 100,
   /** How many resolved board rows `/reflect` reads. Two markets, ~135 rows a session, so a

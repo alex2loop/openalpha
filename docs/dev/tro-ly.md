@@ -275,7 +275,10 @@ trong danh mục, rồi một mức dự phòng thận trọng. Mọi lần th�
 ghi vào `llm_attempts`, và đó là thứ khiến sổ chi phí chính xác.
 
 Một phiên chạy chờ tối đa 5 giây cho bảng giá của OpenRouter trước lượt đầu tiên
-([ai/openrouter-feed.ts](../../src/ai/openrouter-feed.ts)).
+([ai/openrouter-feed.ts](../../src/ai/openrouter-feed.ts)). Bảng giá được tải khi thứ có thể gọi mô hình lần đầu
+dựng chuỗi (`llmChains`, gắn trong `ai/services.ts`) hoặc một lượt chạy lần đầu chờ `pricing.ready()`, chứ không
+phải lúc dựng bảng giá, nên lệnh không gọi mô hình thì không phải chờ nó. Vì vậy cảnh báo mô hình lạ
+(`pricing.unknown_model`) chạy sau lần tải đầu, không phải lúc boot.
 
 Bộ giới hạn tần suất ([engine/rate-limiter.ts](../../src/engine/rate-limiter.ts)) là một gáo toàn cục theo phút cộng một gáo
 công bằng có giới hạn cho mỗi cặp agent/người dùng. Gáo công bằng nhận một nửa mức bùng nổ toàn cục, làm tròn xuống, tối

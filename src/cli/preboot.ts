@@ -1,3 +1,4 @@
+import type { KeyFile } from '@/cli/env-file'
 import type { CliApp, Writer } from '@/cli/types'
 import type { LogLevel, ResolvedConfig } from '@/core/config/resolve'
 import type { Services } from '@/core/container'
@@ -12,6 +13,7 @@ export interface PreBootOptions {
   readonly configPath?: string
   readonly dataDir?: string
   readonly logLevel?: LogLevel
+  readonly keyFile: KeyFile
   readonly bootRefusals: (config: ResolvedConfig) => readonly unknown[]
   readonly assertComposes: () => Promise<void>
 }
@@ -24,6 +26,7 @@ export async function preBootApp(options: PreBootOptions): Promise<CliApp> {
   })
 
   return {
+    keyFile: options.keyFile,
     config: probed.config,
     configPath: probed.configPath,
     // Nothing is bound without boot; reaching for a service here is a bug in the command's `needs.boot`, and this.

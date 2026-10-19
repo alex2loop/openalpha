@@ -277,7 +277,10 @@ pricing set on the model, then catalog pricing, then a conservative fallback. Ev
 fallbacks, compaction - is written to `llm_attempts`, which is what makes the ledger exact.
 
 A run waits up to 5 seconds for OpenRouter's price feed before its first turn
-([ai/openrouter-feed.ts](../../../src/ai/openrouter-feed.ts)).
+([ai/openrouter-feed.ts](../../../src/ai/openrouter-feed.ts)). The feed is fetched when something that can
+call a model first builds the chain (`llmChains`, bound in `ai/services.ts`) or a run first awaits
+`pricing.ready()`, not when pricing is constructed, so a command that never calls a model does not wait on
+it. The unknown-model warning (`pricing.unknown_model`) therefore runs after the first fetch, not at boot.
 
 The rate limiter ([engine/rate-limiter.ts](../../../src/engine/rate-limiter.ts)) is a one-minute global bucket plus a
 bounded fairness bucket per agent/user pair. A fairness bucket gets half the global burst, rounded down, minimum one

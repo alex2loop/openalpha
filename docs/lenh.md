@@ -6,6 +6,25 @@ mọi kênh đã cấu hình. Phần giao dịch chỉ có lệnh gạch chéo, 
 Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha help`,
 `openalpha help <lệnh>` hoặc `openalpha <lệnh> --help`.
 
+**Mục lục**
+
+- [Chat giao dịch](#chat-giao-dịch)
+- [Hành vi chung](#hành-vi-chung)
+- [Danh mục lệnh](#danh-mục-lệnh)
+- [Chat](#chat)
+- [Nghiên cứu](#nghiên-cứu)
+- [Daemon và chẩn đoán](#daemon-và-chẩn-đoán)
+- [Cấu hình và khởi tạo](#cấu-hình-và-khởi-tạo)
+- [Đăng nhập nhà cung cấp](#đăng-nhập-nhà-cung-cấp)
+- [Agent, plugin, kỹ năng](#agent-plugin-kỹ-năng)
+- [Bộ nhớ, lịch sử, chi phí](#bộ-nhớ-lịch-sử-chi-phí)
+- [Ghép nối](#ghép-nối)
+- [Đăng nhập Zalo Personal](#đăng-nhập-zalo-personal)
+- [Lịch chạy và workflow](#lịch-chạy-và-workflow)
+- [Bảo trì cơ sở dữ liệu và thư mục làm việc](#bảo-trì-cơ-sở-dữ-liệu-và-thư-mục-làm-việc)
+- [Log](#log)
+- [MCP](#mcp)
+
 ## Hành vi chung
 
 - Thành công thì thoát `0`. Lệnh lạ và lỗi thông thường thoát `1`. Hỏi trợ giúp (`openalpha` không kèm gì,
@@ -75,6 +94,8 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `social` | Agent của bạn trên mạng xã hội của agent | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Cấu hình đã phân giải | `show`, `get`, `path`, `validate`, `edit` |
 | `provider` | Danh mục nhà cung cấp và mô hình | `list`, `models` |
+| `key` | Lưu, xem và xóa các khóa OpenAlpha dùng, trong `<thư mục dữ liệu>/env` | `set <TÊN>` (gõ ẩn hoặc qua pipe, không bao giờ làm đối số), `list` (mặc định; tên, nguồn và 4 ký tự cuối của khóa dài), `unset <TÊN>` |
+| `autostart` | Tự chạy OpenAlpha khi bạn đăng nhập | `enable`, `disable`, `status` (mặc định) |
 | `auth` | Đăng nhập cho nhà cung cấp theo thuê bao | `login`, `status`, `logout` |
 | `plugin` | Plugin đã cài | `list`, `install` (`--yes`), `update`, `uninstall` |
 | `skill` | Kỹ năng đã tìm thấy | `list`, `install` (`--force`) |
@@ -125,7 +146,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 
-`/help` liệt kê câu lệnh theo nhóm: chung, danh mục và giao dịch, thị trường, phân tích và đề xuất.
+`/help` liệt kê câu lệnh theo nhóm: danh mục và giao dịch (mở đầu bằng `/setup`), thị trường, phân tích và đề xuất, rồi đến hệ thống (`/help`, `/stop` và các lệnh không thuộc nhóm nào). Menu Telegram theo cùng thứ tự.
 `/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì tôi
 gợi ý câu lệnh gần nhất.
 
@@ -488,8 +509,8 @@ ghi sổ và `/trade`.
 | `/setup` | `/setup` - trợ lý làm gì và cách thiết lập |
 | `/record` | Ghi một dòng vào sổ. Xem [Sổ lệnh](#sổ-lệnh) |
 | `/update` | `/update <mã bút toán> <các trường như /record>` - sửa trực tiếp một mục, kể cả sàn. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto`. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
-| `/delete` | `/delete <mã bút toán>` - xóa một mục |
-| `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
+| `/delete` | `/delete <mã bút toán>` - xem một mục; `/delete <mã bút toán> confirm` mới xóa |
+| `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Trong chat mặc định là 10 dòng gần nhất (terminal giữ 100), và nút trang kế giữ nguyên cỡ đó. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
 | `/portfolio` | `/portfolio` - giá trị và phân bổ, mỗi dòng nói rõ vị thế đang cách mức dừng bao xa. Xem [Mức dừng dự kiến không phải một lệnh đang treo](#mức-dừng-dự-kiến-không-phải-một-lệnh-đang-treo) |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | `/portfolio nav 3m` - danh mục đã đi thế nào: lợi nhuận đã loại tiền nạp và rút, mức sụt sâu nhất từ đỉnh, và thước đo từ tỷ trọng mục tiêu của bạn. Mặc định `3m` |
 | `/profile` | `/profile show`; `/profile set <trường> <giá trị>`; `/profile enable\|disable <nhóm>`; `/profile reset` |
@@ -502,7 +523,7 @@ ghi sổ và `/trade`.
 | `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - kiểm lại một chủ đề đang theo dõi và không tìm chủ đề mới, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
 | `/rebalance` | `/rebalance`; `/rebalance <mã>...` - tính khoảng cách tới mục tiêu, không cân nhắc bằng chứng và không gọi mô hình. Xem [`/rebalance` tính những gì](#rebalance-tính-những-gì) |
 | `/reflect` | `/reflect` - các đề xuất trước đây thực tế chạy ra sao |
-| `/alert` | `/alert list [số lượng]`; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id-cảnh-báo>`. Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
+| `/alert` | `/alert list [số lượng]`; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |
@@ -567,8 +588,8 @@ thế với hai giá vốn. Dòng đó cũng nêu thị trường ngay trong cù
 
 ```text
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>
-/record buy|sell <sàn> <thị-trường:mã> <số lượng|all> <đơn giá> <tiền tệ> [phí] <ngày>
-/record rights <sàn> <thị-trường:mã> <số lượng> <đơn giá> <tiền tệ> <phí> <ngày>
+/record buy|sell [sàn] <mã> <số lượng|all> <đơn giá> [tiền tệ] [phí] [ngày]
+/record rights [sàn] <mã> <số lượng> <đơn giá> [tiền tệ] <phí> [ngày]
 /record dividend <sàn> <thị-trường:mã> <số tiền> <tiền tệ> <ngày>
 /record split|distribution <sàn> <thị-trường:mã> <thay-đổi-số-lượng> <ngày>
 /record transfer <từ-sàn> <đến-sàn> <số tiền> <tiền tệ> <phí> <ngày>
@@ -591,6 +612,10 @@ phiếu hay một lượng vàng. Tỷ giá sau `fx` trong sổ tính bằng đ�
 chia tách hay phân phối thì bị từ chối ở mọi thị trường. Lời nhắn chỉ cách viết `1000` cho một nghìn, hoặc
 `1.5` cho số lẻ.
 
+Giá lệch giá gần nhất của mã từ mười lần trở lên thì chưa được lưu ngay: câu trả lời đưa ra cả
+hai con số và hỏi lại. Bấm nút, hoặc gửi lại đúng dòng đó với `confirm` ở cuối, để lưu như bạn gõ.
+`/update` và `/alert create` cũng hỏi như vậy. Chi tiết ở [Giao dịch](giao-dich.md).
+
 **Mua và bán.** Lệnh bán có thể ghi `all` thay cho một con số, và sổ tính thành khối lượng đã thanh toán
 đang nắm *ở sàn đó* vào ngày đó. Có thể bỏ trống phí, khi đó tỷ lệ `fees` của sàn trong
 `[trading.venues.<id>]` sẽ tính giá. Một khoản phí bạn đã nêu thì không bao giờ bị thay.
@@ -598,6 +623,13 @@ chia tách hay phân phối thì bị từ chối ở mọi thị trường. L�
 **Khối lượng được lưu đúng như bạn gõ**, nên hãy nhập con số sàn đã ghi có, không phải con số bạn đã đặt.
 Một sàn mang khóa giao dịch thì lấy dòng từ lệnh khớp duy nhất phù hợp. Lý do, và cách khớp lệnh đó, nằm
 ở [Giao dịch](giao-dich.md).
+
+**Dòng ngắn.** Bỏ sàn khi đúng một sàn giữ thị trường đó, bỏ tiền tệ để dùng tiền của thị trường, bỏ ngày để
+lấy hôm nay. Mã đứng một mình chỉ được tìm trong các danh sách đã lưu, trong các thị trường mà một sàn giữ
+(chỉ sàn được nêu, nếu có nêu), không gửi yêu cầu mạng nào, và chỉ được nhận khi đúng một thị trường khớp;
+nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Mọi xác nhận đều in thị trường cạnh mã. Dòng được
+mở rộng ra dạng đầy đủ trước khi đọc bất kỳ con số nào, nên số có dấu nhóm như `58.400` bị từ chối y như dạng
+đầy đủ. Ví dụ: `/record buy FPT 100 58400`.
 
 **Các loại dòng khác.** Phát hành quyền mua không được môi giới theo mức phí chuẩn, nên nó luôn tự nêu
 phí. `transfer` chuyển tiền giữa hai sàn của chính bạn mà không đụng tới tiền nạp ròng. Một lần chia tách

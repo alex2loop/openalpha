@@ -22,7 +22,7 @@ export function createSentMessages(): SentMessages {
   }
 }
 
-// Telegram numbers messages per chat, so the pair is the identity.
+// One bot's chat and message id, whether ids are per chat (Telegram) or global (Zalo).
 function sentKey(chatId: string, messageId: string): string {
   return `${chatId}:${messageId}`
 }

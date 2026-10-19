@@ -80,7 +80,7 @@ const SPACING_CONSTANTS: ReadonlyMap<string, string> = new Map([
 // changed, never added here.
 const SHARED_GLYPHS: ReadonlyMap<string, string> = new Map([
   ['⚖️', 'the advice section and the rebalance tool that produces it'],
-  ['🌅', 'the brief section and the brief tool'],
+  ['🌅', 'the brief section and the brief and brief-schedule tools'],
   ['🌐', 'the macro section and the macro-risk tool'],
   ['👀', 'the watchlist section and the watchlist tool'],
   ['🔭', 'the themes section and the themes_view tool'],
@@ -88,13 +88,13 @@ const SHARED_GLYPHS: ReadonlyMap<string, string> = new Map([
   ['💵', 'the quote section and the price tool'],
   ['📅', 'the upcoming-events section and the corporate-events tool'],
   ['📈', 'the reflect section and the track-record tool'],
-  ['📊', 'the portfolio section and the portfolio tool'],
-  ['🪪', 'the profile section and the profile-view tool'],
+  ['📊', 'the portfolio section and the portfolio and portfolio-review tools'],
+  ['🪪', 'the profile section and the profile view and update tools'],
   ['🔔', 'the alert section and the alert tool'],
   ['🔬', 'the screen section and the screen tool'],
-  ['🛒', 'the order section and the order-place tool'],
+  ['🛒', 'the order section and the order-place and order-exits tools'],
   ['🗺️', 'the overview section and the overview tool'],
-  ['🧾', 'the ledger section and the portfolio-history tool'],
+  ['🧾', 'the ledger section and the tools that read, record, update and delete its rows'],
 ])
 
 // Asked of Unicode rather than tabulated, so a glyph nobody thought to list still resolves. Three

@@ -352,6 +352,10 @@ export interface TrailBounds {
 export interface ResolveMarketOptions {
   readonly ticker: Ticker
   readonly market?: MarketRef
+  /** Search only these markets; applied before any detector runs. */
+  readonly within?: readonly MarketRef[]
+  /** Stop after the stored tier: no detector that fetches is asked, so no network request is made. */
+  readonly detection?: 'stored'
   readonly signal: AbortSignal
 }
 

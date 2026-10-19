@@ -33,12 +33,18 @@ export function createAiProvider(
       )
       // Under the client source the client's model is the primary chain; a configured tier such as
       // `decisions` still answers the direct lookups that name it.
-      bind('llmChains', (app) =>
-        createProviderChainRegistry({
+      bind('llmChains', (app) => {
+        const pricing = app.resolve('pricing')
+
+        // Everything that can call a model builds this chain, so the feed still warms in parallel
+        // with boot there, while a model-free command never pays for it.
+        pricing.ready().catch(() => undefined)
+
+        return createProviderChainRegistry({
           config: app.config,
           logger: app.resolve('logger'),
           bus: app.resolve('bus'),
-          pricing: app.resolve('pricing'),
+          pricing,
           credentials: createCredentialSources({
             dataDir: app.config.paths.dataDir,
             logger: app.resolve('logger'),
@@ -48,7 +54,7 @@ export function createAiProvider(
             ? { primary: createClientModelChain(app.resolve('clientModelBroker')) }
             : {}),
         })
-      )
+      })
     },
   }
 }

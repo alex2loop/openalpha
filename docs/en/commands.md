@@ -6,6 +6,25 @@ every configured channel. Trading has slash commands only, no CLI command of its
 This page is the map. For the exact syntax of the version you installed, run `openalpha help`,
 `openalpha help <command>` or `openalpha <command> --help`.
 
+**Contents**
+
+- [Trading chat](#trading-chat)
+- [Global behavior](#global-behavior)
+- [Command catalog](#command-catalog)
+- [Chat](#chat)
+- [Research](#research)
+- [Daemon and diagnostics](#daemon-and-diagnostics)
+- [Configuration and onboarding](#configuration-and-onboarding)
+- [Provider logins](#provider-logins)
+- [Agents, plugins, skills](#agents-plugins-skills)
+- [Memory, history, cost](#memory-history-cost)
+- [Pairing](#pairing)
+- [Zalo Personal login](#zalo-personal-login)
+- [Scheduling and workflows](#scheduling-and-workflows)
+- [Database and workspace maintenance](#database-and-workspace-maintenance)
+- [Logs](#logs)
+- [MCP](#mcp)
+
 ## Global behavior
 
 - Success exits `0`. Unknown commands and ordinary failures exit `1`. Asking for help (`openalpha` alone,
@@ -74,6 +93,8 @@ leave, because one failed turn is not a failed session.
 | `social` | Your agents on agent social networks | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Resolved configuration | `show`, `get`, `path`, `validate`, `edit` |
 | `provider` | Provider and model catalog | `list`, `models` |
+| `key` | Save, list and remove the keys OpenAlpha reads, in `<data dir>/env` | `set <NAME>` (typed hidden or piped, never an argument), `list` (default; names, source and the last 4 characters of a long key), `unset <NAME>` |
+| `autostart` | Start OpenAlpha when you log in | `enable`, `disable`, `status` (default) |
 | `auth` | Logins for subscription providers | `login`, `status`, `logout` |
 | `plugin` | Installed plugins | `list`, `install` (`--yes`), `update`, `uninstall` |
 | `skill` | Discovered skills | `list`, `install` (`--force`) |
@@ -125,7 +146,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
 
-`/help` lists commands in groups: general, portfolio and trades, markets, analysis and suggestions.
+`/help` lists commands in groups: portfolio and trades (starting with `/setup`), markets, analysis and suggestions, then system (`/help`, `/stop` and the commands that belong to no group). The Telegram menu follows the same order.
 `/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt
 name gets the closest command.
 
@@ -502,8 +523,8 @@ The rest fit in a line.
 | `/setup` | `/setup` - what the assistant does and how to set it up |
 | `/record` | Writes a ledger row. See [The ledger](#the-ledger) |
 | `/update` | `/update <handle> <the same fields as /record>` - edit one entry in place, venue included. A row in a currency other than VND needs `fx <rate>` or `fx auto`. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
-| `/delete` | `/delete <handle>` - remove one entry |
-| `/transactions` | `/transactions [rows] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
+| `/delete` | `/delete <handle>` - show one entry; `/delete <handle> confirm` removes it |
+| `/transactions` | `/transactions [rows] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. In a chat the default is the last 10 rows (the terminal keeps 100), and the next-page button keeps the same size. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | `/portfolio nav 3m` - how your book has done: the return with deposits and withdrawals taken out, the deepest drop from a peak, and a yardstick from your own target mix. Default `3m` |
 | `/profile` | `/profile show`; `/profile set <field> <value>`; `/profile enable\|disable <segment>`; `/profile reset` |
@@ -516,7 +537,7 @@ The rest fit in a line.
 | `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme and looks for no new ones, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
 | `/reflect` | `/reflect` - how past suggestions actually performed |
-| `/alert` | `/alert list [limit]`; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <alert-id>`. The list includes system-armed exit and screener rows beside your own |
+| `/alert` | `/alert list [limit]`; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. See [A brief with no watchlist](#a-brief-with-no-watchlist) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
@@ -582,8 +603,8 @@ reading of the book.
 
 ```text
 /record deposit|withdrawal|fee|loss <venue> <amount> <currency> <day>
-/record buy|sell <venue> <market:ticker> <quantity|all> <unit-price> <currency> [fee] <day>
-/record rights <venue> <market:ticker> <quantity> <unit-price> <currency> <fee> <day>
+/record buy|sell [venue] <ticker> <quantity|all> <unit-price> [currency] [fee] [day]
+/record rights [venue] <ticker> <quantity> <unit-price> [currency] <fee> [day]
 /record dividend <venue> <market:ticker> <amount> <currency> <day>
 /record split|distribution <venue> <market:ticker> <quantity-delta> <day>
 /record transfer <from-venue> <to-venue> <amount> <currency> <fee> <day>
@@ -608,6 +629,10 @@ be a thousand shares or one tael of gold. The same goes for a rate after `fx` in
 the share change of a split or distribution in any market. The reply says to write `1000` for a
 thousand, or `1.5` for a decimal.
 
+A price ten times or more away from the name's latest price is not saved straight away: the reply
+shows both and asks. Tap the button, or send the same line again ending in `confirm`, to save it as
+typed. `/update` and `/alert create` ask the same way. Details: [Trading](trading.md).
+
 **Buy and sell.** A sale may write `all` instead of a count; the ledger resolves it to the settled
 quantity held *at that venue* on that day. You may leave out the fee, and the venue's `fees` rate in
 `[trading.venues.<id>]` prices it. A fee you state is never replaced.
@@ -615,6 +640,13 @@ quantity held *at that venue* on that day. You may leave out the fee, and the ve
 **Quantity is stored as typed**, so enter the count the venue credited, not the one you ordered. A
 venue with exchange credentials takes the row from the one matching fill instead. Why, and how the
 fill is matched, is in [Trading](trading.md).
+
+**Short lines.** Leave out the venue when exactly one holds the market, the currency to use the market's, and
+the day for today. A bare ticker is looked up only in the lists already stored, among the markets a venue
+holds (only the named venue's, when one is named), with no network request, and is accepted only when exactly
+one market matches; otherwise the reply names the `market:ticker` forms to type. Every confirmation prints
+the market beside the ticker. The line expands to the full form before any number is read, so a grouped
+number such as `58.400` is refused exactly as in the full form. Example: `/record buy FPT 100 58400`.
 
 **Other row types.** A rights issue is not brokered at the standard rate, so it always states its
 fee. A `transfer` moves cash between two of your own venues without touching net deposits. A 2:1

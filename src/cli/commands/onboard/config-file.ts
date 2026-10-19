@@ -28,6 +28,8 @@ export interface StarterModel {
 interface StarterAnswers {
   readonly model: StarterModel
   readonly language?: Locale
+  /** ISO 4217 code of the book, written beside the language so the choice is visible. */
+  readonly currency?: string
   readonly dailyBudgetUsd?: number
   readonly telegramTokenEnv?: string
 }
@@ -50,7 +52,14 @@ export function starterConfigToml(
   options: { readonly api: boolean }
 ): string {
   return stringify({
-    ...(answers.language === undefined ? {} : { locale: { language: answers.language } }),
+    ...(answers.language === undefined && answers.currency === undefined
+      ? {}
+      : {
+          locale: {
+            ...(answers.language === undefined ? {} : { language: answers.language }),
+            ...(answers.currency === undefined ? {} : { currency: answers.currency }),
+          },
+        }),
     models: [toModelTable(answers.model)],
     budget: { max_daily_usd: answers.dailyBudgetUsd ?? STARTER_DAILY_BUDGET_USD },
     ...(answers.telegramTokenEnv === undefined

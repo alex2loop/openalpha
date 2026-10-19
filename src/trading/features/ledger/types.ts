@@ -3,6 +3,7 @@ import type { CurrencyCode, InstrumentRef, TradingDay, VenueRef } from '@/tradin
 import type { FxConversion } from '@/trading/kernel/market/market-capability'
 import type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { PageOptions } from '@/trading/kernel/store/page'
+import { SELL_ALL } from '@/trading/kernel/surface/surface'
 
 // `loss` is money the book lost before it started keeping records — the closed trades a
 // snapshot import can only state as a total. It leaves cash like a fee but is not one: a fee is a
@@ -29,9 +30,6 @@ export const LEDGER_TXN_KINDS = Object.freeze([
   TRANSFER_TXN_KIND,
 ] as const)
 export type LedgerTxnKind = (typeof LEDGER_TXN_KINDS)[number]
-
-/** The whole settled position, in the quantity slot a count would occupy. */
-export const SELL_ALL = 'all'
 
 /** Where a stored trade row's figures came from. `venue` is the whole row. `venueSized` is the
  *  venue's quantity and price against a fee the operator stated, which is never overridden. */
@@ -171,15 +169,6 @@ export interface LedgerInsert {
   readonly entry: LedgerEntry
   readonly idempotencyKey: string
   readonly requestFingerprint: string
-}
-
-/** UUIDv7 leads with a timestamp, so entries recorded together share their opening characters — a
- *  handle has to come off the random tail to tell them apart. Short enough to type back from a chat
- *  line, and every write resolves it against the whole ledger rather than trusting it to be unique. */
-const HANDLE_LENGTH = 6
-
-export function ledgerEntryHandle(id: LedgerEntryId): string {
-  return id.slice(-HANDLE_LENGTH)
 }
 
 /** The trading days a history read keeps, both ends inclusive. An absent end leaves that side

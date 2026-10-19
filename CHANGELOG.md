@@ -7,6 +7,109 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [1.0.8] - 2026-10-19
+
+OpenAlpha is safer to leave running and easier to drive: a daily backup, start at login, keys kept in a
+private file, typed answers to approval prompts on Zalo, a shorter `/record`, and notices for a crash, a
+missed brief or a channel that stays down. The first start adds one database column by itself (after a
+backup on SQLite).
+> OpenAlpha an toàn hơn khi để chạy lâu và dễ dùng hơn: sao lưu mỗi ngày, tự chạy khi đăng nhập, khóa lưu trong tệp riêng, trả lời duyệt lệnh bằng cách gõ trên Zalo, `/record` ngắn hơn, và báo khi daemon sập, lỡ bản tin hay kênh chat mất kết nối. Lần chạy đầu tự thêm một cột vào cơ sở dữ liệu (với SQLite thì sao lưu trước).
+
+### Operations
+
+- The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three
+  (`[retention] daily_backups`, `0` turns it off). PostgreSQL is skipped; use `pg_dump`.
+- `openalpha autostart enable|disable|status` starts OpenAlpha at login (launchd, systemd user unit,
+  Windows Run key), so the brief and alerts survive a restart. The Linux and Windows launchers are
+  untested on real machines.
+- `status` says when the daemon stopped unexpectedly, and the next start tells your chat once. A morning
+  brief that could not go out before the open (the daemon was down, or every try failed) now says so. A
+  brief whose build crosses the open still goes out, with a line first saying prices have moved.
+- A chat channel that stays down for 15 minutes is reported on another channel (with the reason), once
+  when it drops and once when it returns, and `status` lists it as `down`.
+- A button tapped after its prompt was answered or timed out replies that it is already answered or
+  expired.
+- SQLite gets `PRAGMA optimize` in the retention sweep.
+
+### Setup
+
+- `openalpha key set NAME` saves a key you type hidden into `~/.openalpha/env` (mode `0600`); `openalpha
+  key` lists which keys are set and where from; `key unset NAME` removes one. Every command reads that
+  file at start, and a variable set in your shell still wins. `onboard` offers to save the model key and
+  the Telegram token the same way, and every missing-key message now points at `key set`. The file holds
+  service keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: the names that
+  steer OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
+  `NODE_OPTIONS`, `LD_*`) are skipped, and an inline `# comment` is read as one.
+- `onboard` asks the currency of your book (VND, USD, or another 3-letter code) and writes it to
+  `[locale] currency`, since it is fixed once a profile is saved.
+- `openalpha provider list` works before any setup, without a config or a database.
+- `config.sample.toml` starts with the `[budget]` daily cap (`max_daily_usd = 2`) and `[locale]` on, and the
+  long guides carry a contents list.
+
+### Chat
+
+- A chat you pair is your default chat when the channel names no `fallback_chat_id`: the crash and
+  missed-brief notices, a channel-down report, and alerts and briefs armed from the terminal reach it
+  with nothing more to set.
+- `openalpha pair revoke` now stops everything the daemon sends to that chat, and it stays stopped
+  after a restart. Alerts and the morning brief armed there switch off at their next send instead of
+  retrying forever, so pairing again needs `/brief enable` and the alerts set again.
+- A fired alert opens with 🔔 and ends with its labelled id (`Alert id: 8290b3`).
+- A Vietnamese share price typed as the board figure is refused with the full price to send instead:
+  an `/alert` threshold (`FPT above 60` is 60 VND), a `/record` or `/update` price, and the same from
+  the chat agent's tools and the `/v1` API.
+- A price typed in `/record`, `/update` or `/alert create` that sits ten times or more from the name's
+  latest price, in any market (VN gold against the shop's board), is not saved until you confirm it:
+  the reply shows both figures with a "That price is right, save it" button, or send the line again
+  ending in `confirm`. The chat agent has to ask you first, and the `/v1` API asks the same when a
+  request sends `typedPrice` (`price_unconfirmed`, 422, with the figures in `unconfirmedPrice`).
+  `[trading.typed_prices] confirm_multiple` sets the multiple.
+- `/help` and the Telegram menu lead with the trading commands (`/setup` first under the book), and the
+  system commands (`/help`, `/stop` and the rest) close the list. The menu now lists `/help` and `/stop`.
+- Approval prompts and `/research thorough` plan reviews work on Zalo: each choice arrives as a short
+  code such as `/4821` to type back in the same chat. Only the operator's code counts, and a second
+  answer says it was already answered or has expired.
+- In a private Zalo Personal chat, replying to an answer continues from it, as on Telegram.
+- Alerts and the morning brief armed from the terminal now go to your chat (the first configured channel,
+  or `fallback_chat_id`) instead of being refused, while OpenAlpha runs in the background. A scheduled
+  daemon run whose origin is the terminal arms to the default chat the same way.
+- On Zalo a long command's progress line ends with `type /stop to cancel`, and a command waiting behind
+  another says nothing until it starts.
+
+### Trading
+
+- `/record buy|sell|rights` takes shorter lines: leave out the venue when one holds the market, the
+  currency, and the date (`/record buy FPT 100 58400`). A bare ticker is found only in lists already
+  stored, never over the network, and only when exactly one market matches; a crypto ticker keeps its
+  market (`crypto:BTC`), and the reply says so. Every confirmation now prints the market beside the ticker.
+- Buttons where no money moves: the rate check of a USDT `/record` and a proposed `/themes` theme each
+  offer their confirm as a button (a typed line on Zalo and the terminal).
+- `/delete <id>` now shows the row first; `/delete <id> confirm` removes it. Scripts that delete in one
+  step must add `confirm`.
+
+### Reports
+
+- On Telegram a message too long for one bubble (the brief) splits between sections, not inside one.
+  The `/portfolio` cash line states the cash share and its target, without a gap that read as a
+  relative percentage.
+- Icons are consistent: a market heading wears the market's own icon on `/portfolio`, `/alert list`
+  and `/watchlist` as in the brief and the intraday report, crypto is 🪙 and world gold 🥇, the brief
+  reads 📋 verdict, 💡 suggestions and 👀 watch list, `/reflect`'s acted section is 🤝, a clarifying
+  question is 🙋, and the agent's tools wear the icon of the section they fill.
+- Alerts open with the action: the headline, then for an exit the `/record sell` line to fill in, then a
+  `/suggest` link. Alert ids are six characters, and `/alert disable` takes them. A short id must be the
+  whole six characters for `/delete` and `/update` too, and one that matches several rows or alerts is
+  answered with their full ids.
+- On a phone `/transactions` shows 10 rows, `/portfolio` puts positions right after the warnings and keeps
+  three closed trips, and the brief shows what to do right under the verdict.
+- The footer after a command shows only the elapsed time until the session has called a model.
+- Failure and caveat messages say what to do next, and a failed command points at `openalpha logs`.
+
+### For integrators
+
+- `DaemonTask.start(signal, options?)` takes a `DaemonStartOptions` object (`onReady`, `onHealth`,
+  `previousRun`) in place of the positional `onReady` handler.
+
 ## [1.0.7] - 2026-10-19
 
 Telegram replies keep their context, a quiet chat rechecks prices, and web search can use DeepSeek.
@@ -228,6 +331,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.8]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.8
 [1.0.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.7
 [1.0.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.6
 [1.0.5]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.5

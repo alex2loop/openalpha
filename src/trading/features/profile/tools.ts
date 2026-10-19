@@ -44,7 +44,7 @@ function createProfileUpdateTool(
     eager: true,
     presentation: {
       label: 'Update profile',
-      emoji: '✏️',
+      emoji: '🪪',
       detail: (input, locale) => renderPatchText(locale, input.patch),
     },
     async execute(args, ctx): Promise<string> {

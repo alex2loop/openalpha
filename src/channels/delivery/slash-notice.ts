@@ -51,6 +51,8 @@ export function openSlashNotice(deps: SlashNoticeDeps, progressKey: string): Sla
   })
   const relabels = canRelabel(deps)
   const buttons = buildCancelButtons(deps)
+  // Without a cancel keyboard the notice says how to cancel, after whatever step it names.
+  const stopHint = buttons === undefined ? ` ${translate('channel.progressStopHint')}` : ''
   const writer = createNoticeWriter(deps)
 
   let current = label
@@ -61,14 +63,14 @@ export function openSlashNotice(deps: SlashNoticeDeps, progressKey: string): Sla
   const relabel = (): void => {
     relabelTimer = undefined
     lastWriteAt = performance.now()
-    writer.rewrite(current, buttons)
+    writer.rewrite(`${current}${stopHint}`, buttons)
   }
 
   // Paints whichever step is current when it fires, not the one that was current when the command
   // was accepted.
   revealTimer = setTimeout(() => {
     revealTimer = undefined
-    writer.reveal(current, buttons)
+    writer.reveal(`${current}${stopHint}`, buttons)
   }, REVEAL_DELAY_MS)
 
   typing.set(true)
@@ -107,7 +109,7 @@ export function openSlashNotice(deps: SlashNoticeDeps, progressKey: string): Sla
       } else if (deps.signal.aborted) {
         writer.rewrite(translate('channel.cancelled'))
       } else if (relabels) {
-        writer.rewrite(label)
+        writer.rewrite(`${label}${stopHint}`)
       }
 
       await writer.settle()

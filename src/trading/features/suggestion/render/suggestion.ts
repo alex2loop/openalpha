@@ -41,6 +41,7 @@ import {
 } from '@/trading/features/suggestion/render/verdict'
 import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { framedDirectionOf, isInconclusive } from '@/trading/features/suggestion/types'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isBookCall } from '@/trading/kernel/operator/focus'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
@@ -70,6 +71,7 @@ export function renderSuggestionText(input: SuggestionTextInput): string {
         [
           t(locale, 'trading.render.suggestion.cooldown', {
             day: formatDay(locale, result.eligibleAfter),
+            instrument: buildInstrumentKey(result.previous.instrument),
           }),
         ],
         ...renderStored(view, result.previous),

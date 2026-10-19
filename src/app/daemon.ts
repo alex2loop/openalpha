@@ -1,17 +1,21 @@
 import type { DeliveryHub } from '@/app/delivery'
 import type { StartChannelsDeps, StartChannelsResult } from '@/channels/api'
-import type { App, DaemonReadyHandler, DaemonTask, DegradedItem } from '@/core/container'
+import type { App, DaemonStartOptions, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
+import { startChannelWatch } from '@/app/channel-watch'
 import { retentionCutoffAt, runWorkspaceTmpRetention, startRetention } from '@/app/retention'
 import { ApiTokenError } from '@/app/server/http/auth'
 import { toAgentRegistry } from '@/app/services'
 import { startSocialUpkeep } from '@/app/social-upkeep'
 import { startUpdateWatch } from '@/app/update/watch'
 import { startChannels } from '@/channels/api'
+import { BRAND } from '@/core/brand'
 import { AppError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { startScheduledWorkflows } from '@/engine/api'
+import { t } from '@/i18n'
+import { formatInstant } from '@/trading/api'
 
 const SHUTDOWN_DRAIN_MS = 5_000
 const SHUTDOWN_TOTAL_MS = 30_000
@@ -37,7 +41,7 @@ interface Teardown {
 export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
   return {
     name: 'daemon',
-    async start(signal: AbortSignal, onReady?: DaemonReadyHandler): Promise<void> {
+    async start(signal: AbortSignal, options?: DaemonStartOptions): Promise<void> {
       // Guard before side effects: an already-aborted signal must not arm subsystems that would
       // then wait forever for an 'abort' event that has already fired.
       if (signal.aborted) {
@@ -78,6 +82,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
         const warnings = await startDaemonSubsystems({
           app,
           delivery,
+          onHealth: options?.onHealth,
           startupSignal,
           startup,
           logger,
@@ -86,7 +91,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
           teardown,
         })
 
-        markReady({ app, logger, warnings, onReady })
+        markReady({ app, delivery, logger, warnings, options })
 
         await abortWaiter.promise
 
@@ -107,6 +112,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
 interface StartDaemonSubsystemsOptions {
   readonly app: App
   readonly delivery: DeliveryHub
+  readonly onHealth: DaemonStartOptions['onHealth']
   readonly startupSignal: AbortSignal
   readonly startup: AbortController
   readonly logger: Logger
@@ -120,6 +126,7 @@ async function startDaemonSubsystems(
 ): Promise<readonly DegradedItem[]> {
   const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
   const { disposers } = teardown
+  const { onHealth } = options
 
   const channels = await startChannels(channelDeps(app, startupSignal))
   const tradingTasks = app.resolve('tradingServices').daemonTasks
@@ -137,6 +144,16 @@ async function startDaemonSubsystems(
   )
 
   attachDelivery({ delivery, channels, disposers })
+  // Before `channels.stop()` in the teardown (disposers run in push order, and the channels were
+  // pushed first), so the loop cannot announce a channel that is only being closed.
+  disposers.unshift(
+    startChannelWatch({
+      delivery,
+      locale: app.config.locale.language,
+      logger,
+      ...(onHealth === undefined ? {} : { onHealth }),
+    })
+  )
 
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has
   // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.
@@ -253,7 +270,9 @@ function attachDelivery(options: {
       notifier: channels.notifier,
       snapshots: channels.snapshots,
       isWorking: channels.isWorking,
-      ...(channels.defaultRecipient === undefined ? {} : { recipient: channels.defaultRecipient }),
+      recipients: channels.recipients,
+      recipient: channels.defaultRecipient,
+      isDeliverable: channels.isDeliverable,
     })
   )
 }
@@ -373,15 +392,58 @@ async function runCleanup(
   }
 }
 
-function markReady(options: {
+function markReady(ready: {
   readonly app: App
+  readonly delivery: DeliveryHub
   readonly logger: Logger
   readonly warnings: readonly DegradedItem[]
-  readonly onReady: DaemonReadyHandler | undefined
+  readonly options: DaemonStartOptions | undefined
 }): void {
-  options.logger.info('daemon.started')
-  options.onReady?.(options.warnings)
-  reportUpgradeOutcome(options.app, options.logger)
+  const { app, delivery, logger, warnings, options } = ready
+
+  logger.info('daemon.started')
+  options?.onReady?.(warnings)
+  reportUpgradeOutcome(app, logger)
+
+  if (options?.previousRun !== undefined) {
+    announceUncleanStop({ app, delivery, logger }, options.previousRun)
+  }
+}
+
+/** The previous run died without stopping, so alerts and the brief were paused until now. Zalo
+ *  Personal logs in after ready, so a Zalo-only setup can miss this one message; the upgrade
+ *  outcome has the same limit. */
+function announceUncleanStop(
+  parts: { readonly app: App; readonly delivery: DeliveryHub; readonly logger: Logger },
+  previousRun: { readonly startedAt?: number }
+): void {
+  const { app, delivery, logger } = parts
+  const target = delivery.defaultRecipient()
+
+  if (target === undefined) {
+    logger.warn('daemon.unclean_stop_unannounced')
+
+    return
+  }
+
+  const { language, timezone } = app.config.locale
+  const params = { brand: BRAND.name }
+  const text =
+    previousRun.startedAt === undefined
+      ? t(language, 'cli.daemonStoppedUnexpectedlyNoTime', params)
+      : t(language, 'cli.daemonStoppedUnexpectedly', {
+          ...params,
+          started: formatInstant(language, previousRun.startedAt, timezone),
+        })
+
+  delivery
+    .sendAcknowledged(target, { text }, { signal: app.signal })
+    .catch((err: unknown) => formatErrForLog(err))
+    .then((outcome) => {
+      if (outcome !== 'accepted') {
+        logger.warn('daemon.unclean_stop_notice_failed', { outcome })
+      }
+    })
 }
 
 /** Only once the daemon is ready: a release that dies late in its start must not tell the chat it

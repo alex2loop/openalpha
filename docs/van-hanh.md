@@ -32,7 +32,7 @@ việc thì thoát ngay.
 | `trading.intents` | 5 phút | Quyết toán các lệnh mà sổ đã nắm; phần còn lại chờ `/trade reconcile`. Cùng điều kiện với `trading.exits`. |
 | `trading.refresh` | sau giờ đóng cửa từng thị trường, tối đa 12 giờ | Làm mới dữ liệu cho mọi thị trường bạn còn dùng và ghi log phần suy giảm. Sau đó chụp bảng yếu tố của từng thị trường khi phiên chốt, và chấm điểm các bảng cũ đã tới cuối cửa sổ. Nó cũng ghi ảnh chụp danh mục trong ngày (giá trị, tiền mặt, tiền nạp ròng). Nếu một mã đang nắm chưa có giá thì bỏ qua ảnh chụp ngày đó và log `trading.nav_snapshot_skipped` kèm tên các mã; lỗi khác log `trading.nav_snapshot_failed`. Không gọi mô hình. |
 | `trading.intraday` | các mốc giờ bạn khai | Gửi báo cáo trong phiên. **Tắt cho tới khi `[trading.intraday] send_times` nêu một mốc giờ.** |
-| quét lưu giữ | 6 giờ | Xóa các dòng quá `[retention] days` / `inbox_days`, tệp tạm trong thư mục làm việc, và thư mục log của agent không còn được cấu hình. Cũng chạy một lần lúc khởi động. |
+| quét lưu giữ | 6 giờ | Xóa các dòng quá `[retention] days` / `inbox_days`, tệp tạm trong thư mục làm việc, và thư mục log của agent không còn được cấu hình. Sao lưu SQLite hằng ngày vào `backups/daily/` khi bản mới nhất đã gần một ngày tuổi (`daily_backups`; bỏ qua PostgreSQL). Cũng chạy một lần lúc khởi động. |
 | nhịp workflow | 30 giây | Kích hoạt các workflow có cron trigger. Lượt hỏng sẽ phát lại cửa sổ của nó, nên không mất lần kích hoạt nào. |
 | nhịp heartbeat | 30 giây | Quét `HEARTBEAT.md` của từng thư mục làm việc. |
 | nhịp lập lịch | 30 giây | Tìm các việc theo lịch đã đến hạn. |
@@ -92,6 +92,21 @@ vòng đọc số liệu vĩ mô ghi `trading.tick_key_missing` (warn) một l�
 vẫn gửi các mục không cần AI, còn hôm nào không dựng được thì bạn nhận một tin nêu tên biến và cách đặt;
 một công việc theo lịch cần AI thì bỏ qua lượt đó mà không tính là lỗi, nên không bao giờ bị tắt vì thiếu
 khóa. `status` liệt kê những gì đang chờ khóa. Đặt khóa rồi `restart` là mọi thứ chạy lại.
+
+### Khi daemon dừng hoặc lỡ bản tin
+
+Daemon chết mà chưa dừng đàng hoàng (sập, `kill -9`, mất điện) để lại tệp pid, và `status` khi đó in
+`daemon: đã dừng đột ngột (khởi động lúc <giờ>)` kèm gợi ý xem `openalpha logs`, thay vì dòng "chưa chạy"
+trơn. Lần khởi động kế tiếp cũng nhắn chat của bạn một lần, nói cảnh báo và bản tin đã tạm ngưng tới giờ.
+Nếu bản tin không gửi được trước giờ mở cửa (daemon tắt, hoặc mọi lần gửi đều hỏng), bản tin hôm đó bị
+bỏ và chat nhận một dòng báo điều này; bản tin sau vẫn theo lịch. Bản tin bắt đầu dựng trước giờ mở cửa
+nhưng xong sau đó vẫn được gửi, kèm một dòng đầu báo giá đã chạy từ lúc viết.
+
+Kênh chat mất kết nối lâu cũng được báo. Cứ năm phút daemon xem từng kênh một lần, kênh nào mất kết nối đã 15
+phút thì được báo đúng một lần, trên một kênh khác đang chạy, kèm lý do: token bot bị từ chối, đăng nhập Zalo hết
+hạn, tài khoản đang mở ở nơi khác, hoặc kết nối liên tục bị ngắt. Có lại thì bạn nhận một dòng "đã kết nối lại".
+`status` ghi kênh đó là `mất kết nối: <lý do>` trong lúc ấy. Không có kênh nào khác để báo thì chỉ ghi log
+(`channel.watch_no_route`). Khởi động lại thì quên hết, nên kênh còn mất kết nối sau đó sẽ được báo thêm một lần.
 
 ---
 
@@ -266,6 +281,17 @@ tạm dừng 30 giây (một dòng trên stderr báo điều đó) rồi thử l
 thành công trở lại, một dòng stderr khác báo đã phục hồi. Bản ghi đến trong lúc tạm dừng bị bỏ, và dòng
 log `fatal` của một lần sập được ghi ra terminal thay vào đó.
 
+## Tự chạy khi đăng nhập
+
+Trên máy để bàn, `openalpha autostart enable` đăng ký `start --background` chạy mỗi lần đăng nhập, nên bản
+tin sáng và cảnh báo vẫn đến sau khi khởi động lại máy: một launchd agent trên macOS, một unit người dùng
+của systemd trên Linux (trên máy chủ không ai đăng nhập, chạy thêm `loginctl enable-linger $USER`) và một
+mục trong khóa Run trên Windows. `openalpha autostart` cho biết đã bật chưa, và `autostart disable` gỡ nó
+(daemon đang chạy vẫn tiếp tục). Lệnh cần bản cài đặt, không dùng được với bản chạy từ mã nguồn, và có hiệu
+lực từ lần đăng nhập tới. Lần chạy lúc đăng nhập không thấy biến chỉ export trong shell, nên hãy lưu khóa
+bằng `openalpha key set`; `enable` nêu tên những khóa nó thấy còn thiếu. Unit nó ghi tên là
+`openalpha-autostart`, tách khỏi dịch vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
+
 ## Chạy API trên máy chủ
 
 Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.
@@ -289,7 +315,8 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
 
    [Service]
    ExecStart=%h/.local/bin/openalpha start
-   EnvironmentFile=%h/.openalpha/env
+   # Tùy chọn: daemon cũng tự đọc khóa lưu bằng `openalpha key set` trong ~/.openalpha/env.
+   EnvironmentFile=-%h/.openalpha/env
    Restart=on-failure
 
    [Install]

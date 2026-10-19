@@ -2,6 +2,7 @@
 // regime. Same rules as `wire/trading.ts`. `changePct` is a percent, as on `/v1/quotes`.
 
 import type { InstrumentRefWire, TradingWireCaveat } from '@/app/server/wire/trading'
+import type { TypedPrice } from '@/trading/api'
 
 /** A ranked name's identity and live price; what the board says about it is in `card`. */
 interface ScreenCandidateWire {
@@ -173,6 +174,9 @@ export interface AlertCreateBody {
   readonly instrument: { readonly ticker: string; readonly market?: string }
   readonly condition: 'above' | 'below'
   readonly threshold: number
+  /** `unconfirmed` refuses a threshold far from the market with `price_unconfirmed`; absent never
+   *  checks. */
+  readonly typedPrice?: TypedPrice
 }
 
 /** DELETE /v1/alerts/:id — turns the alert off; it stays in the list. */

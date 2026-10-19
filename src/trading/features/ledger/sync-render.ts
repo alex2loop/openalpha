@@ -2,8 +2,9 @@ import type { Locale } from '@/core/types/locale'
 import type { SkippedFill, SkipReason, VenueSyncResult } from '@/trading/features/ledger/sync'
 import type { LedgerEntry } from '@/trading/features/ledger/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
-import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { CurrencyCode, VenueRef } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
+import type { Venue } from '@/trading/venues/types'
 import { formatDay, pluralKey, t } from '@/i18n'
 import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
 import { renderEntry } from '@/trading/features/ledger/rows'
@@ -173,4 +174,30 @@ function skippedLines(locale: Locale, skipped: readonly SkippedFill[]): readonly
         })}`
     ),
   ]
+}
+
+interface SyncUnavailableInput {
+  readonly venue: VenueRef
+  readonly found: Venue | null
+  readonly known: readonly VenueRef[]
+}
+
+/** Why `/record sync` reads nothing from a venue: none by that name, one waiting for its key, or
+ *  one traded by hand. */
+export function renderSyncUnavailable(locale: Locale, input: SyncUnavailableInput): string {
+  const { found } = input
+
+  if (found === null) {
+    return t(locale, 'trading.render.ledger.syncUnknownVenue', {
+      venue: input.venue,
+      venues: input.known.join(', '),
+    })
+  }
+
+  const venue = renderVenueName(locale, found.manifest.id)
+  const missing = found.manifest.missingCredentials
+
+  return missing === undefined
+    ? t(locale, 'trading.render.ledger.syncByHand', { venue })
+    : t(locale, 'trading.render.ledger.syncKeyless', { venue, variables: missing.join(', ') })
 }

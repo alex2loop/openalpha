@@ -35,7 +35,7 @@ export const askClarificationTool = createTool({
   }),
   capability: 'read',
   eager: true,
-  presentation: { label: 'Ask clarification', emoji: '❓' },
+  presentation: { label: 'Ask clarification', emoji: '🙋' },
   async execute(args, ctx): Promise<ToolResult> {
     ctx.bus.emit('clarification_requested', {
       sessionId: ctx.sessionId,

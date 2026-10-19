@@ -90,8 +90,16 @@ export interface PairingDenyArgs {
   readonly channel?: ChannelId
 }
 
+export interface PairingRevokeArgs {
+  readonly channel: ChannelId
+  readonly chatId: string
+  readonly now: number
+}
+
 export interface PairingStore {
   isPaired(channel: ChannelId, chatId: string): Promise<boolean>
+  /** The one approved chat on `channel`; undefined when none or several are. */
+  lonePairedChat(channel: ChannelId): Promise<string | undefined>
   // Idempotent per chat: re-messaging returns the same code, never a new one.
   requestCode(args: {
     readonly channel: ChannelId
@@ -101,7 +109,10 @@ export interface PairingStore {
   approve(args: PairingApproveArgs): Promise<PairingApproveResult>
   deny(args: PairingDenyArgs): Promise<boolean>
   listPending(channel: ChannelId, now: number): Promise<readonly PendingPairing[]>
-  revoke(channel: ChannelId, chatId: string): Promise<boolean>
+  revoke(args: PairingRevokeArgs): Promise<boolean>
+  /** True once a chat's pairing was revoked and it has not paired again. A chat that never paired
+   *  (a group admitted through its operator) is not revoked. */
+  isRevoked(channel: ChannelId, chatId: string): Promise<boolean>
 }
 
 export interface SessionKey {

@@ -12,7 +12,8 @@ import type {
   ThemeService,
   ThemeTransition,
 } from '@/trading/features/themes/types'
-import { renderThemeReportText } from '@/trading/features/themes/render/report'
+import { t } from '@/i18n'
+import { firstProposedTheme, renderThemeReportText } from '@/trading/features/themes/render/report'
 import { THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 import { parseBranded, parseMember, usage } from '@/trading/kernel/surface/surface'
 
@@ -55,9 +56,22 @@ interface ThemesCommandDeps {
 }
 
 function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport): SlashResult {
+  const text = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
+  const proposed = firstProposedTheme(report)
+
+  if (proposed === undefined) {
+    return { kind: 'text', text }
+  }
+
   return {
     kind: 'text',
-    text: renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone }),
+    text,
+    affordances: [
+      {
+        label: t(ctx.locale, 'trading.render.affordance.approveTheme'),
+        command: `/themes approve ${proposed}`,
+      },
+    ],
   }
 }
 

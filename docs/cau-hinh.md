@@ -85,7 +85,7 @@ Chuỗi mô hình. Mục đầu là mô hình chính, các mục sau là dự ph
 | `provider` | chuỗi | - | Mã nhà cung cấp trong danh mục. Bắt buộc ở đây hoặc trong `[model_defaults]`. |
 | `model` | chuỗi | - | Mã mô hình riêng của nhà cung cấp. Bắt buộc ở mọi mục. |
 | `alias` | chuỗi không khoảng trắng | - | Bộ chọn ngắn cho `/model`. Phải duy nhất trong cả chuỗi. Không có thì bộ chọn là `<provider>:<model>`. |
-| `api_key_env` | chuỗi | - | Tên biến môi trường chứa khóa. Chưa đặt hoặc để trống thì `start` không chạy, còn các lệnh khác bỏ qua mô hình này. Bắt buộc ở đây hoặc trong `[model_defaults]`, trừ nhà cung cấp đăng nhập bằng thuê bao, nhà cung cấp đăng nhập bằng tài khoản cloud, và server chạy trên chính máy này (`base_url` loopback, như Ollama hay LM Studio). |
+| `api_key_env` | chuỗi | - | Tên biến môi trường chứa khóa. Chưa đặt hoặc để trống thì `start` báo và chạy tiếp không có mô hình này; các lệnh khác bỏ qua nó. Bắt buộc ở đây hoặc trong `[model_defaults]`, trừ nhà cung cấp đăng nhập bằng thuê bao, nhà cung cấp đăng nhập bằng tài khoản cloud, và server chạy trên chính máy này (`base_url` loopback, như Ollama hay LM Studio). |
 | `base_url` | url | endpoint trong danh mục | Ghi đè endpoint. Bắt buộc với nhà cung cấp không có endpoint mặc định (như `vllm`). |
 | `reasoning` | `default \| off \| low \| medium \| high` | `default` | `default` để nhà cung cấp tự quyết; `off` yêu cầu tắt suy luận; các mức còn lại đặt độ sâu. |
 | `max_tokens` | số nguyên dương | giới hạn runtime | Trần đầu ra riêng cho mục này. |
@@ -253,7 +253,7 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 |---|---|---|---|
 | `language` | chuỗi | `vi` | `en` hoặc `vi`. |
 | `timezone` | chuỗi | múi giờ của máy (`UTC` nếu máy không báo) | Tên IANA, ví dụ `Asia/Ho_Chi_Minh`. Việc cron mới chụp lại giá trị này, trừ khi `--tz` ghi đè; lịch theo chu kỳ từ chối `--tz`. |
-| `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
+| `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch; `onboard` hỏi ở lần thiết lập đầu và ghi vào đây. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
 | `region` | chuỗi | `vn` | Khu vực chính; hiện chỉ có `vn`. Khu vực cần có sàn giao dịch thị trường chính của nó, nên `global` (vàng thế giới, chỉ để tham chiếu) bị từ chối. Thị trường của khu vực này là bảng mặc định, và hồ sơ đầu tiên chỉ phân bổ cho các nhóm trong nước của nó cùng crypto. |
 
 Mọi khóa đều tùy chọn. `[locale]` không nhận khóa nào khác. `currency` và `region` cho biết bạn đang ở
@@ -278,6 +278,7 @@ Bố cục dưới `data_dir`:
   logs/daemon.log                   log chung mặc định (`[log] file`)
   logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/
+    daily/                          bản sao hằng ngày của daemon, giữ `[retention] daily_backups` bản mới nhất
   plugins/                          plugin đã cài
   workspaces/<agentId>/             thư mục nháp riêng của từng agent
     run/                            HOME của tiến trình con; chỉ `workspace cleanup` có xác nhận mới dọn
@@ -331,6 +332,7 @@ vào cấu hình bạn xem.
 |---|---|---|---|
 | `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, lượt chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, và bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
+| `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
 
 `days` còn điều khiển hai quy tắc về tệp:
 
@@ -384,7 +386,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `slash_commands` | bool | `true` | Bật lệnh gạch chéo và menu lệnh. |
 | `notify_max_per_minute` | số nguyên | `3` | Trần tần suất tin chủ động. |
 | `gap_note_minutes` | số nguyên | `30` | Số phút im lặng để câu trả lời kế tiếp được nhắc xem lại giá; `0` là tắt. |
-| `fallback_chat_id` | chuỗi | - | Đích dự phòng cho tin chủ động. |
+| `fallback_chat_id` | chuỗi | id được phép duy nhất, hoặc chat ghép nối duy nhất | Đích dự phòng cho tin chủ động. |
 | `pairing` | bool | `true` khi không có danh sách cho phép | Cho chat lạ ghép nối. |
 
 `token_env` thắng `token_file`. Không có khóa `token` ghi thẳng, và không biến token nào được đọc trừ
@@ -687,6 +689,9 @@ send_times = []                # các mốc HH:MM theo múi giờ thị trườn
 breakout_range = 1.5           # một biến động phải đi bao nhiêu lần biên độ ngày trung bình thì mới báo
 breakout_sessions = 14         # số phiên đã chốt dùng để đo biên độ ngày trung bình
 
+[trading.typed_prices]
+confirm_multiple = 10          # hỏi lại trước khi lưu giá gõ lệch giá thị trường từng này lần
+
 [trading.orders]
 maximum_stake_quote = 0        # 0 = không chặn; giá trị ước tính bằng USDT trên okx và binance
 maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh chưa vào sổ
@@ -833,11 +838,14 @@ một tập con sẽ lặng lẽ bỏ sót một thị trường mà bạn vẫn
 
 **Không tham số chấm điểm nào cấu hình được.** Khoảng nhìn lại, ngưỡng và trọng số yếu tố nằm trong mã
 cùng thị trường sở hữu chúng, nên hai bản cài cùng phiên bản chấm cùng đầu vào ra cùng một điểm. Cấu
-hình quyết định cái gì chạy và khi nào, cộng hai thứ thuộc quyền bạn cân nhắc:
+hình quyết định cái gì chạy và khi nào, cộng ba thứ thuộc quyền bạn cân nhắc:
 
 - **Khi nào cảnh báo ngắt lời bạn.** `[trading.alerts] breakout_range` và `breakout_sessions` đặt một mã
   trong danh sách theo dõi phải chạy bao xa thì bạn mới được báo. Nâng mức này làm cảnh báo thưa hơn và
   không đổi điểm số nào.
+- **Khi nào giá bạn gõ bị hỏi lại.** `[trading.typed_prices] confirm_multiple` đặt giá trong `/record`,
+  `/update` hay `/alert` phải cao hoặc thấp hơn giá gần nhất của mã bao nhiêu lần thì bạn mới được hỏi
+  xác nhận (mặc định 10). Nó không đổi điểm số nào.
 - **Điểm cắt lỗ và mục tiêu nằm cách bao xa.** Trong `[trading.markets.<id>]`, `maximum_stop_loss` (trần
   cứng, tính theo phần của giá vào), `stop_loss_atr` và `reward_risk` thay độ rộng cắt lỗ và bội số lợi
   nhuận của thị trường. Đặt bất kỳ khóa nào trong số đó sẽ mở một track record riêng cho thị trường ấy.
@@ -897,9 +905,14 @@ kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằ
 chạy lại. Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`. `config
 validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục, và báo biến môi trường của
 khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó. `--verbose` in thêm toàn bộ danh sách
-lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn dòng lệnh đặt nó cho
-shell của bạn: `export` trên macOS và Linux, còn trên Windows là `$env:NAME="..."; setx NAME "..."`,
-đặt ngay và giữ cho mọi cửa sổ PowerShell mở sau đó. Thiếu khóa của mô hình chỉ chặn những việc cần
+lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn lệnh lưu nó:
+`openalpha key set TÊN`, giống nhau trên mọi hệ. Khóa được giữ trong `<thư mục dữ liệu>/env`, mọi
+lệnh đều đọc tệp này lúc bắt đầu. Biến đặt trong môi trường luôn thắng tệp. Tệp chỉ giữ khóa dịch vụ,
+kể cả khóa mang tiền tố `OPENALPHA_` như `OPENALPHA_OPENROUTER_API_KEY`: các tên điều khiển chính
+OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trình khởi động (`PATH`,
+`NODE_OPTIONS`, `LD_*`...) bị bỏ qua, và `#` sau
+một dấu cách là chú thích. Tệp khóa theo `--data-dir`
+hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu hình. Thiếu khóa của mô hình chỉ chặn những việc cần
 gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
 `openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn đặt
 khóa rồi khởi động lại.
@@ -910,5 +923,5 @@ config.toml có chỗ cần sửa:
 - `budget.max_daly_usd`: không phải thiết lập tôi biết, có phải ý bạn là `max_daily_usd`?
 Sửa xong rồi chạy lại nhé.
 
-Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `export ANTHROPIC_API_KEY=...` trong terminal bạn đang dùng rồi chạy lại nhé.
+Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `openalpha key set ANTHROPIC_API_KEY` trong terminal bạn đang dùng rồi chạy lại nhé.
 ```

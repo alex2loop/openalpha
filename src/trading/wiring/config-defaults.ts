@@ -10,6 +10,7 @@ import type {
   SuggestionPolicy,
   TradingConfig,
   TradingCosts,
+  TypedPricePolicy,
   VenueConfigs,
 } from '@/trading/kernel/config'
 import type { VenueRef } from '@/trading/kernel/instrument'
@@ -27,6 +28,8 @@ const EXIT_INTERVAL_MS = 60_000
 const INTENT_SWEEP_INTERVAL_MS = 300_000
 const BREAKOUT_RANGE = 1.5
 const BREAKOUT_SESSIONS = 14
+// A unit slip moves a price by a thousand or more; a real fill is never this far from its session.
+const TYPED_PRICE_CONFIRM_MULTIPLE = 10
 const DEFAULT_MAXIMUM_PRICE_DRIFT = 0.005
 /** Measured 2026-10-05: a run with 2 active themes (2 updates, discovery, 2 sector maps and 9
  *  company reads) cost $0.54, and a medium research pass adds about $0.22. A third active theme
@@ -195,6 +198,10 @@ const DEFAULT_ALERT_POLICY: AlertPolicy = Object.freeze({
   breakoutSessions: BREAKOUT_SESSIONS,
 })
 
+const DEFAULT_TYPED_PRICE_POLICY: TypedPricePolicy = Object.freeze({
+  confirmMultiple: TYPED_PRICE_CONFIRM_MULTIPLE,
+})
+
 export const DEFAULT_TRADING_CONFIG: TradingConfig = Object.freeze({
   displayTimezone: 'UTC',
   baseCurrency: currencyCode('VND'),
@@ -205,6 +212,7 @@ export const DEFAULT_TRADING_CONFIG: TradingConfig = Object.freeze({
   briefs: DEFAULT_BRIEF_POLICY,
   intraday: DEFAULT_INTRADAY_POLICY,
   alerts: DEFAULT_ALERT_POLICY,
+  typedPrices: DEFAULT_TYPED_PRICE_POLICY,
   orders: DEFAULT_ORDER_POLICY,
   ledger: DEFAULT_LEDGER_POLICY,
   themes: Object.freeze({ maximumCostUsd: DEFAULT_THEME_MAXIMUM_COST_USD }),

@@ -77,7 +77,7 @@ daily cap beside a week's spend would mislead.
 `status` shows today's spend too. A run stopped by budget halts through the normal `budget` path, and the cost
 already incurred stays recorded.
 
-Every surface closes a run that spent money with the same footer: cost, tokens, model calls, elapsed. The model is
+Every surface closes a run that spent money with the same footer: cost, tokens, model calls, elapsed. In a session that has called no model yet (a price lookup, say) the footer is only the elapsed time; after any chat turn the session's running spend returns. The model is
 named only when one model served every billed call. If the fallback chain switched mid-run there is no single
 name, so the footer shows only the count and the switch is printed on the line above.
 

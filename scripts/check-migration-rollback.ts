@@ -16,11 +16,14 @@ import {
 
 const APPLIED_AT_MS = 1
 const CORE_TABLE = 'sessions'
+const INBOX_TABLE = 'channel_inbox'
+const PAIRINGS_TABLE = 'pairings'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
 const ANSWER_MIGRATION_ID = '2026_10_11_101208_add_channel_inbox_answer'
 const RETRY_AT_MIGRATION_ID = '2026_10_15_182559_add_channel_inbox_retry_at'
+const REVOKED_AT_MIGRATION_ID = '2026_10_19_164034_add_pairings_revoked_at'
 const FTS_MIGRATION_ID = '2026_10_10_123605_memory_fts_update_columns'
 const INITIAL_MIGRATION_ID = '2026_07_10_000001_initial_schema'
 const ORPHAN_MIGRATION_ID = '9999_12_31_235958_removed_extension'
@@ -81,12 +84,38 @@ async function updateTriggerSql(db: Storage): Promise<string> {
   return rows[0]?.sql ?? ''
 }
 
-async function hasInboxColumn(db: Storage, column: string): Promise<boolean> {
+async function hasColumn(db: Storage, table: string, column: string): Promise<boolean> {
   const rows = await db.query<{ readonly name: string }>(
     'SELECT name FROM pragma_table_info(?1) WHERE name = ?2',
-    ['channel_inbox', column]
+    [table, column]
   )
   return rows.length === 1
+}
+
+/** A revoked pairing must not come back as an approved one when the column goes. */
+async function assertRevokedAtRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, PAIRINGS_TABLE, 'revoked_at'),
+    'revoked_at migration did not add the column'
+  )
+  await db.execute(
+    'INSERT INTO pairings (code, channel, chat_id, status, created_at, approved_at, revoked_at) ' +
+      "VALUES ('RVKD01', 'telegram', '42', 'approved', ?1, ?1, ?1)",
+    [APPLIED_AT_MS]
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: REVOKED_AT_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const kept = await db.query('SELECT code FROM pairings WHERE code = ?1', ['RVKD01'])
+
+  assertState(rolledBack.kind === 'rolled_back', 'revoked_at rollback did not complete')
+  assertState(
+    !(await hasColumn(db, PAIRINGS_TABLE, 'revoked_at')),
+    'revoked_at rollback kept the column'
+  )
+  assertState(kept.length === 0, 'revoked_at rollback kept a revoked pairing')
 }
 
 async function hasTable(db: Storage, table: string): Promise<boolean> {
@@ -121,21 +150,35 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
-    assertState(await hasInboxColumn(db, 'retry_at'), 'retry_at migration did not add the column')
+    await assertRevokedAtRollback(db)
+
+    assertState(
+      await hasColumn(db, INBOX_TABLE, 'retry_at'),
+      'retry_at migration did not add the column'
+    )
     const retryAtRolledBack = await rollbackMigration(db, sqliteDialect, {
       expectedId: RETRY_AT_MIGRATION_ID,
       logger: silentLogger,
     })
     assertState(retryAtRolledBack.kind === 'rolled_back', 'retry_at rollback did not complete')
-    assertState(!(await hasInboxColumn(db, 'retry_at')), 'retry_at rollback retained the column')
+    assertState(
+      !(await hasColumn(db, INBOX_TABLE, 'retry_at')),
+      'retry_at rollback retained the column'
+    )
 
-    assertState(await hasInboxColumn(db, 'answer'), 'answer migration did not add the inbox column')
+    assertState(
+      await hasColumn(db, INBOX_TABLE, 'answer'),
+      'answer migration did not add the inbox column'
+    )
     const answerRolledBack = await rollbackMigration(db, sqliteDialect, {
       expectedId: ANSWER_MIGRATION_ID,
       logger: silentLogger,
     })
     assertState(answerRolledBack.kind === 'rolled_back', 'answer rollback did not complete')
-    assertState(!(await hasInboxColumn(db, 'answer')), 'answer rollback retained the inbox column')
+    assertState(
+      !(await hasColumn(db, INBOX_TABLE, 'answer')),
+      'answer rollback retained the inbox column'
+    )
 
     assertState(
       (await updateTriggerSql(db)).includes('UPDATE OF'),
@@ -171,7 +214,10 @@ async function main(): Promise<void> {
       'initial migration did not block rollback'
     )
 
-    assertState((await migrate(db, sqliteDialect, { logger: silentLogger })) === 4, 're-up failed')
+    // Everything but the initial migration, which refuses to roll back, comes back up.
+    const reapplied = await migrate(db, sqliteDialect, { logger: silentLogger })
+
+    assertState(reapplied === MIGRATIONS.length - 1, 're-up failed')
     assertState(await hasTable(db, TRADING_TABLE), 're-up did not restore trading schema')
 
     await db.execute('INSERT INTO _migrations (id, applied_at) VALUES (?1, ?2)', [

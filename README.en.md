@@ -98,7 +98,7 @@ That is enough to see a suggestion. For one sized to your own money, also do ste
 
 ### Full setup in 5 steps
 
-**1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, AI model, a daily spending cap, Telegram if you want it). Run `openalpha onboard` any time to change them.
+**1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh
@@ -108,14 +108,14 @@ curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh
 powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows
 ```
 
-**2. Set your AI key and check.** Open a new terminal:
+**2. Save your AI key and check.** `onboard` offers to save it for you; otherwise open a new terminal:
 
 ```bash
-export OPENROUTER_API_KEY="..."   # add this line to the end of ~/.zshrc (macOS) or ~/.bashrc (Linux) to keep it
-openalpha doctor --online         # sends the model one short test message
+openalpha key set OPENROUTER_API_KEY   # you type the key hidden; it is kept in ~/.openalpha/env
+openalpha doctor --online              # sends the model one short test message
 ```
 
-On Windows: `setx OPENROUTER_API_KEY "..."`, open a new PowerShell, then `openalpha doctor --online`.
+`openalpha key` lists which keys are set and where they come from. The same two commands work on Windows.
 
 **3. Load the data and say how much risk you want.** Run `openalpha chat`, then type:
 
@@ -132,7 +132,7 @@ On Windows: `setx OPENROUTER_API_KEY "..."`, open a new PowerShell, then `openal
 ```text
 /record deposit vps 100000000 VND 2026-08-14              # 100 million VND into the VPS account
 /suggest FPT                                              # take a deep look at one name
-/record buy vps equity-vn:FPT 100 62000 VND 2026-08-14    # place the order yourself, record it once it fills
+/record buy FPT 100 62000                                 # place the order yourself, record it once it fills (venue, VND and today filled in)
 ```
 
 Prices are in whole VND: a board price of `62.00` is recorded as `62000`. Leave the fee out and the book prices it. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
@@ -201,9 +201,9 @@ Smaller amounts are recorded in taels: 1 chỉ is `0.1`, and the price stays per
 
 </details>
 
-To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells the whole position, or give a quantity). To withdraw: `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day. Recorded something wrong? `/transactions` shows each row's id, then `/update <id> ...` fixes it or `/delete <id>` removes it. Type `/record` on its own to see every kind of row (dividends, splits, transfers...).
+To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells the whole position, or give a quantity). To withdraw: `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day. Recorded something wrong? `/transactions` shows each row's id, then `/update <id> ...` fixes it or `/delete <id>` shows the row and then `/delete <id> confirm` removes it. Type `/record` on its own to see every kind of row (dividends, splits, transfers...). Config is read at start, so restart afterwards: `openalpha restart --background`.
 
-**5. Turn on the morning brief.** `openalpha start --background` keeps it running (and data refreshes itself). Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
+**5. Turn on the morning brief.** `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
 
 <details>
 <summary><b>Windows, minimal config, updates, uninstall</b></summary>
@@ -302,7 +302,7 @@ For every name you ask about, six AI analysts argue it: bull, bear, a synthesize
 <summary><b>How it keeps you disciplined, including when the market turns down</b></summary>
 
 - **A stop can only move up, never down.** There is no "just a little lower" button.
-- **No need to stare at the price board.** In Telegram or Zalo, set a level with `/alert create FPT above 130` (board price) and you get a message when price reaches it.
+- **No need to stare at the price board.** In Telegram or Zalo, set a level with `/alert create FPT above 130000` (the full price, as in `/record`) and you get a message when price reaches it.
 
 **When the market turns down,** the goal is not to call the bottom but to keep enough capital to play the next round:
 
@@ -318,8 +318,8 @@ OpenAlpha does not promise you will never lose. It keeps each loss small, planne
 
 - **The AI never sees your money.** The analyst gets weights only, never a balance, a price paid or your total assets.
 - **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation.
-- **Everything stays on your machine.** The book and the config live locally; API keys are read from the environment only, never written to a file.
-- **AI spend is capped** per day and per month, so a bad loop cannot run up a bill.
+- **Everything stays on your machine.** The book and the config live locally; keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
+- **AI spend has a ceiling.** `onboard` sets a daily cap; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill.
 
 Every other safeguard: [SECURITY.en.md](SECURITY.en.md).
 

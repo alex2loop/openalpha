@@ -20,6 +20,7 @@ import {
 import { formatSpendUsd } from '@/trading/render/money'
 import { renderBlockRule, toBriefSectionText } from '@/trading/render/section'
 
+const NEXT_ACTIONS_KIND = 'next-actions'
 const FOOTER_RULE = '─'.repeat(25)
 /** `/rebalance`'s own plan notes, printed twice a day in two commands. What bears on today's
  *  stance - the regime throttle, and a segment with nothing to buy - stays; the rest is the plan
@@ -66,14 +67,14 @@ const MARKET_HEADLINE_KINDS = [
 const NON_MARKET_BLOCKS = Object.freeze([
   ['summary', BRIEF_SUMMARY_KINDS],
   ['macro', ['regime-shift', 'macro', 'deposit-rate', 'macro-headlines', 'economy-headlines']],
-  ['actions', ['suggestions', 'cross-asset-suggestions', 'next-actions', 'discipline']],
+  ['actions', ['suggestions', 'cross-asset-suggestions', 'discipline']],
 ] as const satisfies readonly (readonly [BlockName, readonly BriefSectionKind[]])[])
 
 const BLOCK_ICONS = Object.freeze({
   summary: SECTION_ICONS.positions,
-  operator: SECTION_ICONS.reflect,
+  operator: SECTION_ICONS.watchlist,
   macro: SECTION_ICONS.macro,
-  actions: SECTION_ICONS.actions,
+  actions: SECTION_ICONS.suggestion,
 } as const satisfies Record<BlockName, string>)
 
 export function renderBriefText(
@@ -93,14 +94,24 @@ export function renderBriefText(
   }
 
   const footer = renderCostFooter(locale, snapshot.sections)
+  const [nextActions, rest] = partition(renderable, (section) => section.kind === NEXT_ACTIONS_KIND)
 
   return joinSections([
     [title(locale, snapshot, context.timezone)],
     renderVerdictBlock(locale, readable, context),
-    ...toBlocks(renderable).flatMap((block) => renderBlock(locale, block, context)),
+    // Right under the verdict that counts them, with no header of their own: what to do first.
+    ...nextActions.map((section) => toBriefSectionText(locale, section, context).lines),
+    ...toBlocks(rest).flatMap((block) => renderBlock(locale, block, context)),
     renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }),
     footer === null ? [] : footer,
   ])
+}
+
+function partition<T>(
+  items: readonly T[],
+  isFirst: (item: T) => boolean
+): readonly [readonly T[], readonly T[]] {
+  return [items.filter(isFirst), items.filter((item) => !isFirst(item))]
 }
 
 /** The day the numbers describe and the moment they were read. A brief is built once and read

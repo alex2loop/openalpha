@@ -82,6 +82,7 @@ function noteUnsent(session: ChatSession, line: string): void {
 
 function promptAwareApp(app: CliApp, output: PromptOutput): CliApp {
   return {
+    keyFile: app.keyFile,
     config: app.config,
     configPath: app.configPath,
     signal: app.signal,

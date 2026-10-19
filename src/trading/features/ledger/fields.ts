@@ -1,20 +1,21 @@
 import type { Locale } from '@/core/types/locale'
 import type { WriteAudience } from '@/trading/features/ledger/fee-rows'
 import type { LedgerEntry, LedgerTxn } from '@/trading/features/ledger/types'
-import type { MarketRef } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 import type { QuoteConvention } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { paysFromCurrencyCash } from '@/trading/features/ledger/fx-rate'
-import { ledgerEntryHandle } from '@/trading/features/ledger/types'
+import { toIdHandle } from '@/trading/kernel/instrument'
 import { formatQuantity, renderVenueName } from '@/trading/render/format'
-import { INDENT } from '@/trading/render/layout'
+import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
 import {
   formatMoney,
   formatRecordedMoney,
   formatRecordedPrice,
   quotedInOf,
 } from '@/trading/render/money'
+import { renderMarketName } from '@/trading/render/tool-detail'
 
 interface EntryFieldOptions {
   readonly quoteConventions: ReadonlyMap<MarketRef, QuoteConvention>
@@ -33,7 +34,7 @@ export function renderEntryFields(
   const { transaction } = entry
 
   return [
-    renderField(locale, 'handle', { handle: ledgerEntryHandle(entry.id) }),
+    renderField(locale, 'handle', { handle: toIdHandle(entry.id) }),
     renderField(locale, 'kind', { kind: t(locale, `trading.ledger.kind.${transaction.kind}`) }),
     renderField(locale, 'day', { day: formatDay(locale, transaction.at) }),
     ...('fromVenue' in transaction
@@ -85,7 +86,7 @@ function renderFxField(locale: Locale, txn: LedgerTxn, book: Book): readonly str
 /** The agent's receipt names the row, never its figures. */
 function renderSubjectTicker(locale: Locale, txn: LedgerTxn): readonly string[] {
   return 'instrument' in txn
-    ? [renderField(locale, 'ticker', { ticker: txn.instrument.ticker })]
+    ? [renderField(locale, 'ticker', { ticker: renderInstrumentLabel(locale, txn.instrument) })]
     : []
 }
 
@@ -100,7 +101,7 @@ function renderSubjectFields(
     return [
       renderField(locale, 'delta', {
         delta: formatQuantity(locale, txn.quantityDelta),
-        ticker: txn.instrument.ticker,
+        ticker: renderInstrumentLabel(locale, txn.instrument),
       }),
     ]
   }
@@ -121,7 +122,10 @@ function renderSubjectFields(
   }
 
   return 'instrument' in txn
-    ? [renderField(locale, 'ticker', { ticker: txn.instrument.ticker }), amount]
+    ? [
+        renderField(locale, 'ticker', { ticker: renderInstrumentLabel(locale, txn.instrument) }),
+        amount,
+      ]
     : [amount]
 }
 
@@ -140,10 +144,19 @@ function renderTradeFields(
   })
 
   return [
-    renderField(locale, 'quantity', { quantity: formatQuantity(locale, txn.quantity), ticker }),
+    renderField(locale, 'quantity', {
+      quantity: formatQuantity(locale, txn.quantity),
+      ticker: renderInstrumentLabel(locale, txn.instrument),
+    }),
     renderField(locale, 'price', { price }),
     renderField(locale, 'fee', { fee: formatRecordedMoney(locale, txn.fee, txn.currency) }),
   ]
+}
+
+/** The market rides beside the ticker on every write, so a bare ticker booked into the wrong market
+ *  is visible in the confirmation and `/update` can fix it. */
+function renderInstrumentLabel(locale: Locale, instrument: InstrumentRef): string {
+  return `${instrument.ticker}${INLINE_SEPARATOR}${renderMarketName(locale, instrument.market)}`
 }
 
 type FieldName =

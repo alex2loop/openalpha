@@ -161,6 +161,12 @@ export interface AlertPolicy {
   readonly breakoutSessions: number
 }
 
+export interface TypedPricePolicy {
+  /** How many times above or below the market's latest price a price the operator typed must sit
+   *  before they are asked to confirm it. */
+  readonly confirmMultiple: number
+}
+
 export interface OrderPolicy {
   /** 0 = uncapped. Estimated notional in the market's quote currency. */
   readonly maximumStakeQuote: number
@@ -247,6 +253,7 @@ export interface TradingConfig {
   readonly briefs: BriefPolicy
   readonly intraday: IntradayPolicy
   readonly alerts: AlertPolicy
+  readonly typedPrices: TypedPricePolicy
   readonly orders: OrderPolicy
   readonly ledger: LedgerPolicy
   readonly themes: ThemePolicy

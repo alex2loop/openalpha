@@ -62,6 +62,7 @@ export function ledgerMethods(deps: TradingHostDeps): LedgerMethods {
       scoped(deps, request.signal, (scope) =>
         portfolio.record({
           draft: parseDraft(schemas.record, request.draft),
+          ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
           idempotencyKey: request.idempotencyKey,
           now: scope.now,
           signal: scope.signal,
@@ -73,6 +74,7 @@ export function ledgerMethods(deps: TradingHostDeps): LedgerMethods {
         portfolio.update({
           ref: request.entryId,
           draft: parseDraft(schemas.edit, request.draft),
+          ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
           now: scope.now,
           signal: scope.signal,
         })

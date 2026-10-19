@@ -101,6 +101,19 @@ interface ChannelCapabilities {
 Declare these honestly. Claiming `canEdit` when you cannot is how a live progress line turns into forty
 duplicate messages.
 
+### Typed choices
+
+A channel without `inlineButtons` cannot show a keyboard, so `delivery/choices.ts` mints one four-digit
+code per button (`/4821`), keyed by chat, and the approval prompt and the plan review append them as
+lines. `handleTypedChoice` runs first in `route`, before the mention rule, and turns a live code into
+the same `ChannelCallbackQuery` a tap makes, through the same admission (`gate.admitCallback`).
+Nothing consumes a code: the resolver that owns the prompt answers a repeat "already answered or
+expired", so an answer it did not take (a member who is not the operator, a prompt still landing)
+leaves the code live. Each entry carries the prompt's own `expiresAt`; past it the code is kept as
+expired, so an admitted operator typing it hears so, while four digits never handed out in that chat
+pass through as ordinary text. A new code is never one the chat still remembers, and the LRU bounds
+memory.
+
 ### Button payloads
 
 `callback_data` is `action:rest`. Besides `abort` and the approval and plan decisions, `cmd:` carries a
@@ -219,10 +232,12 @@ pointer rather than the text.
 
 ### Reply context
 
-On a Telegram direct chat, a message that replies to one of the bot's own messages carries `replyTo` (the
+On a Telegram or Zalo Personal direct chat, a message that replies to one of the bot's own messages carries `replyTo` (the
 replied message's id and text, and the `quote` the operator selected). Group chats never set it: the
 sent-message map is per chat, not per user, so one member's reply could otherwise pull another member's
-answer into their session.
+answer into their session. Zalo Personal fills it from `data.quote` when `quote.ownerId` is the bot's own
+id, with `globalMsgId` as the replied message's id (what `send` returns and the map records). The Zalo
+Bot API sends no quote.
 
 `runExchange` turns it into a lead with `toReplyLead`:
 
@@ -255,6 +270,27 @@ as a transient user message just ahead of the operator's text, as it does for th
 model reads it for that run, and `history show` and `/v1` chat history show only what the operator typed.
 The session, its route and its history do not change, and `/new` stays the explicit fresh start.
 
+## Where a terminal-armed notice goes
+
+`TradingNoticeSender.resolveRecipient(origin)` answers an alert or brief arming. A routable origin comes
+back as is. The terminal (`LOCAL_CHANNEL_ID`) resolves to the daemon's live default recipient when
+channels are attached, and otherwise to `resolveDefaultRecipient` (`channels/recipient.ts`): the first
+enabled definition in registry order with a fallback chat or, in pairing mode, exactly one paired chat
+(`PairingStore.lonePairedChat`). `resolveFallbackChat` is the
+one rule for a channel's fallback chat (`fallback_chat_id`, else a lone allowed id) and `start.ts` uses it
+too. `AlertService.create` and the brief's `scheduleOf` resolve once, so no surface does.
+
+## Watching for a channel that stays down
+
+Channels report status only through `setStatus`, with no bus event, so `app/channel-watch.ts` runs one
+five-minute loop over `delivery.snapshots()` (the view `/health` shows) while the daemon runs. A channel
+whose `toHealthCode` is not `ok` for `CHANNEL_DOWN_GRACE_MS` (15 minutes, by `performance.now()`) gets one
+announcement on the first other up channel in `DeliveryHub.recipients()` (each started channel's own default
+chat, from `resolveFallbackChat`), and one `watchUp` when it returns; state is one map bounded by the
+configured channels. A channel whose start failed is not in the snapshots: the boot `degraded` list already
+names it. A changed down set goes to `DaemonStartOptions.onHealth`, and `runDaemon` rewrites the ready file
+with the boot list plus the channel entries.
+
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and
@@ -270,10 +306,14 @@ Zalo, whose own error table lists 403 as a server fault. Any other `getMe` failu
 adapters try it up to four times with a capped backoff before dropping the channel. Zalo Personal has no
 token to refuse; it retries its login in the background (5 seconds initial, 5 minutes maximum).
 
-`startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient? }`: shutdown, health
+`startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: shutdown, health
 snapshots, the channels left down, an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default
-proactive recipient. That recipient is the channel's `fallback_chat_id`, or its only allowed id when it
-has exactly one. `stop` settles every runtime disposal and never lets one failed cleanup block the rest.
+proactive recipient. That recipient is the channel's `fallback_chat_id`, its only allowed id when it
+has exactly one, or its one paired chat (`createChannelRecipient`). Every send asks `isDeliverable`: a chat
+`pair revoke` revoked (its row keeps `revoked_at` rather than being deleted) is refused with `revoked`, so alerts and briefs switch off rather than retry, and `resolveRecipient` no longer returns it, so the system arming passes arm nothing for that chat; a failed pairing read answers `unavailable` and waits on the retry ladder, switching nothing off; while a chat that
+never paired, such as a group admitted through its operator, still receives. The paired chat is read at start and
+again whenever the gate admits a paired chat that is not yet the recipient, since `pair approve` writes
+from another process. `stop` settles every runtime disposal and never lets one failed cleanup block the rest.
 
 ## Adding a channel
 

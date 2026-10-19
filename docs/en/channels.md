@@ -70,7 +70,7 @@ operator_user_ids = [123456789]
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | The required opt-in, and which saved QR login to use |
 | `agent` | all | Bind the channel to one agent instead of the default |
 | `require_mention`, `slash_commands` | all | Group mention rule, and whether slash commands are intercepted |
-| `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, that id is used |
+| `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, or exactly one paired chat, that chat is used |
 
 The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`,
 `notify_max_per_minute` and `gap_note_minutes`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
@@ -131,6 +131,18 @@ In a private chat with the operator, the bot mentions a new release at most once
 
 This works only for a daemon started with `start --background`, and only once the bot has no answer, research run, approval, brief or data refresh in progress; otherwise it asks you to try again. Only the operator may use it, as for `/trade`: without `operator_user_ids`, everyone the bot admits counts as the operator in their own private chat, so anyone sharing the bot should set it.
 
+## Approvals and plan reviews on Zalo
+
+Zalo has no buttons, so an approval prompt or a `/research thorough` plan arrives with short codes such
+as `/4821` for each choice. Type one back in the same chat to answer. A code works once, only for the
+operator, and only until the prompt times out; typing it again, or after the time is up, answers that it
+was already answered or has expired. Two prompts open at once get different codes, and answering one
+leaves the other's codes live. A button tapped after its prompt was answered or timed out gets the same reply.
+
+`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, a lone allowed id, or a lone paired chat. Pairing needs nothing more: the daemon picks the chat up from the first message you send after pairing. Revoke it with `pair revoke` and the daemon stops sending to that chat, from the next message on and across restarts. Alerts and the morning brief armed there switch off at their next send, so pairing again does not bring them back: run `/brief enable` again and set the alerts again. A group admitted through your account has no pairing of its own, so `pair revoke` does not reach it: to stop it, turn off the alerts and brief armed there or remove the bot from the group.
+
+A channel that drops and stays down is reported on another one, and `status` lists it; see [Operations](operations.md#when-the-daemon-stops-or-misses-a-brief).
+
 ## What happens to a message
 
 1. **It is saved first.** The message is written to a durable inbox before the chat app is told it was
@@ -160,8 +172,8 @@ A few things to know:
   a forwarded command does not run and the agent will not act on it unless your own words ask it to.
 - **A chat keeps its conversation until you type /new.** After a quiet spell, OpenAlpha checks prices
   again instead of trusting the ones quoted earlier in the chat.
-- **Replying keeps the thread.** In a private Telegram chat, reply to any answer from OpenAlpha and it
-  knows which one you mean. For alerts and briefs it only sees which kind of message it was, never your amounts.
+- **Replying keeps the thread.** In a private Telegram or Zalo Personal chat, reply to any answer from OpenAlpha and it
+  knows which one you mean. For alerts and briefs it only sees which kind of message it was, never your amounts. The Zalo Bot API sends no quote, so it is not covered.
 - **Buttons are commands.** Tapping one does exactly what typing that command would, with the same
   admission, role and rate checks, and it runs on today's data.
 - **Chats stay separate.** Each channel and chat has its own conversation; two chat apps never share one.

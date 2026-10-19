@@ -1,19 +1,15 @@
 import { link, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { z } from 'zod'
-
 import type { CliApp } from '@/cli/types'
-import type { ResolvedConfig } from '@/core/config/resolve'
 import type { MessageKey } from '@/i18n'
 import { isBackgroundLaunch } from '@/cli/daemon-env'
+import { readyFilePath } from '@/cli/daemon-ready'
 import { getEnv } from '@/cli/env'
 import { fail, hint } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { OperatorConfigError } from '@/core/config/resolve'
-import { DEGRADED_KINDS, type DegradedEntry } from '@/core/container'
 import { ConfigError, isErrno } from '@/core/errors'
-import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { isPlainRecord } from '@/core/utils/collections'
 import { t } from '@/i18n'
 
@@ -36,17 +32,17 @@ interface ProcessIdentity {
   readonly background?: boolean
   // The config file the daemon loaded, so a restart reads the same one from any directory.
   readonly configPath?: string
+  // When this run began (epoch ms), so an unclean stop can name its start time. Absent from a pid
+  // file written before it was recorded.
+  readonly startedAt?: number
 }
 
-export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version' | 'background' | 'configPath'>
+/** `stale` is the file a reclaim removed, kept so a start that fails can put it back. */
+export type PidFileClaim =
+  | { readonly kind: 'fresh' }
+  | { readonly kind: 'reclaimed'; readonly stale: string; readonly startedAt?: number }
 
-/** What a daemon started without, worded once in its own language so any reader prints it as is. */
-const DEGRADED_ENTRY: z.ZodType<DegradedEntry> = z.object({
-  kind: z.enum(DEGRADED_KINDS),
-  subject: z.string(),
-  message: z.string(),
-})
-const READY_STATE = z.object({ pid: z.number(), degraded: z.array(DEGRADED_ENTRY) })
+export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version' | 'background' | 'configPath'>
 
 type PidFileState =
   | { readonly kind: 'absent' }
@@ -62,10 +58,6 @@ function stopFilePath(app: CliApp): string {
   return join(app.config.paths.dataDir, BRAND.stopFile)
 }
 
-function readyFilePath(app: { readonly config: Pick<ResolvedConfig, 'paths'> }): string {
-  return join(app.config.paths.dataDir, BRAND.readyFile)
-}
-
 export async function liveDaemonPid(app: CliApp): Promise<number | null> {
   return (await liveDaemon(app))?.pid ?? null
 }
@@ -78,6 +70,18 @@ export async function liveDaemon(app: CliApp): Promise<RunningDaemon | null> {
   }
 
   return (await identityState(state.identity)) === 'match' ? state.identity : null
+}
+
+/** A pid file whose process is gone: the daemon died without stopping cleanly (a clean stop removes
+ *  the file). Null when there is none, or when the process is still there to be asked. */
+export async function readStalePid(app: CliApp): Promise<{ readonly startedAt?: number } | null> {
+  const state = await readPidState(pidFilePath(app))
+
+  if (state.kind !== 'pid' || (await identityState(state.identity)) !== 'mismatch') {
+    return null
+  }
+
+  return state.identity.startedAt === undefined ? {} : { startedAt: state.identity.startedAt }
 }
 
 export async function inspectDaemon(
@@ -100,7 +104,7 @@ export async function inspectDaemon(
 
 // invariant: the pid file appears whole via link(2), which fails if one exists, so two daemons can
 // never both believe they hold it and no reader sees a half-written file.
-export async function writePidFile(app: CliApp, pid: number): Promise<void> {
+export async function writePidFile(app: CliApp, pid: number): Promise<PidFileClaim> {
   const pidPath = pidFilePath(app)
   const started = await readProcessIdentity(pid)
 
@@ -114,11 +118,13 @@ export async function writePidFile(app: CliApp, pid: number): Promise<void> {
     version: BRAND.version,
     background: isBackgroundLaunch(),
     configPath: app.configPath,
+    startedAt: Date.now(),
   }
+  let claim: PidFileClaim = { kind: 'fresh' }
 
   for (let attempt = 0; attempt < PID_LOCK_MAX_ATTEMPTS; attempt++) {
     if (await tryCreatePidFile(pidPath, identity)) {
-      return
+      return claim
     }
 
     let raw: string
@@ -133,7 +139,13 @@ export async function writePidFile(app: CliApp, pid: number): Promise<void> {
       throw err
     }
 
-    if ((await claimStalePidFile(pidPath, raw)) === 'live') {
+    const claimed = await claimStalePidFile(pidPath, raw)
+
+    if (claimed.kind === 'reclaimed') {
+      claim = claimed
+    }
+
+    if (claimed.kind === 'live') {
       const owner = String(parseProcessIdentity(raw)?.pid ?? raw.trim())
 
       throw new OperatorConfigError(`daemon already running (pid ${owner})`, {
@@ -168,16 +180,22 @@ async function tryCreatePidFile(pidPath: string, identity: ProcessIdentity): Pro
   }
 }
 
-// 'retry': the stale file is gone (removed by us, or by another reader) — try the create again.
-// 'live': the pid names a running daemon and the caller must give up.
-async function claimStalePidFile(pidPath: string, raw: string): Promise<'retry' | 'live'> {
+// 'retry': the file is gone (another reader removed it, it changed, or it named no run and we removed
+// it) - try the create again. 'reclaimed': we removed a stale file, which is how an unclean stop
+// shows. 'live': the pid names a running daemon and the caller must give up.
+type StaleClaim =
+  | { readonly kind: 'retry' }
+  | { readonly kind: 'live' }
+  | { readonly kind: 'reclaimed'; readonly stale: string; readonly startedAt?: number }
+
+async function claimStalePidFile(pidPath: string, raw: string): Promise<StaleClaim> {
   const identity = parseProcessIdentity(raw)
 
   if (identity !== null) {
     const state = await identityState(identity)
 
     if (state === 'match' || state === 'unknown') {
-      return 'live'
+      return { kind: 'live' }
     }
   }
 
@@ -188,19 +206,38 @@ async function claimStalePidFile(pidPath: string, raw: string): Promise<'retry' 
     const current = await readFile(pidPath, 'utf8')
 
     if (current.trim() !== raw.trim()) {
-      return 'retry'
+      return { kind: 'retry' }
     }
 
     await unlink(pidPath)
   } catch (err: unknown) {
     if (isErrno(err, 'ENOENT')) {
-      return 'retry'
+      return { kind: 'retry' }
     }
 
     throw err
   }
 
-  return 'retry'
+  // A file that names no run (empty, cut short) shows no crash.
+  if (identity === null) {
+    return { kind: 'retry' }
+  }
+
+  return identity.startedAt === undefined
+    ? { kind: 'reclaimed', stale: raw }
+    : { kind: 'reclaimed', stale: raw, startedAt: identity.startedAt }
+}
+
+/** Puts back a pid file a reclaim removed; false when it could not or another start holds the path. */
+export async function restoreStalePidFile(app: CliApp, stale: string): Promise<boolean> {
+  try {
+    await writeFile(pidFilePath(app), stale, { mode: PID_FILE_MODE, flag: 'wx' })
+
+    return true
+  } catch {
+    // The caller logs it: a failed restore costs one notice.
+    return false
+  }
 }
 
 export async function removePidFile(app: CliApp): Promise<boolean> {
@@ -239,7 +276,7 @@ export async function clearMalformedPidFile(app: CliApp): Promise<boolean> {
     throw err
   }
 
-  return (await claimStalePidFile(pidPath, raw)) === 'retry'
+  return (await claimStalePidFile(pidPath, raw)).kind !== 'live'
 }
 
 /** Why the pid file cannot be cleared out of the way. `unreadable` also covers a live daemon whose
@@ -289,52 +326,6 @@ export async function isDaemonRunning(app: CliApp): Promise<boolean> {
   app.err(hint(t(locale, 'cli.daemonStartFirst', { brand: BRAND.name })))
 
   return false
-}
-
-/** Written once boot has opened every subsystem, so a background start can tell a daemon that is
- *  up and answering from one still loading data. It also carries what the daemon started without,
- *  which `status` and `/v1/health` read back. */
-export async function writeReadyFile(
-  app: CliApp,
-  degraded: readonly DegradedEntry[]
-): Promise<void> {
-  const state = { pid: process.pid, degraded }
-
-  // Atomic: `status` and a waiting background start poll it, and must never read half a file.
-  await replacePrivateFileAtomic({ path: readyFilePath(app), content: JSON.stringify(state) })
-}
-
-/** Cleared as a start claims the pid file: a daemon that died hard leaves its file behind, and a
- *  reused pid would otherwise read as ready before this one has booted. */
-export async function clearReadyFile(app: CliApp): Promise<void> {
-  await rm(readyFilePath(app), { force: true })
-}
-
-/** Only a file naming this pid counts, so one a dead daemon left behind never reads as ready. */
-export async function isDaemonReady(app: CliApp, pid: number): Promise<boolean> {
-  return (await readReadyState(app, pid)) !== undefined
-}
-
-/** What the daemon with this pid started without; empty when it is not ready or wrote no file. */
-export async function readDaemonDegraded(
-  app: { readonly config: Pick<ResolvedConfig, 'paths'> },
-  pid: number
-): Promise<readonly DegradedEntry[]> {
-  return (await readReadyState(app, pid))?.degraded ?? []
-}
-
-async function readReadyState(
-  app: { readonly config: Pick<ResolvedConfig, 'paths'> },
-  pid: number
-): Promise<z.infer<typeof READY_STATE> | undefined> {
-  try {
-    const parsed = READY_STATE.safeParse(JSON.parse(await readFile(readyFilePath(app), 'utf8')))
-
-    return parsed.success && parsed.data.pid === pid ? parsed.data : undefined
-  } catch {
-    // Absent, unreadable or not JSON (an older daemon wrote its bare pid): not ready yet.
-    return undefined
-  }
 }
 
 /** Windows gives a process no SIGTERM it can handle, so `stop` there writes the daemon's pid to a
@@ -401,7 +392,7 @@ function parseProcessIdentity(raw: string): ProcessIdentity | null {
     return null
   }
 
-  const { pid, started, version, background, configPath } = value
+  const { pid, started, version, background, configPath, startedAt } = value
 
   if (
     !Number.isSafeInteger(pid) ||
@@ -418,6 +409,9 @@ function parseProcessIdentity(raw: string): ProcessIdentity | null {
     ...(typeof version === 'string' && version !== '' ? { version } : {}),
     ...(typeof background === 'boolean' ? { background } : {}),
     ...(typeof configPath === 'string' && configPath !== '' ? { configPath } : {}),
+    ...(Number.isSafeInteger(startedAt) && Number(startedAt) > 0
+      ? { startedAt: Number(startedAt) }
+      : {}),
   }
 }
 

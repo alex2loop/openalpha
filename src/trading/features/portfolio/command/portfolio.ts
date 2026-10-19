@@ -14,6 +14,7 @@ import type { StopCover, StopDistance } from '@/trading/kernel/operator/alert'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
+import { resolveMarketIcons } from '@/trading/features/market-data/reads/describe'
 import { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
 import { renderNavText } from '@/trading/features/portfolio/render/nav'
 import { renderPortfolioText } from '@/trading/features/portfolio/render/portfolio'
@@ -62,7 +63,7 @@ interface PortfolioCommandDeps {
   readonly portfolio: Pick<PortfolioService, 'viewAbsoluteWithKinds'>
   readonly nav: Pick<NavService, 'history'>
   readonly profiles: Pick<ProfileService, 'get' | 'isSaved'>
-  readonly marketData: Pick<MarketDataService, 'events' | 'quoteConvention'>
+  readonly marketData: Pick<MarketDataService, 'describeMarkets' | 'events' | 'quoteConvention'>
   readonly alerts: StopDistanceReader
   readonly orders?: StopPlacementReader
   readonly venues: VenueRegistry
@@ -166,6 +167,7 @@ async function run(deps: PortfolioCommandDeps, ctx: SlashContext): Promise<Slash
         deps.marketData,
         book.positions.map((valued) => valued.position.instrument)
       ),
+      marketIcons: resolveMarketIcons(deps.marketData),
       stopDistances: distancesByInstrument(distances),
       restingStops,
       minimumSizes,

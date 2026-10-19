@@ -17,7 +17,7 @@ export function createPortfolioRemoveTool(deps: LedgerToolDeps): ToolDefinition 
       'anything at a broker.',
     inputSchema: z.strictObject({ id: ledgerEntryIdInput }),
     capability: 'write',
-    presentation: { label: 'Delete transaction', emoji: '🗑️', detailKeys: ['id'] },
+    presentation: { label: 'Delete transaction', emoji: '🧾', detailKeys: ['id'] },
     async execute(args, ctx): Promise<string> {
       const result = await portfolio.remove({ ref: args.id, now: Date.now(), signal: ctx.signal })
 

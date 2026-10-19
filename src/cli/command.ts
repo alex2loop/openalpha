@@ -262,6 +262,13 @@ export function hasConfigError(app: CliApp): boolean {
   return (app.configProbe?.configError ?? null) !== null
 }
 
+/** The operator's own config loaded, perhaps with a key still unset. */
+export function hasLoadedConfig(app: CliApp): boolean {
+  const probe = app.configProbe
+
+  return probe !== undefined && (probe.configError === null || probe.configKeyMissing)
+}
+
 export function lazyCommand(def: LazyCommandDef): Command {
   let loaded: Promise<Command | Group> | undefined
   const load = (): Promise<Command | Group> => {

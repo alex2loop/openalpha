@@ -56,6 +56,7 @@ interface PortfolioRenderOptions {
   /** How each holding's market quotes a price. A renderer cannot reach the registry, so the command
    *  resolves one entry per market in the book. */
   readonly quoteConventions?: ReadonlyMap<MarketRef, QuoteConvention>
+  readonly marketIcons: ReadonlyMap<MarketRef, string>
   /** The cap on one sector. */
   readonly sectorCapPctNav: number
   /** The policy the caps below were read off, stated once at the top instead of per row. */
@@ -86,6 +87,7 @@ export function renderPortfolioText(
     context: options.context,
     sectorCapPctNav: options.sectorCapPctNav,
     segmentWeights: apportionedSegmentWeights(book),
+    marketIcons: options.marketIcons,
     ...(options.quoteConventions === undefined
       ? {}
       : { quoteConventions: options.quoteConventions }),
@@ -107,9 +109,10 @@ export function renderPortfolioText(
       ),
       ...renderCashNudge(locale, display, options),
     ],
+    // What the reader came for sits right under the warnings; the money statements follow it.
+    renderPositionSection(locale, book, display),
     ...renderCashSections(locale, book, display),
     renderAllocationSection(locale, book, display),
-    renderPositionSection(locale, book, display),
     renderUpcoming(locale, options.upcoming ?? []),
     // The headline already states a partial valuation and names how many holdings caused it, so the
     // generic caveat would be the same sentence twice.
@@ -290,7 +293,7 @@ function renderCashNudge(
     return []
   }
 
-  // The weight the allocation table above already printed, not the fold's own: the three figures on
+  // The weight the allocation table above already printed, not the fold's own: both figures on
   // this line are read against that table, and one of them rounded apart is the whole defect.
   const current = display.segmentWeights.get(CASH_SEGMENT) ?? 0
   const gap = current - options.cashTargetPctNav
@@ -303,7 +306,6 @@ function renderCashNudge(
     `${INDENT[1]}${SEVERITY_MARKS.warn} ${t(locale, 'trading.render.portfolio.cashNudge', {
       current: formatFixedFraction(locale, current),
       target: formatFixedFraction(locale, options.cashTargetPctNav),
-      gap: formatFixedFraction(locale, gap),
     })}`,
   ]
 }

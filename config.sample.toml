@@ -153,8 +153,8 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # `openalpha onboard` and config.minimal.toml start you at max_daily_usd = 2.
 # `openalpha cost --period week --breakdown` shows where it went.
 
-# [budget]
-# max_daily_usd = 0         # 0 = uncapped
+[budget]
+max_daily_usd = 2           # 0 = uncapped
 # max_monthly_usd = 0       # 0 = uncapped
 # soft_warn_ratio = 0.8     # warn once when an enabled cap passes this fraction
 # max_per_run_usd = 0       # 0 = uncapped
@@ -165,8 +165,8 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 
 # ---- Locale -----------------------------------------------------------------
 
-# [locale]
-# language = "vi"                 # vi | en
+[locale]
+language = "vi"                   # vi | en
 # timezone = "UTC"                # IANA tz; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
 # region = "vn"                   # home market: vn (world gold owns global but is reference only). Leads the brief,
@@ -201,6 +201,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # [retention]
 # days = 90                       # prune old sessions/runs and removed-agent log dirs
 # inbox_days = 7                  # prune delivered/dead inbox rows
+# daily_backups = 3               # one SQLite snapshot a day in backups/daily/, this many kept; 0 turns it off
 # The cost ledger (llm_attempts) is kept 400 days whatever days is set to.
 
 
@@ -275,6 +276,11 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # [trading.alerts]
 # breakout_range = 1.5               # a move must travel this many average daily ranges to alert
 # breakout_sessions = 14             # sessions that average range is measured over
+
+# A price typed in /record, /update or /alert this many times above or below the name's latest
+# price is saved only once you confirm it.
+# [trading.typed_prices]
+# confirm_multiple = 10
 
 # Orders on okx and binance.
 # [trading.orders]
@@ -353,7 +359,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # quoted earlier. The conversation itself carries on; /new starts a fresh one. 0 turns it off.
 # Default 30.
 # gap_note_minutes = 30
-# fallback_chat_id = "-1001234567"   # where a scheduled job with no --to delivers
+# fallback_chat_id = "-1001234567"   # where a scheduled job with no --to delivers; default: the one allowed or paired chat
 
 # Zalo takes the same token, operator and delivery fields. There is no open mode.
 # [channels.zalo]

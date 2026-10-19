@@ -16,6 +16,8 @@ export interface ResolvedModel {
   readonly provider: string
   readonly model: string
   readonly apiKey?: string
+  /** The variable the key is read from, set or not. */
+  readonly apiKeyEnv?: string
   /** Set only by a deferred resolve: the chain refuses the call instead of the boot. */
   readonly missingEnv?: string
   readonly baseUrl?: string
@@ -79,6 +81,10 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
 
   if (baseUrl !== undefined) {
     out.baseUrl = baseUrl
+  }
+
+  if (apiKeyEnv !== undefined) {
+    out.apiKeyEnv = apiKeyEnv
   }
 
   if (missingEnv !== undefined) {

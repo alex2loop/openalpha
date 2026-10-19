@@ -1,3 +1,4 @@
+import type { KeyFile } from '@/cli/env-file'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { App } from '@/core/container'
 import type { MessageKey } from '@/i18n'
@@ -25,6 +26,8 @@ export interface ConfigProbe {
 }
 
 export interface CliApp extends App {
+  /** The key file loaded before config, and which names it set. */
+  readonly keyFile: KeyFile
   readonly out: Writer
   readonly err: Writer
   readonly write: Writer

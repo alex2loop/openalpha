@@ -21,7 +21,7 @@ import {
 } from './config-file'
 import { editExistingConfig } from './edit'
 import { askModel } from './model-step'
-import { askBudget, askLanguage, askTelegram, shellLocale } from './settings-step'
+import { askBudget, askCurrency, askLanguage, askTelegram, shellLocale } from './settings-step'
 
 const EXIT_BLOCKED = 1
 
@@ -102,12 +102,13 @@ async function firstSetup(shellCtx: AskContext, configPath: string): Promise<num
 
   const language = await askLanguage(shellCtx)
   const ctx: AskContext = { ...shellCtx, locale: language }
+  const currency = await askCurrency(ctx)
   const chosen = await askModel(ctx)
   const dailyBudgetUsd = await askBudget(ctx, STARTER_DAILY_BUDGET_USD)
   const telegramTokenEnv = await askTelegram(ctx)
   const telegram = telegramTokenEnv === undefined ? {} : { telegramTokenEnv }
   const content = starterConfigToml(
-    { model: chosen.starter, language, dailyBudgetUsd, ...telegram },
+    { model: chosen.starter, language, currency, dailyBudgetUsd, ...telegram },
     { api: false }
   )
 

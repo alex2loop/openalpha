@@ -1,6 +1,7 @@
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { SessionId } from '@/core/ids'
+import { replyChoiceGone } from '@/channels/delivery/choice-gone'
 import { commandHeadOf } from '@/commands/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
@@ -24,10 +25,53 @@ export async function handleControlCallback(
 ): Promise<void> {
   if (!(await deps.gate.admitCallback(query))) {
     deps.logger.warn('inbound.callback_rejected', { channel: deps.channelId })
+
     return
   }
 
   await deps.onCallback(query)
+}
+
+/** On a channel without a keyboard, a code the bot minted in this chat answers its prompt as a tap
+ *  would, through the same admission. True when the message was a code. */
+export async function handleTypedChoice(
+  deps: InboundHandlerDeps,
+  msg: InboundMessage
+): Promise<boolean> {
+  if (deps.adapter.capabilities.inlineButtons || !deps.choices.isCode(msg.text)) {
+    return false
+  }
+
+  const found = deps.choices.lookup(msg.chatId, msg.text)
+
+  // Never handed out in this chat: the sender's own text.
+  if (found === undefined) {
+    return false
+  }
+
+  const query: ChannelCallbackQuery = {
+    channel: deps.channelId,
+    id: msg.messageId,
+    data: found.kind === 'live' ? found.callbackId : '',
+    from: msg.userId,
+    chatId: msg.chatId,
+    ...(msg.isGroup === undefined ? {} : { isGroup: msg.isGroup }),
+  }
+
+  if (found.kind === 'live') {
+    await handleControlCallback(deps, query)
+
+    return true
+  }
+
+  // Only the operator could have held the code; anyone else typed four digits of their own.
+  if (!(await deps.gate.admitCallback(query))) {
+    return false
+  }
+
+  await replyChoiceGone(deps, msg.chatId)
+
+  return true
 }
 
 export async function handleSessionControl(options: SessionControlOptions): Promise<boolean> {

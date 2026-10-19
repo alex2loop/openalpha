@@ -96,6 +96,7 @@ export interface IntradayMarketContext {
 
 export interface IntradayReport {
   readonly market: MarketRef
+  readonly icon: string
   readonly phase: SessionPhase
   readonly firedAt: number
   /** Every index the market publishes, in the order its overview returns them. A list, not a

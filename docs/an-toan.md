@@ -131,7 +131,8 @@ không có nút ghi nhớ.
 
 **Kênh.** Ô hỏi dạng nút bấm chỉ đi tới đúng kênh sở hữu phiên chạy. Một lần bấm chỉ được nhận khi
 yêu cầu vẫn đang chờ, đến từ đúng chat đã được hỏi, quyết định đó thật sự đã được đưa ra, **và** người
-bấm là một operator có thẩm quyền. Kênh không có nút bấm thì từ chối ngay và nói rõ. Khi tắt máy, mọi
+bấm là một operator có thẩm quyền. Kênh không có nút bấm (Zalo) thì hỏi bằng các mã ngắn như `/4821` để gõ lại, mỗi mã chỉ dùng được
+trong chat đó và chỉ khi câu hỏi còn sống; chỉ khi không rút được mã nào thì mới từ chối ngay và nói rõ. Khi tắt máy, mọi
 yêu cầu còn treo đều bị từ chối.
 
 **MCP.** Phê duyệt qua form elicitation khi client hỗ trợ. Client không có elicitation thì không duyệt

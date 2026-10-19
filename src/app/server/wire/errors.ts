@@ -1,3 +1,5 @@
+import type { InstrumentRefWire } from '@/app/server/wire/trading'
+
 // The /v1 error contract. Every non-2xx JSON response is `{ error: { code } }` — a stable,
 // machine-readable code, never a leaked internal message. Clients switch on `error.code`, not on a
 // brittle status+string. One source of truth for "which code → which HTTP status".
@@ -12,17 +14,32 @@ export type ApiErrorCode =
   | 'invalid_json'
   | 'invalid_body'
   | 'conflict'
+  | 'price_unconfirmed'
   | 'upstream_failed'
   | 'too_many_streams'
   | 'unavailable'
   | 'timeout'
   | 'internal'
 
+/** What a `price_unconfirmed` refusal held: the typed price and the market's own price it was
+ *  measured against, for a client to word in its own format before asking. */
+export interface UnconfirmedPriceWire {
+  readonly instrument: InstrumentRefWire
+  readonly price: number
+  /** `at` is the day that price stands for, `YYYY-MM-DD`. */
+  readonly latest: { readonly price: number; readonly at: string }
+}
+
 /** The JSON body of any non-2xx response. */
 export interface ApiError {
   /** `message` is the runtime's own sentence for a refusal it explains to the operator (a ledger
-   *  row the book cannot hold, say), in the daemon's language. Absent on every other error. */
-  readonly error: { readonly code: ApiErrorCode; readonly message?: string }
+   *  row the book cannot hold, say), in the daemon's language. Absent on every other error.
+   *  `unconfirmedPrice` is set on `price_unconfirmed` alone. */
+  readonly error: {
+    readonly code: ApiErrorCode
+    readonly message?: string
+    readonly unconfirmedPrice?: UnconfirmedPriceWire
+  }
 }
 
 /** Canonical code → HTTP status. The response helper reads this; a client MAY use it to map a status
@@ -34,6 +51,7 @@ export const API_ERROR_STATUS: Readonly<Record<ApiErrorCode, number>> = {
   invalid_json: 400,
   invalid_body: 400,
   conflict: 409,
+  price_unconfirmed: 422,
   upstream_failed: 502,
   too_many_streams: 503,
   unavailable: 503,

@@ -179,11 +179,14 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
     tradingRegistration: createTradingRegistrationProvider({
       tradingConfig: input.tradingConfig,
       env: input.options.env,
-      sender: createTradingNoticeSender(
-        input.delivery,
-        input.config,
-        input.tradingConfig.displayTimezone
-      ),
+      sender: (app) =>
+        createTradingNoticeSender({
+          delivery: input.delivery,
+          config: input.config,
+          timezone: input.tradingConfig.displayTimezone,
+          channels: () => app.resolve('channels'),
+          pairingStore: () => app.resolve('pairingStore'),
+        }),
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,

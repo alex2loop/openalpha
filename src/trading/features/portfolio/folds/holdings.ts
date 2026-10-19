@@ -126,13 +126,14 @@ export function closedRoundTripsOf(
   return trips
 }
 
-/** The most recent closed round trips, newest first. */
+/** The most recent closed round trips, newest first. A surface with less room names its own count. */
 export function recentClosedRoundTrips(
-  trips: readonly ClosedRoundTrip[]
+  trips: readonly ClosedRoundTrip[],
+  limit: number = LISTED_ROUND_TRIPS
 ): readonly ClosedRoundTrip[] {
   return trips
     .toSorted((left, right) => right.closedAt.localeCompare(left.closedAt))
-    .slice(0, LISTED_ROUND_TRIPS)
+    .slice(0, limit)
 }
 
 function addSale(cycle: OpenCycle | undefined, sale: SaleRecord): OpenCycle {

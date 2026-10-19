@@ -32,7 +32,7 @@ nothing to do returns at once.
 | `trading.intents` | 5 min | Settles orders the book already holds; the rest wait for `/trade reconcile`. Same condition as `trading.exits`. |
 | `trading.refresh` | after each market's close, 12 h at most | Refreshes market data for every market you still use and logs what degraded. Then it captures each market's factor board once its session settles and scores earlier boards that reached the end of their window. It also writes the day's portfolio snapshot (value, cash, net deposits). If a holding has no price, the snapshot is skipped and `trading.nav_snapshot_skipped` names the instruments; any other failure logs `trading.nav_snapshot_failed`. No model call. |
 | `trading.intraday` | your send times | Sends the intraday report. **Off until `[trading.intraday] send_times` names a time.** |
-| retention sweep | 6 h | Deletes rows past `[retention] days` / `inbox_days`, workspace temp files, and log folders of agents you no longer configure. Also runs once at boot. |
+| retention sweep | 6 h | Deletes rows past `[retention] days` / `inbox_days`, workspace temp files, and log folders of agents you no longer configure. Takes the daily SQLite backup into `backups/daily/` when the newest is about a day old (`daily_backups`; PostgreSQL skipped). Also runs once at boot. |
 | workflow check | 30 s | Fires workflows that have a cron trigger. A failed pass replays its window, so no trigger is lost. |
 | heartbeat check | 30 s | Scans each workspace's `HEARTBEAT.md`. |
 | schedule check | 30 s | Looks for scheduled jobs that are due. |
@@ -94,6 +94,22 @@ sections that need no model, and on a day it cannot build you get one message na
 how to set it; a scheduled job that needs the model skips that run without counting it as a failure,
 so it is never switched off for a missing key. `status` lists what is waiting for a key. Set the key
 and `restart`, and everything runs again.
+
+### When the daemon stops, or misses a brief
+
+A daemon that dies without stopping cleanly (a crash, a `kill -9`, a power cut) leaves its pid file behind,
+and `status` then prints `daemon: stopped unexpectedly (started <time>)` with a pointer to `openalpha logs`
+instead of the plain "not running". The next start also messages your chat once, saying alerts and the brief
+were paused until now. If the brief could not go out before the open (the daemon was down, or every try
+failed), the day's brief is skipped and the chat gets one line saying so; the next one stays on schedule. A brief whose build starts before the open but finishes after it is still sent, with a line first
+saying prices have moved since it was written.
+
+A chat channel that stays down is reported too. Every five minutes the daemon looks at each channel, and one
+that has been down (or connected-but-failing) for 15 minutes is announced once, on another channel that is up,
+with the reason: a refused bot token, an expired Zalo login, the account open somewhere else, or a connection
+that keeps dropping. When it is back, you get one "is back" line. `status` lists the channel as `down: <reason>`
+while it is. With no other channel to tell, it is logged only (`channel.watch_no_route`). A restart forgets it,
+so a channel still down afterwards is announced once more.
 
 ---
 
@@ -273,6 +289,17 @@ logging pauses for 30 seconds (one line on stderr says so) and then tries a fres
 write lands again another line on stderr says it recovered. Records that arrive during the pause are
 dropped, and a `fatal` crash line goes to the terminal instead.
 
+## Start at login
+
+On a desktop, `openalpha autostart enable` registers `start --background` to run at every login, so the
+morning brief and alerts keep coming after a restart: a launchd agent on macOS, a systemd user unit on
+Linux (on a server with nobody logged in, also run `loginctl enable-linger $USER`) and a Run-key entry on
+Windows. `openalpha autostart` shows whether it is on, and `autostart disable` removes it (a daemon running
+now keeps running). It needs the installed binary, not a source checkout, and takes effect from the next
+login. A login launch does not see variables exported only in your shell, so save keys with
+`openalpha key set`; `enable` names any it finds. The unit it writes is `openalpha-autostart`, apart from
+the hand-written service below, which stays the way to run an API server.
+
 ## Run the API on a server
 
 Run the daemon on a server you own and point a client app at it.
@@ -296,7 +323,8 @@ Run the daemon on a server you own and point a client app at it.
 
    [Service]
    ExecStart=%h/.local/bin/openalpha start
-   EnvironmentFile=%h/.openalpha/env
+   # Optional: the daemon also reads keys saved with `openalpha key set` from ~/.openalpha/env.
+   EnvironmentFile=-%h/.openalpha/env
    Restart=on-failure
 
    [Install]

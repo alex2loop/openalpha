@@ -22,7 +22,7 @@ const MAXIMUM_RANGE_SESSIONS = 10_000
 const DAYS_PER_WEEK = 7
 /** The longest run of calendar days an exchange stays shut. VN's Tet cluster is the binding case
  *  at nine days; the margin only widens a search window, so over-stating it costs nothing. */
-const MAXIMUM_CLOSURE_DAYS = 21
+export const MAXIMUM_CLOSURE_DAYS = 21
 
 type InstrumentResolution =
   | {
