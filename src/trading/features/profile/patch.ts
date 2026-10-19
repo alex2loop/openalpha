@@ -9,7 +9,7 @@ import {
   INVESTMENT_HORIZONS,
   RISK_LEVELS,
 } from '@/trading/kernel/operator/profile'
-import { parseFiniteNumber, parseMember } from '@/trading/kernel/surface/surface'
+import { parseFraction, parseMember } from '@/trading/kernel/surface/surface'
 
 /** Exactly the scalar fields a one-line command can express. Lists, segment targets, and cap
  *  records go through the profile tool instead of a command-line mini-language. */
@@ -50,6 +50,24 @@ export const PROFILE_SET_FIELDS: readonly string[] = Object.freeze([
   ...FRACTION_FIELDS,
   ...SEGMENT_POLICY_FIELDS,
 ])
+
+/** What a `/profile set` field takes, so a refusal can show the shape that was missed. */
+type ProfileFieldShape = 'choice' | 'share' | 'segment-value' | 'unknown'
+
+export function toFieldShape(field: string): ProfileFieldShape {
+  if (field === HORIZON_FIELD || parseMember(field, SEGMENT_POLICY_FIELDS) !== null) {
+    return 'segment-value'
+  }
+
+  if (parseMember(field, FRACTION_FIELDS) !== null) {
+    return 'share'
+  }
+
+  const isChoice =
+    field === LOCALE_FIELD || field === GOAL_FIELD || parseMember(field, RISK_FIELDS) !== null
+
+  return isChoice ? 'choice' : 'unknown'
+}
 
 interface FieldValueOptions {
   readonly field: string
@@ -140,7 +158,7 @@ export function parseSegmentPolicyRequest(options: ParsePatchOptions): SegmentPo
   }
 
   const segment = parseMember(options.values[0], options.segments)
-  const pctNav = parseFiniteNumber(options.values[1])
+  const pctNav = parseFraction(options.values[1])
 
   if (segment === null || pctNav === null) {
     return null
@@ -179,7 +197,7 @@ function parseFractionPatch(
   raw: string | undefined
 ): ProfilePatch | null {
   const name = parseMember(field, FRACTION_FIELDS)
-  const value = parseFiniteNumber(raw)
+  const value = parseFraction(raw)
 
   // Range is the validator's: it names the field and the bounds, which usage cannot.
   if (name === null || value === null) {

@@ -155,7 +155,7 @@ khai, và đề nghị một phân bổ khởi điểm.
 > /watchlist remove ROS         # bỏ
 ```
 
-Tỷ trọng mục tiêu đặt từng nhóm một: `/profile set segment-target equity-vn 0.5`. **Danh sách loại
+Tỷ trọng mục tiêu đặt từng nhóm một: `/profile set segment-target equity-vn 50%`. **Danh sách loại
 trừ thì chỉ nói bằng lời** - cứ nói chuyện bình thường trong chat:
 
 ```text
@@ -961,7 +961,7 @@ cổ phiếu VN.
 | `/screen` báo sai tên thị trường | Dùng đúng mã: `equity-vn`, `gold`, `gold-vn`, `crypto` |
 | `/suggest NVDA` báo không hỗ trợ | Cổ phiếu Mỹ nằm ngoài phạm vi - xem [mục 3](#3-các-thị-trường) |
 | `/market` không có dòng theo dõi nào | `/watchlist add FPT` rồi thử lại |
-| Đặt tỷ trọng mục tiêu không ăn | `/profile set segment-target <nhóm> <tỷ lệ>` (0 tới 1, nhóm đang bật); `/profile show` để xem lại |
+| Đặt tỷ trọng mục tiêu không ăn | `/profile set segment-target <nhóm> <tỷ lệ>` (0 tới 1 hoặc 0% tới 100%, nhóm đang bật); `/profile show` để xem lại |
 | Dữ liệu VN có vẻ cũ | `/refresh equity-vn`, hoặc `/refresh equity-vn force` để nạp lại toàn bộ |
 | Không rõ đang tốn bao nhiêu | `/cost` trong chat, hoặc `openalpha cost` |
 | Đĩa đầy | Dừng daemon rồi `openalpha db cleanup --older-than 90d` (thêm `--dry-run` để xem trước); xem thêm `openalpha db --help` |

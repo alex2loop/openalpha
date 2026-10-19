@@ -1,4 +1,5 @@
 import type {
+  CommandMessage,
   CommandMessageValues,
   SlashCommand,
   SlashContext,
@@ -10,20 +11,31 @@ import type {
   SegmentRequest,
 } from '@/trading/features/profile/types'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
+import { closestName } from '@/core/utils/text'
 import {
   PROFILE_SET_FIELDS,
   parseProfilePatch,
   parseSegmentPolicyRequest,
   profileFieldValues,
+  toFieldShape,
 } from '@/trading/features/profile/patch'
 import { renderProfileText } from '@/trading/features/profile/render'
-import { SEGMENT_TOGGLES } from '@/trading/features/profile/types'
-import { INVESTMENT_GOALS } from '@/trading/kernel/operator/profile'
+import { SEGMENT_POLICY_FIELDS, SEGMENT_TOGGLES } from '@/trading/features/profile/types'
+import { INVESTMENT_GOALS, INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
 import { resolveRenderContext } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 
 const USAGE: 'slash.tradingProfileUsage' = 'slash.tradingProfileUsage'
+const REFUSAL_KEYS = Object.freeze([
+  'slash.tradingProfileFieldUnknown',
+  'slash.tradingProfileFieldNear',
+  'slash.tradingProfileSetChoice',
+  'slash.tradingProfileSetShare',
+  'slash.tradingProfileSetSegment',
+] as const)
+const EXAMPLE_SHARE = '20%'
+const EXAMPLE_SEGMENT = 'crypto'
 const GOAL_OPTIONS = INVESTMENT_GOALS.join('|')
 const SHOW_ACTION = 'show'
 const SET_ACTION = 'set'
@@ -49,7 +61,7 @@ export function createProfileCommand(deps: ProfileCommandDeps): SlashCommand {
   return {
     name: 'profile',
     description: { kind: 'localized', key: 'slash.tradingProfileHelp' },
-    messageKeys: [USAGE],
+    messageKeys: [USAGE, ...REFUSAL_KEYS],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     completeFor: (args) => completeProfile(deps.profiles, args),
     usage: () => ({ key: USAGE, values: buildUsageValues(deps.profiles) }),
@@ -60,7 +72,7 @@ export function createProfileCommand(deps: ProfileCommandDeps): SlashCommand {
 async function run(deps: ProfileCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const [action, ...rest] = ctx.args
 
-  if (action === SHOW_ACTION) {
+  if (action === undefined || action === SHOW_ACTION) {
     return rest.length === 0 ? runShow(deps, ctx) : usageFor(deps.profiles)
   }
 
@@ -113,7 +125,7 @@ async function runSet(
   const patch = parseProfilePatch({ field, values, segments })
 
   if (patch === null) {
-    return usageFor(deps.profiles)
+    return buildSetRefusal(deps.profiles, field)
   }
 
   const profile = await deps.profiles.update({
@@ -194,6 +206,49 @@ function completeProfile(profiles: Profiles, args: readonly string[]): readonly 
   return field === undefined
     ? []
     : profileFieldValues({ field, index: args.length - 3, segments: profiles.segments() })
+}
+
+/** One line a phone fits: what this field takes and an example of it, never the whole usage text. */
+function buildSetRefusal(profiles: Profiles, field: string): SlashResult {
+  return { kind: 'message', messages: [toRefusalMessage(profiles, field)] }
+}
+
+function toRefusalMessage(profiles: Profiles, field: string): CommandMessage {
+  const shape = toFieldShape(field)
+
+  if (shape === 'unknown') {
+    const near = closestName(field, PROFILE_SET_FIELDS)
+
+    return near === undefined
+      ? { key: 'slash.tradingProfileFieldUnknown', values: { field } }
+      : { key: 'slash.tradingProfileFieldNear', values: { field, near } }
+  }
+
+  if (shape === 'choice') {
+    const choices = profileFieldValues({ field, index: 0, segments: profiles.segments() })
+
+    return {
+      key: 'slash.tradingProfileSetChoice',
+      values: { field, values: choices.join(INLINE_SEPARATOR), example: choices[0] ?? '' },
+    }
+  }
+
+  if (shape === 'share') {
+    return { key: 'slash.tradingProfileSetShare', values: { field, example: EXAMPLE_SHARE } }
+  }
+
+  return {
+    key: 'slash.tradingProfileSetSegment',
+    values: { field, example: toSegmentExample(profiles, field) },
+  }
+}
+
+function toSegmentExample(profiles: Profiles, field: string): string {
+  const [segment = EXAMPLE_SEGMENT] = profiles.heldSegments()
+  const isPolicy = parseMember(field, SEGMENT_POLICY_FIELDS) !== null
+  const value = isPolicy ? EXAMPLE_SHARE : INVESTMENT_HORIZONS.at(-1)
+
+  return `/profile set ${field} ${segment} ${value}`
 }
 
 /** The usage line names the segments a venue holds; a reference-only one is refused by name. */
