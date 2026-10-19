@@ -38,8 +38,16 @@ export function isEnvName(name: string): boolean {
   return ENV_NAME_RE.test(name)
 }
 
-/** The command that stores `env` where every later command finds it, the same on every platform. */
+/** The command that stores `env` where every later command finds it, the same on every platform.
+ *  A brand-prefixed name steers how the program runs and never lives in the key file, so it is set
+ *  in the shell instead. */
 export function setEnvCommand(env: string): string {
+  if (env.startsWith(BRAND.envPrefix)) {
+    return process.platform === 'win32'
+      ? `$env:${env}="..."; setx ${env} "..."`
+      : `export ${env}=...`
+  }
+
   return `${BRAND.name} key set ${env}`
 }
 

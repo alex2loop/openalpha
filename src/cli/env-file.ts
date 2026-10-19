@@ -95,15 +95,19 @@ export async function readEnvFile(path: string): Promise<ReadonlyMap<string, str
 export async function writeEnvFileValue(input: EnvFileEntry): Promise<void> {
   const lines = splitLines(await readTextOrEmpty(input.path))
   const line = `${input.name}=${formatValue(input.value)}`
-  const index = lines.findIndex((candidate) => nameOfLine(candidate) === input.name)
+  const last = lines.findLastIndex((candidate) => nameOfLine(candidate) === input.name)
 
-  if (index === -1) {
-    lines.push(line)
-  } else {
-    lines[index] = line
-  }
+  // A later line wins when the file loads, so the new value takes the last one's place and any
+  // earlier line for the name goes: the value just saved is the one that applies.
+  const kept = lines.flatMap((candidate, index) => {
+    if (index === last) {
+      return [line]
+    }
 
-  await writeLines(input.path, lines)
+    return nameOfLine(candidate) === input.name ? [] : [candidate]
+  })
+
+  await writeLines(input.path, last === -1 ? [...kept, line] : kept)
 }
 
 export async function removeEnvFileValue(path: string, name: string): Promise<boolean> {
