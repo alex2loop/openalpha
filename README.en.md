@@ -84,24 +84,34 @@ https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
 
 ## Quick start
 
-All you need is a Mac, a Linux machine or Windows 10/11 (ARM machines need Windows 11), and one AI provider key. [OpenRouter](https://openrouter.ai) has free models too; a paid model usually costs a few dollars a month.
+All you need is a Mac, a Linux machine or Windows 10/11 (ARM machines need Windows 11), and one AI key: sign up at [OpenRouter](https://openrouter.ai) and create one at [openrouter.ai/keys](https://openrouter.ai/keys) (keep it like a password). OpenRouter has free models too; a paid model usually costs a few dollars a month.
 
 ### Try it in 3 commands
 
+Open a terminal (macOS: press ⌘ + Space and type `Terminal`; Windows: open PowerShell from the Start menu), use the one block for your machine, paste each line and press Enter. Anything after `#` is a note, not something to type:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # install, then open a new terminal
-export OPENROUTER_API_KEY="..."   # AI key, from openrouter.ai
-openalpha chat                    # then type /refresh, and once it finishes, /suggest FPT
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux: install, then open a new terminal
+openalpha key set OPENROUTER_API_KEY   # paste the key and press Enter (nothing shows, that's normal); skip if setup saved it
+openalpha chat                    # then type /refresh (about 5 minutes), then /suggest FPT
+```
+
+```powershell
+powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows: install, then open a new PowerShell window
+openalpha key set OPENROUTER_API_KEY   # paste the key and press Enter (nothing shows, that's normal); skip if setup saved it
+openalpha chat                    # then type /refresh (about 5 minutes), then /suggest FPT
 ```
 
 That is enough to see a suggestion. For one sized to your own money, also do step 4 below.
 
 ### Full setup in 5 steps
 
+Already ran the 3 commands above? Start at step 3.
+
 **1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
 ```
 
 ```powershell
@@ -124,7 +134,7 @@ openalpha doctor --online              # sends the model one short test message
 /setup       # pick your risk level and the markets you trade
 ```
 
-**4. Record the money you have, for the markets you trade.** Every suggestion is sized from this book, so don't skip it.
+**4. Record the money you have, for the markets you trade.** Every suggestion is sized from this book, so don't skip it. It is only a record on your machine; no money moves. Lines starting with `/` go into `openalpha chat` (or Telegram, Zalo), not straight into the terminal.
 
 <details open>
 <summary><b>Vietnamese stocks</b></summary>
@@ -132,10 +142,11 @@ openalpha doctor --online              # sends the model one short test message
 ```text
 /record deposit vps 100000000 VND 2026-08-14              # 100 million VND into the VPS account
 /suggest FPT                                              # take a deep look at one name
-/record buy FPT 100 62000                                 # place the order yourself, record it once it fills (venue, VND and today filled in)
+/record buy FPT 100 62000                                 # place the order in your VPS app, record it here once it fills (venue, VND, today filled in)
+/record sell FPT all 65000                                # sell it all once the shares settle (T+2: two working days later); for part, give a quantity
 ```
 
-Prices are in whole VND: a board price of `62.00` is recorded as `62000`. Leave the fee out and the book prices it. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
+Prices are in whole VND: a board price of `62.00` is recorded as `62000`, and a price ten times or more away from the latest one is asked back before it is saved. Leave the fee out and the book prices it. Only at VPS? Skip the rest of this section. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
 
 ```toml
 [trading.venues.ssi]
@@ -155,6 +166,7 @@ USDT bought over P2P: add `fx` to the deposit, the rate you actually paid for ea
 ```text
 /record deposit binance 1000 USDT 2026-08-14 fx 26600
 /record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14
+/record sell binance crypto:BTC all 65000                 # sell it all; USDT and today filled in
 ```
 
 VND paid into the exchange: a USDT buy converts at that day's market rate. The assistant shows you first; if it looks right, type `/record confirm` to record it:
@@ -167,7 +179,7 @@ VND paid into the exchange: a USDT buy converts at that day's market rate. The a
 
 - New to crypto? A round trip from USDT deposit to withdrawal, currency moves and checking USDT against the exchange: [trading guide](docs/en/trading.md#foreign-cash-at-a-venue).
 - `binance` and `okx` are built in. For another exchange (Bybit, Bitget...), declare it like SSI above, with `markets = ["crypto"]` and `fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }`.
-- With Binance or OKX API keys set, `/record sync binance` pulls in your fills, and `/trade` stages an order for you to approve:
+- With Binance or OKX API keys set, `/record sync binance` pulls in your fills, and `/trade` stages a real order for you to approve:
 
 ```text
 /trade spot binance:BTC buy 0.001 limit 60000 tp 70000 sl 56000   # limit buy with take-profit and stop-loss
@@ -179,31 +191,31 @@ VND paid into the exchange: a USDT buy converts at that day's market rate. The a
 <details>
 <summary><b>Vietnamese gold</b></summary>
 
-This segment starts switched off. Switch it on, declare where you buy gold, then record it like a stock:
+This segment starts switched off. Switch it on, then record it like a stock; gold and the cash that buys it sit at the built-in `gold-shop`:
 
 ```text
 /profile enable gold-vn
 /price SJC                     # today's buy-back, sell price and spread
 ```
 
-```toml
-[trading.venues.sjc]
-markets = ["gold-vn"]
-fees = { buy = 0, sell = 0 }   # the shop charges no separate fee; the spread is in the price
-```
-
 ```text
-/record deposit sjc 150000000 VND 2026-08-14
-/record buy sjc gold-vn:SJC 1 120000000 VND 2026-08-14   # 1 tael
+/record deposit gold-shop 150000000 VND 2026-08-14
+/record buy SJC 1 140000000              # 1 tael; gold shop, VND and today filled in
+/record sell SJC 1 145000000             # sold back to the shop at its buy-back price
 ```
 
-Smaller amounts are recorded in taels: 1 chỉ is `0.1`, and the price stays per tael. For ring gold use `gold-vn:PNJ-RING` or `gold-vn:DOJI-RING`. Stop and target are set from the shop's buy-back price, which is what you actually get when you sell.
+Smaller amounts are recorded in taels: 1 chỉ is `0.1`, and the price stays per tael. For ring gold use `PNJ-RING` or `DOJI-RING`. Stop and target are set from the shop's buy-back price, which is what you actually get when you sell. To keep each shop (SJC, PNJ...) apart, declare it like SSI above with `markets = ["gold-vn"]` and `fees = { buy = 0, sell = 0 }`, then record its name instead of `gold-shop`.
 
 </details>
 
-To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells the whole position, or give a quantity). To withdraw: `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day. Recorded something wrong? `/transactions` shows each row's id, then `/update <id> ...` fixes it or `/delete <id>` shows the row and then `/delete <id> confirm` removes it. Type `/record` on its own to see every kind of row (dividends, splits, transfers...). Config is read at start, so restart afterwards: `openalpha restart --background`.
+A few things that work the same in every market:
 
-**5. Turn on the morning brief.** `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
+- **Taking money out:** type `/record withdrawal` with the venue, amount, currency and date, for example `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day.
+- **Recorded something wrong?** Type `/transactions` to see each row's id. Fix it with `/update <id> ...`. To remove it, `/delete <id>` shows the row first so you can check, then `/delete <id> confirm`.
+- **Dividends, splits, moving cash between two places:** type `/record` on its own and it lists every kind of row and how to write each one.
+- **Just edited `config.toml`** (say, to add a broker or a gold shop)? Type `/exit`, open `openalpha chat` again, and that's it. If OpenAlpha runs in the background, also run `openalpha restart --background`.
+
+**5. Turn on the morning brief (optional).** Type `/exit` to leave the chat, then run `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
 
 <details>
 <summary><b>Windows, minimal config, updates, uninstall</b></summary>
@@ -220,6 +232,20 @@ To sell: `/record sell vps equity-vn:FPT all 65000 VND 2026-08-20` (`all` sells 
 
   ```powershell
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
+  ```
+
+- **Change the model, add a fallback AI provider:** run `openalpha onboard` and pick "AI model", or edit `[[models]]` in `config.toml`. The first entry is the main model; the next ones are used only when the one before fails or stalls. `openalpha provider list` gives the provider names, `openalpha provider models` the models and their prices. Details: [models and providers](docs/en/agents.md#models-and-providers) · [provider catalog](docs/en/configuration.md#provider-catalog).
+
+  ```toml
+  [[models]]                                   # main model
+  provider = "openrouter"
+  model = "deepseek/deepseek-v4.1-flash"
+  api_key_env = "OPENROUTER_API_KEY"
+
+  [[models]]                                   # fallback when OpenRouter fails
+  provider = "anthropic"
+  model = "claude-sonnet-4-6"
+  api_key_env = "ANTHROPIC_API_KEY"
   ```
 
 - **Every config option:** [config.sample.toml](config.sample.toml) · [docs/en/configuration.md](docs/en/configuration.md). No AI key? Run a local model through Ollama or vLLM.
@@ -282,7 +308,7 @@ A bare ticker is usually enough (`/price FPT`). Qualify it only where two market
 
 Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo or Zalo Personal.
 
-From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md)). Paying for ChatGPT already? Sign in with `openalpha auth login`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
+From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md#provider-catalog)). Paying for ChatGPT already? Sign in with `openalpha auth login chatgpt`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
 
 ### How it works
 
@@ -319,6 +345,7 @@ OpenAlpha does not promise you will never lose. It keeps each loss small, planne
 - **The AI never sees your money.** The analyst gets weights only, never a balance, a price paid or your total assets.
 - **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation.
 - **Everything stays on your machine.** The book and the config live locally; keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
+- **Your book is backed up every day.** While it runs in the background, OpenAlpha copies the SQLite book into `~/.openalpha/backups/daily/` and keeps the newest three ([backup and restore](docs/en/storage.md#sqlite-backup-and-restore)).
 - **AI spend has a ceiling.** `onboard` sets a daily cap; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill.
 
 Every other safeguard: [SECURITY.en.md](SECURITY.en.md).

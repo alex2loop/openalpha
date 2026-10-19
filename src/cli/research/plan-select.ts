@@ -1,5 +1,6 @@
 import type { PromptFn } from '@/cli/ui/prompt'
 import type { Locale } from '@/core/types/locale'
+import { suspendKeypressListeners } from '@/cli/ui/prompt'
 import { t } from '@/i18n'
 
 // Raw mode turns off ISIG, so Ctrl-C arrives as this byte instead of a signal.
@@ -41,7 +42,7 @@ export async function selectPlanAction(deps: PlanSelectDeps): Promise<PlanSelect
 
 async function readSingleKey(deps: PlanSelectDeps): Promise<'start' | 'edit' | 'cancel'> {
   const wasRaw = deps.input.isTTY ? deps.input.isRaw : false
-  const reattach = detachKeypressListeners(deps.input)
+  const reattach = suspendKeypressListeners(deps.input)
 
   try {
     if (deps.input.isTTY) {
@@ -56,24 +57,6 @@ async function readSingleKey(deps: PlanSelectDeps): Promise<'start' | 'edit' | '
     }
 
     reattach()
-  }
-}
-
-// A terminal readline keeps its own keypress listener on the stream and inserts every key into its
-// line buffer, so `q` or `e` would prefill the next prompt. Lifting those listeners for the choice
-// keeps the keys out of it; the returned function puts them back in their original order.
-function detachKeypressListeners(input: NodeJS.ReadStream): () => void {
-  const listeners = input.rawListeners('keypress')
-
-  for (const listener of listeners) {
-    // why-safe: the emitter only ever stores functions in its listener list.
-    input.removeListener('keypress', listener as (...args: unknown[]) => void)
-  }
-
-  return () => {
-    for (const listener of listeners) {
-      input.on('keypress', listener as (...args: unknown[]) => void)
-    }
   }
 }
 

@@ -12,7 +12,7 @@ import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { toMissingKeyErrors } from '@/cli/missing-keys'
 import { flagString } from '@/cli/parsing/args'
 import { resolveConfigPath } from '@/cli/services'
-import { fail, success } from '@/cli/ui/colors'
+import { fail, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { loadConfig } from '@/core/config/load'
 import {
@@ -150,7 +150,11 @@ function editConfig(_args: ParsedArgs, app: CliApp): Promise<number> {
 }
 
 async function validateConfig(_args: ParsedArgs, app: CliApp): Promise<number> {
-  const problems = await configProblems(app)
+  const { problems, warnings } = await configReport(app)
+
+  for (const warning of warnings) {
+    app.err(warn(warning))
+  }
 
   if (problems.length === 0) {
     app.out(success(t(app.config.locale.language, 'cli.configValidationOk')))
@@ -165,22 +169,34 @@ async function validateConfig(_args: ParsedArgs, app: CliApp): Promise<number> {
   return 1
 }
 
+interface ConfigReport {
+  readonly problems: readonly string[]
+  readonly warnings: readonly string[]
+}
+
 // A file that will not load or resolve stops here, as there is no config left to read. Past that,
 // every check runs, so the operator fixes what is wrong in one pass.
-async function configProblems(app: CliApp): Promise<readonly string[]> {
+async function configReport(app: CliApp): Promise<ConfigReport> {
   const locale = app.config.locale.language
 
   try {
     const { raw } = await loadConfig({ configPath: app.configPath })
     const config = resolveConfig(raw, { deferMissingKeys: true })
+    const missingKeys = toMissingKeyErrors(config).map((err) => ({
+      fallback: err.effect === 'fallback',
+      message: terminalErrorMessage(err, locale),
+    }))
 
-    return [
-      ...modelProblems(config, locale),
-      ...toMissingKeyErrors(config).map((err) => terminalErrorMessage(err, locale)),
-      ...bootProblems(config, app),
-    ]
+    return {
+      problems: [
+        ...modelProblems(config, locale),
+        ...missingKeys.filter((key) => !key.fallback).map((key) => key.message),
+        ...bootProblems(config, app),
+      ],
+      warnings: missingKeys.filter((key) => key.fallback).map((key) => key.message),
+    }
   } catch (err: unknown) {
-    return refusalProblems(err, app)
+    return { problems: refusalProblems(err, app), warnings: [] }
   }
 }
 
