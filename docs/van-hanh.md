@@ -98,8 +98,8 @@ khóa. `status` liệt kê những gì đang chờ khóa. Đặt khóa rồi `re
 Daemon chết mà chưa dừng đàng hoàng (sập, `kill -9`, mất điện) để lại tệp pid, và `status` khi đó in
 `daemon: đã dừng đột ngột (khởi động lúc <giờ>)` kèm gợi ý xem `openalpha logs`, thay vì dòng "chưa chạy"
 trơn. Lần khởi động kế tiếp cũng nhắn chat của bạn một lần, nói cảnh báo và bản tin đã tạm ngưng tới giờ.
-Nếu daemon tắt suốt khung trước giờ mở cửa của bản tin, bản tin hôm đó bị bỏ và chat nhận một dòng
-"trước giờ mở cửa OpenAlpha không chạy"; bản tin sau vẫn theo lịch. Bản tin bắt đầu dựng trước giờ mở cửa
+Nếu bản tin không gửi được trước giờ mở cửa (daemon tắt, hoặc mọi lần gửi đều hỏng), bản tin hôm đó bị
+bỏ và chat nhận một dòng báo điều này; bản tin sau vẫn theo lịch. Bản tin bắt đầu dựng trước giờ mở cửa
 nhưng xong sau đó vẫn được gửi, kèm một dòng đầu báo giá đã chạy từ lúc viết.
 
 Kênh chat mất kết nối lâu cũng được báo. Cứ năm phút daemon xem từng kênh một lần, kênh nào mất kết nối đã 15

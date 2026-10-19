@@ -22,8 +22,8 @@ missed brief or a channel that stays down. No database change.
   Windows Run key), so the brief and alerts survive a restart. The Linux and Windows launchers are
   untested on real machines.
 - `status` says when the daemon stopped unexpectedly, and the next start tells your chat once. A morning
-  brief skipped because the daemon was down before the open now says so. A brief whose build crosses the
-  open still goes out, with a line first saying prices have moved.
+  brief that could not go out before the open (the daemon was down, or every try failed) now says so. A
+  brief whose build crosses the open still goes out, with a line first saying prices have moved.
 - A chat channel that stays down for 15 minutes is reported on another channel (with the reason), once
   when it drops and once when it returns, and `status` lists it as `down`.
 - A button tapped after its prompt was answered or timed out replies that it is already answered or

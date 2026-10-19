@@ -278,6 +278,7 @@ Layout under `data_dir`:
   logs/daemon.log                   default global log (`[log] file`)
   logs/agents/<agentId>/agent.log   per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots
+    daily/                          the daemon's daily copies, newest `[retention] daily_backups` kept
   plugins/                          installed plugins
   workspaces/<agentId>/             private scratch folder per agent
     run/                            HOME of child processes; cleared only by a confirmed `workspace cleanup`
@@ -911,5 +912,5 @@ config.toml has things to fix:
 - `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
 Correct them, then run again.
 
-The environment variable ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start. Set it with `export ANTHROPIC_API_KEY=...` in the terminal you run from, then try again.
+The environment variable ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start. Set it with `openalpha key set ANTHROPIC_API_KEY` in the terminal you run from, then try again.
 ```

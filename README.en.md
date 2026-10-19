@@ -318,7 +318,7 @@ OpenAlpha does not promise you will never lose. It keeps each loss small, planne
 
 - **The AI never sees your money.** The analyst gets weights only, never a balance, a price paid or your total assets.
 - **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation.
-- **Everything stays on your machine.** The book and the config live locally; Keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
+- **Everything stays on your machine.** The book and the config live locally; keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
 - **AI spend has a ceiling.** `onboard` sets a daily cap; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill.
 
 Every other safeguard: [SECURITY.en.md](SECURITY.en.md).

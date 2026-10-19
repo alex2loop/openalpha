@@ -530,7 +530,7 @@ Chi phí của lần đọc nằm dưới một đường kẻ ở tận cuối,
 
 **Thời điểm.** Giờ gửi mặc định là 08:15 theo múi giờ **của thị trường** (08:15 ở TP.HCM, không phải 08:15 UTC và không phải ở nơi bạn đang ngồi). Bản tin chỉ được gửi khi phiên còn trước giờ mở (thị trường giao dịch suốt ngày, hoặc ngày thị trường nghỉ, vẫn tính là trước giờ mở), nên không bao giờ dựng hay gửi giữa phiên hoặc sau giờ đóng, và một phép kiểm trước khi chạy xác nhận phiên trước đã tạo ra một cây nến trước khi tốn token nào.
 
-Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại. Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped` và lịch chuyển sang hôm nay. Bản tin hôm nay vẫn được gửi muộn nếu daemon khởi động sau giờ gửi nhưng trước giờ mở. Nếu daemon khởi động sau giờ mở, bản tin hôm nay bị bỏ qua với cảnh báo `trading.brief_past_open_skipped` và bản tin sáng hôm sau là bản kế tiếp.
+Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại. Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped` và lịch chuyển sang hôm nay. Bản tin hôm nay vẫn được gửi muộn nếu daemon khởi động sau giờ gửi nhưng trước giờ mở. Nếu daemon khởi động sau giờ mở, hoặc một lần gửi lại rơi vào sau giờ mở, bản tin hôm nay bị bỏ qua với cảnh báo `trading.brief_past_open_skipped`, chat nhận một dòng báo điều này, và bản tin sáng hôm sau là bản kế tiếp. Bản tin bắt đầu dựng trước giờ mở nhưng xong sau đó vẫn được gửi, kèm dòng đầu báo giá đã chạy từ lúc viết.
 
 Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải bỏ đăng ký. Lịch chuyển sang ngày mai, `trading.brief_day_abandoned` được ghi log, và một thông báo cho biết bản tin hôm nay đã bị bỏ (gửi theo kiểu cố gắng hết sức qua đúng kênh vừa hỏng, nên có thể không tới). Chỉ `/brief disable` mới tắt bản tin sáng.
 
@@ -693,7 +693,7 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-Cảnh báo được gọi bằng mã sáu ký tự (đuôi của mã dài) trong `/alert list`, lời xác nhận và mọi thông báo; `/alert disable <mã>` nhận mã đó, và xin thêm vài ký tự khi nó khớp nhiều cảnh báo. Cảnh báo giá hay thoát lệnh khi chạm mở đầu bằng tiêu đề và bước kế tiếp: với thoát lệnh là dòng `/record sell` để điền khi bán xong, rồi `/suggest` để xem lại. Trong chat `/transactions` mặc định hiện 10 dòng, và `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
+Cảnh báo được gọi bằng mã sáu ký tự (đuôi của mã dài) trong `/alert list`, lời xác nhận và mọi thông báo; `/alert disable <mã>` nhận mã đó, và liệt kê mã đầy đủ khi nó khớp nhiều cảnh báo. Cảnh báo giá hay thoát lệnh khi chạm mở đầu bằng tiêu đề và bước kế tiếp: với thoát lệnh là dòng `/record sell` để điền khi bán xong, rồi `/suggest` để xem lại. Trong chat `/transactions` mặc định hiện 10 dòng, và `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
 
 `/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo. Gõ trong một kênh đã kết nối thì gửi về chính chat đó. Gõ trong terminal thì gửi về chat của bạn: kênh được cấu hình đầu tiên thắng (Telegram, rồi Zalo, rồi Zalo Personal), và `fallback_chat_id` chọn chat. Chưa cấu hình kênh nào thì bị từ chối. Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background`).
 

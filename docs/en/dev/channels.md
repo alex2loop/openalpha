@@ -106,11 +106,13 @@ duplicate messages.
 A channel without `inlineButtons` cannot show a keyboard, so `delivery/choices.ts` mints one four-digit
 code per button (`/4821`), keyed by chat, and the approval prompt and the plan review append them as
 lines. `handleTypedChoice` runs first in `route`, before the mention rule, and turns a live code into
-the same `ChannelCallbackQuery` a tap makes. Admission (`gate.admitCallback`) runs before the code is
-consumed, so a member who is not the operator leaves it live for the one who is; `discard` then drops
-the code and its siblings. Each entry carries the prompt's own `expiresAt` and the LRU only bounds
-memory, so the expiry is cleanup: the resolvers still decide, and an unknown request answers
-"already answered or expired".
+the same `ChannelCallbackQuery` a tap makes, through the same admission (`gate.admitCallback`).
+Nothing consumes a code: the resolver that owns the prompt answers a repeat "already answered or
+expired", so an answer it did not take (a member who is not the operator, a prompt still landing)
+leaves the code live. Each entry carries the prompt's own `expiresAt`; past it the code is kept as
+expired, so an admitted operator typing it hears so, while four digits never handed out in that chat
+pass through as ordinary text. A new code is never one the chat still remembers, and the LRU bounds
+memory.
 
 ### Button payloads
 

@@ -278,6 +278,7 @@ Bố cục dưới `data_dir`:
   logs/daemon.log                   log chung mặc định (`[log] file`)
   logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/
+    daily/                          bản sao hằng ngày của daemon, giữ `[retention] daily_backups` bản mới nhất
   plugins/                          plugin đã cài
   workspaces/<agentId>/             thư mục nháp riêng của từng agent
     run/                            HOME của tiến trình con; chỉ `workspace cleanup` có xác nhận mới dọn
@@ -912,5 +913,5 @@ config.toml có chỗ cần sửa:
 - `budget.max_daly_usd`: không phải thiết lập tôi biết, có phải ý bạn là `max_daily_usd`?
 Sửa xong rồi chạy lại nhé.
 
-Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `export ANTHROPIC_API_KEY=...` trong terminal bạn đang dùng rồi chạy lại nhé.
+Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `openalpha key set ANTHROPIC_API_KEY` trong terminal bạn đang dùng rồi chạy lại nhé.
 ```

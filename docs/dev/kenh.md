@@ -105,11 +105,12 @@ chạy biến thành bốn mươi tin nhắn trùng nhau.
 Kênh không có `inlineButtons` không hiện được bàn phím, nên `delivery/choices.ts` cấp một mã bốn chữ
 số cho mỗi nút (`/4821`), khóa theo chat, và ô xin phê duyệt cùng ô duyệt kế hoạch thêm chúng vào thành các
 dòng. `handleTypedChoice` chạy đầu tiên trong `route`, trước quy tắc nhắc tên, và biến một mã còn sống
-thành đúng `ChannelCallbackQuery` mà một lần bấm tạo ra. Khâu xét duyệt (`gate.admitCallback`) chạy trước
-khi mã bị dùng, nên một thành viên không phải operator để mã còn nguyên cho người đúng; sau đó `discard`
-bỏ mã cùng các mã anh em. Mỗi mục mang `expiresAt` của chính câu hỏi và LRU chỉ chặn bộ nhớ, nên hạn
-chỉ là dọn dẹp: các resolver vẫn quyết định, và một yêu cầu không biết thì trả lời "đã trả lời hoặc đã
-hết hạn".
+thành đúng `ChannelCallbackQuery` mà một lần bấm tạo ra, qua cùng khâu xét duyệt (`gate.admitCallback`).
+Không gì tiêu mã: resolver giữ câu hỏi trả lời lần gõ lại là "đã trả lời hoặc đã hết hạn", nên một câu
+trả lời nó không nhận (thành viên không phải operator, câu hỏi còn đang gửi) để mã còn nguyên. Mỗi mục
+mang `expiresAt` của chính câu hỏi; quá hạn thì mã được giữ ở trạng thái hết hạn, nên operator gõ lại
+sẽ được báo, còn bốn chữ số chưa từng được cấp trong chat đó đi qua như tin nhắn thường. Mã mới không
+bao giờ trùng mã chat còn nhớ, và LRU chặn bộ nhớ.
 
 ### Dữ liệu nút bấm
 
