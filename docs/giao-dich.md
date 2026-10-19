@@ -871,6 +871,26 @@ Khoản nạp bằng đồng tiền mà thị trường của sàn niêm yết, 
 - **Dòng chênh tỷ giá âm ngay sau khi nạp qua P2P.** USDT được tính theo tỷ giá USD/VND thị trường, còn giá vốn là giá P2P bạn đã trả, nên ngay sau khoản nạp ở 26.600 dòng đó đọc khoảng -2% khi tỷ giá thị trường là khoảng 26.036.
 - **Xem ở đâu.** `/portfolio` liệt kê USDT cạnh tiền mặt cùng giá vốn và giá trị hôm nay, và in phần chênh tỷ giá. `/reconcile` đối chiếu nó với số USDT thật trên sàn.
 
+Một vòng giao dịch crypto, từng bước, với tỷ giá bạn đã trả chỉ ghi một lần, ở dòng nạp:
+
+1. **Nạp USDT kèm tỷ giá bạn đã trả.** `/record deposit binance 1000 USDT 2026-08-14 fx 26600`.
+2. **Mua bằng số USDT đó, không `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14` (hoặc `/record buy binance BTC 0.01 60000` khi BTC chỉ niêm yết ở một thị trường). Lệnh dùng số USDT theo giá vốn của nó; thêm `fx` ở đây sẽ bị từ chối kèm lý do.
+3. **Bán ngược về USDT.** `/record sell binance crypto:BTC all 65000 USDT 2026-09-01`.
+4. **Rút USDT theo tỷ giá lúc bạn bán.** `/record withdrawal binance 500 USDT 2026-09-20 fx 26900` ghi phần chênh giữa hai tỷ giá thành lãi lỗ đã chốt.
+5. **Kiểm tra** bằng `/portfolio`, `/transactions`, và `/reconcile` khi sàn đã có khóa.
+
+Đã có sẵn USDT hoặc coin ở sàn trước khi bắt đầu sổ? Ghi số dư hôm nay, không cần ghi lại lịch sử:
+
+- **Chỉ có USDT:** một dòng nạp bằng số USDT bạn đang giữ, kèm `fx <giá vốn bình quân>`, hoặc `fx auto` nếu bạn không biết (lãi lỗ tỷ giá trước ngày đó khi ấy không được tính).
+- **USDT và coin:** nạp số USDT đang giữ cộng với giá vốn của các coin, rồi mỗi coin một dòng mua với khối lượng hiện tại, giá vốn bình quân và phí `0`. Khi đó số USDT trong sổ khớp với sàn. Phí `0` in một ghi chú "phí lệch", một số dư đầu kỳ có thể bỏ qua.
+
+```text
+/record deposit okx 1300 USDT 2026-10-16 fx auto        # 1.000 USDT đang giữ + 300 đã dùng mua BTC
+/record buy okx crypto:BTC 0.005 60000 USDT 0 2026-10-16
+```
+
+`/record sync` chỉ đọc lệnh khớp từ dòng đầu tiên của sổ trở đi, nên không ghi được số coin đã mua trước đó. Khi sàn đã có khóa, `/reconcile` kiểm tra kết quả với số dư thật.
+
 #### Đã có danh mục, không muốn ghi lại từng lệnh cũ
 
 Bạn đang giữ vài mã, đã bán vài mã và lỗ một khoản, nhưng không muốn ngồi gõ lại cả chục lệnh cũ? Không
@@ -895,6 +915,9 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
   VND".
 - **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
   báo ngay.
+- **Mỗi mã được đặt luôn kế hoạch thoát**, tính theo giá vốn bạn đã gõ. Một mã đang giao dịch thấp hơn
+  nhiều so với giá vốn đó có thể đã nằm dưới mức cắt lỗ, và `/portfolio` khi ấy ghi "đã xuyên mức cắt
+  lỗ". Đó là lời nhắc xem lại mã, không phải lỗi ghi sổ.
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
 nạp, trừ 95 triệu FPT, 52 triệu HPG và 15 triệu lỗ, còn 38 triệu. Lệch thì thường do nhớ sai tổng lỗ

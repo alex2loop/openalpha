@@ -892,6 +892,8 @@ history:
 `/record sync` reads fills only from the book's first row on, so it cannot book coins bought earlier.
 With the venue's key set, `/reconcile` checks the result against the real balance.
 
+#### Already holding a portfolio, without re-recording every old trade
+
 Holding a few shares, sold a few at a loss, and don't want to retype every old trade? You don't have
 to. The book needs three things: what you put in, what you hold at what cost, and what you lost on what
 you sold.
