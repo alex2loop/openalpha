@@ -30,11 +30,9 @@ export async function finishModelChange(
 
   const signedIn = await isSignedIn(ctx, chosen.provider)
   const saved = await offerSaveKeys(ctx, [chosen.starter.apiKeyEnv, change.telegramTokenEnv])
-  const keyInFile = chosen.starter.apiKeyEnv !== undefined && saved.has(chosen.starter.apiKeyEnv)
 
   // A call with no login or cloud account yet can only fail; the next steps already say what to set.
-  // A key just saved is in the file, not in this process, so the probe could not see it either.
-  if (signedIn && hasCloudAccount(chosen.provider) && !keyInFile) {
+  if (signedIn && hasCloudAccount(chosen.provider)) {
     await testModel(ctx, change.configPath)
   }
 

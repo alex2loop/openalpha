@@ -1,3 +1,4 @@
+import { getEnv } from '@/cli/env'
 import { writeEnvFileValue } from '@/cli/env-file'
 import { success } from '@/cli/ui/colors'
 import { confirmDefaultYes, promptSecret } from '@/cli/ui/prompt'
@@ -7,7 +8,8 @@ import type { AskContext } from './ask'
 import { isEnvSet } from './model-step'
 
 /** Offers to keep each unset key in the key file, so the first command after setup finds it. The
- *  names it saved come back as a set; the process environment is left as it was. */
+ *  names it saved come back as a set and are set in this process too, as `loadEnvFile` will at the
+ *  next boot, so what follows (the model test) reads the key it just saved. */
 export async function offerSaveKeys(
   ctx: AskContext,
   names: readonly (string | undefined)[]
@@ -33,6 +35,7 @@ export async function offerSaveKeys(
     }
 
     await writeEnvFileValue({ path, name, value })
+    getEnv()[name] = value
     ctx.app.out(success(t(ctx.locale, 'cli.keySaved', { name, path })))
     saved.add(name)
   }
