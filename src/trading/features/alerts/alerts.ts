@@ -9,6 +9,7 @@ import type {
   ActiveAlert,
   Alert,
   AlertDeliveryBatch,
+  AlertRefResolution,
   AlertService,
   CreateAlertOptions,
   DisableAlertOptions,
@@ -39,7 +40,7 @@ import { observePrice, toCrossing } from '@/trading/features/alerts/observation'
 import { reconcileScreenerAlerts } from '@/trading/features/alerts/screeners'
 import { stopDistances } from '@/trading/features/alerts/stop-distances'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
-import { buildInstrumentKey } from '@/trading/kernel/instrument'
+import { buildInstrumentKey, isIdRef } from '@/trading/kernel/instrument'
 import { buildAlertId } from '@/trading/kernel/operator/alert'
 
 const ALERT_EVALUATION_CONCURRENCY = 4
@@ -99,6 +100,7 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
   return {
     ...arming,
     resolveRecipient: (origin) => deps.sender.resolveRecipient(origin),
+    resolveAlertRef: (ref, signal) => resolveAlertRef(deps, ref, signal),
     list: (options) => deps.store.listPage(options),
     listWithActiveCount: async (options) => {
       const [page, activeCount] = await Promise.all([
@@ -224,6 +226,28 @@ function exitWatchDeps(deps: AlertServiceDeps): ExitWatchDeps {
 function addDelivery(tally: { delivered: number; deferred: number }, result: DeliveryResult): void {
   tally.delivered += result.delivered
   tally.deferred += result.deferred
+}
+
+async function resolveAlertRef(
+  deps: AlertServiceDeps,
+  ref: string,
+  signal: AbortSignal
+): Promise<AlertRefResolution> {
+  const wanted = ref.trim().toLowerCase()
+
+  // Before any query: `%` and `_` never reach `LIKE`.
+  if (!isIdRef(wanted)) {
+    return { kind: 'none' }
+  }
+
+  const ids = await deps.store.listIdsMatching(wanted, signal)
+  const [only] = ids
+
+  if (only === undefined) {
+    return { kind: 'none' }
+  }
+
+  return ids.length === 1 ? { kind: 'one', id: only } : { kind: 'several', ids }
 }
 
 /** Both rejections happen before the insert: an unsupported instrument can never be evaluated,

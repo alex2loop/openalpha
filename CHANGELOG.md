@@ -73,6 +73,17 @@ SQLite book comes first.
 - A chat channel that stays down for 15 minutes is reported on another channel (with the reason), once
   when it drops and once when it returns, and `status` lists it as `down`.
 
+### Reports
+
+- Alerts open with the action: the headline, then for an exit the `/record sell` line to fill in, then a
+  `/suggest` link. Alert ids are six characters, and `/alert disable` takes them.
+- On a phone `/transactions` shows 10 rows, `/portfolio` puts positions right after the warnings and keeps
+  three closed trips, and the brief shows what to do right under the verdict.
+- On Zalo a long command's progress line ends with `type /stop to cancel`, and a command waiting behind
+  another says nothing until it starts.
+- The footer after a command shows only the elapsed time until the session has called a model.
+- Failure and caveat messages say what to do next, and a failed command points at `openalpha logs`.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

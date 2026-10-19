@@ -14,10 +14,9 @@ import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 import { renderAlertListText } from '@/trading/features/alerts/render'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
-import { buildInstrumentKey } from '@/trading/kernel/instrument'
-import { ALERT_CONDITIONS, alertId } from '@/trading/kernel/operator/alert'
+import { buildInstrumentKey, toIdHandle } from '@/trading/kernel/instrument'
+import { ALERT_CONDITIONS } from '@/trading/kernel/operator/alert'
 import {
-  parseBranded,
   parseFiniteNumber,
   parseMember,
   parsePositiveInteger,
@@ -30,6 +29,8 @@ import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const ACTIONS = Object.freeze(['list', 'create', 'disable'] as const)
 const USAGE: 'slash.tradingAlertUsage' = 'slash.tradingAlertUsage'
+/** The most handles an ambiguous short id lists. */
+const MAXIMUM_LISTED_HANDLES = 3
 /** Ticker, condition, threshold. */
 const CREATE_ARGUMENTS = 3
 
@@ -44,7 +45,12 @@ export function createAlertCommand(deps: AlertCommandDeps): SlashCommand {
   return {
     name: 'alert',
     description: { kind: 'localized', key: 'slash.tradingAlertHelp' },
-    messageKeys: [USAGE, 'slash.tradingAlertCreated', 'slash.tradingAlertDisabled'],
+    messageKeys: [
+      USAGE,
+      'slash.tradingAlertCreated',
+      'slash.tradingAlertDisabled',
+      'slash.tradingAlertAmbiguous',
+    ],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     // The verb only: everything after it is the name being typed and its condition.
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
@@ -202,7 +208,10 @@ async function runCreate(
     signal: ctx.signal,
   })
 
-  const created = { key: 'slash.tradingAlertCreated', values: { id: alert.id } } as const
+  const created = {
+    key: 'slash.tradingAlertCreated',
+    values: { id: toIdHandle(alert.id) },
+  } as const
 
   if (isSameAddress(alert.delivery, origin)) {
     return { kind: 'message', messages: [created] }
@@ -226,17 +235,24 @@ async function runDisable(
   ctx: SlashContext,
   rest: readonly string[]
 ): Promise<SlashResult> {
-  const id = rest.length === 1 ? parseBranded(rest[0], alertId) : null
+  const [ref] = rest
 
-  if (id === null) {
+  if (rest.length !== 1 || ref === undefined) {
     return alertUsage(deps)
   }
 
-  const result = await deps.alerts.disable({
-    alertId: id,
-    now: Date.now(),
-    signal: ctx.signal,
-  })
+  const resolved = await deps.alerts.resolveAlertRef(ref, ctx.signal)
+
+  if (resolved.kind === 'several') {
+    const ids = resolved.ids.slice(0, MAXIMUM_LISTED_HANDLES).map(toIdHandle).join(', ')
+
+    return { kind: 'message', messages: [{ key: 'slash.tradingAlertAmbiguous', values: { ids } }] }
+  }
+
+  const result =
+    resolved.kind === 'none'
+      ? 'not-found'
+      : await deps.alerts.disable({ alertId: resolved.id, now: Date.now(), signal: ctx.signal })
 
   return {
     kind: 'message',

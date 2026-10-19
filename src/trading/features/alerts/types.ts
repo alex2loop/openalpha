@@ -145,6 +145,9 @@ export interface AlertService {
     readonly signal: AbortSignal
   }): Promise<readonly FiredAlert[]>
   disable(options: DisableAlertOptions): Promise<DisableAlertResult>
+  /** The alert a short id names. More than one is ambiguous and the caller asks for more characters;
+   *  a ref that cannot be an id names none and never reaches the store. */
+  resolveAlertRef(ref: string, signal: AbortSignal): Promise<AlertRefResolution>
   poll(options: OperationTickOptions<AlertId>): Promise<AlertDeliveryBatch>
   /** One daemon sweep over every active alert. The scan position lives in the service: a pool
    *  past one tick's page ceiling resumes where the last tick stopped, since alerts that never
@@ -207,6 +210,11 @@ export interface CreateAlertOptions {
   readonly now: number
   readonly signal: AbortSignal
 }
+
+export type AlertRefResolution =
+  | { readonly kind: 'one'; readonly id: AlertId }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'several'; readonly ids: readonly AlertId[] }
 
 export interface DisableAlertOptions {
   readonly alertId: AlertId

@@ -14,6 +14,10 @@ import type { Page, PageOptions } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, ValidationError } from '@/core/errors'
 import {
+  countActiveAlerts,
+  listAlertIdsMatching,
+} from '@/trading/features/alerts/store/alert-lookup'
+import {
   toActiveAlert,
   toAlert,
   toDeliveringAlert,
@@ -105,6 +109,8 @@ interface ReleaseAlertOptions {
 export interface AlertStore {
   create(alert: ActiveAlert, signal: AbortSignal): Promise<AlertCreateResult>
   find(options: FindAlertOptions): Promise<Alert | null>
+  /** The alerts a full id or a short tail of one could name. */
+  listIdsMatching(ref: string, signal: AbortSignal): Promise<readonly AlertId[]>
   listPage(options: PageOptions<AlertId>): Promise<Page<Alert, AlertId>>
   listActive(options: PageOptions<AlertId>): Promise<Page<ActiveAlert, AlertId>>
   countActive(signal: AbortSignal): Promise<number>
@@ -135,9 +141,10 @@ export function createAlertStore(deps: StoreDeps): AlertStore {
   return {
     create: (alert, signal) => create(deps, alert, signal),
     find: (options) => find(deps, options),
+    listIdsMatching: (ref, signal) => listAlertIdsMatching(deps, ref, signal),
     listPage: (options) => listPage(deps, options),
     listActive: (options) => listActive(deps, options),
-    countActive: (signal) => countActive(deps, signal),
+    countActive: (signal) => countActiveAlerts(deps, signal),
     listFired: (options) => listFired(deps, options),
     listLiveWithOrigin: (options) => listLiveWithOrigin(deps, options),
     findLiveByOrigin: (origin, signal) => findLiveByOrigin(deps, origin, signal),
@@ -330,16 +337,6 @@ async function listPage(
   )
 
   return toPage(rows.map(toAlert), options.limit, (alert) => alert.id)
-}
-
-async function countActive(deps: StoreDeps, signal: AbortSignal): Promise<number> {
-  assertNotAborted(signal)
-
-  const rows = await deps.db.query<{ readonly count: number }>(
-    "SELECT COUNT(*) AS count FROM alerts WHERE state = 'active'"
-  )
-
-  return Number(rows[0]?.count ?? 0)
 }
 
 async function listActive(

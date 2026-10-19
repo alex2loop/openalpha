@@ -28,6 +28,7 @@ import {
 } from '@/trading/features/ledger/validate'
 import { buildRequestFingerprint, finalizeTransaction } from '@/trading/features/ledger/write'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
+import { isIdRef } from '@/trading/kernel/instrument'
 import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
 import { venueParam } from '@/trading/render/format'
 
@@ -50,10 +51,6 @@ interface LedgerReader {
   readonly ledger: Pick<LedgerStore, 'findById' | 'listIdsMatching'>
 }
 
-/** What a full UUIDv7 id or a slice of its tail can be made of. Checked before the lookup because
- *  the store matches a handle with `LIKE`, where an unfiltered `%` or `_` from an operator would
- *  become a wildcard and could resolve to a row they never named. */
-const ENTRY_REF_RE = /^[0-9a-f-]{1,36}$/
 /** How the full ids of an ambiguous handle are listed, so the operator can copy one back. */
 const ENTRY_ID_SEPARATOR = ', '
 
@@ -299,7 +296,7 @@ async function resolveEntryId(
   const wanted = ref.trim().toLowerCase()
   // A ref the pattern rejects never reaches the store, and reads to the operator as the entry it
   // names not existing — which is what a ref no row can answer to means either way.
-  const matches = ENTRY_REF_RE.test(wanted) ? await deps.ledger.listIdsMatching(wanted, signal) : []
+  const matches = isIdRef(wanted) ? await deps.ledger.listIdsMatching(wanted, signal) : []
   const [found] = matches
 
   if (found === undefined) {

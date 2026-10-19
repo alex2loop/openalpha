@@ -18,10 +18,9 @@ import type { QuoteConvention } from '@/trading/render/money'
 import { t } from '@/i18n'
 import { renderFeeRows } from '@/trading/features/ledger/fee-rows'
 import { renderEntryFields } from '@/trading/features/ledger/fields'
-import { ledgerEntryHandle } from '@/trading/features/ledger/types'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
-import { isSameInstrument } from '@/trading/kernel/instrument'
+import { isSameInstrument, toIdHandle } from '@/trading/kernel/instrument'
 import {
   formatCount,
   formatQuantity,
@@ -214,7 +213,7 @@ function renderDuplicateRow(
 
   return [
     `${INDENT[1]}${t(locale, DUPLICATE_KEYS[audience], {
-      handle: ledgerEntryHandle(result.duplicateOf),
+      handle: toIdHandle(result.duplicateOf),
     })}`,
   ]
 }

@@ -20,8 +20,8 @@ import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { resolveEntry } from '@/trading/features/ledger/mutate'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { renderEntry } from '@/trading/features/ledger/rows'
-import { ledgerEntryHandle } from '@/trading/features/ledger/types'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
+import { toIdHandle } from '@/trading/kernel/instrument'
 import { usage } from '@/trading/kernel/surface/surface'
 
 const UPDATE_COMMAND = 'update'
@@ -159,7 +159,7 @@ async function previewDelete(
     affordances: [
       {
         label: t(ctx.locale, 'trading.render.affordance.deleteRow'),
-        command: `/${DELETE_COMMAND} ${ledgerEntryHandle(entry.id)} ${CONFIRM_ACTION}`,
+        command: `/${DELETE_COMMAND} ${toIdHandle(entry.id)} ${CONFIRM_ACTION}`,
       },
     ],
   }

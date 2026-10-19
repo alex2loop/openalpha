@@ -107,9 +107,10 @@ export function renderPortfolioText(
       ),
       ...renderCashNudge(locale, display, options),
     ],
+    // What the reader came for sits right under the warnings; the money statements follow it.
+    renderPositionSection(locale, book, display),
     ...renderCashSections(locale, book, display),
     renderAllocationSection(locale, book, display),
-    renderPositionSection(locale, book, display),
     renderUpcoming(locale, options.upcoming ?? []),
     // The headline already states a partial valuation and names how many holdings caused it, so the
     // generic caveat would be the same sentence twice.

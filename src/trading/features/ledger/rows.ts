@@ -20,8 +20,9 @@ import type { QuoteConvention } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { cashDeltaBase } from '@/trading/features/ledger/book'
 import { paysFromCurrencyCash } from '@/trading/features/ledger/fx-rate'
-import { ledgerEntryHandle, SELL_ALL } from '@/trading/features/ledger/types'
+import { SELL_ALL } from '@/trading/features/ledger/types'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
+import { toIdHandle } from '@/trading/kernel/instrument'
 import {
   formatCount,
   formatQuantity,
@@ -146,7 +147,7 @@ function renderDayEntry(locale: Locale, entry: LedgerEntry, view: LedgerView): s
   const { note: raw } = entry.transaction
   const note = raw === undefined ? '' : ` ${NOTE_DASH} ${notePreview(raw)}`
 
-  return `${kind} ${detail}${note}${INLINE_SEPARATOR}${ledgerEntryHandle(entry.id)}`
+  return `${kind} ${detail}${note}${INLINE_SEPARATOR}${toIdHandle(entry.id)}`
 }
 
 /** Counted in characters, not UTF-16 units, so a cut never splits an emoji. */
@@ -258,7 +259,7 @@ export function renderEntry(
   entry: LedgerEntry,
   quoteConventions: ReadonlyMap<MarketRef, QuoteConvention>
 ): string {
-  return `[${ledgerEntryHandle(entry.id)}] ${renderTxn(locale, entry.transaction, quoteConventions)}`
+  return `[${toIdHandle(entry.id)}] ${renderTxn(locale, entry.transaction, quoteConventions)}`
 }
 
 function renderTxn(

@@ -693,6 +693,8 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
+Alerts are named by a six-character id (the tail of the long one) in `/alert list`, the confirmation and every notice; `/alert disable <id>` takes it, and asks for a few more characters when it matches several. A fired price or exit alert opens with the headline and the next step: for an exit, the sale's `/record sell` line to fill in, then `/suggest` for a fresh look. In a chat `/transactions` shows 10 rows by default, and `/portfolio` lists positions right after the warnings, then cash, profit and loss and allocation, with at most three closed trips on a phone.
+
 `/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo. Typed in a connected channel they deliver to that chat. Typed in the terminal they go to your chat: the first configured channel wins (Telegram, then Zalo, then Zalo Personal), and `fallback_chat_id` picks the chat. With no channel configured they are refused. They arrive only while OpenAlpha runs in the background (`openalpha start --background`).
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.

@@ -173,15 +173,6 @@ export interface LedgerInsert {
   readonly requestFingerprint: string
 }
 
-/** UUIDv7 leads with a timestamp, so entries recorded together share their opening characters — a
- *  handle has to come off the random tail to tell them apart. Short enough to type back from a chat
- *  line, and every write resolves it against the whole ledger rather than trusting it to be unique. */
-const HANDLE_LENGTH = 6
-
-export function ledgerEntryHandle(id: LedgerEntryId): string {
-  return id.slice(-HANDLE_LENGTH)
-}
-
 /** The trading days a history read keeps, both ends inclusive. An absent end leaves that side
  *  open. */
 export interface LedgerDayRange {

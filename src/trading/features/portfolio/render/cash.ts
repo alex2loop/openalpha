@@ -11,6 +11,7 @@ import { INDENT, INLINE_SEPARATOR, renderSectionTitle, toFactLines } from '@/tra
 import { formatMoney, formatSignedMoney } from '@/trading/render/money'
 import { FRACTION_QUANTUM } from '@/trading/render/number'
 import { toTable } from '@/trading/render/table'
+import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** The money rows' own keys, named so the shared row builder stays type-checked against the
  *  catalog instead of widening to any string. */
@@ -153,7 +154,9 @@ function renderClosedLines(
   display: BookDisplay
 ): readonly string[] {
   const trips = closedRoundTripsOf(book.book.sales, display.minimumSizes ?? new Map())
-  const cells = recentClosedRoundTrips(trips).map((trip) => [
+  // The structured view keeps the full count; a line layout is a phone, which gets the last few.
+  const limit = display.context.layout === 'lines' ? SURFACE_LIMITS.closedTripsOnLines : undefined
+  const cells = recentClosedRoundTrips(trips, limit).map((trip) => [
     trip.instrument.ticker,
     t(locale, 'trading.render.portfolio.closedDay', { day: formatDay(locale, trip.closedAt) }),
     formatSignedFixedFraction(locale, trip.realizedFraction),

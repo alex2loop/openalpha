@@ -693,6 +693,8 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
+Cảnh báo được gọi bằng mã sáu ký tự (đuôi của mã dài) trong `/alert list`, lời xác nhận và mọi thông báo; `/alert disable <mã>` nhận mã đó, và xin thêm vài ký tự khi nó khớp nhiều cảnh báo. Cảnh báo giá hay thoát lệnh khi chạm mở đầu bằng tiêu đề và bước kế tiếp: với thoát lệnh là dòng `/record sell` để điền khi bán xong, rồi `/suggest` để xem lại. Trong chat `/transactions` mặc định hiện 10 dòng, và `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
+
 `/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo. Gõ trong một kênh đã kết nối thì gửi về chính chat đó. Gõ trong terminal thì gửi về chat của bạn: kênh được cấu hình đầu tiên thắng (Telegram, rồi Zalo, rồi Zalo Personal), và `fallback_chat_id` chọn chat. Chưa cấu hình kênh nào thì bị từ chối. Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background`).
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.

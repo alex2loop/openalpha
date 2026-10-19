@@ -6,7 +6,7 @@ import type { Book } from '@/trading/kernel/operator/book'
 import type { QuoteConvention } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { paysFromCurrencyCash } from '@/trading/features/ledger/fx-rate'
-import { ledgerEntryHandle } from '@/trading/features/ledger/types'
+import { toIdHandle } from '@/trading/kernel/instrument'
 import { formatQuantity, renderVenueName } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
 import {
@@ -34,7 +34,7 @@ export function renderEntryFields(
   const { transaction } = entry
 
   return [
-    renderField(locale, 'handle', { handle: ledgerEntryHandle(entry.id) }),
+    renderField(locale, 'handle', { handle: toIdHandle(entry.id) }),
     renderField(locale, 'kind', { kind: t(locale, `trading.ledger.kind.${transaction.kind}`) }),
     renderField(locale, 'day', { day: formatDay(locale, transaction.at) }),
     ...('fromVenue' in transaction

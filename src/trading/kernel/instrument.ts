@@ -325,6 +325,23 @@ export function parseUuidV7Id<T extends string>(raw: string, label: string): T {
   return raw as T
 }
 
+/** UUIDv7 leads with a timestamp, so rows made together share their opening characters: a handle has
+ *  to come off the random tail to tell them apart. Short enough to type back from a chat line. */
+const ID_HANDLE_LENGTH = 6
+/** What a full id or a slice of its tail can be made of, and nothing a SQL `LIKE` would read as a
+ *  wildcard. A bare day string (`2026-10-17`) is kept out: its dashes sit where a short handle has
+ *  none. */
+const ID_REF_RE = /^(?:[0-9a-f]{1,12}|[0-9a-f-]{13,36})$/
+
+/** The short id a person copies, for every UUIDv7 row they act on. */
+export function toIdHandle(id: string): string {
+  return id.slice(-ID_HANDLE_LENGTH)
+}
+
+export function isIdRef(raw: string): boolean {
+  return ID_REF_RE.test(raw)
+}
+
 export function buildUuidV7Id<T extends string>(now: number, label: string): T {
   return parseUuidV7Id<T>(Bun.randomUUIDv7(undefined, now), label)
 }
