@@ -253,7 +253,7 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 |---|---|---|---|
 | `language` | chuỗi | `vi` | `en` hoặc `vi`. |
 | `timezone` | chuỗi | múi giờ của máy (`UTC` nếu máy không báo) | Tên IANA, ví dụ `Asia/Ho_Chi_Minh`. Việc cron mới chụp lại giá trị này, trừ khi `--tz` ghi đè; lịch theo chu kỳ từ chối `--tz`. |
-| `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
+| `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch; `onboard` hỏi ở lần thiết lập đầu và ghi vào đây. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
 | `region` | chuỗi | `vn` | Khu vực chính; hiện chỉ có `vn`. Khu vực cần có sàn giao dịch thị trường chính của nó, nên `global` (vàng thế giới, chỉ để tham chiếu) bị từ chối. Thị trường của khu vực này là bảng mặc định, và hồ sơ đầu tiên chỉ phân bổ cho các nhóm trong nước của nó cùng crypto. |
 
 Mọi khóa đều tùy chọn. `[locale]` không nhận khóa nào khác. `currency` và `region` cho biết bạn đang ở

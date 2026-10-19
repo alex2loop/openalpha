@@ -1043,6 +1043,8 @@
     "onboardPromptStart": "Thiết lập ngay?",
     "onboardPickNumber": "Gõ một số từ 1 đến {max}, hoặc nhấn Enter để chọn mục có dấu >.",
     "onboardPromptLanguage": "Language / Ngôn ngữ",
+    "onboardCurrencyQuestion": "Sổ của bạn tính bằng tiền gì? Chọn số, hoặc gõ mã 3 chữ cái khác. Chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được.",
+    "onboardCurrencyInvalid": "Gõ mã 3 chữ cái, ví dụ USD hoặc EUR.",
     "onboardLanguageEn": "English",
     "onboardLanguageVi": "Tiếng Việt",
     "onboardProviderIntro": "Bạn muốn dùng dịch vụ AI nào để phân tích? Nếu chưa chắc, OpenRouter là lựa chọn dễ nhất: một key dùng được nhiều mô hình.",

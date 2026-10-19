@@ -84,6 +84,9 @@ SQLite book comes first.
 - The footer after a command shows only the elapsed time until the session has called a model.
 - Failure and caveat messages say what to do next, and a failed command points at `openalpha logs`.
 
+- `onboard` asks the currency of your book (VND, USD, or another 3-letter code) and writes it to
+  `[locale] currency`, since it is fixed once a profile is saved.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

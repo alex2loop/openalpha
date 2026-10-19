@@ -1043,6 +1043,8 @@
     "onboardPromptStart": "Set up now?",
     "onboardPickNumber": "Type a number from 1 to {max}, or press Enter for the one marked >.",
     "onboardPromptLanguage": "Language / Ngôn ngữ",
+    "onboardCurrencyQuestion": "Which currency should your book be kept in? Pick a number, or type another 3-letter code. You choose once: after you set up your profile it cannot change.",
+    "onboardCurrencyInvalid": "Type a 3-letter code such as USD or EUR.",
     "onboardLanguageEn": "English",
     "onboardLanguageVi": "Tiếng Việt",
     "onboardProviderIntro": "Which AI service should do the analysis? If you're unsure, OpenRouter is the easiest start: one key opens many models.",

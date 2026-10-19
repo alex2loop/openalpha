@@ -98,7 +98,7 @@ Như vậy là đủ để xem một đề xuất. Muốn đề xuất có khố
 
 ### Cài đầy đủ trong 5 bước
 
-**1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Muốn đổi lại thì chạy `openalpha onboard`.
+**1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, tiền tệ của sổ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Tiền tệ chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được. Muốn đổi phần còn lại thì chạy `openalpha onboard`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh

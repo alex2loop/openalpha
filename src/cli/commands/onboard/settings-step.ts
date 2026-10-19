@@ -2,6 +2,7 @@ import type { Locale } from '@/core/types/locale'
 import { getEnv } from '@/cli/env'
 import { hint } from '@/cli/ui/colors'
 import { confirm } from '@/cli/ui/prompt'
+import { CURRENCY_CODE_PATTERN } from '@/core/config/resolve'
 import { LOCALES } from '@/core/types/locale'
 import { t } from '@/i18n'
 
@@ -13,6 +14,7 @@ const LANGUAGE_NAME_KEYS = {
   en: 'cli.onboardLanguageEn',
   vi: 'cli.onboardLanguageVi',
 } as const satisfies Record<Locale, string>
+const CURRENCY_CHOICES = ['VND', 'USD'] as const
 const VIETNAMESE_LOCALE_RE = /^vi/i
 
 /** The shell's own language picks the default, as the installer does. */
@@ -30,6 +32,23 @@ export async function askLanguage(ctx: AskContext): Promise<Locale> {
       value: locale,
     })),
     defaultIndex: LOCALES.indexOf(ctx.locale),
+  })
+}
+
+/** The book's currency is fixed by the first saved profile, and nothing before onboard asks, so a USD
+ *  user would lock into VND before touching config. VND leads; another 3-letter code may be typed. */
+export async function askCurrency(ctx: AskContext): Promise<string> {
+  return await askChoice<string>(ctx, {
+    question: t(ctx.locale, 'cli.onboardCurrencyQuestion'),
+    choices: CURRENCY_CHOICES.map((code) => ({ label: code, value: code })),
+    defaultIndex: 0,
+    other: (answer) => {
+      const code = answer.trim().toUpperCase()
+
+      return CURRENCY_CODE_PATTERN.test(code)
+        ? accept(code)
+        : refuse(t(ctx.locale, 'cli.onboardCurrencyInvalid'))
+    },
   })
 }
 

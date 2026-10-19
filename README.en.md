@@ -98,7 +98,7 @@ That is enough to see a suggestion. For one sized to your own money, also do ste
 
 ### Full setup in 5 steps
 
-**1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, AI model, a daily spending cap, Telegram if you want it). Run `openalpha onboard` any time to change them.
+**1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh

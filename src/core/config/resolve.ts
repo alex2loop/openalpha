@@ -79,6 +79,7 @@ export {
   type ExaSearchType,
   WEB_SEARCH_PROVIDERS,
 } from '@/core/config/schema'
+export { CURRENCY_CODE_PATTERN } from '@/core/config/schema-sections'
 
 const DEFAULT_MAX_VALUE_BYTES = 16_384
 const DEFAULT_MEMORY_TTL_DAYS = 90
