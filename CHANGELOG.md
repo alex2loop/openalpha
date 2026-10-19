@@ -43,6 +43,10 @@ SQLite book comes first.
   answer says it was already answered or has expired.
 - In a private Zalo Personal chat, replying to an answer continues from it, as on Telegram.
 
+- Alerts and the morning brief armed from the terminal now go to your chat (the first configured
+  channel, or `fallback_chat_id`) instead of being refused, while OpenAlpha runs in the background.
+  A scheduled daemon run whose origin is the terminal arms to the default chat the same way.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

@@ -693,7 +693,7 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-`/alert create` và `/brief enable` cần một cuộc chat nhận được tin nhắn, như Telegram hay Zalo. Terminal từ chối chúng; hãy gõ trong một kênh đã kết nối.
+`/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo. Gõ trong một kênh đã kết nối thì gửi về chính chat đó. Gõ trong terminal thì gửi về chat của bạn: kênh được cấu hình đầu tiên thắng (Telegram, rồi Zalo, rồi Zalo Personal), và `fallback_chat_id` chọn chat. Chưa cấu hình kênh nào thì bị từ chối. Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background`).
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 

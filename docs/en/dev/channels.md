@@ -268,6 +268,15 @@ as a transient user message just ahead of the operator's text, as it does for th
 model reads it for that run, and `history show` and `/v1` chat history show only what the operator typed.
 The session, its route and its history do not change, and `/new` stays the explicit fresh start.
 
+## Where a terminal-armed notice goes
+
+`TradingNoticeSender.resolveRecipient(origin)` answers an alert or brief arming. A routable origin comes
+back as is. The terminal (`LOCAL_CHANNEL_ID`) resolves to the daemon's live default recipient when
+channels are attached, and otherwise to `resolveConfiguredRecipient` (`channels/recipient.ts`): the first
+enabled definition in registry order with a fallback chat, from config alone. `resolveFallbackChat` is the
+one rule for a channel's fallback chat (`fallback_chat_id`, else a lone allowed id) and `start.ts` uses it
+too. `AlertService.create` and the brief's `scheduleOf` resolve once, so no surface does.
+
 ## Startup and shutdown
 
 `startChannels` resolves and validates every registered definition, creates each enabled adapter and

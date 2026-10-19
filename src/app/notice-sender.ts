@@ -1,8 +1,11 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { ChannelDefinition } from '@/channels/api'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import type { NoticeKind, TradingNotice, TradingNoticeSender } from '@/trading/api'
+import { resolveConfiguredRecipient } from '@/channels/api'
 import { readUpdateLine } from '@/cli/api'
+import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 import {
@@ -14,6 +17,8 @@ import {
   renderRestatementNotice,
   resolveRenderContext,
 } from '@/trading/api'
+
+type DeliveryAddress = Parameters<TradingNoticeSender['resolveRecipient']>[0]
 
 /** Unattended delivery has no invoking surface to resolve a context from, and it is only ever sent
  *  to a channel - so it states the destination rather than inventing one to read it from. */
@@ -121,14 +126,21 @@ function isNoticeKind(kind: string): kind is NoticeKind {
   return NOTICE_KINDS.some((known) => known === kind)
 }
 
+interface NoticeSenderOptions {
+  readonly delivery: DeliveryHub
+  readonly config: ResolvedConfig
+  readonly timezone: string
+  /** A thunk: the sender is built while the providers are assembled, before the container can
+   *  answer for the registered channel definitions. */
+  readonly channels: () => readonly ChannelDefinition[]
+}
+
 /** The one adapter between trading's typed notices and the channel layer. Trading imports no
  *  channel code and renders no text; `app` owns both, and `accepted` here means the channel's own
  *  sender call completed — never that the notice was queued. */
-export function createTradingNoticeSender(
-  delivery: DeliveryHub,
-  config: ResolvedConfig,
-  timezone: string
-): TradingNoticeSender {
+export function createTradingNoticeSender(options: NoticeSenderOptions): TradingNoticeSender {
+  const { delivery, config, timezone } = options
+
   return {
     send: async (notice, signal) => {
       const text = await renderWithUpdate(notice, config, timezone)
@@ -140,9 +152,31 @@ export function createTradingNoticeSender(
       )
     },
     // The attached channel runtimes plus the attached notice surfaces are the whole routing table:
-    // `cli` is a surface a person types at, never one the daemon can push to.
-    canDeliver: (target) =>
-      delivery.surfaces.find(target.channel) !== undefined ||
-      delivery.snapshots().some((snapshot) => snapshot.channel === target.channel),
+    // `cli` is a surface a person types at, never one the daemon can push to, so it resolves to the
+    // chat the daemon would use.
+    resolveRecipient: (origin) => {
+      if (isRoutable(delivery, origin)) {
+        return origin
+      }
+
+      return origin.channel === LOCAL_CHANNEL_ID ? resolveLocalRecipient(options) : undefined
+    },
   }
+}
+
+function isRoutable(delivery: DeliveryHub, target: DeliveryAddress): boolean {
+  return (
+    delivery.surfaces.find(target.channel) !== undefined ||
+    delivery.snapshots().some((snapshot) => snapshot.channel === target.channel)
+  )
+}
+
+// In the daemon the live default recipient; in a terminal process, whichever configured channel the
+// daemon would pick - the alert or brief waits in the book until the daemon runs.
+function resolveLocalRecipient(options: NoticeSenderOptions): DeliveryAddress | undefined {
+  const { delivery, config } = options
+
+  return delivery.attached()
+    ? delivery.defaultRecipient()
+    : resolveConfiguredRecipient(options.channels(), config.channels)
 }

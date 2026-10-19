@@ -73,12 +73,18 @@ interface TradingRegistrationOptions {
   /** Injected, never read from `process`: source credentials resolve from named variables the
    *  code owns, so the value reaches the transport without passing through a config object. */
   readonly env: Readonly<Record<string, string | undefined>>
-  readonly sender: TradingNoticeSender
+  /** Built where it binds, with the app in hand: the sender reads services the container supplies. */
+  sender(app: App): TradingNoticeSender
   /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
    *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
   recipient(): DeliveryAddress | undefined
   readonly keys: KeyValidator
   readonly pluginModules: readonly LoadedSourceModule[]
+}
+
+/** The options once the sender is built: everything below the provider reads the sender itself. */
+type BoundOptions = Omit<TradingRegistrationOptions, 'sender'> & {
+  readonly sender: TradingNoticeSender
 }
 
 declare module '@/core/container' {
@@ -193,7 +199,8 @@ export function createTradingRegistrationProvider(
   }
 }
 
-function buildTrading(app: App, options: TradingRegistrationOptions): BuiltTrading {
+function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrading {
+  const options: BoundOptions = { ...provided, sender: provided.sender(app) }
   const stores = app.resolve('tradingStores')
   const logger = app.resolve('logger')
   const registries = buildRegistries(app, options)
@@ -253,10 +260,7 @@ interface SurfaceParts {
 /** The tools and commands, built once and checked before the first surface can render: a
  *  misconfigured install, or a key added to a code tuple without its two catalog entries, fails
  *  during composition rather than at first use. */
-function buildSurfaces(
-  options: TradingRegistrationOptions,
-  parts: SurfaceParts
-): TradingContributions {
+function buildSurfaces(options: BoundOptions, parts: SurfaceParts): TradingContributions {
   const { services, registries, stores } = parts
   const contributions = buildContributions({
     services,
@@ -288,7 +292,7 @@ interface ServiceParts {
 
 function buildServices(
   app: App,
-  options: TradingRegistrationOptions,
+  options: BoundOptions,
   parts: ServiceParts
 ): ReturnType<typeof createDomainServices> & WithThemes {
   const { logger, registries, stores } = parts
@@ -331,7 +335,7 @@ function buildServices(
 
 /** Created and closed once, inside the lazy factory. Nothing above this function ever sees a
  *  registry, mutable or otherwise. */
-function buildRegistries(app: App, options: TradingRegistrationOptions): Registries {
+function buildRegistries(app: App, options: BoundOptions): Registries {
   const logger = app.resolve('logger')
   const stores = app.resolve('tradingStores')
   const sources = withNewsArchive(

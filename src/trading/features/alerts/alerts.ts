@@ -98,7 +98,7 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
 
   return {
     ...arming,
-    canDeliver: (target) => deps.sender.canDeliver(target),
+    resolveRecipient: (origin) => deps.sender.resolveRecipient(origin),
     list: (options) => deps.store.listPage(options),
     listWithActiveCount: async (options) => {
       const [page, activeCount] = await Promise.all([
@@ -248,6 +248,18 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     throw new ValidationError(`instrument is not supported: ${named}${instrument.ticker}`)
   }
 
+  // An operator-armed alert (no origin) lands where the sender can reach; a system-armed one reuses
+  // the address its stored row already carries. Before the write: an alert armed at an address the
+  // router cannot reach would poll, trigger, fail every send and disable itself in silence.
+  const delivery =
+    draft.origin === undefined ? deps.sender.resolveRecipient(draft.delivery) : draft.delivery
+
+  if (delivery === undefined) {
+    throw new ValidationError('alert target cannot receive notices', {
+      key: 'slash.tradingAlertUndeliverable',
+    })
+  }
+
   const alert: ActiveAlert = {
     id: buildAlertId(options.now),
     // The resolved ref, never the request: a stored row is polled for months and must name the
@@ -255,7 +267,7 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     instrument: resolution.instrument,
     condition: draft.condition,
     threshold: draft.threshold,
-    delivery: draft.delivery,
+    delivery,
     ...(draft.origin === undefined ? {} : { origin: draft.origin }),
     state: 'active',
     createdAt: options.now,

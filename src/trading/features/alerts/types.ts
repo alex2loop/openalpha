@@ -132,9 +132,10 @@ export interface AlertListPage extends Page<Alert, AlertId> {
 
 export interface AlertService {
   create(options: CreateAlertOptions): Promise<Alert>
-  /** Whether an alert armed for this address could ever be delivered. Asked by the operator-facing
-   *  arming paths only: the system arming passes reuse an address a stored row already carries. */
-  canDeliver(target: DeliveryAddress): boolean
+  /** Where an alert armed from this address would be delivered, or undefined when nowhere. The
+   *  operator-facing arming paths ask it; `create` asks it itself for an operator-armed alert, and
+   *  the system arming passes reuse an address a stored row already carries. */
+  resolveRecipient(origin: DeliveryAddress): DeliveryAddress | undefined
   list(options: PageOptions<AlertId>): Promise<Page<Alert, AlertId>>
   /** A page plus how many alerts are active in all, for a surface that shows the total. */
   listWithActiveCount(options: PageOptions<AlertId>): Promise<AlertListPage>

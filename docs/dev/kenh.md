@@ -271,6 +271,15 @@ khôi phục danh sách việc cần làm: model đọc được trong lượt �
 `/v1` chỉ hiện đúng những gì người vận hành đã gõ. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn là cách
 bắt đầu mới một cách tường minh.
 
+## Thông báo đặt từ terminal đi đâu
+
+`TradingNoticeSender.resolveRecipient(origin)` trả lời khi đặt cảnh báo hay bản tin. Một nguồn có đường đi
+thì trả về nguyên. Terminal (`LOCAL_CHANNEL_ID`) quy về người nhận mặc định đang sống của daemon khi kênh
+đã gắn, nếu không thì `resolveConfiguredRecipient` (`channels/recipient.ts`): định nghĩa được bật đầu tiên
+theo thứ tự registry có chat dự phòng, chỉ đọc từ cấu hình. `resolveFallbackChat` là quy tắc duy nhất cho
+chat dự phòng của một kênh (`fallback_chat_id`, nếu không thì một id được phép duy nhất) và `start.ts` cũng
+dùng nó. `AlertService.create` và `scheduleOf` của bản tin quy một lần, nên không bề mặt nào tự làm.
+
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động

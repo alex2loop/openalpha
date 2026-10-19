@@ -4,7 +4,6 @@ import type { ToolDefinition } from '@/core/tool'
 import type { Locale } from '@/core/types/locale'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { MarketSchema } from '@/trading/kernel/surface/surface'
-import { ToolError } from '@/core/errors'
 import { createTool } from '@/core/tool'
 import { ALERT_CONDITIONS } from '@/trading/kernel/operator/alert'
 import { toAgentJson } from '@/trading/kernel/surface/agent-json'
@@ -57,14 +56,7 @@ export function createAlertManageTool(alerts: AlertService, markets: MarketSchem
         return toAgentJson({ action: 'disable', result })
       }
 
-      const delivery = invocationAddress(ctx)
-
-      // The same refusal the slash path makes: an address no channel runtime serves would trigger,
-      // fail every send, and disable the alert without the operator ever hearing about it.
-      if (!alerts.canDeliver(delivery)) {
-        throw new ToolError('invalid_input', 'this chat cannot receive alerts')
-      }
-
+      // `create` resolves where the alert can be delivered and refuses an address nothing serves.
       const alert = await alerts.create({
         draft: {
           instrument: {
@@ -73,7 +65,7 @@ export function createAlertManageTool(alerts: AlertService, markets: MarketSchem
           },
           condition: args.condition,
           threshold: args.threshold,
-          delivery,
+          delivery: invocationAddress(ctx),
         },
         now: Date.now(),
         signal: ctx.signal,

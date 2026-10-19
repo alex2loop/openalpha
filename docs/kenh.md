@@ -138,6 +138,8 @@ cho operator, và chỉ tới khi câu hỏi hết hạn; gõ lại lần nữa,
 rằng câu đó đã được trả lời hoặc đã hết hạn. Hai câu hỏi mở cùng lúc nhận hai bộ mã khác nhau, và trả
 lời một câu không làm mất mã của câu kia.
 
+`fallback_chat_id` cũng quyết định cảnh báo hay bản tin sáng đặt từ terminal sẽ gửi đi đâu: kênh được cấu hình đầu tiên (Telegram, Zalo, Zalo Personal) có chat dự phòng, hoặc một id được phép duy nhất.
+
 ## Một tin nhắn đi qua những bước nào
 
 1. **Lưu trước.** Tin được ghi vào hộp nhận bền vững trước khi ứng dụng chat được báo là đã nhận. Sập

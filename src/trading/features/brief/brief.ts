@@ -31,7 +31,7 @@ export function createBriefService(deps: BriefServiceDeps): BriefService {
     build: (options) => build(deps, options),
     getLatest: (options) => getLatest(deps, options),
     find: (signal) => deps.deliveries.find(signal),
-    canDeliver: (delivery) => deps.sender.canDeliver(delivery),
+    resolveRecipient: (origin) => deps.sender.resolveRecipient(origin),
     enable: (options) => enable(deps, options),
     reschedule: (options) => reschedule(deps, options),
     disable: (options) =>
@@ -185,8 +185,11 @@ function scheduleOf(
   }
 
   // A chat the outbound router cannot reach would build a brief every morning and fail every send,
-  // with the skipped-day notice going to the same unreachable address.
-  if (!deps.sender.canDeliver(options.delivery)) {
+  // with the skipped-day notice going to the same unreachable address. The brief is stored for the
+  // address that resolves, which is not the terminal it was asked from.
+  const delivery = deps.sender.resolveRecipient(options.delivery)
+
+  if (delivery === undefined) {
     return 'not-deliverable'
   }
 
@@ -202,7 +205,7 @@ function scheduleOf(
 
   return {
     region: options.region,
-    delivery: options.delivery,
+    delivery,
     ...(options.sendTime === undefined ? {} : { sendTime: options.sendTime }),
     state: 'scheduled',
     nextDeliveryDay: scheduled.day,

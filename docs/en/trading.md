@@ -693,7 +693,7 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-`/alert create` and `/brief enable` need a chat that can receive messages, such as Telegram or Zalo. The terminal refuses them; type them in a connected channel.
+`/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo. Typed in a connected channel they deliver to that chat. Typed in the terminal they go to your chat: the first configured channel wins (Telegram, then Zalo, then Zalo Personal), and `fallback_chat_id` picks the chat. With no channel configured they are refused. They arrive only while OpenAlpha runs in the background (`openalpha start --background`).
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 

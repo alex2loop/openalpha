@@ -191,8 +191,9 @@ export interface BriefService {
   getLatest(options: GetLatestBriefOptions): Promise<BriefSnapshot | null>
   /** The one delivery row, or `null` when the brief has never been enabled. */
   find(signal: AbortSignal): Promise<BriefDelivery | null>
-  /** Whether a scheduled brief could reach this address at all: the terminal has no outbound route. */
-  canDeliver(delivery: DeliveryAddress): boolean
+  /** Where a brief scheduled from this address would arrive, or undefined when nowhere: the terminal
+   *  has no outbound route of its own and resolves to the chat the daemon would use. */
+  resolveRecipient(origin: DeliveryAddress): DeliveryAddress | undefined
   enable(options: EnableBriefOptions): Promise<EnableBriefResult>
   reschedule(options: RescheduleBriefOptions): Promise<RescheduleBriefResult>
   disable(options: DisableBriefOptions): Promise<DisableBriefResult>

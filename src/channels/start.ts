@@ -27,6 +27,7 @@ import type {
 } from '@/core/types/session'
 import type { AgentRegistry, CostTracker, Runner, RunRegistry } from '@/engine/api'
 import { createChannelRuntime } from '@/channels/lifecycle'
+import { resolveFallbackChat } from '@/channels/recipient'
 import { resolveChannelSettings } from '@/channels/schema'
 import { OperatorConfigError } from '@/core/config/resolve'
 import { ConfigError } from '@/core/errors'
@@ -218,7 +219,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     shutdownSignal: deps.shutdownSignal,
   })
 
-  const fallbackChatId = settings.fallbackChatId ?? loneAllowedId(admission.allowedIds)
+  const fallbackChatId = resolveFallbackChat(definition, deps.config.channels[definition.id])
 
   return [
     {
@@ -239,14 +240,6 @@ function assertConfiguredAgent(
   if (agent !== undefined && deps.agents.get(agent) === null) {
     throw new ConfigError(`channel ${definition.id}: configured agent '${agent}' not found`)
   }
-}
-
-// One operator, one DM: the allowlist already says where a scheduled job should land, so
-// `fallback_chat_id` is not mandatory typing. Two or more ids and there is no answer — legacy
-// guessed (first numeric-looking id, which every Telegram id is) and quietly relocated the morning
-// brief whenever the allowlist was reordered. `doctor` warns about the ambiguous case instead.
-function loneAllowedId(allowedIds: readonly string[]): string | undefined {
-  return allowedIds.length === 1 ? allowedIds[0] : undefined
 }
 
 function budgetCaps(config: ResolvedConfig): BudgetCaps {

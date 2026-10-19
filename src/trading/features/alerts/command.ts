@@ -7,8 +7,11 @@ import type {
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
+import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'
+import { BRAND } from '@/core/brand'
+import { t } from '@/i18n'
 import { renderAlertListText } from '@/trading/features/alerts/render'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
@@ -27,7 +30,6 @@ import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const ACTIONS = Object.freeze(['list', 'create', 'disable'] as const)
 const USAGE: 'slash.tradingAlertUsage' = 'slash.tradingAlertUsage'
-const UNDELIVERABLE: 'slash.tradingAlertUndeliverable' = 'slash.tradingAlertUndeliverable'
 /** Ticker, condition, threshold. */
 const CREATE_ARGUMENTS = 3
 
@@ -42,7 +44,7 @@ export function createAlertCommand(deps: AlertCommandDeps): SlashCommand {
   return {
     name: 'alert',
     description: { kind: 'localized', key: 'slash.tradingAlertHelp' },
-    messageKeys: [USAGE, UNDELIVERABLE, 'slash.tradingAlertCreated', 'slash.tradingAlertDisabled'],
+    messageKeys: [USAGE, 'slash.tradingAlertCreated', 'slash.tradingAlertDisabled'],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     // The verb only: everything after it is the name being typed and its condition.
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
@@ -187,28 +189,35 @@ async function runCreate(
     return lines.length === 0 ? alertUsage(deps) : { kind: 'text', text: joinSections([lines]) }
   }
 
-  const delivery = { channel: ctx.channel, chatId: ctx.chatId }
-
-  // Before the write: an alert armed at an address the router cannot reach would poll, trigger,
-  // fail every send, and disable itself without one word reaching the operator.
-  if (!deps.alerts.canDeliver(delivery)) {
-    return { kind: 'message', messages: [{ key: UNDELIVERABLE }] }
-  }
+  const origin = { channel: ctx.channel, chatId: ctx.chatId }
 
   const alert = await deps.alerts.create({
     draft: {
       instrument: resolved.instrument,
       condition,
       threshold,
-      delivery,
+      delivery: origin,
     },
     now: Date.now(),
     signal: ctx.signal,
   })
 
+  const created = { key: 'slash.tradingAlertCreated', values: { id: alert.id } } as const
+
+  if (isSameAddress(alert.delivery, origin)) {
+    return { kind: 'message', messages: [created] }
+  }
+
+  // Armed from a terminal: say where the alert will actually arrive, since this chat is not it.
   return {
-    kind: 'message',
-    messages: [{ key: 'slash.tradingAlertCreated', values: { id: alert.id } }],
+    kind: 'text',
+    text: [
+      t(ctx.locale, created.key, created.values),
+      t(ctx.locale, 'trading.alert.deliverTo', {
+        channel: alert.delivery.channel,
+        brand: BRAND.name,
+      }),
+    ].join('\n'),
   }
 }
 
@@ -252,4 +261,8 @@ function buildUsageValues(deps: AlertCommandDeps): CommandMessageValues {
  *  the message can never offer a market the parser would reject. */
 function registeredMarkets(deps: AlertCommandDeps): readonly MarketRef[] {
   return deps.markets.list().map((entry) => entry.manifest.id)
+}
+
+function isSameAddress(left: DeliveryAddress, right: DeliveryAddress): boolean {
+  return left.channel === right.channel && left.chatId === right.chatId
 }

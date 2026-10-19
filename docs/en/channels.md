@@ -139,6 +139,8 @@ operator, and only until the prompt times out; typing it again, or after the tim
 was already answered or has expired. Two prompts open at once get different codes, and answering one
 leaves the other's codes live.
 
+`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, or a lone allowed id.
+
 ## What happens to a message
 
 1. **It is saved first.** The message is written to a durable inbox before the chat app is told it was
