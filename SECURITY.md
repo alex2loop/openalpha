@@ -35,8 +35,9 @@ trước khi dựa vào bất cứ phần nào.
 
 Bất cứ thứ gì phá vỡ một trong các điều sau:
 
-**Khóa không lọt ra ngoài.** Khóa chỉ được đọc từ biến môi trường; không tệp cấu hình nào
-giữ giá trị khóa. Một đường đi ghi khóa xuống đĩa mà chưa che, làm khóa lọt vào log, vào một
+**Khóa không lọt ra ngoài.** Khóa lấy từ biến môi trường hoặc từ tệp khóa
+(`~/.openalpha/env`, quyền `0600`, chỉ `onboard` và `openalpha key set` mới ghi, bị từ chối khi người
+khác đọc được); không tệp cấu hình nào giữ giá trị khóa và không lệnh nào in khóa ra. Một đường đi ghi khóa xuống đĩa mà chưa che, làm khóa lọt vào log, vào một
 thông báo lỗi, vào một dòng ký ức đã lưu hay vào prompt của mô hình - đều nằm trong phạm vi.
 
 **Đường đặt lệnh là con đường duy nhất tới sàn.** Việc đặt lệnh nằm sau đúng một service, cần
@@ -109,7 +110,7 @@ phải mong muốn:
 
 | | |
 |---|---|
-| Khóa | chỉ từ biến môi trường; endpoint thuộc quyền code nên không cấu hình nào chuyển hướng được request |
+| Khóa | từ biến môi trường hoặc tệp khóa `0600`; endpoint thuộc quyền code nên không cấu hình nào chuyển hướng được request |
 | API cục bộ | bind loopback, bearer token quyền `0600`, danh sách origin cho phép, kiểm tra tiến trình gọi |
 | Văn bản không tin được | quét prompt injection trước khi nó kịp lái một lượt chạy hay vào được ký ức |
 | Log và lỗi | được che ở biên |

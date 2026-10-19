@@ -6,6 +6,12 @@ Chỉ đọc một mục thì hãy đọc [Cuốn sổ](#cuốn-sổ). Mọi con
 
 ---
 
+**Mục lục**
+
+- [Dữ liệu thị trường và đề xuất](#dữ-liệu-thị-trường-và-đề-xuất)
+- [Cuốn sổ](#cuốn-sổ)
+- [Đặt lệnh](#đặt-lệnh)
+
 ## Dữ liệu thị trường và đề xuất
 
 OpenAlpha thu dữ liệu, tính toán, cho hai phía tranh luận, rồi đưa bạn một kết luận. Và dừng ở đó.
@@ -445,6 +451,8 @@ Công cụ `suggestion_track_record` trả hồ sơ và độ trùng của phạ
 - ngày của một bản tin bị bỏ và ngày mai được lên lịch;
 - cảnh báo bạn tạo bằng `/alert` không bao giờ bị tắt vì gửi hỏng. Nó là của riêng bạn và không gì dựng lại nó, nên nó cứ thử lại, chờ tối đa mỗi giờ một lần, cho tới khi kênh nhận hoặc bạn chạy `/alert disable`.
 
+Chat đã bị `pair revoke` thì khác: không lần thử lại nào tới được, nên ngay lần gửi đầu tiên bị từ chối, cảnh báo đó tắt luôn (của bạn hay do hệ thống dựng đều vậy) và bản tin sáng cũng tắt. Cảnh báo thoát và sàng lọc đi theo chat của bản tin, nên chừng nào chat đó còn bị thu hồi thì chúng thôi được dựng, kể cả khi bản tin đã tắt từ trước; ghép nối lại chat đó, hoặc chạy `/brief enable` từ một chat khác, thì chúng được dựng lại.
+
 **Việc đánh giá** có giới hạn và dùng chung:
 
 - Mỗi nhịp duyệt qua mọi cảnh báo đang hoạt động, nên cắt lỗ hay mục tiêu được kiểm mỗi phút dù có bao nhiêu cảnh báo.
@@ -524,7 +532,7 @@ Chi phí của lần đọc nằm dưới một đường kẻ ở tận cuối,
 
 **Thời điểm.** Giờ gửi mặc định là 08:15 theo múi giờ **của thị trường** (08:15 ở TP.HCM, không phải 08:15 UTC và không phải ở nơi bạn đang ngồi). Bản tin chỉ được gửi khi phiên còn trước giờ mở (thị trường giao dịch suốt ngày, hoặc ngày thị trường nghỉ, vẫn tính là trước giờ mở), nên không bao giờ dựng hay gửi giữa phiên hoặc sau giờ đóng, và một phép kiểm trước khi chạy xác nhận phiên trước đã tạo ra một cây nến trước khi tốn token nào.
 
-Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại. Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped` và lịch chuyển sang hôm nay. Bản tin hôm nay vẫn được gửi muộn nếu daemon khởi động sau giờ gửi nhưng trước giờ mở. Nếu daemon khởi động sau giờ mở, bản tin hôm nay bị bỏ qua với cảnh báo `trading.brief_past_open_skipped` và bản tin sáng hôm sau là bản kế tiếp.
+Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại. Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped` và lịch chuyển sang hôm nay. Bản tin hôm nay vẫn được gửi muộn nếu daemon khởi động sau giờ gửi nhưng trước giờ mở. Nếu daemon khởi động sau giờ mở, hoặc một lần gửi lại rơi vào sau giờ mở, bản tin hôm nay bị bỏ qua với cảnh báo `trading.brief_past_open_skipped`, chat nhận một dòng báo điều này, và bản tin sáng hôm sau là bản kế tiếp. Bản tin bắt đầu dựng trước giờ mở nhưng xong sau đó vẫn được gửi, kèm dòng đầu báo giá đã chạy từ lúc viết.
 
 Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải bỏ đăng ký. Lịch chuyển sang ngày mai, `trading.brief_day_abandoned` được ghi log, và một thông báo cho biết bản tin hôm nay đã bị bỏ (gửi theo kiểu cố gắng hết sức qua đúng kênh vừa hỏng, nên có thể không tới). Chỉ `/brief disable` mới tắt bản tin sáng.
 
@@ -687,7 +695,9 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-`/alert create` và `/brief enable` cần một cuộc chat nhận được tin nhắn, như Telegram hay Zalo. Terminal từ chối chúng; hãy gõ trong một kênh đã kết nối.
+Cảnh báo được gọi bằng mã sáu ký tự (đuôi của mã dài) trong `/alert list`, lời xác nhận và mọi thông báo; `/alert disable <mã>` nhận mã đó, và liệt kê mã đầy đủ khi nó khớp nhiều cảnh báo. Cảnh báo giá hay thoát lệnh khi chạm mở đầu bằng tiêu đề và bước kế tiếp: với thoát lệnh là dòng `/record sell` để điền khi bán xong, rồi `/suggest` để xem lại. Trong chat `/transactions` mặc định hiện 10 dòng, và `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
+
+`/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo. Gõ trong một kênh đã kết nối thì gửi về chính chat đó. Gõ trong terminal thì gửi về chat của bạn: kênh được cấu hình đầu tiên thắng (Telegram, rồi Zalo, rồi Zalo Personal), và `fallback_chat_id` chọn chat, nếu không thì chat duy nhất đã ghép nối. Chưa cấu hình kênh nào thì bị từ chối. Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background`).
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 
@@ -766,12 +776,12 @@ Mọi trường hợp khác để dòng đúng như bạn gõ: sàn không có c
 
 ```bash
 openalpha chat --message "/update 0f9838 buy VPS equity-vn:ACB 600 21900 VND 12000 2026-06-16"
-openalpha chat --message "/delete 0f9838"
+openalpha chat --message "/delete 0f9838 confirm"
 ```
 
 `/update` nhận mã ngắn rồi tới đúng các trường mà `/record` nhận: cả giao dịch, không phải một bản vá. Khi sửa, bạn phải nêu rõ khối lượng và phí, ở chỗ `/record` cho phép viết `all` hoặc để phí theo tỷ lệ. Dòng bạn sửa vốn đã có cả hai, và tính lại một trong hai dựa trên một cuốn sổ mới hơn hay một tỷ lệ đã đổi sẽ dịch một con số đã chốt mà bạn chưa hề nêu lại.
 
-`/delete` xóa hẳn dòng đó (một dòng trùng, hoặc một giao dịch chưa từng xảy ra). Cả hai cũng nhận mã bút toán đầy đủ, đó là cái agent truyền qua `portfolio_update` hay `portfolio_remove`.
+`/delete <mã>` cho xem dòng đó và hỏi lại trước (một nút trên Telegram, một dòng để gõ ở nơi khác); `/delete <mã> confirm` mới xóa hẳn dòng đó (một dòng trùng, hoặc một giao dịch chưa từng xảy ra). Script nào xóa một bước thì phải thêm `confirm`. Cả hai cũng nhận mã bút toán đầy đủ, đó là cái agent truyền qua `portfolio_update` hay `portfolio_remove`.
 
 Mã ngắn là **sáu ký tự cuối** của mã bút toán, không phải sáu ký tự đầu: id mở đầu bằng dấu thời gian, nên các dòng ghi trong cùng một millisecond dùng chung các ký tự đầu. Một mã ngắn khớp nhiều hơn một dòng thì bị từ chối thay vì đoán.
 
@@ -787,6 +797,10 @@ sell of 600 ACB exceeds 0 settled on 2026-06-15
 ```
 
 Một dòng ghi ngày sau hôm nay (theo lịch của khu vực chính) cũng bị từ chối. Giao dịch chưa xảy ra là gõ nhầm, và nếu nhận thì sổ sẽ giấu nó đi cho tới đúng ngày đó.
+
+Giá luôn ghi đầy đủ, như `58400`, không phải con số trên bảng điện (`58,40`, tức ×1.000 VND). Một giá cổ phiếu Việt Nam thấp hơn 1.000 đồng trong khi mã đang giao dịch trên mức đó bị từ chối, kèm giá đầy đủ để ghi lại. Ngưỡng của `/alert` cũng vậy.
+
+Ở mọi thị trường, giá bạn gõ mà cao hoặc thấp hơn giá gần nhất của mã (giá đóng cửa đã lưu tính tới ngày của nó; với vàng trong nước, hoặc mã chưa có giá đóng cửa nào được lưu, là giá đang giao dịch) từ mười lần trở lên thì chưa được lưu ngay: câu trả lời đưa ra cả hai con số và hỏi bạn có đúng ý không, vì lệch xa cỡ đó gần như luôn là gõ thiếu hoặc thừa vài số 0. Bấm "Đúng giá này, lưu lại", hoặc gửi lại đúng lệnh đó với `confirm` ở cuối, thì giá được lưu như bạn gõ. Không có gì được giữ lại giữa hai bước: bỏ qua câu hỏi thì không có gì được ghi. `/record`, `/update` và `/alert create` đều hỏi như vậy; tiền nạp, rút và phí không có giá để so nên không bao giờ bị hỏi, và mã không có giá nào để so, hoặc giá không về kịp trong 3 giây, thì cũng lưu luôn. Giao dịch lấy giá từ lệnh khớp của sàn (`/trade`, `/record sync`, một lệnh thoát đã khớp) cũng không bị hỏi, và dòng `rights` cũng vậy, vì giá quyền mua do công ty phát hành đặt, thường theo mệnh giá, thấp hơn giá thị trường rất nhiều. Trợ lý AI bị từ chối theo cùng cách và phải hỏi lại bạn trước khi ghi giá. Bội số đặt ở `[trading.typed_prices] confirm_multiple` (mặc định 10). Ứng dụng desktop cũng được kiểm như vậy khi request ghi sổ hoặc đặt cảnh báo gửi kèm `typedPrice`.
 
 #### Dòng xác nhận ghi nói gì về phí
 
@@ -1081,7 +1095,7 @@ Mọi dòng tiền mặt nêu nơi lưu ký của nó, và một lệnh mua bị
 
 ## Đặt lệnh
 
-**Hãy bắt đầu trên tài khoản demo.** Ở 1.0.4, đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
+**Hãy bắt đầu trên tài khoản demo.** Đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
 
 `/trade` và công cụ `order_place` đặt lệnh spot trên **OKX** hoặc **Binance**: lệnh thị trường và limit, mua và bán, kèm chốt lời/cắt lỗ tùy chọn trên lệnh mua. Mỗi lệnh bị chặn trần trước khi bạn được hỏi, được bạn duyệt trước khi đi ra, và được phản chiếu vào sổ lệnh khi khớp.
 
@@ -1114,7 +1128,9 @@ fees = { buy = 0.0008, sell = 0.0008, fee_asset = "base" }   # phân số của 
 ```
 
 ```bash
-export OKX_API_KEY=... OKX_API_SECRET=... OKX_API_PASSPHRASE=...
+openalpha key set OKX_API_KEY
+openalpha key set OKX_API_SECRET
+openalpha key set OKX_API_PASSPHRASE
 ```
 
 Với Binance:
@@ -1125,7 +1141,8 @@ simulated = true                 # mọi lời gọi đi tới demo-api.binance.
 ```
 
 ```bash
-export BINANCE_API_KEY=... BINANCE_API_SECRET=...
+openalpha key set BINANCE_API_KEY
+openalpha key set BINANCE_API_SECRET
 ```
 
 Có khóa của cả hai sàn thì hãy nêu sàn trên mọi lệnh mua: `/trade spot binance:BTC buy 0.001 sl 100000`.

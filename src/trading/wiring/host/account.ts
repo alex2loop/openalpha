@@ -4,12 +4,10 @@ import type { LedgerMethods } from '@/trading/wiring/host/ledger'
 import type { MarketMethods } from '@/trading/wiring/host/market'
 import type { OrderMethods } from '@/trading/wiring/host/order'
 import type { HeldStopView, TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
-import { ValidationError } from '@/core/errors'
 import { reconcileSentences } from '@/trading/features/portfolio/render/reconcile'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
 
-const UNDELIVERABLE_KEY = 'slash.tradingAlertUndeliverable'
 const NO_COVERS: ReadonlyMap<string, StopCover> = new Map()
 
 type AccountMethods = Omit<
@@ -167,26 +165,21 @@ function alertMethods(deps: TradingHostDeps): AlertMethods {
         })
       ),
 
-    // An alert nothing can push to would arm and never be heard, so it is refused up front.
+    // An alert nothing can push to would arm and never be heard: `create` refuses it.
     createAlert: (request) =>
-      scoped(deps, request.signal, (scope) => {
-        if (!alerts.canDeliver(request.delivery)) {
-          throw new ValidationError('alert target cannot receive notices', {
-            key: UNDELIVERABLE_KEY,
-          })
-        }
-
-        return alerts.create({
+      scoped(deps, request.signal, (scope) =>
+        alerts.create({
           draft: {
             instrument: request.instrument,
             condition: request.condition,
             threshold: request.threshold,
             delivery: request.delivery,
           },
+          ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
           now: scope.now,
           signal: scope.signal,
         })
-      }),
+      ),
 
     disableAlert: (request) =>
       scoped(deps, request.signal, (scope) =>

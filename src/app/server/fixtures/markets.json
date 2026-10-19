@@ -11,7 +11,7 @@
       "label": "Vàng thế giới",
       "segmentLabel": "Vàng thế giới",
       "regionLabel": "Toàn cầu",
-      "icon": "🪙",
+      "icon": "🥇",
       "hasBoard": false,
       "hasBrief": false,
       "hasEvents": false
@@ -64,7 +64,7 @@
       "label": "Thị trường tiền mã hóa",
       "segmentLabel": "Tiền mã hóa",
       "regionLabel": "Toàn cầu",
-      "icon": "₿",
+      "icon": "🪙",
       "benchmark": {
         "market": "crypto",
         "ticker": "BTC"

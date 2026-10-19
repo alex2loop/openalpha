@@ -10,7 +10,15 @@ export type {
 } from '@/channels/api'
 export type { CommandCatalog, SlashDispatcher } from '@/commands/api'
 export type { ChannelId } from '@/core/channels'
-export type { App, Bind, DaemonTask, Extend, ServiceProvider, Services } from '@/core/container'
+export type {
+  App,
+  Bind,
+  DaemonStartOptions,
+  DaemonTask,
+  Extend,
+  ServiceProvider,
+  Services,
+} from '@/core/container'
 export type { AgentId, JobId, RunId, SessionId, UserId } from '@/core/ids'
 export type { ContentBlock, LLMMessage, LLMRequest, LLMResponse, ProviderChain } from '@/core/llm'
 export type {

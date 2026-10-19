@@ -138,7 +138,8 @@ function resolveConfigPath(options?: ConfigLoadOptions): string {
   return resolveConfigFile(resolveLoadDataDir(options), process.cwd(), options?.configPath)
 }
 
-function resolveLoadDataDir(options?: ConfigLoadOptions): string {
+/** The data dir before any config loads: `--data-dir`, the brand's data-dir variable, then the default. */
+export function resolveLoadDataDir(options?: ConfigLoadOptions): string {
   if (options?.dataDir !== undefined) {
     return expandHome(options.dataDir)
   }
@@ -171,7 +172,7 @@ function parseTomlText(text: string): unknown {
 }
 
 function readEnvDataDir(): string | undefined {
-  const envValue = process.env[`${BRAND.envPrefix}DATA_DIR`]
+  const envValue = process.env[BRAND.controlEnv.dataDir]
 
   return envValue !== undefined && envValue !== '' ? envValue : undefined
 }

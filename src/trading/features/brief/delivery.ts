@@ -204,6 +204,19 @@ async function skipPastOpenDay(deps: BriefServiceDeps, context: DeliveryContext)
       deliveryDay: subscription.deliveryDay,
       nextDeliveryDay: next.day,
     })
+    // The only skip that tells: `skipStaleDay` moves straight to today, whose brief can still go
+    // out before the open, and runs into this one if it cannot. `markDelivered` is lease- and
+    // day-guarded, so one move sends at most one notice; a crash between the move and the send
+    // loses it.
+    await notifyDeliveryStopped({
+      kind: 'delivery-missed',
+      sender: deps.sender,
+      target: subscription.delivery,
+      locale: deps.defaultLocale,
+      subject: 'brief',
+      logger: deps.logger,
+      signal: context.options.signal,
+    })
   }
 }
 
@@ -223,8 +236,8 @@ function moveSchedule(
 
 /** Whether a brief may still go out as a pre-open read. A continuous market is never past its open,
  *  and a day the market does not trade has no session to be past: the brief reports the last one.
- *  On a trading day only the stretch before the open qualifies, so a send after downtime never
- *  lands mid-session or after the close. */
+ *  On a trading day only the stretch before the open qualifies. Asked before the build starts; a
+ *  build that runs the debate can outlast the open, and the send then says so (`sentAfterOpen`). */
 function isPreOpen(plan: BriefSchedulePlan, now: number): boolean {
   const { calendar } = plan.market.manifest
 
@@ -265,18 +278,24 @@ async function deliverOne(deps: BriefServiceDeps, context: DeliveryContext): Pro
     return
   }
 
-  await sendClaimed(deps, context, result.snapshot)
+  // The build and the send are separate operations: a start just before the open can send just
+  // after it. A brief begun before the open is worth more than a missed-brief line, so it goes, with
+  // a line saying prices have moved.
+  await sendClaimed(deps, context, {
+    snapshot: result.snapshot,
+    afterOpen: !isPreOpen(plan, Date.now()),
+  })
 }
 
 async function sendClaimed(
   deps: BriefServiceDeps,
   context: DeliveryContext,
-  snapshot: BriefSnapshot
+  built: { readonly snapshot: BriefSnapshot; readonly afterOpen: boolean }
 ): Promise<void> {
   const { subscription, options, tally } = context
   const outcome = await sendCaught(
     deps.sender,
-    noticeFor(deps, subscription, snapshot),
+    noticeFor(deps, subscription, built),
     options.signal
   )
 
@@ -284,6 +303,24 @@ async function sendClaimed(
     const marked = await deps.deliveries.markDelivered(completion(context))
 
     tally.delivered += marked ? 1 : 0
+    return
+  }
+
+  // Otherwise every morning builds a brief nobody can receive. No notice: the chat refuses it too.
+  if (outcome === 'recipient-revoked') {
+    const disabled = await deps.deliveries.disableClaimed({
+      leaseToken: context.leaseToken,
+      deliveryDay: subscription.deliveryDay,
+      disabledAt: options.now,
+      signal: options.signal,
+    })
+
+    if (disabled) {
+      deps.logger.warn('trading.brief_recipient_revoked', {
+        channel: subscription.delivery.channel,
+      })
+    }
+
     return
   }
 
@@ -375,11 +412,15 @@ function completion(context: DeliveryContext): Parameters<BriefDeliveryStore['ma
 function noticeFor(
   deps: BriefServiceDeps,
   subscription: DeliveringBriefDelivery,
-  snapshot: BriefSnapshot
+  built: { readonly snapshot: BriefSnapshot; readonly afterOpen: boolean }
 ): TradingNotice {
   return {
     target: subscription.delivery,
     locale: deps.defaultLocale,
-    payload: { kind: 'brief', snapshot },
+    payload: {
+      kind: 'brief',
+      snapshot: built.snapshot,
+      ...(built.afterOpen ? { sentAfterOpen: true as const } : {}),
+    },
   }
 }

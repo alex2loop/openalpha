@@ -4,6 +4,7 @@ import type {
   LedgerTxnDraftInput,
 } from '@/trading/features/ledger/types'
 import type { PortfolioSegment, TickerRequest } from '@/trading/kernel/instrument'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 
 export interface RecordLedgerOptions {
   /** Wider than an edit's: only a new sale may name the whole position instead of a count. */
@@ -12,6 +13,7 @@ export interface RecordLedgerOptions {
   /** Declared by a caller whose figures are already the venue's own, which both records the
    *  provenance and stops the write path from asking the venue for a fill it just read. */
   readonly fillSource?: FillSource
+  readonly typedPrice?: TypedPrice
   readonly now: number
   readonly signal: AbortSignal
 }
@@ -27,6 +29,7 @@ export interface UpdateLedgerOptions {
   /** A full entry id or the short handle `/transactions` prints. */
   readonly ref: string
   readonly draft: LedgerTxnDraft
+  readonly typedPrice?: TypedPrice
   readonly now: number
   readonly signal: AbortSignal
 }

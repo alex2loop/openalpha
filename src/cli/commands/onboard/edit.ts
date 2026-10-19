@@ -12,6 +12,7 @@ import { finishModelChange } from './check'
 import { editedConfigToml, readExistingConfig, saveEditedConfig } from './config-file'
 import { askModel } from './model-step'
 import { printNextSteps } from './next-steps'
+import { offerSaveKeys } from './save-key'
 import { askBudget, askLanguage, askTelegramTokenEnv } from './settings-step'
 
 type Section = ConfigEdit['kind'] | 'quit'
@@ -98,9 +99,12 @@ async function afterEdit(ctx: AskContext, planned: PlannedEdit, configPath: stri
     return
   }
 
+  const telegramTokenEnv = planned.edit.kind === 'telegram' ? planned.edit.tokenEnv : undefined
+
   printNextSteps(ctx, {
     signedIn: true,
+    saved: await offerSaveKeys(ctx, [telegramTokenEnv]),
     firstRun: false,
-    ...(planned.edit.kind === 'telegram' ? { telegramTokenEnv: planned.edit.tokenEnv } : {}),
+    ...(telegramTokenEnv === undefined ? {} : { telegramTokenEnv }),
   })
 }

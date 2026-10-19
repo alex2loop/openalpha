@@ -8,7 +8,11 @@ import { createTool } from '@/core/tool'
 import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { renderWriteReceipt } from '@/trading/features/ledger/render'
 import { renderDraftLine } from '@/trading/features/ledger/rows'
-import { ledgerEntryIdInput } from '@/trading/kernel/surface/surface'
+import {
+  ledgerEntryIdInput,
+  priceConfirmedInput,
+  toTypedPrice,
+} from '@/trading/kernel/surface/surface'
 
 export function createPortfolioUpdateTool(
   deps: LedgerToolDeps & { readonly draft: z.ZodType<LedgerTxnDraft> }
@@ -22,11 +26,12 @@ export function createPortfolioUpdateTool(
     inputSchema: z.strictObject({
       id: ledgerEntryIdInput,
       draft: draft.describe('The whole transaction as it should stand after the edit, not a diff.'),
+      priceConfirmed: priceConfirmedInput,
     }),
     capability: 'write',
     presentation: {
       label: 'Edit transaction',
-      emoji: '🩹',
+      emoji: '🧾',
       detail: (input, locale) => `[${input.id}] ${renderDraftLine(locale, input.draft, markets)}`,
     },
     async execute(args, ctx): Promise<string> {
@@ -41,6 +46,7 @@ export function createPortfolioUpdateTool(
       const result = await portfolio.update({
         ref: args.id,
         draft: args.draft,
+        typedPrice: toTypedPrice(args.priceConfirmed),
         now: Date.now(),
         signal: ctx.signal,
       })

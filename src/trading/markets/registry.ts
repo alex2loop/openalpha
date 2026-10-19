@@ -186,8 +186,15 @@ async function resolveCached(
   return resolution
 }
 
+// Both narrowing fields are part of the key, so the cache never serves a wider answer.
 function buildResolutionKey(options: ResolveMarketOptions): string {
-  return options.market === undefined ? options.ticker : `${options.market}/${options.ticker}`
+  const scope = [
+    options.within === undefined ? '' : `in:${[...options.within].sort().join(',')}`,
+    options.detection ?? '',
+  ].join('|')
+  const name = options.market === undefined ? options.ticker : `${options.market}/${options.ticker}`
+
+  return scope === '|' ? name : `${scope}|${name}`
 }
 
 /** A detector that threw and a market whose universe has not been refreshed both answer "not
@@ -257,7 +264,11 @@ async function resolve(
 ): Promise<MarketResolution> {
   // The synchronous filter runs first so an unqualified ticker never reaches an async detector.
   // `impossible` means the detector would not have matched, so skipping cannot change the winner.
-  const possible = markets.filter((market) => market.candidacy(options.ticker) === 'possible')
+  const possible = markets.filter(
+    (market) =>
+      (options.within === undefined || options.within.includes(market.manifest.id)) &&
+      market.candidacy(options.ticker) === 'possible'
+  )
   const stored = await detectEach(possible, 'stored', options)
   const settled = matchedDetections(stored)
   const [only] = settled
@@ -269,7 +280,10 @@ async function resolve(
     return resolvedMarket(only, uncheckedMarketCaveats(stored, options.ticker))
   }
 
-  const detections = [...stored, ...(await detectEach(possible, 'fetched', options))]
+  const detections = [
+    ...stored,
+    ...(options.detection === 'stored' ? [] : await detectEach(possible, 'fetched', options)),
+  ]
   const matches = matchedDetections(detections)
   const caveats = detections.flatMap((entry) => entry.caveats)
 

@@ -6,6 +6,7 @@ import { BRAND } from '@/core/brand'
 const HOME_DIR = homedir()
 const SQLITE_DATABASE_SEGMENTS = ['data', `${BRAND.name}.sqlite`] as const
 const IN_MEMORY_PATH = ':memory:'
+const ENV_FILE_NAME = 'env'
 
 // Expand `~` and `~/…` against `home`; all other forms pass through unchanged.
 export function expandHome(p: string, home: string = HOME_DIR): string {
@@ -23,8 +24,7 @@ export function expandHome(p: string, home: string = HOME_DIR): string {
 export function resolveDataDir(raw?: {
   paths?: { data_dir?: string | undefined } | undefined
 }): string {
-  const envKey = `${BRAND.envPrefix}DATA_DIR`
-  const fromEnv = process.env[envKey]
+  const fromEnv = process.env[BRAND.controlEnv.dataDir]
 
   if (fromEnv !== undefined && fromEnv !== '') {
     return expandHome(fromEnv)
@@ -37,6 +37,10 @@ export function resolveDataDir(raw?: {
   }
 
   return join(HOME_DIR, BRAND.dataDirName)
+}
+
+export function resolveEnvFile(dataDir: string): string {
+  return join(dataDir, ENV_FILE_NAME)
 }
 
 export function resolveConfigFile(dataDir: string, cwd: string, explicitPath?: string): string {

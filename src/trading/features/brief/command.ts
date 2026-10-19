@@ -127,20 +127,25 @@ async function withSchedule(
   return {
     kind: 'text',
     affordances: bookAffordances(ctx.locale),
-    text: joinSections([[body], [scheduleLine(deps, ctx, delivery)]]),
+    text: joinSections([[body], [await scheduleLine(deps, ctx, delivery)]]),
   }
 }
 
 /** The next brief reads in the operator's own timezone, because the send time itself is stored in
  *  the market's. A subscription that was never made and one that was turned off read the same to
  *  the operator: it is off. */
-function scheduleLine(
+async function scheduleLine(
   deps: BriefCommandDeps,
   ctx: SlashContext,
   delivery: BriefDelivery | null
-): string {
+): Promise<string> {
   if (delivery === null || delivery.state === 'disabled') {
-    return deps.briefs.canDeliver({ channel: ctx.channel, chatId: ctx.chatId })
+    const recipient = await deps.briefs.resolveRecipient({
+      channel: ctx.channel,
+      chatId: ctx.chatId,
+    })
+
+    return recipient !== undefined
       ? t(ctx.locale, 'trading.brief.schedule.disabled')
       : t(ctx.locale, 'slash.tradingBriefOffHere')
   }
@@ -193,9 +198,10 @@ async function runEnable(
     return usage(USAGE)
   }
 
+  const origin = { channel: ctx.channel, chatId: ctx.chatId }
   const result = await deps.briefs.enable({
     region: deps.defaultRegion,
-    delivery: { channel: ctx.channel, chatId: ctx.chatId },
+    delivery: origin,
     ...(sendTime === undefined ? {} : { sendTime }),
     now: Date.now(),
     signal: ctx.signal,
@@ -214,15 +220,22 @@ async function runEnable(
   }
 
   const { delivery } = result
+  const enabled = {
+    key: 'slash.tradingBriefEnabled',
+    values: { day: formatDay(ctx.locale, delivery.nextDeliveryDay) },
+  } as const
 
+  if (delivery.delivery.channel === origin.channel && delivery.delivery.chatId === origin.chatId) {
+    return { kind: 'message', messages: [enabled] }
+  }
+
+  // Scheduled from a terminal: say where the brief will actually arrive, since this chat is not it.
   return {
-    kind: 'message',
-    messages: [
-      {
-        key: 'slash.tradingBriefEnabled',
-        values: { day: formatDay(ctx.locale, delivery.nextDeliveryDay) },
-      },
-    ],
+    kind: 'text',
+    text: [
+      t(ctx.locale, enabled.key, enabled.values),
+      t(ctx.locale, 'trading.brief.deliverTo', { channel: delivery.delivery.channel }),
+    ].join('\n'),
   }
 }
 

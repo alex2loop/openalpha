@@ -3,7 +3,7 @@ import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { AgentId } from '@/core/ids'
 import { COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
-import { handleControlCallback } from '@/channels/delivery/control'
+import { handleControlCallback, handleTypedChoice } from '@/channels/delivery/control'
 import { resolveSlashRunRequest, roleOf, type SlashRunRequest } from '@/channels/delivery/slash'
 import { commandHeadOf, UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { observe } from '@/core/events'
@@ -91,6 +91,11 @@ function commandOf(query: ChannelCallbackQuery): string | null {
 }
 
 async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<void> {
+  // Before the mention rule: a code minted in this chat is addressed to the bot by construction.
+  if (await handleTypedChoice(deps, msg)) {
+    return
+  }
+
   if (msg.isGroup && deps.settings.requireMention && !msg.addressedToBot) {
     return
   }

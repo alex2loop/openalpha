@@ -155,7 +155,7 @@ function cryptoManifest(config: TradingConfig): MarketManifest {
     segment: portfolioSegment('crypto'),
     segmentCategory: 'crypto',
     currency: currencyCode('USDT'),
-    icon: '₿',
+    icon: '🪙',
     quoteUnit: quoteUnit('currency-per-coin'),
     defaultCalendar,
     calendar: createTradingCalendar(defaultCalendar, config.markets[CRYPTO_MARKET_REF]?.holidays),

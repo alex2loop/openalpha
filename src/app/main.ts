@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import type { Booted, MainOptions } from '@/app/types'
-import type { CliApp, Command, GlobalFlags, Group, Needs, Writer } from '@/cli/api'
+import type { CliApp, Command, EnvFileLoad, GlobalFlags, Group, Needs, Writer } from '@/cli/api'
 import type { LoggerResource } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import { boot } from '@/app/boot'
@@ -15,18 +15,22 @@ import {
   formatTerminalError,
   getEnv,
   isVerbose,
+  loadEnvFile,
   offerOnboard,
   parseGlobalFlags,
   preBootApp,
   preflightCommand,
   printError,
   readCommandCacheStubs,
+  reportKeyFile,
   resolveContributedCliCommands,
   runCli,
   startUpdateNotice,
   stopDaemonIfRunning,
   writeCommandCache,
 } from '@/cli/api'
+import { resolveLoadDataDir } from '@/core/config/load'
+import { resolveEnvFile } from '@/core/config/resolve'
 import { formatErrForLog } from '@/core/security/credentials'
 
 const CRASH_EXIT_CODE = 1
@@ -77,6 +81,7 @@ interface RunBootOptions {
   readonly fatalBoundary: FatalBoundary
   /** The pre-boot read of `[locale]`, for a boot that fails before it has its own. */
   readonly locale: Locale
+  readonly keyFile: CliApp['keyFile']
 }
 
 export async function main(argv: readonly string[], options?: MainOptions): Promise<number> {
@@ -84,7 +89,17 @@ export async function main(argv: readonly string[], options?: MainOptions): Prom
 
   try {
     const flags = parseGlobalFlags(argv, getEnv())
-    const preBoot = await createPreBootCliApp(flags)
+    // Config resolution reads keys from `process.env`, so the key file loads first.
+    const keyLoad = loadEnvFile(
+      resolveEnvFile(
+        resolveLoadDataDir(flags.dataDir === undefined ? {} : { dataDir: flags.dataDir })
+      ),
+      getEnv()
+    )
+    const preBoot = await createPreBootCliApp(flags, keyLoad)
+
+    reportKeyFile({ config: preBoot.config, err: stdio.err }, keyLoad)
+
     const updateNotice = startUpdateNotice(preBoot, flags.argv[0])
     let exitCode: number | undefined
 
@@ -151,6 +166,7 @@ async function runCommand(options: RunCommandOptions): Promise<number> {
     main: mainOptions,
     fatalBoundary,
     locale: preBoot.config.locale.language,
+    keyFile: preBoot.keyFile,
   })
 }
 
@@ -189,9 +205,10 @@ function pathFlags(flags: GlobalFlags): Pick<GlobalFlags, 'configPath' | 'dataDi
   }
 }
 
-function createPreBootCliApp(flags: GlobalFlags): Promise<CliApp> {
+function createPreBootCliApp(flags: GlobalFlags, keyLoad: EnvFileLoad): Promise<CliApp> {
   return preBootApp({
     ...stdio,
+    keyFile: keyLoad.file,
     bootRefusals,
     assertComposes: () => composeOnce(flags),
     ...pathFlags(flags),
@@ -238,6 +255,7 @@ async function runBoot(options: RunBootOptions): Promise<number> {
     const cliApp: CliApp = {
       ...booted.app,
       ...stdio,
+      keyFile: options.keyFile,
       ...(shutdown === undefined ? {} : { abortDaemon: () => shutdown.abort() }),
     }
     const contributed = resolveContributedCliCommands(cliApp, [

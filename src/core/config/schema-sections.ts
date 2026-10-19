@@ -75,15 +75,14 @@ export const BudgetSchema = z.strictObject({
   max_per_run_usd: z.number().nonnegative().optional(),
 })
 
+export const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
+
 export const LocaleSchema = z.strictObject({
   language: z.enum(['en', 'vi']).optional(),
   timezone: z.string().min(1).optional(),
   // ISO 4217 code and lowercase region tag — locale attributes (Intl vocabulary); domains that
   // need branded forms parse these at their own edge.
-  currency: z
-    .string()
-    .regex(/^[A-Z]{3}$/)
-    .optional(),
+  currency: z.string().regex(CURRENCY_CODE_PATTERN).optional(),
   region: z.string().min(1).optional(),
 })
 
@@ -175,6 +174,7 @@ export const McpSchema = z.strictObject({
 export const RetentionSchema = z.strictObject({
   days: z.number().int().positive().optional(),
   inbox_days: z.number().int().positive().optional(),
+  daily_backups: z.number().int().nonnegative().optional(),
 })
 
 export const UpdateSchema = z.strictObject({

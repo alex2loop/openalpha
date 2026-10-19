@@ -1,5 +1,8 @@
+import { z } from 'zod'
+
 import type { LedgerPageResponse } from '@/app/server/wire/money'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
+import type { TypedPrice } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
 import {
   toLedgerEntryWire,
@@ -18,7 +21,12 @@ import {
   parseOptionalInstrument,
   parsePathId,
 } from '@/app/server/routes/params'
-import { ledgerEntryId, SURFACE_LIMITS, tradingDay } from '@/trading/api'
+import { ledgerEntryId, SURFACE_LIMITS, TYPED_PRICES, tradingDay } from '@/trading/api'
+
+const LEDGER_BODY = z.object({
+  draft: z.unknown(),
+  typedPrice: z.enum(TYPED_PRICES).exactOptional(),
+})
 
 async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const query = new URL(req.url).searchParams
@@ -64,13 +72,13 @@ async function handleLedgerRecord(req: Request, ctx: ApiRouteContext): Promise<R
     return apiError('invalid_body')
   }
 
-  const draft = await readDraft(req)
+  const body = await readLedgerBody(req)
 
-  if (draft === undefined) {
+  if (body === undefined) {
     return apiError('invalid_json')
   }
 
-  const result = await hostOf(ctx).recordLedger({ draft, idempotencyKey, signal: req.signal })
+  const result = await hostOf(ctx).recordLedger({ ...body, idempotencyKey, signal: req.signal })
 
   return json(toLedgerWriteWire(result, localeOf(ctx)))
 }
@@ -78,17 +86,17 @@ async function handleLedgerRecord(req: Request, ctx: ApiRouteContext): Promise<R
 /** A full entry id only: the short handle chat prints can match more than one row. */
 async function handleLedgerUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const entryId = parsePathId(req, ledgerEntryId)
-  const draft = await readDraft(req)
+  const body = await readLedgerBody(req)
 
   if (entryId === null) {
     return apiError('invalid_body')
   }
 
-  if (draft === undefined) {
+  if (body === undefined) {
     return apiError('invalid_json')
   }
 
-  const result = await hostOf(ctx).updateLedgerEntry({ entryId, draft, signal: req.signal })
+  const result = await hostOf(ctx).updateLedgerEntry({ ...body, entryId, signal: req.signal })
 
   return json(toLedgerWriteWire(result, localeOf(ctx)))
 }
@@ -123,16 +131,21 @@ async function handleVenues(req: Request, ctx: ApiRouteContext): Promise<Respons
   return json(toVenuesWire(await hostOf(ctx).listVenues({ signal: req.signal })))
 }
 
-/** `{ draft }`. The draft itself is validated by the host, which owns the one schema that knows the
- *  registered markets and venues. `undefined` means the body was not a JSON object. */
-async function readDraft(req: Request): Promise<unknown> {
-  const body: unknown = await req.json().catch(() => null)
+/** `{ draft, typedPrice? }`. The draft itself is validated by the host, which owns the one schema
+ *  that knows the registered markets and venues. `undefined` means the body was not a JSON object. */
+async function readLedgerBody(
+  req: Request
+): Promise<{ readonly draft: unknown; readonly typedPrice?: TypedPrice } | undefined> {
+  const parsed = LEDGER_BODY.safeParse(await req.json().catch(() => null))
 
-  if (typeof body !== 'object' || body === null || !('draft' in body)) {
+  // JSON has no `undefined`: a draft that reads as one was never sent.
+  if (!parsed.success || parsed.data.draft === undefined) {
     return undefined
   }
 
-  return body.draft
+  const { draft, typedPrice } = parsed.data
+
+  return typedPrice === undefined ? { draft } : { draft, typedPrice }
 }
 
 /** The operator's own money, so every route here reads the portfolio capability. */

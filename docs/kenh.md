@@ -68,7 +68,7 @@ operator_user_ids = [123456789]
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | Lời chấp nhận bắt buộc, và kênh dùng lần đăng nhập QR đã lưu nào |
 | `agent` | tất cả | Gắn kênh vào một agent thay vì agent mặc định |
 | `require_mention`, `slash_commands` | tất cả | Quy tắc nhắc tên trong nhóm, và có chặn lệnh gạch chéo hay không |
-| `fallback_chat_id` | tất cả | Nơi một việc theo lịch không có `--to` sẽ gửi tới. Chỉ có đúng một id được phép thì dùng id đó |
+| `fallback_chat_id` | tất cả | Nơi một việc theo lịch không có `--to` sẽ gửi tới. Chỉ có đúng một id được phép, hoặc đúng một chat đã ghép nối, thì dùng chat đó |
 
 Các khóa còn lại tinh chỉnh việc gửi: `markdown`, `mid_stream_updates`, `typing_indicator`,
 `use_reactions`, `notify_max_per_minute`, `gap_note_minutes`. Nhịp gom tin, nhịp sửa tin trực tiếp và hàng đợi gửi đi là cố
@@ -130,6 +130,18 @@ Trong chat riêng với người vận hành, bot nhắc về bản mới nhiề
 
 Cách này chỉ dùng được với daemon bật bằng `start --background`, và chỉ khi bot không còn câu trả lời, lượt nghiên cứu, phê duyệt, bản tin hay lượt nạp dữ liệu nào đang dở; nếu không, bot nhờ bạn thử lại sau. Chỉ người vận hành dùng được, như `/trade`: không đặt `operator_user_ids` thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên ai dùng chung bot hãy đặt khóa này.
 
+## Phê duyệt và duyệt kế hoạch trên Zalo
+
+Zalo không có nút bấm, nên một ô xin phê duyệt hay một kế hoạch `/research thorough` đến kèm các mã ngắn
+như `/4821` cho từng lựa chọn. Gõ lại một mã trong cùng chat để trả lời. Mỗi mã dùng một lần, chỉ dành
+cho operator, và chỉ tới khi câu hỏi hết hạn; gõ lại lần nữa, hoặc sau khi hết giờ, sẽ nhận câu trả lời
+rằng câu đó đã được trả lời hoặc đã hết hạn. Hai câu hỏi mở cùng lúc nhận hai bộ mã khác nhau, và trả
+lời một câu không làm mất mã của câu kia. Bấm một nút sau khi câu hỏi đã được trả lời hoặc hết giờ cũng nhận đúng câu trả lời đó.
+
+`fallback_chat_id` cũng quyết định cảnh báo hay bản tin sáng đặt từ terminal sẽ gửi đi đâu: kênh được cấu hình đầu tiên (Telegram, Zalo, Zalo Personal) có chat dự phòng, hoặc một id được phép duy nhất, hoặc một chat ghép nối duy nhất. Ghép nối xong thì không cần đặt gì thêm: daemon nhận ra chat đó ở tin nhắn đầu tiên bạn gửi sau khi ghép nối. Bỏ ghép nối bằng `pair revoke` thì daemon thôi gửi mọi thứ tới chat đó, ngay từ tin kế tiếp và cả sau khi khởi động lại. Cảnh báo và bản tin sáng đặt ở chat ấy tự tắt ở lần gửi kế tiếp, nên ghép nối lại cũng không bật chúng lên: chạy lại `/brief enable` và đặt lại cảnh báo. Một nhóm được nhận qua tài khoản của bạn không có ghép nối riêng nên `pair revoke` không chạm tới nó: muốn ngừng, tắt cảnh báo và bản tin trong nhóm hoặc gỡ bot khỏi nhóm.
+
+Kênh mất kết nối và không có lại sẽ được báo trên một kênh khác, và `status` liệt kê nó; xem [Vận hành](van-hanh.md#khi-daemon-dừng-hoặc-lỡ-bản-tin).
+
 ## Một tin nhắn đi qua những bước nào
 
 1. **Lưu trước.** Tin được ghi vào hộp nhận bền vững trước khi ứng dụng chat được báo là đã nhận. Sập
@@ -160,9 +172,9 @@ Vài điều nên biết:
   chính lời của bạn yêu cầu.
 - **Cuộc trò chuyện giữ nguyên cho tới khi bạn gõ /new.** Nếu bạn quay lại sau một lúc lâu, OpenAlpha sẽ
   xem lại giá mới chứ không dùng lại con số đã nói trước đó.
-- **Trả lời đúng tin.** Trong chat riêng Telegram, bạn cứ bấm trả lời vào một câu trả lời của OpenAlpha,
+- **Trả lời đúng tin.** Trong chat riêng Telegram hay Zalo Personal, bạn cứ bấm trả lời vào một câu trả lời của OpenAlpha,
   nó sẽ biết bạn đang hỏi tiếp câu nào. Với cảnh báo giá và bản tin sáng, nó chỉ biết đó là loại tin gì, không bao giờ
-  thấy số tiền của bạn.
+  thấy số tiền của bạn. Bot Zalo (Bot API) không gửi kèm tin được trích nên không nằm trong phạm vi này.
 - **Nút bấm là lệnh.** Bấm một nút y như gõ lệnh đó: cùng khâu xét duyệt, cùng cổng quyền, cùng giới hạn
   tần suất, và chạy trên dữ liệu của hôm nay.
 - **Các chat tách biệt.** Mỗi kênh và mỗi chat có cuộc hội thoại riêng; hai ứng dụng chat không bao giờ

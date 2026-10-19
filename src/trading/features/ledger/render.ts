@@ -18,10 +18,9 @@ import type { QuoteConvention } from '@/trading/render/money'
 import { t } from '@/i18n'
 import { renderFeeRows } from '@/trading/features/ledger/fee-rows'
 import { renderEntryFields } from '@/trading/features/ledger/fields'
-import { ledgerEntryHandle } from '@/trading/features/ledger/types'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
-import { isSameInstrument } from '@/trading/kernel/instrument'
+import { isSameInstrument, toIdHandle } from '@/trading/kernel/instrument'
 import {
   formatCount,
   formatQuantity,
@@ -177,7 +176,9 @@ export function renderWriteBody(
 }
 
 /** A price a board-scaled market would print as a fraction of one board unit was almost certainly
- *  typed in board units. Said beside the figure, never rewritten: a sub-unit price is rare but real. */
+ *  typed in board units. The write path refuses one it can prove against a quote; this line covers
+ *  a name with no quote. Said beside the figure, never rewritten: a sub-unit price is rare but
+ *  real. */
 function renderPriceScaleRow(
   locale: Locale,
   txn: LedgerTxn,
@@ -214,7 +215,7 @@ function renderDuplicateRow(
 
   return [
     `${INDENT[1]}${t(locale, DUPLICATE_KEYS[audience], {
-      handle: ledgerEntryHandle(result.duplicateOf),
+      handle: toIdHandle(result.duplicateOf),
     })}`,
   ]
 }

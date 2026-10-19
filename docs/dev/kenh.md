@@ -100,6 +100,18 @@ interface ChannelCapabilities {
 Hãy khai trung thực. Khai `canEdit` mà thực tế không sửa được, đó chính là cách một dòng tiến độ đang
 chạy biến thành bốn mươi tin nhắn trùng nhau.
 
+### Lựa chọn gõ tay
+
+Kênh không có `inlineButtons` không hiện được bàn phím, nên `delivery/choices.ts` cấp một mã bốn chữ
+số cho mỗi nút (`/4821`), khóa theo chat, và ô xin phê duyệt cùng ô duyệt kế hoạch thêm chúng vào thành các
+dòng. `handleTypedChoice` chạy đầu tiên trong `route`, trước quy tắc nhắc tên, và biến một mã còn sống
+thành đúng `ChannelCallbackQuery` mà một lần bấm tạo ra, qua cùng khâu xét duyệt (`gate.admitCallback`).
+Không gì tiêu mã: resolver giữ câu hỏi trả lời lần gõ lại là "đã trả lời hoặc đã hết hạn", nên một câu
+trả lời nó không nhận (thành viên không phải operator, câu hỏi còn đang gửi) để mã còn nguyên. Mỗi mục
+mang `expiresAt` của chính câu hỏi; quá hạn thì mã được giữ ở trạng thái hết hạn, nên operator gõ lại
+sẽ được báo, còn bốn chữ số chưa từng được cấp trong chat đó đi qua như tin nhắn thường. Mã mới không
+bao giờ trùng mã chat còn nhớ, và LRU chặn bộ nhớ.
+
 ### Dữ liệu nút bấm
 
 `callback_data` có dạng `action:rest`. Bên cạnh `abort` và các quyết định phê duyệt, kế hoạch, `cmd:`
@@ -221,10 +233,11 @@ và nơi đọc bảng lùi về một dòng chỉ dẫn thay vì nội dung.
 
 ### Ngữ cảnh trả lời
 
-Ở chat riêng Telegram, một tin trả lời một tin của chính bot mang theo `replyTo` (id và nội dung tin được
+Ở chat riêng Telegram hay Zalo Personal, một tin trả lời một tin của chính bot mang theo `replyTo` (id và nội dung tin được
 trả lời, cùng đoạn `quote` người vận hành đã bôi chọn). Chat nhóm không bao giờ đặt nó: bảng tin đã gửi
 lưu theo chat chứ không theo người, nên nếu không thì một thành viên trả lời có thể kéo câu trả lời của
-thành viên khác vào phiên của mình.
+thành viên khác vào phiên của mình. Zalo Personal điền nó từ `data.quote` khi `quote.ownerId` là id của chính bot, với
+`globalMsgId` là id của tin được trả lời (cái `send` trả về và bảng ghi lại). Zalo Bot API không gửi quote.
 
 `runExchange` biến nó thành một đoạn dẫn bằng `toReplyLead`:
 
@@ -259,6 +272,27 @@ khôi phục danh sách việc cần làm: model đọc được trong lượt �
 `/v1` chỉ hiện đúng những gì người vận hành đã gõ. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn là cách
 bắt đầu mới một cách tường minh.
 
+## Thông báo đặt từ terminal đi đâu
+
+`TradingNoticeSender.resolveRecipient(origin)` trả lời khi đặt cảnh báo hay bản tin. Một nguồn có đường đi
+thì trả về nguyên. Terminal (`LOCAL_CHANNEL_ID`) quy về người nhận mặc định đang sống của daemon khi kênh
+đã gắn, nếu không thì `resolveDefaultRecipient` (`channels/recipient.ts`): định nghĩa được bật đầu tiên
+theo thứ tự registry có chat dự phòng, hoặc, ở chế độ ghép nối, có đúng một chat đã ghép nối
+(`PairingStore.lonePairedChat`). `resolveFallbackChat` là quy tắc duy nhất cho
+chat dự phòng của một kênh (`fallback_chat_id`, nếu không thì một id được phép duy nhất) và `start.ts` cũng
+dùng nó. `AlertService.create` và `scheduleOf` của bản tin quy một lần, nên không bề mặt nào tự làm.
+
+## Theo dõi kênh mất kết nối lâu
+
+Kênh chỉ báo trạng thái qua `setStatus`, không có sự kiện trên bus, nên `app/channel-watch.ts` chạy một vòng
+lặp năm phút trên `delivery.snapshots()` (góc nhìn `/health` hiển thị) khi daemon đang chạy. Kênh có
+`toHealthCode` khác `ok` suốt `CHANNEL_DOWN_GRACE_MS` (15 phút, đo bằng `performance.now()`) được báo một lần
+trên kênh khác đang chạy đầu tiên trong `DeliveryHub.recipients()` (chat mặc định riêng của mỗi kênh đã chạy,
+từ `resolveFallbackChat`), và một `watchUp` khi nó trở lại; trạng thái là một map giới hạn theo số kênh đã cấu
+hình. Kênh khởi động hỏng không có trong snapshots: danh sách `degraded` lúc boot đã nêu tên nó. Tập kênh mất kết
+nối đổi thì đi tới `DaemonStartOptions.onHealth`, và `runDaemon` ghi lại tệp sẵn sàng gồm danh sách lúc boot cộng
+các mục kênh.
+
 ## Khởi động và tắt
 
 `startChannels` kiểm tra mọi định nghĩa đã đăng ký, tạo adapter cho từng kênh đang bật và khởi động
@@ -274,10 +308,14 @@ từ Zalo, vì bảng mã lỗi của chính Zalo xếp 403 là lỗi máy chủ
 và cả hai adapter thử tối đa bốn lần với khoảng chờ có trần trước khi bỏ kênh. Zalo Personal không có
 token để bị từ chối: nó thử đăng nhập lại ở nền (đầu tiên 5 giây, tối đa 5 phút).
 
-`startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient? }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
+`startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
 một bộ gửi chiều ra định tuyến tới runtime sở hữu kênh (`AcknowledgedRouter`), và người nhận mặc định
 cho tin chủ động. Người nhận đó là `fallback_chat_id` của kênh, hoặc id được phép duy nhất khi kênh chỉ
-có đúng một. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để một lần dọn hỏng chặn những lần còn
+có đúng một, hoặc chat ghép nối duy nhất (`createChannelRecipient`). Mỗi lần gửi đều hỏi `isDeliverable`: chat đã bị
+`pair revoke` (dòng giữ `revoked_at`, không bị xóa) thì bị từ chối với kết quả `revoked`, để cảnh báo và bản tin tắt thay vì thử lại, và `resolveRecipient` không còn trả về nó, nên lượt dựng cảnh báo hệ thống không dựng gì cho chat đó; đọc ghép nối lỗi thì lần gửi báo `unavailable` và chờ lượt thử lại, không tắt gì; chat chưa từng ghép nối, như nhóm được
+nhận qua người vận hành, vẫn gửi được. Chat ghép nối được đọc lúc khởi
+động và đọc lại mỗi khi cổng nhận một chat đã ghép nối chưa phải người nhận, vì `pair approve` ghi từ
+một tiến trình khác. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để một lần dọn hỏng chặn những lần còn
 lại.
 
 ## Thêm một kênh

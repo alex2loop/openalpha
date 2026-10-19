@@ -391,6 +391,10 @@ The composition root supplies trusted bundled `Plugin` objects. This binary pass
 (`createPluginsProvider([], ...)` in `app/providers.ts`), so a host that embeds the runtime is what
 supplies them. Installed filesystem plugins are discovered as untrusted data.
 
+A `DaemonTask` runs `start(signal, options?)`. `options` is a `DaemonStartOptions`: `onReady` fires once every
+subsystem is up, `onHealth` reports what a channel has left down as it changes, and `previousRun` is set when
+this start reclaimed the pid file of a daemon that never stopped cleanly.
+
 Trading is **not** a plugin. It registers directly at provider step 9, before plugins, so a plugin can
 never shadow a trading tool, command or debate persona. See
 [AD-5](internals.md#ad-5-trading-is-one-bounded-context).

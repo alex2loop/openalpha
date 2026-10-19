@@ -349,6 +349,13 @@ phiên chạy đang hoạt động và thoát sạch. Các lệnh CLI tầng cao
 [src/cli/registry.ts](../../src/cli/registry.ts); phần giao dịch không đóng góp lệnh CLI nào. Về bề mặt lập
 trình, xem [Mở rộng](./mo-rong.md#bề-mặt-sdk).
 
+**Tệp khóa được nạp trước.** `main()` đọc `<thư mục dữ liệu>/env` (`src/cli/env-file.ts`) ngay sau các cờ
+toàn cục và trước bước thăm dò cấu hình, vì cấu hình đọc khóa từ `process.env`. Đây là lần ghi duy nhất vào
+`process.env` lúc khởi động: nó chỉ đặt tên mà môi trường để trống, bỏ qua các tên điều khiển chính
+chương trình (`BRAND.controlEnv`: thư mục dữ liệu, dấu chạy nền, mức log, tệp của trình sửa) và các tên điều khiển cách chương trình khởi động (`PATH`, `HOME`, `SHELL`, `TMPDIR`, `TZ`, `LD_*`,
+`DYLD_*`, `NODE_*`, `BUN_*`), và để nguyên tệp mà người khác đọc được hoặc người dùng này không mở được (`CliApp.keyFile` cho biết những tên nó đã đặt). Thư mục dữ liệu là
+bản bootstrap (`--data-dir`, biến thư mục dữ liệu, mặc định) nên `[paths] data_dir` không dời được nó.
+
 **Khóa không bao giờ chặn lúc khởi động.** Boot resolve với `deferMissingKeys`: một mô hình có biến khóa
 chưa đặt giữ `missingEnv` (chuỗi bỏ qua nó, và khi không còn mô hình nào thì mọi lời gọi bị từ chối
 bằng `MissingEnvError` đã bản địa hóa), còn máy chủ MCP nêu `${VAR}` chưa đặt thì vào `ResolvedMcp.unset`
@@ -358,11 +365,13 @@ log một lần ở nơi nó thấy chỗ thiếu (`llm.key_missing` lúc dựng
 terminal in ra và `config validate` báo. Kênh có `start()` ném `OperatorConfigError` (token thiếu hoặc bị
 từ chối) thì được đóng và ghi `channel.start_skipped`; `startChannels` trả nó trong `skipped`, nên kênh chưa
 từng lắng nghe thì không cho ai vào. `ApiTokenError` từ bộ khởi động API được xử lý giống vậy
-(`api.token_unusable`). Tác vụ daemon đưa cả hai danh sách cho `onReady` (`DaemonReadyHandler`); `start`
+(`api.token_unusable`). Tác vụ daemon đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
 tiến trình cha. Sau đó handler ghi tệp sẵn sàng (`BRAND.readyFile`, ghi nguyên khối, `{ pid, degraded }`) mà
 lần khởi động nền chờ, còn `status` và `/v1/state` đọc lại; mỗi lần khởi động xóa tệp này ngay khi giữ được
-tệp pid, nên tệp do một daemon chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Một nhịp vòng lặp lỗi với `MissingEnvError` là lỗi biên (`trading.tick_key_missing` một lần
+tệp pid, nên tệp do một daemon chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Tệp pid còn ghi `startedAt`. Lần khởi động giành lại một tệp pid cũ (`PidFileClaim` `reclaimed`) truyền
+`DaemonStartOptions.previousRun`, nên daemon nhắn chat mặc định một lần (`cli.daemonStoppedUnexpectedly`), và
+`status` đọc cùng tệp qua `readStalePid`. Một nhịp vòng lặp lỗi với `MissingEnvError` là lỗi biên (`trading.tick_key_missing` một lần
 mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở khoảng sau), không bao giờ vào cách ly.
 
 **Giới hạn của việc thực thi lệnh.** `/trade` và `order_place` đặt lệnh spot trên một sàn đã đăng ký, và

@@ -34,6 +34,9 @@ const DELIVERED_SET = 'last_delivered_day = delivery_day, attempts = 0, '
 // A day given up on was never delivered, so `last_delivered_day` stays; the retry count resets so
 // the next day starts its own ladder.
 const ABANDONED_SET = 'attempts = 0, '
+const DISABLED_SET =
+  "state = 'disabled', next_delivery_day = NULL, next_due_at = NULL, delivery_day = NULL, " +
+  'lease_token = NULL, lease_until = NULL, '
 
 interface BriefDeliveryRow {
   readonly region: string
@@ -102,6 +105,13 @@ export interface BriefDeliveryStore {
     readonly disabledAt: number
     readonly signal: AbortSignal
   }): Promise<DisableBriefResult>
+  /** Switches the claimed row off in one guarded write. False when the claim was lost: the worker
+   *  no longer owns the row and leaves it to whoever does. */
+  disableClaimed(
+    options: Pick<CompleteDeliveryOptions, 'leaseToken' | 'deliveryDay' | 'signal'> & {
+      readonly disabledAt: number
+    }
+  ): Promise<boolean>
   /** Undoes a claim whose delivery was aborted before it completed: back to `scheduled` with the
    *  bound day and the claim's attempt increment handed back. Takes no signal — this is the
    *  cleanup that runs while the tick's signal is already aborted. */
@@ -118,6 +128,7 @@ export function createBriefDeliveryStore(deps: StoreDeps): BriefDeliveryStore {
     deferDelivery: (options) => completeDelivery(deps, options, ''),
     abandonDelivery: (options) => completeDelivery(deps, options, ABANDONED_SET),
     disable: (options) => disable(deps, options),
+    disableClaimed: (options) => disableClaimed(deps, options),
     release: (options) => release(deps, options),
   }
 }
@@ -270,9 +281,7 @@ async function disable(
 
   const p = deps.dialect.param
   const result = await deps.db.execute(
-    `UPDATE brief_delivery SET state = 'disabled', disabled_at = ${p(1)}, ` +
-      'next_delivery_day = NULL, next_due_at = NULL, delivery_day = NULL, lease_token = NULL, ' +
-      'lease_until = NULL ' +
+    `UPDATE brief_delivery SET ${DISABLED_SET}disabled_at = ${p(1)} ` +
       `WHERE id = ${p(2)} AND state <> 'disabled'`,
     [options.disabledAt, DELIVERY_ROW_ID]
   )
@@ -284,6 +293,22 @@ async function disable(
   const existing = await find(deps, options.signal)
 
   return existing === null ? 'not-found' : 'already-disabled'
+}
+
+async function disableClaimed(
+  deps: StoreDeps,
+  options: Parameters<BriefDeliveryStore['disableClaimed']>[0]
+): Promise<boolean> {
+  assertNotAborted(options.signal)
+
+  const p = deps.dialect.param
+  const result = await deps.db.execute(
+    `UPDATE brief_delivery SET ${DISABLED_SET}disabled_at = ${p(1)} ` +
+      `WHERE id = ${p(2)} AND ${LEASE_PREDICATE}${p(3)} AND delivery_day = ${p(4)}`,
+    [options.disabledAt, DELIVERY_ROW_ID, options.leaseToken, options.deliveryDay]
+  )
+
+  return result.changes === 1
 }
 
 function toDelivery(row: BriefDeliveryRow): BriefDelivery {

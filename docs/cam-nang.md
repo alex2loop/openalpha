@@ -172,6 +172,7 @@ chạm sàn. Cú pháp cố định theo vị trí, ngày dạng `YYYY-MM-DD`:
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>
 /record transfer <sàn nguồn> <sàn đích> <số tiền> <tiền tệ> <phí> <ngày>
 /record buy|sell <nơi giữ> <thị trường:mã> <khối lượng|all> <giá> <tiền tệ> [phí] <ngày>
+/record buy FPT 100 58400               # dạng ngắn: bỏ nơi giữ, thị trường, tiền tệ, ngày khi chỉ có một lựa chọn
 /record rights <nơi giữ> <thị trường:mã> <khối lượng> <giá> <tiền tệ> <phí> <ngày>
 /record dividend <nơi giữ> <thị trường:mã> <số tiền> <tiền tệ> <ngày>
 /record split|distribution <nơi giữ> <thị trường:mã> <thay đổi khối lượng> <ngày>
@@ -182,7 +183,8 @@ chạm sàn. Cú pháp cố định theo vị trí, ngày dạng `YYYY-MM-DD`:
 /record deposit binance 1000 USDT 2026-08-14 fx 26600
 
 /update <mã bút toán> <các trường như /record>
-/delete <mã bút toán>
+/delete <mã bút toán>                   # xem lại dòng đó
+/delete <mã bút toán> confirm           # xóa thật
 ```
 
 `<sàn>` là nơi giữ tiền hay tài sản: `vps` cho chứng khoán VN, `okx` hoặc `binance` cho crypto,
@@ -223,7 +225,7 @@ Bốn điều cần nhớ:
   cổ phiếu VN tự đóng dấu thanh toán T+2.
 - Ghi nhầm? `/transactions` nhóm bút toán theo ngày và in mã ngắn cuối mỗi dòng, ví dụ `0f9838`. Sửa
   bằng `/update 0f9838 <các trường như /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
-  hay bỏ trống phí), xóa bằng `/delete 0f9838`. Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh
+  hay bỏ trống phí), xóa bằng `/delete 0f9838 confirm` (gõ `/delete 0f9838` trước để xem lại dòng). Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh
   sửa, và sửa một bút toán sẽ tính lại cả những khuyến nghị cũ.
 
 #### Crypto qua P2P: từng bước cho người mới

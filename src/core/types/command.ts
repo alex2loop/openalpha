@@ -159,7 +159,7 @@ export interface SlashCommand {
    * position; the caller filters by prefix.
    */
   completeFor?(args: readonly string[]): readonly string[]
-  /** The `/help` heading the command lists under; a command naming none lists under the general one. */
+  /** The `/help` heading the command lists under; a command naming none lists under the system one. */
   readonly group?: CommandGroup
   /** The message a bad argument line answers with, so `/help <command>` shows the same text. A
    *  function because its values (the registered markets) are known only once the command runs. */

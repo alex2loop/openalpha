@@ -8,6 +8,7 @@ import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
+import { resolveMarketIcons } from '@/trading/features/market-data/reads/describe'
 import { renderQuotesText } from '@/trading/features/market-data/render/quotes'
 import { renderWatchlistText } from '@/trading/features/portfolio/render/watchlist'
 import { parseMember, parseTickers, usage } from '@/trading/kernel/surface/surface'
@@ -21,7 +22,10 @@ const ACTIONS = Object.freeze(['add', 'remove'] as const)
 interface WatchlistCommandDeps {
   readonly profiles: Pick<ProfileService, 'get' | 'updateWatchlist'>
   /** Read here so `show` can price the list it owns without re-implementing the quoteBoard path. */
-  readonly marketData: Pick<MarketDataService, 'markets' | 'quoteBoard' | 'quoteConvention'>
+  readonly marketData: Pick<
+    MarketDataService,
+    'describeMarkets' | 'markets' | 'quoteBoard' | 'quoteConvention'
+  >
   /** The operator's own clock, so every rendered instant reads in one zone. */
   readonly timezone: string
 }
@@ -94,6 +98,7 @@ async function runShow(deps: WatchlistCommandDeps, ctx: SlashContext): Promise<S
     text: renderQuotesText(ctx.locale, quoteBoard, {
       context: resolveRenderContext(deps.timezone, ctx.surface),
       quoteConventions: quoteConventionsFor(deps.marketData, quoteBoard.items),
+      marketIcons: resolveMarketIcons(deps.marketData),
     }),
   }
 }

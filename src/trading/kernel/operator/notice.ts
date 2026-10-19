@@ -46,7 +46,8 @@ export type TradingNoticePayload =
         readonly benchmark?: { readonly ticker: Ticker; readonly movePct: number }
       }
     }
-  | { readonly kind: 'brief'; readonly snapshot: BriefSnapshot }
+  /** `sentAfterOpen`: the build outlasted the open, so the brief carries a late-send line first. */
+  | { readonly kind: 'brief'; readonly snapshot: BriefSnapshot; readonly sentAfterOpen?: true }
   | { readonly kind: 'intraday'; readonly report: IntradayReport }
   /** Levels the system set for a held name nothing was watching, or a held plan's stop the trail
    *  raised. Not a call, so neither carries a verdict: the levels are the whole message. Rendered by
@@ -59,6 +60,9 @@ export type TradingNoticePayload =
   | { readonly kind: 'series-restated'; readonly tickers: readonly string[] }
   // Terminal, and named by what stopped: the operator re-enables it through that subject's tool.
   | { readonly kind: 'delivery-disabled'; readonly subject: NoticeKind }
+  // The daemon was down through today's pre-open window, so today's was skipped; the next is still
+  // on schedule.
+  | { readonly kind: 'delivery-missed'; readonly subject: NoticeKind }
   // One scheduled delivery given up: the subscription stays on and the next one is still due.
   | { readonly kind: 'delivery-skipped'; readonly subject: NoticeKind }
   // One scheduled delivery given up because a key variable is unset: retrying cannot help, since a
@@ -74,13 +78,15 @@ export interface TradingNotice {
   readonly payload: TradingNoticePayload
 }
 
-export type TradingNoticeSendResult = 'accepted' | 'unavailable' | 'aborted'
+export type TradingNoticeSendResult = 'accepted' | 'unavailable' | 'aborted' | 'revoked'
 
 export interface TradingNoticeSender {
   send(notice: TradingNotice, signal: AbortSignal): Promise<TradingNoticeSendResult>
-  /** Whether an unattended notice addressed here could be routed at all. A subscription armed at an
-   *  address no channel runtime serves fails every attempt in silence and then disables itself, so
-   *  the arming paths ask before they write. Read at arming time, never in place of a send result:
-   *  a channel can go down afterwards, which is what the retry ladder is for. */
-  canDeliver(target: DeliveryAddress): boolean
+  /** Where an unattended notice armed from `origin` would be sent, or undefined when no route
+   *  exists, a chat whose pairing was revoked included. A subscription armed at an address no
+   *  channel runtime serves fails every attempt in silence and then disables itself, so the arming
+   *  paths ask before they write. The terminal is no route of its own: it resolves to the chat the
+   *  daemon would use. Read at arming time, never in place of a send result: a channel can go down
+   *  afterwards, which is what the retry ladder is for. */
+  resolveRecipient(origin: DeliveryAddress): Promise<DeliveryAddress | undefined>
 }

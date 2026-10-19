@@ -396,6 +396,10 @@ Gốc composition cấp các đối tượng `Plugin` đi kèm, đáng tin. Bina
 (`createPluginsProvider([], ...)` trong `app/providers.ts`), nên bên cấp chúng là ứng dụng chủ nhúng
 runtime. Plugin đã cài trong hệ thống tệp được khám phá như **dữ liệu không đáng tin**.
 
+`DaemonTask` chạy `start(signal, options?)`. `options` là `DaemonStartOptions`: `onReady` kích hoạt khi mọi hệ con
+đã lên, `onHealth` báo những gì một kênh còn bỏ xuống mỗi khi nó đổi, và `previousRun` được đặt khi lần khởi động
+này giành lại tệp pid của một daemon chưa từng dừng đàng hoàng.
+
 Phần giao dịch **không** phải plugin. Nó đăng ký trực tiếp ở bước provider số 9, trước plugin, nên plugin
 không bao giờ che được công cụ, lệnh hay vai tranh luận nào của phần giao dịch. Xem
 [AD-5](ben-trong.md#ad-5-phần-giao-dịch-là-một-bounded-context).

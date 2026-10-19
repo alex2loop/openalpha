@@ -148,13 +148,9 @@ export function createConfiguredPricing(
     return pricing
   }
 
-  const warmed = warmOpenRouterPrices(logger).catch(() => undefined)
-
-  warmed
-    .then(() => {
-      warnUnknownModels(models, pricing, logger)
-    })
-    .catch(() => undefined)
+  // Started by the first caller of `ready`, not here: a command that never calls a model has no use
+  // for the 788 KB feed, and holding the process for it is what made `status` slow.
+  let warmed: Promise<void> | undefined
 
   return Object.freeze({
     priceOf(id: ProviderModelId): ModelPriceResolution {
@@ -162,7 +158,15 @@ export function createConfiguredPricing(
 
       return pricing.priceOf(id)
     },
-    ready: () => warmed,
+    ready: () => {
+      warmed ??= warmOpenRouterPrices(logger)
+        .then(() => {
+          warnUnknownModels(models, pricing, logger)
+        })
+        .catch(() => undefined)
+
+      return warmed
+    },
   })
 }
 

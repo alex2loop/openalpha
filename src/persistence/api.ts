@@ -25,7 +25,13 @@ export type {
   SessionSummary,
   StoredSessionMessage,
 } from '@/persistence/types'
-export { BACKUPS_SUBDIR, backupSqlite, backupTarget, pruneBackups } from '@/persistence/backup'
+export {
+  BACKUPS_SUBDIR,
+  backupAndPrune,
+  backupSqlite,
+  backupTarget,
+  newestBackupAt,
+} from '@/persistence/backup'
 export {
   type OpenedPersistence,
   openPersistence,
@@ -62,3 +68,4 @@ export {
   findTable,
   TABLE_NAME_WIDTH,
 } from '@/persistence/tables'
+export { optimizeSqlite } from '@/persistence/upkeep'

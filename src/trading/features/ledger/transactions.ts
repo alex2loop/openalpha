@@ -9,11 +9,10 @@ import type { MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
 import { foldBook } from '@/trading/features/ledger/book'
 import { renderLedgerText } from '@/trading/features/ledger/rows'
-import { ledgerEntryHandle } from '@/trading/features/ledger/types'
 import { orderLedger } from '@/trading/features/ledger/validate'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
-import { tradingDay } from '@/trading/kernel/instrument'
+import { isIdRef, toIdHandle, tradingDay } from '@/trading/kernel/instrument'
 import { parseBranded, usage } from '@/trading/kernel/surface/surface'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 import { pageAffordances } from '@/trading/render/affordance'
@@ -23,11 +22,6 @@ const USAGE: 'slash.tradingTransactionsUsage' = 'slash.tradingTransactionsUsage'
 /** A page size is at most three digits, and a handle is six characters off a UUID tail - so a token
  *  is read as a count only where it could be one. */
 const COUNT_RE = /^\d{1,3}$/
-/** A full id or a slice of its tail. The last UUID group holds no hyphen, so a slice with one is at
- *  least thirteen characters, and a mistyped day (`2026-02-30`) is never looked up as a handle.
- *  Checked before the lookup because the store matches with `LIKE`, where `%` or `_` would be a
- *  wildcard. */
-const ENTRY_REF_RE = /^(?:[0-9a-f]{1,12}|[0-9a-f-]{13,36})$/
 const DAY_RANGE_SEPARATOR = '..'
 const LAST_DAYS_RE = /^(\d{1,3})d$/
 const TODAY_WINDOW = 'today'
@@ -70,7 +64,11 @@ export function createTransactionsCommand(deps: TransactionsCommandDeps): SlashC
 
 async function run(deps: TransactionsCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const today = resolveRegionDay(deps.markets, deps.defaultRegion, Date.now())
-  const parsed = parseTransactionsArgs(ctx.args, today)
+  const defaultLimit =
+    ctx.surface === 'channel'
+      ? SURFACE_LIMITS.channelHistoryItems
+      : SURFACE_LIMITS.maximumHistoryItems
+  const parsed = parseTransactionsArgs(ctx.args, { today, defaultLimit })
 
   if (parsed === null) {
     return usage(USAGE)
@@ -115,8 +113,9 @@ async function run(deps: TransactionsCommandDeps, ctx: SlashContext): Promise<Sl
  *  because `7d` is also hex. */
 function parseTransactionsArgs(
   args: readonly string[],
-  today: TradingDay
+  defaults: { readonly today: TradingDay; readonly defaultLimit: number }
 ): TransactionsArgs | null {
+  const { today, defaultLimit } = defaults
   let limit: number | undefined
   let range: LedgerDayRange | undefined
   let cursor: string | undefined
@@ -137,7 +136,7 @@ function parseTransactionsArgs(
       continue
     }
 
-    if (cursor !== undefined || !ENTRY_REF_RE.test(token)) {
+    if (cursor !== undefined || !isIdRef(token)) {
       return null
     }
 
@@ -145,7 +144,7 @@ function parseTransactionsArgs(
   }
 
   return {
-    limit: limit ?? SURFACE_LIMITS.maximumHistoryItems,
+    limit: limit ?? defaultLimit,
     ...(range === undefined ? {} : { range }),
     ...(cursor === undefined ? {} : { cursor }),
   }
@@ -245,7 +244,7 @@ function buildDayRangeToken(range: LedgerDayRange): string {
 /** The button carries the handle the rows print, not the full id: a payload has 64 bytes on the
  *  wire, and a UUID plus the command would spend most of them. */
 function cursorHandleOf(cursor: LedgerEntryId | undefined): string | undefined {
-  return cursor === undefined ? undefined : ledgerEntryHandle(cursor)
+  return cursor === undefined ? undefined : toIdHandle(cursor)
 }
 
 /** A handle nothing answers to is refused the way `/update` refuses one: a page starting from the

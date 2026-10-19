@@ -23,6 +23,7 @@ import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 interface QuoteRenderOptions {
   readonly context: RenderContext
   readonly quoteConventions?: ReadonlyMap<MarketRef, QuoteConvention>
+  readonly marketIcons: ReadonlyMap<MarketRef, string>
 }
 
 export function renderQuotesText(
@@ -54,7 +55,7 @@ export function renderQuotesText(
         locale,
         toMarketBlocks(quoteBoard.items, (item) => item.market),
         {
-          icon: SECTION_ICONS.watchlist,
+          icons: options.marketIcons,
           renderRows: (items) =>
             items.map((item) => rowLine(locale, item, { tickerWidth, options })),
         }

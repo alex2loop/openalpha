@@ -7,10 +7,17 @@ import {
   recentClosedRoundTrips,
 } from '@/trading/features/portfolio/folds/holdings'
 import { formatSignedFixedFraction, renderVenueName, SECTION_ICONS } from '@/trading/render/format'
-import { INDENT, INLINE_SEPARATOR, renderSectionTitle, toFactLines } from '@/trading/render/layout'
+import {
+  INDENT,
+  INLINE_SEPARATOR,
+  renderOverflowLine,
+  renderSectionTitle,
+  toFactLines,
+} from '@/trading/render/layout'
 import { formatMoney, formatSignedMoney } from '@/trading/render/money'
 import { FRACTION_QUANTUM } from '@/trading/render/number'
 import { toTable } from '@/trading/render/table'
+import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** The money rows' own keys, named so the shared row builder stays type-checked against the
  *  catalog instead of widening to any string. */
@@ -153,7 +160,10 @@ function renderClosedLines(
   display: BookDisplay
 ): readonly string[] {
   const trips = closedRoundTripsOf(book.book.sales, display.minimumSizes ?? new Map())
-  const cells = recentClosedRoundTrips(trips).map((trip) => [
+  // The structured view keeps the full count; a line layout is a phone, which gets the last few.
+  const limit = display.context.layout === 'lines' ? SURFACE_LIMITS.closedTripsOnLines : undefined
+  const shown = recentClosedRoundTrips(trips, limit)
+  const cells = shown.map((trip) => [
     trip.instrument.ticker,
     t(locale, 'trading.render.portfolio.closedDay', { day: formatDay(locale, trip.closedAt) }),
     formatSignedFixedFraction(locale, trip.realizedFraction),
@@ -164,7 +174,13 @@ function renderClosedLines(
       ? toTable(cells, ['left', 'left', 'right', 'right'])
       : cells.map((row) => row.join(INLINE_SEPARATOR))
 
-  return rows.map((row) => `${INDENT[2]}${row}`)
+  // The total above counts every trip, so the ones left off are counted rather than dropped.
+  const hidden = trips.length - shown.length
+
+  return [
+    ...rows.map((row) => `${INDENT[2]}${row}`),
+    ...(hidden > 0 ? [renderOverflowLine(locale, hidden)] : []),
+  ]
 }
 
 /** Only where cash actually spans custodians: one venue makes the split a restatement of the total

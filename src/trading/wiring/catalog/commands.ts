@@ -62,6 +62,7 @@ interface TradingCommandDeps {
     PortfolioService,
     | 'record'
     | 'previewRecord'
+    | 'recordVenues'
     | 'update'
     | 'remove'
     | 'viewAbsolute'
@@ -105,7 +106,10 @@ interface TradingCommandDeps {
   readonly venues: VenueRegistry
   readonly config: TradingConfig
   readonly intradaySettings: IntradaySettingsStore
-  readonly ledger: Pick<LedgerStore, 'listAll' | 'findByIdempotency' | 'listIdsMatching'>
+  readonly ledger: Pick<
+    LedgerStore,
+    'listAll' | 'findById' | 'findByIdempotency' | 'listIdsMatching'
+  >
   readonly logger: Logger
   readonly defaultRegion: Region
   /** Absent when no exchange key is configured: `/trade` then only names the keys it needs. */
@@ -118,8 +122,8 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
   const costs = deps.config.costs
 
   return [
-    createSetupCommand(),
     ...inGroup(BOOK_GROUP, [
+      createSetupCommand(),
       ...ledgerWriteCommands(deps),
       ...bookCommands(deps),
       createTransactionsCommand({
@@ -238,9 +242,10 @@ function ledgerWriteCommands(deps: TradingCommandDeps): readonly SlashCommand[] 
       staged,
       baseCurrency,
       policy,
+      defaultRegion: deps.defaultRegion,
     }),
     createUpdateCommand({ portfolio, marketData, costs, baseCurrency }),
-    createDeleteCommand({ portfolio, marketData, costs }),
+    createDeleteCommand({ portfolio, marketData, costs, ledger }),
   ]
 }
 

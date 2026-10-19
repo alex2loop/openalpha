@@ -5,7 +5,8 @@ import { join } from 'node:path'
 import type { CliApp } from '@/cli/types'
 import { printDaemonSummary } from '@/cli/commands/daemon/summary'
 import { buildBackgroundEnv, buildForegroundEnv } from '@/cli/daemon-env'
-import { isDaemonReady, liveDaemon, liveDaemonPid, readDaemonDegraded } from '@/cli/daemon-guard'
+import { liveDaemon, liveDaemonPid } from '@/cli/daemon-guard'
+import { isDaemonReady, readDaemonDegraded } from '@/cli/daemon-ready'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { buildSelfArgv } from '@/cli/services'
@@ -20,7 +21,7 @@ const PID_POLL_MS = 100
 // A background start waits for the daemon to be ready, not merely alive: past the boot refresh's
 // own budget (app/boot-refresh.ts, 60s) plus a first boot's migrations. A daemon that dies is
 // reported as soon as it exits.
-const START_TIMEOUT_MS = 90_000
+export const START_TIMEOUT_MS = 90_000
 const DAEMON_STDOUT_LOG = 'daemon.stdout.log'
 // Kept apart from stdout so a failed start can quote the daemon's own error and nothing else.
 const DAEMON_STDERR_LOG = 'daemon.stderr.log'

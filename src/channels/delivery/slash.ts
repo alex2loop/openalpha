@@ -17,6 +17,7 @@ import { formatChannelFooter, joinFooter } from '@/channels/delivery/format'
 import { openSlashNotice, type SlashNotice } from '@/channels/delivery/slash-notice'
 import { operatorContextOf } from '@/channels/operator'
 import { parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
+import { BRAND } from '@/core/brand'
 import {
   abortError,
   ChannelError,
@@ -109,7 +110,9 @@ function failureText(deps: InboundHandlerDeps, err: unknown): string {
     return bindLocale(deps.locale).translate(operator.key, operator.params)
   }
 
-  return t(deps.locale, isCallerFault(err) ? 'channel.commandRejected' : 'channel.commandFailed')
+  const key = isCallerFault(err) ? 'channel.commandRejected' : 'channel.commandFailed'
+
+  return t(deps.locale, key, { brand: BRAND.name })
 }
 
 async function runSlashRequest(options: ResolveSlashOptions): Promise<SlashRunRequest | null> {
@@ -144,53 +147,18 @@ async function runSlashRequest(options: ResolveSlashOptions): Promise<SlashRunRe
 }
 
 async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> {
-  const { deps, msg, sessionId, route, resolveAgentId, resolved } = options
+  const { deps, msg, sessionId, route, resolved } = options
 
   if (resolved === undefined) {
     throw new ChannelError('get_updates_failed', 'missing resolved long-running slash command')
   }
 
   const controller = deps.slashRuns.register(sessionId, msg.chatId)
-  // Armed before the work is queued, so its reveal delay is measured from the request. Nothing is
-  // awaited here: `enqueue` can return an already-rejected promise (queue full), and an outbound
-  // send between that and its `await` would leave the rejection unhandled.
-  const notice = openProgressNotice({
-    deps,
-    msg,
-    sessionId,
-    signal: controller.signal,
-    execution: resolved.policy.execution,
-  })
 
   try {
     const queued = deps.sessionQueue.enqueue(
       sessionId,
-      async () => {
-        if (controller.signal.aborted) {
-          return
-        }
-
-        const request = await dispatchSlash({
-          deps,
-          msg,
-          sessionId,
-          signal: controller.signal,
-          resolveAgentId,
-          resolved,
-          ...(notice === null ? {} : { notice }),
-        })
-
-        if (request === null) {
-          return
-        }
-
-        const selectedAgent = request.agentId ?? (await resolveAgentId(msg.chatId))
-        await deps.runExchange({
-          combined: { ...msg, text: request.text },
-          sessionId,
-          agentId: selectedAgent,
-        })
-      },
+      () => runQueuedSlash(options, controller),
       route.register()
     )
 
@@ -203,8 +171,54 @@ async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> 
 
     await deps.sendText(msg.chatId, t(deps.locale, 'channel.queueFull'))
   } finally {
-    await notice?.stop()
     deps.slashRuns.unregister(sessionId, msg.chatId, controller)
+  }
+}
+
+/** The command's turn at the head of its session. The notice opens here, not when the request
+ *  arrives: a command waiting behind another says nothing until it starts, and its reveal delay is
+ *  measured from its own start. Whatever the command does, the notice is stopped in this task. */
+async function runQueuedSlash(
+  options: ResolveSlashOptions,
+  controller: AbortController
+): Promise<void> {
+  const { deps, msg, sessionId, resolveAgentId, resolved } = options
+
+  if (controller.signal.aborted) {
+    return
+  }
+
+  const notice = openProgressNotice({
+    deps,
+    msg,
+    sessionId,
+    signal: controller.signal,
+    execution: resolved?.policy.execution,
+  })
+
+  try {
+    const request = await dispatchSlash({
+      deps,
+      msg,
+      sessionId,
+      signal: controller.signal,
+      resolveAgentId,
+      ...(resolved === undefined ? {} : { resolved }),
+      ...(notice === null ? {} : { notice }),
+    })
+
+    if (request === null) {
+      return
+    }
+
+    const selectedAgent = request.agentId ?? (await resolveAgentId(msg.chatId))
+    await deps.runExchange({
+      combined: { ...msg, text: request.text },
+      sessionId,
+      agentId: selectedAgent,
+    })
+  } finally {
+    await notice?.stop()
   }
 }
 

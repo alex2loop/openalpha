@@ -86,7 +86,7 @@ The model chain. The first entry is the primary, the rest are fallbacks.
 | `provider` | string | - | Catalog provider id. Required here or in `[model_defaults]`. |
 | `model` | string | - | The provider's own model id. Required on every entry. |
 | `alias` | string, no spaces | - | Short selector used by `/model`. Unique across the chain. Without it the selector is `<provider>:<model>`. |
-| `api_key_env` | string | - | Name of the environment variable holding the key. Unset or empty, `start` refuses and other commands skip this model. Required here or in `[model_defaults]`, except for subscription-login providers, providers signed in with a cloud account, and servers on this machine (loopback `base_url`, such as Ollama or LM Studio). |
+| `api_key_env` | string | - | Name of the environment variable holding the key. Unset or empty, `start` warns and runs without this model; other commands skip it. Required here or in `[model_defaults]`, except for subscription-login providers, providers signed in with a cloud account, and servers on this machine (loopback `base_url`, such as Ollama or LM Studio). |
 | `base_url` | url | catalog endpoint | Endpoint override. Required for a provider with no default endpoint (such as `vllm`). |
 | `reasoning` | `default \| off \| low \| medium \| high` | `default` | `default` leaves it to the provider; `off` asks it to disable reasoning; the others set the depth. |
 | `max_tokens` | positive int | runtime limit | Output cap for this entry. |
@@ -253,7 +253,7 @@ cap are in [Cost and budgets](budgets.md).
 |---|---|---|---|
 | `language` | string | `vi` | `en` or `vi`. |
 | `timezone` | string | host zone (`UTC` if none) | IANA name, for example `Asia/Ho_Chi_Minh`. New cron jobs snapshot this value unless `--tz` overrides it; interval schedules reject `--tz`. |
-| `currency` | string | `VND` | ISO 4217 code (three capital letters). Trading's base currency. Fixed once your book has a profile: a later change is refused, and `doctor` names the mismatch on its `database` row. |
+| `currency` | string | `VND` | ISO 4217 code (three capital letters). Trading's base currency; `onboard` asks it on first setup and writes it here. Fixed once your book has a profile: a later change is refused, and `doctor` names the mismatch on its `database` row. |
 | `region` | string | `vn` | Home region; only `vn` today. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national segments plus crypto. |
 
 All keys are optional. `[locale]` accepts no other keys. `currency` and `region` say where you are,
@@ -278,6 +278,7 @@ Layout under `data_dir`:
   logs/daemon.log                   default global log (`[log] file`)
   logs/agents/<agentId>/agent.log   per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots
+    daily/                          the daemon's daily copies, newest `[retention] daily_backups` kept
   plugins/                          installed plugins
   workspaces/<agentId>/             private scratch folder per agent
     run/                            HOME of child processes; cleared only by a confirmed `workspace cleanup`
@@ -330,6 +331,7 @@ you see.
 |---|---|---|---|
 | `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, and brief snapshots past the newest per language. |
 | `inbox_days` | int | `7` | Positive. How long to keep completed and failed inbox entries, payloads included. |
+| `daily_backups` | int | `3` | `0` or more. How many daily SQLite snapshots to keep in `backups/daily/`; `0` turns them off. PostgreSQL is skipped (use `pg_dump`). |
 
 `days` also drives two file rules:
 
@@ -382,7 +384,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `slash_commands` | bool | `true` | Enable slash commands and the command menu. |
 | `notify_max_per_minute` | int | `3` | Rate cap on proactive messages. |
 | `gap_note_minutes` | int | `30` | Quiet minutes after which the next answer is told to check prices again; `0` turns it off. |
-| `fallback_chat_id` | string | - | Fallback target for proactive messages. |
+| `fallback_chat_id` | string | the one allowed id, or the one paired chat | Fallback target for proactive messages. |
 | `pairing` | bool | `true` with no allowlist | Let unknown chats pair. |
 
 `token_env` beats `token_file`. There is no inline `token` key, and no token variable is read unless
@@ -687,6 +689,9 @@ send_times = []                # HH:MM pushes in the market's timezone; empty = 
 breakout_range = 1.5           # average daily ranges a move must span before a watchlist alert
 breakout_sessions = 14         # settled sessions the average daily range is measured over
 
+[trading.typed_prices]
+confirm_multiple = 10          # ask before saving a typed price this many times from the market
+
 [trading.orders]
 maximum_stake_quote = 0        # 0 = uncapped; estimated notional in USDT on okx and binance
 maximum_open_trades = 0        # 0 = uncapped; open positions plus orders not yet in the book
@@ -835,11 +840,14 @@ refresh. Naming a subset would silently starve a market you still trade.
 
 **No scoring parameter is configurable.** Lookbacks, thresholds and factor weights live in code with
 the market that owns them, so two installs on the same version score the same input the same way.
-Config decides what runs and when, plus two things that are yours to judge:
+Config decides what runs and when, plus three things that are yours to judge:
 
 - **When an alert interrupts you.** `[trading.alerts] breakout_range` and `breakout_sessions` set how
   far a watchlist name must move before you hear about it. A higher range makes alerts rarer and
   changes no score.
+- **When a price you type is questioned.** `[trading.typed_prices] confirm_multiple` sets how many
+  times above or below the name's latest price a price in `/record`, `/update` or `/alert` must sit before
+  you are asked to confirm it (default 10). It changes no score.
 - **How far your stops and targets sit.** Under `[trading.markets.<id>]`, `maximum_stop_loss` (a hard
   ceiling, as a fraction of entry), `stop_loss_atr` and `reward_risk` replace the market's own stop
   width and reward multiple. Setting any of them starts a separate track record for that market.
@@ -896,9 +904,13 @@ problem in the file (up to 8, the rest as a count), so you fix them in one pass 
 A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
 `config validate` also checks each `[[models]]` provider name against the catalog, and reports an
 unset key variable as one item in the same list instead of stopping there. `--verbose` adds the full
-list of schema issues. A missing key variable comes with the line that sets it in your
-shell: `export` on macOS and Linux, and on Windows `$env:NAME="..."; setx NAME "..."`, which sets it
-now and for every later PowerShell window. A missing model key stops only what needs the model:
+list of schema issues. A missing key variable comes with the command that stores it:
+`openalpha key set NAME`, the same on every platform. It keeps the key in `<data dir>/env`, which every
+command reads at start. A variable set in your environment wins over the file. The file holds service
+keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: names that steer
+OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
+`NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts a comment. The key file follows
+`--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
 `status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
 `openalpha start` starts with a warning, running everything that needs no model until you set the key
 and restart.
@@ -909,5 +921,5 @@ config.toml has things to fix:
 - `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
 Correct them, then run again.
 
-The environment variable ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start. Set it with `export ANTHROPIC_API_KEY=...` in the terminal you run from, then try again.
+The environment variable ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start. Set it with `openalpha key set ANTHROPIC_API_KEY` in the terminal you run from, then try again.
 ```

@@ -13,6 +13,7 @@ cli:CliApp
 cli:Command
 cli:CommandDef
 cli:ConfigProbe
+cli:EnvFileLoad
 cli:GlobalFlags
 cli:Group
 cli:Needs
@@ -39,6 +40,7 @@ cli:isConfigPresent
 cli:isUpdateCheckEnabled
 cli:isVerbose
 cli:lazyCommand
+cli:loadEnvFile
 cli:newerVersionOf
 cli:offerOnboard
 cli:parseGlobalFlags
@@ -53,6 +55,7 @@ cli:readReleaseStatus
 cli:readUpdateLine
 cli:readUpdateState
 cli:refreshUpdateState
+cli:reportKeyFile
 cli:resolveContributedCliCommands
 cli:runCli
 cli:spawnUpgradeProcess
@@ -163,6 +166,7 @@ index:Compactor
 index:ContentBlock
 index:CostTracker
 index:CurrencyCode
+index:DaemonStartOptions
 index:DaemonTask
 index:DeclarativeChannelSource
 index:DeclarativeSlashCommandSource

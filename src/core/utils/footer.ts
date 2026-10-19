@@ -44,8 +44,10 @@ interface RunFooterInput {
 }
 
 /** A command that spends, or that declared a progress label and so was watched waiting, closes with
- *  the session's running spend — the same figure the chat turn above it printed, so one column never
- *  means two things. A cheap command that answers at once closes with nothing. */
+ *  a footer. The footer shows the session's running spend, the same figure the chat turn above it
+ *  printed, so one column never means two things; before any model call in the session that is
+ *  only the elapsed time (see `formatRunFooter`). A cheap command that answers at once closes with
+ *  nothing. */
 export function hasRunFooter(
   policy: SlashInvocationPolicy | undefined,
   result: SlashResult | null
@@ -57,7 +59,9 @@ export function hasRunFooter(
   return policy?.action === 'costly' || policy?.execution !== undefined
 }
 
-/** Every surface renders the same segments in the same order. */
+/** Every surface renders the same segments in the same order. A session that has called no model has
+ *  no spend, tokens or calls to report, and a column of zeros beside a price lookup reads as broken
+ *  accounting, so only the elapsed time stays. After any chat turn the session's spend returns. */
 export function formatRunFooter(input: RunFooterInput): string {
   return toSegments(input.locale, input.totals, input.details)
     .map((segment) => stripControls(scrubCredentials(input.translate(segment.key, segment.values))))
@@ -69,6 +73,10 @@ function toSegments(
   totals: LLMUsageTotals,
   details: FooterDetails
 ): readonly FooterSegment[] {
+  if (totals.modelCalls === 0) {
+    return toElapsedSegments(locale, details)
+  }
+
   return [
     toCostSegment(totals),
     toTokenSegment(totals),
@@ -123,18 +131,23 @@ function toModelCallSegment(totals: LLMUsageTotals): FooterSegment {
 }
 
 function toDetailSegments(locale: string, details: FooterDetails): readonly FooterSegment[] {
-  const segments: FooterSegment[] = []
+  const context: FooterSegment[] =
+    details.contextPct === undefined
+      ? []
+      : [{ key: 'footer.context', values: { percent: details.contextPct } }]
 
-  if (details.contextPct !== undefined) {
-    segments.push({ key: 'footer.context', values: { percent: details.contextPct } })
+  return [...context, ...toElapsedSegments(locale, details)]
+}
+
+function toElapsedSegments(locale: string, details: FooterDetails): readonly FooterSegment[] {
+  if (details.elapsedMs === undefined) {
+    return []
   }
 
-  if (details.elapsedMs !== undefined) {
-    segments.push({
+  return [
+    {
       key: 'footer.elapsed',
       values: { elapsed: formatLongDuration(locale, details.elapsedMs) },
-    })
-  }
-
-  return segments
+    },
+  ]
 }

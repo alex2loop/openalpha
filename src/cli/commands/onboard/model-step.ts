@@ -10,6 +10,7 @@ import {
 } from '@/ai/api'
 import { getEnv } from '@/cli/env'
 import { hint, warn } from '@/cli/ui/colors'
+import { isEnvName } from '@/core/config/resolve'
 import { closestName } from '@/core/utils/text'
 import { t } from '@/i18n'
 
@@ -26,7 +27,6 @@ const FEATURED_PROVIDERS = [
   'deepseek',
   'ollama',
 ] as const
-const ENV_NAME_RE = /^[A-Z_][A-Z0-9_]*$/
 const DIGITS_RE = /^\d+$/
 const WEB_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:'])
 
@@ -190,7 +190,7 @@ function knownModels(provider: ProviderEntry): readonly string[] {
 }
 
 export function parseEnvName(answer: string, locale: Locale): Parsed<string> {
-  return ENV_NAME_RE.test(answer) ? accept(answer) : refuse(t(locale, 'cli.onboardEnvNameInvalid'))
+  return isEnvName(answer) ? accept(answer) : refuse(t(locale, 'cli.onboardEnvNameInvalid'))
 }
 
 export function isEnvSet(name: string): boolean {

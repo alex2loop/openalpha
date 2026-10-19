@@ -30,9 +30,11 @@ export type {
 } from '@/commands/upgrade'
 export type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 export {
+  buildHelpSections,
   type CommandHelpOptions,
   type HelpControl,
   type HelpRequest,
+  type HelpSection,
   parseHelpLine,
   renderCommandHelp,
 } from '@/commands/dispatcher/help'

@@ -24,11 +24,11 @@ import { pluralKey, t } from '@/i18n'
 import {
   ALL_TABLES,
   BACKUPS_SUBDIR,
+  backupAndPrune,
   backupSqlite,
   backupTarget,
   countRetention,
   openPersistence,
-  pruneBackups,
   type RetentionConfig,
   type RetentionCounts,
   resetPersistence,
@@ -359,11 +359,9 @@ async function offerBackupBeforeReset(app: CliApp): Promise<void> {
 }
 
 async function backupToDataDir(app: CliApp, storage: Storage): Promise<string> {
-  const dir = join(app.config.paths.dataDir, BACKUPS_SUBDIR)
-  const target = backupTarget(dir)
+  const target = backupTarget(join(app.config.paths.dataDir, BACKUPS_SUBDIR))
 
-  await backupSqlite(storage, target)
-  await pruneBackups(dir)
+  await backupAndPrune({ db: storage, target, logger: app.resolve('logger') })
 
   return target
 }

@@ -78,7 +78,7 @@ function configuredChannels(app: App): readonly ChannelId[] {
     .map((definition) => definition.id)
 }
 
-function toHealthCode(
+export function toHealthCode(
   status: { readonly running: boolean; readonly connected: boolean } | undefined
 ): HealthCode {
   if (status === undefined || !status.running) {

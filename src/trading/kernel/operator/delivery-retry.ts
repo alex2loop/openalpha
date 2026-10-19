@@ -65,11 +65,16 @@ export async function sendCaught(
   if (result === 'aborted') {
     throw abortError(signal)
   }
+
+  if (result === 'revoked') {
+    return 'recipient-revoked'
+  }
+
   return result === 'accepted' ? 'accepted' : 'channel-unavailable'
 }
 
 interface DeliveryNoticeInput {
-  readonly kind: 'delivery-disabled' | 'delivery-skipped'
+  readonly kind: 'delivery-disabled' | 'delivery-skipped' | 'delivery-missed'
   readonly sender: TradingNoticeSender
   readonly target: DeliveryAddress
   readonly locale: Locale

@@ -72,12 +72,7 @@ export function renderThemeReportText(report: ThemeReport, options: ThemeRenderO
     previous: toPreviousScores(report.previous),
     titles: new Map(report.themes.map((theme) => [theme.id, theme.title])),
   }
-  const reads = new Map(report.reads.themes.map((read) => [read.themeId, read]))
-  const lines = report.themes.map((theme): ThemeLine => {
-    const read = reads.get(theme.id)
-
-    return read === undefined ? { theme } : { theme, read }
-  })
+  const lines = toThemeLines(report)
 
   return joinSections([
     renderHeader(context),
@@ -93,6 +88,24 @@ export function renderThemeReportText(report: ThemeReport, options: ThemeRenderO
     ),
     renderScorecard(report.scorecard, options.locale),
   ])
+}
+
+/** The proposal `renderProposed` ranks first, the one the approve button offers. */
+export function firstProposedTheme(report: ThemeReport): ThemeId | undefined {
+  const proposed = toThemeLines(report).filter((line) => line.theme.status === 'proposed')
+  const [first] = sortByScore(proposed, (line) => line.read?.score)
+
+  return first?.theme.id
+}
+
+function toThemeLines(report: ThemeReport): readonly ThemeLine[] {
+  const reads = new Map(report.reads.themes.map((read) => [read.themeId, read]))
+
+  return report.themes.map((theme): ThemeLine => {
+    const read = reads.get(theme.id)
+
+    return read === undefined ? { theme } : { theme, read }
+  })
 }
 
 function isListed(theme: Theme): boolean {
@@ -292,7 +305,7 @@ function renderProposed(lines: readonly ThemeLine[], context: ReportContext): re
 
   return [
     t(locale, 'trading.render.themes.proposed'),
-    t(locale, 'trading.render.themes.act', { id: first.theme.id }),
+    t(locale, 'trading.render.themes.act'),
     '',
     ...joinEntries(ranked.map((line, index) => renderTheme(line, { context, rank: index + 1 }))),
     ...status,

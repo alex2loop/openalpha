@@ -5,7 +5,7 @@ import type { Dialect, Storage, Transaction } from '@/core/types/storage'
 import type { Migration } from '@/persistence/types'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { backupSqlite, backupTarget, pruneBackups } from '@/persistence/backup'
+import { backupAndPrune, backupTarget } from '@/persistence/backup'
 import { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 
 const PRE_MIGRATION_SUBDIR = 'pre-migration'
@@ -109,12 +109,10 @@ async function maybeBackupBeforeMigrating(input: MaybeBackupOptions): Promise<vo
     return
   }
 
-  const dir = join(options.backupDir, PRE_MIGRATION_SUBDIR)
-  const target = backupTarget(dir)
+  const target = backupTarget(join(options.backupDir, PRE_MIGRATION_SUBDIR))
 
   try {
-    await backupSqlite(db, target)
-    await pruneBackups(dir)
+    await backupAndPrune({ db, target, logger: options.logger })
     options.logger.info('migration.backup_taken', { path: target })
   } catch (err: unknown) {
     options.logger.warn('migration.backup_failed', { path: target, err: formatErrForLog(err) })

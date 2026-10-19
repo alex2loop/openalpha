@@ -246,7 +246,12 @@ openalpha db restore /safe/place/runtime.sqlite --yes
 `--path` trỏ tới đâu. Nó chứa mọi phiên chat, mọi bộ nhớ và mọi dòng sổ, nên không bao giờ để nhóm hay
 người khác đọc được, kể cả lúc đang ghi: bản sao được tạo trong một thư mục tạm riêng tư `0700` đặt cạnh
 đích rồi mới chuyển vào chỗ khi đã đủ. Nếu tiến trình chết giữa chừng, thư mục tạm `.staging-` còn sót
-lại: thư mục sao lưu tự động sẽ xóa nó ở lần sao lưu kế tiếp, còn chỗ khác thì bạn xóa tay. Đích sao lưu tự động giữ bảy tệp mới nhất. `--path` từ chối tệp đã tồn tại trừ khi
+lại: thư mục sao lưu tự động sẽ xóa nó ở lần sao lưu kế tiếp, còn chỗ khác thì bạn xóa tay. Đích sao lưu tự động giữ bảy tệp mới nhất.
+
+Daemon cũng tự sao lưu mỗi ngày một bản vào `backups/daily/` và giữ ba bản mới nhất
+(`[retention] daily_backups`, `0` là tắt). Bản đầu tiên ghi lúc daemon khởi động, các bản sau ghi khi
+bản mới nhất đã gần một ngày tuổi. Đây là bản sao lưu thường, nên đưa bản nào cho `db restore` cũng
+được. PostgreSQL bị bỏ qua: hãy dùng `pg_dump`. `--path` từ chối tệp đã tồn tại trừ khi
 bạn thêm `--force`.
 
 **Khôi phục** cần daemon đã dừng. Trước hết nó kiểm tra nguồn có mở được như một cơ sở dữ liệu SQLite

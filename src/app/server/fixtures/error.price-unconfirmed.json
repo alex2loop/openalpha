@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "price_unconfirmed",
+    "message": "Giá gần nhất của COMP là 21.65 (ngày 2026-10-19), còn giá bạn gõ là 5000. Hai con số lệch nhau quá xa nên mình chưa lưu: thường là do gõ thiếu hoặc thừa vài số 0. Nếu đúng là 5000 thì bạn xác nhận để mình lưu nhé.",
+    "unconfirmedPrice": {
+      "instrument": { "market": "crypto", "ticker": "COMP" },
+      "price": 5000,
+      "latest": { "price": 21.65, "at": "2026-10-19" }
+    }
+  }
+}

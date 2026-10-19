@@ -125,6 +125,9 @@ function merge(patch: TradingConfigPatch, base: TradingConfig): TradingConfig {
       breakoutRange: patch.alerts?.breakout_range ?? base.alerts.breakoutRange,
       breakoutSessions: patch.alerts?.breakout_sessions ?? base.alerts.breakoutSessions,
     },
+    typedPrices: {
+      confirmMultiple: patch.typed_prices?.confirm_multiple ?? base.typedPrices.confirmMultiple,
+    },
     orders: mergeOrders(patch.orders, base.orders),
     ledger: base.ledger,
     themes: { maximumCostUsd: patch.themes?.max_cost_usd ?? base.themes.maximumCostUsd },

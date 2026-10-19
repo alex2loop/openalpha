@@ -329,6 +329,16 @@ work, close services. CLI cancellation propagates into active runs and exits cle
 commands are `BUILT_IN_COMMANDS` in [src/cli/registry.ts](../../../src/cli/registry.ts); trading adds no
 CLI command. For the programmatic surface see [Extending](./extending.md#the-sdk-surface).
 
+**The key file loads first.** `main()` reads `<data dir>/env` (`src/cli/env-file.ts`) right after the
+global flags and before the pre-boot config probe, since config resolution reads keys from `process.env`.
+It is the only boot-time write to `process.env`: it sets names the environment leaves empty, skips the
+names that steer the program itself (`BRAND.controlEnv`: data dir, background mark, log level, editor
+file) and the names that steer how a program starts (`PATH`, `HOME`, `SHELL`, `TMPDIR`,
+`TZ`, `LD_*`, `DYLD_*`, `NODE_*`, `BUN_*`), and leaves a file other users can read, or this user cannot
+open, untouched (`CliApp.keyFile` carries which names
+it set). The data dir is the bootstrap one (`--data-dir`, the data-dir variable, the default), so
+`[paths] data_dir` cannot move it.
+
 **Keys never stop a start.** Boot resolves with `deferMissingKeys`: a model entry whose key variable is
 unset keeps `missingEnv` (the chain skips it, and with none left every call rejects with the
 localized `MissingEnvError`), and an MCP server naming an unset `${VAR}` lands in `ResolvedMcp.unset`
@@ -339,11 +349,13 @@ the one list the terminal prints and `config validate` reports. A channel whose 
 `OperatorConfigError` (token missing or rejected) is disposed and logged `channel.start_skipped`;
 `startChannels` returns it in `skipped`, so a channel that never listened admits nobody. An
 `ApiTokenError` from the API starter is handled the same way (`api.token_unusable`). The daemon task
-hands both lists to its `onReady` handler (`DaemonReadyHandler`); the foreground `start` prints them on
+hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on
 stderr, and a background child's stderr log is relayed under the parent's success line. The handler
 then writes the ready file (`BRAND.readyFile`, atomically, `{ pid, degraded }`) that a background start
 waits on and `status` and `/v1/state` read back; a start clears it as it claims the pid file, so a file a
-crashed daemon left behind never reads as ready for a reused pid. A loop tick
+crashed daemon left behind never reads as ready for a reused pid. The pid file also records `startedAt`. A start that reclaims a stale pid file (`PidFileClaim` `reclaimed`)
+passes `DaemonStartOptions.previousRun`, so the daemon messages the default chat once (`cli.daemonStoppedUnexpectedly`),
+and `status` reads the same file through `readStalePid`. A loop tick
 failing with `MissingEnvError` is a boundary failure (`trading.tick_key_missing` once per loop until
 another failure is logged, retried next interval), never a quarantine.
 

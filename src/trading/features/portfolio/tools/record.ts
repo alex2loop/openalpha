@@ -7,7 +7,7 @@ import { createTool } from '@/core/tool'
 import { assertFxRateStated } from '@/trading/features/ledger/confirm'
 import { renderWriteReceipt } from '@/trading/features/ledger/render'
 import { renderDraftLine } from '@/trading/features/ledger/rows'
-import { SELL_ALL } from '@/trading/features/ledger/types'
+import { priceConfirmedInput, SELL_ALL, toTypedPrice } from '@/trading/kernel/surface/surface'
 import { ledgerIdempotencyKey } from '@/trading/kernel/surface/tool-approval'
 
 /** Answers with the receipt, so the model relays the rate the fee was checked against and a stated
@@ -24,6 +24,7 @@ export function createPortfolioRecordTool(
       `quantity to "${SELL_ALL}" instead of a count; the ledger supplies the size.`,
     inputSchema: z.strictObject({
       draft: draft.describe('The transaction to record, one arm chosen by its kind.'),
+      priceConfirmed: priceConfirmedInput,
     }),
     // Cash only: every trade arm resolves a venue against the registry inside the schema, so a
     // trade example would pass or fail by configuration rather than by shape. A cash row names a
@@ -37,16 +38,18 @@ export function createPortfolioRecordTool(
     eager: true,
     presentation: {
       label: 'Record transaction',
-      emoji: '📝',
+      emoji: '🧾',
       detail: (input, locale) => renderDraftLine(locale, input.draft, markets),
     },
     async execute(args, ctx): Promise<string> {
       const now = Date.now()
+      const typedPrice = toTypedPrice(args.priceConfirmed)
 
-      await assertFxRateStated(deps, { draft: args.draft, now, signal: ctx.signal })
+      await assertFxRateStated(deps, { draft: args.draft, typedPrice, now, signal: ctx.signal })
 
       const result = await portfolio.record({
         draft: args.draft,
+        typedPrice,
         idempotencyKey: ledgerIdempotencyKey(ctx),
         now,
         signal: ctx.signal,

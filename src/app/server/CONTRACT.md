@@ -95,8 +95,8 @@ this document — neither imports the other.
 | GET | `/v1/markets` | yes | — | `MarketsResponse` (`homeRegion`; per market: price convention, region, `ownsRegion`, segment, names in the daemon's language, benchmark, and whether it has a board, a brief and events) | `markets.json` |
 | GET | `/v1/macro` | yes | `?region` (optional) | `MacroResponse` (`readAt`: when the sources were read; `lean`: the CLI's one-sentence lean; `scoreRange`: the score's scale and the regime cuts; each driver has its `label`) | `macro.json`, `macro.unavailable.json` |
 | GET | `/v1/ledger` | yes | `?limit&cursor&fromDay&toDay` (optional) `&market&ticker` (both or neither: one name's rows) | `LedgerPageResponse` | `ledger.json` |
-| POST | `/v1/ledger` | yes | `{ draft }` + `Idempotency-Key` header (required) | `LedgerWriteResponse` | `ledger.write.json` |
-| PATCH · DELETE | `/v1/ledger/:id` | yes | `{ draft }` (PATCH, the whole row) | `LedgerWriteResponse` | — |
+| POST | `/v1/ledger` | yes | `{ draft, typedPrice? }` + `Idempotency-Key` header (required) | `LedgerWriteResponse` | `ledger.write.json` |
+| PATCH · DELETE | `/v1/ledger/:id` | yes | `{ draft, typedPrice? }` (PATCH, the whole row) | `LedgerWriteResponse` | — |
 | GET | `/v1/stops` | yes | — | `StopsResponse` (`price`: the mark `distanceToStopPct` was measured from, absent when unpriced; `review`: a fund's lower level is a review, not a sale; `cover`: `placed` / `venue` / `none` stop order at the exchange, absent where none could rest) | `stops.json` |
 | GET | `/v1/venues` | yes | — | `VenuesResponse` (every venue a trade can be recorded at and the markets it holds) | `venues.json` |
 | GET | `/v1/rebalance` | yes | — | `RebalanceResponse` (`text`: the CLI's lines for this plan; the numbers beside them are for prefilling a ledger row) | `rebalance.json`, `rebalance.unavailable.json` |
@@ -121,6 +121,10 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   (0.015 = 1.5%), and so is every share in a rebalance finding's `data`.
 - **Ledger writes.** A repeated `Idempotency-Key` with the same draft returns the first write;
   with a different draft it is a 409.
+- **Typed prices.** A ledger write or `AlertCreateBody` may carry `typedPrice`. `unconfirmed` refuses
+  a price ten times or more from the name's latest price with `price_unconfirmed` (422): the
+  question in `message`, and the figures in `unconfirmedPrice` to word it in the app's own format.
+  Ask the operator, then send the same request with `confirmed`. Absent, the price is not checked.
 - **`/v1/state` timeZone.** The IANA zone the daemon counts its days in (the cost caps, `/v1/cost`
   days, suggestion days). A client computes "today" in it, not in its own zone: the daemon may run
   on a server elsewhere.
@@ -263,8 +267,10 @@ stable code, never a leaked internal message. `message` is set only when the run
 sentence written for the operator (a ledger row the book cannot hold, say), in the daemon's
 language; show it as is. Codes and statuses are `wire/errors.ts` (`API_ERROR_STATUS`):
 `unauthorized`(401) `forbidden`(403) `not_found`(404) `invalid_json`/`invalid_body`(400)
-`conflict`(409) `upstream_failed`(502) `too_many_streams`/`unavailable`(503) `timeout`(504)
-`internal`(500). Fixture: `error.unauthorized.json`.
+`conflict`(409) `price_unconfirmed`(422) `upstream_failed`(502) `too_many_streams`/`unavailable`(503) `timeout`(504)
+`internal`(500). `price_unconfirmed` also carries `unconfirmedPrice` (`UnconfirmedPriceWire`): the
+typed price, the market's latest price and the day it stands for. Fixtures: `error.unauthorized.json`,
+`error.price-unconfirmed.json`.
 
 ## 7. Independent-development workflow
 

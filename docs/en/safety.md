@@ -128,8 +128,9 @@ and offers no remember.
 
 **Channels.** An inline-button prompt goes only to the channel that owns the run. A tap counts only
 when the request is still pending, it came from the prompted chat, that decision was actually
-offered, *and* the person tapping is an authorised operator. A channel without inline buttons denies
-immediately and says so. Shutdown denies every outstanding request.
+offered, *and* the person tapping is an authorised operator. A channel without inline buttons (Zalo) asks
+with short codes such as `/4821` to type back, each good only in that chat and only while the prompt
+lives; it denies immediately and says so only when no code can be drawn. Shutdown denies every outstanding request.
 
 **MCP.** Approval uses form elicitation when the client supports it. A client without elicitation
 cannot approve, so dangerous calls fail closed.

@@ -91,7 +91,7 @@ export function renderIntradayText(
 function renderHeader(context: RowContext, report: IntradayReport): string {
   const { locale } = context
   const title = t(locale, 'trading.intraday.header', {
-    icon: SECTION_ICONS.intraday,
+    icon: report.icon,
     market: renderDeclaredValue(locale, `trading.market.${report.market}`),
     phase: t(locale, `trading.intraday.phase.${report.phase}`),
     time: formatClock(locale, report.firedAt, context.timezone),

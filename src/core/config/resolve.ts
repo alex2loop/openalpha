@@ -55,6 +55,7 @@ export type {
 export {
   combineInvalidConfigErrors,
   InvalidConfigError,
+  isEnvName,
   type KeyEffect,
   MissingEnvError,
   missingEnvOf,
@@ -62,7 +63,7 @@ export {
   setEnvCommand,
   toInvalidConfigError,
 } from '@/core/config/operator-errors'
-export { expandHome } from '@/core/config/paths'
+export { expandHome, resolveEnvFile } from '@/core/config/paths'
 export { CLIENT_MODEL_PROVIDER } from '@/core/config/resolvers/model'
 export {
   MAX_RESEARCH_QUESTIONS_LIMIT,
@@ -78,6 +79,7 @@ export {
   type ExaSearchType,
   WEB_SEARCH_PROVIDERS,
 } from '@/core/config/schema'
+export { CURRENCY_CODE_PATTERN } from '@/core/config/schema-sections'
 
 const DEFAULT_MAX_VALUE_BYTES = 16_384
 const DEFAULT_MEMORY_TTL_DAYS = 90
@@ -87,6 +89,7 @@ const DEFAULT_INBOX_MAX_ATTEMPTS = 3
 const DEFAULT_UPDATE_CHECK = true
 const DEFAULT_UPDATE_AUTO = false
 const DEFAULT_INBOX_RETENTION_DAYS = 7
+const DEFAULT_DAILY_BACKUPS = 3
 
 export type ModelSource = 'config' | 'client'
 
@@ -130,6 +133,7 @@ interface ResolvedCommands {
 interface ResolvedRetention {
   readonly days: number
   readonly inboxDays: number
+  readonly dailyBackups: number
 }
 
 interface ResolvedInbox {
@@ -200,6 +204,7 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
     retention: {
       days: raw.retention?.days ?? DEFAULT_RETENTION_DAYS,
       inboxDays: raw.retention?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
+      dailyBackups: raw.retention?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
     },
     inbox: { maxAttempts: DEFAULT_INBOX_MAX_ATTEMPTS },
     update: {

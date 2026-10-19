@@ -115,7 +115,7 @@ function goldManifest(config: TradingConfig): MarketManifest {
     segmentCategory: 'gold',
     seedsDefaultTarget: false,
     currency: currencyCode('USD'),
-    icon: '🪙',
+    icon: '🥇',
     quoteUnit: quoteUnit('currency-per-troy-ounce'),
     defaultCalendar,
     calendar: createTradingCalendar(defaultCalendar, config.markets[GOLD_MARKET_REF]?.holidays),

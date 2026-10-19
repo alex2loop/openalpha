@@ -78,7 +78,7 @@ phí cả tuần dễ gây hiểu lầm.
 `status` cũng hiện chi tiêu hôm nay. Một phiên chạy bị ngân sách dừng sẽ đi theo đường `budget` thông thường, và phần chi
 phí đã phát sinh vẫn được ghi lại.
 
-Ở mọi nơi hiển thị, một phiên chạy có tốn tiền đều kết thúc bằng cùng một dòng cuối: chi phí, số token, số lần gọi mô hình,
+Ở mọi nơi hiển thị, một phiên chạy có tốn tiền đều kết thúc bằng cùng một dòng cuối. Trong phiên chưa gọi mô hình lần nào (ví dụ chỉ tra giá) dòng cuối chỉ có thời gian chạy; sau bất kỳ lượt chat nào, chi tiêu đang chạy của phiên quay lại. Dòng đầy đủ gồm: chi phí, số token, số lần gọi mô hình,
 thời gian trôi. Tên mô hình chỉ hiện khi đúng một mô hình phục vụ mọi lời gọi tính tiền. Nếu chuỗi dự phòng đổi mô hình giữa
 chừng thì không còn một cái tên duy nhất, nên dòng cuối chỉ còn số đếm và lần đổi được in ở dòng ngay bên trên.
 

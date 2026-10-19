@@ -49,7 +49,7 @@ export interface ExitReconcileDeps {
   readonly sender: TradingNoticeSender
   readonly logger: Logger
   readonly defaultLocale: Locale
-  readonly briefs: Pick<BriefService, 'find'>
+  readonly briefs: Pick<BriefService, 'find' | 'resolveRecipient'>
   /** Plan id to the settled session its trail was last computed for. See `ExitPlanDeps`. */
   readonly trailedThrough: LruMap<string, TradingDay>
   /** See `ExitPlanDeps`. */

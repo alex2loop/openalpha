@@ -40,6 +40,9 @@ export interface ResolvedWebSearch {
   readonly baseUrl?: string
   readonly costPerSearchUsd?: number
   readonly fallback?: SearchProviderConfig
+  /** The variables `api_key_env` and `fallback_api_key_env` name, set or not. */
+  readonly apiKeyEnv?: string
+  readonly fallbackApiKeyEnv?: string
   /** `api_key_env` names this variable and the environment leaves it empty: search is off. */
   readonly missingEnv?: string
   /** The same for `fallback_api_key_env`: the fallback is dropped and the primary keeps working. */
@@ -91,6 +94,10 @@ export function resolveWebSearch(raw: RawWebSearch | undefined): ResolvedWebSear
     provider,
     ...(apiKey === undefined ? {} : { apiKey }),
     ...(baseUrl === undefined ? {} : { baseUrl }),
+    ...(raw?.api_key_env === undefined ? {} : { apiKeyEnv: raw.api_key_env }),
+    ...(raw?.fallback_api_key_env === undefined
+      ? {}
+      : { fallbackApiKeyEnv: raw.fallback_api_key_env }),
     ...(costPerSearchUsd === undefined ? {} : { costPerSearchUsd }),
     ...(missingEnv === undefined ? {} : { missingEnv: missingEnv }),
     ...(fallback === undefined || fallbackKey.missingEnv !== undefined ? {} : { fallback }),
