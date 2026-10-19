@@ -1,5 +1,6 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
 import type { CliApp } from '@/cli/types'
+import type { Locale } from '@/core/types/locale'
 import { createCommand, createGroup, type Group, hasLoadedConfig, type Needs } from '@/cli/command'
 import { liveDaemon } from '@/cli/daemon-guard'
 import { getEnv } from '@/cli/env'
@@ -18,6 +19,7 @@ import { declined, promptSecret } from '@/cli/ui/prompt'
 import { BRAND, isControlEnvName } from '@/core/brand'
 import { isEnvName } from '@/core/config/resolve'
 import { isAbortError } from '@/core/errors'
+import { closestName } from '@/core/utils/text'
 import { t } from '@/i18n'
 
 const KEY_TAIL_CHARS = 4
@@ -90,16 +92,37 @@ async function setKey(args: ParsedArgs, app: CliApp): Promise<number> {
 
   await writeEnvFileValue({ path, name, value })
   app.out(success(t(locale, 'cli.keySaved', { name, path })))
+  await printSaveHints(app, name)
+
+  return 0
+}
+
+async function printSaveHints(app: CliApp, name: string): Promise<void> {
+  const locale = app.config.locale.language
+  const known = hasLoadedConfig(app) ? keyEnvNames(app.config) : undefined
 
   if (isSetInShell(app, name)) {
     app.out(hint(t(locale, 'cli.keyShellWins', { name })))
   }
 
+  // A hint, never a refusal: a key saved before the config names it is legitimate.
+  if (known !== undefined && !known.includes(name)) {
+    app.out(hint(renderUnreadName(locale, name, known)))
+  }
+
   if ((await liveDaemon(app)) !== null) {
     app.out(hint(t(locale, 'cli.keyRestart', { brand: BRAND.name })))
   }
+}
 
-  return 0
+function renderUnreadName(locale: Locale, name: string, names: readonly string[]): string {
+  const near = closestName(name, names)
+
+  if (near !== undefined) {
+    return t(locale, 'cli.keyNameUnreadNear', { name, near })
+  }
+
+  return t(locale, 'cli.keyNameUnread', { name, names: names.join(', ') })
 }
 
 /** undefined: the prompt was cancelled. */
