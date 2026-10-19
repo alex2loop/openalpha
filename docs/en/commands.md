@@ -125,7 +125,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
 
-`/help` lists commands in groups: general, portfolio and trades, markets, analysis and suggestions.
+`/help` lists commands in groups: portfolio and trades (starting with `/setup`), markets, analysis and suggestions, then system (`/help`, `/stop` and the commands that belong to no group). The Telegram menu follows the same order.
 `/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt
 name gets the closest command.
 

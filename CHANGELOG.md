@@ -13,6 +13,12 @@ OpenAlpha is easier to leave running and to drive from the terminal and Zalo: a 
 SQLite book comes first.
 > OpenAlpha dễ để chạy lâu dài và dễ dùng hơn từ dòng lệnh và Zalo: bắt đầu bằng bản sao lưu SQLite mỗi ngày.
 
+### Chat
+
+- `/help` and the Telegram menu lead with the trading commands (`/setup` first under the book),
+  and the system commands (`/help`, `/stop` and the rest) close the list. The menu now lists `/help`
+  and `/stop` too.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

@@ -9,11 +9,10 @@ import {
 } from '@/commands/dispatcher/resolve'
 import { closestName } from '@/core/utils/text'
 
-const VERB_WIDTH = 13
 const ROW_INDENT = '  '
 const UNKNOWN_TOPIC_KEY = 'slash.helpTopicUnknown'
 const NEAR_TOPIC_KEY = 'slash.helpTopicNear'
-const GENERAL_GROUP: CommandGroup = Object.freeze({ key: 'slash.helpGroupGeneral', icon: '💬' })
+const SYSTEM_GROUP: CommandGroup = Object.freeze({ key: 'slash.helpGroupSystem', icon: '⚙️' })
 
 /** A verb the surface answers itself — `/stop` in a channel, `/exit` in the REPL. It never reaches
  *  the dispatcher, so only the surface can name it. */
@@ -32,9 +31,9 @@ export interface CommandHelpOptions extends HelpRequest {
   readonly commands: readonly SlashCommand[]
 }
 
-interface HelpSection {
+export interface HelpSection {
   readonly group: CommandGroup
-  readonly entries: HelpControl[]
+  readonly entries: readonly HelpControl[]
 }
 
 /** The `/help` request a line makes, or null for any other line. Parsed as the dispatcher parses a
@@ -50,9 +49,9 @@ export function parseHelpLine(line: string): HelpRequest | null {
 }
 
 /** One help layout for every surface. Surfaces differ only in which verbs they hand in — the
- *  grouping, the column width, and how a description resolves are settled here, so `/help` cannot
- *  read one way in the terminal and another in a chat. The surface's own verbs and every command
- *  naming no group head the list; the rest follow by group, in registration order. */
+ *  grouping and how a description resolves are settled here, so `/help` cannot read one way in the
+ *  terminal and another in a chat. The grouped commands lead, by group in registration order; the
+ *  system group closes the list with the surface's own verbs, then every command naming no group. */
 export function renderCommandHelp(i18n: LocaleLookup, options: CommandHelpOptions): string {
   return options.topic === undefined
     ? renderCommandList(i18n, options)
@@ -60,24 +59,7 @@ export function renderCommandHelp(i18n: LocaleLookup, options: CommandHelpOption
 }
 
 function renderCommandList(i18n: LocaleLookup, options: CommandHelpOptions): string {
-  const sections: HelpSection[] = [{ group: GENERAL_GROUP, entries: [...options.controls] }]
-
-  for (const command of options.commands) {
-    const group = command.group ?? GENERAL_GROUP
-    const entry = {
-      verb: `/${command.name}`,
-      description: describeCommand(i18n, command.description),
-    }
-    const section = sections.find((candidate) => candidate.group.key === group.key)
-
-    if (section === undefined) {
-      sections.push({ group, entries: [entry] })
-    } else {
-      section.entries.push(entry)
-    }
-  }
-
-  return sections
+  return buildHelpSections(i18n, options)
     .map((section) =>
       [
         `${section.group.icon} ${i18n.translate(section.group.key)}`,
@@ -85,6 +67,34 @@ function renderCommandList(i18n: LocaleLookup, options: CommandHelpOptions): str
       ].join('\n')
     )
     .join('\n\n')
+}
+
+/** The list `/help` prints, as data: grouped commands first, then one system section holding the
+ *  surface's controls followed by every ungrouped command. The chat menu flattens the same list. */
+export function buildHelpSections(
+  i18n: LocaleLookup,
+  options: Omit<CommandHelpOptions, 'topic'>
+): readonly HelpSection[] {
+  const grouped: { group: CommandGroup; entries: HelpControl[] }[] = []
+  const system: HelpControl[] = [...options.controls]
+
+  for (const command of options.commands) {
+    const entry = {
+      verb: `/${command.name}`,
+      description: describeCommand(i18n, command.description),
+    }
+    const section = grouped.find((candidate) => candidate.group.key === command.group?.key)
+
+    if (command.group === undefined) {
+      system.push(entry)
+    } else if (section === undefined) {
+      grouped.push({ group: command.group, entries: [entry] })
+    } else {
+      section.entries.push(entry)
+    }
+  }
+
+  return system.length === 0 ? grouped : [...grouped, { group: SYSTEM_GROUP, entries: system }]
 }
 
 /** A command's description, then the usage it answers a bad line with. A name nothing answers to
@@ -130,5 +140,5 @@ function renderUnknownTopic(i18n: LocaleLookup, options: CommandHelpOptions, nam
 }
 
 function toHelpRow(entry: HelpControl): string {
-  return `${entry.verb.padEnd(VERB_WIDTH)} ${entry.description}`
+  return `${entry.verb} - ${entry.description}`
 }

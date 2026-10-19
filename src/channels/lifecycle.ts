@@ -9,10 +9,11 @@ import type {
   ChannelStatus,
 } from '@/channels/types'
 import type { CommandRole } from '@/core/types/command'
+import { channelControlHelp } from '@/channels/delivery/control'
 import { runInboxDrain } from '@/channels/delivery/inbox-drain'
 import { sendChunked } from '@/channels/delivery/outbound/chunked-send'
 import { createPipeline } from '@/channels/pipeline'
-import { describeCommand } from '@/commands/api'
+import { buildHelpSections } from '@/commands/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 
@@ -241,12 +242,17 @@ function visibleCommands(
   deps: ChannelRuntimeDeps,
   role: CommandRole
 ): readonly ChannelMenuCommand[] {
-  const locale = bindLocale(deps.locale)
+  const sections = buildHelpSections(bindLocale(deps.locale), {
+    controls: channelControlHelp(deps.locale),
+    commands: deps.dispatcher.all('channel', role),
+  })
 
-  return deps.dispatcher.all('channel', role).map((cmd) => ({
-    name: cmd.name,
-    description: describeCommand(locale, cmd.description),
-  }))
+  return sections.flatMap((section) =>
+    section.entries.map((entry) => ({
+      name: entry.verb.replace(/^\//, ''),
+      description: entry.description,
+    }))
+  )
 }
 
 // A configured list names the operators outright; without one the gate treats every direct chat as

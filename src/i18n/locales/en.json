@@ -34,7 +34,7 @@
     "cancelNo": "No run in flight.",
     "helpNew": "Start a fresh session",
     "helpStop": "Cancel the running request",
-    "helpGroupGeneral": "General",
+    "helpGroupSystem": "System",
     "tradingGroupBook": "Portfolio and trades",
     "tradingGroupMarket": "Markets",
     "tradingGroupAnalysis": "Analysis and suggestions",

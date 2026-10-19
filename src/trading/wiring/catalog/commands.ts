@@ -118,8 +118,8 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
   const costs = deps.config.costs
 
   return [
-    createSetupCommand(),
     ...inGroup(BOOK_GROUP, [
+      createSetupCommand(),
       ...ledgerWriteCommands(deps),
       ...bookCommands(deps),
       createTransactionsCommand({
