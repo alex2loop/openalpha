@@ -64,7 +64,7 @@ operator_user_ids = [123456789]
 | `allowed_ids` | tất cả | Các chat hoặc người dùng được nhận. Trên `telegram`, khai khóa này sẽ tắt ghép nối trừ khi `pairing = true` |
 | `operator_user_ids` | tất cả | Ai được chạy các lệnh ghép nối, đáng kể nhất là trong chat nhóm, cùng `/trade` và `/upgrade`. Bỏ trống thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên hãy đặt khi bạn dùng chung bot |
 | `pairing` | `telegram` | Ép bật hoặc tắt ghép nối |
-| `dm_policy` | `zalo` | `pairing` (mặc định), `allowlist`, hoặc `disabled` |
+| `dm_policy` | `zalo` | `pairing`, `allowlist`, hoặc `disabled`. Mặc định là `pairing`, hoặc `allowlist` khi đã đặt `allowed_ids`, giống Telegram |
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | Lời chấp nhận bắt buộc, và kênh dùng lần đăng nhập QR đã lưu nào |
 | `agent` | tất cả | Gắn kênh vào một agent thay vì agent mặc định |
 | `require_mention`, `slash_commands` | tất cả | Quy tắc nhắc tên trong nhóm, và có chặn lệnh gạch chéo hay không |
@@ -97,7 +97,7 @@ Có hai chế độ và không có chế độ mở. Một kênh hoặc nhận t
 - **Telegram** ghép nối khi `pairing = true`. Bỏ trống `pairing` thì nó chỉ bật mặc định khi bạn không
   khai `allowed_ids`. Ghép nối mà không có id được phép thì bất kỳ người dùng Telegram nào cũng xin được
   mã, và daemon ghi một cảnh báo (`telegram.pairing_open`).
-- **Zalo** theo `dm_policy`, mặc định là `pairing`.
+- **Zalo** theo `dm_policy`, mặc định là `pairing`, hoặc `allowlist` khi đã đặt `allowed_ids`, giống Telegram.
 - **Zalo Personal** luôn chỉ chạy theo danh sách cho phép.
 
 ### Ghép nối

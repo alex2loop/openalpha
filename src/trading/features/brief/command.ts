@@ -54,7 +54,8 @@ export function createBriefCommand(deps: BriefCommandDeps): SlashCommand {
 }
 
 async function run(deps: BriefCommandDeps, ctx: SlashContext): Promise<SlashResult> {
-  const [action, ...rest] = ctx.args
+  const [rawAction, ...rest] = ctx.args
+  const action = rawAction?.toLowerCase()
 
   if (action === undefined) {
     return runShow(deps, ctx, false)

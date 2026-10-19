@@ -366,7 +366,7 @@ language = "vi"                   # vi | en
 # enabled = true
 # token_env = "ZALO_BOT_TOKEN"
 # allowed_ids = ["1234567890"]
-# dm_policy = "pairing"              # pairing | allowlist | disabled
+# dm_policy = "pairing"              # pairing | allowlist | disabled; unset: pairing, or allowlist once allowed_ids is set (like Telegram)
 
 # Zalo Personal uses an unofficial personal-account API, not a bot token. It never
 # pairs strangers: risk acceptance and an allowlist are both required. Link the account

@@ -66,7 +66,7 @@ operator_user_ids = [123456789]
 | `allowed_ids` | all | Chats or users let in. On `telegram`, setting it turns pairing off unless `pairing = true` |
 | `operator_user_ids` | all | Who may run the pairing controls, notably in group chats, and `/trade` and `/upgrade`. Without it, everyone the bot admits counts as the operator in their own private chat, so set it when you share the bot |
 | `pairing` | `telegram` | Force pairing on or off |
-| `dm_policy` | `zalo` | `pairing` (default), `allowlist` or `disabled` |
+| `dm_policy` | `zalo` | `pairing`, `allowlist` or `disabled`. Defaults to `pairing`, or `allowlist` once `allowed_ids` is set, the same as Telegram |
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | The required opt-in, and which saved QR login to use |
 | `agent` | all | Bind the channel to one agent instead of the default |
 | `require_mention`, `slash_commands` | all | Group mention rule, and whether slash commands are intercepted |
@@ -99,7 +99,7 @@ There are two modes and no open one. A channel either admits from a list or pair
 - **Telegram** pairs when `pairing = true`. If you leave `pairing` out, it defaults to on only when you
   set no `allowed_ids`. Pairing with no allowed ids lets any Telegram user ask for a code, and the daemon
   logs a warning (`telegram.pairing_open`).
-- **Zalo** follows `dm_policy`, which defaults to `pairing`.
+- **Zalo** follows `dm_policy`, which defaults to `pairing`, or `allowlist` once `allowed_ids` is set, the same as Telegram.
 - **Zalo Personal** is always allowlist only.
 
 ### Pairing

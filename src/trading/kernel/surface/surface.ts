@@ -57,7 +57,9 @@ export function parseMember<T extends string>(
   raw: string | undefined,
   members: readonly T[]
 ): T | null {
-  return members.find((member) => member === raw) ?? null
+  const wanted = raw?.toLowerCase()
+
+  return members.find((member) => member === wanted) ?? null
 }
 
 export function parseFiniteNumber(raw: string | undefined): number | null {

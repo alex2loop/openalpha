@@ -119,7 +119,7 @@ function parseRefreshArgs(
       continue
     }
 
-    if (arg !== FORCE_ARG || forced) {
+    if (arg.toLowerCase() !== FORCE_ARG || forced) {
       return null
     }
 
