@@ -56,6 +56,10 @@ export const BUILT_IN_COMMANDS: readonly (Command | Group)[] = [
     load: async () => (await import('@/cli/commands/provider')).providerCommand,
   }),
   lazyCommand({
+    ...CLI_COMMAND_METADATA.key,
+    load: async () => (await import('@/cli/commands/key')).keyCommand,
+  }),
+  lazyCommand({
     ...CLI_COMMAND_METADATA.auth,
     load: async () => (await import('@/cli/commands/auth')).authCommand,
   }),

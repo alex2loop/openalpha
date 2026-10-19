@@ -1,8 +1,7 @@
 import type { RawMcp } from '@/core/config/schema'
-import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
+import { isEnvName, MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
 
 const PLACEHOLDER_RE = /\$\{([^}]*)\}/g
-const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
 
 export type ResolvedMcpServer =
   | {
@@ -19,6 +18,8 @@ export interface ResolvedMcp {
   /** Servers left out because an env var their config names is unset. Only a deferred resolve
    *  fills it; otherwise the resolve throws. */
   readonly unset: readonly MissingEnvError[]
+  /** Every `${NAME}` the enabled servers' values name, set or not, sorted. */
+  readonly envNames: readonly string[]
 }
 
 interface ResolveMcpOptions {
@@ -58,7 +59,22 @@ export function resolveMcp(raw: RawMcp | undefined, options: ResolveMcpOptions):
       }
     })
 
-  return { servers, unset }
+  return { servers, unset, envNames: placeholderNamesOf(raw) }
+}
+
+function placeholderNamesOf(raw: RawMcp | undefined): readonly string[] {
+  const values = (raw?.servers ?? [])
+    .filter((server) => server.enabled !== false)
+    .flatMap((server) =>
+      server.transport === 'stdio'
+        ? [server.command, ...(server.args ?? []), ...Object.values(server.env ?? {})]
+        : [server.url]
+    )
+  const names = values.flatMap((value) =>
+    [...value.matchAll(PLACEHOLDER_RE)].map((match) => match[1] ?? '')
+  )
+
+  return [...new Set(names.filter(isEnvName))].sort()
 }
 
 function resolveServer(server: RawMcpServer, index: number): ResolvedMcpServer {
@@ -120,7 +136,7 @@ function interpolateEnv(
   path: readonly (string | number)[]
 ): string {
   return value.replace(PLACEHOLDER_RE, (_match, name: string) => {
-    if (!ENV_NAME_RE.test(name)) {
+    if (!isEnvName(name)) {
       throw new OperatorConfigError(
         `mcp server "${serverName}": unrecognized placeholder in value`,
         {

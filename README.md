@@ -108,14 +108,14 @@ curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh
 powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows
 ```
 
-**2. Đặt khóa AI và kiểm tra.** Mở một terminal mới:
+**2. Lưu khóa AI và kiểm tra.** `onboard` sẽ hỏi lưu giúp; nếu chưa thì mở một terminal mới:
 
 ```bash
-export OPENROUTER_API_KEY="..."   # thêm dòng này vào cuối ~/.zshrc (macOS) hoặc ~/.bashrc (Linux) để giữ lâu
-openalpha doctor --online         # gửi một tin ngắn để thử mô hình
+openalpha key set OPENROUTER_API_KEY   # gõ khóa ở chế độ ẩn; khóa được giữ trong ~/.openalpha/env
+openalpha doctor --online              # gửi một tin ngắn để thử mô hình
 ```
 
-Trên Windows: `setx OPENROUTER_API_KEY "..."`, mở PowerShell mới, rồi `openalpha doctor --online`.
+`openalpha key` cho biết khóa nào đã có và lấy từ đâu. Hai lệnh này dùng được cả trên Windows.
 
 **3. Nạp dữ liệu và khai khẩu vị.** Chạy `openalpha chat`, rồi gõ:
 
@@ -318,7 +318,7 @@ OpenAlpha không hứa bạn không lỗ. Nó giúp mỗi khoản lỗ nhỏ, c�
 
 - **AI không thấy tiền của bạn.** Nhà phân tích chỉ biết tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
 - **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận.
-- **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa API chỉ đọc từ biến môi trường, không ghi vào tệp nào.
+- **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa lấy từ biến môi trường hoặc từ `~/.openalpha/env` (chỉ bạn đọc được). OpenAlpha chỉ ghi vào tệp đó khi bạn nhập khóa qua `onboard` hoặc `openalpha key set`, và không bao giờ in khóa ra.
 - **Chi tiêu AI có trần.** `onboard` đặt trần theo ngày; thêm trần theo tháng hoặc theo lượt trong `[budget]`, để một vòng lặp lỗi không đốt tiền.
 
 Mọi lớp bảo vệ còn lại: [SECURITY.md](SECURITY.md).

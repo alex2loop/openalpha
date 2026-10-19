@@ -898,9 +898,10 @@ kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằ
 chạy lại. Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`. `config
 validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục, và báo biến môi trường của
 khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó. `--verbose` in thêm toàn bộ danh sách
-lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn dòng lệnh đặt nó cho
-shell của bạn: `export` trên macOS và Linux, còn trên Windows là `$env:NAME="..."; setx NAME "..."`,
-đặt ngay và giữ cho mọi cửa sổ PowerShell mở sau đó. Thiếu khóa của mô hình chỉ chặn những việc cần
+lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn lệnh lưu nó:
+`openalpha key set TÊN`, giống nhau trên mọi hệ. Khóa được giữ trong `<thư mục dữ liệu>/env`, mọi
+lệnh đều đọc tệp này lúc bắt đầu. Biến đặt trong môi trường luôn thắng tệp. Tệp khóa theo `--data-dir`
+hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu hình. Thiếu khóa của mô hình chỉ chặn những việc cần
 gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
 `openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn đặt
 khóa rồi khởi động lại.

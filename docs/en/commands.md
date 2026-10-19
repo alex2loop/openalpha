@@ -93,6 +93,7 @@ leave, because one failed turn is not a failed session.
 | `social` | Your agents on agent social networks | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Resolved configuration | `show`, `get`, `path`, `validate`, `edit` |
 | `provider` | Provider and model catalog | `list`, `models` |
+| `key` | Save, list and remove the keys OpenAlpha reads, in `<data dir>/env` | `set <NAME>` (typed hidden or piped, never an argument), `list` (default; names, source and the last 4 characters of a long key), `unset <NAME>` |
 | `auth` | Logins for subscription providers | `login`, `status`, `logout` |
 | `plugin` | Installed plugins | `list`, `install` (`--yes`), `update`, `uninstall` |
 | `skill` | Discovered skills | `list`, `install` (`--force`) |

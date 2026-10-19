@@ -1147,7 +1147,9 @@ fees = { buy = 0.0008, sell = 0.0008, fee_asset = "base" }   # fractions of noti
 ```
 
 ```bash
-export OKX_API_KEY=... OKX_API_SECRET=... OKX_API_PASSPHRASE=...
+openalpha key set OKX_API_KEY
+openalpha key set OKX_API_SECRET
+openalpha key set OKX_API_PASSPHRASE
 ```
 
 For Binance:
@@ -1158,7 +1160,8 @@ simulated = true                 # every call goes to demo-api.binance.com
 ```
 
 ```bash
-export BINANCE_API_KEY=... BINANCE_API_SECRET=...
+openalpha key set BINANCE_API_KEY
+openalpha key set BINANCE_API_SECRET
 ```
 
 With keys for both exchanges, name the venue on every buy: `/trade spot binance:BTC buy 0.001 sl 100000`.

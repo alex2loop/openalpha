@@ -12,6 +12,7 @@ import { t } from '@/i18n'
 import type { AskContext } from './ask'
 import type { ModelAnswer } from './model-step'
 import { printNextSteps } from './next-steps'
+import { offerSaveKeys } from './save-key'
 
 /** Signs in, tries the model once and lists what is left, after any write that set a model. */
 export async function finishModelChange(
@@ -28,9 +29,12 @@ export async function finishModelChange(
   await offerSignIn(ctx, chosen.provider)
 
   const signedIn = await isSignedIn(ctx, chosen.provider)
+  const saved = await offerSaveKeys(ctx, [chosen.starter.apiKeyEnv, change.telegramTokenEnv])
+  const keyInFile = chosen.starter.apiKeyEnv !== undefined && saved.has(chosen.starter.apiKeyEnv)
 
   // A call with no login or cloud account yet can only fail; the next steps already say what to set.
-  if (signedIn && hasCloudAccount(chosen.provider)) {
+  // A key just saved is in the file, not in this process, so the probe could not see it either.
+  if (signedIn && hasCloudAccount(chosen.provider) && !keyInFile) {
     await testModel(ctx, change.configPath)
   }
 
@@ -38,6 +42,7 @@ export async function finishModelChange(
     provider: chosen.provider,
     model: chosen.starter,
     signedIn,
+    saved,
     firstRun: change.firstRun,
     ...(change.telegramTokenEnv === undefined ? {} : { telegramTokenEnv: change.telegramTokenEnv }),
   })

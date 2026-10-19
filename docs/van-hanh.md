@@ -289,7 +289,8 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
 
    [Service]
    ExecStart=%h/.local/bin/openalpha start
-   EnvironmentFile=%h/.openalpha/env
+   # Tùy chọn: daemon cũng tự đọc khóa lưu bằng `openalpha key set` trong ~/.openalpha/env.
+   EnvironmentFile=-%h/.openalpha/env
    Restart=on-failure
 
    [Install]

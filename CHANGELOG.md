@@ -26,6 +26,12 @@ SQLite book comes first.
 
 ### Setup
 
+- `openalpha key set NAME` saves a key you type hidden into `~/.openalpha/env` (mode `0600`);
+  `openalpha key` lists which keys are set and where from; `key unset NAME` removes one. Every command
+  reads that file at start, and a variable set in your shell still wins. `onboard` offers to save the
+  model key and the Telegram token the same way, and every missing-key message now points at
+  `key set`. Names starting with the brand prefix are never read from the file.
+
 - `openalpha provider list` works before any setup, without a config or a database.
 - `config.sample.toml` starts with the `[budget]` daily cap (`max_daily_usd = 2`) and `[locale]` on, and the
   long guides carry a contents list.

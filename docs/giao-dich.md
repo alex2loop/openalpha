@@ -1120,7 +1120,9 @@ fees = { buy = 0.0008, sell = 0.0008, fee_asset = "base" }   # phân số của 
 ```
 
 ```bash
-export OKX_API_KEY=... OKX_API_SECRET=... OKX_API_PASSPHRASE=...
+openalpha key set OKX_API_KEY
+openalpha key set OKX_API_SECRET
+openalpha key set OKX_API_PASSPHRASE
 ```
 
 Với Binance:
@@ -1131,7 +1133,8 @@ simulated = true                 # mọi lời gọi đi tới demo-api.binance.
 ```
 
 ```bash
-export BINANCE_API_KEY=... BINANCE_API_SECRET=...
+openalpha key set BINANCE_API_KEY
+openalpha key set BINANCE_API_SECRET
 ```
 
 Có khóa của cả hai sàn thì hãy nêu sàn trên mọi lệnh mua: `/trade spot binance:BTC buy 0.001 sl 100000`.

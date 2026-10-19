@@ -329,6 +329,13 @@ work, close services. CLI cancellation propagates into active runs and exits cle
 commands are `BUILT_IN_COMMANDS` in [src/cli/registry.ts](../../../src/cli/registry.ts); trading adds no
 CLI command. For the programmatic surface see [Extending](./extending.md#the-sdk-surface).
 
+**The key file loads first.** `main()` reads `<data dir>/env` (`src/cli/env-file.ts`) right after the
+global flags and before the pre-boot config probe, since config resolution reads keys from `process.env`.
+It is the only boot-time write to `process.env`: it sets names the environment leaves empty, skips the
+brand-prefixed ones, and leaves a file other users can read untouched (`CliApp.keyFile` carries which names
+it set). The data dir is the bootstrap one (`--data-dir`, the data-dir variable, the default), so
+`[paths] data_dir` cannot move it.
+
 **Keys never stop a start.** Boot resolves with `deferMissingKeys`: a model entry whose key variable is
 unset keeps `missingEnv` (the chain skips it, and with none left every call rejects with the
 localized `MissingEnvError`), and an MCP server naming an unset `${VAR}` lands in `ResolvedMcp.unset`

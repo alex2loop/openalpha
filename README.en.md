@@ -108,14 +108,14 @@ curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh
 powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows
 ```
 
-**2. Set your AI key and check.** Open a new terminal:
+**2. Save your AI key and check.** `onboard` offers to save it for you; otherwise open a new terminal:
 
 ```bash
-export OPENROUTER_API_KEY="..."   # add this line to the end of ~/.zshrc (macOS) or ~/.bashrc (Linux) to keep it
-openalpha doctor --online         # sends the model one short test message
+openalpha key set OPENROUTER_API_KEY   # you type the key hidden; it is kept in ~/.openalpha/env
+openalpha doctor --online              # sends the model one short test message
 ```
 
-On Windows: `setx OPENROUTER_API_KEY "..."`, open a new PowerShell, then `openalpha doctor --online`.
+`openalpha key` lists which keys are set and where they come from. The same two commands work on Windows.
 
 **3. Load the data and say how much risk you want.** Run `openalpha chat`, then type:
 
@@ -318,7 +318,7 @@ OpenAlpha does not promise you will never lose. It keeps each loss small, planne
 
 - **The AI never sees your money.** The analyst gets weights only, never a balance, a price paid or your total assets.
 - **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation.
-- **Everything stays on your machine.** The book and the config live locally; API keys are read from the environment only, never written to a file.
+- **Everything stays on your machine.** The book and the config live locally; Keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
 - **AI spend has a ceiling.** `onboard` sets a daily cap; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill.
 
 Every other safeguard: [SECURITY.en.md](SECURITY.en.md).

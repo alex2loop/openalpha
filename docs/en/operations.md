@@ -296,7 +296,8 @@ Run the daemon on a server you own and point a client app at it.
 
    [Service]
    ExecStart=%h/.local/bin/openalpha start
-   EnvironmentFile=%h/.openalpha/env
+   # Optional: the daemon also reads keys saved with `openalpha key set` from ~/.openalpha/env.
+   EnvironmentFile=-%h/.openalpha/env
    Restart=on-failure
 
    [Install]

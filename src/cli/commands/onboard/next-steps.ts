@@ -1,21 +1,20 @@
 import type { ProviderEntry } from '@/ai/api'
 import { AUTH_PROVIDERS, hasIdentityEnv, IDENTITY_ENV } from '@/ai/api'
 import { getEnv } from '@/cli/env'
-import { hint, style } from '@/cli/ui/colors'
+import { style } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
-import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 
 import type { AskContext } from './ask'
 import type { StarterModel } from './config-file'
 import { isEnvSet } from './model-step'
 
-const WINDOWS = 'win32'
-
 interface NextStepsInput {
   readonly provider?: ProviderEntry
   readonly model?: StarterModel
   readonly signedIn: boolean
+  /** The names onboard just saved to the key file; their steps are done. */
+  readonly saved: ReadonlySet<string>
   readonly telegramTokenEnv?: string
   /** A first setup also lists how to start; an edit lists what it left to do and the restart. */
   readonly firstRun: boolean
@@ -34,16 +33,10 @@ export function printNextSteps(ctx: AskContext, input: NextStepsInput): void {
   steps.forEach((step, index) => {
     ctx.app.out(`  ${index + 1}. ${step}`)
   })
-
-  if (process.platform !== WINDOWS && unsetEnvNames(input).length > 0) {
-    ctx.app.out(hint(t(ctx.locale, 'cli.onboardKeepEnvHint')))
-  }
 }
 
-function unsetEnvNames(input: NextStepsInput): readonly string[] {
-  return [input.model?.apiKeyEnv, input.telegramTokenEnv].filter(
-    (name): name is string => name !== undefined && !isEnvSet(name)
-  )
+function isStillToSave(input: NextStepsInput, name: string | undefined): name is string {
+  return name !== undefined && !isEnvSet(name) && !input.saved.has(name)
 }
 
 function accessSteps(ctx: AskContext, input: NextStepsInput): readonly string[] {
@@ -51,8 +44,8 @@ function accessSteps(ctx: AskContext, input: NextStepsInput): readonly string[] 
   const steps: string[] = []
   const keyEnv = model?.apiKeyEnv
 
-  if (keyEnv !== undefined && !isEnvSet(keyEnv)) {
-    steps.push(t(ctx.locale, 'cli.onboardStepSetKey', { command: setEnvCommand(keyEnv) }))
+  if (isStillToSave(input, keyEnv)) {
+    steps.push(t(ctx.locale, 'cli.onboardStepSaveKey', { brand: BRAND.name, name: keyEnv }))
   }
 
   if (provider?.identity !== undefined && !hasIdentityEnv(provider.identity, getEnv())) {
@@ -69,10 +62,10 @@ function accessSteps(ctx: AskContext, input: NextStepsInput): readonly string[] 
     steps.push(t(ctx.locale, 'cli.onboardStepSignIn', { command }))
   }
 
-  if (telegramTokenEnv !== undefined && !isEnvSet(telegramTokenEnv)) {
-    const command = setEnvCommand(telegramTokenEnv)
+  if (isStillToSave(input, telegramTokenEnv)) {
+    const params = { brand: BRAND.name, name: telegramTokenEnv }
 
-    steps.push(t(ctx.locale, 'cli.onboardStepSetTelegram', { command }))
+    steps.push(t(ctx.locale, 'cli.onboardStepSaveKey', params))
   }
 
   return steps

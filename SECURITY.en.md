@@ -35,8 +35,9 @@ before relying on any of it.
 
 Anything that breaks one of these:
 
-**Secrets stay out of reach.** Credentials are read from the environment only; no config
-file holds a value. A path that writes a key to disk unscrubbed, leaks one into a log, an
+**Secrets stay out of reach.** Credentials come from the environment or from the key file
+(`~/.openalpha/env`, mode `0600`, written only by `onboard` and `openalpha key set`, refused when
+other users can read it); no config file holds a value, and no command prints one back. A path that writes a key to disk unscrubbed, leaks one into a log, an
 error, a stored memory row or a model prompt is in scope.
 
 **The order path is the only way to an exchange.** Order placement lives behind one
@@ -105,7 +106,7 @@ For context when you assess a finding — these are enforced, not aspirational:
 
 | | |
 |---|---|
-| Credentials | environment only; endpoints code-owned so no setting can redirect a request |
+| Credentials | environment or the `0600` key file; endpoints code-owned so no setting can redirect a request |
 | Local API | loopback bind, bearer token at `0600`, origin allowlist, peer check |
 | Untrusted text | prompt-injection scanning before it can steer a run or reach memory |
 | Logs and errors | scrubbed at the boundary |

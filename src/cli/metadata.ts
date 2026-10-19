@@ -68,6 +68,10 @@ export const CLI_COMMAND_METADATA = {
     name: 'provider',
     summary: { key: 'cliHelp.commandProviderSummary' },
   },
+  key: {
+    name: 'key',
+    summary: { key: 'cliHelp.commandKeySummary' },
+  },
   auth: {
     name: 'auth',
     summary: { key: 'cliHelp.commandAuthSummary' },

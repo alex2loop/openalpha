@@ -30,10 +30,17 @@ const TOML_VALUE_KINDS: Readonly<Record<string, string>> = Object.freeze({
 
 type ConfigPath = readonly (string | number)[]
 
-/** The shell line that sets `env` in the operator's own shell: PowerShell has no `export`, and
- *  `setx` alone reaches only terminals opened after it. */
+const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
+
+/** What a variable name can be made of: the one pattern MCP placeholders, onboard and the key file
+ *  all hold a name to. */
+export function isEnvName(name: string): boolean {
+  return ENV_NAME_RE.test(name)
+}
+
+/** The command that stores `env` where every later command finds it, the same on every platform. */
 export function setEnvCommand(env: string): string {
-  return process.platform === 'win32' ? `$env:${env}="..."; setx ${env} "..."` : `export ${env}=...`
+  return `${BRAND.name} key set ${env}`
 }
 
 interface OperatorConfigErrorDetails {

@@ -349,6 +349,18 @@ phiên chạy đang hoạt động và thoát sạch. Các lệnh CLI tầng cao
 [src/cli/registry.ts](../../src/cli/registry.ts); phần giao dịch không đóng góp lệnh CLI nào. Về bề mặt lập
 trình, xem [Mở rộng](./mo-rong.md#bề-mặt-sdk).
 
+**Tệp khóa được nạp trước.** `main()` đọc `<thư mục dữ liệu>/env` (`src/cli/env-file.ts`) ngay sau các cờ
+toàn cục và trước bước thăm dò cấu hình, vì cấu hình đọc khóa từ `process.env`. Đây là lần ghi duy nhất vào
+`process.env` lúc khởi động: nó chỉ đặt tên mà môi trường để trống, bỏ qua tên mang tiền tố thương hiệu,
+và để nguyên tệp mà người khác đọc được (`CliApp.keyFile` cho biết những tên nó đã đặt). Thư mục dữ liệu là
+bản bootstrap (`--data-dir`, biến thư mục dữ liệu, mặc định) nên `[paths] data_dir` không dời được nó.
+
+**Tệp khóa được nạp trước.** `main()` đọc `<thư mục dữ liệu>/env` (`src/cli/env-file.ts`) ngay sau các cờ
+toàn cục và trước bước thăm dò cấu hình, vì cấu hình đọc khóa từ `process.env`. Đây là lần ghi duy nhất vào
+`process.env` lúc khởi động: nó chỉ đặt tên mà môi trường để trống, bỏ qua tên mang tiền tố thương hiệu,
+và để nguyên tệp mà người khác đọc được (`CliApp.keyFile` cho biết những tên nó đã đặt). Thư mục dữ liệu là
+bản bootstrap (`--data-dir`, biến thư mục dữ liệu, mặc định) nên `[paths] data_dir` không dời được nó.
+
 **Khóa không bao giờ chặn lúc khởi động.** Boot resolve với `deferMissingKeys`: một mô hình có biến khóa
 chưa đặt giữ `missingEnv` (chuỗi bỏ qua nó, và khi không còn mô hình nào thì mọi lời gọi bị từ chối
 bằng `MissingEnvError` đã bản địa hóa), còn máy chủ MCP nêu `${VAR}` chưa đặt thì vào `ResolvedMcp.unset`

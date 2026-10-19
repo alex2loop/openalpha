@@ -1,4 +1,5 @@
 import { createInterface } from 'node:readline/promises'
+import { Writable } from 'node:stream'
 
 import type { CliApp, CompletionSource } from '@/cli/types'
 import type { Locale } from '@/core/types/locale'
@@ -13,6 +14,13 @@ import { t } from '@/i18n'
 // Accepted "yes" words come from the locale (cli.promptAffirmative, comma-separated) so adding a
 // language needs no code change here. The fallback covers any locale that omits the key.
 const AFFIRMATIVE_FALLBACK = new Set(['y', 'yes'])
+// Readline echoes what is typed to its output; a sink that drops every chunk keeps a secret off the
+// screen while readline still handles editing, paste and multi-byte input.
+const SILENT_OUTPUT = new Writable({
+  write: (_chunk, _encoding, done) => {
+    done()
+  },
+})
 
 interface PromptOptions {
   readonly signal?: AbortSignal
@@ -59,6 +67,66 @@ export function defaultPrompt(): PromptFn {
       return answer.trim()
     } finally {
       rl.close()
+    }
+  }
+}
+
+/** One line typed hidden, trimmed. Cancel (Ctrl-C, the signal) rejects with the same abort the other
+ *  prompts raise; with no terminal it reads one line from stdin. A prompt another readline holds
+ *  open (the onboard wizard's) hears no keys meanwhile, or it would echo them. */
+export async function promptSecret(question: string, signal?: AbortSignal): Promise<string> {
+  const interactive = isInteractiveTerminal()
+  const cancel = new AbortController()
+  const restoreKeys = interactive ? suspendKeypressListeners() : undefined
+  // Closing a readline pauses stdin; a prompt held open elsewhere needs it flowing again.
+  const wasFlowing = process.stdin.readableFlowing === true
+  const rl = createInterface({
+    input: process.stdin,
+    output: interactive ? SILENT_OUTPUT : undefined,
+    terminal: interactive,
+  })
+
+  rl.once('SIGINT', () => cancel.abort())
+
+  try {
+    if (interactive) {
+      process.stdout.write(ask(`${question} `))
+    }
+
+    const eof = new Promise<string>((resolve) => {
+      rl.once('close', () => resolve(''))
+    })
+    const answered = rl.question('', {
+      signal: signal === undefined ? cancel.signal : AbortSignal.any([cancel.signal, signal]),
+    })
+
+    return (await Promise.race([answered, eof])).trim()
+  } finally {
+    rl.close()
+    restoreKeys?.()
+
+    if (wasFlowing) {
+      process.stdin.resume()
+    }
+
+    if (interactive) {
+      process.stdout.write('\n')
+    }
+  }
+}
+
+/** Detaches every keypress listener but returns the way back, so a second readline on the same
+ *  stdin is the only one that sees the keys. */
+function suspendKeypressListeners(): () => void {
+  const held = process.stdin.listeners('keypress')
+
+  for (const listener of held) {
+    process.stdin.off('keypress', listener as (...args: unknown[]) => void)
+  }
+
+  return () => {
+    for (const listener of held) {
+      process.stdin.on('keypress', listener as (...args: unknown[]) => void)
     }
   }
 }

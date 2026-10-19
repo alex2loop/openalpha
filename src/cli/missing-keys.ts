@@ -73,3 +73,29 @@ function toKeylessVenues(
     ]
   })
 }
+
+/** Every variable the config reads a key from, set or not: the model chain and its tiers, web
+ *  search, MCP placeholders, channel tokens, venue credentials and source keys. */
+export function keyEnvNames(config: ResolvedConfig): readonly string[] {
+  const trading = resolveTradingConfig({ extensions: config.extensions, locale: config.locale })
+  const models = [...config.models, ...Object.values(config.modelTiers).flat()]
+  const names = [
+    ...models.map((model) => model.apiKeyEnv),
+    config.webSearch.apiKeyEnv,
+    config.webSearch.fallbackApiKeyEnv,
+    ...config.mcp.envNames,
+    ...Object.values(config.channels).map(channelTokenEnv),
+    ...Object.values(trading.venues).flatMap((venue) => Object.values(venue?.credentialEnv ?? {})),
+    ...Object.values(trading.sourceCredentialEnv),
+  ]
+
+  return [...new Set(names.filter((name): name is string => name !== undefined))].sort()
+}
+
+function channelTokenEnv(channel: unknown): string | undefined {
+  if (typeof channel !== 'object' || channel === null || !('token_env' in channel)) {
+    return undefined
+  }
+
+  return typeof channel.token_env === 'string' ? channel.token_env : undefined
+}

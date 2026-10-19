@@ -897,9 +897,10 @@ problem in the file (up to 8, the rest as a count), so you fix them in one pass 
 A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
 `config validate` also checks each `[[models]]` provider name against the catalog, and reports an
 unset key variable as one item in the same list instead of stopping there. `--verbose` adds the full
-list of schema issues. A missing key variable comes with the line that sets it in your
-shell: `export` on macOS and Linux, and on Windows `$env:NAME="..."; setx NAME "..."`, which sets it
-now and for every later PowerShell window. A missing model key stops only what needs the model:
+list of schema issues. A missing key variable comes with the command that stores it:
+`openalpha key set NAME`, the same on every platform. It keeps the key in `<data dir>/env`, which every
+command reads at start. A variable set in your environment wins over the file. The key file follows
+`--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
 `status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
 `openalpha start` starts with a warning, running everything that needs no model until you set the key
 and restart.

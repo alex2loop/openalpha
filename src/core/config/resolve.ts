@@ -55,6 +55,7 @@ export type {
 export {
   combineInvalidConfigErrors,
   InvalidConfigError,
+  isEnvName,
   type KeyEffect,
   MissingEnvError,
   missingEnvOf,
@@ -62,7 +63,7 @@ export {
   setEnvCommand,
   toInvalidConfigError,
 } from '@/core/config/operator-errors'
-export { expandHome } from '@/core/config/paths'
+export { expandHome, resolveEnvFile } from '@/core/config/paths'
 export { CLIENT_MODEL_PROVIDER } from '@/core/config/resolvers/model'
 export {
   MAX_RESEARCH_QUESTIONS_LIMIT,
