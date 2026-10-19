@@ -371,7 +371,7 @@ Reduce reasons:
 
 | Metric | Target | Lint flag | Enforced by |
 |---|---|---|---|
-| Function body | <=40 code lines | >45 non-blank: warn (error in core/ai/persistence; `scripts/research-*` fixtures 50) | Biome `noExcessiveLinesPerFunction` + `skipBlankLines` |
+| Function body | <=40 code lines | >45 non-blank: warn (error in core/ai/persistence; `scripts/research-*` fixtures 50); >40 and unlisted in `scripts/known-long-functions.json`, or listed and grown: error | Biome `noExcessiveLinesPerFunction` + `skipBlankLines`, and `scripts/check-function-limits.ts` (ratchet: split a function rather than raise its number) |
 | File | <=400 code lines | >400 non-blank: error | `scripts/check-line-limits.ts` (non-blank lines, so the blank-line paragraph style AGENTS.md requires is free) |
 | Cognitive complexity | <=15 | >15: warn (error in core/ai/persistence) | Biome `noExcessiveCognitiveComplexity` |
 | Params | <=3 (options object beyond) | >3: error | Biome `useMaxParams` |

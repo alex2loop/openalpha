@@ -16,7 +16,7 @@ lệnh. Những chỗ này đã được thiết kế có chủ ý, nên điều
 Cả hai phải xanh:
 
 ```bash
-bun run check      # biome + typecheck + 15 cổng hợp đồng
+bun run check      # biome + typecheck + 16 cổng hợp đồng
 bun run lint:arch  # 15 cổng kiến trúc
 ```
 

@@ -453,7 +453,7 @@ bun run lint:arch   # the architecture gates
 
 Both commands must pass before anything lands. House rules and the business invariants: [AGENTS.md](AGENTS.md). A clone updates with `git pull`.
 
-Architecture: 15 modules with no cycles, every dependency pointing toward the kernel; 30 gates break the build the moment a boundary does. Contributing: [CONTRIBUTING.en.md](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
+Architecture: 15 modules with no cycles, every dependency pointing toward the kernel; 31 gates break the build the moment a boundary does. Contributing: [CONTRIBUTING.en.md](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
 
 ### Support and community
 
