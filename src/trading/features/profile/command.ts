@@ -10,6 +10,7 @@ import type {
   SegmentPolicyRequest,
   SegmentRequest,
 } from '@/trading/features/profile/types'
+import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { closestName } from '@/core/utils/text'
 import {
@@ -21,7 +22,11 @@ import {
 } from '@/trading/features/profile/patch'
 import { renderProfileText } from '@/trading/features/profile/render'
 import { SEGMENT_POLICY_FIELDS, SEGMENT_TOGGLES } from '@/trading/features/profile/types'
-import { INVESTMENT_GOALS, INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
+import {
+  disabledSegments,
+  INVESTMENT_GOALS,
+  INVESTMENT_HORIZONS,
+} from '@/trading/kernel/operator/profile'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
 import { resolveRenderContext } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
@@ -35,7 +40,7 @@ const REFUSAL_KEYS = Object.freeze([
   'slash.tradingProfileSetSegment',
 ] as const)
 const EXAMPLE_SHARE = '20%'
-const EXAMPLE_SEGMENT = 'crypto'
+const SEGMENT_PLACEHOLDER = '<segment>'
 const GOAL_OPTIONS = INVESTMENT_GOALS.join('|')
 const SHOW_ACTION = 'show'
 const SET_ACTION = 'set'
@@ -126,7 +131,9 @@ async function runSet(
   const patch = parseProfilePatch({ field, values, segments })
 
   if (patch === null) {
-    return buildSetRefusal(deps.profiles, field)
+    const profile = await deps.profiles.get({ defaultLocale: ctx.locale, signal: ctx.signal })
+
+    return buildSetRefusal(deps.profiles, field, openSegmentsOf(deps.profiles, profile))
   }
 
   const profile = await deps.profiles.update({
@@ -210,11 +217,26 @@ function completeProfile(profiles: Profiles, args: readonly string[]): readonly 
 }
 
 /** One line a phone fits: what this field takes and an example of it, never the whole usage text. */
-function buildSetRefusal(profiles: Profiles, field: string): SlashResult {
-  return { kind: 'message', messages: [buildRefusalMessage(profiles, field)] }
+function buildSetRefusal(
+  profiles: Profiles,
+  field: string,
+  open: readonly PortfolioSegment[]
+): SlashResult {
+  return { kind: 'message', messages: [buildRefusalMessage(profiles, field, open)] }
 }
 
-function buildRefusalMessage(profiles: Profiles, field: string): CommandMessage {
+/** An example must run as typed, so it names a segment that is switched on. */
+function openSegmentsOf(profiles: Profiles, profile: UserProfile): readonly PortfolioSegment[] {
+  const off = disabledSegments(profile.caps)
+
+  return profiles.heldSegments().filter((segment) => !off.has(segment))
+}
+
+function buildRefusalMessage(
+  profiles: Profiles,
+  field: string,
+  open: readonly PortfolioSegment[]
+): CommandMessage {
   const shape = toFieldShape(field)
 
   if (shape === 'unknown') {
@@ -240,12 +262,12 @@ function buildRefusalMessage(profiles: Profiles, field: string): CommandMessage 
 
   return {
     key: 'slash.tradingProfileSetSegment',
-    values: { field, example: buildSegmentExample(profiles, field) },
+    values: { field, example: buildSegmentExample(field, open) },
   }
 }
 
-function buildSegmentExample(profiles: Profiles, field: string): string {
-  const [segment = EXAMPLE_SEGMENT] = profiles.heldSegments()
+function buildSegmentExample(field: string, open: readonly PortfolioSegment[]): string {
+  const [segment = SEGMENT_PLACEHOLDER] = open
   const isPolicy = parseMember(field, SEGMENT_POLICY_FIELDS) !== null
   const value = isPolicy ? EXAMPLE_SHARE : INVESTMENT_HORIZONS.at(-1)
 
