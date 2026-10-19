@@ -92,7 +92,7 @@ export async function runChat(
       return
     }
 
-    services.logger.error('api.ws-chat-failed', { err: formatErrForLog(err) })
+    services.logger.error('api.ws_chat_failed', { err: formatErrForLog(err) })
     sendRunError(ws, err)
   } finally {
     unregisterSocketRun(ws, sessionId, controller)

@@ -112,7 +112,7 @@ async function runHandler(
       throw err
     }
 
-    app.resolve('logger').error('api.handler-failed', {
+    app.resolve('logger').error('api.handler_failed', {
       method: route.method,
       path: route.path,
       err: formatErrForLog(err),

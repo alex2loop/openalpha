@@ -77,7 +77,7 @@ async function readBriefSchedule(
   } catch (err: unknown) {
     // A client that hung up mid-read is not a failure of the read.
     if (!signal.aborted) {
-      app.resolve('logger').warn('api.brief-schedule-failed', { err: formatErrForLog(err) })
+      app.resolve('logger').warn('api.brief_schedule_failed', { err: formatErrForLog(err) })
     }
 
     return undefined

@@ -14,6 +14,12 @@ const PACKAGE_SOURCES = ['src']
 
 const KEY_SOURCE = '[a-z][a-z0-9]*(?:\\.[a-z0-9_]+)+'
 const LOG_CALL_RE = new RegExp(`\\.(?:info|warn|error|fatal|debug)\\(\\s*'(${KEY_SOURCE})'`, 'gs')
+// A key shaped like a dotted key but spelled with a hyphen: KEY_SOURCE cannot match it, so without
+// this it would slip past the one-site-per-key check.
+const KEBAB_KEY_RE = new RegExp(
+  `\\.(?:info|warn|error|fatal|debug)\\(\\s*'([a-z][a-z0-9]*(?:\\.[a-z0-9_-]+)+)'`,
+  'gs'
+)
 // Every logger call, literal key or not, so a key smuggled in through a variable is visible.
 const LOGGER_CALL_RE =
   /[\w.]*logger\.(?:info|warn|error|fatal|debug)\(\s*(['`]|[A-Za-z_$][\w$.]*)/gs
@@ -71,6 +77,7 @@ interface Site {
 const sites = new Map<string, Site[]>()
 const fieldIssues: string[] = []
 const opaqueKeys: string[] = []
+const kebabKeys: string[] = []
 
 const lineAt = (source: string, index: number): number => source.slice(0, index).split('\n').length
 
@@ -168,6 +175,12 @@ for (const dir of PACKAGE_SOURCES) {
       }
     }
 
+    for (const match of source.matchAll(KEBAB_KEY_RE)) {
+      if (match[1]?.includes('-')) {
+        kebabKeys.push(`${dir}/${rel}:${lineAt(source, match.index)} '${match[1]}'`)
+      }
+    }
+
     for (const forwarder of KEY_FORWARDERS) {
       for (const match of source.matchAll(forwardedKeyRe(forwarder))) {
         const key = match[1]
@@ -206,7 +219,8 @@ if (
   violations.length > 0 ||
   staleAllowances.length > 0 ||
   fieldIssues.length > 0 ||
-  opaqueKeys.length > 0
+  opaqueKeys.length > 0 ||
+  kebabKeys.length > 0
 ) {
   if (violations.length > 0) {
     process.stderr.write(`FAIL: ${violations.length} log key(s) used by more than one call site:\n`)
@@ -227,6 +241,13 @@ if (
   if (opaqueKeys.length > 0) {
     process.stderr.write(`FAIL: ${opaqueKeys.length} log call(s) the gate cannot read:\n`)
     for (const issue of opaqueKeys) {
+      process.stderr.write(`  ${issue}\n`)
+    }
+  }
+
+  if (kebabKeys.length > 0) {
+    process.stderr.write(`FAIL: ${kebabKeys.length} log key(s) off-convention: log keys are dotted snake_case:\n`)
+    for (const issue of kebabKeys) {
       process.stderr.write(`  ${issue}\n`)
     }
   }

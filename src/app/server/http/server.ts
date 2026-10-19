@@ -57,7 +57,7 @@ export function startApi(app: App, token: string): ApiHandle {
     closeAdmission: (): void => {
       closeSocketAdmission()
       stopListening().catch((err: unknown) => {
-        app.resolve('logger').warn('api.admission-close-failed', { err: formatErrForLog(err) })
+        app.resolve('logger').warn('api.admission_close_failed', { err: formatErrForLog(err) })
       })
     },
     stop: async (): Promise<void> => {

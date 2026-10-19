@@ -47,7 +47,7 @@ async function handleMcp(req: Request, ctx: ApiRouteContext): Promise<Response> 
   try {
     return await dispatch(parsed.data, req, ctx)
   } catch (err: unknown) {
-    ctx.app.resolve('logger').error('api.mcp-failed', { err: formatErrForLog(err) })
+    ctx.app.resolve('logger').error('api.mcp_failed', { err: formatErrForLog(err) })
 
     return rpcError(parsed.data.id, INTERNAL_ERROR, INTERNAL_ERROR_MESSAGE)
   }
