@@ -9,47 +9,53 @@ carries ` [IMPORTANT]` after its date.
 
 ## [Unreleased]
 
-OpenAlpha is easier to leave running and to drive from the terminal and Zalo: a daily backup of the
-SQLite book comes first.
-> OpenAlpha dễ để chạy lâu dài và dễ dùng hơn từ dòng lệnh và Zalo: bắt đầu bằng bản sao lưu SQLite mỗi ngày.
+OpenAlpha is safer to leave running and easier to drive: a daily backup, start at login, keys kept in a
+private file, typed answers to approval prompts on Zalo, a shorter `/record`, and notices for a crash, a
+missed brief or a channel that stays down. No database change.
+> OpenAlpha an toàn hơn khi để chạy lâu và dễ dùng hơn: sao lưu mỗi ngày, tự chạy khi đăng nhập, khóa lưu trong tệp riêng, trả lời duyệt lệnh bằng cách gõ trên Zalo, `/record` ngắn hơn, và báo khi daemon sập, lỡ bản tin hay kênh chat mất kết nối.
 
-### Chat
+### Operations
 
-- `/help` and the Telegram menu lead with the trading commands (`/setup` first under the book),
-  and the system commands (`/help`, `/stop` and the rest) close the list. The menu now lists `/help`
-  and `/stop` too.
-
-- Buttons where no money moves: the rate check of a USDT `/record` and a proposed `/themes` theme
-  each offer their confirm as a button (a typed line on Zalo and the terminal).
-- `/delete <id>` now shows the row first; `/delete <id> confirm` removes it. Scripts that delete in one
-  step must add `confirm`.
+- The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three
+  (`[retention] daily_backups`, `0` turns it off). PostgreSQL is skipped; use `pg_dump`.
+- `openalpha autostart enable|disable|status` starts OpenAlpha at login (launchd, systemd user unit,
+  Windows Run key), so the brief and alerts survive a restart. The Linux and Windows launchers are
+  untested on real machines.
+- `status` says when the daemon stopped unexpectedly, and the next start tells your chat once. A morning
+  brief skipped because the daemon was down before the open now says so. A brief whose build crosses the
+  open still goes out, with a line first saying prices have moved.
+- A chat channel that stays down for 15 minutes is reported on another channel (with the reason), once
+  when it drops and once when it returns, and `status` lists it as `down`.
+- A button tapped after its prompt was answered or timed out replies that it is already answered or
+  expired.
+- SQLite gets `PRAGMA optimize` in the retention sweep.
 
 ### Setup
 
 - `openalpha key set NAME` saves a key you type hidden into `~/.openalpha/env` (mode `0600`);
   `openalpha key` lists which keys are set and where from; `key unset NAME` removes one. Every command
   reads that file at start, and a variable set in your shell still wins. `onboard` offers to save the
-  model key and the Telegram token the same way, and every missing-key message now points at
-  `key set`. Names starting with the brand prefix are never read from the file.
-
+  model key and the Telegram token the same way, and every missing-key message now points at `key set`.
+  Names starting with the brand prefix are never read from the file.
+- `onboard` asks the currency of your book (VND, USD, or another 3-letter code) and writes it to
+  `[locale] currency`, since it is fixed once a profile is saved.
 - `openalpha provider list` works before any setup, without a config or a database.
 - `config.sample.toml` starts with the `[budget]` daily cap (`max_daily_usd = 2`) and `[locale]` on, and the
   long guides carry a contents list.
 
-### Zalo
+### Chat
 
+- `/help` and the Telegram menu lead with the trading commands (`/setup` first under the book), and the
+  system commands (`/help`, `/stop` and the rest) close the list. The menu now lists `/help` and `/stop`.
 - Approval prompts and `/research thorough` plan reviews work on Zalo: each choice arrives as a short
   code such as `/4821` to type back in the same chat. Only the operator's code counts, and a second
   answer says it was already answered or has expired.
 - In a private Zalo Personal chat, replying to an answer continues from it, as on Telegram.
-
-- Alerts and the morning brief armed from the terminal now go to your chat (the first configured
-  channel, or `fallback_chat_id`) instead of being refused, while OpenAlpha runs in the background.
-  A scheduled daemon run whose origin is the terminal arms to the default chat the same way.
-
-- `openalpha autostart enable|disable|status` starts OpenAlpha at login (launchd, systemd user unit,
-  Windows Run key), so the brief and alerts survive a restart. The Linux and Windows launchers are
-  untested on real machines.
+- Alerts and the morning brief armed from the terminal now go to your chat (the first configured channel,
+  or `fallback_chat_id`) instead of being refused, while OpenAlpha runs in the background. A scheduled
+  daemon run whose origin is the terminal arms to the default chat the same way.
+- On Zalo a long command's progress line ends with `type /stop to cancel`, and a command waiting behind
+  another says nothing until it starts.
 
 ### Trading
 
@@ -57,21 +63,10 @@ SQLite book comes first.
   currency, and the date (`/record buy FPT 100 58400`). A bare ticker is found only in lists already
   stored, never over the network, and only when exactly one market matches. Every confirmation now prints
   the market beside the ticker.
-
-### Operations
-
-- `status` says when the daemon stopped unexpectedly, and the next start tells your chat once. A morning brief
-  skipped because the daemon was down before the open now says so. A brief whose build crosses the open still
-  goes out, with a line first saying prices have moved. A button tapped after its prompt was answered or
-  timed out replies that it is already answered or expired.
-
-### For integrators
-
-- `DaemonTask.start(signal, options?)` takes a `DaemonStartOptions` object (`onReady`, `onHealth`,
-  `previousRun`) in place of the positional `onReady` handler.
-
-- A chat channel that stays down for 15 minutes is reported on another channel (with the reason), once
-  when it drops and once when it returns, and `status` lists it as `down`.
+- Buttons where no money moves: the rate check of a USDT `/record` and a proposed `/themes` theme each
+  offer their confirm as a button (a typed line on Zalo and the terminal).
+- `/delete <id>` now shows the row first; `/delete <id> confirm` removes it. Scripts that delete in one
+  step must add `confirm`.
 
 ### Reports
 
@@ -79,18 +74,13 @@ SQLite book comes first.
   `/suggest` link. Alert ids are six characters, and `/alert disable` takes them.
 - On a phone `/transactions` shows 10 rows, `/portfolio` puts positions right after the warnings and keeps
   three closed trips, and the brief shows what to do right under the verdict.
-- On Zalo a long command's progress line ends with `type /stop to cancel`, and a command waiting behind
-  another says nothing until it starts.
 - The footer after a command shows only the elapsed time until the session has called a model.
 - Failure and caveat messages say what to do next, and a failed command points at `openalpha logs`.
 
-- `onboard` asks the currency of your book (VND, USD, or another 3-letter code) and writes it to
-  `[locale] currency`, since it is fixed once a profile is saved.
+### For integrators
 
-### Storage
-
-- The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three
-  (`[retention] daily_backups`, `0` turns it off). PostgreSQL is skipped; use `pg_dump`.
+- `DaemonTask.start(signal, options?)` takes a `DaemonStartOptions` object (`onReady`, `onHealth`,
+  `previousRun`) in place of the positional `onReady` handler.
 
 ## [1.0.7] - 2026-10-19
 
