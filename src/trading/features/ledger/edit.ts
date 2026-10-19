@@ -5,11 +5,13 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import type { LedgerStore } from '@/trading/features/ledger/store/ledger'
+import type { LedgerEntry, LedgerWriteResult } from '@/trading/features/ledger/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
-import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { CurrencyCode, MarketRef } from '@/trading/kernel/instrument'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
+import type { QuoteConvention } from '@/trading/render/money'
 import { t } from '@/i18n'
 import {
   buildInvalidLineMessages,
@@ -49,9 +51,6 @@ interface EditCommandDeps {
   readonly portfolio: Editor
   readonly marketData: Pick<MarketDataService, 'quoteConvention' | 'trailsStop' | 'boardLot'>
   readonly costs: TradingCosts
-}
-
-interface DeleteCommandDeps extends EditCommandDeps {
   readonly ledger: Pick<LedgerStore, 'findById' | 'listIdsMatching'>
 }
 
@@ -82,7 +81,7 @@ export function createUpdateCommand(deps: UpdateCommandDeps): SlashCommand {
   }
 }
 
-export function createDeleteCommand(deps: DeleteCommandDeps): SlashCommand {
+export function createDeleteCommand(deps: EditCommandDeps): SlashCommand {
   return {
     name: DELETE_COMMAND,
     description: { kind: 'localized', key: 'slash.tradingDeleteHelp' },
@@ -122,6 +121,8 @@ async function runUpdate(
     }
   }
 
+  // An unknown or ambiguous handle is refused here, before any write.
+  const before = await resolveEntry(deps, { ref, signal: ctx.signal })
   const result = await deps.portfolio.update({
     ref,
     draft,
@@ -132,11 +133,26 @@ async function runUpdate(
 
   return {
     kind: 'text',
-    text: renderWriteConfirmation(ctx.locale, result, deps),
+    text: renderUpdated(deps, ctx, { before, result }),
   }
 }
 
-async function runDelete(deps: DeleteCommandDeps, ctx: SlashContext): Promise<SlashResult> {
+function renderUpdated(
+  deps: UpdateCommandDeps,
+  ctx: SlashContext,
+  rows: { readonly before: LedgerEntry; readonly result: LedgerWriteResult }
+): string {
+  const was = renderEntry(ctx.locale, rows.before, entryConventions(deps, rows.before))
+
+  return [
+    t(ctx.locale, 'trading.render.ledger.updateBefore'),
+    was,
+    '',
+    renderWriteConfirmation(ctx.locale, rows.result, deps),
+  ].join('\n')
+}
+
+async function runDelete(deps: EditCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const [ref, action] = ctx.args
 
   if (
@@ -162,17 +178,15 @@ async function runDelete(deps: DeleteCommandDeps, ctx: SlashContext): Promise<Sl
 /** Shows the row a handle names and the button that deletes it; nothing is held between the two
  *  commands, so a second tap finds no row and says so. */
 async function previewDelete(
-  deps: DeleteCommandDeps,
+  deps: EditCommandDeps,
   ctx: SlashContext,
   ref: string
 ): Promise<SlashResult> {
   const entry = await resolveEntry(deps, { ref, signal: ctx.signal })
-  const instruments = 'instrument' in entry.transaction ? [entry.transaction.instrument] : []
-  const conventions = quoteConventionsFor(deps.marketData, instruments)
 
   return {
     kind: 'text',
-    text: `${renderEntry(ctx.locale, entry, conventions)}\n\n${t(ctx.locale, 'trading.render.ledger.deleteAsk')}`,
+    text: `${renderEntry(ctx.locale, entry, entryConventions(deps, entry))}\n\n${t(ctx.locale, 'trading.render.ledger.deleteAsk')}`,
     affordances: [
       {
         label: t(ctx.locale, 'trading.render.affordance.deleteRow'),
@@ -180,4 +194,13 @@ async function previewDelete(
       },
     ],
   }
+}
+
+function entryConventions(
+  deps: EditCommandDeps,
+  entry: LedgerEntry
+): ReadonlyMap<MarketRef, QuoteConvention> {
+  const instruments = 'instrument' in entry.transaction ? [entry.transaction.instrument] : []
+
+  return quoteConventionsFor(deps.marketData, instruments)
 }

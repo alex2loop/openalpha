@@ -182,7 +182,7 @@ chạm sàn. Cú pháp cố định theo vị trí, ngày dạng `YYYY-MM-DD`:
 # Dòng bằng USDT: thêm fx <giá bạn trả> hoặc fx auto ở cuối
 /record deposit binance 1000 USDT 2026-08-14 fx 26600
 
-/update <mã bút toán> <các trường như /record>
+/update <mã bút toán> <đủ cả dòng /record>
 /delete <mã bút toán>                   # xem lại dòng đó
 /delete <mã bút toán> confirm           # xóa thật
 ```
@@ -224,7 +224,7 @@ Bốn điều cần nhớ:
 - Ngày là **ngày giao dịch thật**, nên ghi bù lệnh cũ vẫn đúng: sổ tự sắp lại theo ngày. Lệnh mua
   cổ phiếu VN tự đóng dấu thanh toán T+2.
 - Ghi nhầm? `/transactions` nhóm bút toán theo ngày và in mã ngắn cuối mỗi dòng, ví dụ `0f9838`. Sửa
-  bằng `/update 0f9838 <các trường như /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
+  bằng `/update 0f9838 <đủ cả dòng /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
   hay bỏ trống phí), xóa bằng `/delete 0f9838 confirm` (gõ `/delete 0f9838` trước để xem lại dòng). Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh
   sửa, và sửa một bút toán sẽ tính lại cả những khuyến nghị cũ.
 
@@ -254,7 +254,7 @@ Không thêm `fx` thì trợ lý chưa ghi vội. Nó cho bạn xem tỷ giá th
 thay đổi bao nhiêu, rồi chờ: gõ `/record confirm` nếu thấy giá đó đúng, hoặc gõ lại lệnh kèm `fx`.
 Lệnh chờ 10 phút, mỗi cuộc trò chuyện giữ một lệnh. Muốn dùng thẳng tỷ giá thị trường mà không bị hỏi
 thì thêm `fx auto`. `/record sync` không bao giờ hỏi, nhưng nói rõ dòng nào đã ghi theo giá thị trường
-để bạn sửa bằng `/update <mã> ... fx <giá>`.
+để bạn sửa bằng `/update <mã bút toán>`, đủ cả dòng, rồi `fx <giá>`.
 
 Từ khi sàn giữ USDT, nó giữ luôn cả giá vốn. Nạp 1.000 USDT ở 26.600 thì sổ ghi 1.000 USDT với giá vốn 26,6 triệu. Mua 0,01 BTC giá 60.000 (phí 0,6) dùng hết 600,6 USDT, tức 15.975.960 đồng giá vốn, và còn lại 399,4 USDT. Sau này rút 399,4 USDT lúc tỷ giá 27.000 thì lãi đã chốt thêm đúng phần chênh +159.760 đồng, tức khoảng 400 đồng cho mỗi USDT. `/portfolio` cho thấy phần chênh đó ngay từ lúc còn giữ USDT, ở dòng "Chênh tỷ giá trên ngoại tệ đang giữ".
 

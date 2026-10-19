@@ -779,7 +779,7 @@ openalpha chat --message "/update 0f9838 buy VPS equity-vn:ACB 600 21900 VND 120
 openalpha chat --message "/delete 0f9838 confirm"
 ```
 
-`/update` nhận mã ngắn rồi tới đúng các trường mà `/record` nhận: cả giao dịch, không phải một bản vá. Khi sửa, bạn phải nêu rõ khối lượng và phí, ở chỗ `/record` cho phép viết `all` hoặc để phí theo tỷ lệ. Dòng bạn sửa vốn đã có cả hai, và tính lại một trong hai dựa trên một cuốn sổ mới hơn hay một tỷ lệ đã đổi sẽ dịch một con số đã chốt mà bạn chưa hề nêu lại.
+`/update` nhận mã ngắn rồi tới đủ cả dòng `/record`: cả giao dịch, không phải một bản vá. Câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Khi sửa, bạn phải nêu rõ khối lượng và phí, ở chỗ `/record` cho phép viết `all` hoặc để phí theo tỷ lệ. Dòng bạn sửa vốn đã có cả hai, và tính lại một trong hai dựa trên một cuốn sổ mới hơn hay một tỷ lệ đã đổi sẽ dịch một con số đã chốt mà bạn chưa hề nêu lại.
 
 `/delete <mã>` cho xem dòng đó và hỏi lại trước (một nút trên Telegram, một dòng để gõ ở nơi khác); `/delete <mã> confirm` mới xóa hẳn dòng đó (một dòng trùng, hoặc một giao dịch chưa từng xảy ra). Script nào xóa một bước thì phải thêm `confirm`. Cả hai cũng nhận mã bút toán đầy đủ, đó là cái agent truyền qua `portfolio_update` hay `portfolio_remove`.
 

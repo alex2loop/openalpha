@@ -779,7 +779,7 @@ openalpha chat --message "/update 0f9838 buy VPS equity-vn:ACB 600 21900 VND 120
 openalpha chat --message "/delete 0f9838 confirm"
 ```
 
-`/update` takes the handle followed by the same fields `/record` takes: the whole transaction, not a patch. It must state its own quantity and fee, where `/record` may write `all` or leave the fee to a rate. An edit names a row that already carries both, and re-resolving either against a later book or a changed rate would move a settled figure you never restated.
+`/update` takes the handle followed by the full `/record` line: the whole transaction, not a patch. The reply shows the row as it was, then the confirmation. It must state its own quantity and fee, where `/record` may write `all` or leave the fee to a rate. An edit names a row that already carries both, and re-resolving either against a later book or a changed rate would move a settled figure you never restated.
 
 `/delete <handle>` shows the row and asks first (a button on Telegram, a line to type elsewhere); `/delete <handle> confirm` removes it outright (a duplicate, or a trade that never happened). A script that deletes in one step must add `confirm`. Both accept a full entry id too, which is what the agent passes via `portfolio_update` or `portfolio_remove`.
 
