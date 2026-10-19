@@ -111,7 +111,7 @@ nâng lên. Prompt dài hơn bị cắt im lặng, nên một phiên tranh luậ
 lỗi. Hãy khởi động server với cửa sổ lớn hơn: `OLLAMA_CONTEXT_LENGTH=32768 ollama serve`.
 
 **Nhà cung cấp theo thuê bao.** Mục của chúng không nhận `api_key_env`; hãy đăng nhập bằng
-`openalpha auth login`. Chúng cũng từ chối giá `cost_*` tường minh (lượng dùng miễn phí) và `max_tokens`,
+`openalpha auth login <nhà cung cấp>` (ví dụ `chatgpt`). Chúng cũng từ chối giá `cost_*` tường minh (lượng dùng miễn phí) và `max_tokens`,
 dù đặt trên mục hay trong `[model_defaults]` (endpoint ChatGPT không nhận trần đầu ra). Chưa đăng nhập
 không làm hỏng khởi động; lỗi chỉ hiện ở lời gọi đầu tiên. Xem [Agent](tro-ly.md).
 
@@ -757,6 +757,12 @@ nhóm này luôn tắt và `/profile enable gold` bị từ chối.
 chấm điểm theo phí của sàn nào. Hai sàn cùng nhận một thị trường là lỗi khởi động (nêu tên cả hai);
 sàn nhận thị trường mà nó không giữ cũng vậy.
 
+Đổi sàn mặc định không chuyển những gì đã ghi. Ví dụ đặt `[trading.venues.sjc] default_for = ["gold-vn"]`:
+dòng mua bán vàng mới không ghi sàn sẽ vào `sjc`, còn vàng và tiền đã ghi ở `gold-shop` vẫn nằm ở đó, vì
+tài sản không chuyển được giữa các sàn. Bán phần đó thì ghi rõ sàn (`/record sell gold-shop SJC 1 145000000`),
+hoặc chuyển hẳn bằng cách `/update` từng dòng cũ sang `sjc`. `gold-shop` vẫn có sẵn; chưa ghi gì ở đó thì
+cứ để nguyên.
+
 ### Phí
 
 `fees` là nguồn của mọi con số phí trong sản phẩm.
@@ -898,7 +904,8 @@ như một khóa lạ bên trong một mục có chủ.
 `config validate` chạy đúng các bước kiểm tra như lúc khởi động: phân tích, phân giải, rồi `[trading]`,
 `[channels.*]` và mọi mục không module nào nhận. Cấu hình nó chấp nhận thì khởi động được. Xác thực và lưu cấu hình qua
 API cũng dùng đúng các bước đó. Giá trị cấu hình nêu tên thị trường, sàn hay khu vực mặc định chưa đăng
-ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên.
+ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên. Khóa chưa đặt của một mô hình mà chuỗi của nó vẫn còn
+mô hình khác trả lời được chỉ là cảnh báo, không làm lệnh thất bại.
 
 Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. Một lần chạy liệt
 kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn sửa một lượt rồi mới

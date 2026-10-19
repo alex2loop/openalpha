@@ -77,7 +77,7 @@ export function defaultPrompt(): PromptFn {
 export async function promptSecret(question: string, signal?: AbortSignal): Promise<string> {
   const interactive = isInteractiveTerminal()
   const cancel = new AbortController()
-  const restoreKeys = interactive ? suspendKeypressListeners() : undefined
+  const restoreKeys = interactive ? suspendKeypressListeners(process.stdin) : undefined
   // Closing a readline pauses stdin; a prompt held open elsewhere needs it flowing again.
   const wasFlowing = process.stdin.readableFlowing === true
   // Closing a terminal readline also leaves raw mode, which the held-open prompt needs back.
@@ -121,18 +121,19 @@ export async function promptSecret(question: string, signal?: AbortSignal): Prom
   }
 }
 
-/** Detaches every keypress listener but returns the way back, so a second readline on the same
- *  stdin is the only one that sees the keys. */
-function suspendKeypressListeners(): () => void {
-  const held = process.stdin.listeners('keypress')
+/** Detaches every keypress listener but returns the way back, so a second reader on the same
+ *  stream is the only one that sees the keys. */
+export function suspendKeypressListeners(input: NodeJS.ReadStream): () => void {
+  const held = input.rawListeners('keypress')
 
   for (const listener of held) {
-    process.stdin.off('keypress', listener as (...args: unknown[]) => void)
+    // why-safe: an emitter only ever stores functions in its listener list.
+    input.off('keypress', listener as (...args: unknown[]) => void)
   }
 
   return () => {
     for (const listener of held) {
-      process.stdin.on('keypress', listener as (...args: unknown[]) => void)
+      input.on('keypress', listener as (...args: unknown[]) => void)
     }
   }
 }

@@ -145,13 +145,20 @@ wire_path() {
 # `curl | sh` hands the script's stdin to the pipe, so the setup reads the terminal directly. It is
 # left for the operator on an upgrade, without a terminal, in CI (where a pseudo-terminal would wait
 # for a keypress forever) or when asked. A setup that stops prints its own reason.
+# On macOS the binary hears no key through /dev/tty (kqueue cannot watch it), so it reads the
+# terminal stderr is on.
 run_onboard() {
   [ "$FIRST_INSTALL" = "yes" ] || return 0
   [ -z "${CI:-}" ] && [ -z "${OPENALPHA_NO_ONBOARD:-}" ] || return 0
   { : </dev/tty; } 2>/dev/null || return 0
 
   ONBOARD="stopped"
-  "$INSTALL_DIR/$COMMAND" onboard </dev/tty && ONBOARD="done"
+
+  if [ -t 2 ]; then
+    "$INSTALL_DIR/$COMMAND" onboard <&2 && ONBOARD="done"
+  else
+    "$INSTALL_DIR/$COMMAND" onboard </dev/tty && ONBOARD="done"
+  fi
 
   # A stopped setup is not a failed install, and `set -e` would read this function's status as one.
   return 0
