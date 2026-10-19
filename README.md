@@ -141,6 +141,7 @@ openalpha doctor --online              # gửi một tin ngắn để thử mô 
 /record deposit vps 100000000 VND 2026-08-14              # nạp 100 triệu vào tài khoản VPS
 /suggest FPT                                              # soi một mã
 /record buy FPT 100 62000                                 # tự đặt lệnh, khớp rồi thì ghi lại (tự điền sàn, VND và hôm nay)
+/record sell FPT all 65000                                # bán hết khi cổ phiếu đã về (T+2); bán một phần thì ghi số lượng thay cho all
 ```
 
 Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`; giá gõ lệch từ 10 lần trở lên so với giá đang giao dịch thì sổ hỏi lại trước khi lưu. Phí bỏ trống thì sổ tự tính. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:
@@ -163,6 +164,7 @@ Nạp USDT mua qua P2P thì ghi kèm `fx` ở dòng nạp, là giá bạn thật
 ```text
 /record deposit binance 1000 USDT 2026-08-14 fx 26600
 /record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14
+/record sell binance crypto:BTC all 65000                 # bán hết; tự điền USDT và hôm nay
 ```
 
 Nạp VND vào sàn thì lệnh mua bằng USDT được quy theo tỷ giá thị trường ngày đó. Trợ lý cho bạn xem trước, đúng thì gõ `/record confirm` để ghi:
@@ -187,29 +189,29 @@ Nạp VND vào sàn thì lệnh mua bằng USDT được quy theo tỷ giá th�
 <details>
 <summary><b>Vàng trong nước</b></summary>
 
-Nhóm này tắt sẵn. Bật nó, khai nơi bạn mua vàng, rồi ghi như cổ phiếu:
+Nhóm này tắt sẵn. Bật nó lên rồi ghi như cổ phiếu; vàng và tiền mua vàng được ghi ở nơi giữ có sẵn `gold-shop` (tiệm vàng):
 
 ```text
 /profile enable gold-vn
 /price SJC                     # giá mua vào, bán ra và chênh lệch hôm nay
 ```
 
-```toml
-[trading.venues.sjc]
-markets = ["gold-vn"]
-fees = { buy = 0, sell = 0 }   # tiệm vàng không thu phí riêng; chênh mua bán đã nằm trong giá
-```
-
 ```text
-/record deposit sjc 150000000 VND 2026-08-14
-/record buy sjc gold-vn:SJC 1 120000000 VND 2026-08-14   # 1 lượng
+/record deposit gold-shop 150000000 VND 2026-08-14
+/record buy SJC 1 140000000              # 1 lượng; tự điền tiệm vàng, VND và hôm nay
+/record sell SJC 1 145000000             # bán lại cho tiệm, theo giá tiệm mua vào
 ```
 
-Mua lẻ thì ghi theo lượng: 1 chỉ là `0.1`, giá vẫn ghi theo lượng. Vàng nhẫn dùng `gold-vn:PNJ-RING` hoặc `gold-vn:DOJI-RING`. Cắt lỗ và mục tiêu tính theo giá tiệm mua lại, tức số tiền bạn thực nhận khi bán.
+Mua lẻ thì ghi theo lượng: 1 chỉ là `0.1`, giá vẫn ghi theo lượng. Vàng nhẫn ghi `PNJ-RING` hoặc `DOJI-RING`. Cắt lỗ và mục tiêu tính theo giá tiệm mua lại, tức số tiền bạn thực nhận khi bán. Muốn tách sổ theo từng tiệm (SJC, PNJ...) thì khai như SSI ở trên, với `markets = ["gold-vn"]` và `fees = { buy = 0, sell = 0 }`, rồi ghi tên tiệm thay cho `gold-shop`.
 
 </details>
 
-Bán thì `/record sell FPT all 65000` (`all` là bán hết, hoặc ghi số lượng). Rút tiền: `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn ghi theo dạng năm-tháng-ngày. Ghi nhầm thì gõ `/transactions` để xem mã giao dịch, rồi `/update <mã> ...` để sửa hoặc `/delete <mã>` để xem dòng đó, rồi `/delete <mã> confirm` để xóa. Gõ `/record` không kèm gì để xem mọi loại dòng ghi được (cổ tức, chia tách, chuyển tiền...). Cấu hình được đọc lúc khởi động, nên sửa xong hãy chạy lại: `openalpha restart --background`.
+Vài điều dùng được cho mọi thị trường:
+
+- **Rút tiền về:** gõ `/record withdrawal` kèm nơi giữ, số tiền, tiền tệ và ngày, ví dụ `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn viết theo kiểu năm-tháng-ngày.
+- **Lỡ ghi nhầm?** Gõ `/transactions` để thấy mã của từng dòng. Sửa bằng `/update <mã> ...`. Muốn xóa thì gõ `/delete <mã>` để xem lại cho chắc, rồi `/delete <mã> confirm`.
+- **Cổ tức, chia tách, chuyển tiền giữa hai nơi:** gõ riêng `/record`, trợ lý sẽ liệt kê đủ các kiểu ghi và cách viết từng kiểu.
+- **Vừa sửa `config.toml`** (ví dụ thêm công ty chứng khoán hay tiệm vàng)? Thoát `openalpha chat` rồi mở lại là xong. Nếu OpenAlpha đang chạy nền thì gõ thêm `openalpha restart --background`.
 
 **5. Bật bản tin sáng.** `openalpha start --background` để chương trình chạy nền (dữ liệu cũng tự nạp từ đó); `openalpha autostart enable` để nó tự chạy mỗi lần đăng nhập. Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó. `openalpha status` cho biết nó còn chạy không, `openalpha stop` để dừng. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
 
@@ -304,7 +306,7 @@ Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã 
 
 Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo hoặc Zalo cá nhân.
 
-Từ OpenAI, Anthropic, Gemini, DeepSeek tới cổng trung gian như OpenRouter hay mô hình chạy ngay trên máy qua Ollama: gõ `openalpha provider list` để xem đủ danh sách và tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md#danh-mục-nhà-cung-cấp)). Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login`, khỏi cần khóa. Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
+Từ OpenAI, Anthropic, Gemini, DeepSeek tới cổng trung gian như OpenRouter hay mô hình chạy ngay trên máy qua Ollama: gõ `openalpha provider list` để xem đủ danh sách và tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md#danh-mục-nhà-cung-cấp)). Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login chatgpt`, khỏi cần khóa. Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
 
 ### Cách nó hoạt động
 

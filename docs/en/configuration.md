@@ -111,7 +111,7 @@ and no per-provider base-URL variable.
 you raise it. A longer prompt is cut silently, so a debate can lose its evidence without an error.
 Start the server with a bigger window: `OLLAMA_CONTEXT_LENGTH=32768 ollama serve`.
 
-**Subscription providers.** Their entries take no `api_key_env`; log in with `openalpha auth login`
+**Subscription providers.** Their entries take no `api_key_env`; log in with `openalpha auth login <provider>` (for example `chatgpt`)
 instead. They also reject explicit `cost_*` pricing (usage is free) and `max_tokens`, on the entry
 or in `[model_defaults]` (the ChatGPT endpoint refuses an output cap). A missing login does not fail
 boot; the error shows on the first call. See [Agents](agents.md).
@@ -756,6 +756,12 @@ against), so its segment stays off and `/profile enable gold` is refused.
 A venue's `default_for` overrides the built-in default for that market, and decides whose fees a
 suggestion is weighed and graded on. Two venues claiming one market is a boot error naming both, and
 so is a venue claiming a market it does not hold.
+
+Changing the default venue moves nothing already recorded. Set `[trading.venues.sjc] default_for =
+["gold-vn"]`, for example: new gold lines that name no venue book at `sjc`, while the gold and cash already
+recorded at `gold-shop` stay there, since assets cannot move between venues. Sell those by naming the venue
+(`/record sell gold-shop SJC 1 145000000`), or move them for good by changing each old row to `sjc` with
+`/update`. `gold-shop` stays available; with nothing recorded there it can simply be left alone.
 
 ### Fees
 

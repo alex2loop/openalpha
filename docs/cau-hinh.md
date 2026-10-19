@@ -111,7 +111,7 @@ nâng lên. Prompt dài hơn bị cắt im lặng, nên một phiên tranh luậ
 lỗi. Hãy khởi động server với cửa sổ lớn hơn: `OLLAMA_CONTEXT_LENGTH=32768 ollama serve`.
 
 **Nhà cung cấp theo thuê bao.** Mục của chúng không nhận `api_key_env`; hãy đăng nhập bằng
-`openalpha auth login`. Chúng cũng từ chối giá `cost_*` tường minh (lượng dùng miễn phí) và `max_tokens`,
+`openalpha auth login <nhà cung cấp>` (ví dụ `chatgpt`). Chúng cũng từ chối giá `cost_*` tường minh (lượng dùng miễn phí) và `max_tokens`,
 dù đặt trên mục hay trong `[model_defaults]` (endpoint ChatGPT không nhận trần đầu ra). Chưa đăng nhập
 không làm hỏng khởi động; lỗi chỉ hiện ở lời gọi đầu tiên. Xem [Agent](tro-ly.md).
 
@@ -756,6 +756,12 @@ nhóm này luôn tắt và `/profile enable gold` bị từ chối.
 `default_for` của một sàn ghi đè mặc định có sẵn của thị trường đó, và quyết định đề xuất được cân và
 chấm điểm theo phí của sàn nào. Hai sàn cùng nhận một thị trường là lỗi khởi động (nêu tên cả hai);
 sàn nhận thị trường mà nó không giữ cũng vậy.
+
+Đổi sàn mặc định không chuyển những gì đã ghi. Ví dụ đặt `[trading.venues.sjc] default_for = ["gold-vn"]`:
+dòng mua bán vàng mới không ghi sàn sẽ vào `sjc`, còn vàng và tiền đã ghi ở `gold-shop` vẫn nằm ở đó, vì
+tài sản không chuyển được giữa các sàn. Bán phần đó thì ghi rõ sàn (`/record sell gold-shop SJC 1 145000000`),
+hoặc chuyển hẳn bằng cách `/update` từng dòng cũ sang `sjc`. `gold-shop` vẫn có sẵn; chưa ghi gì ở đó thì
+cứ để nguyên.
 
 ### Phí
 

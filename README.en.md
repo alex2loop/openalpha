@@ -141,6 +141,7 @@ openalpha doctor --online              # sends the model one short test message
 /record deposit vps 100000000 VND 2026-08-14              # 100 million VND into the VPS account
 /suggest FPT                                              # take a deep look at one name
 /record buy FPT 100 62000                                 # place the order yourself, record it once it fills (venue, VND and today filled in)
+/record sell FPT all 65000                                # sell it all once the shares have settled (T+2); for part of it, give a quantity instead of all
 ```
 
 Prices are in whole VND: a board price of `62.00` is recorded as `62000`, and a price ten times or more away from the latest one is asked back before it is saved. Leave the fee out and the book prices it. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
@@ -163,6 +164,7 @@ USDT bought over P2P: add `fx` to the deposit, the rate you actually paid for ea
 ```text
 /record deposit binance 1000 USDT 2026-08-14 fx 26600
 /record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14
+/record sell binance crypto:BTC all 65000                 # sell it all; USDT and today filled in
 ```
 
 VND paid into the exchange: a USDT buy converts at that day's market rate. The assistant shows you first; if it looks right, type `/record confirm` to record it:
@@ -187,29 +189,29 @@ VND paid into the exchange: a USDT buy converts at that day's market rate. The a
 <details>
 <summary><b>Vietnamese gold</b></summary>
 
-This segment starts switched off. Switch it on, declare where you buy gold, then record it like a stock:
+This segment starts switched off. Switch it on, then record it like a stock; gold and the cash that buys it sit at the built-in `gold-shop`:
 
 ```text
 /profile enable gold-vn
 /price SJC                     # today's buy-back, sell price and spread
 ```
 
-```toml
-[trading.venues.sjc]
-markets = ["gold-vn"]
-fees = { buy = 0, sell = 0 }   # the shop charges no separate fee; the spread is in the price
-```
-
 ```text
-/record deposit sjc 150000000 VND 2026-08-14
-/record buy sjc gold-vn:SJC 1 120000000 VND 2026-08-14   # 1 tael
+/record deposit gold-shop 150000000 VND 2026-08-14
+/record buy SJC 1 140000000              # 1 tael; gold shop, VND and today filled in
+/record sell SJC 1 145000000             # sold back to the shop at its buy-back price
 ```
 
-Smaller amounts are recorded in taels: 1 chỉ is `0.1`, and the price stays per tael. For ring gold use `gold-vn:PNJ-RING` or `gold-vn:DOJI-RING`. Stop and target are set from the shop's buy-back price, which is what you actually get when you sell.
+Smaller amounts are recorded in taels: 1 chỉ is `0.1`, and the price stays per tael. For ring gold use `PNJ-RING` or `DOJI-RING`. Stop and target are set from the shop's buy-back price, which is what you actually get when you sell. To keep each shop (SJC, PNJ...) apart, declare it like SSI above with `markets = ["gold-vn"]` and `fees = { buy = 0, sell = 0 }`, then record its name instead of `gold-shop`.
 
 </details>
 
-To sell: `/record sell FPT all 65000` (`all` sells the whole position, or give a quantity). To withdraw: `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day. Recorded something wrong? `/transactions` shows each row's id, then `/update <id> ...` fixes it or `/delete <id>` shows the row and then `/delete <id> confirm` removes it. Type `/record` on its own to see every kind of row (dividends, splits, transfers...). Config is read at start, so restart afterwards: `openalpha restart --background`.
+A few things that work the same in every market:
+
+- **Taking money out:** type `/record withdrawal` with the venue, amount, currency and date, for example `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day.
+- **Recorded something wrong?** Type `/transactions` to see each row's id. Fix it with `/update <id> ...`. To remove it, `/delete <id>` shows the row first so you can check, then `/delete <id> confirm`.
+- **Dividends, splits, moving cash between two places:** type `/record` on its own and it lists every kind of row and how to write each one.
+- **Just edited `config.toml`** (say, to add a broker or a gold shop)? Leave `openalpha chat` and open it again, and that's it. If OpenAlpha runs in the background, also run `openalpha restart --background`.
 
 **5. Turn on the morning brief.** `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
 
@@ -304,7 +306,7 @@ A bare ticker is usually enough (`/price FPT`). Qualify it only where two market
 
 Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo or Zalo Personal.
 
-From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md#provider-catalog)). Paying for ChatGPT already? Sign in with `openalpha auth login`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
+From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md#provider-catalog)). Paying for ChatGPT already? Sign in with `openalpha auth login chatgpt`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
 
 ### How it works
 

@@ -317,7 +317,9 @@ dấu nháy (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -
 
 `onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, nhà cung cấp AI và mô hình, URL endpoint nếu nhà cung
 cấp cần, tên biến môi trường chứa key, mức chi tối đa mỗi ngày ($2 nếu bạn không đổi) và, nếu muốn, một bot
-Telegram. Trả lời sai thì nó hỏi lại chứ không dừng cả quá trình. Nếu key đã được đặt, nó gửi thử một tin
+Telegram. Câu có danh sách thì bạn chọn bằng phím ↑ ↓ rồi nhấn Enter; muốn một giá trị không có sẵn (tiền
+tệ, mô hình hay nhà cung cấp khác) thì chọn dòng cuối rồi gõ vào. Không chạy trong terminal thì danh sách được
+đánh số và bạn gõ số. Trả lời sai thì nó hỏi lại chứ không dừng cả quá trình. Nếu key đã được đặt, nó gửi thử một tin
 ngắn tới mô hình; nếu bạn chọn gói ChatGPT, nó mời bạn đăng nhập ngay; cuối cùng nó in danh sách đánh số
 những việc còn lại.
 

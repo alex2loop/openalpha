@@ -326,8 +326,10 @@ unset. The value is read the way git reads it, so it may carry flags or a quoted
 
 `onboard` walks through a first setup: language, AI provider and model, an endpoint URL for a
 provider that needs one, the environment variable that holds your key, a daily spending cap ($2
-unless you change it) and, if you want, a Telegram bot. A wrong answer is asked again instead of
-ending the setup. When the key is already set it sends the model one short test message, it offers
+unless you change it) and, if you want, a Telegram bot. A list is answered with ↑ and ↓ and Enter;
+a value it does not hold (another currency, model or provider) is its last line, which then asks you
+to type it. Without a terminal the list is numbered and you type the number. A wrong answer is asked
+again instead of ending the setup. When the key is already set it sends the model one short test message, it offers
 the ChatGPT sign-in when you picked that plan, and it ends with a numbered list of what is left.
 
 Run it again on an existing config to change one part: the model, the Telegram bot, the budget or

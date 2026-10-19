@@ -9,9 +9,15 @@ carries ` [IMPORTANT]` after its date.
 
 ## [Unreleased]
 
-The macOS install no longer freezes at its setup questions, and a missing key for a fallback model is
-a warning rather than a failed config check.
-> Cài trên macOS không còn treo ở bước hỏi thiết lập, và thiếu khóa của mô hình dự phòng chỉ còn là cảnh báo, không làm kiểm tra cấu hình thất bại.
+Setup is easier to answer and no longer freezes on macOS: pick from each list with the arrow keys, and
+a missing key for a fallback model is only a warning.
+> Thiết lập dễ trả lời hơn và không còn treo trên macOS: chọn trong từng danh sách bằng phím mũi tên, còn thiếu khóa của mô hình dự phòng chỉ là cảnh báo.
+
+### Setup
+
+- `onboard` lists are picked with ↑ and ↓ and Enter, and a value not on the list (another currency,
+  model or provider) is the last line, which then asks you to type it. Without a terminal the list
+  stays numbered.
 
 ### Fixes
 

@@ -27,7 +27,6 @@ const FEATURED_PROVIDERS = [
   'deepseek',
   'ollama',
 ] as const
-const DIGITS_RE = /^\d+$/
 const WEB_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:'])
 
 export interface ModelAnswer {
@@ -69,7 +68,6 @@ async function askProvider(ctx: AskContext): Promise<ProviderEntry> {
       { label: t(ctx.locale, 'cli.onboardOtherProvider'), value: undefined },
     ],
     defaultIndex: Math.max(keyed, 0),
-    other: (answer) => parseProviderId(answer, ctx.locale),
   })
 
   return picked ?? (await askOtherProvider(ctx))
@@ -115,18 +113,27 @@ async function askModelName(ctx: AskContext, provider: ProviderEntry): Promise<s
 
   ctx.app.out(t(ctx.locale, 'cli.onboardModelIntro', { provider: provider.displayName }))
 
-  return await askChoice(ctx, {
+  const picked = await askChoice<string | undefined>(ctx, {
     question: t(ctx.locale, 'cli.onboardPromptModel'),
-    choices: known.map((model) => ({ label: model, value: model })),
+    choices: [
+      ...known.map((model) => ({ label: model, value: model })),
+      { label: t(ctx.locale, 'cli.onboardModelOther'), value: undefined },
+    ],
     defaultIndex: 0,
-    other: (answer) => acceptUnlisted(ctx, answer, known.length),
   })
+
+  return (
+    picked ??
+    (await askUntilValid(ctx, t(ctx.locale, 'cli.onboardPromptModelName'), (answer) =>
+      acceptUnlisted(ctx, answer)
+    ))
+  )
 }
 
 /** A model newer than the list is still a model: take it and say where it gets checked. */
-function acceptUnlisted(ctx: AskContext, answer: string, max: number): Parsed<string> {
-  if (DIGITS_RE.test(answer)) {
-    return refuse(t(ctx.locale, 'cli.onboardPickNumber', { max }))
+function acceptUnlisted(ctx: AskContext, answer: string): Parsed<string> {
+  if (answer === '') {
+    return refuse(t(ctx.locale, 'cli.onboardModelRequired'))
   }
 
   ctx.app.out(warn(t(ctx.locale, 'cli.onboardModelUnlisted', { model: answer })))

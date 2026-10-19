@@ -38,18 +38,25 @@ export async function askLanguage(ctx: AskContext): Promise<Locale> {
 /** The book's currency is fixed by the first saved profile, and nothing before onboard asks, so a USD
  *  user would lock into VND before touching config. VND leads; another 3-letter code may be typed. */
 export async function askCurrency(ctx: AskContext): Promise<string> {
-  return await askChoice<string>(ctx, {
+  const picked = await askChoice<string | undefined>(ctx, {
     question: t(ctx.locale, 'cli.onboardCurrencyQuestion'),
-    choices: CURRENCY_CHOICES.map((code) => ({ label: code, value: code })),
+    choices: [
+      ...CURRENCY_CHOICES.map((code) => ({ label: code, value: code })),
+      { label: t(ctx.locale, 'cli.onboardCurrencyOther'), value: undefined },
+    ],
     defaultIndex: 0,
-    other: (answer) => {
+  })
+
+  return (
+    picked ??
+    (await askUntilValid(ctx, t(ctx.locale, 'cli.onboardPromptCurrencyCode'), (answer) => {
       const code = answer.trim().toUpperCase()
 
       return CURRENCY_CODE_PATTERN.test(code)
         ? accept(code)
         : refuse(t(ctx.locale, 'cli.onboardCurrencyInvalid'))
-    },
-  })
+    }))
+  )
 }
 
 export async function askBudget(ctx: AskContext, current: number): Promise<number> {
