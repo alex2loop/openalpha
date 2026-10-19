@@ -72,6 +72,10 @@ export const CLI_COMMAND_METADATA = {
     name: 'key',
     summary: { key: 'cliHelp.commandKeySummary' },
   },
+  autostart: {
+    name: 'autostart',
+    summary: { key: 'cliHelp.commandAutostartSummary' },
+  },
   auth: {
     name: 'auth',
     summary: { key: 'cliHelp.commandAuthSummary' },

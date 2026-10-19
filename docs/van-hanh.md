@@ -266,6 +266,17 @@ tạm dừng 30 giây (một dòng trên stderr báo điều đó) rồi thử l
 thành công trở lại, một dòng stderr khác báo đã phục hồi. Bản ghi đến trong lúc tạm dừng bị bỏ, và dòng
 log `fatal` của một lần sập được ghi ra terminal thay vào đó.
 
+## Tự chạy khi đăng nhập
+
+Trên máy để bàn, `openalpha autostart enable` đăng ký `start --background` chạy mỗi lần đăng nhập, nên bản
+tin sáng và cảnh báo vẫn đến sau khi khởi động lại máy: một launchd agent trên macOS, một unit người dùng
+của systemd trên Linux (trên máy chủ không ai đăng nhập, chạy thêm `loginctl enable-linger $USER`) và một
+mục trong khóa Run trên Windows. `openalpha autostart` cho biết đã bật chưa, và `autostart disable` gỡ nó
+(daemon đang chạy vẫn tiếp tục). Lệnh cần bản cài đặt, không dùng được với bản chạy từ mã nguồn, và có hiệu
+lực từ lần đăng nhập tới. Lần chạy lúc đăng nhập không thấy biến chỉ export trong shell, nên hãy lưu khóa
+bằng `openalpha key set`; `enable` nêu tên những khóa nó thấy còn thiếu. Unit nó ghi tên là
+`openalpha-autostart`, tách khỏi dịch vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
+
 ## Chạy API trên máy chủ
 
 Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.

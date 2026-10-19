@@ -47,6 +47,10 @@ SQLite book comes first.
   channel, or `fallback_chat_id`) instead of being refused, while OpenAlpha runs in the background.
   A scheduled daemon run whose origin is the terminal arms to the default chat the same way.
 
+- `openalpha autostart enable|disable|status` starts OpenAlpha at login (launchd, systemd user unit,
+  Windows Run key), so the brief and alerts survive a restart. The Linux and Windows launchers are
+  untested on real machines.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

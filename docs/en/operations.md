@@ -273,6 +273,17 @@ logging pauses for 30 seconds (one line on stderr says so) and then tries a fres
 write lands again another line on stderr says it recovered. Records that arrive during the pause are
 dropped, and a `fatal` crash line goes to the terminal instead.
 
+## Start at login
+
+On a desktop, `openalpha autostart enable` registers `start --background` to run at every login, so the
+morning brief and alerts keep coming after a restart: a launchd agent on macOS, a systemd user unit on
+Linux (on a server with nobody logged in, also run `loginctl enable-linger $USER`) and a Run-key entry on
+Windows. `openalpha autostart` shows whether it is on, and `autostart disable` removes it (a daemon running
+now keeps running). It needs the installed binary, not a source checkout, and takes effect from the next
+login. A login launch does not see variables exported only in your shell, so save keys with
+`openalpha key set`; `enable` names any it finds. The unit it writes is `openalpha-autostart`, apart from
+the hand-written service below, which stays the way to run an API server.
+
 ## Run the API on a server
 
 Run the daemon on a server you own and point a client app at it.
