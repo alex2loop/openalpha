@@ -147,7 +147,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 
 `/help` liệt kê câu lệnh theo nhóm: danh mục và giao dịch (mở đầu bằng `/setup`), thị trường, phân tích và đề xuất, rồi đến hệ thống (`/help`, `/stop` và các lệnh không thuộc nhóm nào). Menu Telegram theo cùng thứ tự.
-`/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì tôi
+`/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì mình
 gợi ý câu lệnh gần nhất.
 
 Kênh có thêm `/stop` và các lệnh ghép nối. `/stop` và `/help` cũng nhận dạng gọi kèm tên bot như

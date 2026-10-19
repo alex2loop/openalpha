@@ -185,7 +185,7 @@ Một mã bạn đã loại vẫn được xếp hạng và vẫn in ra, kèm `n
 
 Không gì từ hồ sơ định hình chính cái bảng. Tập công cụ, xếp hạng, điểm số và các yếu tố giống hệt nhau dưới mọi hồ sơ, nên bảng không mang dấu hồ sơ nào - một tiêu đề chính sách ở đó sẽ hàm ý một bộ lọc chưa bao giờ chạy.
 
-Hồ sơ không đọc được thì bảng mất các dấu, không bao giờ mất các dòng, và nói rõ bằng `profile.exclusions-unavailable`. Đó là thứ tách "ở đây không có gì bị loại" khỏi "chúng tôi không kiểm được".
+Hồ sơ không đọc được thì bảng mất các dấu, không bao giờ mất các dòng, và nói rõ bằng `profile.exclusions-unavailable`. Đó là thứ tách "ở đây không có gì bị loại" khỏi "mình không kiểm được".
 
 #### Unavailable là một câu trả lời
 

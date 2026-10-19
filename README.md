@@ -61,7 +61,7 @@ Bạn:  /suggest XXX
   Đừng mua đuổi trên xx,xx. Mua trước 200 XXX, phần còn lại mua sau nếu giá quay lại và đứng vững.
   Đã trừ phí: nếu chạm cắt lỗ, bạn mất khoảng 737.120 VND (0,37% danh mục).
 
-🚩 Tôi sai khi
+🚩 Mình sai khi
   Báo cáo năm 2026 ghi nhận dòng tiền hoạt động thấp hơn lợi nhuận.
 
 💬 Tranh luận (3 bước sàng lọc)

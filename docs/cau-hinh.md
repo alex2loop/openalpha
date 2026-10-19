@@ -927,7 +927,7 @@ khóa rồi khởi động lại.
 ```text
 config.toml có chỗ cần sửa:
 - `loop.max_turns`: giá trị phải lớn hơn 0
-- `budget.max_daly_usd`: không phải thiết lập tôi biết, có phải ý bạn là `max_daily_usd`?
+- `budget.max_daly_usd`: không phải thiết lập mình biết, có phải ý bạn là `max_daily_usd`?
 Sửa xong rồi chạy lại nhé.
 
 Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `openalpha key set ANTHROPIC_API_KEY` trong terminal bạn đang dùng rồi chạy lại nhé.
