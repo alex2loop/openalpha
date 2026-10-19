@@ -274,8 +274,9 @@ The session, its route and its history do not change, and `/new` stays the expli
 
 `TradingNoticeSender.resolveRecipient(origin)` answers an alert or brief arming. A routable origin comes
 back as is. The terminal (`LOCAL_CHANNEL_ID`) resolves to the daemon's live default recipient when
-channels are attached, and otherwise to `resolveConfiguredRecipient` (`channels/recipient.ts`): the first
-enabled definition in registry order with a fallback chat, from config alone. `resolveFallbackChat` is the
+channels are attached, and otherwise to `resolveDefaultRecipient` (`channels/recipient.ts`): the first
+enabled definition in registry order with a fallback chat or, in pairing mode, exactly one paired chat
+(`PairingStore.lonePairedChat`). `resolveFallbackChat` is the
 one rule for a channel's fallback chat (`fallback_chat_id`, else a lone allowed id) and `start.ts` uses it
 too. `AlertService.create` and the brief's `scheduleOf` resolve once, so no surface does.
 
@@ -305,10 +306,14 @@ Zalo, whose own error table lists 403 as a server fault. Any other `getMe` failu
 adapters try it up to four times with a capped backoff before dropping the channel. Zalo Personal has no
 token to refuse; it retries its login in the background (5 seconds initial, 5 minutes maximum).
 
-`startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient? }`: shutdown, health
+`startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: shutdown, health
 snapshots, the channels left down, an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default
-proactive recipient. That recipient is the channel's `fallback_chat_id`, or its only allowed id when it
-has exactly one. `stop` settles every runtime disposal and never lets one failed cleanup block the rest.
+proactive recipient. That recipient is the channel's `fallback_chat_id`, its only allowed id when it
+has exactly one, or its one paired chat (`createChannelRecipient`). Every send asks `isDeliverable`: a chat
+`pair revoke` revoked (its row keeps `revoked_at` rather than being deleted) is refused with `revoked`, so alerts and briefs switch off rather than retry, and `resolveRecipient` no longer returns it, so the system arming passes arm nothing for that chat; a failed pairing read answers `unavailable` and waits on the retry ladder, switching nothing off; while a chat that
+never paired, such as a group admitted through its operator, still receives. The paired chat is read at start and
+again whenever the gate admits a paired chat that is not yet the recipient, since `pair approve` writes
+from another process. `stop` settles every runtime disposal and never lets one failed cleanup block the rest.
 
 ## Adding a channel
 

@@ -65,6 +65,7 @@ export const tradingConfigPatchSchema = z.strictObject({
       breakout_sessions: z.int().positive().optional(),
     })
     .optional(),
+  typed_prices: z.strictObject({ confirm_multiple: z.number().gt(1).optional() }).optional(),
   orders: z
     .strictObject({
       maximum_stake_quote: z.number().nonnegative().optional(),

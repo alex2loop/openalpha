@@ -9,6 +9,7 @@ import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import { t } from '@/i18n'
 import {
   buildInvalidLineMessages,
@@ -20,6 +21,7 @@ import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { resolveEntry } from '@/trading/features/ledger/mutate'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { renderEntry } from '@/trading/features/ledger/rows'
+import { runWithPriceConfirm } from '@/trading/features/market-data/command/price-confirm'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { toIdHandle } from '@/trading/kernel/instrument'
 import { usage } from '@/trading/kernel/surface/surface'
@@ -71,7 +73,12 @@ export function createUpdateCommand(deps: UpdateCommandDeps): SlashCommand {
       idempotencyKey: (ctx) => ctx.requestId,
     },
     usage: () => ({ key: UPDATE_USAGE }),
-    run: async (ctx): Promise<SlashResult> => runUpdate(deps, ctx),
+    run: async (ctx): Promise<SlashResult> =>
+      runWithPriceConfirm(
+        ctx,
+        { command: UPDATE_COMMAND, marketData: deps.marketData },
+        (typed, typedPrice) => runUpdate(deps, typed, typedPrice)
+      ),
   }
 }
 
@@ -87,7 +94,11 @@ export function createDeleteCommand(deps: DeleteCommandDeps): SlashCommand {
   }
 }
 
-async function runUpdate(deps: UpdateCommandDeps, ctx: SlashContext): Promise<SlashResult> {
+async function runUpdate(
+  deps: UpdateCommandDeps,
+  ctx: SlashContext,
+  typedPrice: TypedPrice
+): Promise<SlashResult> {
   const [ref, ...rest] = ctx.args
   const parsed = parseLedgerDraft(rest, deps.baseCurrency)
 
@@ -111,7 +122,13 @@ async function runUpdate(deps: UpdateCommandDeps, ctx: SlashContext): Promise<Sl
     }
   }
 
-  const result = await deps.portfolio.update({ ref, draft, now: Date.now(), signal: ctx.signal })
+  const result = await deps.portfolio.update({
+    ref,
+    draft,
+    typedPrice,
+    now: Date.now(),
+    signal: ctx.signal,
+  })
 
   return {
     kind: 'text',

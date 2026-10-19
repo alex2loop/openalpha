@@ -302,7 +302,7 @@ For every name you ask about, six AI analysts argue it: bull, bear, a synthesize
 <summary><b>How it keeps you disciplined, including when the market turns down</b></summary>
 
 - **A stop can only move up, never down.** There is no "just a little lower" button.
-- **No need to stare at the price board.** In Telegram or Zalo, set a level with `/alert create FPT above 130` (board price) and you get a message when price reaches it.
+- **No need to stare at the price board.** In Telegram or Zalo, set a level with `/alert create FPT above 130000` (the full price, as in `/record`) and you get a message when price reaches it.
 
 **When the market turns down,** the goal is not to call the bottom but to keep enough capital to play the next round:
 

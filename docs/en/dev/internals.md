@@ -332,7 +332,10 @@ CLI command. For the programmatic surface see [Extending](./extending.md#the-sdk
 **The key file loads first.** `main()` reads `<data dir>/env` (`src/cli/env-file.ts`) right after the
 global flags and before the pre-boot config probe, since config resolution reads keys from `process.env`.
 It is the only boot-time write to `process.env`: it sets names the environment leaves empty, skips the
-brand-prefixed ones, and leaves a file other users can read untouched (`CliApp.keyFile` carries which names
+names that steer the program itself (`BRAND.controlEnv`: data dir, background mark, log level, editor
+file) and the names that steer how a program starts (`PATH`, `HOME`, `SHELL`, `TMPDIR`,
+`TZ`, `LD_*`, `DYLD_*`, `NODE_*`, `BUN_*`), and leaves a file other users can read, or this user cannot
+open, untouched (`CliApp.keyFile` carries which names
 it set). The data dir is the bootstrap one (`--data-dir`, the data-dir variable, the default), so
 `[paths] data_dir` cannot move it.
 

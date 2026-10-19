@@ -185,6 +185,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
           config: input.config,
           timezone: input.tradingConfig.displayTimezone,
           channels: () => app.resolve('channels'),
+          pairingStore: () => app.resolve('pairingStore'),
         }),
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,

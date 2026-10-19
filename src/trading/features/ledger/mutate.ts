@@ -9,11 +9,14 @@ import type {
   LedgerWriteResult,
 } from '@/trading/features/ledger/types'
 import type { LedgerWriteDeps } from '@/trading/features/ledger/write'
+import type { TypedPriceDeps } from '@/trading/features/market-data/reads/typed-price'
+import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
-import type { TradingCosts } from '@/trading/kernel/config'
+import type { TradingConfig, TradingCosts } from '@/trading/kernel/config'
 import type { Region, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { VenueManifest, VenueRegistry } from '@/trading/venues/types'
 import { ConflictError, isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -27,6 +30,7 @@ import {
   orderLedger,
 } from '@/trading/features/ledger/validate'
 import { buildRequestFingerprint, finalizeTransaction } from '@/trading/features/ledger/write'
+import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { isIdRef } from '@/trading/kernel/instrument'
 import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
@@ -44,6 +48,9 @@ export interface LedgerMutateDeps extends LedgerWriteDeps {
   /** A buy that lands with no plan standing earns one here, so no surface can record a trade the
    *  book then holds unwatched. */
   readonly exitPlans: ExitPlanner
+  readonly marketData: Pick<MarketDataService, 'instrumentQuoteConvention' | 'quoteBoard'>
+  readonly marketDataStore: LedgerWriteDeps['marketDataStore'] & TypedPriceDeps['marketDataStore']
+  readonly config: Pick<TradingConfig, 'typedPrices'>
 }
 
 /** All that finding a row by ref needs of the store. */
@@ -66,6 +73,7 @@ type LedgerMutation =
       readonly draft: LedgerTxnDraftInput
       readonly idempotencyKey: string
       readonly fillSource?: FillSource
+      readonly typedPrice?: TypedPrice
       readonly now: number
       readonly signal: AbortSignal
     }
@@ -73,6 +81,7 @@ type LedgerMutation =
       readonly kind: 'update'
       readonly ref: string
       readonly draft: LedgerTxnDraft
+      readonly typedPrice?: TypedPrice
       readonly now: number
       readonly signal: AbortSignal
     }
@@ -115,6 +124,12 @@ export async function mutateLedger(
   })
 
   assertVenuesKnown(transaction, venueManifestOf(deps))
+  await assertTradePrice(deps, {
+    transaction,
+    typedPrice: mutation.typedPrice,
+    fillSource: undefined,
+    signal: mutation.signal,
+  })
   await assertFxRateUsed(deps, {
     draft: mutation.draft,
     transaction,
@@ -144,7 +159,7 @@ async function recordMutation(
       : await resolveDraft(deps, draft, mutation.signal)
   const recorded = await recordEntry(
     deps,
-    { ...mutation, draft: resolved.draft },
+    { ...mutation, draft: resolved.draft, fillSource: resolved.fillSource },
     context.assertValid
   )
   const planned = await planExit(deps, recorded.entry, mutation)
@@ -246,6 +261,12 @@ async function recordEntry(
   }
 
   assertVenuesKnown(entry.transaction, venueManifestOf(deps))
+  await assertTradePrice(deps, {
+    transaction: entry.transaction,
+    typedPrice: mutation.typedPrice,
+    fillSource: mutation.fillSource,
+    signal: mutation.signal,
+  })
   await assertFxRateUsed(deps, {
     draft: mutation.draft,
     transaction: entry.transaction,
@@ -321,6 +342,46 @@ async function resolveEntryId(
   }
 
   return found
+}
+
+/** A price the venue filled is its own figure, never a typed one, so only the board scale is
+ *  checked for it. */
+export async function assertTradePrice(
+  deps: Pick<LedgerMutateDeps, 'marketData' | 'marketDataStore' | 'config' | 'markets' | 'logger'>,
+  check: {
+    readonly transaction: LedgerTxn
+    readonly typedPrice: TypedPrice | undefined
+    readonly fillSource: FillSource | undefined
+    readonly signal: AbortSignal
+  }
+): Promise<void> {
+  const { transaction, fillSource } = check
+
+  if (!('unitPrice' in transaction)) {
+    return
+  }
+
+  // A rights issue is priced by the issuer, often at par far under the market, never by a trade.
+  const typedPrice =
+    transaction.kind === 'rights' || (fillSource !== undefined && fillSource !== 'operator')
+      ? undefined
+      : check.typedPrice
+  const market = deps.markets.find(transaction.instrument.market)
+
+  // A row is validated against the registry, so its market is always found.
+  if (market === null) {
+    return
+  }
+
+  await assertTypedPrice(deps, {
+    instrument: transaction.instrument,
+    market,
+    price: transaction.unitPrice,
+    day: transaction.at,
+    typedPrice,
+    confirmMultiple: deps.config.typedPrices.confirmMultiple,
+    signal: check.signal,
+  })
 }
 
 /** A named rate the row cannot use is refused rather than dropped, or the operator would believe it

@@ -45,6 +45,8 @@ export interface Gate {
 
 interface GateDeps {
   readonly store: PairingStore
+  /** Told of every chat the pairing store admits; never throws. */
+  readonly onPaired: (chatId: string) => Promise<void>
   readonly router: SessionRouter
   readonly channel: ChannelId
   readonly configIds: readonly string[]
@@ -175,13 +177,21 @@ async function isAllowedId(
     return false
   }
 
+  let paired: boolean
+
   try {
-    return await deps.store.isPaired(deps.channel, id)
+    paired = await deps.store.isPaired(deps.channel, id)
   } catch (err: unknown) {
     deps.logger.warn('gate.is_paired_failed', { channel: deps.channel, err: formatErrForLog(err) })
 
     return false
   }
+
+  if (paired) {
+    await deps.onPaired(id)
+  }
+
+  return paired
 }
 
 // Fail closed: a group with no listed operators admits no one; a direct chat admits only its owner.

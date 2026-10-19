@@ -384,7 +384,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `slash_commands` | bool | `true` | Enable slash commands and the command menu. |
 | `notify_max_per_minute` | int | `3` | Rate cap on proactive messages. |
 | `gap_note_minutes` | int | `30` | Quiet minutes after which the next answer is told to check prices again; `0` turns it off. |
-| `fallback_chat_id` | string | - | Fallback target for proactive messages. |
+| `fallback_chat_id` | string | the one allowed id, or the one paired chat | Fallback target for proactive messages. |
 | `pairing` | bool | `true` with no allowlist | Let unknown chats pair. |
 
 `token_env` beats `token_file`. There is no inline `token` key, and no token variable is read unless
@@ -689,6 +689,9 @@ send_times = []                # HH:MM pushes in the market's timezone; empty = 
 breakout_range = 1.5           # average daily ranges a move must span before a watchlist alert
 breakout_sessions = 14         # settled sessions the average daily range is measured over
 
+[trading.typed_prices]
+confirm_multiple = 10          # ask before saving a typed price this many times from the market
+
 [trading.orders]
 maximum_stake_quote = 0        # 0 = uncapped; estimated notional in USDT on okx and binance
 maximum_open_trades = 0        # 0 = uncapped; open positions plus orders not yet in the book
@@ -837,11 +840,14 @@ refresh. Naming a subset would silently starve a market you still trade.
 
 **No scoring parameter is configurable.** Lookbacks, thresholds and factor weights live in code with
 the market that owns them, so two installs on the same version score the same input the same way.
-Config decides what runs and when, plus two things that are yours to judge:
+Config decides what runs and when, plus three things that are yours to judge:
 
 - **When an alert interrupts you.** `[trading.alerts] breakout_range` and `breakout_sessions` set how
   far a watchlist name must move before you hear about it. A higher range makes alerts rarer and
   changes no score.
+- **When a price you type is questioned.** `[trading.typed_prices] confirm_multiple` sets how many
+  times above or below the name's latest price a price in `/record`, `/update` or `/alert` must sit before
+  you are asked to confirm it (default 10). It changes no score.
 - **How far your stops and targets sit.** Under `[trading.markets.<id>]`, `maximum_stop_loss` (a hard
   ceiling, as a fraction of entry), `stop_loss_atr` and `reward_risk` replace the market's own stop
   width and reward multiple. Setting any of them starts a separate track record for that market.
@@ -900,7 +906,10 @@ A misspelt key gets the nearest known name, for example `max_daly_usd` suggests 
 unset key variable as one item in the same list instead of stopping there. `--verbose` adds the full
 list of schema issues. A missing key variable comes with the command that stores it:
 `openalpha key set NAME`, the same on every platform. It keeps the key in `<data dir>/env`, which every
-command reads at start. A variable set in your environment wins over the file. The key file follows
+command reads at start. A variable set in your environment wins over the file. The file holds service
+keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: names that steer
+OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
+`NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts a comment. The key file follows
 `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
 `status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
 `openalpha start` starts with a warning, running everything that needs no model until you set the key

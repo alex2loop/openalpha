@@ -1,6 +1,6 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
 import type { CliApp } from '@/cli/types'
-import { createCommand, createGroup, type Group, type Needs } from '@/cli/command'
+import { createCommand, createGroup, type Group, hasLoadedConfig, type Needs } from '@/cli/command'
 import { liveDaemon } from '@/cli/daemon-guard'
 import { getEnv } from '@/cli/env'
 import {
@@ -15,7 +15,7 @@ import { keyEnvNames } from '@/cli/missing-keys'
 import { flagString } from '@/cli/parsing/args'
 import { hint, success } from '@/cli/ui/colors'
 import { declined, promptSecret } from '@/cli/ui/prompt'
-import { BRAND } from '@/core/brand'
+import { BRAND, isControlEnvName } from '@/core/brand'
 import { isEnvName } from '@/core/config/resolve'
 import { isAbortError } from '@/core/errors'
 import { t } from '@/i18n'
@@ -66,8 +66,8 @@ async function setKey(args: ParsedArgs, app: CliApp): Promise<number> {
     return usage(app, t(locale, 'cli.keyNameInvalid', { brand: BRAND.name }))
   }
 
-  if (name.startsWith(BRAND.envPrefix)) {
-    return usage(app, t(locale, 'cli.keyNameReserved', { prefix: BRAND.envPrefix }))
+  if (isControlEnvName(name)) {
+    return usage(app, t(locale, 'cli.keyNameReserved', { name, brand: BRAND.display }))
   }
 
   if (isRuntimeEnvName(name)) {
@@ -119,7 +119,7 @@ async function listKeys(_args: ParsedArgs, app: CliApp): Promise<number> {
   const locale = app.config.locale.language
   const env = getEnv()
   const inFile = await readEnvFile(app.keyFile.path)
-  const fromConfig = hasUsableConfig(app) ? keyEnvNames(app.config) : []
+  const fromConfig = hasLoadedConfig(app) ? keyEnvNames(app.config) : []
   const names = [...new Set([...inFile.keys(), ...fromConfig])].sort()
   const width = Math.max(0, ...names.map((name) => name.length))
 
@@ -133,10 +133,6 @@ async function listKeys(_args: ParsedArgs, app: CliApp): Promise<number> {
   }
 
   return 0
-}
-
-function hasUsableConfig(app: CliApp): boolean {
-  return app.configProbe?.configError === null && app.configProbe.configMissing === false
 }
 
 function sourceKeyOf(

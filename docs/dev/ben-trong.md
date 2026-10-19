@@ -351,14 +351,9 @@ trình, xem [Mở rộng](./mo-rong.md#bề-mặt-sdk).
 
 **Tệp khóa được nạp trước.** `main()` đọc `<thư mục dữ liệu>/env` (`src/cli/env-file.ts`) ngay sau các cờ
 toàn cục và trước bước thăm dò cấu hình, vì cấu hình đọc khóa từ `process.env`. Đây là lần ghi duy nhất vào
-`process.env` lúc khởi động: nó chỉ đặt tên mà môi trường để trống, bỏ qua tên mang tiền tố thương hiệu,
-và để nguyên tệp mà người khác đọc được (`CliApp.keyFile` cho biết những tên nó đã đặt). Thư mục dữ liệu là
-bản bootstrap (`--data-dir`, biến thư mục dữ liệu, mặc định) nên `[paths] data_dir` không dời được nó.
-
-**Tệp khóa được nạp trước.** `main()` đọc `<thư mục dữ liệu>/env` (`src/cli/env-file.ts`) ngay sau các cờ
-toàn cục và trước bước thăm dò cấu hình, vì cấu hình đọc khóa từ `process.env`. Đây là lần ghi duy nhất vào
-`process.env` lúc khởi động: nó chỉ đặt tên mà môi trường để trống, bỏ qua tên mang tiền tố thương hiệu,
-và để nguyên tệp mà người khác đọc được (`CliApp.keyFile` cho biết những tên nó đã đặt). Thư mục dữ liệu là
+`process.env` lúc khởi động: nó chỉ đặt tên mà môi trường để trống, bỏ qua các tên điều khiển chính
+chương trình (`BRAND.controlEnv`: thư mục dữ liệu, dấu chạy nền, mức log, tệp của trình sửa) và các tên điều khiển cách chương trình khởi động (`PATH`, `HOME`, `SHELL`, `TMPDIR`, `TZ`, `LD_*`,
+`DYLD_*`, `NODE_*`, `BUN_*`), và để nguyên tệp mà người khác đọc được hoặc người dùng này không mở được (`CliApp.keyFile` cho biết những tên nó đã đặt). Thư mục dữ liệu là
 bản bootstrap (`--data-dir`, biến thư mục dữ liệu, mặc định) nên `[paths] data_dir` không dời được nó.
 
 **Khóa không bao giờ chặn lúc khởi động.** Boot resolve với `deferMissingKeys`: một mô hình có biến khóa

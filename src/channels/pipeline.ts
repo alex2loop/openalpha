@@ -68,6 +68,7 @@ export interface ChannelRuntimeDeps {
   readonly costTracker: CostTracker
   readonly caps: BudgetCaps
   readonly pairingStore: PairingStore
+  readonly onPaired: (chatId: string) => Promise<void>
   readonly sessionRouter: SessionRouter
   readonly sessions: SessionOpener & SessionActivity
   readonly bindings: ChatBindingStore
@@ -209,6 +210,7 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
 
   const gate = createGate({
     store: deps.pairingStore,
+    onPaired: deps.onPaired,
     router: deps.sessionRouter,
     channel: adapter.id,
     configIds: deps.allowedIds,

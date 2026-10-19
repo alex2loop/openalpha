@@ -10,7 +10,7 @@ export function createPortfolioReviewTool(portfolio: AgentPortfolio): ToolDefini
     description: 'Report concentration, drift, and quality findings for the portfolio.',
     inputSchema: noInput,
     capability: 'read',
-    presentation: { label: 'Portfolio review', emoji: '🔎' },
+    presentation: { label: 'Portfolio review', emoji: '📊' },
     async execute(_args, ctx): Promise<string> {
       const assessment = await portfolio.assess({
         now: Date.now(),

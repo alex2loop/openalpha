@@ -193,7 +193,7 @@ export interface BriefService {
   find(signal: AbortSignal): Promise<BriefDelivery | null>
   /** Where a brief scheduled from this address would arrive, or undefined when nowhere: the terminal
    *  has no outbound route of its own and resolves to the chat the daemon would use. */
-  resolveRecipient(origin: DeliveryAddress): DeliveryAddress | undefined
+  resolveRecipient(origin: DeliveryAddress): Promise<DeliveryAddress | undefined>
   enable(options: EnableBriefOptions): Promise<EnableBriefResult>
   reschedule(options: RescheduleBriefOptions): Promise<RescheduleBriefResult>
   disable(options: DisableBriefOptions): Promise<DisableBriefResult>

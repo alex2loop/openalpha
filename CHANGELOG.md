@@ -11,8 +11,9 @@ carries ` [IMPORTANT]` after its date.
 
 OpenAlpha is safer to leave running and easier to drive: a daily backup, start at login, keys kept in a
 private file, typed answers to approval prompts on Zalo, a shorter `/record`, and notices for a crash, a
-missed brief or a channel that stays down. No database change.
-> OpenAlpha an toàn hơn khi để chạy lâu và dễ dùng hơn: sao lưu mỗi ngày, tự chạy khi đăng nhập, khóa lưu trong tệp riêng, trả lời duyệt lệnh bằng cách gõ trên Zalo, `/record` ngắn hơn, và báo khi daemon sập, lỡ bản tin hay kênh chat mất kết nối.
+missed brief or a channel that stays down. The first start adds one database column by itself (after a
+backup on SQLite).
+> OpenAlpha an toàn hơn khi để chạy lâu và dễ dùng hơn: sao lưu mỗi ngày, tự chạy khi đăng nhập, khóa lưu trong tệp riêng, trả lời duyệt lệnh bằng cách gõ trên Zalo, `/record` ngắn hơn, và báo khi daemon sập, lỡ bản tin hay kênh chat mất kết nối. Lần chạy đầu tự thêm một cột vào cơ sở dữ liệu (với SQLite thì sao lưu trước).
 
 ### Operations
 
@@ -32,11 +33,13 @@ missed brief or a channel that stays down. No database change.
 
 ### Setup
 
-- `openalpha key set NAME` saves a key you type hidden into `~/.openalpha/env` (mode `0600`);
-  `openalpha key` lists which keys are set and where from; `key unset NAME` removes one. Every command
-  reads that file at start, and a variable set in your shell still wins. `onboard` offers to save the
-  model key and the Telegram token the same way, and every missing-key message now points at `key set`.
-  Names starting with the brand prefix are never read from the file.
+- `openalpha key set NAME` saves a key you type hidden into `~/.openalpha/env` (mode `0600`); `openalpha
+  key` lists which keys are set and where from; `key unset NAME` removes one. Every command reads that
+  file at start, and a variable set in your shell still wins. `onboard` offers to save the model key and
+  the Telegram token the same way, and every missing-key message now points at `key set`. The file holds
+  service keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: the names that
+  steer OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
+  `NODE_OPTIONS`, `LD_*`) are skipped, and an inline `# comment` is read as one.
 - `onboard` asks the currency of your book (VND, USD, or another 3-letter code) and writes it to
   `[locale] currency`, since it is fixed once a profile is saved.
 - `openalpha provider list` works before any setup, without a config or a database.
@@ -45,6 +48,22 @@ missed brief or a channel that stays down. No database change.
 
 ### Chat
 
+- A chat you pair is your default chat when the channel names no `fallback_chat_id`: the crash and
+  missed-brief notices, a channel-down report, and alerts and briefs armed from the terminal reach it
+  with nothing more to set.
+- `openalpha pair revoke` now stops everything the daemon sends to that chat, and it stays stopped
+  after a restart. Alerts and the morning brief armed there switch off at their next send instead of
+  retrying forever, so pairing again needs `/brief enable` and the alerts set again.
+- A fired alert opens with 🔔 and ends with its labelled id (`Alert id: 8290b3`).
+- A Vietnamese share price typed as the board figure is refused with the full price to send instead:
+  an `/alert` threshold (`FPT above 60` is 60 VND), a `/record` or `/update` price, and the same from
+  the chat agent's tools and the `/v1` API.
+- A price typed in `/record`, `/update` or `/alert create` that sits ten times or more from the name's
+  latest price, in any market (VN gold against the shop's board), is not saved until you confirm it:
+  the reply shows both figures with a "That price is right, save it" button, or send the line again
+  ending in `confirm`. The chat agent has to ask you first, and the `/v1` API asks the same when a
+  request sends `typedPrice` (`price_unconfirmed`, 422, with the figures in `unconfirmedPrice`).
+  `[trading.typed_prices] confirm_multiple` sets the multiple.
 - `/help` and the Telegram menu lead with the trading commands (`/setup` first under the book), and the
   system commands (`/help`, `/stop` and the rest) close the list. The menu now lists `/help` and `/stop`.
 - Approval prompts and `/research thorough` plan reviews work on Zalo: each choice arrives as a short
@@ -61,8 +80,8 @@ missed brief or a channel that stays down. No database change.
 
 - `/record buy|sell|rights` takes shorter lines: leave out the venue when one holds the market, the
   currency, and the date (`/record buy FPT 100 58400`). A bare ticker is found only in lists already
-  stored, never over the network, and only when exactly one market matches. Every confirmation now prints
-  the market beside the ticker.
+  stored, never over the network, and only when exactly one market matches; a crypto ticker keeps its
+  market (`crypto:BTC`), and the reply says so. Every confirmation now prints the market beside the ticker.
 - Buttons where no money moves: the rate check of a USDT `/record` and a proposed `/themes` theme each
   offer their confirm as a button (a typed line on Zalo and the terminal).
 - `/delete <id>` now shows the row first; `/delete <id> confirm` removes it. Scripts that delete in one
@@ -70,8 +89,17 @@ missed brief or a channel that stays down. No database change.
 
 ### Reports
 
+- On Telegram a message too long for one bubble (the brief) splits between sections, not inside one.
+  The `/portfolio` cash line states the cash share and its target, without a gap that read as a
+  relative percentage.
+- Icons are consistent: a market heading wears the market's own icon on `/portfolio`, `/alert list`
+  and `/watchlist` as in the brief and the intraday report, crypto is 🪙 and world gold 🥇, the brief
+  reads 📋 verdict, 💡 suggestions and 👀 watch list, `/reflect`'s acted section is 🤝, a clarifying
+  question is 🙋, and the agent's tools wear the icon of the section they fill.
 - Alerts open with the action: the headline, then for an exit the `/record sell` line to fill in, then a
-  `/suggest` link. Alert ids are six characters, and `/alert disable` takes them.
+  `/suggest` link. Alert ids are six characters, and `/alert disable` takes them. A short id must be the
+  whole six characters for `/delete` and `/update` too, and one that matches several rows or alerts is
+  answered with their full ids.
 - On a phone `/transactions` shows 10 rows, `/portfolio` puts positions right after the warnings and keeps
   three closed trips, and the brief shows what to do right under the verdict.
 - The footer after a command shows only the elapsed time until the session has called a model.

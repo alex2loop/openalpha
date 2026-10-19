@@ -118,6 +118,7 @@ export async function buildIntradayReport(
 
   return {
     market: plan.market.manifest.id,
+    icon: plan.market.manifest.icon,
     phase: sessionPhase(calendar, now),
     firedAt: now,
     indexes: indexRows(overview, { calendar, timezone: deps.timezone }),

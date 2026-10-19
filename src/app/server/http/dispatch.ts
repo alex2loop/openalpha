@@ -1,5 +1,5 @@
 import type { AuthOutcome } from '@/app/server/http/auth'
-import type { ApiError, ApiErrorCode } from '@/app/server/wire/errors'
+import type { ApiError, ApiErrorCode, UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
@@ -10,6 +10,7 @@ import { missingEnvOf } from '@/core/config/resolve'
 import { ChannelError, ConflictError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
+import { PriceUnconfirmedError } from '@/trading/api'
 
 const PARAM_PREFIX = ':'
 
@@ -17,8 +18,16 @@ export function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
 }
 
-export function apiError(code: ApiErrorCode, message?: string): Response {
-  const error = message === undefined ? { code } : { code, message }
+export function apiError(
+  code: ApiErrorCode,
+  message?: string,
+  unconfirmedPrice?: UnconfirmedPriceWire
+): Response {
+  const error = {
+    code,
+    ...(message === undefined ? {} : { message }),
+    ...(unconfirmedPrice === undefined ? {} : { unconfirmedPrice }),
+  }
 
   return Response.json({ error } satisfies ApiError, { status: API_ERROR_STATUS[code] })
 }
@@ -109,7 +118,11 @@ async function runHandler(
       err: formatErrForLog(err),
     })
 
-    return apiError(toErrorCode(err), operatorText(app.config.locale.language, err))
+    return apiError(
+      toErrorCode(err),
+      operatorText(app.config.locale.language, err),
+      unconfirmedPriceOf(err)
+    )
   }
 }
 
@@ -123,8 +136,26 @@ export function operatorText(locale: Locale, err: unknown): string | undefined {
     : bindLocale(locale).translate(operator.key, operator.params)
 }
 
+function unconfirmedPriceOf(err: unknown): UnconfirmedPriceWire | undefined {
+  if (!(err instanceof PriceUnconfirmedError)) {
+    return undefined
+  }
+
+  const { instrument, price, latest } = err
+
+  return {
+    instrument: { market: instrument.market, ticker: instrument.ticker },
+    price,
+    latest: { price: latest.price, at: latest.at },
+  }
+}
+
 /** A rejected request is the caller's fault and says so; anything else is ours and stays opaque. */
 export function toErrorCode(err: unknown): ApiErrorCode {
+  if (err instanceof PriceUnconfirmedError) {
+    return 'price_unconfirmed'
+  }
+
   if (err instanceof ValidationError) {
     return 'invalid_body'
   }

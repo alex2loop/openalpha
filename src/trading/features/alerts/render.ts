@@ -39,6 +39,7 @@ type ScreenerNotice = Extract<AlertNotice, { readonly kind: 'screener-alert' }>
 interface AlertRenderOptions {
   readonly priceByInstrument?: ReadonlyMap<string, number>
   readonly quoteConventions?: ReadonlyMap<string, QuoteConvention>
+  readonly marketIcons: ReadonlyMap<MarketRef, string>
 }
 
 /** Every row carries its id because `/alert disable` names an alert by id and nothing else prints
@@ -46,7 +47,7 @@ interface AlertRenderOptions {
 export function renderAlertListText(
   locale: Locale,
   page: Page<Alert, AlertId>,
-  options: AlertRenderOptions = {}
+  options: AlertRenderOptions
 ): string {
   if (page.items.length === 0) {
     return renderEmptyLine(SECTION_ICONS.alert, t(locale, 'trading.render.alert.empty'))
@@ -60,7 +61,7 @@ export function renderAlertListText(
     [
       renderSectionTitle(SECTION_ICONS.alert, renderTitle(locale, page.items.length, onlyMarket)),
       ...renderMarketBlocks(locale, blocks, {
-        icon: SECTION_ICONS.alert,
+        icons: options.marketIcons,
         renderRows: (alerts) =>
           alerts.map((alert) => `${INDENT[1]}${renderRow(locale, alert, options)}`),
       }),
@@ -115,7 +116,7 @@ export function renderAlertNotice(locale: Locale, notice: AlertNotice): string {
   const headline = [t(locale, `trading.notice.${notice.kind}`), priceLine(locale, notice)]
 
   return [
-    headline.join(INLINE_SEPARATOR),
+    `${SECTION_ICONS.alert} ${headline.join(INLINE_SEPARATOR)}`,
     ...(notice.kind === 'exit-alert' ? exitLines(locale, alert) : []),
     ...(notice.kind === 'screener-alert'
       ? [
@@ -127,7 +128,7 @@ export function renderAlertNotice(locale: Locale, notice: AlertNotice): string {
             instrument: buildInstrumentKey(alert.instrument),
           }),
         ]),
-    toIdHandle(alert.id),
+    t(locale, 'trading.alert.handle', { handle: toIdHandle(alert.id) }),
   ].join('\n')
 }
 

@@ -176,7 +176,9 @@ export function renderWriteBody(
 }
 
 /** A price a board-scaled market would print as a fraction of one board unit was almost certainly
- *  typed in board units. Said beside the figure, never rewritten: a sub-unit price is rare but real. */
+ *  typed in board units. The write path refuses one it can prove against a quote; this line covers
+ *  a name with no quote. Said beside the figure, never rewritten: a sub-unit price is rare but
+ *  real. */
 function renderPriceScaleRow(
   locale: Locale,
   txn: LedgerTxn,

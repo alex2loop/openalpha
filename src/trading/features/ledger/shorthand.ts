@@ -1,7 +1,7 @@
 import type { CommandMessage, CommandMessageKey } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { MarketRef, Region, TradingDay, VenueRef } from '@/trading/kernel/instrument'
+import type { MarketRef, Region, Ticker, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
@@ -13,6 +13,7 @@ export const SHORTHAND_KEYS = Object.freeze([
   'slash.tradingRecordMarketChoice',
   'slash.tradingRecordMarketUnchecked',
   'slash.tradingRecordMarketUnknown',
+  'slash.tradingRecordMarketUnlisted',
   'slash.tradingRecordVenueChoice',
   'slash.tradingRecordNoVenue',
   'slash.tradingRecordRightsFee',
@@ -242,7 +243,28 @@ async function resolveMarket(
     return marketChoice('slash.tradingRecordMarketChoice', request.ticker, result.candidates)
   }
 
-  return { messages: [buildUnknownReply(request.ticker)] }
+  const unlisted = unlistedMarkets(deps.markets, within, request.ticker)
+
+  return unlisted.length === 0
+    ? { messages: [buildUnknownReply(request.ticker)] }
+    : marketChoice('slash.tradingRecordMarketUnlisted', request.ticker, unlisted)
+}
+
+/** Markets that look a ticker up only over the network, which a bare ticker never reaches. */
+function unlistedMarkets(
+  markets: MarketRegistry,
+  within: readonly MarketRef[],
+  ticker: Ticker
+): readonly MarketRef[] {
+  return markets
+    .list()
+    .filter(
+      (market) =>
+        within.includes(market.manifest.id) &&
+        market.manifest.detection === 'fetched' &&
+        market.candidacy(ticker) === 'possible'
+    )
+    .map((market) => market.manifest.id)
 }
 
 function uncheckedMarkets(caveats: readonly Caveat[]): readonly string[] {
@@ -254,7 +276,10 @@ function uncheckedMarkets(caveats: readonly Caveat[]): readonly string[] {
 }
 
 function marketChoice(
-  key: 'slash.tradingRecordMarketChoice' | 'slash.tradingRecordMarketUnchecked',
+  key:
+    | 'slash.tradingRecordMarketChoice'
+    | 'slash.tradingRecordMarketUnchecked'
+    | 'slash.tradingRecordMarketUnlisted',
   ticker: string,
   markets: readonly string[]
 ): MarketAnswer {

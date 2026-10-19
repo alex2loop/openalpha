@@ -43,6 +43,7 @@ export interface BookDisplay {
    *  Resolved once per command from `ctx.surface`. */
   readonly context: RenderContext
   readonly quoteConventions?: ReadonlyMap<MarketRef, QuoteConvention>
+  readonly marketIcons: ReadonlyMap<MarketRef, string>
   /** Per instrument key, the kind the stored record files it under. A renderer cannot reach the
    *  store, so the command resolves one map for the whole book. */
   readonly instrumentKinds?: ReadonlyMap<string, InstrumentKind>
@@ -82,7 +83,7 @@ export function renderPositionSection(
   return [
     renderSectionTitle(SECTION_ICONS.positions, t(locale, 'trading.render.portfolio.positions')),
     ...renderMarketBlocks(locale, blocks, {
-      icon: SECTION_ICONS.positions,
+      icons: display.marketIcons,
       renderRows: (positions) =>
         positions.flatMap((valued) => renderPosition(locale, valued, display)),
     }),

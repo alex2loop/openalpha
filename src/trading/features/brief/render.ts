@@ -72,9 +72,9 @@ const NON_MARKET_BLOCKS = Object.freeze([
 
 const BLOCK_ICONS = Object.freeze({
   summary: SECTION_ICONS.positions,
-  operator: SECTION_ICONS.reflect,
+  operator: SECTION_ICONS.watchlist,
   macro: SECTION_ICONS.macro,
-  actions: SECTION_ICONS.actions,
+  actions: SECTION_ICONS.suggestion,
 } as const satisfies Record<BlockName, string>)
 
 export function renderBriefText(

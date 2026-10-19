@@ -2,8 +2,9 @@ import type { DeliveryHub } from '@/app/delivery'
 import type { ChannelDefinition } from '@/channels/api'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
+import type { PairingStore } from '@/core/types/session'
 import type { NoticeKind, TradingNotice, TradingNoticeSender } from '@/trading/api'
-import { resolveConfiguredRecipient } from '@/channels/api'
+import { resolveDefaultRecipient } from '@/channels/api'
 import { readUpdateLine } from '@/cli/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { setEnvCommand } from '@/core/config/resolve'
@@ -152,6 +153,7 @@ interface NoticeSenderOptions {
   /** A thunk: the sender is built while the providers are assembled, before the container can
    *  answer for the registered channel definitions. */
   readonly channels: () => readonly ChannelDefinition[]
+  readonly pairingStore: () => PairingStore
 }
 
 /** The one adapter between trading's typed notices and the channel layer. Trading imports no
@@ -173,29 +175,33 @@ export function createTradingNoticeSender(options: NoticeSenderOptions): Trading
     // The attached channel runtimes plus the attached notice surfaces are the whole routing table:
     // `cli` is a surface a person types at, never one the daemon can push to, so it resolves to the
     // chat the daemon would use.
-    resolveRecipient: (origin) => {
-      if (isRoutable(delivery, origin)) {
+    resolveRecipient: async (origin) => {
+      if (await delivery.isDeliverable(origin)) {
         return origin
       }
 
-      return origin.channel === LOCAL_CHANNEL_ID ? resolveLocalRecipient(options) : undefined
+      return origin.channel === LOCAL_CHANNEL_ID ? await resolveLocalRecipient(options) : undefined
     },
   }
 }
 
-function isRoutable(delivery: DeliveryHub, target: DeliveryAddress): boolean {
-  return (
-    delivery.surfaces.find(target.channel) !== undefined ||
-    delivery.snapshots().some((snapshot) => snapshot.channel === target.channel)
-  )
-}
-
-// In the daemon the live default recipient; in a terminal process, whichever configured channel the
-// daemon would pick - the alert or brief waits in the book until the daemon runs.
-function resolveLocalRecipient(options: NoticeSenderOptions): DeliveryAddress | undefined {
+// In the daemon the live default recipient, unless its pairing was revoked since it was last read;
+// in a terminal process, whichever configured or paired chat the daemon would pick - the alert or
+// brief waits in the book until the daemon runs.
+async function resolveLocalRecipient(
+  options: NoticeSenderOptions
+): Promise<DeliveryAddress | undefined> {
   const { delivery, config } = options
 
-  return delivery.attached()
-    ? delivery.defaultRecipient()
-    : resolveConfiguredRecipient(options.channels(), config.channels)
+  if (!delivery.attached()) {
+    return await resolveDefaultRecipient(
+      options.channels(),
+      config.channels,
+      options.pairingStore()
+    )
+  }
+
+  const target = delivery.defaultRecipient()
+
+  return target !== undefined && (await delivery.isDeliverable(target)) ? target : undefined
 }

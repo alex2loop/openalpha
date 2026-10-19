@@ -125,7 +125,7 @@ export function createBriefManageTool(briefs: BriefService, regions: RegionSchem
     requiresApproval: isManagedMutation,
     presentation: {
       label: 'Brief schedule',
-      emoji: '🗓️',
+      emoji: '🌅',
       // Without the arm, enabling a brief and disabling one render the same line — including in
       // the approval prompt that gates both.
       detail: (input, locale) =>

@@ -27,7 +27,7 @@ import {
   parsePathId,
 } from '@/app/server/routes/params'
 import { cachedScreen } from '@/app/server/routes/screen-cache'
-import { alertId, marketRef, region, SURFACE_LIMITS, ticker } from '@/trading/api'
+import { alertId, marketRef, region, SURFACE_LIMITS, TYPED_PRICES, ticker } from '@/trading/api'
 
 /** The kinds a screen can be narrowed to; the host refuses a market that holds no such kind. */
 const SCREEN_KINDS: ReadonlySet<string> = new Set<InstrumentKind>(['equity', 'etf', 'crypto'])
@@ -36,6 +36,7 @@ const ALERT_BODY: z.ZodType<AlertCreateBody> = z.object({
   instrument: z.object({ ticker: z.string().min(1), market: z.string().min(1).exactOptional() }),
   condition: z.enum(['above', 'below']),
   threshold: z.number().positive(),
+  typedPrice: z.enum(TYPED_PRICES).exactOptional(),
 })
 
 /** `market` is required: the default market is the one that owns the operator's region, and only
@@ -158,6 +159,7 @@ async function handleAlertCreate(req: Request, ctx: ApiRouteContext): Promise<Re
     condition: parsed.data.condition,
     threshold: parsed.data.threshold,
     delivery: { channel: API_CHANNEL, chatId: APP_CHAT_ID },
+    ...(parsed.data.typedPrice === undefined ? {} : { typedPrice: parsed.data.typedPrice }),
     signal: req.signal,
   })
 

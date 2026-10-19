@@ -7,6 +7,7 @@
 export type { BriefText } from '@/trading/features/brief/surface'
 export type { RebalanceText } from '@/trading/features/portfolio/render/rebalance-surface'
 export type { ReflectText } from '@/trading/features/suggestion/track-record/surface'
+export type { TypedPrice } from '@/trading/kernel/surface/surface'
 export type { BriefRescheduleView } from '@/trading/wiring/composition/app-views'
 export type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 export type {
@@ -20,6 +21,8 @@ export type {
   TradingMarketsView,
   TradingTrackRecordView,
 } from '@/trading/wiring/host/types'
+export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
+export { TYPED_PRICES } from '@/trading/kernel/surface/surface'
 export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
 
 // ── Boot & composition ───────────────────────────────────────────────────────

@@ -31,6 +31,7 @@ export const SECTION_ICONS = Object.freeze({
   watchlist: '👀',
   advice: '⚖️',
   reflect: '📈',
+  acted: '🤝',
   calibration: '🎚️',
   breakdown: '🧪',
   outcomes: '🏁',
@@ -43,14 +44,13 @@ export const SECTION_ICONS = Object.freeze({
   order: '🛒',
   upcoming: '📅',
   brief: '🌅',
-  intraday: '🕛',
+  verdict: '📋',
   session: '⏱️',
   settled: '📘',
   refresh: '🔄',
   reconcile: '🧮',
   thesis: '📌',
   plan: '🎯',
-  actions: '✅',
 })
 
 /** Geometric, not emoji: these sit in columns of rows, where one cell per glyph is what keeps the

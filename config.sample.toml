@@ -277,6 +277,11 @@ language = "vi"                   # vi | en
 # breakout_range = 1.5               # a move must travel this many average daily ranges to alert
 # breakout_sessions = 14             # sessions that average range is measured over
 
+# A price typed in /record, /update or /alert this many times above or below the name's latest
+# price is saved only once you confirm it.
+# [trading.typed_prices]
+# confirm_multiple = 10
+
 # Orders on okx and binance.
 # [trading.orders]
 # maximum_stake_quote = 0            # most one buy may spend, in USDT; 0 = uncapped
@@ -354,7 +359,7 @@ language = "vi"                   # vi | en
 # quoted earlier. The conversation itself carries on; /new starts a fresh one. 0 turns it off.
 # Default 30.
 # gap_note_minutes = 30
-# fallback_chat_id = "-1001234567"   # where a scheduled job with no --to delivers
+# fallback_chat_id = "-1001234567"   # where a scheduled job with no --to delivers; default: the one allowed or paired chat
 
 # Zalo takes the same token, operator and delivery fields. There is no open mode.
 # [channels.zalo]

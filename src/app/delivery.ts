@@ -44,6 +44,9 @@ export interface DeliveryHub {
   attached(): boolean
   /** Every started channel's own default chat; empty while no daemon channels are attached. */
   recipients(): ReadonlyMap<ChannelId, DeliveryTarget>
+  /** Whether a send to the target could land: an attached surface, or a started channel whose chat
+   *  was not revoked. False while no daemon channels are attached. */
+  isDeliverable(target: DeliveryTarget): Promise<boolean>
   /** Live channel lifecycle snapshots; empty while no daemon channels are attached. */
   snapshots(): readonly ChannelRuntimeSnapshot[]
   /** True while a channel runs a long slash command: work a restart would cut off. False with no
@@ -62,8 +65,9 @@ export interface DeliveryHub {
     readonly notifier: AcknowledgedRouter
     readonly snapshots: () => readonly ChannelRuntimeSnapshot[]
     readonly isWorking: () => boolean
-    readonly recipient?: DeliveryTarget
+    readonly recipient: () => DeliveryTarget | undefined
     readonly recipients: () => ReadonlyMap<ChannelId, DeliveryTarget>
+    readonly isDeliverable: (target: DeliveryTarget) => Promise<boolean>
   }): () => Promise<void>
 }
 
@@ -89,7 +93,9 @@ function createNoticeSurfaces(): NoticeSurfaces {
 interface AttachedReaders {
   snapshots(): readonly ChannelRuntimeSnapshot[]
   isWorking(): boolean
+  recipient(): DeliveryTarget | undefined
   recipients(): ReadonlyMap<ChannelId, DeliveryTarget>
+  isDeliverable(target: DeliveryTarget): Promise<boolean>
 }
 
 /**
@@ -102,7 +108,6 @@ interface AttachedReaders {
  */
 export function createDeliveryHub(): DeliveryHub {
   let notifier: AcknowledgedRouter | null = null
-  let recipient: DeliveryTarget | undefined
   let readers: AttachedReaders | null = null
 
   // Read once per call: a detach racing the await would otherwise leave the second read null and
@@ -151,23 +156,27 @@ export function createDeliveryHub(): DeliveryHub {
     defaultRecipient: () => {
       const channel = surfaces.first()
 
-      return recipient ?? (channel === undefined ? undefined : { channel, chatId: SURFACE_CHAT_ID })
+      return (
+        readers?.recipient() ??
+        (channel === undefined ? undefined : { channel, chatId: SURFACE_CHAT_ID })
+      )
     },
     attached: () => readers !== null,
     recipients: () => readers?.recipients() ?? new Map(),
+    isDeliverable: async (target) =>
+      surfaces.find(target.channel) !== undefined ||
+      ((await readers?.isDeliverable(target)) ?? false),
     snapshots: () => readers?.snapshots() ?? [],
     isWorking: () => readers?.isWorking() ?? false,
 
     attach(options): () => Promise<void> {
       notifier = options.notifier
-      recipient = options.recipient
       readers = options
 
       return () => {
-        // Both: a detached channel must not leave a stale address behind. The queues belong to the
-        // channel runtimes, which dispose themselves — this hub owns no queue to drain.
+        // Both: a detached channel must leave no router and no recipient behind. The queues belong
+        // to the channel runtimes, which dispose themselves — this hub owns no queue to drain.
         notifier = null
-        recipient = undefined
         readers = null
 
         return Promise.resolve()

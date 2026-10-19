@@ -68,7 +68,7 @@ operator_user_ids = [123456789]
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | Lời chấp nhận bắt buộc, và kênh dùng lần đăng nhập QR đã lưu nào |
 | `agent` | tất cả | Gắn kênh vào một agent thay vì agent mặc định |
 | `require_mention`, `slash_commands` | tất cả | Quy tắc nhắc tên trong nhóm, và có chặn lệnh gạch chéo hay không |
-| `fallback_chat_id` | tất cả | Nơi một việc theo lịch không có `--to` sẽ gửi tới. Chỉ có đúng một id được phép thì dùng id đó |
+| `fallback_chat_id` | tất cả | Nơi một việc theo lịch không có `--to` sẽ gửi tới. Chỉ có đúng một id được phép, hoặc đúng một chat đã ghép nối, thì dùng chat đó |
 
 Các khóa còn lại tinh chỉnh việc gửi: `markdown`, `mid_stream_updates`, `typing_indicator`,
 `use_reactions`, `notify_max_per_minute`, `gap_note_minutes`. Nhịp gom tin, nhịp sửa tin trực tiếp và hàng đợi gửi đi là cố
@@ -138,7 +138,7 @@ cho operator, và chỉ tới khi câu hỏi hết hạn; gõ lại lần nữa,
 rằng câu đó đã được trả lời hoặc đã hết hạn. Hai câu hỏi mở cùng lúc nhận hai bộ mã khác nhau, và trả
 lời một câu không làm mất mã của câu kia. Bấm một nút sau khi câu hỏi đã được trả lời hoặc hết giờ cũng nhận đúng câu trả lời đó.
 
-`fallback_chat_id` cũng quyết định cảnh báo hay bản tin sáng đặt từ terminal sẽ gửi đi đâu: kênh được cấu hình đầu tiên (Telegram, Zalo, Zalo Personal) có chat dự phòng, hoặc một id được phép duy nhất.
+`fallback_chat_id` cũng quyết định cảnh báo hay bản tin sáng đặt từ terminal sẽ gửi đi đâu: kênh được cấu hình đầu tiên (Telegram, Zalo, Zalo Personal) có chat dự phòng, hoặc một id được phép duy nhất, hoặc một chat ghép nối duy nhất. Ghép nối xong thì không cần đặt gì thêm: daemon nhận ra chat đó ở tin nhắn đầu tiên bạn gửi sau khi ghép nối. Bỏ ghép nối bằng `pair revoke` thì daemon thôi gửi mọi thứ tới chat đó, ngay từ tin kế tiếp và cả sau khi khởi động lại. Cảnh báo và bản tin sáng đặt ở chat ấy tự tắt ở lần gửi kế tiếp, nên ghép nối lại cũng không bật chúng lên: chạy lại `/brief enable` và đặt lại cảnh báo. Một nhóm được nhận qua tài khoản của bạn không có ghép nối riêng nên `pair revoke` không chạm tới nó: muốn ngừng, tắt cảnh báo và bản tin trong nhóm hoặc gỡ bot khỏi nhóm.
 
 Kênh mất kết nối và không có lại sẽ được báo trên một kênh khác, và `status` liệt kê nó; xem [Vận hành](van-hanh.md#khi-daemon-dừng-hoặc-lỡ-bản-tin).
 

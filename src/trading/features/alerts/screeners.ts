@@ -24,7 +24,7 @@ const EXHAUSTED_REARM_COOLDOWN_MS = 15 * 60_000
 export interface ScreenerReconcileDeps {
   readonly alerts: Pick<AlertService, 'create' | 'disable'>
   readonly store: AlertStore
-  readonly briefs: Pick<BriefService, 'find'>
+  readonly briefs: Pick<BriefService, 'find' | 'resolveRecipient'>
   readonly markets: MarketRegistry
   readonly marketDataStore: MarketDataStore
   readonly policy: AlertPolicy
@@ -210,7 +210,7 @@ export interface OriginatedDraft {
 interface ReconcilePassDeps {
   readonly alerts: Pick<AlertService, 'create'>
   readonly store: AlertStore
-  readonly briefs: Pick<BriefService, 'find'>
+  readonly briefs: Pick<BriefService, 'find' | 'resolveRecipient'>
   readonly markets: Pick<MarketRegistry, 'resolve'>
 }
 
@@ -240,14 +240,16 @@ export async function reconcileAlerts(
 ): Promise<ArmedAlertBatch> {
   const { options } = input
   const delivery = await deps.briefs.find(options.signal)
+  const target =
+    delivery === null ? undefined : await deps.briefs.resolveRecipient(delivery.delivery)
 
-  // Every draft carries the address the notice will go to, so with none configured there is nothing
-  // to arm and nothing yet armed to retire.
-  if (delivery === null) {
+  // Every draft carries the address the notice will go to, so with none, or one that refuses every
+  // send (its channel did not start, or its pairing was revoked), there is nothing to arm.
+  if (target === undefined) {
     return { armed: 0, disabled: 0 }
   }
 
-  const expected = await input.expectedDrafts(delivery.delivery)
+  const expected = await input.expectedDrafts(target)
   const live = await listAllLive(deps.store, options)
   const liveOrigins = new Set(live.map((alert) => alert.origin))
   const candidates = [...expected.keys()].filter((origin) => !liveOrigins.has(origin))

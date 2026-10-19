@@ -122,7 +122,7 @@ async function reschedule(
     return { kind: 'rejected', reason: guard }
   }
 
-  const scheduled = scheduleOf(deps, {
+  const scheduled = await scheduleOf(deps, {
     region: current.region,
     delivery: current.delivery,
     sendTime: options.sendTime,
@@ -157,7 +157,10 @@ async function enable(
     return { kind: 'rejected', reason: guard }
   }
 
-  const scheduled = scheduleOf(deps, guard.skipToday ? { ...options, skipToday: true } : options)
+  const scheduled = await scheduleOf(
+    deps,
+    guard.skipToday ? { ...options, skipToday: true } : options
+  )
 
   if (typeof scheduled === 'string') {
     return { kind: 'rejected', reason: scheduled }
@@ -172,10 +175,10 @@ async function enable(
 }
 
 /** The delivery a request would store, or the reason it cannot be. */
-function scheduleOf(
+async function scheduleOf(
   deps: BriefServiceDeps,
   options: EnableBriefOptions
-): ScheduledBriefDelivery | EnableBriefRejection {
+): Promise<ScheduledBriefDelivery | EnableBriefRejection> {
   const plan = resolvePlan(deps, options.region, options.sendTime)
 
   // A region whose calendar owner publishes no brief would schedule a delivery that suppresses
@@ -187,7 +190,7 @@ function scheduleOf(
   // A chat the outbound router cannot reach would build a brief every morning and fail every send,
   // with the skipped-day notice going to the same unreachable address. The brief is stored for the
   // address that resolves, which is not the terminal it was asked from.
-  const delivery = deps.sender.resolveRecipient(options.delivery)
+  const delivery = await deps.sender.resolveRecipient(options.delivery)
 
   if (delivery === undefined) {
     return 'not-deliverable'

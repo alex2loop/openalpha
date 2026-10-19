@@ -302,7 +302,7 @@ Với mỗi mã bạn hỏi, sáu nhà phân tích AI tranh luận: phe mua, phe
 <summary><b>Cách nó giữ kỷ luật, kể cả khi thị trường đi xuống</b></summary>
 
 - **Cắt lỗ chỉ được nâng, không được hạ.** Không có nút "dời xuống thêm chút nữa".
-- **Không cần dán mắt vào bảng điện.** Trong Telegram hoặc Zalo, đặt mốc bằng `/alert create FPT above 130` (giá bảng điện), giá chạm là hệ thống nhắn bạn.
+- **Không cần dán mắt vào bảng điện.** Trong Telegram hoặc Zalo, đặt mốc bằng `/alert create FPT above 130000` (giá đầy đủ, như khi `/record`), giá chạm là hệ thống nhắn bạn.
 
 **Khi thị trường đi xuống,** mục tiêu không phải đoán đáy, mà là còn đủ vốn để chơi tiếp:
 

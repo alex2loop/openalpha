@@ -78,15 +78,15 @@ export interface TradingNotice {
   readonly payload: TradingNoticePayload
 }
 
-export type TradingNoticeSendResult = 'accepted' | 'unavailable' | 'aborted'
+export type TradingNoticeSendResult = 'accepted' | 'unavailable' | 'aborted' | 'revoked'
 
 export interface TradingNoticeSender {
   send(notice: TradingNotice, signal: AbortSignal): Promise<TradingNoticeSendResult>
   /** Where an unattended notice armed from `origin` would be sent, or undefined when no route
-   *  exists. A subscription armed at an address no channel runtime serves fails every attempt in
-   *  silence and then disables itself, so the arming paths ask before they write. The terminal is
-   *  no route of its own: it resolves to the chat the daemon would use. Read at arming time, never
-   *  in place of a send result: a channel can go down afterwards, which is what the retry ladder is
-   *  for. */
-  resolveRecipient(origin: DeliveryAddress): DeliveryAddress | undefined
+   *  exists, a chat whose pairing was revoked included. A subscription armed at an address no
+   *  channel runtime serves fails every attempt in silence and then disables itself, so the arming
+   *  paths ask before they write. The terminal is no route of its own: it resolves to the chat the
+   *  daemon would use. Read at arming time, never in place of a send result: a channel can go down
+   *  afterwards, which is what the retry ladder is for. */
+  resolveRecipient(origin: DeliveryAddress): Promise<DeliveryAddress | undefined>
 }

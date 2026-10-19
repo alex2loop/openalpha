@@ -7,6 +7,7 @@ import type { AlertCondition, AlertId, StopDistance } from '@/trading/kernel/ope
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { OperationTickOptions, Page, PageOptions } from '@/trading/kernel/store/page'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 
 export type LeaseToken = string & BrandTag<'LeaseToken'>
 
@@ -135,7 +136,7 @@ export interface AlertService {
   /** Where an alert armed from this address would be delivered, or undefined when nowhere. The
    *  operator-facing arming paths ask it; `create` asks it itself for an operator-armed alert, and
    *  the system arming passes reuse an address a stored row already carries. */
-  resolveRecipient(origin: DeliveryAddress): DeliveryAddress | undefined
+  resolveRecipient(origin: DeliveryAddress): Promise<DeliveryAddress | undefined>
   list(options: PageOptions<AlertId>): Promise<Page<Alert, AlertId>>
   /** A page plus how many alerts are active in all, for a surface that shows the total. */
   listWithActiveCount(options: PageOptions<AlertId>): Promise<AlertListPage>
@@ -207,6 +208,8 @@ export interface AlertDraft {
 
 export interface CreateAlertOptions {
   readonly draft: AlertDraft
+  /** Read for an operator-armed alert only; a system-armed threshold is computed. */
+  readonly typedPrice?: TypedPrice
   readonly now: number
   readonly signal: AbortSignal
 }

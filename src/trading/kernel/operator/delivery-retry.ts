@@ -65,6 +65,11 @@ export async function sendCaught(
   if (result === 'aborted') {
     throw abortError(signal)
   }
+
+  if (result === 'revoked') {
+    return 'recipient-revoked'
+  }
+
   return result === 'accepted' ? 'accepted' : 'channel-unavailable'
 }
 

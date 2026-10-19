@@ -1,6 +1,6 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
 import type { CliApp } from '@/cli/types'
-import { createCommand, createGroup, type Group, type Needs } from '@/cli/command'
+import { createCommand, createGroup, type Group, hasLoadedConfig, type Needs } from '@/cli/command'
 import { resolveLauncher } from '@/cli/commands/autostart/launchers'
 import { getEnv } from '@/cli/env'
 import { readEnvFile } from '@/cli/env-file'
@@ -119,7 +119,7 @@ async function status(_args: ParsedArgs, app: CliApp): Promise<number> {
 /** A launch at login does not see variables exported only in a shell: the config's key names that
  *  are set here but absent from the key file. Names only, never values. */
 async function shellOnlyKeys(app: CliApp): Promise<readonly string[]> {
-  if (app.configProbe?.configError !== null || app.configProbe.configMissing) {
+  if (!hasLoadedConfig(app)) {
     return []
   }
 

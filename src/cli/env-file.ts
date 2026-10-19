@@ -4,7 +4,7 @@ import { dirname } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
 import { warn } from '@/cli/ui/colors'
-import { BRAND } from '@/core/brand'
+import { isControlEnvName } from '@/core/brand'
 import { isEnvName } from '@/core/config/resolve'
 import { isErrno } from '@/core/errors'
 import {
@@ -196,18 +196,12 @@ function parseEnvText(text: string): ParsedEnv {
 
     if (entry === undefined) {
       badLines.push(index + 1)
-    } else if (!(isReserved(entry.name) || isRuntimeEnvName(entry.name))) {
+    } else if (!(isControlEnvName(entry.name) || isRuntimeEnvName(entry.name))) {
       applyEntry(entries, entry)
     }
   }
 
   return { entries, badLines }
-}
-
-/** Names with the brand prefix steer this process (the background mark would let `upgrade` restart
- *  a terminal daemon), and a systemd EnvironmentFile may hold them for the unit: skipped silently. */
-function isReserved(name: string): boolean {
-  return name.startsWith(BRAND.envPrefix)
 }
 
 /** A name that steers how a program starts rather than which service it reaches: skipped when the

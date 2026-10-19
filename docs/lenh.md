@@ -612,6 +612,10 @@ phiếu hay một lượng vàng. Tỷ giá sau `fx` trong sổ tính bằng đ�
 chia tách hay phân phối thì bị từ chối ở mọi thị trường. Lời nhắn chỉ cách viết `1000` cho một nghìn, hoặc
 `1.5` cho số lẻ.
 
+Giá lệch giá gần nhất của mã từ mười lần trở lên thì chưa được lưu ngay: câu trả lời đưa ra cả
+hai con số và hỏi lại. Bấm nút, hoặc gửi lại đúng dòng đó với `confirm` ở cuối, để lưu như bạn gõ.
+`/update` và `/alert create` cũng hỏi như vậy. Chi tiết ở [Giao dịch](giao-dich.md).
+
 **Mua và bán.** Lệnh bán có thể ghi `all` thay cho một con số, và sổ tính thành khối lượng đã thanh toán
 đang nắm *ở sàn đó* vào ngày đó. Có thể bỏ trống phí, khi đó tỷ lệ `fees` của sàn trong
 `[trading.venues.<id>]` sẽ tính giá. Một khoản phí bạn đã nêu thì không bao giờ bị thay.

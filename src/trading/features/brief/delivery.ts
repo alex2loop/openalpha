@@ -306,6 +306,24 @@ async function sendClaimed(
     return
   }
 
+  // Otherwise every morning builds a brief nobody can receive. No notice: the chat refuses it too.
+  if (outcome === 'recipient-revoked') {
+    const disabled = await deps.deliveries.disableClaimed({
+      leaseToken: context.leaseToken,
+      deliveryDay: subscription.deliveryDay,
+      disabledAt: options.now,
+      signal: options.signal,
+    })
+
+    if (disabled) {
+      deps.logger.warn('trading.brief_recipient_revoked', {
+        channel: subscription.delivery.channel,
+      })
+    }
+
+    return
+  }
+
   // The same day, retried: the claim already counted this attempt, so the backoff reads it and the
   // deferral is the one completion that leaves the count alone.
   await deferClaimed(deps, context, outcome)

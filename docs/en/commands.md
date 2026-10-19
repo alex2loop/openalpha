@@ -629,6 +629,10 @@ be a thousand shares or one tael of gold. The same goes for a rate after `fx` in
 the share change of a split or distribution in any market. The reply says to write `1000` for a
 thousand, or `1.5` for a decimal.
 
+A price ten times or more away from the name's latest price is not saved straight away: the reply
+shows both and asks. Tap the button, or send the same line again ending in `confirm`, to save it as
+typed. `/update` and `/alert create` ask the same way. Details: [Trading](trading.md).
+
 **Buy and sell.** A sale may write `all` instead of a count; the ledger resolves it to the settled
 quantity held *at that venue* on that day. You may leave out the fee, and the venue's `fees` rate in
 `[trading.venues.<id>]` prices it. A fee you state is never replaced.

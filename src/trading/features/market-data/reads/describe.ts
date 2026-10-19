@@ -1,4 +1,5 @@
-import type { MarketDescription } from '@/trading/features/market-data/types'
+import type { MarketDataService, MarketDescription } from '@/trading/features/market-data/types'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import type { Market } from '@/trading/markets/types'
 
 /** One market as a surface lays it out: where it trades, its index, and the reads it answers. */
@@ -17,4 +18,11 @@ export function describeMarket(market: Market): MarketDescription {
     hasBrief: capabilities.brief !== undefined,
     hasEvents: capabilities.events !== undefined,
   }
+}
+
+/** Each market's own icon, so a rule naming a market wears the same mark on every surface. */
+export function resolveMarketIcons(
+  marketData: Pick<MarketDataService, 'describeMarkets'>
+): ReadonlyMap<MarketRef, string> {
+  return new Map(marketData.describeMarkets().map((market) => [market.market, market.icon]))
 }

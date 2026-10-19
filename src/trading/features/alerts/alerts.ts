@@ -39,6 +39,7 @@ import {
 import { observePrice, toCrossing } from '@/trading/features/alerts/observation'
 import { reconcileScreenerAlerts } from '@/trading/features/alerts/screeners'
 import { stopDistances } from '@/trading/features/alerts/stop-distances'
+import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey, isIdRef } from '@/trading/kernel/instrument'
 import { buildAlertId } from '@/trading/kernel/operator/alert'
@@ -65,7 +66,7 @@ interface AlertServiceDeps {
   readonly suggestions: SuggestionStore
   /** Writes the levels a held name is watched against when nothing does. */
   readonly exitPlans: ExitPlanner
-  readonly briefs: Pick<BriefService, 'find'>
+  readonly briefs: Pick<BriefService, 'find' | 'resolveRecipient'>
   readonly marketDataStore: ScreenerReconcileDeps['marketDataStore']
   tradeableHoldingsAt: ExitReconcileDeps['tradeableHoldingsAt']
   instrumentKinds: ExitWatchDeps['instrumentKinds']
@@ -272,11 +273,24 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     throw new ValidationError(`instrument is not supported: ${named}${instrument.ticker}`)
   }
 
+  // An operator-armed level is typed; a system-armed one is computed and never a board figure.
+  if (draft.origin === undefined) {
+    await assertTypedPrice(deps, {
+      instrument: resolution.instrument,
+      market: resolution.market,
+      price: draft.threshold,
+      day: resolution.market.manifest.calendar.dayAt(options.now),
+      typedPrice: options.typedPrice,
+      confirmMultiple: deps.config.typedPrices.confirmMultiple,
+      signal: options.signal,
+    })
+  }
+
   // An operator-armed alert (no origin) lands where the sender can reach; a system-armed one reuses
   // the address its stored row already carries. Before the write: an alert armed at an address the
   // router cannot reach would poll, trigger, fail every send and disable itself in silence.
   const delivery =
-    draft.origin === undefined ? deps.sender.resolveRecipient(draft.delivery) : draft.delivery
+    draft.origin === undefined ? await deps.sender.resolveRecipient(draft.delivery) : draft.delivery
 
   if (delivery === undefined) {
     throw new ValidationError('alert target cannot receive notices', {

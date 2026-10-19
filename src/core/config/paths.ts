@@ -24,8 +24,7 @@ export function expandHome(p: string, home: string = HOME_DIR): string {
 export function resolveDataDir(raw?: {
   paths?: { data_dir?: string | undefined } | undefined
 }): string {
-  const envKey = `${BRAND.envPrefix}DATA_DIR`
-  const fromEnv = process.env[envKey]
+  const fromEnv = process.env[BRAND.controlEnv.dataDir]
 
   if (fromEnv !== undefined && fromEnv !== '') {
     return expandHome(fromEnv)

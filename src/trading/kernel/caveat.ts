@@ -346,6 +346,7 @@ export const UNDECIDED_HOLD_REASON_CODES: ReadonlySet<HoldReasonCode> = new Set<
 export const DELIVERY_ERROR_CODES = Object.freeze([
   'channel-unavailable',
   'channel-rejected',
+  'recipient-revoked',
   'render-failed',
   'aborted',
 ] as const)

@@ -33,6 +33,7 @@ type MarkdownSegment =
 interface EntityScan {
   readonly open: Set<string>
   link: boolean
+  blankLine: number
   newline: number
   space: number
 }
@@ -287,10 +288,11 @@ function hardTextCut(text: string, maxLen: number): number {
   return 0
 }
 
-/** The cut after the last newline, else the last space, in the first `limit` units that no
- *  `[label](url)` link or `*`/`_`/`~`/backtick pair open on its line spans; 0 when there is none. */
+/** The cut after the last blank line, else the last newline, else the last space, in the first
+ *  `limit` units that no `[label](url)` link or `*`/`_`/`~`/backtick pair open on its line spans; 0
+ *  when there is none. */
 function softTextCut(text: string, limit: number): number {
-  const scan: EntityScan = { open: new Set(), link: false, newline: 0, space: 0 }
+  const scan: EntityScan = { open: new Set(), link: false, blankLine: 0, newline: 0, space: 0 }
 
   for (let i = 0; i < limit; i += 1) {
     const char = text.charAt(i)
@@ -304,12 +306,18 @@ function softTextCut(text: string, limit: number): number {
     }
   }
 
-  return scan.newline || scan.space
+  // A blank line separates whole sections, so cutting there keeps a section in one message.
+  return scan.blankLine || scan.newline || scan.space
 }
 
 function recordBoundary(scan: EntityScan, char: string, index: number): void {
   if (!scan.link && scan.open.size === 0) {
     if (char === '\n') {
+      // The newline before this one ended at `index`: the two make a blank line.
+      if (index > 0 && scan.newline === index) {
+        scan.blankLine = index + 1
+      }
+
       scan.newline = index + 1
     } else {
       scan.space = index + 1

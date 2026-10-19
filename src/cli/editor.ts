@@ -7,7 +7,7 @@ import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 
 // PowerShell cannot take the file as a positional argument, so it reads it from the environment.
-const FILE_ENV = `${BRAND.envPrefix}EDITOR_FILE`
+const FILE_ENV = BRAND.controlEnv.editorFile
 
 export function isEditorSet(editor: string | undefined): editor is string {
   return editor !== undefined && editor.trim() !== ''

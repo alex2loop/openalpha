@@ -451,6 +451,8 @@ Công cụ `suggestion_track_record` trả hồ sơ và độ trùng của phạ
 - ngày của một bản tin bị bỏ và ngày mai được lên lịch;
 - cảnh báo bạn tạo bằng `/alert` không bao giờ bị tắt vì gửi hỏng. Nó là của riêng bạn và không gì dựng lại nó, nên nó cứ thử lại, chờ tối đa mỗi giờ một lần, cho tới khi kênh nhận hoặc bạn chạy `/alert disable`.
 
+Chat đã bị `pair revoke` thì khác: không lần thử lại nào tới được, nên ngay lần gửi đầu tiên bị từ chối, cảnh báo đó tắt luôn (của bạn hay do hệ thống dựng đều vậy) và bản tin sáng cũng tắt. Cảnh báo thoát và sàng lọc đi theo chat của bản tin, nên chừng nào chat đó còn bị thu hồi thì chúng thôi được dựng, kể cả khi bản tin đã tắt từ trước; ghép nối lại chat đó, hoặc chạy `/brief enable` từ một chat khác, thì chúng được dựng lại.
+
 **Việc đánh giá** có giới hạn và dùng chung:
 
 - Mỗi nhịp duyệt qua mọi cảnh báo đang hoạt động, nên cắt lỗ hay mục tiêu được kiểm mỗi phút dù có bao nhiêu cảnh báo.
@@ -695,7 +697,7 @@ openalpha chat --message "/suggest FPT"
 
 Cảnh báo được gọi bằng mã sáu ký tự (đuôi của mã dài) trong `/alert list`, lời xác nhận và mọi thông báo; `/alert disable <mã>` nhận mã đó, và liệt kê mã đầy đủ khi nó khớp nhiều cảnh báo. Cảnh báo giá hay thoát lệnh khi chạm mở đầu bằng tiêu đề và bước kế tiếp: với thoát lệnh là dòng `/record sell` để điền khi bán xong, rồi `/suggest` để xem lại. Trong chat `/transactions` mặc định hiện 10 dòng, và `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
 
-`/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo. Gõ trong một kênh đã kết nối thì gửi về chính chat đó. Gõ trong terminal thì gửi về chat của bạn: kênh được cấu hình đầu tiên thắng (Telegram, rồi Zalo, rồi Zalo Personal), và `fallback_chat_id` chọn chat. Chưa cấu hình kênh nào thì bị từ chối. Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background`).
+`/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo. Gõ trong một kênh đã kết nối thì gửi về chính chat đó. Gõ trong terminal thì gửi về chat của bạn: kênh được cấu hình đầu tiên thắng (Telegram, rồi Zalo, rồi Zalo Personal), và `fallback_chat_id` chọn chat, nếu không thì chat duy nhất đã ghép nối. Chưa cấu hình kênh nào thì bị từ chối. Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background`).
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 
@@ -795,6 +797,10 @@ sell of 600 ACB exceeds 0 settled on 2026-06-15
 ```
 
 Một dòng ghi ngày sau hôm nay (theo lịch của khu vực chính) cũng bị từ chối. Giao dịch chưa xảy ra là gõ nhầm, và nếu nhận thì sổ sẽ giấu nó đi cho tới đúng ngày đó.
+
+Giá luôn ghi đầy đủ, như `58400`, không phải con số trên bảng điện (`58,40`, tức ×1.000 VND). Một giá cổ phiếu Việt Nam thấp hơn 1.000 đồng trong khi mã đang giao dịch trên mức đó bị từ chối, kèm giá đầy đủ để ghi lại. Ngưỡng của `/alert` cũng vậy.
+
+Ở mọi thị trường, giá bạn gõ mà cao hoặc thấp hơn giá gần nhất của mã (giá đóng cửa đã lưu tính tới ngày của nó; với vàng trong nước, hoặc mã chưa có giá đóng cửa nào được lưu, là giá đang giao dịch) từ mười lần trở lên thì chưa được lưu ngay: câu trả lời đưa ra cả hai con số và hỏi bạn có đúng ý không, vì lệch xa cỡ đó gần như luôn là gõ thiếu hoặc thừa vài số 0. Bấm "Đúng giá này, lưu lại", hoặc gửi lại đúng lệnh đó với `confirm` ở cuối, thì giá được lưu như bạn gõ. Không có gì được giữ lại giữa hai bước: bỏ qua câu hỏi thì không có gì được ghi. `/record`, `/update` và `/alert create` đều hỏi như vậy; tiền nạp, rút và phí không có giá để so nên không bao giờ bị hỏi, và mã không có giá nào để so, hoặc giá không về kịp trong 3 giây, thì cũng lưu luôn. Giao dịch lấy giá từ lệnh khớp của sàn (`/trade`, `/record sync`, một lệnh thoát đã khớp) cũng không bị hỏi, và dòng `rights` cũng vậy, vì giá quyền mua do công ty phát hành đặt, thường theo mệnh giá, thấp hơn giá thị trường rất nhiều. Trợ lý AI bị từ chối theo cùng cách và phải hỏi lại bạn trước khi ghi giá. Bội số đặt ở `[trading.typed_prices] confirm_multiple` (mặc định 10). Ứng dụng desktop cũng được kiểm như vậy khi request ghi sổ hoặc đặt cảnh báo gửi kèm `typedPrice`.
 
 #### Dòng xác nhận ghi nói gì về phí
 

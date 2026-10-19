@@ -30,6 +30,12 @@ import { alertId } from '@/trading/kernel/operator/alert'
 import { ledgerEntryId } from '@/trading/kernel/operator/book'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
+/** Set by the surfaces where the operator types a price: `unconfirmed` refuses one far from the
+ *  market with `PriceUnconfirmedError`, `confirmed` writes it as typed. Unset is never checked: a
+ *  writer holding a venue's figure, or a client that never asks. */
+export const TYPED_PRICES = Object.freeze(['unconfirmed', 'confirmed'] as const)
+export type TypedPrice = (typeof TYPED_PRICES)[number]
+
 /** Direct slash syntax is closed: every parser returns `null` rather than guessing, and the command
  *  answers with its own usage key. No parser supplies a business default. */
 export function parseBranded<T>(raw: string | undefined, brand: (value: string) => T): T | null {
@@ -335,6 +341,18 @@ export const dayInput: z.ZodType<TradingDay> = branded(tradingDay, 'trading day'
 export const alertIdInput: z.ZodType<AlertId> = branded(alertId, 'alert id').describe(
   'Alert id as returned by alert_manage list or create.'
 )
+
+export const priceConfirmedInput = z
+  .literal(true)
+  .optional()
+  .describe(
+    'True only after the operator confirmed a price the tool refused as far from the market. Omit otherwise.'
+  )
+
+export function toTypedPrice(priceConfirmed: true | undefined): TypedPrice {
+  return priceConfirmed === true ? 'confirmed' : 'unconfirmed'
+}
+
 export const ledgerEntryIdInput: z.ZodType<LedgerEntryId> = branded(
   ledgerEntryId,
   'event id'

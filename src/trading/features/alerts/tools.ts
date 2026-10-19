@@ -11,6 +11,8 @@ import {
   alertIdInput,
   instrumentQueryInput,
   PRICE_INPUT_UNITS,
+  priceConfirmedInput,
+  toTypedPrice,
 } from '@/trading/kernel/surface/surface'
 import { invocationAddress, isManagedMutation } from '@/trading/kernel/surface/tool-approval'
 import { joinToolDetail, renderMarketName, renderToolAction } from '@/trading/render/tool-detail'
@@ -31,7 +33,7 @@ export function createAlertManageTool(alerts: AlertService, markets: MarketSchem
     inputSchema: alertActionInputOf(markets),
     inputExamples: [
       { action: 'list' },
-      { action: 'create', ticker: 'FPT', condition: 'below', threshold: 120 },
+      { action: 'create', ticker: 'FPT', condition: 'below', threshold: 120000 },
     ],
     capability: 'read',
     requiresApproval: isManagedMutation,
@@ -67,6 +69,7 @@ export function createAlertManageTool(alerts: AlertService, markets: MarketSchem
           threshold: args.threshold,
           delivery: invocationAddress(ctx),
         },
+        typedPrice: toTypedPrice(args.priceConfirmed),
         now: Date.now(),
         signal: ctx.signal,
       })
@@ -109,6 +112,7 @@ function alertActionInputOf(markets: MarketSchema) {
           'above fires when the price rises to or past the threshold, below when it falls to or past it.'
         ),
       threshold: z.number().positive().describe(`The price level. ${PRICE_INPUT_UNITS}`),
+      priceConfirmed: priceConfirmedInput,
     }),
     z.strictObject({
       action: z.literal('disable').describe('Disable one alert by id.'),

@@ -8,11 +8,14 @@ import type { AlertService } from '@/trading/features/alerts/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 import { renderAlertListText } from '@/trading/features/alerts/render'
+import { runWithPriceConfirm } from '@/trading/features/market-data/command/price-confirm'
+import { resolveMarketIcons } from '@/trading/features/market-data/reads/describe'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey, toIdHandle } from '@/trading/kernel/instrument'
 import { ALERT_CONDITIONS } from '@/trading/kernel/operator/alert'
@@ -33,17 +36,21 @@ const USAGE: 'slash.tradingAlertUsage' = 'slash.tradingAlertUsage'
 const MAXIMUM_LISTED_IDS = 3
 /** Ticker, condition, threshold. */
 const CREATE_ARGUMENTS = 3
+const ALERT_COMMAND = 'alert'
 
 interface AlertCommandDeps {
   readonly alerts: AlertService
   /** Qualifies a ticker the operator did not attach a market to, the way `/price` does. */
   readonly markets: MarketRegistry
-  readonly marketData: Pick<MarketDataService, 'quoteBoard' | 'instrumentQuoteConvention'>
+  readonly marketData: Pick<
+    MarketDataService,
+    'describeMarkets' | 'instrumentQuoteConvention' | 'quoteBoard' | 'quoteConvention'
+  >
 }
 
 export function createAlertCommand(deps: AlertCommandDeps): SlashCommand {
   return {
-    name: 'alert',
+    name: ALERT_COMMAND,
     description: { kind: 'localized', key: 'slash.tradingAlertHelp' },
     messageKeys: [
       USAGE,
@@ -68,7 +75,11 @@ async function run(deps: AlertCommandDeps, ctx: SlashContext): Promise<SlashResu
   }
 
   if (action === 'create') {
-    return runCreate(deps, ctx, rest)
+    return runWithPriceConfirm(
+      ctx,
+      { command: ALERT_COMMAND, marketData: deps.marketData },
+      (typed, typedPrice) => runCreate(deps, typed, typedPrice)
+    )
   }
 
   return action === 'disable' ? runDisable(deps, ctx, rest) : alertUsage(deps)
@@ -108,6 +119,7 @@ async function runList(
     text: renderAlertListText(ctx.locale, page, {
       priceByInstrument: prices,
       quoteConventions: conventions,
+      marketIcons: resolveMarketIcons(deps.marketData),
     }),
   }
 }
@@ -165,8 +177,10 @@ async function priceByInstrument(
 async function runCreate(
   deps: AlertCommandDeps,
   ctx: SlashContext,
-  rest: readonly string[]
+  typedPrice: TypedPrice
 ): Promise<SlashResult> {
+  const rest = ctx.args.slice(1)
+
   if (rest.length !== CREATE_ARGUMENTS) {
     return alertUsage(deps)
   }
@@ -204,6 +218,7 @@ async function runCreate(
       threshold,
       delivery: origin,
     },
+    typedPrice,
     now: Date.now(),
     signal: ctx.signal,
   })

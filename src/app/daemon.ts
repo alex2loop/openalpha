@@ -271,7 +271,8 @@ function attachDelivery(options: {
       snapshots: channels.snapshots,
       isWorking: channels.isWorking,
       recipients: channels.recipients,
-      ...(channels.defaultRecipient === undefined ? {} : { recipient: channels.defaultRecipient }),
+      recipient: channels.defaultRecipient,
+      isDeliverable: channels.isDeliverable,
     })
   )
 }

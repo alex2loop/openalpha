@@ -70,7 +70,7 @@ operator_user_ids = [123456789]
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | The required opt-in, and which saved QR login to use |
 | `agent` | all | Bind the channel to one agent instead of the default |
 | `require_mention`, `slash_commands` | all | Group mention rule, and whether slash commands are intercepted |
-| `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, that id is used |
+| `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, or exactly one paired chat, that chat is used |
 
 The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`,
 `notify_max_per_minute` and `gap_note_minutes`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
@@ -139,7 +139,7 @@ operator, and only until the prompt times out; typing it again, or after the tim
 was already answered or has expired. Two prompts open at once get different codes, and answering one
 leaves the other's codes live. A button tapped after its prompt was answered or timed out gets the same reply.
 
-`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, or a lone allowed id.
+`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, a lone allowed id, or a lone paired chat. Pairing needs nothing more: the daemon picks the chat up from the first message you send after pairing. Revoke it with `pair revoke` and the daemon stops sending to that chat, from the next message on and across restarts. Alerts and the morning brief armed there switch off at their next send, so pairing again does not bring them back: run `/brief enable` again and set the alerts again. A group admitted through your account has no pairing of its own, so `pair revoke` does not reach it: to stop it, turn off the alerts and brief armed there or remove the bot from the group.
 
 A channel that drops and stays down is reported on another one, and `status` lists it; see [Operations](operations.md#when-the-daemon-stops-or-misses-a-brief).
 

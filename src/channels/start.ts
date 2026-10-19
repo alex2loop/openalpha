@@ -1,9 +1,11 @@
 import type { BudgetCaps } from '@/channels/delivery/queue'
+import type { ChannelRecipient } from '@/channels/recipient'
 import type { ChannelSettings } from '@/channels/schema'
 import type {
   AcknowledgedSendOptions,
   AcknowledgedSendResult,
   ChannelAdapter,
+  ChannelAdmission,
   ChannelDefinition,
   ChannelRuntime,
   ChannelRuntimeSnapshot,
@@ -27,7 +29,7 @@ import type {
 } from '@/core/types/session'
 import type { AgentRegistry, CostTracker, Runner, RunRegistry } from '@/engine/api'
 import { createChannelRuntime } from '@/channels/lifecycle'
-import { resolveFallbackChat } from '@/channels/recipient'
+import { createChannelRecipient, resolveFallbackChat } from '@/channels/recipient'
 import { resolveChannelSettings } from '@/channels/schema'
 import { OperatorConfigError } from '@/core/config/resolve'
 import { ConfigError } from '@/core/errors'
@@ -80,17 +82,19 @@ export interface StartChannelsResult {
   readonly skipped: readonly SkippedChannel[]
   /** Routes an acknowledged send to whichever runtime owns its channel. Undefined if none started. */
   notifier?: AcknowledgedRouter
-  /** Where an unaddressed proactive notice goes. Undefined if no channel declared a fallback chat. */
-  defaultRecipient?: OutboundTarget
+  /** Where an unaddressed proactive notice goes: the first started channel with a recipient. */
+  defaultRecipient(): OutboundTarget | undefined
   /** Every started channel's own default chat, in start order: where one channel can reach the
    *  operator about another. */
   recipients(): ReadonlyMap<ChannelId, OutboundTarget>
+  /** False for a channel that did not start or a chat whose pairing was revoked. */
+  isDeliverable(target: OutboundTarget): Promise<boolean>
 }
 
 interface Started {
   readonly runtime: ChannelRuntime
   readonly adapter: ChannelAdapter
-  readonly fallbackChatId?: string
+  readonly recipient: ChannelRecipient
 }
 
 export async function startChannels(deps: StartChannelsDeps): Promise<StartChannelsResult> {
@@ -124,7 +128,9 @@ export async function startChannels(deps: StartChannelsDeps): Promise<StartChann
     deps.logger.info('channel.started', { channels: started.map((entry) => entry.adapter.id) })
   }
 
-  return buildResult(started, skipped)
+  await Promise.all(started.map((entry) => entry.recipient.refresh()))
+
+  return buildResult(started, skipped, deps.logger)
 }
 
 async function buildRuntimes(deps: StartChannelsDeps): Promise<readonly Started[]> {
@@ -187,6 +193,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
   assertConfiguredAgent(deps, definition, settings)
 
   const admission = definition.admission(config)
+  const recipient = createRecipient(deps, definition, admission)
   const adapter = definition.create(config, {
     logger: deps.logger,
     pollOffsets: deps.pollOffsets,
@@ -209,6 +216,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     costTracker: deps.costTracker,
     caps: budgetCaps(deps.config),
     pairingStore: deps.pairingStore,
+    onPaired: (chatId) => recipient.admitted(chatId),
     sessionRouter: deps.sessionRouter,
     sessions: deps.sessions,
     bindings: deps.bindings,
@@ -222,15 +230,22 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     shutdownSignal: deps.shutdownSignal,
   })
 
-  const fallbackChatId = resolveFallbackChat(definition, deps.config.channels[definition.id])
+  return [{ runtime, adapter, recipient }]
+}
 
-  return [
-    {
-      runtime,
-      adapter,
-      ...(fallbackChatId === undefined ? {} : { fallbackChatId }),
-    },
-  ]
+function createRecipient(
+  deps: StartChannelsDeps,
+  definition: ChannelDefinition,
+  admission: ChannelAdmission
+): ChannelRecipient {
+  const configured = resolveFallbackChat(definition, deps.config.channels[definition.id])
+
+  return createChannelRecipient({
+    channel: definition.id,
+    ...(configured === undefined ? {} : { configured }),
+    ...(admission.mode === 'pairing' ? { store: deps.pairingStore } : {}),
+    logger: deps.logger,
+  })
 }
 
 function assertConfiguredAgent(
@@ -254,22 +269,20 @@ function budgetCaps(config: ResolvedConfig): BudgetCaps {
 
 function toRecipients(started: readonly Started[]): ReadonlyMap<ChannelId, OutboundTarget> {
   return new Map(
-    started.flatMap((entry): [ChannelId, OutboundTarget][] =>
-      entry.fallbackChatId === undefined
-        ? []
-        : [[entry.adapter.id, { channel: entry.adapter.id, chatId: entry.fallbackChatId }]]
-    )
+    started.flatMap((entry): [ChannelId, OutboundTarget][] => {
+      const chatId = entry.recipient.current()
+
+      return chatId === undefined ? [] : [[entry.adapter.id, { channel: entry.adapter.id, chatId }]]
+    })
   )
 }
 
 function buildResult(
   started: readonly Started[],
-  skipped: readonly SkippedChannel[]
+  skipped: readonly SkippedChannel[],
+  logger: Logger
 ): StartChannelsResult {
-  const byChannel = new Map<ChannelId, ChannelRuntime>(
-    started.map((entry) => [entry.adapter.id, entry.runtime])
-  )
-  const withFallback = started.find((entry) => entry.fallbackChatId !== undefined)
+  const byChannel = new Map<ChannelId, Started>(started.map((entry) => [entry.adapter.id, entry]))
 
   const base: StartChannelsResult = {
     async stop(): Promise<void> {
@@ -277,7 +290,10 @@ function buildResult(
     },
     snapshots: () => started.map((entry) => entry.runtime.snapshot()),
     recipients: () => toRecipients(started),
+    defaultRecipient: () => toRecipients(started).values().next().value,
     isWorking: () => started.some((entry) => entry.runtime.isWorking()),
+    isDeliverable: async (target) =>
+      (await byChannel.get(target.channel)?.recipient.isDeliverable(target.chatId)) ?? false,
     skipped,
   }
 
@@ -287,21 +303,38 @@ function buildResult(
   }
 
   const notifier: AcknowledgedRouter = async (target, text, options) => {
-    const runtime = byChannel.get(target.channel)
+    const entry = byChannel.get(target.channel)
 
-    return runtime === undefined ? 'unavailable' : runtime.notify(target, text, options)
+    if (entry === undefined) {
+      return 'unavailable'
+    }
+
+    let deliverable: boolean
+
+    // An unreadable pairing is not a revoked one: the send waits on the retry ladder instead of
+    // switching the alert or brief off.
+    try {
+      deliverable = await entry.recipient.isDeliverable(target.chatId)
+    } catch (err: unknown) {
+      logger.warn('channel.paired_check_failed', {
+        channel: target.channel,
+        err: formatErrForLog(err),
+      })
+
+      return 'unavailable'
+    }
+
+    if (!deliverable) {
+      await entry.recipient.refresh()
+
+      return 'revoked'
+    }
+
+    return entry.runtime.notify(target, text, options)
   }
 
   return {
     ...base,
     notifier,
-    ...(withFallback?.fallbackChatId === undefined
-      ? {}
-      : {
-          defaultRecipient: {
-            channel: withFallback.adapter.id,
-            chatId: withFallback.fallbackChatId,
-          },
-        }),
   }
 }

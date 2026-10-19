@@ -172,7 +172,7 @@ function parseTomlText(text: string): unknown {
 }
 
 function readEnvDataDir(): string | undefined {
-  const envValue = process.env[`${BRAND.envPrefix}DATA_DIR`]
+  const envValue = process.env[BRAND.controlEnv.dataDir]
 
   return envValue !== undefined && envValue !== '' ? envValue : undefined
 }

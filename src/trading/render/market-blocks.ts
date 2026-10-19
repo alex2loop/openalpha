@@ -40,7 +40,7 @@ export function renderMarketBlocks<T>(
   locale: Locale,
   blocks: readonly MarketBlock<T>[],
   options: {
-    readonly icon: string
+    readonly icons: ReadonlyMap<MarketRef, string>
     readonly renderRows: (rows: readonly T[]) => readonly string[]
   }
 ): readonly string[] {
@@ -51,7 +51,10 @@ export function renderMarketBlocks<T>(
   }
 
   return blocks.flatMap((block) => [
-    renderBlockRule(options.icon, renderDeclaredValue(locale, `trading.market.${block.market}`)),
+    renderBlockRule(
+      options.icons.get(block.market),
+      renderDeclaredValue(locale, `trading.market.${block.market}`)
+    ),
     ...options.renderRows(block.rows),
   ])
 }

@@ -273,10 +273,11 @@ export interface ChannelRuntimeSnapshot extends ChannelStatus {
 }
 
 /** `accepted` means this channel's sender call actually completed. `aborted` means the caller's
- *  own signal cancelled the send — not a channel failure, and never worth a retry. Everything
- *  else — no started channel, a full queue, exhausted retries, shutdown — is `unavailable`.
- *  Enqueueing is never acceptance. */
-export type AcknowledgedSendResult = 'accepted' | 'unavailable' | 'aborted'
+ *  own signal cancelled the send — not a channel failure, and never worth a retry. `revoked` means
+ *  the operator revoked the chat's pairing: nothing was sent, and no retry will change that.
+ *  Everything else — no started channel, a full queue, exhausted retries, shutdown — is
+ *  `unavailable`. Enqueueing is never acceptance. */
+export type AcknowledgedSendResult = 'accepted' | 'unavailable' | 'aborted' | 'revoked'
 
 export interface AcknowledgedSendOptions {
   readonly signal?: AbortSignal

@@ -276,8 +276,9 @@ bắt đầu mới một cách tường minh.
 
 `TradingNoticeSender.resolveRecipient(origin)` trả lời khi đặt cảnh báo hay bản tin. Một nguồn có đường đi
 thì trả về nguyên. Terminal (`LOCAL_CHANNEL_ID`) quy về người nhận mặc định đang sống của daemon khi kênh
-đã gắn, nếu không thì `resolveConfiguredRecipient` (`channels/recipient.ts`): định nghĩa được bật đầu tiên
-theo thứ tự registry có chat dự phòng, chỉ đọc từ cấu hình. `resolveFallbackChat` là quy tắc duy nhất cho
+đã gắn, nếu không thì `resolveDefaultRecipient` (`channels/recipient.ts`): định nghĩa được bật đầu tiên
+theo thứ tự registry có chat dự phòng, hoặc, ở chế độ ghép nối, có đúng một chat đã ghép nối
+(`PairingStore.lonePairedChat`). `resolveFallbackChat` là quy tắc duy nhất cho
 chat dự phòng của một kênh (`fallback_chat_id`, nếu không thì một id được phép duy nhất) và `start.ts` cũng
 dùng nó. `AlertService.create` và `scheduleOf` của bản tin quy một lần, nên không bề mặt nào tự làm.
 
@@ -307,10 +308,14 @@ từ Zalo, vì bảng mã lỗi của chính Zalo xếp 403 là lỗi máy chủ
 và cả hai adapter thử tối đa bốn lần với khoảng chờ có trần trước khi bỏ kênh. Zalo Personal không có
 token để bị từ chối: nó thử đăng nhập lại ở nền (đầu tiên 5 giây, tối đa 5 phút).
 
-`startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient? }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
+`startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
 một bộ gửi chiều ra định tuyến tới runtime sở hữu kênh (`AcknowledgedRouter`), và người nhận mặc định
 cho tin chủ động. Người nhận đó là `fallback_chat_id` của kênh, hoặc id được phép duy nhất khi kênh chỉ
-có đúng một. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để một lần dọn hỏng chặn những lần còn
+có đúng một, hoặc chat ghép nối duy nhất (`createChannelRecipient`). Mỗi lần gửi đều hỏi `isDeliverable`: chat đã bị
+`pair revoke` (dòng giữ `revoked_at`, không bị xóa) thì bị từ chối với kết quả `revoked`, để cảnh báo và bản tin tắt thay vì thử lại, và `resolveRecipient` không còn trả về nó, nên lượt dựng cảnh báo hệ thống không dựng gì cho chat đó; đọc ghép nối lỗi thì lần gửi báo `unavailable` và chờ lượt thử lại, không tắt gì; chat chưa từng ghép nối, như nhóm được
+nhận qua người vận hành, vẫn gửi được. Chat ghép nối được đọc lúc khởi
+động và đọc lại mỗi khi cổng nhận một chat đã ghép nối chưa phải người nhận, vì `pair approve` ghi từ
+một tiến trình khác. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để một lần dọn hỏng chặn những lần còn
 lại.
 
 ## Thêm một kênh

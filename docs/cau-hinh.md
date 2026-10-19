@@ -386,7 +386,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `slash_commands` | bool | `true` | Bật lệnh gạch chéo và menu lệnh. |
 | `notify_max_per_minute` | số nguyên | `3` | Trần tần suất tin chủ động. |
 | `gap_note_minutes` | số nguyên | `30` | Số phút im lặng để câu trả lời kế tiếp được nhắc xem lại giá; `0` là tắt. |
-| `fallback_chat_id` | chuỗi | - | Đích dự phòng cho tin chủ động. |
+| `fallback_chat_id` | chuỗi | id được phép duy nhất, hoặc chat ghép nối duy nhất | Đích dự phòng cho tin chủ động. |
 | `pairing` | bool | `true` khi không có danh sách cho phép | Cho chat lạ ghép nối. |
 
 `token_env` thắng `token_file`. Không có khóa `token` ghi thẳng, và không biến token nào được đọc trừ
@@ -689,6 +689,9 @@ send_times = []                # các mốc HH:MM theo múi giờ thị trườn
 breakout_range = 1.5           # một biến động phải đi bao nhiêu lần biên độ ngày trung bình thì mới báo
 breakout_sessions = 14         # số phiên đã chốt dùng để đo biên độ ngày trung bình
 
+[trading.typed_prices]
+confirm_multiple = 10          # hỏi lại trước khi lưu giá gõ lệch giá thị trường từng này lần
+
 [trading.orders]
 maximum_stake_quote = 0        # 0 = không chặn; giá trị ước tính bằng USDT trên okx và binance
 maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh chưa vào sổ
@@ -835,11 +838,14 @@ một tập con sẽ lặng lẽ bỏ sót một thị trường mà bạn vẫn
 
 **Không tham số chấm điểm nào cấu hình được.** Khoảng nhìn lại, ngưỡng và trọng số yếu tố nằm trong mã
 cùng thị trường sở hữu chúng, nên hai bản cài cùng phiên bản chấm cùng đầu vào ra cùng một điểm. Cấu
-hình quyết định cái gì chạy và khi nào, cộng hai thứ thuộc quyền bạn cân nhắc:
+hình quyết định cái gì chạy và khi nào, cộng ba thứ thuộc quyền bạn cân nhắc:
 
 - **Khi nào cảnh báo ngắt lời bạn.** `[trading.alerts] breakout_range` và `breakout_sessions` đặt một mã
   trong danh sách theo dõi phải chạy bao xa thì bạn mới được báo. Nâng mức này làm cảnh báo thưa hơn và
   không đổi điểm số nào.
+- **Khi nào giá bạn gõ bị hỏi lại.** `[trading.typed_prices] confirm_multiple` đặt giá trong `/record`,
+  `/update` hay `/alert` phải cao hoặc thấp hơn giá gần nhất của mã bao nhiêu lần thì bạn mới được hỏi
+  xác nhận (mặc định 10). Nó không đổi điểm số nào.
 - **Điểm cắt lỗ và mục tiêu nằm cách bao xa.** Trong `[trading.markets.<id>]`, `maximum_stop_loss` (trần
   cứng, tính theo phần của giá vào), `stop_loss_atr` và `reward_risk` thay độ rộng cắt lỗ và bội số lợi
   nhuận của thị trường. Đặt bất kỳ khóa nào trong số đó sẽ mở một track record riêng cho thị trường ấy.
@@ -901,7 +907,11 @@ validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với dan
 khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó. `--verbose` in thêm toàn bộ danh sách
 lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn lệnh lưu nó:
 `openalpha key set TÊN`, giống nhau trên mọi hệ. Khóa được giữ trong `<thư mục dữ liệu>/env`, mọi
-lệnh đều đọc tệp này lúc bắt đầu. Biến đặt trong môi trường luôn thắng tệp. Tệp khóa theo `--data-dir`
+lệnh đều đọc tệp này lúc bắt đầu. Biến đặt trong môi trường luôn thắng tệp. Tệp chỉ giữ khóa dịch vụ,
+kể cả khóa mang tiền tố `OPENALPHA_` như `OPENALPHA_OPENROUTER_API_KEY`: các tên điều khiển chính
+OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trình khởi động (`PATH`,
+`NODE_OPTIONS`, `LD_*`...) bị bỏ qua, và `#` sau
+một dấu cách là chú thích. Tệp khóa theo `--data-dir`
 hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu hình. Thiếu khóa của mô hình chỉ chặn những việc cần
 gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
 `openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn đặt

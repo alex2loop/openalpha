@@ -1,9 +1,7 @@
 import { getEnv } from '@/cli/env'
 import { BRAND } from '@/core/brand'
 
-/** Set only by the process that starts a background daemon: it marks a daemon no terminal or
- *  service owns, the only kind `upgrade` may restart by itself. */
-const BACKGROUND_ENV = `${BRAND.envPrefix}BACKGROUND`
+const BACKGROUND_ENV = BRAND.controlEnv.background
 const BACKGROUND_ENV_VALUE = '1'
 
 export function buildBackgroundEnv(): Record<string, string | undefined> {

@@ -451,6 +451,8 @@ The `suggestion_track_record` tool returns the asking agent's own focus record a
 - a brief's day is dropped and tomorrow's is scheduled;
 - an alert you created with `/alert` is never disabled for a failed send. It is yours alone and nothing re-arms it, so it keeps retrying, waiting at most an hour between tries, until the channel accepts it or you run `/alert disable`.
 
+A chat whose pairing was revoked with `pair revoke` is different: no retry can reach it, so at the first refused send the alert is disabled, yours or system-armed alike, and so is the morning brief. Exit and screener alerts go to the brief's chat, so while that chat stays revoked they are not armed, even if the brief was already off; pair the chat again, or run `/brief enable` from another chat, and they are armed again.
+
 **Evaluation** is bounded and shared:
 
 - A tick pages through every active alert, so a stop or target is checked each minute however many are live.
@@ -695,7 +697,7 @@ openalpha chat --message "/suggest FPT"
 
 Alerts are named by a six-character id (the tail of the long one) in `/alert list`, the confirmation and every notice; `/alert disable <id>` takes it, and lists the full ids when it matches several. A fired price or exit alert opens with the headline and the next step: for an exit, the sale's `/record sell` line to fill in, then `/suggest` for a fresh look. In a chat `/transactions` shows 10 rows by default, and `/portfolio` lists positions right after the warnings, then cash, profit and loss and allocation, with at most three closed trips on a phone.
 
-`/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo. Typed in a connected channel they deliver to that chat. Typed in the terminal they go to your chat: the first configured channel wins (Telegram, then Zalo, then Zalo Personal), and `fallback_chat_id` picks the chat. With no channel configured they are refused. They arrive only while OpenAlpha runs in the background (`openalpha start --background`).
+`/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo. Typed in a connected channel they deliver to that chat. Typed in the terminal they go to your chat: the first configured channel wins (Telegram, then Zalo, then Zalo Personal), and `fallback_chat_id` picks the chat, else the one paired chat. With no channel configured they are refused. They arrive only while OpenAlpha runs in the background (`openalpha start --background`).
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
@@ -795,6 +797,10 @@ sell of 600 ACB exceeds 0 settled on 2026-06-15
 ```
 
 A row dated after today, on the home region's calendar, is refused too. A trade that has not happened yet is a typo, and the book would otherwise hold it out of sight until the day came.
+
+A price is always the full figure, such as `58400`, never the board figure (`58,40`, meaning x1,000 VND). A Vietnamese share price below 1,000 VND while the name trades above that is refused, with the full price to send instead. An `/alert` threshold is checked the same way.
+
+A price you type that sits ten times or more above or below the name's latest stored close on or before its day (for VN gold, or a name with no stored close, the price it trades at now) is not saved straight away, in every market: the reply shows both figures and asks whether you meant it, since a gap that wide is nearly always a zero or three gone missing. Tap "That price is right, save it", or send the same command again with `confirm` at the end, and it is saved as typed. Nothing is held in between: ignore the question and nothing is written. `/record`, `/update` and `/alert create` all ask; deposits, withdrawals and fees have no price to compare and are never asked about, and a name with no price to compare, or whose price does not arrive within 3 seconds, is saved without asking. A trade the venue's own fill priced (`/trade`, `/record sync`, an exit that filled) is never asked about either, nor is a `rights` row, whose price the issuer sets, often at par far under the market. The assistant is refused the same way and has to ask you before it records the price. `[trading.typed_prices] confirm_multiple` sets the multiple (default 10). The desktop app's ledger and alert requests check the same way when they send `typedPrice`.
 
 #### What a write confirmation says about the fee
 

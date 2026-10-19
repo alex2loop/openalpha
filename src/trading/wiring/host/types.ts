@@ -59,6 +59,7 @@ import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { ProfilePatch, UserProfile } from '@/trading/kernel/operator/profile'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Page } from '@/trading/kernel/store/page'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { QuoteConvention } from '@/trading/render/money'
 import type { SURFACE_LIMITS } from '@/trading/surface-limits'
 import type { BriefRescheduleView } from '@/trading/wiring/composition/app-views'
@@ -117,6 +118,7 @@ interface TradingAlertCreateRequest {
   readonly threshold: number
   /** Where it fires to: the asking surface's own address. */
   readonly delivery: DeliveryAddress
+  readonly typedPrice?: TypedPrice
   readonly signal: AbortSignal
 }
 
@@ -194,6 +196,7 @@ interface TradingLedgerRecordRequest {
   readonly draft: unknown
   /** Stable per user action, so a retried request records one row, not two. */
   readonly idempotencyKey: string
+  readonly typedPrice?: TypedPrice
   readonly signal: AbortSignal
 }
 
@@ -201,6 +204,7 @@ interface TradingLedgerUpdateRequest {
   readonly entryId: LedgerEntryId
   /** The whole row as it should stand; an edit replaces, it never merges. */
   readonly draft: unknown
+  readonly typedPrice?: TypedPrice
   readonly signal: AbortSignal
 }
 

@@ -159,7 +159,10 @@ const pairRevokeCommand = createCommand({
       return usage(app, t(locale, 'cli.pairRevokeUsage'))
     }
 
-    const revoked = await app.resolve('pairingStore').revoke(result.channel, chatId)
+    const revoked = await app
+      .resolve('pairingStore')
+      .revoke({ channel: result.channel, chatId, now: Date.now() })
+
     app.out(
       revoked
         ? success(t(locale, 'cli.pairRevoked', { chatId }))

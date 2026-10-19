@@ -39,7 +39,7 @@ export function renderVerdictBlock(
   return quoted.length === 0
     ? []
     : [
-        renderBlockRule(SECTION_ICONS.actions, t(locale, 'trading.brief.block.verdict')),
+        renderBlockRule(SECTION_ICONS.verdict, t(locale, 'trading.brief.block.verdict')),
         ...quoted,
         ...todayLine(locale, sections),
       ]

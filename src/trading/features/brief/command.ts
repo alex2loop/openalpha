@@ -127,20 +127,25 @@ async function withSchedule(
   return {
     kind: 'text',
     affordances: bookAffordances(ctx.locale),
-    text: joinSections([[body], [scheduleLine(deps, ctx, delivery)]]),
+    text: joinSections([[body], [await scheduleLine(deps, ctx, delivery)]]),
   }
 }
 
 /** The next brief reads in the operator's own timezone, because the send time itself is stored in
  *  the market's. A subscription that was never made and one that was turned off read the same to
  *  the operator: it is off. */
-function scheduleLine(
+async function scheduleLine(
   deps: BriefCommandDeps,
   ctx: SlashContext,
   delivery: BriefDelivery | null
-): string {
+): Promise<string> {
   if (delivery === null || delivery.state === 'disabled') {
-    return deps.briefs.resolveRecipient({ channel: ctx.channel, chatId: ctx.chatId }) !== undefined
+    const recipient = await deps.briefs.resolveRecipient({
+      channel: ctx.channel,
+      chatId: ctx.chatId,
+    })
+
+    return recipient !== undefined
       ? t(ctx.locale, 'trading.brief.schedule.disabled')
       : t(ctx.locale, 'slash.tradingBriefOffHere')
   }

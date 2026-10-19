@@ -7,9 +7,10 @@ import type {
   LedgerTxnDraftInput,
 } from '@/trading/features/ledger/types'
 import type { Book } from '@/trading/kernel/operator/book'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import { foldBook } from '@/trading/features/ledger/book'
 import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
-import { dayOf, validatorFor } from '@/trading/features/ledger/mutate'
+import { assertTradePrice, dayOf, validatorFor } from '@/trading/features/ledger/mutate'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
 import { orderLedger } from '@/trading/features/ledger/validate'
 import { finalizeTransaction } from '@/trading/features/ledger/write'
@@ -17,6 +18,7 @@ import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
 
 export interface PreviewLedgerOptions {
   readonly draft: LedgerTxnDraftInput
+  readonly typedPrice?: TypedPrice
   readonly now: number
   readonly signal: AbortSignal
 }
@@ -41,6 +43,15 @@ export async function previewRecord(
 ): Promise<RecordPreview> {
   const { draft, fillSource } = await resolveDraft(deps, options.draft, options.signal)
   const transaction = await finalizeTransaction(deps, { draft, signal: options.signal })
+
+  // Asked before the row is held, as the write would ask: a confirm must not meet a second question.
+  await assertTradePrice(deps, {
+    transaction,
+    typedPrice: options.typedPrice,
+    fillSource,
+    signal: options.signal,
+  })
+
   const entries = await deps.ledger.listAll(options.signal)
   const candidate: LedgerEntry = {
     id: buildLedgerEntryId(options.now),

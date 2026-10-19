@@ -175,6 +175,7 @@ function alertMethods(deps: TradingHostDeps): AlertMethods {
             threshold: request.threshold,
             delivery: request.delivery,
           },
+          ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
           now: scope.now,
           signal: scope.signal,
         })

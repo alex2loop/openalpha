@@ -5,6 +5,7 @@ import type { LedgerTxnDraft } from '@/trading/features/ledger/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { LedgerPolicy } from '@/trading/kernel/config'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import { ValidationError } from '@/core/errors'
 import { renderFxPreview } from '@/trading/features/ledger/confirm-render'
 import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
@@ -28,7 +29,7 @@ export interface FxStageDeps {
 export async function stageForFxRate(
   deps: FxStageDeps,
   ctx: SlashContext,
-  request: Omit<PreviewLedgerOptions, 'signal'>
+  request: Omit<PreviewLedgerOptions, 'signal'> & { readonly typedPrice: TypedPrice }
 ): Promise<string | undefined> {
   if (!asksForFxRate(request.draft, deps.baseCurrency)) {
     return undefined
