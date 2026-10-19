@@ -259,7 +259,7 @@ stderr) says what waits and how to fix it. In the foreground the variable warnin
 the summary and the channel warnings when the channels open, after market data has loaded; with
 `--background` they sit under the success line. Everything else keeps running: data refresh, price
 alerts, the ledger and every job that needs no model. Chat over a channel, `/suggest`, research and the
-brief's model sections wait until you set the key and `restart`, and a channel without a token accepts
+brief's model sections wait until you save the key with `openalpha key set <NAME>` and `restart --background`, and a channel without a token accepts
 no messages from anyone. `doctor` still reports a missing key as a failure on its models row, and runs every other check as usual. A configuration error
 (bad TOML, an invalid value), an API port already taken, a daemon already running and a storage
 failure still stop `start`.

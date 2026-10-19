@@ -287,9 +287,16 @@ const UNCLEARABLE_PID_FILE_KEYS: Readonly<Record<'unreadable' | 'malformed', Mes
     malformed: 'cli.daemonPidFileMalformed',
   })
 
-export async function isDaemonStopped(app: CliApp): Promise<boolean> {
+type WhenRunning = 'stop-first' | 'already-started'
+
+const WHEN_RUNNING_HINT_KEYS: Readonly<Record<WhenRunning, MessageKey>> = Object.freeze({
+  'stop-first': 'cli.daemonStopFirst',
+  'already-started': 'cli.daemonAlreadyStartedHint',
+})
+
+export async function isDaemonStopped(app: CliApp, whenRunning: WhenRunning): Promise<boolean> {
   const locale = app.config.locale.language
-  const stopFirst = hint(t(locale, 'cli.daemonStopFirst', { brand: BRAND.name }))
+  const stopFirst = hint(t(locale, WHEN_RUNNING_HINT_KEYS[whenRunning], { brand: BRAND.name }))
   const state = await inspectDaemon(app)
 
   if (state === 'live') {

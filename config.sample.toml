@@ -33,8 +33,8 @@
 #
 # An unset key variable never stops `openalpha start`: the daemon prints one warning
 # and keeps refreshing data, firing alerts and running the ledger. Chat, /suggest,
-# research and the morning brief's model sections wait until you set the variable
-# and restart. `openalpha doctor` and `openalpha config validate` still report it.
+# research and the morning brief's model sections wait until you save the variable with
+# `openalpha key set <NAME>` and run `openalpha restart --background`. `openalpha doctor` and `openalpha config validate` still report it.
 
 [model_defaults]
 provider = "openrouter"
@@ -337,7 +337,7 @@ language = "vi"                   # vi | en
 # no allowed_ids: an unknown chat gets a code for `openalpha pair approve <code>`.
 # A channel whose token is unset or rejected by the platform does not start: the
 # daemon warns, runs without it and answers nobody there until you fix the token
-# and restart.
+# and run `openalpha restart --background`.
 
 # [channels.telegram]
 # enabled = true

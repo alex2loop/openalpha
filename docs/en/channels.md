@@ -79,7 +79,7 @@ key fails validation, so a typo shows up at startup and not at 09:00.
 A channel with no token (the `token_env` variable unset, or an empty `token_file`) or with a token the
 provider itself rejects (HTTP 401 or 403 from Telegram, 401 from Zalo) is not opened. The daemon still
 starts: `start` prints one warning for that channel, the other channels and everything else run, and a
-channel without a valid token accepts no messages from anyone. Fix the token and `restart` to open it.
+channel without a valid token accepts no messages from anyone. Fix the token and `restart --background` to open it.
 A bad configuration value (wrong type, misspelt key) still stops `start` with an error. Any other
 failure to check the token is a connection problem: the check is tried four times with a growing pause,
 and if the network is still down the channel stays up, shows as degraded, and keeps retrying in the

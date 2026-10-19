@@ -254,8 +254,8 @@ chối, đều chỉ làm phần cần đến nó chưa chạy: daemon in mỗi 
 việc gì đang chờ và cách sửa. Ở tiền cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt; dòng về kênh
 hiện khi các kênh mở, sau khi tải xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng
 báo thành công. Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ giao dịch và các việc không cần
-AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn đặt khóa rồi
-`restart`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
+AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn lưu khóa bằng `openalpha key set <NAME>` rồi
+`restart --background`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
 cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có daemon khác chạy và lỗi lưu trữ
 vẫn chặn `start`.
 

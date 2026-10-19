@@ -92,8 +92,8 @@ that needs no model keep running. Work that needs the model waits: the macro-fig
 `trading.tick_key_missing` (warn) once and keeps trying each run; the morning brief still sends the
 sections that need no model, and on a day it cannot build you get one message naming the variable and
 how to set it; a scheduled job that needs the model skips that run without counting it as a failure,
-so it is never switched off for a missing key. `status` lists what is waiting for a key. Set the key
-and `restart`, and everything runs again.
+so it is never switched off for a missing key. `status` lists what is waiting for a key. Save the key with
+`openalpha key set <NAME>` and `restart --background`, and everything runs again.
 
 ### When the daemon stops, or misses a brief
 
