@@ -7,7 +7,7 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.0.9] - 2026-10-19
 
 Setup is easier to answer and no longer freezes on macOS: pick from each list with the arrow keys, and
 a missing key for a fallback model is only a warning.
@@ -352,7 +352,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
-[Unreleased]: https://github.com/alex2loop/openalpha/compare/v1.0.8...HEAD
+[1.0.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.9
 [1.0.8]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.8
 [1.0.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.7
 [1.0.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.6
