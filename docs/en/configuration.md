@@ -86,7 +86,7 @@ The model chain. The first entry is the primary, the rest are fallbacks.
 | `provider` | string | - | Catalog provider id. Required here or in `[model_defaults]`. |
 | `model` | string | - | The provider's own model id. Required on every entry. |
 | `alias` | string, no spaces | - | Short selector used by `/model`. Unique across the chain. Without it the selector is `<provider>:<model>`. |
-| `api_key_env` | string | - | Name of the environment variable holding the key. Unset or empty, `start` refuses and other commands skip this model. Required here or in `[model_defaults]`, except for subscription-login providers, providers signed in with a cloud account, and servers on this machine (loopback `base_url`, such as Ollama or LM Studio). |
+| `api_key_env` | string | - | Name of the environment variable holding the key. Unset or empty, `start` warns and runs without this model; other commands skip it. Required here or in `[model_defaults]`, except for subscription-login providers, providers signed in with a cloud account, and servers on this machine (loopback `base_url`, such as Ollama or LM Studio). |
 | `base_url` | url | catalog endpoint | Endpoint override. Required for a provider with no default endpoint (such as `vllm`). |
 | `reasoning` | `default \| off \| low \| medium \| high` | `default` | `default` leaves it to the provider; `off` asks it to disable reasoning; the others set the depth. |
 | `max_tokens` | positive int | runtime limit | Output cap for this entry. |

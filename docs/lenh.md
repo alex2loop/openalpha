@@ -6,6 +6,25 @@ mọi kênh đã cấu hình. Phần giao dịch chỉ có lệnh gạch chéo, 
 Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha help`,
 `openalpha help <lệnh>` hoặc `openalpha <lệnh> --help`.
 
+**Mục lục**
+
+- [Chat giao dịch](#chat-giao-dịch)
+- [Hành vi chung](#hành-vi-chung)
+- [Danh mục lệnh](#danh-mục-lệnh)
+- [Chat](#chat)
+- [Nghiên cứu](#nghiên-cứu)
+- [Daemon và chẩn đoán](#daemon-và-chẩn-đoán)
+- [Cấu hình và khởi tạo](#cấu-hình-và-khởi-tạo)
+- [Đăng nhập nhà cung cấp](#đăng-nhập-nhà-cung-cấp)
+- [Agent, plugin, kỹ năng](#agent-plugin-kỹ-năng)
+- [Bộ nhớ, lịch sử, chi phí](#bộ-nhớ-lịch-sử-chi-phí)
+- [Ghép nối](#ghép-nối)
+- [Đăng nhập Zalo Personal](#đăng-nhập-zalo-personal)
+- [Lịch chạy và workflow](#lịch-chạy-và-workflow)
+- [Bảo trì cơ sở dữ liệu và thư mục làm việc](#bảo-trì-cơ-sở-dữ-liệu-và-thư-mục-làm-việc)
+- [Log](#log)
+- [MCP](#mcp)
+
 ## Hành vi chung
 
 - Thành công thì thoát `0`. Lệnh lạ và lỗi thông thường thoát `1`. Hỏi trợ giúp (`openalpha` không kèm gì,

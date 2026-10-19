@@ -85,7 +85,7 @@ Chuỗi mô hình. Mục đầu là mô hình chính, các mục sau là dự ph
 | `provider` | chuỗi | - | Mã nhà cung cấp trong danh mục. Bắt buộc ở đây hoặc trong `[model_defaults]`. |
 | `model` | chuỗi | - | Mã mô hình riêng của nhà cung cấp. Bắt buộc ở mọi mục. |
 | `alias` | chuỗi không khoảng trắng | - | Bộ chọn ngắn cho `/model`. Phải duy nhất trong cả chuỗi. Không có thì bộ chọn là `<provider>:<model>`. |
-| `api_key_env` | chuỗi | - | Tên biến môi trường chứa khóa. Chưa đặt hoặc để trống thì `start` không chạy, còn các lệnh khác bỏ qua mô hình này. Bắt buộc ở đây hoặc trong `[model_defaults]`, trừ nhà cung cấp đăng nhập bằng thuê bao, nhà cung cấp đăng nhập bằng tài khoản cloud, và server chạy trên chính máy này (`base_url` loopback, như Ollama hay LM Studio). |
+| `api_key_env` | chuỗi | - | Tên biến môi trường chứa khóa. Chưa đặt hoặc để trống thì `start` báo và chạy tiếp không có mô hình này; các lệnh khác bỏ qua nó. Bắt buộc ở đây hoặc trong `[model_defaults]`, trừ nhà cung cấp đăng nhập bằng thuê bao, nhà cung cấp đăng nhập bằng tài khoản cloud, và server chạy trên chính máy này (`base_url` loopback, như Ollama hay LM Studio). |
 | `base_url` | url | endpoint trong danh mục | Ghi đè endpoint. Bắt buộc với nhà cung cấp không có endpoint mặc định (như `vllm`). |
 | `reasoning` | `default \| off \| low \| medium \| high` | `default` | `default` để nhà cung cấp tự quyết; `off` yêu cầu tắt suy luận; các mức còn lại đặt độ sâu. |
 | `max_tokens` | số nguyên dương | giới hạn runtime | Trần đầu ra riêng cho mục này. |

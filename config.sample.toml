@@ -153,8 +153,8 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # `openalpha onboard` and config.minimal.toml start you at max_daily_usd = 2.
 # `openalpha cost --period week --breakdown` shows where it went.
 
-# [budget]
-# max_daily_usd = 0         # 0 = uncapped
+[budget]
+max_daily_usd = 2           # 0 = uncapped
 # max_monthly_usd = 0       # 0 = uncapped
 # soft_warn_ratio = 0.8     # warn once when an enabled cap passes this fraction
 # max_per_run_usd = 0       # 0 = uncapped
@@ -165,8 +165,8 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 
 # ---- Locale -----------------------------------------------------------------
 
-# [locale]
-# language = "vi"                 # vi | en
+[locale]
+language = "vi"                   # vi | en
 # timezone = "UTC"                # IANA tz; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
 # region = "vn"                   # home market: vn (world gold owns global but is reference only). Leads the brief,

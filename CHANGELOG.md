@@ -24,6 +24,12 @@ SQLite book comes first.
 - `/delete <id>` now shows the row first; `/delete <id> confirm` removes it. Scripts that delete in one
   step must add `confirm`.
 
+### Setup
+
+- `openalpha provider list` works before any setup, without a config or a database.
+- `config.sample.toml` starts with the `[budget]` daily cap (`max_daily_usd = 2`) and `[locale]` on, and the
+  long guides carry a contents list.
+
 ### Storage
 
 - The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three

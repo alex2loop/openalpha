@@ -6,6 +6,12 @@ If you read only one section, read [The book](#the-book). Sizing, drift, open ri
 
 ---
 
+**Contents**
+
+- [Market data and suggestions](#market-data-and-suggestions)
+- [The book](#the-book)
+- [Orders](#orders)
+
 ## Market data and suggestions
 
 OpenAlpha gathers the data, runs the numbers, argues both sides and hands you a call. Then it stops.
@@ -1108,7 +1114,7 @@ Every cash row names its custodian, and a buy is capped by the cash at the venue
 
 ## Orders
 
-**Start on a demo account.** In 1.0.4 the order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
+**Start on a demo account.** The order path has been checked statically, not yet against a live OKX or Binance account. Work through this page on an OKX demo or Binance testnet book, including the checks in step 9, before you use live keys.
 
 `/trade` and the `order_place` tool place spot orders on **OKX** or **Binance**: market and limit, buy and sell, with an optional take-profit/stop-loss on a buy. Every order is capped before you are asked, approved by you before it goes out, and mirrored into the ledger when it fills.
 

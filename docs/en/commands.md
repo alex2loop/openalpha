@@ -6,6 +6,25 @@ every configured channel. Trading has slash commands only, no CLI command of its
 This page is the map. For the exact syntax of the version you installed, run `openalpha help`,
 `openalpha help <command>` or `openalpha <command> --help`.
 
+**Contents**
+
+- [Trading chat](#trading-chat)
+- [Global behavior](#global-behavior)
+- [Command catalog](#command-catalog)
+- [Chat](#chat)
+- [Research](#research)
+- [Daemon and diagnostics](#daemon-and-diagnostics)
+- [Configuration and onboarding](#configuration-and-onboarding)
+- [Provider logins](#provider-logins)
+- [Agents, plugins, skills](#agents-plugins-skills)
+- [Memory, history, cost](#memory-history-cost)
+- [Pairing](#pairing)
+- [Zalo Personal login](#zalo-personal-login)
+- [Scheduling and workflows](#scheduling-and-workflows)
+- [Database and workspace maintenance](#database-and-workspace-maintenance)
+- [Logs](#logs)
+- [MCP](#mcp)
+
 ## Global behavior
 
 - Success exits `0`. Unknown commands and ordinary failures exit `1`. Asking for help (`openalpha` alone,

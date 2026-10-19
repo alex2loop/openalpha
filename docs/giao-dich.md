@@ -6,6 +6,12 @@ Chỉ đọc một mục thì hãy đọc [Cuốn sổ](#cuốn-sổ). Mọi con
 
 ---
 
+**Mục lục**
+
+- [Dữ liệu thị trường và đề xuất](#dữ-liệu-thị-trường-và-đề-xuất)
+- [Cuốn sổ](#cuốn-sổ)
+- [Đặt lệnh](#đặt-lệnh)
+
 ## Dữ liệu thị trường và đề xuất
 
 OpenAlpha thu dữ liệu, tính toán, cho hai phía tranh luận, rồi đưa bạn một kết luận. Và dừng ở đó.
@@ -1081,7 +1087,7 @@ Mọi dòng tiền mặt nêu nơi lưu ký của nó, và một lệnh mua bị
 
 ## Đặt lệnh
 
-**Hãy bắt đầu trên tài khoản demo.** Ở 1.0.4, đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
+**Hãy bắt đầu trên tài khoản demo.** Đường đặt lệnh mới được kiểm tĩnh, chưa kiểm trên một tài khoản OKX hay Binance thật. Hãy chạy hết trang này trên một cuốn sổ OKX demo hoặc Binance testnet, gồm cả các phép kiểm ở bước 9, trước khi dùng khóa thật.
 
 `/trade` và công cụ `order_place` đặt lệnh spot trên **OKX** hoặc **Binance**: lệnh thị trường và limit, mua và bán, kèm chốt lời/cắt lỗ tùy chọn trên lệnh mua. Mỗi lệnh bị chặn trần trước khi bạn được hỏi, được bạn duyệt trước khi đi ra, và được phản chiếu vào sổ lệnh khi khớp.
 

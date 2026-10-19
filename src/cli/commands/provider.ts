@@ -15,6 +15,7 @@ const PROVIDER_LIST: readonly ProviderEntry[] = PROVIDERS
 const providerCmdList: Command = createCommand({
   name: 'list',
   summary: { key: 'cliHelp.providerListSummary' },
+  needs: { boot: false, configFile: 'optional' },
   run: listProviders,
 })
 
