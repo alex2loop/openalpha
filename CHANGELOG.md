@@ -15,7 +15,8 @@ carries ` [IMPORTANT]` after its date.
 - `start` on a running daemon says to `restart --background`, and every restart hint uses that form.
 - A channel with no bot token names the variable and the `key set` command that saves it, in `start`
   and in `doctor`.
-- `key set` warns when the config never reads the name you saved.
+- `key set` warns when the config never reads the name you saved, and names the one you likely meant,
+  even for a short form such as `OPENROUTER_KEY`. `/profile set reserve` points at `reserve-pct-nav` the same way.
 
 ### Chat
 

@@ -882,7 +882,7 @@ Một vòng giao dịch crypto, từng bước, với tỷ giá bạn đã trả
 Đã có sẵn USDT hoặc coin ở sàn trước khi bắt đầu sổ? Ghi số dư hôm nay, không cần ghi lại lịch sử:
 
 - **Chỉ có USDT:** một dòng nạp bằng số USDT bạn đang giữ, kèm `fx <giá vốn bình quân>`, hoặc `fx auto` nếu bạn không biết (lãi lỗ tỷ giá trước ngày đó khi ấy không được tính).
-- **USDT và coin:** nạp số USDT đang giữ cộng với giá vốn của các coin, rồi mỗi coin một dòng mua với khối lượng hiện tại, giá vốn bình quân và phí `0`. Khi đó số USDT trong sổ khớp với sàn. Phí `0` in một ghi chú "phí lệch", một số dư đầu kỳ có thể bỏ qua.
+- **USDT và coin:** nạp số USDT đang giữ cộng với giá vốn của các coin, rồi mỗi coin một dòng mua với khối lượng hiện tại, giá vốn bình quân và phí `0`. Khi đó số USDT trong sổ khớp với sàn. Phí `0` sẽ in một ghi chú "phí lệch"; với số dư đầu kỳ thì cứ bỏ qua.
 
 ```text
 /record deposit okx 1300 USDT 2026-10-16 fx auto        # 1.000 USDT đang giữ + 300 đã dùng mua BTC

@@ -66,7 +66,7 @@ openalpha cost --from 2026-07-01 --to 2026-07-22 # bao gồm hai đầu, tối �
 openalpha cost --period week --breakdown         # tách theo trợ lý và mô hình
 ```
 
-`week` là bảy ngày gần nhất tính cả hôm nay, `month` là tháng tính đến hôm nay. Bản in theo ngày và theo tháng nêu luôn hạn
+`week` là tuần này tính từ thứ Hai đến hôm nay, `month` là tháng tính đến hôm nay. Bản in theo ngày và theo tháng nêu luôn hạn
 mức khi có bật; theo tuần và theo khoảng tự chọn thì chỉ báo tổng.
 
 `--breakdown` tách đúng cái tổng đó theo trợ lý và mô hình, nên các dòng luôn cộng lại đúng bằng tổng. Đây là cách nhanh

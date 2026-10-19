@@ -420,7 +420,7 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/profile` | `/profile show` \| `set <trường> <giá trị>` \| `reset` | không |
 | `/rebalance` | `/rebalance` \| `/rebalance <mã>...` | không |
 | `/reflect` | `/reflect` | không |
-| `/alert` | `/alert list [n]` \| `create <mã> above\|below <ngưỡng>` \| `disable <id>` | không |
+| `/alert` | `/alert [list [số dòng]]` \| `create <mã> above\|below <ngưỡng>` \| `disable <id>` | không |
 | `/brief` | `/brief` \| `force` \| `enable [HH:mm]` \| `disable` | một phần nhỏ cho mục gợi ý |
 | `/refresh` | `/refresh [thị trường] [force]` | không |
 | `/suggest` | `/suggest <mã> [full\|lean] [force]` - tùy chọn theo thứ tự tùy ý sau mã; `/suggest stops` đọc lại các vị thế đang giữ chưa có kế hoạch thoát hoặc đã quá hạn cửa sổ | **có** - chạy cả quy trình tranh luận |

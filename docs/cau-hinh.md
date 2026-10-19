@@ -404,7 +404,7 @@ khóa gửi tin đã liệt kê cho Telegram, cộng các khóa dưới đây. K
 | `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho chat và người dùng. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh operator. |
-| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing` | Cách xét duyệt chat, và công tắc tắt kênh. Không có chế độ mở. |
+| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, hoặc `allowlist` khi đã có `allowed_ids` | Cách xét duyệt chat, và công tắc tắt kênh. Không có chế độ mở. |
 
 Token phân giải như Telegram. Bộ nối này dùng polling, nên lúc khởi động nó gỡ webhook đang gắn với
 bot: Zalo chỉ giao tin theo một trong hai cách, không bao giờ cả hai.
@@ -921,8 +921,8 @@ OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trìn
 một dấu cách là chú thích. Tệp khóa theo `--data-dir`
 hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu hình. Thiếu khóa của mô hình chỉ chặn những việc cần
 gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
-`openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn đặt
-khóa rồi khởi động lại.
+`openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn lưu
+khóa bằng `openalpha key set <TÊN>` rồi chạy `openalpha restart --background`.
 
 ```text
 config.toml có chỗ cần sửa:
@@ -930,5 +930,5 @@ config.toml có chỗ cần sửa:
 - `budget.max_daly_usd`: không phải thiết lập mình biết, có phải ý bạn là `max_daily_usd`?
 Sửa xong rồi chạy lại nhé.
 
-Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `openalpha key set ANTHROPIC_API_KEY` trong terminal bạn đang dùng rồi chạy lại nhé.
+Chưa có ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Lưu bằng `openalpha key set ANTHROPIC_API_KEY` rồi thử lại nhé.
 ```

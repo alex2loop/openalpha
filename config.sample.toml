@@ -33,8 +33,9 @@
 #
 # An unset key variable never stops `openalpha start`: the daemon prints one warning
 # and keeps refreshing data, firing alerts and running the ledger. Chat, /suggest,
-# research and the morning brief's model sections wait until you save the variable with
-# `openalpha key set <NAME>` and run `openalpha restart --background`. `openalpha doctor` and `openalpha config validate` still report it.
+# research and the morning brief's model sections wait until you save the variable
+# with `openalpha key set <NAME>` and run `openalpha restart --background`.
+# `openalpha doctor` and `openalpha config validate` still report it.
 
 [model_defaults]
 provider = "openrouter"

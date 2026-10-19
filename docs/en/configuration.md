@@ -402,7 +402,7 @@ see [Channels](channels.md).
 | `token_file` | string | - | File whose trimmed contents are the token. |
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of chats and users. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator commands. |
-| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing` | How chats are admitted, and the off switch. There is no open mode. |
+| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, or `allowlist` once `allowed_ids` is set | How chats are admitted, and the off switch. There is no open mode. |
 
 Tokens resolve as for Telegram. The adapter polls, so at startup it clears any webhook set on the
 bot: Zalo delivers to one or the other, never both.
@@ -919,8 +919,8 @@ OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs s
 `NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts a comment. The key file follows
 `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
 `status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
-`openalpha start` starts with a warning, running everything that needs no model until you set the key
-and restart.
+`openalpha start` starts with a warning, running everything that needs no model until you save the key
+with `openalpha key set <NAME>` and run `openalpha restart --background`.
 
 ```text
 config.toml has things to fix:
@@ -928,5 +928,5 @@ config.toml has things to fix:
 - `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
 Correct them, then run again.
 
-The environment variable ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start. Set it with `openalpha key set ANTHROPIC_API_KEY` in the terminal you run from, then try again.
+ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start yet. Save it with `openalpha key set ANTHROPIC_API_KEY`, then try again.
 ```

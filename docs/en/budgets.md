@@ -65,7 +65,7 @@ openalpha cost --from 2026-07-01 --to 2026-07-22 # inclusive, up to 366 days
 openalpha cost --period week --breakdown         # split by assistant and model
 ```
 
-`week` is the last seven days including today. `month` is the month so far. Day and month output names the cap when
+`week` is this week so far, from Monday. `month` is the month so far. Day and month output names the cap when
 one is enabled; week and custom ranges report the total only.
 
 `--breakdown` splits that same total by assistant and model, so the lines always add up. It is the quickest answer
