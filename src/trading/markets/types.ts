@@ -61,7 +61,7 @@ import type {
   RefreshDataKind,
   RefreshKindResult,
 } from '@/trading/kernel/market/refresh'
-import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import type { MarketPlaybook } from '@/trading/kernel/skill'
 import type {
@@ -234,7 +234,7 @@ interface MarketCapabilityMap {
   readonly basis: { readonly request: MarketRequest; readonly result: SourceResult<FuturesBasis> }
   readonly brief: {
     readonly request: MarketBriefRequest
-    readonly result: readonly BriefSectionResult[]
+    readonly result: MarketBrief
   }
   /** How this market replaces its own tradeable universe. A market that has no universe to
    *  refresh simply does not publish it, so the refresh operation iterates capabilities rather

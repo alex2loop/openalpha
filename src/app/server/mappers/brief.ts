@@ -99,6 +99,7 @@ export function toBriefTextWire(text: BriefText): BriefTextWire {
   return {
     title: text.title,
     verdict: [...text.verdict],
+    story: [...text.story],
     sections: text.sections.map((section) => ({ ...section, lines: [...section.lines] })),
     caveats: [...text.caveats],
   }

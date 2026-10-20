@@ -32,6 +32,7 @@ import { roundExitLevels, roundToInstrument } from '@/trading/features/order/pre
 import { adapterFor, resolveOrderVenue } from '@/trading/features/order/routing'
 import { resolveSellableQuantities, sellableQuantityOf } from '@/trading/features/order/sellable'
 import { OrderError, OrderQuantityError } from '@/trading/features/order/types'
+import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 import { resolveTradeCost } from '@/trading/markets/cost'
 
 const UNSETTLED_MESSAGE = 'the sale is larger than the settled part of the position'
@@ -334,7 +335,9 @@ interface Caps {
  *  whose mirror failed, nor the cash it spent, and a cap that ignores those is not a cap. */
 async function capsFor(deps: OrderServiceDeps, caps: CapsInput): Promise<Caps> {
   const { input } = caps
-  const book = await deps.portfolio.viewAbsolute({ now: input.now, signal: input.signal })
+  // A sliver a full exit left behind is no open trade and cannot block a buy.
+  const sized = await deps.portfolio.viewAbsoluteSized({ now: input.now, signal: input.signal })
+  const book = withoutResidue(sized.valued, sized.minimumSizes)
   const [notionalBase, unmirrored, profile] = await Promise.all([
     deps.toBaseCurrency({
       amount: caps.notional,

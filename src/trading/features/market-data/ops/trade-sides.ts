@@ -1,6 +1,6 @@
 import type { Logger } from '@/core/logging/logger'
 import type { MarketDataStore } from '@/trading/features/market-data/store/market-data'
-import type { PortfolioService } from '@/trading/features/portfolio/types'
+import type { Holding } from '@/trading/features/portfolio/types'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
@@ -35,9 +35,17 @@ interface MissedTradeSides {
   readonly day: TradingDay
 }
 
+/** Only what can still be traded: a sliver left by a full exit is not a name to follow. */
+interface TradeSidesBook {
+  tradeableHoldingsAt(options: {
+    readonly now: number
+    readonly signal: AbortSignal
+  }): Promise<readonly Holding[]>
+}
+
 interface TradeSidesOperationDeps {
   readonly profiles: ProfileStore
-  readonly portfolio: Pick<PortfolioService, 'positionsAt'>
+  readonly book: TradeSidesBook
   readonly markets: MarketRegistry
   readonly marketDataStore: MarketDataStore
   readonly logger: Logger
@@ -164,7 +172,7 @@ async function resolveTargets(
   const { deps, scope, now, signal } = options
   const [profile, positions] = await Promise.all([
     deps.profiles.find(signal),
-    deps.portfolio.positionsAt({ now, signal }),
+    deps.book.tradeableHoldingsAt({ now, signal }),
   ])
   const followed = new Map<string, InstrumentRef>()
 

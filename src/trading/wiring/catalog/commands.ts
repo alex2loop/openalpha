@@ -41,6 +41,7 @@ import { createReflectCommand } from '@/trading/features/suggestion/track-record
 import { createThemesCommand } from '@/trading/features/themes/command'
 import { SECTION_ICONS } from '@/trading/render/format'
 import { createSetupCommand } from '@/trading/wiring/catalog/setup'
+import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { resolveRefreshMarkets } from '@/trading/wiring/composition/refresh'
 
 const BOOK_GROUP: CommandGroup = Object.freeze({
@@ -166,7 +167,12 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       heldMarkets: deps.venues.heldMarkets(),
     }),
     createMarketCommand({
-      report: { marketData, book: portfolio, profiles, timezone },
+      report: {
+        marketData,
+        book: createTradeableBook({ portfolio, venues: deps.venues }),
+        profiles,
+        timezone,
+      },
       markets: deps.markets,
       config: deps.config,
       settings: deps.intradaySettings,

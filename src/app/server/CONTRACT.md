@@ -156,7 +156,9 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   bundled binary; both print one JSON line.
 - **`/v1/brief`** answers `{ "snapshot": null }` before the first brief is stored. A section is
   `ready`, `unavailable` (could not be built — worth telling the user) or `omitted-by-policy`
-  (turned off — say nothing). A market's section names its `market` and the session `asOf`. A
+  (turned off — say nothing). A market's section names its `market` and the session `asOf`. `text.story` holds the look back and
+  the market story as plain lines, empty when the brief tells none; the snapshot's `sections` may
+  hold the two kinds `thesis-review` and `story`, whose rows are copied generically. A
   `screen-delta` section's rows are typed `{ ticker, direction: 'entered' | 'left' }`: the names
   that joined or left the ranked board since the session before.
 - **Orders (`/v1/trade`)** answer only with the `orders` capability: a venue with keys that can

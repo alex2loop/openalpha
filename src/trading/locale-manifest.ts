@@ -84,6 +84,12 @@ import {
   BRIEF_SECTION_ORDER,
   BRIEF_SECTION_STATUSES,
 } from '@/trading/kernel/operator/brief-section'
+import {
+  STORY_CODES,
+  THESIS_STATUSES,
+  WATCH_EFFECTS,
+  WATCH_SHAPES,
+} from '@/trading/kernel/operator/brief-story'
 import { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
 import {
   INVESTMENT_GOALS,
@@ -122,6 +128,13 @@ export const TRADING_CODE_GROUPS: readonly CodeGroup[] = Object.freeze([
   { prefix: 'trading.brief.suppressed', members: BRIEF_SUPPRESSED_REASONS },
   { prefix: 'trading.brief.direction', members: BRIEF_DIRECTIONS },
   { prefix: 'trading.brief.action', members: BRIEF_ACTION_CODES },
+  { prefix: 'trading.brief.story.title', members: STORY_CODES },
+  { prefix: 'trading.brief.story.hook', members: STORY_CODES },
+  { prefix: 'trading.brief.story.insight', members: STORY_CODES },
+  { prefix: 'trading.brief.story.counterpoint', members: STORY_CODES },
+  { prefix: 'trading.brief.story.watch', members: WATCH_SHAPES },
+  { prefix: 'trading.brief.story.effect', members: WATCH_EFFECTS },
+  { prefix: 'trading.brief.thesis.status', members: THESIS_STATUSES },
   { prefix: 'trading.conviction', members: CONVICTION_BANDS },
   { prefix: 'trading.render.nav.window', members: NAV_WINDOWS },
   { prefix: 'trading.render.nav.benchmarkGap', members: BENCHMARK_GAPS },

@@ -1,4 +1,4 @@
-import type { Holding } from '@/trading/features/portfolio/types'
+import type { Holding, ValuedBook } from '@/trading/features/portfolio/types'
 import type {
   ClosedRoundTrip,
   Position,
@@ -190,4 +190,21 @@ function addHolding(left: Position, right: Position): Position {
     buys: [...left.buys, ...right.buys],
     lots: [...left.lots, ...right.lots],
   }
+}
+
+/** Residue below the venue's smallest order is no holding: nothing sizes it, lists it or counts it.
+ *  Its value stays in NAV. */
+export function withoutResidue(
+  valued: ValuedBook,
+  minimumSizes: ReadonlyMap<string, number>
+): ValuedBook {
+  const positions = valued.positions.filter(
+    (entry) =>
+      !isBelowMinimumSize(
+        entry.position.quantity,
+        minimumSizes.get(buildInstrumentKey(entry.position.instrument))
+      )
+  )
+
+  return { ...valued, positions }
 }

@@ -38,7 +38,7 @@ import { createExitPlanner } from '@/trading/features/suggestion/exit-plan/recor
 import { createReduceVerdicts } from '@/trading/features/suggestion/reduce-verdicts'
 import { createSuggestionService } from '@/trading/features/suggestion/suggestion'
 import { createFactorLogService } from '@/trading/features/suggestion/track-record/factor-log-service'
-import { tradeableHoldingsAt } from '@/trading/wiring/composition/delivery-reads'
+import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import {
   createPortfolioReader,
   listFillsSince,
@@ -241,8 +241,8 @@ function buildExitPlanner(deps: DomainServiceDeps, services: ExitPlannerServices
   return createExitPlanner({
     markets: deps.markets,
     store: deps.stores.suggestion,
-    holdingsAt: (options) =>
-      tradeableHoldingsAt({ portfolio: services.portfolio, venues: deps.venues }, options),
+    holdingsAt: createTradeableBook({ portfolio: services.portfolio, venues: deps.venues })
+      .tradeableHoldingsAt,
     profile: services.profiles,
     defaultLocale: deps.defaultLocale,
   })
@@ -364,11 +364,10 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
       suggestions: deps.stores.suggestion,
       briefs,
       marketDataStore: deps.stores.marketData,
-      tradeableHoldingsAt: (options) =>
-        tradeableHoldingsAt(
-          { portfolio: delivery.portfolio, venues: delivery.deps.venues },
-          options
-        ),
+      tradeableHoldingsAt: createTradeableBook({
+        portfolio: delivery.portfolio,
+        venues: delivery.deps.venues,
+      }).tradeableHoldingsAt,
       instrumentKinds: async (options) =>
         (await delivery.portfolio.viewAbsoluteWithKinds(options)).instrumentKinds,
       getProfile: (options) => profiles.get(options),

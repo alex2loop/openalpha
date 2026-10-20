@@ -6,6 +6,7 @@ import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/oper
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, t } from '@/i18n'
+import { renderStoryBlocks } from '@/trading/features/brief/story/render'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { renderCaveatLines } from '@/trading/render/caveat'
@@ -21,6 +22,9 @@ import {
 import { renderBlockRule, toBriefSectionText } from '@/trading/render/section'
 
 const NEXT_ACTIONS_KIND = 'next-actions'
+/** The two sections that lead the brief, apart from every block: they carry no market and are not
+ *  the operator's book, so no block may claim them. */
+const STORY_KINDS: ReadonlySet<BriefSectionKind> = new Set(['thesis-review', 'story'])
 const FOOTER_RULE = '─'.repeat(25)
 /** `/rebalance`'s own plan notes, printed twice a day in two commands. What bears on today's
  *  stance - the regime throttle, and a segment with nothing to buy - stays; the rest is the plan
@@ -94,10 +98,15 @@ export function renderBriefText(
   }
 
   const footer = renderCostFooter(locale, snapshot.sections)
-  const [nextActions, rest] = partition(renderable, (section) => section.kind === NEXT_ACTIONS_KIND)
+  const [nextActions, afterActions] = partition(
+    renderable,
+    (section) => section.kind === NEXT_ACTIONS_KIND
+  )
+  const [stories, rest] = partition(afterActions, (section) => STORY_KINDS.has(section.kind))
 
   return joinSections([
     [title(locale, snapshot, context.timezone)],
+    ...renderStoryBlocks(locale, stories, context),
     renderVerdictBlock(locale, readable, context),
     // Right under the verdict that counts them, with no header of their own: what to do first.
     ...nextActions.map((section) => toBriefSectionText(locale, section, context).lines),

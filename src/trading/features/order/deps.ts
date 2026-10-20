@@ -25,7 +25,10 @@ export interface OrderServiceDeps {
   readonly intents: OrderIntentStore
   readonly resting: RestingExitStore
   readonly settings: OrderSettingsStore
-  readonly portfolio: Pick<PortfolioService, 'record' | 'viewAbsolute' | 'positionsAt'>
+  readonly portfolio: Pick<
+    PortfolioService,
+    'record' | 'viewAbsolute' | 'viewAbsoluteSized' | 'positionsAt'
+  >
   readonly markets: MarketRegistry
   readonly policy: OrderPolicy
   /** Fee rates, read by a buy's cash cap so it clears what the fill will bill. */

@@ -1,5 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { CaveatSeverity } from '@/trading/kernel/caveat'
+import type { WatchMark } from '@/trading/kernel/operator/brief-story'
 import type { OrderSide } from '@/trading/kernel/venue/spot-adapter'
 import { hasMessage, type MessageKey, t } from '@/i18n'
 import { type ScoreBand, scoreBand } from '@/trading/markets/factor-scoring'
@@ -45,6 +46,8 @@ export const SECTION_ICONS = Object.freeze({
   upcoming: '📅',
   brief: '🌅',
   verdict: '📋',
+  story: '📝',
+  thesisReview: '⏪',
   session: '⏱️',
   settled: '📘',
   refresh: '🔄',
@@ -52,6 +55,16 @@ export const SECTION_ICONS = Object.freeze({
   thesis: '📌',
   plan: '🎯',
 })
+
+/** Whether a story's watch has been reached, on a row inside the review. Plain marks that read the
+ *  same on every destination; the arrow joins a watch to what reaching it would mean. */
+export const WATCH_MARK_GLYPHS = Object.freeze({
+  met: '✓',
+  unmet: '✗',
+  unobserved: '…',
+} as const satisfies Record<WatchMark, string>)
+
+export const EFFECT_ARROW = '→'
 
 /** Geometric, not emoji: these sit in columns of rows, where one cell per glyph is what keeps the
  *  labels aligned. Carried by anything whose value could have gone the other way. The neutral mark

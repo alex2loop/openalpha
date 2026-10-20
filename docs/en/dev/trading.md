@@ -67,7 +67,7 @@ The trail's per-session memo (`trailedThrough`) is set only once the raise has s
 
 ## Brief sections
 
-Some per-market sections (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) come from each market's overview converter, off one shared per-market template, not from a brief builder. A market adds a block, never a section kind.
+Some per-market sections (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) come from each market's overview converter, off one shared per-market template, not from a brief builder. A market adds a block, never a section kind. The two story kinds, `thesis-review` and `story`, belong to no block: the market's `tryReadStories` reads the settled session into candidates, `planStory` (`features/brief/story/plan.ts`) scores the previous snapshot's stories and picks today's, and both lead the brief above every block.
 
 ## Themes scoring
 

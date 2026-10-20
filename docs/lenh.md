@@ -530,7 +530,7 @@ ghi sổ và `/trade`.
 | `/rebalance` | `/rebalance`; `/rebalance <mã>...` - tính khoảng cách tới mục tiêu, không cân nhắc bằng chứng và không gọi mô hình. Xem [`/rebalance` tính những gì](#rebalance-tính-những-gì) |
 | `/reflect` | `/reflect` - các đề xuất trước đây thực tế chạy ra sao |
 | `/alert` | `/alert` hoặc `/alert list [số dòng]` để xem danh sách; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
-| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) |
+| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Bản tin mở đầu bằng câu chuyện thị trường và phần nhìn lại các câu chuyện trước. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) và [Bản tin khi chưa có sổ](#bản-tin-khi-chưa-có-sổ) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |
 | `/reconcile` | `/reconcile` - đối chiếu sổ với những gì sàn báo; sàn chưa có khóa API thì được nêu tên kèm các biến còn thiếu |
@@ -559,6 +559,14 @@ kê.
 Các khối dẫn đầu và bị loại bao quát danh sách theo dõi của bạn, và vắng mặt khi nó rỗng. Các khối lịch,
 sự kiện doanh nghiệp và tiêu đề tin vẫn bao quát các mã giao dịch nhiều nhất của thị trường, nên một bản
 tin không có danh sách theo dõi chỉ ngắn hơn chứ không trống hơn.
+
+#### Bản tin khi chưa có sổ
+
+Trước khi bạn ghi giao dịch đầu tiên, bản tin bỏ những phần chỉ sổ mới điền được: khối tiền mặt dự
+phòng, khối kỷ luật và hai nút `/rebalance`, `/transactions`. Việc nên làm đầu tiên là ghi giao dịch bằng
+`/record`. Câu chuyện thị trường và các khối thị trường vẫn hiện như thường. Có mã chưa lấy được giá
+không có nghĩa là sổ trống: bản tin vẫn giữ đủ các phần trên, chỉ báo rằng sáng nay chưa tính được
+tổng tài sản.
 
 #### Về tên trong `/watchlist`
 

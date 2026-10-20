@@ -21,6 +21,7 @@ import { orderLedger } from '@/trading/features/ledger/validate'
 import {
   closedRoundTripsOf,
   recentClosedRoundTrips,
+  withoutResidue,
 } from '@/trading/features/portfolio/folds/holdings'
 import { valueBook } from '@/trading/features/portfolio/folds/valuation'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
@@ -179,7 +180,9 @@ export function toRelativeView(
 
   return {
     asOf: valued.book.asOf,
-    positions: valued.positions.map((entry) => toRelativePosition(entry, nav)),
+    positions: withoutResidue(valued, minimumSizes).positions.map((entry) =>
+      toRelativePosition(entry, nav)
+    ),
     segmentWeights: valued.segmentValues.map((segment) => ({
       segment: segment.segment,
       ...share(segment.valueBase),

@@ -2,7 +2,6 @@ import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { BriefDelivery } from '@/trading/features/brief/types'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
-import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { RestatementDeps } from '@/trading/features/suggestion/exit-plan/restatement'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
@@ -12,6 +11,7 @@ import type {
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
+import type { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import {
   createRefreshCoordinator,
@@ -33,7 +33,7 @@ interface RestatementNotice {
 interface MarketsInUseDeps {
   readonly markets: MarketRegistry
   readonly stores: Pick<TradingStores, 'profile' | 'suggestion' | 'briefDelivery'>
-  readonly portfolio: Pick<PortfolioService, 'positionsAt'>
+  readonly book: ReturnType<typeof createTradeableBook>
 }
 
 function briefMarket(markets: MarketRegistry, brief: BriefDelivery | null): MarketRef[] {
@@ -78,7 +78,7 @@ export function buildRefreshCoordinator(
 interface RefreshTickParts {
   readonly markets: MarketRegistry
   readonly stores: TradingStores
-  readonly portfolio: Pick<PortfolioService, 'positionsAt'>
+  readonly book: ReturnType<typeof createTradeableBook>
   readonly refresh: RefreshMarketData
   readonly logger: Logger
 }
@@ -92,10 +92,10 @@ export function buildRefreshTick(
   return createRefreshTick({
     refresh: parts.refresh,
     markets: resolveRefreshMarkets(markets),
-    inUse: (signal) => resolveMarketsInUse({ markets, stores, portfolio: parts.portfolio }, signal),
+    inUse: (signal) => resolveMarketsInUse({ markets, stores, book: parts.book }, signal),
     recordTradeSides: createTradeSidesTick({
       profiles: stores.profile,
-      portfolio: parts.portfolio,
+      book: parts.book,
       markets,
       marketDataStore: stores.marketData,
       logger,
@@ -124,7 +124,7 @@ export async function resolveMarketsInUse(
   const all = deps.markets.list()
   const [profile, positions, coverage, brief] = await Promise.all([
     deps.stores.profile.find(signal),
-    deps.portfolio.positionsAt({ now: Date.now(), signal }),
+    deps.book.tradeableHoldingsAt({ now: Date.now(), signal }),
     deps.stores.suggestion.coverage({ signal }),
     deps.stores.briefDelivery.find(signal),
   ])

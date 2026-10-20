@@ -1,11 +1,11 @@
 import type { NewsItem } from '@/trading/kernel/market/market-data'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 import type {
-  BriefActionCode,
   BriefSectionKind,
   BriefSectionResult,
   OverviewSectionKind,
 } from '@/trading/kernel/operator/brief-section'
+import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
 import type { MarketNews, SourceResult } from '@/trading/kernel/source/source-result'
 import type { BriefContext, LoadContextOptions } from '@/trading/markets/equity-vn/brief/context'
 import type { SectionBuilder } from '@/trading/markets/equity-vn/brief/sections'
@@ -13,7 +13,6 @@ import { isAbortError } from '@/core/errors'
 import {
   BRIEF_SECTION_ORDER,
   OVERVIEW_SECTION_KINDS,
-  sectionNumber,
 } from '@/trading/kernel/operator/brief-section'
 import { unavailable } from '@/trading/kernel/source/source-result'
 import { loadBriefContext } from '@/trading/markets/equity-vn/brief/context'
@@ -38,6 +37,7 @@ import {
   buildSectorRotation,
   buildTape,
 } from '@/trading/markets/equity-vn/brief/market-sections'
+import { buildNextActions } from '@/trading/markets/equity-vn/brief/next-actions'
 import {
   absent,
   buildBookSummary,
@@ -52,10 +52,10 @@ import {
   buildResolvedSuggestions,
   buildSuggestions,
   omitted,
-  ready,
   toHeadlineSection,
 } from '@/trading/markets/equity-vn/brief/sections'
 import { buildSessionDelta } from '@/trading/markets/equity-vn/brief/session-delta'
+import { tryReadStories } from '@/trading/markets/equity-vn/brief/story-read'
 import { buildTradeSides } from '@/trading/markets/equity-vn/brief/trade-sides-section'
 import {
   buildScreenDelta,
@@ -64,10 +64,7 @@ import {
 } from '@/trading/markets/equity-vn/brief/watchlist-sections'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 import { NEWS_ITEMS_PER_SECTION, normalizeTitle } from '@/trading/markets/news'
-import { CONFIRMING_TURNOVER_RATIO, overviewSections } from '@/trading/markets/overview-sections'
-
-/** Within this much of resistance, a buy is paying up for the level rather than paying to reach it. */
-const RESISTANCE_PROXIMITY_FRACTION = 0.02
+import { overviewSections } from '@/trading/markets/overview-sections'
 
 /** The two suggestion sections are the expensive ones and run after everything else, so a screen
  *  that produced nothing or a budget already spent costs only them. `next-actions` runs last of
@@ -81,7 +78,13 @@ const SUGGESTION_KINDS = Object.freeze(['suggestions', 'cross-asset-suggestions'
  *  record type is what keeps the record exhaustive without builders that exist only to throw. */
 type ProducingSectionKind = Exclude<
   BriefSectionKind,
-  OverviewSectionKind | 'next-actions' | 'session-delta' | 'headlines' | 'economy-headlines'
+  | OverviewSectionKind
+  | 'next-actions'
+  | 'session-delta'
+  | 'headlines'
+  | 'economy-headlines'
+  | 'thesis-review'
+  | 'story'
 >
 
 /** `BRIEF_SECTION_ORDER` drives both this record's exhaustiveness — a missing builder is a type
@@ -169,9 +172,7 @@ const TAIL_KINDS = Object.freeze([
 /** Section content lives in the market modules that own it; this file orders, isolates, and bounds
  *  them. Every section is attempted, one failure cannot lose the rest, and the result comes back
  *  grouped: the operator's own sections, then one contiguous block per market, then the tail. */
-export async function buildVnBrief(
-  options: LoadContextOptions
-): Promise<readonly BriefSectionResult[]> {
+export async function buildVnBrief(options: LoadContextOptions): Promise<MarketBrief> {
   const context = await loadBriefContext(options)
   const producingKinds = BRIEF_SECTION_ORDER.filter(isEarlyKind)
   const [producing, suggestions, overviews, news, economyNews] = await Promise.all([
@@ -205,11 +206,13 @@ export async function buildVnBrief(
   const delta = await readDelta(context, sections)
   const composed = [...sections, delta]
 
-  return [
+  const ordered = [
     ...operatorSections(composed),
     ...marketSections(withMarketStamps(composed, vn), [...fromOverviews, ...fromNews]),
     ...tailSections(composed, buildNextActions(context, composed, fromOverviews)),
   ]
+
+  return { sections: ordered, stories: tryReadStories(context, ordered, vn) }
 }
 
 const orderIndex = (kind: BriefSectionKind): number => BRIEF_SECTION_ORDER.indexOf(kind)
@@ -439,73 +442,6 @@ function tickersOf(section: BriefSectionResult): readonly string[] {
     : section.rows.flatMap((row) => (typeof row.ticker === 'string' ? [row.ticker] : []))
 }
 
-/** The one ordered exception to the builder record, because it reads the completed results of
- *  sections 1-25. It emits action **codes**, never a command string: a snapshot holding `/rebalance`
- *  cannot be rendered by the HTTP surface and breaks the moment a command is renamed. */
-function buildNextActions(
-  context: BriefContext,
-  sections: readonly BriefSectionResult[],
-  overviews: readonly BriefSectionResult[]
-): BriefSectionResult {
-  const readyKinds = new Set(
-    sections.filter((section) => section.status === 'ready').map((section) => section.kind)
-  )
-  const codes: BriefActionCode[] = []
-
-  if (context.watchlist.length === 0) {
-    codes.push('add-watchlist')
-  }
-
-  if (readyKinds.has('position-exits')) {
-    codes.push('review-portfolio')
-  }
-
-  if (readyKinds.has('drift-nudge')) {
-    codes.push('rebalance')
-  }
-
-  if (readyKinds.has('suggestions') || readyKinds.has('cross-asset-suggestions')) {
-    codes.push('review-suggestions')
-  }
-
-  if (readyKinds.has('fired-alerts')) {
-    codes.push('review-alerts')
-  }
-
-  if (isCrowdedTop(sections, overviews)) {
-    codes.push('avoid-chasing')
-  }
-
-  // Ready with no rows, never omitted: this is a core section, so omitting it would suppress the
-  // whole brief on a morning that simply needs nothing. The renderer already skips an empty one.
-  return ready(
-    'next-actions',
-    codes.map((code) => ({ code }))
-  )
-}
-
-/** Near resistance on thin turnover, a buy pays up for the level rather than to reach it. The
- *  tape row comes from the handed builder sections; the range lives only on the overview read,
- *  which the composer already holds — neither is fetched twice. */
-function isCrowdedTop(
-  sections: readonly BriefSectionResult[],
-  overviews: readonly BriefSectionResult[]
-): boolean {
-  const vnRange = overviews.find(
-    (section) => section.kind === 'range' && section.market === VN_MARKET_REF
-  )
-  const resistancePct =
-    vnRange === undefined ? undefined : sectionNumber([vnRange], 'range', 'resistancePct')
-  const turnoverRatio = sectionNumber(sections, 'tape', 'turnoverRatio')
-
-  return (
-    resistancePct !== undefined &&
-    resistancePct <= RESISTANCE_PROXIMITY_FRACTION &&
-    turnoverRatio !== undefined &&
-    turnoverRatio < CONFIRMING_TURNOVER_RATIO
-  )
-}
-
 /** The kinds this pass builds: not the deferred ones, not `headlines` - built from `marketNews`
  *  above, one per market - and not the kinds each market's overview converter emits: those have no
  *  builder, and asking for one produces a section that reports its own absence under a market
@@ -516,6 +452,8 @@ function isEarlyKind(kind: BriefSectionKind): kind is ProducingSectionKind {
     kind !== 'session-delta' &&
     kind !== 'headlines' &&
     kind !== 'economy-headlines' &&
+    kind !== 'thesis-review' &&
+    kind !== 'story' &&
     !SUGGESTION_KINDS.some((deferred) => deferred === kind) &&
     !OVERVIEW_SECTION_KINDS.some((converted) => converted === kind)
   )
