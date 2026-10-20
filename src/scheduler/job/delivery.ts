@@ -41,7 +41,7 @@ export async function deliverPartial(
     return
   }
 
-  await deliverText(job, `[run halted early (${result.reason})]\n\n${result.text}`, deps)
+  await deliverText(job, deps.renderPartialNotice(result), deps)
 }
 
 export async function notifyIfAutoDisabled(input: AutoDisableNoticeInput): Promise<void> {

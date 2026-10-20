@@ -137,10 +137,10 @@ Phạm vi chỉ thu hẹp:
 - Bảng bị từ chối thì agent đó bị bỏ qua lúc khởi động (`agents.focus_invalid`).
 
 Đề xuất của agent có phạm vi được lưu dưới `focus_key` riêng, được chấm và báo cáo tách biệt. Chúng không bao giờ
-dời một điểm dừng lỗ đang giữ, nâng nó hay kích hoạt cảnh báo, và không vào bản tin buổi sáng. Chúng hiển thị là "ý
+dời một mức cắt lỗ đang giữ, nâng nó hay kích hoạt cảnh báo, và không vào bản tin sáng. Chúng hiển thị là "ý
 kiến thứ hai từ <phạm vi>", không kèm tỷ trọng, số lượng hay khối lệnh - một cuốn sổ, một kế hoạch. `/suggest <mã>`
-luôn là đề xuất điều khiển danh mục. Một trợ lý mà agent ủy quyền giữ nguyên phạm vi của agent, nên đề xuất của trợ
-lý không bao giờ vô tình thành đề xuất của danh mục. Chi tiết: [giao dịch](giao-dich.md).
+luôn là đề xuất điều khiển danh mục. Một agent được ủy quyền giữ nguyên phạm vi của agent gốc, nên đề xuất của nó
+không bao giờ vô tình thành đề xuất của danh mục. Chi tiết: [giao dịch](giao-dich.md).
 
 Agent chỉ đặt `horizon` trong `[focus]` có khóa riêng và chạy trên mọi thị trường bạn có. Hai agent có cùng phạm vi
 giống hệt dùng chung một khóa, nên chung một hồ sơ.

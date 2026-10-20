@@ -184,12 +184,7 @@ async function runModelCommand(deps: ModelCommandDeps, ctx: SlashContext): Promi
   const summary = deps.control.read(ctx.sessionId, agentId)
 
   if (ctx.args.length > 1) {
-    return {
-      kind: 'message',
-      messages: [
-        { key: 'slash.modelUnknown', values: { selector: '', list: summary.selectors.join(', ') } },
-      ],
-    }
+    return unknownModelResult(ctx.args.join(' '), summary.selectors)
   }
 
   const requested = ctx.args[0]
@@ -214,20 +209,19 @@ async function runModelCommand(deps: ModelCommandDeps, ctx: SlashContext): Promi
   }
 
   if (!deps.control.set(ctx.sessionId, agentId, requested)) {
-    return {
-      kind: 'message',
-      messages: [
-        {
-          key: 'slash.modelUnknown',
-          values: { selector: requested, list: summary.selectors.join(', ') },
-        },
-      ],
-    }
+    return unknownModelResult(requested, summary.selectors)
   }
 
   return {
     kind: 'message',
     messages: [{ key: 'slash.modelSet', values: { selector: requested } }],
+  }
+}
+
+function unknownModelResult(selector: string, selectors: readonly string[]): SlashResult {
+  return {
+    kind: 'message',
+    messages: [{ key: 'slash.modelUnknown', values: { selector, list: selectors.join(', ') } }],
   }
 }
 

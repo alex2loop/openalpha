@@ -65,11 +65,11 @@ model = "deepseek/deepseek-v4.1-flash"
 # model = "anthropic.claude-sonnet-5-5"
 # api_key_env = "AWS_BEARER_TOKEN_BEDROCK"
 
-# Per-entry tuning (also settable in [model_defaults], except max_tokens: the
-# decisions tier below takes no output cap):
+# Per-entry tuning, also settable in [model_defaults]. Keep max_tokens per entry:
+# a default would also cap the decisions tier below, which takes no output cap.
 # reasoning = "default"            # default | off | low | medium | high
 # max_tokens = 8192                # cap on the reply for this entry
-# reasoning_required = false       # endpoint rejects a disable payload outright
+# reasoning_required = false       # per entry only: endpoint rejects a disable payload
 # provider_sort = "throughput"     # price | throughput | latency (OpenRouter)
 # provider_only = ["deepinfra/bf16"]   # restrict to these router endpoints
 # provider_order = ["deepinfra/bf16"]  # try in this order

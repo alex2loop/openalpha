@@ -3,6 +3,7 @@ import { join } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
 import type { ResolvedStorageConfig } from '@/core/config/resolve'
+import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { Storage } from '@/persistence/api'
 import { createCommand, createGroup, type Group } from '@/cli/command'
@@ -220,7 +221,7 @@ const dbBackupCommand = createCommand({
     const storage = app.resolve('storage')
     const target =
       explicit === undefined
-        ? await backupToDataDir(app, storage)
+        ? await backupToDataDir(app, storage, app.resolve('logger'))
         : await backupSqlite(storage, explicit).then(() => explicit)
 
     app.out(success(t(locale, 'cli.dbBackedUp', { target })))
@@ -350,7 +351,7 @@ async function offerBackupBeforeReset(app: CliApp): Promise<void> {
   const { storage } = await openPersistence(config, silentLogger)
 
   try {
-    const target = await backupToDataDir(app, storage)
+    const target = await backupToDataDir(app, storage, silentLogger)
 
     app.out(success(t(locale, 'cli.dbBackedUp', { target })))
   } finally {
@@ -358,10 +359,11 @@ async function offerBackupBeforeReset(app: CliApp): Promise<void> {
   }
 }
 
-async function backupToDataDir(app: CliApp, storage: Storage): Promise<string> {
+// `db reset` runs without boot, so the logger is passed in rather than resolved.
+async function backupToDataDir(app: CliApp, storage: Storage, logger: Logger): Promise<string> {
   const target = backupTarget(join(app.config.paths.dataDir, BACKUPS_SUBDIR))
 
-  await backupAndPrune({ db: storage, target, logger: app.resolve('logger') })
+  await backupAndPrune({ db: storage, target, logger })
 
   return target
 }

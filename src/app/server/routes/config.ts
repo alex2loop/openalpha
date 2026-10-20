@@ -19,14 +19,9 @@ const MAX_CONFIG_BYTES = 512 * 1024
 
 async function handleConfigGet(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const { configPath } = await probeConfig({ configPath: ctx.app.configPath })
+  const config: unknown = parseToml(await Bun.file(configPath).text())
 
-  try {
-    const config: unknown = parseToml(await Bun.file(configPath).text())
-
-    return json({ config, configPath } satisfies ConfigResponse)
-  } catch {
-    return apiError('internal')
-  }
+  return json({ config, configPath } satisfies ConfigResponse)
 }
 
 async function handleConfigValidate(req: Request, _ctx: ApiRouteContext): Promise<Response> {

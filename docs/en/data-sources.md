@@ -124,7 +124,7 @@ You will see this in three places.
 | Message | What happened |
 |---|---|
 | `took too long to answer` | the request ran out of time |
-| `turned us away for calling too often` | the provider answered 429 |
+| `turned me away for calling too often` | the provider answered 429 |
 | `could not be reached` | any other HTTP failure |
 | `sent back something unreadable` | the reply was not what the provider normally sends |
 

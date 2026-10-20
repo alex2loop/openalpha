@@ -11,6 +11,7 @@ import type { LLMMessage } from '@/core/llm'
 import { API_CHANNEL } from '@/app/server/channel'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { parseLimit } from '@/app/server/routes/params'
 import { sessionId as brandSessionId } from '@/core/ids'
 
 async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -23,29 +24,28 @@ const SESSION_ID_RE = /^chat_[0-9a-f]{26}$/
 const DIGITS_RE = /^\d+$/
 const DEFAULT_LIMIT = 30
 
-// The transcript is capped at the session message cap, so the page is cut in memory rather
-// than pushed into SQL: there is no unbounded scan to guard against here.
 async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const url = new URL(req.url)
   const raw = url.pathname.slice(url.pathname.lastIndexOf('/') + 1)
+  const rawLimit = url.searchParams.get('limit')
+  const limit =
+    rawLimit === null ? DEFAULT_LIMIT : parseLimit(rawLimit, ctx.app.config.loop.sessionMessageCap)
 
-  if (!SESSION_ID_RE.test(raw)) {
+  if (!SESSION_ID_RE.test(raw) || limit === null) {
     return apiError('invalid_body')
   }
 
-  const messages = await ctx.app.resolve('sessionStore').loadHistory(brandSessionId(raw))
-  const all = messages.filter((m) => m.role === 'user' || m.role === 'assistant')
-
-  const before = Math.min(parseIndex(url.searchParams.get('before')) ?? all.length, all.length)
-  const limit = parseIndex(url.searchParams.get('limit')) ?? DEFAULT_LIMIT
-  const start = Math.max(0, before - limit)
-  const page = all.slice(start, before)
+  const before = parseIndex(url.searchParams.get('before'))
+  const page = await ctx.app.resolve('sessionStore').loadHistoryPage(brandSessionId(raw), {
+    limit,
+    ...(before === undefined ? {} : { before }),
+  })
 
   return json({
     sessionId: raw,
-    hasMore: start > 0,
-    nextBefore: start > 0 ? start : null,
-    messages: page.flatMap(toHistoryMessage),
+    hasMore: page.hasMore,
+    nextBefore: page.nextBefore,
+    messages: page.messages.flatMap(toHistoryMessage),
   } satisfies ChatHistoryResponse)
 }
 

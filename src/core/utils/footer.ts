@@ -1,7 +1,7 @@
 import type { SlashInvocationPolicy, SlashResult } from '@/core/types/command'
 import type { LLMUsageTotals } from '@/core/types/usage'
 import { scrubCredentials } from '@/core/security/credentials'
-import { formatTokenCount, formatUsd, sentTokensOf } from '@/core/utils/cost'
+import { formatSpendUsd, formatTokenCount, sentTokensOf } from '@/core/utils/cost'
 import { formatLongDuration } from '@/core/utils/duration'
 import { stripControls } from '@/core/utils/text'
 
@@ -78,8 +78,8 @@ function toSegments(
   }
 
   return [
-    toCostSegment(totals),
-    toTokenSegment(totals),
+    toCostSegment(locale, totals),
+    toTokenSegment(locale, totals),
     toModelCallSegment(totals),
     ...toDetailSegments(locale, details),
   ]
@@ -87,20 +87,20 @@ function toSegments(
 
 /** Work priced at exactly zero is free work: the price chain only reaches zero through a free
  *  source (subscription plan, free tier, local provider, zero override) — its fallback rate is
- *  non-zero — and "$0.0000" beside real token counts reads as broken accounting instead. A total
- *  with no calls keeps the plain "$0.0000": that line says nothing was spent because nothing ran. */
-function toCostSegment(totals: LLMUsageTotals): FooterSegment {
+ *  non-zero — and a zero cost beside real token counts reads as broken accounting instead. A total
+ *  with no calls keeps the plain zero: that line says nothing was spent because nothing ran. */
+function toCostSegment(locale: string, totals: LLMUsageTotals): FooterSegment {
   if (totals.modelCalls > 0 && totals.costUsd === 0) {
     return { key: 'footer.costFree', values: {} }
   }
 
-  return { key: 'footer.cost', values: { cost: formatUsd(totals.costUsd) } }
+  return { key: 'footer.cost', values: { cost: formatSpendUsd(locale, totals.costUsd) } }
 }
 
 // Zero cache reads is the common case; the plain variant drops the noise.
-function toTokenSegment(totals: LLMUsageTotals): FooterSegment {
-  const input = formatTokenCount(sentTokensOf(totals))
-  const output = formatTokenCount(totals.outputTokens)
+function toTokenSegment(locale: string, totals: LLMUsageTotals): FooterSegment {
+  const input = formatTokenCount(locale, sentTokensOf(totals))
+  const output = formatTokenCount(locale, totals.outputTokens)
 
   if (totals.cacheReadTokens === 0) {
     return { key: 'footer.tokens', values: { input, output } }
@@ -108,7 +108,7 @@ function toTokenSegment(totals: LLMUsageTotals): FooterSegment {
 
   return {
     key: 'footer.tokensCached',
-    values: { input, output, cached: formatTokenCount(totals.cacheReadTokens) },
+    values: { input, output, cached: formatTokenCount(locale, totals.cacheReadTokens) },
   }
 }
 

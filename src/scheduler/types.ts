@@ -2,7 +2,7 @@ import type { ChannelId } from '@/core/channels'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { AgentId, JobId, UserId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
-import type { RunInput, Runner } from '@/engine/api'
+import type { RunInput, Runner, RunResult } from '@/engine/api'
 
 export interface DeliverySink {
   notify(target: DeliveryTarget, text: string): Promise<void>
@@ -182,6 +182,8 @@ export interface SchedulerDeps {
   readonly runInput: (job: Job) => RunInput
   /** Surface-owned localized rendering for the operator-facing auto-disable notice. */
   readonly renderAutoDisableNotice: (jobId: JobId, consecutiveFailures: number) => string
+  /** Surface-owned localized rendering for a run that stopped early with part of an answer. */
+  readonly renderPartialNotice: (result: RunResult) => string
   /** Where a target-less job's output goes; undefined = drop it. Late-bound until channels start. */
   readonly defaultTarget: () => DeliveryTarget | undefined
   /** Where disabled-job alerts go, independently from the job's potentially broken target. */

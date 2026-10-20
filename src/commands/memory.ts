@@ -1,6 +1,8 @@
 import type { Logger } from '@/core/logging/logger'
 import type { CommandMessage, SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 import type { Memory, MemoryScope } from '@/core/types/memory'
+import { ValidationError } from '@/core/errors'
+import { isMemoryKey, MEMORY_KEY_MAX_LEN } from '@/core/memory-key'
 import { formatErrForLog } from '@/core/security/credentials'
 
 const USAGE: CommandMessage = { key: 'slash.memoryUsage' }
@@ -14,6 +16,8 @@ const MESSAGE_KEYS = [
   'slash.memoryRememberStored',
   'slash.memoryForgetDone',
   'slash.memoryActionFail',
+  'slash.memoryKeyInvalid',
+  'slash.memoryRejected',
   'slash.memoryTitle',
 ] as const
 
@@ -89,7 +93,9 @@ function parseMemoryOperation(args: readonly string[]): MemoryOperation {
   }
 
   if (verb === 'remember') {
-    return { kind: 'remember', key: rest[0] ?? '', value: rest.slice(1).join(' ') }
+    const value = rest.slice(1).join(' ')
+
+    return value === '' ? { kind: 'usage' } : { kind: 'remember', key: rest[0] ?? '', value }
   }
 
   if (verb === 'forget') {
@@ -106,6 +112,10 @@ async function runMemoryOperation(options: {
   operation: MemoryOperation
 }): Promise<SlashResult> {
   const { memory, scope, logger, operation } = options
+
+  if ('key' in operation && operation.key !== '' && !isMemoryKey(operation.key)) {
+    return keyInvalidResult()
+  }
 
   switch (operation.kind) {
     case 'list':
@@ -155,7 +165,10 @@ async function rememberMemory(options: {
     await memory.store(scope, key, { value: options.value })
   } catch (err: unknown) {
     logger.warn('commands.memory_store_failed', { err: formatErrForLog(err) })
-    return { kind: 'message', messages: [{ key: 'slash.memoryActionFail' }] }
+    const failure =
+      err instanceof ValidationError ? 'slash.memoryRejected' : 'slash.memoryActionFail'
+
+    return { kind: 'message', messages: [{ key: failure }] }
   }
 
   return {
@@ -196,6 +209,13 @@ async function recallMemory(memory: Memory, scope: MemoryScope, key: string): Pr
 
 function usageResult(): SlashResult {
   return { kind: 'message', messages: [USAGE] }
+}
+
+function keyInvalidResult(): SlashResult {
+  return {
+    kind: 'message',
+    messages: [{ key: 'slash.memoryKeyInvalid', values: { max: MEMORY_KEY_MAX_LEN } }],
+  }
 }
 
 // Each bounded row becomes one message with primitive values only — never a nested object or

@@ -37,6 +37,8 @@ export interface SessionSql {
   readonly resolveIdPrefix: string
   readonly loadPayloads: string
   readonly loadPayloadTail: string
+  readonly loadTranscriptNewest: string
+  readonly loadTranscriptBefore: string
   readonly loadMessages: string
   readonly loadAttempts: string
   readonly loadTotals: string
@@ -73,17 +75,13 @@ export interface SessionSql {
 export function buildSessionSql(d: Dialect): SessionSql {
   return {
     ...buildClaimSql(d),
+    ...buildTranscriptSql(d),
     loadSession:
       `SELECT id, agent_id, user_id, channel, chat_id, status, end_reason, error_message, ` +
       `started_at, last_activity_at, ended_at FROM sessions WHERE id = ${d.param(1)} LIMIT 1`,
     resolveIdPrefix:
       `SELECT id FROM sessions WHERE id LIKE ${d.param(1)} ESCAPE '\\' ` +
       `ORDER BY CASE WHEN id = ${d.param(2)} THEN 0 ELSE 1 END, id LIMIT ${d.param(3)}`,
-    loadPayloads: `SELECT ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} ORDER BY idx`,
-    // Newest rows only, back in order: the subquery picks them, the outer sort restores idx order.
-    loadPayloadTail:
-      `SELECT ${PAYLOAD_COLS} FROM (SELECT idx, ${PAYLOAD_COLS} FROM session_messages ` +
-      `WHERE session_id = ${d.param(1)} ORDER BY idx DESC LIMIT ${d.param(2)}) AS tail ORDER BY idx`,
     loadMessages:
       `SELECT idx, run_id, ${PAYLOAD_COLS}, created_at FROM session_messages ` +
       `WHERE session_id = ${d.param(1)} ORDER BY idx`,
@@ -118,6 +116,27 @@ export function buildSessionSql(d: Dialect): SessionSql {
       `error_message = 'daemon restarted while session was active', ended_at = ${d.param(1)}, ` +
       `active_run_id = NULL WHERE status = 'active' ` +
       `AND (active_run_id IS NULL OR last_activity_at < ${d.param(2)})`,
+  }
+}
+
+type TranscriptSql = Pick<
+  SessionSql,
+  'loadPayloads' | 'loadPayloadTail' | 'loadTranscriptNewest' | 'loadTranscriptBefore'
+>
+
+// Display pages read user/assistant rows newest first; the caller asks for one row past the page.
+function buildTranscriptSql(d: Dialect): TranscriptSql {
+  const head = `SELECT idx, ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} `
+  const roles = `AND role IN ('user', 'assistant') `
+
+  return {
+    loadPayloads: `SELECT ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} ORDER BY idx`,
+    // Newest rows only, back in order: the subquery picks them, the outer sort restores idx order.
+    loadPayloadTail:
+      `SELECT ${PAYLOAD_COLS} FROM (SELECT idx, ${PAYLOAD_COLS} FROM session_messages ` +
+      `WHERE session_id = ${d.param(1)} ORDER BY idx DESC LIMIT ${d.param(2)}) AS tail ORDER BY idx`,
+    loadTranscriptNewest: `${head}${roles}ORDER BY idx DESC LIMIT ${d.param(2)}`,
+    loadTranscriptBefore: `${head}${roles}AND idx < ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
   }
 }
 

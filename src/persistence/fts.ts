@@ -12,6 +12,10 @@ import { formatErrForLog } from '@/core/security/credentials'
 const FTS_SNIPPET_TOKENS = 3
 const FTS_CONTEXT_WINDOW = 24
 const PG_CONTEXT_CHARS = 200
+// The trigram tokenizer indexes 3-character windows, so a term shorter than this can never match
+// through MATCH. Such terms are filtered with LIKE on the stored value instead.
+const TRIGRAM_MIN_CHARS = 3
+const LIKE_SNIPPET_CHARS = 200
 const IMPORTANCE_DIVISOR = 5.0
 const IMPORTANCE_WEIGHT = 0.5
 // Mirror of memory/store's bound: a LIMIT of 0 scans everything and a negative one is a silent
@@ -36,6 +40,14 @@ const SQLITE_SEARCH_HEAD =
   `  AND memory_kv.user_id = memory_fts.user_id AND memory_kv.key = memory_fts.key ` +
   `WHERE memory_fts MATCH ? AND memory_fts.agent_id = ? AND memory_fts.user_id = ? ` +
   `AND memory_kv.deleted_at IS NULL AND (memory_kv.expires_at IS NULL OR memory_kv.expires_at > ?)`
+const SQLITE_SHORT_FILTER = ` AND memory_kv.value LIKE ? ESCAPE '\\'`
+// All terms short: no MATCH, so the rank drops bm25 and substr() stands in for snippet().
+const SQLITE_LIKE_HEAD =
+  `SELECT memory_kv.key AS key, substr(memory_kv.value, 1, ${LIKE_SNIPPET_CHARS}) AS value, ` +
+  `(memory_kv.importance / ${IMPORTANCE_DIVISOR}) * ${IMPORTANCE_WEIGHT} AS rank ` +
+  `FROM memory_kv WHERE memory_kv.agent_id = ? AND memory_kv.user_id = ? ` +
+  `AND memory_kv.deleted_at IS NULL AND (memory_kv.expires_at IS NULL OR memory_kv.expires_at > ?)`
+const SQLITE_LIKE_TAIL = ` ORDER BY rank DESC, memory_kv.updated_at DESC LIMIT ?`
 const SQLITE_PREFIX_FILTER = ` AND memory_kv.key LIKE ? ESCAPE '\\'`
 const SQLITE_SEARCH_TAIL = ` ORDER BY rank DESC LIMIT ?`
 
@@ -103,31 +115,49 @@ function buildQuery(
     }
   }
 
-  const safe = sanitizeFtsQuery(options.query)
+  const tokens = options.query.match(FTS_TOKEN_RE) ?? []
 
-  if (safe === '') {
+  if (tokens.length === 0) {
     return null
   }
 
-  // `LIKE ?` precedes `LIMIT ?`, so the prefix param binds before the limit.
+  return buildSqliteQuery(scope, { tokens, prefix, now, limit: options.limit })
+}
+
+interface SqliteArgs {
+  readonly tokens: readonly string[]
+  readonly prefix: string | undefined
+  readonly now: number
+  readonly limit: number
+}
+
+function buildSqliteQuery(scope: FtsScope, args: SqliteArgs): Query {
+  const long = args.tokens.filter((token) => [...token].length >= TRIGRAM_MIN_CHARS)
+  const shortLikes = args.tokens
+    .filter((token) => [...token].length < TRIGRAM_MIN_CHARS)
+    .map((token) => `%${escapeLike(token)}%`)
+  const filters = SQLITE_SHORT_FILTER.repeat(shortLikes.length)
+  const prefixSql = args.prefix === undefined ? '' : SQLITE_PREFIX_FILTER
+  const prefixParams = args.prefix === undefined ? [] : [args.prefix]
+  const tail = [...shortLikes, ...prefixParams, args.limit]
+
+  // A MATCH over zero long tokens would be an empty FTS query: LIKE alone answers instead.
+  if (long.length === 0) {
+    return {
+      sql: SQLITE_LIKE_HEAD + filters + prefixSql + SQLITE_LIKE_TAIL,
+      params: [scope.agentId, scope.userId, args.now, ...tail],
+    }
+  }
+
+  // Each `LIKE ?` precedes `LIMIT ?`, so the LIKE params bind before the limit.
   return {
-    sql:
-      SQLITE_SEARCH_HEAD + (prefix === undefined ? '' : SQLITE_PREFIX_FILTER) + SQLITE_SEARCH_TAIL,
-    params:
-      prefix === undefined
-        ? [safe, scope.agentId, scope.userId, now, options.limit]
-        : [safe, scope.agentId, scope.userId, now, prefix, options.limit],
+    sql: SQLITE_SEARCH_HEAD + filters + prefixSql + SQLITE_SEARCH_TAIL,
+    params: [quoteFtsTokens(long), scope.agentId, scope.userId, args.now, ...tail],
   }
 }
 
-// '' means no token survived: an operator-only query is a no-op, not a search.
-function sanitizeFtsQuery(query: string): string {
-  const tokens = query.match(FTS_TOKEN_RE)
-
-  if (!tokens || tokens.length === 0) {
-    return ''
-  }
-
+// Whitelisted tokens only (see FTS_TOKEN_RE), each quoted so none can read as an FTS5 operator.
+function quoteFtsTokens(tokens: readonly string[]): string {
   return tokens.map((token) => `"${token}"`).join(' ')
 }
 

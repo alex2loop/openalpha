@@ -1,4 +1,5 @@
 import type { LLMErrorCode } from '@/core/llm'
+import type { TokenUsage } from '@/core/stream-events'
 import { LLMError } from '@/core/errors'
 
 const CONTEXT_OVERFLOW_STATUSES: ReadonlySet<number> = new Set([400, 413, 422])
@@ -86,6 +87,18 @@ const STREAM_FRAME_FALLBACK_BODY = 'stream failed'
 
 const RETRYABLE_SYSCALLS: ReadonlySet<string> = new Set(['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN'])
 const UNDICI_ERROR_PREFIX = 'UND_ERR_'
+// Failed before the request left (Bun names a refused connect `ConnectionRefused`). A reset or
+// timeout is not one: the provider may already have the request.
+const NEVER_SENT_CODES: ReadonlySet<string> = new Set([
+  'ConnectionRefused',
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+])
+
+// A request the provider refused or never received started no generation: nothing to bill.
+// A failure after the stream opened is different (a stall costs real money) and is estimated.
+export const REFUSED_USAGE: TokenUsage = { input: 0, output: 0 }
 
 // The subset of a provider error body this module reads. Every field optional: the bodies are
 // unvalidated JSON from 52 different vendors.
@@ -104,6 +117,14 @@ export function classifyNetworkError(err: unknown): LLMError {
 
   if (name === 'TimeoutError') {
     return new LLMError('timeout', message || 'request timed out', { cause: err })
+  }
+
+  if (code !== undefined && NEVER_SENT_CODES.has(code)) {
+    return new LLMError('transient', message || code, {
+      cause: err,
+      usage: REFUSED_USAGE,
+      usageSource: 'estimated',
+    })
   }
 
   if (

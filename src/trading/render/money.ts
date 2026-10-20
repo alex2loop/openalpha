@@ -1,6 +1,5 @@
 import type { Locale } from '@/core/types/locale'
 import type { CurrencyCode, MarketRef, PriceDisplay, QuoteUnit } from '@/trading/kernel/instrument'
-import { SPEND_DECIMALS } from '@/core/utils/cost'
 import { t } from '@/i18n'
 import {
   formatAmount,
@@ -95,12 +94,6 @@ export function moneyParam(
   currency: CurrencyCode
 ): { readonly amount: number; readonly digits: number } {
   return { amount: value, digits: minorUnitsOf(currency) }
-}
-
-/** LLM spend, in the reader's digit separators — unlike core's log-facing helper, which is read by
- *  a machine and by the cost command, where a stable `$0.0142` is right. */
-export function formatSpendUsd(locale: Locale, usd: number): string {
-  return `${formatFixedDigits(locale, usd, SPEND_DECIMALS)} USD`
 }
 
 /** How a market prints the price of one unit: what it quotes in, the measure the price is per, and

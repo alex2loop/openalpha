@@ -19,6 +19,7 @@ import type {
   BriefStopBasis,
 } from '@/trading/kernel/operator/brief-section'
 import type { DisclosureKind } from '@/trading/markets/disclosure-calendar'
+import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, type MessageKey, t } from '@/i18n'
 import { BRIEF_NUMERIC_FIELDS } from '@/trading/kernel/operator/brief-section'
 import { isTradingDayText } from '@/trading/render/datetime'
@@ -47,7 +48,7 @@ import {
   renderProvidedValue,
   scoreBar,
 } from '@/trading/render/format'
-import { formatFixedPrice, formatSpendUsd } from '@/trading/render/money'
+import { formatFixedPrice } from '@/trading/render/money'
 
 const NOTE_SEPARATOR = ', '
 

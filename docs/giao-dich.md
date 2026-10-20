@@ -376,7 +376,7 @@ Một lời gọi phạm vi đọc như một ý kiến thứ hai. Nó mở bằ
 
 ### Kết cục và bảng thành tích
 
-Các đề xuất được chốt dựa trên các nến sau đó: `target`, `stop` hoặc `expired`, kèm lợi suất và, nếu có chuẩn so sánh, lợi suất của chuẩn trong cùng cửa sổ.
+Các đề xuất được chốt dựa trên các nến sau đó: `target`, `stop` hoặc `expired`, kèm lợi suất và, nếu có chuẩn so sánh, lợi suất của chuẩn trong cùng cửa sổ. Chuẩn đọc từ bộ đệm cũ, hoặc dừng sớm hơn phiên thoát quá một phiên, thì không được so sánh, thay vì so trên một quãng ngắn hơn.
 
 **Cửa sổ.** Một lời gọi được đọc ở cuối cửa sổ nắm giữ của chính nó. Lời gọi nằm chờ trong lúc daemon tắt quá mốc nhìn lại một năm vẫn được chấm như lẽ ra lúc đó. Nếu không còn nến của cửa sổ ấy, lời gọi đóng với không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó cùng các dòng đóng vì lịch sử giá bị viết lại.
 
@@ -947,7 +947,7 @@ Không cần sổ nhớ khoản lỗ cũ thì đơn giản hơn nữa: nạp đ�
 đang giữ, bỏ dòng `loss`. Lãi lỗ khi đó tính từ hôm nay.
 
 Gộp như vậy thì mất lịch sử từng mã đã bán: `/transactions` chỉ thấy một dòng lỗ. Đề xuất cũ của
-trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm khuyến nghị chứ không chấm giao dịch của
+trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm đề xuất chứ không chấm giao dịch của
 bạn.
 
 #### Mọi mức giá đều nói nó được lấy thế nào

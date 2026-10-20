@@ -20,8 +20,11 @@ export interface MessagePayloadRow {
   readonly is_error: number
 }
 
-export interface StoredMessageRow extends MessagePayloadRow {
+export interface IndexedPayloadRow extends MessagePayloadRow {
   readonly idx: number
+}
+
+export interface StoredMessageRow extends IndexedPayloadRow {
   readonly run_id: string | null
   readonly created_at: number
 }

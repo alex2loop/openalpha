@@ -3,7 +3,7 @@ import type { TradingDay } from '@/trading/kernel/instrument'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { formatDay, t } from '@/i18n'
-import { formatClock } from '@/trading/render/datetime'
+import { formatInstant } from '@/trading/render/datetime'
 import { formatCount } from '@/trading/render/format'
 
 const ROW_INDENT = '  '
@@ -116,7 +116,7 @@ export function renderProvenanceLine(
   return [
     `${INDENT[1]}${t(locale, 'trading.render.layout.provenance', {
       sources: names.length > MAX_LISTED_SOURCES ? `${listed}…` : listed,
-      at: formatClock(locale, fetchedAt, timezone),
+      at: formatInstant(locale, fetchedAt, timezone),
     })}`,
   ]
 }

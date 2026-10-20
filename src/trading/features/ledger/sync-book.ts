@@ -54,9 +54,8 @@ export async function bookVenueFills(
   signal: AbortSignal
 ): Promise<Omit<BookedFills, 'partial'>> {
   const booked = await bookFills(deps, fills, signal)
-  const { entries, skipped } = await voidPartialInstruments(deps, signal, booked)
 
-  return { entries, skipped, ...(booked.book === undefined ? {} : { book: booked.book }) }
+  return await voidPartialInstruments(deps, signal, booked)
 }
 
 /** Oldest first across every instrument, because the write order is the economic one: a buy has to
@@ -137,14 +136,17 @@ async function voidPartialInstruments(
   deps: SyncBookDeps,
   signal: AbortSignal,
   booked: BookedFills
-): Promise<{ readonly entries: readonly LedgerEntry[]; readonly skipped: readonly SkippedFill[] }> {
+): Promise<Omit<BookedFills, 'partial'>> {
+  const { entries, skipped, book } = booked
+
   if (booked.partial.size === 0) {
-    return { entries: booked.entries, skipped: booked.skipped }
+    return { entries, skipped, ...(book === undefined ? {} : { book }) }
   }
 
   const now = Date.now()
   const kept: LedgerEntry[] = []
   const voided: SkippedFill[] = []
+  let latest = book
 
   for (const entry of [...booked.entries].reverse()) {
     const instrument = 'instrument' in entry.transaction ? entry.transaction.instrument : undefined
@@ -154,32 +156,40 @@ async function voidPartialInstruments(
       continue
     }
 
-    if (await isVoided(deps, { entry, now, signal })) {
+    const after = await voidEntry(deps, { entry, now, signal })
+
+    if (after !== undefined) {
       voided.push({ symbol: instrument.ticker, reason: 'partial' })
+      latest = after
       continue
     }
 
     kept.push(entry)
   }
 
-  return { entries: kept.reverse(), skipped: [...booked.skipped, ...voided] }
+  return {
+    entries: kept.reverse(),
+    skipped: [...skipped, ...voided],
+    ...(latest === undefined ? {} : { book: latest }),
+  }
 }
 
-/** Removing a row re-folds the book, and a sale's proceeds leaving can put a later purchase short of
- *  cash, so this can refuse. The row then stays, is reported as recorded, and its name is still
- *  reported partial — which is the honest pair, since both are true of the book as it now stands. */
-async function isVoided(
+/** The book the removal left. Removing a row re-folds the book, and a sale's proceeds leaving can
+ *  put a later purchase short of cash, so this can refuse and return nothing. The row then stays,
+ *  is reported as recorded, and its name is still reported partial — which is the honest pair,
+ *  since both are true of the book as it now stands. */
+async function voidEntry(
   deps: SyncBookDeps,
   removal: { readonly entry: LedgerEntry; readonly now: number; readonly signal: AbortSignal }
-): Promise<boolean> {
+): Promise<Book | undefined> {
   try {
-    await deps.portfolio.remove({
+    const removed = await deps.portfolio.remove({
       ref: removal.entry.id,
       now: removal.now,
       signal: removal.signal,
     })
 
-    return true
+    return removed.book
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
@@ -190,7 +200,7 @@ async function isVoided(
       err: formatErrForLog(err),
     })
 
-    return false
+    return undefined
   }
 }
 

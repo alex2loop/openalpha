@@ -18,6 +18,7 @@ import { abortError } from '@/core/errors'
 import { HttpRequestError, httpRequestWithSignal, parseRetryAfterMs } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { withRetry } from '@/core/utils/retry'
+import { admitRequest } from '@/trading/sources/transport/admission'
 import { createSourceHealthLog } from '@/trading/sources/transport/health'
 import {
   createFailureReporter,
@@ -232,12 +233,6 @@ async function sendRequest<T>(
   request: SourceRequest,
   map: (text: string, fetchedAt: number) => T
 ): Promise<SentRequest<T>> {
-  const guardFailure = guardRequest(state, request)
-
-  if (guardFailure) {
-    return { outcome: guardFailure }
-  }
-
   const target = resolveTarget(state.facts, state.endpoints, request)
 
   if (!target) {
@@ -248,10 +243,10 @@ async function sendRequest<T>(
   const deadlineTick = performance.now() + REQUEST_BUDGET_MS
   const budget = AbortSignal.any([request.signal, AbortSignal.timeout(REQUEST_BUDGET_MS)])
 
-  // Pace before calling rather than recovering after a 429: without this a wide watchlist trips the
-  // breaker and loses the provider for a whole cooldown.
-  if ((await state.pacer.acquire(request.sourceId, budget)) === 'aborted') {
-    return { outcome: queueExpiredOutcome(request) }
+  const refused = await admitRequest(state, request, budget)
+
+  if (refused) {
+    return { outcome: refused }
   }
 
   const sentTick = performance.now()
@@ -325,18 +320,11 @@ function sendWithRetry(input: RetriedSend): Promise<string> {
 
       return send(input.target, request, {
         ...input.prepared,
-        signal: attemptSignal(budget, request),
+        signal: budget,
       })
     },
     retryOptions(state, input)
   )
-}
-
-function attemptSignal(budget: AbortSignal, request: SourceRequest): AbortSignal {
-  return AbortSignal.any([
-    budget,
-    AbortSignal.timeout(request.attemptTimeoutMs ?? ATTEMPT_TIMEOUT_MS),
-  ])
 }
 
 /** Both arms of a settled budget. A caller's cancel is not a provider failure and never trips the
@@ -354,16 +342,6 @@ function abortedOutcome<T>(state: SourceHttpState, request: SourceRequest): Sour
   return { kind: 'error', code }
 }
 
-/** Nothing was sent: the budget ran out while the call queued behind the pacer, which says nothing
- *  about the provider, so the breaker is not told. */
-function queueExpiredOutcome<T>(request: SourceRequest): SourceFetchOutcome<T> {
-  if (request.signal.aborted) {
-    throw abortError(request.signal)
-  }
-
-  return { kind: 'error', code: 'source.timeout' }
-}
-
 function send(
   target: RequestTarget,
   request: SourceRequest,
@@ -376,6 +354,7 @@ function send(
     path: target.path,
     maxBytes: MAXIMUM_RESPONSE_BYTES,
     signal: prepared.signal,
+    hostTimeoutMs: request.attemptTimeoutMs ?? ATTEMPT_TIMEOUT_MS,
     ...(prepared.query ? { query: { ...prepared.query } } : {}),
     ...(jsonBody === undefined
       ? { ...(prepared.headers ? { headers: { ...prepared.headers } } : {}) }
@@ -411,23 +390,6 @@ function retryOptions(state: SourceHttpState, input: RetriedSend): Parameters<ty
     // never sleeps less than the provider asked for.
     delayFor: (err: unknown) => serverFloorMs(state, err) ?? 0,
   }
-}
-
-// Returns an error outcome when the request must not be sent, `null` to proceed. Abort still
-// throws: it is the caller's cancellation, not a fetch outcome.
-function guardRequest(
-  state: SourceHttpState,
-  request: SourceRequest
-): { readonly kind: 'error'; readonly code: CaveatCode } | null {
-  if (request.signal.aborted) {
-    throw abortError(request.signal)
-  }
-
-  if (state.health.isOnCooldown(request.sourceId)) {
-    return { kind: 'error', code: 'source.breaker-open' }
-  }
-
-  return null
 }
 
 // catch-block error→caveat mapping: provider-documented business miss, then the generic

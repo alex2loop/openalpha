@@ -62,6 +62,8 @@ const FUTURES_PROXY_CAVEAT: Caveat = {
 }
 
 const CURRENCY_PAIR_RE = /^([A-Z]{3})([A-Z]{3})$/
+// A four-letter code is a coin (`USDT`), listed against the dollar as `USDT-USD`.
+const COIN_USD_PAIR_RE = /^([A-Z]{4})USD$/
 const DAILY_INTERVAL = '1d'
 /** One session, so the response's own previous close is yesterday's rather than the close before
  *  whatever window Yahoo would have defaulted to. */
@@ -152,7 +154,7 @@ function barsSource(options: SourceAdapterOptions): RegisteredSource {
     parse: (raw, context) => {
       const result = firstResult(raw)
 
-      assertRequestedListing(result, context)
+      assertListingType(result, yahooListing(context)?.expect)
 
       return parsedSource(toCandles(result, context.toDay), proxyCaveats(context))
     },
@@ -186,22 +188,46 @@ function fxHistorySource(options: SourceAdapterOptions): RegisteredSource {
     kind: 'fxHistory',
     format: 'json',
     http: options.http,
-    covers: (context) => fxPairTicker(context) !== undefined,
+    covers: (context) => fxHistoryListing(context) !== undefined,
     request: (context) => {
-      const pair = fxPairTicker(context)
+      const listing = fxHistoryListing(context)
 
-      return pair !== undefined && context.fromDay && context.toDay
-        ? chartRequest(`${pair}=X`, {
+      return listing !== undefined && context.fromDay && context.toDay
+        ? chartRequest(listing.symbol, {
             period1: String(utcDayStartEpochSeconds(context.fromDay)),
             period2: String(utcDayEndEpochSeconds(context.toDay)),
           })
         : null
     },
-    parse: (raw, context) => parsedSource(toFxRatePoints(firstResult(raw), context.toDay)),
+    parse: (raw, context) => {
+      const result = firstResult(raw)
+
+      assertListingType(result, fxHistoryListing(context)?.expect)
+
+      return parsedSource(toFxRatePoints(result, context.toDay))
+    },
   })
 }
 
-/** The ticker only when it names a currency pair; anything else these two do not serve. */
+interface FxHistoryListing {
+  readonly symbol: string
+  readonly expect?: readonly string[]
+}
+
+// A coin's dollar leg is dated too, or a past day's bridged rate would carry today's peg.
+function fxHistoryListing(context: SourceContext): FxHistoryListing | undefined {
+  const pair = fxPairTicker(context)
+
+  if (pair !== undefined) {
+    return { symbol: `${pair}=X` }
+  }
+
+  const coin = context.ticker === undefined ? undefined : COIN_USD_PAIR_RE.exec(context.ticker)?.[1]
+
+  return coin === undefined ? undefined : { symbol: `${coin}-USD`, expect: CRYPTO_LISTING_TYPES }
+}
+
+/** The ticker only when it names a pair of two ISO codes, the shape Yahoo lists as `=X`. */
 function fxPairTicker(context: SourceContext): string | undefined {
   return context.ticker !== undefined && CURRENCY_PAIR_RE.test(context.ticker)
     ? context.ticker
@@ -267,9 +293,7 @@ function metalSymbol(
 
 /** A ticker fetched as one listing must have answered as it. Source-boundary copy, deliberately
  *  outside the locale catalogs: the operator never reads it, the next maintainer does. */
-function assertRequestedListing(result: ChartResult, context: SourceContext): void {
-  const expect = yahooListing(context)?.expect
-
+function assertListingType(result: ChartResult, expect: readonly string[] | undefined): void {
   if (expect === undefined) {
     return
   }

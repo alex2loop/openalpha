@@ -229,7 +229,9 @@ Mặc định ([core/config/resolvers/runtime.ts](../../src/core/config/resolver
   yêu cầu này; cho nghỉ vì chúng là đầu độc một mục đang chạy tốt.
 - `output_budget_exhausted` vắng mặt khỏi tập thử lại: một mô hình đã tiêu hết trần vào suy luận sẽ tiêu hết lần nữa. `rate`
   cũng vậy: một cửa sổ vừa bị từ chối không mở lại trong khoảng chờ.
-- Khi mọi mục đều đang nghỉ, một lời gọi chờ hết khoảng nghỉ ngắn nhất đúng một lần, chặn trên ở 1 phút.
+- Khi mọi mục đều đang nghỉ, một lời gọi chờ hết khoảng nghỉ ngắn nhất đúng một lần, chặn trên ở 1 phút. Quá mức đó thì
+  báo `rate`, trừ khi nhà cung cấp của mục đầu tiên đang nghỉ vì khóa hoặc thanh toán bị từ chối: chờ không sửa được
+  chuyện đó, nên lời gọi báo lại đúng lỗi `auth` hoặc `billing` ban đầu.
 - Thân lỗi của từng nhà cung cấp được chuẩn hóa về bộ mã chung trước khi chính sách nào chạy, kể cả lỗi rơi xuống **sau**
   khi phản hồi đã bắt đầu (báo dưới dạng một khung trong luồng chứ không phải mã HTTP). Mỗi kênh truyền dịch khung đó về đúng
   mã trạng thái nó đáng lẽ mang, nên một lần quá tải giữa luồng được phân loại đúng như ở cổng vào thay vì kết thúc bằng

@@ -113,7 +113,7 @@ function renderRow(locale: Locale, alert: Alert, options: AlertRenderOptions): s
  *  suggestion, so it points at an on-demand `/suggest`. */
 export function renderAlertNotice(locale: Locale, notice: AlertNotice): string {
   const { alert } = notice
-  const headline = [t(locale, `trading.notice.${notice.kind}`), priceLine(locale, notice)]
+  const headline = [noticeTitle(locale, notice), priceLine(locale, notice)]
 
   return [
     `${SECTION_ICONS.alert} ${headline.join(INLINE_SEPARATOR)}`,
@@ -121,7 +121,9 @@ export function renderAlertNotice(locale: Locale, notice: AlertNotice): string {
     ...(notice.kind === 'screener-alert'
       ? [
           ...sessionLines(locale, notice),
-          t(locale, 'trading.screener.hint', { ticker: alert.instrument.ticker }),
+          t(locale, 'trading.screener.hint', {
+            instrument: buildInstrumentKey(alert.instrument),
+          }),
         ]
       : [
           t(locale, 'trading.alert.reviewHint', {
@@ -154,15 +156,29 @@ function exitLines(locale: Locale, alert: DeliveringAlert): readonly string[] {
   ]
 }
 
+/** A stop that broke says so in the words the portfolio and the brief use; every other notice
+ *  keeps its kind's title. */
+function noticeTitle(locale: Locale, notice: AlertNotice): string {
+  return exitLevelOf(notice) === 'stop'
+    ? t(locale, 'trading.exit.stopBreached')
+    : t(locale, `trading.notice.${notice.kind}`)
+}
+
+/** The level is named beside the price unless the title already names it (a broken stop). */
 function priceLine(locale: Locale, notice: AlertNotice): string {
   const { alert, quote } = notice
-  const level = notice.kind === 'exit-alert' ? parseExitLevel(alert.origin) : null
-  const label = level === null ? '' : `${t(locale, `trading.exit.level.${level}`)} `
+  const level = exitLevelOf(notice)
+  const label =
+    level === null || level === 'stop' ? '' : `${t(locale, `trading.exit.level.${level}`)} `
   const condition = renderDeclaredValue(locale, `trading.alert.condition.${alert.condition}`)
   const threshold = formatPriceIn(locale, alert.threshold, quote)
   const observed = formatPriceIn(locale, alert.observedPrice, quote)
 
   return `${alert.instrument.ticker} ${label}${condition} ${threshold} (${observed})`
+}
+
+function exitLevelOf(notice: AlertNotice): ReturnType<typeof parseExitLevel> {
+  return notice.kind === 'exit-alert' ? parseExitLevel(notice.alert.origin) : null
 }
 
 /** The benchmark's move beside the name's, with no verdict: how much of a move is the market

@@ -46,11 +46,15 @@ export interface WireEvent {
   // One payload below is set, matching `kind`; `note` may ride beside it.
   readonly usage?: { readonly costUsd: number; readonly tokens: number }
   readonly tool?: { readonly name: string; readonly ok: boolean }
-  /** 'approval_requested': the gated tool. `dangerous` → the elevated "--warn" tag. `decisions`
-   *  are the only answers the gate accepts; `truncated` says the arguments did not fit the prompt. */
+  /** 'approval_requested': the gated tool. `label` is its name in the operator's language, as the
+   *  CLI and channels print it; `expiresAt` (epoch ms) is when the gate denies on its own.
+   *  `dangerous` → the elevated "--warn" tag. `decisions` are the only answers the gate accepts;
+   *  `truncated` says the arguments did not fit the prompt. */
   readonly approval?: {
     readonly toolName: string
+    readonly label: string
     readonly argsSummary: string
+    readonly expiresAt: number
     readonly decisions: readonly Decision[]
     readonly dangerous?: boolean
     readonly truncated?: true

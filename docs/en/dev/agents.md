@@ -230,7 +230,9 @@ first attempt, 500 ms backoff, 60 s transient cooldown, 900 s credential cooldow
   request's output; cooling on them would poison a working entry.
 - `output_budget_exhausted` is absent from the retry set: a model that spent its cap on reasoning spends it again.
   So is `rate`: a window just refused does not reopen inside a backoff.
-- When every entry is cooling, a call waits out the shortest remaining cooldown once, capped at 1 minute.
+- When every entry is cooling, a call waits out the shortest remaining cooldown once, capped at 1 minute. Past that
+  it fails as `rate`, unless the first entry's provider is cooling on a refused key or bill: waiting will not fix
+  that, so the call fails with the original `auth` or `billing` refusal.
 - Provider error bodies are normalized to the shared codes before any policy runs, including a failure that lands
   after the response started (reported as a stream frame, not an HTTP status). Each transport translates the
   frame to the status it would have carried, so a mid-stream overload is classified as it would have been at the gate

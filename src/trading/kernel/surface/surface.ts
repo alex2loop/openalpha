@@ -33,6 +33,8 @@ import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const PERCENT_SIGN = '%'
 const PERCENT_PER_UNIT = 100
+/** Plain decimal only: `Number()` alone reads `0x10` as 16 and `1e3` as 1000. */
+const DECIMAL_RE = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/
 
 /** Set by the surfaces where the operator types a price: `unconfirmed` refuses one far from the
  *  market with `PriceUnconfirmedError`, `confirmed` writes it as typed. Unset is never checked: a
@@ -62,7 +64,7 @@ export function parseMember<T extends string>(
 }
 
 export function parseFiniteNumber(raw: string | undefined): number | null {
-  if (raw === undefined || raw.trim() === '') {
+  if (raw === undefined || !DECIMAL_RE.test(raw.trim())) {
     return null
   }
 

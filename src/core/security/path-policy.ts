@@ -130,6 +130,9 @@ export const PathPolicy = {
       throw new ToolError('path_escape', `path ${path} changed while opening`)
     }
   },
+
+  // For a directory walk, where only the root went through `resolve`.
+  isSensitive: (realPath: string): boolean => isSensitivePath(realPath),
 } as const
 
 async function identifyOpenedTarget(
@@ -308,8 +311,14 @@ function assertNotDevicePath(realPath: string): void {
 }
 
 function assertNotSensitivePath(realPath: string): void {
-  if (BLOCKED_ABSOLUTE_PATHS.has(realPath)) {
+  if (isSensitivePath(realPath)) {
     throw new ToolError('invalid_input', `sensitive path is not accessible: ${realPath}`)
+  }
+}
+
+function isSensitivePath(realPath: string): boolean {
+  if (BLOCKED_ABSOLUTE_PATHS.has(realPath)) {
+    return true
   }
 
   // A case-insensitive FS (macOS APFS) or a backslash-separated Windows realpath would otherwise
@@ -317,14 +326,16 @@ function assertNotSensitivePath(realPath: string): void {
   const lower = realPath.toLowerCase().replace(BACKSLASH_RE, '/')
 
   if (ENV_FILE_BASENAME_RE.test(basename(lower))) {
-    throw new ToolError('invalid_input', `sensitive path is not accessible: ${realPath}`)
+    return true
   }
 
   for (const suffix of BLOCKED_PATH_SUFFIXES) {
     if (lower.endsWith(`/${suffix}`) || lower.includes(`/${suffix}/`)) {
-      throw new ToolError('invalid_input', `sensitive path is not accessible: ${realPath}`)
+      return true
     }
   }
+
+  return false
 }
 
 function assertNotProtectedFile(realPath: string): void {

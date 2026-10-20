@@ -226,7 +226,7 @@ Bốn điều cần nhớ:
 - Ghi nhầm? `/transactions` nhóm bút toán theo ngày và in mã ngắn cuối mỗi dòng, ví dụ `0f9838`. Sửa
   bằng `/update 0f9838 <đủ cả dòng /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
   hay bỏ trống phí), xóa bằng `/delete 0f9838 confirm` (gõ `/delete 0f9838` trước để xem lại dòng). Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh
-  sửa, và sửa một bút toán sẽ tính lại cả những khuyến nghị cũ.
+  sửa, và sửa một bút toán sẽ tính lại cả những đề xuất cũ.
 
 #### Crypto qua P2P: từng bước cho người mới
 
@@ -331,7 +331,7 @@ Không cần sổ nhớ khoản lỗ cũ thì đơn giản hơn nữa: nạp đ�
 đang giữ, bỏ dòng `loss`. Lãi lỗ khi đó tính từ hôm nay.
 
 Gộp như vậy thì mất lịch sử từng mã đã bán: `/transactions` chỉ thấy một dòng lỗ. Đề xuất cũ của
-trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm khuyến nghị chứ không chấm giao dịch của
+trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm đề xuất chứ không chấm giao dịch của
 bạn.
 
 Mấy điều hay làm người mới bối rối:
@@ -355,7 +355,7 @@ fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }
 ```
 
 Đó là mặc định (`binance` giống `okx`, `gold-shop` không tính phí). Hãy sửa theo bậc phí thật của
-tài khoản bạn. Con số này còn dùng cho dòng chi phí trên mỗi khuyến nghị và mức phí ước tính khi đặt
+tài khoản bạn. Con số này còn dùng cho dòng chi phí trên mỗi đề xuất và mức phí ước tính khi đặt
 lệnh.
 
 Xem lại bất cứ lúc nào: `/portfolio` (giá trị và phân bổ) và `/transactions` (thêm số dòng, khoảng
@@ -641,7 +641,7 @@ Một lần `/rebalance` xét mọi thị trường cùng lúc, không cần ch�
 | Cân lại danh mục | `> /rebalance` | Sau một quãng giá trôi, tỷ trọng lệch mục tiêu. Chỉ đề xuất khi lệch đủ lớn - tháng êm có khi chẳng cần lệnh nào |
 | Soi thành tích gợi ý | `> /reflect` | Tỷ lệ thắng, so với chỉ số chuẩn, độ chuẩn xác theo mức tin cậy. Dữ liệu này cũng quay lại hiệu chỉnh các đề xuất sau ([6.7](#67-reflect---vòng-học)) |
 | Soi chủ đề đầu tư | `> /themes` | Chủ đề vĩ mô đổi chậm, một hai lần mỗi tháng là đủ ([6.8](#68-themes---chủ-đề-đầu-tư)) |
-| Kiểm chi phí | `openalpha cost --period month --breakdown` | Tháng vừa rồi tốn bao nhiêu, cho trợ lý và model nào |
+| Kiểm chi phí | `openalpha cost --period month --breakdown` | Tháng vừa rồi tốn bao nhiêu, cho agent nào, mô hình nào |
 | Sao lưu sổ | `openalpha db backup` | Sổ lệnh là thứ duy nhất không tái tạo được từ mạng |
 | Xuất sổ ra tệp | `openalpha db export --out ./export` | Một tệp cho mỗi bảng; mặc định chỉ lấy phần không nạp lại được từ mạng ([Lưu trữ](luu-tru.md)). Thêm `--format csv` để mở bằng Excel (csv chỉ để đọc) |
 | Nạp sổ trở lại | `openalpha db import --in ./export` | Cách giữ sổ khi phải `db reset`: `db backup` khôi phục cả schema cũ, còn export/import chỉ chuyển dữ liệu |

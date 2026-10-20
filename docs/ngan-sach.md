@@ -63,13 +63,13 @@ openalpha cost                                   # hôm nay
 openalpha cost --period week
 openalpha cost --period month
 openalpha cost --from 2026-07-01 --to 2026-07-22 # bao gồm hai đầu, tối đa 366 ngày
-openalpha cost --period week --breakdown         # tách theo trợ lý và mô hình
+openalpha cost --period week --breakdown         # tách theo agent và mô hình
 ```
 
 `week` là tuần này tính từ thứ Hai đến hôm nay, `month` là tháng tính đến hôm nay. Bản in theo ngày và theo tháng nêu luôn hạn
 mức khi có bật; theo tuần và theo khoảng tự chọn thì chỉ báo tổng.
 
-`--breakdown` tách đúng cái tổng đó theo trợ lý và mô hình, nên các dòng luôn cộng lại đúng bằng tổng. Đây là cách nhanh
+`--breakdown` tách đúng cái tổng đó theo agent và mô hình, nên các dòng luôn cộng lại đúng bằng tổng. Đây là cách nhanh
 nhất để trả lời "đổi sang mô hình kia có đáng không?": chạy trước và sau rồi so cả tiền lẫn độ trễ. Nó còn in một khối
 **Theo agent** trước các dòng theo mô hình, mỗi agent chịu chi phí một dòng kèm số đã tiêu. Với `--period day` mặc định, mỗi
 dòng còn cho thấy mức trần của agent ("$0.02 / $0.50 hôm nay"); tuần hoặc tháng thì bỏ nó, vì mức trần ngày đặt cạnh chi
@@ -100,6 +100,9 @@ giờ bị vứt bớt cho tổng vừa với hạn mức - một cuốn sổ n�
 Mỗi lần thử, kể cả lần hỏng, lần thử lại và lần dự phòng, đều được ghi vào sổ chi phí trong cơ sở dữ liệu của bạn. Tổng theo
 ngày, theo tháng và theo khoảng đều cộng từ các dòng đó, nên không có tổng nào riêng để mà lệch. Lúc khởi động, ngày và
 tháng hiện tại được dựng lại từ sổ trước khi duyệt bất cứ việc gì.
+
+Lần thử chưa tới được nhà cung cấp (kết nối bị từ chối, tên máy chủ không phân giải được, hoặc không đọc được thông tin
+đăng nhập) được ghi với chi phí bằng 0: chưa gửi gì đi thì cũng chưa bị tính tiền.
 
 Nếu một lần ghi vẫn hỏng sau ba lần thử lại, khoản chi được nối vào `unrecorded-spend.jsonl` trong thư mục dữ liệu. Lúc
 khởi động, tệp đó được cộng ngược vào tổng ngày và tháng cho đến hết tháng của nó, nên khởi động lại không trả tiền về cho

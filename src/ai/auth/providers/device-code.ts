@@ -1,7 +1,7 @@
 import { readRecord, readString } from '@/ai/auth/json'
 import { abortError, LLMError } from '@/core/errors'
 import { HttpRequestError, httpRequest } from '@/core/http-client'
-import { MS_PER_SECOND } from '@/core/utils/time'
+import { MS_PER_SECOND, sleep } from '@/core/utils/time'
 
 const REQUEST_TIMEOUT_MS = 30_000
 const MAX_BYTES = 65_536
@@ -49,7 +49,7 @@ export async function pollDeviceCode(input: PollDeviceCodeInput): Promise<Device
       return authorization
     }
 
-    await delay(started.intervalMs, input.signal)
+    await sleep(started.intervalMs, input.signal)
   }
 }
 
@@ -124,23 +124,4 @@ async function postJson(
   })
 
   return response.text
-}
-
-function delay(ms: number, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) {
-    return Promise.reject(abortError(signal))
-  }
-
-  return new Promise((resolve, reject) => {
-    const onAbort = (): void => {
-      clearTimeout(timer)
-      reject(abortError(signal))
-    }
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort)
-      resolve()
-    }, ms)
-
-    signal.addEventListener('abort', onAbort, { once: true })
-  })
 }

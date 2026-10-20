@@ -184,6 +184,22 @@ Under `openalpha mcp serve`, the connected client's model answers every agent, s
 read and needs no key. Only tiers looked up by name, such as `decisions`, still use config, and a
 tier whose key is missing is skipped instead of failing boot.
 
+#### Choosing a model per job
+
+Every model must support tool calls and return JSON that matches the schema. A model that often breaks the schema
+leaves suggestions inconclusive.
+
+| Job | Tier | Pick |
+|---|---|---|
+| Chat, and anything without its own tier | `[[models]]` | A cheap, fast model such as `deepseek-v4-flash`. Add a fallback on another provider. |
+| `/suggest`, the morning brief | `debate` | Start cheap. Through OpenRouter, pin the endpoint with `provider_only` as in the example above, since a random endpoint can be very slow. |
+| `/research` | `research`, `research-heavy` | See below. The reviewer is the quality gate, so do not go too cheap. |
+| `/themes` | `themes` | Like `research`: it needs tool calls. |
+| Headline reads, macro figure extraction | `decisions`, `extraction` | A cheap model is enough: short jobs that only need exact figures and the right schema. |
+
+A model change cannot be measured in advance, so change one tier at a time and watch the spend with
+`openalpha cost --breakdown`.
+
 #### Choosing models for the research tiers
 
 Pick by workload, not by agent count:
@@ -554,8 +570,9 @@ url = "https://host/mcp"      # must be http: or https:
 enabled = true
 ```
 
-Placeholders use `${NAME}`, where `NAME` matches `[A-Za-z_][A-Za-z0-9_]*`. A missing, empty or
-unrecognized placeholder is a hard error at boot.
+Placeholders use `${NAME}`, where `NAME` matches `[A-Za-z_][A-Za-z0-9_]*`. When the variable is unset
+or empty, `start` skips that server with a warning and `config validate` lists the missing key. A
+placeholder that is not a valid name stops boot.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
@@ -666,7 +683,7 @@ each mode does, what `remember` covers, and how the prompt reads on each surface
 ## `[trading]`
 
 Optional subsections: `suggestions`, `markets`, `briefs`, `intraday`, `alerts`, `orders`, `venues`,
-`refresh`, `sources` and `themes`. Every key has a default. An unknown key is a boot error.
+`refresh`, `sources`, `themes` and `typed_prices`. Every key has a default. An unknown key is a boot error.
 
 ```toml
 [trading.suggestions]

@@ -416,7 +416,7 @@ xác nhận trước khi chạy.
 
 `cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). Nó đọc
 số liệu từng lần gọi đã lưu thay vì ước lượng từ nội dung hội thoại, nên khớp với hóa đơn của nhà cung
-cấp. `--breakdown` tách đúng khoảng đó theo trợ lý và mô hình - số lời gọi, số lần hỏng, thời gian trả
+cấp. `--breakdown` tách đúng khoảng đó theo agent và mô hình - số lời gọi, số lần hỏng, thời gian trả
 lời điển hình, token đến từ cache, token tiêu cho suy nghĩ - đắt nhất trước.
 
 ## Ghép nối

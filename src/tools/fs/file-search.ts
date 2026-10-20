@@ -166,7 +166,10 @@ async function searchFile(
   // workspace-relative like every other tool's output.
   const relPath = relTo(params.workspace.path, realPath)
 
-  if (params.glob && !isGlobMatch(params.glob, relTo(params.root, realPath))) {
+  if (
+    PathPolicy.isSensitive(realPath) ||
+    (params.glob && !isGlobMatch(params.glob, relTo(params.root, realPath)))
+  ) {
     return { matches: [], skippedBinary: false }
   }
 

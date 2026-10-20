@@ -7,6 +7,7 @@ import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
 import { toHealthCode } from '@/app/views'
 import { BRAND } from '@/core/brand'
+import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_MINUTE } from '@/core/utils/time'
 import { t } from '@/i18n'
 
@@ -38,10 +39,11 @@ interface DownPeriod {
   noRouteLogged: boolean
 }
 
-/** Channels report status only by merging into their own state, with no bus event, so one small loop
- *  reads the snapshots `/health` already shows. A channel down past the grace is announced once, on
- *  another channel that is up, and once more when it returns. Returns the disposer. */
-export function startChannelWatch(input: ChannelWatchInput): () => void {
+/** Channels report status only by merging into their own state, with no bus event, so one small
+ *  loop reads the snapshots `/health` already shows. A channel down past the grace is announced
+ *  once, on another channel that is up, and once more when it returns. The returned disposer waits
+ *  out a pass in flight. */
+export function startChannelWatch(input: ChannelWatchInput): () => Promise<void> {
   const periods = new Map<ChannelId, DownPeriod>()
   const known = { downSet: '' }
   const stop = new AbortController()
@@ -54,18 +56,26 @@ export function startChannelWatch(input: ChannelWatchInput): () => void {
 
     const pass = { input, periods, known, nowMs: performance.now(), signal: stop.signal }
 
-    inFlight = watchOnce(pass).finally(() => {
-      inFlight = null
-    })
+    inFlight = watchOnce(pass)
+      .catch((err: unknown) => {
+        input.logger.warn('channel.watch_failed', { err: formatErrForLog(err) })
+      })
+      .finally(() => {
+        inFlight = null
+      })
   }
   const timer = setInterval(tick, CHANNEL_WATCH_INTERVAL_MS)
 
   // Only a tick in flight is worth holding the process open for, and it holds itself.
   timer.unref()
 
-  return () => {
+  return async () => {
     clearInterval(timer)
     stop.abort()
+
+    if (inFlight !== null) {
+      await inFlight
+    }
   }
 }
 

@@ -253,15 +253,15 @@ function spendSegments(locale: Locale, row: SpendBreakdownRow): readonly string[
 
 // Worded like the run footer, so "tokens sent" means the same number on every surface.
 function tokenSegments(locale: Locale, row: SpendBreakdownRow): readonly string[] {
-  const input = formatTokenCount(sentTokensOf(row))
-  const output = formatTokenCount(row.outputTokens)
+  const input = formatTokenCount(locale, sentTokensOf(row))
+  const output = formatTokenCount(locale, row.outputTokens)
   const sent =
     row.cacheReadTokens === 0
       ? t(locale, 'footer.tokens', { input, output })
       : t(locale, 'footer.tokensCached', {
           input,
           output,
-          cached: formatTokenCount(row.cacheReadTokens),
+          cached: formatTokenCount(locale, row.cacheReadTokens),
         })
 
   return [
@@ -270,7 +270,7 @@ function tokenSegments(locale: Locale, row: SpendBreakdownRow): readonly string[
       ? []
       : [
           t(locale, 'cli.costBreakdownThinking', {
-            reasoning: formatTokenCount(row.reasoningTokens),
+            reasoning: formatTokenCount(locale, row.reasoningTokens),
           }),
         ]),
   ]

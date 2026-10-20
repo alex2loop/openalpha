@@ -18,6 +18,7 @@ import {
   MAXIMUM_INVALIDATORS,
 } from '@/trading/features/suggestion/pipeline/schemas'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { orderSessionOf, sessionPhase } from '@/trading/markets/calendar'
 
 const CASE_INSTRUCTIONS = [
@@ -354,7 +355,7 @@ function orderedEvidence(context: PromptContext): string {
 }
 
 function bullFirst(context: PromptContext): boolean {
-  const key = `${context.input.draft.instrument.market}:${context.input.draft.instrument.ticker}`
+  const key = buildInstrumentKey(context.input.draft.instrument)
   let hash = 0
 
   for (let index = 0; index < key.length; index += 1) {

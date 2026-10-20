@@ -202,7 +202,7 @@ function renderThinkingBlock(
 
   printActivityLine(
     state,
-    event.block.type === 'thinking' ? event.block.thinking : '[redacted thinking]'
+    event.block.type === 'thinking' ? event.block.thinking : t(state.locale, 'ui.thinkingRedacted')
   )
 }
 

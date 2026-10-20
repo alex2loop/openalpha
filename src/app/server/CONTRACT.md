@@ -74,7 +74,7 @@ this document — neither imports the other.
 | GET | `/v1/providers` | yes | — | provider catalog | — |
 | POST | `/v1/providers/test` | yes | `{}` | `ProviderTestResult` (`{ok, model}` or `{ok:false, code}`) | — |
 | GET · POST · DELETE | `/v1/auth/chatgpt` | yes | `{ method: 'browser' \| 'device' }` (POST) | `ChatgptAuthStatus` | `chatgpt.json`, `chatgpt.login.json` |
-| GET | `/v1/chat/recent`, `/v1/chat/history/:sessionId` | yes | `?limit&before` (history; `before` is clamped to the transcript length, a non-numeric or oversized value is ignored) | session id / message page | — |
+| GET | `/v1/chat/recent`, `/v1/chat/history/:sessionId` | yes | `?limit&before` (history; `limit` defaults to 30 and runs 1 to the session message cap, anything else is `invalid_body`; `before` is a transcript index (`idx`) and returns the rows older than it, a non-numeric or oversized value is ignored; `nextBefore` is the oldest returned row's `idx`; a page whose messages all render empty is possible, so keep paging while `hasMore`) | session id / message page | — |
 | POST | `/v1/mcp` | yes | MCP JSON-RPC | MCP result (tools only) | — |
 | GET | `/v1/quotes` | yes | — | `TradingQuotesResponse` | `quotes.json` |
 | GET | `/v1/ohlcv` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingOhlcvResponse` | `ohlcv.json` |
@@ -198,7 +198,7 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 | `run_started` / `run_finished` | — | run lifecycle (any channel) |
 | `usage` | `usage` `{costUsd,tokens}` | per-run cost/tokens tick |
 | `tool_result` | `tool` `{name,ok}` | a tool finished (afterTool) |
-| `approval_requested` | `approval` `{toolName,argsSummary,decisions,dangerous?,truncated?}` + `requestId` | tool-gate decision needed; offer only `decisions` |
+| `approval_requested` | `approval` `{toolName,label,argsSummary,expiresAt,decisions,dangerous?,truncated?}` + `requestId` | tool-gate decision needed; offer only `decisions`. `label` is the tool's name in the operator's language; `expiresAt` (epoch ms) is when the gate denies on its own |
 | `approval_resolved` | `resolution` `{decision,by}` + `requestId` | answered elsewhere / timeout → clear card |
 | `clarification_requested` | `clarification` `{text,sessionId}` | agent asks; the answer is the next chat message in `sessionId`, on the surface in `source.channel` |
 | `budget_warning` | `budget` `{period,spent,cap}` | non-interactive heads-up |

@@ -211,7 +211,7 @@ function coverageOf(bars: SourceResult<readonly Candle[]>, at: TradingDay): Seri
     return bars.reason === 'empty' ? 'uncovered' : 'unknown'
   }
 
-  if (bars.caveats.some((caveat) => caveat.code === 'source.stale-cache')) {
+  if (isStaleCache(bars)) {
     return 'unknown'
   }
 
@@ -368,5 +368,10 @@ async function readBenchmark(
     signal: pass.options.signal,
   })
 
-  return bars?.kind === 'available' ? bars.value : undefined
+  // A stale cache served because the provider failed may end sessions short of the exit.
+  return bars?.kind === 'available' && !isStaleCache(bars) ? bars.value : undefined
+}
+
+function isStaleCache(bars: { readonly caveats: readonly { readonly code: string }[] }): boolean {
+  return bars.caveats.some((caveat) => caveat.code === 'source.stale-cache')
 }

@@ -7,6 +7,40 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [1.0.11] - 2026-10-20
+
+Fixes: `db reset` can back up first again, a rejected AI key is no longer reported as a rate limit,
+and a past day's USDT rate stays the same between calls. Source lines show the day.
+> Sửa lỗi: `db reset` sao lưu trước được trở lại, khóa AI bị từ chối không còn bị báo là quá giới hạn, và tỷ giá USDT của ngày đã qua không còn đổi giữa các lần gọi. Dòng nguồn ghi cả ngày.
+
+### Fixes
+
+- `db reset` no longer stops when you accept its backup.
+- `| head` no longer prints a broken-pipe error.
+- A rejected AI key is reported as such on every message, not as a rate limit.
+- A past day's USDT rate uses that day's prices, so it no longer changes between calls.
+- A failed connection to the AI provider is not billed.
+- Telegram stops after repeated rejected tokens.
+- ChatGPT sign-in refreshes before it expires.
+
+### Display
+
+- Source lines show the day: "as of 19/10/2026 19:35".
+- A broken-stop alert is titled "Through its stop"; alert hints name `/suggest equity-vn:FPT`.
+- Costs print as "0.0142 USD".
+- Telegram never splits a message inside a code block.
+
+### Chat
+
+- `/memory` refuses keys with accents or spaces; search finds short terms.
+- Reinstalling a skill points at `--force`.
+- File search skips `.env` files.
+
+### API
+
+- `approval_requested` adds `label` and `expiresAt`.
+- `/v1/chat/history` pages by `idx` (`before`, `nextBefore`).
+
 ## [1.0.10] - 2026-10-20
 
 Setup and chat explain themselves better: `onboard` tests the key it saves and says why a test failed,
@@ -398,6 +432,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.11]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.11
 [1.0.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.10
 [1.0.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.9
 [1.0.8]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.8

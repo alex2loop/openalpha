@@ -18,6 +18,7 @@ import {
   openedBeyondStop,
 } from '@/trading/features/suggestion/pipeline/outcome-prices'
 import { armsExit } from '@/trading/features/suggestion/types'
+import { isBenchmarkCurrent } from '@/trading/markets/timeseries'
 
 /** Multiple of the holding window past which a suggestion expires at its last available bar even
  *  though the source never delivered a full one. Wide enough that a calendar over-counting holidays
@@ -435,7 +436,7 @@ function outcomeOf(input: OutcomeInput, exit: OutcomeExit): OutcomeResolution {
  *  before the fill where a limit lock rolled it - and closes on its last at or before the exit. Opened on the first close after a weekend or pre-open call,
  *  it skipped a session the call itself was scored on. A series whose days do not line up exactly
  *  is common — one provider gap is enough — and dropping the comparison for it loses the benchmark
- *  on exactly the runs that most need one. */
+ *  on exactly the runs that most need one; a series further behind than that has no comparison. */
 function benchmarkReturn(input: OutcomeInput, exitBar: Candle): number | undefined {
   const bars = input.benchmarkBars ?? []
   const { suggestion } = input
@@ -447,7 +448,13 @@ function benchmarkReturn(input: OutcomeInput, exitBar: Candle): number | undefin
       : bars.findLast((bar) => bar.at < tradesOn)
   const end = bars.findLast((bar) => bar.at <= exitBar.at)
 
-  if (start === undefined || end === undefined || start.close <= 0 || end.at <= start.at) {
+  if (
+    start === undefined ||
+    end === undefined ||
+    start.close <= 0 ||
+    end.at <= start.at ||
+    !isBenchmarkCurrent(input.bars, end.at, exitBar.at)
+  ) {
     return undefined
   }
 

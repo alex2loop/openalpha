@@ -18,12 +18,18 @@ export function toMemoryScope(ctx: ToolInvocationContext): MemoryScope {
 }
 
 // A delegated child is confined to its own session prefix, which the advertised key cap excludes.
+export function childKeyPrefix(ctx: ToolInvocationContext): string | undefined {
+  return ctx.callDepth === 0 ? undefined : `${ctx.sessionId}:`
+}
+
 export function scopedKey(ctx: ToolInvocationContext, key: string): string {
-  if (ctx.callDepth === 0) {
+  const prefix = childKeyPrefix(ctx)
+
+  if (prefix === undefined) {
     return key
   }
 
-  const scoped = `${ctx.sessionId}:${key}`
+  const scoped = `${prefix}${key}`
 
   if (!isMemoryKey(scoped)) {
     throw new ToolError(

@@ -2,6 +2,7 @@ import type { Hooks, LLMRequestModifier } from '@/engine/api'
 import type { RiskCapSet, UserProfile } from '@/trading/kernel/operator/profile'
 import { escapeXml } from '@/core/security/sanitize'
 import { appendSystemBlock } from '@/engine/api'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isSegmentDisabled } from '@/trading/kernel/operator/profile'
 import { promptPercent } from '@/trading/prompt-text'
 
@@ -106,7 +107,7 @@ function formatRefs(refs: UserProfile['watchlist']): string {
 
   const shown = refs
     .slice(0, MAXIMUM_LISTED_INSTRUMENTS)
-    .map((ref) => escapeXml(`${ref.market}:${ref.ticker}`))
+    .map((ref) => escapeXml(buildInstrumentKey(ref)))
     .join(', ')
   const dropped = refs.length - Math.min(refs.length, MAXIMUM_LISTED_INSTRUMENTS)
 

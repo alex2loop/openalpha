@@ -4,11 +4,12 @@ import type { CommandExchange } from '@/core/types/command'
 import type { Storage, Transaction } from '@/core/types/storage'
 import type { LLMAttemptRow } from '@/persistence/stores/llm-attempt'
 import type { SessionSql } from '@/persistence/stores/session/sql'
-import type { SessionSnapshot } from '@/persistence/types'
+import type { HistoryPage, HistoryPageQuery, SessionSnapshot } from '@/persistence/types'
 import { ConflictError, StorageError } from '@/core/errors'
 import { withRetry } from '@/core/utils/retry'
 import { toLlmAttempt } from '@/persistence/stores/llm-attempt'
 import {
+  type IndexedPayloadRow,
   type MessagePayloadRow,
   type SessionRow,
   type StoredMessageRow,
@@ -49,6 +50,30 @@ export async function loadSessionHistory(
       ? await store.db.query<MessagePayloadRow>(store.sql.loadPayloads, [id])
       : await store.db.query<MessagePayloadRow>(store.sql.loadPayloadTail, [id, limit])
   return rows.map(toMessage)
+}
+
+export async function loadSessionHistoryPage(
+  store: StoreDeps,
+  id: SessionId,
+  query: HistoryPageQuery
+): Promise<HistoryPage> {
+  const { before, limit } = query
+  const rows =
+    before === undefined
+      ? await store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptNewest, [id, limit + 1])
+      : await store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptBefore, [
+          id,
+          before,
+          limit + 1,
+        ])
+  const hasMore = rows.length > limit
+  const page = rows.slice(0, limit).reverse()
+
+  return {
+    messages: page.map(toMessage),
+    hasMore,
+    nextBefore: hasMore ? (page[0]?.idx ?? null) : null,
+  }
 }
 
 export async function loadSessionDetails(
