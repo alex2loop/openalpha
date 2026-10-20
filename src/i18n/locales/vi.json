@@ -2088,7 +2088,7 @@
     "metric-short.net-interest-to-assets": "NII/tài sản",
     "metric-short.ranked-peers": "số mã",
     "metric-short.trend-average": "TB {sessions}",
-    "metric-short.year-high": "đỉnh {sessions}",
+    "metric-short.year-high": "đỉnh {sessions} phiên",
     "metric-short.breakout-trigger": "vượt {sessions} phiên trước",
     "metric-short.return-on-assets": "LN/tài sản",
     "metric-short.return-on-equity": "LN/vốn chủ",

@@ -2088,7 +2088,7 @@
     "metric-short.net-interest-to-assets": "NII/assets",
     "metric-short.ranked-peers": "peers",
     "metric-short.trend-average": "MA {sessions}",
-    "metric-short.year-high": "high {sessions}",
+    "metric-short.year-high": "{sessions}-session high",
     "metric-short.breakout-trigger": "trigger prior {sessions}",
     "metric-short.return-on-assets": "ROA",
     "metric-short.return-on-equity": "ROE",
