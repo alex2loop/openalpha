@@ -185,7 +185,7 @@ Một mã bạn đã loại vẫn được xếp hạng và vẫn in ra, kèm `n
 
 Không gì từ hồ sơ định hình chính cái bảng. Tập công cụ, xếp hạng, điểm số và các yếu tố giống hệt nhau dưới mọi hồ sơ, nên bảng không mang dấu hồ sơ nào - một tiêu đề chính sách ở đó sẽ hàm ý một bộ lọc chưa bao giờ chạy.
 
-Hồ sơ không đọc được thì bảng mất các dấu, không bao giờ mất các dòng, và nói rõ bằng `profile.exclusions-unavailable`. Đó là thứ tách "ở đây không có gì bị loại" khỏi "chúng tôi không kiểm được".
+Hồ sơ không đọc được thì bảng mất các dấu, không bao giờ mất các dòng, và nói rõ bằng `profile.exclusions-unavailable`. Đó là thứ tách "ở đây không có gì bị loại" khỏi "mình không kiểm được".
 
 #### Unavailable là một câu trả lời
 
@@ -554,7 +554,7 @@ Nó không đưa giá. `/suggest <mã>` mới đưa giá vào, cắt lỗ, mục
 
 Các lệnh:
 
-- `/themes` chạy nó. Nó tốn lời gọi mô hình, bị chặn bởi `[trading.themes] max_cost_usd`.
+- `/themes` chạy nó. Nó tốn lời gọi mô hình, bị chặn bởi `[trading.themes] maximum_cost_usd`.
 - `/themes run <id>` kiểm lại một chủ đề đang theo dõi cùng các ngành và công ty của nó, và không tìm chủ đề mới.
 - `/themes show` hiện từng chủ đề như lần đọc cuối, miễn phí.
 - `/themes approve|reject|retire <id>` chuyển trạng thái một chủ đề.
@@ -576,7 +576,7 @@ Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi đượ
 - Một chủ đề chỉ bị đánh dấu `invalidated` khi một điều kiện của chính nó được dữ liệu cứng chống lưng.
 - Chỉ bạn mới đặt một chủ đề thành `active`, từ chối hay cho nghỉ hẳn.
 
-**Một ngân sách, một lần chạy tại một thời điểm.** Một lượt chạy dùng một ngân sách, thấp hơn giữa `[trading.themes] max_cost_usd` và `[budget]`, và một hạn mức research. Mỗi tiến trình chỉ chạy một lượt tại một thời điểm.
+**Một ngân sách, một lần chạy tại một thời điểm.** Một lượt chạy dùng một ngân sách, thấp hơn giữa `[trading.themes] maximum_cost_usd` và `[budget]`, và một hạn mức research. Mỗi tiến trình chỉ chạy một lượt tại một thời điểm.
 
 - Nó không ghi gì cho tới khi mọi bước đã trả lời, và đổi trạng thái chỉ chạm các chủ đề còn đang theo dõi.
 - Hết ngân sách thì dừng giai đoạn đó và nêu tên các bước bị bỏ.
@@ -779,7 +779,7 @@ openalpha chat --message "/update 0f9838 buy VPS equity-vn:ACB 600 21900 VND 120
 openalpha chat --message "/delete 0f9838 confirm"
 ```
 
-`/update` nhận mã ngắn rồi tới đúng các trường mà `/record` nhận: cả giao dịch, không phải một bản vá. Khi sửa, bạn phải nêu rõ khối lượng và phí, ở chỗ `/record` cho phép viết `all` hoặc để phí theo tỷ lệ. Dòng bạn sửa vốn đã có cả hai, và tính lại một trong hai dựa trên một cuốn sổ mới hơn hay một tỷ lệ đã đổi sẽ dịch một con số đã chốt mà bạn chưa hề nêu lại.
+`/update` nhận mã ngắn rồi tới đủ cả dòng `/record`: cả giao dịch, không phải một bản vá. Câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Khi sửa, bạn phải nêu rõ khối lượng và phí, ở chỗ `/record` cho phép viết `all` hoặc để phí theo tỷ lệ. Dòng bạn sửa vốn đã có cả hai, và tính lại một trong hai dựa trên một cuốn sổ mới hơn hay một tỷ lệ đã đổi sẽ dịch một con số đã chốt mà bạn chưa hề nêu lại.
 
 `/delete <mã>` cho xem dòng đó và hỏi lại trước (một nút trên Telegram, một dòng để gõ ở nơi khác); `/delete <mã> confirm` mới xóa hẳn dòng đó (một dòng trùng, hoặc một giao dịch chưa từng xảy ra). Script nào xóa một bước thì phải thêm `confirm`. Cả hai cũng nhận mã bút toán đầy đủ, đó là cái agent truyền qua `portfolio_update` hay `portfolio_remove`.
 
@@ -871,6 +871,26 @@ Khoản nạp bằng đồng tiền mà thị trường của sàn niêm yết, 
 - **Dòng chênh tỷ giá âm ngay sau khi nạp qua P2P.** USDT được tính theo tỷ giá USD/VND thị trường, còn giá vốn là giá P2P bạn đã trả, nên ngay sau khoản nạp ở 26.600 dòng đó đọc khoảng -2% khi tỷ giá thị trường là khoảng 26.036.
 - **Xem ở đâu.** `/portfolio` liệt kê USDT cạnh tiền mặt cùng giá vốn và giá trị hôm nay, và in phần chênh tỷ giá. `/reconcile` đối chiếu nó với số USDT thật trên sàn.
 
+Một vòng giao dịch crypto, từng bước, với tỷ giá bạn đã trả chỉ ghi một lần, ở dòng nạp:
+
+1. **Nạp USDT kèm tỷ giá bạn đã trả.** `/record deposit binance 1000 USDT 2026-08-14 fx 26600`.
+2. **Mua bằng số USDT đó, không `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14` (hoặc `/record buy binance BTC 0.01 60000` khi BTC chỉ niêm yết ở một thị trường). Lệnh dùng số USDT theo giá vốn của nó; thêm `fx` ở đây sẽ bị từ chối kèm lý do.
+3. **Bán ngược về USDT.** `/record sell binance crypto:BTC all 65000 USDT 2026-09-01`.
+4. **Rút USDT theo tỷ giá lúc bạn bán.** `/record withdrawal binance 500 USDT 2026-09-20 fx 26900` ghi phần chênh giữa hai tỷ giá thành lãi lỗ đã chốt.
+5. **Kiểm tra** bằng `/portfolio`, `/transactions`, và `/reconcile` khi sàn đã có khóa.
+
+Đã có sẵn USDT hoặc coin ở sàn trước khi bắt đầu sổ? Ghi số dư hôm nay, không cần ghi lại lịch sử:
+
+- **Chỉ có USDT:** một dòng nạp bằng số USDT bạn đang giữ, kèm `fx <giá vốn bình quân>`, hoặc `fx auto` nếu bạn không biết (lãi lỗ tỷ giá trước ngày đó khi ấy không được tính).
+- **USDT và coin:** nạp số USDT đang giữ cộng với giá vốn của các coin, rồi mỗi coin một dòng mua với khối lượng hiện tại, giá vốn bình quân và phí `0`. Khi đó số USDT trong sổ khớp với sàn. Phí `0` sẽ in một ghi chú "phí lệch"; với số dư đầu kỳ thì cứ bỏ qua.
+
+```text
+/record deposit okx 1300 USDT 2026-10-16 fx auto        # 1.000 USDT đang giữ + 300 đã dùng mua BTC
+/record buy okx crypto:BTC 0.005 60000 USDT 0 2026-10-16
+```
+
+`/record sync` chỉ đọc lệnh khớp từ dòng đầu tiên của sổ trở đi, nên không ghi được số coin đã mua trước đó. Khi sàn đã có khóa, `/reconcile` kiểm tra kết quả với số dư thật.
+
 #### Đã có danh mục, không muốn ghi lại từng lệnh cũ
 
 Bạn đang giữ vài mã, đã bán vài mã và lỗ một khoản, nhưng không muốn ngồi gõ lại cả chục lệnh cũ? Không
@@ -895,6 +915,9 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
   VND".
 - **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
   báo ngay.
+- **Mỗi mã được đặt luôn kế hoạch thoát**, tính theo giá vốn bạn đã gõ. Một mã đang giao dịch thấp hơn
+  nhiều so với giá vốn đó có thể đã nằm dưới mức cắt lỗ, và `/portfolio` khi ấy ghi "đã xuyên mức cắt
+  lỗ". Đó là lời nhắc xem lại mã, không phải lỗi ghi sổ.
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
 nạp, trừ 95 triệu FPT, 52 triệu HPG và 15 triệu lỗ, còn 38 triệu. Lệch thì thường do nhớ sai tổng lỗ

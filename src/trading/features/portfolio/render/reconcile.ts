@@ -1,6 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
 import type { RenderContext } from '@/trading/render/format'
+import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 import {
   formatQuantity,
@@ -62,6 +63,7 @@ function renderUncompared(locale: Locale, entry: VenueReconciliation): readonly 
     `${INDENT[1]}${t(locale, `trading.render.reconcile.${uncompared}`, {
       venue: renderVenueName(locale, entry.venue),
       variables: entry.missingCredentials?.join(', ') ?? '',
+      brand: BRAND.name,
     })}`,
   ]
 }

@@ -385,7 +385,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `mid_stream_updates` | bool | `true` | Sửa câu trả lời trong lúc truyền luồng. |
 | `slash_commands` | bool | `true` | Bật lệnh gạch chéo và menu lệnh. |
 | `notify_max_per_minute` | số nguyên | `3` | Trần tần suất tin chủ động. |
-| `gap_note_minutes` | số nguyên | `30` | Số phút im lặng để câu trả lời kế tiếp được nhắc xem lại giá; `0` là tắt. |
+| `gap_note_ms` | số nguyên | `1800000` | Số mili giây im lặng (mặc định 30 phút) để câu trả lời kế tiếp được nhắc xem lại giá; `0` là tắt. |
 | `fallback_chat_id` | chuỗi | id được phép duy nhất, hoặc chat ghép nối duy nhất | Đích dự phòng cho tin chủ động. |
 | `pairing` | bool | `true` khi không có danh sách cho phép | Cho chat lạ ghép nối. |
 
@@ -404,7 +404,7 @@ khóa gửi tin đã liệt kê cho Telegram, cộng các khóa dưới đây. K
 | `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho chat và người dùng. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh operator. |
-| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing` | Cách xét duyệt chat, và công tắc tắt kênh. Không có chế độ mở. |
+| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, hoặc `allowlist` khi đã có `allowed_ids` | Cách xét duyệt chat, và công tắc tắt kênh. Không có chế độ mở. |
 
 Token phân giải như Telegram. Bộ nối này dùng polling, nên lúc khởi động nó gỡ webhook đang gắn với
 bot: Zalo chỉ giao tin theo một trong hai cách, không bao giờ cả hai.
@@ -474,7 +474,7 @@ bỏ qua và không công cụ web nào được chào; client tự mang của n
 | `fallback_api_key_env` | chuỗi | - | Như `api_key_env`, cho bên dự phòng. |
 | `fallback_base_url` | chuỗi | - | Như `base_url`, chỉ cho bên dự phòng `searxng`. |
 | `fallback_cost_per_search_usd` | số thực | - | Như `cost_per_search_usd`, cho bên dự phòng. |
-| `cache_ttl_seconds` | số nguyên | `300` | Thời gian sống của cache kết quả theo truy vấn; `0` thì tắt cache. |
+| `cache_ttl_ms` | số nguyên | `300000` | Thời gian sống của cache kết quả theo truy vấn, tính bằng mili giây; `0` thì tắt cache. |
 | `exa_search_type` | chuỗi | `auto` | Chỉ Exa: `auto`, `fast`, `instant`, `deep-lite`, `deep`, `deep-reasoning`. |
 | `safe_search` | số nguyên | theo instance | Chỉ SearXNG: `0`, `1` hoặc `2`. Bỏ trống thì giữ thiết lập của instance. |
 
@@ -724,7 +724,7 @@ fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
 interval_ms = 43_200_000       # chỉ là trần; refresh bám theo lịch giao dịch
 
 [trading.themes]
-max_cost_usd = 1.0             # mức tối đa một lượt /themes được tiêu, gồm cả nghiên cứu
+maximum_cost_usd = 1.0             # mức tối đa một lượt /themes được tiêu, gồm cả nghiên cứu
 ```
 
 Bảng của một sàn nhận `default_for`, `markets` (chỉ sàn ghi tay), `fees` và, với OKX và Binance,
@@ -801,7 +801,7 @@ Chỉ `[trading.orders]` quyết định một lệnh có được đặt hay kh
 hỏi. Nên đặt lệnh khi không có người trông cần **hai** quyết định của bạn, không phải một; xem
 [An toàn](an-toan.md).
 
-`credentials` chứa **tên biến**, không bao giờ chứa giá trị. Tên khóa là của chính sàn. Mỗi cái được đọc
+`credentials` chứa **tên biến**, không bao giờ chứa giá trị. Tên khóa là của chính sàn: `okx` nhận `apiKey`, `secret` và `passphrase`, `binance` nhận `apiKey` và `secret`, còn trường nào khác sẽ làm khởi động dừng lại và nêu các trường sàn đó nhận. Mỗi cái được đọc
 theo đúng tên biến đó, hoặc nếu không có thì đọc cùng tên với tiền tố `OPENALPHA_`. Thiếu một cái không
 phải lỗi khởi động: sàn không có bộ nối, không đặt được lệnh nào, `/trade` chỉ nêu tên các khóa cần đặt,
 và daemon vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ giao dịch; chỉ là không bao giờ được
@@ -921,14 +921,14 @@ OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trìn
 một dấu cách là chú thích. Tệp khóa theo `--data-dir`
 hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu hình. Thiếu khóa của mô hình chỉ chặn những việc cần
 gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
-`openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn đặt
-khóa rồi khởi động lại.
+`openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn lưu
+khóa bằng `openalpha key set <TÊN>` rồi chạy `openalpha restart --background`.
 
 ```text
 config.toml có chỗ cần sửa:
 - `loop.max_turns`: giá trị phải lớn hơn 0
-- `budget.max_daly_usd`: không phải thiết lập tôi biết, có phải ý bạn là `max_daily_usd`?
+- `budget.max_daly_usd`: không phải thiết lập mình biết, có phải ý bạn là `max_daily_usd`?
 Sửa xong rồi chạy lại nhé.
 
-Chưa đặt biến môi trường ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Đặt bằng `openalpha key set ANTHROPIC_API_KEY` trong terminal bạn đang dùng rồi chạy lại nhé.
+Chưa có ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Lưu bằng `openalpha key set ANTHROPIC_API_KEY` rồi thử lại nhé.
 ```

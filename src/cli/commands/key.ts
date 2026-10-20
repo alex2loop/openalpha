@@ -18,6 +18,7 @@ import { declined, promptSecret } from '@/cli/ui/prompt'
 import { BRAND, isControlEnvName } from '@/core/brand'
 import { isEnvName } from '@/core/config/resolve'
 import { isAbortError } from '@/core/errors'
+import { closestName } from '@/core/utils/text'
 import { t } from '@/i18n'
 
 const KEY_TAIL_CHARS = 4
@@ -90,16 +91,43 @@ async function setKey(args: ParsedArgs, app: CliApp): Promise<number> {
 
   await writeEnvFileValue({ path, name, value })
   app.out(success(t(locale, 'cli.keySaved', { name, path })))
+  await printSaveHints(app, name)
+
+  return 0
+}
+
+async function printSaveHints(app: CliApp, name: string): Promise<void> {
+  const locale = app.config.locale.language
+  const known = hasLoadedConfig(app) ? keyEnvNames(app.config) : undefined
 
   if (isSetInShell(app, name)) {
     app.out(hint(t(locale, 'cli.keyShellWins', { name })))
   }
 
+  // A hint, never a refusal: a key saved before the config names it is legitimate.
+  if (known !== undefined && known.length > 0 && !known.includes(name)) {
+    app.out(hint(renderUnreadName(app, name, known)))
+  }
+
   if ((await liveDaemon(app)) !== null) {
     app.out(hint(t(locale, 'cli.keyRestart', { brand: BRAND.name })))
   }
+}
 
-  return 0
+function renderUnreadName(app: CliApp, name: string, names: readonly string[]): string {
+  const locale = app.config.locale.language
+  const near = closestName(name, names)
+
+  if (near !== undefined) {
+    return t(locale, 'cli.keyNameUnreadNear', { name, near })
+  }
+
+  // A plugin source names its key in code only boot loads, so the config's list cannot rule it out.
+  if (app.config.plugins.allowCode) {
+    return t(locale, 'cli.keyNamePluginMay', { name })
+  }
+
+  return t(locale, 'cli.keyNameUnread', { name, names: names.join(', ') })
 }
 
 /** undefined: the prompt was cancelled. */

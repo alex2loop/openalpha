@@ -31,7 +31,7 @@ A day and a month follow `[locale] timezone` (the host zone, `UTC` when the host
 
 A run's ceiling is the lower of `max_per_run_usd` and `max_daily_usd`. With both at `0` there is no ceiling.
 `chat --max-cost-usd <amount>` replaces that ceiling for one run; the daily and monthly checks still apply on top.
-A `/themes` run also stops at `[trading.themes] max_cost_usd` (default `1.0`) when that is lower.
+A `/themes` run also stops at `[trading.themes] maximum_cost_usd` (default `1.0`) when that is lower.
 
 ### Per-agent cap
 
@@ -65,7 +65,7 @@ openalpha cost --from 2026-07-01 --to 2026-07-22 # inclusive, up to 366 days
 openalpha cost --period week --breakdown         # split by assistant and model
 ```
 
-`week` is the last seven days including today. `month` is the month so far. Day and month output names the cap when
+`week` is this week so far, from Monday. `month` is the month so far. Day and month output names the cap when
 one is enabled; week and custom ranges report the total only.
 
 `--breakdown` splits that same total by assistant and model, so the lines always add up. It is the quickest answer

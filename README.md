@@ -61,7 +61,7 @@ Bạn:  /suggest XXX
   Đừng mua đuổi trên xx,xx. Mua trước 200 XXX, phần còn lại mua sau nếu giá quay lại và đứng vững.
   Đã trừ phí: nếu chạm cắt lỗ, bạn mất khoảng 737.120 VND (0,37% danh mục).
 
-🚩 Tôi sai khi
+🚩 Mình sai khi
   Báo cáo năm 2026 ghi nhận dòng tiền hoạt động thấp hơn lợi nhuận.
 
 💬 Tranh luận (3 bước sàng lọc)
@@ -453,7 +453,7 @@ bun run lint:arch   # các cổng kiến trúc
 
 Một thay đổi chỉ được nhận khi cả hai lệnh trên đều qua. Quy tắc nội bộ và bất biến nghiệp vụ: [AGENTS.md](AGENTS.md). Bản clone cập nhật bằng `git pull`.
 
-Kiến trúc: 15 mô-đun, phụ thuộc một chiều về phía lõi, không vòng lặp; 30 cổng chặn tự động làm build thất bại ngay khi một mô-đun vượt ranh giới. Góp mã: [CONTRIBUTING.md](CONTRIBUTING.md) · [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
+Kiến trúc: 15 mô-đun, phụ thuộc một chiều về phía lõi, không vòng lặp; 31 cổng chặn tự động làm build thất bại ngay khi một mô-đun vượt ranh giới. Góp mã: [CONTRIBUTING.md](CONTRIBUTING.md) · [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
 
 ### Hỗ trợ và cộng đồng
 

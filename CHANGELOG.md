@@ -7,6 +7,52 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [1.0.10] - 2026-10-20
+
+Setup and chat explain themselves better: `onboard` tests the key it saves and says why a test failed,
+`key set` warns about a name the config never reads, and `/profile`, `/update` and `/alert` show what
+they do. Three config keys are renamed; an old name stops `start` and points at the sample.
+> Thiết lập và chat dễ hiểu hơn: `onboard` thử khóa vừa lưu và nói rõ vì sao thất bại, `key set` cảnh báo tên mà config không đọc, còn `/profile`, `/update` và `/alert` cho thấy chúng làm gì. Ba mục config được đổi tên; tên cũ làm `start` dừng và chỉ tới file mẫu.
+
+### Setup
+
+- `onboard` tests a key it just saved, and its next steps name `/brief enable`. A failed test in
+  `onboard` or `doctor --online` says why, such as a rejected key, and the model list shows each
+  model once.
+- `start` on a running daemon says to `restart --background`, and every restart hint uses that form.
+- A channel with no bot token names the variable and the `key set` command that saves it, in `start`
+  and in `doctor`.
+- `key set` warns when the config never reads the name you saved, and names the one you likely meant,
+  even for a short form such as `OPENROUTER_KEY`. `/profile set reserve` points at `reserve-pct-nav` the same way.
+
+### Chat
+
+- `/profile` shows itself bare, takes `20%` as well as `0.2`, and refuses a bad field or value in one
+  line with an example.
+- `/update` shows the row it replaced before the confirmation.
+- Commands read their words in any case, so `/refresh crypto FORCE` and `/profile enable Crypto` work.
+- A bare `/alert` lists your alerts.
+- The Vietnamese replies use one voice (the assistant says "mình") and one word for a quantity
+  ("khối lượng").
+
+### Config
+
+- Renamed keys, old to new:
+  - `[trading.themes] max_cost_usd` to `maximum_cost_usd`
+  - `[web_search] cache_ttl_seconds` to `cache_ttl_ms` (milliseconds)
+  - `[channels.*] gap_note_minutes` to `gap_note_ms` (milliseconds)
+
+  An old name now stops `start` with a message pointing at the sample.
+- A built-in venue's `credentials` refuse a field the venue does not read.
+- Zalo's pairing default follows Telegram's: with `allowed_ids` set and no `dm_policy`, strangers are
+  not offered a pairing code.
+
+### Fixes
+
+- The Zalo bot no longer stops after three scattered 401s; only three in a row stop it.
+- `cost --period week` starts on Monday, like `/transactions week`.
+- The distance-to-peak line in `/suggest` names its window: "240-session high", not "high 240".
+
 ## [1.0.9] - 2026-10-19
 
 Setup is easier to answer and no longer freezes on macOS: pick from each list with the arrow keys, and
@@ -352,6 +398,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.10
 [1.0.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.9
 [1.0.8]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.8
 [1.0.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.7

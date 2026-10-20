@@ -91,7 +91,7 @@ mới dữ liệu, cảnh báo giá, sổ giao dịch và mọi vòng không c�
 vòng đọc số liệu vĩ mô ghi `trading.tick_key_missing` (warn) một lần rồi vẫn thử ở mỗi lượt; bản tin sáng
 vẫn gửi các mục không cần AI, còn hôm nào không dựng được thì bạn nhận một tin nêu tên biến và cách đặt;
 một công việc theo lịch cần AI thì bỏ qua lượt đó mà không tính là lỗi, nên không bao giờ bị tắt vì thiếu
-khóa. `status` liệt kê những gì đang chờ khóa. Đặt khóa rồi `restart` là mọi thứ chạy lại.
+khóa. `status` liệt kê những gì đang chờ khóa. Lưu khóa bằng `openalpha key set <NAME>` rồi `restart --background` là mọi thứ chạy lại.
 
 ### Khi daemon dừng hoặc lỡ bản tin
 
@@ -161,7 +161,7 @@ tự tắt. Lần chạy hỏng được thử lại với khoảng chờ tăng 
 thứ ba**. Một lần thành công đặt lại bộ đếm.
 
 Thiếu khóa cũng không tính: một lần chạy hỏng vì biến môi trường của khóa AI chưa đặt được bỏ qua kèm một
-cảnh báo trong nhật ký, việc vẫn bật và chạy lại ở lần tới, nên đặt khóa rồi `restart` là xong, không cần
+cảnh báo trong nhật ký, việc vẫn bật và chạy lại ở lần tới, nên lưu khóa bằng `openalpha key set <NAME>` rồi `restart --background` là xong, không cần
 `schedule resume`. Bản tin sáng cũng vậy: hôm đó bạn nhận một tin nói thiếu biến nào và cách đặt, thay cho
 câu "gửi không được sau nhiều lần thử".
 

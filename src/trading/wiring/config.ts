@@ -130,7 +130,7 @@ function merge(patch: TradingConfigPatch, base: TradingConfig): TradingConfig {
     },
     orders: mergeOrders(patch.orders, base.orders),
     ledger: base.ledger,
-    themes: { maximumCostUsd: patch.themes?.max_cost_usd ?? base.themes.maximumCostUsd },
+    themes: { maximumCostUsd: patch.themes?.maximum_cost_usd ?? base.themes.maximumCostUsd },
     markets: mergeMarkets(patch.markets, base.markets),
     venues: mergeVenues(patch.venues, base.venues),
     sourceCredentialEnv: mergeSourceCredentialEnv(patch.sources, base.sourceCredentialEnv),
@@ -272,9 +272,32 @@ function mergeBuiltInVenue(
     return NO_ORDERS_VENUE
   }
 
+  assertKnownCredentials(id, settings.credentials, current.credentialEnv)
+
   return Object.freeze({
     simulated: settings.simulated ?? current.simulated,
     credentialEnv: Object.freeze({ ...(settings.credentials ?? current.credentialEnv) }),
+  })
+}
+
+/** A misspelt field would replace the venue's credential map whole and leave its real key unread, so
+ *  a field outside the venue's own is refused at boot, naming the ones it takes. */
+function assertKnownCredentials(
+  id: string,
+  credentials: Readonly<Record<string, string>> | undefined,
+  known: Readonly<Record<string, string>>
+): void {
+  const field = Object.keys(credentials ?? {}).find((name) => !Object.hasOwn(known, name))
+
+  if (field === undefined) {
+    return
+  }
+
+  const fields = Object.keys(known).join(', ')
+
+  throw venueError(id, `credentials has ${field}, which ${id} does not use (it takes ${fields})`, {
+    key: 'errors.configVenueCredentialUnknown',
+    params: { venue: id, field, fields },
   })
 }
 

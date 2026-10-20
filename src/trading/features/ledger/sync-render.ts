@@ -5,6 +5,7 @@ import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { CurrencyCode, VenueRef } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 import type { Venue } from '@/trading/venues/types'
+import { BRAND } from '@/core/brand'
 import { formatDay, pluralKey, t } from '@/i18n'
 import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
 import { renderEntry } from '@/trading/features/ledger/rows'
@@ -199,5 +200,9 @@ export function renderSyncUnavailable(locale: Locale, input: SyncUnavailableInpu
 
   return missing === undefined
     ? t(locale, 'trading.render.ledger.syncByHand', { venue })
-    : t(locale, 'trading.render.ledger.syncKeyless', { venue, variables: missing.join(', ') })
+    : t(locale, 'trading.render.ledger.syncKeyless', {
+        venue,
+        variables: missing.join(', '),
+        brand: BRAND.name,
+      })
 }

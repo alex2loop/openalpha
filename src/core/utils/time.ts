@@ -5,6 +5,8 @@ export const MS_PER_MINUTE = 60_000
 export const MS_PER_HOUR = 3_600_000
 export const MS_PER_DAY = 86_400_000
 const MS_PER_WEEK = 604_800_000
+const DAYS_PER_WEEK = 7
+const MONDAY_FIRST_SHIFT = DAYS_PER_WEEK - 1
 const MINUTES_PER_HOUR = 60
 const DAILY_WINDOW_SEPARATOR = '-'
 
@@ -218,6 +220,12 @@ export function parseIsoDay(value: string): number | undefined {
   }
 
   return parsed
+}
+
+/** Days since the Monday that opens `isoDay`'s week on the UTC calendar: 0 on a Monday, 6 on a
+ *  Sunday. The one week every surface agrees on. */
+export function daysSinceMonday(isoDay: string): number {
+  return (new Date(isoDay).getUTCDay() + MONDAY_FIRST_SHIFT) % DAYS_PER_WEEK
 }
 
 export function parseDuration(input: string): DurationResult {

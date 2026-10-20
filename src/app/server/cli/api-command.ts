@@ -3,7 +3,7 @@ import { unlink } from 'node:fs/promises'
 
 import type { CliApp, Group } from '@/cli/api'
 import { apiTokenPath } from '@/app/server/http/auth'
-import { createCommand, createGroup, getEnv } from '@/cli/api'
+import { createCommand, createGroup, fail, getEnv, hint } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { t } from '@/i18n'
@@ -41,7 +41,7 @@ async function printToken(app: CliApp): Promise<number> {
     const value = getEnv()[tokenEnv] ?? ''
 
     if (value === '') {
-      app.err(t(app.config.locale.language, 'cli.authTokenEnvEmpty', { env: tokenEnv }))
+      app.err(fail(t(app.config.locale.language, 'cli.authTokenEnvEmpty', { env: tokenEnv })))
 
       return 1
     }
@@ -54,7 +54,7 @@ async function printToken(app: CliApp): Promise<number> {
   const token = await readTokenFile(app.config.paths.dataDir)
 
   if (token === null) {
-    app.err(t(app.config.locale.language, 'cli.authTokenMissing', { brand: BRAND.name }))
+    app.err(fail(t(app.config.locale.language, 'cli.authTokenMissing', { brand: BRAND.name })))
 
     return 1
   }
@@ -86,7 +86,7 @@ async function rotateToken(app: CliApp): Promise<number> {
   await replacePrivateFileAtomic({ path, content: JSON.stringify({ token }, null, 2) })
 
   app.out(token)
-  app.out(t(app.config.locale.language, 'cli.authTokenRestart', { brand: BRAND.name }))
+  app.out(hint(t(app.config.locale.language, 'cli.authTokenRestart', { brand: BRAND.name })))
 
   return 0
 }

@@ -13,6 +13,7 @@ import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { StopCover, StopDistance } from '@/trading/kernel/operator/alert'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
+import { isWord } from '@/core/utils/text'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { resolveMarketIcons } from '@/trading/features/market-data/reads/describe'
 import { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
@@ -93,7 +94,7 @@ function completePortfolioArgs(args: readonly string[]): readonly string[] {
     return [NAV_ARG]
   }
 
-  return args.length === 2 && args[0]?.toLowerCase() === NAV_ARG ? NAV_WINDOWS : []
+  return args.length === 2 && isWord(args[0], NAV_ARG) ? NAV_WINDOWS : []
 }
 
 function portfolioUsage(): SlashResult {

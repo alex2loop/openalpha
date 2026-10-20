@@ -196,7 +196,7 @@ function describe(
   return { text: safeUnknownText(err, locale), code: EXIT_FAILURE }
 }
 
-function providerFailureSpecOf(err: LLMError): ReturnType<typeof failureSpecOf> {
+export function providerFailureSpecOf(err: LLMError): ReturnType<typeof failureSpecOf> {
   const haltDetail = haltDetailOf(err)
 
   return haltDetail === undefined ? undefined : failureSpecOf({ haltDetail })

@@ -6,6 +6,7 @@ import type { PairingStore } from '@/core/types/session'
 import type { NoticeKind, TradingNotice, TradingNoticeSender } from '@/trading/api'
 import { resolveDefaultRecipient } from '@/channels/api'
 import { readUpdateLine } from '@/cli/api'
+import { BRAND } from '@/core/brand'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
@@ -132,6 +133,7 @@ function renderKeyMissing(
     subject: t(locale, `trading.notice.${payload.subject}`),
     env: payload.env,
     command: setEnvCommand(payload.env),
+    brand: BRAND.name,
   })
 }
 

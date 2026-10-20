@@ -56,7 +56,7 @@ export interface ThemeRunDeps {
   readonly analyst: AnalystDeps
   /** The stores and calendar the sector and company steps read. */
   readonly chain: ChainDeps
-  /** The run's cap: the lower of `[trading.themes] max_cost_usd` and the `[budget]` caps. */
+  /** The run's cap: the lower of `[trading.themes] maximum_cost_usd` and the `[budget]` caps. */
   createRunBudget(): Budget
   /** The VN session `now` falls in, which outcomes fall due against. */
   today(now: number): TradingDay

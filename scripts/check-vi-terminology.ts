@@ -6,6 +6,8 @@ const LOCALES_DIR = resolve(import.meta.dir, '../src/i18n/locales')
 const LOCALE = 'vi'
 /** Prefixes whose values a user reads as domain vocabulary rather than as prose. */
 const REVIEWED_PREFIXES = ['trading.', 'slash.trading', 'tools.'] as const
+/** The whole catalog, not only reviewed keys: CLI help and errors speak in the same voice. */
+const EVERY_KEY = '**'
 
 /** Format-only strings with nothing to translate. Every other identical pair is a leak. `oz` is the
  *  international abbreviation Vietnamese financial writing uses unchanged. `coin` is the loanword
@@ -55,7 +57,8 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
 ])
 
 interface TermRule {
-  /** An exact key, a dotted prefix, or a prefix ending in `*` for a group that shares no dot. */
+  /** An exact key, a dotted prefix, a prefix ending in `*` for a group that shares no dot, `*` for
+   *  every reviewed key, or `EVERY_KEY` for the whole catalog. */
   readonly key: string
   /** Sub-prefixes the rule does not reach, for a namespace holding two vocabularies. */
   readonly except?: readonly string[]
@@ -211,6 +214,16 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
     forbidden: [/(?:lượt|lần) chạy/i],
     why: 'one execution is "phiên chạy"; "lượt" alone is the turn inside it, so "lượt chạy" names the smaller thing with the bigger word',
   },
+  {
+    key: EVERY_KEY,
+    forbidden: [/(?<!\p{L})tôi(?!\p{L})/iu],
+    why: 'the assistant calls itself "mình" in Vietnamese; "tôi" reads stiff beside it',
+  },
+  {
+    key: EVERY_KEY,
+    forbidden: ['số lượng'],
+    why: 'a quantity of shares or coins is "khối lượng"; a count of rows is "số dòng"',
+  },
 ])
 
 /** The old tone-mark placement: on the second vowel of a closing `oa`, `oe` or `uy` ("khoá",
@@ -317,6 +330,10 @@ function toneMarkViolations(vi: Readonly<Record<string, string>>): readonly Viol
 function matches(rule: TermRule, key: string): boolean {
   if (rule.except?.some((prefix) => key.startsWith(prefix))) {
     return false
+  }
+
+  if (rule.key === EVERY_KEY) {
+    return true
   }
 
   if (rule.key === '*') {

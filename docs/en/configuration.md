@@ -383,7 +383,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `mid_stream_updates` | bool | `true` | Edit the reply while it streams. |
 | `slash_commands` | bool | `true` | Enable slash commands and the command menu. |
 | `notify_max_per_minute` | int | `3` | Rate cap on proactive messages. |
-| `gap_note_minutes` | int | `30` | Quiet minutes after which the next answer is told to check prices again; `0` turns it off. |
+| `gap_note_ms` | int | `1800000` | Quiet milliseconds (30 minutes by default) after which the next answer is told to check prices again; `0` turns it off. |
 | `fallback_chat_id` | string | the one allowed id, or the one paired chat | Fallback target for proactive messages. |
 | `pairing` | bool | `true` with no allowlist | Let unknown chats pair. |
 
@@ -402,7 +402,7 @@ see [Channels](channels.md).
 | `token_file` | string | - | File whose trimmed contents are the token. |
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of chats and users. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator commands. |
-| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing` | How chats are admitted, and the off switch. There is no open mode. |
+| `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, or `allowlist` once `allowed_ids` is set | How chats are admitted, and the off switch. There is no open mode. |
 
 Tokens resolve as for Telegram. The adapter polls, so at startup it clears any webhook set on the
 bot: Zalo delivers to one or the other, never both.
@@ -472,7 +472,7 @@ the section is ignored and no web tools are offered; the client brings its own.
 | `fallback_api_key_env` | string | - | Same as `api_key_env`, for the fallback. |
 | `fallback_base_url` | string | - | Same as `base_url`, for a `searxng` fallback only. |
 | `fallback_cost_per_search_usd` | float | - | Same as `cost_per_search_usd`, for the fallback. |
-| `cache_ttl_seconds` | int | `300` | Result cache lifetime per query; `0` disables caching. |
+| `cache_ttl_ms` | int | `300000` | Result cache lifetime per query, in milliseconds; `0` disables caching. |
 | `exa_search_type` | string | `auto` | Exa only: `auto`, `fast`, `instant`, `deep-lite`, `deep`, `deep-reasoning`. |
 | `safe_search` | int | instance default | SearXNG only: `0`, `1` or `2`. Omitted keeps the instance setting. |
 
@@ -724,7 +724,7 @@ fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
 interval_ms = 43_200_000       # ceiling only; refresh follows the trading calendar
 
 [trading.themes]
-max_cost_usd = 1.0             # most one /themes run may spend, research included
+maximum_cost_usd = 1.0             # most one /themes run may spend, research included
 ```
 
 A venue table takes `default_for`, `markets` (hand-traded venues only), `fees` and, for OKX and
@@ -803,7 +803,7 @@ recorded at `gold-shop` stay there, since assets cannot move between venues. Sel
 gate is consulted. Placing an order unattended therefore takes two decisions from you, not one; see
 [Safety](safety.md).
 
-`credentials` holds **variable names**, never values. The key names are the venue's own. Each is read
+`credentials` holds **variable names**, never values. The key names are the venue's own: `okx` takes `apiKey`, `secret` and `passphrase`, `binance` takes `apiKey` and `secret`, and any other field stops boot with the ones the venue takes named. Each is read
 as the named variable or, failing that, the same name prefixed with `OPENALPHA_`. A missing one is
 not a boot error: the venue gets no adapter, no order can be placed, `/trade` only names the keys to
 set, and the daemon starts anyway. The venue stays registered as a custodian you record trades
@@ -919,8 +919,8 @@ OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs s
 `NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts a comment. The key file follows
 `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
 `status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
-`openalpha start` starts with a warning, running everything that needs no model until you set the key
-and restart.
+`openalpha start` starts with a warning, running everything that needs no model until you save the key
+with `openalpha key set <NAME>` and run `openalpha restart --background`.
 
 ```text
 config.toml has things to fix:
@@ -928,5 +928,5 @@ config.toml has things to fix:
 - `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
 Correct them, then run again.
 
-The environment variable ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start. Set it with `openalpha key set ANTHROPIC_API_KEY` in the terminal you run from, then try again.
+ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start yet. Save it with `openalpha key set ANTHROPIC_API_KEY`, then try again.
 ```

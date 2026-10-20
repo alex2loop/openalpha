@@ -554,7 +554,7 @@ It gives no prices. `/suggest <ticker>` gives entry, stop, target and size.
 
 Commands:
 
-- `/themes` runs it. It costs model calls, capped by `[trading.themes] max_cost_usd`.
+- `/themes` runs it. It costs model calls, capped by `[trading.themes] maximum_cost_usd`.
 - `/themes run <id>` re-checks one tracked theme with its sectors and companies and looks for no new ones.
 - `/themes show` shows each theme as it was last read, for free.
 - `/themes approve|reject|retire <id>` moves a theme.
@@ -576,7 +576,7 @@ The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]`
 - A theme is marked `invalidated` only when one of its own conditions is backed by hard data.
 - Only you make a theme `active`, reject it or retire it.
 
-**One budget, one run at a time.** A run draws on one budget, the lower of `[trading.themes] max_cost_usd` and `[budget]`, and on one research quota. Only one run goes at a time per process.
+**One budget, one run at a time.** A run draws on one budget, the lower of `[trading.themes] maximum_cost_usd` and `[budget]`, and on one research quota. Only one run goes at a time per process.
 
 - It writes nothing until every step has answered, and status changes touch only themes still tracked.
 - A budget halt ends the stage and names the steps it skipped.
@@ -779,7 +779,7 @@ openalpha chat --message "/update 0f9838 buy VPS equity-vn:ACB 600 21900 VND 120
 openalpha chat --message "/delete 0f9838 confirm"
 ```
 
-`/update` takes the handle followed by the same fields `/record` takes: the whole transaction, not a patch. It must state its own quantity and fee, where `/record` may write `all` or leave the fee to a rate. An edit names a row that already carries both, and re-resolving either against a later book or a changed rate would move a settled figure you never restated.
+`/update` takes the handle followed by the full `/record` line: the whole transaction, not a patch. The reply shows the row as it was, then the confirmation. It must state its own quantity and fee, where `/record` may write `all` or leave the fee to a rate. An edit names a row that already carries both, and re-resolving either against a later book or a changed rate would move a settled figure you never restated.
 
 `/delete <handle>` shows the row and asks first (a button on Telegram, a line to type elsewhere); `/delete <handle> confirm` removes it outright (a duplicate, or a trade that never happened). A script that deletes in one step must add `confirm`. Both accept a full entry id too, which is what the agent passes via `portfolio_update` or `portfolio_remove`.
 
@@ -864,6 +864,27 @@ A row may carry the operator's own rate instead of the market's: `fx <rate>` at 
 
 A deposit in a venue's quote currency, such as `/record deposit binance 1000 USDT 2026-08-14 fx 26600`, makes that venue hold USDT as its own cash balance, with an average cost in the book's currency (26.6 million VND here).
 
+- **Which rows change it.** A USDT deposit, withdrawal, fee, loss or transfer always does. Once the
+  venue holds USDT, every buy and sell priced in USDT there does too: a buy spends the USDT at its
+  average cost and carries that cost into what it bought, and a sell pays back into the USDT. The
+  first USDT recorded at a venue changes how later rows there are paid, a back-dated deposit included,
+  so rows the venue had paid in VND before it can then be refused. To move a venue from VND to USDT,
+  withdraw the VND, then deposit the USDT with `fx`.
+- **The rate goes on the deposit, not the buy.** A buy, sell, fee or transfer paid from USDT the venue
+  holds takes no rate, so an `fx` on that row is refused with the reason rather than ignored. The P2P
+  rate you paid belongs on the USDT deposit.
+- **Withdrawing locks in the currency gain.** USDT leaves at its average cost, while net deposits fall
+  by what it is worth that day. Deposit 1,000 at 26,600, withdraw 1,000 at 27,000, and the realized
+  P/L is +400,000 VND with the cash back at 0.
+- **The two currencies never convert on their own.** A USDT row at a venue spends only that venue's
+  USDT, and is refused, naming the currency and the venue, when there is not enough. A VND withdrawal,
+  fee or transfer there spends only its VND, even while the venue holds USDT.
+- **The currency line reads negative right after a P2P deposit.** USDT is valued at the market USD/VND
+  rate, and its cost is the P2P rate you paid, so right after a deposit at 26,600 that line reads about
+  -2% while the market rate is about 26,036.
+- **Where to see it.** `/portfolio` lists the USDT beside cash with its cost and today's value, and
+  prints the currency gain or loss. `/reconcile` checks it against the venue's real USDT balance.
+
 
 A crypto round trip, step by step, with the rate you paid recorded once, on the deposit:
 
@@ -881,7 +902,7 @@ history:
 - **USDT only:** one deposit of the USDT you hold, with `fx <its average cost>`, or `fx auto` if you
   do not know it (currency P/L before that day is then not counted).
 - **USDT and coins:** deposit the USDT you hold plus what the coins cost, then one buy per coin at its
-  current quantity, average cost and a fee of `0`. The book's USDT then matches the exchange. The `0`
+  current quantity, average cost and a fee of `0`. The book's USDT then matches the venue. The `0`
   fee prints a "fee differs" note, which an opening balance can ignore.
 
 ```text
@@ -891,6 +912,8 @@ history:
 
 `/record sync` reads fills only from the book's first row on, so it cannot book coins bought earlier.
 With the venue's key set, `/reconcile` checks the result against the real balance.
+
+#### Already holding a portfolio, without re-recording every old trade
 
 Holding a few shares, sold a few at a loss, and don't want to retype every old trade? You don't have
 to. The book needs three things: what you put in, what you hold at what cost, and what you lost on what
@@ -946,14 +969,6 @@ holdings cost, and drop the `loss` line. Profit and loss then start from today.
 
 Either way, the history of each name you sold is gone: `/transactions` shows one loss line. `/reflect`
 is unaffected, because it scores the assistant's calls, not your trades.
-
-- **Which rows move it.** A USDT deposit, withdrawal, fee, loss or transfer always does. Once a venue holds USDT, every USDT buy and sale there does too: a buy spends USDT at its average cost and carries that cost into what it buys, and a sale returns its proceeds to the USDT. The first USDT recorded at a venue changes how later trades there are paid, a deposit dated before trades the venue funded in VND included, and those trades can then be refused. To switch a VND-funded venue over, withdraw the VND, then deposit the USDT with `fx`.
-- **The rate goes on the deposit, not the buy.** A buy, sale, fee or transfer paid from USDT the venue holds takes no rate, so `fx` on that row is refused with the reason rather than dropped. The P2P price you paid belongs on the USDT deposit.
-- **A withdrawal realizes the currency move.** The USDT leaves at its average cost, but net deposits fall by what it was worth that day. Deposit 1,000 at 26,600, then withdraw 1,000 at 27,000, and realized P/L is +400,000 VND with cash back at zero.
-- **Neither currency quietly converts into the other.** A USDT trade at a venue spends only its USDT and is refused with the currency and venue named when it runs short. A VND withdrawal, fee or transfer there spends only its VND, even if the venue holds USDT.
-- **The currency line starts negative after a P2P deposit.** USDT is marked at the market USD/VND rate while its cost is the P2P rate you paid, so right after a deposit at 26,600 the line reads about -2% when the market rate is about 26,036.
-- **Where you see it.** `/portfolio` lists the USDT beside cash with its cost and today's value, and prints its currency move. `/reconcile` compares it with the exchange's own USDT balance.
-
 #### Every mark says how it was taken
 
 A priced position is marked either:

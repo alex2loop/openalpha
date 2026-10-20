@@ -82,7 +82,7 @@ function startLogin(app: App, method: LoginMethod): Promise<void> {
       }
 
       job.view = { state: 'failed', method, reason: timeout.aborted ? 'timeout' : 'failed' }
-      app.resolve('logger').warn('api.chatgpt-login-failed', { err: formatErrForLog(err) })
+      app.resolve('logger').warn('api.chatgpt_login_failed', { err: formatErrForLog(err) })
     })
     .finally(announce)
 

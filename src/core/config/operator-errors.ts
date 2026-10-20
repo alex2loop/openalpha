@@ -84,10 +84,15 @@ export class MissingEnvError extends OperatorConfigError {
     super(
       `${owner}: env var "${env}" is not set; set it with \`${command}\``,
       effect === undefined
-        ? { key: 'errors.configEnvMissing', params: { env, owner, command } }
+        ? { key: 'errors.configEnvMissing', params: { env, owner, command, brand: BRAND.name } }
         : {
             key: 'errors.configEnvMissingEffect',
-            params: { env, command, effect: { key: `errors.keyEffect.${effect}` } },
+            params: {
+              env,
+              command,
+              brand: BRAND.name,
+              effect: { key: `errors.keyEffect.${effect}` },
+            },
           },
       { path }
     )

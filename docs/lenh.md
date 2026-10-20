@@ -147,8 +147,12 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 
 `/help` liệt kê câu lệnh theo nhóm: danh mục và giao dịch (mở đầu bằng `/setup`), thị trường, phân tích và đề xuất, rồi đến hệ thống (`/help`, `/stop` và các lệnh không thuộc nhóm nào). Menu Telegram theo cùng thứ tự.
-`/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì tôi
+`/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì mình
 gợi ý câu lệnh gần nhất.
+
+Câu lệnh đọc chữ hoa hay thường như nhau: `/refresh crypto FORCE`, `/profile enable Crypto` và
+`/delete 0f9838 CONFIRM` đều chạy đúng như gõ. Tên thiết lập gõ tắt hoặc sai chút ít thì mình gợi ý tên
+gần nhất, ví dụ `reserve-pct-nav` cho `/profile set reserve 0.2`.
 
 Kênh có thêm `/stop` và các lệnh ghép nối. `/stop` và `/help` cũng nhận dạng gọi kèm tên bot như
 `/stop@MyBot`, đúng cách nhóm Telegram gửi lệnh. REPL có `/help`, `/exit` và `/quit`, và Ctrl+D cũng
@@ -254,8 +258,8 @@ chối, đều chỉ làm phần cần đến nó chưa chạy: daemon in mỗi 
 việc gì đang chờ và cách sửa. Ở tiền cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt; dòng về kênh
 hiện khi các kênh mở, sau khi tải xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng
 báo thành công. Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ giao dịch và các việc không cần
-AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn đặt khóa rồi
-`restart`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
+AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn lưu khóa bằng `openalpha key set <NAME>` rồi
+`restart --background`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
 cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có daemon khác chạy và lỗi lưu trữ
 vẫn chặn `start`.
 
@@ -410,7 +414,7 @@ sống. Tìm kiếm dùng chỉ mục toàn văn.
 `history clear` xóa mọi phiên chat, hoặc mọi phiên chat của một agent. Hãy đọc phần trợ giúp và câu hỏi
 xác nhận trước khi chạy.
 
-`cost` nhận `--period day|week|month`, hoặc một khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). Nó đọc
+`cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). Nó đọc
 số liệu từng lần gọi đã lưu thay vì ước lượng từ nội dung hội thoại, nên khớp với hóa đơn của nhà cung
 cấp. `--breakdown` tách đúng khoảng đó theo trợ lý và mô hình - số lời gọi, số lần hỏng, thời gian trả
 lời điển hình, token đến từ cache, token tiêu cho suy nghĩ - đắt nhất trước.
@@ -510,22 +514,22 @@ ghi sổ và `/trade`.
 |---|---|
 | `/setup` | `/setup` - trợ lý làm gì và cách thiết lập |
 | `/record` | Ghi một dòng vào sổ. Xem [Sổ lệnh](#sổ-lệnh) |
-| `/update` | `/update <mã bút toán> <các trường như /record>` - sửa trực tiếp một mục, kể cả sàn. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto`. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
+| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto`. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
 | `/delete` | `/delete <mã bút toán>` - xem một mục; `/delete <mã bút toán> confirm` mới xóa |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Trong chat mặc định là 10 dòng gần nhất (terminal giữ 100), và nút trang kế giữ nguyên cỡ đó. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
 | `/portfolio` | `/portfolio` - giá trị và phân bổ, mỗi dòng nói rõ vị thế đang cách mức dừng bao xa. Xem [Mức dừng dự kiến không phải một lệnh đang treo](#mức-dừng-dự-kiến-không-phải-một-lệnh-đang-treo) |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | `/portfolio nav 3m` - danh mục đã đi thế nào: lợi nhuận đã loại tiền nạp và rút, mức sụt sâu nhất từ đỉnh, và thước đo từ tỷ trọng mục tiêu của bạn. Mặc định `3m` |
-| `/profile` | `/profile show`; `/profile set <trường> <giá trị>`; `/profile enable\|disable <nhóm>`; `/profile reset` |
+| `/profile` | `/profile` hoặc `/profile show` để xem; `/profile set <trường> <giá trị>` (tỷ lệ gõ `20%` hay `0.2` đều được); `/profile enable\|disable <nhóm>`; `/profile reset` |
 | `/watchlist` | `/watchlist` - giá trực tiếp của những gì bạn theo dõi và đang nắm, tối đa mười hai mã (danh sách dài hơn bị cắt và có nói rõ); `/watchlist add <mã>...`; `/watchlist remove <mã>...` |
 | `/price` | `/price <mã>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ. Thị trường niêm yết bảng hai chiều của đại lý (vàng VN) in cả hai chiều và chênh lệch giữa chúng, chứ không in cặp đóng cửa/trực tiếp: một bảng không nêu giá khớp cuối, và không giữ chuỗi ngày nào để đối chiếu giá đóng |
 | `/market` | `/market` - một thị trường đang ở đâu ngay lúc này, đặt cạnh phiên gần nhất đã chốt; `/market enable\|disable` - bật hoặc tắt các lần gửi theo lịch (chúng đi tới chat mặc định, không nhất thiết là chat này) |
 | `/overview` | `/overview` - mọi thị trường đang thế nào, kèm khối vĩ mô; `/overview <thị trường>...` - chỉ in các thị trường đó, ví dụ `/overview crypto` |
-| `/screen` | `/screen [thị-trường] [số lượng] [loại]`, thứ tự tùy ý. Thị trường mặc định là thị trường mà lịch của `[locale] region` nêu tên; `loại` thu hẹp về một loại công cụ mà thị trường đó niêm yết. Mã nằm trong danh sách loại trừ của bạn vẫn được xếp hạng và được đánh dấu, không bị ẩn |
+| `/screen` | `/screen [thị-trường] [số dòng] [loại]`, thứ tự tùy ý. Thị trường mặc định là thị trường mà lịch của `[locale] region` nêu tên; `loại` thu hẹp về một loại công cụ mà thị trường đó niêm yết. Mã nằm trong danh sách loại trừ của bạn vẫn được xếp hạng và được đánh dấu, không bị ẩn |
 | `/suggest` | Tiêu ngân sách LLM cho một mã. Xem [Đề xuất](#đề-xuất) |
 | `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - kiểm lại một chủ đề đang theo dõi và không tìm chủ đề mới, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
 | `/rebalance` | `/rebalance`; `/rebalance <mã>...` - tính khoảng cách tới mục tiêu, không cân nhắc bằng chứng và không gọi mô hình. Xem [`/rebalance` tính những gì](#rebalance-tính-những-gì) |
 | `/reflect` | `/reflect` - các đề xuất trước đây thực tế chạy ra sao |
-| `/alert` | `/alert list [số lượng]`; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
+| `/alert` | `/alert` hoặc `/alert list [số dòng]` để xem danh sách; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |

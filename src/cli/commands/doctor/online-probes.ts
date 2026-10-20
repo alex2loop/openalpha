@@ -12,7 +12,7 @@ import {
   missingKeyErrors,
 } from '@/ai/api'
 import { resolveSecret, TELEGRAM_API_BASE, ZALO_API_BASE } from '@/channels/api'
-import { terminalErrorMessage } from '@/cli/error-output'
+import { providerFailureSpecOf, terminalErrorMessage } from '@/cli/error-output'
 import { setEnvCommand, toMissingSearchKeyError } from '@/core/config/resolve'
 import { LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
@@ -417,9 +417,13 @@ function modelProbeFailure(err: unknown, model: ResolvedModel, locale: Locale): 
 }
 
 function probeFailure(err: unknown, locale: Locale): string {
-  if (err instanceof LLMError) {
-    return t(locale, 'cli.doctorProbeFailedCode', { code: err.code })
+  if (!(err instanceof LLMError)) {
+    return t(locale, 'cli.doctorProbeFailed')
   }
 
-  return t(locale, 'cli.doctorProbeFailed')
+  const spec = providerFailureSpecOf(err)
+
+  return spec === undefined
+    ? t(locale, 'cli.doctorProbeFailedCode', { code: err.code })
+    : t(locale, spec.messageKey)
 }

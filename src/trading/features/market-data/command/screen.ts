@@ -14,6 +14,7 @@ import {
   screenableKindsText,
 } from '@/trading/kernel/instrument'
 import {
+  parseMember,
   parsePositiveInteger,
   parseRegisteredMarket,
   usage,
@@ -151,9 +152,9 @@ function fillSlot(slots: ScreenSlots, raw: string, context: ScreenArgsContext): 
     return { ...slots, market }
   }
 
-  const instrumentKind = INSTRUMENT_KINDS.find((kind) => kind === raw)
+  const instrumentKind = parseMember(raw, INSTRUMENT_KINDS)
 
-  if (instrumentKind !== undefined && slots.instrumentKind === undefined) {
+  if (instrumentKind !== null && slots.instrumentKind === undefined) {
     return { ...slots, instrumentKind }
   }
 

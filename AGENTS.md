@@ -371,7 +371,7 @@ Reduce reasons:
 
 | Metric | Target | Lint flag | Enforced by |
 |---|---|---|---|
-| Function body | <=40 code lines | >45 non-blank: warn (error in core/ai/persistence; `scripts/research-*` fixtures 50) | Biome `noExcessiveLinesPerFunction` + `skipBlankLines` |
+| Function body | <=40 code lines | >45 non-blank: warn (error in core/ai/persistence; `scripts/research-*` fixtures 50); >40 and unlisted in `scripts/known-long-functions.json`, or listed and grown: error | Biome `noExcessiveLinesPerFunction` + `skipBlankLines`, and `scripts/check-function-limits.ts` (ratchet: split a function rather than raise its number) |
 | File | <=400 code lines | >400 non-blank: error | `scripts/check-line-limits.ts` (non-blank lines, so the blank-line paragraph style AGENTS.md requires is free) |
 | Cognitive complexity | <=15 | >15: warn (error in core/ai/persistence) | Biome `noExcessiveCognitiveComplexity` |
 | Params | <=3 (options object beyond) | >3: error | Biome `useMaxParams` |
@@ -468,7 +468,7 @@ Cited by `scripts/check-imports.ts`.
 | `core/security/agent-directories.ts` | Creating private scratch/log dirs without a symlink race (`prepareAgentScratchDir`, `prepareAgentLogFile`; TOCTOU defense over `security/private-files` and `security/path-policy`). Public |
 
 - `expandHome` expands only `~` and `~/...`.
-- Configured paths use `resolveDataRelative(path, dataDir)` (`~/` to home, absolute as-is, relative joins `dataDir`); no bare `expandHome` in `resolve.ts` for `[logging] file`.
+- Configured paths use `resolveDataRelative(path, dataDir)` (`~/` to home, absolute as-is, relative joins `dataDir`); no bare `expandHome` in `resolve.ts` for `[log] file`.
 - A path that may start with `~` (`--config ~/foo.toml`) runs `expandHome` before `isAbsolute` / `join(cwd, ...)`.
 
 ### File structure and declaration order
@@ -500,7 +500,7 @@ Treat code like prose: blank lines show structure, used semantically.
 
 ### Operator argument grammar
 
-A scope narrowing a name is written `scope:ticker`, one token. `kernel/surface/surface.ts` owns the split and is the only file knowing the qualifier: `parseTickerRequest` (market half, against the registry), `parseVenueTickerRequest` (venue half), `parseQualifiedInstrument` (market required for a ledger row). A parser never infers a slot from argument count.
+A scope narrowing a name is written `scope:ticker`, one token. `kernel/surface/surface.ts` owns the split and is the only file knowing the qualifier: `parseTickerRequest` (market half, against the registry), `parseVenueTickerRequest` (venue half), `parseQualifiedInstrument` (market required for a ledger row). A parser never infers a slot from argument count. `/record` and `/update` take an optional leading venue word before `market:ticker`: the one sanctioned exception, because the `scope:` slot is already the market.
 
 | Shape | Where | Why |
 |---|---|---|
@@ -517,7 +517,7 @@ Markets and venues share `SLUG_RE`; `assertDistinctScopeNames` refuses, at compo
 One owner per unit, enforced by `scripts/check-display-contract.ts` (reads call sites).
 
 - Every rendered value goes through `trading/render/{format,datetime,money}.ts`. `format.ts` owns the unit; `render/number.ts` (called only by `format.ts`) owns the `Intl` option per unit. A surface never calls `Intl`, interpolates a raw value into copy, or hand-writes a separator, indent or glyph.
-- Copy comes from `t(locale, key, params)` for `[locale] language`; the clock from `[locale] timezone` (`TradingConfig.displayTimezone`, default `UTC`), threaded as a parameter. Never `toLocaleString()` without a locale, a hardcoded timezone, or a user-facing string outside the catalogs (`src/i18n/locales/{en,vi}.json`, every key in both).
+- Copy comes from `t(locale, key, params)` for `[locale] language`; the clock from `[locale] timezone` (`TradingConfig.displayTimezone`, default: the host's zone), threaded as a parameter. Never `toLocaleString()` without a locale, a hardcoded timezone, or a user-facing string outside the catalogs (`src/i18n/locales/{en,vi}.json`, every key in both).
 - `en` resolves to `en-GB` for date order only (`DATE_ORDER_LOCALES`); both read day-first. `scripts/check-vi-terminology.ts` gates Vietnamese terms (`reduce` is *giảm bớt*, never *bán*).
 
 Dates and numbers:

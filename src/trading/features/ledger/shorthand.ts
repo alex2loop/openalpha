@@ -4,6 +4,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef, Region, Ticker, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import { isWord } from '@/core/utils/text'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { currencyCode, tradingDay, venueRef } from '@/trading/kernel/instrument'
 import { parseBranded, parseTickerRequest, SELL_ALL } from '@/trading/kernel/surface/surface'
@@ -127,14 +128,15 @@ function buildFullLine(
 }
 
 function readTypedLine(deps: ShorthandDeps, tokens: readonly string[]): TypedLine | undefined {
-  const [kind, ...rest] = tokens
+  const [rawKind, ...rest] = tokens
+  const kind = rawKind?.toLowerCase()
 
   if (kind === undefined || !SHORTHAND_KINDS.includes(kind)) {
     return undefined
   }
 
   const fx =
-    rest.length > FX_TOKENS && rest.at(-FX_TOKENS) === FX_TOKEN ? rest.slice(-FX_TOKENS) : []
+    rest.length > FX_TOKENS && isWord(rest.at(-FX_TOKENS), FX_TOKEN) ? rest.slice(-FX_TOKENS) : []
   const body = rest.slice(0, rest.length - fx.length)
   const at = body.findIndex(isQuantityToken)
   const [quantity, price, ...tail] = body.slice(at)

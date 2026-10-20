@@ -7,6 +7,7 @@ import type { CurrencyCode, Region, TradingDay } from '@/trading/kernel/instrume
 import type { LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
+import { daysSinceMonday } from '@/core/utils/time'
 import { foldBook } from '@/trading/features/ledger/book'
 import { renderLedgerText } from '@/trading/features/ledger/rows'
 import { orderLedger } from '@/trading/features/ledger/validate'
@@ -27,7 +28,6 @@ const LAST_DAYS_RE = /^(\d{1,3})d$/
 const TODAY_WINDOW = 'today'
 const WEEK_WINDOW = 'week'
 const MONTH_WINDOW = 'month'
-const DAYS_PER_WEEK = 7
 
 interface TransactionsCommandDeps {
   readonly portfolio: Pick<PortfolioService, 'historyAbsolute'>
@@ -190,9 +190,7 @@ function resolveWindowStart(token: string, today: TradingDay): TradingDay | unde
 
 /** Monday opens the week, the ISO convention both locales read. */
 function weekStartOf(day: TradingDay): TradingDay {
-  const sinceMonday = (new Date(day).getUTCDay() + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK
-
-  return shiftCalendarDay(day, -sinceMonday)
+  return shiftCalendarDay(day, -daysSinceMonday(day))
 }
 
 function monthStartOf(day: TradingDay): TradingDay {

@@ -1,6 +1,6 @@
 {
   "name": "@openalpha/runtime",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "license": "MIT",
   "private": true,
   "productName": "OpenAlpha",
@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "check": "biome check && bun run typecheck && bun scripts/check-cycles.ts && bun scripts/check-dag.ts && bun scripts/check-imports.ts && bun scripts/check-sdk-exports.ts && bun scripts/check-conventions.ts && bun scripts/check-log-keys.ts && bun scripts/check-display-contract.ts && bun scripts/check-line-limits.ts && bun scripts/check-cli-contract.ts && bun scripts/check-migration-rollback.ts && bun scripts/check-table-registry.ts && bun scripts/check-unused-exports.ts && bun scripts/check-reachability.ts && bun scripts/check-version-pairs.ts && bun scripts/check-dep-licenses.ts",
+    "check": "biome check && bun run typecheck && bun scripts/check-cycles.ts && bun scripts/check-dag.ts && bun scripts/check-imports.ts && bun scripts/check-sdk-exports.ts && bun scripts/check-conventions.ts && bun scripts/check-log-keys.ts && bun scripts/check-display-contract.ts && bun scripts/check-line-limits.ts && bun scripts/check-function-limits.ts && bun scripts/check-cli-contract.ts && bun scripts/check-migration-rollback.ts && bun scripts/check-table-registry.ts && bun scripts/check-unused-exports.ts && bun scripts/check-reachability.ts && bun scripts/check-version-pairs.ts && bun scripts/check-dep-licenses.ts",
     "lint": "biome check --write --unsafe",
     "lint:arch": "bun scripts/check-depth.ts && bun scripts/check-trading-gates.ts && bun scripts/check-registry-isolation.ts && bun scripts/check-trading-locale.ts && bun scripts/check-report-figures.ts && bun scripts/check-caveat-details.ts && bun scripts/check-error-messages.ts && bun scripts/check-vi-terminology.ts && bun scripts/check-reasoning-capability.ts && bun scripts/check-pricing.ts && bun scripts/check-agent-skills.ts && bun scripts/check-feature-isolation.ts --strict && bun scripts/check-strategy-version.ts && bun scripts/check-research-i18n.ts && bun scripts/check-research-integrity-regressions.ts",
     "typecheck": "bun run gen && tsc -p tsconfig.json && tsc -p scripts/tsconfig.json",

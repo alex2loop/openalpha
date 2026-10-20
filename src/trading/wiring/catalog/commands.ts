@@ -244,7 +244,7 @@ function ledgerWriteCommands(deps: TradingCommandDeps): readonly SlashCommand[] 
       policy,
       defaultRegion: deps.defaultRegion,
     }),
-    createUpdateCommand({ portfolio, marketData, costs, baseCurrency }),
+    createUpdateCommand({ portfolio, marketData, costs, baseCurrency, ledger }),
     createDeleteCommand({ portfolio, marketData, costs, ledger }),
   ]
 }

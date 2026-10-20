@@ -140,7 +140,7 @@ export const wsHandlers: WebSocketHandler<WsData> = {
     try {
       await handleMessage(ws, raw)
     } catch (err: unknown) {
-      ws.data.services.logger.warn('api.ws-message-failed', { err: formatErrForLog(err) })
+      ws.data.services.logger.warn('api.ws_message_failed', { err: formatErrForLog(err) })
       sendRunError(ws, err)
     }
   },

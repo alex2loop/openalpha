@@ -216,9 +216,8 @@ function knownModels(provider: ProviderEntry): readonly string[] {
   )
   const preferred = provider.defaultModel
 
-  return preferred === undefined
-    ? listed
-    : [preferred, ...listed.filter((model) => model !== preferred)]
+  // Catalog aliases can name the same model.
+  return [...new Set(preferred === undefined ? listed : [preferred, ...listed])]
 }
 
 export function parseEnvName(answer: string, locale: Locale): Parsed<string> {

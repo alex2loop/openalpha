@@ -31,7 +31,7 @@ Ngày và tháng tính theo `[locale] timezone` (múi giờ của máy, `UTC` kh
 
 Trần của một phiên chạy là số nhỏ hơn giữa `max_per_run_usd` và `max_daily_usd`. Để cả hai bằng `0` thì không có trần
 nào. `chat --max-cost-usd <số tiền>` thay trần đó cho đúng một phiên chạy; các cổng kiểm theo ngày và theo tháng vẫn áp lên
-trên. Một lượt `/themes` còn dừng ở `[trading.themes] max_cost_usd` (mặc định `1.0`) khi đó là con số nhỏ hơn.
+trên. Một lượt `/themes` còn dừng ở `[trading.themes] maximum_cost_usd` (mặc định `1.0`) khi đó là con số nhỏ hơn.
 
 ### Mức trần theo agent
 
@@ -66,7 +66,7 @@ openalpha cost --from 2026-07-01 --to 2026-07-22 # bao gồm hai đầu, tối �
 openalpha cost --period week --breakdown         # tách theo trợ lý và mô hình
 ```
 
-`week` là bảy ngày gần nhất tính cả hôm nay, `month` là tháng tính đến hôm nay. Bản in theo ngày và theo tháng nêu luôn hạn
+`week` là tuần này tính từ thứ Hai đến hôm nay, `month` là tháng tính đến hôm nay. Bản in theo ngày và theo tháng nêu luôn hạn
 mức khi có bật; theo tuần và theo khoảng tự chọn thì chỉ báo tổng.
 
 `--breakdown` tách đúng cái tổng đó theo trợ lý và mô hình, nên các dòng luôn cộng lại đúng bằng tổng. Đây là cách nhanh

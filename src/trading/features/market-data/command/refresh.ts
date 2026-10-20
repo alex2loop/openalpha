@@ -9,6 +9,7 @@ import type {
   RefreshAllMarketDataOptions,
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
+import { isWord } from '@/core/utils/text'
 import { renderRefreshText } from '@/trading/features/market-data/render/refresh'
 import { parseRegisteredMarket, usage } from '@/trading/kernel/surface/surface'
 import { resolveRenderContext } from '@/trading/render/format'
@@ -119,7 +120,7 @@ function parseRefreshArgs(
       continue
     }
 
-    if (arg !== FORCE_ARG || forced) {
+    if (!isWord(arg, FORCE_ARG) || forced) {
       return null
     }
 

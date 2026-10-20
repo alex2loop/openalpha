@@ -11,8 +11,8 @@
 // blank-line paragraph style AGENTS.md requires: counting raw lines charges a file for the
 // formatting the style guide mandates. Comments count — they are content a reader must hold.
 //
-// Function size is NOT checked here: Biome owns it, measuring a function's own body, which a brace
-// counter cannot reproduce without a parser.
+// Function size is NOT checked here: `noExcessiveLinesPerFunction` warns on it in Biome and
+// `check-function-limits.ts` holds the measured ratchet.
 //
 // Exit 0 = clean or every oversized file is documented. Exit 1 if a NEW one appears.
 import { Glob } from 'bun'

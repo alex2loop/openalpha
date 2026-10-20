@@ -6,6 +6,7 @@ import {
   deliveryFields,
   dmPolicyField,
   parseChannelSection,
+  resolveAdmissionIds,
   secretFields,
 } from '@/channels/schema'
 import { channelId } from '@/core/channels'
@@ -30,12 +31,16 @@ export function parseZaloConfig(raw: unknown): ResolvedZaloConfig {
   return { ...parsed, configured: raw !== undefined }
 }
 
+/** With no `dm_policy`, Zalo follows Telegram: a listed id means the operator chose who gets in, so
+ *  strangers are not offered a pairing code. */
 export function zaloAdmissionMode(config: ResolvedZaloConfig): AdmissionMode {
-  if (config.dm_policy === 'allowlist') {
-    return 'allowlist'
-  }
+  const policy = config.dm_policy ?? (hasAllowedIds(config) ? 'allowlist' : 'pairing')
 
-  return 'pairing'
+  return policy === 'allowlist' ? 'allowlist' : 'pairing'
+}
+
+function hasAllowedIds(config: ResolvedZaloConfig): boolean {
+  return resolveAdmissionIds(config).allowedIds.length > 0
 }
 
 export function isZaloEnabled(config: ResolvedZaloConfig): boolean {

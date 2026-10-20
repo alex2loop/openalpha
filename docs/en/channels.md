@@ -66,20 +66,20 @@ operator_user_ids = [123456789]
 | `allowed_ids` | all | Chats or users let in. On `telegram`, setting it turns pairing off unless `pairing = true` |
 | `operator_user_ids` | all | Who may run the pairing controls, notably in group chats, and `/trade` and `/upgrade`. Without it, everyone the bot admits counts as the operator in their own private chat, so set it when you share the bot |
 | `pairing` | `telegram` | Force pairing on or off |
-| `dm_policy` | `zalo` | `pairing` (default), `allowlist` or `disabled` |
+| `dm_policy` | `zalo` | `pairing`, `allowlist` or `disabled`. Defaults to `pairing`, or `allowlist` once `allowed_ids` is set, the same as Telegram |
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | The required opt-in, and which saved QR login to use |
 | `agent` | all | Bind the channel to one agent instead of the default |
 | `require_mention`, `slash_commands` | all | Group mention rule, and whether slash commands are intercepted |
 | `fallback_chat_id` | all | Where a scheduled job without `--to` delivers. With exactly one allowed id, or exactly one paired chat, that chat is used |
 
 The rest tune delivery: `markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`,
-`notify_max_per_minute` and `gap_note_minutes`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
+`notify_max_per_minute` and `gap_note_ms`. Message batching, live-edit pacing and the outgoing queue are fixed. An unknown
 key fails validation, so a typo shows up at startup and not at 09:00.
 
 A channel with no token (the `token_env` variable unset, or an empty `token_file`) or with a token the
 provider itself rejects (HTTP 401 or 403 from Telegram, 401 from Zalo) is not opened. The daemon still
 starts: `start` prints one warning for that channel, the other channels and everything else run, and a
-channel without a valid token accepts no messages from anyone. Fix the token and `restart` to open it.
+channel without a valid token accepts no messages from anyone. Fix the token and `restart --background` to open it.
 A bad configuration value (wrong type, misspelt key) still stops `start` with an error. Any other
 failure to check the token is a connection problem: the check is tried four times with a growing pause,
 and if the network is still down the channel stays up, shows as degraded, and keeps retrying in the
@@ -99,7 +99,7 @@ There are two modes and no open one. A channel either admits from a list or pair
 - **Telegram** pairs when `pairing = true`. If you leave `pairing` out, it defaults to on only when you
   set no `allowed_ids`. Pairing with no allowed ids lets any Telegram user ask for a code, and the daemon
   logs a warning (`telegram.pairing_open`).
-- **Zalo** follows `dm_policy`, which defaults to `pairing`.
+- **Zalo** follows `dm_policy`, which defaults to `pairing`, or `allowlist` once `allowed_ids` is set, the same as Telegram.
 - **Zalo Personal** is always allowlist only.
 
 ### Pairing

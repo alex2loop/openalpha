@@ -8,11 +8,10 @@ import { flagBool } from '@/cli/parsing/args'
 import { style } from '@/cli/ui/colors'
 import { formatSpend, formatTokenCount, formatUsd, sentTokensOf } from '@/core/utils/cost'
 import { formatDuration } from '@/core/utils/duration'
-import { dayInZone, MS_PER_DAY, parseIsoDay, utcDay } from '@/core/utils/time'
+import { dayInZone, daysSinceMonday, MS_PER_DAY, parseIsoDay, utcDay } from '@/core/utils/time'
 import { pluralKey, t } from '@/i18n'
 
 const PERIODS = ['day', 'week', 'month'] as const
-const WEEK_DAYS = 7
 const MAX_RANGE_DAYS = 366
 const SEGMENT_SEPARATOR = ' · '
 
@@ -139,7 +138,9 @@ function resolvePeriodRange(rawPeriod: unknown, today: string, locale: Locale): 
   }
 
   const fromDay =
-    period === 'week' ? utcDay(todayMs - (WEEK_DAYS - 1) * MS_PER_DAY) : `${today.slice(0, 8)}01`
+    period === 'week'
+      ? utcDay(todayMs - daysSinceMonday(today) * MS_PER_DAY)
+      : `${today.slice(0, 8)}01`
 
   return { kind: 'value', selection: { range: { fromDay, toDay: today }, period } }
 }

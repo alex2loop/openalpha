@@ -202,7 +202,7 @@ export async function admitCommand(
     return EXIT_BLOCKED
   }
 
-  return (await isDaemonStateOk(needs.daemon, app)) ? undefined : EXIT_BLOCKED
+  return (await isDaemonStateOk(needs, app)) ? undefined : EXIT_BLOCKED
 }
 
 function configAdmissionError(
@@ -227,12 +227,15 @@ function configAdmissionError(
   return probe.configError
 }
 
-async function isDaemonStateOk(want: Required<Needs>['daemon'], app: CliApp): Promise<boolean> {
-  if (want === 'any') {
+async function isDaemonStateOk(needs: Required<Needs>, app: CliApp): Promise<boolean> {
+  if (needs.daemon === 'any') {
     return true
   }
 
-  return want === 'stopped' ? isDaemonStopped(app) : isDaemonRunning(app)
+  // Only `start` is a daemon boot that wants the daemon stopped; its refusal says what to do next.
+  const whenRunning = needs.bootMode === 'daemon' ? 'already-started' : 'stop-first'
+
+  return needs.daemon === 'stopped' ? isDaemonStopped(app, whenRunning) : isDaemonRunning(app)
 }
 
 // A typo must fail before any daemon check, boot, or side effect — never reach def.run.

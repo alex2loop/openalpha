@@ -76,7 +76,7 @@ async function stopAfterFailedStart(app: App, server: ApiHandle): Promise<void> 
   try {
     await server.stop()
   } catch (err: unknown) {
-    app.resolve('logger').warn('api.start-cleanup-failed', { err: formatErrForLog(err) })
+    app.resolve('logger').warn('api.start_cleanup_failed', { err: formatErrForLog(err) })
   }
 }
 

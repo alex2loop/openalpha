@@ -5,6 +5,7 @@ import type {
   TradeTxnDraftInput,
 } from '@/trading/features/ledger/types'
 import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
+import { isWord } from '@/core/utils/text'
 import {
   CASH_TXN_KINDS,
   FX_AUTO,
@@ -151,14 +152,14 @@ function splitFxTokens(
   reader: FieldReader,
   baseCurrency: CurrencyCode
 ): FxTokens | null {
-  if (tokens.at(-2) !== FX_TOKEN) {
+  if (!isWord(tokens.at(-2), FX_TOKEN)) {
     return { fields: tokens }
   }
 
   const fields = tokens.slice(0, -2)
   const raw = tokens.at(-1)
 
-  if (raw === FX_AUTO) {
+  if (isWord(raw, FX_AUTO)) {
     return { fields, fx: FX_AUTO }
   }
 
@@ -173,7 +174,8 @@ function parseLedgerFields(
   tokens: readonly string[],
   reader: FieldReader
 ): LedgerTxnDraftInput | null {
-  const [kind, ...rest] = tokens
+  const [rawKind, ...rest] = tokens
+  const kind = rawKind?.toLowerCase()
   const cashKind = parseMember(kind, CASH_TXN_KINDS)
 
   if (cashKind !== null) {

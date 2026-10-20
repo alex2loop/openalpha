@@ -66,7 +66,7 @@ export function startIdeaWatch(app: App): () => void {
       }
     } catch (err: unknown) {
       if (!controller.signal.aborted) {
-        logger.warn('api.idea-watch-failed', { err: formatErrForLog(err) })
+        logger.warn('api.idea_watch_failed', { err: formatErrForLog(err) })
       }
     } finally {
       checking = false

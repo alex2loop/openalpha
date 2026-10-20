@@ -68,7 +68,7 @@ export function createAlertCommand(deps: AlertCommandDeps): SlashCommand {
 
 async function run(deps: AlertCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const [raw, ...rest] = ctx.args
-  const action = parseMember(raw, ACTIONS)
+  const action = raw === undefined ? 'list' : parseMember(raw, ACTIONS)
 
   if (action === 'list') {
     return runList(deps, ctx, rest)

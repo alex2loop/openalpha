@@ -18,6 +18,7 @@ import type { CurrencyCode, Region, TradingDay, VenueRef } from '@/trading/kerne
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import { isWord } from '@/core/utils/text'
 import { parseIsoDay } from '@/core/utils/time'
 import { t } from '@/i18n'
 import { stageForFxRate } from '@/trading/features/ledger/confirm'
@@ -84,7 +85,7 @@ type RecordRequest =
   | { readonly invalid: LedgerFieldIssue | undefined }
 
 async function run(deps: RecordCommandDeps, ctx: SlashContext): Promise<SlashResult> {
-  if (ctx.args.length === 1 && ctx.args[0] === CONFIRM_ACTION) {
+  if (ctx.args.length === 1 && isWord(ctx.args[0], CONFIRM_ACTION)) {
     return { kind: 'text', text: await confirmStaged(deps, ctx) }
   }
 

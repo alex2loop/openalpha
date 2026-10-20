@@ -51,6 +51,7 @@ const TELEGRAM_CAPABILITIES: ChannelCapabilities = {
 
 interface CreateTelegramAdapterOptions {
   readonly token: string
+  readonly tokenEnv?: string
   readonly pollOffsets: PollOffsetStore
   readonly inbox: InboundInbox
   readonly logger: Logger
@@ -132,7 +133,7 @@ function buildApiContext(
   signal: AbortSignal
 ): TelegramApiContext {
   if (!options.token) {
-    throw toTokenMissingError(TELEGRAM_TOKEN_OWNER)
+    throw toTokenMissingError(TELEGRAM_TOKEN_OWNER, options.tokenEnv)
   }
 
   return {

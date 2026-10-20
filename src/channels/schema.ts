@@ -11,7 +11,7 @@ const DEFAULT_DEBOUNCE_MS = 600
 const DEFAULT_NEAR_SPLIT_DEBOUNCE_MS = 2_000
 const DEFAULT_MID_STREAM_THROTTLE_MS = 1_500
 const DEFAULT_NOTIFY_MAX_PER_MINUTE = 3
-const DEFAULT_GAP_NOTE_MINUTES = 30
+const DEFAULT_GAP_NOTE_MS = 30 * MS_PER_MINUTE
 const DEFAULT_NOTIFY_QUEUE_MAX = 50
 const DEFAULT_NOTIFY_MAX_ATTEMPTS = 3
 // How long shutdown waits for the queue to drain before it settles the rest as dropped.
@@ -48,7 +48,7 @@ export const deliveryFields = {
   typing_indicator: z.boolean().optional(),
   use_reactions: z.boolean().optional(),
   notify_max_per_minute: z.number().int().positive().optional(),
-  gap_note_minutes: z.number().int().nonnegative().optional(),
+  gap_note_ms: z.number().int().nonnegative().optional(),
   fallback_chat_id: z.string().min(1).optional(),
 }
 
@@ -121,7 +121,7 @@ export function resolveChannelSettings(cfg: ChannelDeliveryConfig): ChannelSetti
     notifyQueueMax: DEFAULT_NOTIFY_QUEUE_MAX,
     notifyMaxAttempts: DEFAULT_NOTIFY_MAX_ATTEMPTS,
     notifyDrainTimeoutMs: DEFAULT_NOTIFY_DRAIN_TIMEOUT_MS,
-    gapNoteMs: (cfg.gap_note_minutes ?? DEFAULT_GAP_NOTE_MINUTES) * MS_PER_MINUTE,
+    gapNoteMs: cfg.gap_note_ms ?? DEFAULT_GAP_NOTE_MS,
   }
 
   if (cfg.agent !== undefined) {

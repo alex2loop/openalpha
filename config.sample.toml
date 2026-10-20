@@ -33,8 +33,9 @@
 #
 # An unset key variable never stops `openalpha start`: the daemon prints one warning
 # and keeps refreshing data, firing alerts and running the ledger. Chat, /suggest,
-# research and the morning brief's model sections wait until you set the variable
-# and restart. `openalpha doctor` and `openalpha config validate` still report it.
+# research and the morning brief's model sections wait until you save the variable
+# with `openalpha key set <NAME>` and run `openalpha restart --background`.
+# `openalpha doctor` and `openalpha config validate` still report it.
 
 [model_defaults]
 provider = "openrouter"
@@ -295,8 +296,9 @@ language = "vi"                   # vi | en
 # One table per venue: the markets it is the default for, its fees, and (okx,
 # binance) its credentials. okx, binance, vps and gold-shop are built in with
 # their published fees; set a key only to change it. fees replaces the built-in
-# rates whole, and credentials name environment variables, never values. Every
-# rule: docs/en/configuration.md#trading.
+# rates whole, and credentials name environment variables, never values, for
+# the fields the venue reads (okx: apiKey, secret, passphrase; binance: apiKey,
+# secret); any other field stops boot. Every rule: docs/en/configuration.md#trading.
 # Give an exchange key Reading and Spot & Margin Trading only, never Withdrawals,
 # and pin it to your server's IP. `openalpha doctor venues --online` checks both.
 # [trading.venues.binance]
@@ -326,7 +328,7 @@ language = "vi"                   # vi | en
 # fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
 
 # [trading.themes]
-# max_cost_usd = 1.0                 # most one /themes run may spend; [budget] still caps it
+# maximum_cost_usd = 1.0             # most one /themes run may spend; [budget] still caps it
 
 
 # ==== Channels ================================================================
@@ -337,7 +339,7 @@ language = "vi"                   # vi | en
 # no allowed_ids: an unknown chat gets a code for `openalpha pair approve <code>`.
 # A channel whose token is unset or rejected by the platform does not start: the
 # daemon warns, runs without it and answers nobody there until you fix the token
-# and restart.
+# and run `openalpha restart --background`.
 
 # [channels.telegram]
 # enabled = true
@@ -355,10 +357,10 @@ language = "vi"                   # vi | en
 # use_reactions = true
 # mid_stream_updates = true          # edit the placeholder while streaming
 # notify_max_per_minute = 3
-# After this many quiet minutes, the next answer checks prices again instead of trusting the ones
-# quoted earlier. The conversation itself carries on; /new starts a fresh one. 0 turns it off.
-# Default 30.
-# gap_note_minutes = 30
+# After this many quiet milliseconds, the next answer checks prices again instead of trusting the
+# ones quoted earlier. The conversation itself carries on; /new starts a fresh one. 0 turns it off.
+# Default 1800000 (30 minutes).
+# gap_note_ms = 1800000
 # fallback_chat_id = "-1001234567"   # where a scheduled job with no --to delivers; default: the one allowed or paired chat
 
 # Zalo takes the same token, operator and delivery fields. There is no open mode.
@@ -366,7 +368,7 @@ language = "vi"                   # vi | en
 # enabled = true
 # token_env = "ZALO_BOT_TOKEN"
 # allowed_ids = ["1234567890"]
-# dm_policy = "pairing"              # pairing | allowlist | disabled
+# dm_policy = "pairing"              # pairing | allowlist | disabled; unset: pairing, or allowlist once allowed_ids is set (like Telegram)
 
 # Zalo Personal uses an unofficial personal-account API, not a bot token. It never
 # pairs strangers: risk acceptance and an allowlist are both required. Link the account
@@ -423,7 +425,7 @@ language = "vi"                   # vi | en
 # fallback_provider = "searxng"          # after an error or an empty result
 # fallback_base_url = "http://localhost:8080"
 # safe_search = 1                        # SearXNG only: 0 off, 1 moderate, 2 strict
-# cache_ttl_seconds = 300                # 0 disables the query cache
+# cache_ttl_ms = 300000                  # query cache lifetime in milliseconds; 0 disables it
 
 # exa, with its search mode:
 # [web_search]

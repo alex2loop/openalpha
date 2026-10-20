@@ -155,7 +155,7 @@ khai, và đề nghị một phân bổ khởi điểm.
 > /watchlist remove ROS         # bỏ
 ```
 
-Tỷ trọng mục tiêu đặt từng nhóm một: `/profile set segment-target equity-vn 0.5`. **Danh sách loại
+Tỷ trọng mục tiêu đặt từng nhóm một: `/profile set segment-target equity-vn 50%`. **Danh sách loại
 trừ thì chỉ nói bằng lời** - cứ nói chuyện bình thường trong chat:
 
 ```text
@@ -182,7 +182,7 @@ chạm sàn. Cú pháp cố định theo vị trí, ngày dạng `YYYY-MM-DD`:
 # Dòng bằng USDT: thêm fx <giá bạn trả> hoặc fx auto ở cuối
 /record deposit binance 1000 USDT 2026-08-14 fx 26600
 
-/update <mã bút toán> <các trường như /record>
+/update <mã bút toán> <đủ cả dòng /record>
 /delete <mã bút toán>                   # xem lại dòng đó
 /delete <mã bút toán> confirm           # xóa thật
 ```
@@ -224,7 +224,7 @@ Bốn điều cần nhớ:
 - Ngày là **ngày giao dịch thật**, nên ghi bù lệnh cũ vẫn đúng: sổ tự sắp lại theo ngày. Lệnh mua
   cổ phiếu VN tự đóng dấu thanh toán T+2.
 - Ghi nhầm? `/transactions` nhóm bút toán theo ngày và in mã ngắn cuối mỗi dòng, ví dụ `0f9838`. Sửa
-  bằng `/update 0f9838 <các trường như /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
+  bằng `/update 0f9838 <đủ cả dòng /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
   hay bỏ trống phí), xóa bằng `/delete 0f9838 confirm` (gõ `/delete 0f9838` trước để xem lại dòng). Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh
   sửa, và sửa một bút toán sẽ tính lại cả những khuyến nghị cũ.
 
@@ -254,7 +254,7 @@ Không thêm `fx` thì trợ lý chưa ghi vội. Nó cho bạn xem tỷ giá th
 thay đổi bao nhiêu, rồi chờ: gõ `/record confirm` nếu thấy giá đó đúng, hoặc gõ lại lệnh kèm `fx`.
 Lệnh chờ 10 phút, mỗi cuộc trò chuyện giữ một lệnh. Muốn dùng thẳng tỷ giá thị trường mà không bị hỏi
 thì thêm `fx auto`. `/record sync` không bao giờ hỏi, nhưng nói rõ dòng nào đã ghi theo giá thị trường
-để bạn sửa bằng `/update <mã> ... fx <giá>`.
+để bạn sửa bằng `/update <mã bút toán>`, đủ cả dòng, rồi `fx <giá>`.
 
 Từ khi sàn giữ USDT, nó giữ luôn cả giá vốn. Nạp 1.000 USDT ở 26.600 thì sổ ghi 1.000 USDT với giá vốn 26,6 triệu. Mua 0,01 BTC giá 60.000 (phí 0,6) dùng hết 600,6 USDT, tức 15.975.960 đồng giá vốn, và còn lại 399,4 USDT. Sau này rút 399,4 USDT lúc tỷ giá 27.000 thì lãi đã chốt thêm đúng phần chênh +159.760 đồng, tức khoảng 400 đồng cho mỗi USDT. `/portfolio` cho thấy phần chênh đó ngay từ lúc còn giữ USDT, ở dòng "Chênh tỷ giá trên ngoại tệ đang giữ".
 
@@ -367,7 +367,7 @@ ngày như `30d` hay `2026-09-01..2026-09-25`, hoặc mã bút toán để xem t
 |---|---|
 | `/price <mã>` | Giá mới nhất kèm đơn vị và ngày số liệu |
 | `/market` | Giá mã đang nắm và mã theo dõi, bên cạnh phiên gần nhất đã chốt |
-| `/screen [thị trường] [số lượng] [loại]` | Top mã theo mô hình yếu tố (mặc định 10, tối đa 50); thứ tự tham số tùy ý |
+| `/screen [thị trường] [số dòng] [loại]` | Top mã theo mô hình yếu tố (mặc định 10, tối đa 50); thứ tự tham số tùy ý |
 | `/overview` | Mọi thị trường đang ra sao, kèm khối vĩ mô và các yếu tố dẫn dắt |
 | `/portfolio` | Giá trị, lãi/lỗ chưa thực hiện, tỷ trọng theo nhóm |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | Danh mục đã đi thế nào: lợi nhuận đã loại tiền nạp và rút, mức sụt sâu nhất từ đỉnh, thước đo từ tỷ trọng mục tiêu |
@@ -412,7 +412,7 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/price` | `/price <mã>`, hoặc `thị-trường:mã` khi tên trần có thể trùng | không |
 | `/market` | `/market` \| `enable` \| `disable` | không |
 | `/watchlist` | `/watchlist` \| `add <mã>...` \| `remove <mã>...` - `remove` với tên trần xóa mã đó ở mọi thị trường | không |
-| `/screen` | `/screen [thị trường] [số lượng] [loại]` | không |
+| `/screen` | `/screen [thị trường] [số dòng] [loại]` | không |
 | `/overview` | `/overview [thị trường]...` | không |
 | `/portfolio` | `/portfolio` \| `nav [1m\|3m\|6m\|1y\|all]` | không |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` | không |
@@ -420,7 +420,7 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/profile` | `/profile show` \| `set <trường> <giá trị>` \| `reset` | không |
 | `/rebalance` | `/rebalance` \| `/rebalance <mã>...` | không |
 | `/reflect` | `/reflect` | không |
-| `/alert` | `/alert list [n]` \| `create <mã> above\|below <ngưỡng>` \| `disable <id>` | không |
+| `/alert` | `/alert [list [số dòng]]` \| `create <mã> above\|below <ngưỡng>` \| `disable <id>` | không |
 | `/brief` | `/brief` \| `force` \| `enable [HH:mm]` \| `disable` | một phần nhỏ cho mục gợi ý |
 | `/refresh` | `/refresh [thị trường] [force]` | không |
 | `/suggest` | `/suggest <mã> [full\|lean] [force]` - tùy chọn theo thứ tự tùy ý sau mã; `/suggest stops` đọc lại các vị thế đang giữ chưa có kế hoạch thoát hoặc đã quá hạn cửa sổ | **có** - chạy cả quy trình tranh luận |
@@ -943,7 +943,7 @@ cổ phiếu VN.
   soát lại chủ đề đó cùng ngành và mã của nó, không đụng chủ đề khác, không tìm chủ đề mới, nên rẻ
   hơn hẳn một phiên đầy đủ. `/themes show` hiện mỗi chủ đề theo lần soát gần nhất của nó; chủ đề nào
   được soát từ trước lần chạy gần nhất thì có thêm dòng "Soát lần cuối" ghi rõ ngày.
-- **Chi phí.** Mỗi lần chạy có trần riêng (`[trading.themes] max_cost_usd`, mặc định $1). Chủ đề được
+- **Chi phí.** Mỗi lần chạy có trần riêng (`[trading.themes] maximum_cost_usd`, mặc định $1). Chủ đề được
   cập nhật, tìm mới, rồi lập danh sách ngành và mã theo thứ tự đó; chạm trần thì dừng giai đoạn đang
   làm và nêu tên những mã bị bỏ qua. `/themes show` đọc lại kết quả đã lưu, không tốn gì. Qua MCP chỉ
   có công cụ đọc `themes_view`.
@@ -961,7 +961,7 @@ cổ phiếu VN.
 | `/screen` báo sai tên thị trường | Dùng đúng mã: `equity-vn`, `gold`, `gold-vn`, `crypto` |
 | `/suggest NVDA` báo không hỗ trợ | Cổ phiếu Mỹ nằm ngoài phạm vi - xem [mục 3](#3-các-thị-trường) |
 | `/market` không có dòng theo dõi nào | `/watchlist add FPT` rồi thử lại |
-| Đặt tỷ trọng mục tiêu không ăn | `/profile set segment-target <nhóm> <tỷ lệ>` (0 tới 1, nhóm đang bật); `/profile show` để xem lại |
+| Đặt tỷ trọng mục tiêu không ăn | `/profile set segment-target <nhóm> <tỷ lệ>` (0 tới 1 hoặc 0% tới 100%, nhóm đang bật); `/profile show` để xem lại |
 | Dữ liệu VN có vẻ cũ | `/refresh equity-vn`, hoặc `/refresh equity-vn force` để nạp lại toàn bộ |
 | Không rõ đang tốn bao nhiêu | `/cost` trong chat, hoặc `openalpha cost` |
 | Đĩa đầy | Dừng daemon rồi `openalpha db cleanup --older-than 90d` (thêm `--dry-run` để xem trước); xem thêm `openalpha db --help` |

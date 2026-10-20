@@ -72,7 +72,8 @@ interface Tail {
  *  nothing here is read off the argument count. The ticker is the base asset alone — a `Ticker`
  *  admits no slash, and the pair symbol belongs to the adapter. */
 export function parseTradeArgs(args: readonly string[]): TradeCommand | null {
-  const [action, ...rest] = args
+  const [rawAction, ...rest] = args
+  const action = rawAction?.toLowerCase()
 
   if (action === undefined) {
     return { kind: 'status' }
@@ -244,7 +245,7 @@ function parseTail(rest: readonly string[]): Tail | null {
 
   for (let index = 0; index < rest.length; index += LABELLED_PAIR) {
     const value = parseFiniteNumber(rest[index + 1])
-    const label = rest[index]
+    const label = rest[index]?.toLowerCase()
 
     if (value === null || value <= 0) {
       return null

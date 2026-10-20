@@ -7,6 +7,7 @@ import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
 import { flagBool, flagString } from '@/cli/parsing/args'
 import { hint, style, success } from '@/cli/ui/colors'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
+import { BRAND } from '@/core/brand'
 import { pluralKey, t } from '@/i18n'
 import {
   discoverInstalledPlugins,
@@ -129,7 +130,7 @@ async function update(args: ParsedArgs, app: CliApp): Promise<number> {
   }
 
   await updatePlugin(id, pluginsDir, app.resolve('bundledPluginIds'))
-  app.out(success(t(locale, 'cli.pluginUpdated', { id })))
+  app.out(success(t(locale, 'cli.pluginUpdated', { id, brand: BRAND.name })))
 
   return 0
 }

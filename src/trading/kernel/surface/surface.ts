@@ -16,6 +16,7 @@ import type {
 import type { AlertId } from '@/trading/kernel/operator/alert'
 import type { LedgerEntryId } from '@/trading/kernel/operator/book'
 import { definedOnly } from '@/core/utils/collections'
+import { isWord } from '@/core/utils/text'
 import {
   marketRef,
   region,
@@ -29,6 +30,9 @@ import {
 import { alertId } from '@/trading/kernel/operator/alert'
 import { ledgerEntryId } from '@/trading/kernel/operator/book'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
+
+const PERCENT_SIGN = '%'
+const PERCENT_PER_UNIT = 100
 
 /** Set by the surfaces where the operator types a price: `unconfirmed` refuses one far from the
  *  market with `PriceUnconfirmedError`, `confirmed` writes it as typed. Unset is never checked: a
@@ -54,7 +58,7 @@ export function parseMember<T extends string>(
   raw: string | undefined,
   members: readonly T[]
 ): T | null {
-  return members.find((member) => member === raw) ?? null
+  return members.find((member) => isWord(raw, member)) ?? null
 }
 
 export function parseFiniteNumber(raw: string | undefined): number | null {
@@ -65,6 +69,20 @@ export function parseFiniteNumber(raw: string | undefined): number | null {
   const value = Number(raw)
 
   return Number.isFinite(value) ? value : null
+}
+
+/** A share written `0.2` or `20%`, returned as the fraction `0.2`. A space before the sign, a comma
+ *  decimal and a bare `%` read as nothing, so `20 %` is never taken for 20 nor `20,5%` for 205. Range
+ *  is the validator's. */
+export function parseFraction(raw: string | undefined): number | null {
+  if (raw === undefined || !raw.endsWith(PERCENT_SIGN)) {
+    return parseFiniteNumber(raw)
+  }
+
+  const body = raw.slice(0, -PERCENT_SIGN.length)
+  const percent = body === body.trim() ? parseFiniteNumber(body) : null
+
+  return percent === null ? null : percent / PERCENT_PER_UNIT
 }
 
 export function parsePositiveInteger(raw: string | undefined, maximum: number): number | null {
