@@ -24,10 +24,11 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
     // answers hours behind without failing. Neither miss is visible to a failover, which is why the
     // market ages every reading it is handed.
     'equity-vn': [sourceId('vndirect'), sourceId('vietcap-chart'), sourceId('entrade')],
-    // Listing order; `withVenueQuoteLead` moves the market's default venue to the front. All three
+    // Listing order; `withVenueQuoteLead` moves the market's default venue to the front. All four
     // are keyless and unmetered by the month, which matters because the alert loop reads a quote
-    // per watched coin every tick.
-    crypto: [sourceId('binance'), sourceId('okx'), sourceId('mexc')],
+    // per watched coin every tick. coinbase is last: it prices in dollars and converts through
+    // USDT, so it costs two requests a coin, and it is the one a US operator can always reach.
+    crypto: [sourceId('binance'), sourceId('okx'), sourceId('mexc'), sourceId('coinbase')],
     gold: [sourceId('yahoo'), sourceId('binance')],
   },
   bars: {
@@ -43,7 +44,13 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
       sourceId('vietcap-chart'),
       sourceId('vps'),
     ],
-    crypto: [sourceId('binance'), sourceId('bybit'), sourceId('mexc'), sourceId('yahoo')],
+    crypto: [
+      sourceId('binance'),
+      sourceId('bybit'),
+      sourceId('mexc'),
+      sourceId('coinbase'),
+      sourceId('yahoo'),
+    ],
     gold: [sourceId('yahoo'), sourceId('binance')],
   },
   instruments: { 'equity-us': [sourceId('nasdaq')], 'equity-vn': [sourceId('vndirect')] },
