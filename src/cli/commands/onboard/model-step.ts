@@ -216,7 +216,7 @@ function knownModels(provider: ProviderEntry): readonly string[] {
   )
   const preferred = provider.defaultModel
 
-  // Aliases share a model, so a model is listed once.
+  // Catalog aliases can name the same model.
   return [...new Set(preferred === undefined ? listed : [preferred, ...listed])]
 }
 

@@ -12,9 +12,9 @@ import {
   missingKeyErrors,
 } from '@/ai/api'
 import { resolveSecret, TELEGRAM_API_BASE, ZALO_API_BASE } from '@/channels/api'
-import { terminalErrorMessage } from '@/cli/error-output'
+import { providerFailureSpecOf, terminalErrorMessage } from '@/cli/error-output'
 import { setEnvCommand, toMissingSearchKeyError } from '@/core/config/resolve'
-import { failureSpecOf, LLMError } from '@/core/errors'
+import { LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
 import { silentLogger } from '@/core/logging/logger'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
@@ -421,7 +421,7 @@ function probeFailure(err: unknown, locale: Locale): string {
     return t(locale, 'cli.doctorProbeFailed')
   }
 
-  const spec = failureSpecOf({ haltDetail: err.code })
+  const spec = providerFailureSpecOf(err)
 
   return spec === undefined
     ? t(locale, 'cli.doctorProbeFailedCode', { code: err.code })
