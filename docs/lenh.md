@@ -150,6 +150,10 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 `/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì mình
 gợi ý câu lệnh gần nhất.
 
+Câu lệnh đọc chữ hoa hay thường như nhau: `/refresh crypto FORCE`, `/profile enable Crypto` và
+`/delete 0f9838 CONFIRM` đều chạy đúng như gõ. Tên thiết lập gõ tắt hoặc sai chút ít thì mình gợi ý tên
+gần nhất, ví dụ `reserve-pct-nav` cho `/profile set reserve 0.2`.
+
 Kênh có thêm `/stop` và các lệnh ghép nối. `/stop` và `/help` cũng nhận dạng gọi kèm tên bot như
 `/stop@MyBot`, đúng cách nhóm Telegram gửi lệnh. REPL có `/help`, `/exit` và `/quit`, và Ctrl+D cũng
 thoát được. Dòng gõ trong lúc một lượt còn chạy không được gửi, kể cả sau đó, để nó không vô tình trả lời

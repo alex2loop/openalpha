@@ -150,6 +150,10 @@ so a command behaves the same in the REPL and in a group chat.
 `/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt
 name gets the closest command.
 
+Commands read their words in any case: `/refresh crypto FORCE`, `/profile enable Crypto` and
+`/delete 0f9838 CONFIRM` work as typed. A setting name typed short or slightly wrong is answered with
+the one it most likely means, such as `reserve-pct-nav` for `/profile set reserve 0.2`.
+
 Channels add `/stop` and the pairing controls. `/stop` and `/help` also answer to a bot-addressed form
 such as `/stop@MyBot`, the way a Telegram group sends them. The REPL has `/help`, `/exit` and `/quit`,
 and Ctrl+D leaves too. A line typed while a turn is still running is never sent, not even afterwards,
