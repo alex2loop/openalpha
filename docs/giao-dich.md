@@ -32,10 +32,24 @@ Một lệnh vào đã duyệt có thể để lại **một** lệnh chốt l�
 |---|---|---|---|---|---|
 | `gold` | `global` | vàng | `gold` | USD | có |
 | `gold-vn` | `vn` | vàng | `gold-vn` | VND | không |
+| `equity-us` | `us` | cổ phiếu | `equity-us` | USD | có |
 | `equity-vn` | `vn` | cổ phiếu | `equity-vn` | VND | có |
 | `crypto` | `global` | crypto | `crypto` | USDT | không |
 
 Hai thị trường dùng chung khu vực `vn`, nên một trong hai phải định nghĩa "một ngày giao dịch Việt Nam" là gì. Lịch của bản tin và mọi ngày as-of liên thị trường đều dựa vào đó. Cổ phiếu giữ vai này cho `vn`, vàng thế giới giữ cho `global`, còn crypto thì không bao giờ đóng cửa. Khi khởi động, hệ thống từ chối chạy nếu một khu vực không có thị trường nào như vậy, hoặc có tới hai.
+
+### Cổ phiếu Mỹ
+
+Đặt `[locale] region = "us"` và `currency = "USD"`, hoặc chọn Mỹ khi `onboard` hỏi bạn giao dịch chủ yếu ở thị trường nào, rồi bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ bị khóa ngay khi hồ sơ đầu tiên được lưu. Thị trường chính khi đó sàng lọc, chấm điểm, tranh luận và tính khối lượng cho cổ phiếu và quỹ ETF Mỹ, còn crypto được định giá qua Coinbase.
+
+- **Sổ nằm ở đâu.** Cổ phiếu Mỹ nằm ở sàn có sẵn `us-broker`, không phí, và bạn tự ghi lệnh đã khớp: `/record buy us-broker equity-us:AAPL 10 214.13 USD`. Muốn dùng tên và phí của công ty chứng khoán riêng, thêm `[trading.venues.<tên>]` với `default_for = ["equity-us"]` và `fees`.
+- **Bán trong ngày.** Bán cổ phiếu Mỹ về tiền sau một ngày làm việc, nhưng tài khoản tiền mặt được bán cổ phiếu vừa mua cùng ngày, nên mua và bán trong một ngày đều ghi được.
+- **Bảng xếp hạng.** Bảng sàng lọc xếp 500 công ty Mỹ vốn hóa lớn nhất, cộng các quỹ trên bảng quỹ (`/screen equity-us etf`); không có danh sách S&P 500. Mã niêm yết khác vẫn trả lời `/price` và `/suggest`, mình đọc dữ liệu ngay lúc hỏi, nhưng không có vốn hóa nên điểm bị hạ độ tin cậy và có nói rõ. Chỉ số Nasdaq Composite trùng mã với một cổ phiếu niêm yết ở New York; chỉ số được giữ lại, nên viết `/price equity-us:COMP` để xem chỉ số.
+- **Quỹ được xem lại, không đặt cắt lỗ.** Mức của quỹ là chỗ để xem lại, không phải lệnh cắt lỗ. Quỹ đòn bẩy hoặc đảo chiều cân lại mỗi ngày nên lệch dần khỏi chỉ số, vì vậy mình không gợi ý mua loại này; nếu bạn đang giữ, mình vẫn đặt mức cắt lỗ thật.
+- **Chấm điểm khi thiếu SEC.** Đà giá và biến động chỉ cần giá. Giá trị và chất lượng lấy từ báo cáo tài chính của SEC, cần email liên hệ trong `SEC_CONTACT_EMAIL` (đặt bằng `onboard` hoặc `key set SEC_CONTACT_EMAIL`). Thiếu email thì giá trị và chất lượng ghi là thiếu dữ liệu, bảng nói rõ độ phủ chỉ một phần, và mã vẫn được xếp hạng bằng nửa còn lại. Ngân hàng không có lợi nhuận gộp nên chất lượng cũng ghi là thiếu.
+- **Vừa công bố gần đây.** Công bố kết quả kinh doanh (8-K mục 2.02) và giao dịch mua trên thị trường của người nội bộ (Form 4) trong 90 ngày gần nhất vào phần tranh luận dưới tiêu đề riêng, tách khỏi các sự kiện sắp tới.
+- **Crypto qua Coinbase.** Với người dùng ở Mỹ, `[trading.venues.coinbase] default_for = ["crypto"]` đưa Coinbase lên đầu khi báo giá crypto. Coinbase báo giá bằng đô la còn sổ tính bằng USDT, nên mọi giá được chia cho giá đô la của USDT; ngày 2026-10-20 con số này là 0,99883 và giá BTC sau quy đổi lệch Binance 0,009%. Nếu ký hiệu của một đồng coin trùng với mã niêm yết ở Mỹ (SOL, LINK), hãy viết `crypto:SOL`.
+- **Bản tin sáng.** Bản tin sáng theo lịch cho thị trường chính ở Mỹ chưa được dựng; `/screen`, `/suggest` và `/overview` đã dùng được.
 
 ### Nguồn dữ liệu
 

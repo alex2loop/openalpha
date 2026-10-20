@@ -108,7 +108,7 @@ Như vậy là đủ để xem một đề xuất. Muốn đề xuất có khố
 
 Đã chạy 3 lệnh ở trên thì bắt đầu từ bước 3.
 
-**1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, tiền tệ của sổ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Tiền tệ chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được. Muốn đổi phần còn lại thì chạy `openalpha onboard`.
+**1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu (ngôn ngữ, thị trường chính, tiền tệ của sổ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn). Tiền tệ chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được. Muốn đổi phần còn lại thì chạy `openalpha onboard`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
@@ -295,6 +295,7 @@ Các con số trong README chỉ minh họa cú pháp, không phải gợi ý mu
 
 | Thị trường | Mã thị trường | Có gì |
 |---|---|---|
+| **Cổ phiếu và quỹ ETF Mỹ** | `equity-us` | Sàng lọc 500 công ty Mỹ lớn nhất và một bảng quỹ, chấm đà giá và biến động bằng giá, giá trị và chất lượng bằng báo cáo tài chính của SEC (cần email liên hệ của bạn), và không gợi ý mua quỹ đòn bẩy hay quỹ đảo chiều. Đặt `region = "us"` và `currency = "USD"`, hoặc chọn Mỹ trong `onboard`. |
 | **Cổ phiếu Việt Nam** | `equity-vn` | Sâu nhất: theo dõi khối ngoại và tự doanh, lịch công bố thông tin, sức khỏe tài chính, và luôn tính đến T+2. |
 | **Tiền mã hóa** | `crypto` | Chỉ giao ngay. Mua khi giá vượt đỉnh gần đây, cắt lỗ dời lên theo giá, đọc thêm dữ liệu phái sinh để biết thị trường đang dùng đòn bẩy nhiều hay ít. |
 | **Vàng trong nước** | `gold-vn` | So với giá thế giới để biết vàng thật sự tăng hay chỉ là tiệm nới chênh lệch. |

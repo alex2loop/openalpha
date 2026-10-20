@@ -128,6 +128,15 @@ Các route mà tính năng giao dịch thêm vào, được phục vụ khi `[ap
 
 [`scripts/research-vn-factor-history.ts`](../../scripts/research-vn-factor-history.ts) đo các yếu tố VN trên lịch sử. Nó sao chép cuốn sổ vào một thư mục bạn đặt tên và gieo vào đó các nến cũ hơn, lịch sử tỷ số đúng như lúc mỗi ngày bảng giá (một quý được tính từ ngày nó được nộp lần đầu, không phải từ bản soát xét hay kiểm toán) và các dòng tiền trước đó. Nó sàng lọc mỗi phiên thứ năm bằng bộ chấm điểm thật và báo rank IC của từng yếu tố so với lợi suất trong cửa sổ kết cục dài, kèm t Newey-West, từng nửa riêng, và chỉ số tổng hợp khi bỏ từng yếu tố. Nó không bao giờ ghi vào cuốn sổ hay nhật ký bảng. Tập mẫu là các mã niêm yết hôm nay, nên hãy đọc nó như một hình dạng.
 
+## Thị trường Mỹ
+
+- **Phần dùng chung nằm phẳng.** `markets/<thư mục>/` là một đơn vị thị trường mà thị trường anh em không được nhập, nên những gì VN và Mỹ cùng cần (`fetch-window`, `admissibility`, `turnover`, các phép gộp báo cáo và `accounts-history`) để thành tệp phẳng ở gốc `markets/`. `toAccountsHistoryCore` nhận quy tắc năm cuối cùng, số lượng cổ phiếu, số năm xu hướng và các dòng quan sát từ thị trường; lớp bọc của VN cấp phần của VN và đầu ra không đổi.
+- **Ngưỡng điều chỉnh giá.** `isRestated` nhận ngưỡng (mặc định `RESTATEMENT_TOLERANCE`). Lịch sử Nasdaq đã điều chỉnh chia tách và không điều chỉnh cổ tức, nên Mỹ giữ ngưỡng mặc định và ngày không hưởng cổ tức không tạo điều chỉnh.
+- **SEC.** Hai mã cho hai máy chủ: `sec-data` (có tuyến, `data.sec.gov`) và `sec` (không tuyến, `www.sec.gov`, cho bảng mã và kho hồ sơ Form 4). Mọi yêu cầu đặt header `user-agent` bằng liên hệ từ `SEC_CONTACT_EMAIL`; `CREDENTIAL_ALIASES` cho `sec` dùng cùng biến với `sec-data`, nên đổi tên một lần dưới `[trading.sources]` áp dụng cho cả hai.
+- **Tập thị trường đang dùng.** `resolveMarketsInUse` đọc hồ sơ đã phân giải (đã lưu hoặc mặc định), nên nhóm mà hồ sơ đã lưu chưa từng nêu là tắt và sổ cũ không bao giờ làm mới thị trường thêm sau. Bộ đọc thống kê Việt Nam chỉ chạy khi `equity-vn` đang dùng.
+- **Hồ sơ công bố gần đây.** `recentEvents` (draft-input) giữ các dòng `earnings-release` và `insider-purchase` trong 90 ngày gần nhất và đưa vào phần tranh luận dưới tiêu đề riêng, tách khỏi `upcomingEvents`.
+- **Quỹ đòn bẩy.** `isLeveragedFund` đọc tên quỹ đã lưu; một bước ở pha rủi ro chỉ chặn lệnh mua, và quỹ đang giữ vẫn có mức cắt lỗ thật.
+
 ## Bản đồ mã nguồn
 
 - [`src/trading/kernel/source/source-result.ts`](../../src/trading/kernel/source/source-result.ts) - `SourceResult`.

@@ -319,7 +319,7 @@ kiểu camelCase (`budget.maxDailyUsd`). `edit` dùng `VISUAL`, không có thì 
 trị trống coi như chưa đặt. Giá trị được đọc như git đọc, nên có thể kèm cờ hoặc đường dẫn đặt trong
 dấu nháy (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
 
-`onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, nhà cung cấp AI và mô hình, URL endpoint nếu nhà cung
+`onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, thị trường chính (Việt Nam hoặc Mỹ, quyết định tiền tệ mặc định và với Mỹ thì hỏi thêm email liên hệ cho SEC), nhà cung cấp AI và mô hình, URL endpoint nếu nhà cung
 cấp cần, tên biến môi trường chứa key, mức chi tối đa mỗi ngày ($2 nếu bạn không đổi) và, nếu muốn, một bot
 Telegram. Câu có danh sách thì bạn chọn bằng phím ↑ ↓ rồi nhấn Enter, và ← quay lại câu danh sách trước đó với đáp án cũ vẫn được đánh dấu; muốn một giá trị không có sẵn (tiền
 tệ, mô hình hay nhà cung cấp khác) thì chọn dòng cuối rồi gõ vào. Không chạy trong terminal thì danh sách được

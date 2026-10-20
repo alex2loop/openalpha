@@ -170,8 +170,9 @@ max_daily_usd = 2           # 0 = uncapped
 language = "vi"                   # vi | en
 # timezone = "UTC"                # IANA tz; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
-# region = "vn"                   # home market: vn (world gold owns global but is reference only). Leads the brief,
-                                  # and a new profile starts in its own segments. Set currency to match.
+# region = "vn"                   # home market: vn | us (world gold owns global but is reference only). Leads the
+                                  # brief, and a new profile starts in its own segments. Set currency to match.
+                                  # us: US stocks and ETFs; pair it with currency = "USD" and start from a fresh data dir.
 
 
 # ---- Paths ------------------------------------------------------------------
@@ -248,7 +249,7 @@ language = "vi"                   # vi | en
 # debate_mode = "full"               # full: bull and bear argue, a manager decides, a trader plans.
 #                                    # lean: one analyst reads it - cheaper and faster.
 
-# Per market. Ids: equity-vn, crypto, gold, gold-vn. Every key is optional. A
+# Per market. Ids: equity-vn, equity-us, crypto, gold, gold-vn. Every key is optional. A
 # level key left out keeps the market's own default, shown as short / long
 # horizon (your profile picks the horizon per segment). Setting any level key
 # starts a separate track record for that market. Restart after editing.
@@ -267,7 +268,7 @@ language = "vi"                   # vi | en
 # that day, with a notice; tomorrow's goes out as usual. Only /brief disable stops it.
 # The brief opens with a market story and a check of earlier ones; it calls no model and needs no key.
 # [trading.briefs]
-# send_time = "08:15"                # morning brief delivery (HH:MM, market timezone)
+# send_time = "08:15"                # morning brief delivery (HH:MM), read in your home market's time zone
 
 # Mid-session report for the market of your [locale] region (VN stocks by
 # default), on that market's hours and trading days. Off by default; name the
@@ -296,13 +297,24 @@ language = "vi"                   # vi | en
 # The kill switch is not a setting: /trade halt holds every new buy until /trade resume.
 
 # One table per venue: the markets it is the default for, its fees, and (okx,
-# binance) its credentials. okx, binance, vps and gold-shop are built in with
+# binance) its credentials. okx, binance, vps, gold-shop and us-broker are built in with
 # their published fees; set a key only to change it. fees replaces the built-in
 # rates whole, and credentials name environment variables, never values, for
 # the fields the venue reads (okx: apiKey, secret, passphrase; binance: apiKey,
 # secret); any other field stops boot. Every rule: docs/en/configuration.md#trading.
 # Give an exchange key Reading and Spot & Margin Trading only, never Withdrawals,
 # and pin it to your server's IP. `openalpha doctor venues --online` checks both.
+# A US broker you place orders at yourself (record fills by hand). us-broker already holds US stocks
+# with zero fees; give your own broker a name and its fees to replace it:
+# [trading.venues.schwab]
+# default_for = ["equity-us"]
+# fees = { buy = 0, sell = 0 }
+#
+# Coinbase prices crypto in USDT for a US operator and can hold the coins you book:
+# [trading.venues.coinbase]
+# default_for = ["crypto"]
+# fees = { buy = 0.006, sell = 0.006 }
+#
 # [trading.venues.binance]
 # default_for = ["crypto"]
 # fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }

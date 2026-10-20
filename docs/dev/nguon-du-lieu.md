@@ -505,6 +505,10 @@ export function createSources(kit) {
 - **Thư mục nguồn theo từng thị trường.** Các nguồn thật sự dùng chung - `vndirect` phục vụ cổ phiếu VN và vĩ mô VN, `yahoo` phục vụ vàng và FX - nên không thị trường nào sở hữu chúng.
 - **Xếp hạng nhà cung cấp theo độ mới của lần thành công.** Xem [Sức khỏe chỉ hạ bậc, không bao giờ nâng bậc](#sức-khỏe-chỉ-hạ-bậc-không-bao-giờ-nâng-bậc).
 
+## Nguồn dữ liệu Mỹ
+
+`nasdaq` nạp danh sách trong bốn yêu cầu (toàn bộ danh sách cổ phiếu nặng 2,19 MB so với trần phản hồi 2 MiB nên được hỏi theo từng sàn) và coi `status.rCode` 400 trong thân phản hồi là mã không tồn tại, vì mã HTTP vẫn là 200. `sec-data` đọc các bảng XBRL toàn doanh nghiệp: dòng lưu lượng từ `CY<năm>`, dòng thời điểm của bảng cân đối và số cổ phiếu ở trang bìa từ `CY<năm>Q4I`. `coinbase` quy đổi các sản phẩm bằng đô la sang USDT qua `USDT-USD`, bỏ ngày không có giá đóng cửa của USDT.
+
 ## Bản đồ mã nguồn
 
 - Hợp đồng: [kernel/source/source-result.ts](../../src/trading/kernel/source/source-result.ts), [kernel/caveat.ts](../../src/trading/kernel/caveat.ts)

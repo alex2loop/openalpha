@@ -32,10 +32,24 @@ The **market id** and the **portfolio segment** are two different names; they di
 |---|---|---|---|---|---|
 | `gold` | `global` | gold | `gold` | USD | yes |
 | `gold-vn` | `vn` | gold | `gold-vn` | VND | no |
+| `equity-us` | `us` | equity | `equity-us` | USD | yes |
 | `equity-vn` | `vn` | equity | `equity-vn` | VND | yes |
 | `crypto` | `global` | crypto | `crypto` | USDT | no |
 
 Two markets share region `vn`, so one of them has to define "a Vietnamese trading day". The brief's schedule and every cross-market as-of date rely on it. Equity does that for `vn`, world gold does it for `global`, and crypto never closes. Startup refuses to run if a region has no such market or two.
+
+### US stocks
+
+Set `[locale] region = "us"` and `currency = "USD"`, or pick the United States when `onboard` asks which market you mainly trade, and start from a fresh data directory: the book's currency is fixed once the first profile is saved. The home market then screens, scores, debates and sizes US stocks and ETFs, and crypto is priced through Coinbase.
+
+- **Where the book sits.** US shares are held at the built-in `us-broker` venue, with no fees, and you record your fills by hand: `/record buy us-broker equity-us:AAPL 10 214.13 USD`. To use your own broker's name and fees, add `[trading.venues.<name>]` with `default_for = ["equity-us"]` and its `fees`.
+- **Same-day sells.** A US sale settles cash in one business day, but a cash account may sell shares it bought the same day, so a buy and a sale on one day both book.
+- **The board.** The screen ranks the 500 largest US companies by market value, plus the funds on the fund board (`/screen equity-us etf`); it does not carry an S&P 500 list. Any other listed ticker still answers `/price` and `/suggest`, read on demand, but without a market value it is scored with lower conviction and says so. The Nasdaq Composite shares its ticker with a New York-listed stock; the index wins, so write `/price equity-us:COMP` for the index.
+- **Funds are reviewed, not stopped.** A fund's level is a place to look again, not a stop to arm. A leveraged or inverse fund resets every day and drifts from its index, so a buy is refused; if you already hold one, you still get a real stop.
+- **Scoring without SEC.** Momentum and volatility read prices alone. Value and quality come from SEC accounts, which need a contact email in `SEC_CONTACT_EMAIL` (set by `onboard` or `key set SEC_CONTACT_EMAIL`). Without it value and quality read as unavailable, the board says its coverage is partial, and names still rate on the other half. Banks have no gross profit, so their quality is unavailable too.
+- **Recently filed.** Earnings releases (8-K item 2.02) and open-market insider purchases (Form 4) from the last 90 days reach the debate under their own heading, apart from the dated events ahead.
+- **Crypto through Coinbase.** For a US operator, `[trading.venues.coinbase] default_for = ["crypto"]` leads the crypto quote with Coinbase. Coinbase quotes dollars and the book is in USDT, so every price is divided by USDT's own dollar price; on 2026-10-20 that was 0.99883, and the converted BTC price sat 0.009% from Binance's. If a coin's symbol is also a US listing (SOL, LINK), write `crypto:SOL`.
+- **The brief.** A scheduled morning brief for a US home is not built yet; `/screen`, `/suggest` and `/overview` work today.
 
 ### Data sources
 

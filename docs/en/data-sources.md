@@ -47,6 +47,9 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 
 | Data | Providers, in order |
 |---|---|
+| **US equities** | |
+| Listings, market caps, live price, daily history, dividends | `nasdaq` |
+| Annual accounts, earnings releases, insider purchases | `sec-data` (reads the ticker map and Form 4 filings from SEC's other host, `sec`) |
 | **VN equities** | |
 | Live price | `vndirect`, `vietcap-chart`, `entrade` |
 | Daily history | `vndirect`, `entrade`, `vietcap-chart`, `vps` |
@@ -99,6 +102,13 @@ What the less obvious ones do:
 - `coingecko` serves the market-cap board and one FX rate, not the price path, because the alert loop reads a price for every watched coin on every tick and a monthly-metered provider would use its quota on that.
 
 One kind is defined and has no provider: spot-ETF net flows for crypto. The brief's `etf-flows` section reports `unavailable`. That is expected, not an outage.
+
+### US sources
+
+- **nasdaq** serves the listing (about 12,000 tickers, one request per exchange and one for funds), market caps, quotes, split-adjusted daily history and dividends. Its history is not dividend-adjusted, so an ex-dividend day restates nothing. The 240-a-minute limit is measured, not published.
+- **SEC** asks every reader for a contact, sent as the user agent. Set `SEC_CONTACT_EMAIL` (`onboard` asks, or `key set SEC_CONTACT_EMAIL`); without it the SEC source stays off and US value and quality read as unavailable. Annual accounts come from the company-wide XBRL frames (five reported years), so a filer with a non-December year end carries the December quarter's balance sheet, and one whose newest year has no such frame yet has no balance lines for it.
+- **Yield curve.** The Treasury read now also prints the ten-year less three-month spread, which the equity segment weighs in its macro composite.
+- **Coinbase for crypto.** It quotes dollars; the crypto book is in USDT, so a quote or a bar is divided by USDT's own dollar price on the same day.
 
 ### Reading the Vietnamese sources
 

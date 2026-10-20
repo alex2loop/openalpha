@@ -47,6 +47,9 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 
 | Dữ liệu | Nhà cung cấp, theo thứ tự |
 |---|---|
+| **Cổ phiếu Mỹ** | |
+| Danh sách, vốn hóa, giá trực tiếp, lịch sử ngày, cổ tức | `nasdaq` |
+| Báo cáo năm, công bố kết quả kinh doanh, giao dịch mua của người nội bộ | `sec-data` (đọc bảng mã và hồ sơ Form 4 từ máy chủ thứ hai của SEC, `sec`) |
 | **Cổ phiếu VN** | |
 | Giá trực tiếp | `vndirect`, `vietcap-chart`, `entrade` |
 | Lịch sử theo ngày | `vndirect`, `entrade`, `vietcap-chart`, `vps` |
@@ -99,6 +102,13 @@ Vài nguồn ít hiển nhiên làm gì:
 - `coingecko` phục vụ bảng vốn hóa và một tỷ giá FX, không phục vụ đường giá, vì vòng cảnh báo đọc giá của mọi coin đang theo dõi ở mỗi nhịp, và một nhà cung cấp tính hạn mức theo tháng sẽ tiêu hết hạn mức vào đó.
 
 Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền ròng của ETF spot crypto. Mục `etf-flows` của bản tin báo `unavailable`. Đó là điều bình thường, không phải sự cố.
+
+### Nguồn dữ liệu Mỹ
+
+- **nasdaq** cung cấp danh sách niêm yết (khoảng 12.000 mã, mỗi sàn một yêu cầu và một yêu cầu cho quỹ), vốn hóa, báo giá, lịch sử ngày đã điều chỉnh chia tách và cổ tức. Lịch sử này không điều chỉnh theo cổ tức, nên ngày giao dịch không hưởng cổ tức không bị coi là điều chỉnh giá. Giới hạn 240 yêu cầu mỗi phút là con số đã đo, không phải con số nguồn công bố.
+- **SEC** yêu cầu người đọc để lại liên hệ, gửi qua user agent. Hãy đặt `SEC_CONTACT_EMAIL` (`onboard` sẽ hỏi, hoặc `key set SEC_CONTACT_EMAIL`); không có thì nguồn SEC tắt và giá trị, chất lượng của cổ phiếu Mỹ ghi là thiếu dữ liệu. Báo cáo năm lấy từ các bảng XBRL toàn doanh nghiệp (năm báo cáo gần nhất và bốn năm trước đó), nên doanh nghiệp có năm tài chính không kết thúc vào tháng 12 mang bảng cân đối của quý tháng 12, và doanh nghiệp mà năm mới nhất chưa có bảng đó thì năm ấy chưa có dòng bảng cân đối.
+- **Đường cong lợi suất.** Bản đọc của Kho bạc nay in thêm chênh lệch lợi suất 10 năm trừ 3 tháng, mà nhóm cổ phiếu cân trong chỉ số vĩ mô.
+- **Coinbase cho crypto.** Coinbase báo giá bằng đô la, còn sổ crypto tính bằng USDT, nên mỗi giá hoặc mỗi thanh nến được chia cho giá đô la của USDT trong cùng ngày.
 
 ### Đọc các nguồn Việt Nam
 

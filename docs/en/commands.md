@@ -328,7 +328,7 @@ included. `config get` takes a path into the resolved config, which is camelCase
 unset. The value is read the way git reads it, so it may carry flags or a quoted path
 (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
 
-`onboard` walks through a first setup: language, AI provider and model, an endpoint URL for a
+`onboard` walks through a first setup: language, home market (Vietnam or the United States, which sets the currency default and, for the United States, asks for an SEC contact email), AI provider and model, an endpoint URL for a
 provider that needs one, the environment variable that holds your key, a daily spending cap ($2
 unless you change it) and, if you want, a Telegram bot. A list is answered with ↑ and ↓ and Enter, and ← goes back to the list question before it with your earlier answer still marked;
 a value it does not hold (another currency, model or provider) is its last line, which then asks you

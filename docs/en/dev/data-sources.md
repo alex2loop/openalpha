@@ -806,6 +806,10 @@ export function createSources(kit) {
   no market owns them.
 - **Ranking providers by recent success.** See [Health demotes, it never promotes](#health-demotes-it-never-promotes).
 
+## US sources
+
+`nasdaq` loads the listing in four requests (the whole stock list is 2.19 MB against the 2 MiB response cap, so it is asked per exchange) and treats the body's `status.rCode` 400 as a missing symbol, because the HTTP status is 200. `sec-data` reads company-wide XBRL frames: flows from `CY<y>`, balance-sheet instants and the cover-page share count from `CY<y>Q4I`. `coinbase` converts its dollar products to USDT through `USDT-USD`, dropping a bar day with no peg close.
+
 ## Source map
 
 - Contract: [kernel/source/source-result.ts](../../../src/trading/kernel/source/source-result.ts), [kernel/caveat.ts](../../../src/trading/kernel/caveat.ts)

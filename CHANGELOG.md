@@ -7,6 +7,18 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+### Added
+
+- US stocks and ETFs as a home market: `[locale] region = "us"` (or the new onboarding question) screens the 500 largest US companies and a fund board, scores them on twelve-month momentum, volatility and, with an SEC contact email, value and quality, and sizes them in dollars at the built-in `us-broker` venue. A leveraged or inverse fund is never suggested for purchase.
+- Data from Nasdaq (listings, quotes, history, dividends) and SEC (annual accounts, earnings releases, insider purchases), the ten-year less three-month yield spread in the US macro composite, and Coinbase prices for crypto, converted to USDT.
+
+### Changed
+
+- A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.
+- Tool, skill and usage wording no longer assumes a Vietnamese book.
+
 ## [1.0.14] - 2026-10-21
 
 A VN quarter now reaches the analysis the evening its income statement lands, even before its cash

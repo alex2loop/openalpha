@@ -128,6 +128,15 @@ The routes the trading feature adds, served when `[api] enabled = true`. The res
 
 [`scripts/research-vn-factor-history.ts`](../../../scripts/research-vn-factor-history.ts) measures the VN factors on history. It copies the book into a directory you name and seeds it with older bars, the ratio history as it stood on each board day (a quarter counts from the day it was first filed, not from its reviewed or audited revision) and earlier flows. It screens every fifth session with the live scorer and reports each factor's rank IC against the return over the long outcome window, with a Newey-West t, each half apart, and the composite with each factor left out. It never writes to the book or the board log. The population is today's listings, so read it as a shape.
 
+## The US market
+
+- **Shared helpers are flat.** `markets/<folder>/` is a market unit that siblings may not import, so what VN and the US both need (`fetch-window`, `admissibility`, `turnover`, the accounts folds and `accounts-history`) sits as a flat file at the `markets/` root. `toAccountsHistoryCore` takes the final-year rule, the share count, the trend length and the observation lines as inputs; VN's wrapper supplies its own, and its output is unchanged.
+- **Restatement tolerance.** `isRestated` takes a tolerance (default `RESTATEMENT_TOLERANCE`). Nasdaq history is split-adjusted and not dividend-adjusted, so the US keeps the default and an ex-dividend day restates nothing.
+- **SEC.** Two ids for two hosts: `sec-data` (routed, `data.sec.gov`) and `sec` (unrouted, `www.sec.gov`, for the ticker map and the Form 4 archive). Every request sets the `user-agent` header to the contact from `SEC_CONTACT_EMAIL`; `CREDENTIAL_ALIASES` makes `sec` resolve the same variable as `sec-data`, so one rename under `[trading.sources]` carries to both.
+- **In-use set.** `resolveMarketsInUse` reads the resolved profile (stored or seeded), so a segment the stored profile never named is off and an existing book never refreshes a market added later. The Vietnamese statistics reader runs only while `equity-vn` is in use.
+- **Recent filings.** `recentEvents` (draft-input) keeps `earnings-release` and `insider-purchase` rows from the last 90 days and hands them to the debate evidence under their own heading, apart from `upcomingEvents`.
+- **Leveraged funds.** `isLeveragedFund` reads the stored fund name; a stage in the risk phase blocks a buy only, and a held one keeps a real stop.
+
 ## Source map
 
 - [`src/trading/kernel/source/source-result.ts`](../../../src/trading/kernel/source/source-result.ts) - `SourceResult`.

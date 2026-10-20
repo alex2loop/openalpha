@@ -51,11 +51,11 @@ findings in memory, and produce a concise summary. Do not write to disk.
 # Set it and the agent becomes a second opinion: its calls are stored and scored
 # separately, and never move a stop, fire an alert or change the morning brief or its market story.
 # Focus only narrows: markets must be ones your book trades; sectors need a
-# market that keeps sector data (today: equity-vn). The tables below go above
+# market that keeps sector data (today: equity-vn; US names carry their sector, no sector board yet). The tables below go above
 # `[capabilities]`: written after it they would land inside it.
 #
 # [focus]
-# markets = ["equity-vn"]     # equity-vn | crypto | gold | gold-vn
+# markets = ["equity-vn"]     # equity-vn | equity-us | crypto | gold | gold-vn
 # sectors = ["banks"]         # sector slugs as the market files them (banks, oil-gas, ...);
 #                             # `market_sector_strength` lists them
 # horizon = "long"            # short | long: the window this agent's calls are scored over
@@ -73,7 +73,7 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #   tools     - tool-name allowlist, or "*" for every registered tool.
 #               Omitted or empty = deny all.
 #               Trading tools are named the same way, e.g. "market_price" or
-#               "market_accounts" (a VN company's filed annual accounts).
+#               "market_accounts" (a VN or US company's filed annual accounts).
 #   delegates - agent IDs callable through `delegate` (also include `delegate`
 #               in tools). Omitted or empty = delegation disabled.
 #   hosts     - hostnames web_fetch may reach. Omitted = any host allowed by the

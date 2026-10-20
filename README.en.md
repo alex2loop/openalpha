@@ -108,7 +108,7 @@ That is enough to see a suggestion. For one sized to your own money, also do ste
 
 Already ran the 3 commands above? Start at step 3.
 
-**1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
+**1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the market you mainly trade, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
@@ -224,6 +224,7 @@ A few things that work the same in every market:
 - **Windows Defender blocks `openalpha.exe`?** The binary is not code-signed, so it is sometimes flagged by mistake. The installer already checked it against the release's `SHA256SUMS`; to check yourself, run `Get-FileHash "$HOME\.local\bin\openalpha.exe"` and compare it with the line for your build (`openalpha-windows-x64.exe`, or `openalpha-windows-arm64.exe` on ARM) on the [Releases](https://github.com/alex2loop/openalpha/releases) page. If it matches, exclude the folder, in PowerShell run as Administrator: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Don't turn antivirus off.
 - **A Windows machine with an ARM chip?** The installer picks the native ARM build, and an older x64 install moves to it when you re-run the install command.
 - **Vietnamese text shows garbage?** Use Windows Terminal instead of the old console window. **Prefer WSL2?** The `curl ... | sh` line works there, with its own `~/.openalpha`.
+- **Trading US stocks?** Pick the United States when `onboard` asks which market you mainly trade, or take [config.minimal.us.toml](config.minimal.us.toml) in place of the file below. Start from a fresh data directory: the currency of the book is fixed once your profile is saved.
 - **Rather not answer questions during install?** Take [config.minimal.en.toml](config.minimal.en.toml): it runs as is with just an OpenRouter key, every line commented. This overwrites an existing `config.toml`:
 
   ```bash
@@ -295,6 +296,7 @@ The figures in this README only illustrate the syntax; they are not trade ideas.
 
 | Market | Market id | What it brings |
 |---|---|---|
+| **US stocks and ETFs** | `equity-us` | Screens the 500 largest US companies and a fund board, scores momentum and volatility from prices and value and quality from SEC accounts (with your contact email), and refuses to suggest buying leveraged or inverse funds. Set `region = "us"` and `currency = "USD"`, or pick the United States in `onboard`. |
 | **VN equities** | `equity-vn` | The deepest: follows foreign and proprietary flow, the disclosure calendar and financial health, and always plans around T+2. |
 | **Crypto** | `crypto` | Spot only. Buys when price clears its recent high, with a stop that moves up behind the price, and reads the futures market to show how much leverage traders are using. |
 | **VN gold** | `gold-vn` | Compared with the world price, so you can tell a real move from a shop widening its spread. |
