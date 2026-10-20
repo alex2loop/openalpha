@@ -11,7 +11,9 @@ carries ` [IMPORTANT]` after its date.
 
 ### Setup
 
-- `onboard` tests a key it just saved, and its next steps name `/brief enable`.
+- `onboard` tests a key it just saved, and its next steps name `/brief enable`. A failed test in
+  `onboard` or `doctor --online` says why, such as a rejected key, and the model list shows each
+  model once.
 - `start` on a running daemon says to `restart --background`, and every restart hint uses that form.
 - A channel with no bot token names the variable and the `key set` command that saves it, in `start`
   and in `doctor`.

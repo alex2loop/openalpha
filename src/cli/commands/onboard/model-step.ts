@@ -216,9 +216,8 @@ function knownModels(provider: ProviderEntry): readonly string[] {
   )
   const preferred = provider.defaultModel
 
-  return preferred === undefined
-    ? listed
-    : [preferred, ...listed.filter((model) => model !== preferred)]
+  // Aliases share a model, so a model is listed once.
+  return [...new Set(preferred === undefined ? listed : [preferred, ...listed])]
 }
 
 export function parseEnvName(answer: string, locale: Locale): Parsed<string> {
