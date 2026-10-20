@@ -59,6 +59,8 @@ import {
 import { createHsxSources, HSX_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/hsx'
 import { createKbsecSources, KBSEC_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/kbsec'
 import { createMexcSources, MEXC_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/mexc'
+import { NASDAQ_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/nasdaq/client'
+import { createNasdaqSources } from '@/trading/sources/adapters/nasdaq/sources'
 import { createNsoSources, NSO_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/nso'
 import { createOkxSources, OKX_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/okx'
 import { createPnjSources, PNJ_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/pnj'
@@ -104,6 +106,7 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('hsx')]: HSX_DEFAULT_ENDPOINT,
   [sourceId('kbsec')]: KBSEC_DEFAULT_ENDPOINT,
   [sourceId('mexc')]: MEXC_DEFAULT_ENDPOINT,
+  [sourceId('nasdaq')]: NASDAQ_DEFAULT_ENDPOINT,
   [sourceId('nso')]: NSO_DEFAULT_ENDPOINT,
   [sourceId('okx')]: OKX_DEFAULT_ENDPOINT,
   [sourceId('pnj')]: PNJ_DEFAULT_ENDPOINT,
@@ -176,6 +179,7 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('hsx')]: 60,
   [sourceId('kbsec')]: 60,
   [sourceId('mexc')]: 600,
+  [sourceId('nasdaq')]: 60,
   [sourceId('nso')]: 10,
   [sourceId('okx')]: 600,
   [sourceId('pnj')]: 30,
@@ -237,6 +241,7 @@ export function createBuiltInSources(adapters: SourceAdapterOptions): readonly R
     ...createRssSources(adapters),
     ...createGoogleNewsSources(adapters),
     ...createVndirectSources(adapters),
+    ...createNasdaqSources(adapters),
     ...createSbvSources(adapters),
     ...createNsoSources(adapters),
     ...createEntradeSources(adapters),
