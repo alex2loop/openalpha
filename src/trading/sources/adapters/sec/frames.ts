@@ -36,6 +36,7 @@ const FRAME_YEARS = 6
  *  report counts as published at the latest of them. */
 const ANNUAL_FILING_DAYS = 90
 const FRAME_CONCURRENCY = 4
+const FISCAL_YEAR_GRACE_DAYS = 7
 /** A frame that does not exist yet (a year not reported) is a business miss, not an outage. */
 const BUSINESS_MISS_STATUSES = Object.freeze([404])
 
@@ -218,6 +219,14 @@ function toFacts(raw: unknown, wanted: ReadonlyMap<string, readonly Ticker[]>): 
   }).filter((fact) => wanted.has(fact.cik))
 }
 
+/** The year a period ending on `end` belongs to. A 52/53-week filer's year can end in the first days
+ *  of January (Harris's 2024 ended 2025-01-03), and keyed by the calendar year of that date it
+ *  collides with the next year's and leaves a hole behind it. A week back keeps those with the
+ *  year they close, and moves no filer whose year ends later in the month. */
+function fiscalYearOf(end: TradingDay): number {
+  return yearOf(utcDayOf(utcDayStartEpochMs(end) - FISCAL_YEAR_GRACE_DAYS * MS_PER_DAY))
+}
+
 interface YearAccumulator {
   readonly lines: { -readonly [K in keyof AccountLines]?: number }
   readonly priorities: Partial<Record<keyof AccountLines, number>>
@@ -235,7 +244,7 @@ function toAnnual(
 
   for (const { job, facts } of answers) {
     for (const fact of facts) {
-      const year = job.instantYear ?? yearOf(fact.end)
+      const year = job.instantYear ?? fiscalYearOf(fact.end)
       const key = `${fact.cik}|${year}`
       const entry = years.get(key) ?? { lines: {}, priorities: {} }
       const held = entry.priorities[job.line]

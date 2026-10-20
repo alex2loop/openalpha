@@ -4,7 +4,12 @@ import type { MarketEvent } from '@/trading/kernel/market/market-data'
 import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
-import { available, dedupeProvenance, unavailable } from '@/trading/kernel/source/source-result'
+import {
+  available,
+  dedupeProvenance,
+  isSourceFailed,
+  unavailable,
+} from '@/trading/kernel/source/source-result'
 import { instrumentKindOf } from '@/trading/markets/equity-us/bars'
 import { US_MARKET_REF } from '@/trading/markets/equity-us/policy'
 
@@ -30,8 +35,10 @@ export async function runUsEvents(
   const caveats: readonly Caveat[] = dedupeCaveats(reads.flatMap((read) => read.caveats))
 
   if (answers.length === 0) {
+    // Only an outage is a failed calendar: a name no routed provider covers (a fund) has no
+    // calendar to read, and saying it failed would tell the debate not to assume nothing is due.
     return unavailable(
-      'failed',
+      reads.some((read) => isSourceFailed(read)) ? 'failed' : 'unsupported',
       reads.flatMap((read) => (read.kind === 'unavailable' ? read.attemptedSourceIds : [])),
       caveats
     )

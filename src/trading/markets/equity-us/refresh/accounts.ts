@@ -28,6 +28,11 @@ export async function refreshUsAccounts(
   })
   const tickers = members.map((member) => member.record.instrument.ticker)
 
+  // No board yet (fundamentals failed or never ran): nothing to ask the frames for.
+  if (tickers.length === 0) {
+    return emptyKindResult('accounts', 'unavailable', [])
+  }
+
   createRefreshProgress(request.progress, { market: US_MARKET_REF, kind: 'accounts' }, 1)
 
   const result = await deps.sources.resolve({

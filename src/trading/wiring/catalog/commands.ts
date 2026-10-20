@@ -275,16 +275,14 @@ function suggestionCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
   ]
 }
 
-/** The market a bare `/screen` reads: the one that speaks for the operator's own region, which is
- *  the same rule `/brief` follows. A region with no owner contributes nothing, and the command
- *  keeps asking for the market by name. */
-/** A region with no owner keeps the VN question, the only market every build ships. */
+/** The market the operator's home region trades in, when there is one. */
 function homeMarketOf(deps: TradingCommandDeps): { homeMarket?: MarketRef } {
   const owner = deps.markets.regionOwner(deps.defaultRegion)
 
   return owner === null ? {} : { homeMarket: owner.manifest.id }
 }
 
+/** A region with no owner keeps the VN question, the only market every build ships. */
 function setupHomeOf(deps: TradingCommandDeps): Parameters<typeof createSetupCommand>[0] {
   const owner = deps.markets.regionOwner(deps.defaultRegion)
 
@@ -293,6 +291,9 @@ function setupHomeOf(deps: TradingCommandDeps): Parameters<typeof createSetupCom
     : { market: owner.manifest.id, segment: owner.manifest.segment }
 }
 
+/** The market a bare `/screen` reads: the one that speaks for the operator's own region, which is
+ *  the same rule `/brief` follows. A region with no owner contributes nothing, and the command
+ *  keeps asking for the market by name. */
 function screenDefaultMarket(deps: TradingCommandDeps): { defaultMarket?: MarketRef } {
   const owner = deps.markets.regionOwner(deps.defaultRegion)
 

@@ -177,9 +177,11 @@ interface InsiderRead {
 
 /** Best effort: a Form 4 that cannot be read costs that filing, never the earnings events. */
 async function insiderEvents(http: SourceHttp, read: InsiderRead): Promise<readonly MarketEvent[]> {
-  const earliest = utcDayOf(
-    utcDayStartEpochMs(read.window.toDay) - INSIDER_LOOKBACK_DAYS * MS_PER_DAY
-  )
+  // The lookback runs back from the earlier of the asked end and today: a run asks events out to the
+  // end of its holding window, and ninety days before a day that has not come yet is no history.
+  const today = utcDayOf(Date.now())
+  const reach = read.window.toDay < today ? read.window.toDay : today
+  const earliest = utcDayOf(utcDayStartEpochMs(reach) - INSIDER_LOOKBACK_DAYS * MS_PER_DAY)
   const from = read.window.fromDay > earliest ? read.window.fromDay : earliest
   const forms = read.filings
     .filter(

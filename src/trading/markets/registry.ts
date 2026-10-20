@@ -357,6 +357,8 @@ function resolvedMarket(matched: MatchedMarket, caveats: readonly Caveat[]): Mar
   }
 }
 
+const UNIVERSE_EMPTY = 'market-data.universe-empty'
+
 /** Every caveat a detector attaches to a miss says it could not check. Over a single match those
  *  codes claim nothing resolved for a ticker that did, and hold the answer out of the resolution
  *  cache, so the markets left unchecked are named instead. */
@@ -364,8 +366,11 @@ function uncheckedMarketCaveats(
   detections: readonly MarketDetectionEntry[],
   ticker: Ticker
 ): readonly Caveat[] {
+  // A universe that was never stored holds nothing the ticker could collide with: the operator has
+  // not refreshed that market (a Vietnamese book never loads the US listing, and the reverse), so
+  // its empty answer is not a check that failed. Only a detector that errored or could not ask is.
   return detections
-    .filter((entry) => entry.caveats.length > 0)
+    .filter((entry) => entry.caveats.some((caveat) => caveat.code !== UNIVERSE_EMPTY))
     .map(
       (entry): Caveat => ({
         code: 'market.detection-partial',
