@@ -7,7 +7,12 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.0.10] - 2026-10-20
+
+Setup and chat explain themselves better: `onboard` tests the key it saves and says why a test failed,
+`key set` warns about a name the config never reads, and `/profile`, `/update` and `/alert` show what
+they do. Three config keys are renamed; an old name stops `start` and points at the sample.
+> Thiết lập và chat dễ hiểu hơn: `onboard` thử khóa vừa lưu và nói rõ vì sao thất bại, `key set` cảnh báo tên mà config không đọc, còn `/profile`, `/update` và `/alert` cho thấy chúng làm gì. Ba mục config được đổi tên; tên cũ làm `start` dừng và chỉ tới file mẫu.
 
 ### Setup
 
@@ -46,6 +51,7 @@ carries ` [IMPORTANT]` after its date.
 
 - The Zalo bot no longer stops after three scattered 401s; only three in a row stop it.
 - `cost --period week` starts on Monday, like `/transactions week`.
+- The distance-to-peak line in `/suggest` names its window: "240-session high", not "high 240".
 
 ## [1.0.9] - 2026-10-19
 
@@ -392,6 +398,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.10
 [1.0.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.9
 [1.0.8]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.8
 [1.0.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.7
