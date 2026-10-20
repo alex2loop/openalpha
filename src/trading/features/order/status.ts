@@ -181,8 +181,9 @@ export async function resolveExitCoverage(
     deps.portfolio.positionsAt({ now: input.now, signal: input.signal }),
   ])
   const resting = exitsByPosition(exits)
+  const { tradeable } = await tradeablePositions(deps, positions, input.signal)
 
-  return placeablePositions(deps, positions).map((position) =>
+  return placeablePositions(deps, tradeable).map((position) =>
     toCoverage(position, restingOn(resting, position))
   )
 }

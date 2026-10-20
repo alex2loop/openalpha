@@ -32,12 +32,9 @@ import {
   resolveRegionDay,
   resolveRegionSettledDay,
 } from '@/trading/features/market-data/resolve'
-import {
-  candidateInstruments,
-  loadAdviceInputs,
-  withoutResidue,
-} from '@/trading/features/portfolio/candidates'
+import { candidateInstruments, loadAdviceInputs } from '@/trading/features/portfolio/candidates'
 import { assessPortfolio } from '@/trading/features/portfolio/folds/health'
+import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 import {
   DEFAULT_REBALANCE_POLICY,
   daysToLiquidate,
@@ -155,7 +152,7 @@ async function assessHoldings(
   deps: PortfolioServiceDeps,
   options: Parameters<PortfolioService['assess']>[0]
 ): Promise<PortfolioAssessment> {
-  const { valued, instrumentKinds, profile } = await loadContext(deps, options)
+  const { valued, instrumentKinds, profile } = await loadAdviceContext(deps, options)
   const statistics = await loadInstrumentStatistics(deps, {
     instruments: valued.positions.map((entry) => entry.position.instrument),
     asOf: resolveAsOf(deps, options.now),
@@ -323,9 +320,10 @@ async function loadAdviceContext(
   options: PortfolioAtOptions
 ): Promise<PortfolioContext> {
   const context = await loadContext(deps, options)
-  const valued = await withoutResidue(deps.venues, context.valued, options.signal)
+  const positions = context.valued.book.positions
+  const minimumSizes = await minimumSizesByInstrument(deps.venues, positions, options.signal)
 
-  return { ...context, valued }
+  return { ...context, valued: withoutResidue(context.valued, minimumSizes) }
 }
 
 function buildAdvice(input: {

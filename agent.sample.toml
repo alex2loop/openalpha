@@ -49,7 +49,7 @@ findings in memory, and produce a concise summary. Do not write to disk.
 # ---- Focus (what this agent looks at) ---------------------------------------
 # Leave it out and the agent shares your own focus, and its calls drive your book.
 # Set it and the agent becomes a second opinion: its calls are stored and scored
-# separately, and never move a stop, fire an alert or change the morning brief.
+# separately, and never move a stop, fire an alert or change the morning brief or its market story.
 # Focus only narrows: markets must be ones your book trades; sectors need a
 # market that keeps sector data (today: equity-vn). The tables below go above
 # `[capabilities]`: written after it they would land inside it.

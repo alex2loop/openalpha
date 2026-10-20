@@ -519,7 +519,7 @@ export const VN30_INDEX_TICKER = 'VN30'
 
 /** Benchmark-only codes: the fund map below is the single place they are named, and the headline
  *  list plus that map are the whole index surface this policy publishes. */
-const VN100_INDEX_TICKER = 'VN100'
+export const VN100_INDEX_TICKER = 'VN100'
 const VNDIAMOND_INDEX_TICKER = 'VNDIAMOND'
 const VNX50_INDEX_TICKER = 'VNX50'
 const VNMIDCAP_INDEX_TICKER = 'VNMIDCAP'

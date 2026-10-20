@@ -545,7 +545,7 @@ The rest fit in a line.
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
 | `/reflect` | `/reflect` - how past suggestions actually performed |
 | `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
-| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. See [A brief with no watchlist](#a-brief-with-no-watchlist) |
+| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. The brief opens with the market story and a look back at earlier ones. See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
 | `/reconcile` | `/reconcile` - compare the book against what the venue reports; an exchange with no API key yet is named with the variables it is waiting for |
@@ -574,6 +574,14 @@ lists.
 The leading and dropped blocks cover your own watchlist and are absent when it is empty. The
 calendar, corporate-event and headline blocks still cover the market's most-traded names, so a brief
 without a watchlist is shorter, not emptier.
+
+#### A brief with no book
+
+Before your first recorded trade the brief leaves out what only a book can fill: the cash-reserve
+block, the discipline block and the `/rebalance` and `/transactions` buttons. Its first action asks
+you to record your trades with `/record`. The market story and every market block read as usual.
+A holding with no price yet is not an empty book: the brief keeps everything above and only says
+it cannot total the book this morning.
 
 #### On /watchlist names
 

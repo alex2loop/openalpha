@@ -3,6 +3,8 @@ import type { CurrencyCode, MarketRef, TradingDay } from '@/trading/kernel/instr
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 
 export const BRIEF_SECTION_ORDER = Object.freeze([
+  'thesis-review',
+  'story',
   'session-delta',
   'book-summary',
   'resolved-suggestions',
@@ -65,7 +67,7 @@ export type BriefSectionKind = (typeof BRIEF_SECTION_ORDER)[number]
  *  already gated by their own enums, but a title that gains a placeholder is not, and an older
  *  payload renders it as the literal `{sessions}`. Bump whenever a section title, its params, a
  *  section-level key, or which block a kind is grouped into changes. */
-export const BRIEF_RENDER_VERSION = 19
+export const BRIEF_RENDER_VERSION = 20
 
 /** Kinds a market's overview converter emits, so no brief builder produces them. Compose's builder
  *  record excludes them, which is what keeps that record exhaustive. A kind only the whole-market
@@ -125,6 +127,7 @@ export const BRIEF_ACTION_CODES = Object.freeze([
   'review-suggestions',
   'review-alerts',
   'avoid-chasing',
+  'record-book',
 ] as const)
 export type BriefActionCode = (typeof BRIEF_ACTION_CODES)[number]
 
@@ -166,6 +169,7 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'floors',
   'flowWindowUsd',
   'foreignNetBase',
+  'foreignNetWindow',
   'funding',
   'index',
   'indexToMa50Pct',
@@ -202,6 +206,7 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'previousMultiple',
   'previousSignedFlow',
   'previousSignedFraction',
+  'proprietaryNetWindow',
   'rate',
   'relativeVolume',
   'reservePctNav',
@@ -251,11 +256,13 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'direction',
   'driver',
   'driverMissing',
+  'effect',
   'eventKind',
   'formulaVersion',
   /** Which market this row's instrument trades on, for a section whose rows span several. A section
    *  covering one market names it in its own header instead. */
   'market',
+  'mark',
   'posture',
   'previousRegime',
   'publisher',
@@ -267,9 +274,12 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'sentiment',
   'status',
   'stopBasis',
+  'story',
+  'thesisStatus',
   'ticker',
   'title',
   'url',
+  'watch',
 ] as const)
 
 /** Fields a row carries for another field's sake, never as a datum of their own: `currency` is the
@@ -280,6 +290,8 @@ export const BRIEF_STRUCTURAL_FIELDS = Object.freeze([
   'currency',
   'observedAt',
   'sessions',
+  'storyRole',
+  'runKey',
 ] as const)
 
 /** Every field a section may put in a row. Closed so a surface cannot render a value it has no
@@ -316,6 +328,13 @@ export function sectionNumber(
   }
 
   return undefined
+}
+
+/** An operator who has recorded nothing: the book summary is omitted by policy, which is what a
+ *  null book produces. A summary that is unavailable (the read threw) is not "no book", so a failed
+ *  read never tells an operator with a real book to start one. */
+export function hasNoBook(sections: readonly BriefSectionResult[]): boolean {
+  return sections.find((section) => section.kind === 'book-summary')?.status === 'omitted-by-policy'
 }
 
 /** The window a section states, for a row rebuilt from its fields: a verdict line and a delta row

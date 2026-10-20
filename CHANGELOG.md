@@ -7,6 +7,35 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [1.0.12] - 2026-10-20
+
+The brief opens with one market story and a look back at earlier ones, found by code at no cost.
+A brief before your first trade asks you to record it, and a sliver left by a full exit no longer
+counts as a holding anywhere.
+> Bản tin mở đầu bằng một câu chuyện thị trường và phần nhìn lại các câu chuyện trước, do code tìm, không tốn phí. Bản tin trước giao dịch đầu tiên nhắc bạn ghi sổ, và phần lẻ còn sót sau khi bán hết không còn bị tính là vị thế ở bất kỳ đâu.
+
+### Brief
+
+- One market story per morning: a hook, the figures behind it, a reading marked as inference, what
+could make it wrong, and what to watch next.
+- A look back checks each earlier story's watch conditions against today's figures.
+- Before your first recorded trade the brief drops the cash-reserve and discipline blocks and asks
+you to `/record` your trades.
+- A holding with no price yet no longer reads as an empty book: the brief says it cannot total the
+book this morning.
+- The losing-positions line counts only what can still be traded.
+
+### Portfolio
+
+- A sliver below the venue's smallest order is skipped by `/brief`, `/market`, `/refresh`, the chat
+assistant's portfolio and exit tools and the `/trade` open-trade cap. Its value still counts
+toward the total.
+- The residue notice says its tiny value is included in the total above.
+
+### Display
+
+- Source lines read "updated" instead of "as of".
+
 ## [1.0.11] - 2026-10-20
 
 Fixes: `db reset` can back up first again, a rejected AI key is no longer reported as a rate limit,
@@ -432,6 +461,7 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.12
 [1.0.11]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.11
 [1.0.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.10
 [1.0.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.9

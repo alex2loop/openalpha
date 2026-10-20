@@ -483,10 +483,13 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` mỗi bê
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
+Bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí, cùng phần nhìn lại các câu chuyện trước. Phần nhìn lại đối chiếu các điều kiện theo dõi của một câu chuyện đã kể ở phiên trước với số liệu hôm nay và cho biết câu chuyện đó có đúng hướng hay không. Ngay trên phần chốt lại, câu chuyện nêu một điều bất thường mà thị trường Việt Nam vừa làm: một câu dẫn, các số liệu đứng sau, nhận định được ghi rõ là suy luận, điều có thể khiến nhận định sai và điều cần theo dõi tiếp. Mỗi câu chuyện chỉ được kể một lần, vào phiên đầu tiên nó xuất hiện; khi nó còn tiếp diễn, phần nhìn lại sẽ mang nó đi tiếp, và khi phần nhìn lại đã khép nó thì bản tin ghi rằng câu chuyện vẫn đang tiếp diễn, kèm số phiên. Phiên nào không có gì bất thường thì chỉ in một dòng yên ả; phiên nào chỉ có những câu chuyện đã kể thì bản tin ghi là chưa có chuyện mới, và không nói thêm gì khi phần nhìn lại phía trên đã nhắc hết các câu chuyện đó. Câu chuyện chỉ đọc thị trường và phiên đã chốt gần nhất, không bao giờ đọc sổ của bạn hay giá đang chạy, và nó không xuất hiện khi bản tin không có khối thị trường Việt Nam: nhóm này đang tắt và bạn không giữ hay theo dõi mã Việt Nam nào.
+
 Một bản tin đọc theo thứ tự này: khối **operator** mở đầu bằng cuốn sổ (bạn đang nắm gì, trước mọi bình luận thị trường); mỗi thị trường một khối **thị trường**, đề tên và glyph của chính thị trường đó, chỉ mang các mục thị trường đó công bố; và khối **hành động** ở cuối.
 
 | Khối | Các mục |
 |---|---|
+| Câu chuyện, trên mọi khối | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Bối cảnh vĩ mô | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
 | Mỗi thị trường | `reading` `market-prices` `market-quotes` `market-board` `tape` `breadth` `turnover` `range` `market-cap` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `taker-flow` `etf-flows` `positioning` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` |
@@ -839,7 +842,7 @@ Chúng là hai kiểu khác nhau với các trường khác nhau. Một agent kh
 
 ### Định giá
 
-Một khoản nắm dưới cỡ lệnh tối thiểu của sàn thì không được liệt kê. Sàn sẽ không khớp nó, nên dòng đó sẽ mô tả thứ bạn không bán được cũng không hành động được. Giá trị của nó vẫn tính vào NAV và bảng phân bổ, và mục đó nói đã giữ lại bao nhiêu dòng. Một tỷ trọng không có gì bên dưới là thứ mà con số đếm đó giải thích.
+Một khoản nắm dưới cỡ lệnh tối thiểu của sàn thì không được liệt kê. Sàn sẽ không khớp nó, nên dòng đó sẽ mô tả thứ bạn không bán được cũng không hành động được. Giá trị của nó vẫn tính vào NAV và bảng phân bổ, và mục đó nói đã giữ lại bao nhiêu dòng. Một tỷ trọng không có gì bên dưới là thứ mà con số đếm đó giải thích. Mọi chỗ khác cũng đối xử với nó như vậy: bản tin không đếm nó là vị thế đang lỗ và không chạy đề xuất cho nó, `/market` và trợ lý chat không liệt kê nó, nó không chiếm chỗ trong `maximum_open_trades`, và riêng nó thì không giữ một thị trường đã tắt lại trong `/refresh`.
 
 Một vị thế đã định giá thuộc một trong hai loại:
 

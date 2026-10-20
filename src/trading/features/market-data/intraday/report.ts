@@ -55,7 +55,7 @@ interface HeldPosition {
 }
 
 interface IntradayBookReader {
-  positionsAt(options: {
+  tradeableHoldingsAt(options: {
     readonly now: number
     readonly signal: AbortSignal
   }): Promise<readonly HeldPosition[]>
@@ -94,7 +94,7 @@ export async function buildIntradayReport(
   const { plan, now, signal } = options
   const calendar = plan.market.manifest.calendar
   const [positions, profile] = await Promise.all([
-    deps.book.positionsAt({ now, signal }),
+    deps.book.tradeableHoldingsAt({ now, signal }),
     deps.profiles.get({ defaultLocale: deps.locale, signal }),
   ])
   const held = heldByBasis(positions)

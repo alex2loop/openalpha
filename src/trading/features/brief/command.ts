@@ -1,9 +1,15 @@
 import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
-import type { BriefDelivery, BriefResult, BriefService } from '@/trading/features/brief/types'
+import type {
+  BriefDelivery,
+  BriefResult,
+  BriefService,
+  BriefSnapshot,
+} from '@/trading/features/brief/types'
 import type { Region } from '@/trading/kernel/instrument'
 import { LOCAL_TIME_RE } from '@/core/utils/time'
 import { formatDay, t } from '@/i18n'
 import { renderBriefText } from '@/trading/features/brief/render'
+import { hasNoBook } from '@/trading/kernel/operator/brief-section'
 import { usage } from '@/trading/kernel/surface/surface'
 import { bookAffordances } from '@/trading/render/affordance'
 import { formatInstant } from '@/trading/render/datetime'
@@ -96,24 +102,35 @@ async function runShow(
       })
 
   if (latest !== null) {
-    return withSchedule(
-      deps,
-      ctx,
-      renderBriefText(ctx.locale, latest, resolveRenderContext(deps.timezone, ctx.surface))
-    )
+    return withSchedule(deps, ctx, {
+      body: renderBriefText(ctx.locale, latest, resolveRenderContext(deps.timezone, ctx.surface)),
+      snapshot: latest,
+    })
   }
 
   const built = await buildNow(deps, ctx, { now, forced })
 
   if (built === null) {
-    return withSchedule(deps, ctx, t(ctx.locale, 'slash.tradingBriefNone'))
+    return withSchedule(deps, ctx, {
+      body: t(ctx.locale, 'slash.tradingBriefNone'),
+      snapshot: null,
+    })
   }
 
-  return withSchedule(
-    deps,
-    ctx,
-    renderBriefText(ctx.locale, built.snapshot, resolveRenderContext(deps.timezone, ctx.surface))
-  )
+  return withSchedule(deps, ctx, {
+    body: renderBriefText(
+      ctx.locale,
+      built.snapshot,
+      resolveRenderContext(deps.timezone, ctx.surface)
+    ),
+    snapshot: built.snapshot,
+  })
+}
+
+interface ScheduledBody {
+  readonly body: string
+  /** Null where no brief was found or built, which keeps the buttons it always had. */
+  readonly snapshot: BriefSnapshot | null
 }
 
 /** Every read of the brief closes with where the next one stands. The question a missing brief
@@ -121,13 +138,16 @@ async function runShow(
 async function withSchedule(
   deps: BriefCommandDeps,
   ctx: SlashContext,
-  body: string
+  { body, snapshot }: ScheduledBody
 ): Promise<SlashResult> {
   const delivery = await deps.briefs.find(ctx.signal)
 
   return {
     kind: 'text',
-    affordances: bookAffordances(ctx.locale),
+    // The buttons open the book; with nothing recorded they open an empty screen.
+    ...(snapshot !== null && hasNoBook(snapshot.sections)
+      ? {}
+      : { affordances: bookAffordances(ctx.locale) }),
     text: joinSections([[body], [await scheduleLine(deps, ctx, delivery)]]),
   }
 }

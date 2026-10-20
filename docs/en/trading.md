@@ -483,10 +483,13 @@ The screener band is `average daily range x breakout_range` either side of the s
 
 The two are kept apart because only one of them is a problem.
 
+The brief opens with one **market story**, found by code with no model call and no cost, and a look back at earlier ones. The look back checks the watch conditions of a story told on an earlier session against today's figures and says whether the story held. Above the verdict, the story names one thing the Vietnamese market did that is out of the ordinary, in a hook, the figures behind it, a reading marked as inference, what could make that reading wrong, and what to watch next. A story is told once, on the first session it appears; while it keeps going, the look back carries it, and once the look back has let it go the brief says it is still going on and for how many sessions. A session with nothing unusual prints a single quiet line; a session whose only signals are stories already told says there is no new story instead, and says nothing more when the look back above already carries every one of them. The story reads only the market and the last settled session, never your book and never a live price, and it is absent when the brief has no Vietnamese market block: the segment is switched off and you hold and watch no Vietnamese name.
+
 A brief reads in this order: an **operator** block opening with the book (what you hold, before any market commentary); one **market** block per market, headed by that market's own name and glyph and carrying only the sections that market publishes; and an **actions** block last.
 
 | Block | Sections |
 |---|---|
+| Story, above every block | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Macro backdrop | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
 | Per market | `reading` `market-prices` `market-quotes` `market-board` `tape` `breadth` `turnover` `range` `market-cap` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `taker-flow` `etf-flows` `positioning` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` |
@@ -839,7 +842,7 @@ They are different types with different fields. An agent cannot learn your accou
 
 ### Valuation
 
-A holding below the venue's minimum order size is not listed. The venue will not trade it, so the row would describe something you can neither sell nor act on. Its value still counts toward NAV and the allocation table, and the section says how many rows it held back. A weight with nothing under it is what that count explains.
+A holding below the venue's minimum order size is not listed. The venue will not trade it, so the row would describe something you can neither sell nor act on. Its value still counts toward NAV and the allocation table, and the section says how many rows it held back. A weight with nothing under it is what that count explains. Every other surface treats it the same way: the brief does not count it as a losing position or suggest on it, `/market` and the chat assistant do not list it, it takes no slot under `maximum_open_trades`, and on its own it does not keep a switched-off market in `/refresh`.
 
 A valued position is either:
 

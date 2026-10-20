@@ -9,13 +9,10 @@ import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/i
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
-import type { VenueRegistry } from '@/trading/venues/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { buildInstrumentKey, dedupeInstruments } from '@/trading/kernel/instrument'
 import { positionCapOf } from '@/trading/kernel/operator/profile'
-import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 import { listedFactsOf } from '@/trading/markets/registry'
-import { minimumSizesByInstrument } from '@/trading/venues/holdings'
 
 const CANDIDATE_CONCURRENCY = 5
 
@@ -245,22 +242,4 @@ export async function loadAdviceInputs(
 
 function heldInstruments(valued: ValuedBook): readonly InstrumentRef[] {
   return valued.positions.map((entry) => entry.position.instrument)
-}
-
-/** Residue below the venue's smallest order is not a holding to size. Its value stays in NAV. */
-export async function withoutResidue(
-  venues: VenueRegistry,
-  valued: ValuedBook,
-  signal: AbortSignal
-): Promise<ValuedBook> {
-  const minimumSizes = await minimumSizesByInstrument(venues, valued.book.positions, signal)
-  const positions = valued.positions.filter(
-    (entry) =>
-      !isBelowMinimumSize(
-        entry.position.quantity,
-        minimumSizes.get(buildInstrumentKey(entry.position.instrument))
-      )
-  )
-
-  return { ...valued, positions }
 }

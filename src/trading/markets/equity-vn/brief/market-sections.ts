@@ -158,7 +158,11 @@ export async function buildDepositRate(context: BriefContext): Promise<BriefSect
   const rate = snapshot?.values['deposit-rate-12m']
 
   if (advice.kind === 'unavailable') {
-    return absent('deposit-rate', advice.caveats)
+    // No book yet: the plan has nothing to reserve, and a title over two regime warnings reads as a
+    // broken block rather than an empty one.
+    return advice.reason === 'zero-nav'
+      ? omitted('deposit-rate')
+      : absent('deposit-rate', advice.caveats)
   }
 
   return ready(

@@ -97,6 +97,27 @@ export function toBreadth(
   }
 }
 
+/** `toBreadth` as the market stood at `day`: every name cut to the bars dated on or before it. The
+ *  cut keeps `bars` and `closes` the same length, which they are index-aligned to be. Absent when no
+ *  name settled that day. */
+export function breadthAt(
+  names: readonly NameEvidence[],
+  day: TradingDay,
+  indexBars?: readonly Candle[]
+): MarketBreadth | undefined {
+  return toBreadth(
+    names.map((name) => truncatedAt(name, day)),
+    day,
+    indexBars
+  )
+}
+
+function truncatedAt(name: NameEvidence, day: TradingDay): NameEvidence {
+  const kept = name.bars.filter((bar) => bar.candle.at <= day).length
+
+  return { ...name, bars: name.bars.slice(0, kept), closes: name.closes.slice(0, kept) }
+}
+
 /** The index series as it stood at `asOf`, or nothing when it does not reach that session. Every
  *  count beside these readings is admitted name by name at `asOf`, so a series that stops short —
  *  the index endpoint withholds the settled bar for hours after the shares have theirs — would put

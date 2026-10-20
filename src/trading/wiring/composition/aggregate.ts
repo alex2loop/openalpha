@@ -1,6 +1,7 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { createConfiguredRunBudget } from '@/engine/api'
+import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { OperationPolicy, TradingConfig } from '@/trading/kernel/config'
 import type { MarketRef } from '@/trading/kernel/instrument'
@@ -20,6 +21,7 @@ import { isVenueFillBooked } from '@/trading/features/ledger/sync'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
 import { sessionPhase } from '@/trading/markets/calendar'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
+import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
 import { buildRebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import { resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
@@ -63,7 +65,7 @@ export function toAggregate(
     ...toMarketReads({
       markets: registries.markets,
       stores: parts.stores,
-      portfolio: parts.services.portfolio,
+      book: createTradeableBook({ portfolio: parts.services.portfolio, venues: registries.venues }),
     }),
     defaultRegion: options.tradingConfig.defaultRegion,
     focusScope: toFocusScope(parts.services.marketData.markets(), registries.markets),
@@ -86,13 +88,7 @@ export function toAggregate(
       briefs: parts.services.briefs,
       markets: registries.markets,
       portfolio: parts.services.portfolio,
-      reportDeps: {
-        marketData: parts.services.marketData,
-        book: parts.services.portfolio,
-        profiles: parts.services.profiles,
-        locale: parts.defaultLocale,
-        timezone: options.tradingConfig.displayTimezone,
-      },
+      reportDeps: toReportDeps(parts, options.tradingConfig, registries.venues),
       intradaySettings: parts.stores.intradaySettings,
       restingExit: parts.stores.restingExit,
       isFillBooked: (fill, signal) => isVenueFillBooked(parts.stores.ledger, fill, signal),
@@ -104,6 +100,24 @@ export function toAggregate(
       logger: parts.logger,
     }),
   })
+}
+
+/** The intraday report names only what can still be traded: a sliver left by a full exit is no row. */
+function toReportDeps(
+  parts: {
+    readonly services: ReturnType<typeof createDomainServices>
+    readonly defaultLocale: Locale
+  },
+  config: TradingConfig,
+  venues: VenueRegistry
+): IntradayReportDeps {
+  return {
+    marketData: parts.services.marketData,
+    book: createTradeableBook({ portfolio: parts.services.portfolio, venues }),
+    profiles: parts.services.profiles,
+    locale: parts.defaultLocale,
+    timezone: config.displayTimezone,
+  }
 }
 
 function toMarketReads(

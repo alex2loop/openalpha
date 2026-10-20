@@ -84,6 +84,7 @@ const ACTION_CODE_KEYS = Object.freeze({
   'add-watchlist': 'trading.brief.action.add-watchlist',
   'avoid-chasing': 'trading.brief.action.avoid-chasing',
   rebalance: 'trading.brief.action.rebalance',
+  'record-book': 'trading.brief.action.record-book',
   'review-alerts': 'trading.brief.action.review-alerts',
   'review-portfolio': 'trading.brief.action.review-portfolio',
   'review-suggestions': 'trading.brief.action.review-suggestions',
@@ -198,6 +199,7 @@ const VALUE_FORMATTERS = Object.freeze({
   floors: formatCount,
   flowWindowUsd: formatSignedFlow,
   foreignNetBase: formatSignedFlow,
+  foreignNetWindow: formatSignedFlow,
   funding: formatSignedFraction,
   index: formatFixedAmount,
   indexToMa50Pct: formatSignedFraction,
@@ -233,6 +235,7 @@ const VALUE_FORMATTERS = Object.freeze({
   previousMultiple: formatMultiple,
   previousSignedFlow: formatSignedFlow,
   previousSignedFraction: formatSignedFixedFraction,
+  proprietaryNetWindow: formatSignedFlow,
   rate: formatAmount,
   relativeVolume: formatMultiple,
   reservePctNav: formatFixedFraction,
@@ -279,10 +282,12 @@ function bandedScore(locale: Locale, score: number): string {
  *  `weekChange` count contracts rather than money. */
 const MONEY_FIELDS: ReadonlySet<BriefField> = new Set([
   'foreignNetBase',
+  'foreignNetWindow',
   'marketCap',
   'nav',
   'net',
   'openInterest',
+  'proprietaryNetWindow',
   'turnover',
 ])
 

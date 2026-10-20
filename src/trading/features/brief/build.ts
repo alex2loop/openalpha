@@ -11,12 +11,14 @@ import type { TradingConfig } from '@/trading/kernel/config'
 import type { InstrumentRef, Region, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { Market } from '@/trading/markets/types'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { planStory } from '@/trading/features/brief/story/plan'
 import { buildBriefSnapshotId } from '@/trading/features/brief/types'
 import { buildEnsureOptions } from '@/trading/features/market-data/market-data-run'
 import { profileRevisionOf } from '@/trading/features/profile/store'
@@ -150,20 +152,67 @@ export async function findOrBuildBrief(
 
   const caveats = await deps.ensure(buildEnsureOptions(input.market.manifest.id, input))
 
-  const request = await buildRequest(deps, input, profile)
+  // Read once: the request wants the day before for its deltas, and the story step wants it for
+  // the stories still open. A same-day rebuild reads the same row, so it rebuilds the same result.
+  const previous = await previousSnapshot(deps, input)
+  const request = buildRequest(deps, { ...input, profile, previous })
 
   input.progress?.('trading.progress.brief.sections')
-  const sections = await capability.run(request)
+  const brief = await capability.run(request)
 
-  logDegradedSections(deps, input, sections)
+  logDegradedSections(deps, input, brief.sections)
   input.progress?.('trading.progress.brief.persist')
 
   return persist(deps, input, {
-    sections,
+    sections: [...tryPlanStory(deps, input, { brief, previous }), ...brief.sections],
     caveats,
     scorecardShownThisMonth: request.scorecardShownThisMonth,
     profileRevision: await profileRevisionOf(profile),
   })
+}
+
+interface StoryContext {
+  readonly brief: MarketBrief
+  readonly previous: BriefSnapshot | null
+}
+
+/** The story is garnish: a throw costs the brief its two sections, never the brief. An abort is the
+ *  caller's. A failed detection and a failed step share one log line, so a reader sees one boundary. */
+function tryPlanStory(
+  deps: BriefBuildDeps,
+  input: BriefBuildInput,
+  { brief, previous }: StoryContext
+): readonly BriefSectionResult[] {
+  const { stories } = brief
+
+  try {
+    if (stories.kind === 'failed') {
+      logStoryFailed(deps, input, stories.err)
+
+      return []
+    }
+
+    return planStory({
+      read: stories,
+      market: input.market.manifest.id,
+      sections: brief.sections,
+      previous: previous?.sections ?? null,
+      calendar: input.market.manifest.calendar,
+      limit: deps.config.briefs.maximumItemsPerSection,
+    })
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    logStoryFailed(deps, input, err)
+
+    return []
+  }
+}
+
+function logStoryFailed(deps: BriefBuildDeps, input: BriefBuildInput, err: unknown): void {
+  deps.logger.warn('trading.brief_story_failed', { asOf: input.asOf, err: formatErrForLog(err) })
 }
 
 /** Suppression is by named core sections, not a ready count: a brief where a core section failed
@@ -248,13 +297,14 @@ async function previousSnapshot(
   }
 }
 
-async function buildRequest(
-  deps: BriefBuildDeps,
-  input: BriefBuildInput,
-  profile: UserProfile | null
-): Promise<MarketBriefRequest> {
+interface RequestInput extends BriefBuildInput {
+  readonly profile: UserProfile | null
+  readonly previous: BriefSnapshot | null
+}
+
+function buildRequest(deps: BriefBuildDeps, input: RequestInput): MarketBriefRequest {
+  const { profile, previous } = input
   const policy = deps.config.briefs
-  const previous = await previousSnapshot(deps, input)
   const eligible = previous === null ? undefined : eligibleNames(previous, input.market)
 
   return {

@@ -43,6 +43,7 @@ import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
 import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
+import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
 import { buildRefreshCoordinator, buildRefreshTick } from '@/trading/wiring/composition/refresh'
@@ -217,7 +218,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
   const refreshMarketData = buildRefreshTick({
     markets: registries.markets,
     stores,
-    portfolio: services.portfolio,
+    book: createTradeableBook({ portfolio: services.portfolio, venues: registries.venues }),
     refresh,
     logger,
   })
@@ -360,7 +361,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
     macro: macroCache(sources),
     stages,
     venueListings: createVenueListings(venues, logger),
-    briefServices: lazyBriefServices(app, options.tradingConfig),
+    briefServices: lazyBriefServices(app, options.tradingConfig, venues),
   }
 
   stages.register(createAdmissionStage())

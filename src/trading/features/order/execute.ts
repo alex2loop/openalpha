@@ -38,6 +38,7 @@ import {
   resolveTradeStatus,
 } from '@/trading/features/order/status'
 import { exitLevelsOf, OrderError } from '@/trading/features/order/types'
+import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 
 /** What a row says when the order left this process and its fate is unknown. Not an `OrderError`
  *  code: those name why one call failed, and this names a row a human still has to close. */
@@ -154,7 +155,9 @@ async function bookCapRejections(
 ): Promise<readonly CapRejection[]> {
   const { prepared, staged } = input
   const [book, unmirrored, profile] = await Promise.all([
-    deps.portfolio.viewAbsolute({ now: input.now, signal: input.signal }),
+    deps.portfolio
+      .viewAbsoluteSized({ now: input.now, signal: input.signal })
+      .then(({ valued, minimumSizes }) => withoutResidue(valued, minimumSizes)),
     deps.intents.unmirroredExposure(input.signal),
     findBuyProfile(deps, staged.side, input.signal),
   ])

@@ -380,6 +380,8 @@ export interface BriefTextWire {
   readonly title: string
   /** The answer: the session sentence and the figures it rests on. */
   readonly verdict: readonly string[]
+  /** The review of earlier stories and today's story; empty when the brief tells none. */
+  readonly story: readonly string[]
   /** Ready and unavailable sections in the brief's order; one turned off by policy is not here, and
    *  neither is the cost or the macro reference the verdict already states. */
   readonly sections: readonly {

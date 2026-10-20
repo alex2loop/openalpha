@@ -379,7 +379,7 @@ function sessionMoveOf(
  *  where the provider has not published the session's own bar yet — once the board has shut that
  *  reading is the close — and the settled close where it has. A row carrying neither reports
  *  nothing rather than lending the session before it. */
-function rowMoveIn(row: MarketDataOverviewRow, session: TradingDay): number | undefined {
+export function rowMoveIn(row: MarketDataOverviewRow, session: TradingDay): number | undefined {
   if (row.live?.observedOn === session) {
     return moveOf(row)
   }

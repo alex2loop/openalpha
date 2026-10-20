@@ -266,7 +266,8 @@ interface BriefSuggestionBatchOptions {
 /** What the operator's book is worth right now. Null before the first ledger entry, because a book
  *  that holds nothing has no value to report — zero would read as a loss. */
 export interface BookSummary {
-  readonly nav: number
+  /** Absent while a holding has no price: no total can be stated, yet the book still exists. */
+  readonly nav?: number
   readonly currency: CurrencyCode
   /** Every priced holding's cost against its mark. Unpriced holdings are absent: nothing below
    *  cost can be said of them. */

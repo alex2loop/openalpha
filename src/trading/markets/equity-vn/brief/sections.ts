@@ -82,13 +82,19 @@ export function absent(
 ): BriefSectionResult {
   return { kind, status: 'unavailable', caveats }
 }
+
 /** The one number every operator checks first. Omitted, never zero, before the first ledger entry:
- *  a book that holds nothing has no value to report. */
+ *  a book that holds nothing has no value to report. A holding with no price leaves the total
+ *  unknown, which is unavailable rather than omitted: the book exists and must not read as empty. */
 export async function buildBookSummary(context: BriefContext): Promise<BriefSectionResult> {
   const book = await context.bookSummary()
 
-  return book === null
-    ? omitted('book-summary')
+  if (book === null) {
+    return omitted('book-summary')
+  }
+
+  return book.nav === undefined
+    ? absent('book-summary', [{ code: 'brief.book-unpriced' }])
     : ready('book-summary', [{ nav: book.nav }], { currency: book.currency })
 }
 
@@ -219,6 +225,11 @@ function aggregateReturnPct(losing: readonly BookPositionSummary[]): number {
  *  purpose: a lone first field would ride the section title bare, and the title names the block
  *  rather than the number. */
 export async function buildDiscipline(context: BriefContext): Promise<BriefSectionResult> {
+  // The rules size trades the operator cannot make until a book exists.
+  if ((await context.bookSummary()) === null) {
+    return omitted('discipline')
+  }
+
   const profile = await context.services.profile({
     now: context.request.now,
     signal: context.request.signal,
