@@ -35,6 +35,9 @@ interface MacroExtractDeps {
   readonly recordAttempt: AttemptRecorder
   readonly batchSize: number
   readonly logger: Logger
+  /** The extraction reads Vietnamese statistics for VN equities; a book that does not hold them
+   *  has no use for the spend. A read that fails runs it, as the refresh sweep does. */
+  readonly isEquityVnInUse: (signal: AbortSignal) => Promise<boolean>
 }
 
 interface TickContext {
@@ -170,10 +173,27 @@ async function readPress(deps: MacroExtractDeps, context: TickContext): Promise<
 }
 
 /** At most `batchSize` office reports and `batchSize` press items a tick, each one model call. */
+async function isInUse(deps: MacroExtractDeps, signal: AbortSignal): Promise<boolean> {
+  try {
+    return await deps.isEquityVnInUse(signal)
+  } catch (err: unknown) {
+    if (signal.aborted) {
+      throw err
+    }
+
+    // Failing open: not knowing what is in use sweeps everything, as the refresh does.
+    return true
+  }
+}
+
 export function createMacroExtractTick(
   deps: MacroExtractDeps
 ): (signal: AbortSignal) => Promise<void> {
   return async (signal) => {
+    if (!(await isInUse(deps, signal))) {
+      return
+    }
+
     const context: TickContext = { now: Date.now(), signal }
 
     await readReports(deps, context)

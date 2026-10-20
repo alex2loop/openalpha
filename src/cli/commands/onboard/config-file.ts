@@ -30,6 +30,8 @@ interface StarterAnswers {
   readonly language?: Locale
   /** ISO 4217 code of the book, written beside the language so the choice is visible. */
   readonly currency?: string
+  /** The home market's region, written so the file says what was chosen. */
+  readonly region?: string
   readonly dailyBudgetUsd?: number
   readonly telegramTokenEnv?: string
 }
@@ -52,12 +54,15 @@ export function starterConfigToml(
   options: { readonly api: boolean }
 ): string {
   return stringify({
-    ...(answers.language === undefined && answers.currency === undefined
+    ...(answers.language === undefined &&
+    answers.currency === undefined &&
+    answers.region === undefined
       ? {}
       : {
           locale: {
             ...(answers.language === undefined ? {} : { language: answers.language }),
             ...(answers.currency === undefined ? {} : { currency: answers.currency }),
+            ...(answers.region === undefined ? {} : { region: answers.region }),
           },
         }),
     models: [toModelTable(answers.model)],

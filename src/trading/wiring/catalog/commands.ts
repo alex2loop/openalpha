@@ -39,6 +39,7 @@ import { createSuggestCommand } from '@/trading/features/suggestion/command'
 import { suggestionReportDeps } from '@/trading/features/suggestion/report'
 import { createReflectCommand } from '@/trading/features/suggestion/track-record/command'
 import { createThemesCommand } from '@/trading/features/themes/command'
+import { marketRef, portfolioSegment } from '@/trading/kernel/instrument'
 import { SECTION_ICONS } from '@/trading/render/format'
 import { createSetupCommand } from '@/trading/wiring/catalog/setup'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
@@ -124,7 +125,7 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
 
   return [
     ...inGroup(BOOK_GROUP, [
-      createSetupCommand(),
+      createSetupCommand(setupHomeOf(deps)),
       ...ledgerWriteCommands(deps),
       ...bookCommands(deps),
       createTransactionsCommand({
@@ -148,7 +149,11 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
     ...inGroup(ANALYSIS_GROUP, [
       ...suggestionCommands(deps),
       createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone }),
-      createThemesCommand({ themes: deps.themes, timezone }),
+      createThemesCommand({
+        themes: deps.themes,
+        timezone,
+        ...homeMarketOf(deps),
+      }),
       createProfileCommand({ profiles, timezone }),
     ]),
   ]
@@ -273,6 +278,21 @@ function suggestionCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
 /** The market a bare `/screen` reads: the one that speaks for the operator's own region, which is
  *  the same rule `/brief` follows. A region with no owner contributes nothing, and the command
  *  keeps asking for the market by name. */
+/** A region with no owner keeps the VN question, the only market every build ships. */
+function homeMarketOf(deps: TradingCommandDeps): { homeMarket?: MarketRef } {
+  const owner = deps.markets.regionOwner(deps.defaultRegion)
+
+  return owner === null ? {} : { homeMarket: owner.manifest.id }
+}
+
+function setupHomeOf(deps: TradingCommandDeps): Parameters<typeof createSetupCommand>[0] {
+  const owner = deps.markets.regionOwner(deps.defaultRegion)
+
+  return owner === null
+    ? { market: marketRef('equity-vn'), segment: portfolioSegment('equity-vn') }
+    : { market: owner.manifest.id, segment: owner.manifest.segment }
+}
+
 function screenDefaultMarket(deps: TradingCommandDeps): { defaultMarket?: MarketRef } {
   const owner = deps.markets.regionOwner(deps.defaultRegion)
 

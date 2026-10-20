@@ -44,10 +44,9 @@ import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
 import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
-import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
-import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
+import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
-import { buildRefreshCoordinator, buildRefreshTick } from '@/trading/wiring/composition/refresh'
+import { buildRefreshCoordinator } from '@/trading/wiring/composition/refresh'
 import {
   assertRegistryConsistency,
   reportOutdatedHolidayTables,
@@ -216,19 +215,13 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     logger,
     createSuggestionBudget: budget,
   })
-  const refreshMarketData = buildRefreshTick({
-    markets: registries.markets,
-    stores,
-    book: createTradeableBook({ portfolio: services.portfolio, venues: registries.venues }),
-    refresh,
-    logger,
-  })
+  const ticks = buildMarketTicks(app, { registries, stores, services, refresh, logger })
 
   const contributions = buildSurfaces(options, {
     services,
     registries,
     stores,
-    refreshMarketData,
+    refreshMarketData: ticks.refreshMarketData,
     logger,
   })
 
@@ -237,8 +230,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
       {
         services,
         refresh,
-        refreshMarketData,
-        macroExtractTick: buildMacroExtractTick(app, registries.sources),
+        ...ticks,
         stores,
         logger,
         defaultLocale: app.config.locale.language,

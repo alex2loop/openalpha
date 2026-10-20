@@ -53,6 +53,8 @@ export function toAggregate(
     readonly stores: TradingStores
     createSuggestionBudget(): ReturnType<typeof createConfiguredRunBudget>
     readonly defaultLocale: Locale
+    /** What decides a market is in use, shared with the sweep that refreshes them. */
+    readonly inUse: Parameters<typeof resolveMarketsInUse>[0]
     readonly logger: Logger
   },
   options: AggregateOptions,
@@ -62,11 +64,7 @@ export function toAggregate(
     ...parts.services,
     refresh: parts.refresh,
     refreshMarketData: parts.refreshMarketData,
-    ...toMarketReads({
-      markets: registries.markets,
-      stores: parts.stores,
-      book: createTradeableBook({ portfolio: parts.services.portfolio, venues: registries.venues }),
-    }),
+    ...toMarketReads(parts.inUse),
     defaultRegion: options.tradingConfig.defaultRegion,
     focusScope: toFocusScope(parts.services.marketData.markets(), registries.markets),
     suggestionCards: buildSuggestionCards(parts.services, options.tradingConfig, parts.stores),

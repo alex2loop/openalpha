@@ -7,7 +7,10 @@ import { t } from '@/i18n'
 
 import type { AskContext } from './ask'
 import type { StarterModel } from './config-file'
+import type { HomeRegion } from './settings-step'
 import { isEnvSet } from './model-step'
+
+const SEC_CONTACT_ENV = 'SEC_CONTACT_EMAIL'
 
 interface NextStepsInput {
   readonly provider?: ProviderEntry
@@ -16,6 +19,9 @@ interface NextStepsInput {
   /** The names onboard just saved to the key file; their steps are done. */
   readonly saved: ReadonlySet<string>
   readonly telegramTokenEnv?: string
+  /** The home market, which names the stocks the chat step mentions and whether SEC's contact is
+   *  still to set. */
+  readonly region?: HomeRegion
   /** A first setup also lists how to start; an edit lists what it left to do and the restart. */
   readonly firstRun: boolean
 }
@@ -68,6 +74,10 @@ function accessSteps(ctx: AskContext, input: NextStepsInput): readonly string[] 
     steps.push(t(ctx.locale, 'cli.onboardStepSaveKey', params))
   }
 
+  if (input.region === 'us' && isStillToSave(input, SEC_CONTACT_ENV)) {
+    steps.push(t(ctx.locale, 'cli.onboardStepSecEmail', { brand: BRAND.name }))
+  }
+
   return steps
 }
 
@@ -81,7 +91,10 @@ function startSteps(ctx: AskContext, input: NextStepsInput): readonly string[] {
   }
 
   return [
-    t(ctx.locale, 'cli.onboardStepChat', params),
+    t(ctx.locale, 'cli.onboardStepChat', {
+      ...params,
+      market: input.region === 'us' ? 'US' : 'VN',
+    }),
     t(ctx.locale, 'cli.onboardStepDeposit'),
     t(ctx.locale, 'cli.onboardStepDaemon', params),
     ...pair,

@@ -5,7 +5,13 @@ import { ValidationError } from '@/core/errors'
 import type { ModelAnswer } from './model-step'
 import { type AskContext, StepBack } from './ask'
 import { askModelFor, askProvider } from './model-step'
-import { askCurrency, askLanguage } from './settings-step'
+import {
+  askCurrency,
+  askHomeMarket,
+  askLanguage,
+  type HomeRegion,
+  homeCurrencyOf,
+} from './settings-step'
 
 interface ModelAnswers {
   readonly provider?: ProviderEntry
@@ -14,6 +20,7 @@ interface ModelAnswers {
 
 interface FirstAnswers extends ModelAnswers {
   readonly language: Locale
+  readonly region?: HomeRegion
   readonly currency?: string
 }
 
@@ -26,21 +33,29 @@ interface StepRun<A> {
   readonly localeOf?: (answers: A) => Locale
 }
 
-/** The first setup's list questions: language, currency, provider and model. */
-export async function askFirstAnswers(
-  ctx: AskContext
-): Promise<{ readonly language: Locale; readonly currency: string; readonly chosen: ModelAnswer }> {
+/** The first setup's list questions: language, home market, currency, provider and model. */
+export async function askFirstAnswers(ctx: AskContext): Promise<{
+  readonly language: Locale
+  readonly region: HomeRegion
+  readonly currency: string
+  readonly chosen: ModelAnswer
+}> {
   const answers = await runListSteps<FirstAnswers>(ctx, {
-    steps: [askLanguageStep, askCurrencyStep, askProviderStep, askModelStep],
+    steps: [askLanguageStep, askHomeMarketStep, askCurrencyStep, askProviderStep, askModelStep],
     answers: { language: ctx.locale },
     localeOf: (asked) => asked.language,
   })
 
-  if (answers.currency === undefined) {
-    throw new ValidationError('onboard list questions ended without a currency')
+  if (answers.currency === undefined || answers.region === undefined) {
+    throw new ValidationError('onboard list questions ended without a home market')
   }
 
-  return { language: answers.language, currency: answers.currency, chosen: chosenOf(answers) }
+  return {
+    language: answers.language,
+    region: answers.region,
+    currency: answers.currency,
+    chosen: chosenOf(answers),
+  }
 }
 
 /** Provider then model, as the config edit asks them. */
@@ -86,8 +101,23 @@ async function askLanguageStep(ctx: AskContext, answers: FirstAnswers): Promise<
   return { ...answers, language: await askLanguage(ctx) }
 }
 
+/** A different home market drops the stored currency: the default follows the region, and a
+ *  currency picked for the other one would otherwise stay marked. */
+async function askHomeMarketStep(ctx: AskContext, answers: FirstAnswers): Promise<FirstAnswers> {
+  const region = await askHomeMarket(ctx, answers.region)
+  const { currency, ...rest } = answers
+
+  return {
+    ...rest,
+    region,
+    ...(region === answers.region && currency !== undefined ? { currency } : {}),
+  }
+}
+
 async function askCurrencyStep(ctx: AskContext, answers: FirstAnswers): Promise<FirstAnswers> {
-  return { ...answers, currency: await askCurrency(ctx, answers.currency) }
+  const fallback = homeCurrencyOf(answers.region ?? 'vn')
+
+  return { ...answers, currency: await askCurrency(ctx, answers.currency ?? fallback) }
 }
 
 async function askProviderStep<A extends ModelAnswers>(ctx: AskContext, answers: A): Promise<A> {

@@ -15,6 +15,19 @@ const LANGUAGE_NAME_KEYS = {
   vi: 'cli.onboardLanguageVi',
 } as const satisfies Record<Locale, string>
 const CURRENCY_CHOICES = ['VND', 'USD'] as const
+const SEC_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** The market a book is mainly held in; it sets the home region and the book's currency. */
+export type HomeRegion = 'vn' | 'us'
+
+const HOME_MARKETS = [
+  { region: 'vn', currency: 'VND', label: 'cli.onboardHomeMarketVn' },
+  { region: 'us', currency: 'USD', label: 'cli.onboardHomeMarketUs' },
+] as const satisfies readonly {
+  readonly region: HomeRegion
+  readonly currency: string
+  readonly label: string
+}[]
 const VIETNAMESE_LOCALE_RE = /^vi/i
 
 /** The shell's own language picks the default, as the installer does. */
@@ -32,6 +45,44 @@ export async function askLanguage(ctx: AskContext): Promise<Locale> {
       value: locale,
     })),
     defaultIndex: LOCALES.indexOf(ctx.locale),
+  })
+}
+
+export function homeCurrencyOf(region: HomeRegion): string {
+  return HOME_MARKETS.find((market) => market.region === region)?.currency ?? CURRENCY_CHOICES[0]
+}
+
+/** Which market the operator mainly trades: the answer the home region and the currency default
+ *  both follow, so a US operator is not asked to start from VND. */
+export async function askHomeMarket(ctx: AskContext, previous?: HomeRegion): Promise<HomeRegion> {
+  return await askChoice(ctx, {
+    question: t(ctx.locale, 'cli.onboardPromptHomeMarket'),
+    choices: HOME_MARKETS.map((market) => ({
+      label: t(ctx.locale, market.label),
+      value: market.region,
+    })),
+    defaultIndex: Math.max(
+      HOME_MARKETS.findIndex((market) => market.region === previous),
+      0
+    ),
+  })
+}
+
+/** SEC asks every reader for a contact; it is read back as a line, not a secret, so the prompt
+ *  shows what is typed. Empty skips and turns US accounts off. */
+export async function askSecContact(ctx: AskContext): Promise<string | undefined> {
+  ctx.app.out(t(ctx.locale, 'cli.onboardSecEmailIntro'))
+
+  return await askUntilValid(ctx, t(ctx.locale, 'cli.onboardPromptSecEmail'), (answer) => {
+    const email = answer.trim()
+
+    if (email === '') {
+      return accept<string | undefined>(undefined)
+    }
+
+    return SEC_EMAIL_RE.test(email)
+      ? accept<string | undefined>(email)
+      : refuse(t(ctx.locale, 'cli.onboardSecEmailInvalid'))
   })
 }
 
