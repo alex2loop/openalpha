@@ -1224,6 +1224,7 @@
     "keyShellWins": "{name} is also set in your shell, and that value wins until you remove it there.",
     "keyNameUnreadNear": "config.toml doesn't read {name}, so nothing uses it yet. Did you mean {near}?",
     "keyNameUnread": "config.toml doesn't read {name}, so nothing uses it yet. The names it reads: {names}.",
+    "keyNamePluginMay": "config.toml doesn't read {name}, but plugin code is allowed here, so a plugin data source may; you will know once the daemon starts.",
     "keyRestart": "The running daemon reads keys when it starts: `{brand} restart --background`.",
     "keyRemoved": "Removed {name} from {path}.",
     "keyNotInFile": "{name} is not in {path}, so nothing changed.",

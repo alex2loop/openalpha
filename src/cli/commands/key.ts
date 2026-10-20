@@ -1,6 +1,5 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
 import type { CliApp } from '@/cli/types'
-import type { Locale } from '@/core/types/locale'
 import { createCommand, createGroup, type Group, hasLoadedConfig, type Needs } from '@/cli/command'
 import { liveDaemon } from '@/cli/daemon-guard'
 import { getEnv } from '@/cli/env'
@@ -107,7 +106,7 @@ async function printSaveHints(app: CliApp, name: string): Promise<void> {
 
   // A hint, never a refusal: a key saved before the config names it is legitimate.
   if (known !== undefined && known.length > 0 && !known.includes(name)) {
-    app.out(hint(renderUnreadName(locale, name, known)))
+    app.out(hint(renderUnreadName(app, name, known)))
   }
 
   if ((await liveDaemon(app)) !== null) {
@@ -115,11 +114,17 @@ async function printSaveHints(app: CliApp, name: string): Promise<void> {
   }
 }
 
-function renderUnreadName(locale: Locale, name: string, names: readonly string[]): string {
+function renderUnreadName(app: CliApp, name: string, names: readonly string[]): string {
+  const locale = app.config.locale.language
   const near = closestName(name, names)
 
   if (near !== undefined) {
     return t(locale, 'cli.keyNameUnreadNear', { name, near })
+  }
+
+  // A plugin source names its key in code only boot loads, so the config's list cannot rule it out.
+  if (app.config.plugins.allowCode) {
+    return t(locale, 'cli.keyNamePluginMay', { name })
   }
 
   return t(locale, 'cli.keyNameUnread', { name, names: names.join(', ') })

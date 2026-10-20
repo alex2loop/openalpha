@@ -6,7 +6,7 @@ const LOCALES_DIR = resolve(import.meta.dir, '../src/i18n/locales')
 const LOCALE = 'vi'
 /** Prefixes whose values a user reads as domain vocabulary rather than as prose. */
 const REVIEWED_PREFIXES = ['trading.', 'slash.trading', 'tools.'] as const
-/** A rule keyed so reaches every key: the voice and the quantity word hold in CLI help and errors too. */
+/** The whole catalog, not only reviewed keys: CLI help and errors speak in the same voice. */
 const EVERY_KEY = '**'
 
 /** Format-only strings with nothing to translate. Every other identical pair is a leak. `oz` is the

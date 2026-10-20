@@ -1224,6 +1224,7 @@
     "keyShellWins": "{name} cũng đang đặt trong shell, và giá trị ở shell được dùng trước cho tới khi bạn bỏ nó đi.",
     "keyNameUnreadNear": "config.toml không đọc {name} nên chưa có gì dùng tới nó. Có phải bạn định gõ {near}?",
     "keyNameUnread": "config.toml không đọc {name} nên chưa có gì dùng tới nó. Các tên nó đọc: {names}.",
+    "keyNamePluginMay": "config.toml không đọc {name}, nhưng ở đây cho phép mã plugin nên một nguồn dữ liệu plugin vẫn có thể đọc; khi daemon chạy là biết.",
     "keyRestart": "Daemon đang chạy chỉ đọc khóa lúc khởi động: `{brand} restart --background`.",
     "keyRemoved": "Đã xóa {name} khỏi {path}.",
     "keyNotInFile": "{name} không có trong {path}, nên không có gì thay đổi.",
