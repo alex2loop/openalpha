@@ -5,8 +5,10 @@ import { US_EQUITY_FACTOR_IDS, US_ETF_FACTOR_IDS } from '@/trading/kernel/factor
 import { currencyCode, portfolioSegment, quoteUnit } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
 import { createTradingCalendar } from '@/trading/markets/calendar'
+import { createUsBoardCache } from '@/trading/markets/equity-us/board'
 import { usCapabilities } from '@/trading/markets/equity-us/capabilities'
 import { detect, search, usCandidacy } from '@/trading/markets/equity-us/detect'
+import { runUsFactors } from '@/trading/markets/equity-us/factors'
 import { buildUsLevels } from '@/trading/markets/equity-us/levels'
 import {
   US_ADMISSION,
@@ -23,7 +25,7 @@ import {
   US_TICK,
 } from '@/trading/markets/equity-us/policy'
 import { createUsLeveragedFundStage } from '@/trading/markets/equity-us/stages/leveraged-fund'
-import { FACTOR_SCORING_VERSION, UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
+import { FACTOR_SCORING_VERSION } from '@/trading/markets/factor-scoring'
 import { strategyVersionOf } from '@/trading/markets/level-settings'
 import { LEVEL_FORMULA_VERSION, trailOf } from '@/trading/markets/levels'
 
@@ -31,21 +33,17 @@ import { LEVEL_FORMULA_VERSION, trailOf } from '@/trading/markets/levels'
  *  family, a currency, a calendar and one sizing formula. */
 export function createUsEquityMarket(deps: MarketDeps): Market {
   const manifest = usManifest(deps.config)
+  const board = createUsBoardCache(deps, manifest)
 
   deps.stages.register(createUsLeveragedFundStage(deps))
 
   return {
     manifest,
-    capabilities: usCapabilities(deps, manifest),
+    capabilities: usCapabilities(deps, manifest, board),
     candidacy: usCandidacy,
     detect: (options) => detect(deps, options),
     search: (options) => search(deps, options),
-    factors: () =>
-      Promise.resolve({
-        ...UNSCORED_COMPOSITE,
-        results: [],
-        caveats: [{ code: 'market-data.no-coverage' }],
-      }),
+    factors: (options) => runUsFactors({ deps, manifest, board }, options),
     levels: (options) => buildUsLevels(deps, options),
     ...trailOf(US_LEVEL_POLICY),
   }

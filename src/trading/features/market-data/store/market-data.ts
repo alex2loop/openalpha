@@ -6,6 +6,7 @@ import type {
   LatestDay,
   LatestDaysOptions,
 } from '@/trading/features/market-data/store/coverage'
+import type { LatestFundamentalsRead } from '@/trading/features/market-data/store/fundamentals'
 import type { FindFundingOptions } from '@/trading/features/market-data/store/funding'
 import type {
   ListInstrumentsOptions,
@@ -55,6 +56,7 @@ import {
   listLatestBars,
   listLatestFlowDays,
 } from '@/trading/features/market-data/store/coverage'
+import { listLatestFundamentals } from '@/trading/features/market-data/store/fundamentals'
 import { findFunding, upsertFunding } from '@/trading/features/market-data/store/funding'
 import {
   findInstrument,
@@ -129,13 +131,12 @@ const ARCHIVE_RETENTION_MS = ARCHIVE_RETENTION_YEARS * DAYS_PER_YEAR * MS_PER_DA
 /** Scopes whose rows no provider will serve again: it publishes the current filing, never last
  *  year's. `tradeSides` is unrepeatable too and deliberately absent - it grows per ticker per
  *  session rather than per reporting period, and nothing reads it past its own twenty-session
- *  window. Not keyed off `durable` in `persistence/tables.ts`: that flag answers whether a row must
- *  be exported to survive a reset, which is a different question with a different answer here. */
+ *  window. Not keyed off `durable` in `persistence/tables.ts`: that flag asks whether a row must be
+ *  exported to survive a reset, a different question. */
 const ARCHIVED_RETENTION_SCOPES: ReadonlySet<RetentionScope> = new Set(['fundamentals'])
 
-/** The bar-driven window for anything a refetch can rebuild, and the longer of the two for anything
- *  it cannot. Never shorter than the bar window: a market declaring an evidence window past the
- *  archive span must not have its filings cut back to less than its own series. */
+/** The bar-driven window for anything a refetch can rebuild, the longer of the two for anything it
+ *  cannot; never shorter than the bar window, so filings are not cut below the series. */
 export function retentionMsOf(scope: RetentionScope, barRetentionMs: number): number {
   return ARCHIVED_RETENTION_SCOPES.has(scope)
     ? Math.max(barRetentionMs, ARCHIVE_RETENTION_MS)
@@ -197,16 +198,15 @@ interface ListSeriesPointsOptions {
   readonly signal: AbortSignal
 }
 
-export interface MarketDataStore {
+export interface MarketDataStore extends LatestFundamentalsRead {
   replaceInstruments(options: ReplaceInstrumentsOptions): Promise<void>
   listInstruments(options: ListInstrumentsOptions): Promise<readonly InstrumentRecord[]>
   findInstrument(options: {
     readonly instrument: InstrumentRef
     readonly signal: AbortSignal
   }): Promise<InstrumentRecord | null>
-  /** Whether this market has a stored universe at all. `findInstrument` returning null cannot tell
-   *  an unlisted name from a scope that was never refreshed; this separates the two without
-   *  reading the scope. */
+  /** Whether this market has a stored universe at all: `findInstrument` returning null cannot tell
+   *  an unlisted name from a scope that was never refreshed. */
   hasInstruments(options: {
     readonly market: MarketRef
     readonly signal: AbortSignal
@@ -216,9 +216,8 @@ export interface MarketDataStore {
   upsertBars(options: UpsertBarsOptions): Promise<readonly InstrumentRef[]>
   listBars(options: DayWindowOptions): Promise<readonly BarRecord[]>
   /** The days this market actually traded, ascending — a session is a day that produced a bar.
-   *  Market-scoped, not instrument-scoped: a halted name missing one day did not close the
-   *  exchange. This is the only retrospective answer to "how many sessions passed"; the calendar
-   *  can project forward but cannot know which past days the market was shut. */
+   *  Market-scoped: a halted name missing one day did not close the exchange. The only
+   *  retrospective answer to "how many sessions passed"; the calendar cannot know past closures. */
   listSessionDays(options: SessionDaysOptions): Promise<readonly TradingDay[]>
   upsertFundamentals(records: readonly FundamentalSnapshot[], signal: AbortSignal): Promise<void>
   /** The newest accounts published at or before `asOf`. The day is required rather than optional:
@@ -292,6 +291,7 @@ export function createMarketDataStore(deps: StoreDeps): MarketDataStore {
     listSessionDays: (options) => listSessionDays(deps, options),
     upsertFundamentals: (records, signal) => upsertFundamentals(deps, records, signal),
     findLatestFundamental: (options) => findLatestFundamental(deps, options),
+    listLatestFundamentals: (options) => listLatestFundamentals(deps, options),
     upsertAccounts: (filed, signal) => upsertAccounts(deps, filed, signal),
     listAnnualAccounts: (options) => listAnnualAccounts(deps, options),
     listQuarterlyAccounts: (options) => listQuarterlyAccounts(deps, options),

@@ -4,29 +4,32 @@ import type {
 } from '@/trading/kernel/market/market-capability'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
+import type { UsBoardCache } from '@/trading/markets/equity-us/board'
 import type { MarketCapabilities, MarketManifest } from '@/trading/markets/types'
 import { available, unavailable } from '@/trading/kernel/source/source-result'
 import { runUsBars } from '@/trading/markets/equity-us/bars'
 import { runUsNews } from '@/trading/markets/equity-us/news'
-import {
-  US_STATISTICS_LIQUIDITY_SESSIONS,
-  US_STATISTICS_VOLATILITY_SESSIONS,
-} from '@/trading/markets/equity-us/policy'
+import { runUsOverview } from '@/trading/markets/equity-us/overview'
+import { US_LIQUIDITY_SESSIONS, US_VOLATILITY_SESSIONS } from '@/trading/markets/equity-us/policy'
 import { runUsQuote } from '@/trading/markets/equity-us/quote'
 import { refreshUsMarket, usStaleKinds } from '@/trading/markets/equity-us/refresh/refresh'
+import { runUsScreen } from '@/trading/markets/equity-us/screen-capability'
 import { resolveMacroRisk } from '@/trading/markets/macro'
 import { statisticsFromCandles, statisticsSessions } from '@/trading/markets/statistics'
 
-const STATISTICS_SESSIONS = statisticsSessions(
-  US_STATISTICS_LIQUIDITY_SESSIONS,
-  US_STATISTICS_VOLATILITY_SESSIONS
-)
+const STATISTICS_SESSIONS = statisticsSessions(US_LIQUIDITY_SESSIONS, US_VOLATILITY_SESSIONS)
 
-export function usCapabilities(deps: MarketDeps, manifest: MarketManifest): MarketCapabilities {
+export function usCapabilities(
+  deps: MarketDeps,
+  manifest: MarketManifest,
+  board: UsBoardCache
+): MarketCapabilities {
   return {
     ...priceCapabilities(deps, manifest),
     ...newsCapabilities(deps),
-    ...refreshCapabilities(deps, manifest),
+    ...screenCapabilities(board),
+    ...overviewCapabilities(deps, manifest, board),
+    ...refreshCapabilities(deps, manifest, board),
   }
 }
 
@@ -50,11 +53,32 @@ function newsCapabilities(deps: MarketDeps): Pick<MarketCapabilities, 'news' | '
 
 function refreshCapabilities(
   deps: MarketDeps,
-  manifest: MarketManifest
+  manifest: MarketManifest,
+  board: UsBoardCache
 ): Pick<MarketCapabilities, 'refresh' | 'staleKinds'> {
   return {
-    refresh: { kind: 'refresh', run: (request) => refreshUsMarket(deps, manifest, request) },
-    staleKinds: { kind: 'staleKinds', run: (request) => usStaleKinds(request) },
+    refresh: {
+      kind: 'refresh',
+      run: (request) => refreshUsMarket({ deps, manifest, board, request }),
+    },
+    staleKinds: { kind: 'staleKinds', run: (request) => usStaleKinds(manifest.calendar, request) },
+  }
+}
+
+function screenCapabilities(board: UsBoardCache): Pick<MarketCapabilities, 'screen'> {
+  return { screen: { kind: 'screen', run: (request) => runUsScreen(board, request) } }
+}
+
+function overviewCapabilities(
+  deps: MarketDeps,
+  manifest: MarketManifest,
+  board: UsBoardCache
+): Pick<MarketCapabilities, 'overview'> {
+  return {
+    overview: {
+      kind: 'overview',
+      run: (request) => runUsOverview({ deps, manifest, board, request }),
+    },
   }
 }
 
@@ -72,8 +96,8 @@ async function runUsStatistics(
   const statistics = statisticsFromCandles(bars.value, {
     instrument: request.instrument,
     asOf: request.asOf,
-    liquiditySessions: US_STATISTICS_LIQUIDITY_SESSIONS,
-    volatilitySessions: US_STATISTICS_VOLATILITY_SESSIONS,
+    liquiditySessions: US_LIQUIDITY_SESSIONS,
+    volatilitySessions: US_VOLATILITY_SESSIONS,
   })
 
   return statistics === null

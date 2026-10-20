@@ -56,7 +56,7 @@ export const US_EQUITY_FACTOR_IDS = Object.freeze([
   'momentum',
   'volatility',
 ] as const)
-type UsEquityFactorId = (typeof US_EQUITY_FACTOR_IDS)[number]
+export type UsEquityFactorId = (typeof US_EQUITY_FACTOR_IDS)[number]
 
 export const US_ETF_FACTOR_IDS = Object.freeze([
   'index-trend',
@@ -64,7 +64,7 @@ export const US_ETF_FACTOR_IDS = Object.freeze([
   'volatility',
   'high-proximity',
 ] as const)
-type UsEtfFactorId = (typeof US_ETF_FACTOR_IDS)[number]
+export type UsEtfFactorId = (typeof US_ETF_FACTOR_IDS)[number]
 
 // `VnGoldFactorId` is a superset of `GoldFactorId`, so world gold's ids arrive through it.
 export type FactorId =

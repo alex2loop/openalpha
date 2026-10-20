@@ -179,7 +179,7 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('hsx')]: 60,
   [sourceId('kbsec')]: 60,
   [sourceId('mexc')]: 600,
-  [sourceId('nasdaq')]: 60,
+  [sourceId('nasdaq')]: 240,
   [sourceId('nso')]: 10,
   [sourceId('okx')]: 600,
   [sourceId('pnj')]: 30,

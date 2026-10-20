@@ -4,6 +4,7 @@ import type { BoardLotPolicy, Ticker, TickSizePolicy } from '@/trading/kernel/in
 import type { AdmissionPolicy } from '@/trading/markets/admission'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { marketRef, region, ticker } from '@/trading/kernel/instrument'
+import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
 import { US_EXCHANGE_HOLIDAYS } from '@/trading/markets/equity-us/holidays'
 
 export const US_STRATEGY_VERSION = '1.0.0'
@@ -70,8 +71,95 @@ export const US_UNIVERSE_STALE_MS = 7 * MS_PER_DAY
  *  market. */
 export const US_MINIMUM_UNIVERSE_SIZE = 5_000
 
-export const US_STATISTICS_LIQUIDITY_SESSIONS = 20
-export const US_STATISTICS_VOLATILITY_SESSIONS = 20
+/** The board is the equities ranked by capitalisation: wide enough that a screen has a market to
+ *  choose from, narrow enough that a refresh asks the provider for hundreds of names, not
+ *  thousands. The refresh keeps snapshots for a few dozen beyond it so a name hovering at the edge
+ *  does not drop out between runs. */
+export const US_SCREEN_RANK = 500
+export const US_SCREEN_RANK_BUFFER = 550
+
+/** Funds a fund board ranks: broad index, size and style, sector, bond, gold. None is leveraged
+ *  or inverse, which `isLeveragedFund` would refuse to buy. */
+export const US_SCREEN_ETFS: readonly Ticker[] = Object.freeze(
+  [
+    'SPY',
+    'VOO',
+    'IVV',
+    'VTI',
+    'QQQ',
+    'DIA',
+    'IWM',
+    'IJH',
+    'IJR',
+    'MDY',
+    'VUG',
+    'VTV',
+    'VIG',
+    'SCHD',
+    'VEA',
+    'EFA',
+    'VWO',
+    'EEM',
+    'XLK',
+    'XLF',
+    'XLE',
+    'XLV',
+    'XLY',
+    'XLP',
+    'XLI',
+    'XLB',
+    'XLU',
+    'XLRE',
+    'XLC',
+    'SMH',
+    'SOXX',
+    'IBB',
+    'XBI',
+    'KRE',
+    'ITB',
+    'XHB',
+    'XRT',
+    'VNQ',
+    'TLT',
+    'IEF',
+    'SHY',
+    'AGG',
+    'BND',
+    'LQD',
+    'HYG',
+    'TIP',
+    'GLD',
+    'IAU',
+    'SLV',
+    'USO',
+  ].map(ticker)
+)
+
+/** A snapshot older than this many sessions belongs to a name that has left the kept set. */
+export const US_BOARD_SNAPSHOT_SESSIONS = 5
+/** A year of closes: the momentum window needs it and a younger listing has no measured year. */
+export const US_MINIMUM_HISTORY_SESSIONS = YEAR_SESSIONS
+/** Median daily traded value below which an order in size moves the price. */
+export const US_MINIMUM_TRADED_VALUE_USD = 1_000_000
+/** Daily volatility (standard deviation of daily returns) above which a name is an outlier. */
+export const US_MAXIMUM_VOLATILITY = 0.1
+/** How many names a refresh asks the provider for at once; the pacer still enforces the rate. */
+export const US_SOURCE_CONCURRENCY = 5
+/** Store reads in flight while the board assembles; the database is local, so wider than a provider. */
+export const US_BOARD_READ_CONCURRENCY = 8
+/** How far a stored close may sit from the same session's refetched close before the series counts
+ *  as restated. */
+export const US_RESTATEMENT_TOLERANCE = RESTATEMENT_TOLERANCE
+
+export const US_MOMENTUM_SESSIONS = YEAR_SESSIONS
+/** The latest month is left out of the twelve-month return: it reverses. */
+export const US_MOMENTUM_SKIP_SESSIONS = MONTH_SESSIONS
+export const US_VOLATILITY_SESSIONS = 63
+export const US_LIQUIDITY_SESSIONS = 20
+export const US_TREND_SESSIONS = 50
+export const US_TREND_SLOPE_SESSIONS = 10
+export const US_FUND_MOMENTUM_SESSIONS = 126
+export const US_HIGH_PROXIMITY_SESSIONS = YEAR_SESSIONS
 
 /** What a story has to read as before a company's name in it is that company. */
 export const US_SEARCH_TOPIC: readonly string[] = Object.freeze(['stock', 'shares', 'earnings'])

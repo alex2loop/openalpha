@@ -17,13 +17,12 @@ export const RESTATEMENT_TAIL_SESSIONS = 20
  *  evidence of a restatement. */
 export function isRestated(
   stored: ReadonlyMap<TradingDay, number> | undefined,
-  records: readonly BarRecord[] | undefined
+  records: readonly BarRecord[] | undefined,
+  tolerance: number = RESTATEMENT_TOLERANCE
 ): boolean {
   return (records ?? []).some((record) => {
     const close = stored?.get(record.candle.at)
 
-    return (
-      close !== undefined && Math.abs(record.candle.close - close) / close > RESTATEMENT_TOLERANCE
-    )
+    return close !== undefined && Math.abs(record.candle.close - close) / close > tolerance
   })
 }
