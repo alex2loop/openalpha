@@ -10,5 +10,9 @@
   "gold": {
     "version": "1.0.0",
     "digest": "e4831b4022df7661"
+  },
+  "equity-us": {
+    "version": "1.0.0",
+    "digest": "6265f2111bdeb63b"
   }
 }

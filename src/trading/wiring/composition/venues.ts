@@ -37,6 +37,9 @@ export function buildVenues(options: VenueOptions, logger: Logger): VenueRegistr
   )
   venues.register(createManualVenue({ id: venueRef('vps'), markets: [marketRef('equity-vn')] }))
   venues.register(createManualVenue({ id: venueRef('gold-shop'), markets: [marketRef('gold-vn')] }))
+  venues.register(
+    createManualVenue({ id: venueRef('us-broker'), markets: [marketRef('equity-us')] })
+  )
 
   // Only a declared broker carries `markets`; a built-in venue's are the lines above.
   for (const [id, config] of Object.entries(options.tradingConfig.venues)) {

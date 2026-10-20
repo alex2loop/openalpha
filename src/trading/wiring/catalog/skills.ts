@@ -34,6 +34,9 @@ import technicalAnalysis from '@/trading/skills/technical-analysis/SKILL.md' wit
 import trackRecordReading from '@/trading/skills/track-record-reading/SKILL.md' with {
   type: 'text',
 }
+import usExecution from '@/trading/skills/us-execution/SKILL.md' with { type: 'text' }
+import usMarketRules from '@/trading/skills/us-market-rules/SKILL.md' with { type: 'text' }
+import usValuation from '@/trading/skills/us-valuation/SKILL.md' with { type: 'text' }
 import vnDailyBuy from '@/trading/skills/vn-daily-buy/SKILL.md' with { type: 'text' }
 import vnDeepDive from '@/trading/skills/vn-deep-dive/SKILL.md' with { type: 'text' }
 import vnDividendAnalysis from '@/trading/skills/vn-dividend-analysis/SKILL.md' with {
@@ -68,6 +71,9 @@ export const TRADING_SKILLS: Readonly<Record<SkillName, string>> = Object.freeze
   'research-scoping': researchScoping,
   'technical-analysis': technicalAnalysis,
   'track-record-reading': trackRecordReading,
+  'us-execution': usExecution,
+  'us-market-rules': usMarketRules,
+  'us-valuation': usValuation,
   'vn-daily-buy': vnDailyBuy,
   'vn-deep-dive': vnDeepDive,
   'vn-dividend-analysis': vnDividendAnalysis,

@@ -18,6 +18,7 @@ const POLICY_SOURCES: Readonly<Record<string, readonly string[]>> = {
     'src/trading/markets/equity-vn/factors/fundamental-components.ts',
   ],
   gold: ['src/trading/markets/gold/policy.ts', 'src/trading/markets/gold-vn/policy.ts'],
+  'equity-us': ['src/trading/markets/equity-us/policy.ts'],
 }
 /** The policy literals, and the scalars and bounds they read from beside them: a normalization
  *  range, a cap or a threshold decides a score as surely as a weight does. */

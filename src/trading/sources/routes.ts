@@ -135,6 +135,7 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   // has both partition the requests rather than failing over: one serves an instrument, the other
   // refuses to, so a market read never stands in for a name's own coverage.
   news: {
+    'equity-us': [sourceId('google-news'), sourceId('rss')],
     'equity-vn': [sourceId('vndirect'), sourceId('rss')],
     crypto: [sourceId('google-news'), sourceId('rss')],
     gold: [sourceId('rss')],

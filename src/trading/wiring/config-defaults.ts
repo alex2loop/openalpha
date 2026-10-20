@@ -97,6 +97,7 @@ export const BUILT_IN_VENUES: readonly VenueRef[] = Object.freeze([
   venueRef('binance'),
   venueRef('vps'),
   venueRef('gold-shop'),
+  venueRef('us-broker'),
 ])
 
 const DEFAULT_VENUE_CONFIGS: VenueConfigs = Object.freeze({
@@ -175,6 +176,9 @@ const DEFAULT_TRADING_COSTS: TradingCosts = Object.freeze({
   // A gold shop bills no commission: what it keeps is the gap between its two prices, and a row
   // books the side it filled at, so the spread is already in the basis and the proceeds.
   [venueRef('gold-shop')]: Object.freeze({ buy: 0, sell: 0 }),
+  // A US broker bills no commission on listed shares and ETFs; an operator on a paid tier states
+  // their own under `[trading.venues.<id>] fees`.
+  [venueRef('us-broker')]: Object.freeze({ buy: 0, sell: 0 }),
   // OKX's taker rate. The maker rate was the earlier default on the theory that these orders rest as
   // limits; every fill actually recorded has been a taker, and the maker rate understates each one.
   // A spot buy is billed in the coin delivered unless the account opts into quote-currency fees, so
@@ -188,6 +192,7 @@ const DEFAULT_TRADING_COSTS: TradingCosts = Object.freeze({
 /** Where each built-in market books, and so whose fees its suggestions are weighed and graded on.
  *  Boot rejects an entry whose venue does not hold the market. */
 const DEFAULT_VENUE_BY_MARKET: DefaultVenues = Object.freeze({
+  [marketRef('equity-us')]: venueRef('us-broker'),
   [marketRef('equity-vn')]: venueRef('vps'),
   [marketRef('gold-vn')]: venueRef('gold-shop'),
   [marketRef('crypto')]: venueRef('binance'),

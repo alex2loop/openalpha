@@ -31,6 +31,7 @@ import { createRoundTripStage } from '@/trading/features/suggestion/pipeline/rou
 import { createStageRegistry } from '@/trading/features/suggestion/pipeline/stage-registry'
 import { DECISIONS_MODEL_TIER } from '@/trading/kernel/config'
 import { createCryptoMarket } from '@/trading/markets/crypto/market'
+import { createUsEquityMarket } from '@/trading/markets/equity-us/market'
 import { createVnEquityMarket } from '@/trading/markets/equity-vn/market'
 import { createGoldMarket } from '@/trading/markets/gold/market'
 import { createVnGoldMarket } from '@/trading/markets/gold-vn/market'
@@ -372,6 +373,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
   markets.register(createGoldMarket(deps))
   markets.register(createVnGoldMarket(deps))
   markets.register(createVnEquityMarket(deps))
+  markets.register(createUsEquityMarket(deps))
   markets.register(createCryptoMarket(deps))
   markets.close()
   stages.close()
