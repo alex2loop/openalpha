@@ -12,6 +12,7 @@ import type { TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode, MarketRef } from '@/trading/kernel/instrument'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { QuoteConvention } from '@/trading/render/money'
+import { isWord } from '@/core/utils/text'
 import { t } from '@/i18n'
 import {
   buildInvalidLineMessages,
@@ -88,7 +89,7 @@ export function createDeleteCommand(deps: EditCommandDeps): SlashCommand {
     messageKeys: [DELETE_USAGE],
     policy: DELETE_READ_POLICY,
     policyFor: (args) =>
-      args[1]?.toLowerCase() === CONFIRM_ACTION ? DELETE_CONFIRM_POLICY : DELETE_READ_POLICY,
+      isWord(args[1], CONFIRM_ACTION) ? DELETE_CONFIRM_POLICY : DELETE_READ_POLICY,
     usage: () => ({ key: DELETE_USAGE }),
     run: async (ctx): Promise<SlashResult> => runDelete(deps, ctx),
   }

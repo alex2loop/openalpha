@@ -247,6 +247,11 @@ export function reduceOutput(s: string): string {
   return out.join('\n').replace(EDGE_BLANKS_RE, '')
 }
 
+/** Whether a typed token is `word` in any case: every keyword an operator types is lower case. */
+export function isWord(token: string | undefined, word: string): boolean {
+  return token?.toLowerCase() === word
+}
+
 /** The name within a third of `attempted`'s length in edits, rounded up and at most three; the first
  *  of equals wins. Failing that, the one name holding every word typed, in order. The attempt itself
  *  is never suggested: a key one schema arm refuses can be valid in another, and "did you mean" what

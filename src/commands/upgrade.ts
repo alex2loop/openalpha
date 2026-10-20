@@ -6,6 +6,7 @@ import type {
 } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveryTarget } from '@/scheduler/api'
+import { isWord } from '@/core/utils/text'
 
 const UPGRADE_COMMAND_NAME = 'upgrade'
 const UPGRADE_CONFIRM_ARG = 'confirm'
@@ -52,8 +53,7 @@ export function createUpgradeCommand(releases: ReleaseUpdates): SlashCommand {
     description: { kind: 'localized', key: 'slash.upgradeHelp' },
     messageKeys: [],
     policy: READ_POLICY,
-    policyFor: (args) =>
-      args[0]?.toLowerCase() === UPGRADE_CONFIRM_ARG ? CONFIRM_POLICY : READ_POLICY,
+    policyFor: (args) => (isWord(args[0], UPGRADE_CONFIRM_ARG) ? CONFIRM_POLICY : READ_POLICY),
     run: async (ctx) => {
       const request: UpgradeRequest = {
         surface: ctx.surface,
@@ -61,10 +61,9 @@ export function createUpgradeCommand(releases: ReleaseUpdates): SlashCommand {
         locale: ctx.locale,
         signal: ctx.signal,
       }
-      const reply =
-        ctx.args[0]?.toLowerCase() === UPGRADE_CONFIRM_ARG
-          ? await releases.install(request)
-          : await releases.describe(request)
+      const reply = isWord(ctx.args[0], UPGRADE_CONFIRM_ARG)
+        ? await releases.install(request)
+        : await releases.describe(request)
 
       return { kind: 'text', text: reply.text, ...toAffordances(reply) }
     },

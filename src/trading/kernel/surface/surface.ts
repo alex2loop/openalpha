@@ -16,6 +16,7 @@ import type {
 import type { AlertId } from '@/trading/kernel/operator/alert'
 import type { LedgerEntryId } from '@/trading/kernel/operator/book'
 import { definedOnly } from '@/core/utils/collections'
+import { isWord } from '@/core/utils/text'
 import {
   marketRef,
   region,
@@ -57,9 +58,7 @@ export function parseMember<T extends string>(
   raw: string | undefined,
   members: readonly T[]
 ): T | null {
-  const wanted = raw?.toLowerCase()
-
-  return members.find((member) => member === wanted) ?? null
+  return members.find((member) => isWord(raw, member)) ?? null
 }
 
 export function parseFiniteNumber(raw: string | undefined): number | null {

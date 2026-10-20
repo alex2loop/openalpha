@@ -3,6 +3,7 @@ import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { QuoteConvention } from '@/trading/render/money'
+import { isWord } from '@/core/utils/text'
 import { formatDay, t } from '@/i18n'
 import { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
 import { INDENT } from '@/trading/render/layout'
@@ -23,7 +24,7 @@ export async function runWithPriceConfirm(
   surface: PriceConfirmSurface,
   write: (typed: SlashContext, typedPrice: TypedPrice) => Promise<SlashResult>
 ): Promise<SlashResult> {
-  const confirmed = ctx.args.at(-1)?.toLowerCase() === CONFIRM_TOKEN
+  const confirmed = isWord(ctx.args.at(-1), CONFIRM_TOKEN)
 
   try {
     return confirmed
