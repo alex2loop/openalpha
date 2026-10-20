@@ -16,9 +16,8 @@ import { admissibleCandles } from '@/trading/markets/admissibility'
 import { isRestated, RESTATEMENT_TAIL_SESSIONS } from '@/trading/markets/bar-restatement'
 import { hasRebuiltWindow, writeBarWindows } from '@/trading/markets/bars'
 import { isSettled } from '@/trading/markets/calendar'
-import { rankUsMembers } from '@/trading/markets/equity-us/board'
+import { loadUsMembers } from '@/trading/markets/equity-us/board'
 import {
-  US_BOARD_SNAPSHOT_SESSIONS,
   US_EVIDENCE_SESSIONS,
   US_INDEX_TICKERS,
   US_MARKET_REF,
@@ -137,14 +136,13 @@ async function fetchWindows(
 }
 
 async function barTargets(deps: MarketDeps, pass: BarsPass): Promise<readonly InstrumentRef[]> {
-  const { request, manifest } = pass
   const byRecord = new Map<Ticker, InstrumentRecord>(
     pass.universe.map((record) => [record.instrument.ticker, record])
   )
-  const snapshots = await deps.marketDataStore.listLatestFundamentals({
-    market: US_MARKET_REF,
-    fromDay: manifest.calendar.addTradingDays(request.asOf, -US_BOARD_SNAPSHOT_SESSIONS),
-    signal: request.signal,
+  const members = await loadUsMembers(deps, pass.manifest, {
+    records: pass.universe,
+    asOf: pass.request.asOf,
+    signal: pass.request.signal,
   })
   const funds = US_SCREEN_ETFS.flatMap((code) => {
     const record = byRecord.get(code)
@@ -158,7 +156,7 @@ async function barTargets(deps: MarketDeps, pass: BarsPass): Promise<readonly In
   })
 
   return dedupeInstruments([
-    ...rankUsMembers(snapshots, byRecord).map((member) => member.record.instrument),
+    ...members.map((member) => member.record.instrument),
     ...funds,
     ...indices,
   ])

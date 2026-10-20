@@ -11,6 +11,9 @@ import { nSessionReturn, realizedVolatility } from '@/trading/markets/timeseries
 export interface UsRaws {
   readonly momentum?: number
   readonly volatility?: number
+  /** The rank against the board, from the name's newest filed year. */
+  readonly value?: number
+  readonly quality?: number
 }
 
 /** Twelve months of return less the latest one, and the volatility of the last quarter. */

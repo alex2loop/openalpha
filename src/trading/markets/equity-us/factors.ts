@@ -51,8 +51,8 @@ function usEquityFactorInputs(
   provenance: readonly SourceProvenance[]
 ): readonly FactorInput<UsEquityFactorId>[] {
   return [
-    { id: 'value', provenance, caveats: [] },
-    { id: 'quality', provenance, caveats: [] },
+    inputOf('value', raws.value, provenance),
+    inputOf('quality', raws.quality, provenance),
     inputOf('momentum', raws.momentum, provenance),
     inputOf('volatility', raws.volatility, provenance),
   ]

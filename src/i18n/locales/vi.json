@@ -2958,6 +2958,7 @@
     "reduce.overheated": "Phe mua đang trả phí funding quá cao để giữ vị thế mã này trong lúc bạn nắm giữ. Chốt phần đầu theo tỷ lệ chốt lời quen thuộc của bạn, tính trên vị thế lúc mở và trừ phần đã bán.",
     "hold.recorded-entry": "Mức giá hệ thống đặt cho vị thế bạn đã ghi - chưa có đề xuất nào. Chạy /suggest cho mã này để có bản đọc đầy đủ.",
     "render.suggestion.holdRecorded": "{ticker} ({at}): kế hoạch thoát cho vị thế bạn đang giữ.",
+    "render.suggestion.recentEvents": "Vừa công bố gần đây",
     "render.suggestion.holdLevelsIntroRecorded": "Các mức vị thế này đang được theo dõi:",
     "render.ledger.exitPlanned": "Đã đặt kế hoạch thoát cho vị thế này:",
     "notice.exit-plan": "Đã đặt kế hoạch thoát",

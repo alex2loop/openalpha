@@ -135,6 +135,12 @@ export const US_SCREEN_ETFS: readonly Ticker[] = Object.freeze(
   ].map(ticker)
 )
 
+/** Annual accounts change on the filing calendar, not the trading one: a weekly look finds a new
+ *  10-K within days and costs one pass of frame reads. */
+export const US_ACCOUNTS_STALE_MS = 7 * MS_PER_DAY
+/** Years a trend compounds over, as the accounts history reads them. */
+export const US_TREND_YEARS = 5
+
 /** A snapshot older than this many sessions belongs to a name that has left the kept set. */
 export const US_BOARD_SNAPSHOT_SESSIONS = 5
 /** A year of closes: the momentum window needs it and a younger listing has no measured year. */

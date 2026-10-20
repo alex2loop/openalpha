@@ -16,10 +16,12 @@ import { assertNotAborted } from '@/core/errors'
 import { reportRefreshStage } from '@/trading/kernel/market/refresh'
 import { isSettled, resolveSettledDay } from '@/trading/markets/calendar'
 import {
+  US_ACCOUNTS_STALE_MS,
   US_EVIDENCE_SESSIONS,
   US_MARKET_REF,
   US_UNIVERSE_STALE_MS,
 } from '@/trading/markets/equity-us/policy'
+import { refreshUsAccounts } from '@/trading/markets/equity-us/refresh/accounts'
 import { refreshUsBars } from '@/trading/markets/equity-us/refresh/bars'
 import { refreshUsFundamentals } from '@/trading/markets/equity-us/refresh/fundamentals'
 import {
@@ -28,6 +30,12 @@ import {
   refreshUsUniverse,
 } from '@/trading/markets/equity-us/refresh/universe'
 import { buildSkippedResult } from '@/trading/markets/refresh-result'
+
+/** Kinds whose cadence no session count expresses, judged by the age of their last attempt. */
+const WALL_CLOCK_MS: Readonly<Partial<Record<RefreshDataKind, number>>> = Object.freeze({
+  instruments: US_UNIVERSE_STALE_MS,
+  accounts: US_ACCOUNTS_STALE_MS,
+})
 
 interface UsRefreshInput {
   readonly deps: MarketDeps
@@ -56,6 +64,9 @@ export async function refreshUsMarket(
   const fundamentals = await runKind({ ...input, attempts }, 'fundamentals', () =>
     refreshUsFundamentals(deps, { universe, request })
   )
+  const accounts = await runKind({ ...input, attempts }, 'accounts', () =>
+    refreshUsAccounts(deps, { manifest: input.manifest, universe, request })
+  )
   const storedFrom = attempts.find((attempt) => attempt.result.kind === 'bars')?.result.coveredFrom
   const bars = await runKind({ ...input, attempts }, 'bars', () =>
     refreshUsBars(deps, {
@@ -68,7 +79,7 @@ export async function refreshUsMarket(
 
   input.board.invalidate()
 
-  return [instruments.result, fundamentals, bars]
+  return [instruments.result, fundamentals, accounts, bars]
 }
 
 export async function usStaleKinds(
@@ -91,8 +102,10 @@ function isKindCurrent(
   now: number,
   attempt: MarketRefreshAttempt
 ): boolean {
-  if (attempt.result.kind === 'instruments') {
-    return now - attempt.attemptedAt <= US_UNIVERSE_STALE_MS
+  const cadenceMs = WALL_CLOCK_MS[attempt.result.kind]
+
+  if (cadenceMs !== undefined) {
+    return now - attempt.attemptedAt <= cadenceMs
   }
 
   return (
@@ -175,6 +188,11 @@ async function runKind(
  *  interrupted kind. */
 async function settle(input: UsRefreshInput, result: RefreshKindResult): Promise<void> {
   const { deps, manifest, request } = input
+
+  // A kind that attempted nothing leaves no row, so the next pass asks again.
+  if (result.targetCount === 0) {
+    return
+  }
 
   await deps.marketDataStore.upsertRefreshAttempt(
     {

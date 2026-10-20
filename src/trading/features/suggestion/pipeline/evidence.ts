@@ -214,6 +214,7 @@ function evidenceText(input: DebateInput, market: Market, sections: EvidenceSect
       display,
     }),
     eventsSection(input),
+    recentEventsSection(input),
     newsSection(sections.read.own, reads.news),
     marketNewsSection({
       items: sections.read.market,
@@ -422,6 +423,21 @@ function eventsSection(input: DebateInput): string {
 
   return [
     'UPCOMING EVENTS (dated facts; weigh timing, do not invent outcomes):',
+    ...events.map(eventRow),
+  ].join('\n')
+}
+
+/** Already public: a persona may weigh that a release landed or an insider bought, and may not
+ *  read an outcome into it that the row does not state. */
+function recentEventsSection(input: DebateInput): string {
+  const events = input.recentEvents ?? []
+
+  if (events.length === 0) {
+    return ''
+  }
+
+  return [
+    'RECENTLY FILED (dated facts already public; weigh them, do not invent what they mean):',
     ...events.map(eventRow),
   ].join('\n')
 }

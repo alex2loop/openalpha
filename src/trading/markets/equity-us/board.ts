@@ -1,10 +1,17 @@
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
+import type { AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
 import type { BarRecord, InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { MarketDeps } from '@/trading/markets/deps'
+import type { UsFundamentalRanks } from '@/trading/markets/equity-us/fundamentals'
 import type { UsRaws } from '@/trading/markets/equity-us/raws'
 import type { MarketManifest } from '@/trading/markets/types'
 import { flightCache, mapWithConcurrency } from '@/core/utils/concurrency'
 import { ETF_KIND } from '@/trading/kernel/instrument'
+import {
+  newestReport,
+  rankFundamentals,
+  usFundamentalsOf,
+} from '@/trading/markets/equity-us/fundamentals'
 import {
   US_BOARD_READ_CONCURRENCY,
   US_BOARD_SNAPSHOT_SESSIONS,
@@ -35,6 +42,8 @@ interface UsFundName {
  *  store alone: the refresh decides who holds a snapshot and a series. */
 export interface UsBoard {
   readonly asOf: TradingDay
+  /** Every stored filed year per name, oldest first. */
+  readonly accounts: ReadonlyMap<Ticker, readonly AnnualAccounts[]>
   /** Largest capitalisation first. */
   readonly names: readonly UsBoardName[]
   readonly byTicker: ReadonlyMap<Ticker, UsBoardName>
@@ -65,39 +74,76 @@ async function loadUsBoard(
   request: { readonly asOf: TradingDay; readonly signal: AbortSignal }
 ): Promise<UsBoard> {
   const { asOf, signal } = request
-  const { calendar } = manifest
-  const [records, snapshots] = await Promise.all([
+  const [records, accounts] = await Promise.all([
     deps.marketDataStore.listInstruments({ market: US_MARKET_REF, status: 'active', signal }),
-    deps.marketDataStore.listLatestFundamentals({
-      market: US_MARKET_REF,
-      fromDay: calendar.addTradingDays(asOf, -US_BOARD_SNAPSHOT_SESSIONS),
-      signal,
-    }),
+    deps.marketDataStore.listAnnualAccounts({ market: US_MARKET_REF, signal }),
   ])
-  const byRecord = new Map<Ticker, InstrumentRecord>(
-    records.map((record) => [record.instrument.ticker, record])
-  )
-  const members = rankUsMembers(snapshots, byRecord)
-  const fundRecords = US_SCREEN_ETFS.flatMap((code) => {
-    const record = byRecord.get(code)
-
-    return record?.kind === ETF_KIND ? [record] : []
-  })
-  const fromDay = calendar.addTradingDays(asOf, -US_EVIDENCE_SESSIONS)
+  const members = await loadUsMembers(deps, manifest, { records, asOf, signal })
+  const fundRecords = fundsOf(records)
+  const fromDay = manifest.calendar.addTradingDays(asOf, -US_EVIDENCE_SESSIONS)
   const read = (record: InstrumentRecord): Promise<readonly BarRecord[]> =>
     deps.marketDataStore.listBars({ instrument: record.instrument, fromDay, toDay: asOf, signal })
   const [memberBars, fundBars] = await Promise.all([
     mapWithConcurrency(members, US_BOARD_READ_CONCURRENCY, (member) => read(member.record)),
     mapWithConcurrency(fundRecords, US_BOARD_READ_CONCURRENCY, read),
   ])
-  const names = members.map((member, index) => toName(member, memberBars[index] ?? []))
+  const ranks = rankFundamentals(
+    new Map(
+      members.map((member) => [
+        member.record.instrument.ticker,
+        usFundamentalsOf(
+          newestReport(accounts.get(member.record.instrument.ticker), asOf),
+          member.marketCap
+        ),
+      ])
+    )
+  )
+  const names = members.map((member, index) =>
+    toName(member, memberBars[index] ?? [], ranks.get(member.record.instrument.ticker))
+  )
 
   return {
     asOf,
     names,
     byTicker: new Map(names.map((name) => [name.record.instrument.ticker, name])),
     funds: fundRecords.map((record, index) => ({ record, bars: fundBars[index] ?? [] })),
+    accounts,
   }
+}
+
+function fundsOf(records: readonly InstrumentRecord[]): readonly InstrumentRecord[] {
+  const byRecord = new Map<Ticker, InstrumentRecord>(
+    records.map((record) => [record.instrument.ticker, record])
+  )
+
+  return US_SCREEN_ETFS.flatMap((code) => {
+    const record = byRecord.get(code)
+
+    return record?.kind === ETF_KIND ? [record] : []
+  })
+}
+
+/** The equities whose newest snapshot is still current, largest capitalisation first and cut at the
+ *  board's rank. The refresh decides who holds a snapshot; this only reads them. */
+export async function loadUsMembers(
+  deps: MarketDeps,
+  manifest: MarketManifest,
+  read: {
+    readonly records: readonly InstrumentRecord[]
+    readonly asOf: TradingDay
+    readonly signal: AbortSignal
+  }
+): Promise<readonly UsMember[]> {
+  const snapshots = await deps.marketDataStore.listLatestFundamentals({
+    market: US_MARKET_REF,
+    fromDay: manifest.calendar.addTradingDays(read.asOf, -US_BOARD_SNAPSHOT_SESSIONS),
+    signal: read.signal,
+  })
+
+  return rankUsMembers(
+    snapshots,
+    new Map(read.records.map((record) => [record.instrument.ticker, record]))
+  )
 }
 
 interface UsMember {
@@ -107,7 +153,7 @@ interface UsMember {
 
 /** The equities whose newest snapshot is still current, largest capitalisation first and cut at the
  *  board's rank. Ties break on ticker, so the same store always draws the same line. */
-export function rankUsMembers(
+function rankUsMembers(
   snapshots: readonly { instrument: { ticker: Ticker }; marketCap?: number }[],
   byRecord: ReadonlyMap<Ticker, InstrumentRecord>
 ): readonly UsMember[] {
@@ -130,11 +176,15 @@ export function rankUsMembers(
     .slice(0, US_SCREEN_RANK)
 }
 
-function toName(member: UsMember, bars: readonly BarRecord[]): UsBoardName {
+function toName(
+  member: UsMember,
+  bars: readonly BarRecord[],
+  ranks: UsFundamentalRanks | undefined
+): UsBoardName {
   return {
     record: member.record,
     bars,
     marketCap: member.marketCap,
-    raws: usRawsOf(usAdjustedCloses(bars)),
+    raws: { ...usRawsOf(usAdjustedCloses(bars)), ...ranks },
   }
 }

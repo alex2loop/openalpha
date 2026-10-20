@@ -31,6 +31,7 @@ import { buildDraft, finalize } from '@/trading/features/suggestion/pipeline/dra
 import {
   draftInputFor,
   instrumentEvents,
+  recentEvents,
   upcomingEvents,
 } from '@/trading/features/suggestion/pipeline/draft-input'
 import { holdFrom } from '@/trading/features/suggestion/pipeline/hold'
@@ -338,6 +339,7 @@ function readRunInputs(
 /** One read of this name's events answers both halves a draft needs. */
 interface DraftCalendar {
   readonly events: readonly MarketEvent[]
+  readonly recent: readonly MarketEvent[]
   readonly standingMargin?: MarketEvent
   readonly calendarFailed?: true
 }
@@ -352,6 +354,7 @@ function toDraftCalendar(
 
   return {
     events: upcomingEvents(own, asOf),
+    recent: recentEvents(own, asOf),
     ...(standing === undefined ? {} : { standingMargin: standing }),
     ...(isSourceFailed(events) ? { calendarFailed: true } : {}),
   }
@@ -359,9 +362,10 @@ function toDraftCalendar(
 
 function calendarFieldsOf(
   calendar: DraftCalendar
-): Pick<Prepared, 'upcomingEvents' | 'calendarFailed'> {
+): Pick<Prepared, 'upcomingEvents' | 'recentEvents' | 'calendarFailed'> {
   return {
     upcomingEvents: calendar.events,
+    recentEvents: calendar.recent,
     ...(calendar.calendarFailed === true ? { calendarFailed: true } : {}),
   }
 }

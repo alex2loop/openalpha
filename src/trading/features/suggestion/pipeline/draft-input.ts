@@ -9,7 +9,7 @@ import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { ConvictionBand } from '@/trading/kernel/conviction'
 import type { FactorScore, LevelResult } from '@/trading/kernel/factor'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-data'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketResolution } from '@/trading/markets/types'
@@ -19,6 +19,7 @@ import { lowerBand } from '@/trading/kernel/conviction'
 import { factorComposite } from '@/trading/kernel/factor'
 import { isEventSubject, isTradingEnd } from '@/trading/kernel/market/market-event'
 import { toProfileStamp } from '@/trading/kernel/operator/profile'
+import { shiftCalendarDay } from '@/trading/markets/calendar'
 import { regimeFor } from '@/trading/markets/macro-risk'
 
 // What the scorer files when a read speaks for less than the whole model, or for too few factors to
@@ -116,6 +117,15 @@ export function instrumentEvents(
     .toSorted((left, right) => left.at.localeCompare(right.at))
 }
 
+/** Filings the market published about the name that already happened: an earnings release or an
+ *  insider's purchase is a fact a persona may weigh, but a past one is not a timing the run waits
+ *  on, so these are read apart from `upcomingEvents`. */
+const RECENT_EVENT_KINDS: ReadonlySet<MarketEventKind> = new Set([
+  'earnings-release',
+  'insider-purchase',
+])
+const RECENT_EVENT_LOOKBACK_DAYS = 90
+
 /** The rows still ahead of the run. The read reaches back for the margin row in force, and a past
  *  ex-date or listing is history the hold codes and the personas must not act on. */
 export function upcomingEvents(
@@ -123,6 +133,21 @@ export function upcomingEvents(
   asOf: TradingDay
 ): readonly MarketEvent[] {
   return events.filter((event) => event.at >= asOf)
+}
+
+/** Filings of the kinds above within the lookback, newest first. A kind no market emits (VN) leaves
+ *  the list empty, so the evidence it feeds is unchanged there. */
+export function recentEvents(
+  events: readonly MarketEvent[],
+  asOf: TradingDay
+): readonly MarketEvent[] {
+  const earliest = shiftCalendarDay(asOf, -RECENT_EVENT_LOOKBACK_DAYS)
+
+  return events
+    .filter(
+      (event) => RECENT_EVENT_KINDS.has(event.kind) && event.at >= earliest && event.at <= asOf
+    )
+    .toSorted((left, right) => right.at.localeCompare(left.at))
 }
 
 /** A corporate action inside the holding window is a caveat, not a block - the levels stay valid,

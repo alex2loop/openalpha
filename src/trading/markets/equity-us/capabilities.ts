@@ -7,7 +7,9 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { UsBoardCache } from '@/trading/markets/equity-us/board'
 import type { MarketCapabilities, MarketManifest } from '@/trading/markets/types'
 import { available, unavailable } from '@/trading/kernel/source/source-result'
+import { runUsAccounts } from '@/trading/markets/equity-us/accounts'
 import { runUsBars } from '@/trading/markets/equity-us/bars'
+import { runUsEvents } from '@/trading/markets/equity-us/events'
 import { runUsNews } from '@/trading/markets/equity-us/news'
 import { runUsOverview } from '@/trading/markets/equity-us/overview'
 import { US_LIQUIDITY_SESSIONS, US_VOLATILITY_SESSIONS } from '@/trading/markets/equity-us/policy'
@@ -28,6 +30,7 @@ export function usCapabilities(
     ...priceCapabilities(deps, manifest),
     ...newsCapabilities(deps),
     ...screenCapabilities(board),
+    ...accountsCapabilities(deps, board),
     ...overviewCapabilities(deps, manifest, board),
     ...refreshCapabilities(deps, manifest, board),
   }
@@ -62,6 +65,16 @@ function refreshCapabilities(
       run: (request) => refreshUsMarket({ deps, manifest, board, request }),
     },
     staleKinds: { kind: 'staleKinds', run: (request) => usStaleKinds(manifest.calendar, request) },
+  }
+}
+
+function accountsCapabilities(
+  deps: MarketDeps,
+  board: UsBoardCache
+): Pick<MarketCapabilities, 'accounts' | 'events'> {
+  return {
+    accounts: { kind: 'accounts', run: (request) => runUsAccounts(board, request) },
+    events: { kind: 'events', run: (request) => runUsEvents(deps, request) },
   }
 }
 
