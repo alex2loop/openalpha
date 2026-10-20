@@ -15,7 +15,7 @@ import { createRefreshProgress } from '@/trading/kernel/market/refresh'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { watchedQuarter } from '@/trading/markets/equity-vn/accounts/quarter-watch'
 import { isAccountsFetched, isFetchedBeforeFinal } from '@/trading/markets/equity-vn/accounts/score'
-import { periodIndexOf } from '@/trading/markets/equity-vn/accounts/trailing'
+import { periodIndexOf } from '@/trading/markets/accounts-trailing'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
 import { invalidateWhenWritten } from '@/trading/markets/equity-vn/evidence/evidence'
 import {

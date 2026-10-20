@@ -4,7 +4,7 @@ import type {
   FiscalQuarter,
   QuarterlyAccounts,
 } from '@/trading/kernel/market/annual-accounts'
-import { totalOf } from '@/trading/markets/equity-vn/accounts/lines'
+import { totalOf } from '@/trading/markets/accounts-lines'
 
 const TRAILING_QUARTERS = 4
 export const QUARTERS_PER_YEAR = 4

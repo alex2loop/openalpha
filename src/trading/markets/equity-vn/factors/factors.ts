@@ -62,7 +62,6 @@ import {
   netFlowValue,
   proprietaryFlowRatio,
 } from '@/trading/markets/equity-vn/tape/flows'
-import { averageTurnover, medianTurnover } from '@/trading/markets/equity-vn/turnover'
 import { scoreFactors } from '@/trading/markets/factor-scoring'
 import {
   trailingAverage,
@@ -70,6 +69,7 @@ import {
   trendWithSlope,
   yearHighProximity,
 } from '@/trading/markets/timeseries'
+import { averageTurnover, medianTurnover } from '@/trading/markets/turnover'
 
 const EVIDENCE_CONCURRENCY = 8
 

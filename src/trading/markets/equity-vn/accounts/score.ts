@@ -9,9 +9,9 @@ import type {
 import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
 import { parseIsoDay } from '@/core/utils/time'
 import { ACCOUNTS_WARNING_SIGNS } from '@/trading/kernel/market/annual-accounts'
+import { ratioOf } from '@/trading/markets/accounts-lines'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 import { annualReportDeadline } from '@/trading/markets/disclosure-calendar'
-import { ratioOf } from '@/trading/markets/equity-vn/accounts/lines'
 import { VN_ACCOUNTS_POLICY } from '@/trading/markets/equity-vn/factor-policy'
 import { CAVEAT_SUBJECT_SEPARATOR } from '@/trading/render/format'
 

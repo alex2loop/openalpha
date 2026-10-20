@@ -1,7 +1,7 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { AccountLines, AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
-import { growthOf, ratioOf } from '@/trading/markets/equity-vn/accounts/lines'
+import { growthOf, ratioOf } from '@/trading/markets/accounts-lines'
 import { finalReports } from '@/trading/markets/equity-vn/accounts/score'
 import { VN_ACCOUNTS_POLICY } from '@/trading/markets/equity-vn/factor-policy'
 

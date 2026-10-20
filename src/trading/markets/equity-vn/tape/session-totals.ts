@@ -4,8 +4,8 @@ import type { MarketTurnoverReference } from '@/trading/kernel/market/market-ove
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
 import { sessionBar } from '@/trading/markets/equity-vn/factors/factors'
 import { VN_TURNOVER_REFERENCE_SESSIONS } from '@/trading/markets/equity-vn/policy'
-import { barTurnover } from '@/trading/markets/equity-vn/turnover'
 import { sessionChange } from '@/trading/markets/timeseries'
+import { barTurnover } from '@/trading/markets/turnover'
 
 const PERCENT_PER_UNIT = 100
 

@@ -2,7 +2,7 @@ import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metri
 import type { Ticker } from '@/trading/kernel/instrument'
 import type { FundamentalSnapshot } from '@/trading/kernel/market/market-data'
 import type { RankComponent } from '@/trading/markets/equity-vn/factors/fundamental-components'
-import { ratioOf } from '@/trading/markets/equity-vn/accounts/lines'
+import { ratioOf } from '@/trading/markets/accounts-lines'
 import {
   QUALITY_COMPONENTS,
   VALUE_COMPONENTS,

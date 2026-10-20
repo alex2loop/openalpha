@@ -18,8 +18,8 @@ import {
   growthOf,
   ratioOf,
   sumOf,
-} from '@/trading/markets/equity-vn/accounts/lines'
-import { periodIndexOf, QUARTERS_PER_YEAR } from '@/trading/markets/equity-vn/accounts/trailing'
+} from '@/trading/markets/accounts-lines'
+import { periodIndexOf, QUARTERS_PER_YEAR } from '@/trading/markets/accounts-trailing'
 
 const FRACTION_FIELDS: ReadonlySet<AccountsQuarterField> = new Set([
   'grossMargin',

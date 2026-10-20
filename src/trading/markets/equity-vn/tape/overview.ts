@@ -47,9 +47,9 @@ import {
   toTurnoverReference,
 } from '@/trading/markets/equity-vn/tape/session-totals'
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
-import { barTurnover } from '@/trading/markets/equity-vn/turnover'
 import { OVERVIEW_LEADER_SESSIONS, rangeFromCloses } from '@/trading/markets/overview'
 import { median, sessionChange } from '@/trading/markets/timeseries'
+import { barTurnover } from '@/trading/markets/turnover'
 
 const PERCENT_PER_UNIT = 100
 const BOARD_SEPARATOR = ' + '
