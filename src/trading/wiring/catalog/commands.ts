@@ -224,7 +224,7 @@ function bookCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
     }),
-    createReconcileCommand({ portfolio, timezone }),
+    createReconcileCommand({ portfolio, timezone, baseCurrency: deps.config.baseCurrency }),
     createWatchlistCommand({ profiles, marketData, timezone }),
   ]
 }

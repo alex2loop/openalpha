@@ -241,7 +241,7 @@ export const noInput = z.strictObject({})
 /** Every price a tool takes is stored as typed, in whole units of the quoting currency. Replies
  *  write a board-scaled price with its scale, so the conversion is stated where the model types. */
 export const PRICE_INPUT_UNITS =
-  'In whole currency units, never board points: a VN share shown as 43,00 (x1.000 VND) is 43000.'
+  'In whole currency units, never board points: a VN share shown as 43,00 (x1.000 VND) is 43000, and a US share at $214.13 is 214.13.'
 
 export const newsLimit = z
   .int()

@@ -30,7 +30,7 @@ export function createBriefBuildTool(
   return createTool({
     name: 'brief_build',
     description:
-      'Build the ordered morning market brief for one region: index range, breadth, sector rotation, foreign desk and proprietary flow, macro risk, and the watchlist changes since the last brief.',
+      'Build the ordered morning market brief for one region: index range, breadth, sectors and flows where the market publishes them, macro risk, and the watchlist changes since the last brief.',
     inputSchema: z.strictObject({
       region: regions,
       force: z

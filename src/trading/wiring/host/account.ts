@@ -74,7 +74,7 @@ function bookMethods(deps: TradingHostDeps): BookMethods {
           signal: scope.signal,
         })
 
-        return { venues, text: reconcileSentences(deps.defaultLocale, venues) }
+        return { venues, text: reconcileSentences(deps.defaultLocale, venues, deps.baseCurrency) }
       }),
   }
 }

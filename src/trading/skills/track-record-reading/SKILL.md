@@ -19,7 +19,7 @@ Every slice carries its own denominator, and reading a rate off the wrong one is
 - `benchmarkBeatRate` divides by `benchmarkComparedCount`, never by `resolvedCount`. A band of thirty rows where eight carry a benchmark reports a beat rate off eight.
 - Each `calibration` bucket and each `versions` entry has its own `resolvedCount`, and each is subject to the same floor as the whole.
 
-The headline is blended across every market the operator trades, and the tool cannot slice it. VN equities, global gold, VN physical gold and crypto have different base rates, hold windows and volatility, so one win rate over all four describes no market in particular. Report it as blended and say so; never let it stand as a statement about the market being discussed.
+The headline is blended across every market the operator trades, and the tool cannot slice it. VN equities, US equities, global gold, VN physical gold and crypto have different base rates, hold windows and volatility, so one win rate over all of them describes no market in particular. Report it as blended and say so; never let it stand as a statement about the market being discussed.
 
 ## What each figure supports
 

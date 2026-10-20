@@ -106,6 +106,11 @@ export const scheduleAddTool = createTool({
       at: '2026-09-15 09:00',
       timezone: 'Asia/Ho_Chi_Minh',
     },
+    {
+      prompt: 'Summarize how the S&P 500 and Nasdaq closed and the biggest movers.',
+      cron_expr: '30 16 * * 1-5',
+      timezone: 'America/New_York',
+    },
   ],
   capability: 'schedule',
   // Eager because a missing schema reads to the model as a missing capability: asked to schedule
