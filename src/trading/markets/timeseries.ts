@@ -2,13 +2,29 @@
 // closes series. One owner keeps windowing (inclusive endpoints, population variance) from quietly
 // disagreeing between markets; each market passes its own lookback constants from its `policy.ts`.
 
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Candle } from '@/trading/kernel/market/market-data'
 
 const WIN_RATE_CONFIDENCE_Z = 1.96
+// One missing session is the provider gap a comparison tolerates; past it the benchmark measures a
+// shorter span than the call.
+const BENCHMARK_MAXIMUM_LAG_SESSIONS = 1
 
 interface AlignedCloses {
   readonly a: readonly number[]
   readonly b: readonly number[]
+}
+
+/** Whether the benchmark's last close sits close enough to the exit, counted in the sessions the
+ *  call's own series printed after it. */
+export function isBenchmarkCurrent(
+  sessionBars: readonly Candle[],
+  benchmarkDay: TradingDay,
+  exitDay: TradingDay
+): boolean {
+  const lag = sessionBars.filter((bar) => bar.at > benchmarkDay && bar.at <= exitDay).length
+
+  return lag <= BENCHMARK_MAXIMUM_LAG_SESSIONS
 }
 
 /** Pairs two candle series by trading day before extracting parallel close arrays. Zipping two

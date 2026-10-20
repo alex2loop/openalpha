@@ -5,6 +5,7 @@ import { marketRef, ticker } from '@/trading/api'
 
 /** Long enough for a UUID with a prefix; a key past it is a client bug, not a retry. */
 export const MAX_IDEMPOTENCY_KEY_LENGTH = 200
+const DIGITS_RE = /^\d+$/
 
 /** The single resolution point. Nine handlers reaching into the container separately would be nine
  *  places to change if the key ever moved. */
@@ -60,7 +61,7 @@ export function parseLimit(raw: string | null, maximum: number): number | null {
     return maximum
   }
 
-  const value = Number(raw)
+  const value = DIGITS_RE.test(raw) ? Number(raw) : Number.NaN
 
   return Number.isInteger(value) && value > 0 && value <= maximum ? value : null
 }

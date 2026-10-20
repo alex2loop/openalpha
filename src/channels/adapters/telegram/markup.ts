@@ -6,7 +6,7 @@ const URL_ESCAPE_RE = /[)\\]/g
 const FENCE_RE = /```[\s\S]*?```/g
 const QUOTE_RUN_RE = /(?:^>[^\n]*(?:\n|$))+/gm
 const QUOTE_MARKER_RE = /^>[ \t]?/
-const INLINE_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*/g
+const INLINE_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|`([^`\n]+)`/g
 const FENCE_DELIMITER_LENGTH = 3
 /** What opens and closes an expandable blockquote on the wire. Exported because the chunker has to
  *  re-open and re-close a run its boundary split, and two spellings of the same marker would fold
@@ -23,8 +23,9 @@ interface OutsideReplacement {
 }
 
 /** Markdown as the trading surface writes it, in the dialect Telegram parses: a fence stays
- *  verbatim, a `>` run becomes one expandable blockquote, and everything else is bold, a link, or
- *  escaped text. Every arm closes what it opens, so the message can always be parsed. */
+ *  verbatim, a `>` run becomes one expandable blockquote, and everything else is bold, a link,
+ *  inline code, or escaped text. Every arm closes what it opens, so the message can always be
+ *  parsed. */
 export function toMarkdownV2(text: string): string {
   return replaceOutside(text, {
     pattern: FENCE_RE,
@@ -58,7 +59,7 @@ function toQuoted(text: string): string {
 function toInline(text: string): string {
   return replaceOutside(text, {
     pattern: INLINE_RE,
-    onMatch: toEmphasis,
+    onMatch: toInlineMarkup,
     onGap: escapeText,
   })
 }
@@ -76,11 +77,15 @@ function toBlockquote(run: string): string {
 
 /** No italic arm: `_` is a MarkdownV2 special the surface writes far more often as a word separator
  *  than as emphasis, and a stray one breaks the whole message. */
-function toEmphasis(match: RegExpMatchArray): string {
-  const [, linkText, url, bold] = match
+function toInlineMarkup(match: RegExpMatchArray): string {
+  const [, linkText, url, bold, code] = match
 
   if (bold !== undefined) {
     return `*${escapeText(bold)}*`
+  }
+
+  if (code !== undefined) {
+    return `\`${code.replace(FENCE_ESCAPE_RE, '\\$&')}\``
   }
 
   return `[${escapeText(linkText ?? '')}](${(url ?? '').replace(URL_ESCAPE_RE, '\\$&')})`

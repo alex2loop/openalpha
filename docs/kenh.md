@@ -78,7 +78,9 @@ giờ sáng.
 Một kênh chưa có token (biến trong `token_env` chưa đặt, hoặc `token_file` trống), hay có token mà chính
 nhà cung cấp từ chối (HTTP 401 hoặc 403 từ Telegram, 401 từ Zalo), thì không được mở. Daemon vẫn khởi
 động: `start` in một dòng cảnh báo cho kênh đó, các kênh khác và mọi việc còn lại chạy bình thường, và kênh
-không có token hợp lệ không nhận tin của ai. Đặt lại token rồi `restart --background` để mở kênh. Một giá trị cấu hình sai
+không có token hợp lệ không nhận tin của ai. Đặt lại token rồi `restart --background` để mở kênh. Token Telegram bị thu hồi
+khi daemon đang chạy cũng được xử lý như vậy: sau ba lần bị từ chối liên tiếp, kênh dừng, `/health` báo kênh ngừng, và thông báo kênh
+ngừng gửi qua kênh khác sẽ nói rõ là token bị từ chối. Một giá trị cấu hình sai
 (sai kiểu, sai tên khóa) vẫn làm `start` dừng và báo lỗi. Mọi lỗi khác khi kiểm
 tra token được coi là lỗi đường truyền: hệ thống thử bốn lần, khoảng chờ tăng dần, và nếu mạng vẫn chưa
 lên thì kênh vẫn được giữ, hiện ở trạng thái suy giảm và tiếp tục thử lại ở nền với khoảng chờ có trần,

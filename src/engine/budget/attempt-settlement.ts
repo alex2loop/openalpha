@@ -80,7 +80,7 @@ interface AttemptDraft {
 }
 
 // One settler per provider-chain call: the ordered ids and aggregate counts are bounded by the
-// chain itself, which caps attempts at entries × (maxRetries + 1).
+// chain itself, which caps attempts at (maxRetries + 1) per ladder, at most two ladders per entry.
 export function createAttemptSettler(deps: SettlerDeps): AttemptSettler {
   const acc: CallAccumulator = {
     llmAttemptIds: [],

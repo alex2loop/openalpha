@@ -24,6 +24,7 @@ import type {
 import type { HeartbeatRunInput, Job, SchedulerTaskDeps } from '@/scheduler/api'
 import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
+import { formatRunResultBody } from '@/channels/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { RunHalted } from '@/core/errors'
 import { LOCAL_USER_ID, sessionId } from '@/core/ids'
@@ -233,6 +234,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
         id: disabledJobId,
         count: consecutiveFailures,
       }),
+    renderPartialNotice: (result) => formatRunResultBody(result, app.config.locale.language),
     defaultTarget: () => delivery.defaultRecipient(),
     failureTarget: () => app.config.schedule.failureTarget ?? delivery.defaultRecipient(),
     heartbeat: {

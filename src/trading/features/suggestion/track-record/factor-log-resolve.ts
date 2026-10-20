@@ -18,6 +18,7 @@ import {
 } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { canResolveOutcomes } from '@/trading/features/suggestion/track-record/resolvable'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
+import { isBenchmarkCurrent } from '@/trading/markets/timeseries'
 
 /** Sessions the benchmark must print after a name's last bar before the name counts as stopped. Two
  *  trading weeks: long enough that a missed refresh or a short suspension never reads as a stop. */
@@ -125,7 +126,7 @@ async function resolveOne(
     return undefined
   }
 
-  const benchmark = benchmarkReturn(benchmarkBars, entry.day, exit.at)
+  const benchmark = benchmarkReturn({ bars, benchmarkBars, fromDay: entry.day, toDay: exit.at })
 
   return {
     resolvedAt: options.now,
@@ -211,17 +212,22 @@ function benchmarkSeries(
 
 /** Over the span the row was scored on, so a name scored at its last close is compared on the same
  *  days. */
-function benchmarkReturn(
-  bars: readonly Candle[] | undefined,
-  fromDay: TradingDay,
-  toDay: TradingDay
-): number | undefined {
-  const start = bars?.find((bar) => bar.at === fromDay)
-  const end = bars?.findLast((bar) => bar.at <= toDay)
+function benchmarkReturn(input: {
+  readonly bars: readonly Candle[]
+  readonly benchmarkBars: readonly Candle[] | undefined
+  readonly fromDay: TradingDay
+  readonly toDay: TradingDay
+}): number | undefined {
+  const start = input.benchmarkBars?.find((bar) => bar.at === input.fromDay)
+  const end = input.benchmarkBars?.findLast((bar) => bar.at <= input.toDay)
 
-  return start === undefined || end === undefined || start.close <= 0
-    ? undefined
-    : end.close / start.close - 1
+  if (start === undefined || end === undefined || start.close <= 0) {
+    return undefined
+  }
+
+  return isBenchmarkCurrent(input.bars, end.at, input.toDay)
+    ? end.close / start.close - 1
+    : undefined
 }
 
 interface StoppedInput {

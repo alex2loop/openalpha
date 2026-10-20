@@ -19,7 +19,7 @@ import { runSlash } from '@/app/server/ws/slash'
 import { WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
 import { sessionId as brandSessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale } from '@/i18n'
+import { bindLocale, translateToolLabel } from '@/i18n'
 
 const MAX_SOCKETS = 8
 // Defense-in-depth: reject before JSON.parse regardless of the server-level maxPayloadLength.
@@ -95,7 +95,9 @@ export const wsHandlers: WebSocketHandler<WsData> = {
       // Mirror only API-originated approvals; a channel run's approval resolves on its own channel.
       bus.on('approval_requested', (e) => {
         if (e.channel === 'api') {
-          relay(ws, WIRE_NORMALIZERS.approval_requested(e))
+          const label = translateToolLabel(ws.data.services.locale, e.toolName, e.label)
+
+          relay(ws, WIRE_NORMALIZERS.approval_requested({ ...e, label }))
         }
       }),
       bus.on('approval_resolved', (e) => {

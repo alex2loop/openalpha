@@ -37,8 +37,10 @@
     "runId": "run_abc",
     "requestId": "call_123",
     "approval": {
-      "toolName": "vn_price",
+      "toolName": "market_price",
+      "label": "Giá",
       "argsSummary": "ticker: FPT, days: 365",
+      "expiresAt": 1792483200000,
       "decisions": ["deny", "approve", "always"],
       "dangerous": false
     }

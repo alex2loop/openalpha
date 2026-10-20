@@ -38,7 +38,9 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     requestId: e.requestId,
     approval: {
       toolName: e.toolName,
+      label: e.label,
       argsSummary: e.argsSummary,
+      expiresAt: e.expiresAt,
       decisions: decisionsFor(e.scope, e.oneTime).map((decision) => WIRE_DECISION[decision]),
       ...(e.truncated === undefined ? {} : { truncated: e.truncated }),
     },

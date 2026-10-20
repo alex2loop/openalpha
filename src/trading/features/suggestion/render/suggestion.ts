@@ -63,7 +63,7 @@ export function renderSuggestionText(input: SuggestionTextInput): string {
     case 'completed':
       // A reuse spends nothing, so no footer follows it to tell it apart from a fresh run.
       return joinSections([
-        result.reused ? [`${REUSED_MARK} ${t(locale, 'trading.render.suggestion.reused')}`] : [],
+        result.reused ? [reusedLine(locale, result.suggestion)] : [],
         ...renderStored(view, result.suggestion),
       ])
     case 'cooldown':
@@ -96,6 +96,14 @@ export function renderSuggestionText(input: SuggestionTextInput): string {
   }
 }
 
+/** Dated by the call it serves: a standing buy can be days old, and its checks were read then. */
+function reusedLine(locale: Locale, suggestion: StoredSuggestion): string {
+  return `${REUSED_MARK} ${t(locale, 'trading.render.suggestion.reused', {
+    day: formatDay(locale, suggestion.at),
+    instrument: buildInstrumentKey(suggestion.instrument),
+  })}`
+}
+
 /** The session the numbers describe, only where it is not the day in the header: a post-close
  *  run on a board is dated by the session it closed, and repeating it is a second stamp to drift. */
 function evidenceLine(locale: Locale, suggestion: StoredSuggestion): readonly string[] {
@@ -123,7 +131,7 @@ function secondOpinionLine(view: RenderView, suggestion: StoredSuggestion): read
   return [
     `${INDENT[1]}${t(view.locale, 'trading.focus.secondOpinion', {
       focus,
-      ticker: suggestion.instrument.ticker,
+      instrument: buildInstrumentKey(suggestion.instrument),
     })}`,
   ]
 }
@@ -258,7 +266,7 @@ export function renderDetailBlocks(
             action: suggestion.action,
             direction: framedDirectionOf(suggestion),
             unsupported: unsupportedSet(suggestion),
-            ticker: suggestion.instrument.ticker,
+            instrument: buildInstrumentKey(suggestion.instrument),
             ...(suggestion.thesis === undefined ? {} : { thesis: suggestion.thesis }),
           },
           suggestion.debate

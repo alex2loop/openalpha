@@ -1,6 +1,10 @@
 import type { LLMErrorCode } from '@/core/llm'
-import type { TokenUsage } from '@/core/stream-events'
-import { classifyHttpError, classifyNetworkError, unwrapOpenRouterBody } from '@/ai/adapters/errors'
+import {
+  classifyHttpError,
+  classifyNetworkError,
+  REFUSED_USAGE,
+  unwrapOpenRouterBody,
+} from '@/ai/adapters/errors'
 import { isAbortError, LLMError } from '@/core/errors'
 import { parseRetryAfterMs } from '@/core/http-client'
 import { RETRY_MAX_DELAY_MS } from '@/core/utils/retry'
@@ -10,10 +14,6 @@ const ERROR_BODY_CAP_BYTES = 4096
 // Only a code the chain waits on can spend the header. `rate` is the one that always carries it:
 // a 429 states when the window reopens, and reading it is what keeps the cooldown honest.
 const RETRY_AFTER_CODES: ReadonlySet<LLMErrorCode> = new Set(['transient', 'rate'])
-
-// A request the provider answered with an error status never started a generation: nothing to bill.
-// A failure after the stream opened is different (a stall costs real money) and is estimated.
-const REFUSED_USAGE: TokenUsage = { input: 0, output: 0 }
 
 interface OpenSseStreamOptions {
   readonly now?: () => number

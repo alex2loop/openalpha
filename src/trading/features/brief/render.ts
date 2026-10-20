@@ -4,6 +4,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
+import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, t } from '@/i18n'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -17,7 +18,6 @@ import {
   renderEmptyLine,
   renderSectionTitle,
 } from '@/trading/render/layout'
-import { formatSpendUsd } from '@/trading/render/money'
 import { renderBlockRule, toBriefSectionText } from '@/trading/render/section'
 
 const NEXT_ACTIONS_KIND = 'next-actions'

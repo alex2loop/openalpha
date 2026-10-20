@@ -28,6 +28,7 @@ import {
   appendSessionMessages,
   loadSessionDetails,
   loadSessionHistory,
+  loadSessionHistoryPage,
   type StoreDeps,
 } from '@/persistence/stores/session/messages'
 import { buildSessionSql } from '@/persistence/stores/session/sql'
@@ -40,23 +41,12 @@ export function createSessionStore(db: Storage, dialect: Dialect): SessionStore 
   const { sql } = store
 
   return {
-    async create(record: OpenedSession): Promise<void> {
-      const now = Date.now()
-
-      await db.execute(sql.create, [
-        record.id,
-        record.agentId,
-        record.userId,
-        record.channel,
-        record.chatId ?? null,
-        now,
-        now,
-      ])
-    },
+    create: (record) => createSession(store, record),
 
     claimRun: (claim) => claimRun(store, claim),
 
     loadHistory: (id, limit) => loadSessionHistory(store, id, limit),
+    loadHistoryPage: (id, query) => loadSessionHistoryPage(store, id, query),
     loadDetails: (id) => loadSessionDetails(store, id),
     resolveIdPrefix: (prefix) => resolveIdPrefix(store, prefix),
 
@@ -101,6 +91,20 @@ export function createSessionStore(db: Storage, dialect: Dialect): SessionStore 
       return changes
     },
   }
+}
+
+async function createSession(store: StoreDeps, record: OpenedSession): Promise<void> {
+  const now = Date.now()
+
+  await store.db.execute(store.sql.create, [
+    record.id,
+    record.agentId,
+    record.userId,
+    record.channel,
+    record.chatId ?? null,
+    now,
+    now,
+  ])
 }
 
 async function countSessions(store: StoreDeps, agentId?: AgentId): Promise<number> {

@@ -230,7 +230,20 @@ async function runTasksInOrder(input: {
       return
     }
 
-    await runHeartbeatTask({ agent, deps, signal, state, context, task, operationNow })
+    try {
+      await runHeartbeatTask({ agent, deps, signal, state, context, task, operationNow })
+    } catch (err: unknown) {
+      if (signal.aborted) {
+        throw err
+      }
+
+      // The failed task is already deferred on its own lease; the agent's other tasks still run.
+      deps.logger.warn('heartbeat.task_failed', {
+        agentId: agent.id,
+        task: task.name,
+        err: formatErrForLog(err),
+      })
+    }
   }
 }
 

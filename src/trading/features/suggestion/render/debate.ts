@@ -86,7 +86,7 @@ interface DebateView {
   /** The side the debate argued over, so the bull and bear labels name the decision on the table. */
   readonly direction: SuggestionDirection
   readonly unsupported: ReadonlySet<string>
-  readonly ticker: string
+  readonly instrument: string
   readonly thesis?: string
 }
 
@@ -147,7 +147,9 @@ function fullDebateRow(view: DebateView, reason: LeanDebateReason): readonly str
   }
 
   return [
-    `${INDENT[1]}${t(view.locale, 'trading.render.suggestion.debateLeanFull', { ticker: view.ticker })}`,
+    `${INDENT[1]}${t(view.locale, 'trading.render.suggestion.debateLeanFull', {
+      instrument: view.instrument,
+    })}`,
   ]
 }
 

@@ -16,6 +16,7 @@ import { t } from '@/i18n'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 import { isInconclusive } from '@/trading/features/suggestion/types'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { renderCapBreachLines } from '@/trading/render/exposure'
 import { renderFocusLabel } from '@/trading/render/focus'
@@ -265,7 +266,7 @@ export function inconclusiveBanner(
   const degraded = suggestion.caveats.filter(
     (caveat) => caveat.code === 'suggestion.debate-degraded'
   )
-  const params = { ticker: suggestion.instrument.ticker, brand: BRAND.name }
+  const params = { instrument: buildInstrumentKey(suggestion.instrument), brand: BRAND.name }
   const env = envOf(degraded)
   const hint =
     env === undefined

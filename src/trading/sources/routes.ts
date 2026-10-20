@@ -122,7 +122,8 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
     ],
   },
   // Yahoo alone: the coin providers quote a pair's spot, not its dated history, and er-api
-  // publishes today's board only. A pair nobody carries history for leaves the confirmer silent.
+  // publishes today's board only; Yahoo also dates a coin's dollar leg (`USDT-USD`). A pair nobody
+  // carries history for leaves the confirmer silent.
   fxHistory: { [ANY_SCOPE]: [sourceId('yahoo')] },
   // Per market, not ANY_SCOPE: rss serves only the markets RSS_FEEDS names a feed for. The
   // ANY_SCOPE arm is the macro tape, which is nobody's market. The two providers in a market that

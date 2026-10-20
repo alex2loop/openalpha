@@ -46,6 +46,13 @@ export function startApi(app: App, token: string): ApiHandle {
         return handleHttp(req, { app, token, ip: srv.requestIP(req)?.address ?? null })
       },
       websocket: { ...wsHandlers, maxPayloadLength: MAX_WS_FRAME_BYTES },
+      // Bun's default error page is HTML with the stack; every error body here is `{ error: { code } }`.
+      development: false,
+      error(err): Response {
+        app.resolve('logger').error('api.request_failed', { err: formatErrForLog(err) })
+
+        return apiError('internal')
+      },
     })
   )
 

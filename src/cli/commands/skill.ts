@@ -6,6 +6,7 @@ import { z } from 'zod'
 import type { Command, Group } from '@/cli/command'
 import type { ParsedArgs } from '@/cli/parsing/args'
 import type { CliApp } from '@/cli/types'
+import type { Locale } from '@/core/types/locale'
 import type { Trust } from '@/engine/api'
 import { createCommand, createGroup } from '@/cli/command'
 import { usage } from '@/cli/error-output'
@@ -161,6 +162,12 @@ async function writeSkill(app: CliApp, fetched: Fetched, target: InstallTarget):
   )
 }
 
+function alreadyInstalledMessage(locale: Locale, name: string, source: unknown): string {
+  return typeof source === 'string'
+    ? t(locale, 'cli.skillAlreadyExistsFrom', { name, source })
+    : t(locale, 'cli.skillAlreadyExists', { name })
+}
+
 async function writeLockedSkill(input: LockedSkillInput): Promise<number> {
   const { app, fetched, target, skillsDir, lockPath } = input
   const { name, verdict, force } = target
@@ -171,10 +178,7 @@ async function writeLockedSkill(input: LockedSkillInput): Promise<number> {
   // A second source claiming an installed name would silently replace the prompt the agent has been
   // following, so an overwrite is an explicit act.
   if (!force && (await Bun.file(path).exists())) {
-    const previousSource = lock[name]?.source
-    const from = typeof previousSource === 'string' ? ` (installed from ${previousSource})` : ''
-
-    return usage(app, t(app.config.locale.language, 'cli.skillAlreadyExists', { name, from }))
+    return usage(app, alreadyInstalledMessage(app.config.locale.language, name, lock[name]?.source))
   }
 
   const write = {

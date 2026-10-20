@@ -3,6 +3,7 @@ import type { BarAdjustment, BarRecord } from '@/trading/kernel/market/market-da
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, ValidationError } from '@/core/errors'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { BAR_ADJUSTMENTS } from '@/trading/kernel/market/market-data'
 import { toMember } from '@/trading/kernel/store/store-payload'
 import { toBindChunks } from '@/trading/kernel/store/store-row'
@@ -119,7 +120,7 @@ function groupByInstrument(options: UpsertBarsOptions): readonly InstrumentBars[
   for (const record of options.records) {
     if (record.instrument.market !== options.market) {
       throw new ValidationError(
-        `upsertBars record ${record.instrument.market}:${record.instrument.ticker} ` +
+        `upsertBars record ${buildInstrumentKey(record.instrument)} ` +
           `is outside ${options.market}`
       )
     }

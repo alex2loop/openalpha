@@ -7,8 +7,17 @@ import { AUTH_PROVIDERS } from '@/ai/auth/registry'
 import { createTokenFile } from '@/ai/auth/token-file'
 import { PROVIDERS } from '@/ai/catalog'
 import { LLMError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
+import { MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
 
-const REFRESH_SKEW_MS = 5 * 60_000
+const REFRESH_SKEW_MS = 5 * MS_PER_MINUTE
+const EXPIRY_MARGIN_MS = 30 * MS_PER_SECOND
+const REFRESH_RETRY_PAUSE_MS = 30 * MS_PER_SECOND
+
+/** When a failed refresh may be tried again; shared by every call on one credential source. */
+interface RefreshPause {
+  until: number
+}
 
 interface OAuthCredentialsInput {
   readonly authProvider: AuthProvider
@@ -39,7 +48,9 @@ export function createCredentialSources(
         ? undefined
         : resolveTokenFetcher(provider.identity, input.env)
 
-    return fetchToken === undefined ? [] : [createCloudCredentials(provider.id, fetchToken)]
+    return fetchToken === undefined
+      ? []
+      : [createCloudCredentials({ provider: provider.id, fetchToken, logger: input.logger })]
   })
 
   return [...logins, ...identities]
@@ -49,7 +60,8 @@ export function createCredentialSources(
  *  takes effect on the next call, without a restart. One small file read is nothing beside the
  *  model call it authorizes. */
 function createOAuthCredentials(input: OAuthCredentialsInput): CredentialSource {
-  const { authProvider, tokenFile, logger } = input
+  const { authProvider, tokenFile } = input
+  const pause: RefreshPause = { until: 0 }
   let inFlight: Promise<StoredTokens> | undefined
 
   async function load(): Promise<StoredTokens> {
@@ -70,42 +82,9 @@ function createOAuthCredentials(input: OAuthCredentialsInput): CredentialSource 
   async function currentTokens(): Promise<StoredTokens> {
     const stored = await load()
 
-    if (stored.expiresAt - Date.now() >= REFRESH_SKEW_MS) {
-      return stored
-    }
-
-    return refresh(stored)
-  }
-
-  async function refresh(stored: StoredTokens): Promise<StoredTokens> {
-    const tokens = await authProvider.refresh(stored.refreshToken)
-    const claims = authProvider.parseClaims(tokens.accessToken)
-    const next: StoredTokens = {
-      ...tokens,
-      accountId: claims?.accountId ?? stored.accountId,
-      ...(claims?.planType === undefined ? {} : { planType: claims.planType }),
-      ...(claims?.email === undefined ? {} : { email: claims.email }),
-    }
-
-    // A logout or a new login while the refresh was in flight wins: writing now would sign the
-    // operator back in, or back into the old account.
-    const current = await tokenFile.read()
-
-    if (current === undefined) {
-      throw new LLMError('auth', `${authProvider.id} was logged out during a token refresh`)
-    }
-
-    if (current.refreshToken !== stored.refreshToken) {
-      return current
-    }
-
-    await tokenFile.write(next)
-    logger.debug('ai.oauth_token_refreshed', {
-      provider: authProvider.id,
-      expiresAt: next.expiresAt,
-    })
-
-    return next
+    return isRefreshDue(stored.expiresAt, pause)
+      ? refreshStored({ ...input, pause }, stored)
+      : stored
   }
 
   return Object.freeze({
@@ -123,26 +102,132 @@ function createOAuthCredentials(input: OAuthCredentialsInput): CredentialSource 
   })
 }
 
+async function refreshStored(
+  source: OAuthCredentialsInput & { readonly pause: RefreshPause },
+  stored: StoredTokens
+): Promise<StoredTokens> {
+  const { authProvider, tokenFile, logger, pause } = source
+  const tokens = await refreshOrKeep({
+    refresh: () => authProvider.refresh(stored.refreshToken),
+    expiresAt: stored.expiresAt,
+    pause,
+    provider: authProvider.id,
+    logger,
+  })
+
+  if (tokens === undefined) {
+    return stored
+  }
+
+  const claims = authProvider.parseClaims(tokens.accessToken)
+  const next: StoredTokens = {
+    ...tokens,
+    accountId: claims?.accountId ?? stored.accountId,
+    ...(claims?.planType === undefined ? {} : { planType: claims.planType }),
+    ...(claims?.email === undefined ? {} : { email: claims.email }),
+  }
+
+  // A logout or a new login while the refresh was in flight wins: writing now would sign the
+  // operator back in, or back into the old account.
+  const current = await tokenFile.read()
+
+  if (current === undefined) {
+    throw new LLMError('auth', `${authProvider.id} was logged out during a token refresh`)
+  }
+
+  if (current.refreshToken !== stored.refreshToken) {
+    return current
+  }
+
+  await tokenFile.write(next)
+  logger.debug('ai.oauth_token_refreshed', {
+    provider: authProvider.id,
+    expiresAt: next.expiresAt,
+  })
+
+  return next
+}
+
 /** A cloud token lives in memory only: it is minted from the operator's own credentials on demand,
  *  so there is nothing to persist, and a restart simply mints the next one. */
-function createCloudCredentials(
-  provider: string,
-  fetchToken: () => Promise<AccessToken>
-): CredentialSource {
+function createCloudCredentials(input: {
+  readonly provider: string
+  readonly fetchToken: () => Promise<AccessToken>
+  readonly logger: Logger
+}): CredentialSource {
+  const { provider, fetchToken, logger } = input
+  const pause: RefreshPause = { until: 0 }
   let cached: AccessToken | undefined
   let inFlight: Promise<AccessToken> | undefined
+
+  async function current(): Promise<AccessToken> {
+    const held = cached
+
+    if (held !== undefined && !isRefreshDue(held.expiresAt, pause)) {
+      return held
+    }
+
+    inFlight ??= fetchToken().finally(() => {
+      inFlight = undefined
+    })
+    const flight = inFlight
+
+    if (held === undefined) {
+      cached = await flight
+
+      return cached
+    }
+
+    const fresh = await refreshOrKeep({
+      refresh: () => flight,
+      expiresAt: held.expiresAt,
+      pause,
+      provider,
+      logger,
+    })
+
+    cached = fresh ?? held
+
+    return cached
+  }
 
   return Object.freeze({
     provider,
     async authHeaders(): Promise<Readonly<Record<string, string>>> {
-      if (cached === undefined || cached.expiresAt - Date.now() < REFRESH_SKEW_MS) {
-        inFlight ??= fetchToken().finally(() => {
-          inFlight = undefined
-        })
-        cached = await inFlight
-      }
-
-      return { authorization: `Bearer ${cached.accessToken}` }
+      return { authorization: `Bearer ${(await current()).accessToken}` }
     },
   })
+}
+
+function isRefreshDue(expiresAt: number, pause: RefreshPause): boolean {
+  const now = Date.now()
+  const leftMs = expiresAt - now
+
+  return leftMs < REFRESH_SKEW_MS && (now >= pause.until || leftMs <= EXPIRY_MARGIN_MS)
+}
+
+/** Undefined keeps the token in hand: a failed refresh falls back to it while it has life left and
+ *  pauses further tries, so calls do not all wait on a failing token endpoint. */
+async function refreshOrKeep<T>(input: {
+  readonly refresh: () => Promise<T>
+  readonly expiresAt: number
+  readonly pause: RefreshPause
+  readonly provider: string
+  readonly logger: Logger
+}): Promise<T | undefined> {
+  try {
+    return await input.refresh()
+  } catch (err: unknown) {
+    if (input.expiresAt - Date.now() <= EXPIRY_MARGIN_MS) {
+      throw err
+    }
+
+    input.pause.until = Date.now() + REFRESH_RETRY_PAUSE_MS
+    input.logger.warn('ai.token_refresh_deferred', {
+      provider: input.provider,
+      err: formatErrForLog(err),
+    })
+
+    return undefined
+  }
 }

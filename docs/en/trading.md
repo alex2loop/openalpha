@@ -376,7 +376,7 @@ A focus call reads as a second opinion. It opens with that line and carries leve
 
 ### Outcomes and track record
 
-Suggestions are resolved against later bars: `target`, `stop` or `expired`, with the return and, where a benchmark exists, the benchmark's return over the same window.
+Suggestions are resolved against later bars: `target`, `stop` or `expired`, with the return and, where a benchmark exists, the benchmark's return over the same window. A benchmark read from a stale cache, or one ending more than a session before the exit, gives no comparison rather than one over a shorter span.
 
 **Window.** A call is read at the end of its own holding window. One left pending while the daemon was off past the one-year lookback is still scored as it would have been then. If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it with the rows closed by a restated price history.
 

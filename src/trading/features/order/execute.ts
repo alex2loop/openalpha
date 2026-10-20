@@ -190,6 +190,9 @@ async function markInFlight(deps: OrderServiceDeps, input: SubmitInput): Promise
 async function submit(deps: OrderServiceDeps, input: SubmitInput): Promise<OrderReceipt> {
   const orderId = await place(deps, input)
 
+  // Before the poll: a process that dies in it leaves a row the reconcile pass can match.
+  await markUnreconciled(deps, input, { orderId })
+
   try {
     return await pollUntilTerminal(deps, input, orderId)
   } catch (err: unknown) {
@@ -343,7 +346,7 @@ async function lookupByClientOrderId(
 }
 
 interface Unreconciled {
-  readonly cause: unknown
+  readonly cause?: unknown
   readonly orderId: string
 }
 
@@ -365,8 +368,10 @@ async function markUnreconciled(
     deps.logger.error('order.unreconciled_unrecorded', {
       clientOrderId: input.staged.clientOrderId,
       symbol: input.staged.symbol,
-      cause: formatErrForLog(unreconciled.cause).message,
       err: formatErrForLog(err),
+      ...(unreconciled.cause === undefined
+        ? {}
+        : { cause: formatErrForLog(unreconciled.cause).message }),
     })
   }
 }

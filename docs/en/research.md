@@ -60,7 +60,7 @@ forecast either. The latest figures found:
 - Six months: pre-tax profit VND 5,714 bn, +18.1% (Bao Dau tu).
 - FPT's own full-year plan (not a forecast): pre-tax profit VND 11,629 bn.
 
-$0.0111 · done in 34.4 seconds
+0.0111 USD · done in 34.4 seconds
 ```
 
 ## How a run works

@@ -61,7 +61,7 @@ từ công ty chứng khoán nào. Số liệu gần nhất tìm được:
 - 6 tháng: lợi nhuận trước thuế 5.714 tỷ đồng, +18,1% (Báo Đầu tư).
 - Kế hoạch cả năm do FPT đặt (không phải dự báo): lợi nhuận trước thuế 11.629 tỷ đồng.
 
-$0.0111 · xong trong 34,4 giây
+0,0111 USD · xong trong 34,4 giây
 ```
 
 ## Một lần nghiên cứu làm việc thế nào

@@ -3,6 +3,7 @@ import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { VenueRef } from '@/trading/kernel/instrument'
 import type { QuoteConvention } from '@/trading/render/money'
 import { t } from '@/i18n'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isBookCall } from '@/trading/kernel/operator/focus'
 import { formatCommandNumber } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
@@ -38,13 +39,13 @@ export function renderRecordHint(input: RecordHintInput): readonly string[] {
     return []
   }
 
-  const { market, ticker } = suggestion.instrument
+  const instrument = buildInstrumentKey(suggestion.instrument)
   const side = suggestion.action === 'reduce' ? 'sell' : 'buy'
   const venue = venues.join(VENUE_ALTERNATIVE_SEPARATOR)
   const units = formatCommandNumber(suggestion.units)
   const entry = formatCommandNumber(suggestion.entry)
   const day = suggestion.orderSession ?? suggestion.at
-  const command = `/record ${side} ${venue} ${market}:${ticker} ${units} ${entry} ${currency} ${day}`
+  const command = `/record ${side} ${venue} ${instrument} ${units} ${entry} ${currency} ${day}`
   const key = isBoardScaled(input.quote?.display) ? 'recordHintBoard' : 'recordHint'
 
   return [`${INDENT[1]}${t(locale, `trading.render.suggestion.${key}`, { command, currency })}`]

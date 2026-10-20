@@ -101,6 +101,8 @@ interface ChainRunContext {
   readonly onEvent: OnStreamEvent
   readonly logger: Logger
   readonly tracker: CooldownTracker
+  /** The refusal each provider is cooling on its credentials for, by provider id. */
+  readonly refusals: Map<string, LLMError>
   readonly tuning: ResolvedLlm
   readonly observer?: ProviderAttemptObserver
   readonly bus?: EventBus
@@ -138,6 +140,8 @@ type EntryResult =
 export function createProviderChain(deps: ProviderChainDeps): ProviderChain {
   // Per-chain, not module scope: two concurrently-built chains must not share failure history.
   const tracker = withCooldown(deps.tuning.transientCooldownMs)
+  // Configured providers only, so fixed cardinality.
+  const refusals = new Map<string, LLMError>()
 
   return {
     async stream(req, onEvent, observer) {
@@ -152,6 +156,7 @@ export function createProviderChain(deps: ProviderChainDeps): ProviderChain {
       const ordered = await orderAfterCooldownWait({
         entries: deps.entries,
         tracker,
+        refusals,
         req: request,
         tuning: deps.tuning,
         logger: deps.logger,
@@ -161,6 +166,7 @@ export function createProviderChain(deps: ProviderChainDeps): ProviderChain {
         onEvent,
         logger: deps.logger,
         tracker,
+        refusals,
         tuning: deps.tuning,
         ...(observer === undefined ? {} : { observer }),
         ...(deps.bus === undefined ? {} : { bus: deps.bus }),
@@ -181,9 +187,7 @@ async function runChain(
   ctx: ChainRunContext
 ): Promise<ProviderResponse> {
   const gate = createEmitGate(req, ctx.onEvent)
-  const ledger = createAttemptLedger(
-    attemptCeiling(ordered.length, ctx.tuning, req.outputContract !== undefined)
-  )
+  const ledger = createAttemptLedger(attemptCeiling(ordered, ctx.tuning, req))
   // Every finalized attempt lands in the transient ledger and then in the observer's durable
   // record — a rejected observation aborts the chain before another paid request can start.
   const settle = async (attempt: ProviderAttempt): Promise<void> => {
@@ -370,11 +374,13 @@ function canFallback(err: LLMError): boolean {
 function recordEntrySuccess(entry: ChainEntry, ctx: ChainRunContext): void {
   ctx.tracker.recordSuccess(entry.provider.id)
   ctx.tracker.recordSuccess(buildEntryKey(entry))
+  ctx.refusals.delete(entry.provider.id)
 }
 
 function recordEntryFailure(err: LLMError, entry: ChainEntry, ctx: ChainRunContext): void {
   if (PROVIDER_CREDENTIAL_CODES.has(err.code)) {
     ctx.tracker.recordFailure(entry.provider.id, ctx.tuning.credentialCooldownMs)
+    ctx.refusals.set(entry.provider.id, err)
     return
   }
 

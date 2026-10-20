@@ -79,7 +79,8 @@ export interface ChatHistoryMessage {
   readonly content: string
 }
 
-/** Newest-first page; `?limit=` (default 30) + `?before=<idx>` scroll back, `nextBefore` is the next cursor. */
+/** Newest-first page; `?limit=` (default 30) + `?before=<idx>` scroll back. `nextBefore` is the
+ *  oldest returned row's transcript `idx`, the next `before`. */
 export interface ChatHistoryResponse {
   readonly sessionId: string
   readonly hasMore: boolean

@@ -57,7 +57,7 @@ export const apiServiceProvider: ServiceProvider = {
         return {
           closeAdmission: server.closeAdmission,
           stop: async () => {
-            stopIdeaWatch()
+            await stopIdeaWatch()
             detachAppSurface?.()
             await server.stop()
           },

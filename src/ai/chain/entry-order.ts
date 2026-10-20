@@ -9,6 +9,7 @@ import { sleep } from '@/core/utils/time'
 interface CooldownWaitInput {
   readonly entries: readonly ChainEntry[]
   readonly tracker: CooldownTracker
+  readonly refusals: ReadonlyMap<string, LLMError>
   readonly req: LLMRequest
   readonly tuning: ResolvedLlm
   readonly logger: Logger
@@ -44,7 +45,7 @@ export async function orderAfterCooldownWait(
   }
 
   if (waitMs <= 0 || waitMs > input.tuning.transientCooldownMs) {
-    throw buildCooldownError()
+    throw buildCooldownError(input)
   }
 
   input.logger.warn('llm.cooldown_wait', { waitMs })
@@ -52,15 +53,28 @@ export async function orderAfterCooldownWait(
 
   const retried = orderEntries(input.entries, input.tracker, input.req)
   if (retried.length === 0) {
-    throw buildCooldownError()
+    throw buildCooldownError(input)
   }
   return retried
 }
 
-/** Whatever refused them, a caller facing only cooling entries is being asked to wait — the one
- *  thing `rate` says and `transient` does not. */
-function buildCooldownError(): LLMError {
-  return new LLMError('rate', 'every entry in the chain is on cooldown')
+/** A caller facing only cooling entries is being asked to wait, which `rate` says and `transient`
+ *  does not; waiting cannot fix a refused key or bill, so the first entry's refusal wins. */
+function buildCooldownError(input: CooldownWaitInput): LLMError {
+  const [first] = input.entries
+  const refused =
+    first !== undefined && input.tracker.isOnCooldown(first.provider.id)
+      ? input.refusals.get(first.provider.id)
+      : undefined
+
+  if (refused === undefined) {
+    return new LLMError('rate', 'every entry in the chain is on cooldown')
+  }
+
+  return new LLMError(refused.code, refused.message, {
+    answeredByProvider: refused.answeredByProvider,
+    ...(refused.providerModel === undefined ? {} : { providerModel: refused.providerModel }),
+  })
 }
 
 function orderEntries(

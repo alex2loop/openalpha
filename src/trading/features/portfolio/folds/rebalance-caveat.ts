@@ -3,6 +3,7 @@ import type { RebalancePolicy } from '@/trading/features/portfolio/folds/policy'
 import type { Caveat, CaveatDetail } from '@/trading/kernel/caveat'
 import type { CurrencyCode, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { RegimeScale } from '@/trading/kernel/market/market-data'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { FULL_DEPLOYMENT_SCALE } from '@/trading/markets/macro-risk'
 import { FRACTION_QUANTUM } from '@/trading/render/number'
 
@@ -49,7 +50,10 @@ export function increaseBelowMinimumCaveat(
 export function standingReduceCaveat(candidate: PortfolioCandidate): Caveat {
   return {
     code: 'portfolio.reduce-standing',
-    detail: { ticker: candidate.instrument.ticker },
+    detail: {
+      ticker: candidate.instrument.ticker,
+      instrument: buildInstrumentKey(candidate.instrument),
+    },
   }
 }
 

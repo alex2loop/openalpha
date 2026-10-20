@@ -193,8 +193,9 @@ two-way measurement: probed across every provider host (2026-09-21), the browser
 `home.treasury.gov` tarpits the plain one at 18.0 s against 1.7 s - a guaranteed timeout under the attempt deadline.
 
 An endpoint may be a list (`giavang` has a fallback origin). That is transport failover across the same backend, distinct from
-route failover across providers. `buildEndpointMaps` keeps the origin (the trusted-host list) and the endpoint's path prefix
-separately, so CoinGecko's `/api/v3` is not lost.
+route failover across providers. Each host gets its own attempt deadline, so a primary that hangs still leaves the fallback
+its turn. `buildEndpointMaps` keeps the origin (the trusted-host list) and the endpoint's path prefix separately, so
+CoinGecko's `/api/v3` is not lost.
 
 Credentials: `SOURCE_CREDENTIALS` declares, per source, the default variable *name* (`COINGECKO_API_KEY`, `FRED_API_KEY`) and the catalog line saying what setting it adds (`trading.source.credential.<id>`, which `doctor` prints); `SOURCE_CREDENTIAL_ENV` is derived from it.
 `[trading.sources]` may rename a variable, never name a value or a host. A rename aimed at a source that takes no credential is
@@ -321,7 +322,9 @@ split), which `Candle` models as absent rather than zero.
 pair whose base is a coin they can price. `yahoo` and `er-api` split a pair into two ISO codes, so a seven-character `USDTVND`
 fails their `covers`. `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it
 because coinbase's book is the deeper one. `fxHistory` is `yahoo` alone: the coin providers quote spot, not dated history, and
-`er-api` publishes today's board only. A fiat pair reaches `yahoo` untouched and a coin pair never does. There is no fallback from
+`er-api` publishes today's board only. A fiat pair reaches `yahoo` untouched; a coin's dollar leg (`USDTUSD`, the bridge leg of a
+`USDTVND` rate) reads Yahoo's `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it a past day's rate
+carried today's peg and moved on every call while naming that day. There is no fallback from
 `USDTVND` to `USDVND`: USDT is a different instrument in a different market, and a substituted rate is worse than the gap
 `valuation.fx-missing` reports.
 
@@ -391,7 +394,7 @@ the health log. These constants are the global defaults - what a request gets wh
 | `PAGE_SET_BUDGET_MS` | 120,000 | ceiling over a whole page set; without it a twenty-page read is twenty request budgets in series |
 | `BREAKER_FAILURE_THRESHOLD` | 3 | consecutive failures before the breaker opens |
 | `BREAKER_FAILURE_WINDOW` / `BREAKER_FAILURE_RATE` | 20 / 0.5 | recent outcomes the failure *rate* is measured over, and the share that must have failed |
-| `BREAKER_COOLDOWN_MS` | 300,000 | how long it stays open |
+| `BREAKER_COOLDOWN_MS` | 300,000 | how long it stays open; it closes only when this runs out, since a success from a request sent before it opened says nothing about the provider now |
 
 Two kinds of read share this transport. A **bulk read** (refresh sweep, bar history) takes the defaults, because finishing matters
 more than finishing now. A **quote read** (`/price`, the watchlist pulse, every alert tick) adds `QUOTE_ATTEMPT_LIMITS` (8,000 ms,

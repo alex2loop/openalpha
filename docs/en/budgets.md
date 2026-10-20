@@ -101,6 +101,9 @@ Every attempt, including failures, retries and fallbacks, is written to the cost
 month and range totals are summed from those rows, so there is no separate total that can drift. At startup the
 current day and month are rebuilt from the ledger before any work is admitted.
 
+An attempt that never reached the provider (the connection was refused, the host name did not resolve, or the login
+could not be read) is written at zero cost: nothing was sent, so nothing was billed.
+
 If a write still fails after three retries, the spend is appended to `unrecorded-spend.jsonl` in your data
 directory. At startup that file is folded back into the day and month totals until the month ends, so a restart
 cannot hand money back to your caps. If the append also fails, or the file is unreadable or damaged at startup, no

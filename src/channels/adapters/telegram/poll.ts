@@ -186,9 +186,11 @@ function handleAuthFailure(deps: PollDeps, state: PollState, err: unknown): bool
     return false
   }
 
-  const message = formatErrForLog(err).message
-  deps.handlers.setStatus({ connected: false, lastError: message })
-  deps.api.logger.error('telegram.auth_failure_threshold', { authFailures: state.authFailures })
+  deps.handlers.setStatus({ running: false, connected: false, lastError: 'auth_failed' })
+  deps.api.logger.error('telegram.auth_failure_threshold', {
+    authFailures: state.authFailures,
+    err: formatErrForLog(err),
+  })
 
   return true
 }

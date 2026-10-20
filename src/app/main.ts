@@ -343,6 +343,17 @@ function writeFatalFallback(err: unknown): void {
   }
 }
 
+// Bun reports a closed reader (`| head`) as a stdout 'error' event, often after the crash handlers
+// are gone; unheard, it prints a stack and exits 1.
+function onStdoutError(err: unknown): void {
+  if (!isBrokenPipe(err)) {
+    throw err
+  }
+
+  process.exit()
+}
+
 if (import.meta.main) {
+  process.stdout.on('error', onStdoutError)
   process.exitCode = await main(process.argv.slice(2))
 }

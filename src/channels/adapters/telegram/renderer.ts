@@ -33,9 +33,11 @@ type MarkdownSegment =
 interface EntityScan {
   readonly open: Set<string>
   link: boolean
+  inFence: boolean
   blankLine: number
   newline: number
   space: number
+  fenceEdge: number
 }
 
 function escapeMdv2(text: string): string {
@@ -288,17 +290,30 @@ function hardTextCut(text: string, maxLen: number): number {
   return 0
 }
 
-/** The cut after the last blank line, else the last newline, else the last space, in the first
- *  `limit` units that no `[label](url)` link or `*`/`_`/`~`/backtick pair open on its line spans; 0
- *  when there is none. */
+/** The cut after the last blank line, else the last newline, else the last space, else the nearest
+ *  fence edge, in the first `limit` units that no fence, `[label](url)` link or
+ *  `*`/`_`/`~`/backtick pair open on its line spans; 0 when there is none. A fence already in the
+ *  chunk is whole, so a cut inside it would leave an unclosed fence Telegram refuses to parse. */
 function softTextCut(text: string, limit: number): number {
-  const scan: EntityScan = { open: new Set(), link: false, blankLine: 0, newline: 0, space: 0 }
+  const scan: EntityScan = {
+    open: new Set(),
+    link: false,
+    inFence: false,
+    blankLine: 0,
+    newline: 0,
+    space: 0,
+    fenceEdge: 0,
+  }
 
   for (let i = 0; i < limit; i += 1) {
     const char = text.charAt(i)
 
-    if (char === '\\') {
+    if (text.startsWith(FENCE_DELIMITER, i)) {
+      i = recordFenceEdge(scan, i, limit)
+    } else if (char === '\\') {
       i += 1
+    } else if (scan.inFence) {
+      // A fence body holds no cut point and opens no entity.
     } else if (char === '\n' || char === ' ') {
       recordBoundary(scan, char, i)
     } else {
@@ -307,7 +322,22 @@ function softTextCut(text: string, limit: number): number {
   }
 
   // A blank line separates whole sections, so cutting there keeps a section in one message.
-  return scan.blankLine || scan.newline || scan.space
+  return scan.blankLine || scan.newline || scan.space || scan.fenceEdge
+}
+
+/** Returns the index of the delimiter's last unit, where the scan resumes. */
+function recordFenceEdge(scan: EntityScan, index: number, limit: number): number {
+  const end = index + FENCE_DELIMITER.length
+
+  scan.inFence = !scan.inFence
+
+  if (scan.inFence) {
+    scan.fenceEdge = index
+  } else if (end <= limit) {
+    scan.fenceEdge = end
+  }
+
+  return end - 1
 }
 
 function recordBoundary(scan: EntityScan, char: string, index: number): void {

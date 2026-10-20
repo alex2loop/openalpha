@@ -95,12 +95,13 @@ export function createSourceHealthLog(input: SourceHealthInput): SourceHealthLog
     isOnCooldown: (sourceId) => breaker.isOnCooldown(sourceId),
 
     recordSuccess(sourceId, at) {
-      breaker.recordSuccess(sourceId)
       consecutiveFailures.delete(sourceId)
       outcomes.recordOutcome(sourceId, false)
       entries.set(sourceId, { lastSuccessAt: at })
 
-      if (announced.delete(sourceId)) {
+      // The breaker closes only by running out: a success from a request sent before it opened says
+      // nothing about the provider since, and would also drop a server-set Retry-After.
+      if (!breaker.isOnCooldown(sourceId) && announced.delete(sourceId)) {
         outcomes.clear(sourceId)
         logger.info('trading.source_recovered', { sourceId })
       }

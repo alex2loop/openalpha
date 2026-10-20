@@ -89,6 +89,8 @@ interface HttpRequestOptions {
    *  never failed over, because another host would give the same refusal. */
   errorBodyStatuses?: readonly number[]
   timeoutMs?: number
+  /** Deadline per host inside `signal`: a host that spends it fails alone and the next is tried. */
+  hostTimeoutMs?: number
   signal: AbortSignal
   fetchImpl?: FetchFn // injectable for tests/observability; defaults to global fetch
 }
@@ -118,6 +120,7 @@ interface HttpAttemptContext {
   errorBodyStatuses: readonly number[]
   callerSignal: AbortSignal
   timeoutSignal?: AbortSignal
+  hostSignal?: AbortSignal
 }
 
 type Attempt =
@@ -128,6 +131,7 @@ type Attempt =
       status: number | undefined
       retryAfter: string | undefined
       code?: ToolErrorCode
+      timeout?: Error
     }
 
 // GET/POST a fixed trusted-host endpoint under one shared timeout, falling over to the next
@@ -181,7 +185,10 @@ async function requestHosts(
     retryAfter: undefined,
   }
   for (const host of req.hosts) {
-    const attempt = await attemptHost(ctx, buildUrl(host, req.path, req.query))
+    const attempt = await attemptHost(
+      withHostTimeout(ctx, req.hostTimeoutMs),
+      buildUrl(host, req.path, req.query)
+    )
 
     if (attempt.ok) {
       return attempt.res
@@ -190,10 +197,26 @@ async function requestHosts(
     lastErr = attempt
   }
 
+  // The last host spent its own deadline: surface the TimeoutError itself, as a lone host does.
+  if (lastErr.timeout !== undefined) {
+    throw lastErr.timeout
+  }
+
   throw new HttpRequestError(lastErr.code ?? 'unexpected', `request failed (${lastErr.error})`, {
     status: lastErr.status,
     retryAfter: lastErr.retryAfter,
   })
+}
+
+function withHostTimeout(ctx: HttpAttemptContext, hostTimeoutMs?: number): HttpAttemptContext {
+  if (hostTimeoutMs === undefined) {
+    return ctx
+  }
+
+  const hostSignal = AbortSignal.timeout(hostTimeoutMs)
+  const signal = AbortSignal.any([ctx.init.signal ?? ctx.callerSignal, hostSignal])
+
+  return { ...ctx, init: { ...ctx.init, signal }, hostSignal }
 }
 
 // GET a keyless fixed-host endpoint and return raw text. Thin wrapper over httpRequestWithSignal.
@@ -257,6 +280,17 @@ async function attemptHost(ctx: HttpAttemptContext, url: URL): Promise<Attempt> 
     // alone, so it fails the attempt and the loop tries the next one. An injected transport that
     // reports failures as ToolError gets the same failover as the default one.
     assertAttemptActive(ctx, url)
+
+    if (ctx.hostSignal?.aborted === true) {
+      return {
+        ok: false,
+        error: `request timed out: ${url.host}`,
+        status: undefined,
+        retryAfter: undefined,
+        code: 'timeout',
+        timeout: abortError(ctx.hostSignal),
+      }
+    }
 
     return {
       ok: false,

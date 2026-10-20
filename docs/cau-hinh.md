@@ -183,6 +183,20 @@ Dưới `openalpha mcp serve`, mô hình của client đã kết nối trả l�
 được đọc và không cần khóa. Chỉ các nhóm tra theo tên, như `decisions`, còn dùng cấu hình, và nhóm nào
 thiếu khóa thì bị bỏ qua thay vì làm hỏng khởi động.
 
+#### Chọn mô hình theo việc
+
+Mọi mô hình phải gọi được công cụ và trả JSON đúng schema. Mô hình hay trả sai schema làm đề xuất chưa kết luận được.
+
+| Việc | Nhóm | Nên chọn |
+|---|---|---|
+| Chat, và mọi việc chưa có nhóm riêng | `[[models]]` | Mô hình rẻ, nhanh, ví dụ `deepseek-v4-flash`. Thêm một mục dự phòng ở nhà cung cấp khác. |
+| `/suggest`, bản tin sáng | `debate` | Bắt đầu với mô hình rẻ. Qua OpenRouter thì ghim endpoint bằng `provider_only` như ví dụ trên, vì endpoint ngẫu nhiên có thể rất chậm. |
+| `/research` | `research`, `research-heavy` | Xem mục dưới. Reviewer là cổng chất lượng, nên đừng chọn quá rẻ. |
+| `/themes` | `themes` | Như `research`: cần gọi công cụ. |
+| Đọc tiêu đề, trích số liệu vĩ mô | `decisions`, `extraction` | Mô hình rẻ là đủ: việc ngắn, chỉ cần chép đúng số và đúng schema. |
+
+Đổi mô hình chưa có cách đo trước được, nên đổi từng nhóm một rồi theo dõi chi phí bằng `openalpha cost --breakdown`.
+
 #### Chọn mô hình cho các nhóm nghiên cứu
 
 Chọn theo tải công việc, không theo số lượng agent:
@@ -554,8 +568,9 @@ url = "https://host/mcp"      # phải là http: hoặc https:
 enabled = true
 ```
 
-Placeholder dùng `${NAME}`, với `NAME` khớp `[A-Za-z_][A-Za-z0-9_]*`. Placeholder thiếu, rỗng hoặc không
-nhận diện được là lỗi nghiêm trọng lúc khởi động.
+Placeholder dùng `${NAME}`, với `NAME` khớp `[A-Za-z_][A-Za-z0-9_]*`. Nếu biến chưa đặt hoặc rỗng,
+`start` bỏ qua server đó và cảnh báo, còn `config validate` liệt kê khóa còn thiếu. Placeholder
+không phải tên hợp lệ thì dừng khởi động.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
@@ -666,7 +681,7 @@ Chế độ phê duyệt (`manual`, `bypass` hoặc `unavailable`) được đ�
 ## `[trading]`
 
 Các mục con tùy chọn: `suggestions`, `markets`, `briefs`, `intraday`, `alerts`, `orders`, `venues`,
-`refresh`, `sources` và `themes`. Khóa nào cũng có mặc định. Khóa lạ là lỗi khởi động.
+`refresh`, `sources`, `themes` và `typed_prices`. Khóa nào cũng có mặc định. Khóa lạ là lỗi khởi động.
 
 ```toml
 [trading.suggestions]

@@ -107,6 +107,20 @@ export interface SessionClaim {
   readonly leaseExpiresBefore: number
 }
 
+export interface HistoryPageQuery {
+  /** Transcript index (`idx`): only rows strictly older than it. Newest rows when absent. */
+  readonly before?: number
+  readonly limit: number
+}
+
+export interface HistoryPage {
+  /** User and assistant rows only, oldest first. */
+  readonly messages: readonly LLMMessage[]
+  readonly hasMore: boolean
+  /** `idx` of the oldest returned row, the next page's `before`; null when nothing older remains. */
+  readonly nextBefore: number | null
+}
+
 export interface SessionStore extends SessionActivity {
   create(record: OpenedSession): Promise<void>
   /** Take ownership of the session for one run. False when a live run already holds it. */
@@ -114,6 +128,8 @@ export interface SessionStore extends SessionActivity {
   /** Ordered transcript payloads for a resumed run. With `limit`, only the newest that many rows,
    *  still in order; the whole transcript otherwise. */
   loadHistory(id: SessionId, limit?: number): Promise<readonly LLMMessage[]>
+  /** One page of the display transcript (user/assistant rows), cut in SQL. */
+  loadHistoryPage(id: SessionId, query: HistoryPageQuery): Promise<HistoryPage>
   /** The operator detail read: lifecycle, stored-message metadata, linked attempts, totals. */
   loadDetails(id: SessionId): Promise<SessionSnapshot | null>
   /** Resolve a displayed session-id prefix without loading unbounded history. */
