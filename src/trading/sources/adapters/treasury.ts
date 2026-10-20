@@ -26,6 +26,7 @@ const ENTRY_RE = /<m:properties>([\s\S]*?)<\/m:properties>/g
 const DATE_RE = /<d:NEW_DATE[^>]*>(\d{4}-\d{2}-\d{2})/
 const NOMINAL_10Y_RE = /<d:BC_10YEAR[^>]*>([^<]+)</
 const REAL_10Y_RE = /<d:TC_10YEAR[^>]*>([^<]+)</
+const NOMINAL_3M_RE = /<d:BC_3MONTH[^>]*>([^<]+)</
 
 interface DatedRate {
   readonly at: TradingDay
@@ -81,18 +82,56 @@ async function fetchMacro(
       region,
       asOf: yield10y.at,
       formulaVersion: MACRO_FORMULA_VERSION,
-      values: {
-        'us-10y-yield': yield10y.rate,
-        ...(realRate === undefined ? {} : { 'us-real-rate': realRate.rate }),
-      },
-      observationDates: {
-        'us-10y-yield': yield10y.at,
-        ...(realRate === undefined ? {} : { 'us-real-rate': realRate.at }),
-      },
+      ...macroReadings({ yield10y, realRate, spread: latestSpread(nominal.value) }),
       sourceId: TREASURY_ID,
       fetchedAt: nominal.fetchedAt,
     }),
   }
+}
+
+interface MacroReadings {
+  readonly yield10y: DatedRate
+  readonly realRate: DatedRate | undefined
+  readonly spread: DatedRate | undefined
+}
+
+/** A series with no print is absent from both maps, never a zero. */
+function macroReadings(
+  readings: MacroReadings
+): Pick<MacroSnapshot, 'values' | 'observationDates'> {
+  const { yield10y, realRate, spread } = readings
+
+  return {
+    values: {
+      'us-10y-yield': yield10y.rate,
+      ...(realRate === undefined ? {} : { 'us-real-rate': realRate.rate }),
+      ...(spread === undefined ? {} : { 'us-term-spread': spread.rate }),
+    },
+    observationDates: {
+      'us-10y-yield': yield10y.at,
+      ...(realRate === undefined ? {} : { 'us-real-rate': realRate.at }),
+      ...(spread === undefined ? {} : { 'us-term-spread': spread.at }),
+    },
+  }
+}
+
+/** Ten-year less three-month, read off one entry so both legs are the same session's print. An
+ *  entry missing either maturity gives no spread, and the newest one carrying both wins. */
+function latestSpread(xml: string): DatedRate | undefined {
+  const entries = xml.match(ENTRY_RE) ?? []
+
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index] ?? ''
+    const at = DATE_RE.exec(entry)?.[1]
+    const long = Number(NOMINAL_10Y_RE.exec(entry)?.[1])
+    const short = Number(NOMINAL_3M_RE.exec(entry)?.[1])
+
+    if (at !== undefined && Number.isFinite(long) && Number.isFinite(short)) {
+      return { at: tradingDay(at), rate: long - short }
+    }
+  }
+
+  return undefined
 }
 
 // The feed answers empty without a date scope. A year holds every session, so only the opening

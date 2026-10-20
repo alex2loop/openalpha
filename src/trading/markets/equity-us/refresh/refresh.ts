@@ -24,6 +24,7 @@ import {
 import { refreshUsAccounts } from '@/trading/markets/equity-us/refresh/accounts'
 import { refreshUsBars } from '@/trading/markets/equity-us/refresh/bars'
 import { refreshUsFundamentals } from '@/trading/markets/equity-us/refresh/fundamentals'
+import { refreshUsMacro } from '@/trading/markets/equity-us/refresh/macro'
 import {
   activeCount,
   isUsUniverseStale,
@@ -79,7 +80,9 @@ export async function refreshUsMarket(
 
   input.board.invalidate()
 
-  return [instruments.result, fundamentals, accounts, bars]
+  const macro = await runKind({ ...input, attempts }, 'macro', () => refreshUsMacro(input))
+
+  return [instruments.result, fundamentals, accounts, bars, macro]
 }
 
 export async function usStaleKinds(

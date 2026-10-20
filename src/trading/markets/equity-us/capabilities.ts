@@ -12,7 +12,11 @@ import { runUsBars } from '@/trading/markets/equity-us/bars'
 import { runUsEvents } from '@/trading/markets/equity-us/events'
 import { runUsNews } from '@/trading/markets/equity-us/news'
 import { runUsOverview } from '@/trading/markets/equity-us/overview'
-import { US_LIQUIDITY_SESSIONS, US_VOLATILITY_SESSIONS } from '@/trading/markets/equity-us/policy'
+import {
+  US_EQUITY_MACRO_DRIVERS,
+  US_LIQUIDITY_SESSIONS,
+  US_VOLATILITY_SESSIONS,
+} from '@/trading/markets/equity-us/policy'
 import { runUsQuote } from '@/trading/markets/equity-us/quote'
 import { refreshUsMarket, usStaleKinds } from '@/trading/markets/equity-us/refresh/refresh'
 import { runUsScreen } from '@/trading/markets/equity-us/screen-capability'
@@ -50,7 +54,10 @@ function priceCapabilities(
 function newsCapabilities(deps: MarketDeps): Pick<MarketCapabilities, 'news' | 'macroRisk'> {
   return {
     news: { kind: 'news', run: (request) => runUsNews(deps, request) },
-    macroRisk: { kind: 'macroRisk', run: (request) => resolveMacroRisk(deps, request) },
+    macroRisk: {
+      kind: 'macroRisk',
+      run: (request) => resolveMacroRisk(deps, request, US_EQUITY_MACRO_DRIVERS),
+    },
   }
 }
 

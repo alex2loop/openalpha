@@ -2348,6 +2348,7 @@
     "accounts-trend.averageProfit": "lợi nhuận bình quân mỗi năm",
     "accounts-trend.cashConversion": "dòng tiền hoạt động trên lợi nhuận",
     "macro.series.us-10y-yield": "Lợi suất trái phiếu Mỹ 10 năm",
+    "macro.series.us-term-spread": "Đường cong lợi suất Mỹ (10 năm trừ 3 tháng)",
     "macro.series.usd-index": "Chỉ số USD (diện rộng, 2006=100)",
     "macro.series.us-real-rate": "Lãi suất thực Mỹ",
     "macro.series.us-volatility": "Chỉ số biến động Mỹ (VIX, 30 ngày)",

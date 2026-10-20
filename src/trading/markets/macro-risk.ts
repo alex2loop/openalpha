@@ -38,6 +38,9 @@ export const US_DRIVER_BANDS = Object.freeze({
   // Banded against DTWEXBGS (Jan-2006=100), not DXY — see `US_DOLLAR_INDEX_SERIES`.
   'usd-index': { kind: 'linear', bearishAt: 128, bullishAt: 112 },
   'us-inflation-yoy': { kind: 'linear', bearishAt: 6, bullishAt: 2 },
+  // Ten-year less three-month: an inverted curve (below zero) has preceded recessions, a steep one
+  // (over a point and a half) is the early-cycle shape. Percentage points.
+  'us-term-spread': { kind: 'linear', bearishAt: -1, bullishAt: 1.5 },
   // The conventional calm and stress readings of VIX, which is quoted as a level and banded here
   // as one; the series long-runs between them rather than trending through either.
   'us-volatility': { kind: 'linear', bearishAt: 30, bullishAt: 15 },
@@ -63,6 +66,7 @@ export const US_MACRO_DRIVERS: MacroDriverPolicy = Object.freeze({
     'us-10y-yield': 'percent',
     'usd-index': 'level',
     'us-inflation-yoy': 'percent',
+    'us-term-spread': 'percent',
     'us-volatility': 'level',
   }),
 })

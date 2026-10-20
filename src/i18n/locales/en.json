@@ -2348,6 +2348,7 @@
     "accounts-trend.averageProfit": "average profit per year",
     "accounts-trend.cashConversion": "operating cash flow over profit",
     "macro.series.us-10y-yield": "US 10-year yield",
+    "macro.series.us-term-spread": "US yield curve (10-year minus 3-month)",
     "macro.series.usd-index": "US dollar index (broad, 2006=100)",
     "macro.series.us-real-rate": "US real rate",
     "macro.series.us-volatility": "US volatility index (VIX, 30-day)",

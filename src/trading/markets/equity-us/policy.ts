@@ -2,10 +2,12 @@ import type { CalendarPolicy } from '@/trading/kernel/config'
 import type { LevelPolicy } from '@/trading/kernel/factor'
 import type { BoardLotPolicy, Ticker, TickSizePolicy } from '@/trading/kernel/instrument'
 import type { AdmissionPolicy } from '@/trading/markets/admission'
+import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
 import { US_EXCHANGE_HOLIDAYS } from '@/trading/markets/equity-us/holidays'
+import { US_MACRO_DRIVERS } from '@/trading/markets/macro-risk'
 
 export const US_STRATEGY_VERSION = '1.0.0'
 export const US_MARKET_REF = marketRef('equity-us')
@@ -182,3 +184,21 @@ export const US_ADMISSION: AdmissionPolicy = Object.freeze({
     'volatility-above-maximum': 'suggestion.volatility-above-maximum',
   }),
 })
+
+/** The shared US table, with the curve voting as well: an equity segment is the one that prices
+ *  recession risk, so it weighs what the other US-priced segments leave out. The fold divides by
+ *  the fired total, so adding a driver restates no other. */
+export const US_EQUITY_MACRO_DRIVERS: MacroDriverPolicy = Object.freeze({
+  ...US_MACRO_DRIVERS,
+  weights: Object.freeze({
+    'us-real-rate': 0.3,
+    'us-10y-yield': 0.2,
+    'usd-index': 0.15,
+    'us-inflation-yoy': 0.15,
+    'us-volatility': 0.1,
+    'us-term-spread': 0.1,
+  }),
+})
+
+/** Sessions a stored regime still anchors the next read's band against. */
+export const US_REGIME_MEMORY_SESSIONS = 5

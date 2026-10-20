@@ -15,7 +15,6 @@ import type { UsBoard, UsBoardCache, UsBoardName } from '@/trading/markets/equit
 import type { MarketManifest } from '@/trading/markets/types'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import {
-  US_BENCHMARK_TICKER,
   US_EVIDENCE_SESSIONS,
   US_INDEX_TICKERS,
   US_MARKET_REF,
@@ -42,8 +41,7 @@ interface NameSession {
   readonly turnover: number
 }
 
-/** The headline indices as levels and the benchmark fund as a price, then roll-ups folded over the
- *  board. Every roll-up is the board's, not the listing's, and absent where nothing could be
+/** The headline indices as levels, then roll-ups folded over the board. Every roll-up is the board's, not the listing's, and absent where nothing could be
  *  measured: a total of nothing would read as a market that is worth nothing. */
 export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverview> {
   const { request, manifest } = load
@@ -58,7 +56,6 @@ export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverv
     market: manifest.id,
     asOf: day ?? request.asOf,
     currency: manifest.currency,
-    priceCurrency: manifest.currency,
     icon: manifest.icon,
     rows,
     ...(marketCap > 0 ? { marketCap } : {}),
@@ -71,12 +68,14 @@ export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverv
   }
 }
 
-/** The indices and the benchmark, read from the store like any name. */
+/** The headline indices as levels, read from the store like any name. One `priceCurrency` covers
+ *  every row of an overview and a level has no currency, so the rows are indices alone: the
+ *  benchmark fund is a price, and `/price` states it. */
 async function headlineRows(load: OverviewLoad): Promise<readonly MarketDataOverviewRow[]> {
-  const instruments: readonly InstrumentRef[] = [
-    ...US_INDEX_TICKERS.map((ticker) => ({ market: US_MARKET_REF, ticker })),
-    { market: US_MARKET_REF, ticker: US_BENCHMARK_TICKER },
-  ]
+  const instruments: readonly InstrumentRef[] = US_INDEX_TICKERS.map((ticker) => ({
+    market: US_MARKET_REF,
+    ticker,
+  }))
   const { request, deps, manifest } = load
   const fromDay = manifest.calendar.addTradingDays(request.asOf, -US_EVIDENCE_SESSIONS)
   const series = await Promise.all(

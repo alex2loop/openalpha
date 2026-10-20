@@ -5,6 +5,7 @@ import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
+import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import { region } from '@/trading/kernel/instrument'
 import { MACRO_SERIES_IDS } from '@/trading/kernel/market/macro-series'
 import { available, provenanceOf, unavailable } from '@/trading/kernel/source/source-result'
@@ -56,7 +57,8 @@ export function mergeMacroValues(reads: readonly SourceResult<MacroSnapshot>[]):
  *  the region asked about; the series behind it are US ones whatever market reads them. */
 export async function resolveMacroRisk(
   deps: MarketDeps,
-  request: RegionRequest
+  request: RegionRequest,
+  policy: MacroDriverPolicy = US_MACRO_DRIVERS
 ): Promise<SourceResult<MacroRiskView>> {
   const reads = await deps.macro.get(MACRO_COMPOSITE_REGION, request.asOf, request.signal)
   const { values, observationDates } = mergeMacroValues(reads)
@@ -80,7 +82,7 @@ export async function resolveMacroRisk(
         asOf: request.asOf,
         provenance,
       },
-      US_MACRO_DRIVERS
+      policy
     ),
     provenance,
     caveats
