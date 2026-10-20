@@ -95,6 +95,8 @@ const EVENT_KEYS = Object.freeze({
   agm: 'trading.event.agm',
   delisting: 'trading.event.delisting',
   'dividend-ex-date': 'trading.event.dividend-ex-date',
+  'earnings-release': 'trading.event.earnings-release',
+  'insider-purchase': 'trading.event.insider-purchase',
   'last-trading-day': 'trading.event.last-trading-day',
   listing: 'trading.event.listing',
   'margin-eligible': 'trading.event.margin-eligible',

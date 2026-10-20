@@ -27,6 +27,8 @@ export const MARKET_EVENT_KINDS = Object.freeze([
   'last-trading-day',
   'margin-eligible',
   'margin-ineligible',
+  'earnings-release',
+  'insider-purchase',
 ] as const)
 export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
 

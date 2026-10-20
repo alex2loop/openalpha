@@ -64,7 +64,7 @@ export const ACCOUNTS_QUARTER_FIELDS = Object.freeze([
 ] as const)
 export type AccountsQuarterField = (typeof ACCOUNTS_QUARTER_FIELDS)[number]
 
-/** One audited annual report's lines, in dong. Expenses are stored as positive amounts, so a
+/** One audited annual report's lines, in the market's currency. Expenses are stored as positive amounts, so a
  *  reversal reads as a negative one. A line the provider did not publish is absent, and every score
  *  that needs it abstains rather than reading zero. */
 export interface AccountLines {
@@ -90,6 +90,8 @@ export interface AccountLines {
   readonly longTermCustomerAdvances?: number
   /** Minority interests included, as the consolidated statement carries it. */
   readonly totalEquity?: number
+  /** Shares in issue, as the filer's cover page states them. */
+  readonly sharesOutstanding?: number
   readonly minorityInterests?: number
   /** Charter capital in common shares, which over the par value is the share count. */
   readonly commonShareCapital?: number

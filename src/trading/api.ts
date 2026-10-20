@@ -37,6 +37,7 @@ export {
   createTradingRegistrationProvider,
   createTradingStoresProvider,
 } from '@/trading/wiring/composition/registration'
+export { SOURCE_CREDENTIAL_ENV } from '@/trading/wiring/composition/source-facts'
 export { unavailableSources } from '@/trading/wiring/composition/source-registry'
 export { auditVenueKeys } from '@/trading/wiring/composition/venue-keys'
 export { resolveTradingConfig, TRADING_CONFIG_SECTION } from '@/trading/wiring/config'

@@ -324,10 +324,11 @@ language = "vi"                   # vi | en
 # [trading.refresh]
 # interval_ms = 43200000             # ~12h ceiling; refresh anchors to each session's open and close
 
-# Rename a source's credential env var. Only coingecko and fred take credentials.
+# Rename a source's credential env var. Only coingecko, fred and sec-data take credentials.
 # [trading.sources]
 # coingecko = "MY_COINGECKO_KEY"     # default: COINGECKO_API_KEY
 # fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
+# sec-data = "MY_SEC_EMAIL"          # default: SEC_CONTACT_EMAIL; a contact address SEC asks for, not a key
 
 # [trading.themes]
 # maximum_cost_usd = 1.0             # most one /themes run may spend; [budget] still caps it

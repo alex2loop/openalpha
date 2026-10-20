@@ -66,6 +66,11 @@ import { createOkxSources, OKX_DEFAULT_ENDPOINT } from '@/trading/sources/adapte
 import { createPnjSources, PNJ_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/pnj'
 import { createRssSources } from '@/trading/sources/adapters/rss'
 import { createSbvSources, SBV_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/sbv'
+import {
+  SEC_DATA_DEFAULT_ENDPOINT,
+  SEC_DEFAULT_ENDPOINT,
+} from '@/trading/sources/adapters/sec/client'
+import { createSecSources } from '@/trading/sources/adapters/sec/sources'
 import { createSsiSources, SSI_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/ssi'
 import {
   createTreasurySources,
@@ -111,6 +116,8 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('okx')]: OKX_DEFAULT_ENDPOINT,
   [sourceId('pnj')]: PNJ_DEFAULT_ENDPOINT,
   [sourceId('sbv')]: SBV_DEFAULT_ENDPOINT,
+  [sourceId('sec')]: SEC_DEFAULT_ENDPOINT,
+  [sourceId('sec-data')]: SEC_DATA_DEFAULT_ENDPOINT,
   [sourceId('ssi')]: SSI_DEFAULT_ENDPOINT,
   [sourceId('treasury')]: TREASURY_DEFAULT_ENDPOINT,
   [sourceId('vndirect')]: VNDIRECT_DEFAULT_ENDPOINT,
@@ -185,6 +192,8 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('pnj')]: 30,
   [sourceId('rss')]: 60,
   [sourceId('sbv')]: 10,
+  [sourceId('sec')]: 240,
+  [sourceId('sec-data')]: 240,
   [sourceId('ssi')]: 60,
   [sourceId('treasury')]: 60,
   [sourceId('vndirect')]: 300,
@@ -225,6 +234,16 @@ export const SOURCE_CREDENTIALS: Readonly<Record<string, SourceCredentialFacts>>
     adds: 'trading.source.credential.coingecko',
   },
   [sourceId('fred')]: { variable: 'FRED_API_KEY', adds: 'trading.source.credential.fred' },
+  [sourceId('sec-data')]: {
+    variable: 'SEC_CONTACT_EMAIL',
+    adds: 'trading.source.credential.sec',
+  },
+})
+
+/** A host SEC serves from a second origin shares the first's credential: `sec` has no source of its
+ *  own, so it is not routed and not listed, yet its requests carry the same contact. */
+export const CREDENTIAL_ALIASES: Readonly<Partial<Record<SourceId, SourceId>>> = Object.freeze({
+  [sourceId('sec')]: sourceId('sec-data'),
 })
 
 export const SOURCE_CREDENTIAL_ENV: Readonly<Partial<Record<SourceId, string>>> = Object.freeze(
@@ -242,6 +261,7 @@ export function createBuiltInSources(adapters: SourceAdapterOptions): readonly R
     ...createGoogleNewsSources(adapters),
     ...createVndirectSources(adapters),
     ...createNasdaqSources(adapters),
+    ...createSecSources(adapters),
     ...createSbvSources(adapters),
     ...createNsoSources(adapters),
     ...createEntradeSources(adapters),

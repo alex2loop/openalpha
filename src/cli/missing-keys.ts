@@ -7,7 +7,7 @@ import {
   toMissingSearchKeyError,
 } from '@/core/config/resolve'
 import { missingCredentials } from '@/core/security/credentials'
-import { resolveTradingConfig, unavailableSources } from '@/trading/api'
+import { resolveTradingConfig, SOURCE_CREDENTIAL_ENV, unavailableSources } from '@/trading/api'
 
 /** Every unset key variable the resolved config names, one per variable: the model chain and its
  *  tiers, web search and MCP servers. Each only takes its own feature down. */
@@ -92,6 +92,7 @@ export function keyEnvNames(config: ResolvedConfig): readonly string[] {
     ...config.mcp.envNames,
     ...Object.values(config.channels).map(channelTokenEnv),
     ...Object.values(trading.venues).flatMap((venue) => Object.values(venue?.credentialEnv ?? {})),
+    ...Object.values(SOURCE_CREDENTIAL_ENV),
     ...Object.values(trading.sourceCredentialEnv),
   ]
 
