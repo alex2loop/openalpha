@@ -19,9 +19,11 @@ import {
   US_MARKET_REF,
   US_SCREEN_ETFS,
   US_SCREEN_RANK,
+  US_SCREEN_RANK_BUFFER,
 } from '@/trading/markets/equity-us/policy'
 import { usRawsOf } from '@/trading/markets/equity-us/raws'
 import { usAdjustedCloses } from '@/trading/markets/equity-us/screen'
+import { heldTickersIn } from '@/trading/markets/held-tickers'
 
 const BOARD_CACHE_DAYS = 2
 
@@ -78,7 +80,7 @@ async function loadUsBoard(
     deps.marketDataStore.listInstruments({ market: US_MARKET_REF, status: 'active', signal }),
     deps.marketDataStore.listAnnualAccounts({ market: US_MARKET_REF, signal }),
   ])
-  const members = await loadUsMembers(deps, manifest, { records, asOf, signal })
+  const members = await loadUsMembers(deps, manifest, { records, asOf, now: Date.now(), signal })
   const fundRecords = fundsOf(records)
   const fromDay = manifest.calendar.addTradingDays(asOf, -US_EVIDENCE_SESSIONS)
   const read = (record: InstrumentRecord): Promise<readonly BarRecord[]> =>
@@ -131,18 +133,23 @@ export async function loadUsMembers(
   read: {
     readonly records: readonly InstrumentRecord[]
     readonly asOf: TradingDay
+    readonly now: number
     readonly signal: AbortSignal
   }
 ): Promise<readonly UsMember[]> {
-  const snapshots = await deps.marketDataStore.listLatestFundamentals({
-    market: US_MARKET_REF,
-    fromDay: manifest.calendar.addTradingDays(read.asOf, -US_BOARD_SNAPSHOT_SESSIONS),
-    signal: read.signal,
-  })
+  const [snapshots, held] = await Promise.all([
+    deps.marketDataStore.listLatestFundamentals({
+      market: US_MARKET_REF,
+      fromDay: manifest.calendar.addTradingDays(read.asOf, -US_BOARD_SNAPSHOT_SESSIONS),
+      signal: read.signal,
+    }),
+    heldTickersIn(deps, US_MARKET_REF, { now: read.now, signal: read.signal }),
+  ])
 
   return rankUsMembers(
     snapshots,
-    new Map(read.records.map((record) => [record.instrument.ticker, record]))
+    new Map(read.records.map((record) => [record.instrument.ticker, record])),
+    held
   )
 }
 
@@ -151,11 +158,13 @@ interface UsMember {
   readonly marketCap: number
 }
 
-/** The equities whose newest snapshot is still current, largest capitalisation first and cut at the
- *  board's rank. Ties break on ticker, so the same store always draws the same line. */
+/** Largest capitalisation first, cut at the board's rank; a held name that slipped just past it
+ *  stays while it is within the buffer, so its evidence keeps being refreshed and ranked. Ties
+ *  break on ticker, so the same store always draws the same line. */
 function rankUsMembers(
   snapshots: readonly { instrument: { ticker: Ticker }; marketCap?: number }[],
-  byRecord: ReadonlyMap<Ticker, InstrumentRecord>
+  byRecord: ReadonlyMap<Ticker, InstrumentRecord>,
+  held: ReadonlySet<Ticker>
 ): readonly UsMember[] {
   const members: UsMember[] = []
 
@@ -173,7 +182,11 @@ function rankUsMembers(
         right.marketCap - left.marketCap ||
         left.record.instrument.ticker.localeCompare(right.record.instrument.ticker)
     )
-    .slice(0, US_SCREEN_RANK)
+    .filter(
+      (member, rank) =>
+        rank < US_SCREEN_RANK ||
+        (rank < US_SCREEN_RANK_BUFFER && held.has(member.record.instrument.ticker))
+    )
 }
 
 function toName(

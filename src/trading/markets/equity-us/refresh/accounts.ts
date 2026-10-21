@@ -24,6 +24,7 @@ export async function refreshUsAccounts(
   const members = await loadUsMembers(deps, manifest, {
     records: universe,
     asOf: request.asOf,
+    now: request.now,
     signal: request.signal,
   })
   const tickers = members.map((member) => member.record.instrument.ticker)

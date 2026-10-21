@@ -25,6 +25,7 @@ import {
   VN_SOURCE_CONCURRENCY,
 } from '@/trading/markets/equity-vn/policy'
 import { fillCashFlow } from '@/trading/markets/equity-vn/refresh/cash-flow-fill'
+import { heldTickersIn } from '@/trading/markets/held-tickers'
 import {
   buildRejectedOutcome,
   buildSkippedResult,
@@ -51,7 +52,7 @@ export async function refreshAccounts(
   const storeOptions = { market: VN_MARKET_REF, signal: request.signal }
   const [cross, held, stored, quarters] = await Promise.all([
     crossSection.get(resolveSettledDay(scope.calendar, request.now), request.signal),
-    heldTickers(scope),
+    heldTickersIn(scope.deps, VN_MARKET_REF, { now: request.now, signal: request.signal }),
     scope.deps.marketDataStore.listAnnualAccounts(storeOptions),
     scope.deps.marketDataStore.listQuarterlyAccounts(storeOptions),
   ])
@@ -92,21 +93,6 @@ export async function refreshAccounts(
     outcomes,
     recordCount,
   })
-}
-
-/** A market composing no brief has no view of the book, and reads the board alone. */
-async function heldTickers(scope: EvidenceScope): Promise<ReadonlySet<string>> {
-  const holdings =
-    (await scope.deps.briefServices?.holdings({
-      now: scope.request.now,
-      signal: scope.request.signal,
-    })) ?? []
-
-  return new Set(
-    holdings
-      .filter((instrument) => instrument.market === VN_MARKET_REF)
-      .map((instrument) => instrument.ticker)
-  )
 }
 
 /** A forced refresh asks again for every covered name, due or not. */

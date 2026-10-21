@@ -142,6 +142,7 @@ async function barTargets(deps: MarketDeps, pass: BarsPass): Promise<readonly In
   const members = await loadUsMembers(deps, pass.manifest, {
     records: pass.universe,
     asOf: pass.request.asOf,
+    now: pass.request.now,
     signal: pass.request.signal,
   })
   const funds = US_SCREEN_ETFS.flatMap((code) => {

@@ -75,8 +75,8 @@ export const US_MINIMUM_UNIVERSE_SIZE = 5_000
 
 /** The board is the equities ranked by capitalisation: wide enough that a screen has a market to
  *  choose from, narrow enough that a refresh asks the provider for hundreds of names, not
- *  thousands. The refresh keeps snapshots for a few dozen beyond it so a name hovering at the edge
- *  does not drop out between runs. */
+ *  thousands. The refresh keeps snapshots for a few dozen beyond it, so a held name that slips just
+ *  past the rank stays on the board and keeps its evidence. */
 export const US_SCREEN_RANK = 500
 export const US_SCREEN_RANK_BUFFER = 550
 
