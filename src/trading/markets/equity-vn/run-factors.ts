@@ -1,14 +1,18 @@
 import type { FactorRequest, FactorScore } from '@/trading/kernel/factor'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
+import { ETF_KIND } from '@/trading/kernel/instrument'
 import { isAccountsWeak } from '@/trading/markets/equity-vn/accounts/score'
 import { scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
-import { failedGates, toScreenInput } from '@/trading/markets/equity-vn/screen'
+import { DAILY_BAND_BY_EXCHANGE, PRIMARY_EXCHANGE } from '@/trading/markets/equity-vn/policy'
+import { adjustedCandles, failedGates, toScreenInput } from '@/trading/markets/equity-vn/screen'
 import { tapeReadings } from '@/trading/markets/equity-vn/tape/signals'
+import { ceilingRunOf, toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 
 export async function runFactors(
   cache: CrossSectionCache,
-  options: FactorRequest
+  options: FactorRequest,
+  ceilingTrimSessions: number
 ): Promise<FactorScore> {
   const cross = await cache.get(options.asOf, options.signal)
   const evidence = cross.byTicker.get(options.instrument.ticker)
@@ -22,11 +26,18 @@ export async function runFactors(
   const failed = failedGates(toScreenInput(evidence, options.asOf))
   const signals = tapeReadings(evidence)
   const accounts = cross.accounts.get(options.instrument.ticker)?.score
+  const bandPct =
+    DAILY_BAND_BY_EXCHANGE[toVnExchange(evidence.record.exchange) ?? PRIMARY_EXCHANGE].maximumUpPct
+  const ceilingClose =
+    ceilingTrimSessions > 0 &&
+    evidence.record.kind !== ETF_KIND &&
+    ceilingRunOf(adjustedCandles(evidence.bars), bandPct) >= ceilingTrimSessions
 
   return {
     ...scoreNameFactors(evidence, cross),
     ...(failed.length === 0 ? {} : { failedGates: failed }),
     ...(signals.length === 0 ? {} : { signals }),
+    ...(ceilingClose ? { reduceSignal: 'ceiling-close' as const } : {}),
     ...(accounts === undefined || !accounts.decisive
       ? {}
       : { businessWeakening: isAccountsWeak(accounts) }),

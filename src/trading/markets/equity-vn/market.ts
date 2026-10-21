@@ -15,6 +15,7 @@ import {
   VN_ADMISSION,
   VN_BOARD_PRICE_DISPLAY,
   VN_CALENDAR,
+  VN_CEILING_TRIM_POLICY,
   VN_EVIDENCE_SESSIONS,
   VN_INDEX_TICKER,
   VN_LEVEL_POLICY,
@@ -55,7 +56,7 @@ export function createVnEquityMarket(deps: MarketDeps): Market {
     candidacy,
     detect: (options) => detect(deps, options),
     search: (options) => search(deps, options),
-    factors: (options) => runFactors(crossSection, options),
+    factors: (options) => runFactors(crossSection, options, VN_CEILING_TRIM_POLICY.sessions),
     levels: async (options) =>
       buildVnLevels(deps, await crossSection.get(options.asOf, options.signal), options),
     ...trailOf(VN_LEVEL_POLICY),
