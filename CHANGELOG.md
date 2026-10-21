@@ -7,13 +7,13 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.0.14] - 2026-10-21
 
 A VN quarter now reaches the analysis the evening its income statement lands, even before its cash
 flow does. The missing cash flow is filled from CafeF when its figures check out against the
 quarters already on file, and the analysis says when a quarter's cash flow is missing or a quarter
-is late.
-> Một quý của cổ phiếu VN giờ vào phân tích ngay buổi tối kết quả kinh doanh được công bố, kể cả khi chưa có lưu chuyển tiền tệ. Phần còn thiếu được điền từ CafeF khi số liệu khớp với các quý đã có, và phân tích nói rõ khi quý thiếu lưu chuyển tiền tệ hoặc quý đến hạn mà chưa có.
+is late. The assistant also asks before changing a preference it already remembers.
+> Một quý của cổ phiếu VN giờ vào phân tích ngay buổi tối kết quả kinh doanh được công bố, kể cả khi chưa có lưu chuyển tiền tệ. Phần còn thiếu được điền từ CafeF khi số liệu khớp với các quý đã có, và phân tích nói rõ khi quý thiếu lưu chuyển tiền tệ hoặc quý đến hạn mà chưa có. Trợ lý cũng hỏi bạn trước khi đổi một sở thích nó đã ghi nhớ.
 
 ### Changes
 
@@ -24,9 +24,9 @@ table, and only when its pre-tax profit matches the quarters already stored.
 - Two new notes on the accounts: a quarter is missing its cash flow, or the latest quarter is past
 its filing deadline and not in yet.
 - The "results are due" note now also shows on the deadline day itself, in suggestions and the
-  morning brief.
+morning brief.
 - Changing a preference the assistant already remembers no longer goes unheard: it asks you once
-  in its next reply, and saves the change when you agree.
+in its next reply, and saves the change when you agree.
 
 ## [1.0.13] - 2026-10-21 [IMPORTANT]
 
@@ -535,6 +535,8 @@ honest record of its calls. It never places an order you did not approve.
   behind a fallback chain, and daily, monthly and per-run cost caps.
 - **The model never sees your money** - personas get weights and percentages, never amounts.
 
+[1.0.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.14
+[1.0.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.13
 [1.0.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.12
 [1.0.11]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.11
 [1.0.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.10
