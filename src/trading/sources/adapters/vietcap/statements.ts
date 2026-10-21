@@ -160,8 +160,8 @@ export function buildStatementPath(ticker: string): string {
 }
 
 /** A year is kept only when all three statements carry it; a quarter may arrive before its cash
- *  flow. The note only adds lines to a kept report. Exported for the measurement script, which must read reports exactly as the
- *  refresh stores them. */
+ *  flow. The note only adds lines to a kept report. Exported for the measurement script, which must
+ *  read reports exactly as the refresh stores them. */
 export function toFiledAccounts(
   instrument: InstrumentRef,
   payloads: StatementPayloads,

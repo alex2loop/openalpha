@@ -105,8 +105,9 @@ function toCashFlowToDate(raw: unknown, input: ParseInput): readonly CashFlowToD
 
   const lines = linesOf(rows, column)
 
-  // The direct-method layout carries neither line, and so does a page whose labels drifted.
-  if (lines.operatingCashFlow === undefined || lines.preTaxProfit === undefined) {
+  // The direct-method layout carries neither line, and so does a page whose labels drifted. A blank
+  // cell reads as zero elsewhere, but these two are what the fill is checked and built on.
+  if (!(hasAmount(rows, column, 'operatingCashFlow') && hasAmount(rows, column, 'preTaxProfit'))) {
     throw new ValidationError('cafef cash-flow table lacks operating cash flow or pre-tax profit')
   }
 
@@ -169,8 +170,20 @@ function linesOf(
   return lines
 }
 
+/** The first row naming `key`, the one `linesOf` reads, carries a figure rather than a blank. */
+function hasAmount(
+  rows: readonly (readonly string[])[],
+  column: number,
+  key: CashFlowKey
+): boolean {
+  const row = rows.find((cells) => keyOf(cells[0] ?? '') === key)
+
+  return (row?.[column] ?? '') !== ''
+}
+
+/** Composed form, so a page that sends decomposed diacritics still matches the labels. */
 function keyOf(label: string): CashFlowKey | undefined {
-  const name = label.toLowerCase().replace(LABEL_NUMBERING_RE, '')
+  const name = label.normalize('NFC').toLowerCase().replace(LABEL_NUMBERING_RE, '')
 
   return LINE_LABELS.find(([prefix]) => name.startsWith(prefix))?.[1]
 }

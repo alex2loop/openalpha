@@ -25,11 +25,12 @@ interface CashFlowFill {
   readonly caveats: readonly Caveat[]
 }
 
-/** Fills the watched quarter's missing cash flow from the backup source, once the figures check out
- *  against the quarters already on file. Otherwise the quarter keeps what a past fill stored for it,
- *  or stays as the primary provider served it. */
+/** Every quarter the primary provider still serves without cash flow keeps what a past fill stored
+ *  for it; the watched quarter, when nothing is stored, is filled from the backup source once the
+ *  figures check out against the quarters already on file. */
 export async function fillCashFlow(input: CashFlowFillInput): Promise<CashFlowFill> {
-  const { scope, filed, stored } = input
+  const { scope, stored } = input
+  const filed = withStoredFills(input.filed, stored)
   const target = targetOf(filed, resolveSettledDay(scope.calendar, scope.request.now))
   const priors = target === undefined ? undefined : priorsOf(target, [...filed.quarters, ...stored])
 
@@ -42,26 +43,37 @@ export async function fillCashFlow(input: CashFlowFillInput): Promise<CashFlowFi
     context: { market: VN_MARKET_REF, instrument: target.instrument, toDay: quarterEndDay(target) },
     signal: scope.request.signal,
   })
-  const carried = carriedForward(target, stored)
 
   if (result.kind === 'unavailable') {
-    return replaced(filed, carried, reportedCaveats(result.caveats, 'cashFlowToDate'))
+    return { filed, caveats: reportedCaveats(result.caveats, 'cashFlowToDate') }
   }
 
   const yearToDate = result.value.at(0)
 
   if (yearToDate === undefined) {
-    return replaced(filed, carried, result.caveats)
+    return { filed, caveats: result.caveats }
   }
 
   const derived = deriveQuarter({ target, priors, yearToDate })
 
   return derived === undefined
-    ? replaced(filed, carried, [
-        ...result.caveats,
-        buildPayloadRejectedCaveat(result.provenance, 'cashFlowToDate'),
-      ])
+    ? {
+        filed,
+        caveats: [
+          ...result.caveats,
+          buildPayloadRejectedCaveat(result.provenance, 'cashFlowToDate'),
+        ],
+      }
     : replaced(filed, derived, result.caveats)
+}
+
+/** A quarter that has left the watch, or sits behind a newer one, would otherwise lose its fill to
+ *  the primary provider's row that still lacks the statement. */
+function withStoredFills(
+  filed: FiledAccounts,
+  stored: readonly QuarterlyAccounts[]
+): FiledAccounts {
+  return { ...filed, quarters: filed.quarters.map((report) => carriedForward(report, stored)) }
 }
 
 /** The newest quarter, when it is the watched one and lacks the statement. A bank files its cash
@@ -146,7 +158,8 @@ function matchesYearToDate(
   )
 }
 
-/** The stored figures for the same quarter, while the quarter they were taken from is unchanged. */
+/** The stored figures for the same quarter, while the quarter they were taken from is unchanged.
+ *  The primary provider's own statement always wins. */
 function carriedForward(
   target: QuarterlyAccounts,
   stored: readonly QuarterlyAccounts[]
@@ -154,6 +167,7 @@ function carriedForward(
   const previous = stored.find((report) => periodIndexOf(report) === periodIndexOf(target))
 
   if (
+    hasCashFlow(target.lines) ||
     previous?.cashFlowSourceId === undefined ||
     previous.lines.preTaxProfit === undefined ||
     previous.lines.preTaxProfit !== target.lines.preTaxProfit
