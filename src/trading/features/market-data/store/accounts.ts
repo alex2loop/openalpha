@@ -20,6 +20,7 @@ const ACCOUNTS_KEYS = ['market', 'ticker', 'fiscal_year']
 const QUARTER_KEYS = ['market', 'ticker', 'fiscal_year', 'fiscal_quarter']
 const FISCAL_QUARTERS: readonly FiscalQuarter[] = Object.freeze([1, 2, 3, 4])
 const ACCOUNTS_COLS = ['source_id', 'published_on', 'fetched_at', 'payload']
+const QUARTER_COLS = [...ACCOUNTS_COLS, 'cash_flow_source_id']
 
 const LINE = z.number().finite().optional()
 
@@ -82,11 +83,13 @@ interface AccountsRow {
 
 interface QuarterlyAccountsRow extends AccountsRow {
   readonly fiscal_quarter: number
+  readonly cash_flow_source_id: string | null
 }
 
 interface UpsertTable<T> {
   readonly table: string
   readonly keys: readonly string[]
+  readonly cols: readonly string[]
   readonly records: readonly T[]
   toValues(record: T): readonly unknown[]
 }
@@ -117,12 +120,14 @@ export async function upsertAccounts(
     await upsertChunks(write, {
       table: 'annual_accounts',
       keys: ACCOUNTS_KEYS,
+      cols: ACCOUNTS_COLS,
       records: filed.annual,
       toValues: toAccountsValues,
     })
     await upsertChunks(write, {
       table: 'quarterly_accounts',
       keys: QUARTER_KEYS,
+      cols: QUARTER_COLS,
       records: filed.quarters,
       toValues: toQuarterlyValues,
     })
@@ -166,14 +171,14 @@ async function upsertChunks<T>(
   write: { readonly deps: StoreDeps; readonly tx: Transaction; readonly signal: AbortSignal },
   input: UpsertTable<T>
 ): Promise<void> {
-  const columnCount = input.keys.length + ACCOUNTS_COLS.length
+  const columnCount = input.keys.length + input.cols.length
 
   for (const chunk of toBindChunks(input.records, columnCount)) {
     assertNotAborted(write.signal)
     await write.tx.execute(
       write.deps.dialect.upsert(input.table, {
         keys: input.keys,
-        cols: ACCOUNTS_COLS,
+        cols: input.cols,
         rowCount: chunk.length,
       }),
       chunk.flatMap(input.toValues)
@@ -218,6 +223,7 @@ function toQuarterlyValues(record: QuarterlyAccounts): readonly unknown[] {
     record.publishedOn,
     record.fetchedAt,
     JSON.stringify(record.lines),
+    record.cashFlowSourceId ?? null,
   ]
 }
 
@@ -235,7 +241,13 @@ function toAccountsRecord(row: AccountsRow): AnnualAccounts {
 }
 
 function toQuarterlyRecord(row: QuarterlyAccountsRow): QuarterlyAccounts {
-  return { ...toAccountsRecord(row), quarter: toQuarter(row.fiscal_quarter) }
+  return {
+    ...toAccountsRecord(row),
+    quarter: toQuarter(row.fiscal_quarter),
+    ...(row.cash_flow_source_id === null
+      ? {}
+      : { cashFlowSourceId: sourceId(row.cash_flow_source_id) }),
+  }
 }
 
 function toQuarter(value: number): FiscalQuarter {

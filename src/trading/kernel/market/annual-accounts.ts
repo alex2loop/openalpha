@@ -116,6 +116,19 @@ export interface AccountLines {
   readonly capitalAdequacy?: number
 }
 
+/** A filing prints these as negatives; stored as positive amounts. */
+export const OUTFLOW_LINES: ReadonlySet<keyof AccountLines> = new Set<keyof AccountLines>([
+  'sellingExpenses',
+  'adminExpenses',
+  'loanLossReserve',
+  'interestExpense',
+  'incomeTax',
+  'capitalExpenditure',
+  'shareRepurchases',
+  'cashDividendsPaid',
+  'operatingExpenses',
+])
+
 export interface AnnualAccounts {
   readonly instrument: InstrumentRef
   readonly fiscalYear: number
@@ -174,6 +187,8 @@ export type FiscalQuarter = 1 | 2 | 3 | 4
  *  Unaudited; the provider stamps Q4 with the audited year's date. */
 export interface QuarterlyAccounts extends AnnualAccounts {
   readonly quarter: FiscalQuarter
+  /** Present only when the cash-flow lines came from a source other than `sourceId`. */
+  readonly cashFlowSourceId?: SourceId
 }
 
 /** Everything one read of a name's statements files. */

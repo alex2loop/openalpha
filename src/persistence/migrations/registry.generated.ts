@@ -8,6 +8,7 @@ import * as migrationMemoryFtsUpdateColumns from '@/persistence/migrations/2026_
 import * as migrationAddChannelInboxAnswer from '@/persistence/migrations/2026_10_11_101208_add_channel_inbox_answer'
 import * as migrationAddChannelInboxRetryAt from '@/persistence/migrations/2026_10_15_182559_add_channel_inbox_retry_at'
 import * as migrationAddPairingsRevokedAt from '@/persistence/migrations/2026_10_19_164034_add_pairings_revoked_at'
+import * as migrationAddQuarterlyAccountsCashFlowSource from '@/persistence/migrations/2026_10_21_142543_add_quarterly_accounts_cash_flow_source'
 
 export const MIGRATIONS = [
   { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
@@ -16,4 +17,5 @@ export const MIGRATIONS = [
   { id: '2026_10_11_101208_add_channel_inbox_answer', reversibility: 'reversible', up: migrationAddChannelInboxAnswer.up, down: migrationAddChannelInboxAnswer.down },
   { id: '2026_10_15_182559_add_channel_inbox_retry_at', reversibility: 'reversible', up: migrationAddChannelInboxRetryAt.up, down: migrationAddChannelInboxRetryAt.down },
   { id: '2026_10_19_164034_add_pairings_revoked_at', reversibility: 'reversible', up: migrationAddPairingsRevokedAt.up, down: migrationAddPairingsRevokedAt.down },
+  { id: '2026_10_21_142543_add_quarterly_accounts_cash_flow_source', reversibility: 'reversible', up: migrationAddQuarterlyAccountsCashFlowSource.up, down: migrationAddQuarterlyAccountsCashFlowSource.down },
 ] as const satisfies readonly Migration[]

@@ -12,6 +12,7 @@ import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/defin
 import type { SourceFetchOutcome, SourceHttp } from '@/trading/sources/types'
 import { ValidationError } from '@/core/errors'
 import { tradingDay } from '@/trading/kernel/instrument'
+import { OUTFLOW_LINES } from '@/trading/kernel/market/annual-accounts'
 import { VIETCAP_STATEMENTS_ID } from '@/trading/sources/adapters/vietcap/client'
 import { createSource, mapOutcome, parsedSource } from '@/trading/sources/define'
 import { dropInvalid, parseRow } from '@/trading/sources/rows/normalization'
@@ -33,6 +34,12 @@ const ANNUAL_LENGTH_REPORT = 5
 const QUARTER_LENGTH_REPORTS: readonly FiscalQuarter[] = Object.freeze([1, 2, 3, 4])
 const ANNUAL_PERIOD = 'annual'
 const DAY_LENGTH = 10
+
+/** A quarter is kept without its cash flow, which the provider files later. */
+const QUARTER_SECTIONS: readonly RequiredSection[] = Object.freeze([
+  'BALANCE_SHEET',
+  'INCOME_STATEMENT',
+])
 
 type RequiredSection = (typeof STATEMENT_SECTIONS)[number]
 type StatementSection = RequiredSection | typeof NOTE_SECTION
@@ -104,20 +111,6 @@ const BANK_NOTE_CODES: LineCodes = Object.freeze([
   ['capitalAdequacy', 'nob151'],
 ] as const)
 
-/** Booked as negatives; stored with the sign flipped, so a provider's reversal reads as a negative
- *  expense rather than being folded into a positive one. */
-const NEGATIVE_LINES: ReadonlySet<LineKey> = new Set<LineKey>([
-  'sellingExpenses',
-  'adminExpenses',
-  'loanLossReserve',
-  'interestExpense',
-  'incomeTax',
-  'capitalExpenditure',
-  'shareRepurchases',
-  'cashDividendsPaid',
-  'operatingExpenses',
-])
-
 const RESPONSE = z.object({
   successful: z.literal(true),
   data: z.object({ years: z.array(z.unknown()), quarters: z.array(z.unknown()).optional() }),
@@ -166,18 +159,15 @@ export function buildStatementPath(ticker: string): string {
   return `${COMPANY_PATH}/${ticker}/financial-statement`
 }
 
-/** A report is complete only when all three statements carry its period; the note only adds lines
- *  to such a report. Exported for the measurement script, which must read reports exactly as the
+/** A year is kept only when all three statements carry it; a quarter may arrive before its cash
+ *  flow. The note only adds lines to a kept report. Exported for the measurement script, which must read reports exactly as the
  *  refresh stores them. */
 export function toFiledAccounts(
   instrument: InstrumentRef,
   payloads: StatementPayloads,
   fetchedAt: number
 ): FiledAccounts {
-  const complete = [...collectReports(payloads).values()].filter(
-    (draft) =>
-      draft.sections.size === STATEMENT_SECTIONS.length && Object.keys(draft.lines).length > 0
-  )
+  const complete = [...collectReports(payloads).values()].filter(isKeptDraft)
 
   return {
     annual: complete
@@ -222,6 +212,14 @@ function toReport(
     sourceId: VIETCAP_STATEMENTS_ID,
     fetchedAt,
   }
+}
+
+function isKeptDraft(draft: ReportDraft): boolean {
+  const required = draft.period === ANNUAL_PERIOD ? STATEMENT_SECTIONS : QUARTER_SECTIONS
+
+  return (
+    required.every((section) => draft.sections.has(section)) && Object.keys(draft.lines).length > 0
+  )
 }
 
 function reportKey(row: StatementRow): string {
@@ -370,8 +368,7 @@ function mergeRow(
   }
 }
 
-/** Only into a report the three statements already complete, and never moving its publication
- *  day. */
+/** Only into a kept report, and never moving its publication day. */
 function addBankLines(
   drafts: Map<string, ReportDraft>,
   rows: readonly StatementRow[],
@@ -380,7 +377,7 @@ function addBankLines(
   for (const row of rows) {
     const draft = drafts.get(reportKey(row))
 
-    if (draft?.sections.size === STATEMENT_SECTIONS.length) {
+    if (draft !== undefined && isKeptDraft(draft)) {
       drafts.set(reportKey(row), {
         ...draft,
         lines: { ...draft.lines, ...linesOf(codes, row.values) },
@@ -396,7 +393,7 @@ function linesOf(codes: LineCodes, values: Readonly<Record<string, unknown>>): A
     const value = values[code]
 
     if (typeof value === 'number' && Number.isFinite(value)) {
-      lines[line] = NEGATIVE_LINES.has(line) ? -value : value
+      lines[line] = OUTFLOW_LINES.has(line) ? -value : value
     }
   }
 

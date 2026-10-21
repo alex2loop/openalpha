@@ -18,11 +18,14 @@ const APPLIED_AT_MS = 1
 const CORE_TABLE = 'sessions'
 const INBOX_TABLE = 'channel_inbox'
 const PAIRINGS_TABLE = 'pairings'
+const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
 const ANSWER_MIGRATION_ID = '2026_10_11_101208_add_channel_inbox_answer'
 const RETRY_AT_MIGRATION_ID = '2026_10_15_182559_add_channel_inbox_retry_at'
+const CASH_FLOW_SOURCE_MIGRATION_ID =
+  '2026_10_21_142543_add_quarterly_accounts_cash_flow_source'
 const REVOKED_AT_MIGRATION_ID = '2026_10_19_164034_add_pairings_revoked_at'
 const FTS_MIGRATION_ID = '2026_10_10_123605_memory_fts_update_columns'
 const INITIAL_MIGRATION_ID = '2026_07_10_000001_initial_schema'
@@ -92,6 +95,41 @@ async function hasColumn(db: Storage, table: string, column: string): Promise<bo
   return rows.length === 1
 }
 
+/** A quarter whose cash flow came from the backup source goes with the column, so the next refresh
+ *  refetches it from the primary provider rather than keeping unmarked backup figures. */
+async function assertCashFlowSourceRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, QUARTERS_TABLE, 'cash_flow_source_id'),
+    'cash_flow_source_id migration did not add the column'
+  )
+  await db.execute(
+    'INSERT INTO quarterly_accounts ' +
+      '(market, ticker, fiscal_year, fiscal_quarter, source_id, published_on, fetched_at, payload, ' +
+      'cash_flow_source_id) VALUES ' +
+      "('equity-vn', 'AAA', 2026, 3, 'vietcap-statements', '2026-10-20', ?1, '{}', 'cafef-statements'), " +
+      "('equity-vn', 'BBB', 2026, 3, 'vietcap-statements', '2026-10-20', ?1, '{}', NULL)",
+    [APPLIED_AT_MS]
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: CASH_FLOW_SOURCE_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const kept = await db.query<{ readonly ticker: string }>(
+    'SELECT ticker FROM quarterly_accounts ORDER BY ticker'
+  )
+
+  assertState(rolledBack.kind === 'rolled_back', 'cash_flow_source_id rollback did not complete')
+  assertState(
+    !(await hasColumn(db, QUARTERS_TABLE, 'cash_flow_source_id')),
+    'cash_flow_source_id rollback kept the column'
+  )
+  assertState(
+    kept.length === 1 && kept[0]?.ticker === 'BBB',
+    'cash_flow_source_id rollback kept a backup-sourced quarter'
+  )
+}
+
 /** A revoked pairing must not come back as an approved one when the column goes. */
 async function assertRevokedAtRollback(db: Storage): Promise<void> {
   assertState(
@@ -150,6 +188,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertCashFlowSourceRollback(db)
     await assertRevokedAtRollback(db)
 
     assertState(
