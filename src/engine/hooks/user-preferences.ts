@@ -1,34 +1,29 @@
 import type { LLMMessage, LLMRequest } from '@/core/llm'
-import type { Memory, MemoryScope } from '@/core/types/memory'
+import type { Memory, MemoryImportance, MemoryScope } from '@/core/types/memory'
+import type { PrefAttr, PrefState } from '@/engine/hooks/user-preference-prompts'
 import type { HookFn, LLMRequestModifier, RunView } from '@/engine/types/run'
 import { abortError, RunHalted } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { escapeXml } from '@/core/security/sanitize'
 import { CHARS_PER_TOKEN, weightedCharCount } from '@/core/stream-events'
 import { textOf } from '@/core/utils/message'
 import { reserveOptionalLlmCost } from '@/engine/budget/reservation'
 import { COMPACT_SUMMARY_PREAMBLE } from '@/engine/constants'
 import { appendSystemBlock } from '@/engine/hooks/system-block'
+import {
+  buildExtractPrompt,
+  buildPendingNote,
+  buildSavedBlock,
+  isPrefAttr,
+  PREF_ATTRS,
+  VALUE_MAX_CHARS,
+} from '@/engine/hooks/user-preference-prompts'
 import { streamSettledTurn } from '@/engine/llm-turn'
 import { TODO_RESTORED_NOTICE } from '@/engine/loop/todo'
 
-// Single source of truth for the durable-preference taxonomy: the extraction prompt and the
-// write-time validation both derive from it. A closed set keeps memory bounded and
-// self-consolidating (one row per attribute). Chosen to complement the user profile
-// (risk, horizon, goal, watchlist) and locale (language), not overlap them.
-const PREF_ATTRS = {
-  style: 'investing philosophy (e.g. "trusts fundamentals over charts, dislikes day-trading")',
-  constraints: 'hard personal rules (e.g. "never uses margin", "avoids crypto")',
-  interests: 'sectors/themes/assets they follow (e.g. "banks, tech, gold")',
-  context: 'durable personal context (e.g. "retired", "checks markets in the evening")',
-  communication: 'how they want answers (e.g. "keep it brief", "explain jargon")',
-} as const
-
-type PrefAttr = keyof typeof PREF_ATTRS
-
 const PREFS_PREFIX = 'prefs:'
+const PENDING_PREFIX = 'prefs-pending:'
+const ASKED_PREFIX = 'prefs-asked:'
 const PREFS_LIST_MAX = Object.keys(PREF_ATTRS).length
-const VALUE_MAX_CHARS = 200
 const MESSAGE_MAX_CHARS = 2_000
 const EXTRACT_MAX_TOKENS = 256
 const EDGE_NON_CONTENT_RE = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu
@@ -53,6 +48,15 @@ interface Atom {
   readonly value: string
 }
 
+type PrefWrite =
+  | {
+      readonly kind: 'store'
+      readonly key: string
+      readonly value: string
+      readonly importance: MemoryImportance
+    }
+  | { readonly kind: 'remove'; readonly key: string }
+
 // App composes this hook because engine has no dependency on memory.
 export function createUserPreferencesHooks(deps: {
   readonly memory: Memory
@@ -63,28 +67,16 @@ export function createUserPreferencesHooks(deps: {
         return req
       }
 
-      const entries = await deps.memory.list(scopeOf(run), {
-        prefix: PREFS_PREFIX,
-        limit: PREFS_LIST_MAX,
-      })
+      const scope = scopeOf(run)
+      const saved = await listPrefs(deps.memory, scope, PREFS_PREFIX)
+      const withSaved = saved.size === 0 ? req : appendSystemBlock(req, buildSavedBlock(saved))
+      const pending = isAttendedRun(run)
+        ? await listPrefs(deps.memory, scope, PENDING_PREFIX)
+        : new Map<string, string>()
 
-      if (entries.length === 0) {
-        return req
-      }
-
-      // Stored values already passed the canonical secret and injection policy, so only escaping is
-      // needed before interpolation.
-      const lines: string[] = []
-
-      for (const e of entries) {
-        lines.push(`- ${escapeXml(e.key.slice(PREFS_PREFIX.length))}: ${escapeXml(e.value)}`)
-      }
-
-      if (lines.length === 0) {
-        return req
-      }
-
-      return appendSystemBlock(req, `<user_preferences>\n${lines.join('\n')}\n</user_preferences>`)
+      return pending.size === 0
+        ? withSaved
+        : appendToTypedTurn(withSaved, buildPendingNote(saved, pending))
     },
 
     extract: async (run) => {
@@ -92,14 +84,25 @@ export function createUserPreferencesHooks(deps: {
         return
       }
 
-      const atoms = await extractAtoms(run)
+      const scope = scopeOf(run)
+      const attended = isAttendedRun(run)
+      const state = await readPrefState(deps.memory, scope, attended)
+      const atoms = await extractAtoms(run, state)
+
+      if (attended) {
+        await advanceProposals(deps.memory, scope, state)
+      }
 
       for (const atom of atoms) {
         if (run.state.abort.signal.aborted) {
           throw abortError(run.state.abort.signal)
         }
 
-        await storePref(deps.memory, run, atom)
+        const write = toPrefWrite(atom, state, attended)
+
+        if (write !== undefined) {
+          await writePref(deps.memory, run, write)
+        }
       }
     },
   }
@@ -109,17 +112,73 @@ function isPreferenceEligibleRun(run: RunView): boolean {
   return run.env.persistence === 'enabled' && run.env.callDepth === 0
 }
 
+/** Only a run someone can answer asks about a change; a scheduled or piped run has nobody to ask. */
+function isAttendedRun(run: RunView): boolean {
+  return run.env.approvalMode !== 'unavailable'
+}
+
+async function readPrefState(
+  memory: Memory,
+  scope: MemoryScope,
+  attended: boolean
+): Promise<PrefState> {
+  const none = new Map<string, string>()
+  const [saved, pending, asked] = await Promise.all([
+    listPrefs(memory, scope, PREFS_PREFIX),
+    attended ? listPrefs(memory, scope, PENDING_PREFIX) : none,
+    attended ? listPrefs(memory, scope, ASKED_PREFIX) : none,
+  ])
+
+  return { saved, pending, asked }
+}
+
+// The chat model passes over a request buried in a long system prompt but acts on one riding the
+// operator's own turn. Only this request copy carries it; the stored history keeps what they typed.
+function appendToTypedTurn(req: LLMRequest, note: string): LLMRequest {
+  const index = req.messages.findLastIndex(
+    (message) => message.role === 'user' && typeof message.content === 'string'
+  )
+
+  if (index < 0) {
+    return appendSystemBlock(req, note)
+  }
+
+  const messages = req.messages.map((message, at) =>
+    at === index && typeof message.content === 'string'
+      ? { ...message, content: `${message.content}\n\n${note}` }
+      : message
+  )
+
+  return { ...req, messages }
+}
+
+/** The proposals asked in this run's reply wait for the next message; those it answered are done. */
+async function advanceProposals(
+  memory: Memory,
+  scope: MemoryScope,
+  state: PrefState
+): Promise<void> {
+  for (const attr of state.asked.keys()) {
+    await memory.remove(scope, `${ASKED_PREFIX}${attr}`)
+  }
+
+  for (const [attr, value] of state.pending) {
+    await memory.store(scope, `${ASKED_PREFIX}${attr}`, { value, importance: 'observation' })
+    await memory.remove(scope, `${PENDING_PREFIX}${attr}`)
+  }
+}
+
 // Metered call: reserves optional budget immediately ahead of the LLM call so costs are recorded
 // before RunResult is snapshotted. RunHalted from budget charge propagates; provider/parse
 // failures are warnings.
-async function extractAtoms(run: RunView): Promise<readonly Atom[]> {
+async function extractAtoms(run: RunView, prefs: PrefState): Promise<readonly Atom[]> {
   const message = lastTypedUserText(run.state.messages.history)
 
   if (message === undefined || !hasPreferenceContent(message)) {
     return []
   }
 
-  const prompt = buildExtractPrompt(message.slice(0, MESSAGE_MAX_CHARS))
+  const prompt = buildExtractPrompt(message.slice(0, MESSAGE_MAX_CHARS), prefs)
   const inputTokens = Math.ceil(weightedCharCount(prompt) / CHARS_PER_TOKEN)
   const { state, services, env } = run
   const req: LLMRequest = {
@@ -213,51 +272,67 @@ function normalizePreferenceContent(message: string): string {
     .replace(WHITESPACE_RUN_RE, ' ')
 }
 
-// Guarded write: known attribute and non-empty value. Secrets and prompt injection are rejected at
-// the canonical memory boundary, so this layer only enforces the preference taxonomy.
-async function storePref(memory: Memory, run: RunView, atom: Atom): Promise<void> {
+// Secrets and prompt injection are rejected at the canonical memory boundary, so this layer only
+// enforces the preference taxonomy. An empty attribute fills directly; a change to a saved one is put
+// to the operator first, since the model rewrites the whole value and can drop part of it. An empty
+// value is a withdrawal.
+function toPrefWrite(atom: Atom, state: PrefState, attended: boolean): PrefWrite | undefined {
   const attr = atom.attribute.trim().toLowerCase()
   const value = atom.value.trim().slice(0, VALUE_MAX_CHARS)
+  const current = isPrefAttr(attr) ? state.saved.get(attr) : undefined
 
-  if (!isPrefAttr(attr) || value === '') {
-    return
+  if (!isPrefAttr(attr) || (current === undefined && value === '')) {
+    return undefined
   }
 
-  const scope = scopeOf(run)
+  if (current === undefined) {
+    return { kind: 'store', key: `${PREFS_PREFIX}${attr}`, value, importance: 'decision' }
+  }
+
+  if (isSameValue(current, value)) {
+    return undefined
+  }
+
+  if (isSameValue(state.asked.get(attr), value)) {
+    return toAcceptedWrite(attr, value)
+  }
+
+  return attended && !isSameValue(state.pending.get(attr), value)
+    ? { kind: 'store', key: `${PENDING_PREFIX}${attr}`, value, importance: 'observation' }
+    : undefined
+}
+
+function toAcceptedWrite(attr: PrefAttr, value: string): PrefWrite {
   const key = `${PREFS_PREFIX}${attr}`
 
-  try {
-    if ((await memory.recall(scope, key)) !== null) {
-      return
-    }
+  return value === ''
+    ? { kind: 'remove', key }
+    : { kind: 'store', key, value, importance: 'decision' }
+}
 
-    await memory.store(scope, key, { value, importance: 'decision' })
+function isSameValue(left: string | undefined, right: string): boolean {
+  return (
+    left !== undefined && normalizePreferenceContent(left) === normalizePreferenceContent(right)
+  )
+}
+
+async function writePref(memory: Memory, run: RunView, write: PrefWrite): Promise<void> {
+  const scope = scopeOf(run)
+
+  try {
+    if (write.kind === 'remove') {
+      await memory.remove(scope, write.key)
+    } else {
+      await memory.store(scope, write.key, { value: write.value, importance: write.importance })
+    }
   } catch (err: unknown) {
     if (run.state.abort.signal.aborted) {
       throw abortError(run.state.abort.signal)
     }
 
     // memory.store rejects secrets by throwing; that is a refusal, not a run failure.
-    run.services.logger.warn('prefs.store_failed', { attr, err: formatErrForLog(err) })
+    run.services.logger.warn('prefs.store_failed', { key: write.key, err: formatErrForLog(err) })
   }
-}
-
-function buildExtractPrompt(message: string): string {
-  const attrLines = Object.entries(PREF_ATTRS).map(([attr, hint]) => `- ${attr}: ${hint}`)
-
-  return [
-    'Extract DURABLE preferences the user states about how they invest or want to be advised.',
-    'Return ONLY a JSON array of {"attribute","value"} objects, or [] if the message states none.',
-    'attribute MUST be one of:',
-    ...attrLines,
-    `value: a short phrase (max ${VALUE_MAX_CHARS} chars), in the user's own terms.`,
-    'Only EXPLICIT, durable preferences - never infer, never one-off opinions, predictions, or mood.',
-    'Do NOT include risk level, horizon, goal, watchlist tickers, or language.',
-    'Those belong to the investor profile. If unsure, omit.',
-    '',
-    'Message:',
-    `"""${message}"""`,
-  ].join('\n')
 }
 
 function parseAtoms(text: string): readonly Atom[] {
@@ -291,8 +366,14 @@ function isAtom(value: unknown): value is Atom {
   )
 }
 
-function isPrefAttr(value: string): value is PrefAttr {
-  return Object.hasOwn(PREF_ATTRS, value)
+async function listPrefs(
+  memory: Memory,
+  scope: MemoryScope,
+  prefix: string
+): Promise<ReadonlyMap<string, string>> {
+  const entries = await memory.list(scope, { prefix, limit: PREFS_LIST_MAX })
+
+  return new Map(entries.map((entry) => [entry.key.slice(prefix.length), entry.value]))
 }
 
 function scopeOf(run: RunView): MemoryScope {

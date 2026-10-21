@@ -25,6 +25,8 @@ table, and only when its pre-tax profit matches the quarters already stored.
 its filing deadline and not in yet.
 - The "results are due" note now also shows on the deadline day itself, in suggestions and the
   morning brief.
+- Changing a preference the assistant already remembers no longer goes unheard: it asks you once
+  in its next reply, and saves the change when you agree.
 
 ## [1.0.13] - 2026-10-21 [IMPORTANT]
 
