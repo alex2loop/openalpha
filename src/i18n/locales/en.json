@@ -1916,6 +1916,7 @@
     "caveat.market.ticker-unknown": "No market I track lists {ticker}. Check the spelling, or write it as market:ticker.",
     "caveat.market.ticker-not-listed": "{ticker} is not listed on the {market} market.",
     "caveat.market.ticker-ambiguous": "{ticker} exists in more than one market: {markets}. Add the market name to choose one.",
+    "caveat.market.ticker-also-listed": "This read is {market}:{ticker}. {other}:{ticker} exists too; write it that way to read that one.",
     "caveat.market.ticker-shared": "More than one asset on the {market} market is listed as {ticker}: {names}. It cannot be resolved to one.",
     "caveat.market.ticker-not-active": "{ticker} is on the {market} market but is not trading: {status}.",
     "caveat.market.tokenized-equity": "{ticker} is {name} - a tokenized share, not a crypto asset. This system does not cover US equities.",

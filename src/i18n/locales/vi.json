@@ -1916,6 +1916,7 @@
     "caveat.market.ticker-unknown": "Mình chưa thấy mã {ticker} ở thị trường nào. Bạn kiểm tra lại chính tả, hoặc ghi dạng thị-trường:mã.",
     "caveat.market.ticker-not-listed": "{ticker} không niêm yết trên thị trường {market}.",
     "caveat.market.ticker-ambiguous": "Mã {ticker} tồn tại ở nhiều thị trường: {markets}. Thêm tên thị trường để chọn một.",
+    "caveat.market.ticker-also-listed": "Kết quả này là {market}:{ticker}. {other}:{ticker} cũng tồn tại; viết đúng như vậy để đọc mã đó.",
     "caveat.market.ticker-shared": "Nhiều tài sản trên thị trường {market} cùng mang mã {ticker}: {names}. Không thể xác định một tài sản duy nhất.",
     "caveat.market.ticker-not-active": "{ticker} thuộc thị trường {market} nhưng không giao dịch: {status}.",
     "caveat.market.tokenized-equity": "{ticker} là {name} - cổ phiếu token hóa, không phải tài sản crypto. Hệ thống không bao phủ cổ phiếu Mỹ.",

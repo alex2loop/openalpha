@@ -44,6 +44,7 @@ import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
 import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
+import { lazyHeldInstruments } from '@/trading/wiring/composition/held-instruments'
 import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
 import { buildRefreshCoordinator } from '@/trading/wiring/composition/refresh'
@@ -343,7 +344,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
     { archive: stores.newsArchive, logger }
   )
   const stages = createStageRegistry()
-  const markets = createMarketRegistry()
+  const markets = createMarketRegistry(lazyHeldInstruments(app, logger))
   const venues = buildVenues(options, logger)
   const fx = createFxRates({ sources, store: stores.fxRate, logger })
   const deps: MarketDeps = {

@@ -53,6 +53,7 @@ async function run(deps: PriceCommandDeps, ctx: SlashContext): Promise<SlashResu
   const now = Date.now()
   const result = await deps.marketData.quote({
     ...request,
+    alsoListed: true,
     withPreviousClose: true,
     now,
     signal: ctx.signal,

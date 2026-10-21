@@ -75,6 +75,7 @@ export async function runSuggestion(options: SuggestionRunOptions): Promise<Sugg
   const resolution = await deps.markets.resolve({
     ticker: request.ticker,
     ...(request.market === undefined ? {} : { market: request.market }),
+    alsoListed: true,
     signal: request.signal,
   })
 

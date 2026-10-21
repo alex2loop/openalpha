@@ -58,6 +58,8 @@ export interface MarketDataPerMarketRequest extends MarketDataRequest {
 export interface MarketDataInstrumentRequest extends MarketDataRequest {
   readonly ticker: Ticker
   readonly market?: MarketRef
+  /** A name the operator typed: the read says when another market lists the same symbol. */
+  readonly alsoListed?: boolean
 }
 
 export interface MarketDataQuoteRequest extends MarketDataInstrumentRequest, PreviousCloseOption {}
