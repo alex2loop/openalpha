@@ -78,6 +78,12 @@ const REDUCE_SALE_FRACTIONS: Readonly<
   stale: 0.5,
 })
 
+/** Signals that read a short holding window: a long segment is not read by them. */
+const SHORT_HORIZON_SIGNALS: ReadonlySet<EvidenceReduceReasonCode> = new Set([
+  'structure-broken',
+  'ceiling-close',
+])
+
 /** The direction the *draft* carries, and why it holds when it does — not a verdict: gates, debate,
  *  and stages may still force hold. Decided once, from the book, the composite factor score, the
  *  corporate calendar, and the advice's own weight gap, so levels and sizing cannot disagree about it. */
@@ -196,10 +202,12 @@ function reduceReasonFor(
   held: HeldPosition
 ): EvidenceReduceReasonCode | undefined {
   const { factors, context, market, horizon } = input
-  // Masked, not returned: a long segment whose breakout failed is still read for a risk-off regime
-  // and a bearish composite, exactly as one whose structure held.
+  // Masked, not returned: a long segment whose breakout failed, or whose name closed at the ceiling,
+  // is still read for a risk-off regime and a bearish composite, as one without the signal.
   const signal =
-    factors.reduceSignal === 'structure-broken' && horizon === 'long'
+    horizon === 'long' &&
+    factors.reduceSignal !== undefined &&
+    SHORT_HORIZON_SIGNALS.has(factors.reduceSignal)
       ? undefined
       : factors.reduceSignal
   const conclusive = isCompositeConclusive(factors)
