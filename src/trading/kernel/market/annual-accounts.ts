@@ -177,6 +177,8 @@ export interface AccountsQuarter {
   readonly publishedOn: TradingDay
   readonly figures: Readonly<Partial<Record<AccountsQuarterField, number>>>
   readonly comparisons: Readonly<Partial<Record<AccountsQuarterField, AccountsQuarterComparison>>>
+  /** Present when the quarter's cash-flow figures came from a backup source. */
+  readonly cashFlowSourceId?: SourceId
 }
 
 export interface AccountsHistory {

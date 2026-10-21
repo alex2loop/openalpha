@@ -67,6 +67,7 @@ function toAccountsQuarter(
     publishedOn: report.publishedOn,
     figures,
     comparisons: earlier === undefined ? {} : comparisonsOf(figures, earlier),
+    ...(report.cashFlowSourceId === undefined ? {} : { cashFlowSourceId: report.cashFlowSourceId }),
   }
 }
 
