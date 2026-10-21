@@ -252,7 +252,10 @@ abort. Web fetches apply SSRF protection.
 **Memory.** Agent- and user-scoped key-value data with exact recall, prefix listing, full-text search,
 soft delete and TTL. Values that look like secrets or prompt injections are rejected before storage.
 Child runs isolate keys through their ephemeral session namespace. The engine also extracts explicit
-user preferences from finished conversations and stores them through the same guarded path.
+user preferences from finished conversations and stores them through the same guarded path. An
+attribute already saved is never overwritten by extraction: the change is put to the operator once, at
+the start of the next reply, and saved only if their next message agrees. A scheduled or piped run
+has nobody to ask, so it never proposes one.
 
 **Skills.** Folders containing `SKILL.md`, plus trading skills embedded in the binary. The model gets a
 compact index and loads a body only through `skill_view`. Embedded names are reserved: a directory skill

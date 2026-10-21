@@ -506,6 +506,9 @@ export const QUARTER_WATCH_FROM_DAYS = 15
 export const QUARTER_WATCH_UNTIL_DAYS = 70
 /** How often a name whose latest quarter is due is asked again, until the quarter lands. */
 export const QUARTER_WATCH_REFETCH_MS = 2 * MS_PER_DAY
+/** How far a backup cash flow's year-to-date pre-tax profit may sit from the stored quarters' sum,
+ *  as a fraction of the larger magnitude, before the figures are refused. */
+export const CASH_FLOW_MATCH_TOLERANCE = 0.005
 /** The kind's last fetch older than this means the refetch stopped running. Past the interval by
  *  two weeks, so the one quiet stretch the interval itself creates never reads as stale. */
 const ACCOUNTS_STALE_MS = 45 * MS_PER_DAY

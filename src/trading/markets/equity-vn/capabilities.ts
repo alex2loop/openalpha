@@ -20,6 +20,7 @@ import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cro
 import type { MarketCapabilities, MarketManifest } from '@/trading/markets/types'
 import { available, dedupeProvenance, unavailable } from '@/trading/kernel/source/source-result'
 import { settledBars } from '@/trading/markets/bars'
+import { QUARTER_GAP_CODES } from '@/trading/markets/equity-vn/accounts/quarter-gaps'
 import { buildVnBrief } from '@/trading/markets/equity-vn/brief/compose'
 import { runMacroRisk } from '@/trading/markets/equity-vn/evidence/macro-evidence'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
@@ -206,9 +207,11 @@ async function runAccounts(
     return unavailable('empty', [])
   }
 
-  return available(history, [
-    { sourceId: history.sourceId, fetchedAt: history.fetchedAt, freshness: 'cached' },
-  ])
+  return available(
+    history,
+    [{ sourceId: history.sourceId, fetchedAt: history.fetchedAt, freshness: 'cached' }],
+    history.caveats.filter((caveat) => QUARTER_GAP_CODES.has(caveat.code))
+  )
 }
 
 /** Research, not execution: a bearish VN read has no short leg, because single-stock shorting is

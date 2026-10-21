@@ -62,6 +62,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `vietcap-chart` | chỉ số cho mọi index HOSE: chuỗi ngày mà các chuẩn ETF được chấm điểm trên đó, và chuỗi trong phiên đứng sau giá index trực tiếp | không |
 | `vps` | chỉ số cho các index chuẩn ETF mà chỉ nó và `vietcap-chart` mang; đứng sau `vietcap-chart`, nguồn có giá trị giao dịch gồm cả nhánh thỏa thuận mà feed này bỏ qua | không |
 | `cafef` | dòng tiền tự doanh VN, cho các phiên `vndirect` chưa công bố | không |
+| `cafef-statements` | lưu chuyển tiền tệ của một quý VN, cho quý mới nhất mà `vietcap-statements` đã có nhưng chưa có phần này | không |
 | `giavang` `pnj` | các bảng vàng trong nước VN, trộn theo đúng thứ tự đó | không |
 | `sbv` | lãi suất điều hành VN (tái cấp vốn, tái chiết khấu) và lãi suất liên ngân hàng bình quân, từ trang lãi suất của Ngân hàng Nhà nước | không |
 | `nso` | báo cáo kinh tế - xã hội hằng tháng của cơ quan thống kê, đọc bởi việc `trading.macro-extract` | không |
@@ -111,7 +112,14 @@ Một cửa sổ kết thúc trong năm đã kiểm toán mới nhất, hoặc �
 
 Ngoài các năm đã kiểm toán, OpenAlpha còn cho xem 5 quý gần nhất, mỗi quý so với cùng kỳ năm trước, để thấy doanh nghiệp đang tốt lên hay xấu đi ngay lúc này. Số quý chưa kiểm toán nên chỉ dùng để tham khảo.
 
-Báo cáo được tải lại mỗi 30 ngày, và mỗi hai ngày khi quý mới nhất đã đến hạn mà chưa được lưu. Đó là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
+Quý mới được đưa vào phân tích ngay khi có kết quả kinh doanh, không chờ lưu chuyển tiền tệ (phần này hay về chậm vài ngày):
+
+- Phần còn thiếu được lấy từ `cafef-statements`, chỉ khi số liệu khớp với các quý đã có. Dòng quý đó sẽ ghi "tạm tính từ nguồn dự phòng".
+- Chưa lấy được thì dòng tiền để trống, không tính là 0.
+
+Đề xuất sẽ nhắc bạn khi quý mới nhất còn thiếu lưu chuyển tiền tệ, hoặc khi quý đã quá hạn mà chưa có số. Gặp trường hợp sau, bạn nên xem thêm báo cáo trên trang của công ty.
+
+Báo cáo được tải lại mỗi 30 ngày. Vào mùa báo cáo thì dày hơn: hai ngày một lần khi quý mới chưa về, sau mỗi phiên khi quý đã về nhưng còn thiếu lưu chuyển tiền tệ. Mùa báo cáo là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
 
 #### Hết giờ, thử lại và cache
 

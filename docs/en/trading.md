@@ -62,6 +62,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `vietcap-chart` | levels for every HOSE index: the daily series the ETF benchmarks are scored against, and the intraday one behind the live index price | no |
 | `vps` | levels for the ETF benchmark indices only it and `vietcap-chart` carry; behind `vietcap-chart`, whose turnover includes the put-through leg this feed omits | no |
 | `cafef` | VN proprietary-desk flows, for sessions `vndirect` has not published | no |
+| `cafef-statements` | a VN quarter's cash flow, for the newest quarter `vietcap-statements` has filed without one | no |
 | `giavang` `pnj` | VN domestic gold boards, merged in that order | no |
 | `sbv` | VN policy rates (refinancing, rediscount) and interbank averages, from the State Bank's rate page | no |
 | `nso` | the statistics office's monthly socio-economic reports, read by the `trading.macro-extract` job | no |
@@ -111,7 +112,14 @@ A window that ends inside the newest audited year, or on its fourth quarter, res
 
 Beyond the audited years, OpenAlpha also shows the 5 newest quarters, each against the same quarter a year earlier, so you can see whether the business is improving or fading right now. Quarters are unaudited, so they are a reading, not a final figure.
 
-Accounts are refetched every 30 days, and every two days while the latest quarter is due and not stored yet. That is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
+A new quarter reaches the analysis as soon as its results are out, without waiting for the cash flow statement, which often lands a few days later:
+
+- The missing part comes from `cafef-statements`, only when its figures match the quarters already on file. That quarter's line then says "worked out from the backup source for now".
+- Until then, its cash figures stay blank, never zero.
+
+A suggestion tells you when the newest quarter still lacks its cash flow, or when a quarter is past its deadline and not in yet. In the second case, check the company's own filing too.
+
+Accounts are refetched every 30 days, and more often in reporting season: every two days while a new quarter is awaited, and after every session while it is in but still missing its cash flow. Reporting season is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
 
 #### Timeouts, retries and caching
 

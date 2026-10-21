@@ -116,6 +116,31 @@ export interface AccountLines {
   readonly capitalAdequacy?: number
 }
 
+/** The lines a cash flow statement files, which a quarter can lack while its balance sheet and
+ *  income statement are out. */
+export const CASH_FLOW_LINES = Object.freeze([
+  'operatingCashFlow',
+  'depreciation',
+  'capitalExpenditure',
+  'shareIssueProceeds',
+  'shareRepurchases',
+  'cashDividendsPaid',
+] as const satisfies readonly (keyof AccountLines)[])
+type CashFlowLine = (typeof CASH_FLOW_LINES)[number]
+
+/** A filing prints these as negatives; stored as positive amounts. */
+export const OUTFLOW_LINES: ReadonlySet<keyof AccountLines> = new Set<keyof AccountLines>([
+  'sellingExpenses',
+  'adminExpenses',
+  'loanLossReserve',
+  'interestExpense',
+  'incomeTax',
+  'capitalExpenditure',
+  'shareRepurchases',
+  'cashDividendsPaid',
+  'operatingExpenses',
+])
+
 export interface AnnualAccounts {
   readonly instrument: InstrumentRef
   readonly fiscalYear: number
@@ -152,6 +177,8 @@ export interface AccountsQuarter {
   readonly publishedOn: TradingDay
   readonly figures: Readonly<Partial<Record<AccountsQuarterField, number>>>
   readonly comparisons: Readonly<Partial<Record<AccountsQuarterField, AccountsQuarterComparison>>>
+  /** Present when the quarter's cash-flow figures came from a backup source. */
+  readonly cashFlowSourceId?: SourceId
 }
 
 export interface AccountsHistory {
@@ -174,6 +201,18 @@ export type FiscalQuarter = 1 | 2 | 3 | 4
  *  Unaudited; the provider stamps Q4 with the audited year's date. */
 export interface QuarterlyAccounts extends AnnualAccounts {
   readonly quarter: FiscalQuarter
+  /** Present only when the cash-flow lines came from a source other than `sourceId`. */
+  readonly cashFlowSourceId?: SourceId
+}
+
+/** Cash flow from the fiscal year's start to the quarter's close, as the filing prints it. */
+export interface CashFlowToDate {
+  readonly instrument: InstrumentRef
+  readonly fiscalYear: number
+  readonly quarter: FiscalQuarter
+  readonly lines: Readonly<Partial<Record<CashFlowLine | 'preTaxProfit', number>>>
+  readonly sourceId: SourceId
+  readonly fetchedAt: number
 }
 
 /** Everything one read of a name's statements files. */
@@ -193,4 +232,10 @@ export interface TrailingAccounts extends Readonly<Partial<Record<AccountsYearFi
  *  every corporate line, so this is the one test a derivation branches on, never a zero. */
 export function isBankLines(lines: AccountLines): boolean {
   return lines.customerLoans !== undefined
+}
+
+/** A quarter can be kept before its cash flow is filed, so the statement's absence is read here,
+ *  never as zero. */
+export function hasCashFlow(lines: AccountLines): boolean {
+  return lines.operatingCashFlow !== undefined
 }

@@ -131,8 +131,18 @@ function quarterLines(
   })
 }
 
-/** Q4 carries no filed day: the provider stamps it with the audited year's date. */
 function quarterTitle(locale: Locale, report: AccountsQuarter): string {
+  const title = filedTitle(locale, report)
+
+  return report.cashFlowSourceId === undefined
+    ? title
+    : [title, renderDeclaredValue(locale, 'trading.accounts-table.cash-flow-derived')].join(
+        INLINE_SEPARATOR
+      )
+}
+
+/** Q4 carries no filed day: the provider stamps it with the audited year's date. */
+function filedTitle(locale: Locale, report: AccountsQuarter): string {
   const year = String(report.fiscalYear)
 
   if (report.quarter === 4) {

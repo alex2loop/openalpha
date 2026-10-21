@@ -20,6 +20,7 @@ import {
   sumOf,
   totalOf,
 } from '@/trading/markets/equity-vn/accounts/lines'
+import { quarterGapCaveats } from '@/trading/markets/equity-vn/accounts/quarter-gaps'
 import { toAccountsQuarters } from '@/trading/markets/equity-vn/accounts/quarters'
 import { finalFiscalYear } from '@/trading/markets/equity-vn/accounts/score'
 import { trailingLinesOf } from '@/trading/markets/equity-vn/accounts/trailing'
@@ -57,13 +58,16 @@ export function toAccountsHistory(input: HistoryInput): AccountsHistory | undefi
     ...(trailing === undefined ? {} : { trailing }),
     quarters: toAccountsQuarters(input.quarters, input.asOf),
     ...(trend === undefined ? {} : { trend }),
-    caveats: accountsFlags({
-      reports,
-      years,
-      ...(window === undefined ? {} : { window }),
-      ...(trend === undefined ? {} : { trend }),
-      readingOnly: input.readingOnly,
-    }),
+    caveats: [
+      ...accountsFlags({
+        reports,
+        years,
+        ...(window === undefined ? {} : { window }),
+        ...(trend === undefined ? {} : { trend }),
+        readingOnly: input.readingOnly,
+      }),
+      ...quarterGapCaveats(input.quarters, input.asOf),
+    ],
     sourceId: newest.sourceId,
     fetchedAt: newest.fetchedAt,
   }

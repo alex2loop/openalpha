@@ -108,6 +108,6 @@ function isUnbroken(window: readonly QuarterlyAccounts[]): boolean {
   })
 }
 
-export function periodIndexOf(report: QuarterlyAccounts): number {
+export function periodIndexOf(report: Pick<QuarterlyAccounts, 'fiscalYear' | 'quarter'>): number {
   return report.fiscalYear * QUARTERS_PER_YEAR + report.quarter
 }

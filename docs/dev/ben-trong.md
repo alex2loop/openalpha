@@ -266,6 +266,9 @@ khi hết giờ hoặc bị hủy. Tải web có biện pháp chống SSRF.
 tiền tố, tìm toàn văn, xóa mềm và TTL. Giá trị trông như bí mật hoặc như prompt injection bị từ chối trước
 khi lưu. Các phiên chạy con tách khóa riêng qua vùng tên của phiên chat tạm thời. Engine còn rút ra các
 sở thích mà người dùng nói rõ từ những cuộc hội thoại đã xong, và lưu chúng qua đúng đường có kiểm soát đó.
+Một sở thích đã lưu không bao giờ bị ghi đè khi trích xuất: thay đổi được hỏi lại người dùng một lần, ở đầu
+câu trả lời kế tiếp, và chỉ được lưu khi tin nhắn sau đó của họ đồng ý. Lượt chạy theo lịch hoặc chạy qua
+pipe không có ai để hỏi, nên không bao giờ đề xuất thay đổi.
 
 **Kỹ năng.** Các thư mục chứa `SKILL.md`, cộng với các kỹ năng giao dịch được nhúng vào binary. Mô hình nhận
 một mục lục gọn và chỉ nạp phần thân qua `skill_view`. Tên các kỹ năng nhúng là tên dành riêng: một kỹ

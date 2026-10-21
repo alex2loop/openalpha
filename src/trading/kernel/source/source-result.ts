@@ -7,7 +7,7 @@ import type {
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type { FiledAccounts } from '@/trading/kernel/market/annual-accounts'
+import type { CashFlowToDate, FiledAccounts } from '@/trading/kernel/market/annual-accounts'
 import type { CommodityHistory } from '@/trading/kernel/market/commodity'
 import type {
   AnalystRecommendation,
@@ -62,6 +62,9 @@ export interface SourceKindMap {
   readonly fundamentals: readonly FundamentalSnapshot[]
   /** Every full-year and quarterly report the provider serves for one name. */
   readonly accounts: FiledAccounts
+  /** Year-to-date cash flow of one quarter, from a provider that files it before the primary one.
+   *  An empty list means the quarter is not published yet. */
+  readonly cashFlowToDate: readonly CashFlowToDate[]
   readonly events: readonly MarketEvent[]
   readonly news: readonly NewsItem[]
   readonly macro: MacroSnapshot
@@ -103,6 +106,7 @@ const SOURCE_KIND_MEMBERSHIP = {
   bars: true,
   fundamentals: true,
   accounts: true,
+  cashFlowToDate: true,
   events: true,
   news: true,
   macro: true,

@@ -26,6 +26,8 @@ export interface SourceRequest {
   readonly attemptTimeoutMs?: number
   /** Per-request retry cap; absent means RETRY_MAXIMUM_ATTEMPTS. */
   readonly maxAttempts?: number
+  /** Per-request response cap, only ever below MAXIMUM_RESPONSE_BYTES. */
+  readonly maxBytes?: number
   readonly signal: AbortSignal
 }
 

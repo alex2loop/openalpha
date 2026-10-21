@@ -54,6 +54,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | Live board and foreign room | `vndirect`, `vietcap-board` |
 | Financial statements (full years and quarters) | `vietcap-statements` |
 | Proprietary-desk flows | `cafef` |
+| A quarter's missing cash flow | `cafef-statements` |
 | Buy and sell sides of the day's trades | `kbsec`, `vietcap` |
 | Exchange supervision list (merged) | `hsx`, `ssi` |
 | Index membership (`vn30`, `vn100`) | `vietcap` |
@@ -88,6 +89,7 @@ What the less obvious ones do:
 
 - `vndirect` leads VN prices because its row is written while the market trades. It does not serve indices: an index price goes to `vietcap-chart`, and index history to `entrade` then `vietcap-chart`. `vps` is last, and exists for the ETF benchmark indices (VNDIAMOND, VNX50 and the like) that neither `vndirect` nor `entrade` serves, so one refusal does not take them all out.
 - `vietcap-board` reads the whole VN board in one call and backs `vndirect` for both the live board and foreign room.
+- `cafef-statements` is not a fallback for `vietcap-statements`. It is asked only for the newest quarter when `vietcap-statements` has filed its balance sheet and income statement but not yet its cash flow, and its figures are kept only when its year-to-date pre-tax profit matches the quarters already on file. `vietcap-statements` replaces them the day it serves the cash flow.
 - `cafef` is not a fallback for `vndirect`'s flows. It publishes the proprietary desk alone, two sessions sooner, and is asked only for the sessions still missing that part.
 - `fred-csv` carries the monthly commodity series no daily feed has (coal, rice, pork, steel). `vndirect` carries the daily ones. They never compete for one commodity.
 - `coinbase` and `okx` price a settlement coin (such as USDT) against a fiat currency. There is no fallback from `USDTVND` to `USDVND`: USDT is a different instrument, and a missing rate is reported rather than guessed.
@@ -152,7 +154,7 @@ Every provider is paced to a requests-per-minute rate that is either its publish
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
 | 120 | `fred`, `vietcap-statements` |
-| 60 | `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `yahoo` |
+| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `yahoo` |
 | 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |

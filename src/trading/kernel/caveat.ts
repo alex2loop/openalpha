@@ -102,6 +102,8 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'factor.inventory-outpacing-sales', severity: 'warn' },
   { code: 'factor.interest-cover-falling', severity: 'warn' },
   { code: 'factor.accounts-lines-dropped', severity: 'warn' },
+  { code: 'factor.accounts-quarter-partial', severity: 'warn' },
+  { code: 'factor.accounts-quarter-late', severity: 'warn' },
   { code: 'factor.cash-conversion-low', severity: 'warn' },
   { code: 'factor.free-cash-negative', severity: 'warn' },
   { code: 'factor.dividend-above-free-cash', severity: 'warn' },
