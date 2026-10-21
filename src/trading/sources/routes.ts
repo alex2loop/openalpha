@@ -52,6 +52,9 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   sessionQuotes: { 'equity-vn': [sourceId('vndirect'), sourceId('vietcap-board')] },
   fundamentals: { 'equity-vn': [sourceId('vndirect')] },
   accounts: { 'equity-vn': [sourceId('vietcap-statements')] },
+  // Fills a quarter's missing cash flow and is not a failover for `accounts`: the refresh asks for it
+  // only where the primary reply lacks that statement.
+  cashFlowToDate: { 'equity-vn': [sourceId('cafef-statements')] },
   events: { 'equity-vn': [sourceId('vndirect')] },
   flows: { 'equity-vn': [sourceId('vndirect')] },
   // Not a failover for `flows`: cafef publishes the proprietary desk alone, and two sessions ahead

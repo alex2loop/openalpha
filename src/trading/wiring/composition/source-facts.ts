@@ -17,7 +17,8 @@ import {
 } from '@/trading/sources/adapters/binance/sources'
 import { BLS_DEFAULT_ENDPOINT, createBlsSources } from '@/trading/sources/adapters/bls'
 import { BYBIT_DEFAULT_ENDPOINT, createBybitSources } from '@/trading/sources/adapters/bybit'
-import { CAFEF_DEFAULT_ENDPOINT, createCafefSources } from '@/trading/sources/adapters/cafef'
+import { CAFEF_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/cafef/client'
+import { createCafefSources } from '@/trading/sources/adapters/cafef/sources'
 import { CFTC_DEFAULT_ENDPOINT, createCftcSources } from '@/trading/sources/adapters/cftc'
 import {
   COINBASE_DEFAULT_ENDPOINT,
@@ -87,6 +88,7 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('binance-futures')]: BINANCE_FUTURES_DEFAULT_ENDPOINT,
   [sourceId('bybit')]: BYBIT_DEFAULT_ENDPOINT,
   [sourceId('cafef')]: CAFEF_DEFAULT_ENDPOINT,
+  [sourceId('cafef-statements')]: CAFEF_DEFAULT_ENDPOINT,
   [sourceId('cftc')]: CFTC_DEFAULT_ENDPOINT,
   [sourceId('coinbase')]: COINBASE_DEFAULT_ENDPOINT,
   [sourceId('coingecko')]: COINGECKO_DEFAULT_ENDPOINT,
@@ -144,6 +146,10 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *  `typesafe` publishes no ceiling through OpenRouter; one debate asks it once, so sixty a minute
  *  is far above the peak and still catches a runaway.
  *
+ *  `cafef-statements` publishes no ceiling. A name costs one page of about 33 KB, asked only for a
+ *  name whose newest quarter lacks cash flow, so 60 a minute is far above the peak and still catches
+ *  a runaway.
+ *
  *  `vietcap-statements` publishes no ceiling. A name costs three requests, four for a bank, and a
  *  refresh asks for the board and the book, about 120 names, only when their reports are due, so
  *  120 a minute keeps the monthly burst near three minutes. */
@@ -154,6 +160,7 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('bls')]: 20,
   [sourceId('bybit')]: 600,
   [sourceId('cafef')]: 300,
+  [sourceId('cafef-statements')]: 60,
   [sourceId('cftc')]: 20,
   [sourceId('coinbase')]: 60,
   [sourceId('coingecko')]: 10,

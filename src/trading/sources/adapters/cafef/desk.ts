@@ -1,6 +1,3 @@
-// Source class: scraping-risky. `cafef.vn` is a consumer finance site's own AJAX handler with no
-// SLA -- like `vndirect/` and `vietcap`, it can change or refuse traffic without notice. The
-// endpoint is code-owned because it is a provider fact, not an operator judgment.
 import { z } from 'zod'
 
 import type { TradingDay } from '@/trading/kernel/instrument'
@@ -10,14 +7,11 @@ import type { SourceAdapterOptions } from '@/trading/sources/define'
 import type { RowTarget } from '@/trading/sources/rows/row-target'
 import { ValidationError } from '@/core/errors'
 import { currencyCode, ticker, tradingDay } from '@/trading/kernel/instrument'
-import { sourceId } from '@/trading/kernel/source/source-id'
+import { CAFEF_ID } from '@/trading/sources/adapters/cafef/client'
 import { createSource, parsedSource } from '@/trading/sources/define'
 import { dropInvalid, nonNegative, pageRows, parseRow } from '@/trading/sources/rows/normalization'
 import { resolveRowTarget } from '@/trading/sources/rows/row-target'
 
-export const CAFEF_DEFAULT_ENDPOINT = 'https://cafef.vn'
-
-const CAFEF_ID = sourceId('cafef')
 const VND = currencyCode('VND')
 const DESK_PATH = '/du-lieu/Ajax/PageNew/DataHistory/GDTuDoanh.ashx'
 /** One row per session, so a page this size answers any window a caller asks for in one request. */
@@ -40,13 +34,9 @@ const DESK_PAGE = z.object({
   Data: z.object({ Data: z.object({ ListDataTudoanh: z.array(z.unknown()) }) }),
 })
 
-export function createCafefSources(options: SourceAdapterOptions): readonly RegisteredSource[] {
-  return [proprietaryFlowsSource(options)]
-}
-
 /** One name at a time: the handler refuses a request carrying no symbol and has no market-wide
  *  form, so a sweep costs one request per name. */
-function proprietaryFlowsSource(options: SourceAdapterOptions): RegisteredSource {
+export function proprietaryFlowsSource(options: SourceAdapterOptions): RegisteredSource {
   return createSource({
     id: CAFEF_ID,
     kind: 'proprietaryFlows',

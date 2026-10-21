@@ -2202,6 +2202,7 @@
     "source.kind.bars": "lịch sử giá",
     "source.kind.fundamentals": "chỉ số tài chính",
     "source.kind.accounts": "báo cáo tài chính",
+    "source.kind.cashFlowToDate": "báo cáo lưu chuyển tiền tệ",
     "source.kind.events": "sự kiện doanh nghiệp",
     "source.kind.news": "tin tức gần đây",
     "source.kind.policyRates": "lãi suất của Ngân hàng Nhà nước",

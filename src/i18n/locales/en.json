@@ -2202,6 +2202,7 @@
     "source.kind.bars": "price history",
     "source.kind.fundamentals": "financial ratios",
     "source.kind.accounts": "financial reports",
+    "source.kind.cashFlowToDate": "the cash flow statement",
     "source.kind.events": "corporate events",
     "source.kind.news": "recent news",
     "source.kind.policyRates": "the State Bank's rates",

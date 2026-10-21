@@ -116,6 +116,18 @@ export interface AccountLines {
   readonly capitalAdequacy?: number
 }
 
+/** The lines a cash flow statement files, which a quarter can lack while its balance sheet and
+ *  income statement are out. */
+const CASH_FLOW_LINES = Object.freeze([
+  'operatingCashFlow',
+  'depreciation',
+  'capitalExpenditure',
+  'shareIssueProceeds',
+  'shareRepurchases',
+  'cashDividendsPaid',
+] as const satisfies readonly (keyof AccountLines)[])
+type CashFlowLine = (typeof CASH_FLOW_LINES)[number]
+
 /** A filing prints these as negatives; stored as positive amounts. */
 export const OUTFLOW_LINES: ReadonlySet<keyof AccountLines> = new Set<keyof AccountLines>([
   'sellingExpenses',
@@ -189,6 +201,16 @@ export interface QuarterlyAccounts extends AnnualAccounts {
   readonly quarter: FiscalQuarter
   /** Present only when the cash-flow lines came from a source other than `sourceId`. */
   readonly cashFlowSourceId?: SourceId
+}
+
+/** Cash flow from the fiscal year's start to the quarter's close, as the filing prints it. */
+export interface CashFlowToDate {
+  readonly instrument: InstrumentRef
+  readonly fiscalYear: number
+  readonly quarter: FiscalQuarter
+  readonly lines: Readonly<Partial<Record<CashFlowLine | 'preTaxProfit', number>>>
+  readonly sourceId: SourceId
+  readonly fetchedAt: number
 }
 
 /** Everything one read of a name's statements files. */
