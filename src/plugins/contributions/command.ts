@@ -1,3 +1,4 @@
+import type { ResolvedConfig } from '@/core/config/resolve'
 import type { AgentId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type {
@@ -31,6 +32,7 @@ interface DeclarativeCommandDeps {
   readonly agents: ReadonlyMap<string, AgentProfile>
   readonly workflows: ReadonlyMap<string, Workflow>
   readonly runner: Runner
+  readonly config: ResolvedConfig
   readonly logger: Logger
 }
 
@@ -104,6 +106,7 @@ async function runWorkflowCommand(
 
   const result = await runWorkflow({
     runner: deps.runner,
+    config: deps.config,
     logger: deps.logger,
     workflow,
     invocation: {

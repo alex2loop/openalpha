@@ -399,6 +399,7 @@ Windows on ARM gets a native build. No database change.
 
 A friendlier first run: OpenAlpha starts without any key, says what each missing key holds back, and
 the README walks you from install to a daily routine. No database change.
+> Lần chạy đầu thân thiện hơn: OpenAlpha khởi động được mà không cần khóa nào, nói rõ mỗi khóa còn thiếu làm hụt phần nào, và README dẫn bạn từ cài đặt đến thói quen dùng hằng ngày. Không đổi cơ sở dữ liệu.
 
 ### Running without keys
 
@@ -444,6 +445,7 @@ the README walks you from install to a daily routine. No database change.
 
 A readability and bookkeeping release: every report opens with its answer, and the ledger records
 the rate you actually paid for USDT. No database change.
+> Bản dễ đọc hơn và ghi sổ đúng hơn: mọi báo cáo mở đầu bằng câu trả lời, và sổ ghi đúng tỷ giá bạn đã mua USDT. Không đổi cơ sở dữ liệu.
 
 ### Your book in USDT
 
@@ -477,6 +479,7 @@ the rate you actually paid for USDT. No database change.
 
 A hardening release: the same commands, with safer orders, a more honest track record and a daemon
 that rides out bad moments. The first start adds one database column by itself (after a backup).
+> Bản gia cố: vẫn các lệnh cũ nhưng lệnh đặt an toàn hơn, sổ theo dõi thành tích trung thực hơn và daemon vượt qua lúc trục trặc tốt hơn. Lần khởi động đầu tự thêm một cột vào cơ sở dữ liệu (sau khi sao lưu).
 
 ### Orders and your book
 
@@ -502,6 +505,7 @@ that rides out bad moments. The first start adds one database column by itself (
 The first public release: a self-hosted trading research analyst for Vietnamese stocks, gold and
 crypto. It finds ideas, argues both sides, sizes the trade against your whole book and keeps an
 honest record of its calls. It never places an order you did not approve.
+> Bản công khai đầu tiên: một nhà phân tích nghiên cứu giao dịch tự lưu trữ cho cổ phiếu Việt Nam, vàng và crypto. Nó tìm ý tưởng, tranh luận cả hai phía, tính cỡ lệnh theo toàn bộ danh mục của bạn và ghi lại trung thực các nhận định của mình. Nó không bao giờ đặt lệnh mà bạn chưa duyệt.
 
 ### Getting started
 

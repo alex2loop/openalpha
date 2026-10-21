@@ -278,7 +278,7 @@ language = "vi"                   # vi | en
 # Watchlist breakout alerts. /screen's universe and gates are code-owned.
 # [trading.alerts]
 # breakout_range = 1.5               # a move must travel this many average daily ranges to alert
-# breakout_sessions = 14             # sessions that average range is measured over
+# breakout_sessions = 14             # sessions that average range is measured over; at least 5
 
 # A price typed in /record, /update or /alert this many times above or below the name's latest
 # price is saved only once you confirm it.

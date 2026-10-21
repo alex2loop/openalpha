@@ -177,12 +177,13 @@ export const EXCLUDED_TICKERS: ReadonlySet<string> = new Set([
   'PAXG',
 ])
 
-/** A letter followed by up to nine uppercase alphanumerics — the shape every symbol in the ranked
- *  universe has. It rejects exchange-suffixed and punctuated codes outright, but it cannot separate
- *  a three-letter coin from a three-letter equity ticker; nothing in the grammar can. A ticker both
- *  markets claim is reported as cross-market ambiguity by `MarketRegistry`, which is the honest
- *  answer — a hardcoded collision list would be a second universe to keep current. */
-export const CRYPTO_SYMBOL_RE = /^[A-Z][A-Z0-9]{1,9}$/
+/** One to ten uppercase alphanumerics with at least one letter — the shape every symbol in the
+ *  ranked universe has, including one-letter coins and digit-leading ones (`S`, `1INCH`). It rejects
+ *  exchange-suffixed and punctuated codes outright, but it cannot separate a three-letter coin from
+ *  a three-letter equity ticker; nothing in the grammar can. A ticker both markets claim is reported
+ *  as cross-market ambiguity by `MarketRegistry`, which is the honest answer — a hardcoded
+ *  collision list would be a second universe to keep current. */
+export const CRYPTO_SYMBOL_RE = /^(?=[0-9]*[A-Z])[A-Z0-9]{1,10}$/
 
 /** A decade of price per band, so the tick stays near a ten-thousandth of the price everywhere in a
  *  universe that spans ten orders of magnitude. A single flat tick cannot: at $0.077 a one-cent grid

@@ -79,9 +79,9 @@ với công cụ nào.
 `trading.refresh` ghi. Đây là bảng bền: `db export` và `db import` mang nó theo, và không lần dọn dẹp
 nào xóa nó. Nó chỉ lớn thêm một dòng mỗi ngày.
 
-**Nến ngày.** `daily_bars` khóa theo cả nguồn lẫn ngày, nên hai nhà cung cấp cùng trả lời một cửa sổ thì
-cả hai đều được lưu. Một chuỗi có cùng một phiên hai lần sẽ làm lệch mọi trung vị, ATR và khoảng nhìn
-lại, nên phía đọc giữ dòng mới nhất cho mỗi phiên.
+**Nến ngày.** `daily_bars` giữ một dòng cho mỗi thị trường, mã và ngày, và ghi lại nhà cung cấp nào đã
+ghi dòng đó. Một chuỗi có cùng một phiên hai lần sẽ làm lệch mọi trung vị, ATR và khoảng nhìn lại, nên
+khóa này không cho điều đó xảy ra.
 
 **Lệnh.** `order_intents` và `resting_exits` thuộc về tính năng đặt lệnh, và cả hai đều bền:
 

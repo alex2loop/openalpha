@@ -260,7 +260,7 @@ function resolvePullback(
  *  leaves out, and it is why no fill rate is published beside this. One at the limit is ~50% for
  *  every name, because the limit is that name's own median depth. */
 function waitReturnPct(row: PullbackWindow, limit: number): number {
-  return limit <= 0 || row.bestPrice > limit
+  return limit <= 0 || row.bestPrice >= limit
     ? 0
     : ((row.exitClose - limit) / limit) * PERCENT_PER_UNIT
 }

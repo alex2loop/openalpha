@@ -346,21 +346,7 @@ async function listBars(deps: StoreDeps, options: DayWindowOptions): Promise<rea
     [options.instrument.market, options.instrument.ticker, options.fromDay, options.toDay]
   )
 
-  return latestPerDay(rows).map(toBarRecord)
-}
-
-/** One row per session. The table is keyed by source as well as day, so two providers answering the
- *  same window both persist, and a series carrying a session twice is a different population to
- *  every median, every ATR and every lookback taken over it. Ordered by `fetched_at`, so the newest
- *  fetch is the one kept — the rule `listLatestBars` already applies to this table. */
-function latestPerDay(rows: readonly BarRow[]): readonly BarRow[] {
-  const byDay = new Map<string, BarRow>()
-
-  for (const row of rows) {
-    byDay.set(row.day, row)
-  }
-
-  return [...byDay.values()]
+  return rows.map(toBarRecord)
 }
 
 async function deleteExpired(deps: StoreDeps, options: DeleteExpiredOptions): Promise<number> {

@@ -238,7 +238,7 @@ openalpha start [--background]
 openalpha stop
 openalpha restart [--background]
 openalpha status
-openalpha doctor [--online]
+openalpha doctor [check] [--online]
 ```
 
 `start` trần chạy ở tiền cảnh, và Ctrl-C sẽ dừng nó. `--background`/`-b` chạy lại đúng dòng lệnh đó ở
@@ -329,8 +329,7 @@ những việc còn lại.
 
 Chạy lại khi đã có cấu hình để đổi từng phần: mô hình, bot Telegram, mức chi hoặc ngôn ngữ. Lưu xong một phần thì menu hiện lại để bạn đổi tiếp, tới khi chọn "Xong, thoát"; ← ở câu danh sách đầu tiên của một phần đưa bạn về menu. Lần ghi lại này
 làm mất các dòng chú thích trong tệp, nên tệp cũ được sao lưu trước, nằm cạnh nó với tên
-`config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một bản sao lưu riêng; bản nào không cần nữa thì bạn cứ
-xóa. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình
+`config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một bản sao lưu riêng, và giữ 5 bản mới nhất; bản cũ hơn được tự xóa. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình
 đều sẽ mời bạn bắt đầu thiết lập.
 
 `setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop, bật thêm `[api]`, và không ghi đè cấu hình đã có.
@@ -409,7 +408,7 @@ còn giữ tư cách thành viên. Chi tiết ở [Mạng xã hội](mang-xa-hoi
 ## Bộ nhớ, lịch sử, chi phí
 
 Mọi thao tác với bộ nhớ đều qua các kiểm tra về bí mật, tiêm prompt, kích thước, phạm vi và thời gian
-sống. Tìm kiếm dùng chỉ mục toàn văn.
+sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>` chỉ giữ các khóa bắt đầu bằng chữ đó.
 
 `history clear` xóa mọi phiên chat, hoặc mọi phiên chat của một agent. Hãy đọc phần trợ giúp và câu hỏi
 xác nhận trước khi chạy.
@@ -515,7 +514,7 @@ ghi sổ và `/trade`.
 |---|---|
 | `/setup` | `/setup` - trợ lý làm gì và cách thiết lập |
 | `/record` | Ghi một dòng vào sổ. Xem [Sổ lệnh](#sổ-lệnh) |
-| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto`. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
+| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto` khi tỷ giá có tác dụng; dòng trả từ số USDT sàn đã giữ thì không dùng tỷ giá. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
 | `/delete` | `/delete <mã bút toán>` - xem một mục; `/delete <mã bút toán> confirm` mới xóa |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Trong chat mặc định là 10 dòng gần nhất (terminal giữ 100), và nút trang kế giữ nguyên cỡ đó. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
 | `/portfolio` | `/portfolio` - giá trị và phân bổ, mỗi dòng nói rõ vị thế đang cách mức dừng bao xa. Xem [Mức dừng dự kiến không phải một lệnh đang treo](#mức-dừng-dự-kiến-không-phải-một-lệnh-đang-treo) |
@@ -660,7 +659,7 @@ trước, hoặc gõ lại lệnh kèm `fx <giá>`.
 - Một lệnh `/record` khác gõ đúng cú pháp thì bỏ dòng đang chờ và báo cho bạn biết. Gõ sai cú pháp thì dòng
   vẫn được giữ.
 - `/record confirm` khi không có gì đang chờ thì cho biết và không ghi gì.
-- `/update` một dòng bằng đồng khác VND bắt buộc ghi `fx <giá>` hoặc `fx auto`; nó không bao giờ giữ dòng.
+- `/update` một dòng bằng đồng khác VND chỉ bắt buộc ghi `fx <giá>` hoặc `fx auto` khi tỷ giá làm đổi sổ (đúng các dòng `/record confirm` hỏi); dòng trả từ tiền tệ sàn đã giữ thì không dùng tỷ giá. Nó không bao giờ giữ dòng.
 - `/record confirm` chỉ hỏi khi tỷ giá làm đổi sổ: khi nạp hoặc rút, và khi mua bán ở sàn chưa giữ đồng tiền đó. Sàn đã giữ USDT thì lệnh USDT ở đó trả theo giá vốn của USDT nên không bị hỏi. `/reconcile` giờ so cả số USDT của sàn.
 - `/record sync` không bao giờ hỏi: nó ghi theo tỷ giá thị trường từng ngày, và cuối câu trả lời có một dòng
   cho mỗi đồng tiền đã ghi như vậy để bạn sửa bằng `/update` nếu đã mua qua P2P.

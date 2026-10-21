@@ -1,10 +1,11 @@
 import type { ChannelId } from '@/core/channels'
 import type { SessionId } from '@/core/ids'
-import type { ContentBlock, ProviderResponse } from '@/core/llm'
+import type { ContentBlock } from '@/core/llm'
 import type { OnStreamEvent } from '@/core/stream-events'
 import type { ToolCall } from '@/core/tool'
 import type { RunCompletionCode } from '@/core/types/run'
 import type { RunBookkeeping } from '@/engine/loop/context'
+import type { SettledTurn } from '@/engine/loop/turn'
 import type { RunHandle, RunLifecycle, RunResult, RunView } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
 import { RunHalted } from '@/core/errors'
@@ -24,7 +25,12 @@ import { callProvider } from '@/engine/loop/provider-call'
 import { compactOnce, isCompactionNeeded, shrinkContextWindow } from '@/engine/loop/run-compaction'
 import { emitTurnMetric, runStreamListener } from '@/engine/loop/run-logging'
 import { restoreTodoList } from '@/engine/loop/todo'
-import { classifyFinishReason, commitTurn, executeTools } from '@/engine/loop/turn'
+import {
+  classifyFinishReason,
+  commitTurn,
+  executeTools,
+  keepPartialAnswer,
+} from '@/engine/loop/turn'
 import { clampUserMessage } from '@/engine/loop/user-message'
 import { TIMEOUT_ABORT } from '@/engine/run-registry'
 
@@ -271,7 +277,7 @@ async function runOneTurn(scope: TurnScope): Promise<TurnResult> {
   })
   await runAfterLLM(deps.hooks.afterLLM, run, settled.response)
 
-  return await dispatchTurn(scope, settled.response)
+  return await dispatchTurn(scope, settled)
 }
 
 // Steered messages enter as ordinary user messages at a turn boundary, where the transcript has
@@ -293,7 +299,8 @@ function drainSteering(run: RunView, steering: SteeringInbox): void {
 
 type TurnResult = 'continue' | 'done' | RunCompletionCode
 
-async function dispatchTurn(scope: TurnScope, response: ProviderResponse): Promise<TurnResult> {
+async function dispatchTurn(scope: TurnScope, settled: SettledTurn): Promise<TurnResult> {
+  const { response } = settled
   const { run, drive } = scope
   const { deps } = drive
   const verdict = classifyFinishReason(run.state, response)
@@ -303,7 +310,7 @@ async function dispatchTurn(scope: TurnScope, response: ProviderResponse): Promi
   }
 
   if (verdict === 'compact') {
-    await compactOnce(scope.run, scope.bookkeeping, scope.drive.deps.compactor)
+    await compactAfterLength(scope, settled)
     return 'continue'
   }
 
@@ -341,6 +348,18 @@ async function dispatchTurn(scope: TurnScope, response: ProviderResponse): Promi
   await runHooks(deps.hooks.afterTurn, run)
 
   return completionCode ?? 'continue'
+}
+
+async function compactAfterLength(scope: TurnScope, settled: SettledTurn): Promise<void> {
+  try {
+    await compactOnce(scope.run, scope.bookkeeping, scope.drive.deps.compactor)
+  } catch (err: unknown) {
+    if (err instanceof RunHalted && err.code === 'length_limit') {
+      keepPartialAnswer(scope.run.state, settled)
+    }
+
+    throw err
+  }
 }
 
 function toolCallsOf(content: readonly ContentBlock[]): readonly ToolCall[] {

@@ -303,6 +303,8 @@ export const HOLD_REASON_CODES = Object.freeze([
   'risk-budget-too-small',
   'open-risk-exhausted',
   'size-below-board-lot',
+  'sale-below-board-lot',
+  'position-unsettled',
   'increase-unfunded',
   'fully-invested',
   'market-not-tradeable',

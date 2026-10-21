@@ -2,10 +2,10 @@ import type { Locale } from '@/core/types/locale'
 import type { PriceDisplay, Ticker } from '@/trading/kernel/instrument'
 import type { AnalystRecommendation, NewsItem } from '@/trading/kernel/market/market-data'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
+import type { TradingCalendar } from '@/trading/markets/types'
 import { isSourceFailed } from '@/trading/kernel/source/source-result'
 import { normalizeTitle, rankHeadlines } from '@/trading/markets/news'
 import { formatPrice } from '@/trading/render/money'
-import { utcDayOf } from '@/trading/sources/rows/normalization'
 
 export const MAXIMUM_EVIDENCE_NEWS_ITEMS = 8
 const MAXIMUM_HEADLINE_CHARS = 200
@@ -20,7 +20,8 @@ const COVERAGE_UNAVAILABLE =
 
 export function newsSection(
   items: readonly NewsItem[],
-  read: SourceResult<unknown> | undefined
+  read: SourceResult<unknown> | undefined,
+  calendar: TradingCalendar
 ): string {
   if (items.length === 0) {
     return isSourceFailed(read) ? HEADLINES_UNAVAILABLE : ''
@@ -28,7 +29,7 @@ export function newsSection(
 
   return [
     'HEADLINES (cite by url; do not assert anything they do not say):',
-    ...items.map(evidenceRow),
+    ...items.map((item) => evidenceRow(item, calendar)),
   ].join('\n')
 }
 
@@ -36,13 +37,14 @@ interface MarketNewsSectionInput {
   readonly items: readonly NewsItem[]
   readonly subject: Ticker
   readonly read: SourceResult<unknown> | undefined
+  readonly calendar: TradingCalendar
 }
 
 /** Held apart from the instrument's own headlines. Most names have no coverage on a given day, so
  *  the market's is what a persona would otherwise reason without — but it names other companies,
  *  and folding it into the section above is how it gets attributed to this one. */
 export function marketNewsSection(input: MarketNewsSectionInput): string {
-  const { items, subject } = input
+  const { items, subject, calendar } = input
 
   if (items.length === 0) {
     return isSourceFailed(input.read) ? MARKET_HEADLINES_UNAVAILABLE : ''
@@ -50,7 +52,7 @@ export function marketNewsSection(input: MarketNewsSectionInput): string {
 
   return [
     'MARKET HEADLINES (background only; never attribute these to this instrument):',
-    ...items.map((item) => `- (background, not ${subject}) ${headlineText(item)}`),
+    ...items.map((item) => `- (background, not ${subject}) ${headlineText(item, calendar)}`),
   ].join('\n')
 }
 
@@ -125,12 +127,14 @@ export function headlines(
     : []
 }
 
-function headlineRow(item: NewsItem): string {
-  return `- ${headlineText(item)}`
+function headlineRow(item: NewsItem, calendar: TradingCalendar): string {
+  return `- ${headlineText(item, calendar)}`
 }
 
-function headlineText(item: NewsItem): string {
-  const day = utcDayOf(item.publishedAt)
+/** The day is the instrument's market's: a headline filed before the session's morning reads as
+ *  that session's, not as the UTC day before it. */
+function headlineText(item: NewsItem, calendar: TradingCalendar): string {
+  const day = calendar.dayAt(item.publishedAt)
 
   return `${item.title.slice(0, MAXIMUM_HEADLINE_CHARS)} (${day}) ${item.url}`
 }
@@ -139,8 +143,8 @@ function headlineText(item: NewsItem): string {
  *  against and a headline often cannot settle one. Market background stays headline-only: the
  *  personas are told not to reason from it about this name, so paying tokens to expand it buys
  *  nothing. */
-function evidenceRow(item: NewsItem): string {
-  const head = headlineRow(item)
+function evidenceRow(item: NewsItem, calendar: TradingCalendar): string {
+  const head = headlineRow(item, calendar)
   const summary = item.summary?.trim() ?? ''
 
   return summary === '' ? head : `${head}\n    ${summary.slice(0, MAXIMUM_SUMMARY_CHARS)}`

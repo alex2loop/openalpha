@@ -17,6 +17,7 @@ import type {
 import { RunHalted } from '@/core/errors'
 import { formatErrForLog, isSensitiveKey, scrubCredentials } from '@/core/security/credentials'
 import { unwrapToolResult } from '@/core/security/sanitize'
+import { textOf } from '@/core/utils/message'
 import { normalizeUsage } from '@/engine/budget/attempt-settlement'
 import { loopDetectorGate } from '@/engine/hooks/loop-detector'
 import {
@@ -50,6 +51,8 @@ interface TurnCommit {
   readonly response: ProviderResponse
   readonly llmAttemptIds: readonly [LLMAttemptId, ...LLMAttemptId[]]
 }
+
+export type SettledTurn = Pick<TurnCommit, 'response' | 'llmAttemptIds'>
 
 interface ToolRunDeps {
   readonly admissionGates: readonly ToolGate[]
@@ -86,7 +89,7 @@ export function commitTurn(state: RunState, bookkeeping: RunBookkeeping, commit:
 
   adjustTurnCount(state, 1)
   bookkeeping.estimator = {
-    tokens: usage.input + usage.cacheRead + usage.output,
+    tokens: usage.input + usage.cacheRead + usage.cacheWrite + usage.output,
   }
   state.messages.pushToPending(assistantMessage(commit.response), commit.llmAttemptIds)
 }
@@ -120,6 +123,20 @@ export function classifyFinishReason(
     default:
       return unreachableFinishReason(response.finishReason)
   }
+}
+
+// A cut-off answer the run could not compact its way past is still the best answer it has: the
+// halt keeps its code and the operator reads the partial text instead of nothing.
+export function keepPartialAnswer(state: RunState, settled: SettledTurn): void {
+  const { response } = settled
+  const hasCalls = response.content.some((block) => block.type === 'tool_call')
+
+  if (hasCalls || textOf(response.content).trim() === '') {
+    return
+  }
+
+  state.messages.pushToPending(assistantMessage(response), settled.llmAttemptIds)
+  state.messages.flushPending()
 }
 
 export async function executeTools(

@@ -236,8 +236,9 @@ interface CeilingRunScope {
   readonly listedOn?: TradingDay
 }
 
-/** How many of the newest sessions in a row closed at the ceiling: a limit-sized rise that also
- *  ended on the session's high. The run stops at the first session that did not. */
+/** How many of the newest sessions in a row closed at or just under the ceiling: a rise
+ *  within tolerance of the band that also ended on the session's high. The run stops at the first
+ *  session that did not. */
 export function ceilingRunOf(candles: readonly Candle[], scope: CeilingRunScope): number {
   let run = 0
 

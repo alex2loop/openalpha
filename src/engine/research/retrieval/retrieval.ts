@@ -28,6 +28,7 @@ export interface ResearchContentsInput extends ResearchRetrievalCall {
 
 export interface ResearchDirectFetchInput extends ResearchRetrievalCall {
   readonly url: string
+  readonly allowedHosts?: readonly string[]
   /** Reads the published day from the page's raw markup, before it is converted to text. */
   readonly publishedDayOf: (markup: string) => string | undefined
 }

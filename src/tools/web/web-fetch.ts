@@ -9,9 +9,6 @@ const WEB_TIMEOUT_MAX_SECS = 300
 // Backstop above the largest transport timeout the model may request: fires only when
 // fetchGeneral fails to honor its own cap.
 const WEB_FETCH_BACKSTOP_MARGIN_SECS = 30
-// The operator writes `vnexpress.net/abc`; the model fetches `https://vnexpress.net/abc/`.
-const SCHEME_RE = /^https?:\/\//
-const TRAILING_SLASH_RE = /\/$/
 
 const fetchInputSchema = z.object({
   url: z.url().describe('Absolute https:// URL of the page or file to read.'),
@@ -52,12 +49,8 @@ function canFetchUnasked(input: unknown, context: CallApprovalContext): boolean 
   return (
     parsed.data.headers === undefined &&
     context.callCount <= context.config.loop.maxUnaskedFetches &&
-    urlSpellings(parsed.data.url).some((spelling) => context.hasSeen(spelling))
+    context.hasSeen(parsed.data.url)
   )
-}
-
-function urlSpellings(url: string): readonly string[] {
-  return [url, url.replace(SCHEME_RE, '').replace(TRAILING_SLASH_RE, '')]
 }
 
 export const webFetchTool = createTool({

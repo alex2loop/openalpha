@@ -308,7 +308,7 @@ Plan lifecycle:
 Reduce reasons:
 - `reduce` carries a `reduceReasonCode`: `over-target` is the plan's trim; `structure-broken`, `regime-risk-off`, `thesis-weakening`, `overheated`, `stale`, `ceiling-close` are evidence turning on a held name.
 - An evidence reason cuts to what its share leaves of the position as opened; what was sold since opening counts, so a true reason sells once, then holds as `evidence-sold`. A trim and an evidence reason are weighed, not ordered: the larger share wins and carries its reason, so a full exit is never filed as a routine trim.
-- `structure-broken` and `overheated` come from `crypto` alone (the Turtle exit its Donchian entry earns); do not transplant a full-exit trigger into a market whose entry is not a breakout without a record to fit it. `regime-risk-off`, `thesis-weakening` and `stale` are cross-market. `ceiling-close` is VN stocks only, short horizon only (a long segment masks it), measured on `daily_bars` (the next open gaps up, the ten sessions after lag), sold at the operator's take-profit tranche, off at `VN_CEILING_TRIM_POLICY.sessions = 0`.
+- `structure-broken` and `overheated` come from `crypto` alone (the Turtle exit its Donchian entry earns); do not transplant a full-exit trigger into a market whose entry is not a breakout without a record to fit it. `regime-risk-off`, `thesis-weakening` and `stale` are cross-market. `ceiling-close` is VN stocks only, short horizon only (a long segment masks it), fires on a close at or just under the ceiling (within `LIMIT_HIT_TOLERANCE_FRACTION` of the band, at the session's high) and only until the next open has passed, measured on `daily_bars` (the next open gaps up, the ten sessions after lag), sold at the operator's take-profit tranche, off at `VN_CEILING_TRIM_POLICY.sessions = 0`.
 - On a long horizon `thesis-weakening` also needs the business factors (`BUSINESS_FACTOR_IDS`: quality only, read on its score because VN weighs it zero in the composite) read and bearish; value stays out (it reads the price paid). A market with no business factor sells on its composite alone.
 - Where the market reads annual reports (VN, `FactorScore.businessWeakening`) the latest final report decides: Piotroski at or below `VN_ACCOUNTS_POLICY.weakAtScore` sells, above keeps; the quality lean is the fallback only where no final report could be scored, except `readingOnlySectors`, where the report prints and the quality lean decides. A year counts only after its audit window closes.
 - Banks carry a books line (bad debt, watch list, cover, CASA) that informs and never sells. The accounts history (`markets/equity-vn/accounts/`: per-year figures, the newest quarters, trend over `VN_ACCOUNTS_POLICY.trendYears`, flags; read once per board day) prints on the quality line and reaches the debate (ANNUAL ACCOUNTS) and chat agent (`market_accounts`); it informs and never sells, gates or scores. On a buy the accounts score is a factor line only: add no buy gate from it. A developer's cash-timing flags stay silent.
@@ -345,7 +345,7 @@ Reduce reasons:
 
 ### MCP serve (client model)
 
-- Under `mcp serve` the client's model answers every model call (`Needs.modelSource: 'client'`). No served call waits over 45 s (it returns `working`; the client calls `model_resume`); every MCP run carries `audience: 'operator'` and serves no absolute figure beyond `units`; a suggestion `report` never prints a holding's size or cost (`scripts/check-report-figures.ts`); `suggestion_run` and `brief_build` take `force` with no approval. Details: [docs/en/commands.md](docs/en/commands.md#mcp), [docs/en/dev/internals.md](docs/en/dev/internals.md#mcp).
+- Under `mcp serve` the client's model answers every model call (`Needs.modelSource: 'client'`). No served call waits over 45 s (it returns `working`; the client calls `model_resume`); every MCP run carries `audience: 'operator'`, which may see `units` and figures derived from `units` and public prices (order amount, stake, round-trip fee); a suggestion `report` never prints a holding's size, cost basis, realized return or own fill (`scripts/check-report-figures.ts`); `suggestion_run` and `brief_build` take `force` with no approval. Details: [docs/en/commands.md](docs/en/commands.md#mcp), [docs/en/dev/internals.md](docs/en/dev/internals.md#mcp).
 
 ### Costs, security and config
 
@@ -572,8 +572,6 @@ The LLM call (1-30 s) is the only real bottleneck.
 There are no test files. Do not run `bun test`: it verifies nothing.
 
 - Verification is `bun run typecheck` + `bun run lint` + `bun run check` (+ `bun run lint:arch` for trading changes), plus walking the affected business invariants with a one-command manual check against live data.
-- If you add tests: unit only, mocking LLM/DB/network; one test file per source file; each test under 500 ms.
-- Targeted is the default: `bun test tests/<changed>.test.ts`. Run the full suite only for multi-module changes, public API/interface changes, architecture-rule changes, or before claiming a refactor complete.
 
 ## Working principles
 

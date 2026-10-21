@@ -20,7 +20,6 @@ import {
   LEDGER_ISSUE_KEYS,
   parseLedgerDraft,
 } from '@/trading/features/ledger/draft'
-import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { resolveEntry } from '@/trading/features/ledger/mutate'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { renderEntry } from '@/trading/features/ledger/rows'
@@ -114,13 +113,6 @@ async function runUpdate(
 
   if (ref === undefined || !isResolvedDraft(draft)) {
     return usage(UPDATE_USAGE)
-  }
-
-  if (asksForFxRate(draft, deps.baseCurrency) && 'currency' in draft) {
-    return {
-      kind: 'text',
-      text: t(ctx.locale, 'trading.render.ledger.updateNeedsFx', { currency: draft.currency }),
-    }
   }
 
   // An unknown or ambiguous handle is refused here, before any write.

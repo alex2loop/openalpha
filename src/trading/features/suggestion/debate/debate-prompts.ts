@@ -92,7 +92,7 @@ const REDUCE_REASON_SENTENCES = {
   stale: 'the position has been held for a full outcome window and is still near its cost',
   overheated: 'longs are paying crowded funding to hold this name',
   'ceiling-close':
-    'the name closed at its daily price ceiling; the next open usually gaps up, and the weeks after ' +
+    'the name closed at or just under its daily price ceiling; the next open usually gaps up, and the weeks after ' +
     'have lagged the market, so part of the position is sold into the gap',
 } as const satisfies Record<ReduceReasonCode, string>
 

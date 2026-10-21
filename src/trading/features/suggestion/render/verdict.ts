@@ -177,7 +177,7 @@ function notTradeableKey(caveats: readonly Caveat[]): `trading.${string}` {
         : 'trading.holdBlocked.ceiling'
     }
 
-    if (caveat.code === 'market.foreign-room-exhausted') {
+    if (caveat.code === 'market.foreign-room-exhausted' && caveat.detail?.blocks === 1) {
       return 'trading.holdBlocked.foreign-room'
     }
   }

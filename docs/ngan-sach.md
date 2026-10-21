@@ -28,6 +28,8 @@ max_per_run_usd = 0
 | `soft_warn_ratio` | `0.8` | Cảnh báo một lần mỗi tiến trình và mỗi chu kỳ, khi chi tiêu dự phóng chạm tỷ lệ này của hạn mức. |
 | `max_per_run_usd` | `0` | Mức chi tối đa của một phiên chạy gốc và toàn bộ việc nó ủy quyền. `0` là không chặn. |
 
+Một workflow chạy tính là một phiên chạy: mọi bước và mọi lần thử lại của nó dùng chung một trần `max_per_run_usd`.
+
 Ngày và tháng tính theo `[locale] timezone` (múi giờ của máy, `UTC` khi máy không báo gì) - cũng là lịch mà
 `openalpha cost` đọc.
 

@@ -248,8 +248,9 @@ Windows không có các bit quyền này: ở đó thư mục dữ liệu nằm 
 Endpoint của một server MCP qua HTTP được kiểm lại ở mỗi yêu cầu và không đi theo chuyển hướng nào,
 nhưng không được ghim địa chỉ, nên khoảng hở rebind giữa lúc kiểm và lúc gọi vẫn còn.
 
-Danh sách `hosts` của agent là một ranh giới năng lực: thêm một host là cố ý nới phạm vi agent đó với
-tới được.
+Danh sách `hosts` của agent là một ranh giới năng lực cho `web_fetch` và cho các trang `research` đọc
+trực tiếp: thêm một host là cố ý nới phạm vi agent đó với tới được. Trang research nằm ngoài danh sách bị bỏ
+qua như một lần đọc hỏng bình thường, phiên chạy vẫn đi tiếp.
 
 ### Nội dung công cụ và kỹ năng
 

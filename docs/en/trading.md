@@ -273,7 +273,7 @@ None of this changes confidence, levels or size. The reads go to the `[[model_ti
 - `thesis-weakening`
 - `overheated` - longs paying crowded funding.
 - `stale` - a full holding window at cost.
-- `ceiling-close` - a VN stock you hold closed at its daily ceiling. The next open usually gaps up and the weeks after have lagged the market, so your usual first take-profit share is sold at that open.
+- `ceiling-close` - a VN stock you hold closed at or just under its daily ceiling. The next open usually gaps up and the weeks after have lagged the market, so your usual first take-profit share is sold at that open; once that open has passed the gap is already paid and nothing is proposed.
 
 `structure-broken`, `stale` and `ceiling-close` are read on a short-horizon segment only. A long segment is not sold on a ten-session low, a flat quarter or one ceiling close.
 
@@ -399,7 +399,7 @@ A quote prints inside its own session's range. If a call's session bar no longer
 - Locked at the ceiling: a buy's entry moves to the open of the next session that trades, and T+2 and the benchmark comparison both count from that fill.
 - A target sale into a ceiling lock still fills, because buyers are queued at the ceiling.
 - A call the ceiling kept out for its whole window closes `unfilled`: no trade, no result, out of every scored count.
-- A name you hold that closes at the ceiling is proposed for a partial sale at the next open (`ceiling-close`, under Selling a held name).
+- A name you hold that closes at or just under the ceiling is proposed for a partial sale at the next open (`ceiling-close`, under Selling a held name).
 
 **Resting buys.** A resting buy fills on the first session that trades below its limit (a touch is not a fill), at that session's open where it opened below. On the call's own day only the move from the quote to the close counts, since the day's low may have printed before the order existed. On the fill session itself the target counts only when the session opened below the limit (a gap fill at the open); a session that opened at or above it filled partway through, and a daily bar cannot say whether its high printed first, so the target is read from the next session. The stop is still tested on the fill session, as it is on every session before the target. A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from calls that played out.
 

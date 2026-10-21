@@ -1,5 +1,4 @@
 import type { FactorRequest, FactorScore } from '@/trading/kernel/factor'
-import type { TradingDay } from '@/trading/kernel/instrument'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
 import type { ScreenInput } from '@/trading/markets/equity-vn/screen'
 import type { TradingCalendar } from '@/trading/markets/types'
@@ -40,7 +39,7 @@ export async function runFactors(
     ...scoreNameFactors(evidence, cross),
     ...(failed.length === 0 ? {} : { failedGates: failed }),
     ...(signals.length === 0 ? {} : { signals }),
-    ...(isCeilingClose(screen, cross.freshFrom, trim)
+    ...(isCeilingClose(screen, options.now, trim)
       ? { reduceSignal: 'ceiling-close' as const }
       : {}),
     ...(accounts === undefined || !accounts.decisive
@@ -49,16 +48,20 @@ export async function runFactors(
   }
 }
 
-function isCeilingClose(screen: ScreenInput, freshFrom: TradingDay, trim: CeilingTrim): boolean {
+function isCeilingClose(screen: ScreenInput, now: number, trim: CeilingTrim): boolean {
   if (trim.sessions <= 0 || screen.kind === ETF_KIND) {
     return false
   }
 
   const candles = adjustedCandles(screen.bars)
+  const lastDay = candles.at(-1)?.at
 
-  // A tape that stopped before the freshness line is a ceiling close that happened sessions ago,
-  // when the gap it trades on has already been paid.
-  if ((candles.at(-1)?.at ?? '') < freshFrom) {
+  if (lastDay === undefined) {
+    return false
+  }
+
+  // The gap is paid at the next open; once that open has passed there is nothing left to trim.
+  if (now >= trim.calendar.sessionOpenAt(trim.calendar.addTradingDays(lastDay, 1))) {
     return false
   }
 

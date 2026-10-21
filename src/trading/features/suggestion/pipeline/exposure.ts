@@ -3,6 +3,7 @@ import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/s
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { MarketRegistry } from '@/trading/markets/types'
+import { tradedWeightPctNav } from '@/trading/features/suggestion/pipeline/concentration'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import { etfBreaches, isBreached } from '@/trading/kernel/operator/exposure'
 
@@ -25,6 +26,7 @@ interface BatchExposureInput {
 type SizedCall = StoredSuggestion & {
   readonly action: 'buy' | 'reduce'
   readonly sizePctNav: number
+  readonly units: number
 }
 
 interface CapKey<K> {
@@ -72,7 +74,11 @@ export async function breachedCaps(input: BatchExposureInput): Promise<readonly 
 }
 
 function isSizedCall(suggestion: StoredSuggestion): suggestion is SizedCall {
-  return suggestion.action !== 'hold' && suggestion.sizePctNav !== undefined
+  return (
+    suggestion.action !== 'hold' &&
+    suggestion.sizePctNav !== undefined &&
+    suggestion.units !== undefined
+  )
 }
 
 /** The sector the row's own note names, weighed against what the book holds there — the same two
@@ -169,7 +175,13 @@ function nettedCaps<S extends CapKey<unknown>>(
 
     const capped = byKey.get(found.key) ?? { ...found, netPctNav: 0, buys: 0 }
 
-    capped.netPctNav += call.action === 'reduce' ? -call.sizePctNav : call.sizePctNav
+    const tradedPctNav = tradedWeightPctNav({
+      held: call.held,
+      units: call.units,
+      sizePctNav: call.sizePctNav,
+    })
+
+    capped.netPctNav += call.action === 'reduce' ? -tradedPctNav : tradedPctNav
     capped.buys += call.action === 'buy' ? 1 : 0
     byKey.set(found.key, capped)
   }

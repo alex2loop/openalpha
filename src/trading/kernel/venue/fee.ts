@@ -27,12 +27,13 @@ export function isBookableFill(receipt: OrderReceipt): boolean {
 
 /** A venue charges in the currency it delivers and names it in `feeCurrency`. The repo convention
  *  records the quantity net of an in-kind fee and the fee priced in the transaction currency, so a
- *  buy charged in base books fewer coins rather than a larger cost.
+ *  buy charged in base books fewer coins rather than a larger cost. A sell charged in base gave up
+ *  the fee's coins too, so it books them as sold and their value as the fee: the position drops by
+ *  everything the venue took and the proceeds stay what the fill paid.
  *
  *  Undefined where the figure would have to be invented: a receipt that names no priced fill; a
- *  sell charged in base gave up more coins than it sold, so netting it off inverts the sign; a
- *  third-currency fee the venue will not quote has no rate to convert at; and a fee at or above the
- *  fill delivered nothing, which is not a row. */
+ *  third-currency fee the venue will not quote has no rate to convert at; and a buy fee at or above
+ *  the fill delivered nothing, which is not a row. */
 export async function toBookedFill(input: BookedFillInput): Promise<BookedFill | undefined> {
   const { receipt } = input
   const fee = Math.abs(receipt.fee)
@@ -46,7 +47,9 @@ export async function toBookedFill(input: BookedFillInput): Promise<BookedFill |
   }
 
   if (receipt.feeCurrency === input.baseAsset) {
-    return input.side === 'buy' ? toInKindFeeFill(receipt, fee) : undefined
+    return input.side === 'buy'
+      ? toInKindFeeFill(receipt, fee)
+      : { quantity: receipt.filledQuantity + fee, fee: fee * receipt.averagePrice }
   }
 
   return toPricedFeeFill(input, fee)

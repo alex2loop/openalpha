@@ -17,8 +17,9 @@ import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 
 /** Below this many usable sessions the average daily range says more about missing history than
- *  about the name, and a band built on it would fire on noise. */
-const MINIMUM_RANGE_SESSIONS = 5
+ *  about the name, and a band built on it would fire on noise. Exported so the config schema refuses
+ *  a `breakout_sessions` that could never arm a band. */
+export const MINIMUM_RANGE_SESSIONS = 5
 const EXHAUSTED_REARM_COOLDOWN_MS = 15 * 60_000
 
 export interface ScreenerReconcileDeps {

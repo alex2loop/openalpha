@@ -52,8 +52,8 @@ async function latestDays(
 
 /** Every stored close per ticker from `fromDay` on, so a refetched window is held against each
  *  session it overlaps rather than the newest alone: a provider that re-bases a name after the
- *  ex-date leaves that newest close untouched. Two sources can hold one session, since the write
- *  key includes `source_id`; read oldest fetch first, the newest stands, as `listBars` keeps it. */
+ *  ex-date leaves that newest close untouched. A session holds one row (the key is
+ *  `(market, ticker, day)`), so the order below only makes the read deterministic. */
 export async function listBarCloses(
   deps: StoreDeps,
   options: DaysFromOptions

@@ -148,10 +148,9 @@ Vậy nếu một bảng nghiệp vụ biến mất sau khi reset, nghĩa là mi
 
 ### Ghi chú về dữ liệu
 
-- `daily_bars` khóa theo nguồn và ngày. Lệnh `DELETE` theo cửa sổ của bên ghi thường chỉ để lại một nhà
-  cung cấp mỗi cửa sổ, nhưng đó là việc của bên ghi. `listBars` sắp theo `fetched_at` và giữ dòng mới
-  nhất cho mỗi phiên, vì một chuỗi có cùng một phiên hai lần làm đổi mọi trung vị, ATR và khoảng nhìn
-  lại.
+- `daily_bars` khóa theo `(market, ticker, day)`; `source_id` ghi lại bên ghi và không thuộc khóa. Vì
+  vậy một phiên chỉ có một dòng, và `listBars` trả đúng dòng đã lưu, vì một chuỗi có cùng một phiên
+  hai lần làm đổi mọi trung vị, ATR và khoảng nhìn lại.
 - `resting_exits.first_missed_at` là mốc thời gian chứ không phải bộ đếm, có chủ ý: đếm số lần bị phủ
   nhận chỉ đo số lượt đối chiếu chứ không đo thời gian, và ý nghĩa của nó đổi theo nhịp vòng lặp.
 - `llm_attempts` là nguồn sự thật của chi phí. Tổng theo phiên chat được cộng từ đó (`loadTotals`),

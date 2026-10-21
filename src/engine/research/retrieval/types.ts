@@ -49,7 +49,10 @@ export interface GatherInput {
   readonly retrieval: ResearchRetrieval
   readonly state: ResearchRetrievalState
   readonly config: ResolvedResearch
-  readonly invocation: Pick<ResearchInvocation, 'signal' | 'parent' | 'reportProgress'> & {
+  readonly invocation: Pick<
+    ResearchInvocation,
+    'signal' | 'parent' | 'reportProgress' | 'allowedHosts'
+  > & {
     readonly recordExternalCost: (charge: ExternalCharge) => Promise<void>
   }
   readonly observeAttempt?: (attempt: ResearchRetrievalAttempt) => void

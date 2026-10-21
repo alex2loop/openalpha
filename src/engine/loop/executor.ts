@@ -18,8 +18,6 @@ import { addUsage } from '@/engine/budget/usage'
 import { parseToolInput } from '@/engine/loop/tools/arg-parse'
 import { resolveToolPresentation } from '@/engine/loop/tools/presentation'
 
-const TRAILING_COMMA_RE = /,\s*([}\]])$/
-
 // `services` is opaque here on purpose: tools/ owns what goes in it (agents, runner, its own
 // interfaces), and engine must not grow an edge to tools to name those types.
 interface ToolExecutorDeps {
@@ -46,10 +44,7 @@ export function coerceToolArgs(args: unknown): unknown {
   try {
     return JSON.parse(args)
   } catch {
-    // A streamed tool call may end with incomplete JSON when the model hits its token limit.
-    const repaired = repairJson(args)
-
-    return repaired ?? { raw: args }
+    return { raw: args }
   }
 }
 
@@ -339,74 +334,4 @@ function formatPipelineResult(result: ToolResult, call: ToolCall, sink: ResultSi
     ...(result.caveats === undefined ? {} : { caveats: result.caveats }),
     ...(result.display === undefined ? {} : { display: result.display }),
   }
-}
-
-function repairJson(raw: string): unknown | undefined {
-  const trimmed = raw.trim().replace(TRAILING_COMMA_RE, '$1')
-  const closers = closingDelimiters(trimmed)
-
-  if (closers === undefined) {
-    return undefined
-  }
-
-  try {
-    return JSON.parse(trimmed + closers.reverse().join(''))
-  } catch {
-    return undefined
-  }
-}
-
-function closingDelimiters(raw: string): string[] | undefined {
-  const state: JsonScanState = { closers: [], inString: false, escaped: false }
-
-  for (const char of raw) {
-    if (!advanceJsonScan(state, char)) {
-      return undefined
-    }
-  }
-
-  return state.inString ? undefined : state.closers
-}
-
-interface JsonScanState {
-  readonly closers: string[]
-  inString: boolean
-  escaped: boolean
-}
-
-function advanceJsonScan(state: JsonScanState, char: string): boolean {
-  if (state.escaped) {
-    state.escaped = false
-    return true
-  }
-
-  if (char === '\\' && state.inString) {
-    state.escaped = true
-    return true
-  }
-
-  if (char === '"') {
-    state.inString = !state.inString
-    return true
-  }
-
-  if (state.inString) {
-    return true
-  }
-
-  if (char === '{') {
-    state.closers.push('}')
-    return true
-  }
-
-  if (char === '[') {
-    state.closers.push(']')
-    return true
-  }
-
-  if (char !== '}' && char !== ']') {
-    return true
-  }
-
-  return state.closers.pop() === char
 }

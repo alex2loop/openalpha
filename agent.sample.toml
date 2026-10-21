@@ -76,7 +76,7 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #               "market_accounts" (a VN company's filed annual accounts).
 #   delegates - agent IDs callable through `delegate` (also include `delegate`
 #               in tools). Omitted or empty = delegation disabled.
-#   hosts     - hostnames web_fetch may reach. Omitted = any host allowed by the
+#   hosts     - hostnames web_fetch and research page reads may reach. Omitted = any host allowed by the
 #               SSRF policy; `*.example.com` matches example.com and its subdomains.
 #               Either way, a link the agent builds itself asks you first.
 #   skills    - SKILL.md names this agent may list and read. Omitted = all.

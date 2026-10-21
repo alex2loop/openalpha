@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
 import type { ChannelId } from '@/core/channels'
+import type { ResolvedConfig } from '@/core/config/resolve'
 import type { HaltCode } from '@/core/errors'
 import type { Logger } from '@/core/logging/logger'
 import type { RunResultReason } from '@/core/types/run'
+import type { Budget } from '@/engine/types/cost'
 import type { RunInput, Runner, RunOptions, RunResult } from '@/engine/types/run'
 import type { Workflow, WorkflowContext } from '@/engine/workflows/types'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
@@ -12,6 +14,7 @@ import { type AgentId, LOCAL_USER_ID, sessionId, type UserId } from '@/core/ids'
 import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
 import { advanceCron } from '@/core/utils/cron'
 import { sleep } from '@/core/utils/time'
+import { createConfiguredRunBudget } from '@/engine/budget/run-budget'
 import {
   MAX_WORKFLOW_STEPS,
   NON_TRANSIENT_HALT_CODES,
@@ -40,8 +43,8 @@ interface StepLabel {
 interface ScheduledWorkflowDeps {
   readonly workflows: ReadonlyMap<string, Workflow>
   readonly logger: Logger
-  readonly defaultTz: string
   readonly runner: Runner
+  readonly config: ResolvedConfig
 }
 
 /** Identity and cancellation passed from a surface that invokes a workflow directly. */
@@ -54,6 +57,7 @@ export interface WorkflowInvocation {
 
 export interface WorkflowRunDeps {
   readonly runner: Runner
+  readonly config: ResolvedConfig
   readonly logger: Logger
   readonly workflow: Workflow
   readonly invocation?: WorkflowInvocation
@@ -78,7 +82,9 @@ interface WorkflowRunContext {
 
 export async function runWorkflow(deps: WorkflowRunDeps): Promise<WorkflowResult> {
   const { runner, logger, workflow } = deps
-  const runContext = createWorkflowRunContext(deps.invocation, deps.parentSignal)
+  // One per-run cap covers every step and retry of this workflow run.
+  const budget = createConfiguredRunBudget(deps.config)
+  const runContext = createWorkflowRunContext(deps.invocation, deps.parentSignal, budget)
   let steps = 0
   let costUsd = 0
 
@@ -217,12 +223,14 @@ async function runStep(
 
 function createWorkflowRunContext(
   invocation: WorkflowInvocation | undefined,
-  parentSignal: AbortSignal | undefined
+  parentSignal: AbortSignal | undefined,
+  budgetSlice: Budget
 ): WorkflowRunContext {
   if (invocation === undefined) {
     return {
       options: {
         approvalMode: 'unavailable',
+        budgetSlice,
         ...(parentSignal === undefined ? {} : { parentSignal }),
       },
       createInput: (agent, userMessage) => ({
@@ -236,7 +244,7 @@ function createWorkflowRunContext(
   }
 
   return {
-    options: { chatId: invocation.chatId, parentSignal: invocation.parentSignal },
+    options: { chatId: invocation.chatId, parentSignal: invocation.parentSignal, budgetSlice },
     createInput: (agent, userMessage) => ({
       agentId: agent,
       sessionId: sessionId(randomUUID()),
@@ -265,7 +273,7 @@ export function startScheduledWorkflows(
 
   const tick = async (): Promise<void> => {
     const now = Date.now()
-    const window = { last, now, defaultTz: deps.defaultTz }
+    const window = { last, now, defaultTz: deps.config.locale.timezone }
 
     for (const wf of deps.workflows.values()) {
       if (stopped || signal.aborted) {
@@ -331,6 +339,7 @@ async function runScheduledWorkflow(options: ScheduledWorkflowTickOptions): Prom
   try {
     await runWorkflow({
       runner: deps.runner,
+      config: deps.config,
       logger: deps.logger,
       workflow: wf,
       parentSignal: signal,

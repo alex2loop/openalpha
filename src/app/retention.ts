@@ -42,7 +42,7 @@ export function startRetention(app: App, logger: Logger): () => Promise<void> {
   const timer = setInterval(sweep, RETENTION_INTERVAL_MS)
   // A pruning sweep is never worth holding the process open for.
   timer.unref()
-  // Run the first sweep immediately so a long-lived daemon does not wait half an hour
+  // Run the first sweep immediately so a long-lived daemon does not wait a full interval
   // before reclaiming anything created while it was down.
   sweep()
 

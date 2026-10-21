@@ -79,7 +79,7 @@ nó được mọi công cụ đã đăng ký.
 |---|---|---|---|
 | `tools` | Cấm tất cả | Cấm tất cả | Danh sách cho phép, hoặc `"*"` cho mọi công cụ đã đăng ký. Tên công cụ lạ làm hỏng tệp. |
 | `delegates` | Không ủy quyền | Không ủy quyền | Các mã agent gọi được qua `delegate`. Nhớ khai cả `delegate` trong `tools`. |
-| `hosts` | Mọi host mà chính sách SSRF cho phép | - | Các tên miền `web_fetch` được với tới. `*.` khớp cả tên miền gốc lẫn các tên miền con. |
+| `hosts` | Mọi host mà chính sách SSRF cho phép | - | Các tên miền `web_fetch` và phần đọc trang của `research` được với tới. `*.` khớp cả tên miền gốc lẫn các tên miền con. |
 | `skills` | Mọi kỹ năng | - | Các tên SKILL.md agent này được liệt kê và đọc. |
 
 Bỏ trống `tools` là cấm tất cả, còn bỏ trống `hosts` là cho phép mọi thứ chính sách SSRF cho qua. Đó là chủ ý:

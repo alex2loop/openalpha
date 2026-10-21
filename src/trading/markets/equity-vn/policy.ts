@@ -197,9 +197,9 @@ export const FTSE_REVIEW_MONTHS = Object.freeze([3, 6, 9, 12] as const)
  *  VNDiamond's, and the passive money moves on all four. */
 export const HOSE_REVIEW_MONTHS = Object.freeze([2, 5, 8, 11] as const)
 /** How far past a fiscal period end the accounts may sit before the ratios stop describing the
- *  business. A VN issuer files the following quarter within twenty days of its close, so at a full
- *  quarter plus the filing window plus three weeks of slack the issuer has missed a deadline rather
- *  than merely not reached one. Counted in calendar days because a statutory deadline is. */
+ *  business, in calendar days as a statutory deadline is: the next quarter (about 92 days), the
+ *  30-day deadline for consolidated accounts, and about two weeks of slack, so an overdue issuer has
+ *  missed a deadline rather than merely not reached one. */
 export const REPORT_OVERDUE_DAYS = 135
 
 /** The target is a multiple of the rounded risk, not an ATR multiple of its own: measured from

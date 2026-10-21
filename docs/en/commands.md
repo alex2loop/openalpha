@@ -241,7 +241,7 @@ openalpha start [--background]
 openalpha stop
 openalpha restart [--background]
 openalpha status
-openalpha doctor [--online]
+openalpha doctor [check] [--online]
 ```
 
 Bare `start` runs in the foreground and Ctrl-C stops it. `--background`/`-b` runs the same command
@@ -339,8 +339,7 @@ the ChatGPT sign-in when you picked that plan, and it ends with a numbered list 
 Run it again on an existing config to change one part at a time: the model, the Telegram bot, the budget or
 the language. After each save the menu comes back so you can change another, until you pick "Done, exit";
 ← on a part's first list question takes you back to the menu. That rewrite drops the file's comments, so the old file is saved first beside it as
-`config.toml.<time>.bak`. Each change leaves its own backup; delete old ones once you no longer
-need them. When no config exists, a bare `openalpha` and any command that needs one
+`config.toml.<time>.bak`. Each change leaves its own backup, and the newest 5 are kept; older ones are deleted for you. When no config exists, a bare `openalpha` and any command that needs one
 offer to start the setup.
 
 `setup write` writes the same starter file for the desktop app, turns on `[api]`, and refuses to
@@ -423,7 +422,7 @@ that still holds a membership. Details are in [Social networks](social.md).
 ## Memory, history, cost
 
 Memory operations are checked for secrets, prompt injection, size, scope and TTL. Search uses the
-full-text index.
+full-text index. `memory list --prefix <text>` keeps only the keys that start with it.
 
 `history clear` deletes every session, or every session of one agent. Read its help and confirmation
 prompt before you run it.
@@ -529,7 +528,7 @@ The rest fit in a line.
 |---|---|
 | `/setup` | `/setup` - what the assistant does and how to set it up |
 | `/record` | Writes a ledger row. See [The ledger](#the-ledger) |
-| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included; the reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto`. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
+| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included; the reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto` where the rate applies; a row paid from USDT the venue already holds takes none. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
 | `/delete` | `/delete <handle>` - show one entry; `/delete <handle> confirm` removes it |
 | `/transactions` | `/transactions [count] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. In a chat the default is the last 10 rows (the terminal keeps 100), and the next-page button keeps the same size. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
@@ -676,7 +675,7 @@ to record it exactly as previewed, or type the command again with `fx <rate>`.
 - A row waiting for confirmation is held for 10 minutes. Each chat holds one, and a new one replaces it.
 - Any other `/record` that parses drops the held row and says so. One that fails to parse keeps it.
 - `/record confirm` with nothing waiting says so and writes nothing.
-- `/update` of a row in a currency other than VND requires `fx <rate>` or `fx auto`; it never holds a row.
+- `/update` of a row in a currency other than VND requires `fx <rate>` or `fx auto` only where the rate changes the book (the same rows `/record confirm` asks about); a row paid from currency cash the venue holds takes none. It never holds a row.
 - `/record confirm` asks only where the rate changes the book: deposits and withdrawals, and trades at a venue holding none of that currency. A venue that already holds USDT pays its USDT trades from it at cost, so they are not asked. `/reconcile` now compares a venue's USDT too.
 - `/record sync` never asks: it books at each day's market rate and ends with one line per currency booked
   that way, so you can fix a row with `/update` if you bought over P2P.

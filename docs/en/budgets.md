@@ -28,6 +28,8 @@ max_per_run_usd = 0
 | `soft_warn_ratio` | `0.8` | Warns once per process and period when projected spend reaches this fraction of the cap. |
 | `max_per_run_usd` | `0` | Most one top-level run and all the work it delegates may spend. `0` means uncapped. |
 
+A workflow run counts as one run: all its steps and retries share one `max_per_run_usd` cap.
+
 A day and a month follow `[locale] timezone` (the host zone, `UTC` when the host reports none) - the same calendar
 `openalpha cost` reads.
 

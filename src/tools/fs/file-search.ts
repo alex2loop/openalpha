@@ -103,16 +103,20 @@ export const fileSearchTool = createTool<FileSearchArgs>({
     }
     const limit = args.limit ?? FILE_SEARCH_MAX_RESULTS
 
-    const { files, truncated } = await collectFiles(realPath, ctx.workspace, ctx.signal)
+    const { files, truncated: walkTruncated } = await collectFiles(
+      realPath,
+      ctx.workspace,
+      ctx.signal
+    )
     const results: SearchMatch[] = []
     let binariesSkipped = 0
 
     for (const file of files) {
-      if (ctx.signal.aborted || results.length >= limit) {
+      if (ctx.signal.aborted || results.length > limit) {
         break
       }
 
-      const { matches, skippedBinary } = await searchFile(file, params, limit - results.length)
+      const { matches, skippedBinary } = await searchFile(file, params, limit + 1 - results.length)
       results.push(...matches)
 
       if (skippedBinary) {
@@ -120,7 +124,14 @@ export const fileSearchTool = createTool<FileSearchArgs>({
       }
     }
 
-    return JSON.stringify({ results, binaries_skipped: binariesSkipped, truncated })
+    // One match past the limit is read only to learn whether more exist; it is never returned.
+    const truncated = walkTruncated || results.length > limit
+
+    return JSON.stringify({
+      results: results.slice(0, limit),
+      binaries_skipped: binariesSkipped,
+      truncated,
+    })
   },
 })
 

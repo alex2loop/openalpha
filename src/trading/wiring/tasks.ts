@@ -73,7 +73,7 @@ interface TradingDaemonDeps {
   readonly logger: Logger
 }
 
-/** Eight bounded loops behind one factory, plus the exit reconciler when some venue accepts orders
+/** The bounded loops behind one factory, plus the exit reconciler when some venue accepts orders
  *  and the intent sweep when an order service exists. Each starts with the daemon; the underlying
  *  service returns immediately when there is no eligible work. */
 export function createTradingDaemonTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {

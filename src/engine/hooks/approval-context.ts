@@ -9,6 +9,13 @@ import { textOf, toolCallsOf } from '@/core/utils/message'
 // wrote into its own arguments.
 const SOURCE_CAPABILITY: Capability = 'net'
 
+// The operator writes `vnexpress.net/abc`; the model fetches `https://vnexpress.net/abc/`. A URL
+// counts as seen only when a whole token of the source text matches it once both lose the
+// scheme and the trailing slash, so a prefix of a seen URL never does.
+const URL_TOKEN_RE = /[^\s<>"'`()[\]{},;]+/g
+const SCHEME_RE = /^https?:\/\//
+const TRAILING_RE = /[/.:!?]+$/
+
 // Per-run counts, keyed on the run's own RunState so they are collected with the run.
 const callCounts = new WeakMap<RunState, Map<string, number>>()
 
@@ -16,7 +23,7 @@ const callCounts = new WeakMap<RunState, Map<string, number>>()
 export function approvalContextFor(run: RunView, toolName: string): CallApprovalContext {
   const counts = callCounts.get(run.state) ?? new Map<string, number>()
   const callCount = (counts.get(toolName) ?? 0) + 1
-  let sourceText: string | undefined
+  let seenTokens: ReadonlySet<string> | undefined
 
   counts.set(toolName, callCount)
   callCounts.set(run.state, counts)
@@ -25,11 +32,21 @@ export function approvalContextFor(run: RunView, toolName: string): CallApproval
     config: run.env.config,
     callCount,
     hasSeen(text): boolean {
-      sourceText ??= sourceTextOf(run.state.messages.history, run.env.tools, run.env.callDepth > 0)
+      seenTokens ??= tokensOf(
+        sourceTextOf(run.state.messages.history, run.env.tools, run.env.callDepth > 0)
+      )
 
-      return sourceText.includes(text)
+      return seenTokens.has(normalizeToken(text))
     },
   }
+}
+
+function tokensOf(sourceText: string): ReadonlySet<string> {
+  return new Set((sourceText.match(URL_TOKEN_RE) ?? []).map(normalizeToken))
+}
+
+function normalizeToken(token: string): string {
+  return token.replace(SCHEME_RE, '').replace(TRAILING_RE, '')
 }
 
 // A delegated child's user message is the parent model's prompt, not the operator's text.

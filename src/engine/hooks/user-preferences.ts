@@ -221,7 +221,7 @@ async function extractAtoms(run: RunView, prefs: PrefState): Promise<readonly At
     requestedModel: req.model,
     inputTokens,
     cacheReadTokens: 0,
-    cacheWriteTokens: inputTokens,
+    cacheWriteTokens: 0,
     maxTokens: EXTRACT_MAX_TOKENS,
     reasoningMode: req.reasoningMode,
     hasOutputContract: req.outputContract !== undefined,
