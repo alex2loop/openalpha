@@ -28,10 +28,14 @@ export async function runFactors(
   const accounts = cross.accounts.get(options.instrument.ticker)?.score
   const bandPct =
     DAILY_BAND_BY_EXCHANGE[toVnExchange(evidence.record.exchange) ?? PRIMARY_EXCHANGE].maximumUpPct
+  const candles = adjustedCandles(evidence.bars)
+  // A tape that stopped before the freshness line is a ceiling close that happened sessions ago,
+  // when the gap it trades on has already been paid.
   const ceilingClose =
     trimSessions > 0 &&
     evidence.record.kind !== ETF_KIND &&
-    ceilingRunOf(adjustedCandles(evidence.bars), bandPct) >= trimSessions
+    (candles.at(-1)?.at ?? '') >= cross.freshFrom &&
+    ceilingRunOf(candles, bandPct) >= trimSessions
 
   return {
     ...scoreNameFactors(evidence, cross),
