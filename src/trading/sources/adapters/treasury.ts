@@ -24,9 +24,11 @@ const REAL_CURVE = 'daily_treasury_real_yield_curve'
 
 const ENTRY_RE = /<m:properties>([\s\S]*?)<\/m:properties>/g
 const DATE_RE = /<d:NEW_DATE[^>]*>(\d{4}-\d{2}-\d{2})/
-const NOMINAL_10Y_RE = /<d:BC_10YEAR[^>]*>([^<]+)</
-const REAL_10Y_RE = /<d:TC_10YEAR[^>]*>([^<]+)</
-const NOMINAL_3M_RE = /<d:BC_3MONTH[^>]*>([^<]+)</
+// A rate is captured only as a number: a maturity the session left out is a self-closing null tag,
+// and a looser capture reads the whitespace after it, which `Number` turns into a zero rate.
+const NOMINAL_10Y_RE = /<d:BC_10YEAR[^>]*>(-?\d+(?:\.\d+)?)</
+const REAL_10Y_RE = /<d:TC_10YEAR[^>]*>(-?\d+(?:\.\d+)?)</
+const NOMINAL_3M_RE = /<d:BC_3MONTH[^>]*>(-?\d+(?:\.\d+)?)</
 
 interface DatedRate {
   readonly at: TradingDay
