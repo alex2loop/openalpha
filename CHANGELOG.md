@@ -7,6 +7,47 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.0.15] - 2026-10-21
+
+A VN stock you hold that closes at its ceiling is now proposed for a trim at the next open, and a
+held name no longer loses its exit plan when a later run that day sells or cannot price it. No database change.
+> Cổ phiếu VN bạn giữ mà đóng cửa ở giá trần giờ được đề xuất bán bớt ngay phiên mở cửa sau, và mã đang giữ không còn mất kế hoạch thoát khi một lần chạy sau trong ngày đề xuất bán hoặc không tính được giá. Không đổi cơ sở dữ liệu.
+
+### Selling a held name
+
+- New reason `ceiling-close`: a VN stock in a short-horizon segment that closed at or just under its
+  ceiling is proposed for a trim of your first take-profit share at the next open, while the gap is
+  still there.
+- A sale smaller than one board lot says so, instead of saying you already sold.
+- A held name the system wants to sell but holds says why the sale was due.
+- When a trim and an evidence reason sell the same number of shares, the evidence reason is named.
+- A name blocked at the ceiling or floor, or by full foreign room, says which.
+- The brief says why each held name is reduced.
+
+### Exit plans
+
+- A sale or an unpriced run on the day you record a buy keeps the rest of the position on its exit
+  plan, so stop and take-profit alerts keep watching it.
+- A holding with only a stop or only a take-profit counts as watched.
+
+### Your book
+
+- `/update` takes a bare ticker the way `/record` does; the other fields stay written out.
+  Dividend, split and distribution lines take a bare ticker too.
+- `/update` of a USDT row asks for `fx` only where the rate changes the book.
+- A crypto sale whose fee was taken in the coin is booked instead of skipped.
+
+### Fixes
+
+- A shared cost cap covers a whole workflow run, and the spend estimate no longer counts the prompt
+  twice.
+- A reply cut off at the length limit keeps the text it had.
+- Tapping an approval while its prompt is still sending now updates the prompt.
+- The agent's `hosts` list also limits pages `research` reads directly.
+- `/schedule edit` keeps the job's timezone; `onboard` keeps the newest 5 config backups.
+- One-letter and digit-leading crypto symbols (`S`, `1INCH`) are recognized.
+- `[trading.alerts] breakout_sessions` must be at least 5.
+
 ## [1.0.14] - 2026-10-21
 
 A VN quarter reaches the analysis as soon as its income statement is out, even before its cash
@@ -208,6 +249,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.0.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.15
 [1.0.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.14
 [1.0.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.13
 [1.0.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.12
