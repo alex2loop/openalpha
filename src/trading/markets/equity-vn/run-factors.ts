@@ -12,7 +12,7 @@ import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 export async function runFactors(
   cache: CrossSectionCache,
   options: FactorRequest,
-  ceilingTrimSessions: number
+  trimSessions: number
 ): Promise<FactorScore> {
   const cross = await cache.get(options.asOf, options.signal)
   const evidence = cross.byTicker.get(options.instrument.ticker)
@@ -29,9 +29,9 @@ export async function runFactors(
   const bandPct =
     DAILY_BAND_BY_EXCHANGE[toVnExchange(evidence.record.exchange) ?? PRIMARY_EXCHANGE].maximumUpPct
   const ceilingClose =
-    ceilingTrimSessions > 0 &&
+    trimSessions > 0 &&
     evidence.record.kind !== ETF_KIND &&
-    ceilingRunOf(adjustedCandles(evidence.bars), bandPct) >= ceilingTrimSessions
+    ceilingRunOf(adjustedCandles(evidence.bars), bandPct) >= trimSessions
 
   return {
     ...scoreNameFactors(evidence, cross),
