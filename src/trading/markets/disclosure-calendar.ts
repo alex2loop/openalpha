@@ -36,12 +36,12 @@ interface DisclosureWindow {
   readonly dueBy: TradingDay
 }
 
-/** The next statutory publication deadline strictly after `asOf`. Undefined is impossible in
- *  practice and is still returned rather than thrown: a caller that gets one simply has nothing
- *  to say about upcoming reports. */
+/** The next statutory publication deadline on or after `asOf`, so the deadline day itself still
+ *  names it. Undefined is impossible in practice and is still returned rather than thrown: a caller
+ *  that gets one simply has nothing to say about upcoming reports. */
 export function nextDisclosure(asOf: TradingDay): DisclosureWindow | undefined {
   return candidates(asOf)
-    .filter((window) => window.dueBy > asOf)
+    .filter((window) => window.dueBy >= asOf)
     .toSorted((left, right) => left.dueBy.localeCompare(right.dueBy))[0]
 }
 

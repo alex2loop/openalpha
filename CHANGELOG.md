@@ -23,6 +23,8 @@ figures and the four-quarter cash totals stay blank rather than read as zero.
 table, and only when its pre-tax profit matches the quarters already stored.
 - Two new notes on the accounts: a quarter is missing its cash flow, or the latest quarter is past
 its filing deadline and not in yet.
+- The "results are due" note now also shows on the deadline day itself, in suggestions and the
+  morning brief.
 
 ## [1.0.13] - 2026-10-21 [IMPORTANT]
 
