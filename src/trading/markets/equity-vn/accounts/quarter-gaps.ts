@@ -2,9 +2,9 @@ import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { QuarterlyAccounts } from '@/trading/kernel/market/annual-accounts'
 import { hasCashFlow, isBankLines } from '@/trading/kernel/market/annual-accounts'
+import { periodIndexOf } from '@/trading/markets/accounts-trailing'
 import { quarterlyReportDeadline } from '@/trading/markets/disclosure-calendar'
 import { lastDueQuarter, quarterEndDay } from '@/trading/markets/equity-vn/accounts/quarter-watch'
-import { periodIndexOf } from '@/trading/markets/accounts-trailing'
 
 /** The codes the accounts capability hands the report itself, so a name with no current score,
  *  whose flags no factor line carries, still says what its newest quarter lacks. */
