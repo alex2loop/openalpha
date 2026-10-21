@@ -6,7 +6,7 @@ import type {
 } from '@/trading/features/suggestion/types'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
-import { renderHoldReason } from '@/trading/features/suggestion/render/verdict'
+import { renderHoldReasons } from '@/trading/features/suggestion/render/verdict'
 import {
   framedDirectionOf,
   isInconclusive,
@@ -76,9 +76,13 @@ export function holdReasonLines(
     return []
   }
 
-  return suggestion.holdReasonCodes
-    .filter((code) => !inconclusive || code !== 'debate-unresolved')
-    .map((code) => `${INDENT[1]}${renderHoldReason(locale, code)}`)
+  const holdReasonCodes = suggestion.holdReasonCodes.filter(
+    (code) => !inconclusive || code !== 'debate-unresolved'
+  )
+
+  return renderHoldReasons(locale, { holdReasonCodes, caveats: suggestion.caveats }).map(
+    (reason) => `${INDENT[1]}${reason}`
+  )
 }
 
 /** The size clause exists only when a size does. An unvalued book still gets the call and a caveat
