@@ -2,7 +2,6 @@ import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrum
 import type {
   AnnualAccounts,
   FiledAccounts,
-  FiscalQuarter,
   QuarterlyAccounts,
 } from '@/trading/kernel/market/annual-accounts'
 import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
@@ -11,32 +10,27 @@ import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidenc
 import type { VnMacroCrossSection } from '@/trading/markets/equity-vn/evidence/macro-evidence'
 import type { TargetOutcome } from '@/trading/markets/refresh-result'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import { tradingDay } from '@/trading/kernel/instrument'
+import { hasCashFlow, isBankLines } from '@/trading/kernel/market/annual-accounts'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
-import { resolveSettledDay, shiftCalendarDay } from '@/trading/markets/calendar'
+import { resolveSettledDay } from '@/trading/markets/calendar'
+import { watchedQuarter } from '@/trading/markets/equity-vn/accounts/quarter-watch'
 import { isAccountsFetched, isFetchedBeforeFinal } from '@/trading/markets/equity-vn/accounts/score'
+import { periodIndexOf } from '@/trading/markets/equity-vn/accounts/trailing'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
 import { invalidateWhenWritten } from '@/trading/markets/equity-vn/evidence/evidence'
 import {
   ACCOUNTS_REFETCH_MS,
-  QUARTER_WATCH_FROM_DAYS,
+  QUARTER_PARTIAL_REFETCH_MS,
   QUARTER_WATCH_REFETCH_MS,
-  QUARTER_WATCH_UNTIL_DAYS,
   VN_MARKET_REF,
   VN_SOURCE_CONCURRENCY,
 } from '@/trading/markets/equity-vn/policy'
+import { fillCashFlow } from '@/trading/markets/equity-vn/refresh/cash-flow-fill'
 import {
   buildRejectedOutcome,
   buildSkippedResult,
   toKindResult,
 } from '@/trading/markets/refresh-result'
-
-const QUARTER_END: Readonly<Record<FiscalQuarter, string>> = Object.freeze({
-  1: '03-31',
-  2: '06-30',
-  3: '09-30',
-  4: '12-31',
-})
 
 interface TargetInput {
   readonly scope: EvidenceScope
@@ -44,11 +38,6 @@ interface TargetInput {
   readonly held: ReadonlySet<string>
   readonly stored: ReadonlyMap<Ticker, readonly AnnualAccounts[]>
   readonly quarters: ReadonlyMap<Ticker, readonly QuarterlyAccounts[]>
-}
-
-interface QuarterRef {
-  readonly fiscalYear: number
-  readonly quarter: FiscalQuarter
 }
 
 /** The names a report can act on: the screened board, where every buy comes from, and the book,
@@ -83,10 +72,11 @@ export async function refreshAccounts(
   )
   const outcomes = await mapWithConcurrency(targets, VN_SOURCE_CONCURRENCY, async (instrument) => {
     const outcome = await fetchAccounts(scope, instrument)
+    const filled = await withCashFlow(scope, outcome, quarters.get(instrument.ticker) ?? [])
 
     progress.advance(1)
 
-    return outcome
+    return filled
   })
   const filed: FiledAccounts = {
     annual: outcomes.flatMap((outcome) => outcome.value?.annual ?? []),
@@ -158,45 +148,58 @@ function isDue(
   const { now } = scope.request
   const settled = resolveSettledDay(scope.calendar, now)
   const lastRead = Math.max(...[...reports, ...(quarters ?? [])].map((report) => report.fetchedAt))
+  const refetchMs = quarterRefetchMs(quarters?.at(-1), settled)
 
   return (
     now - lastRead >= ACCOUNTS_REFETCH_MS ||
     isFetchedBeforeFinal(reports, settled) ||
-    (now - lastRead >= QUARTER_WATCH_REFETCH_MS && isQuarterAwaited(quarters?.at(-1), settled))
+    (refetchMs !== undefined && now - lastRead >= refetchMs)
   )
 }
 
-/** The latest quarter to have ended is inside its filing window and not stored yet. Read on the
- *  calendar year most VN issuers keep; a name on another fiscal year is only asked a few extra
- *  times. */
-function isQuarterAwaited(newest: QuarterlyAccounts | undefined, day: TradingDay): boolean {
+/** How soon the newest stored quarter is worth asking for again, or none when nothing is awaited.
+ *  A bank files no corporate cash flow, so its quarter is never partial. */
+function quarterRefetchMs(
+  newest: QuarterlyAccounts | undefined,
+  day: TradingDay
+): number | undefined {
   const watched = watchedQuarter(day)
 
-  return (
-    watched !== undefined && (newest === undefined || quarterIndex(newest) < quarterIndex(watched))
-  )
-}
+  if (watched === undefined) {
+    return undefined
+  }
 
-function watchedQuarter(day: TradingDay): QuarterRef | undefined {
-  // A day past the cutoff, so a quarter that ended on the cutoff itself counts as ended.
-  const after = shiftCalendarDay(day, 1 - QUARTER_WATCH_FROM_DAYS)
-  const year = Number(after.slice(0, 4))
-  const ended = Math.ceil(Number(after.slice(5, 7)) / 3) - 1
-  const watched: QuarterRef =
-    ended === 0
-      ? { fiscalYear: year - 1, quarter: 4 }
-      : { fiscalYear: year, quarter: ended as FiscalQuarter }
-  const end = tradingDay(`${watched.fiscalYear}-${QUARTER_END[watched.quarter]}`)
+  if (newest === undefined || periodIndexOf(newest) < periodIndexOf(watched)) {
+    return QUARTER_WATCH_REFETCH_MS
+  }
 
-  return day <= shiftCalendarDay(end, QUARTER_WATCH_UNTIL_DAYS) ? watched : undefined
-}
+  const awaitsCashFlow =
+    !(hasCashFlow(newest.lines) || isBankLines(newest.lines)) ||
+    newest.cashFlowSourceId !== undefined
 
-function quarterIndex(ref: QuarterRef): number {
-  return ref.fiscalYear * 4 + ref.quarter
+  return periodIndexOf(newest) === periodIndexOf(watched) && awaitsCashFlow
+    ? QUARTER_PARTIAL_REFETCH_MS
+    : undefined
 }
 
 function storedReportCount(stored: ReadonlyMap<Ticker, readonly AnnualAccounts[]>): number {
   return [...stored.values()].reduce((sum, reports) => sum + reports.length, 0)
+}
+
+/** A failed fill never rejects the name's primary rows; a throw here is a bug, not a source
+ *  failure, and propagates. */
+async function withCashFlow(
+  scope: EvidenceScope,
+  outcome: TargetOutcome<FiledAccounts>,
+  stored: readonly QuarterlyAccounts[]
+): Promise<TargetOutcome<FiledAccounts>> {
+  if (outcome.value === undefined) {
+    return outcome
+  }
+
+  const fill = await fillCashFlow({ scope, filed: outcome.value, stored })
+
+  return { ...outcome, value: fill.filed, caveats: [...outcome.caveats, ...fill.caveats] }
 }
 
 /** No report back is a rejected target, never a silently absent one. */

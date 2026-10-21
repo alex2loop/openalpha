@@ -118,7 +118,7 @@ export interface AccountLines {
 
 /** The lines a cash flow statement files, which a quarter can lack while its balance sheet and
  *  income statement are out. */
-const CASH_FLOW_LINES = Object.freeze([
+export const CASH_FLOW_LINES = Object.freeze([
   'operatingCashFlow',
   'depreciation',
   'capitalExpenditure',
@@ -230,4 +230,10 @@ export interface TrailingAccounts extends Readonly<Partial<Record<AccountsYearFi
  *  every corporate line, so this is the one test a derivation branches on, never a zero. */
 export function isBankLines(lines: AccountLines): boolean {
   return lines.customerLoans !== undefined
+}
+
+/** A quarter can be kept before its cash flow is filed, so the statement's absence is read here,
+ *  never as zero. */
+export function hasCashFlow(lines: AccountLines): boolean {
+  return lines.operatingCashFlow !== undefined
 }
