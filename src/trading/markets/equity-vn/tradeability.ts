@@ -230,6 +230,30 @@ export function isLimitMove(move: number, bandPct: number): boolean {
   return move >= bandPct * LIMIT_HIT_TOLERANCE_FRACTION
 }
 
+/** How many of the newest sessions in a row closed at the ceiling: a limit-sized rise that also
+ *  ended on the session's high. The run stops at the first session that did not, or at a previous
+ *  close that cannot anchor a move. */
+export function ceilingRunOf(candles: readonly Candle[], bandPct: number): number {
+  let run = 0
+
+  for (let index = candles.length - 1; index > 0; index -= 1) {
+    const current = candles[index]
+    const previous = candles[index - 1]
+
+    if (current === undefined || previous === undefined || previous.close <= 0) {
+      break
+    }
+
+    if (!isLimitMove(current.close / previous.close - 1, bandPct) || current.close < current.high) {
+      break
+    }
+
+    run += 1
+  }
+
+  return run
+}
+
 /** One price all session, at the limit: the board never opened on the other side. */
 function limitLockOf(
   bar: Candle,
