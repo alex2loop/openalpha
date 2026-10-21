@@ -8,6 +8,7 @@ import { composeBrief } from '@/trading/markets/brief-compose'
 import { loadBriefContext } from '@/trading/markets/brief-context'
 import { buildCrossAssetPulse } from '@/trading/markets/brief-cross-asset'
 import { buildStalePositions, buildUnwatchedPositions } from '@/trading/markets/brief-holdings'
+import { buildMacro, buildRegimeShift } from '@/trading/markets/brief-macro'
 import { buildNextActions } from '@/trading/markets/brief-next-actions'
 import {
   buildBookSummary,
@@ -31,8 +32,8 @@ import {
 } from '@/trading/markets/equity-us/policy'
 import { medianTurnover } from '@/trading/markets/turnover'
 
-/** What the US brief reports: the operator's own book, the filings of the names in it, the
- *  suggestions, and the tail. The market's prices, range and headlines come from its overview and
+/** What the US brief reports: the operator's own book, the US regime that scales what it buys, the
+ *  filings of the names in it, the suggestions, and the tail. The market's prices, range and headlines come from its overview and
  *  news reads, the way every non-home market's do, so a kind without a builder here is not run. */
 const SECTION_BUILDERS: SectionBuilders<UsBoard> = Object.freeze({
   'book-summary': buildBookSummary,
@@ -44,6 +45,8 @@ const SECTION_BUILDERS: SectionBuilders<UsBoard> = Object.freeze({
   'positions-in-loss': buildPositionsInLoss,
   'drift-nudge': buildDriftNudge,
   'monthly-scorecard': buildMonthlyScorecard,
+  'regime-shift': buildRegimeShift,
+  macro: buildMacro,
   'cross-asset-pulse': buildCrossAssetPulse,
   recent: buildRecent,
   cost: buildCost,

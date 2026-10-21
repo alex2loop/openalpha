@@ -1,7 +1,5 @@
-import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { SectorStrength } from '@/trading/kernel/market/market-capability'
 import type { FlowSnapshot } from '@/trading/kernel/market/market-data'
-import type { MacroRiskDriver } from '@/trading/kernel/market/market-macro'
 import type {
   BriefDirection,
   BriefSectionResult,
@@ -9,8 +7,7 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
-import { MACRO_SERIES_FIELDS } from '@/trading/kernel/market/macro-series'
-import { dedupeProvenance } from '@/trading/kernel/source/source-result'
+import { REGIME_SCALE_CAVEAT } from '@/trading/markets/brief-macro'
 import { absent, omitted, ready, toHeadlineSection } from '@/trading/markets/brief-sections'
 import { latestNameSession, toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
 import { sectorCoveragePct } from '@/trading/markets/equity-vn/factors/sectors'
@@ -30,110 +27,15 @@ import {
 } from '@/trading/markets/equity-vn/tape/session-totals'
 import { NEWS_ITEMS_PER_SECTION } from '@/trading/markets/news'
 import { boardRows, breadthRows, MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
-import { apportion, SCORE_QUANTUM } from '@/trading/render/number'
-
-/** Below half a whole percent, coverage prints as 100%. */
-const PRINTED_COVERAGE_GAP = 0.005
+import { PERCENT_PER_UNIT } from '@/trading/sources/rows/normalization'
 
 // The market-wide half of the brief: sections that describe the exchange rather than the user.
 // Split from the user-scoped half purely for size — both families share the result constructors
 // and the one loaded context, and neither owns a rule the other re-derives.
 
-const PERCENT_PER_UNIT = 100
-/** What `/rebalance` tells an operator who has not read a macro block. The brief prints one two
- *  sections above, so carrying this too would state one fact three times over. */
-const REGIME_SCALE_CAVEAT = 'portfolio.regime-risk'
 /** Every flow section sums the same declared window, so one title parameter states it for all four
  *  and no two of them can drift to different spans. */
 const FLOW_WINDOW = Object.freeze({ sessions: FLOW_DEVIATION_SESSIONS })
-
-export function buildRegimeShift(context: VnBriefContext): Promise<BriefSectionResult> {
-  const { macro, previousMacro } = context
-
-  if (macro === null) {
-    return Promise.resolve(absent('regime-shift', [{ code: 'macro.inputs-missing' }]))
-  }
-
-  if (previousMacro === null || previousMacro.view.regime === macro.view.regime) {
-    return Promise.resolve(omitted('regime-shift'))
-  }
-
-  return Promise.resolve(
-    ready(
-      'regime-shift',
-      [{ previousRegime: previousMacro.view.regime, currentRegime: macro.view.regime }],
-      {
-        asOf: macro.view.asOf,
-        caveats: macro.view.caveats,
-        provenance: dedupeProvenance([...macro.provenance, ...previousMacro.provenance]),
-      }
-    )
-  )
-}
-
-/** Contributions rounded across the set rather than one row at a time, so the column adds up to the
- *  composite printed above it. */
-function driverRows(drivers: readonly MacroRiskDriver[]): readonly BriefSectionRow[] {
-  const contributions = apportion(
-    drivers.map((driver) => driver.contribution),
-    SCORE_QUANTUM
-  )
-
-  return drivers.map((driver, index) => ({
-    driver: driver.id,
-    at: driver.asOf,
-    ...toDriverValue(driver.id, driver.value),
-    contribution: contributions[index] ?? driver.contribution,
-  }))
-}
-
-/** Each driver states the day it was observed: the block's `asOf` is the session the composite was
- *  struck for, and a Treasury yield lags it by a day while a CPI print lags it by a month. The
- *  drivers that did not vote are named beside the coverage they cost, because a composite
- *  renormalized over the rest reads exactly like a whole one otherwise. The deployment figure is
- *  the whole book's, blended across funded segments, so the per-segment regimes that produced it
- *  travel with it — one segment's regime cannot explain a number the other segments also moved. */
-export async function buildMacro(context: VnBriefContext): Promise<BriefSectionResult> {
-  const { macro } = context
-
-  if (macro === null) {
-    return absent('macro', [{ code: 'macro.inputs-missing' }])
-  }
-
-  const advice = await context.rebalance()
-  const deployment = advice.kind === 'ready' ? advice.policy.deploymentScale : undefined
-
-  return ready(
-    'macro',
-    [
-      { regime: macro.view.regime },
-      { compositeScore: macro.view.score },
-      ...driverRows(macro.view.drivers),
-      ...macro.view.missing.map((entry) => ({ driverMissing: entry.id })),
-      // Partial data is the fact worth a row; a read that prints as whole states nothing new.
-      ...(1 - macro.view.coverage < PRINTED_COVERAGE_GAP
-        ? []
-        : [{ coverage: macro.view.coverage, formulaVersion: macro.view.formulaVersion }]),
-      ...(deployment === undefined ? [] : [{ deploymentScale: deployment }]),
-    ],
-    {
-      asOf: macro.view.asOf,
-      caveats: [
-        ...macro.view.caveats,
-        ...advice.caveats.filter((caveat) => caveat.code === REGIME_SCALE_CAVEAT),
-      ],
-      provenance: macro.provenance,
-    }
-  )
-}
-
-/** Percent-unit series render as fractions like every other rate in the brief; the rest keep
- *  their native scale. */
-function toDriverValue(id: MacroSeriesId, value: number): BriefSectionRow {
-  const field = MACRO_SERIES_FIELDS[id]
-
-  return field === 'valuePct' ? { valuePct: value / PERCENT_PER_UNIT } : { [field]: value }
-}
 
 /** Posture only, and only when the regime is defensive: percentages and the published rate, never
  *  an amount and never a bank. */

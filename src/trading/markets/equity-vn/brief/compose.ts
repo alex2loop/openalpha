@@ -8,6 +8,7 @@ import { composeBrief } from '@/trading/markets/brief-compose'
 import { loadBriefContext } from '@/trading/markets/brief-context'
 import { buildCrossAssetPulse } from '@/trading/markets/brief-cross-asset'
 import { buildStalePositions, buildUnwatchedPositions } from '@/trading/markets/brief-holdings'
+import { buildMacro, buildRegimeShift } from '@/trading/markets/brief-macro'
 import {
   buildBookSummary,
   buildCost,
@@ -30,10 +31,8 @@ import {
   buildDepositRate,
   buildForeignDeskFlow,
   buildFx,
-  buildMacro,
   buildMacroHeadlines,
   buildProprietaryFlow,
-  buildRegimeShift,
   buildSectorRotation,
   buildTape,
 } from '@/trading/markets/equity-vn/brief/market-sections'
