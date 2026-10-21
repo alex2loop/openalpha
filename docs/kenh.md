@@ -62,7 +62,7 @@ operator_user_ids = [123456789]
 | `enabled` | tất cả | Đặt `false` để tắt một kênh đã cấu hình |
 | `token_env`, `token_file` | `telegram`, `zalo` | Token bot, đọc theo đúng thứ tự đó. `zalo_personal` không có token: nó dùng `profile` đã lưu |
 | `allowed_ids` | tất cả | Các chat hoặc người dùng được nhận. Trên `telegram`, khai khóa này sẽ tắt ghép nối trừ khi `pairing = true` |
-| `operator_user_ids` | tất cả | Ai được chạy các lệnh ghép nối, đáng kể nhất là trong chat nhóm, cùng `/trade` và `/upgrade`. Bỏ trống thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên hãy đặt khi bạn dùng chung bot |
+| `operator_user_ids` | tất cả | Ai được chạy `/trade`, `/upgrade` và các lệnh ghép nối ngay trong chat (`/pair`, `/approve`, `/deny`). Lệnh ghép nối chỉ chạy từ một chat có trong `allowed_ids`; với chat nhóm, hãy thêm cả id của nhóm vào đó. Bỏ trống thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên hãy đặt khi bạn dùng chung bot |
 | `pairing` | `telegram` | Ép bật hoặc tắt ghép nối |
 | `dm_policy` | `zalo` | `pairing`, `allowlist`, hoặc `disabled`. Mặc định là `pairing`, hoặc `allowlist` khi đã đặt `allowed_ids`, giống Telegram |
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | Lời chấp nhận bắt buộc, và kênh dùng lần đăng nhập QR đã lưu nào |

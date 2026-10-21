@@ -95,6 +95,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'session-queue',
   'security/credentials',
   'security/output-pipeline',
+  'security/pasted-content',
   'security/path-policy',
   'security/private-files',
   'security/sanitize',

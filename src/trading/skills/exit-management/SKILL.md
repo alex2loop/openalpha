@@ -23,7 +23,7 @@ When none of the five applies, the answer is a stated hold. Silence reads as an 
 
 ## What is already decided
 
-Entry, stop and target on a stored plan are computed from the market's own volatility policy and validated before they are written. Never restate them, move them, or offer alternatives - quoting one back is what makes a condition checkable, and that is their only use here. `exitDistances` reports how far the current mark sits from each holding's stop, and a holding whose latest plan prices no levels is reported as unwatched. Unwatched is not the same as safe, and the silence of a watch is never evidence.
+Entry, stop and target on a stored plan are computed from the market's own volatility policy and validated before they are written. Never restate them, move them, or offer alternatives - quoting one back is what makes a condition checkable, and that is their only use here. A holding whose latest plan prices no levels is unwatched. Unwatched is not the same as safe, and the silence of a watch is never evidence.
 
 The outcome window is stated on every plan and is the same boundary the track record scores that call against. It is stated but not watched: the stop and the target each arm an alert and the window arms nothing, so checking it is work only this reading does. Read it against the day the oldest open lot was acquired, which the portfolio row carries. A thesis whose catalyst has a nearer date implies a shorter window, and saying so is useful; nothing implies a longer one, because the call is graded at the window whatever the position does afterwards.
 

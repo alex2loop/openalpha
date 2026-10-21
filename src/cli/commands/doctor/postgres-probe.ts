@@ -11,7 +11,7 @@ import {
 } from '@/persistence/api'
 
 import type { DoctorFinding, DoctorStatus } from './types'
-import { migrationsUpToDate } from './local-probes'
+import { migrationFinding } from './local-probes'
 
 interface MigrationRow {
   readonly id: string
@@ -76,30 +76,9 @@ function migrationProbe(options: {
   readonly applied: readonly MigrationRow[]
   readonly locale: Locale
 }): DoctorFinding {
-  const appliedIds = new Set(options.applied.map((m) => m.id))
-  const declaredIds = new Set(options.migrations.map((m) => m.id))
-  const pending = options.migrations.filter((m) => !appliedIds.has(m.id)).map((m) => m.id)
-  const orphaned = options.applied.filter((m) => !declaredIds.has(m.id)).map((m) => m.id)
+  const finding = migrationFinding(options.locale, options.migrations, options.applied)
 
-  if (pending.length === 0 && orphaned.length === 0) {
-    return databaseProbe({
-      status: 'ok',
-      storage: options.storage,
-      detail: migrationsUpToDate(options.locale, options.applied.length),
-      locale: options.locale,
-    })
-  }
-
-  const none = t(options.locale, 'cli.doctorNone')
-  return databaseProbe({
-    status: 'warn',
-    storage: options.storage,
-    detail: t(options.locale, 'cli.doctorMigrationsPendingOrphaned', {
-      pending: pending.join(', ') || none,
-      orphaned: orphaned.join(', ') || none,
-    }),
-    locale: options.locale,
-  })
+  return databaseProbe({ ...finding, storage: options.storage, locale: options.locale })
 }
 
 function databaseProbe(options: PostgresDatabaseProbeOptions): DoctorFinding {

@@ -7,6 +7,59 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [1.0.13] - 2026-10-21 [IMPORTANT]
+
+Security and reliability fixes. The agent now asks before opening a web link it put together
+itself, which closes a way a page could carry your holdings out in a link. `upgrade --rollback`
+also takes the database back, a scheduled job hit by the spend cap is no longer switched off, and
+a VN sale can no longer exceed what you hold.
+> Bản sửa lỗi bảo mật và độ ổn định. Agent giờ hỏi bạn trước khi mở một link do nó tự ghép, chặn đường một trang web có thể mang danh mục của bạn ra ngoài qua link. `upgrade --rollback` đưa cả cơ sở dữ liệu về bản trước, việc định kỳ chạm trần chi phí không còn bị tắt, và lệnh bán cổ phiếu VN không thể vượt số bạn đang giữ.
+
+### Fixes
+
+- `upgrade --rollback` takes the database back to what the previous release reads before swapping
+(it asks first), and so does the automatic rollback after a release that will not start. A release
+older than the database's schema refuses to start instead of misreading it, and says how to get
+back; `doctor` fails the database check for it. A reinstall of the same release with the install
+script no longer makes `--rollback` undo that release's own migrations.
+- `db migrate down --to <id>` undoes every migration after `<id>`.
+- A scheduled job stopped by the daily, monthly or agent spend cap, or by the rate limit, is no
+longer counted as failing and switched off after three tries: it waits for the cap to reopen.
+- The agent asks before reading a web link it built or changed itself, one it adds headers to, or
+any page past `[loop] max_unasked_fetches` in a run (10 by default). Links you send and links a
+search or news read brought back open as before; text you forward, and a task one agent hands
+another, do not count as yours. This closes the way a hidden instruction on a page could carry
+your holdings or notes out in a link.
+- An MCP client calling a withheld tool by name over the HTTP API (`delegate`, `research`,
+`social_request` and the rest) is told it does not exist, as over stdio.
+- A sale of VN shares can no longer exceed what you hold, even by a few shares; the small margin for
+an exchange's rounding stays for coins bought with the fee taken in the coin.
+- VN prices scaled from thousands of dong land on the exact price step (4.03 reads 4,030, not
+4,030.0000000000005), so a bar that touched a stop is read as touching it.
+- Outbound requests also refuse `localhost.` and other blocked names written with a trailing dot,
+and IPv6 forms that carry a private IPv4 (`::ffff:0:a.b.c.d`) or the old site-local range.
+- Two starts racing over a stale pid file are much less likely to delete each other's claim.
+- `db restore` keeps a whole safety copy of the old database even when another reader blocks the
+WAL fold: the WAL moves with the copy instead of being dropped.
+- A daemon still starting after 90 seconds, often busy updating a large database, is left running:
+`upgrade` no longer rolls it back while it starts.
+- A segment with a 0% target opens no new position (the conservative level ships crypto that way);
+held names keep their exits.
+- The VN gold premium and its rank both read the SJC bar, the form the stored history holds.
+- A crypto funding read with a missing leg is retried instead of being kept for the whole day.
+- OKX lists only instruments that are trading.
+- The brief's position exits skip review-only stops and a take-profit already banked, and a crossed
+exit alert still waiting to send is no longer dropped when its plan changes.
+- A run that stops before answering no longer repeats the previous answer, and a scheduled job's
+history shows what that run alone cost.
+- An OpenRouter "no endpoints" or moderation refusal no longer disables a model or the provider.
+- `/approve`, `/deny` and `/pair` in chat accept any letter case and the `@bot` form; `/stop` works
+with slash commands off; Telegram's plain-text fallback no longer shows markup.
+- `db restore` keeps every replaced database in `backups/`, `db reset --yes` still backs up first,
+PostgreSQL refuses to reset `public`, and `db export` never deletes a folder it did not create.
+- Saving config from the API keeps the previous file beside it.
+- The installers check the pinned version strictly, and a failed Windows install reports failure.
+
 ## [1.0.12] - 2026-10-20
 
 The brief opens with one market story and a look back at earlier ones, found by code at no cost.

@@ -138,9 +138,9 @@ so a command behaves the same in the REPL and in a group chat.
 | `/research` | Run bounded, cited research without changing the selected agent |
 | `/health` | Show runtime and channel health codes |
 | `/upgrade` | Operator only: shows your version, the latest release and what it brings; `/upgrade confirm` (or the button) installs it from Telegram/Zalo |
-| `/memory` | List, recall, search, store or remove memory |
+| `/memory` | Recall an entry by key (`/memory <key>`), search (`find <query>`), save (`remember <key> <value>`) or remove (`forget <key>`) |
 | `/cost` | Show this chat's usage and today's spend against the cap |
-| `/schedule` | List, inspect, pause, resume or run one of your jobs |
+| `/schedule` | List, inspect, pause, resume, run or remove one of your jobs (`/schedule remove <id>` deletes it) |
 | `/config` | Show the live language, model, budget and channels |
 | `/new` | Switch to a fresh chat session |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
@@ -305,7 +305,7 @@ When a newer release is out, the CLI says so once a day, under the command's out
 
 `upgrade` downloads the release binary for your machine next to the installed one and checks it against the release's SHA256SUMS. Only then does it swap the binary in. A daemon started with `start --background` is paused for the swap and started again on the new release by itself, from the same config file and data folder; if it will not start, `upgrade` goes back to the release that ran, says so, and keeps the new release's startup error in `daemon.stderr.failed.log`. A daemon running in a terminal window or under a service keeps running the old release until you restart it, and `upgrade` prints the commands; on Windows, which cannot replace a running binary, it is stopped for the swap and you start it again. Your data folder and config are never touched. If the swap itself fails, the old version stays in place and the stopped daemon is started again, or the message says how to. A cut download, a checksum mismatch or Ctrl-C all end before the swap, so your current version stays and a running daemon keeps running.
 
-The release you replaced stays next to the new one as `openalpha.old` (`openalpha.exe.old` on Windows), and `upgrade --rollback` swaps back to it. `upgrade --check` only reports. A source checkout updates with `git pull`.
+The release you replaced stays next to the new one as `openalpha.old` (`openalpha.exe.old` on Windows), and `upgrade --rollback` swaps back to it. If the newer release changed the database, `--rollback` first takes it back to what the older release reads, with `db migrate down --to`. It asks before doing so, and on SQLite saves a copy in `backups/pre-rollback/` first. Say no and nothing changes. When `upgrade` started the newer release and it would not start, the same step runs without asking; one that is still starting after 90 seconds, often busy updating a large database, is left running rather than rolled back. A release installed by the install script, a reinstall of the same release included, has no such record, so after its rollback the older release refuses to start on the newer schema, says why, and names the way back. `upgrade --check` only reports. A source checkout updates with `git pull`.
 
 On a Windows machine with an ARM chip, the installer picks the native ARM build; an older x64 install keeps upgrading as x64 until you re-run the install command, which moves it to the native one.
 
@@ -478,8 +478,8 @@ and cost. Having no workflows is normal, not an error.
 Commands that write to the database (`db migrate`, `cleanup`, `import`, `restore`, `reset`) run only
 while the daemon is stopped. `restore`, `reset` and a migration rollback ask for confirmation unless
 you pass `--yes`. On SQLite, `reset` first offers a backup (Enter means yes): the copy lands in
-`backups/` like `db backup`, so a mistake can be undone with `db restore`. `--yes` skips that question
-too. `db cleanup` needs `--older-than` (at least `1d`); `--dry-run` previews what it
+`backups/` like `db backup`, so a mistake can be undone with `db restore`. `--yes` answers that
+question with its default, so the backup is still taken. `db cleanup` needs `--older-than` (at least `1d`); `--dry-run` previews what it
 would prune.
 
 `db integrity`, `db stats`, `db export` and `db backup` start only the storage layer, so they run
@@ -792,6 +792,9 @@ These tools are withheld, and why:
 | `social_request`, `social_skill` | Would speak as one of your own agents on a public network; a client program must never do that |
 | `order_place` | Irreversible at a real exchange; a program answering the approval is not the human the gate exists for |
 | `web_search`, `web_fetch` | The host brings its own search; `mcp serve` reads no search configuration |
+
+A withheld tool stays withheld when a client calls it by name, over stdio and over the HTTP API alike:
+the call answers that no such tool exists.
 
 Tools contributed by plugins or other MCP servers are withheld too: re-advertising them would put
 another server's tools behind this one's name, and a host can connect that server directly. Domain

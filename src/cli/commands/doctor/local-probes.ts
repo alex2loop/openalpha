@@ -14,7 +14,7 @@ import { inspectLogDestination, isMissingLogPath } from '@/core/logging/inspecti
 import { bindLocale, pluralKey, t } from '@/i18n'
 import { resolveTradingConfig, unavailableSources } from '@/trading/api'
 
-import type { DoctorEnvironment, DoctorProbe, DoctorStatus } from './types'
+import type { DoctorEnvironment, DoctorFinding, DoctorProbe, DoctorStatus } from './types'
 import { checkLabel } from './labels'
 
 export async function probeDataDirectory(dataDir: string, locale: Locale): Promise<DoctorProbe> {
@@ -174,7 +174,7 @@ function logFailureDetail(err: unknown, locale: Locale): string {
   return err instanceof ConfigError ? err.message : t(locale, 'cli.doctorCannotInspectLog')
 }
 
-export function migrationsUpToDate(locale: Locale, count: number): string {
+function migrationsUpToDate(locale: Locale, count: number): string {
   return t(
     locale,
     pluralKey(count, 'cli.doctorMigrationsUpToDateOne', 'cli.doctorMigrationsUpToDate'),
@@ -182,4 +182,36 @@ export function migrationsUpToDate(locale: Locale, count: number): string {
       count,
     }
   )
+}
+
+/** A database with migrations this release does not declare is one boot refuses, so it fails here
+ *  too; one that is only behind is brought up by the next start. */
+export function migrationFinding(
+  locale: Locale,
+  migrations: readonly { readonly id: string }[],
+  applied: readonly { readonly id: string }[]
+): DoctorFinding {
+  const appliedIds = new Set(applied.map((m) => m.id))
+  const declaredIds = new Set(migrations.map((m) => m.id))
+  const pending = migrations.filter((m) => !appliedIds.has(m.id)).map((m) => m.id)
+  const orphaned = applied.filter((m) => !declaredIds.has(m.id)).map((m) => m.id)
+
+  if (orphaned.length > 0) {
+    return {
+      status: 'fail',
+      detail: t(locale, 'cli.doctorSchemaAhead', {
+        ids: orphaned.join(', '),
+        upgrade: `${BRAND.name} upgrade`,
+      }),
+    }
+  }
+
+  if (pending.length > 0) {
+    return {
+      status: 'warn',
+      detail: t(locale, 'cli.doctorMigrationsPending', { pending: pending.join(', ') }),
+    }
+  }
+
+  return { status: 'ok', detail: migrationsUpToDate(locale, applied.length) }
 }

@@ -45,8 +45,14 @@ export function isClosingSale(held: number, quantity: number): boolean {
   return quantity >= held - QUANTITY_EPSILON
 }
 
-/** How far a sale may exceed `held` and still be the one that closed it. */
-export function closingOvershootOf(held: number): number {
+/** How far a sale may exceed `held` and still be the one that closed it. A whole-unit sale of a
+ *  whole-unit holding (VN shares) has no fee or lot rounding between them, so it closes at exactly
+ *  its own size. */
+export function closingOvershootOf(held: number, quantity: number): number {
+  if (Number.isInteger(held) && Number.isInteger(quantity)) {
+    return QUANTITY_EPSILON
+  }
+
   return Math.max(QUANTITY_EPSILON, Math.abs(held) * CLOSING_OVERSHOOT_RATIO)
 }
 

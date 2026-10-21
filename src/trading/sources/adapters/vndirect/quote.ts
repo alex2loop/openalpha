@@ -16,6 +16,7 @@ import {
   parseRow,
   positive,
   THOUSAND_VND_PER_UNIT,
+  toScaledPrice,
 } from '@/trading/sources/rows/normalization'
 import { QUOTE_ATTEMPT_LIMITS } from '@/trading/sources/transport/http'
 
@@ -85,8 +86,8 @@ function sessionOf(row: z.infer<typeof QUOTE_ROW>): SessionSoFar | undefined {
   }
 
   return {
-    high: positive(high, 'high') * THOUSAND_VND_PER_UNIT,
-    low: positive(low, 'low') * THOUSAND_VND_PER_UNIT,
+    high: toScaledPrice(positive(high, 'high'), THOUSAND_VND_PER_UNIT),
+    low: toScaledPrice(positive(low, 'low'), THOUSAND_VND_PER_UNIT),
     ...(nmVolume === undefined ? {} : { volume: nonNegative(nmVolume, 'nmVolume') }),
   }
 }
@@ -112,7 +113,7 @@ function toQuote(rows: readonly unknown[], context: SourceContext): Quote {
   return {
     instrument: { market: context.instrument.market, ticker: ticker(row.code) },
     // The endpoint quotes in thousands of VND, as its bar rows do; every stored price is VND.
-    price: positive(row.close, 'close') * THOUSAND_VND_PER_UNIT,
+    price: toScaledPrice(positive(row.close, 'close'), THOUSAND_VND_PER_UNIT),
     ...(changePct === undefined ? {} : { changePct }),
     ...(session === undefined ? {} : { session }),
     observedAt: resolveLocalTimeAt(

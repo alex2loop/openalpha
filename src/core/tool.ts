@@ -114,6 +114,15 @@ export interface ToolResult {
   readonly display?: DisplayText
 }
 
+/** What a call-level approval check knows about the run: how many calls of this tool it has made,
+ *  this one included, and whether text came from the operator or a network tool rather than from
+ *  the model itself. */
+export interface CallApprovalContext {
+  readonly config: ResolvedConfig
+  readonly callCount: number
+  hasSeen(text: string): boolean
+}
+
 export interface ToolCall {
   readonly id: string
   readonly name: string
@@ -139,7 +148,7 @@ export interface ToolDefinition<I = unknown> {
   readonly eager?: true
   // Call-level danger beyond the static capability. Receives normalized, schema-valid input so a
   // read-capable tool such as schedule can still gate its write operations.
-  readonly requiresApproval?: (input: unknown) => boolean
+  readonly requiresApproval?: (input: unknown, context: CallApprovalContext) => boolean
   // No remember arm is offered for this tool: a decision the operator made about one call must
   // never stand for the next. Distinct from `requiresApproval`, which decides whether to ask.
   readonly oneTimeApproval?: true

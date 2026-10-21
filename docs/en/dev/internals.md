@@ -285,7 +285,7 @@ and poll offsets are durable and one delivery pipeline serves every adapter. See
 | Research | `/research [quick\|standard\|thorough] <query>` |
 | Status and cost | `/health`, `/cost`, `/config` |
 | Memory | `/memory` |
-| Scheduling | `/schedule [show\|pause\|resume\|run] <id>` |
+| Scheduling | `/schedule [show\|pause\|resume\|run\|remove] <id>` |
 | Session | `/new`, `/continue` |
 
 Trading adds its own commands, plus `/trade` when a venue has exchange credentials (the same credentials

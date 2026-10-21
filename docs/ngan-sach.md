@@ -4,6 +4,8 @@ Mỗi lần gọi mô hình đều tốn tiền. OpenAlpha ước lượng trư�
 hạn mức chứ không phải sau đó.
 
 Hạn mức là tùy chọn. Không khai gì thì chi tiêu không bị chặn, chỉ được theo dõi - bạn luôn biết được nó tốn bao nhiêu.
+`openalpha onboard` và các file cấu hình tối giản đặt sẵn `max_daily_usd = 2` để tuần đầu không có bất ngờ;
+khi đã quen mức dùng của mình, nâng lên hoặc đặt `0` để bỏ chặn.
 Nhà cung cấp tìm kiếm dùng chung cuốn sổ đó: khoản Exa tự báo, và `[web_search] cost_per_search_usd` bạn khai cho Brave,
 DeepSeek, Serper hay Tavily, đều rơi vào cùng một tổng với chi phí mô hình.
 
@@ -192,7 +194,7 @@ Hạn ngạch và ngân sách độc lập nhau: một cây có thể cạn số
 | Điều kiện | Kết quả |
 | --- | --- |
 | Ước lượng vượt ngân sách còn lại của phiên chạy | Việc bắt buộc dừng trước khi gọi nhà cung cấp |
-| Ước lượng sẽ vượt một hạn mức ngày hoặc tháng đang bật | Việc bắt buộc dừng trước khi gọi nhà cung cấp |
+| Ước lượng sẽ vượt một hạn mức ngày hoặc tháng đang bật | Việc bắt buộc dừng trước khi gọi nhà cung cấp; tác vụ theo lịch chờ hạn mức mở lại, không tính lỗi |
 | Một agent đã tiêu hết `max_daily_usd` của chính nó | Phiên chạy gốc nó sở hữu dừng trước khi bắt đầu (`agent_daily_cap`); tác vụ của nó bị bỏ qua, không tính lỗi |
 | Việc tùy chọn không xin được ngân sách | Bỏ qua; phiên chạy tiếp tục |
 | Chi phí thật vượt một hạn mức | Lần thử vẫn bị tính tiền và được giữ, rồi phiên chạy dừng |

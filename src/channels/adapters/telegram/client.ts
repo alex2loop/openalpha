@@ -5,6 +5,7 @@ import { BROWSER_HEADERS } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
+import { toPlainText } from './markup'
 import {
   type BotIdentity,
   buildTelegramUrl,
@@ -16,7 +17,6 @@ import {
   telegramRetryAfterSchema,
   toReplyMarkup,
 } from './protocol'
-import { unescapeMdv2 } from './renderer'
 
 // Bounds every call, including getUpdates' own long-poll timeout.
 const TELEGRAM_REQUEST_TIMEOUT_MS = 15_000
@@ -327,7 +327,7 @@ async function postWithPlainFallback(
 
   const plainRes = await postJson(ctx, {
     method: req.method,
-    body: { ...req.body, parse_mode: undefined, text: unescapeMdv2(req.body.text) },
+    body: { ...req.body, parse_mode: undefined, text: toPlainText(req.body.text) },
     ...signal,
   })
 

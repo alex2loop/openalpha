@@ -461,6 +461,7 @@ buy nothing.
 | `delegation_depth` | int | `3` | Deepest sub-agent nesting. |
 | `max_delegations` | int | `32` | Children a whole run may start, in total. |
 | `max_parallel_delegations` | int | `5` | Most child items one `delegate_parallel` call accepts. |
+| `max_unasked_fetches` | int | `10` | `web_fetch` calls in one run, asked or not, before every further one asks you first. `0` asks every time. |
 
 Compaction is fixed: a session compacts past 500 messages or at 75% of the context window, at most 3
 times per run.

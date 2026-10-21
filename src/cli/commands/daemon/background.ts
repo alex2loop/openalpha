@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import type { CliApp } from '@/cli/types'
 import { printDaemonSummary } from '@/cli/commands/daemon/summary'
 import { buildBackgroundEnv, buildForegroundEnv } from '@/cli/daemon-env'
-import { liveDaemon, liveDaemonPid } from '@/cli/daemon-guard'
+import { liveDaemon } from '@/cli/daemon-guard'
 import { isDaemonReady, readDaemonDegraded } from '@/cli/daemon-ready'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
@@ -147,7 +147,7 @@ export async function runBackground(app: CliApp, argv: readonly string[]): Promi
     return 1
   }
 
-  return printStartupTimeout(app, errorLogPath)
+  return printStartupTimeout(app, child, errorLogPath)
 }
 
 async function startOutcome(
@@ -158,8 +158,12 @@ async function startOutcome(
     return 'ready'
   }
 
-  // A child killed by a signal reports `signalCode` and leaves `exitCode` null.
-  return child.exitCode === null && child.signalCode === null ? undefined : 'exited'
+  return isRunning(child) ? undefined : 'exited'
+}
+
+// A child killed by a signal reports `signalCode` and leaves `exitCode` null.
+function isRunning(child: Subprocess): boolean {
+  return child.exitCode === null && child.signalCode === null
 }
 
 /** The daemon's own error carries the reason (a rejected token, a bad key), so it leads. */
@@ -199,16 +203,20 @@ async function lastOutputLines(path: string, count: number): Promise<readonly st
   }
 }
 
-/** Alive but not ready is a slow boot, not a failure: the daemon is left running. */
-async function printStartupTimeout(app: CliApp, errorLogPath: string): Promise<number> {
+/** Alive but not ready is a slow boot, not a failure: the daemon is left running. The child is asked,
+ *  not the pid file, which is claimed only after boot's migrations. */
+async function printStartupTimeout(
+  app: CliApp,
+  child: Subprocess,
+  errorLogPath: string
+): Promise<number> {
   const locale = app.config.locale.language
-  const pid = await liveDaemonPid(app)
 
-  if (pid !== null) {
+  if (isRunning(child)) {
     app.out(
       warn(
         t(locale, 'cli.daemonBackgroundStillStarting', {
-          pid,
+          pid: child.pid,
           timeout: START_TIMEOUT_MS,
           path: errorLogPath,
           brand: BRAND.name,

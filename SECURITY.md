@@ -60,8 +60,10 @@ giá đã trả, một số dư tiền hay một số tiền. Có hai cơ chế 
   các hàm đọc giá trị tuyệt đối. `viewRelative` và `historyRelative` được mở ra; `view` và
   `history` thì không. Tiền và khối lượng **không thể biểu diễn được với một tool** - không
   có bộ lọc lúc chạy nào để lách, vì hàm đó không tồn tại trên kiểu.
-- `OperatorOnlyField` (`held`, `units`, `policyUnits`) bị gỡ khỏi mọi payload đề xuất đưa cho
-  mô hình, và `HeldWeight` thay một vị thế bằng tỷ trọng của nó.
+- `OperatorOnlyField` (`held`, `policyUnits`) bị gỡ khỏi mọi payload đề xuất đưa cho mô hình,
+  và `HeldWeight` thay một vị thế bằng tỷ trọng của nó. Khối lượng lệnh (`units`) chỉ giữ lại
+  cho chính client của người vận hành khi chạy `mcp serve`; chat, các kênh, việc chạy theo lịch
+  và cuộc tranh luận không bao giờ nhận nó.
 
 Một cách đưa được con số tuyệt đối vào một prompt, một kết quả tool, hay ngữ cảnh của một
 persona đều nằm trong phạm vi - kể cả cách phát sinh từ một trường mới trên `Suggestion` mà

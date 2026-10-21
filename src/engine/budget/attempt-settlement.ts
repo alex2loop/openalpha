@@ -189,8 +189,16 @@ export async function settleExternalCharge(
   })
 
   if (tracked.exceededCap !== undefined) {
-    throw new RunHalted('budget', `${tracked.exceededCap} cost cap exceeded by incurred usage`)
+    throw capExceededHalt(tracked.exceededCap)
   }
+}
+
+function capExceededHalt(cap: NonNullable<CostCharge['exceededCap']>): RunHalted {
+  return new RunHalted(
+    'budget',
+    `${cap} cost cap exceeded by incurred usage`,
+    cap === 'daily' ? 'daily_cap' : 'monthly_cap'
+  )
 }
 
 // The write is idempotent on the attempt id, so a transient fault is retried rather than losing the
@@ -254,7 +262,7 @@ function applyCharge(
   const budgetHalt = chargeRunBudget(state, charge.costUsd)
 
   if (charge.exceededCap !== undefined) {
-    return new RunHalted('budget', `${charge.exceededCap} cost cap exceeded by incurred usage`)
+    return capExceededHalt(charge.exceededCap)
   }
 
   return budgetHalt
@@ -325,7 +333,7 @@ export async function settleCallerAttempt(
   await recordDurably(services, toAttemptInput(identity, attempt, draft))
 
   if (charge.exceededCap !== undefined) {
-    throw new RunHalted('budget', `${charge.exceededCap} cost cap exceeded by incurred usage`)
+    throw capExceededHalt(charge.exceededCap)
   }
 
   return charge.costUsd

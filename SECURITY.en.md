@@ -59,8 +59,10 @@ balance or an amount. Two mechanisms enforce it:
   absolute reads. `viewRelative` and `historyRelative` are exposed; `view` and `history`
   are not. Money and quantities are **not representable to a tool at all** - there is no
   runtime filter to bypass, because the method does not exist on the type.
-- `OperatorOnlyField` (`held`, `units`, `policyUnits`) is stripped from every suggestion
-  payload handed to a model, and `HeldWeight` replaces a position with its weight.
+- `OperatorOnlyField` (`held`, `policyUnits`) is stripped from every suggestion payload
+  handed to a model, and `HeldWeight` replaces a position with its weight. The order quantity
+  (`units`) is kept only for the operator's own client under `mcp serve`; chat, channels,
+  scheduled runs and the debate never receive it.
 
 A way to get an absolute figure into a prompt, a tool result, or a persona's context is in
 scope - including one added by a new field on `Suggestion` that was not added to

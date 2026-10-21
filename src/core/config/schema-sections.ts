@@ -112,6 +112,7 @@ export const LoopSchema = z.strictObject({
   delegation_depth: z.number().int().positive().optional(),
   max_delegations: z.number().int().positive().optional(),
   max_parallel_delegations: z.number().int().positive().optional(),
+  max_unasked_fetches: z.number().int().nonnegative().optional(),
 })
 
 export const LlmSchema = z.strictObject({

@@ -335,12 +335,19 @@ function assertRestorableSqliteSource(source: string): void {
 async function keepPreviousSqliteDatabase(options: PreviousSqliteOptions): Promise<void> {
   const { dbPath, backupPath, logger } = options
 
+  await mkdir(dirname(backupPath), { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
+
   // An unreadable database is the main reason to restore, so it must not block the install: it is
   // moved aside whole instead of copied.
   if (await tryCheckpointSqliteWal(dbPath, logger)) {
     await copyFile(dbPath, backupPath)
   } else {
     await rename(dbPath, backupPath)
+
+    // The WAL travels with its file: sqlite replays it when the copy is next opened.
+    for (const suffix of SIDECAR_SUFFIXES) {
+      await stageSqliteFile(`${dbPath}${suffix}`, `${backupPath}${suffix}`)
+    }
   }
 
   // The safety copy is the whole database; copyFile would otherwise leave it at the umask.
@@ -365,7 +372,12 @@ async function checkpointSqliteWal(dbPath: string, logger: Logger): Promise<void
   const db = openSqlite(dbPath, logger)
 
   try {
-    await db.execute(SQLITE_WAL_CHECKPOINT)
+    const [result] = await db.query<{ readonly busy: number }>(SQLITE_WAL_CHECKPOINT)
+
+    // Another reader holding the WAL leaves its commits out of the main file without an error.
+    if (result === undefined || result.busy !== 0) {
+      throw new StorageError('sqlite wal checkpoint was blocked by another connection')
+    }
   } finally {
     await db.close()
   }

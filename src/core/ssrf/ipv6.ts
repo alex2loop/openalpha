@@ -16,6 +16,7 @@ const BLOCKED_IPV6_RANGES: ReadonlyArray<{ prefix: string; bits: bigint }> = [
   { prefix: '00000000000000000000000000000001', bits: 128n }, // ::1 loopback
   { prefix: 'fe800000000000000000000000000000', bits: 10n }, // fe80::/10 link-local
   { prefix: 'fc000000000000000000000000000000', bits: 7n }, // fc00::/7 ULA (fc+fd)
+  { prefix: 'fec00000000000000000000000000000', bits: 10n }, // fec0::/10 site-local (deprecated)
   { prefix: 'ff000000000000000000000000000000', bits: 8n }, // ff00::/8 multicast
   { prefix: '20010db8000000000000000000000000', bits: 32n }, // 2001:db8::/32 documentation
 ]
@@ -24,6 +25,8 @@ const BLOCKED_IPV6_RANGES: ReadonlyArray<{ prefix: string; bits: bigint }> = [
 const HEX_GROUP_RE = /^[0-9a-f]{1,4}$/
 // IPv4-mapped ::ffff:0:0/96 (RFC 4291 §2.5.5.2): top 96 bits fixed, low 32 carry the IPv4.
 const IPV4_MAPPED_PREFIX = BigInt('0x00000000000000000000ffff00000000')
+// IPv4-translated ::ffff:0:0:0/96 (RFC 2765) carries an IPv4 the same way; a SIIT gateway dials it.
+const IPV4_TRANSLATED_PREFIX = BigInt('0x0000000000000000ffff000000000000')
 const IPV4_MAPPED_MASK = IPV6_ALL_ONES ^ IPV4_SUFFIX_MASK
 
 // NAT64 well-known prefix (RFC 6052): 64:ff9b::/96 carries an IPv4 in the low 32 bits.
@@ -154,7 +157,9 @@ function assembleIpv6Groups(split: Ipv6Split, right: readonly string[]): readonl
 }
 
 function hasBlockedEmbeddedIpv4(addr: bigint): boolean {
-  if ((addr & IPV4_MAPPED_MASK) === IPV4_MAPPED_PREFIX) {
+  const prefix96 = addr & IPV4_MAPPED_MASK
+
+  if (prefix96 === IPV4_MAPPED_PREFIX || prefix96 === IPV4_TRANSLATED_PREFIX) {
     return isBlockedIpv4(bigIntToIpv4(addr))
   }
 

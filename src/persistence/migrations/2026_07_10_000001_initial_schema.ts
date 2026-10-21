@@ -1,9 +1,35 @@
 import type { Dialect, DialectName } from '@/core/types/storage'
 import type { MigrationUp } from '@/persistence/types'
-import { LLM_ERROR_CODES, PROVIDER_ATTEMPT_OUTCOMES } from '@/core/llm'
-import { COST_SOURCES, LLM_ATTEMPT_KINDS, USAGE_SOURCES } from '@/core/types/usage'
-import { PAIRING_MAX_PENDING } from '@/persistence/pairing-policy'
 import { sqlTextValues } from '@/persistence/sql/syntax'
+
+// The 1.0.0 baseline is immutable, so its CHECK lists are written out here rather than read from
+// the code contracts that share their names today; a later change to a contract is a new migration.
+const PAIRING_MAX_PENDING = 50
+const LLM_ATTEMPT_KINDS = ['turn', 'compaction', 'preference', 'external']
+const PROVIDER_ATTEMPT_OUTCOMES = ['success', 'retry', 'fallback', 'terminal_failure']
+const LLM_ERROR_CODES = [
+  'transient',
+  'rate',
+  'auth',
+  'timeout',
+  'not_found',
+  'context_overflow',
+  'billing',
+  'empty_response',
+  'output_budget_exhausted',
+  'response_too_large',
+  'fatal',
+]
+const USAGE_SOURCES = ['provider', 'estimated']
+const COST_SOURCES = [
+  'provider_reported',
+  'pricing_override',
+  'pricing_subscription',
+  'pricing_openrouter',
+  'pricing_modelsdev',
+  'pricing_local',
+  'pricing_fallback',
+]
 
 // Consolidated initial schema. Every timestamp is epoch-ms BIGINT, never a native date type.
 // Every internal-accounting USD amount owned by these tables (LLM cost, scheduler-run cost) is

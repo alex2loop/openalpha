@@ -234,7 +234,7 @@ Depth is chosen once, first match wins:
 
 1. A mode you typed stands.
 2. `force` means full.
-3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it. The report says whether the scores (the three `factors-*` reasons) or the portfolio settled it, and names `/suggest <ticker> full` for the whole argument.
+3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it. The report says whether the scores (the three `factors-*` reasons) or the portfolio settled it, and names `/suggest <ticker> full` for the whole argument.
 4. Anything else uses the configured mode.
 
 A row the book holds is also exempt from the depth ratchet on reuse. Otherwise the lean default would re-run it daily against a full config. A typed `full` is the exception: it re-runs past that lean row and replaces it, so asking for the argument never hands back the short one.
@@ -1051,6 +1051,8 @@ Both fields take 0.2 to 1.
 - `/profile enable|disable <segment>` turns a segment on or off
 
 A segment no venue trades (world gold, kept for its price and the `gold-vn` premium) stays off, and enabling it is refused. `/suggest` on one of its names still gives the factor read and levels, as a hold with the reason `reference-only`, and runs no debate. The usage text of `/profile`, `/record` and `/rebalance` leaves it out, and `/overview` prints its macro read without the line on how much of a planned buy to spend, since nothing is bought there.
+
+A segment with a 0% target opens nothing new. The conservative level ships crypto that way: `/suggest` on a coin you do not hold answers a hold with the reason `segment-target-zero`, while names you already hold keep their exits and trims. Give the segment a share with `segment-target` to buy into it again.
 
 `maximum-open-risk-pct-nav` bounds what every held name may lose at its planned stop together. A new buy is sized into the room left under it, and a held name with no planned stop is reported rather than counted as safe.
 

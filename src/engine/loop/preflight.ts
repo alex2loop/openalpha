@@ -1,3 +1,4 @@
+import type { HaltDetail } from '@/core/errors'
 import type { AgentId } from '@/core/ids'
 import type { RunResult, RunState, RunView } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
@@ -7,13 +8,31 @@ import { EMPTY_LLM_USAGE_TOTALS } from '@/core/types/usage'
 import { MIN_PER_RUN_BUDGET_USD } from '@/engine/constants'
 import { buildRunResult } from '@/engine/loop/finalize'
 
-/** The `errorMessage` of a run refused because its agent spent its own daily cap. The scheduler
- *  recognises it as an uncounted halt, so an agent at its cap never climbs a job's failure ladder. */
+/** The `errorMessage` of a run refused because its agent spent its own daily cap. */
 export const AGENT_CAP_MESSAGE = 'Agent daily cap reached'
 
 /** The `errorMessage` of a run refused because its agent is paused. Uncounted by the scheduler for
  *  the same reason: a paused agent's job is skipped, not failed. */
 export const PAUSED_MESSAGE = 'Agent paused'
+
+// Ceilings that reopen on their own, at the next day or month or once spend can be recorded again.
+// `run_budget` is the run's own size, so a run it stops is still the caller's failure.
+const SPEND_CAP_DETAILS: ReadonlySet<HaltDetail> = new Set([
+  'daily_cap',
+  'monthly_cap',
+  'agent_daily_cap',
+  'ledger_unavailable',
+])
+
+/** A run a spend ceiling refused: the scheduler waits for the ceiling to reopen rather than counting
+ *  a failure, so a capped day never disables a job. */
+export function isSpendCapHalt(result: Pick<RunResult, 'haltCode' | 'haltDetail'>): boolean {
+  return (
+    result.haltCode === 'budget' &&
+    result.haltDetail !== undefined &&
+    SPEND_CAP_DETAILS.has(result.haltDetail)
+  )
+}
 
 export function preflightRun(
   signals: readonly (AbortSignal | undefined)[],

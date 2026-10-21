@@ -42,6 +42,9 @@ export const PERCENT_PER_UNIT = 100
 export const THOUSAND_VND_PER_UNIT = 1_000
 /** What a board quoting "14.970" for a 149,700,000 VND lượng means by one unit. */
 export const TEN_THOUSAND_VND_PER_UNIT = 10_000
+// `4.03 * 1000` is 4030.0000000000005: past this many decimals a scaled price is float residue, and
+// a residue off the tick grid can miss an exact touch of a level.
+const SCALED_PRICE_DIGITS = 6
 
 /** Rows a kline request asks for when the caller names no window. Every venue's own ceiling is
  *  higher, so this bounds the ask rather than the venue. */
@@ -82,6 +85,10 @@ export function nonNegative(value: unknown, label: string): number {
   }
 
   return parsed
+}
+
+export function toScaledPrice(value: number, scale: number): number {
+  return Number((value * scale).toFixed(SCALED_PRICE_DIGITS))
 }
 
 /** Absent when there is nothing to measure against, which is not the same claim as a flat day. */

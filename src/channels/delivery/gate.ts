@@ -14,6 +14,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { PairingStore, SessionKey, SessionRouter } from '@/core/types/session'
 import { operatorContextOf } from '@/channels/operator'
+import { commandHeadOf } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { sessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -23,8 +24,6 @@ const APPROVE_VERB = '/approve'
 const DENY_VERB = '/deny'
 const PAIR_VERB = '/pair'
 const WHITESPACE_RE = /\s+/
-// Caps how many rows an unauthenticated stranger can mint through offerPairingCode.
-const MAX_OUTSTANDING_PAIRING_REQUESTS = 200
 
 type AdmitDecision = 'admit' | 'reject'
 
@@ -134,19 +133,32 @@ export function createGate(deps: GateDeps): Gate {
         return false
       }
 
-      const [verb, ...rest] = msg.text.trim().split(WHITESPACE_RE)
+      const command = parseOperatorCommand(msg)
 
-      if (verb !== APPROVE_VERB && verb !== DENY_VERB && verb !== PAIR_VERB) {
+      if (command === null) {
         return false
       }
 
-      await replyToOperatorCommand(deps, { chatId: msg.chatId, verb, arg: rest[0] })
+      await replyToOperatorCommand(deps, command)
 
       return true
     },
 
     activeSessionId: sessionFor,
   }
+}
+
+function parseOperatorCommand(msg: InboundMessage): OperatorCommand | null {
+  const verb = commandHeadOf(msg.text)
+
+  if (verb !== APPROVE_VERB && verb !== DENY_VERB && verb !== PAIR_VERB) {
+    return null
+  }
+
+  // Minted codes are uppercase, and the CLI uppercases what it is given.
+  const code = msg.text.trim().split(WHITESPACE_RE)[1]?.toUpperCase()
+
+  return { chatId: msg.chatId, verb, arg: code }
 }
 
 // A command that throws still sends a notice: the gate is never silent on a chat that issued one.
@@ -213,32 +225,9 @@ function createOperatorCheck(
   }
 }
 
-// A chat already holding a pending code is exempt: the store hands back its existing row, so
-// re-checking it cannot grow the backlog.
-async function pairingCapacityExceeded(deps: GateDeps, chatId: string): Promise<boolean> {
-  const pending = await deps.store.listPending(deps.channel, Date.now())
-
-  if (pending.length < MAX_OUTSTANDING_PAIRING_REQUESTS) {
-    return false
-  }
-
-  return !pending.some((request) => request.chatId === chatId)
-}
-
-// Idempotent by construction: the store hands back the chat's existing pending code, so a chat that keeps messaging gets silence instead of spam.
+// The store bounds the backlog (a fixed number of slots channel-wide). Idempotent by construction: the store hands back the chat's existing pending code, so a chat that keeps messaging gets silence instead of spam.
 async function offerPairingCode(deps: GateDeps, chatId: string): Promise<void> {
   try {
-    if (await pairingCapacityExceeded(deps, chatId)) {
-      // Saturation closes the bootstrap path to every new chat, and silence here looks identical to
-      // an ordinary unadmitted message.
-      deps.logger.warn('gate.pairing_capacity_exhausted', {
-        channel: deps.channel,
-        limit: MAX_OUTSTANDING_PAIRING_REQUESTS,
-      })
-
-      return
-    }
-
     const result = await deps.store.requestCode({
       channel: deps.channel,
       chatId,

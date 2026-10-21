@@ -290,6 +290,7 @@ export const HOLD_REASON_CODES = Object.freeze([
   'zero-nav',
   'excluded-instrument',
   'segment-off',
+  'segment-target-zero',
   'reference-only',
   'cap-exhausted',
   'sector-cap-exhausted',

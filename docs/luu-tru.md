@@ -150,14 +150,20 @@ mạng xã hội có hướng dẫn riêng ở [Mạng xã hội](mang-xa-hoi.md
 
 Migration được áp lúc khởi động, theo thứ tự tên tệp, thành một lô được ăn cả ngã về không: nếu một cái
 hỏng thì cả lô không được áp và các cái sau không chạy. `db migrate --status` cho biết mỗi migration là
-đã áp, đang chờ hay mồ côi. Migration mồ côi là cái đã áp mà phiên bản mã này không còn biết (thường do
-hạ cấp): hãy xem lại nó.
+đã áp, đang chờ hay mồ côi. Migration mồ côi là cái đã áp mà phiên bản mã này không biết, tức là một bản
+mới hơn đã cập nhật cơ sở dữ liệu. Khi đó bản này từ chối khởi động, và `doctor` báo lỗi ở mục cơ sở
+dữ liệu, thay vì đọc sai dữ liệu. Chạy `upgrade` để quay lại bản mới, hoặc khôi phục bản sao trong
+`backups/pre-migration/` bằng `db restore`.
 
 `db migrate` chụp một bản sao vào `backups/pre-migration/` trước khi áp migration đang chờ, và
 `db migrate down` chụp vào `backups/pre-rollback/` trước khi rollback một migration. Không có việc gì
 để làm thì cả hai không ghi gì. Cả hai đều là bản sao lưu thường, nên đưa cái nào cho `db restore` cũng
 được. PostgreSQL không được chụp ở cả hai đường, và `db migrate down` nói rõ điều này trước khi hỏi
 bạn.
+
+`db migrate down` hoàn tác migration mới nhất. `db migrate down --to <id>` hoàn tác mọi migration sau
+`<id>`, từ mới nhất trở xuống, chỉ hỏi một lần và chụp một bản sao, và dừng ở cái đầu tiên không hoàn
+tác được. `upgrade --rollback` dùng lệnh này để đưa schema về dạng của bản trước.
 
 ### Lưu giữ
 
@@ -255,8 +261,9 @@ bản mới nhất đã gần một ngày tuổi. Đây là bản sao lưu thư�
 bạn thêm `--force`.
 
 **Khôi phục** cần daemon đã dừng. Trước hết nó kiểm tra nguồn có mở được như một cơ sở dữ liệu SQLite
-và qua `PRAGMA quick_check` không, rồi giữ cơ sở dữ liệu cũ với hậu tố `.bak`. Nếu cơ sở dữ liệu cũ
-không mở được thì việc khôi phục vẫn chạy: nó được dời sang bên thành tệp `.bak`.
+và qua `PRAGMA quick_check` không, rồi cất cơ sở dữ liệu đang bị thay vào `backups/` với tên theo thời
+điểm, nên khôi phục mấy lần cũng không mất bản gốc. Nếu cơ sở dữ liệu cũ không mở được thì việc khôi
+phục vẫn chạy: nó cũng được dời vào `backups/` như vậy.
 
 **Chuyển sang máy chủ khác.** Bạn chỉ cần một tệp; đổi tên cũng được, và máy đích không cần có sẵn thư
 mục dữ liệu. Trạng thái migration nằm trong chính tệp, nên máy mới báo các migration là đã áp. Máy đích
@@ -274,7 +281,8 @@ openalpha db reset --yes
 ```
 
 Reset xóa mọi dòng và cần daemon đã dừng. SQLite thay cơ sở dữ liệu cùng các tệp đi kèm; PostgreSQL dựng
-lại schema đã cấu hình. Sau đó mọi migration đã đăng ký được áp lại. Muốn giữ dữ liệu, chạy `db export`
+lại schema đã cấu hình, và từ chối `public` vì ứng dụng khác có thể dùng chung. Sau đó mọi migration đã
+đăng ký được áp lại. Muốn giữ dữ liệu, chạy `db export`
 trước rồi `db import` sau (xem [Xuất và nhập](#xuất-và-nhập)).
 
 ### Hành vi khi hỏng

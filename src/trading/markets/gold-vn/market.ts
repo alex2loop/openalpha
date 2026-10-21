@@ -6,7 +6,7 @@ import type { GoldBoard, GoldBoardRow, Quote } from '@/trading/kernel/market/mar
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
-import type { BoardCache, BoardSelection } from '@/trading/markets/gold-vn/board'
+import type { BoardCache, BoardSnapshot } from '@/trading/markets/gold-vn/board'
 import type {
   Market,
   MarketDetection,
@@ -258,7 +258,7 @@ async function vnGoldFactors(factorDeps: FactorDeps, options: FactorRequest): Pr
   ])
   // The premium factor scores the market, not a named form, so policy picks.
   const selected = selectFromBoard(snapshot)
-  const reading = await premiumReading(factorDeps, options, selected)
+  const reading = await premiumReading(factorDeps, options, snapshot)
   const premium: FactorInput<VnGoldFactorId> = {
     id: 'local-premium',
     ...optionalRaw(reading),
@@ -274,14 +274,17 @@ async function vnGoldFactors(factorDeps: FactorDeps, options: FactorRequest): Pr
 async function premiumReading(
   factorDeps: FactorDeps,
   options: FactorRequest,
-  selected: SourceResult<BoardSelection>
+  snapshot: SourceResult<BoardSnapshot>
 ): Promise<number | undefined> {
-  if (selected.kind !== 'available') {
+  if (snapshot.kind !== 'available') {
     return undefined
   }
 
+  const { board, worldUsdPerOunce, usdVnd } = snapshot.value
   const ranking = await rankPremium(factorDeps.deps, {
-    premium: selected.value.premium,
+    board,
+    worldUsdPerOunce,
+    usdVnd,
     calendar: factorDeps.manifest.calendar,
     toDay: options.asOf,
     signal: options.signal,

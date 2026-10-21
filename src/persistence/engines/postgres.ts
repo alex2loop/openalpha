@@ -2,6 +2,7 @@ import type { Pool, PoolClient, QueryResultRow } from 'pg'
 
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage, Transaction } from '@/core/types/storage'
+import { OperatorConfigError } from '@/core/config/resolve'
 import { ConfigError, StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { toStorageError } from '@/persistence/errors'
@@ -15,6 +16,8 @@ const PG_IDLE_TXN_TIMEOUT_MS = 60_000
 // The backend `options` startup string is whitespace-split by the server, so `quoteIdentifier`
 // cannot protect it — the name itself must be inert, asserted where the string is built.
 const PG_SCHEMA_NAME_RE = /^[a-z_][a-z0-9_]{0,62}$/
+// Reset drops the whole schema; `public` is shared with whatever else lives in the database.
+const PG_SHARED_SCHEMA = 'public'
 
 function postgresParam(index: number): string {
   return `$${index}`
@@ -74,6 +77,14 @@ export async function openPostgres(options: PostgresConnectionOptions): Promise<
 }
 
 export async function resetPostgres(options: PostgresConnectionOptions): Promise<number> {
+  if (options.schema === PG_SHARED_SCHEMA) {
+    throw new OperatorConfigError(
+      `postgres reset refused: schema "${PG_SHARED_SCHEMA}" is shared, use a dedicated schema`,
+      { key: 'errors.dbResetSharedSchema', params: { schema: PG_SHARED_SCHEMA } },
+      { path: ['storage', 'schema'] }
+    )
+  }
+
   const storage = await openPostgres(options)
   const schema = quoteIdentifier(options.schema)
 

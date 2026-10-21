@@ -26,6 +26,7 @@ const BOOK_STATE_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonC
   'zero-nav',
   'excluded-instrument',
   'segment-off',
+  'segment-target-zero',
   'cap-exhausted',
   'sector-cap-exhausted',
   'etf-cap-exhausted',

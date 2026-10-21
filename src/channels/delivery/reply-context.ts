@@ -2,7 +2,7 @@ import type { SentMessage, SentMessages } from '@/channels/delivery/sent-message
 import type { InboundMessage, InboundReply } from '@/channels/types'
 import type { Locale } from '@/core/types/locale'
 import { stripFooter } from '@/channels/delivery/format'
-import { toPastedContent } from '@/channels/pasted-content'
+import { toPastedContent } from '@/core/security/pasted-content'
 import { truncate } from '@/core/utils/text'
 import { t } from '@/i18n'
 

@@ -193,7 +193,7 @@ function assertSellable(state: FoldState, txn: LedgerTxn): void {
   // rounded to the instrument's lot while the book netted the buy's in-kind fee down, so the order
   // that sold everything reads a hair above the position — and refusing it strands the name, since
   // every later sale of it then has a phantom parcel to clear first.
-  if (txn.quantity > settled + closingOvershootOf(settled)) {
+  if (txn.quantity > settled + closingOvershootOf(settled, txn.quantity)) {
     throw new ValidationError(
       `sell of ${txn.instrument.ticker} at ${txn.venue} exceeds the quantity settled on ${txn.at}`,
       {

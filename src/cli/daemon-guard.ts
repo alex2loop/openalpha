@@ -1,4 +1,4 @@
-import { link, readFile, rm, unlink, writeFile } from 'node:fs/promises'
+import { link, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
@@ -199,23 +199,8 @@ async function claimStalePidFile(pidPath: string, raw: string): Promise<StaleCla
     }
   }
 
-  // Re-read before unlinking: a daemon that won 'wx' between our read and our unlink would
-  // otherwise have its valid pid file deleted by us. This narrows the race to one syscall pair;
-  // closing it fully needs flock(2)/fcntl(2), which has no portable binding here.
-  try {
-    const current = await readFile(pidPath, 'utf8')
-
-    if (current.trim() !== raw.trim()) {
-      return { kind: 'retry' }
-    }
-
-    await unlink(pidPath)
-  } catch (err: unknown) {
-    if (isErrno(err, 'ENOENT')) {
-      return { kind: 'retry' }
-    }
-
-    throw err
+  if (!(await removeIfUnchanged(pidPath, raw))) {
+    return { kind: 'retry' }
   }
 
   // A file that names no run (empty, cut short) shows no crash.
@@ -226,6 +211,34 @@ async function claimStalePidFile(pidPath: string, raw: string): Promise<StaleCla
   return identity.startedAt === undefined
     ? { kind: 'reclaimed', stale: raw }
     : { kind: 'reclaimed', stale: raw, startedAt: identity.startedAt }
+}
+
+// Renamed aside, not unlinked: a file another start linked after our read is moved in the same step,
+// so it is seen and put back rather than deleted (a third start already on the path keeps it).
+async function removeIfUnchanged(pidPath: string, raw: string): Promise<boolean> {
+  const asidePath = `${pidPath}.${process.pid}.stale`
+
+  try {
+    await rename(pidPath, asidePath)
+  } catch (err: unknown) {
+    if (isErrno(err, 'ENOENT')) {
+      return false
+    }
+
+    throw err
+  }
+
+  try {
+    if ((await readFile(asidePath, 'utf8')).trim() === raw.trim()) {
+      return true
+    }
+
+    await link(asidePath, pidPath).catch(() => undefined)
+
+    return false
+  } finally {
+    await rm(asidePath, { force: true }).catch(() => undefined)
+  }
 }
 
 /** Puts back a pid file a reclaim removed; false when it could not or another start holds the path. */
@@ -256,7 +269,7 @@ export async function removePidFile(app: CliApp): Promise<boolean> {
 
 // `stop` recovery: a malformed file names no process, so no live daemon can own it (a starting
 // daemon publishes its file whole). Routed through claimStalePidFile for the same
-// re-read-before-unlink race guard as the start path.
+// rename-aside race guard as the start path.
 export async function clearMalformedPidFile(app: CliApp): Promise<boolean> {
   const pidPath = pidFilePath(app)
 

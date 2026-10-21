@@ -234,7 +234,7 @@ Mỗi vai được hỏi tối đa hai lần. Nếu câu trả lời sai schema,
 
 1. Chế độ bạn đã gõ rõ thì giữ nguyên.
 2. `force` nghĩa là full.
-3. Bản nháp mà cuốn sổ đã quyết (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) chạy lean, vì tranh luận chỉ hạ được xuống nên không đổi được nó. Báo cáo nói rõ là điểm số (ba lý do `factors-*`) hay danh mục đã chốt kết quả, và chỉ lệnh `/suggest <mã> full` để đọc đủ lập luận.
+3. Bản nháp mà cuốn sổ đã quyết (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) chạy lean, vì tranh luận chỉ hạ được xuống nên không đổi được nó. Báo cáo nói rõ là điểm số (ba lý do `factors-*`) hay danh mục đã chốt kết quả, và chỉ lệnh `/suggest <mã> full` để đọc đủ lập luận.
 4. Mọi trường hợp khác dùng chế độ đã cấu hình.
 
 Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lại. Nếu không, mặc định lean sẽ khiến nó bị chạy lại mỗi ngày trên cấu hình full. Riêng khi bạn gõ rõ `full`, lệnh chạy lại qua dòng lean đó và thay nó, nên hỏi lập luận đầy đủ thì không bao giờ nhận lại bản rút gọn.
@@ -1032,6 +1032,8 @@ Cả hai trường này nhận từ 0,2 tới 1.
 - `/profile enable|disable <nhóm>` bật hoặc tắt một nhóm
 
 Một nhóm mà sàn nào cũng không giao dịch (vàng thế giới, giữ lại vì giá của nó và mức chênh `gold-vn`) luôn tắt, và bật nó bị từ chối. `/suggest` trên một mã của nhóm đó vẫn đưa số đọc yếu tố và các mức giá, như một lần giữ nguyên với lý do `reference-only`, và không chạy tranh luận. Cách dùng của `/profile`, `/record` và `/rebalance` bỏ nó ra, và `/overview` in số đọc vĩ mô của nó mà không có dòng về mức nên chi bao nhiêu của một lệnh mua đã lên kế hoạch, vì ở đó không mua gì.
+
+Một nhóm có tỷ trọng mục tiêu 0% thì không mở vị thế mới nào. Mức `conservative` mặc định để crypto như vậy: `/suggest` một coin bạn chưa nắm sẽ trả lời giữ nguyên với lý do `segment-target-zero`, còn các mã đang nắm vẫn giữ nguyên điểm thoát và lệnh giảm bớt. Muốn mua lại trong nhóm đó, hãy đặt cho nó một tỷ trọng bằng `segment-target`.
 
 `maximum-open-risk-pct-nav` chặn tổng mức mà mọi mã đang nắm có thể mất tại cắt lỗ đã lên kế hoạch của chúng. Một lệnh mua mới được định cỡ vào phần còn lại dưới nó, và một mã đang nắm không có cắt lỗ đã lên kế hoạch thì được báo chứ không bị tính là an toàn.
 

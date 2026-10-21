@@ -11,7 +11,7 @@ Use when a held position has reached its first target or has run past it. `exit-
 
 ## What the system already does with a winner
 
-The take-profit and the target are two different prices. On a market that trails its stop (VN shares, crypto, world gold), `takeProfitTranchePct` banks a share of the position at the take-profit and the rest rides the trailing stop: it has no fixed exit, and the target is only what the reward:risk is measured to. VN shares, long-horizon crypto and long-horizon world gold set the take-profit one risk unit above entry; the other short horizons set it at the target. A position already held gets the same split from the row's `takeProfitTranchePct`.
+The take-profit and the target are two different prices. On a market that trails its stop (VN shares, crypto), `takeProfitTranchePct` banks a share of the position at the take-profit and the rest rides the trailing stop: it has no fixed exit, and the target is only what the reward:risk is measured to. VN shares and long-horizon crypto set the take-profit one risk unit above entry; the other short horizons set it at the target. A position already held gets the same split from the row's `takeProfitTranchePct`.
 
 The trail is the only thing that moves the stop, from the first session, and never within one ATR of the last close. The plan never moves it to entry at the take-profit: measured on the stored boards, a stop pulled up to breakeven cut more winners than it saved, so recommending one contradicts the plan the record is scored on.
 

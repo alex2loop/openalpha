@@ -124,12 +124,14 @@ async function walkRoute(
 
 /** The receipts on one page that belong to the window. A row naming no instrument has nothing to
  *  attribute a fill to, and one the venue dated before the window is a page-boundary straggler the
- *  cursor reached without the walk being done. */
+ *  cursor reached without the walk being done. An undated row stays: the ledger sync names it
+ *  rather than the walk dropping it unseen. */
 function receiptsWithin(rows: readonly OkxRow[], since: number): readonly OrderReceipt[] {
   return rows.filter(isSettledFill).flatMap((row) => {
     const receipt = row.instId === undefined ? undefined : toReceipt(row, row.instId)
+    const at = datedAt(row)
 
-    return receipt !== undefined && (receipt.filledAt ?? 0) >= since ? [receipt] : []
+    return receipt !== undefined && (at === undefined || at >= since) ? [receipt] : []
   })
 }
 
@@ -147,14 +149,17 @@ function isSettledFill(row: OkxRow): boolean {
  *  creation where it never filled: creation precedes any fill, so a row created before the window is
  *  behind it. An undated row settles nothing, so it never ends the walk on its own. */
 function isBehindWindow(rows: readonly OkxRow[], since: number): boolean {
-  const stamps = rows.flatMap((row) => {
-    const filledAt = optionalNumber(row.fillTime, 0)
-    const at = filledAt > 0 ? filledAt : optionalNumber(row.cTime, 0)
-
-    return at > 0 ? [at] : []
-  })
+  const stamps = rows.flatMap((row) => datedAt(row) ?? [])
 
   return stamps.length > 0 && stamps.every((stamp) => stamp < since)
+}
+
+/** A row's fill time, else its creation time; absent when it carries neither. */
+function datedAt(row: OkxRow): number | undefined {
+  const filledAt = optionalNumber(row.fillTime, 0)
+  const at = filledAt > 0 ? filledAt : optionalNumber(row.cTime, 0)
+
+  return at > 0 ? at : undefined
 }
 
 /** A window reaching past the recent route reads the archive as well, never instead: the archive

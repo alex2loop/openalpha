@@ -29,6 +29,15 @@ const releaseNoteSchema = z.object({
 
 const chatSchema = z.object({ channel: z.string(), chatId: z.string() })
 
+// The newest migration the release an upgrade replaced declares, for the release it installed: a
+// rollback from that release rolls the schema back to it first, while the rollback copy is still
+// the one that upgrade kept.
+const rollbackTargetSchema = z.object({
+  version: z.string(),
+  migrationId: z.string(),
+  binaryStamp: z.string(),
+})
+
 const pendingUpgradeSchema = z.object({
   from: z.string(),
   to: z.string(),
@@ -48,6 +57,7 @@ const updateStateSchema = z.object({
   chatAnnouncedVersion: z.string().nullable(),
   pendingUpgrade: pendingUpgradeSchema.nullable(),
   rolledBackVersion: z.string().nullable(),
+  rollbackTarget: rollbackTargetSchema.nullable().default(null),
   // The private chat the operator last wrote from, where an automatic update reports back.
   operatorChat: chatSchema.nullable(),
 })
@@ -71,6 +81,7 @@ const NEVER_CHECKED: UpdateState = Object.freeze({
   chatAnnouncedVersion: null,
   pendingUpgrade: null,
   rolledBackVersion: null,
+  rollbackTarget: null,
   operatorChat: null,
 })
 

@@ -8,7 +8,7 @@ import type {
 import { RunHalted } from '@/core/errors'
 import { advanceCron } from '@/core/utils/cron'
 import { computeBackoffMs } from '@/core/utils/retry'
-import { AGENT_CAP_MESSAGE, PAUSED_MESSAGE } from '@/engine/api'
+import { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/api'
 import { RETRY_BASE_MS, RETRY_CAP_MS } from '@/scheduler/backoff'
 
 export const CRON_AUTO_DISABLE_THRESHOLD = 3
@@ -18,11 +18,13 @@ export const SHUTDOWN_MESSAGE = 'aborted (shutdown)'
 // what came out", and a full brief would bloat the table.
 const SUMMARY_MAX_CHARS = 500
 const APPROVAL_DENIED_MESSAGE = 'halted (approval denied or timed out)'
+const SPEND_CAP_MESSAGE = 'halted (spend cap reached)'
+const RATE_LIMITED_MESSAGE = 'halted (rate limited)'
 // Halts that advance the schedule without counting a failure: the job itself is not broken.
 export const UNCOUNTED_HALT_MESSAGES: ReadonlySet<string> = new Set([
   SHUTDOWN_MESSAGE,
   APPROVAL_DENIED_MESSAGE,
-  AGENT_CAP_MESSAGE,
+  SPEND_CAP_MESSAGE,
   PAUSED_MESSAGE,
 ])
 
@@ -52,7 +54,7 @@ export function computeOutcome(
       status: 'success',
       endedAtMs: now,
       summary: result.text.slice(0, SUMMARY_MAX_CHARS),
-      costUsd: result.totals.costUsd,
+      costUsd: result.runCostUsd ?? 0,
     }
   }
 
@@ -62,6 +64,14 @@ export function computeOutcome(
 
   if (denied) {
     return { status: 'failed', endedAtMs: now, errorMessage: APPROVAL_DENIED_MESSAGE }
+  }
+
+  if (isSpendCapHalt(result)) {
+    return { status: 'failed', endedAtMs: now, errorMessage: SPEND_CAP_MESSAGE }
+  }
+
+  if (result.haltCode === 'rate') {
+    return { status: 'failed', endedAtMs: now, errorMessage: RATE_LIMITED_MESSAGE }
   }
 
   return {
@@ -89,6 +99,11 @@ export function computeTransition(
     return haltTransition(job, outcome.errorMessage, now)
   }
 
+  // The limiter clears within its window, so the occurrence is kept and asked again later.
+  if (outcome.errorMessage === RATE_LIMITED_MESSAGE) {
+    return deferredTransition(job, now)
+  }
+
   const failures = job.consecutiveFailures + 1
 
   if (failures >= CRON_AUTO_DISABLE_THRESHOLD) {
@@ -112,7 +127,7 @@ function keylessTransition(job: Job, now: number): SchedulerJobTransition {
 // A paused or capped agent's one-shot is deferred without a failure counted, so it runs once the
 // agent is resumed or the day rolls over instead of being disabled for a halt that is not the job's.
 function onceHaltTransition(job: Job, message: string, now: number): SchedulerJobTransition {
-  if (message === PAUSED_MESSAGE || message === AGENT_CAP_MESSAGE) {
+  if (message === PAUSED_MESSAGE || message === SPEND_CAP_MESSAGE) {
     return deferredTransition(job, now)
   }
 

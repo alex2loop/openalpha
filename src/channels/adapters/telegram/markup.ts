@@ -8,6 +8,13 @@ const QUOTE_RUN_RE = /(?:^>[^\n]*(?:\n|$))+/gm
 const QUOTE_MARKER_RE = /^>[ \t]?/
 const INLINE_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|`([^`\n]+)`/g
 const FENCE_DELIMITER_LENGTH = 3
+const BACKSLASH_ESCAPE_RE = /\\([\s\S])/g
+const LEADING_NEWLINE_RE = /^\n/
+// Every entity this module writes, plus a backslash escape: a fence, inline code, a link, the
+// expandable-quote opener `**>` and closer `||`, a quote line's `>`, and bold's `*`. A literal
+// `*`, `|`, `>`, `[` or `` ` `` is always escaped, so only a marker reaches these arms bare.
+const PLAIN_TOKEN_RE =
+  /```([\s\S]*?)```|`((?:[^`\\]|\\[\s\S])*)`|\[((?:[^\]\\]|\\[\s\S])*)\]\(((?:[^)\\]|\\[\s\S])*)\)|\*\*>|\|\||^>|\*|\\[\s\S]/gm
 /** What opens and closes an expandable blockquote on the wire. Exported because the chunker has to
  *  re-open and re-close a run its boundary split, and two spellings of the same marker would fold
  *  on one path and not the other. */
@@ -32,6 +39,38 @@ export function toMarkdownV2(text: string): string {
     onMatch: (match) => toFence(match[0]),
     onGap: toQuoted,
   })
+}
+
+/** What a message resent without `parse_mode` should read as: the agent's text with every marker
+ *  and escape this module added taken back out. */
+export function toPlainText(markdownV2: string): string {
+  return replaceOutside(markdownV2, {
+    pattern: PLAIN_TOKEN_RE,
+    onMatch: toPlainToken,
+    onGap: (gap) => gap,
+  })
+}
+
+function toPlainToken(match: RegExpMatchArray): string {
+  const [token, fence, code, label, url] = match
+
+  if (fence !== undefined) {
+    return unescapeBackslashes(fence).replace(LEADING_NEWLINE_RE, '')
+  }
+
+  if (code !== undefined) {
+    return unescapeBackslashes(code)
+  }
+
+  if (label !== undefined) {
+    return `${unescapeBackslashes(label)} (${unescapeBackslashes(url ?? '')})`
+  }
+
+  return token?.startsWith('\\') ? unescapeBackslashes(token) : ''
+}
+
+function unescapeBackslashes(text: string): string {
+  return text.replace(BACKSLASH_ESCAPE_RE, '$1')
 }
 
 function replaceOutside(source: string, replacement: OutsideReplacement): string {

@@ -12,7 +12,7 @@ import type {
 import type { SessionRouteLease } from '@/core/types/session'
 import { TELEGRAM_CALLBACK_DATA_MAX_BYTES } from '@/channels/adapters/telegram/protocol'
 import { buildAbortCallbackData, COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
-import { channelControlHelp, handleSessionControl } from '@/channels/delivery/control'
+import { channelControlHelp } from '@/channels/delivery/control'
 import { formatChannelFooter, joinFooter } from '@/channels/delivery/format'
 import { openSlashNotice, type SlashNotice } from '@/channels/delivery/slash-notice'
 import { operatorContextOf } from '@/channels/operator'
@@ -117,10 +117,6 @@ function failureText(deps: InboundHandlerDeps, err: unknown): string {
 
 async function runSlashRequest(options: ResolveSlashOptions): Promise<SlashRunRequest | null> {
   const { deps, msg, sessionId } = options
-
-  if (await handleSessionControl({ deps, msg, sessionId })) {
-    return null
-  }
 
   const help = parseHelpLine(msg.text)
 

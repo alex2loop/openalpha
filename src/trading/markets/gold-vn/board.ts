@@ -142,7 +142,7 @@ export async function worldBars(
 }
 
 /** A chosen form carrying the snapshot it was priced from, so a caller can date the reading. */
-export interface BoardSelection extends FormSelection {
+interface BoardSelection extends FormSelection {
   readonly asOf: TradingDay
   readonly observedAt: number
 }

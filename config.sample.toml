@@ -190,7 +190,8 @@ language = "vi"                   # vi | en
 # path = "data/openalpha.sqlite"
 
 # PostgreSQL reads its URL from the environment. schema is required, and every
-# operation including `db reset` is confined to it.
+# operation including `db reset` is confined to it. Use a schema of its own:
+# `db reset` refuses `public`.
 # [storage]
 # engine = "postgres"
 # url_env = "OPENALPHA_DATABASE_URL"
@@ -402,6 +403,7 @@ language = "vi"                   # vi | en
 # delegation_depth = 3               # max parent -> child delegate chain
 # max_delegations = 32               # total delegate calls per run tree
 # max_parallel_delegations = 5       # most children one delegate_parallel accepts
+# max_unasked_fetches = 10           # web_fetch calls per run before each one asks you; 0 = always ask
 
 
 # ---- Memory -----------------------------------------------------------------
