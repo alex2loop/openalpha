@@ -2747,7 +2747,7 @@
     "brief.field.publisher": "source",
     "brief.field.rate": "rate",
     "brief.field.reason": "reason",
-    "brief.field.reduceReason": "why",
+    "brief.field.reduceReason": "reason",
     "brief.field.regime": "state",
     "brief.field.resistance": "resistance",
     "brief.field.resolvedCount": "resolved",
