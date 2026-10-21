@@ -35,8 +35,13 @@ import {
 } from '@/trading/sources/rows/normalization'
 import { resolveRowTarget } from '@/trading/sources/rows/row-target'
 
-/** Fiscal years read back from the asked day: five reported ones, plus the year still in progress. */
-const FRAME_YEARS = 6
+/** Fiscal years read back from the asked day: six reported ones, which a five-year trend needs
+ *  (the base year and five after it), plus the year still in progress. */
+const FRAME_YEARS = 7
+
+/** A balance sheet is dated where the fiscal year ends, which can be any month, and an instant frame
+ *  holds one calendar quarter's end: all four are read so every year end has its own. */
+const INSTANT_QUARTERS = Object.freeze([1, 2, 3, 4])
 
 /** A 10-K is due within 60 to 90 days of the year end; the frames carry no filing date, so the
  *  report counts as published at the latest of them. */
@@ -141,11 +146,13 @@ function flowJobs(year: number): readonly FrameJob[] {
 }
 
 function instantJobs(year: number): readonly FrameJob[] {
-  return INSTANT_CONCEPTS.flatMap((concept) =>
-    concept.tags.map((tag, priority) => ({
-      ...usGaapJob({ line: concept.line, tag, priority }, `CY${year}Q4I`),
-      instantYear: year,
-    }))
+  return INSTANT_QUARTERS.flatMap((quarter) =>
+    INSTANT_CONCEPTS.flatMap((concept) =>
+      concept.tags.map((tag, priority) => ({
+        ...usGaapJob({ line: concept.line, tag, priority }, `CY${year}Q${quarter}I`),
+        atYearEnd: true as const,
+      }))
+    )
   )
 }
 
@@ -189,36 +196,48 @@ interface YearAccumulator {
   end?: TradingDay
 }
 
-/** A flow fixes the fiscal year (the year its period ends in); an instant joins the year of the
- *  frame it came from. A line from an earlier-listed tag outranks a later one. */
+/** A flow fixes the fiscal year (the year its period ends in), so flows are read first; a balance
+ *  sheet then joins only the year whose flows close on its date, never a later quarter's. The cover
+ *  share count joins the year of its frame. A line from an earlier-listed tag outranks a later one. */
 function toAnnual(
   answers: readonly FrameAnswer[],
   wanted: ReadonlyMap<string, readonly Ticker[]>,
   target: RowTarget
 ): readonly AnnualAccounts[] {
   const years = new Map<string, YearAccumulator>()
+  const ordered = [
+    ...answers.filter((answer) => answer.job.atYearEnd !== true),
+    ...answers.filter((answer) => answer.job.atYearEnd === true),
+  ]
 
-  for (const { job, facts } of answers) {
+  for (const { job, facts } of ordered) {
     for (const fact of facts) {
-      const year = job.instantYear ?? fiscalYearOf(fact.end)
-      const key = `${fact.cik}|${year}`
-      const entry = years.get(key) ?? { lines: {}, priorities: {} }
-      const held = entry.priorities[job.line]
-
-      if (held === undefined || job.priority < held) {
-        entry.lines[job.line] = fact.value
-        entry.priorities[job.line] = job.priority
-      }
-
-      if (job.instantYear === undefined && (entry.end === undefined || fact.end > entry.end)) {
-        entry.end = fact.end
-      }
-
-      years.set(key, entry)
+      addFact(years, job, fact)
     }
   }
 
   return [...years].flatMap(([key, entry]) => toRows(key, entry, { wanted, target }))
+}
+
+function addFact(years: Map<string, YearAccumulator>, job: FrameJob, fact: FrameFact): void {
+  const key = `${fact.cik}|${job.instantYear ?? fiscalYearOf(fact.end)}`
+  const entry = years.get(key) ?? { lines: {}, priorities: {} }
+  const held = entry.priorities[job.line]
+
+  if (job.atYearEnd === true && entry.end !== fact.end) {
+    return
+  }
+
+  if (held === undefined || job.priority < held) {
+    entry.lines[job.line] = fact.value
+    entry.priorities[job.line] = job.priority
+  }
+
+  if (job.instantYear === undefined && job.atYearEnd !== true) {
+    entry.end = entry.end === undefined || fact.end > entry.end ? fact.end : entry.end
+  }
+
+  years.set(key, entry)
 }
 
 function toRows(

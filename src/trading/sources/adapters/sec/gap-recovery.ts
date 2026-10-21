@@ -126,7 +126,7 @@ function conceptJobs(): readonly ConceptJob[] {
   )
   const instants = INSTANT_CONCEPTS.flatMap((concept) =>
     concept.tags.map((tag, priority) => ({
-      job: { ...usGaapJob({ line: concept.line, tag, priority }, 'Q4I'), instantYear: 0 },
+      job: { ...usGaapJob({ line: concept.line, tag, priority }, 'Q4I'), atYearEnd: true as const },
       shape: 'instant' as const,
     }))
   )
@@ -195,15 +195,5 @@ function isYearLong(start: string | undefined, end: TradingDay): boolean {
 
 /** Only the years the frames lost: the rest are already served and must not be overwritten. */
 function answersFor(facts: readonly ConceptFact[], item: ConceptItem): readonly FrameAnswer[] {
-  const lost = facts.filter((fact) => item.years.has(fact.fiscalYear))
-  const { job, shape } = item.job
-
-  if (shape === 'flow') {
-    return [{ job, facts: lost }]
-  }
-
-  return [...item.years].map((year) => ({
-    job: { ...job, instantYear: year },
-    facts: lost.filter((fact) => fact.fiscalYear === year),
-  }))
+  return [{ job: item.job.job, facts: facts.filter((fact) => item.years.has(fact.fiscalYear)) }]
 }

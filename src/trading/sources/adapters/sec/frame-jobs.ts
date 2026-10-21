@@ -22,9 +22,11 @@ export interface FrameJob {
   readonly tag: string
   readonly unit: 'USD' | 'shares'
   readonly period: string
-  /** Where the answer lands: a line, and the year an instant frame is filed under. */
+  /** Where the answer lands: a line, and the year the cover-page share count is filed under. */
   readonly line: keyof AccountLines
   readonly instantYear?: number
+  /** A balance-sheet instant: it counts only for the year whose flows close on its date. */
+  readonly atYearEnd?: true
   readonly priority: number
 }
 

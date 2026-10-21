@@ -35,8 +35,9 @@ export const FLOW_CONCEPTS: readonly Concept<FlowLine>[] = Object.freeze([
   },
 ])
 
-/** Balance-sheet instants, from the quarter-four instant frames. Equity is the consolidated figure
- *  that includes the minority, as `totalEquity` is everywhere else. */
+/** Balance-sheet instants, from the quarter-end instant frames, each kept for the fiscal year that
+ *  closes on its date. Equity is the consolidated figure that includes the minority, as
+ *  `totalEquity` is everywhere else. */
 export const INSTANT_CONCEPTS: readonly Concept<InstantLine>[] = Object.freeze([
   { line: 'totalAssets', tags: Object.freeze(['Assets']) },
   {
