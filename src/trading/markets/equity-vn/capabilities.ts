@@ -22,6 +22,7 @@ import { available, dedupeProvenance, unavailable } from '@/trading/kernel/sourc
 import { settledBars } from '@/trading/markets/bars'
 import { QUARTER_GAP_CODES } from '@/trading/markets/equity-vn/accounts/quarter-gaps'
 import { buildVnBrief } from '@/trading/markets/equity-vn/brief/compose'
+import { VN_BRIEF_HOME } from '@/trading/markets/equity-vn/brief/vn-context'
 import { runMacroRisk } from '@/trading/markets/equity-vn/evidence/macro-evidence'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
 import { toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
@@ -134,8 +135,9 @@ function briefCapability(
           services,
           request,
           calendar: manifest.calendar,
-          cross: () => crossSection.get(request.asOf, request.signal),
-          crossAt: (day) => crossSection.get(day, request.signal),
+          home: VN_BRIEF_HOME,
+          board: () => crossSection.get(request.asOf, request.signal),
+          boardAt: (day) => crossSection.get(day, request.signal),
         }),
     },
   }

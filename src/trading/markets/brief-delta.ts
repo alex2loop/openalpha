@@ -4,9 +4,9 @@ import type {
   BriefSectionResult,
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { BriefContext } from '@/trading/markets/brief-context'
 import { sectionNumber, sectionSessions } from '@/trading/kernel/operator/brief-section'
-import { omitted, ready } from '@/trading/markets/equity-vn/brief/sections'
+import { omitted, ready } from '@/trading/markets/brief-sections'
 
 interface ComparedFact {
   readonly kind: BriefSectionKind

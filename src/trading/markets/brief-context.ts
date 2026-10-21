@@ -1,7 +1,7 @@
 import type { BookSummary, BriefServices } from '@/trading/features/brief/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { BriefPolicy } from '@/trading/kernel/config'
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, Region, TradingDay } from '@/trading/kernel/instrument'
 import type {
   MacroRiskSnapshot,
   MarketBriefRequest,
@@ -10,23 +10,17 @@ import type {
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
-import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
+import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
-import {
-  VN_MACRO_DRIVERS,
-  VN_MACRO_FORMULA_VERSION,
-  VN_MARKET_REF,
-  VN_MARKET_REGION,
-} from '@/trading/markets/equity-vn/policy'
 import { deriveMacroRisk } from '@/trading/markets/macro-risk'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** One context, loaded once. Twenty-six builders each fetching what they need would issue the same
  *  universe read a dozen times and read the clock twenty-six times, producing a brief whose
  *  sections disagree about what day it is. */
-export interface BriefContext {
+export interface BriefContext<Board = unknown> {
   readonly deps: MarketDeps
   readonly services: BriefServices
   /** The plan the book would run today, read once. Three sections quote it, and three reads would
@@ -50,10 +44,11 @@ export interface BriefContext {
   readonly calendarNames: BriefNames
   /** The same union outside VN, for the sections that price a cross-asset name without debating it. */
   readonly crossAssetNames: BriefNames
-  readonly cross: CrossSection | null
+  /** The home market's own population pass, or null when it could not be read. */
+  readonly board: Board | null
   /** Another day's pass, on demand: the delta section needs yesterday's board without forcing the
    *  whole context to reload a second universe. The two-slot cache keeps both days resident. */
-  readonly crossAt: (day: TradingDay) => Promise<CrossSection>
+  readonly boardAt: (day: TradingDay) => Promise<Board>
   readonly sectors: readonly SectorStrength[]
   readonly macro: BriefMacroRisk | null
   readonly previousMacro: BriefMacroRisk | null
@@ -73,29 +68,46 @@ interface BriefMacroRisk {
   readonly provenance: readonly SourceProvenance[]
 }
 
-export interface LoadContextOptions {
+/** What differs between home markets, and nothing else: which market is home, the region whose
+ *  macro composite the brief heads with and how it is weighed, and how to read the market's board. */
+export interface BriefHome<Board> {
+  readonly market: MarketRef
+  readonly region: Region
+  readonly macroDrivers: MacroDriverPolicy
+  readonly macroFormulaVersion: string
+  namesOf(
+    board: Board
+  ): readonly { readonly instrument: InstrumentRef; readonly turnover?: number }[]
+  sectorsOf(board: Board): readonly SectorStrength[]
+}
+
+export interface LoadContextOptions<Board = unknown> {
   readonly deps: MarketDeps
   readonly services: BriefServices
   readonly request: MarketBriefRequest
   readonly calendar: TradingCalendar
-  readonly cross: () => Promise<CrossSection>
-  readonly crossAt: (day: TradingDay) => Promise<CrossSection>
+  readonly home: BriefHome<Board>
+  readonly board: () => Promise<Board>
+  readonly boardAt: (day: TradingDay) => Promise<Board>
 }
 
 /** Every independent read is tolerated separately: a context field is optional or empty, never a
  *  rejected load that takes the whole brief down. The sections that need a missing field return
  *  `unavailable` on their own. */
-export async function loadBriefContext(options: LoadContextOptions): Promise<BriefContext> {
-  const { deps, request, services } = options
-  const [cross, macro, holdings] = await Promise.all([
-    optional(options.cross),
-    optional(() => loadMacro(deps, request)),
+export async function loadBriefContext<Board>(
+  options: LoadContextOptions<Board>
+): Promise<BriefContext<Board>> {
+  const { deps, request, services, home } = options
+  const [board, macro, holdings] = await Promise.all([
+    optional(options.board),
+    optional(() => loadMacro(deps, request, home)),
     optional(() => services.holdings({ now: request.now, signal: request.signal })),
   ])
-  const watchlists = resolveWatchlists(request, cross)
+  const isHome = (instrument: InstrumentRef): boolean => instrument.market === home.market
+  const watchlists = resolveWatchlists(request, board === null ? [] : home.namesOf(board), isHome)
   const held = holdings ?? []
-  const heldInMarket = held.filter(isVnInstrument)
-  const heldCrossAsset = held.filter((instrument) => !isVnInstrument(instrument))
+  const heldInMarket = held.filter(isHome)
+  const heldCrossAsset = held.filter((instrument) => !isHome(instrument))
 
   return {
     deps,
@@ -112,9 +124,9 @@ export async function loadBriefContext(options: LoadContextOptions): Promise<Bri
     crossAssetSuggestionNames: dedupe([...heldCrossAsset, ...watchlists.crossAsset]),
     calendarNames: unionNames(watchlists.covered, heldInMarket),
     crossAssetNames: unionNames(watchlists.crossAsset, heldCrossAsset),
-    cross,
-    crossAt: options.crossAt,
-    sectors: cross?.sectors ?? [],
+    board,
+    boardAt: options.boardAt,
+    sectors: board === null ? [] : home.sectorsOf(board),
     macro: macro?.current ?? null,
     previousMacro: macro?.previous ?? null,
   }
@@ -127,10 +139,14 @@ interface MacroPair {
 
 /** Two consecutive snapshots under the same formula version. Comparing across versions would
  *  report a regime shift that was a formula edit, not a market move. */
-async function loadMacro(deps: MarketDeps, request: MarketBriefRequest): Promise<MacroPair | null> {
+async function loadMacro(
+  deps: MarketDeps,
+  request: MarketBriefRequest,
+  home: Pick<BriefHome<never>, 'region' | 'macroFormulaVersion' | 'macroDrivers'>
+): Promise<MacroPair | null> {
   const snapshots = await deps.marketDataStore.listRecentMacroRisk({
-    region: VN_MARKET_REGION,
-    formulaVersion: VN_MACRO_FORMULA_VERSION,
+    region: home.region,
+    formulaVersion: home.macroFormulaVersion,
     limit: 2,
     signal: request.signal,
   })
@@ -141,15 +157,15 @@ async function loadMacro(deps: MarketDeps, request: MarketBriefRequest): Promise
   }
 
   return {
-    current: toBriefMacroRisk(current),
-    previous: previous === undefined ? null : toBriefMacroRisk(previous),
+    current: toBriefMacroRisk(current, home.macroDrivers),
+    previous: previous === undefined ? null : toBriefMacroRisk(previous, home.macroDrivers),
   }
 }
 
 /** The stored regime, formula version, and caveats are the market's own derived answer and are read
  *  back rather than recomputed; only the driver breakdown is re-derived, and it is a pure function
  *  of the persisted values. */
-function toBriefMacroRisk(snapshot: MacroRiskSnapshot): BriefMacroRisk {
+function toBriefMacroRisk(snapshot: MacroRiskSnapshot, drivers: MacroDriverPolicy): BriefMacroRisk {
   const base = deriveMacroRisk(
     {
       values: snapshot.values,
@@ -158,7 +174,7 @@ function toBriefMacroRisk(snapshot: MacroRiskSnapshot): BriefMacroRisk {
       asOf: snapshot.asOf,
       provenance: snapshot.provenance,
     },
-    VN_MACRO_DRIVERS
+    drivers
   )
 
   return {
@@ -184,23 +200,22 @@ interface BriefWatchlists {
 
 function resolveWatchlists(
   request: MarketBriefRequest,
-  cross: CrossSection | null
+  names: readonly { readonly instrument: InstrumentRef; readonly turnover?: number }[],
+  isHome: (instrument: InstrumentRef) => boolean
 ): BriefWatchlists {
   const limit = Math.max(request.limit, 1)
-  const market = request.watchlist.filter(isVnInstrument).slice(0, limit)
-  const crossAsset = request.watchlist
-    .filter((instrument) => !isVnInstrument(instrument))
-    .slice(0, limit)
+  const market = request.watchlist.filter(isHome).slice(0, limit)
+  const crossAsset = request.watchlist.filter((instrument) => !isHome(instrument)).slice(0, limit)
 
   if (market.length > 0) {
     return { market, covered: market, crossAsset }
   }
 
   // A sort key, not a reading: an unmeasured name is not the most traded one.
-  const mostTraded = [...(cross?.names ?? [])]
+  const mostTraded = [...names]
     .sort((a, b) => (b.turnover ?? 0) - (a.turnover ?? 0))
     .slice(0, limit)
-    .map((name) => name.record.instrument)
+    .map((name) => name.instrument)
 
   return { market, covered: mostTraded, crossAsset }
 }
@@ -232,10 +247,6 @@ function dedupe(instruments: readonly InstrumentRef[]): readonly InstrumentRef[]
     seen.add(key)
     return true
   })
-}
-
-function isVnInstrument(instrument: InstrumentRef): boolean {
-  return instrument.market === VN_MARKET_REF
 }
 
 /** One read per context. A rejection is cached with the result: three sections degrading the same

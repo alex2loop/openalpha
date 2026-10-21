@@ -1,7 +1,7 @@
 import type { BriefActionCode, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import { hasNoBook, sectionNumber } from '@/trading/kernel/operator/brief-section'
-import { ready } from '@/trading/markets/equity-vn/brief/sections'
+import { ready } from '@/trading/markets/brief-sections'
 import { VN_STORY_POLICY } from '@/trading/markets/equity-vn/brief/story-policy'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 import { CONFIRMING_TURNOVER_RATIO } from '@/trading/markets/overview-sections'
@@ -10,7 +10,7 @@ import { CONFIRMING_TURNOVER_RATIO } from '@/trading/markets/overview-sections'
  *  every other section. It emits action **codes**, never a command string: a snapshot holding `/rebalance`
  *  cannot be rendered by the HTTP surface and breaks the moment a command is renamed. */
 export function buildNextActions(
-  context: BriefContext,
+  context: VnBriefContext,
   sections: readonly BriefSectionResult[],
   overviews: readonly BriefSectionResult[]
 ): BriefSectionResult {

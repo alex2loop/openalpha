@@ -1,7 +1,7 @@
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { BriefContext } from '@/trading/markets/brief-context'
 import { isAbortError } from '@/core/errors'
-import { omitted, ready } from '@/trading/markets/equity-vn/brief/sections'
+import { omitted, ready } from '@/trading/markets/brief-sections'
 
 /** The names `position-exits` cannot speak for: held with no watchable levels. Each ticker is one
  *  `/suggest` run away from coverage. */

@@ -7,16 +7,11 @@ import type {
   BriefSectionResult,
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
 import { MACRO_SERIES_FIELDS } from '@/trading/kernel/market/macro-series'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
-import {
-  absent,
-  omitted,
-  ready,
-  toHeadlineSection,
-} from '@/trading/markets/equity-vn/brief/sections'
+import { absent, omitted, ready, toHeadlineSection } from '@/trading/markets/brief-sections'
 import { latestNameSession, toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
 import { sectorCoveragePct } from '@/trading/markets/equity-vn/factors/sectors'
 import {
@@ -52,7 +47,7 @@ const REGIME_SCALE_CAVEAT = 'portfolio.regime-risk'
  *  and no two of them can drift to different spans. */
 const FLOW_WINDOW = Object.freeze({ sessions: FLOW_DEVIATION_SESSIONS })
 
-export function buildRegimeShift(context: BriefContext): Promise<BriefSectionResult> {
+export function buildRegimeShift(context: VnBriefContext): Promise<BriefSectionResult> {
   const { macro, previousMacro } = context
 
   if (macro === null) {
@@ -98,7 +93,7 @@ function driverRows(drivers: readonly MacroRiskDriver[]): readonly BriefSectionR
  *  renormalized over the rest reads exactly like a whole one otherwise. The deployment figure is
  *  the whole book's, blended across funded segments, so the per-segment regimes that produced it
  *  travel with it — one segment's regime cannot explain a number the other segments also moved. */
-export async function buildMacro(context: BriefContext): Promise<BriefSectionResult> {
+export async function buildMacro(context: VnBriefContext): Promise<BriefSectionResult> {
   const { macro } = context
 
   if (macro === null) {
@@ -142,7 +137,7 @@ function toDriverValue(id: MacroSeriesId, value: number): BriefSectionRow {
 
 /** Posture only, and only when the regime is defensive: percentages and the published rate, never
  *  an amount and never a bank. */
-export async function buildDepositRate(context: BriefContext): Promise<BriefSectionResult> {
+export async function buildDepositRate(context: VnBriefContext): Promise<BriefSectionResult> {
   if (context.macro === null || context.macro.view.regime === 'risk-on') {
     return omitted('deposit-rate')
   }
@@ -188,7 +183,7 @@ export async function buildDepositRate(context: BriefContext): Promise<BriefSect
   )
 }
 
-export async function buildMacroHeadlines(context: BriefContext): Promise<BriefSectionResult> {
+export async function buildMacroHeadlines(context: VnBriefContext): Promise<BriefSectionResult> {
   const result = await context.services.macroNews({
     now: context.request.now,
     limit: NEWS_ITEMS_PER_SECTION,
@@ -201,8 +196,8 @@ export async function buildMacroHeadlines(context: BriefContext): Promise<BriefS
 /** What the session traded, and how that compares with a normal one. Not the index level or its
  *  move: the price block above states both, and the regime line at the top of the brief states the
  *  regime — repeating either here prints one fact three times. */
-export function buildTape(context: BriefContext): Promise<BriefSectionResult> {
-  const names = context.cross?.names ?? []
+export function buildTape(context: VnBriefContext): Promise<BriefSectionResult> {
+  const names = context.board?.names ?? []
   const session = latestNameSession(names) ?? context.request.asOf
   const turnover = sessionTurnoverTotal(names, session)
 
@@ -227,10 +222,10 @@ export function buildTape(context: BriefContext): Promise<BriefSectionResult> {
 
 /** The same rows `/overview` renders from a market's own read, so one session's breadth reads
  *  identically wherever the operator meets it. */
-export function buildBreadth(context: BriefContext): Promise<BriefSectionResult> {
-  const names = context.cross?.names ?? []
+export function buildBreadth(context: VnBriefContext): Promise<BriefSectionResult> {
+  const names = context.board?.names ?? []
   const session = latestNameSession(names) ?? context.request.asOf
-  const indexBars = context.cross?.indexBars
+  const indexBars = context.board?.indexBars
   const breadth = toBreadth(names, session, indexBars)
 
   if (breadth === undefined) {
@@ -246,7 +241,7 @@ export function buildBreadth(context: BriefContext): Promise<BriefSectionResult>
   )
 }
 
-export function buildSectorRotation(context: BriefContext): Promise<BriefSectionResult> {
+export function buildSectorRotation(context: VnBriefContext): Promise<BriefSectionResult> {
   const coverage = sectorCoverage(context)
 
   if (context.sectors.length === 0 || coverage < MINIMUM_SECTOR_COVERAGE_FRACTION) {
@@ -291,8 +286,8 @@ function hasLeadership(row: SectorStrength): row is SectorStrength & { readonly 
 /** One section, three readings of the same window: what the desks did in total, which names they
  *  did it in, and which sectors those names sat in. Three headings said "20 sessions" three times
  *  over one story. */
-export function buildForeignDeskFlow(context: BriefContext): Promise<BriefSectionResult> {
-  const names = context.cross?.names ?? []
+export function buildForeignDeskFlow(context: VnBriefContext): Promise<BriefSectionResult> {
+  const names = context.board?.names ?? []
 
   if (names.length === 0) {
     return Promise.resolve(absent('foreign-desk-flow', [{ code: 'market-data.no-coverage' }]))
@@ -311,8 +306,8 @@ export function buildForeignDeskFlow(context: BriefContext): Promise<BriefSectio
   )
 }
 
-export function buildProprietaryFlow(context: BriefContext): Promise<BriefSectionResult> {
-  const names = context.cross?.names ?? []
+export function buildProprietaryFlow(context: VnBriefContext): Promise<BriefSectionResult> {
+  const names = context.board?.names ?? []
 
   if (names.length === 0) {
     return Promise.resolve(absent('proprietary-flow', [{ code: 'market-data.no-coverage' }]))
@@ -352,7 +347,7 @@ function foreignNameRows(names: readonly NameEvidence[]): readonly BriefSectionR
 
 /** The same names grouped by sector. Absent below the coverage floor rather than reported thin:
  *  `sector-rotation` already says the mapping is too sparse to read. */
-function foreignSectorRows(context: BriefContext): readonly BriefSectionRow[] {
+function foreignSectorRows(context: VnBriefContext): readonly BriefSectionRow[] {
   if (sectorCoverage(context) < MINIMUM_SECTOR_COVERAGE_FRACTION) {
     return []
   }
@@ -362,7 +357,7 @@ function foreignSectorRows(context: BriefContext): readonly BriefSectionRow[] {
     .map((row) => ({ sector: row.sector, foreignNetBase: row.foreignNetBase }))
 }
 
-export async function buildFx(context: BriefContext): Promise<BriefSectionResult> {
+export async function buildFx(context: VnBriefContext): Promise<BriefSectionResult> {
   const result = await context.deps.fx.convert({
     ...VN_FX_PAIR,
     asOf: context.request.asOf,
@@ -382,7 +377,7 @@ export async function buildFx(context: BriefContext): Promise<BriefSectionResult
 }
 
 /** The VN30 future against spot: a discount is the derivatives desk voting bearish. */
-export async function buildBasis(context: BriefContext): Promise<BriefSectionResult> {
+export async function buildBasis(context: VnBriefContext): Promise<BriefSectionResult> {
   const { asOf, now, signal } = context.request
   const result = await context.services.basis({ fromDay: asOf, toDay: asOf, now, signal })
 
@@ -410,8 +405,8 @@ export async function buildBasis(context: BriefContext): Promise<BriefSectionRes
   )
 }
 
-function sectorCoverage(context: BriefContext): number {
-  return sectorCoveragePct((context.cross?.names ?? []).map(toSectorMember))
+function sectorCoverage(context: VnBriefContext): number {
+  return sectorCoveragePct((context.board?.names ?? []).map(toSectorMember))
 }
 
 const DESK_FLOWS = Object.freeze({

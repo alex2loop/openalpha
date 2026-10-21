@@ -1,9 +1,9 @@
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { WatchlistDropReason } from '@/trading/kernel/screen-codes'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import { factorComposite } from '@/trading/kernel/factor'
-import { absent, omitted, ready } from '@/trading/markets/equity-vn/brief/sections'
+import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { type CrossSection, scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
 import {
   DEFAULT_SCREEN_KIND,
@@ -18,8 +18,8 @@ import { realizedVolatility, relativeVolume } from '@/trading/markets/timeseries
 // The watchlist half of the brief: sections scoped to the names the operator is already following,
 // plus the screen delta that explains what entered and left the board around them.
 
-export function buildWatchlistLeading(context: BriefContext): Promise<BriefSectionResult> {
-  const cross = context.cross
+export function buildWatchlistLeading(context: VnBriefContext): Promise<BriefSectionResult> {
+  const cross = context.board
 
   // Omitted rather than absent when nothing is watched: the section does not apply, and a
   // no-coverage caveat would blame the sources for a list the operator never filled.
@@ -63,8 +63,8 @@ export function buildWatchlistLeading(context: BriefContext): Promise<BriefSecti
 }
 
 /** Names that left the eligible set carry their current gate code when one is known. */
-export function buildWatchlistDropped(context: BriefContext): Promise<BriefSectionResult> {
-  const cross = context.cross
+export function buildWatchlistDropped(context: VnBriefContext): Promise<BriefSectionResult> {
+  const cross = context.board
   const previous = context.request.previousEligibleWatchlist
 
   if (previous === undefined || cross === null) {
@@ -86,9 +86,9 @@ export function buildWatchlistDropped(context: BriefContext): Promise<BriefSecti
 }
 
 function currentGateCode(
-  ticker: BriefContext['watchlist'][number]['ticker'],
-  cross: NonNullable<BriefContext['cross']>,
-  asOf: BriefContext['request']['asOf']
+  ticker: VnBriefContext['watchlist'][number]['ticker'],
+  cross: NonNullable<VnBriefContext['board']>,
+  asOf: VnBriefContext['request']['asOf']
 ): WatchlistDropReason | undefined {
   const evidence = cross.byTicker.get(ticker)
 
@@ -108,15 +108,15 @@ const DELTA_BOARD_SIZE = 10
 /** Yesterday's board and today's, both from `boardTickers`, so the delta can never disagree with
  *  the screen it explains. The two-slot cache keeps yesterday's pass resident while today's screen
  *  runs, so neither evicts the other. */
-export async function buildScreenDelta(context: BriefContext): Promise<BriefSectionResult> {
-  const today = context.cross
+export async function buildScreenDelta(context: VnBriefContext): Promise<BriefSectionResult> {
+  const today = context.board
 
   if (today === null) {
     return absent('screen-delta', [{ code: 'market-data.universe-empty' }])
   }
 
   const previousDay = context.calendar.addTradingDays(context.request.asOf, -1)
-  const previous = await context.crossAt(previousDay)
+  const previous = await context.boardAt(previousDay)
   const todayBoard = boardTickers(today, context.request.asOf)
   const previousBoard = boardTickers(previous, previousDay)
   const entered = [...todayBoard].filter((entry) => !previousBoard.has(entry))

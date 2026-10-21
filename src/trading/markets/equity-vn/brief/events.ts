@@ -3,13 +3,13 @@ import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketEvent } from '@/trading/kernel/market/market-data'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isEventSubject } from '@/trading/kernel/market/market-event'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
-import { absent, omitted, ready } from '@/trading/markets/equity-vn/brief/sections'
+import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
 import {
   EVENT_HORIZON_SESSIONS,
@@ -39,7 +39,7 @@ interface EventWindow {
  *  of names and a fortnight, and a stale corporate calendar is worse than a slow one. Covers what
  *  the operator holds as well as what they watch — an ex-date on an unwatched position is exactly
  *  the gap-down that would otherwise read as a loss. */
-export async function buildEvents(context: BriefContext): Promise<BriefSectionResult> {
+export async function buildEvents(context: VnBriefContext): Promise<BriefSectionResult> {
   const subjects = context.calendarNames.names
 
   if (subjects.length === 0) {
@@ -79,7 +79,7 @@ export async function buildEvents(context: BriefContext): Promise<BriefSectionRe
 }
 
 async function fetchEvents(
-  context: BriefContext,
+  context: VnBriefContext,
   instrument: InstrumentRef,
   window: EventWindow
 ): Promise<EventTarget> {

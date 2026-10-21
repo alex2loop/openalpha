@@ -19,7 +19,7 @@ import type {
   BriefStopBasis,
 } from '@/trading/kernel/operator/brief-section'
 import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { BriefContext } from '@/trading/markets/brief-context'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { stopStandingOf } from '@/trading/kernel/operator/alert'
 import {
@@ -38,7 +38,9 @@ const BRIEF_DEBATE_MODE = 'lean' satisfies DebateMode
  *  writing copy; the tuple in `brief-section.ts` owns the arms. */
 const STOP_BASIS: BriefStopBasis = 'volatility-resting'
 
-export type SectionBuilder = (context: BriefContext) => Promise<BriefSectionResult>
+export type SectionBuilder<Board = unknown> = (
+  context: BriefContext<Board>
+) => Promise<BriefSectionResult>
 
 interface ReadyMeta {
   readonly caveats?: readonly Caveat[]
@@ -327,7 +329,7 @@ export function buildCost(context: BriefContext): Promise<BriefSectionResult> {
 /** The single most expensive section. It runs last among the producing sections and draws from the
  *  brief's own budget slice, so an exhausted budget costs this section and nothing else. */
 export async function buildSuggestions(context: BriefContext): Promise<BriefSectionResult> {
-  const cross = context.cross
+  const cross = context.board
 
   if (context.suggestionNames.length === 0) {
     return omitted('suggestions')

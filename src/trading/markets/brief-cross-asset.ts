@@ -1,6 +1,6 @@
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
-import { absent, omitted, ready } from '@/trading/markets/equity-vn/brief/sections'
+import type { BriefContext } from '@/trading/markets/brief-context'
+import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 
 /** One instrument failing omits its row, not the section; every instrument failing is the only case

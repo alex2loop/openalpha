@@ -7,37 +7,20 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
 import type { MarketNews, SourceResult } from '@/trading/kernel/source/source-result'
-import type { BriefContext, LoadContextOptions } from '@/trading/markets/equity-vn/brief/context'
-import type { SectionBuilder } from '@/trading/markets/equity-vn/brief/sections'
+import type { BriefContext, LoadContextOptions } from '@/trading/markets/brief-context'
+import type { SectionBuilder } from '@/trading/markets/brief-sections'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
+import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import { isAbortError } from '@/core/errors'
 import {
   BRIEF_SECTION_ORDER,
   OVERVIEW_SECTION_KINDS,
 } from '@/trading/kernel/operator/brief-section'
 import { unavailable } from '@/trading/kernel/source/source-result'
-import { loadBriefContext } from '@/trading/markets/equity-vn/brief/context'
-import { buildCrossAssetPulse } from '@/trading/markets/equity-vn/brief/cross-asset-section'
-import { buildDisclosures } from '@/trading/markets/equity-vn/brief/disclosure-section'
-import { buildEvents } from '@/trading/markets/equity-vn/brief/events'
-import {
-  buildStalePositions,
-  buildUnwatchedPositions,
-} from '@/trading/markets/equity-vn/brief/holding-sections'
-import { buildIndexReview } from '@/trading/markets/equity-vn/brief/index-review-section'
-import {
-  buildBasis,
-  buildBreadth,
-  buildDepositRate,
-  buildForeignDeskFlow,
-  buildFx,
-  buildMacro,
-  buildMacroHeadlines,
-  buildProprietaryFlow,
-  buildRegimeShift,
-  buildSectorRotation,
-  buildTape,
-} from '@/trading/markets/equity-vn/brief/market-sections'
-import { buildNextActions } from '@/trading/markets/equity-vn/brief/next-actions'
+import { loadBriefContext } from '@/trading/markets/brief-context'
+import { buildCrossAssetPulse } from '@/trading/markets/brief-cross-asset'
+import { buildSessionDelta } from '@/trading/markets/brief-delta'
+import { buildStalePositions, buildUnwatchedPositions } from '@/trading/markets/brief-holdings'
 import {
   absent,
   buildBookSummary,
@@ -53,8 +36,24 @@ import {
   buildSuggestions,
   omitted,
   toHeadlineSection,
-} from '@/trading/markets/equity-vn/brief/sections'
-import { buildSessionDelta } from '@/trading/markets/equity-vn/brief/session-delta'
+} from '@/trading/markets/brief-sections'
+import { buildDisclosures } from '@/trading/markets/equity-vn/brief/disclosure-section'
+import { buildEvents } from '@/trading/markets/equity-vn/brief/events'
+import { buildIndexReview } from '@/trading/markets/equity-vn/brief/index-review-section'
+import {
+  buildBasis,
+  buildBreadth,
+  buildDepositRate,
+  buildForeignDeskFlow,
+  buildFx,
+  buildMacro,
+  buildMacroHeadlines,
+  buildProprietaryFlow,
+  buildRegimeShift,
+  buildSectorRotation,
+  buildTape,
+} from '@/trading/markets/equity-vn/brief/market-sections'
+import { buildNextActions } from '@/trading/markets/equity-vn/brief/next-actions'
 import { tryReadStories } from '@/trading/markets/equity-vn/brief/story-read'
 import { buildTradeSides } from '@/trading/markets/equity-vn/brief/trade-sides-section'
 import {
@@ -90,40 +89,41 @@ type ProducingSectionKind = Exclude<
 /** `BRIEF_SECTION_ORDER` drives both this record's exhaustiveness — a missing builder is a type
  *  error — and the render order. Adding a section means a tuple member, a builder, and two locale
  *  keys, and the locale gate enforces the last part. */
-const SECTION_BUILDERS: Readonly<Record<ProducingSectionKind, SectionBuilder>> = Object.freeze({
-  'book-summary': buildBookSummary,
-  'resolved-suggestions': buildResolvedSuggestions,
-  'fired-alerts': buildFiredAlerts,
-  'position-exits': buildPositionExits,
-  'unwatched-positions': buildUnwatchedPositions,
-  'stale-positions': buildStalePositions,
-  'positions-in-loss': buildPositionsInLoss,
-  'trade-sides': buildTradeSides,
-  'drift-nudge': buildDriftNudge,
-  'monthly-scorecard': buildMonthlyScorecard,
-  'regime-shift': buildRegimeShift,
-  macro: buildMacro,
-  'deposit-rate': buildDepositRate,
-  'macro-headlines': buildMacroHeadlines,
-  tape: buildTape,
-  breadth: buildBreadth,
-  basis: buildBasis,
-  'sector-rotation': buildSectorRotation,
-  'foreign-desk-flow': buildForeignDeskFlow,
-  'proprietary-flow': buildProprietaryFlow,
-  fx: buildFx,
-  'watchlist-leading': buildWatchlistLeading,
-  'watchlist-dropped': buildWatchlistDropped,
-  'screen-delta': buildScreenDelta,
-  'cross-asset-pulse': buildCrossAssetPulse,
-  disclosures: buildDisclosures,
-  'index-review': buildIndexReview,
-  events: buildEvents,
-  cost: buildCost,
-  suggestions: buildSuggestions,
-  'cross-asset-suggestions': buildCrossAssetSuggestions,
-  discipline: buildDiscipline,
-})
+const SECTION_BUILDERS: Readonly<Record<ProducingSectionKind, SectionBuilder<CrossSection>>> =
+  Object.freeze({
+    'book-summary': buildBookSummary,
+    'resolved-suggestions': buildResolvedSuggestions,
+    'fired-alerts': buildFiredAlerts,
+    'position-exits': buildPositionExits,
+    'unwatched-positions': buildUnwatchedPositions,
+    'stale-positions': buildStalePositions,
+    'positions-in-loss': buildPositionsInLoss,
+    'trade-sides': buildTradeSides,
+    'drift-nudge': buildDriftNudge,
+    'monthly-scorecard': buildMonthlyScorecard,
+    'regime-shift': buildRegimeShift,
+    macro: buildMacro,
+    'deposit-rate': buildDepositRate,
+    'macro-headlines': buildMacroHeadlines,
+    tape: buildTape,
+    breadth: buildBreadth,
+    basis: buildBasis,
+    'sector-rotation': buildSectorRotation,
+    'foreign-desk-flow': buildForeignDeskFlow,
+    'proprietary-flow': buildProprietaryFlow,
+    fx: buildFx,
+    'watchlist-leading': buildWatchlistLeading,
+    'watchlist-dropped': buildWatchlistDropped,
+    'screen-delta': buildScreenDelta,
+    'cross-asset-pulse': buildCrossAssetPulse,
+    disclosures: buildDisclosures,
+    'index-review': buildIndexReview,
+    events: buildEvents,
+    cost: buildCost,
+    suggestions: buildSuggestions,
+    'cross-asset-suggestions': buildCrossAssetSuggestions,
+    discipline: buildDiscipline,
+  })
 
 /** Which kinds describe the VN market rather than the operator's own book or the region it sits in.
  *  Stamped so the renderer can group a flat list into per-market blocks; the overview converter
@@ -172,7 +172,9 @@ const TAIL_KINDS = Object.freeze([
 /** Section content lives in the market modules that own it; this file orders, isolates, and bounds
  *  them. Every section is attempted, one failure cannot lose the rest, and the result comes back
  *  grouped: the operator's own sections, then one contiguous block per market, then the tail. */
-export async function buildVnBrief(options: LoadContextOptions): Promise<MarketBrief> {
+export async function buildVnBrief(
+  options: LoadContextOptions<CrossSection>
+): Promise<MarketBrief> {
   const context = await loadBriefContext(options)
   const producingKinds = BRIEF_SECTION_ORDER.filter(isEarlyKind)
   const [producing, suggestions, overviews, news, economyNews] = await Promise.all([
@@ -257,7 +259,7 @@ function tailSections(
 
 async function runSection(
   kind: ProducingSectionKind,
-  context: BriefContext
+  context: VnBriefContext
 ): Promise<BriefSectionResult> {
   try {
     return stamped(await SECTION_BUILDERS[kind](context))

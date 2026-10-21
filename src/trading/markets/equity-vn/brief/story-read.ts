@@ -4,8 +4,8 @@ import type { MarketDataOverview } from '@/trading/kernel/market/market-overview
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { StoryRead } from '@/trading/kernel/operator/brief-story'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
 import type { StoryInputs } from '@/trading/markets/equity-vn/brief/story-facts'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import type { CrossSection, NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
 import { isAbortError } from '@/core/errors'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
@@ -34,7 +34,7 @@ const PERCENT_PER_UNIT = 100
 const UNREAD: StoryRead = Object.freeze({ kind: 'unread' })
 
 interface StorySource {
-  readonly context: BriefContext
+  readonly context: VnBriefContext
   readonly cross: CrossSection
   readonly vn: MarketDataOverview
   readonly sections: readonly BriefSectionResult[]
@@ -43,7 +43,7 @@ interface StorySource {
 /** A throw costs the brief its story and nothing else; `features/brief` logs the `failed` arm. An
  *  abort is the caller's to see. */
 export function tryReadStories(
-  context: BriefContext,
+  context: VnBriefContext,
   sections: readonly BriefSectionResult[],
   vn: MarketDataOverview | undefined
 ): StoryRead {
@@ -62,11 +62,11 @@ export function tryReadStories(
  *  market is switched off, and with a gate input missing no detector could have fired, so a quiet
  *  day would claim a reading that never happened. Both are `unread`, which prints nothing. */
 function readVnStories(
-  context: BriefContext,
+  context: VnBriefContext,
   sections: readonly BriefSectionResult[],
   vn: MarketDataOverview | undefined
 ): StoryRead {
-  const cross = context.cross
+  const cross = context.board
 
   if (vn === undefined || cross === null) {
     return UNREAD

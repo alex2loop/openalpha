@@ -4,8 +4,8 @@ import type {
   BriefSectionResult,
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
-import { absent, omitted, ready } from '@/trading/markets/equity-vn/brief/sections'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
+import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { RELATIVE_VOLUME_SESSIONS, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 import { aggressorBalance } from '@/trading/markets/equity-vn/tape/trade-sides'
 import { relativeVolume } from '@/trading/markets/timeseries'
@@ -23,7 +23,7 @@ interface AggressorRow {
 
 /** Most sold-into first: a name the operator holds that was distributed yesterday is the row that
  *  changes what they do this morning, and a name that was bought is not news. */
-export async function buildTradeSides(context: BriefContext): Promise<BriefSectionResult> {
+export async function buildTradeSides(context: VnBriefContext): Promise<BriefSectionResult> {
   if (!context.calendar.isTradingDay(context.request.asOf)) {
     return omitted('trade-sides')
   }
@@ -48,7 +48,7 @@ export async function buildTradeSides(context: BriefContext): Promise<BriefSecti
 /** Whatever the sweep recorded for the session, rather than a name list of this section's own. The
  *  sweep already decides which names it can reach - holdings and the watchlist - and a second list
  *  here would drift from it silently. One indexed read, so a single name cannot fail the section. */
-async function readRows(context: BriefContext): Promise<readonly AggressorRow[]> {
+async function readRows(context: VnBriefContext): Promise<readonly AggressorRow[]> {
   const stored = await context.deps.marketDataStore.listTradeSidesDay({
     market: VN_MARKET_REF,
     day: context.request.asOf,
@@ -104,8 +104,8 @@ function sideOf(balance: number): BriefAggressorSide {
 /** The share says which way the session leaned, never how much was behind it: the same reading on a
  *  quiet tape and on a distribution day are different events, and no other row in the brief carries
  *  this name's own volume. Absent for a name the cross-section did not cover. */
-function sessionRelativeVolume(context: BriefContext, ticker: Ticker): number | undefined {
-  const name = context.cross?.byTicker.get(ticker)
+function sessionRelativeVolume(context: VnBriefContext, ticker: Ticker): number | undefined {
+  const name = context.board?.byTicker.get(ticker)
 
   if (name === undefined) {
     return undefined

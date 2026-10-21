@@ -1,10 +1,10 @@
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
+import { absent, ready } from '@/trading/markets/brief-sections'
 import { nextDisclosure } from '@/trading/markets/disclosure-calendar'
-import { absent, ready } from '@/trading/markets/equity-vn/brief/sections'
 
 /** The whole market shares one reporting clock, so this is one row, not one per name. */
-export function buildDisclosures(context: BriefContext): Promise<BriefSectionResult> {
+export function buildDisclosures(context: VnBriefContext): Promise<BriefSectionResult> {
   const upcoming = nextDisclosure(context.request.asOf)
 
   return Promise.resolve(
