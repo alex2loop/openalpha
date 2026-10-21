@@ -7,6 +7,7 @@ import type {
   FiledAccounts,
 } from '@/trading/kernel/market/annual-accounts'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
+import type { FrameAnswer, FrameFact, FrameJob } from '@/trading/sources/adapters/sec/frame-jobs'
 import type { SecTickerMap, TickerMapReader } from '@/trading/sources/adapters/sec/tickers'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
 import type { RowTarget } from '@/trading/sources/rows/row-target'
@@ -15,11 +16,15 @@ import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { SEC_CREDENTIAL, SEC_DATA_ID, toPaddedCik } from '@/trading/sources/adapters/sec/client'
+import { FLOW_CONCEPTS, INSTANT_CONCEPTS } from '@/trading/sources/adapters/sec/concepts'
 import {
-  FLOW_CONCEPTS,
-  INSTANT_CONCEPTS,
-  SHARES_CONCEPT,
-} from '@/trading/sources/adapters/sec/concepts'
+  BUSINESS_MISS_STATUSES,
+  FRAME_CONCURRENCY,
+  fiscalYearOf,
+  sharesJob,
+  usGaapJob,
+} from '@/trading/sources/adapters/sec/frame-jobs'
+import { recoverGaps } from '@/trading/sources/adapters/sec/gap-recovery'
 import { createSource, parsedSource } from '@/trading/sources/define'
 import {
   dropInvalid,
@@ -32,38 +37,14 @@ import { resolveRowTarget } from '@/trading/sources/rows/row-target'
 
 /** Fiscal years read back from the asked day: five reported ones, plus the year still in progress. */
 const FRAME_YEARS = 6
+
 /** A 10-K is due within 60 to 90 days of the year end; the frames carry no filing date, so the
  *  report counts as published at the latest of them. */
 const ANNUAL_FILING_DAYS = 90
-const FRAME_CONCURRENCY = 4
-const FISCAL_YEAR_GRACE_DAYS = 7
-/** A frame that does not exist yet (a year not reported) is a business miss, not an outage. */
-const BUSINESS_MISS_STATUSES = Object.freeze([404])
 
 const FRAME = z.object({ data: z.array(z.unknown()) })
+
 const FACT = z.object({ cik: z.number(), end: z.string(), val: z.number() })
-
-interface FrameFact {
-  readonly cik: string
-  readonly end: TradingDay
-  readonly value: number
-}
-
-interface FrameJob {
-  readonly taxonomy: string
-  readonly tag: string
-  readonly unit: 'USD' | 'shares'
-  readonly period: string
-  /** Where the answer lands: a line, and the year an instant frame is filed under. */
-  readonly line: keyof AccountLines
-  readonly instantYear?: number
-  readonly priority: number
-}
-
-interface FrameAnswer {
-  readonly job: FrameJob
-  readonly facts: readonly FrameFact[]
-}
 
 export function secAccountsSource(
   options: SourceAdapterOptions,
@@ -114,12 +95,14 @@ async function loadAccounts(
 
   const facts = answers.flatMap((answer) => (answer.kind === 'ok' ? [answer.value] : []))
   const target = resolveRowTarget(context, map.fetchedAt)
+  const framed = toAnnual(facts, wanted, target)
+  const recovered = await recoverGaps({ http, signal }, wanted, framed)
 
   return {
     kind: 'ok',
     fetchedAt: map.fetchedAt,
     value: parsedSource({
-      annual: toAnnual(facts, wanted, target),
+      annual: recovered.length === 0 ? framed : toAnnual([...facts, ...recovered], wanted, target),
       quarters: [],
     }),
   }
@@ -166,25 +149,6 @@ function instantJobs(year: number): readonly FrameJob[] {
   )
 }
 
-function sharesJob(year: number): FrameJob {
-  return {
-    taxonomy: SHARES_CONCEPT.taxonomy,
-    tag: SHARES_CONCEPT.tag,
-    unit: 'shares',
-    period: `CY${year}Q4I`,
-    line: 'sharesOutstanding',
-    instantYear: year,
-    priority: 0,
-  }
-}
-
-function usGaapJob(
-  concept: { readonly line: keyof AccountLines; readonly tag: string; readonly priority: number },
-  period: string
-): FrameJob {
-  return { taxonomy: 'us-gaap', unit: 'USD', period, ...concept }
-}
-
 /** A miss is an empty frame: the year is simply not there yet. */
 async function readFrame(
   read: {
@@ -217,14 +181,6 @@ function toFacts(raw: unknown, wanted: ReadonlyMap<string, readonly Ticker[]>): 
 
     return { cik: toPaddedCik(fact.cik), end: tradingDay(fact.end), value: fact.val }
   }).filter((fact) => wanted.has(fact.cik))
-}
-
-/** The year a period ending on `end` belongs to. A 52/53-week filer's year can end in the first days
- *  of January (Harris's 2024 ended 2025-01-03), and keyed by the calendar year of that date it
- *  collides with the next year's and leaves a hole behind it. A week back keeps those with the
- *  year they close, and moves no filer whose year ends later in the month. */
-function fiscalYearOf(end: TradingDay): number {
-  return yearOf(utcDayOf(utcDayStartEpochMs(end) - FISCAL_YEAR_GRACE_DAYS * MS_PER_DAY))
 }
 
 interface YearAccumulator {
