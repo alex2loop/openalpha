@@ -98,9 +98,9 @@ interface HeldStop {
 
 /** A held name keeps the higher of the fresh stop and the one its standing plan named, and that
  *  plan's take-profit. Only the buy framing, only when held: a fresh entry on a name not held takes
- *  its own levels. A reduce is framed on the other side, so it carries the standing plan's exits
- *  instead: they are what the position still runs on if the sale is declined. The target stays
- *  where the fresh read put it, so the ratio reported is the ratio the raised stop pays. */
+ *  its own levels. A reduce is framed on the other side, and a run that priced no levels has none,
+ *  so both carry the standing plan's exits instead: they are what the position still runs on. The
+ *  target stays where the fresh read put it, so the ratio reported is what the raised stop pays. */
 export async function ratchetHeldStop(
   options: SuggestionRunOptions,
   resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
@@ -109,7 +109,7 @@ export async function ratchetHeldStop(
   const { at, result } = input
   const held = heldPositionOf(at.context, resolution.instrument)
 
-  if (result.kind !== 'available' || held === undefined) {
+  if (held === undefined) {
     return { result }
   }
 
@@ -120,7 +120,7 @@ export async function ratchetHeldStop(
     signal: options.request.signal,
   })
 
-  if (at.direction === 'reduce') {
+  if (result.kind !== 'available' || at.direction === 'reduce') {
     return { result, ...standingExitOf(prior) }
   }
 

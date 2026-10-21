@@ -35,7 +35,7 @@ export interface FindLatestExitPlanOptions {
  *  reduce kept as a hold names a stop above the market, so it is passed over rather than answered
  *  with - the plan under it still stands. A hold the market priced no levels for is passed over the
  *  same way. Excludes a row whose outcome already resolved: once the stop or target has been hit,
- *  those levels are settled history. With no such plan left, a sale that took over the plan's row
+ *  those levels are settled history. With no such plan left, a row that took over the plan's row
  *  that day answers through its standing exit. */
 export async function findLatestExitPlan(
   deps: SuggestionStoreDeps,
@@ -72,8 +72,9 @@ function isExitPlan(suggestion: StoredSuggestion): boolean {
   return framedDirectionOf(suggestion) === 'buy' && planStopOf(suggestion) !== undefined
 }
 
-/** A same-day sale takes over the plan row it was priced against, keeping that plan's exits as
- *  `standingExit`; the rest of the position is watched against those, never the sale's own levels. */
+/** A same-day sale, or a run that priced no levels, takes over the plan row it was read against and
+ *  keeps that plan's exits as `standingExit`; the position is watched against those, never against
+ *  the row's own levels. */
 function standingPlanOf(sale: StoredSuggestion | undefined): StoredSuggestion | undefined {
   if (sale === undefined || sale.standingExit === undefined || isExitPlan(sale)) {
     return undefined

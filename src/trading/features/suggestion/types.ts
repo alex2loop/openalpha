@@ -143,7 +143,7 @@ interface SuggestionBase {
   readonly reduceReasonCode?: ReduceReasonCode
   /** A held name's standing stop this run raised: an order resting at an exchange stays there. */
   readonly raisedStopFrom?: number
-  /** On a held name framed as a sale, the exits its standing plan names. */
+  /** On a held name framed as a sale or priced no levels, the exits its standing plan names. */
   readonly standingExit?: { readonly stop: number; readonly takeProfit: number }
   /** On a held name whose first tranche is unsold, the take-profit its standing plan set. The fresh
    *  `takeProfit` beside it prices a new entry and is the one gates and the scorer read. */

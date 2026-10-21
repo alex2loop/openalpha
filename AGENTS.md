@@ -267,7 +267,7 @@ Decided; do not re-litigate or re-add.
 
 Stop vs resting exit:
 - A plan's stop is not a stop at an exchange. `StopDistance` is the latest suggestion's level; `RestingExit` is an order at a venue. A holding can carry the first with nothing behind it (`order.exit_failed`, a hand-recorded trade, `/trade cancel`).
-- `StopDistance.plan` is `none` (no plan, or no stop) or `distance` (the latest plan's level, holds included: every spot holding is long, so its hold plan is an exit plan) - only if the plan is framed as a buy. A blocked reduce is stored as a hold keeping its levels' side, so `findLatestExitPlan` selects the newest buy or hold framing a long with a stop by `framedDirectionOf`, never by action; a name whose only plan prices a sale reads `none`, except a same-day sale that took over the plan's row: it answers through its `standingExit`, which the trail never raises.
+- `StopDistance.plan` is `none` (no plan, or no stop) or `distance` (the latest plan's level, holds included: every spot holding is long, so its hold plan is an exit plan) - only if the plan is framed as a buy. A blocked reduce is stored as a hold keeping its levels' side, so `findLatestExitPlan` selects the newest buy or hold framing a long with a stop by `framedDirectionOf`, never by action; a name whose only plan prices a sale reads `none`, except a same-day row that took over the plan's row (a sale, or a run that priced no levels): it answers through its `standingExit`, which the trail never raises.
 - The level is `planStopOf` (plan stop or the tick-trailed one). A surface printing the planned state says whether one actually rests at the venue. A hold's bare level has no third arm: armed or `reviewOnly`.
 
 Trail:
