@@ -12,6 +12,7 @@ carries ` [IMPORTANT]` after its date.
 ### Added
 
 - US stocks and ETFs as a home market: `[locale] region = "us"` (or the new onboarding question) screens the 500 largest US companies and a fund board, scores them on twelve-month momentum, volatility and, with an SEC contact email, value and quality, and sizes them in dollars at the built-in `us-broker` venue. A leveraged or inverse fund is never suggested for purchase.
+- The morning brief for a US home, sent at 08:15 New York time: the US and crypto blocks, your suggestions, and a "Recently filed" list of earnings releases, insider purchases and coming ex-dividend dates for the names you hold or watch. Market warm-up now runs 90 minutes before each open, so Vietnam's moves from 08:00 to 07:30.
 - Data from Nasdaq (listings, quotes, history, dividends) and SEC (annual accounts, earnings releases, insider purchases), the ten-year less three-month yield spread in the US macro composite, and Coinbase prices for crypto, converted to USDT.
 
 ### Changed

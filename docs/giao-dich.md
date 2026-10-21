@@ -49,7 +49,7 @@ Hai thị trường dùng chung khu vực `vn`, nên một trong hai phải đ�
 - **Chấm điểm khi thiếu SEC.** Đà giá và biến động chỉ cần giá. Giá trị và chất lượng lấy từ báo cáo tài chính của SEC, cần email liên hệ trong `SEC_CONTACT_EMAIL` (đặt bằng `onboard` hoặc `key set SEC_CONTACT_EMAIL`). Thiếu email thì giá trị và chất lượng ghi là thiếu dữ liệu, bảng nói rõ độ phủ chỉ một phần, và mã vẫn được xếp hạng bằng nửa còn lại. Ngân hàng không có lợi nhuận gộp nên chất lượng cũng ghi là thiếu.
 - **Vừa công bố gần đây.** Công bố kết quả kinh doanh (8-K mục 2.02) và giao dịch mua trên thị trường của người nội bộ (Form 4) trong 90 ngày gần nhất vào phần tranh luận dưới tiêu đề riêng, tách khỏi các sự kiện sắp tới.
 - **Crypto qua Coinbase.** Với người dùng ở Mỹ, `[trading.venues.coinbase] default_for = ["crypto"]` đưa Coinbase lên đầu khi báo giá crypto. Coinbase báo giá bằng đô la còn sổ tính bằng USDT, nên mọi giá được chia cho giá đô la của USDT; ngày 2026-10-20 con số này là 0,99883 và giá BTC sau quy đổi lệch Binance 0,009%. Nếu ký hiệu của một đồng coin trùng với mã niêm yết ở Mỹ (SOL, LINK), hãy viết `crypto:SOL`.
-- **Bản tin sáng.** Bản tin sáng theo lịch cho thị trường chính ở Mỹ chưa được dựng; `/screen`, `/suggest` và `/overview` đã dùng được.
+- **Bản tin sáng.** Bản tin sáng cho thị trường chính ở Mỹ được gửi mặc định lúc 08:15 giờ New York. Bản tin đọc khối thị trường Mỹ, khối crypto, sổ và các đề xuất của bạn, kèm danh sách "Vừa công bố gần đây" dưới khối Mỹ: kết quả kinh doanh và giao dịch mua của người nội bộ trong năm phiên gần nhất, cùng ngày giao dịch không hưởng cổ tức trong mười phiên tới, của các mã bạn nắm giữ hoặc theo dõi. Bản tin không có câu chuyện thị trường, vì câu chuyện chỉ đọc bảng giá Việt Nam.
 
 ### Nguồn dữ liệu
 
@@ -643,7 +643,7 @@ Chỉ nhịp `[trading.refresh]` là cấu hình được. Vòng cảnh báo và
 
 #### Refresh được lên lịch thế nào
 
-Refresh đi theo lịch giao dịch, không theo một khoảng cố định. Nó chạy khi mỗi phiên settle (giờ đóng cộng độ trễ khớp lệnh - cùng thời điểm quyết định một phiên có được coi là đã settle không) và 60 phút trước mỗi giờ mở, nên bản tin sáng và màn hình sàng lọc đầu tiên đọc dữ liệu tươi mà không phải trả công tải ngay tại chỗ. Thị trường nào có giờ riêng đều đặt một neo. Khoảng cấu hình vẫn còn như một trần cho thị trường liên tục và cho một registry rỗng.
+Refresh đi theo lịch giao dịch, không theo một khoảng cố định. Nó chạy khi mỗi phiên settle (giờ đóng cộng độ trễ khớp lệnh - cùng thời điểm quyết định một phiên có được coi là đã settle không) và 90 phút trước mỗi giờ mở, nên bản tin sáng và màn hình sàng lọc đầu tiên đọc dữ liệu tươi mà không phải trả công tải ngay tại chỗ. Thị trường nào có giờ riêng đều đặt một neo. Khoảng cấu hình vẫn còn như một trần cho thị trường liên tục và cho một registry rỗng.
 
 Refresh phủ mọi thị trường bạn còn dùng: một nhóm đã bật trong hồ sơ, hoặc một thị trường mà bạn đang nắm một mã, theo dõi một mã, chờ một lời gọi được chấm, hoặc có bản tin lên lịch dựng trên đó. Một nhóm đã tắt chỉ rời khi không còn gì trong số đó đọc nó, nên cắt lỗ của một khoản đang nắm không bao giờ bị bỏ không có giá. Chưa có hồ sơ thì mọi thị trường đều được làm mới. Đọc tập đó hỏng thì làm mới tất cả. Bản tin sáng mô tả cùng tập đó, và nêu tên một thị trường trên `/refresh` thì làm mới nó bất kể.
 
@@ -661,7 +661,7 @@ Bên trong thị trường chứng khoán Việt Nam cũng vậy. Lịch sử gi
 
 **Ai đã điều khiển một phiên được ghi một lần, hoặc không ghi.** Mỗi lần refresh ghi tỷ lệ bên mua/bên bán chủ động cho mỗi mã bạn nắm hoặc theo dõi. Không nguồn nào đứng sau nó nhận một ngày: `kbsec` trả lời bằng phiên mà bảng của nó hiện đang giữ, còn `vietcap` phân trang ngược từ băng giá mới nhất. Nên tỷ lệ này chỉ đọc được giữa thời điểm bảng giá settle và lần mở cửa kế tiếp.
 
-Các neo refresh đặt hai lượt trong cửa sổ đó (15:15 và 08:00 với bảng VN). Sau giờ mở thì phiên đó mất vĩnh viễn. Một mã mà lượt quét không ghi được vì vậy được nêu tên dưới thị trường của nó trong màn hình `/refresh`, vì một chỗ hụt mà lượt sau không lấp được là một lỗ hổng trong chuỗi. Lượt quét chỉ phủ các thị trường mà refresh phủ, nên `/refresh crypto` không tốn ngân sách của nguồn VN nào.
+Các neo refresh đặt hai lượt trong cửa sổ đó (15:15 và 07:30 với bảng VN). Sau giờ mở thì phiên đó mất vĩnh viễn. Một mã mà lượt quét không ghi được vì vậy được nêu tên dưới thị trường của nó trong màn hình `/refresh`, vì một chỗ hụt mà lượt sau không lấp được là một lỗ hổng trong chuỗi. Lượt quét chỉ phủ các thị trường mà refresh phủ, nên `/refresh crypto` không tốn ngân sách của nguồn VN nào.
 
 Một mã không nắm cũng không theo dõi thì không bao giờ bị quét, tức là mọi ứng viên mua. `/suggest` tự đọc băng giá cho phiên nó đang phán xét và không lưu gì; một dòng đã lưu nếu không sẽ gia nhập một mục bản tin liệt kê những gì bạn theo dõi. Cả hai bên đọc đều hỏi cùng một ngày, nên một dòng đã lưu của phiên trước không bao giờ thay cho phiên đang được phán xét.
 

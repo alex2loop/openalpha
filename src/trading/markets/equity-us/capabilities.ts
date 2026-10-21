@@ -1,6 +1,7 @@
 import type {
   InstrumentRequest,
   InstrumentStatistics,
+  MarketBriefRequest,
 } from '@/trading/kernel/market/market-capability'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
@@ -9,6 +10,7 @@ import type { MarketCapabilities, MarketManifest } from '@/trading/markets/types
 import { available, unavailable } from '@/trading/kernel/source/source-result'
 import { runUsAccounts } from '@/trading/markets/equity-us/accounts'
 import { runUsBars } from '@/trading/markets/equity-us/bars'
+import { buildUsBrief, US_BRIEF_HOME } from '@/trading/markets/equity-us/brief/compose'
 import { runUsEvents } from '@/trading/markets/equity-us/events'
 import { runUsNews } from '@/trading/markets/equity-us/news'
 import { runUsOverview } from '@/trading/markets/equity-us/overview'
@@ -37,6 +39,7 @@ export function usCapabilities(
     ...accountsCapabilities(deps, board),
     ...overviewCapabilities(deps, manifest, board),
     ...refreshCapabilities(deps, manifest, board),
+    ...briefCapability(deps, manifest, board),
   }
 }
 
@@ -82,6 +85,35 @@ function accountsCapabilities(
   return {
     accounts: { kind: 'accounts', run: (request) => runUsAccounts(board, request) },
     events: { kind: 'events', run: (request) => runUsEvents(deps, request) },
+  }
+}
+
+/** A market with no brief seam bound publishes no brief, rather than one that throws. */
+function briefCapability(
+  deps: MarketDeps,
+  manifest: MarketManifest,
+  board: UsBoardCache
+): Pick<MarketCapabilities, 'brief'> {
+  const services = deps.briefServices
+
+  if (services === undefined) {
+    return {}
+  }
+
+  return {
+    brief: {
+      kind: 'brief',
+      run: (request: MarketBriefRequest) =>
+        buildUsBrief({
+          deps,
+          services,
+          request,
+          calendar: manifest.calendar,
+          home: US_BRIEF_HOME,
+          board: () => board.get(request.asOf, request.signal),
+          boardAt: (day) => board.get(day, request.signal),
+        }),
+    },
   }
 }
 

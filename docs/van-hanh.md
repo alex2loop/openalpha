@@ -42,8 +42,8 @@ việc thì thoát ngay.
 `trading.refresh` không chạy theo đồng hồ đều đặn. Nó chạy ở mốc **sớm nhất** trong:
 
 - ngay sau khi phiên của từng thị trường đóng và bảng giá đã chốt;
-- 60 phút trước giờ mở của từng thị trường, để bản tin và bảng lọc đọc dữ liệu đã làm ấm sẵn (bản
-  tin sớm nhất gửi 08:15 cho giờ mở 09:00);
+- 90 phút trước giờ mở của từng thị trường, để bản tin và bảng lọc đọc dữ liệu đã làm ấm sẵn (bản
+  tin sớm nhất gửi 08:15, trước giờ mở 09:00 hoặc 09:30);
 - chu kỳ đã cấu hình, chỉ là một cái trần.
 
 Thị trường không bao giờ đóng cửa như crypto thì làm mới lúc sang ngày UTC. Hai mốc cách nhau dưới 60

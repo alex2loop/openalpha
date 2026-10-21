@@ -49,7 +49,7 @@ Set `[locale] region = "us"` and `currency = "USD"`, or pick the United States w
 - **Scoring without SEC.** Momentum and volatility read prices alone. Value and quality come from SEC accounts, which need a contact email in `SEC_CONTACT_EMAIL` (set by `onboard` or `key set SEC_CONTACT_EMAIL`). Without it value and quality read as unavailable, the board says its coverage is partial, and names still rate on the other half. Banks have no gross profit, so their quality is unavailable too.
 - **Recently filed.** Earnings releases (8-K item 2.02) and open-market insider purchases (Form 4) from the last 90 days reach the debate under their own heading, apart from the dated events ahead.
 - **Crypto through Coinbase.** For a US operator, `[trading.venues.coinbase] default_for = ["crypto"]` leads the crypto quote with Coinbase. Coinbase quotes dollars and the book is in USDT, so every price is divided by USDT's own dollar price; on 2026-10-20 that was 0.99883, and the converted BTC price sat 0.009% from Binance's. If a coin's symbol is also a US listing (SOL, LINK), write `crypto:SOL`.
-- **The brief.** A scheduled morning brief for a US home is not built yet; `/screen`, `/suggest` and `/overview` work today.
+- **The brief.** The morning brief for a US home is sent at 08:15 New York time by default. It reads the US block, the crypto block, your book and your suggestions, plus a "Recently filed" list under the US block: the earnings releases and insider purchases of the last five sessions, and the ex-dividend dates in the next ten, for the names you hold or watch. It carries no market story, which reads Vietnam's tape only.
 
 ### Data sources
 
@@ -643,7 +643,7 @@ Only the `[trading.refresh]` cadence is configurable. The alert loop and resting
 
 #### How refresh is scheduled
 
-Refresh follows the trading calendar, not a fixed interval. It fires when each session settles (the close plus the auction lag, the same instant that decides whether a session counts as settled) and 60 minutes before each open, so the morning brief and the first screen read fresh data without paying for the fetch inline. Every market with its own hours anchors a tick. The configured interval survives as a ceiling for continuous markets and for an empty registry.
+Refresh follows the trading calendar, not a fixed interval. It fires when each session settles (the close plus the auction lag, the same instant that decides whether a session counts as settled) and 90 minutes before each open, so the morning brief and the first screen read fresh data without paying for the fetch inline. Every market with its own hours anchors a tick. The configured interval survives as a ceiling for continuous markets and for an empty registry.
 
 Refresh covers every market you still use: a segment switched on in the profile, or a market where you hold a name, watch one, wait on a call to be scored, or get a scheduled brief built on it. A switched-off segment drops out only when none of those still reads it, so a holding's stop is never left without prices. With no profile yet, every market refreshes. A failed read of that set refreshes everything. The morning brief describes the same set, and naming a market on `/refresh` refreshes it regardless.
 
@@ -661,7 +661,7 @@ Inside the VN board the same idea applies. Price history, financial ratios and t
 
 **Who was in charge of a session is recorded once, or not at all.** Every refresh records the buy/sell aggressor split for each name you hold or watch. Neither source behind it accepts a date: `kbsec` answers with whatever session its board currently holds, and `vietcap` pages backwards from the newest tape. So the split is readable only between the tape-settle instant and the next open.
 
-The refresh anchors put two passes inside that window (15:15 and 08:00 for a VN board). After the open the session is gone for good. A name the sweep could not record is therefore named under its market in the `/refresh` view, since a miss no later pass can fill is a hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends no VN source's budget.
+The refresh anchors put two passes inside that window (15:15 and 07:30 for a VN board). After the open the session is gone for good. A name the sweep could not record is therefore named under its market in the `/refresh` view, since a miss no later pass can fill is a hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends no VN source's budget.
 
 A name neither held nor watched is never swept, which is every buy candidate. `/suggest` reads the buy/sell split itself for the session it is judging and stores nothing; a stored row would otherwise join a brief section that lists what you follow. Both readers ask for the same day, so a stored row from an earlier session never stands in for the session being judged.
 

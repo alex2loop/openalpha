@@ -42,8 +42,8 @@ nothing to do returns at once.
 `trading.refresh` does not run on a plain timer. It runs at the earliest of:
 
 - shortly after each market's session closes, once the day's trading data is final;
-- 60 minutes before each market's open, so briefs and screens read warm data (the earliest brief goes
-  at 08:15 for a 09:00 open);
+- 90 minutes before each market's open, so briefs and screens read warm data (the earliest brief goes
+  at 08:15, before a 09:00 or 09:30 open);
 - the configured interval, which is only a ceiling.
 
 A market that never closes, such as crypto, refreshes at the UTC day rollover. Anchors within 60

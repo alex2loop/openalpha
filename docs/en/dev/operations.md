@@ -31,7 +31,7 @@ somewhere to go.
 - each market's `tapeFinalAt`: session close plus the auction lag, the same instant that decides
   whether a session counts as settled, so a pass never anchors on a tape it would then refuse to
   store;
-- 60 minutes before each market's open, so briefs and screens read warm data;
+- 90 minutes before each market's open, so briefs and screens read warm data;
 - the configured `interval_ms`, which is a ceiling and the fallback for an empty registry.
 
 A continuous market has no open and anchors on the UTC day rollover alone. Anchors under 60 s apart

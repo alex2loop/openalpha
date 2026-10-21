@@ -60,9 +60,12 @@ export const FOLDED_SECTION_KINDS = [
   'economy-headlines',
 ] as const satisfies readonly BriefSectionKind[]
 
+/** `recent` is the operator's own names, a handful of lines: a filing on a held name is the
+ *  decision-relevant reading a market block can carry. */
 const MARKET_HEADLINE_KINDS = [
   'market-prices',
   'breadth',
+  'recent',
 ] as const satisfies readonly BriefSectionKind[]
 
 /** The blocks that belong to no market, and the kinds each collects. Macro heads the markets

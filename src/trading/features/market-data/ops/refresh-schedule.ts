@@ -2,8 +2,9 @@ import type { RefreshAnchor } from '@/trading/kernel/market/refresh'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 
 /** Warm-up ahead of the open so morning briefs and screens read fresh data without paying the
- *  fetch inline. Sits before the earliest brief send time (08:15 for a 09:00 open). */
-const PRE_OPEN_LEAD_MS = 3_600_000
+ *  fetch inline. Sits before the earliest brief send time, 08:15: 07:30 for a 09:00 open, 08:00 for
+ *  a 09:30 one. */
+const PRE_OPEN_LEAD_MS = 5_400_000
 /** A tick landing closer than this joins the next one instead of firing twice back to back. */
 const MINIMUM_DELAY_MS = 60_000
 
