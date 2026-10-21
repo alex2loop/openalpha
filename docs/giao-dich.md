@@ -112,7 +112,14 @@ Một cửa sổ kết thúc trong năm đã kiểm toán mới nhất, hoặc �
 
 Ngoài các năm đã kiểm toán, OpenAlpha còn cho xem 5 quý gần nhất, mỗi quý so với cùng kỳ năm trước, để thấy doanh nghiệp đang tốt lên hay xấu đi ngay lúc này. Số quý chưa kiểm toán nên chỉ dùng để tham khảo.
 
-Báo cáo được tải lại mỗi 30 ngày, và mỗi hai ngày khi quý mới nhất đã đến hạn mà chưa được lưu. Đó là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
+Một quý được đưa vào phân tích ngay khi có bảng cân đối và kết quả kinh doanh, không phải chờ lưu chuyển tiền tệ, vì phần này thường về chậm hơn vài ngày. Trong lúc chờ:
+
+- OpenAlpha lấy phần còn thiếu từ `cafef-statements`: số lũy kế từ đầu năm trừ đi các quý đã có. Số này chỉ được dùng khi lợi nhuận trước thuế lũy kế khớp với các quý đã lưu, và dòng quý đó ghi rõ là tính từ nguồn dự phòng. Khi `vietcap-statements` có số của chính nó thì số của nguồn dự phòng được thay.
+- Nếu vẫn chưa có số, dòng tiền của quý đó và tổng bốn quý gần nhất để trống, không bao giờ tính bằng 0.
+
+Đề xuất có hai ghi chú cho chuyện này: quý mới nhất đã ra nhưng chưa có lưu chuyển tiền tệ, và quý đã quá hạn nộp mà dữ liệu chưa có, nên quý đang hiển thị là quý trước đó. Gặp ghi chú thứ hai thì nên xem báo cáo trên trang của công ty trước khi dựa vào các con số.
+
+Báo cáo được tải lại mỗi 30 ngày, mỗi hai ngày khi quý mới nhất đã đến hạn mà chưa được lưu, và mỗi ngày khi quý đó đã lưu nhưng còn thiếu lưu chuyển tiền tệ hoặc đang dùng số của nguồn dự phòng. Đó là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
 
 #### Hết giờ, thử lại và cache
 

@@ -112,7 +112,14 @@ A window that ends inside the newest audited year, or on its fourth quarter, res
 
 Beyond the audited years, OpenAlpha also shows the 5 newest quarters, each against the same quarter a year earlier, so you can see whether the business is improving or fading right now. Quarters are unaudited, so they are a reading, not a final figure.
 
-Accounts are refetched every 30 days, and every two days while the latest quarter is due and not stored yet. That is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
+A quarter reaches the analysis as soon as its balance sheet and income statement are out, without waiting for the cash flow statement, which usually lands a few days later. Meanwhile:
+
+- OpenAlpha takes the missing part from `cafef-statements`: the year-to-date figure less the quarters already on file. It is used only when the year-to-date pre-tax profit matches the stored quarters, and that quarter's line says it was worked out from the backup source. `vietcap-statements` replaces it the day it serves its own.
+- If there is still no figure, that quarter's cash lines and the four-quarter cash totals stay blank, never zero.
+
+A suggestion carries two notes for this: the newest quarter is out but its cash flow is not, and a quarter is past its filing deadline and not in yet, so the one shown is the quarter before. On the second, check the company's own filing before leaning on the numbers.
+
+Accounts are refetched every 30 days, every two days while the latest quarter is due and not stored yet, and every day while it is stored without its cash flow or with the backup source's. That is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
 
 #### Timeouts, retries and caching
 
