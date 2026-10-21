@@ -2961,6 +2961,7 @@
     "reduce.overheated": "Longs are paying crowded funding to stay in this name while you hold it. This sells your usual first take-profit share of the position you opened, counting what you already sold.",
     "reduce.ceiling-close": "It closed at or just under its ceiling. The next open usually gaps up, and the move has often faded over the following two weeks, so this sells your usual first take-profit share at that open to lock part of the gain in.",
     "hold.recorded-entry": "Levels the system set for a position you booked - no call was made. Run /suggest on it for the full read.",
+    "render.suggestion.saleReason": "The reason to trim: {reason}.",
     "render.suggestion.holdRecorded": "{ticker} ({at}): exit plan for the position you hold.",
     "render.suggestion.holdLevelsIntroRecorded": "The levels this position is watched against:",
     "render.ledger.exitPlanned": "Exit plan set for this position:",

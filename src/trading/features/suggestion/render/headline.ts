@@ -80,7 +80,7 @@ export function holdReasonLines(
     (code) => !inconclusive || code !== 'debate-unresolved'
   )
 
-  return renderHoldReasons(locale, { holdReasonCodes, caveats: suggestion.caveats }).map(
+  return renderHoldReasons(locale, { ...suggestion, holdReasonCodes }).map(
     (reason) => `${INDENT[1]}${reason}`
   )
 }

@@ -7,7 +7,7 @@ import type {
   SuggestionBatchResult,
 } from '@/trading/features/suggestion/batch-types'
 import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
-import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
+import type { Caveat, HoldReasonCode, ReduceReasonCode } from '@/trading/kernel/caveat'
 import type { RunFocus } from '@/trading/kernel/operator/focus'
 import type { ProfileStamp } from '@/trading/kernel/operator/profile'
 import { BRAND } from '@/core/brand'
@@ -195,16 +195,28 @@ function renderHoldReason(
     : renderDeclaredValue(locale, `trading.hold.${code}`)
 }
 
+/** A hold on a name a sale was called for leads with that sale's reason. */
 export function renderHoldReasons(
   locale: Locale,
   suggestion: {
     readonly holdReasonCodes: readonly HoldReasonCode[]
     readonly caveats: readonly Caveat[]
+    readonly reduceReasonCode?: ReduceReasonCode
   }
 ): readonly string[] {
-  return suggestion.holdReasonCodes.map((code) =>
+  const reasons = suggestion.holdReasonCodes.map((code) =>
     renderHoldReason(locale, code, suggestion.caveats)
   )
+  const sale = suggestion.reduceReasonCode
+
+  return sale === undefined
+    ? reasons
+    : [
+        renderDeclaredValue(locale, 'trading.render.suggestion.saleReason', {
+          reason: renderDeclaredValue(locale, `trading.brief.reduce-reason.${sale}`),
+        }),
+        ...reasons,
+      ]
 }
 
 /** The reason on its own line. The candidate-market hint that follows it in the full text is the
