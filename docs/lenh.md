@@ -514,7 +514,7 @@ ghi sổ và `/trade`.
 |---|---|
 | `/setup` | `/setup` - trợ lý làm gì và cách thiết lập |
 | `/record` | Ghi một dòng vào sổ. Xem [Sổ lệnh](#sổ-lệnh) |
-| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto` khi tỷ giá có tác dụng; dòng trả từ số USDT sàn đã giữ thì không dùng tỷ giá. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
+| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; mã trần được dò như `/record`, mọi trường khác phải ghi đủ; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto` khi tỷ giá có tác dụng; dòng trả từ số USDT sàn đã giữ thì không dùng tỷ giá. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
 | `/delete` | `/delete <mã bút toán>` - xem một mục; `/delete <mã bút toán> confirm` mới xóa |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Trong chat mặc định là 10 dòng gần nhất (terminal giữ 100), và nút trang kế giữ nguyên cỡ đó. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
 | `/portfolio` | `/portfolio` - giá trị và phân bổ, mỗi dòng nói rõ vị thế đang cách mức dừng bao xa. Xem [Mức dừng dự kiến không phải một lệnh đang treo](#mức-dừng-dự-kiến-không-phải-một-lệnh-đang-treo) |
@@ -597,15 +597,16 @@ duy nhất, "áp dụng đúng sửa đổi của tôi" là câu trả lời h�
 ### Sổ lệnh
 
 Mỗi dòng nêu tên một công cụ cũng nêu tên sàn đang giữ nó: cùng một đồng coin ở hai nơi giữ là hai vị
-thế với hai giá vốn. Dòng đó cũng nêu thị trường ngay trong cùng token với mã (`equity-vn:FPT`) thay vì
-để hệ thống đoán, vì một dòng sổ làm đổi gốc của mọi số đọc sau đó từ sổ.
+thế với hai giá vốn. Dòng đó nêu thị trường ngay trong cùng token với mã (`equity-vn:FPT`), hoặc bỏ đi
+khi các danh sách đã lưu chỉ có đúng một thị trường cho mã đó. Thị trường không bao giờ được đoán qua
+mạng, và lời xác nhận luôn ghi rõ nó, vì một dòng sổ làm đổi gốc của mọi số đọc sau đó từ sổ.
 
 ```text
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>
 /record buy|sell [sàn] <mã> <số lượng|all> <đơn giá> [tiền tệ] [phí] [ngày]
 /record rights [sàn] <mã> <số lượng> <đơn giá> [tiền tệ] <phí> [ngày]
-/record dividend <sàn> <thị-trường:mã> <số tiền> <tiền tệ> <ngày>
-/record split|distribution <sàn> <thị-trường:mã> <thay-đổi-số-lượng> <ngày>
+/record dividend <sàn> <mã> <số tiền> <tiền tệ> <ngày>
+/record split|distribution <sàn> <mã> <thay-đổi-số-lượng> <ngày>
 /record transfer <từ-sàn> <đến-sàn> <số tiền> <tiền tệ> <phí> <ngày>
 /record sync <sàn>
 /record confirm

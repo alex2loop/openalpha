@@ -528,7 +528,7 @@ The rest fit in a line.
 |---|---|
 | `/setup` | `/setup` - what the assistant does and how to set it up |
 | `/record` | Writes a ledger row. See [The ledger](#the-ledger) |
-| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included; the reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto` where the rate applies; a row paid from USDT the venue already holds takes none. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
+| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included; a bare ticker is found as `/record` finds it, every other field is written out; the reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto` where the rate applies; a row paid from USDT the venue already holds takes none. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
 | `/delete` | `/delete <handle>` - show one entry; `/delete <handle> confirm` removes it |
 | `/transactions` | `/transactions [count] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. In a chat the default is the last 10 rows (the terminal keeps 100), and the next-page button keeps the same size. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
@@ -611,16 +611,17 @@ for a single operator, "apply my edit" is the right answer.
 ### The ledger
 
 Every row that names an instrument also names the venue holding it: the same coin at two custodians
-is two positions with two cost bases. It also names the market in the same token as the ticker
-(`equity-vn:FPT`) rather than leaving the system to guess, because a ledger row re-bases every later
-reading of the book.
+is two positions with two cost bases. It names the market in the same token as the ticker
+(`equity-vn:FPT`), or leaves it out when the lists already stored name exactly one market for that
+ticker. The market is never guessed over the network, and the confirmation names it, because a ledger
+row re-bases every later reading of the book.
 
 ```text
 /record deposit|withdrawal|fee|loss <venue> <amount> <currency> <day>
 /record buy|sell [venue] <ticker> <quantity|all> <unit-price> [currency] [fee] [day]
 /record rights [venue] <ticker> <quantity> <unit-price> [currency] <fee> [day]
-/record dividend <venue> <market:ticker> <amount> <currency> <day>
-/record split|distribution <venue> <market:ticker> <quantity-delta> <day>
+/record dividend <venue> <ticker> <amount> <currency> <day>
+/record split|distribution <venue> <ticker> <quantity-delta> <day>
 /record transfer <from-venue> <to-venue> <amount> <currency> <fee> <day>
 /record sync <venue>
 /record confirm

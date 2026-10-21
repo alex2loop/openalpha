@@ -5,22 +5,31 @@ import type { MarketRef, Region, Ticker, TradingDay, VenueRef } from '@/trading/
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isWord } from '@/core/utils/text'
+import { QUANTITY_TXN_KINDS } from '@/trading/features/ledger/types'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { currencyCode, tradingDay, venueRef } from '@/trading/kernel/instrument'
 import { parseBranded, parseTickerRequest, SELL_ALL } from '@/trading/kernel/surface/surface'
 
-/** Every refusal the shorthand can answer, for the command's `messageKeys`. */
-export const SHORTHAND_KEYS = Object.freeze([
+/** Every refusal a bare ticker can draw. */
+export const MARKET_RESOLUTION_KEYS = Object.freeze([
   'slash.tradingRecordMarketChoice',
   'slash.tradingRecordMarketUnchecked',
   'slash.tradingRecordMarketUnknown',
   'slash.tradingRecordMarketUnlisted',
+] as const satisfies readonly CommandMessageKey[])
+
+/** Every refusal the shorthand can answer, for the command's `messageKeys`. */
+export const SHORTHAND_KEYS = Object.freeze([
+  ...MARKET_RESOLUTION_KEYS,
   'slash.tradingRecordVenueChoice',
   'slash.tradingRecordNoVenue',
   'slash.tradingRecordRightsFee',
 ] as const satisfies readonly CommandMessageKey[])
 
 const SHORTHAND_KINDS: readonly string[] = ['buy', 'sell', 'rights']
+/** Rows that always name their venue first and the instrument right after it. */
+const VENUE_FIRST_KINDS: readonly string[] = ['dividend', ...QUANTITY_TXN_KINDS]
+const VENUE_FIRST_INSTRUMENT_AT = 2
 const FX_TOKEN = 'fx'
 const FX_TOKENS = 2
 const NUMBER_RE = /^\d[\d.,]*$/
@@ -37,6 +46,13 @@ interface ShorthandInput {
   readonly tokens: readonly string[]
   readonly now: number
   readonly signal: AbortSignal
+}
+
+/** Where a line names its instrument, and the venue that narrows which markets may list it. */
+interface InstrumentSlot {
+  readonly instrument: string
+  readonly venue?: VenueRef
+  readonly at: number
 }
 
 interface ShorthandDeps {
@@ -73,7 +89,7 @@ export async function toFullRecordLine(
   const typed = readTypedLine(deps, input.tokens)
 
   if (typed === undefined) {
-    return { kind: 'tokens', tokens: input.tokens }
+    return toQualifiedLine(deps, input)
   }
 
   const market = await resolveMarket(deps, typed, input.signal)
@@ -104,6 +120,55 @@ export async function toFullRecordLine(
   return { kind: 'tokens', tokens: buildFullLine(typed, filled) }
 }
 
+/** Fills only a bare ticker, found the way `toFullRecordLine` finds it, so an edit or a dividend
+ *  line states every other slot itself: one left out stays the parser's to refuse, never a guess. */
+export async function toQualifiedLine(
+  deps: Pick<ShorthandDeps, 'venues' | 'markets'>,
+  input: Pick<ShorthandInput, 'tokens' | 'signal'>
+): Promise<ShorthandExpansion> {
+  const slot = instrumentSlotOf(deps, input.tokens)
+
+  if (slot === undefined) {
+    return { kind: 'tokens', tokens: input.tokens }
+  }
+
+  const market = await resolveMarket(deps, slot, input.signal)
+
+  if ('messages' in market) {
+    return { kind: 'refused', messages: market.messages }
+  }
+
+  const tokens = input.tokens.map((token, index) =>
+    index === slot.at ? `${market.ref}:${market.ticker}` : token
+  )
+
+  return { kind: 'tokens', tokens }
+}
+
+/** The kind leads; a trade's venue is optional, every other row with an instrument names one. */
+function instrumentSlotOf(
+  deps: Pick<ShorthandDeps, 'venues'>,
+  tokens: readonly string[]
+): InstrumentSlot | undefined {
+  const typed = readTypedLine(deps, tokens)
+
+  if (typed !== undefined) {
+    return typed.venue === undefined
+      ? { instrument: typed.instrument, at: 1 }
+      : { instrument: typed.instrument, venue: typed.venue, at: 2 }
+  }
+
+  const [kind, rawVenue, instrument] = tokens
+  const named = parseBranded(rawVenue, venueRef)
+  const venue = named === null ? null : deps.venues.find(named)
+
+  if (!VENUE_FIRST_KINDS.includes(kind?.toLowerCase() ?? '') || venue === null || !instrument) {
+    return undefined
+  }
+
+  return { instrument, venue: venue.manifest.id, at: VENUE_FIRST_INSTRUMENT_AT }
+}
+
 function buildFullLine(
   typed: TypedLine,
   filled: {
@@ -127,7 +192,10 @@ function buildFullLine(
   ]
 }
 
-function readTypedLine(deps: ShorthandDeps, tokens: readonly string[]): TypedLine | undefined {
+function readTypedLine(
+  deps: Pick<ShorthandDeps, 'venues'>,
+  tokens: readonly string[]
+): TypedLine | undefined {
   const [rawKind, ...rest] = tokens
   const kind = rawKind?.toLowerCase()
 
@@ -203,8 +271,8 @@ type MarketAnswer =
   | { readonly messages: readonly CommandMessage[] }
 
 async function resolveMarket(
-  deps: ShorthandDeps,
-  typed: TypedLine,
+  deps: Pick<ShorthandDeps, 'venues' | 'markets'>,
+  typed: Pick<InstrumentSlot, 'instrument' | 'venue'>,
   signal: AbortSignal
 ): Promise<MarketAnswer> {
   const registered = deps.markets.list().map((market) => market.manifest.id)
