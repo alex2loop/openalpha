@@ -234,7 +234,7 @@ export type DraftDirection =
   | {
       readonly action: 'hold'
       readonly reasonCode: HoldReasonCode
-      /** Present only on `evidence-sold`: the evidence the holding was already cut for. */
+      /** Present on an evidence hold: the reason the holding is cut for. */
       readonly reduceReasonCode?: EvidenceReduceReasonCode
     }
 

@@ -22,7 +22,7 @@ openalpha config edit       # open it in $VISUAL or $EDITOR
 
 `openalpha onboard` writes a starter file when none exists yet and the target is not a symlink. Run
 on an existing config, it changes one part (model, Telegram bot, budget or language) and saves the
-old file beside it first, because the rewrite drops comments.
+old file beside it first (the newest 5 backups are kept), because the rewrite drops comments.
 
 Two templates to download: [config.minimal.en.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml)
 works with just `OPENROUTER_API_KEY` and a 2 USD daily cap (its Vietnamese twin is
@@ -705,7 +705,7 @@ send_times = []                # HH:MM pushes in the market's timezone; empty = 
 
 [trading.alerts]
 breakout_range = 1.5           # average daily ranges a move must span before a watchlist alert
-breakout_sessions = 14         # settled sessions the average daily range is measured over
+breakout_sessions = 14         # settled sessions the average daily range is measured over; at least 5
 
 [trading.typed_prices]
 confirm_multiple = 10          # ask before saving a typed price this many times from the market

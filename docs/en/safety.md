@@ -243,8 +243,9 @@ already keeps other accounts out.
 An external MCP server's HTTP endpoint is rechecked on every request and follows no redirect, but it
 is not address-pinned, so the rebind window between check and call stays open.
 
-An agent's `hosts` list is a capability boundary: adding a host deliberately widens what that agent
-can reach.
+An agent's `hosts` list is a capability boundary for `web_fetch` and for the pages `research` reads
+directly: adding a host deliberately widens what that agent can reach. A research page on a host outside
+the list is skipped like any other failed read, and the run carries on.
 
 ### Tool and skill content
 

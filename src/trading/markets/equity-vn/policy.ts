@@ -197,9 +197,9 @@ export const FTSE_REVIEW_MONTHS = Object.freeze([3, 6, 9, 12] as const)
  *  VNDiamond's, and the passive money moves on all four. */
 export const HOSE_REVIEW_MONTHS = Object.freeze([2, 5, 8, 11] as const)
 /** How far past a fiscal period end the accounts may sit before the ratios stop describing the
- *  business. A VN issuer files the following quarter within twenty days of its close, so at a full
- *  quarter plus the filing window plus three weeks of slack the issuer has missed a deadline rather
- *  than merely not reached one. Counted in calendar days because a statutory deadline is. */
+ *  business, in calendar days as a statutory deadline is: the next quarter (about 92 days), the
+ *  30-day deadline for consolidated accounts, and about two weeks of slack, so an overdue issuer has
+ *  missed a deadline rather than merely not reached one. */
 export const REPORT_OVERDUE_DAYS = 135
 
 /** The target is a multiple of the rounded risk, not an ATR multiple of its own: measured from
@@ -393,6 +393,11 @@ export const LIMIT_HIT_MAXIMUM = 3
 /** A close counts as a limit hit at this share of the band: tick rounding means an adjusted series
  *  rarely lands on the exact ceiling ratio. */
 export const LIMIT_HIT_TOLERANCE_FRACTION = 0.9
+
+/** A held short-horizon name that closes at its ceiling this many sessions running is trimmed at
+ *  the next open: the gap pays most there, and the ten sessions after it lag the market. 0 turns
+ *  the trim off. */
+export const VN_CEILING_TRIM_POLICY = Object.freeze({ sessions: 1 })
 
 /** What a failed screen gate costs a named VN ticker. `ceiling-locked` is absent because the band
  *  edge is already the levels block, and `no-price-history` because a name with no series has no

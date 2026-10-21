@@ -64,6 +64,7 @@ export const researchTool = createTool({
     const depth = args.depth ?? RESEARCH_PROFILE_DEPTHS.standard
     const interaction = ctx.researchInteraction
     const review = resolveReviewWiring(ctx, depth)
+    const hosts = ctx.services.agents.get(ctx.agentId)?.hosts
 
     try {
       const result = await ctx.services.research.run(
@@ -76,6 +77,7 @@ export const researchTool = createTool({
           budget: ctx.budget,
           delegationQuota: ctx.delegationQuota,
           parent: toResearchParent(ctx),
+          ...(hosts === undefined ? {} : { allowedHosts: hosts }),
           addDelegatedUsage: ctx.addDelegatedUsage,
           addExternalCost: ctx.addExternalCost,
           ...(interaction === undefined

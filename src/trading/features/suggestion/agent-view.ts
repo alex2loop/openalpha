@@ -26,7 +26,7 @@ import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { PriceWriter, WrittenQuote } from '@/trading/kernel/surface/agent-json'
 import { bankedShareOf, heldFirstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
-import { renderHoldReason } from '@/trading/features/suggestion/render/verdict'
+import { renderHoldReasons } from '@/trading/features/suggestion/render/verdict'
 import { fractionToPct, writtenQuote } from '@/trading/kernel/surface/agent-json'
 import { renderScoreBand } from '@/trading/render/format'
 import { formatScaledPrice } from '@/trading/render/money'
@@ -259,7 +259,7 @@ function toAgentHold(
   return {
     ...rest,
     ...fields,
-    holdReasons: rest.holdReasonCodes.map((code) => renderHoldReason(reader.locale, code)),
+    holdReasons: renderHoldReasons(reader.locale, rest),
   }
 }
 

@@ -80,9 +80,9 @@ naming an instrument.
 `trading.refresh`. It is durable: `db export` and `db import` carry it and no sweep removes it. It
 grows by one row a day.
 
-**Bars.** `daily_bars` is keyed by source as well as day, so two providers answering the same window
-both persist. A series carrying one session twice would skew every median, ATR and lookback, so
-readers keep the newest row per session.
+**Bars.** `daily_bars` holds one row per market, ticker and day, and records which provider wrote it.
+A series carrying one session twice would skew every median, ATR and lookback, so the key makes that
+impossible.
 
 **Orders.** `order_intents` and `resting_exits` belong to the order feature, and both are durable:
 

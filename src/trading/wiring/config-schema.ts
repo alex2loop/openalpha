@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { LOCAL_TIME_RE, MAX_TIMER_MS, parseIsoDay } from '@/core/utils/time'
+import { MINIMUM_RANGE_SESSIONS } from '@/trading/features/alerts/screeners'
 import { DEBATE_MODES, FEE_ASSETS } from '@/trading/kernel/config'
 import { isMarketRefShape, isVenueRefShape } from '@/trading/kernel/instrument'
 import { isSourceId } from '@/trading/kernel/source/source-id'
@@ -62,7 +63,7 @@ export const tradingConfigPatchSchema = z.strictObject({
   alerts: z
     .strictObject({
       breakout_range: z.number().positive().optional(),
-      breakout_sessions: z.int().positive().optional(),
+      breakout_sessions: z.int().min(MINIMUM_RANGE_SESSIONS).optional(),
     })
     .optional(),
   typed_prices: z.strictObject({ confirm_multiple: z.number().gt(1).optional() }).optional(),

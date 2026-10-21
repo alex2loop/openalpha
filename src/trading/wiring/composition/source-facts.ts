@@ -83,9 +83,9 @@ import { createYahooSources, YAHOO_DEFAULT_ENDPOINT } from '@/trading/sources/ad
  *  operator judgment, so it is code-owned and no config can redirect a source at another host. */
 export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('alternative-me')]: ALTERNATIVE_ME_DEFAULT_ENDPOINT,
-  [sourceId('bls')]: BLS_DEFAULT_ENDPOINT,
   [sourceId('binance')]: BINANCE_DEFAULT_ENDPOINT,
   [sourceId('binance-futures')]: BINANCE_FUTURES_DEFAULT_ENDPOINT,
+  [sourceId('bls')]: BLS_DEFAULT_ENDPOINT,
   [sourceId('bybit')]: BYBIT_DEFAULT_ENDPOINT,
   [sourceId('cafef')]: CAFEF_DEFAULT_ENDPOINT,
   [sourceId('cafef-statements')]: CAFEF_DEFAULT_ENDPOINT,
@@ -110,11 +110,11 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('sbv')]: SBV_DEFAULT_ENDPOINT,
   [sourceId('ssi')]: SSI_DEFAULT_ENDPOINT,
   [sourceId('treasury')]: TREASURY_DEFAULT_ENDPOINT,
-  [sourceId('vndirect')]: VNDIRECT_DEFAULT_ENDPOINT,
   [sourceId('vietcap')]: VIETCAP_DEFAULT_ENDPOINT,
   [sourceId('vietcap-board')]: VIETCAP_DEFAULT_ENDPOINT,
   [sourceId('vietcap-chart')]: VIETCAP_DEFAULT_ENDPOINT,
   [sourceId('vietcap-statements')]: VIETCAP_STATEMENTS_ENDPOINT,
+  [sourceId('vndirect')]: VNDIRECT_DEFAULT_ENDPOINT,
   [sourceId('vps')]: VPS_DEFAULT_ENDPOINT,
   [sourceId('yahoo')]: YAHOO_DEFAULT_ENDPOINT,
 })
@@ -183,11 +183,11 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('sbv')]: 10,
   [sourceId('ssi')]: 60,
   [sourceId('treasury')]: 60,
-  [sourceId('vndirect')]: 300,
   [sourceId('vietcap')]: 60,
   [sourceId('vietcap-board')]: 30,
   [sourceId('vietcap-chart')]: 30,
   [sourceId('vietcap-statements')]: 120,
+  [sourceId('vndirect')]: 300,
   [sourceId('vps')]: 30,
   [sourceId('yahoo')]: 60,
 })

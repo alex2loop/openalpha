@@ -22,7 +22,7 @@ const POLICY_SOURCES: Readonly<Record<string, readonly string[]>> = {
 /** The policy literals, and the scalars and bounds they read from beside them: a normalization
  *  range, a cap or a threshold decides a score as surely as a weight does. */
 const POLICY_PATTERN =
-  'export const [A-Z_]*(?:(?:LEVEL|FACTOR|ACCOUNTS)_POLICY|_COMPONENTS|_RANGE|_CAP|_PCT|_FALLBACK)\\b[^=]*=\\s*'
+  'export const [A-Z_]*(?:(?:LEVEL|FACTOR|ACCOUNTS|TRIM)_POLICY|_COMPONENTS|_RANGE|_CAP|_PCT|_FALLBACK)\\b[^=]*=\\s*'
 const SCALAR_RE = /^-?[\d_.]+(?:e-?\d+)?/
 const VERSION_RE = /export const [A-Z_]*STRATEGY_VERSION\s*=\s*'([^']+)'/
 const OPENERS = '({'

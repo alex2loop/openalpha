@@ -256,8 +256,12 @@ export function sizeReduce(input: ReduceSizingInput): SizingResult {
     return { kind: 'unsized', reason: 'zero-nav' }
   }
 
-  if (entryBase <= 0 || settledUnits <= 0 || !(saleFraction > 0)) {
+  if (entryBase <= 0 || !(saleFraction > 0)) {
     return { kind: 'unavailable', reasonCode: 'insufficient-data' }
+  }
+
+  if (settledUnits <= 0) {
+    return { kind: 'unavailable', reasonCode: 'position-unsettled' }
   }
 
   const units = floorToLot(
@@ -270,7 +274,7 @@ export function sizeReduce(input: ReduceSizingInput): SizingResult {
   }
 
   if (units <= 0) {
-    return { kind: 'unavailable', reasonCode: 'size-below-board-lot' }
+    return { kind: 'unavailable', reasonCode: 'sale-below-board-lot' }
   }
 
   return { kind: 'available', units, sizePctNav: (units * entryBase) / navBase }

@@ -44,6 +44,7 @@ import {
   INSTRUMENT_STATUSES,
   PORTFOLIO_EVIDENCE_KINDS,
   PORTFOLIO_FINDING_KINDS,
+  REDUCE_REASON_CODES,
 } from '@/trading/kernel/caveat'
 import { DEBATE_WAVES, LEAN_DEBATE_REASONS } from '@/trading/kernel/config'
 import { CONVICTION_BANDS, OUTCOME_STATUSES, SUGGESTION_ACTIONS } from '@/trading/kernel/conviction'
@@ -116,6 +117,8 @@ interface CodeGroup {
 export const TRADING_CODE_GROUPS: readonly CodeGroup[] = Object.freeze([
   { prefix: 'trading.caveat', members: CAVEAT_CODE_STRINGS },
   { prefix: 'trading.hold', members: HOLD_REASON_CODES },
+  { prefix: 'trading.reduce', members: REDUCE_REASON_CODES },
+  { prefix: 'trading.brief.reduce-reason', members: REDUCE_REASON_CODES },
   { prefix: 'trading.delivery.error', members: DELIVERY_ERROR_CODES },
   { prefix: 'trading.notice', members: NOTICE_KINDS },
   { prefix: 'trading.exit.level', members: EXIT_LEVELS },

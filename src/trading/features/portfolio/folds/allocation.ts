@@ -43,9 +43,6 @@ export interface AdviceInput {
   readonly profileSaved: boolean
 }
 
-/** The limit that froze the largest single weight. With residue left over it is the one holding the
- *  segment back, and it is the one worth naming. */
-
 export interface DesiredWeights {
   /** Desired portfolio weight per candidate, keyed by `buildInstrumentKey`. */
   readonly byInstrument: ReadonlyMap<string, number>
@@ -467,8 +464,3 @@ function ceilingsFor(input: AdviceInput, nav: number, rooms: RoomTracker): Ceili
     return { value: Math.max(0, tightest.value), reason: tightest.reason }
   }
 }
-
-/** The widest frozen weight seen so far, carried across passes so the reported cap is the one
- *  holding the segment back rather than whichever froze last. */
-
-// Each pass assigns the unallocated remainder proportional to risk-adjusted score, freezes

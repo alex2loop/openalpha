@@ -21,7 +21,7 @@ openalpha config edit       # mở bằng $VISUAL hoặc $EDITOR
 ```
 
 `openalpha onboard` ghi một tệp khởi đầu khi chưa có tệp và đích không phải symlink. Chạy khi đã có cấu
-hình, nó đổi một phần (mô hình, bot Telegram, mức chi hoặc ngôn ngữ) và sao lưu tệp cũ cạnh đó trước, vì lần
+hình, nó đổi một phần (mô hình, bot Telegram, mức chi hoặc ngôn ngữ) và sao lưu tệp cũ cạnh đó trước (giữ 5 bản sao lưu mới nhất), vì lần
 ghi lại làm mất các dòng chú thích.
 
 Có hai tệp mẫu để tải: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
@@ -703,7 +703,7 @@ send_times = []                # các mốc HH:MM theo múi giờ thị trườn
 
 [trading.alerts]
 breakout_range = 1.5           # một biến động phải đi bao nhiêu lần biên độ ngày trung bình thì mới báo
-breakout_sessions = 14         # số phiên đã chốt dùng để đo biên độ ngày trung bình
+breakout_sessions = 14         # số phiên đã chốt dùng để đo biên độ ngày trung bình; tối thiểu 5
 
 [trading.typed_prices]
 confirm_multiple = 10          # hỏi lại trước khi lưu giá gõ lệch giá thị trường từng này lần

@@ -139,11 +139,11 @@ interface SuggestionBase {
   /** What would make this call wrong, checked by the next run. On both arms: a hold is where the
    *  operator most needs to know what to watch for, having been told to do nothing. */
   readonly invalidators?: readonly string[]
-  /** Why the name is sold down: a reduce's reason, or what an `evidence-sold` hold already cut. */
+  /** Why the name is sold down: a reduce's reason, or the evidence a hold is cut for. */
   readonly reduceReasonCode?: ReduceReasonCode
   /** A held name's standing stop this run raised: an order resting at an exchange stays there. */
   readonly raisedStopFrom?: number
-  /** On a held name framed as a sale, the exits its standing plan names. */
+  /** On a held name framed as a sale or priced no levels, the exits its standing plan names. */
   readonly standingExit?: { readonly stop: number; readonly takeProfit: number }
   /** On a held name whose first tranche is unsold, the take-profit its standing plan set. The fresh
    *  `takeProfit` beside it prices a new entry and is the one gates and the scorer read. */

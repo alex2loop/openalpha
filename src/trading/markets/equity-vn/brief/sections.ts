@@ -440,6 +440,10 @@ function summarizeRuns(
           ticker: result.suggestion.instrument.ticker,
           action: result.suggestion.action,
           conviction: result.suggestion.conviction,
+          ...(result.suggestion.action === 'reduce' &&
+          result.suggestion.reduceReasonCode !== undefined
+            ? { reduceReason: result.suggestion.reduceReasonCode }
+            : {}),
         })),
         { provenance: completed.flatMap((result) => result.suggestion.provenance) }
       )

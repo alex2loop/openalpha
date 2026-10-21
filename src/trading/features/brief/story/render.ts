@@ -140,7 +140,10 @@ function renderStory(view: StoryView, reviewed: ReadonlySet<string>): readonly s
       locale,
       facts.map((fact) => fact.row)
     ),
-    sessions: facts.map((fact) => fact.row.sessions).find((value) => value !== undefined) ?? '',
+    sessions: countOf(
+      locale,
+      facts.map((fact) => fact.row.sessions).find((value) => value !== undefined)
+    ),
   }
 
   return [
@@ -266,7 +269,7 @@ function renderWatch(view: StoryView, row: BriefSectionRow): string | undefined 
   const unit = section.currency === undefined ? {} : { currency: section.currency }
   const sentence = t(locale, `trading.brief.story.watch.${shape}`, {
     value: renderValue(locale, [WATCH_FIELDS[shape], row.threshold], unit),
-    sessions: typeof row.sessions === 'number' ? row.sessions : '',
+    sessions: countOf(locale, row.sessions),
     sector: sectorOf(locale, [row]),
   })
 
@@ -278,6 +281,10 @@ function sectorOf(locale: Locale, rows: readonly BriefSectionRow[]): string {
   const sector = rows.map((row) => row.sector).find((value) => typeof value === 'string')
 
   return sector === undefined ? '' : renderValue(locale, ['sector', sector])
+}
+
+function countOf(locale: Locale, value: unknown): string {
+  return typeof value === 'number' ? formatCount(locale, value) : ''
 }
 
 /** Narrows a stored string to its closed tuple without an assertion. */

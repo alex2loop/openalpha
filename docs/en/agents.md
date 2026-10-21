@@ -78,7 +78,7 @@ every registered tool.
 |---|---|---|---|
 | `tools` | Deny all | Deny all | Allowlist, or `"*"` for every registered tool. An unknown tool name rejects the file. |
 | `delegates` | No delegation | No delegation | Agent ids callable through `delegate`. Also list `delegate` in `tools`. |
-| `hosts` | Any host the SSRF policy allows | - | Hostnames `web_fetch` may reach. `*.` matches the apex and its subdomains. |
+| `hosts` | Any host the SSRF policy allows | - | Hostnames `web_fetch` and `research` page reads may reach. `*.` matches the apex and its subdomains. |
 | `skills` | All skills | - | SKILL.md names this agent may list and read. |
 
 Omitted `tools` denies everything, while omitted `hosts` allows anything the SSRF policy permits. That is on

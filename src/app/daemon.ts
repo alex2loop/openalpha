@@ -136,8 +136,8 @@ async function startDaemonSubsystems(
       {
         workflows: app.resolve('workflows'),
         logger,
-        defaultTz: app.config.locale.timezone,
         runner: app.resolve('runner'),
+        config: app.config,
       },
       startupSignal
     )

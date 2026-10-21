@@ -1,4 +1,5 @@
-import { lstat, readFile } from 'node:fs/promises'
+import { lstat, readdir, readFile, unlink } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 
 import { parse, stringify } from 'smol-toml'
 
@@ -13,6 +14,8 @@ import { isPlainRecord } from '@/core/utils/collections'
 /** A first-run daily cap, so a new key cannot run up a bill before the user picks a budget. */
 export const STARTER_DAILY_BUDGET_USD = 2
 const BACKUP_STAMP_RE = /[:.]/g
+/** Newest backups of one config file kept; every save writes one. */
+const MAXIMUM_CONFIG_BACKUPS = 5
 
 type Table = Readonly<Record<string, unknown>>
 
@@ -120,8 +123,24 @@ export async function saveEditedConfig(
 
   await createPrivateFileAtomic({ path: backupPath, content: change.before })
   await replacePrivateFileAtomic({ path, content: change.after, validate: validateConfig })
+  await pruneBackups(path)
 
   return backupPath
+}
+
+// The stamp is ISO-derived, so name order is age order. A failed prune never fails the save.
+async function pruneBackups(path: string): Promise<void> {
+  const prefix = `${basename(path)}.`
+
+  try {
+    const names = await readdir(dirname(path))
+    const backups = names.filter((name) => name.startsWith(prefix) && name.endsWith('.bak')).sort()
+    const stale = backups.slice(0, Math.max(0, backups.length - MAXIMUM_CONFIG_BACKUPS))
+
+    await Promise.all(stale.map((name) => unlink(join(dirname(path), name))))
+  } catch {
+    // Leftover backups cost disk only; the next save retries.
+  }
 }
 
 function applyEdit(table: Table, edit: ConfigEdit): Table {

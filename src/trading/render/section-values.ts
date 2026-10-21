@@ -161,10 +161,12 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
   })
 
 /** Fields whose value is a code only the market registry can enumerate, so no closed map can list
- *  it. Composition already refuses to boot without these keys in both catalogs. */
+ *  it, or a code set the locale manifest already holds against both catalogs. Composition refuses to
+ *  boot without these keys. */
 const DECLARED_PREFIXES: Partial<Record<BriefField, `trading.${string}`>> = Object.freeze({
   market: 'trading.market',
   segment: 'trading.segment',
+  reduceReason: 'trading.brief.reduce-reason',
   driver: 'trading.macro.series',
   driverMissing: 'trading.macro.series',
   // The dropped-watchlist gate code, plus the two the brief adds when the screen has no verdict to

@@ -306,7 +306,7 @@ export async function unwatchedPositions(
   for (const holding of holdings) {
     const plan = await findHoldingPlan(deps.store, holding, options.signal)
 
-    if (plan === null || planStopOf(plan) === undefined || planTakeProfitOf(plan) === undefined) {
+    if (plan === null || (planStopOf(plan) === undefined && planTakeProfitOf(plan) === undefined)) {
       unwatched.push(holding.instrument)
     }
   }

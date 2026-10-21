@@ -27,7 +27,7 @@ const QUIET_TAPE_MS = 60 * MS_PER_MINUTE
  *  `TAPE_SETTLE_LAG_MS` old by the instant its session settles, and a quiet tape adds its halt on
  *  top. Past the sum is a feed that stopped advancing - the failure measured 2026-09-16 was four
  *  hours, which this clears by more than double, while the widest honest lag is an hour and a
- *  quarter. */
+ *  half. */
 const MAXIMUM_OBSERVATION_AGE_MS = TAPE_SETTLE_LAG_MS + QUIET_TAPE_MS
 
 /** What a reader calls the market's current state. Distinct from `TradingSessionState`, which is a
@@ -41,10 +41,11 @@ const MACHINE_LOCALE = 'en-CA'
 const ZONE_FORMATTERS = new Map<string, Intl.DateTimeFormat>()
 const TIME_FORMATTERS = new Map<string, Intl.DateTimeFormat>()
 
-/** World gold, crypto and the FX tape trade continuously; their calendar day is UTC, not any
+/** Crypto and the FX tape trade every day of the week; their calendar day is UTC, not any
  *  exchange's local day. Every `asOf`/cooldown computation for such a market resolves against this
  *  policy. It closes an hour or so after the FX roll, so a day it calls unsettled may just have
- *  settled — the error is one of caution, and only ever for that hour. */
+ *  settled — the error is one of caution, and only ever for that hour. World gold keeps UTC but
+ *  declares its weekend (`WORLD_GOLD_CALENDAR`). */
 export const CONTINUOUS_CALENDAR: CalendarPolicy = Object.freeze({
   timezone: 'UTC',
   sessionOpenLocalTime: '00:00',

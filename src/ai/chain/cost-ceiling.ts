@@ -26,8 +26,10 @@ export function estimateChainCeiling(deps: CeilingInput, request: CostEstimate):
     const { price } = deps.pricing.priceOf({ provider: entry.provider.id, model: entry.model })
     const outputTokens = entryOutputTokens(entry, request.reasoningMode, request.maxTokens)
     const cache = cacheRatesOf(price)
+    // The prompt is billed at one of the two rates, never both: price it at the dearer.
+    const promptPerM = Math.max(price.inPerM, cache.writePerM)
     const costUsd =
-      (request.inputTokens * price.inPerM +
+      (request.inputTokens * promptPerM +
         outputTokens * price.outPerM +
         request.cacheReadTokens * cache.readPerM +
         request.cacheWriteTokens * cache.writePerM) /

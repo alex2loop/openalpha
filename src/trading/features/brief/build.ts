@@ -126,12 +126,20 @@ async function readSnapshot(
   }
 }
 
-/** Reuse is by exact `(user, region, day, locale)` and the profile it was built against. It must not
- *  suppress delivery: a snapshot built for a send that failed still needs sending. */
+/** A market without a brief capability is refused first, so a stored snapshot is never served for
+ *  another region. Reuse is by the stored row's `(day, locale)` and the profile revision it was built
+ *  against. It must not suppress delivery: a snapshot built for a send that failed still needs
+ *  sending. */
 export async function findOrBuildBrief(
   deps: BriefBuildDeps,
   input: BriefBuildInput
 ): Promise<BriefResult> {
+  const capability = input.market.capabilities.brief
+
+  if (capability === undefined) {
+    return { kind: 'suppressed', reason: 'no-deliverable-content' }
+  }
+
   const profile = await deps.profiles.find(input.signal)
 
   if (input.forced !== true) {
@@ -140,12 +148,6 @@ export async function findOrBuildBrief(
     if (existing.kind === 'current') {
       return { kind: 'ready', snapshot: existing.snapshot, reused: true }
     }
-  }
-
-  const capability = input.market.capabilities.brief
-
-  if (capability === undefined) {
-    return { kind: 'suppressed', reason: 'no-deliverable-content' }
   }
 
   input.progress?.('trading.progress.brief.data')

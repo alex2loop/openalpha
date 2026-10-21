@@ -1,13 +1,14 @@
 import type { ReduceVerdicts } from '@/trading/features/portfolio/types'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
-import type { EvidenceReduceReasonCode } from '@/trading/kernel/caveat'
+import type { EvidenceReduceReasonCode, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 
 /** Matches the candidate sweep's width: both fan out over the same book against the same database. */
 const VERDICT_CONCURRENCY = 5
+const STANDING_SALE_HOLDS: readonly HoldReasonCode[] = ['evidence-sold', 'sale-below-board-lot']
 
 type VerdictStore = Pick<SuggestionStore, 'findLatestVerdict'>
 
@@ -47,10 +48,10 @@ async function standingReduce(
     : [buildInstrumentKey(instrument), reason]
 }
 
-/** A sale the evidence called, whether it is still to be made or was already made on this holding:
- *  either way the evidence stands against the name. A declined reduce is neither. */
+/** A sale the evidence called, whether still to be made, already made on this holding or under one
+ *  board lot: either way the evidence stands against the name. A declined reduce is none of these. */
 function isStandingSale(verdict: StoredSuggestion): boolean {
   return verdict.action === 'hold'
-    ? verdict.holdReasonCodes.includes('evidence-sold')
+    ? STANDING_SALE_HOLDS.some((code) => verdict.holdReasonCodes.includes(code))
     : verdict.action === 'reduce'
 }

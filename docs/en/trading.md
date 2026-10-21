@@ -242,7 +242,7 @@ Depth is chosen once, first match wins:
 
 1. A mode you typed stands.
 2. `force` means full.
-3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it. The report says whether the scores (the three `factors-*` reasons) or the portfolio settled it, and names `/suggest <ticker> full` for the whole argument.
+3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `sale-below-board-lot`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it. The report says whether the scores (the three `factors-*` reasons) or the portfolio settled it, and names `/suggest <ticker> full` for the whole argument.
 4. Anything else uses the configured mode.
 
 A row the book holds is also exempt from the depth ratchet on reuse. Otherwise the lean default would re-run it daily against a full config. A typed `full` is the exception: it re-runs past that lean row and replaces it, so asking for the argument never hands back the short one.
@@ -273,10 +273,11 @@ None of this changes confidence, levels or size. The reads go to the `[[model_ti
 - `thesis-weakening`
 - `overheated` - longs paying crowded funding.
 - `stale` - a full holding window at cost.
+- `ceiling-close` - a VN stock you hold closed at or just under its daily ceiling. The next open usually gaps up and the weeks after have lagged the market, so your usual first take-profit share is sold at that open; once that open has passed the gap is already paid and nothing is proposed.
 
-`structure-broken` and `stale` are read on a short-horizon segment only. A long segment is not sold on a ten-session low or a flat quarter.
+`structure-broken`, `stale` and `ceiling-close` are read on a short-horizon segment only. A long segment is not sold on a ten-session low, a flat quarter or one ceiling close.
 
-When a trim and an evidence reason both fire, the larger share wins and the row carries that reason. `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit signal has drifted that far. Ranking them the other way would put a routine trim's size on a structure the market broke. The debate asks whether to keep or sell, as it does for a trim, and can only decline.
+When a trim and an evidence reason both fire, the larger sale wins, counted in board lots, and the row carries that reason; a tie goes to the evidence. When the evidence asks for less than one board lot on a position you have not sold from, it holds as `sale-below-board-lot`, not as already sold. `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit signal has drifted that far. Ranking them the other way would put a routine trim's size on a structure the market broke. The debate asks whether to keep or sell, as it does for a trim, and can only decline.
 
 #### Two checks that run first
 
@@ -398,6 +399,7 @@ A quote prints inside its own session's range. If a call's session bar no longer
 - Locked at the ceiling: a buy's entry moves to the open of the next session that trades, and T+2 and the benchmark comparison both count from that fill.
 - A target sale into a ceiling lock still fills, because buyers are queued at the ceiling.
 - A call the ceiling kept out for its whole window closes `unfilled`: no trade, no result, out of every scored count.
+- A name you hold that closes at or just under the ceiling is proposed for a partial sale at the next open (`ceiling-close`, under Selling a held name).
 
 **Resting buys.** A resting buy fills on the first session that trades below its limit (a touch is not a fill), at that session's open where it opened below. On the call's own day only the move from the quote to the close counts, since the day's low may have printed before the order existed. On the fill session itself the target counts only when the session opened below the limit (a gap fill at the open); a session that opened at or above it filled partway through, and a daily bar cannot say whether its high printed first, so the target is read from the next session. The stop is still tested on the fill session, as it is on every session before the target. A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from calls that played out.
 

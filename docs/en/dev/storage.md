@@ -152,9 +152,9 @@ So a domain table missing after a reset means its migration was not registered a
 
 ### Data notes
 
-- `daily_bars` is keyed by source and day. The writer's window `DELETE` normally leaves one provider
-  per window, but that is the writer's doing. `listBars` orders by `fetched_at` and keeps the newest
-  row per session, because a series with one session twice changes every median, ATR and lookback.
+- `daily_bars` is keyed by `(market, ticker, day)`; `source_id` records the writer and is not part of
+  the key. A session therefore holds one row, which `listBars` returns as stored, because a series
+  with one session twice changes every median, ATR and lookback.
 - `resting_exits.first_missed_at` is a timestamp, not a counter, on purpose: counting denials would
   measure reconcile passes rather than time, and its meaning would shift with the tick cadence.
 - `llm_attempts` is the source of truth for cost. Session totals are folded from it
