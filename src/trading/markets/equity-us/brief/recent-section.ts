@@ -57,7 +57,7 @@ export async function buildRecent(context: BriefContext): Promise<BriefSectionRe
     ...context.calendarNames.caveats,
     ...targets.flatMap((target) => target.caveats),
   ])
-  const rows = sortRecent(targets.flatMap((target) => target.rows))
+  const rows = targets.flatMap((target) => target.rows)
 
   if (rows.length === 0) {
     // A quiet filing calendar is only observable when every target answered.
@@ -68,7 +68,7 @@ export async function buildRecent(context: BriefContext): Promise<BriefSectionRe
 
   return ready(
     'recent',
-    rows.slice(0, context.policy.maximumItemsPerSection).map((row) => ({
+    nearestFirst(rows, asOf, context.policy.maximumItemsPerSection).map((row) => ({
       at: row.event.at,
       ticker: row.instrument.ticker,
       eventKind: row.event.kind,
@@ -117,6 +117,21 @@ function isRecent(event: MarketEvent, window: RecentWindow): boolean {
   }
 
   return event.kind === 'dividend-ex-date' && event.at >= window.asOf && event.at <= window.toDay
+}
+
+/** The cap keeps the dates closest to today, then reads in date order: keeping the oldest would
+ *  drop the newest filings and the nearest ex-dates, which are the news. */
+function nearestFirst(
+  rows: readonly DatedEvent[],
+  asOf: TradingDay,
+  limit: number
+): readonly DatedEvent[] {
+  const distance = (row: DatedEvent): number =>
+    Math.abs(Date.parse(row.event.at) - Date.parse(asOf))
+
+  return sortRecent(
+    rows.toSorted((left, right) => distance(left) - distance(right)).slice(0, limit)
+  )
 }
 
 function sortRecent(rows: readonly DatedEvent[]): readonly DatedEvent[] {

@@ -60,8 +60,8 @@ export const FOLDED_SECTION_KINDS = [
   'economy-headlines',
 ] as const satisfies readonly BriefSectionKind[]
 
-/** `recent` is the operator's own names, a handful of lines: a filing on a held name is the
- *  decision-relevant reading a market block can carry. */
+/** `recent` covers the names the brief covers (held, watched, else the most traded), a handful of
+ *  lines: a filing on one of them is the decision-relevant reading a market block can carry. */
 const MARKET_HEADLINE_KINDS = [
   'market-prices',
   'breadth',

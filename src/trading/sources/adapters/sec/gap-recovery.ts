@@ -13,7 +13,6 @@ import {
   BUSINESS_MISS_STATUSES,
   FRAME_CONCURRENCY,
   fiscalYearOf,
-  sharesJob,
   usGaapJob,
 } from '@/trading/sources/adapters/sec/frame-jobs'
 import { dropInvalid, parseRow, utcDayStartEpochMs } from '@/trading/sources/rows/normalization'
@@ -35,13 +34,14 @@ const CONCEPT_FACT = z.object({
   end: z.string(),
   val: z.number(),
   form: z.string(),
-  fy: z.number().optional(),
   filed: z.string(),
 })
 
-/** How a company's own history dates a fact: a year-long flow, a balance-sheet instant, or the
- *  cover-page count that a 10-K labels with its fiscal year. */
-type ConceptShape = 'flow' | 'instant' | 'cover'
+/** How a company's own history dates a fact: a year-long flow or a balance-sheet instant. The
+ *  cover-page share count is left to the frames: a 10-K labels it with SEC's fiscal year, which is
+ *  not always the year the period end falls in (a February year end), and a wrong count is worse
+ *  than an absent one. */
+type ConceptShape = 'flow' | 'instant'
 
 interface ConceptJob {
   readonly job: FrameJob
@@ -71,7 +71,9 @@ export async function recoverGaps(
   wanted: ReadonlyMap<string, readonly Ticker[]>,
   framed: readonly AnnualAccounts[]
 ): Promise<readonly FrameAnswer[]> {
-  const gaps = [...interiorGaps(framed, wanted)].slice(0, MAXIMUM_GAP_COMPANIES)
+  const gaps = [...interiorGaps(framed, wanted)]
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .slice(0, MAXIMUM_GAP_COMPANIES)
   const reads = gaps.flatMap(([cik, years]) => conceptJobs().map((job) => ({ cik, years, job })))
   const answers = await mapWithConcurrency(reads, FRAME_CONCURRENCY, (item) =>
     readConcept(read, item)
@@ -129,7 +131,7 @@ function conceptJobs(): readonly ConceptJob[] {
     }))
   )
 
-  return [...flows, ...instants, { job: { ...sharesJob(0), period: 'FY' }, shape: 'cover' }]
+  return [...flows, ...instants]
 }
 
 async function readConcept(read: ConceptRead, item: ConceptItem): Promise<readonly FrameAnswer[]> {
@@ -169,13 +171,13 @@ function toConceptFact(row: unknown, item: ConceptItem): ConceptFact | undefined
   const { shape } = item.job
   const fact = parseRow(CONCEPT_FACT, row, 'sec concept fact')
   const end = tradingDay(fact.end)
-  const fiscalYear = shape === 'cover' ? fact.fy : fiscalYearOf(end)
+  const fiscalYear = fiscalYearOf(end)
 
-  if (fiscalYear === undefined || !fact.form.startsWith('10-K')) {
+  if (!fact.form.startsWith('10-K')) {
     return undefined
   }
 
-  // A flow covers a year; an instant and the cover count have no start at all.
+  // A flow covers a year; an instant has no start at all.
   return isYearLong(fact.start, end) === (shape === 'flow')
     ? { cik: item.cik, end, value: fact.val, fiscalYear, filed: fact.filed }
     : undefined

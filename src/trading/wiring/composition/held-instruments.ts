@@ -1,49 +1,61 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
+
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { HeldInstruments } from '@/trading/markets/resolution'
-import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ttlCache } from '@/core/utils/collections'
 
 const HELD_CACHE_TTL_MS = 5_000
 const HELD_CACHE_KEY = 'held'
+/** A local ledger and profile read; past this it is not coming back and the ticker resolves as it
+ *  would for an operator who holds nothing. */
+const HELD_READ_TIMEOUT_MS = 5_000
 
 /** What the operator holds or watches, read when a bare ticker needs a side chosen. The services
- *  that read it need the market registry this feeds, so each call resolves them at call time. A
- *  read that is already running answers empty to a nested ask, which is what keeps resolving a
- *  name while valuing the book from waiting on itself. A failed read leaves the ticker to resolve
- *  as it would for an operator who holds nothing. */
+ *  that read it need the market registry this feeds, so each call resolves them at call time.
+ *  Concurrent callers share one read. A name resolved from inside that read answers empty, which
+ *  is what keeps valuing the book from waiting on itself; the marker follows the read's own async
+ *  context, so an unrelated caller running beside it still sees the real answer. A failed read is
+ *  logged and cached empty for the same few seconds, so a broken store is asked once, not on every
+ *  resolution. */
 export function lazyHeldInstruments(app: App, logger: Logger): HeldInstruments {
   const recent = ttlCache<string, readonly InstrumentRef[]>(HELD_CACHE_TTL_MS, 1)
-  let reading = false
+  const inside = new AsyncLocalStorage<true>()
+  let inflight: Promise<readonly InstrumentRef[]> | undefined
 
-  return async (signal) => {
-    const cached = recent.get(HELD_CACHE_KEY)
-
-    if (cached !== undefined || reading) {
-      return cached ?? []
-    }
-
-    reading = true
-
+  const read = async (): Promise<readonly InstrumentRef[]> => {
     try {
-      const held = await readHeld(app, signal)
+      const held = await readHeld(app, AbortSignal.timeout(HELD_READ_TIMEOUT_MS))
 
       recent.set(HELD_CACHE_KEY, held)
 
       return held
     } catch (err: unknown) {
-      if (isAbortError(err)) {
-        throw err
-      }
-
       logger.warn('trading.held_read_failed', { err: formatErrForLog(err) })
+      recent.set(HELD_CACHE_KEY, [])
 
       return []
-    } finally {
-      reading = false
     }
+  }
+
+  return async () => {
+    if (inside.getStore() === true) {
+      return []
+    }
+
+    const cached = recent.get(HELD_CACHE_KEY)
+
+    if (cached !== undefined) {
+      return cached
+    }
+
+    inflight ??= inside.run(true, read).finally(() => {
+      inflight = undefined
+    })
+
+    return inflight
   }
 }
 

@@ -150,7 +150,9 @@ async function preferredMarket(
       .filter(
         (market) =>
           (options.within === undefined || options.within.includes(market.manifest.id)) &&
-          market.candidacy(options.ticker) === 'possible'
+          market.candidacy(options.ticker) === 'possible' &&
+          // A stored-only ask makes no network request, so a market that fetches is not asked.
+          (options.detection !== 'stored' || market.manifest.detection === 'stored')
       )
       .map((market) => market.manifest.id)
   )
