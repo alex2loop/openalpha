@@ -696,6 +696,7 @@ holidays = ["2027-01-01"]      # exchange closures announced after your build sh
 maximum_stop_loss = 0.08       # the stop never sits more than 8% below entry (0.02-0.30)
 stop_loss_atr = 3              # stop distance in average daily ranges (1-5)
 reward_risk = 3                # target as a multiple of the risk (1-5)
+ceiling_trim_sessions = 1      # trim a short-horizon holding after this many ceiling closes in a row; 0 = off
 
 [trading.briefs]
 send_time = "08:15"            # default for a delivery that has not set its own in chat
@@ -877,7 +878,10 @@ Config decides what runs and when, plus three things that are yours to judge:
   width and reward multiple. Setting any of them starts a separate track record for that market.
   What the ceiling does to the target, the size and a stop you already hold is in
   [Trading](trading.md). Crypto also rests a buy that ran 25% or more in a week half an ATR under the
-  live price; that is market policy, not a key.
+  live price; that is market policy, not a key. `ceiling_trim_sessions` is read by `equity-vn` only: a
+  short-horizon holding that closes at its ceiling that many sessions running is proposed for your usual
+  first take-profit share at the next open (1 by default, 0 turns it off). Setting it also starts a
+  separate track record.
 
 **The calendar is fixed per market, with one setting.** Session hours and the weekend are in code,
 and each market ships its own table of exchange closures. `[trading.markets.<id>] holidays` adds

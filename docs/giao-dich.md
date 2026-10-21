@@ -273,8 +273,9 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 - `thesis-weakening`
 - `overheated` - bên long đang trả funding chen chúc.
 - `stale` - một cửa sổ nắm giữ đầy mà vẫn ở giá vốn.
+- `ceiling-close` - một cổ phiếu VN bạn nắm vừa đóng cửa ở giá trần. Phiên sau thường mở cửa cao hơn, nhưng các tuần tiếp theo hay kém thị trường, nên phần chốt lời đầu quen thuộc của bạn được giảm bớt ngay lúc mở cửa đó.
 
-`structure-broken` và `stale` chỉ được đọc trên nhóm kỳ hạn ngắn. Nhóm dài hạn không bị bán vì một mức thấp mười phiên hay một quý đi ngang.
+`structure-broken`, `stale` và `ceiling-close` chỉ được đọc trên nhóm kỳ hạn ngắn. Nhóm dài hạn không bị bán vì một mức thấp mười phiên hay một quý đi ngang.
 
 Khi cả trim lẫn một lý do bằng chứng cùng bật, phần tỷ lệ lớn hơn thắng và dòng mang lý do đó. `over-target` bật ở mọi độ lệch vượt một lô chẵn, và một mã đã tăng đúng vào lúc có tín hiệu thoát thì đã lệch xa tới mức đó. Xếp ngược thứ tự sẽ áp cỡ của một lần trim thường lệ lên một cấu trúc mà thị trường đã phá vỡ. Tranh luận hỏi nên giữ hay bán, như với trim, và chỉ có thể từ chối.
 
@@ -398,6 +399,7 @@ Một giá in nằm trong biên độ của chính phiên nó. Nếu nến phiê
 - Kẹt trần: giá vào của lệnh mua dời tới giá mở cửa của phiên kế tiếp có giao dịch, và T+2 cùng phép so chuẩn đều đếm từ lần khớp đó.
 - Lệnh bán chốt mục tiêu vào trần kẹt vẫn khớp, vì bên mua xếp hàng ở trần.
 - Lời gọi mà trần chặn suốt cửa sổ đóng là `unfilled`: không giao dịch, không kết quả, nằm ngoài mọi phép đếm có chấm điểm.
+- Mã bạn đang nắm đóng cửa ở giá trần được đề xuất giảm bớt một phần ngay phiên mở cửa kế tiếp (`ceiling-close`, trong mục Bán một mã đang nắm); đặt `ceiling_trim_sessions = 0` để tắt.
 
 **Lệnh mua treo.** Lệnh mua treo khớp ở phiên đầu tiên giao dịch dưới limit của nó (chạm chưa phải khớp), ở giá mở cửa phiên đó nếu phiên mở thấp hơn. Trong ngày của chính lời gọi, chỉ mức dịch từ giá tới giá đóng được tính, vì đáy ngày có thể in trước khi lệnh tồn tại. Ở chính phiên khớp, mục tiêu chỉ được tính khi phiên mở thấp hơn limit (khớp lúc mở cửa do giá nhảy); phiên mở bằng hoặc cao hơn limit là khớp giữa chừng, và một nến ngày không nói được đỉnh có in trước hay không, nên mục tiêu được đọc từ phiên kế tiếp. Cắt lỗ vẫn được thử ngay ở phiên khớp, như ở mọi phiên, trước mục tiêu. Limit chưa khớp tới ngày cuối cùng của nó đóng là `unfilled` theo cách tương tự. `/reflect` đếm các lời gọi này riêng khỏi những lời gọi đã diễn ra.
 
