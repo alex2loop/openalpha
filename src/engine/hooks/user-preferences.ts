@@ -62,49 +62,59 @@ export function createUserPreferencesHooks(deps: {
   readonly memory: Memory
 }): UserPreferencesHooks {
   return {
-    inject: async (run, req) => {
-      if (!isPreferenceEligibleRun(run)) {
-        return req
-      }
+    inject: (run, req) => injectPrefs(deps.memory, run, req),
+    extract: (run) => extractPrefs(deps.memory, run),
+  }
+}
 
-      const scope = scopeOf(run)
-      const saved = await listPrefs(deps.memory, scope, PREFS_PREFIX)
-      const withSaved = saved.size === 0 ? req : appendSystemBlock(req, buildSavedBlock(saved))
-      const pending = isAttendedRun(run)
-        ? await listPrefs(deps.memory, scope, PENDING_PREFIX)
-        : new Map<string, string>()
+async function injectPrefs(memory: Memory, run: RunView, req: LLMRequest): Promise<LLMRequest> {
+  if (!isPreferenceEligibleRun(run)) {
+    return req
+  }
 
-      return pending.size === 0
-        ? withSaved
-        : appendToTypedTurn(withSaved, buildPendingNote(saved, pending))
-    },
+  const state = await quietly(run, () => readPrefState(memory, scopeOf(run), isAttendedRun(run)))
 
-    extract: async (run) => {
-      if (!isPreferenceEligibleRun(run) || run.state.turn === 0) {
-        return
-      }
+  if (state === undefined) {
+    return req
+  }
 
-      const scope = scopeOf(run)
-      const attended = isAttendedRun(run)
-      const state = await readPrefState(deps.memory, scope, attended)
-      const atoms = await extractAtoms(run, state)
+  const { saved, pending } = state
+  const withSaved = saved.size === 0 ? req : appendSystemBlock(req, buildSavedBlock(saved))
 
-      if (attended) {
-        await advanceProposals(deps.memory, scope, state)
-      }
+  return pending.size === 0
+    ? withSaved
+    : appendToTypedTurn(withSaved, buildPendingNote(saved, pending))
+}
 
-      for (const atom of atoms) {
-        if (run.state.abort.signal.aborted) {
-          throw abortError(run.state.abort.signal)
-        }
+async function extractPrefs(memory: Memory, run: RunView): Promise<void> {
+  if (!isPreferenceEligibleRun(run) || run.state.turn === 0) {
+    return
+  }
 
-        const write = toPrefWrite(atom, state, attended)
+  const scope = scopeOf(run)
+  const attended = isAttendedRun(run)
+  const state = await quietly(run, () => readPrefState(memory, scope, attended))
 
-        if (write !== undefined) {
-          await writePref(deps.memory, run, write)
-        }
-      }
-    },
+  if (state === undefined) {
+    return
+  }
+
+  const atoms = await extractAtoms(run, state)
+
+  if (attended) {
+    await quietly(run, () => advanceProposals(memory, scope, state))
+  }
+
+  for (const atom of atoms) {
+    if (run.state.abort.signal.aborted) {
+      throw abortError(run.state.abort.signal)
+    }
+
+    const write = toPrefWrite(atom, state, attended)
+
+    if (write !== undefined) {
+      await writePref(memory, run, write)
+    }
   }
 }
 
@@ -115,6 +125,21 @@ function isPreferenceEligibleRun(run: RunView): boolean {
 /** Only a run someone can answer asks about a change; a scheduled or piped run has nobody to ask. */
 function isAttendedRun(run: RunView): boolean {
   return run.env.approvalMode !== 'unavailable'
+}
+
+/** Preference bookkeeping is optional work: a memory failure is logged and never fails the reply. */
+async function quietly<T>(run: RunView, work: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await work()
+  } catch (err: unknown) {
+    if (run.state.abort.signal.aborted) {
+      throw abortError(run.state.abort.signal)
+    }
+
+    run.services.logger.warn('prefs.memory_failed', { err: formatErrForLog(err) })
+
+    return undefined
+  }
 }
 
 async function readPrefState(
