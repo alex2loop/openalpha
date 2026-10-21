@@ -352,7 +352,7 @@ function send(
   return httpRequestWithSignal({
     hosts: target.hosts,
     path: target.path,
-    maxBytes: MAXIMUM_RESPONSE_BYTES,
+    maxBytes: Math.min(request.maxBytes ?? MAXIMUM_RESPONSE_BYTES, MAXIMUM_RESPONSE_BYTES),
     signal: prepared.signal,
     hostTimeoutMs: request.attemptTimeoutMs ?? ATTEMPT_TIMEOUT_MS,
     ...(prepared.query ? { query: { ...prepared.query } } : {}),

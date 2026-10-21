@@ -10,6 +10,8 @@ import { htmlToText } from '@/trading/sources/rows/html-text'
 
 const STATEMENT_PATH = '/du-lieu/bao-cao-tai-chinh'
 const MONTHS_PER_QUARTER = 3
+/** A page runs about 33 KB; the cap bounds what the row and cell scans can be handed. */
+const PAGE_MAXIMUM_BYTES = 262_144
 const QUARTER_HEADER_RE = /^Quý\s*([1-4])\s*-\s*(\d{4})$/
 const ROW_RE = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi
 const CELL_RE = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi
@@ -62,6 +64,7 @@ export function cashFlowToDateSource(options: SourceAdapterOptions): RegisteredS
         path:
           `${STATEMENT_PATH}/${instrument.ticker.toLowerCase()}/cashflow/${fiscalYear}/${quarter}` +
           '/0/0/bao-cao-tai-chinh-.chn',
+        maxBytes: PAGE_MAXIMUM_BYTES,
       }
     },
     parse: (raw, context, fetchedAt) => {
