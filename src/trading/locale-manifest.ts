@@ -118,6 +118,7 @@ export const TRADING_CODE_GROUPS: readonly CodeGroup[] = Object.freeze([
   { prefix: 'trading.caveat', members: CAVEAT_CODE_STRINGS },
   { prefix: 'trading.hold', members: HOLD_REASON_CODES },
   { prefix: 'trading.reduce', members: REDUCE_REASON_CODES },
+  { prefix: 'trading.brief.reduce-reason', members: REDUCE_REASON_CODES },
   { prefix: 'trading.delivery.error', members: DELIVERY_ERROR_CODES },
   { prefix: 'trading.notice', members: NOTICE_KINDS },
   { prefix: 'trading.exit.level', members: EXIT_LEVELS },

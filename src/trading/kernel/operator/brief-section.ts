@@ -268,6 +268,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'publisher',
   'reason',
   'reading',
+  'reduceReason',
   'regime',
   'sector',
   'segment',
