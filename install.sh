@@ -178,11 +178,10 @@ main() {
   TAG="${OPENALPHA_VERSION:-$(latest_tag || true)}"
   TAG="v${TAG#v}"
 
-  case "$TAG" in
-    v[0-9]*.[0-9]*.[0-9]*) ;;
-    *) fail "I couldn't find a release to install on GitHub. Check your connection, or pin one with OPENALPHA_VERSION=v1.2.0." \
-         "Tôi chưa tìm được bản phát hành nào trên GitHub. Kiểm tra kết nối, hoặc chọn bản cụ thể với OPENALPHA_VERSION=v1.2.0." ;;
-  esac
+  if ! printf '%s\n' "$TAG" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; then
+    fail "I couldn't find a release to install on GitHub. Check your connection, or pin one with OPENALPHA_VERSION=v1.2.0." \
+         "Tôi chưa tìm được bản phát hành nào trên GitHub. Kiểm tra kết nối, hoặc chọn bản cụ thể với OPENALPHA_VERSION=v1.2.0."
+  fi
 
   FIRST_INSTALL="yes"
   [ -x "$INSTALL_DIR/$COMMAND" ] && FIRST_INSTALL="no"

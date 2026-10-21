@@ -8,7 +8,6 @@ import { cutByUtf16Units } from '@/channels/delivery/format'
 import { ConfigError } from '@/core/errors'
 
 // MarkdownV2 reserved characters per the Telegram Bot API style guide.
-const MDV2_UNESCAPE_RE = /\\([_*[\]()~`>#+\-=|{}.!\\])/g
 const FENCE_ESCAPE_RE = /[`\\]/g
 const FENCE_RE = /```([\s\S]*?)```/g
 const FENCE_MARK_RE = /```/g
@@ -42,11 +41,6 @@ interface EntityScan {
 
 function escapeMdv2(text: string): string {
   return renderSegments(parseSegments(text))
-}
-
-/** Inverse of the escaping, so a message resent without `parse_mode` reads as the agent wrote it. */
-export function unescapeMdv2(text: string): string {
-  return text.replace(MDV2_UNESCAPE_RE, '$1')
 }
 
 function normalizeMarkdownTables(text: string): string {

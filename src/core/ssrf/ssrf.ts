@@ -23,6 +23,9 @@ const BLOCKED_HOSTS: readonly string[] = [
 // 'de.ad.be.ef' stays a hostname; URL parsing has already canonicalized real hex/octal literals.
 const IP_LITERAL_RE = /^\d+(?:\.\d+){3}$|^\[?[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\]?$/
 
+// `localhost.` is the same host as `localhost`: DNS treats the trailing dot as the root label.
+const TRAILING_DOT_RE = /\.$/
+
 const IPV4_LITERAL_RE = /^\d{1,3}(\.\d{1,3}){3}$/
 
 // WHATWG URL.hostname keeps brackets on IPv6 literals (e.g. '[::1]').
@@ -64,7 +67,9 @@ export function parseHttpsUrl(endpoint: string): URL {
 }
 
 function assertPreDnsSafe(hostname: string): void {
-  if (BLOCKED_HOSTS.some((h) => isGlobMatch(h, hostname))) {
+  const name = hostname.replace(TRAILING_DOT_RE, '')
+
+  if (BLOCKED_HOSTS.some((h) => isGlobMatch(h, name))) {
     throw new ToolError('host_blocked', `host ${hostname} matches blocked-host pattern`)
   }
   if (!IP_LITERAL_RE.test(hostname)) {

@@ -22,6 +22,7 @@ import {
   positive,
   THOUSAND_VND_PER_UNIT,
   toCandle,
+  toScaledPrice,
   utcDayStartEpochSeconds,
 } from '@/trading/sources/rows/normalization'
 import { QUOTE_ATTEMPT_LIMITS } from '@/trading/sources/transport/http'
@@ -321,5 +322,5 @@ function priceUnit(kind: InstrumentKind | undefined): number {
 }
 
 function scale(value: number | undefined, unit: number): number | undefined {
-  return value === undefined ? undefined : value * unit
+  return value === undefined ? undefined : toScaledPrice(value, unit)
 }

@@ -14,6 +14,7 @@ import type { ApprovalGate, PreparedToolCall, RunView, ToolGateResult } from '@/
 import { RunHalted, ToolError } from '@/core/errors'
 import { scrubCredentials } from '@/core/security/credentials'
 import { APPROVAL_ARGS_PREVIEW_CHARS, APPROVAL_DEFAULT_DENIAL } from '@/engine/constants'
+import { approvalContextFor } from '@/engine/hooks/approval-context'
 import { approvalKeyFor, createApprovalManager } from '@/engine/hooks/approval-manager'
 import { isDangerousCall } from '@/engine/hooks/dangerous'
 import { toToolCallDisplay } from '@/engine/loop/tools/presentation'
@@ -122,7 +123,7 @@ export function createApprovalGate(deps: {
       return { action: 'allow' }
     }
 
-    if (!isDangerousCall(call.tool, call.input)) {
+    if (!isDangerousCall(call.tool, call.input, () => approvalContextFor(run, call.name))) {
       return { action: 'allow' }
     }
 

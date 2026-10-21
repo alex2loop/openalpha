@@ -171,6 +171,10 @@ key and restarting is enough, with no `schedule resume`. The morning brief works
 day you get a message naming the variable and how to set it, instead of "didn't get through after
 several tries".
 
+A spent budget does not count either. When the daily or monthly cap, or an agent's own cap, stops a
+run, the job skips to its next time, and a one-time job is asked again in 30 minutes. A run stopped
+by the rate limit is asked again in 30 minutes too. So a busy day never switches a job off for good.
+
 Shutdown never counts toward auto-disable. A one-time job cut short by shutdown stays due and runs on
 the next start. A denied or timed-out approval still ends it, because running it again would only
 repeat the question. After a restart, runs that were still marked running become failed with a

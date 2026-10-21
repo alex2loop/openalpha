@@ -6,8 +6,8 @@ import type {
   InboundReply,
   OutboundButton,
 } from '@/channels/types'
-import { toPastedContent } from '@/channels/pasted-content'
 import { HELP_COMMAND } from '@/commands/api'
+import { toPastedContent } from '@/core/security/pasted-content'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
 import { TELEGRAM_CHANNEL_ID } from './config'

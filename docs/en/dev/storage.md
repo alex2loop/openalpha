@@ -89,8 +89,9 @@ A migration is `{ id, reversibility, up, down? }` (`persistence/types.ts`). The 
   statements that read it are exported from the runner because `doctor` reads it through a raw
   read-only `bun:sqlite` handle, so the SQL must stay shared.
 - **Status.** `migrationStatus` returns `applied | pending | orphan` per id. An orphan is in the
-  ledger but not declared (a downgrade or deleted migration). `migrate` logs
-  `migration.schema_ahead_of_binary` for them and continues.
+  ledger but not declared (a downgrade or deleted migration). `migrate` refuses a
+  database with any, before backing it up or applying anything, with `errors.dbSchemaAhead`: an
+  older release reading a newer schema misreads rows.
 - **Pre-migration backup.** SQLite only, when `backupDir` is set and anything may be pending:
   `backupSqlite` into `pre-migration/`. A stale precheck can only cost an unneeded or skipped
   backup, never a missed migration, because the lock re-reads first. A failed backup logs

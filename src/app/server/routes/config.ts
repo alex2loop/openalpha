@@ -11,6 +11,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import { validateBootConfigTree } from '@/app/config-tree'
 import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { saveEditedConfig } from '@/cli/api'
 import { probeConfig } from '@/core/config/load'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { isPlainRecord } from '@/core/utils/collections'
@@ -44,9 +45,15 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     return apiError('invalid_body')
   }
 
-  const { configPath } = await probeConfig({ configPath: ctx.app.configPath })
+  const { configPath, missing } = await probeConfig({ configPath: ctx.app.configPath })
+  const after = stringifyToml(body)
 
-  await replacePrivateFileAtomic({ path: configPath, content: stringifyToml(body) })
+  // The rewrite drops comments, so an existing file stays beside the new one as it was.
+  if (missing) {
+    await replacePrivateFileAtomic({ path: configPath, content: after })
+  } else {
+    await saveEditedConfig(configPath, { before: await Bun.file(configPath).text(), after })
+  }
 
   return json({ ok: true, restartRequired: true } satisfies ConfigWriteResult)
 }

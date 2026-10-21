@@ -28,6 +28,15 @@ export async function hasPreviousBinary(): Promise<boolean> {
   )
 }
 
+/** Size and modification time of the rollback copy, so a copy replaced since (a reinstall over the
+ *  same release) is told apart from the one an upgrade kept. Null when there is none. */
+export async function previousBinaryStamp(): Promise<string | null> {
+  return await stat(PREVIOUS_PATH).then(
+    (file) => `${file.size}:${file.mtimeMs}`,
+    () => null
+  )
+}
+
 /** Puts `source` where the binary is and keeps the binary it replaces as the rollback copy. The old
  *  rollback copy is replaced only once the new binary is in place, so a failed step loses neither,
  *  and no step deletes a running file. */

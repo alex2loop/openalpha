@@ -25,6 +25,7 @@ import {
   positive,
   THOUSAND_VND_PER_UNIT,
   toCandle,
+  toScaledPrice,
   utcDayStartEpochMs,
 } from '@/trading/sources/rows/normalization'
 
@@ -170,10 +171,10 @@ function toBarCandle(raw: unknown): Candle {
 
   return toCandle({
     at: tradingDay(row.date),
-    open: prices.open * THOUSAND_VND_PER_UNIT,
-    high: prices.high * THOUSAND_VND_PER_UNIT,
-    low: prices.low * THOUSAND_VND_PER_UNIT,
-    close: prices.close * THOUSAND_VND_PER_UNIT,
+    open: toScaledPrice(prices.open, THOUSAND_VND_PER_UNIT),
+    high: toScaledPrice(prices.high, THOUSAND_VND_PER_UNIT),
+    low: toScaledPrice(prices.low, THOUSAND_VND_PER_UNIT),
+    close: toScaledPrice(prices.close, THOUSAND_VND_PER_UNIT),
     volume: nonNegative(row.nmVolume, 'nmVolume'),
     // nmValue is already VND — the multiplier is for prices only.
     ...(row.nmValue === undefined ? {} : { turnover: row.nmValue }),

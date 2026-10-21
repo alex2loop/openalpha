@@ -38,8 +38,6 @@ import {
   TABLE_NAME_WIDTH,
 } from '@/persistence/api'
 
-const PREVIOUS_SUFFIX = '.bak'
-
 const dbIntegrityCommand = createCommand({
   name: 'integrity',
   summary: { key: 'cliHelp.dbIntegritySummary' },
@@ -279,20 +277,10 @@ const dbRestoreCommand = createCommand({
       return declined(app)
     }
 
-    await restoreSqlite({
-      dbPath,
-      source,
-      backupPath: `${dbPath}${PREVIOUS_SUFFIX}`,
-      logger: silentLogger,
-    })
-    app.out(
-      success(
-        t(locale, 'cli.dbRestored', {
-          path: dbPath,
-          prev: `${dbPath}${PREVIOUS_SUFFIX}`,
-        })
-      )
-    )
+    const previous = dataDirBackupTarget(app)
+
+    await restoreSqlite({ dbPath, source, backupPath: previous, logger: silentLogger })
+    app.out(success(t(locale, 'cli.dbRestored', { path: dbPath, prev: previous })))
 
     return 0
   },
@@ -311,9 +299,7 @@ const dbResetCommand = createCommand({
     const question = t(locale, 'cli.dbResetConfirm', { target })
     const skipPrompts = flagBool(args, 'yes')
 
-    if (!skipPrompts) {
-      await offerBackupBeforeReset(app)
-    }
+    await backupBeforeReset(app, skipPrompts ? 'assumed' : 'ask')
 
     if (!(skipPrompts || (await confirm(defaultPrompt(), question, locale)))) {
       return declined(app)
@@ -334,9 +320,12 @@ const dbResetCommand = createCommand({
   },
 })
 
+type BackupAnswer = 'ask' | 'assumed'
+
 // Only a sqlite file can be copied here; Postgres is backed up with pg_dump. Opened without
-// migrating, so a database too broken to boot can still be saved before it is wiped.
-async function offerBackupBeforeReset(app: CliApp): Promise<void> {
+// migrating, so a database too broken to boot can still be saved before it is wiped. `--yes`
+// accepts the question's default, which is yes.
+async function backupBeforeReset(app: CliApp, answer: BackupAnswer): Promise<void> {
   const locale = app.config.locale.language
   const { storage: config } = app.config
 
@@ -344,7 +333,10 @@ async function offerBackupBeforeReset(app: CliApp): Promise<void> {
     return
   }
 
-  if (!(await confirmDefaultYes(defaultPrompt(), t(locale, 'cli.dbResetBackupFirst'), locale))) {
+  if (
+    answer === 'ask' &&
+    !(await confirmDefaultYes(defaultPrompt(), t(locale, 'cli.dbResetBackupFirst'), locale))
+  ) {
     return
   }
 
@@ -361,11 +353,15 @@ async function offerBackupBeforeReset(app: CliApp): Promise<void> {
 
 // `db reset` runs without boot, so the logger is passed in rather than resolved.
 async function backupToDataDir(app: CliApp, storage: Storage, logger: Logger): Promise<string> {
-  const target = backupTarget(join(app.config.paths.dataDir, BACKUPS_SUBDIR))
+  const target = dataDirBackupTarget(app)
 
   await backupAndPrune({ db: storage, target, logger })
 
   return target
+}
+
+function dataDirBackupTarget(app: CliApp): string {
+  return backupTarget(join(app.config.paths.dataDir, BACKUPS_SUBDIR))
 }
 
 function resetTarget(storage: ResolvedStorageConfig): string {

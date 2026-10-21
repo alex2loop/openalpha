@@ -12,6 +12,7 @@ import {
 
 const TICKERS_PATH = '/api/v5/market/tickers'
 const CRYPTO_MARKET = marketRef('crypto')
+const LIVE_STATE = 'live'
 
 /** Every spot instrument OKX lists against the currency it settles in, and what it last traded at,
  *  one call each. Both endpoints are public, so a venue holding no credentials still answers them.
@@ -43,14 +44,15 @@ export function createOkxCatalog(): VenueCatalog {
   }
 }
 
-/** One row or none: a pair settling in anything else, an unreadable floor, or a base asset no
- *  ticker can name is a row this venue cannot size, and a row it cannot size is not one it can be
- *  asked to trade. */
+/** One row or none: a pair that is not live (suspended, pre-open, test), settling in anything else,
+ *  an unreadable floor, or a base asset no ticker can name is a row this venue cannot size, and a
+ *  row it cannot size is not one it can be asked to trade. */
 function toVenueInstrument(row: OkxRow): readonly VenueInstrument[] {
   const minimumSize = Number(row.minSz)
   const base = row.baseCcy
 
   if (
+    row.state !== LIVE_STATE ||
     row.quoteCcy !== OKX_QUOTE_ASSET ||
     !Number.isFinite(minimumSize) ||
     minimumSize <= 0 ||

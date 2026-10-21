@@ -4,6 +4,7 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 import {
+  GOLD_VN_PREMIUM_FORM,
   GOLD_VN_PREMIUM_MINIMUM_COVERAGE,
   GOLD_VN_PREMIUM_MINIMUM_HISTORY,
   GOLD_VN_PREMIUM_WINDOW_DAYS,
@@ -158,29 +159,50 @@ interface PremiumOptions {
   readonly signal: AbortSignal
 }
 
-/** Computes the premium of the policy form and ranks it within the stored window. Read-only: the
- *  refresh pass owns every write to the series, so viewing a board can never move the history a
- *  percentile was taken from. Absent when no form yields a premium, which is bad board data rather
- *  than a number to invent. */
+/** Computes the premium of the form the stored series holds and ranks it within that window, so the
+ *  printed premium and its rank are one population. Read-only: the refresh pass owns every write to
+ *  the series, so viewing a board can never move the history a percentile was taken from. Absent
+ *  when the board lacks that form, which is bad board data rather than a number to invent. */
 export async function readPremium(
   deps: MarketDeps,
   options: PremiumOptions
 ): Promise<PremiumReading | undefined> {
   const { board, worldUsdPerOunce, usdVnd, asOf, calendar, signal } = options
-  const selected = selectForm({ board, preferredForms: PREFERRED_FORMS, worldUsdPerOunce, usdVnd })
+  const premium = historyPremiumOf({ board, worldUsdPerOunce, usdVnd })
 
-  if (selected === undefined) {
+  if (premium === undefined) {
     return undefined
   }
 
-  const premium = selected.premium
-  const ranking = await rankPremium(deps, { premium, calendar, toDay: asOf, signal })
+  const ranking = await rankPremium(deps, {
+    board,
+    worldUsdPerOunce,
+    usdVnd,
+    calendar,
+    toDay: asOf,
+    signal,
+  })
 
   return ranking === undefined ? { premium } : { premium, ranking }
 }
 
-interface RankPremiumOptions {
-  readonly premium: number
+interface HistoryPremiumInput {
+  readonly board: GoldBoard
+  readonly worldUsdPerOunce: number
+  readonly usdVnd: number
+}
+
+/** The premium of the one form the stored series holds, never the policy pick: a ring ranked against
+ *  bar-only history would be two populations. Absent when the board lacks that row. */
+export function historyPremiumOf(input: HistoryPremiumInput): number | undefined {
+  return selectForm({
+    ...input,
+    preferredForms: PREFERRED_FORMS,
+    form: GOLD_VN_PREMIUM_FORM,
+  })?.premium
+}
+
+interface RankPremiumOptions extends HistoryPremiumInput {
   /** The window is this market's own, so it is stepped here rather than at each caller. */
   readonly calendar: TradingCalendar
   readonly toDay: TradingDay
@@ -189,7 +211,8 @@ interface RankPremiumOptions {
 
 /** Read-and-rank only — the factor path calls this without writing, so scoring a name can never
  *  mutate the stored history. Absent while the window holds fewer days than the minimum: a
- *  percentile against a handful of points would read as a real ranking.
+ *  percentile against a handful of points would read as a real ranking. Also absent when the board
+ *  has no row of the history's form, rather than ranked from another form.
  *
  *  Every caller passes today as `toDay`, and `listSeriesPoints` is inclusive: once `refresh.ts` has
  *  written today's point, the naive window would rank today's premium against itself. The window
@@ -198,6 +221,12 @@ export async function rankPremium(
   deps: MarketDeps,
   options: RankPremiumOptions
 ): Promise<PremiumRanking | undefined> {
+  const premium = historyPremiumOf(options)
+
+  if (premium === undefined) {
+    return undefined
+  }
+
   const points = await deps.marketDataStore.listSeriesPoints({
     seriesId: GOLD_VN_PREMIUM_SERIES,
     fromDay: options.calendar.addTradingDays(options.toDay, -GOLD_VN_PREMIUM_WINDOW_DAYS),
@@ -215,7 +244,7 @@ export async function rankPremium(
   }
 
   const values = points.map((point) => point.value)
-  const percentile = percentileRank(values, options.premium)
+  const percentile = percentileRank(values, premium)
 
   return percentile === undefined ? undefined : { percentile, sessions: values.length }
 }

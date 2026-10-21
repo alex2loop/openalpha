@@ -3,9 +3,11 @@ import { join } from 'node:path'
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage, Transaction } from '@/core/types/storage'
 import type { Migration } from '@/persistence/types'
+import { BRAND } from '@/core/brand'
+import { OperatorConfigError } from '@/core/config/resolve'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { backupAndPrune, backupTarget } from '@/persistence/backup'
+import { BACKUPS_SUBDIR, backupAndPrune, backupTarget } from '@/persistence/backup'
 import { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 
 const PRE_MIGRATION_SUBDIR = 'pre-migration'
@@ -76,13 +78,34 @@ export async function migrate(
     applyPendingLocked({ tx, dialect, logger: options.logger, migrations, declaredIds })
   )
 
-  // Migrations are forward-only, so a DB carrying ids this binary never declares is ahead of it:
-  // boot proceeds against a schema it cannot reason about, and the operator must hear about it.
   if (result.orphans.length > 0) {
-    options.logger.warn('migration.schema_ahead_of_binary', { orphans: result.orphans })
+    throw schemaAheadError(result.orphans)
   }
 
   return result.applied
+}
+
+/** A database a newer release migrated is one this binary cannot reason about: an older release
+ *  reading it misreads rows (a revoked chat read as approved), so it stops before touching it. */
+function schemaAheadError(orphans: readonly string[]): OperatorConfigError {
+  return new OperatorConfigError(
+    `database schema is ahead of this release: ${orphans.join(', ')}`,
+    {
+      key: 'errors.dbSchemaAhead',
+      params: {
+        upgrade: `${BRAND.name} upgrade`,
+        restore: `${BRAND.name} db restore <file>`,
+        folder: join(BACKUPS_SUBDIR, PRE_MIGRATION_SUBDIR),
+      },
+    }
+  )
+}
+
+function undeclaredIds(
+  applied: ReadonlyMap<string, number>,
+  declaredIds: ReadonlySet<string>
+): readonly string[] {
+  return [...applied.keys()].filter((id) => !declaredIds.has(id))
 }
 
 interface MaybeBackupOptions {
@@ -104,8 +127,11 @@ async function maybeBackupBeforeMigrating(input: MaybeBackupOptions): Promise<vo
   const exists = await hasLedger(db, dialect)
   const applied = exists ? await readApplied(db) : new Map<string, number>()
   const maybePending = migrations.some((m) => !applied.has(m.id))
+  const declaredIds = new Set(migrations.map((m) => m.id))
 
-  if (!maybePending) {
+  // A schema ahead of this release is refused, and a copy per refused boot would prune the
+  // pre-upgrade one the operator is told to restore.
+  if (!maybePending || undeclaredIds(applied, declaredIds).length > 0) {
     return
   }
 
@@ -215,8 +241,13 @@ async function applyPendingLocked(options: ApplyPendingOptions): Promise<ApplyPe
   await relaxTransactionTimeouts(tx, dialect)
 
   const applied = await readApplied(tx)
+  const orphans = undeclaredIds(applied, declaredIds)
+
+  if (orphans.length > 0) {
+    return { applied: 0, orphans }
+  }
+
   const pending = migrations.filter((m) => !applied.has(m.id))
-  const orphans = [...applied.keys()].filter((id) => !declaredIds.has(id))
 
   for (const migration of pending) {
     await applyOne({ tx, dialect, logger, migration })

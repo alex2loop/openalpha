@@ -14,6 +14,7 @@ import {
   pageRows,
   parseRow,
   THOUSAND_VND_PER_UNIT,
+  toScaledPrice,
 } from '@/trading/sources/rows/normalization'
 
 /** The provider's own listing labels, mapped to the kinds a market screens by. A label absent here
@@ -94,7 +95,7 @@ function toSessionQuote(row: unknown, market: MarketRef): readonly SessionQuote[
       at: tradingDay(parsed.date),
       kind,
       board: parsed.floor,
-      close: finite(parsed.close, 'close') * THOUSAND_VND_PER_UNIT,
+      close: toScaledPrice(finite(parsed.close, 'close'), THOUSAND_VND_PER_UNIT),
       changePct: finite(parsed.pctChange, 'pctChange'),
       matchedVolume: nonNegative(parsed.nmVolume ?? 0, 'nmVolume'),
     },

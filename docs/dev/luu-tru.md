@@ -89,8 +89,9 @@ export `down`; bước sinh mã ghép chúng với id lấy từ tên tệp.
   nó được export từ bộ chạy vì `doctor` đọc nó qua một handle `bun:sqlite` chỉ đọc thô, nên phần SQL
   phải dùng chung.
 - **Trạng thái.** `migrationStatus` trả về `applied | pending | orphan` cho mỗi id. Mồ côi là id có
-  trong sổ mà không được khai báo (hạ cấp hoặc migration bị xóa). `migrate` ghi log
-  `migration.schema_ahead_of_binary` cho chúng rồi chạy tiếp.
+  trong sổ mà không được khai báo (hạ cấp hoặc migration bị xóa). `migrate` từ chối
+  cơ sở dữ liệu có id mồ côi, trước khi sao lưu hay áp gì, bằng `errors.dbSchemaAhead`: bản cũ đọc
+  schema mới sẽ đọc sai dữ liệu.
 - **Sao lưu trước migration.** Chỉ SQLite, khi có `backupDir` và có thể còn migration chờ:
   `backupSqlite` vào `pre-migration/`. Một lần kiểm sơ bộ lỗi thời chỉ có thể làm thừa hoặc bỏ lỡ một
   bản sao, không bao giờ làm bỏ lỡ migration, vì khóa đọc lại trước khi áp. Bản sao lỗi thì ghi log

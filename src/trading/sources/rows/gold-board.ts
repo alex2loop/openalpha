@@ -6,7 +6,7 @@ import type { TradingDay, VnGoldForm } from '@/trading/kernel/instrument'
 import type { GoldBoard, GoldBoardPoint, GoldBoardRow } from '@/trading/kernel/market/market-data'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import { ValidationError } from '@/core/errors'
-import { positive } from '@/trading/sources/rows/normalization'
+import { positive, toScaledPrice } from '@/trading/sources/rows/normalization'
 
 /** No real lượng price is below a million VND, so a side under it was scaled wrong (a thousand-VND
  *  quote read as VND) rather than a cheap lượng. */
@@ -71,8 +71,8 @@ export function assembleGoldBoard(stamp: GoldBoardStamp, rows: readonly GoldBoar
  *  not the two prices of one row. */
 export function toGoldBoardRow(input: GoldBoardRowInput): GoldBoardRow {
   const scale = input.priceScale ?? 1
-  const buyPricePerLuong = positive(input.buy, 'buy') * scale
-  const sellPricePerLuong = positive(input.sell, 'sell') * scale
+  const buyPricePerLuong = toScaledPrice(positive(input.buy, 'buy'), scale)
+  const sellPricePerLuong = toScaledPrice(positive(input.sell, 'sell'), scale)
 
   if (sellPricePerLuong < buyPricePerLuong) {
     throw new ValidationError('gold board row sells below its buy price')

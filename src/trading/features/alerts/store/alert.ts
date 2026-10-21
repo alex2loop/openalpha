@@ -30,7 +30,7 @@ import { toPage } from '@/trading/kernel/store/store-row'
 const INSERT_SQL =
   'INSERT INTO alerts (id, market, ticker, condition, threshold, channel, ' +
   'chat_id, state, created_at, attempts, origin) VALUES '
-const DUE_STATES = Object.freeze(['triggered', 'delivering'] as const)
+export const DUE_STATES = Object.freeze(['triggered', 'delivering'] as const)
 const LIVE_STATES_SQL = "('active','triggered','delivering')"
 
 type AlertCreateResult =

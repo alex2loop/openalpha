@@ -18,11 +18,10 @@ import {
   FX_LAG_SESSIONS,
   GOLD_VN_MARKET_REF,
   GOLD_VN_PREMIUM_WINDOW_DAYS,
-  PREFERRED_FORMS,
   USD_VND,
   WORLD_CLOSE_LAG_SESSIONS,
 } from '@/trading/markets/gold-vn/policy'
-import { GOLD_VN_PREMIUM_SERIES, selectForm } from '@/trading/markets/gold-vn/premium'
+import { GOLD_VN_PREMIUM_SERIES, historyPremiumOf } from '@/trading/markets/gold-vn/premium'
 import { assembleGoldBoard } from '@/trading/sources/rows/gold-board'
 
 export interface PremiumBackfillDeps {
@@ -336,8 +335,8 @@ function isUnpublished(operands: Operands, day: TradingDay): boolean {
   return day >= covered.fromDay && day <= covered.toDay
 }
 
-/** `selectForm` computes every premium in this market; this only assembles the day's operands and
- *  refuses the ones the lag rules place too far from it. */
+/** `historyPremiumOf` computes the premium; this only assembles the day's operands and refuses the
+ *  ones the lag rules place too far from it. */
 function premiumOn(
   input: PremiumBackfillDeps,
   operands: Operands,
@@ -373,12 +372,7 @@ function premiumOn(
     rows
   )
 
-  return selectForm({
-    board,
-    preferredForms: PREFERRED_FORMS,
-    worldUsdPerOunce: close.close,
-    usdVnd: rate.rate,
-  })?.premium
+  return historyPremiumOf({ board, worldUsdPerOunce: close.close, usdVnd: rate.rate })
 }
 
 /** Both operand series arrive oldest first, so the last eligible row is the newest. */

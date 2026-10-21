@@ -11,7 +11,11 @@ export { admitCommand, createCommand, createGroup, lazyCommand } from '@/cli/com
 export { readCommandCacheStubs, writeCommandCache } from '@/cli/command-cache'
 export { spawnUpgradeProcess } from '@/cli/commands/daemon/background'
 export { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
-export { isConfigPresent, starterConfigToml } from '@/cli/commands/onboard/config-file'
+export {
+  isConfigPresent,
+  saveEditedConfig,
+  starterConfigToml,
+} from '@/cli/commands/onboard/config-file'
 export { offerOnboard } from '@/cli/commands/onboard/onboard'
 export { resolveContributedCliCommands } from '@/cli/contributed'
 export { isBackgroundLaunch } from '@/cli/daemon-env'

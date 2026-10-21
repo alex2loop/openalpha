@@ -43,6 +43,7 @@ const BOOK_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonCode>([
   'evidence-sold',
   'increase-unfunded',
   'segment-off',
+  'segment-target-zero',
   'reference-only',
   ...FACTOR_HOLD_REASONS,
 ])
@@ -98,6 +99,11 @@ export function draftDirectionFor(input: DirectionInput): DraftDirection {
     const traded = context.heldMarkets.has(input.market.manifest.id)
 
     return { action: 'hold', reasonCode: traded ? 'segment-off' : 'reference-only' }
+  }
+
+  // A target of zero steers the segment to nothing: a name not yet held opens no position there.
+  if (held === undefined && isTargetZero(context.profile, input.market.manifest.segment)) {
+    return { action: 'hold', reasonCode: 'segment-target-zero' }
   }
 
   // A name about to stop trading has no position to open, whatever the score or the core is owed.
@@ -307,6 +313,10 @@ function isSegmentOff(profile: UserProfile, segment: PortfolioSegment): boolean 
   const caps = profile.caps[segment]
 
   return caps !== undefined && isSegmentDisabled(caps)
+}
+
+function isTargetZero(profile: UserProfile, segment: PortfolioSegment): boolean {
+  return profile.segmentTargets[segment] === 0
 }
 
 /** The plan stopped this segment short of policy and named cash as the reason. Read per segment,

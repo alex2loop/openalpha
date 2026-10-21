@@ -4,6 +4,7 @@ import type { SkillCatalog } from '@/engine/skills/catalog'
 import type { SkillMeta } from '@/engine/skills/types'
 import type { AgentProfile } from '@/engine/types/agent'
 import type { McpToolInvocation, McpToolInvoker } from '@/engine/types/run'
+import { ToolError } from '@/core/errors'
 import { DEFAULT_AGENT_ID } from '@/core/ids'
 import {
   buildServerInstructions,
@@ -30,8 +31,21 @@ export function createMcpSurface(deps: McpSurfaceDeps): McpSurface {
   return {
     tools: () => exposedTools(deps),
     instructions: () => serverInstructions(deps),
-    invoke: (input) => deps.invoker.invoke(input),
+    invoke: (input) => invokeExposed(deps, input),
   }
+}
+
+// A client calls by name, so the call answers to the same list it was shown: a withheld tool is
+// unknown here even though the default agent holds it.
+async function invokeExposed(deps: McpSurfaceDeps, input: McpToolInvocation): Promise<ToolResult> {
+  if (!exposedTools(deps).some((tool) => tool.name === input.name)) {
+    return {
+      content: new ToolError('unknown_tool', `tool ${input.name} not registered`).message,
+      isError: true,
+    }
+  }
+
+  return await deps.invoker.invoke(input)
 }
 
 function exposedTools(deps: McpSurfaceDeps): readonly ToolDefinition[] {

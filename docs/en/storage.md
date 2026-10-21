@@ -153,13 +153,19 @@ part has its own steps in [Social networks](social.md#moving-to-another-machine)
 
 Migrations apply at boot, in filename order, as one all-or-nothing batch: if one fails, none of that
 batch is applied and the later ones do not run. `db migrate --status` shows each as applied,
-pending or orphaned. An orphan is an applied migration this version of the code no longer knows
-(a downgrade): review it.
+pending or orphaned. An orphan is an applied migration this version of the code does not know, which
+means a newer release updated the database. This version then refuses to start, and `doctor` fails
+the database check, rather than misreading it. Run `upgrade` to go back to the newer release, or
+restore the copy in `backups/pre-migration/` with `db restore`.
 
 `db migrate` snapshots into `backups/pre-migration/` before applying a pending migration, and
 `db migrate down` into `backups/pre-rollback/` before rolling one back. Neither writes anything when
 there is nothing to do. Both are ordinary backups, so either can go to `db restore`. PostgreSQL gets
 no snapshot on either path, and `db migrate down` says so before it asks.
+
+`db migrate down` undoes the newest migration. `db migrate down --to <id>` undoes every one after
+`<id>`, newest first, behind one question and one snapshot, and stops at the first it cannot undo.
+`upgrade --rollback` uses it to bring the schema back to the previous release.
 
 ### Retention
 
@@ -258,8 +264,9 @@ to `db restore`. PostgreSQL is skipped: use `pg_dump`. `--path` refuses a file t
 already exists unless you pass `--force`.
 
 **Restore** needs the daemon stopped. It first checks that the source opens as a SQLite database and
-passes `PRAGMA quick_check`, then keeps the previous database with a `.bak` suffix. A previous
-database that cannot be opened does not block the restore: it is moved aside as the `.bak` file.
+passes `PRAGMA quick_check`, then keeps the database it replaces in `backups/` under a timestamped
+name, so restoring twice never loses the original. A previous database that cannot be opened does
+not block the restore: it is moved into `backups/` the same way.
 
 **Moving servers.** You need only the one file; renaming it is fine, and the target needs no
 prepared data directory. Migration state travels inside the file, so the new host reports its
@@ -277,7 +284,8 @@ openalpha db reset --yes
 ```
 
 Reset deletes every row and needs the daemon stopped. SQLite replaces the database and its sidecar
-files; PostgreSQL rebuilds the configured schema. Every registered migration then applies. To keep
+files; PostgreSQL rebuilds the configured schema, and refuses `public`, since other apps may share it.
+Every registered migration then applies. To keep
 your data, run `db export` first and `db import` afterwards (see
 [Export and import](#export-and-import)).
 

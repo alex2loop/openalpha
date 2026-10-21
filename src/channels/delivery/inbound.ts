@@ -3,7 +3,11 @@ import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { AgentId } from '@/core/ids'
 import { COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
-import { handleControlCallback, handleTypedChoice } from '@/channels/delivery/control'
+import {
+  handleControlCallback,
+  handleSessionControl,
+  handleTypedChoice,
+} from '@/channels/delivery/control'
 import { resolveSlashRunRequest, roleOf, type SlashRunRequest } from '@/channels/delivery/slash'
 import { commandHeadOf, UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { observe } from '@/core/events'
@@ -179,6 +183,11 @@ async function resolveRunRequest(
   options: ResolveRunRequestOptions
 ): Promise<SlashRunRequest | null> {
   const { deps, msg, sessionId, routeLease } = options
+
+  // Stopping a run is session control, not a slash command: it works with slash commands off.
+  if (await handleSessionControl({ deps, msg, sessionId })) {
+    return null
+  }
 
   if (!(deps.settings.slashCommands && msg.text.startsWith(SLASH_PREFIX))) {
     return { text: msg.text }

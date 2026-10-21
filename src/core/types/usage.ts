@@ -1,6 +1,7 @@
 import type { AgentId, LLMAttemptId, RunId, SessionId } from '@/core/ids'
 import type { LLMErrorCode, ProviderAttemptOutcome } from '@/core/llm'
-export const LLM_ATTEMPT_KINDS = ['turn', 'compaction', 'preference', 'external'] as const
+
+const LLM_ATTEMPT_KINDS = ['turn', 'compaction', 'preference', 'external'] as const
 export type LLMAttemptKind = (typeof LLM_ATTEMPT_KINDS)[number]
 
 /** A billed non-LLM provider call. Recorded in the same ledger so one sum covers all spend. */
@@ -10,10 +11,10 @@ export interface ExternalCharge {
   readonly costUsd: number
 }
 
-export const USAGE_SOURCES = ['provider', 'estimated'] as const
+const USAGE_SOURCES = ['provider', 'estimated'] as const
 export type UsageSource = (typeof USAGE_SOURCES)[number]
 
-export const COST_SOURCES = [
+const COST_SOURCES = [
   'provider_reported',
   'pricing_override',
   'pricing_subscription',

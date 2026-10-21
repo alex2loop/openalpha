@@ -70,12 +70,13 @@ interface ResolveRunLimitsInput {
 
 interface MessageBuffers {
   readonly history: LLMMessage[]
-  readonly pending: SessionMessageWrite[]
+  readonly pending: AssistantMessageWrite[]
   // Durable trail is append-only and independent of the model's prompt window: rows appended here
   // stay queued for the sink until flushed, even when compaction shrinks `history` underneath them.
   readonly unpersisted: SessionMessageWrite[]
   readonly cap: number
   readonly ownerRunId: RunId
+  latestAssistant: AssistantMessage | undefined
 }
 
 function createMessageStore(sessionMessageCap: number, ownerRunId: RunId): MessageStore {
@@ -85,11 +86,15 @@ function createMessageStore(sessionMessageCap: number, ownerRunId: RunId): Messa
     unpersisted: [],
     cap: Math.max(MIN_SESSION_MESSAGE_CAP, Math.floor(sessionMessageCap)),
     ownerRunId,
+    latestAssistant: undefined,
   }
 
   return {
     get history(): readonly LLMMessage[] {
       return buffers.history
+    },
+    get latestAssistant(): AssistantMessage | undefined {
+      return buffers.latestAssistant
     },
     historyWindow: buffers.cap + 1,
     pushToPending: (message, llmAttemptIds) => pushToPending(buffers, message, llmAttemptIds),
@@ -124,6 +129,7 @@ function flushPending(buffers: MessageBuffers): void {
 
   buffers.history.push(...buffers.pending.map((write) => write.message))
   buffers.unpersisted.push(...buffers.pending)
+  buffers.latestAssistant = buffers.pending.at(-1)?.message
   buffers.pending.length = 0
   enforceMessageCap(buffers.history, buffers.cap)
 }
@@ -161,6 +167,11 @@ function replaceLastAssistant(
   }
 
   buffers.history[buffers.history.length - 1] = message
+
+  if (buffers.latestAssistant === previous) {
+    buffers.latestAssistant = message
+  }
+
   for (const [index, write] of buffers.unpersisted.entries()) {
     buffers.unpersisted[index] = replaceQueuedAssistant(write, previous, message)
   }
@@ -294,6 +305,7 @@ function buildRunState(input: RunStateInput): RunState {
     todo: createTodoSlot(),
     turn: 0,
     totals: options.initialTotals ?? EMPTY_LLM_USAGE_TOTALS,
+    priorCostUsd: options.initialTotals?.costUsd ?? 0,
     budget: input.budget,
     skillViewBudget: createByteBudget(SKILL_VIEW_RUN_BUDGET_BYTES),
     delegationQuota:

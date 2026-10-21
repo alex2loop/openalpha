@@ -8,7 +8,7 @@ import type { HeartbeatDeps, HeartbeatTask } from '@/scheduler/heartbeat/types'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sanitizeDisplayText, toFencedText } from '@/core/utils/text'
 import { isWithinDailyWindow } from '@/core/utils/time'
-import { AGENT_CAP_MESSAGE, PAUSED_MESSAGE } from '@/engine/api'
+import { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/api'
 import {
   completeHeartbeatTask,
   loadDueCommitments,
@@ -302,12 +302,12 @@ async function runClaimedHeartbeatTask(
         })
   const result = await runTaskAgent(input, commitments)
 
-  // A capped or paused agent is not a failing task: the lease is released and the task is due again
-  // once the cap resets or the agent is resumed, with no failure counted against it. A run cut short
+  // A run a spend cap refused, or a paused agent, is not a failing task: the lease is released and the
+  // task is due again once the cap resets or the agent is resumed, with no failure counted against it. A run cut short
   // by shutdown never finished, so it is treated the same way (scheduled jobs do the same).
   if (
     result.reason === 'aborted' ||
-    result.errorMessage === AGENT_CAP_MESSAGE ||
+    isSpendCapHalt(result) ||
     result.errorMessage === PAUSED_MESSAGE
   ) {
     return

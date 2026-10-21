@@ -4,6 +4,8 @@ Every model call costs money. OpenAlpha estimates before it spends, records what
 limit instead of after it.
 
 Caps are opt-in. With none set, spend is uncapped and simply tracked, so you can always find out what it cost.
+`openalpha onboard` and the minimal starter configs set `max_daily_usd = 2` so a first week cannot surprise you;
+raise it or set it to `0` once you know your usage.
 Search providers share the same ledger: Exa's reported charge and the `[web_search] cost_per_search_usd` you set
 for Brave, DeepSeek, Serper or Tavily land in the same totals as model spend.
 
@@ -193,7 +195,7 @@ Quota and budget are independent: a tree can exhaust its fan-out while holding p
 | Condition | Result |
 | --- | --- |
 | Estimate exceeds the remaining run budget | Required work halts before the provider call |
-| Estimate would cross an enabled daily or monthly cap | Required work halts before the provider call |
+| Estimate would cross an enabled daily or monthly cap | Required work halts before the provider call; a scheduled job waits for the cap to reopen, uncounted |
 | An agent has spent its own `max_daily_usd` | A root run it owns halts before it starts (`agent_daily_cap`); its jobs are skipped, uncounted |
 | Optional work cannot get budget | Skipped; the run continues |
 | Actual cost crosses a cap | The attempt is charged and kept, then the run halts |

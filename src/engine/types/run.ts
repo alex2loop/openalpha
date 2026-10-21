@@ -137,6 +137,8 @@ export interface RunState {
   readonly todo: TodoSlot
   turn: number
   totals: LLMUsageTotals
+  /** Cost already inside `totals` when the run began: a resumed session's aggregate. */
+  readonly priorCostUsd: number
   readonly budget: Budget
   // Cumulative skill_view allowance; goes out of scope with the run, so nothing has to clear it.
   readonly skillViewBudget: ByteBudget
@@ -222,6 +224,8 @@ export interface RunOptions {
 
 export interface MessageStore {
   readonly history: readonly LLMMessage[]
+  /** Newest assistant message this run produced; absent until a turn lands, whatever history was loaded. */
+  readonly latestAssistant: AssistantMessage | undefined
   /** Newest transcript rows a resumed run loads: one past the cap, so trim sees group starts. */
   readonly historyWindow: number
   /** Queue one assistant message with the durable attempt group that produced it. */
@@ -252,6 +256,9 @@ export interface RunResult {
   readonly reason: RunResultReason
   readonly text: string
   readonly totals: LLMUsageTotals
+  /** What this run alone spent; `totals` also carries the resumed session's prior spend. Absent when
+   *  the run never started. */
+  readonly runCostUsd?: number
   /** True once this invocation passes engine admission; prior session totals are irrelevant. */
   readonly workStarted: boolean
   readonly limits?: RunResultLimits

@@ -5,8 +5,8 @@ import type { CliApp } from '@/cli/types'
 import type { Locale } from '@/core/types/locale'
 import type { MigrationRollbackResolution } from '@/persistence/api'
 import { createCommand, createGroup, type Group } from '@/cli/command'
-import { CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
-import { flagBool } from '@/cli/parsing/args'
+import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
+import { flagBool, flagString } from '@/cli/parsing/args'
 import { fail, hint, success } from '@/cli/ui/colors'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -15,6 +15,7 @@ import {
   BACKUPS_SUBDIR,
   backupAndPrune,
   backupTarget,
+  MIGRATIONS,
   migrate,
   migrationStatus,
   resolveMigrationRollback,
@@ -27,9 +28,9 @@ const EXIT_OK = 0
 const MIGRATION_STATE_WIDTH = 7
 const PRE_ROLLBACK_SUBDIR = 'pre-rollback'
 
-type MigrationRollbackBackup =
-  | { readonly kind: 'backed_up'; readonly path: string }
-  | { readonly kind: 'failed'; readonly path: string; readonly err: unknown }
+type RollbackStep =
+  | MigrationRollbackResolution
+  | { readonly kind: 'at_target'; readonly id: string }
 
 const dbMigrateUpCommand = createCommand({
   name: 'up',
@@ -93,64 +94,109 @@ const dbMigrateDownCommand = createCommand({
   name: 'down',
   summary: { key: 'cliHelp.dbMigrateDownSummary' },
   spec: {
-    flags: { yes: { type: 'boolean', describe: CLI_FLAG_DESCRIPTIONS.skipConfirmation } },
+    flags: {
+      to: { type: 'string', describe: { key: 'cliHelp.flagDbMigrateDownTo' } },
+      yes: { type: 'boolean', describe: CLI_FLAG_DESCRIPTIONS.skipConfirmation },
+    },
   },
   needs: { bootScope: 'persistence', startup: 'none', daemon: 'stopped' },
   run: runMigrationDown,
 })
 
+/** `--to` rolls back every migration after the one named, newest first; without it, only the
+ *  newest. Each step re-resolves, so a history that stops being reversible halfway stops there. */
 async function runMigrationDown(args: ParsedArgs, app: CliApp): Promise<number> {
   const locale = app.config.locale.language
-  const storage = app.resolve('storage')
-  const dialect = app.resolve('dialect')
-  const resolution = await resolveMigrationRollback(storage, dialect)
+  const to = flagString(args, 'to')
 
-  if (resolution.kind !== 'ready') {
-    printMigrationRollbackBlock(app, resolution)
-    return resolution.kind === 'none' ? EXIT_OK : EXIT_ERROR
-  }
-
-  app.out(hint(t(locale, 'cli.dbMigrationRollbackWarning', { id: resolution.id })))
-
-  if (dialect.name === 'postgres') {
-    app.out(hint(t(locale, 'cli.dbMigrationRollbackPostgresNoSnapshot')))
-  }
-
-  if (!(await confirmMigrationRollback(args, app, resolution.id))) {
-    return declined(app)
-  }
-
-  if (dialect.name === 'sqlite') {
-    const backup = await takeMigrationRollbackBackup(app)
-
-    printMigrationRollbackBackup(app, backup)
-    if (backup.kind === 'failed') {
-      return EXIT_ERROR
-    }
-  }
-
-  const result = await rollbackMigration(storage, dialect, {
-    expectedId: resolution.id,
-    logger: app.resolve('logger'),
-  })
-
-  if (result.kind === 'history_changed') {
-    app.err(fail(t(locale, 'cli.dbMigrationRollbackHistoryChanged')))
+  if (to !== undefined && !MIGRATIONS.some((migration) => migration.id === to)) {
+    app.err(fail(t(locale, 'cli.dbMigrationTargetUnknown', { id: to })))
     return EXIT_ERROR
   }
 
-  app.out(success(t(locale, 'cli.dbMigrationRolledBack', { id: result.id })))
-  return EXIT_OK
+  const first = await resolveRollbackStep(app, to)
+
+  if (first.kind !== 'ready') {
+    printMigrationRollbackBlock(app, first)
+    return first.kind === 'none' || first.kind === 'at_target' ? EXIT_OK : EXIT_ERROR
+  }
+
+  if (to === undefined) {
+    app.out(hint(t(locale, 'cli.dbMigrationRollbackWarning', { id: first.id })))
+  }
+
+  if (app.resolve('dialect').name === 'postgres') {
+    app.out(hint(t(locale, 'cli.dbMigrationRollbackPostgresNoSnapshot')))
+  }
+
+  if (!(await confirmMigrationRollback(args, app, { id: first.id, to }))) {
+    return declined(app)
+  }
+
+  if (!(await backUpBeforeRollback(app))) {
+    return EXIT_ERROR
+  }
+
+  return await rollBackSteps(app, first.id, to)
+}
+
+async function rollBackSteps(
+  app: CliApp,
+  firstId: string,
+  to: string | undefined
+): Promise<number> {
+  const locale = app.config.locale.language
+  let step: RollbackStep = { kind: 'ready', id: firstId }
+
+  while (step.kind === 'ready') {
+    const result = await rollbackMigration(app.resolve('storage'), app.resolve('dialect'), {
+      expectedId: step.id,
+      logger: app.resolve('logger'),
+    })
+
+    if (result.kind === 'history_changed') {
+      app.err(fail(t(locale, 'cli.dbMigrationRollbackHistoryChanged')))
+      return EXIT_ERROR
+    }
+
+    app.out(success(t(locale, 'cli.dbMigrationRolledBack', { id: result.id })))
+    step = to === undefined ? { kind: 'none' } : await resolveRollbackStep(app, to)
+  }
+
+  if (step.kind === 'none' || step.kind === 'at_target') {
+    return EXIT_OK
+  }
+
+  printMigrationRollbackBlock(app, step)
+  return EXIT_ERROR
+}
+
+/** The next migration to roll back; one at or below `to` is where a `--to` rollback ends. */
+async function resolveRollbackStep(app: CliApp, to: string | undefined): Promise<RollbackStep> {
+  const resolution = await resolveMigrationRollback(app.resolve('storage'), app.resolve('dialect'))
+  const settled =
+    resolution.kind === 'none' || resolution.kind === 'orphan' || resolution.kind === 'gap'
+
+  if (to === undefined || settled || resolution.id.localeCompare(to) > 0) {
+    return resolution
+  }
+
+  return { kind: 'at_target', id: to }
 }
 
 function printMigrationRollbackBlock(
   app: CliApp,
-  resolution: Exclude<MigrationRollbackResolution, { readonly kind: 'ready' }>
+  resolution: Exclude<RollbackStep, { readonly kind: 'ready' }>
 ): void {
   const locale = app.config.locale.language
 
   if (resolution.kind === 'none') {
     app.out(success(t(locale, 'cli.dbMigrationRollbackNone')))
+    return
+  }
+
+  if (resolution.kind === 'at_target') {
+    app.out(success(t(locale, 'cli.dbMigrationRollbackAtTarget', { id: resolution.id })))
     return
   }
 
@@ -170,41 +216,57 @@ function printMigrationRollbackBlock(
 async function confirmMigrationRollback(
   args: ParsedArgs,
   app: CliApp,
-  id: string
+  target: { readonly id: string; readonly to: string | undefined }
 ): Promise<boolean> {
   if (flagBool(args, 'yes')) {
     return true
   }
 
   const locale = app.config.locale.language
-  return confirm(defaultPrompt(), t(locale, 'cli.dbMigrationRollbackConfirm', { id }), locale)
+  const question =
+    target.to === undefined
+      ? t(locale, 'cli.dbMigrationRollbackConfirm', { id: target.id })
+      : t(locale, 'cli.dbMigrationRollbackToConfirm', { id: target.to })
+
+  return confirm(defaultPrompt(), question, locale)
 }
 
-function printMigrationRollbackBackup(app: CliApp, backup: MigrationRollbackBackup): void {
-  const locale = app.config.locale.language
-
-  if (backup.kind === 'failed') {
-    app.resolve('logger').error('migration.rollback_backup_failed', {
-      path: backup.path,
-      err: formatErrForLog(backup.err),
-    })
-    app.err(fail(t(locale, 'cli.dbMigrationRollbackBackupFailed', { path: backup.path })))
-    return
+/** SQLite only: PostgreSQL rolls back in one transaction per step and gets no snapshot. */
+async function backUpBeforeRollback(app: CliApp): Promise<boolean> {
+  if (app.resolve('dialect').name !== 'sqlite') {
+    return true
   }
 
-  app.out(success(t(locale, 'cli.dbBackedUp', { target: backup.path })))
-}
-
-async function takeMigrationRollbackBackup(app: CliApp): Promise<MigrationRollbackBackup> {
+  const locale = app.config.locale.language
   const target = backupTarget(join(app.config.paths.dataDir, BACKUPS_SUBDIR, PRE_ROLLBACK_SUBDIR))
 
   try {
     await backupAndPrune({ db: app.resolve('storage'), target, logger: app.resolve('logger') })
-
-    return { kind: 'backed_up', path: target }
   } catch (err: unknown) {
-    return { kind: 'failed', path: target, err }
+    app.resolve('logger').error('migration.rollback_backup_failed', {
+      path: target,
+      err: formatErrForLog(err),
+    })
+    app.err(fail(t(locale, 'cli.dbMigrationRollbackBackupFailed', { path: target })))
+
+    return false
   }
+
+  app.out(success(t(locale, 'cli.dbBackedUp', { target })))
+
+  return true
+}
+
+/** The arguments that roll the schema back to `to`, for `upgrade` to run on the newer binary. */
+export function migrateDownArgs(to: string, assumeYes: boolean): readonly string[] {
+  return [
+    CLI_COMMAND_METADATA.db.name,
+    dbMigrateGroup.name,
+    dbMigrateDownCommand.name,
+    '--to',
+    to,
+    ...(assumeYes ? ['--yes'] : []),
+  ]
 }
 
 export const dbMigrateGroup: Group = createGroup({

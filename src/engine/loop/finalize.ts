@@ -71,18 +71,6 @@ interface BuildRunResultOptions {
   readonly model?: string
 }
 
-function extractFinalText(messages: readonly LLMMessage[]): string {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i]
-
-    if (msg?.role === 'assistant') {
-      return textOf(msg.content)
-    }
-  }
-
-  return ''
-}
-
 // A dangling tool_call with no matching tool result makes the next provider request invalid,
 // so a run that halts mid-tool-call must synthesize the missing answers before it exits.
 function completePendingToolCalls(state: RunState, reason: RunResultReason): void {
@@ -131,8 +119,9 @@ export function buildRunResult(
 ): RunResult {
   return {
     reason,
-    text: extractFinalText(state.messages.history),
+    text: textOf(state.messages.latestAssistant?.content ?? ''),
     totals: state.totals,
+    runCostUsd: state.totals.costUsd - state.priorCostUsd,
     workStarted: options.workStarted,
     ...(options.limits === undefined ? {} : { limits: options.limits }),
     ...(options.haltCode === undefined ? {} : { haltCode: options.haltCode }),

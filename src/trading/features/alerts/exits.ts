@@ -8,6 +8,7 @@ import type {
   AlertDraft,
   AlertOrigin,
   AlertService,
+  EXIT_LEVELS,
   PositionExit,
   PositionExitOptions,
   StalePositionOptions,
@@ -28,6 +29,7 @@ import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { planAndTrail } from '@/trading/features/alerts/exit-plans'
 import { reconcileAlerts } from '@/trading/features/alerts/screeners'
+import { DUE_STATES } from '@/trading/features/alerts/store/alert'
 import { buildExitOrigin, isScreenOrigin } from '@/trading/features/alerts/types'
 import { isFirstExitTaken } from '@/trading/features/suggestion/exit-plan/first-exit'
 import {
@@ -39,6 +41,12 @@ import { armsExit, planStopOf, planTakeProfitOf } from '@/trading/features/sugge
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { horizonFor } from '@/trading/kernel/operator/profile'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
+
+interface ArmedLevel {
+  readonly level: (typeof EXIT_LEVELS)[number]
+  readonly threshold: number
+  readonly condition: PositionExit['condition']
+}
 
 export interface ExitReconcileDeps {
   readonly alerts: Pick<AlertService, 'create' | 'disable'>
@@ -110,7 +118,7 @@ async function expectedDrafts(
 /** Whether sales since the holding opened already banked the share the plan takes at its
  *  take-profit, the same test `/suggest` states the first exit by. */
 function isTakeProfitTaken(
-  deps: ExitReconcileDeps,
+  deps: Pick<ExitWatchDeps, 'markets'>,
   holding: Holding,
   plan: StoredSuggestion
 ): boolean {
@@ -120,8 +128,6 @@ function isTakeProfitTaken(
   return held !== undefined && isFirstExitTaken(held, plan, trails)
 }
 
-/** A plan that arms no exit keeps its take-profit — reaching it is still a trim worth naming — and
- *  arms no stop. A take-profit already banked arms nothing: the rest rides the stop. */
 function levelDrafts(
   holding: Holding,
   suggestion: StoredSuggestion,
@@ -129,44 +135,20 @@ function levelDrafts(
 ): readonly OriginatedDraft[] {
   const { instrument } = holding
   const { delivery } = at
-  const sides = exitSides(suggestion.action)
-  const risk = armsExit(suggestion)
-    ? [{ level: 'stop' as const, threshold: planStopOf(suggestion), condition: sides.stop }]
-    : []
-  const reward = at.taken
-    ? []
-    : [
-        {
-          level: 'target' as const,
-          threshold: planTakeProfitOf(suggestion),
-          condition: sides.target,
-        },
-      ]
-  const levels = [...reward, ...risk]
 
-  return levels.flatMap((entry) => {
-    if (
-      entry.threshold === undefined ||
-      !Number.isFinite(entry.threshold) ||
-      entry.threshold <= 0
-    ) {
-      return []
-    }
-
+  return armedLevels(suggestion, at.taken).map((entry) => {
     const origin = buildExitOrigin(suggestion.id, entry.level, entry.threshold)
 
-    return [
-      {
+    return {
+      origin,
+      draft: {
+        instrument,
+        condition: entry.condition,
+        threshold: entry.threshold,
+        delivery,
         origin,
-        draft: {
-          instrument,
-          condition: entry.condition,
-          threshold: entry.threshold,
-          delivery,
-          origin,
-        },
       },
-    ]
+    }
   })
 }
 
@@ -190,6 +172,11 @@ async function disableStale(
 
     // The screener owns its own bands; each arming pass disables only the rows it armed.
     if (isScreenOrigin(alert.origin)) {
+      continue
+    }
+
+    // A crossed row still owes its delivery: the retry claims it, and a disable would lose it.
+    if (DUE_STATES.some((state) => state === alert.state)) {
       continue
     }
 
@@ -263,31 +250,48 @@ async function exitFor(
     return null
   }
 
-  const crossed = crossedLevel(suggestion, exitPriceOf(quote.value))
+  const taken = isTakeProfitTaken(deps, holding, suggestion)
+  const crossed = crossedLevel(armedLevels(suggestion, taken), exitPriceOf(quote.value))
 
   return crossed === null ? null : { instrument: holding.instrument, ...crossed }
 }
 
-/** The stop, then the take-profit: the two levels a held name is closed or trimmed at. */
+/** The first armed level the price has reached. */
 function crossedLevel(
-  suggestion: StoredSuggestion,
+  levels: readonly ArmedLevel[],
   observedPrice: number
 ): Omit<PositionExit, 'instrument'> | null {
+  const crossed = levels.find((entry) => reached(observedPrice, entry.threshold, entry.condition))
+
+  return crossed === undefined
+    ? null
+    : { condition: crossed.condition, threshold: crossed.threshold, observedPrice }
+}
+
+/** The stop, then the take-profit: the two levels a held name is closed or trimmed at, one owner
+ *  for the arming pass and the watch. A plan that arms no exit keeps its take-profit - reaching it
+ *  is still a trim worth naming - and arms no stop. A take-profit already banked arms nothing: the
+ *  rest rides the stop. */
+function armedLevels(suggestion: StoredSuggestion, taken: boolean): readonly ArmedLevel[] {
   const sides = exitSides(suggestion.action)
+  const risk = armsExit(suggestion)
+    ? [{ level: 'stop' as const, threshold: planStopOf(suggestion), condition: sides.stop }]
+    : []
+  const reward = taken
+    ? []
+    : [
+        {
+          level: 'target' as const,
+          threshold: planTakeProfitOf(suggestion),
+          condition: sides.target,
+        },
+      ]
 
-  const stop = planStopOf(suggestion)
-
-  if (stop !== undefined && reached(observedPrice, stop, sides.stop)) {
-    return { condition: sides.stop, threshold: stop, observedPrice }
-  }
-
-  const takeProfit = planTakeProfitOf(suggestion)
-
-  if (takeProfit !== undefined && reached(observedPrice, takeProfit, sides.target)) {
-    return { condition: sides.target, threshold: takeProfit, observedPrice }
-  }
-
-  return null
+  return [...risk, ...reward].flatMap((entry) =>
+    entry.threshold !== undefined && Number.isFinite(entry.threshold) && entry.threshold > 0
+      ? [{ ...entry, threshold: entry.threshold }]
+      : []
+  )
 }
 
 /** Held names whose latest stored plan carries no watchable levels — no plan, or a hold the market

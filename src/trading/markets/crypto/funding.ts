@@ -48,7 +48,9 @@ export async function cryptoFunding(
     signal: request.signal,
   })
 
-  if (live.kind === 'available') {
+  // A degraded snapshot (a leg failed) is served as is but never stored: the stored row answers the
+  // whole settled day with no caveats, so the next read must retry the leg.
+  if (live.kind === 'available' && live.caveats.length === 0) {
     await cacheFunding(deps, live.value, request.signal)
   }
 

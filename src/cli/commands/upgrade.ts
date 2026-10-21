@@ -5,15 +5,18 @@ import type { CliApp } from '@/cli/types'
 import { type Command, createCommand } from '@/cli/command'
 import { keepFailedStartLog, startBackgroundDaemon } from '@/cli/commands/daemon/background'
 import { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
+import { migrateDownArgs } from '@/cli/commands/db/migrate'
 import { liveDaemon } from '@/cli/daemon-guard'
 import { isInteractiveStderr } from '@/cli/env'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { formatArgIssue } from '@/cli/parsing/arg-issue'
+import { buildSelfArgv } from '@/cli/services'
 import { fail, hint, info, success } from '@/cli/ui/colors'
 import {
   DOWNLOAD_PATH,
   hasPreviousBinary,
   installDownloadedBinary,
+  previousBinaryStamp,
   swapWithPreviousBinary,
 } from '@/cli/update/binary'
 import { formatUpdateStatus, formatVersionLine } from '@/cli/update/notice'
@@ -21,6 +24,7 @@ import { downloadReleaseBinary, isCompiledBinary } from '@/cli/update/release'
 import {
   newerVersionOf,
   patchUpdateState,
+  readUpdateState,
   refreshUpdateState,
   type UpdateState,
 } from '@/cli/update/state'
@@ -28,8 +32,11 @@ import { BRAND } from '@/core/brand'
 import { MS_PER_MINUTE } from '@/core/utils/time'
 import { compareVersions } from '@/core/utils/version'
 import { t } from '@/i18n'
+import { MIGRATIONS } from '@/persistence/api'
 
 const DOWNLOAD_TIMEOUT_MS = 5 * MS_PER_MINUTE
+// Long enough for a large database's migrations and an operator answering the prompt.
+const SCHEMA_ROLLBACK_TIMEOUT_MS = 10 * MS_PER_MINUTE
 const START_COMMAND = `${BRAND.name} ${CLI_COMMAND_METADATA.start.name} --background`
 
 export const upgradeCommand: Command = createCommand({
@@ -53,6 +60,12 @@ interface UpgradeOptions {
 // A daemon `upgrade` may start again by itself: one with no terminal or service to own it, whose
 // pid file says which config it loaded.
 type RestartableDaemon = RunningDaemon & { readonly background: true; readonly configPath: string }
+
+interface SchemaRollback {
+  readonly configPath: string
+  readonly migrationId: string
+  readonly assumeYes: boolean
+}
 
 interface DaemonSwitch {
   readonly daemon: RunningDaemon | null
@@ -161,6 +174,15 @@ async function switchRelease(app: CliApp, latest: string): Promise<number> {
     return 1
   }
 
+  const binaryStamp = await previousBinaryStamp()
+
+  await recordUpdateState(app, {
+    rollbackTarget:
+      binaryStamp === null
+        ? null
+        : { version: latest, migrationId: newestMigrationId(), binaryStamp },
+  })
+
   // Only a reader at a terminal saw the line below; a daemon's own upgrade writes to a log, and the
   // next command there says which release now runs.
   if (isInteractiveStderr()) {
@@ -223,6 +245,14 @@ async function restorePreviousRelease(
   change: DaemonSwitch & { readonly daemon: RestartableDaemon }
 ): Promise<number> {
   const locale = app.config.locale.language
+
+  // The release that failed is the one that knows how to undo its migrations; it barely ran, so
+  // nothing it stored is worth a prompt.
+  await rollBackSchema(app, {
+    configPath: change.daemon.configPath,
+    migrationId: newestMigrationId(),
+    assumeYes: true,
+  })
 
   try {
     await swapWithPreviousBinary()
@@ -305,6 +335,12 @@ async function rollbackRelease(app: CliApp): Promise<number> {
     return stopped
   }
 
+  if (!(await rollBackSchemaForPrevious(app, daemon))) {
+    await recoverStoppedDaemon(app, paused)
+
+    return 1
+  }
+
   try {
     await swapWithPreviousBinary()
   } catch {
@@ -326,6 +362,66 @@ async function rollbackRelease(app: CliApp): Promise<number> {
   const restartable = restartableOrHint(app, daemon)
 
   return restartable === null ? 0 : await startBackgroundDaemon(app, restartable.configPath)
+}
+
+/** Only a target recorded when this release was installed, beside the rollback copy that install
+ *  kept, names what the previous one declares; without one, the previous release refuses a schema
+ *  ahead of it and says how to recover. */
+async function rollBackSchemaForPrevious(
+  app: CliApp,
+  daemon: RunningDaemon | null
+): Promise<boolean> {
+  const { rollbackTarget } = await readUpdateState(app.config.paths.dataDir)
+
+  if (
+    rollbackTarget === null ||
+    rollbackTarget.version !== BRAND.version ||
+    rollbackTarget.migrationId === newestMigrationId() ||
+    rollbackTarget.binaryStamp !== (await previousBinaryStamp())
+  ) {
+    return true
+  }
+
+  const configPath = daemon !== null && isRestartable(daemon) ? daemon.configPath : app.configPath
+  const rolledBack = await rollBackSchema(app, {
+    configPath,
+    migrationId: rollbackTarget.migrationId,
+    assumeYes: false,
+  })
+
+  if (!rolledBack) {
+    app.err(fail(t(app.config.locale.language, 'cli.upgradeRollbackSchemaFailed')))
+  }
+
+  return rolledBack
+}
+
+/** Runs `db migrate down --to` on the installed binary, which is the newer release on both paths:
+ *  only it carries the migrations' `down`. */
+async function rollBackSchema(app: CliApp, options: SchemaRollback): Promise<boolean> {
+  const argv = await buildSelfArgv({
+    dataDir: app.config.paths.dataDir,
+    configPath: options.configPath,
+    tail: migrateDownArgs(options.migrationId, options.assumeYes),
+  })
+
+  try {
+    const proc = Bun.spawn(argv, {
+      stdin: 'inherit',
+      stdout: 'inherit',
+      stderr: 'inherit',
+      signal: AbortSignal.timeout(SCHEMA_ROLLBACK_TIMEOUT_MS),
+    })
+
+    return (await proc.exited) === 0
+  } catch {
+    // Not spawnable: the previous release then refuses the schema and names the way back.
+    return false
+  }
+}
+
+function newestMigrationId(): string {
+  return MIGRATIONS.at(-1)?.id ?? ''
 }
 
 function isRestartable(daemon: RunningDaemon): daemon is RestartableDaemon {

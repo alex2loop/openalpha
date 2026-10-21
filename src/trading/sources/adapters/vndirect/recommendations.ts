@@ -13,6 +13,7 @@ import {
   parseRow,
   positive,
   THOUSAND_VND_PER_UNIT,
+  toScaledPrice,
 } from '@/trading/sources/rows/normalization'
 import { resolveRowTarget } from '@/trading/sources/rows/row-target'
 
@@ -81,7 +82,10 @@ function toRecommendation(raw: unknown, target: RowTarget): AnalystRecommendatio
     ...(row.targetPrice === undefined
       ? {}
       : {
-          targetPrice: positive(row.targetPrice, 'targetPrice') * THOUSAND_VND_PER_UNIT,
+          targetPrice: toScaledPrice(
+            positive(row.targetPrice, 'targetPrice'),
+            THOUSAND_VND_PER_UNIT
+          ),
           currency: VND,
         }),
     sourceId: VNDIRECT_ID,

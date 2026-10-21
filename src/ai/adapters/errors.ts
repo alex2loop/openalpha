@@ -61,6 +61,14 @@ const UNKNOWN_MODEL_PATTERNS: readonly RegExp[] = [
   /model .{0,80}(?:not found|does not exist)/i,
 ]
 
+// OpenRouter answers 404 "No endpoints found" when every upstream for a model is down or none
+// accepts this request's shape. Both clear, unlike a model id the router has never served.
+const NO_ENDPOINTS_PATTERNS: readonly RegExp[] = [/no endpoints found/i]
+
+// OpenRouter answers 403 for one request its moderation refused. The key is fine, so the verdict
+// must not cool the provider's credentials.
+const MODERATION_PATTERNS: readonly RegExp[] = [/flagged/i, /moderation/i]
+
 const STATUS_CODES: Readonly<Record<number, LLMErrorCode>> = {
   401: 'auth',
   403: 'auth',
@@ -144,12 +152,10 @@ export function classifyHttpError(
   body: string,
   options?: HttpErrorOptions
 ): LLMError {
-  if (status === 402 && RATE_LIMITED_402_RE.test(body)) {
-    return toProviderError('rate', body, options)
-  }
+  const byBody = classifyStatusByBody(status, body, options)
 
-  if (status === TOO_MANY_REQUESTS_STATUS && hasMatchingPattern(body, QUOTA_PATTERNS)) {
-    return toProviderError('billing', body, options)
+  if (byBody !== undefined) {
+    return byBody
   }
 
   const mapped = STATUS_CODES[status]
@@ -186,6 +192,31 @@ export function classifyHttpError(
   }
 
   return toProviderError('fatal', body)
+}
+
+// A status whose usual verdict is wrong for the body it carries.
+function classifyStatusByBody(
+  status: number,
+  body: string,
+  options?: HttpErrorOptions
+): LLMError | undefined {
+  if (status === 402 && RATE_LIMITED_402_RE.test(body)) {
+    return toProviderError('rate', body, options)
+  }
+
+  if (status === TOO_MANY_REQUESTS_STATUS && hasMatchingPattern(body, QUOTA_PATTERNS)) {
+    return toProviderError('billing', body, options)
+  }
+
+  if (status === 404 && hasMatchingPattern(body, NO_ENDPOINTS_PATTERNS)) {
+    return toProviderError('transient', body, options)
+  }
+
+  if (status === 403 && hasMatchingPattern(body, MODERATION_PATTERNS)) {
+    return toProviderError('fatal', body, { fallbackAllowed: true })
+  }
+
+  return undefined
 }
 
 /** The detail a halt carries for a failed model call. Absent where the code's wording would

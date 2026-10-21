@@ -59,6 +59,7 @@ cli:refreshUpdateState
 cli:reportKeyFile
 cli:resolveContributedCliCommands
 cli:runCli
+cli:saveEditedConfig
 cli:spawnUpgradeProcess
 cli:startUpdateNotice
 cli:starterConfigToml
@@ -90,6 +91,7 @@ core/security/agent-directories
 core/security/binary
 core/security/credentials
 core/security/output-pipeline
+core/security/pasted-content
 core/security/path-policy
 core/security/private-files
 core/security/sanitize

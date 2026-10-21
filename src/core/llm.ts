@@ -40,12 +40,7 @@ export const LLM_ERROR_CODES = [
 ] as const
 export type LLMErrorCode = (typeof LLM_ERROR_CODES)[number]
 
-export const PROVIDER_ATTEMPT_OUTCOMES = [
-  'success',
-  'retry',
-  'fallback',
-  'terminal_failure',
-] as const
+const PROVIDER_ATTEMPT_OUTCOMES = ['success', 'retry', 'fallback', 'terminal_failure'] as const
 export type ProviderAttemptOutcome = (typeof PROVIDER_ATTEMPT_OUTCOMES)[number]
 
 export type ContentBlock =

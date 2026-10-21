@@ -138,9 +138,9 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
 | `/health` | Xem các mã sức khỏe của runtime và kênh |
 | `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
-| `/memory` | Liệt kê, gọi lại, tìm, ghi hoặc xóa bộ nhớ |
+| `/memory` | Gọi lại một mục theo khóa (`/memory <khóa>`), tìm (`find <từ khóa>`), ghi nhớ (`remember <khóa> <giá trị>`) hoặc xóa (`forget <khóa>`) |
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
-| `/schedule` | Liệt kê, xem, tạm dừng, chạy lại hoặc chạy ngay một việc của bạn |
+| `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn) |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
 | `/new` | Chuyển sang một phiên chat mới |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
@@ -296,7 +296,7 @@ Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả 
 
 `upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới thay tệp. Daemon bật bằng `start --background` được tạm dừng trong lúc thay rồi tự bật lại trên bản mới, với cùng tệp cấu hình và thư mục dữ liệu; nếu nó không khởi động được, `upgrade` quay về bản đã chạy, báo cho bạn và giữ lỗi khởi động của bản mới trong `daemon.stderr.failed.log`. Daemon chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý vẫn chạy bản cũ tới khi bạn tự khởi động lại, và `upgrade` in sẵn lệnh cần chạy; riêng Windows không thay được tệp đang chạy, nên daemon bị dừng trong lúc thay và bạn bật lại. Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và daemon đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước bước thay tệp, nên bản cũ vẫn nguyên và daemon vẫn chạy.
 
-Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`), và `upgrade --rollback` đổi ngược về nó. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
+Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`), và `upgrade --rollback` đổi ngược về nó. Nếu bản mới đã thay đổi cơ sở dữ liệu, `--rollback` sẽ đưa nó về dạng bản cũ đọc được trước, bằng `db migrate down --to`. Lệnh hỏi bạn trước khi làm, và với SQLite sẽ lưu một bản sao vào `backups/pre-rollback/` trước. Trả lời không thì không có gì thay đổi. Khi `upgrade` đã bật bản mới mà bản đó không khởi động được, bước này chạy luôn không cần hỏi; còn bản vẫn đang khởi động sau 90 giây, thường do đang cập nhật một cơ sở dữ liệu lớn, thì được để chạy tiếp chứ không bị quay về. Bản cài bằng script cài đặt, kể cả khi cài lại đúng bản đang dùng, không có ghi nhận này, nên sau khi quay về, bản cũ sẽ từ chối khởi động trên schema mới, nói rõ lý do và chỉ cách xử lý. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
 
 Trên máy Windows chip ARM, trình cài tự chọn bản ARM chạy thẳng trên máy; bản x64 cài trước đó vẫn nâng cấp theo x64 cho tới khi bạn chạy lại lệnh cài, lúc đó nó chuyển sang bản ARM.
 
@@ -462,7 +462,8 @@ phí. Chưa có workflow nào là bình thường, không phải lỗi.
 Các lệnh ghi vào cơ sở dữ liệu (`db migrate`, `cleanup`, `import`, `restore`, `reset`) chỉ chạy khi
 daemon đã dừng. `restore`, `reset` và việc lùi một migration sẽ hỏi xác nhận, trừ khi bạn đưa `--yes`.
 Với SQLite, `reset` hỏi trước có sao lưu không (Enter là có): bản sao nằm trong `backups/` giống
-`db backup`, nên lỡ tay thì `db restore` lại được. `--yes` bỏ qua cả câu này.
+`db backup`, nên lỡ tay thì `db restore` lại được. `--yes` trả lời câu này theo mặc định, tức là
+vẫn sao lưu trước.
 `db cleanup` cần `--older-than` (tối thiểu `1d`); `--dry-run` cho xem trước những gì nó sẽ dọn.
 
 `db integrity`, `db stats`, `db export` và `db backup` chỉ khởi động tầng lưu trữ, nên chạy được khi chưa
@@ -774,6 +775,9 @@ Các công cụ sau bị giữ lại, kèm lý do:
 | `social_request`, `social_skill` | Sẽ lên tiếng như một agent của chính bạn trên mạng công khai; một chương trình client không bao giờ được làm thế |
 | `order_place` | Không hoàn tác được ở một sàn thật; một chương trình trả lời ô phê duyệt không phải con người mà cái cổng đó tồn tại vì họ |
 | `web_search`, `web_fetch` | Host tự mang bộ tìm kiếm; `mcp serve` không đọc cấu hình tìm kiếm nào |
+
+Công cụ đã bị giữ lại thì vẫn bị giữ lại khi client gọi thẳng tên nó, qua stdio cũng như qua API HTTP:
+lời gọi nhận câu trả lời là không có công cụ đó.
 
 Công cụ do plugin và MCP khác đóng góp cũng bị giữ lại: quảng bá lại chúng là đặt công cụ của một server
 khác dưới cái tên của server này, trong khi host hoàn toàn kết nối thẳng tới server kia được. Các thao tác

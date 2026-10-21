@@ -4,6 +4,7 @@ import type {
   BatchOvercommit,
   SuggestionBatchResult,
 } from '@/trading/features/suggestion/batch-types'
+import type { HeadlinesRead } from '@/trading/features/suggestion/citation'
 import type { HeldPosition } from '@/trading/features/suggestion/exposure'
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type {
@@ -51,6 +52,7 @@ type RewrittenField =
   | 'standingExit'
   | 'standingTakeProfit'
   | 'priceBand'
+  | 'headlinesRead'
 
 type HoldStoredSuggestion = Extract<StoredSuggestion, { readonly action: 'hold' }>
 
@@ -98,6 +100,8 @@ interface AgentFields {
   readonly standingExit?: { readonly stop: string; readonly takeProfit: string }
   readonly heldTakeProfit?: AgentHeldTakeProfit
   readonly held?: HeldWeight
+  /** A model never sees LLM spend, so the read's cost stays behind. */
+  readonly headlinesRead?: Omit<HeadlinesRead, 'costUsd'>
 }
 
 type AgentSuggestion =
@@ -217,6 +221,7 @@ function toAgentSuggestion(call: StoredSuggestion, reader: AgentReader): AgentSu
     takeProfitTranchePct: _tranche,
     standingExit: _standingExit,
     standingTakeProfit: _standingTakeProfit,
+    headlinesRead: _headlinesRead,
     ...rest
   } = suggestion
 
@@ -247,6 +252,7 @@ function toAgentHold(
     takeProfitTranchePct: _tranche,
     standingExit: _standingExit,
     standingTakeProfit: _standingTakeProfit,
+    headlinesRead: _headlinesRead,
     ...rest
   } = suggestion
 
@@ -304,7 +310,12 @@ function agentFields(suggestion: StoredSuggestion, reader: AgentReader): AgentFi
     ...takeProfitFields(suggestion, reader),
     ...standingExitField(suggestion.standingExit, price),
     ...heldWeightOf(suggestion.held),
+    ...headlinesReadOf(suggestion.headlinesRead),
   }
+}
+
+function headlinesReadOf(read: HeadlinesRead | undefined): Pick<AgentFields, 'headlinesRead'> {
+  return read === undefined ? {} : { headlinesRead: { own: read.own, market: read.market } }
 }
 
 function standingExitField(

@@ -84,6 +84,10 @@ export const PREFERRED_FORMS: readonly VnGoldForm[] = Object.freeze([
   'doji-ring',
 ])
 
+/** The form the stored premium series holds. The history feed is pinned to it, so the series is one
+ *  population only if every write and every rank reads this form's premium. */
+export const GOLD_VN_PREMIUM_FORM: VnGoldForm = 'sjc-bar'
+
 /** One percentage point of premium: below it, a ring's advantage is noise that would flip the
  *  selected form day to day. */
 export const MINIMUM_RING_PREMIUM_ADVANTAGE_FRACTION = 0.01

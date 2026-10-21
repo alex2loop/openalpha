@@ -1,6 +1,6 @@
 import type { FileHandle } from 'node:fs/promises'
-import { open, readdir, rename, rm } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { mkdir, mkdtemp, open, readdir, rename, rm } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
 import type { DbTable, Dialect, Storage } from '@/persistence/api'
@@ -9,7 +9,11 @@ import { usage } from '@/cli/error-output'
 import { flagBool, flagString } from '@/cli/parsing/args'
 import { success } from '@/cli/ui/colors'
 import { expandHome } from '@/core/config/resolve'
-import { ensurePrivateDirectory, PRIVATE_FILE_MODE } from '@/core/security/private-files'
+import {
+  ensurePrivateDirectory,
+  PRIVATE_DIRECTORY_MODE,
+  PRIVATE_FILE_MODE,
+} from '@/core/security/private-files'
 import { t } from '@/i18n'
 import { ALL_TABLE_NAMES, DURABLE_TABLES, findTable, hasTable } from '@/persistence/api'
 
@@ -129,12 +133,12 @@ interface ExportRequest {
 
 async function writeExport(req: ExportRequest): Promise<number> {
   const locale = req.app.config.locale.language
-  // A sibling of the target so the publishing renames stay on one filesystem. The suffix names
-  // this command's scratch directory, and a leftover from a killed run is cleared before reuse.
-  const stage = `${req.dir}${STAGE_SUFFIX}`
+  // A sibling of the target so the publishing renames stay on one filesystem. mkdtemp mints a name
+  // nothing else holds, so this run removes only what it created; a leftover from a killed run is
+  // a stray directory and nothing reuses or clears it.
+  await mkdir(dirname(req.dir), { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
 
-  await rm(stage, { recursive: true, force: true })
-  await ensurePrivateDirectory(stage)
+  const stage = await mkdtemp(`${req.dir}${STAGE_SUFFIX}-`)
 
   try {
     const counts = await stageTables(stage, req)
@@ -175,8 +179,9 @@ async function stageTables(stage: string, req: ExportRequest): Promise<readonly 
   return counts
 }
 
-// The staged set moves into place only once every table has been written, so a failure part-way
-// through leaves the target directory exactly as it was rather than half an export.
+// The staged set moves into place only once every table has been written, so a failure while
+// reading leaves the target untouched. The renames themselves go one table at a time: a failure in
+// them can leave the target holding some new files beside the old ones.
 async function publish(stage: string, req: ExportRequest): Promise<void> {
   await ensurePrivateDirectory(req.dir)
 

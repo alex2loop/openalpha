@@ -57,6 +57,9 @@
   function Get-ReleaseBase {
     if ($env:OPENALPHA_VERSION) {
       $tag = 'v' + $env:OPENALPHA_VERSION.TrimStart('v')
+      if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+        Fail "OPENALPHA_VERSION should look like v1.2.0." 'OPENALPHA_VERSION cần có dạng v1.2.0.'
+      }
       return "https://github.com/$Repository/releases/download/$tag"
     }
     return "https://github.com/$Repository/releases/latest/download"
@@ -186,5 +189,7 @@
     }
   } catch {
     Write-Host $_.Exception.Message -ForegroundColor Red
+    # No `exit` under `iex`: it would close the operator's shell. The exit code still tells CI it failed.
+    $global:LASTEXITCODE = 1
   }
 }

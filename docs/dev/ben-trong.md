@@ -300,7 +300,7 @@ một phiên chạy bắt đầu. Hộp thư đến và offset polling được 
 | Nghiên cứu | `/research [quick\|standard\|thorough] <câu hỏi>` |
 | Trạng thái và chi phí | `/health`, `/cost`, `/config` |
 | Bộ nhớ | `/memory` |
-| Lập lịch | `/schedule [show\|pause\|resume\|run] <id>` |
+| Lập lịch | `/schedule [show\|pause\|resume\|run\|remove] <id>` |
 | Phiên chat | `/new`, `/continue` |
 
 Phần giao dịch thêm các lệnh riêng, cộng `/trade` khi một sàn có khóa giao dịch (chính khóa đó cũng mở

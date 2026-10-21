@@ -142,7 +142,7 @@ phân số 0 tới 1 (`0.2` là 20%).
 
 Bật hoặc tắt cả nhóm: `/profile enable <nhóm>` / `/profile disable <nhóm>`. Nhóm đang tắt thì không
 mã nào trong đó được tính khối lượng hay mua vào. **Hồ sơ mới chỉ bật sẵn `crypto` và `equity-vn`**;
-muốn mua `gold` hay `gold-vn` phải bật trước. Về mặc định: `/profile reset`.
+muốn mua `gold-vn` thì bật trước (`gold` là vàng thế giới, chỉ để tham chiếu nên không bật được). Về mặc định: `/profile reset`.
 
 **Chưa biết bắt đầu từ đâu?** Gõ `/setup`: trợ lý chào một dòng, hỏi khẩu vị rủi ro nếu bạn chưa
 khai, và đề nghị một phân bổ khởi điểm.
@@ -388,7 +388,7 @@ tin.
 | Thị trường | Khu vực | Loại tài sản | Tiền tệ | Ghi chú |
 |---|---|---|---|---|
 | `equity-vn` | `vn` | cổ phiếu VN | VND | sâu nhất: có sàng lọc, dòng tiền ngoại, basis phái sinh, bản tin sáng |
-| `crypto` | `global` | tiền mã hóa | USD | không bao giờ đóng cửa; có sàng lọc, funding, tâm lý |
+| `crypto` | `global` | tiền mã hóa | USDT | không bao giờ đóng cửa; có sàng lọc, funding, tâm lý |
 | `gold` | `global` | vàng thế giới (XAU) | USD | chỉ để tham chiếu: hỏi giá và làm mốc cho `gold-vn`; không sàn nào giữ nên nhóm này luôn tắt |
 | `gold-vn` | `vn` | vàng miếng/nhẫn (SJC, PNJ, DOJI) | VND | định giá chênh lệch so với `gold`; tắt sẵn trong hồ sơ mới |
 
@@ -595,13 +595,7 @@ openalpha start --background
 > /profile set risk-level balanced
 ```
 
-Thêm một dòng vào cấu hình (`openalpha config edit`) để `/screen` mặc định về khu vực toàn cầu, hoặc
-cứ gõ `/screen crypto` mỗi lần:
-
-```toml
-[locale]
-region = "global"
-```
+Khu vực nhà hiện chỉ nhận `vn`, nên khi sàng lọc crypto bạn cứ gõ thẳng `/screen crypto`.
 
 **Mỗi ngày, đúng giờ bạn chọn - khoảng 3 phút, gần như miễn phí:**
 

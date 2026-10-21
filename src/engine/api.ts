@@ -164,7 +164,7 @@ export { languageName, reminderModifier } from '@/engine/hooks/prompt-blocks'
 export { appendSystemBlock } from '@/engine/hooks/system-block'
 export { createUserPreferencesHooks } from '@/engine/hooks/user-preferences'
 export { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
-export { AGENT_CAP_MESSAGE, PAUSED_MESSAGE } from '@/engine/loop/preflight'
+export { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/loop/preflight'
 export {
   formatTodoBlock,
   TODO_GLYPHS,

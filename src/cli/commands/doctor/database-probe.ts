@@ -11,7 +11,7 @@ import { PROFILE_CURRENCY_SQL } from '@/trading/api'
 
 import type { DoctorFinding, DoctorProbe, DoctorStatus } from './types'
 import { checkLabel } from './labels'
-import { migrationsUpToDate } from './local-probes'
+import { migrationFinding } from './local-probes'
 import { probePostgresDatabase } from './postgres-probe'
 
 const INTEGRITY_CHECK_SQL = 'PRAGMA integrity_check'
@@ -221,32 +221,9 @@ function migrationProbe(options: {
   readonly applied: readonly MigrationRow[]
   readonly locale: Locale
 }): DoctorFinding {
-  const appliedIds = new Set(options.applied.map((migration) => migration.id))
-  const declaredIds = new Set(options.migrations.map((migration) => migration.id))
-  const pending = options.migrations
-    .filter((migration) => !appliedIds.has(migration.id))
-    .map((m) => m.id)
-  const orphaned = options.applied
-    .filter((migration) => !declaredIds.has(migration.id))
-    .map((m) => m.id)
+  const finding = migrationFinding(options.locale, options.migrations, options.applied)
 
-  if (pending.length === 0 && orphaned.length === 0) {
-    return databaseProbe(
-      'ok',
-      options.path,
-      migrationsUpToDate(options.locale, options.applied.length)
-    )
-  }
-
-  const none = t(options.locale, 'cli.doctorNone')
-  return databaseProbe(
-    'warn',
-    options.path,
-    t(options.locale, 'cli.doctorMigrationsPendingOrphaned', {
-      pending: pending.join(', ') || none,
-      orphaned: orphaned.join(', ') || none,
-    })
-  )
+  return databaseProbe(finding.status, options.path, finding.detail)
 }
 
 function databaseProbe(status: DoctorStatus, path: string, detail: string): DoctorFinding {

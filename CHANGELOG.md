@@ -36,6 +36,50 @@ toward the total.
 
 - Source lines read "updated" instead of "as of".
 
+### Fixes
+
+- `upgrade --rollback` takes the database back to what the previous release reads before swapping
+(it asks first), and so does the automatic rollback after a release that will not start. A release
+older than the database's schema refuses to start instead of misreading it, and says how to get
+back; `doctor` fails the database check for it. A reinstall of the same release with the install
+script no longer makes `--rollback` undo that release's own migrations.
+- `db migrate down --to <id>` undoes every migration after `<id>`.
+- A scheduled job stopped by the daily, monthly or agent spend cap, or by the rate limit, is no
+longer counted as failing and switched off after three tries: it waits for the cap to reopen.
+- The agent asks before reading a web link it built or changed itself, one it adds headers to, or
+any page past `[loop] max_unasked_fetches` in a run (10 by default). Links you send and links a
+search or news read brought back open as before; text you forward does not count as yours. This
+closes the way a hidden instruction on a page could carry your holdings or notes out in a link.
+- An MCP client calling a withheld tool by name over the HTTP API (`delegate`, `research`,
+`social_request` and the rest) is told it does not exist, as over stdio.
+- A sale of VN shares can no longer exceed what you hold, even by a few shares; the small margin for
+an exchange's rounding stays for coins bought with the fee taken in the coin.
+- VN prices scaled from thousands of dong land on the exact price step (4.03 reads 4,030, not
+4,030.0000000000005), so a bar that touched a stop is read as touching it.
+- Outbound requests also refuse `localhost.` and other blocked names written with a trailing dot,
+and IPv6 forms that carry a private IPv4 (`::ffff:0:a.b.c.d`) or the old site-local range.
+- Two starts racing over a stale pid file can no longer delete each other's claim.
+- `db restore` keeps a whole safety copy of the old database even when another reader blocks the
+WAL fold: the WAL moves with the copy instead of being dropped.
+- A daemon still starting after 90 seconds, often busy updating a large database, is left running:
+`upgrade` no longer rolls it back while it starts.
+- A segment with a 0% target opens no new position (the conservative level ships crypto that way);
+held names keep their exits.
+- The VN gold premium and its rank both read the SJC bar, the form the stored history holds.
+- A crypto funding read with a missing leg is retried instead of being kept for the whole day.
+- OKX lists only instruments that are trading.
+- The brief's position exits skip review-only stops and a take-profit already banked, and a crossed
+exit alert still waiting to send is no longer dropped when its plan changes.
+- A run that stops before answering no longer repeats the previous answer, and a scheduled job's
+history shows what that run alone cost.
+- An OpenRouter "no endpoints" or moderation refusal no longer disables a model or the provider.
+- `/approve`, `/deny` and `/pair` in chat accept any letter case and the `@bot` form; `/stop` works
+with slash commands off; Telegram's plain-text fallback no longer shows markup.
+- `db restore` keeps every replaced database in `backups/`, `db reset --yes` still backs up first,
+PostgreSQL refuses to reset `public`, and `db export` never deletes a folder it did not create.
+- Saving config from the API keeps the previous file beside it.
+- The installers check the pinned version strictly, and a failed Windows install reports failure.
+
 ## [1.0.11] - 2026-10-20
 
 Fixes: `db reset` can back up first again, a rejected AI key is no longer reported as a rate limit,
