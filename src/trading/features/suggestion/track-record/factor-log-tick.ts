@@ -32,6 +32,16 @@ export function createFactorLogTick(
           err: formatErrForLog(skip.error),
         })
       }
+
+      // Lost for good once the next session settles: capture asks only for the newest settled day.
+      if (skip.reason === 'evidence-lagging' || skip.reason === 'universe-empty') {
+        deps.logger.warn('trading.factor_log_capture_deferred', {
+          market: skip.market,
+          reason: skip.reason,
+          day: skip.day,
+          dataThroughDay: skip.dataThroughDay,
+        })
+      }
     }
 
     let cursor: FactorLogId | undefined

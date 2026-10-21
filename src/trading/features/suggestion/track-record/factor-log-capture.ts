@@ -26,6 +26,8 @@ type Skip = {
   readonly market: MarketRef
   readonly reason: FactorLogSkipReason
   readonly error?: unknown
+  readonly day?: TradingDay
+  readonly dataThroughDay?: TradingDay
 }
 type Captured = { readonly market: MarketRef; readonly day: TradingDay; readonly rows: number }
 
@@ -96,11 +98,11 @@ async function captureMarket(
   })
 
   if (board.candidates.length === 0) {
-    return { market: id, reason: 'universe-empty' }
+    return { market: id, reason: 'universe-empty', day }
   }
 
   if (board.dataThroughDay !== undefined && board.dataThroughDay < day) {
-    return { market: id, reason: 'evidence-lagging' }
+    return { market: id, reason: 'evidence-lagging', day, dataThroughDay: board.dataThroughDay }
   }
 
   const entries = board.candidates.flatMap((candidate) => toEntry(market, day, candidate))
