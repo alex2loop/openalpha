@@ -29,7 +29,9 @@ const ENVELOPE = z.object({
 const AMOUNT_NOISE_RE = /[$,%+]/g
 const AMOUNT_RE = /^-?\d+(\.\d+)?$/
 const US_DAY_RE = /^(\d{2})\/(\d{2})\/(\d{4})$/
-const EASTERN_INSTANT_RE = /^([A-Z][a-z]{2}) (\d{1,2}), (\d{4}) (\d{1,2}):(\d{2}) (AM|PM) ET$/
+const EASTERN_INSTANT_RE = /^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})(?: (\d{1,2}):(\d{2}) (AM|PM) ET)?$/
+/** With the market shut the feed stamps the last trade with its day alone; that print is the close. */
+const REGULAR_CLOSE = '16:00'
 const HALF_DAY_HOURS = 12
 
 const MONTHS = Object.freeze({
@@ -147,7 +149,8 @@ export function parseUsDay(raw: unknown): TradingDay {
   return tradingDay(`${match[3]}-${match[1]}-${match[2]}`)
 }
 
-/** "Oct 19, 2026 12:44 PM ET", on New York's wall clock whichever side of daylight saving. */
+/** "Oct 19, 2026 12:44 PM ET", on New York's wall clock whichever side of daylight saving, or
+ *  "Oct 20, 2026" alone once the market has shut. */
 export function parseEasternInstant(raw: unknown): number {
   const match = typeof raw === 'string' ? EASTERN_INSTANT_RE.exec(raw) : null
   const month = match === null ? undefined : fromCodeTable(MONTHS, match[1] ?? '')
@@ -156,9 +159,14 @@ export function parseEasternInstant(raw: unknown): number {
     throw new ValidationError('timestamp is not a New York clock')
   }
 
-  const [, , dayOfMonth = '', year = '', hour12 = '', minute = '', half = ''] = match
-  const hour = (Number(hour12) % HALF_DAY_HOURS) + (half === 'PM' ? HALF_DAY_HOURS : 0)
+  const [, , dayOfMonth = '', year = '', hour12, minute = '', half = ''] = match
   const day = tradingDay(`${year}-${month}-${dayOfMonth.padStart(2, '0')}`)
+
+  if (hour12 === undefined) {
+    return resolveLocalTimeAt(day, REGULAR_CLOSE, NASDAQ_TIMEZONE)
+  }
+
+  const hour = (Number(hour12) % HALF_DAY_HOURS) + (half === 'PM' ? HALF_DAY_HOURS : 0)
 
   return resolveLocalTimeAt(day, `${String(hour).padStart(2, '0')}:${minute}`, NASDAQ_TIMEZONE)
 }

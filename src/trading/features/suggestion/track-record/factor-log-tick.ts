@@ -1,5 +1,6 @@
 import type { Logger } from '@/core/logging/logger'
 import type {
+  FactorLogCaptureResult,
   FactorLogId,
   FactorLogService,
 } from '@/trading/features/suggestion/track-record/factor-log-types'
@@ -26,22 +27,7 @@ export function createFactorLogTick(
     }
 
     for (const skip of capture.skipped) {
-      if (skip.reason === 'capture-failed') {
-        deps.logger.warn('trading.factor_log_capture_failed', {
-          market: skip.market,
-          err: formatErrForLog(skip.error),
-        })
-      }
-
-      // Lost for good once the next session settles: capture asks only for the newest settled day.
-      if (skip.reason === 'evidence-lagging' || skip.reason === 'universe-empty') {
-        deps.logger.warn('trading.factor_log_capture_deferred', {
-          market: skip.market,
-          reason: skip.reason,
-          day: skip.day,
-          dataThroughDay: skip.dataThroughDay,
-        })
-      }
+      logSkip(deps.logger, skip)
     }
 
     let cursor: FactorLogId | undefined
@@ -56,5 +42,26 @@ export function createFactorLogTick(
 
       cursor = batch.nextCursor
     } while (cursor !== undefined)
+  }
+}
+
+type Skip = FactorLogCaptureResult['skipped'][number]
+
+function logSkip(logger: Logger, skip: Skip): void {
+  if (skip.reason === 'capture-failed') {
+    logger.warn('trading.factor_log_capture_failed', {
+      market: skip.market,
+      err: formatErrForLog(skip.error),
+    })
+  }
+
+  // Lost for good once the next session settles: capture asks only for the newest settled day.
+  if (skip.reason === 'evidence-lagging' || skip.reason === 'universe-empty') {
+    logger.warn('trading.factor_log_capture_deferred', {
+      market: skip.market,
+      reason: skip.reason,
+      day: skip.day,
+      dataThroughDay: skip.dataThroughDay,
+    })
   }
 }
