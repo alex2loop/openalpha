@@ -2306,7 +2306,7 @@
     "accounts-table.trailing": "4 quý gần nhất đến Q{quarter}/{year} (chưa kiểm toán, công bố {day})",
     "accounts-table.quarter": "Q{quarter}/{year} (chưa kiểm toán, công bố {day})",
     "accounts-table.quarter-q4": "Q4/{year} (chưa kiểm toán; có thể gồm phần điều chỉnh sau kiểm toán cả năm)",
-    "accounts-table.cash-flow-derived": "lưu chuyển tiền tệ tính từ số lũy kế của nguồn dự phòng",
+    "accounts-table.cash-flow-derived": "lưu chuyển tiền tệ tạm tính từ nguồn dự phòng",
     "accounts-table.trend": "Trong {years} năm",
     "accounts-field.netRevenue": "doanh thu",
     "accounts-field.grossMargin": "biên lợi nhuận gộp",

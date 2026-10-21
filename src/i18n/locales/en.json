@@ -2306,7 +2306,7 @@
     "accounts-table.trailing": "Last 4 quarters to Q{quarter} {year} (unaudited, filed {day})",
     "accounts-table.quarter": "Q{quarter} {year} (unaudited, filed {day})",
     "accounts-table.quarter-q4": "Q4 {year} (unaudited; may include the year-end audit adjustments)",
-    "accounts-table.cash-flow-derived": "cash flow worked out from the backup source's year-to-date figures",
+    "accounts-table.cash-flow-derived": "cash flow worked out from the backup source for now",
     "accounts-table.trend": "Over {years} years",
     "accounts-field.netRevenue": "revenue",
     "accounts-field.grossMargin": "gross margin",

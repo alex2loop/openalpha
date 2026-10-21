@@ -114,7 +114,7 @@ Ngoài các năm đã kiểm toán, OpenAlpha còn cho xem 5 quý gần nhất, 
 
 Quý mới được đưa vào phân tích ngay khi có kết quả kinh doanh, không chờ lưu chuyển tiền tệ (phần này hay về chậm vài ngày):
 
-- Phần còn thiếu được lấy từ `cafef-statements`, chỉ khi số liệu khớp với các quý đã có. Dòng quý đó sẽ ghi "tính từ nguồn dự phòng".
+- Phần còn thiếu được lấy từ `cafef-statements`, chỉ khi số liệu khớp với các quý đã có. Dòng quý đó sẽ ghi "tạm tính từ nguồn dự phòng".
 - Chưa lấy được thì dòng tiền để trống, không tính là 0.
 
 Đề xuất sẽ nhắc bạn khi quý mới nhất còn thiếu lưu chuyển tiền tệ, hoặc khi quý đã quá hạn mà chưa có số. Gặp trường hợp sau, bạn nên xem thêm báo cáo trên trang của công ty.

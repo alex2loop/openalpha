@@ -71,7 +71,7 @@ export async function refreshAccounts(
   )
   const outcomes = await mapWithConcurrency(targets, VN_SOURCE_CONCURRENCY, async (instrument) => {
     const outcome = await fetchAccounts(scope, instrument)
-    const filled = await withCashFlow(scope, outcome, quarters.get(instrument.ticker) ?? [])
+    const filled = await withCashFlowFill(scope, outcome, quarters.get(instrument.ticker) ?? [])
 
     progress.advance(1)
 
@@ -188,7 +188,7 @@ function storedReportCount(stored: ReadonlyMap<Ticker, readonly AnnualAccounts[]
 
 /** A failed fill never rejects the name's primary rows; a throw here is a bug, not a source
  *  failure, and propagates. */
-async function withCashFlow(
+async function withCashFlowFill(
   scope: EvidenceScope,
   outcome: TargetOutcome<FiledAccounts>,
   stored: readonly QuarterlyAccounts[]

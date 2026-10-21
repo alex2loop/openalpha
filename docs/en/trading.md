@@ -114,7 +114,7 @@ Beyond the audited years, OpenAlpha also shows the 5 newest quarters, each again
 
 A new quarter reaches the analysis as soon as its results are out, without waiting for the cash flow statement, which often lands a few days later:
 
-- The missing part comes from `cafef-statements`, only when its figures match the quarters already on file. That quarter's line then says "worked out from the backup source".
+- The missing part comes from `cafef-statements`, only when its figures match the quarters already on file. That quarter's line then says "worked out from the backup source for now".
 - Until then, its cash figures stay blank, never zero.
 
 A suggestion tells you when the newest quarter still lacks its cash flow, or when a quarter is past its deadline and not in yet. In the second case, check the company's own filing too.
