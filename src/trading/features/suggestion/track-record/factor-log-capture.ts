@@ -19,6 +19,7 @@ interface CaptureDeps {
 
 interface CaptureOptions {
   readonly now: number
+  readonly markets: readonly MarketRef[]
   readonly signal: AbortSignal
 }
 
@@ -42,7 +43,9 @@ export async function captureBoards(
   const captured: Captured[] = []
   const skipped: Skip[] = []
 
-  for (const market of deps.markets.list()) {
+  const asked = new Set(options.markets)
+
+  for (const market of deps.markets.list().filter((entry) => asked.has(entry.manifest.id))) {
     const result = await captureIsolated(deps, market, options)
 
     if ('reason' in result) {

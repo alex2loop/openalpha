@@ -281,7 +281,10 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
       failedPasses = emptied ? (failedPasses % refreshRetry.maximumAttempts) + 1 : 0
 
       await deps.navSnapshot(signal)
-      await factorLogTick(signal)
+      await factorLogTick(
+        results.map((result) => result.market),
+        signal
+      )
     },
   })
 }

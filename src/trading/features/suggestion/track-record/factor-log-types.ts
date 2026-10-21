@@ -63,6 +63,9 @@ export interface FactorLogStore {
 export interface FactorLogService {
   capture(options: {
     readonly now: number
+    /** The markets the pass just refreshed: one nobody uses has no board to log, and asking it
+     *  would report an empty universe on every pass. */
+    readonly markets: readonly MarketRef[]
     readonly signal: AbortSignal
   }): Promise<FactorLogCaptureResult>
   resolvePending(options: OperationTickOptions<FactorLogId>): Promise<FactorLogResolveBatch>
