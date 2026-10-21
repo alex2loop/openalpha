@@ -399,7 +399,7 @@ Một giá in nằm trong biên độ của chính phiên nó. Nếu nến phiê
 - Kẹt trần: giá vào của lệnh mua dời tới giá mở cửa của phiên kế tiếp có giao dịch, và T+2 cùng phép so chuẩn đều đếm từ lần khớp đó.
 - Lệnh bán chốt mục tiêu vào trần kẹt vẫn khớp, vì bên mua xếp hàng ở trần.
 - Lời gọi mà trần chặn suốt cửa sổ đóng là `unfilled`: không giao dịch, không kết quả, nằm ngoài mọi phép đếm có chấm điểm.
-- Mã bạn đang nắm đóng cửa ở giá trần được đề xuất giảm bớt một phần ngay phiên mở cửa kế tiếp (`ceiling-close`, trong mục Bán một mã đang nắm); đặt `ceiling_trim_sessions = 0` để tắt.
+- Mã bạn đang nắm đóng cửa ở giá trần được đề xuất giảm bớt một phần ngay phiên mở cửa kế tiếp (`ceiling-close`, trong mục Bán một mã đang nắm).
 
 **Lệnh mua treo.** Lệnh mua treo khớp ở phiên đầu tiên giao dịch dưới limit của nó (chạm chưa phải khớp), ở giá mở cửa phiên đó nếu phiên mở thấp hơn. Trong ngày của chính lời gọi, chỉ mức dịch từ giá tới giá đóng được tính, vì đáy ngày có thể in trước khi lệnh tồn tại. Ở chính phiên khớp, mục tiêu chỉ được tính khi phiên mở thấp hơn limit (khớp lúc mở cửa do giá nhảy); phiên mở bằng hoặc cao hơn limit là khớp giữa chừng, và một nến ngày không nói được đỉnh có in trước hay không, nên mục tiêu được đọc từ phiên kế tiếp. Cắt lỗ vẫn được thử ngay ở phiên khớp, như ở mọi phiên, trước mục tiêu. Limit chưa khớp tới ngày cuối cùng của nó đóng là `unfilled` theo cách tương tự. `/reflect` đếm các lời gọi này riêng khỏi những lời gọi đã diễn ra.
 

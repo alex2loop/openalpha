@@ -224,9 +224,6 @@ export interface MarketConfig {
   readonly stopLossAtr?: number
   /** Target as a multiple of the risk distance. Absent keeps the market's own. */
   readonly rewardRisk?: number
-  /** Equity-vn only: a held short-horizon name that closes at its ceiling this many sessions running
-   *  is trimmed at the next open. 0 turns the trim off; absent keeps the market's own. */
-  readonly ceilingTrimSessions?: number
 }
 
 export type MarketConfigs = Readonly<Partial<Record<MarketRef, MarketConfig>>>

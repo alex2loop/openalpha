@@ -33,8 +33,6 @@ const interval = z.int().positive().max(MAX_TIMER_MS)
 const costRate = z.number().min(0).max(MAXIMUM_COST_RATE)
 const boundedNumber = (bounds: { readonly minimum: number; readonly maximum: number }) =>
   z.number().min(bounds.minimum).max(bounds.maximum)
-const CEILING_TRIM_MARKET = 'equity-vn'
-
 const configMarketRef = z.string().refine(isMarketRefShape, 'must be a market ref')
 const configVenueRef = z.string().refine(isVenueRefShape, 'must be a venue ref')
 const configDay = z.iso
@@ -56,16 +54,7 @@ export const tradingConfigPatchSchema = z.strictObject({
         maximum_stop_loss: boundedNumber(MAXIMUM_STOP_LOSS_BOUNDS).optional(),
         stop_loss_atr: boundedNumber(STOP_LOSS_ATR_BOUNDS).optional(),
         reward_risk: boundedNumber(REWARD_RISK_BOUNDS).optional(),
-        ceiling_trim_sessions: z.int().nonnegative().optional(),
       })
-    )
-    .refine(
-      (markets) =>
-        Object.entries(markets).every(
-          ([id, settings]) =>
-            settings.ceiling_trim_sessions === undefined || id === CEILING_TRIM_MARKET
-        ),
-      `ceiling_trim_sessions is read only by ${CEILING_TRIM_MARKET}`
     )
     .optional(),
   briefs: z.strictObject({ send_time: localTime.optional() }).optional(),

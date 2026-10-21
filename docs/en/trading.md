@@ -399,7 +399,7 @@ A quote prints inside its own session's range. If a call's session bar no longer
 - Locked at the ceiling: a buy's entry moves to the open of the next session that trades, and T+2 and the benchmark comparison both count from that fill.
 - A target sale into a ceiling lock still fills, because buyers are queued at the ceiling.
 - A call the ceiling kept out for its whole window closes `unfilled`: no trade, no result, out of every scored count.
-- A name you hold that closes at the ceiling is proposed for a partial sale at the next open (`ceiling-close`, under Selling a held name); `ceiling_trim_sessions = 0` turns it off.
+- A name you hold that closes at the ceiling is proposed for a partial sale at the next open (`ceiling-close`, under Selling a held name).
 
 **Resting buys.** A resting buy fills on the first session that trades below its limit (a touch is not a fill), at that session's open where it opened below. On the call's own day only the move from the quote to the close counts, since the day's low may have printed before the order existed. On the fill session itself the target counts only when the session opened below the limit (a gap fill at the open); a session that opened at or above it filled partway through, and a daily bar cannot say whether its high printed first, so the target is read from the next session. The stop is still tested on the fill session, as it is on every session before the target. A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from calls that played out.
 

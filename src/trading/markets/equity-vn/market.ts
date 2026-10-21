@@ -43,8 +43,6 @@ import { LEVEL_FORMULA_VERSION, trailOf } from '@/trading/markets/levels'
 export function createVnEquityMarket(deps: MarketDeps): Market {
   const manifest = vnManifest(deps.config)
   const crossSection = crossSectionCache(deps, manifest)
-  const ceilingTrimSessions =
-    deps.config.markets[VN_MARKET_REF]?.ceilingTrimSessions ?? VN_CEILING_TRIM_POLICY.sessions
 
   deps.stages.register(createVnSolvencyStage(crossSection))
   deps.stages.register(createVnDistributionStage(deps))
@@ -58,7 +56,7 @@ export function createVnEquityMarket(deps: MarketDeps): Market {
     candidacy,
     detect: (options) => detect(deps, options),
     search: (options) => search(deps, options),
-    factors: (options) => runFactors(crossSection, options, ceilingTrimSessions),
+    factors: (options) => runFactors(crossSection, options, VN_CEILING_TRIM_POLICY.sessions),
     levels: async (options) =>
       buildVnLevels(deps, await crossSection.get(options.asOf, options.signal), options),
     ...trailOf(VN_LEVEL_POLICY),

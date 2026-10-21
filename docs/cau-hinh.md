@@ -694,7 +694,6 @@ holidays = ["2027-01-01"]      # ngày sàn nghỉ được công bố sau khi b
 maximum_stop_loss = 0.08       # điểm cắt lỗ không bao giờ xa quá 8% dưới giá vào (0.02-0.30)
 stop_loss_atr = 3              # khoảng cắt lỗ tính bằng số lần biên độ ngày trung bình (1-5)
 reward_risk = 3                # mục tiêu bằng bao nhiêu lần khoảng rủi ro (1-5)
-ceiling_trim_sessions = 1      # giảm bớt mã kỳ hạn ngắn đang nắm sau chừng này phiên đóng cửa ở trần liên tiếp; 0 = tắt
 
 [trading.briefs]
 send_time = "08:15"            # mặc định cho một bản gửi chưa tự đặt giờ trong chat
@@ -874,10 +873,7 @@ hình quyết định cái gì chạy và khi nào, cộng ba thứ thuộc quy�
   nhuận của thị trường. Đặt bất kỳ khóa nào trong số đó sẽ mở một track record riêng cho thị trường ấy.
   Mức trần làm gì với mục tiêu, cỡ lệnh và điểm cắt lỗ bạn đang giữ nằm ở [Giao dịch](giao-dich.md).
   Crypto còn đặt lệnh mua chờ thấp hơn giá live nửa ATR cho mã đã tăng từ 25% trong một tuần; đó là
-  chính sách của thị trường, không phải một khóa cấu hình. `ceiling_trim_sessions` chỉ `equity-vn` đọc: mã
-  kỳ hạn ngắn đang nắm đóng cửa ở giá trần chừng ấy phiên liên tiếp sẽ được đề xuất giảm bớt phần chốt lời
-  đầu quen thuộc của bạn ngay phiên mở cửa kế tiếp (mặc định 1, 0 là tắt). Đặt khóa này cũng mở một track
-  record riêng.
+  chính sách của thị trường, không phải một khóa cấu hình.
 
 **Lịch giao dịch do từng thị trường quyết định, và chỉ có một thiết lập.** Giờ phiên và ngày cuối tuần
 nằm trong mã, và mỗi thị trường đi kèm bảng ngày sàn nghỉ của riêng nó. `[trading.markets.<id>]

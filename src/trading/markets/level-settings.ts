@@ -33,7 +33,6 @@ export function strategyVersionOf(version: string, settings: MarketConfig | unde
     maximumStopLoss: settings?.maximumStopLoss,
     stopLossAtr: settings?.stopLossAtr,
     rewardRisk: settings?.rewardRisk,
-    ceilingTrimSessions: settings?.ceilingTrimSessions,
   })
 
   if (Object.keys(levels).length === 0) {
