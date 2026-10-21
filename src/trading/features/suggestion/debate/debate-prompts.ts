@@ -9,6 +9,7 @@ import type {
 import type { EvidenceBundle } from '@/trading/features/suggestion/pipeline/evidence'
 import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
 import type { SuggestionDirection } from '@/trading/features/suggestion/types'
+import type { ReduceReasonCode } from '@/trading/kernel/caveat'
 import type { DebateRole } from '@/trading/kernel/config'
 import type { Market } from '@/trading/markets/types'
 import { OUTCOME_WINDOW_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
@@ -78,6 +79,22 @@ const TRADER_TRADEABILITY_INSTRUCTIONS = [
   'acts. Playbook lines about lots, ticks, bands, settlement, foreign room, or rounding belong to',
   'the order stage after you; do not apply them here.',
 ].join('\n')
+
+/** Why the deterministic draft proposes a sale, in the words a model weighs. Without it a reduce
+ *  looks like a call with no cause, and a sign of strength such as a ceiling close reads as a reason
+ *  to keep. */
+const REDUCE_REASON_SENTENCES = {
+  'over-target': 'the position is above the weight the plan targets for its segment',
+  'thesis-weakening': 'the evidence has turned bearish on a name the operator holds',
+  'structure-broken':
+    'the price closed below the low of the recent sessions, so the breakout failed',
+  'regime-risk-off': 'the market regime is risk-off and the evidence on this name is bearish',
+  stale: 'the position has been held for a full outcome window and is still near its cost',
+  overheated: 'longs are paying crowded funding to hold this name',
+  'ceiling-close':
+    'the name closed at its daily price ceiling; the next open usually gaps up, and the weeks after ' +
+    'have lagged the market, so part of the position is sold into the gap',
+} as const satisfies Record<ReduceReasonCode, string>
 
 /** What every prompt needs: the run being argued about and the evidence it must argue from. */
 interface PromptContext {
@@ -351,7 +368,12 @@ function orderedCases(context: PromptContext, cases: OpposedCases): string {
 }
 
 function orderedEvidence(context: PromptContext): string {
-  return `EVIDENCE:\n${context.evidence.text}`
+  const { draft } = context.input
+  const reason = draft.action === 'reduce' ? draft.reduceReasonCode : undefined
+  const why =
+    reason === undefined ? '' : `\nWhy a sale is proposed: ${REDUCE_REASON_SENTENCES[reason]}`
+
+  return `EVIDENCE:\n${context.evidence.text}${why}`
 }
 
 function bullFirst(context: PromptContext): boolean {
