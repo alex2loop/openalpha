@@ -7,34 +7,13 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
-## [1.0.12] - 2026-10-20
+## [1.0.13] - 2026-10-21 [IMPORTANT]
 
-The brief opens with one market story and a look back at earlier ones, found by code at no cost.
-A brief before your first trade asks you to record it, and a sliver left by a full exit no longer
-counts as a holding anywhere.
-> Bản tin mở đầu bằng một câu chuyện thị trường và phần nhìn lại các câu chuyện trước, do code tìm, không tốn phí. Bản tin trước giao dịch đầu tiên nhắc bạn ghi sổ, và phần lẻ còn sót sau khi bán hết không còn bị tính là vị thế ở bất kỳ đâu.
-
-### Brief
-
-- One market story per morning: a hook, the figures behind it, a reading marked as inference, what
-could make it wrong, and what to watch next.
-- A look back checks each earlier story's watch conditions against today's figures.
-- Before your first recorded trade the brief drops the cash-reserve and discipline blocks and asks
-you to `/record` your trades.
-- A holding with no price yet no longer reads as an empty book: the brief says it cannot total the
-book this morning.
-- The losing-positions line counts only what can still be traded.
-
-### Portfolio
-
-- A sliver below the venue's smallest order is skipped by `/brief`, `/market`, `/refresh`, the chat
-assistant's portfolio and exit tools and the `/trade` open-trade cap. Its value still counts
-toward the total.
-- The residue notice says its tiny value is included in the total above.
-
-### Display
-
-- Source lines read "updated" instead of "as of".
+Security and reliability fixes. The agent now asks before opening a web link it put together
+itself, which closes a way a page could carry your holdings out in a link. `upgrade --rollback`
+also takes the database back, a scheduled job hit by the spend cap is no longer switched off, and
+a VN sale can no longer exceed what you hold.
+> Bản sửa lỗi bảo mật và độ ổn định. Agent giờ hỏi bạn trước khi mở một link do nó tự ghép, chặn đường một trang web có thể mang danh mục của bạn ra ngoài qua link. `upgrade --rollback` đưa cả cơ sở dữ liệu về bản trước, việc định kỳ chạm trần chi phí không còn bị tắt, và lệnh bán cổ phiếu VN không thể vượt số bạn đang giữ.
 
 ### Fixes
 
@@ -49,8 +28,8 @@ longer counted as failing and switched off after three tries: it waits for the c
 - The agent asks before reading a web link it built or changed itself, one it adds headers to, or
 any page past `[loop] max_unasked_fetches` in a run (10 by default). Links you send and links a
 search or news read brought back open as before; text you forward, and a task one agent hands
-another, do not count as yours. This
-closes the way a hidden instruction on a page could carry your holdings or notes out in a link.
+another, do not count as yours. This closes the way a hidden instruction on a page could carry
+your holdings or notes out in a link.
 - An MCP client calling a withheld tool by name over the HTTP API (`delegate`, `research`,
 `social_request` and the rest) is told it does not exist, as over stdio.
 - A sale of VN shares can no longer exceed what you hold, even by a few shares; the small margin for
@@ -80,6 +59,35 @@ with slash commands off; Telegram's plain-text fallback no longer shows markup.
 PostgreSQL refuses to reset `public`, and `db export` never deletes a folder it did not create.
 - Saving config from the API keeps the previous file beside it.
 - The installers check the pinned version strictly, and a failed Windows install reports failure.
+
+## [1.0.12] - 2026-10-20
+
+The brief opens with one market story and a look back at earlier ones, found by code at no cost.
+A brief before your first trade asks you to record it, and a sliver left by a full exit no longer
+counts as a holding anywhere.
+> Bản tin mở đầu bằng một câu chuyện thị trường và phần nhìn lại các câu chuyện trước, do code tìm, không tốn phí. Bản tin trước giao dịch đầu tiên nhắc bạn ghi sổ, và phần lẻ còn sót sau khi bán hết không còn bị tính là vị thế ở bất kỳ đâu.
+
+### Brief
+
+- One market story per morning: a hook, the figures behind it, a reading marked as inference, what
+could make it wrong, and what to watch next.
+- A look back checks each earlier story's watch conditions against today's figures.
+- Before your first recorded trade the brief drops the cash-reserve and discipline blocks and asks
+you to `/record` your trades.
+- A holding with no price yet no longer reads as an empty book: the brief says it cannot total the
+book this morning.
+- The losing-positions line counts only what can still be traded.
+
+### Portfolio
+
+- A sliver below the venue's smallest order is skipped by `/brief`, `/market`, `/refresh`, the chat
+assistant's portfolio and exit tools and the `/trade` open-trade cap. Its value still counts
+toward the total.
+- The residue notice says its tiny value is included in the total above.
+
+### Display
+
+- Source lines read "updated" instead of "as of".
 
 ## [1.0.11] - 2026-10-20
 
