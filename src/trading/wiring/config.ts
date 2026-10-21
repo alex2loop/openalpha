@@ -202,12 +202,14 @@ function mergeMarket(settings: MarketPatch, below: MarketConfig | undefined): Ma
   const maximumStopLoss = settings.maximum_stop_loss ?? below?.maximumStopLoss
   const stopLossAtr = settings.stop_loss_atr ?? below?.stopLossAtr
   const rewardRisk = settings.reward_risk ?? below?.rewardRisk
+  const ceilingTrimSessions = settings.ceiling_trim_sessions ?? below?.ceilingTrimSessions
 
   return {
     holidays: Object.freeze(settings.holidays?.map(tradingDay) ?? below?.holidays ?? []),
     ...(maximumStopLoss === undefined ? {} : { maximumStopLoss }),
     ...(stopLossAtr === undefined ? {} : { stopLossAtr }),
     ...(rewardRisk === undefined ? {} : { rewardRisk }),
+    ...(ceilingTrimSessions === undefined ? {} : { ceilingTrimSessions }),
   }
 }
 

@@ -257,6 +257,7 @@ language = "vi"                   # vi | en
 # maximum_stop_loss = 0.08           # never more than 8% below entry (0.02-0.30); none by default
 # stop_loss_atr = 3                  # stop distance in average daily ranges (1-5); 1.5 / 3
 # reward_risk = 3                    # target as a multiple of that risk (1-5); 1.5 / 3
+# ceiling_trim_sessions = 1          # trim a short-horizon holding after this many ceiling closes in a row; 0 = off
 # Defaults elsewhere - crypto: stop_loss_atr 2 / 2.5, reward_risk 2 / 3.
 # gold: 1.5 / 2 and 1.5 / 3. gold-vn: 1.5 / 2 and 1.5 / 1.5; its maximum_stop_loss
 # counts from the shop's buy-back price, so the buy/sell gap comes on top.
