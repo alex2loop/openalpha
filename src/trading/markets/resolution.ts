@@ -46,7 +46,10 @@ export async function resolveCached(
   options: ResolveMarketOptions
 ): Promise<MarketResolution> {
   const { markets, resolutions } = cache
-  const preferred = options.market === undefined ? await preferredMarket(cache, options) : undefined
+  const preferred =
+    options.market === undefined && options.operatorRead === true
+      ? await preferredMarket(cache, options)
+      : undefined
   const key = buildResolutionKey(options, preferred)
   const cached = resolutions.get(key)
 
@@ -71,7 +74,7 @@ function buildResolutionKey(options: ResolveMarketOptions, preferred?: MarketRef
   const scope = [
     options.within === undefined ? '' : `in:${[...options.within].sort().join(',')}`,
     options.detection ?? '',
-    options.alsoListed === true ? 'also' : '',
+    options.operatorRead === true ? 'read' : '',
     preferred === undefined ? '' : `held:${preferred}`,
   ].join('|')
   const name = options.market === undefined ? options.ticker : `${options.market}/${options.ticker}`
@@ -177,7 +180,13 @@ async function resolveUnqualified(
     const held = await resolveExplicit(markets, { ...options, market: preferred })
 
     if (held.kind === 'resolved') {
-      return held
+      const others = await otherListingCaveats(
+        possibleMarkets(markets, options),
+        held.market,
+        options
+      )
+
+      return { ...held, caveats: [...held.caveats, ...others] }
     }
   }
 
@@ -189,13 +198,7 @@ async function resolve(
   markets: readonly Market[],
   options: ResolveMarketOptions
 ): Promise<MarketResolution> {
-  // The synchronous filter runs first so an unqualified ticker never reaches an async detector.
-  // `impossible` means the detector would not have matched, so skipping cannot change the winner.
-  const possible = markets.filter(
-    (market) =>
-      (options.within === undefined || options.within.includes(market.manifest.id)) &&
-      market.candidacy(options.ticker) === 'possible'
-  )
+  const possible = possibleMarkets(markets, options)
   const stored = await detectEach(possible, 'stored', options)
   const settled = matchedDetections(stored)
   const [only] = settled
@@ -206,7 +209,9 @@ async function resolve(
   if (settled.length === 1 && only !== undefined) {
     return resolvedMarket(only, [
       ...uncheckedMarketCaveats(stored, options.ticker),
-      ...(options.alsoListed === true ? await alsoListedCaveats(possible, only, options) : []),
+      ...(options.operatorRead === true
+        ? await otherListingCaveats(possible, only.market, options)
+        : []),
     ])
   }
 
@@ -243,24 +248,40 @@ async function resolve(
   }
 }
 
-/** A stored market settled the ticker without asking the markets that fetch. The operator typed
- *  this name, so those are asked now and any that lists it too is named: otherwise a coin whose
- *  symbol is also a stock reads as the stock with nothing to say the coin exists. A detector that
- *  could not answer stays silent, since this is a note and not a check the answer rests on. */
-async function alsoListedCaveats(
+/** The synchronous filter runs first so an unqualified ticker never reaches an async detector.
+ *  `impossible` means the detector would not have matched, so skipping cannot change the winner. */
+function possibleMarkets(
+  markets: readonly Market[],
+  options: ResolveMarketOptions
+): readonly Market[] {
+  return markets.filter(
+    (market) =>
+      (options.within === undefined || options.within.includes(market.manifest.id)) &&
+      market.candidacy(options.ticker) === 'possible'
+  )
+}
+
+/** A read settled on one market without asking the rest. The operator typed the name, so the rest
+ *  are asked now and any that list it too are named: otherwise a coin symbol that is also a stock
+ *  reads one side with nothing to say the other exists. A detector that could not answer stays
+ *  silent, since the note is not the check the answer rests on. */
+async function otherListingCaveats(
   possible: readonly Market[],
-  winner: MatchedMarket,
+  winner: Market,
   options: ResolveMarketOptions
 ): Promise<readonly Caveat[]> {
-  const others = possible.filter((market) => market !== winner.market)
-  const fetched = await detectEach(others, 'fetched', options)
+  const others = possible.filter((market) => market !== winner)
+  const detections = [
+    ...(await detectEach(others, 'stored', options)),
+    ...(options.detection === 'stored' ? [] : await detectEach(others, 'fetched', options)),
+  ]
 
-  return matchedDetections(fetched).map(
+  return matchedDetections(detections).map(
     (entry): Caveat => ({
       code: 'market.ticker-also-listed',
       detail: {
         ticker: options.ticker,
-        market: winner.market.manifest.id,
+        market: winner.manifest.id,
         other: entry.market.manifest.id,
       },
     })

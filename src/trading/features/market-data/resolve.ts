@@ -39,8 +39,9 @@ type InstrumentResolution =
 interface ResolveInstrumentOptions {
   readonly ticker: Ticker
   readonly market?: MarketRef
-  /** A name the operator typed: ask the other markets too, and say which also list it. */
-  readonly alsoListed?: boolean
+  /** A read the operator typed: the side they hold or watch wins a shared symbol, and the read says
+   *  which other market lists it. */
+  readonly operatorRead?: boolean
   readonly signal: AbortSignal
 }
 
@@ -111,7 +112,7 @@ export async function resolveInstrument(
   const resolution = await markets.resolve({
     ticker: options.ticker,
     ...(options.market === undefined ? {} : { market: options.market }),
-    ...(options.alsoListed === true ? { alsoListed: true } : {}),
+    ...(options.operatorRead === true ? { operatorRead: true } : {}),
     signal: options.signal,
   })
 
@@ -120,7 +121,7 @@ export async function resolveInstrument(
       kind: 'resolved',
       market: resolution.market,
       instrument: resolution.instrument,
-      caveats: alsoListedOf(resolution.caveats),
+      caveats: otherListingsOf(resolution.caveats),
       ...(resolution.instrumentKind === undefined
         ? {}
         : { instrumentKind: resolution.instrumentKind }),
@@ -132,7 +133,7 @@ export async function resolveInstrument(
 
 /** Only the note about another listing travels with a read: the rest of a resolution's caveats
  *  describe how the ticker was found, and the read states its own. */
-function alsoListedOf(caveats: readonly Caveat[]): readonly Caveat[] {
+function otherListingsOf(caveats: readonly Caveat[]): readonly Caveat[] {
   return caveats.filter((caveat) => caveat.code === 'market.ticker-also-listed')
 }
 

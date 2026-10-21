@@ -356,7 +356,7 @@ export interface ResolveMarketOptions {
   readonly within?: readonly MarketRef[]
   /** Stop after the stored tier: no detector that fetches is asked, so no network request is made. */
   readonly detection?: 'stored'
-  readonly alsoListed?: boolean
+  readonly operatorRead?: boolean
   readonly signal: AbortSignal
 }
 
