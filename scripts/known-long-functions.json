@@ -114,7 +114,7 @@
     "src/tools/web/search/provider-runner.ts#runSearch": 54,
     "src/trading/features/alerts/alerts.ts#create": 44,
     "src/trading/features/alerts/command.ts#runCreate": 51,
-    "src/trading/features/alerts/exit-plans.ts#trailPlanStop": 51,
+    "src/trading/features/alerts/exit-plans.ts#trailPlanStop": 46,
     "src/trading/features/alerts/store/alert-row.ts#toAlert": 43,
     "src/trading/features/alerts/tools.ts#createAlertManageTool": 45,
     "src/trading/features/brief/tools.ts#createBriefManageTool": 48,

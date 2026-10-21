@@ -241,12 +241,7 @@ async function trailPlanStop(deps: ExitPlanDeps, input: TrailPlanInput): Promise
   const market = deps.markets.find(instrument.market)
   const bars = market?.capabilities.bars
 
-  if (
-    !(isLongPlan(plan) && armsExit(plan)) ||
-    market === null ||
-    market.trail === undefined ||
-    bars === undefined
-  ) {
+  if (!isTrailable(plan) || market === null || market.trail === undefined || bars === undefined) {
     return plan
   }
 
@@ -403,9 +398,10 @@ async function placementOf(
   }
 }
 
-/** A plan whose position is long, which on a spot book is every one the trail applies to. The same question `findLatestExitPlan` selects on, so a row the arming pass reads as the
- *  holding's exit plan is never one the trail refuses: almost every held name carries a debated hold
- *  framed as a buy, and testing the action instead excluded all of them. */
-function isLongPlan(plan: StoredSuggestion): boolean {
-  return framedDirectionOf(plan) === 'buy'
+/** An armed plan whose position is long, which on a spot book is every one the trail applies to,
+ *  tested on the framing as `findLatestExitPlan` selects: almost every held name carries a debated
+ *  hold framed as a buy, and testing the action instead excluded all of them. A plan read off a
+ *  sale's standing exit is not trailed, because the row's own stop belongs to the sale. */
+function isTrailable(plan: StoredSuggestion): boolean {
+  return framedDirectionOf(plan) === 'buy' && armsExit(plan) && plan.standingExit === undefined
 }
