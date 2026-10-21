@@ -25,14 +25,19 @@ export function approvalContextFor(run: RunView, toolName: string): CallApproval
     config: run.env.config,
     callCount,
     hasSeen(text): boolean {
-      sourceText ??= sourceTextOf(run.state.messages.history, run.env.tools)
+      sourceText ??= sourceTextOf(run.state.messages.history, run.env.tools, run.env.callDepth > 0)
 
       return sourceText.includes(text)
     },
   }
 }
 
-function sourceTextOf(history: readonly LLMMessage[], tools: readonly ToolDefinition[]): string {
+// A delegated child's user message is the parent model's prompt, not the operator's text.
+function sourceTextOf(
+  history: readonly LLMMessage[],
+  tools: readonly ToolDefinition[],
+  delegated: boolean
+): string {
   const networkTools = new Set(
     tools.filter((tool) => tool.capability === SOURCE_CAPABILITY).map((tool) => tool.name)
   )
@@ -43,12 +48,16 @@ function sourceTextOf(history: readonly LLMMessage[], tools: readonly ToolDefini
       .map((call) => call.id)
   )
 
-  return history.map((message) => sourceOf(message, networkCallIds)).join('\n')
+  return history.map((message) => sourceOf(message, networkCallIds, delegated)).join('\n')
 }
 
-function sourceOf(message: LLMMessage, networkCallIds: ReadonlySet<string>): string {
+function sourceOf(
+  message: LLMMessage,
+  networkCallIds: ReadonlySet<string>,
+  delegated: boolean
+): string {
   if (message.role === 'user') {
-    return withoutPastedContent(textOf(message.content))
+    return delegated ? '' : withoutPastedContent(textOf(message.content))
   }
 
   const isNetworkResult =

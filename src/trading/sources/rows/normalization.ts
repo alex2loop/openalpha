@@ -87,11 +87,11 @@ export function nonNegative(value: unknown, label: string): number {
   return parsed
 }
 
-/** Absent when there is nothing to measure against, which is not the same claim as a flat day. */
 export function toScaledPrice(value: number, scale: number): number {
   return Number((value * scale).toFixed(SCALED_PRICE_DIGITS))
 }
 
+/** Absent when there is nothing to measure against, which is not the same claim as a flat day. */
 export function dayChangePct(close: number, previousClose: number | undefined): number | undefined {
   return previousClose === undefined || previousClose === 0
     ? undefined

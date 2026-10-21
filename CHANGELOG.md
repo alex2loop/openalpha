@@ -48,7 +48,8 @@ script no longer makes `--rollback` undo that release's own migrations.
 longer counted as failing and switched off after three tries: it waits for the cap to reopen.
 - The agent asks before reading a web link it built or changed itself, one it adds headers to, or
 any page past `[loop] max_unasked_fetches` in a run (10 by default). Links you send and links a
-search or news read brought back open as before; text you forward does not count as yours. This
+search or news read brought back open as before; text you forward, and a task one agent hands
+another, do not count as yours. This
 closes the way a hidden instruction on a page could carry your holdings or notes out in a link.
 - An MCP client calling a withheld tool by name over the HTTP API (`delegate`, `research`,
 `social_request` and the rest) is told it does not exist, as over stdio.
@@ -58,7 +59,7 @@ an exchange's rounding stays for coins bought with the fee taken in the coin.
 4,030.0000000000005), so a bar that touched a stop is read as touching it.
 - Outbound requests also refuse `localhost.` and other blocked names written with a trailing dot,
 and IPv6 forms that carry a private IPv4 (`::ffff:0:a.b.c.d`) or the old site-local range.
-- Two starts racing over a stale pid file can no longer delete each other's claim.
+- Two starts racing over a stale pid file are much less likely to delete each other's claim.
 - `db restore` keeps a whole safety copy of the old database even when another reader blocks the
 WAL fold: the WAL moves with the copy instead of being dropped.
 - A daemon still starting after 90 seconds, often busy updating a large database, is left running:

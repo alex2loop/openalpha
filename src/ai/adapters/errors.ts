@@ -66,8 +66,13 @@ const UNKNOWN_MODEL_PATTERNS: readonly RegExp[] = [
 const NO_ENDPOINTS_PATTERNS: readonly RegExp[] = [/no endpoints found/i]
 
 // OpenRouter answers 403 for one request its moderation refused. The key is fine, so the verdict
-// must not cool the provider's credentials.
-const MODERATION_PATTERNS: readonly RegExp[] = [/flagged/i, /moderation/i]
+// must not cool the provider's credentials. Its own wording only: a 403 for a flagged account is
+// still the key's problem.
+const MODERATION_PATTERNS: readonly RegExp[] = [
+  /requires moderation/i,
+  /input was flagged/i,
+  /flagged_input/i,
+]
 
 const STATUS_CODES: Readonly<Record<number, LLMErrorCode>> = {
   401: 'auth',
