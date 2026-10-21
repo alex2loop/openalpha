@@ -2957,7 +2957,7 @@
     "reduce.regime-risk-off": "Thị trường của nhóm này đang phòng thủ và dữ liệu không còn ủng hộ mã này. Giảm vị thế về còn một nửa quy mô lúc mở.",
     "reduce.stale": "Phần lớn vị thế này đã nằm đủ một chu kỳ nắm giữ mà giá vẫn quanh mức bạn mua. Ý tưởng đã có đủ thời gian: lệnh này hạ vị thế về một nửa khối lượng ban đầu, để dành ngân sách rủi ro cho mã đang thực sự chuyển động.",
     "reduce.overheated": "Phe mua đang trả phí funding quá cao để giữ vị thế mã này trong lúc bạn nắm giữ. Chốt phần đầu theo tỷ lệ chốt lời quen thuộc của bạn, tính trên vị thế lúc mở và trừ phần đã bán.",
-    "reduce.ceiling-close": "Mã vừa đóng cửa ở giá trần. Phiên sau thường mở cửa cao hơn, nhưng sau đó hay hạ nhiệt trong khoảng hai tuần, nên giảm bớt một phần ngay đầu phiên là cách giữ lại một phần lãi.",
+    "reduce.ceiling-close": "Mã vừa đóng cửa ở giá trần. Phiên sau thường mở cửa cao hơn, nhưng sau đó hay hạ nhiệt trong khoảng hai tuần, nên mình đề xuất giảm bớt phần chốt lời đầu quen thuộc của bạn ngay đầu phiên để giữ lại một phần lãi.",
     "hold.recorded-entry": "Mức giá hệ thống đặt cho vị thế bạn đã ghi - chưa có đề xuất nào. Chạy /suggest cho mã này để có bản đọc đầy đủ.",
     "render.suggestion.holdRecorded": "{ticker} ({at}): kế hoạch thoát cho vị thế bạn đang giữ.",
     "render.suggestion.holdLevelsIntroRecorded": "Các mức vị thế này đang được theo dõi:",

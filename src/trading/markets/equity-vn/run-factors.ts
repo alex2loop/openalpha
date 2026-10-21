@@ -1,15 +1,15 @@
 import type { FactorRequest, FactorScore } from '@/trading/kernel/factor'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { ScreenInput } from '@/trading/markets/equity-vn/screen'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import { isAccountsWeak } from '@/trading/markets/equity-vn/accounts/score'
 import { scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
-import { DAILY_BAND_BY_EXCHANGE, PRIMARY_EXCHANGE } from '@/trading/markets/equity-vn/policy'
+import { DAILY_BAND_BY_EXCHANGE } from '@/trading/markets/equity-vn/policy'
 import { adjustedCandles, failedGates, toScreenInput } from '@/trading/markets/equity-vn/screen'
 import { tapeReadings } from '@/trading/markets/equity-vn/tape/signals'
-import { ceilingRunOf, toVnExchange } from '@/trading/markets/equity-vn/tradeability'
+import { ceilingRunOf } from '@/trading/markets/equity-vn/tradeability'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 
 interface CeilingTrim {
@@ -31,7 +31,8 @@ export async function runFactors(
     return { ...UNSCORED_COMPOSITE, results: [], caveats: [{ code: 'market-data.no-coverage' }] }
   }
 
-  const failed = failedGates(toScreenInput(evidence, options.asOf))
+  const screen = toScreenInput(evidence, options.asOf)
+  const failed = failedGates(screen)
   const signals = tapeReadings(evidence)
   const accounts = cross.accounts.get(options.instrument.ticker)?.score
 
@@ -39,7 +40,7 @@ export async function runFactors(
     ...scoreNameFactors(evidence, cross),
     ...(failed.length === 0 ? {} : { failedGates: failed }),
     ...(signals.length === 0 ? {} : { signals }),
-    ...(isCeilingClose(evidence, cross.freshFrom, trim)
+    ...(isCeilingClose(screen, cross.freshFrom, trim)
       ? { reduceSignal: 'ceiling-close' as const }
       : {}),
     ...(accounts === undefined || !accounts.decisive
@@ -48,23 +49,24 @@ export async function runFactors(
   }
 }
 
-function isCeilingClose(evidence: NameEvidence, freshFrom: TradingDay, trim: CeilingTrim): boolean {
-  const { record } = evidence
-  const candles = adjustedCandles(evidence.bars)
-  const bandPct =
-    DAILY_BAND_BY_EXCHANGE[toVnExchange(record.exchange) ?? PRIMARY_EXCHANGE].maximumUpPct
-  const run = ceilingRunOf(candles, {
-    bandPct,
-    calendar: trim.calendar,
-    ...(record.listedOn === undefined ? {} : { listedOn: record.listedOn }),
-  })
+function isCeilingClose(screen: ScreenInput, freshFrom: TradingDay, trim: CeilingTrim): boolean {
+  if (trim.sessions <= 0 || screen.kind === ETF_KIND) {
+    return false
+  }
+
+  const candles = adjustedCandles(screen.bars)
 
   // A tape that stopped before the freshness line is a ceiling close that happened sessions ago,
   // when the gap it trades on has already been paid.
-  return (
-    trim.sessions > 0 &&
-    record.kind !== ETF_KIND &&
-    (candles.at(-1)?.at ?? '') >= freshFrom &&
-    run >= trim.sessions
-  )
+  if ((candles.at(-1)?.at ?? '') < freshFrom) {
+    return false
+  }
+
+  const run = ceilingRunOf(candles, {
+    bandPct: DAILY_BAND_BY_EXCHANGE[screen.exchange].maximumUpPct,
+    calendar: trim.calendar,
+    ...(screen.listedOn === undefined ? {} : { listedOn: screen.listedOn }),
+  })
+
+  return run >= trim.sessions
 }

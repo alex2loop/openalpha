@@ -331,9 +331,8 @@ export function verifierPrompt(
       renderClaims(claims),
       ...(invalidators.length === 0 ? [] : ['', renderConditions(invalidators)]),
       '',
-      // Only the evidence: the sale's reason is the system's own reading, and a claim repeating it
-      // would be marked supported by nothing but the system.
-      `EVIDENCE:\n${context.evidence.text}`,
+      // The sale's reason is the system's own reading: a claim repeating it is not evidence.
+      evidenceBlock(context),
     ].join('\n'),
   }
 }
@@ -375,7 +374,11 @@ function orderedEvidence(context: PromptContext): string {
   const why =
     reason === undefined ? '' : `\nWhy a sale is proposed: ${REDUCE_REASON_SENTENCES[reason]}`
 
-  return `EVIDENCE:\n${context.evidence.text}${why}`
+  return `${evidenceBlock(context)}${why}`
+}
+
+function evidenceBlock(context: PromptContext): string {
+  return `EVIDENCE:\n${context.evidence.text}`
 }
 
 function bullFirst(context: PromptContext): boolean {
