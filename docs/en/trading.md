@@ -62,6 +62,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `vietcap-chart` | levels for every HOSE index: the daily series the ETF benchmarks are scored against, and the intraday one behind the live index price | no |
 | `vps` | levels for the ETF benchmark indices only it and `vietcap-chart` carry; behind `vietcap-chart`, whose turnover includes the put-through leg this feed omits | no |
 | `cafef` | VN proprietary-desk flows, for sessions `vndirect` has not published | no |
+| `cafef-statements` | a VN quarter's cash flow, for the newest quarter `vietcap-statements` has filed without one | no |
 | `giavang` `pnj` | VN domestic gold boards, merged in that order | no |
 | `sbv` | VN policy rates (refinancing, rediscount) and interbank averages, from the State Bank's rate page | no |
 | `nso` | the statistics office's monthly socio-economic reports, read by the `trading.macro-extract` job | no |

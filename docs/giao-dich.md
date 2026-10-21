@@ -62,6 +62,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `vietcap-chart` | chỉ số cho mọi index HOSE: chuỗi ngày mà các chuẩn ETF được chấm điểm trên đó, và chuỗi trong phiên đứng sau giá index trực tiếp | không |
 | `vps` | chỉ số cho các index chuẩn ETF mà chỉ nó và `vietcap-chart` mang; đứng sau `vietcap-chart`, nguồn có giá trị giao dịch gồm cả nhánh thỏa thuận mà feed này bỏ qua | không |
 | `cafef` | dòng tiền tự doanh VN, cho các phiên `vndirect` chưa công bố | không |
+| `cafef-statements` | lưu chuyển tiền tệ của một quý VN, cho quý mới nhất mà `vietcap-statements` đã có nhưng chưa có phần này | không |
 | `giavang` `pnj` | các bảng vàng trong nước VN, trộn theo đúng thứ tự đó | không |
 | `sbv` | lãi suất điều hành VN (tái cấp vốn, tái chiết khấu) và lãi suất liên ngân hàng bình quân, từ trang lãi suất của Ngân hàng Nhà nước | không |
 | `nso` | báo cáo kinh tế - xã hội hằng tháng của cơ quan thống kê, đọc bởi việc `trading.macro-extract` | không |

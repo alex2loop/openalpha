@@ -7,6 +7,23 @@ Each released section opens with an English summary paragraph followed by one `>
 Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
 carries ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+A VN quarter now reaches the analysis the evening its income statement lands, even before its cash
+flow does. The missing cash flow is filled from CafeF when its figures check out against the
+quarters already on file, and the analysis says when a quarter's cash flow is missing or a quarter
+is late.
+> Một quý của cổ phiếu VN giờ vào phân tích ngay buổi tối kết quả kinh doanh được công bố, kể cả khi chưa có lưu chuyển tiền tệ. Phần còn thiếu được điền từ CafeF khi số liệu khớp với các quý đã có, và phân tích nói rõ khi quý thiếu lưu chuyển tiền tệ hoặc quý đến hạn mà chưa có.
+
+### Changes
+
+- A quarter filed with a balance sheet and income statement is kept without its cash flow; its cash
+figures and the four-quarter cash totals stay blank rather than read as zero.
+- The new `cafef-statements` source supplies that cash flow, worked out from CafeF's year-to-date
+table, and only when its pre-tax profit matches the quarters already stored.
+- Two new notes on the accounts: a quarter is missing its cash flow, or the latest quarter is past
+its filing deadline and not in yet.
+
 ## [1.0.13] - 2026-10-21 [IMPORTANT]
 
 Security and reliability fixes. The agent now asks before opening a web link it put together

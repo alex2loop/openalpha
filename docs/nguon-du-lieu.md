@@ -54,6 +54,7 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | Bảng giá trực tiếp và room ngoại | `vndirect`, `vietcap-board` |
 | Báo cáo tài chính (năm đầy đủ và các quý) | `vietcap-statements` |
 | Dòng tiền tự doanh | `cafef` |
+| Lưu chuyển tiền tệ còn thiếu của một quý | `cafef-statements` |
 | Phía mua và bán của các giao dịch trong ngày | `kbsec`, `vietcap` |
 | Danh sách giám sát của sàn (trộn) | `hsx`, `ssi` |
 | Thành phần rổ chỉ số (`vn30`, `vn100`) | `vietcap` |
@@ -88,6 +89,7 @@ Vài nguồn ít hiển nhiên làm gì:
 
 - `vndirect` đứng đầu giá VN vì dòng giá của nó được ghi ngay khi thị trường đang giao dịch. Nó không phục vụ chỉ số: giá chỉ số đi tới `vietcap-chart`, còn lịch sử chỉ số đi tới `entrade` rồi `vietcap-chart`. `vps` đứng cuối, có mặt cho các chỉ số chuẩn ETF (VNDIAMOND, VNX50...) mà cả `vndirect` lẫn `entrade` đều không phục vụ, để một lần bị từ chối không làm mất tất cả.
 - `vietcap-board` đọc cả bảng giá VN trong một lần gọi và dự phòng cho `vndirect` ở cả bảng giá trực tiếp lẫn room ngoại.
+- `cafef-statements` không phải bên dự phòng cho `vietcap-statements`. Nó chỉ được hỏi cho quý mới nhất khi `vietcap-statements` đã có bảng cân đối và kết quả kinh doanh nhưng chưa có lưu chuyển tiền tệ, và số của nó chỉ được giữ khi lợi nhuận trước thuế lũy kế khớp với các quý đã có. `vietcap-statements` thay chúng ngay ngày nó có lưu chuyển tiền tệ.
 - `cafef` không phải bên dự phòng cho dòng tiền của `vndirect`. Nó chỉ công bố khối tự doanh, sớm hơn hai phiên, và chỉ được hỏi cho những phiên còn thiếu phần đó.
 - `fred-csv` mang các chuỗi hàng hóa hằng tháng mà không feed hằng ngày nào có (than, gạo, thịt lợn, thép). `vndirect` mang các chuỗi hằng ngày. Hai bên không bao giờ tranh nhau một mặt hàng.
 - `coinbase` và `okx` định giá một coin thanh toán (như USDT) so với tiền pháp định. Không có đường dự phòng từ `USDTVND` sang `USDVND`: USDT là một công cụ khác, và tỷ giá thiếu được báo chứ không đoán.
@@ -152,7 +154,7 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
 | 120 | `fred`, `vietcap-statements` |
-| 60 | `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `yahoo` |
+| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `yahoo` |
 | 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |

@@ -284,10 +284,12 @@ rank one commodity against the other: `vndirect`'s exchange feed is daily and `f
 the monthly series no free daily feed has.
 
 - A `vietcap-statements` call returns eight years, so `annual_accounts` is neither durable nor archived: a refetch rebuilds it.
+  A quarter is kept with a balance sheet and income statement alone, because the provider files its cash flow later; a year still needs all three statements. A partial quarter leaves its cash lines absent, and every trailing sum, free cash flow and cash conversion that needs them goes absent with it, never zero. The `cash_flow_source_id` column is set when the cash lines came from `cafef-statements`.
   The 34 quarters go to `quarterly_accounts` and are read as a trailing year past the newest audited one, and the newest five also as quarter rows against the same quarter a year earlier (`AccountsHistory.quarters`, built in `markets/equity-vn/accounts/quarters.ts`).
 - A bank is recognised from its balance sheet, never its sector. The provider zero-fills the codes of other families, so a
   positive customer-loans line (`bsb104`) marks a bank and `isBankLines` (`kernel/market/annual-accounts.ts`) tests for it. The
-  optional `NOTE` section costs only the bank lines when absent. Negative lines are stored sign-flipped (`NEGATIVE_LINES`).
+  optional `NOTE` section costs only the bank lines when absent. Outflow lines are stored sign-flipped (`OUTFLOW_LINES`).
+- `cashFlowToDate` is `cafef-statements`' year-to-date cash-flow table for one quarter. The accounts refresh asks for it only when a non-bank name's newest quarter is the watched one and lacks cash flow, and every earlier quarter of that year is on file with it. The quarter's own figures are the year-to-date figure less those stored quarters (never one CafeF column less another: its earlier columns are the pre-review filing), and they are kept only when the year-to-date pre-tax profit matches the stored quarters' sum within `CASH_FLOW_MATCH_TOLERANCE`. If CafeF cannot answer or the check fails, the quarter keeps what an earlier fill stored while its pre-tax profit is unchanged. A quarter with no cash flow, or with CafeF's, is asked again every `QUARTER_PARTIAL_REFETCH_MS` (one day) while it is the watched one; suggest never calls CafeF. Two caveats say what is missing: `factor.accounts-quarter-partial` and `factor.accounts-quarter-late`, the only accounts caveats that reach the report.
 - Two provider lines are deliberately unread: its operating profit, because core operating profit is gross profit less selling
   and admin (`markets/equity-vn/accounts/history.ts`), and its EPS, which is not restated for stock dividends, so shares are
   common capital over `VN_SHARE_PAR_VND`.
@@ -458,6 +460,7 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
   weight 1); matches its two siblings in the route. `binance-futures` 600: the sole `funding` route. `bybit` 600, `fred` 120:
   published ceilings.
 - `cafef` 300: per-name, so a gap fill sweeps the universe. `vndirect` 300: broker endpoint swept universe-wide.
+- `cafef-statements` 60: publishes none; a page of about 33 KB, asked only for a name whose newest quarter lacks cash flow.
 - `vietcap-statements` 120: publishes none; a name costs three requests (four for a bank) and a refresh asks for about 120 names
   only when their reports are due.
 - 60: `coinpaprika` publishes 10/s and 20,000/month; `coinlore` and `treasury` publish none (sweep-safe rate); `entrade`, `kbsec`,
