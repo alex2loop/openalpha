@@ -123,10 +123,11 @@ function toCashFlowToDate(raw: unknown, input: ParseInput): readonly CashFlowToD
   ]
 }
 
-/** Every cell is kept, empty or not: a column's position is what names its period. */
+/** Every cell is kept, empty or not: a column's position is what names its period. Composed form,
+ *  so a page that sends decomposed diacritics still matches the headers and labels. */
 function tableRows(raw: string): readonly (readonly string[])[] {
   return [...raw.matchAll(ROW_RE)].map((row) =>
-    [...(row[1] ?? '').matchAll(CELL_RE)].map((cell) => htmlToText(cell[1] ?? ''))
+    [...(row[1] ?? '').matchAll(CELL_RE)].map((cell) => htmlToText(cell[1] ?? '').normalize('NFC'))
   )
 }
 
@@ -181,9 +182,8 @@ function hasAmount(
   return (row?.[column] ?? '') !== ''
 }
 
-/** Composed form, so a page that sends decomposed diacritics still matches the labels. */
 function keyOf(label: string): CashFlowKey | undefined {
-  const name = label.normalize('NFC').toLowerCase().replace(LABEL_NUMBERING_RE, '')
+  const name = label.toLowerCase().replace(LABEL_NUMBERING_RE, '')
 
   return LINE_LABELS.find(([prefix]) => name.startsWith(prefix))?.[1]
 }

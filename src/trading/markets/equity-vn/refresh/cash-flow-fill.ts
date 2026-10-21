@@ -44,8 +44,12 @@ export async function fillCashFlow(input: CashFlowFillInput): Promise<CashFlowFi
     signal: scope.request.signal,
   })
 
+  // An empty answer is a quarter the backup source has not published yet, not a failure.
   if (result.kind === 'unavailable') {
-    return { filed, caveats: reportedCaveats(result.caveats, 'cashFlowToDate') }
+    return {
+      filed,
+      caveats: result.reason === 'empty' ? [] : reportedCaveats(result.caveats, 'cashFlowToDate'),
+    }
   }
 
   const yearToDate = result.value.at(0)
@@ -64,7 +68,7 @@ export async function fillCashFlow(input: CashFlowFillInput): Promise<CashFlowFi
           buildPayloadRejectedCaveat(result.provenance, 'cashFlowToDate'),
         ],
       }
-    : replaced(filed, derived, result.caveats)
+    : buildFill(filed, derived, result.caveats)
 }
 
 /** A quarter that has left the watch, or sits behind a newer one, would otherwise lose its fill to
@@ -99,12 +103,16 @@ function priorsOf(
   pool: readonly QuarterlyAccounts[]
 ): readonly QuarterlyAccounts[] | undefined {
   const priors = Array.from({ length: target.quarter - 1 }, (_, offset) =>
-    pool.find((report) => report.fiscalYear === target.fiscalYear && report.quarter === offset + 1)
+    pool.find(
+      (report) =>
+        report.fiscalYear === target.fiscalYear &&
+        report.quarter === offset + 1 &&
+        hasCashFlow(report.lines)
+    )
   )
+  const found = priors.flatMap((report) => (report === undefined ? [] : [report]))
 
-  return priors.every((report) => report !== undefined && hasCashFlow(report.lines))
-    ? priors.flatMap((report) => (report === undefined ? [] : [report]))
-    : undefined
+  return found.length === priors.length ? found : undefined
 }
 
 interface DeriveInput {
@@ -118,7 +126,7 @@ interface DeriveInput {
 function deriveQuarter(input: DeriveInput): QuarterlyAccounts | undefined {
   const { target, priors, yearToDate } = input
 
-  if (!matchesYearToDate(target, priors, yearToDate)) {
+  if (!isYearToDateMatch(target, priors, yearToDate)) {
     return undefined
   }
 
@@ -137,7 +145,7 @@ function deriveQuarter(input: DeriveInput): QuarterlyAccounts | undefined {
 }
 
 /** A wrong column or unit shows up as a pre-tax profit that disagrees with the quarters on file. */
-function matchesYearToDate(
+function isYearToDateMatch(
   target: QuarterlyAccounts,
   priors: readonly QuarterlyAccounts[],
   yearToDate: CashFlowToDate
@@ -188,7 +196,7 @@ function carriedForward(
   return { ...target, lines, cashFlowSourceId: previous.cashFlowSourceId }
 }
 
-function replaced(
+function buildFill(
   filed: FiledAccounts,
   quarter: QuarterlyAccounts,
   caveats: readonly Caveat[]

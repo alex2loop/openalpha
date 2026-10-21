@@ -119,7 +119,7 @@ Quý mới được đưa vào phân tích ngay khi có kết quả kinh doanh, 
 
 Đề xuất sẽ nhắc bạn khi quý mới nhất còn thiếu lưu chuyển tiền tệ, hoặc khi quý đã quá hạn mà chưa có số. Gặp trường hợp sau, bạn nên xem thêm báo cáo trên trang của công ty.
 
-Báo cáo được tải lại mỗi 30 ngày. Vào mùa báo cáo thì dày hơn: hai ngày một lần khi quý mới chưa về, mỗi ngày khi quý đã về nhưng còn thiếu lưu chuyển tiền tệ. Mùa báo cáo là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
+Báo cáo được tải lại mỗi 30 ngày. Vào mùa báo cáo thì dày hơn: hai ngày một lần khi quý mới chưa về, sau mỗi phiên khi quý đã về nhưng còn thiếu lưu chuyển tiền tệ. Mùa báo cáo là từ 15 đến 70 ngày sau khi quý kết thúc, khoảng mà 25 mã lớn đã nộp các quý 2025-26 (quý I và quý III trong 15-35 ngày, bản bán niên đã soát xét trong 30-66 ngày). Một mã có năm tài chính không trùng năm dương lịch được đọc theo các quý dương lịch, nên chỉ bị hỏi thêm vài lần.
 
 #### Hết giờ, thử lại và cache
 

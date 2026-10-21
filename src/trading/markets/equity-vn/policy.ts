@@ -506,9 +506,6 @@ export const QUARTER_WATCH_FROM_DAYS = 15
 export const QUARTER_WATCH_UNTIL_DAYS = 70
 /** How often a name whose latest quarter is due is asked again, until the quarter lands. */
 export const QUARTER_WATCH_REFETCH_MS = 2 * MS_PER_DAY
-/** How often a watched quarter that is stored without its cash flow, or with a backup source's, is
- *  asked again, so the primary provider's own statement replaces it the day it lands. */
-export const QUARTER_PARTIAL_REFETCH_MS = MS_PER_DAY
 /** How far a backup cash flow's year-to-date pre-tax profit may sit from the stored quarters' sum,
  *  as a fraction of the larger magnitude, before the figures are refused. */
 export const CASH_FLOW_MATCH_TOLERANCE = 0.005

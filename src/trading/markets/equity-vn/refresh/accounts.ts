@@ -20,7 +20,6 @@ import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/e
 import { invalidateWhenWritten } from '@/trading/markets/equity-vn/evidence/evidence'
 import {
   ACCOUNTS_REFETCH_MS,
-  QUARTER_PARTIAL_REFETCH_MS,
   QUARTER_WATCH_REFETCH_MS,
   VN_MARKET_REF,
   VN_SOURCE_CONCURRENCY,
@@ -148,21 +147,24 @@ function isDue(
   const { now } = scope.request
   const settled = resolveSettledDay(scope.calendar, now)
   const lastRead = Math.max(...[...reports, ...(quarters ?? [])].map((report) => report.fetchedAt))
-  const refetchMs = quarterRefetchMs(quarters?.at(-1), settled)
+  const awaited = awaitedQuarter(quarters?.at(-1), settled)
 
+  // A partial quarter is asked once per settled session: an interval from the run's start would
+  // miss by the minutes yesterday's fetch took, and skip a day.
   return (
     now - lastRead >= ACCOUNTS_REFETCH_MS ||
     isFetchedBeforeFinal(reports, settled) ||
-    (refetchMs !== undefined && now - lastRead >= refetchMs)
+    (awaited === 'missing' && now - lastRead >= QUARTER_WATCH_REFETCH_MS) ||
+    (awaited === 'partial' && resolveSettledDay(scope.calendar, lastRead) < settled)
   )
 }
 
-/** How soon the newest stored quarter is worth asking for again, or none when nothing is awaited.
+/** What the watched quarter still lacks: the whole report, or the primary provider's own cash flow.
  *  A bank files no corporate cash flow, so its quarter is never partial. */
-function quarterRefetchMs(
+function awaitedQuarter(
   newest: QuarterlyAccounts | undefined,
   day: TradingDay
-): number | undefined {
+): 'missing' | 'partial' | undefined {
   const watched = watchedQuarter(day)
 
   if (watched === undefined) {
@@ -170,16 +172,14 @@ function quarterRefetchMs(
   }
 
   if (newest === undefined || periodIndexOf(newest) < periodIndexOf(watched)) {
-    return QUARTER_WATCH_REFETCH_MS
+    return 'missing'
   }
 
   const awaitsCashFlow =
     !(hasCashFlow(newest.lines) || isBankLines(newest.lines)) ||
     newest.cashFlowSourceId !== undefined
 
-  return periodIndexOf(newest) === periodIndexOf(watched) && awaitsCashFlow
-    ? QUARTER_PARTIAL_REFETCH_MS
-    : undefined
+  return periodIndexOf(newest) === periodIndexOf(watched) && awaitsCashFlow ? 'partial' : undefined
 }
 
 function storedReportCount(stored: ReadonlyMap<Ticker, readonly AnnualAccounts[]>): number {

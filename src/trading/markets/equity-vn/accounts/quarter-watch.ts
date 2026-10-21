@@ -39,6 +39,7 @@ export function watchedQuarter(day: TradingDay): QuarterRef | undefined {
   const after = shiftCalendarDay(day, 1 - QUARTER_WATCH_FROM_DAYS)
   const year = Number(after.slice(0, 4))
   const ended = Math.ceil(Number(after.slice(5, 7)) / 3) - 1
+  // why-safe: a month of 1-12 ends 0-3 quarters before it, and 0 is handled first.
   const watched: QuarterRef =
     ended === 0
       ? { fiscalYear: year - 1, quarter: 4 }

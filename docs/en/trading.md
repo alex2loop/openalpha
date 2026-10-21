@@ -119,7 +119,7 @@ A new quarter reaches the analysis as soon as its results are out, without waiti
 
 A suggestion tells you when the newest quarter still lacks its cash flow, or when a quarter is past its deadline and not in yet. In the second case, check the company's own filing too.
 
-Accounts are refetched every 30 days, and more often in reporting season: every two days while a new quarter is awaited, and daily while it is in but still missing its cash flow. Reporting season is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
+Accounts are refetched every 30 days, and more often in reporting season: every two days while a new quarter is awaited, and after every session while it is in but still missing its cash flow. Reporting season is 15 to 70 days after quarter end, the span in which 25 large names filed their 2025-26 quarters (Q1 and Q3 in 15-35 days, the reviewed half-year in 30-66). A name on a non-calendar fiscal year is read on calendar quarters, so it is only asked a few extra times.
 
 #### Timeouts, retries and caching
 
