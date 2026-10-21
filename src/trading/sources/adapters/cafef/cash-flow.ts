@@ -27,9 +27,12 @@ const LINE_LABELS: readonly (readonly [string, CashFlowKey])[] = Object.freeze([
   ['lưu chuyển tiền thuần từ hoạt động kinh doanh', 'operatingCashFlow'],
   ['tiền chi để mua sắm, xây dựng tscđ', 'capitalExpenditure'],
   ['tiền thu từ phát hành cổ phiếu', 'shareIssueProceeds'],
-  ['tiền chi trả vốn góp cho các chủ sở hữu', 'shareRepurchases'],
+  // Cut before "vốn": the page spells it "vón".
+  ['tiền trả lại v', 'shareRepurchases'],
   ['cổ tức, lợi nhuận đã trả cho chủ sở hữu', 'cashDividendsPaid'],
 ])
+/** The fill is built and checked on these, so a page without a figure for either is refused. */
+const REQUIRED_LINES: readonly CashFlowKey[] = Object.freeze(['operatingCashFlow', 'preTaxProfit'])
 
 interface Period {
   readonly fiscalYear: number
@@ -89,8 +92,7 @@ interface ParseInput {
   readonly fetchedAt: number
 }
 
-/** Empty when the page has no column for the quarter: it is not published yet, which is not a
- *  failure. */
+/** Empty when the page has no column for the quarter yet. */
 function toCashFlowToDate(raw: unknown, input: ParseInput): readonly CashFlowToDate[] {
   if (typeof raw !== 'string') {
     throw new ValidationError('cafef cash-flow page did not return text')
@@ -105,9 +107,8 @@ function toCashFlowToDate(raw: unknown, input: ParseInput): readonly CashFlowToD
 
   const lines = linesOf(rows, column)
 
-  // The direct-method layout carries neither line, and so does a page whose labels drifted. A blank
-  // cell reads as zero elsewhere, but these two are what the fill is checked and built on.
-  if (!(hasAmount(rows, column, 'operatingCashFlow') && hasAmount(rows, column, 'preTaxProfit'))) {
+  // The direct-method layout carries neither line, nor does a page whose labels drifted.
+  if (REQUIRED_LINES.some((key) => lines[key] === undefined)) {
     throw new ValidationError('cafef cash-flow table lacks operating cash flow or pre-tax profit')
   }
 
@@ -131,8 +132,7 @@ function tableRows(raw: string): readonly (readonly string[])[] {
   )
 }
 
-/** A column whose cells are all blank is a quarter the page lists before the company has filed
- *  it. */
+/** A listed column with every cell blank is a quarter not filed yet. */
 function valueColumnOf(rows: readonly (readonly string[])[], period: Period): number | undefined {
   const header = rows.find((cells) => cells.some((cell) => QUARTER_HEADER_RE.test(cell)))
   const index = header?.findIndex((cell) => isPeriodHeader(cell, period))
@@ -171,17 +171,6 @@ function linesOf(
   return lines
 }
 
-/** The first row naming `key`, the one `linesOf` reads, carries a figure rather than a blank. */
-function hasAmount(
-  rows: readonly (readonly string[])[],
-  column: number,
-  key: CashFlowKey
-): boolean {
-  const row = rows.find((cells) => keyOf(cells[0] ?? '') === key)
-
-  return (row?.[column] ?? '') !== ''
-}
-
 function keyOf(label: string): CashFlowKey | undefined {
   const name = label.toLowerCase().replace(LABEL_NUMBERING_RE, '')
 
@@ -191,6 +180,10 @@ function keyOf(label: string): CashFlowKey | undefined {
 function amountOf(cell: string | undefined, key: CashFlowKey): number {
   if (cell === undefined) {
     throw new ValidationError(`cafef cash-flow row ${key} has no cell in the quarter's column`)
+  }
+
+  if (cell === '' && REQUIRED_LINES.includes(key)) {
+    throw new ValidationError(`cafef cash-flow row ${key} is blank in the quarter's column`)
   }
 
   // CafeF leaves a zero cell blank where the primary provider stores 0.
