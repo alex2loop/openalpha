@@ -275,7 +275,7 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 - `stale` - một cửa sổ nắm giữ đầy mà vẫn ở giá vốn.
 - `ceiling-close` - một cổ phiếu VN bạn nắm vừa đóng cửa ở giá trần. Phiên sau thường mở cửa cao hơn, nhưng các tuần tiếp theo hay kém thị trường, nên phần chốt lời đầu quen thuộc của bạn được giảm bớt ngay lúc mở cửa đó.
 
-`structure-broken`, `stale` và `ceiling-close` chỉ được đọc trên nhóm kỳ hạn ngắn. Nhóm dài hạn không bị bán vì một mức thấp mười phiên hay một quý đi ngang.
+`structure-broken`, `stale` và `ceiling-close` chỉ được đọc trên nhóm kỳ hạn ngắn. Nhóm dài hạn không bị bán vì một mức thấp mười phiên, một quý đi ngang hay một phiên đóng cửa ở trần.
 
 Khi cả trim lẫn một lý do bằng chứng cùng bật, phần tỷ lệ lớn hơn thắng và dòng mang lý do đó. `over-target` bật ở mọi độ lệch vượt một lô chẵn, và một mã đã tăng đúng vào lúc có tín hiệu thoát thì đã lệch xa tới mức đó. Xếp ngược thứ tự sẽ áp cỡ của một lần trim thường lệ lên một cấu trúc mà thị trường đã phá vỡ. Tranh luận hỏi nên giữ hay bán, như với trim, và chỉ có thể từ chối.
 

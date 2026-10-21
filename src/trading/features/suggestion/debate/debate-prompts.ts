@@ -331,7 +331,9 @@ export function verifierPrompt(
       renderClaims(claims),
       ...(invalidators.length === 0 ? [] : ['', renderConditions(invalidators)]),
       '',
-      orderedEvidence(context),
+      // Only the evidence: the sale's reason is the system's own reading, and a claim repeating it
+      // would be marked supported by nothing but the system.
+      `EVIDENCE:\n${context.evidence.text}`,
     ].join('\n'),
   }
 }

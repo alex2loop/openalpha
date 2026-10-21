@@ -275,7 +275,7 @@ None of this changes confidence, levels or size. The reads go to the `[[model_ti
 - `stale` - a full holding window at cost.
 - `ceiling-close` - a VN stock you hold closed at its daily ceiling. The next open usually gaps up and the weeks after have lagged the market, so your usual first take-profit share is sold at that open.
 
-`structure-broken`, `stale` and `ceiling-close` are read on a short-horizon segment only. A long segment is not sold on a ten-session low or a flat quarter.
+`structure-broken`, `stale` and `ceiling-close` are read on a short-horizon segment only. A long segment is not sold on a ten-session low, a flat quarter or one ceiling close.
 
 When a trim and an evidence reason both fire, the larger share wins and the row carries that reason. `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit signal has drifted that far. Ranking them the other way would put a routine trim's size on a structure the market broke. The debate asks whether to keep or sell, as it does for a trim, and can only decline.
 

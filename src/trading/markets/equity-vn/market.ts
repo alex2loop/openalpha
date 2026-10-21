@@ -56,7 +56,11 @@ export function createVnEquityMarket(deps: MarketDeps): Market {
     candidacy,
     detect: (options) => detect(deps, options),
     search: (options) => search(deps, options),
-    factors: (options) => runFactors(crossSection, options, VN_CEILING_TRIM_POLICY.sessions),
+    factors: (options) =>
+      runFactors(crossSection, options, {
+        sessions: VN_CEILING_TRIM_POLICY.sessions,
+        calendar: manifest.calendar,
+      }),
     levels: async (options) =>
       buildVnLevels(deps, await crossSection.get(options.asOf, options.signal), options),
     ...trailOf(VN_LEVEL_POLICY),

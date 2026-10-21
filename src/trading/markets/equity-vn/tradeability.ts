@@ -10,7 +10,7 @@ import type { Candle, InstrumentRecord, Quote } from '@/trading/kernel/market/ma
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
 import type { LimitLock, MarketPriceLimit } from '@/trading/markets/price-limit'
-import type { TickSizeRequest } from '@/trading/markets/types'
+import type { TickSizeRequest, TradingCalendar } from '@/trading/markets/types'
 import {
   BANK_FOREIGN_ROOM_FRACTION,
   BANK_SECTOR,
@@ -230,21 +230,26 @@ export function isLimitMove(move: number, bandPct: number): boolean {
   return move >= bandPct * LIMIT_HIT_TOLERANCE_FRACTION
 }
 
+interface CeilingRunScope {
+  readonly bandPct: number
+  readonly calendar: TradingCalendar
+  readonly listedOn?: TradingDay
+}
+
 /** How many of the newest sessions in a row closed at the ceiling: a limit-sized rise that also
- *  ended on the session's high. The run stops at the first session that did not, or at a previous
- *  close that cannot anchor a move. */
-export function ceilingRunOf(candles: readonly Candle[], bandPct: number): number {
+ *  ended on the session's high. The run stops at the first session that did not. */
+export function ceilingRunOf(candles: readonly Candle[], scope: CeilingRunScope): number {
   let run = 0
 
   for (let index = candles.length - 1; index > 0; index -= 1) {
     const current = candles[index]
     const previous = candles[index - 1]
 
-    if (current === undefined || previous === undefined || previous.close <= 0) {
+    if (current === undefined || previous === undefined) {
       break
     }
 
-    if (!isLimitMove(current.close / previous.close - 1, bandPct) || current.close < current.high) {
+    if (!isCeilingSession(current, previous, scope)) {
       break
     }
 
@@ -252,6 +257,18 @@ export function ceilingRunOf(candles: readonly Candle[], bandPct: number): numbe
   }
 
   return run
+}
+
+/** Read only against the session right before it: across a missing bar or a suspension the move
+ *  spans several sessions, and a listing day trades under the widened first-day band. */
+function isCeilingSession(current: Candle, previous: Candle, scope: CeilingRunScope): boolean {
+  return (
+    previous.close > 0 &&
+    current.at !== scope.listedOn &&
+    scope.calendar.addTradingDays(previous.at, 1) === current.at &&
+    current.close >= current.high &&
+    isLimitMove(current.close / previous.close - 1, scope.bandPct)
+  )
 }
 
 /** One price all session, at the limit: the board never opened on the other side. */
