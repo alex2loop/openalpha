@@ -2946,6 +2946,7 @@
     "reduce.regime-risk-off": "This segment's market state reads defensive and the evidence no longer supports this name. This cuts the position to half the size you opened it at.",
     "reduce.stale": "Most of this position has now sat through a full holding window and it is still about where you bought it. The idea has had its time: this trims it to half the size you opened, so the risk budget can go to something that is actually moving.",
     "reduce.overheated": "Longs are paying crowded funding to stay in this name while you hold it. This sells your usual first take-profit share of the position you opened, counting what you already sold.",
+    "reduce.ceiling-close": "It closed at the ceiling. The next open usually gaps up, and the move has often faded over the following two weeks, so taking part of the gain here locks some of it in.",
     "hold.recorded-entry": "Levels the system set for a position you booked - no call was made. Run /suggest on it for the full read.",
     "render.suggestion.holdRecorded": "{ticker} ({at}): exit plan for the position you hold.",
     "render.suggestion.holdLevelsIntroRecorded": "The levels this position is watched against:",

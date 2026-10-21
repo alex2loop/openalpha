@@ -394,6 +394,11 @@ export const LIMIT_HIT_MAXIMUM = 3
  *  rarely lands on the exact ceiling ratio. */
 export const LIMIT_HIT_TOLERANCE_FRACTION = 0.9
 
+/** A held short-horizon name that closes at its ceiling this many sessions running is trimmed at
+ *  the next open: the gap pays most there, and the ten sessions after it lag the market. 0 turns
+ *  the trim off. */
+export const VN_CEILING_TRIM_POLICY = Object.freeze({ sessions: 1 })
+
 /** What a failed screen gate costs a named VN ticker. `ceiling-locked` is absent because the band
  *  edge is already the levels block, and `no-price-history` because a name with no series has no
  *  levels to size. A pumped or thinly-traded name is still analysable, just less trustworthy.

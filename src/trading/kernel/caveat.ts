@@ -331,6 +331,7 @@ export const REDUCE_REASON_CODES = Object.freeze([
   'regime-risk-off',
   'stale',
   'overheated',
+  'ceiling-close',
 ] as const)
 export type ReduceReasonCode = (typeof REDUCE_REASON_CODES)[number]
 /** The evidence arms only. `over-target` is the plan's trim, which reads weights rather than

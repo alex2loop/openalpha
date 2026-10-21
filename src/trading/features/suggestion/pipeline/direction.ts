@@ -67,10 +67,10 @@ function hasHoldReasonIn(suggestion: Suggestion, reasons: ReadonlySet<HoldReason
 
 /** How much of a held position, as opened, each evidence reason sells. A failed breakout is exited
  *  whole - the Turtle rule its trigger came from; the rest halve, which is the size a re-entry can
- *  rebuild from. Overheating reads the operator's own take-profit tranche, because that is what it
- *  is. */
+ *  rebuild from. Overheating and a ceiling close read the operator's own take-profit tranche,
+ *  because that is what they are. */
 const REDUCE_SALE_FRACTIONS: Readonly<
-  Record<Exclude<EvidenceReduceReasonCode, 'overheated'>, number>
+  Record<Exclude<EvidenceReduceReasonCode, 'overheated' | 'ceiling-close'>, number>
 > = Object.freeze({
   'thesis-weakening': 0.5,
   'structure-broken': 1,
@@ -270,7 +270,9 @@ function isCompositeConclusive(factors: FactorScore): boolean {
 }
 
 function saleFractionOf(reason: EvidenceReduceReasonCode, profile: UserProfile): number {
-  return reason === 'overheated' ? profile.takeProfitTranchePct : REDUCE_SALE_FRACTIONS[reason]
+  return reason === 'overheated' || reason === 'ceiling-close'
+    ? profile.takeProfitTranchePct
+    : REDUCE_SALE_FRACTIONS[reason]
 }
 
 /** Held for a whole outcome window and still within a rounding of its cost. Read off the book's own
