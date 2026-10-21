@@ -242,7 +242,7 @@ Mỗi vai được hỏi tối đa hai lần. Nếu câu trả lời sai schema,
 
 1. Chế độ bạn đã gõ rõ thì giữ nguyên.
 2. `force` nghĩa là full.
-3. Bản nháp mà cuốn sổ đã quyết (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) chạy lean, vì tranh luận chỉ hạ được xuống nên không đổi được nó. Báo cáo nói rõ là điểm số (ba lý do `factors-*`) hay danh mục đã chốt kết quả, và chỉ lệnh `/suggest <mã> full` để đọc đủ lập luận.
+3. Bản nháp mà cuốn sổ đã quyết (`no-rebalance-needed`, `evidence-sold`, `sale-below-board-lot`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) chạy lean, vì tranh luận chỉ hạ được xuống nên không đổi được nó. Báo cáo nói rõ là điểm số (ba lý do `factors-*`) hay danh mục đã chốt kết quả, và chỉ lệnh `/suggest <mã> full` để đọc đủ lập luận.
 4. Mọi trường hợp khác dùng chế độ đã cấu hình.
 
 Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lại. Nếu không, mặc định lean sẽ khiến nó bị chạy lại mỗi ngày trên cấu hình full. Riêng khi bạn gõ rõ `full`, lệnh chạy lại qua dòng lean đó và thay nó, nên hỏi lập luận đầy đủ thì không bao giờ nhận lại bản rút gọn.
@@ -277,7 +277,7 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 
 `structure-broken`, `stale` và `ceiling-close` chỉ được đọc trên nhóm kỳ hạn ngắn. Nhóm dài hạn không bị bán vì một mức thấp mười phiên, một quý đi ngang hay một phiên đóng cửa ở trần.
 
-Khi cả trim lẫn một lý do bằng chứng cùng bật, phần tỷ lệ lớn hơn thắng và dòng mang lý do đó. `over-target` bật ở mọi độ lệch vượt một lô chẵn, và một mã đã tăng đúng vào lúc có tín hiệu thoát thì đã lệch xa tới mức đó. Xếp ngược thứ tự sẽ áp cỡ của một lần trim thường lệ lên một cấu trúc mà thị trường đã phá vỡ. Tranh luận hỏi nên giữ hay bán, như với trim, và chỉ có thể từ chối.
+Khi cả trim lẫn một lý do bằng chứng cùng bật, bên bán nhiều hơn (tính theo lô chẵn) thắng và dòng mang lý do đó; hòa thì lý do bằng chứng thắng. Khi bằng chứng chỉ đòi bán chưa tới một lô chẵn trên vị thế bạn chưa bán bớt, mã được giữ với lý do `sale-below-board-lot`, không bị báo là đã bán rồi. `over-target` bật ở mọi độ lệch vượt một lô chẵn, và một mã đã tăng đúng vào lúc có tín hiệu thoát thì đã lệch xa tới mức đó. Xếp ngược thứ tự sẽ áp cỡ của một lần trim thường lệ lên một cấu trúc mà thị trường đã phá vỡ. Tranh luận hỏi nên giữ hay bán, như với trim, và chỉ có thể từ chối.
 
 #### Hai phép kiểm chạy trước
 

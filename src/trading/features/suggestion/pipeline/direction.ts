@@ -41,12 +41,15 @@ const FACTOR_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonCode>
 const BOOK_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonCode>([
   'no-rebalance-needed',
   'evidence-sold',
+  'sale-below-board-lot',
   'increase-unfunded',
   'segment-off',
   'segment-target-zero',
   'reference-only',
   ...FACTOR_HOLD_REASONS,
 ])
+/** Below this share of the position, what an evidence cut still owes is float residue. */
+const OWED_RESIDUE_FRACTION = 1e-9
 
 /** Who settled a hold no debate can change: the scores or the portfolio. */
 export function bookHoldOf(
@@ -91,10 +94,13 @@ export function draftDirectionFor(input: DirectionInput): DraftDirection {
   const { context, instrument, factors } = input
   const change = planChangeOf(context, instrument)
   const held = heldPositionOf(context, instrument)
-  const sale = largerSaleOf(
-    trimOf(change),
-    held === undefined ? undefined : evidenceSaleFor(input, held)
-  )
+  const sale =
+    held === undefined
+      ? trimOf(change)
+      : largerSaleOf(trimOf(change), evidenceSaleFor(input, held), {
+          held,
+          lotSize: input.market.manifest.boardLot.size,
+        })
 
   if (sale !== undefined) {
     return sale
@@ -138,6 +144,11 @@ export function draftDirectionFor(input: DirectionInput): DraftDirection {
 
 type DraftSale = Extract<DraftDirection, { readonly action: 'reduce' }>
 
+interface LotScope {
+  readonly held: HeldPosition
+  readonly lotSize: number
+}
+
 /** The plan's trim: the share of the holding above the weight it targets. */
 function trimOf(change: PositionChange | undefined): DraftSale | undefined {
   if (change === undefined || !(change.currentPctNav > change.targetPctNav)) {
@@ -154,7 +165,8 @@ function trimOf(change: PositionChange | undefined): DraftSale | undefined {
 /** A held name the evidence has turned on. Each reason cuts the position to what it leaves of the
  *  position as opened, so a reason that stays true sells once rather than again on every run: what
  *  has already been sold since the position opened counts toward it. A cut already made holds, and
- *  says why, so the name stays closed to a rebalance that would buy it back. */
+ *  says why, so the name stays closed to a rebalance that would buy it back; so does a share still
+ *  owed but under one board lot, which was never sold. */
 function evidenceSaleFor(input: DirectionInput, held: HeldPosition): DraftDirection | undefined {
   const reason = reduceReasonFor(input, held)
 
@@ -166,27 +178,41 @@ function evidenceSaleFor(input: DirectionInput, held: HeldPosition): DraftDirect
   const kept = (1 - saleFractionOf(reason, input.context.profile)) * opened
   const saleUnits = floorToLot(held.units - kept, input.market.manifest.boardLot.size)
 
-  return saleUnits > 0
-    ? { action: 'reduce', reasonCode: reason, saleFraction: Math.min(saleUnits / held.units, 1) }
+  if (saleUnits > 0) {
+    return {
+      action: 'reduce',
+      reasonCode: reason,
+      saleFraction: Math.min(saleUnits / held.units, 1),
+    }
+  }
+
+  return held.units - kept > OWED_RESIDUE_FRACTION * opened
+    ? { action: 'hold', reasonCode: 'sale-below-board-lot', reduceReasonCode: reason }
     : { action: 'hold', reasonCode: 'evidence-sold', reduceReasonCode: reason }
 }
 
-/** The larger share wins and keeps its own reason, so a second reason to sell a name never sells
+/** The larger sale wins and keeps its own reason, so a second reason to sell a name never sells
  *  less than either alone would. Ordering them instead made the market's own full exit unreachable:
  *  `over-target` fires on any drift clearing a board lot, and a name that rose into its exit signal
- *  has drifted that far. A tie goes to the evidence, whose reason keeps the name closed to
- *  `/rebalance`. Evidence that carries no share stands only where the trim is absent. */
+ *  has drifted that far. Compared in board lots, since that is what either would sell: a tie goes to
+ *  the evidence, whose reason keeps the name closed to `/rebalance`. Evidence that carries no share
+ *  stands only where the trim is absent. */
 function largerSaleOf(
   trim: DraftSale | undefined,
-  evidence: DraftDirection | undefined
+  evidence: DraftDirection | undefined,
+  lot: LotScope
 ): DraftDirection | undefined {
   if (trim === undefined) {
     return evidence
   }
 
-  return evidence?.action === 'reduce' && evidence.saleFraction >= trim.saleFraction
+  return evidence?.action === 'reduce' && lotsSold(evidence, lot) >= lotsSold(trim, lot)
     ? evidence
     : trim
+}
+
+function lotsSold(sale: DraftSale, lot: LotScope): number {
+  return floorToLot(sale.saleFraction * lot.held.units, lot.lotSize)
 }
 
 /** Most decisive first: a broken structure sells whatever the regime says, a risk-off regime sells

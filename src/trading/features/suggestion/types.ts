@@ -139,7 +139,7 @@ interface SuggestionBase {
   /** What would make this call wrong, checked by the next run. On both arms: a hold is where the
    *  operator most needs to know what to watch for, having been told to do nothing. */
   readonly invalidators?: readonly string[]
-  /** Why the name is sold down: a reduce's reason, or what an `evidence-sold` hold already cut. */
+  /** Why the name is sold down: a reduce's reason, or the evidence a hold is cut for. */
   readonly reduceReasonCode?: ReduceReasonCode
   /** A held name's standing stop this run raised: an order resting at an exchange stays there. */
   readonly raisedStopFrom?: number

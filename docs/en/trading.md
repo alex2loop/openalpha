@@ -242,7 +242,7 @@ Depth is chosen once, first match wins:
 
 1. A mode you typed stands.
 2. `force` means full.
-3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it. The report says whether the scores (the three `factors-*` reasons) or the portfolio settled it, and names `/suggest <ticker> full` for the whole argument.
+3. A draft the book has already decided (`no-rebalance-needed`, `evidence-sold`, `sale-below-board-lot`, `increase-unfunded`, `segment-off`, `segment-target-zero`, `reference-only`, `factors-bearish`, `factors-neutral`, `factors-contested`) runs lean, since the debate can only lower and cannot change it. The report says whether the scores (the three `factors-*` reasons) or the portfolio settled it, and names `/suggest <ticker> full` for the whole argument.
 4. Anything else uses the configured mode.
 
 A row the book holds is also exempt from the depth ratchet on reuse. Otherwise the lean default would re-run it daily against a full config. A typed `full` is the exception: it re-runs past that lean row and replaces it, so asking for the argument never hands back the short one.
@@ -277,7 +277,7 @@ None of this changes confidence, levels or size. The reads go to the `[[model_ti
 
 `structure-broken`, `stale` and `ceiling-close` are read on a short-horizon segment only. A long segment is not sold on a ten-session low, a flat quarter or one ceiling close.
 
-When a trim and an evidence reason both fire, the larger share wins and the row carries that reason. `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit signal has drifted that far. Ranking them the other way would put a routine trim's size on a structure the market broke. The debate asks whether to keep or sell, as it does for a trim, and can only decline.
+When a trim and an evidence reason both fire, the larger sale wins, counted in board lots, and the row carries that reason; a tie goes to the evidence. When the evidence asks for less than one board lot on a position you have not sold from, it holds as `sale-below-board-lot`, not as already sold. `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit signal has drifted that far. Ranking them the other way would put a routine trim's size on a structure the market broke. The debate asks whether to keep or sell, as it does for a trim, and can only decline.
 
 #### Two checks that run first
 

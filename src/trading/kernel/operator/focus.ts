@@ -35,6 +35,8 @@ const BOOK_STATE_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonC
   'risk-budget-too-small',
   'open-risk-exhausted',
   'size-below-board-lot',
+  'sale-below-board-lot',
+  'position-unsettled',
   'increase-unfunded',
   'fully-invested',
   'no-rebalance-needed',
