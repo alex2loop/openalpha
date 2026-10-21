@@ -160,15 +160,51 @@ function renderStoredVerdict(locale: Locale, call: StoredSuggestion): string {
     })
   }
 
-  const reasons = suggestion.holdReasonCodes.map((code) => renderHoldReason(locale, code)).join(' ')
+  const reasons = renderHoldReasons(locale, suggestion).join(' ')
 
   return reasons === ''
     ? t(locale, 'toolSummaries.suggestionVerdictAction', params)
     : t(locale, 'toolSummaries.suggestionVerdictHold', { ...params, reasons })
 }
 
-export function renderHoldReason(locale: Locale, code: HoldReasonCode): string {
-  return renderDeclaredValue(locale, `trading.hold.${code}`)
+/** `market-not-tradeable` covers a band edge, a full foreign room, a halt and a delisting alike; the
+ *  caveat stored beside it names which one, so the operator reads the cause, not the category. */
+function notTradeableKey(caveats: readonly Caveat[]): `trading.${string}` {
+  for (const caveat of caveats) {
+    if (caveat.code === 'market.band-edge-blocked') {
+      return caveat.detail?.edge === 'floor'
+        ? 'trading.holdBlocked.floor'
+        : 'trading.holdBlocked.ceiling'
+    }
+
+    if (caveat.code === 'market.foreign-room-exhausted') {
+      return 'trading.holdBlocked.foreign-room'
+    }
+  }
+
+  return 'trading.hold.market-not-tradeable'
+}
+
+function renderHoldReason(
+  locale: Locale,
+  code: HoldReasonCode,
+  caveats: readonly Caveat[]
+): string {
+  return code === 'market-not-tradeable'
+    ? renderDeclaredValue(locale, notTradeableKey(caveats))
+    : renderDeclaredValue(locale, `trading.hold.${code}`)
+}
+
+export function renderHoldReasons(
+  locale: Locale,
+  suggestion: {
+    readonly holdReasonCodes: readonly HoldReasonCode[]
+    readonly caveats: readonly Caveat[]
+  }
+): readonly string[] {
+  return suggestion.holdReasonCodes.map((code) =>
+    renderHoldReason(locale, code, suggestion.caveats)
+  )
 }
 
 /** The reason on its own line. The candidate-market hint that follows it in the full text is the
