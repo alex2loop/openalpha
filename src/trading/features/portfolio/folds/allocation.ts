@@ -10,15 +10,16 @@ import type {
 import type { Caveat, EvidenceReduceReasonCode } from '@/trading/kernel/caveat'
 import type { MarketRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { RegimeScale } from '@/trading/kernel/market/market-data'
-import type { RiskCapSet, UserProfile } from '@/trading/kernel/operator/profile'
+import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { DISTRIBUTION_EPSILON, distribute } from '@/trading/features/portfolio/folds/distribution'
 import {
   capTrims,
   compareCandidates,
+  coreOf,
   driftBand,
   etfCeilingPctNav,
+  isWeakHolding,
   turnoverCapPctNav,
-  WEAK_HOLDING_SIGNAL_THRESHOLD,
 } from '@/trading/features/portfolio/folds/policy'
 import { buildInstrumentKey, CASH_SEGMENT, ETF_KIND } from '@/trading/kernel/instrument'
 import { positionCapOf } from '@/trading/kernel/operator/profile'
@@ -199,7 +200,7 @@ function weighSegment(request: WeighSegmentInput): Omit<DesiredWeights, 'capTrim
   const caveats: Caveat[] = []
   const named = input.candidates.filter((candidate) => candidate.segment === segment)
   const caps = input.profile.caps[segment]
-  const core = coreOf(caps, named)
+  const core = coreOf(caps, named, request.held)
 
   if (core === undefined && (caps?.minimumEtfPctNav ?? 0) > 0) {
     caveats.push({ code: 'portfolio.core-unfilled', detail: { segment } })
@@ -257,26 +258,6 @@ interface HoldingContext {
   readonly core?: readonly [string, number]
 }
 
-/** The segment's core and the tracker that carries it. One tracker, not every ETF in the segment: two
- *  trackers of the same index buy that exposure twice and pay the spread twice, so the floor goes to
- *  the best-ranked one and the rest compete on score like any other name. */
-function coreOf(
-  caps: RiskCapSet | undefined,
-  candidates: readonly PortfolioCandidate[]
-): readonly [string, number] | undefined {
-  const floor = caps?.minimumEtfPctNav
-
-  if (floor === undefined || floor <= 0) {
-    return undefined
-  }
-
-  const best = candidates
-    .filter((candidate) => candidate.instrumentKind === ETF_KIND)
-    .sort(compareCandidates)[0]
-
-  return best === undefined ? undefined : [buildInstrumentKey(best.instrument), floor]
-}
-
 /** Held, unfunded, and not being exited either: entry needs a positive read while exit waits for
  *  the weak-holding line, and an excluded name was declined, never asked to be sold. Their weight
  *  is reserved rather than skipped, or the segment would buy past its target on top of it. The core
@@ -302,9 +283,12 @@ function keptHoldings(
   return kept
 }
 
-/** Between a positive read and the weak-holding line: not bought, not exited. */
+/** Between a positive read and the weak-holding line: not bought, not exited. A fund has no such
+ *  line, so any read at or below zero keeps it. */
 function isNeutralRead(candidate: PortfolioCandidate): boolean {
-  return candidate.marketScore <= 0 && candidate.marketScore > WEAK_HOLDING_SIGNAL_THRESHOLD
+  return (
+    candidate.marketScore <= 0 && !isWeakHolding(candidate.marketScore, candidate.instrumentKind)
+  )
 }
 
 function heldWeightOf(context: HoldingContext, candidate: PortfolioCandidate): number {

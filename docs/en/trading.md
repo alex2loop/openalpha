@@ -309,6 +309,12 @@ Readings the rows do not show stay in the calculation. Any market with a factor 
 
 **The VN market state holds until the score clearly leaves it.** A state is entered at +-0.25 and left only once the score is back inside +-0.15, so a composite hovering on the line does not move deployment every day. `macro.regime-held` says when the band held where the bare score would have flipped. The memory is the last stored rated read within five sessions; an older one means the daemon was off, not that the market was calm. It applies to VN only, the one market that stores its reads.
 
+**A VN fund is read through the index it tracks.** Its two factors read that index. When the index's newest bar is older than the fund's, both carry `factor.input-stale`. Other differences from a share:
+
+- The debate reads macro and liquidity methods instead of business valuation and quality.
+- No reporting-deadline warning appears, since a fund files no issuer accounts.
+- The level under the entry is a review point three ATRs away on a long horizon. Nothing trails it, so it never sits a single ATR under the close the way a share's trailed stop can.
+
 #### A held name is planned without being asked
 
 A buy recorded with no plan standing gets a levels-only hold row (`recorded-entry`) at its fill price. It is written by the ledger's one write path, so the slash command, the agent's record tool, a venue sync and a mirrored fill all get it. Your write confirmation prints it; the agent's receipt does not.
@@ -420,7 +426,7 @@ A VN gold fill is recorded in the shop's unit while its suggestion is quoted per
 
 #### The board's own record
 
-Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart; rows logged before this carry none.
+Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board, one per kind it ranks, so VN funds are logged beside shares (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart; rows logged before this carry none.
 
 `/reflect` prints it as a second attribution block. It is the sample the factor weights and confidence bands are fitted to as it grows. Each factor is scored per strategy version, newest two per market, because a version change redefines what the factor measures.
 
@@ -1109,6 +1115,8 @@ A gap the plan cannot close in one lot is said out loud rather than left to look
 One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. A sale under one of the plan's own reasons (`over-target`, `weak-signal`, `over-cap`) is not that verdict. It is this plan's own rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
 
 A name that has run past its cap is sold back, even when its score is neutral and its segment has not drifted. Once a holding's weight passes its per-name cap (or a fund's cap) by more than the 5/25 band, the plan sells it back to the cap. A 10% cap acts at 12.5% and sells back to 10%, and the next run at 10.3% places no order. A sector past its cap gives the excess back from its weakest names first. Funds are left out of it, and so are names in a segment with a 0% target, since those are sold whole anyway. The sale goes to the cap, at most one board lot past it, and in one step, though the settled quantity and the name's turnover still limit what sells in a day. The row reads "above your profile's per-name cap of 10% - trimmed to fit the cap, not for a weak score" and sits under what to do first. It never closes the name to `/rebalance`. To keep a concentrated name on purpose, raise the cap with `/profile`.
+
+A fund is never sold for a weak score. A bearish read on an index is a call on the whole market, which the segment's weight and its market state already answer, so a held ETF scoring under the hold line keeps its weight. The drift rule can still trim it, and a cap can still sell it back. The segment's ETF core stays with the tracker you already hold until another one outscores it by 0.15. Funds on overlapping indices move almost together, so a small lead is not worth a round trip of fees and tax.
 
 With no names, `/rebalance` sizes your holdings plus the saved watchlist. Naming tickers sizes exactly those. Each order line states the amount in the book's base currency and the price in the market's own quote currency (what the venue takes), so a board-scaled market prints its points with no currency while a coin prints its own. A price takes the decimals its currency actually has: VND, JPY and KRW have no minor unit, so a dong price prints whole.
 

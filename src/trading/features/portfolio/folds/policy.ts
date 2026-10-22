@@ -1,5 +1,6 @@
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
 import type { CapReason, SegmentValue } from '@/trading/features/portfolio/types'
+import type { InstrumentKind } from '@/trading/kernel/instrument'
 import type { RiskCapSet, UserProfile } from '@/trading/kernel/operator/profile'
 import { buildInstrumentKey, ETF_KIND } from '@/trading/kernel/instrument'
 import { isEtfUnmeasured } from '@/trading/kernel/operator/exposure'
@@ -18,6 +19,12 @@ export const FULLY_INVESTED_PCT_NAV = 0.95
  *  stops reserving its weight. Entry stays gated at a positive score, so the gap between the two is
  *  the hysteresis that keeps a read wobbling around zero from forcing a liquidation. */
 export const WEAK_HOLDING_SIGNAL_THRESHOLD = -0.3
+
+/** How far a challenger tracker must outscore the core the segment already holds before the core
+ *  moves to it. Funds on overlapping indices move together (VN30, VN100 and VNX50 correlated 0.98
+ *  to 1.00 over 2026), so a small lead buys almost nothing and a switch pays a round trip. About a
+ *  third of a fund score's 75th percentile, in line with the 20-50% buffers index providers use. */
+const CORE_SWITCH_MARGIN = 0.15
 
 /** How much of a rotation — the part of a move that is not the segment closing its gap — one run may
  *  take. Suggestions accumulate; the segment's own gap is closed promptly and is not scaled here. */
@@ -122,6 +129,12 @@ interface CapTrimRequest {
   readonly rebalancePolicy: RebalancePolicy
 }
 
+/** A fund is never sold on its own score: a bearish read on an index is a call on the market, which
+ *  the segment's weight and regime already answer, and an exit on a two-month trend whipsaws. */
+export function isWeakHolding(score: number, kind: InstrumentKind | undefined): boolean {
+  return kind !== ETF_KIND && score <= WEAK_HOLDING_SIGNAL_THRESHOLD
+}
+
 /** Equal scores and equal room must produce stable output, not insertion-order output. Funds on one
  *  index score the same, so the one that trades most leads: its spread is what a holder pays. */
 export function compareCandidates(left: PortfolioCandidate, right: PortfolioCandidate): number {
@@ -131,6 +144,42 @@ export function compareCandidates(left: PortfolioCandidate, right: PortfolioCand
     left.instrument.market.localeCompare(right.instrument.market) ||
     left.instrument.ticker.localeCompare(right.instrument.ticker)
   )
+}
+
+/** The segment's core and the tracker that carries it. One tracker, not every ETF in the segment: two
+ *  trackers of the same index buy that exposure twice and pay the spread twice, so the floor goes to
+ *  the best-ranked one and the rest compete on score like any other name. A tracker already held
+ *  keeps the floor until another outscores it by `CORE_SWITCH_MARGIN`, so the core does not trade
+ *  back and forth between funds that move together. */
+export function coreOf(
+  caps: RiskCapSet | undefined,
+  candidates: readonly PortfolioCandidate[],
+  held: ReadonlyMap<string, number>
+): readonly [string, number] | undefined {
+  const floor = caps?.minimumEtfPctNav
+
+  if (floor === undefined || floor <= 0) {
+    return undefined
+  }
+
+  const trackers = candidates
+    .filter((candidate) => candidate.instrumentKind === ETF_KIND)
+    .sort(compareCandidates)
+  const [best] = trackers
+  const incumbent = trackers.find(
+    (candidate) => (held.get(buildInstrumentKey(candidate.instrument)) ?? 0) > 0
+  )
+
+  if (best === undefined) {
+    return undefined
+  }
+
+  const core =
+    incumbent !== undefined && best.marketScore - incumbent.marketScore < CORE_SWITCH_MARGIN
+      ? incumbent
+      : best
+
+  return [buildInstrumentKey(core.instrument), floor]
 }
 
 /** Back to the cap, not to a target: under proportional costs the no-trade region ends at the cap.

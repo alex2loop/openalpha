@@ -17,6 +17,8 @@ import { newestFlowDay } from '@/trading/markets/equity-vn/tape/flows'
 const FOREIGN_LAG_TOLERANCE_SESSIONS = 0
 export const PROPRIETARY_LAG_TOLERANCE_SESSIONS = 1
 const FUNDAMENTAL_LAG_TOLERANCE_SESSIONS = REFRESH_STALE_SESSIONS.fundamentals
+/** An index prints with its session, as the fund tracking it does. */
+const BENCHMARK_LAG_TOLERANCE_SESSIONS = 0
 
 /** The factors priced off the fundamental snapshot rather than the tape. */
 const FUNDAMENTAL_FACTOR_IDS: readonly VnEquityFactorId[] = Object.freeze([
@@ -31,6 +33,9 @@ interface DatedEvidence {
   readonly bars: readonly BarRecord[]
   readonly flows: readonly FlowSnapshot[]
   readonly fundamental: FundamentalSnapshot | null
+  /** The newest session of the index a fund is scored on: every fund factor reads that series
+   *  rather than the fund's own tape. */
+  readonly benchmarkAt?: TradingDay
 }
 
 /** Every factor input, with a caveat added to each one whose own source is behind the tape. The
@@ -55,9 +60,9 @@ export function withStaleCaveats<K extends FactorId>(
 }
 
 /** Every factor when the name's own tape is behind the session reported — nothing is current when
- *  the bars are not. Otherwise the factors whose own source lags that tape, each by its own
- *  publication calendar: measuring against `freshFrom` instead would let a leg ending a session
- *  before it go unreported. */
+ *  the bars are not — or when a fund's index is behind the fund's own tape. Otherwise the factors
+ *  whose own source lags that tape, each by its own publication calendar: measuring against
+ *  `freshFrom` instead would let a leg ending a session before it go unreported. */
 function staleFactorIds<K extends FactorId>(
   inputs: readonly FactorInput<K>[],
   evidence: DatedEvidence,
@@ -70,7 +75,10 @@ function staleFactorIds<K extends FactorId>(
     return stale
   }
 
-  if (tape < freshFrom) {
+  if (
+    tape < freshFrom ||
+    isLagging(evidence.benchmarkAt, evidence.bars, BENCHMARK_LAG_TOLERANCE_SESSIONS)
+  ) {
     for (const entry of inputs) {
       stale.add(entry.id)
     }

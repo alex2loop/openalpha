@@ -325,7 +325,7 @@ function finish(context: DebateContext, verified: VerifiedDebate): DebateOutcome
     ...verified.subject.body,
     verification,
     claims: material,
-    playbook: debatePlaybook(context.input.depth.mode, context.market.manifest),
+    playbook: debatePlaybook(context.input, context.market.manifest),
     models: [...context.models].sort(),
   }
 

@@ -309,6 +309,12 @@ Các số đọc mà dòng không hiện vẫn nằm trong phép tính. Thị tr
 
 **Trạng thái thị trường VN giữ nguyên cho tới khi điểm rời hẳn nó.** Vào một trạng thái ở +-0,25 và chỉ rời khi điểm quay lại trong +-0,15, nên một chỉ số tổng hợp lởn vởn trên ngưỡng không làm dịch triển khai mỗi ngày. `macro.regime-held` báo khi dải giữ được chỗ mà điểm trần lẽ ra đã lật. Trí nhớ là lần đọc đã xếp hạng gần nhất đã lưu trong vòng năm phiên; cũ hơn nghĩa là daemon đã tắt, không phải thị trường lặng. Nó chỉ áp với VN, thị trường duy nhất lưu các số đọc của mình.
 
+**Quỹ ETF VN được đọc qua chỉ số mà nó mô phỏng.** Hai yếu tố của quỹ đọc chính chỉ số đó. Khi cây nến mới nhất của chỉ số cũ hơn của quỹ, cả hai mang `factor.input-stale`. Những điểm khác so với cổ phiếu:
+
+- Cuộc tranh luận dùng khung phân tích vĩ mô và thanh khoản, thay cho định giá và chất lượng doanh nghiệp.
+- Không có cảnh báo hạn nộp báo cáo, vì quỹ không nộp báo cáo tài chính như doanh nghiệp.
+- Mức dưới giá vào là mốc xem lại, cách ba lần ATR với kỳ hạn dài. Không có gì kéo nó lên theo giá, nên nó không bao giờ nằm sát dưới giá đóng cửa một ATR như cắt lỗ đã kéo theo của cổ phiếu.
+
 #### Một mã đang nắm được lập kế hoạch mà không cần ai hỏi
 
 Lệnh mua được ghi mà chưa có kế hoạch nào đang đứng sẽ nhận một dòng giữ nguyên chỉ có mức giá (`recorded-entry`) ở giá khớp. Dòng này do đúng một đường ghi của sổ lệnh tạo ra, nên lệnh gạch chéo, công cụ ghi sổ của agent, một lần sync sàn và một lần khớp được phản chiếu đều nhận được. Dòng xác nhận ghi của bạn in nó ra; biên nhận của agent thì không.
@@ -420,7 +426,7 @@ Một lần khớp vàng VN được ghi theo đơn vị của cửa hàng trong
 
 #### Thành tích của chính bảng giá
 
-Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, daemon ghi lại toàn bộ bảng của từng thị trường (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng; các dòng ghi trước thay đổi này không có tên nguồn.
+Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, daemon ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã một bảng, nên quỹ ETF VN được ghi bên cạnh cổ phiếu (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng; các dòng ghi trước thay đổi này không có tên nguồn.
 
 `/reflect` in nó thành khối quy kết thứ hai. Đó là mẫu mà các trọng số yếu tố và dải mức tin cậy được khớp theo khi nó lớn dần. Mỗi yếu tố được chấm theo phiên bản chiến lược, hai bản mới nhất mỗi thị trường, vì đổi phiên bản làm yếu tố đo thứ khác.
 
@@ -1090,6 +1096,8 @@ Một khoảng cách mà kế hoạch không khép được trong một lô thì
 Có một kết luận mà kế hoạch không đi vòng qua: một mã đang nắm có kết luận đã lưu mới nhất là `reduce` trên bằng chứng thì không nhận lệnh tăng, dù nó nằm dưới mục tiêu bao xa, và kế hoạch nêu tên nó thay vì để dòng đó lặng lẽ vắng mặt. Một lệnh giảm bớt mang lý do của chính kế hoạch (`over-target`, `weak-signal`, `over-cap`) không phải kết luận đó. Nó là chính quy tắc của kế hoạch này được ghi ngược vào kho, nên hành động theo nó sẽ để kế hoạch tự phủ quyết mình. Không gì khác về kế hoạch đổi: khoảng trống chưa lấp của nhóm vẫn chưa lấp và được báo là tiền mặt.
 
 Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm của nó trung tính và nhóm của nó chưa lệch. Khi tỷ trọng một mã vượt trần mỗi mã (hoặc trần của quỹ) quá dải 5/25, kế hoạch giảm bớt nó về đúng mức trần. Trần 10% sẽ hành động ở 12,5% và giảm bớt về 10%, còn lần chạy sau ở 10,3% không đặt lệnh nào. Một ngành vượt trần thì trả phần dư từ các mã yếu nhất trước. Quỹ không bị tính vào đó, các mã thuộc nhóm có mục tiêu 0% cũng vậy, vì chúng đằng nào cũng được giảm bớt hết. Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước, dù số lượng đã về tài khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày. Dòng đó đọc "đang vượt trần mỗi mã trong hồ sơ 10% - giảm bớt cho vừa trần, không phải vì điểm yếu" và nằm dưới mục làm trước. Nó không bao giờ đóng mã khỏi `/rebalance`. Muốn giữ một mã tập trung có chủ ý thì nâng trần bằng `/profile`.
+
+Một quỹ ETF không bao giờ bị bán vì điểm yếu. Điểm xấu của một chỉ số là nhận định về cả thị trường, và tỷ trọng của nhóm cùng trạng thái thị trường đã lo phần đó, nên một ETF đang nắm có điểm dưới ngưỡng giữ vẫn giữ tỷ trọng. Luật lệch tỷ trọng vẫn có thể cắt bớt nó, và trần vẫn có thể giảm bớt nó. Lõi ETF của nhóm ở lại với quỹ bạn đang nắm cho tới khi một quỹ khác cao điểm hơn 0,15. Các quỹ theo chỉ số trùng nhau đi gần như cùng nhau, nên chênh lệch nhỏ không đáng một vòng phí và thuế.
 
 Không nêu mã thì `/rebalance` định cỡ các khoản nắm của bạn cộng danh sách theo dõi đã lưu. Nêu mã thì định cỡ đúng những mã đó. Mỗi dòng lệnh nêu số tiền theo tiền tệ gốc của cuốn sổ và giá theo tiền tệ báo giá của chính thị trường (thứ mà sàn nhận), nên một thị trường tính theo bảng giá in điểm của nó không kèm tiền tệ còn một coin in tiền tệ của nó. Một mức giá lấy đúng số chữ số thập phân mà đồng tiền của nó có: VND, JPY và KRW không có đơn vị nhỏ hơn, nên một giá đồng in nguyên.
 

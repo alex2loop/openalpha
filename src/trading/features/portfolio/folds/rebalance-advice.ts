@@ -11,7 +11,7 @@ import type {
 } from '@/trading/features/portfolio/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import { allocationRows, desiredWeights } from '@/trading/features/portfolio/folds/allocation'
-import { WEAK_HOLDING_SIGNAL_THRESHOLD } from '@/trading/features/portfolio/folds/policy'
+import { isWeakHolding } from '@/trading/features/portfolio/folds/policy'
 import { rebalanceRows } from '@/trading/features/portfolio/folds/rebalance'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { toProfileStamp } from '@/trading/kernel/operator/profile'
@@ -181,6 +181,12 @@ interface WeakHoldingFold {
 function weakHoldingRows(input: AdviceInput): WeakHoldingFold {
   const rows: WeakHoldingNote[] = []
   const caveats: Caveat[] = []
+  const kinds = new Map(
+    input.candidates.map((candidate) => [
+      buildInstrumentKey(candidate.instrument),
+      candidate.instrumentKind,
+    ])
+  )
 
   for (const valued of input.valued.positions) {
     // `ready` requires every position priced; the union is checked rather than assumed.
@@ -188,7 +194,8 @@ function weakHoldingRows(input: AdviceInput): WeakHoldingFold {
       continue
     }
 
-    const signal = input.holdingSignals?.get(buildInstrumentKey(valued.position.instrument))
+    const key = buildInstrumentKey(valued.position.instrument)
+    const signal = input.holdingSignals?.get(key)
 
     if (signal === undefined) {
       caveats.push({
@@ -198,7 +205,7 @@ function weakHoldingRows(input: AdviceInput): WeakHoldingFold {
       continue
     }
 
-    if (signal <= WEAK_HOLDING_SIGNAL_THRESHOLD) {
+    if (isWeakHolding(signal, kinds.get(key))) {
       rows.push({ instrument: valued.position.instrument, signal })
     }
   }

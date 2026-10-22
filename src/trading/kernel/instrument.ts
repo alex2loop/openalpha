@@ -378,3 +378,12 @@ function isRealCalendarDay(raw: string): boolean {
 
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === raw
 }
+
+/** The sector a holding counts toward. A fund's listed sector names the vehicle rather than its
+ *  basket, so it counts toward none: the segment's ETF ceiling bounds it instead. */
+export function exposureSectorOf(
+  kind: InstrumentKind | undefined,
+  sector: string | undefined
+): string | undefined {
+  return kind === ETF_KIND ? undefined : sector
+}

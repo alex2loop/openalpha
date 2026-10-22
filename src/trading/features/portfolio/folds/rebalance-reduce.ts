@@ -14,8 +14,8 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import {
   driftBand,
+  isWeakHolding,
   turnoverCapPctNav,
-  WEAK_HOLDING_SIGNAL_THRESHOLD,
 } from '@/trading/features/portfolio/folds/policy'
 import {
   isReportableGap,
@@ -229,7 +229,7 @@ function reductionReason(
 ): ChangeReason {
   const { wanted, trim } = sizing
 
-  if (wanted <= 0 && candidate.marketScore <= WEAK_HOLDING_SIGNAL_THRESHOLD) {
+  if (wanted <= 0 && isWeakHolding(candidate.marketScore, candidate.instrumentKind)) {
     return { kind: 'weak-signal', signal: candidate.marketScore }
   }
 

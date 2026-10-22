@@ -34,7 +34,7 @@ import {
 import { toHoldings } from '@/trading/features/portfolio/folds/holdings'
 import { staleQuoteCaveats, staleRateCaveats } from '@/trading/features/portfolio/folds/staleness'
 import { valuationCaveats } from '@/trading/features/portfolio/folds/valuation-caveats'
-import { CASH_SEGMENT, ETF_KIND, tradingDay } from '@/trading/kernel/instrument'
+import { CASH_SEGMENT, ETF_KIND, exposureSectorOf, tradingDay } from '@/trading/kernel/instrument'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 import { changeAgainstClose } from '@/trading/sources/rows/normalization'
 
@@ -373,9 +373,8 @@ function sectorValues(
   options: ValueBookOptions,
   navBase: number
 ): readonly SectorValue[] {
-  // A fund's provider sector names the vehicle, not the basket, so it feeds no concentration.
   const sectorOf = (instrument: InstrumentRef): string | undefined =>
-    options.instrumentKindFor(instrument) === ETF_KIND ? undefined : options.sectorFor(instrument)
+    exposureSectorOf(options.instrumentKindFor(instrument), options.sectorFor(instrument))
   const totals = aggregateValues(valued, sectorOf, [])
 
   return [...totals].map(([sector, valueBase]) => ({

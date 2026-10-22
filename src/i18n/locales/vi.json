@@ -2580,6 +2580,7 @@
     "holdBlocked.ceiling": "Giá đang sát trần - gần như không còn người bán nên lệnh mua khó khớp. Kinh nghiệm cho thấy mua đuổi sau phiên trần, kể cả chờ giá chỉnh nhẹ rồi mới vào, thường kém thị trường trong khoảng hai tuần sau đó. Mình đứng ngoài mã này.",
     "holdBlocked.floor": "Giá đang sát sàn - gần như không còn người mua, lệnh bán khó khớp ở giá hợp lý. Đợi phiên sau rồi xem lại.",
     "holdBlocked.foreign-room": "Mã này đã hết room ngoại, tài khoản nước ngoài chưa mua được cho tới khi có khối ngoại bán ra.",
+    "holdContested.faint": "Tín hiệu hôm nay chưa thật sự đồng thuận, dù không có yếu tố nào kéo ngược lại mạnh. Vì vậy điểm số chưa ngả hẳn về bên nào - cứ để mã này trong tầm mắt, khi các yếu tố cùng hướng mình sẽ xem lại.",
     "hold.history-not-adjusted": "Giá hôm nay nằm ngoài biên độ tính từ giá đóng cửa mình đang lưu - thường là ngày giao dịch không hưởng quyền mà lịch sử giá chưa kịp điều chỉnh. Lúc này xu hướng và các mức giá đều lệch nên mình chưa đưa ra kế hoạch; chạy lại sau lượt làm mới dữ liệu tối nay, hoặc gõ /refresh equity-vn force nếu cần ngay.",
     "hold.no-rebalance-needed": "Hôm nay tái cân bằng không có lệnh nào cho mã này.",
     "hold.evidence-sold": "Từ khi mở vị thế, bạn đã bán bớt mã này đúng mức dữ liệu hôm nay yêu cầu nên không cần bán thêm. Khi dữ liệu còn như vậy, tái cân bằng sẽ không mua lại mã này.",
