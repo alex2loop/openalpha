@@ -78,6 +78,20 @@ export function shallowBoardCaveats(records: readonly MarketCapRecord[]): readon
     : []
 }
 
+/** Providers measure 24-hour volume their own way, so a board a fallback answered ranks turnover and
+ *  clears the volume floor on a different scale. The board's provider swap is restated with what it
+ *  costs the ranking, in place of the generic line that only names the swap. */
+export function toBoardCaveats(caveats: readonly Caveat[]): readonly Caveat[] {
+  return caveats.map((caveat) =>
+    caveat.code === 'source.recovered'
+      ? {
+          code: 'market-data.universe-fallback',
+          ...(caveat.detail === undefined ? {} : { detail: caveat.detail }),
+        }
+      : caveat
+  )
+}
+
 function movingRows(records: readonly MarketCapRecord[]): readonly Moving[] {
   return records
     .filter(isLiquidUniverseRow)

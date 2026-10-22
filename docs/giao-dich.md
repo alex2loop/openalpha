@@ -69,7 +69,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `fred-csv` | các chuỗi hàng hóa hằng tháng mà không feed hằng ngày nào mang (than, gạo, thịt lợn, thép), đứng sau `vndirect` | không |
 | `vietcap-statements` | báo cáo tài chính VN: năm đầy đủ cộng các quý riêng (xem bên dưới) | không |
 | `treasury` `bls` `fred` | các chuỗi vĩ mô Mỹ, trộn lại chứ không dự phòng cho nhau | `fred` cần `FRED_API_KEY` |
-| `coinpaprika` | bảng crypto xếp hạng và mức đổi bảy ngày, không khóa, trong một yêu cầu; dự phòng đầu tiên sau `coinmarketcap` | không |
+| `coinpaprika` | bảng crypto xếp hạng và mức đổi bảy ngày, không khóa, trong một yêu cầu; dự phòng đầu tiên sau `coinmarketcap`; nguồn này đo khối lượng 24 giờ thấp hơn, nên `/screen crypto` báo khi thứ hạng lấy từ nó | không |
 | `coinmarketcap` `coinlore` | bảng crypto xếp hạng mà khâu sàng lọc chọn tập công cụ từ đó, không khóa, trong một yêu cầu; `coinlore` đứng thứ ba | không |
 | `coinbase` | giá USD của một coin thanh toán, từ một sàn có giao dịch cặp đó | không |
 | `er-api` | FX tiền pháp định, đứng sau `yahoo` | không |
@@ -90,7 +90,7 @@ Positioning của CFTC là **hằng tuần và có độ trễ**, và báo cáo 
 
 Vĩ mô là loại **duy nhất** gộp dữ liệu thay vì dự phòng cho nhau: không nhà cung cấp nào công bố mọi chuỗi, và khi hai bên cùng công bố một chuỗi thì thứ tự tuyến quyết định bên nào thắng. Cặp không cần khóa `treasury`/`bls` đứng đầu để bản cài không khóa vẫn đọc được vĩ mô Mỹ.
 
-Chỉ số vĩ mô tổng hợp được chuẩn hóa lại khi công bố: chuỗi nào hôm nay không có số đọc thì không bỏ phiếu. Mỗi yếu tố dẫn dắt công bố tỷ phần của nó trên **số phiếu thực sự đã bỏ**, và mức đóng góp được đo so với chính điểm mà nó làm dịch chuyển. Các trọng số công bố cộng lại bằng một, các mức đóng góp cộng lại bằng điểm, và dữ liệu thiếu hiện ra ở `coverage` cùng danh sách thiếu. Một yếu tố dẫn dắt nêu luôn đơn vị nó được đọc trong đó: các chuỗi lãi suất là phần trăm, còn chỉ số USD (gốc Jan-2006 = 100) và VIX là các mức, in ra không có dấu phần trăm.
+Chỉ số vĩ mô tổng hợp được chuẩn hóa lại khi công bố: chuỗi nào hôm nay không có số đọc thì không bỏ phiếu. Mỗi yếu tố dẫn dắt công bố tỷ phần của nó trên **số phiếu thực sự đã bỏ**, và mức đóng góp được đo so với chính điểm mà nó làm dịch chuyển. Các trọng số công bố cộng lại bằng một, các mức đóng góp cộng lại bằng điểm, và dữ liệu thiếu hiện ra ở `coverage` cùng danh sách thiếu. Khi chỉ còn cách ngưỡng độ phủ tối thiểu đúng một chuỗi, một ghi chú báo rằng mất thêm chuỗi nữa là trạng thái chuyển sang phòng thủ; nếu trạng thái đã là phòng thủ thì không có ghi chú này. Một yếu tố dẫn dắt nêu luôn đơn vị nó được đọc trong đó: các chuỗi lãi suất là phần trăm, còn chỉ số USD (gốc Jan-2006 = 100) và VIX là các mức, in ra không có dấu phần trăm.
 
 Điều này đúng cả với con số bạn thấy, không chỉ con số đã lưu. Các tỷ phần in dưới tổng mà chúng chia ra được làm tròn **cùng nhau**, nên cột cộng lại đúng trên màn hình. Quy tắc này áp cả với mức đóng góp yếu tố của một đề xuất dưới chỉ số tổng hợp, và với các mục tiêu nhóm trong hồ sơ (chuẩn hóa về một). Chỉ các dòng thật sự in ra một tỷ phần mới tham gia.
 
@@ -266,7 +266,7 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 
 #### Bán một mã đang nắm
 
-`reduce` mang theo một lý do. `over-target` là phần cắt bớt (trim) theo kế hoạch. Các lý do còn lại là bằng chứng đang quay sang chống lại một mã bạn nắm, mỗi lý do bán một phần tỷ lệ riêng của vị thế:
+`reduce` mang theo một lý do. Hai lý do đến từ kế hoạch: `over-target` cắt bớt tỷ trọng về mức mục tiêu, còn `weak-signal` bán ra một mã có điểm chung đã xuống dưới ngưỡng giữ, nên `/suggest` nêu đúng lý do mà `/rebalance` in ra. Các lý do còn lại là bằng chứng đang quay sang chống lại một mã bạn nắm, mỗi lý do bán một phần tỷ lệ riêng của vị thế:
 
 - `structure-broken` - một giá đóng dưới mức thấp của các phiên trước nó, từ chính số đọc của thị trường.
 - `regime-risk-off` - trạng thái thị trường của nhóm chuyển sang phòng thủ.
@@ -420,7 +420,7 @@ Một lần khớp vàng VN được ghi theo đơn vị của cửa hàng trong
 
 #### Thành tích của chính bảng giá
 
-Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, daemon ghi lại toàn bộ bảng của từng thị trường (chỉ số tổng hợp, điểm yếu tố và giá đóng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch.
+Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, daemon ghi lại toàn bộ bảng của từng thị trường (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng; các dòng ghi trước thay đổi này không có tên nguồn.
 
 `/reflect` in nó thành khối quy kết thứ hai. Đó là mẫu mà các trọng số yếu tố và dải mức tin cậy được khớp theo khi nó lớn dần. Mỗi yếu tố được chấm theo phiên bản chiến lược, hai bản mới nhất mỗi thị trường, vì đổi phiên bản làm yếu tố đo thứ khác.
 
@@ -507,6 +507,8 @@ Một bản tin đọc theo thứ tự này: khối **operator** mở đầu b�
 | Tin tức | `disclosures` `index-review` `events` `headlines` |
 | Hành động | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
+Hai mục mức giá, `fired-alerts` và `position-exits`, in mức giá cổ phiếu VN theo giá bảng điện như `/portfolio` và `/alert`; thang giá được ghi một lần ở cuối bản tin.
+
 Mỗi thị trường chỉ công bố các mục riêng mà nó có dữ liệu, nên thêm một thị trường là thêm một khối chứ không thêm mục mới. Thị trường nào công bố chỉ số tổng hợp riêng mà không giữ khu vực của mình (crypto) thì mang nó trên khối `/overview` của chính nó, với cùng các dòng điểm, yếu tố dẫn dắt, thiếu và độ phủ. Số đọc khu vực phía trên nó là của thị trường giữ khu vực.
 
 **Thứ tự đọc.** Báo cáo nào cũng mở đầu bằng câu trả lời và kết thúc bằng phần chú thích:
@@ -528,7 +530,7 @@ Mỗi thị trường chỉ công bố các mục riêng mà nó có dữ liệu
 
 **Đợt cơ cấu chỉ số kế tiếp.** Bản tin nêu phiên cơ cấu FTSE GEIS hoặc VN30 kế tiếp, tính từ quy tắc rà soát chứ không từ một danh sách được bảo trì. Vào đêm trước, mọi đề xuất VN trên một mã thuộc rổ chỉ số mang ngày đó như một caveat. Đến chính phiên đó, lệnh mua mới bị từ chối và các mã đang nắm đọc caveat thay vào. Không có cài đặt nào: các ngày là của sàn, không phải của bạn.
 
-**Các mục đề xuất chạy sau cùng và tốn nhất**, trên phần ngân sách riêng của bản tin. Nếu hết ngân sách thì mất các mục đó, không bao giờ mất cả bản tin. Mỗi mục chạy một cuộc tranh luận **lean** trên mọi mã đang nắm trong phạm vi của nó trước, rồi tới danh sách theo dõi: `suggestions` cho VN, `cross-asset-suggestions` cho mọi thị trường khác.
+**Các mục đề xuất chạy sau cùng và tốn nhất**, trên phần ngân sách riêng của bản tin. Nếu hết ngân sách thì mất các mục đó, không bao giờ mất cả bản tin. Mỗi mục chạy một cuộc tranh luận **lean** trên mọi mã đang nắm trong phạm vi của nó trước, rồi tới danh sách theo dõi: `suggestions` cho VN, `cross-asset-suggestions` cho mọi thị trường khác. Mã nào có cuộc tranh luận chưa xong (thiếu key, một vai lỗi, hết ngân sách) thì hiện CHƯA KẾT LUẬN và không kèm mức tin cậy, thay vì CHỜ: chưa có quyết định nào, và kế hoạch đang có vẫn tiếp tục theo dõi mã đó.
 
 Một mã đang nắm không bao giờ bị cắt, vì chính lần chạy của nó là thứ định giá lại kế hoạch:
 
@@ -561,7 +563,7 @@ Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải 
 
 1. cập nhật các chủ đề bạn đã theo dõi;
 2. tìm các chủ đề mới đang hình thành từ các số liệu vĩ mô, giá hàng hóa, biến động ngành và tin tức;
-3. với mỗi chủ đề bạn **đã duyệt**: ánh xạ các ngành nó lan tới, lập danh sách ngắn các công ty bằng mã (tối đa năm công ty mỗi ngành hưởng lợi), rồi đọc chúng ba cái một lần.
+3. với mỗi chủ đề bạn **đã duyệt** mà lần đọc này vẫn giữ ở trạng thái đang theo dõi: ánh xạ các ngành nó lan tới, lập danh sách ngắn các công ty bằng mã (tối đa năm công ty mỗi ngành hưởng lợi), rồi đọc chúng ba cái một lần.
 
 Nó không đưa giá. `/suggest <mã>` mới đưa giá vào, cắt lỗ, mục tiêu và cỡ lệnh.
 
@@ -606,6 +608,8 @@ Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi đượ
 - Một chủ đề đã bị vô hiệu, và một ngành mà nó gây hại, không bao giờ được chấm.
 - Độ tin cậy đến từ trọng số được đọc và từ các con số mà lập luận của chính lần đọc trích, không bao giờ từ việc các phần chênh nhau bao nhiêu.
 - Các phần được lưu cùng lần đọc, nên điểm tính lại được.
+- Báo cáo gọi nó là điểm chủ đề và in trên thang 100. Một dòng phía trên chủ đề đầu tiên kể các phần của điểm một mã theo trọng số, nặng nhất trước, và nói đây không phải điểm chung -1 tới +1 mà `/screen` và `/suggest` in.
+- Mỗi ngành trong danh sách ngành hưởng lợi kể mọi mã đã đọc dưới nó kèm điểm chủ đề, nên một chủ đề có mã xếp dưới năm mã đầu vẫn hiện mã của mình.
 
 ### Các tác vụ nền
 
@@ -837,7 +841,7 @@ Có hai cơ sở giá vốn, và đó là chủ ý. Giá vốn bình quân là g
 - Mức phí bạn nêu lệch xa tỷ lệ đã cấu hình thì dòng tỷ lệ được thay bằng mức lệch, không bị lặng lẽ chấp nhận.
 - Thị trường không có tỷ lệ cấu hình thì không in cả hai dòng: không có gì để đo so với, và một số 0 sẽ bị đọc thành sự đồng ý.
 
-Mọi trường đều có nhãn ở đây và không ở đâu khác. Dòng xác nhận được đọc riêng, để so với cái bạn định lưu. `/transactions` giữ dạng một hàng không nhãn, vì một danh sách trường lặp lại xuống cả trang thì không quét mắt được.
+Mọi trường đều có nhãn ở đây và không ở đâu khác. Dòng xác nhận được đọc riêng, để so với cái bạn định lưu. `/transactions` giữ dạng một hàng không nhãn, vì một danh sách trường lặp lại xuống cả trang thì không quét mắt được. Hàng nào cũng ghi sàn, kể cả hàng tiền mặt, để một khoản nạp cho biết tiền vào sàn nào.
 
 ### Hai khung nhìn, được áp bằng kiểu dữ liệu
 
@@ -1083,7 +1087,7 @@ Nên một mã mà kế hoạch liệt kê có thể là mã mà đề xuất t�
 
 Một khoảng cách mà kế hoạch không khép được trong một lô thì được nói thẳng thay vì để trông như đã hội tụ, nhưng chỉ khi đó còn là khoảng cách bạn hành động được. Dưới độ phân giải mà câu in ra, mã đó đã ở mục tiêu theo mọi nghĩa thực tế, và một ghi chú nói nó lệch `0%` sẽ đọc như kế hoạch đang cãi chính nó.
 
-Có một kết luận mà kế hoạch không đi vòng qua: một mã đang nắm có kết luận đã lưu mới nhất là `reduce` trên bằng chứng thì không nhận lệnh tăng, dù nó nằm dưới mục tiêu bao xa, và kế hoạch nêu tên nó thay vì để dòng đó lặng lẽ vắng mặt. Một lần trim `over-target` không phải kết luận đó. Nó là chính quy tắc độ lệch của kế hoạch này được ghi ngược vào kho, nên hành động theo nó sẽ để kế hoạch tự phủ quyết mình. Không gì khác về kế hoạch đổi: khoảng trống chưa lấp của nhóm vẫn chưa lấp và được báo là tiền mặt.
+Có một kết luận mà kế hoạch không đi vòng qua: một mã đang nắm có kết luận đã lưu mới nhất là `reduce` trên bằng chứng thì không nhận lệnh tăng, dù nó nằm dưới mục tiêu bao xa, và kế hoạch nêu tên nó thay vì để dòng đó lặng lẽ vắng mặt. Một lệnh giảm bớt mang lý do của chính kế hoạch (`over-target`, `weak-signal`) không phải kết luận đó. Nó là chính quy tắc của kế hoạch này được ghi ngược vào kho, nên hành động theo nó sẽ để kế hoạch tự phủ quyết mình. Không gì khác về kế hoạch đổi: khoảng trống chưa lấp của nhóm vẫn chưa lấp và được báo là tiền mặt.
 
 Không nêu mã thì `/rebalance` định cỡ các khoản nắm của bạn cộng danh sách theo dõi đã lưu. Nêu mã thì định cỡ đúng những mã đó. Mỗi dòng lệnh nêu số tiền theo tiền tệ gốc của cuốn sổ và giá theo tiền tệ báo giá của chính thị trường (thứ mà sàn nhận), nên một thị trường tính theo bảng giá in điểm của nó không kèm tiền tệ còn một coin in tiền tệ của nó. Một mức giá lấy đúng số chữ số thập phân mà đồng tiền của nó có: VND, JPY và KRW không có đơn vị nhỏ hơn, nên một giá đồng in nguyên.
 

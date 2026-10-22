@@ -18,7 +18,7 @@ import {
 } from '@/trading/render/format'
 import { INDENT, renderOverflowLine, renderSectionTitle } from '@/trading/render/layout'
 import { formatPriceIn, renderBoardScaleNotes } from '@/trading/render/money'
-import { toLink } from '@/trading/render/section-values'
+import { toLink } from '@/trading/render/section'
 
 /** Citations shown before the rest collapse behind a count line. Compact surfaces (chat, a Telegram
  *  card) drown past five, so the compact detail collapses them rather than deleting any. */

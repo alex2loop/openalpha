@@ -6,6 +6,7 @@ import type {
 } from '@/trading/features/suggestion/track-record/factor-log-types'
 import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
+import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { canResolveOutcomes } from '@/trading/features/suggestion/track-record/resolvable'
@@ -103,7 +104,10 @@ async function captureMarket(
     return { market: id, reason: 'evidence-lagging' }
   }
 
-  const entries = board.candidates.flatMap((candidate) => toEntry(market, day, candidate))
+  const sources = [...new Set(board.provenance.map((entry) => entry.sourceId))]
+  const entries = board.candidates.flatMap((candidate) =>
+    toEntry(market, { day, sources }, candidate)
+  )
   const rows = await deps.store.insertMany(entries, options.signal)
 
   return { market: id, day, rows }
@@ -112,7 +116,12 @@ async function captureMarket(
 /** A candidate the market could not score, or could not price at the close of the day it is logged
  *  against, carries nothing a forward return could be measured from: a close from an earlier
  *  session is not that day's entry. */
-function toEntry(market: Market, day: TradingDay, candidate: ScreenCandidate): FactorLogEntry[] {
+function toEntry(
+  market: Market,
+  board: { readonly day: TradingDay; readonly sources: readonly SourceId[] },
+  candidate: ScreenCandidate
+): FactorLogEntry[] {
+  const { day } = board
   const close = candidate.previousClose?.at === day ? candidate.previousClose.price : undefined
 
   if (close === undefined || close <= 0 || candidate.composite.coverageBelowMinimum) {
@@ -133,6 +142,7 @@ function toEntry(market: Market, day: TradingDay, candidate: ScreenCandidate): F
         ...(factor.weight === undefined ? {} : { weight: factor.weight }),
       })),
       signals: candidate.signals ?? [],
+      sources: board.sources,
     },
   ]
 }

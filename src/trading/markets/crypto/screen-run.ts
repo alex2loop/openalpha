@@ -44,6 +44,7 @@ import {
   isEligibleUniverseRow,
   loadUniverseBoard,
   shallowBoardCaveats,
+  toBoardCaveats,
 } from '@/trading/markets/crypto/universe'
 import { scoreFactors } from '@/trading/markets/factor-scoring'
 import { partitionByGate, partitionByVenueListing } from '@/trading/markets/screen-partition'
@@ -166,7 +167,7 @@ function screenCaveats(input: ScreenCaveatInput): readonly Caveat[] {
   const { eligible, examined } = input
 
   return [
-    ...input.universe.caveats,
+    ...toBoardCaveats(input.universe.caveats),
     ...input.context.btc.caveats,
     ...input.scored.caveats,
     ...(eligible.length > examined.length

@@ -275,6 +275,10 @@ cap are in [Cost and budgets](budgets.md).
 All keys are optional. `[locale]` accepts no other keys. `currency` and `region` say where you are,
 so trading reads them here rather than keeping copies under `[trading]`.
 
+Text a model writes, such as a suggestion's thesis or a theme read, stays in the language of the run
+that wrote it. Changing `language`, or writing to the bot in another language, changes the labels
+around it, not the stored text; the next run writes in the new language.
+
 ### `[paths]`
 
 | Key | Type | Default | Notes |

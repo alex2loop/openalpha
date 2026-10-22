@@ -82,7 +82,8 @@ Ba nguyên tắc:
 | **Danh sách theo dõi** (watchlist) | Mã bạn đang cân nhắc mua, dù chưa nắm. Nuôi `/market`, `/rebalance` và bản tin sáng. |
 | **Sổ lệnh** (ledger) | Các bút toán đã ghi (nạp tiền, mua, bán, cổ tức...). Sửa hay xóa từng bút toán bằng `/update`, `/delete`. Vị thế hiện tại được **tính lại** từ sổ mỗi lần cần. |
 | **Tổng tài sản** (NAV) | Giá trị ròng của danh mục, gồm cả tiền mặt. Mọi trần tỷ trọng tính theo % tổng tài sản. |
-| **Điểm yếu tố** (factor score) | Điểm tổng hợp từ nhiều chỉ báo của chính thị trường đó, thang -1 tới +1. Càng dương càng hấp dẫn. |
+| **Điểm chung** (composite) | Điểm gộp từ nhiều chỉ số của chính thị trường đó, thang -1 tới +1, in ở `/screen` và `/suggest`. Trên 0 là nghiêng về mua, dưới 0 là nghiêng về tránh. |
+| **Điểm chủ đề** (theme score) | Điểm 0-100 của `/themes`: chủ đề, ngành hay mã hưởng lợi rõ đến đâu. Khác thang với điểm chung, nên điểm chủ đề cao chưa có nghĩa là đến lúc mua. |
 | **Trạng thái thị trường** (regime) | Phông nền vĩ mô: `risk-on` (thuận lợi cho tài sản rủi ro), `neutral` (trung lập) hay `risk-off` (phòng thủ). Chỉ dùng để **co** cỡ vị thế, không bao giờ phóng to. |
 
 ---
@@ -915,17 +916,24 @@ cổ phiếu VN.
   rõ ràng thì không được đề xuất. `/themes approve <id>` để theo dõi, `reject <id>` để bỏ, `retire
   <id>` khi không muốn theo nữa. Hệ thống tự chuyển một chủ đề sang "đang yếu đi" hoặc "mất hiệu lực"
   khi bằng chứng đổi, nhưng chỉ bạn mới duyệt hoặc gỡ một chủ đề.
+- **Chủ đề đang yếu đi thì tạm không soát ngành và mã.** Luận điểm và điểm của nó vẫn được cập nhật,
+  nhưng hệ thống không tốn tiền đọc lại doanh nghiệp cho một câu chuyện đang nhạt dần, và báo cáo ghi
+  rõ một dòng như vậy. Khi chủ đề mạnh lại, ngành và mã được soát tiếp.
 - **Mã do hệ thống chọn, không do mô hình.** Với mỗi ngành hưởng lợi, hệ thống lấy tối đa 5 mã đã qua
   bộ lọc thanh khoản và chất lượng báo cáo của `/screen`, rồi mô hình mới phân tích các mã đó, mỗi
   lần ba mã, không tra cứu thêm: mức gắn với chủ đề, chủ đề có đổi lợi nhuận thật hay chỉ là kỳ vọng,
   giá đã phản ánh chưa. Bản in chỉ nêu kịch bản cơ sở dạng "EPS kịch bản cơ sở tăng X% trong N tháng",
   không kèm xác suất. P/E mục tiêu chỉ bị từ chối khi cao hơn mức cao nhất năm năm của chính mã đó.
-- **Điểm 0-100 do hệ thống tính.** Mô hình chấm từng tiêu chí; hệ thống ghép thành điểm theo trọng số
-  cố định, kèm **độ tin cậy** (thấp, vừa, cao) cho biết điểm đứng trên bao nhiêu dữ liệu. Chủ đề mới
-  đề xuất chỉ được xét trên chính luận điểm của nó, vì ngành và doanh nghiệp chỉ được phân tích sau
-  khi bạn duyệt. Phần nào không đọc được thì bỏ khỏi trọng số, không tính là 0. Mỗi điểm hiện thay
-  đổi so với phiên trước và thành phần kéo nó nhiều nhất, ví dụ "Điểm 80 (trước đó 82), chủ yếu do
-  định giá".
+- **Điểm chủ đề 0-100 do hệ thống tính.** Mô hình chấm từng tiêu chí; hệ thống ghép thành điểm theo
+  trọng số cố định, kèm **mức tin cậy** (thấp, trung bình, cao) cho biết điểm đứng trên bao nhiêu dữ
+  liệu. Chủ đề mới đề xuất chỉ được xét trên chính luận điểm của nó, vì ngành và doanh nghiệp chỉ được
+  phân tích sau khi bạn duyệt. Phần nào không đọc được thì bỏ khỏi trọng số, không tính là 0. Mỗi điểm
+  hiện thay đổi so với phiên trước và thành phần kéo nó nhiều nhất, ví dụ "Điểm chủ đề 80/100 (trước
+  đó 82), chủ yếu do định giá". Một dòng ở đầu báo cáo nói điểm của một mã gộp từ những phần nào, và
+  nhắc rằng đây không phải điểm chung -1 tới +1 của `/screen` và `/suggest`.
+- **Mỗi ngành hưởng lợi liệt kê các mã đã soát** kèm điểm chủ đề, ví dụ "Mã đã soát: DPR 63, PHR 56".
+  Mục "Cơ hội cổ phiếu" chỉ in 5 mã điểm cao nhất trên mọi chủ đề, nên một chủ đề có mã xếp dưới vẫn
+  thấy được mã của mình ở đây.
 - **Một mã nằm dưới hai chủ đề chỉ hiện một lần**, ở điểm cao nhất, kèm dòng "Cũng nằm trong chủ đề".
 - **Điểm có đúng không, hệ thống tự kiểm.** Daemon so mỗi mã với VN-Index sau 3, 6 và 12 tháng. Cuối
   báo cáo, mục "Điểm số các lần trước đúng đến đâu" cho biết nhóm điểm từ 80, 60-80 và dưới 60 đã

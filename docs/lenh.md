@@ -554,6 +554,9 @@ chẵn. Không cân nhắc bằng chứng nào và không gọi mô hình, nên 
 `/suggest <mã>` - lệnh nhân cùng mức trần đó theo mức tin tưởng và có thể từ chối một mã mà kế hoạch liệt
 kê.
 
+Một mã đang nắm mà lần soát gần nhất vẫn nghiêng về bán bớt thì không được mua thêm, và cũng không
+được tính khi kế hoạch báo còn bao nhiêu mã mua được.
+
 #### Bản tin khi chưa có danh sách theo dõi
 
 Các khối dẫn đầu và bị loại bao quát danh sách theo dõi của bạn, và vắng mặt khi nó rỗng. Các khối lịch,
@@ -630,6 +633,8 @@ chia tách hay phân phối thì bị từ chối ở mọi thị trường. L�
 Giá lệch giá gần nhất của mã từ mười lần trở lên thì chưa được lưu ngay: câu trả lời đưa ra cả
 hai con số và hỏi lại. Bấm nút, hoặc gửi lại đúng dòng đó với `confirm` ở cuối, để lưu như bạn gõ.
 `/update` và `/alert create` cũng hỏi như vậy. Chi tiết ở [Giao dịch](giao-dich.md).
+Dòng đúng dạng nhưng có một chỗ không đọc được, như khối lượng `-1`, ngưỡng `0` hay điều kiện
+khác `above` và `below`, sẽ được chỉ ra đúng chỗ đó thay vì in lại cả cách dùng.
 
 **Mua và bán.** Lệnh bán có thể ghi `all` thay cho một con số, và sổ tính thành khối lượng đã thanh toán
 đang nắm *ở sàn đó* vào ngày đó. Có thể bỏ trống phí, khi đó tỷ lệ `fees` của sàn trong

@@ -3,6 +3,7 @@ import type { FactorComposite, FactorId } from '@/trading/kernel/factor'
 import type { InstrumentRef, MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { TapeSignal } from '@/trading/kernel/market/tape'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
+import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { OperationTickOptions, Page } from '@/trading/kernel/store/page'
 
 export const FACTOR_LOG_EXIT_REASONS = Object.freeze(['window-end', 'stopped-trading'] as const)
@@ -24,6 +25,9 @@ export interface FactorLogEntry {
   readonly factors: readonly FactorLogFactor[]
   /** What the session's tape said beyond the factors. Empty where the market publishes no read. */
   readonly signals: readonly TapeSignal[]
+  /** The providers the board was read from, so a session a fallback answered can be told apart from
+   *  one the lead provider did. Absent on rows logged before it was recorded. */
+  readonly sources?: readonly SourceId[]
 }
 
 export interface FactorLogOutcome {

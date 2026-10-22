@@ -69,7 +69,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `fred-csv` | monthly commodity series no daily feed carries (coal, rice, pork, steel), behind `vndirect` | no |
 | `vietcap-statements` | VN financial statements: full years plus discrete quarters (below) | no |
 | `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY` |
-| `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap` | no |
+| `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap`; it measures 24-hour volume lower, so `/screen crypto` says when the ranking came from it | no |
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
 | `coinbase` | the USD price of a settlement coin, from a venue that trades the pair | no |
 | `er-api` | fiat FX, behind `yahoo` | no |
@@ -90,7 +90,7 @@ CFTC positioning is **weekly and lagged**, and the report says so. It carries th
 
 Macro is the only kind that **merges** instead of failing over: no provider publishes every series, and where two publish the same one, route order decides which wins. The keyless `treasury`/`bls` pair goes first, so an install without keys still reads US macro.
 
-The macro composite renormalizes when published: a series with no reading today does not vote. Each driver publishes its share of the vote actually cast, and its contribution is measured against the score it moved. Published weights sum to one, contributions sum to the score, and partial data shows up in `coverage` and the missing list. A driver names its unit: rate series are percentages, while the dollar index (Jan-2006 = 100) and the VIX are levels and print without a percent sign.
+The macro composite renormalizes when published: a series with no reading today does not vote. Each driver publishes its share of the vote actually cast, and its contribution is measured against the score it moved. Published weights sum to one, contributions sum to the score, and partial data shows up in `coverage` and the missing list. When the read sits one lost series above the coverage floor, a note says the next outage would turn the market state defensive; a read already defensive carries no such note. A driver names its unit: rate series are percentages, while the dollar index (Jan-2006 = 100) and the VIX are levels and print without a percent sign.
 
 This holds for what you see, not only what is stored. Shares printed under their whole are rounded together so the column adds up on screen. The same goes for a suggestion's factor contributions under its composite and for the profile's segment targets (renormalized to one). Only rows that print a share take part.
 
@@ -266,7 +266,7 @@ None of this changes confidence, levels or size. The reads go to the `[[model_ti
 
 #### Selling a held name
 
-`reduce` carries a reason. `over-target` is the plan's trim. The rest are evidence turning against a name you hold, each selling its own share of the position:
+`reduce` carries a reason. Two come from the plan: `over-target` trims a weight back to target and `weak-signal` exits a name whose composite fell below the hold line, so `/suggest` names the same cause `/rebalance` prints. The rest are evidence turning against a name you hold, each selling its own share of the position:
 
 - `structure-broken` - a close below the low of the sessions before it, from the market's own read.
 - `regime-risk-off` - the segment's market state turned defensive.
@@ -420,7 +420,7 @@ A VN gold fill is recorded in the shop's unit while its suggestion is quoted per
 
 #### The board's own record
 
-Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board (composite, factor scores and close) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade.
+Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart; rows logged before this carry none.
 
 `/reflect` prints it as a second attribution block. It is the sample the factor weights and confidence bands are fitted to as it grows. Each factor is scored per strategy version, newest two per market, because a version change redefines what the factor measures.
 
@@ -507,6 +507,8 @@ A brief reads in this order: an **operator** block opening with the book (what y
 | News | `disclosures` `index-review` `events` `headlines` |
 | Actions | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
+The two level sections, `fired-alerts` and `position-exits`, print a VN stock's levels in board points, as `/portfolio` and `/alert` do; the scale is stated once at the foot of the brief.
+
 Each market publishes only the per-market sections it has data for, so adding a market adds its block and no new section. A market that publishes its own composite and does not own its region (crypto) carries it on its own `/overview` block, with the same score, driver, missing and coverage rows. The region read above it is the owner's.
 
 **Reading order.** Every report opens with its answer and closes with its fine print:
@@ -528,7 +530,7 @@ Each market publishes only the per-market sections it has data for, so adding a 
 
 **Next index rebalance.** The brief names the next FTSE GEIS or VN30 rebalance session, worked out from the review rule rather than a maintained list. On the eve, every VN suggestion on an index constituent carries the date as a caveat. On the session itself a new buy is refused and held names read the caveat instead. There is no setting: the dates are the exchange's.
 
-**Suggestion sections run last and cost the most**, on the brief's own share of the budget. If it runs out, those sections are lost, never the whole brief. Each runs a **lean** debate over every held name in its scope first, then the watchlist: `suggestions` for VN, `cross-asset-suggestions` for every other market.
+**Suggestion sections run last and cost the most**, on the brief's own share of the budget. If it runs out, those sections are lost, never the whole brief. Each runs a **lean** debate over every held name in its scope first, then the watchlist: `suggestions` for VN, `cross-asset-suggestions` for every other market. A name whose debate never finished (no key, a failed role, no budget left) reads NO CALL with no confidence beside it, not WAIT: nothing was decided, and the plan already in place keeps watching it.
 
 A held name is never cut, because its run is what re-prices the plan:
 
@@ -561,7 +563,7 @@ A day whose three delivery attempts all fail is given up, not the subscription. 
 
 1. updates the themes you already track;
 2. looks for new ones forming from macro figures, commodity prices, sector moves and news;
-3. for each theme you have approved, maps the sectors it reaches, shortlists companies in code (up to five per benefiting sector) and reads them three at a time.
+3. for each approved theme this run's read keeps active, maps the sectors it reaches, shortlists companies in code (up to five per benefiting sector) and reads them three at a time.
 
 It gives no prices. `/suggest <ticker>` gives entry, stop, target and size.
 
@@ -606,6 +608,8 @@ The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]`
 - An invalidated theme, and a sector it hurts, is never scored.
 - Confidence comes from the weight read and from the figures the read's own case cites, never from how far apart the parts are.
 - The parts are stored with the read, so a score can be recomputed.
+- The report calls it the theme score and prints it out of 100. One line above the first theme lists a name's parts by weight, heaviest first, and says it is not the -1 to +1 composite `/screen` and `/suggest` print.
+- Each sector in the top sectors list names every stock read under it with its theme score, so a theme whose names rank below the top five still shows them.
 
 ### Background operations
 
@@ -837,7 +841,7 @@ There are two cost bases, on purpose. The average cost is what the fills printed
 - A stated fee that sits far from the configured rate replaces the rate line with how far off it is, rather than being silently accepted.
 - A market with no configured rate prints neither line: there is nothing to measure against, and a zero would read as agreement.
 
-Every field is labelled here and nowhere else. A confirmation is read alone, against what you meant to store. `/transactions` keeps the unlabelled one-line row, since a field list repeated down a page cannot be scanned.
+Every field is labelled here and nowhere else. A confirmation is read alone, against what you meant to store. `/transactions` keeps the unlabelled one-line row, since a field list repeated down a page cannot be scanned. Every row names its venue, cash rows included, so a deposit says where the money went.
 
 ### Two views, enforced by type
 
@@ -897,7 +901,6 @@ A deposit in a venue's quote currency, such as `/record deposit binance 1000 USD
   -2% while the market rate is about 26,036.
 - **Where to see it.** `/portfolio` lists the USDT beside cash with its cost and today's value, and
   prints the currency gain or loss. `/reconcile` checks it against the venue's real USDT balance.
-
 
 A crypto round trip, step by step, with the rate you paid recorded once, on the deposit:
 
@@ -1102,7 +1105,7 @@ So a name the plan lists may be one the suggestion declines that day. The plan s
 
 A gap the plan cannot close in one lot is said out loud rather than left to look like convergence, but only while it is a gap you can act on. Below the resolution the sentence prints at, the name is at target for every practical purpose, and a note claiming it sits `0%` off would read as the plan arguing with itself.
 
-One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. An `over-target` trim is not that verdict. It is this plan's own drift rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
+One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. A sale under one of the plan's own reasons (`over-target`, `weak-signal`) is not that verdict. It is this plan's own rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
 
 With no names, `/rebalance` sizes your holdings plus the saved watchlist. Naming tickers sizes exactly those. Each order line states the amount in the book's base currency and the price in the market's own quote currency (what the venue takes), so a board-scaled market prints its points with no currency while a coin prints its own. A price takes the decimals its currency actually has: VND, JPY and KRW have no minor unit, so a dong price prints whole.
 

@@ -85,6 +85,8 @@ const TRADER_TRADEABILITY_INSTRUCTIONS = [
  *  to keep. */
 const REDUCE_REASON_SENTENCES = {
   'over-target': 'the position is above the weight the plan targets for its segment',
+  'weak-signal':
+    'the composite score fell below the line the plan keeps a holding at, so the plan exits it',
   'thesis-weakening': 'the evidence has turned bearish on a name the operator holds',
   'structure-broken':
     'the price closed below the low of the recent sessions, so the breakout failed',

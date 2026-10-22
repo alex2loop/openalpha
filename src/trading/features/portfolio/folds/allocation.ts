@@ -235,9 +235,7 @@ function weighSegment(request: WeighSegmentInput): DesiredWeights {
   }
 
   if (distributed.residue > DISTRIBUTION_EPSILON) {
-    caveats.push(
-      residueCaveat({ segment, openTarget, eligibleCount: eligible.length, bind: distributed.bind })
-    )
+    caveats.push(residueCaveat({ segment, openTarget, eligible, bind: distributed.bind }, input))
   }
 
   return { byInstrument, caveats, cores: new Set(core === undefined ? [] : [core[0]]) }
@@ -344,16 +342,23 @@ function neutralCuts(
 
 // Two causes, two different fixes: an empty candidate set is answered by naming a name, a set that
 // filled every ceiling by raising a cap. One message for both would send the reader to the wrong one.
-function residueCaveat(input: {
-  readonly segment: PortfolioSegment
-  /** What the score distribution had left to place, after every reserved holding took its weight. */
-  readonly openTarget: number
-  readonly eligibleCount: number
-  readonly bind: CapBind | null
-}): Caveat {
+function residueCaveat(
+  input: {
+    readonly segment: PortfolioSegment
+    /** What the score distribution had left to place, after every reserved holding took its weight. */
+    readonly openTarget: number
+    readonly eligible: readonly PortfolioCandidate[]
+    readonly bind: CapBind | null
+  },
+  advice: Pick<AdviceInput, 'standingReduces'>
+): Caveat {
   const { segment, bind } = input
+  // A name the evidence closed keeps its weight but takes no buy, so it is not one to count.
+  const eligibleCount = input.eligible.filter(
+    (candidate) => !advice.standingReduces.has(buildInstrumentKey(candidate.instrument))
+  ).length
 
-  if (input.eligibleCount === 0) {
+  if (eligibleCount === 0) {
     return { code: 'portfolio.segment-no-candidates', detail: { segment } }
   }
 
@@ -365,14 +370,14 @@ function residueCaveat(input: {
 
   // A pool too small to reach the target at any per-name weight is not a cap that is too tight, and
   // telling the operator to raise one sends them to the wrong fix.
-  const reachable = input.eligibleCount * bind.capPctNav
+  const reachable = eligibleCount * bind.capPctNav
 
   if (reachable < input.openTarget) {
     return {
       code: 'portfolio.too-few-candidates',
       detail: {
         segment,
-        count: input.eligibleCount,
+        count: eligibleCount,
         needed: Math.ceil(input.openTarget / bind.capPctNav),
         cap: bind.capPctNav,
       },

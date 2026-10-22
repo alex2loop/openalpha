@@ -64,6 +64,8 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market-data.insufficient-history', severity: 'warn' },
   { code: 'market-data.universe-truncated', severity: 'warn' },
   { code: 'market-data.universe-shallow', severity: 'warn' },
+  { code: 'market-data.universe-fallback', severity: 'info' },
+  { code: 'market-data.board-scaled', severity: 'info' },
   { code: 'market-data.universe-empty', severity: 'warn' },
   { code: 'market-data.history-empty', severity: 'warn' },
   { code: 'market-data.kind-unsupported', severity: 'warn' },
@@ -324,10 +326,15 @@ export const HOLD_REASON_CODES = Object.freeze([
 ] as const)
 export type HoldReasonCode = (typeof HOLD_REASON_CODES)[number]
 
-/** Why a held name is sold. `over-target` is the plan's trim; every other arm is the evidence
- *  turning on a name the book holds, and each names the share it sells. */
+/** The plan's own sales, written back by the rebalancer: `over-target` trims a weight, `weak-signal`
+ *  exits a name whose score fell under the weak-holding line. */
+export const PLAN_REDUCE_REASON_CODES = Object.freeze(['over-target', 'weak-signal'] as const)
+type PlanReduceReasonCode = (typeof PLAN_REDUCE_REASON_CODES)[number]
+
+/** Why a held name is sold. The plan's arms come first; every other arm is the evidence turning on
+ *  a name the book holds, and each names the share it sells. */
 export const REDUCE_REASON_CODES = Object.freeze([
-  'over-target',
+  ...PLAN_REDUCE_REASON_CODES,
   'thesis-weakening',
   'structure-broken',
   'regime-risk-off',
@@ -336,9 +343,9 @@ export const REDUCE_REASON_CODES = Object.freeze([
   'ceiling-close',
 ] as const)
 export type ReduceReasonCode = (typeof REDUCE_REASON_CODES)[number]
-/** The evidence arms only. `over-target` is the plan's trim, which reads weights rather than
- *  evidence, so no market's own read can ever claim it. */
-export type EvidenceReduceReasonCode = Exclude<ReduceReasonCode, 'over-target'>
+/** The evidence arms only. The plan's arms read weights and its own score line rather than the
+ *  market's evidence, so no market's own read can ever claim them. */
+export type EvidenceReduceReasonCode = Exclude<ReduceReasonCode, PlanReduceReasonCode>
 
 /** Holds that report a failure to run rather than a verdict. The row is still written, but it must
  *  not satisfy the reuse gate: an outage cached as a decision blocks the ticker until tomorrow.

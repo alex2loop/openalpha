@@ -21,6 +21,7 @@ import { factorComposite, isFactorId } from '@/trading/kernel/factor'
 import { brandFromPattern, marketRef, ticker, tradingDay } from '@/trading/kernel/instrument'
 import { TAPE_SIGNALS } from '@/trading/kernel/market/tape'
 import { INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
+import { isSourceId } from '@/trading/kernel/source/source-id'
 import { toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson, toBindChunks, toPage } from '@/trading/kernel/store/store-row'
 
@@ -63,6 +64,10 @@ const payloadSchema = z.strictObject({
     .array(z.unknown())
     .transform((entries) => readableSignals(entries))
     .default([]),
+  sources: z
+    .array(z.string())
+    .transform((ids) => ids.filter(isSourceId))
+    .optional(),
 })
 
 function readableSignals(entries: readonly unknown[]): readonly TapeSignal[] {
@@ -156,7 +161,12 @@ function toInsertParams(entry: FactorLogEntry): readonly unknown[] {
     entry.strategyVersion,
     entry.horizon,
     entry.close,
-    JSON.stringify({ composite: entry.composite, factors: entry.factors, signals: entry.signals }),
+    JSON.stringify({
+      composite: entry.composite,
+      factors: entry.factors,
+      signals: entry.signals,
+      sources: entry.sources,
+    }),
   ]
 }
 
@@ -287,6 +297,7 @@ function toEntry(row: FactorLogRow): FactorLogEntry {
         : []
     ),
     signals: payload.signals,
+    ...(payload.sources === undefined ? {} : { sources: payload.sources }),
   }
 }
 

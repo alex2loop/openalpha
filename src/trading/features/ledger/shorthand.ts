@@ -32,7 +32,7 @@ const VENUE_FIRST_KINDS: readonly string[] = ['dividend', ...QUANTITY_TXN_KINDS]
 const VENUE_FIRST_INSTRUMENT_AT = 2
 const FX_TOKEN = 'fx'
 const FX_TOKENS = 2
-const NUMBER_RE = /^\d[\d.,]*$/
+const NUMBER_RE = /^-?\d[\d.,]*$/
 const CHOICE_SEPARATOR = ', '
 const PARTIAL_DETECTION = 'market.detection-partial'
 /** A venue and an instrument may precede the quantity; either alone is the instrument. */

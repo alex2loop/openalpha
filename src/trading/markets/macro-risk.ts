@@ -187,7 +187,7 @@ export function deriveMacroRisk(input: MacroRiskInput, policy: MacroDriverPolicy
     coverage,
     drivers: publishedDrivers(drivers, firedWeight),
     caveats: [
-      ...coverageCaveats(drivers, firedWeight, policy),
+      ...coverageCaveats({ drivers, firedWeight, scoreRegime }, policy),
       ...(held ? [{ code: 'macro.regime-held' as const }] : []),
     ],
   }
@@ -299,23 +299,31 @@ export function driverObservationDates(
 
 /** Under the floor the regime is the defensive default rather than what the score read, which the
  *  missing list alone does not say. Over it, only the read one outage away is worth a caveat: its
- *  next lost driver turns the regime defensive, and nothing else says so. The smallest fired weight
- *  is the binding case, since losing a heavier one drops further. */
+ *  next lost driver turns the regime defensive, and nothing else says so. A read already defensive
+ *  has nothing to turn into. The smallest fired weight is the binding case, since losing a heavier
+ *  one drops further. */
 function coverageCaveats(
-  drivers: readonly MacroRiskDriver[],
-  firedWeight: number,
+  fold: {
+    readonly drivers: readonly MacroRiskDriver[]
+    readonly firedWeight: number
+    readonly scoreRegime: MarketRegime
+  },
   policy: MacroDriverPolicy
 ): readonly Caveat[] {
   const total = totalWeightOf(policy)
-  const coverage = firedWeight / total
+  const coverage = fold.firedWeight / total
 
   if (!isRegimeRated({ coverage })) {
     return [{ code: 'macro.coverage-below-floor', detail: { coverage } }]
   }
 
-  const smallest = Math.min(...drivers.map((driver) => driver.weight))
+  if (fold.scoreRegime === ABSENT_REGIME) {
+    return []
+  }
 
-  return (firedWeight - smallest) / total < MINIMUM_DRIVER_COVERAGE_FRACTION
+  const smallest = Math.min(...fold.drivers.map((driver) => driver.weight))
+
+  return (fold.firedWeight - smallest) / total < MINIMUM_DRIVER_COVERAGE_FRACTION
     ? [{ code: 'macro.coverage-at-floor', detail: { coverage } }]
     : []
 }

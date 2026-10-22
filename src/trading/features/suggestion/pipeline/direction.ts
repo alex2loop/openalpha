@@ -149,7 +149,8 @@ interface LotScope {
   readonly lotSize: number
 }
 
-/** The plan's trim: the share of the holding above the weight it targets. */
+/** The plan's trim: the share of the holding above the weight it targets, under the plan's own
+ *  reason, so a name sold for its weak score is not filed as a routine weight trim. */
 function trimOf(change: PositionChange | undefined): DraftSale | undefined {
   if (change === undefined || !(change.currentPctNav > change.targetPctNav)) {
     return undefined
@@ -157,7 +158,7 @@ function trimOf(change: PositionChange | undefined): DraftSale | undefined {
 
   return {
     action: 'reduce',
-    reasonCode: 'over-target',
+    reasonCode: change.reason.kind === 'weak-signal' ? 'weak-signal' : 'over-target',
     saleFraction: 1 - change.targetPctNav / change.currentPctNav,
   }
 }

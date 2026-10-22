@@ -25,6 +25,7 @@ import {
   titleOf,
   toPreviousScores,
 } from '@/trading/features/themes/render/shared'
+import { SCORE_SCALE, STOCK_SCORE_PARTS } from '@/trading/features/themes/score/compose'
 import {
   isDiscoveryNote,
   NEWS_CAPPED_GAP,
@@ -126,7 +127,19 @@ function renderHeader(context: ReportContext): readonly string[] {
     ...(run.gaps.includes(NEWS_CAPPED_GAP)
       ? [t(locale, `trading.themes.gap.${NEWS_CAPPED_GAP}`, { count: MAXIMUM_NEWS_ITEMS })]
       : []),
+    renderScoreLegend(locale),
   ]
+}
+
+/** Theme scores and the board's composite sit on different scales, so the report says which one it
+ *  prints before the first number. */
+function renderScoreLegend(locale: Locale): string {
+  return t(locale, 'trading.render.themes.scoreLegend', {
+    scale: SCORE_SCALE,
+    parts: STOCK_SCORE_PARTS.map((part) => t(locale, `trading.themes.part.${part}`)).join(
+      LIST_SEPARATOR
+    ),
+  })
 }
 
 function renderGapKinds(gaps: readonly ThemeGap[], locale: Locale): string {
@@ -171,6 +184,7 @@ function renderTheme(
     ...(read === undefined ? [`${INDENT[1]}${theme.thesis}`] : renderRead(read, context.locale)),
     ...renderHurt(theme.id, context),
     ...renderNotes(theme.id, context),
+    ...renderChainSkipped(read, context.locale),
   ]
 }
 
@@ -281,6 +295,14 @@ function renderNote(note: ThemeRunNote, locale: Locale): string {
   return note.level === 'sector'
     ? t(locale, 'trading.render.themes.sectorFailed', { cause })
     : t(locale, 'trading.render.themes.stockFailed', { ticker: note.subject ?? '', cause })
+}
+
+/** Sectors and companies are read only while a read keeps the theme active, so a weakening one
+ *  says why it has none rather than looking like a failed step. */
+function renderChainSkipped(read: ThemeRead | undefined, locale: Locale): readonly string[] {
+  return read?.status === 'weakening'
+    ? [`${INDENT[1]}${t(locale, 'trading.render.themes.chainSkipped')}`]
+    : []
 }
 
 function renderProposed(lines: readonly ThemeLine[], context: ReportContext): readonly string[] {

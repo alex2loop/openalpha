@@ -48,6 +48,12 @@ const SCORE_WEIGHTS: Readonly<Record<ThemeReadLevel, readonly PartWeight[]>> = O
     { part: 'risk', weight: 10 },
   ],
 })
+/** A name's parts, weightiest first. */
+export const STOCK_SCORE_PARTS: readonly ScorePart[] = Object.freeze(
+  SCORE_WEIGHTS.stock
+    .toSorted((left, right) => right.weight - left.weight)
+    .map((entry) => entry.part)
+)
 
 interface ScoreReading {
   readonly parts: ThemeScore['parts']
