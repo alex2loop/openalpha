@@ -20,6 +20,9 @@ import {
 import { ledgerEntryId } from '@/trading/kernel/operator/book'
 import { toPage } from '@/trading/kernel/store/store-row'
 
+/** The query's integer answer, by value. */
+const BOOK_CHANGES: readonly BookChange[] = Object.freeze(['none', 'book', 'instrument'])
+
 const INSERT_COLUMNS = [...IDENTITY_COLUMNS, ...TRANSACTION_COLUMNS]
 const INSERT_SQL = `INSERT INTO ledger_entries (${INSERT_COLUMNS.join(', ')}) VALUES `
 
@@ -167,16 +170,14 @@ async function bookChangeSince(
   assertNotAborted(options.signal)
 
   const p = deps.dialect.param
-  const rows = await deps.db.query<{ readonly changed: number; readonly own: number }>(
-    `SELECT CASE WHEN EXISTS (SELECT 1 FROM ledger_entries WHERE COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 1 ELSE 0 END AS changed, CASE WHEN EXISTS (SELECT 1 FROM ledger_entries WHERE market = ${p(1)} AND ticker = ${p(2)} AND COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 1 ELSE 0 END AS own`,
+  // An unchanged book, the usual answer, costs one scan. Integers rather than the boolean `EXISTS`
+  // gives Postgres, so both engines answer alike.
+  const rows = await deps.db.query<{ readonly change: number }>(
+    `SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM ledger_entries WHERE COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 0 WHEN EXISTS (SELECT 1 FROM ledger_entries WHERE market = ${p(1)} AND ticker = ${p(2)} AND COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 2 ELSE 1 END AS change`,
     [instrument.market, instrument.ticker, options.from]
   )
-  // An integer rather than the boolean `EXISTS` gives Postgres, so both engines answer 0 or 1.
-  if (Number(rows[0]?.changed ?? 0) !== 1) {
-    return 'none'
-  }
 
-  return Number(rows[0]?.own ?? 0) === 1 ? 'instrument' : 'book'
+  return BOOK_CHANGES[Number(rows[0]?.change ?? 0)] ?? 'none'
 }
 
 async function insertValidated(

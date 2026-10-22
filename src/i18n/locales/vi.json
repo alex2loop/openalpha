@@ -2533,7 +2533,7 @@
     "caveat.suggestion.take-profit-held": "Vị thế này giữ mức chốt lời đang có cho tới khi bán phần đầu tiên; chạy lại chỉ dời mục tiêu.",
     "caveat.suggestion.standing-unverified": "Không lấy được giá hiện tại để đối chiếu, nên các mức giá ở trên giữ nguyên như lúc được ghi.",
     "caveat.suggestion.position-changed": "Bạn đã ghi giao dịch mã này sau khi có đề xuất, nên hướng và khối lượng ở trên vẫn tính theo sổ cũ.",
-    "caveat.suggestion.book-changed": "Sổ của bạn đã đổi sau khi có đề xuất này, nên hướng và khối lượng ở trên có thể đã lệch - thêm force để tính lại.",
+    "caveat.suggestion.book-changed": "Sổ của bạn đã đổi sau khi có đề xuất này, nên kết luận ở trên có thể đã lệch - thêm force để tính lại.",
     "caveat.suggestion.size-limited-by-risk": "Khối lượng do ngân sách rủi ro mỗi lệnh và khoảng cách tới điểm cắt lỗ quyết định.",
     "caveat.suggestion.size-limited-by-position-cap": "Khối lượng do trần mỗi mã quyết định, không phải ngân sách rủi ro.",
     "caveat.suggestion.size-limited-by-sector": "Khối lượng do phần ngành này bạn đang nắm quyết định, không phải ngân sách rủi ro.",

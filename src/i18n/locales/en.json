@@ -2533,7 +2533,7 @@
     "caveat.suggestion.take-profit-held": "This holding keeps its standing take-profit until the first share sells; a re-run moves only the target.",
     "caveat.suggestion.standing-unverified": "No live price was available to check these levels against, so they are shown as they were written.",
     "caveat.suggestion.position-changed": "You recorded a trade on this name after this call, so the direction and size above read an earlier book.",
-    "caveat.suggestion.book-changed": "Your book changed after this call, so the direction and size above may be out of date - add force to work it out again.",
+    "caveat.suggestion.book-changed": "Your book changed after this call, so the call above may be out of date - add force to work it out again.",
     "caveat.suggestion.size-limited-by-risk": "The size was set by your risk-per-trade budget and the distance to the stop.",
     "caveat.suggestion.size-limited-by-position-cap": "The size was set by your maximum position size, not by the risk budget.",
     "caveat.suggestion.size-limited-by-sector": "The size was set by how much of this sector you already hold, not by the risk budget.",

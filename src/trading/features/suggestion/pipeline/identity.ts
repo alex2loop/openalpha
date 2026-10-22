@@ -304,7 +304,7 @@ async function resolveStanding(
 
 /** A trade on the name itself can invert its direction. Any other row moves NAV and cash, which
  *  only matters to a row decided on them - a buy sized from cash, a sale under the plan's own
- *  reasons, a hold sized against NAV and cash - so only those say so. */
+ *  reasons, a hold sized against NAV and cash or a plan sale under one lot - so only those say so. */
 function bookChangeCaveat(suggestion: StoredSuggestion, change: BookChange): Caveat | undefined {
   if (change === 'instrument' && suggestion.action !== 'hold') {
     return { code: 'suggestion.position-changed' }
@@ -328,8 +328,22 @@ function isReadOffTheBook(suggestion: StoredSuggestion): boolean {
   }
 
   return (
-    suggestion.action === 'hold' &&
-    suggestion.holdReasonCodes.some((code) => WEIGHT_HOLD_REASONS.has(code))
+    suggestion.action === 'hold' && (isWeightHold(suggestion) || isPlanSaleUnderALot(suggestion))
+  )
+}
+
+function isWeightHold(suggestion: Extract<StoredSuggestion, { readonly action: 'hold' }>): boolean {
+  return suggestion.holdReasonCodes.some((code) => WEIGHT_HOLD_REASONS.has(code))
+}
+
+/** A plan sale that rounded under one lot is filed as a hold, but its size was a share of NAV. */
+function isPlanSaleUnderALot(
+  suggestion: Extract<StoredSuggestion, { readonly action: 'hold' }>
+): boolean {
+  return (
+    suggestion.holdReasonCodes.includes('sale-below-board-lot') &&
+    suggestion.reduceReasonCode !== undefined &&
+    !isEvidenceReduceReason(suggestion.reduceReasonCode)
   )
 }
 
