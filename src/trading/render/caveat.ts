@@ -180,6 +180,7 @@ const SUBJECT_FIELD: Readonly<Record<string, string>> = Object.freeze({
   'portfolio.unmeasured-volatility': 'ticker',
   'portfolio.increases-underfunded': 'segment',
   'portfolio.too-few-candidates': 'segment',
+  'portfolio.shared-cap-full': 'segment',
   'portfolio.candidates-available': 'segment',
   'portfolio.candidates-by-name': 'segment',
   'valuation.price-stale': 'ticker',

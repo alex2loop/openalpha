@@ -53,7 +53,7 @@ export function reductionRows(rows: RowInput, sizes: Map<string, OrderSize>): Re
         buildInstrumentKey(outcome.change.instrument),
         sizeOf(outcome.change, outcome.candidate, rows.nav)
       )
-    } else if (outcome.kind === 'below-minimum') {
+    } else if (outcome.kind === 'held-back') {
       caveats.push(outcome.caveat)
     }
   }
@@ -67,7 +67,7 @@ type ReductionOutcome =
       readonly change: PositionChange
       readonly candidate: PortfolioCandidate
     }
-  | { readonly kind: 'below-minimum'; readonly caveat: Caveat }
+  | { readonly kind: 'held-back'; readonly caveat: Caveat }
   | { readonly kind: 'none' }
 
 function reductionFor(
@@ -101,7 +101,7 @@ function reductionFor(
     roundToLot(tradeable(step, excess, minimum), sizing, rows.nav) < minimum
   ) {
     return isReportableGap(excess)
-      ? { kind: 'below-minimum', caveat: reductionBelowMinimumCaveat(candidate, excess, minimum) }
+      ? { kind: 'held-back', caveat: reductionBelowMinimumCaveat(candidate, excess, minimum) }
       : { kind: 'none' }
   }
 
@@ -126,9 +126,8 @@ interface ReductionSizing {
   readonly minimum: number
 }
 
-/** Only settled quantity can be sold today, and only what the name's turnover absorbs. Either clamp
- *  can round the step away; the row is then dropped silently, because the line that states the
- *  clamp already explains it. */
+/** Only settled quantity can be sold today, and only what the name's turnover absorbs. A sale that
+ *  waits only on settlement says so; one the turnover clamp rounds away is dropped silently. */
 function reductionChange(
   entry: Extract<ValuedPosition, { readonly kind: 'priced' }>,
   rows: RowInput,
@@ -150,7 +149,17 @@ function reductionChange(
   })
 
   if (rounded < minimum) {
-    return { kind: 'none' }
+    return settledPctNav < minimum && isReportableGap(sizing.excess)
+      ? {
+          kind: 'held-back',
+          // Said out loud, or a name past its limit with no order beside it reads as one the plan
+          // missed.
+          caveat: {
+            code: 'portfolio.reduction-unsettled',
+            detail: { ticker: candidate.instrument.ticker, gap: sizing.excess },
+          },
+        }
+      : { kind: 'none' }
   }
 
   return {

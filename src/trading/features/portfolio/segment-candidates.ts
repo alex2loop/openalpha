@@ -17,6 +17,7 @@ const NO_CANDIDATES_CODE: CaveatCode = 'portfolio.segment-no-candidates'
 const SHORTFALL_CODES: ReadonlySet<CaveatCode> = new Set([
   NO_CANDIDATES_CODE,
   'portfolio.too-few-candidates',
+  'portfolio.shared-cap-full',
 ])
 /** Enough to close a segment at the usual per-name cap, and still a line the operator can retype. */
 const MAXIMUM_SUGGESTED_NAMES = 5

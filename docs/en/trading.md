@@ -1101,6 +1101,8 @@ An unavailable answer still carries the findings, because "you are over your sec
 
 A segment the plan could not fund to target raises one caveat naming that segment. Each segment gets its own slice of the deployable pool, so a plan-wide shortfall would otherwise blame a neighbour's exhausted budget on whichever name sat below target.
 
+When the cap that stopped it is shared, the segment's ETF cap or a sector cap, the caveat names that cap and says that only names outside it fill the segment, and the plan offers names from the screen as it does for a short list. A sale the plan wants but cannot place because too little of the holding has settled (T+2) is named too, rather than leaving a name over its limit with no order beside it.
+
 The deployment ceiling that gets printed is the whole book's, not one segment's. The pool is split by profile target weight and each slice is held to its own segment's macro read, so a defensive segment beside a neutral one produces a blend that matches neither. Every screen that prints the figure also states the market state of each segment behind it.
 
 **`/rebalance` and `/suggest` size the same name against different things, and both answers are correct.**

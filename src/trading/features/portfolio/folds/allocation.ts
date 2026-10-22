@@ -2,6 +2,7 @@ import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/cand
 import type { CapBind, Ceiling, CeilingFor } from '@/trading/features/portfolio/folds/distribution'
 import type { CapTrim, RebalancePolicy } from '@/trading/features/portfolio/folds/policy'
 import type {
+  CapReason,
   PortfolioAssessment,
   PositionChange,
   SegmentTarget,
@@ -22,7 +23,9 @@ import {
   turnoverCapPctNav,
 } from '@/trading/features/portfolio/folds/policy'
 import { buildInstrumentKey, CASH_SEGMENT, ETF_KIND } from '@/trading/kernel/instrument'
-import { positionCapOf } from '@/trading/kernel/operator/profile'
+import { isCappedAsFund, positionCapOf } from '@/trading/kernel/operator/profile'
+
+const SHARED_CAPS: ReadonlySet<CapReason> = new Set(['sector', 'etf'])
 
 export interface AdviceInput {
   readonly profile: UserProfile
@@ -360,6 +363,15 @@ function residueCaveat(
     return { code: 'portfolio.targets-unfilled', detail: { segment } }
   }
 
+  // A sector or ETF cap is shared by every name under it, so the way out is a name outside it, and
+  // no count of names under it reaches the target.
+  if (SHARED_CAPS.has(bind.reason)) {
+    return {
+      code: 'portfolio.shared-cap-full',
+      detail: { segment, limit: bind.reason, cap: bind.capPctNav },
+    }
+  }
+
   // A pool too small to reach the target at any per-name weight is not a cap that is too tight, and
   // telling the operator to raise one sends them to the wrong fix.
   const reachable = eligibleCount * bind.capPctNav
@@ -432,13 +444,16 @@ function createRoomTracker(input: AdviceInput): RoomTracker {
 // The tightest of position, market, liquidity, sector, and ETF room.
 function ceilingsFor(input: AdviceInput, nav: number, rooms: RoomTracker): CeilingFor {
   return (candidate, current) => {
+    const caps = input.profile.caps[candidate.segment]
     const limits: readonly Ceiling[] = [
       {
-        reason: 'position',
+        // A fund answers to the segment's ETF ceiling in place of the per-name cap, so a bind
+        // there names that ceiling.
+        reason: isCappedAsFund(caps, candidate.instrumentKind) ? 'etf' : 'position',
         // Fail closed: a segment with no recorded cap sizes to zero here, matching candidates.ts'
         // `capFor` default — a suggestion engine that cannot see a limit must not act as if none
         // applies.
-        value: positionCapOf(input.profile.caps[candidate.segment], candidate.instrumentKind),
+        value: positionCapOf(caps, candidate.instrumentKind),
       },
       { reason: 'market', value: candidate.maximumPositionPctNav },
       { reason: 'liquidity', value: turnoverCapPctNav(candidate.averageDailyTurnoverBase, nav) },

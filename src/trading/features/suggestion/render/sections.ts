@@ -1,4 +1,5 @@
 import type { Locale } from '@/core/types/locale'
+import type { MessageKey } from '@/i18n'
 import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { SuggestionDetail } from '@/trading/features/suggestion/render/debate'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
@@ -6,6 +7,7 @@ import type { PriceDisplay } from '@/trading/kernel/instrument'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { tradedWeightPctNav } from '@/trading/features/suggestion/pipeline/concentration'
+import { ETF_KIND } from '@/trading/kernel/instrument'
 import { formatPublishedDay } from '@/trading/render/datetime'
 import {
   formatCount,
@@ -193,7 +195,13 @@ export function renderReduceReasonLines(
       ? { target: formatFraction(locale, suggestion.targetPctNav) }
       : {}
 
-  return [`${INDENT[1]}${t(locale, `trading.reduce.${code}`, params)}`]
+  // A fund is never trimmed for its sector, so its cap sale names the ETF ceiling alone.
+  const key: MessageKey =
+    code === 'over-cap' && suggestion.instrumentKind === ETF_KIND
+      ? 'trading.render.suggestion.reduceOverCapFund'
+      : `trading.reduce.${code}`
+
+  return [`${INDENT[1]}${t(locale, key, params)}`]
 }
 
 /** Every level below prints in board points on a board-scaled market, so the scale is said once. */

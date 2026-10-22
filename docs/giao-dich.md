@@ -1082,6 +1082,8 @@ Một câu trả lời unavailable vẫn mang các phát hiện, vì "bạn đan
 
 Một nhóm mà kế hoạch không cấp vốn đủ tới mục tiêu thì nêu một caveat gọi tên nhóm đó. Mỗi nhóm có phần riêng của quỹ có thể triển khai, nếu không một khoản hụt toàn kế hoạch sẽ đổ ngân sách đã cạn của một nhóm bên cạnh lên mã nào tình cờ đứng dưới mục tiêu.
 
+Khi trần chặn lại là trần dùng chung (trần ETF của nhóm hoặc trần một ngành), cảnh báo ghi tên trần đó và nói chỉ mã ngoài trần đó mới lấp được nhóm, kèm các mã gợi ý từ bảng sàng lọc như khi danh sách quá ngắn. Một lệnh bán kế hoạch muốn đặt nhưng phần đã về tài khoản chưa đủ một lô (T+2) cũng được nêu ra, thay vì để một mã vượt mức mà không có dòng nào bên cạnh.
+
 Trần triển khai được in ra là của cả cuốn sổ, không phải của một nhóm. Quỹ được chia theo tỷ trọng mục tiêu trong hồ sơ và mỗi phần bị giữ ở số đọc vĩ mô của chính nhóm nó, nên một nhóm phòng thủ cạnh một nhóm trung tính cho ra một hỗn hợp không giống cái nào. Mọi màn hình in con số này đều nêu luôn chế độ của từng nhóm đứng sau nó.
 
 **`/rebalance` và `/suggest` định cỡ cùng một mã theo các thứ khác nhau, và cả hai câu trả lời đều đúng.**
