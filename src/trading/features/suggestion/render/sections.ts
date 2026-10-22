@@ -187,9 +187,9 @@ export function renderReduceReasonLines(
   }
 
   const code = suggestion.reduceReasonCode
-  // Only the trim names a number: the evidence arms say what turned, which needs no parameter.
+  // Only a sale toward a weight names that weight: the other arms say what turned.
   const params =
-    code === 'over-target' && suggestion.targetPctNav !== undefined
+    (code === 'over-target' || code === 'over-cap') && suggestion.targetPctNav !== undefined
       ? { target: formatFraction(locale, suggestion.targetPctNav) }
       : {}
 

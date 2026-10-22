@@ -1,6 +1,6 @@
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
 import type { CapBind, Ceiling, CeilingFor } from '@/trading/features/portfolio/folds/distribution'
-import type { RebalancePolicy } from '@/trading/features/portfolio/folds/policy'
+import type { CapTrim, RebalancePolicy } from '@/trading/features/portfolio/folds/policy'
 import type {
   PortfolioAssessment,
   PositionChange,
@@ -13,6 +13,8 @@ import type { RegimeScale } from '@/trading/kernel/market/market-data'
 import type { RiskCapSet, UserProfile } from '@/trading/kernel/operator/profile'
 import { DISTRIBUTION_EPSILON, distribute } from '@/trading/features/portfolio/folds/distribution'
 import {
+  capTrims,
+  compareCandidates,
   driftBand,
   etfCeilingPctNav,
   turnoverCapPctNav,
@@ -49,6 +51,8 @@ export interface DesiredWeights {
   readonly caveats: readonly Caveat[]
   /** Each segment's core tracker, by instrument key. */
   readonly cores: ReadonlySet<string>
+  /** Held names past their own cap or their sector's: `byInstrument` already carries the trimmed weight. */
+  readonly capTrims: ReadonlyMap<string, CapTrim>
 }
 
 // why-safe: the record is keyed by PortfolioSegment; Object.entries widens the key to string.
@@ -148,7 +152,11 @@ export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights 
   const caveats: Caveat[] = []
   const cores = new Set<string>()
   const excluded = new Set(input.profile.exclusions.map(buildInstrumentKey))
-  const held = currentPositionWeights(input.valued, nav)
+  const current = currentPositionWeights(input.valued, nav)
+  const trims = capTrims({ ...input, held: current })
+  const held = new Map(
+    [...current].map(([key, weight]) => [key, trims.get(key)?.toPctNav ?? weight])
+  )
   // Sector room is portfolio-wide, so one tracker spans every segment.
   const rooms = createRoomTracker(input)
 
@@ -170,7 +178,7 @@ export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights 
     }
   }
 
-  return { byInstrument, caveats, cores }
+  return { byInstrument, caveats, cores, capTrims: trims }
 }
 
 interface WeighSegmentInput {
@@ -185,7 +193,7 @@ interface WeighSegmentInput {
 
 /** One segment's target split: the core and the held names it must reserve, then the score
  *  distribution over whatever target is left. */
-function weighSegment(request: WeighSegmentInput): DesiredWeights {
+function weighSegment(request: WeighSegmentInput): Omit<DesiredWeights, 'capTrims'> {
   const { input, segment, target, excluded, rooms } = request
   const byInstrument = new Map<string, number>()
   const caveats: Caveat[] = []
@@ -388,17 +396,6 @@ function residueCaveat(
     code: 'portfolio.targets-renormalized',
     detail: { segment, limit: bind.reason, cap: bind.capPctNav },
   }
-}
-
-/** Equal scores and equal room must produce stable output, not insertion-order output. Funds on one
- *  index score the same, so the one that trades most leads: its spread is what a holder pays. */
-function compareCandidates(left: PortfolioCandidate, right: PortfolioCandidate): number {
-  return (
-    right.marketScore - left.marketScore ||
-    (right.averageDailyTurnoverBase ?? 0) - (left.averageDailyTurnoverBase ?? 0) ||
-    left.instrument.market.localeCompare(right.instrument.market) ||
-    left.instrument.ticker.localeCompare(right.instrument.ticker)
-  )
 }
 
 interface RoomTracker {

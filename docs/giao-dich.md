@@ -266,7 +266,7 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 
 #### Bán một mã đang nắm
 
-`reduce` mang theo một lý do. Hai lý do đến từ kế hoạch: `over-target` cắt bớt tỷ trọng về mức mục tiêu, còn `weak-signal` bán ra một mã có điểm chung đã xuống dưới ngưỡng giữ, nên `/suggest` nêu đúng lý do mà `/rebalance` in ra. Các lý do còn lại là bằng chứng đang quay sang chống lại một mã bạn nắm, mỗi lý do bán một phần tỷ lệ riêng của vị thế:
+`reduce` mang theo một lý do. Ba lý do đến từ kế hoạch: `over-target` cắt bớt tỷ trọng về mức mục tiêu, `weak-signal` bán ra một mã có điểm chung đã xuống dưới ngưỡng giữ, còn `over-cap` đưa một mã đã vượt trần về đúng mức trần, nên `/suggest` nêu đúng lý do mà `/rebalance` in ra. Các lý do còn lại là bằng chứng đang quay sang chống lại một mã bạn nắm, mỗi lý do bán một phần tỷ lệ riêng của vị thế:
 
 - `structure-broken` - một giá đóng dưới mức thấp của các phiên trước nó, từ chính số đọc của thị trường.
 - `regime-risk-off` - trạng thái thị trường của nhóm chuyển sang phòng thủ.
@@ -1087,7 +1087,9 @@ Nên một mã mà kế hoạch liệt kê có thể là mã mà đề xuất t�
 
 Một khoảng cách mà kế hoạch không khép được trong một lô thì được nói thẳng thay vì để trông như đã hội tụ, nhưng chỉ khi đó còn là khoảng cách bạn hành động được. Dưới độ phân giải mà câu in ra, mã đó đã ở mục tiêu theo mọi nghĩa thực tế, và một ghi chú nói nó lệch `0%` sẽ đọc như kế hoạch đang cãi chính nó.
 
-Có một kết luận mà kế hoạch không đi vòng qua: một mã đang nắm có kết luận đã lưu mới nhất là `reduce` trên bằng chứng thì không nhận lệnh tăng, dù nó nằm dưới mục tiêu bao xa, và kế hoạch nêu tên nó thay vì để dòng đó lặng lẽ vắng mặt. Một lệnh giảm bớt mang lý do của chính kế hoạch (`over-target`, `weak-signal`) không phải kết luận đó. Nó là chính quy tắc của kế hoạch này được ghi ngược vào kho, nên hành động theo nó sẽ để kế hoạch tự phủ quyết mình. Không gì khác về kế hoạch đổi: khoảng trống chưa lấp của nhóm vẫn chưa lấp và được báo là tiền mặt.
+Có một kết luận mà kế hoạch không đi vòng qua: một mã đang nắm có kết luận đã lưu mới nhất là `reduce` trên bằng chứng thì không nhận lệnh tăng, dù nó nằm dưới mục tiêu bao xa, và kế hoạch nêu tên nó thay vì để dòng đó lặng lẽ vắng mặt. Một lệnh giảm bớt mang lý do của chính kế hoạch (`over-target`, `weak-signal`, `over-cap`) không phải kết luận đó. Nó là chính quy tắc của kế hoạch này được ghi ngược vào kho, nên hành động theo nó sẽ để kế hoạch tự phủ quyết mình. Không gì khác về kế hoạch đổi: khoảng trống chưa lấp của nhóm vẫn chưa lấp và được báo là tiền mặt.
+
+Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm của nó trung tính và nhóm của nó chưa lệch. Khi tỷ trọng một mã vượt trần mỗi mã (hoặc trần của quỹ) quá dải 5/25, kế hoạch giảm bớt nó về đúng mức trần. Trần 10% sẽ hành động ở 12,5% và giảm bớt về 10%, còn lần chạy sau ở 10,3% không đặt lệnh nào. Một ngành vượt trần thì trả phần dư từ các mã yếu nhất trước. Quỹ không bị tính vào đó, các mã thuộc nhóm có mục tiêu 0% cũng vậy, vì chúng đằng nào cũng được giảm bớt hết. Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước, dù số lượng đã về tài khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày. Dòng đó đọc "đang vượt trần mỗi mã trong hồ sơ 10% - giảm bớt cho vừa trần, không phải vì điểm yếu" và nằm dưới mục làm trước. Nó không bao giờ đóng mã khỏi `/rebalance`. Muốn giữ một mã tập trung có chủ ý thì nâng trần bằng `/profile`.
 
 Không nêu mã thì `/rebalance` định cỡ các khoản nắm của bạn cộng danh sách theo dõi đã lưu. Nêu mã thì định cỡ đúng những mã đó. Mỗi dòng lệnh nêu số tiền theo tiền tệ gốc của cuốn sổ và giá theo tiền tệ báo giá của chính thị trường (thứ mà sàn nhận), nên một thị trường tính theo bảng giá in điểm của nó không kèm tiền tệ còn một coin in tiền tệ của nó. Một mức giá lấy đúng số chữ số thập phân mà đồng tiền của nó có: VND, JPY và KRW không có đơn vị nhỏ hơn, nên một giá đồng in nguyên.
 

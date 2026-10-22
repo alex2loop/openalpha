@@ -2,6 +2,7 @@
 // name's own turnover absorbs. Paired with `rebalance-increase.ts`, which spends rather than frees.
 
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
+import type { CapTrim, RebalancePolicy } from '@/trading/features/portfolio/folds/policy'
 import type { RowInput } from '@/trading/features/portfolio/folds/rebalance-step'
 import type {
   ChangeReason,
@@ -12,6 +13,7 @@ import type {
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import {
+  driftBand,
   turnoverCapPctNav,
   WEAK_HOLDING_SIGNAL_THRESHOLD,
 } from '@/trading/features/portfolio/folds/policy'
@@ -74,8 +76,9 @@ function reductionFor(
 ): ReductionOutcome {
   const key = buildInstrumentKey(entry.position.instrument)
   const candidate = rows.candidates.get(key)
+  const trim = rows.capTrims.get(key)
 
-  if (!(candidate && rows.drifting.has(candidate.segment))) {
+  if (candidate === undefined || (trim === undefined && !rows.drifting.has(candidate.segment))) {
     return { kind: 'none' }
   }
 
@@ -89,13 +92,14 @@ function reductionFor(
   const sizing = { boardLot: candidate.boardLot, unitPriceBase: entry.priceBase }
   const minimum = minimumStep(rows, sizing)
   const excess = currentPctNav - wanted
-  // An exit is not a rotation: a name the plan no longer wants leaves whole, held back only by
-  // settlement and turnover. Pacing applies to a trim toward a weight the plan still holds.
-  const step = wanted > 0 ? reductionStep(excess, candidate.segment, rows) : excess
+  const step = saleStepOf(excess, { candidate, currentPctNav, wanted, trim }, rows)
 
   // The lot rule alone: a gap under one lot is a standing state worth a line, while a settlement
   // or turnover clamp is explained by the row that states it.
-  if (roundToLot(tradeable(step, excess, minimum), sizing, rows.nav) < minimum) {
+  if (
+    trim === undefined &&
+    roundToLot(tradeable(step, excess, minimum), sizing, rows.nav) < minimum
+  ) {
     return isReportableGap(excess)
       ? { kind: 'below-minimum', caveat: reductionBelowMinimumCaveat(candidate, excess, minimum) }
       : { kind: 'none' }
@@ -105,6 +109,7 @@ function reductionFor(
     candidate,
     currentPctNav,
     wanted,
+    trim,
     step,
     excess,
     minimum,
@@ -115,6 +120,7 @@ interface ReductionSizing {
   readonly candidate: PortfolioCandidate
   readonly currentPctNav: number
   readonly wanted: number
+  readonly trim: CapTrim | undefined
   readonly step: number
   readonly excess: number
   readonly minimum: number
@@ -131,12 +137,17 @@ function reductionChange(
   const { candidate, minimum } = sizing
   const lot = { boardLot: candidate.boardLot, unitPriceBase: entry.priceBase }
   const settledPctNav = (entry.position.settledQuantity * entry.priceBase) / rows.nav
-  const reducible = Math.min(
-    tradeable(sizing.step, sizing.excess, minimum),
+  const limit = Math.min(
     settledPctNav,
     turnoverCapPctNav(candidate.averageDailyTurnoverBase, rows.nav)
   )
-  const rounded = roundToLot(reducible, lot, rows.nav)
+  const reducible = Math.min(tradeable(sizing.step, sizing.excess, minimum), limit)
+  const rounded = clearingSale(roundToLot(reducible, lot, rows.nav), sizing, {
+    lot,
+    limit,
+    nav: rows.nav,
+    policy: rows.input.rebalancePolicy,
+  })
 
   if (rounded < minimum) {
     return { kind: 'none' }
@@ -148,10 +159,58 @@ function reductionChange(
       candidate,
       currentPctNav: sizing.currentPctNav,
       targetPctNav: sizing.currentPctNav - rounded,
-      reason: reductionReason(candidate, sizing.wanted),
+      reason: reductionReason(candidate, sizing),
     }),
     candidate,
   }
+}
+
+interface SaleRoom {
+  readonly lot: { readonly boardLot: number; readonly unitPriceBase: number }
+  /** What settlement and turnover let the name sell today, as a fraction of NAV. */
+  readonly limit: number
+  readonly nav: number
+  readonly policy: RebalancePolicy
+}
+
+/** A cap breach is cleared, not approached: where the lot-floored sale still leaves the name past
+ *  the weight its trim allows plus the band, one more lot goes if settlement and turnover allow.
+ *  Otherwise a book whose lot outweighs the band would sit above its cap for good. */
+function clearingSale(floored: number, sizing: ReductionSizing, room: SaleRoom): number {
+  const { trim } = sizing
+
+  if (
+    trim === undefined ||
+    sizing.currentPctNav - floored < trim.toPctNav + driftBand(trim.capPctNav, room.policy)
+  ) {
+    return floored
+  }
+
+  const lotPctNav = (room.lot.boardLot * room.lot.unitPriceBase) / room.nav
+
+  return Math.max(
+    floored,
+    roundToLot(Math.min(floored + lotPctNav, room.limit), room.lot, room.nav)
+  )
+}
+
+type SaleGap = Pick<ReductionSizing, 'candidate' | 'currentPctNav' | 'wanted' | 'trim'>
+
+/** An exit is not a rotation: a name the plan no longer wants leaves whole, held back only by
+ *  settlement and turnover. Pacing applies to a trim toward a weight the plan still holds, except
+ *  the part that brings a capped name back to its cap, which goes in one step. */
+function saleStepOf(excess: number, gap: SaleGap, rows: RowInput): number {
+  if (gap.wanted <= 0) {
+    return excess
+  }
+
+  const paced = reductionStep(excess, gap.candidate.segment, rows)
+
+  if (gap.trim === undefined) {
+    return paced
+  }
+
+  return Math.min(excess, Math.max(paced, gap.currentPctNav - gap.trim.toPctNav))
 }
 
 function reductionStep(excess: number, segment: PortfolioSegment, rows: RowInput): number {
@@ -161,14 +220,22 @@ function reductionStep(excess: number, segment: PortfolioSegment, rows: RowInput
   return pacedStep(excess, over, gap?.excess ?? 0)
 }
 
-/** A weight the plan still wants is being cut back by the allocation math; one at zero means the
- *  name is leaving, and only its score separates a weak read from a segment policy stopped funding. */
-function reductionReason(candidate: PortfolioCandidate, wanted: number): ChangeReason {
-  if (wanted > 0) {
-    return { kind: 'trim' }
+/** A weak read leaves whole whatever the cap says. Past that, a breached cap names the sale while
+ *  the plan still wants the name, or when the sector room is what zeroed it; a name the cap leaves
+ *  room for but the plan wants none of is leaving because its segment is off. */
+function reductionReason(
+  candidate: PortfolioCandidate,
+  sizing: Pick<ReductionSizing, 'wanted' | 'trim'>
+): ChangeReason {
+  const { wanted, trim } = sizing
+
+  if (wanted <= 0 && candidate.marketScore <= WEAK_HOLDING_SIGNAL_THRESHOLD) {
+    return { kind: 'weak-signal', signal: candidate.marketScore }
   }
 
-  return candidate.marketScore <= WEAK_HOLDING_SIGNAL_THRESHOLD
-    ? { kind: 'weak-signal', signal: candidate.marketScore }
-    : { kind: 'off-policy' }
+  if (trim !== undefined && (wanted > 0 || trim.toPctNav <= 0)) {
+    return { kind: 'over-cap', limit: trim.limit, cap: trim.capPctNav }
+  }
+
+  return wanted <= 0 ? { kind: 'off-policy' } : { kind: 'trim' }
 }

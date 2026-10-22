@@ -1,4 +1,4 @@
-import type { PositionChange } from '@/trading/features/portfolio/types'
+import type { ChangeReason, PositionChange } from '@/trading/features/portfolio/types'
 import type { HeldPosition } from '@/trading/features/suggestion/exposure'
 import type {
   DraftDirection,
@@ -158,9 +158,21 @@ function trimOf(change: PositionChange | undefined): DraftSale | undefined {
 
   return {
     action: 'reduce',
-    reasonCode: change.reason.kind === 'weak-signal' ? 'weak-signal' : 'over-target',
+    reasonCode: planReduceReasonOf(change.reason),
     saleFraction: 1 - change.targetPctNav / change.currentPctNav,
   }
+}
+
+function planReduceReasonOf(reason: ChangeReason): DraftSale['reasonCode'] {
+  if (reason.kind === 'weak-signal') {
+    return 'weak-signal'
+  }
+
+  if (reason.kind === 'over-cap') {
+    return 'over-cap'
+  }
+
+  return 'over-target'
 }
 
 /** A held name the evidence has turned on. Each reason cuts the position to what it leaves of the

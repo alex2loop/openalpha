@@ -266,7 +266,7 @@ None of this changes confidence, levels or size. The reads go to the `[[model_ti
 
 #### Selling a held name
 
-`reduce` carries a reason. Two come from the plan: `over-target` trims a weight back to target and `weak-signal` exits a name whose composite fell below the hold line, so `/suggest` names the same cause `/rebalance` prints. The rest are evidence turning against a name you hold, each selling its own share of the position:
+`reduce` carries a reason. Three come from the plan: `over-target` trims a weight back to target, `weak-signal` exits a name whose composite fell below the hold line, and `over-cap` sells a name back to a cap it ran past, so `/suggest` names the same cause `/rebalance` prints. The rest are evidence turning against a name you hold, each selling its own share of the position:
 
 - `structure-broken` - a close below the low of the sessions before it, from the market's own read.
 - `regime-risk-off` - the segment's market state turned defensive.
@@ -902,6 +902,7 @@ A deposit in a venue's quote currency, such as `/record deposit binance 1000 USD
 - **Where to see it.** `/portfolio` lists the USDT beside cash with its cost and today's value, and
   prints the currency gain or loss. `/reconcile` checks it against the venue's real USDT balance.
 
+
 A crypto round trip, step by step, with the rate you paid recorded once, on the deposit:
 
 1. **Deposit USDT with the rate you paid.** `/record deposit binance 1000 USDT 2026-08-14 fx 26600`.
@@ -1105,7 +1106,9 @@ So a name the plan lists may be one the suggestion declines that day. The plan s
 
 A gap the plan cannot close in one lot is said out loud rather than left to look like convergence, but only while it is a gap you can act on. Below the resolution the sentence prints at, the name is at target for every practical purpose, and a note claiming it sits `0%` off would read as the plan arguing with itself.
 
-One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. A sale under one of the plan's own reasons (`over-target`, `weak-signal`) is not that verdict. It is this plan's own rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
+One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. A sale under one of the plan's own reasons (`over-target`, `weak-signal`, `over-cap`) is not that verdict. It is this plan's own rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
+
+A name that has run past its cap is sold back, even when its score is neutral and its segment has not drifted. Once a holding's weight passes its per-name cap (or a fund's cap) by more than the 5/25 band, the plan sells it back to the cap. A 10% cap acts at 12.5% and sells back to 10%, and the next run at 10.3% places no order. A sector past its cap gives the excess back from its weakest names first. Funds are left out of it, and so are names in a segment with a 0% target, since those are sold whole anyway. The sale goes to the cap, at most one board lot past it, and in one step, though the settled quantity and the name's turnover still limit what sells in a day. The row reads "above your profile's per-name cap of 10% - trimmed to fit the cap, not for a weak score" and sits under what to do first. It never closes the name to `/rebalance`. To keep a concentrated name on purpose, raise the cap with `/profile`.
 
 With no names, `/rebalance` sizes your holdings plus the saved watchlist. Naming tickers sizes exactly those. Each order line states the amount in the book's base currency and the price in the market's own quote currency (what the venue takes), so a board-scaled market prints its points with no currency while a coin prints its own. A price takes the decimals its currency actually has: VND, JPY and KRW have no minor unit, so a dong price prints whole.
 

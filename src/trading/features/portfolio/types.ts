@@ -351,9 +351,9 @@ export type AgentPortfolio = Pick<
  *  trace back to a cause is one they have to reverse-engineer. */
 export type ChangeReason =
   | { readonly kind: 'fill-gap' | 'core-fill' }
-  | { readonly kind: 'trim' }
+  | { readonly kind: 'trim' | 'off-policy' }
   | { readonly kind: 'weak-signal'; readonly signal: number }
-  | { readonly kind: 'off-policy' }
+  | { readonly kind: 'over-cap'; readonly limit: CapReason; readonly cap: number }
 
 export interface PositionChange {
   readonly kind: 'position-change'

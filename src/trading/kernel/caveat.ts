@@ -327,8 +327,13 @@ export const HOLD_REASON_CODES = Object.freeze([
 export type HoldReasonCode = (typeof HOLD_REASON_CODES)[number]
 
 /** The plan's own sales, written back by the rebalancer: `over-target` trims a weight, `weak-signal`
- *  exits a name whose score fell under the weak-holding line. */
-export const PLAN_REDUCE_REASON_CODES = Object.freeze(['over-target', 'weak-signal'] as const)
+ *  exits a name whose score fell under the weak-holding line, `over-cap` sells a name back to a cap
+ *  it ran past. */
+export const PLAN_REDUCE_REASON_CODES = Object.freeze([
+  'over-target',
+  'weak-signal',
+  'over-cap',
+] as const)
 type PlanReduceReasonCode = (typeof PLAN_REDUCE_REASON_CODES)[number]
 
 /** Why a held name is sold. The plan's arms come first; every other arm is the evidence turning on

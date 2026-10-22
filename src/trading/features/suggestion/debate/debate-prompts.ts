@@ -87,6 +87,8 @@ const REDUCE_REASON_SENTENCES = {
   'over-target': 'the position is above the weight the plan targets for its segment',
   'weak-signal':
     'the composite score fell below the line the plan keeps a holding at, so the plan exits it',
+  'over-cap':
+    'the position, or its whole sector, has grown past the cap the operator set; the sale only brings it back within that cap and is risk discipline, not a view on the name',
   'thesis-weakening': 'the evidence has turned bearish on a name the operator holds',
   'structure-broken':
     'the price closed below the low of the recent sessions, so the breakout failed',

@@ -1,6 +1,9 @@
-import type { SegmentValue } from '@/trading/features/portfolio/types'
-import type { RiskCapSet } from '@/trading/kernel/operator/profile'
+import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
+import type { CapReason, SegmentValue } from '@/trading/features/portfolio/types'
+import type { RiskCapSet, UserProfile } from '@/trading/kernel/operator/profile'
+import { buildInstrumentKey, ETF_KIND } from '@/trading/kernel/instrument'
 import { isEtfUnmeasured } from '@/trading/kernel/operator/exposure'
+import { isCappedAsFund, positionCapOf } from '@/trading/kernel/operator/profile'
 
 // Named `_FRACTION`, not `_PCT`: applied directly as a multiplier (0.2 means 20%), never scaled
 // by 100 first.
@@ -101,4 +104,122 @@ export function etfCeilingPctNav(cap: RiskCapSet | undefined, segment?: SegmentV
  *  whole ceiling where the book holds nothing there yet. */
 export function etfHeadroomPctNav(cap: RiskCapSet | undefined, segment?: SegmentValue): number {
   return Math.max(0, etfCeilingPctNav(cap, segment) - (segment?.etfPctNav ?? 0))
+}
+
+/** A held name past its own cap, or its sector's, by more than the band. */
+export interface CapTrim {
+  readonly limit: CapReason
+  readonly capPctNav: number
+  /** The weight the sale brings the name back to. */
+  readonly toPctNav: number
+}
+
+interface CapTrimRequest {
+  readonly profile: UserProfile
+  readonly candidates: readonly PortfolioCandidate[]
+  /** Current weights, keyed by `buildInstrumentKey`. */
+  readonly held: ReadonlyMap<string, number>
+  readonly rebalancePolicy: RebalancePolicy
+}
+
+/** Equal scores and equal room must produce stable output, not insertion-order output. Funds on one
+ *  index score the same, so the one that trades most leads: its spread is what a holder pays. */
+export function compareCandidates(left: PortfolioCandidate, right: PortfolioCandidate): number {
+  return (
+    right.marketScore - left.marketScore ||
+    (right.averageDailyTurnoverBase ?? 0) - (left.averageDailyTurnoverBase ?? 0) ||
+    left.instrument.market.localeCompare(right.instrument.market) ||
+    left.instrument.ticker.localeCompare(right.instrument.ticker)
+  )
+}
+
+/** Back to the cap, not to a target: under proportional costs the no-trade region ends at the cap.
+ *  A cap of zero trims nothing: the segment has no caps record, or is off and exits whole. */
+export function capTrims(request: CapTrimRequest): ReadonlyMap<string, CapTrim> {
+  const positions = positionTrims(request)
+
+  return new Map([...positions, ...sectorTrims(request, positions)])
+}
+
+function positionTrims(request: CapTrimRequest): ReadonlyMap<string, CapTrim> {
+  const trims = new Map<string, CapTrim>()
+
+  for (const candidate of request.candidates) {
+    const key = buildInstrumentKey(candidate.instrument)
+    const weight = request.held.get(key) ?? 0
+    const caps = request.profile.caps[candidate.segment]
+    const cap = positionCapOf(caps, candidate.instrumentKind)
+
+    if (weight > 0 && cap > 0 && weight >= cap + driftBand(cap, request.rebalancePolicy)) {
+      const limit = isCappedAsFund(caps, candidate.instrumentKind) ? 'etf' : 'position'
+
+      trims.set(key, { limit, capPctNav: cap, toPctNav: cap })
+    }
+  }
+
+  return trims
+}
+
+/** A sector past its cap gives the excess back from its weakest names first. A fund carries no
+ *  sector weight, so the core floor is never cut. A segment the plan no longer funds leaves whole
+ *  anyway, so its names take no room. Names already trimmed to their own cap count at that weight. */
+function sectorTrims(
+  request: CapTrimRequest,
+  positions: ReadonlyMap<string, CapTrim>
+): ReadonlyMap<string, CapTrim> {
+  const cap = request.profile.maximumSectorPctNav
+  const sectors = new Map<string, PortfolioCandidate[]>()
+  const trims: (readonly [string, CapTrim])[] = []
+
+  if (cap <= 0) {
+    return new Map()
+  }
+
+  for (const candidate of request.candidates) {
+    if (
+      candidate.sector !== undefined &&
+      candidate.instrumentKind !== ETF_KIND &&
+      (request.profile.segmentTargets[candidate.segment] ?? 0) > 0
+    ) {
+      sectors.set(candidate.sector, [...(sectors.get(candidate.sector) ?? []), candidate])
+    }
+  }
+
+  for (const members of sectors.values()) {
+    const weights = members.map((member) => {
+      const key = buildInstrumentKey(member.instrument)
+
+      return [member, positions.get(key)?.toPctNav ?? request.held.get(key) ?? 0] as const
+    })
+    const total = weights.reduce((sum, [, weight]) => sum + weight, 0)
+
+    if (total >= cap + driftBand(cap, request.rebalancePolicy)) {
+      trims.push(...cutWeakestFirst(weights, cap))
+    }
+  }
+
+  return new Map(trims)
+}
+
+function cutWeakestFirst(
+  weights: readonly (readonly [PortfolioCandidate, number])[],
+  cap: number
+): readonly (readonly [string, CapTrim])[] {
+  const weakestFirst = [...weights].sort(([left], [right]) => compareCandidates(left, right))
+  const cuts: (readonly [string, CapTrim])[] = []
+  let remaining = weights.reduce((sum, [, weight]) => sum + weight, 0) - cap
+
+  for (const [member, weight] of weakestFirst.reverse()) {
+    const cut = Math.min(weight, remaining)
+
+    if (cut > 0) {
+      cuts.push([
+        buildInstrumentKey(member.instrument),
+        { limit: 'sector', capPctNav: cap, toPctNav: weight - cut },
+      ])
+      remaining -= cut
+    }
+  }
+
+  return cuts
 }

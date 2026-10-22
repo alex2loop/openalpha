@@ -571,6 +571,8 @@ lists.
 A held name whose latest read still leans toward selling some is not added to, and is not counted
 when the plan says how many names are left to buy.
 
+A holding past its per-name or sector cap by more than the 5/25 band is sold back to the cap, whatever its score.
+
 #### A brief with no watchlist
 
 The leading and dropped blocks cover your own watchlist and are absent when it is empty. The
