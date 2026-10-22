@@ -36,8 +36,6 @@ export interface AdviceInput {
   /** The macro ceiling on deployment, per segment. Clamped to at most 1 before use: macro may reduce
    *  deployment, never license more risk. */
   readonly regimes: ReadonlyMap<PortfolioSegment, RegimeScale>
-  /** Per held instrument, keyed by `buildInstrumentKey`, in [-1, 1]. Absent means no opinion, not 0. */
-  readonly holdingSignals?: ReadonlyMap<string, number>
   /** Held names the newest verdict says to sell on evidence, keyed by `buildInstrumentKey`. A name
    *  here takes no increase, however far under target it sits. Required, not optional: an omitted
    *  map would open every name a verdict had closed, and silently. */

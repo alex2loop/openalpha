@@ -339,13 +339,6 @@ function buildAdvice(input: {
       standingReduces: input.standingReduces,
       regimes: input.regimes,
       reachableCashBase: reachableCashByMarket(deps.venues, valued.book),
-      // The market's own composite for each name, which is the signal a weak holding is weak against.
-      holdingSignals: new Map(
-        input.candidates.map((candidate) => [
-          buildInstrumentKey(candidate.instrument),
-          candidate.marketScore,
-        ])
-      ),
     }),
     book: valued,
   }

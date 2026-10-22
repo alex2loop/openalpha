@@ -1,6 +1,11 @@
 import type { BrandTag } from '@/core/ids'
 import type { FactorComposite, FactorId } from '@/trading/kernel/factor'
-import type { InstrumentRef, MarketRef, TradingDay } from '@/trading/kernel/instrument'
+import type {
+  InstrumentKind,
+  InstrumentRef,
+  MarketRef,
+  TradingDay,
+} from '@/trading/kernel/instrument'
 import type { TapeSignal } from '@/trading/kernel/market/tape'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import type { SourceId } from '@/trading/kernel/source/source-id'
@@ -28,6 +33,10 @@ export interface FactorLogEntry {
   /** The providers the board was read from, so a session a fallback answered can be told apart from
    *  one the lead provider did. Absent on rows logged before it was recorded. */
   readonly sources?: readonly SourceId[]
+  /** The kind the board ranked, where the market ranks more than one: a fund's composite folds
+   *  other factors than a share's, so the two are never pooled. Absent on a single-board market and
+   *  on rows logged before it was recorded. */
+  readonly instrumentKind?: InstrumentKind
 }
 
 export interface FactorLogOutcome {

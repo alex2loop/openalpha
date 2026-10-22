@@ -18,7 +18,13 @@ import { assertNotAborted, StorageError, ValidationError } from '@/core/errors'
 import { FACTOR_LOG_EXIT_REASONS } from '@/trading/features/suggestion/track-record/factor-log-types'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
 import { factorComposite, isFactorId } from '@/trading/kernel/factor'
-import { brandFromPattern, marketRef, ticker, tradingDay } from '@/trading/kernel/instrument'
+import {
+  brandFromPattern,
+  INSTRUMENT_KINDS,
+  marketRef,
+  ticker,
+  tradingDay,
+} from '@/trading/kernel/instrument'
 import { TAPE_SIGNALS } from '@/trading/kernel/market/tape'
 import { INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
 import { isSourceId } from '@/trading/kernel/source/source-id'
@@ -68,6 +74,8 @@ const payloadSchema = z.strictObject({
     .array(z.string())
     .transform((ids) => ids.filter(isSourceId))
     .optional(),
+  // A kind this build no longer names reads as unrecorded rather than making the row unreadable.
+  instrumentKind: z.enum(INSTRUMENT_KINDS).optional().catch(undefined),
 })
 
 function readableSignals(entries: readonly unknown[]): readonly TapeSignal[] {
@@ -166,6 +174,7 @@ function toInsertParams(entry: FactorLogEntry): readonly unknown[] {
       factors: entry.factors,
       signals: entry.signals,
       sources: entry.sources,
+      instrumentKind: entry.instrumentKind,
     }),
   ]
 }
@@ -298,6 +307,7 @@ function toEntry(row: FactorLogRow): FactorLogEntry {
     ),
     signals: payload.signals,
     ...(payload.sources === undefined ? {} : { sources: payload.sources }),
+    ...(payload.instrumentKind === undefined ? {} : { instrumentKind: payload.instrumentKind }),
   }
 }
 

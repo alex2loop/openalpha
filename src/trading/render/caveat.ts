@@ -182,6 +182,7 @@ const SUBJECT_FIELD: Readonly<Record<string, string>> = Object.freeze({
   'portfolio.too-few-candidates': 'segment',
   'portfolio.shared-cap-full': 'segment',
   'portfolio.candidates-available': 'segment',
+  'portfolio.candidates-outside-cap': 'segment',
   'portfolio.candidates-by-name': 'segment',
   'valuation.price-stale': 'ticker',
   'market-data.series-stale': 'ticker',

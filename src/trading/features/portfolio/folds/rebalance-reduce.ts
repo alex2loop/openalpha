@@ -95,7 +95,7 @@ function reductionFor(
   const step = saleStepOf(excess, { candidate, currentPctNav, wanted, trim }, rows)
 
   // The lot rule alone: a gap under one lot is a standing state worth a line, while a settlement
-  // or turnover clamp is explained by the row that states it.
+  // or turnover clamp gets its own line below.
   if (
     trim === undefined &&
     roundToLot(tradeable(step, excess, minimum), sizing, rows.nav) < minimum
@@ -126,8 +126,18 @@ interface ReductionSizing {
   readonly minimum: number
 }
 
-/** Only settled quantity can be sold today, and only what the name's turnover absorbs. A sale that
- *  waits only on settlement says so; one the turnover clamp rounds away is dropped silently. */
+interface SaleClamps {
+  /** What has settled, as a fraction of NAV. */
+  readonly settledPctNav: number
+  /** Part of the holding is still on its way, which is what can leave too little settled. */
+  readonly unsettled: boolean
+  /** What the name's turnover absorbs in a day, as a fraction of NAV. */
+  readonly turnoverPctNav: number
+}
+
+/** Only settled quantity can be sold today, and only what the name's turnover absorbs. A sale either
+ *  clamp holds back is said, or a name past its limit with no order beside it reads as one the plan
+ *  missed. */
 function reductionChange(
   entry: Extract<ValuedPosition, { readonly kind: 'priced' }>,
   rows: RowInput,
@@ -135,11 +145,12 @@ function reductionChange(
 ): ReductionOutcome {
   const { candidate, minimum } = sizing
   const lot = { boardLot: candidate.boardLot, unitPriceBase: entry.priceBase }
-  const settledPctNav = (entry.position.settledQuantity * entry.priceBase) / rows.nav
-  const limit = Math.min(
-    settledPctNav,
-    turnoverCapPctNav(candidate.averageDailyTurnoverBase, rows.nav)
-  )
+  const clamps: SaleClamps = {
+    settledPctNav: (entry.position.settledQuantity * entry.priceBase) / rows.nav,
+    unsettled: entry.position.settledQuantity < entry.position.quantity,
+    turnoverPctNav: turnoverCapPctNav(candidate.averageDailyTurnoverBase, rows.nav),
+  }
+  const limit = Math.min(clamps.settledPctNav, clamps.turnoverPctNav)
   const reducible = Math.min(tradeable(sizing.step, sizing.excess, minimum), limit)
   const rounded = clearingSale(roundToLot(reducible, lot, rows.nav), sizing, {
     lot,
@@ -149,17 +160,9 @@ function reductionChange(
   })
 
   if (rounded < minimum) {
-    return settledPctNav < minimum && isReportableGap(sizing.excess)
-      ? {
-          kind: 'held-back',
-          // Said out loud, or a name past its limit with no order beside it reads as one the plan
-          // missed.
-          caveat: {
-            code: 'portfolio.reduction-unsettled',
-            detail: { ticker: candidate.instrument.ticker, gap: sizing.excess },
-          },
-        }
-      : { kind: 'none' }
+    const caveat = heldBackCaveat(sizing, clamps)
+
+    return caveat === null ? { kind: 'none' } : { kind: 'held-back', caveat }
   }
 
   return {
@@ -201,6 +204,27 @@ function clearingSale(floored: number, sizing: ReductionSizing, room: SaleRoom):
     floored,
     roundToLot(Math.min(floored + lotPctNav, room.limit), room.lot, room.nav)
   )
+}
+
+/** Settlement first: it clears by itself within days, while thin turnover stays. A sale neither
+ *  clamp holds back is a lot rounding the plan already reports elsewhere. */
+function heldBackCaveat(
+  sizing: Pick<ReductionSizing, 'candidate' | 'excess' | 'minimum'>,
+  clamps: SaleClamps
+): Caveat | null {
+  if (!isReportableGap(sizing.excess)) {
+    return null
+  }
+
+  const detail = { ticker: sizing.candidate.instrument.ticker, gap: sizing.excess }
+
+  if (clamps.unsettled && clamps.settledPctNav < sizing.minimum) {
+    return { code: 'portfolio.reduction-unsettled', detail }
+  }
+
+  return clamps.turnoverPctNav < sizing.minimum
+    ? { code: 'portfolio.reduction-illiquid', detail }
+    : null
 }
 
 type SaleGap = Pick<ReductionSizing, 'candidate' | 'currentPctNav' | 'wanted' | 'trim'>

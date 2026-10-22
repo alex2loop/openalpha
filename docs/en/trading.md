@@ -69,7 +69,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `fred-csv` | monthly commodity series no daily feed carries (coal, rice, pork, steel), behind `vndirect` | no |
 | `vietcap-statements` | VN financial statements: full years plus discrete quarters (below) | no |
 | `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY` |
-| `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap`; it measures 24-hour volume lower, so `/screen crypto` says when the ranking came from it | no |
+| `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap`; it measures 24-hour volume lower, so `/screen crypto` says when the ranking came from it or any other fallback | no |
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
 | `coinbase` | the USD price of a settlement coin, from a venue that trades the pair | no |
 | `er-api` | fiat FX, behind `yahoo` | no |
@@ -426,7 +426,7 @@ A VN gold fill is recorded in the shop's unit while its suggestion is quoted per
 
 #### The board's own record
 
-Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board, one per kind it ranks, so VN funds are logged beside shares (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart; rows logged before this carry none.
+Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board, one per kind it ranks, so VN funds are logged beside shares (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart, and on a market with several boards it names the kind it was ranked as, so a fund's composite is never pooled with a share's; rows logged before this carry neither.
 
 `/reflect` prints it as a second attribution block. It is the sample the factor weights and confidence bands are fitted to as it grows. Each factor is scored per strategy version, newest two per market, because a version change redefines what the factor measures.
 
@@ -1101,7 +1101,7 @@ An unavailable answer still carries the findings, because "you are over your sec
 
 A segment the plan could not fund to target raises one caveat naming that segment. Each segment gets its own slice of the deployable pool, so a plan-wide shortfall would otherwise blame a neighbour's exhausted budget on whichever name sat below target.
 
-When the cap that stopped it is shared, the segment's ETF cap or a sector cap, the caveat names that cap and says that only names outside it fill the segment, and the plan offers names from the screen as it does for a short list, leaving out the sectors already in the plan when a sector cap is what bound. A sale the plan wants but cannot place because too little of the holding has settled (T+2) is named too, rather than leaving a name over its limit with no order beside it.
+When the cap that stopped it is shared, the segment's ETF cap or a sector cap, the caveat names that cap and says that only names outside it fill the segment, and the plan offers names from the screen that cap does not reach, leaving out the sectors already in the plan when a sector cap is what bound. When the board has none, the cap's own line stands alone. A sale the plan wants but cannot place is named too, rather than leaving a name over its limit with no order beside it: either too little of the holding has settled (T+2), or the name trades too thinly to sell an order's worth in a session, in which case trimming it by hand bit by bit is the way out.
 
 The deployment ceiling that gets printed is the whole book's, not one segment's. The pool is split by profile target weight and each slice is held to its own segment's macro read, so a defensive segment beside a neutral one produces a blend that matches neither. Every screen that prints the figure also states the market state of each segment behind it.
 

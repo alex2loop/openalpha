@@ -138,13 +138,6 @@ function hasCompletePolicyInput(input: AdviceInput): boolean {
     candidates.set(key, candidate)
   }
 
-  if (
-    input.holdingSignals &&
-    [...input.holdingSignals.values()].some((value) => !Number.isFinite(value))
-  ) {
-    return false
-  }
-
   return input.valued.positions
     .filter((entry) => entry.kind === 'priced')
     .every((entry) => candidates.has(buildInstrumentKey(entry.position.instrument)))
@@ -176,16 +169,14 @@ interface WeakHoldingFold {
   readonly caveats: readonly Caveat[]
 }
 
-// A holding above the threshold produces no row and no caveat. A missing signal produces a caveat
-// naming the ticker, never a row: absent, not fabricated.
+// The signal is the market's own composite for the name. A holding above the threshold produces no
+// row and no caveat. A missing signal produces a caveat naming the ticker, never a row: absent, not
+// fabricated.
 function weakHoldingRows(input: AdviceInput): WeakHoldingFold {
   const rows: WeakHoldingNote[] = []
   const caveats: Caveat[] = []
-  const kinds = new Map(
-    input.candidates.map((candidate) => [
-      buildInstrumentKey(candidate.instrument),
-      candidate.instrumentKind,
-    ])
+  const candidates = new Map(
+    input.candidates.map((candidate) => [buildInstrumentKey(candidate.instrument), candidate])
   )
 
   for (const valued of input.valued.positions) {
@@ -194,10 +185,9 @@ function weakHoldingRows(input: AdviceInput): WeakHoldingFold {
       continue
     }
 
-    const key = buildInstrumentKey(valued.position.instrument)
-    const signal = input.holdingSignals?.get(key)
+    const candidate = candidates.get(buildInstrumentKey(valued.position.instrument))
 
-    if (signal === undefined) {
+    if (candidate === undefined) {
       caveats.push({
         code: 'portfolio.holding-signal-missing',
         detail: { ticker: valued.position.instrument.ticker },
@@ -205,8 +195,8 @@ function weakHoldingRows(input: AdviceInput): WeakHoldingFold {
       continue
     }
 
-    if (isWeakHolding(signal, kinds.get(key))) {
-      rows.push({ instrument: valued.position.instrument, signal })
+    if (isWeakHolding(candidate.marketScore, candidate.instrumentKind)) {
+      rows.push({ instrument: valued.position.instrument, signal: candidate.marketScore })
     }
   }
 
