@@ -5,9 +5,10 @@ import type {
   SuggestionIdentity,
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
-import type { Caveat } from '@/trading/kernel/caveat'
+import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Candle, Quote } from '@/trading/kernel/market/market-data'
+import type { BookChange } from '@/trading/kernel/operator/book'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketResolution } from '@/trading/markets/types'
@@ -24,9 +25,26 @@ import {
   lookbackOf,
 } from '@/trading/features/suggestion/pipeline/standing-answer'
 import { buildSuggestionId, isInconclusive } from '@/trading/features/suggestion/types'
+import { isEvidenceReduceReason } from '@/trading/kernel/caveat'
 import { strategyId } from '@/trading/kernel/instrument'
 import { voidPrice } from '@/trading/markets/levels'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
+
+/** The holds sized against NAV and cash, which a deposit or another name's trade can overturn. */
+const WEIGHT_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonCode>([
+  'zero-nav',
+  'cap-exhausted',
+  'sector-cap-exhausted',
+  'etf-cap-exhausted',
+  'segment-cap-exhausted',
+  'cash-exhausted',
+  'risk-budget-too-small',
+  'open-risk-exhausted',
+  'size-below-board-lot',
+  'increase-unfunded',
+  'fully-invested',
+  'no-rebalance-needed',
+])
 
 export async function reuseOrCooldown(
   options: SuggestionRunOptions,
@@ -252,14 +270,14 @@ async function isOpenBuyLive(
     return false
   }
 
-  const [quote, bars, traded] = await Promise.all([
+  const [quote, bars, change] = await Promise.all([
     readQuote(options, resolution),
     readBarsSince(options, resolution, suggestion.at),
-    hasTradedSince(options, resolution, suggestion),
+    bookChangeOf(options, resolution, suggestion),
   ])
 
   return (
-    !traded &&
+    change !== 'instrument' &&
     quote?.kind === 'available' &&
     !isSetupVoid(suggestion, quote.value, minimumRiskReward) &&
     bars?.kind === 'available' &&
@@ -268,34 +286,73 @@ async function isOpenBuyLive(
 }
 
 /** The stored suggestion as it stands now: against the price, and against a book the operator may
- *  have traded since. Both are marked rather than re-run - the setup is dead either way, and a
- *  debate to say so is spend the operator did not ask for; `force` is there for the fresh call. */
+ *  have changed since. Both are marked rather than re-run - a debate to say so is spend the
+ *  operator did not ask for; `force` is there for the fresh call. */
 async function resolveStanding(
   options: SuggestionRunOptions,
   resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
   suggestion: StoredSuggestion
 ): Promise<StoredSuggestion> {
-  const [standing, traded] = await Promise.all([
+  const [standing, change] = await Promise.all([
     withLevelCaveats(options, resolution, suggestion),
-    hasTradedSince(options, resolution, suggestion),
+    bookChangeOf(options, resolution, suggestion),
   ])
+  const caveat = bookChangeCaveat(suggestion, change)
 
-  return traded ? withCaveat(standing, { code: 'suggestion.position-changed' }) : standing
+  return caveat === undefined ? standing : withCaveat(standing, caveat)
 }
 
-/** Only an actionable row is asked: its direction came from the weight gap and whether the name was
- *  held, so a fill since the call can invert it. Every row moves NAV and cash, which would flag
- *  every name after any trade - the size a reused row carries is what the caveat covers. */
-async function hasTradedSince(
+/** A trade on the name itself can invert its direction. Any other row moves NAV and cash, which
+ *  only matters to a row decided on them - a buy sized from cash, a sale under the plan's own
+ *  reasons, a hold sized against NAV and cash or a plan sale under one lot - so only those say so. */
+function bookChangeCaveat(suggestion: StoredSuggestion, change: BookChange): Caveat | undefined {
+  if (change === 'instrument' && suggestion.action !== 'hold') {
+    return { code: 'suggestion.position-changed' }
+  }
+
+  return change !== 'none' && isReadOffTheBook(suggestion)
+    ? { code: 'suggestion.book-changed' }
+    : undefined
+}
+
+function isReadOffTheBook(suggestion: StoredSuggestion): boolean {
+  if (suggestion.action === 'buy') {
+    return true
+  }
+
+  if (suggestion.action === 'reduce') {
+    return (
+      suggestion.reduceReasonCode === undefined ||
+      !isEvidenceReduceReason(suggestion.reduceReasonCode)
+    )
+  }
+
+  return (
+    suggestion.action === 'hold' && (isWeightHold(suggestion) || isPlanSaleUnderALot(suggestion))
+  )
+}
+
+function isWeightHold(suggestion: Extract<StoredSuggestion, { readonly action: 'hold' }>): boolean {
+  return suggestion.holdReasonCodes.some((code) => WEIGHT_HOLD_REASONS.has(code))
+}
+
+/** A plan sale that rounded under one lot is filed as a hold, but its size was a share of NAV. */
+function isPlanSaleUnderALot(
+  suggestion: Extract<StoredSuggestion, { readonly action: 'hold' }>
+): boolean {
+  return (
+    suggestion.holdReasonCodes.includes('sale-below-board-lot') &&
+    suggestion.reduceReasonCode !== undefined &&
+    !isEvidenceReduceReason(suggestion.reduceReasonCode)
+  )
+}
+
+function bookChangeOf(
   options: SuggestionRunOptions,
   resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
   suggestion: StoredSuggestion
-): Promise<boolean> {
-  if (suggestion.action === 'hold') {
-    return false
-  }
-
-  return options.deps.portfolio.hasTradedSince(
+): Promise<BookChange> {
+  return options.deps.portfolio.bookChangeSince(
     resolution.instrument,
     suggestion.createdAt,
     options.request.signal

@@ -206,34 +206,36 @@ export const REPORT_OVERDUE_DAYS = 135
  *  ATR it lost ticks independently of the stop, and a 15-tick VN30 bank landed at 1.47. The long
  *  stop is three ATRs: at two, every stored plan sat inside one limit-down session and under the
  *  two-session settlement drawdown printed beside it, and the debate's own invalidator (a close
- *  under the 50-session average) lay twice as far below entry as the stop did. The trail hangs the
- *  stop from the highest close of a trading month so a name that ran keeps what it gained; an
- *  entry-relative stop on a long-horizon book otherwise never moves until the plan is spent.
+ *  under the 50-session average) lay twice as far below entry as the stop did.
  *
- *  That trail also clamps a fresh entry, and a VN entry is the close rather than a breakout, so the
+ *  A fund leaves whole at its review level, so it banks nothing before the target. Nothing trails
+ *  its review level either, so it declares no trail: one would only clamp the fresh level, and on
+ *  2026-10-22 it put two funds' review a single ATR under the close and printed a 9:1 reward. */
+export const VN_FUND_LEVEL_POLICY: LevelPolicy = Object.freeze({
+  atrSessions: 14,
+  stopVolatilityMultiplier: { short: 1.5, long: 3 },
+  targetRiskMultiplier: { short: 1.5, long: 3 },
+})
+
+/** A share banks its first third one risk unit out. Measured on the stored board, one trade per
+ *  name at a time with the stop, trail and T+2 as they run: the long target at nine ATRs was
+ *  reached by 3% to 14% of entries, one risk unit by 13% to 36%, with no measurable change in what
+ *  the trade returned, because the rest rides the trail either way.
+ *
+ *  The trail hangs the stop from the highest close of a trading month so a name that ran keeps what
+ *  it gained; an entry-relative stop on a long-horizon book otherwise never moves until the plan is
+ *  spent. It also clamps a fresh entry, and a VN entry is the close rather than a breakout, so the
  *  window high sits above it on every name that is not making a new high and the stop is the trail
  *  multiple less the pullback. Measured across the screened board on 2026-09-22 it bound on 63 of
  *  105 names, cut the median plan a quarter inside its designed distance and the deepest one to a
  *  fortieth, and left twelve stops inside a single session's own range. One ATR is the floor under
  *  it: a session's typical range is the least a stop can sit outside and still be answering the
  *  thesis rather than the noise. It widens a fifth of the board and moves no target, because the
- *  risk the target and the size read is the designed three ATRs either way.
- *
- *  A fund leaves whole at its review level, so it banks nothing before the target. */
-export const VN_FUND_LEVEL_POLICY: LevelPolicy = Object.freeze({
-  atrSessions: 14,
-  stopVolatilityMultiplier: { short: 1.5, long: 3 },
-  targetRiskMultiplier: { short: 1.5, long: 3 },
-  trail: Object.freeze({ sessions: 22, volatilityMultiplier: 3, minimumStopMultiplier: 1 }),
-})
-
-/** A share banks its first third one risk unit out. Measured on the stored board, one trade per
- *  name at a time with the stop, trail and T+2 as they run: the long target at nine ATRs was
- *  reached by 3% to 14% of entries, one risk unit by 13% to 36%, with no measurable change in what
- *  the trade returned, because the rest rides the trail either way. */
+ *  risk the target and the size read is the designed three ATRs either way. */
 export const VN_LEVEL_POLICY: LevelPolicy = Object.freeze({
   ...VN_FUND_LEVEL_POLICY,
   takeProfitRiskMultiplier: { short: 1, long: 1 },
+  trail: Object.freeze({ sessions: 22, volatilityMultiplier: 3, minimumStopMultiplier: 1 }),
 })
 
 /** A year of sessions: the horizon the published Vietnamese turnover factor is measured over, and

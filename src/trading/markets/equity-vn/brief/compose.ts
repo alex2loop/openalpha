@@ -19,6 +19,7 @@ import { loadBriefContext } from '@/trading/markets/equity-vn/brief/context'
 import { buildCrossAssetPulse } from '@/trading/markets/equity-vn/brief/cross-asset-section'
 import { buildDisclosures } from '@/trading/markets/equity-vn/brief/disclosure-section'
 import { buildEvents } from '@/trading/markets/equity-vn/brief/events'
+import { toHeadlineSection } from '@/trading/markets/equity-vn/brief/headline-section'
 import {
   buildStalePositions,
   buildUnwatchedPositions,
@@ -52,7 +53,6 @@ import {
   buildResolvedSuggestions,
   buildSuggestions,
   omitted,
-  toHeadlineSection,
 } from '@/trading/markets/equity-vn/brief/sections'
 import { buildSessionDelta } from '@/trading/markets/equity-vn/brief/session-delta'
 import { tryReadStories } from '@/trading/markets/equity-vn/brief/story-read'

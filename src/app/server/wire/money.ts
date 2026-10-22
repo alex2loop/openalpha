@@ -121,7 +121,7 @@ interface RebalanceChangeWire {
   readonly currentPctNav: number
   readonly targetPctNav: number
   readonly changePctNav: number
-  readonly reason: 'fill-gap' | 'core-fill' | 'trim' | 'weak-signal' | 'off-policy'
+  readonly reason: 'fill-gap' | 'core-fill' | 'trim' | 'weak-signal' | 'off-policy' | 'over-cap'
   /** The order this change works out to, lot-rounded. Absent when the plan could not be sized. */
   readonly order?: {
     readonly valueBase: number

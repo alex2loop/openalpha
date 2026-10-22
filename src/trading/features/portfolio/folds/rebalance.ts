@@ -55,6 +55,8 @@ export function rebalanceRows(
     candidates,
     segments: segmentGaps(desired.byInstrument, current, candidates),
     cores: desired.cores,
+    capTrims: desired.capTrims,
+    excluded: desired.excluded,
   }
   const sizes = new Map<string, OrderSize>()
   const budgets = segmentBudgets(rows)

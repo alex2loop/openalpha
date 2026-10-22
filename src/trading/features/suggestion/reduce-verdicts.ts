@@ -4,6 +4,7 @@ import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { EvidenceReduceReasonCode, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
+import { isEvidenceReduceReason } from '@/trading/kernel/caveat'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 
 /** Matches the candidate sweep's width: both fan out over the same book against the same database. */
@@ -41,9 +42,9 @@ async function standingReduce(
   })
   const reason = verdict !== null && isStandingSale(verdict) ? verdict.reduceReasonCode : undefined
 
-  // `over-target` is the rebalancer's own drift rule written back to the store, so closing a name on
-  // it would let that fold veto itself.
-  return reason === undefined || reason === 'over-target'
+  // A plan reason is the rebalancer's own rule written back to the store, so closing a name on it
+  // would let that fold veto itself.
+  return reason === undefined || !isEvidenceReduceReason(reason)
     ? null
     : [buildInstrumentKey(instrument), reason]
 }

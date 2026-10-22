@@ -31,7 +31,7 @@ import { withStaleCaveats } from '@/trading/markets/equity-vn/evidence/factor-st
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
 import { ETF_FACTOR_POLICY, VN_FACTOR_POLICY } from '@/trading/markets/equity-vn/factor-policy'
 import {
-  benchmarkCandles,
+  benchmarkBars,
   etfFactorInputs,
   etfTrackingErrors,
 } from '@/trading/markets/equity-vn/factors/etf'
@@ -142,9 +142,9 @@ export interface CrossSection {
    *  rather than array position, and a reader dated to one session can tell a series that stops
    *  short of it from one that reaches it. */
   readonly indexBars: readonly Candle[]
-  /** Each ETF benchmark index's candles, keyed by the index ticker. An index the store has no bars
+  /** Each ETF benchmark index's bars, keyed by the index ticker. An index the store has no bars
    *  for is absent, never an empty series. */
-  readonly benchmarks: ReadonlyMap<Ticker, readonly Candle[]>
+  readonly benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
   /** Which boards the supervision read reached. A surface turns it into caveats against the names
    *  it judged, because a board holding none of them was missed for nobody. */
   readonly supervisionCoverage: SupervisionCoverage
@@ -161,7 +161,7 @@ export interface CrossSection {
 interface CrossSectionOptions {
   readonly universe: readonly InstrumentRecord[]
   readonly index: readonly Candle[]
-  readonly benchmarks: ReadonlyMap<Ticker, readonly Candle[]>
+  readonly benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
   readonly asOf: TradingDay
   readonly freshFrom: TradingDay
   readonly fromDay: TradingDay
@@ -304,17 +304,20 @@ export function scoreNameFactors(evidence: NameEvidence, cross: CrossSection): F
   }
 
   const key = evidence.record.instrument.ticker
-  const benchmark = benchmarkCandles(key, cross.benchmarks)
+  const benchmark = benchmarkBars(key, cross.benchmarks)
+  const benchmarkAt = benchmark?.at(-1)?.candle.at
   const trackingError = cross.etfTrackingErrors.get(key)
+  // Both factors read the index, so they cite its series rather than the fund's own tape.
   const inputs = etfFactorInputs({
     ...(benchmark === undefined
       ? {}
-      : { benchmarkCloses: benchmark.map((candle) => candle.close) }),
+      : { benchmarkCloses: benchmark.map((bar) => bar.candle.close) }),
     ...(trackingError === undefined ? {} : { trackingError }),
-    provenance: latestBarProvenance(evidence),
+    provenance: latestBarProvenance(benchmark === undefined ? evidence : { bars: benchmark }),
   })
+  const dated = benchmarkAt === undefined ? evidence : { ...evidence, benchmarkAt }
 
-  return scoreFactors(withStaleCaveats(inputs, evidence, cross.freshFrom), ETF_FACTOR_POLICY)
+  return scoreFactors(withStaleCaveats(inputs, dated, cross.freshFrom), ETF_FACTOR_POLICY)
 }
 
 /** Moving-average distance and slope, averaged: price above a rising average is the only

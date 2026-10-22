@@ -31,8 +31,11 @@ const FOOTER_RULE = '─'.repeat(25)
  *  talking about itself, and the button beside the brief opens the plan. */
 const REBALANCE_OWN_CAVEATS: ReadonlySet<string> = new Set([
   'portfolio.candidates-available',
+  'portfolio.candidates-outside-cap',
   'portfolio.candidates-by-name',
   'portfolio.reduction-below-minimum',
+  'portfolio.reduction-unsettled',
+  'portfolio.reduction-illiquid',
 ])
 /** What an uncapped budget prints where a limit would go. */
 const UNLIMITED_MARK = '∞'

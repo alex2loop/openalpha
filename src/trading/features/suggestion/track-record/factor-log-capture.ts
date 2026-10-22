@@ -4,8 +4,9 @@ import type {
   FactorLogSkipReason,
   FactorLogStore,
 } from '@/trading/features/suggestion/track-record/factor-log-types'
-import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
-import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
+import type { InstrumentKind, MarketRef, TradingDay } from '@/trading/kernel/instrument'
+import type { ScreenCandidate, ScreenResult } from '@/trading/kernel/market/market-capability'
+import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { canResolveOutcomes } from '@/trading/features/suggestion/track-record/resolvable'
@@ -29,7 +30,12 @@ type Skip = {
 }
 type Captured = { readonly market: MarketRef; readonly day: TradingDay; readonly rows: number }
 
-/** One board per market per settled session. A market whose evidence has not caught up with the
+interface BoardStamp {
+  readonly day: TradingDay
+  readonly kind: InstrumentKind | undefined
+}
+
+/** One pass per market per settled session, one board per kind it ranks. A market whose evidence has not caught up with the
  *  session (the header dates the board earlier than the day asked for) is left for the next tick
  *  rather than logged against a day its scores do not describe. A market whose capture throws is
  *  reported as skipped and does not stop the markets after it. */
@@ -87,32 +93,57 @@ async function captureMarket(
     return { market: id, reason: 'already-captured' }
   }
 
-  const board = await screen.run({
-    market: id,
-    limit: SURFACE_LIMITS.maximumFactorLogRows,
-    asOf: day,
-    now: options.now,
-    signal: options.signal,
-  })
+  const boards = await Promise.all(
+    screenedKinds(market).map(async (kind) => ({
+      kind,
+      board: await screen.run({
+        market: id,
+        limit: SURFACE_LIMITS.maximumFactorLogRows,
+        asOf: day,
+        now: options.now,
+        signal: options.signal,
+        ...(kind === undefined ? {} : { instrumentKind: kind }),
+      }),
+    }))
+  )
 
-  if (board.candidates.length === 0) {
+  if (boards.every(({ board }) => board.candidates.length === 0)) {
     return { market: id, reason: 'universe-empty' }
   }
 
-  if (board.dataThroughDay !== undefined && board.dataThroughDay < day) {
+  if (
+    boards.some(({ board }) => board.dataThroughDay !== undefined && board.dataThroughDay < day)
+  ) {
     return { market: id, reason: 'evidence-lagging' }
   }
 
-  const entries = board.candidates.flatMap((candidate) => toEntry(market, day, candidate))
+  const entries = boards.flatMap(({ kind, board }) => boardEntries(market, { day, kind }, board))
   const rows = await deps.store.insertMany(entries, options.signal)
 
   return { market: id, day, rows }
 }
 
+/** Every kind the market ranks gets its own board, so funds are logged beside shares rather than
+ *  left out of the default one: each kind's factors are scored and attributed apart. */
+function screenedKinds(market: Market): readonly (InstrumentKind | undefined)[] {
+  return market.manifest.screenableKinds ?? [undefined]
+}
+
+function boardEntries(market: Market, stamp: BoardStamp, board: ScreenResult): FactorLogEntry[] {
+  const sources = [...new Set(board.provenance.map((entry) => entry.sourceId))]
+
+  return board.candidates.flatMap((candidate) => toEntry(market, { ...stamp, sources }, candidate))
+}
+
 /** A candidate the market could not score, or could not price at the close of the day it is logged
  *  against, carries nothing a forward return could be measured from: a close from an earlier
  *  session is not that day's entry. */
-function toEntry(market: Market, day: TradingDay, candidate: ScreenCandidate): FactorLogEntry[] {
+function toEntry(
+  market: Market,
+  board: BoardStamp & { readonly sources: readonly SourceId[] },
+  candidate: ScreenCandidate
+): FactorLogEntry[] {
+  const { day } = board
   const close = candidate.previousClose?.at === day ? candidate.previousClose.price : undefined
 
   if (close === undefined || close <= 0 || candidate.composite.coverageBelowMinimum) {
@@ -133,6 +164,8 @@ function toEntry(market: Market, day: TradingDay, candidate: ScreenCandidate): F
         ...(factor.weight === undefined ? {} : { weight: factor.weight }),
       })),
       signals: candidate.signals ?? [],
+      sources: board.sources,
+      ...(board.kind === undefined ? {} : { instrumentKind: board.kind }),
     },
   ]
 }

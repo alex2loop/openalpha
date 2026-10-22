@@ -11,7 +11,7 @@ import type {
   ThemeSector,
 } from '@/trading/features/themes/types'
 import { t } from '@/i18n'
-import { toMainDriver } from '@/trading/features/themes/score/compose'
+import { SCORE_SCALE, toMainDriver } from '@/trading/features/themes/score/compose'
 import { renderProvidedValue } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 
@@ -88,8 +88,8 @@ export function sortByScore<T>(
   )
 }
 
-/** "Score 84 → 71, mostly on valuation · high confidence"; nothing for an unscored read, which
- *  the run's gaps line already explains. */
+/** "Theme score 71/100 (was 84), mostly on valuation · high confidence"; nothing for an unscored
+ *  read, which the run's gaps line already explains. */
 export function renderScoreFacts(context: ReportContext, read: ScoredRead): readonly string[] {
   const { score } = read
 
@@ -110,12 +110,14 @@ function renderScoreMove(
   const { locale } = context
   const previous = context.previous.get(toReadKey(read))
 
+  const current = { score: read.score.value, scale: SCORE_SCALE }
+
   if (previous === undefined || previous.value === read.score.value) {
-    return t(locale, 'trading.render.themes.score', { score: read.score.value })
+    return t(locale, 'trading.render.themes.score', current)
   }
 
   const driver = toMainDriver({ level: read.level, current: read.score, previous })
-  const values = { previous: previous.value, score: read.score.value }
+  const values = { ...current, previous: previous.value }
 
   return driver === undefined
     ? t(locale, 'trading.render.themes.scoreMoved', values)

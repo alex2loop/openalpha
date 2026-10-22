@@ -11,12 +11,8 @@ import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
 import { MACRO_SERIES_FIELDS } from '@/trading/kernel/market/macro-series'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
-import {
-  absent,
-  omitted,
-  ready,
-  toHeadlineSection,
-} from '@/trading/markets/equity-vn/brief/sections'
+import { toHeadlineSection } from '@/trading/markets/equity-vn/brief/headline-section'
+import { absent, omitted, ready } from '@/trading/markets/equity-vn/brief/sections'
 import { latestNameSession, toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
 import { sectorCoveragePct } from '@/trading/markets/equity-vn/factors/sectors'
 import {

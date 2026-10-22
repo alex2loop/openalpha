@@ -1,4 +1,4 @@
-import type { PositionChange } from '@/trading/features/portfolio/types'
+import type { ChangeReason, PositionChange } from '@/trading/features/portfolio/types'
 import type { HeldPosition } from '@/trading/features/suggestion/exposure'
 import type {
   DraftDirection,
@@ -149,7 +149,8 @@ interface LotScope {
   readonly lotSize: number
 }
 
-/** The plan's trim: the share of the holding above the weight it targets. */
+/** The plan's trim: the share of the holding above the weight it targets, under the plan's own
+ *  reason, so a name sold for its weak score is not filed as a routine weight trim. */
 function trimOf(change: PositionChange | undefined): DraftSale | undefined {
   if (change === undefined || !(change.currentPctNav > change.targetPctNav)) {
     return undefined
@@ -157,9 +158,22 @@ function trimOf(change: PositionChange | undefined): DraftSale | undefined {
 
   return {
     action: 'reduce',
-    reasonCode: 'over-target',
+    reasonCode: planReduceReasonOf(change.reason),
     saleFraction: 1 - change.targetPctNav / change.currentPctNav,
+    ...(change.reason.kind === 'over-cap' ? { cap: change.reason.limit } : {}),
   }
+}
+
+function planReduceReasonOf(reason: ChangeReason): DraftSale['reasonCode'] {
+  if (reason.kind === 'weak-signal') {
+    return 'weak-signal'
+  }
+
+  if (reason.kind === 'over-cap') {
+    return 'over-cap'
+  }
+
+  return 'over-target'
 }
 
 /** A held name the evidence has turned on. Each reason cuts the position to what it leaves of the

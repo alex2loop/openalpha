@@ -22,6 +22,7 @@ import {
   parseMember,
   parseQualifiedInstrument,
   SELL_ALL,
+  SYNTAX_POINTER_KEY,
 } from '@/trading/kernel/surface/surface'
 import { minorUnitsOf } from '@/trading/render/money'
 
@@ -36,7 +37,6 @@ const TRADE_TOKENS_WITHOUT_FEE = 6
 const GROUPED_NUMBER_RE = /^[1-9]\d{0,2}(?:[.,]\d{3})+$/
 const DIGIT_GROUP_SEPARATOR_RE = /[.,]/g
 const GROUPED_NUMBER_KEY = 'slash.ledgerGroupedNumber'
-const SYNTAX_POINTER_KEY = 'slash.ledgerSyntaxPointer'
 
 /** Every token a ledger line names, with the sentence saying what it expects there. */
 const LEDGER_FIELD_KEYS = Object.freeze({

@@ -295,12 +295,12 @@ export function renderNotes(
   ]
 }
 
-/** A name the plan already sells carries the score that condemned it on its own row, so the note
- *  would be the same fact with less of it. */
+/** A name the plan sells whole has its row, and a note saying no sale is needed yet would
+ *  contradict it. A name only trimmed to a cap keeps the note: the rest of it still stands. */
 function renderWeakHoldingLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
   const sold = new Set(
     advice.rebalance
-      .filter((row) => row.reason.kind === 'weak-signal')
+      .filter((row) => row.targetPctNav <= 0)
       .map((row) => buildInstrumentKey(row.instrument))
   )
 

@@ -568,6 +568,11 @@ lot. No evidence is weighed and no model is called, so a block containing a buy 
 `/suggest <ticker>`, which scales the same ceiling by confidence and can decline a name the plan
 lists.
 
+A held name whose latest read still leans toward selling some is not added to, and is not counted
+when the plan says how many names are left to buy.
+
+A holding past its per-name or sector cap by more than the 5/25 band is sold back to the cap, whatever its score.
+
 #### A brief with no watchlist
 
 The leading and dropped blocks cover your own watchlist and are absent when it is empty. The
@@ -647,6 +652,8 @@ thousand, or `1.5` for a decimal.
 A price ten times or more away from the name's latest price is not saved straight away: the reply
 shows both and asks. Tap the button, or send the same line again ending in `confirm`, to save it as
 typed. `/update` and `/alert create` ask the same way. Details: [Trading](trading.md).
+A line with the right shape but one unreadable token, such as a quantity of `-1`, a threshold of
+`0` or a condition other than `above` or `below`, names that token rather than reprinting the usage.
 
 **Buy and sell.** A sale may write `all` instead of a count; the ledger resolves it to the settled
 quantity held *at that venue* on that day. You may leave out the fee, and the venue's `fees` rate in

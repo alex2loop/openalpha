@@ -8,6 +8,7 @@ import type {
 } from '@/trading/features/suggestion/batch-types'
 import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { Caveat, HoldReasonCode, ReduceReasonCode } from '@/trading/kernel/caveat'
+import type { FactorResult } from '@/trading/kernel/factor'
 import type { RunFocus } from '@/trading/kernel/operator/focus'
 import type { ProfileStamp } from '@/trading/kernel/operator/profile'
 import { BRAND } from '@/core/brand'
@@ -16,6 +17,7 @@ import { t } from '@/i18n'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 import { isInconclusive } from '@/trading/features/suggestion/types'
+import { MILD_SCORE_AT } from '@/trading/kernel/conviction'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { renderCapBreachLines } from '@/trading/render/exposure'
@@ -185,27 +187,37 @@ function notTradeableKey(caveats: readonly Caveat[]): `trading.${string}` {
   return 'trading.hold.market-not-tradeable'
 }
 
-function renderHoldReason(
-  locale: Locale,
-  code: HoldReasonCode,
-  caveats: readonly Caveat[]
-): string {
-  return code === 'market-not-tradeable'
-    ? renderDeclaredValue(locale, notTradeableKey(caveats))
+interface HeldCall {
+  readonly holdReasonCodes: readonly HoldReasonCode[]
+  readonly caveats: readonly Caveat[]
+  readonly reduceReasonCode?: ReduceReasonCode
+  /** The rows the composite folded, which say how hard a contested read actually pulls apart. */
+  readonly factorScores: readonly FactorResult[]
+}
+
+function renderHoldReason(locale: Locale, code: HoldReasonCode, call: HeldCall): string {
+  if (code === 'market-not-tradeable') {
+    return renderDeclaredValue(locale, notTradeableKey(call.caveats))
+  }
+
+  return code === 'factors-contested' && !isPulledApart(call.factorScores)
+    ? renderDeclaredValue(locale, 'trading.holdContested.faint')
     : renderDeclaredValue(locale, `trading.hold.${code}`)
 }
 
+/** Contested says the factors pull hard both ways only when each side has a factor past the lean
+ *  the scale calls clear; a disagreement against a reading near zero is a read that does not lean. */
+function isPulledApart(factors: readonly FactorResult[]): boolean {
+  return (
+    factors.some((factor) => factor.score >= MILD_SCORE_AT) &&
+    factors.some((factor) => factor.score <= -MILD_SCORE_AT)
+  )
+}
+
 /** A hold on a name a sale was called for leads with that sale's reason. */
-export function renderHoldReasons(
-  locale: Locale,
-  suggestion: {
-    readonly holdReasonCodes: readonly HoldReasonCode[]
-    readonly caveats: readonly Caveat[]
-    readonly reduceReasonCode?: ReduceReasonCode
-  }
-): readonly string[] {
+export function renderHoldReasons(locale: Locale, suggestion: HeldCall): readonly string[] {
   const reasons = suggestion.holdReasonCodes.map((code) =>
-    renderHoldReason(locale, code, suggestion.caveats)
+    renderHoldReason(locale, code, suggestion)
   )
   const sale = suggestion.reduceReasonCode
 

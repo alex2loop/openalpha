@@ -1,3 +1,4 @@
+import type { CapReason } from '@/trading/features/portfolio/types'
 import type { RolePrompt } from '@/trading/features/suggestion/debate/roles'
 import type {
   DebateClaim,
@@ -85,6 +86,10 @@ const TRADER_TRADEABILITY_INSTRUCTIONS = [
  *  to keep. */
 const REDUCE_REASON_SENTENCES = {
   'over-target': 'the position is above the weight the plan targets for its segment',
+  'weak-signal':
+    'the composite score fell below the line the plan keeps a holding at, so the plan exits it',
+  'over-cap':
+    'the position has grown past a cap the operator set; the sale only brings it back within that cap and is risk discipline, not a view on the name',
   'thesis-weakening': 'the evidence has turned bearish on a name the operator holds',
   'structure-broken':
     'the price closed below the low of the recent sessions, so the breakout failed',
@@ -95,6 +100,17 @@ const REDUCE_REASON_SENTENCES = {
     'the name closed at or just under its daily price ceiling; the next open usually gaps up, and the weeks after ' +
     'have lagged the market, so part of the position is sold into the gap',
 } as const satisfies Record<ReduceReasonCode, string>
+
+/** Which cap an `over-cap` sale answers to. The plan measures it on the whole book, so a roomier
+ *  cap the evidence shows - the sector beside a per-name breach - does not contradict it; without
+ *  the name of the cap a risk read took the sector's room as proof no cap was passed. */
+const OVER_CAP_SENTENCES: Partial<Record<CapReason, string>> = {
+  position:
+    'the position has grown past the per-name cap the operator set, measured on the whole book; the sale only brings it back to that cap and is risk discipline, not a view on the name',
+  etf: 'the fund has grown past the cap the operator set for funds in its segment, measured on the whole book; the sale only brings it back to that cap and is risk discipline, not a view on the fund',
+  sector:
+    'the names in its sector together have grown past the sector cap the operator set, measured on the whole book, and this is among the weakest of them; the sale only brings the sector back within that cap and is risk discipline, not a view on the name',
+}
 
 /** What every prompt needs: the run being argued about and the evidence it must argue from. */
 interface PromptContext {
@@ -372,9 +388,18 @@ function orderedEvidence(context: PromptContext): string {
   const { draft } = context.input
   const reason = draft.action === 'reduce' ? draft.reduceReasonCode : undefined
   const why =
-    reason === undefined ? '' : `\nWhy a sale is proposed: ${REDUCE_REASON_SENTENCES[reason]}`
+    reason === undefined ? '' : `\nWhy a sale is proposed: ${saleReasonSentence(reason, context)}`
 
   return `${evidenceBlock(context)}${why}`
+}
+
+function saleReasonSentence(reason: ReduceReasonCode, context: PromptContext): string {
+  const cap = context.input.saleCap
+  const capSentence = cap === undefined ? undefined : OVER_CAP_SENTENCES[cap]
+
+  return reason === 'over-cap' && capSentence !== undefined
+    ? capSentence
+    : REDUCE_REASON_SENTENCES[reason]
 }
 
 function evidenceBlock(context: PromptContext): string {

@@ -104,6 +104,7 @@ function vnManifest(config: TradingConfig): MarketManifest {
     playbook: {
       analysis: ['vn-valuation', 'quality-screen'],
       execution: ['vn-execution', 'vn-market-rules'],
+      fundAnalysis: ['macro-liquidity-analysis'],
     },
     // Both kinds screen, one at a time: the board defaults to equities and a fund board is asked
     // for by kind, because the two composites are averages over different factor counts.

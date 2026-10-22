@@ -24,7 +24,7 @@ import {
   formatCount,
   formatFixedFraction,
   formatFlow,
-  formatSignedFraction,
+  formatSignedFixedFraction,
   renderDeclaredValue,
   SECTION_ICONS,
   SEVERITY_MARKS,
@@ -220,7 +220,7 @@ function renderTotalPnl(
       ? t(locale, 'trading.render.portfolio.totalPnl', pnl)
       : t(locale, 'trading.render.portfolio.totalPnlPct', {
           ...pnl,
-          pct: formatSignedFraction(locale, pnlBase / deposits),
+          pct: formatSignedFixedFraction(locale, pnlBase / deposits),
         })
 
   return toFactLines(
@@ -247,7 +247,7 @@ function renderLatestMoveLine(locale: Locale, book: ValuedBook): readonly string
 
   const shared = {
     pnl: formatSignedMoney(locale, dayChange.amountBase, book.book.baseCurrency),
-    pct: formatSignedFraction(locale, dayChange.fraction),
+    pct: formatSignedFixedFraction(locale, dayChange.fraction),
   }
 
   if (book.book.asOf === dayChange.at) {

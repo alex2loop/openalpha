@@ -79,7 +79,7 @@ export function call<T>(context: DebateContext, spec: RoleCall<T>): Promise<Role
     budget,
     prompt: {
       instructions: renderPlaybook(
-        rolePlaybook(role, context.market.manifest),
+        rolePlaybook(role, context.market.manifest, context.input.draft.instrumentKind),
         context.deps.playbooks,
         prompt.instructions
       ),

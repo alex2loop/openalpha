@@ -6,7 +6,8 @@ import type {
 } from '@/core/types/command'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
-import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, TickerRequest } from '@/trading/kernel/instrument'
+import type { AlertCondition } from '@/trading/kernel/operator/alert'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { MarketRegistry } from '@/trading/markets/types'
@@ -24,6 +25,7 @@ import {
   parseMember,
   parsePositiveInteger,
   parseTickerRequest,
+  SYNTAX_POINTER_KEY,
   usage,
 } from '@/trading/kernel/surface/surface'
 import { renderCaveatLines } from '@/trading/render/caveat'
@@ -37,6 +39,8 @@ const MAXIMUM_LISTED_IDS = 3
 /** Ticker, condition, threshold. */
 const CREATE_ARGUMENTS = 3
 const ALERT_COMMAND = 'alert'
+
+type AlertIssueKey = 'slash.tradingAlertCondition' | 'slash.tradingAlertThreshold'
 
 interface AlertCommandDeps {
   readonly alerts: AlertService
@@ -57,6 +61,9 @@ export function createAlertCommand(deps: AlertCommandDeps): SlashCommand {
       'slash.tradingAlertCreated',
       'slash.tradingAlertDisabled',
       'slash.tradingAlertAmbiguous',
+      'slash.tradingAlertCondition',
+      'slash.tradingAlertThreshold',
+      SYNTAX_POINTER_KEY,
     ],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     // The verb only: everything after it is the name being typed and its condition.
@@ -179,25 +186,13 @@ async function runCreate(
   ctx: SlashContext,
   typedPrice: TypedPrice
 ): Promise<SlashResult> {
-  const rest = ctx.args.slice(1)
+  const parsed = parseCreate(deps, ctx.args.slice(1))
 
-  if (rest.length !== CREATE_ARGUMENTS) {
-    return alertUsage(deps)
+  if (parsed.kind === 'refused') {
+    return parsed.result
   }
 
-  const [rawTicker, rawCondition, rawThreshold] = rest
-  const request = parseTickerRequest(rawTicker, registeredMarkets(deps))
-  const condition = parseMember(rawCondition, ALERT_CONDITIONS)
-  const threshold = parseFiniteNumber(rawThreshold)
-
-  if (request === null || condition === null) {
-    return alertUsage(deps)
-  }
-
-  if (threshold === null || threshold <= 0) {
-    return alertUsage(deps)
-  }
-
+  const { request, condition, threshold } = parsed
   const resolved = await resolveInstrument(deps.markets, {
     ...request,
     signal: ctx.signal,
@@ -245,6 +240,38 @@ async function runCreate(
   }
 }
 
+type CreateParse =
+  | {
+      readonly kind: 'parsed'
+      readonly request: TickerRequest
+      readonly condition: AlertCondition
+      readonly threshold: number
+    }
+  | { readonly kind: 'refused'; readonly result: SlashResult }
+
+/** A wrong word count or an unreadable name earns the usage; a bad condition or threshold on a line
+ *  of the right shape names the token, as `/record` does. */
+function parseCreate(deps: AlertCommandDeps, rest: readonly string[]): CreateParse {
+  const [rawTicker, rawCondition, rawThreshold] = rest
+  const request = parseTickerRequest(rawTicker, registeredMarkets(deps))
+  const condition = parseMember(rawCondition, ALERT_CONDITIONS)
+  const threshold = parseFiniteNumber(rawThreshold)
+
+  if (rest.length !== CREATE_ARGUMENTS || request === null) {
+    return { kind: 'refused', result: alertUsage(deps) }
+  }
+
+  if (condition === null) {
+    return { kind: 'refused', result: alertIssue('slash.tradingAlertCondition', rawCondition) }
+  }
+
+  if (threshold === null || threshold <= 0) {
+    return { kind: 'refused', result: alertIssue('slash.tradingAlertThreshold', rawThreshold) }
+  }
+
+  return { kind: 'parsed', request, condition, threshold }
+}
+
 async function runDisable(
   deps: AlertCommandDeps,
   ctx: SlashContext,
@@ -277,6 +304,17 @@ async function runDisable(
         key: 'slash.tradingAlertDisabled',
         values: { result: { key: `trading.disable.alert.${result}` } },
       },
+    ],
+  }
+}
+
+/** A line whose shape is right but one token is not names that token, as `/record` does. */
+function alertIssue(key: AlertIssueKey, token: string | undefined): SlashResult {
+  return {
+    kind: 'message',
+    messages: [
+      { key, values: { token: token ?? '' } },
+      { key: SYNTAX_POINTER_KEY, values: { command: ALERT_COMMAND } },
     ],
   }
 }

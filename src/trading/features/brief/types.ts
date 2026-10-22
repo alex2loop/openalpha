@@ -21,7 +21,13 @@ import type {
 } from '@/trading/features/suggestion/types'
 import type { Caveat, DeliveryErrorCode } from '@/trading/kernel/caveat'
 import type { DebateMode } from '@/trading/kernel/config'
-import type { CurrencyCode, InstrumentRef, Region, TradingDay } from '@/trading/kernel/instrument'
+import type {
+  CurrencyCode,
+  InstrumentRef,
+  PortfolioSegment,
+  Region,
+  TradingDay,
+} from '@/trading/kernel/instrument'
 import type {
   FuturesBasis,
   QuoteBoard,
@@ -243,6 +249,9 @@ export interface BriefAlertRow {
   readonly observedPrice: number
   /** Absent for a market the registry does not list, which prints the price bare. */
   readonly currency?: CurrencyCode
+  /** Set where the market quotes a scaled board: both prices are already in board points, as every
+   *  other surface prints them, and the brief states the scale once. */
+  readonly board?: { readonly segment: PortfolioSegment; readonly divisor: number }
 }
 
 /** The narrow seam a morning brief needs from the services that own user state. Declared here, by

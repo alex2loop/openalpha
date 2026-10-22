@@ -11,6 +11,7 @@ import type {
   TradePlan,
 } from '@/trading/features/suggestion/debate/types'
 import type { DebateOutcome, RunDebate } from '@/trading/features/suggestion/pipeline/types'
+import type { Suggestion } from '@/trading/features/suggestion/types'
 import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { LeanDebateReason } from '@/trading/kernel/config'
 import {
@@ -53,6 +54,7 @@ import {
   toRiskDecision,
 } from '@/trading/features/suggestion/pipeline/schemas'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
+import { isEvidenceReduceReason } from '@/trading/kernel/caveat'
 
 /** The debate's share of the parent budget; the rest is headroom for the parent run's own turns. */
 export const AGENT_BUDGET_FRACTION = 0.8
@@ -312,20 +314,18 @@ interface VerifiedDebate extends VerifiedClaims {
 
 /** Only a refuted claim that argues *for* the proposed action holds the run: there the evidence
  *  says the case is wrong. A claim the evidence merely does not carry lowers conviction and is
- *  caveated, because "not stated" is not "contradicted" — and neither is a refuted reason to wait. */
+ *  caveated, because "not stated" is not "contradicted" — and neither is a refuted reason to wait.
+ *  A sale under one of the plan's own reasons never rested on the debate's case, so a refuted claim
+ *  beside it is caveated rather than holding it. */
 function finish(context: DebateContext, verified: VerifiedDebate): DebateOutcome {
   const { material, verification } = verified
   const refuted = new Set(claimIdsWithVerdict(verification, 'refuted'))
-  const blocking = material.filter(
-    // The framed direction, not the action: a hold draft debates the side its levels price, and on
-    // an exit-framed hold a refuted bullish claim argues *for* the sale rather than against it.
-    (claim) => refuted.has(claim.id) && canHold(claim, framedDirectionOf(context.input.draft))
-  )
+  const blocking = blockingClaims(context.input.draft, material, refuted)
   const result: DebateResult = {
     ...verified.subject.body,
     verification,
     claims: material,
-    playbook: debatePlaybook(context.input.depth.mode, context.market.manifest),
+    playbook: debatePlaybook(context.input, context.market.manifest),
     models: [...context.models].sort(),
   }
 
@@ -374,6 +374,30 @@ function finish(context: DebateContext, verified: VerifiedDebate): DebateOutcome
     unverifiedClaims: unverified,
     ...(broken === undefined ? {} : { invalidatedPrior: broken }),
   }
+}
+
+function blockingClaims(
+  draft: Suggestion,
+  material: readonly DebateClaim[],
+  refuted: ReadonlySet<string>
+): readonly DebateClaim[] {
+  if (!restsOnTheCase(draft)) {
+    return []
+  }
+
+  // The framed direction, not the action: a hold draft debates the side its levels price, and on
+  // an exit-framed hold a refuted bullish claim argues *for* the sale rather than against it.
+  return material.filter(
+    (claim) => refuted.has(claim.id) && canHold(claim, framedDirectionOf(draft))
+  )
+}
+
+function restsOnTheCase(draft: Suggestion): boolean {
+  return (
+    draft.action !== 'reduce' ||
+    draft.reduceReasonCode === undefined ||
+    isEvidenceReduceReason(draft.reduceReasonCode)
+  )
 }
 
 function thesisOf(result: DebateResult): string {

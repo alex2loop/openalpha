@@ -6,11 +6,10 @@ import type {
   ListSinceOptions,
 } from '@/trading/features/brief/types'
 import type { SegmentTarget } from '@/trading/features/portfolio/types'
-import type { SuggestionRunResult } from '@/trading/features/suggestion/types'
-import type { Caveat } from '@/trading/kernel/caveat'
+import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
+import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { DebateMode } from '@/trading/kernel/config'
 import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { NewsItem } from '@/trading/kernel/market/market-data'
 import type { StopDistance } from '@/trading/kernel/operator/alert'
 import type {
   BriefSectionKind,
@@ -18,21 +17,21 @@ import type {
   BriefSectionRow,
   BriefStopBasis,
 } from '@/trading/kernel/operator/brief-section'
-import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
+import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import { isInconclusive } from '@/trading/features/suggestion/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { stopStandingOf } from '@/trading/kernel/operator/alert'
-import {
-  HEADLINES_PER_SECTION,
-  normalizeTitle,
-  publisherOf,
-  withPublisherQuota,
-} from '@/trading/markets/news'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** The brief pays one debate per watchlist name, unattended, every morning. The full debate is what
  *  `/suggest` spends on a ticker the operator named. */
 const BRIEF_DEBATE_MODE = 'lean' satisfies DebateMode
+/** What a call served from earlier in the day carries when the book has moved since it was made. */
+const BOOK_MOVED_CODES: ReadonlySet<CaveatCode> = new Set<CaveatCode>([
+  'suggestion.book-changed',
+  'suggestion.position-changed',
+])
 
 /** The one stop vocabulary the tree speaks. A builder that composed its own sentence would be
  *  writing copy; the tuple in `brief-section.ts` owns the arms. */
@@ -118,7 +117,7 @@ export async function buildResolvedSuggestions(context: BriefContext): Promise<B
 export async function buildFiredAlerts(context: BriefContext): Promise<BriefSectionResult> {
   const rows = await context.services.listFiredAlerts(sinceOptions(context))
 
-  return rows.length === 0 ? omitted('fired-alerts') : ready('fired-alerts', rows.map(toLevelRow))
+  return rows.length === 0 ? omitted('fired-alerts') : levelSection('fired-alerts', rows)
 }
 
 /** Held names that have already crossed a buy suggestion's stop or target, by the suggestion's own
@@ -130,9 +129,25 @@ export async function buildPositionExits(context: BriefContext): Promise<BriefSe
     signal: context.request.signal,
   })
 
-  return rows.length === 0
-    ? omitted('position-exits')
-    : ready('position-exits', rows.map(toLevelRow))
+  return rows.length === 0 ? omitted('position-exits') : levelSection('position-exits', rows)
+}
+
+/** A board-scaled price names no currency on its row; the scale is stated once, as a note. */
+function levelSection(kind: BriefSectionKind, rows: readonly BriefAlertRow[]): BriefSectionResult {
+  const boards = new Map(
+    rows.flatMap((row) =>
+      row.board === undefined || row.currency === undefined
+        ? []
+        : [[row.board.segment, { ...row.board, currency: row.currency }] as const]
+    )
+  )
+
+  return ready(kind, rows.map(toLevelRow), {
+    caveats: [...boards.values()].map((detail) => ({
+      code: 'market-data.board-scaled' as const,
+      detail,
+    })),
+  })
 }
 
 function toLevelRow(row: BriefAlertRow): BriefSectionRow {
@@ -141,7 +156,7 @@ function toLevelRow(row: BriefAlertRow): BriefSectionRow {
     condition: row.condition,
     threshold: row.threshold,
     observedPrice: row.observedPrice,
-    ...(row.currency === undefined ? {} : { currency: row.currency }),
+    ...(row.currency === undefined || row.board !== undefined ? {} : { currency: row.currency }),
   }
 }
 
@@ -355,34 +370,6 @@ export async function buildCrossAssetSuggestions(
   )
 }
 
-/** Every feed failing is `unavailable`; a quiet read is `omitted-by-policy`. The two are different
- *  facts and a reader acts differently on each. `taken` excludes stories a macro block already
- *  stated, ahead of the per-section bound. */
-export function toHeadlineSection(
-  kind: 'headlines' | 'macro-headlines' | 'economy-headlines',
-  result: SourceResult<readonly NewsItem[]>,
-  taken: ReadonlySet<string> = new Set()
-): BriefSectionResult {
-  if (result.kind === 'unavailable') {
-    return absent(kind, result.caveats)
-  }
-
-  const fresh = result.value.filter((item) => !taken.has(normalizeTitle(item.title)))
-  const rows = withPublisherQuota(fresh, HEADLINES_PER_SECTION).map((item) => {
-    const publisher = publisherOf(item)
-
-    return {
-      title: item.title,
-      ...(publisher === undefined ? {} : { publisher }),
-      url: item.url,
-    }
-  })
-
-  return rows.length === 0
-    ? omitted(kind)
-    : ready(kind, rows, { caveats: result.caveats, provenance: result.provenance })
-}
-
 function sinceOptions(context: BriefContext): ListSinceOptions {
   return {
     since: context.request.activitySince,
@@ -436,15 +423,40 @@ function summarizeRuns(
     ? absent(kind, [{ code: 'market-data.no-coverage' }])
     : ready(
         kind,
-        completed.map((result) => ({
-          ticker: result.suggestion.instrument.ticker,
-          action: result.suggestion.action,
-          conviction: result.suggestion.conviction,
-          ...(result.suggestion.action === 'reduce' &&
-          result.suggestion.reduceReasonCode !== undefined
-            ? { reduceReason: result.suggestion.reduceReasonCode }
-            : {}),
-        })),
-        { provenance: completed.flatMap((result) => result.suggestion.provenance) }
+        completed.map((result) => toCallRow(result.suggestion)),
+        {
+          provenance: completed.flatMap((result) => result.suggestion.provenance),
+          caveats: outdatedCallCaveats(completed.map((result) => result.suggestion)),
+        }
       )
+}
+
+/** The row prints only the action, so a call the book has moved past since says so here, or the
+ *  brief would restate an order the operator's own trade or deposit already changed. */
+function outdatedCallCaveats(suggestions: readonly StoredSuggestion[]): readonly Caveat[] {
+  return suggestions
+    .filter((suggestion) => suggestion.caveats.some((caveat) => BOOK_MOVED_CODES.has(caveat.code)))
+    .map((suggestion) => ({
+      code: 'brief.call-outdated',
+      detail: { ticker: suggestion.instrument.ticker },
+    }))
+}
+
+/** A run whose debate never answered decided nothing, so it carries neither an action nor a
+ *  conviction to print. */
+function toCallRow(suggestion: StoredSuggestion): BriefSectionRow {
+  const ticker = suggestion.instrument.ticker
+
+  if (isInconclusive(suggestion)) {
+    return { ticker, action: 'inconclusive' }
+  }
+
+  return {
+    ticker,
+    action: suggestion.action,
+    conviction: suggestion.conviction,
+    ...(suggestion.action === 'reduce' && suggestion.reduceReasonCode !== undefined
+      ? { reduceReason: suggestion.reduceReasonCode }
+      : {}),
+  }
 }

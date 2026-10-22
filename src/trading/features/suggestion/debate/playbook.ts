@@ -1,8 +1,11 @@
-import type { DebateMode, DebateRole } from '@/trading/kernel/config'
+import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
+import type { DebateRole } from '@/trading/kernel/config'
+import type { InstrumentKind } from '@/trading/kernel/instrument'
 import type { MarketPlaybook, SkillName } from '@/trading/kernel/skill'
 import type { MarketManifest } from '@/trading/markets/types'
 import { toSkillBody } from '@/engine/api'
 import { DEBATE_MODE_ROLES } from '@/trading/kernel/config'
+import { ETF_KIND } from '@/trading/kernel/instrument'
 
 const PLAYBOOK_HEADING =
   'PLAYBOOK - the methods you apply to this question. Follow them as written.'
@@ -23,7 +26,7 @@ interface RolePlaybook {
   /** What this role reads whatever the market trades. */
   readonly shared: readonly SkillName[]
   /** Which arm of the market's own playbook it reads, where it reads one at all. */
-  readonly market?: keyof MarketPlaybook
+  readonly market?: 'analysis' | 'execution'
 }
 
 /**
@@ -50,12 +53,28 @@ const ROLE_PLAYBOOK: Readonly<Record<DebateRole, RolePlaybook>> = Object.freeze(
   'claim-verifier': { shared: [] },
 })
 
-/** The skills one role reads for this market, in a stable order and never repeated. */
-export function rolePlaybook(role: DebateRole, manifest: MarketManifest): readonly SkillName[] {
+/** The skills one role reads for this market and instrument kind, in a stable order and never
+ *  repeated. */
+export function rolePlaybook(
+  role: DebateRole,
+  manifest: MarketManifest,
+  kind?: InstrumentKind
+): readonly SkillName[] {
   const spec = ROLE_PLAYBOOK[role]
-  const fromMarket = spec.market === undefined ? [] : (manifest.playbook[spec.market] ?? [])
 
-  return [...new Set([...spec.shared, ...fromMarket])]
+  return [...new Set([...spec.shared, ...marketSkills(spec, manifest.playbook, kind)])]
+}
+
+function marketSkills(
+  spec: RolePlaybook,
+  playbook: MarketPlaybook,
+  kind: InstrumentKind | undefined
+): readonly SkillName[] {
+  if (spec.market === 'analysis' && kind === ETF_KIND && playbook.fundAnalysis !== undefined) {
+    return playbook.fundAnalysis
+  }
+
+  return spec.market === undefined ? [] : (playbook[spec.market] ?? [])
 }
 
 /**
@@ -63,10 +82,14 @@ export function rolePlaybook(role: DebateRole, manifest: MarketManifest): readon
  * than collected: `finish` builds a result only once every role of the mode has answered, so the
  * union over the mode is exactly what was applied.
  */
-export function debatePlaybook(mode: DebateMode, manifest: MarketManifest): readonly string[] {
-  return [
-    ...new Set(DEBATE_MODE_ROLES[mode].flatMap((role) => rolePlaybook(role, manifest))),
-  ].sort()
+export function debatePlaybook(
+  input: Pick<DebateInput, 'depth' | 'draft'>,
+  manifest: MarketManifest
+): readonly string[] {
+  const kind = input.draft.instrumentKind
+  const roles = DEBATE_MODE_ROLES[input.depth.mode]
+
+  return [...new Set(roles.flatMap((role) => rolePlaybook(role, manifest, kind)))].sort()
 }
 
 /** The prompt block for one role. Empty where the role reads nothing, so no heading is printed. */

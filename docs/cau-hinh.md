@@ -273,6 +273,10 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 Mọi khóa đều tùy chọn. `[locale]` không nhận khóa nào khác. `currency` và `region` cho biết bạn đang ở
 đâu, nên phần giao dịch đọc chúng ở đây thay vì giữ bản trùng dưới `[trading]`.
 
+Phần chữ do mô hình viết, như luận điểm của một đề xuất hay phần đọc một chủ đề, giữ nguyên ngôn
+ngữ của lần chạy đã viết ra nó. Đổi `language`, hoặc nhắn bot bằng ngôn ngữ khác, chỉ đổi phần nhãn
+xung quanh chứ không đổi phần chữ đã lưu; lần chạy sau sẽ viết bằng ngôn ngữ mới.
+
 ### `[paths]`
 
 | Khóa | Kiểu | Mặc định | Ghi chú |

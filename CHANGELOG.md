@@ -7,6 +7,44 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.0.16] - 2026-10-22
+
+VN funds are now treated as index trackers, `/rebalance` sells a holding back to its cap and says
+why a sale has to wait, and a call served again later in the day tells you when your book has
+changed since. No database change.
+> Quỹ ETF VN giờ được đối xử đúng là quỹ bám chỉ số, `/rebalance` giảm bớt mã vượt trần và nói rõ khi lệnh phải chờ, còn đề xuất được dùng lại trong ngày sẽ báo khi sổ của bạn đã đổi. Không đổi cơ sở dữ liệu.
+
+### Rebalancing
+
+- A holding past its per-name, fund or sector cap by more than the 5/25 band is sold back to the
+  cap (`over-cap`), even when its score is neutral. A name on your exclusion list is trimmed too.
+- A sector over its cap gives back its weak-scored names first and whole; if that is enough, the
+  other names keep their weight.
+- A sale held back says why: not enough has settled yet, or the name trades too thinly to sell in
+  one go.
+- When a fund or sector cap is what left a segment short, the names offered sit outside that cap.
+
+### VN funds
+
+- A fund gets a review level 3 ATR away with a 3:1 reward, is never counted in a sector and is
+  never sold for a weak score; the segment's core stays with the fund you hold unless another
+  leads by a clear margin.
+- Fund scores read the index the fund tracks and say when that index is behind.
+
+### Suggestions and the brief
+
+- Scores read the same everywhere, and `/themes` explains its 0-100 score.
+- `/suggest` and `/brief` name the plan's own reason for a sale; a sale under the plan's rules is
+  no longer held back by a side claim in the debate, and the debate is told which cap was passed.
+- A call served again after you record a trade or a deposit says the book has changed, and the
+  brief lists those names with `/suggest <ticker> force`.
+
+### Fixes
+
+- A held fund no longer raises "sector unknown".
+- The chat agent gets the same "factors disagree" wording as the CLI.
+- The brief no longer repeats `/rebalance`'s own notes.
+
 ## [1.0.15] - 2026-10-21
 
 A VN stock you hold that closes at its ceiling is now proposed for a trim at the next open, and a
