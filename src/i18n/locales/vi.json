@@ -2547,7 +2547,7 @@
     "caveat.suggestion.size-realized-scale": "Khối lượng chỉnh theo kết quả thực tế của các lệnh cùng mức tin cậy ({n} lệnh đã chốt).",
     "caveat.alert.price-unavailable": "Chưa lấy được giá nên lần này chưa kiểm tra được cảnh báo.",
     "caveat.brief.book-unpriced": "Có mã đang nắm chưa có giá nên sáng nay mình chưa tính được tổng tài sản. /portfolio cho biết mã nào.",
-    "caveat.brief.call-outdated": "{ticker}: sổ đã đổi sau khi có đề xuất này, nên lệnh ở trên có thể đã lệch - gõ /suggest <mã> force để tính lại.",
+    "caveat.brief.call-outdated": "{ticker}: sổ đã đổi sau khi có đề xuất này, nên đề xuất ở trên có thể đã lệch - gõ /suggest <mã> force để tính lại.",
     "caveat.brief.names-capped": "Lịch chỉ đọc {limit} mã đầu tiên trong danh sách theo dõi và danh mục của bạn.",
     "caveat.brief.section-unavailable": "Lần này chưa dựng được mục {section}.",
     "caveat.refresh.no-available-provider": "Đã thử hết các nguồn nhưng không nguồn nào trả về dữ liệu dùng được.",

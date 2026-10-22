@@ -220,7 +220,7 @@ A run ends in one of four ways:
 
 | Result | Meaning |
 |---|---|
-| `completed` | You get the suggestion. It is marked `reused` when the same name was already suggested today on the latest stored close, or an earlier buy still stands. A reused call is never re-run because the book moved: a trade on the name itself adds `suggestion.position-changed`, and any other change to the book adds `suggestion.book-changed` to a call the book decided (a buy, a sale under the plan's own reasons, a hold the portfolio settled). `force` works it out again. |
+| `completed` | You get the suggestion. It is marked `reused` when the same name was already suggested today on the latest stored close, or an earlier buy still stands. A reused call is never re-run because the book moved: a trade on the name itself adds `suggestion.position-changed`, and any other change to the book adds `suggestion.book-changed` to a call decided on the book's weights and cash (a buy, a sale under the plan's own reasons, a hold sized against NAV and cash). `force` works it out again. |
 | `unsupported` | No market claims the ticker, or two do and you must say which. |
 | `cooldown` | The name was suggested too recently. Shows the day it becomes eligible again. |
 | `error` | The run passed every stage guard, then failed to record (most likely storage). Rerunning is safe. |
@@ -428,7 +428,7 @@ A VN gold fill is recorded in the shop's unit while its suggestion is quoted per
 
 #### The board's own record
 
-Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board, one per kind it ranks, so VN funds are logged beside shares (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart, and on a market with several boards it names the kind it was ranked as, so a fund's composite is never pooled with a share's; rows logged before this carry neither.
+Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board, one per kind it ranks, so VN funds are logged beside shares (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart, and on a market with several boards it names the kind it was ranked as, so a fund's composite can be measured apart from a share's; rows logged before this carry neither.
 
 `/reflect` prints it as a second attribution block. It is the sample the factor weights and confidence bands are fitted to as it grows. Each factor is scored per strategy version, newest two per market, because a version change redefines what the factor measures.
 

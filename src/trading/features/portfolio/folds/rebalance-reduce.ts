@@ -113,6 +113,7 @@ function reductionFor(
     step,
     excess,
     minimum,
+    excluded: rows.excluded.has(key),
   })
 }
 
@@ -124,6 +125,8 @@ interface ReductionSizing {
   readonly step: number
   readonly excess: number
   readonly minimum: number
+  /** On the exclusion list: kept rather than exited on its score, so only a cap ever sells it. */
+  readonly excluded: boolean
 }
 
 interface SaleClamps {
@@ -253,16 +256,20 @@ function reductionStep(excess: number, segment: PortfolioSegment, rows: RowInput
   return pacedStep(excess, over, gap?.excess ?? 0)
 }
 
-/** A weak read leaves whole whatever the cap says. Past that, a breached cap names the sale while
+/** A weak read leaves whole whatever the cap says, unless the name is excluded. Past that, a breached cap names the sale while
  *  the plan still wants the name, or when the sector room is what zeroed it; a name the cap leaves
  *  room for but the plan wants none of is leaving because its segment is off. */
 function reductionReason(
   candidate: PortfolioCandidate,
-  sizing: Pick<ReductionSizing, 'wanted' | 'trim'>
+  sizing: Pick<ReductionSizing, 'wanted' | 'trim' | 'excluded'>
 ): ChangeReason {
   const { wanted, trim } = sizing
 
-  if (wanted <= 0 && isWeakHolding(candidate.marketScore, candidate.instrumentKind)) {
+  if (
+    wanted <= 0 &&
+    !sizing.excluded &&
+    isWeakHolding(candidate.marketScore, candidate.instrumentKind)
+  ) {
     return { kind: 'weak-signal', signal: candidate.marketScore }
   }
 

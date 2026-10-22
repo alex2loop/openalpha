@@ -5,7 +5,7 @@ import type {
   SuggestionIdentity,
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
-import type { Caveat } from '@/trading/kernel/caveat'
+import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Candle, Quote } from '@/trading/kernel/market/market-data'
 import type { BookChange } from '@/trading/kernel/operator/book'
@@ -15,7 +15,6 @@ import type { MarketResolution } from '@/trading/markets/types'
 import { StorageError } from '@/core/errors'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { calendarSessionsBetween, resolveDay } from '@/trading/features/market-data/resolve'
-import { bookHoldOf } from '@/trading/features/suggestion/pipeline/direction'
 import {
   outcomeLookbackSessions,
   outcomeWindowSessions,
@@ -30,6 +29,22 @@ import { isEvidenceReduceReason } from '@/trading/kernel/caveat'
 import { strategyId } from '@/trading/kernel/instrument'
 import { voidPrice } from '@/trading/markets/levels'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
+
+/** The holds sized against NAV and cash, which a deposit or another name's trade can overturn. */
+const WEIGHT_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonCode>([
+  'zero-nav',
+  'cap-exhausted',
+  'sector-cap-exhausted',
+  'etf-cap-exhausted',
+  'segment-cap-exhausted',
+  'cash-exhausted',
+  'risk-budget-too-small',
+  'open-risk-exhausted',
+  'size-below-board-lot',
+  'increase-unfunded',
+  'fully-invested',
+  'no-rebalance-needed',
+])
 
 export async function reuseOrCooldown(
   options: SuggestionRunOptions,
@@ -288,8 +303,8 @@ async function resolveStanding(
 }
 
 /** A trade on the name itself can invert its direction. Any other row moves NAV and cash, which
- *  only matters to a row the book decided - a buy sized from cash, a sale under the plan's own
- *  reasons, a hold the portfolio settled - so only those say so, and other names stay quiet. */
+ *  only matters to a row decided on them - a buy sized from cash, a sale under the plan's own
+ *  reasons, a hold sized against NAV and cash - so only those say so. */
 function bookChangeCaveat(suggestion: StoredSuggestion, change: BookChange): Caveat | undefined {
   if (change === 'instrument' && suggestion.action !== 'hold') {
     return { code: 'suggestion.position-changed' }
@@ -314,8 +329,7 @@ function isReadOffTheBook(suggestion: StoredSuggestion): boolean {
 
   return (
     suggestion.action === 'hold' &&
-    bookHoldOf(suggestion) === 'book-hold' &&
-    !suggestion.holdReasonCodes.includes('reference-only')
+    suggestion.holdReasonCodes.some((code) => WEIGHT_HOLD_REASONS.has(code))
   )
 }
 

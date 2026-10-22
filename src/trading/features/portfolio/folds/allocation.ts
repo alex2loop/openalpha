@@ -55,6 +55,8 @@ export interface DesiredWeights {
   readonly cores: ReadonlySet<string>
   /** Held names past their own cap or their sector's: `byInstrument` already carries the trimmed weight. */
   readonly capTrims: ReadonlyMap<string, CapTrim>
+  /** The exclusion list by instrument key: kept rather than exited on a score, sold only past a cap. */
+  readonly excluded: ReadonlySet<string>
 }
 
 // why-safe: the record is keyed by PortfolioSegment; Object.entries widens the key to string.
@@ -155,7 +157,7 @@ export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights 
   const cores = new Set<string>()
   const excluded = new Set(input.profile.exclusions.map(buildInstrumentKey))
   const current = currentPositionWeights(input.valued, nav)
-  const trims = capTrims({ ...input, held: current })
+  const trims = capTrims({ ...input, held: current, excluded })
   const held = new Map(
     [...current].map(([key, weight]) => [key, trims.get(key)?.toPctNav ?? weight])
   )
@@ -180,7 +182,7 @@ export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights 
     }
   }
 
-  return { byInstrument, caveats, cores, capTrims: trims }
+  return { byInstrument, caveats, cores, capTrims: trims, excluded }
 }
 
 interface WeighSegmentInput {
@@ -195,7 +197,7 @@ interface WeighSegmentInput {
 
 /** One segment's target split: the core and the held names it must reserve, then the score
  *  distribution over whatever target is left. */
-function weighSegment(request: WeighSegmentInput): Omit<DesiredWeights, 'capTrims'> {
+function weighSegment(request: WeighSegmentInput): Omit<DesiredWeights, 'capTrims' | 'excluded'> {
   const { input, segment, target, excluded, rooms } = request
   const byInstrument = new Map<string, number>()
   const caveats: Caveat[] = []

@@ -220,7 +220,7 @@ Một lần chạy kết thúc theo một trong bốn cách:
 
 | Kết quả | Nghĩa là |
 |---|---|
-| `completed` | Bạn nhận đề xuất. Đánh dấu `reused` khi mã đã được đề xuất trong ngày trên giá đóng cửa mới nhất đã lưu, hoặc một lệnh mua trước đó vẫn còn hiệu lực. Đề xuất dùng lại không bao giờ tự chạy lại chỉ vì sổ đã đổi: giao dịch trên chính mã đó thêm `suggestion.position-changed`, còn mọi thay đổi khác trong sổ thêm `suggestion.book-changed` cho đề xuất mà sổ quyết định (lệnh mua, lệnh giảm bớt theo lý do của kế hoạch, lệnh giữ do danh mục quyết định). Thêm `force` để tính lại. |
+| `completed` | Bạn nhận đề xuất. Đánh dấu `reused` khi mã đã được đề xuất trong ngày trên giá đóng cửa mới nhất đã lưu, hoặc một lệnh mua trước đó vẫn còn hiệu lực. Đề xuất dùng lại không bao giờ tự chạy lại chỉ vì sổ đã đổi: giao dịch trên chính mã đó thêm `suggestion.position-changed`, còn mọi thay đổi khác trong sổ thêm `suggestion.book-changed` cho đề xuất tính từ tỷ trọng và tiền mặt trong sổ (lệnh mua, lệnh giảm bớt theo lý do của kế hoạch, lệnh giữ do khối lượng tính theo NAV và tiền mặt). Thêm `force` để tính lại. |
 | `unsupported` | Không thị trường nào nhận mã, hoặc có hai thị trường nhận và bạn phải nói rõ. |
 | `cooldown` | Mã vừa được đề xuất quá gần. Báo ngày nó đủ điều kiện trở lại. |
 | `error` | Lần chạy qua hết các cổng rồi không ghi được (nhiều khả năng do kho lưu). Chạy lại là an toàn. |
@@ -428,7 +428,7 @@ Một lần khớp vàng VN được ghi theo đơn vị của cửa hàng trong
 
 #### Thành tích của chính bảng giá
 
-Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, daemon ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã một bảng, nên quỹ ETF VN được ghi bên cạnh cổ phiếu (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng, và ở thị trường có nhiều bảng thì ghi cả loại mã của bảng, nên chỉ số tổng hợp của quỹ không bao giờ bị gộp với của cổ phiếu; các dòng ghi trước thay đổi này không có hai thông tin đó.
+Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, daemon ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã một bảng, nên quỹ ETF VN được ghi bên cạnh cổ phiếu (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng, và ở thị trường có nhiều bảng thì ghi cả loại mã của bảng, nên có thể đo riêng chỉ số tổng hợp của quỹ và của cổ phiếu; các dòng ghi trước thay đổi này không có hai thông tin đó.
 
 `/reflect` in nó thành khối quy kết thứ hai. Đó là mẫu mà các trọng số yếu tố và dải mức tin cậy được khớp theo khi nó lớn dần. Mỗi yếu tố được chấm theo phiên bản chiến lược, hai bản mới nhất mỗi thị trường, vì đổi phiên bản làm yếu tố đo thứ khác.
 

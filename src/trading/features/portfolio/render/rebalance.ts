@@ -295,12 +295,12 @@ export function renderNotes(
   ]
 }
 
-/** A name the plan already sells carries the score that condemned it on its own row, so the note
- *  would be the same fact with less of it. */
+/** A name the plan already sells has its row: for its score, the row carries the score that
+ *  condemned it; for a cap, a note saying no sale is needed yet would contradict the order above. */
 function renderWeakHoldingLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
   const sold = new Set(
     advice.rebalance
-      .filter((row) => row.reason.kind === 'weak-signal')
+      .filter((row) => row.targetPctNav < row.currentPctNav)
       .map((row) => buildInstrumentKey(row.instrument))
   )
 

@@ -34,7 +34,7 @@ export interface FactorLogEntry {
    *  one the lead provider did. Absent on rows logged before it was recorded. */
   readonly sources?: readonly SourceId[]
   /** The kind the board ranked, where the market ranks more than one: a fund's composite folds
-   *  other factors than a share's, so the two are never pooled. Absent on a single-board market and
+   *  other factors than a share's, so the two can be measured apart. Absent on a single-board market and
    *  on rows logged before it was recorded. */
   readonly instrumentKind?: InstrumentKind
 }

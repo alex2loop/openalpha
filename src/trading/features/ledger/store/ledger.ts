@@ -167,18 +167,16 @@ async function bookChangeSince(
   assertNotAborted(options.signal)
 
   const p = deps.dialect.param
-  const rows = await deps.db.query<{ readonly changed: unknown; readonly own: unknown }>(
-    `SELECT COUNT(*) AS changed, MAX(CASE WHEN market = ${p(1)} AND ticker = ${p(2)} THEN 1 ELSE 0 END) AS own FROM ledger_entries WHERE COALESCE(updated_at, recorded_at) > ${p(3)}`,
+  const rows = await deps.db.query<{ readonly changed: number; readonly own: number }>(
+    `SELECT CASE WHEN EXISTS (SELECT 1 FROM ledger_entries WHERE COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 1 ELSE 0 END AS changed, CASE WHEN EXISTS (SELECT 1 FROM ledger_entries WHERE market = ${p(1)} AND ticker = ${p(2)} AND COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 1 ELSE 0 END AS own`,
     [instrument.market, instrument.ticker, options.from]
   )
-  // Drivers return the aggregates as numbers or numeric strings; `MAX` over no rows is null.
-  const changed = Number(rows[0]?.changed ?? 0)
-
-  if (changed === 0) {
+  // An integer rather than the boolean `EXISTS` gives Postgres, so both engines answer 0 or 1.
+  if (Number(rows[0]?.changed ?? 0) !== 1) {
     return 'none'
   }
 
-  return Number(rows[0]?.own ?? 0) > 0 ? 'instrument' : 'book'
+  return Number(rows[0]?.own ?? 0) === 1 ? 'instrument' : 'book'
 }
 
 async function insertValidated(

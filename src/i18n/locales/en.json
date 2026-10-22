@@ -2547,7 +2547,7 @@
     "caveat.suggestion.size-realized-scale": "The size is scaled from how calls at this confidence actually worked out ({n} resolved).",
     "caveat.alert.price-unavailable": "No price came through, so this alert went unchecked this round.",
     "caveat.brief.book-unpriced": "A holding has no price yet, so I can't total the book this morning. /portfolio shows which one.",
-    "caveat.brief.call-outdated": "{ticker}: your book changed after this call, so the order above may be out of date - /suggest <ticker> force redoes it.",
+    "caveat.brief.call-outdated": "{ticker}: your book changed after this call, so the call above may be out of date - /suggest <ticker> force redoes it.",
     "caveat.brief.names-capped": "The calendar covers the first {limit} names you watch or hold.",
     "caveat.brief.section-unavailable": "I couldn't put the {section} section together this time.",
     "caveat.refresh.no-available-provider": "Every source was tried and none came back with anything usable.",

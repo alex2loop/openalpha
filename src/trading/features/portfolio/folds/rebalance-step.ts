@@ -28,6 +28,7 @@ export interface RowInput {
   /** A buy into one of these fills the segment's core, not a score. */
   readonly cores: ReadonlySet<string>
   readonly capTrims: ReadonlyMap<string, CapTrim>
+  readonly excluded: ReadonlySet<string>
 }
 
 /** A paced step under the minimum never trades, and one that steps below it on every run abandons

@@ -134,6 +134,8 @@ interface CapTrimRequest {
   /** Current weights, keyed by `buildInstrumentKey`. */
   readonly held: ReadonlyMap<string, number>
   readonly rebalancePolicy: RebalancePolicy
+  /** The exclusion list by instrument key. */
+  readonly excluded: ReadonlySet<string>
 }
 
 /** A fund is never sold on its own score: a bearish read on an index is a call on the market, which
@@ -227,7 +229,7 @@ function sectorTrims(
   const limits: SectorLimits = {
     cap,
     trigger: cap + driftBand(cap, request.rebalancePolicy),
-    excluded: new Set(request.profile.exclusions.map(buildInstrumentKey)),
+    excluded: request.excluded,
   }
   const sectors = new Map<string, PortfolioCandidate[]>()
   const trims: (readonly [string, CapTrim])[] = []

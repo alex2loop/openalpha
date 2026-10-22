@@ -303,6 +303,7 @@ Plan lifecycle:
 - Open risk is whole-book: `openRiskOf` sums `units x (mark - planned stop)` over priced tradeable holdings once per instrument across venues; a buy is sized into the room under `maximumOpenRiskPctNav`. A held name with no planned stop makes it a floor and is named (`suggestion.open-risk-unplanned`), never zero.
 - A fund answers to its segment's ETF ceiling instead of the single-name cap where declared (`positionCapOf`, `isCappedAsFund`).
 - The book never reads a suggestion row: it states the seam (`ReduceVerdicts`), `app` binds it.
+- A reused call is marked, never re-run, when the ledger moved since it was made (`bookChangeSince`): `suggestion.position-changed` for its own name, `suggestion.book-changed` on a call decided on weights and cash, `brief.call-outdated` in the brief. `force` is the fresh call.
 - A stored suggestion carries `held` and `evidenceThrough` on both arms (`SuggestionBase`; `sharedPayload` writes, `toBase` reads; the report's closing lines print `evidenceThrough` wherever it differs from `at`). `settlement`, `priceBand`, `concentration` stay on the actionable arm.
 
 Reduce reasons:
