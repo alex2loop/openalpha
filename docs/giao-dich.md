@@ -220,7 +220,7 @@ Một lần chạy kết thúc theo một trong bốn cách:
 
 | Kết quả | Nghĩa là |
 |---|---|
-| `completed` | Bạn nhận đề xuất. Đánh dấu `reused` khi mã đã được đề xuất trong ngày trên giá đóng cửa mới nhất đã lưu, hoặc một lệnh mua trước đó vẫn còn hiệu lực. |
+| `completed` | Bạn nhận đề xuất. Đánh dấu `reused` khi mã đã được đề xuất trong ngày trên giá đóng cửa mới nhất đã lưu, hoặc một lệnh mua trước đó vẫn còn hiệu lực. Đề xuất dùng lại không bao giờ tự chạy lại chỉ vì sổ đã đổi: giao dịch trên chính mã đó thêm `suggestion.position-changed`, còn mọi thay đổi khác trong sổ thêm `suggestion.book-changed` cho đề xuất mà sổ quyết định (lệnh mua, lệnh giảm bớt theo lý do của kế hoạch, lệnh giữ do danh mục quyết định). Thêm `force` để tính lại. |
 | `unsupported` | Không thị trường nào nhận mã, hoặc có hai thị trường nhận và bạn phải nói rõ. |
 | `cooldown` | Mã vừa được đề xuất quá gần. Báo ngày nó đủ điều kiện trở lại. |
 | `error` | Lần chạy qua hết các cổng rồi không ghi được (nhiều khả năng do kho lưu). Chạy lại là an toàn. |
@@ -538,7 +538,7 @@ Mỗi thị trường chỉ công bố các mục riêng mà nó có dữ liệu
 
 **Đợt cơ cấu chỉ số kế tiếp.** Bản tin nêu phiên cơ cấu FTSE GEIS hoặc VN30 kế tiếp, tính từ quy tắc rà soát chứ không từ một danh sách được bảo trì. Vào đêm trước, mọi đề xuất VN trên một mã thuộc rổ chỉ số mang ngày đó như một caveat. Đến chính phiên đó, lệnh mua mới bị từ chối và các mã đang nắm đọc caveat thay vào. Không có cài đặt nào: các ngày là của sàn, không phải của bạn.
 
-**Các mục đề xuất chạy sau cùng và tốn nhất**, trên phần ngân sách riêng của bản tin. Nếu hết ngân sách thì mất các mục đó, không bao giờ mất cả bản tin. Mỗi mục chạy một cuộc tranh luận **lean** trên mọi mã đang nắm trong phạm vi của nó trước, rồi tới danh sách theo dõi: `suggestions` cho VN, `cross-asset-suggestions` cho mọi thị trường khác. Mã nào có cuộc tranh luận chưa xong (thiếu key, một vai lỗi, hết ngân sách) thì hiện CHƯA KẾT LUẬN và không kèm mức tin cậy, thay vì CHỜ: chưa có quyết định nào, và kế hoạch đang có vẫn tiếp tục theo dõi mã đó.
+**Các mục đề xuất chạy sau cùng và tốn nhất**, trên phần ngân sách riêng của bản tin. Nếu hết ngân sách thì mất các mục đó, không bao giờ mất cả bản tin. Mỗi mục chạy một cuộc tranh luận **lean** trên mọi mã đang nắm trong phạm vi của nó trước, rồi tới danh sách theo dõi: `suggestions` cho VN, `cross-asset-suggestions` cho mọi thị trường khác. Mã nào có cuộc tranh luận chưa xong (thiếu key, một vai lỗi, hết ngân sách) thì hiện CHƯA KẾT LUẬN và không kèm mức tin cậy, thay vì CHỜ: chưa có quyết định nào, và kế hoạch đang có vẫn tiếp tục theo dõi mã đó. Đề xuất lấy lại từ lúc sớm hơn trong ngày, mà sổ của bạn đã đổi sau đó, được nêu tên một lần ở cuối bản tin kèm `/suggest <mã> force` để tính lại.
 
 Một mã đang nắm không bao giờ bị cắt, vì chính lần chạy của nó là thứ định giá lại kế hoạch:
 

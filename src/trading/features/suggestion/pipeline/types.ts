@@ -35,7 +35,7 @@ import type {
   TradingDay,
 } from '@/trading/kernel/instrument'
 import type { MarketEvent, RegimeScale } from '@/trading/kernel/market/market-data'
-import type { ClosedRoundTrip } from '@/trading/kernel/operator/book'
+import type { BookChange, ClosedRoundTrip } from '@/trading/kernel/operator/book'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon, UserProfile } from '@/trading/kernel/operator/profile'
 import type { StageRegistry } from '@/trading/markets/stage'
@@ -291,10 +291,10 @@ interface SuggestionPortfolioReadOptions {
  *  the consumer; `app` binds the implementation. */
 export interface SuggestionPortfolioReader {
   read(options: SuggestionPortfolioReadOptions): Promise<SuggestionPortfolioContext>
-  /** Whether the operator has traded this name since a stored suggestion was made. The reuse gate
-   *  asks before serving one back, and it exits before any `read`, so this stays the cheap query it
-   *  is rather than the whole portfolio context. */
-  hasTradedSince(instrument: InstrumentRef, since: number, signal: AbortSignal): Promise<boolean>
+  /** How far the book moved since a stored suggestion was made, and whether this name's own rows
+   *  did. The reuse gate asks before serving one back, and it exits before any `read`, so this stays
+   *  the cheap query it is rather than the whole portfolio context. */
+  bookChangeSince(instrument: InstrumentRef, from: number, signal: AbortSignal): Promise<BookChange>
 }
 
 export interface SuggestionRunDeps {

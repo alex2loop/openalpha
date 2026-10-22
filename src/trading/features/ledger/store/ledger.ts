@@ -7,7 +7,7 @@ import type {
   LedgerTxn,
 } from '@/trading/features/ledger/types'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
-import type { LedgerEntryId } from '@/trading/kernel/operator/book'
+import type { BookChange, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { Page } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, ConflictError, ValidationError } from '@/core/errors'
@@ -82,9 +82,9 @@ export interface LedgerStore {
   ): Promise<LedgerEntry>
   /** The whole bounded ledger, for folding only — surfaces page instead. */
   listAll(signal: AbortSignal): Promise<readonly LedgerEntry[]>
-  /** Whether any row for this instrument was written or corrected after `since`. A deletion leaves
-   *  nothing to find, so this answers no for one. */
-  hasTradedSince(instrument: InstrumentRef, since: number, signal: AbortSignal): Promise<boolean>
+  /** Whether any row was written or corrected after `from`, and whether one of them is this
+   *  instrument's. */
+  bookChangeSince(instrument: InstrumentRef, from: number, signal: AbortSignal): Promise<BookChange>
   /** Every id a full id or a short handle could name. More than one is an ambiguous handle, which
    *  the caller refuses rather than guessing between. */
   listIdsMatching(ref: string, signal: AbortSignal): Promise<readonly LedgerEntryId[]>
@@ -114,8 +114,8 @@ export function createLedgerStore(deps: LedgerStoreDeps): LedgerStore {
     deleteValidated: (id, assertValid, signal) =>
       deleteValidated(deps, { subject: id, assertValid, signal }),
     listAll: (signal) => listAll(deps, signal),
-    hasTradedSince: (instrument, since, signal) =>
-      hasTradedSince(deps, { instrument, since, signal }),
+    bookChangeSince: (instrument, from, signal) =>
+      bookChangeSince(deps, { instrument, from, signal }),
     listIdsMatching: (ref, signal) => listIdsMatching(deps, ref, signal),
     listPage: (options) => listPage(deps, options),
   }
@@ -152,24 +152,33 @@ async function findByIdempotency(
   return row ? { entry: toEntry(row), requestFingerprint: row.request_fingerprint } : null
 }
 
-interface TradedSinceQuery {
+interface ChangeSinceQuery {
   readonly instrument: InstrumentRef
-  readonly since: number
+  readonly from: number
   readonly signal: AbortSignal
 }
 
-async function hasTradedSince(deps: LedgerStoreDeps, options: TradedSinceQuery): Promise<boolean> {
+async function bookChangeSince(
+  deps: LedgerStoreDeps,
+  options: ChangeSinceQuery
+): Promise<BookChange> {
   const { instrument } = options
 
   assertNotAborted(options.signal)
 
   const p = deps.dialect.param
-  const rows = await deps.db.query<Pick<LedgerRow, 'id'>>(
-    `SELECT id FROM ledger_entries WHERE market = ${p(1)} AND ticker = ${p(2)} AND COALESCE(updated_at, recorded_at) > ${p(3)} LIMIT 1`,
-    [instrument.market, instrument.ticker, options.since]
+  const rows = await deps.db.query<{ readonly changed: unknown; readonly own: unknown }>(
+    `SELECT COUNT(*) AS changed, MAX(CASE WHEN market = ${p(1)} AND ticker = ${p(2)} THEN 1 ELSE 0 END) AS own FROM ledger_entries WHERE COALESCE(updated_at, recorded_at) > ${p(3)}`,
+    [instrument.market, instrument.ticker, options.from]
   )
+  // Drivers return the aggregates as numbers or numeric strings; `MAX` over no rows is null.
+  const changed = Number(rows[0]?.changed ?? 0)
 
-  return rows.length > 0
+  if (changed === 0) {
+    return 'none'
+  }
+
+  return Number(rows[0]?.own ?? 0) > 0 ? 'instrument' : 'book'
 }
 
 async function insertValidated(

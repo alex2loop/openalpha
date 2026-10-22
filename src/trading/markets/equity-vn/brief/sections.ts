@@ -7,7 +7,7 @@ import type {
 } from '@/trading/features/brief/types'
 import type { SegmentTarget } from '@/trading/features/portfolio/types'
 import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
-import type { Caveat } from '@/trading/kernel/caveat'
+import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { DebateMode } from '@/trading/kernel/config'
 import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { StopDistance } from '@/trading/kernel/operator/alert'
@@ -27,6 +27,11 @@ import { SURFACE_LIMITS } from '@/trading/surface-limits'
 /** The brief pays one debate per watchlist name, unattended, every morning. The full debate is what
  *  `/suggest` spends on a ticker the operator named. */
 const BRIEF_DEBATE_MODE = 'lean' satisfies DebateMode
+/** What a call served from earlier in the day carries when the book has moved since it was made. */
+const BOOK_MOVED_CODES: ReadonlySet<CaveatCode> = new Set<CaveatCode>([
+  'suggestion.book-changed',
+  'suggestion.position-changed',
+])
 
 /** The one stop vocabulary the tree speaks. A builder that composed its own sentence would be
  *  writing copy; the tuple in `brief-section.ts` owns the arms. */
@@ -419,8 +424,22 @@ function summarizeRuns(
     : ready(
         kind,
         completed.map((result) => toCallRow(result.suggestion)),
-        { provenance: completed.flatMap((result) => result.suggestion.provenance) }
+        {
+          provenance: completed.flatMap((result) => result.suggestion.provenance),
+          caveats: outdatedCallCaveats(completed.map((result) => result.suggestion)),
+        }
       )
+}
+
+/** The row prints only the action, so a call the book has moved past since says so here, or the
+ *  brief would restate an order the operator's own trade or deposit already changed. */
+function outdatedCallCaveats(suggestions: readonly StoredSuggestion[]): readonly Caveat[] {
+  return suggestions
+    .filter((suggestion) => suggestion.caveats.some((caveat) => BOOK_MOVED_CODES.has(caveat.code)))
+    .map((suggestion) => ({
+      code: 'brief.call-outdated',
+      detail: { ticker: suggestion.instrument.ticker },
+    }))
 }
 
 /** A run whose debate never answered decided nothing, so it carries neither an action nor a

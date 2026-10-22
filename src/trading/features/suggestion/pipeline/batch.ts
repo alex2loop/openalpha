@@ -175,7 +175,7 @@ function sharedReader(
       return pending
     },
 
-    hasTradedSince: (instrument, since, signal) => reader.hasTradedSince(instrument, since, signal),
+    bookChangeSince: (instrument, from, signal) => reader.bookChangeSince(instrument, from, signal),
   }
 }
 

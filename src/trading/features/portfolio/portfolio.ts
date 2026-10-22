@@ -85,8 +85,8 @@ export function createPortfolioService(deps: PortfolioServiceDeps): PortfolioSer
     recordVenues: (market) => venuesFor(deps.venues, deps.config.defaultVenues, market),
     venuesHolding: (market) => venuesHolding(deps.venues, market),
     venueChoices: () => venueChoices(deps.venues),
-    hasTradedSince: (instrument, since, signal) =>
-      deps.ledger.hasTradedSince(instrument, since, signal),
+    bookChangeSince: (instrument, from, signal) =>
+      deps.ledger.bookChangeSince(instrument, from, signal),
 
     update: (options) => mutateLedger(deps, { ...options, kind: 'update' }),
     remove: (options) => mutateLedger(deps, { ...options, kind: 'delete' }),

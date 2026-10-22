@@ -33,6 +33,7 @@ import type {
 import type { QuoteFreshness, RegimeScale } from '@/trading/kernel/market/market-data'
 import type {
   Book,
+  BookChange,
   CashPosture,
   CurrencyCash,
   LedgerEntryId,
@@ -397,9 +398,8 @@ export interface PortfolioService {
   venuesHolding(market: MarketRef): readonly VenueRef[]
   /** Every registered venue with the markets it holds, in registration order. */
   venueChoices(): readonly VenueChoice[]
-  /** Whether the operator has recorded or corrected a row for this instrument since `since`. A
-   *  reader holding something derived from the book asks this rather than re-deriving it. */
-  hasTradedSince(instrument: InstrumentRef, since: number, signal: AbortSignal): Promise<boolean>
+  /** How far the book moved since `from`, this instrument's own rows apart. Cheaper than a re-read. */
+  bookChangeSince(instrument: InstrumentRef, from: number, signal: AbortSignal): Promise<BookChange>
   update(options: UpdateLedgerOptions): Promise<LedgerWriteResult>
   remove(options: RemoveLedgerOptions): Promise<LedgerWriteResult>
   historyRelative(options: LedgerPageOptions): Promise<Page<LedgerEntryView, LedgerEntryId>>

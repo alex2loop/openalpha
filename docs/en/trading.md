@@ -220,7 +220,7 @@ A run ends in one of four ways:
 
 | Result | Meaning |
 |---|---|
-| `completed` | You get the suggestion. It is marked `reused` when the same name was already suggested today on the latest stored close, or an earlier buy still stands. |
+| `completed` | You get the suggestion. It is marked `reused` when the same name was already suggested today on the latest stored close, or an earlier buy still stands. A reused call is never re-run because the book moved: a trade on the name itself adds `suggestion.position-changed`, and any other change to the book adds `suggestion.book-changed` to a call the book decided (a buy, a sale under the plan's own reasons, a hold the portfolio settled). `force` works it out again. |
 | `unsupported` | No market claims the ticker, or two do and you must say which. |
 | `cooldown` | The name was suggested too recently. Shows the day it becomes eligible again. |
 | `error` | The run passed every stage guard, then failed to record (most likely storage). Rerunning is safe. |
@@ -538,7 +538,7 @@ Each market publishes only the per-market sections it has data for, so adding a 
 
 **Next index rebalance.** The brief names the next FTSE GEIS or VN30 rebalance session, worked out from the review rule rather than a maintained list. On the eve, every VN suggestion on an index constituent carries the date as a caveat. On the session itself a new buy is refused and held names read the caveat instead. There is no setting: the dates are the exchange's.
 
-**Suggestion sections run last and cost the most**, on the brief's own share of the budget. If it runs out, those sections are lost, never the whole brief. Each runs a **lean** debate over every held name in its scope first, then the watchlist: `suggestions` for VN, `cross-asset-suggestions` for every other market. A name whose debate never finished (no key, a failed role, no budget left) reads NO CALL with no confidence beside it, not WAIT: nothing was decided, and the plan already in place keeps watching it.
+**Suggestion sections run last and cost the most**, on the brief's own share of the budget. If it runs out, those sections are lost, never the whole brief. Each runs a **lean** debate over every held name in its scope first, then the watchlist: `suggestions` for VN, `cross-asset-suggestions` for every other market. A name whose debate never finished (no key, a failed role, no budget left) reads NO CALL with no confidence beside it, not WAIT: nothing was decided, and the plan already in place keeps watching it. A call served from earlier in the day, on a book you have changed since, is named once at the end of the brief with `/suggest <ticker> force` to redo it.
 
 A held name is never cut, because its run is what re-prices the plan:
 
