@@ -111,7 +111,7 @@ export async function valueBook(options: ValueBookOptions): Promise<ValuedBook> 
             cashBase: options.book.cashBase + cash.gainBase,
           }),
     sectorValues: navBase === undefined ? [] : sectorValues(valued, options, navBase),
-    caveats: valuationCaveats({ complete, outcomes, valued, cash, sectorFor: options.sectorFor }),
+    caveats: valuationCaveats({ complete, outcomes, valued, cash, lookup: options }),
   }
 }
 

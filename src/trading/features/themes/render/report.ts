@@ -184,7 +184,7 @@ function renderTheme(
     ...(read === undefined ? [`${INDENT[1]}${theme.thesis}`] : renderRead(read, context.locale)),
     ...renderHurt(theme.id, context),
     ...renderNotes(theme.id, context),
-    ...renderChainSkipped(read, context.locale),
+    ...renderChainSkipped(line, context.locale),
   ]
 }
 
@@ -298,9 +298,10 @@ function renderNote(note: ThemeRunNote, locale: Locale): string {
 }
 
 /** Sectors and companies are read only while a read keeps the theme active, so a weakening one
- *  says why it has none rather than looking like a failed step. */
-function renderChainSkipped(read: ThemeRead | undefined, locale: Locale): readonly string[] {
-  return read?.status === 'weakening'
+ *  says why it has none rather than looking like a failed step. A proposal has none because it is
+ *  not approved yet, which its heading already says. */
+function renderChainSkipped(line: ThemeLine, locale: Locale): readonly string[] {
+  return line.theme.status !== 'proposed' && line.read?.status === 'weakening'
     ? [`${INDENT[1]}${t(locale, 'trading.render.themes.chainSkipped')}`]
     : []
 }

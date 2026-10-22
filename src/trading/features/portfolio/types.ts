@@ -52,8 +52,8 @@ interface StandingReduceOptions {
  *  weights alone cannot propose buying one. Implemented against the suggestion store and bound in
  *  wiring: the book states what it needs and never reads a suggestion row itself. */
 export interface ReduceVerdicts {
-  /** Keyed by `buildInstrumentKey`. A name absent from the map carries no such verdict; an
-   *  `over-target` trim is never here, because that is this fold's own drift rule handed back. */
+  /** Keyed by `buildInstrumentKey`. A name absent from the map carries no such verdict; a sale
+   *  under one of the plan's own reasons is never here, being this fold's own rule handed back. */
   standing(options: StandingReduceOptions): Promise<ReadonlyMap<string, EvidenceReduceReasonCode>>
 }
 

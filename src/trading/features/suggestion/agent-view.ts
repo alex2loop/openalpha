@@ -259,7 +259,7 @@ function toAgentHold(
   return {
     ...rest,
     ...fields,
-    holdReasons: renderHoldReasons(reader.locale, rest),
+    holdReasons: renderHoldReasons(reader.locale, suggestion),
   }
 }
 

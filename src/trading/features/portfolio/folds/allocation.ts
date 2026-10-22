@@ -262,9 +262,10 @@ interface HoldingContext {
 }
 
 /** Held, unfunded, and not being exited either: entry needs a positive read while exit waits for
- *  the weak-holding line, and an excluded name was declined, never asked to be sold. Their weight
- *  is reserved rather than skipped, or the segment would buy past its target on top of it. The core
- *  reserves at its floor whatever its score says, which is the whole of what a core means. */
+ *  the weak-holding line, and an excluded name was declined, never sold for drift or score. Their
+ *  weight is reserved rather than skipped, or the segment would buy past its target on top of it.
+ *  The core reserves at its floor whatever its score says, which is the whole of what a core means.
+ *  A cap trim still applies to both: the weight reserved here is already the trimmed one. */
 function keptHoldings(
   candidates: readonly PortfolioCandidate[],
   context: HoldingContext

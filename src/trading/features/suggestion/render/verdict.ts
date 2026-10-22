@@ -192,7 +192,7 @@ interface HeldCall {
   readonly caveats: readonly Caveat[]
   readonly reduceReasonCode?: ReduceReasonCode
   /** The rows the composite folded, which say how hard a contested read actually pulls apart. */
-  readonly factorScores?: readonly FactorResult[]
+  readonly factorScores: readonly FactorResult[]
 }
 
 function renderHoldReason(locale: Locale, code: HoldReasonCode, call: HeldCall): string {
@@ -200,7 +200,7 @@ function renderHoldReason(locale: Locale, code: HoldReasonCode, call: HeldCall):
     return renderDeclaredValue(locale, notTradeableKey(call.caveats))
   }
 
-  return code === 'factors-contested' && !isPulledApart(call.factorScores ?? [])
+  return code === 'factors-contested' && !isPulledApart(call.factorScores)
     ? renderDeclaredValue(locale, 'trading.holdContested.faint')
     : renderDeclaredValue(locale, `trading.hold.${code}`)
 }

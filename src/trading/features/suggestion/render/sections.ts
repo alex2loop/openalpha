@@ -195,7 +195,7 @@ export function renderReduceReasonLines(
       ? { target: formatFraction(locale, suggestion.targetPctNav) }
       : {}
 
-  // A fund is never trimmed for its sector, so its cap sale names the ETF ceiling alone.
+  // A fund is never trimmed for its sector, so its cap sale names its own ceiling alone.
   const key: MessageKey =
     code === 'over-cap' && suggestion.instrumentKind === ETF_KIND
       ? 'trading.render.suggestion.reduceOverCapFund'

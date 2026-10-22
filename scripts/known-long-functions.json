@@ -139,7 +139,6 @@
     "src/trading/features/portfolio/folds/valuation.ts#valueBook": 45,
     "src/trading/features/portfolio/folds/valuation.ts#valuePosition": 52,
     "src/trading/features/portfolio/portfolio.ts#createPortfolioService": 51,
-    "src/trading/features/portfolio/portfolio.ts#rebalance": 51,
     "src/trading/features/portfolio/render/cash.ts#renderCashSections": 45,
     "src/trading/features/portfolio/render/rows.ts#renderPosition": 48,
     "src/trading/features/portfolio/tools/input.ts#profilePatchInput": 46,

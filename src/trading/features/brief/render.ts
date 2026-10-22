@@ -33,6 +33,7 @@ const REBALANCE_OWN_CAVEATS: ReadonlySet<string> = new Set([
   'portfolio.candidates-available',
   'portfolio.candidates-by-name',
   'portfolio.reduction-below-minimum',
+  'portfolio.reduction-unsettled',
 ])
 /** What an uncapped budget prints where a limit would go. */
 const UNLIMITED_MARK = '∞'

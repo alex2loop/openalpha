@@ -121,6 +121,13 @@ export interface CapTrim {
   readonly toPctNav: number
 }
 
+interface SectorLimits {
+  readonly cap: number
+  /** The sector weight a cut fires at: the cap plus its band. */
+  readonly trigger: number
+  readonly excluded: ReadonlySet<string>
+}
+
 interface CapTrimRequest {
   readonly profile: UserProfile
   readonly candidates: readonly PortfolioCandidate[]
@@ -217,6 +224,11 @@ function sectorTrims(
   positions: ReadonlyMap<string, CapTrim>
 ): ReadonlyMap<string, CapTrim> {
   const cap = request.profile.maximumSectorPctNav
+  const limits: SectorLimits = {
+    cap,
+    trigger: cap + driftBand(cap, request.rebalancePolicy),
+    excluded: new Set(request.profile.exclusions.map(buildInstrumentKey)),
+  }
   const sectors = new Map<string, PortfolioCandidate[]>()
   const trims: (readonly [string, CapTrim])[] = []
 
@@ -242,23 +254,78 @@ function sectorTrims(
     })
     const total = weights.reduce((sum, [, weight]) => sum + weight, 0)
 
-    if (total >= cap + driftBand(cap, request.rebalancePolicy)) {
-      trims.push(...cutWeakestFirst(weights, cap))
+    if (total >= limits.trigger) {
+      trims.push(...cutWeakestFirst(weights, limits))
     }
   }
 
   return new Map(trims)
 }
 
+/** Weak names go first and whole, since the plan wants none of them. When their exits alone bring
+ *  the sector back inside its band, the rest keep their weight, as the next run would leave them;
+ *  otherwise the rest are cut back to the cap. */
 function cutWeakestFirst(
   weights: readonly (readonly [PortfolioCandidate, number])[],
+  limits: SectorLimits
+): readonly (readonly [string, CapTrim])[] {
+  const weakestFirst = [...weights].sort(([left], [right]) => compareCandidates(right, left))
+  const total = weights.reduce((sum, [, weight]) => sum + weight, 0)
+  const exits = exitCuts(weakestFirst, total - limits.cap, limits)
+  const kept = total - exits.freed
+
+  if (kept < limits.trigger) {
+    return exits.cuts
+  }
+
+  const staying = weakestFirst.filter(([member]) => !leavesWhole(member, limits))
+
+  return [...exits.cuts, ...cutsToCap(staying, kept - limits.cap, limits.cap)]
+}
+
+/** A weak name the cut reaches is sold whole, so its whole weight is what it frees. An excluded one
+ *  is kept rather than exited, so it is cut like any other name. */
+function exitCuts(
+  weakestFirst: readonly (readonly [PortfolioCandidate, number])[],
+  excess: number,
+  limits: SectorLimits
+): { readonly cuts: readonly (readonly [string, CapTrim])[]; readonly freed: number } {
+  const cuts: (readonly [string, CapTrim])[] = []
+  let freed = 0
+
+  for (const [member, weight] of weakestFirst) {
+    if (freed >= excess) {
+      break
+    }
+
+    if (weight > 0 && leavesWhole(member, limits)) {
+      cuts.push([
+        buildInstrumentKey(member.instrument),
+        { limit: 'sector', capPctNav: limits.cap, toPctNav: 0 },
+      ])
+      freed += weight
+    }
+  }
+
+  return { cuts, freed }
+}
+
+function leavesWhole(member: PortfolioCandidate, limits: SectorLimits): boolean {
+  return (
+    isWeakHolding(member.marketScore, member.instrumentKind) &&
+    !limits.excluded.has(buildInstrumentKey(member.instrument))
+  )
+}
+
+function cutsToCap(
+  weakestFirst: readonly (readonly [PortfolioCandidate, number])[],
+  excess: number,
   cap: number
 ): readonly (readonly [string, CapTrim])[] {
-  const weakestFirst = [...weights].sort(([left], [right]) => compareCandidates(left, right))
   const cuts: (readonly [string, CapTrim])[] = []
-  let remaining = weights.reduce((sum, [, weight]) => sum + weight, 0) - cap
+  let remaining = excess
 
-  for (const [member, weight] of weakestFirst.reverse()) {
+  for (const [member, weight] of weakestFirst) {
     const cut = Math.min(weight, remaining)
 
     if (cut > 0) {
