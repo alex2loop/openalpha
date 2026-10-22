@@ -333,11 +333,7 @@ export type HoldReasonCode = (typeof HOLD_REASON_CODES)[number]
 /** The plan's own sales, written back by the rebalancer: `over-target` trims a weight, `weak-signal`
  *  exits a name whose score fell under the weak-holding line, `over-cap` sells a name back to a cap
  *  it ran past. */
-export const PLAN_REDUCE_REASON_CODES = Object.freeze([
-  'over-target',
-  'weak-signal',
-  'over-cap',
-] as const)
+const PLAN_REDUCE_REASON_CODES = Object.freeze(['over-target', 'weak-signal', 'over-cap'] as const)
 type PlanReduceReasonCode = (typeof PLAN_REDUCE_REASON_CODES)[number]
 
 /** Why a held name is sold. The plan's arms come first; every other arm is the evidence turning on
@@ -355,6 +351,10 @@ export type ReduceReasonCode = (typeof REDUCE_REASON_CODES)[number]
 /** The evidence arms only. The plan's arms read weights and its own score line rather than the
  *  market's evidence, so no market's own read can ever claim them. */
 export type EvidenceReduceReasonCode = Exclude<ReduceReasonCode, PlanReduceReasonCode>
+
+export function isEvidenceReduceReason(code: ReduceReasonCode): code is EvidenceReduceReasonCode {
+  return !PLAN_REDUCE_REASON_CODES.some((plan) => plan === code)
+}
 
 /** Holds that report a failure to run rather than a verdict. The row is still written, but it must
  *  not satisfy the reuse gate: an outage cached as a decision blocks the ticker until tomorrow.

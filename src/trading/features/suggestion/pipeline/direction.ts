@@ -160,6 +160,7 @@ function trimOf(change: PositionChange | undefined): DraftSale | undefined {
     action: 'reduce',
     reasonCode: planReduceReasonOf(change.reason),
     saleFraction: 1 - change.targetPctNav / change.currentPctNav,
+    ...(change.reason.kind === 'over-cap' ? { cap: change.reason.limit } : {}),
   }
 }
 

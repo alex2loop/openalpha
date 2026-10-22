@@ -1,6 +1,6 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
-import type { RebalancePlanResult, ValuedBook } from '@/trading/features/portfolio/types'
+import type { CapReason, RebalancePlanResult, ValuedBook } from '@/trading/features/portfolio/types'
 import type { HeadlinesRead, SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { DebateResult, ThesisBreak } from '@/trading/features/suggestion/debate/types'
 import type { BookExposure } from '@/trading/features/suggestion/exposure'
@@ -123,6 +123,8 @@ export interface DebateInput {
   /** Read by the roles that decide, never by the two that argue: a researcher handed the book
    *  argues portfolio construction instead of this name's evidence, which is not its question. */
   readonly exposure?: BookExposure
+  /** On an `over-cap` sale: which cap the plan measured the name past, on the whole book. */
+  readonly saleCap?: CapReason
 }
 
 /** Either the completed debate, or the hold it collapsed into. A role that halts, exhausts its
@@ -230,6 +232,8 @@ export type DraftDirection =
       readonly reasonCode: ReduceReasonCode
       /** The share of the current holding to sell, in (0, 1]. */
       readonly saleFraction: number
+      /** On an `over-cap` sale: which cap the name ran past. */
+      readonly cap?: CapReason
     }
   | {
       readonly action: 'hold'

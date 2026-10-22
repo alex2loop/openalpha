@@ -1,14 +1,10 @@
 import type { ReduceVerdicts } from '@/trading/features/portfolio/types'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
-import type {
-  EvidenceReduceReasonCode,
-  HoldReasonCode,
-  ReduceReasonCode,
-} from '@/trading/kernel/caveat'
+import type { EvidenceReduceReasonCode, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import { PLAN_REDUCE_REASON_CODES } from '@/trading/kernel/caveat'
+import { isEvidenceReduceReason } from '@/trading/kernel/caveat'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 
 /** Matches the candidate sweep's width: both fan out over the same book against the same database. */
@@ -48,7 +44,7 @@ async function standingReduce(
 
   // A plan reason is the rebalancer's own rule written back to the store, so closing a name on it
   // would let that fold veto itself.
-  return reason === undefined || !isEvidenceReason(reason)
+  return reason === undefined || !isEvidenceReduceReason(reason)
     ? null
     : [buildInstrumentKey(instrument), reason]
 }
@@ -59,8 +55,4 @@ function isStandingSale(verdict: StoredSuggestion): boolean {
   return verdict.action === 'hold'
     ? STANDING_SALE_HOLDS.some((code) => verdict.holdReasonCodes.includes(code))
     : verdict.action === 'reduce'
-}
-
-function isEvidenceReason(code: ReduceReasonCode): code is EvidenceReduceReasonCode {
-  return !PLAN_REDUCE_REASON_CODES.some((plan) => plan === code)
 }

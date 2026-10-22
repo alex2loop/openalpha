@@ -143,7 +143,7 @@
     "src/trading/features/portfolio/render/rows.ts#renderPosition": 48,
     "src/trading/features/portfolio/tools/input.ts#profilePatchInput": 46,
     "src/trading/features/profile/render.ts#renderProfileText": 47,
-    "src/trading/features/suggestion/debate/debate.ts#finish": 46,
+    "src/trading/features/suggestion/debate/debate.ts#finish": 44,
     "src/trading/features/suggestion/debate/roles.ts#attemptRole": 43,
     "src/trading/features/suggestion/exit-plan/recorded.ts#buildRecordedPlan": 49,
     "src/trading/features/suggestion/exit-plan/recorded.ts#planRecordedEntry": 44,

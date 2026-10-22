@@ -249,6 +249,8 @@ A row the book holds is also exempt from the depth ratchet on reuse. Otherwise t
 
 #### Checks on what the debate says
 
+**A refuted claim holds a call only when the call rests on the debate.** A claim the evidence contradicts, arguing for the proposed action, turns a buy or an evidence sale into a hold. A sale under one of the plan's own reasons (`over-target`, `weak-signal`, `over-cap`) never rested on the debate's case, so there the refuted claim is named and lowers conviction instead. On an `over-cap` sale the roles are told which cap was passed (per-name, fund or sector), measured on the whole book, so the room left under another cap does not read as proof that none was passed.
+
 **A figure the evidence never printed is named, not judged.** After verification, every number in the material claims is compared by value with the numbers in the evidence. Units (`tỷ`, `bn`, `%` and the rest) are converted, a decimal comma and a decimal point both read, and a figure matches within half its last printed digit, so a rounded restatement still counts. Bare small counts and years are ignored.
 
 Any figure left over raises `suggestion.figure-unmatched` as an information caveat. It never changes a verdict. A sum or gap the analyst worked out matches nothing, and a free-text claim names no metric or period to check against, so which figure belongs to which line stays the verifier's call.

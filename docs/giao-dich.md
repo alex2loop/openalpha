@@ -249,6 +249,8 @@ Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lạ
 
 #### Kiểm tra những gì cuộc tranh luận nói
 
+**Một luận điểm bị dữ liệu bác bỏ chỉ giữ lại đề xuất khi đề xuất đó dựa vào cuộc tranh luận.** Một luận điểm ủng hộ hành động được đề xuất mà bằng chứng nói ngược lại sẽ biến lệnh mua, hay lệnh giảm bớt vì bằng chứng, thành giữ nguyên. Lệnh giảm bớt theo lý do của chính kế hoạch (`over-target`, `weak-signal`, `over-cap`) chưa bao giờ dựa vào lập luận của cuộc tranh luận, nên khi đó luận điểm bị bác bỏ chỉ được nêu ra và hạ mức tin cậy. Với lệnh `over-cap`, các vai được biết trần nào đã bị vượt (mỗi mã, quỹ hay ngành), đo trên toàn danh mục, để phần còn trống dưới một trần khác không bị đọc thành bằng chứng là chưa vượt trần nào.
+
 **Một con số mà bằng chứng chưa bao giờ in ra thì bị nêu tên, không bị phán xử.** Sau khâu kiểm chứng, mọi con số trong các khẳng định quan trọng được so theo giá trị với các con số trong bằng chứng. Các đơn vị (`tỷ`, `bn`, `%` và còn lại) được quy đổi, đọc được cả dấu phẩy lẫn dấu chấm thập phân, và một con số khớp nếu lệch không quá nửa chữ số cuối đã in, nên số đã làm tròn vẫn tính. Số đếm nhỏ trần và các năm bị bỏ qua.
 
 Con số nào còn lại được báo bằng `suggestion.figure-unmatched`, một caveat thông tin. Nó không bao giờ làm đổi kết luận. Một tổng hay một khoảng cách do nhà phân tích tự tính không khớp với số nào, và một khẳng định văn bản tự do không nêu chỉ số hay kỳ nào để đối chiếu, nên con số nào thuộc dòng nào vẫn do bên kiểm chứng quyết định.

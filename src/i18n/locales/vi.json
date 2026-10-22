@@ -1887,7 +1887,7 @@
     "finding.segment-drift": "Tỷ trọng nhóm {segment} là {weight} so với mục tiêu {target}.",
     "finding.concentration": "{ticker} chiếm {weight} danh mục - từ {cap} trở lên, riêng mã này giảm mạnh cũng đủ kéo cả danh mục xuống.",
     "finding.illiquid-position": "{ticker} cần hơn {days} phiên để thoát hàng.",
-    "finding.excluded-holding": "{ticker} nằm trong danh sách loại trừ nhưng vẫn đang nắm giữ - sẽ không mua thêm, và cũng không đề xuất bán.",
+    "finding.excluded-holding": "{ticker} nằm trong danh sách loại trừ nhưng vẫn đang nắm - sẽ không mua thêm, chỉ giảm bớt khi vượt trần trong hồ sơ.",
     "advice.unavailable.incomplete-valuation": "Chưa có đề xuất: ít nhất một mã chưa có giá nên không tính được tỷ trọng của mã đó.",
     "advice.unavailable.zero-nav": "Chưa có đề xuất: danh mục chưa ghi nhận giá trị nào. Hãy ghi nhận tiền mặt và các mã đang nắm bằng /record trước.",
     "advice.unavailable.insufficient-policy-input": "Chưa có đề xuất: một mã đang nắm chưa có dữ liệu sàng lọc. Chạy /refresh rồi thử lại.",

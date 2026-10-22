@@ -1887,7 +1887,7 @@
     "finding.segment-drift": "Your {segment} share is {weight} against a {target} target.",
     "finding.concentration": "{ticker} is {weight} of your portfolio - from {cap} up, a sharp drop in this name alone pulls the whole book down.",
     "finding.illiquid-position": "{ticker} would take more than {days} sessions to exit.",
-    "finding.excluded-holding": "{ticker} is on your exclusion list but still held - it will not be bought, and no exit is suggested for it.",
+    "finding.excluded-holding": "{ticker} is on your exclusion list but still held - it will not be bought, and is trimmed only when it runs past a cap.",
     "advice.unavailable.incomplete-valuation": "No suggestions yet: at least one holding has no price, so I can't work out its share of your portfolio.",
     "advice.unavailable.zero-nav": "No suggestions yet: your portfolio has no recorded value. Record your cash and holdings with /record first.",
     "advice.unavailable.insufficient-policy-input": "No suggestions yet: a holding has no screening data. Run /refresh, then try again.",
