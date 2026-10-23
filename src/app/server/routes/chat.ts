@@ -8,11 +8,12 @@ import type {
 } from '@/app/server/wire/chat'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { LLMMessage } from '@/core/llm'
-import { API_CHANNEL } from '@/app/server/channel'
+import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
-import { parseLimit } from '@/app/server/routes/params'
+import { localeOf, parseLimit } from '@/app/server/routes/params'
 import { sessionId as brandSessionId } from '@/core/ids'
+import { t } from '@/i18n'
 
 async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const sessionId = await ctx.app.resolve('sessionStore').latestIdForChannel(API_CHANNEL)
@@ -85,6 +86,16 @@ async function handleRespond(req: Request, ctx: ApiRouteContext): Promise<Respon
   }
 
   const body = parsed.data
+  const origin = ctx.live.pendingOrigin(body.requestId)
+
+  // The gate only takes an answer from the channel that asked, so an answer from here would be
+  // dropped without a word; say where it has to be given instead.
+  if (origin !== undefined && !isApiChannel(origin)) {
+    return apiError(
+      'conflict',
+      t(localeOf(ctx), 'errors.approvalOtherChannel', { channel: origin })
+    )
+  }
 
   ctx.app.resolve('bus').emit('approval_resolved', {
     requestId: body.requestId,

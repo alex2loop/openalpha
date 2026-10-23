@@ -16,10 +16,10 @@ import { CONTRACT_VERSION } from '@/app/server/wire/socket'
 import { resolveSessionId, runChat } from '@/app/server/ws/chat'
 import { abortSocketSession, send, sendRunError } from '@/app/server/ws/runs'
 import { runSlash } from '@/app/server/ws/slash'
-import { WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
+import { toApprovalWire, WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
 import { sessionId as brandSessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale, translateToolLabel } from '@/i18n'
+import { bindLocale } from '@/i18n'
 
 const MAX_SOCKETS = 8
 // Defense-in-depth: reject before JSON.parse regardless of the server-level maxPayloadLength.
@@ -92,13 +92,10 @@ export const wsHandlers: WebSocketHandler<WsData> = {
     // Subscribed one topic at a time on purpose: iterating the union would collapse the
     // payload types into their intersection, which no event satisfies.
     const offs = [
-      // Mirror only API-originated approvals; a channel run's approval resolves on its own channel.
+      // Every channel's approval is shown; only an API one is `answerable`, since a channel run's
+      // approval resolves on its own channel.
       bus.on('approval_requested', (e) => {
-        if (e.channel === 'api') {
-          const label = translateToolLabel(ws.data.services.locale, e.toolName, e.label)
-
-          relay(ws, WIRE_NORMALIZERS.approval_requested({ ...e, label }))
-        }
+        relay(ws, toApprovalWire(e, ws.data.services.locale))
       }),
       bus.on('approval_resolved', (e) => {
         relay(ws, WIRE_NORMALIZERS.approval_resolved(e))

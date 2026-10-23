@@ -11,7 +11,11 @@
     "replHelp": "Ask anything, or type /help for the commands. First time here? Run /refresh to load market data. /exit to leave, F2 accepts a suggestion, Ctrl-C cancels a running turn.",
     "runningTool": "{label}…",
     "providerFallback": "⚠️ provider fallback: {from} → {to} ({reason})",
-    "toolFailed": "Tool failed"
+    "toolFailed": "Tool failed",
+    "answerOn.telegram": "Answer in Telegram",
+    "answerOn.zalo": "Answer in Zalo",
+    "answerOn.cli": "Answer in the terminal",
+    "answerOn.other": "Answer in {channel}"
   },
   "footer": {
     "cost": "{cost}",
@@ -253,6 +257,7 @@
     "socialUsage": "Usage\n/social drafts\n/social approve <id>\n/social discard <id>"
   },
   "errors": {
+    "approvalOtherChannel": "This was asked on {channel}; answer it there.",
     "dbResetSharedSchema": "I won't reset the \"{schema}\" schema: other apps may keep tables there, and a reset drops everything in it. Give storage.schema a schema of its own (for example \"alpha\"), then run the reset again.",
     "dbSchemaAhead": "A newer release has already updated this database, and this version can't read it safely, so I stopped before touching anything. To get going again, go back to the newer release: `{upgrade} --rollback` if you just rolled back, `{upgrade}` otherwise. To stay on this version, restore the copy saved before that update with `{restore}`, using a file from {folder} in your data folder (SQLite only).",
     "profileOutOfBounds": "{field} takes a value from {minimum} to {maximum}. Type it as 20% or 0.2, whichever you prefer.",

@@ -61,7 +61,9 @@ export interface WireEvent {
   /** 'approval_requested': the gated tool. `label` is its name in the operator's language, as the
    *  CLI and channels print it; `expiresAt` (epoch ms) is when the gate denies on its own.
    *  `dangerous` → the elevated "--warn" tag. `decisions` are the only answers the gate accepts;
-   *  `truncated` says the arguments did not fit the prompt. */
+   *  `truncated` says the arguments did not fit the prompt. `channelId` is the raw channel that
+   *  asked (`source.channel` folds an unknown one into `api`); `answerable` is true only when
+   *  POST /v1/respond may answer it, that is when it was asked on `api`; `askedAt` is epoch ms. */
   readonly approval?: {
     readonly toolName: string
     readonly label: string
@@ -70,12 +72,22 @@ export interface WireEvent {
     readonly decisions: readonly Decision[]
     readonly dangerous?: boolean
     readonly truncated?: true
+    readonly channelId?: string
+    readonly answerable?: boolean
+    readonly askedAt?: number
   }
   /** 'approval_resolved': how it was answered (elsewhere / timeout) — clears the card. */
   readonly resolution?: { readonly decision: string; readonly by: Channel }
   /** 'clarification_requested': the answer is the next chat message in `sessionId`, sent on the
-   *  surface that asked (`source.channel`). */
-  readonly clarification?: { readonly text: string; readonly sessionId: string }
+   *  surface that asked (`channelId`, the raw channel id). `requestId` and `runId` ride on the event
+   *  itself; `askedAt` is epoch ms; `answerable` is true when that surface is `api`. */
+  readonly clarification?: {
+    readonly text: string
+    readonly sessionId: string
+    readonly askedAt?: number
+    readonly channelId?: string
+    readonly answerable?: boolean
+  }
   readonly budget?: { readonly period: string; readonly spent: number; readonly cap: number }
   /** 'provider_fallback': `from`/`to` are `provider/model`; `reason` is the runtime LLM error code
    *  that moved the chain on; `attempt` counts from 1. */

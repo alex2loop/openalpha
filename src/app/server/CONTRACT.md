@@ -62,7 +62,7 @@ this document — neither imports the other.
 |---|---|---|---|---|---|
 | GET | `/v1/health` | no | — | `HealthResponse` | `health.json` |
 | GET | `/v1/state` | yes | — | `StatePayload` | `state.json` |
-| GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking` and the `persistent` steps so far; `pending` is empty) | `live.json` |
+| GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking` and the `persistent` steps so far; `pending`: every approval and question still waiting on any channel, approvals first, each oldest first; an approval is `{kind:'approval',event,channelId,answerable}` where `event` is its `approval_requested` wire event, a question is `{kind:'question',requestId,runId,sessionId,channel,question,askedAt,answerable}`; `answerable` is true only for a request asked on `api`; an approval leaves on `approval_resolved` or its `expiresAt`, a question on the next agent run in its `sessionId` or after a day) | `live.json` |
 | GET | `/v1/doctor` | yes | — | `DoctorReport` | `doctor.json` |
 | GET | `/v1/commands` | yes | — | `CommandList` | `commands.json` |
 | GET | `/v1/update` | yes | — | `UpdateResponse` (`enabled` false when checks are off or the daemon runs from a source checkout; the release feed is read once a day; `latest` is the newest release whether or not it is newer than `current`) | `update.json` |
@@ -149,7 +149,7 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   still trading, which is neither.
 - **`/v1/respond`** answers one approval: `{ requestId, decision }`, where `requestId` is the
   `WireEvent.requestId` the client received (= the gate's `callId`). A clarification is not
-  answered here: its answer is the next chat message in its session (see §4).
+  answered here: its answer is the next chat message in its session (see §4). An approval asked on another channel answers `409 conflict` with `error.message` naming that channel; it is answered there.
 - **`/v1/profile` POST** applies a partial patch: keys left out keep their value, and a
   `horizons` map changes only the markets it names.
 - **`preferredLocale`** in a profile response is `[locale] language`, the one language every reply
@@ -208,9 +208,9 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 | `run_finished` | `outcome` | run lifecycle end: a run result reason (`completed`, `aborted`, `budget`, `error`, `turn_limit`, `loop`, `timeout`), or `done` / `cancelled` / `failed` for a command |
 | `usage` | `usage` `{costUsd,tokens}` | per-run cost/tokens tick |
 | `tool_result` | `tool` `{name,ok}` | a tool finished (afterTool) |
-| `approval_requested` | `approval` `{toolName,label,argsSummary,expiresAt,decisions,dangerous?,truncated?}` + `requestId` | tool-gate decision needed; offer only `decisions`. `label` is the tool's name in the operator's language; `expiresAt` (epoch ms) is when the gate denies on its own |
+| `approval_requested` | `approval` `{toolName,label,argsSummary,expiresAt,decisions,dangerous?,truncated?,channelId?,answerable?,askedAt?}` + `requestId` | tool-gate decision needed from any channel; offer only `decisions`, and only when `answerable` (`channelId` is the raw channel that asked; any other channel answers it there). `label` is the tool's name in the operator's language; `expiresAt` (epoch ms) is when the gate denies on its own |
 | `approval_resolved` | `resolution` `{decision,by}` + `requestId` | answered elsewhere / timeout → clear card |
-| `clarification_requested` | `clarification` `{text,sessionId}` | agent asks; the answer is the next chat message in `sessionId`, on the surface in `source.channel` |
+| `clarification_requested` | `clarification` `{text,sessionId,askedAt?,channelId?,answerable?}` + `requestId` + `runId` | agent asks; the answer is the next chat message in `sessionId`, on the surface in `channelId` (the raw channel id) |
 | `budget_warning` | `budget` `{period,spent,cap}` | non-interactive heads-up |
 | `provider_fallback` | `fallback` `{from,to,reason,attempt}` | provider fell back; `reason` is the LLM error code |
 | `pairing_requested` | `pairing` `{channel,chatId,code,expiresAt}` | a chat was sent a pairing code; answer with `POST /v1/pairing` (interrupt) |

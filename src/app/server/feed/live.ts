@@ -4,6 +4,7 @@ import type { EventBus } from '@/core/events'
 import type { RunId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
 import type { RunProgressMessage } from '@/engine/api'
+import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
 import {
   PROGRESS_NORMALIZERS,
@@ -18,6 +19,8 @@ const MAX_PERSISTENT_STEPS = 20
 
 export interface LiveFeed {
   snapshot(): LiveSnapshotWire
+  /** The raw channel an approval was asked on, or undefined for a request id the feed does not hold. */
+  pendingOrigin(requestId: string): string | undefined
   stop(): void
 }
 
@@ -34,16 +37,19 @@ interface LiveFeedDeps {
  *  relays per connection are not touched here. */
 export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
   const book = createRunBook(deps.isLive)
+  const pending = createPendingFeed(deps)
   const offs = [...followLifecycle(deps, book), ...followProgress(deps, book)]
 
   return {
-    snapshot: () => ({ runs: book.live(), pending: [] }),
+    snapshot: () => ({ runs: book.live(), pending: pending.list() }),
+    pendingOrigin: pending.originOf,
     stop: () => {
       for (const off of offs) {
         off()
       }
 
       book.clear()
+      pending.stop()
     },
   }
 }

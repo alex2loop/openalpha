@@ -1,9 +1,12 @@
 import type { Channel, WireEvent } from '@/app/server/wire/events'
 import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
 import type { BusEventMap } from '@/core/events'
-import { APP_SOURCE } from '@/app/server/channel'
+import type { Locale } from '@/core/types/locale'
+import { APP_SOURCE, isApiChannel } from '@/app/server/channel'
 import { WIRE_DECISION } from '@/app/server/decision'
+import { scrubCredentials } from '@/core/security/credentials'
 import { decisionsFor } from '@/engine/api'
+import { translateToolLabel } from '@/i18n'
 
 /** The bus topics the socket relays as wire_event frames. */
 type WireTopic =
@@ -53,6 +56,9 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
       expiresAt: e.expiresAt,
       decisions: decisionsFor(e.scope, e.oneTime).map((decision) => WIRE_DECISION[decision]),
       ...(e.truncated === undefined ? {} : { truncated: e.truncated }),
+      channelId: e.channel,
+      answerable: isApiChannel(e.channel),
+      askedAt: e.askedAt,
     },
   }),
   approval_resolved: (e) => ({
@@ -68,7 +74,15 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     kind: 'clarification_requested',
     weight: 'interrupt',
     source: { channel: wireChannel(e.channel), agentId: '' },
-    clarification: { text: e.question, sessionId: e.sessionId },
+    runId: e.runId,
+    requestId: e.requestId,
+    clarification: {
+      text: scrubCredentials(e.question),
+      sessionId: e.sessionId,
+      askedAt: e.askedAt,
+      channelId: e.channel,
+      answerable: isApiChannel(e.channel),
+    },
   }),
   budget_warning: (e) => ({
     v: 1,
@@ -134,6 +148,14 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     runId: e.runId,
     outcome: e.outcome,
   }),
+}
+
+/** The approval event with its tool label in the operator's language, as every surface prints it. */
+export function toApprovalWire(e: BusEventMap['approval_requested'], locale: Locale): WireEvent {
+  return WIRE_NORMALIZERS.approval_requested({
+    ...e,
+    label: translateToolLabel(locale, e.toolName, e.label),
+  })
 }
 
 export const PROGRESS_NORMALIZERS: {

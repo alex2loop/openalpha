@@ -11,7 +11,11 @@
     "replHelp": "Hỏi gì cứ gõ, /help để xem các lệnh. Mới dùng lần đầu thì gõ /refresh trước để nạp dữ liệu thị trường. /exit để thoát, F2 chấp nhận gợi ý, Ctrl-C hủy lượt đang chạy.",
     "runningTool": "{label}…",
     "providerFallback": "⚠️ chuyển nhà cung cấp: {from} → {to} ({reason})",
-    "toolFailed": "Công cụ không hoạt động"
+    "toolFailed": "Công cụ không hoạt động",
+    "answerOn.telegram": "Trả lời ở Telegram",
+    "answerOn.zalo": "Trả lời ở Zalo",
+    "answerOn.cli": "Trả lời ở terminal",
+    "answerOn.other": "Trả lời ở {channel}"
   },
   "footer": {
     "cost": "{cost}",
@@ -253,6 +257,7 @@
     "socialUsage": "Cách dùng\n/social drafts\n/social approve <id>\n/social discard <id>"
   },
   "errors": {
+    "approvalOtherChannel": "Yêu cầu này hỏi từ {channel}, bạn trả lời ở đó nhé.",
     "dbResetSharedSchema": "Mình không reset schema \"{schema}\": ứng dụng khác có thể đang để bảng ở đó, và reset sẽ xóa sạch mọi thứ bên trong. Hãy đặt storage.schema sang một schema riêng (ví dụ \"alpha\") rồi chạy reset lại.",
     "dbSchemaAhead": "Cơ sở dữ liệu này đã được một bản mới hơn cập nhật, và bản hiện tại không đọc nó an toàn được, nên mình dừng lại trước khi đụng vào. Để chạy lại, hãy quay về bản mới: `{upgrade} --rollback` nếu bạn vừa quay về bản cũ, còn không thì `{upgrade}`. Nếu muốn ở lại bản này, hãy khôi phục bản sao lưu trước lần cập nhật đó bằng `{restore}`, với một tệp trong {folder} ở thư mục dữ liệu (chỉ SQLite).",
     "profileOutOfBounds": "{field} chỉ nhận từ {minimum} đến {maximum}. Bạn gõ dạng 20% hay 0.2 đều được nhé.",

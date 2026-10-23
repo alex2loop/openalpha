@@ -33,6 +33,8 @@ declare module '@/core/events' {
       readonly oneTime?: true
       // Epoch ms, absolute: a surface's own clock would start after delivery, not before it.
       readonly expiresAt: number
+      // Epoch ms the gate asked; the same read as `expiresAt`, so every surface dates the prompt alike.
+      readonly askedAt: number
       // Which surface must render the prompt: every surface subscribes to one bus, so without this
       // a telegram run's approval would also prompt on the CLI and vice versa.
       readonly channel: ChannelId

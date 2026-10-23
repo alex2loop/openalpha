@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto'
+
 import { z } from 'zod'
 
 import type { ChannelId } from '@/core/channels'
-import type { SessionId } from '@/core/ids'
+import type { RunId, SessionId } from '@/core/ids'
 import type { ToolResult } from '@/core/tool'
 import { createTool } from '@/core/tool'
 
@@ -10,8 +12,12 @@ const CLARIFICATION_MAX_CHARS = 2_000
 declare module '@/core/events' {
   interface BusEventMap {
     // channel/chatId are how a subscriber routes the question back to the human who can answer it;
-    // a run with no chat (cli, scheduler) carries neither.
+    // a run with no chat (cli, scheduler) carries neither. `requestId` keys the pending question for
+    // a surface that lists it; `askedAt` is epoch ms.
     clarification_requested: {
+      readonly requestId: string
+      readonly runId: RunId
+      readonly askedAt: number
       readonly sessionId: SessionId
       readonly channel: ChannelId
       readonly chatId?: string
@@ -38,6 +44,9 @@ export const askClarificationTool = createTool({
   presentation: { label: 'Ask clarification', emoji: '🙋' },
   async execute(args, ctx): Promise<ToolResult> {
     ctx.bus.emit('clarification_requested', {
+      requestId: randomUUID(),
+      runId: ctx.runId,
+      askedAt: Date.now(),
       sessionId: ctx.sessionId,
       channel: ctx.channel,
       ...(ctx.chatId === undefined ? {} : { chatId: ctx.chatId }),
