@@ -94,6 +94,7 @@ function startLiveFeed(app: App): LiveFeed {
 
   return createLiveFeed({
     bus: app.resolve('bus'),
+    logger: app.resolve('logger'),
     broadcast,
     locale: app.config.locale.language,
     describeCommand: (name) => {

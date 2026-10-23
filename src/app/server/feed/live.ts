@@ -3,6 +3,7 @@ import type { LiveRunWire, LiveSnapshotWire, ProgressWire } from '@/app/server/w
 import type { BoardEntryWire } from '@/app/server/wire/notices'
 import type { BusEventMap, EventBus } from '@/core/events'
 import type { RunId } from '@/core/ids'
+import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { RunProgressMessage } from '@/engine/api'
 import { createAlertsFeed } from '@/app/server/feed/alerts'
@@ -24,6 +25,7 @@ import {
   toCommandRunWire,
   WIRE_NORMALIZERS,
 } from '@/app/server/ws/wire-events'
+import { formatErrForLog } from '@/core/security/credentials'
 
 /** Bounds the map of runs a client can ask about; the oldest go first. */
 const MAX_LIVE_RUNS = 200
@@ -46,6 +48,7 @@ interface LiveFeedDeps {
   readonly locale: Locale
   /** Whether the run is still running, by the run registry or the command dispatcher. */
   readonly isLive: (runId: RunId) => boolean
+  readonly logger: Logger
   /** A command's description in the daemon's language; undefined for a name no command holds. */
   readonly describeCommand: (name: string) => string | undefined
 }
@@ -97,6 +100,7 @@ interface Lifecycle {
 
 function followLifecycle(deps: LiveFeedDeps, { book, board }: Lifecycle): (() => void)[] {
   const { bus, broadcast } = deps
+  let boardFailureLogged = false
 
   return [
     bus.on('run_started', (e) => {
@@ -118,8 +122,17 @@ function followLifecycle(deps: LiveFeedDeps, { book, board }: Lifecycle): (() =>
     bus.on('command_finished', (e) => {
       const run = book.finish(e.runId)
 
-      noteResult(deps, board, { e, run })
+      // The finish goes out first: a board entry that fails to render must not leave a ghost run.
       broadcast(withTickers(WIRE_NORMALIZERS.command_finished(e), run))
+
+      try {
+        noteResult(deps, board, { e, run })
+      } catch (err: unknown) {
+        if (!boardFailureLogged) {
+          boardFailureLogged = true
+          deps.logger.warn('api.board_render_failed', { err: formatErrForLog(err) })
+        }
+      }
     }),
   ]
 }
