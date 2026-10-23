@@ -191,10 +191,10 @@ async function create(
     return { kind: 'inserted', alert }
   }
 
+  // A live row of another origin at the same level already carries the notice; reconcile retires it.
   const existing =
-    alert.origin === undefined
-      ? await findLive(deps, alert)
-      : await findLiveByOrigin(deps, alert.origin, signal)
+    (alert.origin === undefined ? null : await findLiveByOrigin(deps, alert.origin, signal)) ??
+    (await findLive(deps, alert))
 
   if (!existing) {
     throw new ValidationError('alert insert conflicted with no live row')

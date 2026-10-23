@@ -7,6 +7,42 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.0.17] - 2026-10-23
+
+`/themes run <id>` reports on one theme, an ended theme says why and what to do, a leftover
+sliver no longer blanks NAV, and the chat agent no longer sees your loss figures. No database
+change.
+> `/themes run <id>` giờ báo cáo riêng một chủ đề, chủ đề đã kết thúc nói rõ lý do và việc cần làm, phần cổ phiếu lẻ còn sót không còn làm trống tổng tài sản, và trợ lý chat không còn thấy số lỗ của bạn. Không đổi cơ sở dữ liệu.
+
+### Themes
+
+- `/themes run <id>` reports on that theme alone, its sectors and companies included.
+- An ended theme is labelled "Ended", hides its odds, says why and suggests `/themes retire <id>`.
+- A proposed theme lists every condition that would end it, each naming a figure and a period.
+- The track record and "was" compare only scores made the same way.
+- A failed sector check keeps the previous sectors, dated; low-confidence names stay under their
+  sector instead of ranking among the top stocks.
+- Macro and quarter lookbacks are more careful, and each run reads headlines archived since the
+  last one.
+
+### Suggestions, portfolio and alerts
+
+- The report the chat agent relays drops your realized loss and how far a holding sits under
+  cost.
+- An unpriced sliver below the venue's smallest order counts at cost instead of blanking NAV.
+- Adding to a held name no longer counts against `maximum_open_trades`.
+- A segment with a target and nothing held now reports its drift.
+- `/update` keeps a row's note and exit leg.
+- Track record, calibration and debate history fold repeated calls and stay within their focus.
+- Exit alerts at an existing level no longer fail every minute; a missing price series is
+  retried every 15 minutes.
+- `/profile set preferred-locale` is gone: replies always follow `[locale] language`.
+- `/watchlist` and `/alert` show progress; `key set` suggests the name your config reads.
+
+### Docs
+
+- Fixed several command descriptions that had drifted from the code.
+
 ## [1.0.16] - 2026-10-22
 
 VN funds are now treated as index trackers, `/rebalance` sells a holding back to its cap and says
@@ -287,6 +323,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.0.17]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.17
 [1.0.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.15
 [1.0.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.14
 [1.0.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.13

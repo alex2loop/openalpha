@@ -65,7 +65,12 @@ export function createAlertCommand(deps: AlertCommandDeps): SlashCommand {
       'slash.tradingAlertThreshold',
       SYNTAX_POINTER_KEY,
     ],
-    policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
+    policy: {
+      surfaces: ['channel', 'repl'],
+      role: 'operator',
+      action: 'mutate',
+      execution: { progressKey: 'slash.tradingAlertProgress' },
+    },
     // The verb only: everything after it is the name being typed and its condition.
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),

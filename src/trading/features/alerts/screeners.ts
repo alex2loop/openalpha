@@ -1,4 +1,3 @@
-import type { Locale } from '@/core/types/locale'
 import type { AlertStore } from '@/trading/features/alerts/store/alert'
 import type { Alert, AlertDraft, AlertOrigin, AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
@@ -29,13 +28,9 @@ export interface ScreenerReconcileDeps {
   readonly markets: MarketRegistry
   readonly marketDataStore: MarketDataStore
   readonly policy: AlertPolicy
-  readonly defaultLocale: Locale
   /** The operator's policy, injected rather than imported: a screener reads the watchlist and the
    *  exclusions, and nothing else about the profile feature. */
-  getProfile(options: {
-    readonly defaultLocale: Locale
-    readonly signal: AbortSignal
-  }): Promise<UserProfile>
+  getProfile(options: { readonly signal: AbortSignal }): Promise<UserProfile>
   tradeableHoldingsAt(options: PortfolioAtOptions): Promise<readonly Holding[]>
 }
 
@@ -63,7 +58,7 @@ async function expectedDrafts(
   options: OperationTickOptions
 ): Promise<ReadonlyMap<AlertOrigin, AlertDraft>> {
   const [profile, holdings] = await Promise.all([
-    deps.getProfile({ defaultLocale: deps.defaultLocale, signal: options.signal }),
+    deps.getProfile({ signal: options.signal }),
     deps.tradeableHoldingsAt({ now: options.now, signal: options.signal }),
   ])
   const instruments = dedupeInstruments([

@@ -67,6 +67,10 @@ const ARMS: Readonly<Record<string, Arm>> = Object.freeze({
   'hold on a fund': (held) => holdOf(held, { direction: 'buy', reviewOnly: true }),
   'buy adding to a holding': (held) => actionableOf(held, 'buy'),
   'reduce of a holding': (held) => actionableOf(held, 'reduce'),
+  'buy carrying the holding\'s own caveats': (held) => ({
+    ...actionableOf(held, 'buy'),
+    caveats: operatorCaveatsOf(held),
+  }),
 })
 
 const REPORT_DEPS: SuggestionReportDeps = {
@@ -142,6 +146,16 @@ function actionableOf(held: HeldPosition, action: 'buy' | 'reduce'): StoredSugge
     action,
     thesis: 'fixture',
   }
+}
+
+/** Figures read off the holding's cost, so a report that prints them changes with the cost. */
+function operatorCaveatsOf(held: HeldPosition): StoredSuggestion['caveats'] {
+  const underwater = 1 - LEVELS.entry / held.unitCostNative
+
+  return [
+    { code: 'suggestion.averaging-down', detail: { underwater } },
+    { code: 'suggestion.recent-exit', detail: { realizedLoss: underwater, sessions: 4 } },
+  ]
 }
 
 function reportOf(

@@ -40,7 +40,6 @@ function createRebalanceViews(deps: RebalanceViewDeps): RebalanceViews {
         ...(request.tickers === undefined ? {} : { tickers: request.tickers }),
       })
       const profile = await deps.profiles.get({
-        defaultLocale: request.locale,
         signal: request.signal,
       })
       const instruments =

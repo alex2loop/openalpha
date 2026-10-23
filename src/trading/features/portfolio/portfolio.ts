@@ -396,6 +396,7 @@ async function valuedFor(
     ...options,
     asOf: resolveAsOf(deps, options.now),
     settledDay: resolveSettled(deps, options.now),
+    minimumSizes: (positions, signal) => minimumSizesByInstrument(deps.venues, positions, signal),
   })
 }
 

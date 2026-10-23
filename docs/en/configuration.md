@@ -267,7 +267,7 @@ cap are in [Cost and budgets](budgets.md).
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `language` | string | `vi` | `en` or `vi`. |
+| `language` | string | `vi` | `en` or `vi`. The one language every reply, brief and alert is written in; the investment profile has none of its own. |
 | `timezone` | string | host zone (`UTC` if none) | IANA name, for example `Asia/Ho_Chi_Minh`. New cron jobs snapshot this value unless `--tz` overrides it; interval schedules reject `--tz`. |
 | `currency` | string | `VND` | ISO 4217 code (three capital letters). Trading's base currency; `onboard` asks it on first setup and writes it here. Fixed once your book has a profile: a later change is refused, and `doctor` names the mismatch on its `database` row. |
 | `region` | string | `vn` | Home region; only `vn` today. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national segments plus crypto. |
@@ -716,7 +716,7 @@ confirm_multiple = 10          # ask before saving a typed price this many times
 
 [trading.orders]
 maximum_stake_quote = 0        # 0 = uncapped; estimated notional in USDT on okx and binance
-maximum_open_trades = 0        # 0 = uncapped; open positions plus orders not yet in the book
+maximum_open_trades = 0        # 0 = uncapped; open positions plus orders not yet in the book; adding to a held name is not a new one
 maximum_price_drift = 0.005    # a fraction, not a percent: 0.005 is half a percent
 allow_unattended = false       # permit an order when approval mode is "bypass"
 require_stop_loss = true       # refuse a buy that names no stop-loss

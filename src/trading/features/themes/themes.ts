@@ -41,7 +41,10 @@ export function createThemeService(deps: ThemeRunDeps): ThemeService {
         const failure = await runThemes(deps, request)
 
         return (
-          failure ?? { kind: 'report', report: await loadThemeReport(deps.store, request.signal) }
+          failure ?? {
+            kind: 'report',
+            report: await loadThemeReport(deps.store, request.signal, request.themeId),
+          }
         )
       } finally {
         running = false

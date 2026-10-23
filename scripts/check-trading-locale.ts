@@ -32,7 +32,8 @@ const CODE_GROUP_PREFIXES = TRADING_CODE_GROUPS.map((group) => `${group.prefix}.
 /** What fits under a row on a phone: two sentences. */
 const NOTE_MAXIMUM_CHARACTERS = 120
 const NOTE_PREFIXES = ['trading.caveat.', 'trading.finding.']
-const SINGULAR_SUFFIX = 'One'
+/** `One` is a code's singular sentence; `Withheld` states it without the operator's own figure. */
+const VARIANT_SUFFIXES = ['One', 'Withheld'] as const
 const USAGE_KEY = /^slash\.\w*Usage$/
 const RANK_NOTATION = /\bp\d{1,3}\b/
 
@@ -151,9 +152,11 @@ function orphanedKeys(catalog: Catalog, reachable: ReachableKeys): readonly stri
   )
 }
 
-/** A code's `One` key is its singular sentence (`caveat.ts` picks it when the detail's count is 1). */
-function withoutSingularSuffix(key: string): string {
-  return key.endsWith(SINGULAR_SUFFIX) ? key.slice(0, -SINGULAR_SUFFIX.length) : key
+/** The code a variant key belongs to (`caveat.ts` picks the variant). */
+function withoutVariantSuffix(key: string): string {
+  const suffix = VARIANT_SUFFIXES.find((variant) => key.endsWith(variant))
+
+  return suffix === undefined ? key : key.slice(0, -suffix.length)
 }
 
 /** The direction the boot gate structurally cannot check: it asks "is every derived key present?",
@@ -163,7 +166,7 @@ function orphanedCodeKeys(catalog: Catalog): readonly string[] {
   const derived = new Set(DERIVED_CODE_KEYS)
 
   return [...catalog.keys].filter((key) => {
-    if (!key.startsWith('trading.') || derived.has(key) || derived.has(withoutSingularSuffix(key))) {
+    if (!key.startsWith('trading.') || derived.has(key) || derived.has(withoutVariantSuffix(key))) {
       return false
     }
 

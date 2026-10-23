@@ -29,7 +29,11 @@ import {
   assertVenuesKnown,
   orderLedger,
 } from '@/trading/features/ledger/validate'
-import { buildRequestFingerprint, finalizeTransaction } from '@/trading/features/ledger/write'
+import {
+  buildRequestFingerprint,
+  finalizeTransaction,
+  withKeptAnnotations,
+} from '@/trading/features/ledger/write'
 import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { isIdRef } from '@/trading/kernel/instrument'
@@ -115,12 +119,12 @@ export async function mutateLedger(
     return { kind: 'deleted', entry, book: await bookAfter(deps, folded, mutation) }
   }
 
+  const previous = await deps.ledger.findById(id, mutation.signal)
+  const draft =
+    previous === null ? mutation.draft : withKeptAnnotations(mutation.draft, previous.transaction)
   // Resolved fresh rather than carried over: moving a trade to another day moves its settlement day
   // and may move the FX rate its base-currency value was struck at.
-  const transaction = await finalizeTransaction(deps, {
-    draft: mutation.draft,
-    signal: mutation.signal,
-  })
+  const transaction = await finalizeTransaction(deps, { draft, signal: mutation.signal })
 
   assertVenuesKnown(transaction, venueManifestOf(deps))
   await assertTradePrice(deps, {
@@ -130,7 +134,7 @@ export async function mutateLedger(
     signal: mutation.signal,
   })
   await assertFxRateUsed(deps, {
-    draft: mutation.draft,
+    draft,
     transaction,
     replacing: id,
     signal: mutation.signal,

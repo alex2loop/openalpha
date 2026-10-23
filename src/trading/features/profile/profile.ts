@@ -1,4 +1,3 @@
-import type { Locale } from '@/core/types/locale'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type {
   GetProfileOptions,
@@ -34,8 +33,6 @@ interface ProfileServiceDeps {
   /** The first stored profile fixes the currency, so a later config change cannot reinterpret
    *  historical facts. */
   readonly baseCurrency: CurrencyCode
-  /** The locale a seeded profile carries when the caller admits none of its own. */
-  readonly defaultLocale: Locale
   /** The operator's home region: a national market seeds a target only there. */
   readonly homeRegion: Region
   /** The markets some venue holds; the rest are read for reference and never sized. */
@@ -156,7 +153,6 @@ async function resolve(
   }
 
   const seeded = defaultProfile({
-    preferredLocale: options.defaultLocale,
     baseCurrency: deps.baseCurrency,
     segments: contextOf(deps).segments,
   })

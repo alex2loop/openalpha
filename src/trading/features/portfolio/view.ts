@@ -1,6 +1,7 @@
 import type { LedgerStore } from '@/trading/features/ledger/store/ledger'
 import type { MarketDataStore } from '@/trading/features/market-data/store/market-data'
 import type { MarketDataService } from '@/trading/features/market-data/types'
+import type { ResidueSizing } from '@/trading/features/portfolio/folds/holdings'
 import type {
   RelativePortfolioView,
   RelativePositionView,
@@ -50,6 +51,7 @@ interface ValuedViewOptions extends ViewOptions {
   /** The last session the region closed — what a mark is old against. Separate from `asOf`, which
    *  is the calendar day and is a non-trading one every weekend. */
   readonly settledDay: TradingDay
+  readonly minimumSizes?: ResidueSizing['minimumSizes']
 }
 
 /** Positions are always a fold of the ledger, never a stored balance: there is no second copy that
@@ -101,6 +103,7 @@ export async function loadValuedContext(
     sectorFor: (instrument) => instruments.get(buildInstrumentKey(instrument))?.sector,
     instrumentKindFor: (instrument) =>
       instruments.get(buildInstrumentKey(instrument))?.instrumentKind,
+    ...(options.minimumSizes === undefined ? {} : { minimumSizes: options.minimumSizes }),
     signal: options.signal,
   })
 

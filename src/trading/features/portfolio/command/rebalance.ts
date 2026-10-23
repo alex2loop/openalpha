@@ -58,7 +58,7 @@ async function run(deps: AdviceCommandDeps, ctx: SlashContext): Promise<SlashRes
     signal: ctx.signal,
     ...(tickers === null ? {} : { tickers }),
   })
-  const profile = await deps.profiles.get({ defaultLocale: ctx.locale, signal: ctx.signal })
+  const profile = await deps.profiles.get({ signal: ctx.signal })
 
   return {
     kind: 'text',

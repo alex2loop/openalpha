@@ -62,7 +62,6 @@ export async function scopedSlow<T>(
 
 export function profileOf(deps: TradingHostDeps, scope: RequestScope): Promise<UserProfile> {
   return deps.services.profiles.get({
-    defaultLocale: deps.defaultLocale,
     signal: scope.signal,
   })
 }

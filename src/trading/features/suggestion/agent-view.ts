@@ -6,17 +6,10 @@ import type {
 } from '@/trading/features/suggestion/batch-types'
 import type { HeadlinesRead } from '@/trading/features/suggestion/citation'
 import type { HeldPosition } from '@/trading/features/suggestion/exposure'
-import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
-import type {
-  TrackRecordReport,
-  TrackRecordSummary,
-} from '@/trading/features/suggestion/track-record/types'
 import type {
   ActionableStoredSuggestion,
   PriceBandNote,
-  ResolvedActionableSuggestion,
   StoredSuggestion,
-  SuggestionOutcome,
   SuggestionQuote,
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
@@ -45,6 +38,7 @@ type RewrittenField =
   | 'takeProfit'
   | 'atr'
   | 'raisedStopFrom'
+  | 'trailingStop'
   | 'quote'
   | 'composite'
   | 'factorScores'
@@ -60,7 +54,7 @@ export type AgentMarketData = Pick<MarketDataService, 'quoteConvention' | 'board
 
 /** Who reads the projection: `audience` decides whether the order quantity ships, `locale` the
  *  language every written value is in, and `marketData` how each market quotes and trades. */
-interface AgentReader extends Pick<ToolInvocationContext, 'audience' | 'locale'> {
+export interface AgentReader extends Pick<ToolInvocationContext, 'audience' | 'locale'> {
   readonly marketData: AgentMarketData
 }
 
@@ -78,8 +72,11 @@ type AgentHeldTakeProfit =
   | { readonly kind: 'taken' }
   | { readonly kind: 'sell'; readonly sellPct: number }
 
-/** The venue's band in percent, as a model reads every `Pct`; the floor and ceiling are prices. */
-type AgentPriceBand = Omit<PriceBandNote, 'maximumUpPct' | 'maximumDownPct'> & {
+/** The venue's band in percent, as a model reads every `Pct`; the floor and ceiling written as
+ *  prices. */
+interface AgentPriceBand {
+  readonly floor: string
+  readonly ceiling: string
   readonly maximumUpPct: number
   readonly maximumDownPct: number
 }
@@ -93,6 +90,7 @@ interface AgentFields {
   readonly takeProfit?: string
   readonly atr?: string
   readonly raisedStopFrom?: string
+  readonly trailingStop?: string
   readonly quote?: WrittenQuote<SuggestionQuote>
   readonly composite: Omit<FactorComposite, 'score'>
   readonly factorScores: readonly AgentFactor[]
@@ -128,24 +126,6 @@ interface AgentBatchResult {
   readonly overcommit: readonly BatchOvercommit[]
 }
 
-/** A scored call as the record lists it: which call, the levels it named and how it ended. */
-interface AgentScoredCall
-  extends Pick<
-    ResolvedActionableSuggestion,
-    'instrument' | 'at' | 'strategyVersion' | 'horizon' | 'conviction' | 'action' | 'probability'
-  > {
-  readonly entry: string
-  readonly stop: string
-  readonly target: string
-  readonly takeProfit: string
-  readonly outcome: SuggestionOutcome
-}
-
-interface AgentTrackRecordReport {
-  readonly summary: TrackRecordSummary
-  readonly recent: readonly AgentScoredCall[]
-}
-
 export function toAgentRunResult(result: SuggestionRunResult, reader: AgentReader): AgentRunResult {
   return mapStoredSuggestion(result, (suggestion) => toAgentSuggestion(suggestion, reader))
 }
@@ -164,16 +144,6 @@ export function toAgentBatchResult(
   reader: AgentReader
 ): AgentBatchResult {
   return { ...batch, results: batch.results.map((result) => toAgentRunResult(result, reader)) }
-}
-
-export function toAgentTrackRecord(
-  report: TrackRecordReport,
-  reader: AgentReader
-): AgentTrackRecordReport {
-  return {
-    summary: agentSummary(report.summary),
-    recent: report.recent.map((suggestion) => toScoredCall(suggestion, reader)),
-  }
 }
 
 /** Only the two arms that carry a stored suggestion have one to rewrite. */
@@ -215,6 +185,7 @@ function toAgentSuggestion(call: StoredSuggestion, reader: AgentReader): AgentSu
     takeProfit: _takeProfit,
     atr: _atr,
     raisedStopFrom: _raisedStopFrom,
+    trailingStop: _trailingStop,
     quote: _quote,
     composite: _composite,
     factorScores: _factorScores,
@@ -224,12 +195,13 @@ function toAgentSuggestion(call: StoredSuggestion, reader: AgentReader): AgentSu
     headlinesRead: _headlinesRead,
     ...rest
   } = suggestion
+  const price = priceWriter(suggestion.instrument, reader)
 
   return {
     ...rest,
     ...fields,
     ...(sizePctNav === undefined ? {} : { sizePctNav }),
-    ...(priceBand === undefined ? {} : { priceBand: agentPriceBand(priceBand) }),
+    ...(priceBand === undefined ? {} : { priceBand: agentPriceBand(priceBand, price) }),
     ...operatorUnits(reader.audience, units),
   }
 }
@@ -246,6 +218,7 @@ function toAgentHold(
     target: _target,
     takeProfit: _takeProfit,
     raisedStopFrom: _raisedStopFrom,
+    trailingStop: _trailingStop,
     quote: _quote,
     composite: _composite,
     factorScores: _factorScores,
@@ -263,9 +236,10 @@ function toAgentHold(
   }
 }
 
-function agentPriceBand(band: PriceBandNote): AgentPriceBand {
+function agentPriceBand(band: PriceBandNote, price: PriceWriter): AgentPriceBand {
   return {
-    ...band,
+    floor: price(band.floor),
+    ceiling: price(band.ceiling),
     maximumUpPct: fractionToPct(band.maximumUpPct),
     maximumDownPct: fractionToPct(band.maximumDownPct),
   }
@@ -304,6 +278,7 @@ function agentFields(suggestion: StoredSuggestion, reader: AgentReader): AgentFi
     ...levelField('takeProfit', suggestion.standingTakeProfit ?? suggestion.takeProfit, price),
     ...levelField('atr', suggestion.action === 'hold' ? undefined : suggestion.atr, price),
     ...levelField('raisedStopFrom', suggestion.raisedStopFrom, price),
+    ...levelField('trailingStop', suggestion.trailingStop, price),
     ...(suggestion.quote === undefined ? {} : { quote: writtenQuote(suggestion.quote, price) }),
     composite,
     factorScores: suggestion.factorScores.map((factor) => agentFactor(factor, reader)),
@@ -327,7 +302,7 @@ function standingExitField(
     : { standingExit: { stop: price(exit.stop), takeProfit: price(exit.takeProfit) } }
 }
 
-function priceWriter(instrument: InstrumentRef, reader: AgentReader): PriceWriter {
+export function priceWriter(instrument: InstrumentRef, reader: AgentReader): PriceWriter {
   const quoted = reader.marketData.quoteConvention(instrument.market) ?? {}
 
   return (value) => formatScaledPrice(reader.locale, value, quoted)
@@ -380,66 +355,6 @@ function takeProfitFields(
         ? { kind: 'taken' }
         : { kind: 'sell', sellPct: fractionToPct(exit.shareOfHeld) },
   }
-}
-
-/** Rebuilt field by field, so a field added to the stored row stays out until someone adds it here. */
-function toScoredCall(
-  suggestion: ResolvedActionableSuggestion,
-  reader: AgentReader
-): AgentScoredCall {
-  const price = priceWriter(suggestion.instrument, reader)
-
-  return {
-    instrument: suggestion.instrument,
-    at: suggestion.at,
-    strategyVersion: suggestion.strategyVersion,
-    horizon: suggestion.horizon,
-    conviction: suggestion.conviction,
-    action: suggestion.action,
-    entry: price(suggestion.entry),
-    stop: price(suggestion.stop),
-    target: price(suggestion.target),
-    takeProfit: price(suggestion.takeProfit),
-    ...(suggestion.probability === undefined ? {} : { probability: suggestion.probability }),
-    outcome: agentOutcome(suggestion.outcome),
-  }
-}
-
-/** The record stores returns as fractions; a model reads every `Pct` as percent. */
-function agentOutcome(outcome: SuggestionOutcome): SuggestionOutcome {
-  return {
-    ...outcome,
-    returnPct: fractionToPct(outcome.returnPct),
-    ...(outcome.benchmarkReturnPct === undefined
-      ? {}
-      : { benchmarkReturnPct: fractionToPct(outcome.benchmarkReturnPct) }),
-  }
-}
-
-function agentSummary(summary: TrackRecordSummary): TrackRecordSummary {
-  return {
-    ...summary,
-    ...percentField('meanReturnPct', summary.meanReturnPct),
-    ...percentField('medianReturnPct', summary.medianReturnPct),
-    ...percentField('benchmarkMeanReturnPct', summary.benchmarkMeanReturnPct),
-    calibration: summary.calibration.map(agentBucket),
-  }
-}
-
-function agentBucket(bucket: CalibrationBucket): CalibrationBucket {
-  return {
-    ...bucket,
-    ...percentField('meanReturnPct', bucket.meanReturnPct),
-    ...percentField('meanWinPct', bucket.meanWinPct),
-    ...percentField('meanLossPct', bucket.meanLossPct),
-  }
-}
-
-function percentField<K extends string>(
-  key: K,
-  fraction: number | undefined
-): Partial<Record<K, number>> {
-  return fraction === undefined ? {} : ({ [key]: fractionToPct(fraction) } as Record<K, number>)
 }
 
 /** Rebuilt field by field rather than spread minus keys, so an absolute figure added to

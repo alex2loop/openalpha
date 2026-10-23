@@ -64,10 +64,9 @@ interface IntradayBookReader {
 /** The watchlist, read through the profile that owns it. Narrowed to the one field this report
  *  needs, so the reader cannot reach the operator's limits. */
 interface IntradayWatchlistReader {
-  get(options: {
-    readonly defaultLocale: Locale
-    readonly signal: AbortSignal
-  }): Promise<{ readonly watchlist: readonly InstrumentRef[] }>
+  get(options: { readonly signal: AbortSignal }): Promise<{
+    readonly watchlist: readonly InstrumentRef[]
+  }>
 }
 
 export interface IntradayReportDeps {
@@ -95,7 +94,7 @@ export async function buildIntradayReport(
   const calendar = plan.market.manifest.calendar
   const [positions, profile] = await Promise.all([
     deps.book.tradeableHoldingsAt({ now, signal }),
-    deps.profiles.get({ defaultLocale: deps.locale, signal }),
+    deps.profiles.get({ signal }),
   ])
   const held = heldByBasis(positions)
   const watched = dedupeInstruments(profile.watchlist)

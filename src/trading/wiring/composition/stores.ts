@@ -1,4 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
+import type { Locale } from '@/core/types/locale'
 import type { Dialect, Storage } from '@/core/types/storage'
 import type { AlertStore } from '@/trading/features/alerts/store/alert'
 import type { BriefStore } from '@/trading/features/brief/store/brief'
@@ -66,6 +67,7 @@ interface CreateTradingStoresOptions {
   readonly dialect: Dialect
   readonly logger: Logger
   readonly maximumEntries: number
+  readonly locale: Locale
 }
 
 export const createTradingStores = (options: CreateTradingStoresOptions): TradingStores => {
@@ -74,7 +76,7 @@ export const createTradingStores = (options: CreateTradingStoresOptions): Tradin
   return Object.freeze({
     ledger: createLedgerStore({ ...deps, maximumEntries: options.maximumEntries }),
     navSnapshot: createNavSnapshotStore(deps),
-    profile: createProfileStore(deps),
+    profile: createProfileStore({ ...deps, locale: options.locale }),
     suggestion: createSuggestionStore({ ...deps, logger: options.logger }),
     agentFocuses: createAgentFocusStore(deps),
     factorLog: createFactorLogStore(deps),

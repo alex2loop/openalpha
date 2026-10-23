@@ -167,7 +167,7 @@ max_daily_usd = 2           # 0 = uncapped
 # ---- Locale -----------------------------------------------------------------
 
 [locale]
-language = "vi"                   # vi | en
+language = "vi"                   # vi | en; every reply, brief and alert uses it
 # timezone = "UTC"                # IANA tz; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
 # region = "vn"                   # home market: vn (world gold owns global but is reference only). Leads the brief,
@@ -288,7 +288,7 @@ language = "vi"                   # vi | en
 # Orders on okx and binance.
 # [trading.orders]
 # maximum_stake_quote = 0            # most one buy may spend, in USDT; 0 = uncapped
-# maximum_open_trades = 0            # max concurrent open trades a buy may add to; 0 = uncapped
+# maximum_open_trades = 0            # max open positions a new buy may add to (adding to a held name is not a new one); 0 = uncapped
 # maximum_price_drift = 0.005        # how far a limit may sit from the live quote, and the live quote
 #                                    # from the one you were shown (market orders), as a fraction
 # allow_unattended = false           # true = allow orders without interactive approval

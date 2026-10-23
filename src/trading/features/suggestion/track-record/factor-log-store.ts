@@ -205,22 +205,8 @@ async function listPending(
   const page = toPage(rows, options.batchSize, (row) => factorLogId(row.id))
 
   return {
-    items: page.items.flatMap(readablePending),
+    items: page.items.flatMap((row) => readableRow(row, toPending)),
     ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
-  }
-}
-
-/** A row whose payload no longer parses is skipped, so one corrupt row cannot stall the loop for
- *  every row behind it. Only a storage failure is skipped: anything else is a defect here. */
-function readablePending(row: FactorLogRow): readonly PendingFactorLogEntry[] {
-  try {
-    return [toPending(row)]
-  } catch (err: unknown) {
-    if (err instanceof StorageError) {
-      return []
-    }
-
-    throw err
   }
 }
 
@@ -280,7 +266,22 @@ async function listResolved(
     [options.limit]
   )
 
-  return rows.map(toResolved)
+  return rows.flatMap((row) => readableRow(row, toResolved))
+}
+
+/** A row whose payload no longer parses, or names a member a rename retired, is skipped: one such
+ *  row must not stall the outcome loop or take `/reflect` down with it. Only a storage failure is
+ *  skipped; anything else is a defect here. */
+function readableRow<T>(row: FactorLogRow, read: (row: FactorLogRow) => T): readonly T[] {
+  try {
+    return [read(row)]
+  } catch (err: unknown) {
+    if (err instanceof StorageError) {
+      return []
+    }
+
+    throw err
+  }
 }
 
 function toEntry(row: FactorLogRow): FactorLogEntry {

@@ -71,7 +71,9 @@ Một số mục theo từng thị trường (`reading`, `market-prices`, `marke
 
 ## Chấm điểm chủ đề
 
-Các lần đọc chủ đề, ngành và cổ phiếu dùng chung bảng `theme_reads` (một cấp và một chủ thể). Mã chấm mỗi cái 0-100 trong [`features/themes/score/`](../../src/trading/features/themes/score/) từ các trọng số cố định; `SCORE_VERSION` được lưu cùng lượt chạy, và các phần đi trong payload để tính lại được điểm.
+Các lần đọc chủ đề, ngành và cổ phiếu dùng chung bảng `theme_reads` (một cấp và một chủ thể). Mã chấm mỗi cái 0-100 trong [`features/themes/score/`](../../src/trading/features/themes/score/) từ các trọng số cố định; `SCORE_VERSION` được lưu cùng lượt chạy, và các phần đi trong payload để tính lại được điểm. Bảng thành tích chỉ đọc kết quả của các lượt mang `SCORE_VERSION` hiện tại, nên khi đổi trọng số, thang đo hay quy tắc độ phủ thì phải tăng phiên bản này trong cùng commit. `check-strategy-version` băm toàn bộ các file tính điểm và báo lỗi cho tới khi thay đổi được ghi lại bằng `--write`.
+
+Tin tức của một lượt chạy lấy từ `NewsArchiveStore.listArchived`: các tin vào kho (`fetched_at`) kể từ lần đọc cũ nhất của các chủ thể lượt đó đọc, không phải các tin đăng từ lúc đó, nên tin vào kho muộn vẫn được đọc đúng một lần.
 
 ## Định giá và cuốn sổ
 

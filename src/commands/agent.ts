@@ -63,7 +63,12 @@ async function runAgentCommand(deps: AgentCommandDeps, ctx: SlashContext): Promi
   if (ctx.args.length > 1) {
     return {
       kind: 'message',
-      messages: [{ key: 'slash.agentUnknown', values: { id: '', list: agentList(deps.agents) } }],
+      messages: [
+        {
+          key: 'slash.agentUnknown',
+          values: { id: ctx.args.join(' '), list: agentList(deps.agents) },
+        },
+      ],
     }
   }
 

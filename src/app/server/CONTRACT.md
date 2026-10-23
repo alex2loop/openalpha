@@ -149,6 +149,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   answered here: its answer is the next chat message in its session (see §4).
 - **`/v1/profile` POST** applies a partial patch: keys left out keep their value, and a
   `horizons` map changes only the markets it names.
+- **`preferredLocale`** in a profile response is `[locale] language`, the one language every reply
+  uses; the profile has none of its own, so it is not a patch key.
 - **`/v1/providers/test`** makes one tiny call through the primary model. `code` is the provider's
   error class (`auth` = key refused, `billing` = no credit, `rate`, `timeout`, `not_found`).
 - **Before a daemon exists**, the app runs `openalpha setup catalog` (the provider list as

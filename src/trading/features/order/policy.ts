@@ -15,6 +15,8 @@ interface CapInput {
   readonly availableCashBase: number
   readonly venue: VenueRef
   readonly openTrades: number
+  /** False for a buy that adds to a held name: the open-trade ceiling counts positions, not fills. */
+  readonly opensPosition: boolean
   readonly hasStopLoss: boolean
 }
 
@@ -41,7 +43,11 @@ export function validateOrderCaps(input: CapInput): readonly CapRejection[] {
     rejections.push({ code: 'stake', limit: policy.maximumStakeQuote, actual: input.notional })
   }
 
-  if (policy.maximumOpenTrades > 0 && input.openTrades >= policy.maximumOpenTrades) {
+  if (
+    input.opensPosition &&
+    policy.maximumOpenTrades > 0 &&
+    input.openTrades >= policy.maximumOpenTrades
+  ) {
     rejections.push({
       code: 'openTrades',
       limit: policy.maximumOpenTrades,

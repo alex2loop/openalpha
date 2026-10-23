@@ -81,7 +81,6 @@ function buildProfiles(deps: DomainServiceDeps): ProfileService {
     profiles: deps.stores.profile,
     markets: deps.markets,
     baseCurrency: deps.config.baseCurrency,
-    defaultLocale: deps.defaultLocale,
     homeRegion: deps.config.defaultRegion,
     heldMarkets: deps.venues.heldMarkets(),
   })

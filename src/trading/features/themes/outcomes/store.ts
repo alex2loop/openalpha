@@ -195,10 +195,12 @@ export async function resolveOutcome(
   return result.changes === 1
 }
 
-/** Every row, pending ones included, with the score its stock read and its sector read carried:
- *  a sector is judged only once every name under it has resolved. About 45 rows a run. */
+/** Every row of runs scored under `scoreVersion`, pending ones included, with the score its stock
+ *  read and its sector read carried: a sector is judged only once every name under it has
+ *  resolved. About 45 rows a run. */
 export async function listOutcomes(
   deps: StoreDeps,
+  scoreVersion: string,
   signal: AbortSignal
 ): Promise<readonly ThemeOutcome[]> {
   assertNotAborted(signal)
@@ -209,13 +211,14 @@ export async function listOutcomes(
       'o.due_day, o.stock_return, o.benchmark_return, stock_read.score AS stock_score, ' +
       'sector_read.score AS sector_score ' +
       'FROM theme_outcomes o ' +
+      `JOIN theme_runs run ON run.id = o.run_id AND run.score_version = ${p(3)} ` +
       'LEFT JOIN theme_reads stock_read ON stock_read.run_id = o.run_id ' +
       `AND stock_read.theme_id = o.theme_id AND stock_read.level = ${p(1)} ` +
       'AND stock_read.subject = o.ticker ' +
       'LEFT JOIN theme_reads sector_read ON sector_read.run_id = o.run_id ' +
       `AND sector_read.theme_id = o.theme_id AND sector_read.level = ${p(2)} ` +
       'AND sector_read.subject = o.sector',
-    [STOCK_LEVEL, SECTOR_LEVEL]
+    [STOCK_LEVEL, SECTOR_LEVEL, scoreVersion]
   )
 
   return rows.map(toOutcome)

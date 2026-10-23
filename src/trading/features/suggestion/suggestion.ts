@@ -382,7 +382,13 @@ async function summarize(
   })
   const summary = summarizeTrackRecord(rows, MINIMUM_TRACK_RECORD_SAMPLE)
   const coverage = coverageOf(
-    await deps.store.coverage({ focusKeys, signal: options.signal }),
+    await deps.store.coverage({
+      focusKeys,
+      ...(options.strategyVersion === undefined
+        ? {}
+        : { strategyVersion: options.strategyVersion }),
+      signal: options.signal,
+    }),
     deps.markets
   )
 
@@ -398,7 +404,8 @@ async function reflect(
     (day, call) => (day === undefined || call.at < day ? call.at : day),
     undefined
   )
-  const factorRows = independentCalls(report.recent).map((row) =>
+  const calls = independentCalls(report.recent)
+  const factorRows = calls.map((row) =>
     suggestionScoredRow(row, marketRoundTripRate(deps.config, row.instrument.market))
   )
 
@@ -408,7 +415,7 @@ async function reflect(
 
   const fills = await deps.fills({ fromDay: oldest, signal: options.signal })
 
-  return { report, factorRows, acted: summarizeActed(report.recent, fills) }
+  return { report, factorRows, acted: summarizeActed(calls, fills) }
 }
 
 function coverageOf(

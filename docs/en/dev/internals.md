@@ -394,7 +394,8 @@ Every MCP run carries `audience: 'operator'` (`RunOptions` to `ToolInvocationCon
 `rebalanceWithUnits`, while `held`, `policyUnits`, cash, cost and NAV stay withheld.
 `check-feature-isolation` fails any tool that names an absolute read. The `report` the suggestion tools
 return is rendered with `operatorFigures: 'withheld'`: a render line that states a holding's size or cost
-has a `Withheld` catalog twin chosen by `withheldSuffix`, and `scripts/check-report-figures.ts` fails a
+has a `Withheld` catalog twin chosen by `withheldSuffix`, a caveat carrying the operator's own money
+reads from its `<code>Withheld` sentence (or drops), and `scripts/check-report-figures.ts` fails a
 report that prints cost or policy size, or one that changes when only they change.
 
 The runtime also connects to external MCP servers over stdio or Streamable HTTP. Discovery and calls are

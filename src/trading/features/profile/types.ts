@@ -1,4 +1,3 @@
-import type { Locale } from '@/core/types/locale'
 import type { ProfileBounds, SegmentDescriptor } from '@/trading/features/profile/policy'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type {
@@ -39,9 +38,8 @@ export interface ProfileContext {
 }
 
 /** Every read seeds when nothing is stored, so a caller that has never saved still gets a whole
- *  profile - and must say which locale to seed it in, because the seed carries one. */
+ *  profile. */
 export interface GetProfileOptions {
-  readonly defaultLocale: Locale
   readonly signal: AbortSignal
 }
 

@@ -2,6 +2,7 @@
 // What a market suggests is decided by its level policy, its factor policy and the bounds they read,
 // and `*_STRATEGY_VERSION` is what the track record groups by. Nothing else connects them, so a
 // changed weight, multiplier or bound could ship under a version claiming the old population.
+// Theme scores have the same contract with `SCORE_VERSION`, which the themes track record filters on.
 import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -19,6 +20,14 @@ const POLICY_SOURCES: Readonly<Record<string, readonly string[]>> = {
   ],
   gold: ['src/trading/markets/gold/policy.ts', 'src/trading/markets/gold-vn/policy.ts'],
 }
+/** Theme scores are arithmetic over named weights and scales rather than one policy literal, so
+ *  the whole of each file that computes one counts, its version line aside. */
+const SCORE_SOURCES = [
+  'src/trading/features/themes/score/compose.ts',
+  'src/trading/features/themes/score/reads.ts',
+]
+const SCORE_ENTRY = 'themes'
+const SCORE_VERSION_RE = /export const SCORE_VERSION\s*=\s*'([^']+)'/
 /** The policy literals, and the scalars and bounds they read from beside them: a normalization
  *  range, a cap or a threshold decides a score as surely as a weight does. */
 const POLICY_PATTERN =
@@ -50,6 +59,17 @@ async function readMarket(files: readonly string[]): Promise<Recorded> {
   }
 
   return { version, digest: digestOf(literals.join('\n')) }
+}
+
+async function readScore(): Promise<Recorded> {
+  const texts = await Promise.all(SCORE_SOURCES.map((file) => readFile(resolve(ROOT, file), 'utf8')))
+  const version = SCORE_VERSION_RE.exec(texts[0] ?? '')?.[1]
+
+  if (version === undefined) {
+    throw new Error(`${SCORE_SOURCES[0]}: no score version found`)
+  }
+
+  return { version, digest: digestOf(texts.join('\n').replace(SCORE_VERSION_RE, '')) }
 }
 
 /** Every policy literal in one file, in source order. A fresh regex per call: a module-level global
@@ -115,9 +135,11 @@ for (const [market, files] of Object.entries(POLICY_SOURCES)) {
   actual[market] = await readMarket(files)
 }
 
+actual[SCORE_ENTRY] = await readScore()
+
 if (process.argv.includes('--write')) {
   await writeFile(resolve(ROOT, RECORD_FILE), `${JSON.stringify(actual, null, 2)}\n`)
-  console.log(`check-strategy-version: recorded ${Object.keys(actual).length} market(s)`)
+  console.log(`check-strategy-version: recorded ${Object.keys(actual).length} entries`)
   process.exit(0)
 }
 
@@ -137,10 +159,11 @@ if (drifted.length > 0) {
     )
   }
   console.error(
-    "A level or factor policy changed. Bump that market's *_STRATEGY_VERSION, then re-record " +
-      'with bun scripts/check-strategy-version.ts --write'
+    "A level or factor policy changed: bump that market's *_STRATEGY_VERSION. Theme scoring " +
+      'changed: bump SCORE_VERSION, or keep it when no score moves. Then re-record with ' +
+      'bun scripts/check-strategy-version.ts --write'
   )
   process.exit(EXIT_DRIFTED)
 }
 
-console.log(`check-strategy-version: PASS (${Object.keys(actual).length} markets)`)
+console.log(`check-strategy-version: PASS (${Object.keys(actual).length} entries)`)

@@ -10,5 +10,9 @@
   "gold": {
     "version": "1.0.0",
     "digest": "e4831b4022df7661"
+  },
+  "themes": {
+    "version": "theme-score-1.0.0",
+    "digest": "8211d8c10a98e322"
   }
 }
