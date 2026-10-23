@@ -3544,6 +3544,7 @@
     "progress.suggestion.levels": "{ticker} · Computing levels…",
     "progress.suggestion.gate": "{ticker} · Running gate checks…",
     "progress.suggestion.debate": "{ticker} · Debating…",
+    "progress.suggestion.shared": "A /suggest {ticker} is already running, so I will use its result instead of paying for a second debate.",
     "progress.debate.cases": "{ticker} · Debate {step}/{total}: building the bull and bear cases…",
     "progress.debate.synthesis": "{ticker} · Debate {step}/{total}: the portfolio manager weighs in…",
     "progress.debate.plan": "{ticker} · Debate {step}/{total}: drafting the plan and verifying the claims…",

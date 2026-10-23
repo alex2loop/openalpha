@@ -16,14 +16,11 @@ import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import {
-  createSharedFlight,
-  type SharedFlight,
-} from '@/trading/features/market-data/ops/refresh-flight'
 import { refreshAnchorsForMarket } from '@/trading/features/market-data/ops/refresh-schedule'
 import { applyRetention } from '@/trading/features/market-data/ops/retention'
 import { caveatSeverity, dedupeCaveats } from '@/trading/kernel/caveat'
 import { reportRefreshJoined } from '@/trading/kernel/market/refresh'
+import { createSharedFlight, type SharedFlight } from '@/trading/kernel/shared-flight'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 
 /** How many lost targets a caveat names before it reports the rest as a count. A report of every

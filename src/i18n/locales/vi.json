@@ -3544,6 +3544,7 @@
     "progress.suggestion.levels": "{ticker} · Đang tính mức giá…",
     "progress.suggestion.gate": "{ticker} · Đang chạy bước sàng lọc…",
     "progress.suggestion.debate": "{ticker} · Đang tranh luận…",
+    "progress.suggestion.shared": "Đang có một lượt /suggest {ticker} chạy, mình dùng chung kết quả để khỏi tốn thêm một lượt tranh luận.",
     "progress.debate.cases": "{ticker} · Tranh luận {step}/{total}: dựng luận điểm mua và bán…",
     "progress.debate.synthesis": "{ticker} · Tranh luận {step}/{total}: quản lý danh mục cân nhắc…",
     "progress.debate.plan": "{ticker} · Tranh luận {step}/{total}: dựng kế hoạch và đối chiếu luận điểm…",

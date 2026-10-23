@@ -13,6 +13,7 @@ import type { ScoredRow } from '@/trading/features/suggestion/pipeline/attributi
 import type { SuggestionBatchInput } from '@/trading/features/suggestion/pipeline/batch'
 import type {
   RunDebate,
+  SuggestionFlights,
   SuggestionPortfolioReader,
 } from '@/trading/features/suggestion/pipeline/types'
 import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
@@ -131,7 +132,7 @@ export interface TrackRecordReflection {
 }
 
 export function createSuggestionService(deps: SuggestionServiceDeps): SuggestionService {
-  const batchDeps = toBatchDeps(deps)
+  const batchDeps = toBatchDeps(deps, new Map())
 
   return {
     run: (request) => runOne({ deps, batchDeps }, request),
@@ -249,7 +250,10 @@ function toOutcomeDeps(deps: SuggestionServiceDeps): OutcomeResolutionDeps {
   }
 }
 
-function toBatchDeps(deps: SuggestionServiceDeps): SuggestionBatchInput['deps'] {
+function toBatchDeps(
+  deps: SuggestionServiceDeps,
+  flights: SuggestionFlights
+): SuggestionBatchInput['deps'] {
   return {
     markets: deps.markets,
     stages: deps.stages,
@@ -257,6 +261,7 @@ function toBatchDeps(deps: SuggestionServiceDeps): SuggestionBatchInput['deps'] 
     portfolio: deps.portfolio,
     logger: deps.logger,
     runDebate: deps.runDebate,
+    flights,
     roundTripFeeFraction: (market) => marketRoundTripRate(deps.config, market),
     ...(deps.skillVersions === undefined ? {} : { skillVersions: deps.skillVersions }),
     ...(deps.personaVersions === undefined ? {} : { personaVersions: deps.personaVersions }),

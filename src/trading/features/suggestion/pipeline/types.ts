@@ -14,6 +14,7 @@ import type {
   SuggestionId,
   SuggestionIdentity,
   SuggestionRequest,
+  SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 import type {
   Caveat,
@@ -38,6 +39,7 @@ import type { MarketEvent, RegimeScale } from '@/trading/kernel/market/market-da
 import type { BookChange, ClosedRoundTrip } from '@/trading/kernel/operator/book'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon, UserProfile } from '@/trading/kernel/operator/profile'
+import type { SharedFlight } from '@/trading/kernel/shared-flight'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { Market, MarketManifest, MarketRegistry } from '@/trading/markets/types'
 
@@ -297,6 +299,10 @@ export interface SuggestionPortfolioReader {
   bookChangeSince(instrument: InstrumentRef, from: number, signal: AbortSignal): Promise<BookChange>
 }
 
+/** The runs in flight for one service, keyed by identity and depth. An entry leaves the map the
+ *  moment its run settles. */
+export type SuggestionFlights = Map<string, SharedFlight<SuggestionRunResult>>
+
 export interface SuggestionRunDeps {
   readonly markets: MarketRegistry
   readonly stages: StageRegistry
@@ -305,6 +311,9 @@ export interface SuggestionRunDeps {
   readonly policy: SuggestionPolicy
   readonly logger: Logger
   readonly runDebate: RunDebate
+  /** The runs in flight for this service, so a second request for the same identity and depth
+   *  waits on the first. Owned by the service, never shared across services. */
+  readonly flights: SuggestionFlights
   /** What a round trip costs at the venue each market books to, as a fraction of the entry. */
   roundTripFeeFraction(market: MarketRef): number
   /** `name@version` of every skill admitted to this run; hashed into the calculation versions so a
