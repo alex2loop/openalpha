@@ -52,3 +52,49 @@ interface AgentRecordWire {
 export interface AgentsResponse {
   readonly agents: readonly AgentWire[]
 }
+
+/** What the operator sets on one of their own agents. A key left out is not set. */
+export interface AgentFocusWire {
+  readonly markets?: readonly string[]
+  readonly sectors?: readonly string[]
+  readonly horizon?: 'short' | 'long'
+}
+
+/** GET /v1/agents/:id, and the answer to creating or editing one. Built-in and plugin agents can be
+ *  read too; `editable` is true only for the operator's own, which live in the data directory. */
+export interface AgentDetailWire {
+  readonly id: string
+  readonly name: string
+  readonly description?: string
+  readonly systemPrompt: string
+  readonly focus?: AgentFocusWire
+  readonly maxDailyUsd?: number
+  /** The configured model tier it runs on; absent when it runs on the primary model. */
+  readonly modelTier?: string
+  readonly editable: boolean
+}
+
+/** The fields of POST /v1/agents (`id` required) and PATCH /v1/agents/:id (`id` taken from the
+ *  path, and the body replaces every field: one left out is removed). The tools are the daemon's
+ *  fixed preset: research on the web, memory, and read-only market and suggestion tools. */
+export interface AgentWriteBody {
+  readonly id?: string
+  readonly name: string
+  readonly description?: string
+  readonly systemPrompt: string
+  readonly focus?: AgentFocusWire
+  readonly maxDailyUsd?: number
+  readonly modelTier?: string
+}
+
+/** POST /v1/agents/reload: the agents read off disk, and each file left out with the reason. */
+export interface AgentsReloadWire {
+  readonly loaded: readonly string[]
+  readonly skipped: readonly { readonly id: string; readonly reason: string }[]
+}
+
+/** DELETE /v1/agents/:id. Its memory, sessions, spend and track record stay. */
+export interface AgentDeletedWire {
+  /** Schedules that were on and are now paused; the operator turns them back on. */
+  readonly pausedSchedules: number
+}

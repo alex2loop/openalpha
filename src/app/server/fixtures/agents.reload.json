@@ -1,0 +1,9 @@
+{
+  "loaded": ["analyst", "bank"],
+  "skipped": [
+    {
+      "id": "broken",
+      "reason": "agent 'broken' max_daily_usd 9 is above [budget] max_daily_usd 5"
+    }
+  ]
+}

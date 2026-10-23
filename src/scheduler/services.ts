@@ -1,4 +1,5 @@
 import type { App, ServiceProvider } from '@/core/container'
+import type { AgentProfile } from '@/engine/api'
 import type { HeartbeatDeps } from '@/scheduler/heartbeat/types'
 import type { SchedulerController } from '@/scheduler/runner'
 import type {
@@ -77,11 +78,11 @@ export function createSchedulerProvider(build: (app: App) => SchedulerTaskDeps):
             return
           }
           const deps = build(app)
-          const agents = deps.heartbeat.agents.all()
+          const agents = (): readonly AgentProfile[] => deps.heartbeat.agents.all()
 
           // The fallible step runs before anything is armed: a rejection here leaves no tick
           // running that nothing would stop.
-          await deps.heartbeat.store.syncAgents(agents.map((agent) => agent.id))
+          await deps.heartbeat.store.syncAgents(agents().map((agent) => agent.id))
 
           const running = startScheduler(deps, signal)
           const stopHeartbeat = startHeartbeats(deps.heartbeat, agents, signal)

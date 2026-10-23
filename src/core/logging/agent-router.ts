@@ -40,9 +40,11 @@ interface RouterContext {
   drop: () => void
 }
 
-interface AgentLogRouter {
+export interface AgentLogRouter {
   readonly destination: OwnedLogDestination
   configure(agentIds: Iterable<string>): Promise<void>
+  /** Gives each id without a route one and opens its sink; a route already there is left alone. */
+  addAgentRoutes(agentIds: Iterable<AgentId>): Promise<void>
   setDropWarning(warn: () => void): void
   /** Scopes `fn`'s synchronous writes to `id` for routing, in place of re-parsing each record. */
   withAgentId<T>(id: AgentId | undefined, fn: () => T): T
@@ -55,14 +57,8 @@ export function createAgentLogRouter(
   const routes = new Map<AgentId, AgentRoute>()
   const state: RouterState = { accepting: true, terminal: false, configured: false, warned: false }
   const agentIdScope = createAgentIdScope()
-  let warnDrop = (): void => undefined
-  const drop = (): void => {
-    if (!state.warned) {
-      state.warned = true
-      warnDrop()
-    }
-  }
-  const ctx: RouterContext = { state, openSink, drop }
+  const dropWarning = createDropWarning(state)
+  const ctx: RouterContext = { state, openSink, drop: dropWarning.drop }
   const routeRecord = createRouteRecord(routes, agentIdScope, ctx)
   const settleOpenings = async (): Promise<void> => {
     await Promise.allSettled([...routes.values()].map((route) => route.opening))
@@ -90,10 +86,28 @@ export function createAgentLogRouter(
       configureRoutes(state, routes, agentIds)
       await openAllRoutes(ctx, routes)
     },
-    setDropWarning: (warn) => {
-      warnDrop = warn
-    },
+    addAgentRoutes: (agentIds) => openAdded(ctx, routes, agentIds),
+    setDropWarning: dropWarning.set,
     withAgentId: agentIdScope.withAgentId,
+  }
+}
+
+function createDropWarning(state: RouterState): {
+  readonly drop: () => void
+  readonly set: (warn: () => void) => void
+} {
+  let warn = (): void => undefined
+
+  return {
+    drop: () => {
+      if (!state.warned) {
+        state.warned = true
+        warn()
+      }
+    },
+    set: (next) => {
+      warn = next
+    },
   }
 }
 
@@ -217,6 +231,34 @@ function configureRoutes(
   for (const id of agentIds) {
     routes.set(id, { pending: [], pendingBytes: 0 })
   }
+}
+
+// Only ids with no route get one, so a sink already open keeps its handle and its pending records.
+// Once writes stop there is nothing to route to, and a sink opened now would outlive the close.
+function openAdded(
+  ctx: RouterContext,
+  routes: Map<AgentId, AgentRoute>,
+  agentIds: Iterable<AgentId>
+): Promise<void> {
+  if (!ctx.state.accepting || ctx.state.terminal) {
+    return Promise.resolve()
+  }
+
+  const added: [AgentId, AgentRoute][] = []
+
+  for (const id of agentIds) {
+    if (!routes.has(id)) {
+      added.push([id, { pending: [], pendingBytes: 0 }])
+    }
+  }
+
+  for (const [id, route] of added) {
+    routes.set(id, route)
+  }
+
+  return Promise.allSettled(added.map(([id, route]) => ensureSink(ctx, route, id))).then(
+    () => undefined
+  )
 }
 
 function openAllRoutes(

@@ -3,15 +3,15 @@ import type { KernelDeps } from '@/app/services'
 import type { BootExtensionOptions } from '@/app/types'
 import type { SessionModelSelection } from '@/commands/api'
 import type { App, Bind, ServiceProvider } from '@/core/container'
-import type { AgentId } from '@/core/ids'
 import type { ToolDefinition } from '@/core/tool'
 import type { CliCommandDef } from '@/core/types/cli-command'
 import type { Plugin } from '@/core/types/plugin'
-import type { AgentProfile, UserAgentSource, Workflow } from '@/engine/api'
+import type { UserAgentSource, Workflow } from '@/engine/api'
 import type { OpenedPersistence } from '@/persistence/api'
 import type { PluginAssets } from '@/plugins/api'
 import type { LoadedSourceModule, UserProfile } from '@/trading/api'
 import { createAiProvider } from '@/ai/api'
+import { createUserAgentsProvider, liveAgentsProvider } from '@/app/agent-registry'
 import { coreCommands } from '@/app/chat-commands'
 import { createDaemonTask } from '@/app/daemon'
 import { createBootExtensionRegistration } from '@/app/extensions'
@@ -30,20 +30,13 @@ import { createHealthSummary, createSpendReader } from '@/app/views'
 import { channelsProvider } from '@/channels/api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
 import { OperatorConfigError } from '@/core/config/resolve'
-import { agentId } from '@/core/ids'
-import {
-  addWorkflow,
-  buildUserAgents,
-  createSkillCatalog,
-  engineProvider,
-  resolveSkillsDir,
-} from '@/engine/api'
+import { addWorkflow, createSkillCatalog, engineProvider, resolveSkillsDir } from '@/engine/api'
 import { memoryProvider } from '@/memory/api'
 import { createPersistenceProvider } from '@/persistence/api'
 import { createPluginsProvider } from '@/plugins/api'
 import { createSchedulerProvider } from '@/scheduler/api'
 import { toolsProvider } from '@/tools/api'
-import { resolveTradingConfig, TRADING_SKILLS, validateAgentFocus } from '@/trading/api'
+import { resolveTradingConfig, TRADING_SKILLS } from '@/trading/api'
 
 declare module '@/core/container' {
   interface Services {
@@ -51,9 +44,6 @@ declare module '@/core/container' {
      *  built-ins never pass through here (`cli/registry.ts` stays static so preflight stays
      *  pre-boot). */
     cliCommands: readonly CliCommandDef[]
-    /** The ids of the operator's own agents, which the built-ins and plugin agents are not: the only
-     *  ones that can be paused or join a social network. */
-    userAgentIds: ReadonlySet<AgentId>
   }
 }
 
@@ -77,10 +67,11 @@ declare module '@/core/container' {
 //  9.  registerTrading  (trading: extends tools, commands, agents, and hooks)
 //  10. plugins          (plugins: extends the registries after trading)
 //  11. mcp              (engine: extends tools, last)
-//  12. userAgents       (engine: extends agents, add-only)
+//  12. userAgents       (app: extends agents, add-only)
 //  13. app              (cross-module bindings)
 //  13b. scheduler       (scheduler: job commands + daemon task)
 //  14. bootExtensions   (after app, before feature providers)
+//  14b. liveAgents      (app: the final agent map becomes the holder a reload swaps)
 //
 // The 9 hard constraints (spec §14):
 //
@@ -165,6 +156,7 @@ export function buildProviders(options: BuildProvidersOptions): ProviderAssembly
     ), // 13
     createSchedulerProvider((app) => buildSchedulerDeps(app, options.assets.delivery)), // 13b
     bootExtension.provider, // 14 — after the app provider, before features
+    liveAgentsProvider, // 14b — the final registry becomes the live holder a reload swaps
     apiServiceProvider, // 15 — the HTTP/WS API; the daemon starts it only with [api] enabled
   ]
 
@@ -258,69 +250,6 @@ function createMcpProvider(tools: readonly ToolDefinition[]): ServiceProvider {
       })
     },
   }
-}
-
-// Step 12: add-only. A user agent whose id collides with a built-in or a plugin's is skipped rather
-// than allowed to shadow it (buildUserAgents logs each skip).
-function createUserAgentsProvider(sources: readonly UserAgentSource[]): ServiceProvider {
-  // Captured from the one build below and never rebuilt: `userAgentIds` reads what `agents` kept.
-  let userIds: ReadonlySet<AgentId> = new Set()
-
-  return {
-    name: 'user-agents',
-    register(bind, extend): void {
-      bind('userAgentIds', (app) => {
-        app.resolve('agents')
-
-        return userIds
-      })
-      extend('agents', (current, app) => {
-        const added = buildUserAgents(sources, {
-          ctx: {
-            config: app.config,
-            allToolNames: [...app.resolve('tools').keys()],
-            trusted: false,
-            allowModelTier: true,
-          },
-          reserved: new Set(current.keys()),
-          logger: app.resolve('logger'),
-        })
-        const kept = withoutInvalidTables(
-          new Map<string, AgentProfile>([...current, ...added]),
-          app
-        )
-
-        userIds = new Set([...added.keys()].filter((id) => kept.has(id)).map(agentId))
-
-        return kept
-      })
-    },
-  }
-}
-
-// `[focus]` is a raw table to the engine; trading owns what it means, so an agent whose table it
-// rejects is skipped here rather than failing a run later. Resolving `tradingServices` is
-// cycle-free: `extend('agents')` already resolves `tools`, which resolves it.
-function withoutInvalidTables(
-  agents: ReadonlyMap<string, AgentProfile>,
-  app: App
-): Map<string, AgentProfile> {
-  const logger = app.resolve('logger')
-  const scope = app.resolve('tradingServices').focusScope
-  const kept = new Map<string, AgentProfile>()
-
-  for (const [id, agent] of agents) {
-    const issues = agent.focus === undefined ? [] : validateAgentFocus(agent.focus, scope)
-
-    if (issues.length > 0) {
-      logger.warn('agents.focus_invalid', { id, issues })
-      continue
-    }
-
-    kept.set(id, agent)
-  }
-
-  return kept
 }
 
 // What the api server reads of the delivery hub: the surface it attaches to, and the sends that

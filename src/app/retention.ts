@@ -28,7 +28,6 @@ export function startRetention(
   logger: Logger,
   onTaskPass: TaskPassListener
 ): () => Promise<void> {
-  const configuredAgentIds = Object.freeze(new Set(app.resolve('agents').keys()))
   let inFlight: Promise<void> | null = null
 
   const sweep = (): void => {
@@ -36,9 +35,7 @@ export function startRetention(
       return
     }
 
-    inFlight = reportPass(onTaskPass, RETENTION_PASS, () =>
-      runRetentionSweep(app, logger, configuredAgentIds)
-    )
+    inFlight = reportPass(onTaskPass, RETENTION_PASS, () => runRetentionSweep(app, logger))
       .catch((err: unknown) => {
         logger.warn('retention.failed', { err: formatErrForLog(err) })
       })
@@ -62,11 +59,7 @@ export function startRetention(
   }
 }
 
-async function runRetentionSweep(
-  app: App,
-  logger: Logger,
-  configuredAgentIds: ReadonlySet<string>
-): Promise<void> {
+async function runRetentionSweep(app: App, logger: Logger): Promise<void> {
   const cutoffAt = retentionCutoffAt(app)
 
   await runRetention(app.resolve('storage'), app.resolve('dialect'), {
@@ -83,7 +76,8 @@ async function runRetentionSweep(
 
   const logResult = await pruneRemovedAgentLogs({
     dataDir: app.config.paths.dataDir,
-    configuredAgentIds,
+    // Read each sweep: an agent added since boot keeps its logs, and a deleted one's age out.
+    configuredAgentIds: new Set(app.resolve('agents').keys()),
     cutoffAt,
   }).catch((err: unknown) => {
     logger.warn('retention.agent_logs_failed', { err: formatErrForLog(err) })

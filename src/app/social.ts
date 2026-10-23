@@ -67,7 +67,7 @@ function createSocialAgentDirectory(app: App): SocialAgentDirectory {
 
   return {
     get: (id) => app.resolve('agents').get(id),
-    isUserAgent: (id) => app.resolve('userAgentIds').has(agentId(id)),
+    isUserAgent: (id) => app.resolve('userAgentIds')().has(agentId(id)),
     hasOwnFocus: (id) => !isBookFocus(resolveRunFocus(app.resolve('agents').get(id)?.focus)),
     isPaused: (id) => pauses.isPaused(agentId(id)),
   }

@@ -15,6 +15,7 @@ import type { NoticeLog } from '@/app/activity/notice-log'
 import type { RunLog } from '@/app/activity/run-log'
 import { startNoticeLog } from '@/app/activity/notice-log'
 import { startRunLog } from '@/app/activity/run-log'
+import { createAgentLogsProvider } from '@/app/agent-registry'
 import { loadAssets } from '@/app/assets'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
@@ -147,10 +148,7 @@ export async function boot(options: BootOptions): Promise<Booted> {
       socialConfig,
       delivery,
     })
-    const app = createApp(config, [...assembly.providers, ...(options.features ?? [])], {
-      configPath,
-      signal: options.shutdownSignal,
-    })
+    const app = createBootApp({ config, configPath, options, assembly, held })
 
     await prepareBootApp({ bootOptions: options, assembly, app, socialConfig, held })
 
@@ -160,6 +158,29 @@ export async function boot(options: BootOptions): Promise<Booted> {
     await dispose()
     throw err
   }
+}
+
+interface BootAppInput {
+  readonly config: ResolvedConfig
+  readonly configPath: string
+  readonly options: BootOptions
+  readonly assembly: ReturnType<typeof buildProviders>
+  readonly held: HeldBootResources
+}
+
+// The agent log router is the logger resource's: handed to the container so a reload reaches it.
+function createBootApp(input: BootAppInput): App {
+  const { config, configPath, options, assembly, held } = input
+
+  return createApp(
+    config,
+    [
+      createAgentLogsProvider(held.loggerResource),
+      ...assembly.providers,
+      ...(options.features ?? []),
+    ],
+    { configPath, signal: options.shutdownSignal }
+  )
 }
 
 interface ProviderAssemblyInput {

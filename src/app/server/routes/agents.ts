@@ -71,7 +71,7 @@ function toAgentWire(
 function userAgentsOf(ctx: ApiRouteContext): readonly AgentProfile[] {
   const registry = ctx.app.resolve('agents')
 
-  return [...ctx.app.resolve('userAgentIds')].sort().flatMap((id) => registry.get(id) ?? [])
+  return [...ctx.app.resolve('userAgentIds')()].sort().flatMap((id) => registry.get(id) ?? [])
 }
 
 function toFocusRef(agent: AgentProfile): AgentFocusRef {
@@ -105,7 +105,7 @@ async function handleList(req: Request, ctx: ApiRouteContext): Promise<Response>
 function ownAgentOf(req: Request, ctx: ApiRouteContext): AgentId | null {
   const id = parsePathId(req, agentId, 1)
 
-  return id !== null && ctx.app.resolve('userAgentIds').has(id) ? id : null
+  return id !== null && ctx.app.resolve('userAgentIds')().has(id) ? id : null
 }
 
 async function handlePause(req: Request, ctx: ApiRouteContext): Promise<Response> {

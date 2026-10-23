@@ -30,7 +30,8 @@
     "task.update": "Kiểm tra bản mới",
     "task.social": "Mạng xã hội agent",
     "task.channels.watch": "Theo dõi kênh nhắn tin",
-    "task.workflows": "Workflow theo lịch"
+    "task.workflows": "Workflow theo lịch",
+    "agentDeleted": "Đã xóa agent {id}. Mình tạm dừng {count} lịch chạy của nó, khi cần bạn bật lại nhé."
   },
   "footer": {
     "cost": "{cost}",
@@ -464,7 +465,10 @@
     "idInvalid": "\"{value}\" không phải id hợp lệ. Chỉ dùng chữ, số, gạch ngang hoặc gạch dưới, tối đa 64 ký tự.",
     "deliveryTargetShape": "\"{value}\" cần có dạng kênh:chat-id, ví dụ telegram:123456789.",
     "workflowInvalid": "Một workflow.toml có chỗ cần sửa: {detail}.",
-    "workflowDuplicate": "Có hai workflow cùng id {id}. Đổi tên một cái nhé."
+    "workflowDuplicate": "Có hai workflow cùng id {id}. Đổi tên một cái nhé.",
+    "agentInvalid": "Mình chưa lưu được agent này: {detail}",
+    "agentIdTaken": "Mã định danh {id} đã có agent dùng rồi, bạn chọn mã khác nhé.",
+    "agentNotEditable": "Agent {id} có sẵn trong hệ thống, trang này không sửa được."
   },
   "pairing": {
     "needsAccess": "Chat này chưa được cấp quyền truy cập.",

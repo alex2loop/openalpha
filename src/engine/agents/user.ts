@@ -32,6 +32,8 @@ export interface BuildUserAgentsDeps {
   /** Ids that may not be shadowed — the built-ins, and anything a trusted plugin contributed. */
   readonly reserved: ReadonlySet<string>
   readonly logger: Logger
+  /** Told why each source was left out, for a caller that reports it (a live reload). */
+  readonly onSkipped?: (skip: { readonly id: string; readonly reason: string }) => void
 }
 
 /**
@@ -73,6 +75,7 @@ export function buildUserAgents(
   for (const source of sources) {
     if (deps.reserved.has(source.id)) {
       deps.logger.warn('agents.user_id_reserved', { id: source.id })
+      deps.onSkipped?.({ id: source.id, reason: 'id is taken by a built-in or plugin agent' })
       continue
     }
 
@@ -91,7 +94,10 @@ function buildOne(source: UserAgentSource, deps: BuildUserAgentsDeps): AgentProf
     assertAgentTomlMatchesSourceId(source.toml, source.id)
     return loadAgentFromText(source.toml, source.id, deps.ctx)
   } catch (err: unknown) {
-    deps.logger.warn('agents.user_load_failed', { id: source.id, err: formatErrForLog(err) })
+    const logged = formatErrForLog(err)
+
+    deps.logger.warn('agents.user_load_failed', { id: source.id, err: logged })
+    deps.onSkipped?.({ id: source.id, reason: logged.message })
 
     return null
   }

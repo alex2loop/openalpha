@@ -47,7 +47,7 @@ const NO_HEARTBEAT_FILE = Object.freeze({ context: '', tasks: [], dropped: 0 })
 
 export function startHeartbeats(
   deps: HeartbeatDeps,
-  agents: readonly AgentProfile[],
+  agents: () => readonly AgentProfile[],
   signal: AbortSignal
 ): () => Promise<void> {
   const state = createHeartbeatRuntimeState()
@@ -60,7 +60,8 @@ export function startHeartbeats(
       return
     }
 
-    activeTick = tickHeartbeats({ deps, agents, signal, state })
+    // Read per tick: an agent made or deleted while the daemon runs is seen by the next one.
+    activeTick = tickHeartbeats({ deps, agents: agents(), signal, state })
       .catch((err: unknown) => {
         deps.logger.warn('heartbeat.failed', { err: formatErrForLog(err) })
       })

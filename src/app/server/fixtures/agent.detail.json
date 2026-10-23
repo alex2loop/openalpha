@@ -1,0 +1,14 @@
+{
+  "id": "bank-watcher",
+  "name": "Bank watcher",
+  "description": "A second opinion on Vietnamese banks",
+  "systemPrompt": "You follow Vietnamese bank stocks and say what changed since the last report.",
+  "focus": {
+    "markets": ["equity-vn"],
+    "sectors": ["banks"],
+    "horizon": "long"
+  },
+  "maxDailyUsd": 0.5,
+  "modelTier": "research",
+  "editable": true
+}

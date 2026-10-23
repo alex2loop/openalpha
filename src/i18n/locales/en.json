@@ -30,7 +30,8 @@
     "task.update": "Update check",
     "task.social": "Agent social upkeep",
     "task.channels.watch": "Channel watch",
-    "task.workflows": "Scheduled workflows"
+    "task.workflows": "Scheduled workflows",
+    "agentDeleted": "Deleted agent {id}. I paused its {count} schedules; turn them back on when you need them."
   },
   "footer": {
     "cost": "{cost}",
@@ -464,7 +465,10 @@
     "idInvalid": "\"{value}\" is not a valid id. Use letters, digits, dash or underscore, up to 64 characters.",
     "deliveryTargetShape": "\"{value}\" should read channel:chat-id, for example telegram:123456789.",
     "workflowInvalid": "A workflow.toml has something to fix: {detail}.",
-    "workflowDuplicate": "Two workflows share the id {id}. Rename one of them."
+    "workflowDuplicate": "Two workflows share the id {id}. Rename one of them.",
+    "agentInvalid": "I could not save this agent: {detail}",
+    "agentIdTaken": "{id} is already taken; pick another id.",
+    "agentNotEditable": "{id} is built in; this page cannot edit it."
   },
   "pairing": {
     "needsAccess": "Access is not enabled for this chat yet.",

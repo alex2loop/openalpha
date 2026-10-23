@@ -6,6 +6,7 @@ import { startApi } from '@/app/server/http/server'
 import { startIdeaWatch } from '@/app/server/push/ideas'
 import { attachAppSurface } from '@/app/server/push/notices'
 import { ACTIVITY_ROUTES } from '@/app/server/routes/activity'
+import { AGENT_EDIT_ROUTES } from '@/app/server/routes/agent-edit'
 import { AGENT_ROUTES } from '@/app/server/routes/agents'
 import { CHAT_ROUTES } from '@/app/server/routes/chat'
 import { CONFIG_ROUTES } from '@/app/server/routes/config'
@@ -31,6 +32,7 @@ const ROUTES = [
   ...SYSTEM_ROUTES,
   ...ACTIVITY_ROUTES,
   ...AGENT_ROUTES,
+  ...AGENT_EDIT_ROUTES,
   ...CHAT_ROUTES,
   ...CONFIG_ROUTES,
   ...SIGN_IN_ROUTES,
