@@ -4,6 +4,7 @@
 
 /** The surface a run originates from — drives the source glyph + notification threading. */
 import type { Decision } from '@/app/server/wire/chat'
+import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
 
 export type Channel = 'cli' | 'telegram' | 'cron' | 'api'
 
@@ -16,6 +17,8 @@ type WireEventWeight = 'interrupt' | 'nudge' | 'sneak' | 'quiet'
  *  Clients switch on this; an unknown kind is ignored, never an error. */
 type WireEventKind =
   | 'run_started'
+  | 'run_progress'
+  | 'run_thinking'
   | 'usage'
   | 'run_finished'
   | 'tool_result'
@@ -44,6 +47,15 @@ export interface WireEvent {
   readonly requestId?: string
 
   // One payload below is set, matching `kind`; `note` may ride beside it.
+  /** 'run_started': an agent run or a long-running command began; `run.sessionId` lets a client
+   *  clear a pending question when the answer turn starts. */
+  readonly run?: RunStartWire
+  /** 'run_progress': the line a run just reported, in the daemon's language. */
+  readonly progress?: ProgressWire
+  /** 'run_thinking': a scrubbed tail of the model's reasoning, at most one per 2 s per run. */
+  readonly thinking?: string
+  /** 'run_finished': a run result reason, or `done | cancelled | failed` for a command. */
+  readonly outcome?: string
   readonly usage?: { readonly costUsd: number; readonly tokens: number }
   readonly tool?: { readonly name: string; readonly ok: boolean }
   /** 'approval_requested': the gated tool. `label` is its name in the operator's language, as the

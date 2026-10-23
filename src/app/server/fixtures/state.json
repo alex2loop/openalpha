@@ -47,6 +47,7 @@
     "orders": false
   },
   "timeZone": "Asia/Ho_Chi_Minh",
+  "locale": "vi",
   "degraded": [
     {
       "kind": "key",

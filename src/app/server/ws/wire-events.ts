@@ -1,4 +1,5 @@
 import type { Channel, WireEvent } from '@/app/server/wire/events'
+import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
 import type { BusEventMap } from '@/core/events'
 import { APP_SOURCE } from '@/app/server/channel'
 import { WIRE_DECISION } from '@/app/server/decision'
@@ -12,6 +13,15 @@ type WireTopic =
   | 'budget_warning'
   | 'provider_fallback'
   | 'pairing_requested'
+  | 'run_started'
+  | 'run_finished'
+  | 'run_thinking'
+  | 'command_started'
+  | 'command_finished'
+
+/** The progress topics: their wire line is rendered (and may be dropped) before the event is built,
+ *  so the normaliser takes it ready. */
+type ProgressTopic = 'run_progress' | 'command_progress'
 
 // The bus carries the full ChannelId union; the v1 wire narrows to these. An unmapped channel
 // (e.g. a future adapter) renders as 'api' rather than widening the frozen wire contract.
@@ -83,4 +93,89 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     source: { channel: wireChannel(e.channel), agentId: '' },
     pairing: { channel: e.channel, chatId: e.chatId, code: e.code, expiresAt: e.expiresAt },
   }),
+  run_started: (e) => ({
+    v: 1,
+    kind: 'run_started',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: e.agentId },
+    runId: e.runId,
+    run: toAgentRunWire(e),
+  }),
+  run_finished: (e) => ({
+    v: 1,
+    kind: 'run_finished',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: e.agentId },
+    runId: e.runId,
+    outcome: e.reason,
+  }),
+  run_thinking: (e) => ({
+    v: 1,
+    kind: 'run_thinking',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: '' },
+    runId: e.runId,
+    thinking: e.excerpt,
+  }),
+  command_started: (e) => ({
+    v: 1,
+    kind: 'run_started',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: '' },
+    runId: e.runId,
+    run: toCommandRunWire(e),
+  }),
+  // `result` stays on the bus: a command's reply is read in-process and never put on the wire.
+  command_finished: (e) => ({
+    v: 1,
+    kind: 'run_finished',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: '' },
+    runId: e.runId,
+    outcome: e.outcome,
+  }),
+}
+
+export const PROGRESS_NORMALIZERS: {
+  readonly [K in ProgressTopic]: (e: BusEventMap[K], progress: ProgressWire) => WireEvent
+} = {
+  run_progress: (e, progress) => ({
+    v: 1,
+    kind: 'run_progress',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: e.agentId },
+    runId: e.runId,
+    progress,
+  }),
+  command_progress: (e, progress) => ({
+    v: 1,
+    kind: 'run_progress',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: '' },
+    runId: e.runId,
+    progress,
+  }),
+}
+
+export function toAgentRunWire(e: BusEventMap['run_started']): RunStartWire {
+  return {
+    kind: 'agent',
+    name: e.agentId,
+    ...(e.title === undefined ? {} : { title: e.title }),
+    channel: e.channel,
+    sessionId: e.sessionId,
+    ...(e.parentRunId === undefined ? {} : { parentRunId: e.parentRunId }),
+    ...(e.hidden === undefined ? {} : { hidden: e.hidden }),
+    startedAt: e.startedAt,
+  }
+}
+
+export function toCommandRunWire(e: BusEventMap['command_started']): RunStartWire {
+  return {
+    kind: 'command',
+    name: e.name,
+    channel: e.channel,
+    sessionId: e.sessionId,
+    startedAt: e.startedAt,
+  }
 }

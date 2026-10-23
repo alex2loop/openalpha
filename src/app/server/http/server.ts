@@ -1,5 +1,6 @@
 import type { Server } from 'bun'
 
+import type { LiveFeed } from '@/app/server/feed/live'
 import type { WsData, WsServices } from '@/app/server/ws/socket'
 import type { ApiHandle } from '@/app/types'
 import type { App } from '@/core/container'
@@ -27,7 +28,7 @@ const MAX_WS_FRAME_BYTES = 1_048_576
 // Above the host's 120 s ceiling for a whole-market read; Bun's 10 s default cut those off.
 const IDLE_TIMEOUT_SECONDS = 150
 
-export function startApi(app: App, token: string): ApiHandle {
+export function startApi(app: App, token: string, live: LiveFeed): ApiHandle {
   const wsServices = resolveWsServices(app)
   const server = listen(app, () =>
     Bun.serve({
@@ -43,7 +44,7 @@ export function startApi(app: App, token: string): ApiHandle {
           return wsUpgradeResponse(req, srv, { wsServices, token })
         }
 
-        return handleHttp(req, { app, token, ip: srv.requestIP(req)?.address ?? null })
+        return handleHttp(req, { app, token, live, ip: srv.requestIP(req)?.address ?? null })
       },
       websocket: { ...wsHandlers, maxPayloadLength: MAX_WS_FRAME_BYTES },
       // Bun's default error page is HTML with the stack; every error body here is `{ error: { code } }`.

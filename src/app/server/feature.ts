@@ -1,5 +1,6 @@
 import type { ApiHandle, ApiRouteSpec } from '@/app/types'
 import type { App, ServiceProvider } from '@/core/container'
+import { createLiveFeed, type LiveFeed } from '@/app/server/feed/live'
 import { ensureApiToken } from '@/app/server/http/auth'
 import { startApi } from '@/app/server/http/server'
 import { startIdeaWatch } from '@/app/server/push/ideas'
@@ -14,6 +15,7 @@ import { ORDER_ROUTES } from '@/app/server/routes/orders'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
 import { TRADING_ROUTES } from '@/app/server/routes/trading'
+import { broadcast } from '@/app/server/ws/socket'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
@@ -46,24 +48,31 @@ export const apiServiceProvider: ServiceProvider = {
 
     bind('apiStarter', () => async (app, env) => {
       const token = await ensureApiToken(app.config, env)
-      const server = startApi(app, token)
+      const live = startLiveFeed(app)
+      let server: ApiHandle | undefined
       let detachAppSurface: (() => void) | undefined
 
-      // Port is bound: a failure from here on must release it, or the next start finds it taken.
+      // The port can be taken, and a failure after it is bound must release it, or the next start
+      // finds it taken. Either way no bus listener of the feed outlives the failed start.
       try {
+        const api = startApi(app, token, live)
+
+        server = api
         detachAppSurface = attachAppSurface(app)
         const stopIdeaWatch = startIdeaWatch(app)
 
         return {
-          closeAdmission: server.closeAdmission,
+          closeAdmission: api.closeAdmission,
           stop: async () => {
             await stopIdeaWatch()
             detachAppSurface?.()
-            await server.stop()
+            live.stop()
+            await api.stop()
           },
         }
       } catch (err: unknown) {
         detachAppSurface?.()
+        live.stop()
         await stopAfterFailedStart(app, server)
 
         throw err
@@ -72,7 +81,26 @@ export const apiServiceProvider: ServiceProvider = {
   },
 }
 
-async function stopAfterFailedStart(app: App, server: ApiHandle): Promise<void> {
+/** The feed follows the bus; a run is live while the run registry or the command dispatcher holds it. */
+function startLiveFeed(app: App): LiveFeed {
+  const registry = app.resolve('runRegistry')
+  const dispatcher = app.resolve('slashDispatcher')
+
+  return createLiveFeed({
+    bus: app.resolve('bus'),
+    broadcast,
+    locale: app.config.locale.language,
+    isLive: (runId) =>
+      registry.active().some((handle) => handle.identity.runId === runId) ||
+      dispatcher.activeCommands().includes(runId),
+  })
+}
+
+async function stopAfterFailedStart(app: App, server: ApiHandle | undefined): Promise<void> {
+  if (server === undefined) {
+    return
+  }
+
   try {
     await server.stop()
   } catch (err: unknown) {

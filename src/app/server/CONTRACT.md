@@ -62,6 +62,7 @@ this document — neither imports the other.
 |---|---|---|---|---|---|
 | GET | `/v1/health` | no | — | `HealthResponse` | `health.json` |
 | GET | `/v1/state` | yes | — | `StatePayload` | `state.json` |
+| GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking` and the `persistent` steps so far; `pending` is empty) | `live.json` |
 | GET | `/v1/doctor` | yes | — | `DoctorReport` | `doctor.json` |
 | GET | `/v1/commands` | yes | — | `CommandList` | `commands.json` |
 | GET | `/v1/update` | yes | — | `UpdateResponse` (`enabled` false when checks are off or the daemon runs from a source checkout; the release feed is read once a day; `latest` is the newest release whether or not it is newer than `current`) | `update.json` |
@@ -128,6 +129,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
 - **`/v1/state` timeZone.** The IANA zone the daemon counts its days in (the cost caps, `/v1/cost`
   days, suggestion days). A client computes "today" in it, not in its own zone: the daemon may run
   on a server elsewhere.
+- **`/v1/state` locale.** The daemon's `[locale] language`: the language `progress.text`, notices and
+  every other daemon-written line arrive in, so the app renders its own copy in the same one.
 - **`/v1/state` brief.** `brief` is the morning brief's delivery (`state` scheduled, delivering or
   disabled; `channel`; `sendTime` HH:mm in the market's timezone; `nextDeliveryDay`). It is absent
   when the brief was never enabled or trading is off, and a failed read of it leaves it absent
@@ -199,7 +202,10 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 
 | `kind` | payload field | meaning |
 |---|---|---|
-| `run_started` / `run_finished` | — | run lifecycle (any channel) |
+| `run_started` | `run` `{kind,name,title?,channel,sessionId,parentRunId?,hidden?,startedAt}` | an agent run or a long-running slash command began; `channel` is the raw channel id (open, never folded into `Channel`), `name` the agent id or the command name, `sessionId` lets a client clear a pending question when the answer turn starts |
+| `run_progress` | `progress` `{key,params?,text,mode,at}` | a run's step line, `text` already written in the daemon's language; `params` are credential-scrubbed; `mode` is `transient` or `persistent` |
+| `run_thinking` | `thinking` | a scrubbed tail of the model's reasoning, at most one per 2 s per run |
+| `run_finished` | `outcome` | run lifecycle end: a run result reason (`completed`, `aborted`, `budget`, `error`, `turn_limit`, `loop`, `timeout`), or `done` / `cancelled` / `failed` for a command |
 | `usage` | `usage` `{costUsd,tokens}` | per-run cost/tokens tick |
 | `tool_result` | `tool` `{name,ok}` | a tool finished (afterTool) |
 | `approval_requested` | `approval` `{toolName,label,argsSummary,expiresAt,decisions,dangerous?,truncated?}` + `requestId` | tool-gate decision needed; offer only `decisions`. `label` is the tool's name in the operator's language; `expiresAt` (epoch ms) is when the gate denies on its own |

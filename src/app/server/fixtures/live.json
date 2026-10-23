@@ -1,0 +1,33 @@
+{
+  "runs": [
+    {
+      "runId": "cmd_4f1a",
+      "kind": "command",
+      "name": "refresh",
+      "channel": "telegram",
+      "sessionId": "sess_8c2",
+      "startedAt": 1792480000000,
+      "progress": {
+        "key": "trading.progress.refresh.bars",
+        "params": { "market": "equity-vn", "done": 120, "total": 1600 },
+        "text": "equity-vn · Đang tải lịch sử giá - 120/1600 mã…",
+        "mode": "transient",
+        "at": 1792480004000
+      },
+      "persistent": []
+    },
+    {
+      "runId": "run_abc",
+      "kind": "agent",
+      "name": "chat",
+      "title": "Phân tích FPT",
+      "channel": "api",
+      "sessionId": "sess_91d",
+      "agentId": "chat",
+      "startedAt": 1792480010000,
+      "thinking": "So sánh biên lợi nhuận với nhóm công nghệ",
+      "persistent": []
+    }
+  ],
+  "pending": []
+}

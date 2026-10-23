@@ -1,6 +1,6 @@
 import type { AuthOutcome } from '@/app/server/http/auth'
 import type { ApiError, ApiErrorCode, UnconfirmedPriceWire } from '@/app/server/wire/errors'
-import type { ApiRouteSpec } from '@/app/types'
+import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import { isLoopback, resolveAuthOutcome, resolveBearerCredential } from '@/app/server/http/auth'
@@ -64,7 +64,7 @@ function isCapabilityDenied(app: App, route: ApiRouteSpec): boolean {
 
 export async function handleHttp(
   req: Request,
-  ctx: { readonly app: App; readonly token: string; readonly ip: string | null }
+  ctx: ApiRouteContext & { readonly ip: string | null }
 ): Promise<Response> {
   // Defence in depth: Bun.serve already binds 127.0.0.1, so a non-loopback peer should be impossible.
   if (!isLoopback(ctx.ip)) {
@@ -92,7 +92,7 @@ export async function handleHttp(
     return apiError('unavailable')
   }
 
-  return runHandler(route, req, { app: ctx.app, token: ctx.token })
+  return runHandler(route, req, { app: ctx.app, token: ctx.token, live: ctx.live })
 }
 
 /** The one error boundary for the whole route table. Without it a throwing handler answers with a
@@ -101,12 +101,12 @@ export async function handleHttp(
 async function runHandler(
   route: ApiRouteSpec,
   req: Request,
-  handlerCtx: { readonly app: App; readonly token: string }
+  handlerCtx: ApiRouteContext
 ): Promise<Response> {
   const { app } = handlerCtx
 
   try {
-    return await route.handler(req, { app, token: handlerCtx.token })
+    return await route.handler(req, handlerCtx)
   } catch (err: unknown) {
     if (req.signal.aborted) {
       throw err

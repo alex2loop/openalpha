@@ -1,4 +1,5 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { LiveFeed } from '@/app/server/feed/live'
 import type { ChannelDefinition } from '@/channels/api'
 import type { Command, Group } from '@/cli/api'
 import type { KeyValidator } from '@/commands/api'
@@ -43,6 +44,7 @@ type ServerStarter = (
 export interface ApiRouteContext {
   readonly app: App
   readonly token: string
+  readonly live: LiveFeed
 }
 
 /** A section whose backing store may be absent. A route naming one answers 503 until it exists —

@@ -4,7 +4,36 @@
     "kind": "run_started",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
-    "runId": "run_abc"
+    "runId": "run_abc",
+    "run": {
+      "kind": "agent",
+      "name": "chat",
+      "title": "Phân tích FPT",
+      "channel": "cli",
+      "sessionId": "sess_91d",
+      "startedAt": 1792480010000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_progress",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc",
+    "progress": {
+      "key": "progress.researchStage",
+      "text": "Đang đọc nguồn",
+      "mode": "transient",
+      "at": 1792480012000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_thinking",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "" },
+    "runId": "run_abc",
+    "thinking": "So sánh biên lợi nhuận với nhóm công nghệ"
   },
   {
     "v": 1,
@@ -19,7 +48,8 @@
     "kind": "run_finished",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
-    "runId": "run_abc"
+    "runId": "run_abc",
+    "outcome": "completed"
   },
   {
     "v": 1,

@@ -1,3 +1,4 @@
+import type { LiveSnapshotWire } from '@/app/server/wire/live'
 import type {
   BriefScheduleWire,
   CommandList,
@@ -56,9 +57,14 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     schedules: jobs.map((job) => ({ ...job })),
     capabilities: buildCapabilities(app),
     timeZone: app.config.locale.timezone,
+    locale: app.config.locale.language,
     degraded,
     ...(brief === undefined ? {} : { brief }),
   } satisfies StatePayload)
+}
+
+async function handleLive(_req: Request, ctx: ApiRouteContext): Promise<Response> {
+  return json(ctx.live.snapshot() satisfies LiveSnapshotWire)
 }
 
 // The state is polled every few seconds, so the brief read can never fail the whole payload.
@@ -247,6 +253,7 @@ function parseRange(
 export const SYSTEM_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'GET', path: '/v1/health', auth: false, handler: handleHealth },
   { method: 'GET', path: '/v1/state', auth: true, handler: handleState },
+  { method: 'GET', path: '/v1/live', auth: true, handler: handleLive },
   { method: 'GET', path: '/v1/commands', auth: true, handler: handleCommands },
   { method: 'GET', path: '/v1/doctor', auth: true, handler: handleDoctor },
   { method: 'GET', path: '/v1/cost', auth: true, handler: handleCost },

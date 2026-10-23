@@ -1,6 +1,8 @@
 // The /v1 system routes: health, state, doctor, commands and cost. camelCase keys, no snake_case
 // on the wire. A contract is replaced rather than deprecated; see CONTRACT.md §2.
 
+import type { Locale } from '@/core/types/locale'
+
 /** Sections whose backing store may not exist yet — the client greys the unbuilt tab instead of
  *  guessing from a 404. Only the sections that actually vary are listed (chat/approve/stream/health
  *  are always on). Echoed by GET /v1/health (unauth) and GET /v1/state. */
@@ -77,6 +79,8 @@ export interface StatePayload {
   readonly capabilities: Capabilities
   /** The IANA zone the daemon's days are counted in: cost caps, `/v1/cost` days, suggestion days. */
   readonly timeZone: string
+  /** The daemon's `[locale] language`: the language its own text is written in. */
+  readonly locale: Locale
   /** What the daemon started without; empty when everything is configured. Behind auth, since it
    *  names unset variables and channels that are down. */
   readonly degraded: readonly DegradedWire[]
