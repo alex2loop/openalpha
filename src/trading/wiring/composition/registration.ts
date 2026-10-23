@@ -78,6 +78,8 @@ interface TradingRegistrationOptions {
   sender(app: App): TradingNoticeSender
   /** Bound with the app in hand, like the sender: showing a fill needs the bus. */
   onFilled(app: App): OrderFilledListener
+  /** Bound with the app in hand: telling the page an alert pass finished needs the bus. */
+  onAlertsChecked(app: App): (at: number) => void
   /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
    *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
   recipient(): DeliveryAddress | undefined
@@ -87,9 +89,10 @@ interface TradingRegistrationOptions {
 
 /** The options once the sender and the fill listener are built: everything below the provider
  *  reads them themselves. */
-type BoundOptions = Omit<TradingRegistrationOptions, 'sender' | 'onFilled'> & {
+type BoundOptions = Omit<TradingRegistrationOptions, 'sender' | 'onFilled' | 'onAlertsChecked'> & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
+  readonly onAlertsChecked: (at: number) => void
 }
 
 declare module '@/core/container' {
@@ -256,7 +259,12 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
 }
 
 function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
-  return { ...provided, sender: provided.sender(app), onFilled: provided.onFilled(app) }
+  return {
+    ...provided,
+    sender: provided.sender(app),
+    onFilled: provided.onFilled(app),
+    onAlertsChecked: provided.onAlertsChecked(app),
+  }
 }
 
 interface SurfaceParts {

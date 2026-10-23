@@ -4,6 +4,8 @@ import type { EventBus } from '@/core/events'
 import type { RunId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
 import type { RunProgressMessage } from '@/engine/api'
+import { createAlertsFeed } from '@/app/server/feed/alerts'
+import { followBudget } from '@/app/server/feed/budget'
 import { followFills } from '@/app/server/feed/fills'
 import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
@@ -39,10 +41,24 @@ interface LiveFeedDeps {
 export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
   const book = createRunBook(deps.isLive)
   const pending = createPendingFeed(deps)
-  const offs = [...followLifecycle(deps, book), ...followProgress(deps, book), ...followFills(deps)]
+  const alerts = createAlertsFeed(deps)
+  const offs = [
+    ...followLifecycle(deps, book),
+    ...followProgress(deps, book),
+    ...followFills(deps),
+    ...followBudget(deps),
+  ]
 
   return {
-    snapshot: () => ({ runs: book.live(), pending: pending.list() }),
+    snapshot() {
+      const alertsCheckedAt = alerts.checkedAt()
+
+      return {
+        runs: book.live(),
+        pending: pending.list(),
+        ...(alertsCheckedAt === undefined ? {} : { alertsCheckedAt }),
+      }
+    },
     pendingOrigin: pending.originOf,
     stop: () => {
       for (const off of offs) {
@@ -51,6 +67,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
 
       book.clear()
       pending.stop()
+      alerts.stop()
     },
   }
 }

@@ -62,7 +62,7 @@ this document — neither imports the other.
 |---|---|---|---|---|---|
 | GET | `/v1/health` | no | — | `HealthResponse` | `health.json` |
 | GET | `/v1/state` | yes | — | `StatePayload` | `state.json` |
-| GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking` and the `persistent` steps so far; `pending`: every approval and question still waiting on any channel, approvals first, each oldest first; an approval is `{kind:'approval',event,channelId,answerable}` where `event` is its `approval_requested` wire event, a question is `{kind:'question',requestId,runId,sessionId,channel,question,askedAt,answerable}`; `answerable` is true only for a request asked on `api`; an approval leaves on `approval_resolved` or its `expiresAt`, a question on the next agent run in its `sessionId` or after a day) | `live.json` |
+| GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking` and the `persistent` steps so far; `pending`: every approval and question still waiting on any channel, approvals first, each oldest first; an approval is `{kind:'approval',event,channelId,answerable}` where `event` is its `approval_requested` wire event, a question is `{kind:'question',requestId,runId,sessionId,channel,question,askedAt,answerable}`; `answerable` is true only for a request asked on `api`; an approval leaves on `approval_resolved` or its `expiresAt`, a question on the next agent run in its `sessionId` or after a day; `alertsCheckedAt`: epoch ms the last alert pass finished, absent before the first) | `live.json` |
 | GET | `/v1/doctor` | yes | — | `DoctorReport` | `doctor.json` |
 | GET | `/v1/commands` | yes | — | `CommandList` | `commands.json` |
 | GET | `/v1/update` | yes | — | `UpdateResponse` (`enabled` false when checks are off or the daemon runs from a source checkout; the release feed is read once a day; `latest` is the newest release whether or not it is newer than `current`) | `update.json` |
@@ -212,6 +212,7 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 | `approval_resolved` | `resolution` `{decision,by}` + `requestId` | answered elsewhere / timeout → clear card |
 | `clarification_requested` | `clarification` `{text,sessionId,askedAt?,channelId?,answerable?}` + `requestId` + `runId` | agent asks; the answer is the next chat message in `sessionId`, on the surface in `channelId` (the raw channel id) |
 | `budget_warning` | `budget` `{period,spent,cap}` | non-interactive heads-up |
+| `budget_exhausted` | `budget` `{period,spent,cap}` + `note` | settled spend reached the daily or monthly cap, so paid work is refused until it resets; once per period, and not when a single call's estimate alone would cross a cap (interrupt, `wake`) |
 | `provider_fallback` | `fallback` `{from,to,reason,attempt}` | provider fell back; `reason` is the LLM error code |
 | `pairing_requested` | `pairing` `{channel,chatId,code,expiresAt}` | a chat was sent a pairing code; answer with `POST /v1/pairing` (interrupt) |
 | `alert_fired` | `alert` `{alertId,instrument,condition,threshold,observedPrice,level?}` + `note` | a price alert crossed; `level: target` on a plan's take-profit |
@@ -219,6 +220,7 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 | `brief_ready` | `brief` `{snapshotId,day}` + `note` | the morning brief is ready; read `GET /v1/brief` |
 | `mover` | `mover` `{instrument,condition,observedPrice,movePct?,benchmark?}` + `note` | a watched or held name moved past its usual range |
 | `order_filled` | `fill` `{instrument,venue,side,quantity,price,closeReason?}` + `note` | a fill the ledger now holds, from `/trade` or a resting exit (`closeReason` `stop` or `target` on a sale a resting leg made); the one event for a fill, so a chat's exit notice is not repeated as another kind (nudge, `wake`) |
+| `alerts_checked` | `checkedAt` | one alert pass finished (about every minute); a pass reads one cursor page of alerts, not the whole book; `GET /v1/live` keeps the last as `alertsCheckedAt` (quiet) |
 | `idea` | `idea` `{suggestionId,instrument,action,conviction}` | a buy or reduce was stored (checked each minute); read `GET /v1/suggestions` |
 | `schedule_result` | `note` | a scheduled job's or heartbeat's result (sneak) |
 | `notice` | `note` | any other daemon notice, as text (nudge) |
@@ -230,7 +232,7 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
   not count as reached: with no socket taking the frame the delivery fails and the daemon retries
   later, as it would for an offline chat.
 
-- **`wake`** is `true` on `approval_requested`, `stop_breached`, `alert_fired` and `order_filled`
+- **`wake`** is `true` on `approval_requested`, `stop_breached`, `alert_fired`, `order_filled` and `budget_exhausted`
   and absent on every other kind: the events worth bringing a sleeping client back for.
 - **`weight`** ∈ `interrupt | nudge | sneak | quiet` — a hint; each client maps it to its own surface
   (a system notification, a toast, a badge). The hint is shared, the rendering is not.

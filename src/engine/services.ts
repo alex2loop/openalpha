@@ -134,6 +134,7 @@ export const engineProvider: ServiceProvider = {
         llmAttemptSink: app.resolve('llmAttemptSink'),
         unrecordedSpend: app.resolve('unrecordedSpend'),
         logger: app.resolve('logger'),
+        bus: app.resolve('bus'),
       }
 
       return (identity, attempt) => settleCallerAttempt(ledger, identity, attempt)

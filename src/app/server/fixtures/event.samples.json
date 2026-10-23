@@ -101,6 +101,15 @@
   },
   {
     "v": 1,
+    "kind": "budget_exhausted",
+    "weight": "interrupt",
+    "wake": true,
+    "source": { "channel": "api", "agentId": "chat" },
+    "note": "Daily spend cap reached.",
+    "budget": { "period": "daily", "spent": 10.02, "cap": 10 }
+  },
+  {
+    "v": 1,
     "kind": "provider_fallback",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
@@ -187,6 +196,13 @@
       "price": 61200,
       "closeReason": "stop"
     }
+  },
+  {
+    "v": 1,
+    "kind": "alerts_checked",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "checkedAt": 1792480060000
   },
   {
     "v": 1,

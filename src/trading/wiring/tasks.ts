@@ -67,6 +67,8 @@ interface TradingDaemonDeps {
   readonly order?: Pick<OrderService, 'reconcileUnmirrored'>
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
+  /** Called with the pass time once an alert pass has delivered what was armed. */
+  readonly onAlertsChecked?: (at: number) => void
   recipient(): DeliveryAddress | undefined
   refreshMarketData(
     options: RefreshAllMarketDataOptions
@@ -246,6 +248,7 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
       const options = { now: Date.now(), batchSize: policy.batchSize, signal }
 
       await alerts.tick(options)
+      deps.onAlertsChecked?.(options.now)
       await armingStep(logger, 'exits', () => alerts.tickExits(options))
       await armingStep(logger, 'screeners', () => alerts.tickScreeners(options))
     },

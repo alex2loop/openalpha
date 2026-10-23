@@ -26,6 +26,7 @@ type WireEventKind =
   | 'approval_resolved'
   | 'clarification_requested'
   | 'budget_warning'
+  | 'budget_exhausted'
   | 'provider_fallback'
   | 'pairing_requested'
   | 'alert_fired'
@@ -34,6 +35,7 @@ type WireEventKind =
   | 'idea'
   | 'mover'
   | 'order_filled'
+  | 'alerts_checked'
   | 'schedule_result'
   | 'notice'
 
@@ -92,6 +94,7 @@ export interface WireEvent {
     readonly channelId?: string
     readonly answerable?: boolean
   }
+  /** 'budget_warning' | 'budget_exhausted': the period's spend against its cap, in USD. */
   readonly budget?: { readonly period: string; readonly spent: number; readonly cap: number }
   /** 'provider_fallback': `from`/`to` are `provider/model`; `reason` is the runtime LLM error code
    *  that moved the chain on; `attempt` counts from 1. */
@@ -139,6 +142,9 @@ export interface WireEvent {
     readonly price: number
     readonly closeReason?: 'stop' | 'target'
   }
+  /** 'alerts_checked': epoch ms an alert pass last finished. A pass reads one cursor page of alerts,
+   *  not the whole book. */
+  readonly checkedAt?: number
   /** 'idea': a suggestion was stored; read it with GET /v1/suggestions. */
   readonly idea?: {
     readonly suggestionId: string
@@ -148,6 +154,6 @@ export interface WireEvent {
   }
   /** The line a chat would get, already written in the daemon's language: the whole payload of
    *  'schedule_result' and 'notice', and set beside the 'alert_fired', 'stop_breached',
-   *  'brief_ready', 'mover' and 'order_filled' payloads too. */
+   *  'brief_ready', 'mover', 'order_filled' and 'budget_exhausted' payloads too. */
   readonly note?: string
 }

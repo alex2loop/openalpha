@@ -38,6 +38,7 @@ interface AggregateOptions {
   readonly tradingConfig: TradingConfig
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
+  readonly onAlertsChecked: (at: number) => void
   recipient(): DeliveryAddress | undefined
 }
 
@@ -108,6 +109,7 @@ function buildDaemonTasks(
     ...(parts.services.order === undefined ? {} : { order: parts.services.order }),
     sender: options.sender,
     onFilled: options.onFilled,
+    onAlertsChecked: options.onAlertsChecked,
     recipient: options.recipient,
     refreshMarketData: parts.refreshMarketData,
     logger: parts.logger,

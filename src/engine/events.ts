@@ -55,6 +55,13 @@ declare module '@/core/events' {
       readonly spent: number
       readonly cap: number
     }
+    /** Settled spend has reached a cap, so no further paid work is admitted. Once per period. */
+    budget_exhausted: {
+      readonly agentId: AgentId
+      readonly period: 'daily' | 'monthly'
+      readonly spent: number
+      readonly cap: number
+    }
     tool_output_threat: {
       readonly toolName: string
       readonly callId: string

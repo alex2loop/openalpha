@@ -190,6 +190,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
         }),
       // The bus isolates a handler that throws, so a page that cannot take the event never fails a booking.
       onFilled: (app) => (fill) => app.resolve('bus').emit('order_filled', fill),
+      onAlertsChecked: (app) => (at) => app.resolve('bus').emit('alerts_checked', { at }),
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,

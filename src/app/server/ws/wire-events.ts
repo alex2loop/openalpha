@@ -2,6 +2,7 @@ import type { Channel, WireEvent } from '@/app/server/wire/events'
 import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
 import type { BusEventMap } from '@/core/events'
 import type { Locale } from '@/core/types/locale'
+import '@/app/events'
 import { APP_SOURCE, isApiChannel } from '@/app/server/channel'
 import { WIRE_DECISION } from '@/app/server/decision'
 import { scrubCredentials } from '@/core/security/credentials'
@@ -21,6 +22,7 @@ type WireTopic =
   | 'run_thinking'
   | 'command_started'
   | 'command_finished'
+  | 'alerts_checked'
 
 /** The progress topics: their wire line is rendered (and may be dropped) before the event is built,
  *  so the normaliser takes it ready. */
@@ -28,7 +30,7 @@ type ProgressTopic = 'run_progress' | 'command_progress'
 
 /** The topics whose wire line is the daemon's own sentence, rendered by the caller that holds the
  *  locale, so the normaliser takes it ready. */
-type NotedTopic = 'order_filled'
+type NotedTopic = 'order_filled' | 'budget_exhausted'
 
 // The bus carries the full ChannelId union; the v1 wire narrows to these. An unmapped channel
 // (e.g. a future adapter) renders as 'api' rather than widening the frozen wire contract.
@@ -153,6 +155,13 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     runId: e.runId,
     outcome: e.outcome,
   }),
+  alerts_checked: (e) => ({
+    v: 1,
+    kind: 'alerts_checked',
+    weight: 'quiet',
+    source: APP_SOURCE,
+    checkedAt: e.at,
+  }),
 }
 
 /** The approval event with its tool label in the operator's language, as every surface prints it. */
@@ -187,6 +196,15 @@ export const PROGRESS_NORMALIZERS: {
 export const NOTED_NORMALIZERS: {
   readonly [K in NotedTopic]: (e: BusEventMap[K], note: string) => WireEvent
 } = {
+  budget_exhausted: (e, note) => ({
+    v: 1,
+    kind: 'budget_exhausted',
+    weight: 'interrupt',
+    wake: true,
+    source: { ...APP_SOURCE, agentId: e.agentId },
+    note,
+    budget: { period: e.period, spent: e.spent, cap: e.cap },
+  }),
   order_filled: (e, note) => ({
     v: 1,
     kind: 'order_filled',
