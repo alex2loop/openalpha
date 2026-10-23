@@ -185,6 +185,18 @@ run one task at a time, keep a bounded and compacted context, and have stale too
 before the next model call. The engine checks citations, extracts explicit durable preferences, passes
 cancellation down, and reports a typed terminal reason. Config and registries freeze at boot.
 
+**Live feed and command lane.** The engine and the command dispatcher put the run lifecycle on the bus
+(`run_started`, `run_progress`, `run_thinking`, `run_finished`, and `command_started`, `command_progress`,
+`command_finished` for long-running slash commands); the app adds `order_filled` and `alerts_checked`, and the
+engine adds `budget_exhausted`. [app/server/feed/](../../../src/app/server/feed/) folds them into the run book
+behind `GET /v1/live` and broadcasts each to the open sockets; `approval_requested` and
+`clarification_requested` carry their ids and `askedAt` so the pending list can hold them. Wire shapes:
+[CONTRACT.md](../../../src/app/server/CONTRACT.md). Self-contained commands run in a per-chat command lane
+([core/command-lane.ts](../../../src/core/command-lane.ts)), three running and ten waiting per chat, shared by
+every surface that reaches the chat; `/new`, `/stop` and the socket's `cancel` drop the waiting ones, and `drop`
+takes out one. One `/suggest` runs per identity and depth: a second finds the run in the suggestion service's
+flight map and waits on it, and the starter alone is billed.
+
 **Agents and teams.** Built-in agents: `chat`, `deep-researcher` with its internal workers
 (`research-crawler`, `research-planner`, `research-reviewer`, `research-synthesizer`), and `reviewer`.
 Trading adds the debate personas (`bull-researcher`, `bear-researcher`, `portfolio-manager`, `trader`,

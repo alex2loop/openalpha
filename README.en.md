@@ -405,6 +405,13 @@ Suggestions written that way are scored separately in `/reflect` under `client:<
 
 </details>
 
+<details>
+<summary><b>Connect your own app (API)</b></summary>
+
+Set `[api] enabled = true` and the daemon serves a local HTTP and WebSocket API on `127.0.0.1`, behind a token. A client app gets your book, quotes, suggestions and chat, plus a live feed of what the daemon is running right now: each run and its steps, approvals and questions waiting on any channel, fills, and spend caps reached. How to turn it on and reach it from another machine: [docs/en/operations.md](docs/en/operations.md#run-the-api-on-a-server)
+
+</details>
+
 ### FAQ
 
 - **What does it cost?** The software is free; you pay only your AI provider, and the [Daily use](#daily-use) table lists the cost of each command. You set a daily spending cap during setup.

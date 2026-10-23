@@ -16,6 +16,50 @@
   },
   {
     "v": 1,
+    "kind": "run_started",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "web-researcher" },
+    "runId": "run_def",
+    "run": {
+      "kind": "agent",
+      "name": "web-researcher",
+      "channel": "cli",
+      "sessionId": "sess_91d",
+      "parentRunId": "run_abc",
+      "hidden": true,
+      "startedAt": 1792480011000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_started",
+    "weight": "quiet",
+    "source": { "channel": "telegram", "agentId": "" },
+    "runId": "cmd_4f1a",
+    "run": {
+      "kind": "command",
+      "name": "refresh",
+      "channel": "telegram",
+      "sessionId": "sess_8c2",
+      "startedAt": 1792480000000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_progress",
+    "weight": "quiet",
+    "source": { "channel": "telegram", "agentId": "" },
+    "runId": "cmd_4f1a",
+    "progress": {
+      "key": "trading.progress.refresh.bars",
+      "params": { "market": "equity-vn", "done": 120, "total": 1600 },
+      "text": "equity-vn · Đang tải lịch sử giá - 120/1600 mã…",
+      "mode": "transient",
+      "at": 1792480004000
+    }
+  },
+  {
+    "v": 1,
     "kind": "run_progress",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
@@ -53,6 +97,14 @@
   },
   {
     "v": 1,
+    "kind": "run_finished",
+    "weight": "quiet",
+    "source": { "channel": "telegram", "agentId": "" },
+    "runId": "cmd_4f1a",
+    "outcome": "done"
+  },
+  {
+    "v": 1,
     "kind": "tool_result",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
@@ -73,7 +125,9 @@
       "argsSummary": "ticker: FPT, days: 365",
       "expiresAt": 1792483200000,
       "decisions": ["deny", "approve", "always"],
-      "dangerous": false
+      "channelId": "telegram",
+      "answerable": false,
+      "askedAt": 1792479900000
     }
   },
   {
@@ -90,7 +144,15 @@
     "kind": "clarification_requested",
     "weight": "interrupt",
     "source": { "channel": "telegram", "agentId": "" },
-    "clarification": { "text": "Which broker account?", "sessionId": "tg_123456789" }
+    "runId": "run_abc",
+    "requestId": "ask_77",
+    "clarification": {
+      "text": "Which broker account?",
+      "sessionId": "tg_123456789",
+      "askedAt": 1792479950000,
+      "channelId": "telegram",
+      "answerable": false
+    }
   },
   {
     "v": 1,

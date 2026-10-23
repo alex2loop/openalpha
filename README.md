@@ -405,6 +405,13 @@ openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, openco
 
 </details>
 
+<details>
+<summary><b>Nối ứng dụng của riêng bạn (API)</b></summary>
+
+Đặt `[api] enabled = true` thì daemon mở một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập. Ứng dụng khách nhận được sổ lệnh, giá, đề xuất và chat của bạn, cùng một luồng trực tiếp về những gì daemon đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Cách bật và cách nối từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ)
+
+</details>
+
 ### Câu hỏi thường gặp
 
 - **Tốn bao nhiêu tiền?** Phần mềm miễn phí, bạn chỉ trả cho nhà cung cấp AI; bảng [Dùng mỗi ngày](#dùng-mỗi-ngày) ghi chi phí từng lệnh. Bạn đặt trần chi tiêu mỗi ngày lúc cài.

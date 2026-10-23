@@ -195,6 +195,18 @@ xử lý tuần tự từng việc, giữ ngữ cảnh có giới hạn và đư
 lần gọi mô hình kế tiếp. Engine kiểm tra trích nguồn, rút ra các sở thích lâu dài mà người dùng nói rõ,
 truyền tín hiệu hủy, và báo lý do kết thúc có kiểu. Cấu hình và các sổ đăng ký đóng băng lúc khởi động.
 
+**Luồng trực tiếp và làn câu lệnh.** Engine và bộ điều phối câu lệnh đưa vòng đời của phiên chạy lên bus
+(`run_started`, `run_progress`, `run_thinking`, `run_finished`, và `command_started`, `command_progress`,
+`command_finished` cho câu lệnh gạch chéo chạy lâu); app thêm `order_filled` và `alerts_checked`, engine thêm
+`budget_exhausted`. [app/server/feed/](../../src/app/server/feed/) gộp chúng thành sổ các phiên chạy phía sau
+`GET /v1/live` và phát từng sự kiện tới các socket đang mở; `approval_requested` và `clarification_requested`
+mang id và `askedAt` để danh sách đang chờ giữ được chúng. Hình dạng trên dây:
+[CONTRACT.md](../../src/app/server/CONTRACT.md). Các câu lệnh tự chạy được đi qua một làn riêng cho từng cuộc chat
+([core/command-lane.ts](../../src/core/command-lane.ts)), ba câu chạy và mười câu chờ mỗi cuộc chat, dùng chung cho
+mọi bề mặt tới được cuộc chat đó; `/new`, `/stop` và khung `cancel` của socket bỏ những câu đang chờ, còn `drop`
+bỏ đúng một câu. Mỗi định danh và độ sâu chỉ chạy một `/suggest`: lượt thứ hai tìm lượt đang chạy trong bảng các
+lượt của dịch vụ đề xuất rồi chờ nó, và chỉ lượt khởi đầu bị tính phí.
+
 **Agent và đội.** Các agent có sẵn: `chat`, `deep-researcher` cùng các worker nội bộ của nó
 (`research-crawler`, `research-planner`, `research-reviewer`, `research-synthesizer`), và `reviewer`. Phần
 giao dịch thêm các vai tranh luận (`bull-researcher`, `bear-researcher`, `portfolio-manager`, `trader`,

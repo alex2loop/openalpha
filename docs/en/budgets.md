@@ -95,6 +95,9 @@ same remaining dollar.
 - **Required work** (a normal turn, compaction) halts when admission fails.
 - **Optional work** (such as preference extraction) is skipped and logged.
 - Channel queues also stop accepting new runs once the day or month is at its cap.
+- An app connected to the API is told once per period when settled spend reaches the daily or monthly cap, so it
+  can say that paid work is paused until the cap resets. A call whose own estimate would cross the cap is refused
+  without that notice.
 
 When actual cost crosses a cap, the attempt is charged and kept, and then the run halts. Paid usage is never
 discarded to make a total fit - a ledger that lies to stay under the limit is worse than none.

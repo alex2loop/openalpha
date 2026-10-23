@@ -153,7 +153,9 @@ Kênh mất kết nối và không có lại sẽ được báo trên một kên
 2. **Kiểm tra.** Lệnh dừng và lệnh ghép nối được xử lý trước. Lệnh gạch chéo đi qua bộ điều phối lệnh
    chuẩn. Văn bản thường được gom nhịp một lúc rồi chuyển tới agent và phiên chat của cuộc trò chuyện.
 3. **Xếp hàng.** Mỗi phiên chat xử lý tuần tự từng việc, và các cổng ngân sách ngày/tháng chạy trước khi
-   bất cứ gì mới bắt đầu.
+   bất cứ gì mới bắt đầu. Các câu lệnh tự chạy được (như `/suggest`, `/screen`, `/refresh`) là ngoại lệ: chúng
+   chạy bên cạnh lượt của phiên, tối đa ba câu lệnh cùng lúc mỗi cuộc chat. Câu lệnh phải chờ sẽ báo đã xếp hàng
+   và đứng thứ mấy, còn `/stop` hoặc `/new` thì bỏ nó.
 4. **Bạn thấy tiến độ.** Khi `mid_stream_updates = true` trên kênh sửa được tin (Telegram), một tin cập
    nhật trực tiếp công cụ đang dùng và thời gian đã trôi. Ở kênh khác bạn nhận câu trả lời cuối. Chỉ báo
    "đang gõ" và cảm xúc chỉ hiện ở nơi kênh và cấu hình của bạn cùng cho phép.

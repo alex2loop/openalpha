@@ -142,7 +142,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn) |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
-| `/new` | Chuyển sang một phiên chat mới |
+| `/new` | Chuyển sang một phiên chat mới; các câu lệnh còn chờ trong hàng của cuộc chat bị bỏ |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 
@@ -159,6 +159,14 @@ Kênh có thêm `/stop` và các lệnh ghép nối. `/stop` và `/help` cũng n
 `/stop@MyBot`, đúng cách nhóm Telegram gửi lệnh. REPL có `/help`, `/exit` và `/quit`, và Ctrl+D cũng
 thoát được. Dòng gõ trong lúc một lượt còn chạy không được gửi, kể cả sau đó, để nó không vô tình trả lời
 một câu hỏi phê duyệt; REPL báo ngay để bạn gõ lại.
+
+Các câu lệnh tự chạy được - `/suggest`, `/screen`, `/rebalance`, `/brief`, `/refresh`, `/price`, `/overview`,
+`/market`, `/portfolio`, `/reconcile`, `/themes`, `/schedule run` và các workflow của plugin - không phải đợi sau
+lượt chat của bạn. Mỗi cuộc chat chạy tối đa ba câu lệnh cùng lúc, và tối đa mười câu lệnh nữa xếp hàng chờ theo
+thứ tự. Trên kênh chat, câu lệnh phải chờ sẽ báo nó đứng thứ mấy trong hàng và tự chạy khi có chỗ trống; câu lệnh
+vượt quá hàng chờ bị từ chối kèm lời nhờ gửi lại sau một chút. `/new` và `/stop` dọn hàng chờ: các câu lệnh đang
+chờ bị bỏ mà không báo gì, và `/stop` còn dừng cả những câu lệnh đang chạy. Tin nhắn chat thường vẫn chờ câu trả
+lời đứng trước nó.
 
 Hai quy ước giải thích đầu ra bạn thấy:
 
@@ -708,6 +716,10 @@ gần nhất - cho tới khi có giá đóng cửa mới hơn phiên nó đã đ
 chạy lại sau khi `/refresh` nạp xong phiên đó. `force` chạy lại bất chấp cửa sổ đó và cả thời gian nghỉ, ở độ sâu đầy đủ trừ khi bạn gõ một
 chế độ. Một mã mà sổ đang nắm ở đúng mức mục tiêu mặc định chạy `lean`, vì câu hỏi tốn kém ở đó đã có
 lời đáp.
+
+Khi một `/suggest` cho một mã đang chạy, cùng yêu cầu đó cho mã ấy từ bất kỳ cuộc chat hay từ ứng dụng sẽ nối vào
+lượt đang chạy và dùng kết quả của nó, khỏi tốn thêm một lượt tranh luận; chỉ yêu cầu khởi đầu bị tính phí. Yêu
+cầu chạy sâu hơn không nối vào một lượt nhẹ hơn, và `force` luôn chạy riêng.
 
 `/suggest stops` bao quát mọi vị thế đang nắm mà kế hoạch mới nhất thiếu mức dừng hoặc mục tiêu, cộng mọi
 vị thế đã qua cửa sổ đo kết cục mà không nhúc nhích. Nó mặc định chạy `lean` và báo khi chẳng có gì cần

@@ -448,7 +448,10 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # ==== Connections =============================================================
 
 # ---- API server -------------------------------------------------------------
-# HTTP/WS API for client apps (off by default).
+# HTTP/WS API for client apps (off by default). Turning it on gives a client app
+# a live feed of what the daemon is running: runs and their steps, pending
+# approvals, fills and spend caps reached. The agent office page that shows it
+# arrives later.
 # Binds 127.0.0.1 only; on a server, reach it through an SSH tunnel or a reverse
 # proxy on the same host (docs/en/operations.md). Bearer token at
 # <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with

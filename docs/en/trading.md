@@ -1145,6 +1145,8 @@ Terminal chat and channels share one slash-command registry, so a transaction sy
 
 A fill placed through `/trade` or `order_place` is written to the ledger the same way a manual `/record` is. The book stays one calculation over one set of rows, and a position opened at the exchange looks the same as one typed in by hand. A sell written by a triggered exit names which leg filled (`stopped out` / `target hit`); a sale you make yourself names none.
 
+When a resting stop or take-profit fills at the exchange, the next pass over resting exits (every 60 seconds) books the sale and sends one notice naming which exit filled, the venue, the quantity and the price, and that the ledger holds it. An app on the API sees the same fill once. A sale that `/record sync` booked first sends nothing.
+
 **`/record sync <venue>`** is the third way those rows are created, and it takes the same path. It differs only in how it selects: it asks the venue what it filled, then books what the book has no row for. Validation, calculation and confirmation are shared.
 
 A limit order that filled only partly before you cancelled it is now synced for the part that filled.

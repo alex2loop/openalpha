@@ -154,7 +154,9 @@ A channel that drops and stays down is reported on another one, and `status` lis
 2. **It is checked.** Stop and pairing commands are handled first. Slash commands go to the normal
    command dispatcher. Ordinary text is batched for a moment, then sent to the chat's agent and session.
 3. **It waits its turn.** Each chat session runs one task at a time, and the daily and monthly budget
-   checks run before anything new starts.
+   checks run before anything new starts. Commands that run on their own (`/suggest`, `/screen`, `/refresh` and
+   the like) are the exception: they run beside the session's turn, up to three at once per chat. One that has to
+   wait answers "Queued" with its place in line, and `/stop` or `/new` drops it.
 4. **You see it progress.** With `mid_stream_updates = true` on a channel that can edit messages
    (Telegram), one message updates live with the tool being used and the time elapsed. Elsewhere you get
    the final answer. Typing indicators and reactions show only where the channel and your config allow.

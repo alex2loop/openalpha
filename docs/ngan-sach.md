@@ -95,6 +95,9 @@ giữ chỗ cũng được tính khi xét duyệt, nên hai phiên chạy song s
 - **Việc bắt buộc** (một lượt thường, khâu nén hội thoại) dừng khi không được duyệt.
 - **Việc tùy chọn** (như trích xuất sở thích người dùng) bị bỏ qua và ghi log.
 - Hàng đợi của kênh cũng ngừng nhận phiên chạy mới một khi ngày hoặc tháng đã chạm hạn mức.
+- Ứng dụng nối vào API được báo một lần cho mỗi kỳ khi chi tiêu đã tính xong chạm hạn mức ngày hoặc tháng, để nó
+  nói rằng công việc tốn tiền tạm dừng tới khi hạn mức đặt lại. Một lời gọi mà riêng ước tính của nó vượt hạn
+  mức thì bị từ chối mà không có thông báo này.
 
 Khi chi phí thật vượt hạn mức, lần thử vẫn được tính tiền và giữ lại, rồi phiên chạy mới dừng. Phần đã trả tiền không bao
 giờ bị vứt bớt cho tổng vừa với hạn mức - một cuốn sổ nói dối để nằm dưới giới hạn còn tệ hơn là không có sổ.

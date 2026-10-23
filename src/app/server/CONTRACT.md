@@ -5,12 +5,15 @@ Normative spec for the control API. **This is the single source of truth** for t
 this document — neither imports the other.
 
 - **TS types** (canonical, machine-checked): [`wire/`](wire/) — `system.ts`, `config.ts`,
-  `sign-in.ts`, `chat.ts`, `events.ts`, `trading.ts`, `market.ts`, `money.ts`, `agents.ts`,
-  `errors.ts`, `socket.ts`. Route handlers MUST NOT redefine these shapes.
+  `sign-in.ts`, `chat.ts`, `events.ts`, `live.ts`, `trading.ts`, `market.ts`, `money.ts`,
+  `orders.ts`, `agents.ts`, `errors.ts`, `socket.ts`, `vocab.ts`. Route handlers MUST NOT redefine
+  these shapes. The folder is self-contained: a file in it imports only its siblings and
+  `core/types`, so a client can compile it alone (`scripts/check-dag.ts` enforces this), and
+  `vocab.ts` holds the closed vocabularies written out, checked against the daemon's own.
 - **Client mirror**: a client in another language hand-syncs its own types to `wire/`, verified by
   decoding the fixtures below (no daemon needed).
-- **Fixtures** (canonical byte-level examples): [`fixtures/`](fixtures/) — one per endpoint + per
-  `wire_event` kind + the chat frames. Both sides decode these through their real decoders; a
+- **Fixtures** (canonical byte-level examples): [`fixtures/`](fixtures/) — one per endpoint, one
+  sample per feed kind (`event.samples.json`), and the chat frames. Both sides decode these through their real decoders; a
   malformed or drifted shape fails at decode time. This is the drift check.
 
 > **MUST / SHOULD / MAY** per RFC 2119.
@@ -111,10 +114,10 @@ this document — neither imports the other.
 | POST | `/v1/trade/halt` | yes (`orders`) | `HaltBody` | `TradeActionResponse` | — |
 | POST | `/v1/trade/reconcile` | yes (`orders`) | — | `ReconcileOrdersResponse` (`orphanExits`: exits resting at a venue that no row tracks, listed and never cancelled; `unreadExitVenues`: venues whose exits could not be listed, so an empty `orphanExits` says nothing about them) | — |
 | DELETE | `/v1/trade/unmirrored/:token` | yes (`orders`) | — | `TradeActionResponse` | — |
-| GET | `/v1/ws` | yes (header or `?token=`) | WebSocket upgrade | 101 → §4 (feed) + §5 (chat) | `wire_event.*.json`, `chat.*.json` |
+| GET | `/v1/ws` | yes (header or `?token=`) | WebSocket upgrade | 101 → §4 (feed) + §5 (chat) | `event.samples.json`, `chat.frames.json`, `chat.done.json`, `chat.error.json` |
 
 The trading shapes are in `wire/trading.ts`. The realtime feed and chat are **not** HTTP routes —
-they are messages on the single `/v1/ws` socket (§4, §5). The `wire_event.*.json` / `chat.*.json`
+they are messages on the single `/v1/ws` socket (§4, §5). The `event.samples.json` / `chat.*.json`
 fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame` envelope
 (`{ type, ...payload }`, `socket.ts`). Notes:
 - **Units.** `changePct`, `weightPctNav` and every `*PctNav` / `*Pct` in `money.ts` are percents
@@ -200,30 +203,30 @@ lifetime, regardless of chat activity. The daemon assigns `weight` (routing tier
 (`channel` + `agentId`) — the client never re-derives either. A `wire_event` carries **one payload
 field matching its `kind`**, and the notices also carry `note`, the line a chat would get:
 
-| `kind` | payload field | meaning |
-|---|---|---|
-| `run_started` | `run` `{kind,name,title?,channel,sessionId,parentRunId?,hidden?,startedAt}` | an agent run or a long-running slash command began; `channel` is the raw channel id (open, never folded into `Channel`), `name` the agent id or the command name, `sessionId` lets a client clear a pending question when the answer turn starts |
-| `run_progress` | `progress` `{key,params?,text,mode,at}` | a run's step line, `text` already written in the daemon's language; `params` are credential-scrubbed; `mode` is `transient` or `persistent` |
-| `run_thinking` | `thinking` | a scrubbed tail of the model's reasoning, at most one per 2 s per run |
-| `run_finished` | `outcome` | run lifecycle end: a run result reason (`completed`, `aborted`, `budget`, `error`, `turn_limit`, `loop`, `timeout`), or `done` / `cancelled` / `failed` for a command |
-| `usage` | `usage` `{costUsd,tokens}` | per-run cost/tokens tick |
-| `tool_result` | `tool` `{name,ok}` | a tool finished (afterTool) |
-| `approval_requested` | `approval` `{toolName,label,argsSummary,expiresAt,decisions,dangerous?,truncated?,channelId?,answerable?,askedAt?}` + `requestId` | tool-gate decision needed from any channel; offer only `decisions`, and only when `answerable` (`channelId` is the raw channel that asked; any other channel answers it there). `label` is the tool's name in the operator's language; `expiresAt` (epoch ms) is when the gate denies on its own |
-| `approval_resolved` | `resolution` `{decision,by}` + `requestId` | answered elsewhere / timeout → clear card |
-| `clarification_requested` | `clarification` `{text,sessionId,askedAt?,channelId?,answerable?}` + `requestId` + `runId` | agent asks; the answer is the next chat message in `sessionId`, on the surface in `channelId` (the raw channel id) |
-| `budget_warning` | `budget` `{period,spent,cap}` | non-interactive heads-up |
-| `budget_exhausted` | `budget` `{period,spent,cap}` + `note` | settled spend reached the daily or monthly cap, so paid work is refused until it resets; once per period, and not when a single call's estimate alone would cross a cap (interrupt, `wake`) |
-| `provider_fallback` | `fallback` `{from,to,reason,attempt}` | provider fell back; `reason` is the LLM error code |
-| `pairing_requested` | `pairing` `{channel,chatId,code,expiresAt}` | a chat was sent a pairing code; answer with `POST /v1/pairing` (interrupt) |
-| `alert_fired` | `alert` `{alertId,instrument,condition,threshold,observedPrice,level?}` + `note` | a price alert crossed; `level: target` on a plan's take-profit |
-| `stop_breached` | `alert` (with `level: stop`) + `note` | a held name crossed its plan stop (interrupt) |
-| `brief_ready` | `brief` `{snapshotId,day}` + `note` | the morning brief is ready; read `GET /v1/brief` |
-| `mover` | `mover` `{instrument,condition,observedPrice,movePct?,benchmark?}` + `note` | a watched or held name moved past its usual range |
-| `order_filled` | `fill` `{instrument,venue,side,quantity,price,closeReason?}` + `note` | a fill the ledger now holds, from `/trade` or a resting exit (`closeReason` `stop` or `target` on a sale a resting leg made); the one event for a fill, so a chat's exit notice is not repeated as another kind (nudge, `wake`) |
-| `alerts_checked` | `checkedAt` | one alert pass finished (about every minute); a pass reads one cursor page of alerts, not the whole book; `GET /v1/live` keeps the last as `alertsCheckedAt` (quiet) |
-| `idea` | `idea` `{suggestionId,instrument,action,conviction}` | a buy or reduce was stored (checked each minute); read `GET /v1/suggestions` |
-| `schedule_result` | `note` | a scheduled job's or heartbeat's result (sneak) |
-| `notice` | `note` | any other daemon notice, as text (nudge) |
+| `kind` | weight | payload field | when it fires |
+|---|---|---|---|
+| `run_started` | quiet | `run` `{kind,name,title?,channel,sessionId,parentRunId?,hidden?,startedAt}` | an agent run or a long-running slash command began. `channel` is the raw channel id (open, never folded into `Channel`), `name` the agent id or the command name, `sessionId` lets a client clear a pending question when the answer turn starts, `parentRunId` ties a delegated run to its parent and `hidden` marks one whose answer reaches no surface, so the feed shows that it ran and nothing more |
+| `run_progress` | quiet | `progress` `{key,params?,text,mode,at}` | a run reported a step; `text` is already written in the daemon's language, `params` are credential-scrubbed, `mode` is `transient` (replaces the last line) or `persistent` (stays in the run's steps) |
+| `run_thinking` | quiet | `thinking` | a scrubbed tail of the model's reasoning, at most one per 2 s per run |
+| `run_finished` | quiet | `outcome` | a run ended: a run result reason (`completed`, `aborted`, `budget`, `error`, `turn_limit`, `loop`, `timeout`), or `done` / `cancelled` / `failed` for a command |
+| `usage` | quiet | `usage` `{costUsd,tokens}` | declared for a per-run cost tick; the daemon does not send it today |
+| `tool_result` | quiet | `tool` `{name,ok}` | declared for a finished tool; the daemon does not send it today (a chat turn's tools arrive as `tool` chat frames) |
+| `approval_requested` | interrupt, `wake` | `approval` `{toolName,label,argsSummary,expiresAt,decisions,truncated?,channelId,answerable,askedAt}` + `requestId` | a tool gate needs a decision from any channel; offer only `decisions`, and only when `answerable`. `channelId` is the raw channel that asked, and any other channel answers it there. `label` is the tool's name in the operator's language; `expiresAt` (epoch ms) is when the gate denies on its own; `dangerous` is declared and not sent today |
+| `approval_resolved` | quiet | `resolution` `{decision,by}` + `requestId` | it was answered, or timed out: clear its card |
+| `clarification_requested` | interrupt | `clarification` `{text,sessionId,askedAt,channelId,answerable}` + `requestId` + `runId` | an agent asked a question and ended its run; the answer is the next chat message in `sessionId`, on the surface in `channelId` (the raw channel id) |
+| `budget_warning` | nudge | `budget` `{period,spent,cap}` | a paid call is about to start and would take the period's spend, reserved calls and estimate included, past the warn share of a cap; once per period |
+| `budget_exhausted` | interrupt, `wake` | `budget` `{period,spent,cap}` + `note` | settled spend reached the daily or monthly cap, so paid work is refused until it resets; once per period, and not when a single call's estimate alone would cross a cap |
+| `provider_fallback` | quiet | `fallback` `{from,to,reason,attempt}` | a provider failed and the next one in the chain took the call; `reason` is the LLM error code |
+| `pairing_requested` | interrupt | `pairing` `{channel,chatId,code,expiresAt}` | a chat was sent a pairing code; answer with `POST /v1/pairing` |
+| `alert_fired` | nudge, `wake` | `alert` `{alertId,instrument,condition,threshold,observedPrice,level?}` + `note` | a price alert crossed; `level: target` on a plan's take-profit |
+| `stop_breached` | interrupt, `wake` | `alert` (with `level: stop`) + `note` | a held name crossed its plan stop |
+| `brief_ready` | nudge | `brief` `{snapshotId,day}` + `note` | the morning brief was stored; read `GET /v1/brief` |
+| `mover` | nudge | `mover` `{instrument,condition,observedPrice,movePct?,benchmark?}` + `note` | a watched or held name moved past its usual range |
+| `order_filled` | nudge, `wake` | `fill` `{instrument,venue,side,quantity,price,closeReason?}` + `note` | a fill the ledger now holds, from `/trade` or a resting exit (`closeReason` `stop` or `target` on a sale a resting leg made); the one event for a fill, so a chat's exit notice is not repeated as another kind |
+| `alerts_checked` | quiet | `checkedAt` | one alert pass finished (about every minute); a pass reads one cursor page of alerts, not the whole book; `GET /v1/live` keeps the last as `alertsCheckedAt` |
+| `idea` | nudge | `idea` `{suggestionId,instrument,action,conviction}` | a buy or reduce was stored (checked each minute); read `GET /v1/suggestions` |
+| `schedule_result` | sneak | `note` | a scheduled job's or heartbeat's result, or the text a chat would get with no event of its own |
+| `notice` | nudge | `note` | any other daemon notice, as text |
 
 - **The app is a delivery address.** While the api runs, the daemon delivers alerts, stop hits,
   the brief and movers addressed to channel `api` straight to the open sockets, and to `api` too
@@ -238,6 +241,17 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
   (a system notification, a toast, a badge). The hint is shared, the rendering is not.
 - **`source.channel`** ∈ `Channel` = `cli | telegram | cron | api`. (The scheduler surface is **`cron`**,
   not `"scheduler"`.)
+- **Live view.** A client that shows what the daemon is doing opens the socket, waits for `welcome`,
+  then fetches `GET /v1/live` and applies the events that arrive meanwhile. It merges by `runId`:
+  `run_started` adds a run, `run_progress` and `run_thinking` update it (a `transient` line replaces
+  the last, a `persistent` one is also kept in the run's steps), `run_finished` removes it, and
+  a `run_progress` for a run it does not hold is a run already in flight, so it adds one. A
+  snapshot taken before an event can lack the run that event names; the merge by `runId` makes the
+  order harmless. `pending` is the same: an approval leaves on `approval_resolved` or its
+  `expiresAt`, a question on the next `run_started` in its `sessionId`. A run asked for on this
+  socket's own chat reaches it twice, as `chat` frames (the answer) and as run events (the
+  feed); the feed is the view of the work, the frames are the reply. Reconnecting starts again
+  from a fresh snapshot, since events sent while the socket was down are not replayed.
 - **Liveness:** the WS layer (Bun) sends automatic protocol pings and reaps an idle peer; there is **no
   application-level heartbeat frame** to ignore. Sockets close on daemon
   shutdown; clients reconnect with backoff.

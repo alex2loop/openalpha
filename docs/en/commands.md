@@ -142,7 +142,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/cost` | Show this chat's usage and today's spend against the cap |
 | `/schedule` | List, inspect, pause, resume, run or remove one of your jobs (`/schedule remove <id>` deletes it) |
 | `/config` | Show the live language, model, budget and channels |
-| `/new` | Switch to a fresh chat session |
+| `/new` | Switch to a fresh chat session; commands still waiting in the chat's line are dropped |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
 
@@ -159,6 +159,13 @@ Channels add `/stop` and the pairing controls. `/stop` and `/help` also answer t
 such as `/stop@MyBot`, the way a Telegram group sends them. The REPL has `/help`, `/exit` and `/quit`,
 and Ctrl+D leaves too. A line typed while a turn is still running is never sent, not even afterwards,
 so it cannot answer an approval prompt by accident; the REPL says so at once.
+
+Commands that run on their own - `/suggest`, `/screen`, `/rebalance`, `/brief`, `/refresh`, `/price`,
+`/overview`, `/market`, `/portfolio`, `/reconcile`, `/themes`, `/schedule run` and plugin workflows - do not wait
+behind your chat. Each chat runs up to three at once and up to ten more wait in order. In a channel, a command that
+has to wait says where it stands in line and starts when a slot frees; one past the end of the line is refused with
+a request to resend in a moment. `/new` and `/stop` empty the line: the waiting commands are dropped without a
+word, and `/stop` also stops the ones already running. A plain chat message still waits for the answer in front of it.
 
 Two conventions explain the output you see:
 
@@ -723,6 +730,10 @@ newer close is stored than the one it read: a call made while the session traded
 `/refresh` loads that session. `force`
 re-runs past that and past the cooldown, at full depth unless you type a mode. A name the book already
 holds at target runs `lean` by default, because the expensive question is already answered.
+
+While a `/suggest` for a name is running, the same request for it from any chat or the app joins that run and
+shows its result, instead of paying for a second debate. Only the request that started it is billed. A request for
+a deeper debate never joins a lighter run, and `force` always starts its own.
 
 `/suggest stops` covers every held position whose latest plan is missing a stop or a target, plus
 every one that has passed the window an outcome is measured over without moving. It runs `lean` by
