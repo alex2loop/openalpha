@@ -470,7 +470,9 @@
     "agentIdTaken": "{id} is already taken; pick another id.",
     "agentNotEditable": "{id} is built in; this page cannot edit it.",
     "agentReloadFailed": "I could not read the agents folder, so the agents that are running stay as they are.",
-    "jobInvalid": "I could not save this job: {detail}"
+    "jobInvalid": "I could not save this job: {detail}",
+    "alertLevelTaken": "An alert at this level is already set, so I did not arm a second one for this job. Remove that alert or pick another level.",
+    "jobAlertGone": "This job waited on a price alert that has already fired or been removed, so turning it on again would never run it. Remove the job and add a new one."
   },
   "scheduler": {
     "eventPrompt": "This run started because {ticker} {what} at {time}: price {price}.",
@@ -1561,6 +1563,8 @@
     "scheduleCronOrEveryRequired": "one of --cron <expr> or --every <duration> is required",
     "scheduleCantChangeAgent": "cannot change the agent of an existing job - remove and re-add it",
     "scheduleEventNoSchedule": "an event job has no schedule to change - remove and re-add it",
+    "scheduleAlertGone": "its price alert has already fired or been removed, so it would never run - remove the job and add a new one",
+    "scheduleInvalidJob": "I could not use this job: {reason}",
     "scheduleUpdated": "updated {id}",
     "scheduleRemoveUsage": "schedule remove <id>",
     "scheduleRemoved": "removed {id}",

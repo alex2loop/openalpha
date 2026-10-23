@@ -149,8 +149,9 @@ function createSchedulerCommands(deps: SchedulerCommandDeps): SchedulerCommands 
     resume: (owner, idOrPrefix) => resumeOwnedJob({ deps, owner, idOrPrefix }),
     runNow: (input) => runJobNow({ deps, ...input }),
     remove: async (owner, idOrPrefix) =>
-      removeJob(deps, await resolveOwnedJob({ deps, owner, idOrPrefix })),
-    removeAny: async (idOrPrefix) => removeJob(deps, await resolveAnyJob(deps, idOrPrefix)),
+      removeJob(deps, await resolveOwnedJob({ deps, owner, idOrPrefix }), false),
+    removeAny: async (idOrPrefix, options) =>
+      removeJob(deps, await resolveAnyJob(deps, idOrPrefix), options?.fromOwnRun === true),
     pauseAny: (idOrPrefix) => pauseAnyJob(deps, idOrPrefix),
     resumeAny: (idOrPrefix) => resumeAnyJob(deps, idOrPrefix),
   }
@@ -179,6 +180,10 @@ async function resumeAnyJob(
 
   if (resolved.kind !== 'job') {
     return resolved
+  }
+
+  if (!(await isResumable(deps, resolved.job))) {
+    return { kind: 'alert_inactive' }
   }
 
   const nextRunAt = nextRunAfterResume(resolved.job, Date.now())
@@ -210,6 +215,10 @@ async function resumeOwnedJob(options: OwnedJobOperation): Promise<SchedulerComm
     return resolved
   }
 
+  if (!(await isResumable(deps, resolved.job))) {
+    return { kind: 'alert_inactive' }
+  }
+
   const now = Date.now()
   const nextRunAt = nextRunAfterResume(resolved.job, now)
   const updated = await deps.scheduler.jobStore.resumeOwned(owner, resolved.job.id, nextRunAt)
@@ -217,6 +226,15 @@ async function resumeOwnedJob(options: OwnedJobOperation): Promise<SchedulerComm
   return updated
     ? { kind: 'job', job: { ...resolved.job, enabled: true, nextRunAt, consecutiveFailures: 0 } }
     : { kind: 'not_found' }
+}
+
+// A price job waits on one alert. Once it has fired or been removed nothing can start the job, so
+// turning it back on would only leave it enabled and silent.
+async function isResumable(deps: SchedulerCommandDeps, job: Job): Promise<boolean> {
+  const alertId = job.event?.event === 'price' ? job.event.alertId : undefined
+  const check = deps.scheduler.isEventAlertLive
+
+  return alertId === undefined || check === undefined || (await check(alertId))
 }
 
 function nextRunAfterResume(job: Job, now: number): number {
@@ -342,7 +360,8 @@ function runUncontrolledJob(options: ClaimedJobRun): Promise<ClaimedJobRunResult
 
 async function removeJob(
   deps: SchedulerCommandDeps,
-  resolved: SchedulerCommandResult
+  resolved: SchedulerCommandResult,
+  fromOwnRun: boolean
 ): Promise<SchedulerCommandResult> {
   if (resolved.kind !== 'job') {
     return resolved
@@ -351,7 +370,8 @@ async function removeJob(
   const job = resolved.job
   const controller = deps.controller()
 
-  if (controller !== null) {
+  // Waiting on a run that is waiting on this removal would never end.
+  if (controller !== null && !fromOwnRun) {
     await controller.cancel(job.id)
   }
 

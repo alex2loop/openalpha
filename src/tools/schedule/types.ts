@@ -1,5 +1,5 @@
 import type { ChannelId } from '@/core/channels'
-import type { AgentId, JobId, UserId } from '@/core/ids'
+import type { AgentId, JobId, SessionId, UserId } from '@/core/ids'
 import type { ToolServices } from '@/core/tool'
 import type {
   AgentRegistry,
@@ -34,6 +34,7 @@ export interface JobToolScope {
   readonly userId: UserId
   readonly channel: ChannelId
   readonly chatId?: string
+  readonly sessionId: SessionId
   readonly tz: string
 }
 

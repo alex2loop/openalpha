@@ -401,6 +401,16 @@ async function finishRunNowThrownExecution(options: FinishRunNowThrownOptions): 
     endedAtMs: Date.now(),
     errorMessage: isAbortHalt(err) ? SHUTDOWN_MESSAGE : formatted.message,
   })
+
+  // The crossing this run was for is spent however the run ended.
+  if (job.event?.event === 'price') {
+    await advanceJob(job, deps, Date.now()).catch((advanceErr: unknown) => {
+      deps.logger.warn('scheduler.run_now_spend_failed', {
+        jobId: job.id,
+        err: formatErrForLog(advanceErr),
+      })
+    })
+  }
 }
 
 async function finishRunNow(

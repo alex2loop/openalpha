@@ -81,6 +81,11 @@ export type ActiveAlert = Extract<Alert, { readonly state: 'active' }>
 export type DeliveringAlert = Extract<Alert, { readonly state: 'delivering' }>
 export type FiredAlert = Extract<Alert, { readonly state: 'fired' }>
 
+/** Armed, or crossed and waiting on its send: it can still fire. */
+export function isLiveAlert(alert: Alert | null): boolean {
+  return alert?.state === 'active' || alert?.state === 'triggered' || alert?.state === 'delivering'
+}
+
 export function buildLeaseToken(): LeaseToken {
   // why-safe: a freshly minted UUID is the token brand's entire value space.
   return randomUUID() as LeaseToken
@@ -146,6 +151,8 @@ export interface AlertService {
     readonly signal: AbortSignal
   }): Promise<readonly FiredAlert[]>
   disable(options: DisableAlertOptions): Promise<DisableAlertResult>
+  /** Whether the alert can still fire: armed, or crossed and waiting on its send. */
+  isLive(options: { readonly alertId: AlertId; readonly signal: AbortSignal }): Promise<boolean>
   /** The alert a short id names. More than one is ambiguous and the caller asks for more characters;
    *  a ref that cannot be an id names none and never reaches the store. */
   resolveAlertRef(ref: string, signal: AbortSignal): Promise<AlertRefResolution>
@@ -210,6 +217,9 @@ export interface CreateAlertOptions {
   readonly draft: AlertDraft
   /** Read for an operator-armed alert only; a system-armed threshold is computed. */
   readonly typedPrice?: TypedPrice
+  /** Refuses an alert that a live one at the same level already covers, instead of handing that one
+   *  back: the caller means to own what it arms. */
+  readonly requireNew?: true
   readonly now: number
   readonly signal: AbortSignal
 }

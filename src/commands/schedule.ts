@@ -73,6 +73,7 @@ type SchedulerCommandResult =
   | { readonly kind: 'ambiguous' }
   | { readonly kind: 'invalid' }
   | { readonly kind: 'rejected' }
+  | { readonly kind: 'alert_inactive' }
 
 export function createScheduleCommand(commands: SchedulerCommands): SlashCommand {
   return {

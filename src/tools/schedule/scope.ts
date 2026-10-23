@@ -6,6 +6,7 @@ export function buildScope(ctx: ToolInvocationContext): JobToolScope {
     agentId: ctx.agentId,
     userId: ctx.userId,
     channel: ctx.channel,
+    sessionId: ctx.sessionId,
     tz: ctx.config.locale.timezone,
   }
 

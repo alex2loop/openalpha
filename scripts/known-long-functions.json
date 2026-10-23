@@ -101,7 +101,6 @@
     "src/tools/web/retrieval-service.ts#searchGeneral": 51,
     "src/tools/web/search/provider-runner.ts#runContents": 54,
     "src/tools/web/search/provider-runner.ts#runSearch": 54,
-    "src/trading/features/alerts/alerts.ts#create": 44,
     "src/trading/features/alerts/command.ts#runCreate": 42,
     "src/trading/features/alerts/store/alert-row.ts#toAlert": 43,
     "src/trading/features/alerts/tools.ts#createAlertManageTool": 45,

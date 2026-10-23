@@ -11,6 +11,7 @@ import type {
   ScopedNewJob,
   ScopedNewJobSchedule,
 } from '@/tools/api'
+import { toJobSessionId } from '@/app/job-session'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { ToolError } from '@/core/errors'
 import { jobId } from '@/core/ids'
@@ -100,10 +101,17 @@ export function createScopedJobStore(app: App): ScopedJobStore {
         throw new ToolError('invalid_input', `no job ${id}`)
       }
 
-      // Through the scheduler like every other removal: it stops a run and retires a price job's alert.
-      await app.resolve('schedulerCommands').removeAny(id)
+      await removeThroughScheduler(app, scope, id)
     },
   }
+}
+
+// Through the scheduler like every other removal: it stops a run and retires a price job's alert.
+// A job that removes itself is inside the run the scheduler would wait for, so that run is left to end.
+async function removeThroughScheduler(app: App, scope: JobToolScope, id: JobId): Promise<void> {
+  await app
+    .resolve('schedulerCommands')
+    .removeAny(id, { fromOwnRun: scope.sessionId === toJobSessionId(id) })
 }
 
 function toScopedRow(job: Job, now: number): ScopedJobRow {

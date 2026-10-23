@@ -84,6 +84,8 @@ export type SchedulerCommandResult =
   | { readonly kind: 'ambiguous' }
   | { readonly kind: 'invalid' }
   | { readonly kind: 'rejected' }
+  /** A price job whose alert has fired or gone: turning it on would never run it. */
+  | { readonly kind: 'alert_inactive' }
 
 export interface SchedulerRunNowInput {
   /** Absent for the local operator console, which manages jobs regardless of who created them. */
@@ -103,8 +105,12 @@ export interface SchedulerCommands {
   resume(owner: JobOwner, idOrPrefix: string): Promise<SchedulerCommandResult>
   runNow(input: SchedulerRunNowInput): Promise<SchedulerCommandResult>
   remove(owner: JobOwner, idOrPrefix: string): Promise<SchedulerCommandResult>
-  /** Owner-independent removal, for the local operator console only. */
-  removeAny(idOrPrefix: string): Promise<SchedulerCommandResult>
+  /** Owner-independent removal, for the local operator console only. `fromOwnRun` is set by a job
+   *  removing itself from inside its own run: that run is not stopped, it finishes on its own. */
+  removeAny(
+    idOrPrefix: string,
+    options?: { readonly fromOwnRun?: boolean }
+  ): Promise<SchedulerCommandResult>
   pauseAny(idOrPrefix: string): Promise<SchedulerCommandResult>
   resumeAny(idOrPrefix: string): Promise<SchedulerCommandResult>
 }
@@ -202,4 +208,6 @@ export interface SchedulerDeps {
   readonly failureTarget: () => DeliveryTarget | undefined
   /** Told when an event job is removed, with the alert it was armed with. */
   readonly onEventJobRemoved?: (alertId: string) => Promise<void>
+  /** Whether a price job's alert can still fire. */
+  readonly isEventAlertLive?: (alertId: string) => Promise<boolean>
 }

@@ -22,7 +22,8 @@ import type {
   Runner,
 } from '@/engine/api'
 import type { HeartbeatRunInput, Job, SchedulerTaskDeps } from '@/scheduler/api'
-import { createAlertRetirer } from '@/app/event-jobs'
+import { createAlertLiveCheck, createAlertRetirer } from '@/app/event-jobs'
+import { toJobSessionId } from '@/app/job-session'
 import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
 import { createTaskStatusBoard } from '@/app/task-status'
@@ -47,7 +48,6 @@ import { createChannelInbox } from '@/persistence/api'
 // A job owns one stable session so consecutive fires continue one conversation. A shared heartbeat
 // does the same (deterministic id); an isolated heartbeat gets a fresh id each run so it starts
 // clean. See heartbeatRunInput.
-const JOB_SESSION_PREFIX = 'job_'
 const HEARTBEAT_SESSION_PREFIX = 'hb_'
 // A scheduled run has no operator watching, so an unaddressed one has nowhere to prompt.
 const UNATTENDED_CHANNEL = LOCAL_CHANNEL_ID
@@ -246,6 +246,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
     defaultTarget: () => delivery.defaultRecipient(),
     failureTarget: () => app.config.schedule.failureTarget ?? delivery.defaultRecipient(),
     onEventJobRemoved: createAlertRetirer(app),
+    isEventAlertLive: createAlertLiveCheck(app),
     heartbeat: {
       agents,
       runner: app.resolve('runner'),
@@ -264,7 +265,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
 function jobRunInput(job: Job): RunInput {
   return {
     agentId: job.agentId,
-    sessionId: sessionId(`${JOB_SESSION_PREFIX}${job.id}`),
+    sessionId: toJobSessionId(job.id),
     userId: LOCAL_USER_ID,
     channel: job.target?.channel ?? UNATTENDED_CHANNEL,
     userMessage: job.prompt,

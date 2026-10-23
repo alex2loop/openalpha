@@ -144,7 +144,7 @@ name breaks its stop or reaches its take-profit, when a name moves sharply in th
 price you set is hit. It runs at most once per cooldown (five minutes at least) and stays on after a
 run, except a price job, which its one crossing spends. `schedule list` shows it as `when FPT hit the
 price you set` where other jobs show a time, `schedule edit` cannot give it a time, and `schedule
-remove` also removes the price alert it armed.
+remove` also removes the price alert it armed, and `schedule resume` refuses a price job whose alert has already fired.
 
 Cron takes five fields with wildcards, ranges, steps (`*/15`, `1-5/2`) and comma lists. When both
 day-of-month and weekday are restricted, **either** match is enough; a day field that starts with `*`

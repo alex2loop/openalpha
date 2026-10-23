@@ -62,6 +62,12 @@ export function createAlertFiredListener(app: App): AlertFiredListener {
   }
 }
 
+/** Whether the alert a price job waits on can still fire. */
+export function createAlertLiveCheck(app: App): (id: string) => Promise<boolean> {
+  return (id) =>
+    app.resolve('tradingHost').isAlertLive({ alertId: alertId(id), signal: app.signal })
+}
+
 /** Disables the alert a price job was armed with. It runs on the daemon's signal: the removal that
  *  asked for it is already done. */
 export function createAlertRetirer(app: App): (id: string) => Promise<void> {

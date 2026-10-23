@@ -181,6 +181,7 @@ async function armPriceAlert(
     condition: event.condition,
     threshold: event.threshold,
     delivery: { channel: API_CHANNEL, chatId: APP_CHAT_ID },
+    requireNew: true,
     ...(schedule.typedPrice === undefined ? {} : { typedPrice: schedule.typedPrice }),
     signal: req.signal,
   })
@@ -286,6 +287,10 @@ async function handleResume(req: Request, ctx: ApiRouteContext): Promise<Respons
   const job = await findJob(req, ctx, 1)
   const resumed =
     job === null ? undefined : await ctx.app.resolve('schedulerCommands').resumeAny(job.id)
+
+  if (resumed?.kind === 'alert_inactive') {
+    return apiError('conflict', t(localeOf(ctx), 'errors.jobAlertGone'))
+  }
 
   return resumed?.kind === 'job' ? json({ ok: true }) : apiError('not_found')
 }

@@ -14,7 +14,10 @@ type AccountMethods = Omit<
   TradingHost,
   keyof MarketMethods | keyof LedgerMethods | keyof OrderMethods | keyof AgentMethods
 >
-type AlertMethods = Pick<AccountMethods, 'listAlerts' | 'createAlert' | 'disableAlert'>
+type AlertMethods = Pick<
+  AccountMethods,
+  'listAlerts' | 'createAlert' | 'disableAlert' | 'isAlertLive'
+>
 type BriefMethods = Pick<
   AccountMethods,
   'getBrief' | 'rescheduleBrief' | 'getBriefDelivery' | 'nextIntraday'
@@ -181,6 +184,7 @@ function alertMethods(deps: TradingHostDeps): AlertMethods {
             delivery: request.delivery,
           },
           ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+          ...(request.requireNew === undefined ? {} : { requireNew: request.requireNew }),
           now: scope.now,
           signal: scope.signal,
         })
@@ -189,6 +193,11 @@ function alertMethods(deps: TradingHostDeps): AlertMethods {
     disableAlert: (request) =>
       scoped(deps, request.signal, (scope) =>
         alerts.disable({ alertId: request.alertId, now: scope.now, signal: scope.signal })
+      ),
+
+    isAlertLive: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        alerts.isLive({ alertId: request.alertId, signal: scope.signal })
       ),
   }
 }

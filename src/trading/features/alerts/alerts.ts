@@ -36,11 +36,12 @@ import {
   unwatchedPositions,
   watchPositionExits,
 } from '@/trading/features/alerts/exits'
+import { resolveAlertInstrument } from '@/trading/features/alerts/instrument'
 import { observePrice, toCrossing } from '@/trading/features/alerts/observation'
 import { reconcileScreenerAlerts } from '@/trading/features/alerts/screeners'
 import { stopDistances } from '@/trading/features/alerts/stop-distances'
+import { isLiveAlert } from '@/trading/features/alerts/types'
 import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
-import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey, isIdRef } from '@/trading/kernel/instrument'
 import { buildAlertId } from '@/trading/kernel/operator/alert'
 
@@ -109,6 +110,7 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
       return { ...page, activeCount }
     },
     listFired: (options) => deps.store.listFired(options),
+    isLive: async (options) => isLiveAlert(await deps.store.find(options)),
     positionExits: (options) => watchPositionExits(watch, options),
     unwatchedPositions: (options) => unwatchedPositions(watch, options),
     stalePositions: (options) => stalePositions(watch, options),
@@ -259,18 +261,7 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     throw new ValidationError(`alert threshold must be finite and positive, got ${draft.threshold}`)
   }
 
-  const { instrument } = draft
-  const resolution = await resolveInstrument(deps.markets, {
-    ticker: instrument.ticker,
-    ...(instrument.market === undefined ? {} : { market: instrument.market }),
-    signal: options.signal,
-  })
-
-  if (resolution.kind !== 'resolved') {
-    const named = instrument.market === undefined ? '' : `${instrument.market}:`
-
-    throw new ValidationError(`instrument is not supported: ${named}${instrument.ticker}`)
-  }
+  const resolution = await resolveAlertInstrument(deps, options)
 
   // An operator-armed level is typed; a system-armed one is computed and never a board figure.
   if (draft.origin === undefined) {
@@ -310,6 +301,10 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     createdAt: options.now,
   }
   const result = await deps.store.create(alert, options.signal)
+
+  if (options.requireNew === true && result.kind !== 'inserted') {
+    throw new ValidationError('alert level taken', { key: 'errors.alertLevelTaken' })
+  }
 
   return result.alert
 }

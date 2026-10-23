@@ -73,10 +73,10 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, terminalErrorMessage(err, locale))
     }
 
-    try {
-      assertJobPrompt(prompt)
-    } catch (err: unknown) {
-      return usage(app, terminalErrorMessage(err, locale))
+    const promptError = promptRefusal(prompt, locale)
+
+    if (promptError !== undefined) {
+      return usage(app, promptError)
     }
 
     if (!isKnownAgent(app, agent)) {
@@ -114,6 +114,16 @@ export const scheduleAddCommand: Command = createCommand({
     return 0
   },
 })
+
+function promptRefusal(prompt: string, locale: Locale): string | undefined {
+  try {
+    assertJobPrompt(prompt)
+
+    return undefined
+  } catch (err: unknown) {
+    return t(locale, 'cli.scheduleInvalidJob', { reason: terminalErrorMessage(err, locale) })
+  }
+}
 
 function isKnownAgent(app: CliApp, agent: AgentId): boolean {
   try {
@@ -165,7 +175,9 @@ export function resolveCronSchedule(expr: string, tz: string, locale: Locale): S
 
     return { kind: 'value', schedule: { kind: 'cron', expr, timezone }, nextRunAt }
   } catch (err: unknown) {
-    return { kind: 'error', error: `--cron: ${terminalErrorMessage(err, locale)}` }
+    const reason = terminalErrorMessage(err, locale)
+
+    return { kind: 'error', error: `--cron: ${t(locale, 'cli.scheduleInvalidJob', { reason })}` }
   }
 }
 

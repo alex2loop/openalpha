@@ -470,7 +470,9 @@
     "agentIdTaken": "Mã định danh {id} đã có agent dùng rồi, bạn chọn mã khác nhé.",
     "agentNotEditable": "Agent {id} có sẵn trong hệ thống, trang này không sửa được.",
     "agentReloadFailed": "Mình chưa đọc được thư mục agent nên giữ nguyên các agent đang chạy.",
-    "jobInvalid": "Mình chưa lưu được công việc này: {detail}"
+    "jobInvalid": "Mình chưa lưu được công việc này: {detail}",
+    "alertLevelTaken": "Đã có một cảnh báo ở mức này, nên mình chưa đặt thêm cảnh báo thứ hai cho việc này. Bạn xóa cảnh báo đó hoặc chọn mức khác nhé.",
+    "jobAlertGone": "Việc này chờ một cảnh báo giá đã chạm hoặc đã bị xóa, nên bật lại cũng không bao giờ chạy. Bạn xóa việc này rồi tạo việc mới nhé."
   },
   "scheduler": {
     "eventPrompt": "Việc này chạy vì {ticker} {what} lúc {time}: giá {price}.",
@@ -1561,6 +1563,8 @@
     "scheduleCronOrEveryRequired": "cần một trong --cron <expr> hoặc --every <duration>",
     "scheduleCantChangeAgent": "không thể đổi agent của công việc hiện có - xóa và tạo lại",
     "scheduleEventNoSchedule": "công việc theo sự kiện không có lịch để đổi - xóa và tạo lại",
+    "scheduleAlertGone": "cảnh báo giá của việc này đã chạm hoặc đã bị xóa nên bật lại cũng không chạy - xóa việc này rồi tạo việc mới",
+    "scheduleInvalidJob": "Mình chưa dùng được công việc này: {reason}",
     "scheduleUpdated": "đã cập nhật {id}",
     "scheduleRemoveUsage": "schedule remove <id>",
     "scheduleRemoved": "đã xóa {id}",

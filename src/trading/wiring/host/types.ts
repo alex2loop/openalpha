@@ -120,6 +120,8 @@ interface TradingAlertCreateRequest {
   /** Where it fires to: the asking surface's own address. */
   readonly delivery: DeliveryAddress
   readonly typedPrice?: TypedPrice
+  /** Refuses a level a live alert already covers, rather than returning that alert. */
+  readonly requireNew?: true
   readonly signal: AbortSignal
 }
 
@@ -342,6 +344,8 @@ export interface TradingHost {
   listAlerts(request: TradingAlertsPageRequest): Promise<AlertListPage>
   createAlert(request: TradingAlertCreateRequest): Promise<Alert>
   disableAlert(request: TradingAlertDisableRequest): Promise<DisableAlertResult>
+  /** Whether the alert can still fire. */
+  isAlertLive(request: TradingAlertDisableRequest): Promise<boolean>
   /** Whether a venue can place orders; every order method below needs one. */
   ordersEnabled(): boolean
   /** Staged orders, resting exits, unguarded positions, fills the book never got, and the halt. */
