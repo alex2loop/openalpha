@@ -19,6 +19,8 @@ import {
 /** Bounds the map of runs a client can ask about; the oldest go first. */
 const MAX_LIVE_RUNS = 200
 const MAX_PERSISTENT_STEPS = 20
+/** A transient progress line reaches the sockets at most this often per run; the snapshot always holds the latest. */
+const LIVE_PROGRESS_MIN_INTERVAL_MS = 250
 
 export interface LiveFeed {
   snapshot(): LiveSnapshotWire
@@ -106,39 +108,51 @@ function followProgress({ bus, broadcast, locale }: LiveFeedDeps, book: RunBook)
     bus.on('run_progress', (e) => {
       const progress = toProgress(e.message)
 
-      if (progress !== undefined) {
-        book.report(e.runId, progress)
+      if (progress !== undefined && book.report(e.runId, progress)) {
         broadcast(PROGRESS_NORMALIZERS.run_progress(e, progress))
       }
     }),
     bus.on('command_progress', (e) => {
       const progress = toProgress(e.message)
 
-      if (progress !== undefined) {
-        book.report(e.runId, progress)
+      if (progress !== undefined && book.report(e.runId, progress)) {
         broadcast(PROGRESS_NORMALIZERS.command_progress(e, progress))
       }
     }),
     bus.on('run_thinking', (e) => {
       book.think(e.runId, e.excerpt)
-      broadcast(WIRE_NORMALIZERS.run_thinking(e))
+
+      const frame = WIRE_NORMALIZERS.run_thinking(e)
+
+      broadcast({ ...frame, source: { ...frame.source, agentId: book.agentIdOf(e.runId) ?? '' } })
     }),
   ]
 }
 
 interface RunBook {
   start(runId: RunId, entry: LiveRunWire): void
-  report(runId: RunId, progress: ProgressWire): void
+  /** Records the newest line and says whether to broadcast it: a persistent step always, a transient
+   *  one when LIVE_PROGRESS_MIN_INTERVAL_MS has passed since the run's last broadcast (a run the book
+   *  does not hold always). A suppressed line is superseded by the next; no timer flushes it. */
+  report(runId: RunId, progress: ProgressWire): boolean
   think(runId: RunId, excerpt: string): void
+  /** The agent a held run belongs to, or undefined for a command or a run the book does not hold. */
+  agentIdOf(runId: RunId): string | undefined
   finish(runId: RunId): void
   /** The runs still running, oldest first. */
   live(): readonly LiveRunWire[]
   clear(): void
 }
 
+interface BookEntry {
+  readonly wire: LiveRunWire
+  /** `performance.now()` of the last progress frame sent for this run. */
+  readonly lastBroadcastAt: number | undefined
+}
+
 function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
   // Insertion order is start order, so the first key is the oldest run.
-  const runs = new Map<RunId, LiveRunWire>()
+  const runs = new Map<RunId, BookEntry>()
   const trimOldest = (): void => {
     for (const runId of runs.keys()) {
       if (runs.size <= MAX_LIVE_RUNS) {
@@ -153,17 +167,18 @@ function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
     const entry = runs.get(runId)
 
     if (entry !== undefined) {
-      runs.set(runId, change(entry))
+      runs.set(runId, { ...entry, wire: change(entry.wire) })
     }
   }
 
   return {
-    start(runId, entry) {
-      runs.set(runId, entry)
+    start(runId, wire) {
+      runs.set(runId, { wire, lastBroadcastAt: undefined })
       trimOldest()
     },
-    report: (runId, progress) => update(runId, (entry) => withProgress(entry, progress)),
+    report: (runId, progress) => reportTo(runs, runId, progress),
     think: (runId, excerpt) => update(runId, (entry) => ({ ...entry, thinking: excerpt })),
+    agentIdOf: (runId) => runs.get(runId)?.wire.agentId,
     finish: (runId) => runs.delete(runId),
     live() {
       // A run whose finish event never came (a crash between hooks) leaves when its registry says so.
@@ -175,9 +190,42 @@ function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
 
       trimOldest()
 
-      return [...runs.values()]
+      return [...runs.values()].map((entry) => entry.wire)
     },
     clear: () => runs.clear(),
+  }
+}
+
+function reportTo(runs: Map<RunId, BookEntry>, runId: RunId, progress: ProgressWire): boolean {
+  const entry = runs.get(runId)
+
+  if (entry === undefined) {
+    return true
+  }
+
+  const next = withReport(entry, progress, performance.now())
+
+  runs.set(runId, next.entry)
+
+  return next.due
+}
+
+function withReport(
+  entry: BookEntry,
+  progress: ProgressWire,
+  now: number
+): { readonly entry: BookEntry; readonly due: boolean } {
+  const due =
+    progress.mode === 'persistent' ||
+    entry.lastBroadcastAt === undefined ||
+    now - entry.lastBroadcastAt >= LIVE_PROGRESS_MIN_INTERVAL_MS
+
+  return {
+    due,
+    entry: {
+      wire: withProgress(entry.wire, progress),
+      lastBroadcastAt: due ? now : entry.lastBroadcastAt,
+    },
   }
 }
 

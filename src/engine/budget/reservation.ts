@@ -228,9 +228,11 @@ function warnPeriod(run: RunView, input: WarnPeriodInput): void {
 }
 
 // A refusal only because this estimate would cross the cap is not exhaustion: the helper then finds
-// settled spend under the cap and stays silent. The run and ledger refusals say nothing about caps.
+// settled spend under the cap and stays silent. The run budget is the smaller of the daily and per-run
+// caps, so a spent daily cap surfaces as run_budget first. The ledger and per-agent refusals say
+// nothing about the shared caps.
 function announceCapRejection(run: RunView, rejection: BudgetHaltDetail, now: number): void {
-  if (rejection === 'daily_cap' || rejection === 'monthly_cap') {
+  if (rejection === 'daily_cap' || rejection === 'monthly_cap' || rejection === 'run_budget') {
     emitIfExhausted(run.services, run.identity.agentId, now)
   }
 }
