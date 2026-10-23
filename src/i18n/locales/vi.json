@@ -468,7 +468,8 @@
     "workflowDuplicate": "Có hai workflow cùng id {id}. Đổi tên một cái nhé.",
     "agentInvalid": "Mình chưa lưu được agent này: {detail}",
     "agentIdTaken": "Mã định danh {id} đã có agent dùng rồi, bạn chọn mã khác nhé.",
-    "agentNotEditable": "Agent {id} có sẵn trong hệ thống, trang này không sửa được."
+    "agentNotEditable": "Agent {id} có sẵn trong hệ thống, trang này không sửa được.",
+    "agentReloadFailed": "Mình chưa đọc được thư mục agent nên giữ nguyên các agent đang chạy."
   },
   "pairing": {
     "needsAccess": "Chat này chưa được cấp quyền truy cập.",

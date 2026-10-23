@@ -6,6 +6,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { ToolDefinition } from '@/core/tool'
 import type { AgentProfileSource, McpToolSource, Plugin, WorkflowSource } from '@/core/types/plugin'
+import type { UserAgentSource } from '@/engine/api'
 import { connectMcpServers } from '@/app/mcp-connections'
 import { createCommandLane } from '@/core/command-lane'
 import { ConfigError } from '@/core/errors'
@@ -74,7 +75,7 @@ export async function loadAssets(
     const plugins = await loadInstalledPlugins(config, logger)
     const [pluginAssets, userAgents, userWorkflows, pluginSourceModules] = await Promise.all([
       loadPluginAssets(plugins, mcp.tools, logger),
-      readUserAgents(userAgentsDir(config.paths.dataDir)),
+      readUserAgentsOrNone(config.paths.dataDir, logger),
       loadUserWorkflows(join(config.paths.dataDir, WORKFLOWS_DIR), logger),
       loadPluginSourceModules({
         modules: plugins.flatMap((plugin) => plugin.contributions.sourceModules ?? []),
@@ -97,6 +98,21 @@ export async function loadAssets(
   } catch (err: unknown) {
     await mcp.close()
     throw err
+  }
+}
+
+// Boot has no registry to protect: an agents directory it cannot read starts the daemon with none,
+// as it always has, and says so.
+async function readUserAgentsOrNone(
+  dataDir: string,
+  logger: Logger
+): Promise<readonly UserAgentSource[]> {
+  try {
+    return await readUserAgents(userAgentsDir(dataDir))
+  } catch (err: unknown) {
+    logger.warn('agents.read_failed', { err: formatErrForLog(err) })
+
+    return []
   }
 }
 

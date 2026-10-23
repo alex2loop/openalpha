@@ -204,7 +204,9 @@ export function reloadUserAgents(app: App): Promise<ReloadedAgents> {
   const live = app.resolve('liveAgents')
 
   return live.serialize(async () => {
-    const sources = await readUserAgents(userAgentsDir(app.config.paths.dataDir))
+    // A read that fails stops here, before `replace`: the running agents stay, and none of their
+    // heartbeat rows are swept.
+    const sources = await readSources(app)
     const skipped: SkippedAgent[] = []
     const owned = live.userIds()
     const kept = new Map([...live.agents].filter(([, agent]) => !owned.has(agent.id)))
@@ -225,6 +227,16 @@ export function reloadUserAgents(app: App): Promise<ReloadedAgents> {
 
     return { loaded, skipped }
   })
+}
+
+async function readSources(app: App): Promise<readonly UserAgentSource[]> {
+  try {
+    return await readUserAgents(userAgentsDir(app.config.paths.dataDir))
+  } catch (err: unknown) {
+    app.resolve('logger').warn('agents.reload_failed', { err: formatErrForLog(err) })
+
+    throw err
+  }
 }
 
 // The registry is already swapped, so a store that cannot be reached is logged, not thrown: the next

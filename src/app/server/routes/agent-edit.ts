@@ -16,7 +16,7 @@ import { apiError, json } from '@/app/server/http/dispatch'
 import { AGENT_WRITE_BODY, toAgentDetailWire, toAgentToml } from '@/app/server/mappers/agent-edit'
 import { localeOf, parsePathId } from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
-import { ConfigError } from '@/core/errors'
+import { ConfigError, isErrno } from '@/core/errors'
 import { agentId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/security/private-files'
@@ -79,6 +79,18 @@ function toolNamesOf(ctx: ApiRouteContext): readonly string[] {
 
 function isOwn(ctx: ApiRouteContext, id: AgentId): boolean {
   return ctx.app.resolve('userAgentIds')().has(id)
+}
+
+// A reload that cannot read the agents folder leaves the running agents as they are; the operator
+// is told so, and the agents.reload_failed record carries the cause.
+async function reloadRefusal(ctx: ApiRouteContext): Promise<Response | null> {
+  try {
+    await reloadUserAgents(ctx.app)
+
+    return null
+  } catch {
+    return apiError('internal', t(localeOf(ctx), 'errors.agentReloadFailed'))
+  }
 }
 
 function notEditable(ctx: ApiRouteContext, id: AgentId): Response {
@@ -148,9 +160,9 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
     throw err
   }
 
-  await reloadUserAgents(ctx.app)
+  const failed = await reloadRefusal(ctx)
 
-  return json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
+  return failed ?? json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
 }
 
 async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -175,7 +187,14 @@ async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response>
   }
 
   const path = userAgentFile(ctx.app.config.paths.dataDir, id)
-  const toml = toAgentToml(parsed.body, toolNamesOf(ctx), await Bun.file(path).text())
+  const existing = await readOwnFile(path)
+
+  // The file went after the registry last read it: the agent is gone.
+  if (existing === null) {
+    return apiError('not_found')
+  }
+
+  const toml = toAgentToml(parsed.body, toolNamesOf(ctx), existing)
   const built = buildFrom(ctx, id, toml)
 
   if ('refusal' in built) {
@@ -183,9 +202,22 @@ async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response>
   }
 
   await replacePrivateFileAtomic({ path, content: toml })
-  await reloadUserAgents(ctx.app)
 
-  return json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
+  const failed = await reloadRefusal(ctx)
+
+  return failed ?? json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
+}
+
+async function readOwnFile(path: string): Promise<string | null> {
+  try {
+    return await Bun.file(path).text()
+  } catch (err: unknown) {
+    if (isErrno(err, 'ENOENT')) {
+      return null
+    }
+
+    throw err
+  }
 }
 
 // Every schedule of this agent that is on, paused one by one: a schedule that stays on would keep
@@ -232,17 +264,24 @@ async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Respons
   // Cleared so a later agent reusing the id is never born paused.
   await ctx.app.resolve('agentPauseStore').resume([id])
   await rm(dirname(path), { recursive: true, force: true })
-  await reloadUserAgents(ctx.app)
+
+  const failed = await reloadRefusal(ctx)
+
+  // The agent is gone from disk either way, so the operator hears of it.
   ctx.app.resolve('bus').emit('daemon_notice', {
     text: t(localeOf(ctx), 'ui.agentDeleted', { id, count }),
     at: Date.now(),
   })
 
-  return json({ pausedSchedules: count } satisfies AgentDeletedWire)
+  return failed ?? json({ pausedSchedules: count } satisfies AgentDeletedWire)
 }
 
 async function handleReload(_req: Request, ctx: ApiRouteContext): Promise<Response> {
-  return json((await reloadUserAgents(ctx.app)) satisfies AgentsReloadWire)
+  try {
+    return json((await reloadUserAgents(ctx.app)) satisfies AgentsReloadWire)
+  } catch {
+    return apiError('internal', t(localeOf(ctx), 'errors.agentReloadFailed'))
+  }
 }
 
 export const AGENT_EDIT_ROUTES: readonly ApiRouteSpec[] = [
