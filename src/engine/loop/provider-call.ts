@@ -29,6 +29,8 @@ declare module '@/core/events' {
 
 const THINKING_EMIT_INTERVAL_MS = 2000
 const THINKING_EXCERPT_MAX_CHARS = 160
+// Longer than any credential the scrub matches, so a cut never lands inside one it would catch.
+const THINKING_RAW_TAIL_CHARS = 1024
 
 interface ProviderCallOptions {
   readonly run: RunView
@@ -91,6 +93,9 @@ function buildStreamListener(options: ProviderCallOptions): OnStreamEvent {
   const downstream = runStreamListener(options.onChunk, run.services.logger)
   const feedsThinking = run.env.reasoningVisibility !== 'hidden'
 
+  // A provider call is one turn (or a retry of it): its first excerpt must not carry the last one's.
+  thinking.tail = ''
+
   return (event) => {
     if (event.type === 'reasoning_delta' && feedsThinking) {
       publishThinking(run, thinking, event.delta)
@@ -105,7 +110,7 @@ function buildStreamListener(options: ProviderCallOptions): OnStreamEvent {
 // No timer: an excerpt that lands inside the interval waits for the next delta, and one left at
 // the end of the stream is dropped.
 function publishThinking(run: RunView, thinking: ThinkingState, delta: string): void {
-  thinking.tail = (thinking.tail + delta).slice(-THINKING_EXCERPT_MAX_CHARS)
+  thinking.tail = (thinking.tail + delta).slice(-THINKING_RAW_TAIL_CHARS)
 
   const now = performance.now()
 
@@ -113,7 +118,9 @@ function publishThinking(run: RunView, thinking: ThinkingState, delta: string): 
     return
   }
 
-  const excerpt = scrubCredentials(thinking.tail).trim()
+  // Scrub first, cut after: cutting first could drop a credential's prefix and leave a suffix
+  // the patterns no longer match.
+  const excerpt = scrubCredentials(thinking.tail).slice(-THINKING_EXCERPT_MAX_CHARS).trim()
 
   if (excerpt === '') {
     return
