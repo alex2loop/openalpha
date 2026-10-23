@@ -158,6 +158,9 @@ interface SlashCommandInfo {
   readonly summary: string
   /** Sub-command names for the completion ghost (e.g. schedule: ['add','list','remove']). */
   readonly args?: readonly string[]
+  /** What a run usually costs: the 25th to 75th percentile of the last runs that cost something.
+   *  Absent until enough runs exist. `0` to `0` means it has not cost AI so far. */
+  readonly estimate?: { readonly lowUsd: number; readonly highUsd: number; readonly runs: number }
 }
 
 export interface CommandList {

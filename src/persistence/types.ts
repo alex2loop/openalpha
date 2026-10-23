@@ -196,6 +196,13 @@ export interface RunLogRow {
   readonly outcome: string
 }
 
+export interface CommandCostRange {
+  readonly lowUsd: number
+  readonly highUsd: number
+  /** Finished runs in the sample, free ones included. */
+  readonly runs: number
+}
+
 export interface RunLogStore {
   /** A run is written once; recording the same id again keeps the first row. */
   record(row: RunLogRow): Promise<void>
@@ -210,6 +217,12 @@ export interface RunLogStore {
   listResearch(agent: string, beforeMs: number, limit: number): Promise<readonly RunLogRow[]>
   /** What each run and every run beneath it cost, in USD. A run with no attempts is absent. */
   costOf(runIds: readonly RunId[]): Promise<ReadonlyMap<RunId, number>>
+  /** The 25th to 75th percentile of what each name's last `sample` finished command runs cost,
+   *  over the runs that cost something (0 to 0 when none did). A name with no run is absent. */
+  costRangeByName(
+    names: readonly string[],
+    sample: number
+  ): Promise<ReadonlyMap<string, CommandCostRange>>
 }
 
 export interface RetentionConfig {

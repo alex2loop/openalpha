@@ -1,10 +1,13 @@
 import type { RunId } from '@/core/ids'
 import type { Dialect, Storage } from '@/core/types/storage'
-import type { RunLogRow, RunLogStore } from '@/persistence/types'
+import type { CommandCostRange, RunLogRow, RunLogStore } from '@/persistence/types'
 import { channelId } from '@/core/channels'
 import { agentId, runId, sessionId } from '@/core/ids'
 import { fromNanoUsd } from '@/persistence/money'
 import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
+
+const LOW_PERCENTILE = 0.25
+const HIGH_PERCENTILE = 0.75
 
 const RUN_COLUMNS = [
   'run_id',
@@ -53,6 +56,7 @@ export function createRunLogStore(db: Storage, dialect: Dialect): RunLogStore {
       (await db.query<DbRunRow>(sql.research, [agent, beforeMs, limit])).map(toRunLogRow),
     childrenOf: (ids, perRun) => childrenOf({ db, dialect }, ids, perRun),
     costOf: (ids) => costOf({ db, dialect }, ids),
+    costRangeByName: (names, sample) => costRangeByName({ db, dialect }, names, sample),
   }
 }
 
@@ -105,6 +109,57 @@ async function costOf(
   }
 
   return costs
+}
+
+// A sample's runs are every finished command row, so `runs` counts the free ones too; the range
+// itself ignores them, because a reused answer costs nothing and would drag it down.
+async function costRangeByName(
+  deps: StoreDeps,
+  names: readonly string[],
+  sample: number
+): Promise<ReadonlyMap<string, CommandCostRange>> {
+  const sampled = new Map<string, RunId[]>()
+
+  // One bind is the sample size, so a chunk holds one fewer name than the ceiling.
+  for (const chunk of chunked(names, SQL_MAX_BIND_PARAMS - 1)) {
+    const rows = await deps.db.query<{ readonly run_id: string; readonly name: string }>(
+      buildSampleSql(deps.dialect, chunk.length),
+      [...chunk, sample]
+    )
+
+    for (const row of rows) {
+      sampled.set(row.name, [...(sampled.get(row.name) ?? []), runId(row.run_id)])
+    }
+  }
+
+  const costs = await costOf(deps, [...sampled.values()].flat())
+  const ranges = new Map<string, CommandCostRange>()
+
+  for (const [name, ids] of sampled) {
+    const paid = ids.map((id) => costs.get(id) ?? 0).filter((usd) => usd > 0)
+
+    ranges.set(name, {
+      lowUsd: percentile(paid, LOW_PERCENTILE),
+      highUsd: percentile(paid, HIGH_PERCENTILE),
+      runs: ids.length,
+    })
+  }
+
+  return ranges
+}
+
+/** Linear interpolation between the closest ranks (the common "type 7" definition); 0 for no values. */
+function percentile(values: readonly number[], p: number): number {
+  if (values.length === 0) {
+    return 0
+  }
+
+  const sorted = [...values].sort((a, b) => a - b)
+  const at = (sorted.length - 1) * p
+  const lower = Math.floor(at)
+  const upper = Math.ceil(at)
+
+  return (sorted[lower] ?? 0) + ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (at - lower)
 }
 
 function chunked<T>(items: readonly T[], size: number): readonly (readonly T[])[] {
@@ -171,6 +226,15 @@ function buildSql(d: Dialect) {
       `AND name = ${d.param(1)} AND ended_at < ${d.param(2)} ` +
       `ORDER BY ended_at DESC, run_id DESC LIMIT ${d.param(3)}`,
   }
+}
+
+function buildSampleSql(d: Dialect, count: number): string {
+  return (
+    `WITH ranked AS (SELECT run_id, name, ` +
+    `ROW_NUMBER() OVER (PARTITION BY name ORDER BY ended_at DESC, run_id DESC) AS rn ` +
+    `FROM runs WHERE kind = 'command' AND outcome = 'done' AND name IN (${d.paramList(count)})) ` +
+    `SELECT run_id, name FROM ranked WHERE rn <= ${d.param(count + 1)}`
+  )
 }
 
 function buildChildrenSql(d: Dialect, count: number): string {

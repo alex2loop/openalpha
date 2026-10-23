@@ -27,6 +27,9 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 import { tradingDay } from '@/trading/api'
 
+const COST_ESTIMATE_SAMPLE = 10
+const COST_ESTIMATE_MIN_RUNS = 3
+
 // The only unauthenticated route. It answers 'ready' unconditionally: the api starts as the last
 // daemon step, so a socket that connects at all is talking to a booted daemon.
 async function handleHealth(_req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -101,14 +104,24 @@ async function handleUpdate(req: Request, ctx: ApiRouteContext): Promise<Respons
 }
 
 // The same catalog the CLI and the channels render — one registry, three surfaces.
-function handleCommands(_req: Request, ctx: ApiRouteContext): Promise<Response> {
+async function handleCommands(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const locale = bindLocale(localeOf(ctx))
-  const commands = ctx.app
-    .resolve('commandCatalog')
-    .all()
-    .map((cmd) => ({ name: `/${cmd.name}`, summary: describeCommand(locale, cmd.description) }))
+  const catalog = ctx.app.resolve('commandCatalog').all()
+  const ranges = await ctx.app.resolve('runLogStore').costRangeByName(
+    catalog.map((cmd) => cmd.name),
+    COST_ESTIMATE_SAMPLE
+  )
+  const commands = catalog.map((cmd) => {
+    const range = ranges.get(cmd.name)
 
-  return Promise.resolve(json({ commands } satisfies CommandList))
+    return {
+      name: `/${cmd.name}`,
+      summary: describeCommand(locale, cmd.description),
+      ...(range === undefined || range.runs < COST_ESTIMATE_MIN_RUNS ? {} : { estimate: range }),
+    }
+  })
+
+  return json({ commands } satisfies CommandList)
 }
 
 type Translate = ReturnType<typeof bindLocale>['translate']
