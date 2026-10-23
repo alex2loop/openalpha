@@ -139,7 +139,6 @@ phân số 0 tới 1 (`0.2` là 20%).
 | `segment-target <nhóm> <tỷ lệ>` | phân số tổng tài sản | tỷ trọng mục tiêu của một nhóm (các nhóm còn lại nhường phần chênh nên tổng vẫn 100%) |
 | `segment-cap <nhóm> <tỷ lệ>` | phân số tổng tài sản | mức tối đa một nhóm được chiếm |
 | `position-cap <nhóm> <tỷ lệ>` | phân số tổng tài sản | mức tối đa cho một mã trong nhóm |
-| `preferred-locale` | `vi` / `en` | ngôn ngữ trả lời |
 
 Bật hoặc tắt cả nhóm: `/profile enable <nhóm>` / `/profile disable <nhóm>`. Nhóm đang tắt thì không
 mã nào trong đó được tính khối lượng hay mua vào. **Hồ sơ mới chỉ bật sẵn `crypto` và `equity-vn`**;
@@ -306,7 +305,7 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
 nạp, trừ 95 triệu FPT, 52 triệu HPG và 15 triệu lỗ, còn 38 triệu. Lệch thì thường do nhớ sai tổng lỗ
-hoặc giá vốn, sửa bằng `/update <mã>` chứ đừng thêm dòng mới.
+hoặc giá vốn, sửa bằng `/update <mã bút toán>` chứ đừng thêm dòng mới.
 
 **Với crypto** thì y hệt, chỉ khác là mọi thứ tính bằng USDT:
 
@@ -418,7 +417,9 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/portfolio` | `/portfolio` \| `nav [1m\|3m\|6m\|1y\|all]` | không |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` | không |
 | `/record` | xem [mục 2.4](#24-ghi-sổ-danh-mục) | không |
-| `/profile` | `/profile show` \| `set <trường> <giá trị>` \| `reset` | không |
+| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa một dòng đã ghi | không |
+| `/delete` | `/delete <mã bút toán>` để xem lại, rồi `/delete <mã bút toán> confirm` để xóa | không |
+| `/profile` | `/profile show` \| `set <trường> <giá trị>` \| `enable\|disable <nhóm>` \| `reset` | không |
 | `/rebalance` | `/rebalance` \| `/rebalance <mã>...` | không |
 | `/reflect` | `/reflect` | không |
 | `/alert` | `/alert [list [số dòng]]` \| `create <mã> above\|below <ngưỡng>` \| `disable <id>` | không |
@@ -487,6 +488,7 @@ Binance (OKX: bỏ quyền Trade của key) - cách này chặn cả lệnh bán
 | Lệnh | Dùng để |
 |---|---|
 | `/help` | Liệt kê mọi lệnh đang có; `/help <tên>` cho cách dùng một lệnh |
+| `/stop` | Dừng việc đang chạy trong chat này (chỉ có trên Telegram/Zalo) |
 | `/cost` | Chi tiêu LLM hôm nay, cùng số token và chi phí của phiên chat này |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách, kênh đang chạy |
 | `/model` | Xem hoặc đổi mô hình |
@@ -497,11 +499,13 @@ Binance (OKX: bỏ quyền Trade của key) - cách này chặn cả lệnh bán
 | `/schedule` | Xem và điều khiển các việc chạy tự động |
 | `/health` | Trạng thái hệ thống |
 | `/agent` | Xem hoặc đổi agent đang dùng |
+| `/upgrade` | Xem bản mới nhất và cài ngay từ chat (chỉ người vận hành) |
+| `/social` | Duyệt những bài agent đang chờ đăng lên mạng xã hội (chỉ người vận hành) |
 
 ### 4.4 Lệnh terminal hay dùng
 
 ```bash
-openalpha chat                 # mở phiên chat
+openalpha chat                 # mở phiên chat; /exit, /quit hoặc Ctrl+D để thoát
 openalpha start|stop|restart   # daemon (bản tin, cảnh báo, tự nạp dữ liệu); start chạy ngay tại cửa sổ này, thêm --background để chạy nền
 openalpha status               # tổng quan
 openalpha cost                 # chi phí LLM
@@ -682,7 +686,7 @@ Chỉ `equity-vn` và `crypto` có sàng lọc. Với `gold` và `gold-vn`, hỏ
 
 ### 6.2 Chế độ rủi ro vĩ mô
 
-Mỗi nhóm tài sản có trạng thái thị trường riêng, chấm từ những yếu tố hợp với thị trường đó. Mỗi yếu tố quy về
+Mỗi nhóm có trạng thái thị trường riêng, chấm từ những yếu tố hợp với thị trường đó. Mỗi yếu tố quy về
 thang [-1, 1] theo dải định sẵn, rồi cộng có trọng số (chia cho tổng trọng số của các yếu tố đã có
 dữ liệu):
 
@@ -872,14 +876,14 @@ Tác vụ nền chạy mười hai tiếng một lần, đối chiếu từng đ
 | Dòng | Nội dung |
 |---|---|
 | Tổng số đề xuất | Đã đưa ra bao nhiêu, bao nhiêu đã có kết quả, bao nhiêu **vẫn đang mở** - và bao nhiêu nằm ở thị trường không có chuỗi giá nên không bao giờ được chấm. Đây là mẫu số của mọi con số bên dưới |
-| Tổng quan | Lợi nhuận trung bình và trung vị mỗi lệnh, tỷ lệ đạt mục tiêu, so với chỉ số chuẩn |
+| Tổng quan | Lợi nhuận trung bình và trung vị mỗi lệnh, tỷ lệ có lãi (kể cả lệnh đóng vì hết hạn hay dừng lỗ kéo theo mà vẫn dương), so với chỉ số chuẩn |
 | Thắng / thua | Đếm đầu: bao nhiêu lần dương, bao nhiêu lần âm |
 | Theo mức tin cậy | Tỷ lệ thắng và lợi nhuận trung bình của từng nhóm `thấp` / `trung bình` / `cao` |
 | Cảnh báo lệch chuẩn | Hiện khi nhóm "tin cậy cao" **không** thắng nhiều hơn nhóm "trung bình" - tức mức tin cậy đang không mang thông tin |
 | 5 kết quả gần nhất | Từng mã kèm kết cục và lợi nhuận |
 | Lưu ý | Mẫu quá nhỏ, hoặc trộn nhiều phiên bản chiến lược |
 
-`/reflect` in cả **số đếm thắng/thua** lẫn tỷ lệ đạt mục tiêu chung ("đạt mục tiêu X số lần");
+`/reflect` in cả **số đếm thắng/thua** lẫn tỷ lệ có lãi chung ("có lãi X số lần");
 bảng điểm tháng ([6.6](#66-bảng-điểm-tháng)) chỉ rút lại thành một dòng.
 
 #### Hai lưu ý quan trọng nhất
@@ -914,7 +918,7 @@ cổ phiếu VN.
 - **Bạn quyết danh sách.** Lần chạy đầu chỉ đề xuất chủ đề. Mỗi đề xuất phải nêu được ngành nào hưởng
   lợi, nên bạn biết trước duyệt nó dẫn tới đâu; áp lực chi phí hay sức cầu yếu mà không có bên thắng
   rõ ràng thì không được đề xuất. `/themes approve <id>` để theo dõi, `reject <id>` để bỏ, `retire
-  <id>` khi không muốn theo nữa. Hệ thống tự chuyển một chủ đề sang "đang yếu đi" hoặc "mất hiệu lực"
+  <id>` khi không muốn theo nữa. Hệ thống tự chuyển một chủ đề sang "đang yếu đi" hoặc "đã kết thúc"
   khi bằng chứng đổi, nhưng chỉ bạn mới duyệt hoặc gỡ một chủ đề.
 - **Chủ đề đang yếu đi thì tạm không soát ngành và mã.** Luận điểm và điểm của nó vẫn được cập nhật,
   nhưng hệ thống không tốn tiền đọc lại doanh nghiệp cho một câu chuyện đang nhạt dần, và báo cáo ghi
@@ -922,7 +926,7 @@ cổ phiếu VN.
 - **Mã do hệ thống chọn, không do mô hình.** Với mỗi ngành hưởng lợi, hệ thống lấy tối đa 5 mã đã qua
   bộ lọc thanh khoản và chất lượng báo cáo của `/screen`, rồi mô hình mới phân tích các mã đó, mỗi
   lần ba mã, không tra cứu thêm: mức gắn với chủ đề, chủ đề có đổi lợi nhuận thật hay chỉ là kỳ vọng,
-  giá đã phản ánh chưa. Bản in chỉ nêu kịch bản cơ sở dạng "EPS kịch bản cơ sở tăng X% trong N tháng",
+  giá đã phản ánh chưa. Bản in chỉ nêu kịch bản cơ sở dạng "kịch bản cơ sở, lãi mỗi cổ phiếu (EPS) +X% trong N tháng" (số âm nếu lãi giảm),
   không kèm xác suất. P/E mục tiêu chỉ bị từ chối khi cao hơn mức cao nhất năm năm của chính mã đó.
 - **Điểm chủ đề 0-100 do hệ thống tính.** Mô hình chấm từng tiêu chí; hệ thống ghép thành điểm theo
   trọng số cố định, kèm **mức tin cậy** (thấp, trung bình, cao) cho biết điểm đứng trên bao nhiêu dữ
@@ -937,14 +941,20 @@ cổ phiếu VN.
 - **Một mã nằm dưới hai chủ đề chỉ hiện một lần**, ở điểm cao nhất, kèm dòng "Cũng nằm trong chủ đề".
 - **Điểm có đúng không, hệ thống tự kiểm.** Daemon so mỗi mã với VN-Index sau 3, 6 và 12 tháng. Cuối
   báo cáo, mục "Điểm số các lần trước đúng đến đâu" cho biết nhóm điểm từ 80, 60-80 và dưới 60 đã
-  thắng hay thua VN-Index. Nhóm nào chưa đủ 20 nhận định thì chỉ in số đếm. **Trước khi bảng này nói
+  thắng hay thua VN-Index. Nhóm nào chưa đủ 20 nhận định thì chỉ in số đếm. Bảng chỉ tính những lần
+  chấm theo cách tính điểm hiện tại, nên khi trọng số đổi thì bảng bắt đầu lại. **Trước khi bảng này nói
   được điều gì, đừng coi điểm số là tín hiệu mua.**
 - **Không phải gợi ý giao dịch.** `/themes` không đưa giá vào, cắt lỗ hay khối lượng. Muốn soi một mã
   để giao dịch thì dùng `/suggest <mã>`.
 - **Soát riêng một chủ đề.** Có tin lớn chạm đúng một chủ đề thì gõ `/themes run <id>`: hệ thống chỉ
   soát lại chủ đề đó cùng ngành và mã của nó, không đụng chủ đề khác, không tìm chủ đề mới, nên rẻ
-  hơn hẳn một phiên đầy đủ. `/themes show` hiện mỗi chủ đề theo lần soát gần nhất của nó; chủ đề nào
-  được soát từ trước lần chạy gần nhất thì có thêm dòng "Soát lần cuối" ghi rõ ngày.
+  hơn hẳn một phiên đầy đủ. Báo cáo trả về chỉ nói về chủ đề đó, không kèm bảng điểm các lần trước.
+  `/themes show` hiện mọi chủ đề còn trong danh sách, mỗi chủ đề theo lần soát gần nhất của nó; chủ
+  đề nào được soát từ trước lần chạy gần nhất thì có thêm dòng "Soát lần cuối" ghi rõ ngày.
+- **Chủ đề "Đã kết thúc" thì không còn mã.** Mỗi chủ đề đi kèm vài điều kiện kết thúc, mỗi điều kiện
+  nêu một con số, một ngưỡng và một khoảng thời gian. Khi số liệu cho thấy một điều kiện đã xảy ra,
+  chủ đề chuyển sang "Đã kết thúc": ngay dưới tên chủ đề có dòng "Lý do kết thúc", hệ thống ngừng
+  soát ngành và mã của nó, và gợi ý `/themes retire <id>` để bạn bỏ nó khỏi danh sách theo dõi.
 - **Chi phí.** Mỗi lần chạy có trần riêng (`[trading.themes] maximum_cost_usd`, mặc định $1). Chủ đề được
   cập nhật, tìm mới, rồi lập danh sách ngành và mã theo thứ tự đó; chạm trần thì dừng giai đoạn đang
   làm và nêu tên những mã bị bỏ qua. `/themes show` đọc lại kết quả đã lưu, không tốn gì. Qua MCP chỉ

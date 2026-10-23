@@ -150,8 +150,9 @@ so a command behaves the same in the REPL and in a group chat.
 `/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt
 name gets the closest command.
 
-Commands read their words in any case: `/refresh crypto FORCE`, `/profile enable Crypto` and
-`/delete 0f9838 CONFIRM` work as typed. A setting name typed short or slightly wrong is answered with
+Trading commands read their words in any case: `/refresh crypto FORCE`, `/profile enable Crypto` and
+`/delete 0f9838 CONFIRM` work as typed. The system commands (`/memory`, `/schedule`, `/social`,
+`/research`, `/agent`) take their keywords in lower case. A setting name typed short or slightly wrong is answered with
 the one it most likely means, such as `reserve-pct-nav` for `/profile set reserve 0.2`.
 
 Channels add `/stop` and the pairing controls. `/stop` and `/help` also answer to a bot-addressed form
@@ -162,7 +163,7 @@ so it cannot answer an approval prompt by accident; the REPL says so at once.
 Two conventions explain the output you see:
 
 - A command that waits on the network shows a progress line while it runs and a footer when it
-  finishes. A command that answers from local data (`/watchlist`, `/profile`, `/alert`, `/sources`)
+  finishes. A command that answers from local data (`/profile`, `/sources`)
   has neither. When the output is not a terminal (piped, or a one-shot `chat -m "/refresh"`), the
   progress shows as plain lines on stderr, only once the command has run a moment and at most one
   every ten seconds, so stdout carries only the answer and an instant reply prints nothing.
@@ -528,19 +529,19 @@ The rest fit in a line.
 |---|---|
 | `/setup` | `/setup` - what the assistant does and how to set it up |
 | `/record` | Writes a ledger row. See [The ledger](#the-ledger) |
-| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included; a bare ticker is found as `/record` finds it, every other field is written out; the reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto` where the rate applies; a row paid from USDT the venue already holds takes none. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated |
+| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included; a bare ticker is found as `/record` finds it, every other field is written out; the reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto` where the rate applies; a row paid from USDT the venue already holds takes none. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated. The row's note and, on a sale, which exit leg filled (stopped out or target hit) carry over, since no `/record` line can state them |
 | `/delete` | `/delete <handle>` - show one entry; `/delete <handle> confirm` removes it |
 | `/transactions` | `/transactions [count] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. In a chat the default is the last 10 rows (the terminal keeps 100), and the next-page button keeps the same size. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | `/portfolio nav 3m` - how your book has done: the return with deposits and withdrawals taken out, the deepest drop from a peak, and a yardstick from your own target mix. Default `3m` |
 | `/profile` | `/profile` or `/profile show` shows it; `/profile set <field> <value>` (a share takes `20%` or `0.2`); `/profile enable\|disable <segment>`; `/profile reset` |
-| `/watchlist` | `/watchlist` - live quotes for what you follow and what you hold, at most twelve names (a longer list is truncated and says so); `/watchlist add <ticker>...`; `/watchlist remove <ticker>...` |
+| `/watchlist` | `/watchlist` - live quotes for the names you follow, at most twelve (what you hold is on `/portfolio`) (a longer list is truncated and says so); `/watchlist add <ticker>...`; `/watchlist remove <ticker>...` |
 | `/price` | `/price <ticker>`, or `market:ticker` where a bare name is ambiguous. A market that quotes a two-sided dealer board (VN gold) prints both sides and the spread instead of a settled/live pair: a board states no last trade and keeps no daily series to close against |
 | `/market` | `/market` - where one market is right now, beside the last session that settled; `/market enable\|disable` - turn the scheduled sends on or off (they go to the default chat, not necessarily this one) |
 | `/overview` | `/overview` - how every market is doing, macro block included; `/overview <market>...` - only those markets, e.g. `/overview crypto` |
 | `/screen` | `/screen [market] [count] [kind]`, in any order. The market defaults to the one whose calendar `[locale] region` names; `kind` narrows to one instrument kind the market lists. A name on your exclusion list still ranks and is marked, never hidden |
 | `/suggest` | Spends LLM budget on one name. See [Suggestions](#suggestions) |
-| `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme and looks for no new ones, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
+| `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme, looks for no new ones and reports on it alone, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
 | `/reflect` | `/reflect` - how past suggestions actually performed |
 | `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
@@ -599,8 +600,9 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-`/alert create` and `/brief enable` need a chat that can receive messages, such as Telegram or Zalo,
-so the terminal refuses them. Type them in a connected channel.
+`/alert create` and `/brief enable` need a chat that can receive messages, such as Telegram or Zalo.
+Typed in the terminal, they deliver to your default chat (`fallback_chat_id`, or the one paired chat);
+with no chat to deliver to they are refused.
 
 For anything without a command of its own - bars, news, sector strength, foreign flow, portfolio
 review, track record - just ask in plain language. The agent calls the matching trading tools.

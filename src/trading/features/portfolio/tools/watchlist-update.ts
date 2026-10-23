@@ -37,7 +37,6 @@ export function createWatchlistUpdateTool(profiles: AgentProfile): ToolDefinitio
       const result = await profiles.updateWatchlist({
         kind: args.action,
         tickers: args.tickers.map((symbol) => ({ ticker: symbol })),
-        defaultLocale: ctx.locale,
         signal: ctx.signal,
       })
 

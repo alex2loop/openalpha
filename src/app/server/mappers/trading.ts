@@ -160,9 +160,11 @@ export function toNewsItemWire(item: NewsItem): TradingNewsItemWire {
   }
 }
 
-export function toProfileWire(profile: UserProfile): TradingProfileResponse {
+/** `preferredLocale` is the one language every reply is written in, `[locale] language`: the
+ *  profile carries none of its own. */
+export function toProfileWire(profile: UserProfile, locale: Locale): TradingProfileResponse {
   return {
-    preferredLocale: profile.preferredLocale,
+    preferredLocale: locale,
     baseCurrency: profile.baseCurrency,
     riskLevel: profile.riskLevel,
     riskCapacity: profile.riskCapacity,

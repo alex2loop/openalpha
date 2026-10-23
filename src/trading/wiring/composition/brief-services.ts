@@ -46,8 +46,7 @@ export function lazyBriefServices(
     rebalance: (o) => services().portfolio.rebalance({ now: o.now, signal: o.signal }),
     ...lazyBookReads(services, config, venues),
     ...lazyLevelReads(services),
-    profile: (o) =>
-      services().profiles.get({ defaultLocale: app.config.locale.language, signal: o.signal }),
+    profile: (o) => services().profiles.get({ signal: o.signal }),
     summarize: (o) => services().suggestions.summarize(o),
     ...lazyMarketDataReads(services),
     runSuggestions: (o) => runOperatorBatch(services(), o),
@@ -56,7 +55,6 @@ export function lazyBriefServices(
       services().alerts.stalePositions({
         ...o,
         profile: await services().profiles.get({
-          defaultLocale: app.config.locale.language,
           signal: o.signal,
         }),
       }),

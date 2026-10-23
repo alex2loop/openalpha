@@ -1,4 +1,3 @@
-import type { Locale } from '@/core/types/locale'
 import type {
   CurrencyCode,
   InstrumentKind,
@@ -95,7 +94,6 @@ export interface ProfilePolicyNumbers {
 }
 
 export interface UserProfile extends ProfilePolicyNumbers {
-  readonly preferredLocale: Locale
   readonly baseCurrency: CurrencyCode
   readonly riskLevel: RiskLevel
   readonly riskCapacity: RiskLevel
@@ -129,7 +127,6 @@ export interface ProfileStamp {
 }
 
 export interface ProfilePatch {
-  readonly preferredLocale?: Locale
   readonly riskLevel?: RiskLevel
   readonly riskCapacity?: RiskLevel
   readonly riskWillingness?: RiskLevel

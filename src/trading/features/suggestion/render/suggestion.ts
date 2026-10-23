@@ -273,7 +273,9 @@ export function renderDetailBlocks(
         ),
     renderUnsupportedClaims(view, suggestion),
     renderSourceLines(locale, suggestion, view.detail),
-    renderCaveatLines(locale, filteredCaveats(suggestion)),
+    renderCaveatLines(locale, filteredCaveats(suggestion), {
+      withholdOperatorFigures: view.operatorFigures === 'withheld',
+    }),
   ]
 }
 

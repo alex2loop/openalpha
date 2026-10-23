@@ -1,7 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { Caveat, CaveatDetail, CaveatSeverity } from '@/trading/kernel/caveat'
 import { hasMessage, type MessageKey, t } from '@/i18n'
-import { caveatSeverity } from '@/trading/kernel/caveat'
+import { caveatSeverity, OPERATOR_DETAIL_CODES } from '@/trading/kernel/caveat'
 import { isCurrencyCode } from '@/trading/kernel/instrument'
 import { toFoldLines } from '@/trading/render/fold'
 import {
@@ -14,6 +14,7 @@ import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
 const UNFILLED_PARAM_RE = /\{\w+\}/
+const WITHHELD_KEY_SUFFIX = 'Withheld'
 
 /** A stored caveat carries the detail shape of the build that wrote it, so a message it can no
  *  longer fill is dropped rather than shown with a raw placeholder. Two caveats that reach the same
@@ -38,8 +39,13 @@ export function renderCaveatLines(
   caveats: readonly Caveat[],
   options: CaveatRenderOptions = {}
 ): readonly string[] {
+  const shown = caveats.flatMap((caveat) => {
+    const rendered = toRendered(locale, caveat)
+
+    return options.withholdOperatorFigures === true ? withheldOf(locale, rendered) : [rendered]
+  })
   const lines = distinctLines(
-    mergeSubjects(caveats.map((caveat) => toRendered(locale, caveat))).flatMap((caveat) => {
+    mergeSubjects(shown).flatMap((caveat) => {
       const message = t(locale, caveat.key, caveat.detail)
 
       return UNFILLED_PARAM_RE.test(message) ? [] : [{ severity: caveat.severity, message }]
@@ -61,6 +67,9 @@ interface CaveatRenderOptions {
    *  one degradation among them; the notes keep their own catalog text, so a new one joins the line
    *  rather than needing a hand-written summary to be updated. */
   readonly collapseInfo?: boolean
+  /** For a text a model relays: a caveat built on the operator's own money reads from its
+   *  `<code>Withheld` sentence, which states the fact without the figure, or is left out. */
+  readonly withholdOperatorFigures?: boolean
 }
 
 interface RenderedLine {
@@ -138,6 +147,17 @@ function toRendered(locale: Locale, caveat: Caveat): RenderedCaveat {
         : {}),
     },
   }
+}
+
+function withheldOf(locale: Locale, caveat: RenderedCaveat): readonly RenderedCaveat[] {
+  if (!OPERATOR_DETAIL_CODES.has(caveat.code)) {
+    return [caveat]
+  }
+
+  const key = `trading.caveat.${caveat.code}${WITHHELD_KEY_SUFFIX}`
+
+  // why-safe: `hasMessage` proves the withheld sentence resolves before it is treated as a key.
+  return hasMessage(locale, key) ? [{ ...caveat, key: key as MessageKey }] : []
 }
 
 /** A caveat whose `count` is 1 reads from its `<code>One` sentence when the catalog carries one. */

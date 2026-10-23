@@ -185,8 +185,15 @@ export async function readPricePart(deps: ChainDeps, input: CompanyInput): Promi
   const own = bars === undefined ? undefined : toWindowReturn(bars, window)
   const index = input.benchmark === undefined ? undefined : toWindowReturn(input.benchmark, window)
 
-  if (last === undefined || own === undefined) {
+  if (last === undefined || last.at < window.earliestEnd) {
     return { kind: 'price', drafts: [], missing: true }
+  }
+
+  const close = { day: last.at, value: last.close }
+
+  // A younger listing has no twelve-month return, but its close still dates the read's outcome.
+  if (own === undefined) {
+    return { kind: 'price', drafts: [], missing: true, close }
   }
 
   const text = [
@@ -198,7 +205,7 @@ export async function readPricePart(deps: ChainDeps, input: CompanyInput): Promi
     kind: 'price',
     drafts: [{ kind: 'price', origin: 'price', text, day: last.at }],
     missing: false,
-    close: { day: last.at, value: last.close },
+    close,
     ...(index === undefined ? {} : { excessReturn: own - index }),
   }
 }

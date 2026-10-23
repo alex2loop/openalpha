@@ -362,6 +362,8 @@ type CoverageState = 'pending' | 'scored' | 'restated' | 'unfilled'
 export interface CoverageOptions {
   /** Only these focuses' rows. Omitted, every focus is counted. */
   readonly focusKeys?: readonly FocusKey[]
+  /** Only one version's rows, so the counts describe the population a version's rates read. */
+  readonly strategyVersion?: string
   readonly signal: AbortSignal
 }
 
@@ -371,9 +373,21 @@ export async function coverage(
 ): Promise<readonly SuggestionCoverageRow[]> {
   assertNotAborted(options.signal)
 
-  const focusKeys = options.focusKeys
+  const params: unknown[] = [...(options.focusKeys ?? [])]
   const focusFilter =
-    focusKeys === undefined ? '' : ` AND focus_key IN (${deps.dialect.paramList(focusKeys.length)})`
+    options.focusKeys === undefined
+      ? ''
+      : ` AND focus_key IN (${deps.dialect.paramList(params.length)})`
+
+  if (options.strategyVersion !== undefined) {
+    params.push(options.strategyVersion)
+  }
+
+  // The same split `listResolved` makes: a pinned version reads every row it wrote.
+  const versionFilter =
+    options.strategyVersion === undefined
+      ? ` AND ${LATEST_OF_SAME_CALL_SQL}`
+      : ` AND strategy_version = ${deps.dialect.param(params.length)}`
 
   // Actionable only, restating the table's own CHECK: a hold carries no entry to score against.
   // `CASE` rather than a bare `return_pct IS NULL` column, which reads back as 0/1 on sqlite and as
@@ -386,9 +400,9 @@ export async function coverage(
   }>(
     'SELECT market, outcome_status, ' +
       'CASE WHEN return_pct IS NULL THEN 1 ELSE 0 END AS unscored, COUNT(*) AS count ' +
-      `FROM suggestions WHERE action <> 'hold' AND ${LATEST_OF_SAME_CALL_SQL}${focusFilter} ` +
-      'GROUP BY market, outcome_status, unscored',
-    focusKeys === undefined ? [] : [...focusKeys]
+      `FROM suggestions WHERE action <> 'hold'${focusFilter}` +
+      `${versionFilter} GROUP BY market, outcome_status, unscored`,
+    params
   )
 
   return rows.map((row) => ({

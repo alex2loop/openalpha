@@ -53,21 +53,28 @@ export const THEME_INSTRUCTIONS = [
 const UPDATE_TASK = [
   'Update this theme against the bundle. Status is "weakening" when the evidence has turned',
   'against it and "active" otherwise. Set invalidatedBy to a condition number only when the bundle',
-  'shows that condition met, and back it with a counter claim citing M or C evidence.',
+  'shows that condition met, and back it with a counter claim citing M or C evidence. A met',
+  'condition ends the theme whatever status you give, so the summary then says it has ended,',
+  'names the condition and gives the figure that met it.',
 ].join('\n')
 
 const DISCOVERY_TASK = [
   `Propose at most ${MAXIMUM_PROPOSALS} new themes forming now, or none. A theme is a change that`,
   'lifts the earnings of listed sectors you can name: frame it from the side that gains and list',
-  `those sectors (1 to ${MAXIMUM_SECTORS}) under beneficiaries. A cost or demand squeeze with no`,
+  `those sectors (1 to ${MAXIMUM_SECTORS}) under beneficiaries. A price rise gains the sectors that`,
+  'sell the good and squeezes the ones that buy it as an input. A cost or demand squeeze with no',
   'clear winner is a risk to other themes, not a theme: cite it as counter-evidence there. Each',
   'needs at least two supporting claims citing items from different sources, at least one of them',
   'an M or C item: news alone cannot found a theme. Give each an id in lowercase kebab-case',
   '(3 to 48 characters, for example "public-investment-push"), a short title, a one-paragraph',
-  'thesis, its maturity (emerging, scaling or mature) and one to four concrete conditions that',
-  'would end it. Never re-propose a known theme or a near copy of one: a theme driven by the same',
-  'change and reaching the same sectors as a known one is a copy under a new name. When the',
-  'bundle only restates what known themes already say, propose none.',
+  'thesis, its maturity (emerging, scaling or mature) and one to four conditions that would end',
+  'it. Each condition names a figure the bundle tracks, a threshold and a period (for example',
+  '"steel prices fall more than 15% from their three-month high"), reads a driver or a sector',
+  'that gains, never one the theme hurts, and is not met by the bundle today: a theme whose own',
+  'condition already holds is not forming, so leave it out. Never re-propose a known theme or a',
+  'near copy of one: a theme driven by the same change and reaching the same sectors as a known',
+  'one is a copy under a new name. When the bundle only restates what known themes already say,',
+  'propose none.',
 ].join('\n')
 
 const SECTOR_TASK = [
@@ -83,6 +90,8 @@ const SECTOR_TASK = [
 
 const COMPANY_TASK = [
   "Judge whether this theme really changes this company's earnings, from its own figures.",
+  "The horizon is horizonMonths, the span your scenarios cover: usually the theme read's months",
+  "given above, shorter or longer only when the company's own timeline argues it.",
   'estimatedRevenueSharePct is the share of revenue from theme-linked business today; statements',
   'carry no segment data, so estimate it and cite what you rest it on in exposureBasis.',
   'forwardSharePct is the share you expect by the horizon from named contracts, capex, projects or',
@@ -238,6 +247,7 @@ export function buildCompanyMessage(context: CompanyMessageContext): string {
   return [
     `Theme ${theme.id}: ${theme.title}. Maturity: ${context.read.maturity}.`,
     `Thesis: ${theme.thesis}`,
+    `Theme read: ${context.read.probabilityPct}% within ${context.read.horizonMonths} months.`,
     `Sector ${sector.sector}: ${sector.linkage}, ${sector.effect}. ${sector.chain}`,
     `Company: ${facts.ticker}.`,
     '',

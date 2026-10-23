@@ -265,7 +265,7 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `language` | chuỗi | `vi` | `en` hoặc `vi`. |
+| `language` | chuỗi | `vi` | `en` hoặc `vi`. Ngôn ngữ duy nhất mọi câu trả lời, bản tin và cảnh báo dùng; hồ sơ đầu tư không có ngôn ngữ riêng. |
 | `timezone` | chuỗi | múi giờ của máy (`UTC` nếu máy không báo) | Tên IANA, ví dụ `Asia/Ho_Chi_Minh`. Việc cron mới chụp lại giá trị này, trừ khi `--tz` ghi đè; lịch theo chu kỳ từ chối `--tz`. |
 | `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch; `onboard` hỏi ở lần thiết lập đầu và ghi vào đây. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
 | `region` | chuỗi | `vn` | Khu vực chính; hiện chỉ có `vn`. Khu vực cần có sàn giao dịch thị trường chính của nó, nên `global` (vàng thế giới, chỉ để tham chiếu) bị từ chối. Thị trường của khu vực này là bảng mặc định, và hồ sơ đầu tiên chỉ phân bổ cho các nhóm trong nước của nó cùng crypto. |
@@ -714,7 +714,7 @@ confirm_multiple = 10          # hỏi lại trước khi lưu giá gõ lệch g
 
 [trading.orders]
 maximum_stake_quote = 0        # 0 = không chặn; giá trị ước tính bằng USDT trên okx và binance
-maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh chưa vào sổ
+maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh chưa vào sổ; mua thêm mã đang giữ không tính là vị thế mới
 maximum_price_drift = 0.005    # một phân số, không phải phần trăm: 0.005 là nửa phần trăm
 allow_unattended = false       # cho phép đặt lệnh khi chế độ phê duyệt là "bypass"
 require_stop_loss = true       # từ chối lệnh mua không nêu mức cắt lỗ

@@ -94,19 +94,25 @@ function renderNamed(stocks: readonly StockRead[], locale: Locale): readonly str
 }
 
 function renderNamedStock(stock: StockRead, locale: Locale): string {
-  return stock.score === undefined
-    ? stock.ticker
-    : t(locale, 'trading.render.themes.namedStock', {
-        ticker: stock.ticker,
-        score: stock.score.value,
-      })
+  if (stock.score === undefined) {
+    return stock.ticker
+  }
+
+  const key =
+    stock.score.confidence === 'low'
+      ? 'trading.render.themes.namedStockLow'
+      : 'trading.render.themes.namedStock'
+
+  return t(locale, key, { ticker: stock.ticker, score: stock.score.value })
 }
 
+/** Only names read with at least medium confidence: a score standing on a few of its parts (no
+ *  P/E, say) is not a lead, so it stays under its sector, marked, rather than ranking here. */
 export function renderTopStocks(context: ReportContext): readonly string[] {
-  const stocks = groupByScore(context.report.reads.stocks, (read) => read.ticker).slice(
-    0,
-    SHOWN_STOCKS
-  )
+  const stocks = groupByScore(
+    context.report.reads.stocks.filter((read) => read.score?.confidence !== 'low'),
+    (read) => read.ticker
+  ).slice(0, SHOWN_STOCKS)
 
   return stocks.length === 0
     ? []

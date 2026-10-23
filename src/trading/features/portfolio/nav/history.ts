@@ -63,7 +63,6 @@ async function readHistory(deps: NavServiceDeps, options: NavHistoryOptions): Pr
   const drawdowns = toDrawdowns(indexes)
   const periodReturn = toPeriodReturn(indexes)
   const profile = await deps.profiles.get({
-    defaultLocale: deps.defaultLocale,
     signal: options.signal,
   })
   const benchmark = await buildBenchmark(deps, profile.segmentTargets, {

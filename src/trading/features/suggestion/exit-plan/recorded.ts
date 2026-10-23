@@ -189,10 +189,9 @@ async function buildRecordedPlan(
 ): Promise<StoredSuggestion | null> {
   const { instrument, signal, settled, board } = input
   const { manifest } = market
-  const request = { defaultLocale: deps.defaultLocale, signal }
   const [profile, saved, prior] = await Promise.all([
-    deps.profile.get(request),
-    deps.profile.isSaved(request),
+    deps.profile.get({ signal }),
+    deps.profile.isSaved({ signal }),
     deps.store.findLatestExitPlan({
       market: instrument.market,
       ticker: instrument.ticker,

@@ -147,7 +147,7 @@ A held or watched name that traded at least 2% above the settled close and is ba
 
 #### The pulse reads live, twelve names at a time
 
-`/watchlist` and the `cross-asset-pulse` brief section share one path: every watchlist and held name, deduped, capped at **twelve** instruments and fetched **four at a time**. The cap bounds spend and latency; it is not a ranking. A longer list is cut and says so with `market-data.universe-truncated`, so a missing name is explained.
+`/watchlist` and the `cross-asset-pulse` brief section read live quotes the same way, capped at **twelve** instruments and fetched **four at a time**. `/watchlist` quotes the names you follow; the pulse adds every name you hold, deduped. The cap bounds spend and latency; it is not a ranking. A longer list is cut and says so with `market-data.universe-truncated`, so a missing name is explained.
 
 Each row asks for a live quote. A market not in session answers with its stored close, so the same call is right at 10am and at midnight.
 
@@ -463,11 +463,11 @@ The `suggestion_track_record` tool returns the asking agent's own focus record a
 
 **Alerts** are price thresholds (`above` / `below`) that fire once and deliver to a channel.
 
-**Delivery.** Each claim on a delivery expires after 60 seconds. A failed send backs off over three attempts, from 30 seconds to an hour, then that delivery is given up rather than retried forever:
+**Delivery.** Each claim on a delivery expires after 60 seconds. A failed send is tried three times, waiting 30 seconds and then a minute between tries, then that delivery is given up rather than retried forever:
 
-- a system-armed alert is disabled, then armed again once 15 minutes have passed while its level is still expected, since the notice never reached you; one a reconcile pass disabled stays retired;
+- a system-armed alert is disabled, then armed again once 15 minutes have passed while its level is still expected, since the notice never reached you; one a reconcile pass disabled stays retired for as long as its row is kept (`[retention] days`);
 - a brief's day is dropped and tomorrow's is scheduled;
-- an alert you created with `/alert` is never disabled for a failed send. It is yours alone and nothing re-arms it, so it keeps retrying, waiting at most an hour between tries, until the channel accepts it or you run `/alert disable`.
+- an alert you created with `/alert` is never disabled for a failed send. It is yours alone and nothing re-arms it, so it keeps retrying, doubling the wait each time up to an hour between tries, until the channel accepts it or you run `/alert disable`.
 
 A chat whose pairing was revoked with `pair revoke` is different: no retry can reach it, so at the first refused send the alert is disabled, yours or system-armed alike, and so is the morning brief. Exit and screener alerts go to the brief's chat, so while that chat stays revoked they are not armed, even if the brief was already off; pair the chat again, or run `/brief enable` from another chat, and they are armed again.
 
@@ -578,25 +578,26 @@ It gives no prices. `/suggest <ticker>` gives entry, stop, target and size.
 Commands:
 
 - `/themes` runs it. It costs model calls, capped by `[trading.themes] maximum_cost_usd`.
-- `/themes run <id>` re-checks one tracked theme with its sectors and companies and looks for no new ones.
-- `/themes show` shows each theme as it was last read, for free.
+- `/themes run <id>` re-checks one tracked theme with its sectors and companies, looks for no new ones and reports on that theme alone, without the track record.
+- `/themes show` shows every theme still on the list (tracked, invalidated or waiting for approval) as it was last read, for free. Rejected and retired themes drop off.
 - `/themes approve|reject|retire <id>` moves a theme.
 - Over MCP only the read-only `themes_view` tool is exposed.
 
 The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]` otherwise.
 
-**Code scores, the model reads.** A theme, sector or company score is arithmetic over the model's ratings and the run's figures, never a number the model produced. It carries a confidence showing how much of the read it stands on. A proposal is judged on its own case and must name the sectors that stand to gain.
+**Code scores, the model reads.** A theme, sector or company score is arithmetic over the model's ratings and the run's figures, never a number the model produced. It carries a confidence showing how much of the read it stands on. A proposal is judged on its own case and must name the sectors that stand to gain; it lists every condition that would end it, so approving it approves the exit too. When a check cannot reach a tracked theme's sectors, the report keeps the sectors and companies from the check before and says which one. Stock opportunities list only names read with at least medium confidence; a low-confidence name, such as one with no P/E to value it on, stays under its sector, marked. A tracked theme whose sector check found no sector that gains scores no reach, rather than leaving that part out; a check that failed leaves it out. The "was" beside a score only compares scores made the same way, and an ended theme shows its reason, not its odds.
 
-**Earnings are a base case.** A read prints `base case EPS {growth} over {months} months`, with no probability attached. A target P/E is refused only when it is above the name's own five-year high. Readings above the hard cap of 200 are left out of the range.
+**Earnings are a base case.** A read prints `base case earnings per share (EPS) {growth} over {months} months`, the growth signed, with no probability attached. A target P/E is refused only when it is above the name's own five-year high. Readings above the hard cap of 200 are left out of the range.
 
-**Each stock read is scored later.** The `theme-outcomes` job compares it with VN-Index at 3, 6 and 12 months from stored bars (no model call), and `/themes show` prints how each score band has done. A name or sector read under several themes in one run counts as one bet, at the mean of its scores. A band is judged only once every bucket holds 20 reads.
+**Each stock read is scored later.** The `theme-outcomes` job compares it with VN-Index at 3, 6 and 12 months from stored bars (no model call), and `/themes show` prints how each score band has done. A name or sector read under several themes in one run counts as one bet, at the mean of its scores. Each score bucket prints its result vs VN-Index once it holds 20 reads; whether high scores beat low ones is judged only when every bucket has its 20. Only reads scored the current way count, so a change to the score weights starts a fresh record. A name listed for under a year is measured too, from its close on the day it was read.
 
 **Code keeps the model honest.** Code builds the evidence bundle and mints every id in it (`M1`, `C3`, `N12`); the model only cites them. The theme analyst is the only trading persona with a tool, `research`.
 
 - It updates `active` and `weakening` themes one at a time, then proposes new ones against the titles and theses already known.
 - A claim citing an id the bundle lacks is dropped, the model is re-asked once, and a read still without counter-evidence is dropped.
 - A proposal needs two origins of support, one of them macro or commodity, and one to three sectors that gain.
-- A theme is marked `invalidated` only when one of its own conditions is backed by hard data.
+- A proposal's end conditions are asked to name a figure, a threshold and a period, to watch a driver or a sector that gains, and not to hold already. The rule is in the prompt; code does not check it.
+- A theme is marked `invalidated` only when one of its own conditions is backed by hard data. Its sectors and companies are no longer read, and the report suggests `/themes retire <id>`.
 - Only you make a theme `active`, reject it or retire it.
 
 **One budget, one run at a time.** A run draws on one budget, the lower of `[trading.themes] maximum_cost_usd` and `[budget]`, and on one research quota. Only one run goes at a time per process.
@@ -605,10 +606,11 @@ The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]`
 - A budget halt ends the stage and names the steps it skipped.
 - A board that cannot be read skips the company stage and reports a `screen` gap.
 - Each theme starts from its own latest read, so the last run is never the whole picture.
+- News is every headline archived since the oldest last read among the themes in the run, whenever it was published, so a story archived late is not missed. A theme read more recently than that may see a few headlines again.
 
 **From theme to company.** For each `active` theme, code reads the board, the sectors, the stored quarters and one day of valuation ratios once. The analyst maps the theme to at most three ICB super-sectors, each with a cited counter claim. Code then shortlists at most five names per sector from the board's survivors whose quality factor fired, dropping weak Piotroski scores, Beneish flags, negative free cash flow and non-positive return on invested capital. The analyst reads the names three at a time, without `research`.
 
-**Company reads are checked.** Code re-asks once, then drops the name with a note, when a stock read's scenario odds do not sum to 100, its target P/E is above the name's five-year high, or an "earnings" verdict cites no accounts figure. Code, not the model, computes crowding and earnings surprise: an unread signal never makes a name crowded, and a quarter more than three behind the calendar is not read.
+**Company reads are checked.** Code re-asks once, then drops the name with a note, when a stock read's scenario odds do not sum to 100, its target P/E is above the name's five-year high, or an "earnings" verdict cites no accounts figure. Code, not the model, computes crowding and earnings surprise: an unread signal never makes a name crowded, and a name whose newest quarter is more than two behind the calendar is not read.
 
 **How a score is built.** Theme, sector and stock reads each get a 0-100 score from fixed weights, stored with the run.
 
@@ -838,13 +840,12 @@ A price you type that sits ten times or more above or below the name's latest st
   Quantity: 1,000 E1VFVN30
   Price: 35.32/E1VFVN30
   Fee: 52,980 VND
-  Fee taken at 0.15% - correct it with /update if it differs.
+  That fee matches the 0.15% rate - correct it with /update if yours differs.
   Cash is now 64,627 VND
-  E1VFVN30 is now 1,000 at an average cost of 35.32
-  Cost basis incl. fee 35.37 (matches your broker app)
+  E1VFVN30 at VPS is now 1,000 at an average cost of 35.37
 ```
 
-There are two cost bases, on purpose. The average cost is what the fills printed, and every valuation and P&L measures against it. The line below it is the same basis with the entry fee included, the number your broker's app shows. It appears only here, when you have the app open to check the row.
+The average cost includes the entry fee, so it matches the figure your broker's app shows, and every valuation and P&L measures against it. A round trip at the same price therefore reads as the small loss it is.
 
 - A stated fee that sits far from the configured rate replaces the rate line with how far off it is, rather than being silently accepted.
 - A market with no configured rate prints neither line: there is nothing to measure against, and a zero would read as agreement.
@@ -864,7 +865,7 @@ They are different types with different fields. An agent cannot learn your accou
 
 ### Valuation
 
-A holding below the venue's minimum order size is not listed. The venue will not trade it, so the row would describe something you can neither sell nor act on. Its value still counts toward NAV and the allocation table, and the section says how many rows it held back. A weight with nothing under it is what that count explains. Every other surface treats it the same way: the brief does not count it as a losing position or suggest on it, `/market` and the chat assistant do not list it, it takes no slot under `maximum_open_trades`, and on its own it does not keep a switched-off market in `/refresh`.
+A holding below the venue's minimum order size is not listed. The venue will not trade it, so the row would describe something you can neither sell nor act on. Its value still counts toward NAV and the allocation table, and the section says how many rows it held back. If no source prices it any more (a delisted coin, say), it counts at what it cost and a note says so, rather than leaving NAV blank and blocking every buy. A weight with nothing under it is what that count explains. Every other surface treats it the same way: the brief does not count it as a losing position or suggest on it, `/market` and the chat assistant do not list it, it takes no slot under `maximum_open_trades`, and on its own it does not keep a switched-off market in `/refresh`.
 
 A valued position is either:
 
@@ -1055,7 +1056,7 @@ openalpha chat --message "/profile reset"
 
 **Settable fields:**
 
-- `preferred-locale`, `risk-level`, `risk-capacity`, `risk-willingness`, `horizon`, `goal`
+- `risk-level`, `risk-capacity`, `risk-willingness`, `horizon`, `goal`
 - `maximum-sector-pct-nav` - the most of your total assets one sector may take
 - `reserve-pct-nav` - the cash you always keep
 - `regime-scale` - the most of a planned buy that is used each time (0.75 uses 75%); a defensive market can lower it further
@@ -1302,7 +1303,7 @@ To remove a resting take-profit/stop-loss:
 /trade cancel okx:BTC
 ```
 
-Name the venue when two of them hold a resting exit on the same instrument. That is refused rather than guessed, since cancelling either silently would leave the other resting behind a message saying it is gone. Two exits at one venue are not ambiguous, and the newest is taken.
+Name the venue when two of them hold a resting exit on the same instrument. That is refused rather than guessed, since cancelling either silently would leave the other resting behind a message saying it is gone. Two exits at one venue are not ambiguous: both are cancelled, so nothing is left resting there.
 
 ### 6. Guard a position you already hold
 

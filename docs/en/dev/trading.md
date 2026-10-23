@@ -71,7 +71,9 @@ Some per-market sections (`reading`, `market-prices`, `market-quotes`, `market-b
 
 ## Themes scoring
 
-Theme, sector and stock reads share the `theme_reads` table (a level and a subject). Code scores each 0-100 in [`features/themes/score/`](../../../src/trading/features/themes/score/) from fixed weights; `SCORE_VERSION` is stored on the run, and the parts ride in the payload so a score can be recomputed.
+Theme, sector and stock reads share the `theme_reads` table (a level and a subject). Code scores each 0-100 in [`features/themes/score/`](../../../src/trading/features/themes/score/) from fixed weights; `SCORE_VERSION` is stored on the run, and the parts ride in the payload so a score can be recomputed. The track record reads only outcomes of runs stamped with the current `SCORE_VERSION`, so changing a weight, scale or coverage rule bumps it in the same commit. `check-strategy-version` digests the scoring files whole and fails until the change is re-recorded with `--write`.
+
+A run's news is `NewsArchiveStore.listArchived`: headlines archived (`fetched_at`) since the oldest last read of each subject the run reads, not published since, so a story the archive took in late is still read once.
 
 ## Valuation and the book
 

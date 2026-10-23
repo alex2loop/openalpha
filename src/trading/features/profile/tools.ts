@@ -50,7 +50,6 @@ function createProfileUpdateTool(
     async execute(args, ctx): Promise<string> {
       const profile = await profiles.update({
         patch: args.patch,
-        defaultLocale: ctx.locale,
         signal: ctx.signal,
       })
 
@@ -69,7 +68,6 @@ function createProfileViewTool(profiles: AgentProfile): ToolDefinition {
     presentation: { label: 'Profile', emoji: '🪪' },
     async execute(_args, ctx): Promise<string> {
       const profile = await profiles.get({
-        defaultLocale: ctx.locale,
         signal: ctx.signal,
       })
 
@@ -105,7 +103,6 @@ function createProfileSegmentTool(profiles: AgentProfile): ToolDefinition {
       const profile = await profiles.updateSegment({
         kind: args.action,
         segment: portfolioSegment(args.segment),
-        defaultLocale: ctx.locale,
         signal: ctx.signal,
       })
 

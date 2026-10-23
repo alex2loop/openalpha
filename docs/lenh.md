@@ -150,8 +150,9 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 `/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì mình
 gợi ý câu lệnh gần nhất.
 
-Câu lệnh đọc chữ hoa hay thường như nhau: `/refresh crypto FORCE`, `/profile enable Crypto` và
-`/delete 0f9838 CONFIRM` đều chạy đúng như gõ. Tên thiết lập gõ tắt hoặc sai chút ít thì mình gợi ý tên
+Các lệnh giao dịch đọc chữ hoa hay thường như nhau: `/refresh crypto FORCE`, `/profile enable Crypto` và
+`/delete 0f9838 CONFIRM` đều chạy đúng như gõ. Các lệnh hệ thống (`/memory`, `/schedule`, `/social`,
+`/research`, `/agent`) thì cần gõ từ khóa bằng chữ thường. Tên thiết lập gõ tắt hoặc sai chút ít thì mình gợi ý tên
 gần nhất, ví dụ `reserve-pct-nav` cho `/profile set reserve 0.2`.
 
 Kênh có thêm `/stop` và các lệnh ghép nối. `/stop` và `/help` cũng nhận dạng gọi kèm tên bot như
@@ -162,7 +163,7 @@ một câu hỏi phê duyệt; REPL báo ngay để bạn gõ lại.
 Hai quy ước giải thích đầu ra bạn thấy:
 
 - Lệnh nào phải chờ mạng thì hiện một dòng tiến độ khi chạy và một dòng cuối khi xong. Khi đầu ra không phải terminal (qua pipe, hoặc `chat -m "/refresh"` chạy một lần), tiến độ hiện thành các dòng thuần trên stderr, chỉ khi lệnh chạy lâu hơn một chút và tối đa mười giây một dòng, nên stdout chỉ chứa câu trả lời và lệnh trả lời ngay không in gì. Lệnh trả lời từ
-  dữ liệu cục bộ (`/watchlist`, `/profile`, `/alert`, `/sources`) không có cả hai.
+  dữ liệu cục bộ (`/profile`, `/sources`) không có cả hai.
 - Nếu phiên chạy phải đổi nhà cung cấp, một dòng ngay phía trên dòng cuối nói rõ chuyển từ đâu, sang
   đâu, vì sao - mỗi lần đổi một dòng. Dòng này giải thích vì sao dòng cuối không nêu tên mô hình, và
   tính cả các phiên chạy con của lệnh gạch chéo lẫn các lời gọi của chính lượt chat.
@@ -514,19 +515,19 @@ ghi sổ và `/trade`.
 |---|---|
 | `/setup` | `/setup` - trợ lý làm gì và cách thiết lập |
 | `/record` | Ghi một dòng vào sổ. Xem [Sổ lệnh](#sổ-lệnh) |
-| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; mã trần được dò như `/record`, mọi trường khác phải ghi đủ; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto` khi tỷ giá có tác dụng; dòng trả từ số USDT sàn đã giữ thì không dùng tỷ giá. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại |
+| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; mã trần được dò như `/record`, mọi trường khác phải ghi đủ; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto` khi tỷ giá có tác dụng; dòng trả từ số USDT sàn đã giữ thì không dùng tỷ giá. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại. Ghi chú của dòng và, với lệnh bán, nhãn chân thoát đã khớp (dừng lỗ hay chạm mục tiêu) được giữ nguyên, vì dòng `/record` không ghi được chúng |
 | `/delete` | `/delete <mã bút toán>` - xem một mục; `/delete <mã bút toán> confirm` mới xóa |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Trong chat mặc định là 10 dòng gần nhất (terminal giữ 100), và nút trang kế giữ nguyên cỡ đó. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
 | `/portfolio` | `/portfolio` - giá trị và phân bổ, mỗi dòng nói rõ vị thế đang cách mức dừng bao xa. Xem [Mức dừng dự kiến không phải một lệnh đang treo](#mức-dừng-dự-kiến-không-phải-một-lệnh-đang-treo) |
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | `/portfolio nav 3m` - danh mục đã đi thế nào: lợi nhuận đã loại tiền nạp và rút, mức sụt sâu nhất từ đỉnh, và thước đo từ tỷ trọng mục tiêu của bạn. Mặc định `3m` |
 | `/profile` | `/profile` hoặc `/profile show` để xem; `/profile set <trường> <giá trị>` (tỷ lệ gõ `20%` hay `0.2` đều được); `/profile enable\|disable <nhóm>`; `/profile reset` |
-| `/watchlist` | `/watchlist` - giá trực tiếp của những gì bạn theo dõi và đang nắm, tối đa mười hai mã (danh sách dài hơn bị cắt và có nói rõ); `/watchlist add <mã>...`; `/watchlist remove <mã>...` |
+| `/watchlist` | `/watchlist` - giá trực tiếp của các mã bạn theo dõi, tối đa mười hai mã (mã đang nắm xem ở `/portfolio`) (danh sách dài hơn bị cắt và có nói rõ); `/watchlist add <mã>...`; `/watchlist remove <mã>...` |
 | `/price` | `/price <mã>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ. Thị trường niêm yết bảng hai chiều của đại lý (vàng VN) in cả hai chiều và chênh lệch giữa chúng, chứ không in cặp đóng cửa/trực tiếp: một bảng không nêu giá khớp cuối, và không giữ chuỗi ngày nào để đối chiếu giá đóng |
 | `/market` | `/market` - một thị trường đang ở đâu ngay lúc này, đặt cạnh phiên gần nhất đã chốt; `/market enable\|disable` - bật hoặc tắt các lần gửi theo lịch (chúng đi tới chat mặc định, không nhất thiết là chat này) |
 | `/overview` | `/overview` - mọi thị trường đang thế nào, kèm khối vĩ mô; `/overview <thị trường>...` - chỉ in các thị trường đó, ví dụ `/overview crypto` |
 | `/screen` | `/screen [thị-trường] [số dòng] [loại]`, thứ tự tùy ý. Thị trường mặc định là thị trường mà lịch của `[locale] region` nêu tên; `loại` thu hẹp về một loại công cụ mà thị trường đó niêm yết. Mã nằm trong danh sách loại trừ của bạn vẫn được xếp hạng và được đánh dấu, không bị ẩn |
 | `/suggest` | Tiêu ngân sách LLM cho một mã. Xem [Đề xuất](#đề-xuất) |
-| `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - kiểm lại một chủ đề đang theo dõi và không tìm chủ đề mới, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
+| `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - soát lại một chủ đề đang theo dõi, không tìm chủ đề mới và chỉ báo cáo chủ đề đó, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
 | `/rebalance` | `/rebalance`; `/rebalance <mã>...` - tính khoảng cách tới mục tiêu, không cân nhắc bằng chứng và không gọi mô hình. Xem [`/rebalance` tính những gì](#rebalance-tính-những-gì) |
 | `/reflect` | `/reflect` - các đề xuất trước đây thực tế chạy ra sao |
 | `/alert` | `/alert` hoặc `/alert list [số dòng]` để xem danh sách; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
@@ -585,8 +586,9 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-`/alert create` và `/brief enable` cần một kênh nhận tin như Telegram hay Zalo, nên terminal từ chối hai
-lệnh này. Hãy gõ chúng trong kênh đã kết nối.
+`/alert create` và `/brief enable` cần một kênh nhận tin như Telegram hay Zalo. Gõ trong terminal thì
+tin được gửi tới chat mặc định của bạn (`fallback_chat_id`, hoặc chat duy nhất đã ghép nối); chưa có
+chat nào để gửi tới thì lệnh bị từ chối.
 
 Với bất cứ thứ gì chưa có lệnh riêng - nến, tin tức, sức mạnh ngành, dòng tiền ngoại, soát danh mục,
 bảng thành tích - cứ hỏi bằng lời. Agent sẽ gọi đúng các công cụ giao dịch tương ứng.

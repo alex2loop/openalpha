@@ -8,6 +8,7 @@ import type {
   StockRead,
   ThemeBundle,
   ThemeClaim,
+  ThemeId,
   ThemeRead,
   ThemeRunReads,
   ThemeScore,
@@ -63,9 +64,14 @@ type StockScenario = StockRead['scenarios'][ScenarioCase]
 
 /** Theme first, then sector, then stock: a sector's linkage reads its theme's score and a name's
  *  context reads its sector's, while every other part reads only the run's own data. */
-export function toScoredReads(reads: ThemeRunReads, bundle: ThemeBundle): ThemeRunReads {
-  const index = indexEvidence(bundle.items)
-  const themes = reads.themes.map((read) => withScore(read, toThemeScore(read, { index, reads })))
+export function toScoredReads(
+  reads: ThemeRunReads,
+  input: { readonly bundle: ThemeBundle; readonly mappedThemes: ReadonlySet<ThemeId> }
+): ThemeRunReads {
+  const index = indexEvidence(input.bundle.items)
+  const themes = reads.themes.map((read) =>
+    withScore(read, toThemeScore(read, { index, reads, mappedThemes: input.mappedThemes }))
+  )
   const sectors = reads.sectors.map((read) =>
     withScore(read, toSectorScore(read, { themes, stocks: reads.stocks }))
   )
@@ -107,15 +113,19 @@ function withScore<T extends { readonly score?: ThemeScore }>(
 /** A theme whose own condition was met is no opportunity, so it is never scored. */
 function toThemeScore(
   read: ThemeRead,
-  input: { readonly index: EvidenceIndex; readonly reads: ThemeRunReads }
+  input: {
+    readonly index: EvidenceIndex
+    readonly reads: ThemeRunReads
+    readonly mappedThemes: ReadonlySet<ThemeId>
+  }
 ): ThemeScore | undefined {
   if (read.status === 'invalidated') {
     return undefined
   }
 
-  const opportunity = toOpportunity(
-    input.reads.sectors.filter((sector) => sector.themeId === read.themeId)
-  )
+  const opportunity = input.mappedThemes.has(read.themeId)
+    ? toOpportunity(input.reads.sectors.filter((sector) => sector.themeId === read.themeId))
+    : undefined
   const crowding = toUncrowded(input.reads.stocks.filter((stock) => stock.themeId === read.themeId))
 
   return buildScore('theme', {
@@ -132,12 +142,8 @@ function toThemeScore(
 }
 
 /** How broadly the theme reaches: the sectors it helps, weighted by how direct the link is, against
- *  the most the sector step may name. None when no sector was read. */
-function toOpportunity(sectors: readonly SectorRead[]): number | undefined {
-  if (sectors.length === 0) {
-    return undefined
-  }
-
+ *  the most the sector step may name. A step that named none reads as no reach. */
+function toOpportunity(sectors: readonly SectorRead[]): number {
   const reach = sectors
     .filter((sector) => sector.effect === 'benefits')
     .reduce((total, sector) => total + LINK_STRENGTH[sector.linkage], 0)

@@ -14,12 +14,14 @@ import {
 } from '@/trading/kernel/market/policy-rates'
 import { utcDayOf } from '@/trading/sources/rows/normalization'
 
-/** Wide enough for a year-ago point on every series. */
-const MACRO_WINDOW_DAYS = 400
 /** A report series is stale once a period and the office's month and a half of lag have passed
  *  since its last figure, which is one report missed by about five weeks. */
 const MONTHLY_STALE_DAYS = 75
 const QUARTERLY_STALE_DAYS = 137
+const YEAR_DAYS = 366
+/** The year-ago point is a year before the latest reading, not before today, so the window also
+ *  spans the lag of the latest series still fresh. */
+const MACRO_WINDOW_DAYS = YEAR_DAYS + QUARTERLY_STALE_DAYS
 
 /** Only report series go stale: the press and the SBV print when they print. */
 interface MacroSeries {

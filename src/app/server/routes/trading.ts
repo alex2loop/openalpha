@@ -184,7 +184,7 @@ function sourceErrorCode(result: UnavailableResult): ApiErrorCode {
 async function handleTradingProfileGet(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const profile = await hostOf(ctx).getProfile(req.signal)
 
-  return json(toProfileWire(profile))
+  return json(toProfileWire(profile, localeOf(ctx)))
 }
 
 async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -200,7 +200,7 @@ async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): P
     signal: req.signal,
   })
 
-  return json(toProfileWire(profile))
+  return json(toProfileWire(profile, localeOf(ctx)))
 }
 
 async function handleTradingPortfolio(req: Request, ctx: ApiRouteContext): Promise<Response> {

@@ -31,7 +31,12 @@ import {
   type Rates,
   valueCurrencyCash,
 } from '@/trading/features/portfolio/folds/currency-cash'
-import { toHoldings } from '@/trading/features/portfolio/folds/holdings'
+import {
+  countedValueOf,
+  type ResidueSizing,
+  toHoldings,
+  withResidueAtCost,
+} from '@/trading/features/portfolio/folds/holdings'
 import { staleQuoteCaveats, staleRateCaveats } from '@/trading/features/portfolio/folds/staleness'
 import { valuationCaveats } from '@/trading/features/portfolio/folds/valuation-caveats'
 import { CASH_SEGMENT, ETF_KIND, exposureSectorOf, tradingDay } from '@/trading/kernel/instrument'
@@ -44,7 +49,7 @@ const PERCENT_PER_UNIT = 100
 
 type PricedPosition = Extract<ValuedPosition, { kind: 'priced' }>
 
-interface ValueBookOptions {
+interface ValueBookOptions extends ResidueSizing {
   readonly book: Book
   readonly asOf: TradingDay
   /** What a mark is old against — see `folds/staleness`. Never `asOf`, which is the calendar day. */
@@ -70,14 +75,12 @@ export async function valueBook(options: ValueBookOptions): Promise<ValuedBook> 
     VALUATION_CONCURRENCY,
     (holding) => valuePosition(holding, options, rates)
   )
-  const valued = outcomes.map((outcome) => outcome.valued)
+  const valued = await withResidueAtCost(outcomes, options)
   const cash = valueCurrencyCash(options.book, rates, options.settledDay)
-  const complete = valued.every((entry) => entry.kind === 'priced') && cash.priced
+  const counted = countedValueOf(valued)
+  const complete = counted !== undefined && cash.priced
 
-  const positionsValue = valued.reduce(
-    (sum, entry) => sum + (entry.kind === 'priced' ? entry.valueBase : 0),
-    0
-  )
+  const positionsValue = counted ?? 0
   // Absent, not a partial sum: a NAV over priced positions only reads authoritative and is wrong.
   const navBase = complete ? positionsValue + options.book.cashBase + cash.gainBase : undefined
   const investedBase = totalCostBase(options.book)

@@ -1,4 +1,3 @@
-import type { Locale } from '@/core/types/locale'
 import type { CurrencyCode, PortfolioSegment, PositionCategory } from '@/trading/kernel/instrument'
 import type {
   InvestmentHorizon,
@@ -172,7 +171,6 @@ function resolveSeedPolicy(
 }
 
 interface DefaultProfileOptions {
-  readonly preferredLocale: Locale
   readonly baseCurrency: CurrencyCode
   readonly segments: readonly SegmentDescriptor[]
   readonly riskLevel?: RiskLevel
@@ -186,7 +184,6 @@ export function defaultProfile(options: DefaultProfileOptions): UserProfile {
 
   return {
     ...seededPolicyNumbers(level),
-    preferredLocale: options.preferredLocale,
     baseCurrency: options.baseCurrency,
     riskLevel: level,
     riskCapacity: level,

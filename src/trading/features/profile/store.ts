@@ -5,7 +5,6 @@ import type { InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrumen
 import type { RiskCapSet, RiskLevel, UserProfile } from '@/trading/kernel/operator/profile'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError } from '@/core/errors'
-import { LOCALES } from '@/core/types/locale'
 import { canonicalJson, sha256Hex } from '@/core/utils/hash'
 import { seededPolicyNumbers } from '@/trading/features/profile/policy'
 import { currencyCode, marketRef, portfolioSegment, ticker } from '@/trading/kernel/instrument'
@@ -67,7 +66,6 @@ const payloadSchema = z.object({
 })
 
 interface ProfileRow {
-  readonly preferred_locale: string
   readonly base_currency: string
   readonly risk_capacity: string
   readonly risk_willingness: string
@@ -83,7 +81,13 @@ export interface ProfileStore {
   upsert(profile: UserProfile, signal: AbortSignal): Promise<UserProfile>
 }
 
-export function createProfileStore(deps: StoreDeps): ProfileStore {
+/** `preferred_locale` is a column the profile no longer reads: replies follow `[locale] language`.
+ *  It still mirrors that language, so a build that reads it gets a valid one. */
+interface ProfileStoreDeps extends StoreDeps {
+  readonly locale: Locale
+}
+
+export function createProfileStore(deps: ProfileStoreDeps): ProfileStore {
   return {
     find: (signal) => find(deps, signal),
     upsert: (profile, signal) => upsert(deps, profile, signal),
@@ -108,7 +112,7 @@ async function find(deps: StoreDeps, signal: AbortSignal): Promise<UserProfile |
  *  the difference either — serializing a read against a later write needs `SELECT … FOR UPDATE`,
  *  which is dialect-specific SQL this codebase does not write. */
 async function upsert(
-  deps: StoreDeps,
+  deps: ProfileStoreDeps,
   profile: UserProfile,
   signal: AbortSignal
 ): Promise<UserProfile> {
@@ -116,7 +120,7 @@ async function upsert(
 
   await deps.db.execute(`${UPSERT_SQL}(${deps.dialect.paramList(7)})${UPSERT_SET}`, [
     PROFILE_ROW_ID,
-    profile.preferredLocale,
+    deps.locale,
     profile.baseCurrency,
     profile.riskCapacity,
     profile.riskWillingness,
@@ -185,7 +189,6 @@ function toProfile(row: ProfileRow): UserProfile {
   const seeded = seededPolicyNumbers(riskLevel)
 
   return {
-    preferredLocale: toLocale(row.preferred_locale),
     baseCurrency: currencyCode(row.base_currency),
     // The conservative floor of the two inputs; storing it would be a third copy free to disagree.
     riskLevel,
@@ -215,10 +218,6 @@ function lowerRisk(capacity: RiskLevel, willingness: RiskLevel): RiskLevel {
 
 function toRiskLevel(raw: string): RiskLevel {
   return toMember(raw, RISK_LEVELS, 'risk level')
-}
-
-function toLocale(raw: string): Locale {
-  return toMember(raw, LOCALES, 'locale')
 }
 
 function toInstrumentRef(raw: z.infer<typeof instrumentRefSchema>): InstrumentRef {

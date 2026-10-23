@@ -410,7 +410,8 @@ khác là `agent`. Dưới `operator`, các công cụ đề xuất giữ `units
 `rebalanceWithUnits`, còn `held`, `policyUnits`, tiền mặt, chi phí và NAV vẫn bị giữ lại.
 `check-feature-isolation` làm hỏng mọi công cụ nêu một lần đọc tuyệt đối. `report` mà các công cụ đề xuất
 trả về được dựng với `operatorFigures: 'withheld'`: một dòng dựng nêu cỡ hay chi phí của một vị thế có một
-bản song sinh `Withheld` trong catalog do `withheldSuffix` chọn, và `scripts/check-report-figures.ts` làm
+bản song sinh `Withheld` trong catalog do `withheldSuffix` chọn, một cảnh báo mang tiền của chính bạn
+đọc từ câu `<code>Withheld` của nó (hoặc bị bỏ), và `scripts/check-report-figures.ts` làm
 hỏng một báo cáo in chi phí hay cỡ chính sách, hoặc đổi khi chỉ chúng đổi.
 
 Runtime cũng kết nối tới các server MCP bên ngoài qua stdio hoặc Streamable HTTP. Việc khám phá và các lời

@@ -112,7 +112,7 @@ export async function resolveRenderView(
     stored === undefined ? undefined : resolveCalibration(deps.suggestions, stored, signal),
     detail === 'full' ? resolveFactorRecord(deps, signal) : undefined,
     stored === undefined ? undefined : resolvePrevious(deps.suggestions, stored, signal),
-    resolveEntryTranchePct(deps.profiles, locale, signal),
+    resolveEntryTranchePct(deps.profiles, signal),
   ])
 
   return {
@@ -161,9 +161,10 @@ function marketConvention(
   }
 }
 
-/** Reads the same window `/reflect` does, so the two surfaces cannot quote different hit rates for
- *  one band - scoped to this suggestion's strategy version, which is what makes "calls like this
- *  one" true. The reporting minimum is enforced upstream: a band under it has no `winRate`. */
+/** Reads the same window `/reflect` does for this call's focus, so the two surfaces cannot quote
+ *  different hit rates for one band - scoped to this suggestion's strategy version, which is what
+ *  makes "calls like this one" true. The reporting minimum is enforced upstream: a band under it
+ *  has no `winRate`. */
 async function resolveCalibration(
   suggestions: Pick<SuggestionService, 'summarize'>,
   suggestion: StoredSuggestion,
@@ -177,6 +178,7 @@ async function resolveCalibration(
     suggestions.summarize({
       limit: SURFACE_LIMITS.maximumTrackRecordItems,
       strategyVersion: suggestion.strategyVersion,
+      focusKey: suggestion.focusKey,
       signal,
     })
   )
@@ -231,10 +233,9 @@ async function resolvePrevious(
 /** Absent when the profile cannot be read: the entry ladder drops and the levels stand. */
 async function resolveEntryTranchePct(
   profiles: Pick<ProfileService, 'get'>,
-  locale: Locale,
   signal: AbortSignal
 ): Promise<number | undefined> {
-  const profile = await bestEffort(() => profiles.get({ defaultLocale: locale, signal }))
+  const profile = await bestEffort(() => profiles.get({ signal }))
 
   return profile?.entryTranchePct
 }

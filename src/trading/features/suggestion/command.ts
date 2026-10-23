@@ -167,7 +167,7 @@ async function runStops(
   options: SuggestOptions
 ): Promise<SlashResult> {
   const now = Date.now()
-  const profile = await deps.profiles.get({ defaultLocale: ctx.locale, signal: ctx.signal })
+  const profile = await deps.profiles.get({ signal: ctx.signal })
 
   // Independent reads over one book, and a name can be both: nothing is watching it and its window
   // has passed. One batch either way, so the union is deduped before it is charged for.

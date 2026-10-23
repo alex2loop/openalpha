@@ -7,6 +7,81 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+`/themes run <id>` reports on its theme alone, an ended theme says why and what to do, and the
+track record, news window and macro lookbacks are measured more carefully. Exit alerts no longer
+stall on a kept take-profit, and the chat agent no longer sees your own loss figures.
+> `/themes run <id>` giờ chỉ báo cáo đúng chủ đề đó, chủ đề đã kết thúc nói rõ lý do và việc cần làm, còn bảng thành tích, tin tức và số liệu vĩ mô được đo cẩn thận hơn. Cảnh báo thoát lệnh không còn bị kẹt khi giữ nguyên mức chốt lời, và trợ lý chat không còn thấy số lỗ của riêng bạn.
+
+### Themes
+
+- `/themes run <id>` now reports on that theme alone, its sectors and companies included.
+- A theme whose end condition was met is now labelled "Ended", says why right under its name, and
+  suggests `/themes retire <id>`.
+- New themes come with end conditions that name a figure, a threshold and a period, and a theme
+  whose own condition already holds is no longer proposed.
+- A theme's summary now says plainly when one of its end conditions has been met.
+- The track record counts only reads scored the current way, so a change to the score weights
+  starts a fresh record instead of mixing two scales.
+- A name listed for under a year is now measured against VN-Index like any other.
+- Macro readings that lag by a month or more keep their year-ago comparison.
+- A target P/E set exactly at the five-year high the analyst was shown is no longer refused.
+- Notes under a theme read from an earlier check no longer say "this time".
+- Each run reads the headlines archived since the previous one, so a story that reached the
+  archive late is no longer skipped.
+- A company read now starts from the theme's own horizon.
+- Vietnamese wording in the theme report uses one word per idea, and a theme's claims sit under
+  "For it" and "Against it".
+- An ended theme no longer shows its odds, a theme whose sector check found no gaining sector
+  scores no reach instead of skipping that part, and "was" compares only scores made the same way.
+- A proposed theme lists every condition that would end it, so you see the exit before approving.
+- A check that cannot reach a theme's sectors keeps the previous sectors and companies, dated,
+  and stock opportunities leave out low-confidence names, which stay marked under their sector.
+- Daily commodities keep their year-over-year change when the feed starts a day after the
+  year-ago date, and a sector's profit growth leaves out names more than two quarters behind.
+
+### Suggestions and alerts
+
+- The report the chat agent relays no longer carries your realized loss or how far a holding sits
+  under its cost; it states the caveat without the figure.
+- An exit alert armed at the same level as a live one no longer fails the arming pass every
+  minute, so stale alerts are retired again.
+- `/reflect` counts what you acted on over the same folded calls as the rest of the record, and
+  its win rate reads "ended in profit", which is what it counts.
+- `/update` keeps a row's note and which exit leg filled.
+- A recorded trade's fee line now says the fee matches the configured rate, instead of reading as
+  if a fee you typed had been replaced by it.
+- The price band and a trailed stop reach the chat agent written as board prices.
+- A busy run and an unreadable spend record each get their own hint, and the hint for a run
+  that could not start names the terminal `doctor` command.
+- `/watchlist` and `/alert` show a progress line while they fetch prices.
+- `/profile set preferred-locale` is gone: it was stored but never chose the reply language.
+  Replies, briefs and alerts follow `[locale] language`, and the API's `preferredLocale` reports it.
+- `/reflect` no longer fails on one factor-log row a rename left unreadable.
+- `key set` with the brand prefix on a name the config reads without it now suggests the name
+  the config actually reads.
+- The unsettled-shares hold no longer hardcodes T+2, and `/agent` with extra words names what
+  was typed instead of an empty id.
+- The track-record tool counts coverage for the version it was asked about, the "calls like this
+  one" line reads the call's own focus, and the debate's "your last calls" are that focus's own,
+  repeats folded.
+- A trailed stop whose price series is unavailable is retried every 15 minutes instead of every
+  minute, and a macro document the model cannot read is not paid for again.
+- Adding to a held name no longer counts against `maximum_open_trades`.
+- A leftover sliver below the venue's smallest order that no source prices any more counts at
+  cost, with a note, instead of blanking NAV and blocking every buy.
+- A segment with a target and nothing held in it now reports its drift.
+- When an alert notice cannot be delivered, the message says the system will set it up again
+  rather than asking you to turn it back on; error hints point to `/help <command>`.
+
+### Docs
+
+- Corrected what `/trade cancel` removes, the fee-inclusive average cost, the terminal behaviour
+  of `/alert create` and `/brief enable`, what `/watchlist` lists, which commands read any case,
+  who counts as the operator, the alert retry timing, `schedule run-now` on a one-time job, and
+  the user guide's command map.
+
 ## [1.0.16] - 2026-10-22
 
 VN funds are now treated as index trackers, `/rebalance` sells a holding back to its cap and says

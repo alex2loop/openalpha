@@ -370,9 +370,14 @@ export interface ThemeReport {
   readonly reads: ThemeRunReads
   /** The run each open theme was last read on. */
   readonly readRuns: ReadonlyMap<ThemeId, ThemeRun>
+  /** The earlier run a theme's sectors and companies came from, when its last run's sector step
+   *  failed for it. */
+  readonly chainRuns: ReadonlyMap<ThemeId, ThemeRun>
   /** Each open theme's reads before those, for each score's change. */
   readonly previous: ThemeRunReads
   readonly scorecard: ThemeScorecard
+  /** The one theme a focused run asked for; the report then covers it alone. */
+  readonly focus?: ThemeId
 }
 
 export type ThemeLookupFailure =

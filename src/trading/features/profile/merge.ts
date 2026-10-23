@@ -102,7 +102,6 @@ export function resetProfile(
   riskLevel: RiskLevel
 ): UserProfile {
   const seeded = defaultProfile({
-    preferredLocale: current.preferredLocale,
     baseCurrency: current.baseCurrency,
     segments: context.segments,
     riskLevel,
@@ -157,7 +156,6 @@ interface SeedRiskPolicyOptions {
  *  switched on must seed a target however its market shipped. */
 export function seedRiskPolicy(options: SeedRiskPolicyOptions): UserProfile {
   const seeded = defaultProfile({
-    preferredLocale: options.current.preferredLocale,
     baseCurrency: options.current.baseCurrency,
     segments: options.context.segments.map((descriptor) => ({
       ...descriptor,
@@ -261,7 +259,6 @@ function toRiskPolicyPatch(seeded: UserProfile): ProfilePatch {
 // Present fields only: an explicit `undefined` in a spread would erase a stored value.
 function applyOptional(patch: ProfilePatch): Partial<UserProfile> {
   return {
-    ...(patch.preferredLocale === undefined ? {} : { preferredLocale: patch.preferredLocale }),
     ...(patch.goal === undefined ? {} : { goal: patch.goal }),
     ...(patch.watchlist === undefined ? {} : { watchlist: patch.watchlist }),
     ...(patch.exclusions === undefined ? {} : { exclusions: patch.exclusions }),

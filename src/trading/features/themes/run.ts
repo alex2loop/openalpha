@@ -279,7 +279,7 @@ async function recordRun(deps: ThemeRunDeps, finished: FinishedRun): Promise<voi
   const { request } = context
   const reads = toScoredReads(
     { themes: results.reads, sectors: chain.sectorReads, stocks: chain.stockReads },
-    context.bundle
+    { bundle: context.bundle, mappedThemes: chain.mappedThemes }
   )
   const run: ThemeRun = {
     id: randomUUID(),
@@ -327,35 +327,78 @@ function toSession(request: ThemeRunRequest, budget: Budget): AnalystSession {
   }
 }
 
-/** Each open theme as it was last read, whichever run read it, so a focused run never hides the
- *  themes it left alone. */
+/** Each open theme as it was last read, whichever run read it, or only `focus` when a focused run
+ *  asks for its own theme. */
 export async function loadThemeReport(
   store: ThemeStore,
-  signal: AbortSignal
+  signal: AbortSignal,
+  focus?: ThemeId
 ): Promise<ThemeReport> {
   const [themes, snapshots, run, outcomes] = await Promise.all([
     store.listThemes(signal),
     store.listSnapshots(REPORT_SNAPSHOT_DEPTH, signal),
     store.findLatestRun('any', signal),
-    store.listOutcomes(signal),
+    store.listOutcomes(SCORE_VERSION, signal),
   ])
-  const open = themes.flatMap((theme) =>
+  const shown = focus === undefined ? themes : themes.filter((theme) => theme.id === focus)
+  const open = shown.flatMap((theme) =>
     CLOSED_THEME_STATUSES.includes(theme.status)
       ? []
       : [{ id: theme.id, history: snapshots.get(theme.id) ?? [] }]
   )
-  const latest = open.flatMap(({ id, history: [last] }) =>
-    last === undefined ? [] : [{ id, snapshot: last }]
-  )
+  const latest = open.flatMap(({ id, history }) => toShownSnapshot(id, history))
 
   return {
-    themes,
+    themes: shown,
     reads: mergeReads(latest.map((entry) => entry.snapshot)),
     readRuns: new Map(latest.map((entry) => [entry.id, entry.snapshot.run])),
-    previous: mergeReads(open.flatMap(({ history: [, before] }) => before ?? [])),
+    chainRuns: new Map(
+      latest.flatMap((entry) => (entry.chainRun === undefined ? [] : [[entry.id, entry.chainRun]]))
+    ),
+    // A score made another way is no baseline for a move.
+    previous: mergeReads(
+      open.flatMap(({ history: [last, before] }) =>
+        before !== undefined && before.run.scoreVersion === last?.run.scoreVersion ? [before] : []
+      )
+    ),
     scorecard: buildScorecard(outcomes),
     ...(run === undefined ? {} : { run }),
+    ...(focus === undefined ? {} : { focus }),
   }
+}
+
+interface ShownSnapshot {
+  readonly id: ThemeId
+  readonly snapshot: ThemeSnapshot
+  readonly chainRun?: ThemeRun
+}
+
+/** The theme as last read. When that run's sector step failed for it, its sectors and companies
+ *  come from the read before, which did map them, rather than leaving the theme with none. */
+function toShownSnapshot(id: ThemeId, history: readonly ThemeSnapshot[]): readonly ShownSnapshot[] {
+  const [last, before] = history
+
+  if (last === undefined) {
+    return []
+  }
+
+  const mapped =
+    before !== undefined &&
+    isSectorStepFailed(last.run, id) &&
+    !isSectorStepFailed(before.run, id) &&
+    before.reads.sectors.length > 0
+
+  if (!mapped) {
+    return [{ id, snapshot: last }]
+  }
+
+  const reads = { ...last.reads, sectors: before.reads.sectors, stocks: before.reads.stocks }
+
+  return [{ id, snapshot: { ...last, reads }, chainRun: before.run }]
+}
+
+function isSectorStepFailed(run: ThemeRun, id: ThemeId): boolean {
+  return run.notes.some((note) => note.level === 'sector' && note.themeId === id)
 }
 
 function mergeReads(snapshots: readonly ThemeSnapshot[]): ThemeRunReads {

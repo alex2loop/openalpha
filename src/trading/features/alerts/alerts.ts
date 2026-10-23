@@ -90,12 +90,7 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
   let cursor: AlertId | undefined
   const arming = armingMethods(deps)
   const watch = exitWatchDeps(deps)
-  // Never module scope: two services would otherwise share these memos, and a plan replaced under
-  // one would read as already trailed or re-planned by the other.
-  const exits = exitReconcileDeps(deps, arming, {
-    trailedThrough: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
-    replannedOn: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
-  })
+  const exits = exitReconcileDeps(deps, arming)
   const screeners = screenerReconcileDeps(deps, arming)
 
   return {
@@ -153,8 +148,7 @@ function armingMethods(deps: AlertServiceDeps): Pick<AlertService, 'create' | 'd
 
 function exitReconcileDeps(
   deps: AlertServiceDeps,
-  alerts: Pick<AlertService, 'create' | 'disable'>,
-  memos: Pick<ExitReconcileDeps, 'trailedThrough' | 'replannedOn'>
+  alerts: Pick<AlertService, 'create' | 'disable'>
 ): ExitReconcileDeps {
   return {
     alerts,
@@ -166,7 +160,11 @@ function exitReconcileDeps(
     logger: deps.logger,
     defaultLocale: deps.defaultLocale,
     briefs: deps.briefs,
-    ...memos,
+    // Built per service, never at module scope: two services would otherwise share these memos, and
+    // a plan replaced under one would read as already trailed or re-planned by the other.
+    trailedThrough: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
+    trailRetryAt: lruMap<string, number>(PLAN_MEMO_CAPACITY),
+    replannedOn: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
     tradeableHoldingsAt: deps.tradeableHoldingsAt,
     ...(deps.restingStops === undefined ? {} : { restingStops: deps.restingStops }),
   }
@@ -183,7 +181,6 @@ function screenerReconcileDeps(
     markets: deps.markets,
     marketDataStore: deps.marketDataStore,
     policy: deps.config.alerts,
-    defaultLocale: deps.defaultLocale,
     getProfile: deps.getProfile,
     tradeableHoldingsAt: deps.tradeableHoldingsAt,
   }

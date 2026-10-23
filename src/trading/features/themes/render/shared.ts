@@ -112,7 +112,12 @@ function renderScoreMove(
 
   const current = { score: read.score.value, scale: SCORE_SCALE }
 
-  if (previous === undefined || previous.value === read.score.value) {
+  // A score read on other parts (a sector step that failed one run) moved for that reason alone.
+  if (
+    previous === undefined ||
+    previous.value === read.score.value ||
+    !isSamePartSet(previous, read.score)
+  ) {
     return t(locale, 'trading.render.themes.score', current)
   }
 
@@ -125,6 +130,14 @@ function renderScoreMove(
         ...values,
         part: t(locale, `trading.themes.part.${driver}`),
       })
+}
+
+function isSamePartSet(left: ThemeScore, right: ThemeScore): boolean {
+  const parts = Object.keys(left.parts)
+
+  return (
+    parts.length === Object.keys(right.parts).length && parts.every((part) => part in right.parts)
+  )
 }
 
 function toReadKey(read: ScoredRead): string {

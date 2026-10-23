@@ -111,6 +111,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'factor.dividend-above-free-cash', severity: 'warn' },
   { code: 'factor.equity-raised', severity: 'warn' },
   { code: 'valuation.price-missing', severity: 'warn' },
+  { code: 'valuation.residue-at-cost', severity: 'info' },
   { code: 'valuation.fx-missing', severity: 'warn' },
   { code: 'valuation.price-stale', severity: 'warn' },
   { code: 'valuation.dealer-buy-price', severity: 'info' },

@@ -91,7 +91,6 @@ function recordMethods(
       scoped(deps, request.signal, (scope) =>
         deps.services.profiles.update({
           patch: request.patch,
-          defaultLocale: deps.defaultLocale,
           signal: scope.signal,
         })
       ),

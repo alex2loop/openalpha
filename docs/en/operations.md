@@ -25,7 +25,7 @@ nothing to do returns at once.
 | --- | --- | --- |
 | `trading.alerts` | 60 s | Sends armed alerts, then arms exit and screener alerts against your book. A held name with no plan gets a levels-only plan. Sending comes first, so an alert armed on a run goes out on the next. |
 | `trading.outcomes` | 12 h | Resolves pending suggestions against settled bars and updates the track record. |
-| `trading.macro-extract` | 12 h | Reads Vietnam statistics-office reports and matching press into stored macro series, newest unread months first, 24 months back. At most 3 reports and 3 press items per run. A month not yet published costs a request, not a model call. |
+| `trading.macro-extract` | 12 h | Reads Vietnam statistics-office reports and matching press into stored macro series, newest unread months first, 24 months back. At most 3 reports and 3 press items per run. A month not yet published costs a request, not a model call. A document the model cannot read is marked read with nothing kept, so it is not paid for again. |
 | `trading.theme-outcomes` | 12 h | Measures `/themes` stock reads that reached 3, 6 or 12 months against VN-Index. No model call. |
 | `trading.briefs` | 60 s | Sends morning briefs that are due. This is a check; the send time is `[trading.briefs] send_time`. |
 | `trading.exits` | 60 s | Matches take-profit and stop-loss orders resting at the exchange against your ledger and records fills. An exit the exchange denies for five minutes straight is treated as gone. Runs only for a venue with exchange keys. |
@@ -151,7 +151,7 @@ afterwards. A job with `*` in either field simply follows the clock.
 ### How a run behaves
 
 - A job never runs twice at once, and never twice for the same scheduled moment.
-- `run-now` records a run but does not move the schedule or touch the failure count. It is refused
+- `run-now` records a run but does not move the schedule or touch the failure count. The one exception is a one-time job: a successful `run-now` is its run, so the job is then done and disabled. It is refused
   while a scheduled run of the same job is still live, from the CLI as much as from the daemon.
 - A run that died without finishing (the daemon was killed, say) is closed out as failed and the
   schedule moves on rather than re-running it. A one-time job has no next run, so a lost run counts as

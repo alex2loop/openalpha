@@ -30,6 +30,9 @@ interface NewsRow {
   readonly market: string | null
 }
 
+/** The column a window is read on: a fixed name, never caller text, so it is safe in the SQL. */
+type NewsTime = 'published_at' | 'fetched_at'
+
 interface ListNewsOptions {
   readonly fromMs: number
   readonly toMs: number
@@ -68,6 +71,9 @@ export interface NewsArchiveStore {
   deleteFetchedBefore(options: DeleteNewsOptions): Promise<number>
   /** Newest first, by publication time, `fromMs` inclusive and `toMs` exclusive. */
   listPublished(options: ListNewsOptions): Promise<readonly ArchivedNewsItem[]>
+  /** Newest published first, of the stories archived from `fromMs` (inclusive) to `toMs`
+   *  (exclusive): a story archived late still falls after the reader's last pass. */
+  listArchived(options: ListNewsOptions): Promise<readonly ArchivedNewsItem[]>
 }
 
 function toNewsId(url: string): string {
@@ -120,16 +126,16 @@ async function deleteFetchedBefore(deps: StoreDeps, options: DeleteNewsOptions):
   return result.changes
 }
 
-async function listPublished(
+async function listNews(
   deps: StoreDeps,
-  options: ListNewsOptions
+  options: ListNewsOptions & { readonly by: NewsTime }
 ): Promise<readonly ArchivedNewsItem[]> {
   assertNotAborted(options.signal)
 
   const p = deps.dialect.param
   const rows = await deps.db.query<NewsRow>(
     'SELECT url, title, summary, published_at, market FROM news_items ' +
-      `WHERE published_at >= ${p(1)} AND published_at < ${p(2)} ORDER BY published_at DESC`,
+      `WHERE ${options.by} >= ${p(1)} AND ${options.by} < ${p(2)} ORDER BY published_at DESC`,
     [options.fromMs, options.toMs]
   )
 
@@ -146,6 +152,7 @@ export function createNewsArchiveStore(deps: StoreDeps): NewsArchiveStore {
   return {
     archive: (options) => archive(deps, options),
     deleteFetchedBefore: (options) => deleteFetchedBefore(deps, options),
-    listPublished: (options) => listPublished(deps, options),
+    listPublished: (options) => listNews(deps, { ...options, by: 'published_at' }),
+    listArchived: (options) => listNews(deps, { ...options, by: 'fetched_at' }),
   }
 }
