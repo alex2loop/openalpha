@@ -22,6 +22,9 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const NOTICES_MIGRATION_ID = '2026_10_24_012442_add_notices'
+const NOTICES_TABLE = 'notices'
+const NOTICES_INDEX = 'idx_notices_created_at'
 const RUNS_MIGRATION_ID = '2026_10_24_010135_add_runs'
 const RUNS_TABLE = 'runs'
 const RUNS_INDEXES = [
@@ -181,6 +184,21 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
+/** The notice log goes with its table and its one index. */
+async function assertNoticesRollback(db: Storage): Promise<void> {
+  assertState(await hasTable(db, NOTICES_TABLE), 'notices migration did not add the table')
+  assertState((await indexNames(db)).has(NOTICES_INDEX), 'notices migration did not add the index')
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: NOTICES_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'notices rollback did not complete')
+  assertState(!(await hasTable(db, NOTICES_TABLE)), 'notices rollback kept the table')
+  assertState(!(await indexNames(db)).has(NOTICES_INDEX), 'notices rollback kept the index')
+}
+
 /** The run log goes with its table, and the two attempt indexes it added go with it. */
 async function assertRunsRollback(db: Storage): Promise<void> {
   const before = await indexNames(db)
@@ -220,6 +238,7 @@ const failingExtension: Migration = {
 async function main(): Promise<void> {
   await assertDownCoversUp(`${TRADING_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${RUNS_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${NOTICES_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -230,6 +249,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertNoticesRollback(db)
     await assertRunsRollback(db)
     await assertCashFlowSourceRollback(db)
     await assertRevokedAtRollback(db)

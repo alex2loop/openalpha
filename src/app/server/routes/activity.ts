@@ -3,13 +3,12 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { RunId } from '@/core/ids'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toActivityRowWire, toResearchReportWire } from '@/app/server/mappers/activity'
-import { parseLimit } from '@/app/server/routes/params'
+import { parseEpochMs, parseLimit } from '@/app/server/routes/params'
 import { dayInZone, dayRangeInZone } from '@/core/utils/time'
 import { DEEP_RESEARCHER_ID } from '@/engine/api'
 
 const ACTIVITY_PAGE_LIMIT = 200
 const ACTIVITY_CHILDREN_LIMIT = 20
-const DIGITS_RE = /^\d+$/
 
 /** The operator's day, in `[locale] timezone`, as the cost caps and `/v1/cost` count it. */
 async function handleActivity(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -52,12 +51,6 @@ async function handleResearch(req: Request, ctx: ApiRouteContext): Promise<Respo
   return json({
     reports: rows.flatMap((row) => toResearchReportWire(row) ?? []),
   } satisfies ResearchResponse)
-}
-
-function parseEpochMs(raw: string): number | null {
-  const value = DIGITS_RE.test(raw) ? Number(raw) : Number.NaN
-
-  return Number.isSafeInteger(value) ? value : null
 }
 
 export const ACTIVITY_ROUTES: readonly ApiRouteSpec[] = [

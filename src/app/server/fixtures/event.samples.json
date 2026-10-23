@@ -101,7 +101,8 @@
     "weight": "quiet",
     "source": { "channel": "telegram", "agentId": "" },
     "runId": "cmd_4f1a",
-    "outcome": "done"
+    "outcome": "done",
+    "tickers": ["HPG", "FPT"]
   },
   {
     "v": 1,
@@ -289,5 +290,21 @@
     "weight": "nudge",
     "source": { "channel": "api", "agentId": "" },
     "note": "Price alerts to telegram are off after repeated failed sends"
+  },
+
+  {
+    "v": 1,
+    "kind": "daemon_notice",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "Daemon restarted"
+  },
+
+  {
+    "v": 1,
+    "kind": "notices_changed",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "unread": 3
   }
 ]

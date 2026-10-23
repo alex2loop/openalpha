@@ -10,6 +10,7 @@ import * as migrationAddChannelInboxRetryAt from '@/persistence/migrations/2026_
 import * as migrationAddPairingsRevokedAt from '@/persistence/migrations/2026_10_19_164034_add_pairings_revoked_at'
 import * as migrationAddQuarterlyAccountsCashFlowSource from '@/persistence/migrations/2026_10_21_142543_add_quarterly_accounts_cash_flow_source'
 import * as migrationAddRuns from '@/persistence/migrations/2026_10_24_010135_add_runs'
+import * as migrationAddNotices from '@/persistence/migrations/2026_10_24_012442_add_notices'
 
 export const MIGRATIONS = [
   { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
@@ -20,4 +21,5 @@ export const MIGRATIONS = [
   { id: '2026_10_19_164034_add_pairings_revoked_at', reversibility: 'reversible', up: migrationAddPairingsRevokedAt.up, down: migrationAddPairingsRevokedAt.down },
   { id: '2026_10_21_142543_add_quarterly_accounts_cash_flow_source', reversibility: 'reversible', up: migrationAddQuarterlyAccountsCashFlowSource.up, down: migrationAddQuarterlyAccountsCashFlowSource.down },
   { id: '2026_10_24_010135_add_runs', reversibility: 'reversible', up: migrationAddRuns.up, down: migrationAddRuns.down },
+  { id: '2026_10_24_012442_add_notices', reversibility: 'reversible', up: migrationAddNotices.up, down: migrationAddNotices.down },
 ] as const satisfies readonly Migration[]

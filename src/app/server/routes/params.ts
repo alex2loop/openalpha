@@ -66,6 +66,13 @@ export function parseLimit(raw: string | null, maximum: number): number | null {
   return Number.isInteger(value) && value > 0 && value <= maximum ? value : null
 }
 
+/** An epoch-ms cursor (`before`); `null` when it is not a safe non-negative integer (400). */
+export function parseEpochMs(raw: string): number | null {
+  const value = DIGITS_RE.test(raw) ? Number(raw) : Number.NaN
+
+  return Number.isSafeInteger(value) ? value : null
+}
+
 /** A required value from a closed set; `null` when it is absent or outside the set (400). */
 export function parseOneOf<T extends string>(raw: string | null, allowed: readonly T[]): T | null {
   return allowed.find((value) => value === raw) ?? null

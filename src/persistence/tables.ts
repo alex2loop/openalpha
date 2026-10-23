@@ -32,6 +32,7 @@ const CORE_TABLES = [
   { name: 'heartbeat_commitments', pk: ['id'] },
   { name: 'memory_kv', pk: ['agent_id', 'user_id', 'key'], durable: true },
   { name: 'runs', pk: ['run_id'] },
+  { name: 'notices', pk: ['id'] },
 ] as const satisfies readonly DbTable[]
 
 // The data an operator actually accumulates: everything above is bounded by process lifetime,

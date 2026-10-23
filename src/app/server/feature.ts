@@ -12,13 +12,16 @@ import { CONFIG_ROUTES } from '@/app/server/routes/config'
 import { MARKET_ROUTES } from '@/app/server/routes/market'
 import { MCP_ROUTES } from '@/app/server/routes/mcp'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
+import { NOTICE_ROUTES } from '@/app/server/routes/notices'
 import { ORDER_ROUTES } from '@/app/server/routes/orders'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
 import { TRADING_ROUTES } from '@/app/server/routes/trading'
 import { broadcast } from '@/app/server/ws/socket'
+import { describeCommand } from '@/commands/api'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { bindLocale } from '@/i18n'
 
 // The server owns the FINAL route table, composed as data rather than extended at runtime: an
 // `extend('apiRoutes', ...)` step would either reorder the provider list or leave the table mutable
@@ -34,6 +37,7 @@ const ROUTES = [
   ...TRADING_ROUTES,
   ...MARKET_ROUTES,
   ...MONEY_ROUTES,
+  ...NOTICE_ROUTES,
   ...ORDER_ROUTES,
 ] as const
 
@@ -92,6 +96,13 @@ function startLiveFeed(app: App): LiveFeed {
     bus: app.resolve('bus'),
     broadcast,
     locale: app.config.locale.language,
+    describeCommand: (name) => {
+      const command = dispatcher.all().find((known) => known.name === name)
+
+      return command === undefined
+        ? undefined
+        : describeCommand(bindLocale(app.config.locale.language), command.description)
+    },
     isLive: (runId) =>
       registry.active().some((handle) => handle.identity.runId === runId) ||
       dispatcher.activeCommands().includes(runId),

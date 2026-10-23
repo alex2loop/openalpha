@@ -38,6 +38,8 @@ export interface LiveRunWire extends RunStartWire {
   readonly thinking?: string
   /** The persistent steps so far, oldest first. */
   readonly persistent: readonly ProgressWire[]
+  /** The tickers the run's progress lines named so far, in the order first seen; at most 20. */
+  readonly tickers?: readonly string[]
 }
 
 /** A request still waiting for an answer, on any channel. An approval is retracted by its

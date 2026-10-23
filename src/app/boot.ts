@@ -11,7 +11,9 @@ import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
 import '@/app/events'
+import type { NoticeLog } from '@/app/activity/notice-log'
 import type { RunLog } from '@/app/activity/run-log'
+import { startNoticeLog } from '@/app/activity/notice-log'
 import { startRunLog } from '@/app/activity/run-log'
 import { loadAssets } from '@/app/assets'
 import { resolveBootExtensions } from '@/app/config-tree'
@@ -67,6 +69,7 @@ interface HeldBootResources {
   disposeAssets?: () => Promise<void>
   storage?: Storage
   runLog?: RunLog
+  noticeLog?: NoticeLog
 }
 
 interface DisposeBootOptions {
@@ -235,6 +238,7 @@ async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
   }
 
   held.runLog = startRunLog(app)
+  held.noticeLog = startNoticeLog(app)
 }
 
 // A refused startup must fail before boot creates a logger, opens the database, or touches the
@@ -307,6 +311,7 @@ async function disposeBootResources(options: DisposeBootOptions): Promise<void> 
   // First, while storage is open: a `chat -m` process exits right after its command finishes, and
   // that command's row is still being written.
   await held.runLog?.stop()
+  await held.noticeLog?.stop()
 
   const resources = disposalResources(held.disposeAssets ?? (async () => undefined), held.storage)
   const results = await Promise.allSettled(resources.map((resource) => resource.close()))

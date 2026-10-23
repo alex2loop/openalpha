@@ -16,6 +16,8 @@ export type {
   Migration,
   MigrationDown,
   MigrationUp,
+  NoticeRow,
+  NoticeStore,
   RetentionConfig,
   RunLogRow,
   RunLogStore,

@@ -148,6 +148,7 @@ function printRetentionCounts(app: CliApp, counts: RetentionCounts, config: Rete
   app.out(t(locale, 'cli.dbFieldBriefSnapshots', { value: counts.briefSnapshots }))
   app.out(t(locale, 'cli.dbFieldLlmAttempts', { value: counts.llmAttempts }))
   app.out(t(locale, 'cli.dbFieldRuns', { value: counts.runs }))
+  app.out(t(locale, 'cli.dbFieldNotices', { value: counts.notices }))
 }
 
 const dbStatsCommand = createCommand({

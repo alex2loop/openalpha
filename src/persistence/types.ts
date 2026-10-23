@@ -225,6 +225,33 @@ export interface RunLogStore {
   ): Promise<ReadonlyMap<string, CommandCostRange>>
 }
 
+/** One notice the bell holds. `event` is the wire event as JSON, exactly what a socket was sent;
+ *  `deliveredTo` lists the channels that also got it (empty for the bell alone). */
+export interface NoticeRow {
+  readonly id: string
+  readonly kind: string
+  readonly weight: string
+  readonly wake: boolean
+  readonly runId?: string
+  readonly deliveredTo: readonly string[]
+  readonly event: string
+  readonly createdAt: number
+  readonly readAt?: number
+}
+
+export interface NoticeStore {
+  record(row: NoticeRow): Promise<void>
+  /** Notices created before `beforeMs` (all when absent), newest first. */
+  list(beforeMs: number | undefined, limit: number): Promise<readonly NoticeRow[]>
+  /** Notices not yet read. */
+  unreadCount(): Promise<number>
+  /** Unread notices of one kind. */
+  unreadCountOfKind(kind: string): Promise<number>
+  /** Marks the named notices read (every unread one when `ids` is absent); an already read notice
+   *  keeps its first read time. */
+  markRead(ids: readonly string[] | undefined, at: number): Promise<void>
+}
+
 export interface RetentionConfig {
   readonly retentionDays: number
   readonly inboxRetentionDays: number

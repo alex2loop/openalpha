@@ -38,6 +38,8 @@ type WireEventKind =
   | 'alerts_checked'
   | 'schedule_result'
   | 'notice'
+  | 'daemon_notice'
+  | 'notices_changed'
 
 export interface WireEvent {
   readonly v: 1
@@ -62,6 +64,9 @@ export interface WireEvent {
   readonly thinking?: string
   /** 'run_finished': a run result reason, or `done | cancelled | failed` for a command. */
   readonly outcome?: string
+  /** 'run_finished': the tickers the run reported on, in the order first seen; at most 20. Absent
+   *  when it named none. */
+  readonly tickers?: readonly string[]
   readonly usage?: { readonly costUsd: number; readonly tokens: number }
   readonly tool?: { readonly name: string; readonly ok: boolean }
   /** 'approval_requested': the gated tool. `label` is its name in the operator's language, as the
@@ -145,6 +150,9 @@ export interface WireEvent {
   /** 'alerts_checked': epoch ms an alert pass last finished. A pass reads one cursor page of alerts,
    *  not the whole book. */
   readonly checkedAt?: number
+  /** 'notices_changed': the bell's unread count after a notice was written or some were read;
+   *  refetch GET /v1/notices. */
+  readonly unread?: number
   /** 'idea': a suggestion was stored; read it with GET /v1/suggestions. */
   readonly idea?: {
     readonly suggestionId: string
@@ -153,7 +161,7 @@ export interface WireEvent {
     readonly conviction: string
   }
   /** The line a chat would get, already written in the daemon's language: the whole payload of
-   *  'schedule_result' and 'notice', and set beside the 'alert_fired', 'stop_breached',
+   *  'schedule_result', 'notice' and 'daemon_notice', and set beside the 'alert_fired', 'stop_breached',
    *  'brief_ready', 'mover', 'order_filled' and 'budget_exhausted' payloads too. */
   readonly note?: string
 }

@@ -1171,6 +1171,7 @@
     "dbFieldBriefSnapshots": "  briefSnapshots:  {value}",
     "dbFieldLlmAttempts": "  llmAttempts:     {value}",
     "dbFieldRuns": "  runs:            {value}",
+    "dbFieldNotices": "  notices:         {value}",
     "dbTableRowsHeading": "table rows",
     "dbFileSizeHeading": "file size",
     "dbNaPostgres": "n/a (postgres)",

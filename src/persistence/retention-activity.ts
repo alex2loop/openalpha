@@ -21,3 +21,19 @@ export function deleteRunsSql(dialect: Dialect, cutoff: number): RetentionStatem
     params: [cutoff],
   }
 }
+
+// Read state lives on the row, so an unread notice ages out with the rest: the bell is a recent
+// history, not an inbox that must be emptied.
+export function countNoticesSql(dialect: Dialect, cutoff: number): RetentionStatement {
+  return {
+    sql: `SELECT COUNT(*) AS n FROM notices WHERE created_at < ${dialect.param(1)}`,
+    params: [cutoff],
+  }
+}
+
+export function deleteNoticesSql(dialect: Dialect, cutoff: number): RetentionStatement {
+  return {
+    sql: `DELETE FROM notices WHERE created_at < ${dialect.param(1)}`,
+    params: [cutoff],
+  }
+}

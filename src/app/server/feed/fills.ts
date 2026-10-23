@@ -23,7 +23,7 @@ export function followFills({ bus, broadcast, locale }: FillFeedDeps): (() => vo
 
 /** A sale says which exit filled and that the ledger holds it; a buy only that it filled, since the
  *  `/trade` reply already carried the figures. */
-function toFillNote(e: BusEventMap['order_filled'], locale: Locale): string {
+export function toFillNote(e: BusEventMap['order_filled'], locale: Locale): string {
   if (e.side === 'buy') {
     return renderEntryFillNotice(locale, e)
   }

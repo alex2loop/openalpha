@@ -48,6 +48,7 @@ Nếu một bảng giao dịch biến mất sau khi reset, nghĩa là migration 
 | `sessions`, `session_messages` | Vòng đời phiên chat và bản ghi hội thoại. Không lưu tổng lượng dùng riêng: tổng theo phiên chat được cộng lại từ `llm_attempts` mỗi khi đọc, nên không thể lệch. |
 | `llm_attempts` | Sổ chỉ ghi thêm: từng lần gọi mô hình và chi phí toàn cục. |
 | `runs` | Một dòng cho mỗi câu lệnh chạy lâu và mỗi phiên chạy của agent có câu trả lời đến bạn đã kết thúc (cùng các phiên chạy con do chúng khởi động): trang hoạt động liệt kê từ đây. Chi phí của một phiên chạy được đọc từ `llm_attempts`, không chép vào đây. |
+| `notices` | Chuông thông báo: mọi thông báo mức sneak, nudge hoặc interrupt mà daemon đã phát (cảnh báo, điểm dừng lỗ, bản tin sáng, lệnh khớp, yêu cầu duyệt, ngân sách cạn, những câu daemon tự ghi), kèm các kênh đã nhận và việc bạn đã đọc chưa. |
 | `bindings`, `pairings` | Bí danh định tuyến chat và trạng thái ghép nối kênh. |
 | `channel_state` | Mốc tiến độ của kênh: offset polling và tuyến phiên chat. |
 | `channel_inbox` | Hàng đợi tin đến và số lần thử lại; nội dung của các mục đã xong hoặc đã hỏng; câu trả lời của phiên chạy đã xong nhưng lần gửi cuối bị lỗi. |
@@ -177,6 +178,7 @@ là cửa sổ riêng của inbox. Một mục inbox được nhận việc tố
 | Tuyến phiên chat | Theo cửa sổ chung của phiên chat. |
 | `llm_attempts` | Được giữ khi phiên chat bị xóa, chỉ bị gỡ liên kết tới phiên chat. Dòng đã chốt quá 400 ngày thì bị xóa, nên khoảng một năm mà `cost` báo vẫn đầy đủ. |
 | `runs` (nhật ký phía sau trang hoạt động) | Bị xóa sau `days`, tính từ lúc phiên chạy kết thúc. Sổ chi phí ở trên không nằm trong đó. |
+| `notices` (chuông thông báo) | Bị xóa sau `days`, tính từ lúc thông báo được phát, dù đã đọc hay chưa. |
 | Mục inbox đã xong hoặc đã hỏng | Bị xóa sau `inbox_days`, gồm cả nội dung tin nhắn. |
 | Mục inbox đang chờ hoặc đang xử lý | Không bị xóa theo `inbox_days`. Mục xử lý dở bị ngắt được đưa lại hàng đợi, tối đa 3 lần. Mục nào quá `days` mà không ai nhận (thường do kênh đã bị gỡ) thì bị xóa theo cửa sổ chung. |
 | Offset polling trong `channel_state` | Giữ vô thời hạn, như các mốc theo dõi việc gửi. |

@@ -24,6 +24,8 @@ type WireTopic =
   | 'command_started'
   | 'command_finished'
   | 'alerts_checked'
+  | 'daemon_notice'
+  | 'notices_changed'
 
 /** The progress topics: their wire line is rendered (and may be dropped) before the event is built,
  *  so the normaliser takes it ready. */
@@ -162,6 +164,20 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     weight: 'quiet',
     source: APP_SOURCE,
     checkedAt: e.at,
+  }),
+  daemon_notice: (e) => ({
+    v: 1,
+    kind: 'daemon_notice',
+    weight: 'nudge',
+    source: APP_SOURCE,
+    note: e.text,
+  }),
+  notices_changed: (e) => ({
+    v: 1,
+    kind: 'notices_changed',
+    weight: 'quiet',
+    source: APP_SOURCE,
+    unread: e.unread,
   }),
 }
 

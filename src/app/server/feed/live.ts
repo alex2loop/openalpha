@@ -1,14 +1,23 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import type { LiveRunWire, LiveSnapshotWire, ProgressWire } from '@/app/server/wire/live'
-import type { EventBus } from '@/core/events'
+import type { BoardEntryWire } from '@/app/server/wire/notices'
+import type { BusEventMap, EventBus } from '@/core/events'
 import type { RunId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
 import type { RunProgressMessage } from '@/engine/api'
 import { createAlertsFeed } from '@/app/server/feed/alerts'
+import {
+  BOARD_SIZE,
+  createResultBoard,
+  type ResultBoard,
+  toBoardText,
+} from '@/app/server/feed/board'
 import { followBudget } from '@/app/server/feed/budget'
 import { followFills } from '@/app/server/feed/fills'
+import { followNotices } from '@/app/server/feed/notices'
 import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
+import { withTicker } from '@/app/server/feed/tickers'
 import {
   PROGRESS_NORMALIZERS,
   toAgentRunWire,
@@ -26,6 +35,8 @@ export interface LiveFeed {
   snapshot(): LiveSnapshotWire
   /** The raw channel an approval was asked on, or undefined for a request id the feed does not hold. */
   pendingOrigin(requestId: string): string | undefined
+  /** The last command answers, newest first; empty after a restart. */
+  board(): readonly BoardEntryWire[]
   stop(): void
 }
 
@@ -35,6 +46,8 @@ interface LiveFeedDeps {
   readonly locale: Locale
   /** Whether the run is still running, by the run registry or the command dispatcher. */
   readonly isLive: (runId: RunId) => boolean
+  /** A command's description in the daemon's language; undefined for a name no command holds. */
+  readonly describeCommand: (name: string) => string | undefined
 }
 
 /** Follows every agent run and long-running command on the bus, tells open sockets as each moves,
@@ -42,14 +55,16 @@ interface LiveFeedDeps {
  *  relays per connection are not touched here. */
 export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
   const book = createRunBook(deps.isLive)
+  const board = createResultBoard(BOARD_SIZE)
   const pending = createPendingFeed(deps)
   const alerts = createAlertsFeed(deps)
   const offs = [
     alerts.stop,
-    ...followLifecycle(deps, book),
+    ...followLifecycle(deps, { book, board }),
     ...followProgress(deps, book),
     ...followFills(deps),
     ...followBudget(deps),
+    ...followNotices(deps),
   ]
 
   return {
@@ -63,6 +78,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
       }
     },
     pendingOrigin: pending.originOf,
+    board: board.list,
     stop: () => {
       for (const off of offs) {
         off()
@@ -74,7 +90,14 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
   }
 }
 
-function followLifecycle({ bus, broadcast }: LiveFeedDeps, book: RunBook): (() => void)[] {
+interface Lifecycle {
+  readonly book: RunBook
+  readonly board: ResultBoard
+}
+
+function followLifecycle(deps: LiveFeedDeps, { book, board }: Lifecycle): (() => void)[] {
+  const { bus, broadcast } = deps
+
   return [
     bus.on('run_started', (e) => {
       book.start(e.runId, {
@@ -90,14 +113,48 @@ function followLifecycle({ bus, broadcast }: LiveFeedDeps, book: RunBook): (() =
       broadcast(WIRE_NORMALIZERS.command_started(e))
     }),
     bus.on('run_finished', (e) => {
-      book.finish(e.runId)
-      broadcast(WIRE_NORMALIZERS.run_finished(e))
+      broadcast(withTickers(WIRE_NORMALIZERS.run_finished(e), book.finish(e.runId)))
     }),
     bus.on('command_finished', (e) => {
-      book.finish(e.runId)
-      broadcast(WIRE_NORMALIZERS.command_finished(e))
+      const run = book.finish(e.runId)
+
+      noteResult(deps, board, { e, run })
+      broadcast(withTickers(WIRE_NORMALIZERS.command_finished(e), run))
     }),
   ]
+}
+
+/** The run's tickers ride its finish, so a page can pin the names a run worked on. */
+function withTickers(event: WireEvent, run: LiveRunWire | undefined): WireEvent {
+  return run?.tickers === undefined ? event : { ...event, tickers: run.tickers }
+}
+
+interface FinishedCommand {
+  readonly e: BusEventMap['command_finished']
+  /** Undefined for a command that started before the feed did: with no name it has no entry. */
+  readonly run: LiveRunWire | undefined
+}
+
+/** Puts a finished command's answer on the board, as the chat got it. */
+function noteResult(
+  { locale, describeCommand }: LiveFeedDeps,
+  board: ResultBoard,
+  done: FinishedCommand
+): void {
+  const { e, run } = done
+  const text = e.result === undefined ? undefined : toBoardText(e.result, locale)
+
+  if (run !== undefined && text !== undefined) {
+    board.add({
+      runId: e.runId,
+      name: run.name,
+      channel: e.channel,
+      finishedAt: Date.now(),
+      title: describeCommand(run.name) ?? run.name,
+      text,
+      tickers: run.tickers ?? [],
+    })
+  }
 }
 
 function followProgress({ bus, broadcast, locale }: LiveFeedDeps, book: RunBook): (() => void)[] {
@@ -138,7 +195,8 @@ interface RunBook {
   think(runId: RunId, excerpt: string): void
   /** The agent a held run belongs to, or undefined for a command or a run the book does not hold. */
   agentIdOf(runId: RunId): string | undefined
-  finish(runId: RunId): void
+  /** Forgets the run and returns what the book held of it. */
+  finish(runId: RunId): LiveRunWire | undefined
   /** The runs still running, oldest first. */
   live(): readonly LiveRunWire[]
   clear(): void
@@ -179,7 +237,13 @@ function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
     report: (runId, progress) => reportTo(runs, runId, progress),
     think: (runId, excerpt) => update(runId, (entry) => ({ ...entry, thinking: excerpt })),
     agentIdOf: (runId) => runs.get(runId)?.wire.agentId,
-    finish: (runId) => runs.delete(runId),
+    finish(runId) {
+      const entry = runs.get(runId)
+
+      runs.delete(runId)
+
+      return entry?.wire
+    },
     live() {
       // A run whose finish event never came (a crash between hooks) leaves when its registry says so.
       for (const runId of runs.keys()) {
@@ -229,7 +293,10 @@ function withReport(
   }
 }
 
-function withProgress(entry: LiveRunWire, progress: ProgressWire): LiveRunWire {
+function withProgress(run: LiveRunWire, progress: ProgressWire): LiveRunWire {
+  const tickers = withTicker(run.tickers, progress)
+  const entry = tickers === undefined ? run : { ...run, tickers }
+
   return progress.mode === 'persistent'
     ? {
         ...entry,
