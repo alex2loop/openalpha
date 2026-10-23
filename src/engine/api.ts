@@ -12,6 +12,7 @@ export type {
 } from '@/engine/agents/define'
 export type { BuildUserAgentsDeps, UserAgentSource } from '@/engine/agents/user'
 export type { AttemptIdentity, AttemptRecorder } from '@/engine/budget/attempt-settlement'
+export type { RunProgressMessage } from '@/engine/events'
 export type { ApprovalManager } from '@/engine/hooks/approval'
 export type { SessionPersistenceHooks, SessionSink } from '@/engine/hooks/persistence'
 export type { UserPreferencesHooks } from '@/engine/hooks/user-preferences'
@@ -153,6 +154,7 @@ export {
   AGENT_BUDGET_FRACTION,
   MCP_CALL_WAIT_MS,
   RUN_LEASE_SLACK_MS,
+  RUN_TITLE_MAX_CHARS,
   WORKSPACES_DIR_NAME,
 } from '@/engine/constants'
 export { createDelegatedApproval, decisionsFor } from '@/engine/hooks/approval'

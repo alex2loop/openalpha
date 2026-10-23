@@ -1,6 +1,8 @@
 import type { ProviderChainRegistry } from '@/ai/api'
+import type { BusEventMap } from '@/core/events'
 import type { ProviderChain } from '@/core/llm'
 import type { RunBookkeeping, RunDeps } from '@/engine/loop/context'
+import type { SteeringInbox } from '@/engine/loop/drive'
 import type { AgentProfile } from '@/engine/types/agent'
 import type {
   RunHandle,
@@ -16,6 +18,7 @@ import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { scrubCredentials } from '@/core/security/credentials'
 import { EMPTY_LLM_USAGE_TOTALS } from '@/core/types/usage'
 import { agentCapRejection } from '@/engine/budget/agent-cap'
+import { RUN_TITLE_MAX_CHARS } from '@/engine/constants'
 import { assembleRun } from '@/engine/loop/context'
 import { createSteeringInbox, driveRun } from '@/engine/loop/drive'
 import { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
@@ -79,14 +82,7 @@ export async function runOnce(
     run.state.deadline = deadline
 
     const steering = createSteeringInbox()
-    let handle: RunHandle
-
-    try {
-      handle = deps.registry.register(run.identity, controller, steering.accept)
-    } catch (err: unknown) {
-      dispose()
-      throw err
-    }
+    const handle = registerRun({ deps, run, controller, dispose, steering, userMessage })
 
     return await driveRun({
       run,
@@ -104,6 +100,55 @@ export async function runOnce(
   } catch (err: unknown) {
     return resultForPreRegistrationFailure(err)
   }
+}
+
+interface RegisterRunInput {
+  readonly deps: RunOnceDeps
+  readonly run: RunView
+  readonly controller: AbortController
+  readonly dispose: () => void
+  readonly steering: SteeringInbox
+  readonly userMessage: string
+}
+
+/** The registry entry and the start announcement go together: a feed that heard `run_started`
+ *  can always find the run it describes. */
+function registerRun(input: RegisterRunInput): RunHandle {
+  const { deps, run, controller, dispose, steering, userMessage } = input
+  let handle: RunHandle
+
+  try {
+    handle = deps.registry.register(run.identity, controller, steering.accept)
+  } catch (err: unknown) {
+    dispose()
+    throw err
+  }
+
+  const { identity } = run
+  const title = identity.parentRunId === undefined ? toRunTitle(userMessage) : undefined
+  const hidden: Pick<BusEventMap['run_started'], 'hidden'> =
+    run.env.answerVisibility === 'hidden' ? { hidden: true } : {}
+
+  run.services.bus.emit('run_started', {
+    runId: identity.runId,
+    agentId: identity.agentId,
+    sessionId: identity.sessionId,
+    channel: identity.channel,
+    ...(identity.chatId === undefined ? {} : { chatId: identity.chatId }),
+    ...(identity.parentRunId === undefined ? {} : { parentRunId: identity.parentRunId }),
+    ...(title === undefined ? {} : { title }),
+    ...hidden,
+    startedAt: Date.now(),
+  })
+
+  return handle
+}
+
+// Scrubbed before the cut: a credential sliced in half would no longer match its pattern.
+function toRunTitle(userMessage: string): string | undefined {
+  const title = scrubCredentials(userMessage).trim().slice(0, RUN_TITLE_MAX_CHARS).trim()
+
+  return title === '' ? undefined : title
 }
 
 interface AdmissionInput {

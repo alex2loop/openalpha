@@ -9,6 +9,8 @@ export function createRunFinishedEmit(bus: EventBus): AfterRunHook {
       runId: run.identity.runId,
       agentId: run.identity.agentId,
       sessionId: run.identity.sessionId,
+      channel: run.identity.channel,
+      ...(run.identity.chatId === undefined ? {} : { chatId: run.identity.chatId }),
       reason: result.reason,
       totals: result.totals,
     })

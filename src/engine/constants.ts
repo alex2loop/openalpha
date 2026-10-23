@@ -34,6 +34,8 @@ export const LOOP_DETECTOR_NEAR_DUP_SIMILARITY = 0.55
 export const LOOP_DETECTOR_MIN_FUZZY_WORDS = 4
 // Grace past a run's own duration cap before a lease it stopped renewing is treated as abandoned.
 export const RUN_LEASE_SLACK_MS = 300_000
+/** Longest title a run announces on the bus: enough to recognise the request, short enough to scan. */
+export const RUN_TITLE_MAX_CHARS = 120
 export const RATE_LIMIT_WINDOW_MS = 60_000
 export const RATE_LIMIT_MAX_KEYS = 4_096
 /** Fits the largest first-party payload - a market overview or a suggestion - whole in a chat run. */
