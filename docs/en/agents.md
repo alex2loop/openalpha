@@ -12,7 +12,7 @@ This page covers writing an agent, building a team, giving agents skills, and ch
 Start from the annotated template, [agent.sample.toml](../../agent.sample.toml).
 
 Built-in agents and bundled-plugin agents are trusted. Agents you write, in `<data_dir>/agents/<id>/agent.toml`,
-are not. An untrusted agent cannot set `model_tier` or `reasoning`, and its `system_prompt` is scanned and
+are not. Your agent may set `model_tier` but not `reasoning`, and its `system_prompt` is scanned and
 refused when it matches a blocked instruction pattern.
 
 ### Scaffold one
@@ -61,8 +61,8 @@ ignored would read as a permission you granted.
 | `max_duration_ms` | positive int | `[loop].max_duration_ms` from config | Per-run wall-clock cap. Can lower the `[loop]` value, never raise it. |
 | `max_daily_usd` | number | none | This agent's share of the day, under `[budget] max_daily_usd`. See [Focus, spend and pause](#focus-spend-and-pause). |
 | `[focus]` | table | none | What the agent looks at. See [Focus, spend and pause](#focus-spend-and-pause). |
-| `model_tier` | string | none | **Trusted agents only.** Selects a `[model_tiers]` chain. |
-| `reasoning` | enum | `'default'` | **Trusted agents only.** |
+| `model_tier` | string | none | A tier in `[model_tiers]` whose every entry supports tools. Your agents may set it; untrusted plugin agents may not. |
+| `reasoning` | enum | `'default'` | **Trusted agents only.** Your agents may not set it. |
 | `[capabilities]` | table | see below | Security ceiling; every field only narrows access. |
 
 An id starts with a lowercase letter or digit and holds only lowercase letters, digits, underscores, hyphens or
@@ -87,12 +87,13 @@ enforced.
 
 ### Choosing the model
 
-A user agent always runs the primary `[[models]]` chain. There is no per-agent model override for an untrusted
-agent, because a dropped-in file could otherwise reroute your spend.
+A user agent runs the primary `[[models]]` chain unless it sets `model_tier`. There is no per-agent `model` key,
+so a dropped-in file can only pick a tier you configured yourself.
 
-A trusted agent may set `model_tier` to a chain under `[model_tiers]`. The tier must exist and be non-empty,
-and every entry must support tool calls when the agent has tools. A `model_tier` that contradicts the tier the
-composition prefers is rejected, not ignored.
+Your agent may set `model_tier` to a chain under `[model_tiers]`. The tier must exist and be non-empty, and
+every entry must support tool calls when the agent has tools. Untrusted plugin agents may not set `model_tier`, and
+`reasoning` stays trusted-only. A `model_tier` that contradicts the tier the composition prefers is rejected,
+not ignored.
 
 `/model` in a channel is session-scoped: it swaps the model for that one session from the global `[[models]]`
 chain, keeps the other entries as fallbacks, cannot pick a tier, and does not persist. `openalpha provider list`
@@ -103,7 +104,8 @@ and `openalpha provider models` show what is available.
 One bad agent never stops the daemon from booting. Each file fails on its own and is skipped:
 
 - malformed TOML, a schema violation, an `id` that differs from the directory, an unknown tool in `tools`,
-  `model_tier` or `reasoning` on a user agent, a `max_daily_usd` above your `[budget]` cap, or a `system_prompt`
+  `reasoning` on a user agent, a `model_tier` that names a missing tier or one with an entry that lacks tool
+  support, a `max_daily_usd` above your `[budget]` cap, or a `system_prompt`
   the injection scan blocks - logged as `agents.user_load_failed`;
 - a reserved-id collision - logged as `agents.user_id_reserved`.
 
@@ -261,8 +263,8 @@ The `[loop]` limits bound recursion, but a roster you did not intend is still a 
 2. **Orchestrator.** Add the delegation tools to `[capabilities] tools` and list the sub-agent ids in
    `[capabilities] delegates`.
 3. **Bounds.** Set `[loop] delegation_depth`, `max_delegations` and `max_parallel_delegations` in `config.toml`.
-4. **Models.** User agents use the global `[[models]]` chain. Only built-in and bundled-plugin agents may pick a
-   `model_tier`.
+4. **Models.** User agents use the global `[[models]]` chain unless they set `model_tier` to one of your
+   `[model_tiers]`. Untrusted plugin agents may not.
 
 End every sub-agent's `system_prompt` with this, so it stops writing for a human who is not reading:
 
@@ -390,7 +392,7 @@ so a mid-conversation switch never leaves an orphaned run billing your budget.
 
 At boot, valid agents from `<data_dir>/agents/` are added after the built-in and plugin agents. Existing ids are
 reserved and cannot be shadowed. A plugin's `agents/<id>/agent.toml` extends the same registry under the same
-rule, and an untrusted agent that sets `model_tier` or `reasoning` is rejected.
+rule, and an untrusted plugin agent that sets `model_tier` or `reasoning` is rejected.
 
 Built-in tools register first, plugin tools extend them, and connected MCP tools are added last without
 replacing a name that already exists. See [Plugins](dev/extending.md).
@@ -612,7 +614,7 @@ Two limits come from the ChatGPT endpoint, not OpenAlpha:
 
 ### Model tiers (optional)
 
-A trusted agent selects a named fallback chain with `model_tier`. When the tier is absent, the agent or task that
+An agent selects a named fallback chain with `model_tier`, if it is built-in, from a bundled plugin, or your own. When the tier is absent, the agent or task that
 wanted it falls back to the global `[[models]]` chain, and every entry in a tier must support tool calls. The tier
 names, which role prefers each, and how a tier chain ends on the primary `[[models]]` entry are in
 [Configuration](configuration.md). The trading debate roles prefer the `debate` tier when

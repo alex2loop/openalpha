@@ -13,7 +13,7 @@ Trang này nói về việc viết một agent, ghép nhiều agent thành một
 Bắt đầu từ mẫu có chú thích đầy đủ, [agent.sample.toml](../agent.sample.toml).
 
 Agent có sẵn và agent của plugin đi kèm là agent đáng tin. Agent bạn tự viết, đặt ở
-`<data_dir>/agents/<id>/agent.toml`, thì không. Agent không đáng tin không đặt được `model_tier` hay `reasoning`,
+`<data_dir>/agents/<id>/agent.toml`, thì không. Agent của bạn đặt được `model_tier` nhưng không đặt được `reasoning`,
 và `system_prompt` của nó bị quét, bị từ chối nếu khớp một mẫu chỉ dẫn bị chặn.
 
 ### Dựng khung một agent
@@ -62,8 +62,8 @@ quyền bạn đã cấp.
 | `max_duration_ms` | số nguyên dương | `[loop].max_duration_ms` từ config | Trần thời gian thực mỗi phiên chạy. Hạ được giá trị `[loop]`, không nâng được. |
 | `max_daily_usd` | số | không có | Phần của hôm nay dưới `[budget] max_daily_usd`. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
 | `[focus]` | bảng | không có | Agent nhìn vào đâu. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
-| `model_tier` | chuỗi | không có | **Chỉ agent đáng tin.** Chọn một chuỗi `[model_tiers]`. |
-| `reasoning` | enum | `'default'` | **Chỉ agent đáng tin.** |
+| `model_tier` | chuỗi | không có | Một nhóm trong `[model_tiers]` mà mọi mục đều hỗ trợ công cụ. Agent của bạn đặt được; agent plugin không đáng tin thì không. |
+| `reasoning` | enum | `'default'` | **Chỉ agent đáng tin.** Agent của bạn không đặt được. |
 | `[capabilities]` | bảng | xem dưới | Trần bảo mật; mọi trường chỉ thu hẹp quyền. |
 
 Mã định danh (`id`) bắt đầu bằng chữ thường hoặc chữ số, chỉ chứa chữ thường, chữ số, gạch dưới, gạch nối hoặc dấu
@@ -87,11 +87,12 @@ công cụ là trục nguy hiểm nên im lặng nghĩa là không. Danh sách h
 
 ### Chọn mô hình
 
-Agent của bạn luôn chạy chuỗi `[[models]]` chính. Agent không đáng tin không có cách ghi đè mô hình riêng, vì nếu
-được thì một tệp thả vào có thể đổi hướng chi tiêu của bạn.
+Agent của bạn chạy chuỗi `[[models]]` chính, trừ khi nó đặt `model_tier`. Không có khóa `model` riêng cho từng agent,
+nên một tệp thả vào chỉ chọn được nhóm mà chính bạn đã cấu hình.
 
-Agent đáng tin có thể đặt `model_tier` trỏ tới một chuỗi dưới `[model_tiers]`. Nhóm đó phải tồn tại và không rỗng,
-và mọi mục trong nó phải hỗ trợ gọi công cụ khi agent có công cụ. Một `model_tier` mâu thuẫn với nhóm mà phần ghép
+Agent của bạn có thể đặt `model_tier` trỏ tới một chuỗi dưới `[model_tiers]`. Nhóm đó phải tồn tại và không rỗng,
+và mọi mục trong nó phải hỗ trợ gọi công cụ khi agent có công cụ. Agent plugin không đáng tin không đặt được `model_tier`, còn
+`reasoning` vẫn chỉ dành cho agent đáng tin. Một `model_tier` mâu thuẫn với nhóm mà phần ghép
 (composition) ưu tiên thì bị từ chối, không bị bỏ qua.
 
 `/model` trong kênh có phạm vi một phiên chat: nó đổi mô hình cho đúng phiên đó, chọn từ chuỗi `[[models]]` toàn
@@ -102,8 +103,8 @@ cục, giữ các mục còn lại làm dự phòng, không chọn được nhó
 
 Một agent lỗi không bao giờ chặn daemon khởi động. Mỗi tệp hỏng riêng và bị bỏ qua:
 
-- TOML sai cú pháp, vi phạm schema, `id` lệch tên thư mục, công cụ lạ trong `tools`, `model_tier` hay `reasoning`
-  trên agent của bạn, `max_daily_usd` cao hơn mức trần `[budget]` của bạn, hoặc `system_prompt` bị bộ quét chặn -
+- TOML sai cú pháp, vi phạm schema, `id` lệch tên thư mục, công cụ lạ trong `tools`, `reasoning` trên agent của
+  bạn, `model_tier` trỏ tới nhóm không có hoặc có mục không hỗ trợ công cụ, `max_daily_usd` cao hơn mức trần `[budget]` của bạn, hoặc `system_prompt` bị bộ quét chặn -
   ghi log `agents.user_load_failed`;
 - trùng mã dành riêng - ghi log `agents.user_id_reserved`.
 
@@ -259,8 +260,8 @@ hạn `[loop]` chặn đệ quy, nhưng một danh sách bạn không chủ ý t
 2. **Agent điều phối.** Thêm các công cụ ủy quyền vào `[capabilities] tools` và khai mã các agent con trong
    `[capabilities] delegates`.
 3. **Giới hạn.** Đặt `[loop] delegation_depth`, `max_delegations` và `max_parallel_delegations` trong `config.toml`.
-4. **Mô hình.** Agent bạn viết dùng chuỗi `[[models]]` toàn cục. Chỉ agent có sẵn và agent plugin đi kèm mới chọn được
-   `model_tier`.
+4. **Mô hình.** Agent bạn viết dùng chuỗi `[[models]]` toàn cục, trừ khi nó đặt `model_tier` trỏ tới một
+   `[model_tiers]` của bạn. Agent plugin không đáng tin thì không.
 
 Kết thúc `system_prompt` của mọi agent con bằng đoạn này, để nó thôi viết cho một người không hề đọc:
 
@@ -389,7 +390,7 @@ giữa chừng không để lại một phiên chạy mồ côi vẫn đang tiê
 
 Lúc khởi động, các agent hợp lệ trong `<data_dir>/agents/` được thêm **sau** agent có sẵn và agent plugin. Mã đã tồn
 tại là mã dành riêng và không bị che. Nguồn `agents/<id>/agent.toml` của plugin mở rộng cùng sổ đăng ký theo cùng quy
-tắc, và một agent không đáng tin đặt `model_tier` hay `reasoning` thì bị từ chối.
+tắc, và một agent plugin không đáng tin đặt `model_tier` hay `reasoning` thì bị từ chối.
 
 Công cụ có sẵn đăng ký trước, công cụ của plugin mở rộng thêm, và công cụ MCP đã kết nối được thêm sau cùng mà không
 thay thế một cái tên đã có. Xem [Plugin](dev/mo-rong.md).
@@ -608,7 +609,7 @@ Hai ràng buộc đến từ chính endpoint ChatGPT, không phải từ OpenAlp
 
 ### Nhóm mô hình (tùy chọn)
 
-Một agent đáng tin chọn một chuỗi dự phòng có tên bằng `model_tier`. Khi nhóm vắng mặt, agent hay tác vụ cần tới nó rơi về
+Một agent chọn một chuỗi dự phòng có tên bằng `model_tier`, nếu nó là agent có sẵn, của plugin đi kèm hoặc do bạn viết. Khi nhóm vắng mặt, agent hay tác vụ cần tới nó rơi về
 chuỗi `[[models]]` toàn cục, và mọi mục trong một nhóm phải hỗ trợ gọi công cụ. Các tên nhóm, vai nào ưu tiên nhóm nào, và
 việc chuỗi nhóm kết thúc ở mục chính của `[[models]]` nằm ở [Cấu hình](cau-hinh.md). Các vai tranh luận giao dịch ưu tiên
 nhóm `debate` khi `[[model_tiers.debate]]` được cấu hình, và chạy trên chuỗi chính nếu không.

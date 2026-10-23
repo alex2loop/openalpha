@@ -16,9 +16,10 @@ the registry from three places:
 | Plugin | `AgentProfileSource` in a plugin's `agents` contribution | Trusted only for bundled plugins |
 | User | `<data_dir>/agents/<id>/agent.toml` | Untrusted |
 
-Trust decides which fields the loader reads. `model_tier` and `reasoning` are rejected on an untrusted profile,
-and its `system_prompt` is scanned for blocked instruction patterns. The schema is strict on purpose: an ignored
-typo in a capability key would read as a granted permission. Every `[capabilities]` field is a ceiling, never a
+Trust decides which fields the loader reads. `reasoning` is rejected on an untrusted profile, and `model_tier`
+is rejected unless the build context sets `allowModelTier`, which only the user-agents provider does
+([app/providers.ts](../../../src/app/providers.ts)). Plugin agents leave it unset. An untrusted profile's `system_prompt` is scanned for blocked instruction
+patterns. The schema is strict on purpose: an ignored typo in a capability key would read as a granted permission. Every `[capabilities]` field is a ceiling, never a
 floor; no field widens access.
 
 User agents load fail-soft per file ([engine/agents/user.ts](../../../src/engine/agents/user.ts)), logging
@@ -27,7 +28,7 @@ User agents load fail-soft per file ([engine/agents/user.ts](../../../src/engine
 plugin, then user agents; existing ids are reserved. Tools register the same way - built-in, plugin, then
 connected MCP tools last, never replacing an existing name.
 
-A trusted `model_tier` must name a non-empty tier whose entries all support tool calls when the agent has tools.
+A `model_tier` must name a non-empty tier whose entries all support tool calls when the agent has tools.
 One that contradicts the tier the composition prefers is rejected.
 
 ### Persona reasoning

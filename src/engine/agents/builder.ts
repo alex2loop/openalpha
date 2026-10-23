@@ -63,6 +63,8 @@ export interface AgentBuildContext {
   readonly allToolNames: readonly string[]
   /** A plugin loader passes `bundledIds.has(plugin.id)`, as `plugins/merge.ts` does for code. */
   readonly trusted: boolean
+  /** Lets an untrusted profile name a configured model tier; `reasoning` stays trusted-only. */
+  readonly allowModelTier?: true
   readonly preferredModelTier?: string
 }
 
@@ -279,7 +281,7 @@ function resolveAgentModelChain(input: ResolveAgentModelInput): AgentModelSelect
   const { parsed, id, ctx, hasTools } = input
 
   if (parsed.model_tier !== undefined) {
-    if (!ctx.trusted) {
+    if (!ctx.trusted && ctx.allowModelTier !== true) {
       throw new ConfigError(`agent '${id}': model_tier is not allowed for untrusted profiles`)
     }
 

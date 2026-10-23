@@ -280,6 +280,7 @@ function createUserAgentsProvider(sources: readonly UserAgentSource[]): ServiceP
             config: app.config,
             allToolNames: [...app.resolve('tools').keys()],
             trusted: false,
+            allowModelTier: true,
           },
           reserved: new Set(current.keys()),
           logger: app.resolve('logger'),

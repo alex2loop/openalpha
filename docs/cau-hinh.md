@@ -135,7 +135,7 @@ hoặc `.../openai/v1`. Tên mô hình Claude mang tiền tố `anthropic.` củ
 
 ### `[[model_tiers.<name>]]` (tùy chọn)
 
-Một chuỗi dự phòng có tên mà agent đáng tin chọn được. Mỗi nhóm là một mảng bảng TOML dưới
+Một chuỗi dự phòng có tên mà agent chọn được: agent có sẵn, agent plugin đi kèm và agent của bạn. Mỗi nhóm là một mảng bảng TOML dưới
 `model_tiers.<name>`. Mục đầu là mô hình chính, các mục sau được thử theo thứ tự. Mỗi mục theo schema
 của `[[models]]` và thừa hưởng `[model_defaults]`. Mọi mục phải hỗ trợ gọi công cụ.
 
@@ -150,7 +150,7 @@ api_key_env = "ANTHROPIC_API_KEY"
 ```
 
 Tên nhóm bắt đầu bằng chữ thường, phần sau là chữ thường, chữ số, `_` hoặc `-`. Bỏ trống một nhóm chỉ
-là lỗi khi có agent đáng tin chọn nó.
+là lỗi khi có agent chọn nó.
 
 Các vai tranh luận ưu tiên nhóm tên `debate`. Có nhóm này thì mọi vai chạy trên chuỗi đó. Đây là chỗ
 nên ghim endpoint và đặt mốc hết giờ luồng chặt, trong khi chat vẫn dùng chuỗi chính:
@@ -239,8 +239,8 @@ thì hãy ghi `api_key_env` riêng. `reasoning`, `max_tokens` và hai mốc hế
 Một hồ sơ agent chọn đúng một chuỗi có tên qua `model_tier`. Đây là cách duy nhất để agent chọn chuỗi
 mô hình; không có khóa `model` riêng cho từng agent. Nhóm phải có trong `[[model_tiers.<name>]]`.
 
-Chỉ hồ sơ đáng tin (có sẵn và plugin đi kèm) được đặt `model_tier`. Agent do người dùng viết hoặc hồ sơ
-plugin không đáng tin mà khai nó thì bị từ chối.
+Hồ sơ có sẵn, hồ sơ plugin đi kèm và agent do bạn viết được đặt `model_tier`, và mọi mục trong nhóm phải hỗ trợ
+gọi công cụ. Hồ sơ plugin không đáng tin mà khai nó thì bị từ chối. `reasoning` vẫn chỉ dành cho hồ sơ đáng tin.
 
 Không có `model_tier` thì agent dùng chuỗi `[[models]]`. Một vai có sẵn có thể mang lựa chọn ưu tiên
 riêng (các worker nghiên cứu ưu tiên `research`), và `model_tier` tường minh không ghi đè được nó.

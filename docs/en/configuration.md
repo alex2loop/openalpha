@@ -136,7 +136,7 @@ or `.../openai/v1`. Claude model ids carry Bedrock's `anthropic.` prefix, such a
 
 ### `[[model_tiers.<name>]]` (optional)
 
-A named fallback chain that trusted agents can select. Each tier is an array of tables under
+A named fallback chain that agents can select: built-in and bundled-plugin agents, and your own. Each tier is an array of tables under
 `model_tiers.<name>`. The first entry is the primary and the rest are tried in order. Entries follow
 the `[[models]]` schema and inherit `[model_defaults]`. Every entry must support tool calls.
 
@@ -151,7 +151,7 @@ api_key_env = "ANTHROPIC_API_KEY"
 ```
 
 A tier name starts with a lowercase letter, then lowercase letters, digits, `_` or `-`. An omitted
-tier is an error only if a trusted agent selects it.
+tier is an error only if an agent selects it.
 
 The debate roles prefer a tier named `debate`. With one configured, every role runs on that chain.
 This is the place for an endpoint pin and tight stream timeouts, while chat keeps the primary chain:
@@ -241,8 +241,9 @@ provider its own `api_key_env`. `reasoning`, `max_tokens` and the two timeouts c
 An agent profile picks one named chain with `model_tier`. This is the only way an agent chooses a
 model chain; there is no per-agent `model` key. The tier must exist under `[[model_tiers.<name>]]`.
 
-Only trusted profiles (built-in and bundled-plugin) may set `model_tier`. A user-written agent or an
-untrusted plugin profile that declares it is rejected.
+Built-in profiles, bundled-plugin profiles and your own agents may set `model_tier`, and every entry in
+the tier must support tool calls. An untrusted plugin profile that declares it is rejected. `reasoning`
+stays trusted-only.
 
 Without `model_tier`, the agent uses the `[[models]]` chain. A built-in role can carry its own
 preference (the research workers prefer `research`), and an explicit `model_tier` cannot override it.

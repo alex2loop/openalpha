@@ -6,7 +6,7 @@
 # Required: system_prompt
 # Optional: id, name, description, max_turns, max_tokens, max_duration_ms, max_daily_usd,
 #           [focus], [capabilities]
-# Trusted agents only: model_tier, reasoning.
+# model_tier: your own agents may set it; reasoning: trusted agents only.
 # Unknown keys or invalid values are logged, and that user agent is skipped at boot.
 #
 # Identity:
@@ -31,12 +31,13 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #                                 # 0 or absent = only your overall cap. Debates it starts count too.
 #                                 # A top-level key: it must stay above the first [table] below.
 
-# ---- Model selection (trusted agents only) ----------------------------------
-# model_tier picks a named fallback chain from [model_tiers]. A user agent always
-# runs on the primary configured model, and one that sets model_tier or reasoning
-# is skipped at boot. Built-in work uses its own tiers (research, research-heavy,
-# delegate, debate, decisions, extraction, themes); a trusted agent can name any
-# tier you define.
+# ---- Model selection --------------------------------------------------------
+# model_tier picks a named fallback chain from [model_tiers]. Your own agents may
+# name any tier you define, as long as every entry in it supports tools; an untrusted
+# plugin agent may not. Without it the agent runs on the primary configured model.
+# reasoning is for trusted agents only: an agent that sets it is skipped at boot.
+# Built-in work uses its own tiers (research, research-heavy, delegate, debate,
+# decisions, extraction, themes).
 #
 # model_tier = "research"         # named fallback chain from [model_tiers]
 # reasoning = "medium"            # default | off | low | medium | high; overrides the entry's setting.

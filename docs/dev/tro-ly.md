@@ -16,8 +16,9 @@ ba nơi:
 | Plugin | `AgentProfileSource` trong phần đóng góp `agents` của plugin | Chỉ đáng tin với plugin đi kèm |
 | Người dùng | `<data_dir>/agents/<id>/agent.toml` | Không đáng tin |
 
-Mức tin cậy quyết định loader đọc những trường nào. `model_tier` và `reasoning` bị từ chối trên hồ sơ không đáng tin, và
-`system_prompt` của nó bị quét tìm mẫu chỉ dẫn bị chặn. Schema nghiêm là có chủ ý: một khóa năng lực gõ sai mà bị bỏ qua
+Mức tin cậy quyết định loader đọc những trường nào. `reasoning` bị từ chối trên hồ sơ không đáng tin, còn `model_tier` bị từ chối trừ khi ngữ cảnh dựng đặt
+`allowModelTier`, và chỉ provider agent người dùng đặt nó ([app/providers.ts](../../src/app/providers.ts)). Agent plugin
+không đặt cờ này. `system_prompt` của hồ sơ không đáng tin bị quét tìm mẫu chỉ dẫn bị chặn. Schema nghiêm là có chủ ý: một khóa năng lực gõ sai mà bị bỏ qua
 sẽ được đọc như một quyền đã cấp. Mọi trường `[capabilities]` là một cái trần, không bao giờ là một cái sàn; không trường
 nào nới quyền.
 
@@ -27,7 +28,7 @@ Agent của người dùng nạp hỏng mềm theo từng tệp ([engine/agents/
 rồi plugin, rồi người dùng; mã đã tồn tại là mã dành riêng. Công cụ đăng ký cùng kiểu - có sẵn, plugin, rồi công cụ MCP đã
 kết nối sau cùng, không bao giờ thay một cái tên đã có.
 
-Một `model_tier` đáng tin phải trỏ tới nhóm không rỗng mà mọi mục đều hỗ trợ gọi công cụ khi agent có công cụ. Một nhóm
+Một `model_tier` phải trỏ tới nhóm không rỗng mà mọi mục đều hỗ trợ gọi công cụ khi agent có công cụ. Một nhóm
 mâu thuẫn với nhóm phần ghép ưu tiên thì bị từ chối.
 
 ### Suy luận của persona
