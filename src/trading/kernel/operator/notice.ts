@@ -9,6 +9,7 @@ import type {
   QuoteUnit,
   Ticker,
 } from '@/trading/kernel/instrument'
+import type { AlertCondition, AlertId } from '@/trading/kernel/operator/alert'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 
 interface AlertQuote {
@@ -109,6 +110,22 @@ export interface OrderFill {
 /** Called synchronously, and guarded by the caller: a listener that throws never fails the
  *  booking. */
 export type OrderFilledListener = (fill: OrderFill) => void
+
+/** An alert that is about to be sent for the first time, with what made it fire. `event` is which
+ *  kind of alert it was: an exit's stop or target, a name the operator armed, a screener band. */
+export interface AlertFired {
+  readonly alertId: AlertId
+  readonly event: 'stop' | 'target' | 'price' | 'mover'
+  readonly instrument: InstrumentRef
+  readonly condition: AlertCondition
+  readonly threshold: number
+  readonly observedPrice: number
+  readonly firedAt: number
+}
+
+/** Called synchronously, once per alert, and guarded by the caller: a listener that throws never
+ *  fails the delivery. */
+export type AlertFiredListener = (fired: AlertFired) => void
 
 export interface TradingNotice {
   readonly target: DeliveryAddress

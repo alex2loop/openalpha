@@ -1,4 +1,5 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
+import type { CliApp } from '@/cli/types'
 import type { ChannelAddress } from '@/core/channels'
 import type { AgentId, JobId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
@@ -12,13 +13,16 @@ import { success } from '@/cli/ui/colors'
 import { parseChannelAddress } from '@/core/channels'
 import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
-import { MS_PER_MINUTE, toCanonicalTimeZone } from '@/core/utils/time'
 import { t } from '@/i18n'
+import {
+  assertInterval,
+  assertJobPrompt,
+  assertKnownAgent,
+  assertValidCron,
+  resolveTimezone,
+} from '@/tools/api'
 
 import type { ScheduleResult } from './types'
-
-// Cron's own granularity: a shorter interval only spends model calls faster.
-const MINIMUM_INTERVAL_MS = MS_PER_MINUTE
 
 export const scheduleAddCommand: Command = createCommand({
   name: 'add',
@@ -69,7 +73,13 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, terminalErrorMessage(err, locale))
     }
 
-    if (!app.resolve('agents').has(agent)) {
+    try {
+      assertJobPrompt(prompt)
+    } catch (err: unknown) {
+      return usage(app, terminalErrorMessage(err, locale))
+    }
+
+    if (!isKnownAgent(app, agent)) {
       const validIds = [...app.resolve('agents').keys()].sort().join(', ')
 
       return usage(
@@ -105,6 +115,16 @@ export const scheduleAddCommand: Command = createCommand({
   },
 })
 
+function isKnownAgent(app: CliApp, agent: AgentId): boolean {
+  try {
+    assertKnownAgent(agent, (id) => app.resolve('agents').has(id))
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function resolveSchedule(args: ParsedArgs, tz: string, locale: Locale): ScheduleResult {
   const cronExpr = flagString(args, 'cron')
   const everyRaw = flagString(args, 'every')
@@ -136,8 +156,11 @@ export function resolveSchedule(args: ParsedArgs, tz: string, locale: Locale): S
 
 export function resolveCronSchedule(expr: string, tz: string, locale: Locale): ScheduleResult {
   try {
-    const timezone = toCanonicalTimeZone(tz)
+    const timezone = resolveTimezone(tz)
     const now = new Date()
+
+    assertValidCron(expr, now.getTime(), timezone)
+
     const nextRunAt = advanceCron(expr, now, timezone).getTime()
 
     return { kind: 'value', schedule: { kind: 'cron', expr, timezone }, nextRunAt }
@@ -153,7 +176,9 @@ function resolveIntervalSchedule(raw: string, locale: Locale): ScheduleResult {
     return { kind: 'error', error: renderLocalized(locale, parsed.error) }
   }
 
-  if (parsed.ms < MINIMUM_INTERVAL_MS) {
+  try {
+    assertInterval(parsed.ms)
+  } catch {
     return { kind: 'error', error: t(locale, 'cli.scheduleEveryTooShort', { value: raw }) }
   }
 

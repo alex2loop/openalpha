@@ -469,7 +469,16 @@
     "agentInvalid": "I could not save this agent: {detail}",
     "agentIdTaken": "{id} is already taken; pick another id.",
     "agentNotEditable": "{id} is built in; this page cannot edit it.",
-    "agentReloadFailed": "I could not read the agents folder, so the agents that are running stay as they are."
+    "agentReloadFailed": "I could not read the agents folder, so the agents that are running stay as they are.",
+    "jobInvalid": "I could not save this job: {detail}"
+  },
+  "scheduler": {
+    "eventPrompt": "This run started because {ticker} {what} at {time}: price {price}.",
+    "event.stop": "broke its stop",
+    "event.target": "reached its take-profit",
+    "event.price": "hit the price you set",
+    "event.mover": "moved sharply in the session",
+    "event.anyName": "a name"
   },
   "pairing": {
     "needsAccess": "Access is not enabled for this chat yet.",
@@ -1527,6 +1536,7 @@
     "scheduleCronFormat": "cron({expr}, {tz})",
     "scheduleIntervalFormat": "every {duration}",
     "scheduleOnceFormat": "once@{time}",
+    "scheduleOnEvent": "when {ticker} {what}",
     "scheduleFieldId": "id",
     "scheduleFieldAgent": "agent",
     "scheduleFieldEnabled": "enabled",
@@ -1550,6 +1560,7 @@
     "scheduleTzCronOnly": "--tz only applies to --cron schedules",
     "scheduleCronOrEveryRequired": "one of --cron <expr> or --every <duration> is required",
     "scheduleCantChangeAgent": "cannot change the agent of an existing job - remove and re-add it",
+    "scheduleEventNoSchedule": "an event job has no schedule to change - remove and re-add it",
     "scheduleUpdated": "updated {id}",
     "scheduleRemoveUsage": "schedule remove <id>",
     "scheduleRemoved": "removed {id}",

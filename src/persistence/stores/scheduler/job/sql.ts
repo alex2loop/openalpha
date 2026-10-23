@@ -20,6 +20,25 @@ const JOB_COLS = [
   'created_at',
 ] as const
 
+// `jobs.*` rather than `*`: the trigger's own `created_at` must never shadow the job's.
+const JOB_SELECT =
+  'SELECT jobs.*, t.event AS trigger_event, t.market AS trigger_market, ' +
+  't.ticker AS trigger_ticker, t.condition AS trigger_condition, ' +
+  't.threshold AS trigger_threshold, t.alert_id AS trigger_alert_id, ' +
+  't.cooldown_ms AS trigger_cooldown_ms ' +
+  'FROM jobs LEFT JOIN job_event_triggers t ON t.job_id = jobs.id'
+
+const TRIGGER_COLS = [
+  'event',
+  'market',
+  'ticker',
+  'condition',
+  'threshold',
+  'alert_id',
+  'cooldown_ms',
+  'created_at',
+] as const
+
 export interface JobSql {
   readonly due: string
   readonly advance: string
@@ -43,6 +62,9 @@ export interface JobSql {
   readonly releaseRunNow: string
   readonly releaseRunNowClaimOwned: string
   readonly clearRunNowClaims: string
+  readonly putTrigger: string
+  readonly matchEvent: string
+  readonly claimEventFire: string
 }
 
 export function buildJobSql(dialect: Dialect): JobSql {
@@ -50,7 +72,7 @@ export function buildJobSql(dialect: Dialect): JobSql {
     // A run_now claim gates cadence only while it might still be live: past `runNowClaimStaleBeforeMs`
     // it can only be a claim whose process died mid-run, and the job must not stay paused for it.
     due:
-      `SELECT * FROM jobs WHERE enabled = ${dialect.param(1)} AND next_run_at <= ${dialect.param(2)} ` +
+      `${JOB_SELECT} WHERE enabled = ${dialect.param(1)} AND next_run_at <= ${dialect.param(2)} ` +
       `AND (run_now_token IS NULL OR run_now_claimed_at < ${dialect.param(3)}) ` +
       `ORDER BY next_run_at LIMIT ${dialect.param(4)}`,
     advance:
@@ -64,20 +86,30 @@ export function buildJobSql(dialect: Dialect): JobSql {
       `INSERT INTO jobs (${['id', ...JOB_COLS].join(', ')}) ` +
       `VALUES (${dialect.paramList(JOB_COLS.length + 1)}) ON CONFLICT (id) DO NOTHING`,
     put: dialect.upsert('jobs', { keys: ['id'], cols: [...JOB_COLS], rowCount: 1 }),
-    list: 'SELECT * FROM jobs ORDER BY next_run_at',
-    find: `SELECT * FROM jobs WHERE id = ${dialect.param(1)}`,
-    findByPrefix: `SELECT * FROM jobs WHERE id LIKE ${dialect.param(1)} ESCAPE '\\' ORDER BY id LIMIT ${dialect.param(2)}`,
+    list: `${JOB_SELECT} ORDER BY next_run_at`,
+    find: `${JOB_SELECT} WHERE jobs.id = ${dialect.param(1)}`,
+    findByPrefix: `${JOB_SELECT} WHERE jobs.id LIKE ${dialect.param(1)} ESCAPE '\\' ORDER BY jobs.id LIMIT ${dialect.param(2)}`,
     findOwnedByPrefix:
-      `SELECT * FROM jobs WHERE id LIKE ${dialect.param(1)} ESCAPE '\\' ` +
+      `${JOB_SELECT} WHERE jobs.id LIKE ${dialect.param(1)} ESCAPE '\\' ` +
       `AND user_id = ${dialect.param(2)} AND channel = ${dialect.param(3)} AND chat_id = ${dialect.param(4)} ` +
-      `ORDER BY id LIMIT ${dialect.param(5)}`,
+      `ORDER BY jobs.id LIMIT ${dialect.param(5)}`,
     remove: `DELETE FROM jobs WHERE id = ${dialect.param(1)}`,
     ...buildStateSql(dialect),
+    ...buildOwnedSql(dialect),
+    ...buildEventSql(dialect),
+    ...buildRunNowSql(dialect),
+  }
+}
+
+type OwnedSql = Pick<JobSql, 'listOwned' | 'findOwned' | 'pauseOwned' | 'resumeOwned'>
+
+function buildOwnedSql(dialect: Dialect): OwnedSql {
+  return {
     listOwned:
-      `SELECT * FROM jobs WHERE user_id = ${dialect.param(1)} AND channel = ${dialect.param(2)} ` +
+      `${JOB_SELECT} WHERE user_id = ${dialect.param(1)} AND channel = ${dialect.param(2)} ` +
       `AND chat_id = ${dialect.param(3)} ORDER BY next_run_at`,
     findOwned:
-      `SELECT * FROM jobs WHERE id = ${dialect.param(1)} AND user_id = ${dialect.param(2)} ` +
+      `${JOB_SELECT} WHERE jobs.id = ${dialect.param(1)} AND user_id = ${dialect.param(2)} ` +
       `AND channel = ${dialect.param(3)} AND chat_id = ${dialect.param(4)}`,
     pauseOwned:
       `UPDATE jobs SET enabled = 0, run_now_token = NULL, run_now_claimed_at = NULL ` +
@@ -87,7 +119,32 @@ export function buildJobSql(dialect: Dialect): JobSql {
       `UPDATE jobs SET enabled = 1, next_run_at = ${dialect.param(1)}, consecutive_failures = 0, ` +
       `run_now_token = NULL, run_now_claimed_at = NULL WHERE id = ${dialect.param(2)} ` +
       `AND user_id = ${dialect.param(3)} AND channel = ${dialect.param(4)} AND chat_id = ${dialect.param(5)}`,
-    ...buildRunNowSql(dialect),
+  }
+}
+
+type EventSql = Pick<JobSql, 'putTrigger' | 'matchEvent' | 'claimEventFire'>
+
+function buildEventSql(dialect: Dialect): EventSql {
+  return {
+    putTrigger: dialect.upsert('job_event_triggers', {
+      keys: ['job_id'],
+      cols: [...TRIGGER_COLS],
+      rowCount: 1,
+    }),
+    // A price job is tied to its alert; the others match the name the alert fired on, where an
+    // absent market or ticker on the trigger means any.
+    matchEvent:
+      `${JOB_SELECT} WHERE jobs.enabled = ${dialect.param(1)} AND t.event = ${dialect.param(2)} AND (` +
+      `(t.event = 'price' AND t.alert_id = ${dialect.param(3)}) OR ` +
+      `(t.event <> 'price' AND (t.market IS NULL OR t.market = ${dialect.param(4)}) ` +
+      `AND (t.ticker IS NULL OR t.ticker = ${dialect.param(5)}))) ORDER BY jobs.id`,
+    // One statement is the whole claim: the row is taken only when the last fire is a full
+    // cooldown old, so two alerts racing for one job cannot both win.
+    claimEventFire:
+      `INSERT INTO job_event_fires (job_id, fire_key, last_fired_at) ` +
+      `VALUES (${dialect.param(1)}, ${dialect.param(2)}, ${dialect.param(3)}) ` +
+      `ON CONFLICT (job_id, fire_key) DO UPDATE SET last_fired_at = excluded.last_fired_at ` +
+      `WHERE job_event_fires.last_fired_at <= ${dialect.param(4)}`,
   }
 }
 

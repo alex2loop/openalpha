@@ -148,6 +148,10 @@ function resolveEditedSchedule(options: {
   const cronExpr = flagString(options.args, 'cron')
   const every = flagString(options.args, 'every')
 
+  if (options.job.event !== undefined && (cronExpr ?? every ?? options.rawTimezone) !== undefined) {
+    return { kind: 'error', error: t(options.locale, 'cli.scheduleEventNoSchedule') }
+  }
+
   if (cronExpr !== undefined || every !== undefined) {
     const storedTimezone =
       options.job.schedule.kind === 'cron' ? options.job.schedule.timezone : undefined

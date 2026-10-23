@@ -469,7 +469,16 @@
     "agentInvalid": "Mình chưa lưu được agent này: {detail}",
     "agentIdTaken": "Mã định danh {id} đã có agent dùng rồi, bạn chọn mã khác nhé.",
     "agentNotEditable": "Agent {id} có sẵn trong hệ thống, trang này không sửa được.",
-    "agentReloadFailed": "Mình chưa đọc được thư mục agent nên giữ nguyên các agent đang chạy."
+    "agentReloadFailed": "Mình chưa đọc được thư mục agent nên giữ nguyên các agent đang chạy.",
+    "jobInvalid": "Mình chưa lưu được công việc này: {detail}"
+  },
+  "scheduler": {
+    "eventPrompt": "Việc này chạy vì {ticker} {what} lúc {time}: giá {price}.",
+    "event.stop": "thủng mức cắt lỗ",
+    "event.target": "chạm mức chốt lời",
+    "event.price": "chạm mức giá bạn đặt",
+    "event.mover": "biến động mạnh trong phiên",
+    "event.anyName": "một mã"
   },
   "pairing": {
     "needsAccess": "Chat này chưa được cấp quyền truy cập.",
@@ -1527,6 +1536,7 @@
     "scheduleCronFormat": "cron({expr}, {tz})",
     "scheduleIntervalFormat": "mỗi {duration}",
     "scheduleOnceFormat": "một lần@{time}",
+    "scheduleOnEvent": "khi {ticker} {what}",
     "scheduleFieldId": "id",
     "scheduleFieldAgent": "agent",
     "scheduleFieldEnabled": "bật",
@@ -1550,6 +1560,7 @@
     "scheduleTzCronOnly": "--tz chỉ áp dụng cho lịch --cron",
     "scheduleCronOrEveryRequired": "cần một trong --cron <expr> hoặc --every <duration>",
     "scheduleCantChangeAgent": "không thể đổi agent của công việc hiện có - xóa và tạo lại",
+    "scheduleEventNoSchedule": "công việc theo sự kiện không có lịch để đổi - xóa và tạo lại",
     "scheduleUpdated": "đã cập nhật {id}",
     "scheduleRemoveUsage": "schedule remove <id>",
     "scheduleRemoved": "đã xóa {id}",

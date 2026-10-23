@@ -1,8 +1,15 @@
 import type { ChannelId } from '@/core/channels'
 import type { AgentId, JobId, UserId } from '@/core/ids'
+import type {
+  EventRow,
+  StoredEventFire,
+  StoredEventMatch,
+  StoredJobEvent,
+} from '@/persistence/stores/scheduler/job/event'
 import { channelId } from '@/core/channels'
 import { StorageError } from '@/core/errors'
 import { agentId, jobId, userId } from '@/core/ids'
+import { toJobEvent } from '@/persistence/stores/scheduler/job/event'
 
 const ENABLED = 1
 
@@ -33,6 +40,7 @@ export interface StoredJob {
   readonly nextRunAt: number
   readonly consecutiveFailures: number
   readonly owner?: StoredJobOwner
+  readonly event?: StoredJobEvent
 }
 
 export interface StoredJobStore {
@@ -66,10 +74,12 @@ export interface StoredJobStore {
     claimedAtMs: number
   ): Promise<StoredJob | undefined>
   releaseRunNowClaimOwned(owner: StoredJobOwner, id: JobId, token: string): Promise<void>
+  matchEvent(match: StoredEventMatch): Promise<readonly StoredJob[]>
+  claimEventFire(fire: StoredEventFire): Promise<boolean>
   clearRunNowClaims(claimedBeforeMs: number): Promise<void>
 }
 
-export interface JobRow {
+export interface JobRow extends EventRow {
   readonly id: string
   readonly agent_id: string
   readonly prompt: string
@@ -145,6 +155,7 @@ function toStoredJob(row: JobRow): StoredJob {
     nextRunAt: number
     consecutiveFailures: number
     owner?: StoredJobOwner
+    event?: StoredJobEvent
   } = {
     id: jobId(row.id),
     agentId: agentId(row.agent_id),
@@ -171,6 +182,12 @@ function toStoredJob(row: JobRow): StoredJob {
 
   if (owner !== undefined) {
     job.owner = owner
+  }
+
+  const event = toJobEvent(row)
+
+  if (event !== undefined) {
+    job.event = event
   }
 
   return job

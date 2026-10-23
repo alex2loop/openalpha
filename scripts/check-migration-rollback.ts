@@ -22,6 +22,9 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const TRIGGERS_MIGRATION_ID = '2026_10_24_052558_add_job_event_triggers'
+const EVENT_PARKED_AT = 8_640_000_000_000_000
+const TRIGGER_TABLES = ['job_event_triggers', 'job_event_fires'] as const
 const NOTICES_MIGRATION_ID = '2026_10_24_012442_add_notices'
 const NOTICES_TABLE = 'notices'
 const NOTICES_INDEX = 'idx_notices_created_at'
@@ -184,6 +187,47 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
+/** A parked event job is only a job together with its trigger, so the jobs that have one go with
+ *  the tables and a plain schedule survives. */
+async function assertTriggersRollback(db: Storage): Promise<void> {
+  assertState(
+    (await Promise.all(TRIGGER_TABLES.map((table) => hasTable(db, table)))).every(Boolean),
+    'trigger migration did not add both tables'
+  )
+
+  const insertJob =
+    'INSERT INTO jobs (id, agent_id, prompt, schedule_kind, run_at, next_run_at, created_at) ' +
+    "VALUES (?1, 'chat', 'p', 'once', ?2, ?2, ?3)"
+
+  await db.execute(insertJob, ['event-job', EVENT_PARKED_AT, APPLIED_AT_MS])
+  await db.execute(insertJob, ['plain-job', APPLIED_AT_MS, APPLIED_AT_MS])
+  await db.execute(
+    'INSERT INTO job_event_triggers (job_id, event, cooldown_ms, created_at) ' +
+      "VALUES ('event-job', 'target', 300000, ?1)",
+    [APPLIED_AT_MS]
+  )
+  await db.execute(
+    "INSERT INTO job_event_fires (job_id, fire_key, last_fired_at) VALUES ('event-job', '*', ?1)",
+    [APPLIED_AT_MS]
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: TRIGGERS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const kept = await db.query<{ readonly id: string }>('SELECT id FROM jobs ORDER BY id')
+
+  assertState(rolledBack.kind === 'rolled_back', 'trigger rollback did not complete')
+  assertState(
+    (await Promise.all(TRIGGER_TABLES.map((table) => hasTable(db, table)))).every((has) => !has),
+    'trigger rollback kept a table'
+  )
+  assertState(
+    kept.length === 1 && kept[0]?.id === 'plain-job',
+    'trigger rollback kept a parked event job or dropped a plain one'
+  )
+}
+
 /** The notice log goes with its table and its one index. */
 async function assertNoticesRollback(db: Storage): Promise<void> {
   assertState(await hasTable(db, NOTICES_TABLE), 'notices migration did not add the table')
@@ -239,6 +283,7 @@ async function main(): Promise<void> {
   await assertDownCoversUp(`${TRADING_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${RUNS_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${NOTICES_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${TRIGGERS_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -249,6 +294,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertTriggersRollback(db)
     await assertNoticesRollback(db)
     await assertRunsRollback(db)
     await assertCashFlowSourceRollback(db)

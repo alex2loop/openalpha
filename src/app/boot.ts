@@ -19,6 +19,7 @@ import { createAgentLogsProvider } from '@/app/agent-registry'
 import { loadAssets } from '@/app/assets'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
+import { createAlertFiredListener } from '@/app/event-jobs'
 import { createTradingNoticeSender } from '@/app/notice-sender'
 import { buildProviders } from '@/app/providers'
 import { assertSocialToolRules, createSocialProvider } from '@/app/social'
@@ -216,6 +217,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
         }),
       // The bus isolates a handler that throws, so a page that cannot take the event never fails a booking.
       onFilled: (app) => (fill) => app.resolve('bus').emit('order_filled', fill),
+      onAlertFired: createAlertFiredListener,
       onAlertsChecked: (app) => (at) => app.resolve('bus').emit('alerts_checked', { at }),
       onTaskPass: (app) => app.resolve('taskStatus').listener,
       recipient: () => input.delivery.defaultRecipient(),

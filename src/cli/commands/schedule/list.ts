@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { Job, JobSchedule } from '@/scheduler/api'
+import type { Job } from '@/scheduler/api'
 import { type Command, createCommand } from '@/cli/command'
 import { hint, style, success } from '@/cli/ui/colors'
 import { formatLongDuration } from '@/core/utils/duration'
@@ -27,7 +27,17 @@ export const scheduleListCommand: Command = createCommand({
   },
 })
 
-export function formatSchedule(schedule: JobSchedule, locale: Locale, timezone: string): string {
+export function formatSchedule(job: Job, locale: Locale, timezone: string): string {
+  const { event, schedule } = job
+
+  // An event job's stored time is a parking slot, never a time to show.
+  if (event !== undefined) {
+    return t(locale, 'cli.scheduleOnEvent', {
+      ticker: event.ticker ?? t(locale, 'scheduler.event.anyName'),
+      what: t(locale, `scheduler.event.${event.event}`),
+    })
+  }
+
   if (schedule.kind === 'cron') {
     return t(locale, 'cli.scheduleCronFormat', { expr: schedule.expr, tz: schedule.timezone })
   }
@@ -48,5 +58,5 @@ function formatJobLine(job: Job, locale: Locale, timezone: string): string {
       ? `${job.prompt.slice(0, PROMPT_PREVIEW_CHARS)}...`
       : job.prompt
 
-  return `${dot} ${job.id}  [${job.agentId}]  ${formatSchedule(job.schedule, locale, timezone)}  -> ${preview}`
+  return `${dot} ${job.id}  [${job.agentId}]  ${formatSchedule(job, locale, timezone)}  -> ${preview}`
 }

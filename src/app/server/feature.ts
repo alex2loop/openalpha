@@ -10,6 +10,7 @@ import { AGENT_EDIT_ROUTES } from '@/app/server/routes/agent-edit'
 import { AGENT_ROUTES } from '@/app/server/routes/agents'
 import { CHAT_ROUTES } from '@/app/server/routes/chat'
 import { CONFIG_ROUTES } from '@/app/server/routes/config'
+import { JOB_ROUTES } from '@/app/server/routes/jobs'
 import { MARKET_ROUTES } from '@/app/server/routes/market'
 import { MCP_ROUTES } from '@/app/server/routes/mcp'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
@@ -43,6 +44,7 @@ const ROUTES = [
   ...NOTICE_ROUTES,
   ...ORDER_ROUTES,
   ...TASK_ROUTES,
+  ...JOB_ROUTES,
 ] as const
 
 // The HTTP/WS API: the last canonical provider (src/app/providers.ts); the daemon starts it only

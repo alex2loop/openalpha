@@ -231,7 +231,7 @@ function nextRunAfterResume(job: Job, now: number): number {
 }
 
 async function runJobNow(options: RunJobOperation): Promise<SchedulerCommandResult> {
-  const { deps, owner, idOrPrefix, requestId, signal } = options
+  const { deps, owner, idOrPrefix, requestId, signal, appendPrompt } = options
   const resolved =
     owner === undefined
       ? await resolveAnyJob(deps, idOrPrefix)
@@ -247,13 +247,16 @@ async function runJobNow(options: RunJobOperation): Promise<SchedulerCommandResu
     return { kind: 'rejected' }
   }
 
-  return await admitClaimedJob({
+  const result = await admitClaimedJob({
     deps,
-    job,
+    job: appendPrompt === undefined ? job : { ...job, prompt: `${job.prompt}\n\n${appendPrompt}` },
     requestId,
     signal,
     ...(owner === undefined ? {} : { owner }),
   })
+
+  // The caller gets the job as stored, not as this one run read it.
+  return result.kind === 'job' ? { kind: 'job', job } : result
 }
 
 async function claimRun(options: RunJobOperation, job: Job): Promise<Job | undefined> {
@@ -353,8 +356,29 @@ async function removeJob(
   }
 
   await deps.scheduler.jobStore.remove(job.id)
+  await retireEventAlert(deps, job)
 
   return { kind: 'job', job }
+}
+
+// A price job armed an alert of its own; the alert goes with the job, from whichever surface
+// removed it. A failure is logged, not raised: the job is already gone and the alert would only
+// send its one notice.
+async function retireEventAlert(deps: SchedulerCommandDeps, job: Job): Promise<void> {
+  const alertId = job.event?.alertId
+
+  if (alertId === undefined || deps.scheduler.onEventJobRemoved === undefined) {
+    return
+  }
+
+  try {
+    await deps.scheduler.onEventJobRemoved(alertId)
+  } catch (err: unknown) {
+    deps.scheduler.logger.warn('scheduler.event_alert_disable_failed', {
+      jobId: job.id,
+      err: formatErrForLog(err),
+    })
+  }
 }
 
 async function resolveOwnedJob(options: OwnedJobOperation): Promise<SchedulerCommandResult> {

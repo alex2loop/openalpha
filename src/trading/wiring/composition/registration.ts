@@ -5,7 +5,11 @@ import type { RefreshMarketData } from '@/trading/features/market-data/ops/refre
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type {
+  AlertFiredListener,
+  OrderFilledListener,
+  TradingNoticeSender,
+} from '@/trading/kernel/operator/notice'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
@@ -78,6 +82,8 @@ interface TradingRegistrationOptions {
   sender(app: App): TradingNoticeSender
   /** Bound with the app in hand, like the sender: showing a fill needs the bus. */
   onFilled(app: App): OrderFilledListener
+  /** Bound with the app in hand: starting a job that waits on an alert needs the scheduler. */
+  onAlertFired(app: App): AlertFiredListener
   /** Bound with the app in hand: telling the page an alert pass finished needs the bus. */
   onAlertsChecked(app: App): (at: number) => void
   /** Bound with the app in hand: the page shows each loop's last and next pass. */
@@ -93,10 +99,11 @@ interface TradingRegistrationOptions {
  *  reads them themselves. */
 type BoundOptions = Omit<
   TradingRegistrationOptions,
-  'sender' | 'onFilled' | 'onAlertsChecked' | 'onTaskPass'
+  'sender' | 'onFilled' | 'onAlertFired' | 'onAlertsChecked' | 'onTaskPass'
 > & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
+  readonly onAlertFired: AlertFiredListener
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
 }
@@ -269,6 +276,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     ...provided,
     sender: provided.sender(app),
     onFilled: provided.onFilled(app),
+    onAlertFired: provided.onAlertFired(app),
     onAlertsChecked: provided.onAlertsChecked(app),
     onTaskPass: provided.onTaskPass(app),
   }
@@ -328,6 +336,7 @@ function buildServices(
     logger,
     sender: options.sender,
     onFilled: options.onFilled,
+    onAlertFired: options.onAlertFired,
     config: options.tradingConfig,
     // Composed here rather than passed in: the debate reads the closed market registry, which does
     // not exist until this function has built it.

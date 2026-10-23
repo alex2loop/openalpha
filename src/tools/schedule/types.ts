@@ -45,8 +45,11 @@ export interface ScopedJobRow {
   readonly id: JobId
   readonly status: ScopedJobStatus
   readonly prompt: string
-  readonly nextRunAt: number
+  /** Absent on an event job, which runs when an alert fires and has no time of its own. */
+  readonly nextRunAt?: number
   readonly cronExpr?: string
+  /** What starts an event job. */
+  readonly onEvent?: 'stop' | 'target' | 'price' | 'mover'
 }
 
 // core/tool.ts declares `ToolServices` empty so that core keeps no edge to engine or tools.

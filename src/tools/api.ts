@@ -10,4 +10,12 @@ export type {
   ScopedNewJobSchedule,
 } from '@/tools/schedule/types'
 export { SCHEDULER_MAX_JOBS } from '@/tools/schedule/policy'
+export {
+  assertInterval,
+  assertJobPrompt,
+  assertKnownAgent,
+  assertValidCron,
+  resolveOnceAt,
+  resolveTimezone,
+} from '@/tools/schedule/validate'
 export { toolsProvider } from '@/tools/services'

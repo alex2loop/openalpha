@@ -23,7 +23,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { AlertId } from '@/trading/kernel/operator/alert'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { AlertFiredListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
@@ -61,6 +61,8 @@ interface AlertServiceDeps {
   /** Delivery language. With one operator it can only ever be `[locale] language`, so it is read
    *  at send time rather than frozen onto each alert when it was armed. */
   readonly defaultLocale: Locale
+  /** Told once per alert as its first send starts; a job that runs on a crossing hangs off it. */
+  readonly onAlertFired: AlertFiredListener
   /** The arming passes read the book and the plans behind it; both arm through this same service,
    *  which is why they are its dependencies rather than services of their own. */
   readonly suggestions: SuggestionStore

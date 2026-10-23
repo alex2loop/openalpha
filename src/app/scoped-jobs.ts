@@ -100,7 +100,8 @@ export function createScopedJobStore(app: App): ScopedJobStore {
         throw new ToolError('invalid_input', `no job ${id}`)
       }
 
-      await app.resolve('jobStore').remove(id)
+      // Through the scheduler like every other removal: it stops a run and retires a price job's alert.
+      await app.resolve('schedulerCommands').removeAny(id)
     },
   }
 }
@@ -110,7 +111,7 @@ function toScopedRow(job: Job, now: number): ScopedJobRow {
     id: job.id,
     status: toJobStatus(job, now),
     prompt: job.prompt,
-    nextRunAt: job.nextRunAt,
+    ...(job.event === undefined ? { nextRunAt: job.nextRunAt } : { onEvent: job.event.event }),
     ...(job.schedule.kind === 'cron' ? { cronExpr: job.schedule.expr } : {}),
   }
 }
@@ -121,6 +122,11 @@ function toScopedRow(job: Job, now: number): ScopedJobRow {
 function toJobStatus(job: Job, now: number): ScopedJobStatus {
   if (job.enabled) {
     return 'scheduled'
+  }
+
+  // An event job's time is never reached; a price one is spent by its single crossing.
+  if (job.event !== undefined) {
+    return job.event.event === 'price' ? 'done' : 'paused'
   }
 
   return job.schedule.kind === 'once' && job.nextRunAt <= now ? 'done' : 'paused'

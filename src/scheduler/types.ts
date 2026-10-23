@@ -4,6 +4,7 @@ import type { TaskPassListener } from '@/core/container'
 import type { AgentId, JobId, UserId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { RunInput, Runner, RunResult } from '@/engine/api'
+import type { EventFireClaim, EventJobMatch, JobEvent } from '@/scheduler/event/types'
 
 export interface DeliverySink {
   notify(target: DeliveryTarget, text: string): Promise<void>
@@ -37,6 +38,8 @@ export interface Job {
   readonly nextRunAt: number
   readonly consecutiveFailures: number
   readonly owner?: JobOwner
+  /** Set on an event job, which runs when an alert fires and has no time of its own. */
+  readonly event?: JobEvent
 }
 
 export interface JobStore {
@@ -69,6 +72,10 @@ export interface JobStore {
   ): Promise<Job | undefined>
   releaseRunNowClaimOwned(owner: JobOwner, id: JobId, token: string): Promise<void>
   clearRunNowClaims(claimedBeforeMs: number): Promise<void>
+  /** Enabled event jobs this alert starts. */
+  matchEvent(match: EventJobMatch): Promise<readonly Job[]>
+  /** True when the job's last fire is a full cooldown old, and records this one in the same step. */
+  claimEventFire(claim: EventFireClaim): Promise<boolean>
 }
 
 export type SchedulerCommandResult =
@@ -83,6 +90,8 @@ export interface SchedulerRunNowInput {
   readonly owner?: JobOwner
   readonly idOrPrefix: string
   readonly requestId: string
+  /** Added to the job's prompt for this run only. The caller has rendered and validated it. */
+  readonly appendPrompt?: string
   /** Cancels the run. The daemon passes its shutdown signal; the CLI passes the command's. */
   readonly signal: AbortSignal
 }
@@ -191,4 +200,6 @@ export interface SchedulerDeps {
   readonly defaultTarget: () => DeliveryTarget | undefined
   /** Where disabled-job alerts go, independently from the job's potentially broken target. */
   readonly failureTarget: () => DeliveryTarget | undefined
+  /** Told when an event job is removed, with the alert it was armed with. */
+  readonly onEventJobRemoved?: (alertId: string) => Promise<void>
 }

@@ -101,3 +101,22 @@ export function parseOptionalInstrument(query: URLSearchParams): InstrumentRef |
 
   return named ? parseInstrument(query) : undefined
 }
+
+/** A name as a surface types it: the ticker, and the market when it said which. `null` when either
+ *  is malformed (400). */
+export function parseTickerRequest(raw: {
+  readonly ticker: string
+  readonly market?: string | undefined
+}): {
+  readonly ticker: ReturnType<typeof ticker>
+  readonly market?: ReturnType<typeof marketRef>
+} | null {
+  try {
+    return {
+      ticker: ticker(raw.ticker),
+      ...(raw.market === undefined ? {} : { market: marketRef(raw.market) }),
+    }
+  } catch {
+    return null
+  }
+}

@@ -175,7 +175,8 @@ interface SettleStalledJobOptions {
 async function settleStalledJob(options: SettleStalledJobOptions): Promise<void> {
   const { job, deps, outcome, now } = options
 
-  if (job.schedule.kind !== 'once') {
+  // An event job has no occurrence to lose: it settles the way a finished run does.
+  if (job.schedule.kind !== 'once' || job.event !== undefined) {
     await advanceJob(job, deps, now)
     return
   }
@@ -362,7 +363,12 @@ async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Pro
   await finishRunNow(deps, runId, outcome)
 
   // Run-now leaves the schedule untouched; without this a `once` job fires again when it comes due.
-  if (outcome.status === 'success' && job.schedule.kind === 'once') {
+  // A price job is spent by its one crossing whether or not the run succeeded: no later alert will
+  // start it again.
+  if (
+    job.event?.event === 'price' ||
+    (outcome.status === 'success' && job.schedule.kind === 'once')
+  ) {
     await advanceJob(job, deps, now).catch((err: unknown) => {
       deps.logger.warn('scheduler.run_now_advance_failed', {
         jobId: job.id,

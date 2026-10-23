@@ -25,9 +25,10 @@ import {
   parseLimit,
   parseOptionalBranded,
   parsePathId,
+  parseTickerRequest,
 } from '@/app/server/routes/params'
 import { cachedScreen } from '@/app/server/routes/screen-cache'
-import { alertId, marketRef, region, SURFACE_LIMITS, TYPED_PRICES, ticker } from '@/trading/api'
+import { alertId, marketRef, region, SURFACE_LIMITS, TYPED_PRICES } from '@/trading/api'
 
 /** The kinds a screen can be narrowed to; the host refuses a market that holds no such kind. */
 const SCREEN_KINDS: ReadonlySet<string> = new Set<InstrumentKind>(['equity', 'etf', 'crypto'])
@@ -176,23 +177,6 @@ async function handleAlertDisable(req: Request, ctx: ApiRouteContext): Promise<R
   const result = await hostOf(ctx).disableAlert({ alertId: id, signal: req.signal })
 
   return json({ result } satisfies AlertDisableResponse)
-}
-
-function parseTickerRequest(raw: {
-  readonly ticker: string
-  readonly market?: string | undefined
-}): {
-  readonly ticker: ReturnType<typeof ticker>
-  readonly market?: ReturnType<typeof marketRef>
-} | null {
-  try {
-    return {
-      ticker: ticker(raw.ticker),
-      ...(raw.market === undefined ? {} : { market: marketRef(raw.market) }),
-    }
-  } catch {
-    return null
-  }
 }
 
 export const MARKET_ROUTES = [

@@ -1,6 +1,7 @@
 import type { JobId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage } from '@/core/types/storage'
+import type { StoredEventFire, StoredEventMatch } from '@/persistence/stores/scheduler/job/event'
 import type {
   JobRow,
   StoredJob,
@@ -10,6 +11,7 @@ import type {
 import type { JobSql } from '@/persistence/stores/scheduler/job/sql'
 import { formatErrForLog } from '@/core/security/credentials'
 import { toLikePrefixPattern } from '@/persistence/sql/like-escape'
+import { toTriggerParams } from '@/persistence/stores/scheduler/job/event'
 import { ownerParams, toJob, toJobParams } from '@/persistence/stores/scheduler/job/mapping'
 import { buildJobSql } from '@/persistence/stores/scheduler/job/sql'
 
@@ -27,11 +29,75 @@ type OwnedJobMethods =
   | 'releaseRunNowClaimOwned'
   | 'clearRunNowClaims'
 
+type EventJobMethods = 'matchEvent' | 'claimEventFire'
+
 export function createJobStore(db: Storage, dialect: Dialect, logger: Logger): StoredJobStore {
   const sql = buildJobSql(dialect)
   return {
     ...createSchedulerOperations(db, sql, logger),
     ...createOwnedOperations(db, sql, logger),
+    ...createEventOperations(db, sql, logger),
+  }
+}
+
+interface JobWrite {
+  readonly job: StoredJob
+  /** `create` leaves a row that is already there alone and says so; `put` replaces it. */
+  readonly insertOnly: boolean
+}
+
+// An event job is the row and its trigger, so the two land together or not at all.
+async function writeJob(db: Storage, sql: JobSql, write: JobWrite): Promise<boolean> {
+  const { job, insertOnly } = write
+  const now = Date.now()
+  const statement = insertOnly ? sql.create : sql.put
+  const { event } = job
+
+  if (event === undefined) {
+    return (await db.execute(statement, toJobParams(job, now))).changes > 0
+  }
+
+  return await db.transaction(async (tx) => {
+    const result = await tx.execute(statement, toJobParams(job, now))
+
+    if (insertOnly && result.changes === 0) {
+      return false
+    }
+
+    await tx.execute(sql.putTrigger, toTriggerParams(job.id, event, now))
+
+    return true
+  })
+}
+
+function createEventOperations(
+  db: Storage,
+  sql: JobSql,
+  logger: Logger
+): Pick<StoredJobStore, EventJobMethods> {
+  return {
+    async matchEvent(match: StoredEventMatch): Promise<readonly StoredJob[]> {
+      const rows = await db.query<JobRow>(sql.matchEvent, [
+        ENABLED,
+        match.event,
+        match.alertId,
+        match.market,
+        match.ticker,
+      ])
+
+      return mapJobs(rows, logger)
+    },
+
+    async claimEventFire(fire: StoredEventFire): Promise<boolean> {
+      const result = await db.execute(sql.claimEventFire, [
+        fire.jobId,
+        fire.fireKey,
+        fire.firedAt,
+        fire.firedAt - fire.cooldownMs,
+      ])
+
+      return result.changes > 0
+    },
   }
 }
 
@@ -57,7 +123,7 @@ function createSchedulerOperations(
   db: Storage,
   sql: JobSql,
   logger: Logger
-): Omit<StoredJobStore, OwnedJobMethods> {
+): Omit<StoredJobStore, OwnedJobMethods | EventJobMethods> {
   return {
     async due(
       nowMs: number,
@@ -85,13 +151,10 @@ function createSchedulerOperations(
       await db.execute(sql.deferRetry, [failures, nextRunAt, id])
     },
 
-    async create(job: StoredJob): Promise<boolean> {
-      const result = await db.execute(sql.create, toJobParams(job, Date.now()))
-      return result.changes > 0
-    },
+    create: (job: StoredJob): Promise<boolean> => writeJob(db, sql, { job, insertOnly: true }),
 
     async put(job: StoredJob): Promise<void> {
-      await db.execute(sql.put, toJobParams(job, Date.now()))
+      await writeJob(db, sql, { job, insertOnly: false })
     },
 
     ...createStateOperations(db, sql),

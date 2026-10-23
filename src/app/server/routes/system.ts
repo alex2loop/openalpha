@@ -14,6 +14,7 @@ import { createTokenFile, findProviderById } from '@/ai/api'
 import { apiTokenPath } from '@/app/server/http/auth'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { toScheduleRowWire } from '@/app/server/mappers/jobs'
 import { readBriefSchedule } from '@/app/server/routes/brief-schedule'
 import { localeOf } from '@/app/server/routes/params'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
@@ -53,9 +54,9 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     version: BRAND.version,
     health: { running: true, pid: process.pid },
     cost: { todayUsd },
-    // Job carries `id` plus fields the client passes through verbatim; the spread produces the
-    // open shape ScheduleRow declares (an interface has no implicit index signature).
-    schedules: jobs.map((job) => ({ ...job })),
+    // Job carries `id` plus fields the client passes through verbatim; an event job goes out with
+    // `event` and without the time it is parked at.
+    schedules: jobs.map(toScheduleRowWire),
     capabilities: buildCapabilities(app),
     timeZone: app.config.locale.timezone,
     locale: app.config.locale.language,

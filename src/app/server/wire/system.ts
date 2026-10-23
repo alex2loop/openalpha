@@ -1,6 +1,7 @@
 // The /v1 system routes: health, state, doctor, commands and cost. camelCase keys, no snake_case
 // on the wire. A contract is replaced rather than deprecated; see CONTRACT.md §2.
 
+import type { JobEventWire } from '@/app/server/wire/jobs'
 import type { Locale } from '@/core/types/locale'
 
 /** Sections whose backing store may not exist yet — the client greys the unbuilt tab instead of
@@ -61,13 +62,15 @@ interface CostSection {
 /** Scheduler rows pass through verbatim; the client reads `id` + whatever fields exist. The exact
  *  columns live in the scheduler store — deliberately open so the schedule shape can grow without a
  *  contract bump. Timestamp fields (e.g. `nextRunAt`) are epoch milliseconds. */
-interface ScheduleRow {
+export interface ScheduleRow {
   readonly id: string | number
   /** When the job fires, as the scheduler stores it; the app words it ("Sun 20:00", "every 2 h"). */
   readonly schedule?:
     | { readonly kind: 'cron'; readonly expr: string; readonly timezone: string }
     | { readonly kind: 'interval'; readonly everyMs: number }
     | { readonly kind: 'once'; readonly at: number }
+  /** Set on a job that runs when an alert fires. Such a job has no `schedule` and no `nextRunAt`. */
+  readonly event?: JobEventWire
   readonly [field: string]: unknown
 }
 

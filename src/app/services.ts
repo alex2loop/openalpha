@@ -22,6 +22,7 @@ import type {
   Runner,
 } from '@/engine/api'
 import type { HeartbeatRunInput, Job, SchedulerTaskDeps } from '@/scheduler/api'
+import { createAlertRetirer } from '@/app/event-jobs'
 import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
 import { createTaskStatusBoard } from '@/app/task-status'
@@ -244,6 +245,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
     renderPartialNotice: (result) => formatRunResultBody(result, app.config.locale.language),
     defaultTarget: () => delivery.defaultRecipient(),
     failureTarget: () => app.config.schedule.failureTarget ?? delivery.defaultRecipient(),
+    onEventJobRemoved: createAlertRetirer(app),
     heartbeat: {
       agents,
       runner: app.resolve('runner'),
