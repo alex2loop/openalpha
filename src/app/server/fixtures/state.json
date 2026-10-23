@@ -31,6 +31,15 @@
       }
     },
     {
+      "id": "stop-watch",
+      "name": "Re-read a name that breaks its stop",
+      "enabled": true,
+      "event": {
+        "event": "stop",
+        "cooldownMs": 7200000
+      }
+    },
+    {
       "id": "news-sweep",
       "nextRunAt": 1722503000000,
       "schedule": {

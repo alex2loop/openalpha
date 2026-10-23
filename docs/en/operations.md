@@ -139,6 +139,13 @@ again.
 `--allow-tools` restricts the job to the tools on *both* lists: the agent's allowed tools and the
 job's. `schedule show` prints the effective set with `(restricted)` or `(all)`.
 
+A job can wait for an alert instead of a time. The web page creates these: the job runs when a held
+name breaks its stop or reaches its take-profit, when a name moves sharply in the session, or when a
+price you set is hit. It runs at most once per cooldown (five minutes at least) and stays on after a
+run, except a price job, which its one crossing spends. `schedule list` shows it as `when FPT hit the
+price you set` where other jobs show a time, `schedule edit` cannot give it a time, and `schedule
+remove` also removes the price alert it armed.
+
 Cron takes five fields with wildcards, ranges, steps (`*/15`, `1-5/2`) and comma lists. When both
 day-of-month and weekday are restricted, **either** match is enough; a day field that starts with `*`
 (such as `*/2`) counts as unrestricted, so it must match along with the other. Cron uses an IANA

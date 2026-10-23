@@ -1,0 +1,14 @@
+{
+  "id": "0b8f9c52-6f64-4b8a-9d0e-5d3f8f6f2a11",
+  "agentId": "chat",
+  "prompt": "Re-read FPT and say whether the thesis still holds.",
+  "enabled": true,
+  "consecutiveFailures": 0,
+  "event": {
+    "event": "price",
+    "ticker": "FPT",
+    "condition": "above",
+    "threshold": 132000,
+    "cooldownMs": 7200000
+  }
+}

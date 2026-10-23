@@ -52,7 +52,7 @@ Nếu một bảng giao dịch biến mất sau khi reset, nghĩa là migration 
 | `bindings`, `pairings` | Bí danh định tuyến chat và trạng thái ghép nối kênh. |
 | `channel_state` | Mốc tiến độ của kênh: offset polling và tuyến phiên chat. |
 | `channel_inbox` | Hàng đợi tin đến và số lần thử lại; nội dung của các mục đã xong hoặc đã hỏng; câu trả lời của phiên chạy đã xong nhưng lần gửi cuối bị lỗi. |
-| `jobs`, `scheduler_runs`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các lần chạy, tiến độ heartbeat và các cam kết hoãn lại. |
+| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các lần chạy, điều kiện kích hoạt của việc chờ cảnh báo cùng lần chạy gần nhất cho từng mã, tiến độ heartbeat và các cam kết hoãn lại. |
 | `memory_kv` | Bộ nhớ agent. SQLite thêm tìm kiếm FTS5; PostgreSQL dùng các tiện ích text-search. |
 
 Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundamental_snapshots`,
@@ -229,7 +229,7 @@ cũng được.
   dòng sai định dạng sẽ rollback mọi bảng đã nhập. Vì vậy không có trạng thái dở dang, không có
   `--force`, và chạy lại sau khi sửa tệp luôn an toàn.
 - Các bảng được ghi theo thứ tự cố định để khóa ngoại không từ chối: `sessions` trước `session_messages`
-  và `llm_attempts`, `jobs` trước `scheduler_runs`.
+  và `llm_attempts`, `jobs` trước `scheduler_runs`, `job_event_triggers` và `job_event_fires`.
 - Tên cột lấy từ tệp và phải khớp một mẫu tên hợp lệ. Tên đúng mẫu mà không khớp cột nào thì bị engine
   từ chối, và engine nêu rõ tên đó.
 

@@ -135,6 +135,13 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 `--allow-tools` giới hạn việc đó vào những công cụ có ở **cả hai** danh sách: công cụ agent được phép
 và công cụ của việc. `schedule show` in tập hiệu lực kèm `(restricted)` hoặc `(all)`.
 
+Một việc có thể chờ một cảnh báo thay vì chờ giờ. Trang web tạo loại này: việc chạy khi mã bạn đang
+giữ thủng mức cắt lỗ hoặc chạm mức chốt lời, khi một mã biến động mạnh trong phiên, hay khi giá bạn
+đặt được chạm. Việc chạy tối đa một lần mỗi khoảng chờ (ít nhất năm phút) và vẫn bật sau khi chạy,
+trừ việc theo giá: một lần chạm là hết. `schedule list` ghi nó là `khi FPT chạm mức giá bạn đặt`
+thay cho giờ, `schedule edit` không đặt giờ cho nó được, và `schedule remove` gỡ luôn cảnh báo giá nó
+đã đặt.
+
 Cron nhận năm trường, hỗ trợ ký tự đại diện, khoảng, bước (`*/15`, `1-5/2`) và danh sách ngăn bằng dấu
 phẩy. Khi cả ngày-trong-tháng lẫn thứ-trong-tuần đều bị giới hạn, khớp **một trong hai** là đủ; trường
 ngày bắt đầu bằng `*` (như `*/2`) được coi là không giới hạn, nên phải khớp cùng trường kia. Cron dùng

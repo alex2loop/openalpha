@@ -53,7 +53,7 @@ mean `db stats` is hiding a failed migration.
 | `bindings`, `pairings` | Chat routing aliases and channel pairing state. |
 | `channel_state` | Channel checkpoints: poll offsets and session routes. |
 | `channel_inbox` | Inbound queue and retries; payloads of completed or failed entries; a finished run's answer when its final send failed. |
-| `jobs`, `scheduler_runs`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, heartbeat progress and deferred commitments. |
+| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, what starts a job that waits for an alert and when it last ran for each name, heartbeat progress and deferred commitments. |
 | `memory_kv` | Agent memory. SQLite adds FTS5 search; PostgreSQL uses its text-search facilities. |
 
 Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots`,
@@ -232,7 +232,7 @@ empty data directory.
   is written, and a malformed line rolls back every table that already landed. There is no partial
   state, no `--force`, and re-running after fixing the file is always safe.
 - Tables are written in a fixed order so foreign keys hold: `sessions` before `session_messages`
-  and `llm_attempts`, `jobs` before `scheduler_runs`.
+  and `llm_attempts`, `jobs` before `scheduler_runs`, `job_event_triggers` and `job_event_fires`.
 - Column names come from the file and must match an identifier pattern. A well-formed name that
   matches no column is rejected by the engine, which names it.
 
