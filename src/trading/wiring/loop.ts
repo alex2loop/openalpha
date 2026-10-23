@@ -4,6 +4,7 @@ import type { DaemonTask, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { OperationsPolicy } from '@/trading/kernel/config'
 import { type MissingEnvError, missingEnvOf } from '@/core/config/resolve'
+import { notifyPass } from '@/core/container'
 import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
@@ -102,7 +103,7 @@ async function runPass(
 ): Promise<number | undefined> {
   const at = Date.now()
   const report = (phase: 'start' | 'end', extra: PassDetail): void =>
-    spec.onTaskPass({
+    notifyPass(spec.onTaskPass, {
       name: spec.name,
       phase,
       at,
@@ -120,10 +121,11 @@ async function runPass(
       return undefined
     }
 
-    const delayMs = spec.nextDelayMs(Date.now())
+    const now = Date.now()
+    const delayMs = spec.nextDelayMs(now)
 
     detail = {
-      nextAt: Date.now() + delayMs,
+      nextAt: now + delayMs,
       ...(outcome.error === undefined ? {} : { error: outcome.error }),
     }
 
@@ -183,7 +185,7 @@ function reportOffline(spec: LoopSpec): void {
   const { reachabilityHost, offlineRetryMs } = spec.reachability
   const at = Date.now()
 
-  spec.onTaskPass({
+  notifyPass(spec.onTaskPass, {
     name: spec.name,
     phase: 'end',
     at,

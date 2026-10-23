@@ -90,6 +90,16 @@ export interface TaskPass {
 
 export type TaskPassListener = (pass: TaskPass) => void
 
+/** Tells the listener of a pass. A listener that throws must never fail or mask the pass it
+ *  watches, and core has no logger to say so with, so its failure is dropped. */
+export function notifyPass(listener: TaskPassListener, pass: TaskPass): void {
+  try {
+    listener(pass)
+  } catch {
+    // A status display is not worth a pass.
+  }
+}
+
 interface ReportedPassSpec {
   readonly name: string
   readonly everyMs: number
@@ -108,7 +118,7 @@ export async function reportPass<T>(
   const { name, everyMs } = spec
   let error: string | undefined
 
-  listener({ name, phase: 'start', at, everyMs })
+  notifyPass(listener, { name, phase: 'start', at, everyMs })
 
   try {
     return await run()
@@ -117,7 +127,7 @@ export async function reportPass<T>(
 
     throw err
   } finally {
-    listener({
+    notifyPass(listener, {
       name,
       phase: 'end',
       at,
