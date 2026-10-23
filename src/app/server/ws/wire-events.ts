@@ -9,7 +9,8 @@ import { scrubCredentials } from '@/core/security/credentials'
 import { decisionsFor } from '@/engine/api'
 import { translateToolLabel } from '@/i18n'
 
-/** The bus topics the socket relays as wire_event frames. */
+/** The bus topics whose wire event is built from the payload alone. The socket relays some per
+ *  connection; the live feed broadcasts the rest. */
 type WireTopic =
   | 'approval_requested'
   | 'approval_resolved'

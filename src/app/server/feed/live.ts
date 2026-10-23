@@ -43,6 +43,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
   const pending = createPendingFeed(deps)
   const alerts = createAlertsFeed(deps)
   const offs = [
+    alerts.stop,
     ...followLifecycle(deps, book),
     ...followProgress(deps, book),
     ...followFills(deps),
@@ -67,7 +68,6 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
 
       book.clear()
       pending.stop()
-      alerts.stop()
     },
   }
 }

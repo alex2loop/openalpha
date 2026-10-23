@@ -14,8 +14,9 @@ interface PeriodSpend {
 }
 
 /** Announces a period whose settled spend has reached its cap: the test the inbound queue refuses on,
- *  and stricter than the `>` that halts a run. A refusal because one estimate would cross the cap is
- *  not exhaustion, so it never gets here. The tracker lets each period through once. */
+ *  and stricter than the `>` that halts a run. A refusal because one estimate would cross the cap
+ *  reaches this helper too, but settled spend is still under the cap, so it stays silent. The
+ *  tracker lets each period through once. */
 export function emitIfExhausted(services: ExhaustionServices, agentId: AgentId, now: number): void {
   const snapshot = services.costTracker.snapshot(now)
 

@@ -171,6 +171,7 @@ export async function settleExternalCharge(
   )
 
   run.state.totals = addExternalCost(run.state.totals, tracked.costUsd)
+  emitIfExhausted(run.services, run.identity.agentId, settledAt)
 
   await recordDurably(run.services, {
     id: llmAttemptId(randomUUID()),
