@@ -134,10 +134,9 @@
     "v": 1,
     "kind": "approval_resolved",
     "weight": "quiet",
-    "source": { "channel": "telegram", "agentId": "chat" },
-    "runId": "run_abc",
+    "source": { "channel": "telegram", "agentId": "" },
     "requestId": "call_123",
-    "resolution": { "decision": "approve", "by": "api" }
+    "resolution": { "decision": "approve", "by": "telegram" }
   },
   {
     "v": 1,
@@ -158,7 +157,7 @@
     "v": 1,
     "kind": "budget_warning",
     "weight": "nudge",
-    "source": { "channel": "cron", "agentId": "chat" },
+    "source": { "channel": "api", "agentId": "chat" },
     "budget": { "period": "daily", "spent": 8.4, "cap": 10 }
   },
   {
@@ -174,8 +173,7 @@
     "v": 1,
     "kind": "provider_fallback",
     "weight": "quiet",
-    "source": { "channel": "cli", "agentId": "chat" },
-    "runId": "run_abc",
+    "source": { "channel": "cli", "agentId": "" },
     "fallback": { "from": "openrouter/free", "to": "gemini/flash", "reason": "rate", "attempt": 1 }
   },
   {

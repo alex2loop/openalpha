@@ -1126,7 +1126,7 @@ Chat terminal và các kênh dùng chung một registry lệnh gạch chéo, nê
 
 Một lần khớp đặt qua `/trade` hay `order_place` được ghi vào sổ lệnh đúng như một `/record` thủ công. Cuốn sổ vẫn là một phép tính trên một tập dòng, và một vị thế mở ở sàn trông giống hệt một vị thế gõ tay. Một lệnh bán do một lối thoát đã kích hoạt ghi rõ chân nào đã khớp (`stopped out` / `target hit`); một lệnh bán bạn tự làm thì không nêu gì.
 
-Khi lệnh cắt lỗ hoặc chốt lời đang treo khớp ở sàn, lượt đối soát các lệnh thoát đang treo kế tiếp (mỗi 60 giây) ghi lệnh bán vào sổ lệnh và gửi một thông báo nêu lệnh thoát nào đã khớp, sàn, khối lượng và giá, và rằng sổ lệnh đã có dòng đó. Ứng dụng nối vào API thấy lần khớp đó một lần. Lệnh bán mà `/record sync` đã ghi trước thì không gửi gì.
+Khi lệnh cắt lỗ hoặc chốt lời đang treo khớp ở sàn, lượt đối soát các lệnh thoát đang treo kế tiếp (mỗi 60 giây) ghi lệnh bán vào sổ giao dịch và gửi một thông báo nêu lệnh thoát nào đã khớp, sàn, khối lượng và giá, và rằng sổ giao dịch đã có dòng đó. Ứng dụng nối vào API thấy lần khớp đó một lần. Lệnh bán mà `/record sync` đã ghi trước thì không gửi gì.
 
 **`/record sync <sàn>`** là cách thứ ba để tạo các dòng đó, và nó đi cùng đường. Nó chỉ khác ở cách chọn: nó hỏi sàn đã khớp gì, rồi ghi những gì cuốn sổ chưa có dòng. Kiểm hợp lệ, phép tính và dòng xác nhận đều dùng chung.
 

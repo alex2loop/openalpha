@@ -35,6 +35,7 @@ import { MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
 // a value added on either side fails typecheck here.
 type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? true : false) : false
 
+// A bare expression: a const would trip noUnusedLocals and an export the unused-exports gate.
 ;({
   assetClass: true,
   briefSectionKind: true,

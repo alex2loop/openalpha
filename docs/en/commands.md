@@ -142,7 +142,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/cost` | Show this chat's usage and today's spend against the cap |
 | `/schedule` | List, inspect, pause, resume, run or remove one of your jobs (`/schedule remove <id>` deletes it) |
 | `/config` | Show the live language, model, budget and channels |
-| `/new` | Switch to a fresh chat session; commands still waiting in the chat's line are dropped |
+| `/new` | Switch to a fresh chat session; commands waiting in the chat's line are dropped and the ones running are stopped |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
 
@@ -164,8 +164,8 @@ Commands that run on their own - `/suggest`, `/screen`, `/rebalance`, `/brief`, 
 `/overview`, `/market`, `/portfolio`, `/reconcile`, `/themes`, `/schedule run` and plugin workflows - do not wait
 behind your chat. Each chat runs up to three at once and up to ten more wait in order. In a channel, a command that
 has to wait says where it stands in line and starts when a slot frees; one past the end of the line is refused with
-a request to resend in a moment. `/new` and `/stop` empty the line: the waiting commands are dropped without a
-word, and `/stop` also stops the ones already running. A plain chat message still waits for the answer in front of it.
+a request to resend in a moment. `/new` and `/stop` both drop the waiting commands without a
+word and stop the ones already running. A plain chat message still waits for the answer in front of it.
 
 Two conventions explain the output you see:
 

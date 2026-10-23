@@ -352,8 +352,8 @@ Run the daemon on a server you own and point a client app at it.
    handshake is refused with 503 `too_many_streams`.
 
 Once connected, the app is shown what the daemon is doing as it happens: each answer and long command that is
-running with its latest step, every approval and question still waiting on any channel, a fill when a resting
-stop or take-profit sells, the moment a spend cap is reached, and when the alerts were last checked. An app that
+running with its latest step, every approval and question still waiting on any channel, a fill (a resting
+stop or take-profit selling, or a `/trade` fill), the moment a spend cap is reached, and when the alerts were last checked. An app that
 connects late asks for the picture as it stands, then follows the stream. A request asked on Telegram or another
 channel appears in the app but is answered where it was asked; the app says so instead of answering it.
 

@@ -142,7 +142,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn) |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
-| `/new` | Chuyển sang một phiên chat mới; các câu lệnh còn chờ trong hàng của cuộc chat bị bỏ |
+| `/new` | Chuyển sang một phiên chat mới; các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 
@@ -164,8 +164,8 @@ Các câu lệnh tự chạy được - `/suggest`, `/screen`, `/rebalance`, `/b
 `/market`, `/portfolio`, `/reconcile`, `/themes`, `/schedule run` và các workflow của plugin - không phải đợi sau
 lượt chat của bạn. Mỗi cuộc chat chạy tối đa ba câu lệnh cùng lúc, và tối đa mười câu lệnh nữa xếp hàng chờ theo
 thứ tự. Trên kênh chat, câu lệnh phải chờ sẽ báo nó đứng thứ mấy trong hàng và tự chạy khi có chỗ trống; câu lệnh
-vượt quá hàng chờ bị từ chối kèm lời nhờ gửi lại sau một chút. `/new` và `/stop` dọn hàng chờ: các câu lệnh đang
-chờ bị bỏ mà không báo gì, và `/stop` còn dừng cả những câu lệnh đang chạy. Tin nhắn chat thường vẫn chờ câu trả
+vượt quá hàng chờ bị từ chối kèm lời nhờ gửi lại sau một chút. `/new` và `/stop` đều bỏ các câu lệnh đang
+chờ mà không báo gì và dừng cả những câu lệnh đang chạy. Tin nhắn chat thường vẫn chờ câu trả
 lời đứng trước nó.
 
 Hai quy ước giải thích đầu ra bạn thấy:

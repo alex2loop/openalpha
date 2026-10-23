@@ -65,7 +65,7 @@ this document — neither imports the other.
 |---|---|---|---|---|---|
 | GET | `/v1/health` | no | — | `HealthResponse` | `health.json` |
 | GET | `/v1/state` | yes | — | `StatePayload` | `state.json` |
-| GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking` and the `persistent` steps so far; `pending`: every approval and question still waiting on any channel, approvals first, each oldest first; an approval is `{kind:'approval',event,channelId,answerable}` where `event` is its `approval_requested` wire event, a question is `{kind:'question',requestId,runId,sessionId,channel,question,askedAt,answerable}`; `answerable` is true only for a request asked on `api`; an approval leaves on `approval_resolved` or its `expiresAt`, a question on the next agent run in its `sessionId` or after a day; `alertsCheckedAt`: epoch ms the last alert pass finished, absent before the first) | `live.json` |
+| GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking` and the `persistent` steps so far; `pending`: every approval and question still waiting on any channel, approvals first, each oldest first; an approval is `{kind:'approval',event,channelId,answerable}` where `event` is its `approval_requested` wire event, a question is `{kind:'question',requestId,runId,sessionId,channel,question,askedAt,answerable}`; `answerable` is true only for a request asked on `api`; an approval leaves on `approval_resolved`, its `expiresAt` or when its run is gone, a question on the next `run_started` of `run.kind` `agent` in its `sessionId` or after a day; `alertsCheckedAt`: epoch ms the last alert pass finished, absent before the first) | `live.json` |
 | GET | `/v1/doctor` | yes | — | `DoctorReport` | `doctor.json` |
 | GET | `/v1/commands` | yes | — | `CommandList` | `commands.json` |
 | GET | `/v1/update` | yes | — | `UpdateResponse` (`enabled` false when checks are off or the daemon runs from a source checkout; the release feed is read once a day; `latest` is the newest release whether or not it is newer than `current`) | `update.json` |
@@ -247,8 +247,9 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
   the last, a `persistent` one is also kept in the run's steps), `run_finished` removes it, and
   a `run_progress` for a run it does not hold is a run already in flight, so it adds one. A
   snapshot taken before an event can lack the run that event names; the merge by `runId` makes the
-  order harmless. `pending` is the same: an approval leaves on `approval_resolved` or its
-  `expiresAt`, a question on the next `run_started` in its `sessionId`. A run asked for on this
+  order harmless. `pending` is the same: an approval leaves on `approval_resolved`, its
+  `expiresAt` or when its run is gone (a snapshot no longer lists it), a question on the next
+  `run_started` whose `run.kind` is `agent` in its `sessionId` (a command's start answers nothing). A run asked for on this
   socket's own chat reaches it twice, as `chat` frames (the answer) and as run events (the
   feed); the feed is the view of the work, the frames are the reply. Reconnecting starts again
   from a fresh snapshot, since events sent while the socket was down are not replayed.

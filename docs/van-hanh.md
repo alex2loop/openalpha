@@ -345,7 +345,7 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
 
 Khi đã nối, ứng dụng được cho thấy daemon đang làm gì ngay lúc nó diễn ra: từng câu trả lời và câu lệnh chạy
 lâu đang chạy cùng bước mới nhất của nó, mọi yêu cầu phê duyệt và câu hỏi còn chờ trên bất kỳ kênh nào, một
-lần khớp khi lệnh cắt lỗ hoặc chốt lời đang treo được bán, lúc chạm hạn mức chi tiêu, và lần cuối kiểm tra cảnh
+lần khớp lệnh (lệnh cắt lỗ hoặc chốt lời đang treo được bán, hoặc một lần khớp của `/trade`), lúc chạm hạn mức chi tiêu, và lần cuối kiểm tra cảnh
 báo. Ứng dụng nối muộn thì hỏi bức tranh hiện tại trước, rồi theo dõi luồng. Yêu cầu hỏi trên Telegram hay kênh
 khác vẫn hiện trong ứng dụng nhưng được trả lời ở nơi nó được hỏi; ứng dụng nói rõ điều đó thay vì trả lời hộ.
 
