@@ -1,6 +1,6 @@
 import { lookup } from 'node:dns/promises'
 
-import type { DaemonTask } from '@/core/container'
+import type { DaemonTask, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { OperationsPolicy } from '@/trading/kernel/config'
 import { type MissingEnvError, missingEnvOf } from '@/core/config/resolve'
@@ -9,8 +9,14 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
 import { sleep } from '@/core/utils/time'
 
-export type OperationTick = (signal: AbortSignal) => Promise<void>
-export type Reachability = Pick<
+/** What a tick may say about its own pass without failing it. */
+export interface PassNotes {
+  /** A step that failed alone while the pass carried on; the pass reports it as its error. */
+  fail(message: string): void
+}
+
+export type OperationTick = (signal: AbortSignal, notes: PassNotes) => Promise<void>
+type Reachability = Pick<
   OperationsPolicy,
   'reachabilityHost' | 'reachabilityTimeoutMs' | 'offlineRetryMs'
 >
@@ -19,8 +25,11 @@ export type Reachability = Pick<
  *  waits on while offline. */
 interface LoopSpec {
   readonly name: string
+  /** The loop's fixed cadence; absent when each wait is worked out from the clock. */
+  readonly everyMs?: number
   nextDelayMs(now: number): number
   readonly tick: OperationTick
+  readonly onTaskPass: TaskPassListener
   readonly logger: Logger
   readonly reachability: Reachability
 }
@@ -70,18 +79,67 @@ async function runLoop(
 
     state.ticking = true
 
+    let delayMs: number | undefined
+
     try {
-      if (!(await runTick(spec, signal, keyWarning))) {
-        return
-      }
+      delayMs = await runPass(spec, signal, keyWarning)
     } finally {
       state.ticking = false
     }
 
-    if (!(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
+    if (delayMs === undefined || !(await waitForNextTick(delayMs, signal))) {
       return
     }
   }
+}
+
+/** The tick between its two reports. `undefined` means stop; otherwise the wait until the next
+ *  pass, which is also what the report says the next one is due. */
+async function runPass(
+  spec: LoopSpec,
+  signal: AbortSignal,
+  keyWarning: { warned: boolean }
+): Promise<number | undefined> {
+  const at = Date.now()
+  const report = (phase: 'start' | 'end', extra: PassDetail): void =>
+    spec.onTaskPass({
+      name: spec.name,
+      phase,
+      at,
+      ...(spec.everyMs === undefined ? {} : { everyMs: spec.everyMs }),
+      ...extra,
+    })
+  let detail: PassDetail = {}
+
+  report('start', detail)
+
+  try {
+    const outcome = await runTick(spec, signal, keyWarning)
+
+    if (outcome.stop) {
+      return undefined
+    }
+
+    const delayMs = spec.nextDelayMs(Date.now())
+
+    detail = {
+      nextAt: Date.now() + delayMs,
+      ...(outcome.error === undefined ? {} : { error: outcome.error }),
+    }
+
+    return delayMs
+  } catch (err: unknown) {
+    detail = { error: formatErrForLog(err).message }
+
+    throw err
+  } finally {
+    report('end', detail)
+  }
+}
+
+interface PassDetail {
+  readonly error?: string
+  readonly nextAt?: number
 }
 
 /** `false` means stop. A tick waits out an offline stretch instead of running into it, so a fetch
@@ -112,13 +170,32 @@ async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<
       warned = true
     }
 
+    reportOffline(spec)
+
     if (!(await waitForNextTick(offlineRetryMs, signal))) {
       return false
     }
   }
 }
 
-/** `false` means stop. A boundary failure is logged and retried on the next interval; an invariant
+/** An offline stretch is the pass's error until the loop reaches the network again and runs. */
+function reportOffline(spec: LoopSpec): void {
+  const { reachabilityHost, offlineRetryMs } = spec.reachability
+  const at = Date.now()
+
+  spec.onTaskPass({
+    name: spec.name,
+    phase: 'end',
+    at,
+    ...(spec.everyMs === undefined ? {} : { everyMs: spec.everyMs }),
+    error: `offline: cannot reach ${reachabilityHost}`,
+    nextAt: at + offlineRetryMs,
+  })
+}
+
+type TickOutcome = { readonly stop: true } | { readonly stop: false; readonly error?: string }
+
+/** `stop` means shutdown. A boundary failure is logged and retried on the next interval; an invariant
  *  failure escapes to the quarantine around the loop rather than spinning forever getting the same
  *  thing wrong; an abort is shutdown, not a failure. An unset key is said once until the loop logs
  *  anything else: every tick in between would only repeat it. */
@@ -126,30 +203,38 @@ async function runTick(
   spec: LoopSpec,
   signal: AbortSignal,
   keyWarning: { warned: boolean }
-): Promise<boolean> {
+): Promise<TickOutcome> {
+  const failures: string[] = []
+
   try {
-    await spec.tick(signal)
+    await spec.tick(signal, {
+      fail: (message) => {
+        failures.push(message)
+      },
+    })
     keyWarning.warned = false
-    return true
+
+    return { stop: false, ...(failures.length === 0 ? {} : { error: failures.join('; ') }) }
   } catch (err: unknown) {
     if (isAbortError(err)) {
-      return false
+      return { stop: true }
     }
 
     if (!isBoundaryFailure(err)) {
       throw err
     }
 
+    const error = formatErrForLog(err).message
     const missing = missingEnvOf(err)
 
     if (missing !== undefined) {
       warnKeyMissingOnce(spec, missing, keyWarning)
-      return true
+      return { stop: false, error }
     }
 
     spec.logger.warn('trading.tick_failed', { operation: spec.name, err: formatErrForLog(err) })
     keyWarning.warned = false
-    return true
+    return { stop: false, error }
   }
 }
 

@@ -24,6 +24,7 @@ import type {
 import type { HeartbeatRunInput, Job, SchedulerTaskDeps } from '@/scheduler/api'
 import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
+import { createTaskStatusBoard } from '@/app/task-status'
 import { formatRunResultBody } from '@/channels/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { RunHalted } from '@/core/errors'
@@ -89,6 +90,7 @@ export function createKernelProvider(kernel: KernelDeps): ServiceProvider {
       bind('sessionQueue', () => kernel.sessionQueue)
       bind('commandLane', () => kernel.commandLane)
       bind('childEnvBase', () => kernel.childEnvBase)
+      bind('taskStatus', (app) => createTaskStatusBoard(app.config.locale.language))
       bind('inboundInbox', (app) =>
         createChannelInbox(app.resolve('storage'), app.resolve('dialect'))
       )
@@ -229,6 +231,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
     jobStore: app.resolve('jobStore'),
     runner: app.resolve('runner'),
     occurrences: app.resolve('schedulerOccurrenceStore'),
+    onTaskPass: app.resolve('taskStatus').listener,
     notifier: delivery.sink,
     logger: app.resolve('logger'),
     config: app.config,

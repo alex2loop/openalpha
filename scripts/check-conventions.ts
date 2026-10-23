@@ -17,7 +17,7 @@ const COMMENT_RE = /^\s*(\/\/|\/?\*)/
 // argument.
 const ENV_ALLOWED = [
   'src/core/config/',
-  'src/app/daemon.ts',
+  'src/app/daemon-subsystems.ts',
   'src/cli/env.ts',
 ]
 

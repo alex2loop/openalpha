@@ -63,6 +63,7 @@ import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { QuoteConvention } from '@/trading/render/money'
 import type { SURFACE_LIMITS } from '@/trading/surface-limits'
 import type { BriefRescheduleView } from '@/trading/wiring/composition/app-views'
+import type { IntradayNext } from '@/trading/wiring/composition/intraday-next'
 import type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 
@@ -332,6 +333,8 @@ export interface TradingHost {
   getBrief(request: TradingRegionRequest): Promise<TradingBriefView>
   /** When and where the morning brief is delivered; `null` before one is scheduled. */
   getBriefDelivery(request: TradingSignalRequest): Promise<BriefDelivery | null>
+  /** Whether the intraday report is on, and when it next fires. */
+  nextIntraday(signal: AbortSignal): Promise<IntradayNext>
   /** Moves the brief's send time and keeps its delivery address; refuses a brief that is off. */
   rescheduleBrief(request: TradingBriefRescheduleRequest): Promise<BriefRescheduleView>
   /** Every venue a trade can be recorded at, with the markets it holds. */

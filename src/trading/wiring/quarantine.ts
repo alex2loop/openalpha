@@ -27,9 +27,13 @@ interface QuarantineDeps {
  *  and sent to the operator at once - and the restarts are bounded so a loop that is wrong every
  *  time ends stopped rather than spinning on an hourly error. */
 export function withQuarantine(task: DaemonTask, deps: QuarantineDeps): DaemonTask {
+  const { isWorking } = task
+
   return {
     name: task.name,
     start: (signal) => superviseTask(task, deps, signal),
+    // Dropped, a self-upgrade would restart through a tick this wrapper hides.
+    ...(isWorking === undefined ? {} : { isWorking: () => isWorking.call(task) }),
   }
 }
 

@@ -1,4 +1,4 @@
-import type { App, Bind, Extend, ServiceProvider } from '@/core/container'
+import type { App, Bind, Extend, ServiceProvider, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Hooks } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
@@ -80,6 +80,8 @@ interface TradingRegistrationOptions {
   onFilled(app: App): OrderFilledListener
   /** Bound with the app in hand: telling the page an alert pass finished needs the bus. */
   onAlertsChecked(app: App): (at: number) => void
+  /** Bound with the app in hand: the page shows each loop's last and next pass. */
+  onTaskPass(app: App): TaskPassListener
   /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
    *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
   recipient(): DeliveryAddress | undefined
@@ -89,10 +91,14 @@ interface TradingRegistrationOptions {
 
 /** The options once the sender and the fill listener are built: everything below the provider
  *  reads them themselves. */
-type BoundOptions = Omit<TradingRegistrationOptions, 'sender' | 'onFilled' | 'onAlertsChecked'> & {
+type BoundOptions = Omit<
+  TradingRegistrationOptions,
+  'sender' | 'onFilled' | 'onAlertsChecked' | 'onTaskPass'
+> & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
   readonly onAlertsChecked: (at: number) => void
+  readonly onTaskPass: TaskPassListener
 }
 
 declare module '@/core/container' {
@@ -264,6 +270,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     sender: provided.sender(app),
     onFilled: provided.onFilled(app),
     onAlertsChecked: provided.onAlertsChecked(app),
+    onTaskPass: provided.onTaskPass(app),
   }
 }
 

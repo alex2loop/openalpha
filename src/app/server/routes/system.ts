@@ -1,6 +1,5 @@
 import type { LiveSnapshotWire } from '@/app/server/wire/live'
 import type {
-  BriefScheduleWire,
   CommandList,
   CostReport,
   DoctorCheck,
@@ -15,7 +14,7 @@ import { createTokenFile, findProviderById } from '@/ai/api'
 import { apiTokenPath } from '@/app/server/http/auth'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { apiError, json } from '@/app/server/http/dispatch'
-import { toBriefScheduleWire } from '@/app/server/mappers/brief'
+import { readBriefSchedule } from '@/app/server/routes/brief-schedule'
 import { localeOf } from '@/app/server/routes/params'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
 import { readDaemonDegraded, readReleaseStatus } from '@/cli/api'
@@ -23,7 +22,6 @@ import { describeCommand } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { probeConfig } from '@/core/config/load'
 import { operatorMessageOf } from '@/core/errors'
-import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 import { tradingDay } from '@/trading/api'
 
@@ -68,29 +66,6 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
 
 async function handleLive(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   return json(ctx.live.snapshot() satisfies LiveSnapshotWire)
-}
-
-// The state is polled every few seconds, so the brief read can never fail the whole payload.
-async function readBriefSchedule(
-  app: App,
-  signal: AbortSignal
-): Promise<BriefScheduleWire | undefined> {
-  if (!app.has('tradingHost')) {
-    return undefined
-  }
-
-  try {
-    const delivery = await app.resolve('tradingHost').getBriefDelivery({ signal })
-
-    return delivery === null ? undefined : toBriefScheduleWire(delivery)
-  } catch (err: unknown) {
-    // A client that hung up mid-read is not a failure of the read.
-    if (!signal.aborted) {
-      app.resolve('logger').warn('api.brief_schedule_failed', { err: formatErrForLog(err) })
-    }
-
-    return undefined
-  }
 }
 
 async function handleUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {

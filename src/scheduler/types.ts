@@ -1,5 +1,6 @@
 import type { ChannelId } from '@/core/channels'
 import type { ResolvedConfig } from '@/core/config/resolve'
+import type { TaskPassListener } from '@/core/container'
 import type { AgentId, JobId, UserId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { RunInput, Runner, RunResult } from '@/engine/api'
@@ -173,6 +174,8 @@ interface SchedulerOccurrenceStore {
 
 // Consumer-side interface: `persistence` implements it, `app` binds it (as JobStore does).
 export interface SchedulerDeps {
+  /** Told each tick of the scheduler's own loop. */
+  readonly onTaskPass: TaskPassListener
   readonly jobStore: JobStore
   readonly runner: Runner
   readonly occurrences: SchedulerOccurrenceStore

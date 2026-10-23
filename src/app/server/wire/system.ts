@@ -38,12 +38,14 @@ export interface HealthResponse {
 }
 
 /** The morning brief's delivery. `sendTime` is HH:mm in the market's timezone and absent when the
- *  brief follows config. `nextDeliveryDay` (`YYYY-MM-DD`) is present while `scheduled`. */
+ *  brief follows config. `nextDeliveryDay` (`YYYY-MM-DD`) and `nextDueAt` (epoch ms, when the
+ *  brief is next due to send) are present while `scheduled`. */
 export interface BriefScheduleWire {
   readonly state: 'scheduled' | 'delivering' | 'disabled'
   readonly channel: string
   readonly sendTime?: string
   readonly nextDeliveryDay?: string
+  readonly nextDueAt?: number
 }
 
 interface HealthSection {

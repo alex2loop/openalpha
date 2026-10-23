@@ -15,7 +15,22 @@
     "answerOn.telegram": "Answer in Telegram",
     "answerOn.zalo": "Answer in Zalo",
     "answerOn.cli": "Answer in the terminal",
-    "answerOn.other": "Answer in {channel}"
+    "answerOn.other": "Answer in {channel}",
+    "task.trading.alerts": "Price alerts",
+    "task.trading.exits": "Exit orders at the exchange",
+    "task.trading.refresh": "Market data refresh",
+    "task.trading.briefs": "Morning brief",
+    "task.trading.intraday": "Intraday report",
+    "task.trading.outcomes": "Scoring suggestions",
+    "task.trading.macro-extract": "Reading macro figures",
+    "task.trading.theme-outcomes": "Scoring themes",
+    "task.trading.intents": "Sent orders",
+    "task.scheduler": "Your schedules",
+    "task.retention": "Cleanup and backup",
+    "task.update": "Update check",
+    "task.social": "Agent social upkeep",
+    "task.channels.watch": "Channel watch",
+    "task.workflows": "Scheduled workflows"
   },
   "footer": {
     "cost": "{cost}",

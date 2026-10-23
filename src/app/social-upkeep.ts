@@ -1,11 +1,18 @@
-import type { App } from '@/core/container'
+import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import { reportPass } from '@/core/container'
 import { formatErrForLog } from '@/core/security/credentials'
 import { SOCIAL_UPKEEP_INTERVAL_MS } from '@/social/api'
 
+const SOCIAL_PASS = { name: 'social', everyMs: SOCIAL_UPKEEP_INTERVAL_MS }
+
 /** Checks every added network's skill for changes and prunes the social tables: once at start, then
  *  once a day. Never applies a change; it only stages one and says so. */
-export function startSocialUpkeep(app: App, logger: Logger): () => Promise<void> {
+export function startSocialUpkeep(
+  app: App,
+  logger: Logger,
+  onTaskPass: TaskPassListener
+): () => Promise<void> {
   const service = app.resolve('socialService')
   const controller = new AbortController()
   let inFlight: Promise<void> | null = null
@@ -15,8 +22,7 @@ export function startSocialUpkeep(app: App, logger: Logger): () => Promise<void>
       return
     }
 
-    inFlight = service
-      .upkeep(controller.signal)
+    inFlight = reportPass(onTaskPass, SOCIAL_PASS, () => service.upkeep(controller.signal))
       .catch((err: unknown) => {
         logger.warn('social.upkeep_failed', { err: formatErrForLog(err) })
       })

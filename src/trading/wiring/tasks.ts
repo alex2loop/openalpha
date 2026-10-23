@@ -1,4 +1,4 @@
-import type { DaemonTask } from '@/core/container'
+import type { DaemonTask, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
@@ -44,7 +44,7 @@ import {
   createDelayedLoopTask,
   createLoopTask,
   type OperationTick,
-  type Reachability,
+  type PassNotes,
 } from '@/trading/wiring/loop'
 import { withQuarantine } from '@/trading/wiring/quarantine'
 
@@ -69,6 +69,8 @@ interface TradingDaemonDeps {
   readonly onFilled: OrderFilledListener
   /** Called with the pass time once an alert pass has delivered what was armed. */
   readonly onAlertsChecked?: (at: number) => void
+  /** Told each pass of every loop below, so the app can show when each last ran and runs next. */
+  readonly onTaskPass: TaskPassListener
   recipient(): DeliveryAddress | undefined
   refreshMarketData(
     options: RefreshAllMarketDataOptions
@@ -80,40 +82,10 @@ interface TradingDaemonDeps {
  *  and the intent sweep when an order service exists. Each starts with the daemon; the underlying
  *  service returns immediately when there is no eligible work. */
 export function createTradingDaemonTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
-  const { operations } = deps.config
   const { logger } = deps
   const tasks = [
     alertTask(deps),
-    operationTask({
-      name: 'trading.outcomes',
-      policy: operations.outcomes,
-      logger,
-      reachability: operations,
-      tickFor: (policy) =>
-        createOutcomeTick({ suggestions: deps.suggestions, batchSize: policy.batchSize }),
-    }),
-    operationTask({
-      name: 'trading.macro-extract',
-      policy: operations.macroExtract,
-      logger,
-      reachability: operations,
-      tickFor: (policy) => deps.macroExtractTick(policy),
-    }),
-    operationTask({
-      name: 'trading.theme-outcomes',
-      policy: operations.themeOutcomes,
-      logger,
-      reachability: operations,
-      tickFor: (policy) =>
-        createThemeOutcomeTick({ themes: deps.themes, batchSize: policy.batchSize, logger }),
-    }),
-    operationTask({
-      name: 'trading.briefs',
-      policy: operations.briefs,
-      logger,
-      reachability: operations,
-      tickFor: (policy) => createBriefTick({ briefs: deps.briefs, batchSize: policy.batchSize }),
-    }),
+    ...operationTasks(deps),
     refreshTask(deps),
     intradayTask(deps),
     ...exitTasks(deps),
@@ -130,6 +102,37 @@ export function createTradingDaemonTasks(deps: TradingDaemonDeps): readonly Daem
   return Object.freeze(tasks.map((task) => withQuarantine(task, quarantine)))
 }
 
+/** The loops that each run one batch-sized service call at their own interval. */
+function operationTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
+  const { operations } = deps.config
+  const { logger } = deps
+
+  return [
+    operationTask(deps, {
+      name: 'trading.outcomes',
+      policy: operations.outcomes,
+      tickFor: (policy) =>
+        createOutcomeTick({ suggestions: deps.suggestions, batchSize: policy.batchSize }),
+    }),
+    operationTask(deps, {
+      name: 'trading.macro-extract',
+      policy: operations.macroExtract,
+      tickFor: (policy) => deps.macroExtractTick(policy),
+    }),
+    operationTask(deps, {
+      name: 'trading.theme-outcomes',
+      policy: operations.themeOutcomes,
+      tickFor: (policy) =>
+        createThemeOutcomeTick({ themes: deps.themes, batchSize: policy.batchSize, logger }),
+    }),
+    operationTask(deps, {
+      name: 'trading.briefs',
+      policy: operations.briefs,
+      tickFor: (policy) => createBriefTick({ briefs: deps.briefs, batchSize: policy.batchSize }),
+    }),
+  ]
+}
+
 /** No venue accepting orders means no exchange, so there is nothing resting to reconcile and no
  *  loop to run. */
 function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
@@ -138,11 +141,9 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
   }
 
   return [
-    operationTask({
+    operationTask(deps, {
       name: 'trading.exits',
       policy: deps.config.operations.exits,
-      logger: deps.logger,
-      reachability: deps.config.operations,
       tickFor: (policy) =>
         createExitTick({
           venues: deps.venues,
@@ -214,9 +215,11 @@ function intentTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
   return [
     createLoopTask({
       name: 'trading.intents',
+      everyMs: policy.intervalMs,
       nextDelayMs: () => policy.intervalMs,
       logger,
       reachability: deps.config.operations,
+      onTaskPass: deps.onTaskPass,
       tick: async (signal) => {
         const review = await order.reconcileUnmirrored(signal)
 
@@ -241,27 +244,31 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
 
   return createLoopTask({
     name: 'trading.alerts',
+    everyMs: policy.intervalMs,
     nextDelayMs: () => policy.intervalMs,
     logger,
     reachability: deps.config.operations,
-    tick: async (signal) => {
+    onTaskPass: deps.onTaskPass,
+    tick: async (signal, notes) => {
       const options = { now: Date.now(), batchSize: policy.batchSize, signal }
 
       await alerts.tick(options)
       deps.onAlertsChecked?.(options.now)
-      await armingStep(logger, 'exits', () => alerts.tickExits(options))
-      await armingStep(logger, 'screeners', () => alerts.tickScreeners(options))
+      await armingStep({ logger, notes, name: 'exits' }, () => alerts.tickExits(options))
+      await armingStep({ logger, notes, name: 'screeners' }, () => alerts.tickScreeners(options))
     },
   })
 }
 
-/** Each pass fails alone: the other still runs, and the next interval retries both. An abort is
- *  shutdown, not a failure. */
-async function armingStep(
-  logger: Logger,
-  name: 'exits' | 'screeners',
-  run: () => Promise<void>
-): Promise<void> {
+interface ArmingStep {
+  readonly logger: Logger
+  readonly notes: PassNotes
+  readonly name: 'exits' | 'screeners'
+}
+
+/** Each pass fails alone: the other still runs, and the next interval retries both. The loop's
+ *  pass carries the failure as its error. An abort is shutdown, not a failure. */
+async function armingStep(step: ArmingStep, run: () => Promise<void>): Promise<void> {
   try {
     await run()
   } catch (err: unknown) {
@@ -269,24 +276,27 @@ async function armingStep(
       throw err
     }
 
-    logger.warn('trading.alert_arming_failed', { step: name, err: formatErrForLog(err) })
+    const failure = formatErrForLog(err)
+
+    step.logger.warn('trading.alert_arming_failed', { step: step.name, err: failure })
+    step.notes.fail(`${step.name}: ${failure.message}`)
   }
 }
 
 interface OperationTaskSpec {
   readonly name: string
   readonly policy: OperationPolicy
-  readonly logger: Logger
-  readonly reachability: Reachability
   tickFor(policy: OperationPolicy): OperationTick
 }
 
-function operationTask(spec: OperationTaskSpec): DaemonTask {
+function operationTask(deps: TradingDaemonDeps, spec: OperationTaskSpec): DaemonTask {
   return createLoopTask({
     name: spec.name,
+    everyMs: spec.policy.intervalMs,
     nextDelayMs: () => spec.policy.intervalMs,
-    logger: spec.logger,
-    reachability: spec.reachability,
+    logger: deps.logger,
+    reachability: deps.config.operations,
+    onTaskPass: deps.onTaskPass,
     tick: spec.tickFor(spec.policy),
   })
 }
@@ -315,6 +325,7 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
     },
     logger: deps.logger,
     reachability: deps.config.operations,
+    onTaskPass: deps.onTaskPass,
     tick: async (signal) => {
       const results = await deps.refreshMarketData({ signal })
       const degradations = refreshDegradations(results)
@@ -346,6 +357,7 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
     nextDelayMs: (now) => nextIntradayDelayMs(plan, now, IDLE_DELAY_MS),
     logger: deps.logger,
     reachability: deps.config.operations,
+    onTaskPass: deps.onTaskPass,
     tick: createIntradayTick({
       ...deps.reportDeps,
       plan,

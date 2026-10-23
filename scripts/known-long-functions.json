@@ -7,8 +7,8 @@
     "src/ai/chain/stream-watchdog.ts#streamWithIdleTimeout": 46,
     "src/ai/client.ts#toChainEntry": 55,
     "src/app/boot.ts#boot": 46,
+    "src/app/daemon-subsystems.ts#startDaemonSubsystems": 45,
     "src/app/daemon.ts#createDaemonTask": 56,
-    "src/app/daemon.ts#startDaemonSubsystems": 51,
     "src/app/providers.ts#createAppProvider": 49,
     "src/app/scoped-jobs.ts#createScopedJobStore": 58,
     "src/app/server/mappers/money.ts#toLedgerEntryWire": 43,
@@ -185,7 +185,6 @@
     "src/trading/wiring/composition/source-registry.ts#createConfiguredSourceRegistry": 44,
     "src/trading/wiring/composition/themes.ts#buildThemeService": 41,
     "src/trading/wiring/host/market.ts#priceMethods": 45,
-    "src/trading/wiring/host/order.ts#orderWrites": 41,
-    "src/trading/wiring/tasks.ts#createTradingDaemonTasks": 46
+    "src/trading/wiring/host/order.ts#orderWrites": 41
   }
 }

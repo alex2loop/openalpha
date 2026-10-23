@@ -64,6 +64,7 @@
     "state": "scheduled",
     "channel": "api",
     "sendTime": "07:30",
-    "nextDeliveryDay": "2026-10-09"
+    "nextDeliveryDay": "2026-10-09",
+    "nextDueAt": 1791505800000
   }
 }

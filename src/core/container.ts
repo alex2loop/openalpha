@@ -1,6 +1,7 @@
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { OperatorMessage } from '@/core/types/operator-message'
 import { ConfigError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 
 // resolve() is a service locator: call it ONLY in app/providers.ts and per-module
 // services.ts files. Everywhere else, dependencies are injected as constructor/factory args.
@@ -73,6 +74,58 @@ export interface DaemonTask {
   start(signal: AbortSignal, options?: DaemonStartOptions): Promise<void>
   /** True while a pass is in flight that a restart would cut short. Absent: the task never says. */
   isWorking?(): boolean
+}
+
+/** One edge of a background task's pass. `at` is the pass's own clock value, read once: the start
+ *  and the end of one pass carry the same `at`. `error` is the message of a pass that failed;
+ *  `nextAt` is when the task's own timer fires again. */
+export interface TaskPass {
+  readonly name: string
+  readonly phase: 'start' | 'end'
+  readonly at: number
+  readonly everyMs?: number
+  readonly error?: string
+  readonly nextAt?: number
+}
+
+export type TaskPassListener = (pass: TaskPass) => void
+
+interface ReportedPassSpec {
+  readonly name: string
+  readonly everyMs: number
+  /** True when the next wait starts after the pass ends, not when it starts. */
+  readonly chained?: boolean
+}
+
+/** Runs one pass and reports its two edges to the listener, the failure included, which still
+ *  propagates to the caller. */
+export async function reportPass<T>(
+  listener: TaskPassListener,
+  spec: ReportedPassSpec,
+  run: () => Promise<T>
+): Promise<T> {
+  const at = Date.now()
+  const { name, everyMs } = spec
+  let error: string | undefined
+
+  listener({ name, phase: 'start', at, everyMs })
+
+  try {
+    return await run()
+  } catch (err: unknown) {
+    error = formatErrForLog(err).message
+
+    throw err
+  } finally {
+    listener({
+      name,
+      phase: 'end',
+      at,
+      everyMs,
+      nextAt: (spec.chained === true ? Date.now() : at) + everyMs,
+      ...(error === undefined ? {} : { error }),
+    })
+  }
 }
 
 interface Registration<K extends keyof Services> {

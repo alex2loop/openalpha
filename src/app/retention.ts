@@ -1,8 +1,9 @@
 import { join } from 'node:path'
 
-import type { App } from '@/core/container'
+import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { WorkspaceCleanupResult } from '@/engine/api'
+import { reportPass } from '@/core/container'
 import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
@@ -18,10 +19,15 @@ import {
 
 const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
 const DAILY_BACKUPS_SUBDIR = 'daily'
+const RETENTION_PASS = { name: 'retention', everyMs: RETENTION_INTERVAL_MS }
 
 /** Sweeps every retention scope now and then every few hours; the returned stop waits out a sweep
  *  in flight. */
-export function startRetention(app: App, logger: Logger): () => Promise<void> {
+export function startRetention(
+  app: App,
+  logger: Logger,
+  onTaskPass: TaskPassListener
+): () => Promise<void> {
   const configuredAgentIds = Object.freeze(new Set(app.resolve('agents').keys()))
   let inFlight: Promise<void> | null = null
 
@@ -30,7 +36,9 @@ export function startRetention(app: App, logger: Logger): () => Promise<void> {
       return
     }
 
-    inFlight = runRetentionSweep(app, logger, configuredAgentIds)
+    inFlight = reportPass(onTaskPass, RETENTION_PASS, () =>
+      runRetentionSweep(app, logger, configuredAgentIds)
+    )
       .catch((err: unknown) => {
         logger.warn('retention.failed', { err: formatErrForLog(err) })
       })

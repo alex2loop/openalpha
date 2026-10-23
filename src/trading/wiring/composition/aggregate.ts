@@ -1,3 +1,4 @@
+import type { TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { createConfiguredRunBudget } from '@/engine/api'
@@ -23,6 +24,7 @@ import { sessionPhase } from '@/trading/markets/calendar'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
+import { toIntradayNext } from '@/trading/wiring/composition/intraday-next'
 import { buildRebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import { resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 import { buildSuggestionCards } from '@/trading/wiring/composition/suggestion-cards'
@@ -39,6 +41,7 @@ interface AggregateOptions {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
   readonly onAlertsChecked: (at: number) => void
+  readonly onTaskPass: TaskPassListener
   recipient(): DeliveryAddress | undefined
 }
 
@@ -70,6 +73,11 @@ export function toAggregate(
       markets: registries.markets,
       stores: parts.stores,
       book: createTradeableBook({ portfolio: parts.services.portfolio, venues: registries.venues }),
+    }),
+    ...toIntradayNext({
+      markets: registries.markets,
+      config: options.tradingConfig,
+      settings: parts.stores.intradaySettings,
     }),
     defaultRegion: options.tradingConfig.defaultRegion,
     focusScope: toFocusScope(parts.services.marketData.markets(), registries.markets),
@@ -110,6 +118,7 @@ function buildDaemonTasks(
     sender: options.sender,
     onFilled: options.onFilled,
     onAlertsChecked: options.onAlertsChecked,
+    onTaskPass: options.onTaskPass,
     recipient: options.recipient,
     refreshMarketData: parts.refreshMarketData,
     logger: parts.logger,

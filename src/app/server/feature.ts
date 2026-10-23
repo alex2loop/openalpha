@@ -16,6 +16,7 @@ import { NOTICE_ROUTES } from '@/app/server/routes/notices'
 import { ORDER_ROUTES } from '@/app/server/routes/orders'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
+import { TASK_ROUTES } from '@/app/server/routes/tasks'
 import { TRADING_ROUTES } from '@/app/server/routes/trading'
 import { broadcast } from '@/app/server/ws/socket'
 import { describeCommand } from '@/commands/api'
@@ -39,6 +40,7 @@ const ROUTES = [
   ...MONEY_ROUTES,
   ...NOTICE_ROUTES,
   ...ORDER_ROUTES,
+  ...TASK_ROUTES,
 ] as const
 
 // The HTTP/WS API: the last canonical provider (src/app/providers.ts); the daemon starts it only

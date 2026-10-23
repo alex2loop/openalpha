@@ -16,6 +16,7 @@ import type {
 } from '@/trading/kernel/market/refresh'
 import type { FocusScope } from '@/trading/kernel/operator/focus'
 import type { AppViews } from '@/trading/wiring/composition/app-views'
+import type { IntradayNext } from '@/trading/wiring/composition/intraday-next'
 import type { RebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import type { SuggestionCards } from '@/trading/wiring/composition/suggestion-cards'
 
@@ -49,6 +50,8 @@ export interface TradingServices {
   marketsInUse(signal: AbortSignal): Promise<ReadonlySet<MarketRef>>
   /** Whether any market the operator relies on is trading right now. */
   isSessionOpen(now: number, signal: AbortSignal): Promise<boolean>
+  /** Whether the intraday report is on and when it next fires. */
+  nextIntraday(now: number, signal: AbortSignal): Promise<IntradayNext>
   readonly daemonTasks: readonly DaemonTask[]
   /** The configured default region. It lives on the aggregate so no surface carries a fallback of
    *  its own — a slash-command default and a route default that disagree are two products. */

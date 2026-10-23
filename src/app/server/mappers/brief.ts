@@ -91,7 +91,9 @@ export function toBriefScheduleWire(delivery: BriefDelivery): BriefScheduleWire 
     state: delivery.state,
     channel: delivery.delivery.channel,
     ...(delivery.sendTime === undefined ? {} : { sendTime: delivery.sendTime }),
-    ...(delivery.state === 'scheduled' ? { nextDeliveryDay: delivery.nextDeliveryDay } : {}),
+    ...(delivery.state === 'scheduled'
+      ? { nextDeliveryDay: delivery.nextDeliveryDay, nextDueAt: delivery.nextDueAt }
+      : {}),
   }
 }
 

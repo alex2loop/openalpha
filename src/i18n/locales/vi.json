@@ -15,7 +15,22 @@
     "answerOn.telegram": "Trả lời ở Telegram",
     "answerOn.zalo": "Trả lời ở Zalo",
     "answerOn.cli": "Trả lời ở terminal",
-    "answerOn.other": "Trả lời ở {channel}"
+    "answerOn.other": "Trả lời ở {channel}",
+    "task.trading.alerts": "Canh cảnh báo giá",
+    "task.trading.exits": "Đối chiếu lệnh thoát ở sàn",
+    "task.trading.refresh": "Làm mới dữ liệu",
+    "task.trading.briefs": "Bản tin sáng",
+    "task.trading.intraday": "Báo cáo trong phiên",
+    "task.trading.outcomes": "Chấm điểm đề xuất",
+    "task.trading.macro-extract": "Đọc số liệu vĩ mô",
+    "task.trading.theme-outcomes": "Chấm điểm chủ đề",
+    "task.trading.intents": "Đối chiếu lệnh đã gửi",
+    "task.scheduler": "Lịch chạy của bạn",
+    "task.retention": "Dọn dữ liệu cũ và sao lưu",
+    "task.update": "Kiểm tra bản mới",
+    "task.social": "Mạng xã hội agent",
+    "task.channels.watch": "Theo dõi kênh nhắn tin",
+    "task.workflows": "Workflow theo lịch"
   },
   "footer": {
     "cost": "{cost}",

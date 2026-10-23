@@ -1,0 +1,49 @@
+{
+  "tasks": [
+    {
+      "name": "trading.alerts",
+      "label": "Price alerts",
+      "everyMs": 60000,
+      "lastRunAt": 1792480140000,
+      "nextRunAt": 1792480200000,
+      "working": false
+    },
+    {
+      "name": "trading.refresh",
+      "label": "Market data refresh",
+      "lastRunAt": 1792479000000,
+      "lastError": "offline: cannot reach query1.finance.yahoo.com",
+      "nextRunAt": 1792480800000,
+      "working": true
+    },
+    {
+      "name": "trading.intraday",
+      "label": "Intraday report",
+      "working": false
+    },
+    {
+      "name": "retention",
+      "label": "Cleanup and backup",
+      "everyMs": 21600000,
+      "lastRunAt": 1792470000000,
+      "nextRunAt": 1792491600000,
+      "working": false
+    },
+    {
+      "name": "acme.sync",
+      "label": "acme.sync",
+      "working": false
+    }
+  ],
+  "brief": {
+    "state": "scheduled",
+    "channel": "api",
+    "sendTime": "07:30",
+    "nextDeliveryDay": "2026-10-21",
+    "nextDueAt": 1792542600000
+  },
+  "intraday": {
+    "enabled": true,
+    "nextAt": 1792483200000
+  }
+}

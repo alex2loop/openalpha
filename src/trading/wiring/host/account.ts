@@ -15,7 +15,10 @@ type AccountMethods = Omit<
   keyof MarketMethods | keyof LedgerMethods | keyof OrderMethods | keyof AgentMethods
 >
 type AlertMethods = Pick<AccountMethods, 'listAlerts' | 'createAlert' | 'disableAlert'>
-type BriefMethods = Pick<AccountMethods, 'getBrief' | 'rescheduleBrief' | 'getBriefDelivery'>
+type BriefMethods = Pick<
+  AccountMethods,
+  'getBrief' | 'rescheduleBrief' | 'getBriefDelivery' | 'nextIntraday'
+>
 
 type BookMethods = Pick<
   AccountMethods,
@@ -148,6 +151,9 @@ function briefMethods(deps: TradingHostDeps): BriefMethods {
 
     getBriefDelivery: (request) =>
       scoped(deps, request.signal, (scope) => deps.services.briefs.find(scope.signal)),
+
+    nextIntraday: (signal) =>
+      scoped(deps, signal, (scope) => deps.services.nextIntraday(scope.now, scope.signal)),
   }
 }
 

@@ -1,5 +1,6 @@
 import type { JobId } from '@/core/ids'
 import type { Job, SchedulerDeps } from '@/scheduler/types'
+import { reportPass } from '@/core/container'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_SECOND } from '@/core/utils/time'
 import { JOB_MAX_DURATION_MS, runScheduledOccurrence } from '@/scheduler/job/execution'
@@ -110,9 +111,12 @@ function scheduleNextTick(
     return
   }
 
+  const tickMs = deps.config.schedule.tickSeconds * MS_PER_SECOND
+
   state.timer = setTimeout(() => {
     state.timer = null
-    const task = runTick(state, deps, controller)
+    const pass = { name: 'scheduler', everyMs: tickMs, chained: true }
+    const task = reportPass(deps.onTaskPass, pass, () => runTick(state, deps, controller))
       .catch((err: unknown) => {
         deps.logger.warn('scheduler.tick_failed', { err: formatErrForLog(err) })
       })
@@ -121,7 +125,7 @@ function scheduleNextTick(
         scheduleNextTick(state, deps, controller)
       })
     state.tickTask = task
-  }, deps.config.schedule.tickSeconds * MS_PER_SECOND)
+  }, tickMs)
 }
 
 async function runTick(
