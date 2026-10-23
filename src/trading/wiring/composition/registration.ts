@@ -5,7 +5,7 @@ import type { RefreshMarketData } from '@/trading/features/market-data/ops/refre
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
@@ -76,6 +76,8 @@ interface TradingRegistrationOptions {
   readonly env: Readonly<Record<string, string | undefined>>
   /** Built where it binds, with the app in hand: the sender reads services the container supplies. */
   sender(app: App): TradingNoticeSender
+  /** Bound with the app in hand, like the sender: showing a fill needs the bus. */
+  onFilled(app: App): OrderFilledListener
   /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
    *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
   recipient(): DeliveryAddress | undefined
@@ -83,9 +85,11 @@ interface TradingRegistrationOptions {
   readonly pluginModules: readonly LoadedSourceModule[]
 }
 
-/** The options once the sender is built: everything below the provider reads the sender itself. */
-type BoundOptions = Omit<TradingRegistrationOptions, 'sender'> & {
+/** The options once the sender and the fill listener are built: everything below the provider
+ *  reads them themselves. */
+type BoundOptions = Omit<TradingRegistrationOptions, 'sender' | 'onFilled'> & {
   readonly sender: TradingNoticeSender
+  readonly onFilled: OrderFilledListener
 }
 
 declare module '@/core/container' {
@@ -202,7 +206,7 @@ export function createTradingRegistrationProvider(
 }
 
 function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrading {
-  const options: BoundOptions = { ...provided, sender: provided.sender(app) }
+  const options = bindOptions(app, provided)
   const stores = app.resolve('tradingStores')
   const logger = app.resolve('logger')
   const registries = buildRegistries(app, options)
@@ -249,6 +253,10 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     ),
     contributions,
   }
+}
+
+function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
+  return { ...provided, sender: provided.sender(app), onFilled: provided.onFilled(app) }
 }
 
 interface SurfaceParts {
@@ -304,6 +312,7 @@ function buildServices(
     refresh: parts.refresh,
     logger,
     sender: options.sender,
+    onFilled: options.onFilled,
     config: options.tradingConfig,
     // Composed here rather than passed in: the debate reads the closed market registry, which does
     // not exist until this function has built it.

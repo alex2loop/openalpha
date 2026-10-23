@@ -4,6 +4,7 @@ import type { EventBus } from '@/core/events'
 import type { RunId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
 import type { RunProgressMessage } from '@/engine/api'
+import { followFills } from '@/app/server/feed/fills'
 import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
 import {
@@ -38,7 +39,7 @@ interface LiveFeedDeps {
 export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
   const book = createRunBook(deps.isLive)
   const pending = createPendingFeed(deps)
-  const offs = [...followLifecycle(deps, book), ...followProgress(deps, book)]
+  const offs = [...followLifecycle(deps, book), ...followProgress(deps, book), ...followFills(deps)]
 
   return {
     snapshot: () => ({ runs: book.live(), pending: pending.list() }),

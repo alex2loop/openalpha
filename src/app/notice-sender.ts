@@ -14,6 +14,7 @@ import {
   NOTICE_KINDS,
   renderAlertNotice,
   renderBriefText,
+  renderExitFillNotice,
   renderIntradayText,
   renderLoopQuarantineNotice,
   renderRestatementNotice,
@@ -79,6 +80,30 @@ function render(notice: TradingNotice, timezone: string): string {
     return [t(locale, `trading.notice.${payload.kind}`), ...payload.lines].join('\n')
   }
 
+  if (payload.kind === 'exit-filled') {
+    return renderExitFillNotice(locale, payload)
+  }
+
+  return renderOperationalNotice(locale, payload)
+}
+
+/** The notices about the service itself rather than a reading of the market. */
+type OperationalPayload = Exclude<
+  TradingNotice['payload'],
+  {
+    readonly kind:
+      | 'price-alert'
+      | 'exit-alert'
+      | 'screener-alert'
+      | 'brief'
+      | 'intraday'
+      | 'exit-plan'
+      | 'stop-raised'
+      | 'exit-filled'
+  }
+>
+
+function renderOperationalNotice(locale: Locale, payload: OperationalPayload): string {
   if (payload.kind === 'series-restated') {
     return renderRestatementNotice(locale, payload.tickers)
   }

@@ -18,7 +18,7 @@ import type {
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
@@ -66,6 +66,7 @@ interface TradingDaemonDeps {
   readonly venues: VenueRegistry
   readonly order?: Pick<OrderService, 'reconcileUnmirrored'>
   readonly sender: TradingNoticeSender
+  readonly onFilled: OrderFilledListener
   recipient(): DeliveryAddress | undefined
   refreshMarketData(
     options: RefreshAllMarketDataOptions
@@ -149,9 +150,53 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
           batchSize: policy.batchSize,
           logger: deps.logger,
           isFillBooked: deps.isFillBooked,
+          onFilled: deps.onFilled,
+          notifyFill: (sale, signal) => notifyFill(deps, sale, signal),
         }),
     }),
   ]
+}
+
+/** Tells the operator an exit filled, at the chat the daemon would use. With no recipient there is
+ *  nobody to tell and the ledger row is the record. A refused send is logged and never retried: the
+ *  sale is booked either way, and a second send could not be told apart from the first. */
+async function notifyFill(
+  deps: TradingDaemonDeps,
+  sale: VenueFill,
+  signal: AbortSignal
+): Promise<void> {
+  const target = deps.recipient()
+
+  if (target === undefined) {
+    return
+  }
+
+  const { draft } = sale
+  const outcome = await deps.sender.send(
+    {
+      target,
+      locale: deps.reportDeps.locale,
+      payload: {
+        kind: 'exit-filled',
+        fill: {
+          instrument: draft.instrument,
+          venue: draft.venue,
+          quantity: draft.quantity,
+          unitPrice: draft.unitPrice,
+          currency: draft.currency,
+          ...(draft.closeReason === undefined ? {} : { closeReason: draft.closeReason }),
+        },
+      },
+    },
+    signal
+  )
+
+  if (outcome !== 'accepted') {
+    deps.logger.warn('trading.exit_fill_notice_undelivered', {
+      ticker: draft.instrument.ticker,
+      outcome,
+    })
+  }
 }
 
 /** No order service means no exchange this tree can ask, so there is nothing to settle. */

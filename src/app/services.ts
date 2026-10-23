@@ -57,6 +57,7 @@ declare module '@/core/container' {
     sessionQueue: SessionQueue
     inboundInbox: InboundInbox
     noticeSurfaces: NoticeSurfaces
+    deliveredNotices: DeliveryHub['onDelivered']
     selfUpgrade: SelfUpgrade
     childEnvBase: Readonly<Record<string, string>>
   }

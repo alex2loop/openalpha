@@ -26,6 +26,8 @@ interface NoticeSurface {
   deliver(message: SurfaceMessage): AcknowledgedSendResult
 }
 
+type DeliveredListener = (message: SurfaceMessage, channels: readonly ChannelId[]) => void
+
 /** The surfaces attached right now, by the channel id a notice is addressed to. */
 export interface NoticeSurfaces {
   attach(channel: ChannelId, surface: NoticeSurface): () => void
@@ -35,6 +37,9 @@ export interface NoticeSurfaces {
 }
 
 export interface DeliveryHub {
+  /** Told after every send that answered `accepted`, with the channels it went to: a router send or
+   *  a surface alike. Returns the remove. */
+  onDelivered(listener: DeliveredListener): () => void
   /** Bound into the scheduler and anything else that delivers proactively. Never changes identity. */
   readonly sink: DeliverySink
   readonly surfaces: NoticeSurfaces
@@ -98,6 +103,104 @@ interface AttachedReaders {
   isDeliverable(target: DeliveryTarget): Promise<boolean>
 }
 
+interface DeliveredListeners {
+  add(listener: DeliveredListener): () => void
+  emit(message: SurfaceMessage, channels: readonly ChannelId[]): void
+}
+
+function createDeliveredListeners(): DeliveredListeners {
+  const listeners = new Set<DeliveredListener>()
+
+  return {
+    add(listener) {
+      listeners.add(listener)
+
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    emit(message, channels) {
+      for (const listener of listeners) {
+        try {
+          listener(message, channels)
+        } catch {
+          // The hub has no logger, and a page that cannot take the message must never fail the
+          // send that already reached its channel.
+        }
+      }
+    },
+  }
+}
+
+interface SenderParts {
+  /** Read once per call: a detach racing the await would otherwise leave the second read null and
+   *  turn a completed send into a thrown "no channel attached". */
+  capture(): AcknowledgedRouter | null
+  readonly surfaces: NoticeSurfaces
+  readonly delivered: DeliveredListeners
+}
+
+function createSenders(parts: SenderParts): Pick<DeliveryHub, 'sink' | 'sendAcknowledged'> {
+  const { surfaces, delivered } = parts
+
+  return {
+    sink: {
+      async notify(target: DeliveryTarget, text: string): Promise<void> {
+        const router = parts.capture()
+        const surface = surfaces.find(target.channel)
+
+        if (surface !== undefined) {
+          if (surface.deliver({ text }) !== 'accepted') {
+            throw new ChannelError('send_failed', `notification dropped for ${target.channel}`)
+          }
+
+          delivered.emit({ text }, [target.channel])
+
+          return
+        }
+
+        if (router === null) {
+          throw new ChannelError('not_initialized', `no channel attached for ${target.channel}`)
+        }
+
+        if ((await router(target, text)) !== 'accepted') {
+          throw new ChannelError('send_failed', `notification dropped for ${target.channel}`)
+        }
+
+        delivered.emit({ text }, [target.channel])
+      },
+    },
+
+    async sendAcknowledged(target, message, options): Promise<AcknowledgedSendResult> {
+      const router = parts.capture()
+      const surface = surfaces.find(target.channel)
+      const result =
+        surface === undefined
+          ? await sendViaRouter(router, { target, message, options })
+          : surface.deliver(message)
+
+      if (result === 'accepted') {
+        delivered.emit(message, [target.channel])
+      }
+
+      return result
+    },
+  }
+}
+
+function sendViaRouter(
+  router: AcknowledgedRouter | null,
+  send: {
+    readonly target: DeliveryTarget
+    readonly message: SurfaceMessage
+    readonly options: AcknowledgedSendOptions | undefined
+  }
+): Promise<AcknowledgedSendResult> {
+  return router === null
+    ? Promise.resolve('unavailable')
+    : router(send.target, send.message.text, send.options)
+}
+
 /**
  * The seam between "who wants to deliver" and "who can". The scheduler binds its `DeliverySink` when
  * the container is assembled, but no adapter exists until the daemon starts the channels — so the
@@ -110,47 +213,13 @@ export function createDeliveryHub(): DeliveryHub {
   let notifier: AcknowledgedRouter | null = null
   let readers: AttachedReaders | null = null
 
-  // Read once per call: a detach racing the await would otherwise leave the second read null and
-  // turn a completed send into a thrown "no channel attached".
-  const capture = (): AcknowledgedRouter | null => notifier
-
   const surfaces = createNoticeSurfaces()
+  const delivered = createDeliveredListeners()
 
   return {
     surfaces,
-    sink: {
-      async notify(target: DeliveryTarget, text: string): Promise<void> {
-        const router = capture()
-        const surface = surfaces.find(target.channel)
-
-        if (surface !== undefined) {
-          if (surface.deliver({ text }) !== 'accepted') {
-            throw new ChannelError('send_failed', `notification dropped for ${target.channel}`)
-          }
-
-          return
-        }
-
-        if (router === null) {
-          throw new ChannelError('not_initialized', `no channel attached for ${target.channel}`)
-        }
-
-        if ((await router(target, text)) !== 'accepted') {
-          throw new ChannelError('send_failed', `notification dropped for ${target.channel}`)
-        }
-      },
-    },
-
-    async sendAcknowledged(target, message, options): Promise<AcknowledgedSendResult> {
-      const router = capture()
-      const surface = surfaces.find(target.channel)
-
-      if (surface !== undefined) {
-        return surface.deliver(message)
-      }
-
-      return router === null ? 'unavailable' : router(target, message.text, options)
-    },
+    ...createSenders({ capture: () => notifier, surfaces, delivered }),
+    onDelivered: delivered.add,
 
     // A channel's own default chat first; with none attached, a surface that shows everything.
     defaultRecipient: () => {

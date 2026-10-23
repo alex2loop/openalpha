@@ -26,6 +26,10 @@ type WireTopic =
  *  so the normaliser takes it ready. */
 type ProgressTopic = 'run_progress' | 'command_progress'
 
+/** The topics whose wire line is the daemon's own sentence, rendered by the caller that holds the
+ *  locale, so the normaliser takes it ready. */
+type NotedTopic = 'order_filled'
+
 // The bus carries the full ChannelId union; the v1 wire narrows to these. An unmapped channel
 // (e.g. a future adapter) renders as 'api' rather than widening the frozen wire contract.
 const WIRE_CHANNELS: ReadonlySet<string> = new Set<Channel>(['cli', 'telegram', 'cron', 'api'])
@@ -46,6 +50,7 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     v: 1,
     kind: 'approval_requested',
     weight: 'interrupt',
+    wake: true,
     source: { channel: wireChannel(e.channel), agentId: e.agentId },
     runId: e.runId,
     requestId: e.requestId,
@@ -176,6 +181,27 @@ export const PROGRESS_NORMALIZERS: {
     source: { channel: wireChannel(e.channel), agentId: '' },
     runId: e.runId,
     progress,
+  }),
+}
+
+export const NOTED_NORMALIZERS: {
+  readonly [K in NotedTopic]: (e: BusEventMap[K], note: string) => WireEvent
+} = {
+  order_filled: (e, note) => ({
+    v: 1,
+    kind: 'order_filled',
+    weight: 'nudge',
+    wake: true,
+    source: APP_SOURCE,
+    note,
+    fill: {
+      instrument: { market: e.instrument.market, ticker: e.instrument.ticker },
+      venue: e.venue,
+      side: e.side,
+      quantity: e.quantity,
+      price: e.unitPrice,
+      ...(e.closeReason === undefined ? {} : { closeReason: e.closeReason }),
+    },
   }),
 }
 

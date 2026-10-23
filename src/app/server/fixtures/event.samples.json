@@ -63,6 +63,7 @@
     "v": 1,
     "kind": "approval_requested",
     "weight": "interrupt",
+    "wake": true,
     "source": { "channel": "telegram", "agentId": "chat" },
     "runId": "run_abc",
     "requestId": "call_123",
@@ -122,6 +123,7 @@
     "v": 1,
     "kind": "alert_fired",
     "weight": "nudge",
+    "wake": true,
     "source": { "channel": "api", "agentId": "" },
     "note": "HPG reached 31,000",
     "alert": {
@@ -136,6 +138,7 @@
     "v": 1,
     "kind": "stop_breached",
     "weight": "interrupt",
+    "wake": true,
     "source": { "channel": "api", "agentId": "" },
     "note": "VCB fell below its stop at 90,500",
     "alert": {
@@ -167,6 +170,22 @@
       "observedPrice": 118200,
       "movePct": 6.8,
       "benchmark": { "ticker": "VNINDEX", "movePct": 0.3 }
+    }
+  },
+  {
+    "v": 1,
+    "kind": "order_filled",
+    "weight": "nudge",
+    "wake": true,
+    "source": { "channel": "api", "agentId": "" },
+    "note": "The stop on BTC filled at OKX: sold 0.05 at 61,200.00 USDT. It is in the ledger.",
+    "fill": {
+      "instrument": { "market": "crypto", "ticker": "BTC" },
+      "venue": "okx",
+      "side": "sell",
+      "quantity": 0.05,
+      "price": 61200,
+      "closeReason": "stop"
     }
   },
   {

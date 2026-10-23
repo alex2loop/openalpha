@@ -19,7 +19,7 @@ import type { FactorLogService } from '@/trading/features/suggestion/track-recor
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
@@ -64,6 +64,7 @@ interface DomainServiceDeps {
   readonly stages: StageRegistry
   readonly refresh: RefreshMarketData
   readonly sender: TradingNoticeSender
+  readonly onFilled: OrderFilledListener
   readonly config: TradingConfig
   readonly logger: Logger
   readonly runDebate: RunDebate
@@ -274,6 +275,7 @@ function buildOrder(parts: OrderParts): OrderService | undefined {
     policy: deps.config.orders,
     costs: deps.config.costs,
     logger: deps.logger,
+    onFilled: deps.onFilled,
     findProfile: (signal) => deps.stores.profile.find(signal),
     quoteOf: (instrument, now, signal) => quoteOf(marketData, instrument, { now, signal }),
     findRecordedFill: async (venue, orderId, signal) =>

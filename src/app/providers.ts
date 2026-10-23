@@ -322,6 +322,13 @@ function withoutInvalidTables(
   return kept
 }
 
+// What the api server reads of the delivery hub: the surface it attaches to, and the sends that
+// went to a chat instead.
+function bindNoticeSeams(bind: Bind, delivery: DeliveryHub): void {
+  bind('noticeSurfaces', () => delivery.surfaces)
+  bind('deliveredNotices', () => delivery.onDelivered)
+}
+
 // What a run reads before it starts, bound here because only the composition root can see both the
 // engine and the stores: the session's prior transcript and totals, and an agent's spend today.
 function bindRunReads(bind: Bind): void {
@@ -364,7 +371,7 @@ function createAppProvider(
       bind('toolServices', buildToolServices)
       bind('mcpSessionLifecycle', createMcpSessionLifecycle)
       bind('daemonTask', (app) => createDaemonTask(app, delivery))
-      bind('noticeSurfaces', () => delivery.surfaces)
+      bindNoticeSeams(bind, delivery)
       bindRunReads(bind)
 
       // The one sink-to-store binding: every durable provider attempt flows through here.

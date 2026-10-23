@@ -218,16 +218,20 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 | `stop_breached` | `alert` (with `level: stop`) + `note` | a held name crossed its plan stop (interrupt) |
 | `brief_ready` | `brief` `{snapshotId,day}` + `note` | the morning brief is ready; read `GET /v1/brief` |
 | `mover` | `mover` `{instrument,condition,observedPrice,movePct?,benchmark?}` + `note` | a watched or held name moved past its usual range |
+| `order_filled` | `fill` `{instrument,venue,side,quantity,price,closeReason?}` + `note` | a fill the ledger now holds, from `/trade` or a resting exit (`closeReason` `stop` or `target` on a sale a resting leg made); the one event for a fill, so a chat's exit notice is not repeated as another kind (nudge, `wake`) |
 | `idea` | `idea` `{suggestionId,instrument,action,conviction}` | a buy or reduce was stored (checked each minute); read `GET /v1/suggestions` |
 | `schedule_result` | `note` | a scheduled job's or heartbeat's result (sneak) |
 | `notice` | `note` | any other daemon notice, as text (nudge) |
 
 - **The app is a delivery address.** While the api runs, the daemon delivers alerts, stop hits,
   the brief and movers addressed to channel `api` straight to the open sockets, and to `api` too
-  when no chat channel is attached. A socket whose send was dropped (closed, or its buffer full) does
+  when no chat channel is attached. What a chat channel accepted is also sent to the open sockets
+  once, as the same event, so the page sees what the chat saw. A socket whose send was dropped (closed, or its buffer full) does
   not count as reached: with no socket taking the frame the delivery fails and the daemon retries
   later, as it would for an offline chat.
 
+- **`wake`** is `true` on `approval_requested`, `stop_breached`, `alert_fired` and `order_filled`
+  and absent on every other kind: the events worth bringing a sleeping client back for.
 - **`weight`** ∈ `interrupt | nudge | sneak | quiet` — a hint; each client maps it to its own surface
   (a system notification, a toast, a badge). The hint is shared, the rendering is not.
 - **`source.channel`** ∈ `Channel` = `cli | telegram | cron | api`. (The scheduler surface is **`cron`**,

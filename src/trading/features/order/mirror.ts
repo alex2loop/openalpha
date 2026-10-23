@@ -3,6 +3,7 @@ import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { RoutedVenue } from '@/trading/features/order/routing'
 import type { ExecuteInput, OrderReceipt, OrderSide } from '@/trading/features/order/types'
 import type { TradingDay } from '@/trading/kernel/instrument'
+import type { OrderFill } from '@/trading/kernel/operator/notice'
 import type { BookedFill, FeePriceLookup } from '@/trading/kernel/venue/fee'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -46,9 +47,36 @@ export async function mirrorFilledOrder(
   const numbers = await bookedNumbers(deps, parts)
   const write = await record(deps, { input, receipt, numbers, venue })
 
+  announceFill(deps, {
+    instrument: input.staged.instrument,
+    venue: input.staged.venue,
+    side: input.staged.side,
+    quantity: numbers.quantity,
+    unitPrice: receipt.averagePrice,
+    currency: input.prepared.currency,
+    at: receipt.filledAt ?? input.now,
+  })
   await recordMirrored(deps, input, receipt)
 
   return { input, receipt, numbers, write, venue }
+}
+
+/** The row is booked, so a listener that throws is logged and dropped: showing a fill must never
+ *  fail it, nor skip the exit guarding the position it opened. Shared with the exit tick, so the
+ *  one key covers both paths. */
+export function announceFill(
+  deps: Pick<OrderServiceDeps, 'logger' | 'onFilled'>,
+  fill: OrderFill
+): void {
+  try {
+    deps.onFilled(fill)
+  } catch (err: unknown) {
+    deps.logger.warn('trading.fill_listener_failed', {
+      venue: fill.venue,
+      ticker: fill.instrument.ticker,
+      err: formatErrForLog(err),
+    })
+  }
 }
 
 /** The row is already in the book, so a failure here must not skip the exit guarding the

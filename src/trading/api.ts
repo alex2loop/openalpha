@@ -150,7 +150,10 @@ export type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 export type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 export type { FocusScope } from '@/trading/kernel/operator/focus'
 export type {
+  ExitFillPayload,
   NoticeKind,
+  OrderFill,
+  OrderFilledListener,
   TradingNotice,
   TradingNoticeSender,
 } from '@/trading/kernel/operator/notice'
@@ -178,6 +181,7 @@ export { renderAlertNotice } from '@/trading/features/alerts/render'
 export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
+export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 export {
   isUndecidedHold,

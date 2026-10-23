@@ -10,6 +10,7 @@ import type { Storage } from '@/core/types/storage'
 import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
+import '@/app/events'
 import { loadAssets } from '@/app/assets'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
@@ -187,6 +188,8 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
           channels: () => app.resolve('channels'),
           pairingStore: () => app.resolve('pairingStore'),
         }),
+      // The bus isolates a handler that throws, so a page that cannot take the event never fails a booking.
+      onFilled: (app) => (fill) => app.resolve('bus').emit('order_filled', fill),
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,

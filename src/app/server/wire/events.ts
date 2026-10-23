@@ -33,6 +33,7 @@ type WireEventKind =
   | 'brief_ready'
   | 'idea'
   | 'mover'
+  | 'order_filled'
   | 'schedule_result'
   | 'notice'
 
@@ -40,6 +41,9 @@ export interface WireEvent {
   readonly v: 1
   readonly kind: WireEventKind
   readonly weight: WireEventWeight
+  /** Set on the kinds that should bring a sleeping client back to its surface: an approval, a stop
+   *  or alert, a fill, a spent budget. Absent everywhere else. */
+  readonly wake?: true
   /** Originating surface — the source glyph + notification threading (by channel + agentId). */
   readonly source: { readonly channel: Channel; readonly agentId: string }
   readonly runId?: string
@@ -124,6 +128,17 @@ export interface WireEvent {
     readonly movePct?: number
     readonly benchmark?: { readonly ticker: string; readonly movePct: number }
   }
+  /** 'order_filled': a fill the ledger now holds, from `/trade` or a resting exit. `price` is the
+   *  average fill price in the instrument's own currency; `closeReason` is set on a sale a resting
+   *  stop or take-profit made. */
+  readonly fill?: {
+    readonly instrument: { readonly market: string; readonly ticker: string }
+    readonly venue: string
+    readonly side: 'buy' | 'sell'
+    readonly quantity: number
+    readonly price: number
+    readonly closeReason?: 'stop' | 'target'
+  }
   /** 'idea': a suggestion was stored; read it with GET /v1/suggestions. */
   readonly idea?: {
     readonly suggestionId: string
@@ -133,6 +148,6 @@ export interface WireEvent {
   }
   /** The line a chat would get, already written in the daemon's language: the whole payload of
    *  'schedule_result' and 'notice', and set beside the 'alert_fired', 'stop_breached',
-   *  'brief_ready' and 'mover' payloads too. */
+   *  'brief_ready', 'mover' and 'order_filled' payloads too. */
   readonly note?: string
 }

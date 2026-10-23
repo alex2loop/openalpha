@@ -2,7 +2,13 @@ import type { Locale } from '@/core/types/locale'
 import type { DeliveringAlert } from '@/trading/features/alerts/types'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { IntradayReport } from '@/trading/features/market-data/intraday/types'
-import type { CurrencyCode, PriceDisplay, QuoteUnit, Ticker } from '@/trading/kernel/instrument'
+import type {
+  CurrencyCode,
+  InstrumentRef,
+  PriceDisplay,
+  QuoteUnit,
+  Ticker,
+} from '@/trading/kernel/instrument'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 
 interface AlertQuote {
@@ -20,6 +26,7 @@ export const NOTICE_KINDS = Object.freeze([
   'exit-plan',
   'stop-raised',
   'series-restated',
+  'exit-filled',
 ] as const)
 
 export type NoticeKind = (typeof NOTICE_KINDS)[number]
@@ -58,6 +65,19 @@ export type TradingNoticePayload =
   /** A name whose price history the provider re-adjusted, usually an ex-date. The plans priced on
    *  the old basis are closed, and the next tick writes new ones. */
   | { readonly kind: 'series-restated'; readonly tickers: readonly string[] }
+  /** A resting stop or take-profit filled at the exchange and is in the ledger. `closeReason` is
+   *  typed inline because the kernel may not reach into the ledger feature for its own type. */
+  | {
+      readonly kind: 'exit-filled'
+      readonly fill: {
+        readonly instrument: InstrumentRef
+        readonly venue: string
+        readonly quantity: number
+        readonly unitPrice: number
+        readonly currency: CurrencyCode
+        readonly closeReason?: 'stop' | 'target'
+      }
+    }
   // Terminal, and named by what stopped: the operator re-enables it through that subject's tool.
   | { readonly kind: 'delivery-disabled'; readonly subject: NoticeKind }
   // The daemon was down through today's pre-open window, so today's was skipped; the next is still
@@ -71,6 +91,24 @@ export type TradingNoticePayload =
   // A background loop stopped on an error that is this code being wrong. `retryInMs` is absent once
   // the loop has used its restarts and stays stopped until the daemon restarts.
   | { readonly kind: 'loop-quarantined'; readonly operation: string; readonly retryInMs?: number }
+
+export type ExitFillPayload = Extract<TradingNoticePayload, { readonly kind: 'exit-filled' }>
+
+/** One fill the book now holds, handed to whoever wants to show it. */
+export interface OrderFill {
+  readonly instrument: InstrumentRef
+  readonly venue: string
+  readonly side: 'buy' | 'sell'
+  readonly quantity: number
+  readonly unitPrice: number
+  readonly currency: CurrencyCode
+  readonly closeReason?: 'stop' | 'target'
+  readonly at: number
+}
+
+/** Called synchronously, and guarded by the caller: a listener that throws never fails the
+ *  booking. */
+export type OrderFilledListener = (fill: OrderFill) => void
 
 export interface TradingNotice {
   readonly target: DeliveryAddress

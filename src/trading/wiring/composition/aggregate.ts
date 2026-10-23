@@ -10,7 +10,7 @@ import type {
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
@@ -37,24 +37,27 @@ interface Registries {
 interface AggregateOptions {
   readonly tradingConfig: TradingConfig
   readonly sender: TradingNoticeSender
+  readonly onFilled: OrderFilledListener
   recipient(): DeliveryAddress | undefined
+}
+
+interface AggregateParts {
+  readonly services: ReturnType<typeof createDomainServices> & WithThemes
+  readonly refresh: RefreshMarketData
+  refreshMarketData(
+    options: RefreshAllMarketDataOptions
+  ): Promise<readonly RefreshMarketDataResult[]>
+  macroExtractTick(policy: OperationPolicy): (signal: AbortSignal) => Promise<void>
+  readonly stores: TradingStores
+  createSuggestionBudget(): ReturnType<typeof createConfiguredRunBudget>
+  readonly defaultLocale: Locale
+  readonly logger: Logger
 }
 
 /** The immutable public aggregate: the five services, the refresh function, and the daemon tasks.
  *  No registry, no store, no operation factory leaves this function. */
 export function toAggregate(
-  parts: {
-    readonly services: ReturnType<typeof createDomainServices> & WithThemes
-    readonly refresh: RefreshMarketData
-    refreshMarketData(
-      options: RefreshAllMarketDataOptions
-    ): Promise<readonly RefreshMarketDataResult[]>
-    macroExtractTick(policy: OperationPolicy): (signal: AbortSignal) => Promise<void>
-    readonly stores: TradingStores
-    createSuggestionBudget(): ReturnType<typeof createConfiguredRunBudget>
-    readonly defaultLocale: Locale
-    readonly logger: Logger
-  },
+  parts: AggregateParts,
   options: AggregateOptions,
   registries: Registries
 ): TradingServices {
@@ -72,33 +75,42 @@ export function toAggregate(
     suggestionCards: buildSuggestionCards(parts.services, options.tradingConfig, parts.stores),
     rebalanceViews: buildRebalanceViews(parts.services, options.tradingConfig),
     appViews: buildAppViews(parts.services, options.tradingConfig),
-    daemonTasks: createTradingDaemonTasks({
-      config: options.tradingConfig,
-      alerts: parts.services.alerts,
-      suggestions: parts.services.suggestions,
-      factorLog: parts.services.factorLog,
-      navSnapshot: createNavSnapshotTick({
-        portfolio: parts.services.portfolio,
-        store: parts.stores.navSnapshot,
-        timezone: options.tradingConfig.displayTimezone,
-        logger: parts.logger,
-      }),
-      macroExtractTick: parts.macroExtractTick,
-      themes: parts.services.themes,
-      briefs: parts.services.briefs,
-      markets: registries.markets,
+    daemonTasks: buildDaemonTasks(parts, options, registries),
+  })
+}
+
+function buildDaemonTasks(
+  parts: AggregateParts,
+  options: AggregateOptions,
+  registries: Registries
+): TradingServices['daemonTasks'] {
+  return createTradingDaemonTasks({
+    config: options.tradingConfig,
+    alerts: parts.services.alerts,
+    suggestions: parts.services.suggestions,
+    factorLog: parts.services.factorLog,
+    navSnapshot: createNavSnapshotTick({
       portfolio: parts.services.portfolio,
-      reportDeps: toReportDeps(parts, options.tradingConfig, registries.venues),
-      intradaySettings: parts.stores.intradaySettings,
-      restingExit: parts.stores.restingExit,
-      isFillBooked: (fill, signal) => isVenueFillBooked(parts.stores.ledger, fill, signal),
-      venues: registries.venues,
-      ...(parts.services.order === undefined ? {} : { order: parts.services.order }),
-      sender: options.sender,
-      recipient: options.recipient,
-      refreshMarketData: parts.refreshMarketData,
+      store: parts.stores.navSnapshot,
+      timezone: options.tradingConfig.displayTimezone,
       logger: parts.logger,
     }),
+    macroExtractTick: parts.macroExtractTick,
+    themes: parts.services.themes,
+    briefs: parts.services.briefs,
+    markets: registries.markets,
+    portfolio: parts.services.portfolio,
+    reportDeps: toReportDeps(parts, options.tradingConfig, registries.venues),
+    intradaySettings: parts.stores.intradaySettings,
+    restingExit: parts.stores.restingExit,
+    isFillBooked: (fill, signal) => isVenueFillBooked(parts.stores.ledger, fill, signal),
+    venues: registries.venues,
+    ...(parts.services.order === undefined ? {} : { order: parts.services.order }),
+    sender: options.sender,
+    onFilled: options.onFilled,
+    recipient: options.recipient,
+    refreshMarketData: parts.refreshMarketData,
+    logger: parts.logger,
   })
 }
 

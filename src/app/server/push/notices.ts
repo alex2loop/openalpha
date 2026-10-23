@@ -16,6 +16,7 @@ function alertEvent(payload: AlertPayload, text: string): WireEvent {
     v: 1,
     kind: level === 'stop' ? 'stop_breached' : 'alert_fired',
     weight: level === 'stop' ? 'interrupt' : 'nudge',
+    wake: true,
     source: APP_SOURCE,
     note: text,
     alert: {
@@ -64,16 +65,21 @@ function noteEvent(kind: 'schedule_result' | 'notice', text: string): WireEvent 
 }
 
 /** A typed notice becomes its own event; anything else still reaches the app as the text a chat
- *  would have got, so no notice is lost for want of a dedicated kind. */
+ *  would have got, so no notice is lost for want of a dedicated kind. A filled exit is the one
+ *  notice with no event of its own: the fill listener sends `order_filled` for every fill, and a
+ *  second event for the same sale would show it twice. */
 function toWireEvent(message: {
   readonly text: string
   readonly notice?: TradingNotice
-}): WireEvent {
+}): WireEvent | undefined {
   const payload = message.notice?.payload
 
   switch (payload?.kind) {
     case undefined:
       return noteEvent('schedule_result', message.text)
+
+    case 'exit-filled':
+      return undefined
 
     case 'price-alert':
     case 'exit-alert':
@@ -99,9 +105,35 @@ function toWireEvent(message: {
 
 /** Makes the app a place the daemon delivers to, for as long as the api runs. With no app socket
  *  open the delivery answers `unavailable`, and the sender retries as it would for an offline
- *  chat. Returns the detach. */
+ *  chat. A notice that went to a chat channel instead is mirrored to the sockets once the channel
+ *  accepted it; one addressed here already reached them. Returns the detach. */
 export function attachAppSurface(app: App): () => void {
-  return app.resolve('noticeSurfaces').attach(API_CHANNEL, {
-    deliver: (message) => (broadcast(toWireEvent(message)) > 0 ? 'accepted' : 'unavailable'),
+  const detach = app.resolve('noticeSurfaces').attach(API_CHANNEL, {
+    deliver: (message) => {
+      const event = toWireEvent(message)
+
+      // Nothing to show, and nothing to retry: the notice was taken.
+      if (event === undefined) {
+        return 'accepted'
+      }
+
+      return broadcast(event) > 0 ? 'accepted' : 'unavailable'
+    },
   })
+  const stopMirror = app.resolve('deliveredNotices')((message, channels) => {
+    if (channels.includes(API_CHANNEL)) {
+      return
+    }
+
+    const event = toWireEvent(message)
+
+    if (event !== undefined) {
+      broadcast(event)
+    }
+  })
+
+  return () => {
+    stopMirror()
+    detach()
+  }
 }
