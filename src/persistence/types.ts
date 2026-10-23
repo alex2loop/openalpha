@@ -206,8 +206,8 @@ export interface RunLogStore {
     runIds: readonly RunId[],
     perRun: number
   ): Promise<ReadonlyMap<RunId, readonly RunLogRow[]>>
-  /** Top-level `deep-researcher` runs that ended before `beforeMs`, newest first. */
-  listResearch(beforeMs: number, limit: number): Promise<readonly RunLogRow[]>
+  /** Top-level runs of one agent that ended before `beforeMs`, newest first. */
+  listResearch(agent: string, beforeMs: number, limit: number): Promise<readonly RunLogRow[]>
   /** What each run and every run beneath it cost, in USD. A run with no attempts is absent. */
   costOf(runIds: readonly RunId[]): Promise<ReadonlyMap<RunId, number>>
 }

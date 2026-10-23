@@ -6,10 +6,6 @@ import { agentId, runId, sessionId } from '@/core/ids'
 import { fromNanoUsd } from '@/persistence/money'
 import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
 
-/** The built-in research agent's id (`DEEP_RESEARCHER_ID` in engine, which persistence cannot
- *  import): the agent whose top-level runs the research page lists. */
-const RESEARCH_AGENT_NAME = 'deep-researcher'
-
 const RUN_COLUMNS = [
   'run_id',
   'kind',
@@ -53,10 +49,8 @@ export function createRunLogStore(db: Storage, dialect: Dialect): RunLogStore {
     },
     listTopLevel: async (fromMs, toMs, limit) =>
       (await db.query<DbRunRow>(sql.topLevel, [fromMs, toMs, limit])).map(toRunLogRow),
-    listResearch: async (beforeMs, limit) =>
-      (await db.query<DbRunRow>(sql.research, [RESEARCH_AGENT_NAME, beforeMs, limit])).map(
-        toRunLogRow
-      ),
+    listResearch: async (agent, beforeMs, limit) =>
+      (await db.query<DbRunRow>(sql.research, [agent, beforeMs, limit])).map(toRunLogRow),
     childrenOf: (ids, perRun) => childrenOf({ db, dialect }, ids, perRun),
     costOf: (ids) => costOf({ db, dialect }, ids),
   }

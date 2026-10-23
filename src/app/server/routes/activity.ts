@@ -5,6 +5,7 @@ import { apiError, json } from '@/app/server/http/dispatch'
 import { toActivityRowWire, toResearchReportWire } from '@/app/server/mappers/activity'
 import { parseLimit } from '@/app/server/routes/params'
 import { dayInZone, dayRangeInZone } from '@/core/utils/time'
+import { DEEP_RESEARCHER_ID } from '@/engine/api'
 
 const ACTIVITY_PAGE_LIMIT = 200
 const ACTIVITY_CHILDREN_LIMIT = 20
@@ -46,7 +47,7 @@ async function handleResearch(req: Request, ctx: ApiRouteContext): Promise<Respo
     return apiError('invalid_body')
   }
 
-  const rows = await ctx.app.resolve('runLogStore').listResearch(before, limit)
+  const rows = await ctx.app.resolve('runLogStore').listResearch(DEEP_RESEARCHER_ID, before, limit)
 
   return json({
     reports: rows.flatMap((row) => toResearchReportWire(row) ?? []),
