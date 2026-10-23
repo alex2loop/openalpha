@@ -20,6 +20,7 @@ export function createReconcileCommand(deps: ReconcileCommandDeps): SlashCommand
       role: 'operator',
       action: 'read',
       execution: { progressKey: 'slash.tradingReconcileProgress' },
+      selfContained: true,
     },
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }

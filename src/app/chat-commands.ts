@@ -8,6 +8,7 @@ import { toAgentRegistry } from '@/app/services'
 import { createConfigSummary } from '@/app/views'
 import { resolveRegisteredChannelSettings } from '@/channels/api'
 import { createCoreCommands } from '@/commands/api'
+import { toCommandLaneKey } from '@/core/command-lane'
 import { agentId as brandAgentId, sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
@@ -133,6 +134,7 @@ async function startFreshSession(options: FreshSessionOptions): Promise<SessionI
 
   invalidate()
   app.resolve('sessionQueue').cancelSession(ctx.sessionId)
+  app.resolve('commandLane').cancel(toCommandLaneKey(ctx.channel, ctx.chatId))
   app.resolve('runRegistry').abortChat(ctx.channel, ctx.chatId)
   app.resolve('bus').emit('chat_session_reset', { channel: ctx.channel, chatId: ctx.chatId })
   app.resolve('bus').emit('session_ended', { sessionId: ctx.sessionId })

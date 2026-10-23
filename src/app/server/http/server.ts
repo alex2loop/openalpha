@@ -138,6 +138,7 @@ function resolveWsServices(app: App): WsServices {
     agents: app.resolve('agents'),
     bindings: app.resolve('chatBindingStore'),
     bus: app.resolve('bus'),
+    commandLane: app.resolve('commandLane'),
     locale: app.config.locale.language,
     logger: app.resolve('logger'),
     runControl: app.resolve('runRegistry'),

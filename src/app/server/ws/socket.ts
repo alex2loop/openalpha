@@ -9,14 +9,20 @@ import type { EventBus } from '@/core/events'
 import type { SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
-import type { ChatBindingStore, SessionOpener, SessionQueue } from '@/core/types/session'
+import type {
+  ChatBindingStore,
+  CommandLane,
+  SessionOpener,
+  SessionQueue,
+} from '@/core/types/session'
 import type { AgentProfile, Runner } from '@/engine/api'
 import { API_CHANNEL } from '@/app/server/channel'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
 import { resolveSessionId, runChat } from '@/app/server/ws/chat'
-import { abortSocketSession, send, sendRunError } from '@/app/server/ws/runs'
+import { abortCommandRuns, abortSocketSession, send, sendRunError } from '@/app/server/ws/runs'
 import { runSlash } from '@/app/server/ws/slash'
 import { toApprovalWire, WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
+import { toCommandLaneKey } from '@/core/command-lane'
 import { sessionId as brandSessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
@@ -31,6 +37,7 @@ const WS_FRAME: z.ZodType<ClientFrame> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('chat'), ...CHAT_FIELDS }),
   z.object({ type: z.literal('steer'), ...CHAT_FIELDS }),
   z.object({ type: z.literal('cancel'), sessionId: z.string() }),
+  z.object({ type: z.literal('drop'), sessionId: z.string(), id: z.string() }),
   z.object({ type: z.literal('hello'), contractVersion: z.number() }),
 ])
 
@@ -44,6 +51,7 @@ export interface WsServices {
   readonly agents: ReadonlyMap<string, AgentProfile>
   readonly bindings: ChatBindingStore
   readonly bus: EventBus
+  readonly commandLane: CommandLane
   readonly locale: Locale
   readonly logger: Logger
   readonly runControl: WsRunControl
@@ -115,6 +123,13 @@ export const wsHandlers: WebSocketHandler<WsData> = {
           send(ws, { type: 'chat', kind: 'steer_dropped', text: steerDroppedText(ws, e.count) })
         }
       }),
+      // `/new` moves the chat to a session of its own: the commands still running for the old one
+      // stop, and the ones waiting were already dropped by the lane.
+      bus.on('chat_session_reset', (e) => {
+        if (e.channel === API_CHANNEL) {
+          abortCommandRuns(ws, brandSessionId(e.chatId))
+        }
+      }),
       bus.on('provider_fallback', (e) => {
         const ownsRun =
           ws.data.activeRuns.has(e.sessionId) ||
@@ -163,7 +178,7 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
     return
   }
 
-  if (frame.type === 'hello' || frame.type === 'cancel') {
+  if (frame.type === 'hello' || frame.type === 'cancel' || frame.type === 'drop') {
     handleControl(ws, frame)
 
     return
@@ -288,13 +303,22 @@ function parseFrame(raw: string): ClientFrame | null {
   return result.success ? result.data : null
 }
 
-/** The frames that carry no message: the handshake and an interrupt. */
+/** The frames that carry no message: the handshake, an interrupt and a command pulled from the
+ *  line. The lane rejects the dropped command, and the socket that ran it answers `dropped`. */
 function handleControl(
   ws: ServerWebSocket<WsData>,
-  frame: Extract<ClientFrame, { readonly type: 'hello' | 'cancel' }>
+  frame: Extract<ClientFrame, { readonly type: 'hello' | 'cancel' | 'drop' }>
 ): void {
   if (frame.type === 'cancel') {
     abortSocketSession(ws, resolveSessionId(frame.sessionId))
+
+    return
+  }
+
+  if (frame.type === 'drop') {
+    const key = toCommandLaneKey(API_CHANNEL, resolveSessionId(frame.sessionId))
+
+    ws.data.services.commandLane.drop(key, frame.id)
 
     return
   }

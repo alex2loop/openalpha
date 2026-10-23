@@ -3,6 +3,7 @@ import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { SessionId } from '@/core/ids'
 import { replyChoiceGone } from '@/channels/delivery/choice-gone'
 import { commandHeadOf } from '@/commands/api'
+import { toCommandLaneKey } from '@/core/command-lane'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
 
@@ -78,6 +79,7 @@ export async function handleSessionControl(options: SessionControlOptions): Prom
   const { deps, msg, sessionId } = options
   if (commandHeadOf(msg.text) === STOP_COMMAND) {
     deps.queue.cancelSession(sessionId)
+    deps.commandLane.cancel(toCommandLaneKey(deps.channelId, msg.chatId))
     const workflowAborted = deps.slashRuns.abortSession(sessionId, msg.chatId)
     const runAborted = deps.runRegistry.abortSession(sessionId, msg.chatId)
     const aborted = workflowAborted || runAborted

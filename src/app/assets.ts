@@ -7,6 +7,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { ToolDefinition } from '@/core/tool'
 import type { AgentProfileSource, McpToolSource, Plugin, WorkflowSource } from '@/core/types/plugin'
 import { connectMcpServers } from '@/app/mcp-connections'
+import { createCommandLane } from '@/core/command-lane'
 import { ConfigError } from '@/core/errors'
 import { createEventBus } from '@/core/events'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -59,6 +60,7 @@ export async function loadAssets(
     logger,
     bus: createEventBus(logger),
     sessionQueue: createSessionQueue(),
+    commandLane: createCommandLane(),
     childEnvBase,
   }
 

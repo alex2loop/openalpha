@@ -5,14 +5,38 @@ import type { WsData, WsServices } from '@/app/server/ws/socket'
 import type { SlashDispatcher } from '@/commands/api'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { SlashContext, SlashResult } from '@/core/types/command'
-import type { Locale } from '@/core/types/locale'
+import type { SessionRouteRegistration } from '@/core/types/session'
 import { API_CHANNEL } from '@/app/server/channel'
 import { resolveAgentId } from '@/app/server/ws/chat'
-import { registerSocketRun, send, unregisterSocketRun } from '@/app/server/ws/runs'
+import { registerCommandRun, send, sendRunError, unregisterSocketRun } from '@/app/server/ws/runs'
 import { renderMessages } from '@/commands/api'
+import { toCommandLaneKey } from '@/core/command-lane'
 import { RunHalted } from '@/core/errors'
-import { LOCAL_USER_ID } from '@/core/ids'
+import { runId as brandRunId, LOCAL_USER_ID } from '@/core/ids'
+import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale, t } from '@/i18n'
+
+type ResolvedSlash = ReturnType<SlashDispatcher['resolve']>
+
+/** Names the command a frame belongs to when it runs in the chat's lane; empty for every other
+ *  command, whose frames belong to the session's own turn. */
+type FrameTag = { readonly id?: string }
+
+interface SlashRun {
+  readonly ws: ServerWebSocket<WsData>
+  readonly sessionId: SessionId
+  readonly line: string
+  readonly resolved: ResolvedSlash
+  readonly controller: AbortController
+  readonly ctx: SlashContext
+  readonly longRunning: boolean
+  readonly tag: FrameTag
+}
+
+export interface ChatRunRequest {
+  readonly message: string
+  readonly agentId?: AgentId
+}
 
 /** Returns the message to run as a turn, or null when the slash command was terminal. */
 export async function runSlash(
@@ -20,18 +44,43 @@ export async function runSlash(
   sessionId: SessionId,
   line: string
 ): Promise<ChatRunRequest | null> {
-  const { services } = ws.data
   const controller = new AbortController()
-  const resolved = services.slashDispatcher.resolve(line)
+  const resolved = ws.data.services.slashDispatcher.resolve(line)
   const longRunning = resolved?.policy.execution !== undefined
 
-  if (longRunning && !registerSocketRun(ws, sessionId, controller)) {
+  if (longRunning && !registerCommandRun(ws, sessionId, controller)) {
     return null
   }
 
+  const run = toSlashRun({ ws, sessionId, line, resolved, controller, longRunning })
+
+  try {
+    const result = await execute(run)
+
+    // A null result is a queued command aborted before it started.
+    if (controller.signal.aborted || result === null) {
+      return null
+    }
+
+    return handleSlashResult(run, result)
+  } catch (err: unknown) {
+    return handleSlashFailure(run, err)
+  } finally {
+    if (longRunning) {
+      unregisterSocketRun(ws, sessionId, controller)
+    }
+  }
+}
+
+function toSlashRun(input: Omit<SlashRun, 'ctx' | 'tag'>): SlashRun {
+  const { ws, sessionId, resolved, controller, longRunning } = input
+  const { services } = ws.data
+  const requestId = randomUUID()
+  const tag: FrameTag =
+    longRunning && resolved?.policy.selfContained === true ? { id: requestId } : {}
   const ctx: SlashContext = {
     channel: API_CHANNEL,
-    requestId: randomUUID(),
+    requestId,
     surface: 'repl',
     userId: LOCAL_USER_ID,
     sessionId,
@@ -41,52 +90,129 @@ export async function runSlash(
     locale: services.locale,
     signal: controller.signal,
     args: [],
+    // Named here, before the command starts, so a queued command can tell the client which run
+    // it will be; the dispatcher keeps it.
+    ...(longRunning ? { runId: brandRunId(randomUUID()) } : {}),
     progress: (key, params) => {
       if (!controller.signal.aborted) {
         send(ws, {
           type: 'chat',
           kind: 'progress',
           text: bindLocale(services.locale).translate(key, params),
+          ...tag,
         })
       }
     },
   }
 
+  return { ...input, ctx, tag }
+}
+
+async function execute(run: SlashRun): Promise<SlashResult | null> {
+  const { ws, sessionId, controller, longRunning, tag } = run
+
+  if (tag.id !== undefined) {
+    return runInLane(run, tag.id)
+  }
+
+  if (!longRunning) {
+    return dispatchSlash(run)
+  }
+
+  return ws.data.services.sessionQueue.enqueue(sessionId, async () =>
+    controller.signal.aborted ? null : dispatchSlash(run)
+  )
+}
+
+/** A self-contained command runs beside the session's turn. It waits only when the chat already has
+ *  as many commands running as the lane allows, and says so while it does. */
+async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null> {
+  const { ws, sessionId, controller, ctx } = run
+  const { services } = ws.data
+  const registration = await openLaneRegistration(services, sessionId)
+  let started = false
+
   try {
-    const result = longRunning
-      ? await services.sessionQueue.enqueue(sessionId, async () => {
-          if (controller.signal.aborted) {
-            return null
-          }
+    return await services.commandLane.enqueue({
+      key: toCommandLaneKey(API_CHANNEL, sessionId),
+      id,
+      registration,
+      onWaiting: (position) => {
+        send(ws, { type: 'chat', kind: 'queued', id, position })
+      },
+      task: async () => {
+        if (controller.signal.aborted) {
+          return null
+        }
 
-          return dispatchSlash({ services, line, ctx, resolved })
+        started = true
+        send(ws, {
+          type: 'chat',
+          kind: 'started',
+          id,
+          ...(ctx.runId === undefined ? {} : { runId: ctx.runId }),
         })
-      : await dispatchSlash({ services, line, ctx, resolved })
 
-    // A null result is a queued command aborted before it started.
-    if (controller.signal.aborted || result === null) {
+        return await dispatchSlash(run)
+      },
+    })
+  } catch (err: unknown) {
+    // Cancelled, dropped or stale while it waited: it never ran.
+    if (!started && err instanceof RunHalted && err.code === 'abort') {
+      send(ws, { type: 'chat', kind: 'dropped', id })
+
       return null
     }
 
-    return handleSlashResult(ws, services.locale, result)
-  } catch (err: unknown) {
-    if (!(err instanceof RunHalted) || err.code !== 'queue_full') {
-      throw err
-    }
+    throw err
+  }
+}
 
+// The same route the channels hold for a queued command: a `/new` on this chat stales it.
+async function openLaneRegistration(
+  services: WsServices,
+  sessionId: SessionId
+): Promise<SessionRouteRegistration> {
+  const lease = await services.sessionQueue.acquireRoute({
+    channel: API_CHANNEL,
+    chatId: sessionId,
+    userId: LOCAL_USER_ID,
+  })
+
+  try {
+    return lease.register()
+  } finally {
+    lease.release()
+  }
+}
+
+function handleSlashFailure(run: SlashRun, err: unknown): null {
+  const { ws, controller, tag } = run
+  const { services } = ws.data
+
+  if (err instanceof RunHalted && err.code === 'queue_full') {
     send(ws, {
       type: 'chat',
       kind: 'error',
       code: 'unavailable',
       message: t(services.locale, 'errors.queueFull'),
+      ...tag,
     })
 
     return null
-  } finally {
-    if (longRunning) {
-      unregisterSocketRun(ws, sessionId, controller)
-    }
   }
+
+  if (tag.id === undefined) {
+    throw err
+  }
+
+  // A command that was told to stop and unwound with it has nothing left to report.
+  if (!controller.signal.aborted) {
+    services.logger.warn('api.ws_slash_failed', { err: formatErrForLog(err) })
+    sendRunError(ws, err, tag.id)
+  }
+
+  return null
 }
 
 // A command may bill model calls or append its exchange to this session, and both reference the
@@ -101,13 +227,9 @@ async function openSession(services: WsServices, sessionId: SessionId): Promise<
   })
 }
 
-async function dispatchSlash(options: {
-  readonly services: WsServices
-  readonly line: string
-  readonly ctx: SlashContext
-  readonly resolved: ReturnType<SlashDispatcher['resolve']>
-}): ReturnType<SlashDispatcher['dispatch']> {
-  const { services, line, ctx, resolved } = options
+async function dispatchSlash(run: SlashRun): ReturnType<SlashDispatcher['dispatch']> {
+  const { ws, line, ctx, resolved } = run
+  const { services } = ws.data
 
   if (resolved === null) {
     return services.slashDispatcher.dispatch(line, ctx)
@@ -118,23 +240,14 @@ async function dispatchSlash(options: {
   return services.slashDispatcher.dispatchResolved(resolved, ctx)
 }
 
-export interface ChatRunRequest {
-  readonly message: string
-  readonly agentId?: AgentId
-}
-
 /** Sends chat frames for a slash result; returns a turn request when one should run. */
-function handleSlashResult(
-  ws: ServerWebSocket<WsData>,
-  locale: Locale,
-  result: SlashResult
-): ChatRunRequest | null {
+function handleSlashResult(run: SlashRun, result: SlashResult): ChatRunRequest | null {
   switch (result.kind) {
     case 'message':
-      sendChat(ws, renderMessages(bindLocale(locale), result))
+      sendChat(run, renderMessages(bindLocale(run.ws.data.services.locale), result))
       return null
     case 'text':
-      sendChat(ws, result.text)
+      sendChat(run, result.text)
       return null
     case 'agent':
       return {
@@ -142,21 +255,30 @@ function handleSlashResult(
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
       }
     case 'handled':
-      sendSlashDone(ws)
+      sendSlashDone(run)
       return null
     default: {
-      // Exhaustive — unreachable per SlashResult union.
+      // Exhaustive - unreachable per SlashResult union.
       const _exhaustive: never = result
       return _exhaustive
     }
   }
 }
 
-function sendChat(ws: ServerWebSocket<WsData>, delta: string): void {
-  send(ws, { type: 'chat', kind: 'text', delta })
-  sendSlashDone(ws)
+function sendChat(run: SlashRun, delta: string): void {
+  send(run.ws, { type: 'chat', kind: 'text', delta, ...run.tag })
+  sendSlashDone(run)
 }
 
-function sendSlashDone(ws: ServerWebSocket<WsData>): void {
-  send(ws, { type: 'chat', kind: 'done', reason: 'slash' })
+function sendSlashDone(run: SlashRun): void {
+  const { ctx } = run
+
+  send(run.ws, {
+    type: 'chat',
+    kind: 'done',
+    reason: 'slash',
+    sessionId: run.sessionId,
+    ...(ctx.runId === undefined ? {} : { runId: ctx.runId }),
+    ...run.tag,
+  })
 }

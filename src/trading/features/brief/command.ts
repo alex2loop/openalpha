@@ -52,6 +52,7 @@ export function createBriefCommand(deps: BriefCommandDeps): SlashCommand {
       role: 'operator',
       action: 'mutate',
       execution: { progressKey: 'slash.tradingBriefProgress' },
+      selfContained: true,
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE }),

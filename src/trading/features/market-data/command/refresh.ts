@@ -47,6 +47,7 @@ export function createRefreshCommand(deps: RefreshCommandDeps): SlashCommand {
       role: 'operator',
       action: 'mutate',
       execution: { progressKey: 'slash.tradingRefreshProgress' },
+      selfContained: true,
     },
     // Classified rather than positional, so both slots are offered at either position.
     completeFor: () => [...deps.markets, FORCE_ARG],

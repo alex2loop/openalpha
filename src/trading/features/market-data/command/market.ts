@@ -43,6 +43,7 @@ export function createMarketCommand(deps: MarketCommandDeps): SlashCommand {
       role: 'operator',
       action: 'mutate',
       execution: { progressKey: 'slash.tradingMarketProgress' },
+      selfContained: true,
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE }),

@@ -1867,6 +1867,8 @@
     "queueFull": "I'm still working through your earlier messages - please resend in a moment.",
     "commandFailed": "⚠️ That command failed on my side. Try again in a moment; if it keeps failing, `{brand} logs` on the machine running OpenAlpha shows why.",
     "commandRejected": "⚠️ I couldn't read that command. /help <command> shows how to write it.",
+    "commandQueued": "Queued (number {position} in line). It starts when a slot frees up.",
+    "commandQueuedNext": "Queued. It starts as soon as a slot frees up.",
     "progressStopHint": "· type /stop to cancel",
     "researchPlanReview": "🔎 Deep research plan - review before it runs",
     "researchPlanObjective": "Objective: {value}",

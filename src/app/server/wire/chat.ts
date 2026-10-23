@@ -11,10 +11,17 @@ interface ChatToolDisplay {
   readonly detail?: string
 }
 
+/** Names the command a frame belongs to when the command runs in the chat's command lane: the lane
+ *  entry id. A frame without one belongs to the session's own turn. */
+interface LaneTag {
+  readonly id?: string
+}
+
 /** One streamed chat content frame. `kind` discriminates; clients ignore an unknown kind rather than
- *  error. `queued` = held behind an in-flight run for the same session. */
+ *  error. `queued` = held behind an in-flight run for the same session, or, with `id` and
+ *  `position`, a command waiting in the command lane (`position` is its 1-based place in line). */
 export type ChatFrame =
-  | { readonly kind: 'text'; readonly delta: string }
+  | ({ readonly kind: 'text'; readonly delta: string } & LaneTag)
   | { readonly kind: 'reasoning'; readonly delta: string }
   | ({ readonly kind: 'tool'; readonly status: 'run'; readonly id: string } & ChatToolDisplay)
   | { readonly kind: 'tool'; readonly status: 'ok' | 'error'; readonly id: string }
@@ -30,18 +37,26 @@ export type ChatFrame =
       readonly depth: number
       readonly model: string
     }
-  | { readonly kind: 'queued' }
+  | { readonly kind: 'queued'; readonly id?: string; readonly position?: number }
+  /** A lane command left the line and began; `runId` is the run the live feed shows it as. */
+  | { readonly kind: 'started'; readonly id: string; readonly runId?: string }
+  /** A lane command left the line without running: cancelled, dropped, or its chat moved on. */
+  | { readonly kind: 'dropped'; readonly id: string }
   /** The running turn took a steer; it reads it at its next turn boundary. */
   | { readonly kind: 'steered' }
   /** No running turn read a steer: the CLI's sentence asking to send it again. */
   | { readonly kind: 'steer_dropped'; readonly text: string }
   /** A long slash command's current step in the operator's words; each replaces the last. */
-  | { readonly kind: 'progress'; readonly text: string }
+  | ({ readonly kind: 'progress'; readonly text: string } & LaneTag)
 
 /** The terminal frame `{ type:'chat', kind:'done', reason }`. `reason` is the run result reason, or
  *  'slash' when a leading-`/` message was handled by the dispatcher instead of a run. */
-export interface ChatDone {
+export interface ChatDone extends LaneTag {
   readonly reason: string
+  /** The run this answer came from: the command's run, or the agent turn's engine run. */
+  readonly runId?: string
+  /** The session the answer belongs to, so a client that sent none learns the one it opened. */
+  readonly sessionId?: string
   /** Why a halted run stopped, when it carries a code (`budget`, `agent_paused`, ...). Absent on a
    *  completed run. */
   readonly haltCode?: string
@@ -50,7 +65,7 @@ export interface ChatDone {
 }
 
 /** Terminal error frame: the contract's stable `code` plus a `message` in the daemon's language. */
-export interface ChatError {
+export interface ChatError extends LaneTag {
   readonly code: ApiErrorCode
   readonly message: string
 }

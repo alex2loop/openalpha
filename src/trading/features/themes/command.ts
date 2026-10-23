@@ -36,12 +36,14 @@ const RUN_POLICY: SlashInvocationPolicy = Object.freeze({
   role: 'operator',
   action: 'costly',
   execution: { progressKey: 'slash.tradingThemesProgress' as const },
+  selfContained: true,
   transcript: 'echo',
 })
 const SHOW_POLICY: SlashInvocationPolicy = Object.freeze({
   surfaces: SURFACES,
   role: 'operator',
   action: 'read',
+  selfContained: true,
   transcript: 'echo',
 })
 const CHANGE_POLICY: SlashInvocationPolicy = Object.freeze({

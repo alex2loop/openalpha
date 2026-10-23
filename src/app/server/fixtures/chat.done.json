@@ -1,1 +1,6 @@
-{ "reason": "end_turn" }
+{
+  "reason": "slash",
+  "id": "req-2",
+  "runId": "9f1c2d0e-5a77-4c1e-9d65-0f0c3a1b7e42",
+  "sessionId": "chat_0123456789abcdef0123456789"
+}

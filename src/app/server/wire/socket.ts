@@ -1,5 +1,5 @@
 // /v1/ws — the unified WebSocket envelope. One socket: the daemon pushes `wire_event` + chat frames
-// (JSON text); the client sends chat/steer/cancel/hello (JSON text). Each text message is a JSON
+// (JSON text); the client sends chat/steer/cancel/drop/hello (JSON text). Each text message is a JSON
 // object discriminated by `type`; payloads are the contract shapes from the sibling files.
 
 import type { ChatBody, ChatDone, ChatError, ChatFrame } from '@/app/server/wire/chat'
@@ -22,4 +22,6 @@ export type ClientFrame =
   | ({ readonly type: 'chat' } & ChatBody)
   | ({ readonly type: 'steer' } & ChatBody)
   | { readonly type: 'cancel'; readonly sessionId: string }
+  /** Takes a command out of the command lane while it waits; the socket that ran it answers `dropped`. */
+  | { readonly type: 'drop'; readonly sessionId: string; readonly id: string }
   | { readonly type: 'hello'; readonly contractVersion: number }

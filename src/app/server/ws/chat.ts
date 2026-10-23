@@ -4,9 +4,11 @@ import { randomUUID } from 'node:crypto'
 import type { ChatFrame } from '@/app/server/wire/chat'
 import type { ChatRunRequest } from '@/app/server/ws/slash'
 import type { WsData, WsServices } from '@/app/server/ws/socket'
-import type { AgentId, SessionId } from '@/core/ids'
+import type { AgentId, RunId, SessionId } from '@/core/ids'
+import type { RunResult } from '@/engine/api'
 import { API_CHANNEL } from '@/app/server/channel'
 import {
+  followRunId,
   registerSocketRun,
   send,
   sendOperatorFailure,
@@ -48,45 +50,15 @@ export async function runChat(
       send(ws, { type: 'chat', kind: 'queued' })
     }
 
-    const result = await services.sessionQueue.enqueue(sessionId, async () => {
-      if (controller.signal.aborted) {
-        return null
-      }
+    const turn = await services.sessionQueue.enqueue(sessionId, () =>
+      runTurn({ ws, sessionId, agentId, request, controller })
+    )
 
-      const frames = createChatFrameMapper()
-
-      try {
-        return await services.runner.run(
-          {
-            agentId,
-            sessionId,
-            userId: LOCAL_USER_ID,
-            channel: API_CHANNEL,
-            userMessage: request.message,
-            onChunk: (event) => sendChatFrames(ws, frames.map(event)),
-          },
-          { chatId: sessionId, parentSignal: controller.signal }
-        )
-      } finally {
-        sendChatFrames(ws, frames.flush())
-      }
-    })
-
-    if (controller.signal.aborted || result === null) {
+    if (controller.signal.aborted || turn === null) {
       return
     }
 
-    if (result.operator !== undefined) {
-      sendOperatorFailure(ws, result.operator)
-    }
-
-    send(ws, {
-      type: 'chat',
-      kind: 'done',
-      reason: result.reason,
-      ...(result.haltCode === undefined ? {} : { haltCode: result.haltCode }),
-      ...(result.haltDetail === undefined ? {} : { haltDetail: result.haltDetail }),
-    })
+    sendTurnEnd(ws, sessionId, turn)
   } catch (err: unknown) {
     if (controller.signal.aborted) {
       return
@@ -97,6 +69,69 @@ export async function runChat(
   } finally {
     unregisterSocketRun(ws, sessionId, controller)
   }
+}
+
+interface TurnInput {
+  readonly ws: ServerWebSocket<WsData>
+  readonly sessionId: SessionId
+  readonly agentId: AgentId
+  readonly request: ChatRunRequest
+  readonly controller: AbortController
+}
+
+interface TurnOutcome {
+  readonly result: RunResult
+  readonly runId: RunId | undefined
+}
+
+/** The turn at the head of its session; null when it was stopped before it started. */
+async function runTurn(input: TurnInput): Promise<TurnOutcome | null> {
+  const { ws, sessionId, agentId, request, controller } = input
+  const { services } = ws.data
+
+  if (controller.signal.aborted) {
+    return null
+  }
+
+  const frames = createChatFrameMapper()
+  const link = followRunId(services.bus, sessionId)
+
+  try {
+    const result = await services.runner.run(
+      {
+        agentId,
+        sessionId,
+        userId: LOCAL_USER_ID,
+        channel: API_CHANNEL,
+        userMessage: request.message,
+        onChunk: (event) => sendChatFrames(ws, frames.map(event)),
+      },
+      { chatId: sessionId, parentSignal: controller.signal }
+    )
+
+    return { result, runId: link.current() }
+  } finally {
+    link.stop()
+    sendChatFrames(ws, frames.flush())
+  }
+}
+
+function sendTurnEnd(ws: ServerWebSocket<WsData>, sessionId: SessionId, turn: TurnOutcome): void {
+  const { result, runId } = turn
+
+  if (result.operator !== undefined) {
+    sendOperatorFailure(ws, result.operator)
+  }
+
+  send(ws, {
+    type: 'chat',
+    kind: 'done',
+    reason: result.reason,
+    sessionId,
+    ...(runId === undefined ? {} : { runId }),
+    ...(result.haltCode === undefined ? {} : { haltCode: result.haltCode }),
+    ...(result.haltDetail === undefined ? {} : { haltDetail: result.haltDetail }),
+  })
 }
 
 function sendChatFrames(ws: ServerWebSocket<WsData>, frames: readonly ChatFrame[]): void {

@@ -111,7 +111,9 @@ export interface SlashContext {
   readonly correlationId?: string
   /** Present when the surface can show incremental progress; commands treat it as fire-and-forget. */
   readonly progress?: ProgressReporter
-  /** Minted by the dispatcher for a long-running command, so work it starts can name its parent. */
+  /** Minted by the dispatcher for a long-running command, so work it starts can name its parent. A
+   *  surface that must name the run before it starts (a command it announces while it waits) mints
+   *  the id itself and the dispatcher keeps it. */
   readonly runId?: RunId
 }
 
@@ -130,6 +132,9 @@ export interface SlashInvocationPolicy {
   readonly cooldownMs?: number
   readonly idempotencyKey?: (ctx: SlashContext) => string
   readonly execution?: LongRunningExecution
+  /** The command never returns `kind: 'agent'` and touches no session transcript but its own, so a
+   *  surface may run it beside other work in the same chat instead of behind the session's turn. */
+  readonly selfContained?: true
   /** What to use instead, shown where a surface this policy leaves out refuses the command. */
   readonly surfaceHint?: CommandMessageKey
   /** `'echo'` records the invocation and its `text` output in the session transcript, so the next

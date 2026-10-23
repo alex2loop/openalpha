@@ -16,7 +16,12 @@ import type { ChannelId } from '@/core/channels'
 import type { EventBus } from '@/core/events'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
-import type { ChatBindingStore, SessionOpener, SessionQueue } from '@/core/types/session'
+import type {
+  ChatBindingStore,
+  CommandLane,
+  SessionOpener,
+  SessionQueue,
+} from '@/core/types/session'
 import type { AgentRegistry, RunRegistry } from '@/engine/api'
 
 export interface InboundHandlerDeps {
@@ -26,6 +31,8 @@ export interface InboundHandlerDeps {
   /** Typed codes standing in for buttons on a channel without a keyboard. */
   readonly choices: TextChoices
   readonly sessionQueue: SessionQueue
+  /** Runs a self-contained command beside the session's turn; `/stop` and a reset cancel its waiting. */
+  readonly commandLane: CommandLane
   readonly sessions: SessionOpener
   readonly dispatcher: SlashDispatcher
   readonly spend: SpendReader

@@ -1867,6 +1867,8 @@
     "queueFull": "Mình vẫn đang xử lý các tin nhắn trước của bạn - hãy gửi lại sau một chút.",
     "commandFailed": "⚠️ Câu lệnh lỗi ở phía mình. Bạn thử lại sau giây lát; nếu vẫn lỗi, `{brand} logs` trên máy chạy OpenAlpha cho biết lý do.",
     "commandRejected": "⚠️ Mình chưa hiểu câu lệnh này. /help <câu lệnh> cho xem cách viết.",
+    "commandQueued": "Mình xếp câu lệnh này vào hàng (thứ {position}), sẽ chạy khi có chỗ trống.",
+    "commandQueuedNext": "Mình xếp câu lệnh này vào hàng, sẽ chạy ngay khi có chỗ trống.",
     "progressStopHint": "· gõ /stop để hủy",
     "researchPlanReview": "🔎 Kế hoạch nghiên cứu sâu - xác nhận trước khi chạy",
     "researchPlanObjective": "Mục tiêu: {value}",

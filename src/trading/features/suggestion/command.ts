@@ -71,6 +71,7 @@ export function createSuggestCommand(deps: SuggestCommandDeps): SlashCommand {
       role: 'operator',
       action: 'costly',
       execution: { progressKey: 'slash.tradingSuggestProgress' },
+      selfContained: true,
     },
     // The subject is a ticker and `stops` is its exception, so only the options complete.
     completeFor: (args) => (args.length === 1 ? [] : OPTIONS),

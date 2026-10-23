@@ -46,6 +46,7 @@ const COSTLY_POLICY = {
   cooldownMs: MUTATION_COOLDOWN_MS,
   idempotencyKey: (ctx: SlashContext) => ctx.requestId,
   execution: { progressKey: 'slash.scheduleProgress' } as const,
+  selfContained: true as const,
 }
 
 type ScheduleOperation =

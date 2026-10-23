@@ -58,6 +58,7 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
 const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'brand',
   'channels',
+  'command-lane',
   'container',
   'errors',
   'events',

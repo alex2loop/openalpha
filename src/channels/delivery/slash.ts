@@ -14,6 +14,7 @@ import { TELEGRAM_CALLBACK_DATA_MAX_BYTES } from '@/channels/adapters/telegram/p
 import { buildAbortCallbackData, COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
 import { channelControlHelp } from '@/channels/delivery/control'
 import { formatChannelFooter, joinFooter } from '@/channels/delivery/format'
+import { runInCommandLane } from '@/channels/delivery/slash-lane'
 import { openSlashNotice, type SlashNotice } from '@/channels/delivery/slash-notice'
 import { operatorContextOf } from '@/channels/operator'
 import { parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
@@ -143,7 +144,7 @@ async function runSlashRequest(options: ResolveSlashOptions): Promise<SlashRunRe
 }
 
 async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> {
-  const { deps, msg, sessionId, route, resolved } = options
+  const { deps, msg, sessionId, resolved } = options
 
   if (resolved === undefined) {
     throw new ChannelError('get_updates_failed', 'missing resolved long-running slash command')
@@ -152,14 +153,7 @@ async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> 
   const controller = deps.slashRuns.register(sessionId, msg.chatId)
 
   try {
-    const queued = deps.sessionQueue.enqueue(
-      sessionId,
-      () => runQueuedSlash(options, controller),
-      route.register()
-    )
-
-    route.release()
-    await queued
+    await enqueueSlash(options, controller)
   } catch (err: unknown) {
     if (!(err instanceof RunHalted && err.code === 'queue_full')) {
       throw err
@@ -169,6 +163,22 @@ async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> 
   } finally {
     deps.slashRuns.unregister(sessionId, msg.chatId, controller)
   }
+}
+
+/** A self-contained command runs in the chat's lane; any other waits its turn in the session's. */
+function enqueueSlash(options: ResolveSlashOptions, controller: AbortController): Promise<void> {
+  const { deps, msg, sessionId, route, resolved } = options
+  const task = (): Promise<void> => runQueuedSlash(options, controller)
+
+  if (resolved?.policy.selfContained === true) {
+    return runInCommandLane({ deps, chatId: msg.chatId, id: requestIdOf(msg), route, task })
+  }
+
+  const queued = deps.sessionQueue.enqueue(sessionId, task, route.register())
+
+  route.release()
+
+  return queued
 }
 
 /** The command's turn at the head of its session. The notice opens here, not when the request
@@ -205,6 +215,11 @@ async function runQueuedSlash(
 
     if (request === null) {
       return
+    }
+
+    // Outside the session's queue, an agent turn would race the session's own.
+    if (resolved?.policy.selfContained === true) {
+      throw new ChannelError('get_updates_failed', 'self-contained command asked for an agent turn')
     }
 
     const selectedAgent = request.agentId ?? (await resolveAgentId(msg.chatId))

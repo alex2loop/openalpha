@@ -38,6 +38,7 @@ export function createRebalanceCommand(deps: AdviceCommandDeps): SlashCommand {
       role: 'operator',
       action: 'read',
       execution: { progressKey: 'slash.tradingRebalanceProgress' },
+      selfContained: true,
     },
     usage: () => ({ key: USAGE, values: buildUsageValues(heldMarketsOf(deps)) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),

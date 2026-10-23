@@ -1,12 +1,12 @@
 import type { DeliveryHub } from '@/app/delivery'
-import type { StartChannelsDeps, StartChannelsResult } from '@/channels/api'
+import type { StartChannelsResult } from '@/channels/api'
 import type { App, DaemonStartOptions, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
+import { resolveChannelDeps } from '@/app/channel-deps'
 import { startChannelWatch } from '@/app/channel-watch'
 import { retentionCutoffAt, runWorkspaceTmpRetention, startRetention } from '@/app/retention'
 import { ApiTokenError } from '@/app/server/http/auth'
-import { toAgentRegistry } from '@/app/services'
 import { startSocialUpkeep } from '@/app/social-upkeep'
 import { startUpdateWatch } from '@/app/update/watch'
 import { startChannels } from '@/channels/api'
@@ -128,7 +128,8 @@ async function startDaemonSubsystems(
   const { disposers } = teardown
   const { onHealth } = options
 
-  const channels = await startChannels(channelDeps(app, startupSignal))
+  // The env is injected once here so no adapter reaches for process.env on its own.
+  const channels = await startChannels(resolveChannelDeps(app, startupSignal, process.env))
   const tradingTasks = app.resolve('tradingServices').daemonTasks
   disposers.push(() => channels.stop())
   disposers.push(
@@ -287,32 +288,6 @@ function trackDaemonTask(options: TrackDaemonTaskOptions): void {
   )
 }
 
-function channelDeps(app: App, signal: AbortSignal): StartChannelsDeps {
-  return {
-    definitions: app.resolve('channels'),
-    config: app.config,
-    runner: app.resolve('runner'),
-    runRegistry: app.resolve('runRegistry'),
-    sessionQueue: app.resolve('sessionQueue'),
-    costTracker: app.resolve('costTracker'),
-    pairingStore: app.resolve('pairingStore'),
-    sessionRouter: app.resolve('sessionRouter'),
-    sessions: app.resolve('sessionStore'),
-    spend: app.resolve('spendReader'),
-    pollOffsets: app.resolve('pollOffsetStore'),
-    inbox: app.resolve('inboundInbox'),
-    bindings: app.resolve('chatBindingStore'),
-    dispatcher: app.resolve('slashDispatcher'),
-    agents: toAgentRegistry(app.resolve('agents')),
-    operatorNotices: app.resolve('operatorNotices'),
-    bus: app.resolve('bus'),
-    logger: app.resolve('logger'),
-    // Injected once here so no adapter reaches for process.env on its own.
-    env: process.env,
-    shutdownSignal: signal,
-  }
-}
-
 interface AbortWaiter {
   readonly promise: Promise<void>
   readonly dispose: () => void
@@ -364,7 +339,10 @@ async function shutdown(options: {
       await runCleanup(logger, 'daemon.admission_failed', close)
     }
 
-    await runCleanup(logger, 'daemon.pause_failed', () => app.resolve('sessionQueue').pause())
+    await runCleanup(logger, 'daemon.pause_failed', () => {
+      app.resolve('sessionQueue').pause()
+      app.resolve('commandLane').pause()
+    })
     await runCleanup(logger, 'daemon.drain_failed', () =>
       app.resolve('runRegistry').drain(SHUTDOWN_DRAIN_MS)
     )

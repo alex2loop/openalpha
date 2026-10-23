@@ -46,6 +46,31 @@ export interface SessionQueue {
   pause(): void
 }
 
+export interface CommandLaneEntry<T> {
+  /** One lane per chat: `toCommandLaneKey`. */
+  readonly key: string
+  /** Names the entry to `drop`; unique within the lane. */
+  readonly id: string
+  /** Owned by the lane from here on: released when the task starts, is cancelled, dropped or rejected. */
+  readonly registration: SessionRouteRegistration
+  readonly task: () => Promise<T>
+  /** Called with the 1-based place in the waiting line when the task cannot start at once. */
+  readonly onWaiting?: (position: number) => void
+}
+
+/** Runs a chat's self-contained commands beside its session turn, a few at a time, instead of one
+ *  behind another. A waiting task rejects with `RunHalted('abort')` when cancelled, dropped or its
+ *  route went stale, and with `RunHalted('queue_full')` past the waiting cap or after `pause`. */
+export interface CommandLane {
+  enqueue<T>(entry: CommandLaneEntry<T>): Promise<T>
+  /** Rejects every waiting task of the chat; a running task is untouched. */
+  cancel(key: string): void
+  /** Rejects one waiting task; false when it is not waiting (running, finished or unknown). */
+  drop(key: string, id: string): boolean
+  /** Shed all new work and reject what waits. One-way: shutdown is the only caller. */
+  pause(): void
+}
+
 /** Mirrors session scope: user-keyed invalidation never stales another user's pending work. */
 export interface SessionRouteKey {
   readonly channel: ChannelId

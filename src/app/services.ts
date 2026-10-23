@@ -9,7 +9,7 @@ import type { EventBus } from '@/core/events'
 import type { AgentId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { ToolServices } from '@/core/tool'
-import type { OpenedSession, SessionQueue } from '@/core/types/session'
+import type { CommandLane, OpenedSession, SessionQueue } from '@/core/types/session'
 import type {
   AgentProfile,
   AgentRegistry,
@@ -55,6 +55,7 @@ declare module '@/core/container' {
     logger: Logger
     bus: EventBus
     sessionQueue: SessionQueue
+    commandLane: CommandLane
     inboundInbox: InboundInbox
     noticeSurfaces: NoticeSurfaces
     deliveredNotices: DeliveryHub['onDelivered']
@@ -67,6 +68,7 @@ export interface KernelDeps {
   readonly logger: Logger
   readonly bus: EventBus
   readonly sessionQueue: SessionQueue
+  readonly commandLane: CommandLane
   /** Frozen boot-computed process env allowlist handed to spawned shells. */
   readonly childEnvBase: Readonly<Record<string, string>>
 }
@@ -85,6 +87,7 @@ export function createKernelProvider(kernel: KernelDeps): ServiceProvider {
       bind('logger', () => kernel.logger)
       bind('bus', () => kernel.bus)
       bind('sessionQueue', () => kernel.sessionQueue)
+      bind('commandLane', () => kernel.commandLane)
       bind('childEnvBase', () => kernel.childEnvBase)
       bind('inboundInbox', (app) =>
         createChannelInbox(app.resolve('storage'), app.resolve('dialect'))

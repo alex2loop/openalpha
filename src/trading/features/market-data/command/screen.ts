@@ -47,6 +47,7 @@ export function createScreenCommand(deps: ScreenCommandDeps): SlashCommand {
       role: 'member',
       action: 'read',
       execution: { progressKey: 'slash.tradingScreenProgress' },
+      selfContained: true,
       transcript: 'echo',
     },
     // Slots are classified rather than positional, so both closed classes are offered at every

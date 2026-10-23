@@ -82,7 +82,7 @@ async function runWithEvents(
   context: SlashContext,
   command: SlashCommand
 ): Promise<SlashResult> {
-  const id = runId(randomUUID())
+  const id = context.runId ?? runId(randomUUID())
   const child = new AbortController()
   const unlink = linkAbort(context.signal, child)
   const { bus } = state

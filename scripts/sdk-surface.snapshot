@@ -70,6 +70,7 @@ cli:usage
 cli:writeCommandCache
 core/brand
 core/channels
+core/command-lane
 core/config/load
 core/config/resolve
 core/config/validate

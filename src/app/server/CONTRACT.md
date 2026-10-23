@@ -253,7 +253,11 @@ Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`
   ended, or ends before reading it, answers `{ kind: 'steer_dropped', text }` with the CLI's
   sentence asking to send it again; the message is never run on its own. A `/` command is not
   steered: it runs as `chat`.
-- `{ type: 'cancel', sessionId }` — interrupt the current turn.
+- `{ type: 'cancel', sessionId }` — interrupt the current turn, stop the session's running self-contained
+  commands and drop the ones waiting in the command lane (each answers `dropped`).
+- `{ type: 'drop', sessionId, id }` — take one waiting command out of the line (`id` from its
+  `queued` frame). The lane rejects it and the socket that ran it answers `dropped`; a command that
+  already started is untouched and an unknown `id` is ignored.
 - `{ type: 'hello', contractVersion }` — the handshake; the daemon answers `{ type: 'welcome',
   contractVersion }`, or closes with 1011 when the version differs. A frame that is not one of
   these shapes closes the socket with 1002 `invalid_frame`.
@@ -264,11 +268,25 @@ The daemon replies with `ServerFrame`s tagged `type: 'chat'`:
 - `{ type: 'chat', ...ChatFrame }` (`chat.ts`): `text` / `reasoning` deltas, `tool` (run→ok/error),
   `usage` footer, `subagent` activity. Scrubbing + tool-display + usage formatting are **daemon-side**;
   the client only renders.
-- `{ type: 'chat', kind: 'progress', text }` — a long slash command's current step in the operator's
+- `{ type: 'chat', kind: 'progress', text, id? }` — a long slash command's current step in the operator's
   words; each replaces the last, and the turn ends with `done`.
-- `{ type: 'chat', kind: 'done', reason, haltCode?, haltDetail? }` — turn finished (`reason: 'slash'` when dispatcher-handled). A halted run adds `haltCode` (`budget`, ...) and, when the halt has one, `haltDetail`: a budget ceiling (`run_budget`, `daily_cap`, `monthly_cap`, `agent_daily_cap`, `ledger_unavailable`) or a provider error code on an `llm_error` halt, so an app can say which ceiling or failure stopped it.
-- `{ type: 'chat', kind: 'error', code, message }` — turn failed. `code` is an `ApiErrorCode` (section 6);
+- `{ type: 'chat', kind: 'done', reason, id?, runId?, sessionId?, haltCode?, haltDetail? }` — turn finished (`reason: 'slash'` when dispatcher-handled). `runId` is the run the answer came from: the command's run, or the agent turn's engine run (the `runId` of its `run_started` / `run_finished` events). `sessionId` is the session it belongs to, so a client that sent none learns the one the turn opened. A halted run adds `haltCode` (`budget`, ...) and, when the halt has one, `haltDetail`: a budget ceiling (`run_budget`, `daily_cap`, `monthly_cap`, `agent_daily_cap`, `ledger_unavailable`) or a provider error code on an `llm_error` halt, so an app can say which ceiling or failure stopped it.
+- `{ type: 'chat', kind: 'error', code, message, id? }` — turn failed. `code` is an `ApiErrorCode` (section 6);
   `message` is a sentence in the daemon's language, never the error's own text.
+
+**Command lane.** The self-contained commands (`/suggest`, `/screen`, `/rebalance`, `/brief`, `/refresh`,
+`/price`, `/overview`, `/market`, `/portfolio`, `/reconcile`, `/themes`, `/schedule run`, plugin
+workflows) run beside the session's turn instead of behind it: up to 3 at once per chat, up to 10
+waiting in order. Every frame such a command sends (`text`, `progress`, `done`, `error`) carries `id`,
+the lane entry's id, so the client ties it to the line that started it; a frame without `id` belongs
+to the session's own turn.
+
+- `{ type: 'chat', kind: 'queued', id, position }` — the command waits; `position` is its 1-based
+  place in line. A plain `{ kind: 'queued' }` is still a turn held behind another.
+- `{ type: 'chat', kind: 'started', id, runId? }` — it left the line and began. `runId` is the run the
+  feed shows it as (`run_started`, `command_progress`, `run_finished`).
+- `{ type: 'chat', kind: 'dropped', id }` — it left the line without running: `drop`, `cancel`, `/new`
+  or shutdown. A full line answers the existing `error` frame (`unavailable`, `errors.queueFull`).
 
 A `chat` sent while a turn runs waits behind it (`queued`); a `cancel` or a disconnect aborts the
 running turn. Shutdown starts by closing admission: no new connection, no new HTTP request, and a
