@@ -4,6 +4,8 @@ import type {
   ResolvedSlashCommand,
   SlashDispatcher,
 } from '@/commands/types'
+import type { EventBus } from '@/core/events'
+import type { RunId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type {
   CommandMessageKey,
@@ -14,9 +16,10 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import { BRAND } from '@/core/brand'
-import { isAbortError, RunHalted, ValidationError } from '@/core/errors'
+import { ValidationError } from '@/core/errors'
 import { withCorrelation } from '@/core/logging/correlation'
 
+import { type CommandRuns, createCommandRuns, isCancellation } from './long-running'
 import { assertPolicyValid, assertSlashCommandValid } from './registration'
 import { IDEMPOTENCY_TTL_MS, RATE_WINDOW_MS, sweepRegistries } from './registries'
 import {
@@ -35,6 +38,7 @@ const KEY_SEPARATOR_RE = /[\\:]/g
 
 interface SlashDispatcherDeps {
   readonly keys: KeyValidator
+  readonly bus: EventBus
   readonly logger: Logger
   readonly transcript: CommandTranscript
   readonly ratePerMinute?: number
@@ -50,6 +54,7 @@ export function createSlashDispatcher(deps: SlashDispatcherDeps): SlashDispatche
     ratePerMinute: deps.ratePerMinute ?? DEFAULT_RATE_PER_MINUTE,
     logger: deps.logger,
     transcript: deps.transcript,
+    runs: createCommandRuns({ bus: deps.bus, logger: deps.logger }),
   }
 
   return {
@@ -74,6 +79,8 @@ export function createSlashDispatcher(deps: SlashDispatcherDeps): SlashDispatche
           }),
         runResolved: (resolved) => dispatchResolved({ ...state, resolved, context }),
       }),
+    abortCommand: (id: RunId) => state.runs.abortCommand(id),
+    activeCommands: () => state.runs.activeCommands(),
   }
 }
 
@@ -116,6 +123,7 @@ interface DispatchState {
   readonly ratePerMinute: number
   readonly logger: Logger
   readonly transcript: CommandTranscript
+  readonly runs: CommandRuns
 }
 
 interface AdmissionOptions extends DispatchState {
@@ -150,11 +158,7 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult>
   const lease = admission.lease
   let committed = false
   try {
-    const raw = await options.resolved.command.run({
-      ...options.context,
-      args: options.resolved.args,
-    })
-    const result = toSlashResult(options.resolved.command, raw)
+    const result = await runCommand(options)
     lease.commit()
     committed = true
 
@@ -181,14 +185,16 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult>
   }
 }
 
-// Both cancellation shapes a command can raise: a native fetch/stream abort, and the runtime's
-// own typed halt from `abortError`.
-function isCancellation(err: unknown): boolean {
-  if (err instanceof RunHalted) {
-    return err.code === 'abort'
+// Only a long-running command is a run on the bus; the rest answer in place.
+async function runCommand(options: AdmissionOptions): Promise<SlashResult> {
+  const { command, args, policy } = options.resolved
+  const context = { ...options.context, args }
+
+  if (policy.execution !== undefined) {
+    return await options.runs.withCommandEvents(context, command)
   }
 
-  return isAbortError(err)
+  return toSlashResult(command, await command.run(context))
 }
 
 function rejectMessage(key: CommandMessageKey): AdmissionResult {

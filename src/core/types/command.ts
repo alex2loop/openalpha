@@ -1,5 +1,5 @@
 import type { ChannelId } from '@/core/channels'
-import type { AgentId, SessionId, UserId } from '@/core/ids'
+import type { AgentId, RunId, SessionId, UserId } from '@/core/ids'
 import type { LocalizedMessageParam } from '@/core/stream-events'
 import type { Locale } from '@/core/types/locale'
 /**
@@ -111,6 +111,8 @@ export interface SlashContext {
   readonly correlationId?: string
   /** Present when the surface can show incremental progress; commands treat it as fire-and-forget. */
   readonly progress?: ProgressReporter
+  /** Minted by the dispatcher for a long-running command, so work it starts can name its parent. */
+  readonly runId?: RunId
 }
 
 /**

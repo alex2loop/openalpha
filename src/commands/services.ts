@@ -88,6 +88,7 @@ export function createCommandsProvider(
       bind('slashDispatcher', (app) => {
         const dispatcher = createSlashDispatcher({
           keys,
+          bus: app.resolve('bus'),
           logger: app.resolve('logger'),
           transcript: app.resolve('sessionStore'),
           ratePerMinute: app.config.commands.ratePerMinute,
