@@ -11,8 +11,8 @@ import { toCommandLaneKey } from '@/core/command-lane'
 import { bindLocale, t } from '@/i18n'
 
 // Controllers of slash commands, so a chat reset can stop them without stopping the agent turn that
-// shares the socket's per-session set.
-const commandControllers = new WeakSet<AbortController>()
+// shares the socket's per-session set. The value is the lane entry id of a self-contained command.
+const commandControllers = new WeakMap<AbortController, string | undefined>()
 
 /** False when the socket dropped the frame (closed, or its buffer is full): Bun answers 0 then,
  *  -1 for a frame queued behind backpressure, and the byte count otherwise. */
@@ -76,9 +76,30 @@ export function registerCommandRun(
   sessionId: SessionId,
   controller: AbortController
 ): boolean {
-  commandControllers.add(controller)
+  commandControllers.set(controller, undefined)
 
   return registerSocketRun(ws, sessionId, controller)
+}
+
+/** Names the lane entry a command's controller stands for, so a closing socket can drop it. */
+export function trackLaneItem(controller: AbortController, id: string): void {
+  commandControllers.set(controller, id)
+}
+
+/** A closing socket takes its commands out of the line at once, freeing their slots and route
+ *  registrations; a command already running is untouched here and aborted by the caller. */
+export function dropWaitingCommands(ws: ServerWebSocket<WsData>): void {
+  for (const [sessionId, controllers] of ws.data.activeRuns) {
+    const key = toCommandLaneKey(API_CHANNEL, sessionId)
+
+    for (const controller of controllers) {
+      const id = commandControllers.get(controller)
+
+      if (id !== undefined) {
+        ws.data.services.commandLane.drop(key, id)
+      }
+    }
+  }
 }
 
 /** Stops the slash commands this socket runs for the session, leaving its agent turn alone. */

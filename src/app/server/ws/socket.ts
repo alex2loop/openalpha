@@ -19,7 +19,13 @@ import type { AgentProfile, Runner } from '@/engine/api'
 import { API_CHANNEL } from '@/app/server/channel'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
 import { resolveSessionId, runChat } from '@/app/server/ws/chat'
-import { abortCommandRuns, abortSocketSession, send, sendRunError } from '@/app/server/ws/runs'
+import {
+  abortCommandRuns,
+  abortSocketSession,
+  dropWaitingCommands,
+  send,
+  sendRunError,
+} from '@/app/server/ws/runs'
 import { runSlash } from '@/app/server/ws/slash'
 import { toApprovalWire, WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
 import { toCommandLaneKey } from '@/core/command-lane'
@@ -271,6 +277,8 @@ function closeSocket(ws: ServerWebSocket<WsData>): void {
   } catch {
     // Listener cleanup must not prevent the socket's owned runs from being cancelled.
   }
+
+  dropWaitingCommands(ws)
 
   for (const [sessionId, controllers] of ws.data.activeRuns) {
     for (const controller of controllers) {

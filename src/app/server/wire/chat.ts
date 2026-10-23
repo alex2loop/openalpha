@@ -40,7 +40,7 @@ export type ChatFrame =
   | { readonly kind: 'queued'; readonly id?: string; readonly position?: number }
   /** A lane command left the line and began; `runId` is the run the live feed shows it as. */
   | { readonly kind: 'started'; readonly id: string; readonly runId?: string }
-  /** A lane command left the line without running: cancelled, dropped, or its chat moved on. */
+  /** A lane command ended without a result: removed while it waited, or cancelled after it started. */
   | { readonly kind: 'dropped'; readonly id: string }
   /** The running turn took a steer; it reads it at its next turn boundary. */
   | { readonly kind: 'steered' }

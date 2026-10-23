@@ -285,8 +285,8 @@ to the session's own turn.
   place in line. A plain `{ kind: 'queued' }` is still a turn held behind another.
 - `{ type: 'chat', kind: 'started', id, runId? }` — it left the line and began. `runId` is the run the
   feed shows it as (`run_started`, `command_progress`, `run_finished`).
-- `{ type: 'chat', kind: 'dropped', id }` — it left the line without running: `drop`, `cancel`, `/new`
-  or shutdown. A full line answers the existing `error` frame (`unavailable`, `errors.queueFull`).
+- `{ type: 'chat', kind: 'dropped', id }` — the command ended without a result: removed while it
+  waited (`drop`, `cancel`, `/new`, shutdown), or cancelled after it started (`cancel`, `/new`). A full line answers the existing `error` frame (`unavailable`, `errors.queueFull`).
 
 A `chat` sent while a turn runs waits behind it (`queued`); a `cancel` or a disconnect aborts the
 running turn. Shutdown starts by closing admission: no new connection, no new HTTP request, and a

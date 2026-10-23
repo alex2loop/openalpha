@@ -26,6 +26,7 @@ import {
   isCallerFault,
   operatorMessageOf,
   RunHalted,
+  ToolError,
 } from '@/core/errors'
 import { userId as brandUserId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -219,7 +220,7 @@ async function runQueuedSlash(
 
     // Outside the session's queue, an agent turn would race the session's own.
     if (resolved?.policy.selfContained === true) {
-      throw new ChannelError('get_updates_failed', 'self-contained command asked for an agent turn')
+      throw new ToolError('unexpected', 'self-contained command asked for an agent turn')
     }
 
     const selectedAgent = request.agentId ?? (await resolveAgentId(msg.chatId))

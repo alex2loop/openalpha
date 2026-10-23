@@ -8,7 +8,13 @@ import type { SlashContext, SlashResult } from '@/core/types/command'
 import type { SessionRouteRegistration } from '@/core/types/session'
 import { API_CHANNEL } from '@/app/server/channel'
 import { resolveAgentId } from '@/app/server/ws/chat'
-import { registerCommandRun, send, sendRunError, unregisterSocketRun } from '@/app/server/ws/runs'
+import {
+  registerCommandRun,
+  send,
+  sendRunError,
+  trackLaneItem,
+  unregisterSocketRun,
+} from '@/app/server/ws/runs'
 import { renderMessages } from '@/commands/api'
 import { toCommandLaneKey } from '@/core/command-lane'
 import { RunHalted } from '@/core/errors'
@@ -59,7 +65,7 @@ export async function runSlash(
 
     // A null result is a queued command aborted before it started.
     if (controller.signal.aborted || result === null) {
-      return null
+      return endWithoutResult(run)
     }
 
     return handleSlashResult(run, result)
@@ -130,42 +136,41 @@ async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null>
   const { ws, sessionId, controller, ctx } = run
   const { services } = ws.data
   const registration = await openLaneRegistration(services, sessionId)
-  let started = false
 
-  try {
-    return await services.commandLane.enqueue({
-      key: toCommandLaneKey(API_CHANNEL, sessionId),
-      id,
-      registration,
-      onWaiting: (position) => {
-        send(ws, { type: 'chat', kind: 'queued', id, position })
-      },
-      task: async () => {
-        if (controller.signal.aborted) {
-          return null
-        }
+  trackLaneItem(controller, id)
 
-        started = true
-        send(ws, {
-          type: 'chat',
-          kind: 'started',
-          id,
-          ...(ctx.runId === undefined ? {} : { runId: ctx.runId }),
-        })
+  return await services.commandLane.enqueue({
+    key: toCommandLaneKey(API_CHANNEL, sessionId),
+    id,
+    registration,
+    onWaiting: (position) => {
+      send(ws, { type: 'chat', kind: 'queued', id, position })
+    },
+    task: async () => {
+      if (controller.signal.aborted) {
+        return null
+      }
 
-        return await dispatchSlash(run)
-      },
-    })
-  } catch (err: unknown) {
-    // Cancelled, dropped or stale while it waited: it never ran.
-    if (!started && err instanceof RunHalted && err.code === 'abort') {
-      send(ws, { type: 'chat', kind: 'dropped', id })
+      send(ws, {
+        type: 'chat',
+        kind: 'started',
+        id,
+        ...(ctx.runId === undefined ? {} : { runId: ctx.runId }),
+      })
 
-      return null
-    }
+      return await dispatchSlash(run)
+    },
+  })
+}
 
-    throw err
+/** A lane command that ends without an answer says so: removed while it waited, or cancelled after
+ *  it started. Any other command ends quietly, as it always has. */
+function endWithoutResult(run: SlashRun): null {
+  if (run.tag.id !== undefined) {
+    send(run.ws, { type: 'chat', kind: 'dropped', id: run.tag.id })
   }
+
+  return null
 }
 
 // The same route the channels hold for a queued command: a `/new` on this chat stales it.
@@ -206,11 +211,13 @@ function handleSlashFailure(run: SlashRun, err: unknown): null {
     throw err
   }
 
-  // A command that was told to stop and unwound with it has nothing left to report.
-  if (!controller.signal.aborted) {
-    services.logger.warn('api.ws_slash_failed', { err: formatErrForLog(err) })
-    sendRunError(ws, err, tag.id)
+  // Told to stop, or rejected by the lane while it waited: the command ended without a result.
+  if (controller.signal.aborted || (err instanceof RunHalted && err.code === 'abort')) {
+    return endWithoutResult(run)
   }
+
+  services.logger.warn('api.ws_slash_failed', { err: formatErrForLog(err) })
+  sendRunError(ws, err, tag.id)
 
   return null
 }

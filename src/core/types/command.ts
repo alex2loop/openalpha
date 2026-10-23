@@ -132,8 +132,10 @@ export interface SlashInvocationPolicy {
   readonly cooldownMs?: number
   readonly idempotencyKey?: (ctx: SlashContext) => string
   readonly execution?: LongRunningExecution
-  /** The command never returns `kind: 'agent'` and touches no session transcript but its own, so a
-   *  surface may run it beside other work in the same chat instead of behind the session's turn. */
+  /** The command never runs an agent turn: it never returns `kind: 'agent'`. It may append its own
+   *  exchange to the session transcript (`transcript: 'echo'`), which `appendCommandExchange` allows
+   *  while a run holds the session, so a surface may run it beside other work in the same chat
+   *  instead of behind the session's turn. */
   readonly selfContained?: true
   /** What to use instead, shown where a surface this policy leaves out refuses the command. */
   readonly surfaceHint?: CommandMessageKey
