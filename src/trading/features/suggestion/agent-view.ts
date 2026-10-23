@@ -152,7 +152,10 @@ function mapStoredSuggestion<S>(
   rewrite: (suggestion: StoredSuggestion) => S
 ): RunResultOf<S> {
   if (result.kind === 'completed') {
-    return { ...result, suggestion: rewrite(result.suggestion) }
+    // `shared` is billing detail; the model is told the row's origin by `reused` alone.
+    const { shared: _shared, ...answer } = result
+
+    return { ...answer, suggestion: rewrite(result.suggestion) }
   }
 
   if (result.kind === 'cooldown') {

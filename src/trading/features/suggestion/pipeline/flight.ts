@@ -53,7 +53,9 @@ export function joinOrStartSuggestion(
   if (existing?.live === true) {
     flightRun.onShared()
 
-    return existing.attach(request.signal)
+    // A joiner spent nothing here. If the starter leaves before its batch charges, that headline
+    // cost is reported nowhere; accepted.
+    return existing.attach(request.signal).then(markShared)
   }
 
   const flight = createSharedFlight((signal) => flightRun.run({ ...request, signal }))
@@ -67,4 +69,8 @@ export function joinOrStartSuggestion(
   flight.work.then(evict, evict)
 
   return flight.attach(request.signal)
+}
+
+function markShared(result: SuggestionRunResult): SuggestionRunResult {
+  return result.kind === 'completed' ? { ...result, shared: true } : result
 }

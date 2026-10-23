@@ -314,6 +314,9 @@ export type SuggestionRunResult =
       readonly kind: 'completed'
       readonly suggestion: StoredSuggestion
       readonly reused: boolean
+      /** Set on the answer a caller received by joining another's run: that run's spend is the
+       *  starter's to bill, never the joiner's. */
+      readonly shared?: true
     }
   | {
       readonly kind: 'unsupported'
