@@ -4,7 +4,6 @@
 // payload, credential, SQL row, or `unknown` field crosses this boundary.
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
-import type { Locale } from '@/core/types/locale'
 import type {
   AssetClass,
   BriefSectionKind,
@@ -16,7 +15,8 @@ import type {
   MarketEventKind,
   RiskLevel,
   SourceFreshness,
-} from '@/trading/api'
+} from '@/app/server/wire/vocab'
+import type { Locale } from '@/core/types/locale'
 
 /** `info` is a by-design note on how a figure was made; `warn` is a degradation. `text` is the CLI's
  *  sentence in the operator's language, so a client shows it as it is. */

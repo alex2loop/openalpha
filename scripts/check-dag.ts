@@ -135,6 +135,12 @@ const RESEARCH_PUBLIC: ReadonlySet<string> = new Set([
 ])
 const RESEARCH_DIR = `${SRC}/engine/research/`
 const I18N_INDEX = `${SRC}/i18n/index.ts`
+// The page compiles `app/server/wire` on its own under a DOM lib, so one import that leaves the
+// folder pulls the whole server graph into that build. Only its own files and the core type leaves
+// may be imported.
+const WIRE_DIR = `${SRC}/app/server/wire/`
+const WIRE_ALIAS_PREFIX = '@/app/server/wire/'
+const WIRE_CORE_PREFIX = '@/core/types/'
 // index.ts sits above every module, like `app`, and is checked, not skipped.
 const BARREL_DEPS: readonly string[] = [...(ALLOWED.app ?? []), 'app']
 const NO_DEEP_ALLOW: ReadonlySet<string> = new Set()
@@ -284,8 +290,26 @@ const researchSurfaceIssue = (file: string, specifier: string): string | null =>
   )
 }
 
+const wireIssue = (file: string, specifier: string): string | null => {
+  if (!file.startsWith(WIRE_DIR)) return null
+  if (specifier.startsWith(WIRE_ALIAS_PREFIX) || specifier.startsWith(WIRE_CORE_PREFIX)) return null
+
+  if (specifier.startsWith('.')) {
+    const target = resolveRelative(file, specifier)
+    if (target?.startsWith(WIRE_DIR) === true) return null
+  }
+
+  return `wire/ may import only wire/ and core/types, not '${specifier}'`
+}
+
 const checkFile = (file: string, importer: Importer, source: string): void => {
   for (const found of scanImports(source)) {
+    const wire = wireIssue(file, found.specifier)
+
+    if (wire !== null) {
+      violations.push({ file, line: lineAt(source, found.index), message: wire })
+    }
+
     const researchIssue = researchSurfaceIssue(file, found.specifier)
 
     if (researchIssue !== null) {

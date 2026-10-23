@@ -6,18 +6,60 @@ import type {
   OverviewResponse,
   ScreenResponse,
 } from '@/app/server/wire/market'
+import type * as Vocab from '@/app/server/wire/vocab'
 import type { Locale } from '@/core/types/locale'
 import type {
   Alert,
+  AssetClass,
+  BriefSectionKind,
+  CaveatSeverity,
+  ConvictionBand,
+  InstrumentKind,
   InstrumentMatch,
+  InvestmentGoal,
+  InvestmentHorizon,
   MarketDataOverview,
+  MarketEventKind,
+  RiskLevel,
   ScreenAnswer,
   ScreenView,
+  SourceFreshness,
   TradingMacroView,
   TradingMarketsView,
+  TypedPrice,
 } from '@/trading/api'
 import { toCaveatWires, toInstrumentWire } from '@/app/server/mappers/trading'
 import { MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
+
+// A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
+// a value added on either side fails typecheck here.
+type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? true : false) : false
+
+;({
+  assetClass: true,
+  briefSectionKind: true,
+  caveatSeverity: true,
+  convictionBand: true,
+  instrumentKind: true,
+  investmentGoal: true,
+  investmentHorizon: true,
+  marketEventKind: true,
+  riskLevel: true,
+  sourceFreshness: true,
+  typedPrice: true,
+}) as const satisfies {
+  assetClass: Same<Vocab.AssetClass, AssetClass>
+  briefSectionKind: Same<Vocab.BriefSectionKind, BriefSectionKind>
+  caveatSeverity: Same<Vocab.CaveatSeverity, CaveatSeverity>
+  convictionBand: Same<Vocab.ConvictionBand, ConvictionBand>
+  instrumentKind: Same<Vocab.InstrumentKind, InstrumentKind>
+  investmentGoal: Same<Vocab.InvestmentGoal, InvestmentGoal>
+  investmentHorizon: Same<Vocab.InvestmentHorizon, InvestmentHorizon>
+  marketEventKind: Same<Vocab.MarketEventKind, MarketEventKind>
+  riskLevel: Same<Vocab.RiskLevel, RiskLevel>
+  sourceFreshness: Same<Vocab.SourceFreshness, SourceFreshness>
+  typedPrice: Same<Vocab.TypedPrice, TypedPrice>
+}
 
 type ScreenedCandidate = ScreenView['candidates'][number]
 type OverviewRow = MarketDataOverview['rows'][number]
