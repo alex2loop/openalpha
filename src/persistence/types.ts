@@ -174,6 +174,44 @@ export interface LLMAttemptStore {
   recordedIds(ids: readonly LLMAttemptId[]): Promise<ReadonlySet<LLMAttemptId>>
 }
 
+/** One finished run, as the activity page lists it. A child run names its parent; a command has no
+ *  agent. */
+export interface RunLogRow {
+  readonly runId: RunId
+  readonly kind: 'agent' | 'command'
+  /** The agent id, or the command name. */
+  readonly name: string
+  readonly title?: string
+  readonly summary?: string
+  readonly agentId?: AgentId
+  readonly channel?: ChannelId
+  readonly chatId?: string
+  readonly sessionId?: SessionId
+  readonly parentRunId?: RunId
+  /** The admitted sources a research run ended with. */
+  readonly sources?: number
+  readonly startedAt: number
+  readonly endedAt: number
+  /** A run result reason for an agent, `done | cancelled | failed` for a command. */
+  readonly outcome: string
+}
+
+export interface RunLogStore {
+  /** A run is written once; recording the same id again keeps the first row. */
+  record(row: RunLogRow): Promise<void>
+  /** Runs that ended in `[fromMs, toMs)` and have no parent, newest first. */
+  listTopLevel(fromMs: number, toMs: number, limit: number): Promise<readonly RunLogRow[]>
+  /** Each run's direct children, oldest first, at most `perRun` of each. A run with none is absent. */
+  childrenOf(
+    runIds: readonly RunId[],
+    perRun: number
+  ): Promise<ReadonlyMap<RunId, readonly RunLogRow[]>>
+  /** Top-level `deep-researcher` runs that ended before `beforeMs`, newest first. */
+  listResearch(beforeMs: number, limit: number): Promise<readonly RunLogRow[]>
+  /** What each run and every run beneath it cost, in USD. A run with no attempts is absent. */
+  costOf(runIds: readonly RunId[]): Promise<ReadonlyMap<RunId, number>>
+}
+
 export interface RetentionConfig {
   readonly retentionDays: number
   readonly inboxRetentionDays: number

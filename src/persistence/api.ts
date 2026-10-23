@@ -17,6 +17,8 @@ export type {
   MigrationDown,
   MigrationUp,
   RetentionConfig,
+  RunLogRow,
+  RunLogStore,
   SessionDetails,
   SessionIdResolution,
   SessionSnapshot,

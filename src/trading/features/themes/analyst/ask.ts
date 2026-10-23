@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
 
 import type { ChannelId } from '@/core/channels'
-import type { SessionId } from '@/core/ids'
+import type { RunId, SessionId } from '@/core/ids'
 import type { JsonOutputContract } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
@@ -32,6 +32,7 @@ export interface AnalystSession {
   readonly channel: ChannelId
   readonly locale: Locale
   readonly billingSessionId: SessionId | null
+  readonly parentRunId?: RunId
   readonly parent: ParentLink
   readonly signal: AbortSignal
 }
@@ -82,6 +83,7 @@ async function attempt<T, R>(
       maxTurns: MAXIMUM_TURNS,
       allowedTools: allowResearch ? [RESEARCH_TOOL] : [],
       billingSessionId: call.session.billingSessionId,
+      ...(call.session.parentRunId === undefined ? {} : { parentRunId: call.session.parentRunId }),
     }
   )
 

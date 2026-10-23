@@ -3,6 +3,7 @@ import type { Dialect, Storage, Transaction } from '@/core/types/storage'
 import type { RetentionConfig } from '@/persistence/types'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY } from '@/core/utils/time'
+import { countRunsSql, deleteRunsSql } from '@/persistence/retention-activity'
 import { SESSION_ROUTE_KEY_PREFIX } from '@/persistence/stores/channel/chat-binding'
 import { detachAttemptsSql } from '@/persistence/stores/session/sql'
 
@@ -25,6 +26,7 @@ const EMPTY_COUNTS = Object.freeze({
   alertsTerminal: 0,
   briefSnapshots: 0,
   llmAttempts: 0,
+  runs: 0,
 })
 
 export interface RetentionCounts {
@@ -38,6 +40,7 @@ export interface RetentionCounts {
   readonly alertsTerminal: number
   readonly briefSnapshots: number
   readonly llmAttempts: number
+  readonly runs: number
 }
 
 interface RetentionOptions {
@@ -81,6 +84,7 @@ export async function countRetention(
     alertsTerminal: await countAlertsTerminal(tx, dialect, times.general),
     briefSnapshots: await countBriefSnapshots(tx, dialect, times.general),
     llmAttempts: await countLlmAttempts(tx, dialect, times.now - LLM_ATTEMPTS_RETENTION_MS),
+    runs: await countRuns(tx, dialect, times.general),
   }))
 }
 
@@ -115,6 +119,7 @@ function toScopes(dialect: Dialect, times: RetentionCutoffs): readonly Retention
     { name: 'alertsTerminal', run: (tx) => deleteAlertsTerminal(tx, dialect, times.general) },
     { name: 'briefSnapshots', run: (tx) => deleteBriefSnapshots(tx, dialect, times.general) },
     { name: 'llmAttempts', run: (tx) => deleteLlmAttempts(tx, dialect, attempts) },
+    { name: 'runs', run: (tx) => deleteCount(tx, dialect, deleteRunsSql(dialect, times.general)) },
   ]
 }
 
@@ -277,6 +282,12 @@ async function countLlmAttempts(
   const sql = `SELECT COUNT(*) AS n FROM llm_attempts WHERE settled_at < ${dialect.param(1)}`
 
   return countRows(tx, sql, [cutoff])
+}
+
+async function countRuns(tx: Transaction, dialect: Dialect, cutoff: number): Promise<number> {
+  const { sql, params } = countRunsSql(dialect, cutoff)
+
+  return countRows(tx, sql, params)
 }
 
 async function deleteSessions(tx: Transaction, dialect: Dialect, cutoff: number): Promise<number> {

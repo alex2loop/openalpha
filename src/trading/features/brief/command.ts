@@ -200,6 +200,7 @@ async function buildNow(
     signal: ctx.signal,
     forced: options.forced,
     billingSessionId: ctx.sessionId,
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
   })
 

@@ -11,6 +11,8 @@ import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
 import '@/app/events'
+import type { RunLog } from '@/app/activity/run-log'
+import { startRunLog } from '@/app/activity/run-log'
 import { loadAssets } from '@/app/assets'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
@@ -59,11 +61,17 @@ interface BootResource {
   close(): Promise<void>
 }
 
+/** What boot has opened so far, filled in as each step succeeds so a failed boot closes only that. */
+interface HeldBootResources {
+  readonly loggerResource: LoggerResource
+  disposeAssets?: () => Promise<void>
+  storage?: Storage
+  runLog?: RunLog
+}
+
 interface DisposeBootOptions {
   readonly logger: Logger
-  readonly loggerResource: LoggerResource
-  readonly disposeAssets: () => Promise<void>
-  readonly storage: Storage | undefined
+  readonly held: HeldBootResources
 }
 
 interface ResolvedBootConfig {
@@ -107,16 +115,10 @@ export async function boot(options: BootOptions): Promise<Booted> {
   const logger = bootLogger(loggerResource, options.mode)
   const childEnvBase = resolveChildEnv(options.env)
   const delivery = createDeliveryHub()
-  let disposeAssets: (() => Promise<void>) | undefined
-  let storage: Storage | undefined
+  const held: HeldBootResources = { loggerResource }
   let disposePromise: Promise<void> | undefined
   const dispose = (): Promise<void> => {
-    disposePromise ??= disposeBootResources({
-      logger,
-      loggerResource,
-      disposeAssets: disposeAssets ?? (async () => undefined),
-      storage,
-    })
+    disposePromise ??= disposeBootResources({ logger, held })
     return disposePromise
   }
 
@@ -130,9 +132,9 @@ export async function boot(options: BootOptions): Promise<Booted> {
       childEnvBase,
       bootScope: options.bootScope ?? 'full',
     })
-    disposeAssets = loaded.dispose
+    held.disposeAssets = loaded.dispose
     const persistence = await openPersistence(config.storage, logger)
-    storage = persistence.storage
+    held.storage = persistence.storage
     const assembly = buildProviderAssembly({
       config,
       options,
@@ -147,7 +149,7 @@ export async function boot(options: BootOptions): Promise<Booted> {
       signal: options.shutdownSignal,
     })
 
-    await prepareBootApp({ bootOptions: options, assembly, app, socialConfig, loggerResource })
+    await prepareBootApp({ bootOptions: options, assembly, app, socialConfig, held })
 
     return { app, delivery, dispose }
   } catch (err: unknown) {
@@ -203,11 +205,11 @@ interface PrepareBootAppOptions {
   readonly assembly: ReturnType<typeof buildProviders>
   readonly app: App
   readonly socialConfig: SocialConfig
-  readonly loggerResource: LoggerResource
+  readonly held: HeldBootResources
 }
 
 async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
-  const { bootOptions, assembly, app, socialConfig, loggerResource } = options
+  const { bootOptions, assembly, app, socialConfig, held } = options
   const startup = bootOptions.startup ?? 'hydrate'
 
   if (bootOptions.bootScope === 'persistence') {
@@ -225,12 +227,14 @@ async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
   // Also resolved at boot, so an unset search key is logged once at start, not at the first search.
   app.resolve('webRetrieval')
   assertSocialToolRules(app, socialConfig)
-  await loggerResource.configureAgentRegistry(app.resolve('agents').keys())
+  await held.loggerResource.configureAgentRegistry(app.resolve('agents').keys())
   if (startup === 'hydrate') {
     await hydrateStartupState(app, bootOptions.mode)
   } else if (startup === 'migrate') {
     await migrateStartupSchema(app)
   }
+
+  held.runLog = startRunLog(app)
 }
 
 // A refused startup must fail before boot creates a logger, opens the database, or touches the
@@ -298,12 +302,17 @@ function buildBootExtensions(options: BootOptions): BootExtensionOptions {
 }
 
 async function disposeBootResources(options: DisposeBootOptions): Promise<void> {
-  const { logger, loggerResource, disposeAssets, storage } = options
-  const resources = disposalResources(disposeAssets, storage)
+  const { logger, held } = options
+
+  // First, while storage is open: a `chat -m` process exits right after its command finishes, and
+  // that command's row is still being written.
+  await held.runLog?.stop()
+
+  const resources = disposalResources(held.disposeAssets ?? (async () => undefined), held.storage)
   const results = await Promise.allSettled(resources.map((resource) => resource.close()))
 
   logDisposeFailures(logger, resources, results)
-  await loggerResource.close()
+  await held.loggerResource.close()
 }
 
 function disposalResources(

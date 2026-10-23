@@ -5,6 +5,7 @@ import { ensureApiToken } from '@/app/server/http/auth'
 import { startApi } from '@/app/server/http/server'
 import { startIdeaWatch } from '@/app/server/push/ideas'
 import { attachAppSurface } from '@/app/server/push/notices'
+import { ACTIVITY_ROUTES } from '@/app/server/routes/activity'
 import { AGENT_ROUTES } from '@/app/server/routes/agents'
 import { CHAT_ROUTES } from '@/app/server/routes/chat'
 import { CONFIG_ROUTES } from '@/app/server/routes/config'
@@ -24,6 +25,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 // after boot. `assertRouteList` validates the whole composition once, here, not per route module.
 const ROUTES = [
   ...SYSTEM_ROUTES,
+  ...ACTIVITY_ROUTES,
   ...AGENT_ROUTES,
   ...CHAT_ROUTES,
   ...CONFIG_ROUTES,

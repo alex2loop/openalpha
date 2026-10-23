@@ -55,6 +55,7 @@ function build(deps: BriefServiceDeps, options: BuildBriefOptions): Promise<Brie
     ...(options.billingSessionId === undefined
       ? {}
       : { billingSessionId: options.billingSessionId }),
+    ...(options.parentRunId === undefined ? {} : { parentRunId: options.parentRunId }),
   })
 }
 

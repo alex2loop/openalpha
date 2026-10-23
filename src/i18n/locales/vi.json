@@ -1170,6 +1170,7 @@
     "dbFieldAlertsTerminal": "  alertsTerminal:  {value}",
     "dbFieldBriefSnapshots": "  briefSnapshots:  {value}",
     "dbFieldLlmAttempts": "  llmAttempts:     {value}",
+    "dbFieldRuns": "  runs:            {value}",
     "dbTableRowsHeading": "số dòng",
     "dbFileSizeHeading": "kích thước file",
     "dbNaPostgres": "n/a (postgres)",

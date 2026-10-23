@@ -5,7 +5,7 @@ Normative spec for the control API. **This is the single source of truth** for t
 this document — neither imports the other.
 
 - **TS types** (canonical, machine-checked): [`wire/`](wire/) — `system.ts`, `config.ts`,
-  `sign-in.ts`, `chat.ts`, `events.ts`, `live.ts`, `trading.ts`, `market.ts`, `money.ts`,
+  `sign-in.ts`, `chat.ts`, `events.ts`, `live.ts`, `activity.ts`, `trading.ts`, `market.ts`, `money.ts`,
   `orders.ts`, `agents.ts`, `errors.ts`, `socket.ts`, `vocab.ts`. Route handlers MUST NOT redefine
   these shapes. The folder is self-contained: a file in it imports only its siblings and
   `core/types`, so a client can compile it alone (`scripts/check-dag.ts` enforces this), and
@@ -70,6 +70,8 @@ this document — neither imports the other.
 | GET | `/v1/commands` | yes | — | `CommandList` | `commands.json` |
 | GET | `/v1/update` | yes | — | `UpdateResponse` (`enabled` false when checks are off or the daemon runs from a source checkout; the release feed is read once a day; `latest` is the newest release whether or not it is newer than `current`) | `update.json` |
 | GET | `/v1/cost` | yes | `?from&to` (`YYYY-MM-DD`, both required, at most 366 days) | `CostReport` (`caps.warnRatio`: the share of a cap at which the daemon warns; each row's `billingAgentId` is the agent whose own daily cap the spend counted against, `agentId` the one that ran it) | `cost.json` |
+| GET | `/v1/activity` | yes | `?day` (`YYYY-MM-DD`, the operator's day in `[locale] timezone`; today when absent; 400 when malformed) | `ActivityResponse` (`rows`: the top-level runs that ended in that day, newest first, at most 200: every finished long-running command except one that hands the turn to an agent, every agent run whose answer reaches a surface, and nothing a debate role or a hidden run did on its own; each row's `children` are its direct children, oldest first, at most 20, a child being a run started by another run; `costUsd` is the run and every run beneath it, not only the children listed; `outcome` is a run result reason for an agent, `done`, `cancelled` or `failed` for a command; history older than `[retention] days` is gone; it is written by every daemon and CLI process, whether or not the API is on) | `activity.json` |
+| GET | `/v1/research` | yes | `?before&limit` (`before`: epoch ms, the `endedAt` of the last report of the previous page, newest first when absent; `limit` at most 200) | `ResearchResponse` (`reports`: finished top-level `deep-researcher` runs, newest first; `sessionId` is the chat history the report is read from; `sources` is the admitted sources the run ended with, absent when it reported none) | `research.json` |
 | GET | `/v1/agents` | yes | — | `AgentsResponse` (the operator's own agents only: `paused`, `maxDailyUsd?`, `spentTodayUsd`, `focusKey`, `focusLabel`, and once it has called: `record` of every focus it has used together, `agreement?` and `contrarian?` against the other agents, `overlapsWith`, and `social`: `[{network, state, reviewAll, drafts}]`, empty when the agent is on no social network) | `agents.json` |
 | POST | `/v1/agents/:id/pause`, `/v1/agents/:id/resume` | yes | — | `{ "ok": true }` (an id that is not one of the operator's own agents is `not_found`; a paused agent refuses every run it owns until resumed) | — |
 | GET · POST | `/v1/pairing` | yes | `PairingDecisionBody` (POST) | `PairingList` / `PairingDecisionResult` | `pairing.json` |

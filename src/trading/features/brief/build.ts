@@ -1,4 +1,4 @@
-import type { SessionId } from '@/core/ids'
+import type { RunId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
@@ -64,6 +64,8 @@ interface BriefBuildInput {
   /** Skips reuse so the operator can rebuild against data a refresh has since replaced. */
   readonly forced?: boolean
   readonly billingSessionId?: SessionId
+  /** The command run that asked; the suggestion batches the build runs are its children. */
+  readonly parentRunId?: RunId
 }
 
 interface SnapshotLookupInput {
@@ -326,6 +328,7 @@ function buildRequest(deps: BriefBuildDeps, input: RequestInput): MarketBriefReq
     scorecardShownThisMonth: previous?.scorecardMonth === monthOf(input.asOf),
     channel: LOCAL_CHANNEL_ID,
     billingSessionId: input.billingSessionId ?? null,
+    ...(input.parentRunId === undefined ? {} : { parentRunId: input.parentRunId }),
     budget: deps.createSuggestionBudget(),
     ...(input.progress === undefined ? {} : { progress: input.progress }),
   }

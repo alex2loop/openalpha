@@ -1,0 +1,53 @@
+{
+  "day": "2026-10-23",
+  "rows": [
+    {
+      "runId": "cmd_9d21",
+      "kind": "command",
+      "name": "suggest",
+      "channel": "telegram",
+      "startedAt": 1792480000000,
+      "endedAt": 1792480095000,
+      "outcome": "done",
+      "costUsd": 0.1842,
+      "children": [
+        {
+          "runId": "run_bull1",
+          "kind": "agent",
+          "name": "suggest-bull",
+          "channel": "telegram",
+          "agentId": "suggest-bull",
+          "parentRunId": "cmd_9d21",
+          "startedAt": 1792480012000,
+          "endedAt": 1792480041000,
+          "outcome": "completed",
+          "costUsd": 0.0611
+        },
+        {
+          "runId": "run_bear1",
+          "kind": "agent",
+          "name": "suggest-bear",
+          "channel": "telegram",
+          "agentId": "suggest-bear",
+          "parentRunId": "cmd_9d21",
+          "startedAt": 1792480012000,
+          "endedAt": 1792480043000,
+          "outcome": "completed",
+          "costUsd": 0.0587
+        }
+      ]
+    },
+    {
+      "runId": "run_abc",
+      "kind": "agent",
+      "name": "chat",
+      "title": "Phân tích FPT",
+      "channel": "api",
+      "agentId": "chat",
+      "startedAt": 1792470000000,
+      "endedAt": 1792470032000,
+      "outcome": "completed",
+      "costUsd": 0.0214
+    }
+  ]
+}

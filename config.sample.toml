@@ -201,7 +201,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # ---- Retention --------------------------------------------------------------
 
 # [retention]
-# days = 90                       # prune old sessions/runs and removed-agent log dirs
+# days = 90                       # prune old sessions, run and notice history, and removed-agent log dirs; the ledger is never swept
 # inbox_days = 7                  # prune delivered/dead inbox rows
 # daily_backups = 3               # one SQLite snapshot a day in backups/daily/, this many kept; 0 turns it off
 # The cost ledger (llm_attempts) is kept 400 days whatever days is set to.

@@ -22,6 +22,14 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const RUNS_MIGRATION_ID = '2026_10_24_010135_add_runs'
+const RUNS_TABLE = 'runs'
+const RUNS_INDEXES = [
+  'idx_runs_ended_at',
+  'idx_runs_parent_run',
+  'idx_llm_attempts_run',
+  'idx_llm_attempts_parent_run',
+] as const
 const ANSWER_MIGRATION_ID = '2026_10_11_101208_add_channel_inbox_answer'
 const RETRY_AT_MIGRATION_ID = '2026_10_15_182559_add_channel_inbox_retry_at'
 const CASH_FLOW_SOURCE_MIGRATION_ID =
@@ -164,6 +172,39 @@ async function hasTable(db: Storage, table: string): Promise<boolean> {
   return rows.length === 1
 }
 
+async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
+  const rows = await db.query<{ readonly name: string }>(
+    'SELECT name FROM sqlite_master WHERE type = ?1',
+    ['index']
+  )
+
+  return new Set(rows.map((row) => row.name))
+}
+
+/** The run log goes with its table, and the two attempt indexes it added go with it. */
+async function assertRunsRollback(db: Storage): Promise<void> {
+  const before = await indexNames(db)
+
+  assertState(await hasTable(db, RUNS_TABLE), 'runs migration did not add the table')
+  assertState(
+    RUNS_INDEXES.every((name) => before.has(name)),
+    'runs migration did not add every index'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: RUNS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const after = await indexNames(db)
+
+  assertState(rolledBack.kind === 'rolled_back', 'runs rollback did not complete')
+  assertState(!(await hasTable(db, RUNS_TABLE)), 'runs rollback kept the table')
+  assertState(
+    RUNS_INDEXES.every((name) => !after.has(name)),
+    'runs rollback kept an index'
+  )
+}
+
 const failingExtension: Migration = {
   id: EXTENSION_MIGRATION_ID,
   reversibility: 'reversible',
@@ -178,6 +219,7 @@ const failingExtension: Migration = {
 
 async function main(): Promise<void> {
   await assertDownCoversUp(`${TRADING_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${RUNS_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -188,6 +230,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertRunsRollback(db)
     await assertCashFlowSourceRollback(db)
     await assertRevokedAtRollback(db)
 

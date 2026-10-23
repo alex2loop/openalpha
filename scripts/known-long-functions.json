@@ -6,7 +6,7 @@
     "src/ai/chain/provider-chain.ts#runChain": 47,
     "src/ai/chain/stream-watchdog.ts#streamWithIdleTimeout": 46,
     "src/ai/client.ts#toChainEntry": 55,
-    "src/app/boot.ts#boot": 52,
+    "src/app/boot.ts#boot": 46,
     "src/app/daemon.ts#createDaemonTask": 56,
     "src/app/daemon.ts#startDaemonSubsystems": 51,
     "src/app/providers.ts#createAppProvider": 49,

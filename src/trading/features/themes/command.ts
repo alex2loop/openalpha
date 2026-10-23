@@ -87,6 +87,7 @@ async function runAnalysis(
     locale: ctx.locale,
     channel: ctx.channel,
     billingSessionId: ctx.sessionId,
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     signal: ctx.signal,
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
     ...(id === undefined ? {} : { themeId: id }),

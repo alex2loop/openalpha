@@ -9,13 +9,14 @@ import type {
 import type { SocialStore } from '@/core/types/social'
 import type { Dialect, FtsSearch, Storage } from '@/core/types/storage'
 import type { OpenedPersistence } from '@/persistence/connection'
-import type { LLMAttemptStore, SessionStore } from '@/persistence/types'
+import type { LLMAttemptStore, RunLogStore, SessionStore } from '@/persistence/types'
 import { createFtsSearch } from '@/persistence/fts'
 import { createAgentPauseStore } from '@/persistence/stores/agent-pause'
 import { createChatBindingStore } from '@/persistence/stores/channel/chat-binding'
 import { createPairingStore } from '@/persistence/stores/channel/pairing'
 import { createPollOffsetStore, createSessionRouter } from '@/persistence/stores/channel/state'
 import { createLLMAttemptStore } from '@/persistence/stores/llm-attempt'
+import { createRunLogStore } from '@/persistence/stores/run-log'
 import { createHeartbeatStore } from '@/persistence/stores/scheduler/heartbeat'
 import { createJobStore } from '@/persistence/stores/scheduler/job/store'
 import { createSchedulerOccurrenceStore } from '@/persistence/stores/scheduler/run'
@@ -37,6 +38,7 @@ declare module '@/core/container' {
     schedulerOccurrenceStore: ReturnType<typeof createSchedulerOccurrenceStore>
     heartbeatStore: ReturnType<typeof createHeartbeatStore>
     llmAttemptStore: LLMAttemptStore
+    runLogStore: RunLogStore
     fts: FtsSearch
   }
 }
@@ -67,6 +69,8 @@ export function createPersistenceProvider(opened: OpenedPersistence): ServicePro
           app.config.locale.timezone
         )
       )
+
+      bind('runLogStore', overStorage(createRunLogStore))
 
       bind('fts', (app) =>
         createFtsSearch(app.resolve('storage'), app.resolve('dialect'), app.resolve('logger'))

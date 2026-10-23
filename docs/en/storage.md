@@ -48,6 +48,7 @@ mean `db stats` is hiding a failed migration.
 | --- | --- |
 | `sessions`, `session_messages` | Session lifecycle and transcript. No usage total is stored: per-session totals are added up from `llm_attempts` each time they are read, so they cannot drift. |
 | `llm_attempts` | Append-only record of every model attempt, and of global cost. |
+| `runs` | One row per finished long-running command and per agent run whose answer reaches a surface (and the child runs they started): what the activity page lists. A run's cost is read from `llm_attempts`, never copied here. |
 | `bindings`, `pairings` | Chat routing aliases and channel pairing state. |
 | `channel_state` | Channel checkpoints: poll offsets and session routes. |
 | `channel_inbox` | Inbound queue and retries; payloads of completed or failed entries; a finished run's answer when its final send failed. |
@@ -177,6 +178,7 @@ and `inbox_days` is the inbox's own. An inbox entry may be claimed 3 times befor
 | Non-active sessions and their messages | Removed after `days`, from end or last-activity time. |
 | Session routes | Follow the session's general window. |
 | `llm_attempts` | Kept when a session is removed; only the link to the session is dropped. Rows settled more than 400 days ago are pruned, so the year `cost` can report stays complete. |
+| `runs` (the log behind the activity page) | Removed after `days`, from the time the run ended. The cost ledger above is not part of it. |
 | Completed or failed inbox entries | Removed after `inbox_days`, payload included. |
 | Pending or processing inbox entries | Not removed by `inbox_days`. Interrupted processing is requeued, up to 3 times. An entry nobody has claimed for more than `days` (usually because its channel was removed) is removed on the general window. |
 | Poll offsets in `channel_state` | Kept indefinitely, like other delivery checkpoints. |

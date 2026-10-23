@@ -142,6 +142,8 @@ export interface BuildBriefOptions {
   readonly forced?: boolean
   /** The chat that asked, so its footer counts the suggestions the brief runs. */
   readonly billingSessionId?: SessionId
+  /** The command run that asked, so the debates the build runs are its children in the run log. */
+  readonly parentRunId?: RunId
 }
 
 export interface GetLatestBriefOptions {
