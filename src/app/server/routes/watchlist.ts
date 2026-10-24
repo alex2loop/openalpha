@@ -5,7 +5,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { Caveat, InstrumentRef, TradingHost } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
-import { hostOf, localeOf } from '@/app/server/routes/params'
+import { hostOf, localeOf, readJsonBody } from '@/app/server/routes/params'
 import { t } from '@/i18n'
 import { buildInstrumentKey } from '@/trading/api'
 
@@ -24,7 +24,7 @@ type WatchlistChange = Awaited<ReturnType<TradingHost['updateWatchlist']>>
 /** `remove` first, then `add`, each a save of its own. The names resolve as `/watchlist` resolves
  *  them, so one nothing matches comes back in `unknown` rather than as an error. */
 async function handleWatchlistUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = WATCHLIST_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = WATCHLIST_BODY.safeParse(await readJsonBody(req))
   const { add = [], remove = [] } = parsed.success ? parsed.data : {}
 
   if (!parsed.success || add.length + remove.length === 0) {

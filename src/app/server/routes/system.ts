@@ -25,11 +25,14 @@ import { describeCommand } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { probeConfig } from '@/core/config/load'
 import { operatorMessageOf } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 import { MINIMUM_TRACK_RECORD_SAMPLE, tradingDay } from '@/trading/api'
 
 export const COST_ESTIMATE_SAMPLE = 10
 const COST_ESTIMATE_MIN_RUNS = 3
+// Providers whose unreadable login was already logged: bounded by the configured models.
+const unreadableLogins = new Set<string>()
 
 // The only unauthenticated route. It answers 'ready' unconditionally: the api starts as the last
 // daemon step, so a socket that connects at all is talking to a booted daemon.
@@ -174,18 +177,7 @@ function resolveProviderChecks(app: App, translate: Translate): Promise<readonly
       const params = { provider: model.provider }
 
       if (findProviderById(model.provider)?.authKind === 'oauth_subscription') {
-        const login = await createTokenFile(app.config.paths.dataDir, model.provider).read()
-
-        return login === undefined
-          ? { name, ok: false, detail: translate('cli.doctorLoginMissing', params) }
-          : {
-              name,
-              ok: true,
-              detail: translate('cli.doctorLoginOk', {
-                ...params,
-                expires: new Date(login.expiresAt).toISOString(),
-              }),
-            }
+        return await resolveLoginCheck(app, { name, provider: model.provider }, translate)
       }
 
       const ok = model.apiKey !== undefined && model.apiKey !== ''
@@ -194,6 +186,39 @@ function resolveProviderChecks(app: App, translate: Translate): Promise<readonly
       return { name, ok, detail: translate(key, params) }
     })
   )
+}
+
+// A token file that is not JSON throws; the state and doctor routes answer through it, so it reads
+// as a login that is not usable, and the cause is logged once per provider.
+async function resolveLoginCheck(
+  app: App,
+  target: { readonly name: string; readonly provider: string },
+  translate: Translate
+): Promise<DoctorCheck> {
+  const { name, provider } = target
+  const params = { provider }
+
+  try {
+    const login = await createTokenFile(app.config.paths.dataDir, provider).read()
+
+    return login === undefined
+      ? { name, ok: false, detail: translate('cli.doctorLoginMissing', params) }
+      : {
+          name,
+          ok: true,
+          detail: translate('cli.doctorLoginOk', {
+            ...params,
+            expires: new Date(login.expiresAt).toISOString(),
+          }),
+        }
+  } catch (err: unknown) {
+    if (!unreadableLogins.has(provider)) {
+      unreadableLogins.add(provider)
+      app.resolve('logger').warn('api.login_unreadable', { provider, err: formatErrForLog(err) })
+    }
+
+    return { name, ok: false, detail: translate('cli.doctorLoginUnreadable', params) }
+  }
 }
 
 async function resolveApiTokenCheck(app: App, translate: Translate): Promise<DoctorCheck> {

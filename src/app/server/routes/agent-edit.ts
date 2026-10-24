@@ -15,9 +15,16 @@ import '@/app/events'
 import { buildUserAgent, reloadUserAgents } from '@/app/agent-registry'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { AGENT_WRITE_BODY, toAgentDetailWire, toAgentToml } from '@/app/server/mappers/agent-edit'
-import { localeOf, parsePathId } from '@/app/server/routes/params'
+import {
+  fieldRefusal,
+  localeOf,
+  parsePathId,
+  readJsonBody,
+  toBodyFieldLabel,
+} from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
-import { ConfigError, isErrno } from '@/core/errors'
+import { ConfigError, isErrno, operatorMessageOf, ValidationError } from '@/core/errors'
+import { toFieldValidationError } from '@/core/field-errors'
 import { agentId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/security/private-files'
@@ -27,51 +34,29 @@ import { pauseJobsOfAgent } from '@/scheduler/api'
 
 const MAX_BODY_BYTES = 64 * 1024
 
-type Parsed = { readonly body: AgentWriteBody } | { readonly refusal: Response }
-
-function invalid(ctx: ApiRouteContext, detail: string): Response {
-  return apiError('invalid_body', t(localeOf(ctx), 'errors.agentInvalid', { detail }))
-}
-
-async function parseWriteBody(req: Request, ctx: ApiRouteContext): Promise<Parsed> {
-  const text = await req.text()
-
-  if (Buffer.byteLength(text) > MAX_BODY_BYTES) {
-    return { refusal: invalid(ctx, 'the body is too large') }
-  }
-
-  let raw: unknown
-
-  try {
-    raw = JSON.parse(text)
-  } catch {
-    return { refusal: apiError('invalid_json') }
-  }
-
-  const parsed = AGENT_WRITE_BODY.safeParse(raw)
+async function parseWriteBody(req: Request): Promise<AgentWriteBody> {
+  const parsed = AGENT_WRITE_BODY.safeParse(await readJsonBody(req, MAX_BODY_BYTES))
 
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-
-    return {
-      refusal: invalid(ctx, `${issue?.path.join('.') ?? ''} ${issue?.message ?? ''}`.trim()),
-    }
+    throw toFieldValidationError(parsed.error, 'agent', toBodyFieldLabel)
   }
 
-  return { body: parsed.data }
+  return parsed.data
 }
 
 /** The one place a body becomes a profile: the full build the daemon gives an agent at boot. A
- *  failure is the 400 the operator reads. */
-function buildFrom(
-  ctx: ApiRouteContext,
-  id: AgentId,
-  toml: string
-): { readonly agent: AgentProfile } | { readonly refusal: Response } {
+ *  failure is the 400 the operator reads: the build's own wording where it has one, else a line
+ *  naming what the build checks. */
+function buildFrom(ctx: ApiRouteContext, id: AgentId, toml: string): AgentProfile {
   try {
-    return { agent: buildUserAgent(ctx.app, id, toml) }
+    return buildUserAgent(ctx.app, id, toml)
   } catch (err: unknown) {
-    return { refusal: invalid(ctx, formatErrForLog(err).message) }
+    ctx.app.resolve('logger').debug('api.agent_build_refused', { err: formatErrForLog(err) })
+
+    throw new ValidationError(
+      formatErrForLog(err).message,
+      operatorMessageOf(err) ?? { key: 'errors.agentBuildFailed' }
+    )
   }
 }
 
@@ -105,32 +90,28 @@ function idTaken(ctx: ApiRouteContext, id: AgentId): Response {
 
 function handleDetail(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = parsePathId(req, agentId)
-  const agent = id === null ? undefined : ctx.app.resolve('agents').get(id)
 
-  if (id === null || agent === undefined) {
-    return Promise.resolve(apiError('not_found'))
+  if (id === null) {
+    return Promise.resolve(apiError('invalid_body'))
   }
 
-  return Promise.resolve(json(toAgentDetailWire(agent, isOwn(ctx, id)) satisfies AgentDetailWire))
+  const agent = ctx.app.resolve('agents').get(id)
+
+  return Promise.resolve(
+    agent === undefined
+      ? apiError('not_found')
+      : json(toAgentDetailWire(agent, isOwn(ctx, id)) satisfies AgentDetailWire)
+  )
 }
 
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = await parseWriteBody(req, ctx)
-
-  if ('refusal' in parsed) {
-    return parsed.refusal
-  }
-
-  const { body } = parsed
+  const body = await parseWriteBody(req)
   let id: AgentId
 
   try {
     id = agentId(body.id ?? '')
   } catch {
-    return invalid(
-      ctx,
-      'id must start with a lowercase letter or digit and use lowercase letters, digits, dots, dashes or underscores'
-    )
+    throw fieldRefusal('id', 'agent_id_shape')
   }
 
   if (RESERVED_AGENT_IDS.has(id) || ctx.app.resolve('agents').has(id)) {
@@ -146,10 +127,6 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   const toml = toAgentToml(body, toolNamesOf(ctx))
   const built = buildFrom(ctx, id, toml)
-
-  if ('refusal' in built) {
-    return built.refusal
-  }
 
   try {
     await createPrivateFileAtomic({ path, content: toml })
@@ -168,15 +145,19 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
     return failed
   }
 
-  ctx.app.resolve('bus').emit('agent_added', { agentId: id, name: built.agent.name })
+  ctx.app.resolve('bus').emit('agent_added', { agentId: id, name: built.name })
 
-  return json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
+  return json(toAgentDetailWire(built, true) satisfies AgentDetailWire)
 }
 
 async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = parsePathId(req, agentId)
 
-  if (id === null || !ctx.app.resolve('agents').has(id)) {
+  if (id === null) {
+    return apiError('invalid_body')
+  }
+
+  if (!ctx.app.resolve('agents').has(id)) {
     return apiError('not_found')
   }
 
@@ -184,14 +165,10 @@ async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response>
     return notEditable(ctx, id)
   }
 
-  const parsed = await parseWriteBody(req, ctx)
+  const body = await parseWriteBody(req)
 
-  if ('refusal' in parsed) {
-    return parsed.refusal
-  }
-
-  if (parsed.body.id !== undefined && parsed.body.id !== id) {
-    return invalid(ctx, 'id cannot change')
+  if (body.id !== undefined && body.id !== id) {
+    throw fieldRefusal('id', 'id_fixed')
   }
 
   const path = userAgentFile(ctx.app.config.paths.dataDir, id)
@@ -202,18 +179,14 @@ async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response>
     return apiError('not_found')
   }
 
-  const toml = toAgentToml(parsed.body, toolNamesOf(ctx), existing)
+  const toml = toAgentToml(body, toolNamesOf(ctx), existing)
   const built = buildFrom(ctx, id, toml)
-
-  if ('refusal' in built) {
-    return built.refusal
-  }
 
   await replacePrivateFileAtomic({ path, content: toml })
 
   const failed = await reloadRefusal(ctx)
 
-  return failed ?? json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
+  return failed ?? json(toAgentDetailWire(built, true) satisfies AgentDetailWire)
 }
 
 async function readOwnFile(path: string): Promise<string | null> {
@@ -232,7 +205,7 @@ async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Respons
   const id = parsePathId(req, agentId)
 
   if (id === null) {
-    return apiError('not_found')
+    return apiError('invalid_body')
   }
 
   const path = userAgentFile(ctx.app.config.paths.dataDir, id)

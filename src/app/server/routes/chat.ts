@@ -12,7 +12,7 @@ import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toChatSessionsWire } from '@/app/server/mappers/chat'
-import { localeOf, parseEpochMs, parseLimit } from '@/app/server/routes/params'
+import { localeOf, parseEpochMs, parseLimit, readJsonBody } from '@/app/server/routes/params'
 import { type ChannelId, channelId } from '@/core/channels'
 import { sessionId as brandSessionId } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
@@ -136,7 +136,7 @@ const RESPOND_BODY: z.ZodType<RespondBody> = z.object({
 })
 
 async function handleRespond(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = RESPOND_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = RESPOND_BODY.safeParse(await readJsonBody(req))
 
   if (!parsed.success) {
     return apiError('invalid_body')

@@ -1,11 +1,17 @@
 import type { ApiRouteContext } from '@/app/types'
+import type { FieldLabel } from '@/core/field-errors'
 import type { Locale } from '@/core/types/locale'
 import type { InstrumentRef, TradingHost } from '@/trading/api'
+import { ValidationError } from '@/core/errors'
+import { FieldValidationError } from '@/core/field-errors'
 import { marketRef, ticker } from '@/trading/api'
 
 /** Long enough for a UUID with a prefix; a key past it is a client bug, not a retry. */
 export const MAX_IDEMPOTENCY_KEY_LENGTH = 200
 const DIGITS_RE = /^\d+$/
+const WHOLE_BODY_LABEL = 'body'
+const BYTES_PER_KB = 1024
+const DEFAULT_MAX_BODY_BYTES = 64 * BYTES_PER_KB
 
 /** The single resolution point. Nine handlers reaching into the container separately would be nine
  *  places to change if the key ever moved. */
@@ -16,6 +22,50 @@ export function hostOf(ctx: ApiRouteContext): TradingHost {
 /** The operator's language, which every CLI sentence on the wire is written in. */
 export function localeOf(ctx: ApiRouteContext): Locale {
   return ctx.app.config.locale.language
+}
+
+/** The request's JSON body, read once and capped. `undefined` = no body was sent, `null` = it is not
+ *  JSON; both fail any schema, so a route that needs a body answers `invalid_body` for either (a
+ *  route where no body means "everything" tells them apart). A body over `maxBytes` is refused
+ *  with the keyed sentence, so the page reads it in the operator's language. */
+export async function readJsonBody(
+  req: Request,
+  maxBytes = DEFAULT_MAX_BODY_BYTES
+): Promise<unknown> {
+  const text = await req.text()
+
+  if (Buffer.byteLength(text) > maxBytes) {
+    throw new ValidationError(`request body is over ${maxBytes} bytes`, {
+      key: 'errors.bodyTooLarge',
+      params: { limit: Math.floor(maxBytes / BYTES_PER_KB) },
+    })
+  }
+
+  if (text === '') {
+    return undefined
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+/** A body field's name as the operator reads it, keyed by where it sits in the body; a path the
+ *  catalog does not know prints as written. */
+export function toBodyFieldLabel(path: string): FieldLabel {
+  const name = path === '' ? WHOLE_BODY_LABEL : path
+
+  return { key: `errors.fieldLabel.${name}`, fallback: name }
+}
+
+/** A refusal of one body field, for a check only the route can make (`kind` is a key under
+ *  `errors.fields`). */
+export function fieldRefusal(path: string, kind: string): FieldValidationError {
+  return new FieldValidationError(`invalid ${path}: ${kind}`, [
+    { path, message: { key: `errors.fields.${kind}`, params: { field: toBodyFieldLabel(path) } } },
+  ])
 }
 
 /** Three outcomes, deliberately distinct: `undefined` = the caller omitted it (the host applies its

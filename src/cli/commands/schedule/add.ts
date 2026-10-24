@@ -12,7 +12,7 @@ import { success } from '@/cli/ui/colors'
 import { parseChannelAddress } from '@/core/channels'
 import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
-import { t } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 import { assertValidCron, isValidInterval, resolveTimezone, validateJobPrompt } from '@/tools/api'
 
 import type { ScheduleResult } from './types'
@@ -113,7 +113,7 @@ function promptRefusal(prompt: string, locale: Locale): string | undefined {
 
   return issue === undefined
     ? undefined
-    : t(locale, 'cli.scheduleInvalidJob', { reason: issue.message })
+    : bindLocale(locale).translate(issue.operator.key, issue.operator.params)
 }
 
 export function resolveSchedule(args: ParsedArgs, tz: string, locale: Locale): ScheduleResult {
@@ -156,9 +156,7 @@ export function resolveCronSchedule(expr: string, tz: string, locale: Locale): S
 
     return { kind: 'value', schedule: { kind: 'cron', expr, timezone }, nextRunAt }
   } catch (err: unknown) {
-    const reason = terminalErrorMessage(err, locale)
-
-    return { kind: 'error', error: `--cron: ${t(locale, 'cli.scheduleInvalidJob', { reason })}` }
+    return { kind: 'error', error: `--cron: ${terminalErrorMessage(err, locale)}` }
   }
 }
 

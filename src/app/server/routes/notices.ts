@@ -5,7 +5,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import '@/app/events'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { STOP_BREACHED_KIND, toNoticeWire } from '@/app/server/mappers/notices'
-import { parseEpochMs, parseLimit } from '@/app/server/routes/params'
+import { parseEpochMs, parseLimit, readJsonBody } from '@/app/server/routes/params'
 
 const NOTICES_PAGE_LIMIT = 200
 const MAX_READ_IDS = 500
@@ -39,9 +39,8 @@ async function handleNotices(req: Request, ctx: ApiRouteContext): Promise<Respon
 
 /** No body, or no `ids`, reads everything. */
 async function handleNoticesRead(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const text = await req.text()
-  const body: unknown = text === '' ? {} : parseJson(text)
-  const parsed = READ_BODY.safeParse(body)
+  const body = await readJsonBody(req)
+  const parsed = READ_BODY.safeParse(body === undefined ? {} : body)
 
   if (!parsed.success) {
     return apiError('invalid_body')
@@ -56,14 +55,6 @@ async function handleNoticesRead(req: Request, ctx: ApiRouteContext): Promise<Re
   ctx.app.resolve('bus').emit('notices_changed', { unread })
 
   return json({ unread } satisfies NoticesReadResponse)
-}
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text)
-  } catch {
-    return null
-  }
 }
 
 function handleBoard(_req: Request, ctx: ApiRouteContext): Promise<Response> {

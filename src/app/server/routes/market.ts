@@ -26,6 +26,7 @@ import {
   parseOptionalBranded,
   parsePathId,
   parseTickerRequest,
+  readJsonBody,
 } from '@/app/server/routes/params'
 import { cachedScreen } from '@/app/server/routes/screen-cache'
 import { alertId, marketRef, region, SURFACE_LIMITS, TYPED_PRICES } from '@/trading/api'
@@ -148,7 +149,7 @@ async function handleAlertsList(req: Request, ctx: ApiRouteContext): Promise<Res
 
 /** The alert fires to this app: the api surface shows whatever chat id a notice names. */
 async function handleAlertCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = ALERT_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = ALERT_BODY.safeParse(await readJsonBody(req))
   const instrument = parsed.success ? parseTickerRequest(parsed.data.instrument) : null
 
   if (!parsed.success || instrument === null) {

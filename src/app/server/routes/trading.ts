@@ -41,6 +41,7 @@ import {
   parseOptionalBranded,
   parseOptionalInstrument,
   parsePathId,
+  readJsonBody,
 } from '@/app/server/routes/params'
 import { bindLocale } from '@/i18n'
 import {
@@ -188,7 +189,7 @@ async function handleTradingProfileGet(req: Request, ctx: ApiRouteContext): Prom
 }
 
 async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const body: unknown = await req.json().catch(() => null)
+  const body: unknown = await readJsonBody(req)
   const request = parseProfileUpdate(body)
 
   if (request === null) {
@@ -301,7 +302,7 @@ const RESCHEDULE_BODY = z.object({ sendTime: z.string().regex(/^([01]\d|2[0-3]):
 
 /** Moves the brief's send time and leaves its delivery address where it is. */
 async function handleBriefReschedule(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const body = RESCHEDULE_BODY.safeParse(await req.json().catch(() => null))
+  const body = RESCHEDULE_BODY.safeParse(await readJsonBody(req))
 
   if (!body.success) {
     return apiError('invalid_body')

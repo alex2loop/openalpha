@@ -13,7 +13,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/api'
 import { apiError, json } from '@/app/server/http/dispatch'
-import { parsePathId } from '@/app/server/routes/params'
+import { parsePathId, readJsonBody } from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { ConfigError } from '@/core/errors'
@@ -189,7 +189,7 @@ async function handleChatgptStatus(_req: Request, ctx: ApiRouteContext): Promise
 }
 
 async function handleChatgptLogin(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = LOGIN_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = LOGIN_BODY.safeParse(await readJsonBody(req))
 
   if (!parsed.success) {
     return apiError('invalid_body')
@@ -235,7 +235,7 @@ async function handlePairingList(_req: Request, ctx: ApiRouteContext): Promise<R
 }
 
 async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = DECISION_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = DECISION_BODY.safeParse(await readJsonBody(req))
   const channel = parsed.success ? parseChannel(parsed.data.channel) : null
 
   if (!parsed.success || channel === null) {

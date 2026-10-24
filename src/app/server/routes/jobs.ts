@@ -7,8 +7,18 @@ import { createAlertRetirer } from '@/app/event-jobs'
 import { API_CHANNEL, APP_CHAT_ID } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { JOB_CREATE_BODY, toScheduleRowWire } from '@/app/server/mappers/jobs'
-import { hostOf, localeOf, parsePathId, parseTickerRequest } from '@/app/server/routes/params'
+import {
+  fieldRefusal,
+  hostOf,
+  localeOf,
+  parsePathId,
+  parseTickerRequest,
+  readJsonBody,
+  toBodyFieldLabel,
+} from '@/app/server/routes/params'
 import { channelId } from '@/core/channels'
+import { operatorMessageOf, ValidationError } from '@/core/errors'
+import { toFieldValidationError } from '@/core/field-errors'
 import { agentId, jobId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { advanceCron } from '@/core/utils/cron'
@@ -25,41 +35,14 @@ import {
 
 const MAX_BODY_BYTES = 32 * 1024
 
-type Refused = { readonly refusal: Response }
-
-function invalid(ctx: ApiRouteContext, detail: string): Response {
-  return apiError('invalid_body', t(localeOf(ctx), 'errors.jobInvalid', { detail }))
-}
-
-async function parseBody(
-  req: Request,
-  ctx: ApiRouteContext
-): Promise<{ readonly body: JobCreateBody } | Refused> {
-  const text = await req.text()
-
-  if (Buffer.byteLength(text) > MAX_BODY_BYTES) {
-    return { refusal: invalid(ctx, 'the body is too large') }
-  }
-
-  let raw: unknown
-
-  try {
-    raw = JSON.parse(text)
-  } catch {
-    return { refusal: apiError('invalid_json') }
-  }
-
-  const parsed = JOB_CREATE_BODY.safeParse(raw)
+async function parseBody(req: Request): Promise<JobCreateBody> {
+  const parsed = JOB_CREATE_BODY.safeParse(await readJsonBody(req, MAX_BODY_BYTES))
 
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-
-    return {
-      refusal: invalid(ctx, `${issue?.path.join('.') ?? ''} ${issue?.message ?? ''}`.trim()),
-    }
+    throw toFieldValidationError(parsed.error, 'job', toBodyFieldLabel)
   }
 
-  return { body: parsed.data }
+  return parsed.data
 }
 
 interface TimedSchedule {
@@ -116,9 +99,10 @@ function toEventSchedule(schedule: JobEventScheduleBody): TimedSchedule {
   }
 }
 
-/** Everything the body can get wrong is checked here, before any alert is armed. A throw is the
- *  caller's input, so it is the operator's 400. */
-function buildJob(ctx: ApiRouteContext, body: JobCreateBody): { readonly job: Job } | Refused {
+/** Everything the body can get wrong is checked here, before any alert is armed. A refusal the
+ *  operator can fix leaves as a `ValidationError`, which the route table answers as a 400; anything
+ *  else is ours and stays a 500. */
+function buildJob(ctx: ApiRouteContext, body: JobCreateBody): Job {
   try {
     const agent = agentId(body.agentId)
     const now = Date.now()
@@ -136,20 +120,24 @@ function buildJob(ctx: ApiRouteContext, body: JobCreateBody): { readonly job: Jo
         : { channel: channelId(body.target.channel), chatId: body.target.chatId }
 
     return {
-      job: {
-        id: jobId(randomUUID()),
-        agentId: agent,
-        prompt: body.prompt,
-        schedule: timed.schedule,
-        ...(timed.event === undefined ? {} : { event: timed.event }),
-        ...(target === undefined ? {} : { target }),
-        enabled: true,
-        nextRunAt: timed.nextRunAt,
-        consecutiveFailures: 0,
-      },
+      id: jobId(randomUUID()),
+      agentId: agent,
+      prompt: body.prompt,
+      schedule: timed.schedule,
+      ...(timed.event === undefined ? {} : { event: timed.event }),
+      ...(target === undefined ? {} : { target }),
+      enabled: true,
+      nextRunAt: timed.nextRunAt,
+      consecutiveFailures: 0,
     }
   } catch (err: unknown) {
-    return { refusal: invalid(ctx, formatErrForLog(err).message) }
+    const operator = operatorMessageOf(err)
+
+    if (operator === undefined) {
+      throw err
+    }
+
+    throw new ValidationError(formatErrForLog(err).message, operator)
   }
 }
 
@@ -159,7 +147,7 @@ async function armPriceAlert(
   req: Request,
   ctx: ApiRouteContext,
   request: { readonly body: JobCreateBody; readonly job: Job }
-): Promise<Job | Refused> {
+): Promise<Job> {
   const { schedule } = request.body
   const { event } = request.job
 
@@ -173,7 +161,8 @@ async function armPriceAlert(
   })
 
   if (instrument === null || event.condition === undefined || event.threshold === undefined) {
-    return { refusal: invalid(ctx, 'a price event needs a ticker, a condition and a threshold') }
+    // The body schema cannot judge a ticker or market: that needs the registered markets.
+    throw fieldRefusal('schedule.ticker', 'invalid_type')
   }
 
   const alert = await hostOf(ctx).createAlert({
@@ -237,36 +226,33 @@ async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
 }
 
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = await parseBody(req, ctx)
+  const body = await parseBody(req)
+  const armed = await armPriceAlert(req, ctx, { body, job: buildJob(ctx, body) })
 
-  if ('refusal' in parsed) {
-    return parsed.refusal
-  }
-
-  const built = buildJob(ctx, parsed.body)
-
-  if ('refusal' in built) {
-    return built.refusal
-  }
-
-  const armed = await armPriceAlert(req, ctx, { body: parsed.body, job: built.job })
-
-  return 'refusal' in armed ? armed.refusal : await storeJob(ctx, armed)
+  return await storeJob(ctx, armed)
 }
 
 // The whole id, never a prefix: this is a client's call, and a prefix that names two jobs is a
-// guess about which one it meant.
-async function findJob(req: Request, ctx: ApiRouteContext, fromEnd: number): Promise<Job | null> {
+// guess about which one it meant. A malformed id is the caller's mistake, an unknown one is absent.
+async function findJob(
+  req: Request,
+  ctx: ApiRouteContext,
+  fromEnd: number
+): Promise<Job | Response> {
   const id = parsePathId(req, jobId, fromEnd)
 
-  return id === null ? null : ((await ctx.app.resolve('jobStore').find(id)) ?? null)
+  if (id === null) {
+    return apiError('invalid_body')
+  }
+
+  return (await ctx.app.resolve('jobStore').find(id)) ?? apiError('not_found')
 }
 
 async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const job = await findJob(req, ctx, 0)
 
-  if (job === null) {
-    return apiError('not_found')
+  if (job instanceof Response) {
+    return job
   }
 
   // Through the scheduler, like the CLI: it stops a run in flight and retires a price job's alert.
@@ -277,22 +263,30 @@ async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Respons
 
 async function handlePause(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const job = await findJob(req, ctx, 1)
-  const paused =
-    job === null ? undefined : await ctx.app.resolve('schedulerCommands').pauseAny(job.id)
 
-  return paused?.kind === 'job' ? json({ ok: true }) : apiError('not_found')
+  if (job instanceof Response) {
+    return job
+  }
+
+  const paused = await ctx.app.resolve('schedulerCommands').pauseAny(job.id)
+
+  return paused.kind === 'job' ? json({ ok: true }) : apiError('not_found')
 }
 
 async function handleResume(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const job = await findJob(req, ctx, 1)
-  const resumed =
-    job === null ? undefined : await ctx.app.resolve('schedulerCommands').resumeAny(job.id)
 
-  if (resumed?.kind === 'alert_inactive') {
+  if (job instanceof Response) {
+    return job
+  }
+
+  const resumed = await ctx.app.resolve('schedulerCommands').resumeAny(job.id)
+
+  if (resumed.kind === 'alert_inactive') {
     return apiError('conflict', t(localeOf(ctx), 'errors.jobAlertGone'))
   }
 
-  return resumed?.kind === 'job' ? json({ ok: true }) : apiError('not_found')
+  return resumed.kind === 'job' ? json({ ok: true }) : apiError('not_found')
 }
 
 /** Answers once the run is admitted to start, not when it ends: a run is minutes long and its
@@ -300,8 +294,8 @@ async function handleResume(req: Request, ctx: ApiRouteContext): Promise<Respons
 async function handleRun(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const job = await findJob(req, ctx, 1)
 
-  if (job === null) {
-    return apiError('not_found')
+  if (job instanceof Response) {
+    return job
   }
 
   if (!job.enabled) {

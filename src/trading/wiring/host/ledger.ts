@@ -1,7 +1,8 @@
 import type { z } from 'zod'
 
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
-import { toFieldValidationError } from '@/trading/features/ledger/field-issues'
+import { toFieldValidationError } from '@/core/field-errors'
+import { toFieldLabel } from '@/trading/features/ledger/fields'
 import { ledgerDraftInput, ledgerEditDraftInput } from '@/trading/features/portfolio/tools/input'
 import { marketInput } from '@/trading/kernel/surface/surface'
 import { bounded, scoped } from '@/trading/wiring/host/scope'
@@ -32,7 +33,7 @@ function parseDraft<T>(schema: z.ZodType<T>, raw: unknown): T {
   const parsed = schema.safeParse(raw)
 
   if (!parsed.success) {
-    throw toFieldValidationError(parsed.error)
+    throw toFieldValidationError(parsed.error, 'ledger draft', toFieldLabel)
   }
 
   return parsed.data

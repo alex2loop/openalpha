@@ -4,7 +4,7 @@ import type { RestartAcceptedWire, RestartBody } from '@/app/server/wire/system'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { RestartStart } from '@/app/update/restart'
 import { apiError, json } from '@/app/server/http/dispatch'
-import { localeOf } from '@/app/server/routes/params'
+import { localeOf, readJsonBody } from '@/app/server/routes/params'
 import { RESTART_WHEN } from '@/app/update/restart'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
@@ -20,7 +20,7 @@ const REFUSAL_KEYS = {
 /** Answers once the restart is accepted. The daemon then stops through its normal shutdown, which
  *  refuses the approvals still waiting; `idle` waits for the daemon to go quiet first. */
 async function handleRestart(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = RESTART_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = RESTART_BODY.safeParse(await readJsonBody(req))
 
   if (!parsed.success) {
     return apiError('invalid_body')

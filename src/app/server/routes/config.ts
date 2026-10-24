@@ -11,6 +11,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import { validateBootConfigTree } from '@/app/config-tree'
 import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { readJsonBody } from '@/app/server/routes/params'
 import { saveEditedConfig } from '@/cli/api'
 import { probeConfig } from '@/core/config/load'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
@@ -26,7 +27,7 @@ async function handleConfigGet(_req: Request, ctx: ApiRouteContext): Promise<Res
 }
 
 async function handleConfigValidate(req: Request, _ctx: ApiRouteContext): Promise<Response> {
-  const body: unknown = await req.json().catch(() => null)
+  const body: unknown = await readJsonBody(req)
 
   return json(validateBootConfigTree(body) satisfies ConfigValidation)
 }
@@ -38,7 +39,7 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     return apiError('invalid_body')
   }
 
-  const body: unknown = await req.json().catch(() => null)
+  const body: unknown = await readJsonBody(req)
 
   // Validate before writing: a config that cannot resolve would take the daemon down on next boot.
   if (!(validateBootConfigTree(body).ok && isPlainRecord(body))) {

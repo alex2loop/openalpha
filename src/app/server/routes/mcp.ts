@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
+import { readJsonBody } from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
 import { sessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -32,7 +33,7 @@ type RpcRequest = z.infer<typeof RPC_REQUEST>
 type RpcId = RpcRequest['id']
 
 async function handleMcp(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const body: unknown = await req.json().catch(() => null)
+  const body: unknown = await readJsonBody(req)
 
   if (body === null) {
     return rpcError(null, PARSE_ERROR, 'parse error')

@@ -20,6 +20,7 @@ import {
   parseOptionalBranded,
   parseOptionalInstrument,
   parsePathId,
+  readJsonBody,
 } from '@/app/server/routes/params'
 import { ledgerEntryId, SURFACE_LIMITS, TYPED_PRICES, tradingDay } from '@/trading/api'
 
@@ -75,7 +76,7 @@ async function handleLedgerRecord(req: Request, ctx: ApiRouteContext): Promise<R
   const body = await readLedgerBody(req)
 
   if (body === undefined) {
-    return apiError('invalid_json')
+    return apiError('invalid_body')
   }
 
   const result = await hostOf(ctx).recordLedger({ ...body, idempotencyKey, signal: req.signal })
@@ -93,7 +94,7 @@ async function handleLedgerUpdate(req: Request, ctx: ApiRouteContext): Promise<R
   }
 
   if (body === undefined) {
-    return apiError('invalid_json')
+    return apiError('invalid_body')
   }
 
   const result = await hostOf(ctx).updateLedgerEntry({ ...body, entryId, signal: req.signal })
@@ -136,7 +137,7 @@ async function handleVenues(req: Request, ctx: ApiRouteContext): Promise<Respons
 async function readLedgerBody(
   req: Request
 ): Promise<{ readonly draft: unknown; readonly typedPrice?: TypedPrice } | undefined> {
-  const parsed = LEDGER_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = LEDGER_BODY.safeParse(await readJsonBody(req))
 
   // JSON has no `undefined`: a draft that reads as one was never sent.
   if (!parsed.success || parsed.data.draft === undefined) {

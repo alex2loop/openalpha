@@ -29,6 +29,7 @@ const EVENT_SCHEDULE = z
       ctx.addIssue({
         code: 'custom',
         message: 'a price event needs ticker, condition and threshold',
+        params: { kind: 'price_event_incomplete' },
       })
     }
 
@@ -38,7 +39,11 @@ const EVENT_SCHEDULE = z
       schedule.typedPrice !== undefined
 
     if (!isPrice && levelled) {
-      ctx.addIssue({ code: 'custom', message: 'only a price event takes a level' })
+      ctx.addIssue({
+        code: 'custom',
+        message: 'only a price event takes a level',
+        params: { kind: 'level_not_price' },
+      })
     }
   })
 

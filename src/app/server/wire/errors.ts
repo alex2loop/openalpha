@@ -11,7 +11,6 @@ export type ApiErrorCode =
   | 'unauthorized'
   | 'forbidden'
   | 'not_found'
-  | 'invalid_json'
   | 'invalid_body'
   | 'conflict'
   | 'price_unconfirmed'
@@ -58,7 +57,6 @@ export const API_ERROR_STATUS: Readonly<Record<ApiErrorCode, number>> = {
   unauthorized: 401,
   forbidden: 403,
   not_found: 404,
-  invalid_json: 400,
   invalid_body: 400,
   conflict: 409,
   price_unconfirmed: 422,
