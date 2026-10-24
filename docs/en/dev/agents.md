@@ -99,7 +99,7 @@ own entry.
 
 Input is `role` plus `goal` (one child) or `items` (one child per item), with optional `context`. The child profile is
 the parent's with its id kept (logs, the per-agent cap and log routing stay the parent's), `tools` cut to the
-`SPAWN_TOOL_NAMES` read allowlist, no roster, `[loop] spawn_max_turns` and `spawn_max_duration_ms` as caps, and the
+`SPAWN_TOOL_NAMES` read allowlist, no roster, `[loop] spawn_max_turns` and `spawn_max_duration_ms` as caps (each cut to the `[loop]` max_turns and max_duration_ms), and the
 `delegate` tier when declared. `RunOptions.profile` carries it: `runOnce` accepts one only with the configured
 agent's id and a tool list inside the configured agent's, else `ValidationError`. `RunOptions.title` names the run
 (`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`) and its `run_finished` carries `summary`, the scrubbed first
@@ -107,8 +107,9 @@ agent's id and a tool list inside the configured agent's, else `ValidationError`
 
 Open children are counted on the run tree's `DelegationQuota` (`openChildren`, `trackChild`) beside the fan-out quota;
 every child is tracked before the first await and released in `finally`. Room is `maxSpawn` minus the
-open count: the first `room` children start and the rest come back as failed "not started" entries with the keyed display
-`tools.spawn.full` (`count` is the number now working); with no room the call is a `delegate_full` error. Each result is
+open count: the first `room` children start and the rest come back as failed "not started" entries with the keyed line
+`tools.spawn.full` (`count` is the number now working), shown as a persistent progress line when the refusal is decided,
+before the accepted children start, and each entry names the goal it did not start; with no room the call is a `delegate_full` error. Each result is
 `{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text }`: `turn_limit` is `turns`
 (line `tools.spawn.reason.turns`, `{turns}`), and an aborted child is failed with no reason and no reason line. `role` is
 scrubbed on entry. `resolveToolGrant` drops `spawn` from `tools = "*"` when `max_spawn` is 0. Budget is a slice of `AGENT_BUDGET_FRACTION` and

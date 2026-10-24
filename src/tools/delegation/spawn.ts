@@ -1,13 +1,14 @@
 import { z } from 'zod'
 
 import type { ResolvedConfig } from '@/core/config/resolve'
+import type { DisplayText, ProgressMessage } from '@/core/stream-events'
 import type { ToolInvocationContext, ToolResult } from '@/core/tool'
 import type { AgentProfile, BudgetSlice } from '@/engine/api'
 import { isClientModelSource } from '@/core/config/resolve'
 import { ToolError } from '@/core/errors'
 import { scrubCredentials } from '@/core/security/credentials'
 import { createTool } from '@/core/tool'
-import { DELEGATE_MODEL_TIER, SPAWN_TOOL_NAME } from '@/engine/api'
+import { DELEGATE_MODEL_TIER, RUN_TITLE_MAX_CHARS, SPAWN_TOOL_NAME } from '@/engine/api'
 import {
   addDelegatedUsage,
   allocateChildBudgets,
@@ -160,6 +161,10 @@ export const spawnTool = createTool({
     try {
       reserveDelegationQuota(ctx, accepted.length)
 
+      if (refused.length > 0) {
+        ctx.reportProgress?.(toFullProgress(open + accepted.length))
+      }
+
       const results = await runChildren(toSpawnedChildren(profiles, slices), ctx)
 
       return toSpawnToolResult(results, { refused, working: open + accepted.length, maxSpawn })
@@ -204,8 +209,17 @@ function fullRefusal(input: CapacityInput): ToolResult {
     }),
     isError: true,
     errorCode: 'delegate_full',
-    display: { key: 'tools.spawn.full', params: { count: input.working } },
+    display: toFullDisplay(input.working),
   }
+}
+
+function toFullDisplay(working: number): DisplayText {
+  return { key: 'tools.spawn.full', params: { count: working } }
+}
+
+// Persistent, so the group line that follows does not wipe it.
+function toFullProgress(working: number): ProgressMessage {
+  return { key: 'tools.spawn.full', params: { count: working }, mode: 'persistent' }
 }
 
 // Some fit: those ran, the rest are named as not started so the model can ask again later.
@@ -218,9 +232,6 @@ function toSpawnToolResult(results: readonly SpawnResult[], capacity: CapacityIn
   return {
     content: JSON.stringify({ children }),
     isError: children.every((child) => child.status === 'failed'),
-    ...(capacity.refused.length === 0
-      ? {}
-      : { display: { key: 'tools.spawn.full', params: { count: capacity.working } } }),
   }
 }
 
@@ -228,7 +239,7 @@ function toRefusedResult(brief: ChildBrief, capacity: CapacityInput): SpawnResul
   return {
     role: brief.role,
     status: 'failed',
-    text: `not started: ${capacity.working} of ${capacity.maxSpawn} child agents are already working; ask again after one finishes`,
+    text: `not started (${scrubCredentials(brief.goal).slice(0, RUN_TITLE_MAX_CHARS)}): ${capacity.working} of ${capacity.maxSpawn} child agents are already working; ask again after one finishes`,
   }
 }
 
@@ -253,7 +264,7 @@ function toChildProfiles(
     ...parent,
     tools: parent.tools.filter((name) => SPAWN_TOOL_NAMES.has(name)),
     delegates: [],
-    maxTurns: config.loop.spawnMaxTurns,
+    maxTurns: Math.min(config.loop.maxTurns, config.loop.spawnMaxTurns),
     maxDurationMs: Math.min(config.loop.maxDurationMs, config.loop.spawnMaxDurationMs),
     ...toDelegateTierModel(config),
   }
