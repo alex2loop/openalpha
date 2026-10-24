@@ -553,7 +553,7 @@
     "fields.id_fixed": "{field} không đổi được sau khi agent đã được tạo.",
     "fields.price_event_incomplete": "Sự kiện giá cần có mã, điều kiện và ngưỡng giá.",
     "fields.level_not_price": "Chỉ sự kiện giá mới có mức giá.",
-    "watchlistNotLoaded": "Mình chưa kiểm tra được các mã này vì danh sách thị trường chưa được nạp. Bạn chạy /refresh trước rồi thêm lại nhé.",
+    "watchlistNotLoaded": "Mình chưa kiểm tra được các mã này: danh sách thị trường chưa được nạp, hoặc lần kiểm tra vừa rồi bị lỗi. Bạn chạy /refresh trước rồi thêm lại nhé.",
     "watchlistNamesInvalid": "Mình không đọc được một trong các mã này, hoặc có quá nhiều mã cùng lúc. Bạn viết mỗi mã dạng FPT, hoặc thị trường:mã như crypto:BTC nhé."
   },
   "scheduler": {

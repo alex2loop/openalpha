@@ -27,7 +27,7 @@ async function handleConfigGet(_req: Request, ctx: ApiRouteContext): Promise<Res
 }
 
 async function handleConfigValidate(req: Request, _ctx: ApiRouteContext): Promise<Response> {
-  const body: unknown = await readJsonBody(req)
+  const body: unknown = await readJsonBody(req, MAX_CONFIG_BYTES)
 
   return json(validateBootConfigTree(body) satisfies ConfigValidation)
 }
@@ -39,7 +39,7 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     return apiError('invalid_body')
   }
 
-  const body: unknown = await readJsonBody(req)
+  const body: unknown = await readJsonBody(req, MAX_CONFIG_BYTES)
 
   // Validate before writing: a config that cannot resolve would take the daemon down on next boot.
   if (!(validateBootConfigTree(body).ok && isPlainRecord(body))) {

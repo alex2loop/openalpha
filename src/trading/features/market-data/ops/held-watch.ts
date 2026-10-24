@@ -159,12 +159,13 @@ async function watchOnce(
     state.cursor = now
   }
 
-  // The index speaks for its own region: holdings elsewhere neither fall with it nor break against it.
-  await watchIndex(deps, {
-    ...input,
-    owner,
-    held: held.filter((instrument) => isInRegion(deps, instrument)),
-  })
+  // The index speaks for its own region: holdings elsewhere neither fall with it nor break against it,
+  // and a book with nothing there has no drop to be told about.
+  const regionHeld = held.filter((instrument) => isInRegion(deps, instrument))
+
+  if (regionHeld.length > 0) {
+    await watchIndex(deps, { ...input, owner, held: regionHeld })
+  }
 }
 
 function isInRegion(deps: HeldWatchDeps, instrument: InstrumentRef): boolean {

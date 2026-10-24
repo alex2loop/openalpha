@@ -136,6 +136,8 @@ async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null>
 
   // The socket may have closed while the route was being opened.
   if (controller.signal.aborted) {
+    registration.release()
+
     return null
   }
 
