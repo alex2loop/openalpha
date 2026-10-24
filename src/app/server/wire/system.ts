@@ -77,6 +77,16 @@ export interface ScheduleRow {
   readonly [field: string]: unknown
 }
 
+/** What the app still has to ask of someone on a first run. */
+interface FirstRunWire {
+  /** A model can answer: its key is set or its login is done, or the connected client answers. */
+  readonly modelReady: boolean
+  /** The operator saved a profile; a daemon that never did runs on seeded defaults. */
+  readonly profileSaved: boolean
+  /** The ledger holds no row at all. */
+  readonly bookEmpty: boolean
+}
+
 /** GET /v1/state — the composite snapshot the panel polls. Optional sections are omitted until their
  *  store exists (see `capabilities`); the client renders "coming soon" for an absent section. */
 export interface StatePayload {
@@ -104,6 +114,7 @@ export interface StatePayload {
   readonly restartDrainMs: number
   /** Resolved calls a track record needs before its rates mean anything. */
   readonly trackRecordMinSample: number
+  readonly firstRun: FirstRunWire
 }
 
 /** POST /v1/restart. */

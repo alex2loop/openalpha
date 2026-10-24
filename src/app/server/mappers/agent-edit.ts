@@ -4,7 +4,7 @@ import { z } from 'zod'
 import type { AgentDetailWire, AgentFocusWire, AgentWriteBody } from '@/app/server/wire/agents'
 import type { AgentProfile } from '@/engine/api'
 import { isPlainRecord } from '@/core/utils/collections'
-import { MAX_SPAWN_PER_AGENT, SPAWN_TOOL_NAME } from '@/engine/api'
+import { AgentLookSchema, MAX_SPAWN_PER_AGENT, SPAWN_TOOL_NAME } from '@/engine/api'
 
 const MAX_LIST_ITEMS = 20
 const MAX_NAME_CHARS = 80
@@ -46,6 +46,7 @@ const MANAGED_KEYS = [
   'focus',
   'max_daily_usd',
   'model_tier',
+  'look',
 ]
 
 const FOCUS_BODY = z.strictObject({
@@ -63,6 +64,7 @@ export const AGENT_WRITE_BODY = z.strictObject({
   maxDailyUsd: z.number().nonnegative().max(MAX_DAILY_USD).exactOptional(),
   modelTier: z.string().min(1).exactOptional(),
   maxSpawn: z.number().int().min(0).max(MAX_SPAWN_PER_AGENT).exactOptional(),
+  look: AgentLookSchema.exactOptional(),
 })
 
 /** The TOML text for the body. An edit passes the file's current text: what the page does not own
@@ -94,6 +96,7 @@ export function toAgentToml(
     ...(body.maxDailyUsd === undefined ? {} : { max_daily_usd: body.maxDailyUsd }),
     ...(body.modelTier === undefined ? {} : { model_tier: body.modelTier }),
     ...(body.focus === undefined ? {} : { focus: body.focus }),
+    ...(body.look === undefined ? {} : { look: body.look }),
     capabilities: { ...capabilities, tools, ...(maxSpawn > 0 ? { max_spawn: maxSpawn } : {}) },
   })
 }
@@ -116,6 +119,7 @@ export function toAgentDetailWire(agent: AgentProfile, editable: boolean): Agent
     ...(agent.maxDailyUsd === undefined ? {} : { maxDailyUsd: agent.maxDailyUsd }),
     ...(agent.modelChain.kind === 'tier' ? { modelTier: agent.modelChain.name } : {}),
     ...(agent.maxSpawn === undefined ? {} : { maxSpawn: agent.maxSpawn }),
+    ...(agent.look === undefined ? {} : { look: agent.look }),
     editable,
   }
 }

@@ -26,6 +26,8 @@ export interface AgentProfile {
   readonly maxDurationMs?: number
   /** Raw `[focus]` table. Trading validates it at boot; the engine never reads inside it. */
   readonly focus?: Readonly<Record<string, unknown>>
+  /** Raw `[look]` table: the parts of its character on the app's page. The engine never reads it. */
+  readonly look?: Readonly<Record<string, string>>
   /** This agent's own daily spend ceiling, under `[budget].max_daily_usd`. Absent = only that cap. */
   readonly maxDailyUsd?: number
   readonly delegates: readonly string[]

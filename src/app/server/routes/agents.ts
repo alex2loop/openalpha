@@ -56,6 +56,7 @@ function toAgentWire(
     paused,
     ...(agent.maxDailyUsd === undefined ? {} : { maxDailyUsd: agent.maxDailyUsd }),
     spentTodayUsd,
+    ...(agent.look === undefined ? {} : { look: agent.look }),
     focusKey: focus.key,
     focusLabel: renderFocusLabel(localeOf(ctx), focus.focus),
     ...toRecordFields(extras.record),

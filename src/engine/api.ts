@@ -137,6 +137,7 @@ export type {
   WorkspaceCleanupScope,
 } from '@/engine/workspace/types'
 export {
+  AgentLookSchema,
   assertAgentTomlMatchesSourceId,
   assertValidAgentToml,
   collectAgentReferenceIssues,

@@ -1,6 +1,11 @@
 // Agent management on /v1: the operator's own agents, whether each is paused, and what it has spent.
 // Contract shapes only - the runtime owns what pausing means (see CONTRACT.md).
 
+/** The parts of an agent's character on the page (`hair`, `outfit` and the like), each a slug of at
+ *  most 24 characters, at most 8 parts. The daemon checks that shape and stores what it is given: the
+ *  page owns which values mean something, and derives a part left out from the agent's id. */
+type AgentLookWire = Readonly<Record<string, string>>
+
 /** One of the operator's own agents. Built-in agents and plugin agents are not listed: they cannot
  *  be paused. */
 export interface AgentWire {
@@ -11,6 +16,7 @@ export interface AgentWire {
   readonly maxDailyUsd?: number
   /** What it has spent today, on the operator's calendar, debates it asked for included. */
   readonly spentTodayUsd: number
+  readonly look?: AgentLookWire
   /** `default` for an agent that shares the operator's focus; any other key names its own. */
   readonly focusKey: string
   /** The focus in words, in the daemon's language. */
@@ -75,6 +81,7 @@ export interface AgentDetailWire {
   readonly modelTier?: string
   /** The child agents it may have working at once; absent when it may not spawn any. */
   readonly maxSpawn?: number
+  readonly look?: AgentLookWire
   readonly editable: boolean
 }
 
@@ -92,6 +99,7 @@ export interface AgentWriteBody {
   readonly modelTier?: string
   /** 1 to 4 lets the agent start that many child agents at once; 0 or left out, none. */
   readonly maxSpawn?: number
+  readonly look?: AgentLookWire
 }
 
 /** POST /v1/agents/reload: the agents read off disk, and each file left out with the reason. */

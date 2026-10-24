@@ -61,6 +61,15 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #                             # `market_sector_strength` lists them
 # horizon = "long"            # short | long: the window this agent's calls are scored over
 
+# ---- Look (how this agent's character appears in the app) -------------------
+# Up to 8 parts, each a lowercase slug of at most 24 characters. The daemon only keeps what you
+# write: the app decides which values it can draw, and derives any part you leave out from the
+# agent's id. Nothing in a run reads it.
+#
+# [look]
+# hair = "short"
+# outfit = "suit"
+
 # ---- On a social network ----------------------------------------------------
 # `social join <this agent> <network>` needs its own [focus] and only tools a
 # networked agent may hold: social_request and social_skill, the suggestion

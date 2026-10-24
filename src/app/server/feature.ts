@@ -27,6 +27,7 @@ import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
 import { TASK_ROUTES } from '@/app/server/routes/tasks'
 import { TRADING_ROUTES } from '@/app/server/routes/trading'
+import { WATCHLIST_ROUTES } from '@/app/server/routes/watchlist'
 import { broadcast } from '@/app/server/ws/socket'
 import { describeCommand } from '@/commands/api'
 import { ConfigError } from '@/core/errors'
@@ -48,6 +49,7 @@ const ROUTES = [
   ...SIGN_IN_ROUTES,
   ...MCP_ROUTES,
   ...TRADING_ROUTES,
+  ...WATCHLIST_ROUTES,
   ...DEBATE_ROUTES,
   ...DIGEST_ROUTES,
   ...MARKET_ROUTES,

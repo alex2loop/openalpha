@@ -46,11 +46,12 @@ async function handleHealth(_req: Request, ctx: ApiRouteContext): Promise<Respon
 
 async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const { app } = ctx
-  const [todayUsd, jobs, brief, degraded] = await Promise.all([
+  const [todayUsd, jobs, brief, degraded, firstRun] = await Promise.all([
     app.resolve('llmAttemptStore').totalFor('day', Date.now()),
     app.resolve('jobStore').list(),
     readBriefSchedule(app, req.signal),
     readDaemonDegraded(app, process.pid),
+    readFirstRun(app, req.signal),
   ])
 
   return json({
@@ -69,7 +70,23 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     restartIdleWaitMs: RESTART_IDLE_WAIT_MS,
     restartDrainMs: SHUTDOWN_DRAIN_MS,
     trackRecordMinSample: MINIMUM_TRACK_RECORD_SAMPLE,
+    firstRun,
   } satisfies StatePayload)
+}
+
+/** A model is ready when any configured one passes the check `doctor` runs on it, or when the
+ *  connected client answers every call. */
+async function readFirstRun(app: App, signal: AbortSignal): Promise<StatePayload['firstRun']> {
+  const { translate } = bindLocale(app.config.locale.language)
+  const [setup, providers] = await Promise.all([
+    app.resolve('tradingHost').getSetup(signal),
+    resolveProviderChecks(app, translate),
+  ])
+
+  return {
+    modelReady: app.config.modelSource === 'client' || providers.some((check) => check.ok),
+    ...setup,
+  }
 }
 
 async function handleLive(_req: Request, ctx: ApiRouteContext): Promise<Response> {

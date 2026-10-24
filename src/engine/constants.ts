@@ -41,6 +41,10 @@ export const CHILD_SUMMARY_MAX_CHARS = 500
 /** Most child agents one agent may have working at once; `max_spawn` in its file sets its own. */
 export const MAX_SPAWN_PER_AGENT = 4
 export const SPAWN_TOOL_NAME = 'spawn'
+/** Parts an agent's `[look]` may name, and the longest value of one. The engine reads neither: the
+ *  page owns what a part may be, so these only keep what the file stores small. */
+export const LOOK_MAX_PARTS = 8
+export const LOOK_VALUE_MAX_CHARS = 24
 export const RATE_LIMIT_WINDOW_MS = 60_000
 export const RATE_LIMIT_MAX_KEYS = 4_096
 /** Fits the largest first-party payload - a market overview or a suggestion - whole in a chat run. */

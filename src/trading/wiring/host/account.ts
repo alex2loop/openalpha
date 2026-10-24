@@ -4,6 +4,7 @@ import type { AgentMethods } from '@/trading/wiring/host/agents'
 import type { LedgerMethods } from '@/trading/wiring/host/ledger'
 import type { MarketMethods } from '@/trading/wiring/host/market'
 import type { OrderMethods } from '@/trading/wiring/host/order'
+import type { ProfileMethods } from '@/trading/wiring/host/profile'
 import type { HeldStopView, TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { reconcileSentences } from '@/trading/features/portfolio/render/reconcile'
 import { toSegmentShares } from '@/trading/features/portfolio/render/segment-shares'
@@ -14,7 +15,11 @@ const NO_COVERS: ReadonlyMap<string, StopCover> = new Map()
 
 type AccountMethods = Omit<
   TradingHost,
-  keyof MarketMethods | keyof LedgerMethods | keyof OrderMethods | keyof AgentMethods
+  | keyof MarketMethods
+  | keyof LedgerMethods
+  | keyof OrderMethods
+  | keyof AgentMethods
+  | keyof ProfileMethods
 >
 type AlertMethods = Pick<
   AccountMethods,

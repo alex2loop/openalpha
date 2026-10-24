@@ -21,6 +21,7 @@ export type {
   TradingHost,
   TradingMacroView,
   TradingMarketsView,
+  TradingSetupView,
   TradingTrackRecordView,
 } from '@/trading/wiring/host/types'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'

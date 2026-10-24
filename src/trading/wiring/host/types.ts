@@ -22,6 +22,7 @@ import type { NavHistory, NavWindow } from '@/trading/features/portfolio/nav/typ
 import type { ReconcileSentences } from '@/trading/features/portfolio/render/reconcile'
 import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 import type { VenueChoice } from '@/trading/features/portfolio/venues'
+import type { WatchlistResult } from '@/trading/features/profile/types'
 import type { SuggestionCard } from '@/trading/features/suggestion/render/card'
 import type { TrackRecordReflection } from '@/trading/features/suggestion/suggestion'
 import type {
@@ -140,6 +141,13 @@ interface TradingAlertDisableRequest {
 
 interface TradingRegionRequest {
   readonly region?: Region
+  readonly signal: AbortSignal
+}
+
+interface TradingWatchlistRequest {
+  readonly kind: 'add' | 'remove'
+  /** As the operator types them: `fpt`, or `crypto:hdb` where the market must be named. */
+  readonly names: readonly string[]
   readonly signal: AbortSignal
 }
 
@@ -298,6 +306,12 @@ export interface TradingMarketsView {
   readonly markets: readonly MarketView[]
 }
 
+/** Whether the operator ever saved a profile, and whether the ledger holds a single row. */
+export interface TradingSetupView {
+  readonly profileSaved: boolean
+  readonly bookEmpty: boolean
+}
+
 export interface TradingMacroView {
   readonly region: Region
   readonly result: SourceResult<MacroRiskView>
@@ -344,6 +358,10 @@ export interface TradingHost {
   listSources(): readonly SourceStatus[]
   getProfile(signal: AbortSignal): Promise<UserProfile>
   updateProfile(request: TradingProfileUpdateRequest): Promise<UserProfile>
+  /** Adds or removes names; an add that names one nothing resolves saves nothing. */
+  updateWatchlist(request: TradingWatchlistRequest): Promise<WatchlistResult>
+  /** What a first run still has to do on the trading side. */
+  getSetup(signal: AbortSignal): Promise<TradingSetupView>
   getPortfolio(request: TradingSignalRequest): Promise<PortfolioView>
   getNavHistory(request: TradingNavRequest): Promise<NavHistory>
   getStopDistances(request: TradingSignalRequest): Promise<readonly HeldStopView[]>

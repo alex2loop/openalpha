@@ -11,7 +11,12 @@ import { agentId, isPathId } from '@/core/ids'
 import { REASONING_MODES } from '@/core/llm'
 import { hasBlockingThreat, scanSkill } from '@/core/security/sanitize'
 import { MAX_TIMER_MS } from '@/core/utils/time'
-import { MAX_SPAWN_PER_AGENT, SPAWN_TOOL_NAME } from '@/engine/constants'
+import {
+  LOOK_MAX_PARTS,
+  LOOK_VALUE_MAX_CHARS,
+  MAX_SPAWN_PER_AGENT,
+  SPAWN_TOOL_NAME,
+} from '@/engine/constants'
 
 export const RESERVED_AGENT_IDS: ReadonlySet<string> = new Set(['default'])
 export const ALL_TOOLS = '*'
@@ -20,6 +25,16 @@ export const ALL_TOOLS = '*'
 export type ToolGrant = typeof ALL_TOOLS | readonly string[]
 
 const RawTableSchema = z.record(z.string(), z.unknown())
+const LOOK_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const LookSlug = z.string().max(LOOK_VALUE_MAX_CHARS).regex(LOOK_SLUG_RE)
+
+/** How an agent's character looks on the app's page: a few named parts, each a slug. Shape only; the
+ *  page decides which values mean something and falls back for the rest. */
+export const AgentLookSchema = z
+  .record(LookSlug, LookSlug)
+  .refine((look) => Object.keys(look).length <= LOOK_MAX_PARTS, {
+    message: `at most ${LOOK_MAX_PARTS} parts`,
+  })
 
 const AgentTomlSchema = z.strictObject({
   id: z.string().optional(),
@@ -32,6 +47,7 @@ const AgentTomlSchema = z.strictObject({
   max_tokens: z.number().int().positive().optional(),
   max_duration_ms: z.number().int().positive().max(MAX_TIMER_MS).optional(),
   focus: RawTableSchema.optional(),
+  look: AgentLookSchema.optional(),
   max_daily_usd: z.number().nonnegative().optional(),
   capabilities: z
     .strictObject({
@@ -184,6 +200,7 @@ export function buildAgentFromToml(
     ...(parsed.max_tokens === undefined ? {} : { maxTokens: parsed.max_tokens }),
     ...(parsed.max_duration_ms === undefined ? {} : { maxDurationMs: parsed.max_duration_ms }),
     ...(parsed.focus === undefined ? {} : { focus: Object.freeze({ ...parsed.focus }) }),
+    ...(parsed.look === undefined ? {} : { look: Object.freeze({ ...parsed.look }) }),
     ...(isOwnCap(parsed.max_daily_usd) ? { maxDailyUsd: parsed.max_daily_usd } : {}),
     delegates: parsed.capabilities?.delegates ?? [],
     ...(maxSpawn > 0 ? { maxSpawn } : {}),
