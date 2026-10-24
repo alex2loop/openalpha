@@ -204,6 +204,7 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     weight: 'nudge',
     source: APP_SOURCE,
     note: e.text,
+    ...(e.kind === undefined ? {} : { noticeKind: e.kind }),
   }),
   notices_changed: (e) => ({
     v: 1,
@@ -278,7 +279,7 @@ export function toAgentRunWire(e: BusEventMap['run_started']): RunStartWire {
     kind: 'agent',
     name: e.agentId,
     ...(e.title === undefined ? {} : { title: e.title }),
-    channel: e.channel,
+    channelId: e.channel,
     sessionId: e.sessionId,
     ...(e.parentRunId === undefined ? {} : { parentRunId: e.parentRunId }),
     ...(e.hidden === undefined ? {} : { hidden: e.hidden }),
@@ -290,7 +291,7 @@ export function toCommandRunWire(e: BusEventMap['command_started']): RunStartWir
   return {
     kind: 'command',
     name: e.name,
-    channel: e.channel,
+    channelId: e.channel,
     sessionId: e.sessionId,
     startedAt: e.startedAt,
   }

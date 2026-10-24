@@ -606,7 +606,7 @@
     "delegate_parallel": "Giao việc (song song)",
     "spawn": "Tạo agent con",
     "spawn.full": "Yêu cầu nhiều agent con hơn mức được chạy cùng lúc: {count} agent con đang đọc, phần còn lại chưa được bắt đầu.",
-    "spawn.fullOne": "Yêu cầu nhiều agent con hơn mức được chạy cùng lúc: 1 agent con đang đọc, phần còn lại chưa được bắt đầu.",
+    "spawn.fullOne": "Yêu cầu nhiều agent con hơn mức được chạy cùng lúc: {count} agent con đang đọc, phần còn lại chưa được bắt đầu.",
     "spawn.reason.timeout": "hết {minutes} phút",
     "spawn.reason.timeoutSeconds": "hết {seconds} giây",
     "spawn.reason.turns": "hết {turns} lượt làm việc",

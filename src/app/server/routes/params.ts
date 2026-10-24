@@ -10,6 +10,8 @@ import { marketRef, ticker, tradingDay } from '@/trading/api'
 /** Long enough for a UUID with a prefix; a key past it is a client bug, not a retry. */
 export const MAX_IDEMPOTENCY_KEY_LENGTH = 200
 const DIGITS_RE = /^\d+$/
+// Whatever id a row carries (a UUID, a chat id), as the last row of a page names it.
+const CURSOR_ID_RE = /^[\w-]{1,64}$/
 const WHOLE_BODY_LABEL = 'body'
 const BYTES_PER_KB = 1024
 const DEFAULT_MAX_BODY_BYTES = 64 * BYTES_PER_KB
@@ -139,10 +141,47 @@ export function parseLimit(raw: string | null, maximum: number): number | null {
 }
 
 /** An epoch-ms cursor (`before`); `null` when it is not a safe non-negative integer (400). */
-export function parseEpochMs(raw: string): number | null {
+function parseEpochMs(raw: string): number | null {
   const value = DIGITS_RE.test(raw) ? Number(raw) : Number.NaN
 
   return Number.isSafeInteger(value) ? value : null
+}
+
+interface PageLimits {
+  readonly defaultLimit: number
+  readonly maximumLimit: number
+  /** True when `beforeId` breaks the tie between rows of one instant. */
+  readonly keyset: boolean
+}
+
+interface PageQuery {
+  readonly limit: number
+  readonly before?: number
+  readonly beforeId?: string
+}
+
+/** `limit`, `before` (epoch ms) and, where the list is a keyset, the `beforeId` of the last row a page
+ *  showed: it only makes sense beside `before`. `null` when any is malformed (400). */
+export function parsePageQuery(params: URLSearchParams, limits: PageLimits): PageQuery | null {
+  const rawLimit = params.get('limit')
+  const rawBefore = params.get('before')
+  const rawBeforeId = limits.keyset ? params.get('beforeId') : null
+  const limit = rawLimit === null ? limits.defaultLimit : parseLimit(rawLimit, limits.maximumLimit)
+  const before = rawBefore === null ? undefined : parseEpochMs(rawBefore)
+
+  if (
+    limit === null ||
+    before === null ||
+    (rawBeforeId !== null && (before === undefined || !CURSOR_ID_RE.test(rawBeforeId)))
+  ) {
+    return null
+  }
+
+  return {
+    limit,
+    ...(before === undefined ? {} : { before }),
+    ...(rawBeforeId === null ? {} : { beforeId: rawBeforeId }),
+  }
 }
 
 /** A required value from a closed set; `null` when it is absent or outside the set (400). */

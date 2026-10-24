@@ -1,3 +1,4 @@
+import type { RestartWhen } from '@/app/server/wire/vocab'
 import type { AgentId } from '@/core/ids'
 import type { OrderFill, RoleOutput } from '@/trading/api'
 
@@ -8,8 +9,19 @@ declare module '@/core/events' {
     /** One alert pass finished: it read one cursor page, not the whole book. Epoch ms. */
     alerts_checked: { readonly at: number }
     /** A sentence the app files to the bell for itself (a restart finished, an agent deleted). It is
-     *  never sent to a chat. Epoch ms. */
-    daemon_notice: { readonly text: string; readonly at: number }
+     *  never sent to a chat. `kind` lets a page tell the ones it waits for from the rest. Epoch ms. */
+    daemon_notice: {
+      readonly text: string
+      readonly at: number
+      readonly kind?: 'restart-done' | 'restart-failed'
+    }
+    /** A restart request reached its end: the helper took over (`completed`), it was refused or the
+     *  daemon began stopping first (`aborted`), or it failed (`error`). `requestedAt` is epoch ms. */
+    restart_ended: {
+      readonly when: RestartWhen
+      readonly requestedAt: number
+      readonly outcome: 'completed' | 'aborted' | 'error'
+    }
     /** What one debate role said once the debate was verified. Shown on the operator's own page and
      *  never sent to a chat or a model. */
     role_output: RoleOutput

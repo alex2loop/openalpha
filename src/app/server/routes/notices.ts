@@ -5,33 +5,44 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import '@/app/events'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { STOP_BREACHED_KIND, toNoticeWire } from '@/app/server/mappers/notices'
-import { parseEpochMs, parseLimit, readJsonBody } from '@/app/server/routes/params'
+import { parsePageQuery, readJsonBody } from '@/app/server/routes/params'
 
 const NOTICES_PAGE_LIMIT = 200
 const MAX_READ_IDS = 500
 const READ_BODY = z.object({ ids: z.array(z.string().min(1)).max(MAX_READ_IDS).exactOptional() })
 
-/** `before` is epoch ms, the `createdAt` of the last notice a page showed. */
+/** The next page is `before=<nextBefore>&beforeId=<nextBeforeId>`, the `createdAt` and `id` of the last
+ *  notice a page read, so two notices of one millisecond are never skipped at a page edge. */
 async function handleNotices(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const query = new URL(req.url).searchParams
-  const rawBefore = query.get('before')
-  const limit = parseLimit(query.get('limit'), NOTICES_PAGE_LIMIT)
-  const before = rawBefore === null ? undefined : parseEpochMs(rawBefore)
+  const page = parsePageQuery(new URL(req.url).searchParams, {
+    defaultLimit: NOTICES_PAGE_LIMIT,
+    maximumLimit: NOTICES_PAGE_LIMIT,
+    keyset: true,
+  })
 
-  if (limit === null || before === null) {
+  if (page === null) {
     return apiError('invalid_body')
   }
 
   const store = ctx.app.resolve('noticeStore')
   const [rows, unread, stops] = await Promise.all([
-    store.list(before, limit),
+    store.list(
+      page.before === undefined
+        ? undefined
+        : { createdAt: page.before, ...(page.beforeId === undefined ? {} : { id: page.beforeId }) },
+      page.limit
+    ),
     store.unreadCount(),
     store.unreadCountOfKind(STOP_BREACHED_KIND),
   ])
   const approvals = ctx.live.snapshot().pending.filter((entry) => entry.kind === 'approval')
 
+  const last = rows.at(-1)
+
   return json({
     items: rows.flatMap((row) => toNoticeWire(row) ?? []),
+    nextBefore: last?.createdAt ?? null,
+    nextBeforeId: last?.id ?? null,
     unread,
     needsYou: approvals.length + stops,
   } satisfies NoticesResponse)

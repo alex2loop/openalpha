@@ -1,14 +1,20 @@
+import { randomUUID } from 'node:crypto'
+
 import type { App } from '@/core/container'
 import type { BusEventMap, EventBus } from '@/core/events'
 import type { RunId } from '@/core/ids'
 import type { RunProgressMessage } from '@/engine/api'
 import type { RunLogRow } from '@/persistence/api'
+import '@/app/events'
+import { API_CHANNEL } from '@/app/server/channel'
+import { runId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { trimToSize } from '@/core/utils/collections'
 
 /** Runs that have started and not finished. A run whose finish never arrives is dropped oldest first. */
 const MAX_OPEN_RUNS = 500
 const RESEARCH_TOTALS_KEY = 'progress.researchTotals'
+const RESTART_RUN_NAME = 'restart'
 
 /** A run's start, held until its finish says how it ended. */
 type OpenRun = Omit<RunLogRow, 'endedAt' | 'outcome'>
@@ -80,6 +86,18 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
       finish(book, e.runId, {
         outcome: e.reason,
         ...(e.summary === undefined ? {} : { summary: e.summary }),
+      })
+    ),
+    bus.on('restart_ended', (e) =>
+      book.write({
+        runId: runId(randomUUID()),
+        kind: 'command',
+        name: RESTART_RUN_NAME,
+        title: e.when,
+        channel: API_CHANNEL,
+        startedAt: e.requestedAt,
+        endedAt: Date.now(),
+        outcome: e.outcome,
       })
     ),
     bus.on('command_finished', (e) => {

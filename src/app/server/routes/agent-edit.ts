@@ -32,12 +32,11 @@ import { RESERVED_AGENT_IDS, userAgentFile } from '@/engine/api'
 import { type MessageKey, pluralKey, t, translateDisplayText } from '@/i18n'
 import { pauseJobsOfAgent } from '@/scheduler/api'
 
-const MAX_BODY_BYTES = 64 * 1024
 // Each user agent holds a log sink open, so the page may not create them without bound.
 const MAX_USER_AGENTS = 50
 
 async function parseWriteBody(req: Request): Promise<AgentWriteBody> {
-  const parsed = AGENT_WRITE_BODY.safeParse(await readJsonBody(req, MAX_BODY_BYTES))
+  const parsed = AGENT_WRITE_BODY.safeParse(await readJsonBody(req))
 
   if (!parsed.success) {
     throw toFieldValidationError(parsed.error, 'agent', toBodyFieldLabel)

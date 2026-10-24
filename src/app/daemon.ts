@@ -9,8 +9,9 @@ import {
   trackDaemonTask,
 } from '@/app/daemon-subsystems'
 import '@/app/events'
-import { takeRestartMarker } from '@/app/restart-marker'
+
 import { retentionCutoffAt, runWorkspaceTmpRetention } from '@/app/retention'
+import { takeRestartMarker } from '@/app/update/restart-marker'
 import { BRAND } from '@/core/brand'
 import { AppError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -268,6 +269,7 @@ function announceRestart(app: App, logger: Logger): void {
         app.resolve('bus').emit('daemon_notice', {
           text: t(app.config.locale.language, 'ui.restartDone'),
           at: Date.now(),
+          kind: 'restart-done',
         })
       }
     })

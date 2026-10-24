@@ -3,7 +3,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { RunId } from '@/core/ids'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toActivityRowWire, toResearchReportWire } from '@/app/server/mappers/activity'
-import { parseDayQuery, parseEpochMs, parseLimit } from '@/app/server/routes/params'
+import { parseDayQuery, parsePageQuery } from '@/app/server/routes/params'
 import { DEEP_RESEARCHER_ID } from '@/engine/api'
 
 const ACTIVITY_PAGE_LIMIT = 200
@@ -35,16 +35,19 @@ async function handleActivity(req: Request, ctx: ApiRouteContext): Promise<Respo
 
 /** `before` is epoch ms, the `endedAt` of the last report a page showed. */
 async function handleResearch(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const query = new URL(req.url).searchParams
-  const rawBefore = query.get('before')
-  const limit = parseLimit(query.get('limit'), ACTIVITY_PAGE_LIMIT)
-  const before = rawBefore === null ? Number.MAX_SAFE_INTEGER : parseEpochMs(rawBefore)
+  const page = parsePageQuery(new URL(req.url).searchParams, {
+    defaultLimit: ACTIVITY_PAGE_LIMIT,
+    maximumLimit: ACTIVITY_PAGE_LIMIT,
+    keyset: false,
+  })
 
-  if (limit === null || before === null) {
+  if (page === null) {
     return apiError('invalid_body')
   }
 
-  const rows = await ctx.app.resolve('runLogStore').listResearch(DEEP_RESEARCHER_ID, before, limit)
+  const rows = await ctx.app
+    .resolve('runLogStore')
+    .listResearch(DEEP_RESEARCHER_ID, page.before ?? Number.MAX_SAFE_INTEGER, page.limit)
 
   return json({
     reports: rows.flatMap((row) => toResearchReportWire(row) ?? []),

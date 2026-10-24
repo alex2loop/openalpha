@@ -1,11 +1,11 @@
 import type { DeliveryHub } from '@/app/delivery'
 import type { RestartWhen } from '@/app/server/wire/vocab'
-import type { RestartStart } from '@/app/update/restart'
+import type { RestartRequest, RestartStart } from '@/app/update/restart'
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveryTarget } from '@/scheduler/api'
-import { runRestart } from '@/app/update/restart'
+import { logRestart, runRestart } from '@/app/update/restart'
 import {
   formatInstalledNotice,
   isBackgroundLaunch,
@@ -87,6 +87,21 @@ async function startRestart(
   busy: UpgradeBusy,
   when: RestartWhen
 ): Promise<RestartStart> {
+  const request = { when, requestedAt: Date.now() }
+  const outcome = await requestRestart(parts, busy, request)
+
+  if (outcome !== 'started') {
+    logRestart(parts.app, request, 'aborted')
+  }
+
+  return outcome
+}
+
+async function requestRestart(
+  parts: UpgradeParts,
+  busy: UpgradeBusy,
+  request: RestartRequest
+): Promise<RestartStart> {
   if (busy.starting || busy.restarting) {
     return 'busy'
   }
@@ -111,8 +126,8 @@ async function startRestart(
   }
 
   runRestart({
+    ...request,
     app: parts.app,
-    when,
     isWorking: () => isWorking(parts),
     onSpawned: () => {
       busy.restarting = true

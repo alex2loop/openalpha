@@ -1,6 +1,7 @@
 import type { RestartWhen } from '@/app/server/wire/vocab'
 import type { App } from '@/core/container'
-import { clearRestartMarker, writeRestartMarker } from '@/app/restart-marker'
+import type { BusEventMap } from '@/core/events'
+import { clearRestartMarker, writeRestartMarker } from '@/app/update/restart-marker'
 import { spawnRestartProcess } from '@/cli/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_MINUTE, MS_PER_SECOND, sleep } from '@/core/utils/time'
@@ -16,9 +17,14 @@ export const RESTART_WHEN = ['idle', 'now'] as const satisfies readonly RestartW
  *  `foreground`: it runs in a terminal or under a service, which is not ours to restart. */
 export type RestartStart = 'started' | 'busy' | 'stopping' | 'foreground'
 
-interface RestartRun {
-  readonly app: App
+/** One restart request: what it asked for, and when it was asked, epoch ms. */
+export interface RestartRequest {
   readonly when: RestartWhen
+  readonly requestedAt: number
+}
+
+interface RestartRun extends RestartRequest {
+  readonly app: App
   readonly isWorking: () => boolean
   /** The helper is running and will stop this daemon. */
   readonly onSpawned: () => void
@@ -29,53 +35,99 @@ interface RestartRun {
 /** The marker goes down before the helper starts, so the daemon it brings up knows it was a restart.
  *  A marker that cannot be written, or a helper that cannot start, is a restart that did not happen. */
 export async function runRestart(run: RestartRun): Promise<void> {
-  const { app, when, isWorking } = run
-  const { dataDir } = app.config.paths
-  const logger = app.resolve('logger')
+  const { app } = run
 
-  if (when === 'idle' && !(await waitUntilIdle(app, isWorking))) {
+  if (run.when === 'idle' && !(await waitUntilIdle(app, run.isWorking))) {
+    logRestart(app, run, 'aborted')
+
     return
   }
 
   try {
-    await writeRestartMarker(dataDir, Date.now())
-
-    // A stop that came in meanwhile must stay a stop: the helper would start the daemon again.
-    if (app.signal.aborted) {
-      await clearRestartMarker(dataDir)
-
-      return
-    }
-
-    const child = await spawnRestartProcess(app)
-
-    run.onSpawned()
-    child.exited
-      .then(async (code) => {
-        // A daemon the helper stopped reports nothing: the new one is already up.
-        if (app.signal.aborted) {
-          return
-        }
-
-        logger.error('update.restart_failed', { code })
-        notifyFailed(app)
-        // Cleared first: once `onFailed` runs, a second restart may write its own marker.
-        try {
-          await clearRestartMarker(dataDir)
-        } finally {
-          run.onFailed()
-        }
-      })
-      .catch((err: unknown) => {
-        logger.warn('update.restart_report_failed', { err: formatErrForLog(err) })
-      })
+    await startHelper(run)
   } catch (err: unknown) {
-    logger.error('update.restart_start_failed', { err: formatErrForLog(err) })
+    app.resolve('logger').error('update.restart_start_failed', { err: formatErrForLog(err) })
+    logRestart(app, run, 'error')
     notifyFailed(app)
-    await clearRestartMarker(dataDir).catch(() => {
+    await clearRestartMarker(app.config.paths.dataDir).catch(() => {
       // The marker expires on its own, and takeRestartMarker ignores a stale one.
     })
   }
+}
+
+async function startHelper(run: RestartRun): Promise<void> {
+  const { app } = run
+  const { dataDir } = app.config.paths
+
+  await writeRestartMarker(dataDir, Date.now())
+
+  // A stop that came in meanwhile must stay a stop: the helper would start the daemon again.
+  if (app.signal.aborted) {
+    await clearRestartMarker(dataDir)
+    logRestart(app, run, 'aborted')
+
+    return
+  }
+
+  const child = await spawnRestartProcess(app)
+  const stopWatching = logWhenStopping(run)
+
+  run.onSpawned()
+  child.exited
+    .then(async (code) => {
+      stopWatching()
+
+      // A daemon the helper stopped reports nothing: the new one is already up.
+      if (app.signal.aborted) {
+        return
+      }
+
+      await reportHelperExit(run, code)
+    })
+    .catch((err: unknown) => {
+      app.resolve('logger').warn('update.restart_report_failed', { err: formatErrForLog(err) })
+    })
+}
+
+// The helper exited while this daemon still runs: nothing was restarted.
+async function reportHelperExit(run: RestartRun, code: number): Promise<void> {
+  const { app } = run
+
+  app.resolve('logger').error('update.restart_failed', { code })
+  logRestart(app, run, 'error')
+  notifyFailed(app)
+  // Cleared first: once `onFailed` runs, a second restart may write its own marker.
+  try {
+    await clearRestartMarker(app.config.paths.dataDir)
+  } finally {
+    run.onFailed()
+  }
+}
+
+/** The helper stopping this daemon is the restart working, so that is when it is logged. Returns the
+ *  release of the watch, for a helper that exits first. */
+function logWhenStopping(run: RestartRun): () => void {
+  const { app } = run
+  const onStopping = (): void => logRestart(app, run, 'completed')
+
+  if (app.signal.aborted) {
+    onStopping()
+
+    return () => undefined
+  }
+
+  app.signal.addEventListener('abort', onStopping, { once: true })
+
+  return () => app.signal.removeEventListener('abort', onStopping)
+}
+
+/** Files the request's one activity row, whichever way it ended. */
+export function logRestart(
+  app: App,
+  request: RestartRequest,
+  outcome: BusEventMap['restart_ended']['outcome']
+): void {
+  app.resolve('bus').emit('restart_ended', { ...request, outcome })
 }
 
 // The restart was accepted with a 202 and the page is waiting for a new pid, so a failure that is
@@ -84,6 +136,7 @@ function notifyFailed(app: App): void {
   app.resolve('bus').emit('daemon_notice', {
     text: t(app.config.locale.language, 'ui.restartFailed'),
     at: Date.now(),
+    kind: 'restart-failed',
   })
 }
 

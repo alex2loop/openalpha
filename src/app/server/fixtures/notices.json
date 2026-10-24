@@ -45,10 +45,13 @@
         "kind": "daemon_notice",
         "weight": "nudge",
         "source": { "channel": "api", "agentId": "" },
-        "note": "Daemon restarted"
+        "note": "Daemon restarted",
+        "noticeKind": "restart-done"
       }
     }
   ],
+  "nextBefore": 1792479000000,
+  "nextBeforeId": "1c9e5a70-8b32-4d6f-a0e7-5b4f3d2c1a09",
   "unread": 2,
   "needsYou": 2
 }

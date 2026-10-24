@@ -9,7 +9,7 @@
       "kind": "agent",
       "name": "chat",
       "title": "Phân tích FPT",
-      "channel": "cli",
+      "channelId": "cli",
       "sessionId": "sess_91d",
       "startedAt": 1792480010000
     }
@@ -23,7 +23,7 @@
     "run": {
       "kind": "agent",
       "name": "web-researcher",
-      "channel": "cli",
+      "channelId": "cli",
       "sessionId": "sess_91d",
       "parentRunId": "run_abc",
       "hidden": true,
@@ -39,7 +39,7 @@
     "run": {
       "kind": "command",
       "name": "refresh",
-      "channel": "telegram",
+      "channelId": "telegram",
       "sessionId": "sess_8c2",
       "startedAt": 1792480000000
     }
@@ -384,7 +384,8 @@
     "kind": "daemon_notice",
     "weight": "nudge",
     "source": { "channel": "api", "agentId": "" },
-    "note": "Daemon restarted"
+    "note": "Daemon restarted",
+    "noticeKind": "restart-done"
   },
   {
     "v": 1,

@@ -189,7 +189,8 @@ export interface WireEvent {
     readonly day: string
   }
   /** 'notice': which kind of notice it is (the notice's own name, for example `held-news`), so a page
-   *  can place it. Absent on a notice that has no kind of its own. */
+   *  can place it. Absent on a notice that has no kind of its own. 'daemon_notice': `restart-done` or
+   *  `restart-failed` for the restart a page asked for, absent on the others. */
   readonly noticeKind?: string
   /** 'notice' of kind `held-news`: the holding the headline is about. */
   readonly instrument?: { readonly market: string; readonly ticker: string }

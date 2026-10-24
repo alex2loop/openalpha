@@ -4,7 +4,7 @@
       "runId": "run_res7",
       "title": "Tác động của lãi suất lên nhóm bất động sản",
       "sessionId": "sess_91d",
-      "channel": "api",
+      "channelId": "api",
       "endedAt": 1792480600000,
       "outcome": "completed",
       "sources": 14
@@ -12,7 +12,7 @@
     {
       "runId": "run_res3",
       "sessionId": "tg_123456789",
-      "channel": "telegram",
+      "channelId": "telegram",
       "endedAt": 1792391000000,
       "outcome": "aborted"
     }

@@ -1,5 +1,5 @@
 import type { Dialect, Storage } from '@/core/types/storage'
-import type { NoticeRow, NoticeStore } from '@/persistence/types'
+import type { NoticeCursor, NoticeRow, NoticeStore } from '@/persistence/types'
 import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
 
 const DELIVERED_SEPARATOR = ','
@@ -35,11 +35,8 @@ export function createNoticeLogStore(db: Storage, dialect: Dialect): NoticeStore
     record: async (row) => {
       await db.execute(sql.insert, toParams(row))
     },
-    list: async (beforeMs, limit) =>
-      (beforeMs === undefined
-        ? await db.query<DbNoticeRow>(sql.latest, [limit])
-        : await db.query<DbNoticeRow>(sql.before, [beforeMs, limit])
-      ).map(toNoticeRow),
+    list: async (cursor, limit) =>
+      (await db.query<DbNoticeRow>(...toListQuery(sql, cursor, limit))).map(toNoticeRow),
     listOfKind: async (kind, range, limit) =>
       (await db.query<DbNoticeRow>(sql.ofKind, [kind, range.fromMs, range.toMs, limit])).map(
         toNoticeRow
@@ -62,6 +59,20 @@ export function createNoticeLogStore(db: Storage, dialect: Dialect): NoticeStore
       }
     },
   }
+}
+
+function toListQuery(
+  sql: ReturnType<typeof buildSql>,
+  cursor: NoticeCursor | undefined,
+  limit: number
+): readonly [string, readonly unknown[]] {
+  if (cursor === undefined) {
+    return [sql.latest, [limit]]
+  }
+
+  return cursor.id === undefined
+    ? [sql.before, [cursor.createdAt, limit]]
+    : [sql.beforeId, [cursor.createdAt, cursor.createdAt, cursor.id, limit]]
 }
 
 function toNoticeRow(row: DbNoticeRow): NoticeRow {
@@ -103,6 +114,10 @@ function buildSql(d: Dialect) {
     before:
       `SELECT ${columns} FROM notices WHERE created_at < ${d.param(1)} ` +
       `ORDER BY created_at DESC, id DESC LIMIT ${d.param(2)}`,
+    beforeId:
+      `SELECT ${columns} FROM notices WHERE (created_at < ${d.param(1)} OR ` +
+      `(created_at = ${d.param(2)} AND id < ${d.param(3)})) ` +
+      `ORDER BY created_at DESC, id DESC LIMIT ${d.param(4)}`,
     ofKind:
       `SELECT ${columns} FROM notices WHERE kind = ${d.param(1)} ` +
       `AND created_at >= ${d.param(2)} AND created_at < ${d.param(3)} ` +

@@ -4,7 +4,7 @@
       "runId": "cmd_4f1a",
       "kind": "command",
       "name": "refresh",
-      "channel": "telegram",
+      "channelId": "telegram",
       "sessionId": "sess_8c2",
       "startedAt": 1792480000000,
       "progress": {
@@ -21,7 +21,7 @@
       "kind": "agent",
       "name": "chat",
       "title": "Phân tích FPT",
-      "channel": "api",
+      "channelId": "api",
       "sessionId": "sess_91d",
       "agentId": "chat",
       "startedAt": 1792480010000,

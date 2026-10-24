@@ -14,14 +14,14 @@ export interface ProgressWire {
   readonly at: number
 }
 
-/** How a run began. `channel` is the raw channel id, which is open (zalo, social, plugin
+/** How a run began. `channelId` is the raw channel id, which is open (zalo, social, plugin
  *  channels), so it is never folded into the closed `Channel` union. */
 export interface RunStartWire {
   readonly kind: 'agent' | 'command'
   /** The agent id, or the command name. */
   readonly name: string
   readonly title?: string
-  readonly channel: string
+  readonly channelId: string
   readonly sessionId: string
   readonly parentRunId?: string
   readonly hidden?: true

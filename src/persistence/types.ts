@@ -281,10 +281,17 @@ export interface NoticeRow {
   readonly readAt?: number
 }
 
+/** Where a page of notices resumes: strictly older than `createdAt`, and with `id` also the notices of
+ *  that same instant that sort after it. */
+export interface NoticeCursor {
+  readonly createdAt: number
+  readonly id?: string
+}
+
 export interface NoticeStore {
   record(row: NoticeRow): Promise<void>
-  /** Notices created before `beforeMs` (all when absent), newest first. */
-  list(beforeMs: number | undefined, limit: number): Promise<readonly NoticeRow[]>
+  /** Notices after the cursor (from the newest when absent), newest first. */
+  list(cursor: NoticeCursor | undefined, limit: number): Promise<readonly NoticeRow[]>
   /** Notices of one kind created in the range, oldest first. */
   listOfKind(kind: string, range: EpochRange, limit: number): Promise<readonly NoticeRow[]>
   /** Notices not yet read. */

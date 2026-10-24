@@ -10,7 +10,7 @@ export interface ActivityRowWire {
   readonly title?: string
   readonly summary?: string
   /** The raw channel id, which is open (zalo, social, plugin channels). */
-  readonly channel: string
+  readonly channelId: string
   readonly agentId?: string
   readonly parentRunId?: string
   /** Epoch ms. */
@@ -37,7 +37,7 @@ export interface ResearchReportWire {
   readonly runId: string
   readonly title?: string
   readonly sessionId: string
-  readonly channel: string
+  readonly channelId: string
   readonly endedAt: number
   readonly outcome: string
   /** The admitted sources the run ended with. */

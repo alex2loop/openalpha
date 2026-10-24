@@ -87,8 +87,8 @@ function render(notice: TradingNotice, timezone: string): string {
     return renderExitFillNotice(locale, payload)
   }
 
-  if (isWatchPayload(payload)) {
-    return renderWatchNotice(locale, payload)
+  if (isBellOnlyPayload(payload)) {
+    return renderBellOnlyNotice(locale, payload)
   }
 
   return renderOperationalNotice(locale, payload)
@@ -110,16 +110,16 @@ function renderBrief(
     : body
 }
 
-/** The readings the watches file: a scored call, news on a holding, the index falling. */
-type WatchKind = (typeof BELL_ONLY_KINDS)[number]
+/** The bell-only readings: a scored call, news on a holding, the index falling. */
+type BellOnlyKind = (typeof BELL_ONLY_KINDS)[number]
 
-type WatchPayload = Extract<TradingNotice['payload'], { readonly kind: WatchKind }>
+type BellOnlyPayload = Extract<TradingNotice['payload'], { readonly kind: BellOnlyKind }>
 
-function isWatchPayload(payload: TradingNotice['payload']): payload is WatchPayload {
+function isBellOnlyPayload(payload: TradingNotice['payload']): payload is BellOnlyPayload {
   return isBellOnlyKind(payload.kind)
 }
 
-function renderWatchNotice(locale: Locale, payload: WatchPayload): string {
+function renderBellOnlyNotice(locale: Locale, payload: BellOnlyPayload): string {
   if (payload.kind === 'call-scored') {
     return renderCallScoredNotice(locale, payload)
   }
@@ -142,7 +142,7 @@ type OperationalPayload = Exclude<
       | 'exit-plan'
       | 'stop-raised'
       | 'exit-filled'
-      | WatchKind
+      | BellOnlyKind
   }
 >
 

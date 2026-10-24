@@ -14,10 +14,14 @@ export interface NoticeWire {
   readonly event: WireEvent
 }
 
-/** GET /v1/notices. `needsYou` counts the approvals waiting now plus the unread `stop_breached`
- *  notices. */
+/** GET /v1/notices?before&beforeId&limit, newest first. The next page is
+ *  `before=<nextBefore>&beforeId=<nextBeforeId>` (both null when the page is empty); `before` alone
+ *  takes only notices strictly older. `needsYou` counts the approvals waiting now plus the unread
+ *  `stop_breached` notices. */
 export interface NoticesResponse {
   readonly items: readonly NoticeWire[]
+  readonly nextBefore: number | null
+  readonly nextBeforeId: string | null
   readonly unread: number
   readonly needsYou: number
 }

@@ -13,7 +13,7 @@ import { CHAT_ID_RE } from '@/app/server/chat-id'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toChatSessionsWire } from '@/app/server/mappers/chat'
-import { localeOf, parseEpochMs, parseLimit, readJsonBody } from '@/app/server/routes/params'
+import { localeOf, parseLimit, parsePageQuery, readJsonBody } from '@/app/server/routes/params'
 import { type ChannelId, channelId } from '@/core/channels'
 import { sessionId as brandSessionId } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
@@ -27,8 +27,6 @@ async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Re
 
 // A session this app opened is a chat id; any other channel's is a UUID.
 const UUID_RE = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
-// Whatever id a channel's session carries, as the last row of a page names it.
-const SESSION_CURSOR_RE = /^[\w-]{1,64}$/
 const DIGITS_RE = /^\d+$/
 const DEFAULT_LIMIT = 30
 const SESSION_QUERY_MIN_CHARS = 2
@@ -88,18 +86,16 @@ function toHistoryMessage(message: LLMMessage): readonly ChatHistoryMessage[] {
  *  two characters would match nearly everything, so it is refused rather than ignored. */
 async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const params = new URL(req.url).searchParams
-  const rawLimit = params.get('limit')
-  const limit = rawLimit === null ? DEFAULT_LIMIT : parseLimit(rawLimit, SESSION_LIST_MAX)
-  const rawBefore = params.get('before')
-  const before = rawBefore === null ? undefined : parseEpochMs(rawBefore)
-  const rawBeforeId = params.get('beforeId')
+  const page = parsePageQuery(params, {
+    defaultLimit: DEFAULT_LIMIT,
+    maximumLimit: SESSION_LIST_MAX,
+    keyset: true,
+  })
   const query = params.get('query')?.trim()
   const channels = parseChannels(params.getAll('channel'))
 
   if (
-    limit === null ||
-    before === null ||
-    (rawBeforeId !== null && (before === undefined || !SESSION_CURSOR_RE.test(rawBeforeId))) ||
+    page === null ||
     channels === null ||
     (query !== undefined &&
       (query.length < SESSION_QUERY_MIN_CHARS || query.length > SESSION_QUERY_MAX_CHARS))
@@ -110,12 +106,12 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
   const listings = await ctx.app.resolve('sessionStore').listByChannels({
     ...(channels.length === 0 ? {} : { channels }),
     ...(query === undefined ? {} : { query }),
-    ...(before === undefined ? {} : { before }),
-    ...(rawBeforeId === null ? {} : { beforeId: brandSessionId(rawBeforeId) }),
-    limit,
+    ...(page.before === undefined ? {} : { before: page.before }),
+    ...(page.beforeId === undefined ? {} : { beforeId: brandSessionId(page.beforeId) }),
+    limit: page.limit,
   })
 
-  return json(toChatSessionsWire(listings, limit))
+  return json(toChatSessionsWire(listings, page.limit))
 }
 
 /** `null` when there are too many or any of them is not a channel id (400). */
