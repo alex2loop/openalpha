@@ -126,6 +126,7 @@ function wsUpgradeResponse(
       services: ctx.wsServices,
       token: ctx.token,
       activeRuns: new Map(),
+      commandRuns: new Map(),
       closed: false,
     },
   })

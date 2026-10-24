@@ -1,3 +1,4 @@
+import type { EventJobKind } from '@/core/types/event-job'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveringAlert } from '@/trading/features/alerts/types'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
@@ -155,7 +156,7 @@ export type OrderFilledListener = (fill: OrderFill) => void
  *  kind of alert it was: an exit's stop or target, a name the operator armed, a screener band. */
 export interface AlertFired {
   readonly alertId: AlertId
-  readonly event: 'stop' | 'target' | 'price' | 'mover'
+  readonly event: EventJobKind
   readonly instrument: InstrumentRef
   readonly condition: AlertCondition
   readonly threshold: number

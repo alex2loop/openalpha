@@ -17,9 +17,12 @@ export async function resolveAlertInstrument(
   })
 
   if (resolution.kind !== 'resolved') {
-    const named = instrument.market === undefined ? '' : `${instrument.market}:`
+    const name = `${instrument.market === undefined ? '' : `${instrument.market}:`}${instrument.ticker}`
 
-    throw new ValidationError(`instrument is not supported: ${named}${instrument.ticker}`)
+    throw new ValidationError(`instrument is not supported: ${name}`, {
+      key: 'errors.instrumentNotSupported',
+      params: { name },
+    })
   }
 
   return resolution

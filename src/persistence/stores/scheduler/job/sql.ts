@@ -47,6 +47,7 @@ export interface JobSql {
   readonly create: string
   readonly put: string
   readonly list: string
+  readonly listEnabledOfAgent: string
   readonly find: string
   readonly findByPrefix: string
   readonly findOwnedByPrefix: string
@@ -87,6 +88,9 @@ export function buildJobSql(dialect: Dialect): JobSql {
       `VALUES (${dialect.paramList(JOB_COLS.length + 1)}) ON CONFLICT (id) DO NOTHING`,
     put: dialect.upsert('jobs', { keys: ['id'], cols: [...JOB_COLS], rowCount: 1 }),
     list: `${JOB_SELECT} ORDER BY next_run_at`,
+    listEnabledOfAgent:
+      `${JOB_SELECT} WHERE jobs.agent_id = ${dialect.param(1)} AND jobs.enabled = ${dialect.param(2)} ` +
+      `ORDER BY jobs.id`,
     find: `${JOB_SELECT} WHERE jobs.id = ${dialect.param(1)}`,
     findByPrefix: `${JOB_SELECT} WHERE jobs.id LIKE ${dialect.param(1)} ESCAPE '\\' ORDER BY jobs.id LIMIT ${dialect.param(2)}`,
     findOwnedByPrefix:

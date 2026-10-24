@@ -31,8 +31,8 @@ interface PendingFeed {
 interface PendingFeedDeps {
   readonly bus: EventBus
   readonly locale: Locale
-  /** Whether the run is still running; an approval of a run that is gone can no longer be answered. */
-  readonly isLive: (runId: RunId) => boolean
+  /** The runs still running; an approval of a run that is gone can no longer be answered. */
+  readonly liveRunIds: () => ReadonlySet<RunId>
 }
 
 /** Follows the approvals and questions of every channel on the bus. An approval leaves on its
@@ -48,7 +48,7 @@ export function createPendingFeed(deps: PendingFeedDeps): PendingFeed {
 
   return {
     list() {
-      prune(approvals, questions, deps.isLive)
+      prune(approvals, questions, deps.liveRunIds())
 
       return [...[...approvals.values()].map((entry) => entry.wire), ...questions.values()]
     },
@@ -126,12 +126,12 @@ function followQuestions(
 function prune(
   approvals: Map<string, ApprovalEntry>,
   questions: Map<string, QuestionPendingWire>,
-  isLive?: (runId: RunId) => boolean
+  running?: ReadonlySet<RunId>
 ): void {
   const now = Date.now()
 
   for (const [requestId, entry] of approvals) {
-    if (entry.expiresAt <= now || (isLive !== undefined && !isLive(entry.runId))) {
+    if (entry.expiresAt <= now || (running !== undefined && !running.has(entry.runId))) {
       approvals.delete(requestId)
     }
   }

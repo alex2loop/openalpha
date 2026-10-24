@@ -108,6 +108,7 @@ core/types/agent-pause
 core/types/budget
 core/types/cli-command
 core/types/command
+core/types/event-job
 core/types/exact
 core/types/locale
 core/types/memory

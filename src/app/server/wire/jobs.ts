@@ -1,14 +1,13 @@
 import type { TypedPrice } from '@/app/server/wire/vocab'
+import type { EventJobKind } from '@/core/types/event-job'
 
 /** The shortest cooldown the route accepts. The page offers half an hour, two hours and a day; a
  *  script may ask for any value from here up. */
 export const MIN_EVENT_COOLDOWN_MS = 300_000
 
-type JobEventKind = 'stop' | 'target' | 'price' | 'mover'
-
 /** What starts an event job, as `/v1/state` shows it. A job with no `ticker` runs for any name. */
 export interface JobEventWire {
-  readonly event: JobEventKind
+  readonly event: EventJobKind
   /** The market `ticker` is in; absent for a job that names no market of its own. */
   readonly market?: string
   readonly ticker?: string
@@ -23,7 +22,7 @@ export interface JobEventWire {
  *  needs `ticker`, `condition` and `threshold`, runs once, and is spent. */
 export interface JobEventScheduleBody {
   readonly kind: 'event'
-  readonly event: JobEventKind
+  readonly event: EventJobKind
   /** Narrows the job to one market; a bare ticker that two markets list needs it. */
   readonly market?: string
   readonly ticker?: string

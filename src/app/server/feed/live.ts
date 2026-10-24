@@ -50,8 +50,8 @@ interface LiveFeedDeps {
   readonly bus: EventBus
   readonly broadcast: (event: WireEvent) => void
   readonly locale: Locale
-  /** Whether the run is still running, by the run registry or the command dispatcher. */
-  readonly isLive: (runId: RunId) => boolean
+  /** The runs still running, by the run registry and the command dispatcher: read once per snapshot. */
+  readonly liveRunIds: () => ReadonlySet<RunId>
   readonly logger: Logger
   /** A command's description in the daemon's language; undefined for a name no command holds. */
   readonly describeCommand: (name: string) => string | undefined
@@ -61,7 +61,7 @@ interface LiveFeedDeps {
  *  and answers "what is running now" for a client that connects late. The topics the socket already
  *  relays per connection are not touched here. */
 export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
-  const book = createRunBook(deps.isLive)
+  const book = createRunBook(deps.liveRunIds)
   const board = createResultBoard(BOARD_SIZE)
   const pending = createPendingFeed(deps)
   const alerts = createAlertsFeed(deps)
@@ -228,7 +228,7 @@ interface BookEntry {
   readonly lastBroadcastAt: number | undefined
 }
 
-function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
+function createRunBook(liveRunIds: () => ReadonlySet<RunId>): RunBook {
   // Insertion order is start order, so the first key is the oldest run.
   const runs = new Map<RunId, BookEntry>()
   // A run that predates the feed is not in the map: its events are still broadcast.
@@ -257,8 +257,10 @@ function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
     },
     live() {
       // A run whose finish event never came (a crash between hooks) leaves when its registry says so.
+      const running = liveRunIds()
+
       for (const runId of runs.keys()) {
-        if (!isLive(runId)) {
+        if (!running.has(runId)) {
           runs.delete(runId)
         }
       }

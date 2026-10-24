@@ -34,7 +34,7 @@ interface ExitTickDeps {
   isFillBooked(fill: VenueFill, signal: AbortSignal): Promise<boolean>
   readonly onFilled: OrderFilledListener
   /** Tells the operator a sale this tick booked. Started, never awaited: see `settleFill`. */
-  notifyFill(sale: VenueFill, signal: AbortSignal): Promise<void>
+  notifyFill(fill: OrderFill, signal: AbortSignal): Promise<void>
 }
 
 /** Rides the existing loop factory, so it owns no timer and no cadence: it holds a cursor in its
@@ -197,8 +197,10 @@ async function settleFill(
     return
   }
 
-  announceFill(deps, toOrderFill(sale, { fill, now: pass.now }))
-  deps.notifyFill(sale, pass.signal).catch((err: unknown) => {
+  const booked = toOrderFill(sale, { fill, now: pass.now })
+
+  announceFill(deps, booked)
+  deps.notifyFill(booked, pass.signal).catch((err: unknown) => {
     // Shutdown aborts the send; the sale is booked either way and nothing failed.
     if (!isAbortError(err)) {
       deps.logger.warn('trading.exit_fill_notice_failed', {

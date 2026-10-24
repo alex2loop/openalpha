@@ -1,6 +1,6 @@
 // Public API of scheduler/. Other modules import from here — never from scheduler/ internals.
 
-export type { EventJobKind, EventJobTrigger, JobEvent } from '@/scheduler/event/types'
+export type { EventJobTrigger, JobEvent } from '@/scheduler/event/types'
 export type {
   HeartbeatDeps,
   HeartbeatRunInput,

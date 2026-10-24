@@ -82,7 +82,8 @@ export async function startDaemonSubsystems(
     })
   )
 
-  // Named before any of them runs, so a task that waits long for its first pass still shows.
+  // Named before the scheduler and the maintenance tasks start, so a task that waits long for its
+  // first pass still shows.
   taskStatus.track(taskNames(app, tradingTasks))
 
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has

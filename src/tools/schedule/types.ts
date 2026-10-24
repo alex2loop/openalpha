@@ -1,6 +1,7 @@
 import type { ChannelId } from '@/core/channels'
 import type { AgentId, JobId, SessionId, UserId } from '@/core/ids'
 import type { ToolServices } from '@/core/tool'
+import type { EventJobKind } from '@/core/types/event-job'
 import type {
   AgentRegistry,
   ForegroundResearchInteraction,
@@ -50,7 +51,7 @@ export interface ScopedJobRow {
   readonly nextRunAt?: number
   readonly cronExpr?: string
   /** What starts an event job. */
-  readonly onEvent?: 'stop' | 'target' | 'price' | 'mover'
+  readonly onEvent?: EventJobKind
 }
 
 // core/tool.ts declares `ToolServices` empty so that core keeps no edge to engine or tools.

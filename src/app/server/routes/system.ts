@@ -32,8 +32,8 @@ import { bindLocale } from '@/i18n'
 import { MINIMUM_TRACK_RECORD_SAMPLE, tradingDay } from '@/trading/api'
 
 const COST_ESTIMATE_MIN_RUNS = 3
-// Providers whose unreadable login was already logged: bounded by the configured models.
-const unreadableLogins = new Set<string>()
+// Providers whose unreadable login was already logged, per app: bounded by the configured models.
+const unreadableLogins = new WeakMap<App, Set<string>>()
 
 // The only unauthenticated route. It answers 'ready' unconditionally: the api starts as the last
 // daemon step, so a socket that connects at all is talking to a booted daemon.
@@ -213,8 +213,12 @@ async function resolveLoginCheck(
           }),
         }
   } catch (err: unknown) {
-    if (!unreadableLogins.has(provider)) {
-      unreadableLogins.add(provider)
+    const logged = unreadableLogins.get(app) ?? new Set<string>()
+
+    unreadableLogins.set(app, logged)
+
+    if (!logged.has(provider)) {
+      logged.add(provider)
       app.resolve('logger').warn('api.login_unreadable', { provider, err: formatErrForLog(err) })
     }
 

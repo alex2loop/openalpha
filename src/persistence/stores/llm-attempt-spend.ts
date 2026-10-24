@@ -25,6 +25,9 @@ const DAY_BUCKET_MS = 15 * MS_PER_MINUTE
 // A model's per-run cost reads this far back, so the scan stays on the `settled_at` index; the
 // sample ranks runs inside it.
 const MODEL_COST_WINDOW_MS = 30 * MS_PER_DAY
+// The window start and the sample size are the two binds that are not model names.
+const RESERVED_COST_BINDS = 2
+const MODELS_PER_COST_QUERY = SQL_MAX_BIND_PARAMS - RESERVED_COST_BINDS
 // A row written before the cap existed bills to the agent that ran it.
 const BILLING_AGENT_SQL = "COALESCE(NULLIF(billing_agent_id, ''), agent_id)"
 
@@ -107,8 +110,6 @@ function rangeBounds(deps: SpendDeps, range: CostRange): EpochRange {
   return bounds
 }
 
-// Two binds are the window start and the sample size, so a chunk holds two fewer names than the
-// ceiling.
 async function perRunCostOf(
   deps: SpendDeps,
   query: { readonly models: readonly string[]; readonly sample: number; readonly nowMs: number }
@@ -116,8 +117,8 @@ async function perRunCostOf(
   const { models, sample, nowMs } = query
   const costs: ModelRunCost[] = []
 
-  for (let at = 0; at < models.length; at += SQL_MAX_BIND_PARAMS - 2) {
-    const chunk = models.slice(at, at + SQL_MAX_BIND_PARAMS - 2)
+  for (let at = 0; at < models.length; at += MODELS_PER_COST_QUERY) {
+    const chunk = models.slice(at, at + MODELS_PER_COST_QUERY)
     const rows = await deps.db.query<{
       readonly provider: string
       readonly model: string

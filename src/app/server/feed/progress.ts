@@ -1,18 +1,10 @@
 import type { ProgressWire } from '@/app/server/wire/live'
 import type { Locale } from '@/core/types/locale'
-import type { ResearchProgress, RunProgressMessage } from '@/engine/api'
+import type { RunProgressMessage } from '@/engine/api'
 import { toResearchMilestone } from '@/channels/api'
 import { scrubCredentials } from '@/core/security/credentials'
+import { isResearchProgress } from '@/engine/api'
 import { translateDisplayText } from '@/i18n'
-
-const RESEARCH_KEYS: ReadonlySet<string> = new Set<ResearchProgress['key']>([
-  'progress.researchStart',
-  'progress.researchPlan',
-  'progress.researchStage',
-  'progress.researchQuestion',
-  'progress.researchTotals',
-  'progress.researchWarning',
-])
 
 /** Renders one bus progress message for the wire, in the daemon's language. Its params are scrubbed
  *  first and the text is rendered from the scrubbed copy, because a research question or a host
@@ -49,10 +41,6 @@ export function toProgressWire(
     mode: 'mode' in safe ? safe.mode : 'transient',
     at,
   }
-}
-
-function isResearchProgress(message: RunProgressMessage): message is ResearchProgress {
-  return RESEARCH_KEYS.has(message.key)
 }
 
 function scrubStrings<T>(value: T): T {

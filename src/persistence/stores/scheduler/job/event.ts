@@ -1,15 +1,14 @@
 import type { JobId } from '@/core/ids'
+import type { EventJobKind } from '@/core/types/event-job'
 import { StorageError } from '@/core/errors'
+import { EVENT_JOB_KINDS } from '@/core/types/event-job'
 
-const EVENT_KINDS = ['stop', 'target', 'price', 'mover'] as const
 const CONDITIONS = ['above', 'below'] as const
-
-type StoredJobEventKind = (typeof EVENT_KINDS)[number]
 
 /** What starts an event job. An absent `market` or `ticker` matches any; a price job names its
  *  alert instead. */
 export interface StoredJobEvent {
-  readonly event: StoredJobEventKind
+  readonly event: EventJobKind
   readonly market?: string
   readonly ticker?: string
   readonly condition?: (typeof CONDITIONS)[number]
@@ -20,7 +19,7 @@ export interface StoredJobEvent {
 
 /** The alert that fired, as the lookup needs it. */
 export interface StoredEventMatch {
-  readonly event: StoredJobEventKind
+  readonly event: EventJobKind
   readonly market: string
   readonly ticker: string
   readonly alertId: string
@@ -51,7 +50,7 @@ export function toJobEvent(row: EventRow): StoredJobEvent | undefined {
     return undefined
   }
 
-  const kind = EVENT_KINDS.find((candidate) => candidate === event)
+  const kind = EVENT_JOB_KINDS.find((candidate) => candidate === event)
   const condition = CONDITIONS.find((candidate) => candidate === row.trigger_condition)
   const cooldownMs = row.trigger_cooldown_ms ?? null
 

@@ -64,9 +64,23 @@ import { tradingDay } from '@/trading/kernel/instrument'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { toPage } from '@/trading/kernel/store/store-row'
 
-const INSERT_SQL =
-  'INSERT INTO suggestions (id, strategy_id, strategy_version, focus_key, market, ticker, day, ' +
-  'action, conviction, authored_locale, created_at, is_call, debate_models, payload) VALUES '
+const INSERT_COLUMNS = [
+  'id',
+  'strategy_id',
+  'strategy_version',
+  'focus_key',
+  'market',
+  'ticker',
+  'day',
+  'action',
+  'conviction',
+  'authored_locale',
+  'created_at',
+  'is_call',
+  'debate_models',
+  'payload',
+] as const
+const INSERT_SQL = `INSERT INTO suggestions (${INSERT_COLUMNS.join(', ')}) VALUES `
 
 interface FindRecentSuggestionOptions {
   readonly market: MarketRef
@@ -329,7 +343,7 @@ async function replace(deps: StoreDeps, options: ReplaceSuggestionOptions): Prom
 }
 
 function buildInsertSql(deps: StoreDeps): string {
-  return `${INSERT_SQL}(${deps.dialect.paramList(14)}) ON CONFLICT DO NOTHING`
+  return `${INSERT_SQL}(${deps.dialect.paramList(INSERT_COLUMNS.length)}) ON CONFLICT DO NOTHING`
 }
 
 function buildInsertParams(suggestion: StoredSuggestion): readonly unknown[] {

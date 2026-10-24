@@ -209,6 +209,7 @@ export {
   toResearchTotalsDisplays,
   toResearchWarningDisplay,
 } from '@/engine/research/display/progress'
+export { isResearchProgress } from '@/engine/research/events'
 export { parseResearchJson, toResearchOutputContract } from '@/engine/research/evidence/parse'
 export { composeAbort, TIMEOUT_ABORT } from '@/engine/run-registry'
 export { engineProvider } from '@/engine/services'

@@ -141,7 +141,7 @@ async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null>
     return null
   }
 
-  trackLaneItem(controller, id)
+  trackLaneItem(ws, controller, id)
 
   return await services.commandLane.enqueue({
     key: toCommandLaneKey(API_CHANNEL, sessionId),

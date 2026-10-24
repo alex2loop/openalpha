@@ -157,7 +157,7 @@ function createSchedulerOperations(
       await writeJob(db, sql, { job, insertOnly: false })
     },
 
-    ...createStateOperations(db, sql),
+    ...createStateOperations(db, sql, logger),
     ...createRunNowOperations(db, sql),
 
     async list(): Promise<readonly StoredJob[]> {
@@ -210,8 +210,16 @@ function createRunNowOperations(
   }
 }
 
-function createStateOperations(db: Storage, sql: JobSql): Pick<StoredJobStore, 'pause' | 'resume'> {
+function createStateOperations(
+  db: Storage,
+  sql: JobSql,
+  logger: Logger
+): Pick<StoredJobStore, 'pause' | 'resume' | 'listEnabledOfAgent'> {
   return {
+    async listEnabledOfAgent(agentId: string): Promise<readonly StoredJob[]> {
+      return mapJobs(await db.query<JobRow>(sql.listEnabledOfAgent, [agentId, ENABLED]), logger)
+    },
+
     async pause(id: JobId): Promise<boolean> {
       const result = await db.execute(sql.pause, [id])
       return result.changes > 0

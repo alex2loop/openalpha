@@ -10,10 +10,6 @@ import { operatorText, toErrorCode } from '@/app/server/http/dispatch'
 import { toCommandLaneKey } from '@/core/command-lane'
 import { bindLocale, t } from '@/i18n'
 
-// Controllers of slash commands, so a chat reset can stop them without stopping the agent turn that
-// shares the socket's per-session set. The value is the lane entry id of a self-contained command.
-const commandControllers = new WeakMap<AbortController, string | undefined>()
-
 /** False when the socket dropped the frame (closed, or its buffer is full): Bun answers 0 then,
  *  -1 for a frame queued behind backpressure, and the byte count otherwise. */
 export function send(ws: ServerWebSocket<WsData>, frame: ServerFrame): boolean {
@@ -76,14 +72,22 @@ export function registerCommandRun(
   sessionId: SessionId,
   controller: AbortController
 ): boolean {
-  commandControllers.set(controller, undefined)
+  const registered = registerSocketRun(ws, sessionId, controller)
 
-  return registerSocketRun(ws, sessionId, controller)
+  if (registered) {
+    ws.data.commandRuns.set(controller, undefined)
+  }
+
+  return registered
 }
 
 /** Names the lane entry a command's controller stands for, so a closing socket can drop it. */
-export function trackLaneItem(controller: AbortController, id: string): void {
-  commandControllers.set(controller, id)
+export function trackLaneItem(
+  ws: ServerWebSocket<WsData>,
+  controller: AbortController,
+  id: string
+): void {
+  ws.data.commandRuns.set(controller, id)
 }
 
 /** A closing socket takes its commands out of the line at once, freeing their slots and route
@@ -93,7 +97,7 @@ export function dropWaitingCommands(ws: ServerWebSocket<WsData>): void {
     const key = toCommandLaneKey(API_CHANNEL, sessionId)
 
     for (const controller of controllers) {
-      const id = commandControllers.get(controller)
+      const id = ws.data.commandRuns.get(controller)
 
       if (id !== undefined) {
         ws.data.services.commandLane.drop(key, id)
@@ -105,7 +109,7 @@ export function dropWaitingCommands(ws: ServerWebSocket<WsData>): void {
 /** Stops the slash commands this socket runs for the session, leaving its agent turn alone. */
 export function abortCommandRuns(ws: ServerWebSocket<WsData>, sessionId: SessionId): void {
   for (const controller of ws.data.activeRuns.get(sessionId) ?? []) {
-    if (commandControllers.has(controller)) {
+    if (ws.data.commandRuns.has(controller)) {
       controller.abort()
     }
   }
@@ -123,6 +127,7 @@ export function unregisterSocketRun(
   }
 
   controllers.delete(controller)
+  ws.data.commandRuns.delete(controller)
 
   if (controllers.size === 0) {
     ws.data.activeRuns.delete(sessionId)

@@ -221,12 +221,10 @@ function sendViaRouter(
 }
 
 /**
- * The seam between "who wants to deliver" and "who can". The scheduler binds its `DeliverySink` when
- * the container is assembled, but no adapter exists until the daemon starts the channels — so the
- * sink is a stable indirection whose backing router is attached later, and detached on shutdown.
- * Before attach (and after detach) a notice fails rather than queue forever: a cli process has no
- * channel to deliver to, and holding the notice would leak it. The rejection is what lets the
- * scheduler record a delivery error instead of finalizing a silently lost result.
+ * The seam between "who wants to deliver" and "who can". No adapter exists until the daemon starts
+ * the channels, so the sink is a stable indirection whose router is attached later and detached on
+ * shutdown. Before attach and after detach a notice fails rather than queue forever: the rejection
+ * lets the scheduler record a delivery error instead of finalizing a silently lost result.
  */
 export function createDeliveryHub(logger: Logger): DeliveryHub {
   let notifier: AcknowledgedRouter | null = null

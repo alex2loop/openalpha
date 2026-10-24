@@ -4,6 +4,7 @@ import type { JobCreateBody, JobEventWire } from '@/app/server/wire/jobs'
 import type { ScheduleRow } from '@/app/server/wire/system'
 import type { Job, JobEvent } from '@/scheduler/api'
 import { MIN_EVENT_COOLDOWN_MS } from '@/app/server/wire/jobs'
+import { EVENT_JOB_KINDS } from '@/core/types/event-job'
 import { TYPED_PRICES } from '@/trading/api'
 
 const MAX_TEXT_CHARS = 200
@@ -11,7 +12,7 @@ const MAX_TEXT_CHARS = 200
 const EVENT_SCHEDULE = z
   .object({
     kind: z.literal('event'),
-    event: z.enum(['stop', 'target', 'price', 'mover']),
+    event: z.enum(EVENT_JOB_KINDS),
     market: z.string().min(1).max(MAX_TEXT_CHARS).exactOptional(),
     ticker: z.string().min(1).max(MAX_TEXT_CHARS).exactOptional(),
     condition: z.enum(['above', 'below']).exactOptional(),

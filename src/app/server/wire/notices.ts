@@ -4,7 +4,8 @@
 import type { WireEvent } from '@/app/server/wire/events'
 
 /** One notice the bell holds. `event` is the wire event exactly as a connected socket was sent it;
- *  `deliveredTo` lists the raw channel ids that also got it, empty for the bell alone. */
+ *  `deliveredTo` lists the raw channel ids that also got it, empty for the bell alone. A fill
+ *  (`order_filled`) always reads empty: the chat notice a resting exit sends is not recorded here. */
 export interface NoticeWire {
   readonly id: string
   readonly createdAt: number

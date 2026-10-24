@@ -71,6 +71,9 @@ export interface WsData {
   readonly services: WsServices
   readonly token: string
   readonly activeRuns: Map<SessionId, Set<AbortController>>
+  /** The slash commands among `activeRuns`, so a chat reset stops them without stopping the agent turn
+   *  that shares the session's set. The value is the lane entry id of a self-contained command. */
+  readonly commandRuns: Map<AbortController, string | undefined>
   closed: boolean
   off?: () => void
 }

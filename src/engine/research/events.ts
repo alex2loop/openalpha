@@ -95,6 +95,20 @@ export type ResearchProgress =
       }
     }
 
+// A record, not a list: a key added to `ResearchProgress` fails to compile until it is named here.
+const RESEARCH_PROGRESS_KEYS: Readonly<Record<ResearchProgress['key'], true>> = {
+  'progress.researchStart': true,
+  'progress.researchPlan': true,
+  'progress.researchStage': true,
+  'progress.researchQuestion': true,
+  'progress.researchTotals': true,
+  'progress.researchWarning': true,
+}
+
+export function isResearchProgress(message: { readonly key: string }): message is ResearchProgress {
+  return Object.hasOwn(RESEARCH_PROGRESS_KEYS, message.key)
+}
+
 export type ResearchTotalsProgress = Extract<
   ResearchProgress,
   { readonly key: 'progress.researchTotals' }

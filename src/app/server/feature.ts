@@ -91,11 +91,18 @@ export const apiServiceProvider: ServiceProvider = {
 
         return {
           closeAdmission: api.closeAdmission,
+          // A step that throws must not leave the bus listeners or the port behind.
           stop: async () => {
-            await stopIdeaWatch()
-            detachAppSurface?.()
-            live.stop()
-            await api.stop()
+            try {
+              await stopIdeaWatch()
+            } finally {
+              try {
+                detachAppSurface?.()
+                live.stop()
+              } finally {
+                await api.stop()
+              }
+            }
           },
         }
       } catch (err: unknown) {
@@ -126,9 +133,11 @@ function startLiveFeed(app: App): LiveFeed {
         ? undefined
         : describeCommand(bindLocale(app.config.locale.language), command.description)
     },
-    isLive: (runId) =>
-      registry.active().some((handle) => handle.identity.runId === runId) ||
-      dispatcher.activeCommands().includes(runId),
+    liveRunIds: () =>
+      new Set([
+        ...registry.active().map((handle) => handle.identity.runId),
+        ...dispatcher.activeCommands(),
+      ]),
   })
 }
 

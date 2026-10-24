@@ -22,15 +22,5 @@ export function toFillNote(e: BusEventMap['order_filled'], locale: Locale): stri
     return renderEntryFillNotice(locale, e)
   }
 
-  return renderExitFillNotice(locale, {
-    kind: 'exit-filled',
-    fill: {
-      instrument: e.instrument,
-      venue: e.venue,
-      quantity: e.quantity,
-      unitPrice: e.unitPrice,
-      currency: e.currency,
-      ...(e.closeReason === undefined ? {} : { closeReason: e.closeReason }),
-    },
-  })
+  return renderExitFillNotice(locale, { kind: 'exit-filled', fill: e })
 }

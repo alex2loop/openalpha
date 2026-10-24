@@ -24,14 +24,10 @@ interface Filing {
   readonly createdAt?: number
 }
 
-/** Writes the bell: every wire event that is worth more than a flicker, in every process that boots
- *  the app, whether or not the api runs. The stored event is built by the same normalisers the
- *  sockets are sent, so a page that reads the log sees what a connected one saw. Weight `quiet` is
- *  not kept. Each write is followed by `notices_changed`, so a page refetches only once the row is
- *  there.
- *
- *  Writes run one after another, so the count each `notices_changed` carries is the one after its
- *  own write. The caller awaits `stop` before closing storage. */
+/** Writes the bell: every non-`quiet` wire event, in every process that boots the app, whether or not
+ *  the api runs, built by the same normalisers the sockets are sent. Writes run one after another and
+ *  each is followed by `notices_changed`, so the count it carries is the one after its own write.
+ *  The caller awaits `stop` before closing storage. */
 export function startNoticeLog(app: App): NoticeLog {
   const bus = app.resolve('bus')
   const store = app.resolve('noticeStore')

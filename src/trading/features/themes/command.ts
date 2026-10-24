@@ -43,7 +43,6 @@ const SHOW_POLICY: SlashInvocationPolicy = Object.freeze({
   surfaces: SURFACES,
   role: 'operator',
   action: 'read',
-  selfContained: true,
   transcript: 'echo',
 })
 const CHANGE_POLICY: SlashInvocationPolicy = Object.freeze({

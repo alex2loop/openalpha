@@ -36,15 +36,21 @@ export async function fireMatchingJobs(
     alertId: trigger.alertId,
   })
 
+  let dropped = 0
+
   for (const job of jobs) {
     if (deps.runs.size >= MAX_EVENT_RUNS) {
-      deps.logger.warn('scheduler.event_run_dropped', { jobId: job.id, reason: 'runs_full' })
+      dropped += 1
       continue
     }
 
     if (await claimCooldown(deps, job, trigger)) {
       startRun(deps, job, appendPrompt)
     }
+  }
+
+  if (dropped > 0) {
+    deps.logger.warn('scheduler.event_run_dropped', { dropped, reason: 'runs_full' })
   }
 }
 

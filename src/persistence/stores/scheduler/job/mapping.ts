@@ -51,6 +51,7 @@ export interface StoredJobStore {
   create(job: StoredJob): Promise<boolean>
   put(job: StoredJob): Promise<void>
   list(): Promise<readonly StoredJob[]>
+  listEnabledOfAgent(agentId: string): Promise<readonly StoredJob[]>
   find(id: JobId): Promise<StoredJob | undefined>
   findByPrefix(prefix: string, limit: number): Promise<readonly StoredJob[]>
   remove(id: JobId): Promise<void>

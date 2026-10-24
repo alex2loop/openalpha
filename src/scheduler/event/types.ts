@@ -1,10 +1,9 @@
 import type { JobId } from '@/core/ids'
+import type { EventJobKind } from '@/core/types/event-job'
 
 /** The largest instant `Date` and `Intl` accept. An event job is a `once` job parked here, so the
  *  tick never finds it due; nothing reads this as a time, and every reader branches on `Job.event`. */
 export const EVENT_JOB_PARKED_AT = 8_640_000_000_000_000
-
-export type EventJobKind = 'stop' | 'target' | 'price' | 'mover'
 
 /** What starts an event job. An absent `market` or `ticker` matches any name; a price job names the
  *  alert it was armed with instead of a price test of its own. */

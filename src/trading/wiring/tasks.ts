@@ -19,7 +19,11 @@ import type {
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type {
+  OrderFill,
+  OrderFilledListener,
+  TradingNoticeSender,
+} from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
@@ -157,7 +161,7 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
           logger: deps.logger,
           isFillBooked: deps.isFillBooked,
           onFilled: deps.onFilled,
-          notifyFill: (sale, signal) => notifyFill(deps, sale, signal),
+          notifyFill: (fill, signal) => notifyFill(deps, fill, signal),
         }),
     }),
   ]
@@ -168,7 +172,7 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
  *  sale is booked either way, and a second send could not be told apart from the first. */
 async function notifyFill(
   deps: TradingDaemonDeps,
-  sale: VenueFill,
+  fill: OrderFill,
   signal: AbortSignal
 ): Promise<void> {
   const target = deps.recipient()
@@ -177,22 +181,11 @@ async function notifyFill(
     return
   }
 
-  const { draft } = sale
   const outcome = await deps.sender.send(
     {
       target,
       locale: deps.reportDeps.locale,
-      payload: {
-        kind: 'exit-filled',
-        fill: {
-          instrument: draft.instrument,
-          venue: draft.venue,
-          quantity: draft.quantity,
-          unitPrice: draft.unitPrice,
-          currency: draft.currency,
-          ...(draft.closeReason === undefined ? {} : { closeReason: draft.closeReason }),
-        },
-      },
+      payload: { kind: 'exit-filled', fill },
     },
     signal
   )
@@ -200,7 +193,7 @@ async function notifyFill(
   // An aborted send is shutdown, not a refusal.
   if (outcome !== 'accepted' && outcome !== 'aborted') {
     deps.logger.warn('trading.exit_fill_notice_undelivered', {
-      ticker: draft.instrument.ticker,
+      ticker: fill.instrument.ticker,
       outcome,
     })
   }

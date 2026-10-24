@@ -109,7 +109,7 @@ export function toWireEvent(message: {
 }): WireEvent | undefined {
   const payload = message.notice?.payload
 
-  // A scheduled result only flashes by.
+  // A result with no typed notice is a scheduled run's: it pops up once and the bell keeps it.
   if (payload === undefined) {
     return {
       v: 1,
