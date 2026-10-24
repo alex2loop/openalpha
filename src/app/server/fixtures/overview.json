@@ -67,6 +67,68 @@
       "sessionState": "open",
       "currency": "VND",
       "rows": [],
+      "foreignNetValue": -1250000000000,
+      "foreignNetText": "▼ -1,25 nghìn tỷ VND",
+      "leaders": {
+        "window": "session",
+        "sessions": 1,
+        "foreignBuys": [
+          {
+            "instrument": {
+              "market": "equity-vn",
+              "ticker": "FPT"
+            },
+            "value": 310000000000,
+            "sharePct": 14.2,
+            "changePct": 1.31
+          }
+        ],
+        "foreignSells": [
+          {
+            "instrument": {
+              "market": "equity-vn",
+              "ticker": "HPG"
+            },
+            "value": 520000000000,
+            "sharePct": 18.7,
+            "changePct": -0.49
+          }
+        ],
+        "mostTraded": [
+          {
+            "instrument": {
+              "market": "equity-vn",
+              "ticker": "HPG"
+            },
+            "value": 1850000000000,
+            "sharePct": 6.1,
+            "changePct": -0.49
+          }
+        ]
+      },
+      "movers": {
+        "window": "session",
+        "gainers": [
+          {
+            "instrument": {
+              "market": "equity-vn",
+              "ticker": "FPT"
+            },
+            "changePct": 6.9,
+            "turnover": 980000000000
+          }
+        ],
+        "losers": [
+          {
+            "instrument": {
+              "market": "equity-vn",
+              "ticker": "HPG"
+            },
+            "changePct": -4.2,
+            "turnover": 1850000000000
+          }
+        ]
+      },
       "caveats": [
         {
           "code": "market-data.no-coverage",

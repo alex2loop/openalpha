@@ -1,0 +1,22 @@
+{
+  "sources": [
+    {
+      "id": "vndirect",
+      "kind": "quote",
+      "lastSuccessAt": 1791430371000,
+      "breaker": "closed"
+    },
+    {
+      "id": "entrade",
+      "kind": "bars",
+      "lastSuccessAt": 1791426771000,
+      "failure": "quá lâu không phản hồi",
+      "breaker": "open"
+    },
+    {
+      "id": "coingecko",
+      "kind": "quote",
+      "breaker": "closed"
+    }
+  ]
+}

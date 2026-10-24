@@ -491,7 +491,16 @@
     "restartPending": "Đang có một lần khởi động lại hoặc cập nhật chạy rồi, bạn chờ chút nhé.",
     "restartStopping": "Daemon đang dừng rồi. Khi nó dừng hẳn, bạn bật lại bằng {brand} start nhé.",
     "jobAlertGone": "Việc này chờ một cảnh báo giá đã chạm hoặc đã bị xóa, nên bật lại cũng không bao giờ chạy. Bạn xóa việc này rồi tạo việc mới nhé.",
-    "runNotFound": "Phiên chạy này đã xong hoặc không còn nữa."
+    "runNotFound": "Phiên chạy này đã xong hoặc không còn nữa.",
+    "fields.too_small": "{field} phải từ {minimum} trở lên.",
+    "fields.too_small_exclusive": "{field} phải lớn hơn {minimum}.",
+    "fields.too_big": "{field} không được quá {maximum}.",
+    "fields.invalid_type": "{field} chưa đúng dạng, bạn nhập lại nhé.",
+    "fields.invalid_value": "{field} chỉ nhận một trong các giá trị: {expected}.",
+    "fields.invalid_union": "{field} chưa hợp lệ.",
+    "fields.custom": "{field} chưa hợp lệ, bạn kiểm tra lại nhé.",
+    "fields.too_small_string": "{field} cần ít nhất {minimum} ký tự.",
+    "fields.unrecognized_keys": "Có trường không dùng tới: {keys}."
   },
   "scheduler": {
     "eventPrompt": "Việc này chạy vì {ticker} {what} lúc {time}: giá {price}.",
@@ -3939,7 +3948,23 @@
     "progress.themes.discover": "Đang tìm chủ đề mới…",
     "progress.themes.sectors": "{title} · Đang soát xem chủ đề này lan tới những ngành nào…",
     "progress.themes.companies": "Đang lấy báo cáo tài chính, định giá và tin tức của các mã được chọn…",
-    "progress.themes.company": "{ticker} · Đang cân nhắc chủ đề tác động thế nào đến lợi nhuận…"
+    "progress.themes.company": "{ticker} · Đang cân nhắc chủ đề tác động thế nào đến lợi nhuận…",
+    "render.ledger.label.kind": "Loại",
+    "render.ledger.label.at": "Ngày",
+    "render.ledger.label.note": "Ghi chú",
+    "render.ledger.label.venue": "Sàn",
+    "render.ledger.label.fromVenue": "Sàn chuyển đi",
+    "render.ledger.label.instrument": "Mã",
+    "render.ledger.label.instrument.ticker": "Mã",
+    "render.ledger.label.instrument.market": "Thị trường",
+    "render.ledger.label.quantity": "Khối lượng",
+    "render.ledger.label.unitPrice": "Giá",
+    "render.ledger.label.fee": "Phí",
+    "render.ledger.label.amount": "Số tiền",
+    "render.ledger.label.currency": "Tiền tệ",
+    "render.ledger.label.quantityDelta": "Thay đổi khối lượng",
+    "render.ledger.label.operatorFxRate": "Tỷ giá",
+    "render.ledger.label.fxRateConfirmed": "Xác nhận tỷ giá"
   },
   "social": {
     "fetchFailed": "Không kết nối được {url}. Kiểm tra lại địa chỉ rồi thử lại.",

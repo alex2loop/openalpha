@@ -62,6 +62,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'container',
   'errors',
   'events',
+  'field-errors',
   'fs',
   'ids',
   'limits',

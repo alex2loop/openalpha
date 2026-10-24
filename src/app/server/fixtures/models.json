@@ -1,0 +1,34 @@
+{
+  "modelSource": "config",
+  "tiers": [
+    {
+      "tier": "default",
+      "models": [
+        {
+          "provider": "openrouter",
+          "model": "deepseek/deepseek-v4-flash",
+          "supportsTools": true,
+          "price": {
+            "inPerM": 0.14,
+            "outPerM": 0.28,
+            "cacheReadPerM": 0.014,
+            "source": "openrouter"
+          },
+          "perRunUsd": 0.021
+        },
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "supportsTools": true,
+          "price": {
+            "inPerM": 3,
+            "outPerM": 15,
+            "cacheReadPerM": 0.3,
+            "cacheWritePerM": 3.75,
+            "source": "models.dev"
+          }
+        }
+      ]
+    }
+  ]
+}

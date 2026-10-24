@@ -491,7 +491,16 @@
     "restartPending": "A restart or update is already under way; give it a moment.",
     "restartStopping": "The daemon is already shutting down. Once it has stopped, start it again with {brand} start.",
     "jobAlertGone": "This job waited on a price alert that has already fired or been removed, so turning it on again would never run it. Remove the job and add a new one.",
-    "runNotFound": "That run has already finished or is gone."
+    "runNotFound": "That run has already finished or is gone.",
+    "fields.too_small": "{field} must be at least {minimum}.",
+    "fields.too_small_exclusive": "{field} must be above {minimum}.",
+    "fields.too_big": "{field} must be at most {maximum}.",
+    "fields.invalid_type": "{field} is not in the right form; enter it again.",
+    "fields.invalid_value": "{field} takes one of: {expected}.",
+    "fields.invalid_union": "{field} is not valid.",
+    "fields.custom": "{field} is not valid; check it again.",
+    "fields.too_small_string": "{field} needs at least {minimum} characters.",
+    "fields.unrecognized_keys": "Unexpected fields: {keys}."
   },
   "scheduler": {
     "eventPrompt": "This run started because {ticker} {what} at {time}: price {price}.",
@@ -3939,7 +3948,23 @@
     "progress.themes.discover": "Looking for new themes…",
     "progress.themes.sectors": "{title} · Tracing which sectors it reaches…",
     "progress.themes.companies": "Pulling accounts, valuations and news for the shortlisted companies…",
-    "progress.themes.company": "{ticker} · Weighing what the theme does to its earnings…"
+    "progress.themes.company": "{ticker} · Weighing what the theme does to its earnings…",
+    "render.ledger.label.kind": "Type",
+    "render.ledger.label.at": "Day",
+    "render.ledger.label.note": "Note",
+    "render.ledger.label.venue": "Venue",
+    "render.ledger.label.fromVenue": "From venue",
+    "render.ledger.label.instrument": "Instrument",
+    "render.ledger.label.instrument.ticker": "Ticker",
+    "render.ledger.label.instrument.market": "Market",
+    "render.ledger.label.quantity": "Quantity",
+    "render.ledger.label.unitPrice": "Price",
+    "render.ledger.label.fee": "Fee",
+    "render.ledger.label.amount": "Amount",
+    "render.ledger.label.currency": "Currency",
+    "render.ledger.label.quantityDelta": "Quantity change",
+    "render.ledger.label.operatorFxRate": "Exchange rate",
+    "render.ledger.label.fxRateConfirmed": "Rate confirmation"
   },
   "social": {
     "fetchFailed": "Couldn't reach {url}. Check the address and try again.",

@@ -79,6 +79,7 @@ core/config/validate
 core/container
 core/errors
 core/events
+core/field-errors
 core/fs
 core/http-client
 core/ids

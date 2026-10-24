@@ -10,5 +10,6 @@
   },
   "maxDailyUsd": 0.5,
   "modelTier": "research",
+  "look": { "hair": "short", "outfit": "suit" },
   "editable": true
 }

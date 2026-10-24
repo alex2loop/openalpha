@@ -6,6 +6,10 @@
       "paused": false,
       "maxDailyUsd": 0.5,
       "spentTodayUsd": 0.12,
+      "look": {
+        "hair": "short",
+        "outfit": "suit"
+      },
       "focusKey": "default",
       "focusLabel": "Your book (your own focus)",
       "record": {

@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "invalid_body",
+    "message": "Khối lượng phải lớn hơn 0.",
+    "fields": [
+      {
+        "path": "quantity",
+        "message": "Khối lượng phải lớn hơn 0."
+      },
+      {
+        "path": "unitPrice",
+        "message": "Giá chưa hợp lệ, bạn kiểm tra lại nhé."
+      }
+    ]
+  }
+}

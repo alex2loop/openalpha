@@ -62,6 +62,7 @@ quyền bạn đã cấp.
 | `max_duration_ms` | số nguyên dương | `[loop].max_duration_ms` từ config | Trần thời gian thực mỗi phiên chạy. Hạ được giá trị `[loop]`, không nâng được. |
 | `max_daily_usd` | số | không có | Phần của hôm nay dưới `[budget] max_daily_usd`. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
 | `[focus]` | bảng | không có | Agent nhìn vào đâu. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
+| `[look]` | bảng | không có | Diện mạo nhân vật của agent trên trang văn phòng: tối đa 8 phần, mỗi phần là một từ viết thường (hoặc nối bằng gạch ngang) dài không quá 24 ký tự (`hair = "short"`). Daemon chỉ lưu lại; trang quyết định giá trị nào vẽ được và tự chọn phần bạn bỏ trống theo mã của agent. |
 | `model_tier` | chuỗi | không có | Một nhóm trong `[model_tiers]` mà mọi mục đều hỗ trợ công cụ. Agent của bạn đặt được; agent plugin không đáng tin thì không. |
 | `reasoning` | enum | `'default'` | **Chỉ agent đáng tin.** Agent của bạn không đặt được. |
 | `[capabilities]` | bảng | xem dưới | Trần bảo mật; mọi trường chỉ thu hẹp quyền. |

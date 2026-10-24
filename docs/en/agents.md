@@ -61,6 +61,7 @@ ignored would read as a permission you granted.
 | `max_duration_ms` | positive int | `[loop].max_duration_ms` from config | Per-run wall-clock cap. Can lower the `[loop]` value, never raise it. |
 | `max_daily_usd` | number | none | This agent's share of the day, under `[budget] max_daily_usd`. See [Focus, spend and pause](#focus-spend-and-pause). |
 | `[focus]` | table | none | What the agent looks at. See [Focus, spend and pause](#focus-spend-and-pause). |
+| `[look]` | table | none | How the agent's character looks in the office page: up to 8 parts, each a lowercase word or hyphenated slug of at most 24 characters (`hair = "short"`). The daemon only stores it; the page decides which values it can draw and fills any part you leave out from the agent's id. |
 | `model_tier` | string | none | A tier in `[model_tiers]` whose every entry supports tools. Your agents may set it; untrusted plugin agents may not. |
 | `reasoning` | enum | `'default'` | **Trusted agents only.** Your agents may not set it. |
 | `[capabilities]` | table | see below | Security ceiling; every field only narrows access. |

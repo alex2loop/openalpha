@@ -30,15 +30,25 @@ export interface UnconfirmedPriceWire {
   readonly latest: { readonly price: number; readonly at: string }
 }
 
+/** One refused field of a request: where it sits in the body the caller sent (`quantity`,
+ *  `instrument.ticker`; empty for the body as a whole) and the sentence for it. */
+export interface ApiFieldError {
+  readonly path: string
+  readonly message: string
+}
+
 /** The JSON body of any non-2xx response. */
 export interface ApiError {
   /** `message` is the runtime's own sentence for a refusal it explains to the operator (a ledger
    *  row the book cannot hold, say), in the daemon's language. Absent on every other error.
-   *  `unconfirmedPrice` is set on `price_unconfirmed` alone. */
+   *  `unconfirmedPrice` is set on `price_unconfirmed` alone. `fields` names each field a body was
+   *  refused for, in the daemon's language, where the refusal is about fields (a ledger draft);
+   *  `message` then carries the first. */
   readonly error: {
     readonly code: ApiErrorCode
     readonly message?: string
     readonly unconfirmedPrice?: UnconfirmedPriceWire
+    readonly fields?: readonly ApiFieldError[]
   }
 }
 

@@ -79,5 +79,10 @@
   "restartable": true,
   "restartIdleWaitMs": 120000,
   "restartDrainMs": 5000,
-  "trackRecordMinSample": 20
+  "trackRecordMinSample": 20,
+  "firstRun": {
+    "modelReady": true,
+    "profileSaved": true,
+    "bookEmpty": false
+  }
 }

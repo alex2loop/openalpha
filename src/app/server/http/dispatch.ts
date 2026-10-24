@@ -1,5 +1,10 @@
 import type { AuthOutcome } from '@/app/server/http/auth'
-import type { ApiError, ApiErrorCode, UnconfirmedPriceWire } from '@/app/server/wire/errors'
+import type {
+  ApiError,
+  ApiErrorCode,
+  ApiFieldError,
+  UnconfirmedPriceWire,
+} from '@/app/server/wire/errors'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
@@ -8,6 +13,7 @@ import { buildCapabilities } from '@/app/server/http/capabilities'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { missingEnvOf } from '@/core/config/resolve'
 import { ChannelError, ConflictError, ValidationError } from '@/core/errors'
+import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 import { PriceUnconfirmedError } from '@/trading/api'
@@ -18,15 +24,19 @@ export function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
 }
 
-export function apiError(
-  code: ApiErrorCode,
-  message?: string,
-  unconfirmedPrice?: UnconfirmedPriceWire
-): Response {
+interface ApiErrorExtras {
+  readonly unconfirmedPrice?: UnconfirmedPriceWire
+  readonly fields?: readonly ApiFieldError[]
+}
+
+export function apiError(code: ApiErrorCode, message?: string, extras?: ApiErrorExtras): Response {
   const error = {
     code,
     ...(message === undefined ? {} : { message }),
-    ...(unconfirmedPrice === undefined ? {} : { unconfirmedPrice }),
+    ...(extras?.unconfirmedPrice === undefined
+      ? {}
+      : { unconfirmedPrice: extras.unconfirmedPrice }),
+    ...(extras?.fields === undefined ? {} : { fields: extras.fields }),
   }
 
   return Response.json({ error } satisfies ApiError, { status: API_ERROR_STATUS[code] })
@@ -121,7 +131,7 @@ async function runHandler(
     return apiError(
       toErrorCode(err),
       operatorText(app.config.locale.language, err),
-      unconfirmedPriceOf(err)
+      toErrorExtras(app.config.locale.language, err)
     )
   }
 }
@@ -136,18 +146,33 @@ export function operatorText(locale: Locale, err: unknown): string | undefined {
     : bindLocale(locale).translate(operator.key, operator.params)
 }
 
-function unconfirmedPriceOf(err: unknown): UnconfirmedPriceWire | undefined {
-  if (!(err instanceof PriceUnconfirmedError)) {
-    return undefined
+/** What a refusal carries beyond its code and sentence: the price it was measured against, or the
+ *  fields it was refused for. */
+function toErrorExtras(locale: Locale, err: unknown): ApiErrorExtras {
+  if (err instanceof PriceUnconfirmedError) {
+    const { instrument, price, latest } = err
+
+    return {
+      unconfirmedPrice: {
+        instrument: { market: instrument.market, ticker: instrument.ticker },
+        price,
+        latest: { price: latest.price, at: latest.at },
+      },
+    }
   }
 
-  const { instrument, price, latest } = err
+  if (err instanceof FieldValidationError) {
+    const { translate } = bindLocale(locale)
 
-  return {
-    instrument: { market: instrument.market, ticker: instrument.ticker },
-    price,
-    latest: { price: latest.price, at: latest.at },
+    return {
+      fields: err.fields.map(({ path, message }) => ({
+        path,
+        message: translate(message.key, message.params),
+      })),
+    }
   }
+
+  return {}
 }
 
 /** A rejected request is the caller's fault and says so; anything else is ours and stays opaque. */

@@ -1,0 +1,15 @@
+{
+  "added": [
+    {
+      "market": "equity-vn",
+      "ticker": "FPT"
+    }
+  ],
+  "removed": [
+    {
+      "market": "equity-vn",
+      "ticker": "VNM"
+    }
+  ],
+  "unknown": ["ZZZZ"]
+}

@@ -1,0 +1,25 @@
+{
+  "sessions": [
+    {
+      "sessionId": "4f0f3b1e-2c1a-4f6e-9c1d-7a1f0e2b9d10",
+      "channel": "telegram",
+      "chatId": "1042",
+      "agentId": "default",
+      "startedAt": 1791420000000,
+      "lastActivityAt": 1791430371000,
+      "messageCount": 6,
+      "title": "FPT hôm nay thế nào?",
+      "lastReply": "FPT đóng cửa tăng 1,3%, khối ngoại mua ròng. Mình vẫn giữ nhận định cũ."
+    },
+    {
+      "sessionId": "chat_0123456789abcdef0123456789",
+      "channel": "api",
+      "agentId": "default",
+      "startedAt": 1791400000000,
+      "lastActivityAt": 1791410000000,
+      "messageCount": 2,
+      "title": "Tóm tắt thị trường sáng nay"
+    }
+  ],
+  "nextBefore": null
+}
