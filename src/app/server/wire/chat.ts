@@ -107,3 +107,28 @@ export interface ChatHistoryResponse {
 export interface ChatRecentResponse {
   readonly sessionId: string | null
 }
+
+/** One conversation as a list shows it. `channel` is where it happened (`api` is this app); only an
+ *  `api` session takes a new message, the rest are read-only history. `title` is its first message
+ *  and `lastReply` its last answer, each cut short; either is absent when the session has none. */
+interface ChatSessionWire {
+  readonly sessionId: string
+  readonly channel: string
+  readonly chatId?: string
+  readonly agentId: string
+  readonly startedAt: number
+  readonly lastActivityAt: number
+  readonly messageCount: number
+  readonly title?: string
+  readonly lastReply?: string
+}
+
+/** GET /v1/chat/sessions?channel&query&before&limit — newest activity first. `channel` repeats to
+ *  name several and defaults to all. `query` (at least two characters, any case) keeps the sessions
+ *  with a message containing it, which may match inside a stored tool call too. `before` is the
+ *  `nextBefore` of the page above (a `lastActivityAt`, strictly older); sessions sharing the exact
+ *  millisecond across a page edge can be skipped. `nextBefore` is null on the last page. */
+export interface ChatSessionsResponse {
+  readonly sessions: readonly ChatSessionWire[]
+  readonly nextBefore: number | null
+}

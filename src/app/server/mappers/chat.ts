@@ -1,0 +1,70 @@
+import { z } from 'zod'
+
+import type { ChatSessionsResponse } from '@/app/server/wire/chat'
+import type { SessionListing } from '@/persistence/api'
+import { scrubCredentials } from '@/core/security/credentials'
+import { truncate } from '@/core/utils/text'
+
+const SESSION_SNIPPET_MAX_CHARS = 200
+
+/** A stored message is a JSON string, or the block array an assistant turn is; only text blocks are
+ *  what a reader sees. */
+const STORED_CONTENT = z.union([
+  z.string(),
+  z.array(z.object({ type: z.string(), text: z.string().optional() })),
+])
+
+export function toChatSessionsWire(
+  listings: readonly SessionListing[],
+  limit: number
+): ChatSessionsResponse {
+  return {
+    sessions: listings.map(toChatSessionWire),
+    nextBefore: listings.length < limit ? null : (listings.at(-1)?.lastActivityAt ?? null),
+  }
+}
+
+function toChatSessionWire(listing: SessionListing): ChatSessionsResponse['sessions'][number] {
+  const title = toSnippet(listing.firstUserContent)
+  const lastReply = toSnippet(listing.lastAssistantContent)
+
+  return {
+    sessionId: listing.id,
+    channel: listing.channel,
+    ...(listing.chatId === undefined ? {} : { chatId: listing.chatId }),
+    agentId: listing.agentId,
+    startedAt: listing.startedAt,
+    lastActivityAt: listing.lastActivityAt,
+    messageCount: listing.messageCount,
+    ...(title === undefined ? {} : { title }),
+    ...(lastReply === undefined ? {} : { lastReply }),
+  }
+}
+
+/** The text of a stored message, credentials scrubbed and cut short; absent when it holds none. */
+function toSnippet(stored: string | null): string | undefined {
+  const text = stored === null ? '' : scrubCredentials(textOf(stored)).trim()
+
+  return text === '' ? undefined : truncate(text, SESSION_SNIPPET_MAX_CHARS)
+}
+
+function textOf(stored: string): string {
+  const parsed = STORED_CONTENT.safeParse(parseJson(stored))
+
+  if (!parsed.success) {
+    return ''
+  }
+
+  return typeof parsed.data === 'string'
+    ? parsed.data
+    : parsed.data.map((block) => (block.type === 'text' ? (block.text ?? '') : '')).join('')
+}
+
+function parseJson(stored: string): unknown {
+  try {
+    return JSON.parse(stored)
+  } catch {
+    // A row written as bare text rather than JSON is its own content.
+    return stored
+  }
+}

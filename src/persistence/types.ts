@@ -123,6 +123,31 @@ export interface HistoryPage {
   readonly nextBefore: number | null
 }
 
+export interface SessionListQuery {
+  /** Only sessions of these channels; every channel when absent, none when empty. */
+  readonly channels?: readonly ChannelId[]
+  /** Text any message of the session contains, ignoring case. */
+  readonly query?: string
+  /** `lastActivityAt`: only sessions strictly older than it. The newest when absent. */
+  readonly before?: number
+  readonly limit: number
+}
+
+/** One session as a list shows it. The two contents are stored text, a JSON string or a block
+ *  array, left for the caller to read. */
+export interface SessionListing {
+  readonly id: SessionId
+  readonly agentId: AgentId
+  readonly channel: ChannelId
+  readonly chatId?: string
+  readonly startedAt: number
+  readonly lastActivityAt: number
+  /** User and assistant rows, as the history page counts them. */
+  readonly messageCount: number
+  readonly firstUserContent: string | null
+  readonly lastAssistantContent: string | null
+}
+
 export interface SessionStore extends SessionActivity {
   create(record: OpenedSession): Promise<void>
   /** Take ownership of the session for one run. False when a live run already holds it. */
@@ -137,6 +162,8 @@ export interface SessionStore extends SessionActivity {
   /** Resolve a displayed session-id prefix without loading unbounded history. */
   resolveIdPrefix(prefix: string): Promise<SessionIdResolution>
   listRecent(limit: number): Promise<readonly SessionSummary[]>
+  /** Sessions newest activity first, across the named channels, cut in SQL. */
+  listByChannels(query: SessionListQuery): Promise<readonly SessionListing[]>
   latestIdForChannel(channel: ChannelId): Promise<SessionId | null>
   /** Cumulative totals folded from the session's durable attempts; zeros when it has none. */
   loadTotals(id: SessionId): Promise<LLMUsageTotals>

@@ -17,6 +17,7 @@ import { ConflictError, ValidationError } from '@/core/errors'
 import { sessionId } from '@/core/ids'
 import { toLikePrefixPattern } from '@/persistence/sql/like-escape'
 import { SESSION_ROUTE_KEY_PREFIX } from '@/persistence/stores/channel/chat-binding'
+import { listSessionsByChannels } from '@/persistence/stores/session/listing'
 import {
   type SessionSummaryRow,
   type TotalsRow,
@@ -56,11 +57,9 @@ export function createSessionStore(db: Storage, dialect: Dialect): SessionStore 
       return rows.map(toSessionSummary)
     },
 
-    async latestIdForChannel(channel: ChannelId): Promise<SessionId | null> {
-      const rows = await db.query<{ readonly id: string }>(sql.latestIdForChannel, [channel])
-      const row = rows[0]
-      return row === undefined ? null : sessionId(row.id)
-    },
+    listByChannels: (query) => listSessionsByChannels({ db, dialect }, query),
+
+    latestIdForChannel: (channel) => latestIdForChannel(store, channel),
 
     async lastMessageAt(id: SessionId): Promise<number | null> {
       const rows = await db.query<{ readonly created_at: number }>(sql.lastMessageAt, [id])
@@ -91,6 +90,15 @@ export function createSessionStore(db: Storage, dialect: Dialect): SessionStore 
       return changes
     },
   }
+}
+
+async function latestIdForChannel(store: StoreDeps, channel: ChannelId): Promise<SessionId | null> {
+  const rows = await store.db.query<{ readonly id: string }>(store.sql.latestIdForChannel, [
+    channel,
+  ])
+  const row = rows[0]
+
+  return row === undefined ? null : sessionId(row.id)
 }
 
 async function createSession(store: StoreDeps, record: OpenedSession): Promise<void> {

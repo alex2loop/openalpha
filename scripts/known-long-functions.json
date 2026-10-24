@@ -87,7 +87,6 @@
     "src/persistence/stores/scheduler/job/store.ts#createSchedulerOperations": 46,
     "src/persistence/stores/scheduler/run.ts#buildOccurrenceSql": 42,
     "src/persistence/stores/session/sql.ts#buildSessionSql": 43,
-    "src/persistence/stores/session/store.ts#createSessionStore": 42,
     "src/persistence/stores/social/memberships.ts#createSocialMembershipState": 49,
     "src/persistence/stores/social/writes.ts#createSocialWrites": 47,
     "src/plugins/services.ts#createPluginsProvider": 46,

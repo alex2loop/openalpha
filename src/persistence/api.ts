@@ -23,6 +23,8 @@ export type {
   RunLogStore,
   SessionDetails,
   SessionIdResolution,
+  SessionListing,
+  SessionListQuery,
   SessionSnapshot,
   SessionStatus,
   SessionStore,
