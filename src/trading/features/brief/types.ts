@@ -197,7 +197,7 @@ export interface RescheduleBriefOptions {
 export interface BriefService {
   build(options: BuildBriefOptions): Promise<BriefResult>
   getLatest(options: GetLatestBriefOptions): Promise<BriefSnapshot | null>
-  /** How many briefs were stored for a day, whatever language each was written in. */
+  /** How many briefs were stored for a day: one, however many languages it was written in. */
   countOnDay(day: TradingDay, signal: AbortSignal): Promise<number>
   /** The one delivery row, or `null` when the brief has never been enabled. */
   find(signal: AbortSignal): Promise<BriefDelivery | null>

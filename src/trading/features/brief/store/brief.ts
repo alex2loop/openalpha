@@ -86,7 +86,7 @@ interface PreviousBriefOptions {
 }
 
 export interface BriefStore {
-  /** The snapshots stored for one day, whatever language each was written in. */
+  /** The briefs stored for one day: one, however many languages it was written in. */
   countOnDay(day: TradingDay, signal: AbortSignal): Promise<number>
   upsertSnapshot(snapshot: BriefSnapshot, signal: AbortSignal): Promise<void>
   /** Serves idempotent build and delivery; `findLatest` serves user reads. */
@@ -144,7 +144,7 @@ async function countOnDay(deps: StoreDeps, day: TradingDay, signal: AbortSignal)
   assertNotAborted(signal)
 
   const rows = await deps.db.query<{ readonly count: number }>(
-    `SELECT COUNT(*) AS count FROM brief_snapshots WHERE day = ${deps.dialect.param(1)}`,
+    `SELECT COUNT(DISTINCT day) AS count FROM brief_snapshots WHERE day = ${deps.dialect.param(1)}`,
     [day]
   )
 

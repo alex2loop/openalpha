@@ -19,6 +19,7 @@ export interface DigestWire {
   readonly reports: number
   /** What the day's model calls cost in USD, as `/v1/cost` counts a day. */
   readonly spendUsd: number
-  /** At most two: a stop that broke first, then the call that closed with the largest move. */
+  /** At most two: the first stop that broke that day, then the call that closed with the largest
+   *  move in either direction. A day with stops still shows the call. */
   readonly notable: readonly NoteWire[]
 }

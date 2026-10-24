@@ -246,7 +246,7 @@ export interface NoticeStore {
   record(row: NoticeRow): Promise<void>
   /** Notices created before `beforeMs` (all when absent), newest first. */
   list(beforeMs: number | undefined, limit: number): Promise<readonly NoticeRow[]>
-  /** Notices of one kind created in the range, newest first. */
+  /** Notices of one kind created in the range, oldest first. */
   listOfKind(kind: string, range: EpochRange, limit: number): Promise<readonly NoticeRow[]>
   /** Notices not yet read. */
   unreadCount(): Promise<number>

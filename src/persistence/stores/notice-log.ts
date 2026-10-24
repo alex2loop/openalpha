@@ -106,7 +106,7 @@ function buildSql(d: Dialect) {
     ofKind:
       `SELECT ${columns} FROM notices WHERE kind = ${d.param(1)} ` +
       `AND created_at >= ${d.param(2)} AND created_at < ${d.param(3)} ` +
-      `ORDER BY created_at DESC, id DESC LIMIT ${d.param(4)}`,
+      `ORDER BY created_at, id LIMIT ${d.param(4)}`,
     unread: 'SELECT COUNT(*) AS n FROM notices WHERE read_at IS NULL',
     unreadOfKind: `SELECT COUNT(*) AS n FROM notices WHERE read_at IS NULL AND kind = ${d.param(1)}`,
     markAll: `UPDATE notices SET read_at = ${d.param(1)} WHERE read_at IS NULL`,

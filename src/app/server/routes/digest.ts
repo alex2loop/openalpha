@@ -9,6 +9,7 @@ import { DEEP_RESEARCHER_ID } from '@/engine/api'
 import { tradingDay } from '@/trading/api'
 
 const DIGEST_NOTABLE = 2
+const DIGEST_PER_KIND = 1
 
 /** The operator's day, in `[locale] timezone`, as `/v1/activity` and the cost caps count it. */
 async function handleDigest(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -28,16 +29,16 @@ async function handleDigest(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   const host = hostOf(ctx)
   const [facts, researchCount, spendUsd, stops] = await Promise.all([
-    host.getDayDigest({ day, range, limit: DIGEST_NOTABLE, signal: req.signal }),
+    host.getDayDigest({ day, range, limit: DIGEST_PER_KIND, signal: req.signal }),
     ctx.app.resolve('runLogStore').countResearch(DEEP_RESEARCHER_ID, range.fromMs, range.toMs),
-    ctx.app.resolve('llmAttemptStore').totalRange({ fromDay: day, toDay: day }),
+    ctx.app.resolve('spendReader').forRange({ fromDay: day, toDay: day }),
     ctx.app.resolve('noticeStore').listOfKind(STOP_BREACHED_KIND, range, DIGEST_NOTABLE),
   ])
   const locale = localeOf(ctx)
   const context = { locale, timezone: zone, markets: host.describeMarkets().markets }
   const notable = [
-    ...stops.flatMap((row) => toStopNote(row, context) ?? []),
-    ...facts.closed.map((call) => toCallNote(call, locale)),
+    ...stops.flatMap((row) => toStopNote(row, context) ?? []).slice(0, DIGEST_PER_KIND),
+    ...facts.closed.slice(0, DIGEST_PER_KIND).map((call) => toCallNote(call, locale)),
   ].slice(0, DIGEST_NOTABLE)
 
   return json({

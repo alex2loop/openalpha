@@ -18,6 +18,7 @@ Every slice carries its own denominator, and reading a rate off the wrong one is
 - `winRate` divides by `resolvedCount`.
 - `benchmarkBeatRate` divides by `benchmarkComparedCount`, never by `resolvedCount`. A band of thirty rows where eight carry a benchmark reports a beat rate off eight.
 - Each `calibration` bucket and each `versions` entry has its own `resolvedCount`, and each is subject to the same floor as the whole.
+- `targetCount` on a `focuses` entry counts that focus's independent calls that closed on their target, out of the same `resolvedCount` as `winCount`. The floor withholds rates, never counts: below it, state `targetCount` of `resolvedCount` as the two numbers they are and never as a share.
 
 The headline is blended across every market the operator trades, and the tool cannot slice it. VN equities, global gold, VN physical gold and crypto have different base rates, hold windows and volatility, so one win rate over all four describes no market in particular. Report it as blended and say so; never let it stand as a statement about the market being discussed.
 
@@ -26,6 +27,7 @@ The headline is blended across every market the operator trades, and the tool ca
 | Figure | Supports | Does not support |
 | --- | --- | --- |
 | `winCount` / `lossCount` | How often calls resolve positive | Anything about magnitude. Seven wins in ten with a negative `meanReturnPct` is a losing process. |
+| `targetCount` | How many calls reached the level the plan named | Whether the rest failed. A call can close at its stop or expire in profit, and only a target close counts here. |
 | `meanReturnPct` vs `medianReturnPct` | Whether a few rows carry the record | A mean far above the median means one or two names are the record. Read the median. |
 | `beatsBenchmarkMajority` | Whether the calls beat holding the index | Only over `benchmarkComparedCount`. Rows the market declined to benchmark are not losses. |
 | `calibration` by band | Whether conviction means anything | A high band that does not outperform the medium band is decorative conviction, and it is a measurement rather than an argument. |
