@@ -106,9 +106,12 @@ agent's id and a tool list inside the configured agent's, else `ValidationError`
 `CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores.
 
 Open children are counted on the run tree's `DelegationQuota` (`openChildren`, `trackChild`) beside the fan-out quota;
-every child is tracked before the first await and released in `finally`. A call needing more than `maxSpawn` minus the
-open count is refused with `delegate_full` and the keyed display `tools.spawn.full`. Each result is `{ role, status:
-done | partial | failed, reason?: timeout | budget | error, text }`. Budget is a slice of `AGENT_BUDGET_FRACTION` and
+every child is tracked before the first await and released in `finally`. Room is `maxSpawn` minus the
+open count: the first `room` children start and the rest come back as failed "not started" entries with the keyed display
+`tools.spawn.full` (`count` is the number now working); with no room the call is a `delegate_full` error. Each result is
+`{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text }`: `turn_limit` is `turns`
+(line `tools.spawn.reason.turns`, `{turns}`), and an aborted child is failed with no reason and no reason line. `role` is
+scrubbed on entry. `resolveToolGrant` drops `spawn` from `tools = "*"` when `max_spawn` is 0. Budget is a slice of `AGENT_BUDGET_FRACTION` and
 child usage rolls into the parent. The group line (`progress.spawnLine`) goes through the parent's progress, so
 channels and the terminal print it; per-child tool, model and reason lines go to the bus only. Params are strings and
 numbers: `kind: 'spawn'`, `role`, `parentRunId`.

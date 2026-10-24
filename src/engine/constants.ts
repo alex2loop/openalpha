@@ -40,6 +40,7 @@ export const RUN_TITLE_MAX_CHARS = 120
 export const CHILD_SUMMARY_MAX_CHARS = 500
 /** Most child agents one agent may have working at once; `max_spawn` in its file sets its own. */
 export const MAX_SPAWN_PER_AGENT = 4
+export const SPAWN_TOOL_NAME = 'spawn'
 export const RATE_LIMIT_WINDOW_MS = 60_000
 export const RATE_LIMIT_MAX_KEYS = 4_096
 /** Fits the largest first-party payload - a market overview or a suggestion - whole in a chat run. */

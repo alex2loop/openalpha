@@ -251,10 +251,13 @@ ví dụ cổ tức của một công ty và báo cáo quý của nó, rồi t�
   không ghi sổ, không đặt lịch, không gửi tin, không ghi đề xuất, không tạo thêm agent con và không ủy quyền.
 - Nó chạy trên nhóm `delegate` của `[model_tiers]` nếu bạn khai báo, không thì dùng mô hình của agent cha.
 - Nó có `[loop] spawn_max_duration_ms` và `spawn_max_turns`. Agent con hết thời gian, hết lượt hoặc hết ngân sách sẽ mang
-  về phần đã đọc, đánh dấu là dở dang; agent con lỗi trước khi đọc được gì thì đánh dấu là thất bại.
+  về phần đã đọc, đánh dấu là dở dang kèm lý do (thời gian, lượt hoặc ngân sách); agent con lỗi trước khi đọc được gì thì
+  đánh dấu là thất bại. Agent con bị dừng cùng agent cha thì thất bại và không có lý do.
 - Các agent con dùng chung phần ngân sách, hạn ngạch `[loop] max_delegations` và `[loop] delegation_depth` của agent cha,
   chi phí tính vào agent cha. Dừng agent cha là dừng mọi agent con.
-- Quá `max_spawn` agent con đang mở thì lời gọi bị từ chối trả về cho mô hình, không xếp hàng, và lý do hiện trên màn hình.
+- Quá `max_spawn` agent con đang mở thì những agent con còn chỗ vẫn khởi động, phần còn lại bị trả về cho mô hình là chưa
+  bắt đầu, không xếp hàng; lời từ chối hiện trên màn hình kèm số agent con đang làm việc. Hết chỗ thì từ chối tất cả.
+- Với agent có `max_spawn` là `0`, `spawn` bị bỏ khỏi `tools = "*"`.
 - Kênh chat và terminal chỉ hiện một dòng cho cả nhóm (`N agent con đang đọc, k/N xong`); bảng trực tiếp liệt kê từng agent
   con dưới agent cha, còn nhật ký hoạt động giữ phần đầu câu trả lời của nó.
 

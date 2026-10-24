@@ -11,7 +11,7 @@ import { agentId, isPathId } from '@/core/ids'
 import { REASONING_MODES } from '@/core/llm'
 import { hasBlockingThreat, scanSkill } from '@/core/security/sanitize'
 import { MAX_TIMER_MS } from '@/core/utils/time'
-import { MAX_SPAWN_PER_AGENT } from '@/engine/constants'
+import { MAX_SPAWN_PER_AGENT, SPAWN_TOOL_NAME } from '@/engine/constants'
 
 export const RESERVED_AGENT_IDS: ReadonlySet<string> = new Set(['default'])
 export const ALL_TOOLS = '*'
@@ -156,8 +156,8 @@ export function buildAgentFromToml(
   assertSystemPromptAllowed(parsed.system_prompt, id, ctx)
   assertMaxDailyUsd(parsed.max_daily_usd, ctx.config.budget.maxDailyUsd, id)
 
-  const tools = resolveToolGrant(parsed.capabilities?.tools, ctx.allToolNames)
   const maxSpawn = parsed.capabilities?.max_spawn ?? 0
+  const tools = resolveToolGrant(parsed.capabilities?.tools, ctx.allToolNames, maxSpawn)
   const selected = resolveAgentModelChain({
     parsed,
     id,
@@ -221,11 +221,17 @@ function resolveAgentReasoning(
 }
 
 // An agent that never named a tool gets none: a file with no grant must not inherit the registry.
+// `*` leaves out `spawn` for an agent that may not spawn, so a tool that only refuses is never offered.
 function resolveToolGrant(
   grant: ToolGrant | undefined,
-  allToolNames: readonly string[]
+  allToolNames: readonly string[],
+  maxSpawn: number
 ): readonly string[] {
-  return grant === ALL_TOOLS ? allToolNames : (grant ?? [])
+  if (grant !== ALL_TOOLS) {
+    return grant ?? []
+  }
+
+  return maxSpawn > 0 ? allToolNames : allToolNames.filter((name) => name !== SPAWN_TOOL_NAME)
 }
 
 /** The builder's throwing guard wraps the engine-owned reference collector (one implementation). */

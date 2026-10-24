@@ -2,13 +2,12 @@ import { z } from 'zod'
 
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { ToolInvocationContext, ToolResult } from '@/core/tool'
-import type { AgentProfile, BudgetSlice, RunResult } from '@/engine/api'
+import type { AgentProfile, BudgetSlice } from '@/engine/api'
 import { isClientModelSource } from '@/core/config/resolve'
 import { ToolError } from '@/core/errors'
 import { scrubCredentials } from '@/core/security/credentials'
 import { createTool } from '@/core/tool'
-import { MS_PER_MINUTE } from '@/core/utils/time'
-import { DELEGATE_MODEL_TIER } from '@/engine/api'
+import { DELEGATE_MODEL_TIER, SPAWN_TOOL_NAME } from '@/engine/api'
 import {
   addDelegatedUsage,
   allocateChildBudgets,
@@ -17,12 +16,16 @@ import {
   childOnChunk,
   childRunInput,
   childRunOptions,
-  type ProgressReporter,
-  type ProgressTag,
   requireDelegationQuota,
   reserveDelegationQuota,
   toChildRunSettlement,
 } from '@/tools/delegation/child-run'
+import {
+  createSpawnProgress,
+  type SpawnProgress,
+  type SpawnResult,
+  toSpawnResult,
+} from '@/tools/delegation/spawn-report'
 
 const MAX_ROLE_CHARS = 60
 const MAX_GOAL_CHARS = 2_000
@@ -60,13 +63,6 @@ HOW TO WORK
 - Keep your latest message a running summary of what you have found: if you are cut off, it is all that comes back.
 - Finish with a plain answer under 400 words: findings first, then the full URLs of the sources you used, then what you could not find.`
 const BRIEF_FIELD_RE = /\{(role|goal)\}/g
-const TIMEOUT_REASONS: ReadonlySet<RunResult['reason']> = new Set(['timeout', 'turn_limit'])
-const SPAWN_REASON_KEYS = {
-  timeout: 'tools.spawn.reason.timeout',
-  budget: 'tools.spawn.reason.budget',
-  error: 'tools.spawn.reason.error',
-} as const satisfies Record<SpawnReason, string>
-
 const spawnPart = z.object({
   goal: z.string().trim().min(1).max(MAX_GOAL_CHARS).describe('The one objective of this child.'),
   context: z
@@ -113,15 +109,6 @@ const spawnInput = z.object({
 })
 
 type SpawnInput = z.infer<typeof spawnInput>
-type SpawnReason = 'timeout' | 'budget' | 'error'
-
-interface SpawnResult {
-  readonly role: string
-  readonly status: 'done' | 'partial' | 'failed'
-  readonly reason?: SpawnReason
-  readonly text: string
-}
-
 interface ChildBrief {
   readonly role: string
   readonly goal: string
@@ -135,7 +122,7 @@ interface SpawnedChild {
 }
 
 export const spawnTool = createTool({
-  name: 'spawn',
+  name: SPAWN_TOOL_NAME,
   description:
     "Start short-lived child agents that only read (web, market and news reads, memory) and report back. Use it when a question splits into independent reads, such as one company's dividends and its quarterly accounts; never for a single lookup. Send goal for one child, or items for one child per part, and put what they need in context. Each result is done, partial (cut off: what it had read so far) or failed. Code enforces how many may work at once, depth, quota, budget and time; stopping this run stops every child.",
   inputSchema: spawnInput,
@@ -155,22 +142,27 @@ export const spawnTool = createTool({
 
     const briefs = toChildBriefs(args)
     const open = requireDelegationQuota(ctx).openChildren()
+    const room = Math.max(0, maxSpawn - open)
+    const accepted = briefs.slice(0, room)
+    const refused = briefs.slice(room)
 
-    if (briefs.length > maxSpawn - open) {
-      return fullRefusal({ requested: briefs.length, open, maxSpawn })
+    if (accepted.length === 0) {
+      return fullRefusal({ refused, working: open, maxSpawn })
     }
 
-    const profiles = toChildProfiles(briefs, { parent, config: ctx.config })
-    const slices = allocateChildBudgets(ctx, briefs.length)
+    const profiles = toChildProfiles(accepted, { parent, config: ctx.config })
+    const slices = allocateChildBudgets(ctx, accepted.length)
 
     if (slices.length === 0) {
       return budgetRefusal()
     }
 
     try {
-      reserveDelegationQuota(ctx, briefs.length)
+      reserveDelegationQuota(ctx, accepted.length)
 
-      return await runChildren(toSpawnedChildren(profiles, slices), ctx)
+      const results = await runChildren(toSpawnedChildren(profiles, slices), ctx)
+
+      return toSpawnToolResult(results, { refused, working: open + accepted.length, maxSpawn })
     } finally {
       for (const slice of slices) {
         slice.settle()
@@ -190,27 +182,53 @@ function toChildBriefs(input: SpawnInput): readonly ChildBrief[] {
     const context = part.context ?? input.context
 
     return {
-      role: input.role,
+      role: scrubCredentials(input.role),
       goal: part.goal,
       ...(context === undefined ? {} : { context }),
     }
   })
 }
 
-interface FullRefusalInput {
-  readonly requested: number
-  readonly open: number
+interface CapacityInput {
+  readonly refused: readonly ChildBrief[]
+  /** Children working once this call's accepted ones have started. */
+  readonly working: number
   readonly maxSpawn: number
 }
 
-function fullRefusal(input: FullRefusalInput): ToolResult {
-  const room = Math.max(0, input.maxSpawn - input.open)
-
+// Nothing fits: the whole call goes back to the model.
+function fullRefusal(input: CapacityInput): ToolResult {
   return {
-    content: `spawn refused: ${input.requested} requested but ${input.open} of ${input.maxSpawn} child agents are already working; ask for at most ${room} or wait for one to finish`,
+    content: JSON.stringify({
+      children: input.refused.map((brief) => toRefusedResult(brief, input)),
+    }),
     isError: true,
     errorCode: 'delegate_full',
-    display: { key: 'tools.spawn.full', params: { count: input.maxSpawn } },
+    display: { key: 'tools.spawn.full', params: { count: input.working } },
+  }
+}
+
+// Some fit: those ran, the rest are named as not started so the model can ask again later.
+function toSpawnToolResult(results: readonly SpawnResult[], capacity: CapacityInput): ToolResult {
+  const children = [
+    ...results,
+    ...capacity.refused.map((brief) => toRefusedResult(brief, capacity)),
+  ]
+
+  return {
+    content: JSON.stringify({ children }),
+    isError: children.every((child) => child.status === 'failed'),
+    ...(capacity.refused.length === 0
+      ? {}
+      : { display: { key: 'tools.spawn.full', params: { count: capacity.working } } }),
+  }
+}
+
+function toRefusedResult(brief: ChildBrief, capacity: CapacityInput): SpawnResult {
+  return {
+    role: brief.role,
+    status: 'failed',
+    text: `not started: ${capacity.working} of ${capacity.maxSpawn} child agents are already working; ask again after one finishes`,
   }
 }
 
@@ -292,7 +310,7 @@ function toChildPrompt(brief: ChildBrief): string {
 async function runChildren(
   children: readonly SpawnedChild[],
   ctx: ToolInvocationContext
-): Promise<ToolResult> {
+): Promise<readonly SpawnResult[]> {
   const quota = requireDelegationQuota(ctx)
   const progress = createSpawnProgress(ctx, children)
 
@@ -312,66 +330,12 @@ async function runChildren(
     }
   })
   const settled = await Promise.allSettled(runs)
-  const results = settled.map((outcome, index) =>
+
+  return settled.map((outcome, index) =>
     outcome.status === 'fulfilled'
       ? outcome.value
       : toRejectedResult(ctx, children[index]?.brief.role ?? '', outcome.reason)
   )
-
-  return {
-    content: JSON.stringify({ children: results }),
-    isError: results.every((result) => result.status === 'failed'),
-  }
-}
-
-interface SpawnProgress {
-  /** The one line a channel or the terminal shows for the whole group. */
-  line(): void
-  /** Tool, model and ending lines for one child: feed only, never printed by a channel. */
-  report: ProgressReporter
-  tag(role: string): ProgressTag
-  finished(result: SpawnResult): void
-}
-
-function createSpawnProgress(
-  ctx: ToolInvocationContext,
-  children: readonly SpawnedChild[]
-): SpawnProgress {
-  const minutes = Math.max(1, Math.round((children[0]?.profile.maxDurationMs ?? 0) / MS_PER_MINUTE))
-  const base: ProgressTag = { kind: 'spawn', parentRunId: ctx.runId }
-  let done = 0
-  const line = (): void =>
-    ctx.reportProgress?.({
-      key: 'progress.spawnLine',
-      params: { agent: ctx.agentId, count: children.length, done, ...base },
-      mode: 'transient',
-    })
-  const report: ProgressReporter = (message) =>
-    ctx.bus.emit('run_progress', {
-      runId: ctx.runId,
-      agentId: ctx.agentId,
-      channel: ctx.channel,
-      message,
-    })
-
-  return {
-    line,
-    report,
-    tag: (role) => ({ ...base, role }),
-    finished: (result) => {
-      done += 1
-
-      if (result.reason !== undefined) {
-        report({
-          key: SPAWN_REASON_KEYS[result.reason],
-          params: { minutes, ...base, role: result.role },
-          mode: 'transient',
-        })
-      }
-
-      line()
-    },
-  }
 }
 
 async function runChild(
@@ -396,30 +360,6 @@ async function runChild(
   addDelegatedUsage(ctx, result.totals)
 
   return toChildRunSettlement(result)
-}
-
-function toSpawnResult(role: string, settlement: ChildRunSettlement): SpawnResult {
-  const { text } = settlement.result
-
-  switch (settlement.kind) {
-    case 'completed':
-      return { role, status: 'done', text }
-    case 'budget_exhausted':
-      return { role, status: toPartialStatus(text), reason: 'budget', text }
-    case 'approval_timeout':
-      return { role, status: toPartialStatus(text), reason: 'error', text }
-    case 'failed':
-      return {
-        role,
-        status: toPartialStatus(text),
-        reason: TIMEOUT_REASONS.has(settlement.result.reason) ? 'timeout' : 'error',
-        text,
-      }
-  }
-}
-
-function toPartialStatus(text: string): 'partial' | 'failed' {
-  return text === '' ? 'failed' : 'partial'
 }
 
 function toRejectedResult(ctx: ToolInvocationContext, role: string, reason: unknown): SpawnResult {

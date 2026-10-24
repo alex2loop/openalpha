@@ -4,14 +4,13 @@ import { z } from 'zod'
 import type { AgentDetailWire, AgentFocusWire, AgentWriteBody } from '@/app/server/wire/agents'
 import type { AgentProfile } from '@/engine/api'
 import { isPlainRecord } from '@/core/utils/collections'
-import { MAX_SPAWN_PER_AGENT } from '@/engine/api'
+import { MAX_SPAWN_PER_AGENT, SPAWN_TOOL_NAME } from '@/engine/api'
 
 const MAX_LIST_ITEMS = 20
 const MAX_NAME_CHARS = 80
 const MAX_DESCRIPTION_CHARS = 500
 const MAX_PROMPT_CHARS = 20_000
 const MAX_DAILY_USD = 1_000_000
-const SPAWN_TOOL = 'spawn'
 
 /** Research on the web, memory, and the read-only market and suggestion tools. Never a shell, a file
  *  write or a schedule. A name the registry lacks is left out when the file is written. */
@@ -83,7 +82,7 @@ export function toAgentToml(
     ? base.capabilities
     : {}
   const maxSpawn = body.maxSpawn ?? 0
-  const tools = [...WEB_AGENT_TOOLS, ...(maxSpawn > 0 ? [SPAWN_TOOL] : [])].filter((name) =>
+  const tools = [...WEB_AGENT_TOOLS, ...(maxSpawn > 0 ? [SPAWN_TOOL_NAME] : [])].filter((name) =>
     availableTools.includes(name)
   )
 

@@ -157,6 +157,7 @@ export {
   MCP_CALL_WAIT_MS,
   RUN_LEASE_SLACK_MS,
   RUN_TITLE_MAX_CHARS,
+  SPAWN_TOOL_NAME,
   WORKSPACES_DIR_NAME,
 } from '@/engine/constants'
 export { createDelegatedApproval, decisionsFor } from '@/engine/hooks/approval'

@@ -105,9 +105,12 @@ phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `R
 là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại.
 
 Số agent con đang mở được đếm trên `DelegationQuota` của cây phiên chạy (`openChildren`, `trackChild`) cạnh hạn ngạch nhánh;
-mọi agent con được đếm trước lần `await` đầu tiên và được nhả trong `finally`. Lời gọi cần nhiều hơn `maxSpawn` trừ số đang mở
-bị từ chối với `delegate_full` cùng dòng hiển thị có khóa `tools.spawn.full`. Mỗi kết quả là `{ role, status: done | partial |
-failed, reason?: timeout | budget | error, text }`. Ngân sách là một phần `AGENT_BUDGET_FRACTION` và mức dùng của agent con
+mọi agent con được đếm trước lần `await` đầu tiên và được nhả trong `finally`. Chỗ trống là `maxSpawn` trừ số đang mở:
+`room` agent con đầu tiên khởi động, phần còn lại trả về là các mục thất bại "chưa bắt đầu" cùng dòng hiển thị có khóa
+`tools.spawn.full` (`count` là số đang làm việc); hết chỗ thì cả lời gọi là lỗi `delegate_full`. Mỗi kết quả là `{ role,
+status: done | partial | failed, reason?: timeout | turns | budget | error, text }`: `turn_limit` là `turns` (dòng
+`tools.spawn.reason.turns`, `{turns}`), agent con bị hủy thì thất bại, không có lý do và không có dòng lý do. `role` được lọc
+thông tin xác thực khi vào. `resolveToolGrant` bỏ `spawn` khỏi `tools = "*"` khi `max_spawn` là 0. Ngân sách là một phần `AGENT_BUDGET_FRACTION` và mức dùng của agent con
 được cộng vào agent cha. Dòng nhóm (`progress.spawnLine`) đi qua tiến độ của agent cha nên kênh chat và terminal in ra; các
 dòng công cụ, mô hình và lý do của từng agent con chỉ đi vào bus. Tham số là chuỗi và số: `kind: 'spawn'`, `role`, `parentRunId`.
 

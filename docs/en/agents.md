@@ -254,11 +254,13 @@ may start up to `2` at once. Pass `goal` for one child, or `items` for one child
   records, schedules, sends, writes suggestions, spawns or delegates.
 - It runs on the `delegate` tier of `[model_tiers]` when you declare one, else on the parent's models.
 - It has `[loop] spawn_max_duration_ms` and `spawn_max_turns`. A child that runs out of time, turns or budget brings
-  back what it had read, marked partial; one that fails before reading anything is marked failed.
+  back what it had read, marked partial, with the reason (time, turns or budget); one that fails before reading
+  anything is marked failed. A child stopped together with its parent is failed with no reason.
 - Children share the parent's budget slice, `[loop] max_delegations` quota and `[loop] delegation_depth`, and their
   cost counts to the parent. Stopping the parent stops every child.
-- Past `max_spawn` open children the call is refused back to the model, never queued, and the refusal shows on
-  screen.
+- Past `max_spawn` open children, the children that fit start and the rest are refused back to the model as not
+  started, never queued; the refusal shows on screen with the number now working. With no room, all are refused.
+- `spawn` is left out of `tools = "*"` for an agent whose `max_spawn` is `0`.
 - Channels and the terminal show one line for the group (`N child agents reading, k/N done`); the live feed lists
   each child under its parent, and the activity log keeps the start of its answer.
 

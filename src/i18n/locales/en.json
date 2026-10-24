@@ -519,6 +519,7 @@
     "spawn": "Spawn child agents",
     "spawn.full": "{count} child agents are already working; wait for one to finish.",
     "spawn.reason.timeout": "ran out of {minutes} minutes; brought back what it had read",
+    "spawn.reason.turns": "used up its {turns} turns; brought back what it had read",
     "spawn.reason.budget": "the run's budget ran out",
     "spawn.reason.error": "hit an error; brought back what it had read",
     "now": "Now",

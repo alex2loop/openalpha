@@ -519,6 +519,7 @@
     "spawn": "Tạo agent con",
     "spawn.full": "Đã đủ {count} agent con, chờ một agent con xong rồi tạo tiếp.",
     "spawn.reason.timeout": "hết {minutes} phút, mang về phần đã đọc",
+    "spawn.reason.turns": "hết {turns} lượt làm việc, mang về phần đã đọc",
     "spawn.reason.budget": "hết ngân sách của lượt",
     "spawn.reason.error": "gặp lỗi giữa chừng, mang về phần đã đọc",
     "now": "Bây giờ",
