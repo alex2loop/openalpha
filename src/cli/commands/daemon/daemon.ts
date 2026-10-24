@@ -2,7 +2,7 @@ import type { PidFileClaim } from '@/cli/daemon-guard'
 import type { CliApp } from '@/cli/types'
 import type { DaemonStartOptions, DegradedEntry, DegradedItem } from '@/core/container'
 import { type Command, createCommand } from '@/cli/command'
-import { pollUntil, runBackground } from '@/cli/commands/daemon/background'
+import { BACKGROUND_FLAG, pollUntil, runBackground } from '@/cli/commands/daemon/background'
 import {
   configuredChannels,
   printServed,
@@ -96,7 +96,7 @@ function withoutBackgroundFlag(argv: readonly string[]): string[] {
 }
 
 function isBackgroundToken(token: string): boolean {
-  return token === '--background' || token === '-b' || token.startsWith('--background=')
+  return token === BACKGROUND_FLAG || token === '-b' || token.startsWith(`${BACKGROUND_FLAG}=`)
 }
 
 async function runDaemon(app: CliApp): Promise<number> {

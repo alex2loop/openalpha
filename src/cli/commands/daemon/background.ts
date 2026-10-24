@@ -30,7 +30,7 @@ const UPGRADE_STDOUT_LOG = 'upgrade.stdout.log'
 const UPGRADE_STDERR_LOG = 'upgrade.stderr.log'
 const RESTART_STDOUT_LOG = 'restart.stdout.log'
 const RESTART_STDERR_LOG = 'restart.stderr.log'
-const BACKGROUND_FLAG = '--background'
+export const BACKGROUND_FLAG = '--background'
 const EXIT_REASON_LINES = 3
 // Bounds the warnings a ready start relays; the daemon prints one line per degraded item.
 const RELAYED_WARNING_LINES = 20

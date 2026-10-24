@@ -1,5 +1,4 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
-import type { CliApp } from '@/cli/types'
 import type { ChannelAddress } from '@/core/channels'
 import type { AgentId, JobId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
@@ -14,13 +13,7 @@ import { parseChannelAddress } from '@/core/channels'
 import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
 import { t } from '@/i18n'
-import {
-  assertInterval,
-  assertJobPrompt,
-  assertKnownAgent,
-  assertValidCron,
-  resolveTimezone,
-} from '@/tools/api'
+import { assertValidCron, isValidInterval, resolveTimezone, validateJobPrompt } from '@/tools/api'
 
 import type { ScheduleResult } from './types'
 
@@ -79,7 +72,7 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, promptError)
     }
 
-    if (!isKnownAgent(app, agent)) {
+    if (!app.resolve('agents').has(agent)) {
       const validIds = [...app.resolve('agents').keys()].sort().join(', ')
 
       return usage(
@@ -116,23 +109,11 @@ export const scheduleAddCommand: Command = createCommand({
 })
 
 function promptRefusal(prompt: string, locale: Locale): string | undefined {
-  try {
-    assertJobPrompt(prompt)
+  const [issue] = validateJobPrompt(prompt)
 
-    return undefined
-  } catch (err: unknown) {
-    return t(locale, 'cli.scheduleInvalidJob', { reason: terminalErrorMessage(err, locale) })
-  }
-}
-
-function isKnownAgent(app: CliApp, agent: AgentId): boolean {
-  try {
-    assertKnownAgent(agent, (id) => app.resolve('agents').has(id))
-
-    return true
-  } catch {
-    return false
-  }
+  return issue === undefined
+    ? undefined
+    : t(locale, 'cli.scheduleInvalidJob', { reason: issue.message })
 }
 
 export function resolveSchedule(args: ParsedArgs, tz: string, locale: Locale): ScheduleResult {
@@ -188,9 +169,7 @@ function resolveIntervalSchedule(raw: string, locale: Locale): ScheduleResult {
     return { kind: 'error', error: renderLocalized(locale, parsed.error) }
   }
 
-  try {
-    assertInterval(parsed.ms)
-  } catch {
+  if (!isValidInterval(parsed.ms)) {
     return { kind: 'error', error: t(locale, 'cli.scheduleEveryTooShort', { value: raw }) }
   }
 

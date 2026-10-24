@@ -11,6 +11,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { AgentId } from '@/core/ids'
 import type { AgentProfile } from '@/engine/api'
 import '@/app/events'
+
 import { buildUserAgent, reloadUserAgents } from '@/app/agent-registry'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { AGENT_WRITE_BODY, toAgentDetailWire, toAgentToml } from '@/app/server/mappers/agent-edit'
@@ -22,6 +23,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/security/private-files'
 import { RESERVED_AGENT_IDS, userAgentFile } from '@/engine/api'
 import { t } from '@/i18n'
+import { pauseJobsOfAgent } from '@/scheduler/api'
 
 const MAX_BODY_BYTES = 64 * 1024
 
@@ -226,19 +228,6 @@ async function readOwnFile(path: string): Promise<string | null> {
   }
 }
 
-// Every schedule of this agent that is on, paused one by one: a schedule that stays on would keep
-// firing at an id that no longer resolves.
-async function pauseSchedulesOf(ctx: ApiRouteContext, id: AgentId): Promise<number> {
-  const store = ctx.app.resolve('jobStore')
-  const jobs = (await store.list()).filter((job) => job.agentId === id && job.enabled)
-
-  for (const job of jobs) {
-    await store.pause(job.id)
-  }
-
-  return jobs.length
-}
-
 async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = parsePathId(req, agentId)
 
@@ -265,7 +254,7 @@ async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Respons
     )
   }
 
-  const count = await pauseSchedulesOf(ctx, id)
+  const count = await pauseJobsOfAgent(ctx.app.resolve('jobStore'), id)
 
   // Cleared so a later agent reusing the id is never born paused.
   await ctx.app.resolve('agentPauseStore').resume([id])

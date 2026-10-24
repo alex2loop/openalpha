@@ -24,7 +24,7 @@ openalpha agent edit web-researcher  # opens it in $EDITOR
 
 A missing `agents/` directory is normal, not an error.
 
-`openalpha agent list` and `show <id>` inspect agents. `remove <id>` deletes one of yours and cannot touch a
+`openalpha agent list` and `show <id>` inspect agents. `remove <id>` deletes one of yours, pauses the schedules that were on for it, and cannot touch a
 built-in. `agent bind`, `unbind` and `bindings` map a channel chat to an agent - see [Commands](commands.md).
 
 ### From the office page

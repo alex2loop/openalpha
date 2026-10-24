@@ -1,8 +1,15 @@
 import { scrubCredentials } from '@/core/security/credentials'
-import { CHILD_SUMMARY_MAX_CHARS, RUN_TITLE_MAX_CHARS } from '@/engine/constants'
+import {
+  CHILD_SUMMARY_MAX_CHARS,
+  RESEARCH_DEPTH_PREFIX,
+  RUN_TITLE_MAX_CHARS,
+} from '@/engine/constants'
 
+const RESEARCH_DEPTH_RE = new RegExp(`^${RESEARCH_DEPTH_PREFIX}\\w+\\s+`)
+
+// The depth prefix is the command's note to the researcher, not what the operator asked.
 export function toRunTitle(text: string): string | undefined {
-  return toScrubbedHead(text, RUN_TITLE_MAX_CHARS)
+  return toScrubbedHead(text.replace(RESEARCH_DEPTH_RE, ''), RUN_TITLE_MAX_CHARS)
 }
 
 export function toChildSummary(text: string): string | undefined {

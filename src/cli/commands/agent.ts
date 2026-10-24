@@ -31,6 +31,7 @@ import {
   userAgentFile,
 } from '@/engine/api'
 import { t } from '@/i18n'
+import { pauseJobsOfAgent } from '@/scheduler/api'
 
 const CHANNEL_FLAG = {
   type: 'string',
@@ -262,9 +263,15 @@ async function removeAgent(args: ParsedArgs, app: CliApp): Promise<number> {
 
   // Cleared first: a failure here surfaces before anything is deleted, and a later agent reusing
   // the id is never born paused.
+  const paused = await pauseJobsOfAgent(app.resolve('jobStore'), id)
+
   await app.resolve('agentPauseStore').resume([id])
   await rm(dir, { recursive: true, force: true })
   app.out(success(t(locale, 'cli.agentRemoved', { path: dir, brand: BRAND.name })))
+
+  if (paused > 0) {
+    app.out(hint(t(locale, 'cli.agentSchedulesPaused', { brand: BRAND.name })))
+  }
 
   return 0
 }
@@ -331,6 +338,7 @@ async function showAgent(args: ParsedArgs, app: CliApp): Promise<number> {
     `  ${t(locale, 'cli.agentFieldDelegates')}: ${displayText(agent.delegates.join(', ')) || none}`
   )
   app.out(`  ${t(locale, 'cli.agentFieldMaxTurns')}: ${agent.maxTurns}`)
+  app.out(`  ${t(locale, 'cli.agentFieldMaxSpawn')}: ${agent.maxSpawn ?? none}`)
 
   for (const line of (await agentExtraLines(app, [agent])).get(agent.id) ?? []) {
     app.out(`  ${line}`)

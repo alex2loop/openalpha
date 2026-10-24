@@ -19,6 +19,7 @@ import { bindLocale } from '@/i18n'
 import { PriceUnconfirmedError } from '@/trading/api'
 
 const PARAM_PREFIX = ':'
+const SERVER_ERROR_STATUS = 500
 
 export function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
@@ -122,14 +123,25 @@ async function runHandler(
       throw err
     }
 
-    app.resolve('logger').error('api.handler_failed', {
-      method: route.method,
-      path: route.path,
-      err: formatErrForLog(err),
-    })
+    const code = toErrorCode(err)
+
+    // A refusal the handler meant to send is the caller's answer, not a failure of ours.
+    if (API_ERROR_STATUS[code] < SERVER_ERROR_STATUS) {
+      app.resolve('logger').debug('api.handler_refused', {
+        method: route.method,
+        path: route.path,
+        code,
+      })
+    } else {
+      app.resolve('logger').error('api.handler_failed', {
+        method: route.method,
+        path: route.path,
+        err: formatErrForLog(err),
+      })
+    }
 
     return apiError(
-      toErrorCode(err),
+      code,
       operatorText(app.config.locale.language, err),
       toErrorExtras(app.config.locale.language, err)
     )

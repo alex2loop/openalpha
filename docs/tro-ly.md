@@ -25,7 +25,7 @@ openalpha agent edit web-researcher  # mở bằng $EDITOR
 
 Chưa có thư mục `agents/` là chuyện bình thường, không phải lỗi.
 
-`openalpha agent list` và `show <id>` để xem. `remove <id>` xóa một agent của bạn và không chạm được vào agent có
+`openalpha agent list` và `show <id>` để xem. `remove <id>` xóa một agent của bạn, tạm dừng các lịch chạy đang bật của nó và không chạm được vào agent có
 sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Lệnh](lenh.md).
 
 ### Từ trang văn phòng

@@ -16,18 +16,34 @@ const MAX_EPOCH_MS = Date.UTC(9999, 11, 31, 23, 59, 59, 999)
 // The one owner of what a job may be, for every surface that makes one: the schedule tool, the CLI
 // and the API. Each throws `ToolError('invalid_input')` and leaves the wording to its caller.
 
-export function assertJobPrompt(prompt: string): void {
+interface PromptIssue {
+  readonly code: 'payload_too_large' | 'invalid_input'
+  readonly message: string
+}
+
+/** What is wrong with a prompt, first problem only; empty when it may run. */
+export function validateJobPrompt(prompt: string): readonly PromptIssue[] {
   const promptBytes = Buffer.byteLength(prompt, 'utf8')
 
   if (promptBytes > SCHEDULER_PROMPT_MAX_BYTES) {
-    throw new ToolError(
-      'payload_too_large',
-      `prompt size ${promptBytes} exceeds cap ${SCHEDULER_PROMPT_MAX_BYTES}`
-    )
+    return [
+      {
+        code: 'payload_too_large',
+        message: `prompt size ${promptBytes} exceeds cap ${SCHEDULER_PROMPT_MAX_BYTES}`,
+      },
+    ]
   }
 
-  if (hasBlockingThreat(scanOutput(prompt))) {
-    throw new ToolError('invalid_input', 'cron prompt rejected: injection pattern detected')
+  return hasBlockingThreat(scanOutput(prompt))
+    ? [{ code: 'invalid_input', message: 'cron prompt rejected: injection pattern detected' }]
+    : []
+}
+
+export function assertJobPrompt(prompt: string): void {
+  const [issue] = validateJobPrompt(prompt)
+
+  if (issue !== undefined) {
+    throw new ToolError(issue.code, issue.message)
   }
 }
 
@@ -48,8 +64,12 @@ export function assertValidCron(expr: string, now: number, tz: string): void {
   }
 }
 
+export function isValidInterval(everyMs: number): boolean {
+  return Number.isFinite(everyMs) && everyMs >= MINIMUM_INTERVAL_MS
+}
+
 export function assertInterval(everyMs: number): void {
-  if (!Number.isFinite(everyMs) || everyMs < MINIMUM_INTERVAL_MS) {
+  if (!isValidInterval(everyMs)) {
     throw new ToolError('invalid_input', `an interval is at least ${MINIMUM_INTERVAL_MS} ms`)
   }
 }

@@ -87,7 +87,8 @@ async function injectPrefs(memory: Memory, run: RunView, req: LLMRequest): Promi
 }
 
 async function extractPrefs(memory: Memory, run: RunView): Promise<void> {
-  if (!isPreferenceEligibleRun(run) || run.state.turn === 0) {
+  // A stopped or timed-out run has no reply to learn from; asking the model now would only fail.
+  if (!isPreferenceEligibleRun(run) || run.state.turn === 0 || run.state.abort.signal.aborted) {
     return
   }
 
