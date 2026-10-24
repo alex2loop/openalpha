@@ -28,6 +28,27 @@ Chưa có thư mục `agents/` là chuyện bình thường, không phải lỗi
 `openalpha agent list` và `show <id>` để xem. `remove <id>` xóa một agent của bạn và không chạm được vào agent có
 sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Lệnh](lenh.md).
 
+### Từ trang văn phòng
+
+Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạn mà không cần chạm vào tệp nào. Trang ghi đúng tệp
+`agent.toml` vào thư mục agent của bạn, nên `agent list` và `agent show` vẫn thấy agent, và sau này bạn sửa tay vẫn
+được.
+
+- Agent mới hay vừa sửa được kiểm tra như daemon kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
+  ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
+- Agent trả lời ở tin nhắn kế tiếp, không cần khởi động lại. Phiên chạy đang diễn ra giữ nguyên định nghĩa lúc bắt
+  đầu.
+- Công cụ của nó là một bộ cố định: tìm kiếm web, bộ nhớ, và các công cụ chỉ đọc về thị trường và đề xuất. Không bao
+  giờ có shell hay ghi tệp. Đặt `max_spawn` thì thêm `spawn` vào bộ đó.
+- Sửa là thay cả định nghĩa: thứ gì trang không gửi lên sẽ bị bỏ. Agent có sẵn và agent của plugin đọc được ở đó nhưng
+  không sửa hay xóa được.
+- Xóa một agent là gỡ thư mục của nó và tạm dừng mọi lịch đang bật của nó, để không lịch nào còn bắn vào một cái tên
+  không còn tồn tại; chuông báo đã tạm dừng bao nhiêu. Bộ nhớ, phiên chat, chi tiêu và bảng thành tích của nó vẫn còn.
+  Agent đang tham gia một mạng xã hội thì bị từ chối cho đến khi nó rời đi.
+- Tệp bạn sửa tay khi daemon đang chạy được nhận lại khi trang đọc lại thư mục. Tệp nạp lỗi bị bỏ qua kèm lý do và nằm
+  ngoài danh sách đang chạy cho đến khi bạn sửa xong và đọc lại. Nếu không đọc được cả thư mục, các agent đang chạy
+  giữ nguyên như cũ.
+
 ### Nội dung tệp
 
 Một agent chạy được chỉ cần ngần này:
@@ -62,7 +83,7 @@ quyền bạn đã cấp.
 | `max_duration_ms` | số nguyên dương | `[loop].max_duration_ms` từ config | Trần thời gian thực mỗi phiên chạy. Hạ được giá trị `[loop]`, không nâng được. |
 | `max_daily_usd` | số | không có | Phần của hôm nay dưới `[budget] max_daily_usd`. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
 | `[focus]` | bảng | không có | Agent nhìn vào đâu. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
-| `[look]` | bảng | không có | Diện mạo nhân vật của agent trên trang văn phòng: tối đa 8 phần, mỗi phần là một từ viết thường (hoặc nối bằng gạch ngang) dài không quá 24 ký tự (`hair = "short"`). Daemon chỉ lưu lại; trang quyết định giá trị nào vẽ được và tự chọn phần bạn bỏ trống theo mã của agent. |
+| `[look]` | bảng | không có | Diện mạo nhân vật của agent trên trang văn phòng: vài phần ngắn, mỗi phần là một từ viết thường (hoặc nối bằng gạch ngang) (`hair = "short"`). Daemon chỉ lưu lại và từ chối phần nào không có dạng đó; trang quyết định giá trị nào vẽ được và tự chọn phần bạn bỏ trống theo mã của agent. |
 | `model_tier` | chuỗi | không có | Một nhóm trong `[model_tiers]` mà mọi mục đều hỗ trợ công cụ. Agent của bạn đặt được; agent plugin không đáng tin thì không. |
 | `reasoning` | enum | `'default'` | **Chỉ agent đáng tin.** Agent của bạn không đặt được. |
 | `[capabilities]` | bảng | xem dưới | Trần bảo mật; mọi trường chỉ thu hẹp quyền. |

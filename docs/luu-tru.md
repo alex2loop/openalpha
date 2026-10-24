@@ -120,9 +120,10 @@ thì thay được, và đó là cách duy nhất để sửa một ngày.
 | `agent_focuses` | Mỗi phạm vi agent từng dùng để đưa ra nhận định (`agent_id`, `focus_key`, phạm vi dạng JSON, lần đầu và lần cuối thấy), để hồ sơ không mất khi bạn sửa `[focus]` |
 | `agent_pauses` | Một dòng cho mỗi agent đang tạm dừng: có dòng nghĩa là tạm dừng |
 | `suggestions.focus_key` | Phạm vi mà đề xuất được tạo ra (`default` cho của bạn); là một phần của chỉ mục định danh |
+| `suggestions.debate_models` | Các mô hình đã tranh luận một lời gọi, đã sắp xếp và nối bằng dấu phẩy; trống ở lời gọi lưu trước khi có cột. Bảng thành tích theo từng mô hình chỉ đếm các lời gọi mà đúng một mô hình tranh luận |
 | `llm_attempts.billing_agent_id` | Khoản chi tính vào `max_daily_usd` của agent nào; để trống khi dòng tính cho chính agent đã chạy |
 
-`db import` điền giá trị mặc định cho cột bị thiếu (phạm vi `default`, agent chịu chi phí để trống).
+`db import` điền giá trị mặc định cho cột bị thiếu (phạm vi `default`, agent chịu chi phí để trống, không có mô hình tranh luận).
 
 #### Mạng xã hội
 
@@ -183,6 +184,7 @@ là cửa sổ riêng của inbox. Một mục inbox được nhận việc tố
 | Mục inbox đang chờ hoặc đang xử lý | Không bị xóa theo `inbox_days`. Mục xử lý dở bị ngắt được đưa lại hàng đợi, tối đa 3 lần. Mục nào quá `days` mà không ai nhận (thường do kênh đã bị gỡ) thì bị xóa theo cửa sổ chung. |
 | Offset polling trong `channel_state` | Giữ vô thời hạn, như các mốc theo dõi việc gửi. |
 | Lịch sử bộ lập lịch | Dòng cũ hơn `days` chỉ bị cắt khi một việc có quá 200 dòng như vậy; 200 dòng mới nhất được giữ. |
+| `job_event_triggers`, `job_event_fires` | Không bị quét theo `days`: chúng đi cùng việc của mình, nên xóa một việc là xóa luôn thứ nó chờ và lần chạy gần nhất cho từng mã. |
 | Bộ nhớ | Bị xóa khi đã hết hạn, hoặc đã bị đánh dấu xóa quá `days`. |
 | Ghép nối đang chờ | Bị xóa sau `days`, tính từ lúc tạo. |
 | Cảnh báo đã nổ hoặc đã tắt | Bị xóa sau `days`, tính từ lúc nổ hoặc lúc bị tắt. Cảnh báo còn sống không bao giờ bị cắt. |

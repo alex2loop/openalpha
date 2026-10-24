@@ -85,6 +85,16 @@ Every surface closes a run that spent money with the same footer: cost, tokens, 
 named only when one model served every billed call. If the fallback chain switched mid-run there is no single
 name, so the footer shows only the count and the switch is printed on the line above.
 
+With the API on, the app shows cost before a run and after it. Beside each command it shows what that command
+usually costs: the middle half of what its last few finished runs cost, taken over the runs that cost something, so
+one outlier moves it little. It waits until the command has run a few times, shows nothing for a command that hands
+the turn to an agent (that spend belongs to the agent's own run), and shows zero to zero when none of the recent runs
+used AI. A command whose cost depends on what you type, such as `/suggest` on different names, pools every use under
+one name, so read it as a rough guide. Each finished run in the activity list carries what it cost together with every
+run beneath it: a command that started children, or an agent that spawned them, shows the whole bill in one number,
+not only the part it ran itself. On the models page, each model shows its own usual cost per run over the last
+month, once it has run in that window.
+
 ## How a call gets admitted
 
 Before each call the runtime estimates its worst-case cost and checks that the run, the day and the month all have

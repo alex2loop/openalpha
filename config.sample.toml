@@ -469,7 +469,9 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # Binds 127.0.0.1 only; on a server, reach it through an SSH tunnel or a reverse
 # proxy on the same host (docs/en/operations.md). Bearer token at
 # <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
-# `openalpha api token`, replace it with `openalpha api rotate`.
+# `openalpha api token`, replace it with `openalpha api rotate`. `openalpha api link`
+# prints the link to the office page with the token in it; keep it as private as the
+# token.
 
 # [api]
 # enabled = false

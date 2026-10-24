@@ -101,8 +101,8 @@ con là profile của agent cha giữ nguyên `id` (nhật ký, trần theo agen
 còn danh sách đọc `SPAWN_TOOL_NAMES`, không có danh sách ủy quyền, trần `[loop] spawn_max_turns` và `spawn_max_duration_ms` (mỗi trần bị cắt theo max_turns và max_duration_ms của `[loop]`),
 và nhóm `delegate` nếu có khai báo. `RunOptions.profile` mang nó vào: `runOnce` chỉ nhận một profile khi nó cùng `id` với agent
 đã cấu hình và danh sách công cụ nằm trong danh sách của agent đó, không thì ném `ValidationError`. `RunOptions.title` đặt tên
-phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `RUN_TITLE_MAX_CHARS`) và `run_finished` của nó mang `summary`,
-là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại.
+phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `RUN_TITLE_MAX_CHARS`) và `run_finished` của nó trên bus mang `summary`,
+là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại và `/v1/activity` hiển thị; sự kiện trên dây bỏ nó.
 
 Số agent con đang mở được đếm trên `DelegationQuota` của cây phiên chạy (`openChildren`, `trackChild`) cạnh hạn ngạch nhánh;
 mọi agent con được đếm trước lần `await` đầu tiên và được nhả trong `finally`. Chỗ trống là `maxSpawn` trừ số đang mở:

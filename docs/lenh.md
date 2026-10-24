@@ -140,7 +140,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
 | `/memory` | Gọi lại một mục theo khóa (`/memory <khóa>`), tìm (`find <từ khóa>`), ghi nhớ (`remember <khóa> <giá trị>`) hoặc xóa (`forget <khóa>`) |
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
-| `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn) |
+| `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn). Nó chỉ liệt kê các việc tạo từ chat này, mỗi việc theo id và nội dung. Việc tạo ở terminal hay trên trang web không thuộc chat nào nên không hiện ở đây: quản lý nó bằng `schedule` ở terminal hoặc trên trang, nơi việc chờ một cảnh báo thay vì chờ giờ hiện cảnh báo nó chờ (`khi FPT thủng mức cắt lỗ`) thay cho giờ |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
 | `/new` | Chuyển sang một phiên chat mới; các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
@@ -257,7 +257,7 @@ chừng khi khởi động (ví dụ cổng API đã có tiến trình khác dù
 mã thoát, rồi lệnh thoát với mã khác 0. Chờ quá 90 giây mà daemon vẫn chạy nhưng chưa sẵn sàng (nguồn dữ
 liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và thoát với mã 0; daemon không chạy lên được thì
 thoát với mã khác 0. `stop` và `status` hoạt động như nhau ở cả hai chế độ. `start` in phiên bản đang
-chạy, mô hình, các kênh nó mở, cổng API khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
+chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `api link` khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
 được cấu hình, nó còn báo bot chỉ bắt đầu trả lời sau khi dữ liệu thị trường tải xong; nhật ký ghi lại lúc
 các kênh mở. `restart` nhận cùng cờ `--background`.
 
@@ -353,7 +353,7 @@ openalpha api rotate
 phòng, đã kèm mã đó; liên kết là bí mật nên đừng gửi cho ai (phần tóm tắt của `start` chỉ nhắc tên
 lệnh). `api rotate` thay mã mới, và daemon cần
 khởi động lại để dùng mã mới. Khi đặt `[api] token_env`, mã là giá trị của biến đó và `rotate` không đụng
-tới nó.
+tới nó. Khi `[api]` đang tắt, `api token` và `api link` báo là đang tắt thay vì in ra gì cả.
 
 ## Đăng nhập nhà cung cấp
 

@@ -86,6 +86,15 @@ phí đã phát sinh vẫn được ghi lại.
 thời gian trôi. Tên mô hình chỉ hiện khi đúng một mô hình phục vụ mọi lời gọi tính tiền. Nếu chuỗi dự phòng đổi mô hình giữa
 chừng thì không còn một cái tên duy nhất, nên dòng cuối chỉ còn số đếm và lần đổi được in ở dòng ngay bên trên.
 
+Khi API bật, ứng dụng cho thấy chi phí trước khi chạy và sau khi chạy. Cạnh mỗi câu lệnh có mức nó thường tốn: nửa
+giữa của các lần chạy xong gần đây, tính trên những lần có tốn tiền, nên một lần lệch hẳn ít làm nó xê dịch. Nó chờ
+đến khi câu lệnh đã chạy vài lần, không hiện gì cho câu lệnh giao lượt cho agent (khoản đó thuộc phiên chạy của chính
+agent), và hiện từ 0 đến 0 khi các lần gần đây đều không dùng AI. Câu lệnh có chi phí phụ thuộc vào thứ bạn gõ, như
+`/suggest` trên các mã khác nhau, gộp mọi lần dùng dưới một cái tên, nên hãy coi đó là con số tham khảo. Mỗi phiên chạy
+đã xong trong danh sách hoạt động mang chi phí của nó cộng mọi phiên chạy bên dưới: một câu lệnh đã khởi động các phiên
+con, hay một agent đã sinh chúng, cho thấy cả hóa đơn trong một con số, không chỉ phần nó tự chạy. Ở trang mô hình, mỗi
+mô hình cho thấy chi phí thường lệ của một phiên chạy trên nó trong tháng qua, khi nó đã chạy trong khoảng đó.
+
 ## Một lời gọi được chấp nhận như thế nào
 
 Trước mỗi lời gọi, runtime ước lượng chi phí trong trường hợp xấu nhất và kiểm tra phiên chạy, ngày và tháng còn chỗ hay

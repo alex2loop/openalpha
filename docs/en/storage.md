@@ -122,9 +122,10 @@ All durable:
 | `agent_focuses` | Each focus an agent has made calls under (`agent_id`, `focus_key`, the focus as JSON, first and last seen), so a record survives an edit to `[focus]` |
 | `agent_pauses` | One row per paused agent: a row means paused |
 | `suggestions.focus_key` | The focus a call was made under (`default` for yours); part of the identity index |
+| `suggestions.debate_models` | The models that argued a call, sorted and joined by commas; empty on a call stored before the column existed. The per-model track record counts only calls that one model argued alone |
 | `llm_attempts.billing_agent_id` | Which agent's `max_daily_usd` the spend counts against; empty when the row bills to the agent that ran it |
 
-`db import` fills a missing column with its default (`default` focus, an empty billing agent).
+`db import` fills a missing column with its default (`default` focus, an empty billing agent, no debate models).
 
 #### Social networks
 
@@ -185,6 +186,7 @@ and `inbox_days` is the inbox's own. An inbox entry may be claimed 3 times befor
 | Pending or processing inbox entries | Not removed by `inbox_days`. Interrupted processing is requeued, up to 3 times. An entry nobody has claimed for more than `days` (usually because its channel was removed) is removed on the general window. |
 | Poll offsets in `channel_state` | Kept indefinitely, like other delivery checkpoints. |
 | Scheduler history | Rows older than `days` are pruned only beyond a job's newest 200 such rows. |
+| `job_event_triggers`, `job_event_fires` | Not swept by `days`: they go with their job, so removing a job removes what it waited for and when it last ran for each name. |
 | Memory | Removed once expired, or once marked deleted for more than `days`. |
 | Pending pairings | Removed after `days`, from creation. |
 | Fired or disabled alerts | Removed after `days`, from the time they fired or were disabled. Live alerts are never pruned. |

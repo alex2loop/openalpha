@@ -276,6 +276,9 @@ cap are in [Cost and budgets](budgets.md).
 All keys are optional. `[locale]` accepts no other keys. `currency` and `region` say where you are,
 so trading reads them here rather than keeping copies under `[trading]`.
 
+`[locale] language` is the only language setting. The trading profile keeps an old `preferred-locale` mirror of it
+in storage, but nothing reads it: changing it there changes nothing, and the profile your app shows reports this key.
+
 Text a model writes, such as a suggestion's thesis or a theme read, stays in the language of the run
 that wrote it. Changing `language`, or writing to the bot in another language, changes the labels
 around it, not the stored text; the next run writes in the new language.
@@ -350,7 +353,7 @@ you see.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, and brief snapshots past the newest per language. |
+| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, brief snapshots past the newest per language, and the history the app reads: finished runs behind the activity list, and the notices in the bell, read or not. |
 | `inbox_days` | int | `7` | Positive. How long to keep completed and failed inbox entries, payloads included. |
 | `daily_backups` | int | `3` | `0` or more. How many daily SQLite snapshots to keep in `backups/daily/`; `0` turns them off. PostgreSQL is skipped (use `pg_dump`). |
 
@@ -548,8 +551,9 @@ client on another machine connects through an SSH tunnel or a reverse proxy on t
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
 characters, the API stays closed (the saved token never stands in) and `start` warns while the rest of
-the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token; `openalpha api rotate`
-replaces it.
+the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token, `openalpha api link`
+prints the link to the office page with the token already in it (keep it as private as the token), and `openalpha api rotate`
+replaces the token.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|

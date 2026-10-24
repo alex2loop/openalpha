@@ -37,6 +37,12 @@ việc thì thoát ngay.
 | nhịp heartbeat | 30 giây | Quét `HEARTBEAT.md` của từng thư mục làm việc. |
 | nhịp lập lịch | 30 giây | Tìm các việc theo lịch đã đến hạn. |
 
+Khi API bật, ứng dụng liệt kê các vòng này, cùng vòng nào plugin thêm, thành một bảng việc daemon đang làm ngầm: tên
+vòng bằng lời thường, bao lâu chạy một lần nếu nó có nhịp cố định, lần chạy gần nhất bắt đầu lúc nào, lỗi cuối cùng
+nếu lần đó hỏng (lần chạy tốt kế tiếp xóa lỗi), lần chạy tới là khi nào và nó có đang làm việc không. Bản tin sáng
+và báo cáo trong ngày cho biết khi nào đến hạn lần kế. Bảng này nằm trong bộ nhớ, nên sau khi khởi động lại mỗi vòng
+chưa hiện gì cho đến lượt chạy kế tiếp của nó.
+
 ### Dữ liệu thị trường được làm mới khi nào
 
 `trading.refresh` không chạy theo đồng hồ đều đặn. Nó chạy ở mốc **sớm nhất** trong:
@@ -137,7 +143,7 @@ và công cụ của việc. `schedule show` in tập hiệu lực kèm `(restri
 
 Một việc có thể chờ một cảnh báo thay vì chờ giờ. Trang web tạo loại này: việc chạy khi mã bạn đang
 giữ thủng mức cắt lỗ hoặc chạm mức chốt lời, khi một mã biến động mạnh trong phiên, hay khi giá bạn
-đặt được chạm. Việc chạy tối đa một lần mỗi khoảng chờ (ít nhất năm phút) và vẫn bật sau khi chạy,
+đặt được chạm. Việc chạy tối đa một lần mỗi khoảng chờ, quãng nghỉ mà việc mang theo để một mã ồn ào không kích nó chạy liên tục, và vẫn bật sau khi chạy,
 trừ việc theo giá: một lần chạm là hết. `schedule list` ghi nó là `khi FPT chạm mức giá bạn đặt`
 thay cho giờ, `schedule edit` không đặt giờ cho nó được, `schedule remove` gỡ luôn cảnh báo giá nó
 đã đặt, còn `schedule resume` từ chối việc theo giá mà cảnh báo đã chạm.
@@ -337,7 +343,8 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    Chạy `systemctl --user enable --now openalpha`, rồi `loginctl enable-linger $USER` để nó vẫn chạy
    khi bạn đăng xuất. Để nâng cấp, chạy `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
    daemon do dịch vụ quản lý thì `upgrade` không tự khởi động lại.
-4. **Lấy mã API.** `openalpha api token` in mã ra (mã được tạo ở lần chạy đầu).
+4. **Lấy mã API.** `openalpha api token` in mã ra (mã được tạo ở lần chạy đầu). `openalpha api link` in liên kết
+   mở trang văn phòng với mã đã nằm sẵn trong đó; giữ kín như giữ mã.
 5. **Nối vào.** API chỉ nghe trên `127.0.0.1` của máy chủ. Chọn một cách:
    - **Đường hầm SSH**, không cần tên miền: `ssh -N -L 18765:127.0.0.1:8765 user@server`, rồi dùng
      địa chỉ `http://127.0.0.1:18765`. Dùng cổng khác 8765 ở máy bạn để không đụng daemon đang chạy
@@ -353,14 +360,16 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
 Khi đã nối, ứng dụng được cho thấy daemon đang làm gì ngay lúc nó diễn ra: từng câu trả lời và câu lệnh chạy
 lâu đang chạy cùng bước mới nhất của nó, mọi yêu cầu phê duyệt và câu hỏi còn chờ trên bất kỳ kênh nào, một
 lần khớp lệnh (lệnh cắt lỗ hoặc chốt lời đang treo được bán, hoặc một lần khớp của `/trade`), từng công cụ mà một phiên chạy bắt đầu và kết thúc, lời của từng vai trong cuộc tranh biện sau khi một `/suggest` được kiểm chứng (chỉ hiện trong ứng dụng, không bao giờ gửi tới chat), một agent mới gia nhập, lúc chạm hạn mức chi tiêu, và lần cuối kiểm tra cảnh
-báo. Ba loại tin vào chuông mà không tới chat nào trừ khi `[notices] chat` liệt kê: một đề xuất đã có kết quả, tin về mã bạn đang giữ, và chỉ số giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã daemon đã đọc, vì không có gì đi lấy tin cho các mã bạn giữ theo lịch. Ứng dụng nối muộn thì hỏi bức tranh hiện tại trước, rồi theo dõi luồng. Yêu cầu hỏi trên Telegram hay kênh
-khác vẫn hiện trong ứng dụng nhưng được trả lời ở nơi nó được hỏi; ứng dụng nói rõ điều đó thay vì trả lời hộ. Ứng dụng dừng được mọi phiên chạy bạn thấy, kể cả phiên bắt đầu từ Telegram: dừng chỉ là hủy, và phiên chạy kết thúc ở trạng thái đã hủy. Phiên chạy đã xong thì được báo là không còn nữa.
+báo. Những tin này vào chuông mà không tới chat nào trừ khi `[notices] chat` liệt kê: một đề xuất đã có kết quả, tin về mã bạn đang giữ, và chỉ số giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã daemon đã đọc, vì không có gì đi lấy tin cho các mã bạn giữ theo lịch. Ứng dụng nối muộn thì hỏi bức tranh hiện tại trước, rồi theo dõi luồng. Yêu cầu hỏi trên Telegram hay kênh
+khác vẫn hiện trong ứng dụng nhưng được trả lời ở nơi nó được hỏi; ứng dụng nói rõ điều đó thay vì trả lời hộ. Ứng dụng dừng được mọi phiên chạy bạn thấy, kể cả phiên bắt đầu từ Telegram: dừng chỉ là báo cho nó dừng, và nó kết thúc ở trạng thái đã dừng (một câu trả lời đang chạy) hoặc đã hủy (một câu lệnh). Phiên chạy đã xong thì được báo là không còn nữa. Ứng dụng cũng liệt kê các chat đã ghép nối trên từng kênh và bỏ ghép nối được một chat, kết quả giống `pair revoke`: tin kế tiếp của chat đó lại bị hỏi mã ghép nối.
+
+Ứng dụng còn đọc được những gì daemon biết mà không cần câu lệnh nào: lịch sử mọi cuộc chat, kể cả Telegram, tìm kiếm được nhưng chỉ nói tiếp được ở những chat do chính ứng dụng mở; từng nguồn dữ liệu và lần gần nhất nó trả lời; các máy chủ daemon có thể gọi tới và thứ gì được gửi tới từng nơi; các mô hình đang dùng cùng giá và chi phí thường lệ của một phiên chạy trên mỗi mô hình; sức mạnh ngành theo thị trường; và danh sách theo dõi của bạn, mà ứng dụng sửa được.
 
 Khi daemon dừng, API ngừng nhận kết nối và yêu cầu trước tiên, trước khi các lượt chạy được chờ xong; yêu
 cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi `unavailable`,
 lượt chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
 
-Ứng dụng cũng khởi động lại được một daemon đã bật bằng `--background`: chọn khởi động lại khi không còn gì đang chạy (chờ tối đa 2 phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Daemon dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng chờ thì bị ngắt; ứng dụng báo các yêu cầu phê duyệt đó trước. Khi daemon chạy lại, chuông hiện "Đã khởi động lại daemon." và không có gì gửi tới chat. Daemon chạy trong cửa sổ terminal hoặc do một dịch vụ quản lý thì ứng dụng không khởi động lại thay bạn được: dừng bằng Ctrl+C hoặc trình quản lý dịch vụ rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay daemon đang dừng, thì yêu cầu mới bị từ chối.
+Ứng dụng cũng khởi động lại được một daemon đã bật bằng `--background`: chọn khởi động lại khi không còn gì đang chạy (chờ tối đa vài phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Daemon dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; ứng dụng báo các yêu cầu phê duyệt đó trước. Khi daemon chạy lại, chuông hiện "Đã khởi động lại daemon." và không có gì gửi tới chat. Daemon chạy trong cửa sổ terminal hoặc do một dịch vụ quản lý thì ứng dụng không khởi động lại thay bạn được: dừng bằng Ctrl+C hoặc trình quản lý dịch vụ rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay daemon đang dừng, thì yêu cầu mới bị từ chối.
 
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 

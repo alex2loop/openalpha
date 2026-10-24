@@ -102,8 +102,8 @@ the parent's with its id kept (logs, the per-agent cap and log routing stay the 
 `SPAWN_TOOL_NAMES` read allowlist, no roster, `[loop] spawn_max_turns` and `spawn_max_duration_ms` as caps (each cut to the `[loop]` max_turns and max_duration_ms), and the
 `delegate` tier when declared. `RunOptions.profile` carries it: `runOnce` accepts one only with the configured
 agent's id and a tool list inside the configured agent's, else `ValidationError`. `RunOptions.title` names the run
-(`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`) and its `run_finished` carries `summary`, the scrubbed first
-`CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores.
+(`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`) and its `run_finished` on the bus carries `summary`, the scrubbed first
+`CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores and `/v1/activity` shows; the wire event leaves it out.
 
 Open children are counted on the run tree's `DelegationQuota` (`openChildren`, `trackChild`) beside the fan-out quota;
 every child is tracked before the first await and released in `finally`. Room is `maxSpawn` minus the

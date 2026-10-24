@@ -5,7 +5,7 @@
 #
 # Required: system_prompt
 # Optional: id, name, description, max_turns, max_tokens, max_duration_ms, max_daily_usd,
-#           [focus], [capabilities]
+#           [focus], [look], [capabilities]
 # model_tier: your own agents may set it; reasoning: trusted agents only.
 # Unknown keys or invalid values are logged, and that user agent is skipped at boot.
 #
@@ -106,6 +106,12 @@ tools = [
 # max_spawn = 2
 # hosts = ["*.wikipedia.org", "arxiv.org"]
 # skills = ["market-research"]
+
+# An agent made in the office page is written to this same file with a fixed tool preset:
+# web search and fetch, memory, the read-only market and suggestion tools, now and calc,
+# plus spawn when max_spawn is above 0. Never a shell, a file write or a schedule. When the
+# page edits such a file it keeps the turn and token caps, hosts, skills and delegates you
+# wrote here and replaces only what it owns.
 
 # ---- Workspace boundary -----------------------------------------------------
 # File tools are rooted at <data_dir>/workspaces/<id>/. An approved shell starts

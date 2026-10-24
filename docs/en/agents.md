@@ -27,6 +27,27 @@ A missing `agents/` directory is normal, not an error.
 `openalpha agent list` and `show <id>` inspect agents. `remove <id>` deletes one of yours and cannot touch a
 built-in. `agent bind`, `unbind` and `bindings` map a channel chat to an agent - see [Commands](commands.md).
 
+### From the office page
+
+With the API on, the office page can create, edit and delete your agents without you touching a file. It writes
+the same `agent.toml` into your agents folder, so `agent list` and `agent show` see the agent and a later hand edit
+still works.
+
+- A new or edited agent is checked the way the daemon checks a file at start: the file shape, the id, the focus,
+  the budget cap, the prompt scan and the model tier. A refusal comes back in plain words and nothing is written.
+- The agent answers on its next message, with no restart. A run already going keeps the definition it started
+  with.
+- Its tools are a fixed set: web research, memory, and read-only market and suggestion tools. Never a shell or a
+  file write. Giving it `max_spawn` adds `spawn` to the set.
+- An edit replaces the whole definition: anything the page does not send is removed. Built-in and plugin agents
+  can be read there but not edited or deleted.
+- Deleting an agent removes its folder and pauses every schedule that was on for it, so none keeps firing at a
+  name that no longer resolves; the bell says how many. Its memory, sessions, spend and track record stay. An
+  agent that is on a social network is refused until it leaves.
+- A file you edited by hand while the daemon runs is picked up when the page reads the folder again. A file that
+  fails to load is skipped with its reason and stays out of the running set until you fix it and read again. If the
+  folder itself cannot be read, the agents already running stay exactly as they were.
+
 ### The file
 
 A working agent is this short:
@@ -61,7 +82,7 @@ ignored would read as a permission you granted.
 | `max_duration_ms` | positive int | `[loop].max_duration_ms` from config | Per-run wall-clock cap. Can lower the `[loop]` value, never raise it. |
 | `max_daily_usd` | number | none | This agent's share of the day, under `[budget] max_daily_usd`. See [Focus, spend and pause](#focus-spend-and-pause). |
 | `[focus]` | table | none | What the agent looks at. See [Focus, spend and pause](#focus-spend-and-pause). |
-| `[look]` | table | none | How the agent's character looks in the office page: up to 8 parts, each a lowercase word or hyphenated slug of at most 24 characters (`hair = "short"`). The daemon only stores it; the page decides which values it can draw and fills any part you leave out from the agent's id. |
+| `[look]` | table | none | How the agent's character looks in the office page: a few short parts, each a lowercase word or hyphenated slug (`hair = "short"`). The daemon only stores it and refuses a part that is not shaped that way; the page decides which values it can draw and fills any part you leave out from the agent's id. |
 | `model_tier` | string | none | A tier in `[model_tiers]` whose every entry supports tools. Your agents may set it; untrusted plugin agents may not. |
 | `reasoning` | enum | `'default'` | **Trusted agents only.** Your agents may not set it. |
 | `[capabilities]` | table | see below | Security ceiling; every field only narrows access. |

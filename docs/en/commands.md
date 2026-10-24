@@ -140,7 +140,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/upgrade` | Operator only: shows your version, the latest release and what it brings; `/upgrade confirm` (or the button) installs it from Telegram/Zalo |
 | `/memory` | Recall an entry by key (`/memory <key>`), search (`find <query>`), save (`remember <key> <value>`) or remove (`forget <key>`) |
 | `/cost` | Show this chat's usage and today's spend against the cap |
-| `/schedule` | List, inspect, pause, resume, run or remove one of your jobs (`/schedule remove <id>` deletes it) |
+| `/schedule` | List, inspect, pause, resume, run or remove one of your jobs (`/schedule remove <id>` deletes it). It lists only the jobs made from this chat, each by its id and what it does. A job made in the terminal or on the web page belongs to no chat, so it does not appear here: manage it with `schedule` in the terminal or on the page, where one that waits for an alert instead of a time shows the alert it waits for (`when FPT broke its stop`) in place of a time |
 | `/config` | Show the live language, model, budget and channels |
 | `/new` | Switch to a fresh chat session; commands waiting in the chat's line are dropped and the ones running are stopped |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
@@ -259,8 +259,8 @@ that dies while starting (the API port already in use, say) is reported at once 
 error message and exit code, and the command exits non-zero. After 90 seconds a daemon that is
 running but not ready yet (a slow data source) is left running: the command says how to follow it
 and exits zero; one that never came up exits non-zero. `stop` and `status` work the same in both
-modes. A start prints the version it runs, the model, the channels it opens, the API port when
-`[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
+modes. A start prints the version it runs, the model, the channels it opens, the API port and a
+line naming `api link` when `[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
 starts answering once market data has loaded; the log records when the channels open.
 `restart` takes the same `--background` flag.
 
@@ -363,7 +363,7 @@ openalpha api rotate
 to the office page with that token in it; it is a secret, so share it with no one (the `start` summary
 only names the command). `api rotate` replaces the token,
 and the daemon needs a restart to use the new one. With `[api] token_env` set, the token is that
-variable and `rotate` leaves it alone.
+variable and `rotate` leaves it alone. While `[api]` is off, `api token` and `api link` say so instead of printing anything.
 
 ## Provider logins
 

@@ -106,11 +106,63 @@
   },
   {
     "v": 1,
+    "kind": "tool_started",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc",
+    "tool": { "name": "vn_price", "ok": true, "capability": "read" }
+  },
+  {
+    "v": 1,
     "kind": "tool_result",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
     "runId": "run_abc",
-    "tool": { "name": "vn_price", "ok": true }
+    "tool": { "name": "vn_price", "ok": true, "capability": "read" }
+  },
+  {
+    "v": 1,
+    "kind": "tool_result",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "" },
+    "runId": "run_abc",
+    "tool": { "name": "order_place", "ok": false, "capability": "write", "skipped": true }
+  },
+  {
+    "v": 1,
+    "kind": "role_output",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "role": {
+      "ticker": "FPT",
+      "market": "equity-vn",
+      "role": "bull",
+      "stance": "Bullish",
+      "summary": "Cloud revenue keeps growing faster than the sector.",
+      "citations": 3,
+      "unsupported": false
+    }
+  },
+  {
+    "v": 1,
+    "kind": "role_output",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "role": {
+      "ticker": "FPT",
+      "market": "equity-vn",
+      "role": "bear",
+      "stance": "Bearish",
+      "citations": 1,
+      "unsupported": true
+    }
+  },
+  {
+    "v": 1,
+    "kind": "agent_added",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "vn-banks" },
+    "agent": { "agentId": "vn-banks", "name": "VN banks" }
   },
   {
     "v": 1,
@@ -279,6 +331,24 @@
   },
   {
     "v": 1,
+    "kind": "call_scored",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "FPT call closed on its target: +6.2% net of fees, against +1.1% for VN-Index.",
+    "call": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000001",
+      "ticker": "FPT",
+      "market": "equity-vn",
+      "action": "buy",
+      "status": "target",
+      "returnPct": 0.062,
+      "benchmark": { "name": "VNINDEX", "returnPct": 0.011 },
+      "focusKey": "default",
+      "day": "2026-09-10"
+    }
+  },
+  {
+    "v": 1,
     "kind": "schedule_result",
     "weight": "sneak",
     "source": { "channel": "api", "agentId": "" },
@@ -291,7 +361,24 @@
     "source": { "channel": "api", "agentId": "" },
     "note": "Price alerts to telegram are off after repeated failed sends"
   },
-
+  {
+    "v": 1,
+    "kind": "notice",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "News on FPT, which you hold: FPT signs a new cloud contract.",
+    "noticeKind": "held-news",
+    "instrument": { "market": "equity-vn", "ticker": "FPT" }
+  },
+  {
+    "v": 1,
+    "kind": "notice",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "VN-Index fell 1.7% in this session.",
+    "noticeKind": "index-drop",
+    "move": -1.7
+  },
   {
     "v": 1,
     "kind": "daemon_notice",
@@ -299,7 +386,6 @@
     "source": { "channel": "api", "agentId": "" },
     "note": "Daemon restarted"
   },
-
   {
     "v": 1,
     "kind": "notices_changed",

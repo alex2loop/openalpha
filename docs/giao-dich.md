@@ -565,6 +565,24 @@ Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải 
 - `/brief` đứng một mình hiện bản tin mới nhất, dựng một bản nếu chưa có.
 - `/brief disable` dừng việc gửi.
 
+#### Những tin chỉ nằm trong chuông
+
+Ba loại tin vào chuông trong ứng dụng mà không tới chat nào, để ngày yên ắng thì điện thoại cũng yên ắng. Thêm loại tin
+vào `[notices] chat` trong `config.toml` nếu muốn nhận cả ở chat: `call-scored`, `held-news` hoặc `index-drop` (tên nào
+khác làm daemon dừng ngay lúc khởi động, kèm danh sách hợp lệ). Mọi thứ khác daemon gửi tới chat vẫn như cũ.
+
+- **Một lời gọi đã được chấm.** Khi bảng thành tích đóng một lời gọi bạn đã nhận, ở mục tiêu, mức cắt lỗ hoặc lúc hết hạn,
+  bạn được báo một lần: kết quả sau phí, cạnh mức chuẩn của chính thị trường đó trong cùng quãng, nếu thị trường có nêu
+  chuẩn. Chỉ lời gọi có cửa sổ vừa kết thúc trong vài ngày gần đây mới được báo, nên lượt chấm đầu tiên sau khi nâng cấp
+  không làm chuông ngập kết quả cũ. Thẻ của lời gọi đó có đủ bức tranh.
+- **Tin về mã bạn đang giữ.** Mỗi mã đang giữ có một thông báo mỗi ngày, kèm tiêu đề và nguồn. Nó chỉ gồm những mã
+  daemon đã đọc: tiêu đề được lưu lại khi một `/suggest` hay một cuộc chat về mã đó đọc đến chúng, và không có gì đi lấy
+  tin cho các mã bạn giữ theo lịch. Sau khi khởi động lại, nó không lặp lại tiêu đề của ngày hôm đó.
+- **Chỉ số giảm mạnh.** Khi chỉ số của khu vực giảm ít nhất 1,5% trong một phiên, mỗi phiên một lần, kiểm tra vài phút
+  một lần trong lúc phiên đang chạy. Thông báo nói bao nhiêu mã bạn giữ đang giảm và có mã nào thủng mức cắt lỗ chưa.
+  Nếu có mã không định giá được, nó nói bao nhiêu mã chưa kiểm tra được, và không bao giờ khẳng định là không có mã nào
+  thủng.
+
 ### Chủ đề
 
 `/themes` là lần đọc từ trên xuống về cổ phiếu Việt Nam, và nó dừng ngay trước một giao dịch. Một lượt chạy:

@@ -273,6 +273,9 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 Mọi khóa đều tùy chọn. `[locale]` không nhận khóa nào khác. `currency` và `region` cho biết bạn đang ở
 đâu, nên phần giao dịch đọc chúng ở đây thay vì giữ bản trùng dưới `[trading]`.
 
+`[locale] language` là cài đặt ngôn ngữ duy nhất. Hồ sơ giao dịch còn giữ trong kho một bản sao cũ tên `preferred-locale`, nhưng
+không có gì đọc nó: sửa ở đó không đổi gì, và hồ sơ mà ứng dụng hiện ra báo đúng khóa này.
+
 Phần chữ do mô hình viết, như luận điểm của một đề xuất hay phần đọc một chủ đề, giữ nguyên ngôn
 ngữ của lần chạy đã viết ra nó. Đổi `language`, hoặc nhắn bot bằng ngôn ngữ khác, chỉ đổi phần nhãn
 xung quanh chứ không đổi phần chữ đã lưu; lần chạy sau sẽ viết bằng ngôn ngữ mới.
@@ -348,7 +351,7 @@ vào cấu hình bạn xem.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, lượt chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, và bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ. |
+| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, lượt chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
 | `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
 
@@ -546,7 +549,7 @@ Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
 không được dùng thay) và `start` in cảnh báo, phần còn lại của daemon vẫn chạy; cổng đã bị dùng thì
 `start` vẫn dừng.
-`openalpha api token` in mã ra; `openalpha api rotate` thay mã mới.
+`openalpha api token` in mã ra, `openalpha api link` in liên kết mở trang văn phòng với mã đã nằm sẵn trong đó (giữ kín như giữ mã), còn `openalpha api rotate` thay mã mới.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
