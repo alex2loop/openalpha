@@ -4,6 +4,7 @@ import type { RunId } from '@/core/ids'
 import type { RunProgressMessage } from '@/engine/api'
 import type { RunLogRow } from '@/persistence/api'
 import { formatErrForLog } from '@/core/security/credentials'
+import { trimToSize } from '@/core/utils/collections'
 
 /** Runs that have started and not finished. A run whose finish never arrives is dropped oldest first. */
 const MAX_OPEN_RUNS = 500
@@ -95,15 +96,7 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
 
 function remember(open: Map<RunId, OpenRun>, run: OpenRun): void {
   open.set(run.runId, run)
-
-  // Insertion order is start order, so the first key is the oldest.
-  for (const oldest of open.keys()) {
-    if (open.size <= MAX_OPEN_RUNS) {
-      return
-    }
-
-    open.delete(oldest)
-  }
+  trimToSize(open, MAX_OPEN_RUNS)
 }
 
 function noteSources(open: Map<RunId, OpenRun>, id: RunId, message: RunProgressMessage): void {

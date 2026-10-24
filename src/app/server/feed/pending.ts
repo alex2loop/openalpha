@@ -5,6 +5,7 @@ import type { Locale } from '@/core/types/locale'
 import { isApiChannel } from '@/app/server/channel'
 import { toApprovalWire } from '@/app/server/ws/wire-events'
 import { scrubCredentials } from '@/core/security/credentials'
+import { trimToSize } from '@/core/utils/collections'
 import { MS_PER_DAY } from '@/core/utils/time'
 
 /** Bounds each map of requests a client can ask about; the oldest go first. */
@@ -77,7 +78,7 @@ function followApprovals(
         runId: e.runId,
         expiresAt: e.expiresAt,
       })
-      trimOldest(approvals)
+      trimToSize(approvals, MAX_PENDING)
     }),
     // The gate takes an answer only from the channel that asked, so any other channel's is no answer.
     bus.on('approval_resolved', (e) => {
@@ -106,7 +107,7 @@ function followQuestions(
         askedAt: e.askedAt,
         answerable: isApiChannel(e.channel),
       })
-      trimOldest(questions)
+      trimToSize(questions, MAX_PENDING)
     }),
     // The answer turn is an agent run in the question's session; a slash command typed in the same
     // chat starts a command, which answers nothing.
@@ -139,16 +140,5 @@ function prune(
     if (question.askedAt + QUESTION_PENDING_TTL_MS <= now) {
       questions.delete(requestId)
     }
-  }
-}
-
-// Insertion order is ask order, so the first key is the oldest request.
-function trimOldest(map: Map<string, unknown>): void {
-  for (const key of map.keys()) {
-    if (map.size <= MAX_PENDING) {
-      return
-    }
-
-    map.delete(key)
   }
 }

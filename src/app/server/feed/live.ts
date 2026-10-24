@@ -29,6 +29,7 @@ import {
   WIRE_NORMALIZERS,
 } from '@/app/server/ws/wire-events'
 import { formatErrForLog } from '@/core/security/credentials'
+import { trimToSize } from '@/core/utils/collections'
 
 /** Bounds the map of runs a client can ask about; the oldest go first. */
 const MAX_LIVE_RUNS = 200
@@ -230,15 +231,6 @@ interface BookEntry {
 function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
   // Insertion order is start order, so the first key is the oldest run.
   const runs = new Map<RunId, BookEntry>()
-  const trimOldest = (): void => {
-    for (const runId of runs.keys()) {
-      if (runs.size <= MAX_LIVE_RUNS) {
-        return
-      }
-
-      runs.delete(runId)
-    }
-  }
   // A run that predates the feed is not in the map: its events are still broadcast.
   const update = (runId: RunId, change: (entry: LiveRunWire) => LiveRunWire): void => {
     const entry = runs.get(runId)
@@ -251,7 +243,7 @@ function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
   return {
     start(runId, wire) {
       runs.set(runId, { wire, lastBroadcastAt: undefined })
-      trimOldest()
+      trimToSize(runs, MAX_LIVE_RUNS)
     },
     report: (runId, progress) => reportTo(runs, runId, progress),
     think: (runId, excerpt) => update(runId, (entry) => ({ ...entry, thinking: excerpt })),
@@ -271,7 +263,7 @@ function createRunBook(isLive: (runId: RunId) => boolean): RunBook {
         }
       }
 
-      trimOldest()
+      trimToSize(runs, MAX_LIVE_RUNS)
 
       return [...runs.values()].map((entry) => entry.wire)
     },
