@@ -57,6 +57,9 @@ export interface DeliveryHub {
   /** True while a channel runs a long slash command: work a restart would cut off. False with no
    *  channels. */
   isWorking(): boolean
+  /** Files a message with the delivery listeners and sends it to no chat: the bell and a connected
+   *  page see it, a channel does not. Nothing can fail, so it always answers `accepted`. */
+  post(message: SurfaceMessage): 'accepted'
   /** Delivers and reports whether the send actually completed. The delivery state machines in
    *  trading are only correct if `accepted` means the sender call finished — `sink.notify` is
    *  fire-and-forget by comparison. */
@@ -140,10 +143,18 @@ interface SenderParts {
   readonly delivered: DeliveredListeners
 }
 
-function createSenders(parts: SenderParts): Pick<DeliveryHub, 'sink' | 'sendAcknowledged'> {
+function createSenders(
+  parts: SenderParts
+): Pick<DeliveryHub, 'sink' | 'sendAcknowledged' | 'post'> {
   const { surfaces, delivered } = parts
 
   return {
+    post(message) {
+      delivered.emit(message, [])
+
+      return 'accepted'
+    },
+
     sink: {
       async notify(target: DeliveryTarget, text: string): Promise<void> {
         const router = parts.capture()

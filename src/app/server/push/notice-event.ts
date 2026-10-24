@@ -50,15 +50,51 @@ function moverEvent(
   }
 }
 
-/** A scheduled result only flashes by; any other notice (a delivery turned off, a restated
- *  series) asks for the operator. */
-function noteEvent(kind: 'schedule_result' | 'notice', text: string): WireEvent {
+function callScoredEvent(
+  payload: Extract<Payload, { readonly kind: 'call-scored' }>,
+  text: string
+): WireEvent {
+  const { benchmark } = payload
+
   return {
     v: 1,
-    kind,
-    weight: kind === 'notice' ? 'nudge' : 'sneak',
+    kind: 'call_scored',
+    weight: 'nudge',
     source: APP_SOURCE,
     note: text,
+    call: {
+      suggestionId: payload.suggestionId,
+      ticker: payload.instrument.ticker,
+      market: payload.instrument.market,
+      action: payload.action,
+      status: payload.status,
+      returnPct: payload.returnPct,
+      ...(benchmark === undefined
+        ? {}
+        : { benchmark: { name: benchmark.instrument.ticker, returnPct: benchmark.returnPct } }),
+      focusKey: payload.focusKey,
+      day: payload.day,
+    },
+  }
+}
+
+/** A notice that asks for the operator (a delivery turned off, a restated series, news on a
+ *  holding). Its kind rides along so a page can place it; a held name and an index move carry what
+ *  the page pins it on. */
+function noticeEvent(payload: Payload, text: string): WireEvent {
+  return {
+    v: 1,
+    kind: 'notice',
+    weight: 'nudge',
+    source: APP_SOURCE,
+    note: text,
+    noticeKind: payload.kind,
+    ...(payload.kind === 'held-news'
+      ? {
+          instrument: { market: payload.instrument.market, ticker: payload.instrument.ticker },
+        }
+      : {}),
+    ...(payload.kind === 'index-drop' ? { move: payload.movePct } : {}),
   }
 }
 
@@ -72,10 +108,18 @@ export function toWireEvent(message: {
 }): WireEvent | undefined {
   const payload = message.notice?.payload
 
-  switch (payload?.kind) {
-    case undefined:
-      return noteEvent('schedule_result', message.text)
+  // A scheduled result only flashes by.
+  if (payload === undefined) {
+    return {
+      v: 1,
+      kind: 'schedule_result',
+      weight: 'sneak',
+      source: APP_SOURCE,
+      note: message.text,
+    }
+  }
 
+  switch (payload.kind) {
     case 'exit-filled':
       return undefined
 
@@ -96,7 +140,10 @@ export function toWireEvent(message: {
         brief: { snapshotId: payload.snapshot.id, day: payload.snapshot.asOf },
       }
 
+    case 'call-scored':
+      return callScoredEvent(payload, message.text)
+
     default:
-      return noteEvent('notice', message.text)
+      return noticeEvent(payload, message.text)
   }
 }

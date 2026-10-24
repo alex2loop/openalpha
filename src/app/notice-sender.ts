@@ -8,13 +8,16 @@ import { resolveDefaultRecipient } from '@/channels/api'
 import { readUpdateLine } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
-import { setEnvCommand } from '@/core/config/resolve'
+import { OperatorConfigError, setEnvCommand } from '@/core/config/resolve'
 import { t } from '@/i18n'
 import {
   NOTICE_KINDS,
   renderAlertNotice,
   renderBriefText,
+  renderCallScoredNotice,
   renderExitFillNotice,
+  renderHeldNewsNotice,
+  renderIndexDropNotice,
   renderIntradayText,
   renderLoopQuarantineNotice,
   renderRestatementNotice,
@@ -22,6 +25,14 @@ import {
 } from '@/trading/api'
 
 type DeliveryAddress = Parameters<TradingNoticeSender['resolveRecipient']>[0]
+
+/** Readings nobody asked for, one per call, name or session: they reach the bell and a connected
+ *  page, and a chat only when `[notices] chat` lists the kind. */
+const BELL_ONLY_KINDS = Object.freeze([
+  'call-scored',
+  'held-news',
+  'index-drop',
+] as const satisfies readonly NoticeKind[])
 
 /** Unattended delivery has no invoking surface to resolve a context from, and it is only ever sent
  *  to a channel - so it states the destination rather than inventing one to read it from. */
@@ -57,15 +68,7 @@ function render(notice: TradingNotice, timezone: string): string {
   }
 
   if (payload.kind === 'brief') {
-    const body = renderBriefText(
-      locale,
-      payload.snapshot,
-      resolveRenderContext(timezone, UNATTENDED_SURFACE)
-    )
-
-    return payload.sentAfterOpen === true
-      ? `${t(locale, 'trading.brief.sentAfterOpen')}\n\n${body}`
-      : body
+    return renderBrief(locale, payload, timezone)
   }
 
   if (payload.kind === 'intraday') {
@@ -84,7 +87,49 @@ function render(notice: TradingNotice, timezone: string): string {
     return renderExitFillNotice(locale, payload)
   }
 
+  if (isWatchPayload(payload)) {
+    return renderWatchNotice(locale, payload)
+  }
+
   return renderOperationalNotice(locale, payload)
+}
+
+function renderBrief(
+  locale: Locale,
+  payload: Extract<TradingNotice['payload'], { readonly kind: 'brief' }>,
+  timezone: string
+): string {
+  const body = renderBriefText(
+    locale,
+    payload.snapshot,
+    resolveRenderContext(timezone, UNATTENDED_SURFACE)
+  )
+
+  return payload.sentAfterOpen === true
+    ? `${t(locale, 'trading.brief.sentAfterOpen')}\n\n${body}`
+    : body
+}
+
+/** The readings the watches file: a scored call, news on a holding, the index falling. */
+type WatchPayload = Extract<
+  TradingNotice['payload'],
+  { readonly kind: 'call-scored' | 'held-news' | 'index-drop' }
+>
+
+function isWatchPayload(payload: TradingNotice['payload']): payload is WatchPayload {
+  return (
+    payload.kind === 'call-scored' || payload.kind === 'held-news' || payload.kind === 'index-drop'
+  )
+}
+
+function renderWatchNotice(locale: Locale, payload: WatchPayload): string {
+  if (payload.kind === 'call-scored') {
+    return renderCallScoredNotice(locale, payload)
+  }
+
+  return payload.kind === 'held-news'
+    ? renderHeldNewsNotice(locale, payload)
+    : renderIndexDropNotice(locale, payload)
 }
 
 /** The notices about the service itself rather than a reading of the market. */
@@ -100,6 +145,9 @@ type OperationalPayload = Exclude<
       | 'exit-plan'
       | 'stop-raised'
       | 'exit-filled'
+      | 'call-scored'
+      | 'held-news'
+      | 'index-drop'
   }
 >
 
@@ -173,6 +221,31 @@ function isNoticeKind(kind: string): kind is NoticeKind {
   return NOTICE_KINDS.some((known) => known === kind)
 }
 
+function isBellOnlyKind(kind: string): boolean {
+  return BELL_ONLY_KINDS.some((known) => known === kind)
+}
+
+/** A bell-only kind stays off the chats unless the operator named it. */
+function isBellOnly(kind: string, chatKinds: readonly string[]): boolean {
+  return isBellOnlyKind(kind) && !chatKinds.includes(kind)
+}
+
+/** `[notices] chat` may name only the kinds the daemon holds back from a chat. Core takes the
+ *  strings as written, so this is where an unknown one is refused. */
+export function assertNoticeChatKinds(chat: readonly string[]): void {
+  const kinds = BELL_ONLY_KINDS.join(', ')
+
+  for (const kind of chat) {
+    if (!isBellOnlyKind(kind)) {
+      throw new OperatorConfigError(
+        `[notices] chat names an unknown notice kind: ${kind}`,
+        { key: 'errors.noticeKindUnknown', params: { kind, kinds } },
+        { path: ['notices', 'chat'] }
+      )
+    }
+  }
+}
+
 interface NoticeSenderOptions {
   readonly delivery: DeliveryHub
   readonly config: ResolvedConfig
@@ -192,6 +265,10 @@ export function createTradingNoticeSender(options: NoticeSenderOptions): Trading
   return {
     send: async (notice, signal) => {
       const text = await renderWithUpdate(notice, config, timezone)
+
+      if (isBellOnly(notice.payload.kind, config.notices.chat)) {
+        return delivery.post({ text, notice })
+      }
 
       return await delivery.sendAcknowledged(
         notice.target,

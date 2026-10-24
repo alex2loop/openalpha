@@ -20,7 +20,7 @@ import { loadAssets } from '@/app/assets'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
 import { createAlertFiredListener } from '@/app/event-jobs'
-import { createTradingNoticeSender } from '@/app/notice-sender'
+import { assertNoticeChatKinds, createTradingNoticeSender } from '@/app/notice-sender'
 import { buildProviders } from '@/app/providers'
 import { assertSocialToolRules, createSocialProvider } from '@/app/social'
 import { hydrateStartupState, migrateStartupSchema } from '@/app/startup-state'
@@ -281,6 +281,9 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
     deferMissingKeys: true,
   })
   const { trading: tradingConfig, social: socialConfig } = resolveBootExtensions(config)
+
+  assertNoticeChatKinds(config.notices.chat)
+
   const check = await (options.bootGate ?? passThroughBootGate)({
     configPath,
     dataDir: config.paths.dataDir,

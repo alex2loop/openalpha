@@ -182,7 +182,10 @@ export type { FocusScope } from '@/trading/kernel/operator/focus'
 export type {
   AlertFired,
   AlertFiredListener,
+  CallScoredPayload,
   ExitFillPayload,
+  HeldNewsPayload,
+  IndexDropPayload,
   NoticeKind,
   OrderFill,
   OrderFilledListener,
@@ -209,14 +212,21 @@ export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
 
 // ── Values ───────────────────────────────────────────────────────────────────
 
+// ── Values ───────────────────────────────────────────────────────────────────
+
 export { renderAlertNotice } from '@/trading/features/alerts/render'
 export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'
+export {
+  renderHeldNewsNotice,
+  renderIndexDropNotice,
+} from '@/trading/features/market-data/ops/held-watch-notice'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
 export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
+export { renderCallScoredNotice } from '@/trading/features/suggestion/track-record/scored-notice'
 export {
   isUndecidedHold,
   SUGGESTION_LIST_STATUSES,

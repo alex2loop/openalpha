@@ -5,6 +5,7 @@ import type {
   RawConfig,
   RawLlm,
   RawLoop,
+  RawNotices,
   RawSchedule,
 } from '@/core/config/schema'
 import type { Locale } from '@/core/types/locale'
@@ -91,6 +92,11 @@ export interface ResolvedApi {
   readonly enabled: boolean
   readonly port: number
   readonly tokenEnv?: string
+}
+
+export interface ResolvedNotices {
+  /** Notice kinds sent to a chat as well as the bell; `app` owns the kind names and checks them. */
+  readonly chat: readonly string[]
 }
 
 type MutableSchedule = { -readonly [K in keyof ResolvedSchedule]: ResolvedSchedule[K] }
@@ -196,6 +202,10 @@ export function resolveApi(raw: RawApi | undefined): ResolvedApi {
     port: raw?.port ?? DEFAULT_API_PORT,
     ...(raw?.token_env === undefined ? {} : { tokenEnv: raw.token_env }),
   }
+}
+
+export function resolveNotices(raw: RawNotices | undefined): ResolvedNotices {
+  return { chat: raw?.chat ?? [] }
 }
 
 // Cron, one-shot jobs, and the prompt's date block all read this one value, and every time the

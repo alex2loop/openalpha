@@ -10,6 +10,7 @@ import type {
   ResolvedLlm,
   ResolvedLocale,
   ResolvedLoop,
+  ResolvedNotices,
   ResolvedSchedule,
 } from '@/core/config/resolvers/runtime'
 import type { RawConfig, RawModel, RawModelDefaults, RawModelTiers } from '@/core/config/schema'
@@ -26,6 +27,7 @@ import {
   resolveLlm,
   resolveLocale,
   resolveLoop,
+  resolveNotices,
   resolveSchedule,
 } from '@/core/config/resolvers/runtime'
 import { type ResolvedStorageConfig, resolveStorageConfig } from '@/core/config/resolvers/storage'
@@ -162,6 +164,7 @@ export interface ResolvedConfig {
   readonly mcp: ResolvedMcp
   readonly commands: ResolvedCommands
   readonly api: ResolvedApi
+  readonly notices: ResolvedNotices
   readonly retention: ResolvedRetention
   readonly inbox: ResolvedInbox
   readonly update: ResolvedUpdate
@@ -201,11 +204,8 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
     mcp: resolveMcp(raw.mcp, { deferMissingEnv: options?.deferMissingKeys === true }),
     commands: { ratePerMinute: DEFAULT_COMMANDS_RATE_PER_MINUTE },
     api: resolveApi(raw.api),
-    retention: {
-      days: raw.retention?.days ?? DEFAULT_RETENTION_DAYS,
-      inboxDays: raw.retention?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
-      dailyBackups: raw.retention?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
-    },
+    notices: resolveNotices(raw.notices),
+    retention: resolveRetention(raw.retention),
     inbox: { maxAttempts: DEFAULT_INBOX_MAX_ATTEMPTS },
     update: {
       check: raw.update?.check ?? DEFAULT_UPDATE_CHECK,
@@ -223,6 +223,14 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
   }
 
   return freezeDeep(resolved)
+}
+
+function resolveRetention(raw: RawConfig['retention']): ResolvedRetention {
+  return {
+    days: raw?.days ?? DEFAULT_RETENTION_DAYS,
+    inboxDays: raw?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
+    dailyBackups: raw?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
+  }
 }
 
 /** Sections core does not know land in `extensions` unvalidated, each waiting for the module that

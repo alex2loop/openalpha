@@ -39,6 +39,7 @@ type WireEventKind =
   | 'order_filled'
   | 'alerts_checked'
   | 'schedule_result'
+  | 'call_scored'
   | 'notice'
   | 'daemon_notice'
   | 'notices_changed'
@@ -171,6 +172,28 @@ export interface WireEvent {
     readonly action: 'buy' | 'reduce' | 'hold'
     readonly conviction: string
   }
+  /** 'call_scored': a call the track record has just scored, read it with GET /v1/suggestions/:id.
+   *  `returnPct` and the benchmark's are fractions net of fees (0.05 is 5%), as on a suggestion's
+   *  `outcome`. `benchmark` is absent where the market names none. The rendered sentence rides in
+   *  `note`. */
+  readonly call?: {
+    readonly suggestionId: string
+    readonly ticker: string
+    readonly market: string
+    readonly action: string
+    readonly status: 'target' | 'stop' | 'expired'
+    readonly returnPct: number
+    readonly benchmark?: { readonly name: string; readonly returnPct: number }
+    readonly focusKey: string
+    readonly day: string
+  }
+  /** 'notice': which kind of notice it is (the notice's own name, for example `held-news`), so a page
+   *  can place it. Absent on a notice that has no kind of its own. */
+  readonly noticeKind?: string
+  /** 'notice' of kind `held-news`: the holding the headline is about. */
+  readonly instrument?: { readonly market: string; readonly ticker: string }
+  /** 'notice' of kind `index-drop`: the index's move in the session, a percent (-1.7 is down 1.7%). */
+  readonly move?: number
   /** 'role_output': what one debate role said once the debate was verified. `stance` is the role's own
    *  conclusion in the daemon's language. `unsupported` means the evidence refuted every claim the role
    *  checked, and its `summary` is then withheld. Never sent to a chat. */

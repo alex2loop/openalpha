@@ -185,6 +185,11 @@ export const UpdateSchema = z.strictObject({
   auto: z.boolean().optional(),
 })
 
+export const NoticesSchema = z.strictObject({
+  // Notice kinds the operator also wants in their chat. Core holds no kind names: `app` checks them.
+  chat: z.array(z.string().min(1)).optional(),
+})
+
 export const ApiSchema = z.strictObject({
   enabled: z.boolean().optional(),
   port: z.number().int().min(1024).max(65_535).optional(),
@@ -220,6 +225,7 @@ export type RawPlugins = z.infer<typeof PluginsSchema>
 export type RawMcp = z.infer<typeof McpSchema>
 export type RawWebSearch = z.infer<typeof WebSearchSchema>
 export type RawApi = z.infer<typeof ApiSchema>
+export type RawNotices = z.infer<typeof NoticesSchema>
 export type RawRetention = z.infer<typeof RetentionSchema>
 export type RawUpdate = z.infer<typeof UpdateSchema>
 export type RawStorage = z.infer<typeof StorageSchema>
