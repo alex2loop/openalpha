@@ -1,9 +1,19 @@
 import type { Locale } from '@/core/types/locale'
-import type { StoredDebate } from '@/trading/features/suggestion/debate/types'
+import type { RoleOutput, StoredDebate } from '@/trading/features/suggestion/debate/types'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { DebateMode, DebateRole } from '@/trading/kernel/config'
 import { DEBATE_MODE_ROLES } from '@/trading/kernel/config'
 import { renderDeclaredValue } from '@/trading/render/format'
+
+/** The catalog family each role words its stance in. The verifier concludes no stance. */
+const STANCE_FAMILIES: Readonly<Partial<Record<DebateRole, string>>> = Object.freeze({
+  'bull-researcher': 'stance',
+  'bear-researcher': 'stance',
+  'market-analyst': 'stance',
+  'portfolio-manager': 'manager',
+  trader: 'trader',
+  'risk-analyst': 'risk',
+})
 
 /** One role's stored line. Bull and bear argue a side and state no verdict. */
 interface DebateRoleView {
@@ -82,4 +92,19 @@ function rolesOf(locale: Locale, debate: StoredDebate): readonly DebateRoleView[
       summary: debate.riskNote ?? '',
     },
   ]
+}
+
+/** The role's stance in the operator's language, in the words the debate view uses; absent for a
+ *  role that concluded none. */
+export function renderRoleStance(
+  locale: Locale,
+  output: Pick<RoleOutput, 'role' | 'stance'>
+): string | undefined {
+  const family = STANCE_FAMILIES[output.role]
+
+  if (family === undefined || output.stance === undefined) {
+    return undefined
+  }
+
+  return renderDeclaredValue(locale, `trading.debate.${family}.${output.stance}`)
 }

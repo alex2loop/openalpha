@@ -1,7 +1,7 @@
 import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
-import type { LeanDebateReason } from '@/trading/kernel/config'
+import type { DebateRole, LeanDebateReason } from '@/trading/kernel/config'
 import type { ConvictionBand } from '@/trading/kernel/conviction'
-import type { TradingDay } from '@/trading/kernel/instrument'
+import type { MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 
 // The debate's own vocabulary: what each role may answer, what those answers look like, and the
 // slim view a stored suggestion keeps of them. `DebateInput` and `DebateOutcome` stay beside the
@@ -72,6 +72,26 @@ export interface RiskDecision {
   readonly notes: readonly string[]
   readonly probability: number
 }
+
+/** What a role concluded, in the family of words its role uses. */
+type RoleStance = ResearchStance | ManagerVerdict | TradeStance | RiskVerdict
+
+/** One role's answer as a surface shows it. A role whose every checked claim the evidence refuted is
+ *  `unsupported` and carries no summary: its prose argued something the evidence contradicts. */
+export interface RoleOutput {
+  readonly ticker: Ticker
+  readonly market: MarketRef
+  readonly role: DebateRole
+  readonly stance?: RoleStance
+  readonly summary?: string
+  readonly citations: number
+  readonly unsupported: boolean
+}
+
+/** Called synchronously, once per role, after the debate was verified, and guarded by the caller:
+ *  a listener that throws never fails the debate. What a role said can carry a size or a level the
+ *  operator would not want in a chat, so it is shown on the operator's own page and nowhere else. */
+export type RoleOutputListener = (output: RoleOutput) => void
 
 /** Three outcomes, not two: `insufficient` is the evidence saying nothing on the point, which is
  *  the common case for a narrative claim and is not the same answer as a contradiction. Only

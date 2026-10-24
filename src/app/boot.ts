@@ -220,6 +220,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       onAlertFired: createAlertFiredListener,
       onAlertsChecked: (app) => (at) => app.resolve('bus').emit('alerts_checked', { at }),
       onTaskPass: (app) => app.resolve('taskStatus').listener,
+      onRoleOutput: (app) => (output) => app.resolve('bus').emit('role_output', output),
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,

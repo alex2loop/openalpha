@@ -65,6 +65,22 @@ export { isBoundaryFailure } from '@/trading/wiring/loop'
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
 export type {
   Alert,
   AlertListPage,
@@ -105,6 +121,10 @@ export type {
   ValuedPosition,
   VenueChoice,
 } from '@/trading/features/portfolio/types'
+export type {
+  RoleOutput,
+  RoleOutputListener,
+} from '@/trading/features/suggestion/debate/types'
 export type { SuggestionCard } from '@/trading/features/suggestion/render/card'
 export type { DebateView } from '@/trading/features/suggestion/render/debate-view'
 export type {
@@ -195,7 +215,7 @@ export { renderBriefText } from '@/trading/features/brief/render'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
-export { toDebateView } from '@/trading/features/suggestion/render/debate-view'
+export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 export {
   isUndecidedHold,

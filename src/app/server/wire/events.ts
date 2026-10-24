@@ -34,6 +34,7 @@ type WireEventKind =
   | 'stop_breached'
   | 'brief_ready'
   | 'idea'
+  | 'role_output'
   | 'mover'
   | 'order_filled'
   | 'alerts_checked'
@@ -169,6 +170,18 @@ export interface WireEvent {
     readonly instrument: { readonly market: string; readonly ticker: string }
     readonly action: 'buy' | 'reduce' | 'hold'
     readonly conviction: string
+  }
+  /** 'role_output': what one debate role said once the debate was verified. `stance` is the role's own
+   *  conclusion in the daemon's language. `unsupported` means the evidence refuted every claim the role
+   *  checked, and its `summary` is then withheld. Never sent to a chat. */
+  readonly role?: {
+    readonly ticker: string
+    readonly market: string
+    readonly role: string
+    readonly stance?: string
+    readonly summary?: string
+    readonly citations: number
+    readonly unsupported: boolean
   }
   /** The line a chat would get, already written in the daemon's language: the whole payload of
    *  'schedule_result', 'notice' and 'daemon_notice', and set beside the 'alert_fired', 'stop_breached',

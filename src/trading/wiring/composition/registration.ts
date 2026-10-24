@@ -2,6 +2,7 @@ import type { App, Bind, Extend, ServiceProvider, TaskPassListener } from '@/cor
 import type { Logger } from '@/core/logging/logger'
 import type { Hooks } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
@@ -88,6 +89,8 @@ interface TradingRegistrationOptions {
   onAlertsChecked(app: App): (at: number) => void
   /** Bound with the app in hand: the page shows each loop's last and next pass. */
   onTaskPass(app: App): TaskPassListener
+  /** Bound with the app in hand: the page shows what each debate role said. */
+  onRoleOutput(app: App): RoleOutputListener
   /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
    *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
   recipient(): DeliveryAddress | undefined
@@ -99,13 +102,14 @@ interface TradingRegistrationOptions {
  *  reads them themselves. */
 type BoundOptions = Omit<
   TradingRegistrationOptions,
-  'sender' | 'onFilled' | 'onAlertFired' | 'onAlertsChecked' | 'onTaskPass'
+  'sender' | 'onFilled' | 'onAlertFired' | 'onAlertsChecked' | 'onTaskPass' | 'onRoleOutput'
 > & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
   readonly onAlertFired: AlertFiredListener
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
+  readonly onRoleOutput: RoleOutputListener
 }
 
 declare module '@/core/container' {
@@ -279,6 +283,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     onAlertFired: provided.onAlertFired(app),
     onAlertsChecked: provided.onAlertsChecked(app),
     onTaskPass: provided.onTaskPass(app),
+    onRoleOutput: provided.onRoleOutput(app),
   }
 }
 
@@ -348,6 +353,7 @@ function buildServices(
       // An absent `decisions` tier turns the headline read off rather than binding a dead chain.
       decisionsChain: app.resolve('llmChains').findTier(DECISIONS_MODEL_TIER),
       recordAttempt: app.resolve('attemptRecorder'),
+      onRoleOutput: options.onRoleOutput,
       store: stores.suggestion,
       playbooks: toPlaybookLibrary(TRADING_SKILLS),
     }),

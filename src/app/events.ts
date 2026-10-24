@@ -1,4 +1,4 @@
-import type { OrderFill } from '@/trading/api'
+import type { OrderFill, RoleOutput } from '@/trading/api'
 
 declare module '@/core/events' {
   interface BusEventMap {
@@ -9,6 +9,9 @@ declare module '@/core/events' {
     /** A sentence the app files to the bell for itself (a restart finished, an agent deleted). It is
      *  never sent to a chat. Epoch ms. */
     daemon_notice: { readonly text: string; readonly at: number }
+    /** What one debate role said once the debate was verified. Shown on the operator's own page and
+     *  never sent to a chat or a model. */
+    role_output: RoleOutput
     /** The bell changed: a notice was written, or some were read. `unread` is the count after. */
     notices_changed: { readonly unread: number }
   }
