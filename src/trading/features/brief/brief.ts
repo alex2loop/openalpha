@@ -30,7 +30,7 @@ export function createBriefService(deps: BriefServiceDeps): BriefService {
   return {
     build: (options) => build(deps, options),
     getLatest: (options) => getLatest(deps, options),
-    countOnDay: (day, signal) => deps.store.countOnDay(day, signal),
+    hasOnDay: (day, signal) => deps.store.hasOnDay(day, signal),
     find: (signal) => deps.deliveries.find(signal),
     resolveRecipient: (origin) => deps.sender.resolveRecipient(origin),
     enable: (options) => enable(deps, options),

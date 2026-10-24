@@ -86,8 +86,8 @@ interface PreviousBriefOptions {
 }
 
 export interface BriefStore {
-  /** The briefs stored for one day: one, however many languages it was written in. */
-  countOnDay(day: TradingDay, signal: AbortSignal): Promise<number>
+  /** Whether a brief is stored for one day, whatever languages it was written in. */
+  hasOnDay(day: TradingDay, signal: AbortSignal): Promise<boolean>
   upsertSnapshot(snapshot: BriefSnapshot, signal: AbortSignal): Promise<void>
   /** Serves idempotent build and delivery; `findLatest` serves user reads. */
   findExact(options: ExactBriefOptions): Promise<BriefSnapshot | null>
@@ -99,7 +99,7 @@ export interface BriefStore {
 
 export function createBriefStore(deps: StoreDeps): BriefStore {
   return {
-    countOnDay: (day, signal) => countOnDay(deps, day, signal),
+    hasOnDay: (day, signal) => hasOnDay(deps, day, signal),
     upsertSnapshot: (snapshot, signal) => upsertSnapshot(deps, snapshot, signal),
     findExact: (options) => findExact(deps, options),
     findLatest: (options) => findLatest(deps, options),
@@ -140,16 +140,15 @@ async function upsertSnapshot(
   )
 }
 
-async function countOnDay(deps: StoreDeps, day: TradingDay, signal: AbortSignal): Promise<number> {
+async function hasOnDay(deps: StoreDeps, day: TradingDay, signal: AbortSignal): Promise<boolean> {
   assertNotAborted(signal)
 
-  const rows = await deps.db.query<{ readonly count: number }>(
-    `SELECT COUNT(DISTINCT day) AS count FROM brief_snapshots WHERE day = ${deps.dialect.param(1)}`,
+  const rows = await deps.db.query<{ readonly present: number }>(
+    `SELECT 1 AS present FROM brief_snapshots WHERE day = ${deps.dialect.param(1)} LIMIT 1`,
     [day]
   )
 
-  // Postgres returns COUNT as a bigint, which arrives as a string.
-  return Number(rows[0]?.count ?? 0)
+  return rows.length > 0
 }
 
 async function findExact(

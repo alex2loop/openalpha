@@ -22,10 +22,10 @@ const BILLED_SEARCH_KIND = 'external'
 // the read groups by quarter hour and folds buckets into days afterwards. Every zone's offset is
 // a whole number of quarter hours, so no day boundary falls inside a bucket.
 const DAY_BUCKET_MS = 15 * MS_PER_MINUTE
-// A row written before the cap existed bills to the agent that ran it.
 // A model's per-run cost reads this far back, so the scan stays on the `settled_at` index; the
 // sample ranks runs inside it.
 const MODEL_COST_WINDOW_MS = 30 * MS_PER_DAY
+// A row written before the cap existed bills to the agent that ran it.
 const BILLING_AGENT_SQL = "COALESCE(NULLIF(billing_agent_id, ''), agent_id)"
 
 type SpendReads = Pick<

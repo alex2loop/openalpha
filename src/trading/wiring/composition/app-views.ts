@@ -23,7 +23,7 @@ import {
 import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
 
 interface AppViewDeps {
-  readonly briefs: Pick<BriefService, 'getLatest' | 'reschedule' | 'countOnDay'>
+  readonly briefs: Pick<BriefService, 'getLatest' | 'reschedule' | 'hasOnDay'>
   readonly marketData: Pick<MarketDataService, 'macroRisk' | 'quoteConvention'>
   readonly suggestions: Pick<SuggestionService, 'reflect' | 'modelRecords' | 'dayDigest'>
   readonly timezone: string
@@ -39,7 +39,7 @@ export type BriefRescheduleView =
 /** What one operator day added to the book, counted where each thing is stored. */
 export interface DayDigestView {
   readonly suggestionCount: number
-  readonly briefCount: number
+  readonly hasBrief: boolean
   /** The scored calls that closed that day with the largest move. */
   readonly closed: readonly FocusCall[]
 }
@@ -123,12 +123,12 @@ async function dayDigest(
   request: Parameters<AppViews['dayDigest']>[0]
 ): Promise<DayDigestView> {
   const { day, range, limit, signal } = request
-  const [calls, briefCount] = await Promise.all([
+  const [calls, hasBrief] = await Promise.all([
     deps.suggestions.dayDigest({ range, limit, signal }),
-    deps.briefs.countOnDay(day, signal),
+    deps.briefs.hasOnDay(day, signal),
   ])
 
-  return { suggestionCount: calls.callCount, briefCount, closed: calls.closed }
+  return { suggestionCount: calls.callCount, hasBrief, closed: calls.closed }
 }
 
 export function buildAppViews(

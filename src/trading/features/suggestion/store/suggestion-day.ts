@@ -50,8 +50,7 @@ export async function readSuggestionDay(
   ])
 
   return {
-    // Postgres returns COUNT as a bigint, which arrives as a string.
-    callCount: Number(counted[0]?.count ?? 0),
+    callCount: counted[0]?.count ?? 0,
     closed: closed.map(toFocusCall),
   }
 }

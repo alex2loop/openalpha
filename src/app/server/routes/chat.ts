@@ -33,6 +33,7 @@ const DEFAULT_LIMIT = 30
 const SESSION_QUERY_MIN_CHARS = 2
 const SESSION_QUERY_MAX_CHARS = 100
 const SESSION_LIST_MAX = 100
+const SESSION_CHANNELS_MAX = 20
 
 async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const url = new URL(req.url)
@@ -116,8 +117,12 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
   return json(toChatSessionsWire(listings, limit))
 }
 
-/** `null` when any of them is not a channel id (400). */
+/** `null` when there are too many or any of them is not a channel id (400). */
 function parseChannels(raws: readonly string[]): readonly ChannelId[] | null {
+  if (raws.length > SESSION_CHANNELS_MAX) {
+    return null
+  }
+
   try {
     return raws.map(channelId)
   } catch {

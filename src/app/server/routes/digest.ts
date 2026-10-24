@@ -44,7 +44,7 @@ async function handleDigest(req: Request, ctx: ApiRouteContext): Promise<Respons
   return json({
     day,
     suggestions: facts.suggestionCount,
-    reports: facts.briefCount + researchCount,
+    reports: (facts.hasBrief ? 1 : 0) + researchCount,
     spendUsd,
     notable,
   } satisfies DigestWire)

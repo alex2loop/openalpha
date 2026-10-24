@@ -197,8 +197,8 @@ export interface RescheduleBriefOptions {
 export interface BriefService {
   build(options: BuildBriefOptions): Promise<BriefResult>
   getLatest(options: GetLatestBriefOptions): Promise<BriefSnapshot | null>
-  /** How many briefs were stored for a day: one, however many languages it was written in. */
-  countOnDay(day: TradingDay, signal: AbortSignal): Promise<number>
+  /** Whether a brief was stored for a day, whatever languages it was written in. */
+  hasOnDay(day: TradingDay, signal: AbortSignal): Promise<boolean>
   /** The one delivery row, or `null` when the brief has never been enabled. */
   find(signal: AbortSignal): Promise<BriefDelivery | null>
   /** Where a brief scheduled from this address would arrive, or undefined when nowhere: the terminal

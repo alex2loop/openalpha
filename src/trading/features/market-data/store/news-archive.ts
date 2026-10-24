@@ -196,7 +196,7 @@ async function listForInstruments(
   const rows = await deps.db.query<InstrumentNewsRow>(
     'SELECT url, title, source_id, published_at, market, ticker FROM news_items ' +
       `WHERE fetched_at >= ${p(1)} AND (${matches}) ` +
-      `ORDER BY published_at DESC LIMIT ${p(2 + options.instruments.length * 2)}`,
+      `ORDER BY published_at DESC, id DESC LIMIT ${p(2 + options.instruments.length * 2)}`,
     [
       options.sinceMs,
       ...options.instruments.flatMap((instrument) => [instrument.market, instrument.ticker]),
@@ -213,7 +213,7 @@ async function listForInstruments(
             url: row.url,
             title: row.title,
             sourceId: row.source_id,
-            publishedAt: Number(row.published_at),
+            publishedAt: row.published_at,
           },
         ]
   )

@@ -52,9 +52,13 @@ export async function listSessionsByChannels(
     ...(query.query === undefined
       ? []
       : [
-          // Lowercased on both sides: sqlite folds ASCII case in LIKE and postgres never does.
+          // Only the rows the page displays can match. Folding is ASCII-only on sqlite and follows
+          // the collation on postgres, so the text as typed matches too: "Đầu tư" is found by
+          // "Đầu" even where "đầu" misses it.
           `EXISTS (SELECT 1 FROM session_messages m WHERE m.session_id = s.id ` +
-            `AND LOWER(m.content) LIKE ${bind(toLikeContainsPattern(query.query.toLowerCase()))} ESCAPE '\\')`,
+            `AND m.role IN ${DISPLAYED_ROLES} ` +
+            `AND (LOWER(m.content) LIKE ${bind(toLikeContainsPattern(query.query.toLowerCase()))} ESCAPE '\\' ` +
+            `OR m.content LIKE ${bind(toLikeContainsPattern(query.query))} ESCAPE '\\'))`,
         ]),
   ]
   const where = conditions.length === 0 ? '' : `WHERE ${conditions.join(' AND ')} `

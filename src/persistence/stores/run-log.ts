@@ -54,12 +54,8 @@ export function createRunLogStore(db: Storage, dialect: Dialect): RunLogStore {
       (await db.query<DbRunRow>(sql.topLevel, [fromMs, toMs, limit])).map(toRunLogRow),
     listResearch: async (agent, beforeMs, limit) =>
       (await db.query<DbRunRow>(sql.research, [agent, beforeMs, limit])).map(toRunLogRow),
-    // Postgres returns COUNT as a bigint, which arrives as a string.
     countResearch: async (agent, fromMs, toMs) =>
-      Number(
-        (await db.query<{ readonly n: number }>(sql.countResearch, [agent, fromMs, toMs]))[0]?.n ??
-          0
-      ),
+      (await db.query<{ readonly n: number }>(sql.countResearch, [agent, fromMs, toMs]))[0]?.n ?? 0,
     childrenOf: (ids, perRun) => childrenOf({ db, dialect }, ids, perRun),
     costOf: (ids) => costOf({ db, dialect }, ids),
     costRangeByName: (names, sample) => costRangeByName({ db, dialect }, names, sample),
@@ -232,7 +228,7 @@ function buildSql(d: Dialect) {
       `AND name = ${d.param(1)} AND ended_at >= ${d.param(2)} AND ended_at < ${d.param(3)}`,
     research:
       `SELECT ${columns} FROM runs WHERE parent_run_id IS NULL AND kind = 'agent' ` +
-      `AND name = ${d.param(1)} AND ended_at < ${d.param(2)} ` +
+      `AND session_id IS NOT NULL AND name = ${d.param(1)} AND ended_at < ${d.param(2)} ` +
       `ORDER BY ended_at DESC, run_id DESC LIMIT ${d.param(3)}`,
   }
 }
@@ -258,9 +254,10 @@ function buildChildrenSql(d: Dialect, count: number): string {
   )
 }
 
-// Seeded from the asked ids rather than from `llm_attempts`: a command has no attempt of its own.
-// UNION keeps one (root, run_id) pair however many attempts a run made or how a tree is shaped, so
-// the join to the attempts counts each attempt once per root, and a cycle ends. The seed column is
+// Seeded from the asked ids and walked down `runs.parent_run_id`, the one record of who started
+// whom: a run with no attempt of its own (a command, an agent that failed before its first call)
+// still carries its children. UNION keeps one (root, run_id) pair however a tree is shaped, so the
+// join to the attempts counts each attempt once per root, and a cycle ends. The seed column is
 // cast because an untyped bind in VALUES has no type to resolve against on Postgres.
 function buildCostSql(d: Dialect, count: number): string {
   const seeds = Array.from({ length: count }, (_, i) => `(CAST(${d.param(i + 1)} AS TEXT))`)
@@ -270,7 +267,7 @@ function buildCostSql(d: Dialect, count: number): string {
     `tree(root, run_id) AS (` +
     `SELECT id, id FROM seeds ` +
     `UNION ` +
-    `SELECT t.root, a.run_id FROM tree t JOIN llm_attempts a ON a.parent_run_id = t.run_id) ` +
+    `SELECT t.root, r.run_id FROM tree t JOIN runs r ON r.parent_run_id = t.run_id) ` +
     `SELECT t.root AS root, CAST(COALESCE(SUM(a.cost_nano_usd), 0) AS BIGINT) AS total ` +
     `FROM tree t JOIN llm_attempts a ON a.run_id = t.run_id GROUP BY t.root`
   )
