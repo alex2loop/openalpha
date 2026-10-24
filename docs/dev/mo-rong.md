@@ -117,7 +117,7 @@ chạy đã gọi nó.
 ### Tạo một agent
 
 Agent là dữ liệu (một `agent.toml` đã qua kiểm tra) hoặc mã (`createAgent`). Agent viết bằng mã có cùng
-schema với `agent.toml`, theo camelCase, trừ `modelTier` và `reasoning` (chỉ dành cho agent đáng tin) và
+schema với `agent.toml`, theo camelCase, trừ `modelTier` và `reasoning` (một `agent.toml` của người dùng được đặt `model_tier`, agent viết bằng mã thì không bao giờ; `reasoning` chỉ dành cho agent đáng tin) và
 trừ `focus` cùng `max_daily_usd` (chỉ `agent.toml` mới có). Nó luôn **không đáng tin**, ngang hàng với một
 `agent.toml` của người dùng.
 

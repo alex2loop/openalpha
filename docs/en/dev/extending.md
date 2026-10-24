@@ -117,7 +117,7 @@ called it.
 ### Creating an agent
 
 An agent is data (a validated `agent.toml`) or code (`createAgent`). A code-defined agent mirrors the
-`agent.toml` schema in camelCase, minus `modelTier` and `reasoning` (trusted agents only) and minus
+`agent.toml` schema in camelCase, minus `modelTier` and `reasoning` (a user `agent.toml` may set `model_tier`, a code-defined agent never; `reasoning` is for trusted agents only) and minus
 `focus` and `max_daily_usd` (only `agent.toml` carries them). It is always untrusted, like a user
 `agent.toml`.
 

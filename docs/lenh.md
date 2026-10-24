@@ -721,7 +721,7 @@ chế độ. Một mã mà sổ đang nắm ở đúng mức mục tiêu mặc �
 lời đáp.
 
 Khi một `/suggest` cho một mã đang chạy, cùng yêu cầu đó cho mã ấy từ bất kỳ cuộc chat hay từ ứng dụng sẽ nối vào
-lượt đang chạy và dùng kết quả của nó, khỏi tốn thêm một lượt tranh luận; chỉ yêu cầu khởi đầu bị tính phí. Yêu
+lượt đang chạy và dùng kết quả của nó, khỏi tốn thêm một phiên tranh luận; chỉ yêu cầu khởi đầu bị tính phí. Yêu
 cầu chạy sâu hơn không nối vào một lượt nhẹ hơn, và `force` luôn chạy riêng.
 
 `/suggest stops` bao quát mọi vị thế đang nắm mà kế hoạch mới nhất thiếu mức dừng hoặc mục tiêu, cộng mọi
