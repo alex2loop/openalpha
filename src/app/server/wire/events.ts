@@ -184,7 +184,7 @@ export interface WireEvent {
     readonly action: string
     readonly status: 'target' | 'stop' | 'expired'
     readonly returnPct: number
-    readonly benchmark?: { readonly name: string; readonly returnPct: number }
+    readonly benchmark?: { readonly ticker: string; readonly returnPct: number }
     readonly focusKey: string
     readonly day: string
   }
@@ -194,7 +194,7 @@ export interface WireEvent {
   /** 'notice' of kind `held-news`: the holding the headline is about. */
   readonly instrument?: { readonly market: string; readonly ticker: string }
   /** 'notice' of kind `index-drop`: the index's move in the session, a percent (-1.7 is down 1.7%). */
-  readonly move?: number
+  readonly movePct?: number
   /** 'role_output': what one debate role said once the debate was verified. `stance` is the role's own
    *  conclusion in the daemon's language. `unsupported` means the evidence refuted every claim the role
    *  checked, and its `summary` is then withheld. Never sent to a chat. */

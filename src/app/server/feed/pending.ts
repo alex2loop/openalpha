@@ -11,10 +11,9 @@ const MAX_PENDING = 50
 /** A question has no deadline of its own: the operator answers when they next open the chat. */
 const QUESTION_PENDING_TTL_MS = 86_400_000
 
-type ApprovalPendingWire = Extract<PendingWire, { kind: 'approval' }>
-
 interface ApprovalEntry {
-  readonly wire: ApprovalPendingWire
+  readonly wire: Extract<PendingWire, { kind: 'approval' }>
+  readonly channelId: string
   readonly runId: RunId
   readonly expiresAt: number
 }
@@ -51,7 +50,7 @@ export function createPendingFeed(deps: PendingFeedDeps): PendingFeed {
 
       return [...[...approvals.values()].map((entry) => entry.wire), ...questions.values()]
     },
-    originOf: (requestId) => approvals.get(requestId)?.wire.channelId,
+    originOf: (requestId) => approvals.get(requestId)?.channelId,
     stop() {
       for (const off of offs) {
         off()
@@ -72,12 +71,8 @@ function followApprovals(
     bus.on('approval_requested', (e) => {
       prune(approvals, questions)
       approvals.set(e.requestId, {
-        wire: {
-          kind: 'approval',
-          event: toApprovalWire(e, locale),
-          channelId: e.channel,
-          answerable: isApiChannel(e.channel),
-        },
+        wire: { kind: 'approval', event: toApprovalWire(e, locale) },
+        channelId: e.channel,
         runId: e.runId,
         expiresAt: e.expiresAt,
       })
@@ -85,7 +80,7 @@ function followApprovals(
     }),
     // The gate takes an answer only from the channel that asked, so any other channel's is no answer.
     bus.on('approval_resolved', (e) => {
-      if (approvals.get(e.requestId)?.wire.channelId === e.channel) {
+      if (approvals.get(e.requestId)?.channelId === e.channel) {
         approvals.delete(e.requestId)
       }
     }),
@@ -105,7 +100,7 @@ function followQuestions(
         requestId: e.requestId,
         runId: e.runId,
         sessionId: e.sessionId,
-        channel: e.channel,
+        channelId: e.channel,
         question: scrubCredentials(e.question),
         askedAt: e.askedAt,
         answerable: isApiChannel(e.channel),

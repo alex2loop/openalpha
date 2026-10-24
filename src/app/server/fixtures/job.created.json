@@ -6,6 +6,7 @@
   "consecutiveFailures": 0,
   "event": {
     "event": "price",
+    "market": "equity-vn",
     "ticker": "FPT",
     "condition": "above",
     "threshold": 132000,

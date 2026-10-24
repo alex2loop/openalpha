@@ -11,7 +11,6 @@
     "versions": [
       {
         "strategyVersion": "1.0.0",
-        "focusKey": "default",
         "calculationVersions": [
           {
             "name": "levels",

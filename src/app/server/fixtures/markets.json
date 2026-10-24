@@ -28,7 +28,7 @@
       "regionLabel": "Việt Nam",
       "icon": "🏦",
       "session": {
-        "timezone": "Asia/Ho_Chi_Minh",
+        "timeZone": "Asia/Ho_Chi_Minh",
         "open": "08:00",
         "close": "17:30"
       },
@@ -56,7 +56,7 @@
         "ticker": "VNINDEX"
       },
       "session": {
-        "timezone": "Asia/Ho_Chi_Minh",
+        "timeZone": "Asia/Ho_Chi_Minh",
         "open": "09:00",
         "close": "14:45",
         "breaks": [

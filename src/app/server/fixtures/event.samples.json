@@ -342,7 +342,7 @@
       "action": "buy",
       "status": "target",
       "returnPct": 0.062,
-      "benchmark": { "name": "VNINDEX", "returnPct": 0.011 },
+      "benchmark": { "ticker": "VNINDEX", "returnPct": 0.011 },
       "focusKey": "default",
       "day": "2026-09-10"
     }
@@ -377,7 +377,7 @@
     "source": { "channel": "api", "agentId": "" },
     "note": "VN-Index fell 1.7% in this session.",
     "noticeKind": "index-drop",
-    "move": -1.7
+    "movePct": -1.7
   },
   {
     "v": 1,

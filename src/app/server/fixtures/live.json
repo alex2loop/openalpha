@@ -51,16 +51,14 @@
           "answerable": true,
           "askedAt": 1792480030000
         }
-      },
-      "channelId": "api",
-      "answerable": true
+      }
     },
     {
       "kind": "question",
       "requestId": "ask_77",
       "runId": "run_9aa",
       "sessionId": "tg_123456789",
-      "channel": "telegram",
+      "channelId": "telegram",
       "question": "Which broker account?",
       "askedAt": 1792479950000,
       "answerable": false

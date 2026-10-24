@@ -47,15 +47,12 @@ export interface LiveRunWire extends RunStartWire {
   readonly tickers?: readonly string[]
 }
 
-/** A request still waiting for an answer, on any channel. An approval is retracted by its
- *  `approval_resolved` event (or `expiresAt`); a question by the next agent run in `sessionId`. */
+/** A request still waiting for an answer, on any channel. An approval is its `approval_requested`
+ *  event, whose `approval` carries the `channelId` and `answerable` (so the two live in one place);
+ *  it is retracted by its `approval_resolved` event (or `expiresAt`). A question is retracted by
+ *  the next agent run in `sessionId`. */
 export type PendingWire =
-  | {
-      readonly kind: 'approval'
-      readonly event: WireEvent
-      readonly channelId: string
-      readonly answerable: boolean
-    }
+  | { readonly kind: 'approval'; readonly event: WireEvent }
   | QuestionPendingWire
 
 export interface QuestionPendingWire {
@@ -63,7 +60,8 @@ export interface QuestionPendingWire {
   readonly requestId: string
   readonly runId: string
   readonly sessionId: string
-  readonly channel: string
+  /** The raw channel id the question was asked on, as `clarification_requested.channelId`. */
+  readonly channelId: string
   readonly question: string
   readonly askedAt: number
   readonly answerable: boolean

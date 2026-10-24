@@ -9,6 +9,8 @@ type JobEventKind = 'stop' | 'target' | 'price' | 'mover'
 /** What starts an event job, as `/v1/state` shows it. A job with no `ticker` runs for any name. */
 export interface JobEventWire {
   readonly event: JobEventKind
+  /** The market `ticker` is in; absent for a job that names no market of its own. */
+  readonly market?: string
   readonly ticker?: string
   readonly condition?: 'above' | 'below'
   readonly threshold?: number

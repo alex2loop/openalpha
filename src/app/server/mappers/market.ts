@@ -2,6 +2,7 @@ import type {
   AlertWire,
   InstrumentSearchResponse,
   MacroResponse,
+  MarketSessionWire,
   MarketsResponse,
   OverviewLeadersWire,
   OverviewLeaderWire,
@@ -98,6 +99,14 @@ export function toScreenWire(market: string, answer: ScreenAnswer): ScreenRespon
   }
 }
 
+function toSessionWire(
+  session: NonNullable<TradingMarketsView['markets'][number]['session']>
+): MarketSessionWire {
+  const { timezone, open, close, breaks } = session
+
+  return { timeZone: timezone, open, close, ...(breaks === undefined ? {} : { breaks }) }
+}
+
 export function toMarketsWire(view: TradingMarketsView): MarketsResponse {
   return {
     homeRegion: view.homeRegion,
@@ -114,7 +123,7 @@ export function toMarketsWire(view: TradingMarketsView): MarketsResponse {
       regionLabel: market.regionLabel,
       icon: market.icon,
       ...(market.benchmark === undefined ? {} : { benchmark: toInstrumentWire(market.benchmark) }),
-      ...(market.session === undefined ? {} : { session: market.session }),
+      ...(market.session === undefined ? {} : { session: toSessionWire(market.session) }),
       hasBoard: market.hasBoard,
       hasBrief: market.hasBrief,
       hasEvents: market.hasEvents,

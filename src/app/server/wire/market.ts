@@ -246,17 +246,19 @@ interface MarketWire {
   readonly icon: string
   /** The index its suggestions are measured against. */
   readonly benchmark?: InstrumentRefWire
-  /** When it trades, as `HH:MM` on `timezone`'s clock; absent for a market that never closes. */
-  readonly session?: {
-    readonly timezone: string
-    readonly open: string
-    readonly close: string
-    readonly breaks?: readonly { readonly from: string; readonly to: string }[]
-  }
+  /** When it trades, as `HH:MM` on `timeZone`'s clock; absent for a market that never closes. */
+  readonly session?: MarketSessionWire
   /** It answers `/v1/screen`, a morning brief, and `/v1/events`. */
   readonly hasBoard: boolean
   readonly hasBrief: boolean
   readonly hasEvents: boolean
+}
+
+export interface MarketSessionWire {
+  readonly timeZone: string
+  readonly open: string
+  readonly close: string
+  readonly breaks?: readonly { readonly from: string; readonly to: string }[]
 }
 
 export interface MarketsResponse {

@@ -71,7 +71,7 @@ function callScoredEvent(
       returnPct: payload.returnPct,
       ...(benchmark === undefined
         ? {}
-        : { benchmark: { name: benchmark.instrument.ticker, returnPct: benchmark.returnPct } }),
+        : { benchmark: { ticker: benchmark.instrument.ticker, returnPct: benchmark.returnPct } }),
       focusKey: payload.focusKey,
       day: payload.day,
     },
@@ -94,7 +94,7 @@ function noticeEvent(payload: Payload, text: string): WireEvent {
           instrument: { market: payload.instrument.market, ticker: payload.instrument.ticker },
         }
       : {}),
-    ...(payload.kind === 'index-drop' ? { move: payload.movePct } : {}),
+    ...(payload.kind === 'index-drop' ? { movePct: payload.movePct } : {}),
   }
 }
 

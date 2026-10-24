@@ -74,6 +74,7 @@ export const JOB_CREATE_BODY: z.ZodType<JobCreateBody> = z.object({
 function toEventWire(event: JobEvent): JobEventWire {
   return {
     event: event.event,
+    ...(event.market === undefined ? {} : { market: event.market }),
     ...(event.ticker === undefined ? {} : { ticker: event.ticker }),
     ...(event.condition === undefined ? {} : { condition: event.condition }),
     ...(event.threshold === undefined ? {} : { threshold: event.threshold }),

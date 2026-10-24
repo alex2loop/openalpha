@@ -202,7 +202,12 @@ interface CapacityInput {
 
 // Persistent, so the group line that follows does not wipe it.
 function toFullProgress(started: number): ProgressMessage {
-  return { key: 'tools.spawn.full', params: { count: started }, mode: 'persistent' }
+  return {
+    // `tools` cannot import i18n, so the singular key is named here.
+    key: started === 1 ? 'tools.spawn.fullOne' : 'tools.spawn.full',
+    params: { count: started },
+    mode: 'persistent',
+  }
 }
 
 // The call may ask for more than the agent starts at once: the first `maxSpawn` ran, the rest are

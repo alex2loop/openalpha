@@ -48,7 +48,7 @@ export function createSpawnProgress(
   let done = 0
   const line = (): void =>
     ctx.reportProgress?.({
-      key: 'progress.spawnLine',
+      key: children.length === 1 ? 'progress.spawnLineOne' : 'progress.spawnLine',
       params: { agent: ctx.agentId, count: children.length, done, ...base },
       mode: 'transient',
     })

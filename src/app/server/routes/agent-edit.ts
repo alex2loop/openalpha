@@ -29,7 +29,7 @@ import { agentId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/security/private-files'
 import { RESERVED_AGENT_IDS, userAgentFile } from '@/engine/api'
-import { t } from '@/i18n'
+import { type MessageKey, pluralKey, t } from '@/i18n'
 import { pauseJobsOfAgent } from '@/scheduler/api'
 
 const MAX_BODY_BYTES = 64 * 1024
@@ -201,6 +201,13 @@ async function readOwnFile(path: string): Promise<string | null> {
   }
 }
 
+// Said without a pause clause when there was nothing to pause.
+function deletedKey(pausedSchedules: number): MessageKey {
+  return pausedSchedules === 0
+    ? 'ui.agentDeleted'
+    : pluralKey(pausedSchedules, 'ui.agentDeletedPausedOne', 'ui.agentDeletedPaused')
+}
+
 async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = parsePathId(req, agentId)
 
@@ -237,7 +244,7 @@ async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   // The agent is gone from disk either way, so the operator hears of it.
   ctx.app.resolve('bus').emit('daemon_notice', {
-    text: t(localeOf(ctx), 'ui.agentDeleted', { id, count }),
+    text: t(localeOf(ctx), deletedKey(count), { id, count }),
     at: Date.now(),
   })
 
