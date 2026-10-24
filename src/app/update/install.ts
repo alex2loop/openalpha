@@ -166,8 +166,9 @@ async function startUpgrade(
   return await spawnUpgrade(parts, { ...request, requestedAt: now })
 }
 
-/** A restart drains for up to 30 s and then aborts: an answer, a research run, a tool approval
- *  waiting for its tap, or a trading pass such as a brief's debate would be lost. */
+/** A restart gives runs SHUTDOWN_DRAIN_MS to land, and the whole stop SHUTDOWN_TOTAL_MS, before it
+ *  aborts the rest: an answer, a research run, a tool approval waiting for its tap, or a trading
+ *  pass such as a brief's debate would be lost. */
 function isWorking(parts: UpgradeParts): boolean {
   const { app, delivery } = parts
 

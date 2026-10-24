@@ -39,6 +39,13 @@ export async function runRestart(run: RestartRun): Promise<void> {
   try {
     await writeRestartMarker(dataDir, Date.now())
 
+    // A stop that came in meanwhile must stay a stop: the helper would start the daemon again.
+    if (app.signal.aborted) {
+      await clearRestartMarker(dataDir)
+
+      return
+    }
+
     const child = await spawnRestartProcess(app)
 
     run.onSpawned()
@@ -50,8 +57,12 @@ export async function runRestart(run: RestartRun): Promise<void> {
         }
 
         logger.error('update.restart_failed', { code })
-        run.onFailed()
-        await clearRestartMarker(dataDir)
+        // Cleared first: once `onFailed` runs, a second restart may write its own marker.
+        try {
+          await clearRestartMarker(dataDir)
+        } finally {
+          run.onFailed()
+        }
       })
       .catch((err: unknown) => {
         logger.warn('update.restart_report_failed', { err: formatErrForLog(err) })

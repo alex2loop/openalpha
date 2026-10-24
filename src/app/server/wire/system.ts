@@ -97,7 +97,8 @@ export interface StatePayload {
   readonly restartable: boolean
   /** The longest a restart with `when: 'idle'` waits for the daemon to go quiet. */
   readonly restartIdleWaitMs: number
-  /** The longest the daemon waits for runs in flight before it stops, so before a restart. */
+  /** The grace runs in flight get when the daemon stops, before they are cut. Not the downtime of a
+   *  restart: watch `/v1/health` go down, then up with a new `pid`. */
   readonly restartDrainMs: number
   /** Resolved calls a track record needs before its rates mean anything. */
   readonly trackRecordMinSample: number
