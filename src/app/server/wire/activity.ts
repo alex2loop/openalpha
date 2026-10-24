@@ -17,7 +17,7 @@ export interface ActivityRowWire {
   readonly startedAt: number
   readonly endedAt: number
   /** A run result reason for an agent (`completed`, `aborted`, `budget`, `error`, `turn_limit`,
-   *  `loop`, `timeout`), `done | cancelled | failed` for a command. */
+   *  `loop`, `timeout`), `completed | aborted | error` for a command. */
   readonly outcome: string
   readonly costUsd: number
   /** Direct children, oldest first. Absent on a child row and on a run that spawned none. */

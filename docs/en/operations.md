@@ -150,7 +150,7 @@ name breaks its stop or reaches its take-profit, when a name moves sharply in th
 price you set is hit. It runs at most once per cooldown, a pause the job carries so a noisy name cannot run it again and again, and it
 stays on after a run, except a price job, which its one crossing spends. `schedule list` shows it as `when FPT hit the
 price you set` where other jobs show a time, `schedule edit` cannot give it a time, and `schedule
-remove` also removes the price alert it armed, and `schedule resume` refuses a price job whose alert has already fired.
+remove` also removes the price alert it armed, and `schedule resume` refuses a price job whose alert has already fired. A failed run of a job that waits for an alert is not counted toward switching it off, so one that keeps failing stays on and sends a failure notice at each crossing, at most once per cooldown.
 
 Cron takes five fields with wildcards, ranges, steps (`*/15`, `1-5/2`) and comma lists. When both
 day-of-month and weekday are restricted, **either** match is enough; a day field that starts with `*`
@@ -369,7 +369,7 @@ Once connected, the app is shown what the daemon is doing as it happens: each an
 running with its latest step, every approval and question still waiting on any channel, a fill (a resting
 stop or take-profit selling, or a `/trade` fill), each tool a run starts and finishes, what each debate role said once a `/suggest` is verified (shown in the app only, never sent to a chat), a new agent joining, the moment a spend cap is reached, and when the alerts were last checked. These go to the bell and to no chat unless `[notices] chat` lists them: a call scored, news on a name you hold, and the index falling hard in a session. News on a holding covers only names the daemon has already read, since nothing fetches it for your holdings on a schedule. An app that
 connects late asks for the picture as it stands, then follows the stream. A request asked on Telegram or another
-channel appears in the app but is answered where it was asked; the app says so instead of answering it. The app can stop any run you see, including one started on Telegram: stopping only tells it to stop, and it ends as stopped (an answer in progress) or cancelled (a command). A run that has already finished answers that it is gone. The app also lists the chats paired on each channel and can unpair one, which does what `pair revoke` does: that chat is asked for a pairing code again on its next message.
+channel appears in the app but is answered where it was asked; the app says so instead of answering it. The app can stop any run you see, including one started on Telegram: stopping only tells it to stop, and it ends as stopped, whether it was an answer in progress or a command. A run that has already finished answers that it is gone. The app also lists the chats paired on each channel and can unpair one, which does what `pair revoke` does: that chat is asked for a pairing code again on its next message.
 
 The app also reads what the daemon knows without a command: the history of every chat, Telegram's included, which it can search but only continue for chats it started itself; each data source and when it last answered; the hosts the daemon can reach and what is sent to each; the models in use with their prices and what a run on each usually costs; sector strength by market; and your watchlist, which it can edit.
 

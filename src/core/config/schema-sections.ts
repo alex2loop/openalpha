@@ -112,8 +112,8 @@ export const LoopSchema = z.strictObject({
   delegation_depth: z.number().int().positive().optional(),
   max_delegations: z.number().int().positive().optional(),
   max_parallel_delegations: z.number().int().positive().optional(),
-  spawn_max_duration_ms: timerMs.optional(),
-  spawn_max_turns: z.number().int().positive().optional(),
+  max_spawn_duration_ms: timerMs.optional(),
+  max_spawn_turns: z.number().int().positive().optional(),
   max_unasked_fetches: z.number().int().nonnegative().optional(),
 })
 

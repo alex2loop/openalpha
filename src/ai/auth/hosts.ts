@@ -3,6 +3,7 @@ import { AZURE_LOGIN_HOST } from '@/ai/auth/cloud/azure'
 import { GOOGLE_TOKEN_HOST } from '@/ai/auth/cloud/google'
 import { CHATGPT_OAUTH_HOST } from '@/ai/auth/providers/chatgpt'
 import { findProviderById } from '@/ai/catalog'
+import { hostOfUrl } from '@/core/utils/url'
 
 const IDENTITY_HOSTS = {
   google: GOOGLE_TOKEN_HOST,
@@ -21,5 +22,5 @@ export function listAuthHosts(models: readonly { readonly provider: string }[]):
     ]
   })
 
-  return [...new Set(urls)].map((url) => new URL(url).host)
+  return [...new Set(urls)].flatMap((url) => hostOfUrl(url) ?? [])
 }

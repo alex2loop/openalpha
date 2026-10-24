@@ -65,8 +65,8 @@ Một đội được suy ra, không được lưu: danh sách `delegates` của
 | `loop.max_delegations` | `config.toml [loop]` | Số nhánh của cả cây: tổng số con từng được cả hai công cụ khởi động. Không hoàn lại. |
 | `loop.max_parallel_delegations` | `config.toml [loop]` | Số mục tối đa trong một lời gọi `delegate_parallel`. |
 | `spawn` | [tools/delegation/spawn.ts](../../src/tools/delegation/spawn.ts) | Agent con tạm thời, chỉ đọc, dựng bằng code từ profile của agent cha. |
-| `capabilities.max_spawn` | `[capabilities]` của agent | 0 đến 4 agent con mở cùng lúc; `AgentProfile.maxSpawn`, vắng khi là 0. |
-| `loop.spawn_max_duration_ms`, `loop.spawn_max_turns` | `config.toml [loop]` | Thời gian (mặc định 600000) và số lượt (mặc định 12) mỗi agent con tự tạo. |
+| `capabilities.max_spawn` | `[capabilities]` của agent | 0 đến 4 agent con khởi động mỗi lời gọi; `AgentProfile.maxSpawn`, vắng khi là 0. |
+| `loop.max_spawn_duration_ms`, `loop.max_spawn_turns` | `config.toml [loop]` | Thời gian (mặc định 600000) và số lượt (mặc định 12) mỗi agent con tự tạo. |
 
 Cổng kiểm danh sách của con, không phải của cha: một con trong danh sách có thể dùng công cụ mà cha không gọi trực tiếp
 được, và công cụ vắng mặt ở con thì bị chặn trước cả khâu phê duyệt.
@@ -98,17 +98,17 @@ ngân sách, phê duyệt và runner vẫn hiện ra, và một lần từ chố
 
 Đầu vào là `role` cùng `goal` (một agent con) hoặc `items` (mỗi mục một agent con), thêm `context` tùy chọn. Profile của agent
 con là profile của agent cha giữ nguyên `id` (nhật ký, trần theo agent và định tuyến log vẫn là của agent cha), `tools` cắt
-còn danh sách đọc `SPAWN_TOOL_NAMES`, không có danh sách ủy quyền, trần `[loop] spawn_max_turns` và `spawn_max_duration_ms` (mỗi trần bị cắt theo max_turns và max_duration_ms của `[loop]`),
+còn danh sách đọc `SPAWN_TOOL_NAMES`, không có danh sách ủy quyền, trần `[loop] max_spawn_turns` và `max_spawn_duration_ms` (mỗi trần bị cắt theo max_turns và max_duration_ms của `[loop]`),
 và nhóm `delegate` nếu có khai báo. `RunOptions.profile` mang nó vào: `runOnce` chỉ nhận một profile khi nó cùng `id` với agent
 đã cấu hình và danh sách công cụ nằm trong danh sách của agent đó, không thì ném `ValidationError`. `RunOptions.title` đặt tên
 phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `RUN_TITLE_MAX_CHARS`) và `run_finished` của nó trên bus mang `summary`,
 là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại và `/v1/activity` hiển thị; sự kiện trên dây bỏ nó.
 
-Số agent con đang mở được đếm trên `DelegationQuota` của cây phiên chạy (`openChildren`, `trackChild`) cạnh hạn ngạch nhánh;
-mọi agent con được đếm trước lần `await` đầu tiên và được nhả trong `finally`. Chỗ trống là `maxSpawn` trừ số đang mở:
-`room` agent con đầu tiên khởi động, phần còn lại trả về là các mục thất bại "chưa bắt đầu" cùng dòng có khóa
-`tools.spawn.full` (`count` là số đang làm việc), hiện thành một dòng tiến độ bền ngay khi quyết định từ chối, trước khi các
-agent con được nhận bắt đầu, và mỗi mục nêu rõ mục tiêu chưa được bắt đầu; hết chỗ thì cả lời gọi là lỗi `delegate_full`. Mỗi kết quả là `{ role,
+`maxSpawn` giới hạn một lời gọi, không giới hạn cả cây phiên chạy: `maxSpawn` agent con đầu tiên của lời gọi khởi động, phần còn
+lại trả về là các mục thất bại "chưa bắt đầu" nói rằng lời gọi xin nhiều hơn mức agent được khởi động cùng lúc, cùng dòng có khóa
+`tools.spawn.full` (`count` là số đã khởi động), hiện thành một dòng tiến độ bền ngay khi áp giới hạn, trước khi các
+agent con được nhận bắt đầu, và mỗi mục nêu rõ mục tiêu chưa được bắt đầu. Các agent con vẫn dùng hạn ngạch nhánh của
+`DelegationQuota` trên cây phiên chạy. Mỗi kết quả là `{ role,
 status: done | partial | failed, reason?: timeout | turns | budget | error, text }`: `turn_limit` là `turns` (dòng
 `tools.spawn.reason.turns`, `{turns}`), agent con bị hủy thì thất bại, không có lý do và không có dòng lý do. `role` được lọc
 thông tin xác thực khi vào. `resolveToolGrant` bỏ `spawn` khỏi `tools = "*"` khi `max_spawn` là 0. Ngân sách là một phần `AGENT_BUDGET_FRACTION` và mức dùng của agent con

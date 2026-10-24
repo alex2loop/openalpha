@@ -8,7 +8,7 @@
       "channel": "telegram",
       "startedAt": 1792480000000,
       "endedAt": 1792480095000,
-      "outcome": "done",
+      "outcome": "completed",
       "costUsd": 0.1842,
       "children": [
         {

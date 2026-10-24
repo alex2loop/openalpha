@@ -3,7 +3,6 @@ import { ToolError } from '@/core/errors'
 
 export function createDelegationQuota(maxDelegations: number): DelegationQuota {
   let remaining = Math.max(0, Math.floor(maxDelegations))
-  let openChildren = 0
 
   return {
     remaining(): number {
@@ -24,21 +23,6 @@ export function createDelegationQuota(maxDelegations: number): DelegationQuota {
       }
 
       remaining -= requested
-    },
-    openChildren(): number {
-      return openChildren
-    },
-    trackChild(): () => void {
-      let released = false
-
-      openChildren += 1
-
-      return () => {
-        if (!released) {
-          released = true
-          openChildren -= 1
-        }
-      }
     },
   }
 }

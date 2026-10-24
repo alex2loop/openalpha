@@ -175,8 +175,7 @@ interface SettleStalledJobOptions {
 async function settleStalledJob(options: SettleStalledJobOptions): Promise<void> {
   const { job, deps, outcome, now } = options
 
-  // An event job has no occurrence to lose: it settles the way a finished run does.
-  if (job.schedule.kind !== 'once' || job.event !== undefined) {
+  if (job.schedule.kind !== 'once') {
     await advanceJob(job, deps, now)
     return
   }

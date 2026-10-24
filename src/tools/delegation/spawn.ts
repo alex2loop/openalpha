@@ -1,11 +1,11 @@
 import { z } from 'zod'
 
 import type { ResolvedConfig } from '@/core/config/resolve'
-import type { DisplayText, ProgressMessage } from '@/core/stream-events'
+import type { ProgressMessage } from '@/core/stream-events'
 import type { ToolInvocationContext, ToolResult } from '@/core/tool'
 import type { AgentProfile, BudgetSlice } from '@/engine/api'
 import { isClientModelSource } from '@/core/config/resolve'
-import { ToolError } from '@/core/errors'
+import { ConfigError, ToolError } from '@/core/errors'
 import { scrubCredentials } from '@/core/security/credentials'
 import { createTool } from '@/core/tool'
 import { DELEGATE_MODEL_TIER, RUN_TITLE_MAX_CHARS, SPAWN_TOOL_NAME } from '@/engine/api'
@@ -17,7 +17,6 @@ import {
   childOnChunk,
   childRunInput,
   childRunOptions,
-  requireDelegationQuota,
   reserveDelegationQuota,
   toChildRunSettlement,
 } from '@/tools/delegation/child-run'
@@ -142,15 +141,8 @@ export const spawnTool = createTool({
     }
 
     const briefs = toChildBriefs(args)
-    const open = requireDelegationQuota(ctx).openChildren()
-    const room = Math.max(0, maxSpawn - open)
-    const accepted = briefs.slice(0, room)
-    const refused = briefs.slice(room)
-
-    if (accepted.length === 0) {
-      return fullRefusal({ refused, working: open, maxSpawn })
-    }
-
+    const accepted = briefs.slice(0, maxSpawn)
+    const refused = briefs.slice(maxSpawn)
     const profiles = toChildProfiles(accepted, { parent, config: ctx.config })
     const slices = allocateChildBudgets(ctx, accepted.length)
 
@@ -162,12 +154,12 @@ export const spawnTool = createTool({
       reserveDelegationQuota(ctx, accepted.length)
 
       if (refused.length > 0) {
-        ctx.reportProgress?.(toFullProgress(open + accepted.length))
+        ctx.reportProgress?.(toFullProgress(accepted.length))
       }
 
       const results = await runChildren(toSpawnedChildren(profiles, slices), ctx)
 
-      return toSpawnToolResult(results, { refused, working: open + accepted.length, maxSpawn })
+      return toSpawnToolResult(results, { refused, maxSpawn })
     } finally {
       for (const slice of slices) {
         slice.settle()
@@ -175,6 +167,15 @@ export const spawnTool = createTool({
     }
   },
 })
+
+/** Boot check: a renamed or removed read tool would silently stop reaching children. */
+export function assertSpawnToolsRegistered(registered: ReadonlyMap<string, unknown>): void {
+  const missing = [...SPAWN_TOOL_NAMES].filter((name) => !registered.has(name))
+
+  if (missing.length > 0) {
+    throw new ConfigError(`spawn read tools are not registered: ${missing.join(', ')}`)
+  }
+}
 
 function toChildBriefs(input: SpawnInput): readonly ChildBrief[] {
   if ((input.goal === undefined) === (input.items === undefined)) {
@@ -196,33 +197,16 @@ function toChildBriefs(input: SpawnInput): readonly ChildBrief[] {
 
 interface CapacityInput {
   readonly refused: readonly ChildBrief[]
-  /** Children working once this call's accepted ones have started. */
-  readonly working: number
   readonly maxSpawn: number
 }
 
-// Nothing fits: the whole call goes back to the model.
-function fullRefusal(input: CapacityInput): ToolResult {
-  return {
-    content: JSON.stringify({
-      children: input.refused.map((brief) => toRefusedResult(brief, input)),
-    }),
-    isError: true,
-    errorCode: 'delegate_full',
-    display: toFullDisplay(input.working),
-  }
-}
-
-function toFullDisplay(working: number): DisplayText {
-  return { key: 'tools.spawn.full', params: { count: working } }
-}
-
 // Persistent, so the group line that follows does not wipe it.
-function toFullProgress(working: number): ProgressMessage {
-  return { key: 'tools.spawn.full', params: { count: working }, mode: 'persistent' }
+function toFullProgress(started: number): ProgressMessage {
+  return { key: 'tools.spawn.full', params: { count: started }, mode: 'persistent' }
 }
 
-// Some fit: those ran, the rest are named as not started so the model can ask again later.
+// The call may ask for more than the agent starts at once: the first `maxSpawn` ran, the rest are
+// named as not started so the model can ask again later.
 function toSpawnToolResult(results: readonly SpawnResult[], capacity: CapacityInput): ToolResult {
   const children = [
     ...results,
@@ -239,7 +223,7 @@ function toRefusedResult(brief: ChildBrief, capacity: CapacityInput): SpawnResul
   return {
     role: brief.role,
     status: 'failed',
-    text: `not started (${scrubCredentials(brief.goal).slice(0, RUN_TITLE_MAX_CHARS)}): ${capacity.working} of ${capacity.maxSpawn} child agents are already working; ask again after one finishes`,
+    text: `not started (${scrubCredentials(brief.goal).slice(0, RUN_TITLE_MAX_CHARS)}): the call asked for more child agents than the ${capacity.maxSpawn} this agent may start at once; ask again for the rest`,
   }
 }
 
@@ -264,8 +248,8 @@ function toChildProfiles(
     ...parent,
     tools: parent.tools.filter((name) => SPAWN_TOOL_NAMES.has(name)),
     delegates: [],
-    maxTurns: Math.min(config.loop.maxTurns, config.loop.spawnMaxTurns),
-    maxDurationMs: Math.min(config.loop.maxDurationMs, config.loop.spawnMaxDurationMs),
+    maxTurns: Math.min(config.loop.maxTurns, config.loop.maxSpawnTurns),
+    maxDurationMs: Math.min(config.loop.maxDurationMs, config.loop.maxSpawnDurationMs),
     ...toDelegateTierModel(config),
   }
 
@@ -316,29 +300,20 @@ function toChildPrompt(brief: ChildBrief): string {
   return brief.context === undefined ? prompt : `${prompt}\n\nCONTEXT\n${brief.context}`
 }
 
-// Every child is tracked and its run started before the first await, so a second spawn call in
-// the same turn already sees these children as open.
 async function runChildren(
   children: readonly SpawnedChild[],
   ctx: ToolInvocationContext
 ): Promise<readonly SpawnResult[]> {
-  const quota = requireDelegationQuota(ctx)
   const progress = createSpawnProgress(ctx, children)
 
   progress.line()
 
   const runs = children.map(async (child): Promise<SpawnResult> => {
-    const release = quota.trackChild()
+    const result = toSpawnResult(child.brief.role, await runChild(child, ctx, progress))
 
-    try {
-      const result = toSpawnResult(child.brief.role, await runChild(child, ctx, progress))
+    progress.finished(result)
 
-      progress.finished(result)
-
-      return result
-    } finally {
-      release()
-    }
+    return result
   })
   const settled = await Promise.allSettled(runs)
 

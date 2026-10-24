@@ -34,7 +34,8 @@ export interface CommandRuns {
   activeCommands(): readonly RunId[]
 }
 
-interface CommandRunState extends CommandRunsDeps {
+interface CommandRunState {
+  readonly bus: EventBus
   readonly active: Map<RunId, AbortController>
   track(id: RunId, controller: AbortController): void
 }
@@ -44,7 +45,7 @@ export function createCommandRuns(deps: CommandRunsDeps): CommandRuns {
   let overflowLogged = false
 
   const state: CommandRunState = {
-    ...deps,
+    bus: deps.bus,
     active,
     track(id, controller) {
       if (active.size < MAX_ACTIVE_COMMANDS) {
@@ -86,7 +87,7 @@ async function runWithEvents(
   const child = new AbortController()
   const unlink = linkAbort(context.signal, child)
   const { bus } = state
-  let outcome: CommandOutcome = 'failed'
+  let outcome: CommandOutcome = 'error'
   let result: SlashResult | undefined
 
   state.track(id, child)
@@ -106,14 +107,14 @@ async function runWithEvents(
       signal: child.signal,
       progress: reportProgress(bus, context, id),
     })
-    // A command that swallows its abort and returns normally reports done.
+    // A command that swallows its abort and returns normally reports completed.
     result = toSlashResult(command, raw)
-    outcome = 'done'
+    outcome = 'completed'
 
     return result
   } catch (err: unknown) {
     if (isCancellation(err)) {
-      outcome = 'cancelled'
+      outcome = 'aborted'
     }
     throw err
   } finally {

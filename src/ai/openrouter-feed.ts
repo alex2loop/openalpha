@@ -7,6 +7,7 @@ import { PriceRowSchema, toModelPrice } from '@/ai/cost/openrouter-prices'
 import { keylessGetWithSignal } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_HOUR } from '@/core/utils/time'
+import { hostOfUrl } from '@/core/utils/url'
 
 const FEED_HOSTS: readonly string[] = Object.freeze(['https://openrouter.ai'])
 const FEED_PATH = '/api/v1/models'
@@ -88,7 +89,7 @@ function loadRawRows(logger: Logger): Promise<readonly unknown[]> {
 
 /** The hosts the price and capability feed is read from. */
 export function listPricingHosts(): readonly string[] {
-  return FEED_HOSTS.map((url) => new URL(url).host)
+  return FEED_HOSTS.flatMap((url) => hostOfUrl(url) ?? [])
 }
 
 async function fetchRawRows(logger: Logger): Promise<readonly unknown[]> {

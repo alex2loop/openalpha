@@ -117,12 +117,7 @@ export function computeTransition(
   }
 
   const delay = computeBackoffMs(failures, RETRY_BASE_MS, RETRY_CAP_MS)
-  return { kind: 'retry', failures, nextRunAt: retryAt(job, now + delay) }
-}
-
-// An event job has no time to come back at: a retry keeps it parked, so only its alert wakes it.
-function retryAt(job: Job, at: number): number {
-  return job.event !== undefined && job.schedule.kind === 'once' ? job.schedule.at : at
+  return { kind: 'retry', failures, nextRunAt: now + delay }
 }
 
 // A key arrives with a restart, never by waiting, so the job keeps its place and no failure is
@@ -138,10 +133,6 @@ function keylessTransition(job: Job, now: number): SchedulerJobTransition {
 // A paused or capped agent's one-shot is deferred without a failure counted, so it runs once the
 // agent is resumed or the day rolls over instead of being disabled for a halt that is not the job's.
 function onceHaltTransition(job: Job, message: string, now: number): SchedulerJobTransition {
-  if (job.event !== undefined) {
-    return nextTransition(job, now)
-  }
-
   if (message === PAUSED_MESSAGE || message === SPEND_CAP_MESSAGE) {
     return deferredTransition(job, now)
   }
@@ -154,7 +145,7 @@ function deferredTransition(job: Job, now: number): SchedulerJobTransition {
   return {
     kind: 'retry',
     failures: job.consecutiveFailures,
-    nextRunAt: retryAt(job, now + RETRY_CAP_MS),
+    nextRunAt: now + RETRY_CAP_MS,
   }
 }
 

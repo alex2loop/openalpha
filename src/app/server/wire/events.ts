@@ -66,7 +66,7 @@ export interface WireEvent {
   readonly progress?: ProgressWire
   /** 'run_thinking': a scrubbed tail of the model's reasoning, at most one per 2 s per run. */
   readonly thinking?: string
-  /** 'run_finished': a run result reason, or `done | cancelled | failed` for a command. */
+  /** 'run_finished': a run result reason, or `completed | aborted | error` for a command. */
   readonly outcome?: string
   /** 'run_finished': the tickers the run reported on, in the order first seen; at most 20. Absent
    *  when it named none. */

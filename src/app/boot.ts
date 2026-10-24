@@ -35,6 +35,7 @@ import { ensurePrivateDirectory } from '@/core/security/private-files'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
 import { hasOwnMessage } from '@/i18n'
 import { openPersistence } from '@/persistence/api'
+import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
 
 // Allow-list, not a deny-list: an interpreter-hijack variable (NODE_OPTIONS, LD_PRELOAD,
@@ -252,6 +253,7 @@ async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
   // Resolved eagerly so registry construction and its consistency checks run at boot, not at the
   // first tool call: a misconfigured install must fail during composition.
   app.resolve('tradingServices')
+  assertSpawnToolsRegistered(app.resolve('tools'))
   // Also resolved at boot, so an unset search key is logged once at start, not at the first search.
   app.resolve('webRetrieval')
   assertSocialToolRules(app, socialConfig)

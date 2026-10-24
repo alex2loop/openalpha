@@ -64,7 +64,7 @@ interface ResolvedDelegation {
 /** Extra params a progress line carries, strings and numbers only. */
 export type ProgressTag = Readonly<Record<string, string | number>>
 
-export type ProgressReporter = (message: ProgressMessage) => void
+export type ProgressLineReporter = (message: ProgressMessage) => void
 
 interface ChildResultSummary {
   readonly agent_id: string
@@ -110,7 +110,7 @@ export function reserveDelegationQuota(ctx: ToolInvocationContext, count: number
   requireDelegationQuota(ctx).reserve(count)
 }
 
-export function requireDelegationQuota(ctx: ToolInvocationContext): DelegationQuota {
+function requireDelegationQuota(ctx: ToolInvocationContext): DelegationQuota {
   if (ctx.delegationQuota === undefined) {
     throw new ToolError('delegate_full', 'delegation quota unavailable')
   }
@@ -262,7 +262,7 @@ export function childRunInput(ctx: ToolInvocationContext, spec: ChildRunInputSpe
 
 interface ChildChunkOptions {
   /** Where tool and model lines go; the parent's own progress line by default. */
-  readonly report?: ProgressReporter
+  readonly report?: ProgressLineReporter
   /** Params every line carries, so a surface can tell which child it belongs to. */
   readonly tag?: ProgressTag
 }

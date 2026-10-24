@@ -37,19 +37,18 @@ export async function runOnce(
   input: RunInput,
   options: RunOptions = {}
 ): Promise<RunResult> {
-  const agent = resolveRunAgent(deps, input, options)
-
-  if (agent === undefined) {
-    return agentNotFoundResult(input.agentId)
-  }
-
-  if (deps.shutdownSignal.aborted || options.parentSignal?.aborted) {
-    return abortedBeforeStartResult()
-  }
-
-  const userMessage = clampUserMessage(input.userMessage)
-
   try {
+    const agent = resolveRunAgent(deps, input, options)
+
+    if (agent === undefined) {
+      return agentNotFoundResult(input.agentId)
+    }
+
+    if (deps.shutdownSignal.aborted || options.parentSignal?.aborted) {
+      return abortedBeforeStartResult()
+    }
+
+    const userMessage = clampUserMessage(input.userMessage)
     const refusal = await refuseAtAdmission(deps, { input, options })
 
     if (refusal !== undefined) {
@@ -100,8 +99,8 @@ export async function runOnce(
   }
 }
 
-/** The agent a run speaks as. A caller's profile may only narrow the configured agent: the same id,
- *  and no tool the agent was not already granted. */
+/** The agent a run speaks as. A caller's profile must keep the configured agent's id and may drop
+ *  tools but never add one; the guard checks nothing else, so the rest of the profile is the caller's. */
 function resolveRunAgent(
   deps: RunOnceDeps,
   input: RunInput,
@@ -171,13 +170,17 @@ function registerRun(input: RegisterRunInput): RunHandle {
   return handle
 }
 
-// A child names itself; a top-level run is named by what the operator asked.
+// A child names itself; a visible top-level run is named by what the operator asked.
 function toStartTitle(run: RunView, userMessage: string): string | undefined {
   if (run.env.title !== undefined) {
     return toRunTitle(run.env.title)
   }
 
-  return run.identity.parentRunId === undefined ? toRunTitle(userMessage) : undefined
+  if (run.identity.parentRunId !== undefined || run.env.answerVisibility === 'hidden') {
+    return undefined
+  }
+
+  return toRunTitle(userMessage)
 }
 
 interface AdmissionInput {

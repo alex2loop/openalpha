@@ -9,6 +9,7 @@ export type {
   ScopedNewJob,
   ScopedNewJobSchedule,
 } from '@/tools/schedule/types'
+export { assertSpawnToolsRegistered } from '@/tools/delegation/spawn'
 export { SCHEDULER_MAX_JOBS } from '@/tools/schedule/policy'
 export {
   assertInterval,

@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto'
+
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { InboundMessage, OutboundButton } from '@/channels/types'
 import type { HelpRequest, ResolvedSlashCommand } from '@/commands/api'
-import type { AgentId, SessionId } from '@/core/ids'
+import type { AgentId, RunId, SessionId } from '@/core/ids'
 import type {
   Affordance,
   CommandRole,
@@ -28,7 +30,7 @@ import {
   RunHalted,
   ToolError,
 } from '@/core/errors'
-import { userId as brandUserId } from '@/core/ids'
+import { runId as brandRunId, userId as brandUserId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { hasRunFooter } from '@/core/utils/footer'
 import { bindLocale, t } from '@/i18n'
@@ -58,6 +60,8 @@ interface DispatchSlashOptions {
   readonly resolved?: ResolvedSlashCommand
   /** Present only for a long-running command, which reports its steps through it. */
   readonly notice?: SlashNotice
+  /** Minted by the surface for a long-running command, so its end can be told from the bus. */
+  readonly runId?: RunId
 }
 
 /** A command that fails has still been processed: the inbox must not re-run a twenty-six section
@@ -195,21 +199,25 @@ async function runQueuedSlash(
     return
   }
 
-  const notice = openProgressNotice({
-    deps,
-    msg,
-    sessionId,
-    signal: controller.signal,
-    execution: resolved?.policy.execution,
-  })
+  const stop = watchStopped(deps, controller.signal)
+  let notice: SlashNotice | null = null
 
   try {
+    notice = openProgressNotice({
+      deps,
+      msg,
+      sessionId,
+      signal: stop.signal,
+      execution: resolved?.policy.execution,
+    })
+
     const request = await dispatchSlash({
       deps,
       msg,
       sessionId,
       signal: controller.signal,
       resolveAgentId,
+      runId: stop.runId,
       ...(resolved === undefined ? {} : { resolved }),
       ...(notice === null ? {} : { notice }),
     })
@@ -230,8 +238,30 @@ async function runQueuedSlash(
       agentId: selectedAgent,
     })
   } finally {
+    stop.off()
     await notice?.stop()
   }
+}
+
+interface StopWatch {
+  readonly runId: RunId
+  /** Fires when the surface's own signal does, or when the command ends as stopped. */
+  readonly signal: AbortSignal
+  off(): void
+}
+
+// A stop by run id (the app's Stop) aborts the dispatcher's child controller, never the surface's
+// signal, so the command's own end event is what tells the notice it was cancelled.
+function watchStopped(deps: InboundHandlerDeps, own: AbortSignal): StopWatch {
+  const id = brandRunId(randomUUID())
+  const stopped = new AbortController()
+  const off = deps.bus.on('command_finished', (e) => {
+    if (e.runId === id && e.outcome === 'aborted') {
+      stopped.abort()
+    }
+  })
+
+  return { runId: id, signal: AbortSignal.any([own, stopped.signal]), off }
 }
 
 interface OpenNoticeInput {
@@ -423,6 +453,7 @@ function buildSlashContext(options: DispatchSlashOptions, role: CommandRole): Sl
     locale: deps.locale,
     signal: options.signal,
     args: [],
+    ...(options.runId === undefined ? {} : { runId: options.runId }),
     ...(options.notice === undefined ? {} : { progress: options.notice.report }),
   }
 }

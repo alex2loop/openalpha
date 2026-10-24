@@ -147,7 +147,7 @@ Các bộ đếm `[loop]` chặn cây độc lập với ngân sách:
 | `delegation_depth` | Số cạnh con tối đa từ phiên chạy gốc, cộng với việc từ chối tự ủy quyền và vòng lặp tổ tiên | không áp dụng |
 | `max_delegations` | Một hạn ngạch dùng chung cho cả cây, giữ chỗ trước khi con khởi động ([engine/budget/delegation-quota.ts](../../src/engine/budget/delegation-quota.ts)) | Không |
 | `max_parallel_delegations` | Số mục tối đa trong một lời gọi `delegate_parallel` | không áp dụng |
-| `max_spawn` (tệp agent) | Số agent con tự tạo một agent được mở cùng lúc; chúng dùng phần ngân sách và hạn ngạch của agent cha | không áp dụng |
+| `max_spawn` (tệp agent) | Số agent con tự tạo một agent được khởi động cùng lúc trong một lời gọi; chúng dùng phần ngân sách và hạn ngạch của agent cha | không áp dụng |
 
 ### Các bất biến
 

@@ -2,10 +2,10 @@ import type { ToolInvocationContext } from '@/core/tool'
 import type { AgentProfile, RunResult } from '@/engine/api'
 import type {
   ChildRunSettlement,
-  ProgressReporter,
+  ProgressLineReporter,
   ProgressTag,
 } from '@/tools/delegation/child-run'
-import { MS_PER_MINUTE } from '@/core/utils/time'
+import { MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
 
 const SPAWN_REASON_KEYS = {
   timeout: 'tools.spawn.reason.timeout',
@@ -13,6 +13,8 @@ const SPAWN_REASON_KEYS = {
   budget: 'tools.spawn.reason.budget',
   error: 'tools.spawn.reason.error',
 } as const satisfies Record<SpawnReason, string>
+
+const SPAWN_TIMEOUT_SECONDS_KEY = 'tools.spawn.reason.timeoutSeconds'
 
 type SpawnReason = 'timeout' | 'turns' | 'budget' | 'error'
 
@@ -27,7 +29,7 @@ export interface SpawnProgress {
   /** The one line a channel or the terminal shows for the whole group. */
   line(): void
   /** Tool, model and ending lines for one child: feed only, never printed by a channel. */
-  report: ProgressReporter
+  report: ProgressLineReporter
   tag(role: string): ProgressTag
   finished(result: SpawnResult): void
 }
@@ -36,7 +38,11 @@ export function createSpawnProgress(
   ctx: ToolInvocationContext,
   children: readonly { readonly profile: AgentProfile }[]
 ): SpawnProgress {
-  const minutes = Math.max(1, Math.round((children[0]?.profile.maxDurationMs ?? 0) / MS_PER_MINUTE))
+  const durationMs = children[0]?.profile.maxDurationMs ?? 0
+  const minutes = Math.max(1, Math.round(durationMs / MS_PER_MINUTE))
+  const seconds = Math.max(1, Math.round(durationMs / MS_PER_SECOND))
+  const timeoutKey =
+    durationMs < MS_PER_MINUTE ? SPAWN_TIMEOUT_SECONDS_KEY : SPAWN_REASON_KEYS.timeout
   const turns = children[0]?.profile.maxTurns ?? 0
   const base: ProgressTag = { kind: 'spawn', parentRunId: ctx.runId }
   let done = 0
@@ -46,7 +52,7 @@ export function createSpawnProgress(
       params: { agent: ctx.agentId, count: children.length, done, ...base },
       mode: 'transient',
     })
-  const report: ProgressReporter = (message) =>
+  const report: ProgressLineReporter = (message) =>
     ctx.bus.emit('run_progress', {
       runId: ctx.runId,
       agentId: ctx.agentId,
@@ -63,8 +69,8 @@ export function createSpawnProgress(
 
       if (result.reason !== undefined) {
         report({
-          key: SPAWN_REASON_KEYS[result.reason],
-          params: { minutes, turns, ...base, role: result.role },
+          key: result.reason === 'timeout' ? timeoutKey : SPAWN_REASON_KEYS[result.reason],
+          params: { minutes, seconds, turns, ...base, role: result.role },
           mode: 'transient',
         })
       }

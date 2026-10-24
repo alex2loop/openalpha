@@ -21,8 +21,8 @@ declare module '@/core/events' {
     command_finished: {
       readonly runId: RunId
       readonly channel: ChannelId
-      readonly outcome: 'done' | 'cancelled' | 'failed'
-      // Present on `done`; read in-process only and never put on the wire.
+      readonly outcome: 'completed' | 'aborted' | 'error'
+      // Present on `completed`; read in-process only and never put on the wire.
       readonly result?: SlashResult
     }
   }

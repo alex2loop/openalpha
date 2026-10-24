@@ -101,7 +101,7 @@
     "weight": "quiet",
     "source": { "channel": "telegram", "agentId": "" },
     "runId": "cmd_4f1a",
-    "outcome": "done",
+    "outcome": "completed",
     "tickers": ["HPG", "FPT"]
   },
   {

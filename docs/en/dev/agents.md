@@ -65,8 +65,8 @@ A team is derived, never stored: the orchestrator's `delegates` roster plus the 
 | `loop.max_delegations` | `config.toml [loop]` | Run-tree fan-out: children ever started by both tools. Not refunded. |
 | `loop.max_parallel_delegations` | `config.toml [loop]` | Max items in one `delegate_parallel` call. |
 | `spawn` | [tools/delegation/spawn.ts](../../../src/tools/delegation/spawn.ts) | Temporary read-only children built in code from the parent's profile. |
-| `capabilities.max_spawn` | agent `[capabilities]` | 0 to 4 children open at once; `AgentProfile.maxSpawn`, absent when 0. |
-| `loop.spawn_max_duration_ms`, `loop.spawn_max_turns` | `config.toml [loop]` | Time (default 600000) and turns (default 12) per spawned child. |
+| `capabilities.max_spawn` | agent `[capabilities]` | 0 to 4 children started per call; `AgentProfile.maxSpawn`, absent when 0. |
+| `loop.max_spawn_duration_ms`, `loop.max_spawn_turns` | `config.toml [loop]` | Time (default 600000) and turns (default 12) per spawned child. |
 
 The gate checks the child's allowlist, not the parent's: a rostered child may use a tool the parent cannot call
 directly, and a tool absent from the child blocks before approval.
@@ -99,17 +99,17 @@ own entry.
 
 Input is `role` plus `goal` (one child) or `items` (one child per item), with optional `context`. The child profile is
 the parent's with its id kept (logs, the per-agent cap and log routing stay the parent's), `tools` cut to the
-`SPAWN_TOOL_NAMES` read allowlist, no roster, `[loop] spawn_max_turns` and `spawn_max_duration_ms` as caps (each cut to the `[loop]` max_turns and max_duration_ms), and the
+`SPAWN_TOOL_NAMES` read allowlist, no roster, `[loop] max_spawn_turns` and `max_spawn_duration_ms` as caps (each cut to the `[loop]` max_turns and max_duration_ms), and the
 `delegate` tier when declared. `RunOptions.profile` carries it: `runOnce` accepts one only with the configured
 agent's id and a tool list inside the configured agent's, else `ValidationError`. `RunOptions.title` names the run
 (`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`) and its `run_finished` on the bus carries `summary`, the scrubbed first
 `CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores and `/v1/activity` shows; the wire event leaves it out.
 
-Open children are counted on the run tree's `DelegationQuota` (`openChildren`, `trackChild`) beside the fan-out quota;
-every child is tracked before the first await and released in `finally`. Room is `maxSpawn` minus the
-open count: the first `room` children start and the rest come back as failed "not started" entries with the keyed line
-`tools.spawn.full` (`count` is the number now working), shown as a persistent progress line when the refusal is decided,
-before the accepted children start, and each entry names the goal it did not start; with no room the call is a `delegate_full` error. Each result is
+`maxSpawn` caps one call, not the run tree: the first `maxSpawn` children of a call start and the rest come back as
+failed "not started" entries saying the call asked for more than the agent may start at once, with the keyed line
+`tools.spawn.full` (`count` is the number started), shown as a persistent progress line when the cap is applied,
+before the accepted children start, and each entry names the goal it did not start. Children still draw on the
+run tree's `DelegationQuota` fan-out quota. Each result is
 `{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text }`: `turn_limit` is `turns`
 (line `tools.spawn.reason.turns`, `{turns}`), and an aborted child is failed with no reason and no reason line. `role` is
 scrubbed on entry. `resolveToolGrant` drops `spawn` from `tools = "*"` when `max_spawn` is 0. Budget is a slice of `AGENT_BUDGET_FRACTION` and

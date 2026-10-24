@@ -232,7 +232,7 @@ export interface RunLogRow {
   readonly sources?: number
   readonly startedAt: number
   readonly endedAt: number
-  /** A run result reason for an agent, `done | cancelled | failed` for a command. */
+  /** A run result reason for an agent, `completed | aborted | error` for a command. */
   readonly outcome: string
 }
 

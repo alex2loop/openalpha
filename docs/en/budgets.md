@@ -202,7 +202,7 @@ Budget alone does not bound a run tree. Three `[loop]` counters do:
 | `delegation_depth` | Max child levels from the top-level run; self-delegation and ancestor cycles are rejected | n/a |
 | `max_delegations` | One quota shared by the whole tree, reserved before children start | No - a finished child does not return quota |
 | `max_parallel_delegations` | Max items in one `delegate_parallel` call | n/a |
-| `max_spawn` (agent file) | Spawned children one agent may have working at once; they spend the parent's slice and quota | n/a |
+| `max_spawn` (agent file) | Spawned children one agent may start at once in one call; they spend the parent's slice and quota | n/a |
 
 Quota and budget are independent: a tree can exhaust its fan-out while holding plenty of money, and the reverse.
 

@@ -241,7 +241,7 @@ function buildSampleSql(d: Dialect, count: number): string {
   return (
     `WITH ranked AS (SELECT run_id, name, ` +
     `ROW_NUMBER() OVER (PARTITION BY name ORDER BY ended_at DESC, run_id DESC) AS rn ` +
-    `FROM runs WHERE kind = 'command' AND outcome = 'done' AND name IN (${d.paramList(count)})) ` +
+    `FROM runs WHERE kind = 'command' AND outcome = 'completed' AND name IN (${d.paramList(count)})) ` +
     `SELECT run_id, name FROM ranked WHERE rn <= ${d.param(count + 1)}`
   )
 }

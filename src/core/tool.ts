@@ -39,10 +39,6 @@ export interface ByteBudget {
 export interface DelegationQuota {
   remaining(): number
   reserve(count: number): void
-  /** Spawned child agents working now across the run tree: started and not yet released. */
-  openChildren(): number
-  /** Counts one spawned child as working. The release it returns is safe to call twice. */
-  trackChild(): () => void
 }
 
 // Declaration-merging slot for the service handles tools need that core cannot name: `tools/`

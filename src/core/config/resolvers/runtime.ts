@@ -37,8 +37,8 @@ const DEFAULT_LLM_CREDENTIAL_COOLDOWN_MS = 900_000
 const DEFAULT_DELEGATION_DEPTH = 3
 const DEFAULT_MAX_DELEGATIONS = 32
 const DEFAULT_MAX_PARALLEL_DELEGATIONS = 5
-const DEFAULT_SPAWN_MAX_DURATION_MS = 600_000
-const DEFAULT_SPAWN_MAX_TURNS = 12
+const DEFAULT_MAX_SPAWN_DURATION_MS = 600_000
+const DEFAULT_MAX_SPAWN_TURNS = 12
 const DEFAULT_MAX_UNASKED_FETCHES = 10
 const DEFAULT_API_PORT = 8765
 
@@ -75,8 +75,8 @@ export interface ResolvedLoop {
   readonly delegationDepth: number
   readonly maxDelegations: number
   readonly maxParallelDelegations: number
-  readonly spawnMaxDurationMs: number
-  readonly spawnMaxTurns: number
+  readonly maxSpawnDurationMs: number
+  readonly maxSpawnTurns: number
   readonly maxUnaskedFetches: number
 }
 
@@ -180,8 +180,8 @@ export function resolveLoop(raw: RawLoop | undefined): ResolvedLoop {
     delegationDepth: raw?.delegation_depth ?? DEFAULT_DELEGATION_DEPTH,
     maxDelegations: raw?.max_delegations ?? DEFAULT_MAX_DELEGATIONS,
     maxParallelDelegations: raw?.max_parallel_delegations ?? DEFAULT_MAX_PARALLEL_DELEGATIONS,
-    spawnMaxDurationMs: raw?.spawn_max_duration_ms ?? DEFAULT_SPAWN_MAX_DURATION_MS,
-    spawnMaxTurns: raw?.spawn_max_turns ?? DEFAULT_SPAWN_MAX_TURNS,
+    maxSpawnDurationMs: raw?.max_spawn_duration_ms ?? DEFAULT_MAX_SPAWN_DURATION_MS,
+    maxSpawnTurns: raw?.max_spawn_turns ?? DEFAULT_MAX_SPAWN_TURNS,
     maxUnaskedFetches: raw?.max_unasked_fetches ?? DEFAULT_MAX_UNASKED_FETCHES,
   }
 }

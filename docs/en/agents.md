@@ -211,7 +211,7 @@ one general chat.
 | `[loop] max_parallel_delegations` | Max items in one `delegate_parallel` call. |
 | `spawn` tool | Starts short-lived read-only child agents the agent describes itself; see [Spawned child agents](#spawned-child-agents). |
 | `[capabilities] max_spawn` | How many spawned children may read at once, 1 to 4. Absent or `0` means the agent may not spawn. |
-| `[loop] spawn_max_duration_ms`, `spawn_max_turns` | Time (default 10 minutes) and model turns (default `12`) each spawned child gets. |
+| `[loop] max_spawn_duration_ms`, `max_spawn_turns` | Time (default 10 minutes) and model turns (default `12`) each spawned child gets. |
 
 A rostered child uses its own tool allowlist: it may use a tool its parent cannot call directly, and a tool
 missing from the child is blocked before approval.
@@ -275,13 +275,13 @@ may start up to `2` at once. Pass `goal` for one child, or `items` for one child
 - A child is the parent's own agent narrowed: web, market and news reads and memory recall only. It never trades,
   records, schedules, sends, writes suggestions, spawns or delegates.
 - It runs on the `delegate` tier of `[model_tiers]` when you declare one, else on the parent's models.
-- It has `[loop] spawn_max_duration_ms` and `spawn_max_turns`. A child that runs out of time, turns or budget brings
+- It has `[loop] max_spawn_duration_ms` and `max_spawn_turns`. A child that runs out of time, turns or budget brings
   back what it had read, marked partial, with the reason (time, turns or budget); one that fails before reading
   anything is marked failed. A child stopped together with its parent is failed with no reason.
 - Children share the parent's budget slice, `[loop] max_delegations` quota and `[loop] delegation_depth`, and their
   cost counts to the parent. Stopping the parent stops every child.
-- Past `max_spawn` open children, the children that fit start and the rest are refused back to the model as not
-  started, never queued; the refusal shows on screen with the number now working. With no room, all are refused.
+- A call that asks for more children than `max_spawn` starts the first `max_spawn`; the rest are refused back to the
+  model as not started, never queued, and the screen says the call asked for more than may start at once.
 - `spawn` is left out of `tools = "*"` for an agent whose `max_spawn` is `0`.
 - Channels and the terminal show one line for the group (`N child agents reading, k/N done`); the live feed lists
   each child under its parent, and the activity log keeps the start of its answer.
@@ -309,7 +309,7 @@ The `[loop]` limits bound recursion, but a roster you did not intend is still a 
 2. **Orchestrator.** Add the delegation tools to `[capabilities] tools` and list the sub-agent ids in
    `[capabilities] delegates`.
 3. **Bounds.** Set `[loop] delegation_depth`, `max_delegations` and `max_parallel_delegations` in `config.toml`.
-   For `spawn`, also `[loop] spawn_max_duration_ms` and `spawn_max_turns`.
+   For `spawn`, also `[loop] max_spawn_duration_ms` and `max_spawn_turns`.
 4. **Models.** User agents use the global `[[models]]` chain unless they set `model_tier` to one of your
    `[model_tiers]`. Untrusted plugin agents may not.
 

@@ -29,7 +29,8 @@ declare module '@/core/events' {
 
 const THINKING_EMIT_INTERVAL_MS = 2000
 const THINKING_EXCERPT_MAX_CHARS = 160
-// Longer than any credential the scrub matches, so a cut never lands inside one it would catch.
+// Holds any single-line credential the scrub matches. A PEM block is longer, so a cut can land
+// inside one.
 const THINKING_RAW_TAIL_CHARS = 1024
 
 interface ProviderCallOptions {

@@ -209,7 +209,7 @@ một cuộc chat vạn năng.
 | `[loop] max_parallel_delegations` | Số mục tối đa trong một lời gọi `delegate_parallel`. |
 | Công cụ `spawn` | Tạo các agent con ngắn hạn, chỉ đọc, do chính agent mô tả; xem [Agent con tự tạo](#agent-con-tự-tạo). |
 | `[capabilities] max_spawn` | Số agent con tự tạo được đọc cùng lúc, từ 1 đến 4. Bỏ trống hoặc `0` là agent không tự tạo được. |
-| `[loop] spawn_max_duration_ms`, `spawn_max_turns` | Thời gian (mặc định 10 phút) và số lượt mô hình (mặc định `12`) mỗi agent con tự tạo có. |
+| `[loop] max_spawn_duration_ms`, `max_spawn_turns` | Thời gian (mặc định 10 phút) và số lượt mô hình (mặc định `12`) mỗi agent con tự tạo có. |
 
 Agent con dùng đúng danh sách công cụ của chính nó: nó có thể dùng công cụ mà cha không gọi trực tiếp được, và công
 cụ vắng mặt ở con thì bị chặn, trước cả khâu phê duyệt.
@@ -272,13 +272,13 @@ ví dụ cổ tức của một công ty và báo cáo quý của nó, rồi t�
 - Agent con là chính agent cha nhưng bị thu hẹp: chỉ đọc web, thị trường, tin tức và nhớ lại bộ nhớ. Nó không giao dịch,
   không ghi sổ, không đặt lịch, không gửi tin, không ghi đề xuất, không tạo thêm agent con và không ủy quyền.
 - Nó chạy trên nhóm `delegate` của `[model_tiers]` nếu bạn khai báo, không thì dùng mô hình của agent cha.
-- Nó có `[loop] spawn_max_duration_ms` và `spawn_max_turns`. Agent con hết thời gian, hết lượt hoặc hết ngân sách sẽ mang
+- Nó có `[loop] max_spawn_duration_ms` và `max_spawn_turns`. Agent con hết thời gian, hết lượt hoặc hết ngân sách sẽ mang
   về phần đã đọc, đánh dấu là dở dang kèm lý do (thời gian, lượt hoặc ngân sách); agent con lỗi trước khi đọc được gì thì
   đánh dấu là thất bại. Agent con bị dừng cùng agent cha thì thất bại và không có lý do.
 - Các agent con dùng chung phần ngân sách, hạn ngạch `[loop] max_delegations` và `[loop] delegation_depth` của agent cha,
   chi phí tính vào agent cha. Dừng agent cha là dừng mọi agent con.
-- Quá `max_spawn` agent con đang mở thì những agent con còn chỗ vẫn khởi động, phần còn lại bị trả về cho mô hình là chưa
-  bắt đầu, không xếp hàng; lời từ chối hiện trên màn hình kèm số agent con đang làm việc. Hết chỗ thì từ chối tất cả.
+- Một lời gọi xin nhiều agent con hơn `max_spawn` thì `max_spawn` agent con đầu tiên khởi động, phần còn lại bị trả về cho
+  mô hình là chưa bắt đầu, không xếp hàng, và màn hình nói rằng lời gọi xin nhiều hơn mức được khởi động cùng lúc.
 - Với agent có `max_spawn` là `0`, `spawn` bị bỏ khỏi `tools = "*"`.
 - Kênh chat và terminal chỉ hiện một dòng cho cả nhóm (`N agent con đang đọc, k/N xong`); bảng trực tiếp liệt kê từng agent
   con dưới agent cha, còn nhật ký hoạt động giữ phần đầu câu trả lời của nó.
@@ -306,7 +306,7 @@ hạn `[loop]` chặn đệ quy, nhưng một danh sách bạn không chủ ý t
 2. **Agent điều phối.** Thêm các công cụ ủy quyền vào `[capabilities] tools` và khai mã các agent con trong
    `[capabilities] delegates`.
 3. **Giới hạn.** Đặt `[loop] delegation_depth`, `max_delegations` và `max_parallel_delegations` trong `config.toml`.
-   Với `spawn`, đặt thêm `[loop] spawn_max_duration_ms` và `spawn_max_turns`.
+   Với `spawn`, đặt thêm `[loop] max_spawn_duration_ms` và `max_spawn_turns`.
 4. **Mô hình.** Agent bạn viết dùng chuỗi `[[models]]` toàn cục, trừ khi nó đặt `model_tier` trỏ tới một
    `[model_tiers]` của bạn. Agent plugin không đáng tin thì không.
 
