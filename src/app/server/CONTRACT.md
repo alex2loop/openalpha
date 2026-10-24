@@ -209,6 +209,7 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client
   can tell a daemon too old for it before opening the socket. `brand` is the product's display name,
   so a page's sign-in screen names it before the token is entered, with no `package.json` bundled.
+- **Office page link**: `api link` prints `http://127.0.0.1:<port>/#token=<token>` with the token passed through `encodeURIComponent`; the page reads the fragment and applies `decodeURIComponent`.
 - **`/v1/state` degraded**: what the daemon started without, one entry per item, worded in the
   daemon's language: `channel` (a chat channel left down, `subject` its id), `api`, `key` (an unset
   key variable or an exchange with no keys, with what waits for it) and `optional-key` (a feature with

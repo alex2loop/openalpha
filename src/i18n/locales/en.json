@@ -871,7 +871,7 @@
   },
   "cliHelp": {
     "apiAuthRotateSummary": "Rotate the API bearer token",
-    "apiAuthSummary": "Manage the API bearer token (view / rotate)",
+    "apiAuthSummary": "Manage the API bearer token (view / link / rotate)",
     "apiAuthTokenSummary": "Print the current API bearer token",
     "apiLinkSummary": "Print the link to the office page",
     "rootSummary": "The {brand} command line. New here? Run `{command} onboard` to set up, then `{command} chat` to start asking.",

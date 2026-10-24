@@ -871,7 +871,7 @@
   },
   "cliHelp": {
     "apiAuthRotateSummary": "Xoay vòng bearer token API",
-    "apiAuthSummary": "Quản lý bearer token API (xem / xoay vòng)",
+    "apiAuthSummary": "Quản lý bearer token API (xem / liên kết / xoay vòng)",
     "apiAuthTokenSummary": "Hiển thị bearer token API hiện tại",
     "apiLinkSummary": "In liên kết mở trang văn phòng",
     "rootSummary": "Giao diện dòng lệnh của {brand}. Mới dùng? Chạy `{command} onboard` để thiết lập, rồi `{command} chat` để bắt đầu hỏi.",

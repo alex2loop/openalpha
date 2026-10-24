@@ -49,7 +49,7 @@ function printToken(app: CliApp): Promise<number> {
 
 function printLink(app: CliApp): Promise<number> {
   return withApiToken(app, (token) => {
-    app.out(`http://${LOOPBACK_HOST}:${app.config.api.port}/#token=${token}`)
+    app.out(`http://${LOOPBACK_HOST}:${app.config.api.port}/#token=${encodeURIComponent(token)}`)
     app.out(hint(t(app.config.locale.language, 'cli.apiLinkHint')))
   })
 }
