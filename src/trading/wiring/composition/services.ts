@@ -19,6 +19,7 @@ import type { FactorLogService } from '@/trading/features/suggestion/track-recor
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
+import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type {
   AlertFiredListener,
   OrderFilledListener,
@@ -68,6 +69,7 @@ interface DomainServiceDeps {
   readonly stages: StageRegistry
   readonly refresh: RefreshMarketData
   readonly sender: TradingNoticeSender
+  recipient(): DeliveryAddress | undefined
   readonly onFilled: OrderFilledListener
   readonly onAlertFired: AlertFiredListener
   readonly config: TradingConfig
@@ -217,6 +219,7 @@ function buildSuggestions(parts: SuggestionParts): SuggestionService {
     config: deps.config,
     logger: deps.logger,
     runDebate: deps.runDebate,
+    notices: { sender: deps.sender, recipient: deps.recipient, locale: deps.defaultLocale },
     ensure,
     createSuggestionBudget: () => deps.createSuggestionBudget(),
     skillVersions: deps.skillVersions,

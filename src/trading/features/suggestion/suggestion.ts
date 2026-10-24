@@ -30,6 +30,7 @@ import type {
   FocusRecordView,
 } from '@/trading/features/suggestion/track-record/agent-record'
 import type { OutcomeResolutionDeps } from '@/trading/features/suggestion/track-record/outcome'
+import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type {
   ListResolvedSuggestionsOptions,
   OutcomeResolutionBatch,
@@ -91,6 +92,8 @@ interface SuggestionServiceDeps {
   readonly config: TradingConfig
   readonly logger: Logger
   readonly runDebate: RunDebate
+  /** Where a call the track record has just scored is told. */
+  readonly notices: CallScoredNotices
   readonly ensure: EnsureMarketData
   /** The engine's configured run budget, minted once per logical batch. Trading never chooses a
    *  currency cap and never constructs an unlimited budget of its own. */
@@ -257,6 +260,7 @@ function toOutcomeDeps(deps: SuggestionServiceDeps): OutcomeResolutionDeps {
     markets: deps.markets,
     store: deps.store,
     logger: deps.logger,
+    notices: deps.notices,
     costs: deps.config.costs,
     defaultVenues: deps.config.defaultVenues,
   }

@@ -6,6 +6,7 @@ import type { RunId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { RunProgressMessage } from '@/engine/api'
+import { followAgents } from '@/app/server/feed/agents'
 import { createAlertsFeed } from '@/app/server/feed/alerts'
 import {
   BOARD_SIZE,
@@ -69,6 +70,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
     ...followProgress(deps, book),
     ...followTools(deps),
     ...followRoles(deps),
+    ...followAgents(deps),
     ...followFills(deps),
     ...followBudget(deps),
     ...followNotices(deps),

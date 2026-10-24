@@ -162,7 +162,13 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   const failed = await reloadRefusal(ctx)
 
-  return failed ?? json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
+  if (failed !== null) {
+    return failed
+  }
+
+  ctx.app.resolve('bus').emit('agent_added', { agentId: id, name: built.agent.name })
+
+  return json(toAgentDetailWire(built.agent, true) satisfies AgentDetailWire)
 }
 
 async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response> {

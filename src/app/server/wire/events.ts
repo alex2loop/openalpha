@@ -35,6 +35,7 @@ type WireEventKind =
   | 'brief_ready'
   | 'idea'
   | 'role_output'
+  | 'agent_added'
   | 'mover'
   | 'order_filled'
   | 'alerts_checked'
@@ -172,7 +173,7 @@ export interface WireEvent {
     readonly action: 'buy' | 'reduce' | 'hold'
     readonly conviction: string
   }
-  /** 'call_scored': a call the track record has just scored, read it with GET /v1/suggestions/:id.
+  /** 'call_scored': a call the track record has just scored, read it with GET /v1/suggestions/:id/card.
    *  `returnPct` and the benchmark's are fractions net of fees (0.05 is 5%), as on a suggestion's
    *  `outcome`. `benchmark` is absent where the market names none. The rendered sentence rides in
    *  `note`. */
@@ -206,6 +207,8 @@ export interface WireEvent {
     readonly citations: number
     readonly unsupported: boolean
   }
+  /** 'agent_added': an agent was created and is on the roster; read it with GET /v1/agents/:id. */
+  readonly agent?: { readonly agentId: string; readonly name: string }
   /** The line a chat would get, already written in the daemon's language: the whole payload of
    *  'schedule_result', 'notice' and 'daemon_notice', and set beside the 'alert_fired', 'stop_breached',
    *  'brief_ready', 'mover', 'order_filled' and 'budget_exhausted' payloads too. */

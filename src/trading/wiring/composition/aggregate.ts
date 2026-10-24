@@ -3,6 +3,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { createConfiguredRunBudget } from '@/engine/api'
 import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
+import type { HeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { OperationPolicy, TradingConfig } from '@/trading/kernel/config'
 import type { MarketRef } from '@/trading/kernel/instrument'
@@ -19,6 +20,7 @@ import type { createDomainServices } from '@/trading/wiring/composition/services
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
 import { isVenueFillBooked } from '@/trading/features/ledger/sync'
+import { createHeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
 import { sessionPhase } from '@/trading/markets/calendar'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
@@ -116,11 +118,39 @@ function buildDaemonTasks(
     venues: registries.venues,
     ...(parts.services.order === undefined ? {} : { order: parts.services.order }),
     sender: options.sender,
+    heldWatch: buildHeldWatch(parts, options, registries),
     onFilled: options.onFilled,
     onAlertsChecked: options.onAlertsChecked,
     onTaskPass: options.onTaskPass,
     recipient: options.recipient,
     refreshMarketData: parts.refreshMarketData,
+    logger: parts.logger,
+  })
+}
+
+/** The watch reads what the report reads - the tradeable book, the overview, the quote board - plus
+ *  the plan stops and the archive, and tells the operator through the same sender. */
+function buildHeldWatch(
+  parts: AggregateParts,
+  options: AggregateOptions,
+  registries: Registries
+): HeldWatch {
+  const { marketData, alerts, portfolio } = parts.services
+  const book = createTradeableBook({ portfolio, venues: registries.venues })
+
+  return createHeldWatch({
+    markets: registries.markets,
+    region: options.tradingConfig.defaultRegion,
+    reads: {
+      tradeableHoldingsAt: book.tradeableHoldingsAt,
+      overview: (request) => marketData.overview(request),
+      quoteBoard: (request) => marketData.quoteBoard(request),
+      stopDistances: (request) => alerts.stopDistances(request),
+    },
+    news: parts.stores.newsArchive,
+    sender: options.sender,
+    recipient: options.recipient,
+    locale: parts.defaultLocale,
     logger: parts.logger,
   })
 }

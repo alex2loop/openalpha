@@ -23,6 +23,7 @@ type WireTopic =
   | 'run_thinking'
   | 'tool_started'
   | 'tool_finished'
+  | 'agent_added'
   | 'command_started'
   | 'command_finished'
   | 'alerts_checked'
@@ -163,6 +164,13 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
       capability: e.capability,
       ...(e.skipped === undefined ? {} : { skipped: e.skipped }),
     },
+  }),
+  agent_added: (e) => ({
+    v: 1,
+    kind: 'agent_added',
+    weight: 'quiet',
+    source: { ...APP_SOURCE, agentId: e.agentId },
+    agent: { agentId: e.agentId, name: e.name },
   }),
   command_started: (e) => ({
     v: 1,

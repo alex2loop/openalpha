@@ -340,6 +340,7 @@ function buildServices(
     refresh: parts.refresh,
     logger,
     sender: options.sender,
+    recipient: options.recipient,
     onFilled: options.onFilled,
     onAlertFired: options.onAlertFired,
     config: options.tradingConfig,

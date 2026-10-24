@@ -207,6 +207,18 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # The cost ledger (llm_attempts) is kept 400 days whatever days is set to.
 
 
+# ---- Notices ----------------------------------------------------------------
+# Three readings reach the bell in the app and no chat: a call you were given has
+# been scored (call-scored), news on a name you hold (held-news), and the region's
+# index falling hard in a session (index-drop). List a kind here to get it in your
+# chat as well. Held-name news covers only names the daemon has already read: a
+# /suggest or a chat about the name archived its headlines, and nothing fetches
+# news for your holdings on a schedule.
+
+# [notices]
+# chat = []                       # any of: call-scored, held-news, index-drop
+
+
 # ---- Logging ----------------------------------------------------------------
 
 # [log]

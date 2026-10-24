@@ -4,6 +4,7 @@ import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
 import type { VenueFill } from '@/trading/features/ledger/sync'
 import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
+import type { HeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import type { IntradaySettingsStore } from '@/trading/features/market-data/store/intraday-settings'
 import type { RestingExitStore } from '@/trading/features/order/store/resting-exit'
 import type { OrderService } from '@/trading/features/order/types'
@@ -66,6 +67,8 @@ interface TradingDaemonDeps {
   readonly venues: VenueRegistry
   readonly order?: Pick<OrderService, 'reconcileUnmirrored'>
   readonly sender: TradingNoticeSender
+  /** Told once per alert pass, after the alerts: the bell hears about held names and a falling index. */
+  readonly heldWatch: HeldWatch
   readonly onFilled: OrderFilledListener
   /** Called with the pass time once an alert pass has delivered what was armed. */
   readonly onAlertsChecked?: (at: number) => void
@@ -256,6 +259,7 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
       deps.onAlertsChecked?.(options.now)
       await armingStep({ logger, notes, name: 'exits' }, () => alerts.tickExits(options))
       await armingStep({ logger, notes, name: 'screeners' }, () => alerts.tickScreeners(options))
+      await deps.heldWatch(signal)
     },
   })
 }
