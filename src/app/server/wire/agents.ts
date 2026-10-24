@@ -71,12 +71,15 @@ export interface AgentDetailWire {
   readonly maxDailyUsd?: number
   /** The configured model tier it runs on; absent when it runs on the primary model. */
   readonly modelTier?: string
+  /** The child agents it may have working at once; absent when it may not spawn any. */
+  readonly maxSpawn?: number
   readonly editable: boolean
 }
 
 /** The fields of POST /v1/agents (`id` required) and PATCH /v1/agents/:id (`id` taken from the
  *  path, and the body replaces every field: one left out is removed). The tools are the daemon's
- *  fixed preset: research on the web, memory, and read-only market and suggestion tools. */
+ *  fixed preset: research on the web, memory, and read-only market and suggestion tools,
+ *  plus `spawn` when `maxSpawn` is above 0. */
 export interface AgentWriteBody {
   readonly id?: string
   readonly name: string
@@ -85,6 +88,8 @@ export interface AgentWriteBody {
   readonly focus?: AgentFocusWire
   readonly maxDailyUsd?: number
   readonly modelTier?: string
+  /** 1 to 4 lets the agent start that many child agents at once; 0 or left out, none. */
+  readonly maxSpawn?: number
 }
 
 /** POST /v1/agents/reload: the agents read off disk, and each file left out with the reason. */

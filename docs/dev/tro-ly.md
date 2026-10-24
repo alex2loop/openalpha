@@ -64,6 +64,9 @@ Một đội được suy ra, không được lưu: danh sách `delegates` của
 | `loop.delegation_depth` | `config.toml [loop]` | Số cạnh con tối đa từ phiên chạy gốc; mặc định `3` cho phép độ sâu 1, 2, 3. |
 | `loop.max_delegations` | `config.toml [loop]` | Số nhánh của cả cây: tổng số con từng được cả hai công cụ khởi động. Không hoàn lại. |
 | `loop.max_parallel_delegations` | `config.toml [loop]` | Số mục tối đa trong một lời gọi `delegate_parallel`. |
+| `spawn` | [tools/delegation/spawn.ts](../../src/tools/delegation/spawn.ts) | Agent con tạm thời, chỉ đọc, dựng bằng code từ profile của agent cha. |
+| `capabilities.max_spawn` | `[capabilities]` của agent | 0 đến 4 agent con mở cùng lúc; `AgentProfile.maxSpawn`, vắng khi là 0. |
+| `loop.spawn_max_duration_ms`, `loop.spawn_max_turns` | `config.toml [loop]` | Thời gian (mặc định 600000) và số lượt (mặc định 12) mỗi agent con tự tạo. |
 
 Cổng kiểm danh sách của con, không phải của cha: một con trong danh sách có thể dùng công cụ mà cha không gọi trực tiếp
 được, và công cụ vắng mặt ở con thì bị chặn trước cả khâu phê duyệt.
@@ -90,6 +93,26 @@ việc lan truyền hủy; mô hình không giữ cái nào.
 
 `delegate` trả JSON có `agent_id`, lý do dừng `reason` và `text`. `delegate_parallel` trả mảng `children` cùng dạng; lỗi
 ngân sách, phê duyệt và runner vẫn hiện ra, và một lần từ chối ngoài dự tính chỉ gói gọn trong mục của nó.
+
+### `spawn` - agent con tạm thời
+
+Đầu vào là `role` cùng `goal` (một agent con) hoặc `items` (mỗi mục một agent con), thêm `context` tùy chọn. Profile của agent
+con là profile của agent cha giữ nguyên `id` (nhật ký, trần theo agent và định tuyến log vẫn là của agent cha), `tools` cắt
+còn danh sách đọc `SPAWN_TOOL_NAMES`, không có danh sách ủy quyền, trần `[loop] spawn_max_turns` và `spawn_max_duration_ms`,
+và nhóm `delegate` nếu có khai báo. `RunOptions.profile` mang nó vào: `runOnce` chỉ nhận một profile khi nó cùng `id` với agent
+đã cấu hình và danh sách công cụ nằm trong danh sách của agent đó, không thì ném `ValidationError`. `RunOptions.title` đặt tên
+phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `RUN_TITLE_MAX_CHARS`) và `run_finished` của nó mang `summary`,
+là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại.
+
+Số agent con đang mở được đếm trên `DelegationQuota` của cây phiên chạy (`openChildren`, `trackChild`) cạnh hạn ngạch nhánh;
+mọi agent con được đếm trước lần `await` đầu tiên và được nhả trong `finally`. Lời gọi cần nhiều hơn `maxSpawn` trừ số đang mở
+bị từ chối với `delegate_full` cùng dòng hiển thị có khóa `tools.spawn.full`. Mỗi kết quả là `{ role, status: done | partial |
+failed, reason?: timeout | budget | error, text }`. Ngân sách là một phần `AGENT_BUDGET_FRACTION` và mức dùng của agent con
+được cộng vào agent cha. Dòng nhóm (`progress.spawnLine`) đi qua tiến độ của agent cha nên kênh chat và terminal in ra; các
+dòng công cụ, mô hình và lý do của từng agent con chỉ đi vào bus. Tham số là chuỗi và số: `kind: 'spawn'`, `role`, `parentRunId`.
+
+Một agent con `delegate` kết thúc vì hết giờ, lỗi, hết lượt, vòng lặp hoặc bị hủy giờ được xếp là thất bại (`isError`); chỉ
+phiên chạy hoàn tất mới được xếp là hoàn tất.
 
 ### Phê duyệt không bao giờ di truyền
 

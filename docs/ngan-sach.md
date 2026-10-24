@@ -191,6 +191,7 @@ Chỉ ngân sách thì chưa chặn nổi một cây phiên chạy. Ba bộ đ�
 | `delegation_depth` | Số tầng con tối đa từ phiên chạy gốc; tự ủy quyền và vòng lặp tổ tiên bị từ chối | không áp dụng |
 | `max_delegations` | Một hạn ngạch dùng chung cho cả cây, giữ chỗ trước khi con khởi động | Không - con chạy xong không trả lại hạn ngạch |
 | `max_parallel_delegations` | Số mục tối đa trong một lời gọi `delegate_parallel` | không áp dụng |
+| `max_spawn` (tệp agent) | Số agent con tự tạo một agent được mở cùng lúc; chúng dùng phần ngân sách và hạn ngạch của agent cha | không áp dụng |
 
 Hạn ngạch và ngân sách độc lập nhau: một cây có thể cạn số nhánh trong khi vẫn còn nhiều tiền, và ngược lại.
 

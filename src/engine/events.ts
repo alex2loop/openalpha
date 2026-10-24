@@ -74,7 +74,8 @@ declare module '@/core/events' {
       readonly channel: ChannelId
       readonly chatId?: string
       readonly parentRunId?: RunId
-      // Scrubbed and capped at RUN_TITLE_MAX_CHARS; set only for a top-level run.
+      // Scrubbed and capped at RUN_TITLE_MAX_CHARS; set for a top-level run and for a child that
+      // names itself.
       readonly title?: string
       // The run's answer never reaches a surface, so a feed shows that it ran and nothing more.
       readonly hidden?: true
@@ -100,6 +101,8 @@ declare module '@/core/events' {
       readonly channel: ChannelId
       readonly chatId?: string
       readonly reason: RunResultReason
+      // A named child's answer, scrubbed and cut at CHILD_SUMMARY_MAX_CHARS.
+      readonly summary?: string
       readonly totals: LLMUsageTotals
     }
     run_failed: {

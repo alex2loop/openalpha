@@ -77,6 +77,8 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #               "market_accounts" (a VN company's filed annual accounts).
 #   delegates - agent IDs callable through `delegate` (also include `delegate`
 #               in tools). Omitted or empty = delegation disabled.
+#   max_spawn - 1 to 4: child agents this agent may have reading at once through
+#               `spawn` (also include `spawn` in tools). Omitted or 0 = it may not spawn.
 #   hosts     - hostnames web_fetch and research page reads may reach. Omitted = any host allowed by the
 #               SSRF policy; `*.example.com` matches example.com and its subdomains.
 #               Either way, a link the agent builds itself asks you first.
@@ -89,8 +91,10 @@ tools = [
   "memory_store",
   "memory_recall",
   # "delegate",
+  # "spawn",
 ]
 # delegates = ["reviewer"]
+# max_spawn = 2
 # hosts = ["*.wikipedia.org", "arxiv.org"]
 # skills = ["market-research"]
 

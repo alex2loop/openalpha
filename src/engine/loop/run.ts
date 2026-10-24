@@ -13,12 +13,11 @@ import type {
   RunView,
 } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
-import { RunHalted } from '@/core/errors'
+import { RunHalted, ValidationError } from '@/core/errors'
 import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { scrubCredentials } from '@/core/security/credentials'
 import { EMPTY_LLM_USAGE_TOTALS } from '@/core/types/usage'
 import { agentCapRejection } from '@/engine/budget/agent-cap'
-import { RUN_TITLE_MAX_CHARS } from '@/engine/constants'
 import { assembleRun } from '@/engine/loop/context'
 import { createSteeringInbox, driveRun } from '@/engine/loop/drive'
 import { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
@@ -29,6 +28,7 @@ import {
   pausedResult,
   preflightRun,
 } from '@/engine/loop/preflight'
+import { toRunTitle } from '@/engine/loop/run-text'
 import { clampUserMessage } from '@/engine/loop/user-message'
 import { composeAbort } from '@/engine/run-registry'
 
@@ -37,13 +37,11 @@ export async function runOnce(
   input: RunInput,
   options: RunOptions = {}
 ): Promise<RunResult> {
-  const configuredAgent = deps.agents.get(input.agentId)
+  const agent = resolveRunAgent(deps, input, options)
 
-  if (configuredAgent === undefined) {
+  if (agent === undefined) {
     return agentNotFoundResult(input.agentId)
   }
-
-  const agent = deps.agentForRun?.(input, configuredAgent) ?? configuredAgent
 
   if (deps.shutdownSignal.aborted || options.parentSignal?.aborted) {
     return abortedBeforeStartResult()
@@ -102,6 +100,35 @@ export async function runOnce(
   }
 }
 
+/** The agent a run speaks as. A caller's profile may only narrow the configured agent: the same id,
+ *  and no tool the agent was not already granted. */
+function resolveRunAgent(
+  deps: RunOnceDeps,
+  input: RunInput,
+  options: RunOptions
+): AgentProfile | undefined {
+  const configured = deps.agents.get(input.agentId)
+
+  if (configured === undefined) {
+    return undefined
+  }
+
+  const { profile } = options
+
+  if (profile === undefined) {
+    return deps.agentForRun?.(input, configured) ?? configured
+  }
+
+  if (
+    profile.id !== input.agentId ||
+    !profile.tools.every((tool) => configured.tools.includes(tool))
+  ) {
+    throw new ValidationError(`profile for agent ${configured.id} must narrow that agent`)
+  }
+
+  return profile
+}
+
 interface RegisterRunInput {
   readonly deps: RunOnceDeps
   readonly run: RunView
@@ -125,7 +152,7 @@ function registerRun(input: RegisterRunInput): RunHandle {
   }
 
   const { identity } = run
-  const title = identity.parentRunId === undefined ? toRunTitle(userMessage) : undefined
+  const title = toStartTitle(run, userMessage)
   const hidden: Pick<BusEventMap['run_started'], 'hidden'> =
     run.env.answerVisibility === 'hidden' ? { hidden: true } : {}
 
@@ -144,11 +171,13 @@ function registerRun(input: RegisterRunInput): RunHandle {
   return handle
 }
 
-// Scrubbed before the cut: a credential sliced in half would no longer match its pattern.
-function toRunTitle(userMessage: string): string | undefined {
-  const title = scrubCredentials(userMessage).trim().slice(0, RUN_TITLE_MAX_CHARS).trim()
+// A child names itself; a top-level run is named by what the operator asked.
+function toStartTitle(run: RunView, userMessage: string): string | undefined {
+  if (run.env.title !== undefined) {
+    return toRunTitle(run.env.title)
+  }
 
-  return title === '' ? undefined : title
+  return run.identity.parentRunId === undefined ? toRunTitle(userMessage) : undefined
 }
 
 interface AdmissionInput {

@@ -75,7 +75,12 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
     }),
     bus.on('command_started', (e) => remember(open, toCommandStart(e))),
     bus.on('run_progress', (e) => noteSources(open, e.runId, e.message)),
-    bus.on('run_finished', (e) => finish(book, e.runId, e.reason)),
+    bus.on('run_finished', (e) =>
+      finish(book, e.runId, {
+        outcome: e.reason,
+        ...(e.summary === undefined ? {} : { summary: e.summary }),
+      })
+    ),
     bus.on('command_finished', (e) => {
       if (e.result?.kind === 'agent') {
         open.delete(e.runId)
@@ -83,7 +88,7 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
         return
       }
 
-      finish(book, e.runId, e.outcome)
+      finish(book, e.runId, { outcome: e.outcome })
     }),
   ]
 }
@@ -110,7 +115,12 @@ function noteSources(open: Map<RunId, OpenRun>, id: RunId, message: RunProgressM
   }
 }
 
-function finish(book: RunBook, id: RunId, outcome: string): void {
+interface RunEnd {
+  readonly outcome: string
+  readonly summary?: string
+}
+
+function finish(book: RunBook, id: RunId, end: RunEnd): void {
   const run = book.open.get(id)
 
   if (run === undefined) {
@@ -118,7 +128,7 @@ function finish(book: RunBook, id: RunId, outcome: string): void {
   }
 
   book.open.delete(id)
-  book.write({ ...run, endedAt: Date.now(), outcome })
+  book.write({ ...run, endedAt: Date.now(), ...end })
 }
 
 function toAgentStart(e: BusEventMap['run_started']): OpenRun {

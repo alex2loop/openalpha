@@ -152,6 +152,8 @@ export { createBudget, createConfiguredRunBudget } from '@/engine/budget/run-bud
 export { createBudgetSlicesWithin } from '@/engine/budget/slices'
 export {
   AGENT_BUDGET_FRACTION,
+  DELEGATE_MODEL_TIER,
+  MAX_SPAWN_PER_AGENT,
   MCP_CALL_WAIT_MS,
   RUN_LEASE_SLACK_MS,
   RUN_TITLE_MAX_CHARS,

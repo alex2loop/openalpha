@@ -157,6 +157,7 @@ results already paid for are never thrown away.
 | `delegation_depth` | Max child edges from the top-level run, plus self-delegation and ancestor-cycle rejection | n/a |
 | `max_delegations` | One quota shared by the whole tree, reserved before children start ([engine/budget/delegation-quota.ts](../../../src/engine/budget/delegation-quota.ts)) | No |
 | `max_parallel_delegations` | Max items in one `delegate_parallel` call | n/a |
+| `max_spawn` (agent file) | Spawned children one agent may have working at once; they spend the parent's slice and quota | n/a |
 
 ### Invariants
 

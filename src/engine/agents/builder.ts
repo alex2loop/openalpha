@@ -11,6 +11,7 @@ import { agentId, isPathId } from '@/core/ids'
 import { REASONING_MODES } from '@/core/llm'
 import { hasBlockingThreat, scanSkill } from '@/core/security/sanitize'
 import { MAX_TIMER_MS } from '@/core/utils/time'
+import { MAX_SPAWN_PER_AGENT } from '@/engine/constants'
 
 export const RESERVED_AGENT_IDS: ReadonlySet<string> = new Set(['default'])
 export const ALL_TOOLS = '*'
@@ -36,6 +37,7 @@ const AgentTomlSchema = z.strictObject({
     .strictObject({
       tools: z.union([z.literal(ALL_TOOLS), z.array(z.string())]).optional(),
       delegates: z.array(z.string()).optional(),
+      max_spawn: z.number().int().min(0).max(MAX_SPAWN_PER_AGENT).optional(),
       hosts: z.array(z.string().min(1)).optional(),
       skills: z.array(z.string().min(1)).optional(),
     })
@@ -155,6 +157,7 @@ export function buildAgentFromToml(
   assertMaxDailyUsd(parsed.max_daily_usd, ctx.config.budget.maxDailyUsd, id)
 
   const tools = resolveToolGrant(parsed.capabilities?.tools, ctx.allToolNames)
+  const maxSpawn = parsed.capabilities?.max_spawn ?? 0
   const selected = resolveAgentModelChain({
     parsed,
     id,
@@ -183,6 +186,7 @@ export function buildAgentFromToml(
     ...(parsed.focus === undefined ? {} : { focus: Object.freeze({ ...parsed.focus }) }),
     ...(isOwnCap(parsed.max_daily_usd) ? { maxDailyUsd: parsed.max_daily_usd } : {}),
     delegates: parsed.capabilities?.delegates ?? [],
+    ...(maxSpawn > 0 ? { maxSpawn } : {}),
     ...(parsed.capabilities?.hosts === undefined ? {} : { hosts: parsed.capabilities.hosts }),
     ...(parsed.capabilities?.skills === undefined ? {} : { skills: parsed.capabilities.skills }),
   }

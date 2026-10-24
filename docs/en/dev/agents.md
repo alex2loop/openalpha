@@ -64,6 +64,9 @@ A team is derived, never stored: the orchestrator's `delegates` roster plus the 
 | `loop.delegation_depth` | `config.toml [loop]` | Max child edges from the top-level run; default `3` permits depths 1, 2, 3. |
 | `loop.max_delegations` | `config.toml [loop]` | Run-tree fan-out: children ever started by both tools. Not refunded. |
 | `loop.max_parallel_delegations` | `config.toml [loop]` | Max items in one `delegate_parallel` call. |
+| `spawn` | [tools/delegation/spawn.ts](../../../src/tools/delegation/spawn.ts) | Temporary read-only children built in code from the parent's profile. |
+| `capabilities.max_spawn` | agent `[capabilities]` | 0 to 4 children open at once; `AgentProfile.maxSpawn`, absent when 0. |
+| `loop.spawn_max_duration_ms`, `loop.spawn_max_turns` | `config.toml [loop]` | Time (default 600000) and turns (default 12) per spawned child. |
 
 The gate checks the child's allowlist, not the parent's: a rostered child may use a tool the parent cannot call
 directly, and a tool absent from the child blocks before approval.
@@ -91,6 +94,27 @@ abort propagation; the model owns none of them.
 `delegate` returns JSON with `agent_id`, halt `reason` and `text`. `delegate_parallel` returns a `children` array
 of the same shape; budget, approval and runner failures stay visible and an unexpected rejection is isolated to its
 own entry.
+
+### `spawn` - temporary children
+
+Input is `role` plus `goal` (one child) or `items` (one child per item), with optional `context`. The child profile is
+the parent's with its id kept (logs, the per-agent cap and log routing stay the parent's), `tools` cut to the
+`SPAWN_TOOL_NAMES` read allowlist, no roster, `[loop] spawn_max_turns` and `spawn_max_duration_ms` as caps, and the
+`delegate` tier when declared. `RunOptions.profile` carries it: `runOnce` accepts one only with the configured
+agent's id and a tool list inside the configured agent's, else `ValidationError`. `RunOptions.title` names the run
+(`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`) and its `run_finished` carries `summary`, the scrubbed first
+`CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores.
+
+Open children are counted on the run tree's `DelegationQuota` (`openChildren`, `trackChild`) beside the fan-out quota;
+every child is tracked before the first await and released in `finally`. A call needing more than `maxSpawn` minus the
+open count is refused with `delegate_full` and the keyed display `tools.spawn.full`. Each result is `{ role, status:
+done | partial | failed, reason?: timeout | budget | error, text }`. Budget is a slice of `AGENT_BUDGET_FRACTION` and
+child usage rolls into the parent. The group line (`progress.spawnLine`) goes through the parent's progress, so
+channels and the terminal print it; per-child tool, model and reason lines go to the bus only. Params are strings and
+numbers: `kind: 'spawn'`, `role`, `parentRunId`.
+
+A delegated child that ends on a timeout, error, turn limit, loop or abort now settles as failed (`isError`); only a
+completed run settles as completed.
 
 ### Approval never inherits
 

@@ -465,6 +465,8 @@ chẳng được gì.
 | `delegation_depth` | số nguyên | `3` | Độ sâu lồng agent con tối đa. |
 | `max_delegations` | số nguyên | `32` | Tổng số agent con cả một phiên chạy được khởi động. |
 | `max_parallel_delegations` | số nguyên | `5` | Số mục agent con tối đa một lời gọi `delegate_parallel` nhận. |
+| `spawn_max_duration_ms` | số nguyên | `600000` | 10 phút: thời gian một agent con tự tạo làm việc trước khi mang về phần đã đọc. Tối đa 2147483647. |
+| `spawn_max_turns` | số nguyên | `12` | Số lượt mô hình mỗi agent con tự tạo có. |
 | `max_unasked_fetches` | số nguyên | `10` | Số lần gọi `web_fetch` trong một lần chạy, kể cả lần đã hỏi, trước khi mọi lần sau đều hỏi bạn. `0` là lần nào cũng hỏi. |
 
 Việc nén phiên là cố định: một phiên được nén khi quá 500 tin nhắn hoặc khi đầy 75% cửa sổ ngữ cảnh,

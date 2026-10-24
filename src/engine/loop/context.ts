@@ -325,6 +325,7 @@ function optionalEnvFields(
   | 'researchInteraction'
   | 'instructions'
   | 'routingKey'
+  | 'title'
 > {
   return {
     ...(options.outputContract === undefined ? {} : { outputContract: options.outputContract }),
@@ -339,6 +340,7 @@ function optionalEnvFields(
       : { researchInteraction: options.researchInteraction }),
     ...(options.instructions === undefined ? {} : { instructions: options.instructions }),
     ...(options.routingKey === undefined ? {} : { routingKey: options.routingKey }),
+    ...(options.title === undefined ? {} : { title: options.title }),
   }
 }
 

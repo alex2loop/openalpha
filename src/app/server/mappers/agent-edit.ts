@@ -4,12 +4,14 @@ import { z } from 'zod'
 import type { AgentDetailWire, AgentFocusWire, AgentWriteBody } from '@/app/server/wire/agents'
 import type { AgentProfile } from '@/engine/api'
 import { isPlainRecord } from '@/core/utils/collections'
+import { MAX_SPAWN_PER_AGENT } from '@/engine/api'
 
 const MAX_LIST_ITEMS = 20
 const MAX_NAME_CHARS = 80
 const MAX_DESCRIPTION_CHARS = 500
 const MAX_PROMPT_CHARS = 20_000
 const MAX_DAILY_USD = 1_000_000
+const SPAWN_TOOL = 'spawn'
 
 /** Research on the web, memory, and the read-only market and suggestion tools. Never a shell, a file
  *  write or a schedule. A name the registry lacks is left out when the file is written. */
@@ -61,10 +63,12 @@ export const AGENT_WRITE_BODY = z.strictObject({
   focus: FOCUS_BODY.exactOptional(),
   maxDailyUsd: z.number().nonnegative().max(MAX_DAILY_USD).exactOptional(),
   modelTier: z.string().min(1).exactOptional(),
+  maxSpawn: z.number().int().min(0).max(MAX_SPAWN_PER_AGENT).exactOptional(),
 })
 
 /** The TOML text for the body. An edit passes the file's current text: what the page does not own
- *  (turn and token caps, hosts, skills, delegates) is kept, and only the tool list is the preset. */
+ *  (turn and token caps, hosts, skills, delegates) is kept, and only the tool list is the preset.
+ *  `spawn` and `max_spawn` are the page's too: both go when `maxSpawn` is 0 or left out. */
 export function toAgentToml(
   body: AgentWriteBody,
   availableTools: readonly string[],
@@ -75,8 +79,13 @@ export function toAgentToml(
   const kept = Object.fromEntries(
     Object.entries(base).filter(([key]) => !MANAGED_KEYS.includes(key))
   )
-  const capabilities = isPlainRecord(base.capabilities) ? base.capabilities : {}
-  const tools = WEB_AGENT_TOOLS.filter((name) => availableTools.includes(name))
+  const { max_spawn: _previousMaxSpawn, ...capabilities } = isPlainRecord(base.capabilities)
+    ? base.capabilities
+    : {}
+  const maxSpawn = body.maxSpawn ?? 0
+  const tools = [...WEB_AGENT_TOOLS, ...(maxSpawn > 0 ? [SPAWN_TOOL] : [])].filter((name) =>
+    availableTools.includes(name)
+  )
 
   return stringifyToml({
     ...kept,
@@ -86,7 +95,7 @@ export function toAgentToml(
     ...(body.maxDailyUsd === undefined ? {} : { max_daily_usd: body.maxDailyUsd }),
     ...(body.modelTier === undefined ? {} : { model_tier: body.modelTier }),
     ...(body.focus === undefined ? {} : { focus: body.focus }),
-    capabilities: { ...capabilities, tools },
+    capabilities: { ...capabilities, tools, ...(maxSpawn > 0 ? { max_spawn: maxSpawn } : {}) },
   })
 }
 
@@ -107,6 +116,7 @@ export function toAgentDetailWire(agent: AgentProfile, editable: boolean): Agent
     ...(focus === undefined ? {} : { focus }),
     ...(agent.maxDailyUsd === undefined ? {} : { maxDailyUsd: agent.maxDailyUsd }),
     ...(agent.modelChain.kind === 'tier' ? { modelTier: agent.modelChain.name } : {}),
+    ...(agent.maxSpawn === undefined ? {} : { maxSpawn: agent.maxSpawn }),
     editable,
   }
 }

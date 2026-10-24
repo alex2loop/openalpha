@@ -47,3 +47,4 @@ DECISIONS
 [capabilities]
 tools = "*"
 delegates = ["reviewer"]
+max_spawn = 2
