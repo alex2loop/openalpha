@@ -204,7 +204,7 @@ mang id và `askedAt` để danh sách đang chờ giữ được chúng. Hình 
 [CONTRACT.md](../../src/app/server/CONTRACT.md). Các câu lệnh tự chạy được đi qua một làn riêng cho từng cuộc chat
 ([core/command-lane.ts](../../src/core/command-lane.ts)), ba câu chạy và mười câu chờ mỗi cuộc chat, dùng chung cho
 mọi bề mặt tới được cuộc chat đó; `/new`, `/stop` và khung `cancel` của socket bỏ những câu đang chờ và dừng những câu đang chạy, còn `drop`
-bỏ đúng một câu đang chờ. Mỗi định danh và độ sâu chỉ chạy một `/suggest`: lượt thứ hai tìm lượt đang chạy trong bảng các
+bỏ đúng một câu đang chờ. `POST /v1/runs/:runId/stop` dừng một phiên chạy từ bất kỳ kênh nào: gọi `RunRegistry.abortRun` (phiên chạy của agent) rồi `SlashDispatcher.abortCommand` (câu lệnh chạy lâu), và chỉ hủy, nên phiên chạy tự kết thúc theo đường của nó và hiện là `run_finished`; id không biết hoặc đã xong thì `not_found`. Mỗi định danh và độ sâu chỉ chạy một `/suggest`: lượt thứ hai tìm lượt đang chạy trong bảng các
 lượt của dịch vụ đề xuất rồi chờ nó, và chỉ lượt khởi đầu bị tính phí.
 
 **Agent và đội.** Các agent có sẵn: `chat`, `deep-researcher` cùng các worker nội bộ của nó

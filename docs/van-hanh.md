@@ -354,7 +354,7 @@ Khi đã nối, ứng dụng được cho thấy daemon đang làm gì ngay lúc
 lâu đang chạy cùng bước mới nhất của nó, mọi yêu cầu phê duyệt và câu hỏi còn chờ trên bất kỳ kênh nào, một
 lần khớp lệnh (lệnh cắt lỗ hoặc chốt lời đang treo được bán, hoặc một lần khớp của `/trade`), lúc chạm hạn mức chi tiêu, và lần cuối kiểm tra cảnh
 báo. Ứng dụng nối muộn thì hỏi bức tranh hiện tại trước, rồi theo dõi luồng. Yêu cầu hỏi trên Telegram hay kênh
-khác vẫn hiện trong ứng dụng nhưng được trả lời ở nơi nó được hỏi; ứng dụng nói rõ điều đó thay vì trả lời hộ.
+khác vẫn hiện trong ứng dụng nhưng được trả lời ở nơi nó được hỏi; ứng dụng nói rõ điều đó thay vì trả lời hộ. Ứng dụng dừng được mọi phiên chạy bạn thấy, kể cả phiên bắt đầu từ Telegram: dừng chỉ là hủy, và phiên chạy kết thúc ở trạng thái đã hủy. Phiên chạy đã xong thì được báo là không còn nữa.
 
 Khi daemon dừng, API ngừng nhận kết nối và yêu cầu trước tiên, trước khi các lượt chạy được chờ xong; yêu
 cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi `unavailable`,

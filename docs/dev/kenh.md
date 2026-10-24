@@ -169,6 +169,8 @@ Ghép nối luôn chặn lại khi có sự cố:
 - lưu trữ hỏng thì từ chối xét duyệt;
 - mã đang chờ hết hạn theo chính sách của kho ghép nối.
 
+API đọc cùng kho này: `GET /v1/pairing` liệt kê các mã đang chờ và, theo từng kênh, tối đa 200 chat đã ghép nối theo thứ tự id chat (`PairingStore.listPaired`, `LIMIT` nằm trong SQL, cạnh `LIMIT 2` của `lonePairedChat`), còn `DELETE /v1/pairing/:channel/:chatId` gọi `revoke` và trả về có gì được thu hồi hay không.
+
 ## Từ lúc đến tới lúc trả lời
 
 Adapter polling ghi tin nhắn hoặc callback đã chuẩn hóa vào hộp nhận (`InboundInbox`, qua

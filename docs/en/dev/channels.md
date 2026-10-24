@@ -169,6 +169,8 @@ Pairing fails closed:
 - a storage failure rejects admission;
 - pending codes expire under the pairing store's policy.
 
+The API reads the same store: `GET /v1/pairing` lists pending codes and, per channel, at most 200 paired chats in chat id order (`PairingStore.listPaired`, a `LIMIT` in SQL, beside the `LIMIT 2` of `lonePairedChat`), and `DELETE /v1/pairing/:channel/:chatId` calls `revoke`, answering whether anything was revoked.
+
 ## From arrival to answer
 
 Polling adapters write the normalized message or callback to the inbox (`InboundInbox`, through

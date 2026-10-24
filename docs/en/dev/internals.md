@@ -194,7 +194,7 @@ behind `GET /v1/live` and broadcasts each to the open sockets; `approval_request
 [CONTRACT.md](../../../src/app/server/CONTRACT.md). Self-contained commands run in a per-chat command lane
 ([core/command-lane.ts](../../../src/core/command-lane.ts)), three running and ten waiting per chat, shared by
 every surface that reaches the chat; `/new`, `/stop` and the socket's `cancel` drop the waiting ones and stop the running ones, and `drop`
-takes out one waiting command. One `/suggest` runs per identity and depth: a second finds the run in the suggestion service's
+takes out one waiting command. `POST /v1/runs/:runId/stop` stops one run from any channel: it tries `RunRegistry.abortRun` (an agent run), then `SlashDispatcher.abortCommand` (a long-running command), and aborts only, so the run ends through its own path and shows as `run_finished`; an unknown or finished id is `not_found`. One `/suggest` runs per identity and depth: a second finds the run in the suggestion service's
 flight map and waits on it, and the starter alone is billed.
 
 **Agents and teams.** Built-in agents: `chat`, `deep-researcher` with its internal workers

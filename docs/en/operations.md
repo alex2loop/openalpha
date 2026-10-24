@@ -362,7 +362,7 @@ Once connected, the app is shown what the daemon is doing as it happens: each an
 running with its latest step, every approval and question still waiting on any channel, a fill (a resting
 stop or take-profit selling, or a `/trade` fill), the moment a spend cap is reached, and when the alerts were last checked. An app that
 connects late asks for the picture as it stands, then follows the stream. A request asked on Telegram or another
-channel appears in the app but is answered where it was asked; the app says so instead of answering it.
+channel appears in the app but is answered where it was asked; the app says so instead of answering it. The app can stop any run you see, including one started on Telegram: stopping only cancels it, and the run ends as cancelled. A run that has already finished answers that it is gone.
 
 When the daemon stops, the API stops accepting connections and requests first, before the runs drain;
 requests already running finish. A chat or command sent on an open stream is answered with an
