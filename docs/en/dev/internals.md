@@ -187,8 +187,13 @@ cancellation down, and reports a typed terminal reason. Config and registries fr
 
 **Live feed and command lane.** The engine and the command dispatcher put the run lifecycle on the bus
 (`run_started`, `run_progress`, `run_thinking`, `run_finished`, and `command_started`, `command_progress`,
-`command_finished` for long-running slash commands); the app adds `order_filled` and `alerts_checked`, and the
-engine adds `budget_exhausted`. [app/server/feed/](../../../src/app/server/feed/) folds them into the run book
+`command_finished` for long-running slash commands); the app adds `order_filled`, `alerts_checked`, `role_output` (what each debate role said, from a
+trading seam bound in `app`) and `agent_added`, and the engine adds `budget_exhausted`, `tool_started`
+and `tool_finished` (one finish per call that has a registered tool, after a start only if it reached its
+tool). Three notice kinds (`call-scored`, `held-news`, `index-drop`) are bell-only: the notice sender files
+them with `DeliveryHub.post`, which tells the delivery listeners and sends to no chat, unless
+`[notices] chat` lists the kind (checked against that set at boot). The held-name watch runs inside the
+alerts loop; its cursor starts at boot and its dedupe sets reset at the day change. [app/server/feed/](../../../src/app/server/feed/) folds them into the run book
 behind `GET /v1/live` and broadcasts each to the open sockets; `approval_requested` and
 `clarification_requested` carry their ids and `askedAt` so the pending list can hold them. Wire shapes:
 [CONTRACT.md](../../../src/app/server/CONTRACT.md). Self-contained commands run in a per-chat command lane

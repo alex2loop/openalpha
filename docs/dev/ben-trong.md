@@ -197,8 +197,13 @@ truyền tín hiệu hủy, và báo lý do kết thúc có kiểu. Cấu hình 
 
 **Luồng trực tiếp và làn câu lệnh.** Engine và bộ điều phối câu lệnh đưa vòng đời của phiên chạy lên bus
 (`run_started`, `run_progress`, `run_thinking`, `run_finished`, và `command_started`, `command_progress`,
-`command_finished` cho câu lệnh gạch chéo chạy lâu); app thêm `order_filled` và `alerts_checked`, engine thêm
-`budget_exhausted`. [app/server/feed/](../../src/app/server/feed/) gộp chúng thành sổ các phiên chạy phía sau
+`command_finished` cho câu lệnh gạch chéo chạy lâu); app thêm `order_filled`, `alerts_checked`, `role_output` (lời của từng vai trong cuộc tranh biện, qua một
+điểm nối của trading do `app` gắn vào) và `agent_added`, engine thêm `budget_exhausted`, `tool_started` và
+`tool_finished` (mỗi lời gọi có công cụ đã đăng ký báo kết thúc đúng một lần, và báo bắt đầu nếu nó tới được
+công cụ). Ba loại thông báo (`call-scored`, `held-news`, `index-drop`) chỉ vào chuông: bộ gửi thông báo đưa
+chúng qua `DeliveryHub.post`, chỉ báo cho các bên nghe và không gửi tới chat nào, trừ khi `[notices] chat` liệt
+kê loại đó (kiểm tra theo đúng tập này lúc khởi động). Việc theo dõi mã đang giữ chạy trong vòng lặp cảnh báo;
+mốc đọc tin bắt đầu từ lúc khởi động và các tập chống gửi lặp được xóa khi sang ngày. [app/server/feed/](../../src/app/server/feed/) gộp chúng thành sổ các phiên chạy phía sau
 `GET /v1/live` và phát từng sự kiện tới các socket đang mở; `approval_requested` và `clarification_requested`
 mang id và `askedAt` để danh sách đang chờ giữ được chúng. Hình dạng trên dây:
 [CONTRACT.md](../../src/app/server/CONTRACT.md). Các câu lệnh tự chạy được đi qua một làn riêng cho từng cuộc chat

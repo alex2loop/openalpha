@@ -360,7 +360,7 @@ Run the daemon on a server you own and point a client app at it.
 
 Once connected, the app is shown what the daemon is doing as it happens: each answer and long command that is
 running with its latest step, every approval and question still waiting on any channel, a fill (a resting
-stop or take-profit selling, or a `/trade` fill), the moment a spend cap is reached, and when the alerts were last checked. An app that
+stop or take-profit selling, or a `/trade` fill), each tool a run starts and finishes, what each debate role said once a `/suggest` is verified (shown in the app only, never sent to a chat), a new agent joining, the moment a spend cap is reached, and when the alerts were last checked. Three readings go to the bell and to no chat unless `[notices] chat` lists them: a call scored, news on a name you hold, and the index falling hard in a session. News on a holding covers only names the daemon has already read, since nothing fetches it for your holdings on a schedule. An app that
 connects late asks for the picture as it stands, then follows the stream. A request asked on Telegram or another
 channel appears in the app but is answered where it was asked; the app says so instead of answering it. The app can stop any run you see, including one started on Telegram: stopping only cancels it, and the run ends as cancelled. A run that has already finished answers that it is gone.
 

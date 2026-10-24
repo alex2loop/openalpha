@@ -365,6 +365,14 @@ It does not apply to active global or per-agent logs (bounded by `[log].max_file
 `[log].max_files`), to workspace-root files, or to `workspaces/<agentId>/run/`. To delete per-agent
 logs now, configured agents included, run `openalpha logs clear`. It does not touch the global log.
 
+### `[notices]`
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `chat` | array of strings | `[]` | Notice kinds sent to your chat as well as the bell. Valid kinds: `call-scored`, `held-news`, `index-drop`; any other name stops the daemon at start with the list of valid ones. |
+
+These three readings reach the bell in the app and no chat unless listed here: a call you were given has been scored, news on a name you hold, and the region's index falling hard in a session. Held-name news covers only names the daemon has already read: headlines are archived when a `/suggest` or a chat about the name reads them, and nothing fetches news for your holdings on a schedule. Everything else the daemon sends to a chat is unchanged.
+
 ### `[log]`
 
 | Key | Type | Default | Notes |

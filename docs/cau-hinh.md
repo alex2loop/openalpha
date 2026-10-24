@@ -364,6 +364,14 @@ Nó không áp cho log chung hay log theo agent đang hoạt động (bị chặ
 theo agent ngay, kể cả agent đang cấu hình, dùng `openalpha logs clear`. Lệnh này không đụng tới log
 chung.
 
+### `[notices]`
+
+| Khóa | Kiểu | Mặc định | Ghi chú |
+|---|---|---|---|
+| `chat` | mảng chuỗi | `[]` | Các loại thông báo được gửi tới chat của bạn ngoài chuông. Loại hợp lệ: `call-scored`, `held-news`, `index-drop`; tên khác sẽ làm daemon dừng lúc khởi động và nêu các loại hợp lệ. |
+
+Ba loại này chỉ vào chuông trong ứng dụng, không tới chat nào trừ khi bạn liệt kê ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã daemon đã đọc: tiêu đề được lưu khi `/suggest` hoặc một cuộc chat về mã đó đọc chúng, và không có gì đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác daemon gửi tới chat vẫn như cũ.
+
 ### `[log]`
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
