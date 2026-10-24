@@ -12,6 +12,7 @@ import type {
   LLMUsageTotals,
   SpendBreakdownRow,
 } from '@/core/types/usage'
+import type { EpochRange } from '@/core/utils/time'
 
 export type MigrationUp = (tx: Transaction, dialect: Dialect) => Promise<void>
 export type MigrationDown = MigrationUp
@@ -215,6 +216,8 @@ export interface RunLogStore {
   ): Promise<ReadonlyMap<RunId, readonly RunLogRow[]>>
   /** Top-level runs of one agent that ended before `beforeMs`, newest first. */
   listResearch(agent: string, beforeMs: number, limit: number): Promise<readonly RunLogRow[]>
+  /** How many top-level runs of one agent ended in `[fromMs, toMs)`. */
+  countResearch(agent: string, fromMs: number, toMs: number): Promise<number>
   /** What each run and every run beneath it cost, in USD. A run with no attempts is absent. */
   costOf(runIds: readonly RunId[]): Promise<ReadonlyMap<RunId, number>>
   /** The 25th to 75th percentile of what each name's last `sample` finished command runs cost,
@@ -243,6 +246,8 @@ export interface NoticeStore {
   record(row: NoticeRow): Promise<void>
   /** Notices created before `beforeMs` (all when absent), newest first. */
   list(beforeMs: number | undefined, limit: number): Promise<readonly NoticeRow[]>
+  /** Notices of one kind created in the range, newest first. */
+  listOfKind(kind: string, range: EpochRange, limit: number): Promise<readonly NoticeRow[]>
   /** Notices not yet read. */
   unreadCount(): Promise<number>
   /** Unread notices of one kind. */

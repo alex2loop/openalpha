@@ -4,12 +4,11 @@ import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import '@/app/events'
 import { apiError, json } from '@/app/server/http/dispatch'
-import { toNoticeWire } from '@/app/server/mappers/notices'
+import { STOP_BREACHED_KIND, toNoticeWire } from '@/app/server/mappers/notices'
 import { parseEpochMs, parseLimit } from '@/app/server/routes/params'
 
 const NOTICES_PAGE_LIMIT = 200
 const MAX_READ_IDS = 500
-const STOP_BREACHED_KIND = 'stop_breached'
 const READ_BODY = z.object({ ids: z.array(z.string().min(1)).max(MAX_READ_IDS).exactOptional() })
 
 /** `before` is epoch ms, the `createdAt` of the last notice a page showed. */

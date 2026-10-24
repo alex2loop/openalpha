@@ -161,6 +161,8 @@ export interface StoredDebateFull {
   readonly traderSizingIntent: SizingIntent
   /** The material claims the call rests on, which a fact check cites by id. */
   readonly claims: readonly StoredClaim[]
+  /** The claim ids the verifier refuted. Absent on a call stored before they were kept. */
+  readonly refutedIds?: readonly string[]
   readonly playbook?: readonly string[]
   readonly models: readonly string[]
 }
@@ -171,6 +173,7 @@ interface StoredDebateLean {
   readonly analystStance: ResearchStance
   readonly analystSummary: string
   readonly claims: readonly StoredClaim[]
+  readonly refutedIds?: readonly string[]
   readonly playbook?: readonly string[]
   readonly models: readonly string[]
 }
@@ -223,6 +226,7 @@ export function toStoredDebate(result: DebateResult): StoredDebate {
       analystStance: result.analyst.stance,
       analystSummary: result.analyst.summary,
       claims: toStoredClaims(result.claims),
+      refutedIds: claimIdsWithVerdict(result.verification, 'refuted'),
       ...playbookField(result.playbook),
       models: result.models,
     }
@@ -240,6 +244,7 @@ export function toStoredDebate(result: DebateResult): StoredDebate {
     traderSizingIntent: result.trader.sizingIntent,
     traderConditions: result.trader.entryConditions,
     claims: toStoredClaims(result.claims),
+    refutedIds: claimIdsWithVerdict(result.verification, 'refuted'),
     ...(result.risk.conviction === undefined ? {} : { riskConviction: result.risk.conviction }),
     ...(result.risk.notes[0] === undefined ? {} : { riskNote: result.risk.notes[0] }),
     ...playbookField(result.playbook),

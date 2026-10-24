@@ -4,6 +4,7 @@
 // payload, credential, SQL row, or `unknown` field crosses this boundary.
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
+import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
   AssetClass,
   BriefSectionKind,
@@ -230,6 +231,8 @@ interface SuggestionWireBase {
   readonly trailingStop?: number
   /** A held name's standing stop this run raised, from this level. */
   readonly raisedStopFrom?: number
+  /** The models that argued the call, sorted. Absent on a call stored before they were kept. */
+  readonly models?: readonly string[]
 }
 
 /** A discriminated union, not an optional-field bag: a hold has no entry, stop, target, or outcome,
@@ -293,8 +296,11 @@ interface TrackRecordSummaryWire {
     readonly focusKey: string
     readonly resolvedCount: number
     readonly winCount: number
+    readonly targetCount: number
     readonly winRate?: number
   }[]
+  /** The calls each model argued alone; a call several models argued is in none. */
+  readonly byModel: readonly ByModelWire[]
   readonly caveats: readonly TradingWireCaveat[]
 }
 

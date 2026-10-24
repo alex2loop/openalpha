@@ -1,4 +1,5 @@
 import type { Locale } from '@/core/types/locale'
+import type { EpochRange } from '@/core/utils/time'
 import type { Alert, AlertListPage, DisableAlertResult } from '@/trading/features/alerts/types'
 import type { BriefText } from '@/trading/features/brief/surface'
 import type { BriefDelivery, BriefSnapshot } from '@/trading/features/brief/types'
@@ -26,6 +27,7 @@ import type {
   AgentFocusRef,
   AgentRecordView,
 } from '@/trading/features/suggestion/track-record/agent-record'
+import type { ModelRecord } from '@/trading/features/suggestion/track-record/model-record'
 import type { ReflectText } from '@/trading/features/suggestion/track-record/surface'
 import type {
   StoredSuggestion,
@@ -62,7 +64,7 @@ import type { Page } from '@/trading/kernel/store/page'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { QuoteConvention } from '@/trading/render/money'
 import type { SURFACE_LIMITS } from '@/trading/surface-limits'
-import type { BriefRescheduleView } from '@/trading/wiring/composition/app-views'
+import type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/composition/app-views'
 import type { IntradayNext } from '@/trading/wiring/composition/intraday-next'
 import type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
@@ -171,6 +173,21 @@ interface TradingAgentRecordsRequest {
 /** An agent's record with the lines a terminal prints for it, in the requested language. */
 export interface AgentRecordSummary extends AgentRecordView {
   readonly lines: readonly string[]
+}
+
+interface TradingDayDigestRequest {
+  /** The operator's day, which dates the briefs. */
+  readonly day: TradingDay
+  /** The same day as instants, which date the calls. */
+  readonly range: EpochRange
+  /** How many of the day's largest closes to read. */
+  readonly limit: number
+  readonly signal: AbortSignal
+}
+
+interface TradingSuggestionRequest {
+  readonly suggestionId: SuggestionId
+  readonly signal: AbortSignal
 }
 
 interface TradingTrackRecordRequest {
@@ -296,6 +313,7 @@ export interface TradingBriefView {
 export interface TradingTrackRecordView {
   readonly reflection: TrackRecordReflection
   readonly text: ReflectText
+  readonly byModel: readonly ModelRecord[]
 }
 
 /** The only trading surface the server sees. It closes over one app-supplied operator identity, so
@@ -329,7 +347,11 @@ export interface TradingHost {
   /** The decision card for one stored suggestion, in the operator's language; `null` for an id the
    *  store does not hold. */
   getSuggestionCard(request: TradingSuggestionCardRequest): Promise<SuggestionCard | null>
+  /** One stored suggestion as it was written; `null` for an id the store does not hold. */
+  getSuggestion(request: TradingSuggestionRequest): Promise<StoredSuggestion | null>
   getTrackRecord(request: TradingTrackRecordRequest): Promise<TradingTrackRecordView>
+  /** The calls, briefs and largest closes of one operator day. */
+  getDayDigest(request: TradingDayDigestRequest): Promise<DayDigestView>
   /** What each named agent's calls have earned, together and per focus, beside the other agents'. */
   listAgentRecords(request: TradingAgentRecordsRequest): Promise<readonly AgentRecordSummary[]>
   getBrief(request: TradingRegionRequest): Promise<TradingBriefView>

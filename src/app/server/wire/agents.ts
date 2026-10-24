@@ -45,6 +45,8 @@ interface AgentSocialWire {
 interface AgentRecordWire {
   readonly resolvedCount: number
   readonly winCount: number
+  /** The calls that closed on their target. */
+  readonly targetCount: number
   readonly winRate?: number
 }
 

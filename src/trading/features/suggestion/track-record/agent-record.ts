@@ -51,6 +51,8 @@ interface BuildOptions extends ReadOptions {
 interface RecordCounts {
   readonly resolvedCount: number
   readonly winCount: number
+  /** The independent calls that closed on their target. */
+  readonly targetCount: number
   readonly winRate?: number
 }
 
@@ -84,10 +86,12 @@ export interface AgentRecordView {
 function toCounts(rows: readonly RecordCounts[]): RecordCounts {
   const resolvedCount = rows.reduce((sum, row) => sum + row.resolvedCount, 0)
   const winCount = rows.reduce((sum, row) => sum + row.winCount, 0)
+  const targetCount = rows.reduce((sum, row) => sum + row.targetCount, 0)
 
   return {
     resolvedCount,
     winCount,
+    targetCount,
     ...(resolvedCount >= MINIMUM_TRACK_RECORD_SAMPLE ? { winRate: winCount / resolvedCount } : {}),
   }
 }
@@ -113,6 +117,7 @@ function countByFocus(calls: readonly FocusCall[]): ReadonlyMap<FocusKey, Record
         {
           resolvedCount: independent.length,
           winCount: independent.filter((call) => isWinningReturn(call.outcome.returnPct)).length,
+          targetCount: independent.filter((call) => call.outcome.status === 'target').length,
         },
       ]
     })

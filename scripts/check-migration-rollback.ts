@@ -22,6 +22,8 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const DEBATE_MODELS_MIGRATION_ID = '2026_10_24_083308_add_suggestion_debate_models'
+const SUGGESTIONS_TABLE = 'suggestions'
 const TRIGGERS_MIGRATION_ID = '2026_10_24_052558_add_job_event_triggers'
 const EVENT_PARKED_AT = 8_640_000_000_000_000
 const TRIGGER_TABLES = ['job_event_triggers', 'job_event_fires'] as const
@@ -187,6 +189,25 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
+/** The column is the only thing the migration adds, so rolling back must leave it gone. */
+async function assertDebateModelsRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, SUGGESTIONS_TABLE, 'debate_models'),
+    'debate_models migration did not add the column'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: DEBATE_MODELS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'debate_models rollback did not complete')
+  assertState(
+    !(await hasColumn(db, SUGGESTIONS_TABLE, 'debate_models')),
+    'debate_models rollback kept the column'
+  )
+}
+
 /** A parked event job is only a job together with its trigger, so the jobs that have one go with
  *  the tables and a plain schedule survives. */
 async function assertTriggersRollback(db: Storage): Promise<void> {
@@ -294,6 +315,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertDebateModelsRollback(db)
     await assertTriggersRollback(db)
     await assertNoticesRollback(db)
     await assertRunsRollback(db)

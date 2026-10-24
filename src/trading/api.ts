@@ -8,7 +8,7 @@ export type { BriefText } from '@/trading/features/brief/surface'
 export type { RebalanceText } from '@/trading/features/portfolio/render/rebalance-surface'
 export type { ReflectText } from '@/trading/features/suggestion/track-record/surface'
 export type { TypedPrice } from '@/trading/kernel/surface/surface'
-export type { BriefRescheduleView } from '@/trading/wiring/composition/app-views'
+export type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/composition/app-views'
 export type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 export type {
   HeldStopView,
@@ -48,6 +48,14 @@ export {
   refreshDegradations,
 } from '@/trading/features/market-data/ops/refresh'
 export { isBoundaryFailure } from '@/trading/wiring/loop'
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
@@ -98,12 +106,14 @@ export type {
   VenueChoice,
 } from '@/trading/features/portfolio/types'
 export type { SuggestionCard } from '@/trading/features/suggestion/render/card'
+export type { DebateView } from '@/trading/features/suggestion/render/debate-view'
 export type {
   SuggestionService,
   TrackRecordReflection,
 } from '@/trading/features/suggestion/suggestion'
 export type { ActedSummary } from '@/trading/features/suggestion/track-record/acted'
 export type { AgentFocusRef } from '@/trading/features/suggestion/track-record/agent-record'
+export type { ModelRecord } from '@/trading/features/suggestion/track-record/model-record'
 export type { TrackRecordReport } from '@/trading/features/suggestion/track-record/types'
 export type {
   StoredSuggestion,
@@ -184,6 +194,7 @@ export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
+export { toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 export {
   isUndecidedHold,
@@ -203,10 +214,11 @@ export { ledgerEntryId } from '@/trading/kernel/operator/book'
 export { isBookFocus, resolveRunFocus, validateAgentFocus } from '@/trading/kernel/operator/focus'
 export { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 export { describeCaveat } from '@/trading/render/caveat'
-export { formatInstant } from '@/trading/render/datetime'
+export { formatClock, formatInstant } from '@/trading/render/datetime'
 export { renderFocusLabel } from '@/trading/render/focus'
 export { toPlainText } from '@/trading/render/fold'
-export { resolveRenderContext } from '@/trading/render/format'
+export { formatSignedFixedFraction, resolveRenderContext } from '@/trading/render/format'
+export { formatPriceIn, quotedInOf } from '@/trading/render/money'
 export { renderLoopQuarantineNotice } from '@/trading/render/quarantine'
 export { renderRestatementNotice } from '@/trading/render/restatement'
 export { SURFACE_LIMITS } from '@/trading/surface-limits'

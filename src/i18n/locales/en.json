@@ -31,7 +31,9 @@
     "task.social": "Agent social upkeep",
     "task.channels.watch": "Channel watch",
     "task.workflows": "Scheduled workflows",
-    "agentDeleted": "Deleted agent {id}. I paused its {count} schedules; turn them back on when you need them."
+    "agentDeleted": "Deleted agent {id}. I paused its {count} schedules; turn them back on when you need them.",
+    "digest.stopFired": "{ticker} broke its stop at {level} at {time}",
+    "digest.callClosed": "The {action} call on {ticker} from {day} closed: {result}"
   },
   "footer": {
     "cost": "{cost}",

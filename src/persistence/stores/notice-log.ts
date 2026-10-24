@@ -40,6 +40,10 @@ export function createNoticeLogStore(db: Storage, dialect: Dialect): NoticeStore
         ? await db.query<DbNoticeRow>(sql.latest, [limit])
         : await db.query<DbNoticeRow>(sql.before, [beforeMs, limit])
       ).map(toNoticeRow),
+    listOfKind: async (kind, range, limit) =>
+      (await db.query<DbNoticeRow>(sql.ofKind, [kind, range.fromMs, range.toMs, limit])).map(
+        toNoticeRow
+      ),
     unreadCount: async () => (await db.query<{ readonly n: number }>(sql.unread))[0]?.n ?? 0,
     unreadCountOfKind: async (kind) =>
       (await db.query<{ readonly n: number }>(sql.unreadOfKind, [kind]))[0]?.n ?? 0,
@@ -99,6 +103,10 @@ function buildSql(d: Dialect) {
     before:
       `SELECT ${columns} FROM notices WHERE created_at < ${d.param(1)} ` +
       `ORDER BY created_at DESC, id DESC LIMIT ${d.param(2)}`,
+    ofKind:
+      `SELECT ${columns} FROM notices WHERE kind = ${d.param(1)} ` +
+      `AND created_at >= ${d.param(2)} AND created_at < ${d.param(3)} ` +
+      `ORDER BY created_at DESC, id DESC LIMIT ${d.param(4)}`,
     unread: 'SELECT COUNT(*) AS n FROM notices WHERE read_at IS NULL',
     unreadOfKind: `SELECT COUNT(*) AS n FROM notices WHERE read_at IS NULL AND kind = ${d.param(1)}`,
     markAll: `UPDATE notices SET read_at = ${d.param(1)} WHERE read_at IS NULL`,

@@ -23,6 +23,8 @@ type BriefMethods = Pick<
   'getBrief' | 'rescheduleBrief' | 'getBriefDelivery' | 'nextIntraday'
 >
 
+type SuggestionMethods = Pick<AccountMethods, 'getSuggestion' | 'getDayDigest'>
+
 type BookMethods = Pick<
   AccountMethods,
   'getPortfolio' | 'getNavHistory' | 'getStopDistances' | 'getRebalance' | 'getReconcile'
@@ -85,9 +87,32 @@ function bookMethods(deps: TradingHostDeps): BookMethods {
   }
 }
 
+/** One stored suggestion, and what a day added to the book. */
+function suggestionMethods(deps: TradingHostDeps): SuggestionMethods {
+  return {
+    getSuggestion: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.suggestions.get(request.suggestionId, scope.signal)
+      ),
+
+    getDayDigest: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.appViews.dayDigest({
+          day: request.day,
+          range: request.range,
+          limit: bounded(request.limit, deps.limits.maximumTrackRecordItems),
+          signal: scope.signal,
+        })
+      ),
+  }
+}
+
 function recordMethods(
   deps: TradingHostDeps
-): Omit<AccountMethods, keyof BookMethods | keyof AlertMethods | keyof BriefMethods> {
+): Omit<
+  AccountMethods,
+  keyof BookMethods | keyof AlertMethods | keyof BriefMethods | keyof SuggestionMethods
+> {
   return {
     // Non-null, unlike the hook's `ProfileReader.find`: this only ever serves the single operator
     // this host is closed over, and that profile is auto-provisioned at first boot.
@@ -206,6 +231,7 @@ export function accountMethods(deps: TradingHostDeps): AccountMethods {
   return {
     ...bookMethods(deps),
     ...recordMethods(deps),
+    ...suggestionMethods(deps),
     ...briefMethods(deps),
     ...alertMethods(deps),
   }

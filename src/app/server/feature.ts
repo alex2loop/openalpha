@@ -10,6 +10,8 @@ import { AGENT_EDIT_ROUTES } from '@/app/server/routes/agent-edit'
 import { AGENT_ROUTES } from '@/app/server/routes/agents'
 import { CHAT_ROUTES } from '@/app/server/routes/chat'
 import { CONFIG_ROUTES } from '@/app/server/routes/config'
+import { DEBATE_ROUTES } from '@/app/server/routes/debate'
+import { DIGEST_ROUTES } from '@/app/server/routes/digest'
 import { JOB_ROUTES } from '@/app/server/routes/jobs'
 import { MARKET_ROUTES } from '@/app/server/routes/market'
 import { MCP_ROUTES } from '@/app/server/routes/mcp'
@@ -39,6 +41,8 @@ const ROUTES = [
   ...SIGN_IN_ROUTES,
   ...MCP_ROUTES,
   ...TRADING_ROUTES,
+  ...DEBATE_ROUTES,
+  ...DIGEST_ROUTES,
   ...MARKET_ROUTES,
   ...MONEY_ROUTES,
   ...NOTICE_ROUTES,

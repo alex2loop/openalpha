@@ -31,7 +31,9 @@
     "task.social": "Mạng xã hội agent",
     "task.channels.watch": "Theo dõi kênh nhắn tin",
     "task.workflows": "Workflow theo lịch",
-    "agentDeleted": "Đã xóa agent {id}. Mình tạm dừng {count} lịch chạy của nó, khi cần bạn bật lại nhé."
+    "agentDeleted": "Đã xóa agent {id}. Mình tạm dừng {count} lịch chạy của nó, khi cần bạn bật lại nhé.",
+    "digest.stopFired": "{ticker} thủng mức cắt lỗ {level} lúc {time}",
+    "digest.callClosed": "Đề xuất {action} {ticker} hôm {day} đã đóng: {result}"
   },
   "footer": {
     "cost": "{cost}",

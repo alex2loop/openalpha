@@ -12,6 +12,7 @@ import * as migrationAddQuarterlyAccountsCashFlowSource from '@/persistence/migr
 import * as migrationAddRuns from '@/persistence/migrations/2026_10_24_010135_add_runs'
 import * as migrationAddNotices from '@/persistence/migrations/2026_10_24_012442_add_notices'
 import * as migrationAddJobEventTriggers from '@/persistence/migrations/2026_10_24_052558_add_job_event_triggers'
+import * as migrationAddSuggestionDebateModels from '@/persistence/migrations/2026_10_24_083308_add_suggestion_debate_models'
 
 export const MIGRATIONS = [
   { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
@@ -24,4 +25,5 @@ export const MIGRATIONS = [
   { id: '2026_10_24_010135_add_runs', reversibility: 'reversible', up: migrationAddRuns.up, down: migrationAddRuns.down },
   { id: '2026_10_24_012442_add_notices', reversibility: 'reversible', up: migrationAddNotices.up, down: migrationAddNotices.down },
   { id: '2026_10_24_052558_add_job_event_triggers', reversibility: 'reversible', up: migrationAddJobEventTriggers.up, down: migrationAddJobEventTriggers.down },
+  { id: '2026_10_24_083308_add_suggestion_debate_models', reversibility: 'reversible', up: migrationAddSuggestionDebateModels.up, down: migrationAddSuggestionDebateModels.down },
 ] as const satisfies readonly Migration[]

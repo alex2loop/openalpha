@@ -54,6 +54,12 @@ export function createRunLogStore(db: Storage, dialect: Dialect): RunLogStore {
       (await db.query<DbRunRow>(sql.topLevel, [fromMs, toMs, limit])).map(toRunLogRow),
     listResearch: async (agent, beforeMs, limit) =>
       (await db.query<DbRunRow>(sql.research, [agent, beforeMs, limit])).map(toRunLogRow),
+    // Postgres returns COUNT as a bigint, which arrives as a string.
+    countResearch: async (agent, fromMs, toMs) =>
+      Number(
+        (await db.query<{ readonly n: number }>(sql.countResearch, [agent, fromMs, toMs]))[0]?.n ??
+          0
+      ),
     childrenOf: (ids, perRun) => childrenOf({ db, dialect }, ids, perRun),
     costOf: (ids) => costOf({ db, dialect }, ids),
     costRangeByName: (names, sample) => costRangeByName({ db, dialect }, names, sample),
@@ -221,6 +227,9 @@ function buildSql(d: Dialect) {
       `SELECT ${columns} FROM runs WHERE parent_run_id IS NULL ` +
       `AND ended_at >= ${d.param(1)} AND ended_at < ${d.param(2)} ` +
       `ORDER BY ended_at DESC, run_id DESC LIMIT ${d.param(3)}`,
+    countResearch:
+      `SELECT COUNT(*) AS n FROM runs WHERE parent_run_id IS NULL AND kind = 'agent' ` +
+      `AND name = ${d.param(1)} AND ended_at >= ${d.param(2)} AND ended_at < ${d.param(3)}`,
     research:
       `SELECT ${columns} FROM runs WHERE parent_run_id IS NULL AND kind = 'agent' ` +
       `AND name = ${d.param(1)} AND ended_at < ${d.param(2)} ` +

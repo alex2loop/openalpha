@@ -38,6 +38,7 @@ import type {
   UserProfile,
   ValuedPosition,
 } from '@/trading/api'
+import { toByModelWires, toFocusWires } from '@/app/server/mappers/track-record'
 import {
   buildInstrumentKey,
   describeCaveat,
@@ -280,15 +281,17 @@ function toPositionWire(
   }
 }
 
-/** Where the plan's stop has risen to, for a chart's stop-raise marks; absent until it rises. */
-function toRaisedStopWire(
+/** What the row kept beside the call: where the plan's stop has risen to, for a chart's stop-raise
+ *  marks, and the models that argued it. Each is absent until the row has it. */
+function toStoredStateWire(
   suggestion: StoredSuggestion
-): Pick<SuggestionWire, 'trailingStop' | 'raisedStopFrom'> {
-  const { trailingStop, raisedStopFrom } = suggestion
+): Pick<SuggestionWire, 'trailingStop' | 'raisedStopFrom' | 'models'> {
+  const { trailingStop, raisedStopFrom, debate } = suggestion
 
   return {
     ...(trailingStop === undefined ? {} : { trailingStop }),
     ...(raisedStopFrom === undefined ? {} : { raisedStopFrom }),
+    ...(debate === undefined || debate.models.length === 0 ? {} : { models: [...debate.models] }),
   }
 }
 
@@ -310,7 +313,7 @@ export function toSuggestionWire(call: StoredSuggestion, locale: Locale): Sugges
     createdAt: suggestion.createdAt,
     provenance: toProvenanceWires(suggestion.provenance),
     caveats: toCaveatWires(suggestion.caveats, locale),
-    ...toRaisedStopWire(suggestion),
+    ...toStoredStateWire(suggestion),
   }
 
   if (suggestion.action === 'hold') {
@@ -396,12 +399,8 @@ export function toTrackRecordWire(
         resolvedCount: bucket.resolvedCount,
         ...(bucket.winRate === undefined ? {} : { winRate: bucket.winRate }),
       })),
-      focuses: summary.focuses.map((entry) => ({
-        focusKey: entry.focusKey,
-        resolvedCount: entry.resolvedCount,
-        winCount: entry.winCount,
-        ...(entry.winRate === undefined ? {} : { winRate: entry.winRate }),
-      })),
+      focuses: toFocusWires(summary.focuses),
+      byModel: toByModelWires(view.byModel),
       caveats: toCaveatWires(summary.caveats, locale),
     },
     recent: report.recent.map((suggestion) => toSuggestionWire(suggestion, locale)),

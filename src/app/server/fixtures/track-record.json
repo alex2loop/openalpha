@@ -37,7 +37,16 @@
         "resolvedCount": 0
       }
     ],
-    "focuses": [{ "focusKey": "default", "resolvedCount": 11, "winCount": 7, "winRate": 0.6364 }],
+    "focuses": [
+      {
+        "focusKey": "default",
+        "resolvedCount": 11,
+        "winCount": 7,
+        "targetCount": 4,
+        "winRate": 0.6364
+      }
+    ],
+    "byModel": [{ "model": "anthropic/claude-sonnet-5", "resolvedCount": 9, "winCount": 6 }],
     "caveats": [
       {
         "code": "reporting.sample-below-minimum",

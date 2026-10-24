@@ -10,7 +10,7 @@ import type {
   SuggestionId,
   SuggestionOutcome,
 } from '@/trading/features/suggestion/types'
-import type { SuggestionAction, UnscoredStatus } from '@/trading/kernel/conviction'
+import type { OutcomeStatus, SuggestionAction, UnscoredStatus } from '@/trading/kernel/conviction'
 import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
@@ -18,7 +18,7 @@ import { assertNotAborted } from '@/core/errors'
 import { readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { toResolved } from '@/trading/features/suggestion/store/suggestion-row'
 import { framedDirectionOf, planStopOf } from '@/trading/features/suggestion/types'
-import { SUGGESTION_ACTIONS, UNFILLED_STATUS } from '@/trading/kernel/conviction'
+import { OUTCOME_STATUSES, SUGGESTION_ACTIONS, UNFILLED_STATUS } from '@/trading/kernel/conviction'
 import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson } from '@/trading/kernel/store/store-row'
@@ -38,7 +38,7 @@ export const LATEST_OF_SAME_CALL_SQL =
   'OR (newer.created_at = suggestions.created_at AND newer.id > suggestions.id)))'
 
 /** A restated close is resolved with no return: it has no verdict to count. */
-const SCORED_SQL = 'resolved_at IS NOT NULL AND return_pct IS NOT NULL'
+export const SCORED_SQL = 'resolved_at IS NOT NULL AND return_pct IS NOT NULL'
 // A scoring pass resolves a batch at one instant: the later exit, then the newer call, breaks ties.
 const RESOLVED_ORDER_SQL = 'resolved_at DESC, exit_day DESC, id DESC'
 
@@ -303,6 +303,9 @@ export async function listResolved(
   return rows.flatMap((row) => readableRow(row, toResolved, deps.logger))
 }
 
+export const FOCUS_CALL_COLUMNS =
+  'focus_key, market, ticker, day, action, outcome_status, exit_day, return_pct, resolved_at'
+
 /** One scored call as the focus record reads it: no payload, only what the fold and the win
  *  count need. */
 export interface FocusCall {
@@ -310,17 +313,24 @@ export interface FocusCall {
   readonly instrument: InstrumentRef
   readonly at: TradingDay
   readonly action: SuggestionAction
-  readonly outcome: { readonly exitDay: TradingDay; readonly returnPct: number }
+  readonly outcome: {
+    readonly exitDay: TradingDay
+    readonly returnPct: number
+    readonly status: OutcomeStatus
+    readonly resolvedAt: number
+  }
 }
 
-interface FocusCallRow {
+export interface FocusCallRow {
   readonly focus_key: string
   readonly market: string
   readonly ticker: string
   readonly day: string
   readonly action: string
+  readonly outcome_status: string
   readonly exit_day: string
   readonly return_pct: number
+  readonly resolved_at: number
 }
 
 /** The scored calls `listResolved` reads, pooled across versions, with no row limit so a busy book
@@ -333,20 +343,29 @@ export async function listFocusCalls(
   assertNotAborted(signal)
 
   const rows = await deps.db.query<FocusCallRow>(
-    'SELECT focus_key, market, ticker, day, action, exit_day, return_pct ' +
+    `SELECT ${FOCUS_CALL_COLUMNS} ` +
       `FROM suggestions WHERE ${SCORED_SQL} AND exit_day IS NOT NULL ` +
       `AND ${LATEST_OF_SAME_CALL_SQL}`,
     []
   )
 
-  return rows.map((row) => ({
+  return rows.map(toFocusCall)
+}
+
+export function toFocusCall(row: FocusCallRow): FocusCall {
+  return {
     // why-safe: the column only ever holds `focusKey()` output.
     focusKey: row.focus_key as FocusKey,
     instrument: { market: marketRef(row.market), ticker: brandTicker(row.ticker) },
     at: tradingDay(row.day),
     action: toMember<SuggestionAction>(row.action, SUGGESTION_ACTIONS, 'suggestion action'),
-    outcome: { exitDay: tradingDay(row.exit_day), returnPct: row.return_pct },
-  }))
+    outcome: {
+      exitDay: tradingDay(row.exit_day),
+      returnPct: row.return_pct,
+      status: toMember<OutcomeStatus>(row.outcome_status, OUTCOME_STATUSES, 'outcome status'),
+      resolvedAt: row.resolved_at,
+    },
+  }
 }
 
 /** One market's rows at one resolution state: grouped, not filtered, so both sides of the

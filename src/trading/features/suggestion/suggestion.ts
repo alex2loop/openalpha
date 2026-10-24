@@ -18,8 +18,11 @@ import type {
 } from '@/trading/features/suggestion/pipeline/types'
 import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
+import type {
+  SuggestionDayOptions,
+  SuggestionDayRead,
+} from '@/trading/features/suggestion/store/suggestion-day'
 import type { SuggestionPageOptions } from '@/trading/features/suggestion/store/suggestion-list'
-import type { SuggestionCoverageRow } from '@/trading/features/suggestion/store/suggestion-outcome'
 import type { ActedSummary, RecordedFill } from '@/trading/features/suggestion/track-record/acted'
 import type {
   AgentFocusRef,
@@ -30,7 +33,6 @@ import type { OutcomeResolutionDeps } from '@/trading/features/suggestion/track-
 import type {
   ListResolvedSuggestionsOptions,
   OutcomeResolutionBatch,
-  TrackRecordCoverage,
   TrackRecordOptions,
   TrackRecordReport,
 } from '@/trading/features/suggestion/track-record/types'
@@ -64,8 +66,12 @@ import {
   buildFocusRecords,
   parseListedFocus,
 } from '@/trading/features/suggestion/track-record/agent-record'
+import { coverageOf } from '@/trading/features/suggestion/track-record/coverage'
+import {
+  buildModelRecords,
+  type ModelRecord,
+} from '@/trading/features/suggestion/track-record/model-record'
 import { resolvePendingOutcomes } from '@/trading/features/suggestion/track-record/outcome'
-import { canResolveOutcomes } from '@/trading/features/suggestion/track-record/resolvable'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { marketRoundTripRate } from '@/trading/markets/cost'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -111,6 +117,10 @@ export interface SuggestionService {
   agentRecords(options: AgentRecordsOptions): Promise<readonly AgentRecordView[]>
   /** The same record per focus, the operator's own included, for `/reflect`. */
   focusRecords(options: { readonly signal: AbortSignal }): Promise<readonly FocusRecordView[]>
+  /** What each model earned on the calls it argued alone. */
+  modelRecords(signal: AbortSignal): Promise<readonly ModelRecord[]>
+  /** What one operator day added: the calls made and the largest closes. */
+  dayDigest(options: SuggestionDayOptions): Promise<SuggestionDayRead>
 }
 
 interface ListSuggestionsOptions extends Omit<SuggestionPageOptions, 'focusKey'> {
@@ -146,6 +156,8 @@ export function createSuggestionService(deps: SuggestionServiceDeps): Suggestion
     reflect: (options) => reflect(deps, options),
     agentRecords: (options) => buildAgentRecords(deps, { ...options, ...recordClock(deps) }),
     focusRecords: (options) => buildFocusRecords(deps, { ...options, ...recordClock(deps) }),
+    modelRecords: async (signal) => buildModelRecords(await deps.store.listScoredByModel(signal)),
+    dayDigest: (options) => deps.store.readDay(options),
   }
 }
 
@@ -421,31 +433,4 @@ async function reflect(
   const fills = await deps.fills({ fromDay: oldest, signal: options.signal })
 
   return { report, factorRows, acted: summarizeActed(calls, fills) }
-}
-
-function coverageOf(
-  rows: readonly SuggestionCoverageRow[],
-  markets: SuggestionServiceDeps['markets']
-): TrackRecordCoverage {
-  const pending = rows.filter((row) => row.state === 'pending')
-  // An unknown ref can never score either; reading it as merely pending promises a resolution
-  // that never arrives.
-  const unresolvable = pending.filter((row) => {
-    const market = markets.find(row.market)
-
-    return market === null || !canResolveOutcomes(market)
-  })
-
-  return {
-    actionable: sumCounts(rows),
-    resolved: sumCounts(rows.filter((row) => row.state === 'scored')),
-    pending: sumCounts(pending),
-    restated: sumCounts(rows.filter((row) => row.state === 'restated')),
-    unfilled: sumCounts(rows.filter((row) => row.state === 'unfilled')),
-    unresolvable: sumCounts(unresolvable),
-  }
-}
-
-function sumCounts(rows: readonly SuggestionCoverageRow[]): number {
-  return rows.reduce((sum, row) => sum + row.count, 0)
 }

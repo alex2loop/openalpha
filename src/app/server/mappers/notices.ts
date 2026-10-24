@@ -2,6 +2,9 @@ import type { NoticeWire } from '@/app/server/wire/notices'
 import type { NoticeRow } from '@/persistence/api'
 import { isPlainRecord } from '@/core/utils/collections'
 
+/** The kind of notice a stop that broke is filed under. */
+export const STOP_BREACHED_KIND = 'stop_breached'
+
 /** A stored notice as the page reads it. The event was written by this daemon as JSON, so a row
  *  that does not parse back to an event (a table edited by hand) is left out rather than shown
  *  half-formed. */
