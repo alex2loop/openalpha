@@ -337,22 +337,21 @@ export async function executeTool(
   deps.observer?.start(prepared.presentation)
   deps.events?.started()
 
-  // A throw here skips recordToolResult, so this is the only signal left to close out the surface's
-  // spinner and the call's bus events.
+  // A throw here or in the display step below skips recordToolResult, so these are the only signals
+  // left to close out the surface's spinner and the call's bus events.
   const result = await executePreparedTool(run, prepared, deps).catch((err: unknown) => {
     deps.observer?.finish(undefined)
     deps.events?.finished(false)
     throw err
   })
 
-  if (deps.observer !== undefined) {
-    deps.observer.finish(
-      resolveToolResultDisplay({
-        tool: prepared.tool,
-        result,
-        logger: run.services.logger,
-      })
+  try {
+    deps.observer?.finish(
+      resolveToolResultDisplay({ tool: prepared.tool, result, logger: run.services.logger })
     )
+  } catch (err: unknown) {
+    deps.events?.finished(false)
+    throw err
   }
 
   return finishToolCall(run, { call: prepared, result, hooks: deps.afterTool })

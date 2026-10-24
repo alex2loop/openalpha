@@ -12,21 +12,25 @@ export function renderHeldNewsNotice(locale: Locale, payload: HeldNewsPayload): 
   })
 }
 
-/** The fall in the index, and how the book stands against it: how many holdings are down, and how
- *  many of those have gone through their stop. `movePct` is a percent, so it takes the percent family. */
+/** The fall in the index, and how the book stands against it: how many holdings are down, how many of
+ *  those have gone through their stop, and how many stops could not be checked. `movePct` is a percent,
+ *  so it takes the percent family. */
 export function renderIndexDropNotice(locale: Locale, payload: IndexDropPayload): string {
   const params = {
     index: payload.index.ticker,
     move: formatPercent(locale, Math.abs(payload.movePct)),
     held: formatCount(locale, payload.heldDown),
-  }
-
-  if (payload.stopsBroken === 0) {
-    return t(locale, 'trading.indexDrop.body', params)
-  }
-
-  return t(locale, 'trading.indexDrop.breach', {
-    ...params,
     count: formatCount(locale, payload.stopsBroken),
-  })
+    unread: formatCount(locale, payload.stopsUnread),
+  }
+
+  if (payload.stopsUnread > 0) {
+    return t(locale, 'trading.indexDrop.unread', params)
+  }
+
+  return t(
+    locale,
+    payload.stopsBroken > 0 ? 'trading.indexDrop.breach' : 'trading.indexDrop.body',
+    params
+  )
 }

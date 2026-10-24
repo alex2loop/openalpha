@@ -106,13 +106,15 @@ export type TradingNoticePayload =
     }
   /** The region's index is falling in the session. `movePct` is a percent (-1.7 is down 1.7%);
    *  `heldDown` counts the holdings whose own session move is negative, and `stopsBroken` those
-   *  whose price is at or under their plan's stop. */
+   *  whose price is at or under their plan's stop, and `stopsUnread` those with a stop that could not be
+   *  checked for want of a price. A fund's review level is in none of the counts. */
   | {
       readonly kind: 'index-drop'
       readonly index: InstrumentRef
       readonly movePct: number
       readonly heldDown: number
       readonly stopsBroken: number
+      readonly stopsUnread: number
     }
   // Terminal, and named by what stopped: the operator re-enables it through that subject's tool.
   | { readonly kind: 'delivery-disabled'; readonly subject: NoticeKind }

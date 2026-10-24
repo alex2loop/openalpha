@@ -132,7 +132,7 @@ async function watchOnce(
     return
   }
 
-  rollDay(state, owner.manifest.calendar.dayAt(now))
+  rollDay(state, { day: owner.manifest.calendar.dayAt(now), now })
 
   const held = dedupeInstruments(
     (await deps.reads.tradeableHoldingsAt({ now, signal })).map((holding) => holding.instrument)
@@ -151,30 +151,44 @@ async function watchOnce(
     signal,
   })
 
-  state.cursor = now
-
   const input: PassInput = { now, target, signal }
 
-  await sendHeldNews(deps, state, { ...input, headlines })
+  // A refused headline holds the cursor, so the next pass reads the same window and tells it; names
+  // already told are skipped by `newsSent`.
+  if (await sendHeldNews(deps, state, { ...input, headlines })) {
+    state.cursor = now
+  }
+
   await watchIndex(deps, state, { ...input, owner, held })
 }
 
-function rollDay(state: WatchState, day: TradingDay): void {
-  if (state.day === day) {
+/** The day change drops what the watch said, and with it any window held for a refused headline. */
+function rollDay(
+  state: WatchState,
+  today: { readonly day: TradingDay; readonly now: number }
+): void {
+  if (state.day === today.day) {
     return
   }
 
-  state.day = day
+  if (state.day !== undefined) {
+    state.cursor = today.now
+  }
+
+  state.day = today.day
   state.newsSent.clear()
   state.indexCheckedAt = 0
   state.indexDropSent = false
 }
 
+/** Whether every headline that needed telling was accepted. */
 async function sendHeldNews(
   deps: HeldWatchDeps,
   state: WatchState,
   input: PassInput & { readonly headlines: readonly InstrumentHeadline[] }
-): Promise<void> {
+): Promise<boolean> {
+  let allTold = true
+
   for (const headline of newestPerInstrument(input.headlines)) {
     const key = buildInstrumentKey(headline.instrument)
 
@@ -191,8 +205,12 @@ async function sendHeldNews(
 
     if (accepted) {
       state.newsSent.add(key)
+    } else {
+      allTold = false
     }
   }
+
+  return allTold
 }
 
 /** The archive lists newest first, so the first story seen for a name is its newest. */
@@ -242,10 +260,6 @@ async function watchIndex(
 
   const book = await readBookAgainstDrop(deps, input)
 
-  if (book === undefined) {
-    return
-  }
-
   if (await sendNotice(deps, input, { kind: 'index-drop', ...drop, ...book })) {
     state.indexDropSent = true
   }
@@ -286,32 +300,29 @@ async function readIndexDrop(
 interface BookAgainstDrop {
   readonly heldDown: number
   readonly stopsBroken: number
+  readonly stopsUnread: number
 }
 
-/** How many holdings are down in the session, and how many sit at or through their plan's stop.
- *  Absent when a stop could not be read: saying none has broken without having looked would be the
- *  wrong way for this to be wrong, so the notice waits for the next read. */
+/** How many holdings are down in the session, how many sit at or through their plan's stop, and how
+ *  many have a stop that could not be checked for want of a price. The notice states the last, so a
+ *  stop that could not be read is never reported as one that held. A fund's lower level is a place to
+ *  review, not a stop, so it is in none of the counts. */
 async function readBookAgainstDrop(
   deps: HeldWatchDeps,
   input: IndexInput
-): Promise<BookAgainstDrop | undefined> {
+): Promise<BookAgainstDrop> {
   const { now, signal } = input
-  const distances = await deps.reads.stopDistances({ now, signal })
-
-  if (
-    distances.some(
-      (distance) => distance.plan === 'distance' && stopStandingOf(distance) === 'unmeasured'
-    )
-  ) {
-    return undefined
-  }
+  const stops = (await deps.reads.stopDistances({ now, signal })).filter(
+    (distance) => !distance.review
+  )
+  const standing = (wanted: ReturnType<typeof stopStandingOf>): number =>
+    stops.filter((distance) => distance.plan === 'distance' && stopStandingOf(distance) === wanted)
+      .length
 
   return {
     heldDown: await countHoldingsDown(deps.reads, input.held, signal),
-    // A fund's lower level is a place to review, not a stop that broke.
-    stopsBroken: distances.filter(
-      (distance) => !distance.review && stopStandingOf(distance) === 'breached'
-    ).length,
+    stopsBroken: standing('breached'),
+    stopsUnread: standing('unmeasured'),
   }
 }
 
@@ -333,8 +344,8 @@ async function countHoldingsDown(
   return down
 }
 
-/** Whether the notice was accepted. A refusal is logged and the name is told about again on a later
- *  pass, since nothing was said. */
+/** Whether the notice was accepted. A refusal is logged; the caller keeps what was not said for a
+ *  later pass. */
 async function sendNotice(
   deps: HeldWatchDeps,
   input: PassInput,

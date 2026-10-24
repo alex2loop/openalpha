@@ -27,8 +27,6 @@ export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
 
 // ── Boot & composition ───────────────────────────────────────────────────────
 
-// ── Boot & composition ───────────────────────────────────────────────────────
-
 export type { LoadedSourceModule } from '@/trading/sources/plugin-module'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
@@ -48,36 +46,6 @@ export {
   refreshDegradations,
 } from '@/trading/features/market-data/ops/refresh'
 export { isBoundaryFailure } from '@/trading/wiring/loop'
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
@@ -209,8 +177,6 @@ export type { Page } from '@/trading/kernel/store/page'
 export type { AgentRecordSummary } from '@/trading/wiring/host/types'
 export { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
 export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
-
-// ── Values ───────────────────────────────────────────────────────────────────
 
 // ── Values ───────────────────────────────────────────────────────────────────
 
