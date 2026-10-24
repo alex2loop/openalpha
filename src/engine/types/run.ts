@@ -385,6 +385,9 @@ export interface RunRegistry {
   abortSession(sessionId: SessionId, chatId: string): boolean
   /** Aborts every active run started from that chat, whichever session or user owns it. */
   abortChat(channel: ChannelId, chatId: string): boolean
+  /** Aborts the one active run with that id, whatever channel or chat started it. False = no active
+   *  run has that id (unknown, finished, or already aborted and settling). */
+  abortRun(runId: RunId): boolean
   /** Injects text into the matching active run's next turn. False = no run accepted it. */
   steer(sessionId: SessionId, chatId: string, text: string): boolean
   drain(timeoutMs: number): Promise<void>

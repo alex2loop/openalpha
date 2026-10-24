@@ -125,6 +125,8 @@ export interface PairingStore {
   isPaired(channel: ChannelId, chatId: string): Promise<boolean>
   /** The one approved chat on `channel`; undefined when none or several are. */
   lonePairedChat(channel: ChannelId): Promise<string | undefined>
+  /** The approved, not revoked chats on `channel`, at most `limit`, in chat id order. */
+  listPaired(channel: ChannelId, limit: number): Promise<readonly string[]>
   // Idempotent per chat: re-messaging returns the same code, never a new one.
   requestCode(args: {
     readonly channel: ChannelId

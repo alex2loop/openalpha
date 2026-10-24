@@ -7,11 +7,13 @@ import type {
   PairingDecisionBody,
   PairingDecisionResult,
   PairingList,
+  PairingRevokeResult,
 } from '@/app/server/wire/sign-in'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/api'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { parsePathId } from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { ConfigError } from '@/core/errors'
@@ -21,6 +23,8 @@ import { bindLocale } from '@/i18n'
 const LOGIN_NAME = 'chatgpt'
 /** How long a sign-in waits for the browser or the device code, as the CLI's `auth login` does. */
 const LOGIN_TIMEOUT_MS = 15 * 60_000
+/** Paired chats listed per channel: a household of operators, never a crowd. */
+const MAX_PAIRED_LIST = 200
 const LOGIN_BODY = z.object({ method: z.enum(['browser', 'device']) })
 
 type LoginMethod = z.infer<typeof LOGIN_BODY>['method']
@@ -215,14 +219,19 @@ async function handlePairingList(_req: Request, ctx: ApiRouteContext): Promise<R
   const store = ctx.app.resolve('pairingStore')
   const now = Date.now()
   const perChannel = await Promise.all(
-    ctx.app
-      .resolve('channels')
-      .map(async ({ id }) =>
-        (await store.listPending(id, now)).map((pending) => ({ channel: id, ...pending }))
-      )
+    ctx.app.resolve('channels').map(async ({ id }) => ({
+      pending: (await store.listPending(id, now)).map((pending) => ({ channel: id, ...pending })),
+      paired: (await store.listPaired(id, MAX_PAIRED_LIST)).map((chatId) => ({
+        channel: id,
+        chatId,
+      })),
+    }))
   )
 
-  return json({ pending: perChannel.flat() } satisfies PairingList)
+  return json({
+    pending: perChannel.flatMap((entry) => entry.pending),
+    paired: perChannel.flatMap((entry) => entry.paired),
+  } satisfies PairingList)
 }
 
 async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -254,6 +263,23 @@ async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promis
   )
 }
 
+// A chat id is whatever the channel calls it; the route match already refuses an empty segment.
+const asChatId = (raw: string): string => raw
+
+/** Takes the chat's pairing back: its next message is asked for a code again. */
+async function handlePairingRevoke(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const channel = parsePathId(req, channelId, 1)
+  const chatId = parsePathId(req, asChatId)
+
+  if (channel === null || chatId === null) {
+    return apiError('invalid_body')
+  }
+
+  const revoked = await ctx.app.resolve('pairingStore').revoke({ channel, chatId, now: Date.now() })
+
+  return json({ revoked } satisfies PairingRevokeResult)
+}
+
 function parseChannel(raw: string): ReturnType<typeof channelId> | null {
   try {
     return channelId(raw)
@@ -268,4 +294,10 @@ export const SIGN_IN_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'DELETE', path: '/v1/auth/chatgpt', auth: true, handler: handleChatgptLogout },
   { method: 'GET', path: '/v1/pairing', auth: true, handler: handlePairingList },
   { method: 'POST', path: '/v1/pairing', auth: true, handler: handlePairingDecision },
+  {
+    method: 'DELETE',
+    path: '/v1/pairing/:channel/:chatId',
+    auth: true,
+    handler: handlePairingRevoke,
+  },
 ]

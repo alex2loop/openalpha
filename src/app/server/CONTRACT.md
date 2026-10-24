@@ -89,7 +89,9 @@ this document — neither imports the other.
 | DELETE | `/v1/jobs/:id` | yes | — | `{ "ok": true }`: a run in flight is cancelled, and a price job's alert is disabled with it. The whole id; anything else is `not_found` | — |
 | POST | `/v1/jobs/:id/pause`, `/v1/jobs/:id/resume` | yes | — | `{ "ok": true }`; `not_found` for an unknown id; resume of a `price` job whose alert has fired or been removed is `conflict` with a `message`, since nothing could start it | — |
 | POST | `/v1/jobs/:id/run` | yes | — | 202 `{ "ok": true }` once the run is started, not when it ends: its answer reaches the bell as `schedule_result`. It runs under the daemon, so a client that hangs up cannot cancel it. `conflict` for a paused job; a job already running drops the second run | — |
-| GET · POST | `/v1/pairing` | yes | `PairingDecisionBody` (POST) | `PairingList` / `PairingDecisionResult` | `pairing.json` |
+| GET · POST | `/v1/pairing` | yes | `PairingDecisionBody` (POST) | `PairingList` (`pending`: codes waiting; `paired`: `{channel,chatId}` for every chat already paired, at most 200 per channel, in chat id order) / `PairingDecisionResult` | `pairing.json` |
+| DELETE | `/v1/pairing/:channel/:chatId` | yes | — | `PairingRevokeResult` `{ revoked }`: the chat's pairing is taken back and its next message is asked for a code again; false when it was not paired and held no code. A malformed channel or chat id is `invalid_body` | `pairing.revoke.json` |
+| POST | `/v1/runs/:runId/stop` | yes | — | 202 `RunStopWire` `{ stopped: true }`: the run was told to stop, whatever channel started it (stopping is safe, answering is not), and ends as `run_finished` with `outcome` `aborted` (an agent run) or `cancelled` (a command). A run that has finished or never existed is `not_found` with a `message` in the daemon's language; a malformed id is `invalid_body` | `run.stop.json` |
 | POST | `/v1/respond` | yes | `RespondBody` | `{ "ok": true }` | `respond.approval.json` |
 | GET · POST | `/v1/config`, `/v1/config/validate` | yes | raw config (POST) | config / validation / write result | — |
 | GET | `/v1/providers` | yes | — | provider catalog | — |

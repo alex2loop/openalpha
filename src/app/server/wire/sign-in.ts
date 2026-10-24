@@ -1,7 +1,8 @@
 // The /v1 sign-in routes: Telegram pairing and the ChatGPT subscription login.
 
-/** GET /v1/pairing — chats waiting for a pairing code to be approved, across every channel. A code
- *  is 6 characters; `expiresAt` (epoch ms) is when it lapses. */
+/** GET /v1/pairing — chats waiting for a pairing code to be approved, and chats already paired,
+ *  across every channel. A code is 6 characters; `expiresAt` (epoch ms) is when it lapses. `paired`
+ *  holds at most 200 chats per channel, in chat id order. */
 export interface PairingList {
   readonly pending: readonly {
     readonly channel: string
@@ -9,6 +10,12 @@ export interface PairingList {
     readonly chatId: string
     readonly expiresAt: number
   }[]
+  readonly paired: readonly { readonly channel: string; readonly chatId: string }[]
+}
+
+/** DELETE /v1/pairing/:channel/:chatId. False when that chat was not paired and held no code. */
+export interface PairingRevokeResult {
+  readonly revoked: boolean
 }
 
 /** POST /v1/pairing body. Approving lets the chat in on its next message; denying drops the code. */

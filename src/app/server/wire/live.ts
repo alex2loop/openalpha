@@ -28,6 +28,11 @@ export interface RunStartWire {
   readonly startedAt: number
 }
 
+/** 202 from POST /v1/runs/:runId/stop: the run was told to stop. It ends as `run_finished`. */
+export interface RunStopWire {
+  readonly stopped: true
+}
+
 export interface LiveRunWire extends RunStartWire {
   readonly runId: string
   /** Absent for a command. */

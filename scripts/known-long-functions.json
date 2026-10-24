@@ -79,7 +79,7 @@
     "src/engine/research/stages/prompts.ts#crawlPrompt": 43,
     "src/engine/research/stages/stages.ts#createResearchStages": 48,
     "src/engine/run-registry.ts#composeAbort": 57,
-    "src/engine/run-registry.ts#createRunRegistry": 52,
+    "src/engine/run-registry.ts#createRunRegistry": 45,
     "src/engine/workflows/run.ts#startScheduledWorkflows": 43,
     "src/persistence/engines/sqlite.ts#createStorage": 45,
     "src/persistence/stores/channel/pairing.ts#createPairingStore": 52,

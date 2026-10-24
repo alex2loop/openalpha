@@ -478,7 +478,8 @@
     "restartForeground": "Daemon đang chạy trong một cửa sổ terminal, nên trang này không khởi động lại thay bạn được. Dừng bằng Ctrl+C rồi chạy lại {brand} start.",
     "restartPending": "Đang có một lần khởi động lại hoặc cập nhật chạy rồi, bạn chờ chút nhé.",
     "restartStopping": "Daemon đang dừng rồi. Khi nó dừng hẳn, bạn bật lại bằng {brand} start nhé.",
-    "jobAlertGone": "Việc này chờ một cảnh báo giá đã chạm hoặc đã bị xóa, nên bật lại cũng không bao giờ chạy. Bạn xóa việc này rồi tạo việc mới nhé."
+    "jobAlertGone": "Việc này chờ một cảnh báo giá đã chạm hoặc đã bị xóa, nên bật lại cũng không bao giờ chạy. Bạn xóa việc này rồi tạo việc mới nhé.",
+    "runNotFound": "Phiên chạy này đã xong hoặc không còn nữa."
   },
   "scheduler": {
     "eventPrompt": "Việc này chạy vì {ticker} {what} lúc {time}: giá {price}.",

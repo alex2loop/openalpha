@@ -19,6 +19,7 @@ import { MONEY_ROUTES } from '@/app/server/routes/money'
 import { NOTICE_ROUTES } from '@/app/server/routes/notices'
 import { ORDER_ROUTES } from '@/app/server/routes/orders'
 import { RESTART_ROUTES } from '@/app/server/routes/restart'
+import { RUN_ROUTES } from '@/app/server/routes/runs'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
 import { TASK_ROUTES } from '@/app/server/routes/tasks'
@@ -36,6 +37,7 @@ const ROUTES = [
   ...SYSTEM_ROUTES,
   ...RESTART_ROUTES,
   ...ACTIVITY_ROUTES,
+  ...RUN_ROUTES,
   ...AGENT_ROUTES,
   ...AGENT_EDIT_ROUTES,
   ...CHAT_ROUTES,
