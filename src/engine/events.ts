@@ -2,6 +2,7 @@ import type { ChannelId } from '@/core/channels'
 import type { AgentId, RunId, SessionId } from '@/core/ids'
 import type { Threat } from '@/core/security/sanitize'
 import type { ProgressMessage } from '@/core/stream-events'
+import type { Capability } from '@/core/tool'
 import type { RunResultReason } from '@/core/types/run'
 import type { LLMUsageTotals } from '@/core/types/usage'
 import type { ResearchProgress } from '@/engine/research/events'
@@ -93,6 +94,26 @@ declare module '@/core/events' {
       readonly channel: ChannelId
       readonly excerpt: string
       readonly at: number
+    }
+    // A tool call reached its tool: it passed admission and approval and is about to execute.
+    tool_started: {
+      readonly runId: RunId
+      readonly agentId: AgentId
+      readonly channel: ChannelId
+      readonly callId: string
+      readonly name: string
+      readonly capability: Capability
+    }
+    // Every call with a registered tool ends here once. `skipped` marks a call that never reached
+    // its tool (rejected, blocked or paired unrun), so it has no `tool_started`.
+    tool_finished: {
+      readonly runId: RunId
+      readonly channel: ChannelId
+      readonly callId: string
+      readonly name: string
+      readonly capability: Capability
+      readonly ok: boolean
+      readonly skipped?: true
     }
     run_finished: {
       readonly runId: RunId

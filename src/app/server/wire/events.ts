@@ -21,6 +21,7 @@ type WireEventKind =
   | 'run_thinking'
   | 'usage'
   | 'run_finished'
+  | 'tool_started'
   | 'tool_result'
   | 'approval_requested'
   | 'approval_resolved'
@@ -68,7 +69,16 @@ export interface WireEvent {
    *  when it named none. */
   readonly tickers?: readonly string[]
   readonly usage?: { readonly costUsd: number; readonly tokens: number }
-  readonly tool?: { readonly name: string; readonly ok: boolean }
+  /** 'tool_started' | 'tool_result': a tool call in an agent run. `capability` is the tool's declared
+   *  one (read, net, memory, schedule, delegate, write or shell). A start carries `ok: true`, as
+   *  nothing has failed yet. A result with `skipped` has no start: the call never reached its tool
+   *  (refused, blocked, or paired unrun). */
+  readonly tool?: {
+    readonly name: string
+    readonly ok: boolean
+    readonly capability?: string
+    readonly skipped?: true
+  }
   /** 'approval_requested': the gated tool. `label` is its name in the operator's language, as the
    *  CLI and channels print it; `expiresAt` (epoch ms) is when the gate denies on its own.
    *  `dangerous` → the elevated "--warn" tag. `decisions` are the only answers the gate accepts;

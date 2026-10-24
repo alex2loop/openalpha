@@ -19,6 +19,7 @@ import { followNotices } from '@/app/server/feed/notices'
 import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
 import { withTicker } from '@/app/server/feed/tickers'
+import { followTools } from '@/app/server/feed/tools'
 import {
   PROGRESS_NORMALIZERS,
   toAgentRunWire,
@@ -65,6 +66,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
     alerts.stop,
     ...followLifecycle(deps, { book, board }),
     ...followProgress(deps, book),
+    ...followTools(deps),
     ...followFills(deps),
     ...followBudget(deps),
     ...followNotices(deps),

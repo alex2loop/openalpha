@@ -21,6 +21,8 @@ type WireTopic =
   | 'run_started'
   | 'run_finished'
   | 'run_thinking'
+  | 'tool_started'
+  | 'tool_finished'
   | 'command_started'
   | 'command_finished'
   | 'alerts_checked'
@@ -140,6 +142,27 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     source: { channel: wireChannel(e.channel), agentId: '' },
     runId: e.runId,
     thinking: e.excerpt,
+  }),
+  tool_started: (e) => ({
+    v: 1,
+    kind: 'tool_started',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: e.agentId },
+    runId: e.runId,
+    tool: { name: e.name, ok: true, capability: e.capability },
+  }),
+  tool_finished: (e) => ({
+    v: 1,
+    kind: 'tool_result',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: '' },
+    runId: e.runId,
+    tool: {
+      name: e.name,
+      ok: e.ok,
+      capability: e.capability,
+      ...(e.skipped === undefined ? {} : { skipped: e.skipped }),
+    },
   }),
   command_started: (e) => ({
     v: 1,
