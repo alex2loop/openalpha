@@ -49,7 +49,7 @@ still works.
   name that no longer resolves; the bell says how many. Its memory, sessions, spend and track record stay. An
   agent that is on a social network is refused until it leaves.
 - A file you edited by hand while the daemon runs is picked up when the page reads the folder again. A file that
-  fails to load is skipped with its reason and stays out of the running set until you fix it and read again. If the
+  fails to load is skipped with a plain-words reason (the exact cause is in the agent log) and stays out of the running set until you fix it and read again. If the
   folder itself cannot be read, the agents already running stay exactly as they were.
 
 ### The file

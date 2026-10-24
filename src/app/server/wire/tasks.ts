@@ -5,8 +5,9 @@ import type { BriefScheduleWire } from '@/app/server/wire/system'
 
 /** One background task. `name` is the daemon's own id and `label` the same task in the daemon's
  *  language (the name itself for a plugin's task). `everyMs` is the cadence where it has a fixed
- *  one; `lastRunAt` is when the last pass began, epoch ms; `lastError` is the credential-scrubbed
- *  message of the last pass if it failed, cleared by the next good one; `nextRunAt` is when the
+ *  one; `lastRunAt` is when the last pass began, epoch ms; `lastError` is a sentence in the
+ *  daemon's language for the last pass if it failed (the cause stays in the log), cleared by the
+ *  next good one; `nextRunAt` is when the
  *  task's own timer fires next, epoch ms. */
 export interface TaskStatusWire {
   readonly name: string

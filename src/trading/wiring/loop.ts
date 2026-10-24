@@ -1,10 +1,11 @@
 import { lookup } from 'node:dns/promises'
 
 import type { DaemonTask, TaskPassListener } from '@/core/container'
+import type { OperatorMessage } from '@/core/errors'
 import type { Logger } from '@/core/logging/logger'
 import type { OperationsPolicy } from '@/trading/kernel/config'
 import { type MissingEnvError, missingEnvOf } from '@/core/config/resolve'
-import { notifyPass } from '@/core/container'
+import { notifyPass, TASK_FAILED } from '@/core/container'
 import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
@@ -13,7 +14,7 @@ import { sleep } from '@/core/utils/time'
 /** What a tick may say about its own pass without failing it. */
 export interface PassNotes {
   /** A step that failed alone while the pass carried on; the pass reports it as its error. */
-  fail(message: string): void
+  fail(): void
 }
 
 export type OperationTick = (signal: AbortSignal, notes: PassNotes) => Promise<void>
@@ -131,7 +132,7 @@ async function runPass(
 
     return delayMs
   } catch (err: unknown) {
-    detail = { error: formatErrForLog(err).message }
+    detail = { error: TASK_FAILED }
 
     throw err
   } finally {
@@ -140,7 +141,7 @@ async function runPass(
 }
 
 interface PassDetail {
-  readonly error?: string
+  readonly error?: OperatorMessage
   readonly nextAt?: number
 }
 
@@ -190,12 +191,14 @@ function reportOffline(spec: LoopSpec): void {
     phase: 'end',
     at,
     ...(spec.everyMs === undefined ? {} : { everyMs: spec.everyMs }),
-    error: `offline: cannot reach ${reachabilityHost}`,
+    error: { key: 'ui.task.offline', params: { host: reachabilityHost } },
     nextAt: at + offlineRetryMs,
   })
 }
 
-type TickOutcome = { readonly stop: true } | { readonly stop: false; readonly error?: string }
+type TickOutcome =
+  | { readonly stop: true }
+  | { readonly stop: false; readonly error?: OperatorMessage }
 
 /** `stop` means shutdown. A boundary failure is logged and retried on the next interval; an invariant
  *  failure escapes to the quarantine around the loop rather than spinning forever getting the same
@@ -206,17 +209,17 @@ async function runTick(
   signal: AbortSignal,
   keyWarning: { warned: boolean }
 ): Promise<TickOutcome> {
-  const failures: string[] = []
+  let failed = false
 
   try {
     await spec.tick(signal, {
-      fail: (message) => {
-        failures.push(message)
+      fail: () => {
+        failed = true
       },
     })
     keyWarning.warned = false
 
-    return { stop: false, ...(failures.length === 0 ? {} : { error: failures.join('; ') }) }
+    return { stop: false, ...(failed ? { error: TASK_FAILED } : {}) }
   } catch (err: unknown) {
     if (isAbortError(err)) {
       return { stop: true }
@@ -226,17 +229,16 @@ async function runTick(
       throw err
     }
 
-    const error = formatErrForLog(err).message
     const missing = missingEnvOf(err)
 
     if (missing !== undefined) {
       warnKeyMissingOnce(spec, missing, keyWarning)
-      return { stop: false, error }
+      return { stop: false, error: { key: 'ui.task.keyMissing', params: { env: missing.env } } }
     }
 
     spec.logger.warn('trading.tick_failed', { operation: spec.name, err: formatErrForLog(err) })
     keyWarning.warned = false
-    return { stop: false, error }
+    return { stop: false, error: TASK_FAILED }
   }
 }
 

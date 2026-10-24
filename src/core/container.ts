@@ -1,7 +1,6 @@
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { OperatorMessage } from '@/core/types/operator-message'
 import { ConfigError } from '@/core/errors'
-import { formatErrForLog } from '@/core/security/credentials'
 
 // resolve() is a service locator: call it ONLY in app/providers.ts and per-module
 // services.ts files. Everywhere else, dependencies are injected as constructor/factory args.
@@ -77,18 +76,21 @@ export interface DaemonTask {
 }
 
 /** One edge of a background task's pass. `at` is the pass's own clock value, read once: the start
- *  and the end of one pass carry the same `at`. `error` is the message of a pass that failed;
- *  `nextAt` is when the task's own timer fires again. */
+ *  and the end of one pass carry the same `at`. `error` says in the operator's language why a pass
+ *  failed (the raw cause stays in the log); `nextAt` is when the task's own timer fires again. */
 export interface TaskPass {
   readonly name: string
   readonly phase: 'start' | 'end'
   readonly at: number
   readonly everyMs?: number
-  readonly error?: string
+  readonly error?: OperatorMessage
   readonly nextAt?: number
 }
 
 export type TaskPassListener = (pass: TaskPass) => void
+
+/** What a failed pass says, whatever broke it: the cause is in the log, not on the page. */
+export const TASK_FAILED: OperatorMessage = { key: 'ui.task.failed' }
 
 /** Tells the listener of a pass. A listener that throws must never fail or mask the pass it
  *  watches, and core has no logger to say so with, so its failure is dropped. */
@@ -116,14 +118,14 @@ export async function reportPass<T>(
 ): Promise<T> {
   const at = Date.now()
   const { name, everyMs } = spec
-  let error: string | undefined
+  let failed = false
 
   notifyPass(listener, { name, phase: 'start', at, everyMs })
 
   try {
     return await run()
   } catch (err: unknown) {
-    error = formatErrForLog(err).message
+    failed = true
 
     throw err
   } finally {
@@ -133,7 +135,7 @@ export async function reportPass<T>(
       at,
       everyMs,
       nextAt: (spec.chained === true ? Date.now() : at) + everyMs,
-      ...(error === undefined ? {} : { error }),
+      ...(failed ? { error: TASK_FAILED } : {}),
     })
   }
 }

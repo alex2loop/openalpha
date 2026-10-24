@@ -2,8 +2,7 @@ import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import type { TaskPass, TaskPassListener } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
-import { scrubCredentials } from '@/core/security/credentials'
-import { t } from '@/i18n'
+import { t, translateDisplayText } from '@/i18n'
 
 declare module '@/core/container' {
   interface Services {
@@ -12,8 +11,6 @@ declare module '@/core/container' {
   }
 }
 
-/** A message that long is no more readable on a row; the log holds the whole of it. */
-const MAXIMUM_ERROR_CHARS = 300
 const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
   ['trading.alerts', 'ui.task.trading.alerts'],
   ['trading.exits', 'ui.task.trading.exits'],
@@ -54,7 +51,7 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
 
   return {
     listener: (pass) => {
-      entries.set(pass.name, applyPass(entries.get(pass.name), pass))
+      entries.set(pass.name, applyPass(locale, entries.get(pass.name), pass))
     },
     track: (names) => {
       for (const name of names) {
@@ -67,7 +64,7 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
   }
 }
 
-function applyPass(current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
+function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
   const everyMs = pass.everyMs ?? current?.everyMs
 
   if (pass.phase === 'start') {
@@ -77,9 +74,7 @@ function applyPass(current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
   return {
     ...(everyMs === undefined ? {} : { everyMs }),
     lastRunAt: pass.at,
-    ...(pass.error === undefined
-      ? {}
-      : { lastError: scrubCredentials(pass.error).slice(0, MAXIMUM_ERROR_CHARS) }),
+    ...(pass.error === undefined ? {} : { lastError: translateDisplayText(locale, pass.error) }),
     ...(pass.nextAt === undefined ? {} : { nextRunAt: pass.nextAt }),
     working: false,
   }

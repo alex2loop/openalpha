@@ -1,4 +1,5 @@
 import type { App, ServiceProvider, Services } from '@/core/container'
+import type { OperatorMessage } from '@/core/errors'
 import type { AgentId } from '@/core/ids'
 import type { LoggerResource } from '@/core/logging/logger'
 import type { AgentBuildContext, AgentProfile, UserAgentSource } from '@/engine/api'
@@ -28,7 +29,7 @@ declare module '@/core/container' {
 
 interface SkippedAgent {
   readonly id: string
-  readonly reason: string
+  readonly reason: OperatorMessage
 }
 
 interface ReloadedAgents {
@@ -167,7 +168,7 @@ function withoutInvalidTables(
 
     if (issues.length > 0) {
       logger.warn('agents.focus_invalid', { id, issues })
-      onSkipped?.({ id, reason: `focus ${issues.join('; ')}` })
+      onSkipped?.({ id, reason: { key: 'errors.agentSkippedFocus' } })
       continue
     }
 

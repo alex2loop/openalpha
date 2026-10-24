@@ -3,7 +3,7 @@
   "skipped": [
     {
       "id": "broken",
-      "reason": "agent 'broken' max_daily_usd 9 is above [budget] max_daily_usd 5"
+      "reason": "I could not load this file, so it stays out until it is fixed. The reason is in the agent log."
     }
   ]
 }

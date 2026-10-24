@@ -284,7 +284,7 @@ async function armingStep(step: ArmingStep, run: () => Promise<void>): Promise<v
     const failure = formatErrForLog(err)
 
     step.logger.warn('trading.alert_arming_failed', { step: step.name, err: failure })
-    step.notes.fail(`${step.name}: ${failure.message}`)
+    step.notes.fail()
   }
 }
 

@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
+import type { OperatorMessage } from '@/core/errors'
 import type { AgentId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { AgentBuildContext } from '@/engine/agents/builder'
@@ -34,7 +35,7 @@ export interface BuildUserAgentsDeps {
   readonly reserved: ReadonlySet<string>
   readonly logger: Logger
   /** Told why each source was left out, for a caller that reports it (a live reload). */
-  readonly onSkipped?: (skip: { readonly id: string; readonly reason: string }) => void
+  readonly onSkipped?: (skip: { readonly id: string; readonly reason: OperatorMessage }) => void
 }
 
 /**
@@ -93,7 +94,7 @@ export function buildUserAgents(
   for (const source of sources) {
     if (deps.reserved.has(source.id)) {
       deps.logger.warn('agents.user_id_reserved', { id: source.id })
-      deps.onSkipped?.({ id: source.id, reason: 'id is taken by a built-in or plugin agent' })
+      deps.onSkipped?.({ id: source.id, reason: { key: 'errors.agentSkippedIdTaken' } })
       continue
     }
 
@@ -115,7 +116,7 @@ function buildOne(source: UserAgentSource, deps: BuildUserAgentsDeps): AgentProf
     const logged = formatErrForLog(err)
 
     deps.logger.warn('agents.user_load_failed', { id: source.id, err: logged })
-    deps.onSkipped?.({ id: source.id, reason: logged.message })
+    deps.onSkipped?.({ id: source.id, reason: { key: 'errors.agentSkippedInvalid' } })
 
     return null
   }

@@ -29,7 +29,7 @@ import { agentId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/security/private-files'
 import { RESERVED_AGENT_IDS, userAgentFile } from '@/engine/api'
-import { type MessageKey, pluralKey, t } from '@/i18n'
+import { type MessageKey, pluralKey, t, translateDisplayText } from '@/i18n'
 import { pauseJobsOfAgent } from '@/scheduler/api'
 
 const MAX_BODY_BYTES = 64 * 1024
@@ -259,7 +259,16 @@ async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Respons
 
 async function handleReload(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   try {
-    return json((await reloadUserAgents(ctx.app)) satisfies AgentsReloadWire)
+    const { loaded, skipped } = await reloadUserAgents(ctx.app)
+    const locale = localeOf(ctx)
+
+    return json({
+      loaded,
+      skipped: skipped.map(({ id, reason }) => ({
+        id,
+        reason: translateDisplayText(locale, reason),
+      })),
+    } satisfies AgentsReloadWire)
   } catch {
     return apiError('internal', t(localeOf(ctx), 'errors.agentReloadFailed'))
   }
