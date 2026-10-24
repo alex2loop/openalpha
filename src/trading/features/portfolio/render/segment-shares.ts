@@ -5,6 +5,7 @@ import {
   currentSegmentWeights,
   segmentEntries,
 } from '@/trading/features/portfolio/folds/allocation'
+import { printedSegmentShares } from '@/trading/features/portfolio/render/segments'
 import { apportion, FRACTION_QUANTUM } from '@/trading/render/number'
 
 /** One segment against the policy it is held to, as fractions of NAV rounded as the chat prints
@@ -35,24 +36,25 @@ export function apportionedSegmentWeights(book: ValuedBook): ReadonlyMap<Portfol
   )
 }
 
-/** The rows `/rebalance` prints, rounded as it rounds them: a segment at zero held and zero wanted
- *  is dropped first, then the targets are apportioned over what is left in the segment order its
- *  table uses (by name). A disabled segment's target is zero and moves nothing. */
+/** The rows `/rebalance` prints, rounded as it rounds them: `printedSegmentShares` drops a segment at
+ *  zero held and zero wanted and apportions the targets over what is left, in the segment order its
+ *  table uses (by name). A disabled segment's target is zero and moves nothing. The weight stays the
+ *  book's own apportionment, so it reads the same as every other line that states it. */
 export function toSegmentShares(book: ValuedBook, profile: UserProfile): readonly SegmentShare[] {
   const weights = apportionedSegmentWeights(book)
   const held = currentSegmentWeights(book)
   const rows = segmentEntries(profile.segmentTargets)
     .toSorted(([left], [right]) => left.localeCompare(right))
-    .filter(([segment, target]) => target !== 0 || (held.get(segment) ?? 0) !== 0)
-  const targets = apportion(
-    rows.map(([, target]) => target),
-    FRACTION_QUANTUM
-  )
+    .map(([segment, target]) => {
+      const current = held.get(segment) ?? 0
 
-  return rows.map(([segment, rawTarget], index) => {
-    const target = targets[index] ?? rawTarget
+      // No plan stands behind a view of the book: after the plan it is where it is now.
+      return { segment, currentPctNav: current, afterPlanPctNav: current, targetPctNav: target }
+    })
+
+  return printedSegmentShares(rows).map(([{ segment }, printed]) => {
     const weight = weights.get(segment) ?? 0
 
-    return { segment, weight, target, gap: weight - target }
+    return { segment, weight, target: printed.targetPctNav, gap: weight - printed.targetPctNav }
   })
 }

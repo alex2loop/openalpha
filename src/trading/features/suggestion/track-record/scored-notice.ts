@@ -10,6 +10,7 @@ import type { Market } from '@/trading/markets/types'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { formatDay, t } from '@/i18n'
 import { sendCaught } from '@/trading/kernel/operator/delivery-retry'
+import { isBookCall } from '@/trading/kernel/operator/focus'
 import { formatSignedFraction, renderDeclaredValue } from '@/trading/render/format'
 
 /** The first pass after this ships scores calls that waited a long time; a call whose window ended
@@ -30,13 +31,20 @@ interface ScoredCall {
 }
 
 /** Tells the operator a call was just scored, once: the caller asks only when the store took the
- *  result, so a retried tick never repeats it. A refusal is logged and not retried. */
+ *  result, so a retried tick never repeats it. A refusal is logged and not retried. Only the
+ *  operator's own calls are told: a focus call is a second opinion scored apart from their record,
+ *  and a daily agent would otherwise fill the bell with lines that say it counts in it. */
 export async function notifyCallScored(
   deps: CallScoredNotices & { readonly logger: Logger },
   scored: ScoredCall,
   at: { readonly now: number; readonly signal: AbortSignal }
 ): Promise<void> {
   const { suggestion, market, outcome } = scored
+
+  if (!isBookCall(suggestion)) {
+    return
+  }
+
   const windowEndedAt = market.manifest.calendar.sessionCloseAt(outcome.exitDay)
   const target = deps.recipient()
 

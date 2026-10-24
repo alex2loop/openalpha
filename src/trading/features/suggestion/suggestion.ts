@@ -122,8 +122,8 @@ export interface SuggestionService {
   focusRecords(options: { readonly signal: AbortSignal }): Promise<readonly FocusRecordView[]>
   /** What each model earned on the calls it argued alone. */
   modelRecords(signal: AbortSignal): Promise<readonly ModelRecord[]>
-  /** What one operator day added: the calls made and the largest closes. */
-  dayDigest(options: SuggestionDayOptions): Promise<SuggestionDayRead>
+  /** What one operator day added to the operator's own record: the calls made and the largest closes. */
+  dayDigest(options: Omit<SuggestionDayOptions, 'focusKeys'>): Promise<SuggestionDayRead>
 }
 
 interface ListSuggestionsOptions extends Omit<SuggestionPageOptions, 'focusKey'> {
@@ -144,6 +144,10 @@ export interface TrackRecordReflection {
   readonly acted?: ActedSummary
 }
 
+// The operator's record unless a focus is named: a focus call is a second opinion the operator
+// never acted on. Every read placed beside the track record counts the same population.
+const BOOK_FOCUS_KEYS = [DEFAULT_FOCUS_KEY]
+
 export function createSuggestionService(deps: SuggestionServiceDeps): SuggestionService {
   const batchDeps = toBatchDeps(deps, new Map())
 
@@ -159,8 +163,9 @@ export function createSuggestionService(deps: SuggestionServiceDeps): Suggestion
     reflect: (options) => reflect(deps, options),
     agentRecords: (options) => buildAgentRecords(deps, { ...options, ...recordClock(deps) }),
     focusRecords: (options) => buildFocusRecords(deps, { ...options, ...recordClock(deps) }),
-    modelRecords: async (signal) => buildModelRecords(await deps.store.listScoredByModel(signal)),
-    dayDigest: (options) => deps.store.readDay(options),
+    modelRecords: async (signal) =>
+      buildModelRecords(await deps.store.listScoredByModel({ focusKeys: BOOK_FOCUS_KEYS, signal })),
+    dayDigest: (options) => deps.store.readDay({ ...options, focusKeys: BOOK_FOCUS_KEYS }),
   }
 }
 
@@ -392,9 +397,7 @@ async function summarize(
   deps: SuggestionServiceDeps,
   options: TrackRecordOptions
 ): Promise<TrackRecordReport> {
-  // The operator's record unless a focus is named: a focus call is a second opinion the operator
-  // never acted on.
-  const focusKeys = [options.focusKey ?? DEFAULT_FOCUS_KEY]
+  const focusKeys = options.focusKey === undefined ? BOOK_FOCUS_KEYS : [options.focusKey]
   const rows = await deps.store.listResolved({
     limit: options.limit,
     focusKeys,

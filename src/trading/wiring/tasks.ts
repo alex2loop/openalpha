@@ -197,7 +197,8 @@ async function notifyFill(
     signal
   )
 
-  if (outcome !== 'accepted') {
+  // An aborted send is shutdown, not a refusal.
+  if (outcome !== 'accepted' && outcome !== 'aborted') {
     deps.logger.warn('trading.exit_fill_notice_undelivered', {
       ticker: draft.instrument.ticker,
       outcome,
@@ -259,7 +260,7 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
       deps.onAlertsChecked?.(options.now)
       await armingStep({ logger, notes, name: 'exits' }, () => alerts.tickExits(options))
       await armingStep({ logger, notes, name: 'screeners' }, () => alerts.tickScreeners(options))
-      await deps.heldWatch(signal)
+      await deps.heldWatch(options)
     },
   })
 }

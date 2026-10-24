@@ -8,7 +8,8 @@ interface DebateRoleWire {
   readonly role: string
   /** In the daemon's language, in the words the report's debate block uses. */
   readonly verdict?: string
-  readonly summary: string
+  /** Absent for a risk analyst with no note, and for a case the evidence refuted whole. */
+  readonly summary?: string
 }
 
 interface DebateClaimWire {

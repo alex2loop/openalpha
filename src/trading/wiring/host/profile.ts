@@ -15,7 +15,9 @@ export function profileMethods(deps: TradingHostDeps): ProfileMethods {
         const tickers = parseTickers(request.names, deps.services.marketData.markets())
 
         if (tickers === null) {
-          throw new ValidationError('watchlist names must be 1 to a few valid tickers')
+          throw new ValidationError('watchlist names must be 1 to a few valid tickers', {
+            key: 'errors.watchlistNamesInvalid',
+          })
         }
 
         return deps.services.profiles.updateWatchlist({

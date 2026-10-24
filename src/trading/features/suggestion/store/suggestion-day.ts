@@ -3,6 +3,7 @@ import type {
   FocusCall,
   FocusCallRow,
 } from '@/trading/features/suggestion/store/suggestion-outcome'
+import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
 import {
@@ -21,6 +22,8 @@ export interface SuggestionDayRead {
 }
 
 export interface SuggestionDayOptions {
+  /** Only these focuses' rows, the focuses the track record reads. */
+  readonly focusKeys: readonly FocusKey[]
   readonly range: EpochRange
   /** How many closed calls to return. */
   readonly limit: number
@@ -34,18 +37,22 @@ export async function readSuggestionDay(
   assertNotAborted(options.signal)
 
   const { fromMs, toMs } = options.range
-  const p = deps.dialect.param
+  const { dialect, db } = deps
+  const p = dialect.param
+  // The focus keys follow the two instants in both queries, so one list serves both.
+  const focusFilter = `focus_key IN (${dialect.paramList(options.focusKeys.length, 3)})`
   const [counted, closed] = await Promise.all([
-    deps.db.query<{ readonly count: number }>(
+    db.query<{ readonly count: number }>(
       `SELECT COUNT(*) AS count FROM suggestions WHERE is_call = 1 ` +
-        `AND created_at >= ${p(1)} AND created_at < ${p(2)}`,
-      [fromMs, toMs]
+        `AND created_at >= ${p(1)} AND created_at < ${p(2)} AND ${focusFilter}`,
+      [fromMs, toMs, ...options.focusKeys]
     ),
-    deps.db.query<FocusCallRow>(
+    db.query<FocusCallRow>(
       `SELECT ${FOCUS_CALL_COLUMNS} FROM suggestions WHERE ${SCORED_SQL} ` +
         `AND exit_day IS NOT NULL AND resolved_at >= ${p(1)} AND resolved_at < ${p(2)} ` +
-        `AND ${LATEST_OF_SAME_CALL_SQL} ORDER BY ABS(return_pct) DESC, id DESC LIMIT ${p(3)}`,
-      [fromMs, toMs, options.limit]
+        `AND ${focusFilter} AND ${LATEST_OF_SAME_CALL_SQL} ` +
+        `ORDER BY ABS(return_pct) DESC, id DESC LIMIT ${p(3 + options.focusKeys.length)}`,
+      [fromMs, toMs, ...options.focusKeys, options.limit]
     ),
   ])
 

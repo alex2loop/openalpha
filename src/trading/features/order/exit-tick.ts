@@ -9,6 +9,7 @@ import type { OrderFill, OrderFilledListener } from '@/trading/kernel/operator/n
 import type { BookedFill } from '@/trading/kernel/venue/fee'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { buildVenueFillKey } from '@/trading/features/ledger/sync'
 import { resolveDay, resolveInstrument } from '@/trading/features/market-data/resolve'
@@ -197,13 +198,16 @@ async function settleFill(
   }
 
   announceFill(deps, toOrderFill(sale, { fill, now: pass.now }))
-  deps.notifyFill(sale, pass.signal).catch((err: unknown) =>
-    deps.logger.warn('trading.exit_fill_notice_failed', {
-      exitClientId: exit.exitClientId,
-      symbol: exit.symbol,
-      err: formatErrForLog(err),
-    })
-  )
+  deps.notifyFill(sale, pass.signal).catch((err: unknown) => {
+    // Shutdown aborts the send; the sale is booked either way and nothing failed.
+    if (!isAbortError(err)) {
+      deps.logger.warn('trading.exit_fill_notice_failed', {
+        exitClientId: exit.exitClientId,
+        symbol: exit.symbol,
+        err: formatErrForLog(err),
+      })
+    }
+  })
 }
 
 function toOrderFill(

@@ -301,7 +301,8 @@ interface TrackRecordSummaryWire {
     readonly targetCount: number
     readonly winRate?: number
   }[]
-  /** The calls each model argued alone; a call several models argued is in none. */
+  /** The operator's own calls each model argued alone, over every call ever scored: unlike the rest
+   *  of the summary it is not cut to the newest `limit` rows. A call several models argued is in none. */
   readonly byModel: readonly ByModelWire[]
   readonly caveats: readonly TradingWireCaveat[]
 }

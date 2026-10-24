@@ -1,7 +1,9 @@
 import type { Locale } from '@/core/types/locale'
+import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
 import type { RoleOutput, StoredDebate } from '@/trading/features/suggestion/debate/types'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { DebateMode, DebateRole } from '@/trading/kernel/config'
+import { isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
 import { DEBATE_MODE_ROLES } from '@/trading/kernel/config'
 import { renderDeclaredValue } from '@/trading/render/format'
 
@@ -20,7 +22,9 @@ interface DebateRoleView {
   readonly role: DebateRole
   /** The role's verdict in the operator's language, in the words the report's debate block uses. */
   readonly verdict?: string
-  readonly summary: string
+  /** Absent where there is nothing to show: a risk analyst with no note, or a case the evidence
+   *  refuted whole. */
+  readonly summary?: string
 }
 
 /** How a stored call was argued, for a surface that lays the roles out itself. The stored debate
@@ -63,35 +67,47 @@ export function toDebateView(locale: Locale, suggestion: StoredSuggestion): Deba
 }
 
 function rolesOf(locale: Locale, debate: StoredDebate): readonly DebateRoleView[] {
+  const refuted = new Set(debate.refutedIds ?? [])
+  // What the live `role_output` withholds is withheld here too: a case the evidence refuted whole.
+  const argued = (role: ArguingRole, summary: string): { readonly summary?: string } =>
+    isUnsupportedRole(role, debate.claims, refuted) ? {} : { summary }
+
   if (debate.mode === 'lean') {
     return [
-      {
-        role: 'market-analyst',
-        verdict: renderDeclaredValue(locale, `trading.debate.stance.${debate.analystStance}`),
-        summary: debate.analystSummary,
-      },
+      toRoleView(locale, 'market-analyst', {
+        stance: debate.analystStance,
+        ...argued('market-analyst', debate.analystSummary),
+      }),
     ]
   }
 
   return [
-    { role: 'bull-researcher', summary: debate.bullSummary },
-    { role: 'bear-researcher', summary: debate.bearSummary },
-    {
-      role: 'portfolio-manager',
-      verdict: renderDeclaredValue(locale, `trading.debate.manager.${debate.managerVerdict}`),
+    toRoleView(locale, 'bull-researcher', argued('bull-researcher', debate.bullSummary)),
+    toRoleView(locale, 'bear-researcher', argued('bear-researcher', debate.bearSummary)),
+    toRoleView(locale, 'portfolio-manager', {
+      stance: debate.managerVerdict,
       summary: debate.managerRationale,
-    },
-    {
-      role: 'trader',
-      verdict: renderDeclaredValue(locale, `trading.debate.trader.${debate.traderStance}`),
-      summary: debate.traderTiming,
-    },
-    {
-      role: 'risk-analyst',
-      verdict: renderDeclaredValue(locale, `trading.debate.risk.${debate.riskVerdict}`),
-      summary: debate.riskNote ?? '',
-    },
+    }),
+    toRoleView(locale, 'trader', { stance: debate.traderStance, summary: debate.traderTiming }),
+    toRoleView(locale, 'risk-analyst', {
+      stance: debate.riskVerdict,
+      ...(debate.riskNote === undefined ? {} : { summary: debate.riskNote }),
+    }),
   ]
+}
+
+function toRoleView(
+  locale: Locale,
+  role: DebateRole,
+  parts: Pick<RoleOutput, 'stance' | 'summary'>
+): DebateRoleView {
+  const verdict = renderRoleStance(locale, { role, ...parts })
+
+  return {
+    role,
+    ...(verdict === undefined ? {} : { verdict }),
+    ...(parts.summary === undefined ? {} : { summary: parts.summary }),
+  }
 }
 
 /** The role's stance in the operator's language, in the words the debate view uses; absent for a

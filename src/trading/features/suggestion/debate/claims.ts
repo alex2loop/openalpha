@@ -35,8 +35,20 @@ export function claimsOf(role: ArguingRole, source: ResearchCase): readonly Deba
 }
 
 /** Whether the role minted this claim, read back off the id the way `claimsOf` wrote it. */
-export function isClaimBy(role: ArguingRole, claim: { readonly id: string }): boolean {
+function isClaimBy(role: ArguingRole, claim: { readonly id: string }): boolean {
   return claim.id.startsWith(`${CLAIM_PREFIXES[role]}-`)
+}
+
+/** Whether the evidence refuted every claim this role argued: its case then stands on nothing, and
+ *  what it wrote is withheld. A role that argued no claim is not unsupported. */
+export function isUnsupportedRole(
+  role: ArguingRole,
+  claims: readonly { readonly id: string }[],
+  refuted: ReadonlySet<string>
+): boolean {
+  const own = claims.filter((claim) => isClaimBy(role, claim))
+
+  return own.length > 0 && own.every((claim) => refuted.has(claim.id))
 }
 
 /** One owner for the id shape, so a claim and a condition can never collide on `bull-1`. The shape

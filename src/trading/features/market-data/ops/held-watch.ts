@@ -4,9 +4,8 @@ import type {
   InstrumentHeadline,
   NewsArchiveStore,
 } from '@/trading/features/market-data/store/news-archive'
-import type { InstrumentRef, MarketRef, Region, TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRef, Region, TradingDay } from '@/trading/kernel/instrument'
 import type { QuoteBoard } from '@/trading/kernel/market/market-capability'
-import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 import type { StopDistance } from '@/trading/kernel/operator/alert'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TradingNotice, TradingNoticeSender } from '@/trading/kernel/operator/notice'
@@ -19,28 +18,19 @@ import { stopStandingOf } from '@/trading/kernel/operator/alert'
 import { sendCaught } from '@/trading/kernel/operator/delivery-retry'
 import { sessionPhase } from '@/trading/markets/calendar'
 import { registrableDomain } from '@/trading/markets/news'
-import { rowMoveIn } from '@/trading/markets/overview-sections'
 import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** The region's index falling this far, in percent, in a session is worth the operator's attention. */
 const INDEX_DROP_PCT = 1.5
-/** How often the index is read while its session runs: a drop is a minutes-scale event, and the
- *  read builds a market overview. */
+/** How often the index is read while its session runs: a drop is a minutes-scale event. */
 const INDEX_CHECK_INTERVAL_MS = 5 * MS_PER_MINUTE
-/** Bounds what one pass reads of the archive; a pass is a minute long and the book is small. */
-const HELD_NEWS_LIMIT = 100
 
 interface HeldWatchReads {
   tradeableHoldingsAt(options: {
     readonly now: number
     readonly signal: AbortSignal
   }): Promise<readonly { readonly instrument: InstrumentRef }[]>
-  overview(options: {
-    readonly now: number
-    readonly signal: AbortSignal
-    readonly markets: readonly MarketRef[]
-  }): Promise<readonly MarketDataOverview[]>
   quoteBoard(options: {
     readonly instruments: readonly InstrumentRef[]
     readonly signal: AbortSignal
@@ -64,8 +54,12 @@ interface HeldWatchDeps {
   readonly logger: Logger
 }
 
-/** One pass of the held-name watch. Told once a minute by the alerts loop. */
-export type HeldWatch = (signal: AbortSignal) => Promise<void>
+/** One pass of the held-name watch. Told once a minute by the alerts loop, which states the instant
+ *  its own pass reads the book at. */
+export type HeldWatch = (pass: {
+  readonly now: number
+  readonly signal: AbortSignal
+}) => Promise<void>
 
 /** What the watch has already said, for the day it is in. All of it is dropped at the day change,
  *  so none of it grows past one day's held names. */
@@ -78,12 +72,16 @@ interface WatchState {
   readonly newsSent: Set<string>
   indexCheckedAt: number
   indexDropSent: boolean
+  /** A refusal was logged and no send has been accepted since: a channel that stays down is said
+   *  once, not on every pass. */
+  refusalLogged: boolean
 }
 
 interface PassInput {
   readonly now: number
   readonly target: DeliveryAddress
   readonly signal: AbortSignal
+  readonly state: WatchState
 }
 
 /** Tells the operator, through the bell, when a name they hold is written about and when the
@@ -96,12 +94,15 @@ export function createHeldWatch(deps: HeldWatchDeps): HeldWatch {
     newsSent: new Set(),
     indexCheckedAt: 0,
     indexDropSent: false,
+    refusalLogged: false,
   }
   let failureLogged = false
 
-  return async (signal) => {
+  return async (pass) => {
+    const { signal } = pass
+
     try {
-      await watchOnce(deps, state, signal)
+      await watchOnce(deps, state, pass)
       failureLogged = false
     } catch (err: unknown) {
       if (isAbortError(err) || signal.aborted) {
@@ -119,9 +120,9 @@ export function createHeldWatch(deps: HeldWatchDeps): HeldWatch {
 async function watchOnce(
   deps: HeldWatchDeps,
   state: WatchState,
-  signal: AbortSignal
+  pass: { readonly now: number; readonly signal: AbortSignal }
 ): Promise<void> {
-  const now = Date.now()
+  const { now, signal } = pass
   const owner = deps.markets.regionOwner(deps.region)
   const target = deps.recipient()
 
@@ -147,19 +148,27 @@ async function watchOnce(
   const headlines = await deps.news.listForInstruments({
     instruments: held,
     sinceMs: state.cursor,
-    limit: HELD_NEWS_LIMIT,
     signal,
   })
 
-  const input: PassInput = { now, target, signal }
+  const input: PassInput = { now, target, signal, state }
 
   // A refused headline holds the cursor, so the next pass reads the same window and tells it; names
   // already told are skipped by `newsSent`.
-  if (await sendHeldNews(deps, state, { ...input, headlines })) {
+  if (await sendHeldNews(deps, { ...input, headlines })) {
     state.cursor = now
   }
 
-  await watchIndex(deps, state, { ...input, owner, held })
+  // The index speaks for its own region: holdings elsewhere neither fall with it nor break against it.
+  await watchIndex(deps, {
+    ...input,
+    owner,
+    held: held.filter((instrument) => isInRegion(deps, instrument)),
+  })
+}
+
+function isInRegion(deps: HeldWatchDeps, instrument: InstrumentRef): boolean {
+  return deps.markets.find(instrument.market)?.manifest.region === deps.region
 }
 
 /** The day change drops what the watch said, and with it any window held for a refused headline. */
@@ -181,15 +190,16 @@ function rollDay(
   state.indexDropSent = false
 }
 
-/** Whether every headline that needed telling was accepted. */
+/** Whether every headline that needed telling was accepted. The archive gives one story per name,
+ *  the newest. */
 async function sendHeldNews(
   deps: HeldWatchDeps,
-  state: WatchState,
   input: PassInput & { readonly headlines: readonly InstrumentHeadline[] }
 ): Promise<boolean> {
+  const { state } = input
   let allTold = true
 
-  for (const headline of newestPerInstrument(input.headlines)) {
+  for (const headline of input.headlines) {
     const key = buildInstrumentKey(headline.instrument)
 
     if (state.newsSent.has(key)) {
@@ -213,34 +223,14 @@ async function sendHeldNews(
   return allTold
 }
 
-/** The archive lists newest first, so the first story seen for a name is its newest. */
-function newestPerInstrument(
-  headlines: readonly InstrumentHeadline[]
-): readonly InstrumentHeadline[] {
-  const newest = new Map<string, InstrumentHeadline>()
-
-  for (const headline of headlines) {
-    const key = buildInstrumentKey(headline.instrument)
-
-    if (!newest.has(key)) {
-      newest.set(key, headline)
-    }
-  }
-
-  return [...newest.values()]
-}
-
 interface IndexInput extends PassInput {
   readonly owner: Market
+  /** The holdings in the index's own region. */
   readonly held: readonly InstrumentRef[]
 }
 
-async function watchIndex(
-  deps: HeldWatchDeps,
-  state: WatchState,
-  input: IndexInput
-): Promise<void> {
-  const { owner, now } = input
+async function watchIndex(deps: HeldWatchDeps, input: IndexInput): Promise<void> {
+  const { owner, now, state } = input
 
   if (
     state.indexDropSent ||
@@ -277,22 +267,22 @@ interface IndexDrop {
   readonly movePct: number
 }
 
-/** The market's own benchmark, read the way every surface reads an index row's session move. Absent
- *  where the market names no benchmark, the row is not in the overview, or the move is not a drop. */
+/** The market's own benchmark, read the way every surface reads a quote's session move. Absent where
+ *  the market names no benchmark, the index is not live (a stored close is the last session's move,
+ *  not this one's), or the move is not a drop. */
 async function readIndexDrop(
   deps: HeldWatchDeps,
   input: IndexInput
 ): Promise<IndexDrop | undefined> {
-  const { owner, now, signal } = input
-  const index = owner.manifest.benchmark
+  const index = input.owner.manifest.benchmark
 
   if (index === undefined) {
     return undefined
   }
 
-  const [overview] = await deps.reads.overview({ now, signal, markets: [owner.manifest.id] })
-  const row = overview?.rows.find((candidate) => candidate.instrument.ticker === index.ticker)
-  const movePct = row === undefined ? undefined : rowMoveIn(row, owner.manifest.calendar.dayAt(now))
+  const board = await deps.reads.quoteBoard({ instruments: [index], signal: input.signal })
+  const item = board.items.find((candidate) => candidate.ticker === index.ticker)
+  const movePct = item?.observed.kind === 'live' ? quoteBoardMoveOf(item) : undefined
 
   return movePct !== undefined && movePct <= -INDEX_DROP_PCT ? { index, movePct } : undefined
 }
@@ -303,17 +293,17 @@ interface BookAgainstDrop {
   readonly stopsUnread: number
 }
 
-/** How many holdings are down in the session, how many sit at or through their plan's stop, and how
- *  many have a stop that could not be checked for want of a price. The notice states the last, so a
- *  stop that could not be read is never reported as one that held. A fund's lower level is a place to
- *  review, not a stop, so it is in none of the counts. */
+/** How many of the region's holdings are down in the session, how many sit at or through their
+ *  plan's stop, and how many have a stop that could not be checked for want of a price. The notice
+ *  states the last, so a stop that could not be read is never reported as one that held. A fund's
+ *  lower level is a place to review, not a stop, so it is in none of the counts. */
 async function readBookAgainstDrop(
   deps: HeldWatchDeps,
   input: IndexInput
 ): Promise<BookAgainstDrop> {
   const { now, signal } = input
   const stops = (await deps.reads.stopDistances({ now, signal })).filter(
-    (distance) => !distance.review
+    (distance) => !distance.review && isInRegion(deps, distance.instrument)
   )
   const standing = (wanted: ReturnType<typeof stopStandingOf>): number =>
     stops.filter((distance) => distance.plan === 'distance' && stopStandingOf(distance) === wanted)
@@ -344,22 +334,30 @@ async function countHoldingsDown(
   return down
 }
 
-/** Whether the notice was accepted. A refusal is logged; the caller keeps what was not said for a
- *  later pass. */
+/** Whether the notice was accepted. A refusal is logged on the first one until a send is accepted;
+ *  the caller keeps what was not said for a later pass. */
 async function sendNotice(
   deps: HeldWatchDeps,
   input: PassInput,
   payload: TradingNotice['payload']
 ): Promise<boolean> {
+  const { state } = input
   const outcome = await sendCaught(
     deps.sender,
     { target: input.target, locale: deps.locale, payload },
     input.signal
   )
 
-  if (outcome !== 'accepted') {
+  if (outcome === 'accepted') {
+    state.refusalLogged = false
+
+    return true
+  }
+
+  if (!state.refusalLogged) {
+    state.refusalLogged = true
     deps.logger.warn('trading.held_watch_undelivered', { kind: payload.kind, outcome })
   }
 
-  return outcome === 'accepted'
+  return false
 }

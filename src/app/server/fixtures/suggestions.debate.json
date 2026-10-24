@@ -6,19 +6,19 @@
   "evidenceThrough": "2026-10-05",
   "roles": [
     { "role": "bull-researcher", "summary": "Giá giữ nền tích luỹ và dòng tiền đang xác nhận." },
-    { "role": "bear-researcher", "summary": "Biên lợi nhuận quý gần nhất giảm so với cùng kỳ." },
+    { "role": "bear-researcher" },
     {
       "role": "portfolio-manager",
       "verdict": "duyệt",
       "summary": "Nền giá vững, rủi ro nằm ở biên lợi nhuận nên cần cắt lỗ chặt."
     },
     { "role": "trader", "verdict": "vào lệnh", "summary": "Mua khi giá giữ trên vùng nền." },
-    { "role": "risk-analyst", "verdict": "chấp nhận", "summary": "" }
+    { "role": "risk-analyst", "verdict": "chấp nhận" }
   ],
   "claims": [
-    { "id": "c1", "text": "Khối lượng tăng trên mức trung bình 20 phiên." },
-    { "id": "c2", "text": "Biên lợi nhuận quý 3 giảm hai điểm phần trăm." }
+    { "id": "bull-1", "text": "Khối lượng tăng trên mức trung bình 20 phiên." },
+    { "id": "bear-1", "text": "Biên lợi nhuận quý 3 giảm hai điểm phần trăm." }
   ],
-  "refutedIds": ["c2"],
+  "refutedIds": ["bear-1"],
   "models": ["anthropic/claude-sonnet-5"]
 }

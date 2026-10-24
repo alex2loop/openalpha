@@ -553,7 +553,8 @@
     "fields.id_fixed": "{field} cannot be changed once the agent exists.",
     "fields.price_event_incomplete": "A price event needs a ticker, a condition and a threshold.",
     "fields.level_not_price": "Only a price event takes a level.",
-    "watchlistNotLoaded": "I can't tell yet which of these names are real, because the market list isn't loaded. Run /refresh first, then add them again."
+    "watchlistNotLoaded": "I can't tell yet which of these names are real, because the market list isn't loaded. Run /refresh first, then add them again.",
+    "watchlistNamesInvalid": "I could not read one of those names, or there were too many at once. Write each as a ticker like FPT, or market:ticker like crypto:BTC."
   },
   "scheduler": {
     "eventPrompt": "This run started because {ticker} {what} at {time}: price {price}.",

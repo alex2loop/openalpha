@@ -6,25 +6,29 @@ import type {
   RoleOutput,
 } from '@/trading/features/suggestion/debate/types'
 import { formatErrForLog } from '@/core/security/credentials'
-import { isClaimBy } from '@/trading/features/suggestion/debate/claims'
+import { isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
 
 type RoleDraft = Omit<RoleOutput, 'ticker' | 'market'>
 
-/** Tells the listener what every role said, in the order the roles ran. A listener that throws is
- *  logged once for the debate and never stops the rest. */
+/** Tells the listener what every role said, in the order the roles ran. A listener that throws on one
+ *  role is logged once for the debate and the roles after it are still told. */
 export function reportRoleOutputs(
   context: DebateContext,
   result: DebateResult,
   refuted: ReadonlySet<string>
 ): void {
   const { instrument } = context.input.draft
+  let failureLogged = false
 
-  try {
-    for (const draft of toRoleDrafts(result, refuted)) {
+  for (const draft of toRoleDrafts(result, refuted)) {
+    try {
       context.deps.onRoleOutput({ ticker: instrument.ticker, market: instrument.market, ...draft })
+    } catch (err: unknown) {
+      if (!failureLogged) {
+        failureLogged = true
+        context.deps.logger.warn('trading.role_output_failed', { err: formatErrForLog(err) })
+      }
     }
-  } catch (err: unknown) {
-    context.deps.logger.warn('trading.role_output_failed', { err: formatErrForLog(err) })
   }
 }
 
@@ -75,8 +79,7 @@ interface Checked {
 }
 
 function argued(role: ArguingRole, source: ResearchCase, checked: Checked): RoleDraft {
-  const own = checked.result.claims.filter((claim) => isClaimBy(role, claim))
-  const unsupported = own.length > 0 && own.every((claim) => checked.refuted.has(claim.id))
+  const unsupported = isUnsupportedRole(role, checked.result.claims, checked.refuted)
 
   return {
     role,

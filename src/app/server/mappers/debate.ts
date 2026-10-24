@@ -13,7 +13,7 @@ export function toDebateWire(view: DebateView): DebateWire {
     roles: view.roles.map((role) => ({
       role: role.role,
       ...(role.verdict === undefined ? {} : { verdict: role.verdict }),
-      summary: scrubCredentials(role.summary),
+      ...(role.summary === undefined ? {} : { summary: scrubCredentials(role.summary) }),
     })),
     claims: view.claims.map((claim) => ({ id: claim.id, text: scrubCredentials(claim.text) })),
     refutedIds: [...view.refutedIds],

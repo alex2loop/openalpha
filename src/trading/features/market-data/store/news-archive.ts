@@ -68,7 +68,6 @@ interface ListInstrumentNewsOptions {
   readonly instruments: readonly InstrumentRef[]
   /** Inclusive: the stories archived from this instant on. */
   readonly sinceMs: number
-  readonly limit: number
   readonly signal: AbortSignal
 }
 
@@ -101,8 +100,8 @@ export interface NewsArchiveStore {
   /** Newest published first, of the stories archived from `fromMs` (inclusive) to `toMs`
    *  (exclusive): a story archived late still falls after the reader's last pass. */
   listArchived(options: ListNewsOptions): Promise<readonly ArchivedNewsItem[]>
-  /** Newest published first, of the stories archived since `sinceMs` for these instruments, matched
-   *  on market and ticker. */
+  /** The newest published story of each of these instruments archived since `sinceMs`, matched on
+   *  market and ticker, newest first. A name with no story since is absent. */
   listForInstruments(options: ListInstrumentNewsOptions): Promise<readonly InstrumentHeadline[]>
 }
 
@@ -189,18 +188,20 @@ async function listForInstruments(
   }
 
   // Placeholders are numbered in the order they appear, so a positional dialect binds them right.
+  // One story per name, the newest, picked here so a name never loses its story to a busier one.
   const p = deps.dialect.param
   const matches = options.instruments
     .map((_, index) => `(market = ${p(2 + index * 2)} AND ticker = ${p(3 + index * 2)})`)
     .join(' OR ')
   const rows = await deps.db.query<InstrumentNewsRow>(
-    'SELECT url, title, source_id, published_at, market, ticker FROM news_items ' +
-      `WHERE fetched_at >= ${p(1)} AND (${matches}) ` +
-      `ORDER BY published_at DESC, id DESC LIMIT ${p(2 + options.instruments.length * 2)}`,
+    'SELECT url, title, source_id, published_at, market, ticker FROM (' +
+      'SELECT url, title, source_id, published_at, market, ticker, ' +
+      'ROW_NUMBER() OVER (PARTITION BY market, ticker ORDER BY published_at DESC, id DESC) AS newest_rank ' +
+      `FROM news_items WHERE fetched_at >= ${p(1)} AND (${matches})` +
+      ') AS newest WHERE newest_rank = 1 ORDER BY published_at DESC, market, ticker',
     [
       options.sinceMs,
       ...options.instruments.flatMap((instrument) => [instrument.market, instrument.ticker]),
-      options.limit,
     ]
   )
 

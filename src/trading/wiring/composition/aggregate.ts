@@ -143,7 +143,6 @@ function buildHeldWatch(
     region: options.tradingConfig.defaultRegion,
     reads: {
       tradeableHoldingsAt: book.tradeableHoldingsAt,
-      overview: (request) => marketData.overview(request),
       quoteBoard: (request) => marketData.quoteBoard(request),
       stopDistances: (request) => alerts.stopDistances(request),
     },
