@@ -6,6 +6,7 @@ import { missingCredentials, resolveCredential } from '@/core/security/credentia
 import { marketRef, venueRef } from '@/trading/kernel/instrument'
 import { createOkxCatalog } from '@/trading/venues/okx/catalog'
 import { createOkxSpotAdapter } from '@/trading/venues/okx/spot'
+import { OKX_HOSTS } from '@/trading/venues/okx/transport'
 
 const OKX_MARKETS: readonly MarketRef[] = Object.freeze([marketRef('crypto')])
 
@@ -45,6 +46,7 @@ export function createOkxVenue(input: OkxVenueInput): Venue {
       markets: OKX_MARKETS,
       acceptsOrders: true,
       execution: { exit: 'attached', amend: true, fills: 'enumerable', balances: true },
+      apiHosts: OKX_HOSTS.map((url) => new URL(url).host),
     },
     adapter: createOkxSpotAdapter({ credentials, logger: input.logger, now: () => Date.now() }),
     catalog,

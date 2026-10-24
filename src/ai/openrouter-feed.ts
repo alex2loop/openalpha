@@ -86,6 +86,11 @@ function loadRawRows(logger: Logger): Promise<readonly unknown[]> {
   return inflight
 }
 
+/** The hosts the price and capability feed is read from. */
+export function listPricingHosts(): readonly string[] {
+  return FEED_HOSTS.map((url) => new URL(url).host)
+}
+
 async function fetchRawRows(logger: Logger): Promise<readonly unknown[]> {
   try {
     const text = await keylessGetWithSignal({

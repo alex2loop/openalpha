@@ -30,6 +30,7 @@ export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
 // ── Boot & composition ───────────────────────────────────────────────────────
 
 export type { LoadedSourceModule } from '@/trading/sources/plugin-module'
+export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
 export { loadPluginSourceModules } from '@/trading/sources/plugin-module'
@@ -37,6 +38,7 @@ export {
   createTradingRegistrationProvider,
   createTradingStoresProvider,
 } from '@/trading/wiring/composition/registration'
+export { listSourceHosts } from '@/trading/wiring/composition/source-hosts'
 export { unavailableSources } from '@/trading/wiring/composition/source-registry'
 export { auditVenueKeys } from '@/trading/wiring/composition/venue-keys'
 export { resolveTradingConfig, TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
@@ -88,8 +90,8 @@ export type {
   RebalancePlanResult,
   ValuedBook,
   ValuedPosition,
-  VenueChoice,
 } from '@/trading/features/portfolio/types'
+export type { VenueChoice } from '@/trading/features/portfolio/venues'
 export type {
   RoleOutput,
   RoleOutputListener,

@@ -39,7 +39,7 @@ export {
   toChatText,
   UPGRADE_COMMAND,
 } from '@/cli/update/notice'
-export { isCompiledBinary } from '@/cli/update/release'
+export { isCompiledBinary, UPDATE_CHECK_HOST } from '@/cli/update/release'
 export {
   isUpdateCheckEnabled,
   newerVersionOf,

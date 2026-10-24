@@ -34,7 +34,18 @@
     "restartDone": "The daemon restarted.",
     "agentDeleted": "Deleted agent {id}. I paused its {count} schedules; turn them back on when you need them.",
     "digest.stopFired": "{ticker} broke its stop at {level} at {time}",
-    "digest.callClosed": "The {action} call on {ticker} from {day} closed: {result}"
+    "digest.callClosed": "The {action} call on {ticker} from {day} closed: {result}",
+    "outbound.sends.data": "tickers and date ranges, nothing of yours",
+    "outbound.sends.model": "your question and market data; never your quantities, cost or P&L",
+    "outbound.sends.channel": "the messages sent to you",
+    "outbound.sends.exchange": "orders you place and balance reads",
+    "outbound.sends.pricing": "nothing; it downloads model prices",
+    "outbound.sends.mcp": "whatever that tool is called with",
+    "outbound.sends.search": "search terms",
+    "outbound.sends.web": "the address of a page you or an agent asked to read",
+    "outbound.sends.update": "the running version number",
+    "outbound.sends.social": "what the agent posts and reads",
+    "outbound.sends.reachability": "nothing; it checks the network is up"
   },
   "footer": {
     "cost": "{cost}",

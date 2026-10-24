@@ -100,30 +100,41 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   return registry
 }
 
+type PluginRefusalReason = 'id_owned_by_builtin' | 'id_owned_by_plugin'
+
+interface PluginModuleSplit {
+  readonly usable: readonly LoadedSourceModule[]
+  readonly refused: readonly {
+    readonly module: LoadedSourceModule
+    readonly reason: PluginRefusalReason
+  }[]
+}
+
 /** A plugin claiming an id a built-in owns would inherit that provider's pinned origin, so those
- *  are dropped before their facts merge. */
-function usablePluginModules(options: SourceRegistryOptions): readonly LoadedSourceModule[] {
+ *  are dropped before their facts merge, and so are ids two plugins both claim. */
+export function splitPluginModules(modules: readonly LoadedSourceModule[]): PluginModuleSplit {
   const usable: LoadedSourceModule[] = []
-  const idCounts = pluginIdCounts(options.pluginModules)
+  const refused: { module: LoadedSourceModule; reason: PluginRefusalReason }[] = []
+  const idCounts = pluginIdCounts(modules)
 
-  for (const module of options.pluginModules) {
+  for (const module of modules) {
     if (BUILT_IN_SOURCE_IDS.has(module.manifest.id)) {
-      options.logger.warn('trading.plugin_source_skipped', {
-        plugin: module.pluginId,
-        reason: 'id_owned_by_builtin',
-      })
-      continue
+      refused.push({ module, reason: 'id_owned_by_builtin' })
+    } else if (idCounts.get(module.manifest.id) === 1) {
+      usable.push(module)
+    } else {
+      refused.push({ module, reason: 'id_owned_by_plugin' })
     }
+  }
 
-    if (idCounts.get(module.manifest.id) !== 1) {
-      options.logger.warn('trading.plugin_source_skipped', {
-        plugin: module.pluginId,
-        reason: 'id_owned_by_plugin',
-      })
-      continue
-    }
+  return { usable, refused }
+}
 
-    usable.push(module)
+function usablePluginModules(options: SourceRegistryOptions): readonly LoadedSourceModule[] {
+  const { usable, refused } = splitPluginModules(options.pluginModules)
+
+  for (const { module, reason } of refused) {
+    options.logger.warn('trading.plugin_source_skipped', { plugin: module.pluginId, reason })
   }
 
   return usable

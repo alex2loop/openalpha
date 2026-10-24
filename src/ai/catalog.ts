@@ -3,6 +3,7 @@ import { BRAND } from '@/core/brand'
 import { LLMError, type OperatorMessage } from '@/core/errors'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
 import { closestName } from '@/core/utils/text'
+import { hostOfUrl } from '@/core/utils/url'
 
 const OPENAI_CHAT = {
   transport: 'openai_chat',
@@ -223,6 +224,18 @@ const PROVIDER_BY_ID: ReadonlyMap<string, ProviderEntry> = new Map(
 
 export function findProviderById(id: string): ProviderEntry | undefined {
   return PROVIDER_BY_ID.get(id)
+}
+
+/** The host a model's calls go to: the entry's own `base_url`, else its provider's. Absent for the
+ *  client model, which answers in the connected MCP client, and for a provider whose endpoint is
+ *  account-specific and was not configured. */
+export function resolveModelHost(model: {
+  readonly provider: string
+  readonly baseUrl?: string
+}): string | undefined {
+  const base = model.baseUrl ?? findProviderById(model.provider)?.baseUrl
+
+  return base === undefined || base === '' ? undefined : hostOfUrl(base)
 }
 
 export function providerById(id: string): ProviderEntry {

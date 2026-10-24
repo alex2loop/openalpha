@@ -10,6 +10,7 @@ import type {
   DaySpend,
   LLMAttemptInput,
   LLMUsageTotals,
+  ModelRunCost,
   SpendBreakdownRow,
 } from '@/core/types/usage'
 import type { EpochRange } from '@/core/utils/time'
@@ -171,6 +172,9 @@ export interface LLMAttemptStore {
   /** Today's spend of every billing agent that has any, in one read. An agent absent from the map
    *  has spent nothing. */
   totalsForBillingAgents(nowMs: number): Promise<ReadonlyMap<AgentId, number>>
+  /** The mean cost of one run on each named model over its last `sample` runs, a run being the
+   *  attempts that share a `run_id`. A model with no attempts is absent. */
+  perRunCostByModel(models: readonly string[], sample: number): Promise<readonly ModelRunCost[]>
   /** Which of these attempts are already durable — a write whose acknowledgement was lost is. */
   recordedIds(ids: readonly LLMAttemptId[]): Promise<ReadonlySet<LLMAttemptId>>
 }

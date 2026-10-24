@@ -115,6 +115,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'utils/retry',
   'utils/text',
   'utils/time',
+  'utils/url',
   'utils/version',
 ])
 // engine/research is a bounded context the module gate cannot see: it lives inside `engine`, so the

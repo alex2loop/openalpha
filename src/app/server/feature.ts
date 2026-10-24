@@ -16,9 +16,11 @@ import { JOB_ROUTES } from '@/app/server/routes/jobs'
 import { MARKET_ROUTES } from '@/app/server/routes/market'
 import { MARKET_EXTRA_ROUTES } from '@/app/server/routes/market-extra'
 import { MCP_ROUTES } from '@/app/server/routes/mcp'
+import { MODEL_ROUTES } from '@/app/server/routes/models'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
 import { NOTICE_ROUTES } from '@/app/server/routes/notices'
 import { ORDER_ROUTES } from '@/app/server/routes/orders'
+import { OUTBOUND_ROUTES } from '@/app/server/routes/outbound'
 import { RESTART_ROUTES } from '@/app/server/routes/restart'
 import { RUN_ROUTES } from '@/app/server/routes/runs'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
@@ -50,9 +52,11 @@ const ROUTES = [
   ...DIGEST_ROUTES,
   ...MARKET_ROUTES,
   ...MARKET_EXTRA_ROUTES,
+  ...MODEL_ROUTES,
   ...MONEY_ROUTES,
   ...NOTICE_ROUTES,
   ...ORDER_ROUTES,
+  ...OUTBOUND_ROUTES,
   ...TASK_ROUTES,
   ...JOB_ROUTES,
 ] as const

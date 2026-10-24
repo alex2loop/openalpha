@@ -14,6 +14,7 @@ import type {
   UpdateLedgerOptions,
 } from '@/trading/features/portfolio/options'
 import type { RelativePortfolioView } from '@/trading/features/portfolio/relative-view'
+import type { VenueChoice } from '@/trading/features/portfolio/venues'
 import type {
   Caveat,
   CaveatDetail,
@@ -373,12 +374,6 @@ export interface PositionChange {
   readonly units?: number
   readonly reason: ChangeReason
   readonly caveats: readonly Caveat[]
-}
-
-/** A venue and the markets it can hold. */
-export interface VenueChoice {
-  readonly venue: VenueRef
-  readonly markets: readonly MarketRef[]
 }
 
 /** The valued book and, by instrument key, the smallest order any venue holding it accepts. */

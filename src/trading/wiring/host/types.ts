@@ -21,7 +21,7 @@ import type { VenueReconciliation } from '@/trading/features/portfolio/folds/rec
 import type { NavHistory, NavWindow } from '@/trading/features/portfolio/nav/types'
 import type { ReconcileSentences } from '@/trading/features/portfolio/render/reconcile'
 import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
-import type { VenueChoice } from '@/trading/features/portfolio/types'
+import type { VenueChoice } from '@/trading/features/portfolio/venues'
 import type { SuggestionCard } from '@/trading/features/suggestion/render/card'
 import type { TrackRecordReflection } from '@/trading/features/suggestion/suggestion'
 import type {

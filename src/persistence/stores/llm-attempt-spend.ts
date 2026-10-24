@@ -1,6 +1,6 @@
 import type { AgentId } from '@/core/ids'
 import type { Dialect, Storage } from '@/core/types/storage'
-import type { CostRange, DaySpend, SpendBreakdownRow } from '@/core/types/usage'
+import type { CostRange, DaySpend, ModelRunCost, SpendBreakdownRow } from '@/core/types/usage'
 import type { EpochRange } from '@/core/utils/time'
 import type { LLMAttemptStore } from '@/persistence/types'
 import { StorageError } from '@/core/errors'
@@ -14,6 +14,7 @@ import {
   monthBoundsInZone,
 } from '@/core/utils/time'
 import { fromNanoUsd } from '@/persistence/money'
+import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
 
 const ANSWERED_OUTCOME = 'success'
 const BILLED_SEARCH_KIND = 'external'
@@ -33,6 +34,7 @@ type SpendReads = Pick<
   | 'breakdownRange'
   | 'totalForBillingAgent'
   | 'totalsForBillingAgents'
+  | 'perRunCostByModel'
 >
 
 interface SpendBreakdownDbRow {
@@ -75,6 +77,7 @@ export function createSpendReads(db: Storage, dialect: Dialect, timeZone: string
       sumForAgent(deps, id, dayBoundsInZone(nowMs, deps.timeZone)),
     totalsForBillingAgents: async (nowMs) =>
       sumByAgent(deps, dayBoundsInZone(nowMs, deps.timeZone)),
+    perRunCostByModel: async (models, sample) => perRunCostOf(deps, models, sample),
   }
 }
 
@@ -98,6 +101,34 @@ function rangeBounds(deps: SpendDeps, range: CostRange): EpochRange {
   }
 
   return bounds
+}
+
+// One bind is the sample size, so a chunk holds one fewer model name than the ceiling.
+async function perRunCostOf(
+  deps: SpendDeps,
+  models: readonly string[],
+  sample: number
+): Promise<readonly ModelRunCost[]> {
+  const costs: ModelRunCost[] = []
+
+  for (let at = 0; at < models.length; at += SQL_MAX_BIND_PARAMS - 1) {
+    const chunk = models.slice(at, at + SQL_MAX_BIND_PARAMS - 1)
+    const rows = await deps.db.query<{
+      readonly provider: string
+      readonly model: string
+      readonly mean_cost: number
+    }>(deps.sql.perRunCost(chunk.length), [...chunk, sample])
+
+    for (const row of rows) {
+      costs.push({
+        provider: row.provider,
+        model: row.model,
+        perRunUsd: fromNanoUsd(row.mean_cost),
+      })
+    }
+  }
+
+  return costs
 }
 
 async function sumBetween(deps: SpendDeps, bounds: EpochRange): Promise<number> {
@@ -213,6 +244,7 @@ function buildSpendSql(d: Dialect) {
       `SELECT settled_at / ${DAY_BUCKET_MS} AS bucket, ` +
       `CAST(SUM(cost_nano_usd) AS BIGINT) AS total FROM llm_attempts ` +
       `WHERE settled_at >= ${d.param(1)} AND settled_at < ${d.param(2)} GROUP BY 1`,
+    perRunCost: (count: number) => buildPerRunCostSql(d, count),
     // Every SUM and the AVG are cast to BIGINT: postgres widens them to NUMERIC, which pg returns
     // as a string, while its INT8 parser is what makes a row read the same on both engines.
     breakdownBetween:
@@ -231,4 +263,18 @@ function buildSpendSql(d: Dialect) {
       `GROUP BY ${BILLING_AGENT_SQL}, agent_id, provider, model ` +
       `ORDER BY cost_total DESC, ${BILLING_AGENT_SQL}, agent_id, provider, model`,
   }
+}
+
+// A run's cost on a model is the sum of its attempts on it, ranked newest run first per model so the
+// window is the model's own last runs, never a share of someone else's.
+function buildPerRunCostSql(d: Dialect, count: number): string {
+  return (
+    `WITH per_run AS (SELECT provider, model, run_id, ` +
+    `CAST(SUM(cost_nano_usd) AS BIGINT) AS cost, MAX(settled_at) AS last_at ` +
+    `FROM llm_attempts WHERE model IN (${d.paramList(count)}) GROUP BY provider, model, run_id), ` +
+    `ranked AS (SELECT provider, model, cost, ROW_NUMBER() OVER ` +
+    `(PARTITION BY provider, model ORDER BY last_at DESC, run_id) AS recency FROM per_run) ` +
+    `SELECT provider, model, CAST(AVG(cost) AS BIGINT) AS mean_cost FROM ranked ` +
+    `WHERE recency <= ${d.param(count + 1)} GROUP BY provider, model`
+  )
 }

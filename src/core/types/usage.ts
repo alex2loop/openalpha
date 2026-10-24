@@ -91,6 +91,13 @@ export interface DaySpend {
   readonly costUsd: number
 }
 
+/** What one run costs on one model: the mean over that model's most recent runs. */
+export interface ModelRunCost {
+  readonly provider: string
+  readonly model: string
+  readonly perRunUsd: number
+}
+
 /** One agent's spend on one model over a window. */
 export interface SpendBreakdownRow {
   readonly agentId: AgentId

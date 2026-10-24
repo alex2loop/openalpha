@@ -34,7 +34,18 @@
     "restartDone": "Đã khởi động lại daemon.",
     "agentDeleted": "Đã xóa agent {id}. Mình tạm dừng {count} lịch chạy của nó, khi cần bạn bật lại nhé.",
     "digest.stopFired": "{ticker} thủng mức cắt lỗ {level} lúc {time}",
-    "digest.callClosed": "Đề xuất {action} {ticker} hôm {day} đã đóng: {result}"
+    "digest.callClosed": "Đề xuất {action} {ticker} hôm {day} đã đóng: {result}",
+    "outbound.sends.data": "mã cổ phiếu và khoảng thời gian, không có số liệu của bạn",
+    "outbound.sends.model": "nội dung câu hỏi và dữ liệu thị trường; không bao giờ có khối lượng, giá vốn hay lãi lỗ của bạn",
+    "outbound.sends.channel": "tin nhắn gửi cho bạn",
+    "outbound.sends.exchange": "lệnh bạn đặt và lệnh đọc số dư",
+    "outbound.sends.pricing": "không gửi gì, chỉ tải bảng giá model",
+    "outbound.sends.mcp": "những gì công cụ đó được gọi với",
+    "outbound.sends.search": "từ khóa tìm kiếm",
+    "outbound.sends.web": "địa chỉ trang bạn hoặc agent yêu cầu đọc",
+    "outbound.sends.update": "số phiên bản đang chạy",
+    "outbound.sends.social": "bài agent đăng và đọc",
+    "outbound.sends.reachability": "không gửi gì, chỉ kiểm tra có mạng"
   },
   "footer": {
     "cost": "{cost}",

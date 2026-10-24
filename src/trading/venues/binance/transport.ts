@@ -87,6 +87,11 @@ export function binancePublicRequest<T>(
   })
 }
 
+/** The one host a key of this mode sends to. */
+export function binanceHostOf(simulated: boolean): string {
+  return simulated ? DEMO_HOST : LIVE_HOST
+}
+
 function transportFor(simulated: boolean): VenueTransport {
   return simulated ? DEMO_TRANSPORT : LIVE_TRANSPORT
 }

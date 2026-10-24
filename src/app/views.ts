@@ -1,4 +1,5 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { ChannelDefinition } from '@/channels/api'
 import type {
   ChannelHealth,
   ConfigSummaryReader,
@@ -68,14 +69,17 @@ function toChannelHealth(app: App, delivery: DeliveryHub): readonly ChannelHealt
   }))
 }
 
-// The predicate the daemon starts channels from.
 function configuredChannels(app: App): readonly ChannelId[] {
+  return enabledChannels(app).map((definition) => definition.id)
+}
+
+// The predicate the daemon starts channels from.
+export function enabledChannels(app: App): readonly ChannelDefinition[] {
   return app
     .resolve('channels')
     .filter((definition) =>
       definition.isEnabled(definition.resolveConfig(app.config.channels[definition.id]))
     )
-    .map((definition) => definition.id)
 }
 
 export function toHealthCode(

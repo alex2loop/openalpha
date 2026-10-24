@@ -3,7 +3,7 @@ import { runApiKeyProvider } from '@/tools/web/search/backends/api-key-provider'
 import { toDomainQuery } from '@/tools/web/search/domains'
 import { toFreeSearchResponse, toSearchResults } from '@/tools/web/search/result-parser'
 
-const SERPER_ENDPOINT = 'https://google.serper.dev/search'
+export const SERPER_ENDPOINT = 'https://google.serper.dev/search'
 const SERPER_HEADER = 'X-API-KEY'
 
 const RECENCY_TO_SERPER = {

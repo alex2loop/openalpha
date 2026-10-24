@@ -174,7 +174,6 @@
     "src/trading/sources/transport/health.ts#createSourceHealthLog": 48,
     "src/trading/wiring/catalog/tools.ts#createTradingTools": 46,
     "src/trading/wiring/composition/registration.ts#buildTrading": 45,
-    "src/trading/wiring/composition/registration.ts#createTradingRegistrationProvider": 48,
     "src/trading/wiring/composition/services.ts#createDomainServices": 52,
     "src/trading/wiring/composition/source-registry.ts#createConfiguredSourceRegistry": 44,
     "src/trading/wiring/composition/themes.ts#buildThemeService": 41,

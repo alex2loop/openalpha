@@ -6,6 +6,7 @@ import {
 } from '@/channels/schema'
 
 import { createZaloAdapter } from './adapter'
+import { ZALO_API_BASE } from './client'
 import {
   isZaloEnabled,
   parseZaloConfig,
@@ -17,6 +18,7 @@ import {
 export const zaloDefinition: ChannelDefinition<ResolvedZaloConfig> = {
   id: ZALO_CHANNEL_ID,
   safeConfigOverrides: SAFE_DELIVERY_OVERRIDE_FIELDS,
+  apiHosts: [new URL(ZALO_API_BASE).host],
   resolveConfig: parseZaloConfig,
   isEnabled: isZaloEnabled,
 

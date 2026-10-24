@@ -261,6 +261,9 @@ export interface ChannelDefinition<T extends ChannelDeliveryConfig = ChannelDeli
   readonly id: ChannelId
   // Declarative disk plugins may change only these config fields; absence denies every override.
   readonly safeConfigOverrides?: readonly string[]
+  /** The hosts its adapter sends to, which `/v1/outbound` lists for a started channel. Absent when
+   *  the transport's hosts are not its own to name. */
+  readonly apiHosts?: readonly string[]
   // Parses this channel's slice of the untyped `[channels]` config bag.
   resolveConfig(raw: unknown): T
   isEnabled(config: T): boolean

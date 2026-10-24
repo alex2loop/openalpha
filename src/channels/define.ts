@@ -8,6 +8,7 @@ import { collectUnknownKeys, formatKeys, isPlainRecord } from '@/core/utils/coll
 const CHANNEL_DEFINITION_KEYS: ReadonlySet<string> = new Set<string>([
   'id',
   'safeConfigOverrides',
+  'apiHosts',
   'resolveConfig',
   'isEnabled',
   'admission',

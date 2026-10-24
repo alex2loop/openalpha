@@ -28,7 +28,7 @@ import { operatorMessageOf } from '@/core/errors'
 import { bindLocale } from '@/i18n'
 import { MINIMUM_TRACK_RECORD_SAMPLE, tradingDay } from '@/trading/api'
 
-const COST_ESTIMATE_SAMPLE = 10
+export const COST_ESTIMATE_SAMPLE = 10
 const COST_ESTIMATE_MIN_RUNS = 3
 
 // The only unauthenticated route. It answers 'ready' unconditionally: the api starts as the last

@@ -41,7 +41,6 @@ import { createGoldMarket } from '@/trading/markets/gold/market'
 import { createVnGoldMarket } from '@/trading/markets/gold-vn/market'
 import { macroCache } from '@/trading/markets/macro-cache'
 import { createMarketRegistry } from '@/trading/markets/registry'
-import { SURFACE_LIMITS } from '@/trading/surface-limits'
 import { createVenueListings } from '@/trading/venues/listings'
 import { buildTradingAgents, personaVersions } from '@/trading/wiring/catalog/agents'
 import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
@@ -49,6 +48,7 @@ import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
+import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
 import { buildRefreshCoordinator, buildRefreshTick } from '@/trading/wiring/composition/refresh'
@@ -61,15 +61,7 @@ import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/sou
 import { createTradingStores } from '@/trading/wiring/composition/stores'
 import { buildThemeService } from '@/trading/wiring/composition/themes'
 import { buildVenues } from '@/trading/wiring/composition/venues'
-import { createTradingHost } from '@/trading/wiring/host/host'
 import { createTradingHooks } from '@/trading/wiring/profile-context'
-
-/** How long one host-mediated request may run before its scope aborts. A ceiling on a surface
- *  call, not an operator preference: a stuck upstream must not hold an HTTP connection open. */
-const HOST_REQUEST_TIMEOUT_MS = 30_000
-/** The same ceiling for a screen, a rebalance or an overview: each can refresh a cold market first,
- *  which the boot refresh budgets a minute for. */
-const HOST_SLOW_REQUEST_TIMEOUT_MS = 120_000
 
 /** Only what the container cannot supply. Everything else — the logger, the runner, the locale,
  *  the budget policy — is resolved from `App` inside the lazy factory, so nothing here duplicates
@@ -180,19 +172,7 @@ export function createTradingRegistrationProvider(
         return built.services
       })
 
-      // The one trading surface the server sees. Bound here because it is derived purely from the
-      // aggregate above; the operator identity and shutdown signal come from the container.
-      bind('tradingHost', (app) =>
-        createTradingHost({
-          limits: SURFACE_LIMITS,
-          services: app.resolve('tradingServices'),
-          defaultLocale: app.config.locale.language,
-          baseCurrency: options.tradingConfig.baseCurrency,
-          shutdownSignal: app.signal,
-          requestTimeoutMs: HOST_REQUEST_TIMEOUT_MS,
-          slowRequestTimeoutMs: HOST_SLOW_REQUEST_TIMEOUT_MS,
-        })
-      )
+      bindHostSeams(bind, options)
 
       extend('tools', (current, app) =>
         mergeUniqueByKey({

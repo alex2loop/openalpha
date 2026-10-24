@@ -20,6 +20,7 @@ cli:Needs
 cli:PendingUpgrade
 cli:PreBootOptions
 cli:ReleaseStatus
+cli:UPDATE_CHECK_HOST
 cli:UPGRADE_COMMAND
 cli:UpdateChat
 cli:UpdateState
@@ -128,6 +129,7 @@ core/utils/message
 core/utils/retry
 core/utils/text
 core/utils/time
+core/utils/url
 core/utils/version
 index:AfterLLMHook
 index:AfterRunHook
