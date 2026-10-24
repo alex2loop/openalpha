@@ -360,6 +360,8 @@ Khi daemon dừng, API ngừng nhận kết nối và yêu cầu trước tiên,
 cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi `unavailable`,
 lượt chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
 
+Ứng dụng cũng khởi động lại được một daemon đã bật bằng `--background`: chọn khởi động lại khi không còn gì đang chạy (chờ tối đa 2 phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Daemon dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng chờ thì bị ngắt; ứng dụng báo các yêu cầu phê duyệt đó trước. Khi daemon chạy lại, chuông hiện "Đã khởi động lại daemon." và không có gì gửi tới chat. Daemon chạy trong cửa sổ terminal hoặc do một dịch vụ quản lý thì ứng dụng không khởi động lại thay bạn được: dừng bằng Ctrl+C hoặc trình quản lý dịch vụ rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay daemon đang dừng, thì yêu cầu mới bị từ chối.
+
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 
 Xem thêm [an toàn và phê duyệt](an-toan.md), [ngân sách](ngan-sach.md), [giao dịch](giao-dich.md),

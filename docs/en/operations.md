@@ -368,6 +368,8 @@ When the daemon stops, the API stops accepting connections and requests first, b
 requests already running finish. A chat or command sent on an open stream is answered with an
 `unavailable` error, a run already going settles in the drain window, and the streams close after it.
 
+The app can also restart a daemon that was started with `--background`: choose to restart once nothing is working (it waits up to 2 minutes, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the drain window is cut off, and the app warns about the approvals first. When the daemon is back, the bell shows "The daemon restarted." and nothing goes to a chat. A daemon running in a terminal or under a service cannot be restarted from the app: stop it with Ctrl+C or the service manager and start it again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
+
 Internals: [dev/operations.md](dev/operations.md).
 
 See also [safety and approvals](safety.md), [budgets](budgets.md), [trading](trading.md), and the
