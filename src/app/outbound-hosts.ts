@@ -1,7 +1,7 @@
 import type { OutboundHostWire, OutboundPurpose } from '@/app/server/wire/outbound'
 import type { App } from '@/core/container'
 import type { MessageKey } from '@/i18n'
-import { listPricingHosts, resolveModelHost } from '@/ai/api'
+import { listAuthHosts, listPricingHosts, resolveModelHost } from '@/ai/api'
 import { enabledChannels } from '@/app/views'
 import { UPDATE_CHECK_HOST } from '@/cli/api'
 import { hostOfUrl } from '@/core/utils/url'
@@ -78,6 +78,9 @@ function configHosts(app: App): readonly FoundHost[] {
 
   return [
     ...(client ? [] : config.models.flatMap((model) => asHost('model', resolveModelHost(model)))),
+    ...(client
+      ? []
+      : listAuthHosts(config.models).map((host) => ({ host, purpose: 'model' as const }))),
     ...(client ? [] : listPricingHosts().map((host) => ({ host, purpose: 'pricing' as const }))),
     ...enabledChannels(app).flatMap((channel) =>
       (channel.apiHosts ?? []).map((host) => ({ host, purpose: 'channel' as const }))

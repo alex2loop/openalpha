@@ -8,11 +8,15 @@ export interface WatchlistUpdateBody {
 }
 
 /** What changed. The two steps are separate saves, not one transaction: an `add` that names
- *  something nothing matches (or two markets claim) saves none of its names, reports each such name
- *  in `unknown`, and still leaves the `remove` applied. A name already listed, or never listed,
- *  changes nothing and is in neither list. */
+ *  something nothing matches (`unknown`) or two markets claim (`ambiguous`, to be written
+ *  `market:ticker`) saves none of its names and still leaves the `remove` applied. When the refusal
+ *  names no name (the market list is not loaded yet), every requested name is in `unknown` and
+ *  `message` says why, in the daemon's language. A name already listed, or never listed, changes
+ *  nothing and is in no list. */
 export interface WatchlistUpdateResponse {
   readonly added: readonly InstrumentRefWire[]
   readonly removed: readonly InstrumentRefWire[]
   readonly unknown: readonly string[]
+  readonly ambiguous: readonly string[]
+  readonly message?: string
 }

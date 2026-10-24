@@ -500,7 +500,8 @@
     "fields.invalid_union": "{field} is not valid.",
     "fields.custom": "{field} is not valid; check it again.",
     "fields.too_small_string": "{field} needs at least {minimum} characters.",
-    "fields.unrecognized_keys": "Unexpected fields: {keys}."
+    "fields.unrecognized_keys": "Unexpected fields: {keys}.",
+    "watchlistNotLoaded": "I can't tell yet which of these names are real, because the market list isn't loaded. Run /refresh first, then add them again."
   },
   "scheduler": {
     "eventPrompt": "This run started because {ticker} {what} at {time}: price {price}.",
@@ -3964,7 +3965,8 @@
     "render.ledger.label.currency": "Currency",
     "render.ledger.label.quantityDelta": "Quantity change",
     "render.ledger.label.operatorFxRate": "Exchange rate",
-    "render.ledger.label.fxRateConfirmed": "Rate confirmation"
+    "render.ledger.label.fxRateConfirmed": "Rate confirmation",
+    "render.ledger.label.entry": "This entry"
   },
   "social": {
     "fetchFailed": "Couldn't reach {url}. Check the address and try again.",

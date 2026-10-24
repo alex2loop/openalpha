@@ -48,7 +48,7 @@ export async function listSessionsByChannels(
     ...(query.channels === undefined
       ? []
       : [`s.channel IN (${query.channels.map(bind).join(', ')})`]),
-    ...(query.before === undefined ? [] : [`s.last_activity_at < ${bind(query.before)}`]),
+    ...(query.before === undefined ? [] : [toBeforeCondition(query.before, query.beforeId, bind)]),
     ...(query.query === undefined
       ? []
       : [
@@ -58,19 +58,38 @@ export async function listSessionsByChannels(
         ]),
   ]
   const where = conditions.length === 0 ? '' : `WHERE ${conditions.join(' AND ')} `
+  // The page is cut first, so the correlated reads below run on its rows alone.
   const sql =
-    `SELECT s.id, s.agent_id, s.channel, s.chat_id, s.started_at, s.last_activity_at, ` +
-    `(SELECT COUNT(*) FROM session_messages m WHERE m.session_id = s.id ` +
+    `SELECT p.id, p.agent_id, p.channel, p.chat_id, p.started_at, p.last_activity_at, ` +
+    `(SELECT COUNT(*) FROM session_messages m WHERE m.session_id = p.id ` +
     `AND m.role IN ${DISPLAYED_ROLES}) AS message_count, ` +
-    `(SELECT m.content FROM session_messages m WHERE m.session_id = s.id ` +
+    `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
     `AND m.role = 'user' ORDER BY m.idx ASC LIMIT 1) AS first_user, ` +
-    `(SELECT m.content FROM session_messages m WHERE m.session_id = s.id ` +
+    `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
     `AND m.role = 'assistant' ORDER BY m.idx DESC LIMIT 1) AS last_assistant ` +
+    `FROM (SELECT s.id, s.agent_id, s.channel, s.chat_id, s.started_at, s.last_activity_at ` +
     `FROM sessions s ${where}` +
-    `ORDER BY s.last_activity_at DESC, s.id DESC LIMIT ${bind(query.limit)}`
+    `ORDER BY s.last_activity_at DESC, s.id DESC LIMIT ${bind(query.limit)}) p ` +
+    `ORDER BY p.last_activity_at DESC, p.id DESC`
   const rows = await deps.db.query<ListingRow>(sql, params)
 
   return rows.map(toSessionListing)
+}
+
+/** Strictly older, and with a cursor id also the sessions of that same instant that sort after it. */
+function toBeforeCondition(
+  before: number,
+  beforeId: string | undefined,
+  bind: (value: string | number) => string
+): string {
+  if (beforeId === undefined) {
+    return `s.last_activity_at < ${bind(before)}`
+  }
+
+  return (
+    `(s.last_activity_at < ${bind(before)} OR ` +
+    `(s.last_activity_at = ${bind(before)} AND s.id < ${bind(beforeId)}))`
+  )
 }
 
 function toSessionListing(row: ListingRow): SessionListing {

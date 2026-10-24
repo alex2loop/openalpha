@@ -24,7 +24,9 @@ async function toTiers(app: App): Promise<ModelsResponse['tiers']> {
   const pricing = app.resolve('pricing')
   const entries = Object.entries(app.config.modelTiers)
   const models = [...new Set(entries.flatMap(([, tier]) => tier.map((entry) => entry.model)))]
-  const costs = await app.resolve('llmAttemptStore').perRunCostByModel(models, COST_ESTIMATE_SAMPLE)
+  const costs = await app
+    .resolve('llmAttemptStore')
+    .perRunCostByModel(models, COST_ESTIMATE_SAMPLE, Date.now())
   const perRun = new Map(costs.map((cost) => [`${cost.provider}|${cost.model}`, cost.perRunUsd]))
 
   return entries.map(([tier, tierModels]) => ({

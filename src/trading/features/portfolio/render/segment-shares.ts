@@ -1,7 +1,10 @@
 import type { SizedValuedBook, ValuedBook } from '@/trading/features/portfolio/types'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
-import { segmentEntries } from '@/trading/features/portfolio/folds/allocation'
+import {
+  currentSegmentWeights,
+  segmentEntries,
+} from '@/trading/features/portfolio/folds/allocation'
 import { apportion, FRACTION_QUANTUM } from '@/trading/render/number'
 
 /** One segment against the policy it is held to, as fractions of NAV rounded as the chat prints
@@ -32,23 +35,24 @@ export function apportionedSegmentWeights(book: ValuedBook): ReadonlyMap<Portfol
   )
 }
 
-/** A segment at zero held and zero wanted is dropped, as `/rebalance` drops it. Targets are
- *  rounded as the set `/rebalance` prints; a disabled segment's target is zero, which never moves
- *  another's share. */
+/** The rows `/rebalance` prints, rounded as it rounds them: a segment at zero held and zero wanted
+ *  is dropped first, then the targets are apportioned over what is left in the segment order its
+ *  table uses (by name). A disabled segment's target is zero and moves nothing. */
 export function toSegmentShares(book: ValuedBook, profile: UserProfile): readonly SegmentShare[] {
   const weights = apportionedSegmentWeights(book)
-  const targets = segmentEntries(profile.segmentTargets).toSorted(([left], [right]) =>
-    left.localeCompare(right)
-  )
-  const apportioned = apportion(
-    targets.map(([, target]) => target),
+  const held = currentSegmentWeights(book)
+  const rows = segmentEntries(profile.segmentTargets)
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .filter(([segment, target]) => target !== 0 || (held.get(segment) ?? 0) !== 0)
+  const targets = apportion(
+    rows.map(([, target]) => target),
     FRACTION_QUANTUM
   )
 
-  return targets.flatMap(([segment, rawTarget], index) => {
-    const target = apportioned[index] ?? rawTarget
+  return rows.map(([segment, rawTarget], index) => {
+    const target = targets[index] ?? rawTarget
     const weight = weights.get(segment) ?? 0
 
-    return target === 0 && weight === 0 ? [] : [{ segment, weight, target, gap: weight - target }]
+    return { segment, weight, target, gap: weight - target }
   })
 }

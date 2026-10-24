@@ -21,5 +21,6 @@
       "title": "Tóm tắt thị trường sáng nay"
     }
   ],
-  "nextBefore": null
+  "nextBefore": null,
+  "nextBeforeId": null
 }

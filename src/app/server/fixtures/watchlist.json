@@ -11,5 +11,6 @@
       "ticker": "VNM"
     }
   ],
-  "unknown": ["ZZZZ"]
+  "unknown": ["ZZZZ"],
+  "ambiguous": ["UNI"]
 }

@@ -500,7 +500,8 @@
     "fields.invalid_union": "{field} chưa hợp lệ.",
     "fields.custom": "{field} chưa hợp lệ, bạn kiểm tra lại nhé.",
     "fields.too_small_string": "{field} cần ít nhất {minimum} ký tự.",
-    "fields.unrecognized_keys": "Có trường không dùng tới: {keys}."
+    "fields.unrecognized_keys": "Có trường không dùng tới: {keys}.",
+    "watchlistNotLoaded": "Mình chưa kiểm tra được các mã này vì danh sách thị trường chưa được nạp. Bạn chạy /refresh trước rồi thêm lại nhé."
   },
   "scheduler": {
     "eventPrompt": "Việc này chạy vì {ticker} {what} lúc {time}: giá {price}.",
@@ -3964,7 +3965,8 @@
     "render.ledger.label.currency": "Tiền tệ",
     "render.ledger.label.quantityDelta": "Thay đổi khối lượng",
     "render.ledger.label.operatorFxRate": "Tỷ giá",
-    "render.ledger.label.fxRateConfirmed": "Xác nhận tỷ giá"
+    "render.ledger.label.fxRateConfirmed": "Xác nhận tỷ giá",
+    "render.ledger.label.entry": "Giao dịch này"
   },
   "social": {
     "fetchFailed": "Không kết nối được {url}. Kiểm tra lại địa chỉ rồi thử lại.",

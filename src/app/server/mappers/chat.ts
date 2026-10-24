@@ -18,9 +18,12 @@ export function toChatSessionsWire(
   listings: readonly SessionListing[],
   limit: number
 ): ChatSessionsResponse {
+  const last = listings.length < limit ? undefined : listings.at(-1)
+
   return {
     sessions: listings.map(toChatSessionWire),
-    nextBefore: listings.length < limit ? null : (listings.at(-1)?.lastActivityAt ?? null),
+    nextBefore: last?.lastActivityAt ?? null,
+    nextBeforeId: last?.id ?? null,
   }
 }
 

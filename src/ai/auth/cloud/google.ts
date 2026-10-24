@@ -8,7 +8,7 @@ import { LLMError } from '@/core/errors'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
 const ISSUER = 'Google'
-const TOKEN_HOST = 'https://oauth2.googleapis.com'
+export const GOOGLE_TOKEN_HOST = 'https://oauth2.googleapis.com'
 const TOKEN_PATH = '/token'
 const SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 const ASSERTION_LIFETIME_S = 3600
@@ -22,7 +22,7 @@ export async function fetchGoogleToken(credentialsPath: string): Promise<AccessT
 
   return await requestAccessToken({
     issuer: ISSUER,
-    host: TOKEN_HOST,
+    host: GOOGLE_TOKEN_HOST,
     path: TOKEN_PATH,
     form: toGrant(key),
   })
@@ -84,7 +84,7 @@ function signAssertion(key: Record<string, unknown>): string {
   const claims = toSegment({
     iss: email,
     scope: SCOPE,
-    aud: `${TOKEN_HOST}${TOKEN_PATH}`,
+    aud: `${GOOGLE_TOKEN_HOST}${TOKEN_PATH}`,
     iat: issuedAt,
     exp: issuedAt + ASSERTION_LIFETIME_S,
   })

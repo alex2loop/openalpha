@@ -6,6 +6,11 @@
       "sends": "nội dung câu hỏi và dữ liệu thị trường; không bao giờ có khối lượng, giá vốn hay lãi lỗ của bạn"
     },
     {
+      "host": "auth.openai.com",
+      "purpose": "model",
+      "sends": "nội dung câu hỏi và dữ liệu thị trường; không bao giờ có khối lượng, giá vốn hay lãi lỗ của bạn"
+    },
+    {
       "host": "api.binance.com",
       "purpose": "exchange",
       "sends": "lệnh bạn đặt và lệnh đọc số dư"

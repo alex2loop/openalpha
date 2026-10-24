@@ -123,12 +123,13 @@ interface ChatSessionWire {
   readonly lastReply?: string
 }
 
-/** GET /v1/chat/sessions?channel&query&before&limit — newest activity first. `channel` repeats to
- *  name several and defaults to all. `query` (at least two characters, any case) keeps the sessions
- *  with a message containing it, which may match inside a stored tool call too. `before` is the
- *  `nextBefore` of the page above (a `lastActivityAt`, strictly older); sessions sharing the exact
- *  millisecond across a page edge can be skipped. `nextBefore` is null on the last page. */
+/** GET /v1/chat/sessions?channel&query&before&beforeId&limit — newest activity first. `channel`
+ *  repeats to name several and defaults to all. `query` (at least two characters, any case) keeps the
+ *  sessions with a message containing it, which may match inside a stored tool call too. The next
+ *  page is `before=<nextBefore>&beforeId=<nextBeforeId>` (both null on the last page); `before`
+ *  alone takes only sessions strictly older. */
 export interface ChatSessionsResponse {
   readonly sessions: readonly ChatSessionWire[]
   readonly nextBefore: number | null
+  readonly nextBeforeId: string | null
 }

@@ -15,6 +15,7 @@ import { toChatSessionsWire } from '@/app/server/mappers/chat'
 import { localeOf, parseEpochMs, parseLimit } from '@/app/server/routes/params'
 import { type ChannelId, channelId } from '@/core/channels'
 import { sessionId as brandSessionId } from '@/core/ids'
+import { scrubCredentials } from '@/core/security/credentials'
 import { t } from '@/i18n'
 
 async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -25,6 +26,8 @@ async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Re
 
 // A session this app opened is `chat_` and 26 hex digits; any other channel's is a UUID.
 const SESSION_ID_RE = /^(?:chat_[0-9a-f]{26}|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/
+// Whatever id a channel's session carries, as the last row of a page names it.
+const SESSION_CURSOR_RE = /^[\w-]{1,64}$/
 const DIGITS_RE = /^\d+$/
 const DEFAULT_LIMIT = 30
 const SESSION_QUERY_MIN_CHARS = 2
@@ -76,7 +79,7 @@ function toHistoryMessage(message: LLMMessage): readonly ChatHistoryMessage[] {
           .join('')
           .trim()
 
-  return content === '' ? [] : [{ role: message.role, content }]
+  return content === '' ? [] : [{ role: message.role, content: scrubCredentials(content) }]
 }
 
 /** The conversations of every channel, or of the ones named, newest first. A search shorter than
@@ -87,12 +90,14 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
   const limit = rawLimit === null ? DEFAULT_LIMIT : parseLimit(rawLimit, SESSION_LIST_MAX)
   const rawBefore = params.get('before')
   const before = rawBefore === null ? undefined : parseEpochMs(rawBefore)
+  const rawBeforeId = params.get('beforeId')
   const query = params.get('query')?.trim()
   const channels = parseChannels(params.getAll('channel'))
 
   if (
     limit === null ||
     before === null ||
+    (rawBeforeId !== null && (before === undefined || !SESSION_CURSOR_RE.test(rawBeforeId))) ||
     channels === null ||
     (query !== undefined &&
       (query.length < SESSION_QUERY_MIN_CHARS || query.length > SESSION_QUERY_MAX_CHARS))
@@ -104,6 +109,7 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
     ...(channels.length === 0 ? {} : { channels }),
     ...(query === undefined ? {} : { query }),
     ...(before === undefined ? {} : { before }),
+    ...(rawBeforeId === null ? {} : { beforeId: brandSessionId(rawBeforeId) }),
     limit,
   })
 

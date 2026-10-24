@@ -23,6 +23,9 @@ const BILLED_SEARCH_KIND = 'external'
 // a whole number of quarter hours, so no day boundary falls inside a bucket.
 const DAY_BUCKET_MS = 15 * MS_PER_MINUTE
 // A row written before the cap existed bills to the agent that ran it.
+// A model's per-run cost reads this far back, so the scan stays on the `settled_at` index; the
+// sample ranks runs inside it.
+const MODEL_COST_WINDOW_MS = 30 * MS_PER_DAY
 const BILLING_AGENT_SQL = "COALESCE(NULLIF(billing_agent_id, ''), agent_id)"
 
 type SpendReads = Pick<
@@ -77,7 +80,8 @@ export function createSpendReads(db: Storage, dialect: Dialect, timeZone: string
       sumForAgent(deps, id, dayBoundsInZone(nowMs, deps.timeZone)),
     totalsForBillingAgents: async (nowMs) =>
       sumByAgent(deps, dayBoundsInZone(nowMs, deps.timeZone)),
-    perRunCostByModel: async (models, sample) => perRunCostOf(deps, models, sample),
+    perRunCostByModel: async (models, sample, nowMs) =>
+      perRunCostOf(deps, { models, sample, nowMs }),
   }
 }
 
@@ -103,21 +107,22 @@ function rangeBounds(deps: SpendDeps, range: CostRange): EpochRange {
   return bounds
 }
 
-// One bind is the sample size, so a chunk holds one fewer model name than the ceiling.
+// Two binds are the window start and the sample size, so a chunk holds two fewer names than the
+// ceiling.
 async function perRunCostOf(
   deps: SpendDeps,
-  models: readonly string[],
-  sample: number
+  query: { readonly models: readonly string[]; readonly sample: number; readonly nowMs: number }
 ): Promise<readonly ModelRunCost[]> {
+  const { models, sample, nowMs } = query
   const costs: ModelRunCost[] = []
 
-  for (let at = 0; at < models.length; at += SQL_MAX_BIND_PARAMS - 1) {
-    const chunk = models.slice(at, at + SQL_MAX_BIND_PARAMS - 1)
+  for (let at = 0; at < models.length; at += SQL_MAX_BIND_PARAMS - 2) {
+    const chunk = models.slice(at, at + SQL_MAX_BIND_PARAMS - 2)
     const rows = await deps.db.query<{
       readonly provider: string
       readonly model: string
       readonly mean_cost: number
-    }>(deps.sql.perRunCost(chunk.length), [...chunk, sample])
+    }>(deps.sql.perRunCost(chunk.length), [...chunk, nowMs - MODEL_COST_WINDOW_MS, sample])
 
     for (const row of rows) {
       costs.push({
@@ -271,10 +276,10 @@ function buildPerRunCostSql(d: Dialect, count: number): string {
   return (
     `WITH per_run AS (SELECT provider, model, run_id, ` +
     `CAST(SUM(cost_nano_usd) AS BIGINT) AS cost, MAX(settled_at) AS last_at ` +
-    `FROM llm_attempts WHERE model IN (${d.paramList(count)}) GROUP BY provider, model, run_id), ` +
+    `FROM llm_attempts WHERE model IN (${d.paramList(count)}) AND settled_at >= ${d.param(count + 1)} GROUP BY provider, model, run_id), ` +
     `ranked AS (SELECT provider, model, cost, ROW_NUMBER() OVER ` +
     `(PARTITION BY provider, model ORDER BY last_at DESC, run_id) AS recency FROM per_run) ` +
     `SELECT provider, model, CAST(AVG(cost) AS BIGINT) AS mean_cost FROM ranked ` +
-    `WHERE recency <= ${d.param(count + 1)} GROUP BY provider, model`
+    `WHERE recency <= ${d.param(count + 2)} GROUP BY provider, model`
   )
 }
