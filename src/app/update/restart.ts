@@ -4,6 +4,7 @@ import { clearRestartMarker, writeRestartMarker } from '@/app/restart-marker'
 import { spawnRestartProcess } from '@/cli/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_MINUTE, MS_PER_SECOND, sleep } from '@/core/utils/time'
+import { t } from '@/i18n'
 
 /** The longest an `idle` restart waits for the daemon to go quiet before it restarts anyway. */
 export const RESTART_IDLE_WAIT_MS = 2 * MS_PER_MINUTE
@@ -57,6 +58,7 @@ export async function runRestart(run: RestartRun): Promise<void> {
         }
 
         logger.error('update.restart_failed', { code })
+        notifyFailed(app)
         // Cleared first: once `onFailed` runs, a second restart may write its own marker.
         try {
           await clearRestartMarker(dataDir)
@@ -69,20 +71,30 @@ export async function runRestart(run: RestartRun): Promise<void> {
       })
   } catch (err: unknown) {
     logger.error('update.restart_start_failed', { err: formatErrForLog(err) })
+    notifyFailed(app)
     await clearRestartMarker(dataDir).catch(() => {
       // The marker expires on its own, and takeRestartMarker ignores a stale one.
     })
   }
 }
 
+// The restart was accepted with a 202 and the page is waiting for a new pid, so a failure that is
+// only logged leaves it waiting for good: the bell says it did not happen.
+function notifyFailed(app: App): void {
+  app.resolve('bus').emit('daemon_notice', {
+    text: t(app.config.locale.language, 'ui.restartFailed'),
+    at: Date.now(),
+  })
+}
+
 /** False when the daemon began shutting down first. A quiet daemon, or the deadline, ends the wait;
  *  `sleep` clears its timer on abort, so nothing outlives a shutdown. */
 async function waitUntilIdle(app: App, isWorking: () => boolean): Promise<boolean> {
-  const deadline = Date.now() + RESTART_IDLE_WAIT_MS
+  const deadline = performance.now() + RESTART_IDLE_WAIT_MS
 
   try {
-    while (isWorking() && Date.now() < deadline) {
-      await sleep(Math.min(RESTART_IDLE_POLL_MS, deadline - Date.now()), app.signal)
+    while (isWorking() && performance.now() < deadline) {
+      await sleep(Math.min(RESTART_IDLE_POLL_MS, deadline - performance.now()), app.signal)
     }
   } catch (err: unknown) {
     if (app.signal.aborted) {

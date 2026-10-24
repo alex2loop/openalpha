@@ -3,8 +3,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { RunId } from '@/core/ids'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toActivityRowWire, toResearchReportWire } from '@/app/server/mappers/activity'
-import { parseEpochMs, parseLimit } from '@/app/server/routes/params'
-import { dayInZone, dayRangeInZone } from '@/core/utils/time'
+import { parseDayQuery, parseEpochMs, parseLimit } from '@/app/server/routes/params'
 import { DEEP_RESEARCHER_ID } from '@/engine/api'
 
 const ACTIVITY_PAGE_LIMIT = 200
@@ -12,14 +11,13 @@ const ACTIVITY_CHILDREN_LIMIT = 20
 
 /** The operator's day, in `[locale] timezone`, as the cost caps and `/v1/cost` count it. */
 async function handleActivity(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const zone = ctx.app.config.locale.timezone
-  const day = new URL(req.url).searchParams.get('day') ?? dayInZone(Date.now(), zone)
-  const bounds = dayRangeInZone({ fromDay: day, toDay: day }, zone)
+  const requested = parseDayQuery(new URL(req.url).searchParams, ctx.app.config.locale.timezone)
 
-  if (bounds === undefined) {
+  if (requested === null) {
     return apiError('invalid_body')
   }
 
+  const { day, range: bounds } = requested
   const store = ctx.app.resolve('runLogStore')
   const tops = await store.listTopLevel(bounds.fromMs, bounds.toMs, ACTIVITY_PAGE_LIMIT)
   const children = await store.childrenOf(

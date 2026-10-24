@@ -1,10 +1,11 @@
 import type { ApiRouteContext } from '@/app/types'
 import type { FieldLabel } from '@/core/field-errors'
 import type { Locale } from '@/core/types/locale'
-import type { InstrumentRef, TradingHost } from '@/trading/api'
+import type { InstrumentRef, TradingDay, TradingHost } from '@/trading/api'
 import { ValidationError } from '@/core/errors'
 import { FieldValidationError } from '@/core/field-errors'
-import { marketRef, ticker } from '@/trading/api'
+import { dayInZone, dayRangeInZone } from '@/core/utils/time'
+import { marketRef, ticker, tradingDay } from '@/trading/api'
 
 /** Long enough for a UUID with a prefix; a key past it is a client bug, not a retry. */
 export const MAX_IDEMPOTENCY_KEY_LENGTH = 200
@@ -102,6 +103,27 @@ export function parsePathId<T>(req: Request, brand: (value: string) => T, fromEn
   } catch {
     return null
   }
+}
+
+/** One `?day` for every route that reads a day: the operator's day in `zone` (today when omitted)
+ *  and the instants it spans; `null` when it is malformed or names no day (400). */
+export function parseDayQuery(
+  query: URLSearchParams,
+  zone: string
+): {
+  readonly day: TradingDay
+  readonly range: { readonly fromMs: number; readonly toMs: number }
+} | null {
+  const requested = parseOptionalBranded(query.get('day'), tradingDay)
+
+  if (requested === null) {
+    return null
+  }
+
+  const day = requested ?? tradingDay(dayInZone(Date.now(), zone))
+  const range = dayRangeInZone({ fromDay: day, toDay: day }, zone)
+
+  return range === undefined ? null : { day, range }
 }
 
 /** An omitted `limit` means "this surface's maximum". A malformed one is a 400 rather than a

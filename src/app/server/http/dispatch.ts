@@ -10,6 +10,7 @@ import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import { isLoopback, resolveAuthOutcome, resolveBearerCredential } from '@/app/server/http/auth'
 import { buildCapabilities } from '@/app/server/http/capabilities'
+import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { missingEnvOf } from '@/core/config/resolve'
 import { ChannelError, ConflictError, ValidationError } from '@/core/errors'
@@ -166,7 +167,7 @@ function toErrorExtras(locale: Locale, err: unknown): ApiErrorExtras {
 
     return {
       unconfirmedPrice: {
-        instrument: { market: instrument.market, ticker: instrument.ticker },
+        instrument: toInstrumentWire(instrument),
         price,
         latest: { price: latest.price, at: latest.at },
       },

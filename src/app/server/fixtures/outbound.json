@@ -13,7 +13,7 @@
     {
       "host": "api.binance.com",
       "purpose": "exchange",
-      "sends": "lệnh bạn đặt và lệnh đọc số dư"
+      "sends": "lệnh bạn đặt và yêu cầu đọc số dư"
     },
     {
       "host": "api.telegram.org",

@@ -13,7 +13,7 @@ interface ChatToolDisplay {
 
 /** Names the command a frame belongs to when the command runs in the chat's command lane: the lane
  *  entry id. A frame without one belongs to the session's own turn. */
-interface LaneTag {
+export interface LaneTag {
   readonly id?: string
 }
 

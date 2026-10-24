@@ -1,20 +1,15 @@
+import type { FeedDeps } from '@/app/server/feed/relay'
 import type { WireEvent } from '@/app/server/wire/events'
-import type { BusEventMap, EventBus } from '@/core/events'
+import type { BusEventMap } from '@/core/events'
 import type { Locale } from '@/core/types/locale'
 import '@/app/events'
 import { APP_SOURCE } from '@/app/server/channel'
 import { scrubCredentials } from '@/core/security/credentials'
 import { renderRoleStance } from '@/trading/api'
 
-interface RolesFeedDeps {
-  readonly bus: EventBus
-  readonly broadcast: (event: WireEvent) => void
-  readonly locale: Locale
-}
-
 /** Tells the page what each debate role said. The page only: a role's words can carry a size or a
  *  level, so nothing here reaches a chat, and the quiet weight keeps it out of the bell. */
-export function followRoles({ bus, broadcast, locale }: RolesFeedDeps): (() => void)[] {
+export function followRoles({ bus, broadcast, locale }: FeedDeps): (() => void)[] {
   return [
     bus.on('role_output', (e) => {
       broadcast(toRoleEvent(e, locale))

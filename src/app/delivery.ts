@@ -5,9 +5,11 @@ import type {
   ChannelRuntimeSnapshot,
 } from '@/channels/api'
 import type { ChannelId } from '@/core/channels'
+import type { Logger } from '@/core/logging/logger'
 import type { DeliverySink, DeliveryTarget } from '@/scheduler/api'
 import type { TradingNotice } from '@/trading/api'
 import { ChannelError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 
 /** The chat id an unaddressed message carries to a surface, which has no chats of its own. */
 const SURFACE_CHAT_ID = 'app'
@@ -111,8 +113,10 @@ interface DeliveredListeners {
   emit(message: SurfaceMessage, channels: readonly ChannelId[]): void
 }
 
-function createDeliveredListeners(): DeliveredListeners {
+function createDeliveredListeners(logger: Logger): DeliveredListeners {
   const listeners = new Set<DeliveredListener>()
+  // A listener that keeps throwing would otherwise write a line per delivery.
+  let failureLogged = false
 
   return {
     add(listener) {
@@ -126,9 +130,13 @@ function createDeliveredListeners(): DeliveredListeners {
       for (const listener of listeners) {
         try {
           listener(message, channels)
-        } catch {
-          // The hub has no logger, and a page that cannot take the message must never fail the
-          // send that already reached its channel.
+        } catch (err: unknown) {
+          // A page that cannot take the message must never fail the send that already reached its
+          // channel; the first failure is logged.
+          if (!failureLogged) {
+            failureLogged = true
+            logger.warn('app.delivery_listener_failed', { err: formatErrForLog(err) })
+          }
         }
       }
     },
@@ -220,12 +228,12 @@ function sendViaRouter(
  * channel to deliver to, and holding the notice would leak it. The rejection is what lets the
  * scheduler record a delivery error instead of finalizing a silently lost result.
  */
-export function createDeliveryHub(): DeliveryHub {
+export function createDeliveryHub(logger: Logger): DeliveryHub {
   let notifier: AcknowledgedRouter | null = null
   let readers: AttachedReaders | null = null
 
   const surfaces = createNoticeSurfaces()
-  const delivered = createDeliveredListeners()
+  const delivered = createDeliveredListeners(logger)
 
   return {
     surfaces,

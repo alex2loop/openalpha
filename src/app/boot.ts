@@ -120,7 +120,7 @@ export async function boot(options: BootOptions): Promise<Booted> {
   })
   const logger = bootLogger(loggerResource, options.mode)
   const childEnvBase = resolveChildEnv(options.env)
-  const delivery = createDeliveryHub()
+  const delivery = createDeliveryHub(logger)
   const held: HeldBootResources = { loggerResource }
   let disposePromise: Promise<void> | undefined
   const dispose = (): Promise<void> => {

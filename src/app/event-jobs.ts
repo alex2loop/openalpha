@@ -1,21 +1,30 @@
 import type { App } from '@/core/container'
 import type { AlertFired, AlertFiredListener } from '@/trading/api'
+import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
 import { fireMatchingJobs } from '@/scheduler/api'
 import { assertJobPrompt } from '@/tools/api'
-import { alertId, formatInstant } from '@/trading/api'
+import { alertId, formatInstant, formatPriceIn, quotedInOf } from '@/trading/api'
 
 // The prompt a run reads when an alert started it, in the operator's language: the job's own prompt
 // says what to do, this says why it is being done now.
 function renderEventPrompt(app: App, fired: AlertFired): string {
   const { language, timezone } = app.config.locale
+  const market = app
+    .resolve('tradingHost')
+    .describeMarkets()
+    .markets.find((entry) => entry.market === fired.instrument.market)
 
   return t(language, 'scheduler.eventPrompt', {
     ticker: fired.instrument.ticker,
     what: t(language, `scheduler.event.${fired.event}`),
     time: formatInstant(language, fired.firedAt, timezone),
-    price: String(fired.observedPrice),
+    price: formatPriceIn(
+      language,
+      fired.observedPrice,
+      market === undefined ? {} : { currency: market.currency, ...quotedInOf(market) }
+    ),
   })
 }
 
@@ -49,7 +58,7 @@ export function createAlertFiredListener(app: App): AlertFiredListener {
       {
         alertId: fired.alertId,
         event: fired.event,
-        instrument: { market: fired.instrument.market, ticker: fired.instrument.ticker },
+        instrument: toInstrumentWire(fired.instrument),
         condition: fired.condition,
         threshold: fired.threshold,
         observedPrice: fired.observedPrice,

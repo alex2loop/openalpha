@@ -5,11 +5,12 @@ import type { Locale } from '@/core/types/locale'
 import { isApiChannel } from '@/app/server/channel'
 import { toApprovalWire } from '@/app/server/ws/wire-events'
 import { scrubCredentials } from '@/core/security/credentials'
+import { MS_PER_DAY } from '@/core/utils/time'
 
 /** Bounds each map of requests a client can ask about; the oldest go first. */
 const MAX_PENDING = 50
 /** A question has no deadline of its own: the operator answers when they next open the chat. */
-const QUESTION_PENDING_TTL_MS = 86_400_000
+const QUESTION_PENDING_TTL_MS = MS_PER_DAY
 
 interface ApprovalEntry {
   readonly wire: Extract<PendingWire, { kind: 'approval' }>

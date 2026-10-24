@@ -1,5 +1,4 @@
 import type { ServerWebSocket } from 'bun'
-import { randomUUID } from 'node:crypto'
 
 import type { ChatFrame } from '@/app/server/wire/chat'
 import type { ChatRunRequest } from '@/app/server/ws/slash'
@@ -7,6 +6,7 @@ import type { WsData, WsServices } from '@/app/server/ws/socket'
 import type { AgentId, RunId, SessionId } from '@/core/ids'
 import type { RunResult } from '@/engine/api'
 import { API_CHANNEL } from '@/app/server/channel'
+import { CHAT_ID_RE, createChatId } from '@/app/server/chat-id'
 import {
   followRunId,
   registerSocketRun,
@@ -18,9 +18,6 @@ import {
 import { createChatFrameMapper } from '@/app/server/ws/stream-events'
 import { sessionId as brandSessionId, DEFAULT_AGENT_ID, LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
-
-const CHAT_ID_RE = /^chat_[0-9a-f]{26}$/
-const CHAT_ID_HEX_LEN = 26
 
 export async function runChat(
   ws: ServerWebSocket<WsData>,
@@ -153,8 +150,4 @@ export function resolveSessionId(provided: string | undefined): SessionId {
   return brandSessionId(
     provided !== undefined && CHAT_ID_RE.test(provided) ? provided : createChatId()
   )
-}
-
-function createChatId(): string {
-  return `chat_${randomUUID().replaceAll('-', '').slice(0, CHAT_ID_HEX_LEN)}`
 }

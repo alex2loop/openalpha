@@ -93,12 +93,21 @@ async function startRestart(
 
   busy.starting = true
 
-  const refusal = await refuseRestart(parts)
+  // `runRestart` releases `starting` once it settles; every other way out releases it here.
+  let handedOver = false
 
-  if (refusal !== undefined) {
-    busy.starting = false
+  try {
+    const refusal = await refuseRestart(parts)
 
-    return refusal
+    if (refusal !== undefined) {
+      return refusal
+    }
+
+    handedOver = true
+  } finally {
+    if (!handedOver) {
+      busy.starting = false
+    }
   }
 
   runRestart({

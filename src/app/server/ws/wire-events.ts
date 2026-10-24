@@ -3,8 +3,10 @@ import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
 import type { BusEventMap } from '@/core/events'
 import type { Locale } from '@/core/types/locale'
 import '@/app/events'
+
 import { APP_SOURCE, isApiChannel } from '@/app/server/channel'
 import { WIRE_DECISION } from '@/app/server/decision'
+import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { scrubCredentials } from '@/core/security/credentials'
 import { decisionsFor } from '@/engine/api'
 import { translateToolLabel } from '@/i18n'
@@ -261,7 +263,7 @@ export const NOTED_NORMALIZERS: {
     source: APP_SOURCE,
     note,
     fill: {
-      instrument: { market: e.instrument.market, ticker: e.instrument.ticker },
+      instrument: toInstrumentWire(e.instrument),
       venue: e.venue,
       side: e.side,
       quantity: e.quantity,

@@ -43,8 +43,9 @@ interface RouterContext {
 export interface AgentLogRouter {
   readonly destination: OwnedLogDestination
   configure(agentIds: Iterable<string>): Promise<void>
-  /** Gives each id without a route one and opens its sink; a route already there is left alone. */
-  addAgentRoutes(agentIds: Iterable<AgentId>): Promise<void>
+  /** Gives each id without a route one and opens its sink, and closes the route of an id no longer
+   *  listed; a route already there is left alone. */
+  syncAgentRoutes(agentIds: Iterable<AgentId>): Promise<void>
   setDropWarning(warn: () => void): void
   /** Scopes `fn`'s synchronous writes to `id` for routing, in place of re-parsing each record. */
   withAgentId<T>(id: AgentId | undefined, fn: () => T): T
@@ -86,7 +87,7 @@ export function createAgentLogRouter(
       configureRoutes(state, routes, agentIds)
       await openAllRoutes(ctx, routes)
     },
-    addAgentRoutes: (agentIds) => openAdded(ctx, routes, agentIds),
+    syncAgentRoutes: (agentIds) => syncRoutes(ctx, routes, agentIds),
     setDropWarning: dropWarning.set,
     withAgentId: agentIdScope.withAgentId,
   }
@@ -234,8 +235,10 @@ function configureRoutes(
 }
 
 // Only ids with no route get one, so a sink already open keeps its handle and its pending records.
-// Once writes stop there is nothing to route to, and a sink opened now would outlive the close.
-function openAdded(
+// An id that is gone loses its route and closes its sink, so a created and deleted agent holds
+// nothing open. Once writes stop there is nothing to route to, and a sink opened now would outlive
+// the close.
+function syncRoutes(
   ctx: RouterContext,
   routes: Map<AgentId, AgentRoute>,
   agentIds: Iterable<AgentId>
@@ -244,21 +247,35 @@ function openAdded(
     return Promise.resolve()
   }
 
+  const wanted = new Set(agentIds)
+  const retired = [...routes].filter(([id]) => !wanted.has(id))
   const added: [AgentId, AgentRoute][] = []
 
-  for (const id of agentIds) {
+  for (const id of wanted) {
     if (!routes.has(id)) {
       added.push([id, { pending: [], pendingBytes: 0 }])
     }
+  }
+
+  for (const [id] of retired) {
+    routes.delete(id)
   }
 
   for (const [id, route] of added) {
     routes.set(id, route)
   }
 
-  return Promise.allSettled(added.map(([id, route]) => ensureSink(ctx, route, id))).then(
-    () => undefined
-  )
+  return Promise.allSettled([
+    ...retired.map(([, route]) => closeRoute(route)),
+    ...added.map(([id, route]) => ensureSink(ctx, route, id)),
+  ]).then(() => undefined)
+}
+
+// A sink still opening installs itself first (it awaited the same promise earlier), so closing
+// after `opening` settles never misses it.
+async function closeRoute(route: AgentRoute): Promise<void> {
+  await Promise.allSettled([route.opening])
+  await route.sink?.close()
 }
 
 function openAllRoutes(

@@ -19,6 +19,7 @@ import { toScheduleRowWire } from '@/app/server/mappers/jobs'
 import { readBriefSchedule } from '@/app/server/routes/brief-schedule'
 import { localeOf } from '@/app/server/routes/params'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
+import { COST_ESTIMATE_SAMPLE } from '@/app/server/wire/system'
 import { RESTART_IDLE_WAIT_MS } from '@/app/update/restart'
 import { isBackgroundLaunch, readDaemonDegraded, readReleaseStatus } from '@/cli/api'
 import { describeCommand } from '@/commands/api'
@@ -26,10 +27,10 @@ import { BRAND } from '@/core/brand'
 import { probeConfig } from '@/core/config/load'
 import { operatorMessageOf } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { MS_PER_DAY } from '@/core/utils/time'
 import { bindLocale } from '@/i18n'
 import { MINIMUM_TRACK_RECORD_SAMPLE, tradingDay } from '@/trading/api'
 
-export const COST_ESTIMATE_SAMPLE = 10
 const COST_ESTIMATE_MIN_RUNS = 3
 // Providers whose unreadable login was already logged: bounded by the configured models.
 const unreadableLogins = new Set<string>()
@@ -236,7 +237,6 @@ async function resolveApiTokenCheck(app: App, translate: Translate): Promise<Doc
   return { name, ok, detail: ok ? path : translate('cli.doctorNotCreatedYet') }
 }
 
-const MS_PER_DAY = 86_400_000
 const MAX_RANGE_DAYS = 366
 
 async function handleCost(req: Request, ctx: ApiRouteContext): Promise<Response> {

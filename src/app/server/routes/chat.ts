@@ -9,6 +9,7 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { LLMMessage } from '@/core/llm'
 import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
+import { CHAT_ID_RE } from '@/app/server/chat-id'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toChatSessionsWire } from '@/app/server/mappers/chat'
@@ -16,7 +17,7 @@ import { localeOf, parseEpochMs, parseLimit, readJsonBody } from '@/app/server/r
 import { type ChannelId, channelId } from '@/core/channels'
 import { sessionId as brandSessionId } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
-import { t } from '@/i18n'
+import { bindLocale } from '@/i18n'
 
 async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const sessionId = await ctx.app.resolve('sessionStore').latestIdForChannel(API_CHANNEL)
@@ -24,8 +25,8 @@ async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Re
   return json({ sessionId } satisfies ChatRecentResponse)
 }
 
-// A session this app opened is `chat_` and 26 hex digits; any other channel's is a UUID.
-const SESSION_ID_RE = /^(?:chat_[0-9a-f]{26}|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/
+// A session this app opened is a chat id; any other channel's is a UUID.
+const UUID_RE = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
 // Whatever id a channel's session carries, as the last row of a page names it.
 const SESSION_CURSOR_RE = /^[\w-]{1,64}$/
 const DIGITS_RE = /^\d+$/
@@ -42,7 +43,7 @@ async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Re
   const limit =
     rawLimit === null ? DEFAULT_LIMIT : parseLimit(rawLimit, ctx.app.config.loop.sessionMessageCap)
 
-  if (!SESSION_ID_RE.test(raw) || limit === null) {
+  if (!(CHAT_ID_RE.test(raw) || UUID_RE.test(raw)) || limit === null) {
     return apiError('invalid_body')
   }
 
@@ -150,7 +151,10 @@ async function handleRespond(req: Request, ctx: ApiRouteContext): Promise<Respon
   if (origin !== undefined && !isApiChannel(origin)) {
     return apiError(
       'conflict',
-      t(localeOf(ctx), 'errors.approvalOtherChannel', { channel: origin })
+      bindLocale(localeOf(ctx)).translate('errors.approvalOtherChannel', {
+        // The channel's own name where the catalog has one, else the id it was asked on.
+        channel: { key: `ui.channelName.${origin}`, fallback: origin },
+      })
     )
   }
 

@@ -22,7 +22,7 @@ declare module '@/core/container' {
      *  ones that can be paused or join a social network. Read per call: a reload changes them. */
     userAgentIds: () => ReadonlySet<AgentId>
     /** The log router's reach, so a reload can open routes for agents born after boot. */
-    agentLogs: Pick<LoggerResource, 'addAgentRoutes'>
+    agentLogs: Pick<LoggerResource, 'syncAgentRoutes'>
   }
 }
 
@@ -222,7 +222,7 @@ export function reloadUserAgents(app: App): Promise<ReloadedAgents> {
     const loaded = [...added.keys()].filter((id) => next.has(id)).sort()
 
     live.replace(next, new Set(loaded.map(agentId)))
-    await app.resolve('agentLogs').addAgentRoutes([...next.values()].map((agent) => agent.id))
+    await app.resolve('agentLogs').syncAgentRoutes([...next.values()].map((agent) => agent.id))
     await syncHeartbeatAgents(app, [...next.values()])
 
     return { loaded, skipped }

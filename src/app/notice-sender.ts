@@ -111,15 +111,12 @@ function renderBrief(
 }
 
 /** The readings the watches file: a scored call, news on a holding, the index falling. */
-type WatchPayload = Extract<
-  TradingNotice['payload'],
-  { readonly kind: 'call-scored' | 'held-news' | 'index-drop' }
->
+type WatchKind = (typeof BELL_ONLY_KINDS)[number]
+
+type WatchPayload = Extract<TradingNotice['payload'], { readonly kind: WatchKind }>
 
 function isWatchPayload(payload: TradingNotice['payload']): payload is WatchPayload {
-  return (
-    payload.kind === 'call-scored' || payload.kind === 'held-news' || payload.kind === 'index-drop'
-  )
+  return isBellOnlyKind(payload.kind)
 }
 
 function renderWatchNotice(locale: Locale, payload: WatchPayload): string {
@@ -145,9 +142,7 @@ type OperationalPayload = Exclude<
       | 'exit-plan'
       | 'stop-raised'
       | 'exit-filled'
-      | 'call-scored'
-      | 'held-news'
-      | 'index-drop'
+      | WatchKind
   }
 >
 
@@ -161,11 +156,11 @@ function renderOperationalNotice(locale: Locale, payload: OperationalPayload): s
   }
 
   if (payload.kind === 'delivery-skipped') {
-    return renderDeliverySkipped(locale, payload.subject)
+    return renderDeliveryReport(locale, 'trading.deliverySkipped', payload.subject)
   }
 
   if (payload.kind === 'delivery-missed') {
-    return renderDeliveryMissed(locale, payload.subject)
+    return renderDeliveryReport(locale, 'trading.deliveryMissed', payload.subject)
   }
 
   if (payload.kind === 'key-missing') {
@@ -174,7 +169,7 @@ function renderOperationalNotice(locale: Locale, payload: OperationalPayload): s
 
   // Exhaustive: a new kind must be rendered here, not fall through to "delivery is now off".
   if (payload.kind === 'delivery-disabled') {
-    return renderDeliveryDisabled(locale, payload.subject)
+    return renderDeliveryReport(locale, 'trading.deliveryDisabled', payload.subject)
   }
 
   const unhandled: never = payload
@@ -182,20 +177,13 @@ function renderOperationalNotice(locale: Locale, payload: OperationalPayload): s
   return unhandled
 }
 
-function renderDeliveryMissed(locale: Locale, subject: NoticeKind): string {
-  return t(locale, 'trading.deliveryMissed', { subject: t(locale, `trading.notice.${subject}`) })
-}
+type DeliveryReportKey =
+  | 'trading.deliveryMissed'
+  | 'trading.deliveryDisabled'
+  | 'trading.deliverySkipped'
 
-function renderDeliveryDisabled(locale: Locale, subject: NoticeKind): string {
-  return t(locale, 'trading.deliveryDisabled', {
-    subject: t(locale, `trading.notice.${subject}`),
-  })
-}
-
-function renderDeliverySkipped(locale: Locale, subject: NoticeKind): string {
-  return t(locale, 'trading.deliverySkipped', {
-    subject: t(locale, `trading.notice.${subject}`),
-  })
+function renderDeliveryReport(locale: Locale, key: DeliveryReportKey, subject: NoticeKind): string {
+  return t(locale, key, { subject: t(locale, `trading.notice.${subject}`) })
 }
 
 function renderKeyMissing(

@@ -1,5 +1,4 @@
-import type { WireEvent } from '@/app/server/wire/events'
-import type { EventBus } from '@/core/events'
+import type { FeedDeps } from '@/app/server/feed/relay'
 import '@/app/events'
 import { WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
 
@@ -9,13 +8,8 @@ interface AlertsFeed {
   stop(): void
 }
 
-interface AlertsFeedDeps {
-  readonly bus: EventBus
-  readonly broadcast: (event: WireEvent) => void
-}
-
 /** Tells the page each alert pass finished and keeps the last time for a client that connects late. */
-export function createAlertsFeed({ bus, broadcast }: AlertsFeedDeps): AlertsFeed {
+export function createAlertsFeed({ bus, broadcast }: FeedDeps): AlertsFeed {
   let checkedAt: number | undefined
   const off = bus.on('alerts_checked', (e) => {
     checkedAt = e.at

@@ -2,6 +2,7 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { App } from '@/core/container'
 import type { StoredSuggestion } from '@/trading/api'
 import { APP_SOURCE } from '@/app/server/channel'
+import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { broadcast } from '@/app/server/ws/socket'
 import { formatErrForLog } from '@/core/security/credentials'
 
@@ -18,7 +19,7 @@ function toIdeaEvent(item: StoredSuggestion): WireEvent {
     source: APP_SOURCE,
     idea: {
       suggestionId: item.id,
-      instrument: { market: item.instrument.market, ticker: item.instrument.ticker },
+      instrument: toInstrumentWire(item.instrument),
       action: item.action,
       conviction: item.conviction,
     },

@@ -5,6 +5,10 @@ import type { JobEventWire } from '@/app/server/wire/jobs'
 import type { RestartWhen } from '@/app/server/wire/vocab'
 import type { Locale } from '@/core/types/locale'
 
+/** How many of the latest runs a cost estimate reads: the command estimate below and the per-run
+ *  price a model shows on `/v1/models`. */
+export const COST_ESTIMATE_SAMPLE = 10
+
 /** Sections whose backing store may not exist yet — the client greys the unbuilt tab instead of
  *  guessing from a 404. Only the sections that actually vary are listed (chat/approve/stream/health
  *  are always on). Echoed by GET /v1/health (unauth) and GET /v1/state. */

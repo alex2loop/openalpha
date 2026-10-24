@@ -3,7 +3,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { findProviderById } from '@/ai/api'
 import { json } from '@/app/server/http/dispatch'
-import { COST_ESTIMATE_SAMPLE } from '@/app/server/routes/system'
+import { COST_ESTIMATE_SAMPLE } from '@/app/server/wire/system'
 
 /** What the app shows of each configured model, in the order its tier tries them. The price is the
  *  one the cost ledger settles with, so the page and the caps agree. */

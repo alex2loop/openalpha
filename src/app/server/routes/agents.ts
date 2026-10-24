@@ -102,18 +102,23 @@ async function handleList(req: Request, ctx: ApiRouteContext): Promise<Response>
   return json({ agents } satisfies AgentsResponse)
 }
 
-/** Only the operator's own agents: a built-in or an unknown id is `not_found`, like any absent row. */
-function ownAgentOf(req: Request, ctx: ApiRouteContext): AgentId | null {
+/** Only the operator's own agents: a built-in or an unknown id is `not_found`, like any absent row;
+ *  a malformed one is the caller's mistake. */
+function ownAgentOf(req: Request, ctx: ApiRouteContext): AgentId | Response {
   const id = parsePathId(req, agentId, 1)
 
-  return id !== null && ctx.app.resolve('userAgentIds')().has(id) ? id : null
+  if (id === null) {
+    return apiError('invalid_body')
+  }
+
+  return ctx.app.resolve('userAgentIds')().has(id) ? id : apiError('not_found')
 }
 
 async function handlePause(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = ownAgentOf(req, ctx)
 
-  if (id === null) {
-    return apiError('not_found')
+  if (id instanceof Response) {
+    return id
   }
 
   await ctx.app.resolve('agentPauseStore').pause([id], Date.now())
@@ -124,8 +129,8 @@ async function handlePause(req: Request, ctx: ApiRouteContext): Promise<Response
 async function handleResume(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = ownAgentOf(req, ctx)
 
-  if (id === null) {
-    return apiError('not_found')
+  if (id instanceof Response) {
+    return id
   }
 
   await ctx.app.resolve('agentPauseStore').resume([id])

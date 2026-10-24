@@ -263,13 +263,11 @@ async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promis
   )
 }
 
-// A chat id is whatever the channel calls it; the route match already refuses an empty segment.
-const asChatId = (raw: string): string => raw
-
 /** Takes the chat's pairing back: its next message is asked for a code again. */
 async function handlePairingRevoke(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const channel = parsePathId(req, channelId, 1)
-  const chatId = parsePathId(req, asChatId)
+  // A chat id is whatever the channel calls it; the route match already refuses an empty segment.
+  const chatId = parsePathId(req, (raw) => raw)
 
   if (channel === null || chatId === null) {
     return apiError('invalid_body')

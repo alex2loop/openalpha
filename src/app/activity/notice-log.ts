@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { WireEvent } from '@/app/server/wire/events'
 import type { App } from '@/core/container'
+import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { NoticeRow } from '@/persistence/api'
 import '@/app/events'
@@ -37,17 +38,14 @@ export function startNoticeLog(app: App): NoticeLog {
   const logger = app.resolve('logger')
   const locale = app.config.locale.language
   let tail: Promise<void> = Promise.resolve()
-  let failureLogged = false
+  const logFailure = createFailureLog(logger)
 
   const persist = async (row: NoticeRow): Promise<void> => {
     try {
       await store.record(row)
       bus.emit('notices_changed', { unread: await store.unreadCount() })
     } catch (err: unknown) {
-      if (!failureLogged) {
-        failureLogged = true
-        logger.warn('activity.notice_log_failed', { err: formatErrForLog(err) })
-      }
+      logFailure(err)
     }
   }
   const file = (filing: Filing): void => {
@@ -57,10 +55,14 @@ export function startNoticeLog(app: App): NoticeLog {
   }
   const offs = [
     app.resolve('deliveredNotices')((message, channels) => {
-      const event = toWireEvent(message)
+      try {
+        const event = toWireEvent(message)
 
-      if (event !== undefined) {
-        file({ event, deliveredTo: channels })
+        if (event !== undefined) {
+          file({ event, deliveredTo: channels })
+        }
+      } catch (err: unknown) {
+        logFailure(err)
       }
     }),
     ...followBus(app, { file, locale }),
@@ -74,6 +76,18 @@ export function startNoticeLog(app: App): NoticeLog {
 
       await tail
     },
+  }
+}
+
+// A store that is down fails every notice; the first failure says so and the rest stay quiet.
+function createFailureLog(logger: Logger): (err: unknown) => void {
+  let failureLogged = false
+
+  return (err) => {
+    if (!failureLogged) {
+      failureLogged = true
+      logger.warn('activity.notice_log_failed', { err: formatErrForLog(err) })
+    }
   }
 }
 

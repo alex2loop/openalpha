@@ -1,6 +1,7 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import type { TradingNotice } from '@/trading/api'
 import { APP_SOURCE } from '@/app/server/channel'
+import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { parseExitLevel } from '@/trading/api'
 
 type Payload = TradingNotice['payload']
@@ -19,7 +20,7 @@ function alertEvent(payload: AlertPayload, text: string): WireEvent {
     note: text,
     alert: {
       alertId: alert.id,
-      instrument: { market: alert.instrument.market, ticker: alert.instrument.ticker },
+      instrument: toInstrumentWire(alert.instrument),
       condition: alert.condition,
       threshold: alert.threshold,
       observedPrice: alert.observedPrice,
@@ -41,7 +42,7 @@ function moverEvent(
     source: APP_SOURCE,
     note: text,
     mover: {
-      instrument: { market: alert.instrument.market, ticker: alert.instrument.ticker },
+      instrument: toInstrumentWire(alert.instrument),
       condition: alert.condition,
       observedPrice: alert.observedPrice,
       ...(session === undefined ? {} : { movePct: session.movePct }),
@@ -91,7 +92,7 @@ function noticeEvent(payload: Payload, text: string): WireEvent {
     noticeKind: payload.kind,
     ...(payload.kind === 'held-news'
       ? {
-          instrument: { market: payload.instrument.market, ticker: payload.instrument.ticker },
+          instrument: toInstrumentWire(payload.instrument),
         }
       : {}),
     ...(payload.kind === 'index-drop' ? { movePct: payload.movePct } : {}),

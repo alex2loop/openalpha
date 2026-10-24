@@ -3,10 +3,8 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toCallNote, toStopNote } from '@/app/server/mappers/digest'
 import { STOP_BREACHED_KIND } from '@/app/server/mappers/notices'
-import { hostOf, localeOf, parseOptionalBranded } from '@/app/server/routes/params'
-import { dayInZone, dayRangeInZone } from '@/core/utils/time'
+import { hostOf, localeOf, parseDayQuery } from '@/app/server/routes/params'
 import { DEEP_RESEARCHER_ID } from '@/engine/api'
-import { tradingDay } from '@/trading/api'
 
 const DIGEST_NOTABLE = 2
 const DIGEST_PER_KIND = 1
@@ -14,19 +12,13 @@ const DIGEST_PER_KIND = 1
 /** The operator's day, in `[locale] timezone`, as `/v1/activity` and the cost caps count it. */
 async function handleDigest(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const zone = ctx.app.config.locale.timezone
-  const requested = parseOptionalBranded(new URL(req.url).searchParams.get('day'), tradingDay)
+  const requested = parseDayQuery(new URL(req.url).searchParams, zone)
 
   if (requested === null) {
     return apiError('invalid_body')
   }
 
-  const day = requested ?? tradingDay(dayInZone(Date.now(), zone))
-  const range = dayRangeInZone({ fromDay: day, toDay: day }, zone)
-
-  if (range === undefined) {
-    return apiError('invalid_body')
-  }
-
+  const { day, range } = requested
   const host = hostOf(ctx)
   const [facts, researchCount, spendUsd, stops] = await Promise.all([
     host.getDayDigest({ day, range, limit: DIGEST_PER_KIND, signal: req.signal }),

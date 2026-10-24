@@ -1,18 +1,7 @@
-import type { WireEvent } from '@/app/server/wire/events'
-import type { EventBus } from '@/core/events'
-import '@/app/events'
-import { WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
-
-interface AgentsFeedDeps {
-  readonly bus: EventBus
-  readonly broadcast: (event: WireEvent) => void
-}
+import type { FeedDeps } from '@/app/server/feed/relay'
+import { relay } from '@/app/server/feed/relay'
 
 /** Tells the page a new agent joined the roster, the moment the create call finished. */
-export function followAgents({ bus, broadcast }: AgentsFeedDeps): (() => void)[] {
-  return [
-    bus.on('agent_added', (e) => {
-      broadcast(WIRE_NORMALIZERS.agent_added(e))
-    }),
-  ]
+export function followAgents(deps: FeedDeps): (() => void)[] {
+  return [relay(deps, 'agent_added')]
 }

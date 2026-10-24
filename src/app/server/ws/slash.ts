@@ -1,6 +1,7 @@
 import type { ServerWebSocket } from 'bun'
 import { randomUUID } from 'node:crypto'
 
+import type { LaneTag } from '@/app/server/wire/chat'
 import type { WsData, WsServices } from '@/app/server/ws/socket'
 import type { SlashDispatcher } from '@/commands/api'
 import type { AgentId, SessionId } from '@/core/ids'
@@ -24,10 +25,6 @@ import { bindLocale, t } from '@/i18n'
 
 type ResolvedSlash = ReturnType<SlashDispatcher['resolve']>
 
-/** Names the command a frame belongs to when it runs in the chat's lane; empty for every other
- *  command, whose frames belong to the session's own turn. */
-type FrameTag = { readonly id?: string }
-
 interface SlashRun {
   readonly ws: ServerWebSocket<WsData>
   readonly sessionId: SessionId
@@ -36,7 +33,7 @@ interface SlashRun {
   readonly controller: AbortController
   readonly ctx: SlashContext
   readonly longRunning: boolean
-  readonly tag: FrameTag
+  readonly tag: LaneTag
 }
 
 export interface ChatRunRequest {
@@ -82,7 +79,7 @@ function toSlashRun(input: Omit<SlashRun, 'ctx' | 'tag'>): SlashRun {
   const { ws, sessionId, resolved, controller, longRunning } = input
   const { services } = ws.data
   const requestId = randomUUID()
-  const tag: FrameTag =
+  const tag: LaneTag =
     longRunning && resolved?.policy.selfContained === true ? { id: requestId } : {}
   const ctx: SlashContext = {
     channel: API_CHANNEL,
@@ -136,6 +133,11 @@ async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null>
   const { ws, sessionId, controller, ctx } = run
   const { services } = ws.data
   const registration = await openLaneRegistration(services, sessionId)
+
+  // The socket may have closed while the route was being opened.
+  if (controller.signal.aborted) {
+    return null
+  }
 
   trackLaneItem(controller, id)
 

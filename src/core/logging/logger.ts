@@ -67,8 +67,9 @@ export interface Logger {
 export interface LoggerResource {
   readonly logger: Logger
   configureAgentRegistry(agentIds: Iterable<string>): Promise<void>
-  /** Routes for agents a live reload added; an agent that already has one keeps it open. */
-  addAgentRoutes(agentIds: Iterable<AgentId>): Promise<void>
+  /** Routes for the agents a live reload left: one added gets a sink, one gone is closed, an agent
+   *  that already has a route keeps it open. */
+  syncAgentRoutes(agentIds: Iterable<AgentId>): Promise<void>
   isAvailable(): boolean
   flush(): Promise<void>
   close(): Promise<void>
@@ -170,7 +171,7 @@ function loggerResource(options: {
   readonly logger?: PinoLogger
   readonly destination: OwnedLogDestination | undefined
   readonly hooks: LoggerResourceHooks | undefined
-  readonly agentRouting?: Pick<AgentLogRouter, 'configure' | 'addAgentRoutes' | 'withAgentId'>
+  readonly agentRouting?: Pick<AgentLogRouter, 'configure' | 'syncAgentRoutes' | 'withAgentId'>
 }): LoggerResource {
   const { logger, destination, hooks } = options
   const planLogger = logger === undefined ? {} : { logger }
@@ -194,7 +195,7 @@ function loggerResource(options: {
   return {
     logger: logger === undefined ? silentLogger : wrap(logger, isAvailable, agentScope),
     configureAgentRegistry: options.agentRouting?.configure ?? (async () => undefined),
-    addAgentRoutes: options.agentRouting?.addAgentRoutes ?? (async () => undefined),
+    syncAgentRoutes: options.agentRouting?.syncAgentRoutes ?? (async () => undefined),
     isAvailable,
     flush: () =>
       runLifecycle({
