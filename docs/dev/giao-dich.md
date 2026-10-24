@@ -123,8 +123,11 @@ Các route mà tính năng giao dịch thêm vào, được phục vụ khi `[ap
 | `GET /v1/portfolio/nav` | `portfolio` |
 | `GET /v1/suggestions` | `suggestions` |
 | `GET /v1/suggestions/:id/card` | `suggestions` |
+| `GET /v1/suggestions/:id/debate` | `suggestions` |
 | `GET /v1/track-record` | `suggestions` |
 | `GET /v1/brief`, `PATCH /v1/brief` | - |
+
+Một đề xuất đã lưu giữ các mô hình đã tranh luận nó trong `suggestions.debate_models` (danh sách đã sắp xếp, nối bằng `,`, null ở dòng ghi trước khi có cột) và các mã luận điểm mà bước kiểm chứng bác bỏ trong khối tranh luận (`refutedIds`, vắng ở dòng cũ hơn). `GET /v1/track-record` chỉ đếm theo từng mô hình các lệnh gọi đã chấm điểm mà `debate_models` ghi đúng một mô hình, gộp bằng `independentCalls` và chịu `MINIMUM_TRACK_RECORD_SAMPLE` như mọi tỷ lệ; lệnh do nhiều mô hình tranh luận, hay dòng không có danh sách đã lưu, không được tính cho mô hình nào. Mỗi dòng tiêu điểm và `record` của mỗi agent còn có `targetCount`, số lệnh độc lập đã đóng ở mục tiêu.
 
 ## Nghiên cứu yếu tố VN
 
