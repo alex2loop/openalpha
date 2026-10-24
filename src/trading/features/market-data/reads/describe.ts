@@ -5,6 +5,7 @@ import type { Market } from '@/trading/markets/types'
 /** One market as a surface lays it out: where it trades, its index, and the reads it answers. */
 export function describeMarket(market: Market): MarketDescription {
   const { manifest, capabilities } = market
+  const { hours } = manifest.calendar
 
   return {
     market: manifest.id,
@@ -14,6 +15,7 @@ export function describeMarket(market: Market): MarketDescription {
     currency: manifest.currency,
     icon: manifest.icon,
     ...(manifest.benchmark === undefined ? {} : { benchmark: manifest.benchmark }),
+    ...(hours === undefined ? {} : { session: hours }),
     hasBoard: capabilities.screen !== undefined,
     hasBrief: capabilities.brief !== undefined,
     hasEvents: capabilities.events !== undefined,

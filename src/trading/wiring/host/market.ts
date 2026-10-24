@@ -1,7 +1,10 @@
+import type { Locale } from '@/core/types/locale'
 import type { MarketDescription } from '@/trading/features/market-data/types'
+import type { SourceSummary } from '@/trading/kernel/source/source-result'
 import type { QuoteConvention } from '@/trading/render/money'
+import type { SourceStatus } from '@/trading/wiring/host/market-types'
 import type { MarketView, TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
-import { renderDeclaredValue } from '@/trading/render/format'
+import { renderDeclaredValue, renderProvidedValue } from '@/trading/render/format'
 import { renderMarketName, renderRegionName } from '@/trading/render/tool-detail'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
 
@@ -17,9 +20,13 @@ export type MarketMethods = Pick<
   | 'getOverview'
   | 'getMacroRisk'
   | 'describeMarkets'
+  | 'getSectors'
+  | 'listSources'
 >
 
 type SeriesMethods = Pick<MarketMethods, 'getOhlcv' | 'getEvents'>
+
+type ListingMethods = Pick<MarketMethods, 'getSectors' | 'listSources'>
 
 type PriceMethods = Pick<
   MarketMethods,
@@ -68,6 +75,17 @@ function describedMarket(
     label: renderMarketName(locale, market.market),
     segmentLabel: renderDeclaredValue(locale, `trading.segment.${market.segment}`),
     regionLabel: renderRegionName(locale, market.region),
+  }
+}
+
+function toSourceStatus(locale: Locale, summary: SourceSummary): SourceStatus {
+  const { lastFailureCode: code } = summary
+
+  return {
+    ...summary,
+    ...(code === undefined
+      ? {}
+      : { failure: renderProvidedValue(locale, `trading.source.failure.${code}`, code) }),
   }
 }
 
@@ -128,10 +146,44 @@ function priceMethods(deps: TradingHostDeps): PriceMethods {
   }
 }
 
+/** The lists an app draws a table from: one market's sectors, strongest first, and the data
+ *  sources, each named in the operator's language. */
+function listingMethods(deps: TradingHostDeps): ListingMethods {
+  return {
+    // A transport code is an internal name; the operator reads the catalog's words for it.
+    listSources: () =>
+      deps.services.marketData
+        .listSources()
+        .map((summary) => toSourceStatus(deps.defaultLocale, summary)),
+
+    getSectors: (request) =>
+      scopedSlow(deps, request.signal, async (scope) => {
+        const { asOf, sectors, caveats } = await deps.services.marketData.sectors({
+          market: request.market,
+          now: scope.now,
+          signal: scope.signal,
+        })
+
+        return {
+          asOf,
+          sectors: sectors.map((sector) => ({
+            ...sector,
+            label: renderProvidedValue(
+              deps.defaultLocale,
+              `trading.sector.${sector.sector}`,
+              sector.sector
+            ),
+          })),
+          caveats,
+        }
+      }),
+  }
+}
+
 /** The whole-market reads: each may refresh a cold market first, so each gets the slow ceiling. */
 function boardMethods(
   deps: TradingHostDeps
-): Omit<MarketMethods, keyof PriceMethods | keyof SeriesMethods> {
+): Omit<MarketMethods, keyof PriceMethods | keyof SeriesMethods | keyof ListingMethods> {
   return {
     // An unregistered market is refused inside the service, the one holder of the registry.
     screen: (request) =>
@@ -177,5 +229,10 @@ function boardMethods(
 }
 
 export function marketMethods(deps: TradingHostDeps): MarketMethods {
-  return { ...seriesMethods(deps), ...priceMethods(deps), ...boardMethods(deps) }
+  return {
+    ...seriesMethods(deps),
+    ...priceMethods(deps),
+    ...listingMethods(deps),
+    ...boardMethods(deps),
+  }
 }

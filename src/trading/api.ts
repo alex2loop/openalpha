@@ -6,10 +6,12 @@
 
 export type { BriefText } from '@/trading/features/brief/surface'
 export type { RebalanceText } from '@/trading/features/portfolio/render/rebalance-surface'
+export type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 export type { ReflectText } from '@/trading/features/suggestion/track-record/surface'
 export type { TypedPrice } from '@/trading/kernel/surface/surface'
 export type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/composition/app-views'
 export type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
+export type { SourceStatus, TradingSectorsView } from '@/trading/wiring/host/market-types'
 export type {
   HeldStopView,
   MarketView,
@@ -84,7 +86,6 @@ export type {
   PortfolioFinding,
   PortfolioService,
   RebalancePlanResult,
-  SizedValuedBook,
   ValuedBook,
   ValuedPosition,
   VenueChoice,
@@ -215,7 +216,7 @@ export { formatClock, formatInstant } from '@/trading/render/datetime'
 export { renderFocusLabel } from '@/trading/render/focus'
 export { toPlainText } from '@/trading/render/fold'
 export { formatSignedFixedFraction, resolveRenderContext } from '@/trading/render/format'
-export { formatPriceIn, quotedInOf } from '@/trading/render/money'
+export { formatPriceIn, formatSignedFlowIn, quotedInOf } from '@/trading/render/money'
 export { renderLoopQuarantineNotice } from '@/trading/render/quarantine'
 export { renderRestatementNotice } from '@/trading/render/restatement'
 export { SURFACE_LIMITS } from '@/trading/surface-limits'

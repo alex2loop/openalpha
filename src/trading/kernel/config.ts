@@ -84,6 +84,15 @@ export interface CalendarPolicy {
   readonly continuous: boolean
 }
 
+/** The hours a market trades, as `HH:MM` on its own clock: what a surface times its open, lunch
+ *  and close from. A calendar that never closes has none. */
+export interface SessionHours {
+  readonly timezone: string
+  readonly open: string
+  readonly close: string
+  readonly breaks?: readonly { readonly from: string; readonly to: string }[]
+}
+
 export interface SuggestionPolicy {
   readonly cooldownSessions: number
   /** How long a market with no session boundary keeps serving its last answer. Its calendar day is

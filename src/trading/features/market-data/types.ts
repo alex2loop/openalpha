@@ -1,3 +1,4 @@
+import type { SessionHours } from '@/trading/kernel/config'
 import type {
   BoardLotPolicy,
   CurrencyCode,
@@ -83,6 +84,8 @@ export interface MarketDescription {
   readonly icon: string
   /** The index its suggestions are measured against; absent where it keeps none. */
   readonly benchmark?: InstrumentRef
+  /** When it trades; absent for a market that never closes. */
+  readonly session?: SessionHours
   /** Whether it answers a screen board, a morning brief, and corporate events. */
   readonly hasBoard: boolean
   readonly hasBrief: boolean

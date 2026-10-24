@@ -20,7 +20,8 @@ import type {
 import type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
 import type { NavHistory, NavWindow } from '@/trading/features/portfolio/nav/types'
 import type { ReconcileSentences } from '@/trading/features/portfolio/render/reconcile'
-import type { SizedValuedBook, VenueChoice } from '@/trading/features/portfolio/types'
+import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
+import type { VenueChoice } from '@/trading/features/portfolio/types'
 import type { SuggestionCard } from '@/trading/features/suggestion/render/card'
 import type { TrackRecordReflection } from '@/trading/features/suggestion/suggestion'
 import type {
@@ -68,6 +69,11 @@ import type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/compos
 import type { IntradayNext } from '@/trading/wiring/composition/intraday-next'
 import type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
+import type {
+  SourceStatus,
+  TradingSectorsRequest,
+  TradingSectorsView,
+} from '@/trading/wiring/host/market-types'
 
 interface TradingSignalRequest {
   readonly signal: AbortSignal
@@ -332,9 +338,13 @@ export interface TradingHost {
   getOverview(signal: AbortSignal): Promise<readonly MarketDataOverview[]>
   getMacroRisk(request: TradingRegionRequest): Promise<TradingMacroView>
   describeMarkets(): TradingMarketsView
+  /** The market's sectors, strongest first; a market that files none answers empty with a caveat. */
+  getSectors(request: TradingSectorsRequest): Promise<TradingSectorsView>
+  /** Every source's health as this process has seen it. */
+  listSources(): readonly SourceStatus[]
   getProfile(signal: AbortSignal): Promise<UserProfile>
   updateProfile(request: TradingProfileUpdateRequest): Promise<UserProfile>
-  getPortfolio(request: TradingSignalRequest): Promise<SizedValuedBook>
+  getPortfolio(request: TradingSignalRequest): Promise<PortfolioView>
   getNavHistory(request: TradingNavRequest): Promise<NavHistory>
   getStopDistances(request: TradingSignalRequest): Promise<readonly HeldStopView[]>
   getRebalance(request: TradingRebalanceRequest): Promise<RebalanceView>

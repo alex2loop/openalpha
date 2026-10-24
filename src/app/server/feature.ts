@@ -14,6 +14,7 @@ import { DEBATE_ROUTES } from '@/app/server/routes/debate'
 import { DIGEST_ROUTES } from '@/app/server/routes/digest'
 import { JOB_ROUTES } from '@/app/server/routes/jobs'
 import { MARKET_ROUTES } from '@/app/server/routes/market'
+import { MARKET_EXTRA_ROUTES } from '@/app/server/routes/market-extra'
 import { MCP_ROUTES } from '@/app/server/routes/mcp'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
 import { NOTICE_ROUTES } from '@/app/server/routes/notices'
@@ -48,6 +49,7 @@ const ROUTES = [
   ...DEBATE_ROUTES,
   ...DIGEST_ROUTES,
   ...MARKET_ROUTES,
+  ...MARKET_EXTRA_ROUTES,
   ...MONEY_ROUTES,
   ...NOTICE_ROUTES,
   ...ORDER_ROUTES,

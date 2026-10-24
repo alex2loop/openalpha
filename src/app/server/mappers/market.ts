@@ -3,8 +3,14 @@ import type {
   InstrumentSearchResponse,
   MacroResponse,
   MarketsResponse,
+  OverviewLeadersWire,
+  OverviewLeaderWire,
+  OverviewMoversWire,
+  OverviewMoverWire,
   OverviewResponse,
   ScreenResponse,
+  SectorsResponse,
+  SourcesResponse,
 } from '@/app/server/wire/market'
 import type * as Vocab from '@/app/server/wire/vocab'
 import type { Locale } from '@/core/types/locale'
@@ -24,12 +30,14 @@ import type {
   ScreenAnswer,
   ScreenView,
   SourceFreshness,
+  SourceStatus,
   TradingMacroView,
   TradingMarketsView,
+  TradingSectorsView,
   TypedPrice,
 } from '@/trading/api'
 import { toCaveatWires, toInstrumentWire } from '@/app/server/mappers/trading'
-import { MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
+import { formatSignedFlowIn, MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
 
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
 // a value added on either side fails typecheck here.
@@ -106,6 +114,7 @@ export function toMarketsWire(view: TradingMarketsView): MarketsResponse {
       regionLabel: market.regionLabel,
       icon: market.icon,
       ...(market.benchmark === undefined ? {} : { benchmark: toInstrumentWire(market.benchmark) }),
+      ...(market.session === undefined ? {} : { session: market.session }),
       hasBoard: market.hasBoard,
       hasBrief: market.hasBrief,
       hasEvents: market.hasEvents,
@@ -144,30 +153,84 @@ function toOverviewRowWire(row: OverviewRow): OverviewResponse['markets'][number
   }
 }
 
+type OverviewBlockWire = OverviewResponse['markets'][number]
+type OverviewLeaders = NonNullable<MarketDataOverview['leaders']>
+type OverviewLeader = NonNullable<OverviewLeaders['mostTraded']>[number]
+type OverviewMovers = NonNullable<MarketDataOverview['movers']>
+type OverviewMover = OverviewMovers['gainers'][number]
+
 export function toOverviewWire(
   blocks: readonly MarketDataOverview[],
   locale: Locale
 ): OverviewResponse {
+  return { markets: blocks.map((block) => toOverviewBlockWire(block, locale)) }
+}
+
+function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): OverviewBlockWire {
+  const { breadth, foreignNetValue, leaders, movers } = block
+
   return {
-    markets: blocks.map((block) => ({
-      market: block.market,
-      asOf: block.asOf,
-      ...(block.sessionState === undefined ? {} : { sessionState: block.sessionState }),
-      currency: block.currency,
-      ...(block.priceCurrency === undefined ? {} : { priceCurrency: block.priceCurrency }),
-      rows: block.rows.map(toOverviewRowWire),
-      ...(block.breadth === undefined
-        ? {}
-        : {
-            breadth: {
-              advancers: block.breadth.advancers,
-              decliners: block.breadth.decliners,
-              measured: block.breadth.measured,
-            },
-          }),
-      ...(block.foreignNetValue === undefined ? {} : { foreignNetValue: block.foreignNetValue }),
-      caveats: toCaveatWires(block.caveats, locale),
-    })),
+    market: block.market,
+    asOf: block.asOf,
+    ...(block.sessionState === undefined ? {} : { sessionState: block.sessionState }),
+    currency: block.currency,
+    ...(block.priceCurrency === undefined ? {} : { priceCurrency: block.priceCurrency }),
+    rows: block.rows.map(toOverviewRowWire),
+    ...(breadth === undefined
+      ? {}
+      : {
+          breadth: {
+            advancers: breadth.advancers,
+            decliners: breadth.decliners,
+            measured: breadth.measured,
+          },
+        }),
+    ...(foreignNetValue === undefined
+      ? {}
+      : {
+          foreignNetValue,
+          foreignNetText: formatSignedFlowIn(locale, foreignNetValue, block.currency),
+        }),
+    ...(leaders === undefined ? {} : { leaders: toLeadersWire(leaders) }),
+    ...(movers === undefined ? {} : { movers: toMoversWire(movers) }),
+    caveats: toCaveatWires(block.caveats, locale),
+  }
+}
+
+function toLeadersWire(leaders: OverviewLeaders): OverviewLeadersWire {
+  const { window, sessions, foreignBuys, foreignSells, mostTraded } = leaders
+
+  return {
+    window,
+    ...(sessions === undefined ? {} : { sessions }),
+    ...(foreignBuys === undefined ? {} : { foreignBuys: foreignBuys.map(toLeaderWire) }),
+    ...(foreignSells === undefined ? {} : { foreignSells: foreignSells.map(toLeaderWire) }),
+    ...(mostTraded === undefined ? {} : { mostTraded: mostTraded.map(toLeaderWire) }),
+  }
+}
+
+function toLeaderWire(leader: OverviewLeader): OverviewLeaderWire {
+  return {
+    instrument: toInstrumentWire(leader.instrument),
+    value: leader.value,
+    ...(leader.sharePct === undefined ? {} : { sharePct: leader.sharePct }),
+    ...(leader.changePct === undefined ? {} : { changePct: leader.changePct }),
+  }
+}
+
+function toMoversWire(movers: OverviewMovers): OverviewMoversWire {
+  return {
+    window: movers.window,
+    gainers: movers.gainers.map(toMoverWire),
+    losers: movers.losers.map(toMoverWire),
+  }
+}
+
+function toMoverWire(mover: OverviewMover): OverviewMoverWire {
+  return {
+    instrument: toInstrumentWire(mover.instrument),
+    changePct: mover.changePct,
+    turnover: mover.turnover,
   }
 }
 
@@ -258,5 +321,40 @@ export function toAlertWire(alert: Alert): AlertWire {
         triggeredAt: alert.triggeredAt,
         observedPrice: alert.observedPrice,
       }
+  }
+}
+
+export function toSectorsWire(
+  market: string,
+  view: TradingSectorsView,
+  locale: Locale
+): SectorsResponse {
+  return {
+    market,
+    asOf: view.asOf,
+    sectors: view.sectors.map((entry) => ({
+      sector: entry.sector,
+      label: entry.label,
+      memberCount: entry.memberCount,
+      ...(entry.sessionReturn === undefined ? {} : { sessionReturn: entry.sessionReturn }),
+      ...(entry.excessReturnShort === undefined
+        ? {}
+        : { excessReturnShort: entry.excessReturnShort }),
+      ...(entry.excessReturnLong === undefined ? {} : { excessReturnLong: entry.excessReturnLong }),
+      ...(entry.score === undefined ? {} : { score: entry.score }),
+    })),
+    caveats: toCaveatWires(view.caveats, locale),
+  }
+}
+
+export function toSourcesWire(statuses: readonly SourceStatus[]): SourcesResponse {
+  return {
+    sources: statuses.map((status) => ({
+      id: status.id,
+      kind: status.kind,
+      ...(status.lastSuccessAt === undefined ? {} : { lastSuccessAt: status.lastSuccessAt }),
+      ...(status.failure === undefined ? {} : { failure: status.failure }),
+      breaker: status.breaker,
+    })),
   }
 }

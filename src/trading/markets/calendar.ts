@@ -1,4 +1,4 @@
-import type { CalendarPolicy } from '@/trading/kernel/config'
+import type { CalendarPolicy, SessionHours } from '@/trading/kernel/config'
 import type { SessionPhase, TradingDay, TradingSessionState } from '@/trading/kernel/instrument'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
@@ -88,6 +88,7 @@ export function createTradingCalendar(
   return {
     timezone: policy.timezone,
     continuous: policy.continuous,
+    ...(policy.continuous ? {} : { hours: toSessionHours(policy) }),
     ...(lastHoliday === undefined ? {} : { lastHoliday }),
     isTradingDay,
     dayAt: (epochMs) => dayFromEpochSeconds(epochMs / MS_PER_SECOND, policy.timezone),
@@ -96,6 +97,17 @@ export function createTradingCalendar(
     sessionCloseAt,
     tapeFinalAt: (day) => sessionCloseAt(day) + TAPE_SETTLE_LAG_MS,
     sessionState: (epochMs) => resolveSessionState({ epochMs, policy, session, isTradingDay }),
+  }
+}
+
+function toSessionHours(policy: CalendarPolicy): SessionHours {
+  const { breakStartLocalTime: from, breakEndLocalTime: to } = policy
+
+  return {
+    timezone: policy.timezone,
+    open: policy.sessionOpenLocalTime,
+    close: policy.sessionCloseLocalTime,
+    ...(from === undefined || to === undefined ? {} : { breaks: [{ from, to }] }),
   }
 }
 

@@ -28,9 +28,9 @@ import type {
   NavBenchmark,
   NavHistory,
   NewsItem,
+  PortfolioView,
   QuoteBoard,
   QuoteBoardItem,
-  SizedValuedBook,
   SourceProvenance,
   StoredSuggestion,
   SuggestionCard,
@@ -191,7 +191,7 @@ export function toProfileWire(profile: UserProfile, locale: Locale): TradingProf
   }
 }
 
-export function toPortfolioWire(sized: SizedValuedBook, locale: Locale): TradingPortfolioResponse {
+export function toPortfolioWire(sized: PortfolioView, locale: Locale): TradingPortfolioResponse {
   const book = sized.valued
   const context = { navBase: book.navBase, minimumSizes: sized.minimumSizes, locale }
 
@@ -202,6 +202,7 @@ export function toPortfolioWire(sized: SizedValuedBook, locale: Locale): Trading
     cashBase: book.book.cashBase,
     availableCashBase: book.book.availableCashBase,
     positions: book.positions.map((position) => toPositionWire(position, context)),
+    shares: { segments: sized.shares },
     caveats: toCaveatWires(book.caveats, locale),
   }
 }

@@ -1,3 +1,4 @@
+import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 import type { StopCover } from '@/trading/kernel/operator/alert'
 import type { AgentMethods } from '@/trading/wiring/host/agents'
 import type { LedgerMethods } from '@/trading/wiring/host/ledger'
@@ -5,6 +6,7 @@ import type { MarketMethods } from '@/trading/wiring/host/market'
 import type { OrderMethods } from '@/trading/wiring/host/order'
 import type { HeldStopView, TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { reconcileSentences } from '@/trading/features/portfolio/render/reconcile'
+import { toSegmentShares } from '@/trading/features/portfolio/render/segment-shares'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
 
@@ -47,14 +49,24 @@ async function heldStops(
   })
 }
 
+/** The valued book beside the profile it is held to: the segment shares need both. */
+async function portfolioView(
+  deps: TradingHostDeps,
+  scope: { readonly now: number; readonly signal: AbortSignal }
+): Promise<PortfolioView> {
+  const [sized, profile] = await Promise.all([
+    deps.services.portfolio.viewAbsoluteSized({ now: scope.now, signal: scope.signal }),
+    profileOf(deps, scope),
+  ])
+
+  return { ...sized, shares: toSegmentShares(sized.valued, profile) }
+}
+
 function bookMethods(deps: TradingHostDeps): BookMethods {
   return {
     // The only method that reaches the absolute view. Everything an agent can reach goes through
     // the relative surface, which this host does not expose at all.
-    getPortfolio: (request) =>
-      scoped(deps, request.signal, (scope) =>
-        deps.services.portfolio.viewAbsoluteSized({ now: scope.now, signal: scope.signal })
-      ),
+    getPortfolio: (request) => scoped(deps, request.signal, (scope) => portfolioView(deps, scope)),
 
     getNavHistory: (request) =>
       scoped(deps, request.signal, (scope) =>

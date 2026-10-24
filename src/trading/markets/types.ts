@@ -1,6 +1,6 @@
 import type { CalculationVersion } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { CalendarPolicy } from '@/trading/kernel/config'
+import type { CalendarPolicy, SessionHours } from '@/trading/kernel/config'
 import type {
   FactorId,
   FactorRequest,
@@ -84,6 +84,7 @@ export interface TradingCalendar {
    *  state and no end-of-day refresh to schedule. Its bars are still settled days only — the day in
    *  progress is never evidence. Effective after any override, like `timezone`. */
   readonly continuous: boolean
+  readonly hours?: SessionHours
   /** The newest closure the exchange's published table reaches. Absent where the market observes
    *  none beyond its weekend. */
   readonly lastHoliday?: TradingDay

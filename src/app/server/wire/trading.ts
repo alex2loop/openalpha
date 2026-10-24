@@ -4,6 +4,7 @@
 // payload, credential, SQL row, or `unknown` field crosses this boundary.
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
+import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
 import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
   AssetClass,
@@ -196,6 +197,7 @@ export interface TradingPortfolioResponse {
   readonly cashBase: number
   readonly availableCashBase: number
   readonly positions: readonly AbsolutePositionWire[]
+  readonly shares: PortfolioSharesWire
   readonly caveats: readonly TradingWireCaveat[]
 }
 
