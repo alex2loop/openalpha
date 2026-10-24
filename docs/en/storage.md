@@ -49,11 +49,11 @@ mean `db stats` is hiding a failed migration.
 | `sessions`, `session_messages` | Session lifecycle and transcript. No usage total is stored: per-session totals are added up from `llm_attempts` each time they are read, so they cannot drift. |
 | `llm_attempts` | Append-only record of every model attempt, and of global cost. |
 | `runs` | One row per finished long-running command and per agent run whose answer reaches a surface (and the child runs they started): what the activity page lists. A run's cost is read from `llm_attempts`, never copied here. |
-| `notices` | The bell: every notice of weight sneak, nudge or interrupt the daemon raised (alerts, stops, the brief, fills, approvals, spent budgets, its own sentences), with the channels it also went to and whether you read it. |
+| `notices` | The bell: every notice the daemon raised for you rather than as a passing screen update (alerts, stops, the brief, fills, approvals, spent budgets, its own sentences), with the channels it also went to and whether you read it. |
 | `bindings`, `pairings` | Chat routing aliases and channel pairing state. |
 | `channel_state` | Channel checkpoints: poll offsets and session routes. |
 | `channel_inbox` | Inbound queue and retries; payloads of completed or failed entries; a finished run's answer when its final send failed. |
-| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, what starts a job that waits for an alert and when it last ran for each name, heartbeat progress and deferred commitments. |
+| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, what starts an event job and when it last ran for each name, heartbeat progress and deferred commitments. |
 | `memory_kv` | Agent memory. SQLite adds FTS5 search; PostgreSQL uses its text-search facilities. |
 
 Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots`,

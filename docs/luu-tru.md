@@ -48,11 +48,11 @@ Nếu một bảng giao dịch biến mất sau khi reset, nghĩa là migration 
 | `sessions`, `session_messages` | Vòng đời phiên chat và bản ghi hội thoại. Không lưu tổng lượng dùng riêng: tổng theo phiên chat được cộng lại từ `llm_attempts` mỗi khi đọc, nên không thể lệch. |
 | `llm_attempts` | Sổ chỉ ghi thêm: từng lần gọi mô hình và chi phí toàn cục. |
 | `runs` | Một dòng cho mỗi câu lệnh chạy lâu và mỗi phiên chạy của agent có câu trả lời đến bạn đã kết thúc (cùng các phiên chạy con do chúng khởi động): trang hoạt động liệt kê từ đây. Chi phí của một phiên chạy được đọc từ `llm_attempts`, không chép vào đây. |
-| `notices` | Chuông thông báo: mọi thông báo mức sneak, nudge hoặc interrupt mà daemon đã phát (cảnh báo, điểm dừng lỗ, bản tin sáng, lệnh khớp, yêu cầu duyệt, ngân sách cạn, những câu daemon tự ghi), kèm các kênh đã nhận và việc bạn đã đọc chưa. |
+| `notices` | Chuông thông báo: mọi thông báo daemon phát ra cho bạn chứ không phải chỉ để cập nhật màn hình trong chốc lát (cảnh báo, điểm dừng lỗ, bản tin sáng, lệnh khớp, yêu cầu duyệt, ngân sách cạn, những câu daemon tự ghi), kèm các kênh đã nhận và việc bạn đã đọc chưa. |
 | `bindings`, `pairings` | Bí danh định tuyến chat và trạng thái ghép nối kênh. |
 | `channel_state` | Mốc tiến độ của kênh: offset polling và tuyến phiên chat. |
 | `channel_inbox` | Hàng đợi tin đến và số lần thử lại; nội dung của các mục đã xong hoặc đã hỏng; câu trả lời của phiên chạy đã xong nhưng lần gửi cuối bị lỗi. |
-| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các lần chạy, điều kiện kích hoạt của việc chờ cảnh báo cùng lần chạy gần nhất cho từng mã, tiến độ heartbeat và các cam kết hoãn lại. |
+| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các lần chạy, điều kiện kích hoạt của việc theo sự kiện cùng lần chạy gần nhất cho từng mã, tiến độ heartbeat và các cam kết hoãn lại. |
 | `memory_kv` | Bộ nhớ agent. SQLite thêm tìm kiếm FTS5; PostgreSQL dùng các tiện ích text-search. |
 
 Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundamental_snapshots`,

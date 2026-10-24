@@ -17,7 +17,7 @@ ba nơi:
 | Người dùng | `<data_dir>/agents/<id>/agent.toml` | Không đáng tin |
 
 Mức tin cậy quyết định loader đọc những trường nào. `reasoning` bị từ chối trên hồ sơ không đáng tin, còn `model_tier` bị từ chối trừ khi ngữ cảnh dựng đặt
-`allowModelTier`, và chỉ provider agent người dùng đặt nó ([app/providers.ts](../../src/app/providers.ts)). Agent plugin
+`allowModelTier`, và chỉ nơi nạp agent người dùng đặt nó ([app/providers.ts](../../src/app/providers.ts)). Agent plugin
 không đặt cờ này. `system_prompt` của hồ sơ không đáng tin bị quét tìm mẫu chỉ dẫn bị chặn. Schema nghiêm là có chủ ý: một khóa năng lực gõ sai mà bị bỏ qua
 sẽ được đọc như một quyền đã cấp. Mọi trường `[capabilities]` là một cái trần, không bao giờ là một cái sàn; không trường
 nào nới quyền.
@@ -106,13 +106,13 @@ là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc,
 
 `maxSpawn` giới hạn một lời gọi, không giới hạn cả cây phiên chạy: `maxSpawn` agent con đầu tiên của lời gọi khởi động, phần còn
 lại trả về là các mục thất bại "chưa bắt đầu" nói rằng lời gọi xin nhiều hơn mức agent được khởi động cùng lúc, cùng dòng có khóa
-`tools.spawn.full` (`count` là số đã khởi động), hiện thành một dòng tiến độ bền ngay khi áp giới hạn, trước khi các
+`tools.spawn.full` (`count` là số đã khởi động; `tools.spawn.fullOne` khi chỉ có 1), hiện thành một dòng tiến độ bền ngay khi áp giới hạn, trước khi các
 agent con được nhận bắt đầu, và mỗi mục nêu rõ mục tiêu chưa được bắt đầu. Các agent con vẫn dùng hạn ngạch nhánh của
 `DelegationQuota` trên cây phiên chạy. Mỗi kết quả là `{ role,
 status: done | partial | failed, reason?: timeout | turns | budget | error, text }`: `turn_limit` là `turns` (dòng
 `tools.spawn.reason.turns`, `{turns}`), agent con bị hủy thì thất bại, không có lý do và không có dòng lý do. `role` được lọc
 thông tin xác thực khi vào. `resolveToolGrant` bỏ `spawn` khỏi `tools = "*"` khi `max_spawn` là 0. Ngân sách là một phần `AGENT_BUDGET_FRACTION` và mức dùng của agent con
-được cộng vào agent cha. Dòng nhóm (`progress.spawnLine`) đi qua tiến độ của agent cha nên kênh chat và terminal in ra; các
+được cộng vào agent cha. Dòng nhóm (`progress.spawnLine`, hoặc `progress.spawnLineOne` khi chỉ có một agent con) đi qua tiến độ của agent cha nên kênh chat và terminal in ra; các
 dòng công cụ, mô hình và lý do của từng agent con chỉ đi vào bus. Tham số là chuỗi và số: `kind: 'spawn'`, `role`, `parentRunId`.
 
 Một agent con `delegate` kết thúc vì hết giờ, lỗi, hết lượt, vòng lặp hoặc bị hủy giờ được xếp là thất bại (`isError`); chỉ

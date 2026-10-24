@@ -38,6 +38,7 @@ also pass definitions through the `channels` option of `boot` ([Extending](./ext
 interface ChannelDefinition<T extends ChannelDeliveryConfig = ChannelDeliveryConfig> {
   readonly id: ChannelId
   readonly safeConfigOverrides?: readonly string[]
+  readonly apiHosts?: readonly string[]
   resolveConfig(raw: unknown): T
   isEnabled(config: T): boolean
   admission(config: T): ChannelAdmission
@@ -49,7 +50,8 @@ A definition handles two things: this transport's config and creating the adapte
 settings are normalized once by `resolveChannelSettings`. Declarative plugins may change only the fields
 in `safeConfigOverrides`; absent means none. Telegram and Zalo allow `SAFE_DELIVERY_OVERRIDE_FIELDS`
 (`markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`, `notify_max_per_minute`);
-Zalo Personal allows none.
+Zalo Personal allows none. `apiHosts` names the hosts its adapter sends to, which `/v1/outbound` lists for a started
+channel; it is absent when the transport's hosts are not the channel's own to name.
 
 `createChannel(def)` is the author-time factory. It brands the id, rejects unknown keys and checks the
 adapter functions exist.

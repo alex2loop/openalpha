@@ -567,7 +567,7 @@ Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải 
 
 #### Những tin chỉ nằm trong chuông
 
-Ba loại tin vào chuông trong ứng dụng mà không tới chat nào, để ngày yên ắng thì điện thoại cũng yên ắng. Thêm loại tin
+Kết quả đề xuất đã chấm, tin về mã bạn giữ và việc chỉ số của khu vực giảm mạnh vào chuông trong ứng dụng mà không tới chat nào, để ngày yên ắng thì điện thoại cũng yên ắng. Thêm loại tin
 vào `[notices] chat` trong `config.toml` nếu muốn nhận cả ở chat: `call-scored`, `held-news` hoặc `index-drop` (tên nào
 khác làm daemon dừng ngay lúc khởi động, kèm danh sách hợp lệ). Mọi thứ khác daemon gửi tới chat vẫn như cũ.
 
@@ -579,7 +579,7 @@ khác làm daemon dừng ngay lúc khởi động, kèm danh sách hợp lệ). 
   daemon đã đọc: tiêu đề được lưu lại khi một `/suggest` hay một cuộc chat về mã đó đọc đến chúng, và không có gì đi lấy
   tin cho các mã bạn giữ theo lịch. Sau khi khởi động lại, nó không lặp lại tiêu đề của ngày hôm đó.
 - **Chỉ số giảm mạnh.** Khi chỉ số của khu vực giảm ít nhất 1,5% trong một phiên, mỗi phiên một lần, kiểm tra vài phút
-  một lần trong lúc phiên đang chạy. Thông báo nói bao nhiêu mã bạn giữ đang giảm và có mã nào thủng mức cắt lỗ chưa.
+  một lần trong lúc phiên đang chạy. Thông báo nói bao nhiêu mã bạn giữ trên thị trường của chỉ số đó đang giảm và có mã nào thủng mức cắt lỗ chưa.
   Nếu có mã không định giá được, nó nói bao nhiêu mã chưa kiểm tra được, và không bao giờ khẳng định là không có mã nào
   thủng.
 
@@ -1144,7 +1144,7 @@ Chat terminal và các kênh dùng chung một registry lệnh gạch chéo, nê
 
 Một lần khớp đặt qua `/trade` hay `order_place` được ghi vào sổ lệnh đúng như một `/record` thủ công. Cuốn sổ vẫn là một phép tính trên một tập dòng, và một vị thế mở ở sàn trông giống hệt một vị thế gõ tay. Một lệnh bán do một lối thoát đã kích hoạt ghi rõ chân nào đã khớp (`stopped out` / `target hit`); một lệnh bán bạn tự làm thì không nêu gì.
 
-Khi lệnh cắt lỗ hoặc chốt lời đang treo khớp ở sàn, lượt đối soát các lệnh thoát đang treo kế tiếp (mỗi 60 giây) ghi lệnh bán vào sổ giao dịch và gửi một thông báo nêu lệnh thoát nào đã khớp, sàn, khối lượng và giá, và rằng sổ giao dịch đã có dòng đó. Ứng dụng nối vào API thấy lần khớp đó một lần. Lệnh bán mà `/record sync` đã ghi trước thì không gửi gì.
+Khi lệnh cắt lỗ hoặc chốt lời đang treo khớp ở sàn, lượt đối soát các lệnh thoát đang treo kế tiếp (mỗi 60 giây) ghi lệnh bán vào sổ lệnh và gửi một thông báo nêu lệnh thoát nào đã khớp, sàn, khối lượng và giá, và rằng sổ lệnh đã có dòng đó. Ứng dụng nối vào API thấy lần khớp đó một lần. Lệnh bán mà `/record sync` đã ghi trước thì không gửi gì.
 
 **`/record sync <sàn>`** là cách thứ ba để tạo các dòng đó, và nó đi cùng đường. Nó chỉ khác ở cách chọn: nó hỏi sàn đã khớp gì, rồi ghi những gì cuốn sổ chưa có dòng. Kiểm hợp lệ, phép tính và dòng xác nhận đều dùng chung.
 

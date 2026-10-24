@@ -107,13 +107,13 @@ agent's id and a tool list inside the configured agent's, else `ValidationError`
 
 `maxSpawn` caps one call, not the run tree: the first `maxSpawn` children of a call start and the rest come back as
 failed "not started" entries saying the call asked for more than the agent may start at once, with the keyed line
-`tools.spawn.full` (`count` is the number started), shown as a persistent progress line when the cap is applied,
+`tools.spawn.full` (`count` is the number started; `tools.spawn.fullOne` when it is 1), shown as a persistent progress line when the cap is applied,
 before the accepted children start, and each entry names the goal it did not start. Children still draw on the
 run tree's `DelegationQuota` fan-out quota. Each result is
 `{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text }`: `turn_limit` is `turns`
 (line `tools.spawn.reason.turns`, `{turns}`), and an aborted child is failed with no reason and no reason line. `role` is
 scrubbed on entry. `resolveToolGrant` drops `spawn` from `tools = "*"` when `max_spawn` is 0. Budget is a slice of `AGENT_BUDGET_FRACTION` and
-child usage rolls into the parent. The group line (`progress.spawnLine`) goes through the parent's progress, so
+child usage rolls into the parent. The group line (`progress.spawnLine`, or `progress.spawnLineOne` for a single child) goes through the parent's progress, so
 channels and the terminal print it; per-child tool, model and reason lines go to the bus only. Params are strings and
 numbers: `kind: 'spawn'`, `role`, `parentRunId`.
 

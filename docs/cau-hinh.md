@@ -296,6 +296,9 @@ Bố cục dưới `data_dir`:
   openalpha.ready                   ghi khi daemon đã sẵn sàng; những gì nó đang thiếu
   daemon.stdout.log                 đầu ra lạc của daemon chạy nền, xóa trắng mỗi lần khởi động
   daemon.stderr.log                 cảnh báo và lỗi của daemon chạy nền, xóa trắng mỗi lần khởi động
+  restart.json                      ghi khi có yêu cầu khởi động lại, xóa khi daemon mới báo chuyện đó
+  restart.stdout.log                đầu ra lạc của một lần khởi động lại từ API, nơi cần xem khi nó thất bại
+  restart.stderr.log                cảnh báo và lỗi của lần khởi động lại đó
   logs/daemon.log                   log chung mặc định (`[log] file`)
   logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/
@@ -373,7 +376,7 @@ chung.
 |---|---|---|---|
 | `chat` | mảng chuỗi | `[]` | Các loại thông báo được gửi tới chat của bạn ngoài chuông. Loại hợp lệ: `call-scored`, `held-news`, `index-drop`; tên khác sẽ làm daemon dừng lúc khởi động và nêu các loại hợp lệ. |
 
-Ba loại này chỉ vào chuông trong ứng dụng, không tới chat nào trừ khi bạn liệt kê ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã daemon đã đọc: tiêu đề được lưu khi `/suggest` hoặc một cuộc chat về mã đó đọc chúng, và không có gì đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác daemon gửi tới chat vẫn như cũ.
+Các loại này chỉ vào chuông trong ứng dụng, không tới chat nào trừ khi bạn liệt kê ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã daemon đã đọc: tiêu đề được lưu khi `/suggest` hoặc một cuộc chat về mã đó đọc chúng, và không có gì đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác daemon gửi tới chat vẫn như cũ.
 
 ### `[log]`
 
@@ -476,7 +479,7 @@ chẳng được gì.
 | `delegation_depth` | số nguyên | `3` | Độ sâu lồng agent con tối đa. |
 | `max_delegations` | số nguyên | `32` | Tổng số agent con cả một phiên chạy được khởi động. |
 | `max_parallel_delegations` | số nguyên | `5` | Số mục agent con tối đa một lời gọi `delegate_parallel` nhận. |
-| `max_spawn_duration_ms` | số nguyên | `600000` | 10 phút: thời gian một agent con tự tạo làm việc trước khi mang về phần đã đọc. Tối đa 2147483647. |
+| `max_spawn_duration_ms` | số nguyên | `600000` | 10 phút: thời gian một agent con tự tạo làm việc trước khi bị dừng; phần đã đọc được trả về và đánh dấu là một phần. Tối đa 2147483647. |
 | `max_spawn_turns` | số nguyên | `12` | Số lượt mô hình mỗi agent con tự tạo có. |
 | `max_unasked_fetches` | số nguyên | `10` | Số lần gọi `web_fetch` trong một lần chạy, kể cả lần đã hỏi, trước khi mọi lần sau đều hỏi bạn. `0` là lần nào cũng hỏi. |
 
@@ -837,7 +840,7 @@ hỏi. Nên đặt lệnh khi không có người trông cần **hai** quyết �
 `credentials` chứa **tên biến**, không bao giờ chứa giá trị. Tên khóa là của chính sàn: `okx` nhận `apiKey`, `secret` và `passphrase`, `binance` nhận `apiKey` và `secret`, còn trường nào khác sẽ làm khởi động dừng lại và nêu các trường sàn đó nhận. Mỗi cái được đọc
 theo đúng tên biến đó, hoặc nếu không có thì đọc cùng tên với tiền tố `OPENALPHA_`. Thiếu một cái không
 phải lỗi khởi động: sàn không có bộ nối, không đặt được lệnh nào, `/trade` chỉ nêu tên các khóa cần đặt,
-và daemon vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ giao dịch; chỉ là không bao giờ được
+và daemon vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ lệnh; chỉ là không bao giờ được
 chọn khi định tuyến.
 
 `simulated` không phải chạy thử. Bộ nối vẫn ký, gửi và thăm dò một API thật trên môi trường demo của sàn

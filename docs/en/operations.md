@@ -145,12 +145,12 @@ again.
 `--allow-tools` restricts the job to the tools on *both* lists: the agent's allowed tools and the
 job's. `schedule show` prints the effective set with `(restricted)` or `(all)`.
 
-A job can wait for an alert instead of a time. The web page creates these: the job runs when a held
+A job can wait for an alert instead of a time; call it an event job. The office page creates these: the job runs when a held
 name breaks its stop or reaches its take-profit, when a name moves sharply in the session, or when a
 price you set is hit. It runs at most once per cooldown, a pause the job carries so a noisy name cannot run it again and again, and it
 stays on after a run, except a price job, which its one crossing spends. `schedule list` shows it as `when FPT hit the
 price you set` where other jobs show a time, `schedule edit` cannot give it a time, and `schedule
-remove` also removes the price alert it armed, and `schedule resume` refuses a price job whose alert has already fired. A failed run of a job that waits for an alert is not counted toward switching it off, so one that keeps failing stays on and sends a failure notice at each crossing, at most once per cooldown.
+remove` also removes the price alert it armed, and `schedule resume` refuses a price job whose alert has already fired. A failed run of an event job is not counted toward switching it off, so one that keeps failing stays on and sends a failure notice at each crossing, at most once per cooldown.
 
 Cron takes five fields with wildcards, ranges, steps (`*/15`, `1-5/2`) and comma lists. When both
 day-of-month and weekday are restricted, **either** match is enough; a day field that starts with `*`
@@ -365,19 +365,19 @@ Run the daemon on a server you own and point a client app at it.
    `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
    handshake is refused with 503 `too_many_streams`.
 
-Once connected, the app is shown what the daemon is doing as it happens: each answer and long command that is
+Once connected, the office page is shown what the daemon is doing as it happens: each answer and long command that is
 running with its latest step, every approval and question still waiting on any channel, a fill (a resting
-stop or take-profit selling, or a `/trade` fill), each tool a run starts and finishes, what each debate role said once a `/suggest` is verified (shown in the app only, never sent to a chat), a new agent joining, the moment a spend cap is reached, and when the alerts were last checked. These go to the bell and to no chat unless `[notices] chat` lists them: a call scored, news on a name you hold, and the index falling hard in a session. News on a holding covers only names the daemon has already read, since nothing fetches it for your holdings on a schedule. An app that
+stop or take-profit selling, or a `/trade` fill), each tool a run starts and finishes, what each debate role said once a `/suggest` is verified (shown on the office page only, never sent to a chat), a new agent joining, the moment a spend cap is reached, and when the alerts were last checked. These go to the bell and to no chat unless `[notices] chat` lists them: a call scored, news on a name you hold, and the index falling hard in a session. News on a holding covers only names the daemon has already read, since nothing fetches it for your holdings on a schedule. A page that
 connects late asks for the picture as it stands, then follows the stream. A request asked on Telegram or another
-channel appears in the app but is answered where it was asked; the app says so instead of answering it. The app can stop any run you see, including one started on Telegram: stopping only tells it to stop, and it ends as stopped, whether it was an answer in progress or a command. A run that has already finished answers that it is gone. The app also lists the chats paired on each channel and can unpair one, which does what `pair revoke` does: that chat is asked for a pairing code again on its next message.
+channel appears on the office page but is answered where it was asked; the office page says so instead of answering it. The office page can stop any run you see, including one started on Telegram: stopping only tells it to stop, and it ends as stopped, whether it was an answer in progress or a command. A run that has already finished answers that it is gone. The office page also lists the chats paired on each channel and can unpair one, which does what `pair revoke` does: that chat is asked for a pairing code again on its next message.
 
-The app also reads what the daemon knows without a command: the history of every chat, Telegram's included, which it can search but only continue for chats it started itself; each data source and when it last answered; the hosts the daemon can reach and what is sent to each; the models in use with their prices and what a run on each usually costs; sector strength by market; and your watchlist, which it can edit.
+The office page also reads what the daemon knows without a command: the history of every chat, Telegram's included, which it can search but only continue for chats it started itself; each data source and when it last answered; the hosts the daemon can reach and what is sent to each; the models in use with their prices and what a run on each usually costs; sector strength by market; and your watchlist, which it can edit.
 
 When the daemon stops, the API stops accepting connections and requests first, before the runs drain;
 requests already running finish. A chat or command sent on an open stream is answered with an
 `unavailable` error, a run already going settles in the drain window, and the streams close after it.
 
-The app can also restart a daemon that was started with `--background`: choose to restart once nothing is working (it waits a few minutes at most, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the grace it gets while stopping is cut off, and the app warns about the approvals first. When the daemon is back, the bell shows "The daemon restarted." and nothing goes to a chat. A daemon running in a terminal or under a service cannot be restarted from the app: stop it with Ctrl+C or the service manager and start it again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
+The office page can also restart a daemon that was started with `--background`: choose to restart once nothing is working (it waits a couple of minutes at most, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the grace it gets while stopping is cut off, and the office page warns about the approvals first. When the daemon is back, the bell shows "The daemon restarted." and nothing goes to a chat. If an accepted restart fails, the daemon keeps running as before and the bell says so, pointing to the restart log in the data folder. A daemon running in a terminal or under a service cannot be restarted from the office page: stop it with Ctrl+C or the service manager and start it again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
 
 Internals: [dev/operations.md](dev/operations.md).
 

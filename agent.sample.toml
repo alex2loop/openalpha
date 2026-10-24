@@ -86,8 +86,8 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #               "market_accounts" (a VN company's filed annual accounts).
 #   delegates - agent IDs callable through `delegate` (also include `delegate`
 #               in tools). Omitted or empty = delegation disabled.
-#   max_spawn - 1 to 4: child agents this agent may have reading at once through
-#               `spawn` (also include `spawn` in tools). Omitted or 0 = it may not spawn.
+#   max_spawn - 1 to 4: child agents one `spawn` call may start; the rest of a bigger call
+#               are not started (also include `spawn` in tools). Omitted or 0 = it may not spawn.
 #   hosts     - hostnames web_fetch and research page reads may reach. Omitted = any host allowed by the
 #               SSRF policy; `*.example.com` matches example.com and its subdomains.
 #               Either way, a link the agent builds itself asks you first.
@@ -110,7 +110,7 @@ tools = [
 # An agent made in the office page is written to this same file with a fixed tool preset:
 # web search and fetch, memory, the read-only market and suggestion tools, now and calc,
 # plus spawn when max_spawn is above 0. Never a shell, a file write or a schedule. When the
-# page edits such a file it keeps the turn and token caps, hosts, skills and delegates you
+# page edits such a file it keeps the turn, token and time caps, hosts, skills and delegates you
 # wrote here and replaces only what it owns.
 
 # ---- Workspace boundary -----------------------------------------------------

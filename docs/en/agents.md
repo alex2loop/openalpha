@@ -24,7 +24,8 @@ openalpha agent edit web-researcher  # opens it in $EDITOR
 
 A missing `agents/` directory is normal, not an error.
 
-`openalpha agent list` and `show <id>` inspect agents. `remove <id>` deletes one of yours, pauses the schedules that were on for it, and cannot touch a
+`openalpha agent list` and `show <id>` inspect agents; `show` also prints the tools, delegates, turn cap and how many
+children the agent may spawn. `remove <id>` deletes one of yours, pauses the schedules that were on for it, and cannot touch a
 built-in. `agent bind`, `unbind` and `bindings` map a channel chat to an agent - see [Commands](commands.md).
 
 ### From the office page
@@ -35,12 +36,15 @@ still works.
 
 - A new or edited agent is checked the way the daemon checks a file at start: the file shape, the id, the focus,
   the budget cap, the prompt scan and the model tier. A refusal comes back in plain words and nothing is written.
+- The page creates up to 50 agents of your own; past that it asks you to delete one first.
 - The agent answers on its next message, with no restart. A run already going keeps the definition it started
   with.
-- Its tools are a fixed set: web research, memory, and read-only market and suggestion tools. Never a shell or a
-  file write. Giving it `max_spawn` adds `spawn` to the set.
-- An edit replaces the whole definition: anything the page does not send is removed. Built-in and plugin agents
-  can be read there but not edited or deleted.
+- Its tools are a fixed set: web research, memory, the clock and a calculator, and read-only market and suggestion
+  tools. Never a shell or a file write. Giving it `max_spawn` adds `spawn` to the set.
+- The page owns the name, description, prompt, focus, daily cap, model tier, look, tools and `max_spawn`: an edit
+  replaces each, or removes it when the page leaves it out. Everything else in the file is kept, such as turn,
+  token and time caps, `hosts`, `skills`, `delegates` and `reasoning`. Built-in and plugin agents can be read there
+  but not edited or deleted.
 - Deleting an agent removes its folder and pauses every schedule that was on for it, so none keeps firing at a
   name that no longer resolves; the bell says how many. Its memory, sessions, spend and track record stay. An
   agent that is on a social network is refused until it leaves.
@@ -84,7 +88,7 @@ ignored would read as a permission you granted.
 | `[focus]` | table | none | What the agent looks at. See [Focus, spend and pause](#focus-spend-and-pause). |
 | `[look]` | table | none | How the agent's character looks in the office page: a few short parts, each a lowercase word or hyphenated slug (`hair = "short"`). The daemon only stores it and refuses a part that is not shaped that way; the page decides which values it can draw and fills any part you leave out from the agent's id. |
 | `model_tier` | string | none | A tier in `[model_tiers]` whose every entry supports tools. Your agents may set it; untrusted plugin agents may not. |
-| `reasoning` | enum | `'default'` | **Trusted agents only.** Your agents may not set it. |
+| `reasoning` | enum | `'default'` | **Trusted agents only:** built-in and bundled-plugin agents. |
 | `[capabilities]` | table | see below | Security ceiling; every field only narrows access. |
 
 An id starts with a lowercase letter or digit and holds only lowercase letters, digits, underscores, hyphens or
@@ -210,7 +214,7 @@ one general chat.
 | `[loop] max_delegations` | Total children one run may ever start, across both tools. |
 | `[loop] max_parallel_delegations` | Max items in one `delegate_parallel` call. |
 | `spawn` tool | Starts short-lived read-only child agents the agent describes itself; see [Spawned child agents](#spawned-child-agents). |
-| `[capabilities] max_spawn` | How many spawned children may read at once, 1 to 4. Absent or `0` means the agent may not spawn. |
+| `[capabilities] max_spawn` | How many spawned children one `spawn` call may start, 1 to 4. Absent or `0` means the agent may not spawn. |
 | `[loop] max_spawn_duration_ms`, `max_spawn_turns` | Time (default 10 minutes) and model turns (default `12`) each spawned child gets. |
 
 A rostered child uses its own tool allowlist: it may use a tool its parent cannot call directly, and a tool
@@ -269,7 +273,7 @@ runner failures stay visible, and an unexpected failure is isolated to its own e
 
 An agent with `spawn` in its tools and `max_spawn` above `0` can split a question into independent reads, such as one
 company's dividends and its quarterly accounts, and start one short-lived child agent per part. The chat assistant
-may start up to `2` at once. Pass `goal` for one child, or `items` for one child per part, plus a `role` label and the
+may start up to `2` in one call. Pass `goal` for one child, or `items` for one child per part, plus a `role` label and the
 `context` the children need: they see none of the conversation.
 
 - A child is the parent's own agent narrowed: web, market and news reads and memory recall only. It never trades,

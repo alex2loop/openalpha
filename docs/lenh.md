@@ -140,7 +140,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
 | `/memory` | Gọi lại một mục theo khóa (`/memory <khóa>`), tìm (`find <từ khóa>`), ghi nhớ (`remember <khóa> <giá trị>`) hoặc xóa (`forget <khóa>`) |
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
-| `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn). Nó chỉ liệt kê các việc tạo từ chat này, mỗi việc theo id và nội dung. Việc tạo ở terminal hay trên trang web không thuộc chat nào nên không hiện ở đây: quản lý nó bằng `schedule` ở terminal hoặc trên trang, nơi việc chờ một cảnh báo thay vì chờ giờ hiện cảnh báo nó chờ (`khi FPT thủng mức cắt lỗ`) thay cho giờ |
+| `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn). Nó chỉ liệt kê các việc tạo từ chat này, mỗi việc theo id và nội dung. Việc tạo ở terminal hay trên trang văn phòng không thuộc chat nào nên không hiện ở đây: quản lý nó bằng `schedule` ở terminal hoặc trên trang, nơi việc chờ một cảnh báo thay vì chờ giờ hiện cảnh báo nó chờ (`khi FPT thủng mức cắt lỗ`) thay cho giờ |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
 | `/new` | Chuyển sang một phiên chat mới; các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
@@ -266,7 +266,7 @@ tìm kiếm web hay của một máy chủ MCP chưa đặt, hoặc bot token Te
 chối, đều chỉ làm phần cần đến nó chưa chạy: daemon in mỗi mục một dòng cảnh báo (dấu `!`, ra stderr) nói
 việc gì đang chờ và cách sửa. Ở tiền cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt; dòng về kênh
 hiện khi các kênh mở, sau khi tải xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng
-báo thành công. Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ giao dịch và các việc không cần
+báo thành công. Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ lệnh và các việc không cần
 AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn lưu khóa bằng `openalpha key set <NAME>` rồi
 `restart --background`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
 cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có daemon khác chạy và lỗi lưu trữ

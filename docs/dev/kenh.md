@@ -37,6 +37,7 @@ plugin. Người nhúng runtime cũng có thể truyền định nghĩa qua tùy
 interface ChannelDefinition<T extends ChannelDeliveryConfig = ChannelDeliveryConfig> {
   readonly id: ChannelId
   readonly safeConfigOverrides?: readonly string[]
+  readonly apiHosts?: readonly string[]
   resolveConfig(raw: unknown): T
   isEnabled(config: T): boolean
   admission(config: T): ChannelAdmission
@@ -48,7 +49,8 @@ interface ChannelDefinition<T extends ChannelDeliveryConfig = ChannelDeliveryCon
 `resolveChannelSettings` chuẩn hóa đúng một lần. Plugin khai báo chỉ đổi được các trường trong
 `safeConfigOverrides`; vắng mặt nghĩa là không trường nào. Telegram và Zalo cho phép
 `SAFE_DELIVERY_OVERRIDE_FIELDS` (`markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`,
-`notify_max_per_minute`); Zalo Personal không cho trường nào.
+`notify_max_per_minute`); Zalo Personal không cho trường nào. `apiHosts` nêu các host mà adapter của nó gửi tới, để `/v1/outbound` liệt kê cho một
+kênh đã khởi động; vắng mặt khi các host của kênh truyền không phải do kênh tự nêu.
 
 `createChannel(def)` là hàm dựng lúc viết mã. Nó gắn nhãn cho id, từ chối khóa lạ và kiểm tra các hàm
 của adapter có mặt.

@@ -299,6 +299,9 @@ Layout under `data_dir`:
   openalpha.ready                   written once the daemon is up; what it started without
   daemon.stdout.log                 a background daemon's stray output, truncated each start
   daemon.stderr.log                 a background daemon's warnings and errors, truncated each start
+  restart.json                      written when a restart is asked for, removed when the new daemon announces it
+  restart.stdout.log                stray output of a restart from the API, where a failed one says to look
+  restart.stderr.log                warnings and errors of that restart
   logs/daemon.log                   default global log (`[log] file`)
   logs/agents/<agentId>/agent.log   per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots
@@ -374,7 +377,7 @@ logs now, configured agents included, run `openalpha logs clear`. It does not to
 |---|---|---|---|
 | `chat` | array of strings | `[]` | Notice kinds sent to your chat as well as the bell. Valid kinds: `call-scored`, `held-news`, `index-drop`; any other name stops the daemon at start with the list of valid ones. |
 
-These three readings reach the bell in the app and no chat unless listed here: a call you were given has been scored, news on a name you hold, and the region's index falling hard in a session. Held-name news covers only names the daemon has already read: headlines are archived when a `/suggest` or a chat about the name reads them, and nothing fetches news for your holdings on a schedule. Everything else the daemon sends to a chat is unchanged.
+These readings reach the bell in the app and no chat unless listed here: a call you were given has been scored, news on a name you hold, and the region's index falling hard in a session. Held-name news covers only names the daemon has already read: headlines are archived when a `/suggest` or a chat about the name reads them, and nothing fetches news for your holdings on a schedule. Everything else the daemon sends to a chat is unchanged.
 
 ### `[log]`
 
@@ -477,7 +480,7 @@ buy nothing.
 | `delegation_depth` | int | `3` | Deepest sub-agent nesting. |
 | `max_delegations` | int | `32` | Children a whole run may start, in total. |
 | `max_parallel_delegations` | int | `5` | Most child items one `delegate_parallel` call accepts. |
-| `max_spawn_duration_ms` | int | `600000` | 10 minutes: how long one spawned child agent works before it brings back what it read. At most 2147483647. |
+| `max_spawn_duration_ms` | int | `600000` | 10 minutes: how long one spawned child agent works before it is stopped; what it had read comes back marked partial. At most 2147483647. |
 | `max_spawn_turns` | int | `12` | Model turns one spawned child agent gets. |
 | `max_unasked_fetches` | int | `10` | `web_fetch` calls in one run, asked or not, before every further one asks you first. `0` asks every time. |
 

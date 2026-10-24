@@ -25,7 +25,8 @@ openalpha agent edit web-researcher  # mở bằng $EDITOR
 
 Chưa có thư mục `agents/` là chuyện bình thường, không phải lỗi.
 
-`openalpha agent list` và `show <id>` để xem. `remove <id>` xóa một agent của bạn, tạm dừng các lịch chạy đang bật của nó và không chạm được vào agent có
+`openalpha agent list` và `show <id>` để xem; `show` còn in công cụ, danh sách ủy quyền, trần số lượt và số agent con
+mà agent được phép gọi. `remove <id>` xóa một agent của bạn, tạm dừng các lịch chạy đang bật của nó và không chạm được vào agent có
 sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Lệnh](lenh.md).
 
 ### Từ trang văn phòng
@@ -36,12 +37,15 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
 
 - Agent mới hay vừa sửa được kiểm tra như daemon kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
   ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
+- Trang tạo tối đa 50 agent của riêng bạn; quá mức đó nó yêu cầu bạn xóa bớt một agent trước.
 - Agent trả lời ở tin nhắn kế tiếp, không cần khởi động lại. Phiên chạy đang diễn ra giữ nguyên định nghĩa lúc bắt
   đầu.
-- Công cụ của nó là một bộ cố định: tìm kiếm web, bộ nhớ, và các công cụ chỉ đọc về thị trường và đề xuất. Không bao
-  giờ có shell hay ghi tệp. Đặt `max_spawn` thì thêm `spawn` vào bộ đó.
-- Sửa là thay cả định nghĩa: thứ gì trang không gửi lên sẽ bị bỏ. Agent có sẵn và agent của plugin đọc được ở đó nhưng
-  không sửa hay xóa được.
+- Công cụ của nó là một bộ cố định: tìm kiếm web, bộ nhớ, đồng hồ và máy tính, cùng các công cụ chỉ đọc về thị trường
+  và đề xuất. Không bao giờ có shell hay ghi tệp. Đặt `max_spawn` thì thêm `spawn` vào bộ đó.
+- Trang sở hữu tên, mô tả, prompt, phạm vi, mức trần theo ngày, bậc mô hình, diện mạo, công cụ và `max_spawn`: một lần
+  sửa thay từng thứ đó, hoặc bỏ nó đi khi trang không gửi lên. Mọi thứ còn lại trong tệp được giữ nguyên, như trần số
+  lượt, token và thời gian, `hosts`, `skills`, `delegates` và `reasoning`. Agent có sẵn và agent của plugin đọc được ở
+  đó nhưng không sửa hay xóa được.
 - Xóa một agent là gỡ thư mục của nó và tạm dừng mọi lịch đang bật của nó, để không lịch nào còn bắn vào một cái tên
   không còn tồn tại; chuông báo đã tạm dừng bao nhiêu. Bộ nhớ, phiên chat, chi tiêu và bảng thành tích của nó vẫn còn.
   Agent đang tham gia một mạng xã hội thì bị từ chối cho đến khi nó rời đi.
@@ -85,7 +89,7 @@ quyền bạn đã cấp.
 | `[focus]` | bảng | không có | Agent nhìn vào đâu. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
 | `[look]` | bảng | không có | Diện mạo nhân vật của agent trên trang văn phòng: vài phần ngắn, mỗi phần là một từ viết thường (hoặc nối bằng gạch ngang) (`hair = "short"`). Daemon chỉ lưu lại và từ chối phần nào không có dạng đó; trang quyết định giá trị nào vẽ được và tự chọn phần bạn bỏ trống theo mã của agent. |
 | `model_tier` | chuỗi | không có | Một nhóm trong `[model_tiers]` mà mọi mục đều hỗ trợ công cụ. Agent của bạn đặt được; agent plugin không đáng tin thì không. |
-| `reasoning` | enum | `'default'` | **Chỉ agent đáng tin.** Agent của bạn không đặt được. |
+| `reasoning` | enum | `'default'` | **Chỉ agent đáng tin:** agent có sẵn và agent của plugin đi kèm. |
 | `[capabilities]` | bảng | xem dưới | Trần bảo mật; mọi trường chỉ thu hẹp quyền. |
 
 Mã định danh (`id`) bắt đầu bằng chữ thường hoặc chữ số, chỉ chứa chữ thường, chữ số, gạch dưới, gạch nối hoặc dấu
@@ -208,7 +212,7 @@ một cuộc chat vạn năng.
 | `[loop] max_delegations` | Tổng số con một phiên chạy được khởi động, tính chung cả hai công cụ. |
 | `[loop] max_parallel_delegations` | Số mục tối đa trong một lời gọi `delegate_parallel`. |
 | Công cụ `spawn` | Tạo các agent con ngắn hạn, chỉ đọc, do chính agent mô tả; xem [Agent con tự tạo](#agent-con-tự-tạo). |
-| `[capabilities] max_spawn` | Số agent con tự tạo được đọc cùng lúc, từ 1 đến 4. Bỏ trống hoặc `0` là agent không tự tạo được. |
+| `[capabilities] max_spawn` | Số agent con tự tạo mà một lời gọi `spawn` được khởi động, từ 1 đến 4. Bỏ trống hoặc `0` là agent không tự tạo được. |
 | `[loop] max_spawn_duration_ms`, `max_spawn_turns` | Thời gian (mặc định 10 phút) và số lượt mô hình (mặc định `12`) mỗi agent con tự tạo có. |
 
 Agent con dùng đúng danh sách công cụ của chính nó: nó có thể dùng công cụ mà cha không gọi trực tiếp được, và công
@@ -266,7 +270,7 @@ ra, còn một lỗi ngoài dự tính chỉ gói gọn trong mục của nó ch
 
 Agent có `spawn` trong danh sách công cụ và `max_spawn` lớn hơn `0` có thể tách một câu hỏi thành những phần đọc độc lập,
 ví dụ cổ tức của một công ty và báo cáo quý của nó, rồi tạo mỗi phần một agent con ngắn hạn. Trợ lý chat được tạo tối đa
-`2` agent cùng lúc. Truyền `goal` cho một agent con, hoặc `items` cho mỗi phần một agent con, kèm nhãn `role` và
+`2` agent con trong một lời gọi. Truyền `goal` cho một agent con, hoặc `items` cho mỗi phần một agent con, kèm nhãn `role` và
 `context` mà các agent con cần: chúng không thấy cuộc trò chuyện.
 
 - Agent con là chính agent cha nhưng bị thu hẹp: chỉ đọc web, thị trường, tin tức và nhớ lại bộ nhớ. Nó không giao dịch,
