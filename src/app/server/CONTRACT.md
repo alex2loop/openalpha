@@ -207,7 +207,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   early and answers `starting` (`ok:false`) until its subsystems are up, so a booting daemon is
   distinguishable from a stopped one — the client shows "Starting…" + retries rather than "stopped".
   `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client
-  can tell a daemon too old for it before opening the socket.
+  can tell a daemon too old for it before opening the socket. `brand` is the product's display name,
+  so a page's sign-in screen names it before the token is entered, with no `package.json` bundled.
 - **`/v1/state` degraded**: what the daemon started without, one entry per item, worded in the
   daemon's language: `channel` (a chat channel left down, `subject` its id), `api`, `key` (an unset
   key variable or an exchange with no keys, with what waits for it) and `optional-key` (a feature with

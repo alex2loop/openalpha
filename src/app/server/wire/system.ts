@@ -34,6 +34,8 @@ export interface HealthResponse {
    *  showing "stopped". */
   readonly status?: 'starting' | 'ready'
   readonly version: string
+  /** The product's display name, so a sign-in screen can name it before the token is entered. */
+  readonly brand: string
   /** The `/v1/ws` contract this daemon speaks; a client built for another one cannot use it. */
   readonly contractVersion: number
   readonly capabilities: Capabilities

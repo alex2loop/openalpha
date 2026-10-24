@@ -3,6 +3,7 @@ import { unlink } from 'node:fs/promises'
 
 import type { CliApp, Group } from '@/cli/api'
 import { apiTokenPath } from '@/app/server/http/auth'
+import { LOOPBACK_HOST } from '@/app/server/http/server'
 import { createCommand, createGroup, fail, getEnv, hint } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
@@ -10,10 +11,20 @@ import { t } from '@/i18n'
 
 const TOKEN_BYTES = 32
 
+type ApiTokenRead =
+  | { readonly ok: true; readonly token: string }
+  | { readonly ok: false; readonly message: string }
+
 const authTokenCommand = createCommand({
   name: 'token',
   summary: { key: 'cliHelp.apiAuthTokenSummary' },
   run: (_args, app) => printToken(app),
+})
+
+const authLinkCommand = createCommand({
+  name: 'link',
+  summary: { key: 'cliHelp.apiLinkSummary' },
+  run: (_args, app) => printLink(app),
 })
 
 const authRotateCommand = createCommand({
@@ -27,41 +38,59 @@ const authRotateCommand = createCommand({
 export const apiCommand: Group = createGroup({
   name: 'api',
   summary: { key: 'cliHelp.apiAuthSummary' },
-  subcommands: [authTokenCommand, authRotateCommand],
+  subcommands: [authTokenCommand, authLinkCommand, authRotateCommand],
 })
 
-async function printToken(app: CliApp): Promise<number> {
+function printToken(app: CliApp): Promise<number> {
+  return withApiToken(app, (token) => {
+    app.out(token)
+  })
+}
+
+function printLink(app: CliApp): Promise<number> {
+  return withApiToken(app, (token) => {
+    app.out(`http://${LOOPBACK_HOST}:${app.config.api.port}/#token=${token}`)
+    app.out(hint(t(app.config.locale.language, 'cli.apiLinkHint')))
+  })
+}
+
+/** Runs `show` with the token, or says why there is none: the API is off, or no token is set. */
+async function withApiToken(app: CliApp, show: (token: string) => void): Promise<number> {
   if (!app.config.api.enabled) {
     return printApiDisabled(app)
   }
 
+  const read = await readApiToken(app)
+
+  if (!read.ok) {
+    app.err(fail(read.message))
+
+    return 1
+  }
+
+  show(read.token)
+
+  return 0
+}
+
+/** The token the daemon accepts: `token_env` when set, else the one in the data dir. */
+async function readApiToken(app: CliApp): Promise<ApiTokenRead> {
+  const locale = app.config.locale.language
   const tokenEnv = app.config.api.tokenEnv
 
   if (tokenEnv !== undefined) {
     const value = getEnv()[tokenEnv] ?? ''
 
-    if (value === '') {
-      app.err(fail(t(app.config.locale.language, 'cli.authTokenEnvEmpty', { env: tokenEnv })))
-
-      return 1
-    }
-
-    app.out(value)
-
-    return 0
+    return value === ''
+      ? { ok: false, message: t(locale, 'cli.authTokenEnvEmpty', { env: tokenEnv }) }
+      : { ok: true, token: value }
   }
 
   const token = await readTokenFile(app.config.paths.dataDir)
 
-  if (token === null) {
-    app.err(fail(t(app.config.locale.language, 'cli.authTokenMissing', { brand: BRAND.name })))
-
-    return 1
-  }
-
-  app.out(token)
-
-  return 0
+  return token === null
+    ? { ok: false, message: t(locale, 'cli.authTokenMissing', { brand: BRAND.name }) }
+    : { ok: true, token }
 }
 
 async function rotateToken(app: CliApp): Promise<number> {

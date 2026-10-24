@@ -37,6 +37,7 @@ export function printServed(app: CliApp, degraded: readonly DegradedEntry[]): vo
 
   if (config.api.enabled && !degraded.some((entry) => entry.kind === 'api')) {
     app.out(hint(t(locale, 'cli.daemonApi', { port: config.api.port })))
+    app.out(hint(t(locale, 'cli.daemonPage', { command: `${BRAND.name} api link` })))
   }
 }
 

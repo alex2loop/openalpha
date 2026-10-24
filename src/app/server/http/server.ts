@@ -21,7 +21,7 @@ import { isErrno, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
 const WS_PATH = '/v1/ws'
-const LOOPBACK_HOST = '127.0.0.1'
+export const LOOPBACK_HOST = '127.0.0.1'
 // Bound the buffer/parse cost of HTTP bodies and WS frames before schema validation.
 const MAX_HTTP_BODY_BYTES = 2_097_152
 const MAX_WS_FRAME_BYTES = 1_048_576

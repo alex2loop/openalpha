@@ -38,6 +38,7 @@ async function handleHealth(_req: Request, ctx: ApiRouteContext): Promise<Respon
     ok: true,
     status: 'ready',
     version: BRAND.version,
+    brand: BRAND.display,
     contractVersion: CONTRACT_VERSION,
     capabilities: buildCapabilities(ctx.app),
   } satisfies HealthResponse)
