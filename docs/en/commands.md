@@ -355,10 +355,13 @@ replace an existing config.
 
 ```text
 openalpha api token
+openalpha api link
 openalpha api rotate
 ```
 
-`api token` prints the bearer token the app and other `/v1` clients send. `api rotate` replaces it,
+`api token` prints the bearer token the app and other `/v1` clients send. `api link` prints the link
+to the office page with that token in it; it is a secret, so share it with no one (the `start` summary
+only names the command). `api rotate` replaces the token,
 and the daemon needs a restart to use the new one. With `[api] token_env` set, the token is that
 variable and `rotate` leaves it alone.
 

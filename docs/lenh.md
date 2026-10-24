@@ -345,10 +345,13 @@ làm mất các dòng chú thích trong tệp, nên tệp cũ được sao lưu 
 
 ```text
 openalpha api token
+openalpha api link
 openalpha api rotate
 ```
 
-`api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm. `api rotate` thay mã mới, và daemon cần
+`api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm. `api link` in liên kết mở trang văn
+phòng, đã kèm mã đó; liên kết là bí mật nên đừng gửi cho ai (phần tóm tắt của `start` chỉ nhắc tên
+lệnh). `api rotate` thay mã mới, và daemon cần
 khởi động lại để dùng mã mới. Khi đặt `[api] token_env`, mã là giá trị của biến đó và `rotate` không đụng
 tới nó.
 
