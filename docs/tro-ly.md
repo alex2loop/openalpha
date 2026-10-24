@@ -271,7 +271,8 @@ ra, còn một lỗi ngoài dự tính chỉ gói gọn trong mục của nó ch
 Agent có `spawn` trong danh sách công cụ và `max_spawn` lớn hơn `0` có thể tách một câu hỏi thành những phần đọc độc lập,
 ví dụ cổ tức của một công ty và báo cáo quý của nó, rồi tạo mỗi phần một agent con ngắn hạn. Trợ lý chat được tạo tối đa
 `2` agent con trong một lời gọi. Truyền `goal` cho một agent con, hoặc `items` cho mỗi phần một agent con, kèm nhãn `role` và
-`context` mà các agent con cần: chúng không thấy cuộc trò chuyện.
+`context` mà các agent con cần: chúng không thấy cuộc trò chuyện. Truyền `output_schema`, một JSON Schema dài tối đa 4.000
+ký tự, khi bạn muốn mỗi câu trả lời về dưới dạng JSON đã kiểm tra thay vì văn xuôi.
 
 - Agent con là chính agent cha nhưng bị thu hẹp: chỉ đọc web, thị trường, tin tức và nhớ lại bộ nhớ. Nó không giao dịch,
   không ghi sổ, không đặt lịch, không gửi tin, không ghi đề xuất, không tạo thêm agent con và không ủy quyền.
@@ -279,6 +280,10 @@ ví dụ cổ tức của một công ty và báo cáo quý của nó, rồi t�
 - Nó có `[loop] max_spawn_duration_ms` và `max_spawn_turns`. Agent con hết thời gian, hết lượt hoặc hết ngân sách sẽ mang
   về phần đã đọc, đánh dấu là dở dang kèm lý do (thời gian, lượt hoặc ngân sách); agent con lỗi trước khi đọc được gì thì
   đánh dấu là thất bại. Agent con bị dừng cùng agent cha thì thất bại và không có lý do.
+- Với `output_schema`, mỗi agent con được dặn kết thúc bằng đúng một tài liệu JSON khớp schema. Agent con đã xong mà câu trả lời
+  đọc được và khớp thì trả về chính JSON đó; câu trả lời không khớp thì agent con thất bại, kèm chỗ lệch đầu tiên. Agent con bị
+  cắt giữa chừng vẫn mang về bản tóm tắt thường, không kiểm tra. Một schema mà daemon không dùng được sẽ từ chối cả lời gọi
+  trước khi có agent con nào chạy.
 - Các agent con dùng chung phần ngân sách, hạn ngạch `[loop] max_delegations` và `[loop] delegation_depth` của agent cha,
   chi phí tính vào agent cha. Dừng agent cha là dừng mọi agent con.
 - Một lời gọi xin nhiều agent con hơn `max_spawn` thì `max_spawn` agent con đầu tiên khởi động, phần còn lại bị trả về cho

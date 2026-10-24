@@ -22,7 +22,10 @@ export interface SpawnResult {
   readonly role: string
   readonly status: 'done' | 'partial' | 'failed'
   readonly reason?: SpawnReason
-  readonly text: string
+  /** Absent when `json` carries the answer. */
+  readonly text?: string
+  /** The child's answer, parsed and checked against the call's `output_schema`. */
+  readonly json?: unknown
 }
 
 export interface SpawnProgress {

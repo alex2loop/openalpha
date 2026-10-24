@@ -21,6 +21,13 @@ import {
   toChildRunSettlement,
 } from '@/tools/delegation/child-run'
 import {
+  checkChildOutput,
+  MAX_OUTPUT_SCHEMA_CHARS,
+  type OutputContract,
+  toOutputContract,
+  toOutputPrompt,
+} from '@/tools/delegation/spawn-output'
+import {
   createSpawnProgress,
   type SpawnProgress,
   type SpawnResult,
@@ -106,6 +113,12 @@ const spawnInput = z.object({
     .min(1)
     .optional()
     .describe('One child per item, all reading at once. Send items or goal, not both.'),
+  output_schema: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      `A JSON Schema object (at most ${MAX_OUTPUT_SCHEMA_CHARS} characters) every child's final answer must satisfy. A done child then returns the parsed JSON in json; one that does not match fails.`
+    ),
 })
 
 type SpawnInput = z.infer<typeof spawnInput>
@@ -124,7 +137,7 @@ interface SpawnedChild {
 export const spawnTool = createTool({
   name: SPAWN_TOOL_NAME,
   description:
-    "Start short-lived child agents that only read (web, market and news reads, memory) and report back. Use it when a question splits into independent reads, such as one company's dividends and its quarterly accounts; never for a single lookup. Send goal for one child, or items for one child per part, and put what they need in context. Each result is done, partial (cut off: what it had read so far) or failed. Code enforces how many may work at once, depth, quota, budget and time; stopping this run stops every child.",
+    "Start short-lived child agents that only read (web, market and news reads, memory) and report back. Use it when a question splits into independent reads, such as one company's dividends and its quarterly accounts; never for a single lookup. Send goal for one child, or items for one child per part, and put what they need in context. Send output_schema, a JSON Schema, to get each answer back as checked JSON. Each result is done, partial (cut off: what it had read so far) or failed. Code enforces how many may work at once, depth, quota, budget and time; stopping this run stops every child.",
   inputSchema: spawnInput,
   capability: 'delegate',
   presentation: { label: 'Spawn child agents', emoji: '🧩', detailKeys: ['role'] },
@@ -141,9 +154,11 @@ export const spawnTool = createTool({
     }
 
     const briefs = toChildBriefs(args)
+    const contract =
+      args.output_schema === undefined ? undefined : toOutputContract(args.output_schema)
     const accepted = briefs.slice(0, maxSpawn)
     const refused = briefs.slice(maxSpawn)
-    const profiles = toChildProfiles(accepted, { parent, config: ctx.config })
+    const profiles = toChildProfiles(accepted, { parent, config: ctx.config, contract })
     const slices = allocateChildBudgets(ctx, accepted.length)
 
     if (slices.length === 0) {
@@ -157,7 +172,7 @@ export const spawnTool = createTool({
         ctx.reportProgress?.(toFullProgress(accepted.length))
       }
 
-      const results = await runChildren(toSpawnedChildren(profiles, slices), ctx)
+      const results = await runChildren(toSpawnedChildren(profiles, slices), ctx, contract)
 
       return toSpawnToolResult(results, { refused, maxSpawn })
     } finally {
@@ -235,6 +250,7 @@ function toRefusedResult(brief: ChildBrief, capacity: CapacityInput): SpawnResul
 interface ChildProfilesInput {
   readonly parent: AgentProfile
   readonly config: ResolvedConfig
+  readonly contract: OutputContract | undefined
 }
 
 interface ChildProfile {
@@ -248,7 +264,7 @@ function toChildProfiles(
   briefs: readonly ChildBrief[],
   input: ChildProfilesInput
 ): readonly ChildProfile[] {
-  const { parent, config } = input
+  const { parent, config, contract } = input
   const base: AgentProfile = {
     ...parent,
     tools: parent.tools.filter((name) => SPAWN_TOOL_NAMES.has(name)),
@@ -264,7 +280,7 @@ function toChildProfiles(
 
   return briefs.map((brief) => ({
     brief,
-    profile: { ...base, systemPrompt: toChildPrompt(brief) },
+    profile: { ...base, systemPrompt: toChildPrompt(brief, contract) },
   }))
 }
 
@@ -296,25 +312,29 @@ function toDelegateTierModel(
   }
 }
 
-function toChildPrompt(brief: ChildBrief): string {
+function toChildPrompt(brief: ChildBrief, contract: OutputContract | undefined): string {
   const prompt = SPAWN_BRIEF.replace(
     BRIEF_FIELD_RE,
     (_whole, field: 'role' | 'goal') => brief[field]
   )
+  const withContext =
+    brief.context === undefined ? prompt : `${prompt}\n\nCONTEXT\n${brief.context}`
 
-  return brief.context === undefined ? prompt : `${prompt}\n\nCONTEXT\n${brief.context}`
+  return contract === undefined ? withContext : `${withContext}\n\n${toOutputPrompt(contract)}`
 }
 
 async function runChildren(
   children: readonly SpawnedChild[],
-  ctx: ToolInvocationContext
+  ctx: ToolInvocationContext,
+  contract: OutputContract | undefined
 ): Promise<readonly SpawnResult[]> {
   const progress = createSpawnProgress(ctx, children)
 
   progress.line()
 
   const runs = children.map(async (child): Promise<SpawnResult> => {
-    const result = toSpawnResult(child.brief.role, await runChild(child, ctx, progress))
+    const answer = toSpawnResult(child.brief.role, await runChild(child, ctx, progress))
+    const result = contract === undefined ? answer : checkChildOutput(answer, contract)
 
     progress.finished(result)
 

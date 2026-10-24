@@ -274,7 +274,8 @@ runner failures stay visible, and an unexpected failure is isolated to its own e
 An agent with `spawn` in its tools and `max_spawn` above `0` can split a question into independent reads, such as one
 company's dividends and its quarterly accounts, and start one short-lived child agent per part. The chat assistant
 may start up to `2` in one call. Pass `goal` for one child, or `items` for one child per part, plus a `role` label and the
-`context` the children need: they see none of the conversation.
+`context` the children need: they see none of the conversation. Pass `output_schema`, a JSON Schema of at most 4,000
+characters, when you want each answer back as checked JSON instead of prose.
 
 - A child is the parent's own agent narrowed: web, market and news reads and memory recall only. It never trades,
   records, schedules, sends, writes suggestions, spawns or delegates.
@@ -282,6 +283,10 @@ may start up to `2` in one call. Pass `goal` for one child, or `items` for one c
 - It has `[loop] max_spawn_duration_ms` and `max_spawn_turns`. A child that runs out of time, turns or budget brings
   back what it had read, marked partial, with the reason (time, turns or budget); one that fails before reading
   anything is marked failed. A child stopped together with its parent is failed with no reason.
+- With `output_schema`, each child is told to end with one JSON document that fits the schema. A finished child whose
+  answer parses and fits comes back as that JSON; one whose answer does not is failed with the first mismatch named.
+  A child that was cut off still brings back its plain summary, unchecked. A schema the daemon cannot use refuses the
+  whole call before any child starts.
 - Children share the parent's budget slice, `[loop] max_delegations` quota and `[loop] delegation_depth`, and their
   cost counts to the parent. Stopping the parent stops every child.
 - A call that asks for more children than `max_spawn` starts the first `max_spawn`; the rest are refused back to the
