@@ -75,5 +75,9 @@
     "sendTime": "07:30",
     "nextDeliveryDay": "2026-10-09",
     "nextDueAt": 1791505800000
-  }
+  },
+  "restartable": true,
+  "restartIdleWaitMs": 120000,
+  "restartDrainMs": 5000,
+  "trackRecordMinSample": 20
 }

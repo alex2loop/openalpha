@@ -8,6 +8,8 @@ import {
   type Teardown,
   trackDaemonTask,
 } from '@/app/daemon-subsystems'
+import '@/app/events'
+import { takeRestartMarker } from '@/app/restart-marker'
 import { retentionCutoffAt, runWorkspaceTmpRetention } from '@/app/retention'
 import { BRAND } from '@/core/brand'
 import { AppError, ConfigError } from '@/core/errors'
@@ -15,7 +17,8 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
-const SHUTDOWN_DRAIN_MS = 5_000
+/** How long a stop waits for the runs in flight before it disposes. */
+export const SHUTDOWN_DRAIN_MS = 5_000
 const SHUTDOWN_TOTAL_MS = 30_000
 
 declare module '@/core/container' {
@@ -201,6 +204,7 @@ function markReady(ready: {
   logger.info('daemon.started')
   options?.onReady?.(warnings)
   reportUpgradeOutcome(app, logger)
+  announceRestart(app, logger)
 
   if (options?.previousRun !== undefined) {
     announceUncleanStop({ app, delivery, logger }, options.previousRun)
@@ -251,5 +255,23 @@ function reportUpgradeOutcome(app: App, logger: Logger): void {
     .announceOutcome()
     .catch((err: unknown) => {
       logger.warn('update.announce_crashed', { err: formatErrForLog(err) })
+    })
+}
+
+/** A restart asked for through the API leaves a marker, and only the daemon it brings up files the
+ *  line to the bell. Taken here, not at boot: the helper and the `--background` parent boot in
+ *  daemon mode too and would take it first. */
+function announceRestart(app: App, logger: Logger): void {
+  takeRestartMarker(app.config.paths.dataDir, Date.now())
+    .then((restarted) => {
+      if (restarted) {
+        app.resolve('bus').emit('daemon_notice', {
+          text: t(app.config.locale.language, 'ui.restartDone'),
+          at: Date.now(),
+        })
+      }
+    })
+    .catch((err: unknown) => {
+      logger.warn('daemon.restart_marker_failed', { err: formatErrForLog(err) })
     })
 }

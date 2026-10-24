@@ -194,6 +194,7 @@ export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
+export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
 export { toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 export {

@@ -31,6 +31,7 @@
     "task.social": "Mạng xã hội agent",
     "task.channels.watch": "Theo dõi kênh nhắn tin",
     "task.workflows": "Workflow theo lịch",
+    "restartDone": "Đã khởi động lại daemon.",
     "agentDeleted": "Đã xóa agent {id}. Mình tạm dừng {count} lịch chạy của nó, khi cần bạn bật lại nhé.",
     "digest.stopFired": "{ticker} thủng mức cắt lỗ {level} lúc {time}",
     "digest.callClosed": "Đề xuất {action} {ticker} hôm {day} đã đóng: {result}"
@@ -474,6 +475,9 @@
     "agentReloadFailed": "Mình chưa đọc được thư mục agent nên giữ nguyên các agent đang chạy.",
     "jobInvalid": "Mình chưa lưu được công việc này: {detail}",
     "alertLevelTaken": "Đã có một cảnh báo ở mức này, nên mình chưa đặt thêm cảnh báo thứ hai cho việc này. Bạn xóa cảnh báo đó hoặc chọn mức khác nhé.",
+    "restartForeground": "Daemon đang chạy trong một cửa sổ terminal, nên trang này không khởi động lại thay bạn được. Dừng bằng Ctrl+C rồi chạy lại {brand} start.",
+    "restartPending": "Đang có một lần khởi động lại hoặc cập nhật chạy rồi, bạn chờ chút nhé.",
+    "restartStopping": "Daemon đang dừng rồi. Khi nó dừng hẳn, bạn bật lại bằng {brand} start nhé.",
     "jobAlertGone": "Việc này chờ một cảnh báo giá đã chạm hoặc đã bị xóa, nên bật lại cũng không bao giờ chạy. Bạn xóa việc này rồi tạo việc mới nhé."
   },
   "scheduler": {

@@ -11,6 +11,7 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { createTokenFile, findProviderById } from '@/ai/api'
+import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
 import { apiTokenPath } from '@/app/server/http/auth'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -18,13 +19,14 @@ import { toScheduleRowWire } from '@/app/server/mappers/jobs'
 import { readBriefSchedule } from '@/app/server/routes/brief-schedule'
 import { localeOf } from '@/app/server/routes/params'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
-import { readDaemonDegraded, readReleaseStatus } from '@/cli/api'
+import { RESTART_IDLE_WAIT_MS } from '@/app/update/restart'
+import { isBackgroundLaunch, readDaemonDegraded, readReleaseStatus } from '@/cli/api'
 import { describeCommand } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { probeConfig } from '@/core/config/load'
 import { operatorMessageOf } from '@/core/errors'
 import { bindLocale } from '@/i18n'
-import { tradingDay } from '@/trading/api'
+import { MINIMUM_TRACK_RECORD_SAMPLE, tradingDay } from '@/trading/api'
 
 const COST_ESTIMATE_SAMPLE = 10
 const COST_ESTIMATE_MIN_RUNS = 3
@@ -62,6 +64,10 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     locale: app.config.locale.language,
     degraded,
     ...(brief === undefined ? {} : { brief }),
+    restartable: isBackgroundLaunch(),
+    restartIdleWaitMs: RESTART_IDLE_WAIT_MS,
+    restartDrainMs: SHUTDOWN_DRAIN_MS,
+    trackRecordMinSample: MINIMUM_TRACK_RECORD_SAMPLE,
   } satisfies StatePayload)
 }
 

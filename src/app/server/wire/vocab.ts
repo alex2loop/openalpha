@@ -14,6 +14,9 @@ export type InvestmentGoal = 'preserve' | 'income' | 'grow'
 
 export type InvestmentHorizon = 'short' | 'long'
 
+/** `idle` waits for the daemon to go quiet before it restarts; `now` restarts at once. */
+export type RestartWhen = 'idle' | 'now'
+
 export type RiskLevel = 'conservative' | 'balanced' | 'aggressive'
 
 export type SourceFreshness = 'live' | 'cached'

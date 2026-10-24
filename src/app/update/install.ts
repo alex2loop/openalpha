@@ -1,8 +1,11 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { RestartWhen } from '@/app/server/wire/vocab'
+import type { RestartStart } from '@/app/update/restart'
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveryTarget } from '@/scheduler/api'
+import { runRestart } from '@/app/update/restart'
 import {
   formatInstalledNotice,
   isBackgroundLaunch,
@@ -36,6 +39,8 @@ interface UpgradeStartRequest {
 
 export interface SelfUpgrade {
   start(request: UpgradeStartRequest): Promise<UpgradeStart>
+  /** Answers once the restart is accepted or refused; an `idle` one then waits in the background. */
+  restart(when: RestartWhen): Promise<RestartStart>
   announceOutcome(): Promise<void>
 }
 
@@ -45,28 +50,95 @@ interface UpgradeParts {
   readonly logger: Logger
 }
 
+/** Held by whoever is changing this process's release. `starting` is set before the first await: two
+ *  taps, or a re-delivered inbox message, never both pass the pending check; a restart holds it
+ *  through its idle wait too. `restarting` is set once the restart helper runs, which stops this
+ *  daemon: no upgrade or second restart may start meanwhile. */
+interface UpgradeBusy {
+  starting: boolean
+  restarting: boolean
+}
+
 export function createSelfUpgrade(app: App, delivery: DeliveryHub): SelfUpgrade {
   const parts: UpgradeParts = { app, delivery, logger: app.resolve('logger') }
-  // Set before the first await: two taps, or a re-delivered inbox message, never both pass the
-  // pending check below.
-  let starting = false
+  const busy: UpgradeBusy = { starting: false, restarting: false }
 
   return {
     async start(request): Promise<UpgradeStart> {
-      if (starting) {
+      if (busy.starting || busy.restarting) {
         return 'busy'
       }
 
-      starting = true
+      busy.starting = true
 
       try {
         return await startUpgrade(parts, request)
       } finally {
-        starting = false
+        busy.starting = false
       }
     },
+    restart: (when) => startRestart(parts, busy, when),
     announceOutcome: () => announceUpgradeOutcome(parts),
   }
+}
+
+async function startRestart(
+  parts: UpgradeParts,
+  busy: UpgradeBusy,
+  when: RestartWhen
+): Promise<RestartStart> {
+  if (busy.starting || busy.restarting) {
+    return 'busy'
+  }
+
+  busy.starting = true
+
+  const refusal = await refuseRestart(parts)
+
+  if (refusal !== undefined) {
+    busy.starting = false
+
+    return refusal
+  }
+
+  runRestart({
+    app: parts.app,
+    when,
+    isWorking: () => isWorking(parts),
+    onSpawned: () => {
+      busy.restarting = true
+    },
+    onFailed: () => {
+      busy.restarting = false
+    },
+  })
+    .catch((err: unknown) => {
+      parts.logger.error('update.restart_crashed', { err: formatErrForLog(err) })
+    })
+    .finally(() => {
+      busy.starting = false
+    })
+
+  return 'started'
+}
+
+async function refuseRestart(
+  parts: UpgradeParts
+): Promise<Exclude<RestartStart, 'started'> | undefined> {
+  const { app } = parts
+
+  if (app.signal.aborted) {
+    return 'stopping'
+  }
+
+  // A daemon in a terminal or under a service is not ours to restart.
+  if (!isBackgroundLaunch()) {
+    return 'foreground'
+  }
+
+  const state = await readUpdateState(app.config.paths.dataDir)
+
+  return isPending(state.pendingUpgrade, Date.now()) ? 'busy' : undefined
 }
 
 async function startUpgrade(
@@ -101,6 +173,7 @@ function isWorking(parts: UpgradeParts): boolean {
 
   return (
     app.resolve('runRegistry').active().length > 0 ||
+    app.resolve('slashDispatcher').activeCommands().length > 0 ||
     delivery.isWorking() ||
     app.resolve('tradingServices').daemonTasks.some((task) => task.isWorking?.() === true)
   )

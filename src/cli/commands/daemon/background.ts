@@ -28,6 +28,9 @@ const DAEMON_STDERR_LOG = 'daemon.stderr.log'
 const FAILED_DAEMON_STDERR_LOG = 'daemon.stderr.failed.log'
 const UPGRADE_STDOUT_LOG = 'upgrade.stdout.log'
 const UPGRADE_STDERR_LOG = 'upgrade.stderr.log'
+const RESTART_STDOUT_LOG = 'restart.stdout.log'
+const RESTART_STDERR_LOG = 'restart.stderr.log'
+const BACKGROUND_FLAG = '--background'
 const EXIT_REASON_LINES = 3
 // Bounds the warnings a ready start relays; the daemon prints one line per degraded item.
 const RELAYED_WARNING_LINES = 20
@@ -77,17 +80,39 @@ export async function keepFailedStartLog(dataDir: string): Promise<string | null
 export async function spawnUpgradeProcess(
   app: Pick<CliApp, 'config' | 'configPath'>
 ): Promise<Subprocess> {
-  const { dataDir } = app.config.paths
-  const argv = await buildSelfArgv({
-    dataDir,
-    configPath: app.configPath,
+  return await spawnHelperProcess(app, {
     tail: [CLI_COMMAND_METADATA.upgrade.name],
+    stdoutLog: UPGRADE_STDOUT_LOG,
+    stderrLog: UPGRADE_STDERR_LOG,
   })
+}
+
+/** Runs `restart --background` the same way: the daemon cannot stop itself and start again. */
+export async function spawnRestartProcess(
+  app: Pick<CliApp, 'config' | 'configPath'>
+): Promise<Subprocess> {
+  return await spawnHelperProcess(app, {
+    tail: [CLI_COMMAND_METADATA.restart.name, BACKGROUND_FLAG],
+    stdoutLog: RESTART_STDOUT_LOG,
+    stderrLog: RESTART_STDERR_LOG,
+  })
+}
+
+async function spawnHelperProcess(
+  app: Pick<CliApp, 'config' | 'configPath'>,
+  helper: {
+    readonly tail: readonly string[]
+    readonly stdoutLog: string
+    readonly stderrLog: string
+  }
+): Promise<Subprocess> {
+  const { dataDir } = app.config.paths
+  const argv = await buildSelfArgv({ dataDir, configPath: app.configPath, tail: helper.tail })
 
   return await spawnDetached({
     argv,
-    stdoutPath: join(dataDir, UPGRADE_STDOUT_LOG),
-    stderrPath: join(dataDir, UPGRADE_STDERR_LOG),
+    stdoutPath: join(dataDir, helper.stdoutLog),
+    stderrPath: join(dataDir, helper.stderrLog),
     env: buildForegroundEnv(),
   })
 }

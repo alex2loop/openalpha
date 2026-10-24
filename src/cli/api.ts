@@ -9,7 +9,7 @@ export type { PendingUpgrade, UpdateChat, UpdateState } from '@/cli/update/state
 export type { ReleaseStatus } from '@/cli/update/status'
 export { admitCommand, createCommand, createGroup, lazyCommand } from '@/cli/command'
 export { readCommandCacheStubs, writeCommandCache } from '@/cli/command-cache'
-export { spawnUpgradeProcess } from '@/cli/commands/daemon/background'
+export { spawnRestartProcess, spawnUpgradeProcess } from '@/cli/commands/daemon/background'
 export { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
 export {
   isConfigPresent,

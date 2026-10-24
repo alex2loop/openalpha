@@ -60,6 +60,7 @@ cli:reportKeyFile
 cli:resolveContributedCliCommands
 cli:runCli
 cli:saveEditedConfig
+cli:spawnRestartProcess
 cli:spawnUpgradeProcess
 cli:startUpdateNotice
 cli:starterConfigToml

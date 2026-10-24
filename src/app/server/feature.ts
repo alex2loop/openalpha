@@ -18,6 +18,7 @@ import { MCP_ROUTES } from '@/app/server/routes/mcp'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
 import { NOTICE_ROUTES } from '@/app/server/routes/notices'
 import { ORDER_ROUTES } from '@/app/server/routes/orders'
+import { RESTART_ROUTES } from '@/app/server/routes/restart'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
 import { TASK_ROUTES } from '@/app/server/routes/tasks'
@@ -33,6 +34,7 @@ import { bindLocale } from '@/i18n'
 // after boot. `assertRouteList` validates the whole composition once, here, not per route module.
 const ROUTES = [
   ...SYSTEM_ROUTES,
+  ...RESTART_ROUTES,
   ...ACTIVITY_ROUTES,
   ...AGENT_ROUTES,
   ...AGENT_EDIT_ROUTES,

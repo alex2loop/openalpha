@@ -2,6 +2,7 @@
 // on the wire. A contract is replaced rather than deprecated; see CONTRACT.md §2.
 
 import type { JobEventWire } from '@/app/server/wire/jobs'
+import type { RestartWhen } from '@/app/server/wire/vocab'
 import type { Locale } from '@/core/types/locale'
 
 /** Sections whose backing store may not exist yet — the client greys the unbuilt tab instead of
@@ -91,6 +92,26 @@ export interface StatePayload {
   readonly degraded: readonly DegradedWire[]
   /** Absent when the brief was never enabled or trading is off. */
   readonly brief?: BriefScheduleWire
+  /** The daemon runs in the background, so `POST /v1/restart` can restart it. False in a terminal
+   *  or under a service. */
+  readonly restartable: boolean
+  /** The longest a restart with `when: 'idle'` waits for the daemon to go quiet. */
+  readonly restartIdleWaitMs: number
+  /** The longest the daemon waits for runs in flight before it stops, so before a restart. */
+  readonly restartDrainMs: number
+  /** Resolved calls a track record needs before its rates mean anything. */
+  readonly trackRecordMinSample: number
+}
+
+/** POST /v1/restart. */
+export interface RestartBody {
+  readonly when: RestartWhen
+}
+
+/** 202 from POST /v1/restart. The shutdown refuses every approval still waiting, so the app can
+ *  warn before it restarts. */
+export interface RestartAcceptedWire {
+  readonly refusedApprovals: number
 }
 
 interface CostRow {
