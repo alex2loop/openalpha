@@ -11,6 +11,7 @@ import type {
   ResolvedLocale,
   ResolvedLoop,
   ResolvedNotices,
+  ResolvedOffice,
   ResolvedSchedule,
 } from '@/core/config/resolvers/runtime'
 import type { RawConfig, RawModel, RawModelDefaults, RawModelTiers } from '@/core/config/schema'
@@ -28,6 +29,7 @@ import {
   resolveLocale,
   resolveLoop,
   resolveNotices,
+  resolveOffice,
   resolveSchedule,
 } from '@/core/config/resolvers/runtime'
 import { type ResolvedStorageConfig, resolveStorageConfig } from '@/core/config/resolvers/storage'
@@ -165,6 +167,7 @@ export interface ResolvedConfig {
   readonly commands: ResolvedCommands
   readonly api: ResolvedApi
   readonly notices: ResolvedNotices
+  readonly office: ResolvedOffice
   readonly retention: ResolvedRetention
   readonly inbox: ResolvedInbox
   readonly update: ResolvedUpdate
@@ -205,12 +208,10 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
     commands: { ratePerMinute: DEFAULT_COMMANDS_RATE_PER_MINUTE },
     api: resolveApi(raw.api),
     notices: resolveNotices(raw.notices),
+    office: resolveOffice(raw.office),
     retention: resolveRetention(raw.retention),
     inbox: { maxAttempts: DEFAULT_INBOX_MAX_ATTEMPTS },
-    update: {
-      check: raw.update?.check ?? DEFAULT_UPDATE_CHECK,
-      auto: raw.update?.auto ?? DEFAULT_UPDATE_AUTO,
-    },
+    update: resolveUpdate(raw.update),
     storage: resolveStorageConfig(raw.storage, dataDir),
     webSearch: resolveWebSearch(isClientModelSource(modelSource) ? undefined : raw.web_search),
     research: RESEARCH_LIMITS,
@@ -230,6 +231,13 @@ function resolveRetention(raw: RawConfig['retention']): ResolvedRetention {
     days: raw?.days ?? DEFAULT_RETENTION_DAYS,
     inboxDays: raw?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
     dailyBackups: raw?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
+  }
+}
+
+function resolveUpdate(raw: RawConfig['update']): ResolvedUpdate {
+  return {
+    check: raw?.check ?? DEFAULT_UPDATE_CHECK,
+    auto: raw?.auto ?? DEFAULT_UPDATE_AUTO,
   }
 }
 

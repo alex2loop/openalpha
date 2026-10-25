@@ -190,6 +190,11 @@ export const NoticesSchema = z.strictObject({
   chat: z.array(z.string().min(1)).optional(),
 })
 
+// Switches for the office page's own outside calls, which the page alone reads.
+export const OfficeSchema = z.strictObject({
+  weather: z.boolean().optional(),
+})
+
 export const ApiSchema = z.strictObject({
   enabled: z.boolean().optional(),
   port: z.number().int().min(1024).max(65_535).optional(),
@@ -226,6 +231,7 @@ export type RawMcp = z.infer<typeof McpSchema>
 export type RawWebSearch = z.infer<typeof WebSearchSchema>
 export type RawApi = z.infer<typeof ApiSchema>
 export type RawNotices = z.infer<typeof NoticesSchema>
+export type RawOffice = z.infer<typeof OfficeSchema>
 export type RawRetention = z.infer<typeof RetentionSchema>
 export type RawUpdate = z.infer<typeof UpdateSchema>
 export type RawStorage = z.infer<typeof StorageSchema>

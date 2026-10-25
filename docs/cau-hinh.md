@@ -560,6 +560,14 @@ không được dùng thay) và `start` in cảnh báo, phần còn lại của 
 | `port` | số nguyên | `8765` | Cổng TCP, 1024-65535. |
 | `token_env` | chuỗi | - | Biến môi trường chứa bearer token. Khi được đặt, token trong tệp bị bỏ qua. |
 
+### `[office]`
+
+Các công tắc cho những lần trang văn phòng tự gọi ra ngoài máy bạn. Chỉ trang đọc chúng; phần còn lại của daemon thì không.
+
+| Khóa | Kiểu | Mặc định | Ghi chú |
+|---|---|---|---|
+| `weather` | bool | `true` | Trang văn phòng hiện thời tiết thật của thành phố thuộc khu vực của bạn. Trình duyệt của bạn hỏi Open-Meteo mỗi 30 phút, chỉ gửi tọa độ của thành phố đó, không bao giờ gửi danh mục hay mã truy cập của bạn. `false` giữ bầu trời dựng sẵn và trang không gọi ra ngoài. |
+
 ### `[[mcp.servers]]`
 
 Các server công cụ MCP bên ngoài. Lúc khởi động, tất cả được kết nối và khám phá song song, mỗi server

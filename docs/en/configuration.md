@@ -564,6 +564,14 @@ replaces the token.
 | `port` | int | `8765` | TCP port, 1024-65535. |
 | `token_env` | string | - | Environment variable holding the bearer token. When set, the file token is ignored. |
 
+### `[office]`
+
+Switches for the office page's own calls out of your machine. The page reads them; nothing else in the daemon does.
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `weather` | bool | `true` | The office page shows the real weather of your region's city. Your browser asks Open-Meteo for it every 30 minutes, sending only that city's coordinates, never your book or your token. `false` keeps a made-up sky and the page makes no outside call. |
+
 ### `[[mcp.servers]]`
 
 External MCP tool servers. At boot, all are connected and discovered in parallel, each with a

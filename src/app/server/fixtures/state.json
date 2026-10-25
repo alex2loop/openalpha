@@ -84,5 +84,8 @@
     "modelReady": true,
     "profileSaved": true,
     "bookEmpty": false
+  },
+  "office": {
+    "weather": true
   }
 }
