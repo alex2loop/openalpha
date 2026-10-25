@@ -1,4 +1,4 @@
-import { readBlock } from '@/web/state/block'
+import { readBlock, withCautions } from '@/web/state/block'
 import { overviewBlock, selectOverview } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { CoinIcon } from '@/web/ui/kit/icons'
@@ -14,7 +14,7 @@ export function OtherMarkets() {
       title={tr('ui.office.today.other')}
       colour="peach"
       icon={<CoinIcon />}
-      reading={readBlock(overviewBlock)}
+      reading={withCautions(readBlock(overviewBlock), blocks)}
     >
       {() => <MarketSections blocks={blocks} />}
     </BlockFrame>

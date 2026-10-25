@@ -20,6 +20,7 @@ export function WorthWatching() {
       colour="yellow"
       icon={<ListIcon />}
       reading={reading}
+      dataTo={reading.data?.snapshot?.day}
     >
       {(brief) => <WorthList verdict={brief.text?.verdict ?? []} />}
     </BlockFrame>

@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks'
+import { useEffect, useRef } from 'preact/hooks'
 
 import type { MarketEventWire } from '@/app/server/wire/trading'
 import { formatDay } from '@/i18n'
@@ -31,11 +31,16 @@ export function Events() {
   })
   const hasHoldings = holdingsBlock.view.value.readAt !== undefined
 
-  // The first read may come before the book does: read again once the book is there.
+  const hadHoldings = useRef(hasHoldings)
+
+  // The first read may come before the book does: read again when the book first arrives, not
+  // when it was already there at mount.
   useEffect(() => {
-    if (hasHoldings) {
+    if (hasHoldings && !hadHoldings.current) {
       reading.retry()
     }
+
+    hadHoldings.current = hasHoldings
   }, [hasHoldings])
 
   return (

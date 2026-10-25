@@ -1,5 +1,7 @@
 import type { OverviewResponse } from '@/app/server/wire/market'
+import { formatDay } from '@/i18n'
 import { findMarket, priceDisplayOf } from '@/web/state/market'
+import { locale } from '@/web/state/session'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 
@@ -47,15 +49,26 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
   )
 }
 
-/** "Giá đóng cửa {time}" while the market is not trading; absent for one that never closes. */
+/** The first block with a board: a dealer's rows (gold) state no closing price. */
+export function selectBoard(blocks: OverviewResponse['markets']): OverviewBlock | undefined {
+  return blocks.find((block) => findMarket(block.market)?.hasBoard === true)
+}
+
+/** "Giá đóng cửa {time}" for a board that is not trading; it leads with the session's day when
+ *  that is not the market's today. Absent for a market that never closes. */
 export function closeNoteOf(block: OverviewBlock | undefined): string | undefined {
   const session = block === undefined ? undefined : findMarket(block.market)?.session
 
-  if (session === undefined || TRADING_PHASES.has(session.phase)) {
+  if (block === undefined || session === undefined || TRADING_PHASES.has(session.phase)) {
     return undefined
   }
 
-  return tr('ui.office.today.closeNote', { time: session.close })
+  const time =
+    block.asOf === session.today
+      ? session.close
+      : `${formatDay(locale.value, block.asOf)} ${session.close}`
+
+  return tr('ui.office.today.closeNote', { time })
 }
 
 interface OverviewRowProps {
@@ -64,7 +77,8 @@ interface OverviewRowProps {
 }
 
 function OverviewRow({ row, currency }: OverviewRowProps) {
-  const display = priceDisplayOf(row.instrument.market)
+  // A level market (an index) has no price currency and prints its bare level.
+  const display = currency === undefined ? undefined : priceDisplayOf(row.instrument.market)
   const price = formatPrice(row.price, display)
 
   return (

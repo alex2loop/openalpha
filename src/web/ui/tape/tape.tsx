@@ -18,8 +18,6 @@ import { tr } from '@/web/text/tr'
 
 import './tape.css'
 
-const FLASH_MS = 900
-
 interface TapeRow {
   readonly key: string
   readonly market: string
@@ -75,7 +73,7 @@ function TapeRows({ rows, resolveNote, isCopy }: TapeRowsProps) {
 }
 
 function TapeCell({ row, note }: { readonly row: TapeRow; readonly note: Note }) {
-  const flash = useFlash(row.price)
+  const { flash, clearFlash } = useFlash(row.price)
   const classes = [
     'tape-cell',
     note === 'breach' ? 'is-breach' : '',
@@ -83,7 +81,7 @@ function TapeCell({ row, note }: { readonly row: TapeRow; readonly note: Note })
   ]
 
   return (
-    <span class={classes.filter(Boolean).join(' ')}>
+    <span class={classes.filter(Boolean).join(' ')} onAnimationEnd={clearFlash}>
       <b>{row.ticker}</b>
       <span class="tape-price">{formatPrice(row.price, priceDisplayOf(row.market))}</span>
       <span class={`is-${toneOfPercent(row.changePct)}-text`}>
@@ -98,8 +96,11 @@ function TapeCell({ row, note }: { readonly row: TapeRow; readonly note: Note })
   )
 }
 
-// A price that moved flashes for `FLASH_MS`; a quiet page (reduced motion) never does.
-function useFlash(price: number | undefined): 'up' | 'down' | undefined {
+// A price that moved flashes until its CSS animation ends; a quiet page (reduced motion) never does.
+function useFlash(price: number | undefined): {
+  readonly flash: 'up' | 'down' | undefined
+  readonly clearFlash: () => void
+} {
   const previous = useRef(price)
   const flash = useSignal<'up' | 'down' | undefined>(undefined)
 
@@ -108,23 +109,17 @@ function useFlash(price: number | undefined): 'up' | 'down' | undefined {
 
     previous.current = price
 
-    if (before === undefined || price === undefined || price === before || reducedMotion.value) {
-      return undefined
-    }
-
-    flash.value = price > before ? 'up' : 'down'
-
-    const timer = setTimeout(() => {
-      flash.value = undefined
-    }, FLASH_MS)
-
-    return () => {
-      clearTimeout(timer)
-      flash.value = undefined
+    if (before !== undefined && price !== undefined && price !== before && !reducedMotion.value) {
+      flash.value = price > before ? 'up' : 'down'
     }
   }, [price])
 
-  return flash.value
+  return {
+    flash: flash.value,
+    clearFlash: () => {
+      flash.value = undefined
+    },
+  }
 }
 
 // The watchlist first (indices are not on the tape), then the holdings it does not already carry,

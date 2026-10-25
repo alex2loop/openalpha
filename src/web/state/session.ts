@@ -42,14 +42,12 @@ export const sessionFailure = signal<ApiFailure | undefined>(undefined)
 /** The browser's language until a session loads, then the daemon's. */
 export const locale = computed<UiLocale>(() => state.value?.locale ?? browserLocale)
 
-/** The daemon has no model, no saved profile and an empty book: the page walks the operator
- *  through the first steps. */
+/** No saved profile and an empty book: the page walks the operator through the first steps, the
+ *  model key among them. */
 export const isFirstRun = computed(() => {
   const firstRun = state.value?.firstRun
 
-  return (
-    firstRun !== undefined && !firstRun.modelReady && !firstRun.profileSaved && firstRun.bookEmpty
-  )
+  return firstRun !== undefined && !firstRun.profileSaved && firstRun.bookEmpty
 })
 
 /** Loads brand and session, again every `STARTING_RETRY_MS` while the daemon is starting, at most

@@ -32,14 +32,12 @@ export interface BlockReading<T> extends BlockView<T> {
   retry(): void
 }
 
-interface BlockOptions<T> {
+interface BlockOptions {
   /** A route the daemon does not run makes the block `absent`, never `failed`. */
   readonly capability?: keyof Capabilities | undefined
-  /** The warning caveats a response carries; default: its top-level `caveats`. */
-  readonly cautionsOf?: ((data: T) => readonly WireCaveat[]) | undefined
 }
 
-interface ReadOptions<T> extends BlockOptions<T> {
+interface ReadOptions extends BlockOptions {
   /** Polled at this period while mounted; absent reads once. */
   readonly everyMs?: number | undefined
 }
@@ -61,7 +59,7 @@ interface Block<T> {
  *  view and never lets two reads of one block overlap. */
 function createBlock<T>(
   read: (abort: AbortSignal) => Promise<T>,
-  options: BlockOptions<T> = {}
+  options: BlockOptions = {}
 ): Block<T> {
   const view = signal<BlockView<T>>({ state: 'loading', cautions: [] })
   let refresh: (() => Promise<void>) | undefined
@@ -73,7 +71,7 @@ function createBlock<T>(
     }
 
     try {
-      view.value = toReadView(await read(abort), options)
+      view.value = toReadView(await read(abort))
     } catch (error: unknown) {
       // Anything but an `ApiFailure` is this block's own abort.
       if (error instanceof ApiFailure) {
@@ -113,20 +111,14 @@ function createBlock<T>(
 }
 
 /** A block over one route: its query is fixed for the block's life. */
-export function createRouteBlock<T>(
-  def: RouteDef<T>,
-  init: { readonly query?: BlockQuery; readonly cautionsOf?: BlockOptions<T>['cautionsOf'] } = {}
-): Block<T> {
-  return createBlock(readRoute(def, init.query), {
-    capability: def.capability,
-    cautionsOf: init.cautionsOf,
-  })
+export function createRouteBlock<T>(def: RouteDef<T>, query?: BlockQuery): Block<T> {
+  return createBlock(readRoute(def, query), { capability: def.capability })
 }
 
 /** A block read for as long as the component is mounted; the read and its options are taken once. */
 export function useBlockRead<T>(
   read: (abort: AbortSignal) => Promise<T>,
-  options: ReadOptions<T> = {}
+  options: ReadOptions = {}
 ): BlockReading<T> {
   // One block per mount, by design: the read and its options never change for a mounted block.
   const block = useMemo(() => createBlock(read, options), [])
@@ -142,6 +134,21 @@ export function useBlock<T>(def: RouteDef<T>, options: RouteOptions = {}): Block
   return useBlockRead(readRoute(def, query), { capability: def.capability, everyMs })
 }
 
+/** The reading with the warnings of the parts of a response one frame shows, when the response
+ *  itself carries them per part. */
+export function withCautions<T>(
+  reading: BlockReading<T>,
+  parts: readonly { readonly caveats: readonly WireCaveat[] }[]
+): BlockReading<T> {
+  const cautions = toCautions(parts.flatMap((part) => part.caveats))
+
+  return {
+    ...reading,
+    cautions,
+    state: reading.state === 'ready' && cautions.length > 0 ? 'stale' : reading.state,
+  }
+}
+
 /** A module-level block's current view with its retry, as a component reads it. */
 export function readBlock<T>(block: Block<T>): BlockReading<T> {
   return { ...block.view.value, retry: block.retry }
@@ -151,8 +158,8 @@ function isAbsent(capability: keyof Capabilities | undefined): boolean {
   return capability !== undefined && state.value?.capabilities[capability] === false
 }
 
-function toReadView<T>(data: T, options: BlockOptions<T>): BlockView<T> {
-  const cautions = toCautions((options.cautionsOf ?? readCaveats)(data))
+function toReadView<T>(data: T): BlockView<T> {
+  const cautions = toCautions(readCaveats(data))
 
   return { state: cautions.length > 0 ? 'stale' : 'ready', data, readAt: Date.now(), cautions }
 }

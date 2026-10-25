@@ -4,6 +4,9 @@ import { ABSENT_CELL, DOWN_GLYPH, UP_GLYPH } from '@/web/text/glyphs'
 const USD_DIGITS = 2
 const PERCENT_DIGITS = 2
 const PRICE_DIGITS = 2
+// A price under 1 with no board scale keeps this many digits after its leading zeros.
+const SMALL_PRICE_EXTRA_DIGITS = 2
+const PRICE_DIGITS_MAX = 10
 const ZERO_TEXT = /^[^1-9]*$/
 
 /** How a board prints a price: `value / divisor` at `decimals`. */
@@ -27,13 +30,14 @@ export function formatUsd(value: number | undefined): string {
 }
 
 /** A price on its board's scale (`/v1/markets` `priceDisplay`); a money total passes
- *  `{ divisor: 1, decimals: 0 }`. No scale known prints cents. */
+ *  `{ divisor: 1, decimals: 0 }`. No scale known prints cents, and more digits under 1 so a
+ *  sub-cent price never reads as zero. */
 export function formatPrice(value: number | undefined, display: PriceDisplay | undefined): string {
   if (value === undefined || !Number.isFinite(value)) {
     return ABSENT_CELL
   }
 
-  const { divisor, decimals } = display ?? { divisor: 1, decimals: PRICE_DIGITS }
+  const { divisor, decimals } = display ?? { divisor: 1, decimals: unscaledDigits(value) }
 
   return formatterFor(decimals).format(value / divisor)
 }
@@ -67,6 +71,18 @@ function readPercent(value: number | undefined): { readonly text: string; readon
   }
 
   return { text, tone: value > 0 ? 'up' : 'down' }
+}
+
+function unscaledDigits(value: number): number {
+  const magnitude = Math.abs(value)
+
+  if (magnitude === 0 || magnitude >= 1) {
+    return PRICE_DIGITS
+  }
+
+  const leadingZeros = Math.floor(-Math.log10(magnitude))
+
+  return Math.min(PRICE_DIGITS_MAX, leadingZeros + SMALL_PRICE_EXTRA_DIGITS)
 }
 
 function formatterFor(digits: number): Intl.NumberFormat {

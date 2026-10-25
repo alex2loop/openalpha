@@ -13,13 +13,11 @@ const QUOTES_POLL_MS = 60_000
 type StopRow = StopsResponse['stops'][number]
 
 const marketsBlock = createRouteBlock(ROUTES.markets)
-export const overviewBlock = createRouteBlock(ROUTES.overview, {
-  cautionsOf: (data) => data.markets.flatMap((block) => block.caveats),
-})
+export const overviewBlock = createRouteBlock(ROUTES.overview)
 export const holdingsBlock = createRouteBlock(ROUTES.portfolio)
 export const quotesBlock = createRouteBlock(ROUTES.quotes)
 export const stopsBlock = createRouteBlock(ROUTES.stops)
-const callsBlock = createRouteBlock(ROUTES.suggestions, { query: { status: 'open' } })
+const callsBlock = createRouteBlock(ROUTES.suggestions, { status: 'open' })
 
 /** What the operator holds: a residue below the venue's smallest order is not a position. */
 export const heldPositions: ReadonlySignal<readonly AbsolutePositionWire[]> = computed(() =>
@@ -36,6 +34,7 @@ export const stopBreaches: ReadonlySignal<readonly StopRow[]> = computed(() => {
     (stop) =>
       held.has(keyOf(stop.instrument)) &&
       stop.plan === 'distance' &&
+      !stop.review &&
       stop.distanceToStopPct !== undefined &&
       stop.distanceToStopPct <= 0
   )
