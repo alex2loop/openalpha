@@ -7,9 +7,10 @@ import { toDecimal } from '@/web/text/decimal'
 /** The share of the whole book that is cash, which no market owns. */
 export const CASH_SEGMENT = 'cash'
 const PERCENT = 100
+// The input steps by a tenth of a percent, so a share is held, summed and sent in whole tenths:
+// the total the dialog accepts is the one the daemon checks, with no rounding between.
 const TENTHS = 10
-// A total off by less than this is a rounding of the typed tenths, not a missing share.
-const TOTAL_TOLERANCE = 0.05
+const WHOLE_TENTHS = PERCENT * TENTHS
 
 /** One segment as the dialog edits it. A segment switched off at open stays off here: turning one
  *  on re-seeds every cap, which only the daemon's own command does. */
@@ -60,25 +61,32 @@ export function lockUnheld(
   return rows.map((row) => ({ ...row, isLocked: !(row.wasOn || heldSegments.has(row.segment)) }))
 }
 
-/** The shares of the rows that are on, in percent; absent while one is not a number. */
+/** The shares of the rows that are on, in whole tenths of a percent; absent while one is not a
+ *  number. */
 export function sumTargets(rows: readonly TargetRow[]): number | undefined {
   let total = 0
 
   for (const row of rows) {
-    const share = row.on.value ? toDecimal(row.pct.value) : 0
+    const tenths = row.on.value ? tenthsOf(row) : 0
 
-    if (share === undefined) {
+    if (tenths === undefined) {
       return undefined
     }
 
-    total += share
+    total += tenths
   }
 
-  return Math.round(total * TENTHS) / TENTHS
+  return total
 }
 
-export function isWhole(total: number | undefined): boolean {
-  return total !== undefined && Math.abs(total - PERCENT) < TOTAL_TOLERANCE
+/** The total is exactly the whole book. */
+export function isWhole(totalTenths: number | undefined): boolean {
+  return totalTenths === WHOLE_TENTHS
+}
+
+/** A total in tenths as the percent the dialog prints. */
+export function toPercent(totalTenths: number): number {
+  return totalTenths / TENTHS
 }
 
 /** The targets as fractions, and the caps when a segment was switched off here. */
@@ -87,7 +95,7 @@ export function buildTargetsPatch(
   rows: readonly TargetRow[]
 ): ProfilePatch {
   const segmentTargets = Object.fromEntries(
-    rows.map((row) => [row.segment, row.on.value ? shareOf(row) / PERCENT : 0])
+    rows.map((row) => [row.segment, row.on.value ? (tenthsOf(row) ?? 0) / WHOLE_TENTHS : 0])
   )
   const switchedOff = rows.filter((row) => row.wasOn && !row.on.value)
 
@@ -111,8 +119,10 @@ export function snapshotTargets(rows: readonly TargetRow[]): string {
   return JSON.stringify(rows.map((row) => [row.on.value, row.pct.value]))
 }
 
-function shareOf(row: TargetRow): number {
-  return toDecimal(row.pct.value) ?? 0
+function tenthsOf(row: TargetRow): number | undefined {
+  const share = toDecimal(row.pct.value)
+
+  return share === undefined ? undefined : Math.round(share * TENTHS)
 }
 
 function toPercentText(fraction: number): string {

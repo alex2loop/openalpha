@@ -18,6 +18,7 @@ import {
   snapshotTargets,
   sumTargets,
   type TargetRow,
+  toPercent,
 } from '@/web/ui/dialogs/targets-state'
 import { Button } from '@/web/ui/kit/button'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
@@ -121,14 +122,16 @@ function TotalLine({ total }: { readonly total: number | undefined }) {
   if (total === undefined || isWhole(total)) {
     return (
       <p class="target-total">
-        {tr('ui.office.targets.total', { total: total === undefined ? '' : formatPercent(total) })}
+        {tr('ui.office.targets.total', {
+          total: total === undefined ? '' : formatPercent(toPercent(total)),
+        })}
       </p>
     )
   }
 
   return (
     <p class="failure-line" role="alert">
-      {tr('ui.office.targets.mustBe100', { total: formatPercent(total) })}
+      {tr('ui.office.targets.mustBe100', { total: formatPercent(toPercent(total)) })}
     </p>
   )
 }
