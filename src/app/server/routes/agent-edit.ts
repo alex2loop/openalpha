@@ -28,7 +28,7 @@ import { toFieldValidationError } from '@/core/field-errors'
 import { agentId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/security/private-files'
-import { RESERVED_AGENT_IDS, userAgentFile } from '@/engine/api'
+import { RESERVED_AGENT_IDS, readUserAgents, userAgentFile, userAgentsDir } from '@/engine/api'
 import { type MessageKey, pluralKey, t, translateDisplayText } from '@/i18n'
 import { pauseJobsOfAgent } from '@/scheduler/api'
 
@@ -119,10 +119,6 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
     return idTaken(ctx, id)
   }
 
-  if (ctx.app.resolve('userAgentIds')().size >= MAX_USER_AGENTS) {
-    return apiError('conflict', t(localeOf(ctx), 'errors.agentLimit', { limit: MAX_USER_AGENTS }))
-  }
-
   const path = userAgentFile(ctx.app.config.paths.dataDir, id)
 
   // A file the last reload skipped still holds the id: the operator edits or removes it, not this call.
@@ -133,15 +129,14 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
   const toml = toAgentToml(body, toolNamesOf(ctx))
   const built = buildFrom(ctx, id, toml)
 
-  try {
-    await createPrivateFileAtomic({ path, content: toml })
-  } catch (err: unknown) {
-    // Two creates of one id race to the same file; the loser finds it there.
-    if (err instanceof ConfigError && (await Bun.file(path).exists())) {
-      return idTaken(ctx, id)
-    }
+  const outcome = await createUnderCap(ctx, { path, toml })
 
-    throw err
+  if (outcome === 'limit') {
+    return apiError('conflict', t(localeOf(ctx), 'errors.agentLimit', { limit: MAX_USER_AGENTS }))
+  }
+
+  if (outcome === 'taken') {
+    return idTaken(ctx, id)
   }
 
   const failed = await reloadRefusal(ctx)
@@ -153,6 +148,37 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
   ctx.app.resolve('bus').emit('agent_added', { agentId: id, name: built.name })
 
   return json(toAgentDetailWire(built, true) satisfies AgentDetailWire)
+}
+
+type CreateOutcome = 'created' | 'limit' | 'taken'
+
+// The count and the write take one turn of the registry's serial queue, so two creates at 49 cannot
+// both pass: the second counts the first's file. The files on disk are counted, not the loaded set,
+// because the first create's reload has not landed yet.
+function createUnderCap(
+  ctx: ApiRouteContext,
+  file: { readonly path: string; readonly toml: string }
+): Promise<CreateOutcome> {
+  return ctx.app.resolve('liveAgents').serialize(async () => {
+    const files = await readUserAgents(userAgentsDir(ctx.app.config.paths.dataDir))
+
+    if (files.length >= MAX_USER_AGENTS) {
+      return 'limit'
+    }
+
+    try {
+      await createPrivateFileAtomic({ path: file.path, content: file.toml })
+    } catch (err: unknown) {
+      // Two creates of one id race to the same file; the loser finds it there.
+      if (err instanceof ConfigError && (await Bun.file(file.path).exists())) {
+        return 'taken'
+      }
+
+      throw err
+    }
+
+    return 'created'
+  })
 }
 
 async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response> {
