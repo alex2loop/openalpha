@@ -3,8 +3,7 @@ import { computed, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
-import { pending, pendingRequestId } from '@/web/state/live'
-import { needsYou, notices, unread } from '@/web/state/notices'
+import { isWaitingNotice, needsYou, notices, unread } from '@/web/state/notices'
 import { reducedMotion } from '@/web/state/prefs'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -24,16 +23,10 @@ const unreadStops = computed(
     ).length
 )
 // Unread requests still waiting: counted in `needsYou` and shown as cards, not as rows.
-const unreadWaiting = computed(() => {
-  const waitingIds = new Set(pending.value.map(pendingRequestId))
-
-  return notices.value.filter(
-    (notice) =>
-      notice.readAt === undefined &&
-      notice.event.requestId !== undefined &&
-      waitingIds.has(notice.event.requestId)
-  ).length
-})
+const unreadWaiting = computed(
+  () =>
+    notices.value.filter((notice) => notice.readAt === undefined && isWaitingNotice(notice)).length
+)
 // Unread rows that do not need the operator: a dot, not a number.
 const otherUnread = computed(() =>
   Math.max(0, (unread.value ?? 0) - unreadStops.value - unreadWaiting.value)

@@ -6,6 +6,7 @@ import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
 import { onWireEvent } from '@/web/state/events'
+import { pending, pendingRequestId } from '@/web/state/live'
 
 /** The newest page of the bell the page holds; the bell does not page further. */
 const MAX_NOTICES = 100
@@ -23,6 +24,10 @@ export const unread = computed(() => page.value?.unread)
 export const needsYou = computed(() => page.value?.needsYou ?? 0)
 /** Why the last read failed; cleared by the next good one. */
 export const noticesFailure: ReadonlySignal<ApiFailure | undefined> = failure
+
+const waitingIds = computed<ReadonlySet<string | undefined>>(
+  () => new Set(pending.value.map(pendingRequestId))
+)
 
 /** Reads the bell now, again on every `notices_changed` (sent after the row is written, so the
  *  read finds it) and on every resolved approval (which leaves `needsYou`), and every
@@ -74,4 +79,11 @@ async function loadNotices(abortSignal: AbortSignal): Promise<void> {
       failure.value = error
     }
   }
+}
+
+/** The notice of a request still waiting: it shows as a card and counts in `needsYou`, not as a row. */
+export function isWaitingNotice(notice: NoticeWire): boolean {
+  const { requestId } = notice.event
+
+  return requestId !== undefined && waitingIds.value.has(requestId)
 }

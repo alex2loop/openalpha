@@ -79,7 +79,9 @@ function toNoticeText(event: WireEvent): NoticeText | undefined {
   }
 
   if (event.approval !== undefined) {
-    return { title: event.approval.label, detail: event.approval.argsSummary }
+    const { label, argsSummary } = event.approval
+
+    return argsSummary === '' ? { title: label } : { title: label, detail: argsSummary }
   }
 
   if (event.clarification !== undefined) {

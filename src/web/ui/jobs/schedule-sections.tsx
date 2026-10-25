@@ -133,7 +133,7 @@ function formatWhen(atMs: number, timeZone: string): string {
 
   return day === buildDayKey(Date.now(), timeZone)
     ? clock
-    : `${formatDay(locale.value, day)} ${clock}`
+    : tr('ui.office.jobs.dayClock', { day: formatDay(locale.value, day), clock })
 }
 
 // Schedule rows are open: a field is read only when it holds text.

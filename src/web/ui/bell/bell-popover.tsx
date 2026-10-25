@@ -5,7 +5,7 @@ import type { NoticeWire } from '@/app/server/wire/notices'
 import { pluralKey } from '@/i18n'
 import { ApiFailure } from '@/web/api/client'
 import { pending, pendingRequestId } from '@/web/state/live'
-import { markRead, notices, noticesFailure, unread } from '@/web/state/notices'
+import { isWaitingNotice, markRead, notices, noticesFailure, unread } from '@/web/state/notices'
 import { state } from '@/web/state/session'
 import { buildDayKey } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -120,19 +120,12 @@ function listToday(): readonly NoticeWire[] {
 
   const today = buildDayKey(Date.now(), timeZone)
   // A request still waiting shows above; once answered it is an ordinary row here.
-  const waitingIds = new Set(pending.value.map(pendingRequestId))
   const shown = notices.value.filter(
-    (notice) => !isWaiting(notice, waitingIds) && buildDayKey(notice.createdAt, timeZone) === today
+    (notice) => !isWaitingNotice(notice) && buildDayKey(notice.createdAt, timeZone) === today
   )
 
   return [
     ...shown.filter((notice) => notice.readAt === undefined),
     ...shown.filter((notice) => notice.readAt !== undefined),
   ]
-}
-
-function isWaiting(notice: NoticeWire, waitingIds: ReadonlySet<string | undefined>): boolean {
-  const { requestId } = notice.event
-
-  return requestId !== undefined && waitingIds.has(requestId)
 }
