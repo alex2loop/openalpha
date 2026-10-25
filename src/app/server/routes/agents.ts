@@ -7,7 +7,7 @@ import type { AgentFocusRef, AgentRecordSummary } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { hostOf, localeOf, parsePathId } from '@/app/server/routes/params'
 import { agentId } from '@/core/ids'
-import { renderFocusLabel, resolveRunFocus } from '@/trading/api'
+import { renderFocusLabel, resolveRunFocus, toAgentFocus } from '@/trading/api'
 
 function toRecordFields(
   record: AgentRecordSummary | undefined
@@ -49,6 +49,7 @@ function toAgentWire(
 ): AgentWire {
   const { paused, spentTodayUsd } = extras
   const focus = resolveRunFocus(agent.focus)
+  const declared = toAgentFocus(agent.focus)
 
   return {
     id: agent.id,
@@ -59,7 +60,7 @@ function toAgentWire(
     ...(agent.look === undefined ? {} : { look: agent.look }),
     focusKey: focus.key,
     focusLabel: renderFocusLabel(localeOf(ctx), focus.focus),
-    ...(focus.focus === undefined ? {} : { focus: focus.focus }),
+    ...(declared === undefined ? {} : { focus: declared }),
     ...toRecordFields(extras.record),
     social: extras.social.map((row) => ({
       network: row.network,

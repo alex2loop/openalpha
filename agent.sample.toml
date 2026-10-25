@@ -61,7 +61,8 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #                             # `market_sector_strength` lists them
 # horizon = "long"            # short | long: the window this agent's calls are scored over
 # goal = "income"             # preserve | income | grow: what it hunts for, in your profile's
-#                             # words (income = dividends); names its aim, narrows nothing
+#                             # words (income = dividends); only marks the agent, never
+#                             # changes or splits its calls
 
 # ---- Look (how this agent's character appears in the app) -------------------
 # Up to 8 parts, each a lowercase slug of at most 24 characters. The daemon only keeps what you

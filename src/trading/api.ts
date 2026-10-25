@@ -213,7 +213,12 @@ export {
 } from '@/trading/kernel/instrument'
 export { alertId } from '@/trading/kernel/operator/alert'
 export { ledgerEntryId } from '@/trading/kernel/operator/book'
-export { isBookFocus, resolveRunFocus, validateAgentFocus } from '@/trading/kernel/operator/focus'
+export {
+  isBookFocus,
+  resolveRunFocus,
+  toAgentFocus,
+  validateAgentFocus,
+} from '@/trading/kernel/operator/focus'
 export { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 export { describeCaveat } from '@/trading/render/caveat'
 export { formatClock, formatInstant } from '@/trading/render/datetime'

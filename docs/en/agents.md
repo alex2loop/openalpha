@@ -156,9 +156,10 @@ horizon = "long"          # short | long: the window its calls are scored over
 goal = "income"           # preserve | income | grow: what it hunts for (income = dividends)
 ```
 
-`goal` takes your profile's goal words and names the agent's aim: the office page seats an `income` agent as your
-dividend hunter. It narrows nothing and changes no call's method; the hunting is in the agent's prompt. It is part
-of the focus, so it keeps the agent's record apart. The rest only narrows:
+`goal` takes your profile's goal words and only marks the agent: the office page seats an `income` agent as your
+dividend hunter. It never changes or splits a call: two agents that differ only in `goal` share their calls, debates
+and record, and a `[focus]` holding only `goal` is your own focus. The hunting is in the agent's prompt. The rest
+only narrows:
 
 - `markets` must be markets your book trades.
 - `sectors` need a market that keeps sector data (today `equity-vn`). Names are the market's own slugs, listed by

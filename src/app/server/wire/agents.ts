@@ -23,8 +23,9 @@ export interface AgentWire {
   readonly focusKey: string
   /** The focus in words, in the daemon's language. */
   readonly focusLabel: string
-  /** Its own `[focus]` as declared (lists deduped and sorted); absent for an agent sharing the
-   *  operator's focus. `goal: 'income'` is an agent hunting dividends. */
+  /** Its own `[focus]` as declared (lists deduped and sorted); absent when it declares none.
+   *  `goal: 'income'` marks an agent hunting dividends; the goal is in neither `focusKey` nor
+   *  `focusLabel`. */
   readonly focus?: AgentFocusWire
   /** What its calls earned, every focus it has used together. Absent until it has called. */
   readonly record?: AgentRecordWire
@@ -71,7 +72,8 @@ export interface AgentFocusWire {
   readonly markets?: readonly string[]
   readonly sectors?: readonly string[]
   readonly horizon?: 'short' | 'long'
-  /** What it hunts for, in the profile's goal words: `income` is dividends. */
+  /** What it hunts for, in the profile's goal words (`income` is dividends): a mark on the agent,
+   *  never part of its calls. */
   readonly goal?: InvestmentGoal
 }
 

@@ -155,9 +155,10 @@ horizon = "long"          # short | long: khung thời gian chấm điểm đề
 goal = "income"           # preserve | income | grow: thứ nó săn tìm (income = cổ tức)
 ```
 
-`goal` dùng đúng các từ mục tiêu trong hồ sơ của bạn và nói agent nhắm tới điều gì: trang văn phòng xếp một agent
-`income` làm người săn cổ tức của bạn. Nó không thu hẹp gì và không đổi cách ra đề xuất; việc săn tìm nằm trong lời
-nhắc của agent. Nó là một phần của phạm vi, nên giữ hồ sơ của agent tách riêng. Phần còn lại chỉ thu hẹp:
+`goal` dùng đúng các từ mục tiêu trong hồ sơ của bạn và chỉ đánh dấu agent: trang văn phòng xếp một agent `income`
+làm người săn cổ tức của bạn. Nó không bao giờ đổi hay tách một đề xuất: hai agent chỉ khác nhau ở `goal` dùng chung
+đề xuất, cuộc tranh luận và hồ sơ, còn `[focus]` chỉ có `goal` là phạm vi của chính bạn. Việc săn tìm nằm trong lời
+nhắc của agent. Phần còn lại chỉ thu hẹp:
 
 - `markets` phải là thị trường danh mục của bạn có giao dịch.
 - `sectors` cần một thị trường có dữ liệu ngành (hiện là `equity-vn`). Tên là slug của chính thị trường, do

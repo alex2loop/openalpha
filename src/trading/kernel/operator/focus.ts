@@ -65,8 +65,8 @@ export interface AgentFocus {
   readonly markets?: readonly MarketRef[]
   readonly sectors?: readonly string[]
   readonly horizon?: InvestmentHorizon
-  /** What the agent hunts for, in the profile's goal words (`income` for dividends). It names the
-   *  agent's aim and keeps its record apart; it narrows no market and changes no call's method. */
+  /** What the agent hunts for, in the profile's goal words (`income` for dividends). A mark on the
+   *  agent only: `resolveRunFocus` leaves it out, so it never changes, splits or labels a call. */
   readonly goal?: InvestmentGoal
 }
 
@@ -163,10 +163,13 @@ function focusKey(focus: AgentFocus | undefined): FocusKey {
   return `f-${hashString(canonicalJson(focus))}` as FocusKey
 }
 
+/** The focus a call is made, keyed and shared under: the declared table less `goal`, so agents that
+ *  differ only in their goal share one call and one debate. A table holding only a goal narrows
+ *  nothing, so it is the operator's own focus. */
 export function resolveRunFocus(raw: unknown): RunFocus {
-  const focus = toAgentFocus(raw)
+  const { goal: _goal, ...focus } = toAgentFocus(raw) ?? {}
 
-  if (focus === undefined) {
+  if (Object.keys(focus).length === 0) {
     return DEFAULT_RUN_FOCUS
   }
 

@@ -4,8 +4,8 @@ import { renderDeclaredValue, renderProvidedValue } from '@/trading/render/forma
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { renderMarketName } from '@/trading/render/tool-detail'
 
-/** A focus as its owner reads it: the markets, the sectors and the horizon it narrows to and the goal
- *  it hunts for, or the operator's own focus when it declares nothing. */
+/** A focus as its owner reads it: the markets, the sectors and the horizon it narrows to, or the
+ *  operator's own focus when it narrows nothing. */
 export function renderFocusLabel(locale: Locale, focus: AgentFocus | undefined): string {
   if (focus === undefined) {
     return renderDeclaredValue(locale, 'trading.focus.default')
@@ -19,8 +19,5 @@ export function renderFocusLabel(locale: Locale, focus: AgentFocus | undefined):
     ...(focus.horizon === undefined
       ? []
       : [renderDeclaredValue(locale, `trading.horizon.${focus.horizon}`)]),
-    ...(focus.goal === undefined
-      ? []
-      : [renderDeclaredValue(locale, `trading.goal.${focus.goal}`)]),
   ].join(INLINE_SEPARATOR)
 }
