@@ -13,13 +13,22 @@ import { bindLocale, t } from '@/i18n'
 
 /** False when the socket dropped the frame (closed, or its buffer is full): Bun answers 0 then,
  *  -1 for a frame queued behind backpressure, and the byte count otherwise. */
+export function send(ws: ServerWebSocket<WsData>, frame: ServerFrame): boolean {
+  return ws.send(JSON.stringify(frame)) !== 0
+}
+
 /** The tag a message's frames carry: its client id when it was sent with one. */
 export function toLaneTag(id: string | undefined): LaneTag {
   return id === undefined ? {} : { id }
 }
 
-export function send(ws: ServerWebSocket<WsData>, frame: ServerFrame): boolean {
-  return ws.send(JSON.stringify(frame)) !== 0
+/** A tagged message's `queued` and `started` also name its session, so a client knows a new one at
+ *  once; an untagged message's carry neither. */
+export function toTurnTag(
+  id: string | undefined,
+  sessionId: SessionId
+): { readonly id?: string; readonly sessionId?: string } {
+  return id === undefined ? {} : { id, sessionId }
 }
 
 /** Stable code plus the operator's sentence, never the error's message: a socket is not a log. `id`

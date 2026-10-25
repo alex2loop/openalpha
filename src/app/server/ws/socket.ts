@@ -86,6 +86,9 @@ export interface WsData {
   /** The slash commands among `activeRuns`, so a chat reset stops them without stopping the agent turn
    *  that shares the session's set. The value is the lane entry id of a self-contained command. */
   readonly commandRuns: Map<AbortController, string | undefined>
+  /** The id of the last tagged steer each session's running turn took, so a later `steer_dropped`
+   *  names it. One per session, read once, cleared on close. */
+  readonly steerIds: Map<SessionId, string>
   closed: boolean
   off?: () => void
 }
@@ -141,7 +144,15 @@ export const wsHandlers: WebSocketHandler<WsData> = {
       // A steer the run accepted but ended before reading: the operator has to send it again.
       bus.on('steering_dropped', (e) => {
         if (e.channel === API_CHANNEL && ws.data.activeRuns.has(e.sessionId)) {
-          send(ws, { type: 'chat', kind: 'steer_dropped', text: steerDroppedText(ws, e.count) })
+          const id = ws.data.steerIds.get(e.sessionId)
+
+          ws.data.steerIds.delete(e.sessionId)
+          send(ws, {
+            type: 'chat',
+            kind: 'steer_dropped',
+            text: steerDroppedText(ws, e.count),
+            ...toLaneTag(id),
+          })
         }
       }),
       // `/new` moves the chat to a session of its own: the commands still running for the old one
@@ -244,6 +255,10 @@ function steer(ws: ServerWebSocket<WsData>, session: SessionId, frame: ChatBody)
   }
 
   if (ws.data.services.runControl.steer(session, session, message)) {
+    if (id !== undefined) {
+      ws.data.steerIds.set(session, id)
+    }
+
     send(ws, { type: 'chat', kind: 'steered', ...toLaneTag(id) })
   } else {
     send(ws, {
@@ -302,6 +317,7 @@ function closeSocket(ws: ServerWebSocket<WsData>): void {
   }
 
   dropWaitingCommands(ws)
+  ws.data.steerIds.clear()
 
   for (const [sessionId, controllers] of ws.data.activeRuns) {
     for (const controller of controllers) {

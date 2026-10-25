@@ -14,6 +14,7 @@ import {
   sendOperatorFailure,
   sendRunError,
   toLaneTag,
+  toTurnTag,
   unregisterSocketRun,
 } from '@/app/server/ws/runs'
 import { createChatFrameMapper } from '@/app/server/ws/stream-events'
@@ -156,13 +157,6 @@ function sendChatFrames(
       frame.kind === 'tool' ? { type: 'chat', ...frame } : { type: 'chat', ...frame, ...tag }
     )
   }
-}
-
-function toTurnTag(
-  id: string | undefined,
-  sessionId: SessionId
-): { id?: string; sessionId?: string } {
-  return id === undefined ? {} : { id, sessionId }
 }
 
 export async function resolveAgentId(services: WsServices, session: SessionId): Promise<AgentId> {

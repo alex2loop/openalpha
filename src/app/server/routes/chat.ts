@@ -15,14 +15,36 @@ import { apiError, json } from '@/app/server/http/dispatch'
 import { toChatSessionsWire } from '@/app/server/mappers/chat'
 import { localeOf, parseLimit, parsePageQuery, readJsonBody } from '@/app/server/routes/params'
 import { type ChannelId, channelId } from '@/core/channels'
-import { sessionId as brandSessionId } from '@/core/ids'
+import { sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 
 async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const sessionId = await ctx.app.resolve('sessionStore').latestIdForChannel(API_CHANNEL)
+  const agentId = sessionId === null ? undefined : await resolveBoundAgent(ctx, sessionId)
 
-  return json({ sessionId } satisfies ChatRecentResponse)
+  return json({
+    sessionId,
+    ...(agentId === undefined ? {} : { agentId }),
+  } satisfies ChatRecentResponse)
+}
+
+// The agent the app's chat is bound to, when it is a configured agent other than the assistant.
+async function resolveBoundAgent(
+  ctx: ApiRouteContext,
+  sessionId: string
+): Promise<string | undefined> {
+  const binding = await ctx.app.resolve('chatBindingStore').get(API_CHANNEL, sessionId)
+
+  if (
+    binding === null ||
+    binding.agentId === DEFAULT_AGENT_ID ||
+    !ctx.app.resolve('agents').has(binding.agentId)
+  ) {
+    return undefined
+  }
+
+  return binding.agentId
 }
 
 // A session this app opened is a chat id; any other channel's is a UUID.

@@ -14,6 +14,7 @@ import {
   send,
   sendRunError,
   toLaneTag,
+  toTurnTag,
   trackLaneItem,
   unregisterSocketRun,
 } from '@/app/server/ws/runs'
@@ -138,14 +139,25 @@ async function execute(run: SlashRun): Promise<SlashResult | null> {
     return dispatchSlash(run)
   }
 
-  // Held behind the session's turn: a client that tagged the line hears that it waits.
-  if (tag.id !== undefined && ws.data.services.sessionQueue.depth(sessionId) > 0) {
-    send(ws, { type: 'chat', kind: 'queued', id: tag.id, sessionId })
+  // Held behind the session's turn: a client that tagged the line hears that it waits, and when it
+  // begins.
+  const hasWaited = run.clientId !== undefined && ws.data.services.sessionQueue.depth(sessionId) > 0
+
+  if (hasWaited) {
+    send(ws, { type: 'chat', kind: 'queued', ...toTurnTag(run.clientId, sessionId) })
   }
 
-  return ws.data.services.sessionQueue.enqueue(sessionId, async () =>
-    controller.signal.aborted ? null : dispatchSlash(run)
-  )
+  return ws.data.services.sessionQueue.enqueue(sessionId, async () => {
+    if (controller.signal.aborted) {
+      return null
+    }
+
+    if (hasWaited && run.clientId !== undefined) {
+      send(ws, { type: 'chat', kind: 'started', id: run.clientId, sessionId })
+    }
+
+    return dispatchSlash(run)
+  })
 }
 
 /** A self-contained command runs beside the session's turn. It waits only when the chat already has

@@ -124,9 +124,11 @@ export interface ChatHistoryResponse {
   readonly messages: readonly ChatHistoryMessage[]
 }
 
-/** GET /v1/chat/recent — id of the most recent app chat session to resume, or null. */
+/** GET /v1/chat/recent — id of the most recent app chat session to resume, or null. `agentId` is
+ *  the operator's own agent that session talks to; absent when it talks to the assistant. */
 export interface ChatRecentResponse {
   readonly sessionId: string | null
+  readonly agentId?: string
 }
 
 /** One conversation as a list shows it. `channel` is where it happened (`api` is this app); only an

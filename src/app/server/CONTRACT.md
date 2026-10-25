@@ -105,7 +105,7 @@ this document — neither imports the other.
 | POST | `/v1/providers/test` | yes | `{}` | `ProviderTestResult` (`{ok, model}` or `{ok:false, code}`) | — |
 | GET · POST · DELETE | `/v1/auth/chatgpt` | yes | `{ method: 'browser' \| 'device' }` (POST) | `ChatgptAuthStatus` | `chatgpt.json`, `chatgpt.login.json` |
 | GET | `/v1/chat/sessions` | yes | `?channel&query&before&beforeId&limit` (`channel` repeats (at most 20) and defaults to every channel; `query` keeps the sessions with a user or assistant message containing it, at least 2 and at most 100 characters, ignoring ASCII case, and the text as typed also matches, so a Vietnamese capital matches when typed as stored; the next page is `before=<nextBefore>&beforeId=<nextBeforeId>`, a keyset on `(lastActivityAt, sessionId)` that skips no session at a page edge, and `before` alone takes only sessions strictly older (`beforeId` without `before` is `invalid_body`); `limit` defaults to 30, at most 100; anything else is `invalid_body`) | `ChatSessionsResponse` (`sessions`, newest activity first: `sessionId`, `channel` (`api` is this app), `chatId?`, `agentId`, `startedAt`, `lastActivityAt`, `messageCount`, `title?` its first message and `lastReply?` its last answer, each scrubbed of credentials and cut at 200 characters; `nextBefore` and `nextBeforeId` are null on the last page) | `chat.sessions.json` |
-| GET | `/v1/chat/recent`, `/v1/chat/history/:sessionId` | yes | `?limit&before` (history reads any session, a UUID from another channel included; only a session of the `api` channel takes a new message, so another channel's history is read-only; `limit` defaults to 30 and runs 1 to the session message cap, anything else is `invalid_body`; `before` is a transcript index (`idx`) and returns the rows older than it, a non-numeric or oversized value is ignored; `nextBefore` is the oldest returned row's `idx`; a page whose messages all render empty is possible, so keep paging while `hasMore`) | session id / message page | — |
+| GET | `/v1/chat/recent`, `/v1/chat/history/:sessionId` | yes | `?limit&before` (history reads any session, a UUID from another channel included; only a session of the `api` channel takes a new message, so another channel's history is read-only; `limit` defaults to 30 and runs 1 to the session message cap, anything else is `invalid_body`; `before` is a transcript index (`idx`) and returns the rows older than it, a non-numeric or oversized value is ignored; `nextBefore` is the oldest returned row's `idx`; a page whose messages all render empty is possible, so keep paging while `hasMore`) | `ChatRecentResponse` (`sessionId`, and `agentId` when that session is bound to one of the operator's own agents, absent for the assistant) / message page | — |
 | POST | `/v1/mcp` | yes | MCP JSON-RPC | MCP result (tools only) | — |
 | GET | `/v1/quotes` | yes | — | `TradingQuotesResponse` | `quotes.json` |
 | GET | `/v1/ohlcv` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingOhlcvResponse` | `ohlcv.json` |
@@ -321,13 +321,16 @@ Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`
   socket as an invalid frame). Every frame the message produces then carries it as `id`: a short
   command's reply and `done`, a lane command (whose lane id it becomes, so `drop` takes it), a
   long command held behind the session's turn (which also answers `{ kind: 'queued', id,
-  sessionId }`), and the agent turn a message or a command hands off to, which answers
+  sessionId }` and, as it begins, `{ kind: 'started', id, sessionId }`), and the agent turn a message or a command hands off to, which answers
   `{ kind: 'started', id, sessionId }` as it begins (and `queued` with `sessionId` while it waits),
   so a client knows a new session before `done`. A `tool` frame keeps its tool call's `id` and
-  carries no tag. A message sent without `id` gets today's frames unchanged.
+  carries no tag. A tagged command outside the lane may also end with `{ kind: 'dropped', id }`
+  (cancelled) or an `error` carrying `id`. A message sent without `id` gets today's frames
+  unchanged.
 - `{ type: 'steer', message, sessionId?, id? }` — add a message to the turn already running; it reads it
-  at its next turn boundary and the daemon answers `{ kind: 'steered' }` (with the steer's `id`
-  when it had one). A turn that already
+  at its next turn boundary and the daemon answers `{ kind: 'steered' }`. A steer sent with an
+  `id` has it echoed on `steered` and on the `steer_dropped` that follows if the turn ends before
+  reading it. A turn that already
   ended, or ends before reading it, answers `{ kind: 'steer_dropped', text }` with the CLI's
   sentence asking to send it again; the message is never run on its own. A `/` command is not
   steered: it runs as `chat`.

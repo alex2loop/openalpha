@@ -130,6 +130,7 @@ function wsUpgradeResponse(
       token: ctx.token,
       activeRuns: new Map(),
       commandRuns: new Map(),
+      steerIds: new Map(),
       closed: false,
     },
   })
