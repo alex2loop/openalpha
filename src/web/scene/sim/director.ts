@@ -104,7 +104,7 @@ export function createDirector(deps: DirectorDeps): Director {
     actors: () => new Map(people.list.map((person) => [person.def.id, toActorState(person)])),
     requestReaction: (id, kind) => react(people, { id, kind }),
     resume: () => resumePeople(people, performance.now()),
-    nextDueAt: () => nextDueOf(people, performance.now()),
+    nextDueAt: () => nextDueOf(people, { nowMs: performance.now(), isOpen: isOfficeOpen() }),
     dispose: () => {
       if (!isDisposed) {
         isDisposed = true

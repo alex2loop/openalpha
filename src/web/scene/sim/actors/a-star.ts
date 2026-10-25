@@ -133,9 +133,8 @@ interface Expansion {
   readonly goalJ: number
 }
 
-// The eight neighbours of `u`, straight ones first. No bounds test: the grid's first and last rows
-// and its last column are always blocked (outside the building), so a step from a free cell lands
-// on the grid, and a step off the first column wraps onto that blocked last column.
+// The eight neighbours of `u` on the grid, straight ones first; a diagonal needs both cells
+// beside it free (both lie on the grid when the diagonal does).
 function expand(job: Expansion, u: number): void {
   const { s, walls } = job
   const { seen, score: scores, parent, stamp } = s
@@ -147,10 +146,12 @@ function expand(job: Expansion, u: number): void {
   for (let d = 0; d < STEP_DI.length; d++) {
     const di = STEP_DI[d] ?? 0
     const dj = STEP_DJ[d] ?? 0
-    const v = u + dj * cols + di
+    const vi = ui + di
+    const vj = uj + dj
+    const v = vj * cols + vi
     const isDiagonal = d >= STRAIGHT_STEPS
 
-    if (walls[v] === 1 || (isDiagonal && (walls[u + di] === 1 || walls[u + dj * cols] === 1))) {
+    if (!isOnGrid(job.grid, vi, vj) || walls[v] === 1 || (isDiagonal && isCornerCut(job, u, d))) {
       continue
     }
 
@@ -160,9 +161,21 @@ function expand(job: Expansion, u: number): void {
       seen[v] = stamp
       scores[v] = score
       parent[v] = u
-      pushHeap(s, v, score + octile(ui + di, uj + dj, job))
+      pushHeap(s, v, score + octile(vi, vj, job))
     }
   }
+}
+
+function isOnGrid(grid: NavGrid, i: number, j: number): boolean {
+  return i >= 0 && j >= 0 && i < grid.cols && j < grid.rows
+}
+
+// Either cell beside a diagonal step from `u` (direction `d`) is blocked.
+function isCornerCut(job: Expansion, u: number, d: number): boolean {
+  const di = STEP_DI[d] ?? 0
+  const dj = STEP_DJ[d] ?? 0
+
+  return job.walls[u + di] === 1 || job.walls[u + dj * job.grid.cols] === 1
 }
 
 function octile(i: number, j: number, goal: Expansion): number {

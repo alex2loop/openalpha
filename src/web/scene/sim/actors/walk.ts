@@ -4,6 +4,7 @@ import {
   avoidPeople,
   distance,
   findRoute,
+  forcePass,
   isClearOfPeople,
   isInSight,
   type Mover,
@@ -175,7 +176,8 @@ function watchStuck(walker: WalkerState, others: readonly Mover[], dtMs: number)
   }
 }
 
-// Straight at the waypoint through furniture clearance, never closer than the gap to anyone.
+// Straight at the waypoint through furniture clearance, never closer than the gap to anyone;
+// held there, it still counts the hold, so the force pass ends it.
 function walkStraight(
   walker: WalkerState,
   step: { readonly target: Point; readonly others: readonly Mover[]; readonly dtMs: number }
@@ -193,5 +195,10 @@ function walkStraight(
 
   if (isClearOfPeople(walker, step.others, next)) {
     walker.pos = next
+    walker.heldMs = 0
+    return
   }
+
+  walker.heldMs += step.dtMs
+  forcePass(walker, { target, len: Math.min(len, d) })
 }

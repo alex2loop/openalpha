@@ -15,6 +15,7 @@ import {
 import {
   type AssistantWalks,
   assistantGoalOf,
+  carryDueOf,
   createAssistantWalks,
   type Orphan,
   resumeWalks,
@@ -254,8 +255,16 @@ export function resumePeople(people: People, nowMs: number): void {
 
 /** The earliest moment something is due: a phase, beat or look ending, a desk walk, a foot tap,
  *  a trip. */
-export function nextDueOf(people: People, nowMs: number): number {
-  const dues = [...deskDues(people.desk), people.walks.trip?.dueAt ?? Number.POSITIVE_INFINITY]
+export function nextDueOf(
+  people: People,
+  tick: { readonly nowMs: number; readonly isOpen: boolean }
+): number {
+  const { nowMs } = tick
+  const dues = [
+    ...deskDues(people.desk),
+    people.walks.trip?.dueAt ?? Number.POSITIVE_INFINITY,
+    tick.isOpen ? carryDueOf(people.walks, people.orphans, nowMs) : Number.POSITIVE_INFINITY,
+  ]
 
   for (const person of people.list) {
     const isWaiting = person.phase === 'rising' || person.phase === 'settling'
@@ -359,6 +368,7 @@ function stepAssistantCarry(
   stepCarry(people.walks, people.orphans, {
     nowMs: tick.nowMs,
     isOpen: tick.isOpen,
+    isReduced: reducedMotion.value,
     isFree: isStill && !people.wanted.has(ASSISTANT) && people.walks.trip === undefined,
     isAtCarry: isStill && carryGoal !== undefined && assistant?.goal === carryGoal,
   })

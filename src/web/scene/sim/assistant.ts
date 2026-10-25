@@ -3,7 +3,8 @@ import type { PropKind } from '@/web/scene/world/props'
 import { TRAY_AT } from '@/web/scene/world/seats'
 
 /** A pending request no actor of its run stands for (a queued run, or a run from another
- *  channel): the assistant carries its sheet to your tray. */
+ *  channel): the assistant carries its sheet to your tray. `runId` is bookkeeping only: the carry
+ *  never credits the assistant with that run. */
 export interface Orphan {
   readonly requestId: string
   readonly runId: string
@@ -25,9 +26,13 @@ interface AssistantNow {
   readonly isAtCarry: boolean
   /** Office hours by the page clock; at night the tray fills with no walk. */
   readonly isOpen: boolean
+  /** Reduced motion: the sheet is delivered to the tray with no walk. */
+  readonly isReduced: boolean
 }
 
 const TRIP_AFTER_MS = 5_000
+// While a carry waits for the assistant to come free, the director looks again this often.
+const CARRY_RECHECK_MS = 1_000
 
 export function createAssistantWalks(): AssistantWalks {
   return { trip: undefined, carry: undefined, carried: new Set() }
@@ -79,14 +84,25 @@ export function stepCarry(
   }
 
   const due = orphans.filter((orphan) => !walks.carried.has(orphan.requestId))
-  const first = due[0]
+  const requestIds = due.map((orphan) => orphan.requestId)
 
-  if (first !== undefined && now.isFree && now.isOpen) {
-    walks.carry = {
-      requestIds: due.map((orphan) => orphan.requestId),
-      goal: carryGoal(first, now.nowMs),
-    }
+  if (due.length > 0 && now.isReduced) {
+    markCarried(walks, requestIds)
+  } else if (due.length > 0 && now.isFree && now.isOpen) {
+    walks.carry = { requestIds, goal: carryGoal(now.nowMs) }
   }
+}
+
+/** When to look again for a carry that waits on the assistant: soon while one is owed. */
+export function carryDueOf(
+  walks: AssistantWalks,
+  orphans: readonly Orphan[],
+  nowMs: number
+): number {
+  const isOwed =
+    walks.carry === undefined && orphans.some((orphan) => !walks.carried.has(orphan.requestId))
+
+  return isOwed ? nowMs + CARRY_RECHECK_MS : Number.POSITIVE_INFINITY
 }
 
 /** The assistant's goal now: the carry over everything, then a trip that has come due, else the
@@ -122,13 +138,7 @@ function markCarried(walks: AssistantWalks, requestIds: readonly string[]): void
   }
 }
 
-function carryGoal(first: Orphan, nowMs: number): Goal {
-  return {
-    kind: 'work',
-    target: TRAY_AT,
-    pose: 'carry',
-    runId: first.runId,
-    since: nowMs,
-    hasSheet: true,
-  }
+// Not work: no run is the assistant's for it, so "Xem" on the waiting run never picks it.
+function carryGoal(nowMs: number): Goal {
+  return { kind: 'life', target: TRAY_AT, pose: 'carry', since: nowMs, hasSheet: true }
 }

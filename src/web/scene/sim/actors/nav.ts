@@ -162,7 +162,7 @@ function tryStep(job: StepJob): boolean {
           y: mover.pos.y + Math.sin(base + turn) * len,
         }
 
-    if (isStaticOk(mover, next) && isPeopleOk(job, next)) {
+    if (isStaticOk(mover, next) && isClearOfPeople(job.mover, job.near, next)) {
       mover.pos = next
       return true
     }
@@ -222,14 +222,7 @@ function resolveHold(job: StepJob): void {
     return
   }
 
-  if (mover.heldMs > FORCE_PASS_AFTER_MS) {
-    const d = distance(mover.pos, target) || 1
-
-    mover.pos = {
-      x: mover.pos.x + ((target.x - mover.pos.x) / d) * len,
-      y: mover.pos.y + ((target.y - mover.pos.y) / d) * len,
-    }
-    mover.heldMs = 0
+  if (forcePass(mover, { target, len })) {
     return
   }
 
@@ -243,6 +236,28 @@ function resolveHold(job: StepJob): void {
       mover.leg = 0
     }
   }
+}
+
+/** Held past `FORCE_PASS_AFTER_MS`: one step straight at `target`, through whoever holds the
+ *  walker up. True when it passed. */
+export function forcePass(
+  mover: Mover,
+  step: { readonly target: Point; readonly len: number }
+): boolean {
+  if (mover.heldMs <= FORCE_PASS_AFTER_MS) {
+    return false
+  }
+
+  const { target } = step
+  const d = distance(mover.pos, target) || 1
+
+  mover.pos = {
+    x: mover.pos.x + ((target.x - mover.pos.x) / d) * step.len,
+    y: mover.pos.y + ((target.y - mover.pos.y) / d) * step.len,
+  }
+  mover.heldMs = 0
+
+  return true
 }
 
 // Held up by a walker with the right of way (the higher seed): step away from it, never toward
@@ -265,7 +280,7 @@ function stepBack(job: StepJob): boolean {
   const bd = Math.hypot(bx, by) || 1
   const next = { x: mover.pos.x + (bx / bd) * len, y: mover.pos.y + (by / bd) * len }
 
-  if (!(isStaticOk(mover, next) && isPeopleOk(job, next))) {
+  if (!(isStaticOk(mover, next) && isClearOfPeople(job.mover, job.near, next))) {
     return false
   }
 
@@ -289,10 +304,6 @@ function isStaticOk(mover: Mover, p: Point): boolean {
   return (
     isLastLeg && goal !== undefined && isBlockedAt(grid, goal) && distance(p, goal) <= GOAL_SLACK_PX
   )
-}
-
-function isPeopleOk(job: StepJob, p: Point): boolean {
-  return isClearOfPeople(job.mover, job.near, p)
 }
 
 /** A step to `p` keeps `PERSON_MIN_GAP_PX` from everyone, or moves away from whoever it is
