@@ -230,7 +230,7 @@ export interface AlertDisableResponse {
  *  app prints it the way the CLI does: a board-scaled market (`priceDisplay`) prints
  *  `price / divisor` at `decimals` and no currency; any other prints in `currency`, with `quoteUnit`
  *  naming the measure it is per. The labels are in the daemon's language. */
-interface MarketWire {
+export interface MarketWire {
   readonly market: string
   readonly currency: string
   readonly quoteUnit: string

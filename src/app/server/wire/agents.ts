@@ -4,7 +4,7 @@
 /** The parts of an agent's character on the page (`hair`, `outfit` and the like), each a slug of at
  *  most 24 characters, at most 8 parts. The daemon checks that shape and stores what it is given: the
  *  page owns which values mean something, and derives a part left out from the agent's id. */
-type AgentLookWire = Readonly<Record<string, string>>
+export type AgentLookWire = Readonly<Record<string, string>>
 
 /** One of the operator's own agents. Built-in agents and plugin agents are not listed: they cannot
  *  be paused. */
