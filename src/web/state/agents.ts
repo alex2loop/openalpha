@@ -5,7 +5,7 @@ import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
-import { sendMessage } from '@/web/state/chat'
+import { dropDoneCallbacks, sendMessage } from '@/web/state/chat'
 import { onWireEvent } from '@/web/state/events'
 
 const AGENTS_POLL_MS = 30_000
@@ -51,9 +51,16 @@ export function selectAgent(agentId: string | undefined): boolean {
   })
 }
 
-/** A new session talks to the assistant until the operator picks again. */
+/** A new session talks to the assistant until the operator picks again; a switch still waiting
+ *  for its answer no longer applies. */
 export function clearAgentChoice(): void {
+  dropDoneCallbacks()
   selected.value = undefined
+}
+
+/** A resumed session shows the agent the daemon says it talks to; absent is the assistant. */
+export function resumeAgentChoice(agentId: string | undefined): void {
+  selected.value = agentId
 }
 
 async function loadAgents(abortSignal: AbortSignal): Promise<void> {

@@ -3,6 +3,7 @@ import { effect, type ReadonlySignal, signal } from '@preact/signals'
 import type { ChatHistoryMessage } from '@/app/server/wire/chat'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { resumeAgentChoice } from '@/web/state/agents'
 import { sessionId } from '@/web/state/chat'
 
 export const HISTORY_PAGE_SIZE = 30
@@ -125,6 +126,7 @@ async function loadRecent(abortSignal: AbortSignal): Promise<void> {
 
     historySession = recent.sessionId
     sessionId.value = recent.sessionId
+    resumeAgentChoice(recent.agentId)
     await loadOlder()
   } catch (error: unknown) {
     if (error instanceof ApiFailure) {

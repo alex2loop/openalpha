@@ -183,6 +183,7 @@ export async function stopTurn(turn: Turn): Promise<void> {
 
 /** The next message opens a new session. Turns still running keep going and stay in view. */
 export function startSession(): void {
+  dropDoneCallbacks()
   sessionId.value = undefined
   turns.value = turns.value.flatMap((turn) => {
     if (isFinished(turn)) {
@@ -195,6 +196,11 @@ export function startSession(): void {
   })
 }
 
+/** Forgets every pending `onDone`: what they would apply belongs to a choice already undone. */
+export function dropDoneCallbacks(): void {
+  doneCallbacks.clear()
+}
+
 function resolveSession(turn: Turn): string | undefined {
   return turn.sessionId ?? sessionId.value
 }
@@ -203,8 +209,16 @@ function withSession<T extends ClientFrame>(frame: T, session: string | undefine
   return session === undefined ? frame : { ...frame, sessionId: session }
 }
 
+// An evicted turn takes its pending callback with it.
 function addTurn(turn: Turn): void {
-  turns.value = [...turns.value, turn].slice(-MAX_TURNS)
+  const next = [...turns.value, turn]
+  const evicted = next.slice(0, Math.max(0, next.length - MAX_TURNS))
+
+  for (const old of evicted) {
+    doneCallbacks.delete(old.localId)
+  }
+
+  turns.value = next.slice(-MAX_TURNS)
 }
 
 function updateTurn(localId: string, update: (turn: Turn) => Turn): void {
@@ -237,7 +251,16 @@ function receiveFrame(frame: ChatServerFrame): void {
   const id = frameIdOf(frame)
   const turn = id === undefined ? undefined : turns.value.find((held) => held.localId === id)
 
-  if (turn === undefined || isFinished(turn)) {
+  if (turn === undefined) {
+    return
+  }
+
+  // A steer the turn took but never read is told after the turn has ended.
+  if (isFinished(turn)) {
+    if (frame.kind === 'steer_dropped') {
+      updateTurn(turn.localId, () => applyFrame(turn, frame))
+    }
+
     return
   }
 
