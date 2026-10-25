@@ -2,13 +2,13 @@ import type { Signal } from '@preact/signals'
 
 import { tr } from '@/web/text/tr'
 
+const TOKEN_FIELD_ID = 'sign-in-token'
+
 interface SignInFieldsProps {
   readonly token: Signal<string>
   readonly remember: Signal<boolean>
   readonly describedBy: string | undefined
 }
-
-const TOKEN_FIELD_ID = 'sign-in-token'
 
 export function SignInFields({ token, remember, describedBy }: SignInFieldsProps) {
   return (

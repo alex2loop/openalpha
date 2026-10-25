@@ -1,7 +1,9 @@
+/* The card centres by its own margin, so a short viewport scrolls to the button instead of
+   cutting off the top. */
 .sign-in {
   display: grid;
-  place-items: center;
   height: 100%;
+  overflow: auto;
   padding: var(--s3);
   background: radial-gradient(ellipse at 50% 40%, var(--stageHi) 0%, var(--stage) 75%);
 }
@@ -10,6 +12,7 @@
   display: flex;
   flex-direction: column;
   width: min(420px, 100%);
+  margin: auto;
   padding: var(--s4);
   border-radius: 16px;
   background: var(--surface);

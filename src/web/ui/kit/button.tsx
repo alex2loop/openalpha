@@ -1,5 +1,7 @@
 import type { ComponentChildren } from 'preact'
 
+import { NEXT_GLYPH } from '@/web/text/glyphs'
+
 import './button.css'
 
 /** commit: Ink fill, one per dialog. ai: brand gradient, always with its cost beside it.
@@ -28,6 +30,7 @@ export function Button({
   return (
     <button type={type} class={`btn btn-${kind} btn-${size}`} disabled={disabled} onClick={onClick}>
       {children}
+      {kind === 'tertiary' && <span aria-hidden="true">{NEXT_GLYPH}</span>}
     </button>
   )
 }

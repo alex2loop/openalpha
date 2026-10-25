@@ -2,10 +2,10 @@ import { signal } from '@preact/signals'
 
 import { readStorage, removeStorage, writeStorage } from '@/web/state/storage'
 
-type AuthState = 'ok' | 'missing' | 'refused'
-
 const TOKEN_STORAGE_KEY = 'office.token'
 const TOKEN_HASH_PARAM = 'token'
+
+type AuthState = 'ok' | 'missing' | 'refused'
 
 // Holds the token for the tab's life when storage is blocked.
 let memoryToken: string | undefined

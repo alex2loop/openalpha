@@ -62,12 +62,13 @@ export function SignIn() {
   )
 }
 
+// The latest attempt wins: a timeout after a refusal shows the timeout, not "not accepted".
 function resolveFailureText(): string | undefined {
-  if (authState.value === 'refused') {
-    return tr('ui.office.signIn.refused')
-  }
-
   const failure = sessionFailure.value
 
-  return failure === undefined ? undefined : toFailureText(failure)
+  if (failure !== undefined && failure.code !== 'unauthorized') {
+    return toFailureText(failure)
+  }
+
+  return authState.value === 'refused' ? tr('ui.office.signIn.refused') : undefined
 }

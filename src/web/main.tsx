@@ -2,21 +2,25 @@ import { effect } from '@preact/signals'
 import { render } from 'preact'
 
 import { takeTokenFromHash } from '@/web/api/token'
-import { brand, loadBrand, loadSession, locale } from '@/web/state/session'
+import { brand, loadUntilReady, locale } from '@/web/state/session'
 import { App } from '@/web/ui/shell/app'
 
 const ROOT_ID = 'root'
 
-// First, before anything can read or log the address: the token leaves the URL at once.
-takeTokenFromHash()
-
 const root = document.getElementById(ROOT_ID)
 
-if (root !== null) {
-  await startPage(root)
+// A route served from a Bun HTML bundle cannot carry `frame-ancestors` or `X-Frame-Options`, so
+// the page itself refuses to run inside a frame: it renders nothing and never reads the token.
+if (root !== null && window.top === window.self) {
+  // First, before anything can read or log the address: the token leaves the URL at once.
+  takeTokenFromHash()
+  render(<App />, root)
+  addEventListener('pageshow', (event) => (event.persisted ? boot() : undefined))
+  await boot()
 }
 
-async function startPage(container: HTMLElement): Promise<void> {
+/** One page life: undone on `pagehide`, run again when the back-forward cache restores the page. */
+async function boot(): Promise<void> {
   const controller = new AbortController()
   const stopDocumentSync = effect(() => {
     document.documentElement.lang = locale.value
@@ -34,6 +38,5 @@ async function startPage(container: HTMLElement): Promise<void> {
     },
     { once: true }
   )
-  render(<App />, container)
-  await Promise.all([loadBrand(controller.signal), loadSession(controller.signal)])
+  await loadUntilReady(controller.signal)
 }

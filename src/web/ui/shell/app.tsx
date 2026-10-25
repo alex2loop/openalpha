@@ -1,5 +1,5 @@
 import { authState } from '@/web/api/token'
-import { brand, isUnreachable, sessionFailure, state } from '@/web/state/session'
+import { brand, isStarting, isUnreachable, sessionFailure, state } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Header } from '@/web/ui/shell/header'
 import { Panes } from '@/web/ui/shell/panes'
@@ -15,7 +15,7 @@ export function App() {
     return <StatusLine text={tr('ui.office.error.unreachable')} />
   }
 
-  if (brand.value === undefined) {
+  if (brand.value === undefined || isStarting.value) {
     return <StatusLine text={tr('ui.office.loading')} />
   }
 

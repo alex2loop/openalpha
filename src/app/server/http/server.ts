@@ -33,7 +33,8 @@ export function startApi(app: App, token: string, live: LiveFeed): ApiHandle {
   const wsServices = resolveWsServices(app)
   const server = listen(app, () =>
     Bun.serve({
-      // Loopback-only by construction; the isLoopback check in handleHttp is the second lock.
+      // Loopback-only by construction. The isLoopback check in handleHttp is a second lock for the
+      // /v1 HTTP routes only: the page route and the WS upgrade below never reach it.
       hostname: LOOPBACK_HOST,
       port: app.config.api.port,
       maxRequestBodySize: MAX_HTTP_BODY_BYTES,

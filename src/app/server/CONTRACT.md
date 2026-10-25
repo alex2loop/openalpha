@@ -26,11 +26,15 @@ this document — neither imports the other.
 - **Two surfaces, one server:** **HTTP** for request/response (snapshots + `POST /v1/respond`); **one
   WebSocket** at `GET /v1/ws` for everything realtime (the `wire_event` feed, chat, mid-stream
   steering, and binary dictation audio). No SSE.
-- **Bind:** `127.0.0.1` only (loopback). The daemon also verifies the request **peer** is loopback
-  (defense in depth). No remote surface, ever.
+- **Bind:** `127.0.0.1` only (loopback). The `/v1` HTTP routes also verify the request **peer** is
+  loopback (defense in depth); `GET /`, its chunks and the `/v1/ws` handshake are answered before
+  that check, so the bind alone guards them (the handshake adds the Origin allow-list below). No
+  remote surface, ever.
 - **Auth:** `Authorization: Bearer <token>` on every route except `GET /v1/health` and `GET /`.
   `GET /` serves the office page and its content-hashed chunks, unauthenticated: they hold no data,
-  and the page asks for the token before it reads any `/v1` route. The `/v1/ws`
+  and the page asks for the token before it reads any `/v1` route. Its route cannot carry headers,
+  so it sends no `frame-ancestors` or `X-Frame-Options`; instead the page renders nothing and
+  never reads the token when it is loaded inside a frame. The `/v1/ws`
   **handshake** takes the same bearer header (native `URLSessionWebSocketTask` sets it) **or**, because
   browsers cannot set headers on a WS handshake, a `?token=<token>` query param. Token at
   `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod `0600`,
