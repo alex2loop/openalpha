@@ -102,12 +102,15 @@ export function createTradingCalendar(
 
 function toSessionHours(policy: CalendarPolicy): SessionHours {
   const { breakStartLocalTime: from, breakEndLocalTime: to } = policy
+  const auctionFrom = policy.closeAuctionStartLocalTime
+  const close = policy.sessionCloseLocalTime
 
   return {
     timezone: policy.timezone,
     open: policy.sessionOpenLocalTime,
-    close: policy.sessionCloseLocalTime,
+    close,
     ...(from === undefined || to === undefined ? {} : { breaks: [{ from, to }] }),
+    ...(auctionFrom === undefined ? {} : { closeAuction: { from: auctionFrom, to: close } }),
   }
 }
 
@@ -263,12 +266,21 @@ function resolveSession(policy: CalendarPolicy): SessionMinutes {
 
   const breakStart = optionalMinutes(policy.breakStartLocalTime, policy.timezone)
   const breakEnd = optionalMinutes(policy.breakEndLocalTime, policy.timezone)
+  const auctionStart = optionalMinutes(policy.closeAuctionStartLocalTime, policy.timezone)
 
   if (breakStart !== undefined && breakEnd !== undefined && breakEnd <= breakStart) {
     throw new ConfigError(`calendar ${policy.timezone} has an inverted break`, undefined, [
       'calendar',
       policy.timezone,
     ])
+  }
+
+  if (auctionStart !== undefined && (auctionStart <= open || auctionStart >= close)) {
+    throw new ConfigError(
+      `calendar ${policy.timezone} has an auction outside its session`,
+      undefined,
+      ['calendar', policy.timezone]
+    )
   }
 
   return {

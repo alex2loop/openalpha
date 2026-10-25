@@ -262,6 +262,8 @@ export interface MarketSessionWire {
   readonly open: string
   readonly close: string
   readonly breaks?: readonly { readonly from: string; readonly to: string }[]
+  /** The closing call auction, inside `open`: absent where the market closes without one. */
+  readonly closeAuction?: { readonly from: string; readonly to: string }
   readonly today: string
   readonly tradesToday: boolean
   readonly nextTradingDay: string

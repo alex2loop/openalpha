@@ -49,8 +49,9 @@ export const ADMITTED_EXCHANGES: readonly VnExchange[] = Object.freeze(['HOSE', 
  *  09:15-11:30 and 13:00-14:30; the ATC call auction runs to 14:45, which is the last instant a
  *  price is discovered, so that is the calendar's close. HNX matches PLO orders until 15:00, but
  *  only at the closing price already fixed at 14:45, so nothing after the bell moves the reading a
- *  settled session stands for. The 11:30-13:00 lunch gap is the calendar's break — auction phases
- *  are tradeability facts, not calendar states. HNX determines its open by reference price rather
+ *  settled session stands for. The 11:30-13:00 lunch gap is the calendar's break and 14:30 the
+ *  closing auction's start, which HOSE and HNX share; the auction is a window inside the open
+ *  phase, not a phase of its own. HNX determines its open by reference price rather
  *  than an ATO auction; that difference is a per-exchange calendar override in config, never an
  *  assumption baked in here. */
 export const VN_CALENDAR: CalendarPolicy = Object.freeze({
@@ -59,6 +60,7 @@ export const VN_CALENDAR: CalendarPolicy = Object.freeze({
   sessionCloseLocalTime: '14:45',
   breakStartLocalTime: '11:30',
   breakEndLocalTime: '13:00',
+  closeAuctionStartLocalTime: '14:30',
   weekendDays: Object.freeze([0, 6]),
   holidays: VN_EXCHANGE_HOLIDAYS,
   continuous: false,

@@ -77,6 +77,9 @@ export interface CalendarPolicy {
   readonly sessionCloseLocalTime: string
   readonly breakStartLocalTime?: string
   readonly breakEndLocalTime?: string
+  /** Where continuous trading gives way to the closing call auction, which runs to the close.
+   *  Absent where the market fixes its close without one. */
+  readonly closeAuctionStartLocalTime?: string
   readonly weekendDays: readonly number[]
   /** Weekdays the exchange is shut, as it published them. Absent where the tape trades every day
    *  its weekend allows. */
@@ -91,6 +94,7 @@ export interface SessionHours {
   readonly open: string
   readonly close: string
   readonly breaks?: readonly { readonly from: string; readonly to: string }[]
+  readonly closeAuction?: { readonly from: string; readonly to: string }
 }
 
 export interface SuggestionPolicy {

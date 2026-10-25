@@ -69,6 +69,10 @@
             "to": "13:00"
           }
         ],
+        "closeAuction": {
+          "from": "14:30",
+          "to": "14:45"
+        },
         "today": "2026-10-23",
         "tradesToday": true,
         "nextTradingDay": "2026-10-26",
