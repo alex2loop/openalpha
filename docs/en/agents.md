@@ -153,9 +153,12 @@ exactly as `/suggest` does. Set it and the agent becomes a *second opinion*:
 markets = ["equity-vn"]   # markets your book trades
 sectors = ["banks"]       # the market's sector slugs: banks, oil-gas, ...
 horizon = "long"          # short | long: the window its calls are scored over
+goal = "income"           # preserve | income | grow: what it hunts for (income = dividends)
 ```
 
-Focus only narrows:
+`goal` takes your profile's goal words and names the agent's aim: the office page seats an `income` agent as your
+dividend hunter. It narrows nothing and changes no call's method; the hunting is in the agent's prompt. It is part
+of the focus, so it keeps the agent's record apart. The rest only narrows:
 
 - `markets` must be markets your book trades.
 - `sectors` need a market that keeps sector data (today `equity-vn`). Names are the market's own slugs, listed by

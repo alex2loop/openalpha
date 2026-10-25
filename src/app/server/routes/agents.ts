@@ -59,6 +59,7 @@ function toAgentWire(
     ...(agent.look === undefined ? {} : { look: agent.look }),
     focusKey: focus.key,
     focusLabel: renderFocusLabel(localeOf(ctx), focus.focus),
+    ...(focus.focus === undefined ? {} : { focus: focus.focus }),
     ...toRecordFields(extras.record),
     social: extras.social.map((row) => ({
       network: row.network,

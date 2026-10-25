@@ -53,6 +53,7 @@ const FOCUS_BODY = z.strictObject({
   markets: z.array(z.string().min(1)).min(1).max(MAX_LIST_ITEMS).exactOptional(),
   sectors: z.array(z.string().min(1)).min(1).max(MAX_LIST_ITEMS).exactOptional(),
   horizon: z.enum(['short', 'long']).exactOptional(),
+  goal: z.enum(['preserve', 'income', 'grow']).exactOptional(),
 })
 
 export const AGENT_WRITE_BODY = z.strictObject({

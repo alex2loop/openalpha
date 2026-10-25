@@ -1,6 +1,8 @@
 // Agent management on /v1: the operator's own agents, whether each is paused, and what it has spent.
 // Contract shapes only - the runtime owns what pausing means (see CONTRACT.md).
 
+import type { InvestmentGoal } from '@/app/server/wire/vocab'
+
 /** The parts of an agent's character on the page (`hair`, `outfit` and the like), each a slug of at
  *  most 24 characters, at most 8 parts. The daemon checks that shape and stores what it is given: the
  *  page owns which values mean something, and derives a part left out from the agent's id. */
@@ -21,6 +23,9 @@ export interface AgentWire {
   readonly focusKey: string
   /** The focus in words, in the daemon's language. */
   readonly focusLabel: string
+  /** Its own `[focus]` as declared (lists deduped and sorted); absent for an agent sharing the
+   *  operator's focus. `goal: 'income'` is an agent hunting dividends. */
+  readonly focus?: AgentFocusWire
   /** What its calls earned, every focus it has used together. Absent until it has called. */
   readonly record?: AgentRecordWire
   /** How often it takes the action the other agents take on the same name and day. */
@@ -66,6 +71,8 @@ export interface AgentFocusWire {
   readonly markets?: readonly string[]
   readonly sectors?: readonly string[]
   readonly horizon?: 'short' | 'long'
+  /** What it hunts for, in the profile's goal words: `income` is dividends. */
+  readonly goal?: InvestmentGoal
 }
 
 /** GET /v1/agents/:id, and the answer to creating or editing one. Built-in and plugin agents can be

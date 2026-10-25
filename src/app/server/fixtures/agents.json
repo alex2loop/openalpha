@@ -37,6 +37,11 @@
       "spentTodayUsd": 0,
       "focusKey": "f-05a184fec6ab1d83",
       "focusLabel": "Vietnam stock market · Banks · Long term",
+      "focus": {
+        "markets": ["equity-vn"],
+        "sectors": ["banks"],
+        "horizon": "long"
+      },
       "overlapsWith": [],
       "social": [
         {

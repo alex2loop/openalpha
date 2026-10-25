@@ -152,9 +152,12 @@ danh mục của bạn, y như `/suggest`. Đặt nó thì agent trở thành *�
 markets = ["equity-vn"]   # thị trường danh mục của bạn có giao dịch
 sectors = ["banks"]       # slug ngành của thị trường: banks, oil-gas, ...
 horizon = "long"          # short | long: khung thời gian chấm điểm đề xuất của nó
+goal = "income"           # preserve | income | grow: thứ nó săn tìm (income = cổ tức)
 ```
 
-Phạm vi chỉ thu hẹp:
+`goal` dùng đúng các từ mục tiêu trong hồ sơ của bạn và nói agent nhắm tới điều gì: trang văn phòng xếp một agent
+`income` làm người săn cổ tức của bạn. Nó không thu hẹp gì và không đổi cách ra đề xuất; việc săn tìm nằm trong lời
+nhắc của agent. Nó là một phần của phạm vi, nên giữ hồ sơ của agent tách riêng. Phần còn lại chỉ thu hẹp:
 
 - `markets` phải là thị trường danh mục của bạn có giao dịch.
 - `sectors` cần một thị trường có dữ liệu ngành (hiện là `equity-vn`). Tên là slug của chính thị trường, do
