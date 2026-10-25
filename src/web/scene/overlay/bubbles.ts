@@ -10,6 +10,7 @@ import type { Run } from '@/web/state/live'
 import { formatDay, type MessageKey, pluralKey } from '@/i18n'
 import { roleNameOf } from '@/web/scene/overlay/name-tags'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { holderOf } from '@/web/scene/sim/vocabulary'
 import { pendingRequestId } from '@/web/state/live'
 import { locale } from '@/web/state/session'
 import { joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
@@ -241,7 +242,7 @@ function waitLines(input: BubbleInput): Candidate[] {
   for (const entry of input.pending) {
     const requestId = pendingRequestId(entry)
     const label = entry.kind === APPROVAL_KIND ? entry.event.approval?.label : undefined
-    const holder = [...input.goals].find(([, goal]) => goal.requestId === requestId)?.[0]
+    const holder = holderOf(input.goals, entry)
 
     if (requestId !== undefined && label !== undefined && holder !== undefined) {
       lines.push({

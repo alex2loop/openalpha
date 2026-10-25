@@ -2,6 +2,7 @@ import type { PendingWire } from '@/app/server/wire/live'
 import type { BreachedStop } from '@/web/scene/data/room-status'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, Rect } from '@/web/scene/types'
+import { holderOf } from '@/web/scene/sim/vocabulary'
 import { pendingRequestId } from '@/web/state/live'
 import { openView } from '@/web/state/panel'
 import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
@@ -33,7 +34,7 @@ export function buildMarkers(input: MarkerInput): readonly Marker[] {
 
   for (const entry of input.pending) {
     const requestId = entry.kind === APPROVAL_KIND ? pendingRequestId(entry) : undefined
-    const holder = [...input.goals].find(([, goal]) => goal.requestId === requestId)?.[0]
+    const holder = requestId === undefined ? undefined : holderOf(input.goals, entry)
 
     if (requestId !== undefined && holder !== undefined && !markers.has(holder)) {
       markers.set(holder, { actor: holder, tone: 'need', open: openBell })

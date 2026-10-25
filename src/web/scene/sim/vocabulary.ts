@@ -304,6 +304,22 @@ function addDeskGoals(goals: Map<ActorId, Goal>, pending: readonly PendingWire[]
   }
 }
 
+/** Who stands for a waiting request: the person walking it to your desk, else the person working
+ *  its run (the assistant answers its own chat runs at its seat). An orphan has none. */
+export function holderOf(
+  goals: ReadonlyMap<ActorId, Goal>,
+  entry: PendingWire
+): ActorId | undefined {
+  const requestId = pendingRequestId(entry)
+  const runId = runIdOf(entry)
+  const all = [...goals]
+
+  return (
+    all.find(([, goal]) => requestId !== undefined && goal.requestId === requestId)?.[0] ??
+    all.find(([, goal]) => runId !== undefined && goal.runId === runId)?.[0]
+  )
+}
+
 function runIdOf(entry: PendingWire): string | undefined {
   return entry.kind === 'approval' ? entry.event.runId : entry.runId
 }
