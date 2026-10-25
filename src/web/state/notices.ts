@@ -1,4 +1,4 @@
-import { computed, type ReadonlySignal, signal } from '@preact/signals'
+import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { NoticesResponse, NoticeWire } from '@/app/server/wire/notices'
 import { ApiFailure, getJson, sendJson } from '@/web/api/client'
@@ -7,6 +7,7 @@ import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
 import { onWireEvent } from '@/web/state/events'
 import { pending, pendingRequestId } from '@/web/state/live'
+import { connection } from '@/web/state/session'
 
 /** The newest page of the bell the page holds; the bell does not page further. */
 const MAX_NOTICES = 100
@@ -38,7 +39,8 @@ const waitingIds = computed<ReadonlySet<string | undefined>>(
 )
 
 /** Reads the bell now, again on every `notices_changed` (sent after the row is written, so the
- *  read finds it) and on every resolved approval (which leaves `needsYou`), and every
+ *  read finds it), on every resolved approval (which leaves `needsYou`), whenever the socket comes
+ *  back (a daemon restart files its notice before the page is listening) and every
  *  `NOTICES_POLL_MS`. The returned stop is idempotent. */
 export function startNotices(): () => void {
   const lifetime = new AbortController()
@@ -52,10 +54,12 @@ export function startNotices(): () => void {
     onWireEvent('approval_resolved', onChange),
   ]
   const stopPoll = startPoll(() => refetch(), NOTICES_POLL_MS)
+  const stopReconnect = effect(() => (connection.value.status === 'live' ? onChange() : undefined))
 
   return () => {
     lifetime.abort()
     stopPoll()
+    stopReconnect()
 
     for (const off of offs) {
       off()

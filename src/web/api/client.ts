@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@/app/server/wire/errors'
+import type { ApiErrorCode, ApiFieldError, UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { RouteDef } from '@/web/api/routes'
 import { authState, clearToken, readToken } from '@/web/api/token'
 
@@ -32,6 +32,7 @@ interface GetInit {
 
 interface SendInit {
   readonly body?: unknown
+  readonly headers?: Readonly<Record<string, string>>
   readonly signal?: AbortSignal
 }
 
@@ -39,17 +40,33 @@ interface ApiRequest extends GetInit, SendInit {
   readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
 }
 
+/** What the daemon added to a refusal: its sentence, the fields it refused, the typed price it
+ *  doubted. */
+interface FailureDetail {
+  readonly message?: string
+  readonly fields?: readonly ApiFieldError[]
+  readonly unconfirmedPrice?: UnconfirmedPriceWire
+}
+
 /** A failed `/v1` call, page-side: `web` cannot import `core/errors`. `code` is the daemon's
- *  `ApiErrorCode`, or what the page saw itself; `message` is the daemon's sentence, else empty. */
+ *  `ApiErrorCode`, or what the page saw itself; `message` is the daemon's sentence, else empty.
+ *  `fields` names each refused field of a body; `unconfirmedPrice` is on `price_unconfirmed`. */
 export class ApiFailure extends Error {
   readonly status: number
   readonly code: FailureCode
+  readonly fields: readonly ApiFieldError[]
+  readonly unconfirmedPrice?: UnconfirmedPriceWire
 
-  constructor(status: number, code: FailureCode, message = '') {
-    super(message)
+  constructor(status: number, code: FailureCode, detail: FailureDetail = {}) {
+    super(detail.message ?? '')
     this.name = 'ApiFailure'
     this.status = status
     this.code = code
+    this.fields = detail.fields ?? []
+
+    if (detail.unconfirmedPrice !== undefined) {
+      this.unconfirmedPrice = detail.unconfirmedPrice
+    }
   }
 }
 
@@ -75,7 +92,7 @@ async function request<T>(def: RouteDef<T>, init: ApiRequest): Promise<T> {
   try {
     const response = await fetch(buildUrl(def.path, init.query), {
       method: init.method,
-      headers: buildHeaders(token, init.body !== undefined),
+      headers: buildHeaders(token, init),
       body: init.body === undefined ? null : JSON.stringify(init.body),
       signal,
     })
@@ -106,10 +123,11 @@ function buildUrl(path: string, query: GetInit['query']): string {
   return `${path}?${params}`
 }
 
-function buildHeaders(token: string | undefined, hasBody: boolean): Record<string, string> {
+function buildHeaders(token: string | undefined, init: ApiRequest): Record<string, string> {
   return {
+    ...init.headers,
     ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }),
-    ...(hasBody ? { 'Content-Type': JSON_CONTENT_TYPE } : {}),
+    ...(init.body === undefined ? {} : { 'Content-Type': JSON_CONTENT_TYPE }),
   }
 }
 
@@ -129,18 +147,30 @@ async function toApiFailure(
     return new ApiFailure(response.status, 'bad_response')
   }
 
+  const { message, fields, unconfirmedPrice } = body.error
   const code = isApiErrorCode(body.error.code) ? body.error.code : 'generic'
 
-  return new ApiFailure(response.status, code, body.error.message ?? '')
+  return new ApiFailure(response.status, code, {
+    ...(message === undefined ? {} : { message }),
+    ...(fields === undefined ? {} : { fields }),
+    ...(unconfirmedPrice === undefined ? {} : { unconfirmedPrice }),
+  })
 }
 
 function isApiErrorCode(code: string): code is ApiErrorCode {
   return Object.hasOwn(API_ERROR_CODES, code)
 }
 
-function isErrorBody(
-  body: unknown
-): body is { readonly error: { readonly code: string; readonly message?: string } } {
+interface ErrorBody {
+  readonly error: {
+    readonly code: string
+    readonly message?: string
+    readonly fields?: readonly ApiFieldError[]
+    readonly unconfirmedPrice?: UnconfirmedPriceWire
+  }
+}
+
+function isErrorBody(body: unknown): body is ErrorBody {
   if (typeof body !== 'object' || body === null || !('error' in body)) {
     return false
   }
@@ -152,7 +182,23 @@ function isErrorBody(
     error !== null &&
     'code' in error &&
     typeof error.code === 'string' &&
-    (!('message' in error) || typeof error.message === 'string')
+    (!('message' in error) || typeof error.message === 'string') &&
+    (!('fields' in error) || isFieldList(error.fields))
+  )
+}
+
+function isFieldList(value: unknown): value is readonly ApiFieldError[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item: unknown) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'path' in item &&
+        typeof item.path === 'string' &&
+        'message' in item &&
+        typeof item.message === 'string'
+    )
   )
 }
 

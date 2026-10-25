@@ -7,6 +7,8 @@ import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock, formatDuration } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
+import { openSettings } from '@/web/ui/settings/settings'
 
 /** One line for the daemon's own tasks; a failing one shows on its own with its sentence, and the
  *  toggle lists them all with cadence and last pass. */
@@ -94,6 +96,11 @@ function UpkeepRow({ task }: { readonly task: TaskStatusWire }) {
         <b>{task.label}</b>
         {facts.length > 0 && <p class="meta">{joinInline(facts)}</p>}
       </div>
+      {task.lastError !== undefined && (
+        <Button size="small" onClick={() => openSettings('data')}>
+          {tr('ui.office.common.fix')}
+        </Button>
+      )}
     </div>
   )
 }

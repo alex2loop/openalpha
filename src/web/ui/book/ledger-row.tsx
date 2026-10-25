@@ -1,10 +1,12 @@
 import type { LedgerEntryWire } from '@/app/server/wire/money'
 import { formatDay } from '@/i18n'
 import { locale } from '@/web/state/session'
+import { isTradeEntry } from '@/web/state/trade'
 import { formatAmount, formatQuantity } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
+import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 interface RowCells {
@@ -14,13 +16,22 @@ interface RowCells {
   readonly price: string
 }
 
+interface LedgerRowProps {
+  readonly entry: LedgerEntryWire
+  /** The row just saved, marked once. */
+  readonly isFlashed: boolean
+}
+
 /** One ledger line, every cell on one line: the day, the kind, the name, the quantity and the
- *  price or amount. The venue and note ride in the hover title. */
-export function LedgerRow({ entry }: { readonly entry: LedgerEntryWire }) {
+ *  price or amount. The venue and note ride in the hover title. A buy or a sell can be edited. */
+export function LedgerRow({ entry, isFlashed }: LedgerRowProps) {
   const cells = describeEntry(entry)
 
   return (
-    <div class="ledger-row" title={joinInline([entry.venue, entry.note ?? ''].filter(Boolean))}>
+    <div
+      class={isFlashed ? 'ledger-row is-flash' : 'ledger-row'}
+      title={joinInline([entry.venue, entry.note ?? ''].filter(Boolean))}
+    >
       <span class="ledger-cell">{formatDay(locale.value, entry.at)}</span>
       <span class="ledger-cell">{tr(`trading.ledger.kind.${entry.kind}`)}</span>
       <b class="ledger-cell">
@@ -32,6 +43,13 @@ export function LedgerRow({ entry }: { readonly entry: LedgerEntryWire }) {
       </b>
       <span class="ledger-cell is-end">{cells.quantity}</span>
       <span class="ledger-cell is-end">{cells.price}</span>
+      {isTradeEntry(entry) ? (
+        <button type="button" class="ledger-edit" onClick={() => openTradeDialog({ entry })}>
+          {tr('ui.office.common.edit')}
+        </button>
+      ) : (
+        <span />
+      )}
     </div>
   )
 }

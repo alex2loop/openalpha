@@ -6,6 +6,8 @@ import { estimateText } from '@/web/state/estimates'
 import { keyOf, watchedNames } from '@/web/state/market'
 import { addWatch, qualifyName } from '@/web/state/watch'
 import { toErrorText, tr } from '@/web/text/tr'
+import { openAlertDialog } from '@/web/ui/dialogs/alert-dialog'
+import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 
 interface CardActionsProps {
@@ -14,7 +16,8 @@ interface CardActionsProps {
 }
 
 /** What the operator can do with this name. "Đề xuất lại" only fills the box, so the AI cost is
- *  theirs to confirm; "Theo dõi" is free and changes the list at once. */
+ *  theirs to confirm; "Theo dõi" is free and changes the list at once; the alert and the trade
+ *  open their forms. */
 export function CardActions({ ticker, market }: CardActionsProps) {
   const failure = useSignal<string | undefined>(undefined)
   const isBusy = useSignal(false)
@@ -50,7 +53,21 @@ export function CardActions({ ticker, market }: CardActionsProps) {
           {tr('ui.office.ticker.watchCta')}
         </Button>
       )}
+      <FormButtons ticker={ticker} market={market} />
       {failure.value !== undefined && <p class="failure-line">{failure.value}</p>}
     </div>
+  )
+}
+
+function FormButtons({ ticker, market }: CardActionsProps) {
+  return (
+    <>
+      <Button onClick={() => openAlertDialog({ ticker, market })}>
+        {tr('ui.office.ticker.alertCta')}
+      </Button>
+      <Button onClick={() => openTradeDialog({ ticker, market })}>
+        {tr('ui.office.common.recordTrade')}
+      </Button>
+    </>
   )
 }

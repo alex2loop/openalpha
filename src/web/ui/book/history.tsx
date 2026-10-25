@@ -1,19 +1,25 @@
 import { type Signal, useSignal } from '@preact/signals'
+import { useEffect } from 'preact/hooks'
 
 import type { LedgerEntryWire } from '@/app/server/wire/money'
 import type { MessageKey } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { state } from '@/web/state/session'
+import { clearFlashedEntry, flashedEntry } from '@/web/state/trade'
 import { boardScaleNotes } from '@/web/text/market-price'
 import { toFailureText, tr } from '@/web/text/tr'
+import { EmptyBookActions } from '@/web/ui/book/empty-actions'
 import { LedgerRow } from '@/web/ui/book/ledger-row'
 import { useLedger } from '@/web/ui/book/use-ledger'
+import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { Pager } from '@/web/ui/kit/pager'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 
 const LEDGER_PAGE = 6
+// The row just saved stays marked this long, which covers the read that brings it in.
+const FLASH_CLEAR_MS = 4_000
 
 type KindFilter = 'all' | 'buy' | 'sell' | 'dividend'
 
@@ -31,6 +37,8 @@ export function History() {
   const filter = useSignal<KindFilter>('all')
   const page = useSignal(0)
 
+  useClearedFlash()
+
   const capability = ROUTES.ledger.capability
 
   if (capability !== undefined && state.value?.capabilities[capability] === false) {
@@ -47,18 +55,12 @@ export function History() {
   return (
     <section class="block">
       <h2 class="block-head">{tr('ui.office.book.history')}</h2>
-      <Segmented
-        label={tr('ui.office.book.history')}
-        value={filter.value}
-        options={KIND_FILTERS.map((option) => ({
-          value: option.value,
-          label: tr(option.label),
-        }))}
-        onChange={(value) => {
-          filter.value = value
-          page.value = 0
-        }}
-      />
+      <div class="step-actions">
+        <Button size="small" onClick={() => openTradeDialog()}>
+          {tr('ui.office.common.recordTrade')}
+        </Button>
+      </div>
+      <FilterBar filter={filter} page={page} />
       <LedgerBody
         ledger={ledger}
         shown={shown}
@@ -67,6 +69,29 @@ export function History() {
       />
       <LedgerPager ledger={ledger} total={kept.length} page={page} />
     </section>
+  )
+}
+
+function FilterBar({
+  filter,
+  page,
+}: {
+  readonly filter: Signal<KindFilter>
+  readonly page: Signal<number>
+}) {
+  return (
+    <Segmented
+      label={tr('ui.office.book.history')}
+      value={filter.value}
+      options={KIND_FILTERS.map((option) => ({
+        value: option.value,
+        label: tr(option.label),
+      }))}
+      onChange={(value) => {
+        filter.value = value
+        page.value = 0
+      }}
+    />
   )
 }
 
@@ -120,7 +145,12 @@ function EmptyLedger({
       ? 'ui.office.book.filterEmpty'
       : 'ui.office.book.empty'
 
-  return <p class="meta">{tr(key)}</p>
+  return (
+    <>
+      <p class="meta">{tr(key)}</p>
+      {key === 'ui.office.book.empty' && <EmptyBookActions />}
+    </>
+  )
 }
 
 function LedgerRows({ shown }: { readonly shown: readonly LedgerEntryWire[] }) {
@@ -132,7 +162,7 @@ function LedgerRows({ shown }: { readonly shown: readonly LedgerEntryWire[] }) {
     <>
       <div class="ledger">
         {shown.map((entry) => (
-          <LedgerRow key={entry.id} entry={entry} />
+          <LedgerRow key={entry.id} entry={entry} isFlashed={entry.id === flashedEntry.value} />
         ))}
       </div>
       {notes.map((note) => (
@@ -161,4 +191,19 @@ function LedgerPager({ ledger, total, page }: LedgerPagerProps) {
       onLoadMore={ledger.loadMore}
     />
   )
+}
+
+// The saved row is marked once; the mark goes when the time has passed or the tab is left.
+function useClearedFlash(): void {
+  const flashed = flashedEntry.value
+
+  useEffect(() => {
+    if (flashed === undefined) {
+      return undefined
+    }
+
+    const timer = setTimeout(clearFlashedEntry, FLASH_CLEAR_MS)
+
+    return () => clearTimeout(timer)
+  }, [flashed])
 }

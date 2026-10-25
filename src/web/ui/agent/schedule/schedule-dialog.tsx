@@ -6,7 +6,7 @@ import { loadSession, state } from '@/web/state/session'
 import { formatUsd } from '@/web/text/figures'
 import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
 import { formatMarketPrice } from '@/web/text/market-price'
-import { toErrorText, tr } from '@/web/text/tr'
+import { tr } from '@/web/text/tr'
 import { EventFields, TimeFields } from '@/web/ui/agent/schedule/schedule-fields'
 import {
   buildJobBody,
@@ -16,6 +16,8 @@ import {
   resolvePriceTrigger,
   type ScheduleForm,
 } from '@/web/ui/agent/schedule/schedule-state'
+import { describeFailure } from '@/web/ui/dialogs/field-errors'
+import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { describeEvent } from '@/web/ui/jobs/schedule-sections'
 import { Button } from '@/web/ui/kit/button'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
@@ -23,6 +25,15 @@ import { Segmented } from '@/web/ui/kit/segmented'
 
 import '@/web/ui/agent/form/form.css'
 
+// The fields of the job body this dialog has a place for.
+const SCHEDULE_PATHS = [
+  'prompt',
+  'schedule.expr',
+  'schedule.at',
+  'schedule.ticker',
+  'schedule.threshold',
+  'schedule.cooldownMs',
+]
 const COMMAND_PREFIX = '/'
 const WORD_BREAK = /\s+/
 
@@ -94,6 +105,7 @@ function WorkField({ form }: { readonly form: ScheduleForm }) {
           form.work.value = event.currentTarget.value
         }}
       />
+      <FieldNote message={form.fields.value.get('prompt')} />
     </label>
   )
 }
@@ -192,12 +204,16 @@ function submit(open: OpenSchedule): void {
 
   form.isBusy.value = true
   form.failure.value = undefined
+  form.fields.value = new Map()
   sendJson('POST', ROUTES.jobs, { body })
     .then(() => loadSession(new AbortController().signal))
     .then(
       () => open.handle?.close(),
       (error: unknown) => {
-        form.failure.value = toErrorText(error)
+        const failed = describeFailure(error, SCHEDULE_PATHS)
+
+        form.failure.value = failed.top
+        form.fields.value = failed.fields
       }
     )
     .finally(() => {

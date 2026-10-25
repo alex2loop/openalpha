@@ -4,7 +4,7 @@ import type { AgentDetailWire } from '@/app/server/wire/agents'
 import type { MessageKey } from '@/i18n'
 import { type AgentDraft, removeAgent, saveAgent } from '@/web/state/agents'
 import { openView } from '@/web/state/panel'
-import { toErrorText, tr } from '@/web/text/tr'
+import { tr } from '@/web/text/tr'
 import {
   BudgetField,
   HorizonField,
@@ -21,11 +21,25 @@ import {
 } from '@/web/ui/agent/form/form-state'
 import { ModelSelect } from '@/web/ui/agent/form/model-select'
 import { SectorPills } from '@/web/ui/agent/form/sector-pills'
+import { describeFailure } from '@/web/ui/dialogs/field-errors'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
 
 import './form.css'
+
+// The fields of the body this form has a place for.
+const AGENT_PATHS = [
+  'id',
+  'name',
+  'systemPrompt',
+  'focus.markets',
+  'focus.sectors',
+  'focus.horizon',
+  'maxDailyUsd',
+  'modelTier',
+  'maxSpawn',
+]
 
 interface FormRequest {
   /** The agent to edit; absent creates one. */
@@ -122,6 +136,7 @@ function submit(open: OpenForm): void {
 
   form.isBusy.value = true
   form.failure.value = undefined
+  form.fields.value = new Map()
   saveAgent(draft, form.existing?.id)
     .then(
       () => {
@@ -131,7 +146,13 @@ function submit(open: OpenForm): void {
         openView({ agent: draft.id })
       },
       (error: unknown) => {
-        form.failure.value = tr('ui.office.form.notSaved', { reason: toErrorText(error) })
+        const failed = describeFailure(error, AGENT_PATHS)
+
+        form.fields.value = failed.fields
+        form.failure.value =
+          failed.top === undefined
+            ? undefined
+            : tr('ui.office.form.notSaved', { reason: failed.top })
       }
     )
     .finally(() => {

@@ -1,19 +1,26 @@
 import { useNow } from '@/web/state/clock'
 import { retryFeedNow } from '@/web/state/feed'
+import { restartPhase } from '@/web/state/restart'
 import { connection } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatCountdown } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { RestartStatus } from '@/web/ui/settings/restart'
+import { openSettings } from '@/web/ui/settings/settings'
 
 import './offline-bar.css'
 
 const COUNTDOWN_TICK_MS = 1_000
 
 /** The dark bar above the command bar while the feed is down, or the reload line once the page is
- *  older than the daemon. The countdown and "Thử ngay" show only while a retry is armed. */
+ *  older than the daemon. A restart the page asked for takes its place from the request to the end. The countdown and "Thử ngay" show only while a retry is armed. */
 export function OfflineBar() {
   const { status, retryAt } = connection.value
+
+  if (restartPhase.value !== undefined) {
+    return <RestartStatus onSee={openSettings} />
+  }
 
   if (status === 'outdated') {
     return <OutdatedLine />

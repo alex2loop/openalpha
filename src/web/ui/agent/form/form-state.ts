@@ -32,6 +32,8 @@ export interface AgentForm {
   /** 0 lets it start no child agents. */
   readonly maxSpawn: Signal<number>
   readonly failure: Signal<string | undefined>
+  /** The daemon's sentence for each field it refused, by the path it named. */
+  readonly fields: Signal<ReadonlyMap<string, string>>
   readonly isBusy: Signal<boolean>
 }
 
@@ -51,6 +53,7 @@ export function createAgentForm(existing: AgentDetailWire | undefined): AgentFor
     modelTier: signal(existing?.modelTier ?? ''),
     maxSpawn: signal(existing?.maxSpawn ?? 0),
     failure: signal(undefined),
+    fields: signal(new Map()),
     isBusy: signal(false),
   }
 }

@@ -1,19 +1,12 @@
-import { useSignal } from '@preact/signals'
-import { useEffect } from 'preact/hooks'
-
-import type { InstrumentSearchResponse } from '@/app/server/wire/market'
 import type { MessageKey } from '@/i18n'
-import { getJson } from '@/web/api/client'
-import { ROUTES } from '@/web/api/routes'
 import { agents, selectedAgentId } from '@/web/state/agents'
 import { ALERT_CREATE_COMMAND, SUGGEST_COMMAND, WATCHLIST_ADD_COMMAND } from '@/web/state/command'
 import { commands, estimateText } from '@/web/state/estimates'
 import { panelView } from '@/web/state/panel'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
+import { type Match, useTickerMatches } from '@/web/ui/command/ticker-matches'
 
-const INSTRUMENT_DEBOUNCE_MS = 200
-const MAX_TICKER_MATCHES = 5
 const COMMAND_PREFIX = '/'
 const WORD_BREAK = /\s+/
 // Lists every schedule; it costs no AI.
@@ -45,8 +38,6 @@ export interface SuggestOption {
   /** Picking the row also hands what is typed next to this agent. */
   readonly agentId?: string
 }
-
-type Match = InstrumentSearchResponse['matches'][number]
 
 const SECTION_TITLES = Object.freeze({
   suggestions: 'ui.office.command.suggestions',
@@ -141,40 +132,6 @@ function resolveTickerQuery(text: string): string | undefined {
   const isCommand = words[0]?.startsWith(COMMAND_PREFIX) === true
 
   return words.length === 1 || (isCommand && words.length === 2) ? last : undefined
-}
-
-// Waits out the typing, then asks; the previous request is aborted and so is one in flight on unmount.
-function useTickerMatches(query: string | undefined): readonly Match[] {
-  const matches = useSignal<readonly Match[]>([])
-
-  useEffect(() => {
-    matches.value = []
-
-    if (query === undefined) {
-      return undefined
-    }
-
-    const controller = new AbortController()
-    const timer = setTimeout(() => {
-      getJson(ROUTES.instruments, {
-        query: { q: query, limit: MAX_TICKER_MATCHES },
-        signal: controller.signal,
-      }).then(
-        (answer) => {
-          matches.value = answer.matches.slice(0, MAX_TICKER_MATCHES)
-        },
-        // A failed search lists no tickers, and an abort is this effect's own; the box still sends.
-        () => undefined
-      )
-    }, INSTRUMENT_DEBOUNCE_MS)
-
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
-    }
-  }, [query])
-
-  return matches.value
 }
 
 function listStarters(): readonly SuggestOption[] {

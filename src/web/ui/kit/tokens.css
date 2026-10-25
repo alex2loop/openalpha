@@ -137,3 +137,35 @@
   --offlineInk2: #b6b7c9;
   color-scheme: dark;
 }
+
+/* Red up, green down: the up and down tokens trade places in each theme. */
+:root[data-colours="red-up"] {
+  --up: #c1231a;
+  --upTint: #fbe9e7;
+  --down: #0b7532;
+  --downTint: #e6f2ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-colours="red-up"]:not([data-theme="light"]) {
+    --up: #ff6259;
+    --upTint: rgba(255, 98, 89, 0.16);
+    --down: #32d74b;
+    --downTint: #203a2b;
+  }
+}
+
+:root[data-colours="red-up"][data-theme="dark"] {
+  --up: #ff6259;
+  --upTint: rgba(255, 98, 89, 0.16);
+  --down: #32d74b;
+  --downTint: #203a2b;
+}
+
+/* The operator asked for less motion on this page, whatever the system says. */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation: none;
+  transition: none;
+}

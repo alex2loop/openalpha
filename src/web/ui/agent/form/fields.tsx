@@ -3,6 +3,7 @@ import type { AgentForm } from '@/web/ui/agent/form/form-state'
 import { knownMarkets } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { resolveAgentId } from '@/web/ui/agent/form/form-state'
+import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { Segmented } from '@/web/ui/kit/segmented'
 
 // What one `spawn` call may start, as the daemon takes it: 1 to this many.
@@ -47,6 +48,7 @@ export function NameField({ form }: FieldProps) {
         />
       ) : null}
       <p class="meta">{tr('ui.office.form.idNote', { id: agentId })}</p>
+      <FieldNote message={form.fields.value.get('name') ?? form.fields.value.get('id')} />
     </div>
   )
 }
@@ -63,6 +65,7 @@ export function PromptField({ form }: FieldProps) {
           form.prompt.value = event.currentTarget.value
         }}
       />
+      <FieldNote message={form.fields.value.get('systemPrompt')} />
     </label>
   )
 }
@@ -89,6 +92,7 @@ export function MarketsField({ form }: FieldProps) {
         ))}
       </div>
       {picked.length === 0 && <p class="agent-note">{tr('ui.office.form.marketsNone')}</p>}
+      <FieldNote message={form.fields.value.get('focus.markets')} />
     </fieldset>
   )
 }
@@ -106,6 +110,7 @@ export function HorizonField({ form }: FieldProps) {
           form.horizon.value = value === '' || value === form.horizon.value ? undefined : value
         }}
       />
+      <FieldNote message={form.fields.value.get('focus.horizon')} />
     </div>
   )
 }
@@ -125,6 +130,7 @@ export function BudgetField({ form }: FieldProps) {
         }}
       />
       <span class="meta">{tr('ui.office.form.budgetNote')}</span>
+      <FieldNote message={form.fields.value.get('maxDailyUsd')} />
     </label>
   )
 }
@@ -162,6 +168,7 @@ export function SpawnField({ form }: FieldProps) {
           </select>
         </label>
       )}
+      <FieldNote message={form.fields.value.get('maxSpawn')} />
     </div>
   )
 }

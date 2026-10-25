@@ -11,6 +11,7 @@ import { startFeed } from '@/web/state/feed'
 import { startMarket } from '@/web/state/market'
 import { startNotices } from '@/web/state/notices'
 import { disposePrefs } from '@/web/state/prefs'
+import { startRestartWatch } from '@/web/state/restart'
 import { brand, loadUntilReady, locale, state } from '@/web/state/session'
 import { App } from '@/web/ui/shell/app'
 
@@ -67,6 +68,7 @@ function startLive(): () => void {
     startAgents(),
     startEstimates(),
     startMarket(),
+    startRestartWatch(),
   ]
 
   return () => {

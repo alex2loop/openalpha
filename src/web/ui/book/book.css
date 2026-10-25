@@ -115,7 +115,7 @@
 
 .ledger-row {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1.2fr) 58px minmax(0, 1fr) minmax(0, 1.4fr);
+  grid-template-columns: 74px minmax(0, 1.2fr) 58px minmax(0, 1fr) minmax(0, 1.4fr) 36px;
   gap: 8px;
   align-items: center;
   padding: 6px 0;
@@ -126,6 +126,31 @@
 
 .ledger-row:first-child {
   border-top: 0;
+}
+
+.ledger-row.is-flash {
+  animation: ledger-flash 1.4s ease-out;
+}
+
+.ledger-edit {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink2);
+  font-size: 12px;
+  text-align: right;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ledger-edit:hover {
+  color: var(--ink);
+}
+
+@keyframes ledger-flash {
+  from {
+    background: var(--cautionBg);
+  }
 }
 
 .ledger-cell {

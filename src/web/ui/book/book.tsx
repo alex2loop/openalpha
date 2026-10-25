@@ -1,5 +1,6 @@
 import type { MessageKey } from '@/i18n'
 import { type BookTab, bookTab } from '@/web/state/book'
+import { ledgerRevision } from '@/web/state/trade'
 import { tr } from '@/web/text/tr'
 import { History } from '@/web/ui/book/history'
 import { Overview } from '@/web/ui/book/overview'
@@ -44,7 +45,8 @@ function BookView({ tab }: { readonly tab: BookTab }) {
     case 'performance':
       return <Performance />
     case 'history':
-      return <History />
+      // A saved, edited or deleted row starts the ledger over, so the list shows it.
+      return <History key={ledgerRevision.value} />
     case 'rebalance':
       return <Rebalance />
     case 'watch':

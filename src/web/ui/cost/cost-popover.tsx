@@ -10,8 +10,10 @@ import { formatUsd } from '@/web/text/figures'
 import { formatRunName } from '@/web/text/run-name'
 import { formatClock } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
 import { Popover } from '@/web/ui/kit/popover'
 import { type LoadState, useLoad } from '@/web/ui/kit/use-load'
+import { openSettings } from '@/web/ui/settings/settings'
 
 import './cost.css'
 
@@ -63,6 +65,9 @@ function CostBody() {
             {tr('ui.office.cost.note', { percent: Math.round(view.caps.warnRatio * PERCENT) })}
           </p>
         )}
+        <Button size="small" onClick={() => openSettings('agents')}>
+          {tr('ui.office.cost.change')}
+        </Button>
       </div>
     </>
   )

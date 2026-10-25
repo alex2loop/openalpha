@@ -16,6 +16,7 @@ import { JOBS_POPOVER_ID, JobsPopover } from '@/web/ui/jobs/jobs-popover'
 import { Chip } from '@/web/ui/kit/chip'
 import { CoinIcon, FocusIcon } from '@/web/ui/kit/icons'
 import { closePopover, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
+import { GearButton } from '@/web/ui/settings/gear-button'
 
 import './header.css'
 
@@ -41,6 +42,7 @@ export function Header() {
       {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       <HeaderClock />
       <BellButton anchor={bellAnchor} />
+      <GearButton />
       <JobsPopover anchor={jobsAnchor} />
       <CostPopover anchor={costAnchor} />
       <BellPopover anchor={bellAnchor} />

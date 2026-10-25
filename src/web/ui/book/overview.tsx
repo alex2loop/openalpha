@@ -4,6 +4,7 @@ import { heldPositions, holdingsBlock } from '@/web/state/market'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { segmentName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
+import { EmptyBookActions } from '@/web/ui/book/empty-actions'
 import { HoldingsList } from '@/web/ui/book/holdings-list'
 import { SegmentBars } from '@/web/ui/book/segment-bars'
 import { Unrealized } from '@/web/ui/book/unrealized'
@@ -27,7 +28,12 @@ export function Overview() {
 
 function OverviewBody({ book }: { readonly book: TradingPortfolioResponse }) {
   if (heldPositions.value.length === 0) {
-    return <p class="meta">{tr('ui.office.book.empty')}</p>
+    return (
+      <>
+        <p class="meta">{tr('ui.office.book.empty')}</p>
+        <EmptyBookActions />
+      </>
+    )
   }
 
   return (

@@ -4,6 +4,7 @@ import type { JobCreateBody, JobEventWire } from '@/app/server/wire/jobs'
 import type { TradingQuoteWire } from '@/app/server/wire/trading'
 import type { MessageKey } from '@/i18n'
 import { findQuote, priceDisplayOf } from '@/web/state/market'
+import { toDecimal } from '@/web/text/decimal'
 import { buildDayKey, formatClock, shiftDay } from '@/web/text/time'
 
 const MS_PER_MINUTE = 60_000
@@ -22,9 +23,6 @@ const DEFAULT_RUN_AT = '09:00'
 // Cron days of week: the working week, and Monday.
 const CRON_TRADING_DAYS = '1-5'
 const CRON_MONDAY = '1'
-const SEPARATORS = /[.,]/g
-const PLAIN_NUMBER = /^\d+(\.\d+)?$/
-const SPACES = /\s+/g
 // A whole time of day, `HH:mm` on a 24-hour clock.
 const CLOCK_TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -58,6 +56,8 @@ export interface ScheduleForm {
   readonly cooldownMs: Signal<number>
   readonly work: Signal<string>
   readonly failure: Signal<string | undefined>
+  /** The daemon's sentence for each field it refused, by the path it named. */
+  readonly fields: Signal<ReadonlyMap<string, string>>
   readonly isBusy: Signal<boolean>
 }
 
@@ -73,6 +73,7 @@ export function createScheduleForm(agentId: string): ScheduleForm {
     cooldownMs: signal(COOLDOWN_SHORT_MS),
     work: signal(''),
     failure: signal(undefined),
+    fields: signal(new Map()),
     isBusy: signal(false),
   }
 }
@@ -82,26 +83,6 @@ function findTypedQuote(form: ScheduleForm): TradingQuoteWire | undefined {
   const ticker = form.ticker.value.trim().toUpperCase()
 
   return ticker === '' ? undefined : findQuote(ticker)
-}
-
-/** "125,00", "125.00" or "1.250,5": the last separator is the decimal one unless it repeats; absent
- *  for an empty or non-numeric level. */
-function parseLevel(text: string): number | undefined {
-  const cleaned = text.replace(SPACES, '')
-  const separators = cleaned.match(SEPARATORS) ?? []
-  const last = separators.at(-1)
-  const isDecimal = last !== undefined && separators.filter((held) => held === last).length === 1
-  const index = isDecimal ? cleaned.lastIndexOf(last) : -1
-  const whole = (index < 0 ? cleaned : cleaned.slice(0, index)).replace(SEPARATORS, '')
-  const plain = index < 0 ? whole : `${whole}.${cleaned.slice(index + 1)}`
-
-  if (!PLAIN_NUMBER.test(plain)) {
-    return undefined
-  }
-
-  const value = Number(plain)
-
-  return value > 0 ? value : undefined
 }
 
 /** The body `POST /v1/jobs` takes; absent when the run time or a price level is missing. */
@@ -186,10 +167,10 @@ interface PriceTrigger {
 /** The typed level on the daemon's scale, and the side of today's price it sits on; absent for an
  *  empty or non-numeric level. */
 export function resolvePriceTrigger(form: ScheduleForm): PriceTrigger | undefined {
-  const level = parseLevel(form.level.value)
+  const level = toDecimal(form.level.value)
   const quote = findTypedQuote(form)
 
-  if (level === undefined) {
+  if (level === undefined || level <= 0) {
     return undefined
   }
 

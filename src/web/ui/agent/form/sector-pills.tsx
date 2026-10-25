@@ -7,6 +7,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { tr } from '@/web/text/tr'
 import { toggle } from '@/web/ui/agent/form/fields'
+import { FieldNote } from '@/web/ui/dialogs/field-note'
 
 interface SectorChoice {
   readonly sector: string
@@ -46,6 +47,7 @@ export function SectorPills({ form }: { readonly form: AgentForm }) {
         ))}
       </div>
       <SectorsHint count={picked.length} />
+      <FieldNote message={form.fields.value.get('focus.sectors')} />
     </fieldset>
   )
 }

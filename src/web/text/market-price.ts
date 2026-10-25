@@ -4,6 +4,8 @@ import { ABSENT_CELL } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
 const INDEX_KIND = 'index'
+// Rounds away the binary noise of a product like 27.8 x 1000.
+const WHOLE_UNIT_PRECISION = 1_000_000
 
 /** A price as its market prints it: a board-scaled market without a currency, any other beside its
  *  currency. An index publishes a level, which has no board scale and no currency. */
@@ -25,6 +27,14 @@ export function formatMarketPrice(
   const currency = findMarket(market)?.currency
 
   return display === undefined && currency !== undefined ? `${price} ${currency}` : price
+}
+
+/** A price typed as the board prints it, in the whole currency units the daemon takes: a VN share
+ *  typed 27,80 is 27800. A market with no board scale takes the price as it is. */
+export function toWholeUnits(market: string, typed: number): number {
+  const divisor = priceDisplayOf(market)?.divisor ?? 1
+
+  return Math.round(typed * divisor * WHOLE_UNIT_PRECISION) / WHOLE_UNIT_PRECISION
 }
 
 /** "giá bảng điện, x1.000 VND" for a board-scaled market; absent for any other. */

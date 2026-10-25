@@ -153,6 +153,6 @@ export function describeEvent(trigger: Pick<JobEventWire, 'event' | 'ticker'>): 
 }
 
 // Schedule rows are open: a field is read only when it holds text.
-function readText(value: unknown): string | undefined {
+export function readText(value: unknown): string | undefined {
   return typeof value === 'string' && value !== '' ? value : undefined
 }

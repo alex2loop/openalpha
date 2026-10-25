@@ -7,6 +7,7 @@ import {
   type Repeat,
   type ScheduleForm,
 } from '@/web/ui/agent/schedule/schedule-state'
+import { FieldNote } from '@/web/ui/dialogs/field-note'
 
 const REPEATS: readonly Repeat[] = ['daily', 'weekly', 'once']
 
@@ -43,6 +44,9 @@ export function TimeFields({ form }: FieldsProps) {
           ))}
         </select>
       </label>
+      <FieldNote
+        message={form.fields.value.get('schedule.expr') ?? form.fields.value.get('schedule.at')}
+      />
     </div>
   )
 }
@@ -96,6 +100,7 @@ function LevelField({ form }: FieldsProps) {
           form.level.value = event.currentTarget.value
         }}
       />
+      <FieldNote message={form.fields.value.get('schedule.threshold')} />
     </label>
   )
 }
@@ -116,6 +121,7 @@ function CooldownField({ form }: FieldsProps) {
           </option>
         ))}
       </select>
+      <FieldNote message={form.fields.value.get('schedule.cooldownMs')} />
     </label>
   )
 }

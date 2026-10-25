@@ -9,9 +9,11 @@ import { fillInput } from '@/web/state/command'
 import { estimateText } from '@/web/state/estimates'
 import { loadSession, state } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
+import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { openSettings } from '@/web/ui/settings/settings'
 
 const BRIEF_COMMAND = '/brief'
 
@@ -26,43 +28,68 @@ interface StepProps {
 /** "Bắt đầu với {brand}": five steps for a daemon with no model, no profile and an empty book. */
 export function FirstRun() {
   const firstRun = state.value?.firstRun
-  const isBookSkipped = useSignal(false)
 
   return (
     <section class="block">
       <h2 class="block-head">{tr('ui.office.firstRun.title')}</h2>
       <div class="steps">
         <ModelStep isDone={firstRun?.modelReady === true} />
-        <Step
-          index={2}
-          title={tr('ui.office.common.profile')}
-          isDone={firstRun?.profileSaved === true}
-        >
-          <p class="meta">{tr('ui.office.firstRun.profileBody')}</p>
-        </Step>
-        <Step
-          index={3}
-          title={tr('ui.office.firstRun.bookTitle')}
-          isDone={firstRun?.bookEmpty === false || isBookSkipped.value}
-        >
-          <p class="meta">{tr('ui.office.firstRun.bookBody')}</p>
-          <div class="step-actions">
-            <Button
-              size="small"
-              onClick={() => {
-                isBookSkipped.value = true
-              }}
-            >
-              {tr('ui.office.firstRun.bookSkip')}
-            </Button>
-          </div>
-        </Step>
-        <Step index={4} title={tr('ui.office.firstRun.chatTitle')} isDone={false} isOptional>
-          <p class="meta">{tr('ui.office.firstRun.chatBody')}</p>
-        </Step>
+        <ProfileStep isDone={firstRun?.profileSaved === true} />
+        <BookStep isDone={firstRun?.bookEmpty === false} />
+        <ChatStep />
         <BriefStep isModelReady={firstRun?.modelReady === true} />
       </div>
     </section>
+  )
+}
+
+function ProfileStep({ isDone }: { readonly isDone: boolean }) {
+  return (
+    <Step index={2} title={tr('ui.office.common.profile')} isDone={isDone}>
+      <p class="meta">{tr('ui.office.firstRun.profileBody')}</p>
+      <div class="step-actions">
+        <Button size="small" onClick={() => openSettings('profile')}>
+          {tr('ui.office.firstRun.profileCta')}
+        </Button>
+      </div>
+    </Step>
+  )
+}
+
+// The book can also be left empty on purpose: "Chưa có, bỏ qua" counts the step as done.
+function BookStep({ isDone }: { readonly isDone: boolean }) {
+  const isSkipped = useSignal(false)
+
+  return (
+    <Step index={3} title={tr('ui.office.firstRun.bookTitle')} isDone={isDone || isSkipped.value}>
+      <p class="meta">{tr('ui.office.firstRun.bookBody')}</p>
+      <div class="step-actions">
+        <Button size="small" onClick={() => openTradeDialog()}>
+          {tr('ui.office.common.recordTrade')}
+        </Button>
+        <Button
+          size="small"
+          onClick={() => {
+            isSkipped.value = true
+          }}
+        >
+          {tr('ui.office.firstRun.bookSkip')}
+        </Button>
+      </div>
+    </Step>
+  )
+}
+
+function ChatStep() {
+  return (
+    <Step index={4} title={tr('ui.office.firstRun.chatTitle')} isDone={false} isOptional>
+      <p class="meta">{tr('ui.office.firstRun.chatBody')}</p>
+      <div class="step-actions">
+        <Button size="small" onClick={() => openSettings('channels')}>
+          {tr('ui.office.firstRun.chatCta')}
+        </Button>
+      </div>
+    </Step>
   )
 }
 

@@ -5,7 +5,13 @@ import type {
   ChatRecentResponse,
   ChatSessionsResponse,
 } from '@/app/server/wire/chat'
-import type { ProviderCatalogResponse } from '@/app/server/wire/config'
+import type {
+  ConfigResponse,
+  ConfigValidation,
+  ConfigWriteResult,
+  ProviderCatalogResponse,
+  ProviderTestResult,
+} from '@/app/server/wire/config'
 import type { DebateWire } from '@/app/server/wire/debate'
 import type { LiveSnapshotWire, RunStopWire } from '@/app/server/wire/live'
 import type {
@@ -18,15 +24,31 @@ import type {
   OverviewResponse,
   ScreenResponse,
   SectorsResponse,
+  SourcesResponse,
 } from '@/app/server/wire/market'
 import type { ModelsResponse } from '@/app/server/wire/models'
-import type { LedgerPageResponse, RebalanceResponse, StopsResponse } from '@/app/server/wire/money'
-import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type {
+  LedgerPageResponse,
+  LedgerWriteResponse,
+  RebalanceResponse,
+  StopsResponse,
+  VenuesResponse,
+} from '@/app/server/wire/money'
+import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
+import type { OutboundResponse } from '@/app/server/wire/outbound'
+import type {
+  PairingDecisionResult,
+  PairingList,
+  PairingRevokeResult,
+} from '@/app/server/wire/sign-in'
+import type {
+  BriefScheduleWire,
   Capabilities,
   CommandList,
   CostReport,
+  DoctorReport,
   HealthResponse,
+  RestartAcceptedWire,
   ScheduleRow,
   StatePayload,
 } from '@/app/server/wire/system'
@@ -55,7 +77,7 @@ export interface RouteDef<T> {
   readonly response?: T
 }
 
-/** What `POST /v1/respond` and the pause and resume of an agent answer. */
+/** What `POST /v1/respond` and the pause and resume of an agent or a job answer. */
 interface OkAnswer {
   readonly ok: true
 }
@@ -86,6 +108,8 @@ export const ROUTES = Object.freeze({
     route<OkAnswer>(`/v1/agents/${encodeURIComponent(agentId)}/resume`),
   models: route<ModelsResponse>('/v1/models'),
   jobs: route<ScheduleRow>('/v1/jobs'),
+  jobAction: (jobId: string, action: 'pause' | 'resume') =>
+    route<OkAnswer>(`/v1/jobs/${encodeURIComponent(jobId)}/${action}`),
   board: route<BoardResponse>('/v1/board'),
   sectors: route<SectorsResponse>('/v1/sectors'),
   chatRecent: route<ChatRecentResponse>('/v1/chat/recent'),
@@ -98,6 +122,9 @@ export const ROUTES = Object.freeze({
   portfolio: route<TradingPortfolioResponse>('/v1/portfolio', 'portfolio'),
   portfolioNav: route<TradingNavResponse>('/v1/portfolio/nav', 'portfolio'),
   ledger: route<LedgerPageResponse>('/v1/ledger', 'portfolio'),
+  ledgerWrite: route<LedgerWriteResponse>('/v1/ledger', 'portfolio'),
+  ledgerRow: (entryId: string) =>
+    route<LedgerWriteResponse>(`/v1/ledger/${encodeURIComponent(entryId)}`, 'portfolio'),
   rebalance: route<RebalanceResponse>('/v1/rebalance', 'portfolio'),
   stops: route<StopsResponse>('/v1/stops', 'portfolio'),
   suggestions: route<TradingSuggestionsResponse>('/v1/suggestions', 'suggestions'),
@@ -116,7 +143,23 @@ export const ROUTES = Object.freeze({
   events: route<TradingEventsResponse>('/v1/events', 'ohlcv'),
   news: route<TradingNewsResponse>('/v1/news'),
   brief: route<TradingBriefResponse>('/v1/brief'),
+  briefSchedule: route<BriefScheduleWire>('/v1/brief'),
   providers: route<ProviderCatalogResponse>('/v1/providers'),
+  providersTest: route<ProviderTestResult>('/v1/providers/test'),
+  config: route<ConfigResponse>('/v1/config'),
+  configWrite: route<ConfigWriteResult>('/v1/config'),
+  configValidate: route<ConfigValidation>('/v1/config/validate'),
+  pairing: route<PairingList>('/v1/pairing'),
+  pairingDecision: route<PairingDecisionResult>('/v1/pairing'),
+  pairingDelete: (channel: string, chatId: string) =>
+    route<PairingRevokeResult>(
+      `/v1/pairing/${encodeURIComponent(channel)}/${encodeURIComponent(chatId)}`
+    ),
+  sources: route<SourcesResponse>('/v1/sources'),
+  outbound: route<OutboundResponse>('/v1/outbound'),
+  doctor: route<DoctorReport>('/v1/doctor'),
+  restart: route<RestartAcceptedWire>('/v1/restart'),
+  venues: route<VenuesResponse>('/v1/venues', 'portfolio'),
   profile: route<TradingProfileResponse>('/v1/profile'),
   watchlist: route<WatchlistUpdateResponse>('/v1/watchlist'),
   alerts: route<AlertsResponse>('/v1/alerts'),

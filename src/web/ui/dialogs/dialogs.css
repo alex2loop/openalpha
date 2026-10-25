@@ -1,0 +1,75 @@
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.dialog-question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font-size: 12px;
+}
+
+.dialog-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dialog-foot-left {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dialog-note {
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.dialog-suggest {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dialog-suggest button {
+  display: flex;
+  gap: var(--s1);
+  padding: 6px var(--s1);
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dialog-suggest button:hover {
+  background: var(--sunken);
+}
+
+.target-row {
+  display: grid;
+  grid-template-columns: 1fr auto 72px;
+  align-items: center;
+  gap: var(--s1);
+  padding: 4px 0;
+}
+
+.target-row input[type="number"] {
+  width: 72px;
+}
+
+.target-total {
+  font-weight: 600;
+}

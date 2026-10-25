@@ -3,6 +3,7 @@ import { loadToolTiers } from '@/web/state/agents'
 import { formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { toFailureText, tr } from '@/web/text/tr'
+import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { useLoad } from '@/web/ui/kit/use-load'
 
 // The option that runs on the primary model.
@@ -42,6 +43,7 @@ export function ModelSelect({ form }: { readonly form: AgentForm }) {
       {tiers.status === 'failed' && (
         <span class="failure-line">{toFailureText(tiers.failure)}</span>
       )}
+      <FieldNote message={form.fields.value.get('modelTier')} />
     </label>
   )
 }

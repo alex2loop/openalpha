@@ -4,6 +4,7 @@ import { readBlock } from '@/web/state/block'
 import { heldPositions, holdingsBlock, stopBreaches } from '@/web/state/market'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
+import { EmptyBookActions } from '@/web/ui/book/empty-actions'
 import { Unrealized } from '@/web/ui/book/unrealized'
 import { PieIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -28,7 +29,12 @@ function BookFigures({ book }: { readonly book: TradingPortfolioResponse }) {
   const breaches = stopBreaches.value.length
 
   if (held === 0) {
-    return <p class="meta">{tr('ui.office.today.bookEmpty')}</p>
+    return (
+      <>
+        <p class="meta">{tr('ui.office.today.bookEmpty')}</p>
+        <EmptyBookActions />
+      </>
+    )
   }
 
   return (

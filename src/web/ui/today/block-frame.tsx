@@ -8,6 +8,7 @@ import { formatClock } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { openSettings } from '@/web/ui/settings/settings'
 
 import './today.css'
 
@@ -107,6 +108,9 @@ function FailedStrip<T>({ title, reading }: Pick<BlockFrameProps<T>, 'title' | '
       </span>
       <Button size="small" onClick={reading.retry}>
         {tr('ui.office.common.retry')}
+      </Button>
+      <Button size="small" onClick={() => openSettings('data')}>
+        {tr('ui.office.today.doctor')}
       </Button>
     </div>
   )
