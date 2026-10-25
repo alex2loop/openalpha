@@ -17,12 +17,6 @@ import { Popover } from '@/web/ui/kit/popover'
 
 export const BELL_POPOVER_ID = 'bell'
 
-// Shown above while they wait; the log keeps them, but "Hôm nay" would say them twice.
-const WAITING_KINDS: ReadonlySet<string> = new Set([
-  'approval_requested',
-  'clarification_requested',
-])
-
 export function BellPopover({ anchor }: { readonly anchor: RefObject<HTMLElement> }) {
   return (
     <Popover id={BELL_POPOVER_ID} anchor={anchor} label={tr('ui.office.bell.title')}>
@@ -125,13 +119,20 @@ function listToday(): readonly NoticeWire[] {
   }
 
   const today = buildDayKey(Date.now(), timeZone)
+  // A request still waiting shows above; once answered it is an ordinary row here.
+  const waitingIds = new Set(pending.value.map(pendingRequestId))
   const shown = notices.value.filter(
-    (notice) =>
-      !WAITING_KINDS.has(notice.event.kind) && buildDayKey(notice.createdAt, timeZone) === today
+    (notice) => !isWaiting(notice, waitingIds) && buildDayKey(notice.createdAt, timeZone) === today
   )
 
   return [
     ...shown.filter((notice) => notice.readAt === undefined),
     ...shown.filter((notice) => notice.readAt !== undefined),
   ]
+}
+
+function isWaiting(notice: NoticeWire, waitingIds: ReadonlySet<string | undefined>): boolean {
+  const { requestId } = notice.event
+
+  return requestId !== undefined && waitingIds.has(requestId)
 }

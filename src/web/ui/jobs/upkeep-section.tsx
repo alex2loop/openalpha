@@ -5,7 +5,7 @@ import type { LoadState } from '@/web/ui/kit/use-load'
 import { pluralKey } from '@/i18n'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
-import { formatClock, formatElapsed } from '@/web/text/time'
+import { formatClock, formatDuration } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 
 /** One line for the daemon's own tasks; a failing one shows on its own with its sentence, and the
@@ -82,7 +82,7 @@ function UpkeepRow({ task }: { readonly task: TaskStatusWire }) {
     ...(task.lastError === undefined ? [] : [task.lastError]),
     ...(task.everyMs === undefined
       ? []
-      : [tr('ui.office.jobs.every', { time: formatElapsed(task.everyMs) })]),
+      : [tr('ui.office.jobs.every', { time: formatDuration(task.everyMs) })]),
     ...(task.lastRunAt === undefined || timeZone === undefined
       ? []
       : [tr('ui.office.jobs.lastRun', { time: formatClock(task.lastRunAt, timeZone) })]),

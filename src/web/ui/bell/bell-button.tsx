@@ -3,6 +3,7 @@ import { computed, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
+import { pending, pendingRequestId } from '@/web/state/live'
 import { needsYou, notices, unread } from '@/web/state/notices'
 import { reducedMotion } from '@/web/state/prefs'
 import { joinInline } from '@/web/text/glyphs'
@@ -22,8 +23,21 @@ const unreadStops = computed(
       (notice) => notice.readAt === undefined && notice.event.kind === 'stop_breached'
     ).length
 )
-// Unread notices that do not need the operator: a dot, not a number.
-const otherUnread = computed(() => Math.max(0, (unread.value ?? 0) - unreadStops.value))
+// Unread requests still waiting: counted in `needsYou` and shown as cards, not as rows.
+const unreadWaiting = computed(() => {
+  const waitingIds = new Set(pending.value.map(pendingRequestId))
+
+  return notices.value.filter(
+    (notice) =>
+      notice.readAt === undefined &&
+      notice.event.requestId !== undefined &&
+      waitingIds.has(notice.event.requestId)
+  ).length
+})
+// Unread rows that do not need the operator: a dot, not a number.
+const otherUnread = computed(() =>
+  Math.max(0, (unread.value ?? 0) - unreadStops.value - unreadWaiting.value)
+)
 
 /** The bell: a number for what needs the operator (red when a stop broke, amber otherwise), a dot
  *  for other news. A new item bumps the badge once; never a toast. */

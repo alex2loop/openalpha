@@ -2,6 +2,7 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { NoticeWire } from '@/app/server/wire/notices'
 import { markRead } from '@/web/state/notices'
 import { state } from '@/web/state/session'
+import { sourceLabel } from '@/web/text/source'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { JOBS_POPOVER_ID } from '@/web/ui/jobs/jobs-popover'
@@ -77,10 +78,18 @@ function toNoticeText(event: WireEvent): NoticeText | undefined {
     return detail === '' ? { title } : { title, detail }
   }
 
+  if (event.approval !== undefined) {
+    return { title: event.approval.label, detail: event.approval.argsSummary }
+  }
+
+  if (event.clarification !== undefined) {
+    return { title: event.clarification.text }
+  }
+
   if (event.pairing !== undefined) {
     return {
       title: tr('ui.office.bell.pairing', {
-        channel: event.pairing.channel,
+        channel: sourceLabel(event.pairing.channel),
         code: event.pairing.code,
       }),
     }

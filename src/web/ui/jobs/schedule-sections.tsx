@@ -120,7 +120,10 @@ function describeEvent(row: ScheduleRow): string {
 
   const subject = trigger.ticker ?? tr('scheduler.event.anyName')
 
-  return `${subject} ${tr(`scheduler.event.${trigger.event}`)}`
+  return tr('ui.office.jobs.eventWhen', {
+    subject,
+    event: tr(`scheduler.event.${trigger.event}`),
+  })
 }
 
 // Today reads as a clock; another day leads with its date.

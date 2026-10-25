@@ -1,6 +1,11 @@
+import { pluralKey } from '@/i18n'
+import { tr } from '@/web/text/tr'
+
 const MS_PER_SECOND = 1_000
 const SECONDS_PER_MINUTE = 60
 const MINUTES_PER_HOUR = 60
+const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
+const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR
 // A 24-hour clock reads the same in both page languages.
 const CLOCK_LOCALE = 'en-GB'
 const CLOCK_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
@@ -41,6 +46,25 @@ export function formatElapsed(spanMs: number): string {
   const hours = Math.floor(totalMinutes / MINUTES_PER_HOUR)
 
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`
+}
+
+/** A cadence in its largest whole unit: "12 giờ", "30 phút", "45 giây". */
+export function formatDuration(spanMs: number): string {
+  if (spanMs >= MS_PER_HOUR && spanMs % MS_PER_HOUR === 0) {
+    const count = spanMs / MS_PER_HOUR
+
+    return tr(pluralKey(count, 'ui.office.time.hoursOne', 'ui.office.time.hours'), { count })
+  }
+
+  if (spanMs >= MS_PER_MINUTE && spanMs % MS_PER_MINUTE === 0) {
+    const count = spanMs / MS_PER_MINUTE
+
+    return tr(pluralKey(count, 'ui.office.time.minutesOne', 'ui.office.time.minutes'), { count })
+  }
+
+  const count = Math.max(0, Math.round(spanMs / MS_PER_SECOND))
+
+  return tr(pluralKey(count, 'ui.office.time.secondsOne', 'ui.office.time.seconds'), { count })
 }
 
 /** The `YYYY-MM-DD` day an instant falls on in `timeZone`, as the daemon counts its days. */

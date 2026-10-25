@@ -13,7 +13,14 @@ interface PopoverProps {
   readonly children: ComponentChildren
 }
 
+interface OpenPanel {
+  readonly panel: RefObject<HTMLElement>
+  readonly anchor: RefObject<HTMLElement>
+}
+
 const openId = signal<string | undefined>(undefined)
+// The mounted panel and its anchor, so a dialog opened from inside it can return focus there.
+let openPanel: OpenPanel | undefined
 
 /** Which popover is open; one at a time. */
 export const openPopoverId: ReadonlySignal<string | undefined> = openId
@@ -25,6 +32,19 @@ export function togglePopover(id: string): void {
 
 export function closePopover(): void {
   openId.value = undefined
+}
+
+/** Where focus goes back to once whatever `active` opened is done: the open popover's anchor when
+ *  `active` sits inside that popover (or focus rests nowhere), else `active` itself. */
+export function resolveFocusReturn(active: Element | null): HTMLElement | undefined {
+  const isFromPanel =
+    active === null || active === document.body || isInside(openPanel?.panel, active)
+
+  if (openPanel !== undefined && isFromPanel) {
+    return openPanel.anchor.current ?? undefined
+  }
+
+  return active instanceof HTMLElement ? active : undefined
 }
 
 /** Its children mount only while it is open, so whatever they load is released when it closes. */
@@ -68,6 +88,9 @@ function PopoverPanel({ anchor, label, className, children }: PopoverPanelProps)
 function armDismiss(panel: RefObject<HTMLElement>, anchor: RefObject<HTMLElement>): () => void {
   const listeners = new AbortController()
   const { signal: listenerSignal } = listeners
+  const entry: OpenPanel = { panel, anchor }
+
+  openPanel = entry
 
   document.addEventListener(
     'keydown',
@@ -91,9 +114,15 @@ function armDismiss(panel: RefObject<HTMLElement>, anchor: RefObject<HTMLElement
     { signal: listenerSignal }
   )
 
-  return () => listeners.abort()
+  return () => {
+    listeners.abort()
+
+    if (openPanel === entry) {
+      openPanel = undefined
+    }
+  }
 }
 
-function isInside(ref: RefObject<HTMLElement>, target: Node): boolean {
-  return ref.current?.contains(target) === true
+function isInside(ref: RefObject<HTMLElement> | undefined, target: Node): boolean {
+  return ref?.current?.contains(target) === true
 }

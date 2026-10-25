@@ -1,8 +1,8 @@
 import type { ActivityResponse, ActivityRowWire } from '@/app/server/wire/activity'
-import { pluralKey } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { state } from '@/web/state/session'
+import { formatChildrenLine } from '@/web/text/activity'
 import { formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
@@ -93,16 +93,5 @@ function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
       </div>
       <span class="activity-cost">{formatUsd(row.costUsd)}</span>
     </div>
-  )
-}
-
-/** "gồm N agent con {cost}": what a parent's direct children spent of its whole. */
-export function formatChildrenLine(children: readonly ActivityRowWire[]): string {
-  return tr(
-    pluralKey(children.length, 'ui.office.cost.withChildrenOne', 'ui.office.cost.withChildren'),
-    {
-      count: children.length,
-      cost: formatUsd(children.reduce((sum, child) => sum + child.costUsd, 0)),
-    }
   )
 }

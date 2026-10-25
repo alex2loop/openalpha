@@ -4,7 +4,7 @@ import { useEffect } from 'preact/hooks'
 
 import { tr } from '@/web/text/tr'
 import { CloseIcon } from '@/web/ui/kit/icons'
-import { closePopover } from '@/web/ui/kit/popover'
+import { closePopover, resolveFocusReturn } from '@/web/ui/kit/popover'
 
 import './modal.css'
 
@@ -12,7 +12,8 @@ const DIALOG_ID = 'modal-dialog'
 const TITLE_ID = 'modal-title'
 const FOCUSABLE =
   'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-// The one button Enter may press: the dialog's main action. A destructive one never is.
+// The dialog's main action: Enter presses it, and it takes focus when the body has no field. A
+// destructive button never is one.
 const MAIN_BUTTON = '.modal-foot .btn-commit:not(:disabled), .modal-foot .btn-ai:not(:disabled)'
 // Input types that are one line of text; Enter in any other control keeps its own meaning.
 const TEXT_INPUT_TYPES: ReadonlySet<string> = new Set([
@@ -53,9 +54,10 @@ let modalSeq = 0
 /** Opens the page's one dialog, replacing any open one and closing any popover. Focus moves into
  *  it, stays there, and returns to the element that had it when it closes. */
 export function openModal(spec: ModalSpec): ModalHandle {
-  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+  // A dialog that replaces another keeps the first one's return target.
+  const opener = current.value?.opener ?? resolveFocusReturn(document.activeElement)
 
-  closeModal()
+  releaseModal()
   closePopover()
   modalSeq++
 
@@ -75,21 +77,28 @@ export function openModal(spec: ModalSpec): ModalHandle {
   }
 }
 
-/** Closes the open dialog at once; idempotent. */
+/** Closes the open dialog at once and returns focus; idempotent. */
 export function closeModal(): void {
+  const entry = releaseModal()
+
+  if (entry?.opener?.isConnected === true) {
+    entry.opener.focus()
+  }
+}
+
+// Undoes the open dialog without moving focus, for a close or a replacement.
+function releaseModal(): OpenModal | undefined {
   const entry = current.value
 
   if (entry === undefined) {
-    return
+    return undefined
   }
 
   entry.listeners.abort()
   current.value = undefined
   isUnsavedNoted.value = false
 
-  if (entry.opener?.isConnected === true) {
-    entry.opener.focus()
-  }
+  return entry
 }
 
 /** Mounted once by the shell; a dialog open when the shell leaves (a sign-out) closes with it. */
@@ -215,16 +224,13 @@ function pressMain(event: KeyboardEvent): void {
   }
 }
 
-// A field in the body takes focus first; a dialog with none holds it itself.
+// A field in the body takes focus first, else the main (safe) footer button, else the dialog.
 function focusFirst(): void {
-  const [first] = listFocusable('.modal-body')
+  const [field] = listFocusable('.modal-body')
+  const main = document.querySelector(MAIN_BUTTON)
+  const target = field ?? (main instanceof HTMLElement ? main : document.getElementById(DIALOG_ID))
 
-  if (first === undefined) {
-    document.getElementById(DIALOG_ID)?.focus()
-    return
-  }
-
-  first.focus()
+  target?.focus()
 }
 
 function listFocusable(within: string): HTMLElement[] {
