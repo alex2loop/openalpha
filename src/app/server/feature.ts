@@ -1,5 +1,6 @@
 import type { ApiHandle, ApiRouteSpec } from '@/app/types'
 import type { App, ServiceProvider } from '@/core/container'
+import type { Logger } from '@/core/logging/logger'
 import { createLiveFeed, type LiveFeed } from '@/app/server/feed/live'
 import { ensureApiToken } from '@/app/server/http/auth'
 import { startApi } from '@/app/server/http/server'
@@ -74,46 +75,44 @@ export const apiServiceProvider: ServiceProvider = {
       return ROUTES
     })
 
-    bind('apiStarter', () => async (app, env) => {
-      const token = await ensureApiToken(app.config, env)
-      const live = startLiveFeed(app)
-      let server: ApiHandle | undefined
-      let detachAppSurface: (() => void) | undefined
-
-      // The port can be taken, and a failure after it is bound must release it, or the next start
-      // finds it taken. Either way no bus listener of the feed outlives the failed start.
-      try {
-        const api = startApi(app, token, live)
-
-        server = api
-        detachAppSurface = attachAppSurface(app)
-        const stopIdeaWatch = startIdeaWatch(app)
-
-        return {
-          closeAdmission: api.closeAdmission,
-          // A step that throws must not leave the bus listeners or the port behind.
-          stop: async () => {
-            try {
-              await stopIdeaWatch()
-            } finally {
-              try {
-                detachAppSurface?.()
-                live.stop()
-              } finally {
-                await api.stop()
-              }
-            }
-          },
-        }
-      } catch (err: unknown) {
-        detachAppSurface?.()
-        live.stop()
-        await stopAfterFailedStart(app, server)
-
-        throw err
-      }
-    })
+    bind('apiStarter', () => startApiSurface)
   },
+}
+
+async function startApiSurface(
+  app: App,
+  env: Readonly<Record<string, string | undefined>>
+): Promise<ApiHandle> {
+  const token = await ensureApiToken(app.config, env)
+  const live = startLiveFeed(app)
+  let server: ApiHandle | undefined
+  let detachAppSurface: (() => void) | undefined
+  let stopIdeaWatch: (() => Promise<void>) | undefined
+
+  // Release order; the port goes last. Each step runs even when an earlier one throws.
+  const stopAll = (): Promise<void> =>
+    runStopSteps(app.resolve('logger'), [
+      { step: 'ideaWatch', run: () => stopIdeaWatch?.() },
+      { step: 'appSurface', run: () => detachAppSurface?.() },
+      { step: 'liveFeed', run: () => live.stop() },
+      { step: 'api', run: () => server?.stop() },
+    ])
+
+  // The port can be taken, and a failure after it is bound must release it, or the next start
+  // finds it taken. Either way no bus listener of the feed outlives the failed start.
+  try {
+    const api = startApi(app, token, live)
+
+    server = api
+    detachAppSurface = attachAppSurface(app)
+    stopIdeaWatch = startIdeaWatch(app)
+
+    return { closeAdmission: api.closeAdmission, stop: stopAll }
+  } catch (err: unknown) {
+    await stopAll()
+
+    throw err
+  }
 }
 
 /** The feed follows the bus; a run is live while the run registry or the command dispatcher holds it. */
@@ -141,15 +140,20 @@ function startLiveFeed(app: App): LiveFeed {
   })
 }
 
-async function stopAfterFailedStart(app: App, server: ApiHandle | undefined): Promise<void> {
-  if (server === undefined) {
-    return
-  }
+interface StopStep {
+  readonly step: string
+  readonly run: () => void | Promise<void> | undefined
+}
 
-  try {
-    await server.stop()
-  } catch (err: unknown) {
-    app.resolve('logger').warn('api.start_cleanup_failed', { err: formatErrForLog(err) })
+// A throwing step is logged and the rest still run: cleanup never throws and never leaves a
+// listener or the port behind.
+async function runStopSteps(logger: Logger, steps: readonly StopStep[]): Promise<void> {
+  for (const { step, run } of steps) {
+    try {
+      await run()
+    } catch (err: unknown) {
+      logger.warn('api.stop_step_failed', { step, err: formatErrForLog(err) })
+    }
   }
 }
 
