@@ -1,4 +1,4 @@
-import type { ActivityResponse } from '@/app/server/wire/activity'
+import type { ActivityResponse, ResearchResponse } from '@/app/server/wire/activity'
 import type { AgentsResponse } from '@/app/server/wire/agents'
 import type {
   ChatHistoryResponse,
@@ -6,6 +6,7 @@ import type {
   ChatSessionsResponse,
 } from '@/app/server/wire/chat'
 import type { ProviderCatalogResponse } from '@/app/server/wire/config'
+import type { DebateWire } from '@/app/server/wire/debate'
 import type { LiveSnapshotWire, RunStopWire } from '@/app/server/wire/live'
 import type {
   AlertDisableResponse,
@@ -15,6 +16,7 @@ import type {
   MacroResponse,
   MarketsResponse,
   OverviewResponse,
+  ScreenResponse,
 } from '@/app/server/wire/market'
 import type { LedgerPageResponse, RebalanceResponse, StopsResponse } from '@/app/server/wire/money'
 import type { NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
@@ -27,6 +29,7 @@ import type {
 } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import type {
+  SuggestionCardResponse,
   TradingBriefResponse,
   TradingEventsResponse,
   TradingNavResponse,
@@ -36,6 +39,7 @@ import type {
   TradingProfileResponse,
   TradingQuotesResponse,
   TradingSuggestionsResponse,
+  TradingTrackRecordResponse,
 } from '@/app/server/wire/trading'
 import type { WatchlistUpdateResponse } from '@/app/server/wire/watchlist'
 
@@ -80,6 +84,16 @@ export const ROUTES = Object.freeze({
   rebalance: route<RebalanceResponse>('/v1/rebalance', 'portfolio'),
   stops: route<StopsResponse>('/v1/stops', 'portfolio'),
   suggestions: route<TradingSuggestionsResponse>('/v1/suggestions', 'suggestions'),
+  suggestionCard: (suggestionId: string) =>
+    route<SuggestionCardResponse>(
+      `/v1/suggestions/${encodeURIComponent(suggestionId)}/card`,
+      'suggestions'
+    ),
+  suggestionDebate: (suggestionId: string) =>
+    route<DebateWire>(`/v1/suggestions/${encodeURIComponent(suggestionId)}/debate`, 'suggestions'),
+  screen: route<ScreenResponse>('/v1/screen'),
+  trackRecord: route<TradingTrackRecordResponse>('/v1/track-record', 'suggestions'),
+  research: route<ResearchResponse>('/v1/research'),
   macro: route<MacroResponse>('/v1/macro'),
   ohlcv: route<TradingOhlcvResponse>('/v1/ohlcv', 'ohlcv'),
   events: route<TradingEventsResponse>('/v1/events', 'ohlcv'),

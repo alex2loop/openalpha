@@ -138,18 +138,6 @@
   text-align: right;
 }
 
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: var(--s1);
-}
-
-.pager-buttons {
-  display: inline-flex;
-  gap: 6px;
-}
-
 .nav-chart {
   display: block;
   width: 100%;

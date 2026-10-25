@@ -15,7 +15,7 @@ interface ButtonProps {
   readonly size?: ButtonSize
   readonly type?: 'button' | 'submit'
   readonly disabled?: boolean
-  readonly onClick?: () => void
+  readonly onClick?: (() => void) | undefined
   readonly children: ComponentChildren
 }
 

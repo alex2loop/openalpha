@@ -1,12 +1,5 @@
 import { canStop, isFinished, steer, stopTurn, type Turn, thread } from '@/web/state/chat'
-import {
-  ALERT_CREATE_COMMAND,
-  fillInput,
-  inputText,
-  SUGGEST_COMMAND,
-  setInput,
-} from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
+import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { resolveCommandLink } from '@/web/ui/chat/command-link'
@@ -14,6 +7,7 @@ import { ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
+import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
 
 const MS_PER_SECOND = 1_000
 
@@ -54,7 +48,7 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
   return (
     <div class="chat-card">
       {!isFinished(turn) && <RunningStep turn={turn} />}
-      <ReplyText text={turn.reply} isLinked={turn.kind !== 'slash'} />
+      <ReplyText text={turn.reply} isProse={turn.kind !== 'slash'} />
       <SteerLine turn={turn} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
     </div>
@@ -180,14 +174,9 @@ function NextSteps({ tickers }: { readonly tickers: readonly string[] | undefine
     return null
   }
 
-  const suggest = `${SUGGEST_COMMAND} ${ticker}`
-  const estimate = estimateText(SUGGEST_COMMAND)
-
   return (
     <>
-      <Button size="small" onClick={() => fillInput(suggest)}>
-        {estimate === undefined ? suggest : joinInline([suggest, estimate])}
-      </Button>
+      <SuggestChip ticker={ticker} />
       <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
         {tr('ui.office.common.setAlert')}
       </Button>

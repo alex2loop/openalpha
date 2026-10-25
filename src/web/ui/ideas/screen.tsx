@@ -1,0 +1,146 @@
+import type { ScreenResponse } from '@/app/server/wire/market'
+import { ROUTES } from '@/web/api/routes'
+import { useBlock } from '@/web/state/block'
+import { fillInput, SUGGEST_COMMAND } from '@/web/state/command'
+import { estimateText } from '@/web/state/estimates'
+import { screenMarket } from '@/web/state/ideas'
+import { openTicker } from '@/web/state/known-tickers'
+import { boardMarkets } from '@/web/state/market'
+import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
+import { joinInline } from '@/web/text/glyphs'
+import { tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
+import { TrendIcon } from '@/web/ui/kit/icons'
+import { Segmented } from '@/web/ui/kit/segmented'
+import { BlockFrame } from '@/web/ui/today/block-frame'
+
+const SCREEN_COMMAND = '/screen'
+const MARKET_SEPARATOR = ':'
+
+/** Cơ hội: the names the daemon ranked best in a market, as it words them. A score is a rank, not
+ *  advice, and a call is one tap away. */
+export function Opportunities() {
+  const markets = boardMarkets.value
+  const market = markets.find((held) => held.market === screenMarket.value) ?? markets[0]
+
+  if (market === undefined) {
+    return <p class="meta">{tr('ui.office.today.empty')}</p>
+  }
+
+  return (
+    <>
+      {markets.length > 1 && (
+        <Segmented
+          label={tr('ui.office.ideas.screen')}
+          value={market.market}
+          options={markets.map((held) => ({ value: held.market, label: held.label }))}
+          onChange={(value) => {
+            screenMarket.value = value
+          }}
+        />
+      )}
+      <Board key={market.market} market={market.market} />
+    </>
+  )
+}
+
+// Mounted per market, so its read ends with the tab or the market.
+function Board({ market }: { readonly market: string }) {
+  const reading = useBlock(ROUTES.screen, { query: { market } })
+
+  return (
+    <BlockFrame
+      title={tr('ui.office.ideas.screen')}
+      colour="teal"
+      icon={<TrendIcon />}
+      reading={reading}
+      dataTo={reading.data?.dataThroughDay ?? reading.data?.asOf}
+      action={<Rerun market={market} />}
+    >
+      {(board) => <BoardBody board={board} />}
+    </BlockFrame>
+  )
+}
+
+// Fills the box with `/screen <market>`: the operator sends it, and sees the cost first.
+function Rerun({ market }: { readonly market: string }) {
+  return (
+    <>
+      <span class="meta">{estimateText(SCREEN_COMMAND)}</span>
+      <Button kind="ai" size="small" onClick={() => fillInput(`${SCREEN_COMMAND} ${market}`)}>
+        {tr('ui.office.ideas.screenRerun')}
+      </Button>
+    </>
+  )
+}
+
+function BoardBody({ board }: { readonly board: ScreenResponse }) {
+  const { card } = board
+
+  if (card.rows.length === 0) {
+    return <p class="meta">{tr('ui.office.today.empty')}</p>
+  }
+
+  return (
+    <>
+      <p class="funnel">
+        {tr('ui.office.ideas.screenFunnel', {
+          universe: formatPrice(board.universeSize, WHOLE_DISPLAY),
+          kept: formatPrice(card.rows.length, WHOLE_DISPLAY),
+        })}
+      </p>
+      {card.rows.map((row) => (
+        <Opportunity key={row.key} row={row} />
+      ))}
+      {card.caveats.map((caveat) => (
+        <p key={caveat} class="strip is-caution">
+          {caveat}
+        </p>
+      ))}
+      {card.notes.map((note) => (
+        <p key={note} class="meta">
+          {note}
+        </p>
+      ))}
+      <p class="meta">{tr('ui.office.ideas.screenNote')}</p>
+      <SuggestCost />
+    </>
+  )
+}
+
+// What "Đề xuất mã này" usually costs, once, rather than beside every row.
+function SuggestCost() {
+  const estimate = estimateText(SUGGEST_COMMAND)
+
+  return estimate === undefined ? null : (
+    <p class="meta">{joinInline([tr('ui.office.ideas.screenSuggest'), estimate])}</p>
+  )
+}
+
+type Row = ScreenResponse['card']['rows'][number]
+
+function Opportunity({ row }: { readonly row: Row }) {
+  const [market, ticker] = row.key.split(MARKET_SEPARATOR)
+
+  return (
+    <div class="opportunity">
+      <div class="opportunity-main">
+        {ticker === undefined ? (
+          <b>{row.line}</b>
+        ) : (
+          <button type="button" class="opportunity-line" onClick={() => openTicker(ticker, market)}>
+            {row.line}
+          </button>
+        )}
+        {row.evidence.map((line) => (
+          <p key={line} class="opportunity-evidence">
+            {line}
+          </p>
+        ))}
+      </div>
+      <Button kind="ai" size="small" onClick={() => fillInput(`${SUGGEST_COMMAND} ${row.key}`)}>
+        {tr('ui.office.ideas.screenSuggest')}
+      </Button>
+    </div>
+  )
+}

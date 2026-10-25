@@ -9,6 +9,7 @@ import { toFailureText, tr } from '@/web/text/tr'
 import { LedgerRow } from '@/web/ui/book/ledger-row'
 import { useLedger } from '@/web/ui/book/use-ledger'
 import { Button } from '@/web/ui/kit/button'
+import { Pager } from '@/web/ui/kit/pager'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 
@@ -64,7 +65,7 @@ export function History() {
         isEmpty={kept.length === 0}
         isFiltered={filter.value !== 'all'}
       />
-      <Pager ledger={ledger} total={kept.length} page={page} />
+      <LedgerPager ledger={ledger} total={kept.length} page={page} />
     </section>
   )
 }
@@ -143,42 +144,21 @@ function LedgerRows({ shown }: { readonly shown: readonly LedgerEntryWire[] }) {
   )
 }
 
-interface PagerProps {
+interface LedgerPagerProps {
   readonly ledger: Ledger
   readonly total: number
   readonly page: Signal<number>
 }
 
-function Pager({ ledger, total, page }: PagerProps) {
-  const from = page.value * LEDGER_PAGE
-  const to = Math.min(total, from + LEDGER_PAGE)
-  const hasNext = to < total
-
-  if (total === 0 && !ledger.hasMore.value) {
-    return null
-  }
-
+function LedgerPager({ ledger, total, page }: LedgerPagerProps) {
   return (
-    <div class="pager">
-      <span class="meta">{`${total === 0 ? 0 : from + 1}-${to} / ${total}`}</span>
-      <span class="pager-buttons">
-        <Button size="small" disabled={page.value === 0} onClick={() => step(page, -1)}>
-          {tr('ui.office.book.prev')}
-        </Button>
-        {hasNext || !ledger.hasMore.value ? (
-          <Button size="small" disabled={!hasNext} onClick={() => step(page, 1)}>
-            {tr('ui.office.book.next')}
-          </Button>
-        ) : (
-          <Button size="small" disabled={ledger.isLoading.value} onClick={ledger.loadMore}>
-            {tr('ui.office.book.loadMore')}
-          </Button>
-        )}
-      </span>
-    </div>
+    <Pager
+      page={page}
+      size={LEDGER_PAGE}
+      total={total}
+      hasMore={ledger.hasMore.value}
+      isLoading={ledger.isLoading.value}
+      onLoadMore={ledger.loadMore}
+    />
   )
-}
-
-function step(page: Signal<number>, by: number): void {
-  page.value += by
 }

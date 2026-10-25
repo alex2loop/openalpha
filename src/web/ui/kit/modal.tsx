@@ -3,6 +3,7 @@ import { signal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import { tr } from '@/web/text/tr'
+import { listFocusable, trapFocus } from '@/web/ui/kit/focus-trap'
 import { CloseIcon } from '@/web/ui/kit/icons'
 import { closePopover, resolveFocusReturn } from '@/web/ui/kit/popover'
 
@@ -10,8 +11,6 @@ import './modal.css'
 
 const DIALOG_ID = 'modal-dialog'
 const TITLE_ID = 'modal-title'
-const FOCUSABLE =
-  'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 // The dialog's main action: Enter presses it, and it takes focus when the body has no field. A
 // destructive button never is one.
 const MAIN_BUTTON = '.modal-foot .btn-commit:not(:disabled), .modal-foot .btn-ai:not(:disabled)'
@@ -162,7 +161,7 @@ function onKey(entry: OpenModal, event: KeyboardEvent): void {
   }
 
   if (event.key === 'Tab') {
-    trapFocus(event)
+    trapFocus(event, `#${DIALOG_ID}`)
     return
   }
 
@@ -179,34 +178,6 @@ function dismiss(entry: OpenModal): void {
   }
 
   closeModal()
-}
-
-// Focus cycles inside the dialog; from the dialog itself it enters at the near end.
-function trapFocus(event: KeyboardEvent): void {
-  const focusable = listFocusable(`#${DIALOG_ID}`)
-  const first = focusable[0]
-  const last = focusable.at(-1)
-  const active = document.activeElement
-
-  if (first === undefined || last === undefined) {
-    event.preventDefault()
-    return
-  }
-
-  const isInside = focusable.some((element) => element === active)
-  const edge = event.shiftKey ? first : last
-
-  if (isInside && active !== edge) {
-    return
-  }
-
-  event.preventDefault()
-
-  if (event.shiftKey) {
-    last.focus()
-  } else {
-    first.focus()
-  }
 }
 
 function pressMain(event: KeyboardEvent): void {
@@ -231,14 +202,4 @@ function focusFirst(): void {
   const target = field ?? (main instanceof HTMLElement ? main : document.getElementById(DIALOG_ID))
 
   target?.focus()
-}
-
-function listFocusable(within: string): HTMLElement[] {
-  const container = document.querySelector(within)
-
-  return container === null
-    ? []
-    : [...container.querySelectorAll(FOCUSABLE)].filter(
-        (element): element is HTMLElement => element instanceof HTMLElement
-      )
 }

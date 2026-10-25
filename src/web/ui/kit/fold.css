@@ -1,0 +1,20 @@
+.fold {
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.fold > summary {
+  padding: 6px 0;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fold > summary::first-letter {
+  text-transform: uppercase;
+}
+
+.fold-body {
+  padding-bottom: 6px;
+}

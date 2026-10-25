@@ -3,16 +3,15 @@ import type { SuggestionWire } from '@/app/server/wire/trading'
 import { formatDay, pluralKey } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { agents } from '@/web/state/agents'
+import { agents, SHARED_FOCUS } from '@/web/state/agents'
 import { useBlockRead } from '@/web/state/block'
 import { locale } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
 import { BulbIcon } from '@/web/ui/kit/icons'
+import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
-
-// The focus that is the operator's own: an agent on it has no call apart from the plan.
-const SHARED_FOCUS = 'default'
 
 interface Opinion {
   readonly agent: AgentWire
@@ -60,6 +59,15 @@ export function OpinionsBlock({ ticker, market, plan }: OpinionsProps) {
                 <span class="meta">{formatDay(locale.value, call.at)}</span>
               </span>
               {call.thesis !== undefined && <span class="meta opinion-note">{call.thesis}</span>}
+              <span class="opinion-why">
+                <Button
+                  kind="tertiary"
+                  size="small"
+                  onClick={() => openWhy({ kind: 'opinion', agentId: agent.id, call })}
+                >
+                  {tr('ui.office.ticker.why')}
+                </Button>
+              </span>
             </div>
           ))}
           <p class="meta">{tr('ui.office.ticker.opinionNote')}</p>

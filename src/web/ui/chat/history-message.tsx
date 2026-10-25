@@ -1,24 +1,29 @@
 import type { ChatHistoryMessage } from '@/app/server/wire/chat'
-import { LinkedText } from '@/web/ui/ticker/linked-text'
+import { Markdown } from '@/web/ui/markdown/markdown'
 
 const USER_ROLE = 'user'
 const PARAGRAPH_BREAK = /\n{2,}/
 
 interface ReplyTextProps {
   readonly text: string
-  /** Off for a command's answer: its lines are data, and a ticker in them is not a link. */
-  readonly isLinked?: boolean
+  /** An agent's prose: markdown, known tickers linked. Off for a command's answer, whose lines are
+   *  data laid out by the daemon. */
+  readonly isProse?: boolean
 }
 
-/** A reply as the daemon wrote it, one paragraph per blank-line block; known tickers link. */
-export function ReplyText({ text, isLinked = true }: ReplyTextProps) {
+/** A reply as the daemon wrote it. */
+export function ReplyText({ text, isProse = true }: ReplyTextProps) {
+  if (isProse) {
+    return <Markdown text={text} />
+  }
+
   const paragraphs = text.split(PARAGRAPH_BREAK).filter((part) => part.trim() !== '')
 
   return (
     <>
       {paragraphs.map((part, index) => (
         <p key={index} class="chat-reply">
-          {isLinked ? <LinkedText text={part} /> : part}
+          {part}
         </p>
       ))}
     </>

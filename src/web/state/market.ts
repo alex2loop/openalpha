@@ -24,7 +24,8 @@ export const quotesBlock = createRouteBlock(ROUTES.quotes)
 export const stopsBlock = createRouteBlock(ROUTES.stops)
 export const profileBlock = createRouteBlock(ROUTES.profile)
 export const alertsBlock = createRouteBlock(ROUTES.alerts)
-const callsBlock = createRouteBlock(ROUTES.suggestions, { status: 'open' })
+/** Every name's standing verdict, buys, reductions and holds. */
+export const callsBlock = createRouteBlock(ROUTES.suggestions, { status: 'open' })
 
 /** What the operator holds: a residue below the venue's smallest order is not a position. */
 export const heldPositions: ReadonlySignal<readonly AbsolutePositionWire[]> = computed(() =>
@@ -51,6 +52,11 @@ export const stopBreaches: ReadonlySignal<readonly StopRow[]> = computed(() => {
       stop.distanceToStopPct <= 0
   )
 })
+
+/** The markets that answer `/v1/screen`, in the daemon's order. */
+export const boardMarkets: ReadonlySignal<readonly MarketWire[]> = computed(() =>
+  (marketsBlock.view.value.data?.markets ?? []).filter((market) => market.hasBoard)
+)
 
 /** Every standing buy call: a name's open verdict is replaced when the daemon calls it again. */
 export const freshCalls: ReadonlySignal<readonly SuggestionWire[]> = computed(() =>

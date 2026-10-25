@@ -10,6 +10,7 @@ import {
 import { toFailureText, tr } from '@/web/text/tr'
 import { CommandBar } from '@/web/ui/command/command-bar'
 import { ModalHost } from '@/web/ui/kit/modal'
+import { ReaderHost } from '@/web/ui/reader/reader'
 import { Header } from '@/web/ui/shell/header'
 import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { Panes } from '@/web/ui/shell/panes'
@@ -50,6 +51,7 @@ export function App() {
       <OfflineBar />
       <CommandBar />
       <ModalHost />
+      <ReaderHost />
     </div>
   )
 }

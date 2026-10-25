@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact'
 
-import { freshCalls } from '@/web/state/market'
+import { unseenCalls } from '@/web/state/ideas'
 import { openView, type PanelTab, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { BulbIcon, CalendarIcon, PieIcon } from '@/web/ui/kit/icons'
@@ -45,7 +45,7 @@ export function Tabs({ isCompact }: { readonly isCompact: boolean }) {
 
 // Only "Đề xuất" carries a count: the calls the operator has not looked at yet.
 function TabCount({ tab }: { readonly tab: PanelTab }) {
-  const count = tab === 'ideas' ? freshCalls.value.length : 0
+  const count = tab === 'ideas' ? unseenCalls.value.length : 0
 
   return count > 0 ? <span class="panel-tab-count">{count}</span> : null
 }

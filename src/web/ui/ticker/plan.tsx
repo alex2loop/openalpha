@@ -12,6 +12,7 @@ import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { ListIcon } from '@/web/ui/kit/icons'
+import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const COPIED_MS = 2_000
@@ -51,6 +52,7 @@ export function PlanBlock({ reading, ticker, market }: PlanBlockProps) {
       colour="yellow"
       icon={<ListIcon />}
       reading={reading}
+      action={<WhyLink plan={reading.data?.plan} />}
     >
       {({ plan }) =>
         plan === undefined ? (
@@ -60,6 +62,18 @@ export function PlanBlock({ reading, ticker, market }: PlanBlockProps) {
         )
       }
     </BlockFrame>
+  )
+}
+
+function WhyLink({ plan }: { readonly plan: SuggestionWire | undefined }) {
+  if (plan === undefined) {
+    return null
+  }
+
+  return (
+    <Button kind="tertiary" size="small" onClick={() => openWhy({ kind: 'plan', call: plan })}>
+      {tr('ui.office.ticker.why')}
+    </Button>
   )
 }
 

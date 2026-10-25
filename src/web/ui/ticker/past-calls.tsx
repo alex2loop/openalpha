@@ -7,6 +7,7 @@ import { locale, state } from '@/web/state/session'
 import { formatSignedPercent, PERCENT, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { ClockIcon } from '@/web/ui/kit/icons'
+import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 // Rows read, newest first: enough to count what was scored, more than the card lists.
@@ -77,7 +78,12 @@ function PastRow({ call }: { readonly call: Call }) {
   const move = outcome === undefined ? undefined : outcome.returnPct * PERCENT
 
   return (
-    <div class="row">
+    <button
+      type="button"
+      class="row row-button"
+      title={tr('ui.office.ticker.why')}
+      onClick={() => openWhy({ kind: 'past', call })}
+    >
       <span>
         <b>{tr(`trading.action.${call.action}`)}</b>{' '}
         {outcome === undefined
@@ -90,7 +96,7 @@ function PastRow({ call }: { readonly call: Call }) {
       ) : (
         <span class={`pill is-${toneOfPercent(move)}`}>{formatSignedPercent(move)}</span>
       )}
-    </div>
+    </button>
   )
 }
 

@@ -9,6 +9,8 @@ import { dropDoneCallbacks, sendMessage } from '@/web/state/chat'
 import { onWireEvent } from '@/web/state/events'
 
 const AGENTS_POLL_MS = 30_000
+/** The focus that is the operator's own: an agent on it has no call apart from the plan. */
+export const SHARED_FOCUS = 'default'
 // The `/agent` argument that hands the chat back to the assistant.
 const ASSISTANT_TARGET = 'default'
 

@@ -2,7 +2,9 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { freshCalls, stopBreaches } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
 import { ListIcon } from '@/web/ui/kit/icons'
+import { openReader } from '@/web/ui/reader/reader'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
@@ -22,9 +24,18 @@ export function WorthWatching() {
       icon={<ListIcon />}
       reading={reading}
       dataTo={reading.data?.snapshot?.day}
+      action={<ReadBrief />}
     >
       {(brief) => <WorthList verdict={brief.text?.verdict ?? []} />}
     </BlockFrame>
+  )
+}
+
+function ReadBrief() {
+  return (
+    <Button kind="tertiary" size="small" onClick={() => openReader({ kind: 'brief' })}>
+      {tr('ui.office.common.readBrief')}
+    </Button>
   )
 }
 

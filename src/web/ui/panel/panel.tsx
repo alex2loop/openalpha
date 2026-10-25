@@ -1,6 +1,7 @@
 import { backStack, collapsed, isFocus, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { Book } from '@/web/ui/book/book'
+import { Ideas } from '@/web/ui/ideas/ideas'
 import { PanelIcon } from '@/web/ui/kit/icons'
 import { UndoBar } from '@/web/ui/kit/undo-bar'
 import { BackRow } from '@/web/ui/panel/back-row'
@@ -46,7 +47,7 @@ export function Panel() {
   )
 }
 
-// Đề xuất and the person view are mounted here by the tasks that build them.
+// The person view is mounted here by the task that builds it.
 function PanelContent() {
   const view = panelView.value
 
@@ -60,9 +61,12 @@ function PanelContent() {
     return null
   }
 
-  if (view.tab === 'book') {
-    return <Book />
+  switch (view.tab) {
+    case 'book':
+      return <Book />
+    case 'ideas':
+      return <Ideas />
+    case 'today':
+      return <Today />
   }
-
-  return view.tab === 'today' ? <Today /> : null
 }

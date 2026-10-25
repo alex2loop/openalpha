@@ -116,3 +116,21 @@
 .card-actions .failure-line {
   flex-basis: 100%;
 }
+
+.row-button {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-button:first-child {
+  border-top: 0;
+}
+
+.opinion-why {
+  grid-column: 1 / -1;
+}

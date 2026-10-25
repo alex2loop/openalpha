@@ -97,6 +97,11 @@ export function formatSignedPercent(value: number | undefined): string {
   return tone === 'up' ? `${UP_GLYPH} ${text}` : `${DOWN_GLYPH} -${text}`
 }
 
+/** As `formatSignedPercent`, for a field given as a fraction (`returnPct`, `0.05` is 5%). */
+export function formatSignedFraction(fraction: number | undefined): string {
+  return formatSignedPercent(fraction === undefined ? undefined : fraction * PERCENT)
+}
+
 /** The direction a percent reads in, judged off its rendered text. */
 export function toneOfPercent(value: number | undefined): Tone {
   return readPercent(value).tone
