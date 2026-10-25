@@ -3,7 +3,7 @@ import { computed, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
-import { isWaitingNotice, needsYou, notices, unread } from '@/web/state/notices'
+import { isWaitingNotice, needsYou, notices, unread, unreadStops } from '@/web/state/notices'
 import { reducedMotion } from '@/web/state/prefs'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -16,12 +16,6 @@ import './bell.css'
 // Past this the badge reads "9+".
 const BADGE_MAX = 9
 
-const unreadStops = computed(
-  () =>
-    notices.value.filter(
-      (notice) => notice.readAt === undefined && notice.event.kind === 'stop_breached'
-    ).length
-)
 // Unread requests still waiting: counted in `needsYou` and shown as cards, not as rows.
 const unreadWaiting = computed(
   () =>

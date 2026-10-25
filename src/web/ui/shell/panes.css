@@ -9,3 +9,7 @@
   flex: 1;
   min-width: 0;
 }
+
+.panes.is-focus .stage {
+  display: none;
+}

@@ -1,0 +1,93 @@
+.tape {
+  display: flex;
+  align-items: center;
+  height: var(--tapeH);
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tape.is-empty {
+  height: 0;
+  border-bottom: 0;
+}
+
+.tape-track {
+  display: inline-flex;
+  animation: tape-scroll var(--tapeScrollMs) linear infinite;
+}
+
+.tape:hover .tape-track {
+  animation-play-state: paused;
+}
+
+.tape-rows {
+  display: inline-flex;
+}
+
+.tape-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--tapeH);
+  padding: 0 14px;
+  border-right: 1px solid var(--border);
+}
+
+.tape-cell b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tape-cell.is-breach {
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.tape-cell.is-breach b {
+  color: var(--dangerText);
+}
+
+.tape-cell.is-flash-up {
+  animation: tape-flash-up var(--flashMs) ease-out;
+}
+
+.tape-cell.is-flash-down {
+  animation: tape-flash-down var(--flashMs) ease-out;
+}
+
+.tape-note {
+  font-weight: 600;
+}
+
+@keyframes tape-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes tape-flash-up {
+  from {
+    background: var(--upTint);
+  }
+}
+
+@keyframes tape-flash-down {
+  from {
+    background: var(--downTint);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape {
+    overflow-x: auto;
+  }
+
+  .tape-track {
+    animation: none;
+  }
+}

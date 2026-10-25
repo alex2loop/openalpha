@@ -30,6 +30,11 @@ export function togglePopover(id: string): void {
   openId.value = openId.value === id ? undefined : id
 }
 
+/** Opens the popover and keeps it open when it already is; any other one closes. */
+export function openPopover(id: string): void {
+  openId.value = id
+}
+
 export function closePopover(): void {
   openId.value = undefined
 }

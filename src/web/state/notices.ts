@@ -25,6 +25,14 @@ export const needsYou = computed(() => page.value?.needsYou ?? 0)
 /** Why the last read failed; cleared by the next good one. */
 export const noticesFailure: ReadonlySignal<ApiFailure | undefined> = failure
 
+/** Stop breaches the operator has not read. */
+export const unreadStops = computed(
+  () =>
+    notices.value.filter(
+      (notice) => notice.readAt === undefined && notice.event.kind === 'stop_breached'
+    ).length
+)
+
 const waitingIds = computed<ReadonlySet<string | undefined>>(
   () => new Set(pending.value.map(pendingRequestId))
 )

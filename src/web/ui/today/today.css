@@ -1,0 +1,260 @@
+.block {
+  margin-bottom: var(--s2);
+  padding: var(--s3);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--title);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.block-grow {
+  flex: 1;
+}
+
+.block-read {
+  margin-top: 8px;
+}
+
+.tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) var(--tile-mix), transparent);
+  color: var(--c);
+}
+
+.tile svg {
+  width: 12px;
+  height: 12px;
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-bottom: var(--s1);
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.strip > span {
+  flex: 1;
+}
+
+.strip.is-caution {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.strip.is-problem {
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.strip.is-grey {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  margin-bottom: var(--s2);
+  background: var(--sunken);
+  color: var(--ink2);
+}
+
+.needs-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: var(--s2);
+  padding: 10px var(--s2);
+  border: 1px solid var(--caution);
+  border-radius: 12px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.needs-bar:hover {
+  filter: brightness(0.97);
+}
+
+.needs-bar span:last-child {
+  font-weight: 600;
+}
+
+.row-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.row.is-breach {
+  margin-inline: calc(var(--s1) * -1);
+  padding-inline: var(--s1);
+  border-radius: 6px;
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.row-note {
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.pill {
+  min-width: 78px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.pill.is-up {
+  background: var(--upTint);
+  color: var(--up);
+}
+
+.pill.is-down {
+  background: var(--downTint);
+  color: var(--down);
+}
+
+.market-section + .market-section {
+  margin-top: var(--s2);
+}
+
+.market-name {
+  margin-bottom: 4px;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.big-figure {
+  font-size: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.news-item {
+  display: block;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.news-item:first-child {
+  border-top: 0;
+}
+
+.news-item b {
+  font-weight: 500;
+}
+
+a.news-item:hover b {
+  text-decoration: underline;
+}
+
+.regime-tag {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 2px 9px;
+  border-radius: 10px;
+  background: var(--sunken);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.regime-tag.is-risk-on {
+  background: var(--upTint);
+  color: var(--up);
+}
+
+.regime-tag.is-risk-off {
+  background: var(--downTint);
+  color: var(--down);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.step {
+  display: flex;
+  gap: 10px;
+}
+
+.step-num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sunken);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.step.is-done .step-num {
+  background: var(--upTint);
+  color: var(--up);
+}
+
+.step-num svg {
+  width: 13px;
+  height: 13px;
+}
+
+.step-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-optional {
+  margin-left: 6px;
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 400;
+}

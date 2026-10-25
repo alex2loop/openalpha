@@ -15,6 +15,7 @@ import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { Panes } from '@/web/ui/shell/panes'
 import { SignIn } from '@/web/ui/shell/sign-in'
 import { StatusLine } from '@/web/ui/shell/status-line'
+import { Tape } from '@/web/ui/tape/tape'
 
 import './app.css'
 
@@ -44,6 +45,7 @@ export function App() {
   return (
     <div class={connection.value.status === 'offline' ? 'app is-offline' : 'app'}>
       <Header />
+      <Tape />
       <Panes />
       <OfflineBar />
       <CommandBar />

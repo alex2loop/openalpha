@@ -5,20 +5,38 @@ import type {
   ChatRecentResponse,
   ChatSessionsResponse,
 } from '@/app/server/wire/chat'
+import type { ProviderCatalogResponse } from '@/app/server/wire/config'
 import type { LiveSnapshotWire, RunStopWire } from '@/app/server/wire/live'
-import type { InstrumentSearchResponse } from '@/app/server/wire/market'
+import type {
+  InstrumentSearchResponse,
+  MacroResponse,
+  MarketsResponse,
+  OverviewResponse,
+} from '@/app/server/wire/market'
+import type { StopsResponse } from '@/app/server/wire/money'
 import type { NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type {
+  Capabilities,
   CommandList,
   CostReport,
   HealthResponse,
   StatePayload,
 } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
+import type {
+  TradingBriefResponse,
+  TradingEventsResponse,
+  TradingNewsResponse,
+  TradingPortfolioResponse,
+  TradingQuotesResponse,
+  TradingSuggestionsResponse,
+} from '@/app/server/wire/trading'
 
 /** A `/v1` path tagged with the wire shape it answers, so `getJson` returns that shape. */
 export interface RouteDef<T> {
   readonly path: string
+  /** The `state.capabilities` flag that says the daemon runs this route. */
+  readonly capability?: keyof Capabilities
   // Never set: it carries `T` so a call infers the response type from the route.
   readonly response?: T
 }
@@ -46,8 +64,19 @@ export const ROUTES = Object.freeze({
   chatHistory: (sessionId: string) =>
     route<ChatHistoryResponse>(`/v1/chat/history/${encodeURIComponent(sessionId)}`),
   chatSessions: route<ChatSessionsResponse>('/v1/chat/sessions'),
+  overview: route<OverviewResponse>('/v1/overview'),
+  markets: route<MarketsResponse>('/v1/markets'),
+  quotes: route<TradingQuotesResponse>('/v1/quotes', 'quotes'),
+  portfolio: route<TradingPortfolioResponse>('/v1/portfolio', 'portfolio'),
+  stops: route<StopsResponse>('/v1/stops', 'portfolio'),
+  suggestions: route<TradingSuggestionsResponse>('/v1/suggestions', 'suggestions'),
+  macro: route<MacroResponse>('/v1/macro'),
+  events: route<TradingEventsResponse>('/v1/events', 'ohlcv'),
+  news: route<TradingNewsResponse>('/v1/news'),
+  brief: route<TradingBriefResponse>('/v1/brief'),
+  providers: route<ProviderCatalogResponse>('/v1/providers'),
 })
 
-function route<T>(path: string): RouteDef<T> {
-  return { path }
+function route<T>(path: string, capability?: keyof Capabilities): RouteDef<T> {
+  return capability === undefined ? { path } : { path, capability }
 }

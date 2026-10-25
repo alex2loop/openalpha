@@ -5,7 +5,8 @@ import { pluralKey } from '@/i18n'
 import { useNow } from '@/web/state/clock'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
-import { brand, state } from '@/web/state/session'
+import { isFocus, toggleFocus } from '@/web/state/panel'
+import { brand, isFirstRun, state } from '@/web/state/session'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
@@ -13,7 +14,7 @@ import { BellPopover } from '@/web/ui/bell/bell-popover'
 import { COST_POPOVER_ID, CostPopover, formatSpent } from '@/web/ui/cost/cost-popover'
 import { JOBS_POPOVER_ID, JobsPopover } from '@/web/ui/jobs/jobs-popover'
 import { Chip } from '@/web/ui/kit/chip'
-import { CoinIcon } from '@/web/ui/kit/icons'
+import { CoinIcon, FocusIcon } from '@/web/ui/kit/icons'
 import { closePopover, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
 
 import './header.css'
@@ -36,7 +37,8 @@ export function Header() {
       </div>
       <RunningChip anchor={jobsAnchor} />
       <span class="header-grow" />
-      <CostChip anchor={costAnchor} />
+      <FocusButton />
+      {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       <HeaderClock />
       <BellButton anchor={bellAnchor} />
       <JobsPopover anchor={jobsAnchor} />
@@ -67,6 +69,21 @@ function RunningChip({ anchor }: AnchorProps) {
             count,
           })}
     </Chip>
+  )
+}
+
+function FocusButton() {
+  return (
+    <button
+      type="button"
+      class="chip"
+      title={tr('ui.office.header.focusTip')}
+      aria-pressed={isFocus.value}
+      onClick={toggleFocus}
+    >
+      <FocusIcon />
+      {isFocus.value ? tr('ui.office.header.office') : tr('ui.office.header.focus')}
+    </button>
   )
 }
 

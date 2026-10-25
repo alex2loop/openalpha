@@ -8,6 +8,7 @@ import { startChatHistory } from '@/web/state/chat-history'
 import { startCost } from '@/web/state/cost'
 import { startEstimates } from '@/web/state/estimates'
 import { startFeed } from '@/web/state/feed'
+import { startMarket } from '@/web/state/market'
 import { startNotices } from '@/web/state/notices'
 import { disposePrefs } from '@/web/state/prefs'
 import { brand, loadUntilReady, locale, state } from '@/web/state/session'
@@ -65,6 +66,7 @@ function startLive(): () => void {
     startChatHistory(),
     startAgents(),
     startEstimates(),
+    startMarket(),
   ]
 
   return () => {

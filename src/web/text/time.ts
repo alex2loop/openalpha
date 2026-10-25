@@ -7,6 +7,10 @@ const SECONDS_PER_MINUTE = 60
 const MINUTES_PER_HOUR = 60
 const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
 const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR
+const HOURS_PER_DAY = 24
+const MS_PER_DAY = MS_PER_HOUR * HOURS_PER_DAY
+// `YYYY-MM-DD`.
+const DAY_KEY_LENGTH = 10
 // A 24-hour clock reads the same in both page languages.
 const CLOCK_LOCALE = 'en-GB'
 const CLOCK_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
@@ -46,6 +50,13 @@ export function formatWhen(atMs: number, timeZone: string): string {
   return day === buildDayKey(Date.now(), timeZone)
     ? clock
     : tr('ui.office.jobs.dayClock', { day: formatDay(locale.value, day), clock })
+}
+
+/** The `YYYY-MM-DD` day `days` after (or before) `day`, on the calendar. */
+export function shiftDay(day: string, days: number): string {
+  const shifted = new Date(Date.parse(`${day}T00:00:00Z`) + days * MS_PER_DAY)
+
+  return shifted.toISOString().slice(0, DAY_KEY_LENGTH)
 }
 
 /** A span as `m:ss`, or `h:mm:ss` from an hour up; never below zero. */

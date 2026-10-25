@@ -48,3 +48,121 @@ export function ChatIcon({ class: className }: IconProps) {
     </svg>
   )
 }
+
+export function CheckIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  )
+}
+
+export function ChevronLeftIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  )
+}
+
+export function PanelIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M15 3v18" />
+    </svg>
+  )
+}
+
+export function FocusIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+      <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+      <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+  )
+}
+
+export function ListIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M8 6h13" />
+      <path d="M8 12h13" />
+      <path d="M8 18h13" />
+      <path d="M3 6h.01" />
+      <path d="M3 12h.01" />
+      <path d="M3 18h.01" />
+    </svg>
+  )
+}
+
+export function PieIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+      <path d="M22 12A10 10 0 0 0 12 2v10z" />
+    </svg>
+  )
+}
+
+export function TrendIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M22 7 13.5 15.5 8.5 10.5 2 17" />
+      <path d="M16 7h6v6" />
+    </svg>
+  )
+}
+
+export function GlobeIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+      <path d="M2 12h20" />
+    </svg>
+  )
+}
+
+export function CalendarIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
+    </svg>
+  )
+}
+
+export function NewsIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+      <path d="M18 14h-8" />
+      <path d="M15 18h-5" />
+      <path d="M10 6h8v4h-8V6Z" />
+    </svg>
+  )
+}
+
+export function ClockIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  )
+}
+
+export function BulbIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+    </svg>
+  )
+}

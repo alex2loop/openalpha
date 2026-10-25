@@ -1,0 +1,51 @@
+import type { ComponentChildren } from 'preact'
+
+import { freshCalls } from '@/web/state/market'
+import { openView, type PanelTab, panelView } from '@/web/state/panel'
+import { tr } from '@/web/text/tr'
+import { BulbIcon, CalendarIcon, PieIcon } from '@/web/ui/kit/icons'
+
+interface TabSpec {
+  readonly tab: PanelTab
+  readonly icon: ComponentChildren
+  readonly label: () => string
+}
+
+export const PANEL_TABS: readonly TabSpec[] = Object.freeze([
+  { tab: 'today', icon: <CalendarIcon />, label: () => tr('ui.office.common.today') },
+  { tab: 'book', icon: <PieIcon />, label: () => tr('trading.render.affordance.portfolio') },
+  { tab: 'ideas', icon: <BulbIcon />, label: () => tr('ui.office.panel.ideas') },
+])
+
+/** Hôm nay, Danh mục and Đề xuất; with a person or ticker open they drop to icon and count. */
+export function Tabs({ isCompact }: { readonly isCompact: boolean }) {
+  const view = panelView.value
+  const active = 'tab' in view ? view.tab : undefined
+
+  return (
+    <nav class={isCompact ? 'panel-tabs is-compact' : 'panel-tabs'}>
+      {PANEL_TABS.map((spec) => (
+        <button
+          key={spec.tab}
+          type="button"
+          class={spec.tab === active ? 'panel-tab is-active' : 'panel-tab'}
+          title={spec.label()}
+          aria-label={spec.label()}
+          aria-current={spec.tab === active ? 'page' : undefined}
+          onClick={() => openView({ tab: spec.tab }, { fresh: true })}
+        >
+          {spec.icon}
+          <span class="panel-tab-label">{spec.label()}</span>
+          <TabCount tab={spec.tab} />
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+// Only "Đề xuất" carries a count: the calls the operator has not looked at yet.
+function TabCount({ tab }: { readonly tab: PanelTab }) {
+  const count = tab === 'ideas' ? freshCalls.value.length : 0
+
+  return count > 0 ? <span class="panel-tab-count">{count}</span> : null
+}

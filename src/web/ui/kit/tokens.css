@@ -42,6 +42,12 @@
   --commandBarH: 62px;
   --chatPanelW: 380px;
   --chatRailW: 44px;
+  --panelW: 440px;
+  --panelRailW: 52px;
+  --panelContentMaxW: 720px;
+  --tapeH: 28px;
+  --tapeScrollMs: 70s;
+  --flashMs: 0.9s;
   --popoverGutter: 8px;
   --zPopover: 26;
   --zOfflineBar: 28;

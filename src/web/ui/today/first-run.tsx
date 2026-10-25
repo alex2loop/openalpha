@@ -1,0 +1,147 @@
+import type { ComponentChildren } from 'preact'
+import { useSignal } from '@preact/signals'
+import { useEffect, useRef } from 'preact/hooks'
+
+import type { ApiFailure } from '@/web/api/client'
+import { ROUTES } from '@/web/api/routes'
+import { useBlock } from '@/web/state/block'
+import { fillInput } from '@/web/state/command'
+import { estimateText } from '@/web/state/estimates'
+import { loadSession, state } from '@/web/state/session'
+import { toFailureText, tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
+import { CheckIcon } from '@/web/ui/kit/icons'
+import { Skeleton } from '@/web/ui/kit/skeleton'
+
+const BRIEF_COMMAND = '/brief'
+
+interface StepProps {
+  readonly index: number
+  readonly title: string
+  readonly isDone: boolean
+  readonly isOptional?: boolean
+  readonly children: ComponentChildren
+}
+
+/** "Bắt đầu với {brand}": five steps for a daemon with no model, no profile and an empty book. */
+export function FirstRun() {
+  const firstRun = state.value?.firstRun
+  const isBookSkipped = useSignal(false)
+
+  return (
+    <section class="block">
+      <h2 class="block-head">{tr('ui.office.firstRun.title')}</h2>
+      <div class="steps">
+        <ModelStep isDone={firstRun?.modelReady === true} />
+        <Step
+          index={2}
+          title={tr('ui.office.common.profile')}
+          isDone={firstRun?.profileSaved === true}
+        >
+          <p class="meta">{tr('ui.office.firstRun.profileBody')}</p>
+        </Step>
+        <Step
+          index={3}
+          title={tr('ui.office.firstRun.bookTitle')}
+          isDone={firstRun?.bookEmpty === false || isBookSkipped.value}
+        >
+          <p class="meta">{tr('ui.office.firstRun.bookBody')}</p>
+          <div class="step-actions">
+            <Button
+              size="small"
+              onClick={() => {
+                isBookSkipped.value = true
+              }}
+            >
+              {tr('ui.office.firstRun.bookSkip')}
+            </Button>
+          </div>
+        </Step>
+        <Step index={4} title={tr('ui.office.firstRun.chatTitle')} isDone={false} isOptional>
+          <p class="meta">{tr('ui.office.firstRun.chatBody')}</p>
+        </Step>
+        <BriefStep isModelReady={firstRun?.modelReady === true} />
+      </div>
+    </section>
+  )
+}
+
+function Step({ index, title, isDone, isOptional, children }: StepProps) {
+  return (
+    <div class={isDone ? 'step is-done' : 'step'}>
+      <span class="step-num">{isDone ? <CheckIcon /> : index}</span>
+      <div class="step-main">
+        <b>
+          {title}
+          {isOptional === true && (
+            <span class="step-optional">{tr('ui.office.firstRun.optional')}</span>
+          )}
+        </b>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// The key itself is never typed here: the page only names the variable the daemon reads.
+function ModelStep({ isDone }: { readonly isDone: boolean }) {
+  const providers = useBlock(ROUTES.providers)
+  const recheck = useRecheck()
+  const envVar = providers.data?.providers[0]?.envVar
+
+  return (
+    <Step index={1} title={tr('ui.office.firstRun.modelTitle')} isDone={isDone}>
+      {!isDone && (
+        <>
+          {envVar === undefined ? (
+            <ModelPending error={providers.error} />
+          ) : (
+            <p class="meta">{tr('ui.office.firstRun.modelBody', { envVar })}</p>
+          )}
+          <div class="step-actions">
+            <Button size="small" onClick={recheck}>
+              {tr('ui.office.common.recheck')}
+            </Button>
+          </div>
+        </>
+      )}
+    </Step>
+  )
+}
+
+function ModelPending({ error }: { readonly error: ApiFailure | undefined }) {
+  return error === undefined ? (
+    <Skeleton lines={2} />
+  ) : (
+    <p class="failure-line">{toFailureText(error)}</p>
+  )
+}
+
+// The brief fills the box and never sends it; it waits for a model to answer it.
+function BriefStep({ isModelReady }: { readonly isModelReady: boolean }) {
+  return (
+    <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
+      <p class="meta">{tr('ui.office.firstRun.briefBody')}</p>
+      <div class="step-actions">
+        <Button size="small" disabled={!isModelReady} onClick={() => fillInput(BRIEF_COMMAND)}>
+          {tr('ui.office.firstRun.briefCta')}
+        </Button>
+        <span class="meta">{estimateText(BRIEF_COMMAND)}</span>
+      </div>
+    </Step>
+  )
+}
+
+// Reads the session again, which is where the daemon reports a key it can now see.
+function useRecheck(): () => void {
+  const running = useRef<AbortController | undefined>(undefined)
+
+  useEffect(() => () => running.current?.abort(), [])
+
+  return () => {
+    running.current?.abort()
+    running.current = new AbortController()
+    // `loadSession` records its own failure, so it never rejects.
+    loadSession(running.current.signal).catch(() => undefined)
+  }
+}

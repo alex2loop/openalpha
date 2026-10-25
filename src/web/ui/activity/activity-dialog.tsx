@@ -76,7 +76,7 @@ function ActivityItem({ row }: { readonly row: ActivityRowWire }) {
   )
 }
 
-function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
+export function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
   const timeZone = state.value?.timeZone
   const facts = [
     ...(timeZone === undefined ? [] : [formatClock(row.endedAt, timeZone)]),

@@ -84,6 +84,14 @@ p {
   font-size: 12px;
 }
 
+.is-up-text {
+  color: var(--up);
+}
+
+.is-down-text {
+  color: var(--down);
+}
+
 .failure-line {
   color: var(--dangerText);
   font-size: 12px;
