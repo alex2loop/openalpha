@@ -3,7 +3,7 @@ import type { AlertFired, AlertFiredListener } from '@/trading/api'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
-import { fireMatchingJobs } from '@/scheduler/api'
+import { createDropLog, fireMatchingJobs } from '@/scheduler/api'
 import { assertJobPrompt } from '@/tools/api'
 import { alertId, formatInstant, formatPriceIn, quotedInOf } from '@/trading/api'
 
@@ -34,6 +34,7 @@ function renderEventPrompt(app: App, fired: AlertFired): string {
 export function createAlertFiredListener(app: App): AlertFiredListener {
   const runs = new Set<Promise<void>>()
   const logger = app.resolve('logger')
+  const logDropped = createDropLog(logger)
 
   app.signal.addEventListener('abort', () => runs.clear(), { once: true })
 
@@ -53,6 +54,7 @@ export function createAlertFiredListener(app: App): AlertFiredListener {
         commands: app.resolve('schedulerCommands'),
         runs,
         logger,
+        logDropped,
         signal: app.signal,
       },
       {

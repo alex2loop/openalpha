@@ -17,6 +17,8 @@ interface EventMatchDeps {
   /** Owned by the caller, which empties it on stop; each run takes itself out when it settles. */
   readonly runs: Set<Promise<void>>
   readonly logger: Logger
+  /** Told how many of a firing's matched jobs found the runs full; `createDropLog` makes it. */
+  readonly logDropped: (dropped: number) => void
   /** The daemon's shutdown signal: a crossing's run outlives the alert pass that raised it. */
   readonly signal: AbortSignal
 }
@@ -49,8 +51,27 @@ export async function fireMatchingJobs(
     }
   }
 
-  if (dropped > 0) {
-    deps.logger.warn('scheduler.event_run_dropped', { dropped, reason: 'runs_full' })
+  // A firing that matched nothing says nothing about room, so only a matched one reports.
+  if (jobs.length > 0) {
+    deps.logDropped(dropped)
+  }
+}
+
+/** The first drop past the cap says so with its count; the rest stay quiet until a firing whose
+ *  matched jobs all fit re-arms it. */
+export function createDropLog(logger: Logger): (dropped: number) => void {
+  let dropLogged = false
+
+  return (dropped) => {
+    if (dropped === 0) {
+      dropLogged = false
+      return
+    }
+
+    if (!dropLogged) {
+      dropLogged = true
+      logger.warn('scheduler.event_run_dropped', { dropped, reason: 'runs_full' })
+    }
   }
 }
 
