@@ -235,6 +235,9 @@ interface SuggestionWireBase {
   readonly raisedStopFrom?: number
   /** The models that argued the call, sorted. Absent on a call stored before they were kept. */
   readonly models?: readonly string[]
+  /** True when the plan's lower level is a review, not a stop: a fund is looked at again there and
+   *  never sold by it. Absent otherwise. */
+  readonly reviewOnly?: true
 }
 
 /** A discriminated union, not an optional-field bag: a hold has no entry, stop, target, or outcome,

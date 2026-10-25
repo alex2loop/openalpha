@@ -283,13 +283,15 @@ function toPositionWire(
 }
 
 /** What the row kept beside the call: where the plan's stop has risen to, for a chart's stop-raise
- *  marks, and the models that argued it. Each is absent until the row has it. */
+ *  marks, the models that argued it, and whether its lower level is only a review. Each is absent
+ *  until the row has it. */
 function toStoredStateWire(
   suggestion: StoredSuggestion
-): Pick<SuggestionWire, 'trailingStop' | 'raisedStopFrom' | 'models'> {
-  const { trailingStop, raisedStopFrom, debate } = suggestion
+): Pick<SuggestionWire, 'trailingStop' | 'raisedStopFrom' | 'models' | 'reviewOnly'> {
+  const { trailingStop, raisedStopFrom, debate, reviewOnly } = suggestion
 
   return {
+    ...(reviewOnly === true ? { reviewOnly } : {}),
     ...(trailingStop === undefined ? {} : { trailingStop }),
     ...(raisedStopFrom === undefined ? {} : { raisedStopFrom }),
     ...(debate === undefined || debate.models.length === 0 ? {} : { models: [...debate.models] }),
