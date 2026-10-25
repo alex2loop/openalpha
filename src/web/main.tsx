@@ -1,8 +1,9 @@
-import { effect } from '@preact/signals'
+import { computed, effect } from '@preact/signals'
 import { render } from 'preact'
 
-import { takeTokenFromHash } from '@/web/api/token'
-import { brand, loadUntilReady, locale } from '@/web/state/session'
+import { authState, takeTokenFromHash } from '@/web/api/token'
+import { startFeed } from '@/web/state/feed'
+import { brand, loadUntilReady, locale, state } from '@/web/state/session'
 import { App } from '@/web/ui/shell/app'
 
 const ROOT_ID = 'root'
@@ -15,13 +16,15 @@ if (root !== null && window.top === window.self) {
   // First, before anything can read or log the address: the token leaves the URL at once.
   takeTokenFromHash()
   render(<App />, root)
-  addEventListener('pageshow', (event) => (event.persisted ? boot() : undefined))
-  await boot()
+  // A page restored from the back-forward cache has no socket, polls or loads left: start over.
+  addEventListener('pageshow', (event) => (event.persisted ? location.reload() : undefined))
+  boot()
 }
 
-/** One page life: undone on `pagehide`, run again when the back-forward cache restores the page. */
-async function boot(): Promise<void> {
+/** One page life, undone by one stop on `pagehide`: the feed runs while a session is signed in. */
+function boot(): void {
   const controller = new AbortController()
+  const isSignedIn = computed(() => authState.value === 'ok' && state.value !== undefined)
   const stopDocumentSync = effect(() => {
     document.documentElement.lang = locale.value
 
@@ -29,14 +32,16 @@ async function boot(): Promise<void> {
       document.title = brand.value
     }
   })
+  const stopFeedSync = effect(() => (isSignedIn.value ? startFeed() : undefined))
 
   addEventListener(
     'pagehide',
     () => {
       controller.abort()
       stopDocumentSync()
+      stopFeedSync()
     },
     { once: true }
   )
-  await loadUntilReady(controller.signal)
+  loadUntilReady(controller.signal)
 }

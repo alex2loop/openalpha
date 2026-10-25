@@ -1,7 +1,15 @@
 import { authState } from '@/web/api/token'
-import { brand, isStarting, isUnreachable, sessionFailure, state } from '@/web/state/session'
+import {
+  brand,
+  connection,
+  isStarting,
+  isUnreachable,
+  sessionFailure,
+  state,
+} from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Header } from '@/web/ui/shell/header'
+import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { Panes } from '@/web/ui/shell/panes'
 import { SignIn } from '@/web/ui/shell/sign-in'
 import { StatusLine } from '@/web/ui/shell/status-line'
@@ -32,9 +40,10 @@ export function App() {
   }
 
   return (
-    <div class="app">
+    <div class={connection.value.status === 'offline' ? 'app is-offline' : 'app'}>
       <Header />
       <Panes />
+      <OfflineBar />
       <footer class="command-bar glass" />
     </div>
   )

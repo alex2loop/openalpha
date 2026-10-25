@@ -1,0 +1,39 @@
+/* Dark in both themes, as the mockup draws it: it sits over the stage, not on the page. */
+.offline-bar {
+  --offline-bg: #2b2433;
+  --offline-ink: #eeeef6;
+  --offline-ink2: #b6b7c9;
+
+  position: fixed;
+  right: var(--s3);
+  bottom: 74px;
+  left: var(--s3);
+  z-index: 28;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+  width: fit-content;
+  margin-inline: auto;
+  padding: 8px 10px 8px 14px;
+  border-radius: 12px;
+  background: var(--offline-bg);
+  color: var(--offline-ink);
+  box-shadow: var(--pop);
+  font-size: 13px;
+}
+
+.offline-bar-detail {
+  color: var(--offline-ink2);
+}
+
+.offline-bar .btn {
+  flex: none;
+  border-color: var(--offline-ink);
+  background: var(--offline-ink);
+  color: var(--offline-bg);
+}
+
+.app.is-offline .panes {
+  filter: grayscale(0.85) brightness(0.75);
+}

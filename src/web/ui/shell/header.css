@@ -17,3 +17,39 @@
   width: 24px;
   height: 24px;
 }
+
+.header .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin-left: auto;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.header .spin {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--ink3);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: header-spin 1s linear infinite;
+}
+
+@keyframes header-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header .spin {
+    animation: none;
+  }
+}

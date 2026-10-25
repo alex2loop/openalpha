@@ -69,7 +69,17 @@
     "office.signIn.remember": "Nhớ trên trình duyệt này",
     "office.signIn.open": "Mở văn phòng",
     "office.signIn.note": "Chỉ mở được trên máy chạy daemon, hoặc qua SSH tunnel.",
-    "office.signIn.refused": "Mã truy cập này chưa đúng, bạn kiểm tra lại nhé."
+    "office.signIn.refused": "Mã truy cập này chưa đúng, bạn kiểm tra lại nhé.",
+    "office.offline.title": "Mất kết nối với daemon",
+    "office.offline.retry": "thử lại sau {seconds} giây",
+    "office.offline.running": "các phiên chạy vẫn tiếp tục ở daemon",
+    "office.offline.now": "Thử ngay",
+    "office.offline.restarting": "Đang khởi động lại daemon",
+    "office.offline.outdated": "Trang này cũ hơn daemon. Tải lại trang để dùng bản mới.",
+    "office.offline.reload": "Tải lại",
+    "office.header.running": "{count} việc đang chạy",
+    "office.header.runningOne": "{count} việc đang chạy",
+    "office.header.runningNone": "Không có việc đang chạy"
   },
   "footer": {
     "cost": "{cost}",

@@ -69,7 +69,17 @@
     "office.signIn.remember": "Remember on this browser",
     "office.signIn.open": "Open the office",
     "office.signIn.note": "Works only on the machine running the daemon, or through an SSH tunnel.",
-    "office.signIn.refused": "That access token was not accepted; check it and try again."
+    "office.signIn.refused": "That access token was not accepted; check it and try again.",
+    "office.offline.title": "Lost connection to the daemon",
+    "office.offline.retry": "retrying in {seconds} s",
+    "office.offline.running": "runs keep going in the daemon",
+    "office.offline.now": "Retry now",
+    "office.offline.restarting": "The daemon is restarting",
+    "office.offline.outdated": "This page is older than the daemon. Reload it to get the new one.",
+    "office.offline.reload": "Reload",
+    "office.header.running": "{count} jobs running",
+    "office.header.runningOne": "{count} job running",
+    "office.header.runningNone": "Nothing running"
   },
   "footer": {
     "cost": "{cost}",

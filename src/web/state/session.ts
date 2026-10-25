@@ -1,6 +1,7 @@
 import { computed, signal } from '@preact/signals'
 
 import type { StatePayload } from '@/app/server/wire/system'
+import type { ConnectionStatus } from '@/web/api/socket'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { authState, readToken } from '@/web/api/token'
@@ -11,6 +12,12 @@ const STARTING_RETRY_MS = 1_000
 const STARTING_RETRY_LIMIT = 30
 
 type UiLocale = StatePayload['locale']
+
+/** The feed socket's state; `retryAt` (epoch ms) is when an `offline` socket tries again. */
+interface Connection {
+  readonly status: ConnectionStatus
+  readonly retryAt?: number
+}
 
 function resolveBrowserLocale(): UiLocale {
   const primary = navigator.language.split('-')[0]?.toLowerCase()
@@ -26,6 +33,8 @@ export const brand = signal<string | undefined>(undefined)
 export const isUnreachable = signal(false)
 /** `GET /v1/health` answered `starting`: the daemon is still coming up. */
 export const isStarting = signal(false)
+/** Written by the feed only. */
+export const connection = signal<Connection>({ status: 'connecting' })
 /** The last good `GET /v1/state`. */
 export const state = signal<StatePayload | undefined>(undefined)
 /** Why the last `GET /v1/state` failed; cleared by the next success. */
