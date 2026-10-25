@@ -146,7 +146,7 @@ function payloadFields(source: string, from: number): readonly string[] {
 
 for (const dir of PACKAGE_SOURCES) {
   const root = resolve(ROOT, dir)
-  const glob = new Bun.Glob('**/*.ts')
+  const glob = new Bun.Glob('**/*.{ts,tsx}')
 
   for await (const rel of glob.scan({ cwd: root })) {
     const source = await Bun.file(resolve(root, rel)).text()

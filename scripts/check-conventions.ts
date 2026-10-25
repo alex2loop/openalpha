@@ -70,7 +70,7 @@ const RULES: readonly Rule[] = [
 
 async function collectSources(): Promise<Map<string, readonly string[]>> {
   const sources = new Map<string, readonly string[]>()
-  const glob = new Glob('**/*.ts')
+  const glob = new Glob('**/*.{ts,tsx}')
 
   for (const root of SRC_ROOTS) {
     for await (const rel of glob.scan({ cwd: `${ROOT}/${root}` })) {

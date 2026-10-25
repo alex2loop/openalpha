@@ -19,6 +19,7 @@ import {
 import { BRAND } from '@/core/brand'
 import { isErrno, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { officePage } from '@/web/api'
 
 const WS_PATH = '/v1/ws'
 export const LOOPBACK_HOST = '127.0.0.1'
@@ -37,6 +38,7 @@ export function startApi(app: App, token: string, live: LiveFeed): ApiHandle {
       port: app.config.api.port,
       maxRequestBodySize: MAX_HTTP_BODY_BYTES,
       idleTimeout: IDLE_TIMEOUT_SECONDS,
+      routes: { '/': officePage },
       fetch(req, srv): Response | undefined | Promise<Response> {
         const url = new URL(req.url)
 

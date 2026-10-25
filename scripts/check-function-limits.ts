@@ -77,7 +77,7 @@ async function main(): Promise<void> {
 async function measureAll(): Promise<Measured> {
   const measured: Measured = new Map()
 
-  for await (const rel of new Glob('**/*.ts').scan({ cwd: `${ROOT}/${SRC_ROOT}` })) {
+  for await (const rel of new Glob('**/*.{ts,tsx}').scan({ cwd: `${ROOT}/${SRC_ROOT}` })) {
     const path = `${SRC_ROOT}/${rel}`
     const text = await Bun.file(`${ROOT}/${path}`).text()
 

@@ -7,14 +7,14 @@ if (!existsSync(SRC)) {
   console.error(`check-cycles: SRC not found: ${SRC} (run from repo root via \`bun scripts/check-cycles.ts\`)`)
   process.exit(1)
 }
-const files = [...new Glob('**/*.ts').scanSync(SRC)].map((f) => `${SRC}/${f}`)
+const files = [...new Glob('**/*.{ts,tsx}').scanSync(SRC)].map((f) => `${SRC}/${f}`)
 const exists = new Set(files)
 const resolveMod = (from: string, spec: string): string | null => {
   let base: string
   if (spec.startsWith('@/')) base = `${SRC}/${spec.slice(2)}`
   else if (spec.startsWith('.')) base = resolve(dirname(from), spec)
   else return null
-  for (const c of [`${base}.ts`, `${base}/index.ts`]) if (exists.has(c)) return c
+  for (const c of [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]) if (exists.has(c)) return c
   return null
 }
 const graph = new Map<string, Set<string>>()

@@ -28,7 +28,9 @@ this document — neither imports the other.
   steering, and binary dictation audio). No SSE.
 - **Bind:** `127.0.0.1` only (loopback). The daemon also verifies the request **peer** is loopback
   (defense in depth). No remote surface, ever.
-- **Auth:** `Authorization: Bearer <token>` on every route except `GET /v1/health`. The `/v1/ws`
+- **Auth:** `Authorization: Bearer <token>` on every route except `GET /v1/health` and `GET /`.
+  `GET /` serves the office page and its content-hashed chunks, unauthenticated: they hold no data,
+  and the page asks for the token before it reads any `/v1` route. The `/v1/ws`
   **handshake** takes the same bearer header (native `URLSessionWebSocketTask` sets it) **or**, because
   browsers cannot set headers on a WS handshake, a `?token=<token>` query param. Token at
   `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod `0600`,

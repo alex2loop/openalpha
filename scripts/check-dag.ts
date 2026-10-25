@@ -18,6 +18,7 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
   social: ['core', 'engine', 'i18n'],
   trading: ['core', 'engine', 'persistence', 'i18n'],
   channels: ['core', 'engine', 'commands', 'i18n'],
+  web: ['i18n'],
   cli: [
     'core',
     'ai',
@@ -48,6 +49,7 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
     'trading',
     'channels',
     'cli',
+    'web',
   ],
 }
 
@@ -144,6 +146,8 @@ const I18N_INDEX = `${SRC}/i18n/index.ts`
 const WIRE_DIR = `${SRC}/app/server/wire/`
 const WIRE_ALIAS_PREFIX = '@/app/server/wire/'
 const WIRE_CORE_PREFIX = '@/core/types/'
+// The page reads the daemon's wire shapes as types only; nothing else crosses from web into app.
+const WEB_DIR = `${SRC}/web/`
 // index.ts sits above every module, like `app`, and is checked, not skipped.
 const BARREL_DEPS: readonly string[] = [...(ALLOWED.app ?? []), 'app']
 const NO_DEEP_ALLOW: ReadonlySet<string> = new Set()
@@ -194,7 +198,7 @@ if (!existsSync(SRC)) {
   process.exit(1)
 }
 
-const files = [...new Glob('**/*.ts').scanSync(SRC)].map((file) => `${SRC}/${file}`)
+const files = [...new Glob('**/*.{ts,tsx}').scanSync(SRC)].map((file) => `${SRC}/${file}`)
 const exists = new Set(files)
 const violations: Violation[] = []
 
@@ -206,7 +210,7 @@ const moduleOf = (absPath: string): string | null => {
 
 const resolveRelative = (fromFile: string, spec: string): string | null => {
   const base = resolve(dirname(fromFile), spec)
-  for (const candidate of [`${base}.ts`, `${base}/index.ts`]) {
+  for (const candidate of [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]) {
     if (exists.has(candidate)) return candidate
   }
   return null
@@ -342,6 +346,14 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
       found.clause?.replace(/\s/g, '') === '{Locale}'
 
     if (isI18nLocaleTypeImport) continue
+
+    const isWebWireTypeImport =
+      file.startsWith(WEB_DIR) &&
+      found.statementKind === 'import' &&
+      found.isTypeOnly &&
+      found.specifier.startsWith(WIRE_ALIAS_PREFIX)
+
+    if (isWebWireTypeImport) continue
 
     const line = lineAt(source, found.index)
     if (!importer.allowed.includes(depModule)) {
