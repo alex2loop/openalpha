@@ -2,6 +2,8 @@ import { useSignal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import type { AgentView } from '@/web/ui/agent/agent-view'
+import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { lookOf } from '@/web/scene/sprites/parts'
 import { reputationLine, setPaused } from '@/web/state/agents'
 import { runs } from '@/web/state/live'
 import { state } from '@/web/state/session'
@@ -13,9 +15,11 @@ import { clearSavedNote, savedNote } from '@/web/ui/agent/form/agent-form'
 import { askStop } from '@/web/ui/jobs/job-row'
 import { describeEvent } from '@/web/ui/jobs/schedule-sections'
 import { Button } from '@/web/ui/kit/button'
+import { Portrait } from '@/web/ui/kit/portrait'
 
 // The assistant's own desk: it wears the mascot, and says so.
 const ASSISTANT_ID = 'assistant'
+const HEAD_PORTRAIT_PX = 40
 
 /** Name, what it does now (or did last), "Dừng" for a run under way, and pause or resume for an
  *  agent of the operator's own. */
@@ -30,6 +34,7 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
   return (
     <header class="agent-head">
       <h2 class="agent-name">
+        <Portrait look={lookOfView(view)} size={HEAD_PORTRAIT_PX} />
         {view.name}
         {view.agentId === ASSISTANT_ID && (
           <span class="agent-tag">{tr('ui.office.agent.assistantTag')}</span>
@@ -93,6 +98,13 @@ function describeNow(view: AgentView): string {
   return agent !== undefined && schedules.length === 0
     ? joinInline([tr('ui.office.status.free'), tr('ui.office.agent.noPlan')])
     : tr('ui.office.status.free')
+}
+
+// A built-in person wears its role's look; one of the operator's own wears what it saved.
+function lookOfView(view: AgentView) {
+  const role = ROSTER.find((def) => def.id === view.agentId)?.role
+
+  return lookOf(view.agentId, role, view.agent?.look)
 }
 
 function hasChildren(runId: string): boolean {

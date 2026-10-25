@@ -17,6 +17,7 @@ import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
+import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { bringIntoView, canFollow, readLastInteractionAt, view } from '@/web/scene/view'
@@ -137,7 +138,13 @@ function createSceneLoop(parts: LoopParts): {
       return isAnimating
     },
     resume: () => director.resume(),
-    nextDueAt: () => Math.min(director.nextDueAt(), overlay.nextDueAt()),
+    nextDueAt: () => {
+      const floor = view.value.floor
+      const hasPeople = drawn.actors.some((actor) => actor.floor === floor)
+      const ambientAt = hasPeople ? nextAmbientAt(floor, performance.now()) : Infinity
+
+      return Math.min(director.nextDueAt(), overlay.nextDueAt(), ambientAt)
+    },
   })
 
   return { loop, readView: () => drawn }

@@ -82,3 +82,53 @@
   background: var(--ink);
   color: var(--canvas);
 }
+
+.look-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s2);
+}
+
+.look-picker .portrait {
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--sunken);
+}
+
+.look-rows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.look-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.look-row-label {
+  padding: 0;
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.look-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.look-swatch.is-on {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}

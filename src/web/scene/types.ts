@@ -68,6 +68,35 @@ export type RoleId =
   | 'assistant'
   | 'clerk'
 export type Dir = 'up' | 'down' | 'left' | 'right'
+/** Every pose a person can take; the vocabulary names them, the renderers draw them. */
+export type PoseId =
+  | 'idle'
+  | 'walk'
+  | 'sit'
+  | 'type'
+  | 'hand'
+  | 'carry'
+  | 'scratch'
+  | 'phone-call'
+  | 'phone-read'
+  | 'reach'
+  | 'stamp'
+  | 'nod'
+  | 'shrug'
+  | 'cheer'
+  | 'lean-back'
+  | 'glance'
+  | 'sip'
+  | 'foot-tap'
+  | 'nap'
+  | 'yawn'
+  | 'hands-up'
+  | 'point'
+  | 'watch'
+  | 'chat'
+  | 'wave'
+  | 'look'
+  | 'busy-glance'
 
 /** Something a person holds besides a sheet. */
 export type HeldItem = 'card' | 'calculator' | 'pen' | 'phone' | 'headset' | 'wallet' | 'box'
@@ -86,6 +115,9 @@ export interface ActorView {
   readonly at: Point
   readonly facing: Dir
   readonly working: boolean
+  readonly pose: PoseId
+  /** When the pose began, a `performance.now()` instant: its frames play from there. */
+  readonly poseSince: number
   readonly item?: HeldItem
   readonly sheet?: SheetView
 }

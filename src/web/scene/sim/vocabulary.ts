@@ -1,7 +1,6 @@
 import type { PendingWire, ProgressWire } from '@/app/server/wire/live'
-import type { PoseId } from '@/web/scene/sim/actors/poses'
 import type { Orphan } from '@/web/scene/sim/assistant'
-import type { ActorId, HeldItem, Point, RoomId } from '@/web/scene/types'
+import type { ActorId, HeldItem, Point, PoseId, RoomId } from '@/web/scene/types'
 import type { PropKind } from '@/web/scene/world/props'
 import { FETCH_ACTIVITY_PREFIX, QUESTION_ACTIVITY_KEY } from '@/web/scene/data/desk-reads'
 import { roomOfRun } from '@/web/scene/data/room-status'

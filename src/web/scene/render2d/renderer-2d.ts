@@ -5,7 +5,11 @@ import { heldNewsPins, indexDrop, todayCalls } from '@/web/scene/data/board'
 import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitFloor, fitRoom, toSnappedFit } from '@/web/scene/render2d/camera'
-import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
+import {
+  drawCharacter,
+  isCharacterMotionOn,
+  releaseCharacterSprites,
+} from '@/web/scene/render2d/characters'
 import { DAY_LIGHT_HOUR, lightAt, paintLighting } from '@/web/scene/render2d/lights'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
@@ -24,7 +28,7 @@ import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 import { selectedActor } from '@/web/state/focus'
 import { unread } from '@/web/state/notices'
-import { colorScheme } from '@/web/state/prefs'
+import { colorScheme, reducedMotion } from '@/web/state/prefs'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 const CANVAS_CLASS = 'scene-canvas'
@@ -92,12 +96,12 @@ export function createRenderer2d(): SceneRenderer {
       }
 
       const startedAt = performance.now()
+      const isAnimating = paintFrame(surface, sim, now)
 
-      paintFrame(surface, sim, now)
       frameMs = performance.now() - startedAt
       recordRender(renderTimes, now)
 
-      return false
+      return isAnimating
     },
     toScreen: (p) => toScreen(surface, p),
     toWorld: (s) => toWorld(surface, s),
@@ -154,12 +158,13 @@ function zeroCanvas(canvas: HTMLCanvasElement): void {
   canvas.height = 0
 }
 
-function paintFrame(surface: Surface, sim: SimView, now: number): void {
+// Paints one frame; true while the people's small motion runs.
+function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   const pane = { w: surface.canvas.clientWidth, h: surface.canvas.clientHeight }
   const dpr = devicePixelRatio
 
   if (pane.w === 0 || pane.h === 0) {
-    return
+    return false
   }
 
   resizeCanvas(surface.canvas, pane, dpr)
@@ -167,9 +172,15 @@ function paintFrame(surface: Surface, sim: SimView, now: number): void {
   const fit = placeCamera(surface, pane, dpr)
   const scene = buildPaintScene(surface, sim, fit.scale)
   const light = lightAt(sim.light.followsHour ? sim.light.hour : DAY_LIGHT_HOUR)
+  const motion = {
+    isOn: isCharacterMotionOn(sim.actors, { floor: sim.floor, now }),
+    isReduced: reducedMotion.value,
+  }
 
-  paintFloor(surface, { sim, scene, light, stretch: fit.stretch, now })
+  paintFloor(surface, { sim, scene, light, stretch: fit.stretch, now, motion })
   blitFloor(surface, { sky: light.sky, dpr })
+
+  return motion.isOn
 }
 
 // The camera's fit for this pane, clamped and rounded to device pixels, reported to the overlays.
@@ -229,6 +240,7 @@ interface FloorJob {
   readonly light: ReturnType<typeof lightAt>
   readonly stretch: number
   readonly now: number
+  readonly motion: { readonly isOn: boolean; readonly isReduced: boolean }
 }
 
 // Cached floor, back props, the y-sorted pieces, then one light pass.
@@ -300,6 +312,7 @@ function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
           now: job.now,
           alpha: job.sim.alpha,
           isSelected: actor.id === selectedActor.value,
+          motion: job.motion,
         }),
     }))
 

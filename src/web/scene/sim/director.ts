@@ -1,12 +1,11 @@
 import { effect, type ReadonlySignal, untracked } from '@preact/signals'
 
 import type { PendingWire } from '@/app/server/wire/live'
-import type { PoseId } from '@/web/scene/sim/actors/poses'
 import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { WalkerState } from '@/web/scene/sim/actors/walk'
 import type { Beat, BeatTarget } from '@/web/scene/sim/beats'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, SimView } from '@/web/scene/types'
+import type { ActorId, ActorView, PoseId, SimView } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
@@ -58,6 +57,9 @@ interface DirectorDeps {
 /** The people's part of the snapshot; the composer adds the floor, the light and the props. */
 type PeopleView = Pick<SimView, 'actors' | 'papers' | 'tray'>
 
+/** Each person's pose and when it began, kept from step to step. */
+type PoseMarks = ReadonlyMap<ActorId, Pick<ActorView, 'pose' | 'poseSince'>>
+
 export interface Director {
   step(index: number): boolean
   view(): PeopleView
@@ -92,12 +94,19 @@ export function createDirector(deps: DirectorDeps): Director {
     untracked(() => setWanted(people, update, performance.now()))
   })
   const offBeats = subscribeBeats(deps.hub, toBeatTarget(people))
+  const poses: { marks: PoseMarks } = { marks: new Map() }
   let isDisposed = false
 
   return {
-    step: () => !isDisposed && stepAll(people, papers),
+    step: () => !isDisposed && stepAll(people, papers, poses),
     view: () => ({
-      actors: people.list.map((person) => toActorView(people, person)),
+      actors: people.list.map((person) =>
+        toActorView(
+          people,
+          person,
+          poses.marks.get(person.def.id) ?? { pose: poseOf(person), poseSince: 0 }
+        )
+      ),
       papers: papers.views(),
       tray: trayCount(deps, papers),
     }),
@@ -143,8 +152,8 @@ function react(people: People, ask: { readonly id: ActorId; readonly kind: React
   }
 }
 
-// Every person's walk among the others on their floor, then the sheets in flight.
-function stepAll(people: People, papers: Papers): boolean {
+// Every person's walk among the others on their floor, the sheets in flight, then the poses.
+function stepAll(people: People, papers: Papers, poses: { marks: PoseMarks }): boolean {
   const nowMs = performance.now()
   const isChanged = tickPeople(people, { nowMs, isOpen: isOfficeOpen() })
   let isMoving = false
@@ -157,7 +166,11 @@ function stepAll(people: People, papers: Papers): boolean {
     isMoving = stepPerson(person, others, { nowMs, dtMs: SIM_STEP_MS }) || isMoving
   }
 
-  return papers.step(nowMs) || isMoving || isChanged
+  const settled = settlePoses(people.list, { marks: poses.marks, nowMs })
+
+  poses.marks = settled.marks
+
+  return papers.step(nowMs) || isMoving || isChanged || settled.isChanged
 }
 
 // Office hours by the page clock and the home region's pack.
@@ -197,6 +210,30 @@ function toActorState(person: Person): ActorState {
     ...(person.goal === undefined ? {} : { goal: person.goal }),
     ...(person.react === undefined ? {} : { react: person.react.kind }),
   }
+}
+
+// A pose that changes starts its frames from this step and asks for one frame to show it.
+function settlePoses(
+  list: readonly Person[],
+  at: { readonly marks: PoseMarks; readonly nowMs: number }
+): { readonly marks: PoseMarks; readonly isChanged: boolean } {
+  let isChanged = false
+  const marks = new Map(
+    list.map((person) => {
+      const pose = poseOf(person)
+      const held = at.marks.get(person.def.id)
+
+      if (held?.pose === pose) {
+        return [person.def.id, held] as const
+      }
+
+      isChanged = true
+
+      return [person.def.id, { pose, poseSince: at.nowMs }] as const
+    })
+  )
+
+  return { marks, isChanged }
 }
 
 // A beat plays over everything; walking reads as a walk; at rest the goal's pose, else seated at

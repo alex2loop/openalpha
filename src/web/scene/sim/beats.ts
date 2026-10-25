@@ -1,6 +1,5 @@
 import type { WireEvent } from '@/app/server/wire/events'
-import type { PoseId } from '@/web/scene/sim/actors/poses'
-import type { ActorId, HeldItem, SheetView } from '@/web/scene/types'
+import type { ActorId, HeldItem, PoseId, SheetView } from '@/web/scene/types'
 import type { PropKind } from '@/web/scene/world/props'
 import type { onWireEvent } from '@/web/state/events'
 

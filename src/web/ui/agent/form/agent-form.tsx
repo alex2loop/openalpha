@@ -19,6 +19,7 @@ import {
   createAgentForm,
   snapshotForm,
 } from '@/web/ui/agent/form/form-state'
+import { LOOK_PATHS, LookPicker } from '@/web/ui/agent/form/look-picker'
 import { ModelSelect } from '@/web/ui/agent/form/model-select'
 import { SectorPills } from '@/web/ui/agent/form/sector-pills'
 import { describeFailure } from '@/web/ui/dialogs/field-errors'
@@ -39,6 +40,7 @@ const AGENT_PATHS = [
   'maxDailyUsd',
   'modelTier',
   'maxSpawn',
+  ...LOOK_PATHS,
 ]
 
 interface FormRequest {
@@ -101,6 +103,7 @@ function FormBody({ form }: { readonly form: AgentForm }) {
       <BudgetField form={form} />
       <ModelSelect form={form} />
       <SpawnField form={form} />
+      <LookPicker form={form} />
     </div>
   )
 }

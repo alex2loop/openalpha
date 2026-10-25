@@ -279,7 +279,11 @@ export function nextDueOf(
   return Math.min(...dues.filter((due) => due > nowMs), Number.POSITIVE_INFINITY)
 }
 
-export function toActorView(people: People, person: Person): ActorView {
+export function toActorView(
+  people: People,
+  person: Person,
+  pose: Pick<ActorView, 'pose' | 'poseSince'>
+): ActorView {
   const item = person.beats.at(-1)?.item ?? person.goal?.item
   const sheet = person.goal?.hasSheet === true ? toSheet(person) : undefined
 
@@ -291,6 +295,7 @@ export function toActorView(people: People, person: Person): ActorView {
     at: person.walker.pos,
     facing: facingOf(person, people.byId),
     working: isWorking(person),
+    ...pose,
     ...(item === undefined ? {} : { item }),
     ...(sheet === undefined ? {} : { sheet }),
   }

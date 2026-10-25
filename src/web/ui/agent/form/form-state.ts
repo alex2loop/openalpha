@@ -1,6 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
-import type { AgentDetailWire, AgentFocusWire } from '@/app/server/wire/agents'
+import type { AgentDetailWire, AgentFocusWire, AgentLookWire } from '@/app/server/wire/agents'
 import type { AgentDraft } from '@/web/state/agents'
 
 // What the daemon takes as an id: lowercase letters, digits and dashes, at most this long.
@@ -31,6 +31,8 @@ export interface AgentForm {
   readonly modelTier: Signal<string>
   /** 0 lets it start no child agents. */
   readonly maxSpawn: Signal<number>
+  /** The parts picked, over the look as it was saved; a part left out follows the id. */
+  readonly look: Signal<AgentLookWire>
   readonly failure: Signal<string | undefined>
   /** The daemon's sentence for each field it refused, by the path it named. */
   readonly fields: Signal<ReadonlyMap<string, string>>
@@ -52,6 +54,7 @@ export function createAgentForm(existing: AgentDetailWire | undefined): AgentFor
     budget: signal(existing?.maxDailyUsd === undefined ? '' : String(existing.maxDailyUsd)),
     modelTier: signal(existing?.modelTier ?? ''),
     maxSpawn: signal(existing?.maxSpawn ?? 0),
+    look: signal(existing?.look ?? {}),
     failure: signal(undefined),
     fields: signal(new Map()),
     isBusy: signal(false),
@@ -70,6 +73,7 @@ export function snapshotForm(form: AgentForm): string {
     form.budget.value,
     form.modelTier.value,
     form.maxSpawn.value,
+    form.look.value,
   ])
 }
 
@@ -90,8 +94,8 @@ function toAgentId(name: string): string {
     .slice(0, ID_MAX_LENGTH)
 }
 
-/** What a save sends. A field the form does not show (the description, the goal, the look) goes
- *  back as it was, since an edit replaces every field. */
+/** What a save sends. A field the form does not show (the description, the goal) goes back as it
+ *  was, since an edit replaces every field. */
 export function buildDraft(form: AgentForm): AgentDraft {
   const { existing } = form
   const budget = Number(form.budget.value)
@@ -106,7 +110,7 @@ export function buildDraft(form: AgentForm): AgentDraft {
     ...(Number.isFinite(budget) && budget > 0 ? { maxDailyUsd: budget } : {}),
     ...(form.modelTier.value === '' ? {} : { modelTier: form.modelTier.value }),
     ...(form.maxSpawn.value > 0 ? { maxSpawn: form.maxSpawn.value } : {}),
-    ...(existing?.look === undefined ? {} : { look: existing.look }),
+    ...(Object.keys(form.look.value).length === 0 ? {} : { look: form.look.value }),
   }
 }
 
