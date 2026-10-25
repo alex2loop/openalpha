@@ -77,7 +77,8 @@ function NoticeAction({ notice }: { readonly notice: NoticeWire }) {
   )
 }
 
-function toNoticeText(event: WireEvent): NoticeText | undefined {
+/** A notice as the bell words it: its first line, then the rest. */
+export function toNoticeText(event: WireEvent): NoticeText | undefined {
   if (event.note !== undefined && event.note.trim() !== '') {
     const [title = '', ...rest] = event.note.trim().split(LINE_BREAK)
     const detail = rest.join(LINE_BREAK).trim()

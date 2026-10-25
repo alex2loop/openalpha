@@ -1,3 +1,4 @@
+import type { JobEventWire } from '@/app/server/wire/jobs'
 import type { ScheduleRow } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import type { LoadState } from '@/web/ui/kit/use-load'
@@ -56,11 +57,7 @@ export function UpcomingSection({ schedules, tasks }: SectionProps) {
 /** Jobs that run when an alert fires: checked on the alert pass, so they cost no AI until then. */
 export function WaitingSection({ schedules, tasks }: SectionProps) {
   const rows = schedules.filter((row) => row.event !== undefined && row.enabled !== false)
-  const everyMs =
-    tasks.status === 'ready'
-      ? tasks.value.tasks.find((task) => task.name === ALERTS_TASK_NAME)?.everyMs
-      : undefined
-  const seconds = everyMs === undefined ? ABSENT_CELL : Math.round(everyMs / MS_PER_SECOND)
+  const seconds = formatAlertSeconds(tasks)
 
   return (
     <>
@@ -70,7 +67,7 @@ export function WaitingSection({ schedules, tasks }: SectionProps) {
         <p key={String(row.id)} class="job-row meta">
           {tr('ui.office.jobs.waitingLine', {
             agent: readText(row.agentId) ?? String(row.id),
-            when: describeEvent(row),
+            when: row.event === undefined ? '' : describeEvent(row.event),
             seconds,
           })}
         </p>
@@ -135,13 +132,18 @@ function RerunButton({ rerun }: { readonly rerun: NonNullable<UpcomingItem['reru
   )
 }
 
-function describeEvent(row: ScheduleRow): string {
-  const trigger = row.event
+/** How often the alert pass checks every event job's trigger, in whole seconds; absent until read. */
+export function formatAlertSeconds(tasks: LoadState<TasksResponse>): string | number {
+  const everyMs =
+    tasks.status === 'ready'
+      ? tasks.value.tasks.find((task) => task.name === ALERTS_TASK_NAME)?.everyMs
+      : undefined
 
-  if (trigger === undefined) {
-    return ''
-  }
+  return everyMs === undefined ? ABSENT_CELL : Math.round(everyMs / MS_PER_SECOND)
+}
 
+/** "FPT thủng mức cắt lỗ", or "một mã ..." for a job that runs for any name. */
+export function describeEvent(trigger: Pick<JobEventWire, 'event' | 'ticker'>): string {
   const subject = trigger.ticker ?? tr('scheduler.event.anyName')
 
   return tr('ui.office.jobs.eventWhen', {

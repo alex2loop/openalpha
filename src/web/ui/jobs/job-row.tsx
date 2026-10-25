@@ -51,8 +51,8 @@ export function JobRow({ run, childRuns }: JobRowProps) {
   )
 }
 
-// "Chạy tiếp" is the safe, main button, so Enter keeps the run going.
-function askStop(run: Run, hasChildren: boolean): void {
+/** Asks before stopping the run; "Chạy tiếp" is the safe, main button, so Enter keeps it going. */
+export function askStop(run: Run, hasChildren: boolean): void {
   const who = run.agentId ?? formatRunName(run)
 
   askConfirm({

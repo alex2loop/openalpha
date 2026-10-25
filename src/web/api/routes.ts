@@ -1,5 +1,5 @@
 import type { ActivityResponse, ResearchResponse } from '@/app/server/wire/activity'
-import type { AgentsResponse } from '@/app/server/wire/agents'
+import type { AgentDeletedWire, AgentDetailWire, AgentsResponse } from '@/app/server/wire/agents'
 import type {
   ChatHistoryResponse,
   ChatRecentResponse,
@@ -17,14 +17,17 @@ import type {
   MarketsResponse,
   OverviewResponse,
   ScreenResponse,
+  SectorsResponse,
 } from '@/app/server/wire/market'
+import type { ModelsResponse } from '@/app/server/wire/models'
 import type { LedgerPageResponse, RebalanceResponse, StopsResponse } from '@/app/server/wire/money'
-import type { NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
+import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type {
   Capabilities,
   CommandList,
   CostReport,
   HealthResponse,
+  ScheduleRow,
   StatePayload,
 } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
@@ -52,8 +55,8 @@ export interface RouteDef<T> {
   readonly response?: T
 }
 
-/** What `POST /v1/respond` answers. */
-interface RespondAnswer {
+/** What `POST /v1/respond` and the pause and resume of an agent answer. */
+interface OkAnswer {
   readonly ok: true
 }
 
@@ -66,11 +69,25 @@ export const ROUTES = Object.freeze({
   tasks: route<TasksResponse>('/v1/tasks'),
   activity: route<ActivityResponse>('/v1/activity'),
   cost: route<CostReport>('/v1/cost'),
-  respond: route<RespondAnswer>('/v1/respond'),
+  respond: route<OkAnswer>('/v1/respond'),
   runStop: (runId: string) => route<RunStopWire>(`/v1/runs/${encodeURIComponent(runId)}/stop`),
   commands: route<CommandList>('/v1/commands'),
   instruments: route<InstrumentSearchResponse>('/v1/instruments'),
   agents: route<AgentsResponse>('/v1/agents'),
+  agentCreate: route<AgentDetailWire>('/v1/agents'),
+  // GET reads the agent, PATCH replaces it: both answer the agent as it now stands.
+  agentDetail: (agentId: string) =>
+    route<AgentDetailWire>(`/v1/agents/${encodeURIComponent(agentId)}`),
+  agentDelete: (agentId: string) =>
+    route<AgentDeletedWire>(`/v1/agents/${encodeURIComponent(agentId)}`),
+  agentPause: (agentId: string) =>
+    route<OkAnswer>(`/v1/agents/${encodeURIComponent(agentId)}/pause`),
+  agentResume: (agentId: string) =>
+    route<OkAnswer>(`/v1/agents/${encodeURIComponent(agentId)}/resume`),
+  models: route<ModelsResponse>('/v1/models'),
+  jobs: route<ScheduleRow>('/v1/jobs'),
+  board: route<BoardResponse>('/v1/board'),
+  sectors: route<SectorsResponse>('/v1/sectors'),
   chatRecent: route<ChatRecentResponse>('/v1/chat/recent'),
   chatHistory: (sessionId: string) =>
     route<ChatHistoryResponse>(`/v1/chat/history/${encodeURIComponent(sessionId)}`),

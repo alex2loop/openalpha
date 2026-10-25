@@ -1,0 +1,183 @@
+.agent-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.agent-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-name {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  font-size: 15px;
+}
+
+.agent-actions {
+  display: flex;
+  gap: var(--s1);
+}
+
+.agent-note {
+  padding: 6px var(--s1);
+  border-radius: 6px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font-size: 12px;
+}
+
+.agent-tag {
+  display: inline-block;
+  margin: 0 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.agent-tag.is-caution {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.agent-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.agent-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.agent-facts dt {
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.agent-facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.run-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s1);
+}
+
+.run-step svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+  stroke: var(--ink2);
+}
+
+.run-step.is-running .spin {
+  margin-top: 3px;
+}
+
+.run-step-time {
+  margin-left: 6px;
+}
+
+.kid {
+  margin-left: var(--s3);
+  padding-left: var(--s1);
+  border-left: 2px solid var(--border);
+}
+
+.kid-name {
+  color: var(--ink);
+}
+
+.agent-sources {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.agent-tickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.agent-schedule,
+.agent-recent {
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+}
+
+.agent-stop {
+  padding: 6px 0;
+}
+
+.agent-stop .is-breached {
+  color: var(--dangerText);
+  font-weight: 600;
+}
+
+.day-strip {
+  width: 100%;
+  height: auto;
+}
+
+.day-shade {
+  fill: var(--sunken);
+}
+
+.day-run {
+  fill: var(--ink2);
+}
+
+.day-run.is-running {
+  fill: var(--ink);
+}
+
+.day-next {
+  fill: none;
+  stroke: var(--ink2);
+  stroke-dasharray: 2 1;
+}
+
+.day-wait {
+  stroke: var(--ink3);
+  stroke-dasharray: 3 2;
+}
+
+.day-now {
+  stroke: var(--dangerText);
+  stroke-width: 1.2;
+}
+
+.day-label {
+  fill: var(--ink3);
+  font-size: 11px;
+}

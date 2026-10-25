@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks'
 
+import type { ActivityResponse } from '@/app/server/wire/activity'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
@@ -17,7 +18,7 @@ const AGENT_DAY_POLL_MS = 60_000
 
 /** "Hôm nay agent đã làm": the latest four runs of today, schedules and chats included. */
 export function AgentDay() {
-  const reading = useBlockRead(loadToday, { everyMs: AGENT_DAY_POLL_MS })
+  const reading = useBlockRead(loadTodayActivity, { everyMs: AGENT_DAY_POLL_MS })
 
   // A run that ends is news at once; the poll is the backstop for an event the socket missed.
   useEffect(() => onWireEvent('run_finished', reading.retry), [])
@@ -50,7 +51,8 @@ export function AgentDay() {
   )
 }
 
-function loadToday(abort: AbortSignal) {
+/** The runs that ended today, on the daemon's calendar. */
+export function loadTodayActivity(abort: AbortSignal): Promise<ActivityResponse> {
   const timeZone = state.value?.timeZone
   const query = timeZone === undefined ? {} : { day: buildDayKey(Date.now(), timeZone) }
 

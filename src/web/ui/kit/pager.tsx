@@ -40,7 +40,7 @@ export function Pager({ page, size, total, hasMore, isLoading, onLoadMore }: Pag
             page.value--
           }}
         >
-          {tr('ui.office.book.prev')}
+          {tr('ui.office.common.prev')}
         </Button>
         <Button
           size="small"
@@ -53,7 +53,7 @@ export function Pager({ page, size, total, hasMore, isLoading, onLoadMore }: Pag
                 }
           }
         >
-          {tr(readsMore ? 'ui.office.book.loadMore' : 'ui.office.book.next')}
+          {tr(readsMore ? 'ui.office.book.loadMore' : 'ui.office.common.next')}
         </Button>
       </span>
     </div>

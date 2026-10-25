@@ -80,6 +80,7 @@
   "restartIdleWaitMs": 120000,
   "restartDrainMs": 5000,
   "trackRecordMinSample": 20,
+  "childRunMaxMs": 600000,
   "firstRun": {
     "modelReady": true,
     "profileSaved": true,

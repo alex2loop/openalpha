@@ -85,6 +85,11 @@ export function formatPrice(value: number | undefined, display: PriceDisplay | u
   return formatterFor(decimals).format(value / divisor)
 }
 
+/** A percent-valued field without its sign: `5,80%`, a distance either way. */
+export function formatPercent(value: number | undefined): string {
+  return readPercent(value === undefined ? undefined : Math.abs(value)).text
+}
+
 /** A percent-valued field (`changePct`) as `▲ 1,31%` or `▼ -0,49%`; one that rounds to zero
  *  carries no sign and no arrow. */
 export function formatSignedPercent(value: number | undefined): string {

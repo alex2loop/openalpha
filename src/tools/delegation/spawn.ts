@@ -258,6 +258,14 @@ interface ChildProfile {
   readonly profile: AgentProfile
 }
 
+/** The longest one spawned child may run: the run cap, or the tighter spawn cap. */
+export function resolveChildMaxDurationMs(loop: {
+  readonly maxDurationMs: number
+  readonly maxSpawnDurationMs: number
+}): number {
+  return Math.min(loop.maxDurationMs, loop.maxSpawnDurationMs)
+}
+
 // The child is the parent's own profile narrowed: same id, so logs, the per-agent cap and log
 // routing stay the parent's; reads only; its own turn and time caps; the delegate tier when declared.
 function toChildProfiles(
@@ -270,7 +278,7 @@ function toChildProfiles(
     tools: parent.tools.filter((name) => SPAWN_TOOL_NAMES.has(name)),
     delegates: [],
     maxTurns: Math.min(config.loop.maxTurns, config.loop.maxSpawnTurns),
-    maxDurationMs: Math.min(config.loop.maxDurationMs, config.loop.maxSpawnDurationMs),
+    maxDurationMs: resolveChildMaxDurationMs(config.loop),
     ...toDelegateTierModel(config),
   }
 

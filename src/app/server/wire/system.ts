@@ -118,6 +118,8 @@ export interface StatePayload {
   readonly restartDrainMs: number
   /** Resolved calls a track record needs before its rates mean anything. */
   readonly trackRecordMinSample: number
+  /** The longest one child agent an agent spawned may run. */
+  readonly childRunMaxMs: number
   readonly firstRun: FirstRunWire
 }
 

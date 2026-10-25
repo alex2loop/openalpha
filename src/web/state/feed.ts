@@ -13,6 +13,8 @@ import {
   findRun,
   LIVE_RESYNC_MS,
   nextArrivalSeq,
+  noteAlertsChecked,
+  noteFinishedTickers,
   type Run,
   readArrivalSeq,
   removeRun,
@@ -234,6 +236,7 @@ function applySnapshot(feed: FeedState, snapshot: LiveSnapshotWire, mark: number
   }
 
   replacePending(snapshot.pending, resolvedWhileSyncing(feed))
+  noteAlertsChecked(snapshot.alertsCheckedAt)
 }
 
 // The snapshot may predate an answer an event held back for replay already carries.
@@ -280,6 +283,10 @@ function toRun(wire: LiveRunWire): Run {
 function applyWireEvent(feed: FeedState, event: WireEvent, isAfterSnapshot: boolean): void {
   applyPendingEvent(event)
 
+  if (event.kind === 'alerts_checked') {
+    noteAlertsChecked(event.checkedAt)
+  }
+
   if (hasRunId(event)) {
     applyRunEvent(feed, event, isAfterSnapshot)
   }
@@ -297,6 +304,7 @@ function applyRunEvent(feed: FeedState, event: RunEvent, isAfterSnapshot: boolea
       applyUpdate(feed, event, isAfterSnapshot)
       return
     case 'run_finished':
+      noteFinishedTickers(event.runId, event.tickers)
       finishRun(feed, event.runId)
       return
     default:

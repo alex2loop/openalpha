@@ -29,6 +29,7 @@ import { operatorMessageOf } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { bindLocale } from '@/i18n'
+import { resolveChildMaxDurationMs } from '@/tools/api'
 import { MINIMUM_TRACK_RECORD_SAMPLE, tradingDay } from '@/trading/api'
 
 const COST_ESTIMATE_MIN_RUNS = 3
@@ -74,6 +75,7 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     restartIdleWaitMs: RESTART_IDLE_WAIT_MS,
     restartDrainMs: SHUTDOWN_DRAIN_MS,
     trackRecordMinSample: MINIMUM_TRACK_RECORD_SAMPLE,
+    childRunMaxMs: resolveChildMaxDurationMs(app.config.loop),
     firstRun,
   } satisfies StatePayload)
 }

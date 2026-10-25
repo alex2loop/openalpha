@@ -16,10 +16,14 @@ const INSTRUMENT_DEBOUNCE_MS = 200
 const MAX_TICKER_MATCHES = 5
 const COMMAND_PREFIX = '/'
 const WORD_BREAK = /\s+/
+// Lists every schedule; it costs no AI.
+const SCHEDULE_LIST_COMMAND = '/schedule list'
 // What a focused, empty box offers first.
 interface Starter {
   readonly text: string
   readonly label: MessageKey
+  /** The agent picking it makes the receiver; the pick itself costs nothing. */
+  readonly agentId?: string
 }
 
 const STARTERS: readonly Starter[] = [
@@ -38,6 +42,8 @@ export interface SuggestOption {
   readonly label: string
   readonly detail?: string
   readonly fill?: string
+  /** Picking the row also hands what is typed next to this agent. */
+  readonly agentId?: string
 }
 
 type Match = InstrumentSearchResponse['matches'][number]
@@ -172,19 +178,42 @@ function useTickerMatches(query: string | undefined): readonly Match[] {
 }
 
 function listStarters(): readonly SuggestOption[] {
-  const view = panelView.value
-  const context = 'ticker' in view ? buildTickerContext(view.ticker) : []
-
-  return [...context, ...STARTERS].map((starter) => ({
-    key: `starter:${starter.text}`,
+  return [...buildContext(), ...STARTERS].map((starter) => ({
+    key: `starter:${starter.label}:${starter.text}`,
     section: 'suggestions',
     label: tr(starter.label),
-    detail: joinDetail(
-      starter.text.trim(),
-      estimateText(starter.text.trim().split(WORD_BREAK, 1)[0] ?? '')
-    ),
+    ...(starter.text.trim() === ''
+      ? {}
+      : {
+          detail: joinDetail(
+            starter.text.trim(),
+            estimateText(starter.text.trim().split(WORD_BREAK, 1)[0] ?? '')
+          ),
+        }),
     fill: starter.text,
+    ...(starter.agentId === undefined ? {} : { agentId: starter.agentId }),
   }))
+}
+
+// What the open view suggests first: a ticker card's next steps, or an agent's desk.
+function buildContext(): readonly Starter[] {
+  const view = panelView.value
+
+  if ('ticker' in view) {
+    return buildTickerContext(view.ticker)
+  }
+
+  return 'agent' in view ? buildAgentContext(view.agent) : []
+}
+
+// Only an agent of the operator's own takes typed work.
+function buildAgentContext(agentId: string): readonly Starter[] {
+  const isOwn = agents.value.some((agent) => agent.id === agentId)
+
+  return [
+    ...(isOwn ? [{ text: '', label: 'ui.office.command.ctxAgent' as const, agentId }] : []),
+    { text: SCHEDULE_LIST_COMMAND, label: 'ui.office.command.ctxSchedules' },
+  ]
 }
 
 // With a ticker card open, what the operator most likely does next with that name.

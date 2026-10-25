@@ -1,5 +1,6 @@
 import { backStack, collapsed, isFocus, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
+import { AgentTab } from '@/web/ui/agent/agent-tab'
 import { Book } from '@/web/ui/book/book'
 import { Ideas } from '@/web/ui/ideas/ideas'
 import { PanelIcon } from '@/web/ui/kit/icons'
@@ -47,18 +48,17 @@ export function Panel() {
   )
 }
 
-// The person view is mounted here by the task that builds it.
 function PanelContent() {
   const view = panelView.value
+
+  if ('agent' in view) {
+    return <AgentTab key={view.agent} agentId={view.agent} />
+  }
 
   if ('ticker' in view) {
     return (
       <TickerCard key={`${view.market}:${view.ticker}`} ticker={view.ticker} market={view.market} />
     )
-  }
-
-  if (!('tab' in view)) {
-    return null
   }
 
   switch (view.tab) {

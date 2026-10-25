@@ -6,6 +6,7 @@ import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/serve
 const MAX_RUNS = 200
 const MAX_PERSISTENT_STEPS = 20
 const MAX_PENDING = 50
+const MAX_FINISHED_TICKERS = 100
 /** How often the page takes a fresh `GET /v1/live`, on top of every reconnect. */
 export const LIVE_RESYNC_MS = 60_000
 
@@ -30,12 +31,47 @@ export interface Run {
 
 const runList = signal<readonly Run[]>([])
 const pendingList = signal<readonly PendingWire[]>([])
+const checkedAt = signal<number | undefined>(undefined)
+// The tickers each run the page watched end reported, oldest first, by `runId`.
+const finishedTickers = new Map<string, readonly string[]>()
 let arrivalSeq = 0
 
 export const runs: ReadonlySignal<readonly Run[]> = runList
 export const runningCount = computed(() => runList.value.filter((run) => !run.hidden).length)
 /** Approvals and questions waiting for an answer on any channel, oldest first. */
 export const pending: ReadonlySignal<readonly PendingWire[]> = pendingList
+/** Epoch ms the daemon's last alert pass finished; absent until the snapshot or an event says. */
+export const alertsCheckedAt: ReadonlySignal<number | undefined> = checkedAt
+
+/** Keeps the latest pass: a snapshot taken before a newer event never moves it back. */
+export function noteAlertsChecked(at: number | undefined): void {
+  if (at !== undefined && (checkedAt.value === undefined || at > checkedAt.value)) {
+    checkedAt.value = at
+  }
+}
+
+/** Remembers what a finished run reported on; past `MAX_FINISHED_TICKERS` the oldest leaves. */
+export function noteFinishedTickers(runId: string, tickers: readonly string[] | undefined): void {
+  if (tickers === undefined || tickers.length === 0) {
+    return
+  }
+
+  finishedTickers.delete(runId)
+  finishedTickers.set(runId, tickers)
+
+  for (const oldest of finishedTickers.keys()) {
+    if (finishedTickers.size <= MAX_FINISHED_TICKERS) {
+      break
+    }
+
+    finishedTickers.delete(oldest)
+  }
+}
+
+/** What a run this page watched end reported on; empty for one it did not see end. */
+export function findFinishedTickers(runId: string): readonly string[] {
+  return finishedTickers.get(runId) ?? []
+}
 
 /** The arrival order so far; a run seen at or before it was on the page then. */
 export function readArrivalSeq(): number {

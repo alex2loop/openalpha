@@ -1,0 +1,84 @@
+.agent-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-label {
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.form-field input[type="text"],
+.form-field input[type="number"],
+.form-field input[type="time"],
+.form-field textarea,
+.form-field select {
+  padding: 6px var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.form-id {
+  font-size: 12px;
+}
+
+.form-number {
+  max-width: 140px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.form-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.form-pill {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.form-pill.is-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+}

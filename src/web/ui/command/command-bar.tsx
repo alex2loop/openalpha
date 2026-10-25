@@ -2,6 +2,7 @@ import type { RefObject, TargetedKeyboardEvent } from 'preact'
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
+import { selectAgent } from '@/web/state/agents'
 import { isChatOpen, setChatOpen, unread } from '@/web/state/chat'
 import {
   inputText,
@@ -135,6 +136,10 @@ function pick(option: SuggestOption, list: ListState): void {
     sendFromInput()
     resetList(list, true)
     return
+  }
+
+  if (option.agentId !== undefined) {
+    selectAgent(option.agentId)
   }
 
   setInput(option.fill)
