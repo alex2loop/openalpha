@@ -14,7 +14,6 @@
     "src/app/server/mappers/money.ts#toLedgerEntryWire": 43,
     "src/app/server/mappers/trading.ts#toSuggestionWire": 43,
     "src/app/server/mappers/trading.ts#toTrackRecordWire": 44,
-    "src/app/server/push/ideas.ts#startIdeaWatch": 43,
     "src/channels/adapters/telegram/adapter.ts#createTelegramAdapter": 52,
     "src/channels/adapters/zalo-personal/listener.ts#attachZaloPersonalListener": 49,
     "src/channels/adapters/zalo/adapter.ts#createZaloAdapter": 46,

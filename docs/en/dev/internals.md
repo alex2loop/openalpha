@@ -195,7 +195,10 @@ them with `DeliveryHub.post`, which tells the delivery listeners and sends to no
 `[notices] chat` lists the kind (checked against that set at boot). A scored focus call is not a notice: the scorer
 hands it to the `onFocusCallScored` seam with the agents `agent_focuses` lists for its focus, `app` emits
 `focus_call_scored` on the bus, and the feed sends one quiet `call_scored` per agent to the sockets, which the bell
-and the chats never see. The held-name watch runs inside the
+and the chats never see. The idea watch ([app/server/push/ideas.ts](../../../src/app/server/push/ideas.ts)) reads,
+once a minute, the newest open calls of the operator's own focus and of each `[focus]` the own agents use now, and
+sends each new buy or reduce as `idea`: from the app for the operator's own, quiet and once per agent for a focus (a
+focus no agent has called under yet lists nothing). The held-name watch runs inside the
 alerts loop; its cursor starts at boot and its dedupe sets reset at the day change. [app/server/feed/](../../../src/app/server/feed/) folds them into the run book
 behind `GET /v1/live` and broadcasts each to the open sockets; `approval_requested` and
 `clarification_requested` carry their ids and `askedAt` so the pending list can hold them. Wire shapes:

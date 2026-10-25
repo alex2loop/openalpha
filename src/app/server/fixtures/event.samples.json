@@ -331,6 +331,18 @@
   },
   {
     "v": 1,
+    "kind": "idea",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "bank" },
+    "idea": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000003",
+      "instrument": { "market": "equity-vn", "ticker": "ACB" },
+      "action": "buy",
+      "conviction": "medium"
+    }
+  },
+  {
+    "v": 1,
     "kind": "call_scored",
     "weight": "nudge",
     "source": { "channel": "api", "agentId": "" },

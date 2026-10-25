@@ -205,7 +205,10 @@ chúng qua `DeliveryHub.post`, chỉ báo cho các bên nghe và không gửi t�
 kê loại đó (kiểm tra theo đúng tập này lúc khởi động). Một lệnh gọi theo trọng tâm được chấm điểm không phải thông
 báo: bộ chấm điểm trao nó cho điểm nối `onFocusCallScored` cùng các agent mà `agent_focuses` ghi đã gọi theo trọng
 tâm đó, `app` phát `focus_call_scored` lên bus, và luồng trực tiếp gửi tới các socket một `call_scored` mức `quiet`
-cho mỗi agent, nên chuông và chat không bao giờ thấy nó. Việc theo dõi mã đang giữ chạy trong vòng lặp cảnh báo;
+cho mỗi agent, nên chuông và chat không bao giờ thấy nó. Bộ theo dõi ý tưởng ([app/server/push/ideas.ts](../../src/app/server/push/ideas.ts))
+mỗi phút đọc các lệnh gọi đang mở mới nhất của trọng tâm của chính bạn và của từng `[focus]` mà các agent của bạn
+đang dùng, rồi gửi mỗi lệnh mua hay giảm bớt mới thành `idea`: từ app với lệnh gọi của chính bạn, mức `quiet` và
+một lần cho mỗi agent với một trọng tâm (trọng tâm chưa agent nào gọi theo thì chưa có gì để liệt kê). Việc theo dõi mã đang giữ chạy trong vòng lặp cảnh báo;
 mốc đọc tin bắt đầu từ lúc khởi động và các tập chống gửi lặp được xóa khi sang ngày. [app/server/feed/](../../src/app/server/feed/) gộp chúng thành sổ các phiên chạy phía sau
 `GET /v1/live` và phát từng sự kiện tới các socket đang mở; `approval_requested` và `clarification_requested`
 mang id và `askedAt` để danh sách đang chờ giữ được chúng. Hình dạng trên dây:

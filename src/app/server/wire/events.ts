@@ -166,7 +166,8 @@ export interface WireEvent {
   /** 'notices_changed': the bell's unread count after a notice was written or some were read;
    *  refetch GET /v1/notices. */
   readonly unread?: number
-  /** 'idea': a suggestion was stored; read it with GET /v1/suggestions. */
+  /** 'idea': a suggestion was stored; read it with GET /v1/suggestions. An own agent's focus call is
+   *  `quiet` and names the agent in `source.agentId`. */
   readonly idea?: {
     readonly suggestionId: string
     readonly instrument: { readonly market: string; readonly ticker: string }
