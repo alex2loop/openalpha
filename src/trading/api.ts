@@ -125,6 +125,7 @@ export type {
   InstrumentRef,
   MarketRef,
   Region,
+  SessionPhase,
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'

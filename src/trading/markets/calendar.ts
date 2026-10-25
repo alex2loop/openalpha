@@ -210,6 +210,27 @@ export function sessionPhase(calendar: TradingCalendar, now: number): SessionPha
   return state === 'closed' ? 'break' : state
 }
 
+/** A market's own day at one instant: the date on its clock, whether it trades, the next day it
+ *  does, and where the session stands. Past the holiday table (`lastHoliday`) a closure reads as a
+ *  session, as it does everywhere else; boot warns when the table runs out. */
+export interface MarketDay {
+  readonly today: TradingDay
+  readonly tradesToday: boolean
+  readonly nextTradingDay: TradingDay
+  readonly phase: SessionPhase
+}
+
+export function resolveMarketDay(calendar: TradingCalendar, now: number): MarketDay {
+  const today = calendar.dayAt(now)
+
+  return {
+    today,
+    tradesToday: calendar.isTradingDay(today),
+    nextTradingDay: calendar.addTradingDays(today, 1),
+    phase: sessionPhase(calendar, now),
+  }
+}
+
 /** The session an order placed at `now` fills in: today until the close, the next trading day after
  *  it or on a day the market does not trade. */
 export function orderSessionOf(calendar: TradingCalendar, now: number): TradingDay {

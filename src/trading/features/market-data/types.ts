@@ -37,6 +37,7 @@ import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 import type { MarketNews, SourceResult, SourceSummary } from '@/trading/kernel/source/source-result'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
+import type { MarketDay } from '@/trading/markets/calendar'
 import type { QuoteConvention } from '@/trading/render/money'
 
 /** The requests above are the *resolved* form a market capability consumes. The requests below are
@@ -169,6 +170,8 @@ export interface MarketDataService {
   /** What a surface needs to know about each market to lay itself out: where it trades, whether it
    *  speaks for its region, its index, and which reads it answers. Registration order. */
   describeMarkets(): readonly MarketDescription[]
+  /** A market's day at `now` on its own calendar; absent for one that never closes. */
+  marketDay(market: MarketRef, now: number): MarketDay | undefined
   /** One instrument's convention, where the market's is wrong for it: an index is a level, and
    *  scaling it by the board would print 1,850 as 1.85. */
   instrumentQuoteConvention(

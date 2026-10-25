@@ -27,9 +27,11 @@ import type {
   InvestmentHorizon,
   MarketDataOverview,
   MarketEventKind,
+  MarketView,
   RiskLevel,
   ScreenAnswer,
   ScreenView,
+  SessionPhase,
   SourceFreshness,
   SourceStatus,
   TradingMacroView,
@@ -55,6 +57,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentHorizon: true,
   marketEventKind: true,
   riskLevel: true,
+  sessionPhase: true,
   sourceFreshness: true,
   typedPrice: true,
 }) as const satisfies {
@@ -67,6 +70,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentHorizon: Same<Vocab.InvestmentHorizon, InvestmentHorizon>
   marketEventKind: Same<Vocab.MarketEventKind, MarketEventKind>
   riskLevel: Same<Vocab.RiskLevel, RiskLevel>
+  sessionPhase: Same<Vocab.SessionPhase, SessionPhase>
   sourceFreshness: Same<Vocab.SourceFreshness, SourceFreshness>
   typedPrice: Same<Vocab.TypedPrice, TypedPrice>
 }
@@ -99,35 +103,53 @@ export function toScreenWire(market: string, answer: ScreenAnswer): ScreenRespon
   }
 }
 
-function toSessionWire(
-  session: NonNullable<TradingMarketsView['markets'][number]['session']>
-): MarketSessionWire {
+/** Absent for a market that never closes: it has neither hours nor a day. */
+function toSessionWire({ session, day }: MarketView): MarketSessionWire | undefined {
+  if (session === undefined || day === undefined) {
+    return undefined
+  }
+
   const { timezone, open, close, breaks } = session
 
-  return { timeZone: timezone, open, close, ...(breaks === undefined ? {} : { breaks }) }
+  return {
+    timeZone: timezone,
+    open,
+    close,
+    ...(breaks === undefined ? {} : { breaks }),
+    today: day.today,
+    tradesToday: day.tradesToday,
+    nextTradingDay: day.nextTradingDay,
+    phase: day.phase,
+  }
 }
 
 export function toMarketsWire(view: TradingMarketsView): MarketsResponse {
   return {
     homeRegion: view.homeRegion,
-    markets: view.markets.map((market) => ({
-      market: market.market,
-      currency: market.currency,
-      quoteUnit: market.unit,
-      ...(market.display === undefined ? {} : { priceDisplay: market.display }),
-      region: market.region,
-      ownsRegion: market.ownsRegion,
-      segment: market.segment,
-      label: market.label,
-      segmentLabel: market.segmentLabel,
-      regionLabel: market.regionLabel,
-      icon: market.icon,
-      ...(market.benchmark === undefined ? {} : { benchmark: toInstrumentWire(market.benchmark) }),
-      ...(market.session === undefined ? {} : { session: toSessionWire(market.session) }),
-      hasBoard: market.hasBoard,
-      hasBrief: market.hasBrief,
-      hasEvents: market.hasEvents,
-    })),
+    markets: view.markets.map((market) => {
+      const session = toSessionWire(market)
+
+      return {
+        market: market.market,
+        currency: market.currency,
+        quoteUnit: market.unit,
+        ...(market.display === undefined ? {} : { priceDisplay: market.display }),
+        region: market.region,
+        ownsRegion: market.ownsRegion,
+        segment: market.segment,
+        label: market.label,
+        segmentLabel: market.segmentLabel,
+        regionLabel: market.regionLabel,
+        icon: market.icon,
+        ...(market.benchmark === undefined
+          ? {}
+          : { benchmark: toInstrumentWire(market.benchmark) }),
+        ...(session === undefined ? {} : { session }),
+        hasBoard: market.hasBoard,
+        hasBrief: market.hasBrief,
+        hasEvents: market.hasEvents,
+      }
+    }),
   }
 }
 

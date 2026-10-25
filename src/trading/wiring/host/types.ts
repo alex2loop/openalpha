@@ -64,6 +64,7 @@ import type { ProfilePatch, UserProfile } from '@/trading/kernel/operator/profil
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Page } from '@/trading/kernel/store/page'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
+import type { MarketDay } from '@/trading/markets/calendar'
 import type { QuoteConvention } from '@/trading/render/money'
 import type { SURFACE_LIMITS } from '@/trading/surface-limits'
 import type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/composition/app-views'
@@ -298,6 +299,8 @@ export interface MarketView extends MarketDescription, QuoteConvention {
   readonly label: string
   readonly segmentLabel: string
   readonly regionLabel: string
+  /** Its day at the instant asked; absent with `session`. */
+  readonly day?: MarketDay
 }
 
 /** Every registered market, with the operator's home region: its owner is the default market. */
@@ -351,7 +354,7 @@ export interface TradingHost {
   searchInstruments(request: TradingSearchRequest): Promise<readonly InstrumentMatch[]>
   getOverview(signal: AbortSignal): Promise<readonly MarketDataOverview[]>
   getMacroRisk(request: TradingRegionRequest): Promise<TradingMacroView>
-  describeMarkets(): TradingMarketsView
+  describeMarkets(now: number): TradingMarketsView
   /** The market's sectors, strongest first; a market that files none answers empty with a caveat. */
   getSectors(request: TradingSectorsRequest): Promise<TradingSectorsView>
   /** Every source's health as this process has seen it. */

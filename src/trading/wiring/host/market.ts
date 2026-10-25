@@ -65,13 +65,15 @@ function seriesMethods(deps: TradingHostDeps): SeriesMethods {
 function describedMarket(
   deps: TradingHostDeps,
   market: MarketDescription,
-  convention: QuoteConvention
+  { convention, now }: { readonly convention: QuoteConvention; readonly now: number }
 ): MarketView {
   const locale = deps.defaultLocale
+  const day = deps.services.marketData.marketDay(market.market, now)
 
   return {
     ...market,
     ...convention,
+    ...(day === undefined ? {} : { day }),
     label: renderMarketName(locale, market.market),
     segmentLabel: renderDeclaredValue(locale, `trading.segment.${market.segment}`),
     regionLabel: renderRegionName(locale, market.region),
@@ -94,12 +96,12 @@ function priceMethods(deps: TradingHostDeps): PriceMethods {
 
   return {
     // How each market prints a price, so an app prints it the way the CLI does, and its names.
-    describeMarkets: () => ({
+    describeMarkets: (now) => ({
       homeRegion: deps.services.defaultRegion,
       markets: marketData.describeMarkets().flatMap((market) => {
         const convention = marketData.quoteConvention(market.market)
 
-        return convention === undefined ? [] : [describedMarket(deps, market, convention)]
+        return convention === undefined ? [] : [describedMarket(deps, market, { convention, now })]
       }),
     }),
 

@@ -2,7 +2,7 @@
 // regime. Same rules as `wire/trading.ts`. `changePct` is a percent, as on `/v1/quotes`.
 
 import type { InstrumentRefWire, TradingWireCaveat } from '@/app/server/wire/trading'
-import type { TypedPrice } from '@/app/server/wire/vocab'
+import type { SessionPhase, TypedPrice } from '@/app/server/wire/vocab'
 
 /** A ranked name's identity and live price; what the board says about it is in `card`. */
 interface ScreenCandidateWire {
@@ -246,7 +246,8 @@ interface MarketWire {
   readonly icon: string
   /** The index its suggestions are measured against. */
   readonly benchmark?: InstrumentRefWire
-  /** When it trades, as `HH:MM` on `timeZone`'s clock; absent for a market that never closes. */
+  /** When it trades, as `HH:MM` on `timeZone`'s clock, and its day at the request; absent for a
+   *  market that never closes. */
   readonly session?: MarketSessionWire
   /** It answers `/v1/screen`, a morning brief, and `/v1/events`. */
   readonly hasBoard: boolean
@@ -254,11 +255,17 @@ interface MarketWire {
   readonly hasEvents: boolean
 }
 
+/** `today` is the market's trading day on its own clock and `nextTradingDay` the next one it
+ *  trades, both `YYYY-MM-DD`. A closure past the market's holiday table reads as a session. */
 export interface MarketSessionWire {
   readonly timeZone: string
   readonly open: string
   readonly close: string
   readonly breaks?: readonly { readonly from: string; readonly to: string }[]
+  readonly today: string
+  readonly tradesToday: boolean
+  readonly nextTradingDay: string
+  readonly phase: SessionPhase
 }
 
 export interface MarketsResponse {

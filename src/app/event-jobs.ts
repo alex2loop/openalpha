@@ -13,7 +13,7 @@ function renderEventPrompt(app: App, fired: AlertFired): string {
   const { language, timezone } = app.config.locale
   const market = app
     .resolve('tradingHost')
-    .describeMarkets()
+    .describeMarkets(fired.firedAt)
     .markets.find((entry) => entry.market === fired.instrument.market)
 
   return t(language, 'scheduler.eventPrompt', {

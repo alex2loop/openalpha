@@ -30,7 +30,11 @@
       "session": {
         "timeZone": "Asia/Ho_Chi_Minh",
         "open": "08:00",
-        "close": "17:30"
+        "close": "17:30",
+        "today": "2026-10-23",
+        "tradesToday": true,
+        "nextTradingDay": "2026-10-24",
+        "phase": "open"
       },
       "hasBoard": false,
       "hasBrief": false,
@@ -64,7 +68,11 @@
             "from": "11:30",
             "to": "13:00"
           }
-        ]
+        ],
+        "today": "2026-10-23",
+        "tradesToday": true,
+        "nextTradingDay": "2026-10-26",
+        "phase": "break"
       },
       "hasBoard": true,
       "hasBrief": true,

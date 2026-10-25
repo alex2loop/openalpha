@@ -21,6 +21,10 @@ export type RiskLevel = 'conservative' | 'balanced' | 'aggressive'
 
 export type SourceFreshness = 'live' | 'cached'
 
+/** Where a market's session stands: `break` is its lunch gap, `non-session` a day it does not
+ *  trade. */
+export type SessionPhase = 'pre-open' | 'open' | 'break' | 'post-close' | 'non-session'
+
 export type TypedPrice = 'unconfirmed' | 'confirmed'
 
 export type MarketEventKind =

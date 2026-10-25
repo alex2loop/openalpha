@@ -27,7 +27,7 @@ async function handleDigest(req: Request, ctx: ApiRouteContext): Promise<Respons
     ctx.app.resolve('noticeStore').listOfKind(STOP_BREACHED_KIND, range, DIGEST_NOTABLE),
   ])
   const locale = localeOf(ctx)
-  const context = { locale, timezone: zone, markets: host.describeMarkets().markets }
+  const context = { locale, timezone: zone, markets: host.describeMarkets(Date.now()).markets }
   const notable = [
     ...stops.flatMap((row) => toStopNote(row, context) ?? []).slice(0, DIGEST_PER_KIND),
     ...facts.closed.slice(0, DIGEST_PER_KIND).map((call) => toCallNote(call, locale)),

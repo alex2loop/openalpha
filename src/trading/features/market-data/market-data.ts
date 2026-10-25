@@ -22,6 +22,7 @@ import type {
   SectorStrengthResult,
 } from '@/trading/kernel/market/market-capability'
 import type { Quote } from '@/trading/kernel/market/market-data'
+import type { MarketDay } from '@/trading/markets/calendar'
 import type {
   Market,
   MarketRegistry,
@@ -62,6 +63,7 @@ import { pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { ECONOMY_FEED_SCOPE } from '@/trading/kernel/source/source-result'
+import { resolveMarketDay } from '@/trading/markets/calendar'
 import { convictionDriftCaveats } from '@/trading/markets/conviction-calibration'
 import { countByGate } from '@/trading/markets/screen-partition'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -97,6 +99,7 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
     markets: () => deps.markets.list().map((market) => market.manifest.id),
     quoteConvention: (market) => quoteConventionOf(deps.markets, market),
     describeMarkets: () => deps.markets.list().map(describeMarket),
+    marketDay: (market, now) => marketDayOf(deps.markets, market, now),
     instrumentQuoteConvention: (options) => runQuoteConvention(run, options),
     minimumRiskReward: (market) => deps.markets.find(market)?.manifest.minimumRiskReward,
     boardLot: (market) => deps.markets.find(market)?.manifest.boardLot,
@@ -393,4 +396,15 @@ function quoteConventionOf(
     unit: manifest.quoteUnit,
     ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
   }
+}
+
+/** Absent for a market the registry does not list or one that never closes, as its hours are. */
+function marketDayOf(
+  markets: MarketRegistry,
+  market: MarketRef,
+  now: number
+): MarketDay | undefined {
+  const calendar = markets.find(market)?.manifest.calendar
+
+  return calendar === undefined || calendar.continuous ? undefined : resolveMarketDay(calendar, now)
 }

@@ -93,14 +93,14 @@ async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promi
 }
 
 async function handleMarkets(_req: Request, ctx: ApiRouteContext): Promise<Response> {
-  return json(toMarketsWire(hostOf(ctx).describeMarkets()) satisfies MarketsResponse)
+  return json(toMarketsWire(hostOf(ctx).describeMarkets(Date.now())) satisfies MarketsResponse)
 }
 
 /** The home region's markets lead; the rest keep the daemon's order. */
 async function handleOverview(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const host = hostOf(ctx)
   const blocks = await host.getOverview(req.signal)
-  const { homeRegion, markets } = host.describeMarkets()
+  const { homeRegion, markets } = host.describeMarkets(Date.now())
   const home = new Set(markets.filter((m) => m.region === homeRegion).map((m) => m.market))
   const ordered = [
     ...blocks.filter((block) => home.has(block.market)),
