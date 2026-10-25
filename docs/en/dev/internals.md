@@ -192,7 +192,10 @@ trading seam bound in `app`) and `agent_added`, and the engine adds `budget_exha
 and `tool_finished` (one finish per call that has a registered tool, after a start only if it reached its
 tool). Three notice kinds (`call-scored`, `held-news`, `index-drop`) are bell-only: the notice sender files
 them with `DeliveryHub.post`, which tells the delivery listeners and sends to no chat, unless
-`[notices] chat` lists the kind (checked against that set at boot). The held-name watch runs inside the
+`[notices] chat` lists the kind (checked against that set at boot). A scored focus call is not a notice: the scorer
+hands it to the `onFocusCallScored` seam with the agents `agent_focuses` lists for its focus, `app` emits
+`focus_call_scored` on the bus, and the feed sends one quiet `call_scored` per agent to the sockets, which the bell
+and the chats never see. The held-name watch runs inside the
 alerts loop; its cursor starts at boot and its dedupe sets reset at the day change. [app/server/feed/](../../../src/app/server/feed/) folds them into the run book
 behind `GET /v1/live` and broadcasts each to the open sockets; `approval_requested` and
 `clarification_requested` carry their ids and `askedAt` so the pending list can hold them. Wire shapes:

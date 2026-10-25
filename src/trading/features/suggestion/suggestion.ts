@@ -266,6 +266,7 @@ function toOutcomeDeps(deps: SuggestionServiceDeps): OutcomeResolutionDeps {
     store: deps.store,
     logger: deps.logger,
     notices: deps.notices,
+    agentFocuses: deps.agentFocuses,
     costs: deps.config.costs,
     defaultVenues: deps.config.defaultVenues,
   }

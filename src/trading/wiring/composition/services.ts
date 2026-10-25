@@ -16,6 +16,7 @@ import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { RunDebate } from '@/trading/features/suggestion/pipeline/types'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
 import type { FactorLogService } from '@/trading/features/suggestion/track-record/factor-log-types'
+import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
@@ -72,6 +73,7 @@ interface DomainServiceDeps {
   recipient(): DeliveryAddress | undefined
   readonly onFilled: OrderFilledListener
   readonly onAlertFired: AlertFiredListener
+  readonly onFocusCallScored: CallScoredNotices['onFocusScored']
   readonly config: TradingConfig
   readonly logger: Logger
   readonly runDebate: RunDebate
@@ -219,7 +221,12 @@ function buildSuggestions(parts: SuggestionParts): SuggestionService {
     config: deps.config,
     logger: deps.logger,
     runDebate: deps.runDebate,
-    notices: { sender: deps.sender, recipient: deps.recipient, locale: deps.defaultLocale },
+    notices: {
+      sender: deps.sender,
+      recipient: deps.recipient,
+      locale: deps.defaultLocale,
+      onFocusScored: deps.onFocusCallScored,
+    },
     ensure,
     createSuggestionBudget: () => deps.createSuggestionBudget(),
     skillVersions: deps.skillVersions,

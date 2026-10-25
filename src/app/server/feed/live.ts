@@ -20,6 +20,7 @@ import { followNotices } from '@/app/server/feed/notices'
 import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
 import { followRoles } from '@/app/server/feed/roles'
+import { followFocusCalls } from '@/app/server/feed/scored'
 import { withTicker } from '@/app/server/feed/tickers'
 import { followTools } from '@/app/server/feed/tools'
 import {
@@ -71,6 +72,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
     ...followProgress(deps, book),
     ...followTools(deps),
     ...followRoles(deps),
+    ...followFocusCalls(deps),
     ...followAgents(deps),
     ...followFills(deps),
     ...followBudget(deps),

@@ -174,6 +174,7 @@ export interface WireEvent {
     readonly conviction: string
   }
   /** 'call_scored': a call the track record has just scored, read it with GET /v1/suggestions/:id/card.
+   *  An own agent's focus call is `quiet` and names the agent in `source.agentId`.
    *  `returnPct` and the benchmark's are fractions net of fees (0.05 is 5%), as on a suggestion's
    *  `outcome`. `benchmark` is absent where the market names none. The rendered sentence rides in
    *  `note`. */

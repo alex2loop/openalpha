@@ -51,17 +51,20 @@ function moverEvent(
   }
 }
 
-function callScoredEvent(
+/** The operator's own call is a nudge from the app; an own agent's focus call is quiet, named by
+ *  the agent, for the page feed alone. */
+export function toCallScoredEvent(
   payload: Extract<Payload, { readonly kind: 'call-scored' }>,
-  text: string
+  text: string,
+  agentId?: string
 ): WireEvent {
   const { benchmark } = payload
 
   return {
     v: 1,
     kind: 'call_scored',
-    weight: 'nudge',
-    source: APP_SOURCE,
+    weight: agentId === undefined ? 'nudge' : 'quiet',
+    source: agentId === undefined ? APP_SOURCE : { ...APP_SOURCE, agentId },
     note: text,
     call: {
       suggestionId: payload.suggestionId,
@@ -142,7 +145,7 @@ export function toWireEvent(message: {
       }
 
     case 'call-scored':
-      return callScoredEvent(payload, message.text)
+      return toCallScoredEvent(payload, message.text)
 
     default:
       return noticeEvent(payload, message.text)

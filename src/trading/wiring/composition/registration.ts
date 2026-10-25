@@ -3,6 +3,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Hooks } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
+import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
@@ -83,6 +84,8 @@ interface TradingRegistrationOptions {
   onTaskPass(app: App): TaskPassListener
   /** Bound with the app in hand: the page shows what each debate role said. */
   onRoleOutput(app: App): RoleOutputListener
+  /** Bound with the app in hand: the page shows an own agent's call being scored. */
+  onFocusCallScored(app: App): CallScoredNotices['onFocusScored']
   /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
    *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
   recipient(): DeliveryAddress | undefined
@@ -94,7 +97,13 @@ interface TradingRegistrationOptions {
  *  reads them themselves. */
 type BoundOptions = Omit<
   TradingRegistrationOptions,
-  'sender' | 'onFilled' | 'onAlertFired' | 'onAlertsChecked' | 'onTaskPass' | 'onRoleOutput'
+  | 'sender'
+  | 'onFilled'
+  | 'onAlertFired'
+  | 'onAlertsChecked'
+  | 'onTaskPass'
+  | 'onRoleOutput'
+  | 'onFocusCallScored'
 > & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
@@ -102,6 +111,7 @@ type BoundOptions = Omit<
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
   readonly onRoleOutput: RoleOutputListener
+  readonly onFocusCallScored: CallScoredNotices['onFocusScored']
 }
 
 declare module '@/core/container' {
@@ -264,6 +274,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     onAlertsChecked: provided.onAlertsChecked(app),
     onTaskPass: provided.onTaskPass(app),
     onRoleOutput: provided.onRoleOutput(app),
+    onFocusCallScored: provided.onFocusCallScored(app),
   }
 }
 
@@ -323,6 +334,7 @@ function buildServices(
     recipient: options.recipient,
     onFilled: options.onFilled,
     onAlertFired: options.onAlertFired,
+    onFocusCallScored: options.onFocusCallScored,
     config: options.tradingConfig,
     // Composed here rather than passed in: the debate reads the closed market registry, which does
     // not exist until this function has built it.

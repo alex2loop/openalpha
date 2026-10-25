@@ -574,8 +574,9 @@ name stops the daemon at start, with the list). Nothing else the daemon sends to
 - **A call was scored.** When the track record closes a call you were given, on its target, its stop or its expiry,
   you hear once: the result net of fees, beside how the market's own benchmark did over the same span where the
   market names one. Only a call whose window ended within the last couple of days is told, so the first pass after an
-  upgrade does not flood the bell with old results. Only calls of your own record are told, never a second opinion from
-  an agent with its own focus. The card for that call has the full picture.
+  upgrade does not flood the bell with old results. Only calls of your own record reach the bell or a chat; a second
+  opinion from an agent with its own focus shows only live on the office page, at that agent. The card for that call
+  has the full picture.
 - **News on a name you hold.** One notice per held name per day, with the headline and its source. It covers only
   names the daemon has already read: headlines are archived when a `/suggest` or a chat about the name reads them,
   and nothing fetches news for your holdings on a schedule. After a restart it does not repeat the day's headlines.

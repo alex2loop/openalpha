@@ -1,4 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
+import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { OutcomeResolutionBatch } from '@/trading/features/suggestion/track-record/types'
@@ -37,6 +38,7 @@ export interface OutcomeResolutionDeps extends MarketCosts {
   readonly store: SuggestionStore
   readonly logger: Logger
   readonly notices: CallScoredNotices
+  readonly agentFocuses: Pick<AgentFocusStore, 'agentsOf'>
 }
 
 /** One pass's reads. Every row of a market is scored against the same benchmark series, so it is
@@ -221,7 +223,7 @@ async function storeOutcome(
   }
 
   await notifyCallScored(
-    { ...deps.notices, logger: deps.logger },
+    { ...deps.notices, logger: deps.logger, agentFocuses: deps.agentFocuses },
     { suggestion, market, outcome },
     options
   )

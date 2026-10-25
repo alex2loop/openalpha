@@ -202,7 +202,10 @@ truyền tín hiệu hủy, và báo lý do kết thúc có kiểu. Cấu hình 
 `tool_finished` (mỗi lời gọi có công cụ đã đăng ký báo kết thúc đúng một lần, và báo bắt đầu nếu nó tới được
 công cụ). Ba loại thông báo (`call-scored`, `held-news`, `index-drop`) chỉ vào chuông: bộ gửi thông báo đưa
 chúng qua `DeliveryHub.post`, chỉ báo cho các bên nghe và không gửi tới chat nào, trừ khi `[notices] chat` liệt
-kê loại đó (kiểm tra theo đúng tập này lúc khởi động). Việc theo dõi mã đang giữ chạy trong vòng lặp cảnh báo;
+kê loại đó (kiểm tra theo đúng tập này lúc khởi động). Một lệnh gọi theo trọng tâm được chấm điểm không phải thông
+báo: bộ chấm điểm trao nó cho điểm nối `onFocusCallScored` cùng các agent mà `agent_focuses` ghi đã gọi theo trọng
+tâm đó, `app` phát `focus_call_scored` lên bus, và luồng trực tiếp gửi tới các socket một `call_scored` mức `quiet`
+cho mỗi agent, nên chuông và chat không bao giờ thấy nó. Việc theo dõi mã đang giữ chạy trong vòng lặp cảnh báo;
 mốc đọc tin bắt đầu từ lúc khởi động và các tập chống gửi lặp được xóa khi sang ngày. [app/server/feed/](../../src/app/server/feed/) gộp chúng thành sổ các phiên chạy phía sau
 `GET /v1/live` và phát từng sự kiện tới các socket đang mở; `approval_requested` và `clarification_requested`
 mang id và `askedAt` để danh sách đang chờ giữ được chúng. Hình dạng trên dây:

@@ -1,6 +1,7 @@
 import type { RestartWhen } from '@/app/server/wire/vocab'
 import type { AgentId } from '@/core/ids'
-import type { OrderFill, RoleOutput } from '@/trading/api'
+import type { Locale } from '@/core/types/locale'
+import type { CallScoredPayload, OrderFill, RoleOutput } from '@/trading/api'
 
 declare module '@/core/events' {
   interface BusEventMap {
@@ -25,6 +26,13 @@ declare module '@/core/events' {
     /** What one debate role said once the debate was verified. Shown on the operator's own page and
      *  never sent to a chat or a model. */
     role_output: RoleOutput
+    /** A call an own agent made under its focus was just scored. Shown on the operator's own page
+     *  and never sent to a chat or filed to the bell. */
+    focus_call_scored: {
+      readonly agentIds: readonly string[]
+      readonly locale: Locale
+      readonly payload: CallScoredPayload
+    }
     /** An agent the operator just created is on the roster. `name` is what the operator called it. */
     agent_added: { readonly agentId: AgentId; readonly name: string }
     /** The bell changed: a notice was written, or some were read. `unread` is the count after. */
