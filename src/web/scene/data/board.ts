@@ -3,6 +3,7 @@ import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 import type { DigestWire } from '@/app/server/wire/digest'
 import type { BoardEntryWire, NoticeWire } from '@/app/server/wire/notices'
 import type { SuggestionWire } from '@/app/server/wire/trading'
+import type { SessionPhase } from '@/app/server/wire/vocab'
 import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
@@ -25,7 +26,7 @@ const HELD_NEWS_KIND = 'held-news'
 const INDEX_DROP_KIND = 'index-drop'
 const MS_PER_DAY = 86_400_000
 // The phases a session's index move happens in.
-const IN_SESSION_PHASES: ReadonlySet<string> = new Set(['open', 'break'])
+const IN_SESSION_PHASES: ReadonlySet<SessionPhase> = new Set<SessionPhase>(['open', 'break'])
 
 interface DigestPair {
   readonly today?: DigestWire
@@ -36,7 +37,7 @@ interface DigestPair {
 interface IndexDrop {
   readonly noticeId: string
   readonly movePct: number
-  readonly phase: string
+  readonly phase: SessionPhase
 }
 
 // The last answers of long-running commands, newest first; only their landing is shown yet.

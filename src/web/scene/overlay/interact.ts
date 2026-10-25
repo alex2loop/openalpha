@@ -2,7 +2,7 @@ import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Point, ScreenPoint } from '@/web/scene/types'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
 import { leaveRoom, panBy, view, zoomBy, zoomToRoom } from '@/web/scene/view'
-import { type PropDef, propsOn, spriteRectOf } from '@/web/scene/world/props'
+import { type PropDef, propsOn } from '@/web/scene/world/props'
 import { isInside, ROOM_IDS, roomAt } from '@/web/scene/world/rooms'
 import { toggleAllLamps, toggleLamp } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
@@ -223,7 +223,7 @@ function switchTitleOf(prop: PropDef | undefined): string {
 // The front-most prop under the point: the one standing lowest on the floor.
 function propAt(at: Point): PropDef | undefined {
   return propsOn(view.value.floor)
-    .filter((prop) => isInside(spriteRectOf(prop), at))
+    .filter((prop) => isInside(prop.draw, at))
     .sort((a, b) => b.sortY - a.sortY)[0]
 }
 

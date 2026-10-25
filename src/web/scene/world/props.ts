@@ -51,30 +51,40 @@ export type TipSource =
   | 'alerts'
   | 'agenda'
 
-/** A floor-standing piece's `rect` is its footprint on the floor and `height` how tall it stands
- *  (world px), so the nav grid blocks exactly what it covers; a wall-mounted piece's `rect` is the
- *  area it hangs on in the wall band. `sortY` is the rect's bottom edge; `variant` picks a look among
- *  a kind's (a frame's art, a screen's content). */
+/** Two boxes, one meaning each: `rect` is the footprint on the floor as the 3D layout stands it
+ *  (the nav grid blocks it; a wall piece's is the wall area it hangs on), `draw` the box the 2D
+ *  renderer paints and the pointer hits. `sortY` is `draw`'s bottom edge, the 2D paint order;
+ *  `height` how tall it stands (world px); `variant` picks a look among a kind's. */
 export interface PropDef {
   readonly id: string
   readonly kind: PropKind
   readonly floor: FloorId
   readonly room: RoomId
   readonly rect: Rect
+  readonly draw: Rect
   readonly height: number
   readonly sortY: number
   readonly tip?: TipSource
   readonly variant?: number
 }
 
-interface PropSpec {
-  readonly kind: PropKind
-  readonly room: RoomId
-  readonly at: readonly [number, number, number, number]
+type Box = readonly [number, number, number, number]
+
+interface PropLook {
   readonly height?: number
   readonly tip?: TipSource
   readonly variant?: number
 }
+
+interface PropSpec extends PropLook {
+  readonly kind: PropKind
+  readonly room: RoomId
+  readonly at: Box
+  readonly draw: Box
+}
+
+/** How a seat's chair sits: at a desk, or facing the room's back or front wall. */
+type SeatFacing = 'desk' | 'back' | 'front'
 
 const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   desk: 14,
@@ -114,134 +124,154 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   'lift-door': 30,
 } satisfies Record<PropKind, number>)
 
-// Hung on a wall: `rect` is the wall area, not a footprint, and nothing stands in front of it.
-const WALL_KINDS: ReadonlySet<PropKind> = new Set([
-  'frame',
-  'wall-screen',
-  'whiteboard',
-  'results-board',
-  'clock',
-  'light-switch',
-  'lift-door',
-  'window',
-])
-/** How far one px of height rises on screen in the fixed oblique view both renderers share. */
-const RISE_PER_HEIGHT = 0.78
+// A chair is an 11 px square centred on its seat, set back by its facing (the 3D chair3 and seatsOf).
+const CHAIR_PX = 11
+const CHAIR_SET_BACK: Readonly<Record<SeatFacing, number>> = Object.freeze({
+  desk: 0,
+  back: -4,
+  front: -12,
+})
 const LIFT_OFFICE = FLOORS.office.lift
 const LIFT_TEAM = FLOORS.team.lift
 
-// Footprints from the 3D layout where it and the 2D mockup differ.
 const PROP_SPECS: readonly PropSpec[] = Object.freeze([
-  { kind: 'frame', room: 'store', at: [96, 8, 14, 11], variant: 2 },
-  { kind: 'frame', room: 'store', at: [122, 6, 18, 13], variant: 0 },
-  { kind: 'wall-screen', room: 'store', at: [44, 4, 40, 24], variant: 0 },
-  ...[0, 1, 2, 3, 4].map(
-    (i): PropSpec => ({ kind: 'box', room: 'store', at: [12 + i * 28, 52, 22, 12], tip: 'store' })
+  wall('frame', 'store', { at: [96, 8, 14, 11], variant: 2 }),
+  wall('frame', 'store', { at: [122, 6, 18, 13], variant: 0 }),
+  wall('wall-screen', 'store', { at: [44, 4, 40, 24], variant: 0 }),
+  ...[0, 1, 2, 3, 4].map((i) =>
+    stand('box', 'store', {
+      at: [12 + i * 28, 52, 22, 12],
+      draw: [12 + i * 28, 44, 22, 20],
+      tip: 'store',
+    })
   ),
-  ...[0, 1, 2].map(
-    (i): PropSpec => ({ kind: 'box', room: 'store', at: [20 + i * 28, 78, 22, 12], tip: 'store' })
+  ...[0, 1, 2].map((i) =>
+    stand('box', 'store', {
+      at: [20 + i * 28, 78, 22, 12],
+      draw: [20 + i * 28, 70, 22, 20],
+      tip: 'store',
+    })
   ),
-  { kind: 'rack', room: 'store', at: [128, 100, 22, 12] },
-  { kind: 'table', room: 'store', at: [100, 152, 30, 9], height: 8, variant: 1 },
-  { kind: 'box', room: 'store', at: [104, 140, 18, 12], height: 7, tip: 'store' },
-  { kind: 'box', room: 'store', at: [119, 164, 12, 10], height: 20 },
-  { kind: 'box', room: 'store', at: [112, 174, 12, 10], height: 10 },
-  { kind: 'box', room: 'store', at: [126, 174, 12, 10], height: 10 },
-  { kind: 'box', room: 'store', at: [136, 176, 12, 10], height: 10 },
-  { kind: 'lamp', room: 'store', at: [8, 180, 8, 8] },
-  { kind: 'shelf', room: 'lib', at: [174, 44, 64, 10], tip: 'shelf' },
-  { kind: 'shelf', room: 'lib', at: [254, 44, 64, 10], tip: 'shelf' },
-  { kind: 'frame', room: 'lib', at: [322, 6, 28, 18], variant: 3 },
-  { kind: 'whiteboard', room: 'lib', at: [328, 44, 44, 32], variant: 23 },
-  { kind: 'ladder', room: 'lib', at: [296, 56, 12, 3] },
-  { kind: 'books', room: 'lib', at: [166, 72, 13, 6], variant: 1 },
-  { kind: 'books', room: 'lib', at: [168, 98, 14, 6], variant: 0 },
-  { kind: 'catalogue', room: 'lib', at: [168, 168, 28, 10] },
-  ...[176, 224, 272].flatMap((x): PropSpec[] => [
-    { kind: 'chair', room: 'lib', at: [x + 13, 126, 14, 10] },
-    { kind: 'desk', room: 'lib', at: [x, 119, 40, 12] },
-    { kind: 'computer', room: 'lib', at: [x + 12, 128, 16, 3] },
+  stand('rack', 'store', { at: [128, 100, 22, 12], draw: [128, 76, 22, 36] }),
+  stand('table', 'store', {
+    at: [100, 152, 30, 9],
+    draw: [100, 150, 30, 12],
+    height: 8,
+    variant: 1,
+  }),
+  stand('box', 'store', {
+    at: [104, 140, 18, 12],
+    draw: [104, 138, 18, 14],
+    height: 7,
+    tip: 'store',
+  }),
+  stand('box', 'store', { at: [119, 174, 12, 10], draw: [119, 162, 12, 18], height: 20 }),
+  stand('box', 'store', { at: [112, 174, 12, 10], draw: [112, 172, 12, 18], height: 10 }),
+  stand('box', 'store', { at: [126, 174, 12, 10], draw: [126, 172, 12, 18], height: 10 }),
+  stand('box', 'store', { at: [136, 176, 12, 10], draw: [136, 174, 12, 18], height: 10 }),
+  stand('lamp', 'store', { at: [8, 180, 8, 8], draw: [6, 133, 12, 51] }),
+  stand('shelf', 'lib', { at: [174, 44, 64, 10], draw: [174, 14, 64, 40], tip: 'shelf' }),
+  stand('shelf', 'lib', { at: [254, 44, 64, 10], draw: [254, 14, 64, 40], tip: 'shelf' }),
+  wall('frame', 'lib', { at: [322, 6, 28, 18], variant: 3 }),
+  wall('whiteboard', 'lib', { at: [328, 44, 44, 32], variant: 23 }),
+  stand('ladder', 'lib', { at: [296, 56, 12, 3], draw: [296, 22, 11, 34] }),
+  stand('books', 'lib', { at: [166, 72, 14, 10], draw: [166, 66, 15, 12], variant: 1 }),
+  stand('books', 'lib', { at: [168, 98, 14, 10], draw: [168, 90, 15, 14], variant: 0 }),
+  stand('catalogue', 'lib', { at: [168, 168, 28, 10], draw: [168, 156, 28, 22] }),
+  ...[176, 224, 272].flatMap((x) => [
+    stand('chair', 'lib', { at: seatFoot(x + 20, 136, 'desk'), draw: [x + 12, 113, 16, 11] }),
+    stand('desk', 'lib', { at: [x, 119, 40, 12], draw: [x, 128, 40, 20] }),
+    stand('computer', 'lib', { at: [x + 12, 128, 16, 3], draw: [x + 12, 114, 16, 14] }),
   ]),
-  { kind: 'copier', room: 'lib', at: [318, 142, 18, 14] },
-  { kind: 'printer', room: 'lib', at: [334, 148, 22, 12], tip: 'printer' },
-  { kind: 'tray', room: 'lib', at: [337, 160, 16, 5] },
-  { kind: 'plant', room: 'lib', at: [362, 158, 8, 8] },
-  { kind: 'lamp', room: 'lib', at: [368, 180, 8, 8] },
-  { kind: 'plant', room: 'meet', at: [612, 48, 8, 8] },
-  { kind: 'whiteboard', room: 'meet', at: [398, 44, 40, 30], tip: 'meet', variant: 11 },
-  ...[480, 512, 544].map(
-    (x): PropSpec => ({ kind: 'chair', room: 'meet', at: [x - 7, 110, 14, 10] })
+  stand('copier', 'lib', { at: [318, 142, 18, 14], draw: [318, 128, 24, 24] }),
+  stand('printer', 'lib', { at: [334, 148, 22, 12], draw: [334, 140, 22, 18], tip: 'printer' }),
+  stand('tray', 'lib', { at: [337, 160, 16, 5], draw: [336, 155, 18, 7] }),
+  stand('plant', 'lib', { at: [362, 158, 8, 8], draw: [360, 150, 12, 16] }),
+  stand('lamp', 'lib', { at: [368, 180, 8, 8], draw: [366, 133, 12, 51] }),
+  stand('plant', 'meet', { at: [612, 48, 8, 8], draw: [610, 40, 12, 16] }),
+  wall('whiteboard', 'meet', { at: [398, 44, 40, 30], tip: 'meet', variant: 11 }),
+  ...[480, 512, 544].map((x) =>
+    stand('chair', 'meet', { at: seatFoot(x, 120, 'back'), draw: [x - 8, 97, 16, 11] })
   ),
-  { kind: 'table', room: 'meet', at: [440, 122, 144, 22] },
-  ...[464, 496, 528, 560].map(
-    (x): PropSpec => ({ kind: 'chair', room: 'meet', at: [x - 7, 162, 14, 10], variant: 1 })
+  stand('table', 'meet', { at: [440, 122, 144, 22], draw: [440, 112, 144, 24] }),
+  ...[464, 496, 528, 560].map((x) =>
+    stand('chair', 'meet', {
+      at: seatFoot(x, 172, 'front'),
+      draw: [x - 8, 159, 16, 13],
+      variant: 1,
+    })
   ),
-  { kind: 'plant', room: 'meet', at: [394, 158, 8, 8] },
-  { kind: 'drinks', room: 'meet', at: [410, 172, 12, 8] },
-  { kind: 'lamp', room: 'meet', at: [616, 162, 8, 8] },
-  {
-    kind: 'lift-door',
-    room: 'lobby',
-    at: [LIFT_OFFICE.x, LIFT_OFFICE.y, LIFT_OFFICE.w, LIFT_OFFICE.h],
-  },
-  { kind: 'light-switch', room: 'lobby', at: [98, 232, 8, 11] },
-  ...[24, 56, 88].map(
-    (x): PropSpec => ({ kind: 'clock', room: 'lobby', at: [x, 226, 12, 12], tip: 'clock' })
-  ),
-  { kind: 'wall-screen', room: 'lobby', at: [28, 242, 84, 36], tip: 'agenda', variant: 1 },
-  { kind: 'wall-screen', room: 'lobby', at: [20, 286, 92, 42], tip: 'agenda', variant: 2 },
-  { kind: 'coat-rack', room: 'lobby', at: [146, 312, 8, 8] },
-  { kind: 'cooler', room: 'lobby', at: [134, 292, 12, 8] },
-  { kind: 'coffee', room: 'lobby', at: [114, 291, 16, 9] },
-  { kind: 'cat-bed', room: 'lobby', at: [136, 315, 24, 14] },
-  { kind: 'guest-desk', room: 'lobby', at: [112, 323, 18, 10] },
-  { kind: 'sofa', room: 'lobby', at: [24, 354, 72, 14] },
-  { kind: 'plant', room: 'lobby', at: [136, 352, 8, 8] },
-  { kind: 'lamp', room: 'lobby', at: [100, 368, 8, 8] },
-  { kind: 'frame', room: 'alerts', at: [232, 230, 16, 12], variant: 1 },
-  { kind: 'wall-screen', room: 'alerts', at: [174, 260, 42, 24], tip: 'alerts', variant: 3 },
-  { kind: 'wall-screen', room: 'alerts', at: [226, 236, 56, 8], variant: 4 },
-  { kind: 'news-rack', room: 'alerts', at: [300, 262, 14, 6] },
-  { kind: 'cabinet', room: 'alerts', at: [286, 298, 26, 6] },
-  { kind: 'plant', room: 'alerts', at: [172, 270, 8, 8] },
-  { kind: 'desk', room: 'alerts', at: [176, 333, 108, 10], height: 15, tip: 'alerts', variant: 1 },
-  { kind: 'phone', room: 'alerts', at: [258, 334, 10, 8], height: 19.5 },
-  { kind: 'lamp', room: 'alerts', at: [308, 372, 8, 8] },
-  { kind: 'results-board', room: 'assist', at: [414, 232, 52, 22], tip: 'results' },
-  { kind: 'chair', room: 'assist', at: [377, 296, 14, 10] },
-  { kind: 'desk', room: 'assist', at: [364, 291, 40, 12] },
-  { kind: 'computer', room: 'assist', at: [376, 300, 16, 3] },
-  { kind: 'tank', room: 'assist', at: [434, 298, 36, 13] },
-  { kind: 'plant', room: 'assist', at: [332, 348, 8, 8] },
-  { kind: 'plant', room: 'assist', at: [452, 352, 8, 8] },
-  { kind: 'lamp', room: 'assist', at: [464, 266, 8, 8] },
-  { kind: 'frame', room: 'desk', at: [560, 230, 18, 13], variant: 0 },
-  { kind: 'clock', room: 'desk', at: [496, 236, 12, 12], tip: 'clock' },
-  { kind: 'plant', room: 'desk', at: [612, 270, 8, 8] },
-  { kind: 'desk', room: 'desk', at: [510, 308, 96, 14], variant: 2 },
-  { kind: 'computer', room: 'desk', at: [526, 319, 16, 3] },
-  { kind: 'computer', room: 'desk', at: [574, 319, 16, 3] },
-  { kind: 'lamp', room: 'desk', at: [618, 350, 8, 8] },
-  { kind: 'lift-door', room: 'team', at: [LIFT_TEAM.x, LIFT_TEAM.y, LIFT_TEAM.w, LIFT_TEAM.h] },
-  { kind: 'shelf', room: 'team', at: [520, 66, 48, 10], height: 36 },
-  { kind: 'shelf', room: 'team', at: [576, 66, 48, 10], height: 36 },
-  ...[76, 236, 396].map(
-    (x, i): PropSpec => ({ kind: 'frame', room: 'team', at: [x, 8, 16, 12], variant: i })
-  ),
-  { kind: 'clock', room: 'team', at: [300, 10, 12, 12], tip: 'clock' },
-  { kind: 'table', room: 'team', at: [512, 118, 92, 12] },
-  { kind: 'vending', room: 'team', at: [620, 232, 18, 12] },
-  { kind: 'sofa', room: 'team', at: [528, 242, 84, 14] },
-  { kind: 'coffee', room: 'team', at: [522, 310, 40, 12], height: 26, variant: 1 },
-  { kind: 'drinks', room: 'team', at: [582, 300, 12, 8] },
-  { kind: 'cooler', room: 'team', at: [604, 314, 12, 8] },
+  stand('plant', 'meet', { at: [394, 158, 8, 8], draw: [392, 150, 12, 16] }),
+  stand('drinks', 'meet', { at: [410, 172, 12, 8], draw: [410, 169, 12, 9] }),
+  stand('lamp', 'meet', { at: [616, 162, 8, 8], draw: [614, 115, 12, 51] }),
+  wall('lift-door', 'lobby', { at: [LIFT_OFFICE.x, LIFT_OFFICE.y, LIFT_OFFICE.w, LIFT_OFFICE.h] }),
+  wall('light-switch', 'lobby', { at: [98, 232, 8, 11] }),
+  ...[24, 56, 88].map((x) => wall('clock', 'lobby', { at: [x, 226, 12, 12], tip: 'clock' })),
+  wall('wall-screen', 'lobby', { at: [28, 242, 84, 36], tip: 'agenda', variant: 1 }),
+  wall('wall-screen', 'lobby', { at: [20, 286, 92, 42], tip: 'agenda', variant: 2 }),
+  stand('coat-rack', 'lobby', { at: [146, 312, 8, 8], draw: [146, 272, 12, 45] }),
+  stand('cooler', 'lobby', { at: [134, 292, 12, 8], draw: [134, 276, 12, 24] }),
+  stand('coffee', 'lobby', { at: [114, 291, 16, 9], draw: [114, 280, 16, 19] }),
+  stand('cat-bed', 'lobby', { at: [136, 315, 24, 14], draw: [136, 315, 24, 14] }),
+  stand('guest-desk', 'lobby', { at: [112, 323, 18, 10], draw: [112, 310, 18, 23] }),
+  stand('sofa', 'lobby', { at: [24, 354, 72, 14], draw: [24, 340, 72, 30] }),
+  stand('plant', 'lobby', { at: [136, 352, 8, 8], draw: [134, 344, 12, 16] }),
+  stand('lamp', 'lobby', { at: [100, 368, 8, 8], draw: [98, 321, 12, 51] }),
+  wall('frame', 'alerts', { at: [232, 230, 16, 12], variant: 1 }),
+  wall('wall-screen', 'alerts', { at: [174, 260, 42, 24], tip: 'alerts', variant: 3 }),
+  wall('wall-screen', 'alerts', { at: [226, 236, 56, 8], variant: 4 }),
+  stand('news-rack', 'alerts', { at: [300, 262, 14, 6], draw: [300, 246, 14, 20] }),
+  stand('cabinet', 'alerts', { at: [286, 298, 26, 6], draw: [286, 266, 26, 38] }),
+  stand('plant', 'alerts', { at: [172, 270, 8, 8], draw: [170, 262, 12, 16] }),
+  stand('desk', 'alerts', {
+    at: [176, 333, 108, 10],
+    draw: [176, 322, 108, 20],
+    height: 15,
+    tip: 'alerts',
+    variant: 1,
+  }),
+  stand('phone', 'alerts', { at: [258, 334, 10, 8], draw: [258, 323, 10, 7], height: 19.5 }),
+  stand('lamp', 'alerts', { at: [308, 372, 8, 8], draw: [306, 325, 12, 51] }),
+  wall('results-board', 'assist', { at: [414, 232, 52, 22], tip: 'results' }),
+  stand('chair', 'assist', { at: seatFoot(384, 306, 'desk'), draw: [376, 283, 16, 11] }),
+  stand('desk', 'assist', { at: [364, 291, 40, 12], draw: [364, 300, 40, 20] }),
+  stand('computer', 'assist', { at: [376, 300, 16, 3], draw: [376, 286, 16, 14] }),
+  stand('tank', 'assist', { at: [434, 298, 36, 13], draw: [434, 295, 36, 27] }),
+  stand('plant', 'assist', { at: [332, 348, 8, 8], draw: [330, 340, 12, 16] }),
+  stand('plant', 'assist', { at: [452, 352, 8, 8], draw: [450, 344, 12, 16] }),
+  stand('lamp', 'assist', { at: [464, 266, 8, 8], draw: [462, 219, 12, 51] }),
+  wall('frame', 'desk', { at: [560, 230, 18, 13], variant: 0 }),
+  wall('clock', 'desk', { at: [496, 236, 12, 12], tip: 'clock' }),
+  stand('plant', 'desk', { at: [612, 270, 8, 8], draw: [610, 262, 12, 16] }),
+  stand('desk', 'desk', { at: [510, 308, 96, 14], draw: [510, 300, 96, 22], variant: 2 }),
+  stand('computer', 'desk', { at: [526, 319, 16, 3], draw: [526, 286, 16, 14] }),
+  stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 286, 16, 14] }),
+  stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
+  wall('lift-door', 'team', { at: [LIFT_TEAM.x, LIFT_TEAM.y, LIFT_TEAM.w, LIFT_TEAM.h] }),
+  stand('shelf', 'team', { at: [520, 66, 48, 10], draw: [520, 40, 48, 36], height: 36 }),
+  stand('shelf', 'team', { at: [576, 66, 48, 10], draw: [576, 40, 48, 36], height: 36 }),
+  ...[76, 236, 396].map((x, i) => wall('frame', 'team', { at: [x, 8, 16, 12], variant: i })),
+  wall('clock', 'team', { at: [300, 10, 12, 12], tip: 'clock' }),
+  stand('table', 'team', { at: [512, 118, 92, 12], draw: [512, 120, 92, 18] }),
+  stand('vending', 'team', { at: [620, 232, 18, 12], draw: [620, 206, 18, 38] }),
+  stand('sofa', 'team', { at: [528, 242, 84, 14], draw: [528, 228, 84, 30] }),
+  stand('coffee', 'team', {
+    at: [522, 310, 40, 12],
+    draw: [522, 288, 40, 34],
+    height: 26,
+    variant: 1,
+  }),
+  stand('drinks', 'team', { at: [582, 290, 16, 9], draw: [582, 297, 12, 9] }),
+  stand('cooler', 'team', { at: [604, 312, 12, 8], draw: [604, 296, 12, 24] }),
   ...[
     [616, 112],
     [500, 350],
     [8, 40],
     [470, 40],
-  ].map(([x = 0, y = 0]): PropSpec => ({ kind: 'plant', room: 'team', at: [x + 2, y + 8, 8, 8] })),
-  { kind: 'lamp', room: 'team', at: [508, 250, 8, 8] },
+  ].map(([x = 0, y = 0]) =>
+    stand('plant', 'team', { at: [x + 2, y + 8, 8, 8], draw: [x, y, 12, 16] })
+  ),
+  stand('lamp', 'team', { at: [508, 250, 8, 8], draw: [506, 203, 12, 51] }),
 ])
 
 const PROPS: readonly PropDef[] = Object.freeze(PROP_SPECS.map(toProp))
@@ -252,6 +282,7 @@ export function propsOn(floor: FloorId): readonly PropDef[] {
 
 function toProp(spec: PropSpec, index: number): PropDef {
   const [x, y, w, h] = spec.at
+  const [dx, dy, dw, dh] = spec.draw
 
   return {
     id: `${spec.room}-${spec.kind}-${index}`,
@@ -259,21 +290,30 @@ function toProp(spec: PropSpec, index: number): PropDef {
     floor: roomById(spec.room)?.floor ?? 'office',
     room: spec.room,
     rect: { x, y, w, h },
+    draw: { x: dx, y: dy, w: dw, h: dh },
     height: spec.height ?? HEIGHT_OF[spec.kind],
-    sortY: y + h,
+    sortY: dy + dh,
     ...(spec.tip === undefined ? {} : { tip: spec.tip }),
     ...(spec.variant === undefined ? {} : { variant: spec.variant }),
   }
 }
 
-/** What the piece covers on screen in a flat view: a wall piece its wall area; a standing piece its
- *  footprint plus the height rising above it. Drawing and pointer hits both read it. */
-export function spriteRectOf(prop: PropDef): Rect {
-  if (WALL_KINDS.has(prop.kind)) {
-    return prop.rect
-  }
+// A piece standing on the floor: its 3D footprint and its 2D drawn box differ.
+function stand(
+  kind: PropKind,
+  room: RoomId,
+  spec: PropLook & { readonly at: Box; readonly draw: Box }
+): PropSpec {
+  return { kind, room, ...spec }
+}
 
-  const rise = Math.round(prop.height * RISE_PER_HEIGHT)
+// A piece hung on a wall: one box serves both.
+function wall(kind: PropKind, room: RoomId, spec: PropLook & { readonly at: Box }): PropSpec {
+  return { kind, room, draw: spec.at, ...spec }
+}
 
-  return { x: prop.rect.x, y: prop.rect.y - rise, w: prop.rect.w, h: prop.rect.h + rise }
+function seatFoot(x: number, y: number, facing: SeatFacing): Box {
+  const cy = y + CHAIR_SET_BACK[facing]
+
+  return [x - CHAIR_PX / 2, cy - CHAIR_PX / 2, CHAIR_PX, CHAIR_PX]
 }

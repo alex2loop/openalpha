@@ -50,7 +50,7 @@ export function createScreenCache(): ScreenCache {
 
   return {
     drawAgenda(g, prop, view) {
-      const { x, y, w, h } = prop.rect
+      const { x, y, w, h } = prop.draw
       const isTiny = h * LINE_SHARE * view.scale < MIN_TEXT_PX
       const step = CACHE_STEPS.find((candidate) => candidate >= view.scale) ?? FINEST_STEP
       const key = `${view.model.sig}|${step}|${isTiny}`
@@ -84,7 +84,7 @@ interface PaintJob {
 }
 
 function repaint(canvas: HTMLCanvasElement, job: PaintJob): void {
-  const { w, h } = job.prop.rect
+  const { w, h } = job.prop.draw
   const c = canvas.getContext('2d')
 
   canvas.width = Math.ceil(w * job.step)

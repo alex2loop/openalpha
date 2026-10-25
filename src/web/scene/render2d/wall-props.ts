@@ -50,7 +50,7 @@ export const WALL_PAINTERS = Object.freeze({
 } satisfies Partial<Record<PropKind, Painter>>)
 
 function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y, w, h } = prop.rect
+  const { x, y, w, h } = prop.draw
 
   castShadow(g, [x + 2, y + h + 8, w, 3])
   framed(g, [x, y, w, h], '#FAFAFC')
@@ -67,10 +67,10 @@ function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef): void {
 
 // The results board: one pinned note per call the day landed, at most three.
 function paintResults(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  paintCork(g, prop.rect, Math.min(MAX_RESULT_NOTES, scene.fresh))
+  paintCork(g, prop.draw, Math.min(MAX_RESULT_NOTES, scene.fresh))
 }
 
-function paintCork(g: CanvasRenderingContext2D, rect: PropDef['rect'], notes: number): void {
+function paintCork(g: CanvasRenderingContext2D, rect: PropDef['draw'], notes: number): void {
   const { x, y, w, h } = rect
   const noteW = Math.floor(w / 3) - 2
 
@@ -87,7 +87,7 @@ function paintCork(g: CanvasRenderingContext2D, rect: PropDef['rect'], notes: nu
 }
 
 function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w, h } = prop.rect
+  const { x, y, w, h } = prop.draw
 
   fill(g, [x - 1, y - 1, w + 2, h + 2], INK)
 
@@ -105,7 +105,7 @@ function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
 }
 
 function paintClock(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w } = prop.rect
+  const { x, y, w } = prop.draw
   const cx = x + w / 2
   const cy = y + w / 2
   const minute = scene.minuteOfDay % MINUTES_PER_HOUR
@@ -145,10 +145,10 @@ function hand(
 }
 
 function paintFrame(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w, h } = prop.rect
+  const { x, y, w, h } = prop.draw
 
   if (prop.variant === CORK_VARIANT) {
-    paintCork(g, prop.rect, scene.pins)
+    paintCork(g, prop.draw, scene.pins)
     return
   }
 
@@ -161,7 +161,7 @@ function paintFrame(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScen
 }
 
 function paintSwitch(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w, h } = prop.rect
+  const { x, y, w, h } = prop.draw
 
   framed(g, [x + 1, y + 1, w - 2, h - 2], '#F7F3EA')
   fill(g, [x + 2, y + 2, w - 4, 5], '#C9CDD6')
@@ -169,7 +169,7 @@ function paintSwitch(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSce
 }
 
 function paintLiftDoor(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y, w, h } = prop.rect
+  const { x, y, w, h } = prop.draw
 
   framed(g, [x, y, w, h], '#C9C2B8')
   fill(g, [x + 2, y + 2, w - 4, h - 2], '#C9D0DB')

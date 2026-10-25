@@ -5,13 +5,12 @@ import { formatDay } from '@/i18n'
 import { locale, state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
 import { ABSENT_CELL } from '@/web/text/glyphs'
-import { buildDayKey, formatClock } from '@/web/text/time'
+import { buildDayKey, formatClock, MS_PER_SECOND } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
 const MAX_UPCOMING = 8
 // The task whose pass checks every alert, and so every event job's trigger.
 const ALERTS_TASK_NAME = 'trading.alerts'
-const MS_PER_SECOND = 1_000
 
 interface SectionProps {
   readonly schedules: readonly ScheduleRow[]

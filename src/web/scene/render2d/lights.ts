@@ -1,6 +1,6 @@
 import type { FloorId, RoomId } from '@/web/scene/types'
 import { fill } from '@/web/scene/render2d/building'
-import { propsOn, spriteRectOf } from '@/web/scene/world/props'
+import { propsOn } from '@/web/scene/world/props'
 import { roomAt, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
 interface LightRow {
@@ -113,7 +113,7 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
   for (const prop of propsOn(spec.floor).filter(
     (each) => each.kind === 'lamp' && spec.lit.has(each.room)
   )) {
-    const rect = spriteRectOf(prop)
+    const rect = prop.draw
     const cx = rect.x + rect.w / 2
 
     pool(g, {

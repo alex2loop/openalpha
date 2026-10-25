@@ -24,9 +24,9 @@ import { findRun } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
 import { colorScheme, lampsOff, lightByHour } from '@/web/state/prefs'
 import { state } from '@/web/state/session'
+import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 import './canvas.css'
-import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 const NO_ACTORS: SimView['actors'] = Object.freeze([])
 
