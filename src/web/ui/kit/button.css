@@ -1,0 +1,84 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--sunken);
+}
+
+.btn-regular {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+.btn-small {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.btn-commit,
+.btn-commit:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--canvas);
+}
+
+.btn-commit:hover {
+  opacity: 0.88;
+}
+
+.btn-ai,
+.btn-ai:hover {
+  background: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.btn-ai:hover {
+  filter: brightness(1.08);
+}
+
+.btn-tertiary {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink2);
+}
+
+.btn-tertiary::after {
+  content: "›";
+}
+
+.btn-tertiary:hover {
+  color: var(--ink);
+}
+
+.btn-destructive {
+  color: var(--dangerText);
+}
+
+.btn-destructive:hover {
+  background: var(--dangerTint);
+}
+
+.btn:disabled,
+.btn:disabled:hover {
+  background: var(--sunken);
+  border-color: var(--border);
+  color: var(--ink3);
+  opacity: 1;
+  filter: none;
+  cursor: default;
+}

@@ -55,7 +55,21 @@
     "outbound.sends.web": "the address of a page you or an agent asked to read",
     "outbound.sends.update": "the running version number",
     "outbound.sends.social": "what the agent posts and reads",
-    "outbound.sends.reachability": "nothing; it checks the network is up"
+    "outbound.sends.reachability": "nothing; it checks the network is up",
+    "office.error.unreachable": "I cannot reach the daemon.",
+    "office.error.timeout": "The daemon took too long to answer; try again.",
+    "office.error.badResponse": "The daemon answered in a form I cannot read.",
+    "office.error.generic": "Something went wrong; try again.",
+    "office.loading": "The office page is on its way.",
+    "office.signIn.title": "Open the {brand} office",
+    "office.signIn.body": "This page needs the daemon's access token. Run the command below to get a link that already carries it, then open that link; or paste the token below.",
+    "office.signIn.command": "{brand} api link",
+    "office.signIn.label": "Access token",
+    "office.signIn.placeholder": "Paste the access token here",
+    "office.signIn.remember": "Remember on this browser",
+    "office.signIn.open": "Open the office",
+    "office.signIn.note": "Works only on the machine running the daemon, or through an SSH tunnel.",
+    "office.signIn.refused": "That access token was not accepted; check it and try again."
   },
   "footer": {
     "cost": "{cost}",

@@ -1,0 +1,105 @@
+/* The desktop app's tokens (its DESIGN.md), as the office mockup carries them. */
+:root {
+  --s1: 8px;
+  --s2: 12px;
+  --s3: 16px;
+  --s4: 24px;
+  --canvas: #f2f2f6;
+  --surface: #ffffff;
+  --sunken: #e7e7ee;
+  --border: #dbdbe4;
+  --ink: #1b1b29;
+  --ink2: #4e4e62;
+  --ink3: #5f5f75;
+  --title: #2a2d4a;
+  --up: #0b7532;
+  --upTint: #e6f2ea;
+  --down: #c1231a;
+  --downTint: #fbe9e7;
+  --caution: #8a4b00;
+  --cautionBg: #fbf3db;
+  --dangerTint: #fdebec;
+  --dangerText: #9f2f2d;
+  --lift: 0 1px 2px rgba(27, 27, 41, 0.07);
+  --pop: 0 8px 28px rgba(27, 27, 41, 0.16);
+  --stage: #e4e4ec;
+  --stageHi: #eeeef3;
+  --glass: rgba(242, 242, 246, 0.86);
+  --tc-yellow: #a16207;
+  --tc-green: #1f8a4c;
+  --tc-blue: #2563eb;
+  --tc-pink: #c0365f;
+  --tc-peach: #c2410c;
+  --tc-teal: #0f766e;
+  --tc-gray: #5f5f75;
+  --tile-mix: 14%;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #1c1c28;
+    --surface: #262637;
+    --sunken: #303044;
+    --border: #3a3a50;
+    --ink: #eeeef6;
+    --ink2: #b6b7c9;
+    --ink3: #9c9db2;
+    --title: #dcdef2;
+    --up: #32d74b;
+    --upTint: #203a2b;
+    --down: #ff6259;
+    --downTint: rgba(255, 98, 89, 0.16);
+    --caution: #ffb340;
+    --cautionBg: rgba(255, 179, 64, 0.14);
+    --dangerTint: rgba(255, 98, 89, 0.16);
+    --dangerText: #ff8a80;
+    --lift: none;
+    --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --stage: #13151f;
+    --stageHi: #2b3045;
+    --glass: rgba(28, 28, 40, 0.86);
+    --tc-yellow: #f9e2af;
+    --tc-green: #a6e3a1;
+    --tc-blue: #89b4fa;
+    --tc-pink: #f38ba8;
+    --tc-peach: #fab387;
+    --tc-teal: #94e2d5;
+    --tc-gray: #a6adc8;
+    --tile-mix: 22%;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #1c1c28;
+  --surface: #262637;
+  --sunken: #303044;
+  --border: #3a3a50;
+  --ink: #eeeef6;
+  --ink2: #b6b7c9;
+  --ink3: #9c9db2;
+  --title: #dcdef2;
+  --up: #32d74b;
+  --upTint: #203a2b;
+  --down: #ff6259;
+  --downTint: rgba(255, 98, 89, 0.16);
+  --caution: #ffb340;
+  --cautionBg: rgba(255, 179, 64, 0.14);
+  --dangerTint: rgba(255, 98, 89, 0.16);
+  --dangerText: #ff8a80;
+  --lift: none;
+  --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --stage: #13151f;
+  --stageHi: #2b3045;
+  --glass: rgba(28, 28, 40, 0.86);
+  --tc-yellow: #f9e2af;
+  --tc-green: #a6e3a1;
+  --tc-blue: #89b4fa;
+  --tc-pink: #f38ba8;
+  --tc-peach: #fab387;
+  --tc-teal: #94e2d5;
+  --tc-gray: #a6adc8;
+  --tile-mix: 22%;
+  color-scheme: dark;
+}

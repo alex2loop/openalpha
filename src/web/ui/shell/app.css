@@ -1,0 +1,10 @@
+.app {
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+}
+
+.command-bar:empty {
+  display: none;
+}
