@@ -11,6 +11,7 @@ import { EventFields, TimeFields } from '@/web/ui/agent/schedule/schedule-fields
 import {
   buildJobBody,
   createScheduleForm,
+  isRunAtSet,
   REPEAT_LABELS,
   resolvePriceTrigger,
   type ScheduleForm,
@@ -181,7 +182,11 @@ function submit(open: OpenSchedule): void {
   const body = buildJobBody(form, timeZone)
 
   if (body === undefined) {
-    form.failure.value = tr('ui.office.schedule.levelNeeded')
+    form.failure.value = tr(
+      form.mode.value === 'time' && !isRunAtSet(form)
+        ? 'ui.office.schedule.timeNeeded'
+        : 'ui.office.schedule.levelNeeded'
+    )
     return
   }
 

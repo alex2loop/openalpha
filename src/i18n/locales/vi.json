@@ -510,6 +510,7 @@
     "office.schedule.costNoFigure": "Điều kiện được kiểm tra mỗi {seconds} giây, không tốn AI. Chỉ khi nó xảy ra mới gọi {agent}, tính vào ngân sách của agent; hết ngân sách thì chờ tới mai.",
     "office.schedule.preview": "Sẽ chạy: {when}, {agent} làm {what}",
     "office.schedule.levelNeeded": "Nhập một mức giá, ví dụ 125,00.",
+    "office.schedule.timeNeeded": "Chọn giờ chạy, ví dụ 09:15.",
     "office.schedule.dirAuto": "Chiều: {dir}, tính từ giá hôm nay {price}"
   },
   "footer": {

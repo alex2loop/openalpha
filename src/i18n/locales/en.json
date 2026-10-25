@@ -510,6 +510,7 @@
     "office.schedule.costNoFigure": "The condition is checked every {seconds} s at no AI cost. {agent} is called only when it happens, counted against the agent's budget; when the budget runs out it waits until tomorrow.",
     "office.schedule.preview": "Will run: {when}, {agent} does {what}",
     "office.schedule.levelNeeded": "Enter a price, for example 125.00.",
+    "office.schedule.timeNeeded": "Pick the time it runs, for example 09:15.",
     "office.schedule.dirAuto": "Direction: {dir}, from today's price {price}"
   },
   "footer": {

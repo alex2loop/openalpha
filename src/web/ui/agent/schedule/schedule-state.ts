@@ -25,6 +25,8 @@ const CRON_MONDAY = '1'
 const SEPARATORS = /[.,]/g
 const PLAIN_NUMBER = /^\d+(\.\d+)?$/
 const SPACES = /\s+/g
+// A whole time of day, `HH:mm` on a 24-hour clock.
+const CLOCK_TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
 export type EventKind = JobEventWire['event']
 export type Repeat = 'daily' | 'weekly' | 'once'
@@ -102,7 +104,7 @@ function parseLevel(text: string): number | undefined {
   return value > 0 ? value : undefined
 }
 
-/** The body `POST /v1/jobs` takes; absent when a price level is missing. */
+/** The body `POST /v1/jobs` takes; absent when the run time or a price level is missing. */
 export function buildJobBody(form: ScheduleForm, timeZone: string): JobCreateBody | undefined {
   const schedule = form.mode.value === 'time' ? buildTimed(form, timeZone) : buildEvent(form)
 
@@ -111,8 +113,17 @@ export function buildJobBody(form: ScheduleForm, timeZone: string): JobCreateBod
     : { agentId: form.agentId, prompt: form.work.value.trim(), schedule }
 }
 
-function buildTimed(form: ScheduleForm, timeZone: string): JobCreateBody['schedule'] {
-  const [hours = '0', minutes = '0'] = form.runAt.value.split(':')
+/** A cleared or half-typed time input is no time: it must never fall back to midnight. */
+export function isRunAtSet(form: ScheduleForm): boolean {
+  return CLOCK_TIME.test(form.runAt.value)
+}
+
+function buildTimed(form: ScheduleForm, timeZone: string): JobCreateBody['schedule'] | undefined {
+  if (!isRunAtSet(form)) {
+    return undefined
+  }
+
+  const [hours = '', minutes = ''] = form.runAt.value.split(':')
 
   switch (form.repeat.value) {
     case 'daily':
