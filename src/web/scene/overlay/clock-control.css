@@ -69,3 +69,8 @@
   color: var(--ink3);
   font-variant-numeric: tabular-nums;
 }
+
+.clock-market {
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
+}

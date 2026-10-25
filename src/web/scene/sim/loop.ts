@@ -171,8 +171,14 @@ function halt(loop: LoopState): void {
   loop.isIdle = true
 }
 
+// One frame outstanding at most: a second request waits for the one already asked for.
 function requestFrame(loop: LoopState): void {
   clearTimer(loop)
+
+  if (loop.frameId !== undefined) {
+    return
+  }
+
   loop.frameId = requestAnimationFrame((now) => frame(loop, now))
 }
 

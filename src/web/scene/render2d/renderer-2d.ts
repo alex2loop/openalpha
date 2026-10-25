@@ -1,32 +1,74 @@
+import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
-import { type Point, type ScreenPoint, WORLD } from '@/web/scene/types'
+import { agenda } from '@/web/scene/data/agenda'
+import { heldNewsPins, indexDrop, todayCalls } from '@/web/scene/data/board'
+import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
+import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
+import { type Fit, fitFloor, fitRoom, toSnappedFit } from '@/web/scene/render2d/camera'
+import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
+import { DAY_LIGHT_HOUR, lightAt, paintLighting } from '@/web/scene/render2d/lights'
+import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
+import { createScreenCache, type ScreenCache } from '@/web/scene/render2d/screens'
+import {
+  type FloorId,
+  type Point,
+  type ScreenPoint,
+  type SimView,
+  type Size,
+  WORLD,
+} from '@/web/scene/types'
+import { clampPan, FRAME_RECT, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'
+import { propsOn } from '@/web/scene/world/props'
+import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
+import { breakpoint } from '@/web/state/breakpoints'
+import { unread } from '@/web/state/notices'
+import { colorScheme } from '@/web/state/prefs'
 
 const CANVAS_CLASS = 'scene-canvas'
-const FLOOR_FILL_TOKEN = '--stageHi'
-const FLOOR_EDGE_TOKEN = '--border'
-const FLOOR_EDGE_PX = 1
+const STAGE_TOKEN = '--stage'
 const RENDER_WINDOW_MS = 1_000
 // Above any display's refresh rate, so the window never drops a render it should count.
 const MAX_RENDER_SAMPLES = 240
-const IDENTITY_FIT: Fit = Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
+const MINUTES_PER_HOUR = 60
+const ACTOR_TIE_RANK = 2
+const IDENTITY_FIT: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
-/** World-to-screen: CSS pixels per world pixel, and where the floor's corner sits. */
-interface Fit {
+/** Where the floor sits in the pane: CSS px per world px and the CSS px of world (0, 0). */
+interface Placement {
   readonly scale: number
-  readonly offsetX: number
-  readonly offsetY: number
+  readonly originX: number
+  readonly originY: number
 }
 
-// One mounted canvas and the fit of its last draw.
+interface Tokens {
+  readonly scheme: string
+  readonly stage: string
+}
+
+interface Background {
+  readonly canvas: HTMLCanvasElement
+  readonly floor: FloorId
+}
+
+// One mounted canvas, its offscreen floor and caches, and the placement of its last draw.
 interface Surface {
   readonly canvas: HTMLCanvasElement
   readonly context: CanvasRenderingContext2D
-  scale: number
-  offsetX: number
-  offsetY: number
+  readonly offscreen: HTMLCanvasElement
+  readonly screens: ScreenCache
+  background: Background | undefined
+  tokens: Tokens | undefined
+  placement: Placement
 }
 
-/** The 2D renderer: a canvas filling its host, the floor fitted and centred in it. */
+interface Piece {
+  readonly sortY: number
+  readonly tie: number
+  readonly draw: () => void
+}
+
+/** The 2D renderer: the cached floor, the props and people y-sorted on it, one light pass, all
+ *  painted at a whole zoom offscreen and stretched to the camera's scale. */
 export function createRenderer2d(): SceneRenderer {
   let surface: Surface | undefined
   let frameMs = 0
@@ -37,17 +79,17 @@ export function createRenderer2d(): SceneRenderer {
       surface ??= createSurface(host)
     },
     unmount() {
-      surface?.canvas.remove()
+      releaseSurface(surface)
       surface = undefined
     },
-    draw(_view, now) {
+    draw(sim, now) {
       if (surface === undefined) {
         return false
       }
 
       const startedAt = performance.now()
 
-      drawFloor(surface)
+      paintFrame(surface, sim, now)
       frameMs = performance.now() - startedAt
       recordRender(renderTimes, now)
 
@@ -71,62 +113,265 @@ function createSurface(host: HTMLElement): Surface | undefined {
   }
 
   canvas.className = CANVAS_CLASS
+  canvas.tabIndex = 0
   host.append(canvas)
 
-  return { canvas, context, scale: 1, offsetX: 0, offsetY: 0 }
+  return {
+    canvas,
+    context,
+    offscreen: document.createElement('canvas'),
+    screens: createScreenCache(),
+    background: undefined,
+    tokens: undefined,
+    placement: IDENTITY_FIT,
+  }
 }
 
-function drawFloor(surface: Surface): void {
-  const { canvas, context } = surface
-  const ratio = devicePixelRatio
-  const width = canvas.clientWidth
-  const height = canvas.clientHeight
-
-  if (canvas.width !== Math.round(width * ratio) || canvas.height !== Math.round(height * ratio)) {
-    canvas.width = Math.round(width * ratio)
-    canvas.height = Math.round(height * ratio)
+// Every bitmap the renderer holds goes to zero, so a switch away leaves nothing allocated.
+function releaseSurface(surface: Surface | undefined): void {
+  if (surface === undefined) {
+    return
   }
 
-  surface.scale = Math.min(width / WORLD.w, height / WORLD.h)
-  surface.offsetX = (width - WORLD.w * surface.scale) / 2
-  surface.offsetY = (height - WORLD.h * surface.scale) / 2
+  surface.canvas.remove()
+  zeroCanvas(surface.offscreen)
 
-  const tokens = getComputedStyle(canvas)
+  if (surface.background !== undefined) {
+    zeroCanvas(surface.background.canvas)
+  }
 
-  context.setTransform(ratio, 0, 0, ratio, 0, 0)
-  context.clearRect(0, 0, width, height)
-  context.fillStyle = tokens.getPropertyValue(FLOOR_FILL_TOKEN)
-  context.strokeStyle = tokens.getPropertyValue(FLOOR_EDGE_TOKEN)
-  context.lineWidth = FLOOR_EDGE_PX
-  context.fillRect(
-    surface.offsetX,
-    surface.offsetY,
-    WORLD.w * surface.scale,
-    WORLD.h * surface.scale
+  surface.background = undefined
+  surface.screens.release()
+  releaseCharacterSprites()
+}
+
+function zeroCanvas(canvas: HTMLCanvasElement): void {
+  canvas.width = 0
+  canvas.height = 0
+}
+
+function paintFrame(surface: Surface, sim: SimView, now: number): void {
+  const pane = { w: surface.canvas.clientWidth, h: surface.canvas.clientHeight }
+  const dpr = devicePixelRatio
+
+  if (pane.w === 0 || pane.h === 0) {
+    return
+  }
+
+  resizeCanvas(surface.canvas, pane, dpr)
+
+  const fit = placeCamera(surface, pane, dpr)
+  const scene = buildPaintScene(surface, sim, fit.scale)
+  const light = lightAt(sim.light.followsHour ? sim.light.hour : DAY_LIGHT_HOUR)
+
+  paintFloor(surface, { sim, scene, light, stretch: fit.stretch, now })
+  blitFloor(surface, { sky: light.sky, dpr })
+}
+
+// The camera's fit for this pane, clamped and rounded to device pixels, reported to the overlays.
+function placeCamera(surface: Surface, pane: Size, dpr: number): Fit {
+  const camera = view.value
+  const base = fitFloor(pane, dpr, breakpoint.value)
+  const room = camera.room === undefined ? undefined : roomById(camera.room)
+  const fit = resolveFit({ base, room: room?.rect, steps: camera.zoomSteps, pane, dpr })
+  const center = clampPan(camera.center, fit.scale, pane)
+  const originX = Math.round((pane.w / 2 - center.x * fit.scale) * dpr) / dpr
+  const originY = Math.round((pane.h / 2 - center.y * fit.scale) * dpr) / dpr
+
+  surface.placement = { scale: fit.scale, originX, originY }
+  reportProjection({ pane, scale: fit.scale, baseScale: base.scale, originX, originY })
+
+  return fit
+}
+
+function resolveFit(spec: {
+  readonly base: Fit
+  readonly room:
+    | { readonly x: number; readonly y: number; readonly w: number; readonly h: number }
+    | undefined
+  readonly steps: number
+  readonly pane: Size
+  readonly dpr: number
+}): Fit {
+  if (spec.room !== undefined) {
+    return fitRoom(spec.room, spec.pane, spec.dpr)
+  }
+
+  return spec.steps === 0
+    ? spec.base
+    : toSnappedFit(spec.base.scale * ZOOM_STEP ** spec.steps, spec.dpr)
+}
+
+function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintScene {
+  const lib = roomStatus.value.get('lib')?.runs[0]
+
+  return {
+    lit: sim.props.lit,
+    isAnyLit: sim.props.lit.size > 0,
+    minuteOfDay: sim.light.hour * MINUTES_PER_HOUR,
+    scale,
+    isPrinting: isPrintingRun(lib),
+    pins: heldNewsPins.value.length,
+    fresh: todayCalls.value?.filter((call) => call.action !== 'hold').length ?? 0,
+    unread: unread.value ?? 0,
+    agenda: agenda.value,
+    screens: surface.screens,
+  }
+}
+
+interface FloorJob {
+  readonly sim: SimView
+  readonly scene: PaintScene
+  readonly light: ReturnType<typeof lightAt>
+  readonly stretch: number
+  readonly now: number
+}
+
+// Cached floor, back props, the y-sorted pieces, then one light pass.
+function paintFloor(surface: Surface, job: FloorJob): void {
+  const { offscreen } = surface
+  const g = offscreen.getContext('2d')
+
+  if (g === null) {
+    return
+  }
+
+  if (offscreen.width !== WORLD.w * job.stretch || offscreen.height !== WORLD.h * job.stretch) {
+    offscreen.width = WORLD.w * job.stretch
+    offscreen.height = WORLD.h * job.stretch
+  }
+
+  g.setTransform(job.stretch, 0, 0, job.stretch, 0, 0)
+  g.imageSmoothingEnabled = false
+  g.clearRect(0, 0, WORLD.w, WORLD.h)
+  g.drawImage(resolveBackground(surface, job), 0, 0)
+
+  for (const piece of buildPieces(g, job)) {
+    piece.draw()
+  }
+
+  const dropPct = indexDrop.value?.movePct
+
+  paintLighting(g, {
+    floor: job.sim.floor,
+    lit: job.sim.props.lit,
+    light: job.light,
+    ...(dropPct === undefined ? {} : { dropPct }),
+  })
+}
+
+// Back props first in their list order, then props and people by their bottom edge.
+function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
+  const props = propsOn(job.sim.floor).filter((prop) => !isBaked(prop))
+  const back = props.filter(isBackProp).map((prop) => ({
+    sortY: Number.NEGATIVE_INFINITY,
+    tie: 0,
+    draw: () => paintProp(g, prop, job.scene),
+  }))
+  const standing = props
+    .filter((prop) => !isBackProp(prop))
+    .map((prop) => ({
+      sortY: prop.sortY,
+      tie: tieRankOf(prop),
+      draw: () => paintProp(g, prop, job.scene),
+    }))
+  const actors = job.sim.actors
+    .filter((actor) => actor.floor === job.sim.floor)
+    .map((actor) => ({
+      sortY: actor.at.y,
+      tie: ACTOR_TIE_RANK,
+      draw: () => drawCharacter(g, actor, { scale: job.scene.scale, now: job.now }),
+    }))
+
+  return [...back, ...[...standing, ...actors].sort((a, b) => a.sortY - b.sortY || a.tie - b.tie)]
+}
+
+// The floor never moves under its props: rebuilt only when the floor shown changes.
+function resolveBackground(surface: Surface, job: FloorJob): HTMLCanvasElement {
+  const held = surface.background
+
+  if (held?.floor === job.sim.floor) {
+    return held.canvas
+  }
+
+  const canvas = held?.canvas ?? document.createElement('canvas')
+  const g = canvas.getContext('2d')
+
+  canvas.width = WORLD.w
+  canvas.height = WORLD.h
+
+  if (g !== null) {
+    paintBuilding(g, job.sim.floor, (prop) => paintProp(g, prop, job.scene))
+  }
+
+  surface.background = { canvas, floor: job.sim.floor }
+
+  return canvas
+}
+
+// The stage behind the frame, the sky through the north glass, then the stretched floor.
+function blitFloor(
+  surface: Surface,
+  job: { readonly sky: readonly [string, string]; readonly dpr: number }
+): void {
+  const { context: g, canvas, placement } = surface
+  const { scale, originX, originY } = placement
+  const { sky } = job
+  const gradient = g.createLinearGradient(0, FRAME_RECT.y, 0, WALL_BAND_PX)
+
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.fillStyle = resolveTokens(surface).stage
+  g.fillRect(0, 0, canvas.width, canvas.height)
+  gradient.addColorStop(0, sky[0])
+  gradient.addColorStop(1, sky[1])
+  g.setTransform(scale * job.dpr, 0, 0, scale * job.dpr, originX * job.dpr, originY * job.dpr)
+  g.fillStyle = gradient
+  g.fillRect(0, FRAME_RECT.y, WORLD.w, WALL_BAND_PX - FRAME_RECT.y)
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.imageSmoothingEnabled = false
+  g.drawImage(
+    surface.offscreen,
+    Math.round(originX * job.dpr),
+    Math.round(originY * job.dpr),
+    Math.round(WORLD.w * scale * job.dpr),
+    Math.round(WORLD.h * scale * job.dpr)
   )
-  context.strokeRect(
-    surface.offsetX,
-    surface.offsetY,
-    WORLD.w * surface.scale,
-    WORLD.h * surface.scale
-  )
+}
+
+// The page's tokens are read once per scheme, never per frame.
+function resolveTokens(surface: Surface): Tokens {
+  const scheme = colorScheme.value
+
+  if (surface.tokens?.scheme !== scheme) {
+    surface.tokens = {
+      scheme,
+      stage: getComputedStyle(surface.canvas).getPropertyValue(STAGE_TOKEN),
+    }
+  }
+
+  return surface.tokens
+}
+
+function resizeCanvas(canvas: HTMLCanvasElement, pane: Size, dpr: number): void {
+  const width = Math.round(pane.w * dpr)
+  const height = Math.round(pane.h * dpr)
+
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width
+    canvas.height = height
+  }
 }
 
 function toScreen(surface: Surface | undefined, p: Point): ScreenPoint {
-  const fit = fitOf(surface)
+  const { scale, originX, originY } = surface?.placement ?? IDENTITY_FIT
 
-  return { x: fit.offsetX + p.x * fit.scale, y: fit.offsetY + p.y * fit.scale }
+  return { x: originX + p.x * scale, y: originY + p.y * scale }
 }
 
 function toWorld(surface: Surface | undefined, s: ScreenPoint): Point {
-  const fit = fitOf(surface)
+  const { scale, originX, originY } = surface?.placement ?? IDENTITY_FIT
 
-  return { x: (s.x - fit.offsetX) / fit.scale, y: (s.y - fit.offsetY) / fit.scale }
-}
-
-// An unmounted or zero-sized canvas maps one to one, so neither direction divides by zero.
-function fitOf(surface: Surface | undefined): Fit {
-  return surface === undefined || surface.scale <= 0 ? IDENTITY_FIT : surface
+  return { x: (s.x - originX) / scale, y: (s.y - originY) / scale }
 }
 
 function recordRender(renderTimes: number[], now: number): void {

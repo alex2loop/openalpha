@@ -3,6 +3,7 @@ import type { TasksResponse } from '@/app/server/wire/tasks'
 import type { LoadState } from '@/web/ui/kit/use-load'
 import { formatDay } from '@/i18n'
 import { locale, state } from '@/web/state/session'
+import { readText } from '@/web/text/fields'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { buildDayKey, formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
@@ -134,9 +135,4 @@ function formatWhen(atMs: number, timeZone: string): string {
   return day === buildDayKey(Date.now(), timeZone)
     ? clock
     : tr('ui.office.jobs.dayClock', { day: formatDay(locale.value, day), clock })
-}
-
-// Schedule rows are open: a field is read only when it holds text.
-function readText(value: unknown): string | undefined {
-  return typeof value === 'string' && value !== '' ? value : undefined
 }

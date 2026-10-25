@@ -1,5 +1,12 @@
 /** A tertiary button's trailing mark: it leads somewhere. */
 export const NEXT_GLYPH = '›'
+/** The mark that leads back, or to the left. */
+export const PREVIOUS_GLYPH = '‹'
+/** The office camera's zoom marks. */
+export const ZOOM_IN_GLYPH = '+'
+export const ZOOM_OUT_GLYPH = '−'
+/** The key cap of the key that leaves a room. */
+export const ESCAPE_KEY_CAP = 'Esc'
 /** Stands in for a number the page could not read; never a zero. */
 export const ABSENT_CELL = '—'
 /** Separates the segments of one line. */

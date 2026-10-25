@@ -46,6 +46,8 @@ let minuteTimer: ReturnType<typeof setTimeout> | undefined
 export const clockMode: ReadonlySignal<ClockMode> = mode
 /** The page clock in the scene zone, refreshed at each page-minute boundary. */
 export const pageMinute: ReadonlySignal<ClockParts> = minute
+/** The zone the scene keeps: the home market's, else the operator's `[locale] timezone`. */
+export const sceneZone: ReadonlySignal<string> = zone
 
 document.addEventListener('visibilitychange', syncMinute, { signal: lifetime.signal })
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks'
 
+import { translateDisplayText } from '@/i18n'
 import {
   CLOCK_PRESET_HOURS,
   CLOCK_SPEEDS,
@@ -9,10 +10,12 @@ import {
   pageHour,
   pageMinute,
   pageNow,
+  sceneZone,
   setClock,
 } from '@/web/scene/clock/clock'
+import { homeMarket, regionPack } from '@/web/scene/data/home'
 import { reducedMotion } from '@/web/state/prefs'
-import { state } from '@/web/state/session'
+import { locale, state } from '@/web/state/session'
 import { formatClock, formatHourOfDay } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Chip } from '@/web/ui/kit/chip'
@@ -57,6 +60,14 @@ export function ClockControl() {
       >
         {formatClock(pageNow(), timeZone)}
         <ClockBadge mode={clockMode.value} />
+        {sceneZone.value !== timeZone && (
+          <span class="clock-market">
+            {tr('ui.office.clock.marketTime', {
+              place: regionPack.value.city,
+              time: formatClock(pageNow(), sceneZone.value),
+            })}
+          </span>
+        )}
       </Chip>
       <Popover
         id={CLOCK_POPOVER_ID}
@@ -104,8 +115,25 @@ function ClockBody() {
       <SpeedRow mode={mode} />
       {reducedMotion.value && <p class="meta">{tr('ui.office.clock.reducedNote')}</p>}
       <p class="meta">{tr('ui.office.clock.note')}</p>
+      <ZoneNote />
     </div>
   )
+}
+
+// Named only when the office keeps another zone than the operator's.
+function ZoneNote() {
+  const market = homeMarket.value
+
+  if (market === undefined || sceneZone.value === state.value?.timeZone) {
+    return null
+  }
+
+  const name = translateDisplayText(locale.value, {
+    key: `trading.market.${market.market}`,
+    fallback: market.label,
+  })
+
+  return <p class="meta">{tr('ui.office.clock.zoneNote', { market: name })}</p>
 }
 
 function PresetGrid({ mode }: { readonly mode: ClockMode }) {

@@ -46,7 +46,6 @@ const BARREL_WAIVER = 'lint/performance/noBarrelFile'
 const KNOWN_UNUSED: ReadonlySet<string> = new Set<string>([
   // Wire shapes the office page takes with `import type`; the daemon only builds them inline.
   'src/app/server/wire/agents.ts#AgentLookWire',
-  'src/app/server/wire/market.ts#MarketWire',
 ])
 
 const DECLARATION_RE =
