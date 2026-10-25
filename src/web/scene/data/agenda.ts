@@ -13,14 +13,12 @@ import { alertCounts } from '@/web/scene/data/room-status'
 import { zoneParts } from '@/web/state/clock'
 import { locale, state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
-import { formatHourOfDay } from '@/web/text/time'
+import { formatHourOfDay, MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
 // The brief's and the jobs' next times move only when one runs or is edited.
 const TASKS_POLL_MS = 60_000
 const MINUTES_PER_DAY = 1_440
-const MINUTES_PER_HOUR = 60
-const MS_PER_MINUTE = 60_000
 // The task whose pass checks every price alert.
 const ALERTS_TASK_NAME = 'trading.alerts'
 const BRIEF_LABEL_KEY: MessageKey = 'ui.task.trading.briefs'

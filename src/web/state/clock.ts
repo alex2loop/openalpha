@@ -1,9 +1,8 @@
 import { type ReadonlySignal, type Signal, signal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
-const MS_PER_SECOND = 1_000
-const MS_PER_MINUTE = 60_000
-const MINUTES_PER_HOUR = 60
+import { MINUTES_PER_HOUR, MS_PER_MINUTE, MS_PER_SECOND } from '@/web/text/time'
+
 const SECONDS_PER_MINUTE = 60
 // Parts read in a fixed locale, so the weekday names below always match.
 const ZONE_PARTS_LOCALE = 'en-GB'

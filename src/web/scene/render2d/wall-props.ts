@@ -3,6 +3,7 @@ import type { ScreenCache } from '@/web/scene/render2d/screens'
 import type { RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
+import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 const PAPER = '#F7F5EF'
 const SWITCH_ON = '#FFB340'
@@ -14,7 +15,6 @@ const ART = [
   ['#E8C9A0', '#DCD3EE', '#F2C9D8', '#C3DCEE'],
 ] as const
 const MARKER_TONES = ['#7C93D6', '#A596D9', '#6F7388'] as const
-const MINUTES_PER_HOUR = 60
 const HOURS_ON_DIAL = 12
 const HOUR_HAND_PX = 3
 const MINUTE_HAND_PX = 5

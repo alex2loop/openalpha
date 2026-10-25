@@ -51,9 +51,11 @@ export function toggleLamp(room: string): void {
   storeLampsOff(next)
 }
 
-/** Sets every switch at once: the rooms named go off, the others on. */
-export function setLampsOff(rooms: readonly string[]): void {
-  storeLampsOff(new Set(rooms))
+/** The master switch over `rooms`' lamps: every one off when any is on, else every one on. */
+export function toggleAllLamps(rooms: readonly string[]): void {
+  const isAnyOn = rooms.some((room) => !switchedOff.value.has(room))
+
+  storeLampsOff(new Set(isAnyOn ? rooms : []))
 }
 
 /** Releases the media listeners and the theme observer; idempotent. */

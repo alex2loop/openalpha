@@ -25,6 +25,9 @@ export const ROOMS: readonly RoomDef[] = Object.freeze([
   { id: 'team', floor: 'team', rect: { x: 0, y: 0, w: 640, h: 384 }, surface: 'wood' },
 ] satisfies RoomDef[])
 
+/** Every room's id; each room has one lamp, switched by its id. */
+export const ROOM_IDS: readonly RoomId[] = Object.freeze(ROOMS.map((room) => room.id))
+
 export function roomsOn(floor: FloorId): readonly RoomDef[] {
   return ROOMS.filter((room) => room.floor === floor)
 }

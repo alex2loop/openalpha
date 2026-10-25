@@ -1,10 +1,11 @@
 import { pluralKey } from '@/i18n'
 import { tr } from '@/web/text/tr'
 
-const MS_PER_SECOND = 1_000
+/** The page's one set of time units. */
+export const MS_PER_SECOND = 1_000
 const SECONDS_PER_MINUTE = 60
-const MINUTES_PER_HOUR = 60
-const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
+export const MINUTES_PER_HOUR = 60
+export const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
 const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR
 // A 24-hour clock reads the same in both page languages.
 const CLOCK_LOCALE = 'en-GB'

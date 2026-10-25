@@ -259,7 +259,7 @@ function paintGlassWall(g: CanvasRenderingContext2D, box: Box): void {
 // A door in a room's north wall face is open to the corridor behind it, with a jamb each side.
 function paintDoorways(g: CanvasRenderingContext2D, doors: readonly Door[]): void {
   for (const door of doors) {
-    if (door.isWest === true || door.to === 'lift' || door.at.y === CORRIDOR_TOP) {
+    if (door.isWest === true || door.to !== undefined || door.at.y === CORRIDOR_TOP) {
       continue
     }
 

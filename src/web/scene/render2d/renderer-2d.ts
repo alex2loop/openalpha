@@ -23,13 +23,13 @@ import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 import { unread } from '@/web/state/notices'
 import { colorScheme } from '@/web/state/prefs'
+import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 const CANVAS_CLASS = 'scene-canvas'
 const STAGE_TOKEN = '--stage'
 const RENDER_WINDOW_MS = 1_000
 // Above any display's refresh rate, so the window never drops a render it should count.
 const MAX_RENDER_SAMPLES = 240
-const MINUTES_PER_HOUR = 60
 const ACTOR_TIE_RANK = 2
 const IDENTITY_FIT: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 

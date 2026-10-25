@@ -10,9 +10,9 @@ import {
   view,
   zoomBy,
 } from '@/web/scene/view'
-import { ROOMS } from '@/web/scene/world/rooms'
+import { ROOM_IDS } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
-import { lampsOff, setLampsOff } from '@/web/state/prefs'
+import { lampsOff, toggleAllLamps } from '@/web/state/prefs'
 import {
   ESCAPE_KEY_CAP,
   NEXT_GLYPH,
@@ -141,7 +141,8 @@ function ZoomControls({
 
 // One switch for every lamp: any lamp on turns them all off, else all on.
 function LampsButton() {
-  const isAnyOn = lampsOff.value.size < ROOMS.length
+  const off = lampsOff.value
+  const isAnyOn = ROOM_IDS.some((room) => !off.has(room))
 
   return (
     <button
@@ -150,18 +151,11 @@ function LampsButton() {
       aria-pressed={isAnyOn}
       title={tr('ui.office.lights.all')}
       aria-label={tr('ui.office.lights.all')}
-      onClick={toggleAllLamps}
+      onClick={() => toggleAllLamps(ROOM_IDS)}
     >
       <span class="scene-lamp-dot" aria-hidden="true" />
     </button>
   )
-}
-
-/** Every lamp off when any is on, else every lamp on. */
-export function toggleAllLamps(): void {
-  const isAnyOn = lampsOff.value.size < ROOMS.length
-
-  setLampsOff(isAnyOn ? ROOMS.map((room) => room.id) : [])
 }
 
 function PanArrows() {

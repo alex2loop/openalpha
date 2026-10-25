@@ -26,9 +26,9 @@ import { colorScheme, lampsOff, lightByHour } from '@/web/state/prefs'
 import { state } from '@/web/state/session'
 
 import './canvas.css'
+import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 const NO_ACTORS: SimView['actors'] = Object.freeze([])
-const MINUTES_PER_HOUR = 60
 
 /** The office scene: the mounted renderer driven by the sim loop, sized to its pane, with its
  *  overlays on top. */

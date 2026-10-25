@@ -1,4 +1,3 @@
-import type { PropDef, PropKind } from '@/web/scene/world/props'
 import {
   CARD,
   castShadow,
@@ -13,8 +12,11 @@ import {
   WOOD,
 } from '@/web/scene/render2d/building'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
+import { type PropDef, type PropKind, spriteRectOf } from '@/web/scene/world/props'
 
 const PAPER = '#F7F5EF'
+const MONITOR_PX = 9
+const PHONE_PX = 5
 const SCREEN_OFF = '#3E4452'
 const SCREEN_EDGE = '#5C6474'
 const LED_OFF = '#4B5370'
@@ -57,11 +59,12 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   books: paintBooks,
   computer: paintComputer,
   printer: paintPrinter,
-  copier: (g, p) => drawBlock(g, [p.rect.x, p.rect.y, 17, 8], { front: 16, tones: COPIER_TONES }),
+  copier: (g, p) =>
+    drawBlock(g, [p.rect.x, p.rect.y, p.rect.w, 8], { front: p.rect.h - 9, tones: COPIER_TONES }),
   rack: paintRack,
   tray: (g, p) => framed(g, [p.rect.x, p.rect.y, p.rect.w, 5], METAL[2]),
   box: paintBox,
-  phone: (g, p) => framed(g, [p.rect.x, p.rect.y, p.rect.w, p.rect.h - 1], SCREEN_OFF),
+  phone: (g, p) => framed(g, [p.rect.x, p.rect.y + 2, p.rect.w, PHONE_PX], SCREEN_OFF),
   table: paintTable,
   cooler: paintCooler,
   coffee: paintCoffee,
@@ -88,8 +91,9 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   ladder: paintLadder,
 } satisfies Record<PropKind, Painter>)
 
+/** Paints a prop over the box it covers on screen, derived from its footprint and height. */
 export function paintProp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  PAINTERS[prop.kind](g, prop, scene)
+  PAINTERS[prop.kind](g, { ...prop, rect: spriteRectOf(prop) }, scene)
 }
 
 export function isBackProp(prop: PropDef): boolean {
@@ -158,13 +162,14 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
 }
 
 // Dark unless someone works at it: no one does until the crew sits down.
+// The screen stands on its desk at the top of the box the computer covers.
 function paintComputer(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y, w, h } = prop.rect
+  const { x, y, w } = prop.rect
 
-  framed(g, [x, y, w, h - 4], SCREEN_OFF)
+  framed(g, [x, y, w, MONITOR_PX], SCREEN_OFF)
   fill(g, [x + 1, y + 1, w - 2, 1], SCREEN_EDGE)
-  fill(g, [x + w / 2 - 1, y + h - 4, 2, 3], SCREEN_EDGE)
-  fill(g, [x + w / 2 - 4, y + h - 1, 8, 1], SCREEN_EDGE)
+  fill(g, [x + w / 2 - 1, y + MONITOR_PX, 2, 3], SCREEN_EDGE)
+  fill(g, [x + w / 2 - 4, y + MONITOR_PX + 3, 8, 1], SCREEN_EDGE)
 }
 
 function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -258,8 +263,10 @@ function paintSofa(g: CanvasRenderingContext2D, prop: PropDef): void {
   drawBlock(g, [x, y + 8, w, 10], { front: 10, tones: FABRIC })
 }
 
+// The leaves spread two px past the pot each side.
 function paintPlant(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y } = prop.rect
+  const x = prop.rect.x - 2
+  const { y } = prop.rect
 
   castShadow(g, [x, y + 14, 12, 3])
   framed(g, [x + 2, y + 9, 8, 6], '#C9845A')
@@ -308,7 +315,7 @@ function paintCabinet(g: CanvasRenderingContext2D, prop: PropDef): void {
 function paintCatalogue(g: CanvasRenderingContext2D, prop: PropDef): void {
   const { x, y } = prop.rect
 
-  drawBlock(g, [x, y, 28, 5], { front: 17, tones: DARKWOOD })
+  drawBlock(g, [x, y, 28, 5], { front: prop.rect.h - 6, tones: DARKWOOD })
 
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {

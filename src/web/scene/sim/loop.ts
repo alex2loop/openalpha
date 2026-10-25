@@ -1,8 +1,8 @@
 import { SMALL_MOTION_RENDERS_PER_S } from '@/web/scene/budgets'
+import { MS_PER_SECOND } from '@/web/text/time'
 
 const SIM_STEP_MS = 100
 const MAX_FRAME_DT_MS = 250
-const MS_PER_SECOND = 1_000
 const SMALL_MOTION_GAP_MS = MS_PER_SECOND / SMALL_MOTION_RENDERS_PER_S
 // A deadline already due still waits one step, so a sim that keeps reporting one cannot spin.
 const MIN_IDLE_WAIT_MS = SIM_STEP_MS

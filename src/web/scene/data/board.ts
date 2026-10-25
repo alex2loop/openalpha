@@ -24,6 +24,8 @@ const SUGGESTIONS_LIMIT = 30
 const HELD_NEWS_KIND = 'held-news'
 const INDEX_DROP_KIND = 'index-drop'
 const MS_PER_DAY = 86_400_000
+// The phases a session's index move happens in.
+const IN_SESSION_PHASES: ReadonlySet<string> = new Set(['open', 'break'])
 
 interface DigestPair {
   readonly today?: DigestWire
@@ -34,7 +36,7 @@ interface DigestPair {
 interface IndexDrop {
   readonly noticeId: string
   readonly movePct: number
-  readonly phase?: string
+  readonly phase: string
 }
 
 // The last answers of long-running commands, newest first; only their landing is shown yet.
@@ -55,9 +57,9 @@ export const digest = computed(() => {
 
   return yesterday === undefined ? undefined : { wire: yesterday, isToday: false }
 })
-/** Today's calls, newest first; absent until `/v1/suggestions` answers. */
+/** The page clock's day's calls (it rolls over at the scene's midnight), newest first; absent until `/v1/suggestions` answers. */
 export const todayCalls: ReadonlySignal<readonly SuggestionWire[] | undefined> = computed(() => {
-  const day = homeMarket.value?.session?.today ?? operatorDay(Date.now())
+  const day = pageMinute.value.day
 
   return calls.value?.filter((call) => call.at === day)
 })
@@ -130,29 +132,39 @@ function countLanded(held: string | undefined, next: string | undefined): void {
   }
 }
 
-// A new index-drop notice lights the lobby in the phase it came in; the next phase ends it.
+// An index drop happens in a session: a notice of today lights the lobby only while the home
+// market's session is open, and the next known phase ends it. While the phase is unknown (before
+// the first `/v1/markets` read) nothing is armed and nothing ends, so a morning notice opened after
+// the close never glows out of its session.
 function syncIndexDrop(): void {
-  const newest = notices.value.find((notice) => isTodaysNotice(notice, INDEX_DROP_KIND))
   const phase = homeMarket.value?.session?.phase
   const held = drop.peek()
 
-  // The session moved on, or the day the drop belonged to is over.
-  if (held !== undefined && (phase !== held.phase || newest === undefined)) {
-    endedDropId = held.noticeId
-    drop.value = undefined
+  if (phase === undefined) {
     return
   }
 
+  if (held !== undefined) {
+    if (phase !== held.phase) {
+      endedDropId = held.noticeId
+      drop.value = undefined
+    }
+    return
+  }
+
+  const newest = notices.value.find((notice) => isTodaysNotice(notice, INDEX_DROP_KIND))
   const movePct = newest?.event.movePct
 
   if (
-    newest !== undefined &&
-    movePct !== undefined &&
-    held === undefined &&
-    newest.id !== endedDropId
+    newest === undefined ||
+    movePct === undefined ||
+    newest.id === endedDropId ||
+    !IN_SESSION_PHASES.has(phase)
   ) {
-    drop.value = { noticeId: newest.id, movePct, ...(phase === undefined ? {} : { phase }) }
+    return
   }
+
+  drop.value = { noticeId: newest.id, movePct, phase }
 }
 
 // A notice of `kind` filed on the scene's day.

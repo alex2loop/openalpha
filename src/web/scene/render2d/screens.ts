@@ -2,7 +2,7 @@ import type { AgendaModel, AgendaRow } from '@/web/scene/data/agenda'
 import type { Size } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
 import { pluralKey } from '@/i18n'
-import { formatDuration } from '@/web/text/time'
+import { formatDuration, MS_PER_MINUTE } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
 // Text cached at the first of these canvas pixels per world pixel that covers the zoom.
@@ -14,7 +14,6 @@ const MIN_TEXT_PX = 9
 const LINE_SHARE = 0.1
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
 const CLIP_MARK = '...'
-const MS_PER_MINUTE = 60_000
 const PANEL = '#171A2B'
 const PANEL_LINE = '#2C3250'
 const DIM = '#6C6D82'

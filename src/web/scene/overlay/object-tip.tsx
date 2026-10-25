@@ -17,14 +17,13 @@ import {
 import { focusRun } from '@/web/state/focus'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
-import { formatClock } from '@/web/text/time'
+import { formatClock, MS_PER_SECOND } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
 import './object-tip.css'
 
 // Long enough for the pointer to cross from the object to its tip.
 const TIP_HIDE_MS = 300
-const MS_PER_SECOND = 1_000
 // The tip sits this far below the pointer, so it never covers what it describes.
 const TIP_OFFSET_PX = 14
 

@@ -1,11 +1,10 @@
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Point, ScreenPoint } from '@/web/scene/types'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
-import { toggleAllLamps } from '@/web/scene/overlay/toolbar'
 import { leaveRoom, panBy, view, zoomBy, zoomToRoom } from '@/web/scene/view'
-import { type PropDef, propsOn } from '@/web/scene/world/props'
-import { isInside, roomAt } from '@/web/scene/world/rooms'
-import { toggleLamp } from '@/web/state/prefs'
+import { type PropDef, propsOn, spriteRectOf } from '@/web/scene/world/props'
+import { isInside, ROOM_IDS, roomAt } from '@/web/scene/world/rooms'
+import { toggleAllLamps, toggleLamp } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 
 /** A press that moves further than this is a drag, never a click. */
@@ -177,7 +176,7 @@ function click(input: InputState, at: Point): void {
   }
 
   if (prop?.kind === 'light-switch') {
-    toggleAllLamps()
+    toggleAllLamps(ROOM_IDS)
     return
   }
 
@@ -224,7 +223,7 @@ function switchTitleOf(prop: PropDef | undefined): string {
 // The front-most prop under the point: the one standing lowest on the floor.
 function propAt(at: Point): PropDef | undefined {
   return propsOn(view.value.floor)
-    .filter((prop) => isInside(prop.rect, at))
+    .filter((prop) => isInside(spriteRectOf(prop), at))
     .sort((a, b) => b.sortY - a.sortY)[0]
 }
 
