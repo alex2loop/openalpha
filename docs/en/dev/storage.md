@@ -48,7 +48,7 @@ each fill part of.
   `foreign_keys = ON`. The retention sweep also runs `PRAGMA optimize` every 6 hours on SQLite
   (`optimizeSqlite` in `persistence/upkeep.ts`, failures log `retention.optimize_failed`); there is no
   engine timer. Backup uses `VACUUM INTO` (`persistence/backup.ts`): written into a
-  `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, `chmod 0600`, then renamed into place,
+  `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, `chmod 0600`, fsynced, renamed into place and the parent directory fsynced (an fsync failure fails the backup),
   because `VACUUM INTO` honours the umask and the copy must never be readable by others while it is
   written. `backupAndPrune` writes a copy then clears orphaned staging folders and drops the oldest past `keep`
   (`KEEP_BACKUPS`, 7, unless the caller passes a count). The retention sweep calls it for `backups/daily/`

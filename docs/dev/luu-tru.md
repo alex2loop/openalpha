@@ -48,7 +48,7 @@ mỗi bên điền một phần.
   `foreign_keys = ON`. Lượt quét lưu giữ còn chạy `PRAGMA optimize` mỗi 6 giờ trên SQLite
   (`optimizeSqlite` trong `persistence/upkeep.ts`, lỗi log `retention.optimize_failed`); không có timer của
   engine. Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`): ghi vào một thư mục
-  tạm `mkdtemp` (`.staging-*`, `0700`) cạnh đích, `chmod 0600`, rồi rename vào chỗ, vì `VACUUM INTO` theo umask
+  tạm `mkdtemp` (`.staging-*`, `0700`) cạnh đích, `chmod 0600`, fsync, rename vào chỗ rồi fsync thư mục cha (fsync lỗi thì bản sao lưu lỗi), vì `VACUUM INTO` theo umask
   chứ không theo đối số quyền và bản sao không được để người khác đọc được lúc đang ghi. `backupAndPrune`
   ghi một bản, xóa các thư mục tạm mồ côi và bỏ các bản cũ nhất quá `keep` (`KEEP_BACKUPS` là 7 nếu nơi gọi
   không truyền số). Lượt quét lưu giữ gọi nó cho `backups/daily/` khi `newestBackupAt` không có, nằm
