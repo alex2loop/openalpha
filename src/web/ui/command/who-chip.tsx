@@ -24,13 +24,14 @@ export function WhoChip() {
   )
 }
 
-// Offline, the switch is not sent: the list shows the agent still selected.
+// The list keeps showing the agent the daemon last accepted; the answer to `/agent` moves it.
 function onPick(event: TargetedEvent<HTMLSelectElement>): void {
   const element = event.currentTarget
   const value = element.value
 
+  element.value = selectedAgentId.value ?? ASSISTANT_VALUE
+
   if (!selectAgent(value === ASSISTANT_VALUE ? undefined : value)) {
-    element.value = selectedAgentId.value ?? ASSISTANT_VALUE
     isNotSent.value = true
   }
 }

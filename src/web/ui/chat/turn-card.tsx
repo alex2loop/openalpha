@@ -76,11 +76,11 @@ function RunningStep({ turn }: { readonly turn: Turn }) {
 
 // A lane command runs beside the chat's own answer; it names that answer while both run.
 function resolveAlongside(turn: Turn): string | undefined {
-  if (turn.laneId === undefined) {
+  if (turn.isInLane === undefined) {
     return undefined
   }
 
-  const head = thread.value.find((held) => held.laneId === undefined && held.status === 'running')
+  const head = thread.value.find((held) => held.isInLane === undefined && held.status === 'running')
 
   return head?.text
 }
@@ -105,7 +105,7 @@ function RunningActions({ turn }: { readonly turn: Turn }) {
   return (
     <div class="chat-actions">
       {turn.kind === 'ask' && (
-        <Button size="small" disabled={typed === ''} onClick={() => addNote(typed)}>
+        <Button size="small" disabled={typed === ''} onClick={() => addNote(turn, typed)}>
           {tr('ui.office.chat.addNote')}
         </Button>
       )}
@@ -118,8 +118,8 @@ function RunningActions({ turn }: { readonly turn: Turn }) {
   )
 }
 
-function addNote(typed: string): void {
-  if (steer(typed)) {
+function addNote(turn: Turn, typed: string): void {
+  if (steer(turn, typed)) {
     setInput('')
   }
 }

@@ -8,7 +8,7 @@ export function QueuedCard({ turn }: { readonly turn: Turn }) {
   return (
     <div class="chat-card is-queued">
       <p class="chat-step">{describeWait(turn)}</p>
-      {turn.laneId !== undefined && (
+      {turn.isInLane === true && (
         <div class="chat-actions">
           <Button kind="destructive" size="small" onClick={() => dropWaiting(turn)}>
             {tr('ui.office.chat.drop')}
@@ -20,16 +20,16 @@ export function QueuedCard({ turn }: { readonly turn: Turn }) {
 }
 
 function describeWait(turn: Turn): string {
-  if (turn.laneId !== undefined && turn.position !== undefined) {
+  if (turn.isInLane === true && turn.position !== undefined) {
     const running = thread.value.filter(
-      (held) => held.laneId !== undefined && held.status === 'running'
+      (held) => held.isInLane === true && held.status === 'running'
     ).length
 
     return tr('ui.office.chat.queuedPos', { position: turn.position, running })
   }
 
   const head = thread.value.find(
-    (held) => held.laneId === undefined && held.status === 'running' && held !== turn
+    (held) => held.isInLane === undefined && held.status === 'running' && held !== turn
   )
 
   return head === undefined

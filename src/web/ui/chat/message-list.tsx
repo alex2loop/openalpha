@@ -8,23 +8,39 @@ import { HistoryMessage } from '@/web/ui/chat/history-message'
 import { TurnCard } from '@/web/ui/chat/turn-card'
 import { Button } from '@/web/ui/kit/button'
 
+// How near the bottom still counts as reading the newest line.
+const PIN_SLACK_PX = 24
+
 /** The current session: its earlier messages, then what was sent on this page, newest last. */
 export function MessageList() {
   const list = useRef<HTMLDivElement>(null)
   const turns = thread.value
   const earlier = history.value.messages
 
-  // A new turn or a streamed delta keeps the newest line in view.
+  const isPinned = useRef(true)
+
+  // A new turn or a streamed delta keeps the newest line in view while the reader is at the bottom.
   useEffect(() => {
     const element = list.current
 
-    if (element !== null) {
+    if (element !== null && isPinned.current) {
       element.scrollTop = element.scrollHeight
     }
   }, [turns])
 
   return (
-    <div ref={list} class="chat-messages" role="log" aria-live="polite">
+    <div
+      ref={list}
+      class="chat-messages"
+      role="log"
+      aria-live="polite"
+      onScroll={(event) => {
+        const element = event.currentTarget
+
+        isPinned.current =
+          element.scrollHeight - element.scrollTop - element.clientHeight <= PIN_SLACK_PX
+      }}
+    >
       <HistoryHead />
       {earlier.map((message, index) => (
         // Counted from the newest, so an older page prepended never shifts a key.

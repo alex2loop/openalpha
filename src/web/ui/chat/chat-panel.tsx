@@ -1,3 +1,4 @@
+import { clearAgentChoice } from '@/web/state/agents'
 import { isChatOpen, setChatOpen, startSession, unread } from '@/web/state/chat'
 import { tr } from '@/web/text/tr'
 import { MessageList } from '@/web/ui/chat/message-list'
@@ -73,6 +74,7 @@ function askNewSession(): void {
     confirm: () => {
       viewedSession.value = undefined
       startSession()
+      clearAgentChoice()
     },
   })
 }

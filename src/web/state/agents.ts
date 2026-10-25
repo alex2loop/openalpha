@@ -17,7 +17,8 @@ const selected = signal<string | undefined>(undefined)
 
 /** The operator's own agents; empty until read, and kept when a later read fails. */
 export const agents: ReadonlySignal<readonly AgentWire[]> = list
-/** The agent typing goes to on this page; absent is the assistant. */
+/** The agent typing goes to on this page, as the daemon last accepted; absent is the assistant or
+ *  not known yet (a resumed session's binding is not read). */
 export const selectedAgentId: ReadonlySignal<string | undefined> = selected
 
 /** Reads the roster now, every `AGENTS_POLL_MS` and on every `agent_added`. */
@@ -35,19 +36,24 @@ export function startAgents(): () => void {
   }
 }
 
-/** Sends `/agent <id>` (no AI cost); false when the socket is not live, and the choice stays. */
+/** Sends `/agent <id>` (no AI cost); the chip changes once the daemon answers without an error.
+ *  False when the socket is not live. */
 export function selectAgent(agentId: string | undefined): boolean {
   if (agentId === selected.value) {
     return true
   }
 
-  if (!sendMessage(`/agent ${agentId ?? ASSISTANT_TARGET}`, { isSystem: true })) {
-    return false
-  }
+  return sendMessage(`/agent ${agentId ?? ASSISTANT_TARGET}`, {
+    isSystem: true,
+    onDone: () => {
+      selected.value = agentId
+    },
+  })
+}
 
-  selected.value = agentId
-
-  return true
+/** A new session talks to the assistant until the operator picks again. */
+export function clearAgentChoice(): void {
+  selected.value = undefined
 }
 
 async function loadAgents(abortSignal: AbortSignal): Promise<void> {

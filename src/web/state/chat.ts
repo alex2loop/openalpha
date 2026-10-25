@@ -21,14 +21,15 @@ interface SteerNote {
   readonly text: string
 }
 
-/** One line the operator sent and what came back. `sentAt` and `doneAt` are `performance.now()`
- *  readings, so the page measures the time itself. */
+/** One line the operator sent and what came back. `localId` is the id sent with it, which every
+ *  frame it produces echoes. `sentAt` and `doneAt` are `performance.now()` readings, so the page
+ *  measures the time itself. */
 export interface Turn {
   readonly localId: string
   readonly text: string
   readonly kind: 'ask' | 'slash'
-  /** The command lane's id, once its first frame named it. */
-  readonly laneId?: string
+  /** It runs in the command lane, beside the chat's own answer. */
+  readonly isInLane?: true
   readonly status: TurnStatus
   readonly position?: number
   readonly reply: string
@@ -38,27 +39,35 @@ export interface Turn {
   readonly doneAt?: number
   readonly runId?: string
   readonly error?: string
-  /** The session it was sent in; absent when the page had none yet. */
+  /** The session it runs in: the page's when sent, else the one the daemon named for it. */
   readonly sessionId?: string
+  /** Sent while the page had no session: the session the daemon names for it becomes the page's. */
+  readonly opensSession?: true
   /** The who-chip's `/agent`: its reply shows as a system line. */
   readonly isSystem?: true
   readonly steer?: SteerNote
   readonly tickers?: readonly string[]
 }
 
+interface SendOptions {
+  readonly isSystem?: true
+  /** Called once the daemon answered the line without an error. */
+  readonly onDone?: () => void
+}
+
 const FINISHED: ReadonlySet<TurnStatus> = new Set(['done', 'error', 'dropped', 'stopped'])
 
 const turns = signal<readonly Turn[]>([])
+const isOpen = signal(false)
 const finishedTickers = new Map<string, readonly string[]>()
-let turnSeq = 0
+// Removed when the turn finishes, so it never outgrows the unfinished turns.
+const doneCallbacks = new Map<string, () => void>()
 
 export const thread: ReadonlySignal<readonly Turn[]> = turns
 /** The session typing goes to; absent until the daemon names one. */
 export const sessionId = signal<string | undefined>(undefined)
 /** A frame arrived while the panel was closed. */
 export const unread = signal(false)
-const isOpen = signal(false)
-
 export const isChatOpen: ReadonlySignal<boolean> = isOpen
 
 export function isFinished(turn: Turn): boolean {
@@ -70,7 +79,6 @@ export function isFinished(turn: Turn): boolean {
 export function startChat(): () => void {
   const offs = [
     onChatFrame(receiveFrame),
-    onWireEvent('run_started', (event) => adoptSession(event.runId, event.run?.sessionId)),
     onWireEvent('run_finished', (event) => keepTickers(event.runId, event.tickers)),
     // A dropped socket aborts the turns it ran, so none is left waiting for a frame.
     effect(() => {
@@ -96,24 +104,28 @@ export function setChatOpen(open: boolean): void {
 }
 
 /** False when the socket is not live: nothing was sent and the caller keeps the text. */
-export function sendMessage(text: string, opts: { readonly isSystem?: true } = {}): boolean {
+export function sendMessage(text: string, opts: SendOptions = {}): boolean {
   const message = text.trim()
   const session = sessionId.value
+  const localId = crypto.randomUUID()
 
-  if (message === '' || !sendFrame(withSession({ type: 'chat', message }, session))) {
+  if (message === '' || !sendFrame(withSession({ type: 'chat', message, id: localId }, session))) {
     return false
   }
 
-  turnSeq++
+  if (opts.onDone !== undefined) {
+    doneCallbacks.set(localId, opts.onDone)
+  }
+
   addTurn({
-    localId: String(turnSeq),
+    localId,
     text: message,
     kind: message.startsWith(COMMAND_PREFIX) ? 'slash' : 'ask',
     status: 'sending',
     reply: '',
     steps: [],
     sentAt: performance.now(),
-    ...(session === undefined ? {} : { sessionId: session }),
+    ...(session === undefined ? { opensSession: true } : { sessionId: session }),
     ...(opts.isSystem === true ? { isSystem: true } : {}),
   })
 
@@ -125,49 +137,45 @@ export function sendMessage(text: string, opts: { readonly isSystem?: true } = {
   return true
 }
 
-/** Adds the text to the answer running now; it reads it at its next step. */
-export function steer(text: string): boolean {
+/** Adds the text to `turn`'s running answer; it reads it at its next step. A command is never a
+ *  steer: it would run on its own. */
+export function steer(turn: Turn, text: string): boolean {
   const message = text.trim()
-  const head = findHead()
+  const frame = withSession({ type: 'steer', message, id: turn.localId }, resolveSession(turn))
 
-  if (message === '' || head === undefined) {
+  if (message === '' || message.startsWith(COMMAND_PREFIX) || !sendFrame(frame)) {
     return false
   }
 
-  if (!sendFrame(withSession({ type: 'steer', message }, head.sessionId ?? sessionId.value))) {
-    return false
-  }
-
-  updateTurn(head.localId, (turn) => ({ ...turn, steer: { state: 'sending', text: message } }))
+  updateTurn(turn.localId, (held) => ({ ...held, steer: { state: 'sending', text: message } }))
 
   return true
 }
 
 /** Takes a waiting command out of the line; the daemon answers `dropped`. */
 export function dropWaiting(turn: Turn): void {
-  const session = turn.sessionId ?? sessionId.value
+  const session = resolveSession(turn)
 
-  if (turn.laneId !== undefined && session !== undefined) {
-    sendFrame({ type: 'drop', sessionId: session, id: turn.laneId })
+  if (turn.isInLane === true && session !== undefined) {
+    sendFrame({ type: 'drop', sessionId: session, id: turn.localId })
   }
 }
 
-/** True when "Dừng" can reach the turn: by its run, or by cancelling its session. */
+/** True when "Dừng" can reach the turn: by its run, or by cancelling its own session. */
 export function canStop(turn: Turn): boolean {
-  return turn.runId !== undefined || (turn.kind === 'ask' && resolveSession(turn) !== undefined)
+  return turn.runId !== undefined || turn.sessionId !== undefined
 }
 
-/** A command stops by its run (throws `ApiFailure`); an agent turn cancels what runs in this chat.
- *  A cancel the socket cannot send needs none: a dropped socket already stopped the turn. */
+/** A command stops by its run (throws `ApiFailure`); anything else cancels what runs in its
+ *  session. A cancel the socket cannot send needs none: a dropped socket already stopped it. */
 export async function stopTurn(turn: Turn): Promise<void> {
   if (turn.runId !== undefined) {
     await stopRun(turn.runId)
-  } else {
-    const session = resolveSession(turn)
-
-    if (session === undefined || !sendFrame({ type: 'cancel', sessionId: session })) {
-      return
-    }
+  } else if (
+    turn.sessionId === undefined ||
+    !sendFrame({ type: 'cancel', sessionId: turn.sessionId })
+  ) {
+    return
   }
 
   finishTurn(turn.localId, 'stopped')
@@ -176,7 +184,15 @@ export async function stopTurn(turn: Turn): Promise<void> {
 /** The next message opens a new session. Turns still running keep going and stay in view. */
 export function startSession(): void {
   sessionId.value = undefined
-  turns.value = turns.value.filter((turn) => !isFinished(turn))
+  turns.value = turns.value.flatMap((turn) => {
+    if (isFinished(turn)) {
+      return []
+    }
+
+    const { opensSession: _dropped, ...kept } = turn
+
+    return [kept]
+  })
 }
 
 function resolveSession(turn: Turn): string | undefined {
@@ -199,6 +215,7 @@ function finishTurn(localId: string, status: TurnStatus): void {
   updateTurn(localId, (turn) =>
     isFinished(turn) ? turn : { ...turn, status, doneAt: performance.now() }
   )
+  doneCallbacks.delete(localId)
 }
 
 function stopUnfinished(): void {
@@ -207,48 +224,8 @@ function stopUnfinished(): void {
   }
 }
 
-// The session queue is FIFO, so a frame without a lane id belongs to the oldest unfinished turn
-// outside the lane.
-function findHead(): Turn | undefined {
-  return turns.value.find((turn) => turn.laneId === undefined && !isFinished(turn))
-}
-
-// A plain `queued` speaks for the message just held back, not for the answer that holds it.
-function resolveSessionTurn(frame: ChatServerFrame): Turn | undefined {
-  if (frame.kind !== 'queued') {
-    return findHead()
-  }
-
-  return turns.value.find((turn) => turn.laneId === undefined && turn.status === 'sending')
-}
-
-// A lane id the page has not seen is the oldest command still waiting for its first frame.
-function resolveLaneTurn(laneId: string): Turn | undefined {
-  const bound = turns.value.find((turn) => turn.laneId === laneId)
-
-  if (bound !== undefined) {
-    return bound
-  }
-
-  const waiting = turns.value.find(
-    (turn) =>
-      turn.status === 'sending' &&
-      turn.kind === 'slash' &&
-      turn.laneId === undefined &&
-      turn.isSystem === undefined
-  )
-
-  if (waiting === undefined) {
-    return undefined
-  }
-
-  updateTurn(waiting.localId, (turn) => ({ ...turn, laneId }))
-
-  return { ...waiting, laneId }
-}
-
-// A tool frame's `id` names its tool call, never a lane.
-function laneIdOf(frame: ChatServerFrame): string | undefined {
+// Only a frame naming one of this page's lines is read: another client's frames carry no id of ours.
+function frameIdOf(frame: ChatServerFrame): string | undefined {
   if (frame.kind === 'tool' || !('id' in frame)) {
     return undefined
   }
@@ -257,27 +234,39 @@ function laneIdOf(frame: ChatServerFrame): string | undefined {
 }
 
 function receiveFrame(frame: ChatServerFrame): void {
-  if (!isChatOpen.value) {
-    unread.value = true
-  }
-
-  if (frame.kind === 'steered' || frame.kind === 'steer_dropped') {
-    noteSteer(frame.kind === 'steered' ? undefined : frame.text)
-    return
-  }
-
-  const laneId = laneIdOf(frame)
-  const turn = laneId === undefined ? resolveSessionTurn(frame) : resolveLaneTurn(laneId)
+  const id = frameIdOf(frame)
+  const turn = id === undefined ? undefined : turns.value.find((held) => held.localId === id)
 
   if (turn === undefined || isFinished(turn)) {
     return
   }
 
-  if (frame.kind === 'done' && frame.sessionId !== undefined && turn.sessionId === undefined) {
-    adoptSessionId(frame.sessionId)
+  if (!isOpen.value) {
+    unread.value = true
   }
 
-  updateTurn(turn.localId, (held) => applyFrame(held, frame))
+  const next = applyFrame(turn, frame)
+
+  if (next.opensSession === true && next.sessionId !== undefined) {
+    adoptSessionId(next.sessionId)
+  }
+
+  updateTurn(turn.localId, () => next)
+  settleCallback(next)
+}
+
+function settleCallback(turn: Turn): void {
+  if (!isFinished(turn)) {
+    return
+  }
+
+  const callback = doneCallbacks.get(turn.localId)
+
+  doneCallbacks.delete(turn.localId)
+
+  if (turn.status === 'done') {
+    callback?.()
+  }
 }
 
 function applyFrame(turn: Turn, frame: ChatServerFrame): Turn {
@@ -286,32 +275,44 @@ function applyFrame(turn: Turn, frame: ChatServerFrame): Turn {
       return { ...turn, reply: turn.reply + frame.delta, status: 'running' }
     case 'progress':
       return withStep(turn, frame.text)
-    case 'tool':
-      return 'name' in frame
-        ? withStep(turn, frame.detail === undefined ? frame.name : `${frame.name} ${frame.detail}`)
-        : turn
     case 'queued':
-      return { ...turn, status: 'queued', ...positionOf(frame.position) }
+      return toQueued(turn, frame.position, frame.sessionId)
     case 'started':
-      return {
-        ...turn,
-        status: 'running',
-        ...(frame.runId === undefined ? {} : { runId: frame.runId }),
-      }
+      return toStarted(turn, frame.runId, frame.sessionId)
     case 'dropped':
       // A command told to stop after it began ends as dropped too.
       return toFinished(turn, turn.status === 'running' ? 'stopped' : 'dropped')
     case 'done':
-      return toDone(turn, frame.runId)
+      return toDone(turn, frame.runId, frame.sessionId)
     case 'error':
       return { ...toFinished(turn, 'error'), error: frame.message }
+    case 'steered':
+      return { ...turn, steer: { state: 'steered', text: turn.steer?.text ?? '' } }
+    case 'steer_dropped':
+      return { ...turn, steer: { state: 'dropped', text: frame.text } }
     default:
       return turn.status === 'running' ? turn : { ...turn, status: 'running' }
   }
 }
 
-function positionOf(position: number | undefined): Pick<Turn, 'position'> {
-  return position === undefined ? {} : { position }
+// A position is a place in the command lane; without one the line waits behind the chat's answer.
+function toQueued(turn: Turn, position: number | undefined, session: string | undefined): Turn {
+  return {
+    ...turn,
+    status: 'queued',
+    ...(position === undefined ? {} : { position, isInLane: true }),
+    ...(session === undefined ? {} : { sessionId: session }),
+  }
+}
+
+// A start with a run is a command in the lane; an agent turn starts with its session.
+function toStarted(turn: Turn, runId: string | undefined, session: string | undefined): Turn {
+  return {
+    ...turn,
+    status: 'running',
+    ...(runId === undefined ? {} : { runId, isInLane: true }),
+    ...(session === undefined ? {} : { sessionId: session }),
+  }
 }
 
 function withStep(turn: Turn, step: string): Turn {
@@ -324,7 +325,7 @@ function toFinished(turn: Turn, status: TurnStatus): Turn {
   return { ...turn, status, doneAt: performance.now() }
 }
 
-function toDone(turn: Turn, frameRunId: string | undefined): Turn {
+function toDone(turn: Turn, frameRunId: string | undefined, session: string | undefined): Turn {
   const runId = frameRunId ?? turn.runId
   const tickers = runId === undefined ? undefined : finishedTickers.get(runId)
 
@@ -332,32 +333,7 @@ function toDone(turn: Turn, frameRunId: string | undefined): Turn {
     ...toFinished(turn, 'done'),
     ...(runId === undefined ? {} : { runId }),
     ...(tickers === undefined ? {} : { tickers }),
-  }
-}
-
-// `undefined` is the daemon's "steered"; text is its sentence asking to send it again.
-function noteSteer(droppedText: string | undefined): void {
-  const target =
-    turns.value.find((turn) => turn.steer?.state === 'sending') ?? findHead() ?? turns.value.at(-1)
-
-  if (target === undefined) {
-    return
-  }
-
-  const steerNote: SteerNote =
-    droppedText === undefined
-      ? { state: 'steered', text: target.steer?.text ?? '' }
-      : { state: 'dropped', text: droppedText }
-
-  updateTurn(target.localId, (turn) => ({ ...turn, steer: steerNote }))
-}
-
-// A command's start names its run's session before its answer does.
-function adoptSession(runId: string | undefined, runSessionId: string | undefined): void {
-  const turn = turns.value.find((held) => held.runId !== undefined && held.runId === runId)
-
-  if (turn?.sessionId === undefined && runSessionId !== undefined && turn !== undefined) {
-    adoptSessionId(runSessionId)
+    ...(turn.sessionId === undefined && session !== undefined ? { sessionId: session } : {}),
   }
 }
 

@@ -32,7 +32,11 @@ function isOfThisChat(
     return true
   }
 
-  const entrySession = entry.kind === 'question' ? entry.sessionId : findRun(runId ?? '')?.sessionId
+  if (entry.kind === 'question') {
+    return session !== undefined && entry.sessionId === session
+  }
+
+  const entrySession = runId === undefined ? undefined : findRun(runId)?.sessionId
 
   return session !== undefined && entrySession === session
 }
