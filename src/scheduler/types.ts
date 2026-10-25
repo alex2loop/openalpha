@@ -108,7 +108,8 @@ export interface SchedulerCommands {
   runNow(input: SchedulerRunNowInput): Promise<SchedulerCommandResult>
   remove(owner: JobOwner, idOrPrefix: string): Promise<SchedulerCommandResult>
   /** Owner-independent removal, for the local operator console only. `fromOwnRun` is set by a job
-   *  removing itself from inside its own run: that run is not stopped, it finishes on its own. */
+   *  removing itself from inside its own run: that run is not stopped, it finishes and delivers
+   *  on its own, and the row goes after it. */
   removeAny(
     idOrPrefix: string,
     options?: { readonly fromOwnRun?: boolean }

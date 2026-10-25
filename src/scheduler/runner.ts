@@ -19,6 +19,10 @@ type SchedulerAdmission<T> =
 export interface SchedulerController {
   admit<T>(job: Job, execute: (signal: AbortSignal) => Promise<T>): SchedulerAdmission<T>
   cancel(jobId: JobId): Promise<boolean>
+  /** Takes `remove` over when the job has a run in flight: it runs once that run has finished and
+   *  delivered, so a job removing itself does not delete the row its run still has to finalize
+   *  against. False when nothing is in flight (the caller removes now). */
+  removeAfterRun(jobId: JobId, remove: () => Promise<void>): boolean
   stop(timeoutMs: number): Promise<void>
 }
 
@@ -30,6 +34,8 @@ interface AdmittedJob {
 
 interface SchedulerState {
   readonly inFlight: Map<JobId, AdmittedJob>
+  /** At most one per job in flight; taken out when that run settles. */
+  readonly deferredRemovals: Map<JobId, () => Promise<void>>
   readonly signal: AbortSignal
   timer: ReturnType<typeof setTimeout> | null
   tickTask: Promise<void> | null
@@ -77,6 +83,7 @@ function createSchedulerController(
   return {
     admit: (job, execute) => admitJob({ state, job, deps, execute }),
     cancel: (jobId) => cancelJob(state, jobId),
+    removeAfterRun: (jobId, remove) => deferRemoval(state, jobId, remove),
     stop: (timeoutMs) => stopScheduler(state, deps, timeoutMs),
   }
 }
@@ -84,6 +91,7 @@ function createSchedulerController(
 function createSchedulerState(signal: AbortSignal): SchedulerState {
   return {
     inFlight: new Map(),
+    deferredRemovals: new Map(),
     signal,
     timer: null,
     tickTask: null,
@@ -187,7 +195,9 @@ function admitJob<T>(options: AdmitJobOptions<T>): SchedulerAdmission<T> {
 
   const controller = new AbortController()
   const jobSignal = AbortSignal.any([controller.signal, state.signal])
-  const completion = execute(jobSignal)
+  // The run settles before its deferred removal, so the removal is part of the completion that a
+  // cancel or a stop waits on.
+  const completion = execute(jobSignal).finally(() => runDeferredRemoval(state, deps, job.id))
   const tracked = completion.then(
     () => {
       state.inFlight.delete(job.id)
@@ -199,6 +209,38 @@ function admitJob<T>(options: AdmitJobOptions<T>): SchedulerAdmission<T> {
 
   state.inFlight.set(job.id, { jobId: job.id, controller, completion: tracked })
   return { kind: 'accepted', completion }
+}
+
+function deferRemoval(state: SchedulerState, jobId: JobId, remove: () => Promise<void>): boolean {
+  if (!state.inFlight.has(jobId)) {
+    return false
+  }
+
+  if (!state.deferredRemovals.has(jobId)) {
+    state.deferredRemovals.set(jobId, remove)
+  }
+
+  return true
+}
+
+async function runDeferredRemoval(
+  state: SchedulerState,
+  deps: SchedulerDeps,
+  jobId: JobId
+): Promise<void> {
+  const remove = state.deferredRemovals.get(jobId)
+
+  if (remove === undefined) {
+    return
+  }
+
+  state.deferredRemovals.delete(jobId)
+
+  try {
+    await remove()
+  } catch (err: unknown) {
+    deps.logger.warn('scheduler.deferred_remove_failed', { jobId, err: formatErrForLog(err) })
+  }
 }
 
 async function cancelJob(state: SchedulerState, jobId: JobId): Promise<boolean> {
