@@ -58,7 +58,12 @@ export function History() {
           page.value = 0
         }}
       />
-      <LedgerBody ledger={ledger} shown={shown} isEmpty={kept.length === 0} />
+      <LedgerBody
+        ledger={ledger}
+        shown={shown}
+        isEmpty={kept.length === 0}
+        isFiltered={filter.value !== 'all'}
+      />
       <Pager ledger={ledger} total={kept.length} page={page} />
     </section>
   )
@@ -70,9 +75,10 @@ interface LedgerBodyProps {
   readonly ledger: Ledger
   readonly shown: readonly LedgerEntryWire[]
   readonly isEmpty: boolean
+  readonly isFiltered: boolean
 }
 
-function LedgerBody({ ledger, shown, isEmpty }: LedgerBodyProps) {
+function LedgerBody({ ledger, shown, isEmpty, isFiltered }: LedgerBodyProps) {
   return (
     <>
       {ledger.failure.value !== undefined && (
@@ -83,17 +89,37 @@ function LedgerBody({ ledger, shown, isEmpty }: LedgerBodyProps) {
           </Button>
         </div>
       )}
-      {isEmpty ? <EmptyLedger ledger={ledger} /> : <LedgerRows shown={shown} />}
+      {isEmpty ? (
+        <EmptyLedger ledger={ledger} isFiltered={isFiltered} />
+      ) : (
+        <LedgerRows shown={shown} />
+      )}
     </>
   )
 }
 
-function EmptyLedger({ ledger }: { readonly ledger: Ledger }) {
+function EmptyLedger({
+  ledger,
+  isFiltered,
+}: {
+  readonly ledger: Ledger
+  readonly isFiltered: boolean
+}) {
   if (ledger.failure.value !== undefined) {
     return null
   }
 
-  return ledger.isLoading.value ? <Skeleton /> : <p class="meta">{tr('ui.office.book.empty')}</p>
+  if (ledger.isLoading.value && ledger.rows.value.length === 0) {
+    return <Skeleton />
+  }
+
+  // Loaded rows with none of this kind say so; the book itself is empty only when nothing loaded.
+  const key =
+    isFiltered && ledger.rows.value.length > 0
+      ? 'ui.office.book.filterEmpty'
+      : 'ui.office.book.empty'
+
+  return <p class="meta">{tr(key)}</p>
 }
 
 function LedgerRows({ shown }: { readonly shown: readonly LedgerEntryWire[] }) {

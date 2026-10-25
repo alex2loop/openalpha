@@ -7,6 +7,7 @@ import { BackRow } from '@/web/ui/panel/back-row'
 import { Rail } from '@/web/ui/panel/rail'
 import { Tabs } from '@/web/ui/panel/tabs'
 import { TickerCard } from '@/web/ui/ticker/card'
+import { TickerNotice } from '@/web/ui/ticker/ticker-notice'
 import { Today } from '@/web/ui/today/today'
 
 import './panel.css'
@@ -38,6 +39,7 @@ export function Panel() {
       {backStack.value.length > 0 && <BackRow />}
       <div class="panel-body">
         <UndoBar />
+        <TickerNotice />
         <PanelContent />
       </div>
     </aside>

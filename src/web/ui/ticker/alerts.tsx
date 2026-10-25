@@ -1,5 +1,5 @@
-import { readBlock } from '@/web/state/block'
-import { alertsBlock, keyOf } from '@/web/state/market'
+import { keyOf } from '@/web/state/market'
+import { useAlerts } from '@/web/state/watch'
 import { tr } from '@/web/text/tr'
 import { AlertRow } from '@/web/ui/book/alert-row'
 import { BellIcon } from '@/web/ui/kit/icons'
@@ -14,7 +14,7 @@ export function CardAlerts({
   readonly market: string
 }) {
   const key = keyOf({ market, ticker })
-  const reading = readBlock(alertsBlock)
+  const reading = useAlerts()
   const mine = (reading.data?.alerts ?? []).filter(
     (alert) =>
       keyOf(alert.instrument) === key && alert.source === 'you' && alert.state !== 'disabled'

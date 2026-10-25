@@ -1,4 +1,4 @@
-import type { TradingCandleWire } from '@/app/server/wire/trading'
+import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
 import { formatDay, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
@@ -6,10 +6,11 @@ import { useBlockRead } from '@/web/state/block'
 import { fillInput } from '@/web/state/command'
 import { findMarket, findQuote, keyOf, stopsBlock } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
+import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { boardScaleNotes, formatMarketPrice } from '@/web/text/market-price'
-import { buildDayKey, shiftDay } from '@/web/text/time'
+import { buildDayKey, formatClock, shiftDay } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -37,12 +38,18 @@ interface PriceFacts {
   readonly kind?: string
   /** Which session the price belongs to, when it is not the one trading now. */
   readonly session: string
+  /** When the price was read (epoch ms); absent for a close the bars carry, which names its day. */
+  readonly readAt?: number
+  /** When a price too old to be live was read, in a session still trading. */
+  readonly staleAt?: number
 }
 
 /** The name, its price with the session it belongs to, and the last 30 sessions with the plan's
  *  levels on them. Without any price it says so and offers `/refresh`. */
 export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const reading = useBlockRead(readBars(ticker, market), { capability: ROUTES.ohlcv.capability })
+
+  useRetryWhenKnown(state.value?.timeZone !== undefined, reading.retry)
   const label = findQuote(ticker, market)?.label
 
   return (
@@ -75,19 +82,9 @@ function PriceBody({ ticker, market, bars, levels }: PriceBodyProps) {
     )
   }
 
-  const notes = boardScaleNotes([market])
-
   return (
     <>
-      <p class="big-figure">
-        {formatMarketPrice(market, facts.value, facts.kind)}{' '}
-        {facts.changePct !== undefined && (
-          <span class={`pill is-${toneOfPercent(facts.changePct)}`}>
-            {formatSignedPercent(facts.changePct)}
-          </span>
-        )}
-      </p>
-      <p class="meta">{joinInline([...notes, facts.session].filter((part) => part !== ''))}</p>
+      <PriceHead market={market} facts={facts} />
       {bars.length > 1 && (
         <>
           <PriceChart closes={bars.map((bar) => bar.close)} levels={levels} />
@@ -99,6 +96,37 @@ function PriceBody({ ticker, market, bars, levels }: PriceBodyProps) {
           </p>
         </>
       )}
+    </>
+  )
+}
+
+// The price with its move, a warning when it is stale, and where it comes from: scale, session, time.
+function PriceHead({ market, facts }: { readonly market: string; readonly facts: PriceFacts }) {
+  const timeZone = state.value?.timeZone
+  const readText =
+    facts.readAt === undefined || timeZone === undefined
+      ? ''
+      : tr('ui.office.today.readAt', { time: formatClock(facts.readAt, timeZone) })
+  const parts = [...boardScaleNotes([market]), facts.session, readText].filter(
+    (part) => part !== ''
+  )
+
+  return (
+    <>
+      {facts.staleAt !== undefined && timeZone !== undefined && (
+        <p class="strip is-caution">
+          {tr('ui.office.ticker.stale', { time: formatClock(facts.staleAt, timeZone) })}
+        </p>
+      )}
+      <p class="big-figure">
+        {formatMarketPrice(market, facts.value, facts.kind)}{' '}
+        {facts.changePct !== undefined && (
+          <span class={`pill is-${toneOfPercent(facts.changePct)}`}>
+            {formatSignedPercent(facts.changePct)}
+          </span>
+        )}
+      </p>
+      <p class="meta">{joinInline(parts)}</p>
     </>
   )
 }
@@ -146,15 +174,21 @@ function resolvePrice(
       ...(quote.changePct === undefined ? {} : { changePct: quote.changePct }),
       kind: quote.kind,
       session: describeSession(market, quote.closedOn),
+      ...toQuoteTimes(quote),
     }
   }
 
   const mark = stopsBlock.view.value.data?.stops.find(
     (stop) => keyOf(stop.instrument) === keyOf({ market, ticker })
   )?.price
+  const markReadAt = stopsBlock.view.value.readAt
 
   if (mark !== undefined) {
-    return { value: mark, session: describeSession(market, undefined) }
+    return {
+      value: mark,
+      session: describeSession(market, undefined),
+      ...(markReadAt === undefined ? {} : { readAt: markReadAt }),
+    }
   }
 
   const last = bars.at(-1)
@@ -162,6 +196,16 @@ function resolvePrice(
   return last === undefined
     ? undefined
     : { value: last.close, session: describeSession(market, last.at) }
+}
+
+// When the quote was taken: the newest of its sources' own reading times.
+function toQuoteTimes(quote: TradingQuoteWire): Pick<PriceFacts, 'readAt' | 'staleAt'> {
+  const times = quote.provenance.map((source) => source.observedAt ?? source.fetchedAt)
+
+  return {
+    ...(times.length === 0 ? {} : { readAt: Math.max(...times) }),
+    ...(quote.staleAt === undefined ? {} : { staleAt: quote.staleAt }),
+  }
 }
 
 // A settled close names its day; a live price names the phase the market is in, where the catalog

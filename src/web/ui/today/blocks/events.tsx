@@ -1,5 +1,3 @@
-import { useEffect, useRef } from 'preact/hooks'
-
 import type { MarketEventWire } from '@/app/server/wire/trading'
 import { formatDay } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
@@ -7,6 +5,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
 import { findMarket, heldPositions, holdingsBlock, keyOf } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
+import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { buildDayKey, shiftDay } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { CalendarIcon } from '@/web/ui/kit/icons'
@@ -33,17 +32,8 @@ export function Events() {
   })
   const hasHoldings = holdingsBlock.view.value.readAt !== undefined
 
-  const hadHoldings = useRef(hasHoldings)
-
-  // The first read may come before the book does: read again when the book first arrives, not
-  // when it was already there at mount.
-  useEffect(() => {
-    if (hasHoldings && !hadHoldings.current) {
-      reading.retry()
-    }
-
-    hadHoldings.current = hasHoldings
-  }, [hasHoldings])
+  // The first read may come before the book does.
+  useRetryWhenKnown(hasHoldings, reading.retry)
 
   return (
     <BlockFrame

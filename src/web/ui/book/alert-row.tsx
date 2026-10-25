@@ -2,6 +2,7 @@ import { useSignal } from '@preact/signals'
 
 import type { AlertWire } from '@/app/server/wire/market'
 import { formatDay } from '@/i18n'
+import { findQuote } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { disableAlert, restoreAlert } from '@/web/state/watch'
 import { formatMarketPrice } from '@/web/text/market-price'
@@ -24,7 +25,11 @@ interface AlertRowProps {
 export function AlertRow({ alert, withTicker }: AlertRowProps) {
   const failure = useSignal<string | undefined>(undefined)
   const dir = tr(`trading.alert.condition.${alert.condition}`)
-  const level = formatMarketPrice(alert.instrument.market, alert.threshold)
+  const level = formatMarketPrice(
+    alert.instrument.market,
+    alert.threshold,
+    findQuote(alert.instrument.ticker, alert.instrument.market)?.kind
+  )
 
   return (
     <>
@@ -102,7 +107,7 @@ function remove(
       if (result === 'disabled') {
         showUndo(
           tr('ui.office.book.undoAlert', { ticker: alert.instrument.ticker, ...words }),
-          () => restoreAlert(alert)
+          () => restoreAlert(alert).then(() => undefined)
         )
       }
     },

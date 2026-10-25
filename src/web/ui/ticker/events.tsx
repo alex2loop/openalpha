@@ -5,6 +5,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
 import { findMarket } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
+import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { buildDayKey, shiftDay } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { CalendarIcon } from '@/web/ui/kit/icons'
@@ -26,6 +27,8 @@ export function EventsBlock({
   readonly market: string
 }) {
   const reading = useBlockRead(readEvents(ticker, market), { capability: ROUTES.events.capability })
+
+  useRetryWhenKnown(state.value?.timeZone !== undefined, reading.retry)
 
   if (findMarket(market)?.hasEvents !== true || reading.data?.events.length === 0) {
     return null

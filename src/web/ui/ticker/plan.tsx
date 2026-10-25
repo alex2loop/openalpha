@@ -26,8 +26,9 @@ interface PlanBlockProps {
   readonly market: string
 }
 
-/** The levels the plan names, raised stop first where the daily trail lifted it. A buy names the
- *  zone it enters at; a hold or a reduce only the levels it carries. */
+/** The levels the plan names, the stop raised where the daily trail lifted it. A buy names the zone
+ *  it enters at; a hold or a reduce only the levels it carries. A fund's lower level is a review
+ *  and reads as one, held or not. */
 export function planLevels(plan: SuggestionWire | undefined): readonly ChartLevel[] {
   if (plan === undefined) {
     return []
@@ -35,7 +36,7 @@ export function planLevels(plan: SuggestionWire | undefined): readonly ChartLeve
 
   const levels: readonly (readonly [LevelKey, number | undefined])[] = [
     ['buyZone', plan.action === 'buy' ? plan.entry : undefined],
-    ['stop', plan.trailingStop ?? plan.stop],
+    [isReviewLevel(plan) ? 'review' : 'stop', plan.trailingStop ?? plan.stop],
     ['target', plan.target],
   ]
 
@@ -69,11 +70,8 @@ interface PlanBodyProps {
 }
 
 function PlanBody({ plan, ticker, market }: PlanBodyProps) {
-  const isReview = isReviewLevel(ticker, market)
   const lines = planLevels(plan).map((level) => ({
-    label: tr(
-      level.key === 'stop' && isReview ? 'ui.office.ticker.review' : `ui.office.ticker.${level.key}`
-    ),
+    label: tr(`ui.office.ticker.${level.key}`),
     price: formatMarketPrice(market, level.value),
   }))
   const verdict = tr(`trading.action.${plan.action}`)
@@ -98,14 +96,12 @@ function PlanBody({ plan, ticker, market }: PlanBodyProps) {
   )
 }
 
-// A fund's lower level is a date to look again, not a stop that sells.
-function isReviewLevel(ticker: string, market: string): boolean {
-  const key = keyOf({ market, ticker })
+// The plan says so for a name not held; a held name's stop row says so too.
+function isReviewLevel(plan: SuggestionWire): boolean {
+  const key = keyOf(plan.instrument)
+  const row = stopsBlock.view.value.data?.stops.find((stop) => keyOf(stop.instrument) === key)
 
-  return (
-    stopsBlock.view.value.data?.stops.find((stop) => keyOf(stop.instrument) === key)?.review ===
-    true
-  )
+  return plan.reviewOnly === true || row?.review === true
 }
 
 // Puts the levels on the clipboard as text and says so for a moment; it places no order.

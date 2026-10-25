@@ -1,13 +1,26 @@
-import { computed, type ReadonlySignal } from '@preact/signals'
+import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { runs } from '@/web/state/live'
 import { findQuote, heldPositions, watchedNames } from '@/web/state/market'
-import { openView } from '@/web/state/panel'
+import { openView, type PanelView, panelView } from '@/web/state/panel'
+import { toErrorText, tr } from '@/web/text/tr'
 
 const MAX_KNOWN_TICKERS = 500
 const SEARCH_LIMIT = 5
+
+interface TickerNotice {
+  readonly text: string
+  /** The view the click came from: the line shows there and nowhere else. */
+  readonly origin: PanelView
+}
+
+const notice = signal<TickerNotice | undefined>(undefined)
+let search: AbortController | undefined
+
+/** Why a click on a ticker opened nothing. */
+export const tickerNotice: ReadonlySignal<TickerNotice | undefined> = notice
 
 /** The tickers the page can name as links: held, watched, or named by a run in flight. */
 export const knownTickers: ReadonlySignal<ReadonlySet<string>> = computed(() => {
@@ -20,8 +33,14 @@ export const knownTickers: ReadonlySignal<ReadonlySet<string>> = computed(() => 
   return new Set([...new Set(names)].slice(0, MAX_KNOWN_TICKERS))
 })
 
-/** Opens the card of `ticker`; a name seen only in prose finds its market first. */
+/** Opens the card of `ticker`; a name seen only in prose finds its market first. A search that
+ *  fails or finds nothing leaves a line on the view the click came from, and its answer is dropped
+ *  when the operator has gone elsewhere or clicked another name. */
 export function openTicker(ticker: string, market?: string): void {
+  search?.abort()
+  search = undefined
+  notice.value = undefined
+
   const known = market ?? marketOfKnown(ticker)
 
   if (known !== undefined) {
@@ -29,15 +48,33 @@ export function openTicker(ticker: string, market?: string): void {
     return
   }
 
-  searchMarket(ticker).then(
+  const controller = new AbortController()
+  const origin = panelView.value
+
+  search = controller
+  searchMarket(ticker, controller.signal).then(
     (found) => {
-      if (found !== undefined) {
-        openView({ ticker, market: found })
+      if (isStale(controller, origin)) {
+        return
       }
+
+      if (found === undefined) {
+        notice.value = { text: tr('ui.office.ticker.notFound', { ticker }), origin }
+        return
+      }
+
+      openView({ ticker, market: found })
     },
-    // A name the search cannot place has no card to open; the click does nothing.
-    () => undefined
+    (error: unknown) => {
+      if (!isStale(controller, origin)) {
+        notice.value = { text: toErrorText(error), origin }
+      }
+    }
   )
+}
+
+function isStale(controller: AbortController, origin: PanelView): boolean {
+  return controller.signal.aborted || panelView.value !== origin
 }
 
 function marketOfKnown(ticker: string): string | undefined {
@@ -47,8 +84,11 @@ function marketOfKnown(ticker: string): string | undefined {
   return (held?.instrument ?? watched ?? findQuote(ticker))?.market
 }
 
-async function searchMarket(ticker: string): Promise<string | undefined> {
-  const answer = await getJson(ROUTES.instruments, { query: { q: ticker, limit: SEARCH_LIMIT } })
+async function searchMarket(ticker: string, abort: AbortSignal): Promise<string | undefined> {
+  const answer = await getJson(ROUTES.instruments, {
+    query: { q: ticker, limit: SEARCH_LIMIT },
+    signal: abort,
+  })
 
   return answer.matches.find((match) => match.instrument.ticker === ticker)?.instrument.market
 }

@@ -10,7 +10,7 @@ const PAD = 6
 const Y_MARGIN = 0.06
 const LABEL_DROP = 3
 
-export type LevelKey = 'buyZone' | 'stop' | 'target'
+export type LevelKey = 'buyZone' | 'stop' | 'review' | 'target'
 
 export interface ChartLevel {
   readonly key: LevelKey

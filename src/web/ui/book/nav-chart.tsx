@@ -1,4 +1,4 @@
-import type { TradingNavResponse } from '@/app/server/wire/trading'
+import type { YearView } from '@/web/ui/book/year-view'
 import { tr } from '@/web/text/tr'
 import { scaleLinear, toPolylinePoints } from '@/web/ui/kit/line-path'
 
@@ -18,12 +18,12 @@ interface Series {
 }
 
 // The target mix's days are matched to the book's, so both lines stand on one time axis.
-function buildSeries(nav: TradingNavResponse): Series {
-  const lastIndex = nav.points.length - 1
-  const dayIndex = new Map(nav.points.map((point, index) => [point.day, index]))
+function buildSeries(year: YearView): Series {
+  const lastIndex = year.points.length - 1
+  const dayIndex = new Map(year.points.map((point, index) => [point.day, index]))
   const toX = (index: number): number => scaleLinear(index, [0, lastIndex], [PAD, WIDTH - PAD])
-  const book = nav.points.map((point, index) => ({ x: toX(index), value: point.index }))
-  const target = (nav.benchmark?.points ?? []).flatMap((point) => {
+  const book = year.points.map((point, index) => ({ x: toX(index), value: point.index }))
+  const target = year.benchmark.flatMap((point) => {
     const index = dayIndex.get(point.day)
 
     return index === undefined ? [] : [{ x: toX(index), value: point.index }]
@@ -34,8 +34,8 @@ function buildSeries(nav: TradingNavResponse): Series {
 }
 
 /** The book's time-weighted index (solid) and its target mix over the same days (dashed). */
-export function NavChart({ nav }: { readonly nav: TradingNavResponse }) {
-  const { book, target, domain } = buildSeries(nav)
+export function NavChart({ year }: { readonly year: YearView }) {
+  const { book, target, domain } = buildSeries(year)
   const toPoints = (samples: readonly Sample[]): string =>
     toPolylinePoints(
       samples.map((sample) => ({

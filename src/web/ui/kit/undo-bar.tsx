@@ -9,7 +9,7 @@ const UNDO_MS = 8_000
 
 interface UndoEntry {
   readonly text: string
-  readonly undo: () => Promise<void>
+  readonly undo: () => Promise<string | undefined>
   readonly failure?: string
   readonly isBusy?: true
 }
@@ -19,8 +19,9 @@ const current = signal<UndoEntry | undefined>(undefined)
 let timer: ReturnType<typeof setTimeout> | undefined
 
 /** Says what was just removed and offers to put it back for `UNDO_MS`. `undo` is the inverse call,
- *  a fresh request that throws `ApiFailure` when it fails. */
-export function showUndo(text: string, undo: () => Promise<void>): void {
+ *  a fresh request: it throws `ApiFailure` when it fails and resolves with the daemon's refusal in
+ *  words when it put nothing back; the bar then stays with that sentence. */
+export function showUndo(text: string, undo: () => Promise<string | undefined>): void {
   current.value = { text, undo }
   armTimer()
 }
@@ -61,11 +62,28 @@ function runUndo(entry: UndoEntry): void {
     return
   }
 
+  const busy: UndoEntry = { ...entry, isBusy: true }
+
   // The bar stays while the call runs, however long it takes.
   clearTimeout(timer)
-  current.value = { ...entry, isBusy: true }
-  entry.undo().then(dismiss, (error: unknown) => {
-    current.value = { text: entry.text, undo: entry.undo, failure: toErrorText(error) }
-    armTimer()
-  })
+  current.value = busy
+  entry.undo().then(
+    (refusal) => settle(busy, refusal),
+    (error: unknown) => settle(busy, toErrorText(error))
+  )
+}
+
+// A newer removal may have replaced the bar while the call ran; it is not ours to close or rewrite.
+function settle(busy: UndoEntry, failure: string | undefined): void {
+  if (current.value !== busy) {
+    return
+  }
+
+  if (failure === undefined) {
+    dismiss()
+    return
+  }
+
+  current.value = { text: busy.text, undo: busy.undo, failure }
+  armTimer()
 }

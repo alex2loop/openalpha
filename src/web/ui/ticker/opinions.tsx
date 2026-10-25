@@ -6,6 +6,7 @@ import { ROUTES } from '@/web/api/routes'
 import { agents } from '@/web/state/agents'
 import { useBlockRead } from '@/web/state/block'
 import { locale } from '@/web/state/session'
+import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { tr } from '@/web/text/tr'
 import { BulbIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -32,6 +33,8 @@ interface OpinionsProps {
  *  scored apart and never changes the plan; absent while none has called. */
 export function OpinionsBlock({ ticker, market, plan }: OpinionsProps) {
   const reading = useBlockRead(readOpinions(ticker, market))
+
+  useRetryWhenKnown(agents.value.length > 0, reading.retry)
   const opinions = reading.data?.opinions
 
   if (opinions?.length === 0) {

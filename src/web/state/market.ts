@@ -65,7 +65,6 @@ export function startMarket(): () => void {
     holdingsBlock.start(OVERVIEW_POLL_MS),
     stopsBlock.start(OVERVIEW_POLL_MS),
     profileBlock.start(OVERVIEW_POLL_MS),
-    alertsBlock.start(OVERVIEW_POLL_MS),
     callsBlock.start(OVERVIEW_POLL_MS),
     quotesBlock.start(QUOTES_POLL_MS),
   ]

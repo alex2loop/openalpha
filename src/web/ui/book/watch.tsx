@@ -2,10 +2,9 @@ import { type Signal, useSignal } from '@preact/signals'
 
 import type { AlertWire } from '@/app/server/wire/market'
 import type { InstrumentRefWire, TradingProfileResponse } from '@/app/server/wire/trading'
-import type { WatchlistUpdateResponse } from '@/app/server/wire/watchlist'
 import { readBlock } from '@/web/state/block'
-import { alertsBlock, findQuote, keyOf, profileBlock } from '@/web/state/market'
-import { addWatch, qualifyName, removeWatch } from '@/web/state/watch'
+import { findQuote, keyOf, profileBlock } from '@/web/state/market'
+import { addWatch, qualifyName, removeWatch, useAlerts } from '@/web/state/watch'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { toErrorText, tr } from '@/web/text/tr'
@@ -20,6 +19,8 @@ import './book.css'
 
 /** Theo dõi: the names you watch, and the price alerts you set. */
 export function Watch() {
+  const alerts = useAlerts()
+
   return (
     <>
       <BlockFrame
@@ -34,7 +35,7 @@ export function Watch() {
         title={tr('ui.office.common.priceAlerts')}
         colour="pink"
         icon={<BellIcon />}
-        reading={readBlock(alertsBlock)}
+        reading={alerts}
       >
         {(answer) => <AlertList alerts={answer.alerts} />}
       </BlockFrame>
@@ -98,9 +99,9 @@ function unwatch(instrument: InstrumentRefWire, failure: Signal<string | undefin
   failure.value = undefined
   removeWatch(instrument).then(
     () =>
-      showUndo(tr('ui.office.book.undoWatch', { ticker: instrument.ticker }), async () => {
-        await addWatch(qualifyName(instrument))
-      }),
+      showUndo(tr('ui.office.book.undoWatch', { ticker: instrument.ticker }), () =>
+        addWatch(qualifyName(instrument))
+      ),
     (error: unknown) => {
       failure.value = toErrorText(error)
     }
@@ -151,9 +152,7 @@ function submitName({ name, isBusy, failure }: AddForm): void {
   isBusy.value = true
   failure.value = undefined
   addWatch(typed)
-    .then((answer) => {
-      const refusal = describeRefusal(answer, typed)
-
+    .then((refusal) => {
       failure.value = refusal
 
       if (refusal === undefined) {
@@ -166,19 +165,6 @@ function submitName({ name, isBusy, failure }: AddForm): void {
     .finally(() => {
       isBusy.value = false
     })
-}
-
-// A name the daemon placed is on the list; one it could not place says so, in plain words.
-function describeRefusal(answer: WatchlistUpdateResponse, typed: string): string | undefined {
-  if (answer.message !== undefined) {
-    return answer.message
-  }
-
-  if (answer.ambiguous.length > 0) {
-    return tr('ui.office.book.addAmbiguous', { name: typed })
-  }
-
-  return answer.unknown.length > 0 ? tr('ui.office.book.addUnknown', { name: typed }) : undefined
 }
 
 // Alerts you set that still stand or have fired; the plan's own stop and target alerts are the

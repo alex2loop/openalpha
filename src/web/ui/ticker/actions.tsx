@@ -26,6 +26,9 @@ export function CardActions({ ticker, market }: CardActionsProps) {
     isBusy.value = true
     failure.value = undefined
     addWatch(qualifyName({ market, ticker }))
+      .then((refusal) => {
+        failure.value = refusal
+      })
       .catch((error: unknown) => {
         failure.value = toErrorText(error)
       })
