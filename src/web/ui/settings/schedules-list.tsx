@@ -6,10 +6,11 @@ import { getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { agents } from '@/web/state/agents'
 import { loadSession, state } from '@/web/state/session'
+import { readText } from '@/web/text/fields'
 import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
 import { formatDuration, formatWhen } from '@/web/text/time'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
-import { describeEvent, readText } from '@/web/ui/jobs/schedule-sections'
+import { describeEvent } from '@/web/ui/jobs/schedule-sections'
 import { useLoad } from '@/web/ui/kit/use-load'
 
 /** Việc theo lịch: the daemon's own upkeep, and the schedules of the operator's agents, each with

@@ -1,0 +1,24 @@
+.object-tip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  box-shadow: var(--pop);
+  font-size: 12px;
+  transform: translateX(-50%);
+}
+
+.object-tip-go {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tc-blue);
+  font-weight: 600;
+  cursor: pointer;
+}

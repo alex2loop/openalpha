@@ -2,6 +2,7 @@ import { computed, effect, untracked } from '@preact/signals'
 import { render } from 'preact'
 
 import { authState, takeTokenFromHash } from '@/web/api/token'
+import { disposeClock } from '@/web/scene/clock/clock'
 import { startAgents } from '@/web/state/agents'
 import { startChat } from '@/web/state/chat'
 import { startChatHistory } from '@/web/state/chat-history'
@@ -49,6 +50,7 @@ function boot(): void {
       controller.abort()
       stopDocumentSync()
       stopFeedSync()
+      disposeClock()
       disposePrefs()
     },
     { once: true }

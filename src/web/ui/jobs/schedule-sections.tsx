@@ -2,18 +2,17 @@ import type { JobEventWire } from '@/app/server/wire/jobs'
 import type { ScheduleRow } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import type { LoadState } from '@/web/ui/kit/use-load'
+import { ALERTS_TASK_NAME } from '@/web/scene/data/agenda'
 import { fillInput } from '@/web/state/command'
 import { state } from '@/web/state/session'
+import { readText } from '@/web/text/fields'
 import { ABSENT_CELL } from '@/web/text/glyphs'
-import { formatWhen } from '@/web/text/time'
+import { formatWhen, MS_PER_SECOND } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { closePopover } from '@/web/ui/kit/popover'
 
 const MAX_UPCOMING = 8
-// The task whose pass checks every alert, and so every event job's trigger.
-const ALERTS_TASK_NAME = 'trading.alerts'
-const MS_PER_SECOND = 1_000
 
 interface SectionProps {
   readonly schedules: readonly ScheduleRow[]
@@ -150,9 +149,4 @@ export function describeEvent(trigger: Pick<JobEventWire, 'event' | 'ticker'>): 
     subject,
     event: tr(`scheduler.event.${trigger.event}`),
   })
-}
-
-// Schedule rows are open: a field is read only when it holds text.
-export function readText(value: unknown): string | undefined {
-  return typeof value === 'string' && value !== '' ? value : undefined
 }

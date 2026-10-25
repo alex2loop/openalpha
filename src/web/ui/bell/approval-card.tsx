@@ -7,6 +7,7 @@ import { approvalDetail } from '@/i18n'
 import { ApiFailure } from '@/web/api/client'
 import { answerApproval, answerOnLine, decisionLabel } from '@/web/state/approvals'
 import { useNow } from '@/web/state/clock'
+import { focusRun } from '@/web/state/focus'
 import { findRun } from '@/web/state/live'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
@@ -68,12 +69,22 @@ function ApprovalCard({ event }: { readonly event: WireEvent }) {
       )}
       {detail !== undefined && detail !== '' && <p class="mono pending-card-arg">{detail}</p>}
       <p class="meta">{asker.sourceLine}</p>
+      {event.runId !== undefined && <SeeRun runId={event.runId} />}
       {approval.answerable === true ? (
         <Decisions requestId={requestId} decisions={approval.decisions} />
       ) : (
         <p class="pending-card-elsewhere">{answerOnLine(channelId)}</p>
       )}
     </div>
+  )
+}
+
+// "Xem": the run behind the request comes into view in the office.
+function SeeRun({ runId }: { readonly runId: string }) {
+  return (
+    <Button kind="tertiary" size="small" onClick={() => focusRun(runId)}>
+      {tr('ui.office.common.view')}
+    </Button>
   )
 }
 

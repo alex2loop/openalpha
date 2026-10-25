@@ -7,10 +7,12 @@ import {
   COLOUR_PAIRS,
   type ColourPair,
   colourPair,
+  lightByHour,
   MOTIONS,
   type Motion,
   motion,
   setColourPair,
+  setLightByHour,
   setMotion,
   setTheme,
   THEMES,
@@ -73,6 +75,7 @@ export function DisplaySection() {
         options={MOTIONS.map((value) => ({ value, label: tr(MOTION_LABELS[value]) }))}
         onChange={setMotion}
       />
+      <LightByHourRow />
       <ConnectionRow />
     </>
   )
@@ -173,6 +176,22 @@ function PreferenceRow<T extends string>({
   return (
     <ActionRow title={title} {...(note === undefined ? {} : { note })}>
       <Segmented label={title} value={value} options={options} onChange={onChange} />
+    </ActionRow>
+  )
+}
+
+// Kept in this browser like the choices above: it applies the moment it is ticked.
+function LightByHourRow() {
+  const title = tr('ui.office.settings.lightByHour')
+
+  return (
+    <ActionRow title={title}>
+      <input
+        type="checkbox"
+        aria-label={title}
+        checked={lightByHour.value}
+        onChange={(event) => setLightByHour(event.currentTarget.checked)}
+      />
     </ActionRow>
   )
 }

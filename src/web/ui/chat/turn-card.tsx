@@ -1,5 +1,6 @@
 import { canStop, isFinished, steer, stopTurn, type Turn, thread } from '@/web/state/chat'
 import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
+import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { resolveCommandLink } from '@/web/ui/chat/command-link'
@@ -99,9 +100,15 @@ function SteerLine({ turn }: { readonly turn: Turn }) {
 
 function RunningActions({ turn }: { readonly turn: Turn }) {
   const typed = inputText.value.trim()
+  const runId = turn.runId
 
   return (
     <div class="chat-actions">
+      {runId !== undefined && (
+        <Button kind="tertiary" size="small" onClick={() => focusRun(runId)}>
+          {tr('ui.office.chat.seeOffice')}
+        </Button>
+      )}
       {turn.kind === 'ask' && (
         <Button size="small" disabled={typed === ''} onClick={() => addNote(turn, typed)}>
           {tr('ui.office.chat.addNote')}
@@ -143,7 +150,7 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
     return <p class="meta">{tr(`ui.office.chat.${turn.status}`)}</p>
   }
 
-  const link = resolveCommandLink(turn.text)
+  const link = resolveCommandLink(turn.text, turn.runId)
 
   return (
     <>

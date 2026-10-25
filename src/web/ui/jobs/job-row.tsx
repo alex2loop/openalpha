@@ -1,6 +1,7 @@
 import type { Run } from '@/web/state/live'
 import { stopRun } from '@/web/state/approvals'
 import { useNow } from '@/web/state/clock'
+import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
@@ -44,6 +45,9 @@ export function JobRow({ run, childRuns }: JobRowProps) {
           </p>
         ))}
       </div>
+      <Button kind="tertiary" size="small" onClick={() => focusRun(run.runId)}>
+        {tr('ui.office.common.view')}
+      </Button>
       <Button kind="destructive" size="small" onClick={() => askStop(run, childRuns.length > 0)}>
         {tr('ui.office.common.stop')}
       </Button>

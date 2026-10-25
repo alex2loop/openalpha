@@ -1,0 +1,16 @@
+.scene {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scene-host {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
