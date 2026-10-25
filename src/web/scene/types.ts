@@ -1,5 +1,7 @@
 /** World pixels of one floor. */
 export const WORLD = Object.freeze({ w: 640, h: 384 })
+/** A person's box in world px, feet at its bottom centre. */
+export const FIGURE = Object.freeze({ w: 24, h: 32 })
 
 /** A place in world pixels. */
 export interface Point {

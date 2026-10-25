@@ -13,9 +13,7 @@ import { openActivityDialog } from '@/web/ui/activity/activity-dialog'
 import { PendingCard } from '@/web/ui/bell/approval-card'
 import { NoticeRow } from '@/web/ui/bell/notice-row'
 import { Button } from '@/web/ui/kit/button'
-import { Popover } from '@/web/ui/kit/popover'
-
-export const BELL_POPOVER_ID = 'bell'
+import { BELL_POPOVER_ID, Popover } from '@/web/ui/kit/popover'
 
 export function BellPopover({ anchor }: { readonly anchor: RefObject<HTMLElement> }) {
   return (

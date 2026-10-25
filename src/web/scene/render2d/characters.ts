@@ -1,9 +1,8 @@
-import type { ActorView } from '@/web/scene/types'
+import { type ActorView, FIGURE } from '@/web/scene/types'
 
-// The figure every person shares until their own look is drawn: 24 by 32 world px, feet at the
-// bottom centre.
-const SPRITE_W = 24
-const SPRITE_H = 32
+// The figure every person shares until their own look is drawn.
+const SPRITE_W = FIGURE.w
+const SPRITE_H = FIGURE.h
 const OUTLINE = '#2B2433'
 const BODY = '#9296AA'
 const HEAD = '#F6D3B3'

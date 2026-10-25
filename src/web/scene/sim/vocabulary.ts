@@ -3,6 +3,7 @@ import type { PoseId } from '@/web/scene/sim/actors/poses'
 import type { Orphan } from '@/web/scene/sim/assistant'
 import type { ActorId, HeldItem, Point, RoomId } from '@/web/scene/types'
 import type { PropKind } from '@/web/scene/world/props'
+import { FETCH_ACTIVITY_PREFIX, QUESTION_ACTIVITY_KEY } from '@/web/scene/data/desk-reads'
 import { roomOfRun } from '@/web/scene/data/room-status'
 import { DESK_WAIT_SPOTS } from '@/web/scene/world/seats'
 import { pendingRequestId, type Run } from '@/web/state/live'
@@ -42,8 +43,6 @@ interface VocabRow {
 
 const SEAT_TARGET = 'seat'
 const STAGE_DETAIL_KEY = 'progress.researchStageDetail'
-const QUESTION_ACTIVITY_KEY = 'progress.researchQuestionActivity'
-const FETCH_ACTIVITY_PREFIX = 'progress.researchOperationFetch'
 const CRAWLERS: readonly ActorId[] = ['crawler-1', 'crawler-2']
 const CRAWL_ROW_KEY = 'progress.researchStageCrawl'
 // The theme analyst works the library apart from the research crew: its own queue.
@@ -256,8 +255,7 @@ function castOf(row: VocabRow, progress: ProgressWire | undefined): readonly Cas
     return row.cast
   }
 
-  const index = toNumber(progress.params?.index)
-  const scout = index === undefined ? undefined : CRAWLERS[(index - 1) % CRAWLERS.length]
+  const scout = scoutOf(progress)
   const activity = keyOf(progress.params?.activity)
 
   if (scout === undefined || activity === undefined) {
@@ -269,6 +267,13 @@ function castOf(row: VocabRow, progress: ProgressWire | undefined): readonly Cas
     : typing(scout)
 
   return row.cast.map((cast) => (cast.actor === scout ? busy : cast))
+}
+
+/** The scout a question's step belongs to: two scouts take the questions in turn. */
+export function scoutOf(progress: ProgressWire): ActorId | undefined {
+  const index = toNumber(progress.params?.index)
+
+  return index === undefined ? undefined : CRAWLERS[(index - 1) % CRAWLERS.length]
 }
 
 function addDeskGoals(goals: Map<ActorId, Goal>, pending: readonly PendingWire[]): void {

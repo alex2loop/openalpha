@@ -6,7 +6,7 @@ import type { StopsResponse } from '@/app/server/wire/money'
 import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type { CostReport, HealthResponse, StatePayload } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
-import type { TradingSuggestionsResponse } from '@/app/server/wire/trading'
+import type { TradingOhlcvResponse, TradingSuggestionsResponse } from '@/app/server/wire/trading'
 
 /** A `/v1` path tagged with the wire shape it answers, so `getJson` returns that shape. */
 export interface RouteDef<T> {
@@ -37,6 +37,7 @@ export const ROUTES = Object.freeze({
   alerts: route<AlertsResponse>('/v1/alerts'),
   stops: route<StopsResponse>('/v1/stops'),
   suggestions: route<TradingSuggestionsResponse>('/v1/suggestions'),
+  ohlcv: route<TradingOhlcvResponse>('/v1/ohlcv'),
 })
 
 function route<T>(path: string): RouteDef<T> {

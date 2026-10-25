@@ -1,9 +1,15 @@
 import type { SceneRenderer } from '@/web/scene/renderer'
-import type { Point, ScreenPoint } from '@/web/scene/types'
+import type { Point, ScreenPoint, SimView } from '@/web/scene/types'
+import type { PropDef } from '@/web/scene/world/props'
+import { type Hit, pickAt } from '@/web/scene/overlay/hit'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
+import { hoverActor, overlayView } from '@/web/scene/overlay/overlay'
+import { openScreen } from '@/web/scene/overlay/screen-panel'
+import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { leaveRoom, panBy, view, zoomBy, zoomToRoom } from '@/web/scene/view'
-import { type PropDef, propsOn } from '@/web/scene/world/props'
-import { isInside, ROOM_IDS, roomAt } from '@/web/scene/world/rooms'
+import { propsOn } from '@/web/scene/world/props'
+import { ROOM_IDS, roomById } from '@/web/scene/world/rooms'
+import { selectActor } from '@/web/state/focus'
 import { toggleAllLamps, toggleLamp } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 
@@ -25,6 +31,8 @@ const GRAB_CURSOR = 'grabbing'
 
 interface InteractionDeps {
   readonly renderer: SceneRenderer
+  /** The snapshot the last frame drew, which the hit test reads. */
+  readonly readView: () => SimView
 }
 
 // One press from pointerdown to pointerup.
@@ -45,7 +53,8 @@ interface InputState {
 }
 
 /** The one owner of the canvas's pointer, wheel and key listeners, all on one controller: drag to
- *  pan, wheel to zoom (shift or a sideways swipe pans), arrows, Esc, and clicks on props and rooms.
+ *  pan, wheel to zoom (shift or a sideways swipe pans), arrows, Esc, and clicks on what the hit
+ *  test finds: markers, people, lit screens, props, name tags and rooms.
  *  The returned function detaches every one of them. */
 export function attachInteraction(canvas: HTMLCanvasElement, deps: InteractionDeps): () => void {
   const listeners = new AbortController()
@@ -56,7 +65,7 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: InteractionDe
   canvas.addEventListener('pointermove', (event) => onMove(input, event), { signal })
   canvas.addEventListener('pointerup', (event) => onUp(input, event), { signal })
   canvas.addEventListener('pointercancel', () => endPress(input), { signal })
-  canvas.addEventListener('pointerleave', () => hoverObject(undefined, { x: 0, y: 0 }), { signal })
+  canvas.addEventListener('pointerleave', () => leaveCanvas(), { signal })
   canvas.addEventListener('wheel', (event) => onWheel(input, event), { signal, passive: false })
   canvas.addEventListener('keydown', onKey, { signal })
 
@@ -114,7 +123,7 @@ function onUp(input: InputState, event: PointerEvent): void {
   }
 
   if (!press.isDragging) {
-    click(input, toWorldPoint(input, event))
+    click(input, { x: event.offsetX, y: event.offsetY })
   }
 
   endPress(input)
@@ -165,11 +174,43 @@ function onKey(event: KeyboardEvent): void {
   }
 }
 
-// A lamp or the wall switch acts at once; an object with somewhere to go goes there; from the
+// A marker, a person, a lit screen and a tag act where they stand, never moving the camera closer;
+// a lamp or the wall switch acts at once; an object with somewhere to go goes there; from the
 // floor view, a room zooms in.
-function click(input: InputState, at: Point): void {
-  const prop = propAt(at)
+function click(input: InputState, point: ScreenPoint): void {
+  const hit = pickAt(point, input.deps.renderer, input.deps.readView())
 
+  switch (hit?.kind) {
+    case 'marker':
+      overlayView.value.markers.find((held) => held.marker.actor === hit.id)?.marker.open()
+      return
+    case 'actor':
+    case 'tag':
+      selectActor(hit.id)
+      return
+    case 'screen':
+      openLitScreen(hit.id)
+      return
+    case 'object':
+      clickProp(propOf(hit))
+      return
+    case 'room':
+      enterRoom(input, hit.id)
+      return
+    default:
+      return
+  }
+}
+
+function openLitScreen(actor: string): void {
+  const screen = overlayView.value.screens.find((held) => held.screen.actor === actor)?.screen
+
+  if (screen !== undefined) {
+    openScreen(screen)
+  }
+}
+
+function clickProp(prop: PropDef | undefined): void {
   if (prop?.kind === 'lamp') {
     toggleLamp(prop.room)
     return
@@ -182,30 +223,46 @@ function click(input: InputState, at: Point): void {
 
   const go = prop === undefined ? undefined : tipActionOf(prop)
 
-  if (go !== undefined) {
-    go()
-    return
-  }
+  go?.()
+}
 
-  const shown = view.value
-  const room = shown.room === undefined ? roomAt(shown.floor, at) : undefined
+function enterRoom(input: InputState, id: string): void {
+  const room = view.value.room === undefined ? ROOM_IDS.find((held) => held === id) : undefined
+  const def = room === undefined ? undefined : roomById(room)
 
-  if (room !== undefined) {
-    zoomToRoom(room.id, room.rect)
+  if (def !== undefined) {
+    zoomToRoom(def.id, def.rect)
     input.canvas.focus()
   }
 }
 
 function hover(input: InputState, event: PointerEvent): void {
-  const at = toWorldPoint(input, event)
-  const prop = propAt(at)
   const screen: ScreenPoint = { x: event.offsetX, y: event.offsetY }
-  const isClickable = prop !== undefined && (isSwitch(prop) || tipActionOf(prop) !== undefined)
-  const isRoom = view.value.room === undefined && roomAt(view.value.floor, at) !== undefined
+  const hit = pickAt(screen, input.deps.renderer, input.deps.readView())
+  const prop = hit?.kind === 'object' ? propOf(hit) : undefined
 
   hoverObject(prop, screen)
-  input.canvas.style.cursor = isClickable || isRoom ? CLICKABLE_CURSOR : ''
+  hoverActor(hit?.kind === 'actor' ? ROSTER.find((def) => def.id === hit.id)?.id : undefined)
+  input.canvas.style.cursor = isClickable(hit, prop) ? CLICKABLE_CURSOR : ''
   input.canvas.title = switchTitleOf(prop)
+}
+
+function leaveCanvas(): void {
+  hoverObject(undefined, { x: 0, y: 0 })
+  hoverActor(undefined)
+}
+
+function isClickable(hit: Hit | undefined, prop: PropDef | undefined): boolean {
+  switch (hit?.kind) {
+    case undefined:
+      return false
+    case 'object':
+      return prop !== undefined && (isSwitch(prop) || tipActionOf(prop) !== undefined)
+    case 'room':
+      return view.value.room === undefined
+    default:
+      return true
+  }
 }
 
 function isSwitch(prop: PropDef): boolean {
@@ -220,11 +277,8 @@ function switchTitleOf(prop: PropDef | undefined): string {
   return prop?.kind === 'light-switch' ? tr('ui.office.lights.switch') : ''
 }
 
-// The front-most prop under the point: the one standing lowest on the floor.
-function propAt(at: Point): PropDef | undefined {
-  return propsOn(view.value.floor)
-    .filter((prop) => isInside(prop.draw, at))
-    .sort((a, b) => b.sortY - a.sortY)[0]
+function propOf(hit: Hit): PropDef | undefined {
+  return propsOn(view.value.floor).find((prop) => prop.id === hit.id)
 }
 
 function toWorldPoint(input: InputState, event: MouseEvent): Point {

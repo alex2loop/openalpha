@@ -1,5 +1,6 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
+import type { StopsResponse } from '@/app/server/wire/money'
 import type { RoomId } from '@/web/scene/types'
 import { translateDisplayText } from '@/i18n'
 import { getJson } from '@/web/api/client'
@@ -44,15 +45,24 @@ export interface RoomStatus {
   readonly stops?: number
 }
 
+type StopRow = StopsResponse['stops'][number]
+
+/** A holding whose mark is through its plan's stop. */
+export type BreachedStop = StopRow['instrument']
+
 interface AlertCounts {
   readonly alerts?: number
   readonly stops?: number
 }
 
 const counts = signal<AlertCounts>({})
+const breached = signal<readonly BreachedStop[] | undefined>(undefined)
 
 /** Active price alerts and planned stops; each absent until read. */
 export const alertCounts: ReadonlySignal<AlertCounts> = counts
+/** The holdings `/v1/stops` shows through their stop; absent until read. A fund's review level is
+ *  not a stop and never counts. */
+export const breachedStops: ReadonlySignal<readonly BreachedStop[] | undefined> = breached
 /** Every room with something to say, keyed by room. */
 export const roomStatus: ReadonlySignal<ReadonlyMap<RoomId, RoomStatus>> = computed(buildStatus)
 
@@ -149,9 +159,19 @@ async function loadCounts(abortSignal: AbortSignal): Promise<void> {
       alerts: alerts.activeCount,
       stops: stops.stops.filter((stop) => stop.plan === 'distance').length,
     }
+    breached.value = stops.stops.filter(isBreached).map((stop) => stop.instrument)
   } catch {
     // The last good counts stay; before the first read the desk names none.
   }
+}
+
+function isBreached(stop: StopRow): boolean {
+  return (
+    stop.plan === 'distance' &&
+    !stop.review &&
+    stop.distanceToStopPct !== undefined &&
+    stop.distanceToStopPct <= 0
+  )
 }
 
 /** The library's run is at the step that prints its report. */

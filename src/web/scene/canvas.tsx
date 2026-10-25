@@ -11,6 +11,8 @@ import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-st
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
 import { attachInteraction } from '@/web/scene/overlay/interact'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
+import { SceneOverlay } from '@/web/scene/overlay/overlay'
+import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
@@ -52,6 +54,7 @@ export function SceneCanvas() {
       <div ref={host} class="scene-host" />
       <RoomTags renderer={renderer} />
       <BoardButtons renderer={renderer} />
+      <SceneOverlay />
       <ObjectTip />
       <Toolbar />
       <PerfReadout renderer={renderer} />
@@ -59,8 +62,8 @@ export function SceneCanvas() {
   )
 }
 
-// Everything it arms, the returned stop releases: data reads, the director, loop, input, observer,
-// listeners and the renderer.
+// Everything it arms, the returned stop releases: data reads, the director, the overlay, loop,
+// input, observer, listeners and the renderer.
 function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   const listeners = new AbortController()
   const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda()]
@@ -68,15 +71,12 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
 
   renderer.mount(element)
 
-  const loop = createSimLoop({
-    step: (index) => director.step(index),
-    draw: (alpha, now) => renderer.draw(buildSimView(director, alpha), now),
-    resume: () => director.resume(),
-    nextDueAt: () => director.nextDueAt(),
-  })
+  const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
+  const { loop, readView } = createSceneLoop({ director, renderer, overlay })
   const resize = new ResizeObserver(() => loop.wake())
   const canvas = element.querySelector('canvas')
-  const detach = canvas === null ? () => undefined : attachInteraction(canvas, { renderer })
+  const detach =
+    canvas === null ? () => undefined : attachInteraction(canvas, { renderer, readView })
   const offs = [
     effect(() => {
       readSceneInputs()
@@ -98,6 +98,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
 
     detach()
     loop.stop()
+    overlay.stop()
     director.dispose()
     selectActor(undefined)
     resize.disconnect()
@@ -108,6 +109,38 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
       stop()
     }
   }
+}
+
+interface LoopParts {
+  readonly director: Director
+  readonly renderer: SceneRenderer
+  readonly overlay: OverlayPass
+}
+
+// The sim loop over the director; each drawn frame lays the overlay out after it, and the
+// snapshot it drew is what the hit test reads.
+function createSceneLoop(parts: LoopParts): {
+  readonly loop: ReturnType<typeof createSimLoop>
+  readonly readView: () => SimView
+} {
+  const { director, renderer, overlay } = parts
+  let drawn = buildSimView(director, 0)
+  const loop = createSimLoop({
+    step: (index) => director.step(index),
+    draw: (alpha, now) => {
+      drawn = buildSimView(director, alpha)
+
+      const isAnimating = renderer.draw(drawn, now)
+
+      overlay.frame(drawn, now)
+
+      return isAnimating
+    },
+    resume: () => director.resume(),
+    nextDueAt: () => Math.min(director.nextDueAt(), overlay.nextDueAt()),
+  })
+
+  return { loop, readView: () => drawn }
 }
 
 function buildSimView(director: Director, alpha: number): SimView {
@@ -143,6 +176,7 @@ function readSceneInputs(): void {
   heldNewsPins.value
   indexDrop.value
   unread.value
+  readOverlayInputs()
 }
 
 // A move to a screen of another pixel density redraws at the new density; the query is re-armed for

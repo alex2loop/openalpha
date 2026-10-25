@@ -18,6 +18,9 @@ interface OpenPanel {
   readonly anchor: RefObject<HTMLElement>
 }
 
+/** The bell's popover, which the office also opens: from an approval's marker or bubble. */
+export const BELL_POPOVER_ID = 'bell'
+
 const openId = signal<string | undefined>(undefined)
 // The mounted panel and its anchor, so a dialog opened from inside it can return focus there.
 let openPanel: OpenPanel | undefined
@@ -28,6 +31,11 @@ export const openPopoverId: ReadonlySignal<string | undefined> = openId
 /** Opens the popover, or closes it when it is the one open; any other one closes. */
 export function togglePopover(id: string): void {
   openId.value = openId.value === id ? undefined : id
+}
+
+/** Opens the popover, closing any other one; an open one stays open. */
+export function openPopover(id: string): void {
+  openId.value = id
 }
 
 export function closePopover(): void {
