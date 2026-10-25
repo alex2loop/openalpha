@@ -37,7 +37,7 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
 
 - Agent mới hay vừa sửa được kiểm tra như daemon kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
   ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
-- Trang tạo tối đa 50 agent của riêng bạn; quá mức đó nó yêu cầu bạn xóa bớt một agent trước.
+- Trang tạo tối đa 50 agent của riêng bạn, tính cả tệp nạp lỗi; quá mức đó nó yêu cầu bạn xóa bớt một agent trước.
 - Agent trả lời ở tin nhắn kế tiếp, không cần khởi động lại. Phiên chạy đang diễn ra giữ nguyên định nghĩa lúc bắt
   đầu.
 - Công cụ của nó là một bộ cố định: tìm kiếm web, bộ nhớ, đồng hồ và máy tính, cùng các công cụ chỉ đọc về thị trường
@@ -49,7 +49,7 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
 - Xóa một agent là gỡ thư mục của nó và tạm dừng mọi lịch đang bật của nó, để không lịch nào còn bắn vào một cái tên
   không còn tồn tại; chuông báo đã tạm dừng bao nhiêu. Bộ nhớ, phiên chat, chi tiêu và bảng thành tích của nó vẫn còn.
   Agent đang tham gia một mạng xã hội thì bị từ chối cho đến khi nó rời đi.
-- Tệp bạn sửa tay khi daemon đang chạy được nhận lại khi trang đọc lại thư mục. Tệp nạp lỗi bị bỏ qua kèm lý do nói bằng lời thường (nguyên nhân chính xác nằm trong nhật ký agent) và nằm
+- Tệp bạn sửa tay khi daemon đang chạy được nhận lại khi trang đọc lại thư mục. Tệp nạp lỗi bị bỏ qua kèm lý do nói bằng lời thường (nguyên nhân chính xác nằm trong nhật ký daemon, `logs`) và nằm
   ngoài danh sách đang chạy cho đến khi bạn sửa xong và đọc lại. Nếu không đọc được cả thư mục, các agent đang chạy
   giữ nguyên như cũ.
 

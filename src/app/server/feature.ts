@@ -89,7 +89,7 @@ async function startApiSurface(
   let detachAppSurface: (() => void) | undefined
   let stopIdeaWatch: (() => Promise<void>) | undefined
 
-  // Release order; the port goes last. Each step runs even when an earlier one throws.
+  // Release order; the port goes last.
   const stopAll = (): Promise<void> =>
     runStopSteps(app.resolve('logger'), [
       { step: 'ideaWatch', run: () => stopIdeaWatch?.() },

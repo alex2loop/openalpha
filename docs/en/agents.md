@@ -36,7 +36,7 @@ still works.
 
 - A new or edited agent is checked the way the daemon checks a file at start: the file shape, the id, the focus,
   the budget cap, the prompt scan and the model tier. A refusal comes back in plain words and nothing is written.
-- The page creates up to 50 agents of your own; past that it asks you to delete one first.
+- The page creates up to 50 agents of your own, counting files that failed to load; past that it asks you to delete one first.
 - The agent answers on its next message, with no restart. A run already going keeps the definition it started
   with.
 - Its tools are a fixed set: web research, memory, the clock and a calculator, and read-only market and suggestion
@@ -49,7 +49,7 @@ still works.
   name that no longer resolves; the bell says how many. Its memory, sessions, spend and track record stay. An
   agent that is on a social network is refused until it leaves.
 - A file you edited by hand while the daemon runs is picked up when the page reads the folder again. A file that
-  fails to load is skipped with a plain-words reason (the exact cause is in the agent log) and stays out of the running set until you fix it and read again. If the
+  fails to load is skipped with a plain-words reason (the exact cause is in the daemon log, `logs`) and stays out of the running set until you fix it and read again. If the
   folder itself cannot be read, the agents already running stay exactly as they were.
 
 ### The file
