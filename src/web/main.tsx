@@ -2,6 +2,7 @@ import { computed, effect, untracked } from '@preact/signals'
 import { render } from 'preact'
 
 import { authState, takeTokenFromHash } from '@/web/api/token'
+import { disposeClock } from '@/web/scene/clock/clock'
 import { startCost } from '@/web/state/cost'
 import { startFeed } from '@/web/state/feed'
 import { startNotices } from '@/web/state/notices'
@@ -43,6 +44,7 @@ function boot(): void {
       controller.abort()
       stopDocumentSync()
       stopFeedSync()
+      disposeClock()
       disposePrefs()
     },
     { once: true }

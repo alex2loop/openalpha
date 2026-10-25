@@ -2,6 +2,8 @@ import { Glob } from 'bun'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
+import { lineAt, scanImports } from './import-scan'
+
 const SRC = `${import.meta.dir}/../src`
 
 const ALLOWED: Readonly<Record<string, readonly string[]>> = {
@@ -164,25 +166,10 @@ if (process.argv.includes('--list-core-public')) {
 
   process.exit(0)
 }
-// Static import/export-from statements, incl. multiline bodies. The middle part can never
-// contain a quote (specifiers are the only strings in an import clause), so [^'"]*? cannot
-// jump across statements. Type-only imports follow the same module boundaries as value imports.
-const STATIC_SPEC_RE = /\b(?:import|export)\s+(?:type\s+)?[^'"]*?from\s*'([^']+)'/gs
-// Side-effect (`import './x'`) and dynamic (`import('x')`) imports — always value imports.
-const BARE_SPEC_RE = /\bimport\s*(?:\(\s*)?'([^']+)'\s*\)?/g
-
 interface Violation {
   file: string
   line: number
   message: string
-}
-
-interface FoundImport {
-  specifier: string
-  index: number
-  isTypeOnly: boolean
-  statementKind: 'import' | 'export'
-  clause?: string
 }
 
 interface Importer {
@@ -229,31 +216,6 @@ const importerOf = (file: string): Importer | null => {
   if (!module) return null
 
   return { name: module, allowed: ALLOWED[module] ?? [], deepAllow: NO_DEEP_ALLOW }
-}
-
-const lineAt = (source: string, index: number): number =>
-  source.slice(0, index).split('\n').length
-
-const scanImports = (source: string): FoundImport[] => {
-  const found: FoundImport[] = []
-  for (const m of source.matchAll(STATIC_SPEC_RE)) {
-    const specifier = m[1]
-    if (specifier !== undefined) {
-      const statement = m[0]
-      const typeOnly = /^\s*(?:import|export)\s+type\s+/.test(statement)
-      const statementKind = /^\s*import\b/.test(statement) ? 'import' : 'export'
-      const clause = statement.match(/\b(?:import|export)\s+(?:type\s+)?([^'\"]*?)\s+from\s*'/s)?.[1]
-
-      found.push({ specifier, index: m.index, isTypeOnly: typeOnly, statementKind, clause })
-    }
-  }
-  for (const m of source.matchAll(BARE_SPEC_RE)) {
-    const specifier = m[1]
-    if (specifier !== undefined) {
-      found.push({ specifier, index: m.index, isTypeOnly: false, statementKind: 'import' })
-    }
-  }
-  return found
 }
 
 // Kernel modules have no api.ts, so their importable surface is enumerated rather than re-exported.

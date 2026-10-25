@@ -37,6 +37,13 @@ export function formatClock(atMs: number, timeZone: string): string {
   return clockFormatter.format.format(atMs)
 }
 
+/** An hour of the day (fractional) as `HH:mm`. */
+export function formatHourOfDay(hour: number): string {
+  const totalMinutes = Math.round(hour * MINUTES_PER_HOUR)
+
+  return `${pad(Math.floor(totalMinutes / MINUTES_PER_HOUR))}:${pad(totalMinutes % MINUTES_PER_HOUR)}`
+}
+
 /** A span as `m:ss`, or `h:mm:ss` from an hour up; never below zero. */
 export function formatElapsed(spanMs: number): string {
   const totalSeconds = Math.max(0, Math.floor(spanMs / MS_PER_SECOND))

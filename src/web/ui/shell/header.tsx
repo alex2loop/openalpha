@@ -2,11 +2,10 @@ import type { RefObject } from 'preact'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
-import { useNow } from '@/web/state/clock'
+import { ClockControl } from '@/web/scene/overlay/clock-control'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
-import { brand, state } from '@/web/state/session'
-import { formatClock } from '@/web/text/time'
+import { brand } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
 import { BellPopover } from '@/web/ui/bell/bell-popover'
@@ -17,8 +16,6 @@ import { CoinIcon } from '@/web/ui/kit/icons'
 import { closePopover, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
 
 import './header.css'
-
-const CLOCK_TICK_MS = 60_000
 
 export function Header() {
   const jobsAnchor = useRef<HTMLButtonElement>(null)
@@ -37,7 +34,7 @@ export function Header() {
       <RunningChip anchor={jobsAnchor} />
       <span class="header-grow" />
       <CostChip anchor={costAnchor} />
-      <HeaderClock />
+      <ClockControl />
       <BellButton anchor={bellAnchor} />
       <JobsPopover anchor={jobsAnchor} />
       <CostPopover anchor={costAnchor} />
@@ -85,11 +82,4 @@ function CostChip({ anchor }: AnchorProps) {
       {formatSpent(view?.todayUsd, view?.caps.dailyUsd)}
     </Chip>
   )
-}
-
-function HeaderClock() {
-  const now = useNow(CLOCK_TICK_MS).value
-  const timeZone = state.value?.timeZone
-
-  return timeZone === undefined ? null : <Chip>{formatClock(now, timeZone)}</Chip>
 }
