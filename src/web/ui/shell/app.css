@@ -5,6 +5,10 @@
   height: 100%;
 }
 
+.command-bar {
+  min-height: var(--commandBarH);
+}
+
 .command-bar:empty {
   display: none;
 }

@@ -17,7 +17,11 @@ import type {
 } from '@/core/types/session'
 import type { AgentProfile, Runner } from '@/engine/api'
 import { API_CHANNEL } from '@/app/server/channel'
-import { CONTRACT_VERSION } from '@/app/server/wire/socket'
+import {
+  CONTRACT_REFUSED_CLOSE_CODE,
+  CONTRACT_REFUSED_REASON_PREFIX,
+  CONTRACT_VERSION,
+} from '@/app/server/wire/socket'
 import { resolveSessionId, runChat } from '@/app/server/ws/chat'
 import {
   abortCommandRuns,
@@ -337,6 +341,9 @@ function handleControl(
   if (frame.contractVersion === CONTRACT_VERSION) {
     send(ws, { type: 'welcome', contractVersion: CONTRACT_VERSION })
   } else {
-    ws.close(1011, `contract ${CONTRACT_VERSION} required`)
+    ws.close(
+      CONTRACT_REFUSED_CLOSE_CODE,
+      `${CONTRACT_REFUSED_REASON_PREFIX}${CONTRACT_VERSION} required`
+    )
   }
 }

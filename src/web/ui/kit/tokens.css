@@ -35,6 +35,11 @@
   --tile-mix: 14%;
   --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
   --onAi: #ffffff;
+  --offlineBg: #2b2433;
+  --offlineInk: #eeeef6;
+  --offlineInk2: #b6b7c9;
+  --commandBarH: 62px;
+  --zOfflineBar: 28;
   color-scheme: light;
 }
 
@@ -71,6 +76,9 @@
     --tile-mix: 22%;
     --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
     --onAi: #ffffff;
+    --offlineBg: #2b2433;
+    --offlineInk: #eeeef6;
+    --offlineInk2: #b6b7c9;
     color-scheme: dark;
   }
 }
@@ -107,5 +115,8 @@
   --tile-mix: 22%;
   --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
   --onAi: #ffffff;
+  --offlineBg: #2b2433;
+  --offlineInk: #eeeef6;
+  --offlineInk2: #b6b7c9;
   color-scheme: dark;
 }

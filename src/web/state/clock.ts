@@ -48,6 +48,9 @@ function subscribe(everyMs: number): () => void {
   ticker.subscribers++
 
   if (ticker.subscribers === 1) {
+    // A reused entry still holds the time its last subscriber left with.
+    ticker.now.value = Date.now()
+
     const visibility = new AbortController()
 
     ticker.visibility = visibility

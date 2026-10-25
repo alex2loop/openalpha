@@ -9,6 +9,11 @@ import type { WireEvent } from '@/app/server/wire/events'
  *  v1 (a new optional field, WireEventKind, or ApiErrorCode) keep this at 1. */
 export const CONTRACT_VERSION = 1
 
+/** A `hello` naming another contract closes the socket with this code and a reason that starts with
+ *  `CONTRACT_REFUSED_REASON_PREFIX` and names the version the daemon needs (`contract 1 required`). */
+export const CONTRACT_REFUSED_CLOSE_CODE = 1011
+export const CONTRACT_REFUSED_REASON_PREFIX = 'contract '
+
 /** Server → client. Clients MUST ignore an unknown `type`/`kind` rather than error. */
 export type ServerFrame =
   | ({ readonly type: 'wire_event' } & WireEvent)

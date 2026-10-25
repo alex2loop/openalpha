@@ -43,5 +43,6 @@ function boot(): void {
     },
     { once: true }
   )
-  loadUntilReady(controller.signal)
+  // Every load records its own failure in the session signals.
+  loadUntilReady(controller.signal).catch(() => undefined)
 }

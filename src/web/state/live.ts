@@ -3,7 +3,6 @@ import { computed, type ReadonlySignal, signal } from '@preact/signals'
 import type { ProgressWire } from '@/app/server/wire/live'
 
 const MAX_RUNS = 200
-const MAX_TOMBSTONES = 400
 const MAX_PERSISTENT_STEPS = 20
 /** How often the page takes a fresh `GET /v1/live`, on top of every reconnect. */
 export const LIVE_RESYNC_MS = 60_000
@@ -28,8 +27,6 @@ export interface Run {
 }
 
 const runList = signal<readonly Run[]>([])
-// Finished runs, oldest first, so a late or replayed event never brings one back.
-const tombstones = new Set<string>()
 let arrivalSeq = 0
 
 export const runs: ReadonlySignal<readonly Run[]> = runList
@@ -50,10 +47,6 @@ export function findRun(runId: string): Run | undefined {
   return runList.value.find((run) => run.runId === runId)
 }
 
-export function isTombstoned(runId: string): boolean {
-  return tombstones.has(runId)
-}
-
 /** Replaces the run in place by `runId`, else adds it last; past `MAX_RUNS` the oldest leaves. */
 export function upsertRun(run: Run): void {
   if (findRun(run.runId) !== undefined) {
@@ -68,10 +61,7 @@ export function updateRun(runId: string, update: (run: Run) => Run): void {
   runList.value = runList.value.map((run) => (run.runId === runId ? update(run) : run))
 }
 
-/** Removes the run and tombstones it; a second call is a no-op. */
-export function finishRun(runId: string): void {
-  tombstone(runId)
-
+export function removeRun(runId: string): void {
   if (findRun(runId) !== undefined) {
     runList.value = runList.value.filter((run) => run.runId !== runId)
   }
@@ -87,19 +77,6 @@ export function appendStep(
   }
 
   return [...steps, step].slice(-MAX_PERSISTENT_STEPS)
-}
-
-function tombstone(runId: string): void {
-  tombstones.delete(runId)
-  tombstones.add(runId)
-
-  for (const oldest of tombstones) {
-    if (tombstones.size <= MAX_TOMBSTONES) {
-      break
-    }
-
-    tombstones.delete(oldest)
-  }
 }
 
 function isSameStep(a: ProgressWire, b: ProgressWire): boolean {

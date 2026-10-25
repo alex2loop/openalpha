@@ -9,12 +9,11 @@ import { readToken } from '@/web/api/token'
 import {
   appendStep,
   findRun,
-  finishRun,
-  isTombstoned,
   LIVE_RESYNC_MS,
   nextArrivalSeq,
   type Run,
   readArrivalSeq,
+  removeRun,
   runs,
   updateRun,
   upsertRun,
@@ -22,52 +21,76 @@ import {
 import { connection, loadSession } from '@/web/state/session'
 
 const FEED_PATH = '/v1/ws'
-// Past this many events held during one snapshot, the page drops them and takes another snapshot.
+// Past this many events held during one snapshot, the page drops the rest of the pass and takes
+// another snapshot instead.
 const MAX_BUFFERED_EVENTS = 500
+const MAX_TOMBSTONES = 400
 
-interface Feed {
-  readonly socket: FeedSocket
+/** One feed's life, from `startFeed` to its `stop`; nothing here outlives a sign-out. */
+interface FeedState {
   readonly lifetime: AbortController
+  socket: FeedSocket | undefined
+  // While a snapshot is on its way, events wait here and replay in order once it is applied.
+  buffered: WireEvent[]
+  isSyncing: boolean
+  isRerunWanted: boolean
+  // Set on overflow: the rest of the pass is dropped, as the rerun snapshot covers it.
+  isDropping: boolean
+  // A run an event named that the page did not hold; the next snapshot either lists it or it ended.
+  unknownRunId: string | undefined
+  // Finished runs, oldest first, so a late or replayed event never brings one back.
+  readonly tombstones: Set<string>
 }
 
-let feed: Feed | undefined
-// While a snapshot is on its way, events wait here and replay in order once it is applied.
-let buffered: WireEvent[] = []
-let isSyncing = false
-let isRerunWanted = false
-// A run an event named that the page did not hold; the next snapshot either lists it or it ended.
-let unknownRunId: string | undefined
+/** A run event, once its `runId` is known to be there. */
+type RunEvent = WireEvent & { readonly runId: string }
+
+// The running feed, for the offline bar's retry.
+let activeFeed: FeedState | undefined
 
 /** Opens the socket and the snapshot poll. Every (re)connect takes a fresh snapshot and reloads the
  *  session, since language, zone and capabilities can change across a restart. */
 export function startFeed(): () => void {
-  const lifetime = new AbortController()
-  const socket = createFeedSocket({
+  const feed: FeedState = {
+    lifetime: new AbortController(),
+    socket: undefined,
+    buffered: [],
+    isSyncing: false,
+    isRerunWanted: false,
+    isDropping: false,
+    unknownRunId: undefined,
+    tombstones: new Set(),
+  }
+  const { signal } = feed.lifetime
+
+  feed.socket = createFeedSocket({
     url: buildFeedUrl,
-    onFrame: routeFrame,
+    onFrame: (frame) => routeFrame(feed, frame),
     onStatus: setConnection,
+    // Both record their own failure, so neither chain rejects.
     onOpen: () => {
-      resync(lifetime.signal)
-      loadSession(lifetime.signal)
+      resync(feed, signal).catch(() => undefined)
+      loadSession(signal).catch(() => undefined)
     },
   })
-  const stopPoll = startPoll(resync, LIVE_RESYNC_MS)
 
-  feed = { socket, lifetime }
+  const stopPoll = startPoll((pollSignal) => resync(feed, pollSignal), LIVE_RESYNC_MS)
+
+  activeFeed = feed
 
   return () => {
-    lifetime.abort()
+    feed.lifetime.abort()
     stopPoll()
-    socket.close()
+    feed.socket?.close()
 
-    if (feed?.socket === socket) {
-      feed = undefined
+    if (activeFeed === feed) {
+      activeFeed = undefined
     }
   }
 }
 
 export function retryFeedNow(): void {
-  feed?.socket.retryNow()
+  activeFeed?.socket?.retryNow()
 }
 
 function buildFeedUrl(): string {
@@ -82,135 +105,149 @@ function setConnection(status: ConnectionStatus, retryAt?: number): void {
 }
 
 // `chat` frames are dropped until the chat pane registers its sink.
-function routeFrame(frame: ServerFrame): void {
+function routeFrame(feed: FeedState, frame: ServerFrame): void {
   if (frame.type !== 'wire_event') {
     return
   }
 
-  if (!isSyncing) {
-    applyWireEvent(frame, false)
+  if (!feed.isSyncing) {
+    applyWireEvent(feed, frame, false)
     return
   }
 
-  buffered.push(frame)
+  if (feed.isDropping) {
+    return
+  }
 
-  if (buffered.length > MAX_BUFFERED_EVENTS) {
-    buffered = []
-    isRerunWanted = true
+  feed.buffered.push(frame)
+
+  if (feed.buffered.length > MAX_BUFFERED_EVENTS) {
+    feed.buffered = []
+    feed.isDropping = true
+    feed.isRerunWanted = true
   }
 }
 
 /** Single-flight: a call while one runs asks for one more run after it. */
-async function resync(signal: AbortSignal): Promise<void> {
-  if (isSyncing) {
-    isRerunWanted = true
+async function resync(feed: FeedState, signal: AbortSignal): Promise<void> {
+  if (feed.isSyncing) {
+    feed.isRerunWanted = true
     return
   }
 
-  isSyncing = true
+  feed.isSyncing = true
 
   try {
     let isSynced = true
 
     do {
-      isRerunWanted = false
-      isSynced = await syncOnce(signal)
-    } while (isSynced && isRerunWanted && !signal.aborted)
+      feed.isRerunWanted = false
+      isSynced = await syncOnce(feed, signal)
+    } while (isSynced && feed.isRerunWanted && !signal.aborted)
   } finally {
-    isSyncing = false
+    feed.isSyncing = false
+    feed.isDropping = false
   }
 }
 
-async function syncOnce(signal: AbortSignal): Promise<boolean> {
+async function syncOnce(feed: FeedState, signal: AbortSignal): Promise<boolean> {
   const mark = readArrivalSeq()
   let snapshot: LiveSnapshotWire
 
   try {
     snapshot = await getJson(ROUTES.live, { signal })
   } catch {
-    replayBuffered()
+    replayBuffered(feed, false)
 
     // A live socket with no snapshot shows a stale view: reconnect, on the backoff.
     if (!signal.aborted && connection.value.status === 'live') {
-      feed?.socket.retryNow()
+      feed.socket?.retryNow()
     }
 
     return false
   }
 
-  applySnapshot(snapshot, mark)
-  replayBuffered()
+  applySnapshot(feed, snapshot, mark)
+  replayBuffered(feed, true)
 
   return true
 }
 
-function applySnapshot(snapshot: LiveSnapshotWire, mark: number): void {
+function applySnapshot(feed: FeedState, snapshot: LiveSnapshotWire, mark: number): void {
   const listed = new Set(snapshot.runs.map((run) => run.runId))
 
   // A run the page held before asking and the snapshot no longer lists ended in the gap.
   for (const run of runs.value) {
     if (!listed.has(run.runId) && run.seenAt <= mark) {
-      finishRun(run.runId)
+      finishRun(feed, run.runId)
     }
   }
 
-  if (unknownRunId !== undefined && !listed.has(unknownRunId)) {
-    finishRun(unknownRunId)
+  if (feed.unknownRunId !== undefined && !listed.has(feed.unknownRunId)) {
+    finishRun(feed, feed.unknownRunId)
   }
 
-  unknownRunId = undefined
+  feed.unknownRunId = undefined
 
   for (const wire of snapshot.runs) {
-    if (!isTombstoned(wire.runId)) {
+    if (!feed.tombstones.has(wire.runId)) {
       upsertRun(toRun(wire))
     }
   }
 }
 
-function replayBuffered(): void {
-  const events = buffered
+// Ends buffering for this pass. Only a pass whose snapshot was applied may judge an unknown run.
+function replayBuffered(feed: FeedState, isSnapshotApplied: boolean): void {
+  const events = feed.buffered
 
-  buffered = []
+  feed.buffered = []
+  feed.isDropping = false
 
   for (const event of events) {
-    applyWireEvent(event, true)
+    applyWireEvent(feed, event, isSnapshotApplied)
   }
 }
 
+// The snapshot is the daemon's view, except a thinking line it does not carry: the page keeps its own.
 function toRun(wire: LiveRunWire): Run {
+  const held = findRun(wire.runId)
+  const thinking = wire.thinking ?? held?.thinking
+
   return {
     ...wire,
-    seenAt: findRun(wire.runId)?.seenAt ?? nextArrivalSeq(),
+    ...(thinking === undefined ? {} : { thinking }),
+    seenAt: held?.seenAt ?? nextArrivalSeq(),
     tickers: wire.tickers ?? [],
   }
 }
 
-/** Idempotent: the same event applied twice changes nothing. An unknown `kind` is ignored. */
-function applyWireEvent(event: WireEvent, isReplay: boolean): void {
-  if (event.runId === undefined) {
+/** Idempotent: the same event applied twice changes nothing. An unknown `kind` is ignored.
+ *  `isAfterSnapshot` marks a replay right after a snapshot was applied. */
+function applyWireEvent(feed: FeedState, event: WireEvent, isAfterSnapshot: boolean): void {
+  if (!hasRunId(event)) {
     return
   }
 
   switch (event.kind) {
     case 'run_started':
-      applyStart(event.runId, event)
+      applyStart(feed, event)
       return
     case 'run_progress':
     case 'run_thinking':
-      applyUpdate(event.runId, event, isReplay)
+      applyUpdate(feed, event, isAfterSnapshot)
       return
     case 'run_finished':
-      finishRun(event.runId)
+      finishRun(feed, event.runId)
       return
     default:
       return
   }
 }
 
-function applyStart(runId: string, event: WireEvent): void {
-  const start = event.run
+function applyStart(feed: FeedState, event: RunEvent): void {
+  const { runId, run: start } = event
 
-  if (start === undefined || isTombstoned(runId)) {
+  if (start === undefined || feed.tombstones.has(runId)) {
     return
   }
 
@@ -228,8 +265,10 @@ function applyStart(runId: string, event: WireEvent): void {
   })
 }
 
-function applyUpdate(runId: string, event: WireEvent, isReplay: boolean): void {
-  if (isTombstoned(runId)) {
+function applyUpdate(feed: FeedState, event: RunEvent, isAfterSnapshot: boolean): void {
+  const { runId } = event
+
+  if (feed.tombstones.has(runId)) {
     return
   }
 
@@ -239,13 +278,22 @@ function applyUpdate(runId: string, event: WireEvent, isReplay: boolean): void {
   }
 
   // The snapshot just applied was taken after this event's run began, so a run it lacks has ended.
-  if (isReplay) {
-    finishRun(runId)
+  if (isAfterSnapshot) {
+    finishRun(feed, runId)
     return
   }
 
-  unknownRunId = runId
-  resync(feed?.lifetime.signal ?? AbortSignal.abort())
+  // A replay after a failed snapshot leaves it to the next one.
+  if (feed.isSyncing) {
+    return
+  }
+
+  feed.unknownRunId = runId
+  resync(feed, feed.lifetime.signal).catch(() => undefined)
+}
+
+function hasRunId(event: WireEvent): event is RunEvent {
+  return event.runId !== undefined
 }
 
 function mergeUpdate(run: Run, event: WireEvent): Run {
@@ -266,4 +314,22 @@ function mergeUpdate(run: Run, event: WireEvent): Run {
     persistent:
       progress.mode === 'persistent' ? appendStep(run.persistent, progress) : run.persistent,
   }
+}
+
+/** Removes the run and tombstones it; a second call is a no-op. */
+function finishRun(feed: FeedState, runId: string): void {
+  const { tombstones } = feed
+
+  tombstones.delete(runId)
+  tombstones.add(runId)
+
+  for (const oldest of tombstones) {
+    if (tombstones.size <= MAX_TOMBSTONES) {
+      break
+    }
+
+    tombstones.delete(oldest)
+  }
+
+  removeRun(runId)
 }

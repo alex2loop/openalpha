@@ -328,7 +328,9 @@ Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`
   `queued` frame). The lane rejects it and the socket that ran it answers `dropped`; a command that
   already started is untouched and an unknown `id` is ignored.
 - `{ type: 'hello', contractVersion }` — the handshake; the daemon answers `{ type: 'welcome',
-  contractVersion }`, or closes with 1011 when the version differs. A frame that is not one of
+  contractVersion }`, or closes with 1011 and the reason `contract <N> required` (`N` the version it
+  needs; `CONTRACT_REFUSED_CLOSE_CODE` and `CONTRACT_REFUSED_REASON_PREFIX` in `socket.ts`) when the
+  version differs, so a client can tell it is outdated. A frame that is not one of
   these shapes closes the socket with 1002 `invalid_frame`.
 - **binary frame** (not JSON) — ignored: dictation is transcribed on the device and sent as text.
 

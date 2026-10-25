@@ -27,7 +27,8 @@ export function startPoll(
   document.addEventListener('visibilitychange', () => resume(state), {
     signal: state.lifetime.signal,
   })
-  run(state)
+  // `run` swallows the task's failure, so these chains never reject.
+  run(state).catch(() => undefined)
 
   return () => stop(state)
 }
@@ -72,7 +73,7 @@ function arm(state: PollState): void {
   const delayMs = state.everyMs - (performance.now() - state.lastStartedAt)
 
   clearTimeout(state.timer)
-  state.timer = setTimeout(() => run(state), Math.max(0, delayMs))
+  state.timer = setTimeout(() => run(state).catch(() => undefined), Math.max(0, delayMs))
 }
 
 function stop(state: PollState): void {

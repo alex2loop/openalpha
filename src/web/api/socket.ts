@@ -1,22 +1,27 @@
-import type { ClientFrame, CONTRACT_VERSION, ServerFrame } from '@/app/server/wire/socket'
+import type {
+  ClientFrame,
+  CONTRACT_REFUSED_CLOSE_CODE,
+  CONTRACT_REFUSED_REASON_PREFIX,
+  CONTRACT_VERSION,
+  ServerFrame,
+} from '@/app/server/wire/socket'
 import { nextDelayMs } from '@/web/api/backoff'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 
-// Typed against the daemon's constant, so a contract bump fails the typecheck until the page follows.
+// Typed against the daemon's constants, so a change there fails the typecheck until the page follows.
 const EXPECTED_CONTRACT_VERSION: typeof CONTRACT_VERSION = 1
+const CONTRACT_REFUSED_CODE: typeof CONTRACT_REFUSED_CLOSE_CODE = 1011
+const CONTRACT_REFUSED_PREFIX: typeof CONTRACT_REFUSED_REASON_PREFIX = 'contract '
 const STABLE_AFTER_MS = 10_000
 const UNAUTHORIZED_STATUS = 401
-// The daemon refuses another contract by closing with this code and a reason naming the one it needs.
-const CONTRACT_REFUSED_CLOSE_CODE = 1011
-const CONTRACT_REFUSED_REASON_PREFIX = 'contract '
 
 export type ConnectionStatus = 'connecting' | 'live' | 'offline' | 'refused' | 'outdated'
 
 interface FeedSocketDeps {
   readonly url: () => string
   readonly onFrame: (frame: ServerFrame) => void
-  /** `retryAt` (epoch ms) rides with `offline`: when the next attempt starts. */
+  /** `retryAt` (epoch ms) rides with `offline` while a retry is armed: when the next attempt starts. */
   readonly onStatus: (status: ConnectionStatus, retryAt?: number) => void
   readonly onOpen: () => void
 }
@@ -73,6 +78,11 @@ function connect(state: SocketState): void {
     return
   }
 
+  // An attempt under way has nothing armed: the bar drops its countdown until the next verdict.
+  if (state.status === 'offline') {
+    setStatus(state, 'offline')
+  }
+
   const controller = new AbortController()
   const { signal } = controller
 
@@ -81,7 +91,7 @@ function connect(state: SocketState): void {
   try {
     state.socket = new WebSocket(state.deps.url())
   } catch {
-    drop(state)
+    drop(state).catch(() => undefined)
     return
   }
 
@@ -89,8 +99,8 @@ function connect(state: SocketState): void {
 
   ws.addEventListener('open', () => sendHello(ws), { signal })
   ws.addEventListener('message', (event) => receive(state, event.data), { signal })
-  ws.addEventListener('close', (event) => drop(state, event), { signal })
-  ws.addEventListener('error', () => drop(state), { signal })
+  ws.addEventListener('close', (event) => drop(state, event).catch(() => undefined), { signal })
+  ws.addEventListener('error', () => drop(state).catch(() => undefined), { signal })
 }
 
 function sendHello(ws: WebSocket): void {
@@ -178,7 +188,7 @@ function send(state: SocketState, frame: ClientFrame): boolean {
 
 function retryNow(state: SocketState): void {
   if (state.status === 'live') {
-    drop(state)
+    drop(state).catch(() => undefined)
     return
   }
 
@@ -226,10 +236,7 @@ async function classify(signal: AbortSignal): Promise<'offline' | 'refused'> {
 }
 
 function isContractRefusal(event: CloseEvent): boolean {
-  return (
-    event.code === CONTRACT_REFUSED_CLOSE_CODE &&
-    event.reason.startsWith(CONTRACT_REFUSED_REASON_PREFIX)
-  )
+  return event.code === CONTRACT_REFUSED_CODE && event.reason.startsWith(CONTRACT_REFUSED_PREFIX)
 }
 
 // A malformed frame is dropped; an unknown `type` passes, for the router to ignore.
