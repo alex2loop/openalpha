@@ -13,6 +13,7 @@ import {
   WOOD,
 } from '@/web/scene/render2d/building'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
+import { isWallMounted } from '@/web/scene/world/props'
 
 const PAPER = '#F7F5EF'
 const SCREEN_OFF = '#3E4452'
@@ -35,17 +36,6 @@ const BOOK_TONES = [
 const PASTEL = ['#C9B9D9', '#F2C9C2', '#BFD3EE', '#F6E3A8', '#B9D9B5'] as const
 const COPIER_TONES: Tones = ['#F7F4EC', '#E9E6DF', '#CFCBC2']
 const LEAF = ['#8CCB98', '#5FA872', '#3E7E52'] as const
-// Wall-mounted pieces drawn over the cached floor and under everything that stands on it.
-const BACK_KINDS: ReadonlySet<PropKind> = new Set([
-  'clock',
-  'wall-screen',
-  'whiteboard',
-  'results-board',
-  'frame',
-  'light-switch',
-  'lift-door',
-  'window',
-])
 // Flat on the floor: under furniture and people standing at the same depth.
 const DECAL_KINDS: ReadonlySet<PropKind> = new Set(['cat-bed', 'tray'])
 
@@ -92,8 +82,9 @@ export function paintProp(g: CanvasRenderingContext2D, prop: PropDef, scene: Pai
   PAINTERS[prop.kind](g, prop, scene)
 }
 
+/** Wall-mounted pieces are drawn over the cached floor and under everything that stands on it. */
 export function isBackProp(prop: PropDef): boolean {
-  return BACK_KINDS.has(prop.kind)
+  return isWallMounted(prop)
 }
 
 /** The y-sort tie order: a decal under furniture under a person at the same depth. */

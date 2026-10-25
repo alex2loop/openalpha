@@ -124,6 +124,18 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   'lift-door': 30,
 } satisfies Record<PropKind, number>)
 
+// Pieces hung on a wall: their `rect` is the wall area, nothing stands on it.
+const WALL_KINDS: ReadonlySet<PropKind> = new Set([
+  'clock',
+  'wall-screen',
+  'whiteboard',
+  'results-board',
+  'frame',
+  'light-switch',
+  'lift-door',
+  'window',
+])
+
 // A chair is an 11 px square centred on its seat, set back by its facing (the 3D chair3 and seatsOf).
 const CHAIR_PX = 11
 const CHAIR_SET_BACK: Readonly<Record<SeatFacing, number>> = Object.freeze({
@@ -278,6 +290,14 @@ const PROPS: readonly PropDef[] = Object.freeze(PROP_SPECS.map(toProp))
 
 export function propsOn(floor: FloorId): readonly PropDef[] {
   return PROPS.filter((prop) => prop.floor === floor)
+}
+
+export function isWallMounted(prop: PropDef): boolean {
+  return WALL_KINDS.has(prop.kind)
+}
+
+export function isPropKind(value: string): value is PropKind {
+  return Object.hasOwn(HEIGHT_OF, value)
 }
 
 function toProp(spec: PropSpec, index: number): PropDef {

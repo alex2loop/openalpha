@@ -1,9 +1,9 @@
-import { effect, untracked } from '@preact/signals'
+import { computed, effect, untracked } from '@preact/signals'
 import { useEffect, useRef, useState } from 'preact/hooks'
 
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { RoomId, SimView } from '@/web/scene/types'
-import { pageMinute, setSceneZone } from '@/web/scene/clock/clock'
+import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
 import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/data/board'
 import { homeMarket, startHome } from '@/web/scene/data/home'
@@ -15,20 +15,23 @@ import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
+import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
 import { createSimLoop } from '@/web/scene/sim/loop'
-import { bringIntoView, view } from '@/web/scene/view'
+import { bringIntoView, canFollow, readLastInteractionAt, view } from '@/web/scene/view'
 import { ROOMS, roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
-import { focusRequest } from '@/web/state/focus'
-import { findRun } from '@/web/state/live'
+import { onWireEvent } from '@/web/state/events'
+import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
+import { findRun, pending, runs } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
-import { colorScheme, lampsOff, lightByHour } from '@/web/state/prefs'
+import { colorScheme, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
 import { state } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 import './canvas.css'
 
-const NO_ACTORS: SimView['actors'] = Object.freeze([])
+// The tray counts unread notices; before the first read there are none to count.
+const unreadCount = computed(() => unread.value ?? 0)
 
 /** The office scene: the mounted renderer driven by the sim loop, sized to its pane, with its
  *  overlays on top. */
@@ -43,7 +46,6 @@ export function SceneCanvas() {
   }, [renderer])
 
   useEffect(() => effect(syncSceneZone), [])
-  useEffect(() => effect(answerFocusRequest), [])
 
   return (
     <div class="scene">
@@ -57,36 +59,46 @@ export function SceneCanvas() {
   )
 }
 
-// Everything it arms, the returned stop releases: data reads, loop, input, observer, listeners and
-// the renderer.
+// Everything it arms, the returned stop releases: data reads, the director, loop, input, observer,
+// listeners and the renderer.
 function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   const listeners = new AbortController()
   const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda()]
+  const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
 
   renderer.mount(element)
 
   const loop = createSimLoop({
-    step: () => false,
-    draw: (alpha, now) => renderer.draw(buildSimView(alpha), now),
-    resume: () => undefined,
-    nextDueAt: () => Number.POSITIVE_INFINITY,
+    step: (index) => director.step(index),
+    draw: (alpha, now) => renderer.draw(buildSimView(director, alpha), now),
+    resume: () => director.resume(),
+    nextDueAt: () => director.nextDueAt(),
   })
   const resize = new ResizeObserver(() => loop.wake())
   const canvas = element.querySelector('canvas')
   const detach = canvas === null ? () => undefined : attachInteraction(canvas, { renderer })
-  const stopWake = effect(() => {
-    readSceneInputs()
-    untracked(loop.wake)
-  })
+  const offs = [
+    effect(() => {
+      readSceneInputs()
+      untracked(loop.wake)
+    }),
+    effect(() => answerFocusRequest(director)),
+    onWireEvent('any', loop.wake),
+    onWireEvent('run_started', (event) => followRun(director, event.runId)),
+  ]
 
   resize.observe(element)
   watchResolution(loop.wake, listeners.signal)
   loop.start()
 
   return () => {
-    stopWake()
+    for (const off of offs) {
+      off()
+    }
+
     detach()
     loop.stop()
+    director.dispose()
     resize.disconnect()
     listeners.abort()
     renderer.unmount()
@@ -97,21 +109,27 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   }
 }
 
-function buildSimView(alpha: number): SimView {
+function buildSimView(director: Director, alpha: number): SimView {
   const off = lampsOff.value
   const lit = new Set<RoomId>(ROOMS.filter((room) => !off.has(room.id)).map((room) => room.id))
 
   return {
     floor: view.value.floor,
     alpha,
-    actors: NO_ACTORS,
+    ...director.view(),
     props: { lit },
     light: { hour: pageMinute.value.minute / MINUTES_PER_HOUR, followsHour: lightByHour.value },
   }
 }
 
-// What the picture shows besides the sim: a change to any of these draws a frame.
+// What the picture shows besides the sim, and what retargets it (the live store, the clock's
+// mode, reduced motion): a change to any of these draws a frame and steps the sim.
 function readSceneInputs(): void {
+  runs.value
+  pending.value
+  clockMode.value
+  reducedMotion.value
+  selectedActor.value
   view.value
   lampsOff.value
   lightByHour.value
@@ -154,8 +172,9 @@ function syncSceneZone(): void {
   }
 }
 
-// "Xem" on a run: its room comes into view, on its floor; a run with no room moves nothing.
-function answerFocusRequest(): void {
+// "Xem" on a run: its actor is selected and its room comes into view, on its floor; a run with no
+// room moves nothing.
+function answerFocusRequest(director: Director): void {
   const request = focusRequest.value
 
   if (request === undefined) {
@@ -163,12 +182,33 @@ function answerFocusRequest(): void {
   }
 
   untracked(() => {
+    const actor = actorOfRun(director, request.runId)
     const run = findRun(request.runId)
-    const roomId = run === undefined ? undefined : roomOfRun(run)
-    const room = roomId === undefined ? undefined : roomById(roomId)
+    const roomId = actor?.def.room ?? (run === undefined ? undefined : roomOfRun(run))
 
-    if (room !== undefined) {
-      bringIntoView({ floor: room.floor, rect: room.rect, room: { id: room.id, rect: room.rect } })
-    }
+    selectActor(actor?.def.id)
+    showRoom(roomId)
   })
+}
+
+// A new run the office can place: the camera goes to its room, unless the operator moved the
+// camera in the last few seconds.
+function followRun(director: Director, runId: string | undefined): void {
+  const actor = runId === undefined ? undefined : actorOfRun(director, runId)
+
+  if (actor !== undefined && canFollow(readLastInteractionAt(), performance.now())) {
+    showRoom(actor.def.room)
+  }
+}
+
+function actorOfRun(director: Director, runId: string): ActorState | undefined {
+  return [...director.actors().values()].find((actor) => actor.goal?.runId === runId)
+}
+
+function showRoom(roomId: RoomId | undefined): void {
+  const room = roomId === undefined ? undefined : roomById(roomId)
+
+  if (room !== undefined) {
+    bringIntoView({ floor: room.floor, rect: room.rect, room: { id: room.id, rect: room.rect } })
+  }
 }

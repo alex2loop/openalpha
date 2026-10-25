@@ -11,6 +11,8 @@ interface FloorDef {
   readonly rooms: readonly RoomId[]
   readonly walls: readonly Wall[]
   readonly lift: Rect
+  /** The open floor between the two rows of rooms, where the floor has one. */
+  readonly corridor?: Rect
 }
 
 // The corridor's north wall, with the store, library and meeting-room doorways left open.
@@ -41,6 +43,7 @@ export const FLOORS: Readonly<Record<FloorId, FloorDef>> = Object.freeze({
       vertical(480, [BOTTOM_ROW_Y, FLOOR_BOTTOM]),
     ],
     lift: { x: 130, y: 226, w: 24, h: 30 },
+    corridor: { x: 0, y: TOP_ROW_BOTTOM, w: 640, h: BOTTOM_ROW_Y - TOP_ROW_BOTTOM },
   },
   team: {
     rooms: ['team'],

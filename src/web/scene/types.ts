@@ -30,9 +30,50 @@ export interface Size {
 export type FloorId = 'office' | 'team'
 export type RoomId = 'store' | 'lib' | 'meet' | 'lobby' | 'alerts' | 'assist' | 'desk' | 'team'
 
-type ActorId = string & { readonly __brand: 'ActorId' }
-type RoleId = string & { readonly __brand: 'RoleId' }
-type Dir = 'up' | 'down' | 'left' | 'right'
+/** Every built-in person in the office, one per role (the library has two scouts). */
+export type ActorId =
+  | 'bull'
+  | 'pm'
+  | 'bear'
+  | 'analyst'
+  | 'verifier'
+  | 'trader'
+  | 'risk'
+  | 'planner'
+  | 'crawler-1'
+  | 'crawler-2'
+  | 'reviewer'
+  | 'synth'
+  | 'theme'
+  | 'keeper'
+  | 'assistant'
+  | 'clerk'
+/** What a person does; debate roles carry the daemon's own role names (`trading.debate.role.*`). */
+export type RoleId =
+  | 'bull-researcher'
+  | 'bear-researcher'
+  | 'portfolio-manager'
+  | 'trader'
+  | 'risk-analyst'
+  | 'claim-verifier'
+  | 'market-analyst'
+  | 'planner'
+  | 'crawler'
+  | 'reviewer'
+  | 'synth'
+  | 'theme'
+  | 'keeper'
+  | 'assistant'
+  | 'clerk'
+export type Dir = 'up' | 'down' | 'left' | 'right'
+
+/** Something a person holds besides a sheet. */
+export type HeldItem = 'card' | 'calculator' | 'pen' | 'phone' | 'headset' | 'wallet' | 'box'
+
+/** A sheet in hand; once stamped it carries the call's action, its stamp in the action's hue. */
+export interface SheetView {
+  readonly action?: 'buy' | 'reduce' | 'hold'
+}
 
 /** One person as the renderers draw them: `prev` and `at` are the last two sim steps. */
 export interface ActorView {
@@ -43,6 +84,18 @@ export interface ActorView {
   readonly at: Point
   readonly facing: Dir
   readonly working: boolean
+  readonly item?: HeldItem
+  readonly sheet?: SheetView
+}
+
+/** A sheet flying between two people, or to the tray: `k` is how far it has come (0 to 1) at the
+ *  last sim step, `prevK` at the one before. */
+export interface PaperView {
+  readonly floor: FloorId
+  readonly from: Point
+  readonly to: Point
+  readonly prevK: number
+  readonly k: number
 }
 
 /** The light the office keeps: the page hour, or the day row when the light does not follow it. */
@@ -61,6 +114,9 @@ export interface SimView {
   readonly floor: FloorId
   readonly alpha: number
   readonly actors: readonly ActorView[]
+  readonly papers: readonly PaperView[]
+  /** Sheets on the operator's tray. */
+  readonly tray: number
   readonly props: PropsView
   readonly light: LightView
 }

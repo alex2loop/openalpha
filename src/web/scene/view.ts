@@ -16,6 +16,8 @@ const FRAME_CENTER: Point = Object.freeze({
 })
 // Under a world pixel of slack, an edge counts as reached.
 const EDGE_SLACK_PX = 1
+// The camera follows a new run only after the operator has left it alone this long.
+const FOLLOW_IDLE_MS = 10_000
 
 interface SceneView {
   readonly floor: FloorId
@@ -53,6 +55,10 @@ export const projection = signal<Projection>({
   originY: 0,
 })
 
+// When the operator last moved the camera (a `performance.now()` instant); the camera's own
+// moves toward a run do not count.
+let lastInteractionAt = Number.NEGATIVE_INFINITY
+
 export function reportProjection(next: Projection): void {
   const held = projection.value
   const isSame =
@@ -69,12 +75,14 @@ export function reportProjection(next: Projection): void {
 }
 
 export function setFloor(floor: FloorId): void {
+  noteInteraction()
   view.value = { floor, zoomSteps: 0, center: FRAME_CENTER }
 }
 
 /** The one move that zooms into a room: a click on it or its tag from the floor view. */
 export function zoomToRoom(room: RoomId, rect: Rect): void {
-  view.value = { floor: view.value.floor, room, zoomSteps: 0, center: centerOf(rect) }
+  noteInteraction()
+  showRoom(room, rect)
 }
 
 export function leaveRoom(): void {
@@ -83,6 +91,8 @@ export function leaveRoom(): void {
 
 /** Moves the picture by `dx`, `dy` CSS px, as far as the frame goes. */
 export function panBy(dx: number, dy: number): void {
+  noteInteraction()
+
   const held = view.value
   const { scale, pane } = projection.value
   const center = { x: held.center.x - dx / scale, y: held.center.y - dy / scale }
@@ -93,6 +103,8 @@ export function panBy(dx: number, dy: number): void {
 /** Zooms by whole steps, keeping the world point `at` (the pointer) where it is. From a room the
  *  zoom carries on from the room's scale on the floor view. */
 export function zoomBy(steps: number, at?: Point): void {
+  noteInteraction()
+
   const held = view.value
   const { scale, baseScale, pane } = projection.value
   const current = held.room === undefined ? held.zoomSteps : stepsOf(scale / baseScale)
@@ -136,7 +148,7 @@ export function bringIntoView(target: ViewTarget): void {
   }
 
   if (held.room !== undefined && target.room !== undefined) {
-    zoomToRoom(target.room.id, target.room.rect)
+    showRoom(target.room.id, target.room.rect)
     return
   }
 
@@ -150,6 +162,15 @@ export function bringIntoView(target: ViewTarget): void {
   }
 }
 
+/** The camera may follow a new run: the operator has not moved it for `FOLLOW_IDLE_MS`. */
+export function canFollow(lastAt: number, now: number): boolean {
+  return now - lastAt >= FOLLOW_IDLE_MS
+}
+
+export function readLastInteractionAt(): number {
+  return lastInteractionAt
+}
+
 /** More of the frame lies that way (-1 left, 1 right) beyond the pane. */
 export function canPanToward(dir: -1 | 1): boolean {
   const seen = visibleRect()
@@ -157,6 +178,14 @@ export function canPanToward(dir: -1 | 1): boolean {
   return dir < 0
     ? seen.x > FRAME_RECT.x + EDGE_SLACK_PX
     : seen.x + seen.w < FRAME_RECT.x + FRAME_RECT.w - EDGE_SLACK_PX
+}
+
+function noteInteraction(): void {
+  lastInteractionAt = performance.now()
+}
+
+function showRoom(room: RoomId, rect: Rect): void {
+  view.value = { floor: view.value.floor, room, zoomSteps: 0, center: centerOf(rect) }
 }
 
 // `span` is the frame's start and size on the axis, `half` half the pane on it in world px.

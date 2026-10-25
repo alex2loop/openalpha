@@ -7,6 +7,7 @@ import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitFloor, fitRoom, toSnappedFit } from '@/web/scene/render2d/camera'
 import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
 import { DAY_LIGHT_HOUR, lightAt, paintLighting } from '@/web/scene/render2d/lights'
+import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
 import { createScreenCache, type ScreenCache } from '@/web/scene/render2d/screens'
 import {
@@ -21,6 +22,7 @@ import { clampPan, FRAME_RECT, reportProjection, view, ZOOM_STEP } from '@/web/s
 import { propsOn } from '@/web/scene/world/props'
 import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
+import { selectedActor } from '@/web/state/focus'
 import { unread } from '@/web/state/notices'
 import { colorScheme } from '@/web/state/prefs'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
@@ -31,6 +33,8 @@ const RENDER_WINDOW_MS = 1_000
 // Above any display's refresh rate, so the window never drops a render it should count.
 const MAX_RENDER_SAMPLES = 240
 const ACTOR_TIE_RANK = 2
+// The operator's tray sits on your desk, on the office floor.
+const TRAY_FLOOR: FloorId = 'office'
 const IDENTITY_FIT: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
 /** Where the floor sits in the pane: CSS px per world px and the CSS px of world (0, 0). */
@@ -250,6 +254,16 @@ function paintFloor(surface: Surface, job: FloorJob): void {
     piece.draw()
   }
 
+  if (job.sim.floor === TRAY_FLOOR) {
+    paintTray(g, job.sim.tray)
+  }
+
+  paintPapers(
+    g,
+    job.sim.papers.filter((paper) => paper.floor === job.sim.floor),
+    job.sim.alpha
+  )
+
   const dropPct = indexDrop.value?.movePct
 
   paintLighting(g, {
@@ -280,7 +294,13 @@ function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
     .map((actor) => ({
       sortY: actor.at.y,
       tie: ACTOR_TIE_RANK,
-      draw: () => drawCharacter(g, actor, { scale: job.scene.scale, now: job.now }),
+      draw: () =>
+        drawCharacter(g, actor, {
+          scale: job.scene.scale,
+          now: job.now,
+          alpha: job.sim.alpha,
+          isSelected: actor.id === selectedActor.value,
+        }),
     }))
 
   return [...back, ...[...standing, ...actors].sort((a, b) => a.sortY - b.sortY || a.tie - b.tie)]
