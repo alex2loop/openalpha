@@ -496,7 +496,7 @@
     "agentNotEditable": "Agent {id} có sẵn trong hệ thống, trang này không sửa được.",
     "agentReloadFailed": "Mình chưa đọc được thư mục agent nên giữ nguyên các agent đang chạy.",
     "agentSkippedIdTaken": "Mã này đã thuộc về một agent có sẵn hoặc của plugin nên mình bỏ qua tệp này. Bạn đổi tên thư mục rồi đọc lại agent nhé.",
-    "agentSkippedFocus": "Phạm vi của agent nhắc tới một thị trường hoặc ngành mình chưa có nên mình bỏ qua tệp này. Bạn xem lại mục [focus] trong agent.toml nhé.",
+    "agentSkippedFocus": "Phạm vi của agent chưa khớp với những gì mình đọc được nên mình bỏ qua tệp này. Bạn xem lại mục [focus] trong agent.toml nhé, nhật ký agent ghi rõ chỗ chưa khớp.",
     "agentSkippedInvalid": "Mình chưa đọc được tệp này nên để nó ngoài cho tới khi sửa xong. Lý do nằm trong nhật ký agent.",
     "alertLevelTaken": "Đã có một cảnh báo ở mức này, nên mình chưa đặt thêm cảnh báo thứ hai cho công việc này. Bạn xóa cảnh báo đó hoặc chọn mức khác nhé.",
     "instrumentNotSupported": "Mình chưa theo dõi được {name} nên chưa đặt cảnh báo cho mã này. Bạn kiểm tra lại mã, hoặc ghi rõ thị trường dạng thị trường:mã nhé.",

@@ -496,7 +496,7 @@
     "agentNotEditable": "{id} is built in; this page cannot edit it.",
     "agentReloadFailed": "I could not read the agents folder, so the agents that are running stay as they are.",
     "agentSkippedIdTaken": "This id already belongs to a built-in or plugin agent, so I left the file out. Rename its folder and read the agents again.",
-    "agentSkippedFocus": "Its focus names a market or sector I do not have, so I left the file out. Check the [focus] part of agent.toml.",
+    "agentSkippedFocus": "Its focus does not fit what I can read, so I left the file out. Check the [focus] part of agent.toml; the agent log says what does not fit.",
     "agentSkippedInvalid": "I could not load this file, so it stays out until it is fixed. The reason is in the agent log.",
     "alertLevelTaken": "An alert at this level is already set, so I did not arm a second one for this job. Remove that alert or pick another level.",
     "instrumentNotSupported": "I do not cover {name} yet, so I cannot arm an alert on it. Check the ticker, or name its market as market:ticker.",
