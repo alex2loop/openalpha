@@ -62,7 +62,7 @@ function runUndo(entry: UndoEntry): void {
     return
   }
 
-  const busy: UndoEntry = { ...entry, isBusy: true }
+  const busy: UndoEntry = { text: entry.text, undo: entry.undo, isBusy: true }
 
   // The bar stays while the call runs, however long it takes.
   clearTimeout(timer)

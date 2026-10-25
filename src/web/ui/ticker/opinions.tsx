@@ -35,6 +35,7 @@ export function OpinionsBlock({ ticker, market, plan }: OpinionsProps) {
   const reading = useBlockRead(readOpinions(ticker, market))
 
   useRetryWhenKnown(agents.value.length > 0, reading.retry)
+
   const opinions = reading.data?.opinions
 
   if (opinions?.length === 0) {

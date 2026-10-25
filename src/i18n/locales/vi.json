@@ -338,7 +338,7 @@
     "office.book.runRebalance": "Chạy /rebalance",
     "office.book.perfBook": "Danh mục của bạn",
     "office.book.perfTarget": "Danh mục mục tiêu",
-    "office.book.yearWindow": "đầu năm đến nay",
+    "office.book.yearWindow": "năm nay",
     "office.book.filterEmpty": "Chưa thấy giao dịch loại này trong phần đã tải.",
     "office.ticker.stale": "Giá này đã cũ, đọc lúc {time}.",
     "office.ticker.notFound": "Mình chưa tìm thấy mã {ticker}. Bạn kiểm tra lại mã nhé.",

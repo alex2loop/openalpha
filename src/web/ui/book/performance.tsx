@@ -52,8 +52,8 @@ function NavBody({ nav }: { readonly nav: TradingNavResponse }) {
   const first = year.points[0]
   const last = year.points.at(-1)
 
-  if (first === undefined || last === undefined || year.points.length < 2) {
-    return <p class="meta">{describeThinHistory(nav, first?.day)}</p>
+  if (first === undefined || last === undefined) {
+    return <p class="meta">{describeThinHistory(nav)}</p>
   }
 
   return (
@@ -83,13 +83,11 @@ function NavBody({ nav }: { readonly nav: TradingNavResponse }) {
   )
 }
 
-// A year with fewer than two points means the record has only just begun, or began this year.
-function describeThinHistory(nav: TradingNavResponse, firstDay: string | undefined): string {
-  const from = firstDay ?? nav.firstDay
-
-  return from === undefined
+// No point this year: the record is empty, or has not been added to since last year.
+function describeThinHistory(nav: TradingNavResponse): string {
+  return nav.firstDay === undefined
     ? tr('trading.render.nav.none')
-    : tr('trading.render.nav.thin', { from: formatDay(locale.value, from) })
+    : tr('trading.render.nav.thin', { from: formatDay(locale.value, nav.firstDay) })
 }
 
 function BenchmarkLine({

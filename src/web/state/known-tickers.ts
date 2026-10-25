@@ -4,7 +4,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { runs } from '@/web/state/live'
 import { findQuote, heldPositions, watchedNames } from '@/web/state/market'
-import { openView, type PanelView, panelView } from '@/web/state/panel'
+import { collapsed, openView, type PanelView, panelView } from '@/web/state/panel'
 import { toErrorText, tr } from '@/web/text/tr'
 
 const MAX_KNOWN_TICKERS = 500
@@ -59,7 +59,7 @@ export function openTicker(ticker: string, market?: string): void {
       }
 
       if (found === undefined) {
-        notice.value = { text: tr('ui.office.ticker.notFound', { ticker }), origin }
+        showNotice(tr('ui.office.ticker.notFound', { ticker }), origin)
         return
       }
 
@@ -67,10 +67,21 @@ export function openTicker(ticker: string, market?: string): void {
     },
     (error: unknown) => {
       if (!isStale(controller, origin)) {
-        notice.value = { text: toErrorText(error), origin }
+        showNotice(toErrorText(error), origin)
       }
     }
   )
+}
+
+// The line is on the view the click came from; a folded panel opens so it can be read.
+function showNotice(text: string, origin: PanelView): void {
+  notice.value = { text, origin }
+  collapsed.value = false
+}
+
+/** Drops the line, once the operator has moved on. */
+export function clearTickerNotice(): void {
+  notice.value = undefined
 }
 
 function isStale(controller: AbortController, origin: PanelView): boolean {

@@ -10,7 +10,7 @@ import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { boardScaleNotes, formatMarketPrice } from '@/web/text/market-price'
-import { buildDayKey, formatClock, shiftDay } from '@/web/text/time'
+import { buildDayKey, formatWhen, shiftDay } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -50,6 +50,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const reading = useBlockRead(readBars(ticker, market), { capability: ROUTES.ohlcv.capability })
 
   useRetryWhenKnown(state.value?.timeZone !== undefined, reading.retry)
+
   const label = findQuote(ticker, market)?.label
 
   return (
@@ -106,7 +107,7 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
   const readText =
     facts.readAt === undefined || timeZone === undefined
       ? ''
-      : tr('ui.office.today.readAt', { time: formatClock(facts.readAt, timeZone) })
+      : tr('ui.office.today.readAt', { time: formatWhen(facts.readAt, timeZone) })
   const parts = [...boardScaleNotes([market]), facts.session, readText].filter(
     (part) => part !== ''
   )
@@ -115,7 +116,7 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
     <>
       {facts.staleAt !== undefined && timeZone !== undefined && (
         <p class="strip is-caution">
-          {tr('ui.office.ticker.stale', { time: formatClock(facts.staleAt, timeZone) })}
+          {tr('ui.office.ticker.stale', { time: formatWhen(facts.staleAt, timeZone) })}
         </p>
       )}
       <p class="big-figure">
