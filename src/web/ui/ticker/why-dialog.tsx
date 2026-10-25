@@ -1,7 +1,7 @@
 import type { DebateWire } from '@/app/server/wire/debate'
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { formatDay } from '@/i18n'
-import { ApiFailure, getJson } from '@/web/api/client'
+import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { agents } from '@/web/state/agents'
 import { fillInput } from '@/web/state/command'
@@ -11,7 +11,7 @@ import { formatSignedFraction } from '@/web/text/figures'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
-import { CaseLine, ClaimList } from '@/web/ui/ideas/debate-folds'
+import { buildDebateParts, readDebate } from '@/web/ui/ideas/debate-folds'
 import { Button } from '@/web/ui/kit/button'
 import { Fold } from '@/web/ui/kit/fold'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
@@ -158,18 +158,6 @@ async function readStored(id: string, abort: AbortSignal): Promise<StoredDebate>
   return { debate, citations: card.card === null ? [] : citationsOf(card.card) }
 }
 
-async function readDebate(id: string, abort: AbortSignal): Promise<DebateWire | undefined> {
-  try {
-    return await getJson(ROUTES.suggestionDebate(id), { signal: abort })
-  } catch (error: unknown) {
-    if (error instanceof ApiFailure && error.code === 'not_found') {
-      return undefined
-    }
-
-    throw error
-  }
-}
-
 function StoredDebateView({ call }: { readonly call: SuggestionWire }) {
   const loaded = useLoad((abort) => readStored(call.id, abort))
   const result = loaded.value
@@ -210,16 +198,12 @@ function DebateSections({ debate, action }: DebateSectionsProps) {
           time: timeZone === undefined ? ABSENT_CELL : formatWhen(debate.createdAt, timeZone),
         })}
       </p>
-      <h3 class="sub-head">{tr('trading.debate.role.bull-researcher')}</h3>
-      <CaseLine debate={debate} side="bull-researcher" action={action} />
-      <h3 class="sub-head">{tr('trading.debate.role.bear-researcher')}</h3>
-      <CaseLine debate={debate} side="bear-researcher" action={action} />
-      {debate.claims.length > 0 && (
-        <>
-          <h3 class="sub-head">{tr('trading.debate.role.claim-verifier')}</h3>
-          <ClaimList debate={debate} />
-        </>
-      )}
+      {buildDebateParts(debate, action).map((part) => (
+        <section key={part.id}>
+          <h3 class="sub-head">{part.title}</h3>
+          {part.body}
+        </section>
+      ))}
     </>
   )
 }

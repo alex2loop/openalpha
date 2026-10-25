@@ -1,20 +1,19 @@
-import type { BriefTextWire, SuggestionCardWire } from '@/app/server/wire/trading'
+import type { BriefTextWire } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { parseReport, plainTextOf, type ReportDoc, toPlain } from '@/web/ui/markdown/parse'
+import { toPlain } from '@/web/ui/markdown/inline'
+import { parseReport, plainTextOf, type ReportDoc } from '@/web/ui/markdown/parse'
 
 const ASSISTANT_ROLE = 'assistant'
 // A page of history can hold only empty rows; the newest answer is rarely further back than this.
 const HISTORY_PAGES_MAX = 4
 const TITLE_MAX_CHARS = 80
 const ELLIPSIS = '...'
-const DETAIL_TITLE = /^\*\*(.+)\*\*$/
 const LINE_BREAK = /\r?\n/
 
 export type ReaderSource =
   | { readonly kind: 'brief' }
   | { readonly kind: 'research'; readonly sessionId: string }
-  | { readonly kind: 'suggestion'; readonly id: string }
 
 export interface ReaderContent {
   readonly title: string
@@ -33,8 +32,6 @@ export async function loadReport(
       return await loadBrief(abort)
     case 'research':
       return await loadResearch(source.sessionId, abort)
-    case 'suggestion':
-      return await loadSuggestion(source.id, abort)
   }
 }
 
@@ -53,12 +50,6 @@ async function loadResearch(
   const text = await readNewestAnswer(sessionId, abort)
 
   return text === undefined ? undefined : toContent(text, true)
-}
-
-async function loadSuggestion(id: string, abort: AbortSignal): Promise<ReaderContent | undefined> {
-  const answer = await getJson(ROUTES.suggestionCard(id), { signal: abort })
-
-  return answer.card === null ? undefined : toContent(cardMarkdown(answer.card), true)
 }
 
 // The run's session may carry later talk; the report is the newest answer in it.
@@ -129,28 +120,6 @@ function briefMarkdown(text: BriefTextWire): string {
     ...sections,
     ...(text.caveats.length === 0 ? [] : [toBullets(text.caveats)]),
   ].join('\n\n')
-}
-
-function cardMarkdown(card: SuggestionCardWire): string {
-  const bulleted = [card.facts, card.reasons, card.levels, card.notes]
-    .filter((lines) => lines.length > 0)
-    .map(toBullets)
-
-  return [
-    card.verdict,
-    ...bulleted,
-    ...(card.calibration === undefined ? [] : [card.calibration]),
-    ...card.details.map(toDetailMarkdown),
-    card.disclaimer,
-  ].join('\n\n')
-}
-
-// A detail block opens with its bold title; the reader makes it a heading so the contents list it.
-function toDetailMarkdown(block: readonly string[]): string {
-  const [first = '', ...rest] = block
-  const title = DETAIL_TITLE.exec(first)
-
-  return title === null ? block.join('\n') : `## ${title[1]}\n\n${rest.join('\n')}`
 }
 
 function toBullets(lines: readonly string[]): string {

@@ -12,8 +12,18 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 
 /** Đang mở: the plans standing now, then the research the daemon finished. */
 export function OpenIdeas() {
-  // Leaving the view is when the calls on it count as looked at.
-  useEffect(() => () => markSeen(freshCalls.peek().map((call) => call.id)), [])
+  // Leaving the view, or the page, is when the calls on it count as looked at.
+  useEffect(() => {
+    const listeners = new AbortController()
+    const saveSeen = (): void => markSeen(freshCalls.peek().map((call) => call.id))
+
+    addEventListener('pagehide', saveSeen, { signal: listeners.signal })
+
+    return () => {
+      listeners.abort()
+      saveSeen()
+    }
+  }, [])
 
   return (
     <>

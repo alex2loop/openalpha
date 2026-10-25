@@ -138,3 +138,10 @@ button.research-row {
   border-top: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
 }
+
+.opportunity-ask {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}

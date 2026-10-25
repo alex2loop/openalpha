@@ -1,5 +1,5 @@
-import { type ReadonlySignal, type Signal, useSignal } from '@preact/signals'
-import { useEffect, useRef } from 'preact/hooks'
+import { type ReadonlySignal, useSignal } from '@preact/signals'
+import { useEffect } from 'preact/hooks'
 
 import { ApiFailure } from '@/web/api/client'
 
@@ -15,47 +15,23 @@ export function useLoad<T>(
   const result = useSignal<LoadState<T>>({ status: 'loading' })
 
   // One read per mount, by design: `load` is not a dependency.
-  useEffect(() => startLoad(load, result), [])
+  useEffect(() => {
+    const controller = new AbortController()
+
+    load(controller.signal).then(
+      (value) => {
+        result.value = { status: 'ready', value }
+      },
+      (error: unknown) => {
+        // Anything but an `ApiFailure` is this unmount's own abort.
+        if (error instanceof ApiFailure) {
+          result.value = { status: 'failed', failure: error }
+        }
+      }
+    )
+
+    return () => controller.abort()
+  }, [])
 
   return result
-}
-
-/** As `useLoad`, but the read starts at the first `request()`: a fold reads nothing until opened.
- *  The read ends with the component. */
-export function useLazyLoad<T>(load: (signal: AbortSignal) => Promise<T>): {
-  readonly result: ReadonlySignal<LoadState<T>>
-  readonly request: () => void
-} {
-  const result = useSignal<LoadState<T>>({ status: 'loading' })
-  const stop = useRef<(() => void) | undefined>(undefined)
-
-  useEffect(() => () => stop.current?.(), [])
-
-  function request(): void {
-    stop.current ??= startLoad(load, result)
-  }
-
-  return { result, request }
-}
-
-// Starts the read and returns what aborts it.
-function startLoad<T>(
-  load: (signal: AbortSignal) => Promise<T>,
-  result: Signal<LoadState<T>>
-): () => void {
-  const controller = new AbortController()
-
-  load(controller.signal).then(
-    (value) => {
-      result.value = { status: 'ready', value }
-    },
-    (error: unknown) => {
-      // Anything but an `ApiFailure` is this unmount's own abort.
-      if (error instanceof ApiFailure) {
-        result.value = { status: 'failed', failure: error }
-      }
-    }
-  )
-
-  return () => controller.abort()
 }

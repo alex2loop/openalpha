@@ -1,34 +1,26 @@
 import { isSourcesTitle } from '@/web/text/sources-title'
+import { type Inline, parseInline, toPlain } from '@/web/ui/markdown/inline'
 
-// A longer report is cut, and a line or paragraph longer than `INLINE_MAX_CHARS` reads as plain text:
-// the inline scan is quadratic in the worst case.
+// Every scan is bounded so no input can freeze the page: a longer report is cut, a line longer than
+// `LINE_MAX_CHARS` is paragraph text before any pattern sees it (inline runs are bounded in
+// `inline.ts`).
 const REPORT_MAX_CHARS = 200_000
-const INLINE_MAX_CHARS = 10_000
+const LINE_MAX_CHARS = 4_000
 const HEADING_ID_PREFIX = 'rh'
 const SOURCE_ID_PREFIX = 'rs'
-const HEADING = /^(#{1,6})\s+(.+?)\s*#*\s*$/
+const HEADING = /^(#{1,6})\s+(\S.*)$/
 const RULE = /^\s*([-*_])(?:\s*\1){2,}\s*$/
 const QUOTE = /^\s*>\s?(.*)$/
 // A bullet, a number, or a `[n]` footnote line.
 const LIST_ITEM = /^(\s*)([-*+]|\d{1,9}[.)]|\[\d{1,3}\])\s+(.*)$/
 const TABLE_ROW = /^\s*\|/
-const TABLE_DIVIDER = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/
+const DIVIDER_CELL = /^:?-+:?$/
 const NUMBER_MARKER = /\d+/
 const BULLET_MARKER = /^[-*+]$/
 const INDENTED = /^\s/
 const LEADING_PIPE = /^\|/
 const TRAILING_PIPE = /\|$/
 const LINE_BREAK = /\r\n?/g
-const BARE_URL_TAIL = /[.,;:!?)\]'"]+$/
-const INLINE =
-  /\*\*(?=\S)(.+?)(?<=\S)\*\*|\*(?=\S)(.+?)(?<=\S)\*|`([^`\n]+)`|\[(\d{1,3})\](?!\()|\[([^\]\n]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s<>]+)/gu
-
-export type Inline =
-  | { readonly kind: 'text'; readonly text: string }
-  | { readonly kind: 'bold' | 'italic'; readonly children: readonly Inline[] }
-  | { readonly kind: 'code'; readonly text: string }
-  | { readonly kind: 'note'; readonly n: number }
-  | { readonly kind: 'link'; readonly href: string; readonly text: string }
 
 interface ListItem {
   /** The number the line wrote (`3.` or `[3]`); absent on a bullet. */
@@ -74,6 +66,8 @@ export interface ReportDoc {
     readonly text: string
   }[]
   readonly sources: readonly ReportSource[]
+  /** The text was longer than the parser reads, so the end is missing. */
+  readonly isTruncated: boolean
 }
 
 interface Taken {
@@ -97,57 +91,13 @@ export function parseReport(text: string): ReportDoc {
         : []
     ),
     sources,
+    isTruncated: text.length > REPORT_MAX_CHARS,
   }
 }
 
 /** The element id of source `n`, which a `[n]` mark jumps to. */
 export function sourceAnchor(n: number): string {
   return `${SOURCE_ID_PREFIX}${n}`
-}
-
-/** The inline marks of one run of text. */
-function parseInline(source: string): readonly Inline[] {
-  if (source.length > INLINE_MAX_CHARS) {
-    return [{ kind: 'text', text: source }]
-  }
-
-  const nodes: Inline[] = []
-  let cursor = 0
-
-  for (const match of source.matchAll(INLINE)) {
-    const found = toInline(match)
-
-    if (found === undefined) {
-      continue
-    }
-
-    pushText(nodes, source.slice(cursor, match.index))
-    nodes.push(found.node)
-    cursor = match.index + found.length
-  }
-
-  pushText(nodes, source.slice(cursor))
-
-  return nodes
-}
-
-/** The words of a run, marks dropped. */
-export function toPlain(inline: readonly Inline[]): string {
-  return inline.map(nodePlain).join('')
-}
-
-function nodePlain(node: Inline): string {
-  switch (node.kind) {
-    case 'text':
-    case 'code':
-    case 'link':
-      return node.text
-    case 'note':
-      return `[${node.n}]`
-    case 'bold':
-    case 'italic':
-      return toPlain(node.children)
-  }
 }
 
 /** Every word of the report, for finding the names it mentions. */
@@ -196,30 +146,65 @@ function parseBlocks(lines: readonly string[]): Block[] {
 // Always takes at least the line at `index`, so the caller's loop ends.
 function takeBlock(lines: readonly string[], index: number): Taken {
   const line = lines[index] ?? ''
-  const heading = HEADING.exec(line)
+  const heading = execLine(HEADING, line)
 
   if (heading !== null) {
     const [, marks = '', text = ''] = heading
 
     return {
-      block: { kind: 'heading', level: marks.length, id: '', inline: parseInline(text) },
+      block: {
+        kind: 'heading',
+        level: marks.length,
+        id: '',
+        inline: parseInline(trimHeadingTail(text)),
+      },
       next: index + 1,
     }
   }
 
-  if (RULE.test(line)) {
+  if (testLine(RULE, line)) {
     return { block: { kind: 'rule' }, next: index + 1 }
   }
 
-  if (TABLE_ROW.test(line) && TABLE_DIVIDER.test(lines[index + 1] ?? '')) {
+  if (testLine(TABLE_ROW, line) && isTableDivider(lines[index + 1] ?? '')) {
     return takeTable(lines, index)
   }
 
-  if (QUOTE.test(line)) {
+  if (testLine(QUOTE, line)) {
     return takeQuote(lines, index)
   }
 
-  return LIST_ITEM.test(line) ? takeList(lines, index) : takeParagraph(lines, index)
+  return testLine(LIST_ITEM, line) ? takeList(lines, index) : takeParagraph(lines, index)
+}
+
+function testLine(pattern: RegExp, line: string): boolean {
+  return line.length <= LINE_MAX_CHARS && pattern.test(line)
+}
+
+function execLine(pattern: RegExp, line: string): RegExpExecArray | null {
+  return line.length <= LINE_MAX_CHARS ? pattern.exec(line) : null
+}
+
+// A closing run of `#` and the spaces around it are not part of the heading.
+function trimHeadingTail(text: string): string {
+  let end = text.trimEnd().length
+
+  while (end > 0 && text[end - 1] === '#') {
+    end--
+  }
+
+  return text.slice(0, end).trimEnd()
+}
+
+// Each cell is dashes with optional colons; tested cell by cell so no pattern backtracks over a line.
+function isTableDivider(line: string): boolean {
+  if (line.length > LINE_MAX_CHARS) {
+    return false
+  }
+
+  const cells = line.trim().replace(LEADING_PIPE, '').replace(TRAILING_PIPE, '').split('|')
+
+  return cells.every((cell) => DIVIDER_CELL.test(cell.trim()))
 }
 
 function startsBlock(lines: readonly string[], index: number): boolean {
@@ -227,11 +212,11 @@ function startsBlock(lines: readonly string[], index: number): boolean {
 
   return (
     line.trim() === '' ||
-    HEADING.test(line) ||
-    RULE.test(line) ||
-    QUOTE.test(line) ||
-    LIST_ITEM.test(line) ||
-    (TABLE_ROW.test(line) && TABLE_DIVIDER.test(lines[index + 1] ?? ''))
+    testLine(HEADING, line) ||
+    testLine(RULE, line) ||
+    testLine(QUOTE, line) ||
+    testLine(LIST_ITEM, line) ||
+    (testLine(TABLE_ROW, line) && isTableDivider(lines[index + 1] ?? ''))
   )
 }
 
@@ -251,12 +236,12 @@ function takeParagraph(lines: readonly string[], index: number): Taken {
 function takeQuote(lines: readonly string[], index: number): Taken {
   const quoted: string[] = []
   let end = index
-  let match = QUOTE.exec(lines[end] ?? '')
+  let match = execLine(QUOTE, lines[end] ?? '')
 
   while (match !== null) {
     quoted.push(match[1] ?? '')
     end++
-    match = QUOTE.exec(lines[end] ?? '')
+    match = execLine(QUOTE, lines[end] ?? '')
   }
 
   return { block: { kind: 'quote', inline: parseInline(joinLines(quoted, '\n')) }, next: end }
@@ -266,7 +251,7 @@ function takeTable(lines: readonly string[], index: number): Taken {
   const rows: (readonly (readonly Inline[])[])[] = []
   let end = index + 2
 
-  while (end < lines.length && TABLE_ROW.test(lines[end] ?? '')) {
+  while (end < lines.length && testLine(TABLE_ROW, lines[end] ?? '')) {
     rows.push(splitRow(lines[end] ?? ''))
     end++
   }
@@ -295,16 +280,16 @@ function takeList(lines: readonly string[], index: number): Taken {
 }
 
 function isListLine(line: string): boolean {
-  return LIST_ITEM.test(line) || (line.trim() !== '' && INDENTED.test(line))
+  return testLine(LIST_ITEM, line) || (line.trim() !== '' && INDENTED.test(line))
 }
 
 function buildList(lines: readonly string[]): ListBlock {
-  const first = LIST_ITEM.exec(lines[0] ?? '')
+  const first = execLine(LIST_ITEM, lines[0] ?? '')
   const baseIndent = first?.[1]?.length ?? 0
   const groups: string[][] = []
 
   for (const line of lines) {
-    const item = LIST_ITEM.exec(line)
+    const item = execLine(LIST_ITEM, line)
 
     if (item !== null && (item[1]?.length ?? 0) <= baseIndent) {
       groups.push([line])
@@ -322,9 +307,9 @@ function buildList(lines: readonly string[]): ListBlock {
 
 function buildItem(group: readonly string[]): ListItem {
   const [head = '', ...rest] = group
-  const match = LIST_ITEM.exec(head)
+  const match = execLine(LIST_ITEM, head)
   const marker = match?.[2] ?? ''
-  const nestedAt = rest.findIndex((line) => LIST_ITEM.test(line))
+  const nestedAt = rest.findIndex((line) => testLine(LIST_ITEM, line))
   const continued = nestedAt === -1 ? rest : rest.slice(0, nestedAt)
   const nested = nestedAt === -1 ? [] : rest.slice(nestedAt)
   const text = joinLines([match?.[3] ?? '', ...continued.map((line) => line.trim())], ' ')
@@ -339,63 +324,6 @@ function buildItem(group: readonly string[]): ListItem {
 
 function joinLines(lines: readonly string[], separator: string): string {
   return lines.map((line) => line.trimEnd()).join(separator)
-}
-
-function toInline(match: RegExpMatchArray): { node: Inline; length: number } | undefined {
-  const [whole, bold, italic, code, note, label, target, bare] = match
-
-  if (bold !== undefined) {
-    return { node: { kind: 'bold', children: parseInline(bold) }, length: whole.length }
-  }
-
-  if (italic !== undefined) {
-    return { node: { kind: 'italic', children: parseInline(italic) }, length: whole.length }
-  }
-
-  if (code !== undefined) {
-    return { node: { kind: 'code', text: code }, length: whole.length }
-  }
-
-  if (note !== undefined) {
-    return { node: { kind: 'note', n: Number.parseInt(note, 10) }, length: whole.length }
-  }
-
-  if (label !== undefined && target !== undefined) {
-    const href = toSafeHref(target)
-
-    return href === undefined
-      ? undefined
-      : { node: { kind: 'link', href, text: label }, length: whole.length }
-  }
-
-  return bare === undefined ? undefined : toBareLink(bare)
-}
-
-// A web address in prose keeps the punctuation that closes its sentence outside the link.
-function toBareLink(address: string): { node: Inline; length: number } | undefined {
-  const trimmed = address.replace(BARE_URL_TAIL, '')
-  const href = toSafeHref(trimmed)
-
-  return href === undefined
-    ? undefined
-    : { node: { kind: 'link', href, text: trimmed }, length: trimmed.length }
-}
-
-function toSafeHref(address: string): string | undefined {
-  try {
-    const url = new URL(address)
-
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : undefined
-  } catch {
-    // Not an address at all: it stays text.
-    return undefined
-  }
-}
-
-function pushText(nodes: Inline[], text: string): void {
-  if (text !== '') {
-    nodes.push({ kind: 'text', text })
-  }
 }
 
 function numberHeading(): (block: Block) => Block {

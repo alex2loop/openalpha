@@ -7,7 +7,6 @@ import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -66,12 +65,19 @@ function Board({ market }: { readonly market: string }) {
 function Rerun({ market }: { readonly market: string }) {
   return (
     <>
-      <span class="meta">{estimateText(SCREEN_COMMAND)}</span>
+      <Estimate command={SCREEN_COMMAND} />
       <Button kind="ai" size="small" onClick={() => fillInput(`${SCREEN_COMMAND} ${market}`)}>
         {tr('ui.office.ideas.screenRerun')}
       </Button>
     </>
   )
+}
+
+// What the command usually costs, beside its button; nothing while the daemon has no estimate.
+function Estimate({ command }: { readonly command: string }) {
+  const estimate = estimateText(command)
+
+  return estimate === undefined ? null : <span class="meta">{estimate}</span>
 }
 
 function BoardBody({ board }: { readonly board: ScreenResponse }) {
@@ -103,17 +109,7 @@ function BoardBody({ board }: { readonly board: ScreenResponse }) {
         </p>
       ))}
       <p class="meta">{tr('ui.office.ideas.screenNote')}</p>
-      <SuggestCost />
     </>
-  )
-}
-
-// What "Đề xuất mã này" usually costs, once, rather than beside every row.
-function SuggestCost() {
-  const estimate = estimateText(SUGGEST_COMMAND)
-
-  return estimate === undefined ? null : (
-    <p class="meta">{joinInline([tr('ui.office.ideas.screenSuggest'), estimate])}</p>
   )
 }
 
@@ -138,9 +134,12 @@ function Opportunity({ row }: { readonly row: Row }) {
           </p>
         ))}
       </div>
-      <Button kind="ai" size="small" onClick={() => fillInput(`${SUGGEST_COMMAND} ${row.key}`)}>
-        {tr('ui.office.ideas.screenSuggest')}
-      </Button>
+      <div class="opportunity-ask">
+        <Button kind="ai" size="small" onClick={() => fillInput(`${SUGGEST_COMMAND} ${row.key}`)}>
+          {tr('ui.office.ideas.screenSuggest')}
+        </Button>
+        <Estimate command={SUGGEST_COMMAND} />
+      </div>
     </div>
   )
 }

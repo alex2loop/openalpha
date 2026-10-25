@@ -1,7 +1,9 @@
 import { useMemo } from 'preact/hooks'
 
-import type { Block, Inline, ReportDoc } from '@/web/ui/markdown/parse'
+import type { Inline } from '@/web/ui/markdown/inline'
+import type { Block, ReportDoc } from '@/web/ui/markdown/parse'
 import { reducedMotion } from '@/web/state/prefs'
+import { tr } from '@/web/text/tr'
 import { parseReport, sourceAnchor } from '@/web/ui/markdown/parse'
 import { Sources } from '@/web/ui/reader/sources'
 import { LinkedText } from '@/web/ui/ticker/linked-text'
@@ -46,6 +48,7 @@ export function ReportView({ doc, isLinked = true, isAnchored = false }: ReportV
         <BlockView key={index} block={block} context={context} />
       ))}
       <Sources sources={doc.sources} isAnchored={isAnchored} />
+      {doc.isTruncated && <p class="meta">{tr('ui.office.reader.truncated')}</p>}
     </div>
   )
 }

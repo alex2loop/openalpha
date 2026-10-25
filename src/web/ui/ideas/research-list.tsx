@@ -16,8 +16,8 @@ import { Skeleton } from '@/web/ui/kit/skeleton'
 import { openReader } from '@/web/ui/reader/reader'
 
 const RESEARCH_PAGE = 4
-// The agent whose finished runs `/v1/research` lists.
-const RESEARCH_AGENT = 'deep-researcher'
+// A research run reports its steps under this progress key family.
+const RESEARCH_PROGRESS_PREFIX = 'progress.research'
 
 /** Kết quả nghiên cứu: the reports the daemon finished, four to a page, and any run still going. */
 export function ResearchList() {
@@ -61,9 +61,12 @@ export function ResearchList() {
   )
 }
 
-// Only the agent's own top-level runs: a child it spawned is part of the same research.
+// Only a top-level run: a child it spawned is part of the same research.
 function isResearchRun(run: Run): boolean {
-  return run.kind === 'agent' && run.name === RESEARCH_AGENT && run.parentRunId === undefined
+  return (
+    run.parentRunId === undefined &&
+    [run.progress, ...run.persistent].some((line) => line?.key.startsWith(RESEARCH_PROGRESS_PREFIX))
+  )
 }
 
 function RunningRow({ run }: { readonly run: Run }) {
@@ -87,7 +90,7 @@ function ReportRow({ report }: { readonly report: ResearchReportWire }) {
       onClick={() => openReader({ kind: 'research', sessionId: report.sessionId })}
     >
       <b>{report.title ?? when ?? sourceLabel(report.channelId)}</b>
-      <span class="meta">{report.title === undefined ? undefined : when}</span>
+      {report.title !== undefined && <span class="meta">{when}</span>}
       <span class="meta">
         {joinInline([
           ...(count === undefined

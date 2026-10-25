@@ -140,7 +140,7 @@ function ReaderBody({ source, onRetry }: ReaderBodyProps) {
   if (result.status === 'loading') {
     return (
       <div class="reader-main">
-        <h2 id={TITLE_ID}>{tr('ui.office.loading')}</h2>
+        <h2 id={TITLE_ID}>{tr('ui.office.reader.loading')}</h2>
         <Skeleton lines={6} />
       </div>
     )

@@ -3,7 +3,7 @@ import { pluralKey } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { SHARED_FOCUS } from '@/web/state/agents'
 import { useBlock } from '@/web/state/block'
-import { formatFixedFraction, formatSignedFraction } from '@/web/text/figures'
+import { formatFixedFraction } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { ClockIcon } from '@/web/ui/kit/icons'
@@ -36,7 +36,7 @@ function RecordBody({ record }: { readonly record: TradingTrackRecordResponse })
   return (
     <>
       <Lines lines={text.summary} />
-      <Standing record={record} />
+      <Hits summary={summary} />
       <Lines lines={text.byConviction} />
       <Lines lines={text.acted} />
       {text.closed.map((closed) => (
@@ -63,34 +63,22 @@ function Lines({ lines }: { readonly lines: readonly string[] }) {
   )
 }
 
-// What the page adds to the daemon's lines: the targets reached, the index beaten, and a warning
-// while the sample is too small for the daemon to state a rate.
-function Standing({ record }: { readonly record: TradingTrackRecordResponse }) {
-  const { summary } = record
+// The targets reached: the one count the daemon's lines do not state. The rate, the index beaten
+// and the small-sample warning stay with the daemon's summary lines.
+function Hits({ summary }: { readonly summary: TradingTrackRecordResponse['summary'] }) {
   const own = summary.focuses.find((focus) => focus.focusKey === SHARED_FOCUS)
-  const compared = summary.benchmarkComparedCount
+
+  if (own === undefined) {
+    return null
+  }
 
   return (
-    <>
-      {own !== undefined && (
-        <p class="record-line">
-          {tr(pluralKey(own.resolvedCount, 'ui.office.record.hitsOne', 'ui.office.record.hits'), {
-            hit: own.targetCount,
-            count: own.resolvedCount,
-          })}
-        </p>
-      )}
-      {compared > 0 && (
-        <p class="record-line">
-          {tr(pluralKey(compared, 'ui.office.record.beatOne', 'ui.office.record.beat'), {
-            beat: summary.benchmarkBeatCount,
-            count: compared,
-            mean: formatSignedFraction(summary.benchmarkMeanReturnPct),
-          })}
-        </p>
-      )}
-      {summary.winRate === undefined && <p class="meta">{tr('ui.office.record.small')}</p>}
-    </>
+    <p class="record-line">
+      {tr(pluralKey(own.resolvedCount, 'ui.office.record.hitsOne', 'ui.office.record.hits'), {
+        hit: own.targetCount,
+        count: own.resolvedCount,
+      })}
+    </p>
   )
 }
 
