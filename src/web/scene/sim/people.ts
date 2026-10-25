@@ -4,7 +4,6 @@ import type { Beat } from '@/web/scene/sim/beats'
 import type { Papers } from '@/web/scene/sim/papers'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, ActorView, Point, SheetView } from '@/web/scene/types'
-import type { PropKind } from '@/web/scene/world/props'
 import { distance } from '@/web/scene/sim/actors/nav'
 import {
   isWalking,
@@ -14,6 +13,14 @@ import {
   type WalkerState,
 } from '@/web/scene/sim/actors/walk'
 import {
+  type AssistantWalks,
+  assistantGoalOf,
+  createAssistantWalks,
+  type Orphan,
+  resumeWalks,
+  stepCarry,
+} from '@/web/scene/sim/assistant'
+import {
   catchUpDesk,
   createDesk,
   type Desk,
@@ -21,8 +28,8 @@ import {
   isDeskDue,
   syncDesk,
 } from '@/web/scene/sim/desk'
+import { handOff } from '@/web/scene/sim/handoff'
 import { destOf, facingOf } from '@/web/scene/sim/places'
-import { setCapped } from '@/web/scene/world/capped-map'
 import { navGridOf } from '@/web/scene/world/nav-grid'
 import { propsOn } from '@/web/scene/world/props'
 import { isInside } from '@/web/scene/world/rooms'
@@ -48,19 +55,13 @@ export interface Person {
   stamp: SheetView['action']
 }
 
-/** The assistant's read under way: once it has run `TRIP_AFTER_MS` it walks to the prop. */
-interface Trip {
-  readonly runId: string
-  readonly at: PropKind
-  readonly dueAt: number
-}
-
-/** One gesture to play now for `ms`. */
+/** One gesture to play from `atMs` for `ms`. */
 interface BeatPlay {
   readonly kind: Beat['kind']
   readonly pose: Beat['pose']
   readonly item?: Beat['item']
   readonly ms: number
+  readonly atMs: number
 }
 
 /** Everyone the director moves, and what their goals wait on. */
@@ -71,17 +72,15 @@ export interface People {
   readonly desk: Desk
   readonly stages: Map<string, { readonly stage: string; readonly actors: readonly ActorId[] }>
   readonly runActors: Map<string, readonly ActorId[]>
+  readonly walks: AssistantWalks
   wanted: ReadonlyMap<ActorId, Goal>
-  trip: Trip | undefined
+  orphans: readonly Orphan[]
 }
 
-const TRIP_AFTER_MS = 5_000
 const FOOT_TAP_MS = 1_200
 const MAX_BEATS_PER_ACTOR = 4
 const CHAIR_PUSH_MS = 400
 const ARRIVE_PAUSE_MS = 500
-// Runs remembered past their end, for the beats their last events play.
-const MAX_RUN_MEMORY = 32
 // Under this a person still sits on their own chair.
 const SEATED_PX = 1
 const SEAT_TARGET = 'seat'
@@ -100,8 +99,9 @@ export function createPeople(
     desk: createDesk(),
     stages: new Map(),
     runActors: new Map(),
+    walks: createAssistantWalks(),
     wanted: new Map(),
-    trip: undefined,
+    orphans: [],
   }
 }
 
@@ -128,10 +128,15 @@ function toPerson(seed: { readonly def: ActorDef; readonly walker: WalkerState }
  *  sheets on, and everyone retargets. */
 export function setWanted(
   people: People,
-  update: { readonly goals: ReadonlyMap<ActorId, Goal>; readonly pending: readonly PendingWire[] },
+  update: {
+    readonly goals: ReadonlyMap<ActorId, Goal>
+    readonly pending: readonly PendingWire[]
+    readonly orphans: readonly Orphan[]
+  },
   nowMs: number
 ): void {
   people.wanted = update.goals
+  people.orphans = update.orphans
   syncDesk(people.desk, update, nowMs)
   handOff(people, nowMs)
   applyGoals(people, nowMs)
@@ -139,7 +144,11 @@ export function setWanted(
 
 /** Ends beats and looks that are over, taps a waiting foot once, and applies goals whose wait
  *  (the desk delay, a trip) has run out. True when anything changed. */
-export function tickPeople(people: People, nowMs: number): boolean {
+export function tickPeople(
+  people: People,
+  tick: { readonly nowMs: number; readonly isOpen: boolean }
+): boolean {
+  const { nowMs } = tick
   let isChanged = false
 
   for (const person of people.list) {
@@ -152,6 +161,9 @@ export function tickPeople(people: People, nowMs: number): boolean {
   }
 
   const isTapped = tapFeet(people, nowMs)
+
+  stepAssistantCarry(people, tick)
+
   const isRetargeted = applyGoals(people, nowMs)
 
   return isChanged || isTapped || isRetargeted
@@ -197,7 +209,7 @@ export function playBeat(people: People, actor: ActorId, beat: BeatPlay): void {
   const played: Beat = {
     kind: beat.kind,
     pose: beat.pose,
-    untilMs: performance.now() + beat.ms,
+    untilMs: beat.atMs + beat.ms,
     ...(beat.item === undefined ? {} : { item: beat.item }),
   }
 
@@ -223,28 +235,10 @@ export function stampSheet(
   }
 }
 
-/** A read in the assistant's run: a trip once it has run `TRIP_AFTER_MS`. */
-export function startTrip(
-  people: People,
-  read: { readonly runId: string; readonly at: PropKind }
-): void {
-  if (people.wanted.get(ASSISTANT)?.runId === read.runId) {
-    people.trip = { ...read, dueAt: performance.now() + TRIP_AFTER_MS }
-  }
-}
-
-/** The read ended: a trip not yet begun never begins, one under way turns back. */
-export function endTrip(people: People, runId: string): void {
-  if (people.trip?.runId === runId) {
-    people.trip = undefined
-    applyGoals(people, performance.now())
-  }
-}
-
 /** Everyone stands where their goal puts them, at once: no walk, beat, sheet in flight or trip
  *  carries over. */
 export function resumePeople(people: People, nowMs: number): void {
-  people.trip = undefined
+  resumeWalks(people.walks, people.orphans)
   people.papers.clear()
   catchUpDesk(people.desk, nowMs)
 
@@ -261,7 +255,7 @@ export function resumePeople(people: People, nowMs: number): void {
 /** The earliest moment something is due: a phase, beat or look ending, a desk walk, a foot tap,
  *  a trip. */
 export function nextDueOf(people: People, nowMs: number): number {
-  const dues = [...deskDues(people.desk), people.trip?.dueAt ?? Number.POSITIVE_INFINITY]
+  const dues = [...deskDues(people.desk), people.walks.trip?.dueAt ?? Number.POSITIVE_INFINITY]
 
   for (const person of people.list) {
     const isWaiting = person.phase === 'rising' || person.phase === 'settling'
@@ -312,69 +306,17 @@ function tapFeet(people: People, nowMs: number): boolean {
 
     if (!wait.isTapped && nowMs >= wait.tapAt && isThere) {
       wait.isTapped = true
-      playBeat(people, wait.actor, { kind: 'foot-tap', pose: 'foot-tap', ms: FOOT_TAP_MS })
+      playBeat(people, wait.actor, {
+        kind: 'foot-tap',
+        pose: 'foot-tap',
+        ms: FOOT_TAP_MS,
+        atMs: nowMs,
+      })
       isTapped = true
     }
   }
 
   return isTapped
-}
-
-// At each stage change of a run, a sheet goes from the people who finished to the people who
-// start: one to one, round the shorter list.
-function handOff(people: People, nowMs: number): void {
-  const byRun = new Map<string, { stage?: string; actors: ActorId[] }>()
-
-  for (const [actor, goal] of people.wanted) {
-    if (goal.runId !== undefined) {
-      const held = byRun.get(goal.runId) ?? { actors: [] }
-
-      held.actors.push(actor)
-      byRun.set(goal.runId, { ...held, ...(goal.stage === undefined ? {} : { stage: goal.stage }) })
-    }
-  }
-
-  for (const [runId, current] of byRun) {
-    const before = people.stages.get(runId)
-    const isNewStage =
-      before !== undefined && current.stage !== undefined && before.stage !== current.stage
-
-    if (isNewStage) {
-      flyBetween(people, { from: before.actors, to: current.actors }, nowMs)
-    }
-
-    setCapped(people.runActors, [runId, current.actors], MAX_RUN_MEMORY)
-  }
-
-  people.stages.clear()
-
-  for (const [runId, current] of byRun) {
-    if (current.stage !== undefined) {
-      people.stages.set(runId, { stage: current.stage, actors: current.actors })
-    }
-  }
-}
-
-function flyBetween(
-  people: People,
-  pair: { readonly from: readonly ActorId[]; readonly to: readonly ActorId[] },
-  nowMs: number
-): void {
-  const count = reducedMotion.value ? 0 : Math.max(pair.from.length, pair.to.length)
-
-  for (let i = 0; i < count; i++) {
-    const fromId = pair.from[i % pair.from.length]
-    const toId = pair.to[i % pair.to.length]
-    const from = fromId === undefined ? undefined : people.byId.get(fromId)
-    const to = toId === undefined ? undefined : people.byId.get(toId)
-
-    if (from !== undefined && to !== undefined && from !== to && from.def.floor === to.def.floor) {
-      people.papers.launch(
-        { floor: from.def.floor, from: from.walker.pos, to: to.walker.pos },
-        nowMs
-      )
-    }
-  }
 }
 
 function applyGoals(people: People, nowMs: number): boolean {
@@ -392,8 +334,8 @@ function applyGoals(people: People, nowMs: number): boolean {
   return isChanged
 }
 
-// A desk walk waits `DESK_WALK_AFTER_MS` (the hand goes up at the seat meanwhile); the assistant's
-// read becomes a trip once it is due.
+// A desk walk waits `DESK_WALK_AFTER_MS` (the hand goes up at the seat meanwhile); the assistant
+// has walks of its own.
 function effectiveGoal(people: People, id: ActorId, nowMs: number): Goal | undefined {
   const goal = people.wanted.get(id)
 
@@ -403,12 +345,23 @@ function effectiveGoal(people: People, id: ActorId, nowMs: number): Goal | undef
       : { ...goal, target: SEAT_TARGET }
   }
 
-  const trip = people.trip
-  const isTripDue = trip !== undefined && trip.runId === goal?.runId && nowMs >= trip.dueAt
+  return id === ASSISTANT ? assistantGoalOf(people.walks, goal, nowMs) : goal
+}
 
-  return id === ASSISTANT && goal !== undefined && isTripDue
-    ? { ...goal, target: trip.at, pose: 'reach' }
-    : goal
+function stepAssistantCarry(
+  people: People,
+  tick: { readonly nowMs: number; readonly isOpen: boolean }
+): void {
+  const assistant = people.byId.get(ASSISTANT)
+  const isStill = assistant?.phase === 'still'
+  const carryGoal = people.walks.carry?.goal
+
+  stepCarry(people.walks, people.orphans, {
+    nowMs: tick.nowMs,
+    isOpen: tick.isOpen,
+    isFree: isStill && !people.wanted.has(ASSISTANT) && people.walks.trip === undefined,
+    isAtCarry: isStill && carryGoal !== undefined && assistant?.goal === carryGoal,
+  })
 }
 
 function isSameGoal(a: Goal | undefined, b: Goal | undefined): boolean {
@@ -424,6 +377,7 @@ function isSameGoal(a: Goal | undefined, b: Goal | undefined): boolean {
     a.requestId === b.requestId &&
     a.face === b.face &&
     a.item === b.item &&
+    a.hasSheet === b.hasSheet &&
     targetKeyOf(a) === targetKeyOf(b)
   )
 }

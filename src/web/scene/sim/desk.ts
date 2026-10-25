@@ -3,7 +3,7 @@ import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId } from '@/web/scene/types'
 import { pageNow } from '@/web/scene/clock/clock'
 import { askedAtOf } from '@/web/scene/sim/vocabulary'
-import { setCapped } from '@/web/scene/world/capped-map'
+import { setCapped } from '@/web/state/capped-map'
 import { pendingRequestId } from '@/web/state/live'
 
 /** A request one person waits on at your desk: when the page first saw it, when the foot taps. */

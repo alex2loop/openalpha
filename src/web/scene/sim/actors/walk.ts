@@ -4,6 +4,7 @@ import {
   avoidPeople,
   distance,
   findRoute,
+  isClearOfPeople,
   isInSight,
   type Mover,
   replanAroundPeople,
@@ -101,7 +102,7 @@ export function stepWalk(walker: WalkerState, others: readonly Mover[], dtMs: nu
   }
 
   if (walker.stuck.tries > STUCK_MAX_TRIES) {
-    walkStraight(walker, target, dtMs)
+    walkStraight(walker, { target, others, dtMs })
   } else {
     avoidPeople(walker, others, dtMs)
   }
@@ -143,8 +144,8 @@ function passEarlyWaypoint(walker: WalkerState): void {
 }
 
 // Under `STUCK_PX` of net movement over `REPLAN_MS` (a stale leg, or sidesteps that cancel out):
-// plan again around people, then on the grid alone, then straight to the waypoint; after
-// `STUCK_MAX_TRIES` the walker walks straight on.
+// plan again around people, then on the grid alone; after `STUCK_MAX_TRIES` the walker walks
+// straight on.
 function watchStuck(walker: WalkerState, others: readonly Mover[], dtMs: number): void {
   const stuck = walker.stuck
 
@@ -164,11 +165,9 @@ function watchStuck(walker: WalkerState, others: readonly Mover[], dtMs: number)
 
   const grid = walker.grid
   const goal = walker.goal
-  const target = walker.route[walker.leg]
   const route =
     replanAroundPeople(walker, others) ??
-    (grid === undefined || goal === undefined ? undefined : findRoute(grid, walker.pos, goal)) ??
-    (target === undefined ? undefined : [target, ...walker.route.slice(walker.leg + 1)])
+    (grid === undefined || goal === undefined ? undefined : findRoute(grid, walker.pos, goal))
 
   if (route !== undefined) {
     walker.route = route
@@ -176,15 +175,23 @@ function watchStuck(walker: WalkerState, others: readonly Mover[], dtMs: number)
   }
 }
 
-function walkStraight(walker: WalkerState, target: Point, dtMs: number): void {
+// Straight at the waypoint through furniture clearance, never closer than the gap to anyone.
+function walkStraight(
+  walker: WalkerState,
+  step: { readonly target: Point; readonly others: readonly Mover[]; readonly dtMs: number }
+): void {
+  const { target } = step
   const d = distance(walker.pos, target)
-  const len = (walker.speed * dtMs) / MS_PER_SECOND
-
-  walker.pos =
+  const len = (walker.speed * step.dtMs) / MS_PER_SECOND
+  const next =
     d <= len
       ? target
       : {
           x: walker.pos.x + ((target.x - walker.pos.x) / d) * len,
           y: walker.pos.y + ((target.y - walker.pos.y) / d) * len,
         }
+
+  if (isClearOfPeople(walker, step.others, next)) {
+    walker.pos = next
+  }
 }

@@ -1,9 +1,9 @@
 import { type FloorId, type Point, type Rect, WORLD } from '@/web/scene/types'
-import { setCapped } from '@/web/scene/world/capped-map'
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS, type Wall } from '@/web/scene/world/floors'
 import { isWallMounted, propsOn } from '@/web/scene/world/props'
 import { roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
+import { setCapped } from '@/web/state/capped-map'
 
 export const NAV_CELL_PX = 2
 /** How far a person's feet keep from furniture and walls. */
@@ -72,6 +72,9 @@ function buildGrid(floor: FloorId, extra: readonly Rect[]): NavGrid {
     markRect(blocked, grow(rect, NAV_CLEARANCE_PX), 1)
   }
 
+  // The lift door is reached, not walked round: it blocks its own box only.
+  markRect(blocked, FLOORS[floor].lift, 1)
+
   return {
     cols: COLS,
     rows: ROWS,
@@ -126,19 +129,37 @@ function blockRectsOf(floor: FloorId): Rect[] {
     .filter((prop) => !isWallMounted(prop))
     .map((prop) => prop.rect)
 
-  return [...def.walls.map(toWallRect), ...feet, ...LEG_FEET[floor], def.lift]
+  const walls = def.walls.flatMap((wall) => toWallRects(wall, roomTopsOf(floor)))
+
+  return [...walls, ...feet, ...LEG_FEET[floor]]
 }
 
-function toWallRect(wall: Wall): Rect {
-  const x = Math.min(wall.from.x, wall.to.x) - WALL_HALF_PX
-  const y = Math.min(wall.from.y, wall.to.y) - WALL_HALF_PX
+function roomTopsOf(floor: FloorId): ReadonlySet<number> {
+  return new Set(roomsOn(floor).map((room) => room.rect.y))
+}
 
-  return {
-    x,
-    y,
-    w: Math.abs(wall.to.x - wall.from.x) + 2 * WALL_HALF_PX,
-    h: Math.abs(wall.to.y - wall.from.y) + 2 * WALL_HALF_PX,
+// A wall along a room's top edge is held by that room's closed wall band, so it never grows into
+// the corridor; a partition starting there begins below the band.
+function toWallRects(wall: Wall, roomTops: ReadonlySet<number>): Rect[] {
+  const top = Math.min(wall.from.y, wall.to.y)
+  const bottom = Math.max(wall.from.y, wall.to.y)
+  const isHorizontal = top === bottom
+
+  if (isHorizontal && roomTops.has(top)) {
+    return []
   }
+
+  const start = !isHorizontal && roomTops.has(top) ? top + WALL_BAND_PX : top
+  const x = Math.min(wall.from.x, wall.to.x) - WALL_HALF_PX
+
+  return [
+    {
+      x,
+      y: start - WALL_HALF_PX,
+      w: Math.abs(wall.to.x - wall.from.x) + 2 * WALL_HALF_PX,
+      h: bottom - start + 2 * WALL_HALF_PX,
+    },
+  ]
 }
 
 // Sets every cell whose centre lies in `rect` (edges included).

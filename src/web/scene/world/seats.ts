@@ -43,18 +43,13 @@ export const STATIONS: Readonly<Record<StationId, Seat>> = Object.freeze({
   'lib-theme': { at: { x: 206, y: 173 }, face: 'left' },
 } satisfies Record<StationId, Seat>)
 
-/** Where an agent waiting on the operator stands at your desk, nearest first; the assistant's own
- *  place is apart. */
-export const DESK_WAIT_SPOTS: Readonly<{
-  readonly agents: readonly Point[]
-  readonly assistant: Point
-}> = Object.freeze({
+/** Where an agent waiting on the operator stands at your desk, nearest first. */
+export const DESK_WAIT_SPOTS: Readonly<{ readonly agents: readonly Point[] }> = Object.freeze({
   agents: [
     { x: 596, y: 332 },
     { x: 574, y: 332 },
     { x: 618, y: 318 },
   ],
-  assistant: { x: 552, y: 332 },
 })
 
 /** The operator's in-tray on your desk, where delivered results land. */

@@ -99,6 +99,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
     detach()
     loop.stop()
     director.dispose()
+    selectActor(undefined)
     resize.disconnect()
     listeners.abort()
     renderer.unmount()

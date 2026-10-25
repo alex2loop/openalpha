@@ -3,7 +3,8 @@ import { TRAY_AT } from '@/web/scene/world/seats'
 
 /** Sheets in flight: a handoff at each stage change, a delivered result to the tray. */
 export interface Papers {
-  /** Starts a flight at `nowMs`; past `MAX_PAPERS` the oldest lands at once. */
+  /** Starts a flight at `nowMs`; past `MAX_PAPERS` the oldest lands at once (a landed sheet is
+   *  gone from the air: on the tray stack or in its taker's hand). */
   launch(
     flight: { readonly floor: FloorId; readonly from: Point; readonly to: Point },
     nowMs: number

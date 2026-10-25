@@ -18,13 +18,14 @@ export interface Mover {
 }
 
 const PERSON_MIN_GAP_PX = 7.3
+// Someone this close to the line walked is in the way: passed on the walker's own right.
+const IN_THE_WAY_PX = PERSON_MIN_GAP_PX / 2
 const YIELD_AFTER_MS = 400
 const REPLAN_AFTER_MS = 1_200
 const FORCE_PASS_AFTER_MS = 9_000
 // How far ahead a walker looks for people, and the turn it gives someone ahead (radians).
 const LOOK_AHEAD_PX = 22
 const SOFT_TURN_RAD = 0.6
-const HEAD_ON_SHARE = 0.15
 const AHEAD_COS = 0.4
 // Turns tried in order when the way ahead is taken; the widest only once held up.
 const TURN_STEPS_RAD = [0.5, 1.1, Math.PI / 2] as const
@@ -34,9 +35,8 @@ const SEAT_END_PX = 9
 const SNAP_MAX_CELLS = 16
 const SNAP_NORTH_COST_PX = 8
 const SNAP_SIDE_COST_PX = 3
-// Replanning around people: each person blocks this radius, unless beside the walker or its goal.
+// Replanning around people: each person blocks this radius, unless standing at the goal.
 const PERSON_BLOCK_PX = 9
-const PERSON_NEAR_SELF_PX = 12
 const PERSON_NEAR_GOAL_PX = 10
 // The last leg into a blocked goal (a chair) may cross blocked cells this close to it.
 const GOAL_SLACK_PX = 16
@@ -73,7 +73,14 @@ export function avoidPeople(mover: Mover, others: readonly Mover[], dtMs: number
   const len = Math.min((mover.speed * dtMs) / MS_PER_SECOND, d)
   const near = others.filter((o) => distance(o.pos, mover.pos) < LOOK_AHEAD_PX + len)
 
-  if (tryStep({ mover, target, len, near })) {
+  // A sidestep beside someone that gets no closer still counts as held up, or two walkers trading
+  // sidesteps in a doorway would never reach the step-back or the replan.
+  const isBeside = near.some(
+    (o) => distance(o.pos, mover.pos) < PERSON_MIN_GAP_PX + YIELD_MARGIN_PX
+  )
+  const isMoved = tryStep({ mover, target, len, near })
+
+  if (isMoved && (!isBeside || distance(mover.pos, target) < d - len / 2)) {
     mover.heldMs = Math.max(0, mover.heldMs - dtMs * HELD_DECAY)
     mover.isReplanned = mover.heldMs > 0 && mover.isReplanned
     return
@@ -164,7 +171,9 @@ function tryStep(job: StepJob): boolean {
   return false
 }
 
-// Someone ahead: turn away, to the walker's own right when head on.
+// Someone ahead: a person in the way (closer to the line than the gap) is passed on the walker's
+// own right, so two walkers meeting round a third take opposite sides; one off the line is passed
+// on the side away from them. Either way, the other side when that one has no room.
 function softTurnOf(job: StepJob, ux: number, uy: number): number {
   let soft = 0
 
@@ -179,13 +188,31 @@ function softTurnOf(job: StepJob, ux: number, uy: number): number {
 
     const cross = ux * ry - uy * rx
     const weight = Math.min(1, (LOOK_AHEAD_PX - rd) / (LOOK_AHEAD_PX - PERSON_MIN_GAP_PX))
-    const away = Math.abs(cross) < HEAD_ON_SHARE * rd || cross <= 0 ? 1 : -1
+    const preferred = Math.abs(cross) < IN_THE_WAY_PX || cross <= 0 ? 1 : -1
+    const away = hasRoomBeside(job, other, { ux, uy, side: preferred }) ? preferred : -preferred
     const turn = away * SOFT_TURN_RAD * weight
 
     soft = Math.abs(turn) > Math.abs(soft) ? turn : soft
   }
 
   return soft
+}
+
+// The place the walker passes `other` on that side (its right for side 1) is off furniture and
+// clear of everyone else.
+function hasRoomBeside(
+  job: StepJob,
+  other: Mover,
+  heading: { readonly ux: number; readonly uy: number; readonly side: number }
+): boolean {
+  const grid = job.mover.grid
+  const aside = {
+    x: other.pos.x - heading.uy * heading.side * PERSON_MIN_GAP_PX,
+    y: other.pos.y + heading.ux * heading.side * PERSON_MIN_GAP_PX,
+  }
+  const isFree = grid === undefined || !isBlockedAt(grid, aside)
+
+  return isFree && job.near.every((o) => o === other || distance(o.pos, aside) >= PERSON_MIN_GAP_PX)
 }
 
 function resolveHold(job: StepJob): void {
@@ -264,12 +291,17 @@ function isStaticOk(mover: Mover, p: Point): boolean {
   )
 }
 
-// Never closer than the minimum gap to anyone, unless the step leaves them.
 function isPeopleOk(job: StepJob, p: Point): boolean {
-  return job.near.every((o) => {
+  return isClearOfPeople(job.mover, job.near, p)
+}
+
+/** A step to `p` keeps `PERSON_MIN_GAP_PX` from everyone, or moves away from whoever it is
+ *  closer to. */
+export function isClearOfPeople(mover: Mover, others: readonly Mover[], p: Point): boolean {
+  return others.every((o) => {
     const dn = distance(p, o.pos)
 
-    return dn >= PERSON_MIN_GAP_PX || dn >= distance(job.mover.pos, o.pos) - EPSILON
+    return dn >= PERSON_MIN_GAP_PX || dn >= distance(mover.pos, o.pos) - EPSILON
   })
 }
 
@@ -278,11 +310,9 @@ function maskPeople(grid: NavGrid, mover: Mover, others: readonly Mover[]): Uint
   const goal = mover.goal ?? mover.pos
   const reach = Math.ceil(PERSON_BLOCK_PX / NAV_CELL_PX)
 
+  // Everyone counts, the person holding the walker up included; only someone at the goal does not.
   for (const other of others) {
-    if (
-      distance(other.pos, mover.pos) < PERSON_NEAR_SELF_PX ||
-      distance(other.pos, goal) < PERSON_NEAR_GOAL_PX
-    ) {
+    if (distance(other.pos, goal) < PERSON_NEAR_GOAL_PX) {
       continue
     }
 
@@ -375,7 +405,7 @@ function isClearLine(search: Search): boolean {
   const { grid, from, to, extra } = search
   const d = distance(from, to)
   const n = Math.max(1, Math.ceil(d / (NAV_CELL_PX / 2)))
-  const isFromBlocked = isBlockedAt(grid, from)
+  const isFromBlocked = isBlockedAt(grid, from, extra)
   const isToBlocked = isBlockedAt(grid, to)
 
   for (let k = 0; k <= n; k++) {

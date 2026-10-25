@@ -2,4 +2,5 @@
 export const VN_PACK = Object.freeze({
   id: 'vn',
   city: 'TP. Hồ Chí Minh',
+  officeHours: { open: 7, close: 21 },
 } as const)

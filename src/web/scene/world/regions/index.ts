@@ -6,6 +6,8 @@ type RegionPackId = 'vn'
 export interface RegionPack {
   readonly id: RegionPackId
   readonly city: string
+  /** The hours (page clock, from `open` to `close`) the office's people walk errands for you. */
+  readonly officeHours: { readonly open: number; readonly close: number }
 }
 
 const DEFAULT_PACK: RegionPackId = 'vn'

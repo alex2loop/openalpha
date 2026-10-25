@@ -9,16 +9,17 @@ import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, SimView } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
-import { pageNow } from '@/web/scene/clock/clock'
+import { pageMinute, pageNow } from '@/web/scene/clock/clock'
+import { regionPack } from '@/web/scene/data/home'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking } from '@/web/scene/sim/actors/walk'
+import { endTrip, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { createPapers, type Papers } from '@/web/scene/sim/papers'
 import {
   actorsOfRun,
   createPeople,
-  endTrip,
   nextDueOf,
   type People,
   type Person,
@@ -27,15 +28,15 @@ import {
   resumePeople,
   setWanted,
   stampSheet,
-  startTrip,
   stepPerson,
   tickPeople,
   toActorView,
 } from '@/web/scene/sim/people'
-import { goalsFor } from '@/web/scene/sim/vocabulary'
+import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
 import { seedOf } from '@/web/scene/world/rng'
 import { TRAY_AT } from '@/web/scene/world/seats'
 import { reducedMotion } from '@/web/state/prefs'
+import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 /** The director's record of one person, the one the life layer and interaction read. */
 export interface ActorState {
@@ -72,7 +73,8 @@ export interface Director {
 
 const TRAY_MAX = 8
 const REACTION_MS = 1_800
-const BUSY_DESK_ROLE = 'approval'
+const APPROVAL_KIND = 'approval'
+const ASSISTANT: ActorId = 'assistant'
 
 /** The one director of the office's people: real events become goals, goals become walks. One
  *  `effect` over the live store and one set of hub subscriptions; `dispose` releases both. */
@@ -83,10 +85,9 @@ export function createDirector(deps: DirectorDeps): Director {
     papers
   )
   const stopEffect = effect(() => {
-    const update = {
-      goals: goalsFor(deps.runs.value, deps.pending.value),
-      pending: deps.pending.value,
-    }
+    const pending = deps.pending.value
+    const goals = goalsFor(deps.runs.value, pending)
+    const update = { goals, pending, orphans: orphansOf(goals, pending) }
 
     untracked(() => setWanted(people, update, performance.now()))
   })
@@ -120,11 +121,16 @@ function toBeatTarget(people: People): BeatTarget {
     actorsOfRun: (runId) => actorsOfRun(people, runId),
     deskActorOf: (requestId) =>
       people.desk.waits.get(requestId) ?? people.desk.answered.get(requestId),
-    play: (actor, beat) => playBeat(people, actor, beat),
+    play: (actor, beat) => playBeat(people, actor, { ...beat, atMs: performance.now() }),
     sendToTray: (actor) => sendToTray(people, actor),
     stamp: (actor, action) => stampSheet(people, { actor, action }),
-    startTrip: (runId, at) => startTrip(people, { runId, at }),
-    endTrip: (runId) => endTrip(people, runId),
+    startTrip: (runId, at) => {
+      const ownRunId = people.wanted.get(ASSISTANT)?.runId
+      const read = { runId, at, ...(ownRunId === undefined ? {} : { ownRunId }) }
+
+      startTrip(people.walks, read, performance.now())
+    },
+    endTrip: (runId) => endTrip(people.walks, runId),
     pageNow,
   }
 }
@@ -140,7 +146,7 @@ function react(people: People, ask: { readonly id: ActorId; readonly kind: React
 // Every person's walk among the others on their floor, then the sheets in flight.
 function stepAll(people: People, papers: Papers): boolean {
   const nowMs = performance.now()
-  const isChanged = tickPeople(people, nowMs)
+  const isChanged = tickPeople(people, { nowMs, isOpen: isOfficeOpen() })
   let isMoving = false
 
   for (const person of people.list) {
@@ -152,6 +158,14 @@ function stepAll(people: People, papers: Papers): boolean {
   }
 
   return papers.step(nowMs) || isMoving || isChanged
+}
+
+// Office hours by the page clock and the home region's pack.
+function isOfficeOpen(): boolean {
+  const hour = pageMinute.value.minute / MINUTES_PER_HOUR
+  const { open, close } = regionPack.value.officeHours
+
+  return hour >= open && hour < close
 }
 
 function sendToTray(people: People, actor: ActorId): void {
@@ -168,7 +182,7 @@ function sendToTray(people: People, actor: ActorId): void {
 // One sheet per waiting approval and unread notice, less the ones still flying in; reading the
 // bell empties it.
 function trayCount(deps: DirectorDeps, papers: Papers): number {
-  const approvals = deps.pending.value.filter((entry) => entry.kind === BUSY_DESK_ROLE).length
+  const approvals = deps.pending.value.filter((entry) => entry.kind === APPROVAL_KIND).length
   const stacked = Math.min(TRAY_MAX, approvals + deps.unread.value)
 
   return Math.max(0, stacked - papers.flyingToTray())

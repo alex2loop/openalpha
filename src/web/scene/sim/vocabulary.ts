@@ -1,5 +1,6 @@
 import type { PendingWire, ProgressWire } from '@/app/server/wire/live'
 import type { PoseId } from '@/web/scene/sim/actors/poses'
+import type { Orphan } from '@/web/scene/sim/assistant'
 import type { ActorId, HeldItem, Point, RoomId } from '@/web/scene/types'
 import type { PropKind } from '@/web/scene/world/props'
 import { roomOfRun } from '@/web/scene/data/room-status'
@@ -110,10 +111,12 @@ const KEY_ROOMS: readonly (readonly [string, RoomId])[] = Object.freeze([
   ['progress.research', 'lib'],
 ])
 const THEMES_CREW = 'themes'
+// A child of a child of ... is followed up this far to its top run.
+const MAX_RUN_DEPTH = 8
 // The assistant already sits nearest your desk, so it never walks there.
 const DESK_WALKERS_EXCLUDED: ReadonlySet<ActorId> = new Set(['assistant'])
 
-/** Every goal the live store calls for: each room's focus run (its oldest) drives its crew, and
+/** Every goal the live store calls for: each crew's focus run (its oldest) drives the crew, and
  *  a run waiting on the operator sends its actor to your desk. Pure: the same store gives the
  *  same goals, so a reconnect duplicates no one. */
 export function goalsFor(
@@ -122,8 +125,8 @@ export function goalsFor(
 ): ReadonlyMap<ActorId, Goal> {
   const goals = new Map<ActorId, Goal>()
 
-  for (const run of focusRuns(runs)) {
-    for (const [actor, goal] of runGoals(run)) {
+  for (const focus of focusRuns(runs)) {
+    for (const [actor, goal] of runGoals(focus.run, focus.room)) {
       goals.set(actor, goal)
     }
   }
@@ -133,16 +136,55 @@ export function goalsFor(
   return goals
 }
 
-/** The room a run's crew works in: by its name, else by its progress keys. A hidden run with no
- *  parent has none. */
-function crewRoomOf(run: Run): RoomId | undefined {
-  if (run.hidden === true || run.parentRunId !== undefined) {
+/** The pending requests no one in `goals` stands for: a queued run's, or one from a run the
+ *  office does not draw. A request of the assistant's own run is its own. */
+export function orphansOf(
+  goals: ReadonlyMap<ActorId, Goal>,
+  pending: readonly PendingWire[]
+): readonly Orphan[] {
+  const drawn = new Set([...goals.values()].map((goal) => goal.runId))
+  const orphans: Orphan[] = []
+
+  for (const entry of pending) {
+    const runId = runIdOf(entry)
+    const requestId = pendingRequestId(entry)
+
+    if (runId !== undefined && requestId !== undefined && !drawn.has(runId)) {
+      orphans.push({ requestId, runId })
+    }
+  }
+
+  return orphans
+}
+
+// The room a run's crew works in. A top-level run goes by its name, else by its progress keys;
+// a child run (a debate role, a delegated agent) by its own keys, else its top run's room. A
+// hidden run with no parent has none.
+function crewRoomOf(run: Run, index: ReadonlyMap<string, Run>): RoomId | undefined {
+  if (run.hidden === true && run.parentRunId === undefined) {
     return undefined
   }
 
   const key = effectiveKey(run.progress)
+  const byKey = KEY_ROOMS.find(([prefix]) => key?.startsWith(prefix) === true)?.[1]
 
-  return roomOfRun(run) ?? KEY_ROOMS.find(([prefix]) => key?.startsWith(prefix) === true)?.[1]
+  if (run.parentRunId === undefined) {
+    return roomOfRun(run) ?? byKey
+  }
+
+  const top = topRunOf(run, index)
+
+  return byKey ?? (top === undefined ? undefined : roomOfRun(top))
+}
+
+function topRunOf(run: Run, index: ReadonlyMap<string, Run>): Run | undefined {
+  let current: Run | undefined = run
+
+  for (let depth = 0; depth < MAX_RUN_DEPTH && current?.parentRunId !== undefined; depth++) {
+    current = index.get(current.parentRunId)
+  }
+
+  return current?.parentRunId === undefined ? current : undefined
 }
 
 /** The vocabulary row a progress line falls in, if any. */
@@ -153,39 +195,38 @@ function rowOf(progress: ProgressWire | undefined): VocabRow | undefined {
 }
 
 // The oldest run of each crew; the others wait their turn (the room tag says so).
-function focusRuns(runs: readonly Run[]): Run[] {
-  const byCrew = new Map<string, Run>()
+function focusRuns(runs: readonly Run[]): { readonly run: Run; readonly room: RoomId }[] {
+  const index = new Map(runs.map((run) => [run.runId, run]))
+  const byCrew = new Map<string, { readonly run: Run; readonly room: RoomId }>()
 
   for (const run of runs) {
-    const crew = crewOf(run)
+    const room = crewRoomOf(run, index)
+    const crew = room === undefined ? undefined : crewOf(run, room)
     const held = crew === undefined ? undefined : byCrew.get(crew)
 
-    if (crew !== undefined && (held === undefined || run.startedAt < held.startedAt)) {
-      byCrew.set(crew, run)
+    if (
+      crew !== undefined &&
+      room !== undefined &&
+      (held === undefined || run.startedAt < held.run.startedAt)
+    ) {
+      byCrew.set(crew, { run, room })
     }
   }
 
   return [...byCrew.values()]
 }
 
-function crewOf(run: Run): string | undefined {
-  const room = crewRoomOf(run)
-
-  if (room === undefined) {
-    return undefined
-  }
-
+function crewOf(run: Run, room: RoomId): string {
   return effectiveKey(run.progress)?.startsWith(THEMES_KEY_PREFIX) === true ? THEMES_CREW : room
 }
 
-function runGoals(run: Run): (readonly [ActorId, Goal])[] {
+function runGoals(run: Run, room: RoomId): (readonly [ActorId, Goal])[] {
   const row = rowOf(run.progress)
   const since = run.progress?.at ?? run.startedAt
   const label = run.title ?? run.name
 
   if (row === undefined) {
-    const room = crewRoomOf(run)
-    const lead = room === undefined ? undefined : ROOM_LEADS[room]
+    const lead = ROOM_LEADS[room]
 
     return lead === undefined
       ? []
@@ -234,7 +275,7 @@ function addDeskGoals(goals: Map<ActorId, Goal>, pending: readonly PendingWire[]
   let spot = 0
 
   for (const entry of pending) {
-    const runId = entry.kind === 'approval' ? entry.event.runId : entry.runId
+    const runId = runIdOf(entry)
     const requestId = pendingRequestId(entry)
     const holder = [...goals].find(([, held]) => held.runId === runId)
     const at = DESK_WAIT_SPOTS.agents[spot]
@@ -256,6 +297,10 @@ function addDeskGoals(goals: Map<ActorId, Goal>, pending: readonly PendingWire[]
     })
     spot++
   }
+}
+
+function runIdOf(entry: PendingWire): string | undefined {
+  return entry.kind === 'approval' ? entry.event.runId : entry.runId
 }
 
 /** When the request was asked (epoch ms), if the wire says. */
