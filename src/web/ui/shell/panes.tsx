@@ -1,3 +1,4 @@
+import { SceneCanvas } from '@/web/scene/canvas'
 import { isFocus } from '@/web/state/panel'
 import { ChatPanel } from '@/web/ui/chat/chat-panel'
 import { Panel } from '@/web/ui/panel/panel'
@@ -8,7 +9,9 @@ import './panes.css'
 export function Panes() {
   return (
     <main class={isFocus.value ? 'panes is-focus' : 'panes'}>
-      <div class="stage" />
+      <div class="stage">
+        <SceneCanvas />
+      </div>
       <Panel />
       <ChatPanel />
     </main>

@@ -17,7 +17,7 @@ contract. Both must be green:
 
 ```bash
 bun run check      # biome + typecheck + 16 contract gates
-bun run lint:arch  # 15 architecture gates
+bun run lint:arch  # 16 architecture gates
 ```
 
 They are fast and they fail with the offending line. Together they catch a cyclic

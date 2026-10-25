@@ -1,0 +1,60 @@
+.board-buttons {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.board-line {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  transform: translateY(-100%);
+  pointer-events: auto;
+}
+
+button.board-line {
+  cursor: pointer;
+}
+
+.board-odometer {
+  font-variant-numeric: tabular-nums;
+}
+
+.board-all {
+  color: var(--ink3);
+}
+
+.board-rings {
+  animation: board-rings 0.8s ease-out 3;
+}
+
+@keyframes board-rings {
+  from {
+    box-shadow: 0 0 0 0 var(--tc-green);
+  }
+
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-rings {
+    animation: none;
+  }
+}
+
+.digest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

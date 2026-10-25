@@ -7,9 +7,8 @@ import { isWaitingNotice, needsYou, notices, unread, unreadStops } from '@/web/s
 import { reducedMotion } from '@/web/state/prefs'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
-import { BELL_POPOVER_ID } from '@/web/ui/bell/bell-popover'
 import { BellIcon } from '@/web/ui/kit/icons'
-import { openPopoverId, togglePopover } from '@/web/ui/kit/popover'
+import { BELL_POPOVER_ID, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
 
 import './bell.css'
 

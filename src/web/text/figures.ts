@@ -31,11 +31,17 @@ const formatters = new Map<string, Intl.NumberFormat>()
 
 /** A USD amount at cent precision in the page's language; a missing one prints `ABSENT_CELL`. */
 export function formatUsd(value: number | undefined): string {
+  return formatFixed(value, USD_DIGITS)
+}
+
+/** A number at exactly `digits` decimals in the page's language; a missing one prints
+ *  `ABSENT_CELL`. */
+export function formatFixed(value: number | undefined, digits: number): string {
   if (value === undefined || !Number.isFinite(value)) {
     return ABSENT_CELL
   }
 
-  return formatterFor(USD_DIGITS).format(value)
+  return formatterFor(digits).format(value)
 }
 
 /** A share of the whole, given as a fraction (`0.1425`), at fixed decimals so a column lines up:

@@ -2,10 +2,11 @@ import { formatDay, pluralKey } from '@/i18n'
 import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
-const MS_PER_SECOND = 1_000
-const SECONDS_PER_MINUTE = 60
-const MINUTES_PER_HOUR = 60
-const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
+/** The page's one set of time units. */
+export const MS_PER_SECOND = 1_000
+export const SECONDS_PER_MINUTE = 60
+export const MINUTES_PER_HOUR = 60
+export const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
 const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR
 const HOURS_PER_DAY = 24
 const MS_PER_DAY = MS_PER_HOUR * HOURS_PER_DAY
@@ -57,6 +58,13 @@ export function shiftDay(day: string, days: number): string {
   const shifted = new Date(Date.parse(`${day}T00:00:00Z`) + days * MS_PER_DAY)
 
   return shifted.toISOString().slice(0, DAY_KEY_LENGTH)
+}
+
+/** An hour of the day (fractional) as `HH:mm`. */
+export function formatHourOfDay(hour: number): string {
+  const totalMinutes = Math.round(hour * MINUTES_PER_HOUR)
+
+  return `${pad(Math.floor(totalMinutes / MINUTES_PER_HOUR))}:${pad(totalMinutes % MINUTES_PER_HOUR)}`
 }
 
 /** A span as `m:ss`, or `h:mm:ss` from an hour up; never below zero. */

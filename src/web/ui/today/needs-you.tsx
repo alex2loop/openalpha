@@ -2,8 +2,7 @@ import { pluralKey } from '@/i18n'
 import { needsYou, unreadStops } from '@/web/state/notices'
 import { joinInline, NEXT_GLYPH } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
-import { BELL_POPOVER_ID } from '@/web/ui/bell/bell-popover'
-import { openPopover } from '@/web/ui/kit/popover'
+import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
 
 /** "Cần bạn": shown only while something waits; "Mở" opens the bell. */
 export function NeedsYou() {

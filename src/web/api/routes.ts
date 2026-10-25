@@ -13,6 +13,7 @@ import type {
   ProviderTestResult,
 } from '@/app/server/wire/config'
 import type { DebateWire } from '@/app/server/wire/debate'
+import type { DigestWire } from '@/app/server/wire/digest'
 import type { LiveSnapshotWire, RunStopWire } from '@/app/server/wire/live'
 import type {
   AlertDisableResponse,
@@ -111,6 +112,7 @@ export const ROUTES = Object.freeze({
   jobAction: (jobId: string, action: 'pause' | 'resume') =>
     route<OkAnswer>(`/v1/jobs/${encodeURIComponent(jobId)}/${action}`),
   board: route<BoardResponse>('/v1/board'),
+  digest: route<DigestWire>('/v1/digest'),
   sectors: route<SectorsResponse>('/v1/sectors'),
   chatRecent: route<ChatRecentResponse>('/v1/chat/recent'),
   chatHistory: (sessionId: string) =>
