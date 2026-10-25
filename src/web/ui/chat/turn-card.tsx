@@ -1,5 +1,11 @@
 import { canStop, isFinished, steer, stopTurn, type Turn, thread } from '@/web/state/chat'
-import { fillInput, inputText, setInput } from '@/web/state/command'
+import {
+  ALERT_CREATE_COMMAND,
+  fillInput,
+  inputText,
+  SUGGEST_COMMAND,
+  setInput,
+} from '@/web/state/command'
 import { estimateText } from '@/web/state/estimates'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -10,8 +16,6 @@ import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 
 const MS_PER_SECOND = 1_000
-const SUGGEST_COMMAND = '/suggest'
-const ALERT_CREATE = '/alert create'
 
 /** What the operator sent and the card that answers it. */
 export function TurnCard({ turn }: { readonly turn: Turn }) {
@@ -50,7 +54,7 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
   return (
     <div class="chat-card">
       {!isFinished(turn) && <RunningStep turn={turn} />}
-      <ReplyText text={turn.reply} />
+      <ReplyText text={turn.reply} isLinked={turn.kind !== 'slash'} />
       <SteerLine turn={turn} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
     </div>
@@ -159,7 +163,7 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
       <div class="chat-actions">
         {link !== undefined && (
           <Button kind="tertiary" size="small" onClick={link.open}>
-            {tr(link.label)}
+            {tr(link.label, link.params)}
           </Button>
         )}
         <NextSteps tickers={turn.tickers} />
@@ -184,7 +188,7 @@ function NextSteps({ tickers }: { readonly tickers: readonly string[] | undefine
       <Button size="small" onClick={() => fillInput(suggest)}>
         {estimate === undefined ? suggest : joinInline([suggest, estimate])}
       </Button>
-      <Button size="small" onClick={() => fillInput(`${ALERT_CREATE} ${ticker} `)}>
+      <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
         {tr('ui.office.common.setAlert')}
       </Button>
     </>

@@ -1,0 +1,118 @@
+.ticker-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ticker-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ticker-link.is-inline {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.price-chart {
+  display: block;
+  width: 100%;
+  margin-top: var(--s1);
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.chart-level line {
+  stroke: var(--ink2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chart-level text {
+  fill: var(--ink2);
+  font-size: 11px;
+}
+
+.chart-level.is-stop line {
+  stroke: var(--down);
+}
+
+.chart-level.is-stop text {
+  fill: var(--down);
+}
+
+.chart-level.is-target line {
+  stroke: var(--up);
+}
+
+.chart-level.is-target text {
+  fill: var(--up);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--s1);
+  margin: 0 0 var(--s1);
+}
+
+.kv > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.kv dt {
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.kv dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.opinion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--s1);
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.opinion:first-child {
+  border-top: 0;
+}
+
+.opinion-note {
+  grid-column: 1 / -1;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.is-caution-text {
+  color: var(--caution);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--s2);
+}
+
+.card-actions .failure-line {
+  flex-basis: 100%;
+}

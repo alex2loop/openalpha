@@ -2,7 +2,12 @@ import { computed, type ReadonlySignal } from '@preact/signals'
 
 import type { MarketWire, OverviewResponse } from '@/app/server/wire/market'
 import type { StopsResponse } from '@/app/server/wire/money'
-import type { AbsolutePositionWire, SuggestionWire } from '@/app/server/wire/trading'
+import type {
+  AbsolutePositionWire,
+  InstrumentRefWire,
+  SuggestionWire,
+  TradingQuoteWire,
+} from '@/app/server/wire/trading'
 import { ROUTES } from '@/web/api/routes'
 import { createRouteBlock } from '@/web/state/block'
 
@@ -17,6 +22,8 @@ export const overviewBlock = createRouteBlock(ROUTES.overview)
 export const holdingsBlock = createRouteBlock(ROUTES.portfolio)
 export const quotesBlock = createRouteBlock(ROUTES.quotes)
 export const stopsBlock = createRouteBlock(ROUTES.stops)
+export const profileBlock = createRouteBlock(ROUTES.profile)
+export const alertsBlock = createRouteBlock(ROUTES.alerts)
 const callsBlock = createRouteBlock(ROUTES.suggestions, { status: 'open' })
 
 /** What the operator holds: a residue below the venue's smallest order is not a position. */
@@ -24,6 +31,11 @@ export const heldPositions: ReadonlySignal<readonly AbsolutePositionWire[]> = co
   (holdingsBlock.view.value.data?.positions ?? []).filter(
     (position) => position.quantity > 0 && !position.belowMinimumSize
   )
+)
+
+/** The names the operator watches. */
+export const watchedNames: ReadonlySignal<readonly InstrumentRefWire[]> = computed(
+  () => profileBlock.view.value.data?.watchlist ?? []
 )
 
 /** Held names whose mark is through their plan's stop. */
@@ -52,6 +64,8 @@ export function startMarket(): () => void {
     overviewBlock.start(OVERVIEW_POLL_MS),
     holdingsBlock.start(OVERVIEW_POLL_MS),
     stopsBlock.start(OVERVIEW_POLL_MS),
+    profileBlock.start(OVERVIEW_POLL_MS),
+    alertsBlock.start(OVERVIEW_POLL_MS),
     callsBlock.start(OVERVIEW_POLL_MS),
     quotesBlock.start(QUOTES_POLL_MS),
   ]
@@ -70,6 +84,13 @@ export function keyOf(instrument: { readonly market: string; readonly ticker: st
 
 export function findMarket(market: string): MarketWire | undefined {
   return marketsBlock.view.value.data?.markets.find((held) => held.market === market)
+}
+
+/** The board's quote for a name; `market` left off finds the first board name with that ticker. */
+export function findQuote(ticker: string, market?: string): TradingQuoteWire | undefined {
+  return (quotesBlock.view.value.data?.quotes ?? []).find(
+    (quote) => quote.ticker === ticker && (market === undefined || quote.market === market)
+  )
 }
 
 /** How the market prints a price, off `/v1/markets`; absent for a market with no board scale. */

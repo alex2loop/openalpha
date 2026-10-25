@@ -1,7 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
-import { ApiFailure } from '@/web/api/client'
-import { toFailureText, tr } from '@/web/text/tr'
+import { toErrorText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
 
@@ -83,8 +82,7 @@ function runConfirm(dialog: ConfirmDialog): void {
     .then(
       () => dialog.handle?.close(),
       (error: unknown) => {
-        dialog.failure.value =
-          error instanceof ApiFailure ? toFailureText(error) : tr('ui.office.error.generic')
+        dialog.failure.value = toErrorText(error)
       }
     )
     .finally(() => {

@@ -5,6 +5,10 @@ import { sendMessage } from '@/web/state/chat'
 
 const HISTORY_MAX = 50
 
+export const SUGGEST_COMMAND = '/suggest'
+export const ALERT_CREATE_COMMAND = '/alert create'
+export const WATCHLIST_ADD_COMMAND = '/watchlist add'
+
 // What the operator sent, oldest first.
 const sent = signal<readonly string[]>([])
 // Where up and down stand in `sent`, counted from the newest; absent while the operator types.

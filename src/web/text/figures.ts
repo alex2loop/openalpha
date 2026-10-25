@@ -1,12 +1,18 @@
 import { locale } from '@/web/state/session'
 import { ABSENT_CELL, DOWN_GLYPH, UP_GLYPH } from '@/web/text/glyphs'
 
+/** Percent per whole: a fraction times this is a percent. */
+export const PERCENT = 100
 const USD_DIGITS = 2
 const PERCENT_DIGITS = 2
 const PRICE_DIGITS = 2
 // A price under 1 with no board scale keeps this many digits after its leading zeros.
 const SMALL_PRICE_EXTRA_DIGITS = 2
 const PRICE_DIGITS_MAX = 10
+// A quantity keeps up to a satoshi, and no trailing zeros.
+const QUANTITY_DIGITS_MAX = 8
+// From here a cash amount prints whole units: cents on a million are noise.
+const AMOUNT_WHOLE_FROM = 1_000
 const ZERO_TEXT = /^[^1-9]*$/
 
 /** How a board prints a price: `value / divisor` at `decimals`. */
@@ -17,7 +23,10 @@ interface PriceDisplay {
 
 type Tone = 'up' | 'down' | 'flat'
 
-// One per page language and digit count, so bounded by construction.
+/** A money total: whole units beside the wire's currency code. */
+export const WHOLE_DISPLAY: PriceDisplay = Object.freeze({ divisor: 1, decimals: 0 })
+
+// One per page language and shape, so bounded by construction.
 const formatters = new Map<string, Intl.NumberFormat>()
 
 /** A USD amount at cent precision in the page's language; a missing one prints `ABSENT_CELL`. */
@@ -27,6 +36,40 @@ export function formatUsd(value: number | undefined): string {
   }
 
   return formatterFor(USD_DIGITS).format(value)
+}
+
+/** A share of the whole, given as a fraction (`0.1425`), at fixed decimals so a column lines up:
+ *  `14,25%`, as `/portfolio` prints it. */
+export function formatFixedFraction(fraction: number | undefined): string {
+  if (fraction === undefined || !Number.isFinite(fraction)) {
+    return ABSENT_CELL
+  }
+
+  return buildFormatter(`percent:${PERCENT_DIGITS}`, {
+    style: 'percent',
+    minimumFractionDigits: PERCENT_DIGITS,
+    maximumFractionDigits: PERCENT_DIGITS,
+  }).format(fraction)
+}
+
+/** A held or traded quantity: whole shares stay whole, a coin keeps its decimals. */
+export function formatQuantity(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return ABSENT_CELL
+  }
+
+  return buildFormatter('quantity', { maximumFractionDigits: QUANTITY_DIGITS_MAX }).format(value)
+}
+
+/** A cash amount in its own currency: whole units from `AMOUNT_WHOLE_FROM`, else cents. */
+export function formatAmount(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return ABSENT_CELL
+  }
+
+  return Math.abs(value) >= AMOUNT_WHOLE_FROM
+    ? formatPrice(value, WHOLE_DISPLAY)
+    : formatPrice(value, undefined)
 }
 
 /** A price on its board's scale (`/v1/markets` `priceDisplay`); a money total passes
@@ -86,15 +129,19 @@ function unscaledDigits(value: number): number {
 }
 
 function formatterFor(digits: number): Intl.NumberFormat {
+  return buildFormatter(`fixed:${digits}`, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })
+}
+
+function buildFormatter(shape: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
   const language = locale.value
-  const key = `${language}:${digits}`
+  const key = `${language}:${shape}`
   let formatter = formatters.get(key)
 
   if (formatter === undefined) {
-    formatter = new Intl.NumberFormat(language, {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    })
+    formatter = new Intl.NumberFormat(language, options)
     formatters.set(key, formatter)
   }
 

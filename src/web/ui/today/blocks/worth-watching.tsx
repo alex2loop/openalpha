@@ -3,6 +3,7 @@ import { useBlock } from '@/web/state/block'
 import { freshCalls, stopBreaches } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { ListIcon } from '@/web/ui/kit/icons'
+import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const WORTH_MAX = 6
@@ -31,12 +32,14 @@ function WorthList({ verdict }: { readonly verdict: readonly string[] }) {
   const breaches = stopBreaches.value.map((stop) => ({
     key: `stop:${stop.instrument.market}:${stop.instrument.ticker}`,
     ticker: stop.instrument.ticker,
+    market: stop.instrument.market,
     note: tr('ui.office.tape.breach'),
     isBreach: true,
   }))
   const calls = freshCalls.value.map((call) => ({
     key: `call:${call.id}`,
     ticker: call.instrument.ticker,
+    market: call.instrument.market,
     note: tr('ui.office.tape.call'),
     isBreach: false,
   }))
@@ -54,7 +57,9 @@ function WorthList({ verdict }: { readonly verdict: readonly string[] }) {
       <div class="row-list">
         {rows.map((row) => (
           <div key={row.key} class={row.isBreach ? 'row is-breach' : 'row'}>
-            <b>{row.ticker}</b>
+            <b>
+              <TickerLink ticker={row.ticker} market={row.market} />
+            </b>
             <span class="row-note">{row.note}</span>
           </div>
         ))}

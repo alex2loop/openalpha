@@ -1,9 +1,12 @@
 import { backStack, collapsed, isFocus, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
+import { Book } from '@/web/ui/book/book'
 import { PanelIcon } from '@/web/ui/kit/icons'
+import { UndoBar } from '@/web/ui/kit/undo-bar'
 import { BackRow } from '@/web/ui/panel/back-row'
 import { Rail } from '@/web/ui/panel/rail'
 import { Tabs } from '@/web/ui/panel/tabs'
+import { TickerCard } from '@/web/ui/ticker/card'
 import { Today } from '@/web/ui/today/today'
 
 import './panel.css'
@@ -34,15 +37,30 @@ export function Panel() {
       </div>
       {backStack.value.length > 0 && <BackRow />}
       <div class="panel-body">
+        <UndoBar />
         <PanelContent />
       </div>
     </aside>
   )
 }
 
-// Danh mục, Đề xuất and the person and ticker views are mounted here by the tasks that build them.
+// Đề xuất and the person view are mounted here by the tasks that build them.
 function PanelContent() {
   const view = panelView.value
 
-  return 'tab' in view && view.tab === 'today' ? <Today /> : null
+  if ('ticker' in view) {
+    return (
+      <TickerCard key={`${view.market}:${view.ticker}`} ticker={view.ticker} market={view.market} />
+    )
+  }
+
+  if (!('tab' in view)) {
+    return null
+  }
+
+  if (view.tab === 'book') {
+    return <Book />
+  }
+
+  return view.tab === 'today' ? <Today /> : null
 }

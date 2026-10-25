@@ -6,7 +6,9 @@ import type { MessageKey } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { agents, selectedAgentId } from '@/web/state/agents'
+import { ALERT_CREATE_COMMAND, SUGGEST_COMMAND, WATCHLIST_ADD_COMMAND } from '@/web/state/command'
 import { commands, estimateText } from '@/web/state/estimates'
+import { panelView } from '@/web/state/panel'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
@@ -15,7 +17,12 @@ const MAX_TICKER_MATCHES = 5
 const COMMAND_PREFIX = '/'
 const WORD_BREAK = /\s+/
 // What a focused, empty box offers first.
-const STARTERS: readonly { readonly text: string; readonly label: MessageKey }[] = [
+interface Starter {
+  readonly text: string
+  readonly label: MessageKey
+}
+
+const STARTERS: readonly Starter[] = [
   { text: '/brief', label: 'ui.office.common.readBrief' },
   { text: '/portfolio', label: 'ui.office.common.seeBook' },
   { text: '/suggest ', label: 'ui.office.command.ctxSuggestOne' },
@@ -165,13 +172,28 @@ function useTickerMatches(query: string | undefined): readonly Match[] {
 }
 
 function listStarters(): readonly SuggestOption[] {
-  return STARTERS.map((starter) => ({
+  const view = panelView.value
+  const context = 'ticker' in view ? buildTickerContext(view.ticker) : []
+
+  return [...context, ...STARTERS].map((starter) => ({
     key: `starter:${starter.text}`,
     section: 'suggestions',
     label: tr(starter.label),
-    detail: joinDetail(starter.text.trim(), estimateText(starter.text.trim())),
+    detail: joinDetail(
+      starter.text.trim(),
+      estimateText(starter.text.trim().split(WORD_BREAK, 1)[0] ?? '')
+    ),
     fill: starter.text,
   }))
+}
+
+// With a ticker card open, what the operator most likely does next with that name.
+function buildTickerContext(ticker: string): readonly Starter[] {
+  return [
+    { text: `${SUGGEST_COMMAND} ${ticker}`, label: 'ui.office.command.ctxSuggest' },
+    { text: `${ALERT_CREATE_COMMAND} ${ticker} `, label: 'ui.office.command.ctxAlert' },
+    { text: `${WATCHLIST_ADD_COMMAND} ${ticker}`, label: 'ui.office.command.ctxWatch' },
+  ]
 }
 
 function listTickers(text: string, matches: readonly Match[]): readonly SuggestOption[] {

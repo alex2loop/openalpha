@@ -4,6 +4,7 @@ import { findMarket, priceDisplayOf } from '@/web/state/market'
 import { locale } from '@/web/state/session'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
+import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 const ROWS_SHOWN = 5
 // A market still trading prints no close note; every other phase shows the last close.
@@ -83,7 +84,9 @@ function OverviewRow({ row, currency }: OverviewRowProps) {
 
   return (
     <div class="row">
-      <b>{row.instrument.ticker}</b>
+      <b>
+        <TickerLink ticker={row.instrument.ticker} market={row.instrument.market} />
+      </b>
       <span>
         {display === undefined && currency !== undefined ? `${price} ${currency}` : price}
       </span>

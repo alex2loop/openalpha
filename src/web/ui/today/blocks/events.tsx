@@ -10,6 +10,7 @@ import { locale, state } from '@/web/state/session'
 import { buildDayKey, shiftDay } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { CalendarIcon } from '@/web/ui/kit/icons'
+import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const EVENTS_WINDOW_DAYS = 14
@@ -20,6 +21,7 @@ const EVENTS_POLL_MS = 300_000
 interface HeldEvent {
   readonly key: string
   readonly ticker: string
+  readonly market: string
   readonly event: MarketEventWire
 }
 
@@ -65,7 +67,10 @@ function EventList({ events }: { readonly events: readonly HeldEvent[] }) {
       {events.map((held) => (
         <div key={held.key} class="row">
           <div>
-            <b>{held.ticker}</b> {held.event.title}
+            <b>
+              <TickerLink ticker={held.ticker} market={held.market} />
+            </b>{' '}
+            {held.event.title}
             {held.event.detail !== undefined && <p class="meta">{held.event.detail}</p>}
           </div>
           <span class="row-note">{formatDay(locale.value, held.event.at)}</span>
@@ -108,6 +113,7 @@ async function loadEvents(abort: AbortSignal): Promise<readonly HeldEvent[]> {
       answer.events.map((event) => ({
         key: `${keyOf(answer)}:${event.at}:${event.kind}`,
         ticker: answer.ticker,
+        market: answer.market,
         event,
       }))
     )

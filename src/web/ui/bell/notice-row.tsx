@@ -8,6 +8,7 @@ import { tr } from '@/web/text/tr'
 import { JOBS_POPOVER_ID } from '@/web/ui/jobs/jobs-popover'
 import { Button } from '@/web/ui/kit/button'
 import { togglePopover } from '@/web/ui/kit/popover'
+import { LinkedText } from '@/web/ui/ticker/linked-text'
 
 const LINE_BREAK = '\n'
 
@@ -35,8 +36,14 @@ export function NoticeRow({ notice }: { readonly notice: NoticeWire }) {
     <div class={classes.filter((name) => name !== '').join(' ')}>
       <i class="notice-dot" aria-hidden="true" />
       <div class="notice-main">
-        <b>{text.title}</b>
-        {text.detail !== undefined && <p class="meta notice-detail">{text.detail}</p>}
+        <b>
+          <LinkedText text={text.title} />
+        </b>
+        {text.detail !== undefined && (
+          <p class="meta notice-detail">
+            <LinkedText text={text.detail} />
+          </p>
+        )}
       </div>
       <div class="notice-side">
         {timeZone !== undefined && (

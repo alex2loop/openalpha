@@ -15,6 +15,7 @@ import { reducedMotion } from '@/web/state/prefs'
 import { isFirstRun } from '@/web/state/session'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
+import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 import './tape.css'
 
@@ -58,7 +59,7 @@ export function Tape() {
 interface TapeRowsProps {
   readonly rows: readonly TapeRow[]
   readonly resolveNote: (row: TapeRow) => Note
-  readonly isCopy?: boolean
+  readonly isCopy?: true
 }
 
 // The second copy makes the loop seamless and is hidden from screen readers.
@@ -66,13 +67,19 @@ function TapeRows({ rows, resolveNote, isCopy }: TapeRowsProps) {
   return (
     <div class="tape-rows" aria-hidden={isCopy === true ? 'true' : undefined}>
       {rows.map((row) => (
-        <TapeCell key={row.key} row={row} note={resolveNote(row)} />
+        <TapeCell key={row.key} row={row} note={resolveNote(row)} isCopy={isCopy} />
       ))}
     </div>
   )
 }
 
-function TapeCell({ row, note }: { readonly row: TapeRow; readonly note: Note }) {
+interface TapeCellProps {
+  readonly row: TapeRow
+  readonly note: Note
+  readonly isCopy: true | undefined
+}
+
+function TapeCell({ row, note, isCopy }: TapeCellProps) {
   const { flash, clearFlash } = useFlash(row.price)
   const classes = [
     'tape-cell',
@@ -82,7 +89,9 @@ function TapeCell({ row, note }: { readonly row: TapeRow; readonly note: Note })
 
   return (
     <span class={classes.filter(Boolean).join(' ')} onAnimationEnd={clearFlash}>
-      <b>{row.ticker}</b>
+      <b>
+        <TickerLink ticker={row.ticker} market={row.market} isHidden={isCopy} />
+      </b>
       <span class="tape-price">{formatPrice(row.price, priceDisplayOf(row.market))}</span>
       <span class={`is-${toneOfPercent(row.changePct)}-text`}>
         {formatSignedPercent(row.changePct)}

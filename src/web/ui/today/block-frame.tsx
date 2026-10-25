@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact'
 
 import type { BlockReading } from '@/web/state/block'
-import { formatDay } from '@/i18n'
+import { formatDay, type MessageKey } from '@/i18n'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock } from '@/web/text/time'
@@ -22,6 +22,8 @@ interface BlockFrameProps<T> {
   /** The trading day the figures describe (`YYYY-MM-DD`), or the market's close note. */
   readonly dataTo?: string | undefined
   readonly closeNote?: string | undefined
+  /** The words "{time}" follows on the read line; "Đọc lúc" unless the figures are valuations. */
+  readonly readKey?: MessageKey
   /** A link or button in the head, at the right. */
   readonly action?: ComponentChildren
   /** The block's figures; called only when there is a read to show. */
@@ -52,7 +54,14 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
   )
 }
 
-function BlockBody<T>({ title, reading, dataTo, closeNote, children }: BlockFrameProps<T>) {
+function BlockBody<T>({
+  title,
+  reading,
+  dataTo,
+  closeNote,
+  readKey,
+  children,
+}: BlockFrameProps<T>) {
   const { data } = reading
 
   return (
@@ -68,7 +77,12 @@ function BlockBody<T>({ title, reading, dataTo, closeNote, children }: BlockFram
       ) : (
         <>
           {children(data)}
-          <ReadLine readAt={reading.readAt} dataTo={dataTo} closeNote={closeNote} />
+          <ReadLine
+            readAt={reading.readAt}
+            dataTo={dataTo}
+            closeNote={closeNote}
+            readKey={readKey}
+          />
         </>
       )}
     </>
@@ -102,9 +116,15 @@ interface ReadLineProps {
   readonly readAt: number | undefined
   readonly dataTo: string | undefined
   readonly closeNote: string | undefined
+  readonly readKey: MessageKey | undefined
 }
 
-function ReadLine({ readAt, dataTo, closeNote }: ReadLineProps) {
+function ReadLine({
+  readAt,
+  dataTo,
+  closeNote,
+  readKey = 'ui.office.today.readAt',
+}: ReadLineProps) {
   const timeZone = state.value?.timeZone
 
   if (readAt === undefined || timeZone === undefined) {
@@ -116,7 +136,7 @@ function ReadLine({ readAt, dataTo, closeNote }: ReadLineProps) {
     ...(dataTo === undefined || closeNote !== undefined
       ? []
       : [tr('ui.office.today.dataTo', { time: formatDay(locale.value, dataTo) })]),
-    tr('ui.office.today.readAt', { time: formatClock(readAt, timeZone) }),
+    tr(readKey, { time: formatClock(readAt, timeZone) }),
   ]
 
   return <p class="meta block-read">{joinInline(facts)}</p>

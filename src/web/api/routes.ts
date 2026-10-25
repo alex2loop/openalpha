@@ -8,12 +8,15 @@ import type {
 import type { ProviderCatalogResponse } from '@/app/server/wire/config'
 import type { LiveSnapshotWire, RunStopWire } from '@/app/server/wire/live'
 import type {
+  AlertDisableResponse,
+  AlertsResponse,
+  AlertWire,
   InstrumentSearchResponse,
   MacroResponse,
   MarketsResponse,
   OverviewResponse,
 } from '@/app/server/wire/market'
-import type { StopsResponse } from '@/app/server/wire/money'
+import type { LedgerPageResponse, RebalanceResponse, StopsResponse } from '@/app/server/wire/money'
 import type { NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type {
   Capabilities,
@@ -26,11 +29,15 @@ import type { TasksResponse } from '@/app/server/wire/tasks'
 import type {
   TradingBriefResponse,
   TradingEventsResponse,
+  TradingNavResponse,
   TradingNewsResponse,
+  TradingOhlcvResponse,
   TradingPortfolioResponse,
+  TradingProfileResponse,
   TradingQuotesResponse,
   TradingSuggestionsResponse,
 } from '@/app/server/wire/trading'
+import type { WatchlistUpdateResponse } from '@/app/server/wire/watchlist'
 
 /** A `/v1` path tagged with the wire shape it answers, so `getJson` returns that shape. */
 export interface RouteDef<T> {
@@ -68,13 +75,23 @@ export const ROUTES = Object.freeze({
   markets: route<MarketsResponse>('/v1/markets'),
   quotes: route<TradingQuotesResponse>('/v1/quotes', 'quotes'),
   portfolio: route<TradingPortfolioResponse>('/v1/portfolio', 'portfolio'),
+  portfolioNav: route<TradingNavResponse>('/v1/portfolio/nav', 'portfolio'),
+  ledger: route<LedgerPageResponse>('/v1/ledger', 'portfolio'),
+  rebalance: route<RebalanceResponse>('/v1/rebalance', 'portfolio'),
   stops: route<StopsResponse>('/v1/stops', 'portfolio'),
   suggestions: route<TradingSuggestionsResponse>('/v1/suggestions', 'suggestions'),
   macro: route<MacroResponse>('/v1/macro'),
+  ohlcv: route<TradingOhlcvResponse>('/v1/ohlcv', 'ohlcv'),
   events: route<TradingEventsResponse>('/v1/events', 'ohlcv'),
   news: route<TradingNewsResponse>('/v1/news'),
   brief: route<TradingBriefResponse>('/v1/brief'),
   providers: route<ProviderCatalogResponse>('/v1/providers'),
+  profile: route<TradingProfileResponse>('/v1/profile'),
+  watchlist: route<WatchlistUpdateResponse>('/v1/watchlist'),
+  alerts: route<AlertsResponse>('/v1/alerts'),
+  alertCreate: route<AlertWire>('/v1/alerts'),
+  alertRow: (alertId: string) =>
+    route<AlertDisableResponse>(`/v1/alerts/${encodeURIComponent(alertId)}`),
 })
 
 function route<T>(path: string, capability?: keyof Capabilities): RouteDef<T> {
