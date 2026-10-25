@@ -1,8 +1,11 @@
-import { computed, effect } from '@preact/signals'
+import { computed, effect, untracked } from '@preact/signals'
 import { render } from 'preact'
 
 import { authState, takeTokenFromHash } from '@/web/api/token'
+import { startCost } from '@/web/state/cost'
 import { startFeed } from '@/web/state/feed'
+import { startNotices } from '@/web/state/notices'
+import { disposePrefs } from '@/web/state/prefs'
 import { brand, loadUntilReady, locale, state } from '@/web/state/session'
 import { App } from '@/web/ui/shell/app'
 
@@ -32,7 +35,7 @@ function boot(): void {
       document.title = brand.value
     }
   })
-  const stopFeedSync = effect(() => (isSignedIn.value ? startFeed() : undefined))
+  const stopFeedSync = effect(() => (isSignedIn.value ? untracked(startLive) : undefined))
 
   addEventListener(
     'pagehide',
@@ -40,9 +43,21 @@ function boot(): void {
       controller.abort()
       stopDocumentSync()
       stopFeedSync()
+      disposePrefs()
     },
     { once: true }
   )
   // Its loads catch their own failures into the session signals and its waits never reject.
   loadUntilReady(controller.signal).catch(() => undefined)
+}
+
+// Untracked: what a start reads must never restart the feed when it changes.
+function startLive(): () => void {
+  const stops = [startFeed(), startNotices(), startCost()]
+
+  return () => {
+    for (const stop of stops) {
+      stop()
+    }
+  }
 }

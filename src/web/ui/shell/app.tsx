@@ -8,6 +8,7 @@ import {
   state,
 } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
+import { ModalHost } from '@/web/ui/kit/modal'
 import { Header } from '@/web/ui/shell/header'
 import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { Panes } from '@/web/ui/shell/panes'
@@ -45,6 +46,7 @@ export function App() {
       <Panes />
       <OfflineBar />
       <footer class="command-bar glass" />
+      <ModalHost />
     </div>
   )
 }

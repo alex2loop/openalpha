@@ -1,0 +1,95 @@
+.popover.jobs-popover {
+  right: auto;
+  left: var(--s2);
+  width: 420px;
+}
+
+.job-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+}
+
+.popover-section + .job-row,
+.popover-section + .meta {
+  border-top: 0;
+}
+
+.job-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.job-main b {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.job-time {
+  flex: none;
+  width: 72px;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+
+.job-child {
+  margin: 2px 0 0;
+  padding-left: 10px;
+  border-left: 2px dashed var(--border);
+}
+
+.job-row .spin {
+  margin-top: 4px;
+}
+
+.job-row.is-failing b {
+  color: var(--dangerText);
+}
+
+.upkeep-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  width: 100%;
+  padding: var(--s1) 0;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.upkeep-toggle .meta {
+  margin-left: auto;
+}
+
+.upkeep-status {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 9px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.upkeep-status.is-failing {
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.stop-children,
+.stop-failure {
+  margin-top: var(--s1);
+}
+
+@media (max-width: 899px) {
+  .popover.jobs-popover {
+    right: var(--popoverGutter);
+    left: var(--popoverGutter);
+    width: auto;
+  }
+}

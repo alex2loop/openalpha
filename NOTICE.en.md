@@ -108,6 +108,23 @@ tree, so the MIT the README promises stays true for anyone who embeds this runti
 `zca-js` is an unofficial Zalo client. The Zalo Personal channel is opt-in, is not an official
 integration, and using it is between you and Zalo.
 
+A few line icons on the office page are hand-copied from [Lucide](https://lucide.dev), under the
+ISC licence:
+
+> ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of
+> Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+>
+> Permission to use, copy, modify, and/or distribute this software for any purpose with or without
+> fee is hereby granted, provided that the above copyright notice and this permission notice appear
+> in all copies.
+>
+> THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+> SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+> AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+> WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+> NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+> THIS SOFTWARE.
+
 ## Not financial advice
 
 OpenAlpha is a research and bookkeeping assistant. Its suggestions are educational, can be wrong,

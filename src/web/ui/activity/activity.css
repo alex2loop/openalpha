@@ -1,0 +1,60 @@
+.activity-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+}
+
+.activity-list > .activity-line:first-child,
+.activity-list > .activity-item:first-child .activity-line {
+  border-top: 0;
+}
+
+.activity-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-main b {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.activity-summary {
+  margin-top: 3px;
+  color: var(--ink2);
+  font-size: 12px;
+  white-space: pre-line;
+}
+
+.activity-cost {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-item summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.activity-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity-children {
+  display: block;
+  padding-bottom: var(--s1);
+}
+
+.activity-nested {
+  margin-left: var(--s2);
+  padding-left: 10px;
+  border-left: 2px dashed var(--border);
+}

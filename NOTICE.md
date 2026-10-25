@@ -116,6 +116,23 @@ bản dựng nếu một giấy phép copyleft lọt vào cây phụ thuộc, đ
 `zca-js` là một client Zalo không chính thức. Kênh Zalo Personal là tùy chọn phải tự bật,
 không phải một tích hợp chính thức, và việc dùng nó là chuyện giữa bạn và Zalo.
 
+Vài biểu tượng nét trên trang văn phòng được chép tay từ [Lucide](https://lucide.dev), theo giấy
+phép ISC:
+
+> ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of
+> Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+>
+> Permission to use, copy, modify, and/or distribute this software for any purpose with or without
+> fee is hereby granted, provided that the above copyright notice and this permission notice appear
+> in all copies.
+>
+> THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+> SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+> AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+> WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+> NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+> THIS SOFTWARE.
+
 ## Không phải lời khuyên đầu tư
 
 OpenAlpha là trợ lý nghiên cứu và ghi chép. Các đề xuất của nó mang tính tham khảo, có thể

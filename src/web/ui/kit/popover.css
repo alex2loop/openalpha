@@ -1,0 +1,56 @@
+/* Hangs under the header, at the right edge unless its own class places it. */
+.popover {
+  position: fixed;
+  top: calc(var(--headerH) + 4px);
+  right: var(--s2);
+  z-index: var(--zPopover);
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  max-height: calc(100vh - var(--headerH) - var(--s4));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--pop);
+}
+
+.popover-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s2) 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.popover-head h2 {
+  flex: 1;
+  font-size: 14px;
+}
+
+.popover-scroll {
+  overflow: auto;
+  padding: 4px 14px 10px;
+}
+
+.popover-foot {
+  display: flex;
+  padding: var(--s1) 14px;
+  border-top: 1px solid var(--border);
+}
+
+.popover-section {
+  margin: 14px 0 6px;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 899px) {
+  .popover {
+    right: var(--popoverGutter);
+    left: var(--popoverGutter);
+    width: auto;
+  }
+}

@@ -1,0 +1,49 @@
+.cost-figure {
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-meter {
+  height: 6px;
+  margin: 4px 0 2px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--sunken);
+}
+
+.cost-meter i {
+  display: block;
+  height: 100%;
+  background: var(--ink2);
+}
+
+.cost-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+}
+
+.popover-section + .cost-row {
+  border-top: 0;
+}
+
+.cost-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.cost-row-main b {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.cost-row-figure {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-note {
+  margin-top: var(--s1);
+}

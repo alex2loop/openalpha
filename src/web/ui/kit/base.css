@@ -78,3 +78,36 @@ p {
   flex: none;
   background: url("../../../../assets/brand/logo.svg") center / contain no-repeat;
 }
+
+.meta {
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.failure-line {
+  color: var(--dangerText);
+  font-size: 12px;
+}
+
+/* A run under way. */
+.spin {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--ink3);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

@@ -1,0 +1,99 @@
+import type { ComponentChildren, RefObject } from 'preact'
+import { type ReadonlySignal, signal } from '@preact/signals'
+import { useEffect, useRef } from 'preact/hooks'
+
+import './popover.css'
+
+interface PopoverProps {
+  readonly id: string
+  /** The button that toggles it: a click on it is not an outside click, and Esc returns focus to it. */
+  readonly anchor: RefObject<HTMLElement>
+  readonly label: string
+  readonly class?: string
+  readonly children: ComponentChildren
+}
+
+const openId = signal<string | undefined>(undefined)
+
+/** Which popover is open; one at a time. */
+export const openPopoverId: ReadonlySignal<string | undefined> = openId
+
+/** Opens the popover, or closes it when it is the one open; any other one closes. */
+export function togglePopover(id: string): void {
+  openId.value = openId.value === id ? undefined : id
+}
+
+export function closePopover(): void {
+  openId.value = undefined
+}
+
+/** Its children mount only while it is open, so whatever they load is released when it closes. */
+export function Popover({ id, anchor, label, class: className, children }: PopoverProps) {
+  if (openId.value !== id) {
+    return null
+  }
+
+  return (
+    <PopoverPanel anchor={anchor} label={label} className={className}>
+      {children}
+    </PopoverPanel>
+  )
+}
+
+interface PopoverPanelProps {
+  readonly anchor: RefObject<HTMLElement>
+  readonly label: string
+  readonly className: string | undefined
+  readonly children: ComponentChildren
+}
+
+function PopoverPanel({ anchor, label, className, children }: PopoverPanelProps) {
+  const panel = useRef<HTMLDivElement>(null)
+
+  useEffect(() => armDismiss(panel, anchor), [anchor])
+
+  return (
+    <div
+      ref={panel}
+      class={className === undefined ? 'popover' : `popover ${className}`}
+      role="dialog"
+      aria-label={label}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Esc and a press outside both close it; the listeners live exactly as long as the panel.
+function armDismiss(panel: RefObject<HTMLElement>, anchor: RefObject<HTMLElement>): () => void {
+  const listeners = new AbortController()
+  const { signal: listenerSignal } = listeners
+
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape') {
+        closePopover()
+        anchor.current?.focus()
+      }
+    },
+    { signal: listenerSignal }
+  )
+  document.addEventListener(
+    'pointerdown',
+    (event) => {
+      const target = event.target
+
+      if (target instanceof Node && !isInside(panel, target) && !isInside(anchor, target)) {
+        closePopover()
+      }
+    },
+    { signal: listenerSignal }
+  )
+
+  return () => listeners.abort()
+}
+
+function isInside(ref: RefObject<HTMLElement>, target: Node): boolean {
+  return ref.current?.contains(target) === true
+}

@@ -6,6 +6,7 @@ const REQUEST_TIMEOUT_MS = 20_000
 const UNAUTHORIZED_STATUS = 401
 // A request that got no answer has no HTTP status.
 const NO_STATUS = 0
+const JSON_CONTENT_TYPE = 'application/json'
 // Exhaustive by `satisfies`, so a code added to the wire fails the typecheck until it is listed.
 const API_ERROR_CODES = Object.freeze({
   unauthorized: true,
@@ -29,6 +30,15 @@ interface GetInit {
   readonly signal?: AbortSignal
 }
 
+interface SendInit {
+  readonly body?: unknown
+  readonly signal?: AbortSignal
+}
+
+interface ApiRequest extends GetInit, SendInit {
+  readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+}
+
 /** A failed `/v1` call, page-side: `web` cannot import `core/errors`. `code` is the daemon's
  *  `ApiErrorCode`, or what the page saw itself; `message` is the daemon's sentence, else empty. */
 export class ApiFailure extends Error {
@@ -44,14 +54,29 @@ export class ApiFailure extends Error {
 }
 
 /** Throws `ApiFailure` for every failure except the caller's own abort, which it rethrows. */
-export async function getJson<T>(def: RouteDef<T>, init: GetInit = {}): Promise<T> {
+export function getJson<T>(def: RouteDef<T>, init: GetInit = {}): Promise<T> {
+  return request(def, { ...init, method: 'GET' })
+}
+
+/** As `getJson`, for a write: `body` goes as JSON. */
+export function sendJson<T>(
+  method: 'POST' | 'PATCH' | 'DELETE',
+  def: RouteDef<T>,
+  init: SendInit = {}
+): Promise<T> {
+  return request(def, { ...init, method })
+}
+
+async function request<T>(def: RouteDef<T>, init: ApiRequest): Promise<T> {
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const signal = init.signal === undefined ? timeout : AbortSignal.any([init.signal, timeout])
   const token = readToken()
 
   try {
     const response = await fetch(buildUrl(def.path, init.query), {
-      headers: buildHeaders(token),
+      method: init.method,
+      headers: buildHeaders(token, init.body !== undefined),
+      body: init.body === undefined ? null : JSON.stringify(init.body),
       signal,
     })
 
@@ -81,8 +106,11 @@ function buildUrl(path: string, query: GetInit['query']): string {
   return `${path}?${params}`
 }
 
-function buildHeaders(token: string | undefined): Record<string, string> {
-  return token === undefined ? {} : { Authorization: `Bearer ${token}` }
+function buildHeaders(token: string | undefined, hasBody: boolean): Record<string, string> {
+  return {
+    ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }),
+    ...(hasBody ? { 'Content-Type': JSON_CONTENT_TYPE } : {}),
+  }
 }
 
 // A refusal of a token the operator has since replaced says nothing about the new one.

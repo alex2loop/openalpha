@@ -1,33 +1,95 @@
+import type { RefObject } from 'preact'
+import { useEffect, useRef } from 'preact/hooks'
+
 import { pluralKey } from '@/i18n'
+import { useNow } from '@/web/state/clock'
+import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
-import { brand } from '@/web/state/session'
+import { brand, state } from '@/web/state/session'
+import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
+import { BellButton } from '@/web/ui/bell/bell-button'
+import { BellPopover } from '@/web/ui/bell/bell-popover'
+import { COST_POPOVER_ID, CostPopover, formatSpent } from '@/web/ui/cost/cost-popover'
+import { JOBS_POPOVER_ID, JobsPopover } from '@/web/ui/jobs/jobs-popover'
+import { Chip } from '@/web/ui/kit/chip'
+import { CoinIcon } from '@/web/ui/kit/icons'
+import { closePopover, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
 
 import './header.css'
 
+const CLOCK_TICK_MS = 60_000
+
 export function Header() {
+  const jobsAnchor = useRef<HTMLButtonElement>(null)
+  const costAnchor = useRef<HTMLButtonElement>(null)
+  const bellAnchor = useRef<HTMLButtonElement>(null)
+
+  // A popover open when the header leaves (a sign-out) stays closed on the way back.
+  useEffect(() => closePopover, [])
+
   return (
     <header class="header glass">
       <div class="header-brand">
         <span class="logo header-logo" aria-hidden="true" />
         {brand.value}
       </div>
-      <RunningChip />
+      <RunningChip anchor={jobsAnchor} />
+      <span class="header-grow" />
+      <CostChip anchor={costAnchor} />
+      <HeaderClock />
+      <BellButton anchor={bellAnchor} />
+      <JobsPopover anchor={jobsAnchor} />
+      <CostPopover anchor={costAnchor} />
+      <BellPopover anchor={bellAnchor} />
     </header>
   )
 }
 
-function RunningChip() {
+interface AnchorProps {
+  readonly anchor: RefObject<HTMLButtonElement>
+}
+
+function RunningChip({ anchor }: AnchorProps) {
   const count = runningCount.value
 
-  if (count === 0) {
-    return <span class="chip">{tr('ui.office.header.runningNone')}</span>
-  }
+  return (
+    <Chip
+      title={tr('ui.office.header.runningTip')}
+      anchorRef={anchor}
+      isExpanded={openPopoverId.value === JOBS_POPOVER_ID}
+      onClick={() => togglePopover(JOBS_POPOVER_ID)}
+    >
+      {count > 0 && <span class="spin" aria-hidden="true" />}
+      {count === 0
+        ? tr('ui.office.header.runningNone')
+        : tr(pluralKey(count, 'ui.office.header.runningOne', 'ui.office.header.running'), {
+            count,
+          })}
+    </Chip>
+  )
+}
+
+function CostChip({ anchor }: AnchorProps) {
+  const view = cost.value
 
   return (
-    <span class="chip">
-      <span class="spin" aria-hidden="true" />
-      {tr(pluralKey(count, 'ui.office.header.runningOne', 'ui.office.header.running'), { count })}
-    </span>
+    <Chip
+      isCaution={isCostCaution.value}
+      title={tr('ui.office.header.costTip')}
+      anchorRef={anchor}
+      isExpanded={openPopoverId.value === COST_POPOVER_ID}
+      onClick={() => togglePopover(COST_POPOVER_ID)}
+    >
+      <CoinIcon />
+      {formatSpent(view?.todayUsd, view?.caps.dailyUsd)}
+    </Chip>
   )
+}
+
+function HeaderClock() {
+  const now = useNow(CLOCK_TICK_MS).value
+  const timeZone = state.value?.timeZone
+
+  return timeZone === undefined ? null : <Chip>{formatClock(now, timeZone)}</Chip>
 }

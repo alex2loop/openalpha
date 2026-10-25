@@ -6,14 +6,17 @@ import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
 import { type ConnectionStatus, createFeedSocket, type FeedSocket } from '@/web/api/socket'
 import { readToken } from '@/web/api/token'
+import { publishWireEvent } from '@/web/state/events'
 import {
   appendStep,
+  applyPendingEvent,
   findRun,
   LIVE_RESYNC_MS,
   nextArrivalSeq,
   type Run,
   readArrivalSeq,
   removeRun,
+  replacePending,
   runs,
   updateRun,
   upsertRun,
@@ -174,7 +177,14 @@ async function syncOnce(feed: FeedState, signal: AbortSignal): Promise<boolean> 
 }
 
 function isSnapshot(value: unknown): value is LiveSnapshotWire {
-  return typeof value === 'object' && value !== null && 'runs' in value && Array.isArray(value.runs)
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'runs' in value &&
+    Array.isArray(value.runs) &&
+    'pending' in value &&
+    Array.isArray(value.pending)
+  )
 }
 
 function applySnapshot(feed: FeedState, snapshot: LiveSnapshotWire, mark: number): void {
@@ -198,6 +208,21 @@ function applySnapshot(feed: FeedState, snapshot: LiveSnapshotWire, mark: number
       upsertRun(toRun(wire))
     }
   }
+
+  replacePending(snapshot.pending, resolvedWhileSyncing(feed))
+}
+
+// The snapshot may predate an answer an event held back for replay already carries.
+function resolvedWhileSyncing(feed: FeedState): ReadonlySet<string> {
+  const resolved = new Set<string>()
+
+  for (const event of feed.buffered) {
+    if (event.kind === 'approval_resolved' && event.requestId !== undefined) {
+      resolved.add(event.requestId)
+    }
+  }
+
+  return resolved
 }
 
 // Ends buffering for this pass. Only a pass whose snapshot was applied may judge an unknown run.
@@ -226,12 +251,19 @@ function toRun(wire: LiveRunWire): Run {
 }
 
 /** Idempotent: the same event applied twice changes nothing. An unknown `kind` is ignored.
- *  `isAfterSnapshot` marks a replay right after a snapshot was applied. */
+ *  `isAfterSnapshot` marks a replay right after a snapshot was applied. The hub hears each event
+ *  once the store holds it. */
 function applyWireEvent(feed: FeedState, event: WireEvent, isAfterSnapshot: boolean): void {
-  if (!hasRunId(event)) {
-    return
+  applyPendingEvent(event)
+
+  if (hasRunId(event)) {
+    applyRunEvent(feed, event, isAfterSnapshot)
   }
 
+  publishWireEvent(event)
+}
+
+function applyRunEvent(feed: FeedState, event: RunEvent, isAfterSnapshot: boolean): void {
   switch (event.kind) {
     case 'run_started':
       applyStart(feed, event)

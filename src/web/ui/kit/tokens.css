@@ -38,8 +38,17 @@
   --offlineBg: #2b2433;
   --offlineInk: #eeeef6;
   --offlineInk2: #b6b7c9;
+  --headerH: 48px;
   --commandBarH: 62px;
+  --popoverGutter: 8px;
+  --zPopover: 26;
   --zOfflineBar: 28;
+  --zModal: 30;
+  --scrim: rgba(10, 10, 18, 0.45);
+  --badgeNeed: #f2b33d;
+  --badgeNeedInk: #2b2433;
+  --badgeStop: #e5484d;
+  --badgeStopInk: #ffffff;
   color-scheme: light;
 }
 

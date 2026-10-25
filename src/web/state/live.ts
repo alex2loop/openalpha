@@ -1,9 +1,11 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
-import type { ProgressWire } from '@/app/server/wire/live'
+import type { WireEvent } from '@/app/server/wire/events'
+import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/server/wire/live'
 
 const MAX_RUNS = 200
 const MAX_PERSISTENT_STEPS = 20
+const MAX_PENDING = 50
 /** How often the page takes a fresh `GET /v1/live`, on top of every reconnect. */
 export const LIVE_RESYNC_MS = 60_000
 
@@ -27,10 +29,13 @@ export interface Run {
 }
 
 const runList = signal<readonly Run[]>([])
+const pendingList = signal<readonly PendingWire[]>([])
 let arrivalSeq = 0
 
 export const runs: ReadonlySignal<readonly Run[]> = runList
 export const runningCount = computed(() => runList.value.filter((run) => !run.hidden).length)
+/** Approvals and questions waiting for an answer on any channel, oldest first. */
+export const pending: ReadonlySignal<readonly PendingWire[]> = pendingList
 
 /** The arrival order so far; a run seen at or before it was on the page then. */
 export function readArrivalSeq(): number {
@@ -81,4 +86,86 @@ export function appendStep(
 
 function isSameStep(a: ProgressWire, b: ProgressWire): boolean {
   return a.at === b.at && a.key === b.key && a.text === b.text
+}
+
+/** Takes a snapshot's list, less the requests an event held back meanwhile already resolved. */
+export function replacePending(
+  entries: readonly PendingWire[],
+  resolvedIds: ReadonlySet<string>
+): void {
+  pendingList.value = entries
+    .filter((entry) => !resolvedIds.has(pendingRequestId(entry) ?? ''))
+    .slice(-MAX_PENDING)
+}
+
+/** Idempotent. A question leaves when the next agent run in its chat session starts, which is the
+ *  answer turn; a slash command in that session answers nothing. */
+export function applyPendingEvent(event: WireEvent): void {
+  switch (event.kind) {
+    case 'approval_requested':
+      upsertPending({ kind: 'approval', event }, event.requestId)
+      return
+    case 'approval_resolved':
+      removePending(event.requestId)
+      return
+    case 'clarification_requested':
+      upsertPending(toQuestion(event), event.requestId)
+      return
+    case 'run_started':
+      if (event.run?.kind === 'agent') {
+        removeQuestions(event.run.sessionId)
+      }
+      return
+    default:
+      return
+  }
+}
+
+function upsertPending(entry: PendingWire | undefined, requestId: string | undefined): void {
+  if (entry === undefined || requestId === undefined) {
+    return
+  }
+
+  const others = pendingList.value.filter((held) => pendingRequestId(held) !== requestId)
+
+  pendingList.value = [...others, entry].slice(-MAX_PENDING)
+}
+
+function removePending(requestId: string | undefined): void {
+  if (pendingList.value.some((held) => pendingRequestId(held) === requestId)) {
+    pendingList.value = pendingList.value.filter((held) => pendingRequestId(held) !== requestId)
+  }
+}
+
+function removeQuestions(sessionId: string): void {
+  const isAnswered = (held: PendingWire): boolean =>
+    held.kind === 'question' && held.sessionId === sessionId
+
+  if (pendingList.value.some(isAnswered)) {
+    pendingList.value = pendingList.value.filter((held) => !isAnswered(held))
+  }
+}
+
+function toQuestion(event: WireEvent): QuestionPendingWire | undefined {
+  const { requestId, runId, clarification, source } = event
+
+  if (requestId === undefined || runId === undefined || clarification === undefined) {
+    return undefined
+  }
+
+  return {
+    kind: 'question',
+    requestId,
+    runId,
+    sessionId: clarification.sessionId,
+    channelId: clarification.channelId ?? source.channel,
+    question: clarification.text,
+    askedAt: clarification.askedAt ?? Date.now(),
+    answerable: clarification.answerable === true,
+  }
+}
+
+/** The key a snapshot entry and its live events share. */
+export function pendingRequestId(entry: PendingWire): string | undefined {
+  return entry.kind === 'approval' ? entry.event.requestId : entry.requestId
 }
