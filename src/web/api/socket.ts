@@ -91,6 +91,7 @@ function connect(state: SocketState): void {
   try {
     state.socket = new WebSocket(state.deps.url())
   } catch {
+    // `drop` catches every probe failure and nothing else in it throws, so it never rejects.
     drop(state).catch(() => undefined)
     return
   }
@@ -99,6 +100,7 @@ function connect(state: SocketState): void {
 
   ws.addEventListener('open', () => sendHello(ws), { signal })
   ws.addEventListener('message', (event) => receive(state, event.data), { signal })
+  // `drop` never rejects (see above).
   ws.addEventListener('close', (event) => drop(state, event).catch(() => undefined), { signal })
   ws.addEventListener('error', () => drop(state).catch(() => undefined), { signal })
 }
@@ -188,6 +190,7 @@ function send(state: SocketState, frame: ClientFrame): boolean {
 
 function retryNow(state: SocketState): void {
   if (state.status === 'live') {
+    // `drop` catches every probe failure and nothing else in it throws, so it never rejects.
     drop(state).catch(() => undefined)
     return
   }

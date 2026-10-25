@@ -67,7 +67,8 @@ export function startFeed(): () => void {
     url: buildFeedUrl,
     onFrame: (frame) => routeFrame(feed, frame),
     onStatus: setConnection,
-    // Both record their own failure, so neither chain rejects.
+    // `resync` turns a failed snapshot into `false` and `loadSession` keeps a failed load in
+    // `sessionFailure`, so neither rejects.
     onOpen: () => {
       resync(feed, signal).catch(() => undefined)
       loadSession(signal).catch(() => undefined)
@@ -152,11 +153,10 @@ async function resync(feed: FeedState, signal: AbortSignal): Promise<void> {
 
 async function syncOnce(feed: FeedState, signal: AbortSignal): Promise<boolean> {
   const mark = readArrivalSeq()
-  let snapshot: LiveSnapshotWire
+  const snapshot = await getJson(ROUTES.live, { signal }).catch(() => undefined)
 
-  try {
-    snapshot = await getJson(ROUTES.live, { signal })
-  } catch {
+  // A failed request and an answer of the wrong shape take the same path.
+  if (!isSnapshot(snapshot)) {
     replayBuffered(feed, false)
 
     // A live socket with no snapshot shows a stale view: reconnect, on the backoff.
@@ -171,6 +171,10 @@ async function syncOnce(feed: FeedState, signal: AbortSignal): Promise<boolean> 
   replayBuffered(feed, true)
 
   return true
+}
+
+function isSnapshot(value: unknown): value is LiveSnapshotWire {
+  return typeof value === 'object' && value !== null && 'runs' in value && Array.isArray(value.runs)
 }
 
 function applySnapshot(feed: FeedState, snapshot: LiveSnapshotWire, mark: number): void {
@@ -289,6 +293,7 @@ function applyUpdate(feed: FeedState, event: RunEvent, isAfterSnapshot: boolean)
   }
 
   feed.unknownRunId = runId
+  // `resync` turns a failed snapshot into `false` and clears its flags in `finally`.
   resync(feed, feed.lifetime.signal).catch(() => undefined)
 }
 
