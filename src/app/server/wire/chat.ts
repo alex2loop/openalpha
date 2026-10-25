@@ -11,8 +11,10 @@ interface ChatToolDisplay {
   readonly detail?: string
 }
 
-/** Names the command a frame belongs to when the command runs in the chat's command lane: the lane
- *  entry id. A frame without one belongs to the session's own turn. */
+/** Names the message a frame answers. A `chat` frame sent with an `id` has it echoed on every frame
+ *  it produces (a command in the lane uses it as its lane id). For a message sent without one, it
+ *  names the lane entry of a command in the chat's command lane, and a frame without one belongs to
+ *  the session's own turn. */
 export interface LaneTag {
   readonly id?: string
 }
@@ -22,30 +24,44 @@ export interface LaneTag {
  *  `position`, a command waiting in the command lane (`position` is its 1-based place in line). */
 export type ChatFrame =
   | ({ readonly kind: 'text'; readonly delta: string } & LaneTag)
-  | { readonly kind: 'reasoning'; readonly delta: string }
+  | ({ readonly kind: 'reasoning'; readonly delta: string } & LaneTag)
+  /** `id` here is the tool call's own id, never the message's. */
   | ({ readonly kind: 'tool'; readonly status: 'run'; readonly id: string } & ChatToolDisplay)
   | { readonly kind: 'tool'; readonly status: 'ok' | 'error'; readonly id: string }
-  | { readonly kind: 'usage'; readonly header: string; readonly body: string }
+  | ({ readonly kind: 'usage'; readonly header: string; readonly body: string } & LaneTag)
   | ({
       readonly kind: 'subagent'
       readonly agentId: string
       readonly depth: number
-    } & ChatToolDisplay)
-  | {
+    } & ChatToolDisplay &
+      LaneTag)
+  | ({
       readonly kind: 'subagent_model'
       readonly agentId: string
       readonly depth: number
       readonly model: string
+    } & LaneTag)
+  /** `sessionId` rides with a message sent with an `id`, so a client knows a new session at once. */
+  | {
+      readonly kind: 'queued'
+      readonly id?: string
+      readonly position?: number
+      readonly sessionId?: string
     }
-  | { readonly kind: 'queued'; readonly id?: string; readonly position?: number }
-  /** A lane command left the line and began; `runId` is the run the live feed shows it as. */
-  | { readonly kind: 'started'; readonly id: string; readonly runId?: string }
+  /** A lane command left the line and began; `runId` is the run the live feed shows it as. A
+   *  message sent with an `id` that becomes an agent turn also starts, with its `sessionId`. */
+  | {
+      readonly kind: 'started'
+      readonly id: string
+      readonly runId?: string
+      readonly sessionId?: string
+    }
   /** A lane command ended without a result: removed while it waited, or cancelled after it started. */
   | { readonly kind: 'dropped'; readonly id: string }
   /** The running turn took a steer; it reads it at its next turn boundary. */
-  | { readonly kind: 'steered' }
+  | ({ readonly kind: 'steered' } & LaneTag)
   /** No running turn read a steer: the CLI's sentence asking to send it again. */
-  | { readonly kind: 'steer_dropped'; readonly text: string }
+  | ({ readonly kind: 'steer_dropped'; readonly text: string } & LaneTag)
   /** A long slash command's current step in the operator's words; each replaces the last. */
   | ({ readonly kind: 'progress'; readonly text: string } & LaneTag)
 
@@ -86,7 +102,12 @@ export interface RespondBody {
 export interface ChatBody {
   readonly message: string
   readonly sessionId?: string
+  /** The client's own id for this message, echoed on every frame it produces (`LaneTag`): at most
+   *  `CHAT_CLIENT_ID_MAX` letters, digits, `-` or `_`. */
+  readonly id?: string
 }
+
+export const CHAT_CLIENT_ID_MAX = 64
 
 /** GET /v1/chat/history/:sessionId — one prior transcript message (display text). */
 export interface ChatHistoryMessage {

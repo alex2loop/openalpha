@@ -315,10 +315,19 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 
 Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`socket.ts`):
 
-- `{ type: 'chat', message, sessionId? }` — start a turn. A `message` whose first non-space char is `/`
-  runs the shared **slash dispatcher** (channel surface) instead of an agent run.
-- `{ type: 'steer', message, sessionId? }` — add a message to the turn already running; it reads it
-  at its next turn boundary and the daemon answers `{ kind: 'steered' }`. A turn that already
+- `{ type: 'chat', message, sessionId?, id? }` — start a turn. A `message` whose first non-space char is `/`
+  runs the shared **slash dispatcher** (channel surface) instead of an agent run. `id` is the
+  client's own id for the message (at most 64 letters, digits, `-` or `_`; anything else closes the
+  socket as an invalid frame). Every frame the message produces then carries it as `id`: a short
+  command's reply and `done`, a lane command (whose lane id it becomes, so `drop` takes it), a
+  long command held behind the session's turn (which also answers `{ kind: 'queued', id,
+  sessionId }`), and the agent turn a message or a command hands off to, which answers
+  `{ kind: 'started', id, sessionId }` as it begins (and `queued` with `sessionId` while it waits),
+  so a client knows a new session before `done`. A `tool` frame keeps its tool call's `id` and
+  carries no tag. A message sent without `id` gets today's frames unchanged.
+- `{ type: 'steer', message, sessionId?, id? }` — add a message to the turn already running; it reads it
+  at its next turn boundary and the daemon answers `{ kind: 'steered' }` (with the steer's `id`
+  when it had one). A turn that already
   ended, or ends before reading it, answers `{ kind: 'steer_dropped', text }` with the CLI's
   sentence asking to send it again; the message is never run on its own. A `/` command is not
   steered: it runs as `chat`.

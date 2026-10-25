@@ -1,6 +1,6 @@
 import type { ServerWebSocket } from 'bun'
 
-import type { ChatFrame } from '@/app/server/wire/chat'
+import type { ChatFrame, LaneTag } from '@/app/server/wire/chat'
 import type { ChatRunRequest } from '@/app/server/ws/slash'
 import type { WsData, WsServices } from '@/app/server/ws/socket'
 import type { AgentId, RunId, SessionId } from '@/core/ids'
@@ -13,6 +13,7 @@ import {
   send,
   sendOperatorFailure,
   sendRunError,
+  toLaneTag,
   unregisterSocketRun,
 } from '@/app/server/ws/runs'
 import { createChatFrameMapper } from '@/app/server/ws/stream-events'
@@ -44,7 +45,7 @@ export async function runChat(
 
     // The session is busy (an earlier turn, or one awaiting approval): say so rather than go quiet.
     if (services.sessionQueue.depth(sessionId) > 0) {
-      send(ws, { type: 'chat', kind: 'queued' })
+      send(ws, { type: 'chat', kind: 'queued', ...toTurnTag(request.id, sessionId) })
     }
 
     const turn = await services.sessionQueue.enqueue(sessionId, () =>
@@ -55,14 +56,14 @@ export async function runChat(
       return
     }
 
-    sendTurnEnd(ws, sessionId, turn)
+    sendTurnEnd(ws, sessionId, { ...turn, tag: toLaneTag(request.id) })
   } catch (err: unknown) {
     if (controller.signal.aborted) {
       return
     }
 
     services.logger.error('api.ws_chat_failed', { err: formatErrForLog(err) })
-    sendRunError(ws, err)
+    sendRunError(ws, err, request.id)
   } finally {
     unregisterSocketRun(ws, sessionId, controller)
   }
@@ -81,6 +82,11 @@ interface TurnOutcome {
   readonly runId: RunId | undefined
 }
 
+/** A turn's end, with the tag its frames carry. */
+interface TurnEnd extends TurnOutcome {
+  readonly tag: LaneTag
+}
+
 /** The turn at the head of its session; null when it was stopped before it started. */
 async function runTurn(input: TurnInput): Promise<TurnOutcome | null> {
   const { ws, sessionId, agentId, request, controller } = input
@@ -92,6 +98,12 @@ async function runTurn(input: TurnInput): Promise<TurnOutcome | null> {
 
   const frames = createChatFrameMapper()
   const link = followRunId(services.bus, sessionId)
+  const tag = toLaneTag(request.id)
+
+  // A tagged message hears its session as its turn begins, before any answer.
+  if (request.id !== undefined) {
+    send(ws, { type: 'chat', kind: 'started', id: request.id, sessionId })
+  }
 
   try {
     const result = await services.runner.run(
@@ -101,7 +113,7 @@ async function runTurn(input: TurnInput): Promise<TurnOutcome | null> {
         userId: LOCAL_USER_ID,
         channel: API_CHANNEL,
         userMessage: request.message,
-        onChunk: (event) => sendChatFrames(ws, frames.map(event)),
+        onChunk: (event) => sendChatFrames(ws, frames.map(event), tag),
       },
       { chatId: sessionId, parentSignal: controller.signal }
     )
@@ -109,15 +121,15 @@ async function runTurn(input: TurnInput): Promise<TurnOutcome | null> {
     return { result, runId: link.current() }
   } finally {
     link.stop()
-    sendChatFrames(ws, frames.flush())
+    sendChatFrames(ws, frames.flush(), tag)
   }
 }
 
-function sendTurnEnd(ws: ServerWebSocket<WsData>, sessionId: SessionId, turn: TurnOutcome): void {
-  const { result, runId } = turn
+function sendTurnEnd(ws: ServerWebSocket<WsData>, sessionId: SessionId, turn: TurnEnd): void {
+  const { result, runId, tag } = turn
 
   if (result.operator !== undefined) {
-    sendOperatorFailure(ws, result.operator)
+    sendOperatorFailure(ws, result.operator, tag)
   }
 
   send(ws, {
@@ -125,16 +137,32 @@ function sendTurnEnd(ws: ServerWebSocket<WsData>, sessionId: SessionId, turn: Tu
     kind: 'done',
     reason: result.reason,
     sessionId,
+    ...tag,
     ...(runId === undefined ? {} : { runId }),
     ...(result.haltCode === undefined ? {} : { haltCode: result.haltCode }),
     ...(result.haltDetail === undefined ? {} : { haltDetail: result.haltDetail }),
   })
 }
 
-function sendChatFrames(ws: ServerWebSocket<WsData>, frames: readonly ChatFrame[]): void {
+// A tool frame's `id` is its tool call's, so it keeps it and carries no tag.
+function sendChatFrames(
+  ws: ServerWebSocket<WsData>,
+  frames: readonly ChatFrame[],
+  tag: LaneTag
+): void {
   for (const frame of frames) {
-    send(ws, { type: 'chat', ...frame })
+    send(
+      ws,
+      frame.kind === 'tool' ? { type: 'chat', ...frame } : { type: 'chat', ...frame, ...tag }
+    )
   }
+}
+
+function toTurnTag(
+  id: string | undefined,
+  sessionId: SessionId
+): { id?: string; sessionId?: string } {
+  return id === undefined ? {} : { id, sessionId }
 }
 
 export async function resolveAgentId(services: WsServices, session: SessionId): Promise<AgentId> {

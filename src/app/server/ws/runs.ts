@@ -1,5 +1,6 @@
 import type { ServerWebSocket } from 'bun'
 
+import type { LaneTag } from '@/app/server/wire/chat'
 import type { ServerFrame } from '@/app/server/wire/socket'
 import type { WsData } from '@/app/server/ws/socket'
 import type { OperatorMessage } from '@/core/errors'
@@ -12,6 +13,11 @@ import { bindLocale, t } from '@/i18n'
 
 /** False when the socket dropped the frame (closed, or its buffer is full): Bun answers 0 then,
  *  -1 for a frame queued behind backpressure, and the byte count otherwise. */
+/** The tag a message's frames carry: its client id when it was sent with one. */
+export function toLaneTag(id: string | undefined): LaneTag {
+  return id === undefined ? {} : { id }
+}
+
 export function send(ws: ServerWebSocket<WsData>, frame: ServerFrame): boolean {
   return ws.send(JSON.stringify(frame)) !== 0
 }
@@ -32,7 +38,11 @@ export function sendRunError(ws: ServerWebSocket<WsData>, err: unknown, id?: str
 
 /** A run that failed on something the operator can fix (a model key not set): their sentence goes
  *  in an error frame, and the `done` that follows still closes the turn. */
-export function sendOperatorFailure(ws: ServerWebSocket<WsData>, operator: OperatorMessage): void {
+export function sendOperatorFailure(
+  ws: ServerWebSocket<WsData>,
+  operator: OperatorMessage,
+  tag: LaneTag
+): void {
   const { locale } = ws.data.services
 
   send(ws, {
@@ -40,6 +50,7 @@ export function sendOperatorFailure(ws: ServerWebSocket<WsData>, operator: Opera
     kind: 'error',
     code: 'unavailable',
     message: bindLocale(locale).translate(operator.key, operator.params),
+    ...tag,
   })
 }
 

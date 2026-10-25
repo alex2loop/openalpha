@@ -2,6 +2,7 @@ import type { ServerWebSocket, WebSocketHandler } from 'bun'
 
 import { z } from 'zod'
 
+import type { ChatBody } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import type { SlashDispatcher } from '@/commands/api'
@@ -17,6 +18,7 @@ import type {
 } from '@/core/types/session'
 import type { AgentProfile, Runner } from '@/engine/api'
 import { API_CHANNEL } from '@/app/server/channel'
+import { CHAT_CLIENT_ID_MAX } from '@/app/server/wire/chat'
 import {
   CONTRACT_REFUSED_CLOSE_CODE,
   CONTRACT_REFUSED_REASON_PREFIX,
@@ -29,6 +31,7 @@ import {
   dropWaitingCommands,
   send,
   sendRunError,
+  toLaneTag,
 } from '@/app/server/ws/runs'
 import { runSlash } from '@/app/server/ws/slash'
 import { toApprovalWire, WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
@@ -41,7 +44,12 @@ const MAX_SOCKETS = 8
 // Defense-in-depth: reject before JSON.parse regardless of the server-level maxPayloadLength.
 const MAX_WS_FRAME_BYTES = 1_048_576
 
-const CHAT_FIELDS = { message: z.string(), sessionId: z.string().exactOptional() }
+const CHAT_CLIENT_ID_RE = /^[A-Za-z0-9_-]+$/
+const CHAT_FIELDS = {
+  message: z.string(),
+  sessionId: z.string().exactOptional(),
+  id: z.string().max(CHAT_CLIENT_ID_MAX).regex(CHAT_CLIENT_ID_RE).exactOptional(),
+}
 
 const WS_FRAME: z.ZodType<ClientFrame> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('chat'), ...CHAT_FIELDS }),
@@ -203,6 +211,7 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
       kind: 'error',
       code: 'unavailable',
       message: bindLocale(ws.data.services.locale).translate('halt.shutdown'),
+      ...toLaneTag(frame.id),
     })
 
     return
@@ -210,14 +219,14 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
 
   const session = resolveSessionId(frame.sessionId)
 
-  if (frame.type === 'steer' && steer(ws, session, frame.message)) {
+  if (frame.type === 'steer' && steer(ws, session, frame)) {
     return
   }
 
   const line = frame.message.trim()
   const request = line.startsWith('/')
-    ? await runSlash(ws, session, line)
-    : { message: frame.message }
+    ? await runSlash(ws, session, { line, ...toLaneTag(frame.id) })
+    : { message: frame.message, ...toLaneTag(frame.id) }
 
   if (request !== null) {
     await runChat(ws, session, request)
@@ -227,15 +236,22 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
 /** A steer joins the turn already running, at its next turn boundary. A turn that already ended
  *  cannot take it, and it is not run on its own: the client stopped reading that reply, so it is
  *  sent back as dropped. A slash command is never steered; it runs as an ordinary message. */
-function steer(ws: ServerWebSocket<WsData>, session: SessionId, message: string): boolean {
+function steer(ws: ServerWebSocket<WsData>, session: SessionId, frame: ChatBody): boolean {
+  const { message, id } = frame
+
   if (message.trim().startsWith('/')) {
     return false
   }
 
   if (ws.data.services.runControl.steer(session, session, message)) {
-    send(ws, { type: 'chat', kind: 'steered' })
+    send(ws, { type: 'chat', kind: 'steered', ...toLaneTag(id) })
   } else {
-    send(ws, { type: 'chat', kind: 'steer_dropped', text: steerDroppedText(ws, 1) })
+    send(ws, {
+      type: 'chat',
+      kind: 'steer_dropped',
+      text: steerDroppedText(ws, 1),
+      ...toLaneTag(id),
+    })
   }
 
   return true

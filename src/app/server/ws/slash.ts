@@ -13,6 +13,7 @@ import {
   registerCommandRun,
   send,
   sendRunError,
+  toLaneTag,
   trackLaneItem,
   unregisterSocketRun,
 } from '@/app/server/ws/runs'
@@ -33,20 +34,31 @@ interface SlashRun {
   readonly controller: AbortController
   readonly ctx: SlashContext
   readonly longRunning: boolean
+  /** Runs beside the session's turn, in the command lane. */
+  readonly inLane: boolean
   readonly tag: LaneTag
+  /** The client's id for the line, when it sent one. */
+  readonly clientId?: string
 }
 
-export interface ChatRunRequest {
+/** A message to run as an agent turn; `id` is the client's id for the message that asked. */
+export interface ChatRunRequest extends LaneTag {
   readonly message: string
   readonly agentId?: AgentId
+}
+
+/** One slash line and the client's id for it, when the client sent one. */
+interface SlashLine extends LaneTag {
+  readonly line: string
 }
 
 /** Returns the message to run as a turn, or null when the slash command was terminal. */
 export async function runSlash(
   ws: ServerWebSocket<WsData>,
   sessionId: SessionId,
-  line: string
+  input: SlashLine
 ): Promise<ChatRunRequest | null> {
+  const { line } = input
   const controller = new AbortController()
   const resolved = ws.data.services.slashDispatcher.resolve(line)
   const longRunning = resolved?.policy.execution !== undefined
@@ -55,7 +67,7 @@ export async function runSlash(
     return null
   }
 
-  const run = toSlashRun({ ws, sessionId, line, resolved, controller, longRunning })
+  const run = toSlashRun({ ws, sessionId, line, resolved, controller, longRunning }, input.id)
 
   try {
     const result = await execute(run)
@@ -75,12 +87,16 @@ export async function runSlash(
   }
 }
 
-function toSlashRun(input: Omit<SlashRun, 'ctx' | 'tag'>): SlashRun {
+// A lane command is tagged with the client's id, else its own; any other line only with the client's.
+function toSlashRun(
+  input: Omit<SlashRun, 'ctx' | 'tag' | 'inLane' | 'clientId'>,
+  clientId: string | undefined
+): SlashRun {
   const { ws, sessionId, resolved, controller, longRunning } = input
   const { services } = ws.data
   const requestId = randomUUID()
-  const tag: LaneTag =
-    longRunning && resolved?.policy.selfContained === true ? { id: requestId } : {}
+  const inLane = longRunning && resolved?.policy.selfContained === true
+  const tag: LaneTag = inLane ? { id: clientId ?? requestId } : toLaneTag(clientId)
   const ctx: SlashContext = {
     channel: API_CHANNEL,
     requestId,
@@ -108,18 +124,23 @@ function toSlashRun(input: Omit<SlashRun, 'ctx' | 'tag'>): SlashRun {
     },
   }
 
-  return { ...input, ctx, tag }
+  return { ...input, ctx, tag, inLane, ...(clientId === undefined ? {} : { clientId }) }
 }
 
 async function execute(run: SlashRun): Promise<SlashResult | null> {
   const { ws, sessionId, controller, longRunning, tag } = run
 
-  if (tag.id !== undefined) {
+  if (run.inLane && tag.id !== undefined) {
     return runInLane(run, tag.id)
   }
 
   if (!longRunning) {
     return dispatchSlash(run)
+  }
+
+  // Held behind the session's turn: a client that tagged the line hears that it waits.
+  if (tag.id !== undefined && ws.data.services.sessionQueue.depth(sessionId) > 0) {
+    send(ws, { type: 'chat', kind: 'queued', id: tag.id, sessionId })
   }
 
   return ws.data.services.sessionQueue.enqueue(sessionId, async () =>
@@ -264,6 +285,7 @@ function handleSlashResult(run: SlashRun, result: SlashResult): ChatRunRequest |
       return {
         message: result.retryMessage,
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
+        ...toLaneTag(run.clientId),
       }
     case 'handled':
       sendSlashDone(run)
