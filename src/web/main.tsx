@@ -2,7 +2,11 @@ import { computed, effect, untracked } from '@preact/signals'
 import { render } from 'preact'
 
 import { authState, takeTokenFromHash } from '@/web/api/token'
+import { startAgents } from '@/web/state/agents'
+import { startChat } from '@/web/state/chat'
+import { startChatHistory } from '@/web/state/chat-history'
 import { startCost } from '@/web/state/cost'
+import { startEstimates } from '@/web/state/estimates'
 import { startFeed } from '@/web/state/feed'
 import { startNotices } from '@/web/state/notices'
 import { disposePrefs } from '@/web/state/prefs'
@@ -53,7 +57,15 @@ function boot(): void {
 
 // Untracked: what a start reads must never restart the feed when it changes.
 function startLive(): () => void {
-  const stops = [startFeed(), startNotices(), startCost()]
+  const stops = [
+    startFeed(),
+    startNotices(),
+    startCost(),
+    startChat(),
+    startChatHistory(),
+    startAgents(),
+    startEstimates(),
+  ]
 
   return () => {
     for (const stop of stops) {

@@ -1,11 +1,13 @@
 import type { ScheduleRow } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import type { LoadState } from '@/web/ui/kit/use-load'
-import { formatDay } from '@/i18n'
-import { locale, state } from '@/web/state/session'
+import { fillInput } from '@/web/state/command'
+import { state } from '@/web/state/session'
 import { ABSENT_CELL } from '@/web/text/glyphs'
-import { buildDayKey, formatClock } from '@/web/text/time'
+import { formatWhen } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
+import { closePopover } from '@/web/ui/kit/popover'
 
 const MAX_UPCOMING = 8
 // The task whose pass checks every alert, and so every event job's trigger.
@@ -22,6 +24,8 @@ interface UpcomingItem {
   readonly at: number
   readonly title: string
   readonly detail?: string
+  /** A schedule's own command, which "Chạy lại" puts in the box. */
+  readonly rerun?: { readonly text: string; readonly agentId?: string }
 }
 
 /** Timed jobs, the brief and the intraday report, soonest first. */
@@ -42,6 +46,7 @@ export function UpcomingSection({ schedules, tasks }: SectionProps) {
             <b>{item.title}</b>
             {item.detail !== undefined && <p class="meta">{item.detail}</p>}
           </div>
+          {item.rerun !== undefined && <RerunButton rerun={item.rerun} />}
         </div>
       ))}
     </>
@@ -100,15 +105,34 @@ function toUpcoming(row: ScheduleRow): UpcomingItem[] {
   }
 
   const agentId = readText(row.agentId)
+  const prompt = readText(row.prompt)
 
   return [
     {
       key: String(row.id),
       at: row.nextRunAt,
-      title: readText(row.prompt) ?? String(row.id),
+      title: prompt ?? String(row.id),
       ...(agentId === undefined ? {} : { detail: agentId }),
+      ...(prompt === undefined
+        ? {}
+        : { rerun: { text: prompt, ...(agentId === undefined ? {} : { agentId }) } }),
     },
   ]
+}
+
+// A run spends AI, so it only fills the box; the operator sends it.
+function RerunButton({ rerun }: { readonly rerun: NonNullable<UpcomingItem['rerun']> }) {
+  return (
+    <Button
+      size="small"
+      onClick={() => {
+        closePopover()
+        fillInput(rerun.text, rerun.agentId === undefined ? {} : { agentId: rerun.agentId })
+      }}
+    >
+      {tr('ui.office.jobs.rerun')}
+    </Button>
+  )
 }
 
 function describeEvent(row: ScheduleRow): string {
@@ -124,16 +148,6 @@ function describeEvent(row: ScheduleRow): string {
     subject,
     event: tr(`scheduler.event.${trigger.event}`),
   })
-}
-
-// Today reads as a clock; another day leads with its date.
-function formatWhen(atMs: number, timeZone: string): string {
-  const day = buildDayKey(atMs, timeZone)
-  const clock = formatClock(atMs, timeZone)
-
-  return day === buildDayKey(Date.now(), timeZone)
-    ? clock
-    : tr('ui.office.jobs.dayClock', { day: formatDay(locale.value, day), clock })
 }
 
 // Schedule rows are open: a field is read only when it holds text.

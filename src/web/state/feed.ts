@@ -1,6 +1,6 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import type { LiveRunWire, LiveSnapshotWire } from '@/app/server/wire/live'
-import type { ServerFrame } from '@/app/server/wire/socket'
+import type { ClientFrame, ServerFrame } from '@/app/server/wire/socket'
 import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
@@ -48,8 +48,12 @@ interface FeedState {
 /** A run event, once its `runId` is known to be there. */
 type RunEvent = WireEvent & { readonly runId: string }
 
-// The running feed, for the offline bar's retry.
+export type ChatServerFrame = Extract<ServerFrame, { readonly type: 'chat' }>
+
+// The running feed, for the offline bar's retry and the chat's sends.
 let activeFeed: FeedState | undefined
+// The one reader of chat frames; none registered drops them.
+let chatSink: ((frame: ChatServerFrame) => void) | undefined
 
 /** Opens the socket and the snapshot poll. Every (re)connect takes a fresh snapshot and reloads the
  *  session, since language, zone and capabilities can change across a restart. */
@@ -97,6 +101,22 @@ export function retryFeedNow(): void {
   activeFeed?.socket?.retryNow()
 }
 
+/** False unless the socket is live and took the frame. */
+export function sendFrame(frame: ClientFrame): boolean {
+  return activeFeed?.socket?.send(frame) ?? false
+}
+
+/** Hands every chat frame to `sink` until the returned function is called. */
+export function onChatFrame(sink: (frame: ChatServerFrame) => void): () => void {
+  chatSink = sink
+
+  return () => {
+    if (chatSink === sink) {
+      chatSink = undefined
+    }
+  }
+}
+
 function buildFeedUrl(): string {
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:'
   const params = new URLSearchParams({ token: readToken() ?? '' })
@@ -108,8 +128,12 @@ function setConnection(status: ConnectionStatus, retryAt?: number): void {
   connection.value = retryAt === undefined ? { status } : { status, retryAt }
 }
 
-// `chat` frames are dropped until the chat pane registers its sink.
 function routeFrame(feed: FeedState, frame: ServerFrame): void {
+  if (frame.type === 'chat') {
+    chatSink?.(frame)
+    return
+  }
+
   if (frame.type !== 'wire_event') {
     return
   }

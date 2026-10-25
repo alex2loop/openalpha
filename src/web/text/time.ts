@@ -1,4 +1,5 @@
-import { pluralKey } from '@/i18n'
+import { formatDay, pluralKey } from '@/i18n'
+import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
 const MS_PER_SECOND = 1_000
@@ -35,6 +36,16 @@ export function formatClock(atMs: number, timeZone: string): string {
   }
 
   return clockFormatter.format.format(atMs)
+}
+
+/** Today reads as a clock; another day leads with its date. */
+export function formatWhen(atMs: number, timeZone: string): string {
+  const day = buildDayKey(atMs, timeZone)
+  const clock = formatClock(atMs, timeZone)
+
+  return day === buildDayKey(Date.now(), timeZone)
+    ? clock
+    : tr('ui.office.jobs.dayClock', { day: formatDay(locale.value, day), clock })
 }
 
 /** A span as `m:ss`, or `h:mm:ss` from an hour up; never below zero. */

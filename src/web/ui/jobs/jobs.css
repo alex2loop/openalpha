@@ -81,11 +81,6 @@
   color: var(--dangerText);
 }
 
-.stop-children,
-.stop-failure {
-  margin-top: var(--s1);
-}
-
 @media (max-width: 899px) {
   .popover.jobs-popover {
     right: var(--popoverGutter);

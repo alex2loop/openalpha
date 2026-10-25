@@ -1,4 +1,11 @@
 .panes {
+  position: relative;
+  display: flex;
   min-height: 0;
   background: var(--stage);
+}
+
+.stage {
+  flex: 1;
+  min-width: 0;
 }

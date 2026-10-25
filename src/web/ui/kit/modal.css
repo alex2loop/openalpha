@@ -83,3 +83,7 @@
   width: 17px;
   height: 17px;
 }
+
+.confirm-note {
+  margin-top: var(--s1);
+}

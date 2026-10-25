@@ -8,6 +8,7 @@ import {
   state,
 } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
+import { CommandBar } from '@/web/ui/command/command-bar'
 import { ModalHost } from '@/web/ui/kit/modal'
 import { Header } from '@/web/ui/shell/header'
 import { OfflineBar } from '@/web/ui/shell/offline-bar'
@@ -17,7 +18,7 @@ import { StatusLine } from '@/web/ui/shell/status-line'
 
 import './app.css'
 
-/** The page grid (header | main | command bar slot), behind the loading, failure and sign-in
+/** The page grid (header | main | command bar), behind the loading, failure and sign-in
  *  screens. A loaded session stays on screen when a later load fails. */
 export function App() {
   if (isUnreachable.value) {
@@ -45,7 +46,7 @@ export function App() {
       <Header />
       <Panes />
       <OfflineBar />
-      <footer class="command-bar glass" />
+      <CommandBar />
       <ModalHost />
     </div>
   )

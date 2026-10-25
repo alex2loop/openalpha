@@ -4,11 +4,3 @@
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
-
-.command-bar {
-  min-height: var(--commandBarH);
-}
-
-.command-bar:empty {
-  display: none;
-}

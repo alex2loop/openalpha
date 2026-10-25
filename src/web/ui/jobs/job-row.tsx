@@ -1,16 +1,13 @@
-import { type Signal, signal } from '@preact/signals'
-
 import type { Run } from '@/web/state/live'
-import { ApiFailure } from '@/web/api/client'
 import { stopRun } from '@/web/state/approvals'
 import { useNow } from '@/web/state/clock'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
 import { formatElapsed } from '@/web/text/time'
-import { toFailureText, tr } from '@/web/text/tr'
+import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
-import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
+import { askConfirm } from '@/web/ui/kit/confirm'
 
 const ELAPSED_TICK_MS = 1_000
 
@@ -54,73 +51,19 @@ export function JobRow({ run, childRuns }: JobRowProps) {
   )
 }
 
-interface StopDialog {
-  readonly isBusy: Signal<boolean>
-  readonly failure: Signal<string | undefined>
-  handle?: ModalHandle
-}
-
 // "Chạy tiếp" is the safe, main button, so Enter keeps the run going.
 function askStop(run: Run, hasChildren: boolean): void {
-  const dialog: StopDialog = { isBusy: signal(false), failure: signal(undefined) }
   const who = run.agentId ?? formatRunName(run)
 
-  dialog.handle = openModal({
+  askConfirm({
     title: tr('ui.office.jobs.stopAsk', { what: formatRunName(run) }),
-    body: <StopBody who={who} hasChildren={hasChildren} failure={dialog.failure} />,
-    footer: <StopFooter dialog={dialog} runId={run.runId} />,
+    lines: [
+      tr('ui.office.jobs.stopBody', { who }),
+      ...(hasChildren ? [tr('ui.office.common.stopChildren')] : []),
+    ],
+    confirmLabel: tr('ui.office.common.stop'),
+    isDestructive: true,
+    keepLabel: tr('ui.office.common.keepGoing'),
+    confirm: () => stopRun(run.runId),
   })
-}
-
-interface StopBodyProps {
-  readonly who: string
-  readonly hasChildren: boolean
-  readonly failure: Signal<string | undefined>
-}
-
-function StopBody({ who, hasChildren, failure }: StopBodyProps) {
-  return (
-    <>
-      <p>{tr('ui.office.jobs.stopBody', { who })}</p>
-      {hasChildren && <p class="meta stop-children">{tr('ui.office.common.stopChildren')}</p>}
-      {failure.value !== undefined && (
-        <p class="failure-line stop-failure" role="alert">
-          {failure.value}
-        </p>
-      )}
-    </>
-  )
-}
-
-function StopFooter({ dialog, runId }: { readonly dialog: StopDialog; readonly runId: string }) {
-  return (
-    <>
-      <Button
-        kind="destructive"
-        disabled={dialog.isBusy.value}
-        onClick={() => confirmStop(dialog, runId)}
-      >
-        {tr('ui.office.common.stop')}
-      </Button>
-      <Button kind="commit" onClick={() => dialog.handle?.close()}>
-        {tr('ui.office.common.keepGoing')}
-      </Button>
-    </>
-  )
-}
-
-// A refused stop keeps the dialog open with the daemon's own sentence.
-function confirmStop(dialog: StopDialog, runId: string): void {
-  dialog.isBusy.value = true
-  dialog.failure.value = undefined
-  stopRun(runId)
-    .then(
-      () => dialog.handle?.close(),
-      (error: unknown) => {
-        dialog.failure.value = error instanceof ApiFailure ? toFailureText(error) : undefined
-      }
-    )
-    .finally(() => {
-      dialog.isBusy.value = false
-    })
 }

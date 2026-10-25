@@ -1,0 +1,89 @@
+import { signal } from '@preact/signals'
+
+import { selectAgent } from '@/web/state/agents'
+import { sendMessage } from '@/web/state/chat'
+
+const HISTORY_MAX = 50
+
+// What the operator sent, oldest first.
+const sent = signal<readonly string[]>([])
+// Where up and down stand in `sent`, counted from the newest; absent while the operator types.
+let recallIndex: number | undefined
+let inputElement: HTMLInputElement | undefined
+
+/** What the command box holds. */
+export const inputText = signal('')
+/** The last send found the socket down; cleared by typing or the next send. */
+export const isNotSent = signal(false)
+
+/** The command bar registers its input; the returned function releases it. */
+export function registerInput(element: HTMLInputElement): () => void {
+  inputElement = element
+
+  return () => {
+    if (inputElement === element) {
+      inputElement = undefined
+    }
+  }
+}
+
+/** Puts `text` in the box for the operator to send; never sends it. */
+export function fillInput(text: string, opts: { readonly agentId?: string } = {}): void {
+  if (opts.agentId !== undefined) {
+    selectAgent(opts.agentId)
+  }
+
+  setInput(text)
+  focusInput()
+}
+
+function focusInput(): void {
+  inputElement?.focus()
+}
+
+/** The operator typed: any recall ends there. */
+export function setInput(text: string): void {
+  inputText.value = text
+  isNotSent.value = false
+  recallIndex = undefined
+}
+
+/** Sends the box; offline, the text stays and `isNotSent` says why. */
+export function sendFromInput(): void {
+  const text = inputText.value.trim()
+
+  if (text === '') {
+    return
+  }
+
+  if (!sendMessage(text)) {
+    isNotSent.value = true
+    return
+  }
+
+  sent.value = [...sent.value.filter((held) => held !== text), text].slice(-HISTORY_MAX)
+  setInput('')
+}
+
+/** True while up and down walk the history: the box is empty or holds a recalled line. */
+export function isRecalling(): boolean {
+  return inputText.value === '' || recallIndex !== undefined
+}
+
+/** Steps back (`older`) or forward through what was sent; past the newest the box empties. */
+export function recall(direction: 'older' | 'newer'): void {
+  const count = sent.value.length
+  const index = direction === 'older' ? (recallIndex ?? -1) + 1 : (recallIndex ?? 0) - 1
+
+  if (count === 0 || index >= count) {
+    return
+  }
+
+  if (index < 0) {
+    setInput('')
+    return
+  }
+
+  inputText.value = sent.value[count - 1 - index] ?? ''
+  recallIndex = index
+}
