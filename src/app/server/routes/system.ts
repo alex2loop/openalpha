@@ -75,7 +75,6 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     restartDrainMs: SHUTDOWN_DRAIN_MS,
     trackRecordMinSample: MINIMUM_TRACK_RECORD_SAMPLE,
     firstRun,
-    office: { weather: app.config.office.weather },
   } satisfies StatePayload)
 }
 

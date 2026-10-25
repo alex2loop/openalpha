@@ -49,7 +49,7 @@
     "src/commands/dispatcher/dispatcher.ts#admit": 44,
     "src/commands/model.ts#createSessionModelSelection": 48,
     "src/commands/schedule.ts#runScheduleCommand": 44,
-    "src/core/config/resolve.ts#resolveConfig": 44,
+    "src/core/config/resolve.ts#resolveConfig": 46,
     "src/core/config/resolvers/model.ts#resolveModel": 44,
     "src/core/config/resolvers/web-search.ts#resolveWebSearch": 43,
     "src/core/events.ts#onceWithTimeout": 44,

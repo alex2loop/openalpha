@@ -6,7 +6,6 @@ import type {
   RawLlm,
   RawLoop,
   RawNotices,
-  RawOffice,
   RawSchedule,
 } from '@/core/config/schema'
 import type { Locale } from '@/core/types/locale'
@@ -42,7 +41,6 @@ const DEFAULT_MAX_SPAWN_DURATION_MS = 600_000
 const DEFAULT_MAX_SPAWN_TURNS = 12
 const DEFAULT_MAX_UNASKED_FETCHES = 10
 const DEFAULT_API_PORT = 8765
-const DEFAULT_OFFICE_WEATHER = true
 
 export interface ResolvedBudget {
   readonly maxDailyUsd: number
@@ -99,11 +97,6 @@ export interface ResolvedApi {
 export interface ResolvedNotices {
   /** Notice kinds sent to a chat as well as the bell; `app` owns the kind names and checks them. */
   readonly chat: readonly string[]
-}
-
-export interface ResolvedOffice {
-  /** The office page reads the weather of the region's city from the browser. */
-  readonly weather: boolean
 }
 
 type MutableSchedule = { -readonly [K in keyof ResolvedSchedule]: ResolvedSchedule[K] }
@@ -213,10 +206,6 @@ export function resolveApi(raw: RawApi | undefined): ResolvedApi {
 
 export function resolveNotices(raw: RawNotices | undefined): ResolvedNotices {
   return { chat: raw?.chat ?? [] }
-}
-
-export function resolveOffice(raw: RawOffice | undefined): ResolvedOffice {
-  return { weather: raw?.weather ?? DEFAULT_OFFICE_WEATHER }
 }
 
 // Cron, one-shot jobs, and the prompt's date block all read this one value, and every time the

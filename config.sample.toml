@@ -477,14 +477,6 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # port = 8765
 # token_env = "OPENALPHA_API_TOKEN"
 
-# ---- Office page ------------------------------------------------------------
-# The office page shows the real weather of your region's city. Your browser asks
-# Open-Meteo for it; only that city's coordinates leave the browser, never your book
-# or your token. false keeps a made-up sky and the page makes no outside call.
-
-# [office]
-# weather = true
-
 
 # ---- Serving OpenAlpha over MCP ---------------------------------------------
 # `openalpha mcp serve` lets another AI app use OpenAlpha's tools. That app's own

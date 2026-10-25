@@ -14,7 +14,6 @@ import type {
   RawModelDefaults,
   RawModelTiers,
   RawNotices,
-  RawOffice,
   RawPaths,
   RawPlugins,
   RawRetention,
@@ -38,7 +37,6 @@ import {
   ModelSchema,
   ModelTiersSchema,
   NoticesSchema,
-  OfficeSchema,
   PathsSchema,
   PluginsSchema,
   RetentionSchema,
@@ -62,7 +60,6 @@ export type {
   RawModelDefaults,
   RawModelTiers,
   RawNotices,
-  RawOffice,
   RawSchedule,
   RawStorage,
   RawWebSearch,
@@ -90,7 +87,6 @@ const KnownSectionsSchema = z.strictObject({
   web_search: WebSearchSchema.optional(),
   api: ApiSchema.optional(),
   notices: NoticesSchema.optional(),
-  office: OfficeSchema.optional(),
   retention: RetentionSchema.optional(),
   update: UpdateSchema.optional(),
   storage: StorageSchema.optional(),
@@ -114,7 +110,6 @@ export const KNOWN_TOP_LEVEL: ReadonlySet<string> = new Set([
   'web_search',
   'api',
   'notices',
-  'office',
   'retention',
   'update',
   'storage',
@@ -137,7 +132,6 @@ const OPTIONAL_SECTION_KEYS = [
   'web_search',
   'api',
   'notices',
-  'office',
   'retention',
   'update',
   'storage',
@@ -161,7 +155,6 @@ export interface RawConfig {
   readonly web_search?: RawWebSearch
   readonly api?: RawApi
   readonly notices?: RawNotices
-  readonly office?: RawOffice
   readonly retention?: RawRetention
   readonly update?: RawUpdate
   readonly storage?: RawStorage

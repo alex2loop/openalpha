@@ -119,8 +119,6 @@ export interface StatePayload {
   /** Resolved calls a track record needs before its rates mean anything. */
   readonly trackRecordMinSample: number
   readonly firstRun: FirstRunWire
-  /** `[office]`: `weather` lets the office page read the region city's weather from the browser. */
-  readonly office: { readonly weather: boolean }
 }
 
 /** POST /v1/restart. */
