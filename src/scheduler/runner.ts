@@ -19,9 +19,9 @@ type SchedulerAdmission<T> =
 export interface SchedulerController {
   admit<T>(job: Job, execute: (signal: AbortSignal) => Promise<T>): SchedulerAdmission<T>
   cancel(jobId: JobId): Promise<boolean>
-  /** Takes `remove` over when the job has a run in flight: it runs once that run has finished and
-   *  delivered, so a job removing itself does not delete the row its run still has to finalize
-   *  against. False when nothing is in flight (the caller removes now). */
+  /** Takes `remove` (the row delete only) over when the job has a run in flight: it runs once that
+   *  run has finished and delivered, so a job removing itself does not delete the row its run still
+   *  has to finalize against. False when nothing is in flight (the caller removes now). */
   removeAfterRun(jobId: JobId, remove: () => Promise<void>): boolean
   stop(timeoutMs: number): Promise<void>
 }

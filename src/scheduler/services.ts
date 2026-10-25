@@ -369,23 +369,29 @@ async function removeJob(
 
   const job = resolved.job
   const controller = deps.controller()
-  const removal = async (): Promise<void> => {
-    await deps.scheduler.jobStore.remove(job.id)
-    await retireEventAlert(deps, job)
-  }
+  const remove = (): Promise<void> => deps.scheduler.jobStore.remove(job.id)
 
   // A job removing itself neither waits on its own run (that wait would never end) nor cuts it
-  // short: the row goes once the run has finalized and delivered.
-  if (fromOwnRun && controller?.removeAfterRun(job.id, removal) === true) {
+  // short: the row goes once the run has finalized and delivered. The job is disabled and its
+  // alert retired at once, so a delete that never lands (process death, stop timeout) leaves a
+  // disabled row that never fires again.
+  if (fromOwnRun) {
+    await deps.scheduler.jobStore.disable(job.id)
+    await retireEventAlert(deps, job)
+
+    if (controller?.removeAfterRun(job.id, remove) !== true) {
+      await remove()
+    }
+
     return { kind: 'job', job }
   }
 
-  // Waiting on a run that is waiting on this removal would never end.
-  if (controller !== null && !fromOwnRun) {
+  if (controller !== null) {
     await controller.cancel(job.id)
   }
 
-  await removal()
+  await remove()
+  await retireEventAlert(deps, job)
 
   return { kind: 'job', job }
 }
