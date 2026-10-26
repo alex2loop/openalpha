@@ -60,7 +60,8 @@ export type TipSource =
 
 /** Two boxes, one meaning each: `rect` is the footprint on the floor as the 3D layout stands it
  *  (the nav grid blocks it; a wall piece's is the wall area it hangs on), `draw` the box the 2D
- *  renderer paints and the pointer hits. `sortY` is `draw`'s bottom edge, the 2D paint order;
+ *  renderer paints and the pointer hits. `sortY` is the 2D paint order, `draw`'s bottom edge unless
+ *  the piece stands on another and sorts with it;
  *  `height` how tall it stands (world px); `variant` picks a look among a kind's. */
 export interface PropDef {
   readonly id: string
@@ -79,6 +80,8 @@ type Box = readonly [number, number, number, number]
 
 interface PropLook {
   readonly height?: number
+  /** The 2D paint order when it is not the drawn box's bottom: a monitor sorts with its desk. */
+  readonly sortY?: number
   readonly tip?: TipSource
   readonly variant?: number
 }
@@ -208,7 +211,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   ...[176, 224, 272].flatMap((x) => [
     stand('chair', 'lib', { at: seatFoot(x + 20, 136, 'desk'), draw: [x + 12, 113, 16, 11] }),
     stand('desk', 'lib', { at: [x, 119, 40, 12], draw: [x, 128, 40, 20] }),
-    stand('computer', 'lib', { at: [x + 12, 128, 16, 3], draw: [x + 12, 114, 16, 14] }),
+    stand('computer', 'lib', { at: [x + 12, 128, 16, 3], draw: [x + 12, 119, 16, 14], sortY: 148 }),
   ]),
   stand('copier', 'lib', { at: [318, 142, 18, 14], draw: [318, 128, 24, 24] }),
   stand('printer', 'lib', { at: [334, 148, 22, 12], draw: [334, 140, 22, 18], tip: 'printer' }),
@@ -267,8 +270,8 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('lamp', 'alerts', { at: [308, 372, 8, 8], draw: [306, 325, 12, 51] }),
   wall('results-board', 'assist', { at: [414, 232, 52, 22], tip: 'results' }),
   stand('chair', 'assist', { at: seatFoot(384, 306, 'desk'), draw: [376, 283, 16, 11] }),
-  stand('desk', 'assist', { at: [364, 291, 40, 12], draw: [364, 300, 40, 20] }),
-  stand('computer', 'assist', { at: [376, 300, 16, 3], draw: [376, 286, 16, 14] }),
+  stand('desk', 'assist', { at: [364, 291, 40, 12], draw: [364, 300, 40, 20], variant: 3 }),
+  stand('computer', 'assist', { at: [376, 300, 16, 3], draw: [376, 291, 16, 14], sortY: 320 }),
   stand('tank', 'assist', { at: [434, 298, 36, 13], draw: [434, 295, 36, 27], tip: 'fish' }),
   stand('plant', 'assist', { at: [332, 348, 8, 8], draw: [330, 340, 12, 16] }),
   stand('plant', 'assist', { at: [452, 352, 8, 8], draw: [450, 344, 12, 16] }),
@@ -278,14 +281,18 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('plant', 'desk', { at: [612, 270, 8, 8], draw: [610, 262, 12, 16] }),
   stand('desk', 'desk', { at: [510, 308, 96, 14], draw: [510, 300, 96, 22], variant: 2 }),
   stand('bin', 'desk', { at: [496, 312, 7, 7], draw: [496, 308, 7, 11] }),
-  stand('computer', 'desk', { at: [526, 319, 16, 3], draw: [526, 286, 16, 14] }),
-  stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 286, 16, 14] }),
+  stand('computer', 'desk', { at: [526, 319, 16, 3], draw: [526, 291, 16, 14], sortY: 322 }),
+  stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 291, 16, 14], sortY: 322 }),
   stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
   wall('lift-door', 'team', { at: [LIFT_TEAM.x, LIFT_TEAM.y, LIFT_TEAM.w, LIFT_TEAM.h] }),
   ...DESK_SLOTS.flatMap(({ x, y }) => [
     stand('chair', 'team', { at: seatFoot(x + 20, y + 8, 'desk'), draw: [x + 12, y - 15, 16, 11] }),
     stand('desk', 'team', { at: [x, y - 9, 40, 12], draw: [x, y, 40, 20] }),
-    stand('computer', 'team', { at: [x + 12, y, 16, 3], draw: [x + 12, y - 14, 16, 14] }),
+    stand('computer', 'team', {
+      at: [x + 12, y, 16, 3],
+      draw: [x + 12, y - 9, 16, 14],
+      sortY: y + 20,
+    }),
   ]),
   stand('shelf', 'team', { at: [520, 66, 48, 10], draw: [520, 40, 48, 36], height: 36 }),
   stand('shelf', 'team', { at: [576, 66, 48, 10], draw: [576, 40, 48, 36], height: 36 }),
@@ -355,7 +362,7 @@ function toProp(spec: PropSpec, index: number): PropDef {
     rect: { x, y, w, h },
     draw: { x: dx, y: dy, w: dw, h: dh },
     height: spec.height ?? HEIGHT_OF[spec.kind],
-    sortY: dy + dh,
+    sortY: spec.sortY ?? dy + dh,
     ...(spec.tip === undefined ? {} : { tip: spec.tip }),
     ...(spec.variant === undefined ? {} : { variant: spec.variant }),
   }

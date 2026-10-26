@@ -1,11 +1,21 @@
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
 import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
+import {
+  paintDeskBin,
+  paintKeyboard,
+  paintMonitor,
+  paintMug,
+  paintPhone,
+  paintStandby,
+  paintStudio,
+} from '@/web/scene/render2d/desk-devices'
 import { paintFish } from '@/web/scene/render2d/pets'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
 import {
   CARD,
   DARKWOOD,
+  DEVICE_TONES,
   FABRIC,
   METAL,
   PALETTE,
@@ -16,6 +26,9 @@ import {
 import { isWallMounted } from '@/web/scene/world/props'
 
 const SCREEN_EDGE = '#5C6474'
+const NOTE_INK = '#8E8497'
+// The desk looks a desk prop's `variant` picks.
+const DESK_LOOK = Object.freeze({ plain: 0, counter: 1, operator: 2, senior: 3 })
 const LED_OFF = '#4B5370'
 const LAMP_SHADE_FRONT = '#CFC4A8'
 const LAMP_LIT_FRONT = '#F2D58B'
@@ -77,13 +90,40 @@ export function tieRankOf(prop: PropDef): number {
   return DECAL_KINDS.has(prop.kind) ? 0 : 1
 }
 
-function paintDesk(g: CanvasRenderingContext2D, prop: PropDef): void {
+// The mockup's desk: the top and its legs, a bin beside it, the desktop box, the keyboard, and a
+// phone and mug, or a StandBy stand on a senior desk; the alert desk is a long counter.
+function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
 
-  drawBlock(g, [x, y, w, h - 8], { front: 8, tones: WOOD })
-  fill(g, [x + 1, y + h, 2, 3], INK)
-  fill(g, [x + w - 3, y + h, 2, 3], INK)
-  fill(g, [x + 6, y + 2, 10, 6], PALETTE.paper)
+  if (prop.variant === DESK_LOOK.counter) {
+    drawBlock(g, [x, y, w, 10], { front: h - 10, tones: WOOD })
+    fill(g, [x + 14, y + 2, 10, 6], PALETTE.paper)
+    fill(g, [x + 38, y + 3, 8, 2], DEVICE_TONES.page)
+    fill(g, [x + 39, y + 4, 6, 1], NOTE_INK)
+    return
+  }
+
+  if (prop.variant === DESK_LOOK.operator) {
+    drawBlock(g, [x, y, w, 14], { front: h - 14, tones: WOOD })
+    return
+  }
+
+  const cx = x + w / 2
+
+  drawBlock(g, [x, y, w, 12], { front: h - 12, tones: WOOD })
+  fill(g, [x + 1, y + h, 2, 4], INK)
+  fill(g, [x + w - 3, y + h, 2, 4], INK)
+  paintDeskBin(g, x - 6, y + 8)
+  paintKeyboard(g, cx, y + 5)
+  paintStudio(g, x + 1, y + 1)
+
+  if (prop.variant === DESK_LOOK.senior) {
+    paintStandby(g, { x: x + w - 14, y: y + 2, view: 'flow' }, scene)
+    return
+  }
+
+  paintPhone(g, { x: x + w - 13, y: y + 1, owner: prop.id })
+  paintMug(g, x + w - 5, y + 7)
 }
 
 function paintChair(g: CanvasRenderingContext2D, prop: PropDef): void {
@@ -133,17 +173,9 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 }
 
-// On standby, a dim glow and its power light, until the office goes quiet and it sleeps; the
-// working screen's content is the overlay's.
+// The monitor stands on its desk and sorts with it, in front of whoever sits there.
 function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w, h } = prop.draw
-  const isAsleep = scene.life.isQuiet
-
-  framed(g, [x, y, w, h - 4], isAsleep ? PROP_TONES.screenOff : PROP_TONES.screenStandby)
-  fill(g, [x + w - 3, y + h - 7, 1, 1], isAsleep ? SCREEN_EDGE : PROP_TONES.ledOn)
-  fill(g, [x + 1, y + 1, w - 2, 1], SCREEN_EDGE)
-  fill(g, [x + w / 2 - 1, y + h - 4, 2, 3], SCREEN_EDGE)
-  fill(g, [x + w / 2 - 4, y + h - 1, 8, 1], SCREEN_EDGE)
+  paintMonitor(g, prop.draw, scene)
 }
 
 function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {

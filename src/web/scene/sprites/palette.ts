@@ -206,6 +206,60 @@ export const PROP_TONES = Object.freeze({
   cloud: ['#B6B7C9', '#C9CAD8'],
   umbrellaStand: '#5C6474',
 } as const)
+
+/** The desk devices': monitors, the desktop box, phones, StandBy stands, calendars and bins. */
+export const DEVICE_TONES = Object.freeze({
+  stand: '#5C6474',
+  screenDark: '#0B0E1B',
+  screenIdle: '#141A36',
+  screenBar: '#2B3566',
+  screenDim: 'rgba(8,11,24,.4)',
+  keys: '#ECEEF2',
+  keysEdge: '#B9BDC8',
+  studio: ['#E4E7EC', '#F4F6F9', '#B7BDC9', '#3B404B'],
+  studioMark: '#5A5F6B',
+  port: '#1F222A',
+  portWide: '#2B2F38',
+  statusOff: '#4A4E5A',
+  phoneFrames: [
+    ['#C9CCD3', '#E6E8EC'],
+    ['#2B2D33', '#4A4D55'],
+    ['#A9C0D4', '#CBDAE7'],
+    ['#6E2638', '#8F3A4F'],
+  ],
+  contact: '#6E5030',
+  bezel: '#050608',
+  phoneOff: '#26335E',
+  glint: '#4D60A0',
+  coffee: '#4A2C17',
+  bin: ['#AEB9CC', '#C5CEDD'],
+  page: '#FBF9F3',
+  calendarHead: '#D8514B',
+  titanium: '#F2F4F7',
+  titaniumEdge: '#AEB4C0',
+  standbyGlass: '#1B2552',
+  quietVeil: 'rgba(0,0,0,.55)',
+  flat: '#E9ECF8',
+  standbyDay: {
+    screen: '#2A4180',
+    flowGround: '#1B1E4B',
+    flow: ['rgba(120,170,255,.6)', 'rgba(255,140,200,.55)', 'rgba(120,240,210,.5)'],
+    well: '#161A2E',
+    ink: '#FFFFFF',
+    colon: '#9FB0DC',
+    hole: '#07080F',
+  },
+  standbyNight: {
+    screen: '#140303',
+    flowGround: '#2A0606',
+    flow: ['rgba(255,70,50,.4)', 'rgba(255,90,60,.35)', 'rgba(200,50,40,.3)'],
+    well: '#2A0808',
+    ink: '#FF6A5A',
+    colon: '#B04040',
+    hole: '#140303',
+  },
+} as const)
+
 /** Umbrella canopies, in the office's stand and over walkers in the rain: one per
  *  `UMBRELLA_LOOKS`. */
 export const UMBRELLA_TONES = ['#3F7FC5', '#C9544A', '#2E3440', '#E0A13A'] as const

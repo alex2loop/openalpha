@@ -29,6 +29,7 @@ import { feedKOf } from '@/web/scene/sim/life/events'
 import { lightOf } from '@/web/scene/sprites/daylight'
 import { boardNotes, createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
 import { isGlassMoving } from '@/web/scene/sprites/sky-glass'
+import { tapeBoard } from '@/web/scene/sprites/tape-face'
 import {
   type FloorId,
   type Point,
@@ -250,6 +251,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     detail: detailOf(scale),
     isRaining: sim.weather.rain > 0,
     lift: sim.lift,
+    indexMove: tapeBoard.value.rows[0]?.tone ?? 'flat',
   }
 }
 

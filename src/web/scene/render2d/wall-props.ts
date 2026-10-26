@@ -34,6 +34,8 @@ export interface PaintScene {
   readonly detail: DetailLevel
   readonly isRaining: boolean
   readonly lift: LiftView
+  /** Which way the tape's first name, the home index, moved: the StandBy widgets' bar. */
+  readonly indexMove: 'up' | 'down' | 'flat'
 }
 
 export type Painter = (g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene) => void
