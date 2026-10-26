@@ -1,7 +1,7 @@
 import type { FloorId, Rect } from '@/web/scene/types'
 import { WORLD } from '@/web/scene/types'
 import { DOORS, type Door } from '@/web/scene/world/doors'
-import { FLOORS, type Wall } from '@/web/scene/world/floors'
+import { DESK_SLOTS, FLOORS, type Wall } from '@/web/scene/world/floors'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
 import { type RoomDef, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
@@ -46,7 +46,13 @@ const SURFACE_TONES: Readonly<Record<RoomDef['surface'], readonly string[]>> = O
   tile: ['#E9E4DB', '#DCD5C9'],
   concrete: ['#D2D6DB', '#C8CCD2'],
 })
-// Rugs under the meeting table, the operator's desk and the team's lounge.
+// The pale mat under each team desk, from the desk top's corner.
+const DESK_MAT_INSET_X = 14
+const DESK_MAT_RISE = 30
+const DESK_MAT_W = 68
+const DESK_MAT_H = 70
+const DESK_MAT_TONES = ['#F1F2F5', '#DDE0E7'] as const
+// Rugs under the meeting table, the operator's desk and the team's lounge, then the desk mats.
 const RUGS: Readonly<Record<FloorId, readonly (readonly [Box, string, string])[]>> = Object.freeze({
   office: [
     [[416, 92, 192, 92], '#B9C5D2', '#97A6B6'],
@@ -56,6 +62,13 @@ const RUGS: Readonly<Record<FloorId, readonly (readonly [Box, string, string])[]
   team: [
     [[16, 92, 480, 284], '#E2E5EB', '#D7DBE2'],
     [[512, 180, 116, 96], '#C9D3DF', '#AFBCCB'],
+    ...DESK_SLOTS.map(
+      (slot) =>
+        [
+          [slot.x - DESK_MAT_INSET_X, slot.y - DESK_MAT_RISE, DESK_MAT_W, DESK_MAT_H],
+          ...DESK_MAT_TONES,
+        ] as const
+    ),
   ],
 })
 // Wall-mounted pieces that never change: painted once into the cached floor.

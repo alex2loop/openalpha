@@ -30,7 +30,15 @@ import {
   sizeTag,
 } from '@/web/scene/overlay/placement'
 import { analystSeriesOf, buildScreens } from '@/web/scene/overlay/screens'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import {
+  addDeskOf,
+  cardPlacesOf,
+  isTeamFloor,
+  isTeamTagged,
+  kidRoleIn,
+  teamGoals,
+} from '@/web/scene/overlay/team-pass'
+import { isActorId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { goalsFor } from '@/web/scene/sim/vocabulary'
 import { projection, view } from '@/web/scene/view'
 import { roomsOn } from '@/web/scene/world/rooms'
@@ -85,6 +93,8 @@ interface PassDeps {
 
 // What the live store calls for, as the director reads it: who works on which run, who waits.
 const wantedGoals = computed(() => goalsFor(runs.value, pending.value))
+// The office crew's goals and the team floor's, for whatever stands over a person.
+const sceneGoals = computed(() => new Map([...wantedGoals.value, ...teamGoals.value]))
 const litScreens = computed(() =>
   buildScreens({
     goals: wantedGoals.value,
@@ -94,7 +104,7 @@ const litScreens = computed(() =>
   })
 )
 const markers = computed(() =>
-  buildMarkers({ goals: wantedGoals.value, pending: pending.value, breached: breachedStops.value })
+  buildMarkers({ goals: sceneGoals.value, pending: pending.value, breached: breachedStops.value })
 )
 
 /** Starts the overlay's listeners and reads; the returned pass's `stop` releases all of them. */
@@ -170,7 +180,7 @@ function runPass({ deps, state, sim, nowMs }: PassRun): void {
 }
 
 function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInput {
-  const goals = wantedGoals.value
+  const goals = sceneGoals.value
   const shown = view.value
   const selected = toActorId(selectedActor.value)
   const hovered = hoveredActor.value
@@ -191,6 +201,7 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
       said: said.value,
       recalls: pastCalls.value,
       life: sim.life.lines,
+      teamLines: sim.team.lines,
       nowMs,
       epochMs: Date.now(),
     }),
@@ -212,6 +223,7 @@ function signatureOf(input: PassInput): string {
     ...input.markers.map((marker) => marker.actor),
     ...(input.selected === undefined ? [] : [input.selected]),
     ...(input.hovered === undefined ? [] : [input.hovered]),
+    ...[...input.figures.keys()].filter((actor) => ownAgentIdOf(actor) !== undefined),
   ])
   const people = [...input.figures]
     .filter(([actor]) => input.isZoomed || placed.has(actor))
@@ -226,6 +238,9 @@ function signatureOf(input: PassInput): string {
     ...input.bubbles.map((bubble) => `${bubble.actor}:${bubble.kind}:${bubble.text}`),
     ...input.markers.map((marker) => `${marker.actor}:${marker.tone}`),
     ...input.screens.map((screen) => `${screen.actor}:${JSON.stringify(screen.content)}`),
+    ...input.view.team.desks.map(
+      (desk) => `${desk.slot}:${desk.agentId ?? ''}:${desk.kidsOpen}:${desk.kidsBack}`
+    ),
     ...people,
   ].join('|')
 }
@@ -241,10 +256,13 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     screen,
     rect: toScreenRect(deps.renderer, screen.rect),
   }))
+  const team = teamPlacesOf(input, deps.renderer)
   const fixed = [
     ...readFixed(deps.scene),
     ...markerPlaces.map((place) => place.rect),
     ...screenPlaces.map((place) => place.rect),
+    ...team.cards.map((place) => place.rect),
+    ...(team.addDesk === undefined ? [] : [team.addDesk]),
   ]
   const tags = layoutTags(tagAsks(input), { actors: input.figures, taken: fixed })
   const hover = hoverOf(input, tags)
@@ -263,20 +281,36 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     tags: withMore(input, { tags, hidden: layout.hidden, taken }),
     markers: markerPlaces,
     screens: screenPlaces,
+    ...team,
     ...(hover === undefined || layout.hover === undefined
       ? {}
       : { hover: { actor: hover.actor, rect: layout.hover, text: hover.text } }),
   }
 }
 
-// At floor zoom only the waits show, unless their speaker is selected; a speaker off screen
-// shows none.
+// The team floor's cards over its agents' heads, and "+ Thêm agent" on its next free desk.
+function teamPlacesOf(
+  input: PassInput,
+  renderer: SceneRenderer
+): Pick<OverlayView, 'cards' | 'addDesk'> {
+  const cards = cardPlacesOf(input.view, { figures: input.figures, zoom: zoomOf() })
+  const addDesk = addDeskOf(input.view)
+
+  return addDesk === undefined ? { cards } : { cards, addDesk: toScreenRect(renderer, addDesk) }
+}
+
+// At floor zoom only the waits show, unless their speaker is selected or on the team floor; a
+// speaker off screen shows none.
 function shownBubbles(input: PassInput): Bubble[] {
   const { pane } = projection.value
 
   return input.bubbles.filter((bubble) => {
     const figure = input.figures.get(bubble.actor)
-    const isWanted = bubble.kind === 'wait' || input.isZoomed || bubble.actor === input.selected
+    const isWanted =
+      bubble.kind === 'wait' ||
+      input.isZoomed ||
+      isTeamFloor(input.view) ||
+      bubble.actor === input.selected
 
     return isWanted && figure !== undefined && isOnScreen(figure, pane)
   })
@@ -289,15 +323,30 @@ function actionsOf(bubble: Bubble): string[] {
   ]
 }
 
-// Zoomed in, everyone has a tag; at floor zoom only the selected person does.
+// Zoomed in, everyone has a tag; at floor zoom only the selected person and the team floor's
+// children do. An own agent wears its card instead.
 function tagAsks(input: PassInput): { actor: ActorId; size: Size; isForced: boolean }[] {
   return [...input.figures.keys()]
-    .filter((actor) => input.isZoomed || actor === input.selected)
+    .filter((actor) => ownAgentIdOf(actor) === undefined)
+    .filter(
+      (actor) => input.isZoomed || actor === input.selected || isTeamTagged(input.view, actor)
+    )
     .map((actor) => ({
       actor,
-      size: sizeTag(tagTextOf(actor, false)),
+      size: sizeTag(textOf(input, actor, false)),
       isForced: actor === input.selected,
     }))
+}
+
+function textOf(input: PassInput, actor: ActorId, isMore: boolean): string {
+  return tagTextOf(actor, isMore, kidRoleIn(input.view, actor))
+}
+
+// How far the cards grow with the zoom: the scale over the fitted floor's.
+function zoomOf(): number {
+  const { scale, baseScale } = projection.value
+
+  return baseScale > 0 ? scale / baseScale : 1
 }
 
 // The hovered person's name, beside them, when they carry no tag already.
@@ -332,15 +381,16 @@ function withMore(input: PassInput, set: TagSet): PlacedTag[] {
   const extra = layoutTags(
     set.hidden
       .filter((actor) => !set.tags.has(actor))
-      .map((actor) => ({ actor, size: sizeTag(tagTextOf(actor, true)), isForced: false })),
+      .map((actor) => ({ actor, size: sizeTag(textOf(input, actor, true)), isForced: false })),
     { actors: input.figures, taken: set.taken }
   )
 
   return [...set.tags, ...extra].map(([actor, rect]) => ({
     actor,
+    text: textOf(input, actor, hidden.has(actor)),
     rect:
       hidden.has(actor) && set.tags.has(actor)
-        ? { ...rect, ...sizeTag(tagTextOf(actor, true)) }
+        ? { ...rect, ...sizeTag(textOf(input, actor, true)) }
         : rect,
     isSelected: actor === input.selected,
     isMore: hidden.has(actor),
@@ -381,5 +431,5 @@ function isOnScreen(rect: Rect, pane: Size): boolean {
 }
 
 function toActorId(id: string | undefined): ActorId | undefined {
-  return ROSTER.find((def) => def.id === id)?.id
+  return id !== undefined && isActorId(id) ? id : undefined
 }

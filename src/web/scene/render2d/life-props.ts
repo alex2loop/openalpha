@@ -1,5 +1,7 @@
 import type { FloorId, LifeView, Point, SteamView } from '@/web/scene/types'
 import { drawBlock, fill, framed, METAL } from '@/web/scene/render2d/building'
+import { detailOf, paintPet } from '@/web/scene/render2d/pets'
+import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { propsOn } from '@/web/scene/world/props'
 
 const PAPER = '#F7F5EF'
@@ -21,6 +23,42 @@ const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
 const SHEET_W = 12
 const SHEET_STEP_PX = 1
 const FEED_SLIDE_PX = 4
+// Pets sort as people do; the cart as furniture.
+const PET_TIE = 2
+const CART_TIE = 1
+
+/** One thing the office life adds to the y-sorted paint. */
+interface LifePiece {
+  readonly sortY: number
+  readonly tie: number
+  readonly draw: () => void
+}
+
+/** The pets and the dessert cart, sorted among the people and the furniture. */
+export function buildLifePieces(
+  g: CanvasRenderingContext2D,
+  at: {
+    readonly life: LifeView
+    readonly floor: FloorId
+    readonly alpha: number
+    readonly scale: number
+  }
+): LifePiece[] {
+  const level = detailOf(at.scale)
+  const pets: LifePiece[] =
+    at.floor === PET_FLOOR
+      ? at.life.pets.map((pet) => ({
+          sortY: pet.at.y,
+          tie: PET_TIE,
+          draw: () => paintPet(g, pet, { alpha: at.alpha, level }),
+        }))
+      : []
+  const cart = at.life.cart
+
+  return cart === undefined || cart.floor !== at.floor
+    ? pets
+    : [...pets, { sortY: cart.at.y, tie: CART_TIE, draw: () => paintCart(g, cart.at) }]
+}
 
 /** The printer's stack and the steam, over everything standing on the floor. */
 export function paintLifeOver(
@@ -54,7 +92,7 @@ export function feedKOf(life: LifeView, now: number): number {
 }
 
 /** The dessert cart, its wheels under it, a few cups on top. */
-export function paintCart(g: CanvasRenderingContext2D, at: Point): void {
+function paintCart(g: CanvasRenderingContext2D, at: Point): void {
   const x = Math.round(at.x - CART_W / 2)
   const y = Math.round(at.y - CART_TOP_H - CART_FRONT_H)
 

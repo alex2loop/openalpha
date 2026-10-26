@@ -4,7 +4,7 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { PendingWire } from '@/app/server/wire/live'
 import type { PastCall, Recall } from '@/web/scene/data/past-calls'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, LifeLine } from '@/web/scene/types'
+import type { ActorId, CoolerCall, LifeLine, TeamLine, TeamSay } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { formatDay, type MessageKey, pluralKey } from '@/i18n'
@@ -13,8 +13,10 @@ import { roomTagOf } from '@/web/scene/overlay/room-tags'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { holderOf } from '@/web/scene/sim/vocabulary'
 import { pendingRequestId } from '@/web/state/live'
-import { locale } from '@/web/state/session'
-import { joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
+import { locale, state } from '@/web/state/session'
+import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
+import { kidOutcomeKey } from '@/web/text/kid-outcome'
+import { firstSentence } from '@/web/text/sentence'
 import { tr } from '@/web/text/tr'
 
 /** How long a spoken line stays, unless the speaker's next bubble replaces it first. */
@@ -24,12 +26,11 @@ const BUBBLE_MAX_CHARS = 80
 const MAX_SAID = 16
 const MANAGER: ActorId = 'pm'
 const APPROVAL_KIND = 'approval'
-// A sentence ends at a stop followed by a space or the end.
-const SENTENCE_END_RE = /[.!?](?=\s|$)/u
 const ACTION_KEYS = Object.freeze({
   buy: 'trading.action.buy',
   reduce: 'trading.action.reduce',
-} satisfies Record<PastCall['action'], MessageKey>)
+  hold: 'trading.action.hold',
+} satisfies Record<CoolerCall['action'], MessageKey>)
 const LIFE_KEYS = Object.freeze({
   lunch: 'ui.office.life.lunch',
   coffee: 'ui.office.life.coffee',
@@ -44,7 +45,7 @@ const OUTCOME_KEYS = Object.freeze({
   expired: 'trading.outcome.expired',
 } satisfies Record<PastCall['outcome'], MessageKey>)
 
-export type BubbleKind = 'wait' | 'say' | 'think' | 'due' | 'life'
+export type BubbleKind = 'wait' | 'say' | 'think' | 'due' | 'life' | 'caution'
 
 /** One bubble over a person: `text` is cut to fit, `full` is all of it; `untilMs` (a
  *  `performance.now()` instant) is when a spoken line ends. */
@@ -77,6 +78,8 @@ interface BubbleInput {
   readonly recalls: ReadonlyMap<string, Recall>
   /** What the office life's moments say. */
   readonly life: readonly LifeLine[]
+  /** What the team floor's people say, from its templates. */
+  readonly teamLines: readonly TeamLine[]
   /** `performance.now()` and the epoch, read once for the pass. */
   readonly nowMs: number
   readonly epochMs: number
@@ -203,7 +206,84 @@ function spokenLines(input: BubbleInput): Candidate[] {
     }
   }
 
-  return [...lines, ...recalledLines(input)]
+  return [...lines, ...recalledLines(input), ...teamSaid(input)]
+}
+
+// A team line by its person, or by whoever works the run it is about.
+function teamSaid(input: BubbleInput): Candidate[] {
+  return input.teamLines.flatMap((line) => {
+    const actor = line.actor ?? actorOfRun(input.goals, line.runId)
+    const words = actor === undefined ? undefined : teamWordsOf(line.say)
+
+    if (actor === undefined || words === undefined) {
+      return []
+    }
+
+    return [
+      {
+        actor,
+        kind: line.say.kind === 'kid-end' ? ('caution' as const) : ('say' as const),
+        ...words,
+        at: input.epochMs - (input.nowMs - line.atMs),
+        untilMs: line.untilMs,
+      },
+    ]
+  })
+}
+
+function teamWordsOf(say: TeamSay): { full: string; footer?: string } | undefined {
+  switch (say.kind) {
+    case 'hello':
+      return {
+        full: tr('ui.office.team.hello', { name: say.name }),
+        footer: tr('ui.office.team.helloSub', {
+          min: state.value?.trackRecordMinSample ?? ABSENT_CELL,
+        }),
+      }
+    case 'hello-reply':
+      return { full: tr('ui.office.team.helloReply', { name: say.name }) }
+    case 'cooler-mine':
+    case 'cooler-theirs':
+      return coolerWordsOf(say.kind, say.call)
+    case 'kid-end':
+      return kidEndWordsOf(say.outcome)
+    case 'kids-folding':
+      return {
+        full: tr('ui.office.team.kidsFolding', { partial: say.partial, stopped: say.stopped }),
+      }
+    case 'daemon':
+      return { full: say.text }
+    default:
+      return say satisfies never
+  }
+}
+
+function coolerWordsOf(
+  kind: 'cooler-mine' | 'cooler-theirs',
+  call: CoolerCall
+): { full: string; footer: string } {
+  const action = tr(ACTION_KEYS[call.action])
+  const footer = tr('ui.office.team.coolerSub', { agent: call.agent })
+
+  if (kind === 'cooler-mine') {
+    return { full: tr('ui.office.team.coolerMine', { ticker: call.ticker, action }), footer }
+  }
+
+  return {
+    full: tr('ui.office.team.coolerTheirs', {
+      action: action.toLocaleLowerCase(locale.value),
+      ticker: call.ticker,
+      day: call.day === undefined ? ABSENT_CELL : formatDay(locale.value, call.day),
+      reason: call.reason ?? ABSENT_CELL,
+    }),
+    footer,
+  }
+}
+
+function kidEndWordsOf(outcome: string): { full: string } | undefined {
+  const key = kidOutcomeKey(outcome)
+
+  return key === undefined ? undefined : { full: tr(key) }
 }
 
 // The manager recalls the name's last calls when its debate starts.
@@ -329,11 +409,4 @@ function cut(text: string): string {
   }
 
   return `${text.slice(0, BUBBLE_MAX_CHARS - TRUNCATION_MARK.length).trimEnd()}${TRUNCATION_MARK}`
-}
-
-function firstSentence(text: string): string {
-  const trimmed = text.trim()
-  const end = SENTENCE_END_RE.exec(trimmed)
-
-  return end === null ? trimmed : trimmed.slice(0, end.index + 1)
 }

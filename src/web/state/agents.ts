@@ -25,13 +25,25 @@ export type AgentDraft = Omit<AgentDetailWire, 'editable'>
 
 type ModelTierWire = ModelsResponse['tiers'][number]
 
+/** An ask to open the agent form, prefilled with `draft`; `seq` tells two asks apart. */
+interface AgentFormRequest {
+  readonly draft?: Partial<AgentDraft>
+  readonly seq: number
+}
+
 const list = signal<readonly AgentWire[]>([])
+const isRead = signal(false)
+const formRequest = signal<AgentFormRequest | undefined>(undefined)
 const selected = signal<string | undefined>(undefined)
 // The running roster read, so a save is seen at once; absent while signed out.
 let refetchRoster: (() => Promise<void>) | undefined
 
 /** The operator's own agents; empty until read, and kept when a later read fails. */
 export const agents: ReadonlySignal<readonly AgentWire[]> = list
+/** The roster has been read once: an empty `agents` then means there are none. */
+export const agentsRead: ReadonlySignal<boolean> = isRead
+/** The latest ask to open the agent form; the form opens on each new one. */
+export const agentFormRequest: ReadonlySignal<AgentFormRequest | undefined> = formRequest
 /** The agent typing goes to on this page, as the daemon last accepted; absent is the assistant or
  *  not known yet (a resumed session's binding is not read). */
 export const selectedAgentId: ReadonlySignal<string | undefined> = selected
@@ -55,6 +67,13 @@ export function startAgents(): () => void {
       refetchRoster = undefined
     }
   }
+}
+
+/** Opens the agent form to create an agent, its fields prefilled from `draft`. */
+export function requestAgentForm(draft?: Partial<AgentDraft>): void {
+  const seq = (formRequest.value?.seq ?? 0) + 1
+
+  formRequest.value = draft === undefined ? { seq } : { draft, seq }
 }
 
 /** Throws `ApiFailure`; an abort is the caller's own. */
@@ -156,6 +175,7 @@ export function resumeAgentChoice(agentId: string | undefined): void {
 async function loadAgents(abortSignal: AbortSignal): Promise<void> {
   try {
     list.value = (await getJson(ROUTES.agents, { signal: abortSignal })).agents
+    isRead.value = true
   } catch {
     // The who-chip keeps the roster it last read.
   }

@@ -46,6 +46,11 @@
   font-style: italic;
 }
 
+.bubble-caution {
+  background: linear-gradient(var(--cautionBg), var(--cautionBg)), var(--surface);
+  color: var(--caution);
+}
+
 .bubble-wait {
   box-shadow:
     var(--pop),

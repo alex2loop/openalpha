@@ -8,9 +8,9 @@ import { agents } from '@/web/state/agents'
 import { loadSession, state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
 import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
+import { describeEvent } from '@/web/text/schedule-event'
 import { formatDuration, formatWhen } from '@/web/text/time'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
-import { describeEvent } from '@/web/ui/jobs/schedule-sections'
 import { useLoad } from '@/web/ui/kit/use-load'
 
 /** Việc theo lịch: the daemon's own upkeep, and the schedules of the operator's agents, each with

@@ -22,6 +22,17 @@ const BOTTOM_ROW_Y = 224
 const TOP_ROW_BOTTOM = 192
 const FLOOR_BOTTOM = 384
 
+/** The team floor's six desks, one per own agent, in the order they are given out: each desk
+ *  top's left corner. The lounge (shelves, sofa, coffee, water) fills the east side. */
+export const DESK_SLOTS: readonly Point[] = Object.freeze([
+  { x: 72, y: 156 },
+  { x: 232, y: 156 },
+  { x: 392, y: 156 },
+  { x: 72, y: 286 },
+  { x: 232, y: 286 },
+  { x: 392, y: 286 },
+])
+
 export const FLOORS: Readonly<Record<FloorId, FloorDef>> = Object.freeze({
   office: {
     rooms: ['store', 'lib', 'meet', 'lobby', 'alerts', 'assist', 'desk'],

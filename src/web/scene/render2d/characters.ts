@@ -117,7 +117,7 @@ export function drawCharacter(
   actor: ActorView,
   frame: CharacterFrame
 ): void {
-  const image = characterSprite(lookOf(actor.id, actor.role), toFrameSpec(actor, frame))
+  const image = characterSprite(lookOf(actor.id, actor.role, actor.look), toFrameSpec(actor, frame))
   const x = Math.round(actor.prev.x + (actor.at.x - actor.prev.x) * frame.alpha)
   const y = Math.round(actor.prev.y + (actor.at.y - actor.prev.y) * frame.alpha)
 
