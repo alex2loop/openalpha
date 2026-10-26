@@ -1,12 +1,12 @@
 .app {
   display: grid;
-  grid-template-rows: var(--headerH) auto minmax(0, 1fr) auto;
+  grid-template-rows: var(--headerH) minmax(0, 1fr) auto;
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 
 :root:not([data-layout="wide"]) .app {
-  grid-template-rows: var(--headerH) auto auto minmax(0, 1fr) auto;
+  grid-template-rows: var(--headerH) auto minmax(0, 1fr) auto;
 }
 
 /* A chat tab: the chat pane over the whole page, then the command bar. */

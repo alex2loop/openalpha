@@ -1,22 +1,11 @@
-.scene-toolbar {
-  position: absolute;
-  top: var(--s1);
-  right: var(--s1);
-  left: var(--s1);
+.scene-floorrow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s1);
-  pointer-events: none;
-}
-
-.scene-toolbar > * {
-  pointer-events: auto;
-}
-
-.scene-toolbar-grow {
-  flex: 1;
-  pointer-events: none;
+  padding: var(--s1) var(--s2);
+  border-bottom: 1px solid var(--border);
+  background: var(--canvas);
 }
 
 .scene-floors {
