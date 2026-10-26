@@ -20,23 +20,6 @@
   font-weight: 600;
 }
 
-.form-field input[type="text"],
-.form-field input[type="number"],
-.form-field input[type="time"],
-.form-field textarea {
-  padding: 6px var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.form-field textarea {
-  resize: vertical;
-}
-
 .form-id {
   font-size: 12px;
 }
@@ -54,7 +37,7 @@
 .form-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--s1);
 }
 
 .form-check {

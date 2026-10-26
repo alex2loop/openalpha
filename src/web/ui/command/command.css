@@ -13,7 +13,7 @@
   flex: none;
   align-items: center;
   gap: 4px;
-  height: 32px;
+  height: var(--controlH);
   padding: 0 6px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -22,6 +22,7 @@
 
 .who-chip select {
   max-width: 150px;
+  min-height: 0;
   border: 0;
   background-color: transparent;
   font-size: 12px;

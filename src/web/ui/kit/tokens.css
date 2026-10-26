@@ -4,6 +4,11 @@
   --s2: 12px;
   --s3: 16px;
   --s4: 24px;
+  /* Every field, menu, button and chip on a row shares this height, edge and type. */
+  --controlH: 32px;
+  --controlRadius: 8px;
+  --controlPadX: 10px;
+  --controlFont: 13px;
   --canvas: #f2f2f6;
   --surface: #ffffff;
   --sunken: #e7e7ee;

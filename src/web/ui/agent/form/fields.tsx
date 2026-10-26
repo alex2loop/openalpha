@@ -4,6 +4,7 @@ import { knownMarkets } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { resolveAgentId } from '@/web/ui/agent/form/form-state'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
+import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Segmented } from '@/web/ui/kit/segmented'
 
 // What one `spawn` call may start, as the daemon takes it: 1 to this many.
@@ -40,6 +41,7 @@ export function NameField({ form }: FieldProps) {
         <input
           type="text"
           class="mono form-id"
+          {...IDENTIFIER_INPUT}
           aria-label={tr('ui.office.form.idNote', { id: agentId })}
           value={agentId}
           onInput={(event) => {

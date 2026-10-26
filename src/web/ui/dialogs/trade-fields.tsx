@@ -13,6 +13,7 @@ import { describeFailure, type FormFailure } from '@/web/ui/dialogs/field-errors
 import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { fieldPathsOf, OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
 import { chooseVenue, marketOf, offerVenues, type TradeForm } from '@/web/ui/dialogs/trade-state'
+import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Segmented } from '@/web/ui/kit/segmented'
 
 export const PRICE_FIELD_ID = 'trade-price'
@@ -152,6 +153,7 @@ export function TickerField({ form }: { readonly form: TradeForm }) {
         id="trade-ticker"
         type="text"
         class="mono"
+        {...IDENTIFIER_INPUT}
         value={form.ticker.value}
         readOnly={form.start.entry !== undefined && 'instrument' in form.start.entry}
         onInput={(event) => {

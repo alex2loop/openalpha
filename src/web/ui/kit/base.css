@@ -37,13 +37,32 @@ select {
   color: inherit;
 }
 
-/* Every menu reads like the text fields beside it; its chevron is drawn in the ink colour. */
-select {
-  max-width: 100%;
-  padding: 6px calc(var(--s1) + var(--s3)) 6px var(--s1);
+/* Every text field and menu: one height, edge and type, so a row of them lines up with its
+   buttons. `:where` keeps these at no specificity, so a class (the command box) still wins. */
+:where(
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]),
+  select,
+  textarea
+) {
+  min-height: var(--controlH);
+  padding: 0 var(--controlPadX);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--controlRadius);
   background-color: var(--surface);
+  color: var(--ink);
+  font-size: var(--controlFont);
+  font-weight: 400;
+}
+
+:where(textarea) {
+  padding-block: 6px;
+  resize: vertical;
+}
+
+/* Its chevron is drawn in the ink colour, the same in every browser. */
+:where(select) {
+  max-width: 100%;
+  padding-right: calc(var(--controlPadX) + var(--s3));
   background-image:
     linear-gradient(45deg, transparent 50%, var(--ink2) 50%),
     linear-gradient(135deg, var(--ink2) 50%, transparent 50%);
@@ -52,9 +71,6 @@ select {
     calc(100% - var(--s2)) 50%;
   background-size: 5px 5px;
   background-repeat: no-repeat;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 400;
   appearance: none;
   cursor: pointer;
 }

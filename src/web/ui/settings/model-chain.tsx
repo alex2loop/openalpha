@@ -11,6 +11,7 @@ import { readText } from '@/web/text/fields'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
 import { SettingRow, useDraft } from '@/web/ui/settings/row'
@@ -160,7 +161,7 @@ function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
       </select>
       <input
         type="text"
-        class="mono"
+        {...IDENTIFIER_INPUT}
         list={listId}
         aria-label={tr('ui.office.form.model')}
         value={choice.model}
