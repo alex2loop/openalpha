@@ -4,7 +4,9 @@ import type { BoardNotes, ScreenCache } from '@/web/scene/sprites/screens'
 import type { LifeView, LiftView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
+import { FONT } from '@/web/scene/sprites/face-text'
 import { faceKindOf, paintCork } from '@/web/scene/sprites/screens'
+import { createRng } from '@/web/scene/world/rng'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const SWITCH_ON = '#FFB340'
@@ -18,6 +20,18 @@ const MARKER_TONES = ['#7C93D6', '#A596D9', '#6F7388'] as const
 const HOURS_ON_DIAL = 12
 const HOUR_HAND_PX = 3
 const MINUTE_HAND_PX = 5
+const SQUIGGLE_INSET = 0.07
+const SQUIGGLE_WIDTH = 0.022
+const SQUIGGLE_STEP = 0.05
+const SQUIGGLE_JITTER = 0.06
+const CAPTION_INK = '#3A3F58'
+const CAPTION_STEP = '#5E6BB0'
+// A board's subject and its step, as its line joins them.
+const CAPTION_SPLIT = ': '
+const STEP_NUMBER = /(\d+)\/\d+/
+// The title is about this share of the board's height; under this many CSS px only the number shows.
+const CAPTION_SHARE = 0.115
+const MIN_CAPTION_PX = 9
 
 /** What the props show this frame: the lamps on, the clock, the zoom, and what the boards read. */
 export interface PaintScene {
@@ -40,6 +54,8 @@ export interface PaintScene {
   readonly isAwaitingYou: boolean
   /** Today's day of the month, as your desk calendar prints it. */
   readonly dayOfMonth: string
+  /** What each room's whiteboard says while a run counts its steps there. */
+  readonly captions: Partial<Record<RoomId, string>>
 }
 
 export type Painter = (g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene) => void
@@ -54,7 +70,7 @@ export const WALL_PAINTERS = Object.freeze({
   'light-switch': paintSwitch,
 } satisfies Partial<Record<PropKind, Painter>>)
 
-function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef): void {
+function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
 
   castShadow(g, [x + 2, y + h + 8, w, 3])
@@ -63,10 +79,74 @@ function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef): void {
   fill(g, [x + 3, y + h, 2, 9], INK)
   fill(g, [x + w - 5, y + h, 2, 9], INK)
 
-  for (const [i, tone] of MARKER_TONES.entries()) {
-    const length = Math.round(w * (0.45 + (((prop.variant ?? 0) * (i + 3)) % 40) / 100))
+  paintSquiggles(g, prop)
 
-    fill(g, [x + Math.round(w * 0.07), y + Math.round(h * (0.6 + i * 0.12)), length, 1], tone)
+  const caption = scene.captions[prop.room]
+
+  if (caption !== undefined) {
+    paintCaption(g, {
+      rect: prop.draw,
+      caption,
+      isTiny: h * CAPTION_SHARE * scene.scale < MIN_CAPTION_PX,
+    })
+  }
+}
+
+// The three marker squiggles under the title, the same for a board every frame.
+function paintSquiggles(g: CanvasRenderingContext2D, prop: PropDef): void {
+  const { x, y, w, h } = prop.draw
+  const rng = createRng(prop.variant ?? 0)
+  const left = w * SQUIGGLE_INSET
+
+  g.lineWidth = h * SQUIGGLE_WIDTH
+  g.lineCap = 'round'
+  g.lineJoin = 'round'
+
+  for (const [i, tone] of MARKER_TONES.entries()) {
+    const row = y + h * (0.6 + i * 0.12)
+    const length = w * (0.45 + rng.next() * 0.4)
+
+    g.strokeStyle = tone
+    g.beginPath()
+    g.moveTo(x + left, row)
+
+    for (let step = left; step < left + length; step += w * SQUIGGLE_STEP) {
+      g.lineTo(x + step, row + (rng.next() - 0.5) * h * SQUIGGLE_JITTER)
+    }
+
+    g.stroke()
+  }
+
+  g.lineWidth = 1
+}
+
+// The board's title in marker: the subject, then its step; far off, only the step's number.
+function paintCaption(
+  g: CanvasRenderingContext2D,
+  at: { readonly rect: PropDef['draw']; readonly caption: string; readonly isTiny: boolean }
+): void {
+  const { x, y, w, h } = at.rect
+  const [head, step] = at.caption.split(CAPTION_SPLIT)
+
+  g.fillStyle = CAPTION_INK
+
+  if (at.isTiny) {
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    g.font = `700 ${h * 0.5}px ${FONT}`
+    g.fillText(STEP_NUMBER.exec(at.caption)?.[1] ?? at.caption.slice(0, 2), x + w / 2, y + h * 0.34)
+    return
+  }
+
+  g.textAlign = 'left'
+  g.textBaseline = 'alphabetic'
+  g.font = `700 ${h * 0.2}px ${FONT}`
+  g.fillText(step === undefined ? at.caption : (head ?? ''), x + w * 0.07, y + h * 0.28, w * 0.86)
+
+  if (step !== undefined) {
+    g.font = `600 ${h * 0.15}px ${FONT}`
+    g.fillStyle = CAPTION_STEP
+    g.fillText(step, x + w * 0.07, y + h * 0.48, w * 0.86)
   }
 }
 

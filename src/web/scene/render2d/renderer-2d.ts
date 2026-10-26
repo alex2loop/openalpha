@@ -5,7 +5,7 @@ import type { StreetFrame } from '@/web/scene/street-types'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { agenda } from '@/web/scene/data/agenda'
 import { indexDrop } from '@/web/scene/data/board'
-import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
+import { boardCaptions, isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitAt, fitFloor, fitRoom } from '@/web/scene/render2d/camera'
 import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
@@ -257,6 +257,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     indexMove: tapeBoard.value.rows[0]?.tone ?? 'flat',
     isAwaitingYou: pending.value.some((entry) => entry.kind === APPROVAL_KIND),
     dayOfMonth: String(Number(pageMinute.value.day.slice(DAY_OF_MONTH_AT))),
+    captions: boardCaptions.value,
   }
 }
 

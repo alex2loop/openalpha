@@ -5,7 +5,7 @@ import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Point } from '@/web/scene/types'
 import { pluralKey } from '@/i18n'
 import { digest, resultsLanded } from '@/web/scene/data/board'
-import { debateLine, roomStatus, toParamText } from '@/web/scene/data/room-status'
+import { debateLine, questionLine, roomStatus, toParamText } from '@/web/scene/data/room-status'
 import { placeOnPane, view } from '@/web/scene/view'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas, unseenCalls } from '@/web/state/ideas'
@@ -214,15 +214,6 @@ function openDigest(day: string): void {
       </Button>
     ),
   })
-}
-
-function questionLine(params: Readonly<Record<string, unknown>> | undefined): string | undefined {
-  const n = toParamText(params?.index ?? params?.done)
-  const total = toParamText(params?.total)
-
-  return n === undefined || total === undefined
-    ? undefined
-    : tr('ui.office.board.lib', { n, total })
 }
 
 function storeBoardLine(

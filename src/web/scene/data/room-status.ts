@@ -69,6 +69,17 @@ export const alertCounts: ReadonlySignal<AlertCounts> = counts
 export const breachedStops: ReadonlySignal<readonly BreachedStop[] | undefined> = breached
 /** Every room with something to say, keyed by room. */
 export const roomStatus: ReadonlySignal<ReadonlyMap<RoomId, RoomStatus>> = computed(buildStatus)
+/** What the meeting room's and the library's whiteboards say while a run counts its steps there. */
+export const boardCaptions: ReadonlySignal<Partial<Record<RoomId, string>>> = computed(() => {
+  const status = roomStatus.value
+  const meet = debateLine(status.get('meet')?.runs[0])
+  const lib = questionLine(status.get('lib')?.runs[0]?.progress?.params)
+
+  return {
+    ...(meet === undefined ? {} : { meet }),
+    ...(lib === undefined ? {} : { lib }),
+  }
+})
 
 /** The room a run's crew works in, running or finished; a run the page cannot place has none. */
 export function roomOfRun(run: Pick<Run, 'name' | 'parentRunId' | 'hidden'>): RoomId | undefined {
@@ -202,4 +213,16 @@ export function debateLine(run: Run | undefined): string | undefined {
   return ticker === undefined || n === undefined || total === undefined
     ? undefined
     : tr('ui.office.board.meet', { ticker, n, total })
+}
+
+/** The library board's line: the question the research is on, of how many. */
+export function questionLine(
+  params: Readonly<Record<string, unknown>> | undefined
+): string | undefined {
+  const n = toParamText(params?.index ?? params?.done)
+  const total = toParamText(params?.total)
+
+  return n === undefined || total === undefined
+    ? undefined
+    : tr('ui.office.board.lib', { n, total })
 }
