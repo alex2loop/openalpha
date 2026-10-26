@@ -23,20 +23,22 @@ export function PaneBar() {
   const current = pane.value
 
   return (
-    <fieldset class="pane-bar">
-      <legend class="sr">{tr('ui.office.pane.group')}</legend>
-      {PANES.map(({ id, key }) => (
-        <button
-          key={id}
-          type="button"
-          class={id === current ? 'is-on' : ''}
-          aria-pressed={id === current}
-          onClick={() => showPane(id)}
-        >
-          {tr(key)}
-          {id === 'chat' && unread.value && <span class="chat-unread" aria-hidden="true" />}
-        </button>
-      ))}
-    </fieldset>
+    <div class="pane-bar">
+      <fieldset class="seg">
+        <legend class="sr">{tr('ui.office.pane.group')}</legend>
+        {PANES.map(({ id, key }) => (
+          <button
+            key={id}
+            type="button"
+            class={id === current ? 'is-on' : ''}
+            aria-pressed={id === current}
+            onClick={() => showPane(id)}
+          >
+            {tr(key)}
+            {id === 'chat' && unread.value && <span class="chat-unread" aria-hidden="true" />}
+          </button>
+        ))}
+      </fieldset>
+    </div>
   )
 }

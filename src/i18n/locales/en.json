@@ -386,7 +386,7 @@
     "office.team.childrenWaitOne": "Waiting for {count} child agent",
     "office.team.childrenBack": "Collecting the child agents' results",
     "office.team.childrenFolding": "Collecting results: {partial} unfinished, {stopped} stopped - combining with what I have",
-    "office.command.placeholder": "Ask, give work, type a ticker...",
+    "office.command.placeholder": "Ask, give work, type a ticker to look it up (FPT) or / for commands",
     "office.command.hint": "Type to ask, type a ticker to look it up, type / or press Tab to see commands. The up arrow recalls what you sent.",
     "office.command.keys": "Tab completes - Enter sends - up and down choose - Esc closes",
     "office.command.suggestions": "Suggestions",

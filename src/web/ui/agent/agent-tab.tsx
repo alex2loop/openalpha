@@ -69,6 +69,7 @@ function PersonTab({ agentId, section: opening }: Required<AgentTabProps>) {
     <div class="agent-tab">
       <AgentHead view={view} />
       <Segmented
+        className="is-tabs"
         label={view.name}
         value={section.value}
         options={SECTIONS.map((value) => ({ value, label: tr(SECTION_LABELS[value]) }))}

@@ -1,6 +1,7 @@
+/* Under the running chip, as the mockup hangs it. */
 .popover.jobs-popover {
   right: auto;
-  left: var(--s2);
+  left: 130px;
   width: 420px;
 }
 

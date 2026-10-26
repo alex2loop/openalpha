@@ -97,7 +97,7 @@ function FocusButton() {
   return (
     <button
       type="button"
-      class="chip header-focus"
+      class="btn btn-ghost btn-regular header-focus"
       title={tr('ui.office.header.focusTip')}
       aria-pressed={isFocus.value}
       onClick={toggleFocus}

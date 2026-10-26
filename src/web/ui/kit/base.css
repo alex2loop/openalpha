@@ -45,12 +45,12 @@ select {
   textarea
 ) {
   min-height: var(--controlH);
-  padding: 0 var(--controlPadX);
+  padding: 0 var(--fieldPadX);
   border: 1px solid var(--border);
-  border-radius: var(--controlRadius);
-  background-color: var(--surface);
+  border-radius: var(--controlSmRadius);
+  background-color: var(--canvas);
   color: var(--ink);
-  font-size: var(--controlFont);
+  font-size: var(--fieldFont);
   font-weight: 400;
 }
 
@@ -62,7 +62,7 @@ select {
 /* Its chevron is drawn in the ink colour, the same in every browser. */
 :where(select) {
   max-width: 100%;
-  padding-right: calc(var(--controlPadX) + var(--s3));
+  padding-right: calc(var(--fieldPadX) + var(--s3));
   background-image:
     linear-gradient(45deg, transparent 50%, var(--ink2) 50%),
     linear-gradient(135deg, var(--ink2) 50%, transparent 50%);
@@ -82,6 +82,23 @@ p {
   margin: 0;
 }
 
+svg.icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+kbd {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--ink3);
+  font:
+    11px ui-monospace,
+    Menlo,
+    monospace;
+}
+
 .mono {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
@@ -93,7 +110,8 @@ p {
 
 /* A field shows focus on its own edge, not a ring around it. */
 :is(input, select, textarea):focus-visible {
-  outline-offset: -1px;
+  border-color: var(--ink3);
+  outline: 0;
 }
 
 /* A text field with suggestions looks like a text field (Chrome draws the first marker, Safari the
@@ -127,6 +145,23 @@ input[list]::-webkit-list-button {
   display: inline-block;
   flex: none;
   background: url("../../../../assets/brand/logo.svg") center / contain no-repeat;
+}
+
+/* A small icon tile: colour lives here, text stays Ink and Ink 2. */
+.tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) var(--tile-mix), transparent);
+  color: var(--c);
+}
+
+.tile svg.icon {
+  width: 12px;
+  height: 12px;
 }
 
 .meta {

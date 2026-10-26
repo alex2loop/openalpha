@@ -27,7 +27,12 @@ const PERCENT = 100
  *  to the full report. */
 export function CostPopover({ anchor }: { readonly anchor: RefObject<HTMLElement | null> }) {
   return (
-    <Popover id={COST_POPOVER_ID} anchor={anchor} label={tr('ui.office.cost.title')}>
+    <Popover
+      id={COST_POPOVER_ID}
+      anchor={anchor}
+      label={tr('ui.office.cost.title')}
+      class="cost-popover"
+    >
       <CostBody />
       <div class="popover-foot">
         <Button kind="tertiary" size="small" onClick={openCostDialog}>

@@ -93,14 +93,13 @@ function ActivityItem({ row }: { readonly row: ActivityRowWire }) {
 
 export function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
   const timeZone = state.value?.timeZone
-  const facts = [
-    ...(timeZone === undefined ? [] : [formatClock(row.endedAt, timeZone)]),
-    ...(row.agentId === undefined ? [] : [row.agentId]),
-    sourceLabel(row.channelId),
-  ]
+  const facts = [...(row.agentId === undefined ? [] : [row.agentId]), sourceLabel(row.channelId)]
 
   return (
     <div class="activity-line">
+      <span class="activity-time">
+        {timeZone === undefined ? '' : formatClock(row.endedAt, timeZone)}
+      </span>
       <div class="activity-main">
         <b>{formatRunName(row)}</b>
         <p class="meta">{joinInline(facts)}</p>

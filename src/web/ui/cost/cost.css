@@ -1,3 +1,9 @@
+/* Under the cost chip, as the mockup hangs it. */
+.popover.cost-popover {
+  right: 150px;
+  width: 380px;
+}
+
 .cost-figure {
   font-variant-numeric: tabular-nums;
 }
@@ -86,4 +92,9 @@
 
 .cost-bar rect {
   fill: var(--ink);
+}
+
+:root:not([data-layout="wide"]) .popover.cost-popover {
+  right: var(--popoverGutter);
+  width: auto;
 }

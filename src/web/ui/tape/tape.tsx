@@ -6,6 +6,7 @@ import { reducedMotion } from '@/web/state/prefs'
 import { isFirstRun } from '@/web/state/session'
 import { type TapeRow, tapeRows } from '@/web/state/tape'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
@@ -78,15 +79,19 @@ function TapeCell({ row, note, isCopy }: TapeCellProps) {
       </b>
       <span class="tape-price">{formatPrice(row.price, row.display)}</span>
       <span class={`is-${toneOfPercent(row.changePct)}-text`}>
-        {formatSignedPercent(row.changePct)}
+        {joinInline([formatSignedPercent(row.changePct), ...noteOf(note)])}
       </span>
-      {note !== undefined && (
-        <span class="tape-note">
-          {note === 'breach' ? tr('ui.office.tape.breach') : tr('ui.office.tape.call')}
-        </span>
-      )}
     </span>
   )
+}
+
+// The mark a breach or a fresh call adds after the move, in the move's own colour.
+function noteOf(note: Note): readonly string[] {
+  if (note === undefined) {
+    return []
+  }
+
+  return [note === 'breach' ? tr('ui.office.tape.breach') : tr('ui.office.tape.call')]
 }
 
 // A price that moved flashes until its CSS animation ends; a quiet page (reduced motion) never does.
