@@ -31,6 +31,7 @@ import type {
 import type { ModelsResponse } from '@/app/server/wire/models'
 import type {
   LedgerPageResponse,
+  LedgerPreviewResponse,
   LedgerWriteResponse,
   RebalanceResponse,
   StopsResponse,
@@ -132,6 +133,7 @@ export const ROUTES = Object.freeze({
   portfolioNav: route<TradingNavResponse>('/v1/portfolio/nav', 'portfolio'),
   ledger: route<LedgerPageResponse>('/v1/ledger', 'portfolio'),
   ledgerWrite: route<LedgerWriteResponse>('/v1/ledger', 'portfolio'),
+  ledgerPreview: route<LedgerPreviewResponse>('/v1/ledger/preview', 'portfolio'),
   ledgerRow: (entryId: string) =>
     route<LedgerWriteResponse>(`/v1/ledger/${encodeURIComponent(entryId)}`, 'portfolio'),
   rebalance: route<RebalanceResponse>('/v1/rebalance', 'portfolio'),

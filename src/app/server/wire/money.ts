@@ -84,6 +84,13 @@ export interface LedgerWriteResponse {
   readonly planned?: SuggestionWire
 }
 
+/** POST /v1/ledger/preview - `{ draft }`, written nowhere. `fxRate` is the day's market rate
+ *  (book currency per unit of `currency`), present only where a rate changes what the row records:
+ *  ask the operator for it, then send it as `operatorFxRate` with `fxRateConfirmed: true`. */
+export interface LedgerPreviewResponse {
+  readonly fxRate?: { readonly currency: string; readonly rate: number; readonly day: string }
+}
+
 /** GET /v1/stops — the stop each holding's latest plan names, and who stands behind it at the
  *  exchange. `distanceToStopPct` at or below 0 means the mark is through the stop. A held name with
  *  no row is below the venue's minimum size. */

@@ -1,33 +1,81 @@
 import { type ReadonlySignal, signal } from '@preact/signals'
 
-import type { LedgerEntryWire, LedgerWriteResponse } from '@/app/server/wire/money'
+import type {
+  LedgerEntryWire,
+  LedgerPreviewResponse,
+  LedgerWriteResponse,
+} from '@/app/server/wire/money'
 import type { TypedPrice } from '@/app/server/wire/vocab'
 import { sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { holdingsBlock, stopsBlock } from '@/web/state/market'
 import { loadSession } from '@/web/state/session'
 
-export type TradeKind = 'buy' | 'sell'
-/** A ledger row this page writes by hand and so may edit or delete. */
-export type TradeEntry = Extract<LedgerEntryWire, { readonly quantity: number }>
+/** What happened, as the ledger names it. */
+export type LedgerKind = LedgerEntryWire['kind']
 
-/** What the page sends for one buy or sell it records by hand: no order is placed. `fee` left
- *  out is priced by the venue's fee table. */
-export interface TradeDraft {
-  readonly kind: TradeKind
+interface Instrument {
+  readonly market: string
+  readonly ticker: string
+}
+
+interface DraftBase {
   readonly at: string
-  readonly instrument: { readonly market: string; readonly ticker: string }
-  readonly venue: string
-  readonly quantity: number
-  readonly unitPrice: number
-  readonly fee?: number
   readonly note?: string
 }
 
+/** Sent only where the daemon's preview asked for a rate; anywhere else a rate is refused. */
+interface StatedRate {
+  readonly operatorFxRate?: number
+  readonly fxRateConfirmed?: true
+}
+
+/** What the page sends for one row it records by hand: no order is placed. A trade's `fee` left
+ *  out is priced by the venue's fee table. A dividend names no currency: its market's stands. */
+export type LedgerDraft =
+  | (DraftBase &
+      StatedRate & {
+        readonly kind: 'buy' | 'sell' | 'rights'
+        readonly instrument: Instrument
+        readonly venue: string
+        readonly quantity: number
+        readonly unitPrice: number
+        readonly fee?: number
+      })
+  | (DraftBase & {
+      readonly kind: 'dividend'
+      readonly instrument: Instrument
+      readonly venue: string
+      readonly amount: number
+    })
+  | (DraftBase & {
+      readonly kind: 'split' | 'distribution'
+      readonly instrument: Instrument
+      readonly venue: string
+      readonly quantityDelta: number
+    })
+  | (DraftBase &
+      StatedRate & {
+        readonly kind: 'transfer'
+        readonly fromVenue: string
+        readonly venue: string
+        readonly currency: string
+        readonly amount: number
+        readonly fee: number
+      })
+  | (DraftBase &
+      StatedRate & {
+        readonly kind: 'deposit' | 'withdrawal' | 'fee' | 'loss'
+        readonly venue: string
+        readonly currency: string
+        readonly amount: number
+      })
+
+/** `typedPrice` rides only a row with a price: absent would skip the daemon's check of a price far
+ *  from the market. */
 interface TradeRequest {
-  readonly draft: TradeDraft
-  /** Always sent: absent would skip the daemon's check of a price far from the market. */
-  readonly typedPrice: TypedPrice
+  readonly draft: LedgerDraft
+  readonly typedPrice?: TypedPrice
 }
 
 const revision = signal(0)
@@ -53,6 +101,14 @@ export async function recordTrade(
   return answer
 }
 
+/** The day's market rate the row would ask for, absent where no rate applies. */
+export async function previewLedger(
+  draft: LedgerDraft,
+  abort: AbortSignal
+): Promise<LedgerPreviewResponse> {
+  return sendJson('POST', ROUTES.ledgerPreview, { body: { draft }, signal: abort })
+}
+
 /** Replaces the whole row. */
 export async function editTrade(
   entryId: string,
@@ -68,25 +124,6 @@ export async function editTrade(
 export async function deleteTrade(entryId: string): Promise<void> {
   await sendJson('DELETE', ROUTES.ledgerRow(entryId))
   await afterWrite(undefined)
-}
-
-/** Only a buy or a sell: the other kinds (rights, cash, dividends) are written elsewhere. */
-export function isTradeEntry(entry: LedgerEntryWire): entry is TradeEntry {
-  return entry.kind === 'buy' || entry.kind === 'sell'
-}
-
-/** The draft that records `entry` again, for taking back a delete. */
-export function toTradeDraft(entry: TradeEntry): TradeDraft {
-  return {
-    kind: entry.kind === 'sell' ? 'sell' : 'buy',
-    at: entry.at,
-    instrument: entry.instrument,
-    venue: entry.venue,
-    quantity: entry.quantity,
-    unitPrice: entry.unitPrice,
-    fee: entry.fee,
-    ...(entry.note === undefined ? {} : { note: entry.note }),
-  }
 }
 
 /** The row has flashed; Lịch sử no longer marks it. */

@@ -1,14 +1,18 @@
+import type { Signal } from '@preact/signals'
 import type { ComponentChildren } from 'preact'
 import { useEffect } from 'preact/hooks'
 
+import type { LedgerKind } from '@/web/state/trade'
 import { translateDisplayText } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { locale } from '@/web/state/session'
+import { joinInline } from '@/web/text/glyphs'
 import { boardScaleNotes } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { describeFailure, type FormFailure } from '@/web/ui/dialogs/field-errors'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
+import { OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
 import { chooseVenue, marketOf, offerVenues, type TradeForm } from '@/web/ui/dialogs/trade-state'
 import { Segmented } from '@/web/ui/kit/segmented'
 
@@ -18,11 +22,19 @@ export const TRADE_PATHS = [
   'instrument.ticker',
   'instrument.market',
   'quantity',
+  'quantityDelta',
   'unitPrice',
   'fee',
+  'amount',
+  'currency',
+  'operatorFxRate',
   'at',
   'venue',
+  'fromVenue',
 ]
+const MAIN_KINDS: readonly LedgerKind[] = Object.freeze(['buy', 'sell'])
+// The menu's first line, standing for "Khác" until a kind is picked.
+const OTHER_VALUE = ''
 
 interface FieldProps {
   readonly id: string
@@ -32,39 +44,107 @@ interface FieldProps {
   readonly children: ComponentChildren
 }
 
-/** The fields of the form; the preview, notes and question sit around them in the dialog. */
-export function TradeFields({ form }: { readonly form: TradeForm }) {
-  useVenues(form)
+interface TextFieldProps {
+  readonly form: TradeForm
+  readonly id: string
+  readonly label: string
+  readonly value: Signal<string>
+  /** The draft paths whose refusal shows under it. */
+  readonly paths: readonly string[]
+  readonly hint?: string
+}
+
+interface VenueFieldProps {
+  readonly form: TradeForm
+  readonly id: string
+  readonly label: string
+  readonly value: Signal<string>
+  readonly path: string
+}
+
+/** Mua | Bán | Khác ▾: the menu names each other kind with what it is for. */
+export function KindRow({ form }: { readonly form: TradeForm }) {
+  const kind = form.kind.value
+  const isOther = !MAIN_KINDS.includes(kind)
+
+  return (
+    <div class="form-row">
+      <Segmented
+        label={tr('ui.office.common.recordTrade')}
+        value={kind}
+        options={MAIN_KINDS.map((value) => ({ value, label: tr(`trading.ledger.kind.${value}`) }))}
+        onChange={(value) => pickKind(form, value)}
+      />
+      <select
+        aria-label={tr('ui.office.trade.other')}
+        value={isOther ? kind : OTHER_VALUE}
+        onChange={(event) => {
+          const picked = OTHER_KINDS.find((other) => other.kind === event.currentTarget.value)
+
+          if (picked !== undefined) {
+            pickKind(form, picked.kind)
+          }
+        }}
+      >
+        <option value={OTHER_VALUE} disabled>
+          {tr('ui.office.trade.other')}
+        </option>
+        {OTHER_KINDS.map((other) => (
+          <option key={other.kind} value={other.kind}>
+            {joinInline([tr(`trading.ledger.kind.${other.kind}`), tr(other.hint)])}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+function pickKind(form: TradeForm, kind: LedgerKind): void {
+  form.kind.value = kind
+  chooseVenue(form)
+  touch(form)
+}
+
+/** A buy, a sell or a rights purchase. */
+export function PricedFields({ form }: { readonly form: TradeForm }) {
+  const isRights = form.kind.value === 'rights'
 
   return (
     <>
-      <Segmented
-        label={tr('ui.office.common.recordTrade')}
-        value={form.kind.value}
-        options={(['buy', 'sell'] as const).map((value) => ({
-          value,
-          label: tr(`trading.ledger.kind.${value}`),
-        }))}
-        onChange={(value) => {
-          form.kind.value = value
-          touch(form)
-        }}
-      />
       <TickerField form={form} />
       <div class="form-row">
-        <QuantityField form={form} />
+        <TextField
+          form={form}
+          id="trade-quantity"
+          label={tr('ui.office.trade.quantity')}
+          value={form.quantity}
+          paths={['quantity']}
+        />
         <PriceField form={form} />
       </div>
       <div class="form-row">
-        <VenueField form={form} />
+        <VenueField
+          form={form}
+          id="trade-venue"
+          label={tr('ui.office.trade.venue')}
+          value={form.venue}
+          path="venue"
+        />
         <DayField form={form} />
-        <FeeField form={form} />
+        <TextField
+          form={form}
+          id="trade-fee"
+          label={tr('ui.office.trade.fee')}
+          value={form.fee}
+          paths={['fee']}
+          {...(isRights ? {} : { hint: tr('ui.office.trade.feeHint') })}
+        />
       </div>
     </>
   )
 }
 
-function Field({ id, label, message, hint, children }: FieldProps) {
+export function Field({ id, label, message, hint, children }: FieldProps) {
   return (
     <div class="form-field">
       <label class="form-label" for={id}>
@@ -77,7 +157,7 @@ function Field({ id, label, message, hint, children }: FieldProps) {
   )
 }
 
-function TickerField({ form }: { readonly form: TradeForm }) {
+export function TickerField({ form }: { readonly form: TradeForm }) {
   return (
     <Field
       id="trade-ticker"
@@ -89,7 +169,7 @@ function TickerField({ form }: { readonly form: TradeForm }) {
         type="text"
         class="mono"
         value={form.ticker.value}
-        readOnly={form.start.entry !== undefined}
+        readOnly={form.start.entry !== undefined && 'instrument' in form.start.entry}
         onInput={(event) => {
           form.ticker.value = event.currentTarget.value
           chooseVenue(form)
@@ -100,21 +180,23 @@ function TickerField({ form }: { readonly form: TradeForm }) {
   )
 }
 
-function QuantityField({ form }: { readonly form: TradeForm }) {
+/** A figure the operator types. */
+export function TextField({ form, id, label, value, paths, hint }: TextFieldProps) {
   return (
     <Field
-      id="trade-quantity"
-      label={tr('ui.office.trade.quantity')}
-      message={messageFor(form, 'quantity')}
+      id={id}
+      label={label}
+      message={messageFor(form, ...paths)}
+      {...(hint === undefined ? {} : { hint })}
     >
       <input
-        id="trade-quantity"
+        id={id}
         type="text"
         inputMode="decimal"
         class="form-number"
-        value={form.quantity.value}
+        value={value.value}
         onInput={(event) => {
-          form.quantity.value = event.currentTarget.value
+          value.value = event.currentTarget.value
           touch(form)
         }}
       />
@@ -125,37 +207,30 @@ function QuantityField({ form }: { readonly form: TradeForm }) {
 function PriceField({ form }: { readonly form: TradeForm }) {
   const market = marketOf(form)
   const [scale] = market === undefined ? [] : boardScaleNotes([market])
+  const label =
+    form.kind.value === 'rights' ? 'ui.office.trade.rightsPrice' : 'ui.office.trade.price'
 
   return (
-    <Field
+    <TextField
+      form={form}
       id={PRICE_FIELD_ID}
-      label={tr('ui.office.trade.price')}
-      message={messageFor(form, 'unitPrice')}
+      label={tr(label)}
+      value={form.price}
+      paths={['unitPrice']}
       {...(scale === undefined ? {} : { hint: scale })}
-    >
-      <input
-        id={PRICE_FIELD_ID}
-        type="text"
-        inputMode="decimal"
-        class="form-number"
-        value={form.price.value}
-        onInput={(event) => {
-          form.price.value = event.currentTarget.value
-          touch(form)
-        }}
-      />
-    </Field>
+    />
   )
 }
 
-function VenueField({ form }: { readonly form: TradeForm }) {
+export function VenueField({ form, id, label, value, path }: VenueFieldProps) {
   return (
-    <Field id="trade-venue" label={tr('ui.office.trade.venue')} message={messageFor(form, 'venue')}>
+    <Field id={id} label={label} message={messageFor(form, path)}>
       <select
-        id="trade-venue"
-        value={form.venue.value}
+        id={id}
+        value={value.value}
         onChange={(event) => {
-          form.venue.value = event.currentTarget.value
+          value.value = event.currentTarget.value
+          chooseVenue(form)
           touch(form)
         }}
       >
@@ -169,7 +244,7 @@ function VenueField({ form }: { readonly form: TradeForm }) {
   )
 }
 
-function DayField({ form }: { readonly form: TradeForm }) {
+export function DayField({ form }: { readonly form: TradeForm }) {
   return (
     <Field id="trade-day" label={tr('ui.office.trade.day')} message={messageFor(form, 'at')}>
       <input
@@ -187,29 +262,6 @@ function DayField({ form }: { readonly form: TradeForm }) {
   )
 }
 
-function FeeField({ form }: { readonly form: TradeForm }) {
-  return (
-    <Field
-      id="trade-fee"
-      label={tr('ui.office.trade.fee')}
-      message={messageFor(form, 'fee')}
-      hint={tr('ui.office.trade.feeHint')}
-    >
-      <input
-        id="trade-fee"
-        type="text"
-        inputMode="decimal"
-        class="form-number"
-        value={form.fee.value}
-        onInput={(event) => {
-          form.fee.value = event.currentTarget.value
-          touch(form)
-        }}
-      />
-    </Field>
-  )
-}
-
 /** A venue by its catalog name; one the catalog does not know (a broker of the operator's own)
  *  prints as its id. */
 function venueName(venue: string): string {
@@ -217,13 +269,13 @@ function venueName(venue: string): string {
 }
 
 /** Any edit drops the question and the refusals about the old figures. */
-function touch(form: TradeForm): void {
+export function touch(form: TradeForm): void {
   form.question.value = undefined
   form.refused.value = new Map()
   form.failure.value = undefined
 }
 
-function messageFor(form: TradeForm, ...paths: readonly string[]): string | undefined {
+export function messageFor(form: TradeForm, ...paths: readonly string[]): string | undefined {
   const failure: FormFailure | undefined = form.failure.value
 
   for (const path of paths) {
@@ -238,7 +290,7 @@ function messageFor(form: TradeForm, ...paths: readonly string[]): string | unde
 }
 
 // The venues are read once, when the dialog mounts; leaving it ends the read.
-function useVenues(form: TradeForm): void {
+export function useVenues(form: TradeForm): void {
   useEffect(() => {
     const controller = new AbortController()
 

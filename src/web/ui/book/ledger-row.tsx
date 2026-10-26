@@ -1,7 +1,6 @@
 import type { LedgerEntryWire } from '@/app/server/wire/money'
 import { formatDay } from '@/i18n'
 import { locale } from '@/web/state/session'
-import { isTradeEntry } from '@/web/state/trade'
 import { formatAmount, formatQuantity } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { formatMarketPrice } from '@/web/text/market-price'
@@ -23,7 +22,7 @@ interface LedgerRowProps {
 }
 
 /** One ledger line, every cell on one line: the day, the kind, the name, the quantity and the
- *  price or amount. The venue and note ride in the hover title. A buy or a sell can be edited. */
+ *  price or amount. The venue and note ride in the hover title. Every row can be edited. */
 export function LedgerRow({ entry, isFlashed }: LedgerRowProps) {
   const cells = describeEntry(entry)
 
@@ -43,13 +42,9 @@ export function LedgerRow({ entry, isFlashed }: LedgerRowProps) {
       </b>
       <span class="ledger-cell is-end">{cells.quantity}</span>
       <span class="ledger-cell is-end">{cells.price}</span>
-      {isTradeEntry(entry) ? (
-        <button type="button" class="ledger-edit" onClick={() => openTradeDialog({ entry })}>
-          {tr('ui.office.common.edit')}
-        </button>
-      ) : (
-        <span />
-      )}
+      <button type="button" class="ledger-edit" onClick={() => openTradeDialog({ entry })}>
+        {tr('ui.office.common.edit')}
+      </button>
     </div>
   )
 }
