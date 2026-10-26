@@ -86,6 +86,9 @@ export interface StaffLook {
   readonly look?: AgentLookWire
 }
 
+/** The first of a street person's two waving gait frames. */
+export const WAVE_FRAME = 5
+
 /** A person on the street: who, which way they face, the gait frame (0 standing, 1 to 4 walking,
  *  5 and 6 waving), the seed their clothes come from, what they carry, and the office person's own
  *  look when on an errand. */

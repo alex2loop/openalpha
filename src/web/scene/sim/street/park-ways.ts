@@ -11,7 +11,7 @@ import {
   WALK_REACH_PX,
 } from '@/web/scene/sim/street/ped-walk'
 import { type Point, WORLD } from '@/web/scene/types'
-import { STREET_RECT } from '@/web/scene/view'
+import { STREET_BOTTOM } from '@/web/scene/view'
 import { sideX } from '@/web/scene/world/street-layout'
 
 /** What someone does in a park. */
@@ -21,7 +21,6 @@ const PARK_ROUTE_MAX = 64
 // A side park's gates north of this come in from the side street's north end, the rest from its
 // south end; north park people come along the far pavement, more often from its west end.
 const SIDE_ENTRY_SPLIT_Y = 300
-const STREET_BOTTOM = STREET_RECT.y + STREET_RECT.h
 const WEST_END_SHARE = 0.6
 // Where south park people come along the plaza from: the side pavements on both sides.
 const PLAZA_ENDS = [

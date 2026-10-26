@@ -120,7 +120,8 @@ const SIDE_GATES = [1, 5, 9] as const
 const SIDE_GATE_U = 2
 const SIDE_BENCHES = [2, 4, 6, 8, 10] as const
 const SIDE_BENCH_U = [19, 37] as const
-const SIDE_RINGS = Object.freeze({ bed: { rx: 24, ry: 20 }, pond: { rx: 32, ry: 23 } })
+/** The ring paths' half sizes round a side park's flower bed and pond; trees keep off them. */
+export const SIDE_RINGS = Object.freeze({ bed: { rx: 24, ry: 20 }, pond: { rx: 32, ry: 23 } })
 const SIDE_STROLLS = ['s0', 's2', 's3', 's4', 's6', 's7', 's8', 's11', 's2', 's4', 's6', 's8', 'b3']
 // The tai chi group's places round the plaza, and the gym's places beside each machine.
 const TAI_CHI = [

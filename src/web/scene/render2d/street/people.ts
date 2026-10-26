@@ -20,7 +20,13 @@ import {
   PANTS_OF,
   type PantsTone,
 } from '@/web/scene/sprites/parts'
-import { ERRAND_ITEMS, HEADINGS, PERSON_KINDS, STREET_FIGURE_H } from '@/web/scene/street-types'
+import {
+  ERRAND_ITEMS,
+  HEADINGS,
+  PERSON_KINDS,
+  STREET_FIGURE_H,
+  WAVE_FRAME,
+} from '@/web/scene/street-types'
 
 type Rect4 = readonly [number, number, number, number]
 
@@ -35,7 +41,6 @@ const PANTS = PANTS_TONES.map((tone) => RAMP.pants[tone][1])
 const PACKS = ['#C9544A', '#3F7FC5', '#E0A13A', '#5CA27A', '#8E5BB5'] as const
 const PUPIL_PANTS = 1
 const FRAMES = 7
-const WAVE_FRAME = 5
 // Bits of a passer-by's look seed each colour is drawn from.
 const LOOK_BITS = Object.freeze({ hair: 2, shirt: 4, pants: 7, pack: 9 })
 const TONES = Object.freeze({

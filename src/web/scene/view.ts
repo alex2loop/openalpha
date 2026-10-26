@@ -17,6 +17,7 @@ export const STREET_RECT: Rect = Object.freeze({
   w: FRAME_RECT.w + 2 * STREET_SIDE_PX,
   h: FRAME_RECT.h + STREET_NORTH_PX + STREET_SOUTH_PX,
 })
+export const STREET_BOTTOM = STREET_RECT.y + STREET_RECT.h
 // The moving street canvas reaches this share of the visible rect past each of its sides, so a
 // small pan between two steps stays inside it.
 const MOVING_MARGIN = 0.25

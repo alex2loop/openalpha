@@ -9,6 +9,7 @@ import type {
 } from '@/web/scene/street-types'
 import type { createRng } from '@/web/scene/world/rng'
 import { signalOf } from '@/web/scene/sim/street/signals'
+import { WAVE_FRAME } from '@/web/scene/street-types'
 import { WORLD } from '@/web/scene/types'
 import { CROSSING, NORTH, SIDE_ROAD } from '@/web/scene/world/street-layout'
 import { MS_PER_SECOND } from '@/web/text/time-units'
@@ -20,7 +21,6 @@ const JOG_PX_PER_FRAME = 1.4
 const STAND_AFTER_MS = 280
 const WAVE_FRAME_MS = 260
 const WALK_FRAMES = 4
-const WAVE_FRAME = 5
 const ROUTE_MAX = 7
 // A car this close to the zebra keeps walkers on the kerb.
 const ZEBRA_CLEAR_PX = 6

@@ -1,7 +1,6 @@
 import type { CityScene } from '@/web/scene/render2d/street/city-blocks'
 import type { Park } from '@/web/scene/sim/street/park-layout'
 import { paintLamp, paintTree } from '@/web/scene/render2d/street/city-blocks'
-import { STREET_BOTTOM } from '@/web/scene/render2d/street/city-ground'
 import { paintPond } from '@/web/scene/render2d/street/park-pond'
 import {
   paintBench,
@@ -17,9 +16,11 @@ import {
   PARKS,
   parkX,
   SIDE_PARK,
+  SIDE_RINGS,
   SOUTH_PARK,
 } from '@/web/scene/sim/street/park-layout'
 import { WORLD } from '@/web/scene/types'
+import { STREET_BOTTOM } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { tr } from '@/web/text/tr'
 
@@ -45,7 +46,6 @@ const SCATTER = Object.freeze({
   ringPad: 8,
   kinds: 3,
 })
-const RING_RADII = Object.freeze({ bed: { rx: 24, ry: 20 }, pond: { rx: 32, ry: 23 } })
 const HEDGE_IN = 1.4
 
 /** A box trees keep off: centre and half sizes. */
@@ -233,10 +233,10 @@ function sideScatterOf(side: Side): Scatter {
   const { side: area } = SCATTER
   const a = parkX(side, area.u0)
   const b = parkX(side, SIDE_PARK.depth - area.inset)
-  const keep: Keep[] = [{ x: parkX(side, sideBed.u), y: sideBed.y, ...RING_RADII.bed }]
+  const keep: Keep[] = [{ x: parkX(side, sideBed.u), y: sideBed.y, ...SIDE_RINGS.bed }]
 
   if (side < 0) {
-    keep.push({ x: parkX(side, pond.u), y: pond.y, ...RING_RADII.pond })
+    keep.push({ x: parkX(side, pond.u), y: pond.y, ...SIDE_RINGS.pond })
   }
 
   return {

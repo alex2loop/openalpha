@@ -9,7 +9,6 @@ import {
 import {
   fillTone,
   GROUND_TONES,
-  STREET_BOTTOM,
   STREET_LEFT,
   STREET_RIGHT,
   toneOf,
@@ -18,7 +17,7 @@ import { paintSideStreet, paintSouth } from '@/web/scene/render2d/street/city-si
 import { paintBackdrop } from '@/web/scene/render2d/street/landmark'
 import { mixTone } from '@/web/scene/render2d/street/tone'
 import { WORLD } from '@/web/scene/types'
-import { STREET_RECT } from '@/web/scene/view'
+import { STREET_BOTTOM, STREET_RECT } from '@/web/scene/view'
 import { shopRowSpanOf } from '@/web/scene/world/frontage'
 import { holidayOf, isWithin } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
