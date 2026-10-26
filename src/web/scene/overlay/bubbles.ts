@@ -219,7 +219,7 @@ function thinkLines(input: BubbleInput): Candidate[] {
 
     if (run !== undefined && text !== undefined && text !== '' && !seen.has(run.runId)) {
       seen.add(run.runId)
-      lines.push({ actor, kind: 'think', full: text, at: run.progress?.at ?? run.startedAt })
+      lines.push({ actor, kind: 'think', full: text, at: run.heardAt })
     }
   }
 

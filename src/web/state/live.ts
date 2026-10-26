@@ -25,6 +25,9 @@ export interface Run {
   readonly hidden?: true
   readonly startedAt: number
   readonly seenAt: number
+  /** Epoch ms by the page's clock when its latest line (start, step or thinking) arrived; lines
+   *  the page orders against its own speech read this, never the daemon's `progress.at`. */
+  readonly heardAt: number
   readonly progress?: ProgressWire
   readonly thinking?: string
   readonly persistent: readonly ProgressWire[]

@@ -273,6 +273,7 @@ function toRun(wire: LiveRunWire): Run {
     ...wire,
     ...(thinking === undefined ? {} : { thinking }),
     seenAt: held?.seenAt ?? nextArrivalSeq(),
+    heardAt: isSameLine(held, wire) ? held.heardAt : Date.now(),
     tickers: wire.tickers ?? [],
   }
 }
@@ -312,6 +313,11 @@ function applyRunEvent(feed: FeedState, event: RunEvent, isAfterSnapshot: boolea
   }
 }
 
+// A snapshot repeating the line the page holds keeps the time it first arrived.
+function isSameLine(held: Run | undefined, wire: LiveRunWire): held is Run {
+  return held !== undefined && held.progress?.at === wire.progress?.at
+}
+
 function applyStart(feed: FeedState, event: RunEvent): void {
   const { runId, run: start } = event
 
@@ -330,6 +336,7 @@ function applyStart(feed: FeedState, event: RunEvent): void {
     ...(start.kind === 'agent' ? { agentId: start.name } : {}),
     runId,
     seenAt: held?.seenAt ?? nextArrivalSeq(),
+    heardAt: Date.now(),
   })
 }
 
@@ -369,7 +376,7 @@ function mergeUpdate(run: Run, event: WireEvent): Run {
   const { progress, thinking } = event
 
   if (thinking !== undefined) {
-    return { ...run, thinking }
+    return { ...run, thinking, heardAt: Date.now() }
   }
 
   // An older line replayed after a newer snapshot never takes its place.
@@ -380,6 +387,7 @@ function mergeUpdate(run: Run, event: WireEvent): Run {
   return {
     ...run,
     progress,
+    heardAt: Date.now(),
     persistent:
       progress.mode === 'persistent' ? appendStep(run.persistent, progress) : run.persistent,
   }
