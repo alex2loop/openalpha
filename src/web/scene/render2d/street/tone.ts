@@ -1,3 +1,7 @@
+/** What night mixes every daylight tone toward. */
+export const NIGHT_TONE = '#0A0E1C'
+/** Night-tinted sprites are cached at this many steps of darkness, never per minute. */
+export const DARK_STEPS = 6
 const HEX_RADIX = 16
 const CHANNEL_BITS = 8
 const CHANNEL_MASK = 0xff

@@ -56,6 +56,7 @@ export const VN_PACK = Object.freeze({
     west: { lanes: 2, oneWay: false },
     east: { lanes: 2, oneWay: false },
     turnSign: true,
+    habits: true,
   },
   street: 'Hàm Nghi',
   park: 'Bến Bạch Đằng',

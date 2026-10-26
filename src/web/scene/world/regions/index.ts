@@ -1,6 +1,9 @@
 import type { MessageKey } from '@/i18n'
-import type { ActorId, Point } from '@/web/scene/types'
+import type { BikeShape, CarSize, ChatterId } from '@/web/scene/street-types'
+import { type ActorId, type Point, WORLD } from '@/web/scene/types'
 import { VN_PACK } from '@/web/scene/world/regions/vn'
+import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
+import { MINUTES_PER_DAY } from '@/web/text/time-units'
 
 type RegionPackId = 'vn'
 
@@ -43,7 +46,9 @@ export interface SideStreet {
 
 /** The main road along the office, and the side streets that meet it. `north.oneWay`: the whole
  *  road runs one way (false: it carries both ways, one `carriageways` each, split by the median);
- *  `turnSign`: the blue plate that lets two-wheelers turn right on red. */
+ *  `turnSign`: the blue plate that lets two-wheelers turn right on red; `habits`: motorbikes slip
+ *  between the cars, bunch ahead of them at a red light and leave first, the rush hours jam, and
+ *  an attendant parks motorbikes in rows in front of the frontage building. */
 export interface RoadLayout {
   readonly north: {
     readonly carriageways: 1 | 2
@@ -54,6 +59,7 @@ export interface RoadLayout {
   readonly west: SideStreet
   readonly east: SideStreet
   readonly turnSign: boolean
+  readonly habits: boolean
 }
 
 /** A street name plate: colours, the inset frame, the street word over the name (`caps`: sign
@@ -96,10 +102,6 @@ export interface ShopRow {
   readonly item?: 'cup' | 'bag' | 'box'
 }
 
-export type BikeShape = 'step-through' | 'scooter' | 'maxi' | 'sport'
-
-export type CarSize = 'small' | 'mid' | 'large'
-
 /** The traffic, as shares (each group sums to one): vehicles by kind, motorbikes by shape, cars
  *  by size, and the share of cars that are taxis; plain body colours, no brand. */
 export interface VehicleMix {
@@ -119,8 +121,6 @@ export interface VehicleMix {
 export type VendorId = 'pho' | 'tea' | 'banhMi' | 'flowerBike' | 'eveningStools'
 
 export type HolidayId = 'tet' | 'trung-thu' | 'quoc-khanh' | 'noel'
-
-export type ChatterId = 'honk' | 'eh' | 'hello' | 'hey'
 
 /** The catalog keys of the words the delivery box, the taxi roof and the sanitation truck show. */
 export interface StreetWords {
@@ -209,6 +209,24 @@ export function packOf(homeRegion: string | undefined): RegionPack {
 
 export function isInRange(minute: number, range: MinuteRange): boolean {
   return minute >= range[0] && minute < range[1]
+}
+
+/** The door of `shops[index]` on the far pavement: the row runs left to right with its lobby
+ *  centred on the office (the whole row centred when it has none). */
+export function shopDoorOf(shops: readonly ShopRow[], index: number): Point {
+  const lobby = shops.findIndex((row) => row.kind === 'lobby')
+  const metresTo = (end: number): number =>
+    shops.slice(0, end).reduce((sum, row) => sum + row.frontageM, 0)
+  const centreM =
+    lobby < 0 ? metresTo(shops.length) / 2 : metresTo(lobby) + (shops[lobby]?.frontageM ?? 0) / 2
+  const doorM = metresTo(index) + (shops[index]?.frontageM ?? 0) / 2
+
+  return { x: WORLD.w / 2 + (doorM - centreM) / METRES_PER_PX, y: NORTH.farTop }
+}
+
+/** The shop serves at `minute` of the page day: a day and night shop always, a shutter never. */
+export function isShopOpen(row: ShopRow, minute: number): boolean {
+  return (row.hours[0] === 0 && row.hours[1] >= MINUTES_PER_DAY) || isInRange(minute, row.hours)
 }
 
 function isPackId(region: string): region is RegionPackId {

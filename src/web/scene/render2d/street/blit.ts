@@ -1,4 +1,5 @@
-import type { Rect, StreetFrame } from '@/web/scene/types'
+import type { StreetFrame } from '@/web/scene/street-types'
+import type { Rect } from '@/web/scene/types'
 import { STREET_RECT } from '@/web/scene/view'
 
 /** Draws the street behind the floor, under `g`'s world transform: the static canvas, then the

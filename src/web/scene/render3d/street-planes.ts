@@ -8,7 +8,8 @@ import {
   SRGBColorSpace,
 } from 'three'
 
-import type { Rect, StreetFrame } from '@/web/scene/types'
+import type { StreetFrame } from '@/web/scene/street-types'
+import type { Rect } from '@/web/scene/types'
 import { SMALL_MOTION_RENDERS_PER_S } from '@/web/scene/budgets'
 import { toUnits } from '@/web/scene/render3d/space'
 import { STREET_RECT } from '@/web/scene/view'

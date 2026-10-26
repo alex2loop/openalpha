@@ -1,6 +1,7 @@
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { LightRow } from '@/web/scene/sprites/daylight'
+import type { StreetFrame } from '@/web/scene/street-types'
 import { agenda } from '@/web/scene/data/agenda'
 import { indexDrop } from '@/web/scene/data/board'
 import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
@@ -31,7 +32,6 @@ import {
   type ScreenPoint,
   type SimView,
   type Size,
-  type StreetFrame,
   WORLD,
 } from '@/web/scene/types'
 import { clampPan, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'

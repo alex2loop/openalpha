@@ -5,8 +5,6 @@ import { STREET_RECT } from '@/web/scene/view'
 export const STREET_LEFT = STREET_RECT.x
 export const STREET_RIGHT = STREET_RECT.x + STREET_RECT.w
 export const STREET_BOTTOM = STREET_RECT.y + STREET_RECT.h
-/** The north street in world y: the far pavement's back edge, the road's far and near kerbs. */
-export const NORTH = Object.freeze({ farTop: -30, roadTop: -18, roadBottom: -4.6 })
 
 /** A daylight tone, the tone night brings it to, and how far night takes it. */
 interface Tone {

@@ -50,18 +50,33 @@ export function drawSprite(
   spec: { readonly key: string; readonly box: SpriteBox; readonly at: Point },
   paint: (sprite: CanvasRenderingContext2D) => void
 ): void {
-  const key = `${spec.key}@${spec.box.pxPerWorld}`
+  const key = spriteKeyOf(spec.key, spec.box.pxPerWorld)
   const sprite = sprites.get(key) ?? createSprite(key, spec.box, paint)
 
   if (sprite !== undefined) {
-    g.drawImage(
-      sprite.canvas,
-      spec.at.x - sprite.anchor.x,
-      spec.at.y - sprite.anchor.y,
-      sprite.w,
-      sprite.h
-    )
+    blitSprite(g, sprite, spec.at)
   }
+}
+
+/** The cache key of the sprite keyed `key` painted at `pxPerWorld`. */
+export function spriteKeyOf(key: string, pxPerWorld: number): string {
+  return `${key}@${pxPerWorld}`
+}
+
+/** Draws the cached sprite under `fullKey` (from `spriteKeyOf`) at `at`; false when the cache
+ *  does not hold it, so a caller on a hot path builds nothing until it must paint. */
+export function drawHeldSprite(g: CanvasRenderingContext2D, fullKey: string, at: Point): boolean {
+  const sprite = sprites.get(fullKey)
+
+  if (sprite !== undefined) {
+    blitSprite(g, sprite, at)
+  }
+
+  return sprite !== undefined
+}
+
+function blitSprite(g: CanvasRenderingContext2D, sprite: StreetSprite, at: Point): void {
+  g.drawImage(sprite.canvas, at.x - sprite.anchor.x, at.y - sprite.anchor.y, sprite.w, sprite.h)
 }
 
 /** Zeroes every cached sprite's pixels and empties the cache. */

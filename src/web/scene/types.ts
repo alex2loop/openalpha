@@ -1,4 +1,5 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
+import type { StreetFrame } from '@/web/scene/street-types'
 
 /** World pixels of one floor. */
 export const WORLD = Object.freeze({ w: 640, h: 384 })
@@ -334,32 +335,6 @@ export interface TeamView {
   readonly threads: readonly ThreadView[]
   readonly bursts: readonly BurstView[]
   readonly lines: readonly TeamLine[]
-}
-
-/** One moving thing of the street: `prev` and `at` its place at the last two sim steps. */
-interface StreetEntity {
-  readonly prev: Point
-  readonly at: Point
-}
-
-type StreetPool = 'vehicles' | 'people' | 'critters'
-
-/** The street sim's snapshot the painter reads: `step` moves whenever its pools did, so the
- *  moving layer is redrawn only then. */
-export interface StreetView {
-  readonly step: number
-  readonly pools: Readonly<Record<StreetPool, readonly StreetEntity[]>>
-}
-
-/** The street as painted for both renderers: the static canvas over `STREET_RECT` and the moving
- *  canvas over `movingRect` (zero-sized while nothing moves); a version moves with each repaint of
- *  its canvas, so a renderer uploads or blits only a changed one. */
-export interface StreetFrame {
-  readonly staticCanvas: HTMLCanvasElement
-  readonly movingCanvas: HTMLCanvasElement
-  readonly movingRect: Rect
-  readonly staticVersion: number
-  readonly movingVersion: number
 }
 
 /** The snapshot every renderer reads; `alpha` is how far the frame sits between two sim steps. */

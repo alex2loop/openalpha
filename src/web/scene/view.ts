@@ -17,6 +17,9 @@ export const STREET_RECT: Rect = Object.freeze({
   w: FRAME_RECT.w + 2 * STREET_SIDE_PX,
   h: FRAME_RECT.h + STREET_NORTH_PX + STREET_SOUTH_PX,
 })
+// The moving street canvas reaches this share of the visible rect past each of its sides, so a
+// small pan between two steps stays inside it.
+const MOVING_MARGIN = 0.25
 /** The fixed 3D camera looks north and down at this angle. */
 export const ELEVATION = (52 * Math.PI) / 180
 /** A point this many px up shows `HEIGHT_K` times as far up the screen as a step north does, in
@@ -341,6 +344,17 @@ export function visibleRect(): Rect {
   const { pane, scale, originX, originY } = projection.value
 
   return { x: -originX / scale, y: -originY / scale, w: pane.w / scale, h: pane.h / scale }
+}
+
+/** The visible rect with the moving street's margin, inside the street: where a street entity
+ *  is drawn, and where it keeps the loop awake. */
+export function movingRectOf(visible: Rect): Rect {
+  const x0 = Math.max(STREET_RECT.x, visible.x - visible.w * MOVING_MARGIN)
+  const y0 = Math.max(STREET_RECT.y, visible.y - visible.h * MOVING_MARGIN)
+  const x1 = Math.min(STREET_RECT.x + STREET_RECT.w, visible.x + visible.w * (1 + MOVING_MARGIN))
+  const y1 = Math.min(STREET_RECT.y + STREET_RECT.h, visible.y + visible.h * (1 + MOVING_MARGIN))
+
+  return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) }
 }
 
 // The current zoom, stepped out until the target fits the pane.
