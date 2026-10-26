@@ -196,10 +196,28 @@ export function debateLine(run: Run | undefined): string | undefined {
   }
 
   const ticker = toParamText(progress.params?.ticker) ?? run?.tickers[0]
-  const n = toParamText(progress.params?.step)
+  const n = debateStepOf(run)
   const total = toParamText(progress.params?.total)
 
   return ticker === undefined || n === undefined || total === undefined
     ? undefined
     : tr('ui.office.board.meet', { ticker, n, total })
+}
+
+/** The debate step a meeting run is at, as its whiteboard counts it; absent outside a debate. */
+export function debateStepOf(run: Run | undefined): string | undefined {
+  const progress = run?.progress
+
+  if (progress === undefined || !progress.key.startsWith(DEBATE_STEP_PREFIX)) {
+    return undefined
+  }
+
+  return toParamText(progress.params?.step)
+}
+
+/** The question a research run is on, as the library's whiteboard counts it. */
+export function questionNumberOf(run: Run | undefined): string | undefined {
+  const params = run?.progress?.params
+
+  return toParamText(params?.index ?? params?.done)
 }

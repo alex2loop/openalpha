@@ -404,6 +404,7 @@ function syncCrewPieces(stage: Stage, sim: SimView): boolean {
 function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
   const isFaceChanged = syncScreenFaces(stage.faces, {
     floor: sim.floor,
+    props: stage.floor?.props,
     scale: stage.placement.scale,
     walls: stage.floor?.walls ?? [],
   })

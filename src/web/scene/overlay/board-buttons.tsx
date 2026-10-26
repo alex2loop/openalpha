@@ -5,11 +5,11 @@ import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Point } from '@/web/scene/types'
 import { pluralKey } from '@/i18n'
 import { digest, resultsLanded } from '@/web/scene/data/board'
-import { debateLine, roomStatus, toParamText } from '@/web/scene/data/room-status'
+import { debateLine, questionNumberOf, roomStatus, toParamText } from '@/web/scene/data/room-status'
 import { placeOnPane, view } from '@/web/scene/view'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas, unseenCalls } from '@/web/state/ideas'
-import { runningCount } from '@/web/state/live'
+import { type Run, runningCount } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
 import { formatUsd } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
@@ -51,7 +51,7 @@ function RoomBoards({ renderer }: { readonly renderer: SceneRenderer }) {
   const libRun = status.get('lib')?.runs[0]
   const storeRun = status.get('store')?.runs[0]
   const meetLine = debateLine(meetRun)
-  const libLine = questionLine(libRun?.progress?.params)
+  const libLine = questionLine(libRun)
   const storeLine = storeBoardLine(storeRun?.progress?.params, status.get('store')?.subject)
 
   return (
@@ -216,9 +216,9 @@ function openDigest(day: string): void {
   })
 }
 
-function questionLine(params: Readonly<Record<string, unknown>> | undefined): string | undefined {
-  const n = toParamText(params?.index ?? params?.done)
-  const total = toParamText(params?.total)
+function questionLine(run: Run | undefined): string | undefined {
+  const n = questionNumberOf(run)
+  const total = toParamText(run?.progress?.params?.total)
 
   return n === undefined || total === undefined
     ? undefined

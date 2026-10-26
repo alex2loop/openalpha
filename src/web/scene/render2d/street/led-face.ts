@@ -2,7 +2,7 @@ import type { LedItem } from '@/web/scene/data/led'
 import { sceneZone } from '@/web/scene/clock/clock'
 import { LED_TITLE_TONES, stampToneOf } from '@/web/scene/sprites/palette'
 import { FONT } from '@/web/scene/sprites/screens'
-import { formatFixed, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { formatFixed, formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
@@ -163,7 +163,7 @@ function paintPanel(
   const { item } = at
   const u = at.unit * PANEL_SHRINK
   const reading = readingOf(item)
-  const level = formatFixed(item.level, LEVEL_DIGITS)
+  const level = levelTextOf(item)
   const hasLine = !item.stale && item.line.length > 1
 
   g.textAlign = 'left'
@@ -302,7 +302,7 @@ function stripPartsOf(
   readonly levelW: number
   readonly moveW: number
 } {
-  const level = formatFixed(item.level, LEVEL_DIGITS)
+  const level = levelTextOf(item)
   const reading = readingOf(item)
 
   return {
@@ -312,4 +312,11 @@ function stripPartsOf(
     levelW: g.measureText(`${level}  `).width,
     moveW: g.measureText(reading.move).width,
   }
+}
+
+// An index prints its level at fixed decimals; a priced benchmark prints as the tape prints it.
+function levelTextOf(item: LedItem): string {
+  return item.isPrice
+    ? formatPrice(item.level, item.display)
+    : formatFixed(item.level, LEVEL_DIGITS)
 }
