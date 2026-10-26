@@ -33,6 +33,10 @@ export const unreadStops = computed(
       (notice) => notice.readAt === undefined && notice.event.kind === 'stop_breached'
     ).length
 )
+/** A fired price alert the operator has not read. */
+export const hasUnreadAlert = computed(() =>
+  notices.value.some((notice) => notice.readAt === undefined && notice.event.kind === 'alert_fired')
+)
 
 const waitingIds = computed<ReadonlySet<string | undefined>>(
   () => new Set(pending.value.map(pendingRequestId))

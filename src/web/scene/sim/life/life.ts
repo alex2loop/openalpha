@@ -15,10 +15,12 @@ import { pageMinute } from '@/web/scene/clock/clock'
 import { type AgendaRow, agenda } from '@/web/scene/data/agenda'
 import { regionPack } from '@/web/scene/data/home'
 import { breachedStops } from '@/web/scene/data/room-status'
+import { startTodayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { isOfficeOpen } from '@/web/scene/sim/director'
 import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
+import { addCup, createDesks, deskDueOf, stepDesks } from '@/web/scene/sim/life/desks'
 import { stepAsks, subscribeLife } from '@/web/scene/sim/life/events'
 import { lineOf, type MomentKind, momentDueOf, stepMoment } from '@/web/scene/sim/life/moments'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
@@ -93,6 +95,7 @@ const BREAK_PROPS = (['office', 'team'] as const).flatMap((floor) =>
 export function createLife(deps: LifeDeps): Life {
   const state = createLifeState(deps, performance.now())
   const off = subscribeLife(onWireEvent, state)
+  const stopRuns = startTodayRuns()
   let isDisposed = false
 
   return {
@@ -107,6 +110,7 @@ export function createLife(deps: LifeDeps): Life {
       if (!isDisposed) {
         isDisposed = true
         off()
+        stopRuns()
         endAll(state)
       }
     },
@@ -130,6 +134,7 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
     asks: [],
     runNames: new Map(),
     cart: { at: undefined, rollFrom: undefined, isLeaving: false, isBlocking: false },
+    desks: createDesks(),
     round: { freeSince: undefined, lastAt: undefined, count: 0 },
     sheets: { hour: '', count: 0, feedAt: undefined },
     catAwakeUntil: 0,
@@ -197,6 +202,7 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
   stepYawn(state, step)
   stepPostures(state, step)
   stepFidgets(state, step)
+  stepDesks(state, step)
 
   const isPetMoving = state.pets.step(petWorldOf(state, step))
 
@@ -221,6 +227,7 @@ function stepMoments(state: LifeState, step: LifeStep): void {
 
       if (moment.item === 'cup') {
         state.mugs.add(id)
+        addCup(state.desks, id)
       }
 
       if (moment.kind === 'idle') {
@@ -302,6 +309,7 @@ function dueOf(state: LifeState, step: LifeStep): number {
     state.catAwakeUntil,
     state.lastBusyAt + QUIET_AFTER_MS,
     state.pets.nextDueAt(petWorldOf(state, step)),
+    deskDueOf(state.desks, step.nowMs),
   ]
 
   return Math.min(...dues.filter((due) => due > step.nowMs), Number.POSITIVE_INFINITY)
@@ -326,6 +334,7 @@ function viewOf(state: LifeState, step: LifeStep): LifeView {
     ],
     isQuiet: step.isQuiet,
     lines: linesOf(state, step),
+    deskItems: state.desks.shown,
     ...(cart === undefined ? {} : { cart: { floor: CART_FLOOR, at: cart } }),
     ...(state.sheets.feedAt === undefined ? {} : { feedAt: state.sheets.feedAt }),
   }

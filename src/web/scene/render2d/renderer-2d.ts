@@ -7,6 +7,7 @@ import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitFloor, fitRoom, toSnappedFit } from '@/web/scene/render2d/camera'
 import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
+import { releaseDeskItems } from '@/web/scene/render2d/desk-items'
 import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
 import { paintLighting } from '@/web/scene/render2d/lights'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
@@ -161,6 +162,7 @@ function releaseSurface(surface: Surface | undefined): void {
   surface.background = undefined
   surface.screens.release()
   releaseCharacterSprites()
+  releaseDeskItems()
 }
 
 // Paints one frame; true while the people's small motion runs.

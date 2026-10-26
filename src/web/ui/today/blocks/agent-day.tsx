@@ -1,12 +1,8 @@
 import { useEffect } from 'preact/hooks'
 
-import type { ActivityResponse } from '@/app/server/wire/activity'
-import { getJson } from '@/web/api/client'
-import { ROUTES } from '@/web/api/routes'
+import { loadTodayActivity } from '@/web/state/activity'
 import { useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
-import { state } from '@/web/state/session'
-import { buildDayKey } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { ActivityLine, openActivityDialog } from '@/web/ui/activity/activity-dialog'
 import { Button } from '@/web/ui/kit/button'
@@ -50,12 +46,4 @@ export function AgentDay() {
       }
     </BlockFrame>
   )
-}
-
-/** The runs that ended today, on the daemon's calendar. */
-export function loadTodayActivity(abort: AbortSignal): Promise<ActivityResponse> {
-  const timeZone = state.value?.timeZone
-  const query = timeZone === undefined ? {} : { day: buildDayKey(Date.now(), timeZone) }
-
-  return getJson(ROUTES.activity, { query, signal: abort })
 }

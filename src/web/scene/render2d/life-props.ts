@@ -1,5 +1,6 @@
 import type { FloorId, LifeView, Point, SteamView } from '@/web/scene/types'
 import { drawBlock, fill, framed } from '@/web/scene/render2d/building'
+import { deskPiecesOf } from '@/web/scene/render2d/desk-items'
 import { paintPet } from '@/web/scene/render2d/pets'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
@@ -33,7 +34,7 @@ interface LifePiece {
   readonly draw: () => void
 }
 
-/** The pets and the dessert cart, sorted among the people and the furniture. */
+/** The pets, the dessert cart and the desks' pieces, sorted among the people and the furniture. */
 export function buildLifePieces(
   g: CanvasRenderingContext2D,
   at: {
@@ -53,10 +54,11 @@ export function buildLifePieces(
         }))
       : []
   const cart = at.life.cart
+  const desks = deskPiecesOf(g, { floor: at.floor, view: at.life.deskItems, detail: level })
 
   return cart === undefined || cart.floor !== at.floor
-    ? pets
-    : [...pets, { sortY: cart.at.y, tie: CART_TIE, draw: () => paintCart(g, cart.at) }]
+    ? [...pets, ...desks]
+    : [...pets, ...desks, { sortY: cart.at.y, tie: CART_TIE, draw: () => paintCart(g, cart.at) }]
 }
 
 /** The printer's stack and the steam, over everything standing on the floor. */

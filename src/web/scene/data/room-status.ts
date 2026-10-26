@@ -70,8 +70,8 @@ export const breachedStops: ReadonlySignal<readonly BreachedStop[] | undefined> 
 /** Every room with something to say, keyed by room. */
 export const roomStatus: ReadonlySignal<ReadonlyMap<RoomId, RoomStatus>> = computed(buildStatus)
 
-/** The room a run's crew works in; a run the page cannot place has none. */
-export function roomOfRun(run: Run): RoomId | undefined {
+/** The room a run's crew works in, running or finished; a run the page cannot place has none. */
+export function roomOfRun(run: Pick<Run, 'name' | 'parentRunId' | 'hidden'>): RoomId | undefined {
   if (run.hidden === true || run.parentRunId !== undefined) {
     return undefined
   }
