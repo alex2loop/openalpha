@@ -4,11 +4,12 @@ import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { resolveCommandLink } from '@/web/ui/chat/command-link'
+import { commandWordOf, resolveCommandLink } from '@/web/ui/chat/command-link'
 import { ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
+import { RunCalls } from '@/web/ui/run/calls/run-calls'
 import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
 
 /** What the operator sent and the card that answers it. */
@@ -51,6 +52,14 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
       <ReplyText text={turn.reply} isProse={turn.kind !== 'slash'} />
       <SteerLine turn={turn} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
+      {isFinished(turn) && turn.runId !== undefined && (
+        <RunCalls
+          key={turn.runId}
+          runId={turn.runId}
+          isRunning={false}
+          command={turn.kind === 'slash' ? commandWordOf(turn.text) : undefined}
+        />
+      )}
     </div>
   )
 }

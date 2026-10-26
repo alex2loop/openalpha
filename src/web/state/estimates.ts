@@ -37,10 +37,15 @@ export function startEstimates(): () => void {
   }
 }
 
+/** What `name` (with its slash) usually costs; absent while the daemon has no estimate for it. */
+export function estimateOf(name: string): SlashCommandInfo['estimate'] {
+  return list.value.find((command) => command.name === name)?.estimate
+}
+
 /** What `name` (with its slash) usually costs, and what is left of today's cap; absent while the
  *  daemon has no estimate for it. */
 export function estimateText(name: string): string | undefined {
-  const estimate = list.value.find((command) => command.name === name)?.estimate
+  const estimate = estimateOf(name)
 
   if (estimate === undefined) {
     return undefined

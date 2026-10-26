@@ -14,7 +14,7 @@ import type {
 } from '@/app/server/wire/config'
 import type { DebateWire } from '@/app/server/wire/debate'
 import type { DigestWire } from '@/app/server/wire/digest'
-import type { LiveSnapshotWire, RunStopWire } from '@/app/server/wire/live'
+import type { LiveSnapshotWire, RunCallsWire, RunStopWire } from '@/app/server/wire/live'
 import type {
   AlertDisableResponse,
   AlertsResponse,
@@ -97,6 +97,7 @@ export const ROUTES = Object.freeze({
   cost: route<CostReport>('/v1/cost'),
   respond: route<OkAnswer>('/v1/respond'),
   runStop: (runId: string) => route<RunStopWire>(`/v1/runs/${encodeURIComponent(runId)}/stop`),
+  runCalls: (runId: string) => route<RunCallsWire>(`/v1/runs/${encodeURIComponent(runId)}/calls`),
   commands: route<CommandList>('/v1/commands'),
   instruments: route<InstrumentSearchResponse>('/v1/instruments'),
   agents: route<AgentsResponse>('/v1/agents'),

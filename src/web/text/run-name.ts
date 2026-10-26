@@ -8,9 +8,10 @@ interface Named {
 
 /** A run's title, else its agent id, or its command as the operator types it. */
 export function formatRunName(run: Named): string {
-  if (run.title !== undefined) {
-    return run.title
-  }
+  return run.title ?? commandOf(run) ?? run.name
+}
 
-  return run.kind === 'command' ? `${COMMAND_PREFIX}${run.name}` : run.name
+/** The command as the operator types it; absent for an agent run. */
+export function commandOf(run: Named): string | undefined {
+  return run.kind === 'command' ? `${COMMAND_PREFIX}${run.name}` : undefined
 }

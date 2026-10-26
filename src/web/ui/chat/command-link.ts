@@ -38,6 +38,11 @@ const COMMAND_LINKS: Readonly<Record<string, LinkBuilder>> = Object.freeze({
   '/suggest': (_args, runId) => linkRun('ui.office.chat.link.suggest', runId),
 })
 
+/** The first word of a line: the command it names, slash included. */
+export function commandWordOf(text: string): string {
+  return text.trim().split(WORD_BREAK)[0] ?? ''
+}
+
 /** The link for the command `text` starts with; none for a question or an unlisted command.
  *  `runId` is the run that answered it, for a link into the office. */
 export function resolveCommandLink(text: string, runId?: string): CommandLink | undefined {
