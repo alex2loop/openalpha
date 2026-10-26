@@ -59,6 +59,7 @@ export const VN_PACK = Object.freeze({
     habits: true,
   },
   street: 'Hàm Nghi',
+  sideStreets: { west: 'Hồ Tùng Mậu', east: 'Hải Triều' },
   park: 'Bến Bạch Đằng',
   plate: {
     background: '#1B3F8F',

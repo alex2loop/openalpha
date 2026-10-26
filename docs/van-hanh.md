@@ -512,7 +512,7 @@ Một công tắc "2D | 3D" trên đầu trang, đứng trước nút Tập trun
 
 ### Con phố và thành phố
 
-Văn phòng nằm trên một dãy phố có thật ở thành phố của vùng nhà. Hiện có một thành phố được vẽ: khu tài chính TP. Hồ Chí Minh, đường Hàm Nghi chạy ngang cửa trước, tòa tháp biểu tượng nằm sau dãy nhà mặt tiền bên kia đường một khối, và công viên Bến Bạch Đằng ở phía bên này; mọi vùng nhà mà daemon biết hiện nay đều vẽ thành phố này. Tên đường, trạm xe buýt và công viên là tên thật của thành phố và không dịch; cửa hàng, xe cộ và đồng phục không mang thương hiệu hay logo thật nào. Kéo để xem dọc cả con phố ở mọi mức zoom: hai công viên hai bên, các dãy nhà phía xa và tòa tháp tới tận đỉnh. Ở chế độ 3D, nút − thu nhỏ quá cả tầng cho tới khi thấy trọn con phố.
+Văn phòng nằm trên một dãy phố có thật ở thành phố của vùng nhà. Hiện có một thành phố được vẽ: khu tài chính TP. Hồ Chí Minh, đường Hàm Nghi chạy ngang cửa trước, giữa Hồ Tùng Mậu phía tây và Hải Triều phía đông (mỗi đường có biển tên riêng), tòa tháp biểu tượng nằm sau dãy nhà mặt tiền bên kia đường một khối, và công viên Bến Bạch Đằng ở phía bên này; mọi vùng nhà mà daemon biết hiện nay đều vẽ thành phố này. Tên đường, trạm xe buýt và công viên là tên thật của thành phố và không dịch; cửa hàng, xe cộ và đồng phục không mang thương hiệu hay logo thật nào. Kéo để xem dọc cả con phố ở mọi mức zoom: hai công viên hai bên, các dãy nhà phía xa và tòa tháp tới tận đỉnh. Ở chế độ 3D, nút − thu nhỏ quá cả tầng cho tới khi thấy trọn con phố.
 
 Cái gì là thật và cái gì chỉ là cảnh:
 

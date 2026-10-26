@@ -170,13 +170,15 @@ export interface Landmark {
 
 /** What the office knows of the city around it, keyed by the home region. Proper names (the
  *  street, stops, routes, park) are written here, untranslated; every generic word is a catalog
- *  key. `street` is the one named main street; `park` is the proper name only. */
+ *  key. `street` is the main street; `sideStreets` name the two that run down the building's sides;
+ *  `park` is the proper name only. */
 export interface RegionPack {
   readonly id: RegionPackId
   readonly city: string
   readonly geo: { readonly lat: number; readonly lon: number }
   readonly road: RoadLayout
   readonly street: string
+  readonly sideStreets: { readonly west: string; readonly east: string }
   readonly park: string
   readonly plate: PlateStyle
   readonly speed: { readonly north: number; readonly side: number }
