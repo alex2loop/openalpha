@@ -1,4 +1,5 @@
 import type { Build } from '@/web/scene/render3d/props'
+import type { Point } from '@/web/scene/types'
 import { box } from '@/web/scene/render3d/boxes'
 import {
   deskPhone,
@@ -79,6 +80,24 @@ export interface DeskLamp {
   }
 }
 
+/** A monitor's face, where it lights, the seat whose worker lights it and the desk top under it. */
+export interface Screen {
+  readonly at: readonly [x: number, y: number, z: number]
+  readonly size: readonly [w: number, h: number, d: number]
+  /** How far the face leans back, radians about x. */
+  readonly tilt: number
+  /** The monitor's back, leaning with its face. */
+  readonly back: {
+    readonly at: readonly [x: number, y: number, z: number]
+    readonly size: readonly [w: number, h: number, d: number]
+  }
+  readonly seat: Point
+  /** The computer's foot on the floor, where a desk piece names the monitor it covers. */
+  readonly slot: Point
+  /** The top of the desk it stands on, where it lies when laid flat. */
+  readonly deskTop: number
+}
+
 /** A box leaning back from upright by `tilt` (radians about x), round its centre. */
 export interface Lean {
   readonly at: readonly [x: number, y: number, z: number]
@@ -157,6 +176,7 @@ export function monitorOf({ prop, out, floor }: Build): void {
     back: { at: [cx, back.y, back.z], size: [w + 0.8, h + 0.8, 1] },
     seat: { x: cx, y: prop.rect.y + prop.rect.h + SCREEN_SEAT_DZ },
     slot: { x: cx, y: prop.rect.y + prop.rect.h },
+    deskTop: top,
   })
 }
 

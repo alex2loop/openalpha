@@ -27,6 +27,7 @@ import {
   type MonitorFaces,
   syncMonitorFaces,
 } from '@/web/scene/render3d/monitor-faces'
+import { flatPoseOf, seatedScreensOf } from '@/web/scene/render3d/seated'
 import {
   ALERT_RGB,
   DROP_POOL,
@@ -60,6 +61,9 @@ export interface Fixtures {
   readonly laptop: Laptop
   readonly owned: readonly { dispose(): void }[]
 }
+
+/** The frame with the screens laid flat before someone sitting at them. */
+type SeatedFrame = FixtureFrame & { readonly seated: readonly boolean[] }
 
 /** What the fixtures read this frame besides the snapshot. */
 interface FixtureFrame {
@@ -139,9 +143,10 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
 
 /** Rewrites the fixtures whose picture changed; true when one did. */
 export function syncFixtures(fixtures: Fixtures, frame: FixtureFrame): boolean {
+  const seated = seatedScreensOf(frame.sim, frame.props)
   const changes = [
-    syncScreens(fixtures, frame),
-    syncBacks(fixtures.backs, frame),
+    syncScreens(fixtures, { ...frame, seated }),
+    syncBacks(fixtures.backs, { ...frame, seated }),
     syncLamps(fixtures, frame),
     syncWarm(fixtures.warm, frame),
     syncCool(fixtures.cool, frame),
@@ -180,7 +185,7 @@ function poolsOf(fixtures: Fixtures): Pool[] {
 
 // The screens lit by someone at work at their seat glow and show their room's run; the rest stand
 // by, or sleep while the office is quiet.
-function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
+function syncScreens(fixtures: Fixtures, frame: SeatedFrame): boolean {
   const pool = fixtures.screens
   const lit = frame.props.screens.map((screen) =>
     frame.standing.some(
@@ -195,24 +200,26 @@ function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
     floor: frame.sim.floor,
     props: frame.props,
     lit,
+    seated: frame.seated,
     deskScreens: frame.sim.deskScreens,
     now: frame.now,
     isReduced: frame.isReduced,
   })
 
-  if (!beginPool(pool, `${frame.sim.floor}|${idle}|${lit.join()}`)) {
+  if (!beginPool(pool, `${frame.sim.floor}|${idle}|${lit.join()}|${frame.seated.join()}`)) {
     return isFaced
   }
 
   frame.props.screens.forEach((screen, i) => {
-    const [x, y, z] = screen.at
+    const flat = frame.seated[i] === true ? flatPoseOf(screen, screen.deskTop) : undefined
+    const [x, y, z] = flat?.face ?? screen.at
 
     placeInstance(pool, {
       x,
       y,
       z,
       size: screen.size,
-      tilt: screen.tilt,
+      tilt: flat?.tilt ?? screen.tilt,
       color: lit[i] === true ? PROP_TONES.screenLit : idle,
     })
   })
@@ -221,18 +228,26 @@ function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
   return true
 }
 
-// The monitors' backs lean with their faces, the StandBy phones' upper halves on their folds; they
-// change only with the floor.
-function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
-  if (!beginPool(pool, frame.sim.floor)) {
+// The monitors' backs lean with their faces (lying flat with them before a sitter), the StandBy
+// phones' upper halves on their folds.
+function syncBacks(pool: Pool, frame: SeatedFrame): boolean {
+  if (!beginPool(pool, `${frame.sim.floor}|${frame.seated.join()}`)) {
     return false
   }
 
-  for (const { back, tilt } of frame.props.screens) {
-    const [x, y, z] = back.at
+  frame.props.screens.forEach((screen, i) => {
+    const flat = frame.seated[i] === true ? flatPoseOf(screen, screen.deskTop) : undefined
+    const [x, y, z] = flat?.back ?? screen.back.at
 
-    placeInstance(pool, { x, y, z, size: back.size, tilt, color: MONITOR_BACK })
-  }
+    placeInstance(pool, {
+      x,
+      y,
+      z,
+      size: screen.back.size,
+      tilt: flat?.tilt ?? screen.tilt,
+      color: MONITOR_BACK,
+    })
+  })
 
   for (const lean of frame.props.leans) {
     const [x, y, z] = lean.at
