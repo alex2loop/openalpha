@@ -44,3 +44,8 @@ export function roomAt(floor: FloorId, p: Point): RoomDef | undefined {
 export function isInside(rect: Rect, p: Point): boolean {
   return p.x >= rect.x && p.x < rect.x + rect.w && p.y >= rect.y && p.y < rect.y + rect.h
 }
+
+/** The two rects share some area. */
+export function isOverlapping(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+}

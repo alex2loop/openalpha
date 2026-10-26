@@ -8,6 +8,7 @@ import { type Crew, createCrew, disposeCrew } from '@/web/scene/crew'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
 import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/data/board'
 import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
+import { ledItems, startLed } from '@/web/scene/data/led'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
 import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
 import { todayRuns } from '@/web/scene/data/today-runs'
@@ -125,6 +126,7 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
   const input: InputSlot = { current: undefined }
   const { loop, readView } = createSceneLoop({ ...sims, renderer, overlay, input })
   const offs = [
+    startLed(),
     startViews({
       renderers,
       element,
@@ -295,6 +297,7 @@ function readSceneInputs(): void {
   agents.value
   coolerOffer.value
   todayRuns.value
+  ledItems.value
   regionPack.value
   locale.value
   readOverlayInputs()

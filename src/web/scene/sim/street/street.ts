@@ -5,6 +5,15 @@ import type { Point, Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
+import {
+  createFront,
+  type Front,
+  isFrontMoving,
+  isFrontShown,
+  nextPanelAt,
+  resetFront,
+  stepFront,
+} from '@/web/scene/sim/street/front'
 import { createLot, type Lot, resetLot, stepLot } from '@/web/scene/sim/street/lot'
 import {
   isSameSignal,
@@ -57,6 +66,7 @@ interface StreetState {
   readonly deps: StreetDeps
   readonly traffic: Traffic
   readonly lot: Lot
+  readonly front: Front
   readonly view: StreetView & {
     step: number
     heads: StreetView['heads']
@@ -68,6 +78,9 @@ interface StreetState {
   isShowing: boolean
   isHeadShown: boolean
   hasSignalChanged: boolean
+  isFrontShown: boolean
+  isFrontMoving: boolean
+  hasFrontChanged: boolean
 }
 
 /** The street of the home region's pack; a day, region or zone change rebuilds it. Under reduced
@@ -75,17 +88,22 @@ interface StreetState {
 export function createStreet(deps: StreetDeps): Street {
   const traffic = createTraffic(deps.pack.peek())
   const lot = createLot()
+  const front = createFront()
   const state: StreetState = {
     deps,
     traffic,
     lot,
-    view: createView({ traffic, lot, pack: deps.pack.peek() }),
+    front,
+    view: createView({ traffic, lot, front, pack: deps.pack.peek() }),
     stepMs: 0,
     lastStepAt: 0,
     isLotMoving: false,
     isShowing: false,
     isHeadShown: false,
     hasSignalChanged: false,
+    isFrontShown: false,
+    isFrontMoving: false,
+    hasFrontChanged: false,
   }
   let placeKey = ''
 
@@ -114,9 +132,10 @@ export function createStreet(deps: StreetDeps): Street {
 function createView(at: {
   readonly traffic: Traffic
   readonly lot: Lot
+  readonly front: Front
   readonly pack: RegionPack
 }): StreetState['view'] {
-  const { traffic, lot } = at
+  const { traffic, lot, front } = at
 
   return {
     step: 0,
@@ -129,6 +148,7 @@ function createView(at: {
     },
     says: traffic.saying,
     lot: lot.view,
+    front: front.view,
   }
 }
 
@@ -139,6 +159,7 @@ function resumeStreet(state: StreetState): void {
 
   resetTraffic(state.traffic, { pack, day, minute, nowMs })
   resetLot(state.lot, { pack, minute })
+  resetFront(state.front, { pack, day, nowMs })
   state.view.heads = signalHeadsOf(pack)
   syncSignals(state.view.signals, state.deps.reduced.peek() ? 0 : nowMs)
   state.lastStepAt = nowMs
@@ -148,20 +169,32 @@ function resumeStreet(state: StreetState): void {
 
 function stepStreet(state: StreetState, nowMs: number): boolean {
   const startedAt = performance.now()
-
-  let isRepaint = false
+  const isReduced = state.deps.reduced.peek()
+  const rect = movingRectOf(visibleRect())
 
   state.isShowing = false
   state.isHeadShown = false
 
-  if (!state.deps.reduced.peek()) {
-    const rect = movingRectOf(visibleRect())
-
+  if (isReduced) {
+    state.hasFrontChanged = stepFront(state.front, {
+      pack: state.traffic.pack,
+      nowMs,
+      isReduced,
+    })
+  } else {
     stepAll(state, nowMs)
     state.isShowing = isMovingInView(state, rect)
     state.isHeadShown = isAnyIn(state.view.heads, rect)
-    isRepaint = state.isShowing || (state.isHeadShown && state.hasSignalChanged)
   }
+
+  state.isFrontShown = isFrontShown(state.front.view, rect)
+  state.isFrontMoving = isFrontMoving(state.front, rect)
+
+  const isRepaint =
+    state.isShowing ||
+    state.isFrontMoving ||
+    (state.isHeadShown && state.hasSignalChanged) ||
+    (state.isFrontShown && state.hasFrontChanged)
 
   if (isRepaint) {
     state.view.step++
@@ -172,18 +205,22 @@ function stepStreet(state: StreetState, nowMs: number): boolean {
   return isRepaint
 }
 
-// The next step while traffic moves in view; with only a head in view, its next lamp or digit
-// change; else none.
+// The next step while traffic or the front moves in view; else the sooner of a head's next lamp
+// or digit change and the board's next panel, each when in view; else none.
 function nextDueOf(state: StreetState): number {
   if (state.deps.reduced.peek()) {
     return Number.POSITIVE_INFINITY
   }
 
-  if (state.isShowing) {
+  if (state.isShowing || state.isFrontMoving) {
     return state.lastStepAt + SIM_STEP_MS
   }
 
-  return state.isHeadShown ? nextSignalChangeAt(performance.now()) : Number.POSITIVE_INFINITY
+  const nowMs = performance.now()
+  const headAt = state.isHeadShown ? nextSignalChangeAt(nowMs) : Number.POSITIVE_INFINITY
+  const panelAt = state.isFrontShown ? nextPanelAt(state.front, nowMs) : Number.POSITIVE_INFINITY
+
+  return Math.min(headAt, panelAt)
 }
 
 function stepAll(state: StreetState, nowMs: number): void {
@@ -193,6 +230,7 @@ function stepAll(state: StreetState, nowMs: number): void {
   stepTraffic(traffic, { minute, nowMs })
   state.hasSignalChanged = syncSignals(state.view.signals, nowMs)
   state.isLotMoving = stepLot(state.lot, { pack: traffic.pack, minute, nowMs, dt: traffic.tick.dt })
+  state.hasFrontChanged = stepFront(state.front, { pack: traffic.pack, nowMs, isReduced: false })
   state.lastStepAt = nowMs
 }
 
@@ -208,7 +246,9 @@ function watchArrivals(state: StreetState, wake: () => void): () => void {
 
     catchUp(state, nowMs)
 
-    if (isMovingInView(state, movingRectOf(visibleRect()))) {
+    const rect = movingRectOf(visibleRect())
+
+    if (isMovingInView(state, rect) || isFrontMoving(state.front, rect)) {
       wake()
     }
   }, ARRIVAL_CHECK_MS)
@@ -251,7 +291,8 @@ function syncSignals(signals: Record<SignalHeadId, SignalState>, nowMs: number):
 }
 
 /** Something stands on the street within `rect`: a vehicle, a person, an animal, a parked
- *  motorbike, the lot's attendant or a signal head. */
+ *  motorbike, the lot's attendant, a signal head, or the board, a shutter on the move or the guard
+ *  on the front. */
 export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
   const { pools, lot } = view
 
@@ -272,7 +313,9 @@ export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
   }
 
   return (
-    (lot.attendant !== undefined && isInside(rect, lot.attendant.at)) || isAnyIn(view.heads, rect)
+    (lot.attendant !== undefined && isInside(rect, lot.attendant.at)) ||
+    isAnyIn(view.heads, rect) ||
+    isFrontShown(view.front, rect)
   )
 }
 

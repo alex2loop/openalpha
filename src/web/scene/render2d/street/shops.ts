@@ -1,0 +1,193 @@
+import type { MessageKey } from '@/i18n'
+import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
+import type { FrontView } from '@/web/scene/street-types'
+import type { RegionPack, ShopKind } from '@/web/scene/world/regions'
+import { darknessOf } from '@/web/scene/render2d/street/city'
+import { paintShop } from '@/web/scene/render2d/street/shop-art'
+import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
+import { isLateNight, SHOP_RISE, shopSpansOf } from '@/web/scene/world/frontage'
+import { isShopOpen } from '@/web/scene/world/regions'
+import { NORTH } from '@/web/scene/world/street-layout'
+import { tr } from '@/web/text/tr'
+
+const SHOP_WORDS: Readonly<Partial<Record<ShopKind, MessageKey>>> = Object.freeze({
+  cafe: 'ui.office.street.shop.cafe',
+  store: 'ui.office.street.shop.store',
+  pharmacy: 'ui.office.street.shop.pharmacy',
+  food: 'ui.office.street.shop.food',
+  bank: 'ui.office.street.shop.bank',
+})
+const BACKING = '#B4AD9F'
+const BACKING_NIGHT = 0.5
+const SEAM = '#8F8878'
+// The late stall stands at the row's west end, a little way out on the pavement.
+const STALL = Object.freeze({
+  inset: 14,
+  depth: 6,
+  shadow: 'rgba(0,0,0,.16)',
+  body: '#8A6B4E',
+  roof: '#C94A2B',
+  glass: '#FFE3A6',
+  bulb: '255,226,160',
+  bulbAlpha: 0.5,
+  glowR: 5,
+})
+const GUARD = Object.freeze({
+  shadow: 'rgba(0,0,0,.16)',
+  pants: '#252C3A',
+  coat: '#2F4466',
+  strip: '#F4E7B0',
+  skin: '#D9AE86',
+  cap: '#1F2C44',
+  night: 0.3,
+  stridePx: 1.2,
+})
+
+/** The shop row on the far pavement either side of the frontage building: each front's sign in
+ *  its kind's colours, awning, window and door, open by the page clock or behind its roller
+ *  shutter; a late stall and the guard after the shops close. A shutter on the move and the guard
+ *  are drawn on the moving layer. */
+export const SHOPS_PART: PaintPart = {
+  paintStatic: (g, pack, minute) => {
+    paintRow(g, pack, minute)
+
+    if (isLateNight(minute.clock)) {
+      paintStall(g, pack, darknessOf(minute.minute))
+    }
+  },
+  paintMoving: (g, view, scene) => {
+    const dark = darknessOf(scene.minute.minute)
+
+    paintShutters(g, { pack: scene.pack, front: view.front, minute: scene.minute, dark })
+    paintGuard(g, view.front, dark)
+  },
+}
+
+// The backing wall the fronts stand on, then each front but the lobby's (the frontage building
+// paints that), then the seams where two fronts meet.
+function paintRow(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetMinute): void {
+  const spans = shopSpansOf(pack.shops)
+  const first = spans[0]
+  const last = spans.at(-1)
+  const dark = darknessOf(minute.minute)
+
+  if (first === undefined || last === undefined) {
+    return
+  }
+
+  g.fillStyle = mixTone(BACKING, NIGHT_TONE, dark * BACKING_NIGHT)
+  g.fillRect(first.x, NORTH.farTop - SHOP_RISE, last.x + last.w - first.x, SHOP_RISE + 2)
+
+  for (const span of spans) {
+    if (span.row.kind !== 'lobby') {
+      const word = SHOP_WORDS[span.row.kind]
+
+      g.save()
+      g.translate(span.x, NORTH.farTop)
+      paintShop(g, {
+        span,
+        isOpen: isShopOpen(span.row, minute.clock),
+        dark,
+        detail: minute.detail,
+        word: word === undefined ? undefined : tr(word),
+      })
+      g.restore()
+    }
+  }
+
+  g.fillStyle = mixTone(SEAM, NIGHT_TONE, dark * BACKING_NIGHT)
+
+  for (const span of spans.slice(1)) {
+    g.fillRect(span.x - 0.2, NORTH.farTop - SHOP_RISE, 0.4, SHOP_RISE + 2)
+  }
+}
+
+// A noodle cart under a hanging bulb at the row's west end, clear of the shelters.
+function paintStall(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
+  const first = shopSpansOf(pack.shops)[0]
+
+  if (first === undefined) {
+    return
+  }
+
+  const x = first.x + STALL.inset
+  const y = NORTH.farTop + STALL.depth
+
+  g.fillStyle = STALL.shadow
+  g.fillRect(x - 4.4, y, 8.8, 1.6)
+  g.fillStyle = mixTone(STALL.body, NIGHT_TONE, dark * 0.4)
+  g.fillRect(x - 4, y - 3.4, 8, 3.4)
+  g.fillStyle = mixTone(STALL.roof, NIGHT_TONE, dark * 0.4)
+  g.fillRect(x - 4.4, y - 6.6, 8.8, 0.9)
+  g.fillStyle = STALL.glass
+  g.fillRect(x - 3, y - 3, 3.4, 1.8)
+
+  const glow = g.createRadialGradient(x, y - 6, 0, x, y - 6, STALL.glowR)
+
+  glow.addColorStop(0, `rgba(${STALL.bulb},${STALL.bulbAlpha})`)
+  glow.addColorStop(1, `rgba(${STALL.bulb},0)`)
+  g.fillStyle = glow
+  g.fillRect(x - STALL.glowR, y - 6 - STALL.glowR, STALL.glowR * 2, STALL.glowR * 2)
+}
+
+interface ShutterJob {
+  readonly pack: RegionPack
+  readonly front: FrontView
+  readonly minute: StreetMinute
+  readonly dark: number
+}
+
+// A shop front redrawn with the lights of an open one under its half-moved shutter, over the
+// closed one the static layer holds.
+function paintShutters(g: CanvasRenderingContext2D, job: ShutterJob): void {
+  const spans = shopSpansOf(job.pack.shops)
+
+  for (const { shop, drop } of job.front.shutters) {
+    const span = spans[shop]
+
+    if (span !== undefined) {
+      const word = SHOP_WORDS[span.row.kind]
+
+      g.save()
+      g.translate(span.x, NORTH.farTop)
+      paintShop(g, {
+        span,
+        isOpen: true,
+        dark: job.dark,
+        detail: job.minute.detail,
+        word: word === undefined ? undefined : tr(word),
+        drop,
+      })
+      g.restore()
+    }
+  }
+}
+
+// The guard in a reflective coat and cap, walking the frontage; his legs swap every stride.
+function paintGuard(g: CanvasRenderingContext2D, front: FrontView, dark: number): void {
+  const guard = front.guard
+
+  if (guard === undefined) {
+    return
+  }
+
+  const { x, y } = guard.at
+  const tone = (hex: string): string => mixTone(hex, NIGHT_TONE, dark * GUARD.night)
+  const step = Math.floor(x / GUARD.stridePx) % 2 === 0 ? 0.4 : -0.4
+
+  g.fillStyle = GUARD.shadow
+  g.fillRect(x - 1.6, y - 0.4, 3.2, 0.8)
+  g.fillStyle = tone(GUARD.pants)
+  g.fillRect(x - 0.9 + step, y - 2.2, 0.8, 2.2)
+  g.fillRect(x + 0.1 - step, y - 2.2, 0.8, 2.2)
+  g.fillStyle = tone(GUARD.coat)
+  g.fillRect(x - 1, y - 4.8, 2, 2.7)
+  g.fillStyle = GUARD.strip
+  g.fillRect(x - 0.2, y - 4.8, 0.4, 2.7)
+  g.fillStyle = tone(GUARD.skin)
+  g.beginPath()
+  g.arc(x, y - 5.6, 0.85, 0, Math.PI * 2)
+  g.fill()
+  g.fillStyle = tone(GUARD.cap)
+  g.fillRect(x - 1, y - 6.6, 2, 0.8)
+}
