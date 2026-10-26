@@ -20,7 +20,7 @@ import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { actorViewsOf } from '@/web/scene/sim/actor-views'
-import { ASSISTANT, CREW, ROSTER } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, CREW, isCrewId, ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking, placeWalker } from '@/web/scene/sim/actors/walk'
 import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
@@ -87,6 +87,11 @@ interface DirectorDeps {
 /** The people's part of the snapshot; the composer adds the floor, the light and the props. */
 type PeopleView = Pick<SimView, 'actors' | 'papers' | 'tray'>
 
+interface StaffAndCrew {
+  readonly actors: ReadonlyMap<ActorId, ActorState>
+  readonly crew: ReadonlyMap<ActorId, ActorState>
+}
+
 /** Each person's pose and when it began, kept from step to step. */
 type PoseMarks = ReadonlyMap<ActorId, Pick<ActorView, 'pose' | 'poseSince'>>
 
@@ -102,6 +107,8 @@ export interface Director {
   step(index: number): StepMotion
   view(): PeopleView
   actors(): ReadonlyMap<ActorId, ActorState>
+  /** The office's own people and the building crew, apart, in one pass. */
+  staffAndCrew(): StaffAndCrew
   /** A reaction to the operator; `undefined` ends a look still held. A look lasts until it is
    *  ended and never covers a wave or a glance. */
   requestReaction(id: ActorId, kind: ReactionKind | undefined): void
@@ -209,6 +216,7 @@ function lifeHooksOf(
 ): Pick<
   Director,
   | 'actors'
+  | 'staffAndCrew'
   | 'requestReaction'
   | 'setMeeting'
   | 'setLife'
@@ -223,6 +231,7 @@ function lifeHooksOf(
     enter: (id, isInstant) => enterPerson(people, { id, isInstant }),
     actors: () =>
       new Map(people.list.map((person) => [person.def.id, toActorState(people, person, away)])),
+    staffAndCrew: () => staffAndCrewOf(people, away),
     requestReaction: (id, kind) => react(people, { id, kind }),
     setMeeting: (id, goal) => setGoalIn(people.meeting, id, goal),
     setLife: (id, goal) => setGoalIn(people.life, id, goal),
@@ -248,6 +257,24 @@ function createErrandsOf(people: People): Errands {
       }
     },
   })
+}
+
+function staffAndCrewOf(people: People, away: ReadonlyMap<ActorId, AwayStage>): StaffAndCrew {
+  const actors = new Map<ActorId, ActorState>()
+  const crew = new Map<ActorId, ActorState>()
+
+  for (const person of people.list) {
+    const id = person.def.id
+    const actor = toActorState(people, person, away)
+
+    if (isCrewId(id)) {
+      crew.set(id, actor)
+    } else {
+      actors.set(id, actor)
+    }
+  }
+
+  return { actors, crew }
 }
 
 function setGoalIn(layer: Map<ActorId, Goal>, id: ActorId, goal: Goal | undefined): void {
