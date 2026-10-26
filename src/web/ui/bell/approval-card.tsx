@@ -253,10 +253,11 @@ function answer({ requestId, decision, isBusy, outcome, failure }: AnswerInput):
 }
 
 // A card that joined another card's send shows what that send decided, and that it came first.
+// "Approve once" and "always approve" both approve, so joining one with the other is no surprise.
 function outcomeOf(sent: Decision, asked: Decision): Outcome {
   const isDenied = sent === 'deny'
 
-  if (sent === asked) {
+  if (isDenied === (asked === 'deny')) {
     return isDenied ? 'denied' : 'approved'
   }
 

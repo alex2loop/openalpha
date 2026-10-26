@@ -34,7 +34,7 @@ const ASSISTANT: ActorId = 'assistant'
 // The built-in people with a tab of their own: the assistant's desk and the alert desk.
 const STAFF_TABS: ReadonlySet<ActorId> = new Set(['assistant', 'clerk'])
 
-type MenuActionId = 'chat' | 'task' | 'now' | 'work' | 'stop' | 'profile'
+type MenuActionId = 'chat' | 'task' | 'now' | 'work' | 'stop' | 'profile' | 'follow'
 
 const ACTION_KEYS = Object.freeze({
   chat: 'ui.office.chat.title',
@@ -43,6 +43,7 @@ const ACTION_KEYS = Object.freeze({
   work: 'ui.office.agent.work',
   stop: 'ui.office.menu.stop',
   profile: 'ui.office.agent.profile',
+  follow: 'ui.office.menu.follow',
 } satisfies Record<MenuActionId, MessageKey>)
 
 /** One thing the operator can do with a person now. */

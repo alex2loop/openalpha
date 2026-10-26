@@ -145,7 +145,9 @@ function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
     )
   )
 
-  if (!beginPool(pool, `${frame.sim.floor}|${lit.join()}`)) {
+  const idle = frame.sim.life.isQuiet ? PROP_TONES.screenOff : PROP_TONES.screenStandby
+
+  if (!beginPool(pool, `${frame.sim.floor}|${idle}|${lit.join()}`)) {
     return false
   }
 
@@ -157,7 +159,7 @@ function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
       y,
       z,
       size: screen.size,
-      color: lit[i] === true ? PROP_TONES.screenLit : PROP_TONES.screenOff,
+      color: lit[i] === true ? PROP_TONES.screenLit : idle,
     })
   })
   endPool(pool)

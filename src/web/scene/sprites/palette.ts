@@ -161,6 +161,7 @@ export const PROP_TONES = Object.freeze({
   copier: ['#F7F4EC', '#E9E6DF', '#CFCBC2'],
   ledOn: '#7FD49A',
   screenOff: '#3E4452',
+  screenStandby: '#46557A',
   screenLit: '#9FC2FF',
   lampOff: '#E9DFC6',
   lampLit: '#FFF3C4',

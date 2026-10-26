@@ -14,7 +14,6 @@ import {
 import { isWallMounted } from '@/web/scene/world/props'
 
 const SCREEN_EDGE = '#5C6474'
-const SCREEN_STANDBY = '#46557A'
 const LED_OFF = '#4B5370'
 const LAMP_SHADE_FRONT = '#CFC4A8'
 const LAMP_LIT_FRONT = '#F2D58B'
@@ -138,7 +137,7 @@ function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintS
   const { x, y, w, h } = prop.draw
   const isAsleep = scene.life.isQuiet
 
-  framed(g, [x, y, w, h - 4], isAsleep ? PROP_TONES.screenOff : SCREEN_STANDBY)
+  framed(g, [x, y, w, h - 4], isAsleep ? PROP_TONES.screenOff : PROP_TONES.screenStandby)
   fill(g, [x + w - 3, y + h - 7, 1, 1], isAsleep ? SCREEN_EDGE : PROP_TONES.ledOn)
   fill(g, [x + 1, y + 1, w - 2, 1], SCREEN_EDGE)
   fill(g, [x + w / 2 - 1, y + h - 4, 2, 3], SCREEN_EDGE)

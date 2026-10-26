@@ -57,11 +57,15 @@ export function engage(deps: FocusDeps, reach: Reach): void {
   openMenu({
     actor,
     name: personNameOf(sim, actor),
-    actions: menuActionsFor(actor, {
-      now,
-      ...(run === undefined ? {} : { run }),
-      ...(parentAgentId === undefined ? {} : { parentAgentId }),
-    }),
+    actions: [
+      ...menuActionsFor(actor, {
+        now,
+        ...(run === undefined ? {} : { run }),
+        ...(parentAgentId === undefined ? {} : { parentAgentId }),
+      }),
+      // The double click's follow, for the keyboard and touch.
+      { id: 'follow', run: () => followActor(deps, actor) },
+    ],
     isFocused: reach.isFocused,
     canvas: deps.canvas,
   })
