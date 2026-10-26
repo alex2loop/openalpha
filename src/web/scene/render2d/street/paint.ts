@@ -9,6 +9,9 @@ import {
   type StreetDetail,
   staticPxOf,
 } from '@/web/scene/render2d/street/detail'
+import { SHELTERS_PART } from '@/web/scene/render2d/street/shelters'
+import { SIGNALS_PART } from '@/web/scene/render2d/street/signals'
+import { VEHICLES_PART } from '@/web/scene/render2d/street/vehicles'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { hasStreetEntities } from '@/web/scene/sim/street/street'
 import { DAY_LIGHT_HOUR } from '@/web/scene/sprites/daylight'
@@ -29,17 +32,25 @@ export interface StreetMinute extends ClockParts {
   readonly detail: StreetDetail
 }
 
+/** What a moving part paints over: the moving canvas's rect, the minute the static canvas last
+ *  painted, and the pack. */
+export interface MovingScene {
+  readonly rect: Rect
+  readonly minute: StreetMinute
+  readonly pack: RegionPack
+}
+
 /** One part of the street: what it paints once a minute on the static canvas, and what it paints
- *  each step on the moving canvas over `rect`; both in world px. */
+ *  each step on the moving canvas over the scene's rect; both in world px. */
 export interface PaintPart {
   paintStatic(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetMinute): void
-  paintMoving?(g: CanvasRenderingContext2D, view: StreetView, rect: Rect): void
+  paintMoving?(g: CanvasRenderingContext2D, view: StreetView, scene: MovingScene): void
 }
 
 type MovingPaint = NonNullable<PaintPart['paintMoving']>
 
 // Every part of the street, in draw order.
-const PAINT_PARTS: readonly PaintPart[] = [CITY_PART]
+const PAINT_PARTS: readonly PaintPart[] = [CITY_PART, SIGNALS_PART, SHELTERS_PART, VEHICLES_PART]
 const MOVING_PAINTS: readonly MovingPaint[] = PAINT_PARTS.flatMap((part) =>
   part.paintMoving === undefined ? [] : [part.paintMoving]
 )
@@ -57,6 +68,7 @@ export interface StreetPainter {
 }
 
 interface PainterState {
+  readonly moving: { rect: Rect; minute: StreetMinute; pack: RegionPack }
   readonly staticCanvas: HTMLCanvasElement
   readonly movingCanvas: HTMLCanvasElement
   staticKey: string
@@ -69,17 +81,7 @@ interface PainterState {
 }
 
 export function createStreetPainter(): StreetPainter {
-  const state: PainterState = {
-    staticCanvas: document.createElement('canvas'),
-    movingCanvas: document.createElement('canvas'),
-    staticKey: '',
-    detail: undefined,
-    staticVersion: 0,
-    movingKey: '',
-    movingVersion: 0,
-    movingRect: NO_RECT,
-    paintMs: 0,
-  }
+  const state = createPainterState()
 
   return {
     paint(view, visible, minute) {
@@ -111,6 +113,25 @@ export function createStreetPainter(): StreetPainter {
   }
 }
 
+function createPainterState(): PainterState {
+  return {
+    moving: {
+      rect: NO_RECT,
+      minute: { day: '', minute: 0, dow: 0, detail: 0 },
+      pack: regionPack.value,
+    },
+    staticCanvas: document.createElement('canvas'),
+    movingCanvas: document.createElement('canvas'),
+    staticKey: '',
+    detail: undefined,
+    staticVersion: 0,
+    movingKey: '',
+    movingVersion: 0,
+    movingRect: NO_RECT,
+    paintMs: 0,
+  }
+}
+
 // The street keeps the office's light: with the light not following the hour, its day row.
 function toStreetMinute(minute: ClockParts, detail: StreetDetail): StreetMinute {
   return lightByHour.value
@@ -131,6 +152,8 @@ function syncStatic(state: PainterState, minute: StreetMinute): void {
   }
 
   state.detail = minute.detail
+  state.moving.minute = minute
+  state.moving.pack = pack
 
   if (g === null) {
     return
@@ -179,8 +202,10 @@ function syncMoving(
   g.clearRect(0, 0, state.movingCanvas.width, state.movingCanvas.height)
   g.setTransform(px, 0, 0, px, -rect.x * px, -rect.y * px)
 
+  state.moving.rect = rect
+
   for (const paintMoving of MOVING_PAINTS) {
-    paintMoving(g, job.view, rect)
+    paintMoving(g, job.view, state.moving)
   }
 
   state.movingRect = rect
@@ -189,7 +214,7 @@ function syncMoving(
 }
 
 function hasMovers(view: StreetView): boolean {
-  return MOVING_PAINTS.length > 0 && hasStreetEntities(view.pools)
+  return MOVING_PAINTS.length > 0 && hasStreetEntities(view)
 }
 
 function isSameRect(a: Rect, b: Rect): boolean {

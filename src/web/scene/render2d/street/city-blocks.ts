@@ -1,13 +1,11 @@
 import type { StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { Point } from '@/web/scene/types'
 import { drawSprite, staticPxOf } from '@/web/scene/render2d/street/detail'
-import { mixTone } from '@/web/scene/render2d/street/tone'
+import { DARK_STEPS, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { HEIGHT_K } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
-/** What night mixes every daylight tone toward. */
-const NIGHT = '#0A0E1C'
 const WHITE = '#FFFFFF'
 const BODY_NIGHT = 0.55
 const ROOF_NIGHT = 0.5
@@ -60,8 +58,6 @@ const CROWN_BLOBS = [
 const TRUNK_PX = 8
 const TRUNK_NIGHT = 0.6
 const TRUNK_STEP_PX = 1.4
-// Crown sprites are cached per darkness step, never per minute.
-const DARK_STEPS = 6
 const LAMP_TONE = '#B9BCC0'
 const LAMP_NIGHT = '#10131F'
 const LAMP_POLE_NIGHT = 0.5
@@ -301,7 +297,7 @@ function paintBalcony(
   g.fillStyle = BALCONY_PERSON
   g.fillRect(x + 0.5, y + 0.5, 1.2, 2.3)
   g.fillRect(x + 0.45, y - 0.1, 1.3, 0.9)
-  g.fillStyle = mixTone(block.tone, NIGHT, 0.4)
+  g.fillStyle = mixTone(block.tone, NIGHT_TONE, 0.4)
   g.fillRect(x - 0.6, y + 2.5, 3.4, 0.5)
 }
 
@@ -313,7 +309,7 @@ function paintRoofKit(
   const { g } = scene
   const { block, roofTop } = at
 
-  g.fillStyle = mixTone(block.tone, NIGHT, 0.25 + scene.dark * ROOF_KIT_NIGHT)
+  g.fillStyle = mixTone(block.tone, NIGHT_TONE, 0.25 + scene.dark * ROOF_KIT_NIGHT)
   g.fillRect(block.x + block.w * 0.3, roofTop - 5, block.w * 0.3, 5)
   g.fillRect(block.x + block.w * 0.62, roofTop - 11, 1.1, 11)
 }
@@ -384,5 +380,5 @@ function paintCrown(
 
 /** `hex` darkened for the night by `share` of the scene's darkness. */
 function shade(scene: CityScene, hex: string, share: number): string {
-  return mixTone(hex, NIGHT, scene.dark * share)
+  return mixTone(hex, NIGHT_TONE, scene.dark * share)
 }

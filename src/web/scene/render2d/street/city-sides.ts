@@ -8,7 +8,6 @@ import {
 import {
   fillTone,
   GROUND_TONES,
-  NORTH,
   STREET_BOTTOM,
   STREET_LEFT,
   STREET_RIGHT,
@@ -16,12 +15,13 @@ import {
 } from '@/web/scene/render2d/street/city-ground'
 import { WORLD } from '@/web/scene/types'
 import { createRng, seedOf } from '@/web/scene/world/rng'
+import { NORTH, SIDE_ROAD, sideX } from '@/web/scene/world/street-layout'
 
 // A side street, as distances out from the building's side wall: its road, far pavement, verge,
 // the side park's ground up to `parkEdge` (from `parkTop` down), and the blocks beyond.
 const SIDE = Object.freeze({
-  road: 24,
-  farPave: 52,
+  road: SIDE_ROAD.from,
+  farPave: SIDE_ROAD.to,
   verge: 64,
   lawn: 78,
   parkEdge: 192,
@@ -48,7 +48,7 @@ export function paintSideStreet(
   at: { readonly side: Side; readonly street: SideStreet }
 ): void {
   const { side } = at
-  const out = (distance: number): number => (side < 0 ? -distance : WORLD.w + distance)
+  const out = (distance: number): number => sideX(side, distance)
   const span = (from: number, to: number): readonly [number, number] => [
     Math.min(out(from), out(to)),
     Math.abs(out(to) - out(from)),
