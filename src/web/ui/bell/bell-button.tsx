@@ -27,7 +27,7 @@ const otherUnread = computed(() =>
 
 /** The bell: a number for what needs the operator (red when a stop broke, amber otherwise), a dot
  *  for other news. A new item bumps the badge once; never a toast. */
-export function BellButton({ anchor }: { readonly anchor: RefObject<HTMLButtonElement> }) {
+export function BellButton({ anchor }: { readonly anchor: RefObject<HTMLButtonElement | null> }) {
   const label = buildLabel(needsYou.value, otherUnread.value)
 
   return (

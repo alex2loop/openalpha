@@ -16,7 +16,7 @@ import './jobs.css'
 
 /** What runs now, what runs next, what waits on an event, and the daemon's own upkeep. Opened by
  *  a click or the J key. The schedules are read again on open. */
-export function JobsPopover({ anchor }: { readonly anchor: RefObject<HTMLElement> }) {
+export function JobsPopover({ anchor }: { readonly anchor: RefObject<HTMLElement | null> }) {
   return (
     <Popover
       id={JOBS_POPOVER_ID}

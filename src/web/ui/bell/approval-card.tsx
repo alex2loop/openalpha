@@ -103,7 +103,7 @@ function ApprovalCard({
 function useChosenCard(
   isKeyed: boolean,
   requestId: string | undefined
-): { readonly card: RefObject<HTMLDivElement>; readonly isChosen: boolean } {
+): { readonly card: RefObject<HTMLDivElement | null>; readonly isChosen: boolean } {
   const card = useRef<HTMLDivElement>(null)
   const isChosen = isKeyed && requestId !== undefined && chosenRequestId.value === requestId
 

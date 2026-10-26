@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals'
-import { useEffect } from 'preact/hooks'
+import { useLayoutEffect } from 'preact/hooks'
 
 import type { RoomId, ScreenPoint } from '@/web/scene/types'
 import type { TipSource } from '@/web/scene/world/props'
@@ -90,7 +90,7 @@ export function ObjectTip() {
   const held = shown.value
   const tip = held === undefined ? undefined : TIP_READERS[held.source]()
 
-  useEffect(() => clearTip, [])
+  useLayoutEffect(() => clearTip, [])
 
   if (held === undefined || tip === undefined) {
     return null

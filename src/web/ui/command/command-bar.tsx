@@ -79,7 +79,7 @@ export function CommandBar() {
 }
 
 interface CommandInputProps {
-  readonly inputRef: RefObject<HTMLInputElement>
+  readonly inputRef: RefObject<HTMLInputElement | null>
   readonly list: ListState
   readonly options: readonly SuggestOption[]
 }

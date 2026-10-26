@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals'
-import { useEffect } from 'preact/hooks'
+import { useLayoutEffect } from 'preact/hooks'
 
 import { toErrorText, tr } from '@/web/text/tr'
 
@@ -28,7 +28,7 @@ export function showUndo(text: string, undo: () => Promise<string | undefined>):
 
 /** Mounted once, above the panel's view; leaving the page clears its timer. */
 export function UndoBar() {
-  useEffect(() => dismiss, [])
+  useLayoutEffect(() => dismiss, [])
 
   const entry = current.value
 

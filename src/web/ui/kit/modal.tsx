@@ -1,6 +1,6 @@
 import type { ComponentChild, TargetedMouseEvent } from 'preact'
 import { signal } from '@preact/signals'
-import { useEffect } from 'preact/hooks'
+import { useEffect, useLayoutEffect } from 'preact/hooks'
 
 import { tr } from '@/web/text/tr'
 import { listFocusable, trapFocus } from '@/web/ui/kit/focus-trap'
@@ -104,7 +104,7 @@ function releaseModal(): OpenModal | undefined {
 export function ModalHost() {
   const entry = current.value
 
-  useEffect(() => closeModal, [])
+  useLayoutEffect(() => closeModal, [])
 
   return entry === undefined ? null : <ModalView key={entry.seq} entry={entry} />
 }

@@ -22,7 +22,7 @@ export const COST_POPOVER_ID = 'cost'
 const PERCENT = 100
 
 /** Today and the month against their caps, today's spend by job, and when the daemon warns. */
-export function CostPopover({ anchor }: { readonly anchor: RefObject<HTMLElement> }) {
+export function CostPopover({ anchor }: { readonly anchor: RefObject<HTMLElement | null> }) {
   return (
     <Popover id={COST_POPOVER_ID} anchor={anchor} label={tr('ui.office.cost.title')}>
       <CostBody />

@@ -1,5 +1,5 @@
 import { computed, effect, untracked } from '@preact/signals'
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 
 import type { RoomId, SimView } from '@/web/scene/types'
 import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
@@ -67,7 +67,7 @@ export function SceneCanvas() {
   const [renderers] = useState(createRenderers)
   const renderer = renderers.host
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = host.current
 
     return element === null ? undefined : mountScene(element, renderers)

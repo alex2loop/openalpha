@@ -17,7 +17,7 @@ const WHITESPACE = /\s+/g
 
 interface QuoteAskProps {
   /** The scrolling column that holds the report. */
-  readonly scroller: RefObject<HTMLElement>
+  readonly scroller: RefObject<HTMLElement | null>
   /** Gets the passage, citation marks stripped and cut short. */
   readonly onAsk: (quote: string) => void
 }

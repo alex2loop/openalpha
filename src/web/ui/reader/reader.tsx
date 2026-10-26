@@ -1,6 +1,6 @@
 import type { TargetedMouseEvent } from 'preact'
 import { signal, useSignal } from '@preact/signals'
-import { useEffect, useRef } from 'preact/hooks'
+import { useLayoutEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
 import { fillInput } from '@/web/state/command'
@@ -46,7 +46,7 @@ export function openReader(source: ReaderSource): void {
 export function ReaderHost() {
   const entry = current.value
 
-  useEffect(() => closeReader, [])
+  useLayoutEffect(() => closeReader, [])
 
   return entry === undefined ? null : <ReaderView key={entry.seq} source={entry.source} />
 }
@@ -69,7 +69,7 @@ function ReaderView({ source }: { readonly source: ReaderSource }) {
   const paper = useRef<HTMLDivElement>(null)
   const attempt = useSignal(0)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const listeners = new AbortController()
 
     document.addEventListener('keydown', onKey, { signal: listeners.signal })

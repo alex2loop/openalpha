@@ -1,5 +1,5 @@
 import type { RefObject } from 'preact'
-import { useEffect, useRef } from 'preact/hooks'
+import { useLayoutEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
 import { ClockControl } from '@/web/scene/overlay/clock-control'
@@ -29,7 +29,7 @@ export function Header() {
   const bellAnchor = useRef<HTMLButtonElement>(null)
 
   // A popover open when the header leaves (a sign-out) stays closed on the way back.
-  useEffect(() => closePopover, [])
+  useLayoutEffect(() => closePopover, [])
 
   return (
     <header class="header glass">
@@ -54,7 +54,7 @@ export function Header() {
 }
 
 interface AnchorProps {
-  readonly anchor: RefObject<HTMLButtonElement>
+  readonly anchor: RefObject<HTMLButtonElement | null>
 }
 
 function RunningChip({ anchor }: AnchorProps) {

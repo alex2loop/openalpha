@@ -1,13 +1,13 @@
 import type { ComponentChildren, RefObject } from 'preact'
 import { type ReadonlySignal, signal } from '@preact/signals'
-import { useEffect, useRef } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useRef } from 'preact/hooks'
 
 import './popover.css'
 
 interface PopoverProps {
   readonly id: string
   /** The button that toggles it: a click on it is not an outside click, and Esc returns focus to it. */
-  readonly anchor: RefObject<HTMLElement>
+  readonly anchor: RefObject<HTMLElement | null>
   readonly label: string
   readonly class?: string
   /** Focus moves into it as it opens, so its keys work whatever opened it. */
@@ -16,8 +16,8 @@ interface PopoverProps {
 }
 
 interface OpenPanel {
-  readonly panel: RefObject<HTMLElement>
-  readonly anchor: RefObject<HTMLElement>
+  readonly panel: RefObject<HTMLElement | null>
+  readonly anchor: RefObject<HTMLElement | null>
 }
 
 /** The bell's popover, which the office also opens: from an approval's marker or bubble. */
@@ -80,7 +80,7 @@ export function Popover({
 }
 
 interface PopoverPanelProps {
-  readonly anchor: RefObject<HTMLElement>
+  readonly anchor: RefObject<HTMLElement | null>
   readonly label: string
   readonly className: string | undefined
   readonly takesFocus: true | undefined
@@ -90,7 +90,7 @@ interface PopoverPanelProps {
 function PopoverPanel({ anchor, label, className, takesFocus, children }: PopoverPanelProps) {
   const panel = useRef<HTMLDivElement>(null)
 
-  useEffect(() => armDismiss(panel, anchor), [anchor])
+  useLayoutEffect(() => armDismiss(panel, anchor), [anchor])
   useEffect(() => {
     if (takesFocus === true) {
       panel.current?.focus()
@@ -111,7 +111,10 @@ function PopoverPanel({ anchor, label, className, takesFocus, children }: Popove
 }
 
 // Esc and a press outside both close it; the listeners live exactly as long as the panel.
-function armDismiss(panel: RefObject<HTMLElement>, anchor: RefObject<HTMLElement>): () => void {
+function armDismiss(
+  panel: RefObject<HTMLElement | null>,
+  anchor: RefObject<HTMLElement | null>
+): () => void {
   const listeners = new AbortController()
   const { signal: listenerSignal } = listeners
   const entry: OpenPanel = { panel, anchor }
@@ -149,6 +152,6 @@ function armDismiss(panel: RefObject<HTMLElement>, anchor: RefObject<HTMLElement
   }
 }
 
-function isInside(ref: RefObject<HTMLElement> | undefined, target: Node): boolean {
+function isInside(ref: RefObject<HTMLElement | null> | undefined, target: Node): boolean {
   return ref?.current?.contains(target) === true
 }

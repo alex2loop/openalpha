@@ -1,6 +1,6 @@
 import type { RefObject } from 'preact'
 import { useSignal } from '@preact/signals'
-import { useEffect } from 'preact/hooks'
+import { useLayoutEffect } from 'preact/hooks'
 
 import type { NoticeWire } from '@/app/server/wire/notices'
 import { pluralKey } from '@/i18n'
@@ -17,7 +17,7 @@ import { NoticeRow } from '@/web/ui/bell/notice-row'
 import { Button } from '@/web/ui/kit/button'
 import { BELL_POPOVER_ID, Popover } from '@/web/ui/kit/popover'
 
-export function BellPopover({ anchor }: { readonly anchor: RefObject<HTMLElement> }) {
+export function BellPopover({ anchor }: { readonly anchor: RefObject<HTMLElement | null> }) {
   return (
     <Popover id={BELL_POPOVER_ID} anchor={anchor} label={tr('ui.office.bell.title')} takesFocus>
       <BellHead />
@@ -69,7 +69,7 @@ function WaitingSection() {
   const entries = pending.value
   const count = entries.length
 
-  useEffect(() => clearChosenRequest, [])
+  useLayoutEffect(() => clearChosenRequest, [])
 
   if (count === 0) {
     return null

@@ -7,7 +7,7 @@ interface ChipProps {
   readonly title?: string
   /** Set on a chip that opens a popover: it becomes a button and the popover's anchor. */
   readonly onClick?: () => void
-  readonly anchorRef?: RefObject<HTMLButtonElement>
+  readonly anchorRef?: RefObject<HTMLButtonElement | null>
   readonly isExpanded?: boolean
   readonly children: ComponentChildren
 }

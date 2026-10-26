@@ -1,5 +1,5 @@
 import { useSignal } from '@preact/signals'
-import { useEffect } from 'preact/hooks'
+import { useLayoutEffect } from 'preact/hooks'
 
 import type { AgentView } from '@/web/ui/agent/agent-view'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
@@ -29,7 +29,7 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
   const minSample = state.value?.trackRecordMinSample
 
   // The "saved" line belongs to the visit that followed the save.
-  useEffect(() => () => clearSavedNote(view.agentId), [])
+  useLayoutEffect(() => () => clearSavedNote(view.agentId), [])
 
   return (
     <header class="agent-head">
