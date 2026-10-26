@@ -122,7 +122,9 @@ export function stepFront(
   const isShutterChanged = at.isReduced
     ? clearShutters(front)
     : syncShutters(front, at.pack.shops, minute)
-  const isGuardMoved = at.isReduced ? clearGuard(front) : syncGuard(front, { minute, dt })
+  const isGuardMoved = at.isReduced
+    ? clearGuard(front)
+    : syncGuard(front, { pack: at.pack, minute, dt })
   const isBoardChanged = syncBoard(front, {
     items,
     nowMs: at.nowMs,
@@ -234,9 +236,12 @@ function clearGuard(front: Front): boolean {
   return false
 }
 
-function syncGuard(front: Front, at: { readonly minute: number; readonly dt: number }): boolean {
+function syncGuard(
+  front: Front,
+  at: { readonly pack: RegionPack; readonly minute: number; readonly dt: number }
+): boolean {
   const { guard } = front
-  const isOnDuty = front.view.face !== undefined && isLateNight(at.minute)
+  const isOnDuty = front.view.face !== undefined && isLateNight(at.pack, at.minute)
 
   front.view.guard = isOnDuty ? guard : undefined
 

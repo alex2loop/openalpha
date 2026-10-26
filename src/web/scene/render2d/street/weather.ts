@@ -178,7 +178,7 @@ function paintTarps(
     }
   }
 
-  const stall = isLateNight(at.minute.clock) ? lateStallOf(at.pack) : undefined
+  const stall = isLateNight(at.pack, at.minute.clock) ? lateStallOf(at.pack) : undefined
 
   if (stall !== undefined) {
     paintCartCover(g, { at: stall, w: 4.6, h: 7.4, dark: at.minute.light.dark })

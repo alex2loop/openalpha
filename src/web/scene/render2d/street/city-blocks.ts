@@ -7,7 +7,6 @@ import { paintGroundShadow } from '@/web/scene/render2d/street/shadow'
 import { DARK_STEPS, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { HEIGHT_K } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const WHITE = '#FFFFFF'
 const BODY_NIGHT = 0.55
@@ -26,9 +25,6 @@ const LIT_ALPHA = 0.95
 const UNLIT_ALPHA = 0.4
 const UNLIT_NIGHT_FADE = 0.6
 const UNLIT_LIGHTEN = 0.14
-// Someone steps out onto a lit balcony now and then, in the evening only.
-const BALCONY_FROM_MIN = 18 * MINUTES_PER_HOUR
-const BALCONY_UNTIL_MIN = 23 * MINUTES_PER_HOUR
 const BALCONY_SLOT_MIN = 15
 const BALCONY_SLOTS = 4
 const BALCONY_BLOCKS = 3
@@ -85,6 +81,8 @@ export interface CityScene {
   readonly minute: StreetMinute
   readonly dark: number
   readonly lit: number
+  /** The pack's hours when someone may step out onto a lit balcony. */
+  readonly isBalconyHour: boolean
   readonly horizon: string
   readonly holiday: HolidayId | undefined
 }
@@ -133,7 +131,7 @@ export function paintBlock(scene: CityScene, block: Block): void {
   g.fillRect(block.x, top - block.depth, block.w, block.depth)
   paintWindows(scene, { block, top, rise, next: rng.next })
 
-  if (rise > BALCONY_MIN_RISE && isBalconyOut(scene.minute.minute, block.seed)) {
+  if (rise > BALCONY_MIN_RISE && isBalconyOut(scene, block.seed)) {
     paintBalcony(g, { block, top, rise })
   }
 
@@ -286,15 +284,10 @@ function paintWindows(
   g.globalAlpha = 1
 }
 
-function isBalconyOut(minute: number, seed: number): boolean {
-  const slot = Math.floor(minute / BALCONY_SLOT_MIN)
+function isBalconyOut(scene: CityScene, seed: number): boolean {
+  const slot = Math.floor(scene.minute.minute / BALCONY_SLOT_MIN)
 
-  return (
-    minute >= BALCONY_FROM_MIN &&
-    minute < BALCONY_UNTIL_MIN &&
-    (slot + seed) % BALCONY_SLOTS === 0 &&
-    seed % BALCONY_BLOCKS === 0
-  )
+  return scene.isBalconyHour && (slot + seed) % BALCONY_SLOTS === 0 && seed % BALCONY_BLOCKS === 0
 }
 
 // A lit doorway halfway up the facade, a person in it and the railing in front.

@@ -156,6 +156,27 @@ export const VN_PACK = Object.freeze({
       [hm(14), hm(17, 30)],
     ],
     doorWalks: [[hm(6), hm(22)]],
+    late: [
+      [hm(22), hm(HOURS_PER_DAY)],
+      [0, hm(5)],
+    ],
+    lightsOut: [
+      [hm(23, 30), hm(HOURS_PER_DAY)],
+      [0, hm(5)],
+    ],
+    balconies: [[hm(18), hm(23)]],
+    shopsLit: [[0, hm(21, 30)]],
+    windowsLit: [
+      [0, 0.12],
+      [hm(2), 0.08],
+      [hm(5, 30), 0],
+      [hm(17), 0],
+      [hm(18, 30), 0.6],
+      [hm(19, 30), 0.6],
+      [hm(21, 30), 0.3],
+      [hm(23), 0.18],
+      [hm(HOURS_PER_DAY), 0.12],
+    ],
     parks: {
       open: [[hm(5, 30), hm(21, 30)]],
       joggers: [

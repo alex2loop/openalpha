@@ -1,17 +1,9 @@
 import type { Point, Rect } from '@/web/scene/types'
-import { type ShopRow, shopDoorOf } from '@/web/scene/world/regions'
+import { isWithin, type RegionPack, type ShopRow, shopDoorOf } from '@/web/scene/world/regions'
 import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 /** How high a shop's front rises over the far pavement. */
 export const SHOP_RISE = 13
-// The street's late hours: from the evening's last shop closing until before dawn, the late stalls
-// stand and the guard walks the frontage.
-const LATE_FROM_MIN = 22 * MINUTES_PER_HOUR
-const LATE_UNTIL_MIN = 5 * MINUTES_PER_HOUR
-// The tower's and the frontage's night lights go out in the dead of night.
-const LIGHTS_OUT_FROM_MIN = 23.5 * MINUTES_PER_HOUR
-const LIGHTS_OUT_UNTIL_MIN = 5 * MINUTES_PER_HOUR
 
 // The frontage building's shape, in world px: its height over the pavement, the glass shopfront at
 // its foot, the LED board's size and where it sits (down from the roof line, in from the right
@@ -110,13 +102,13 @@ function buildFrontage(lobby: ShopSpan): Frontage {
   }
 }
 
-/** `minute` of the page day falls in the street's late hours. */
-export function isLateNight(minute: number): boolean {
-  return minute >= LATE_FROM_MIN || minute < LATE_UNTIL_MIN
+/** `minute` of the page day falls in the pack's late hours. */
+export function isLateNight(pack: RegionPack, minute: number): boolean {
+  return isWithin(pack.hours.late, minute)
 }
 
 /** `minute` of the page day falls in the dead of night, when the tower and the frontage put their
  *  lights out. */
-export function isLightsOut(minute: number): boolean {
-  return minute >= LIGHTS_OUT_FROM_MIN || minute < LIGHTS_OUT_UNTIL_MIN
+export function isLightsOut(pack: RegionPack, minute: number): boolean {
+  return isWithin(pack.hours.lightsOut, minute)
 }

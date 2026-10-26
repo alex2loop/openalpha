@@ -20,24 +20,11 @@ import { mixTone } from '@/web/scene/render2d/street/tone'
 import { WORLD } from '@/web/scene/types'
 import { STREET_RECT } from '@/web/scene/view'
 import { shopRowSpanOf } from '@/web/scene/world/frontage'
-import { holidayOf } from '@/web/scene/world/regions'
+import { holidayOf, isWithin } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { FAR_TREE_Y, FAR_TREES, METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
 import { MINUTES_PER_DAY } from '@/web/text/time-units'
 
-// The share of a building's windows lit through the day: minute of the day and share, linear
-// between two points.
-const LIT_CURVE: readonly (readonly [number, number])[] = [
-  [0, 0.12],
-  [120, 0.08],
-  [330, 0],
-  [1020, 0],
-  [1110, 0.6],
-  [1170, 0.6],
-  [1290, 0.3],
-  [1380, 0.18],
-  [1440, 0.12],
-]
 const TILE_PX = 0.4 / METRES_PER_PX
 // The skyline north of the street, far row first: base line, roof depth, facade height and width
 // ranges, its tone, how far it leans to the horizon and the share of the lit curve it follows.
@@ -84,18 +71,20 @@ export function citySceneOf(
     g,
     minute,
     dark: minute.light.dark,
-    lit: litShareOf(minute.minute) * minute.light.dark,
+    lit: litShareOf(pack, minute.minute) * minute.light.dark,
+    isBalconyHour: isWithin(pack.hours.balconies, minute.minute),
     horizon: minute.light.sky[1],
     holiday: holidayOf(pack, minute.day),
   }
 }
 
 /** The share of a street building's windows lit at `minute` of the day. */
-export function litShareOf(minute: number): number {
+export function litShareOf(pack: RegionPack, minute: number): number {
+  const curve = pack.hours.windowsLit
   const at = ((minute % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY
-  const next = LIT_CURVE.findIndex(([from]) => from > at)
-  const [a0, a1] = LIT_CURVE[next - 1] ?? [0, 0]
-  const [b0, b1] = LIT_CURVE[next] ?? [a0, a1]
+  const next = curve.findIndex(([from]) => from > at)
+  const [a0, a1] = curve[next - 1] ?? [0, 0]
+  const [b0, b1] = curve[next] ?? [a0, a1]
 
   return b0 === a0 ? a1 : a1 + ((b1 - a1) * (at - a0)) / (b0 - a0)
 }

@@ -131,6 +131,18 @@ export interface StreetHours {
   readonly garbage: MinuteRanges
   readonly cafe: MinuteRanges
   readonly doorWalks: MinuteRanges
+  /** After the last shop closes until before dawn: the late stall stands and the guard walks the
+   *  frontage. */
+  readonly late: MinuteRanges
+  /** The tower's and the frontage's night lights are out. */
+  readonly lightsOut: MinuteRanges
+  /** Someone may step out onto a lit balcony. */
+  readonly balconies: MinuteRanges
+  /** The frontage's lobby glass may be lit after dusk. */
+  readonly shopsLit: MinuteRanges
+  /** The share of a building's windows lit through the day: minute of the day and share, linear
+   *  between two points, first at 0 and last at the day's end. */
+  readonly windowsLit: readonly (readonly [number, number])[]
   readonly parks: {
     readonly open: MinuteRanges
     readonly joggers: MinuteRanges
