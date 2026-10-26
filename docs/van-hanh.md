@@ -544,7 +544,7 @@ Cảm ứng dùng như chuột: một ngón kéo để di chuyển, hai ngón ch
 
 ### Tùy chọn hiển thị
 
-Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xanh tăng hay đỏ tăng), chuyển động (đầy đủ, giảm hoặc theo hệ thống), mức chi tiết (ở trên) và ánh sáng văn phòng được lưu trong trình duyệt này và có hiệu lực ngay. Giảm chuyển động làm nhân vật và thú cưng đứng yên, trừ chớp mắt, dừng dải giá chạy, các hiệu ứng báo và nhấp nháy giá, và cho giờ thử của đồng hồ chạy ở tốc độ thường; bong bóng vẫn cập nhật. Ngôn ngữ và múi giờ là thiết lập của chính daemon (chúng cũng đổi bản tin và Telegram) và cần khởi động lại. Trình duyệt còn nhớ những đèn bạn đã tắt, lựa chọn 2D hay 3D, vùng đã chọn ở thẻ Thị trường, bản cập nhật bạn đã để sau, lựa chọn tiếng chuông và thông báo; không thứ nào được gửi cho daemon.
+Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xanh tăng hay đỏ tăng), chuyển động (đầy đủ, giảm hoặc theo hệ thống), mức chi tiết (ở trên) và ánh sáng văn phòng được lưu trong trình duyệt này và có hiệu lực ngay. Giảm chuyển động làm nhân vật và thú cưng đứng yên, trừ chớp mắt, giữ yên bụi nắng, ruy băng máy lạnh, dải LED, đèn tủ máy chủ, đèn chờ duyệt và bọt bể cá, dừng dải giá chạy, các hiệu ứng báo và nhấp nháy giá, và cho giờ thử của đồng hồ chạy ở tốc độ thường; bong bóng vẫn cập nhật. Ngôn ngữ và múi giờ là thiết lập của chính daemon (chúng cũng đổi bản tin và Telegram) và cần khởi động lại. Trình duyệt còn nhớ những đèn bạn đã tắt, lựa chọn 2D hay 3D, vùng đã chọn ở thẻ Thị trường, bản cập nhật bạn đã để sau, lựa chọn tiếng chuông và thông báo; không thứ nào được gửi cho daemon.
 
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 

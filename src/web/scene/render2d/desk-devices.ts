@@ -1,17 +1,19 @@
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import { fill, INK } from '@/web/scene/render2d/building'
-import { DEVICE_TONES, moveToneOf, PALETTE } from '@/web/scene/sprites/palette'
+import { paintStandby } from '@/web/scene/render2d/standby'
+import { DEVICE_TONES, PALETTE } from '@/web/scene/sprites/palette'
 import { paintPixelText, pixelTextWidth } from '@/web/scene/sprites/pixel-font'
 import { seedOf } from '@/web/scene/world/rng'
 
 type Box = readonly [number, number, number, number]
 
-/** What a StandBy phone propped on a desk shows: drifting colour, a small clock and the index's
- *  move, or the time large. */
-type StandbyView = 'flow' | 'widgets' | 'clocks'
-
-const STANDBY_PHASES = 6
 const SCREEN_DOTS = ['#FF6259', '#F2C46C', '#6FE3D6'] as const
+// The approval light breathes between these on the ambient clock, steady at full under reduced
+// motion; its glow is this share of the light.
+const CUE_REST = 0.675
+const CUE_SWING = 0.325
+const CUE_PERIOD_MS = 1100
+const CUE_GLOW = 0.3
 
 /** A monitor standing on a desk at `x`, its outlined screen `w` wide from `y`: dark once the
  *  office is quiet, else its idle screen; a working screen's content is the overlay's. */
@@ -83,10 +85,33 @@ export function paintWallMonitor(
   fill(g, [sx + 1, sy + 2, Math.round(inner / 2), 1], DEVICE_TONES.trackTitle)
 }
 
-/** A keyboard in front of a monitor centred on `cx`, its top at `y`. */
-export function paintKeyboard(g: CanvasRenderingContext2D, cx: number, y: number): void {
-  fill(g, [cx - 3, y, 9, 3], DEVICE_TONES.keys)
-  fill(g, [cx - 3, y + 2, 9, 1], DEVICE_TONES.keysEdge)
+/** The keyboard on a desk whose top is at `top`: before the standing monitor centred on `cx`, or
+ *  pulled forward past the screen laid flat while someone sits there. */
+export function paintKeyboard(
+  g: CanvasRenderingContext2D,
+  at: { readonly cx: number; readonly top: number; readonly isSeated: boolean }
+): void {
+  const { cx, top } = at
+
+  if (at.isSeated) {
+    fill(g, [cx - 3, top + 10, 9, 2], DEVICE_TONES.keys)
+    return
+  }
+
+  fill(g, [cx - 3, top + 5, 9, 3], DEVICE_TONES.keys)
+  fill(g, [cx - 3, top + 7, 9, 1], DEVICE_TONES.keysEdge)
+}
+
+/** A monitor laid flat on its desk, its glass at `screen`, in its dark frame. */
+export function paintFlatMonitor(
+  g: CanvasRenderingContext2D,
+  screen: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  scene: PaintScene
+): void {
+  const { x, y, w, h } = screen
+
+  fill(g, [x - 1, y - 1, w + 2, h + 2], INK)
+  paintIdleScreen(g, [x, y, w, h], scene.life.isQuiet)
 }
 
 /** A small silver desktop box with its mark on top and its front ports. */
@@ -167,106 +192,6 @@ function paintCalendar(g: CanvasRenderingContext2D, at: { x: number; y: number; 
   })
 }
 
-/** A phone propped open on its stand: the lower half flat on the desk, the upper half the lit
- *  screen showing `view`; red once the office is quiet, then dimmed. */
-export function paintStandby(
-  g: CanvasRenderingContext2D,
-  at: { readonly x: number; readonly y: number; readonly view: StandbyView },
-  scene: PaintScene
-): void {
-  const { x, y, view } = at
-  const isRed = scene.life.isQuiet
-  const tones: StandbyTones = isRed ? DEVICE_TONES.standbyNight : DEVICE_TONES.standbyDay
-
-  fill(g, [x, y + 7, 12, 2], DEVICE_TONES.titanium)
-  fill(g, [x + 1, y + 7, 10, 1], DEVICE_TONES.standbyGlass)
-  fill(g, [x, y, 12, 7], DEVICE_TONES.titanium)
-  fill(g, [x, y + 6, 12, 1], DEVICE_TONES.titaniumEdge)
-  fill(g, [x + 1, y + 1, 10, 5], tones.screen)
-
-  if (view === 'flow') {
-    paintFlow(g, { x, y, phase: Math.floor(scene.minuteOfDay) % STANDBY_PHASES, tones })
-  } else if (view === 'widgets') {
-    paintWidgets(g, { x, y, tones, scene })
-  } else {
-    paintBigClock(g, { x, y, tones })
-  }
-
-  if (isRed) {
-    fill(g, [x + 1, y + 1, 10, 5], DEVICE_TONES.quietVeil)
-  }
-}
-
-/** A StandBy screen's tones, by day or red at night. */
-interface StandbyTones {
-  readonly screen: string
-  readonly flowGround: string
-  readonly flow: readonly string[]
-  readonly well: string
-  readonly ink: string
-  readonly colon: string
-  readonly hole: string
-}
-
-function paintFlow(
-  g: CanvasRenderingContext2D,
-  at: {
-    readonly x: number
-    readonly y: number
-    readonly phase: number
-    readonly tones: StandbyTones
-  }
-): void {
-  const { x, y, phase, tones } = at
-
-  fill(g, [x + 1, y + 1, 10, 5], tones.flowGround)
-
-  for (const [i, tone] of tones.flow.entries()) {
-    fill(g, [x + 1 + ((phase + i * 3) % 8), y + 1 + ((i + phase) % 4), 3, 2], tone)
-  }
-}
-
-// A small analogue clock on the left, the index's move as a bar on the right.
-function paintWidgets(
-  g: CanvasRenderingContext2D,
-  at: {
-    readonly x: number
-    readonly y: number
-    readonly tones: StandbyTones
-    readonly scene: PaintScene
-  }
-): void {
-  const { x, y, tones, scene } = at
-  const minutes = scene.minuteOfDay
-  const angle = (((minutes / 60) % 12) * Math.PI) / 6
-  const move = scene.indexMove
-
-  fill(g, [x + 2, y + 2, 3, 3], tones.well)
-  fill(
-    g,
-    [x + 3 + Math.round(Math.sin(angle)), y + 3 - Math.round(Math.cos(angle)), 1, 1],
-    tones.ink
-  )
-  fill(g, [x + 6, y + 2, 4, 3], tones.well)
-  const bar = move === 'flat' ? DEVICE_TONES.flat : moveToneOf(move)
-
-  fill(g, [x + 7, y + 3, 2, 1], scene.life.isQuiet ? tones.ink : bar)
-}
-
-function paintBigClock(
-  g: CanvasRenderingContext2D,
-  at: { readonly x: number; readonly y: number; readonly tones: StandbyTones }
-): void {
-  const { x, y, tones } = at
-
-  fill(g, [x + 2, y + 2, 2, 3], tones.ink)
-  fill(g, [x + 5, y + 2, 1, 1], tones.colon)
-  fill(g, [x + 5, y + 4, 1, 1], tones.colon)
-  fill(g, [x + 7, y + 2, 3, 3], tones.ink)
-  fill(g, [x + 3, y + 3, 1, 1], tones.hole)
-  fill(g, [x + 8, y + 3, 1, 1], tones.hole)
-}
-
 /** Your desk's things, from its top-left corner: the desktop box, both keyboards, the in-tray
  *  (its stack is the tray painter's) with the amber light while an approval waits, a red mug, a
  *  snack, a StandBy stand, sticky notes and today's calendar page. */
@@ -288,8 +213,11 @@ export function paintOperatorDesk(
   fill(g, [x + 9, y + 4, 8, 7], op.tray)
 
   if (scene.isAwaitingYou) {
-    fill(g, [x + 15, y + 3, 4, 4], op.cueGlow)
-    fill(g, [x + 16, y + 4, 2, 2], op.cue)
+    const cue =
+      scene.fx?.cue === true ? CUE_REST + CUE_SWING * Math.sin(scene.fx.ms / CUE_PERIOD_MS) : 1
+
+    fill(g, [x + 15, y + 3, 4, 4], `rgba(${op.cueRgb},${(CUE_GLOW * cue).toFixed(2)})`)
+    fill(g, [x + 16, y + 4, 2, 2], `rgba(${op.cueRgb},${(0.5 + 0.5 * cue).toFixed(2)})`)
   }
 
   fill(g, [x + 32, y + 4, 4, 4], op.mug)

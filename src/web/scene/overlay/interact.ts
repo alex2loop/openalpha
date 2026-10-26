@@ -354,21 +354,11 @@ function onKey(input: InputState, event: KeyboardEvent): void {
     return
   }
 
-  const pan = ARROW_PANS[event.key]
-  const sidePan = event.shiftKey ? SIDE_PANS[event.key] : undefined
-  const zoom = ZOOM_KEYS[event.key]
   const step = ARROW_STEPS[event.key]
   const keyed = keyedActor.value
 
-  if (pan !== undefined) {
+  if (moveCamera(event)) {
     event.preventDefault()
-    panBy(0, pan)
-  } else if (sidePan !== undefined) {
-    event.preventDefault()
-    panBy(sidePan, 0)
-  } else if (zoom !== undefined) {
-    event.preventDefault()
-    zoomBy(zoom)
   } else if (step !== undefined) {
     event.preventDefault()
     stepFocus(input.focus, { by: step, isWrapping: true })
@@ -382,6 +372,23 @@ function onKey(input: InputState, event: KeyboardEvent): void {
   } else if (event.key === ESCAPE_KEY) {
     stepBack(input)
   }
+}
+
+// Up and down pan, Shift with left or right pans sideways, + and - zoom; true when the key did.
+function moveCamera(event: KeyboardEvent): boolean {
+  const pan = ARROW_PANS[event.key]
+  const sidePan = event.shiftKey ? SIDE_PANS[event.key] : undefined
+  const zoom = ZOOM_KEYS[event.key]
+
+  if (pan !== undefined) {
+    panBy(0, pan)
+  } else if (sidePan !== undefined) {
+    panBy(sidePan, 0)
+  } else if (zoom !== undefined) {
+    zoomBy(zoom)
+  }
+
+  return pan !== undefined || sidePan !== undefined || zoom !== undefined
 }
 
 // Esc lets go of one thing at a time: the ring, the picks and the meeting bar, a follow, then the

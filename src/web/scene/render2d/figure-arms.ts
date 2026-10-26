@@ -1,8 +1,12 @@
 import type { Arms, HeldKind } from '@/web/scene/sim/actors/poses'
 import { type Figure, type Material, skinOf } from '@/web/scene/render2d/figure-spec'
-import { type Cells, put, rect } from '@/web/scene/render2d/pixel-grid'
+import { type Cells, put, rect, rounded } from '@/web/scene/render2d/pixel-grid'
 
+// A clipboard, scroll or book shows at the right hand unless that hand is up, as in the mockup.
 const RIGHT_FREE_ARMS: ReadonlySet<Arms> = new Set(['down', 'type', 'cross', 'nap'])
+const VEST_R = 2
+// Something carried hangs at the right hand while the arms are down, crossed or napping.
+const HOLDING_ARMS: ReadonlySet<Arms> = new Set(['down', 'cross', 'nap'])
 const MUG_ARMS: ReadonlySet<Arms> = new Set(['down', 'hand', 'cross', 'nap', 'scratch', 'sip'])
 
 const ARM_PAINTERS: Readonly<Record<Arms, (f: Figure) => void>> = Object.freeze({
@@ -21,12 +25,13 @@ const ARM_PAINTERS: Readonly<Record<Arms, (f: Figure) => void>> = Object.freeze(
   sip: paintSip,
 })
 
-/** The arms the frame asks for, or a phone read in both hands. */
+/** The arms the frame asks for, and over them a phone read in both hands, as the mockup layers
+ *  them. */
 export function paintArms(f: Figure): void {
+  ARM_PAINTERS[f.arms](f)
+
   if (f.isReading) {
     paintReading(f)
-  } else {
-    ARM_PAINTERS[f.arms](f)
   }
 }
 
@@ -187,14 +192,16 @@ export function paintHeld(f: Figure): void {
     return
   }
 
-  if (f.arms !== 'down' || f.isReading) {
+  if (!HOLDING_ARMS.has(f.arms) || f.isReading) {
     return
   }
 
   const hy = 19 + f.b - f.swing
   const kind = f.frame.hold
 
-  if (kind !== undefined) {
+  if (kind === 'mop') {
+    paintMop(f)
+  } else if (kind !== undefined) {
     paintHeldKind(f.cells, { kind, hy })
   } else if (f.frame.sheet !== undefined) {
     rect(f.cells, [19, hy - 3, 4, 5], 'paper')
@@ -243,11 +250,14 @@ function paintHeldKind(
       return
     case 'item':
       rect(cells, [19, hy - 1, 3, 3], 'heldBody')
-      return
-    case 'mop':
-      rect(cells, [21, hy - 8, 1, 17], 'heldBody')
-      rect(cells, [19, hy + 9, 5, 2], 'heldBand')
   }
+}
+
+// A mop's pole at the hand and its pale strands on the floor, sweeping with the step.
+function paintMop(f: Figure): void {
+  rect(f.cells, [19, 9 + f.b, 1, 20], 'heldBody')
+  rect(f.cells, [17 + f.swing, 28, 6, 2], 'heldBand')
+  rect(f.cells, [17 + f.swing, 30, 6, 1], 'cupRim')
 }
 
 export function paintTorsoProp(f: Figure): void {
@@ -257,8 +267,7 @@ export function paintTorsoProp(f: Figure): void {
     return
   }
 
-  const isRightFree =
-    RIGHT_FREE_ARMS.has(f.arms) && f.frame.hold === undefined && f.frame.sheet === undefined
+  const isRightFree = RIGHT_FREE_ARMS.has(f.arms)
 
   switch (look.prop) {
     case 'tie':
@@ -275,20 +284,29 @@ export function paintTorsoProp(f: Figure): void {
       rect(cells, [7, 12 + b, 10, 2], 'scarf')
       rect(cells, [13, 14 + b, 2, 3], 'scarf')
       return
-    case 'uniform':
-      rect(cells, [7, 12 + b, 2, 1], 'tie')
-      rect(cells, [15, 12 + b, 2, 1], 'tie')
-      put(cells, [9, 14 + b], 'gold')
-      rect(cells, [8, 20 + b, 8, 1], 'pocket')
-      return
-    case 'vest':
-      rect(cells, [7, 13 + b, 3, 8], 'vest')
-      rect(cells, [14, 13 + b, 3, 8], 'vest')
-      rect(cells, [7, 17 + b, 3, 1], 'vestBand')
-      rect(cells, [14, 17 + b, 3, 1], 'vestBand')
-      return
     default:
       paintCarriedProp(f, isRightFree)
+  }
+}
+
+/** The guard's uniform and the cleaner's hi-vis vest, front and back, as the mockup dresses them. */
+export function paintStaffGear(f: Figure): void {
+  const { cells, b, look } = f
+  const isFront = !f.frame.isBack
+
+  if (look.prop === 'uniform') {
+    rect(cells, [6, 13 + b, 3, 1], 'epaulette')
+    rect(cells, [15, 13 + b, 3, 1], 'epaulette')
+    rect(cells, [7, 19 + b, 10, 1], 'belt')
+
+    if (isFront) {
+      rect(cells, [11, 13 + b, 2, 5], 'belt')
+      rect(cells, [14, 15 + b, 2, 2], 'epaulette')
+    }
+  } else if (look.prop === 'vest') {
+    rounded(cells, { box: [7, 13 + b, 10, 8 - b], r: VEST_R }, 'vest')
+    rect(cells, [7, 15 + b, 10, 1], 'vestBand')
+    rect(cells, [7, 18 + b, 10, 1], 'vestBand')
   }
 }
 
