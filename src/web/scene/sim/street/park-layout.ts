@@ -146,7 +146,8 @@ const SOUTH_BENCHES = [
   [580, -1, 'q3'],
 ] as const
 const SOUTH_BENCH_DY = 7
-const SOUTH_RING = Object.freeze({ rx: 24, ry: 14 })
+/** The ring path's half sizes round the south park's garden; trees keep off it. */
+export const SOUTH_RING = Object.freeze({ rx: 24, ry: 14 })
 
 /** A park bench: where it stands, which way its sitter faces, and the path node beside it. */
 interface Bench {
