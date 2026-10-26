@@ -10,6 +10,7 @@ import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/dat
 import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
 import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
+import { todayRuns } from '@/web/scene/data/today-runs'
 import { AddDesk } from '@/web/scene/overlay/add-desk'
 import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
@@ -57,7 +58,7 @@ import { breakpoint } from '@/web/state/breakpoints'
 import { onWireEvent } from '@/web/state/events'
 import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
 import { findRun, pending, runs } from '@/web/state/live'
-import { unread } from '@/web/state/notices'
+import { hasUnreadAlert, unread } from '@/web/state/notices'
 import { colorScheme, colourPair, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
@@ -288,9 +289,11 @@ function readSceneInputs(): void {
   heldNewsPins.value
   indexDrop.value
   unread.value
+  hasUnreadAlert.value
   homePhase.value
   agents.value
   coolerOffer.value
+  todayRuns.value
   regionPack.value
   locale.value
   readOverlayInputs()

@@ -9,6 +9,7 @@ import {
   type SeeThroughWall,
   wallHolding,
 } from '@/web/scene/render3d/building'
+import { addDeskBoxes } from '@/web/scene/render3d/desk-items'
 import { createRoomMaterial } from '@/web/scene/render3d/lights'
 import { buildFloorProps, type FloorProps } from '@/web/scene/render3d/props'
 
@@ -45,6 +46,9 @@ export function buildFloor(id: FloorId, lighting: Lighting): FloorScene {
   }
   const building = buildingBoxes(id)
   const props = buildFloorProps(id)
+
+  addDeskBoxes(props.rooms, id)
+
   const plane = createFloorPlane(id, materials.floor)
 
   geometries.push(plane.geometry)

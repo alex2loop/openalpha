@@ -5,6 +5,7 @@ import type { onWireEvent } from '@/web/state/events'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
+import { addRunSheets } from '@/web/scene/sim/life/desks'
 import { begin } from '@/web/scene/sim/life/schedule'
 import {
   drawBetween,
@@ -96,6 +97,11 @@ function onFinished(state: LifeState, event: WireEvent): void {
     }
   }
 
+  addRunSheets(state.desks, {
+    runId: event.runId,
+    outcome: event.outcome,
+    owners: state.director.actorsOfRun(event.runId),
+  })
   ask(state.asks, { kind: 'finished', runId: event.runId, outcome: event.outcome })
 }
 

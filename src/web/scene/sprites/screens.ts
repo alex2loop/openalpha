@@ -20,7 +20,8 @@ const CORK_STEP = 8
 // read, and the screen shows only the time and the label.
 const MIN_TEXT_PX = 9
 const LINE_SHARE = 0.1
-const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+/** The face text's font, in every face painter. */
+export const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
 const CLIP_MARK = '...'
 const PANEL = '#171A2B'
 const PANEL_LINE = '#2C3250'

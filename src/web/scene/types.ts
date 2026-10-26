@@ -227,6 +227,32 @@ export interface LifeView {
   readonly lines: readonly LifeLine[]
   /** The floors where steam rises or a fish swims: small motion there draws at the capped rate. */
   readonly animatedFloors: readonly FloorId[]
+  readonly deskItems: DeskItemsView
+}
+
+/** A desk screen while its owner does not work: dark with the owner away or the office quiet, a
+ *  screensaver at an empty desk, the home index live in session, grey at the break or the close. */
+export type MonitorState = 'off' | 'saver' | 'live' | 'rest'
+
+/** Where the home market's day stands for the desk screens. */
+export type DeskSession = 'open' | 'break' | 'closed'
+
+/** The cups and sheets a desk shows, each within its slots. */
+interface DeskMess {
+  readonly cups: number
+  readonly sheets: number
+}
+
+/** What the desks show of the day's work; `signature` moves only when something drawn changed. */
+export interface DeskItemsView {
+  readonly mess: ReadonlyMap<ActorId, DeskMess>
+  /** Each desk owner's screens; absent while the owner works, where the work screen shows. */
+  readonly monitors: ReadonlyMap<ActorId, MonitorState>
+  readonly session: DeskSession
+  /** A fired price alert is unread: the alert desk's lamp glows amber. */
+  readonly isAlertOn: boolean
+  readonly saverStep: number
+  readonly signature: number
 }
 
 /** The prop an own agent's desk carries, read off its focus. */

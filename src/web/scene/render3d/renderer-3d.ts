@@ -19,6 +19,12 @@ import {
   syncCast,
 } from '@/web/scene/render3d/characters'
 import {
+  createDeskItems,
+  type DeskItems,
+  disposeDeskItems,
+  syncDeskItems,
+} from '@/web/scene/render3d/desk-items'
+import {
   createEffects,
   disposeEffects,
   type Effects,
@@ -84,6 +90,7 @@ interface Stage extends CameraRig {
   readonly pets: Pets
   readonly lamps: Lamps
   readonly faces: ScreenFaces
+  readonly desks: DeskItems
   readonly street: StreetPlanes
   floor: FloorScene | undefined
   scheme: string
@@ -180,6 +187,7 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
     pets,
     lamps: createLamps(scene),
     faces: createScreenFaces(root, lighting),
+    desks: createDeskItems(shapes, lighting.materials, root),
     street: createStreetPlanes(scene),
     floor: undefined,
     shot: undefined,
@@ -208,6 +216,7 @@ function releaseStage(stage: Stage | undefined): void {
   disposePets(stage.pets)
   disposeLamps(stage.lamps)
   disposeScreenFaces(stage.faces)
+  disposeDeskItems(stage.desks)
   disposeStreetPlanes(stage.street)
 
   for (const one of [...stage.lighting.disposables, ...stage.shapes.disposables]) {
@@ -338,6 +347,12 @@ function syncDressing(
   const effects = syncEffects(stage.effects, effectFrame)
   const team = syncTeamPieces(stage.team, effectFrame)
   const isShown = syncFacesAndLamps(stage, sim)
+  const isDesked = syncDeskItems(stage.desks, {
+    floor: sim.floor,
+    props,
+    view: sim.life.deskItems,
+    detail: level,
+  })
 
   const isPetMoved = syncPets(stage.pets, sim.life, {
     floor: sim.floor,
@@ -347,7 +362,7 @@ function syncDressing(
   })
 
   return {
-    isChanged: isFixed || effects.isChanged || team.isChanged || isPetMoved || isShown,
+    isChanged: isFixed || effects.isChanged || team.isChanged || isPetMoved || isShown || isDesked,
     isMoving: effects.isMoving || team.isMoving,
   }
 }

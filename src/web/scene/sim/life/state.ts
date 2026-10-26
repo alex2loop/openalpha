@@ -1,6 +1,7 @@
 import type { SessionPhase } from '@/app/server/wire/vocab'
 import type { AgendaRow } from '@/web/scene/data/agenda'
 import type { ActorState, Director } from '@/web/scene/sim/director'
+import type { Desks } from '@/web/scene/sim/life/desks'
 import type { Moment, MomentKind } from '@/web/scene/sim/life/moments'
 import type { Pets } from '@/web/scene/sim/life/pets'
 import type { ActorId, DeskView, FloorId, Point } from '@/web/scene/types'
@@ -43,6 +44,7 @@ export interface LifeState {
   readonly asks: LifeAsk[]
   readonly runNames: Map<string, string>
   readonly cart: CartState
+  readonly desks: Desks
   readonly round: { freeSince: number | undefined; lastAt: number | undefined; count: number }
   sheets: { hour: string; count: number; feedAt: number | undefined }
   catAwakeUntil: number
