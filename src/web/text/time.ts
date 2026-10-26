@@ -7,9 +7,9 @@ export const MS_PER_SECOND = 1_000
 export const SECONDS_PER_MINUTE = 60
 export const MINUTES_PER_HOUR = 60
 export const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
-const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR
-const HOURS_PER_DAY = 24
-const MS_PER_DAY = MS_PER_HOUR * HOURS_PER_DAY
+export const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR
+export const HOURS_PER_DAY = 24
+export const MS_PER_DAY = MS_PER_HOUR * HOURS_PER_DAY
 // `YYYY-MM-DD`.
 const DAY_KEY_LENGTH = 10
 // A 24-hour clock reads the same in both page languages.
@@ -19,15 +19,33 @@ const CLOCK_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
   minute: '2-digit',
   hourCycle: 'h23',
 })
-const DAY_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
+// Read in the fixed locale too, so the weekday names below always match.
+const ZONE_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
+  weekday: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
 })
+const WEEKDAYS: readonly string[] = Object.freeze(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])
+// The page reads one or two zones (the operator's and the home market's); a few spare slots cover a
+// changed setting without letting the cache grow.
+const MAX_ZONE_FORMATTERS = 4
 
-// One formatter per option set, rebuilt only when the zone changes, so neither grows.
+/** An instant as one zone counts it: `day` is `YYYY-MM-DD`, `minute` the minutes since that day's
+ *  midnight (fractional), `dow` 0 for Sunday. */
+export interface ClockParts {
+  readonly day: string
+  readonly minute: number
+  readonly dow: number
+}
+
+// The clock formatter is rebuilt only when the zone changes, so it never grows.
 let clockFormatter: { readonly zone: string; readonly format: Intl.DateTimeFormat } | undefined
-let dayFormatter: { readonly zone: string; readonly format: Intl.DateTimeFormat } | undefined
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>()
 
 /** Whole seconds left until `untilMs`, rounded up and never below zero. */
 export function formatCountdown(untilMs: number, nowMs: number): string {
@@ -99,15 +117,45 @@ export function formatDuration(spanMs: number): string {
 
 /** The `YYYY-MM-DD` day an instant falls on in `timeZone`, as the daemon counts its days. */
 export function buildDayKey(atMs: number, timeZone: string): string {
-  if (dayFormatter?.zone !== timeZone) {
-    dayFormatter = { zone: timeZone, format: buildFormatter(DAY_PARTS, timeZone) }
-  }
+  return zoneParts(atMs, timeZone).day
+}
 
-  const parts = dayFormatter.format.formatToParts(atMs)
+/** Where `epochMs` falls in `timeZone`; a zone this browser does not know reads in its own zone. */
+export function zoneParts(epochMs: number, timeZone: string): ClockParts {
+  const parts = resolveZoneFormatter(timeZone).formatToParts(epochMs)
   const read = (type: Intl.DateTimeFormatPartTypes): string =>
     parts.find((part) => part.type === type)?.value ?? ''
+  const minute =
+    Number(read('hour')) * MINUTES_PER_HOUR +
+    Number(read('minute')) +
+    Number(read('second')) / SECONDS_PER_MINUTE +
+    (epochMs % MS_PER_SECOND) / MS_PER_MINUTE
 
-  return `${read('year')}-${read('month')}-${read('day')}`
+  return {
+    day: `${read('year')}-${read('month')}-${read('day')}`,
+    minute,
+    dow: Math.max(0, WEEKDAYS.indexOf(read('weekday'))),
+  }
+}
+
+function resolveZoneFormatter(timeZone: string): Intl.DateTimeFormat {
+  const held = zoneFormatters.get(timeZone)
+
+  if (held !== undefined) {
+    return held
+  }
+
+  const oldest = zoneFormatters.keys().next()
+
+  if (zoneFormatters.size >= MAX_ZONE_FORMATTERS && oldest.done !== true) {
+    zoneFormatters.delete(oldest.value)
+  }
+
+  const format = buildFormatter(ZONE_PARTS, timeZone)
+
+  zoneFormatters.set(timeZone, format)
+
+  return format
 }
 
 // A zone this browser does not know reads in the browser's own zone rather than failing the page.

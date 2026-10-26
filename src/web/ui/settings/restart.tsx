@@ -6,14 +6,13 @@ import { pending, runningCount } from '@/web/state/live'
 import { dismissRestart, requestRestart, restartPhase } from '@/web/state/restart'
 import { state } from '@/web/state/session'
 import { pendingRestart, type RestartRow, type SettingsSection } from '@/web/state/settings'
+import { MS_PER_MINUTE } from '@/web/text/time'
 import { toErrorText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
 import { describeRows, sectionOfRows } from '@/web/ui/settings/restart-rows'
 
 import '@/web/ui/dialogs/dialogs.css'
-
-const MS_PER_MINUTE = 60_000
 
 interface RestartRequest {
   /** Leads back to Cài đặt, where the dialog was opened from. */

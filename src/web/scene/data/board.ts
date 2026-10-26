@@ -10,12 +10,11 @@ import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
 import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
 import { homeMarket } from '@/web/scene/data/home'
-import { zoneParts } from '@/web/state/clock'
 import { onWireEvent } from '@/web/state/events'
 import { isTradingPhase } from '@/web/state/market'
 import { notices } from '@/web/state/notices'
 import { state } from '@/web/state/session'
-import { buildDayKey } from '@/web/text/time'
+import { buildDayKey, MS_PER_DAY, zoneParts } from '@/web/text/time'
 
 /** A command that lands, and every minute, the boards read again. */
 const BOARD_POLL_MS = 60_000
@@ -25,7 +24,6 @@ const MAX_PINS = 5
 const SUGGESTIONS_LIMIT = 30
 const HELD_NEWS_KIND = 'held-news'
 const INDEX_DROP_KIND = 'index-drop'
-const MS_PER_DAY = 86_400_000
 
 interface DigestPair {
   readonly today?: DigestWire

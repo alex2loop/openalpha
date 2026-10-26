@@ -2,7 +2,7 @@ import { computed, type ReadonlySignal } from '@preact/signals'
 
 import type { MarketSessionWire } from '@/app/server/wire/market'
 import type { SessionPhase } from '@/app/server/wire/vocab'
-import type { ClockParts } from '@/web/state/clock'
+import type { ClockParts } from '@/web/text/time'
 import { clockMode, pageMinute } from '@/web/scene/clock/clock'
 import { toMinute } from '@/web/scene/data/agenda'
 import { homeMarket } from '@/web/scene/data/home'

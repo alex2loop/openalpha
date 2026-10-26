@@ -1,16 +1,19 @@
 import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
-import { type ClockParts, zoneParts } from '@/web/state/clock'
 import { reducedMotion } from '@/web/state/prefs'
-import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time'
+import {
+  type ClockParts,
+  MINUTES_PER_HOUR,
+  MS_PER_DAY,
+  MS_PER_HOUR,
+  MS_PER_MINUTE,
+  zoneParts,
+} from '@/web/text/time'
 
 export const CLOCK_SPEEDS = [1, 10, 60] as const
 export const CLOCK_PRESET_HOURS = [6, 9 + 20 / 60, 12 + 10 / 60, 16.5, 19.5, 22.5] as const
 
 const REAL_SPEED: ClockSpeed = 1
-const MS_PER_HOUR = MS_PER_MINUTE * MINUTES_PER_HOUR
-const HOURS_PER_DAY = 24
-const MS_PER_DAY = MS_PER_HOUR * HOURS_PER_DAY
 // Lands the minute timer just past the boundary, never just before it.
 const MINUTE_EDGE_MS = 5
 

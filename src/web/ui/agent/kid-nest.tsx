@@ -8,6 +8,7 @@ import { state } from '@/web/state/session'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { kidOutcomeKey } from '@/web/text/kid-outcome'
 import { formatRunName } from '@/web/text/run-name'
+import { MS_PER_MINUTE } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { StepList } from '@/web/ui/agent/steps'
 import { askStop } from '@/web/ui/kit/ask-stop'
@@ -15,7 +16,6 @@ import { Button } from '@/web/ui/kit/button'
 
 // More children than one parent run shows; the oldest leave first.
 const MAX_KIDS = 20
-const MS_PER_MINUTE = 60_000
 
 /** A child as last seen, with how it ended once it has. */
 interface Kid {

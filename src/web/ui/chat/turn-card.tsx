@@ -2,6 +2,7 @@ import { canStop, isFinished, steer, stopTurn, type Turn, thread } from '@/web/s
 import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
+import { MS_PER_SECOND } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { resolveCommandLink } from '@/web/ui/chat/command-link'
 import { ReplyText } from '@/web/ui/chat/history-message'
@@ -9,8 +10,6 @@ import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
-
-const MS_PER_SECOND = 1_000
 
 /** What the operator sent and the card that answers it. */
 export function TurnCard({ turn }: { readonly turn: Turn }) {

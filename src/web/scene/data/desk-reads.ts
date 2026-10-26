@@ -5,7 +5,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { setCapped } from '@/web/state/capped-map'
 import { onWireEvent } from '@/web/state/events'
-import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time'
+import { shiftDay } from '@/web/text/time'
 
 /** The step a research question reports while it searches or reads a page. */
 export const QUESTION_ACTIVITY_KEY = 'progress.researchQuestionActivity'
@@ -20,9 +20,6 @@ const MAX_SCREEN_SERIES = 20
 const SCREEN_CLOSES = 30
 // Calendar days that hold the last `SCREEN_CLOSES` sessions, weekends and holidays included.
 const SERIES_LOOKBACK_DAYS = 60
-const HOURS_PER_DAY = 24
-const MS_PER_DAY = MS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY
-const DAY_KEY_LENGTH = 10
 // A line needs two points.
 const MIN_CLOSES = 2
 
@@ -186,9 +183,4 @@ async function loadSeries(ref: SeriesRef, abortSignal: AbortSignal): Promise<voi
   } catch {
     // No line: the desk's screen stays dark rather than drawing a series it could not read.
   }
-}
-
-// Calendar arithmetic on a `YYYY-MM-DD` day, in UTC so no zone shifts it.
-function shiftDay(day: string, days: number): string {
-  return new Date(Date.parse(day) + days * MS_PER_DAY).toISOString().slice(0, DAY_KEY_LENGTH)
 }

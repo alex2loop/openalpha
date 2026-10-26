@@ -7,12 +7,13 @@ import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
 import { LIFT_EXITS, TEAM_SEATS } from '@/web/scene/world/seats'
-import { SECONDS_PER_MINUTE } from '@/web/text/time'
+import { MS_PER_MINUTE } from '@/web/text/time'
 
 const ROUNDS_IDLE_MS = 25_000
-// In a quiet office the rounds slow from seconds to minutes: the first after this many idle
-// minutes, then at most one per as many again, so the page sleeps between them.
-const QUIET_ROUNDS_GAP_MS = ROUNDS_IDLE_MS * SECONDS_PER_MINUTE
+const QUIET_ROUNDS_MINUTES = 25
+// In a quiet office the rounds slow from seconds to minutes: the first after this long idle, then
+// at most one per as long again, so the page sleeps between them.
+const QUIET_ROUNDS_GAP_MS = QUIET_ROUNDS_MINUTES * MS_PER_MINUTE
 const ROUND_STOP_MS = Object.freeze({ min: 2_000, max: 4_000 })
 // Every this many rounds, one takes the lift up to the own agents' desks.
 const LIFT_EVERY = 3

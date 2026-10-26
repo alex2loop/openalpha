@@ -5,10 +5,8 @@ import type { TradingQuoteWire } from '@/app/server/wire/trading'
 import type { MessageKey } from '@/i18n'
 import { findQuote, priceDisplayOf } from '@/web/state/market'
 import { toDecimal } from '@/web/text/decimal'
-import { buildDayKey, formatClock, shiftDay } from '@/web/text/time'
+import { buildDayKey, formatClock, MS_PER_HOUR, MS_PER_MINUTE, shiftDay } from '@/web/text/time'
 
-const MS_PER_MINUTE = 60_000
-const MS_PER_HOUR = 60 * MS_PER_MINUTE
 const COOLDOWN_SHORT_MS = 30 * MS_PER_MINUTE
 const COOLDOWN_MEDIUM_MS = 2 * MS_PER_HOUR
 const COOLDOWN_DAY_MS = 24 * MS_PER_HOUR

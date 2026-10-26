@@ -8,6 +8,7 @@ import { ROUTES } from '@/web/api/routes'
 import { locale } from '@/web/state/session'
 import { type ConfigTree, isTree, readConfigTree, saveConfig } from '@/web/state/settings'
 import { readText } from '@/web/text/fields'
+import { MS_PER_SECOND } from '@/web/text/time'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -22,7 +23,6 @@ const PROVIDER_BOUND_KEYS: ReadonlySet<string> = new Set([
   'provider_order',
   'provider_allow_fallbacks',
 ])
-const MS_PER_SECOND = 1_000
 
 interface ChainRead {
   readonly entries: readonly ConfigTree[]
