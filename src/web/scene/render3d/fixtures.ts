@@ -1,4 +1,4 @@
-import { AdditiveBlending, type Group, MeshBasicMaterial, NormalBlending } from 'three'
+import { AdditiveBlending, type Group, MeshBasicMaterial } from 'three'
 
 import type { Standing } from '@/web/scene/render3d/characters'
 import type { Materials } from '@/web/scene/render3d/lights'
@@ -12,8 +12,19 @@ import {
   placeInstance,
   type Shapes,
 } from '@/web/scene/render3d/instancing'
-import { isNightSun } from '@/web/scene/render3d/light-model'
-import { LAMP_SHADE_SIZE } from '@/web/scene/render3d/props'
+import {
+  createLampGlow,
+  FLAT_TILT,
+  glowAt,
+  POOL_Y,
+  syncLamps,
+} from '@/web/scene/render3d/lamp-glow'
+import {
+  createMonitorFaces,
+  disposeMonitorFaces,
+  type MonitorFaces,
+  syncMonitorFaces,
+} from '@/web/scene/render3d/monitor-faces'
 import {
   ALERT_RGB,
   DROP_POOL,
@@ -42,6 +53,7 @@ export interface Fixtures {
   readonly shadows: Pool
   readonly dots: Pool
   readonly ring: Pool
+  readonly monitors: MonitorFaces
   readonly owned: readonly { dispose(): void }[]
 }
 
@@ -55,6 +67,8 @@ interface FixtureFrame {
   readonly dropPct: number | undefined
   /** CSS px per world px: a status dot keeps its size on screen. */
   readonly scale: number
+  readonly now: number
+  readonly isReduced: boolean
 }
 
 const MAX_SCREENS = 24
@@ -69,17 +83,6 @@ const SHADOW_SIZE: readonly [number, number, number] = [16, 12, 1]
 const SCREEN_REACH_PX = 12
 // Transparent pools by kind, each over the last: table light, desk glow, lamp light.
 const ORDER = Object.freeze({ shadow: 1, warm: 2, cool: 2.1, lamp: 2.2, halo: 2.3, dot: 6 })
-const POOL_Y = 0.5
-// The mockup's lamp glow: a warm pool on the floor and a halo round the shade, by day and night.
-const LAMP_GLOW = Object.freeze({
-  poolRadius: 60,
-  poolRgb: '255,205,120',
-  haloSize: 51.2,
-  haloRgb: '255,216,144',
-  day: { pool: 0.42, halo: 0.6 },
-  night: { pool: 0.32, halo: 0.75 },
-})
-const DESK_LAMP_POOL_RADIUS = 18
 const DESK_GLOW = Object.freeze({ dx: 20, dy: -6, radius: 28, alpha: 0.32 })
 const DOT_RISE_PX = 6
 const MONITOR_BACK = '#2A2F3F'
@@ -87,7 +90,6 @@ const MONITOR_BACK = '#2A2F3F'
 const DOT_TONES = Object.freeze({ free: '#32D74B', waiting: '#F2B33D', failed: '#FF6259' })
 const DOT_PX = Object.freeze({ max: 3.4, min: 1.5, screen: 5 })
 const RING = Object.freeze({ w: 16, d: 10, h: 0.3 })
-const FLAT_TILT = -Math.PI / 2
 
 export function createFixtures(shapes: Shapes, materials: Materials, root: Group): Fixtures {
   const glow = new MeshBasicMaterial({
@@ -105,13 +107,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     depthWrite: false,
     toneMapped: false,
   })
-  const lampGlow = new MeshBasicMaterial({
-    map: shapes.glow,
-    transparent: true,
-    depthWrite: false,
-    blending: NormalBlending,
-    toneMapped: false,
-  })
+  const lampGlow = createLampGlow(shapes.glow)
   const dot = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
   const ink = new MeshBasicMaterial({ color: OUTLINE, toneMapped: false })
   const fixtures: Fixtures = {
@@ -126,6 +122,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     shadows: createPool(shapes.flat, shadow, { cap: MAX_PEOPLE, order: ORDER.shadow }),
     dots: createPool(shapes.dot, dot, { cap: MAX_PEOPLE, order: ORDER.dot }),
     ring: createPool(shapes.box, ink, { cap: 1 }),
+    monitors: createMonitorFaces(root),
     owned: [glow, lampGlow, shadow, dot, ink],
   }
 
@@ -137,7 +134,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
 /** Rewrites the fixtures whose picture changed; true when one did. */
 export function syncFixtures(fixtures: Fixtures, frame: FixtureFrame): boolean {
   const changes = [
-    syncScreens(fixtures.screens, frame),
+    syncScreens(fixtures, frame),
     syncBacks(fixtures.backs, frame),
     syncLamps(fixtures, frame),
     syncWarm(fixtures.warm, frame),
@@ -153,6 +150,8 @@ export function disposeFixtures(fixtures: Fixtures): void {
     pool.mesh.dispose()
   }
 
+  disposeMonitorFaces(fixtures.monitors)
+
   for (const one of fixtures.owned) {
     one.dispose()
   }
@@ -164,7 +163,10 @@ function poolsOf(fixtures: Fixtures): Pool[] {
   return [screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring]
 }
 
-function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
+// The screens lit by someone at work at their seat glow and show their room's run; the rest stand
+// by, or sleep while the office is quiet.
+function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
+  const pool = fixtures.screens
   const lit = frame.props.screens.map((screen) =>
     frame.standing.some(
       ({ actor, at }) =>
@@ -174,8 +176,16 @@ function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
 
   const idle = frame.sim.life.isQuiet ? PROP_TONES.screenOff : PROP_TONES.screenStandby
 
+  const isFaced = syncMonitorFaces(fixtures.monitors, {
+    floor: frame.sim.floor,
+    props: frame.props,
+    lit,
+    now: frame.now,
+    isReduced: frame.isReduced,
+  })
+
   if (!beginPool(pool, `${frame.sim.floor}|${idle}|${lit.join()}`)) {
-    return false
+    return isFaced
   }
 
   frame.props.screens.forEach((screen, i) => {
@@ -210,111 +220,6 @@ function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
   endPool(pool)
 
   return true
-}
-
-function syncLamps(fixtures: Fixtures, frame: FixtureFrame): boolean {
-  const { lit, lampGlow } = frame.sim.props
-  const isNight = isNightSun(frame.sim.light.sun)
-  const key = `${frame.sim.floor}|${[...lit].join()}|${lampGlow}|${isNight}`
-  const isShadeNew = beginPool(fixtures.shades, key)
-  const isPoolNew = beginPool(fixtures.lampPools, key)
-  const isHaloNew = beginPool(fixtures.halos, key)
-
-  if (!(isShadeNew || isPoolNew || isHaloNew)) {
-    return false
-  }
-
-  blendLampPools(fixtures.lampGlow, { isNight, lampGlow })
-  placeFloorLamps(fixtures, { frame, isNight })
-  placeDeskLamps(fixtures, frame)
-  endPool(fixtures.shades)
-  endPool(fixtures.lampPools)
-  endPool(fixtures.halos)
-
-  return true
-}
-
-// As the mockup's: every pool shares one strength, blended over the floor by day and added to it
-// by night; the instances carry the bare warm colour.
-function blendLampPools(
-  material: MeshBasicMaterial,
-  at: { readonly isNight: boolean; readonly lampGlow: number }
-): void {
-  const blending = at.isNight ? AdditiveBlending : NormalBlending
-  const glow = at.isNight ? LAMP_GLOW.night : LAMP_GLOW.day
-
-  material.opacity = glow.pool * at.lampGlow
-
-  if (material.blending !== blending) {
-    material.blending = blending
-    material.needsUpdate = true
-  }
-}
-
-// Each floor lamp's shade, lit with its room, its light pool on the floor and the halo round the
-// shade, a little stronger by night.
-function placeFloorLamps(
-  fixtures: Fixtures,
-  at: { readonly frame: FixtureFrame; readonly isNight: boolean }
-): void {
-  const { lit, lampGlow } = at.frame.sim.props
-  const glow = at.isNight ? LAMP_GLOW.night : LAMP_GLOW.day
-
-  for (const lamp of at.frame.props.lamps) {
-    const isOn = lit.has(lamp.room)
-
-    placeInstance(fixtures.shades, {
-      x: lamp.at.x,
-      y: lamp.shadeY,
-      z: lamp.at.y,
-      size: LAMP_SHADE_SIZE,
-      color: isOn ? PROP_TONES.lampLit : PROP_TONES.lampOff,
-    })
-
-    if (!isOn) {
-      continue
-    }
-
-    glowAt(fixtures.lampPools, {
-      x: lamp.at.x,
-      z: lamp.at.y,
-      radius: LAMP_GLOW.poolRadius,
-      rgb: LAMP_GLOW.poolRgb,
-      alpha: 1,
-    })
-    glowAt(fixtures.halos, {
-      x: lamp.at.x,
-      y: lamp.shadeY,
-      z: lamp.at.y,
-      radius: LAMP_GLOW.haloSize / 2,
-      rgb: LAMP_GLOW.haloRgb,
-      alpha: glow.halo * lampGlow,
-      tilt: -ELEVATION,
-    })
-  }
-}
-
-// The desk lamps' shades, lit with their room, each with a small pool under it in the lamp pools'
-// strength.
-function placeDeskLamps(fixtures: Fixtures, frame: FixtureFrame): void {
-  const { lit } = frame.sim.props
-
-  for (const lamp of frame.props.deskLamps) {
-    const isOn = lit.has(lamp.room)
-    const [x, y, z] = lamp.at
-
-    placeInstance(fixtures.shades, { x, y, z, size: lamp.size, color: isOn ? lamp.on : lamp.off })
-
-    if (isOn) {
-      glowAt(fixtures.lampPools, {
-        x,
-        z,
-        radius: DESK_LAMP_POOL_RADIUS,
-        rgb: WARM_RGB,
-        alpha: 1,
-      })
-    }
-  }
 }
 
 // The warm pools over the tables of every lit room, and the lobby's red after an index drop.
@@ -373,33 +278,6 @@ function syncCool(pool: Pool, frame: FixtureFrame): boolean {
   endPool(pool)
 
   return true
-}
-
-// Additive light: the instance colour is the light's colour times its strength.
-function glowAt(
-  pool: Pool,
-  spec: {
-    readonly x: number
-    readonly y?: number
-    readonly z: number
-    readonly radius: number
-    readonly rgb: string
-    readonly alpha: number
-    readonly tilt?: number
-  }
-): void {
-  const [r = 0, g = 0, b = 0] = spec.rgb
-    .split(',')
-    .map((channel) => Math.round(Number(channel) * spec.alpha))
-
-  placeInstance(pool, {
-    x: spec.x,
-    y: spec.y ?? POOL_Y,
-    z: spec.z,
-    size: [spec.radius * 2, spec.radius * 2, 1],
-    tilt: spec.tilt ?? FLAT_TILT,
-    color: `rgb(${r},${g},${b})`,
-  })
 }
 
 // Every person's contact shadow and status dot, and the ring under the selected one.

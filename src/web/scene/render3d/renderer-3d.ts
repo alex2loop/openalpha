@@ -368,6 +368,8 @@ function syncDressing(
       selected: selectedActor.value,
       dropPct: indexDrop.value?.movePct,
       scale,
+      now,
+      isReduced,
     })
   const effectFrame = { sim, now, level, isReduced }
   const effects = syncEffects(stage.effects, effectFrame)
