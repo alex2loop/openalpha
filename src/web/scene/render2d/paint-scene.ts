@@ -23,6 +23,7 @@ export function buildPaintScene(input: {
   readonly screens: ScreenCache
 }): PaintScene {
   const { sim, scale } = input
+  const refreshShare = shareOf(roomStatus.value.get('store')?.runs[0]?.progress?.params)
   const lib = roomStatus.value.get('lib')?.runs[0]
 
   return {
@@ -46,5 +47,16 @@ export function buildPaintScene(input: {
     wallClocks: wallClockMinutes.value,
     sources: sourceLights.value,
     isRefreshing: roomStatus.value.get('store')?.runs[0] !== undefined,
+    ...(refreshShare === undefined ? {} : { refreshShare }),
   }
+}
+
+// The refresh's done over total, when both are counts.
+function shareOf(params: Readonly<Record<string, unknown>> | undefined): number | undefined {
+  const done = params?.done
+  const total = params?.total
+
+  return typeof done === 'number' && typeof total === 'number' && total > 0
+    ? Math.min(1, Math.max(0, done / total))
+    : undefined
 }

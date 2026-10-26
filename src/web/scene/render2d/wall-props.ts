@@ -5,6 +5,7 @@ import type { BoardNotes, ScreenCache } from '@/web/scene/sprites/screens'
 import type { LifeView, LiftView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
+import { paintWallMonitor } from '@/web/scene/render2d/desk-devices'
 import { FONT } from '@/web/scene/sprites/face-text'
 import { faceKindOf, paintCork } from '@/web/scene/sprites/screens'
 import { createRng } from '@/web/scene/world/rng'
@@ -23,6 +24,7 @@ const HOUR_HAND_PX = 3
 const MINUTE_HAND_PX = 5
 const CLOCK_TICK = '#8E8497'
 const STRIP_VARIANT = 4
+const STORE_MONITOR_VARIANT = 0
 // The lobby's lower agenda board stands on two legs.
 const STANDING_BOARD_VARIANT = 2
 const BOARD_LEG_PX = 12
@@ -74,6 +76,8 @@ export interface PaintScene {
   /** The rack's lights, a data source each, and whether the store refreshes now. */
   readonly sources: readonly ('fresh' | 'stale')[]
   readonly isRefreshing: boolean
+  /** How far the store's refresh has come, 0 to 1; absent while it does not count its prices. */
+  readonly refreshShare?: number
   /** Each lobby wall clock's minute of its own zone's day, by the clock's `variant`. */
   readonly wallClocks: readonly number[]
   /** What each room's whiteboard says while a run counts its steps there. */
@@ -178,6 +182,11 @@ function paintResults(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSc
 
 function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
+
+  if (prop.variant === STORE_MONITOR_VARIANT) {
+    paintWallMonitor(g, prop.draw, scene)
+    return
+  }
 
   fill(g, [x - 1, y - 1, w + 2, h + 2], INK)
 

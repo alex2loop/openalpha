@@ -30,12 +30,18 @@ export function paintMonitor(
 }
 
 function paintIdleScreen(g: CanvasRenderingContext2D, box: Box, isQuiet: boolean): void {
-  const [x, y, w, h] = box
-
   if (isQuiet) {
     fill(g, box, DEVICE_TONES.screenDark)
     return
   }
+
+  paintScreenTop(g, box)
+  fill(g, box, DEVICE_TONES.screenDim)
+}
+
+// A lit screen's ground and its window bar with the three dots.
+function paintScreenTop(g: CanvasRenderingContext2D, box: Box): void {
+  const [x, y, w] = box
 
   fill(g, box, DEVICE_TONES.screenIdle)
   fill(g, [x, y, w, 1], DEVICE_TONES.screenBar)
@@ -43,8 +49,38 @@ function paintIdleScreen(g: CanvasRenderingContext2D, box: Box, isQuiet: boolean
   for (const [i, tone] of SCREEN_DOTS.entries()) {
     fill(g, [x + 1 + i * 2, y, 1, 1], tone)
   }
+}
 
-  fill(g, [x, y, w, h], DEVICE_TONES.screenDim)
+/** The store keeper's wall monitor in its bezel: a bar of the refresh while the store fills its
+ *  prices, else the idle screen, dark once the office is quiet. */
+export function paintWallMonitor(
+  g: CanvasRenderingContext2D,
+  rect: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  scene: PaintScene
+): void {
+  const { x, y, w, h } = rect
+  const screen = [x + 3, y + 3, w - 6, h - 8] as const
+  const progress = scene.life.isQuiet ? undefined : scene.refreshShare
+
+  fill(g, [x + 1, y + 1, w - 2, h - 2], INK)
+  fill(g, [x + 2, y + 2, w - 4, h - 4], DEVICE_TONES.bezel2)
+
+  if (progress === undefined) {
+    paintIdleScreen(g, screen, scene.life.isQuiet)
+    return
+  }
+
+  const [sx, sy, sw, sh] = screen
+  const inner = sw - 2
+
+  paintScreenTop(g, screen)
+  fill(g, [sx + 1, sy + Math.floor(sh / 2), inner, 2], DEVICE_TONES.track)
+  fill(
+    g,
+    [sx + 1, sy + Math.floor(sh / 2), Math.round(inner * progress), 2],
+    DEVICE_TONES.trackFill
+  )
+  fill(g, [sx + 1, sy + 2, Math.round(inner / 2), 1], DEVICE_TONES.trackTitle)
 }
 
 /** A keyboard in front of a monitor centred on `cx`, its top at `y`. */
