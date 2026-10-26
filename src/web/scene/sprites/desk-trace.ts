@@ -1,6 +1,6 @@
 import type { DeskTrace, Rect } from '@/web/scene/types'
+import { FONT } from '@/web/scene/sprites/face-text'
 import { stampToneOf } from '@/web/scene/sprites/palette'
-import { FONT } from '@/web/scene/sprites/screens'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 
 /** Which face a monitor draws the index on: a line, or candles. */

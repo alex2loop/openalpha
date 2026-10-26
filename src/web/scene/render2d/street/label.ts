@@ -1,4 +1,4 @@
-import { FONT } from '@/web/scene/sprites/screens'
+import { FONT } from '@/web/scene/sprites/face-text'
 
 const LABEL_WEIGHT = 800
 

@@ -73,7 +73,9 @@ function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
 
   fill(g, [x - 1, y - 1, w + 2, h + 2], INK)
 
-  if (faceKindOf(prop) === 'agenda') {
+  const kind = faceKindOf(prop)
+
+  if (kind === 'agenda' || kind === 'tape') {
     const face = scene.screens.faceOf(prop, {
       model: scene.agenda,
       scale: scene.scale,

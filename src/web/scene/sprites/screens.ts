@@ -6,7 +6,9 @@ import type { PropDef } from '@/web/scene/world/props'
 import { pluralKey } from '@/i18n'
 import { heldNewsPins } from '@/web/scene/data/board'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { write, writeAll } from '@/web/scene/sprites/face-text'
 import { OUTLINE, PALETTE } from '@/web/scene/sprites/palette'
+import { paintTapeFace, tapeBoard } from '@/web/scene/sprites/tape-face'
 import { unseenCalls } from '@/web/state/ideas'
 import { formatDuration } from '@/web/text/time'
 import { MS_PER_MINUTE } from '@/web/text/time-units'
@@ -21,9 +23,6 @@ const CORK_STEP = 8
 // read, and the screen shows only the time and the label.
 const MIN_TEXT_PX = 9
 const LINE_SHARE = 0.1
-/** The face text's font, in every face painter. */
-export const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
-const CLIP_MARK = '...'
 const PANEL = '#171A2B'
 const PANEL_LINE = '#2C3250'
 const DIM = '#6C6D82'
@@ -39,6 +38,7 @@ const ROW_COLORS: Readonly<Record<AgendaRow['state'], string>> = Object.freeze({
 const CARD_VARIANT = 1
 const AGENDA_VARIANTS: ReadonlySet<number> = new Set([CARD_VARIANT, 2])
 const CORK_VARIANT = 3
+const TAPE_VARIANT = 3
 const LIST_ROWS = 4
 const CORK_FRAME = '#B88A5C'
 const CORK = '#C99B6A'
@@ -60,9 +60,9 @@ export interface BoardNotes {
   readonly pins: number
 }
 
-/** Which face a prop shows: a lobby agenda screen, the results board's calls or the library's
- *  news pins. */
-type FaceKind = 'agenda' | 'calls' | 'pins'
+/** Which face a prop shows: a lobby agenda screen, the alert desk's price board, the results
+ *  board's calls or the library's news pins. */
+type FaceKind = 'agenda' | 'tape' | 'calls' | 'pins'
 
 /** What the faces read this frame: the agenda, the zoom in CSS px per world px, the boards' notes. */
 interface FaceView {
@@ -117,8 +117,8 @@ export function createScreenCache(): ScreenCache {
   }
 }
 
-// The face's signature and its painter: an agenda screen by agenda and zoom step, a cork by its
-// note count.
+// The face's signature and its painter: an agenda screen or the price board by what it reads and
+// its zoom step, a cork by its note count.
 function faceJobOf(
   prop: PropDef,
   view: FaceView
@@ -129,12 +129,13 @@ function faceJobOf(
     return undefined
   }
 
-  if (kind === 'agenda') {
+  if (kind === 'agenda' || kind === 'tape') {
     const isTiny = prop.draw.h * LINE_SHARE * view.scale < MIN_TEXT_PX
     const step = CACHE_STEPS.find((candidate) => candidate >= view.scale) ?? FINEST_STEP
+    const sig = kind === 'tape' ? tapeBoard.value.sig : view.model.sig
 
     return {
-      key: `${view.model.sig}|${step}|${isTiny}`,
+      key: `${sig}|${step}|${isTiny}`,
       paint: (canvas) => repaint(canvas, { prop, model: view.model, step, isTiny }),
     }
   }
@@ -146,6 +147,10 @@ function faceJobOf(
 
 export function faceKindOf(prop: PropDef): FaceKind | undefined {
   if (prop.kind === 'wall-screen') {
+    if (prop.variant === TAPE_VARIANT) {
+      return 'tape'
+    }
+
     return AGENDA_VARIANTS.has(prop.variant ?? 0) ? 'agenda' : undefined
   }
 
@@ -223,7 +228,9 @@ function repaint(canvas: HTMLCanvasElement, job: PaintJob): void {
 
   const size = { w, h }
 
-  if (job.prop.variant === CARD_VARIANT) {
+  if (job.prop.variant === TAPE_VARIANT) {
+    paintTapeFace(c, size, { board: tapeBoard.value, isTiny: job.isTiny })
+  } else if (job.prop.variant === CARD_VARIANT) {
     paintCard(c, size, job)
   } else {
     paintList(c, size, job)
@@ -369,51 +376,6 @@ function watchingLine(count: number): string {
   return tr(pluralKey(count, 'ui.office.agenda.watchingOne', 'ui.office.agenda.watching'), {
     count,
   })
-}
-
-interface LineStyle {
-  readonly color: string
-  readonly align?: CanvasTextAlign
-  readonly weight?: number
-  readonly maxW?: number
-}
-
-/** Text, x, y and font size in world px, then how it looks. */
-type Line = readonly [string, number, number, number, LineStyle]
-
-function writeAll(c: CanvasRenderingContext2D, lines: readonly Line[]): void {
-  for (const line of lines) {
-    write(c, line)
-  }
-}
-
-// Writes one line, cut with a trailing mark when it does not fit; returns the width it took.
-function write(c: CanvasRenderingContext2D, line: Line): number {
-  const [raw, x, y, size, style] = line
-
-  c.font = `${style.weight ?? 500} ${size}px ${FONT}`
-  c.fillStyle = style.color
-  c.textAlign = style.align ?? 'left'
-
-  const text = style.maxW === undefined ? raw : clip(c, raw, style.maxW)
-
-  c.fillText(text, x, y)
-
-  return c.measureText(text).width
-}
-
-function clip(c: CanvasRenderingContext2D, text: string, maxW: number): string {
-  if (c.measureText(text).width <= maxW) {
-    return text
-  }
-
-  let length = text.length
-
-  while (length > 1 && c.measureText(`${text.slice(0, length)}${CLIP_MARK}`).width > maxW) {
-    length--
-  }
-
-  return `${text.slice(0, length)}${CLIP_MARK}`
 }
 
 function fillBox(

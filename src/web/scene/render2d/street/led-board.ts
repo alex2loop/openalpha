@@ -11,7 +11,7 @@ import {
   stripWidthOf,
 } from '@/web/scene/render2d/street/led-face'
 import { zeroCanvas } from '@/web/scene/renderer'
-import { FONT } from '@/web/scene/sprites/screens'
+import { FONT } from '@/web/scene/sprites/face-text'
 import { brand, locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
