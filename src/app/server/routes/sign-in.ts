@@ -12,7 +12,7 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/api'
-import { isApiExposed, resolvePublicAddress } from '@/app/server/exposure'
+import { buildServerOnlyText, isApiExposed } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { isExposedOnDisk } from '@/app/server/routes/config'
 import { localeOf, parsePathId, readJsonBody } from '@/app/server/routes/params'
@@ -28,6 +28,10 @@ const LOGIN_TIMEOUT_MS = 15 * 60_000
 /** Paired chats listed per channel: a household of operators, never a crowd. */
 const MAX_PAIRED_LIST = 200
 const LOGIN_BODY = z.object({ method: z.enum(['browser', 'device']) })
+const SERVER_ONLY_KEYS = Object.freeze({
+  booted: 'errors.chatgptServerOnly',
+  saved: 'errors.chatgptServerOnlySaved',
+} as const)
 
 type LoginMethod = z.infer<typeof LOGIN_BODY>['method']
 
@@ -199,13 +203,7 @@ async function handleChatgptLogin(req: Request, ctx: ApiRouteContext): Promise<R
 
   // A sign-in saves a token the daemon's model calls spend on, like a key.
   if (await isExposedOnDisk(ctx)) {
-    return apiError(
-      'conflict',
-      t(localeOf(ctx), 'errors.chatgptServerOnly', {
-        url: resolvePublicAddress(ctx),
-        brand: BRAND.name,
-      })
-    )
+    return apiError('conflict', buildServerOnlyText(ctx, SERVER_ONLY_KEYS, { brand: BRAND.name }))
   }
 
   await startLogin(ctx.app, parsed.data.method)

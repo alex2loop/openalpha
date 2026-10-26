@@ -11,10 +11,10 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { KeyEnvGroup, KeyFile } from '@/cli/api'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import { buildProviderCatalog } from '@/app/server/cli/catalog'
-import { resolvePublicAddress } from '@/app/server/exposure'
+import { buildServerOnlyText } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { isExposedOnDisk } from '@/app/server/routes/config'
-import { localeOf, parsePathId, readJsonBody } from '@/app/server/routes/params'
+import { parsePathId, readJsonBody } from '@/app/server/routes/params'
 import {
   getEnv,
   isRuntimeEnvName,
@@ -27,7 +27,6 @@ import { BRAND, isControlEnvName } from '@/core/brand'
 import { isEnvName, WEB_SEARCH_PROVIDERS } from '@/core/config/resolve'
 import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { t } from '@/i18n'
 
 const CREDENTIAL_VALUE_MAX_CHARS = 4096
 // The env file holds one `NAME=value` per line, so a value is one line of printable text.
@@ -38,6 +37,10 @@ const PAGE_GROUPS: readonly CredentialGroup[] = ['provider', 'venue', 'search', 
 /** What only the server sets: the API token opens the API itself, the others reach a chat or a
  *  process the daemon starts. */
 const SERVER_GROUPS: readonly KeyEnvGroup[] = ['token', 'mcp', 'channel']
+const SERVER_ONLY_KEYS = Object.freeze({
+  booted: 'errors.credentialsServerOnly',
+  saved: 'errors.credentialsServerOnlySaved',
+} as const)
 
 interface Credential {
   readonly name: string
@@ -182,11 +185,7 @@ async function refuseWhenExposed(
 
   return apiError(
     'conflict',
-    t(localeOf(ctx), 'errors.credentialsServerOnly', {
-      url: resolvePublicAddress(ctx),
-      brand: BRAND.name,
-      name,
-    })
+    buildServerOnlyText(ctx, SERVER_ONLY_KEYS, { brand: BRAND.name, name })
   )
 }
 

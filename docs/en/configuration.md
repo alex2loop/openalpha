@@ -551,7 +551,8 @@ a one-off command never opens the port. It binds `127.0.0.1` only and refuses ev
 client on another machine connects through an SSH tunnel or a reverse proxy on the same host (see
 [Operations](operations.md)). It answers only a request addressed to `127.0.0.1`, `localhost` or
 `[::1]`, or to `public_url` when set. The office page's config editor cannot change plugins, an MCP
-server's command, every `*_env` key, `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
+server's command, every `*_env` key and every other field naming an environment variable (`[trading.sources]`,
+`[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
 `[update]` or `[trading.orders] allow_unattended`; change those here.
 
 Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain) needs

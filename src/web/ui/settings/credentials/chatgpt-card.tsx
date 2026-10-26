@@ -13,6 +13,8 @@ import { Skeleton } from '@/web/ui/kit/skeleton'
 import { buildServerCommand } from '@/web/ui/settings/credentials/credential-row'
 
 const AUTH_LOGIN_COMMAND = 'auth login'
+// What `auth login` prints for an account whose token names no plan; `web` cannot import the CLI.
+const UNKNOWN_PLAN = 'unknown'
 
 type SignInView =
   | { readonly kind: 'starting' }
@@ -182,7 +184,7 @@ function toSignInView(status: ChatgptAuthStatus, providerName: string): SignInVi
       text: tr('cli.authLoginSuccess', {
         provider: providerName,
         account: status.account ?? '',
-        plan: status.plan ?? '',
+        plan: status.plan ?? UNKNOWN_PLAN,
       }),
       isFailure: false,
     }
