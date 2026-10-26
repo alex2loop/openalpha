@@ -3,6 +3,7 @@ import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { StreetSayView, StreetView, VehicleView } from '@/web/scene/street-types'
 import type { Point } from '@/web/scene/types'
 import { CM_ALONG, CM_UP } from '@/web/scene/render2d/street/bike-model'
+import { paintCar } from '@/web/scene/render2d/street/car-art'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import {
@@ -22,7 +23,6 @@ import {
   heightOf,
   isAlongX,
   paintBus,
-  paintCar,
   paintTruck,
 } from '@/web/scene/render2d/street/vehicle-art'
 import { isTwoWheeler } from '@/web/scene/sim/street/flows'
