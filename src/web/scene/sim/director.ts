@@ -25,7 +25,7 @@ import { createWalker, isWalking, placeWalker } from '@/web/scene/sim/actors/wal
 import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
 import { enterPerson } from '@/web/scene/sim/entrance'
-import { SIM_STEP_MS } from '@/web/scene/sim/loop'
+import { mergeMotion, SIM_STEP_MS, type StepMotion } from '@/web/scene/sim/loop'
 import { createPapers, type Papers } from '@/web/scene/sim/papers'
 import {
   actorsOfRun,
@@ -44,6 +44,7 @@ import {
 import { isBoundForLift } from '@/web/scene/sim/places'
 import { createErrands, type Errands, endErrands, isOut } from '@/web/scene/sim/street/errands'
 import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
+import { view as sceneView } from '@/web/scene/view'
 import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
 import { TRAY_AT } from '@/web/scene/world/seats'
@@ -97,7 +98,8 @@ export interface Director {
   readonly away: Map<ActorId, AwayStage>
   /** Back through the street door: they walk to their seat, or stand there at once. */
   enter(id: ActorId, isInstant: boolean): void
-  step(index: number): boolean
+  /** One step; a walk on a floor not shown is `unseen`. */
+  step(index: number): StepMotion
   view(): PeopleView
   actors(): ReadonlyMap<ActorId, ActorState>
   /** A reaction to the operator; `undefined` ends a look still held. A look lasts until it is
@@ -157,7 +159,7 @@ export function createDirector(deps: DirectorDeps): Director {
 
   return {
     errands,
-    step: () => !isDisposed && stepAll(people, { papers, poses, errands, away }),
+    step: () => (isDisposed ? 'still' : stepAll(people, { papers, poses, errands, away })),
     view: () => ({
       actors: actorViewsOf(people, { marks: poses.marks, errands, away, poseOf }),
       papers: papers.views(),
@@ -285,13 +287,14 @@ function stepAll(
     readonly errands: Errands
     readonly away: ReadonlyMap<ActorId, AwayStage>
   }
-): boolean {
+): StepMotion {
   const { papers, poses, errands, away } = held
   const nowMs = performance.now()
+  const shownFloor = sceneView.peek().floor
   const isChanged = tickPeople(people, { nowMs, isOpen: isOfficeOpen() })
   const isHidden = (id: ActorId): boolean =>
     isOut(errands, id) || away.get(id) === 'gone' || people.byId.get(id)?.isRiding === true
-  let isMoving = false
+  let motion: StepMotion = 'still'
 
   for (const person of people.list) {
     if (isHidden(person.def.id)) {
@@ -307,14 +310,16 @@ function stepAll(
     const extra = people.obstacles.get(person.floor)
     const step = { nowMs, dtMs: SIM_STEP_MS, ...(extra === undefined ? {} : { extra }) }
 
-    isMoving = stepPerson(person, others, step) || isMoving
+    if (stepPerson(person, others, step)) {
+      motion = mergeMotion(motion, person.floor === shownFloor ? 'seen' : 'unseen')
+    }
   }
 
   const settled = settlePoses(people.list, { marks: poses.marks, nowMs })
 
   poses.marks = settled.marks
 
-  return papers.step(nowMs) || isMoving || isChanged || settled.isChanged
+  return papers.step(nowMs) || isChanged || settled.isChanged ? 'seen' : motion
 }
 
 /** Office hours by the page clock and the home region's pack. */

@@ -7,9 +7,12 @@ const SMALL_MOTION_GAP_MS = MS_PER_SECOND / SMALL_MOTION_RENDERS_PER_S
 // A deadline already due still waits one step, so a sim that keeps reporting one cannot spin.
 const MIN_IDLE_WAIT_MS = SIM_STEP_MS
 
+/** What one step moved: nothing, only what the stage does not show, or something it shows. */
+export type StepMotion = 'still' | 'unseen' | 'seen'
+
 interface SimLoopDeps {
-  /** Advances the sim one fixed step; true while something changed or walks. */
-  readonly step: (index: number) => boolean
+  /** Advances the sim one fixed step. */
+  readonly step: (index: number) => StepMotion
   /** Draws the snapshot `alpha` of a step past the last one; true while small motion is on. */
   readonly draw: (alpha: number, now: number) => boolean
   /** Re-derives the sim from the clock and the live store after a hidden spell; never replays. */
@@ -137,7 +140,8 @@ function wake(loop: LoopState): void {
 function frame(loop: LoopState, now: number): void {
   loop.frameId = undefined
 
-  const isMoving = advance(loop, now)
+  const motion = advance(loop, now)
+  const isMoving = motion === 'seen'
   const isDrawDue = loop.isAnimating && now - loop.lastDrawAt >= SMALL_MOTION_GAP_MS
 
   if (isMoving || loop.isDirty || isDrawDue) {
@@ -148,27 +152,40 @@ function frame(loop: LoopState, now: number): void {
 
   if (isMoving) {
     requestFrame(loop)
-  } else if (loop.isAnimating) {
-    armTimer(loop, loop.lastDrawAt + SMALL_MOTION_GAP_MS - now, () => requestFrame(loop))
+  } else if (loop.isAnimating || motion === 'unseen') {
+    // Movement off the stage keeps stepping at the sim's rate and never draws for itself.
+    const drawWait = loop.isAnimating ? loop.lastDrawAt + SMALL_MOTION_GAP_MS - now : Infinity
+    const stepWait = motion === 'unseen' ? SIM_STEP_MS : Infinity
+
+    armTimer(loop, Math.min(drawWait, stepWait), () => requestFrame(loop))
   } else {
     rest(loop)
   }
 }
 
-function advance(loop: LoopState, now: number): boolean {
+function advance(loop: LoopState, now: number): StepMotion {
   const last = loop.lastFrameAt
-  let isMoving = false
+  let motion: StepMotion = 'still'
 
   loop.lastFrameAt = now
   loop.accMs += last === undefined ? 0 : Math.min(now - last, MAX_FRAME_DT_MS)
 
   while (loop.accMs >= SIM_STEP_MS) {
     loop.accMs -= SIM_STEP_MS
-    isMoving = loop.deps.step(loop.index) || isMoving
+    motion = mergeMotion(motion, loop.deps.step(loop.index))
     loop.index++
   }
 
-  return isMoving
+  return motion
+}
+
+/** The more visible of two steps' motion. */
+export function mergeMotion(a: StepMotion, b: StepMotion): StepMotion {
+  if (a === 'seen' || b === 'seen') {
+    return 'seen'
+  }
+
+  return a === 'unseen' || b === 'unseen' ? 'unseen' : 'still'
 }
 
 function rest(loop: LoopState): void {

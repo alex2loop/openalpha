@@ -198,12 +198,14 @@ function createSceneLoop(parts: LoopParts): {
       // Life first, so a goal it sets walks in this step rather than waiting for the next wake.
       const isLiving = life.step(index)
       const isLifted = lift.step(nowMs)
-      const isDirected = director.step(index)
+      const directed = director.step(index)
       const isTeamed = team.step(nowMs)
       const isStreetMoving = street.step(nowMs)
       const isInputMoving = input.current?.step(nowMs) ?? false
 
-      return isInputMoving || isTeamed || isLiving || isLifted || isDirected || isStreetMoving
+      const isSeen = isInputMoving || isTeamed || isLiving || isLifted || isStreetMoving
+
+      return isSeen ? 'seen' : directed
     },
     draw: (alpha, now) => {
       drawn = buildSimView(parts, alpha)
