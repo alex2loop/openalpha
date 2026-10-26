@@ -35,13 +35,17 @@
   display: flex;
   flex: 1;
   gap: 2px;
+  min-width: 0;
+  container-type: inline-size;
 }
 
 .panel-tab {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 6px;
-  padding: 10px;
+  gap: 4px;
+  padding: 10px 6px;
+  white-space: nowrap;
   border: 0;
   border-bottom: 2px solid transparent;
   background: none;
@@ -67,6 +71,14 @@
 
 .panel-tabs.is-compact .panel-tab-label {
   display: none;
+}
+
+/* Under the width the four labelled tabs and the count take (they fit the default panel), each tab
+   keeps its icon and the label stays its title. */
+@container (width < 376px) {
+  .panel-tab-label {
+    display: none;
+  }
 }
 
 .panel-tab-count {
