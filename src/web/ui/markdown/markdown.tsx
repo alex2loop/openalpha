@@ -10,10 +10,11 @@ import { LinkedText } from '@/web/ui/ticker/linked-text'
 
 import './markdown.css'
 
-// Anchors exist only where one report owns the page; a chat holds many and keeps none.
+// Anchors exist where one report owns the page, or an answer keeps them under its own scope.
 interface RenderContext {
   readonly isLinked: boolean
   readonly sourceNumbers: ReadonlySet<number> | undefined
+  readonly scope: string | undefined
 }
 
 interface ReportViewProps {
@@ -22,17 +23,26 @@ interface ReportViewProps {
   readonly isLinked?: boolean
   /** Headings and sources carry ids, and `[n]` jumps to source n. */
   readonly isAnchored?: boolean
+  /** With `isAnchored`: the ids carry this scope, so several answers can share a page. */
+  readonly scope?: string | undefined
+}
+
+interface MarkdownProps {
+  readonly text: string
+  readonly isLinked?: boolean
+  /** Its footnotes jump to its own numbered sources; set for one answer among many. */
+  readonly scope?: string | undefined
 }
 
 /** Markdown from the daemon or a model, as JSX nodes only: nothing here ever reaches `innerHTML`. */
-export function Markdown({ text, isLinked = true }: { text: string; isLinked?: boolean }) {
+export function Markdown({ text, isLinked = true, scope }: MarkdownProps) {
   const doc = useMemo(() => parseReport(text), [text])
 
-  return <ReportView doc={doc} isLinked={isLinked} />
+  return <ReportView doc={doc} isLinked={isLinked} isAnchored={scope !== undefined} scope={scope} />
 }
 
 /** A parsed report: its blocks, then the sources its footnotes name. */
-export function ReportView({ doc, isLinked = true, isAnchored = false }: ReportViewProps) {
+export function ReportView({ doc, isLinked = true, isAnchored = false, scope }: ReportViewProps) {
   if (doc.blocks.length === 0 && doc.sources.length === 0) {
     return null
   }
@@ -40,6 +50,7 @@ export function ReportView({ doc, isLinked = true, isAnchored = false }: ReportV
   const context: RenderContext = {
     isLinked,
     sourceNumbers: isAnchored ? new Set(doc.sources.map((source) => source.n)) : undefined,
+    scope,
   }
 
   return (
@@ -47,7 +58,7 @@ export function ReportView({ doc, isLinked = true, isAnchored = false }: ReportV
       {doc.blocks.map((block, index) => (
         <BlockView key={index} block={block} context={context} />
       ))}
-      <Sources sources={doc.sources} isAnchored={isAnchored} />
+      <Sources sources={doc.sources} isAnchored={isAnchored} scope={scope} />
       {doc.isTruncated && <p class="meta">{tr('ui.office.reader.truncated')}</p>}
     </div>
   )
@@ -75,7 +86,11 @@ function BlockView({ block, context }: { block: Block; context: RenderContext })
       return (
         <Tag
           class="md-heading"
-          id={context.sourceNumbers === undefined ? undefined : block.id}
+          id={
+            context.sourceNumbers === undefined || context.scope !== undefined
+              ? undefined
+              : block.id
+          }
           tabIndex={-1}
         >
           <InlineList nodes={block.inline} context={context} />
@@ -195,7 +210,7 @@ function NoteView({ n, context }: { n: number; context: RenderContext }) {
     return `[${n}]`
   }
 
-  const id = sourceAnchor(n)
+  const id = sourceAnchor(n, context.scope)
 
   return (
     <sup>
