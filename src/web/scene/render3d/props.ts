@@ -94,9 +94,10 @@ const DESK_TOP_PX = 2
 const LEG_PX = 2
 const SEAT_PX = 7
 const CHAIR_BACK_PX = 14
-const LAMP_SHADE = Object.freeze({ w: 10, h: 8, y: 50 })
-const LAMP_BASE = Object.freeze({ w: 8, h: 2 })
-const LAMP_POLE = 1.6
+// The mockup's floor lamp: the shade's centre stands at 52 px.
+const LAMP_SHADE = Object.freeze({ w: 12.8, h: 8.8, y: 47.6 })
+const LAMP_BASE = Object.freeze({ w: 8, h: 1.5 })
+const LAMP_POLE = 2
 
 /** The furniture of `floor`, built once per floor from `world/props`. */
 export function buildFloorProps(floor: FloorId): FloorProps {

@@ -12,6 +12,7 @@ import {
   placeInstance,
   type Shapes,
 } from '@/web/scene/render3d/instancing'
+import { isNightSun } from '@/web/scene/render3d/light-model'
 import { LAMP_SHADE_SIZE } from '@/web/scene/render3d/props'
 import {
   ALERT_RGB,
@@ -35,6 +36,7 @@ export interface Fixtures {
   readonly warm: Pool
   readonly cool: Pool
   readonly lampPools: Pool
+  readonly halos: Pool
   readonly shadows: Pool
   readonly dots: Pool
   readonly ring: Pool
@@ -64,10 +66,18 @@ const SHADOW_SIZE: readonly [number, number, number] = [16, 12, 1]
 // A worker this close to a screen's seat lights it.
 const SCREEN_REACH_PX = 12
 // Transparent pools by kind, each over the last: table light, desk glow, lamp light.
-const ORDER = Object.freeze({ shadow: 1, warm: 2, cool: 2.1, lamp: 2.2, dot: 6 })
+const ORDER = Object.freeze({ shadow: 1, warm: 2, cool: 2.1, lamp: 2.2, halo: 2.3, dot: 6 })
 const POOL_Y = 0.5
-const LAMP_POOL_RADIUS = 48
-const LAMP_POOL_ALPHA = 0.34
+// The mockup's lamp glow: a warm pool on the floor and a halo round the shade, by day and night.
+const LAMP_GLOW = Object.freeze({
+  poolRadius: 60,
+  poolRgb: '255,205,120',
+  haloSize: 51.2,
+  haloRgb: '255,216,144',
+  day: { pool: 0.42, halo: 0.6 },
+  night: { pool: 0.32, halo: 0.75 },
+})
+const LAMP_POOL_ALPHA = LAMP_GLOW.day.pool
 const DESK_LAMP_POOL_RADIUS = 18
 const DESK_GLOW = Object.freeze({ dx: 20, dy: -6, radius: 28, alpha: 0.32 })
 const DOT_RISE_PX = 6
@@ -103,6 +113,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     warm: createPool(shapes.flat, glow, { cap: MAX_POOLS, order: ORDER.warm }),
     cool: createPool(shapes.flat, glow, { cap: MAX_POOLS, order: ORDER.cool }),
     lampPools: createPool(shapes.flat, glow, { cap: MAX_LAMPS, order: ORDER.lamp }),
+    halos: createPool(shapes.flat, glow, { cap: MAX_LAMPS, order: ORDER.halo }),
     shadows: createPool(shapes.flat, shadow, { cap: MAX_PEOPLE, order: ORDER.shadow }),
     dots: createPool(shapes.dot, dot, { cap: MAX_PEOPLE, order: ORDER.dot }),
     ring: createPool(shapes.box, ink, { cap: 1 }),
@@ -139,9 +150,9 @@ export function disposeFixtures(fixtures: Fixtures): void {
 }
 
 function poolsOf(fixtures: Fixtures): Pool[] {
-  const { screens, backs, shades, warm, cool, lampPools, shadows, dots, ring } = fixtures
+  const { screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring } = fixtures
 
-  return [screens, backs, shades, warm, cool, lampPools, shadows, dots, ring]
+  return [screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring]
 }
 
 function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
@@ -194,15 +205,35 @@ function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
 
 function syncLamps(fixtures: Fixtures, frame: FixtureFrame): boolean {
   const { lit, lampGlow } = frame.sim.props
-  const key = `${frame.sim.floor}|${[...lit].join()}|${lampGlow}`
+  const isNight = isNightSun(frame.sim.light.sun)
+  const key = `${frame.sim.floor}|${[...lit].join()}|${lampGlow}|${isNight}`
   const isShadeNew = beginPool(fixtures.shades, key)
   const isPoolNew = beginPool(fixtures.lampPools, key)
+  const isHaloNew = beginPool(fixtures.halos, key)
 
-  if (!(isShadeNew || isPoolNew)) {
+  if (!(isShadeNew || isPoolNew || isHaloNew)) {
     return false
   }
 
-  for (const lamp of frame.props.lamps) {
+  placeFloorLamps(fixtures, { frame, isNight })
+  placeDeskLamps(fixtures, frame)
+  endPool(fixtures.shades)
+  endPool(fixtures.lampPools)
+  endPool(fixtures.halos)
+
+  return true
+}
+
+// Each floor lamp's shade, lit with its room, its light pool on the floor and the halo round the
+// shade, a little stronger by night.
+function placeFloorLamps(
+  fixtures: Fixtures,
+  at: { readonly frame: FixtureFrame; readonly isNight: boolean }
+): void {
+  const { lit, lampGlow } = at.frame.sim.props
+  const glow = at.isNight ? LAMP_GLOW.night : LAMP_GLOW.day
+
+  for (const lamp of at.frame.props.lamps) {
     const isOn = lit.has(lamp.room)
 
     placeInstance(fixtures.shades, {
@@ -213,22 +244,27 @@ function syncLamps(fixtures: Fixtures, frame: FixtureFrame): boolean {
       color: isOn ? PROP_TONES.lampLit : PROP_TONES.lampOff,
     })
 
-    if (isOn) {
-      glowAt(fixtures.lampPools, {
-        x: lamp.at.x,
-        z: lamp.at.y,
-        radius: LAMP_POOL_RADIUS,
-        rgb: WARM_RGB,
-        alpha: LAMP_POOL_ALPHA * lampGlow,
-      })
+    if (!isOn) {
+      continue
     }
+
+    glowAt(fixtures.lampPools, {
+      x: lamp.at.x,
+      z: lamp.at.y,
+      radius: LAMP_GLOW.poolRadius,
+      rgb: LAMP_GLOW.poolRgb,
+      alpha: glow.pool * lampGlow,
+    })
+    glowAt(fixtures.halos, {
+      x: lamp.at.x,
+      y: lamp.shadeY,
+      z: lamp.at.y,
+      radius: LAMP_GLOW.haloSize / 2,
+      rgb: LAMP_GLOW.haloRgb,
+      alpha: glow.halo * lampGlow,
+      tilt: -ELEVATION,
+    })
   }
-
-  placeDeskLamps(fixtures, frame)
-  endPool(fixtures.shades)
-  endPool(fixtures.lampPools)
-
-  return true
 }
 
 // The desk lamps' shades, lit with their room, each with a small pool under it.
@@ -316,10 +352,12 @@ function glowAt(
   pool: Pool,
   spec: {
     readonly x: number
+    readonly y?: number
     readonly z: number
     readonly radius: number
     readonly rgb: string
     readonly alpha: number
+    readonly tilt?: number
   }
 ): void {
   const [r = 0, g = 0, b = 0] = spec.rgb
@@ -328,10 +366,10 @@ function glowAt(
 
   placeInstance(pool, {
     x: spec.x,
-    y: POOL_Y,
+    y: spec.y ?? POOL_Y,
     z: spec.z,
     size: [spec.radius * 2, spec.radius * 2, 1],
-    tilt: FLAT_TILT,
+    tilt: spec.tilt ?? FLAT_TILT,
     color: `rgb(${r},${g},${b})`,
   })
 }
