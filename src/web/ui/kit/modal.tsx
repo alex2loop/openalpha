@@ -133,7 +133,8 @@ function ModalView({ entry }: { readonly entry: OpenModal }) {
           <h2 id={TITLE_ID}>{title}</h2>
           <button
             type="button"
-            class="icon-button"
+            class="btn btn-ghost btn-small"
+            title={tr('ui.office.common.close')}
             aria-label={tr('ui.office.common.close')}
             onClick={closeModal}
           >

@@ -15,7 +15,7 @@
 }
 
 .form-label {
-  color: var(--ink2);
+  color: var(--ink);
   font-size: 12px;
   font-weight: 600;
 }
@@ -45,18 +45,24 @@
   align-items: center;
   gap: 6px;
   color: var(--ink);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
 }
 
 .form-pill {
-  padding: 3px 10px;
+  height: var(--controlSmH);
+  padding: 0 10px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 13px;
   background: var(--surface);
-  color: var(--ink);
+  color: var(--ink2);
   font-size: 12px;
   cursor: pointer;
+}
+
+.form-pill:hover {
+  border-color: var(--ink3);
+  color: var(--ink);
 }
 
 .form-pill.is-on {
@@ -103,14 +109,13 @@
 }
 
 .look-swatch {
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-radius: 50%;
   cursor: pointer;
 }
 
 .look-swatch.is-on {
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
+  border-color: var(--ink);
 }

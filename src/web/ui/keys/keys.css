@@ -1,6 +1,5 @@
 .key-list {
   display: grid;
-  gap: 6px;
   margin: 0 0 var(--s2);
 }
 
@@ -9,6 +8,13 @@
   grid-template-columns: minmax(120px, max-content) 1fr;
   gap: var(--s2);
   align-items: baseline;
+  padding: 5px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.key-row:first-child {
+  border-top: 0;
 }
 
 .key-row dt {
