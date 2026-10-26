@@ -27,6 +27,20 @@ const SHEET = Object.freeze({
   slide: 9,
 })
 const COPIER = propsOn('office').find((prop) => prop.kind === 'copier')
+const PRINTER = propsOn('office').find((prop) => prop.kind === 'printer')
+// The mockup's printer at work: its light blinks green and the newest sheet rises in its tray.
+const PRINTER_LED = Object.freeze({ dx: 17, y: 8, dz: 12.3, w: 2, h: 1.2, d: 0.4, blinkMs: 200 })
+const PRINTER_LED_TONES = Object.freeze({ on: '#7FD49A', off: '#5C6474' })
+const PRINTER_SHEET = Object.freeze({
+  dx: 11,
+  y: 13,
+  dz: 6,
+  w: 12,
+  h: 0.5,
+  d: 6,
+  stepMs: 150,
+  rise: 0.6,
+})
 
 /** The copier's run: when the library's report finishes printing, the scanner sweeps and three
  *  sheets slide into its tray, which keeps them while the page stays open. */
@@ -83,7 +97,9 @@ export function syncCopierRun(
     run.startedAt = undefined
   }
 
-  const key = `${at.isOffice}|${run.stack}|${k}`
+  const blink = isPrinting && !at.isReduced ? Math.floor(at.now / PRINTER_LED.blinkMs) % 2 : 0
+  const rise = isPrinting && !at.isReduced ? Math.floor(at.now / PRINTER_SHEET.stepMs) % 3 : 0
+  const key = `${at.isOffice}|${run.stack}|${k}|${isPrinting}|${blink}|${rise}`
 
   if (COPIER === undefined || !beginPool(at.pool, key)) {
     return { isChanged: false, isMoving: false }
@@ -91,11 +107,42 @@ export function syncCopierRun(
 
   if (at.isOffice) {
     placeRun(at.pool, { stack: run.stack, k, x: COPIER.rect.x, z: COPIER.rect.y })
+    placePrinter(at.pool, { isPrinting, isLit: blink === 1, rise })
   }
 
   endPool(at.pool)
 
   return { isChanged: true, isMoving: k < 1 }
+}
+
+// The printer's light, and while it prints its newest sheet stepping up in the tray.
+function placePrinter(
+  pool: Pool,
+  at: { readonly isPrinting: boolean; readonly isLit: boolean; readonly rise: number }
+): void {
+  if (PRINTER === undefined) {
+    return
+  }
+
+  const { x, y } = PRINTER.rect
+
+  placeInstance(pool, {
+    x: x + PRINTER_LED.dx,
+    y: PRINTER_LED.y,
+    z: y + PRINTER_LED.dz,
+    size: [PRINTER_LED.w, PRINTER_LED.h, PRINTER_LED.d],
+    color: at.isLit ? PRINTER_LED_TONES.on : PRINTER_LED_TONES.off,
+  })
+
+  if (at.isPrinting) {
+    placeInstance(pool, {
+      x: x + PRINTER_SHEET.dx,
+      y: PRINTER_SHEET.y + at.rise * PRINTER_SHEET.rise,
+      z: y + PRINTER_SHEET.dz,
+      size: [PRINTER_SHEET.w, PRINTER_SHEET.h, PRINTER_SHEET.d],
+      color: PALETTE.paper,
+    })
+  }
 }
 
 function placeRun(

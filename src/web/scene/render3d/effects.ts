@@ -46,11 +46,13 @@ const MAX_PAPERS = 12
 const MAX_STACK = 16
 const MAX_STEAM = 24
 const MAX_FISH = 6
-// The scanner light and a full output tray.
-const COPIER_PIECES = 9
+// The scanner light, a full output tray, the printer's light and its sheet.
+const COPIER_PIECES = 11
 const SHEET = Object.freeze({ w: 8, h: 0.6, d: 6 })
-const PAPER_ARC_PX = 14
-const PAPER_FROM_PX = 18
+// The mockup's sheet in flight: white, at 20 px, arcing 12 px over its way.
+const PAPER_ARC_PX = 12
+const PAPER_FROM_PX = 20
+const PAPER_TONE = '#FFFFFF'
 const TRAY = Object.freeze({ step: 1.4, h: 1.2, cap: 6, w: 10.6, d: 5.6, jog: 0.3 })
 const PRINT = Object.freeze({ y: 5.8, step: 0.42, w: 12, d: 6, slide: 5 })
 const STEAM_RISE_PX = 6
@@ -72,7 +74,7 @@ const FISH_SIZE: readonly [number, number, number] = [UNIT_PX, UNIT_PX, UNIT_PX]
 export function createEffects(shapes: Shapes, materials: Materials, root: Group): Effects {
   const fishGeometry = fishShapeOf(0)
   const effects: Effects = {
-    papers: createPool(shapes.box, materials.litI, { cap: MAX_PAPERS }),
+    papers: createPool(shapes.box, materials.unlitI, { cap: MAX_PAPERS }),
     stacks: createPool(shapes.box, materials.litI, { cap: MAX_STACK }),
     steam: createPool(shapes.box, materials.unlitI, { cap: MAX_STEAM }),
     cart: createPool(shapes.box, materials.litI, { cap: PROP_TONES.cups.length + 1 }),
@@ -144,7 +146,7 @@ function syncPapers(pool: Pool, frame: EffectFrame): boolean {
       y: PAPER_FROM_PX + Math.sin(k * Math.PI) * PAPER_ARC_PX,
       z: paper.from.y + (paper.to.y - paper.from.y) * k,
       size: [SHEET.w, SHEET.h, SHEET.d],
-      color: PALETTE.paper,
+      color: PAPER_TONE,
     })
   }
 
