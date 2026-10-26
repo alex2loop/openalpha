@@ -7,19 +7,6 @@
   background: var(--surface);
 }
 
-.chat-rail {
-  display: flex;
-  justify-content: center;
-  width: var(--chatRailW);
-  padding-top: var(--s1);
-  border-left: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.chat-rail .icon-button {
-  position: relative;
-}
-
 .chat-unread {
   position: absolute;
   top: 4px;
