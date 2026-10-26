@@ -2,7 +2,7 @@ import type { SeriesRef } from '@/web/scene/data/desk-reads'
 import type { DeskScreenContent } from '@/web/scene/overlay-types'
 import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, FloorId, Rect, RoomId } from '@/web/scene/types'
+import type { ActorId, FloorId, Point, Rect, RoomId } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { hostOf, seriesKeyOf } from '@/web/scene/data/desk-reads'
 import { toParamText } from '@/web/scene/data/room-status'
@@ -29,6 +29,7 @@ export interface LitScreen {
   readonly floor: FloorId
   readonly room: RoomId
   readonly rect: Rect
+  readonly seat: Point
   readonly content: DeskScreenContent
 }
 
@@ -51,7 +52,15 @@ export function buildScreens(input: ScreenInput): readonly LitScreen[] {
     const rect = screenRectOf(def)
 
     if (content !== undefined && runId !== undefined && rect !== undefined) {
-      screens.push({ actor: def.id, runId, floor: def.floor, room: def.room, rect, content })
+      screens.push({
+        actor: def.id,
+        runId,
+        floor: def.floor,
+        room: def.room,
+        rect,
+        seat: def.seat.at,
+        content,
+      })
     }
   }
 

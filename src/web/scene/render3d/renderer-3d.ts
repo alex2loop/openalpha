@@ -384,10 +384,8 @@ function syncDressing(
     calendar: sim.team.calendar,
   })
 
-  const isPetMoved = syncPets(stage.pets, sim.life, {
-    floor: sim.floor,
-    alpha: sim.alpha,
-    level,
+  const isPetMoved = syncPets(stage.pets, {
+    ...effectFrame,
     material: stage.lighting.materials.lit,
   })
 

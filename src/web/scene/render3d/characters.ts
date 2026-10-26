@@ -10,7 +10,7 @@ import {
 } from 'three'
 
 import type { InHand } from '@/web/scene/sim/actors/poses'
-import type { ActorId, ActorView, Point } from '@/web/scene/types'
+import type { ActorId, ActorView, Point, PoseId } from '@/web/scene/types'
 import { createPartKit } from '@/web/scene/render3d/bake'
 import {
   type BuiltFigure,
@@ -23,6 +23,7 @@ import {
 } from '@/web/scene/render3d/figure'
 import { type HeldState, releaseHeld, syncHeld } from '@/web/scene/render3d/held'
 import { type JointTargets, targetsOf, yawOf } from '@/web/scene/render3d/joints'
+import { type LifePose, lifePoseOf } from '@/web/scene/render3d/life-poses'
 import { buildMascot } from '@/web/scene/render3d/mascot'
 import { toUnits, UNIT_PX } from '@/web/scene/render3d/space'
 import {
@@ -365,6 +366,7 @@ function readPose(rig: Rig, job: PoseJob): ReadPose {
       side: seed % 2 === 0 ? 1 : -1,
       isHolding: inHand.hold !== undefined && inHand.hold !== 'bag',
       isWalking,
+      ...lifeOf(actor.pose, isWalking),
     }),
     wantYaw: seat?.desk === true ? Math.PI : facing,
   }
@@ -444,4 +446,11 @@ function outline(rig: Rig, spec: { readonly scale: number; readonly isWorking: b
 
   rig.width.value = spec.isWorking ? edge * WORK_OUTLINE : edge
   rig.hull.color.set(spec.isWorking ? WORK_RIM : OUTLINE)
+}
+
+// A still person in one of the mockup's life poses holds its 3D values.
+function lifeOf(pose: PoseId, isWalking: boolean): { readonly life?: LifePose } {
+  const life = isWalking ? undefined : lifePoseOf(pose)
+
+  return life === undefined ? {} : { life }
 }
