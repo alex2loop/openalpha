@@ -28,6 +28,7 @@ import {
 import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
 import { isCharacterMotionOn, isOnFloor } from '@/web/scene/sim/actors/poses'
 import { feedKOf } from '@/web/scene/sim/life/events'
+import { releaseAnimalSprites } from '@/web/scene/sprites/animal-sprite'
 import { lightOf } from '@/web/scene/sprites/daylight'
 import { createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
 import { isGlassMoving } from '@/web/scene/sprites/sky-glass'
@@ -165,6 +166,7 @@ function releaseSurface(surface: Surface | undefined): void {
   surface.screens.release()
   releaseCharacterSprites()
   releaseDeskItems()
+  releaseAnimalSprites()
 }
 
 // Paints one frame; true while the people's small motion runs.
