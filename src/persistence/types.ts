@@ -303,6 +303,31 @@ export interface NoticeStore {
   markRead(ids: readonly string[] | undefined, at: number): Promise<void>
 }
 
+/** One signed-in browser. `id` is public (what the page lists and ends by); `secretHash` is the
+ *  cookie secret's HMAC keyed by the API token, so the secret itself is never stored. */
+export interface BrowserSessionRow {
+  readonly id: string
+  readonly secretHash: string
+  /** Short browser label, may be ''. */
+  readonly label: string
+  readonly createdAt: number
+  readonly lastSeenAt: number
+}
+
+export interface BrowserSessionStore {
+  /** In one transaction: drops rows idle since before `keep.idleCutoff`, inserts, keeps the newest `keep.limit`. */
+  insert(
+    row: BrowserSessionRow,
+    keep: { readonly idleCutoff: number; readonly limit: number }
+  ): Promise<void>
+  findBySecret(secretHash: string, idleCutoff: number): Promise<BrowserSessionRow | undefined>
+  touch(id: string, at: number): Promise<void>
+  /** Newest `last_seen_at` first. */
+  list(idleCutoff: number, limit: number): Promise<readonly BrowserSessionRow[]>
+  remove(id: string): Promise<boolean>
+  removeAll(): Promise<number>
+}
+
 export interface RetentionConfig {
   readonly retentionDays: number
   readonly inboxRetentionDays: number
