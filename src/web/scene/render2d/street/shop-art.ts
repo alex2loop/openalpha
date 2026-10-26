@@ -1,7 +1,7 @@
 import type { StreetDetail } from '@/web/scene/render2d/street/detail'
 import type { ShopKind } from '@/web/scene/street-types'
 import { paintLabel } from '@/web/scene/render2d/street/label'
-import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
+import { isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { SHOP_RISE, type ShopSpan } from '@/web/scene/world/frontage'
 import { isAllDay } from '@/web/scene/world/regions'
 import { formatHourOfDay } from '@/web/text/time'
@@ -127,7 +127,7 @@ function paintAlley(front: ShopFront): void {
   g.fillStyle = front.tone('#1B1F2C', 0.5)
   g.fillRect(1.4, TOP + 5, w - 2.8, SHOP_RISE - 3)
 
-  if (front.shop.dark > 0.3) {
+  if (isNightDark(front.shop.dark)) {
     g.fillStyle = 'rgba(255,226,160,.55)'
     g.fillRect(w / 2 - 0.5, TOP + 4.5, 1, 1)
   }

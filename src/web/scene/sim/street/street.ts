@@ -18,11 +18,11 @@ import {
   stepFront,
 } from '@/web/scene/sim/street/front'
 import {
-  createLife,
+  createStreetLife,
   isLifeMovingIn,
-  resetLife,
+  resetStreetLife,
   type StreetLife,
-  stepLife,
+  stepStreetLife,
 } from '@/web/scene/sim/street/life'
 import { createLot, type Lot, resetLot, stepLot } from '@/web/scene/sim/street/lot'
 import { hasPedChanged, type Ped, type Peds } from '@/web/scene/sim/street/ped-walk'
@@ -74,8 +74,13 @@ export interface Street {
   nextDueAt(): number
   /** Steps the street out of sight while the loop sleeps and calls `wake` once something comes
    *  into view; the returned stop releases its timer. */
-  watchArrivals(wake: () => void): () => void
+  watchArrivals(loop: ArrivalLoop): () => void
   dispose(): void
+}
+
+interface ArrivalLoop {
+  readonly wake: () => void
+  readonly isRunning: () => boolean
 }
 
 interface StreetDeps {
@@ -134,7 +139,7 @@ export function createStreet(deps: StreetDeps): Street {
     resume,
     stepMs: () => state.stepMs,
     nextDueAt: () => nextDueOf(state),
-    watchArrivals: (wake) => watchArrivals(state, wake),
+    watchArrivals: (loop) => watchArrivals(state, loop),
     dispose: stopWatch,
   }
 }
@@ -145,7 +150,7 @@ function createStreetState(deps: StreetDeps): StreetState {
   const lot = createLot()
   const front = createFront()
   const people: Ped[] = []
-  const life = createLife(traffic, people)
+  const life = createStreetLife(traffic, people)
   const weather = createWeatherFx()
 
   return {
@@ -218,7 +223,7 @@ function resumeStreet(state: StreetState): void {
   resetLot(state.lot, { pack, minute })
   resetFront(state.front, { pack, day, nowMs })
   resetPeds(state.peds, { pack, day, minute, nowMs })
-  resetLife(state.life, { pack, day, minute, nowMs })
+  resetStreetLife(state.life, { pack, day, minute, nowMs })
   resetWeatherFx(state.weather, { pack, day, minute })
   syncWeatherFx(state.weather, { peds: state.peds, nowMs, isReduced: state.deps.reduced.peek() })
   syncPeople(state)
@@ -297,7 +302,7 @@ function stepAll(state: StreetState, nowMs: number): void {
   state.hasErrandCome =
     stepErrandsStreet(state.deps.errands, { traffic, minute, nowMs, dt: traffic.tick.dt }) ||
     state.hasErrandCome
-  stepLife(state.life, traffic)
+  stepStreetLife(state.life, traffic)
   syncPeople(state)
   state.hasSignalChanged = syncSignals(state.view.signals, nowMs)
   state.isLotMoving = stepLot(state.lot, { pack: traffic.pack, minute, nowMs, dt: traffic.tick.dt })
@@ -306,12 +311,12 @@ function stepAll(state: StreetState, nowMs: number): void {
 }
 
 // A sim-only check: it never draws, and wakes the loop only for something that came into view.
-function watchArrivals(state: StreetState, wake: () => void): () => void {
+function watchArrivals(state: StreetState, loop: ArrivalLoop): () => void {
   const timer = setInterval(() => {
     const nowMs = performance.now()
     const isLoopStepping = nowMs - state.lastStepAt < ARRIVAL_CHECK_MS
 
-    if (document.hidden || state.deps.reduced.peek() || isLoopStepping) {
+    if (!loop.isRunning() || state.deps.reduced.peek() || isLoopStepping) {
       return
     }
 
@@ -321,7 +326,7 @@ function watchArrivals(state: StreetState, wake: () => void): () => void {
     const rect = movingRectOf(visibleRect())
 
     if (state.hasErrandCome || isMovingInView(state, rect) || isFrontMoving(state.front, rect)) {
-      wake()
+      loop.wake()
     }
   }, ARRIVAL_CHECK_MS)
 

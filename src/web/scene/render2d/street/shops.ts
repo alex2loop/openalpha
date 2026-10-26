@@ -51,7 +51,7 @@ export const SHOPS_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     paintRow(g, pack, minute)
 
-    if (isLateNight(minute.clock)) {
+    if (isLateNight(pack, minute.clock)) {
       paintStall(g, pack, minute.light.dark)
     }
   },

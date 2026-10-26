@@ -8,12 +8,12 @@ import {
 import {
   fillTone,
   GROUND_TONES,
-  STREET_BOTTOM,
   STREET_LEFT,
   STREET_RIGHT,
   toneOf,
 } from '@/web/scene/render2d/street/city-ground'
 import { WORLD } from '@/web/scene/types'
+import { STREET_BOTTOM } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { NORTH, SIDE_ROAD, sideX } from '@/web/scene/world/street-layout'
 

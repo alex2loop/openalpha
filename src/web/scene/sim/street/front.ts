@@ -122,7 +122,9 @@ export function stepFront(
   const isShutterChanged = at.isReduced
     ? clearShutters(front)
     : syncShutters(front, at.pack.shops, minute)
-  const isGuardMoved = at.isReduced ? clearGuard(front) : syncGuard(front, { minute, dt })
+  const isGuardMoved = at.isReduced
+    ? clearGuard(front)
+    : syncGuard(front, { pack: at.pack, minute, dt })
   const isBoardChanged = syncBoard(front, {
     items,
     nowMs: at.nowMs,
@@ -234,9 +236,12 @@ function clearGuard(front: Front): boolean {
   return false
 }
 
-function syncGuard(front: Front, at: { readonly minute: number; readonly dt: number }): boolean {
+function syncGuard(
+  front: Front,
+  at: { readonly pack: RegionPack; readonly minute: number; readonly dt: number }
+): boolean {
   const { guard } = front
-  const isOnDuty = front.view.face !== undefined && isLateNight(at.minute)
+  const isOnDuty = front.view.face !== undefined && isLateNight(at.pack, at.minute)
 
   front.view.guard = isOnDuty ? guard : undefined
 
@@ -245,6 +250,7 @@ function syncGuard(front: Front, at: { readonly minute: number; readonly dt: num
   }
 
   const [from, to] = front.range
+  const shownX = Math.round(guard.at.x)
 
   guard.prev.x = guard.at.x
   guard.at.x += guard.heading * GUARD_PX_S * at.dt
@@ -254,7 +260,7 @@ function syncGuard(front: Front, at: { readonly minute: number; readonly dt: num
     guard.heading = guard.heading === 1 ? -1 : 1
   }
 
-  return at.dt > 0
+  return Math.round(guard.at.x) !== shownX
 }
 
 function syncBoard(

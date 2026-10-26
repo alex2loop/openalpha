@@ -1,6 +1,6 @@
 import type { CityScene } from '@/web/scene/render2d/street/city-blocks'
 import { STREET_LEFT, STREET_RIGHT } from '@/web/scene/render2d/street/city-ground'
-import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
+import { isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 type Facade = 'glass' | 'white' | 'concrete'
@@ -58,7 +58,6 @@ const ROOF_NIGHT = 0.5
 const LIT_WINDOW = '#FFD27A'
 const LIT_ALPHA = 0.75
 const LIT_SHARE = 0.32
-const NIGHT_MIN_DARK = 0.3
 
 interface Tower {
   readonly x: number
@@ -149,7 +148,7 @@ function paintTower(scene: CityScene, job: TowerJob): void {
 // from the middle detail up.
 function paintFacade(scene: CityScene, tower: Tower): void {
   const { g, minute } = scene
-  const isNight = scene.dark > NIGHT_MIN_DARK
+  const isNight = isNightDark(scene.dark)
   const fine = minute.detail > 0
   const hasBlocks = tower.facade === 'concrete' && fine
 

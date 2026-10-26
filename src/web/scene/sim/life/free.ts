@@ -21,7 +21,10 @@ const CLERK: ActorId = 'clerk'
  *  no walk to your desk), no gesture of a real event, no marker over the head, no job due within
  *  `JOB_DUE_MS`, not out on an errand, not on the way in or out of the office, not kept at the desk
  *  by the day, not the mascot; staff only, never a temporary child or an own agent. */
-export function isFree(actor: ActorState, errands: Errands): boolean {
+export function isFree(
+  actor: ActorState,
+  at: { readonly errands: Errands; readonly due: ReadonlyMap<ActorId, AgendaRow> }
+): boolean {
   const id = actor.def.id
   const isMarked = id === CLERK && (breachedStops.value?.length ?? 0) > 0
   const hasBeat = actor.beats.some((beat) => beat.kind !== 'life')
@@ -32,8 +35,8 @@ export function isFree(actor: ActorState, errands: Errands): boolean {
     (actor.goal === undefined || actor.isLife) &&
     !hasBeat &&
     !isMarked &&
-    !dueOwners().has(id) &&
-    !isOnErrand(errands, id) &&
+    !at.due.has(id) &&
+    !isOnErrand(at.errands, id) &&
     actor.away === undefined &&
     !isKept(id)
   )

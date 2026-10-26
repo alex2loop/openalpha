@@ -421,7 +421,7 @@ function sitDown(parks: Parks, ped: ParkPed, at: Stay): void {
 
   clearRoute(ped)
   ped.stage = 'stay'
-  ped.kind = 'sitter'
+  ped.kind = 'bench-sitter'
   ped.facing = (bench?.facing ?? 1) > 0 ? 'east' : 'west'
   ped.node = bench?.node ?? ped.node
   ped.until = at.nowMs + at.stayMs.min + parks.rng.next() * at.stayMs.span
@@ -465,7 +465,7 @@ function leave(parks: Parks, ped: ParkPed): void {
   ped.seat = -1
   ped.item = undefined
 
-  if (ped.kind === 'sitter') {
+  if (ped.kind === 'bench-sitter') {
     ped.kind = 'walker'
   }
 }

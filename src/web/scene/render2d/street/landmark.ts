@@ -12,13 +12,12 @@ import {
   TIP_Y,
   type TowerPaint,
 } from '@/web/scene/render2d/street/landmark-shape'
-import { mixTone } from '@/web/scene/render2d/street/tone'
+import { isNightDark, mixTone } from '@/web/scene/render2d/street/tone'
 import { STREET_RECT } from '@/web/scene/view'
 import { isLightsOut } from '@/web/scene/world/frontage'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const ROW_STEP = 3
-const NIGHT_MIN_DARK = 0.3
 const GLASS = Object.freeze({ body: '#7C9CC6', shade: '#2B4675' })
 const FLOOR_LIT = ['#FFE6A8', '#FFD27A'] as const
 const HALF = DESIGN.shaftHalfW + 1
@@ -39,8 +38,8 @@ export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
     lit,
     haze,
     sky: minute.light.sky,
-    isNight: dark > NIGHT_MIN_DARK,
-    isLobbyLit: dark > NIGHT_MIN_DARK && !isLightsOut(minute.minute),
+    isNight: isNightDark(dark),
+    isLobbyLit: isNightDark(dark) && !isLightsOut(pack, minute.minute),
   }
 
   paintCityBack(scene, foot.x)

@@ -135,10 +135,11 @@ function roundStops(count: number, desks: readonly DeskView[]): readonly [StopSp
   return first === undefined ? [liftStop] : [first, ...rest]
 }
 
-// Each own agent's desk on the team floor, from the lift and back to it.
+// Each on-duty own agent's desk on the team floor, from the lift and back to it.
 function deskStops(count: number, desks: readonly DeskView[]): StopSpec[] {
   const stops: StopSpec[] = desks.flatMap((desk) => {
-    const seat = desk.agentId === undefined ? undefined : TEAM_SEATS[desk.slot]
+    const isOnDuty = desk.agentId !== undefined && desk.isTaken
+    const seat = isOnDuty ? TEAM_SEATS[desk.slot] : undefined
 
     return seat === undefined
       ? []

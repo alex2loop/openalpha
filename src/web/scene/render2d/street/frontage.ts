@@ -3,11 +3,11 @@ import type { Frontage } from '@/web/scene/world/frontage'
 import { litShareOf } from '@/web/scene/render2d/street/city'
 import { paintBoard } from '@/web/scene/render2d/street/led-board'
 import { LED } from '@/web/scene/render2d/street/led-face'
-import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
+import { isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { frontageOf, isLightsOut } from '@/web/scene/world/frontage'
+import { isWithin, type RegionPack } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { NORTH } from '@/web/scene/world/street-layout'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const WALL = Object.freeze({ top: '#D4CBBB', foot: '#B6AD9D', topNight: 0.64, footNight: 0.68 })
 const WINDOW = Object.freeze({
@@ -27,9 +27,6 @@ const GLASS_LIT = ['#D8BE86', '#B9975A'] as const
 const DOOR = Object.freeze({ frame: '#D8DCE8', glassDay: '#9FB6C8', glassLit: '#E6CE98', halfW: 9 })
 const HOUSING = '#1C2230'
 const HOUSING_PAD = 1.5
-// The lobby glass is lit after dusk until the shops close at this hour.
-const SHOP_LIT_UNTIL_MIN = 21.5 * MINUTES_PER_HOUR
-const NIGHT_MIN_DARK = 0.3
 const MULLION_PITCH = 5.5
 
 /** The building across from the office on the far pavement, one storey taller than a shop front:
@@ -41,7 +38,7 @@ export const FRONTAGE_PART: PaintPart = {
     const frontage = frontageOf(pack.shops)
 
     if (frontage !== undefined) {
-      paintBuilding(g, frontage, { dark: minute.light.dark, minute: minute.minute })
+      paintBuilding(g, frontage, { pack, dark: minute.light.dark, minute: minute.minute })
     }
   },
   paintMoving: (g, view, scene) => {
@@ -58,18 +55,20 @@ export const FRONTAGE_PART: PaintPart = {
 }
 
 interface Light {
+  readonly pack: RegionPack
   readonly dark: number
   readonly minute: number
 }
 
 function paintBuilding(g: CanvasRenderingContext2D, frontage: Frontage, light: Light): void {
-  const isNight = light.dark > NIGHT_MIN_DARK
-  const isLit = isNight && !isLightsOut(light.minute)
+  const { pack, minute } = light
+  const isNight = isNightDark(light.dark)
+  const isLit = isNight && !isLightsOut(pack, minute)
   const night = (hex: string, share: number): string => mixTone(hex, NIGHT_TONE, light.dark * share)
   const { body } = frontage
 
-  paintWall(g, frontage, { night, share: isNight ? litShareOf(light.minute) : 0, isLit })
-  paintShopfront(g, frontage, { night, isShopLit: isLit && light.minute < SHOP_LIT_UNTIL_MIN })
+  paintWall(g, frontage, { night, share: isNight ? litShareOf(pack, minute) : 0, isLit })
+  paintShopfront(g, frontage, { night, isShopLit: isLit && isWithin(pack.hours.shopsLit, minute) })
   g.fillStyle = HOUSING
   g.fillRect(
     frontage.board.x - HOUSING_PAD,

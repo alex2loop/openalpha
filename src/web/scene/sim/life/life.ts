@@ -1,6 +1,6 @@
 import type { ReadonlySignal } from '@preact/signals'
 
-import type { ActorState, Director } from '@/web/scene/sim/director'
+import type { Director } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type {
   ActorId,
@@ -15,7 +15,7 @@ import { pageMinute } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { startTodayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
-import { ASSISTANT, isCrewId } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { isOfficeOpen } from '@/web/scene/sim/director'
 import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
 import { createCrewState, crewDueOf, stepCrew } from '@/web/scene/sim/life/crew'
@@ -93,13 +93,26 @@ export function createLife(deps: LifeDeps): Life {
   const off = subscribeLife(onWireEvent, state)
   const stopRuns = startTodayRuns()
   let isDisposed = false
+  let last: LifeStep | undefined
+  // The view and the deadline between steps read the last step's people, at the time now.
+  const current = (): LifeStep =>
+    last === undefined ? readStep(state, deps) : { ...last, nowMs: performance.now() }
 
   return {
-    step: () => !isDisposed && stepLife(state, readStep(state, deps)),
-    nextDueAt: () => (isDisposed ? Number.POSITIVE_INFINITY : dueOf(state, readStep(state, deps))),
-    view: () => viewOf(state, readStep(state, deps)),
+    step: () => {
+      if (isDisposed) {
+        return false
+      }
+
+      last = readStep(state, deps)
+
+      return stepLife(state, last)
+    },
+    nextDueAt: () => (isDisposed ? Number.POSITIVE_INFINITY : dueOf(state, current())),
+    view: () => viewOf(state, current()),
     statuses: (views) => statusesOf(state, views),
     resume: () => {
+      last = undefined
       state.asks.length = 0
       state.rhythm.seenAt = undefined
     },
@@ -146,12 +159,13 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
 
 function readStep(state: LifeState, deps: LifeDeps): LifeStep {
   const nowMs = performance.now()
-  const { actors, crew } = splitCrew(deps.director.actors())
+  const { actors, crew } = deps.director.staffAndCrew()
   const isReduced = deps.reduced.value
   const isQuiet = nowMs - state.lastBusyAt >= QUIET_AFTER_MS
   const canWalk = !(isReduced || document.hidden) && isOfficeOpen()
   const { noTrips, closingAuction, relaxed } = marketMoment.value
   const due = dueOwners()
+  const free = { errands: deps.director.errands, due }
 
   return {
     nowMs,
@@ -159,7 +173,7 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
     actors,
     crew,
     free: [...actors.values()].filter(
-      (actor) => isFree(actor, deps.director.errands) && !state.moments.has(actor.def.id)
+      (actor) => isFree(actor, free) && !state.moments.has(actor.def.id)
     ),
     pack: regionPack.value.officeLife,
     canWalk,
@@ -171,22 +185,6 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
   }
 }
 
-// The office's own people and the building crew, in one pass over the director's.
-function splitCrew(all: ReadonlyMap<ActorId, ActorState>): Pick<LifeStep, 'actors' | 'crew'> {
-  const actors = new Map<ActorId, ActorState>()
-  const crew = new Map<ActorId, ActorState>()
-
-  for (const [id, actor] of all) {
-    if (isCrewId(id)) {
-      crew.set(id, actor)
-    } else {
-      actors.set(id, actor)
-    }
-  }
-
-  return { actors, crew }
-}
-
 function stepLife(state: LifeState, step: LifeStep): boolean {
   noteBusy(state, step)
   clearSheets(state, step)
@@ -196,7 +194,7 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
 
   const isMoving = stepCart(state, step)
 
-  stepErrands(state, { step, isFree: (actor) => isFree(actor, state.director.errands) })
+  stepErrands(state, step)
   stepAsks(state, step)
   stepMoments(state, step)
   stepRounds(state, step)
@@ -219,11 +217,12 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
 // Each running moment steps; one whose person stopped being free ends at once, and they walk back
 // by nav (or stay seated) under whatever goal the live store gives them.
 function stepMoments(state: LifeState, step: LifeStep): void {
+  const free = { errands: state.director.errands, due: step.due }
+
   for (const [id, moment] of state.moments) {
     const actor = step.actors.get(id)
     const isStillFree =
-      actor !== undefined &&
-      (id === ASSISTANT ? isRoundFree(actor) : isFree(actor, state.director.errands))
+      actor !== undefined && (id === ASSISTANT ? isRoundFree(actor) : isFree(actor, free))
 
     if (actor === undefined || !isStillFree || !step.canWalk) {
       endMoment(state, id)

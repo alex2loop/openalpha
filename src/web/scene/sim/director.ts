@@ -20,12 +20,12 @@ import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { actorViewsOf } from '@/web/scene/sim/actor-views'
-import { ASSISTANT, CREW, ROSTER } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, CREW, isCrewId, ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking, placeWalker } from '@/web/scene/sim/actors/walk'
 import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
 import { enterPerson } from '@/web/scene/sim/entrance'
-import { SIM_STEP_MS } from '@/web/scene/sim/loop'
+import { mergeMotion, SIM_STEP_MS, type StepMotion } from '@/web/scene/sim/loop'
 import { createPapers, type Papers } from '@/web/scene/sim/papers'
 import {
   actorsOfRun,
@@ -44,6 +44,7 @@ import {
 import { isBoundForLift } from '@/web/scene/sim/places'
 import { createErrands, type Errands, endErrands, isOut } from '@/web/scene/sim/street/errands'
 import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
+import { view as sceneView } from '@/web/scene/view'
 import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
 import { TRAY_AT } from '@/web/scene/world/seats'
@@ -86,6 +87,11 @@ interface DirectorDeps {
 /** The people's part of the snapshot; the composer adds the floor, the light and the props. */
 type PeopleView = Pick<SimView, 'actors' | 'papers' | 'tray'>
 
+interface StaffAndCrew {
+  readonly actors: ReadonlyMap<ActorId, ActorState>
+  readonly crew: ReadonlyMap<ActorId, ActorState>
+}
+
 /** Each person's pose and when it began, kept from step to step. */
 type PoseMarks = ReadonlyMap<ActorId, Pick<ActorView, 'pose' | 'poseSince'>>
 
@@ -97,9 +103,12 @@ export interface Director {
   readonly away: Map<ActorId, AwayStage>
   /** Back through the street door: they walk to their seat, or stand there at once. */
   enter(id: ActorId, isInstant: boolean): void
-  step(index: number): boolean
+  /** One step; a walk on a floor not shown is `unseen`. */
+  step(index: number): StepMotion
   view(): PeopleView
   actors(): ReadonlyMap<ActorId, ActorState>
+  /** The office's own people and the building crew, apart, in one pass. */
+  staffAndCrew(): StaffAndCrew
   /** A reaction to the operator; `undefined` ends a look still held. A look lasts until it is
    *  ended and never covers a wave or a glance. */
   requestReaction(id: ActorId, kind: ReactionKind | undefined): void
@@ -157,7 +166,7 @@ export function createDirector(deps: DirectorDeps): Director {
 
   return {
     errands,
-    step: () => !isDisposed && stepAll(people, { papers, poses, errands, away }),
+    step: () => (isDisposed ? 'still' : stepAll(people, { papers, poses, errands, away })),
     view: () => ({
       actors: actorViewsOf(people, { marks: poses.marks, errands, away, poseOf }),
       papers: papers.views(),
@@ -207,6 +216,7 @@ function lifeHooksOf(
 ): Pick<
   Director,
   | 'actors'
+  | 'staffAndCrew'
   | 'requestReaction'
   | 'setMeeting'
   | 'setLife'
@@ -221,6 +231,7 @@ function lifeHooksOf(
     enter: (id, isInstant) => enterPerson(people, { id, isInstant }),
     actors: () =>
       new Map(people.list.map((person) => [person.def.id, toActorState(people, person, away)])),
+    staffAndCrew: () => staffAndCrewOf(people, away),
     requestReaction: (id, kind) => react(people, { id, kind }),
     setMeeting: (id, goal) => setGoalIn(people.meeting, id, goal),
     setLife: (id, goal) => setGoalIn(people.life, id, goal),
@@ -246,6 +257,24 @@ function createErrandsOf(people: People): Errands {
       }
     },
   })
+}
+
+function staffAndCrewOf(people: People, away: ReadonlyMap<ActorId, AwayStage>): StaffAndCrew {
+  const actors = new Map<ActorId, ActorState>()
+  const crew = new Map<ActorId, ActorState>()
+
+  for (const person of people.list) {
+    const id = person.def.id
+    const actor = toActorState(people, person, away)
+
+    if (isCrewId(id)) {
+      crew.set(id, actor)
+    } else {
+      actors.set(id, actor)
+    }
+  }
+
+  return { actors, crew }
 }
 
 function setGoalIn(layer: Map<ActorId, Goal>, id: ActorId, goal: Goal | undefined): void {
@@ -285,13 +314,14 @@ function stepAll(
     readonly errands: Errands
     readonly away: ReadonlyMap<ActorId, AwayStage>
   }
-): boolean {
+): StepMotion {
   const { papers, poses, errands, away } = held
   const nowMs = performance.now()
+  const shownFloor = sceneView.peek().floor
   const isChanged = tickPeople(people, { nowMs, isOpen: isOfficeOpen() })
   const isHidden = (id: ActorId): boolean =>
     isOut(errands, id) || away.get(id) === 'gone' || people.byId.get(id)?.isRiding === true
-  let isMoving = false
+  let motion: StepMotion = 'still'
 
   for (const person of people.list) {
     if (isHidden(person.def.id)) {
@@ -307,14 +337,16 @@ function stepAll(
     const extra = people.obstacles.get(person.floor)
     const step = { nowMs, dtMs: SIM_STEP_MS, ...(extra === undefined ? {} : { extra }) }
 
-    isMoving = stepPerson(person, others, step) || isMoving
+    if (stepPerson(person, others, step)) {
+      motion = mergeMotion(motion, person.floor === shownFloor ? 'seen' : 'unseen')
+    }
   }
 
   const settled = settlePoses(people.list, { marks: poses.marks, nowMs })
 
   poses.marks = settled.marks
 
-  return papers.step(nowMs) || isMoving || isChanged || settled.isChanged
+  return papers.step(nowMs) || isChanged || settled.isChanged ? 'seen' : motion
 }
 
 /** Office hours by the page clock and the home region's pack. */

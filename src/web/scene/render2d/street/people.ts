@@ -20,7 +20,13 @@ import {
   PANTS_OF,
   type PantsTone,
 } from '@/web/scene/sprites/parts'
-import { ERRAND_ITEMS, HEADINGS, PERSON_KINDS, STREET_FIGURE_H } from '@/web/scene/street-types'
+import {
+  ERRAND_ITEMS,
+  HEADINGS,
+  PERSON_KINDS,
+  STREET_FIGURE_H,
+  WAVE_FRAME,
+} from '@/web/scene/street-types'
 
 type Rect4 = readonly [number, number, number, number]
 
@@ -35,7 +41,6 @@ const PANTS = PANTS_TONES.map((tone) => RAMP.pants[tone][1])
 const PACKS = ['#C9544A', '#3F7FC5', '#E0A13A', '#5CA27A', '#8E5BB5'] as const
 const PUPIL_PANTS = 1
 const FRAMES = 7
-const WAVE_FRAME = 5
 // Bits of a passer-by's look seed each colour is drawn from.
 const LOOK_BITS = Object.freeze({ hair: 2, shirt: 4, pants: 7, pack: 9 })
 const TONES = Object.freeze({
@@ -226,8 +231,8 @@ function paintPerson(figure: Figure): void {
   const { g, person } = figure
   const frame = person.frame >= WAVE_FRAME ? 0 : person.frame
 
-  if (person.kind === 'sitter') {
-    paintSeated(figure)
+  if (person.kind === 'sitter' || person.kind === 'bench-sitter') {
+    paintSeated(figure, person.kind === 'sitter')
   } else {
     paintLegs(figure, frame)
   }
@@ -312,15 +317,18 @@ function paintLeg(
   fill(g, TONES.shoe, [leg.foot - shoeW / 2, -leg.lift - shoeH, shoeW, shoeH])
 }
 
-// On a low stool by the café, legs forward.
-function paintSeated(figure: Figure): void {
+// Legs forward, on a low stool by the café or on a park bench, which the park paints itself.
+function paintSeated(figure: Figure, isOnStool: boolean): void {
   const { g } = figure
   const pants = colourOf(figure, PANTS[figure.tones.pants])
   const dir = facingDirOf(figure.person)
   const { shin } = SEAT
 
-  fill(g, colourOf(figure, TONES.stoolLeg), SEAT.leg)
-  fill(g, colourOf(figure, TONES.stool), SEAT.stool)
+  if (isOnStool) {
+    fill(g, colourOf(figure, TONES.stoolLeg), SEAT.leg)
+    fill(g, colourOf(figure, TONES.stool), SEAT.stool)
+  }
+
   fill(g, pants, SEAT.thigh)
   fill(g, pants, [dir * shin.reach - shin.w / 2, shin.top, shin.w, shin.h])
 }

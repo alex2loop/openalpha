@@ -61,13 +61,15 @@ export interface ErrandView {
 }
 
 /** Who walks the street: a passer-by, a jogger, a pupil, someone waiting at a shelter, sitting at
- *  the café, taking a delivery at a shop door, or an office person on an errand. */
+ *  the café or on a park bench, taking a delivery at a shop door, or an office person on an
+ *  errand. */
 export const PERSON_KINDS = [
   'walker',
   'jogger',
   'pupil',
   'waiter',
   'sitter',
+  'bench-sitter',
   'receiver',
   'staff',
 ] as const
@@ -85,6 +87,9 @@ export interface StaffLook {
   readonly role?: RoleId
   readonly look?: AgentLookWire
 }
+
+/** The first of a street person's two waving gait frames. */
+export const WAVE_FRAME = 5
 
 /** A person on the street: who, which way they face, the gait frame (0 standing, 1 to 4 walking,
  *  5 and 6 waving), the seed their clothes come from, what they carry, and the office person's own
