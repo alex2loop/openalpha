@@ -296,7 +296,9 @@ function syncLampNight(rhythm: RhythmState): void {
   rhythm.lampNight = isNight
 }
 
-// The rooms someone stands in, for the lamps.
+// The rooms a lamp is on for after dark, as the mockup lights them: where someone who is meant to
+// be in (on shift, on a real run, or rest-day staff) stands in their own room. Someone merely
+// passing, or in after hours with nothing to do, lights nothing.
 function noteRooms(state: LifeState, step: LifeStep): void {
   const { occupied } = state.rhythm
 
@@ -308,7 +310,7 @@ function noteRooms(state: LifeState, step: LifeStep): void {
         ? roomAt(OFFICE_FLOOR, actor.walker.pos)
         : undefined
 
-    if (room !== undefined) {
+    if (room?.id === actor.def.room && isWanted(state.rhythm, { actor, step })) {
       occupied.add(room.id)
     }
   }

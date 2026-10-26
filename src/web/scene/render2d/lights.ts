@@ -11,6 +11,7 @@ import {
   TABLE_POOLS,
   WARM_RGB,
 } from '@/web/scene/sprites/daylight'
+import { FLOORS } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { roomAt, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
@@ -22,8 +23,10 @@ const LAMP_HEAD_RADIUS = 28
 // The shade's glow sits this far over the lamp's foot, as the mockup pools it.
 const LAMP_HEAD_RISE = 38
 const LAMP_FLOOR_RADIUS = 48
-const LAMP_HEAD_ALPHA = 0.36
-const LAMP_FLOOR_ALPHA = 0.34
+// A lamp's glow by day and in the dark, as the mockup sets them: the shade brighter at night, the
+// pool on the floor softer.
+const LAMP_HEAD_ALPHA = Object.freeze({ day: 0.36, night: 0.45 })
+const LAMP_FLOOR_ALPHA = Object.freeze({ day: 0.336, night: 0.256 })
 const CLOSED_SHADE = '#C4C6D2'
 const DESK_LAMP_ALPHA = 0.5
 // Each desk lamp's pool by its `variant`, from its drawn box's corner: your warm lamp, the
@@ -58,6 +61,12 @@ export function paintLighting(g: CanvasRenderingContext2D, spec: LightingSpec): 
 
 function paintRoomShade(g: CanvasRenderingContext2D, spec: LightingSpec): void {
   const { tint } = spec.light
+  const corridor = FLOORS[spec.floor].corridor
+
+  // The corridor has no lamp of its own: it takes the hour's full tint, as the mockup shades it.
+  if (tint !== undefined && corridor !== undefined) {
+    fill(g, [corridor.x, corridor.y, corridor.w, corridor.h], tint)
+  }
 
   for (const room of roomsOn(spec.floor)) {
     const { x, y, w, h } = room.rect
@@ -113,14 +122,14 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
       y: rect.y + rect.h - LAMP_HEAD_RISE,
       radius: LAMP_HEAD_RADIUS,
       rgb: WARM_RGB,
-      alpha: LAMP_HEAD_ALPHA * spec.lampGlow,
+      alpha: byDark(LAMP_HEAD_ALPHA, spec.light.dark) * spec.lampGlow,
     })
     pool(g, {
       x: cx,
       y: rect.y + rect.h,
       radius: LAMP_FLOOR_RADIUS,
       rgb: WARM_RGB,
-      alpha: LAMP_FLOOR_ALPHA * spec.lampGlow,
+      alpha: byDark(LAMP_FLOOR_ALPHA, spec.light.dark) * spec.lampGlow,
     })
   }
 
@@ -153,6 +162,10 @@ function paintDeskLampPools(g: CanvasRenderingContext2D, spec: LightingSpec): vo
       alpha: DESK_LAMP_ALPHA * spec.lampGlow,
     })
   }
+}
+
+function byDark(alpha: { readonly day: number; readonly night: number }, dark: number): number {
+  return alpha.day + (alpha.night - alpha.day) * dark
 }
 
 interface Pool {
