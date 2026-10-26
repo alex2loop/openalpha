@@ -12,18 +12,18 @@ export type { TypedPrice } from '@/trading/kernel/surface/surface'
 export type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/composition/app-views'
 export type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 export type { SourceStatus, TradingSectorsView } from '@/trading/wiring/host/market-types'
+export type { TradingHost } from '@/trading/wiring/host/types'
 export type {
   HeldStopView,
   MarketView,
   ReconcileView,
   ScreenAnswer,
   TradingBriefView,
-  TradingHost,
   TradingMacroView,
   TradingMarketsView,
   TradingSetupView,
   TradingTrackRecordView,
-} from '@/trading/wiring/host/types'
+} from '@/trading/wiring/host/view-types'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
 export { TYPED_PRICES } from '@/trading/kernel/surface/surface'
 export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
@@ -180,7 +180,7 @@ export type {
   SourceSummary,
 } from '@/trading/kernel/source/source-result'
 export type { Page } from '@/trading/kernel/store/page'
-export type { AgentRecordSummary } from '@/trading/wiring/host/types'
+export type { AgentRecordSummary } from '@/trading/wiring/host/view-types'
 export { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
 export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
 
