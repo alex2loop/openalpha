@@ -5,6 +5,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { agents } from '@/web/state/agents'
 import { fillInput } from '@/web/state/command'
+import { isAdvanced } from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
 import { citationsOf } from '@/web/text/card-sources'
 import { formatSignedFraction } from '@/web/text/figures'
@@ -175,7 +176,7 @@ function StoredDebateView({ call }: { readonly call: SuggestionWire }) {
   return (
     <>
       {debate !== undefined && <DebateSections debate={debate} action={call.action} />}
-      {citations.length > 0 && <CitationSection citations={citations} />}
+      {isAdvanced.value && citations.length > 0 && <CitationSection citations={citations} />}
       {debate !== undefined && <SetupUsed debate={debate} />}
     </>
   )

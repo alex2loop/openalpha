@@ -12,6 +12,7 @@ const MOTION_KEY = 'office.motion'
 const LIGHT_BY_HOUR_KEY = 'office.lightByHour'
 const LAMPS_OFF_KEY = 'office.lampsOff'
 const SCENE_VIEW_KEY = 'office.sceneView'
+const DETAIL_LEVEL_KEY = 'office.detailLevel'
 const CHIME_KEY = 'office.chime'
 const NOTIFY_KEY = 'office.notify'
 const STORED_ON = '1'
@@ -21,11 +22,14 @@ export const THEMES = ['system', 'light', 'dark'] as const
 export const COLOUR_PAIRS = ['green-up', 'red-up'] as const
 export const MOTIONS = ['system', 'reduced', 'full'] as const
 export const SCENE_VIEWS = ['2d', '3d'] as const
+// Advanced first: it is the default, and today's reader loses nothing.
+export const DETAIL_LEVELS = ['advanced', 'simple'] as const
 
 export type Theme = (typeof THEMES)[number]
 export type ColourPair = (typeof COLOUR_PAIRS)[number]
 export type Motion = (typeof MOTIONS)[number]
 export type SceneView = (typeof SCENE_VIEWS)[number]
+export type DetailLevel = (typeof DETAIL_LEVELS)[number]
 type ColorScheme = 'light' | 'dark'
 
 const reducedMotionQuery = matchMedia(REDUCED_MOTION_QUERY)
@@ -38,6 +42,7 @@ const themeChoice = signal<Theme>(readChoice(THEME_KEY, THEMES))
 const colourChoice = signal<ColourPair>(readChoice(COLOURS_KEY, COLOUR_PAIRS))
 const motionChoice = signal<Motion>(readChoice(MOTION_KEY, MOTIONS))
 const sceneViewChoice = signal<SceneView>(readChoice(SCENE_VIEW_KEY, SCENE_VIEWS))
+const detailChoice = signal<DetailLevel>(readChoice(DETAIL_LEVEL_KEY, DETAIL_LEVELS))
 const lightByHourChoice = signal(readStorage('local', LIGHT_BY_HOUR_KEY) !== STORED_OFF)
 const switchedOff = signal<ReadonlySet<string>>(readLampsOff())
 const chimeChoice = signal(readStorage('local', CHIME_KEY) === STORED_ON)
@@ -67,6 +72,9 @@ export const colourPair: ReadonlySignal<ColourPair> = colourChoice
 export const motion: ReadonlySignal<Motion> = motionChoice
 /** How the office is drawn: flat 2D, or the 3D view; blocked or unknown reads as 2D. */
 export const sceneView: ReadonlySignal<SceneView> = sceneViewChoice
+/** How much the page spells out: simple leaves the scores, sources and technical detail folded away. */
+export const detailLevel: ReadonlySignal<DetailLevel> = detailChoice
+export const isAdvanced: ReadonlySignal<boolean> = computed(() => detailChoice.value === 'advanced')
 
 /** Bumps, pings and flashes stop: the browser asks for less motion, or the operator chose it. */
 export const reducedMotion: ReadonlySignal<boolean> = computed(() =>
@@ -97,6 +105,10 @@ export function setMotion(value: Motion): void {
 
 export function setSceneView(value: SceneView): void {
   keep(sceneViewChoice, SCENE_VIEW_KEY, value)
+}
+
+export function setDetailLevel(value: DetailLevel): void {
+  keep(detailChoice, DETAIL_LEVEL_KEY, value)
 }
 
 export function setLightByHour(value: boolean): void {

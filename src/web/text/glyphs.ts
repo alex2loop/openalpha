@@ -25,10 +25,16 @@ export const UP_GLYPH = '▲'
 export const DOWN_GLYPH = '▼'
 /** Separates the segments of one line. */
 const INLINE_SEPARATOR = '·'
+const INLINE_JOINER = ` ${INLINE_SEPARATOR} `
 const LIST_SEPARATOR = ', '
 
 export function joinInline(segments: readonly string[]): string {
-  return segments.join(` ${INLINE_SEPARATOR} `)
+  return segments.join(INLINE_JOINER)
+}
+
+/** The segments of one inline line, as `joinInline` and the daemon's rows join them. */
+export function splitInline(line: string): readonly string[] {
+  return line.split(INLINE_JOINER)
 }
 
 /** Names in a sentence: "Ngân hàng, Bất động sản". */
