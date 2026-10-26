@@ -190,12 +190,12 @@
   margin: 0 calc(var(--s1) * -1);
   padding-inline: var(--s1);
   border-radius: var(--controlRadius);
-  background: var(--dangerTint);
-  color: var(--dangerText);
+  background: var(--problemTint);
+  color: var(--problemText);
 }
 
 .notice-row.is-stop.is-unread .notice-main b {
-  color: var(--dangerText);
+  color: var(--problemText);
 }
 
 .notice-detail {

@@ -32,6 +32,9 @@
   --cautionBg: #fbf3db;
   --dangerTint: #fdebec;
   --dangerText: #9f2f2d;
+  /* What needs the operator now (a stop through, a needs bar): Problem tint, a deeper red in dark. */
+  --problemTint: var(--dangerTint);
+  --problemText: var(--dangerText);
   --lift: 0 1px 2px rgba(27, 27, 41, 0.07);
   --pop: 0 8px 28px rgba(27, 27, 41, 0.16);
   --stage: #e4e4ec;
@@ -95,6 +98,8 @@
     --cautionBg: rgba(255, 179, 64, 0.14);
     --dangerTint: rgba(255, 98, 89, 0.16);
     --dangerText: #ff8a80;
+    --problemTint: rgba(229, 72, 77, 0.16);
+    --problemText: #ff9b9e;
     --lift: none;
     --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
     --stage: #13151f;
@@ -134,6 +139,8 @@
   --cautionBg: rgba(255, 179, 64, 0.14);
   --dangerTint: rgba(255, 98, 89, 0.16);
   --dangerText: #ff8a80;
+  --problemTint: rgba(229, 72, 77, 0.16);
+  --problemText: #ff9b9e;
   --lift: none;
   --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
   --stage: #13151f;

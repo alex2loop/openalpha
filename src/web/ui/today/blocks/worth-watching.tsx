@@ -3,7 +3,7 @@ import { useBlock } from '@/web/state/block'
 import { freshCalls, stopBreaches } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
-import { ListIcon } from '@/web/ui/kit/icons'
+import { BellIcon, BulbIcon, ListIcon } from '@/web/ui/kit/icons'
 import { openReader } from '@/web/ui/reader/reader'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -67,11 +67,16 @@ function WorthList({ verdict }: { readonly verdict: readonly string[] }) {
       ))}
       <div class="row-list">
         {rows.map((row) => (
-          <div key={row.key} class={row.isBreach ? 'row is-breach' : 'row'}>
-            <b>
-              <TickerLink ticker={row.ticker} market={row.market} />
-            </b>
-            <span class="row-note">{row.note}</span>
+          <div key={row.key} class={row.isBreach ? 'todo is-breach' : 'todo'}>
+            <span class="tile" style={`--c: var(--tc-${row.isBreach ? 'yellow' : 'peach'})`}>
+              {row.isBreach ? <BellIcon /> : <BulbIcon />}
+            </span>
+            <div>
+              <b>
+                <TickerLink ticker={row.ticker} market={row.market} />
+              </b>
+              <span class="meta">{row.note}</span>
+            </div>
           </div>
         ))}
       </div>

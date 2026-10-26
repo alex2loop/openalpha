@@ -42,7 +42,7 @@ export function Today() {
 function CloseNote() {
   const note = closeNoteOf(selectBoard(selectOverview('home')))
 
-  return note === undefined ? null : <p class="meta">{note}</p>
+  return note === undefined ? null : <p class="meta close-note">{note}</p>
 }
 
 // What the daemon started without, in its own words, in one grey strip.
