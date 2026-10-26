@@ -18,6 +18,8 @@ import { wetSignRectOf } from '@/web/scene/world/props'
 const SIGN_PX = Object.freeze({ w: 7, d: 4, h: 12 })
 const BUCKET_PX = Object.freeze({ w: 5, h: 5 })
 const LAMP_PX = 0.6
+// The front desk's plaque, the mockup's size, its face painted by `sign-faces`.
+const PLAQUE = Object.freeze({ w: 14, h: 3.5, y: 6.25 })
 
 /** The badge gates' pedestals and the guard's podium, and the bins. */
 export const CREW_RECIPES: Readonly<Record<'bin' | 'gate-post' | 'podium', Recipe>> = Object.freeze(
@@ -46,13 +48,13 @@ export const CREW_RECIPES: Readonly<Record<'bin' | 'gate-post' | 'podium', Recip
 /** What the front desk carries besides its top and legs: the monitor, the bell, the plaque on
  *  its front. */
 export function frontDeskThings({ prop, out }: Build): void {
-  const { x, y, h } = prop.rect
+  const { x, y, w, h } = prop.rect
   const top = prop.height
 
   out.push(box([x + 1, y + 1, 6, 1.5, top + 2, 5], PROP_TONES.screenOff))
   out.push(box([x + 3, y + 1.5, 2, 1, top, 2], OUTLINE))
   out.push(box([x + 12, y + 4, 3, 3, top, 1.5], PROP_TONES.bell, true))
-  out.push(box([x + 5, y + h, 8, 0.4, top - 6, 3], PALETTE.paper))
+  out.push(box([x + w / 2 - PLAQUE.w / 2, y + h, PLAQUE.w, 0.4, PLAQUE.y, PLAQUE.h], PALETTE.paper))
 }
 
 /** The cleaner's wet-floor sign and its bucket: one instanced mesh, placed again only when the

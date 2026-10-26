@@ -30,6 +30,7 @@ import { roomAt } from '@/web/scene/world/rooms'
  *  the status dots and the selection ring; each kind one instanced mesh. */
 export interface Fixtures {
   readonly screens: Pool
+  readonly backs: Pool
   readonly shades: Pool
   readonly warm: Pool
   readonly cool: Pool
@@ -70,6 +71,7 @@ const LAMP_POOL_ALPHA = 0.34
 const DESK_LAMP_POOL_RADIUS = 18
 const DESK_GLOW = Object.freeze({ dx: 20, dy: -6, radius: 28, alpha: 0.32 })
 const DOT_RISE_PX = 6
+const MONITOR_BACK = '#2A2F3F'
 // The mockup's 3D status dots: green free, amber waiting, red after an error.
 const DOT_TONES = Object.freeze({ free: '#32D74B', waiting: '#F2B33D', failed: '#FF6259' })
 const DOT_PX = Object.freeze({ max: 3.4, min: 1.5, screen: 5 })
@@ -96,6 +98,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
   const ink = new MeshBasicMaterial({ color: OUTLINE, toneMapped: false })
   const fixtures: Fixtures = {
     screens: createPool(shapes.box, materials.unlitI, { cap: MAX_SCREENS }),
+    backs: createPool(shapes.box, materials.litI, { cap: MAX_SCREENS }),
     shades: createPool(shapes.box, materials.unlitI, { cap: MAX_LAMPS }),
     warm: createPool(shapes.flat, glow, { cap: MAX_POOLS, order: ORDER.warm }),
     cool: createPool(shapes.flat, glow, { cap: MAX_POOLS, order: ORDER.cool }),
@@ -115,6 +118,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
 export function syncFixtures(fixtures: Fixtures, frame: FixtureFrame): boolean {
   const changes = [
     syncScreens(fixtures.screens, frame),
+    syncBacks(fixtures.backs, frame),
     syncLamps(fixtures, frame),
     syncWarm(fixtures.warm, frame),
     syncCool(fixtures.cool, frame),
@@ -135,9 +139,9 @@ export function disposeFixtures(fixtures: Fixtures): void {
 }
 
 function poolsOf(fixtures: Fixtures): Pool[] {
-  const { screens, shades, warm, cool, lampPools, shadows, dots, ring } = fixtures
+  const { screens, backs, shades, warm, cool, lampPools, shadows, dots, ring } = fixtures
 
-  return [screens, shades, warm, cool, lampPools, shadows, dots, ring]
+  return [screens, backs, shades, warm, cool, lampPools, shadows, dots, ring]
 }
 
 function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
@@ -162,9 +166,27 @@ function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
       y,
       z,
       size: screen.size,
+      tilt: screen.tilt,
       color: lit[i] === true ? PROP_TONES.screenLit : idle,
     })
   })
+  endPool(pool)
+
+  return true
+}
+
+// The monitors' backs lean with their faces; they change only with the floor.
+function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
+  if (!beginPool(pool, frame.sim.floor)) {
+    return false
+  }
+
+  for (const { back, tilt } of frame.props.screens) {
+    const [x, y, z] = back.at
+
+    placeInstance(pool, { x, y, z, size: back.size, tilt, color: MONITOR_BACK })
+  }
+
   endPool(pool)
 
   return true

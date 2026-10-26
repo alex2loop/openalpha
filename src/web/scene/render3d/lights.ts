@@ -27,6 +27,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import type { SunView } from '@/web/scene/sky-types'
 import type { FloorId, RoomId } from '@/web/scene/types'
 import {
+  isNightSun,
   type LightKey,
   lightKeyOf,
   NIGHT_BASE,
@@ -91,8 +92,6 @@ interface RoomUniforms {
 const ROOM_SLOTS = 8
 // Far outside the floor: an unused slot matches no point.
 const NO_ROOM = 1e9
-// The sun is well under the horizon: the night levels hold.
-const NIGHT_FROM_DEG = -6
 // A room's fill starts under the north wall's band.
 const ROOM_FROM_PX = 28
 const QUIET_SHARE = 0.82
@@ -163,7 +162,7 @@ export function createLighting(scene: Scene, renderer: WebGLRenderer): Lighting 
 /** Eases the light toward the hour's key and each room's fill toward its lamp; true while one
  *  still moves. */
 export function syncLighting(lighting: Lighting, spec: LightSpec): boolean {
-  const isNight = spec.sun.altitudeDeg < NIGHT_FROM_DEG
+  const isNight = isNightSun(spec.sun)
   const isKeyEasing = syncKey(lighting, spec)
   let isEasing = false
 

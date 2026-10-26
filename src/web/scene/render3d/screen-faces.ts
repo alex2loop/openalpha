@@ -10,7 +10,7 @@ import {
 } from 'three'
 
 import type { AgendaModel } from '@/web/scene/data/agenda'
-import type { InfoFace } from '@/web/scene/render3d/info-faces'
+import type { FaceMood, InfoFace } from '@/web/scene/render3d/info-faces'
 import type { Lighting } from '@/web/scene/render3d/lights'
 import type { FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId } from '@/web/scene/types'
@@ -77,6 +77,7 @@ interface FaceFrame {
   readonly props: FloorProps | undefined
   readonly scale: number
   readonly walls: readonly SeeThroughWall[]
+  readonly mood: FaceMood
 }
 
 // The quad stands this far in front of its face plate, so the two never share a plane.
@@ -115,7 +116,7 @@ export function syncScreenFaces(faces: ScreenFaces, frame: FaceFrame): boolean {
   }
 
   const isRepainted = syncPaint(faces, frame.scale)
-  const isInfoPainted = syncInfoPaint(faces, frame.scale)
+  const isInfoPainted = syncInfoPaint(faces, { scale: frame.scale, mood: frame.mood })
   let isFaded = false
 
   for (const quad of [...faces.quads, ...faces.infos]) {
@@ -164,8 +165,11 @@ function syncPaint(faces: ScreenFaces, scale: number): boolean {
 
 // Once what they read moved, each data face asks what it shows now; one whose signature moved is
 // painted and uploaded again.
-function syncInfoPaint(faces: ScreenFaces, scale: number): boolean {
-  const inputs = infoInputsOf(scale)
+function syncInfoPaint(
+  faces: ScreenFaces,
+  at: { readonly scale: number; readonly mood: FaceMood }
+): boolean {
+  const inputs = infoInputsOf(at.scale, at.mood)
 
   if (inputs.every((input, i) => input === faces.infoInputs[i])) {
     return false
@@ -176,7 +180,7 @@ function syncInfoPaint(faces: ScreenFaces, scale: number): boolean {
   let isChanged = false
 
   for (const info of faces.infos) {
-    const job = infoJobOf(info.face, scale)
+    const job = infoJobOf(info.face, at)
     const c = info.canvas.getContext('2d')
 
     if (job.key === info.key || c === null) {
