@@ -30,7 +30,7 @@ import { createLife, type Life, lampGlowOf } from '@/web/scene/sim/life/life'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
 import { createTeam, type Team } from '@/web/scene/sim/team/team'
-import { bringIntoView, canFollow, readLastInteractionAt, view } from '@/web/scene/view'
+import { bringIntoView, canFollow, readLastInteractionAt, view, zoomToRoom } from '@/web/scene/view'
 import { ROOMS, roomById } from '@/web/scene/world/rooms'
 import { agents } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
@@ -308,8 +308,8 @@ function syncSceneZone(): void {
   }
 }
 
-// "Xem" on a run: its actor is selected and its room comes into view, on its floor; a run with no
-// room moves nothing.
+// "Xem" on a run: its actor is selected and its room comes into view, on its floor (zoomed into on
+// a narrow screen, where the office pane was just brought forward); a run with no room moves nothing.
 function answerFocusRequest(director: Director): void {
   const request = focusRequest.value
 
@@ -323,7 +323,7 @@ function answerFocusRequest(director: Director): void {
     const roomId = actor?.def.room ?? (run === undefined ? undefined : roomOfRun(run))
 
     selectActor(actor?.def.id)
-    showRoom(roomId)
+    showRoom(roomId, { isClose: breakpoint.value !== 'wide' })
   })
 }
 
@@ -343,10 +343,17 @@ function actorOfRun(director: Director, runId: string): ActorState | undefined {
   return [...director.actors().values()].find((actor) => actor.goal?.runId === runId)
 }
 
-function showRoom(roomId: RoomId | undefined): void {
+function showRoom(roomId: RoomId | undefined, opts: { readonly isClose?: boolean } = {}): void {
   const room = roomId === undefined ? undefined : roomById(roomId)
 
-  if (room !== undefined) {
-    bringIntoView({ floor: room.floor, rect: room.rect, room: { id: room.id, rect: room.rect } })
+  if (room === undefined) {
+    return
   }
+
+  if (opts.isClose === true) {
+    zoomToRoom(room.id, room.rect, room.floor)
+    return
+  }
+
+  bringIntoView({ floor: room.floor, rect: room.rect, room: { id: room.id, rect: room.rect } })
 }

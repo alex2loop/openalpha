@@ -89,10 +89,11 @@ export function setFloor(floor: FloorId): void {
   view.value = { floor, zoomSteps: 0, center: FRAME_CENTER }
 }
 
-/** The one move that zooms into a room: a click on it or its tag from the floor view. */
-export function zoomToRoom(room: RoomId, rect: Rect): void {
+/** The one move that zooms into a room: a click on it or its tag from the floor view, or "Xem" on
+ *  a narrow screen, which may name a room on another floor. */
+export function zoomToRoom(room: RoomId, rect: Rect, floor: FloorId = view.value.floor): void {
   noteInteraction()
-  showRoom(room, rect)
+  showRoom(room, rect, floor)
 }
 
 export function leaveRoom(): void {
@@ -249,8 +250,8 @@ function centerAt(point: Point, steps: number): Point {
   return clampPan(point, baseScale * ZOOM_STEP ** steps, pane)
 }
 
-function showRoom(room: RoomId, rect: Rect): void {
-  view.value = { floor: view.value.floor, room, zoomSteps: 0, center: centerOf(rect) }
+function showRoom(room: RoomId, rect: Rect, floor: FloorId = view.value.floor): void {
+  view.value = { floor, room, zoomSteps: 0, center: centerOf(rect) }
 }
 
 // `span` is the frame's start and size on the axis, `half` half the pane on it in world px.

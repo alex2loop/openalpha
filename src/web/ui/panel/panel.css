@@ -116,9 +116,13 @@
   margin-inline: auto;
 }
 
-@media (max-width: 899px) {
-  .panel {
-    flex: 1;
-    width: auto;
-  }
+/* The pane bar takes the collapse arrow's place. */
+:root:not([data-layout="wide"]) .panel {
+  flex: 1;
+  width: auto;
+  border-left: 0;
+}
+
+:root:not([data-layout="wide"]) .panel-collapse {
+  display: none;
 }

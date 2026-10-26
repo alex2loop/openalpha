@@ -1,5 +1,7 @@
 import { type ReadonlySignal, signal } from '@preact/signals'
 
+import { showPane } from '@/web/state/pane'
+
 /** A request to show a run in the office; `seq` tells two requests for one run apart. */
 interface FocusRequest {
   readonly runId: string
@@ -13,6 +15,7 @@ let requestSeq = 0
 export const focusRequest: ReadonlySignal<FocusRequest | undefined> = request
 
 export function focusRun(runId: string): void {
+  showPane('office')
   requestSeq++
   request.value = { runId, seq: requestSeq }
 }

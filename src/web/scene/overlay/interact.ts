@@ -10,6 +10,7 @@ import {
 import { createMeeting, MEET_FLOOR } from '@/web/scene/overlay/meeting'
 import { hoverObject } from '@/web/scene/overlay/object-tip'
 import { keyedActor } from '@/web/scene/overlay/overlay'
+import { createPinch, type Pinch } from '@/web/scene/overlay/pinch'
 import {
   actorAt,
   clickAt,
@@ -76,6 +77,8 @@ interface Press {
 interface InputState extends PointerState {
   press: Press | undefined
   wheelPx: number
+  readonly pinch: Pinch
+  lastPointerType: string
 }
 
 /** The one owner of the canvas's pointer, wheel, key and focus listeners, all on one controller,
@@ -97,7 +100,10 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps):
     meeting,
     press: undefined,
     hovered: undefined,
+    peeked: undefined,
     wheelPx: 0,
+    pinch: createPinch({ canvas, renderer: deps.renderer }),
+    lastPointerType: MOUSE,
   }
 
   listen(input, listeners.signal)
@@ -110,6 +116,7 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps):
     detach: () => {
       listeners.abort()
       endPress(input)
+      input.pinch.clear()
       setHovered(input, undefined)
       leaveFocus(focus)
       closeMenu(false)
@@ -126,8 +133,8 @@ function listen(input: InputState, signal: AbortSignal): void {
   canvas.addEventListener('pointerdown', (event) => onDown(input, event), { signal })
   canvas.addEventListener('pointermove', (event) => onMove(input, event), { signal })
   canvas.addEventListener('pointerup', (event) => onUp(input, event), { signal })
-  canvas.addEventListener('pointercancel', () => cancelPress(input), { signal })
-  canvas.addEventListener('pointerleave', () => leaveCanvas(input), { signal })
+  canvas.addEventListener('pointercancel', (event) => cancelPress(input, event), { signal })
+  canvas.addEventListener('pointerleave', (event) => leaveCanvas(input, event), { signal })
   canvas.addEventListener('wheel', (event) => onWheel(input, event), { signal, passive: false })
   canvas.addEventListener('contextmenu', (event) => onContextMenu(input, event), { signal })
   canvas.addEventListener('dblclick', (event) => onDoubleClick(input, event), { signal })
@@ -170,7 +177,15 @@ function longPressDueOf(press: Press | undefined): number {
 }
 
 function onDown(input: InputState, event: PointerEvent): void {
+  input.lastPointerType = event.pointerType
+
   if (event.button !== 0) {
+    return
+  }
+
+  // A second finger turns the press into a pinch: the first neither clicks nor pans from here.
+  if (input.pinch.down(event)) {
+    endPress(input)
     return
   }
 
@@ -203,8 +218,15 @@ function onDown(input: InputState, event: PointerEvent): void {
 function onMove(input: InputState, event: PointerEvent): void {
   const press = input.press
 
+  if (input.pinch.move(event)) {
+    return
+  }
+
   if (press === undefined || press.pointerId !== event.pointerId) {
-    hoverAt(input, { x: event.offsetX, y: event.offsetY })
+    if (event.pointerType !== TOUCH) {
+      hoverAt(input, { x: event.offsetX, y: event.offsetY })
+    }
+
     return
   }
 
@@ -232,6 +254,8 @@ function onMove(input: InputState, event: PointerEvent): void {
 function onUp(input: InputState, event: PointerEvent): void {
   const press = input.press
 
+  input.pinch.lift(event.pointerId)
+
   if (press === undefined || press.pointerId !== event.pointerId) {
     return
   }
@@ -248,7 +272,9 @@ function onUp(input: InputState, event: PointerEvent): void {
   endPress(input)
 }
 
-function cancelPress(input: InputState): void {
+function cancelPress(input: InputState, event: PointerEvent): void {
+  input.pinch.lift(event.pointerId)
+
   if (input.press?.isBoxing === true) {
     input.meeting.cancelBox()
   }
@@ -308,7 +334,12 @@ function onContextMenu(input: InputState, event: MouseEvent): void {
   engage(input.focus, { actor, isFocused: true, withMenu: true })
 }
 
+// A double tap is two taps (the label, then the ring), never a follow.
 function onDoubleClick(input: InputState, event: MouseEvent): void {
+  if (input.lastPointerType === TOUCH) {
+    return
+  }
+
   const actor = actorAt(input, { x: event.offsetX, y: event.offsetY })
 
   if (actor !== undefined) {
@@ -386,7 +417,12 @@ function isFocusInRing(): boolean {
   return document.activeElement?.closest(RING_SELECTOR) != null
 }
 
-function leaveCanvas(input: InputState): void {
+// A lifted finger leaves the canvas too; what its tap showed stays until the next tap.
+function leaveCanvas(input: InputState, event: PointerEvent): void {
+  if (event.pointerType === TOUCH) {
+    return
+  }
+
   hoverObject(undefined, { x: 0, y: 0 })
   setHovered(input, undefined)
 }

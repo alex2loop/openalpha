@@ -1,5 +1,7 @@
 import { signal } from '@preact/signals'
 
+import { showPane } from '@/web/state/pane'
+
 const BACK_MAX = 20
 
 export type PanelTab = 'today' | 'book' | 'ideas'
@@ -20,7 +22,8 @@ export const collapsed = signal(false)
 /** Focus mode: the office is hidden and only the information shows. */
 export const isFocus = signal(false)
 
-/** Shows `view`, remembering the one it leaves; a tab click passes `fresh` and starts over. */
+/** Shows `view`, remembering the one it leaves; a tab click passes `fresh` and starts over. Every
+ *  caller is a click, so a narrow screen brings the information forward. */
 export function openView(view: PanelView, opts: { readonly fresh?: true } = {}): void {
   const current = panelView.value
 
@@ -32,6 +35,7 @@ export function openView(view: PanelView, opts: { readonly fresh?: true } = {}):
 
   panelView.value = view
   collapsed.value = false
+  showPane('info')
 }
 
 export function goBack(): void {

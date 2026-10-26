@@ -4,3 +4,7 @@
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
+
+:root:not([data-layout="wide"]) .app {
+  grid-template-rows: var(--headerH) auto auto minmax(0, 1fr) auto;
+}

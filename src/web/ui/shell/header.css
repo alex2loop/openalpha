@@ -21,3 +21,30 @@
 .header-grow {
   flex: 1;
 }
+
+/* The pane bar takes the focus toggle's place. */
+:root:not([data-layout="wide"]) .header-focus {
+  display: none;
+}
+
+/* A phone keeps the logo without the word; the pills shrink before the buttons do. */
+:root[data-layout="phone"] .header {
+  gap: 4px;
+  padding: 0 var(--s3);
+}
+
+:root[data-layout="phone"] .header-brand {
+  gap: 0;
+  font-size: 0;
+}
+
+:root[data-layout="phone"] .header .chip {
+  flex-shrink: 1;
+  min-width: 0;
+  padding: 0 var(--s1);
+  overflow: hidden;
+}
+
+:root[data-layout="phone"] .header .chip svg {
+  display: none;
+}

@@ -125,3 +125,11 @@ fieldset.scene-zoom {
   margin: 0;
   border: 0;
 }
+
+:root:not([data-layout="wide"]) .scene-tool {
+  min-height: 32px;
+}
+
+:root[data-layout="phone"] .scene-crumb {
+  display: none;
+}

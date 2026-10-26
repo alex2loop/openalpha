@@ -1,0 +1,39 @@
+.pane-bar {
+  display: flex;
+  gap: 4px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: var(--s1) var(--s3);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--canvas);
+}
+
+.pane-bar button {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px var(--s1);
+  border: 0;
+  border-radius: 8px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pane-bar button.is-on {
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--lift);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pane-bar .chat-unread {
+  top: 6px;
+  right: 8px;
+}

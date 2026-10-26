@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
 import { ClockControl } from '@/web/scene/overlay/clock-control'
+import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
 import { isFocus, toggleFocus } from '@/web/state/panel'
@@ -62,20 +63,33 @@ function RunningChip({ anchor }: AnchorProps) {
       onClick={() => togglePopover(JOBS_POPOVER_ID)}
     >
       {count > 0 && <span class="spin" aria-hidden="true" />}
-      {count === 0
-        ? tr('ui.office.header.runningNone')
-        : tr(pluralKey(count, 'ui.office.header.runningOne', 'ui.office.header.running'), {
-            count,
-          })}
+      {runningTextOf(count)}
     </Chip>
   )
+}
+
+// A phone says the count in two words, with nothing running too.
+function runningTextOf(count: number): string {
+  if (breakpoint.value === 'phone') {
+    const key = pluralKey(
+      count,
+      'ui.office.header.runningShortOne',
+      'ui.office.header.runningShort'
+    )
+
+    return tr(key, { count })
+  }
+
+  return count === 0
+    ? tr('ui.office.header.runningNone')
+    : tr(pluralKey(count, 'ui.office.header.runningOne', 'ui.office.header.running'), { count })
 }
 
 function FocusButton() {
   return (
     <button
       type="button"
-      class="chip"
+      class="chip header-focus"
       title={tr('ui.office.header.focusTip')}
       aria-pressed={isFocus.value}
       onClick={toggleFocus}

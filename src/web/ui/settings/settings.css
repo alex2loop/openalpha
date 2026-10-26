@@ -129,33 +129,33 @@
   resize: vertical;
 }
 
-@media (max-width: 600px) {
-  .modal:has(.settings) {
-    padding: 0;
-  }
+/* Below the narrow width the section list becomes a scrolling row above the form. */
+:root:not([data-layout="wide"]) .settings {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s2);
+}
 
-  .modal-dialog:has(.settings) {
-    width: 100%;
-    max-height: none;
-    height: 100%;
-    border: 0;
-    border-radius: 0;
-  }
+:root:not([data-layout="wide"]) .settings-nav {
+  flex-direction: row;
+  overflow-x: auto;
+}
 
-  .settings {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--s2);
-  }
+:root:not([data-layout="wide"]) .settings-nav button {
+  flex: none;
+  min-height: 32px;
+  white-space: nowrap;
+}
 
-  .settings-nav {
-    flex-direction: row;
-    overflow-x: auto;
-  }
+:root[data-layout="phone"] .modal:has(.settings) {
+  padding: 0;
+}
 
-  .settings-nav button {
-    flex: none;
-    white-space: nowrap;
-  }
+:root[data-layout="phone"] .modal-dialog:has(.settings) {
+  width: 100%;
+  max-height: none;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
 }
 
 .level-pill {

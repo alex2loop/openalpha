@@ -13,3 +13,10 @@
 .panes.is-focus .stage {
   display: none;
 }
+
+/* The stage stays mounted when hidden, so the scene keeps its state across pane switches. */
+:root:not([data-layout="wide"]) .panes[data-pane="office"] > :not(.stage),
+:root:not([data-layout="wide"]) .panes[data-pane="info"] > :not(.panel),
+:root:not([data-layout="wide"]) .panes[data-pane="chat"] > :not(.chat-panel) {
+  display: none;
+}

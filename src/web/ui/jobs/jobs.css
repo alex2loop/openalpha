@@ -81,10 +81,8 @@
   color: var(--dangerText);
 }
 
-@media (max-width: 899px) {
-  .popover.jobs-popover {
-    right: var(--popoverGutter);
-    left: var(--popoverGutter);
-    width: auto;
-  }
+:root:not([data-layout="wide"]) .popover.jobs-popover {
+  right: var(--popoverGutter);
+  left: var(--popoverGutter);
+  width: auto;
 }

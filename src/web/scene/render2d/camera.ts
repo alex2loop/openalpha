@@ -9,8 +9,8 @@ const ROOM_PAD = 1.1
 // From this density up, eighth steps are too fine to see uneven art pixels.
 const FINE_DPR = 2
 const FINE_STEPS = 8
-// A phone never draws the floor under one CSS pixel per world pixel; the rest pans.
-const PHONE_MIN_SCALE = 1
+// Below the narrow width the floor never draws under one CSS pixel per world pixel; the rest pans.
+const NARROW_MIN_SCALE = 1
 // The floor is painted at a whole zoom of at most this, then stretched to the true scale.
 const MAX_STRETCH = 6
 
@@ -25,7 +25,7 @@ export function fitFloor(viewport: Size, dpr: number, breakpoint: Breakpoint): F
   const raw = Math.min(viewport.w / FRAME_RECT.w, viewport.h / FRAME_RECT.h) * FRAME_FILL
   const snapped = snapScale(raw, dpr)
 
-  return toFit(breakpoint === 'phone' ? Math.max(PHONE_MIN_SCALE, snapped) : snapped, dpr)
+  return toFit(breakpoint === 'wide' ? snapped : Math.max(NARROW_MIN_SCALE, snapped), dpr)
 }
 
 /** A room with its walls and a tenth to spare, in whole steps below `FINE_DPR`, so two partitions

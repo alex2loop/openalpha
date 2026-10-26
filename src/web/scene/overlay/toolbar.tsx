@@ -38,6 +38,7 @@ const FLOORS: readonly {
 export function Toolbar() {
   const shown = view.value
   const isZoomed = shown.room !== undefined || shown.zoomSteps > 0
+  const isWide = breakpoint.value === 'wide'
 
   // Read so the arrows follow the camera.
   projection.value
@@ -52,15 +53,18 @@ export function Toolbar() {
         <LampsButton />
       </div>
       <PanArrows />
-      {isZoomed && (
+      {(isZoomed || (!isWide && isPannable())) && (
         <p class="scene-hint glass">
-          {breakpoint.value === 'wide'
-            ? tr('ui.office.floor.hint')
-            : tr('ui.office.floor.hintNear')}
+          {isWide ? tr('ui.office.floor.hint') : tr('ui.office.floor.hintNear')}
         </p>
       )}
     </>
   )
+}
+
+// A narrow pane may not hold the whole floor even at its fitted zoom; the rest pans.
+function isPannable(): boolean {
+  return canPanToward(-1) || canPanToward(1)
 }
 
 function FloorSwitch({ floor }: { readonly floor: FloorId }) {

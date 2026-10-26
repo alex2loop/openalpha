@@ -106,12 +106,10 @@
   filter: drop-shadow(var(--pop));
 }
 
-@media (max-width: 900px) {
-  .reader-toc {
-    display: none;
-  }
+:root:not([data-layout="wide"]) .reader-toc {
+  display: none;
+}
 
-  .reader-paper {
-    padding: 18px var(--s3);
-  }
+:root:not([data-layout="wide"]) .reader-paper {
+  padding: 18px var(--s3);
 }

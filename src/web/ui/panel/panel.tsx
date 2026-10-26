@@ -1,3 +1,4 @@
+import { breakpoint } from '@/web/state/breakpoints'
 import { backStack, collapsed, isFocus, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { AgentTab } from '@/web/ui/agent/agent-tab'
@@ -14,9 +15,10 @@ import { Today } from '@/web/ui/today/today'
 
 import './panel.css'
 
-/** The info panel: tabs, the way back, and the view. It folds into a rail, except in focus mode. */
+/** The info panel: tabs, the way back, and the view. It folds into a rail on a wide screen, except
+ *  in focus mode. */
 export function Panel() {
-  if (collapsed.value && !isFocus.value) {
+  if (collapsed.value && !isFocus.value && breakpoint.value === 'wide') {
     return <Rail />
   }
 
@@ -27,7 +29,7 @@ export function Panel() {
         {!isFocus.value && (
           <button
             type="button"
-            class="icon-button"
+            class="icon-button panel-collapse"
             title={tr('ui.office.panel.collapse')}
             aria-label={tr('ui.office.panel.collapse')}
             onClick={() => {

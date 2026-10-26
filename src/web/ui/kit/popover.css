@@ -47,10 +47,9 @@
   font-weight: 600;
 }
 
-@media (max-width: 899px) {
-  .popover {
-    right: var(--popoverGutter);
-    left: var(--popoverGutter);
-    width: auto;
-  }
+/* Below the narrow width every popover spans the screen inside the gutter. */
+:root:not([data-layout="wide"]) .popover {
+  right: var(--popoverGutter);
+  left: var(--popoverGutter);
+  width: auto;
 }

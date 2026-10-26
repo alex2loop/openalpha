@@ -109,13 +109,16 @@
   white-space: nowrap;
 }
 
-@media (max-width: 899px) {
-  .command-bar {
-    gap: 6px;
-    padding: 8px;
-  }
+/* The pane bar takes the chat button's place. */
+:root:not([data-layout="wide"]) .command-chat {
+  display: none;
+}
 
-  .who-chip select {
-    max-width: 88px;
-  }
+:root[data-layout="phone"] .command-bar {
+  gap: 6px;
+  padding: 8px;
+}
+
+:root[data-layout="phone"] .who-chip select {
+  max-width: 88px;
 }

@@ -1,4 +1,5 @@
 import { clearAgentChoice } from '@/web/state/agents'
+import { breakpoint } from '@/web/state/breakpoints'
 import { isChatOpen, setChatOpen, startSession, unread } from '@/web/state/chat'
 import { tr } from '@/web/text/tr'
 import { MessageList } from '@/web/ui/chat/message-list'
@@ -10,7 +11,8 @@ import { ChatIcon, CloseIcon } from '@/web/ui/kit/icons'
 
 import './chat.css'
 
-/** Docked right: hidden by default, a rail with the unread dot while closed. */
+/** Docked right: hidden by default, a rail with the unread dot while closed. Below the narrow width
+ *  it fills its pane, and its X goes back to the pane before it. */
 export function ChatPanel() {
   if (!isChatOpen.value) {
     return <ChatRail />
@@ -44,6 +46,9 @@ function ChatRail() {
 }
 
 function ChatHead() {
+  const closeLabel =
+    breakpoint.value === 'wide' ? tr('ui.office.chat.hide') : tr('ui.office.pane.chatBack')
+
   return (
     <div class="chat-head glass">
       <h2>{tr('ui.office.chat.title')}</h2>
@@ -56,8 +61,8 @@ function ChatHead() {
       <button
         type="button"
         class="icon-button"
-        title={tr('ui.office.chat.hide')}
-        aria-label={tr('ui.office.chat.hide')}
+        title={closeLabel}
+        aria-label={closeLabel}
         onClick={() => setChatOpen(false)}
       >
         <CloseIcon />

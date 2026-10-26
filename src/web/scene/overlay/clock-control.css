@@ -8,10 +8,8 @@
   line-height: 16px;
 }
 
-@media (min-width: 900px) {
-  .clock-popover {
-    width: 300px;
-  }
+:root[data-layout="wide"] .clock-popover {
+  width: 300px;
 }
 
 .clock-body {
@@ -73,4 +71,18 @@
 .clock-market {
   color: var(--ink3);
   font-variant-numeric: tabular-nums;
+}
+
+/* A phone keeps the clock as a compact button: the time, and the preview badge as a dot. */
+:root[data-layout="phone"] .clock-market {
+  display: none;
+}
+
+:root[data-layout="phone"] .clock-badge {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  font-size: 0;
 }

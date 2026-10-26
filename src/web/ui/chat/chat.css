@@ -176,12 +176,8 @@
   white-space: nowrap;
 }
 
-@media (max-width: 899px) {
-  .chat-panel {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    width: auto;
-    border-left: 0;
-  }
+:root:not([data-layout="wide"]) .chat-panel {
+  flex: 1;
+  width: auto;
+  border-left: 0;
 }

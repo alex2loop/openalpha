@@ -44,6 +44,8 @@ export interface PointerState {
   readonly focus: FocusDeps
   readonly meeting: Meeting
   hovered: ActorId | undefined
+  /** What the last touch tap showed the label or tip of; the next tap on it acts. */
+  peeked: string | undefined
 }
 
 /** How a click was made: with Shift held, and by which kind of pointer. */
@@ -57,6 +59,11 @@ interface ClickPress {
 // floor view, a room zooms in. A Shift-click picks a person for a meeting.
 export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPress): void {
   const hit = pickAt(point, input.deps.renderer, input.deps.readView())
+
+  if (isFirstTap(input, hit, press)) {
+    peekAt(input, point, hit)
+    return
+  }
 
   switch (hit?.kind) {
     case 'marker':
@@ -81,7 +88,46 @@ export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPre
   }
 }
 
-// A tap greets without the ring: a long-press opens it.
+// On a touch screen nothing is hover-only: the first tap on a person, or on a thing with a tip,
+// shows its label or tip; a second tap on it acts (a person's ring), as a long-press does.
+function isFirstTap(input: PointerState, hit: Hit | undefined, press: ClickPress): boolean {
+  const key =
+    press.pointerType === TOUCH && hit !== undefined && isPeekable(hit) ? peekKeyOf(hit) : undefined
+  const isFirst = key !== undefined && key !== input.peeked
+
+  input.peeked = isFirst ? key : undefined
+  return isFirst
+}
+
+// A person and their tag are one thing to tap twice.
+function peekKeyOf(hit: Hit): string {
+  return `${hit.kind === 'tag' ? 'actor' : hit.kind}:${hit.id}`
+}
+
+function isPeekable(hit: Hit): boolean {
+  switch (hit.kind) {
+    case 'actor':
+    case 'tag':
+      return isActorId(hit.id)
+    case 'pet':
+      return toPetTip(hit.id) !== undefined
+    case 'object':
+      return propOf(hit)?.tip !== undefined
+    default:
+      return false
+  }
+}
+
+// The tap stands in for the hover: the tip or label shows, and a person greets without the ring.
+function peekAt(input: PointerState, point: ScreenPoint, hit: Hit | undefined): void {
+  hoverAt(input, point)
+
+  if ((hit?.kind === 'actor' || hit?.kind === 'tag') && isActorId(hit.id)) {
+    setHovered(input, hit.id)
+    engage(input.focus, { actor: hit.id, isFocused: false, withMenu: false })
+  }
+}
+
 function clickActor(input: PointerState, id: string, press: ClickPress): void {
   if (!isActorId(id)) {
     return
@@ -92,7 +138,7 @@ function clickActor(input: PointerState, id: string, press: ClickPress): void {
     return
   }
 
-  engage(input.focus, { actor: id, isFocused: false, withMenu: press.pointerType !== TOUCH })
+  engage(input.focus, { actor: id, isFocused: false, withMenu: true })
 }
 
 // Empty floor lets go of a follow and the ring; the meeting room offers the meeting bar, any other
@@ -100,6 +146,11 @@ function clickActor(input: PointerState, id: string, press: ClickPress): void {
 function clickFloor(input: PointerState, hit: Hit | undefined, press: ClickPress): void {
   stopFollow()
   closeMenu(false)
+
+  if (press.pointerType === TOUCH) {
+    hoverObject(undefined, { x: 0, y: 0 })
+    setHovered(input, undefined)
+  }
 
   if (hit?.id === MEET_ROOM && view.value.floor === MEET_FLOOR) {
     input.meeting.showHint()

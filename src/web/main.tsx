@@ -4,6 +4,7 @@ import { render } from 'preact'
 import { authState, takeTokenFromHash } from '@/web/api/token'
 import { disposeClock } from '@/web/scene/clock/clock'
 import { startAgents } from '@/web/state/agents'
+import { disposeBreakpoints } from '@/web/state/breakpoints'
 import { startChat } from '@/web/state/chat'
 import { startChatHistory } from '@/web/state/chat-history'
 import { startCost } from '@/web/state/cost'
@@ -53,6 +54,7 @@ function boot(): void {
       stopFeedSync()
       disposeClock()
       disposePrefs()
+      disposeBreakpoints()
     },
     { once: true }
   )
