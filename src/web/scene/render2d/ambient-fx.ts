@@ -3,6 +3,7 @@ import { AMBIENT_FX_FPS } from '@/web/scene/budgets'
 import { alertStrip } from '@/web/scene/data/alert-strip'
 import { roomStatus } from '@/web/scene/data/room-status'
 import { fill } from '@/web/scene/render2d/building'
+import { STANDBY_STEP_MS } from '@/web/scene/render2d/standby'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { APPROVAL_KIND, pending, runningCount } from '@/web/state/live'
 import { reducedMotion, sceneView } from '@/web/state/prefs'
@@ -38,6 +39,8 @@ export interface AmbientFx {
   readonly cue: boolean
   readonly rack: boolean
   readonly bubbles: boolean
+  /** The StandBy stands' drifting colour, which steps only every `STANDBY_STEP_MS`. */
+  readonly standby: boolean
 }
 
 /** The ambient effects the office floor shows now; none under reduced motion or on another floor,
@@ -56,18 +59,29 @@ export function resolveAmbientFx(sim: SimView, nowMs: number): AmbientFx | undef
     cue: pending.value.some((entry) => entry.kind === APPROVAL_KIND),
     rack: isAwake && roomStatus.value.get('store')?.runs[0] !== undefined,
     bubbles: isAwake && runningCount.value > 0,
+    standby: isAwake,
   }
-  const isOn = fx.dust || fx.ribbons || fx.strip || fx.cue || fx.rack || fx.bubbles
 
-  return isOn ? fx : undefined
+  return isFast(fx) || fx.standby ? fx : undefined
 }
 
 /** When the ambient clock steps next, while the 2D floor shows any effect; `Infinity` otherwise
  *  (3D draws its own). */
 export function nextAmbientFxAt(sim: SimView, nowMs: number): number {
-  return sceneView.value !== '2d' || resolveAmbientFx(sim, nowMs) === undefined
-    ? Number.POSITIVE_INFINITY
-    : (Math.floor(nowMs / AMBIENT_FX_GAP_MS) + 1) * AMBIENT_FX_GAP_MS
+  const fx = sceneView.value === '2d' ? resolveAmbientFx(sim, nowMs) : undefined
+
+  if (fx === undefined) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  // With only the StandBy colour on, the loop wakes at its slower step, not every beat.
+  const gap = isFast(fx) ? AMBIENT_FX_GAP_MS : STANDBY_STEP_MS
+
+  return (Math.floor(nowMs / gap) + 1) * gap
+}
+
+function isFast(fx: AmbientFx): boolean {
+  return fx.dust || fx.ribbons || fx.strip || fx.cue || fx.rack || fx.bubbles
 }
 
 /** The dust in the window light, drifting on the ambient clock. */

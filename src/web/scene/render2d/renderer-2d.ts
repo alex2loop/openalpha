@@ -176,7 +176,13 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   resizeCanvas(surface.canvas, pane, dpr)
 
   const fit = placeCamera(surface, pane, dpr)
-  const scene = buildPaintScene({ sim, scale: fit.scale, screens: surface.screens, nowMs: now })
+  const scene = buildPaintScene({
+    sim,
+    scale: fit.scale,
+    screens: surface.screens,
+    nowMs: now,
+    stretch: fit.stretch,
+  })
   const light = lightOf(sim.light)
   const motion = {
     isOn: isCharacterMotionOn(sim.actors, { floor: sim.floor, now }),

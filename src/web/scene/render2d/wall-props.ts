@@ -90,6 +90,10 @@ export interface PaintScene {
   readonly isRefreshing: boolean
   /** The ambient effects on their one clock; absent when every effect draws its still frame. */
   readonly fx: AmbientFx | undefined
+  /** The floor's canvas px per world px, the whole zoom it is painted at. */
+  readonly stretch: number
+  /** The home index's move as the page prints it, for the StandBy widgets; absent unread. */
+  readonly indexMoveText?: string
   /** The desks someone sits at, by `deskSpotOf`: their screens lie flat on the desk. */
   readonly seated: ReadonlySet<string>
   /** How far the store's refresh has come, 0 to 1; absent while it does not count its prices. */

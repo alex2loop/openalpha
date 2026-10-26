@@ -38,6 +38,9 @@ const GLYPH_ROWS: Readonly<Record<string, string>> = Object.freeze({
   '8': '75757',
   '9': '75717',
   '.': '00002',
+  ',': '00024',
+  '▲': '00270',
+  '▼': '07200',
   ':': '02020',
   '-': '00700',
   '+': '02720',
@@ -50,18 +53,20 @@ const ADVANCE = 4
 const BITS = 3
 const FOLD_MARKS = /\p{M}/gu
 
-/** How many world px `text` takes at one px a dot. */
+/** How many dots wide `text` prints. */
 export function pixelTextWidth(text: string): number {
-  return Math.max(0, text.length * ADVANCE - 1)
+  return Math.max(0, [...text].length * ADVANCE - 1)
 }
 
-/** Prints `text` from its top-left corner `at`, one world px a dot; accents fold away and an
- *  unknown sign leaves its cell blank. */
+/** Prints `text` from its top-left corner `at`, `dot` world px a dot (one unless given); accents
+ *  fold away and an unknown sign leaves its cell blank. */
 export function paintPixelText(
   g: CanvasRenderingContext2D,
   text: string,
-  at: { readonly x: number; readonly y: number; readonly color: string }
+  at: { readonly x: number; readonly y: number; readonly color: string; readonly dot?: number }
 ): void {
+  const dot = at.dot ?? 1
+
   g.fillStyle = at.color
 
   let x = at.x
@@ -72,13 +77,13 @@ export function paintPixelText(
     for (let row = 0; row < rows.length && row < GLYPH_H; row++) {
       const bits = Number(rows[row])
 
-      for (let dot = 0; dot < GLYPH_W; dot++) {
-        if ((bits >> (BITS - 1 - dot)) & 1) {
-          g.fillRect(x + dot, at.y + row, 1, 1)
+      for (let column = 0; column < GLYPH_W; column++) {
+        if ((bits >> (BITS - 1 - column)) & 1) {
+          g.fillRect(x + column * dot, at.y + row * dot, dot, dot)
         }
       }
     }
 
-    x += ADVANCE
+    x += ADVANCE * dot
   }
 }

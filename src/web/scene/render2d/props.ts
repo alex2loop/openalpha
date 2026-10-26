@@ -10,11 +10,11 @@ import {
   paintMug,
   paintOperatorDesk,
   paintPhone,
-  paintStandby,
   paintStudio,
 } from '@/web/scene/render2d/desk-devices'
 import { paintCableTray, paintDeskLamp, paintLamp } from '@/web/scene/render2d/fixtures'
 import { paintTank } from '@/web/scene/render2d/pets'
+import { paintStandby } from '@/web/scene/render2d/standby'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
 import {
   CARD,

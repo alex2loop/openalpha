@@ -14,7 +14,7 @@ import { boardNotes } from '@/web/scene/sprites/screens'
 import { deskSpotOf } from '@/web/scene/world/desk-spots'
 import { propsOn } from '@/web/scene/world/props'
 import { APPROVAL_KIND, pending } from '@/web/state/live'
-import { toneOfPercent } from '@/web/text/figures'
+import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 
 // Where the day of the month starts in a `YYYY-MM-DD` day.
 const DAY_OF_MONTH_AT = 8
@@ -30,8 +30,11 @@ export function buildPaintScene(input: {
   readonly scale: number
   readonly screens: ScreenCache
   readonly nowMs: number
+  readonly stretch: number
 }): PaintScene {
   const { sim, scale } = input
+  const indexChange = homeIndex.value?.changePct
+  const indexMoveText = indexChange === undefined ? undefined : formatSignedPercent(indexChange)
   const refreshShare = shareOf(roomStatus.value.get('store')?.runs[0]?.progress?.params)
   const lib = roomStatus.value.get('lib')?.runs[0]
 
@@ -59,6 +62,8 @@ export function buildPaintScene(input: {
     ...(refreshShare === undefined ? {} : { refreshShare }),
     fx: resolveAmbientFx(sim, input.nowMs),
     seated: seatedDesksOf(sim),
+    stretch: input.stretch,
+    ...(indexMoveText === undefined ? {} : { indexMoveText }),
   }
 }
 
