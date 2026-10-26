@@ -71,6 +71,8 @@ export const overlayView: ReadonlySignal<OverlayView> = shown
 export const hoveredActor: ReadonlySignal<ActorId | undefined> = hovered
 /** The person Tab or an arrow key stepped to on the canvas. */
 export const keyedActor: ReadonlySignal<ActorId | undefined> = keyed
+/** The scene's latest line for screen readers; the page's announcer speaks it. */
+export const sceneSpoken: ReadonlySignal<string> = spoken
 
 export function showOverlay(next: OverlayView): void {
   shown.value = next
@@ -86,7 +88,7 @@ export function keyActor(id: ActorId | undefined): void {
   keyed.value = id
 }
 
-/** Says `text` to screen readers once, through the scene's live region. */
+/** Says `text` to screen readers once, through the page's polite live region. */
 export function announce(text: string): void {
   spoken.value = text
 }
@@ -125,9 +127,6 @@ export function SceneOverlay() {
       {view.bubbles.map((placed) => (
         <BubbleView key={placed.bubble.id} placed={placed} />
       ))}
-      <p class="scene-announce" role="status" aria-live="polite">
-        {spoken.value}
-      </p>
     </div>
   )
 }
@@ -164,7 +163,7 @@ function BubbleView({ placed }: { readonly placed: Placed }) {
 
   return (
     <div
-      class={`bubble bubble-${bubble.kind} side-${side}`}
+      class={`bubble bubble-${bubble.kind} side-${side}${bubble.isBright === true ? ' is-bright' : ''}`}
       style={{
         left: `${rect.x}px`,
         top: `${rect.y}px`,

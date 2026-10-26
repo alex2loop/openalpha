@@ -21,3 +21,7 @@
 .header-grow {
   flex: 1;
 }
+
+.header-keys {
+  font-weight: 600;
+}

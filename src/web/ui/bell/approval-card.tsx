@@ -1,4 +1,5 @@
-import { type Signal, useSignal } from '@preact/signals'
+import { type Signal, useSignal, useSignalEffect } from '@preact/signals'
+import { useRef } from 'preact/hooks'
 
 import type { Decision } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
@@ -15,6 +16,7 @@ import { formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
 import { formatClock, formatElapsed } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
+import { chosenRequestId, DECISION_KEYS, keyedAnswer } from '@/web/ui/bell/bell-keys'
 import { Button } from '@/web/ui/kit/button'
 
 const COUNTDOWN_TICK_MS = 1_000
@@ -59,7 +61,7 @@ function ApprovalCard({ event }: { readonly event: WireEvent }) {
   const detail = approvalDetail(locale.value, approval.argsSummary, approval.truncated)
 
   return (
-    <div class="pending-card">
+    <div class={chosenRequestId.value === requestId ? 'pending-card is-chosen' : 'pending-card'}>
       <div class="pending-card-head">
         <b>{joinInline([asker.who, approval.label])}</b>
         <Countdown expiresAt={approval.expiresAt} />
@@ -129,6 +131,9 @@ function Decisions({ requestId, decisions }: DecisionsProps) {
   const outcome = useSignal<Outcome | undefined>(undefined)
   const failure = useSignal<string | undefined>(undefined)
   const isBusy = useSignal(false)
+  const isChosen = chosenRequestId.value === requestId
+
+  useKeyedAnswer({ requestId, decisions, isBusy, outcome, failure })
 
   if (outcome.value !== undefined) {
     return <p class="pending-card-outcome">{tr(`ui.office.bell.${outcome.value}`)}</p>
@@ -145,7 +150,12 @@ function Decisions({ requestId, decisions }: DecisionsProps) {
             disabled={isBusy.value}
             onClick={() => answer({ requestId, decision, isBusy, outcome, failure })}
           >
-            {decisionLabel(decision)}
+            {isChosen && decision !== 'always'
+              ? tr('ui.office.keys.onButton', {
+                  label: decisionLabel(decision),
+                  key: DECISION_KEYS[decision],
+                })
+              : decisionLabel(decision)}
           </Button>
         ))}
       </div>
@@ -156,6 +166,28 @@ function Decisions({ requestId, decisions }: DecisionsProps) {
       )}
     </>
   )
+}
+
+// Y or N on this outlined card answers it like its button would, once; a press made before the
+// card mounted is never taken.
+function useKeyedAnswer(input: Omit<AnswerInput, 'decision'> & DecisionsProps): void {
+  const handledSeq = useRef(keyedAnswer.peek()?.seq)
+
+  useSignalEffect(() => {
+    const press = keyedAnswer.value
+
+    if (press === undefined || press.seq === handledSeq.current) {
+      return
+    }
+
+    handledSeq.current = press.seq
+
+    const isOpen = input.outcome.peek() === undefined && !input.isBusy.peek()
+
+    if (press.requestId === input.requestId && isOpen && input.decisions.includes(press.decision)) {
+      answer({ ...input, decision: press.decision })
+    }
+  })
 }
 
 interface AnswerInput {

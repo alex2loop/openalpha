@@ -7,6 +7,13 @@ export const ZOOM_IN_GLYPH = '+'
 export const ZOOM_OUT_GLYPH = '−'
 /** The key cap of the key that leaves a room. */
 export const ESCAPE_KEY_CAP = 'Esc'
+/** The other key caps the shortcut list prints. */
+export const TAB_KEY_CAP = 'Tab'
+export const ENTER_KEY_CAP = 'Enter'
+export const CONTROL_KEY_CAP = 'Ctrl'
+export const COMMAND_KEY_CAP = '⌘'
+export const UP_KEY_CAP = '↑'
+export const DOWN_KEY_CAP = '↓'
 /** The mark over a person when something needs a look. */
 export const ATTENTION_MARK = '!'
 /** Ends a line cut short; the whole of it is a click away. */

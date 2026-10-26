@@ -11,6 +11,8 @@ const COLOURS_KEY = 'office.colours'
 const MOTION_KEY = 'office.motion'
 const LIGHT_BY_HOUR_KEY = 'office.lightByHour'
 const LAMPS_OFF_KEY = 'office.lampsOff'
+const CHIME_KEY = 'office.chime'
+const NOTIFY_KEY = 'office.notify'
 const STORED_ON = '1'
 const STORED_OFF = '0'
 
@@ -34,6 +36,8 @@ const colourChoice = signal<ColourPair>(readChoice(COLOURS_KEY, COLOUR_PAIRS))
 const motionChoice = signal<Motion>(readChoice(MOTION_KEY, MOTIONS))
 const lightByHourChoice = signal(readStorage('local', LIGHT_BY_HOUR_KEY) !== STORED_OFF)
 const switchedOff = signal<ReadonlySet<string>>(readLampsOff())
+const chimeChoice = signal(readStorage('local', CHIME_KEY) === STORED_ON)
+const notifyChoice = signal(readStorage('local', NOTIFY_KEY) === STORED_ON)
 
 reducedMotionQuery.addEventListener(
   'change',
@@ -68,6 +72,10 @@ export const colorScheme: ReadonlySignal<ColorScheme> = scheme
 export const lightByHour: ReadonlySignal<boolean> = lightByHourChoice
 /** The rooms whose lamp switch is off; every other lamp is on. Kept in this browser only. */
 export const lampsOff: ReadonlySignal<ReadonlySet<string>> = switchedOff
+/** A soft chime for what needs the operator; off until they turn it on. */
+export const chime: ReadonlySignal<boolean> = chimeChoice
+/** Browser notifications for what needs the operator now; off until they turn it on. */
+export const notify: ReadonlySignal<boolean> = notifyChoice
 
 export function setTheme(value: Theme): void {
   keep(themeChoice, THEME_KEY, value)
@@ -82,8 +90,15 @@ export function setMotion(value: Motion): void {
 }
 
 export function setLightByHour(value: boolean): void {
-  lightByHourChoice.value = value
-  writeStorage('local', LIGHT_BY_HOUR_KEY, value ? STORED_ON : STORED_OFF)
+  keepSwitch(lightByHourChoice, LIGHT_BY_HOUR_KEY, value)
+}
+
+export function setChime(value: boolean): void {
+  keepSwitch(chimeChoice, CHIME_KEY, value)
+}
+
+export function setNotify(value: boolean): void {
+  keepSwitch(notifyChoice, NOTIFY_KEY, value)
 }
 
 export function toggleLamp(room: string): void {
@@ -113,6 +128,11 @@ export function disposePrefs(): void {
 function keep<T extends string>(target: Signal<T>, key: string, value: T): void {
   target.value = value
   writeStorage('local', key, value)
+}
+
+function keepSwitch(target: Signal<boolean>, key: string, value: boolean): void {
+  target.value = value
+  writeStorage('local', key, value ? STORED_ON : STORED_OFF)
 }
 
 // A stored value the page no longer offers reads as the first option, which is the default.

@@ -10,8 +10,9 @@ import type { Run } from '@/web/state/live'
 import { formatDay, type MessageKey, pluralKey } from '@/i18n'
 import { roleNameOf } from '@/web/scene/overlay/name-tags'
 import { roomTagOf } from '@/web/scene/overlay/room-tags'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
 import { holderOf } from '@/web/scene/sim/vocabulary'
+import { brightened } from '@/web/state/attention'
 import { pendingRequestId } from '@/web/state/live'
 import { locale, state } from '@/web/state/session'
 import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
@@ -50,7 +51,8 @@ const OUTCOME_KEYS = Object.freeze({
 export type BubbleKind = 'wait' | 'say' | 'think' | 'due' | 'life' | 'caution'
 
 /** One bubble over a person: `text` is cut to fit, `full` is all of it; `untilMs` (a
- *  `performance.now()` instant) is when a spoken line ends. */
+ *  `performance.now()` instant) is when it next changes on its own: its spoken line ends, or its
+ *  brightening does. `isBright` while a `sneak` event or louder about this person is fresh. */
 export interface Bubble {
   readonly id: string
   readonly actor: ActorId
@@ -59,6 +61,7 @@ export interface Bubble {
   readonly full: string
   readonly footer?: string
   readonly untilMs?: number
+  readonly isBright?: true
 }
 
 /** A line heard on the wire: a role's speech, by its actor, or a model switch, by its run.
@@ -179,7 +182,28 @@ export function buildBubbles(input: BubbleInput): readonly Bubble[] {
     }
   }
 
-  return [...chosen.values()].map(toBubble)
+  return [...chosen.values()].map((candidate) =>
+    toBubble(candidate, brightUntilOf(input, candidate.actor))
+  )
+}
+
+/** What of a bubble moves the layout: its person, kind, words and whether it is bright. */
+export function bubbleSignatureOf(bubble: Bubble): string {
+  return `${bubble.actor}:${bubble.kind}:${bubble.text}:${bubble.isBright === true}`
+}
+
+// A person is brightened by their run or, for an own agent, by its id.
+function brightUntilOf(input: BubbleInput, actor: ActorId): number | undefined {
+  const runId = input.goals.get(actor)?.runId
+  const agentId = ownAgentIdOf(actor)
+  const match = brightened.value.find(
+    (entry) =>
+      entry.untilMs > input.nowMs &&
+      ((runId !== undefined && entry.runId === runId) ||
+        (agentId !== undefined && entry.agentId === agentId))
+  )
+
+  return match?.untilMs
 }
 
 // One per run, on the first person its goals name: the run's step line, or its model's latest
@@ -397,8 +421,12 @@ function outranks(next: Candidate, held: Candidate): boolean {
   return next.kind === 'wait' || next.at >= held.at
 }
 
-function toBubble(candidate: Candidate): Bubble {
-  const { actor, kind, full, footer, untilMs } = candidate
+function toBubble(candidate: Candidate, brightUntilMs: number | undefined): Bubble {
+  const { actor, kind, full, footer } = candidate
+  const untilMs = Math.min(
+    candidate.untilMs ?? Number.POSITIVE_INFINITY,
+    brightUntilMs ?? Number.POSITIVE_INFINITY
+  )
 
   return {
     id: `${kind}:${actor}`,
@@ -407,7 +435,8 @@ function toBubble(candidate: Candidate): Bubble {
     text: cut(full),
     full,
     ...(footer === undefined ? {} : { footer }),
-    ...(untilMs === undefined ? {} : { untilMs }),
+    ...(untilMs === Number.POSITIVE_INFINITY ? {} : { untilMs }),
+    ...(brightUntilMs === undefined ? {} : { isBright: true }),
   }
 }
 

@@ -24,6 +24,7 @@ import { isTree, saveConfig } from '@/web/state/settings'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { Segmented } from '@/web/ui/kit/segmented'
+import { AttentionRows } from '@/web/ui/settings/attention-rows'
 import { ActionRow, SettingRow, useDraft } from '@/web/ui/settings/row'
 
 type Language = StatePayload['locale']
@@ -76,6 +77,7 @@ export function DisplaySection() {
         onChange={setMotion}
       />
       <LightByHourRow />
+      <AttentionRows />
       <ConnectionRow />
     </>
   )

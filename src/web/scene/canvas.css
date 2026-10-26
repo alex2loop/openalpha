@@ -14,3 +14,8 @@
   width: 100%;
   height: 100%;
 }
+
+/* Inside the clipped stage the ring is drawn within the canvas, whichever renderer made it. */
+.scene-host canvas:focus-visible {
+  outline-offset: -2px;
+}

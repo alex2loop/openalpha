@@ -1,4 +1,4 @@
-import { collapsed, openView } from '@/web/state/panel'
+import { collapsed, openView, PANEL_ELEMENT_ID } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { PanelIcon } from '@/web/ui/kit/icons'
 import { PANEL_TABS } from '@/web/ui/panel/tabs'
@@ -6,7 +6,7 @@ import { PANEL_TABS } from '@/web/ui/panel/tabs'
 /** The 52 px strip the panel folds into: the way back open, then one icon per tab. */
 export function Rail() {
   return (
-    <div class="panel-rail">
+    <div id={PANEL_ELEMENT_ID} class="panel-rail" tabIndex={-1}>
       <button
         type="button"
         class="icon-button"

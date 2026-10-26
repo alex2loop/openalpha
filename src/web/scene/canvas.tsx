@@ -17,11 +17,17 @@ import { attachInteraction, type Interaction } from '@/web/scene/overlay/interac
 import { MeetingBar } from '@/web/scene/overlay/meeting-bar'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
-import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
+import {
+  markers,
+  type OverlayPass,
+  readOverlayInputs,
+  startOverlay,
+} from '@/web/scene/overlay/overlay-pass'
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
+import { syncTwin } from '@/web/scene/overlay/twin'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isKidActorId } from '@/web/scene/sim/actors/roster'
@@ -41,8 +47,18 @@ import { unread } from '@/web/state/notices'
 import { colorScheme, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
 import { state } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
+import { tr } from '@/web/text/tr'
 
 import './canvas.css'
+
+const SCENE_LABEL_ID = 'scene-label'
+const SCENE_KEYS_ID = 'scene-keys'
+// The canvas is one keyboard application, named and described by the hidden lines beside it.
+const CANVAS_A11Y: Readonly<Record<string, string>> = Object.freeze({
+  role: 'application',
+  'aria-labelledby': SCENE_LABEL_ID,
+  'aria-describedby': SCENE_KEYS_ID,
+})
 
 // The tray counts unread notices; before the first read there are none to count.
 const unreadCount = computed(() => unread.value ?? 0)
@@ -63,6 +79,12 @@ export function SceneCanvas() {
 
   return (
     <div class="scene">
+      <p id={SCENE_LABEL_ID} class="sr">
+        {tr('ui.office.a11y.scene')}
+      </p>
+      <p id={SCENE_KEYS_ID} class="sr">
+        {tr('ui.office.a11y.canvasKeys')}
+      </p>
       <div ref={host} class="scene-host" />
       <RoomTags renderer={renderer} />
       <BoardButtons renderer={renderer} />
@@ -101,6 +123,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
     effect(() => answerFocusRequest(director)),
     onWireEvent('any', loop.wake),
     onWireEvent('run_started', (event) => followRun(director, event.runId)),
+    describeCanvas(element),
   ]
 
   resize.observe(element)
@@ -137,6 +160,23 @@ function attachInput(
   const canvas = element.querySelector('canvas')
 
   return canvas === null ? undefined : attachInteraction(canvas, deps)
+}
+
+// The canvas's screen-reader names; the returned function takes them off and empties its text twin.
+function describeCanvas(element: HTMLElement): () => void {
+  const canvas = element.querySelector('canvas')
+
+  for (const [name, value] of Object.entries(CANVAS_A11Y)) {
+    canvas?.setAttribute(name, value)
+  }
+
+  return () => {
+    for (const name of Object.keys(CANVAS_A11Y)) {
+      canvas?.removeAttribute(name)
+    }
+
+    syncTwin(undefined, [])
+  }
 }
 
 // The office's people, the office life over them and the team floor; the caller disposes each.
@@ -186,6 +226,7 @@ function createSceneLoop(parts: LoopParts): {
       const isAnimating = renderer.draw(drawn, now)
 
       overlay.frame(drawn, now)
+      syncTwin(drawn, markers.value)
 
       return isAnimating
     },
