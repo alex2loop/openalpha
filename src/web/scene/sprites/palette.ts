@@ -129,6 +129,7 @@ export const MASCOT_TONES = Object.freeze({
   curl: '#5A48E0',
   spark: '#FFD166',
   screen: '#2F3F78',
+  phoneGlass: '#0B0E16',
 } as const)
 
 /** The LED board's title: the app mark's blue and violet, lightened to read on a dark screen. */

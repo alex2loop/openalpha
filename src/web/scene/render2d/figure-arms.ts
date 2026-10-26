@@ -179,10 +179,8 @@ function paintRaisedSheet(f: Figure): void {
   rect(cells, [19, b, 5, 8], 'paper')
   rect(cells, [20, 2 + b, 3, 1], 'line')
   rect(cells, [20, 4 + b, 3, 1], 'line')
-
-  if (f.frame.sheet !== 'blank') {
-    rect(cells, [20, 5 + b, 2, 2], 'stamp')
-  }
+  // The mockup's third rule; a stamped sheet carries its verdict's colour there instead.
+  rect(cells, [20, 6 + b, 2, 1], f.frame.sheet === 'blank' ? 'line' : 'stamp')
 }
 
 // What hangs at a lowered right hand: a cup beside it, a bag below, a box or a sheet in front.
