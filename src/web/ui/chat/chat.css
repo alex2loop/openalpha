@@ -122,7 +122,7 @@
 .chat-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--s1);
 }
 
 .chat-actions:empty {

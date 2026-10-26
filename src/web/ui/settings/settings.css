@@ -94,7 +94,7 @@
 .setting-controls {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--s1);
 }
 
 .setting-actions {
