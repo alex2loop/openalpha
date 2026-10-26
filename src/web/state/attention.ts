@@ -1,12 +1,13 @@
-import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
+import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { WireEvent } from '@/app/server/wire/events'
 import { pluralKey } from '@/i18n'
 import { unread as chatUnread, isChatOpen } from '@/web/state/chat'
 import { ringChime, startChime } from '@/web/state/chime'
 import { onWireEvent } from '@/web/state/events'
+import { startFavicon } from '@/web/state/favicon'
 import { needsYou } from '@/web/state/notices'
-import { notify } from '@/web/state/prefs'
+import { showNotification } from '@/web/state/notifications'
 import { brand } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
@@ -14,11 +15,6 @@ import { tr } from '@/web/text/tr'
 const BRIGHT_MS = 3_000
 // One per person at most is ever worth keeping: the roster's size, with the team floor's.
 const MAX_BRIGHT = 32
-/** Notifications already shown, by event key, so a replayed event never shows twice. */
-const MAX_NOTIFIED = 200
-const FAVICON_PX = 32
-const FAVICON_DOT_TOKEN = '--badgeStop'
-const FAVICON_TYPE = 'image/png'
 const URGENT_KINDS: ReadonlySet<WireEvent['kind']> = new Set([
   'approval_requested',
   'stop_breached',
@@ -84,24 +80,6 @@ export function urgentTextOf(event: WireEvent): string | undefined {
   return undefined
 }
 
-/** False when this browser has no notifications or the operator blocked them for the page. */
-export function canNotify(): boolean {
-  return 'Notification' in window && Notification.permission !== 'denied'
-}
-
-/** Asks for permission, only from the operator's click; true once it is granted. */
-export async function askNotifyPermission(): Promise<boolean> {
-  if (!('Notification' in window)) {
-    return false
-  }
-
-  if (Notification.permission === 'granted') {
-    return true
-  }
-
-  return (await Notification.requestPermission().catch(() => 'denied')) === 'granted'
-}
-
 function applyWeight(event: WireEvent, notified: Set<string>): void {
   const rank = WEIGHT_RANK[event.weight] ?? WEIGHT_RANK.quiet
 
@@ -121,7 +99,7 @@ function applyWeight(event: WireEvent, notified: Set<string>): void {
     ringChime()
   }
 
-  showNotification(event, notified)
+  showNotification(event, urgentTextOf(event) ?? event.note ?? event.clarification?.text, notified)
 }
 
 function brighten(event: WireEvent): void {
@@ -139,114 +117,4 @@ function brighten(event: WireEvent): void {
   const live = brightList.value.filter((held) => held.untilMs > performance.now())
 
   brightList.value = [...live, entry].slice(-MAX_BRIGHT)
-}
-
-// One per event key, only when the operator turned them on and the browser allows them.
-function showNotification(event: WireEvent, notified: Set<string>): void {
-  const key = notifyKeyOf(event)
-  const body = urgentTextOf(event) ?? event.note ?? event.clarification?.text
-
-  if (!(notify.value && isGranted()) || notified.has(key) || body === undefined) {
-    return
-  }
-
-  notified.add(key)
-
-  for (const oldest of notified) {
-    if (notified.size <= MAX_NOTIFIED) {
-      break
-    }
-
-    notified.delete(oldest)
-  }
-
-  try {
-    const shown = new Notification(brand.value ?? '', { body, tag: key })
-
-    shown.addEventListener('click', () => {
-      window.focus()
-      shown.close()
-    })
-  } catch {
-    // A browser that allows notifications only from a service worker shows none; the bell has it.
-  }
-}
-
-function isGranted(): boolean {
-  return 'Notification' in window && Notification.permission === 'granted'
-}
-
-function notifyKeyOf(event: WireEvent): string {
-  const id = event.requestId ?? event.alert?.alertId ?? event.runId ?? event.note ?? ''
-
-  return `${event.kind}:${id}`
-}
-
-// While something needs the operator the tab's icon is a dot, drawn here and swapped in as an
-// object URL; every swap and the stop revoke the one before.
-function startFavicon(): () => void {
-  const link = document.createElement('link')
-  const held: { url: string | undefined; isShown: boolean | undefined; isStopped: boolean } = {
-    url: undefined,
-    isShown: undefined,
-    isStopped: false,
-  }
-  const revoke = (): void => {
-    if (held.url !== undefined) {
-      URL.revokeObjectURL(held.url)
-      held.url = undefined
-    }
-  }
-  const stopSync = effect(() => {
-    const isNeeded = needsYou.value > 0
-
-    if (isNeeded === held.isShown) {
-      return
-    }
-
-    held.isShown = isNeeded
-    link.remove()
-    revoke()
-
-    if (isNeeded) {
-      drawDot((blob) => {
-        if (held.isStopped || held.isShown !== true) {
-          return
-        }
-
-        revoke()
-        held.url = URL.createObjectURL(blob)
-        link.rel = 'icon'
-        link.href = held.url
-        document.head.append(link)
-      })
-    }
-  })
-
-  return () => {
-    held.isStopped = true
-    stopSync()
-    link.remove()
-    revoke()
-  }
-}
-
-function drawDot(onDrawn: (blob: Blob) => void): void {
-  const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
-  const half = FAVICON_PX / 2
-
-  if (context === null) {
-    return
-  }
-
-  canvas.width = FAVICON_PX
-  canvas.height = FAVICON_PX
-  context.fillStyle = getComputedStyle(document.documentElement)
-    .getPropertyValue(FAVICON_DOT_TOKEN)
-    .trim()
-  context.beginPath()
-  context.arc(half, half, half, 0, 2 * Math.PI)
-  context.fill()
-  canvas.toBlob((blob) => (blob === null ? undefined : onDrawn(blob)), FAVICON_TYPE)
 }

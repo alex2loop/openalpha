@@ -36,6 +36,12 @@ interface KeyDeps {
   readonly openList: () => void
 }
 
+/** What a key press is handled with: the outside deps and the panel view last seen. */
+interface KeyContext {
+  readonly deps: KeyDeps
+  readonly viewed: PanelView | undefined
+}
+
 /** One line of the shortcut list: the key caps and what they do. */
 interface ShortcutRow {
   readonly caps: readonly string[]
@@ -84,16 +90,16 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = Object.freeze([
   {
     caps: [
       INPUT_KEY,
-      ...[CONTROL_KEY_CAP, COMMAND_KEY_CAP].map((cap) => toChord(cap, PALETTE_KEY)),
+      ...[CONTROL_KEY_CAP, COMMAND_KEY_CAP].map((cap) => `${cap} ${PALETTE_KEY.toUpperCase()}`),
     ],
     does: 'ui.office.keys.focusInput',
   },
   { caps: Object.keys(TAB_KEYS), does: 'ui.office.keys.tabs' },
   { caps: [BACK_KEY], does: 'ui.office.keys.back' },
-  { caps: [toCap(BELL_KEY)], does: 'ui.office.keys.bell' },
-  { caps: [toCap(JOBS_KEY)], does: 'ui.office.keys.jobs' },
-  { caps: [toCap(CHAT_KEY)], does: 'ui.office.keys.chat' },
-  { caps: [toCap(FOCUS_KEY)], does: 'ui.office.keys.focus' },
+  { caps: [BELL_KEY.toUpperCase()], does: 'ui.office.keys.bell' },
+  { caps: [JOBS_KEY.toUpperCase()], does: 'ui.office.keys.jobs' },
+  { caps: [CHAT_KEY.toUpperCase()], does: 'ui.office.keys.chat' },
+  { caps: [FOCUS_KEY.toUpperCase()], does: 'ui.office.keys.focus' },
   { caps: Object.keys(AGENT_STEPS), does: 'ui.office.keys.agents' },
   { caps: [TAB_KEY_CAP, ENTER_KEY_CAP], does: 'ui.office.keys.canvas' },
   { caps: [UP_KEY_CAP, DOWN_KEY_CAP], does: 'ui.office.keys.choose' },
@@ -130,11 +136,6 @@ export function createKeyHandler(deps: KeyDeps): () => void {
     listeners.abort()
     stopViewed()
   }
-}
-
-interface KeyContext {
-  readonly deps: KeyDeps
-  readonly viewed: PanelView | undefined
 }
 
 // True when the key did something here.
@@ -270,12 +271,4 @@ function endFollow(): boolean {
   stopFollow()
 
   return true
-}
-
-function toCap(key: string): string {
-  return key.toUpperCase()
-}
-
-function toChord(modifier: string, key: string): string {
-  return `${modifier} ${toCap(key)}`
 }

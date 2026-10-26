@@ -1,7 +1,7 @@
 import { useSignal } from '@preact/signals'
 
-import { askNotifyPermission, canNotify } from '@/web/state/attention'
 import { openChimeAudio, previewChime } from '@/web/state/chime'
+import { askNotifyPermission, canNotify } from '@/web/state/notifications'
 import { chime, notify, setChime, setNotify } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
