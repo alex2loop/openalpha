@@ -11,7 +11,7 @@ import {
 } from '@/web/scene/render2d/street/bike-model'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import { type Art, dirOf, fill, isAlongX, toneOf } from '@/web/scene/render2d/street/vehicle-art'
-import { PALETTE, RAMP } from '@/web/scene/sprites/palette'
+import { PALETTE } from '@/web/scene/sprites/palette'
 import { tr } from '@/web/text/tr'
 
 // Plain colours only: no maker's paint, no mark on a jacket or a box.
@@ -72,8 +72,15 @@ const JACKETS: Readonly<Record<RiderGear, readonly string[]>> = Object.freeze({
   sunCoat: COAT_TONES,
   rideHailing: HAILING_TONES,
 })
-const SKINS = Object.values(RAMP.skin).map((ramp) => ramp[1])
-const PANTS = Object.values(RAMP.pants).map((ramp) => ramp[1])
+/** The street's people: skins, shirts, trousers and hair of passers-by, riders and workers. */
+export const STREET_PEOPLE = Object.freeze({
+  skins: ['#E8C4A0', '#D9AE86', '#C99A74', '#B98562'],
+  shirts: ['#7EA7C9', '#C98A8A', '#8FB89A', '#D9C27A', '#9C8FC0', '#E0E0DC', '#6D7F99', '#C9A27A'],
+  pants: ['#3B4458', '#5B6272', '#8A7C68', '#2D3A4F'],
+  hairs: ['#2B2433', '#4A3A32', '#6A5A4A', '#C9C4B8'],
+})
+const SKINS = STREET_PEOPLE.skins
+const PANTS = STREET_PEOPLE.pants
 const TONES = Object.freeze({
   vest: '#E8892B',
   vestBand: '#F4F1E8',
