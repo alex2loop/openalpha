@@ -2,10 +2,11 @@ import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type { FloorId, Point, Rect } from '@/web/scene/types'
 import type { OfficeLife } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
+import { BLOCK_FLOOR, setBlock } from '@/web/scene/sim/life/blocks'
 import { PANTRY } from '@/web/scene/world/seats'
 
-/** The floor the cart serves: the one with the office's crew and its pantry. */
-export const CART_FLOOR: FloorId = 'office'
+/** The floor the cart serves: the one with the office's staff and its pantry. */
+export const CART_FLOOR: FloorId = BLOCK_FLOOR
 const CART_ROLL_MS = 6_000
 // The cart's footprint on the floor, centred on where it stands.
 const CART_SIZE = Object.freeze({ w: 20, h: 10 })
@@ -73,7 +74,7 @@ function blockAt(state: LifeState, at: Point | undefined): void {
   }
 
   state.cart.isBlocking = isBlocking
-  state.director.setObstacles(CART_FLOOR, at === undefined ? [] : [footprintOf(at)])
+  setBlock(state, 'cart', at === undefined ? undefined : footprintOf(at))
 }
 
 function footprintOf(at: Point): Rect {

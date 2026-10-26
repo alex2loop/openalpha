@@ -42,7 +42,7 @@ export type Arms =
   | 'sip'
 
 /** Something in the right hand besides a phone or a sheet. */
-export type HeldKind = 'cup' | 'bag' | 'box' | 'item'
+export type HeldKind = 'cup' | 'bag' | 'box' | 'item' | 'mop'
 
 /** What the hands show: a phone, a held kind and a sheet may show together. */
 export interface InHand {
@@ -95,6 +95,7 @@ const HELD_OF: Readonly<Record<HeldItem, HeldKind | undefined>> = Object.freeze(
   box: 'box',
   cup: 'cup',
   bag: 'bag',
+  mop: 'mop',
 })
 
 /** The whole pose vocabulary; `cheer` is the mascot's alone. */

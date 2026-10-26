@@ -243,6 +243,10 @@ function paintHeldKind(
       return
     case 'item':
       rect(cells, [19, hy - 1, 3, 3], 'heldBody')
+      return
+    case 'mop':
+      rect(cells, [21, hy - 8, 1, 17], 'heldBody')
+      rect(cells, [19, hy + 9, 5, 2], 'heldBand')
   }
 }
 
@@ -270,6 +274,18 @@ export function paintTorsoProp(f: Figure): void {
     case 'scarf':
       rect(cells, [7, 12 + b, 10, 2], 'scarf')
       rect(cells, [13, 14 + b, 2, 3], 'scarf')
+      return
+    case 'uniform':
+      rect(cells, [7, 12 + b, 2, 1], 'tie')
+      rect(cells, [15, 12 + b, 2, 1], 'tie')
+      put(cells, [9, 14 + b], 'gold')
+      rect(cells, [8, 20 + b, 8, 1], 'pocket')
+      return
+    case 'vest':
+      rect(cells, [7, 13 + b, 3, 8], 'vest')
+      rect(cells, [14, 13 + b, 3, 8], 'vest')
+      rect(cells, [7, 17 + b, 3, 1], 'vestBand')
+      rect(cells, [14, 17 + b, 3, 1], 'vestBand')
       return
     default:
       paintCarriedProp(f, isRightFree)

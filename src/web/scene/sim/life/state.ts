@@ -1,11 +1,13 @@
 import type { SessionPhase } from '@/app/server/wire/vocab'
 import type { AgendaRow } from '@/web/scene/data/agenda'
 import type { ActorState, Director } from '@/web/scene/sim/director'
+import type { BlockKey } from '@/web/scene/sim/life/blocks'
+import type { CrewState } from '@/web/scene/sim/life/crew'
 import type { Desks } from '@/web/scene/sim/life/desks'
 import type { Moment, MomentKind } from '@/web/scene/sim/life/moments'
 import type { Pets } from '@/web/scene/sim/life/pets'
 import type { RhythmState } from '@/web/scene/sim/life/presence'
-import type { ActorId, DeskView, FloorId, Point } from '@/web/scene/types'
+import type { ActorId, DeskView, FloorId, Point, Rect } from '@/web/scene/types'
 import type { OfficeLife } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
 import { distance } from '@/web/scene/sim/actors/nav'
@@ -45,6 +47,8 @@ export interface LifeState {
   readonly asks: LifeAsk[]
   readonly runNames: Map<string, string>
   readonly cart: CartState
+  readonly blocks: Map<BlockKey, Rect>
+  readonly crew: CrewState
   readonly desks: Desks
   readonly rhythm: RhythmState
   readonly round: { freeSince: number | undefined; lastAt: number | undefined; count: number }

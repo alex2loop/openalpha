@@ -167,11 +167,17 @@ function focusOn(deps: FocusDeps, actor: ActorView): void {
   deps.wake()
 }
 
-// A fixed order, so people who walk never reorder it: the office crew by roster, own agents by
-// their desk, children by id.
+// A fixed order, so people who walk never reorder it: the office staff by roster, own agents by
+// their desk, children by id; never the building crew, nor anyone inside the lift.
 function orderOn(sim: SimView): ActorView[] {
   return sim.actors
-    .filter((actor) => actor.floor === sim.floor && actor.isAway !== true)
+    .filter(
+      (actor) =>
+        actor.floor === sim.floor &&
+        actor.isAway !== true &&
+        actor.isCrew !== true &&
+        actor.isRiding !== true
+    )
     .map((actor) => ({ actor, rank: rankOf(sim, actor.id) }))
     .sort((a, b) => a.rank - b.rank || a.actor.id.localeCompare(b.actor.id))
     .map((held) => held.actor)

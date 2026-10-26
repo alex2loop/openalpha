@@ -8,7 +8,7 @@ import type { ActorId, ActorStatus, SimView } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { lifeTextOf } from '@/web/scene/overlay/life-text'
 import { teamGoals } from '@/web/scene/overlay/team-pass'
-import { ASSISTANT, ownActorIdOf, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, isCrewId, ownActorIdOf, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { goalsFor, holderOf } from '@/web/scene/sim/vocabulary'
 import { agents, selectedAgentId } from '@/web/state/agents'
 import { thread } from '@/web/state/chat'
@@ -49,15 +49,22 @@ export type ActorNow =
   | { readonly kind: 'errand'; readonly line: string }
   | { readonly kind: 'life'; readonly line: string }
   | { readonly kind: 'dot'; readonly status: ActorStatus }
+  /** One of the building crew: their role says it all. */
+  | { readonly kind: 'crew' }
 
 /** What the live store calls for, as the director reads it: who works on which run, who waits. */
 export const wantedGoals = computed(() => goalsFor(runs.value, pending.value))
-/** The office crew's goals and the team floor's, for whatever stands over a person. */
+/** The office staff's goals and the team floor's, for whatever stands over a person. */
 export const sceneGoals = computed(() => new Map([...wantedGoals.value, ...teamGoals.value]))
 
 /** Most pressing first: paused, waiting on the operator, running, waiting for its turn, an errand,
- *  an office life moment, else what its dot says (free when it shows none). */
+ *  an office life moment, else what its dot says (free when it shows none). The building crew have
+ *  none of these. */
 export function actorNowOf(sim: SimView, actor: ActorId): ActorNow {
+  if (isCrewId(actor)) {
+    return { kind: 'crew' }
+  }
+
   const goals = sceneGoals.value
   const agentId = ownAgentIdOf(actor)
 

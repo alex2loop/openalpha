@@ -4,6 +4,7 @@ import type { PendingWire } from '@/app/server/wire/live'
 import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { WalkerState } from '@/web/scene/sim/actors/walk'
 import type { Beat, BeatTarget } from '@/web/scene/sim/beats'
+import type { Lift } from '@/web/scene/sim/lift'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type {
   ActorId,
@@ -18,7 +19,8 @@ import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
-import { ASSISTANT, ROSTER } from '@/web/scene/sim/actors/roster'
+import { actorViewsOf } from '@/web/scene/sim/actor-views'
+import { ASSISTANT, CREW, ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking, placeWalker } from '@/web/scene/sim/actors/walk'
 import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
@@ -38,15 +40,9 @@ import {
   stampSheet,
   stepPerson,
   tickPeople,
-  toActorView,
 } from '@/web/scene/sim/people'
-import {
-  createErrands,
-  type Errands,
-  endErrands,
-  errandOf,
-  isOut,
-} from '@/web/scene/sim/street/errands'
+import { isBoundForLift } from '@/web/scene/sim/places'
+import { createErrands, type Errands, endErrands, isOut } from '@/web/scene/sim/street/errands'
 import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
 import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
@@ -80,6 +76,7 @@ export interface ActorState {
 }
 
 interface DirectorDeps {
+  readonly lift: Lift
   readonly runs: ReadonlySignal<readonly Run[]>
   readonly pending: ReadonlySignal<readonly PendingWire[]>
   readonly unread: ReadonlySignal<number>
@@ -142,8 +139,8 @@ const LIFE_BEAT = 'life'
 export function createDirector(deps: DirectorDeps): Director {
   const papers = createPapers()
   const people = createPeople(
-    ROSTER.map((def) => ({ def, walker: createWalker(def.seat.at, seedOf(def.id)) })),
-    papers
+    [...ROSTER, ...CREW].map((def) => ({ def, walker: createWalker(def.seat.at, seedOf(def.id)) })),
+    { papers, lift: deps.lift }
   )
   const stopEffect = effect(() => {
     const pending = deps.pending.value
@@ -162,7 +159,7 @@ export function createDirector(deps: DirectorDeps): Director {
     errands,
     step: () => !isDisposed && stepAll(people, { papers, poses, errands, away }),
     view: () => ({
-      actors: actorViewsOf(people, { marks: poses.marks, errands, away }),
+      actors: actorViewsOf(people, { marks: poses.marks, errands, away, poseOf }),
       papers: papers.views(),
       tray: trayCount(deps, papers),
     }),
@@ -251,41 +248,6 @@ function createErrandsOf(people: People): Errands {
   })
 }
 
-function actorViewsOf(
-  people: People,
-  at: {
-    readonly marks: PoseMarks
-    readonly errands: Errands
-    readonly away: ReadonlyMap<ActorId, AwayStage>
-  }
-): ActorView[] {
-  return people.list.map((person) => {
-    const view = withErrand(
-      at.errands,
-      toActorView(
-        people,
-        person,
-        at.marks.get(person.def.id) ?? { pose: poseOf(person), poseSince: 0 }
-      )
-    )
-
-    return at.away.get(person.def.id) === 'gone' ? { ...view, isAway: true } : view
-  })
-}
-
-// Someone on an errand says where; past the street door they stand where the street has them.
-function withErrand(errands: Errands, view: ActorView): ActorView {
-  const errand = errandOf(errands, view.id)
-
-  if (errand === undefined) {
-    return view
-  }
-
-  return errand.view.isOut
-    ? { ...view, errand: errand.view, prev: errand.ped.prev, at: errand.ped.at }
-    : { ...view, errand: errand.view }
-}
-
 function setGoalIn(layer: Map<ActorId, Goal>, id: ActorId, goal: Goal | undefined): void {
   if (goal === undefined) {
     layer.delete(id)
@@ -327,7 +289,8 @@ function stepAll(
   const { papers, poses, errands, away } = held
   const nowMs = performance.now()
   const isChanged = tickPeople(people, { nowMs, isOpen: isOfficeOpen() })
-  const isHidden = (id: ActorId): boolean => isOut(errands, id) || away.get(id) === 'gone'
+  const isHidden = (id: ActorId): boolean =>
+    isOut(errands, id) || away.get(id) === 'gone' || people.byId.get(id)?.isRiding === true
   let isMoving = false
 
   for (const person of people.list) {
@@ -393,7 +356,7 @@ function toActorState(
     walker: person.walker,
     beats: person.beats,
     pose: poseOf(person),
-    isSettled: person.phase === 'still',
+    isSettled: person.phase === 'still' && !person.isRiding && !isBoundForLift(person),
     isLife: isLifeHeld(people, person),
     isOwed: isAssistant && isAssistantOwed(people.walks, people.orphans),
     hasChair: person.hasChair,

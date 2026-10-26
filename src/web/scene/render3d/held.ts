@@ -32,6 +32,10 @@ const HELD_SHAPES: Readonly<Record<HeldKind, Shape>> = Object.freeze({
     b.round([0, -0.05, 0.1], [0.12, 0.18, 0.04, 0.02], body)
     b.round([0, -0.02, 0.122], [0.09, 0.1, 0.006, 0.003], band)
   },
+  mop: (b, [pole, head]) => {
+    b.cylinder([0, -0.25, 0.14], [0.025, 0.025, 1.2], pole)
+    b.round([0, -0.86, 0.14], [0.32, 0.1, 0.2, 0.04], head)
+  },
 })
 // A phone: its body, then its face toward the room, the lit screen when read or the back plate
 // at the ear.

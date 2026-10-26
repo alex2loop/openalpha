@@ -24,8 +24,13 @@ const DOOR_STEP_PX = 14
 const DESK_SIDE_PX = 10
 const DESK_BACK_PX = 18
 
-/** The rooms' doors along the corridor, west to east, each with the room it opens on. */
-const ROUND_DOORS: readonly { readonly room: RoomId; readonly at: Point }[] = Object.freeze(
+/** The rooms' doors along the corridor, west to east: the room each opens on, the stop in the
+ *  corridor before it and the opening itself. */
+export const ROUND_DOORS: readonly {
+  readonly room: RoomId
+  readonly at: Point
+  readonly door: Point
+}[] = Object.freeze(
   DOORS.office
     .flatMap((door) => {
       const corridor = FLOORS.office.corridor
@@ -44,7 +49,9 @@ const ROUND_DOORS: readonly { readonly room: RoomId; readonly at: Point }[] = Ob
         y: door.at.y + (isNorth ? DOOR_STEP_PX : -DOOR_STEP_PX),
       }
 
-      return room === undefined ? [] : [{ room: room.id, at }]
+      const opening = { x: door.at.x + door.width / 2, y: door.at.y }
+
+      return room === undefined ? [] : [{ room: room.id, at, door: opening }]
     })
     .sort((a, b) => a.at.x - b.at.x)
 )

@@ -44,6 +44,15 @@ export const STATIONS: Readonly<Record<StationId, Seat>> = Object.freeze({
   'lib-theme': { at: { x: 206, y: 173 }, face: 'left' },
 } satisfies Record<StationId, Seat>)
 
+/** The building crew's rest places: the receptionist's chair behind the front desk, the guard's
+ *  post beside the badge gates, and the lobby bin's side, where the cleaner starts her round. */
+export const CREW_POSTS: Readonly<Record<'receptionist' | 'guard' | 'cleaner', Seat>> =
+  Object.freeze({
+    receptionist: { at: { x: 121, y: 316 }, face: 'down', desk: true },
+    guard: { at: { x: 18, y: 268 }, face: 'down' },
+    cleaner: { at: { x: 144, y: 305 }, face: 'left' },
+  })
+
 /** Where an agent waiting on the operator stands at your desk, nearest first. */
 export const DESK_WAIT_SPOTS: Readonly<{ readonly agents: readonly Point[] }> = Object.freeze({
   agents: [

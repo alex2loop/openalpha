@@ -186,6 +186,17 @@ const TORSO_PROPS: Readonly<Partial<Record<Look['prop'], (b: Bake, t: Tones) => 
       b.torus([0, 0.62, 0], [0.2, 0.07], RAMP.scarf[1])
       b.round([0.1, 0.46, 0.2], [0.12, 0.24, 0.04, 0.02], RAMP.scarf[1])
     },
+    uniform: (b) => {
+      b.round([-0.22, 0.61, 0], [0.14, 0.03, 0.3, 0.01], PALETTE.tie)
+      b.round([0.22, 0.61, 0], [0.14, 0.03, 0.3, 0.01], PALETTE.tie)
+      b.round([0, 0.17, 0], [0.58, 0.05, 0.39, 0.02], PALETTE.pocket)
+      b.round([-0.13, 0.45, 0.195], [0.07, 0.08, 0.02, 0.01], PALETTE.gold)
+    },
+    vest: (b) => {
+      b.round([0, 0.34, 0], [0.62, 0.5, 0.4, 0.17], PALETTE.vest)
+      b.round([0, 0.3, 0], [0.63, 0.05, 0.41, 0.02], PALETTE.vestBand)
+      b.round([0, 0.44, 0], [0.63, 0.05, 0.41, 0.02], PALETTE.vestBand)
+    },
   })
 
 function bakeArms(b: Bake, rig: Rig, look: Look): void {

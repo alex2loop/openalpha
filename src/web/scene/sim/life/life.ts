@@ -1,6 +1,6 @@
 import type { ReadonlySignal } from '@preact/signals'
 
-import type { ActorState, Director } from '@/web/scene/sim/director'
+import type { Director } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type {
   ActorId,
@@ -12,17 +12,17 @@ import type {
   SteamView,
 } from '@/web/scene/types'
 import { pageMinute } from '@/web/scene/clock/clock'
-import { type AgendaRow, agenda } from '@/web/scene/data/agenda'
 import { regionPack } from '@/web/scene/data/home'
-import { breachedStops } from '@/web/scene/data/room-status'
 import { startTodayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
-import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, isCrewId } from '@/web/scene/sim/actors/roster'
 import { isOfficeOpen } from '@/web/scene/sim/director'
 import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
+import { createCrewState, crewDueOf, stepCrew } from '@/web/scene/sim/life/crew'
 import { createDesks, deskDueOf, keepCup, stepDesks } from '@/web/scene/sim/life/desks'
 import { stepErrands } from '@/web/scene/sim/life/errand-home'
 import { stepAsks, subscribeLife } from '@/web/scene/sim/life/events'
+import { dueOwners, isFree, statusesOf } from '@/web/scene/sim/life/free'
 import { stepGatherings } from '@/web/scene/sim/life/gatherings'
 import { lineOf, type MomentKind, momentDueOf, stepMoment } from '@/web/scene/sim/life/moments'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
@@ -41,12 +41,11 @@ import { fidgetDueOf, postureLineOf, stepFidgets, stepPostures } from '@/web/sce
 import { stepChat } from '@/web/scene/sim/life/talk'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { approachOf } from '@/web/scene/sim/places'
-import { isKept, moment as marketMoment, stepBell } from '@/web/scene/sim/rhythm'
-import { type Errands, isOnErrand } from '@/web/scene/sim/street/errands'
+import { moment as marketMoment, stepBell } from '@/web/scene/sim/rhythm'
 import { propsOn } from '@/web/scene/world/props'
 import { onWireEvent } from '@/web/state/events'
 import { pending, runs } from '@/web/state/live'
-import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time-units'
+import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 interface LifeDeps {
   readonly director: Director
@@ -68,13 +67,8 @@ export interface Life {
   dispose(): void
 }
 
-/** A job within this of its run sits its owner up. */
-const JOB_DUE_MS = 600_000
 const QUIET_AFTER_MS = 900_000
 const PANTRY_LIVE_PX = 28
-const BRIEF_ROW_KEY = 'brief'
-const BRIEF_OWNER: ActorId = 'pm'
-const CLERK: ActorId = 'clerk'
 // The moments that are a break: an idle walk, a coffee, a dessert, a chat.
 const BREAK_KINDS: ReadonlySet<MomentKind> = new Set(['idle', 'coffee', 'dessert', 'chat'])
 const STEAM_KINDS = Object.freeze({ coffee: 'mug', cooler: 'cooler' } as const)
@@ -137,6 +131,8 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
     asks: [],
     runNames: new Map(),
     cart: { at: undefined, rollFrom: undefined, isLeaving: false, isBlocking: false },
+    blocks: new Map(),
+    crew: createCrewState(),
     desks: createDesks(),
     rhythm: createRhythmState(),
     round: { freeSince: undefined, lastAt: undefined, count: 0 },
@@ -148,31 +144,9 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
   }
 }
 
-/** Free for the office life: no goal the live store calls for (no work, no approval or question,
- *  no walk to your desk), no gesture of a real event, no marker over the head, no job due within
- *  `JOB_DUE_MS`, not out on an errand, not on the way in or out of the office, not kept at the desk
- *  by the day, not the mascot; staff only, never a temporary child or an own agent. */
-function isFree(actor: ActorState, errands: Errands): boolean {
-  const id = actor.def.id
-  const isMarked = id === CLERK && (breachedStops.value?.length ?? 0) > 0
-  const hasBeat = actor.beats.some((beat) => beat.kind !== 'life')
-
-  return (
-    id !== ASSISTANT &&
-    isStaffId(id) &&
-    (actor.goal === undefined || actor.isLife) &&
-    !hasBeat &&
-    !isMarked &&
-    !dueOwners().has(id) &&
-    !isOnErrand(errands, id) &&
-    actor.away === undefined &&
-    !isKept(id)
-  )
-}
-
 function readStep(state: LifeState, deps: LifeDeps): LifeStep {
   const nowMs = performance.now()
-  const actors = deps.director.actors()
+  const actors = new Map([...deps.director.actors()].filter(([id]) => !isCrewId(id)))
   const isReduced = deps.reduced.value
   const isQuiet = nowMs - state.lastBusyAt >= QUIET_AFTER_MS
   const canWalk = !(isReduced || document.hidden) && isOfficeOpen()
@@ -201,6 +175,7 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
   clearSheets(state, step)
   clearFailed(state, step)
   stepPresence(state, step)
+  stepCrew(state, step)
 
   const isMoving = stepCart(state, step)
 
@@ -325,6 +300,7 @@ function dueOf(state: LifeState, step: LifeStep): number {
     state.lastBusyAt + QUIET_AFTER_MS,
     state.pets.nextDueAt(petWorldOf(state, step)),
     deskDueOf(state.desks, step.nowMs),
+    crewDueOf(state),
   ]
 
   return Math.min(...dues.filter((due) => due > step.nowMs), Number.POSITIVE_INFINITY)
@@ -351,6 +327,7 @@ function viewOf(state: LifeState, step: LifeStep): LifeView {
     lines: linesOf(state, step),
     deskItems: state.desks.shown,
     occupied: state.rhythm.occupied,
+    ...(state.crew.sign === undefined ? {} : { wetSign: state.crew.sign }),
     ...(cart === undefined ? {} : { cart: { floor: CART_FLOOR, at: cart } }),
     ...(state.sheets.feedAt === undefined ? {} : { feedAt: state.sheets.feedAt }),
   }
@@ -384,67 +361,4 @@ function linesOf(state: LifeState, step: LifeStep): LifeLine[] {
   }
 
   return [...lines, ...state.rhythm.lines]
-}
-
-// No dot while someone works or walks to their work (the rim and the walk say so); red after an
-// error until the next run; amber for an approval or a question, a carry owed, or a job due.
-function statusesOf(
-  state: LifeState,
-  views: readonly ActorView[]
-): ReadonlyMap<ActorId, ActorStatus> {
-  const held = state.director.actors()
-  const due = dueOwners()
-  const statuses = new Map<ActorId, ActorStatus>()
-
-  for (const view of views) {
-    const actor = held.get(view.id)
-    const status = actor === undefined || view.working ? undefined : statusOf(state, { actor, due })
-
-    if (status !== undefined) {
-      statuses.set(view.id, status)
-    }
-  }
-
-  return statuses
-}
-
-function statusOf(
-  state: LifeState,
-  at: { readonly actor: ActorState; readonly due: ReadonlyMap<ActorId, AgendaRow> }
-): ActorStatus | undefined {
-  const { actor } = at
-  const goal = actor.isLife ? undefined : actor.goal
-
-  if (state.failed.has(actor.def.id)) {
-    return 'failed'
-  }
-
-  if (goal?.requestId !== undefined || actor.isOwed || at.due.has(actor.def.id)) {
-    return 'waiting'
-  }
-
-  return goal === undefined ? 'free' : undefined
-}
-
-// The owner of each job that runs within `JOB_DUE_MS` by the page clock: the brief is the
-// manager's, a scheduled job its agent's.
-function dueOwners(): ReadonlyMap<ActorId, AgendaRow> {
-  const { rows } = agenda.value
-  const now = pageMinute.value.minute
-  const owners = new Map<ActorId, AgendaRow>()
-
-  for (const row of rows) {
-    const untilMs = (row.minute - now) * MS_PER_MINUTE
-    const owner = row.key === BRIEF_ROW_KEY ? BRIEF_OWNER : row.agentId
-
-    if (owner !== undefined && untilMs > 0 && untilMs <= JOB_DUE_MS && isStaffId(owner)) {
-      owners.set(owner, row)
-    }
-  }
-
-  return owners
-}
-
-function isStaffId(id: string): id is ActorId {
-  return rosterDefOf(id) !== undefined
 }

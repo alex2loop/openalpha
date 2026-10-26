@@ -32,8 +32,8 @@ const SCENE_LAYERS: Readonly<Record<string, number>> = Object.freeze({
 })
 // Root files every layer may import; the composer is a root file no layer imports.
 const ROOT_FILES: ReadonlySet<string> = new Set(['types', 'street-types', 'sky-types', 'renderer', 'budgets', 'view'])
-// The composer and the crew it builds: root files no layer imports, free to reach every layer.
-const COMPOSER_FILES: ReadonlySet<string> = new Set([COMPOSER, 'crew'])
+// The composer and the sims it builds: root files no layer imports, free to reach every layer.
+const COMPOSER_FILES: ReadonlySet<string> = new Set([COMPOSER, 'sims'])
 // Same-rank reaches allowed by name: importer layer -> path prefixes under `scene/`.
 const SIDE_REACHES: Readonly<Record<string, readonly string[]>> = Object.freeze({
   render2d: ['sprites/'],

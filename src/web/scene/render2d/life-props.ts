@@ -1,5 +1,6 @@
 import type { FloorId, LifeView, Point, SimView, SteamView } from '@/web/scene/types'
 import { drawBlock, fill, framed } from '@/web/scene/render2d/building'
+import { signPiecesOf } from '@/web/scene/render2d/crew-props'
 import { deskPiecesOf } from '@/web/scene/render2d/desk-items'
 import { paintPet } from '@/web/scene/render2d/pets'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
@@ -34,7 +35,8 @@ interface LifePiece {
   readonly draw: () => void
 }
 
-/** The pets, the dessert cart and the desks' pieces, sorted among the people and the furniture. */
+/** The pets, the dessert cart, the desks' pieces and the wet-floor sign, sorted among the people
+ *  and the furniture. */
 export function buildLifePieces(
   g: CanvasRenderingContext2D,
   at: { readonly sim: SimView; readonly scale: number }
@@ -57,9 +59,16 @@ export function buildLifePieces(
     calendar: at.sim.team.calendar,
   })
 
+  const signs = signPiecesOf(g, { life, floor })
+
   return cart === undefined || cart.floor !== floor
-    ? [...pets, ...desks]
-    : [...pets, ...desks, { sortY: cart.at.y, tie: CART_TIE, draw: () => paintCart(g, cart.at) }]
+    ? [...pets, ...desks, ...signs]
+    : [
+        ...pets,
+        ...desks,
+        ...signs,
+        { sortY: cart.at.y, tie: CART_TIE, draw: () => paintCart(g, cart.at) },
+      ]
 }
 
 /** The printer's stack and the steam, over everything standing on the floor. */

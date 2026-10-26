@@ -6,7 +6,7 @@ import type { ActorNow } from '@/web/scene/overlay/actor-state'
 import type { ActorId, Rect, Size } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { overlayView } from '@/web/scene/overlay/overlay'
-import { ASSISTANT, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, isCrewId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection } from '@/web/scene/view'
 import { selectAgent } from '@/web/state/agents'
 import { setChatOpen } from '@/web/state/chat'
@@ -79,6 +79,10 @@ export const menuActor: ReadonlySignal<ActorId | undefined> = computed(() => ope
  *  assistant (not while paused), its steps and work, stop a run under way, an own agent's
  *  profile. */
 export function menuActionsFor(actor: ActorId, context: MenuContext): readonly MenuAction[] {
+  if (isCrewId(actor)) {
+    return []
+  }
+
   const agentId = ownAgentIdOf(actor)
   const canTalk = agentId !== undefined || actor === ASSISTANT
   const tab = agentId ?? context.parentAgentId ?? (STAFF_TABS.has(actor) ? actor : undefined)

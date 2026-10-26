@@ -1,7 +1,7 @@
-import { Group, OrthographicCamera, Scene, Sprite, Vector2, WebGLRenderer } from 'three'
+import { Group, OrthographicCamera, Scene, Sprite, WebGLRenderer } from 'three'
 
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
-import type { SimView, Size } from '@/web/scene/types'
+import type { SimView } from '@/web/scene/types'
 import { indexDrop } from '@/web/scene/data/board'
 import { syncSeeThrough } from '@/web/scene/render3d/building'
 import {
@@ -18,6 +18,12 @@ import {
   type Standing,
   syncCast,
 } from '@/web/scene/render3d/characters'
+import {
+  createWetSign,
+  disposeWetSign,
+  syncWetSign,
+  type WetSign3d,
+} from '@/web/scene/render3d/crew-props'
 import {
   createDeskItems,
   type DeskItems,
@@ -39,6 +45,7 @@ import {
 import { buildFloor, disposeFloor, type FloorScene } from '@/web/scene/render3d/floor'
 import { createShapes, type Shapes } from '@/web/scene/render3d/instancing'
 import { createLamps, disposeLamps, type Lamps, syncLamps } from '@/web/scene/render3d/lamps'
+import { createLift3d, disposeLift3d, type Lift3d, syncLift3d } from '@/web/scene/render3d/lift'
 import { createLighting, type Lighting, syncLighting } from '@/web/scene/render3d/lights'
 import { createPets, disposePets, type Pets, syncPets } from '@/web/scene/render3d/pets'
 import {
@@ -47,6 +54,7 @@ import {
   type ScreenFaces,
   syncScreenFaces,
 } from '@/web/scene/render3d/screen-faces'
+import { resize, syncStageColor } from '@/web/scene/render3d/stage-fit'
 import {
   createStreetPlanes,
   disposeStreetPlanes,
@@ -71,16 +79,12 @@ import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
 import { flashOf } from '@/web/scene/sprites/sky-glass'
 import { selectedActor } from '@/web/state/focus'
-import { colorScheme, reducedMotion } from '@/web/state/prefs'
+import { reducedMotion } from '@/web/state/prefs'
 
 const CANVAS_CLASS = 'scene-canvas'
-const STAGE_TOKEN = '--stage'
-const STAGE_FALLBACK = 0xffffff
-const MAX_PIXEL_RATIO = 2
 const CAMERA_NEAR = 1
 const CAMERA_FAR = 400
 const MAX_FRAME_DT_MS = 100
-const paneSize = new Vector2()
 const IDENTITY: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
 // One mounted WebGL canvas and everything it owns.
@@ -100,6 +104,8 @@ interface Stage extends CameraRig {
   readonly desks: DeskItems
   readonly street: StreetPlanes
   readonly weather: Weather3d
+  readonly lift: Lift3d
+  readonly sign: WetSign3d
   floor: FloorScene | undefined
   scheme: string
   lastAt: number | undefined
@@ -198,6 +204,8 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
     desks: createDeskItems(shapes, lighting.materials, root),
     street: createStreetPlanes(scene),
     weather: createWeather3d(root, lighting.materials),
+    lift: createLift3d(shapes, lighting.materials, root),
+    sign: createWetSign(shapes, lighting.materials, root),
     floor: undefined,
     shot: undefined,
     placement: { scale: 1, originX: 0, originY: 0 },
@@ -228,6 +236,8 @@ function releaseStage(stage: Stage | undefined): void {
   disposeDeskItems(stage.desks)
   disposeStreetPlanes(stage.street)
   disposeWeather3d(stage.weather)
+  disposeLift3d(stage.lift)
+  disposeWetSign(stage.sign)
 
   for (const one of [...stage.lighting.disposables, ...stage.shapes.disposables]) {
     one.dispose()
@@ -256,7 +266,7 @@ function drawFrame(stage: Stage, sim: SimView, now: number): DrawnFrame {
 
   const dtMs = Math.min(MAX_FRAME_DT_MS, now - (stage.lastAt ?? now))
   const isReduced = reducedMotion.value
-  const isResized = resize(stage, pane)
+  const isResized = resize(stage.renderer, pane)
   const camera = placeCamera(stage, { pane, dtMs, isReduced })
   const isNewFloor = syncFloor(stage, sim)
   const scene = syncScene(stage, { sim, now, dtMs, isReduced })
@@ -359,7 +369,8 @@ function syncDressing(
   const effectFrame = { sim, now, level, isReduced }
   const effects = syncEffects(stage.effects, effectFrame)
   const team = syncTeamPieces(stage.team, effectFrame)
-  const isShown = syncFacesAndLamps(stage, sim)
+  const isFaced = syncFacesAndLamps(stage, sim)
+  const isShown = syncCrewPieces(stage, sim) || isFaced
   const isDesked = syncDeskItems(stage.desks, {
     floor: sim.floor,
     props,
@@ -379,6 +390,14 @@ function syncDressing(
     isChanged: isFixed || effects.isChanged || team.isChanged || isPetMoved || isShown || isDesked,
     isMoving: effects.isMoving || team.isMoving,
   }
+}
+
+// The lift on the floor shown and the cleaner's wet-floor sign.
+function syncCrewPieces(stage: Stage, sim: SimView): boolean {
+  const isLifted = syncLift3d(stage.lift, { floor: sim.floor, view: sim.lift })
+  const isSigned = syncWetSign(stage.sign, sim)
+
+  return isLifted || isSigned
 }
 
 // The screen faces and cork boards, and the lamps' lights nearest the camera's centre.
@@ -409,36 +428,6 @@ function syncFloor(stage: Stage, sim: SimView): boolean {
 
   stage.floor = buildFloor(sim.floor, stage.lighting)
   stage.scene.add(stage.floor.group)
-
-  return true
-}
-
-// The pane's stage colour behind the building, read once per scheme.
-function syncStageColor(stage: Stage): boolean {
-  const scheme = colorScheme.value
-
-  if (stage.scheme === scheme) {
-    return false
-  }
-
-  const stageColor = getComputedStyle(stage.canvas).getPropertyValue(STAGE_TOKEN).trim()
-
-  stage.scheme = scheme
-  stage.renderer.setClearColor(stageColor === '' ? STAGE_FALLBACK : stageColor)
-
-  return true
-}
-
-function resize(stage: Stage, pane: Size): boolean {
-  const ratio = Math.min(devicePixelRatio, MAX_PIXEL_RATIO)
-  const held = stage.renderer.getSize(paneSize)
-
-  if (stage.renderer.getPixelRatio() === ratio && held.x === pane.w && held.y === pane.h) {
-    return false
-  }
-
-  stage.renderer.setPixelRatio(ratio)
-  stage.renderer.setSize(pane.w, pane.h, false)
 
   return true
 }

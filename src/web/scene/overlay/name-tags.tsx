@@ -1,6 +1,6 @@
 import type { MessageKey } from '@/i18n'
 import type { ActorId, Rect, RoleId } from '@/web/scene/types'
-import { ownAgentIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { isCrewId, ownAgentIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { agents } from '@/web/state/agents'
 import { locale } from '@/web/state/session'
 import { TRUNCATION_MARK } from '@/web/text/glyphs'
@@ -23,6 +23,9 @@ const ROLE_NAME_KEYS: Readonly<Record<RoleId, MessageKey>> = Object.freeze({
   keeper: 'ui.office.role.keeper',
   assistant: 'ui.office.role.assistant',
   clerk: 'ui.office.role.clerk',
+  receptionist: 'ui.office.crew.receptionist',
+  guard: 'ui.office.crew.guard',
+  cleaner: 'ui.office.crew.cleaner',
 } satisfies Record<RoleId, MessageKey>)
 
 /** A placed name tag: under its person's feet; `isMore` when its bubble found no room. */
@@ -55,7 +58,7 @@ export function tagTextOf(actor: ActorId, isMore: boolean, childRole?: string): 
 }
 
 function nameOf(actor: ActorId): string {
-  const def = rosterDefOf(actor)
+  const def = isCrewId(actor) ? { role: actor } : rosterDefOf(actor)
   const agentId = ownAgentIdOf(actor)
 
   if (def !== undefined) {

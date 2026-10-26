@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { RoomId, SimView } from '@/web/scene/types'
 import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
-import { type Crew, createCrew, disposeCrew } from '@/web/scene/crew'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
 import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/data/board'
 import { exDividends, startExDividends } from '@/web/scene/data/ex-dividends'
@@ -47,6 +46,7 @@ import { isChildActorId } from '@/web/scene/sim/actors/roster'
 import { isRoomLit, lampGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { homePhase, isClosedPhase, moment } from '@/web/scene/sim/rhythm'
+import { createSims, disposeSims, type Sims } from '@/web/scene/sims'
 import {
   bringIntoView,
   canFollow,
@@ -119,7 +119,7 @@ function createRenderers(): Renderers {
 function mountScene(element: HTMLElement, renderers: Renderers): () => void {
   const renderer = renderers.host
   const stops = startReads()
-  const sims = createCrew()
+  const sims = createSims()
 
   renderer.mount(element)
 
@@ -155,7 +155,7 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
 
     loop.stop()
     overlay.stop()
-    disposeCrew(sims)
+    disposeSims(sims)
     selectActor(undefined)
     renderer.unmount()
 
@@ -178,7 +178,7 @@ function startReads(): (() => void)[] {
   ]
 }
 
-interface LoopParts extends Crew {
+interface LoopParts extends Sims {
   readonly renderer: SceneRenderer
   readonly overlay: OverlayPass
   readonly input: InputSlot
@@ -190,19 +190,20 @@ function createSceneLoop(parts: LoopParts): {
   readonly loop: ReturnType<typeof createSimLoop>
   readonly readView: () => SimView
 } {
-  const { director, life, team, street, renderer, overlay, input } = parts
+  const { lift, director, life, team, street, renderer, overlay, input } = parts
   let drawn = buildSimView(parts, 0)
   const loop = createSimLoop({
     step: (index) => {
       const nowMs = performance.now()
       // Life first, so a goal it sets walks in this step rather than waiting for the next wake.
       const isLiving = life.step(index)
+      const isLifted = lift.step(nowMs)
       const isDirected = director.step(index)
       const isTeamed = team.step(nowMs)
       const isStreetMoving = street.step(nowMs)
       const isInputMoving = input.current?.step(nowMs) ?? false
 
-      return isInputMoving || isTeamed || isLiving || isDirected || isStreetMoving
+      return isInputMoving || isTeamed || isLiving || isLifted || isDirected || isStreetMoving
     },
     draw: (alpha, now) => {
       drawn = buildSimView(parts, alpha)
@@ -239,6 +240,7 @@ function nextDueOf(parts: LoopParts, drawn: SimView): number {
 
   return Math.min(
     parts.director.nextDueAt(),
+    parts.lift.nextDueAt(),
     parts.life.nextDueAt(),
     parts.team.nextDueAt(nowMs),
     parts.street.nextDueAt(),
@@ -248,7 +250,7 @@ function nextDueOf(parts: LoopParts, drawn: SimView): number {
   )
 }
 
-function buildSimView(parts: Crew, alpha: number): SimView {
+function buildSimView(parts: Sims, alpha: number): SimView {
   const life = parts.life.view()
   const lit = new Set<RoomId>(
     ROOMS.filter((room) => isRoomLit(room.id, life.occupied)).map((room) => room.id)
@@ -272,6 +274,7 @@ function buildSimView(parts: Crew, alpha: number): SimView {
     life,
     team: parts.team.view(performance.now()),
     street: parts.painter.paint(parts.street.view(), visibleRect(), pageMinute.value),
+    lift: parts.lift.view(),
   }
 }
 

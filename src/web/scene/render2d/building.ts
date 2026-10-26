@@ -267,7 +267,7 @@ function paintDoorways(g: CanvasRenderingContext2D, doors: readonly Door[]): voi
   }
 }
 
-// The east, west and south glass, with the west doorway left open.
+// The east, west and south glass, with the west doorway left open between its two jambs.
 function paintEdges(g: CanvasRenderingContext2D, doors: readonly Door[]): void {
   const west = doors.find((door) => door.isWest === true)
   const gapFrom = west?.at.y ?? WORLD.h
@@ -281,6 +281,11 @@ function paintEdges(g: CanvasRenderingContext2D, doors: readonly Door[]): void {
   ] satisfies Box[]) {
     fill(g, [x, y, w, h], GLASS_TINT)
     fill(g, w > h ? [x, y + h - 1, w, 1] : [x === 0 ? 0 : x + w - 1, y, 1, h], WALL_TONES.frame)
+  }
+
+  if (west !== undefined) {
+    fill(g, [0, gapFrom - 2, 4, 2], WALL_TONES.dark)
+    fill(g, [0, gapTo, 4, 2], WALL_TONES.dark)
   }
 
   for (let y = WALL_BAND_PX; y < WORLD.h; y += MULLION_STEP) {

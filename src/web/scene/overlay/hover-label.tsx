@@ -76,7 +76,7 @@ export function personNameOf(sim: SimView, actor: ActorId): string {
 /** A person's name and what they do now: their run and where it came from (or its step and how
  *  long it has run), what waits on you or for its turn, the office life's moment, else their dot. */
 export function hoverTextOf(name: string, now: ActorNow, epochMs: number): string {
-  return joinInline([name, lineOf(now, epochMs)])
+  return now.kind === 'crew' ? name : joinInline([name, lineOf(now, epochMs)])
 }
 
 /** What a person answers when the operator clicks them, from what they really do. */
@@ -110,6 +110,8 @@ function lineOf(now: ActorNow, epochMs: number): string {
         runLineOf(now.run, epochMs),
         ...(now.overtime === undefined ? [] : [now.overtime]),
       ])
+    case 'crew':
+      return ''
     case 'errand':
     case 'life':
       return now.line

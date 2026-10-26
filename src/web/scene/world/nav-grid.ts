@@ -1,7 +1,7 @@
 import { type FloorId, type Point, type Rect, WORLD } from '@/web/scene/types'
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS, type Wall } from '@/web/scene/world/floors'
-import { isWallMounted, propsOn } from '@/web/scene/world/props'
+import { isTight, isWallMounted, propsOn } from '@/web/scene/world/props'
 import { roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { setCapped } from '@/web/state/capped-map'
 
@@ -72,6 +72,10 @@ function buildGrid(floor: FloorId, extra: readonly Rect[]): NavGrid {
     markRect(blocked, grow(rect, NAV_CLEARANCE_PX), 1)
   }
 
+  for (const prop of propsOn(floor).filter(isTight)) {
+    markRect(blocked, prop.rect, 1)
+  }
+
   // The lift door is reached, not walked round: it blocks its own box only.
   markRect(blocked, FLOORS[floor].lift, 1)
 
@@ -126,7 +130,7 @@ function openRectsOf(floor: FloorId): Rect[] {
 function blockRectsOf(floor: FloorId): Rect[] {
   const def = FLOORS[floor]
   const feet = propsOn(floor)
-    .filter((prop) => !isWallMounted(prop))
+    .filter((prop) => !(isWallMounted(prop) || isTight(prop)))
     .map((prop) => prop.rect)
 
   const walls = def.walls.flatMap((wall) => toWallRects(wall, roomTopsOf(floor)))
