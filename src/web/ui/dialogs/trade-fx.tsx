@@ -7,6 +7,7 @@ import { ApiFailure } from '@/web/api/client'
 import { holdingsBlock } from '@/web/state/market'
 import { locale } from '@/web/state/session'
 import { previewLedger } from '@/web/state/trade'
+import { formatFieldFigure } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TextField } from '@/web/ui/dialogs/trade-fields'
 import { currencyOf } from '@/web/ui/dialogs/trade-kinds'
@@ -91,10 +92,11 @@ function askRate(form: TradeForm, draft: LedgerDraft, signal: AbortSignal): void
 function applyRate(form: TradeForm, fxRate: LedgerPreviewResponse['fxRate']): void {
   const shown = form.fxRate.value
   const typed = form.rate.value.trim()
-  const isUntouched = typed === '' || (shown !== undefined && typed === String(shown.rate))
+  const isUntouched =
+    typed === '' || (shown !== undefined && typed === formatFieldFigure(shown.rate))
 
   if (fxRate !== undefined && isUntouched) {
-    form.rate.value = String(fxRate.rate)
+    form.rate.value = formatFieldFigure(fxRate.rate)
   }
 
   form.fxRate.value = fxRate

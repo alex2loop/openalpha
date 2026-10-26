@@ -13,7 +13,7 @@ import {
 } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { isAmbiguousGrouping } from '@/web/text/decimal'
-import { formatPrice, formatQuantity } from '@/web/text/figures'
+import { formatFieldFigure, formatPrice, formatQuantity } from '@/web/text/figures'
 import { formatMarketPrice, toWholeUnits } from '@/web/text/market-price'
 import { buildDayKey } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
@@ -125,20 +125,20 @@ function startFigures({ entry, quantity, amount, currency }: TradeStart): Figure
   const held = entry === undefined ? undefined : heldFigure(entry)
 
   return {
-    quantity: signal(textOf(held ?? quantity)),
+    quantity: signal(formatFieldFigure(held ?? quantity)),
     price: signal(
       entry !== undefined && 'unitPrice' in entry
         ? formatPrice(entry.unitPrice, priceDisplayOf(entry.instrument.market))
         : ''
     ),
-    fee: signal(entry !== undefined && 'fee' in entry ? String(entry.fee) : ''),
+    fee: signal(formatFieldFigure(entry !== undefined && 'fee' in entry ? entry.fee : undefined)),
     amount: signal(
-      entry !== undefined && 'amount' in entry ? String(entry.amount) : textOf(amount)
+      formatFieldFigure(entry !== undefined && 'amount' in entry ? entry.amount : amount)
     ),
     currency: signal(
       entry !== undefined && 'currency' in entry ? entry.currency : (currency ?? '')
     ),
-    rate: signal(textOf(entry === undefined ? undefined : bookedRate(entry))),
+    rate: signal(formatFieldFigure(entry === undefined ? undefined : bookedRate(entry))),
   }
 }
 
@@ -148,10 +148,6 @@ function heldFigure(entry: LedgerEntryWire): number | undefined {
   }
 
   return 'quantityDelta' in entry ? entry.quantityDelta : undefined
-}
-
-function textOf(value: number | undefined): string {
-  return value === undefined ? '' : String(value)
 }
 
 /** The text the form holds, to tell an edited form from an untouched one. */

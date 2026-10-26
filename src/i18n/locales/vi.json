@@ -1503,7 +1503,7 @@
     "office.trade.transferNote": "Chuyển tiền giữa các sàn của bạn; không tính là nạp hay rút.",
     "office.trade.sameVenue": "Bạn chọn hai sàn khác nhau nhé.",
     "office.trade.badAmount": "Số tiền phải là số lớn hơn 0.",
-    "office.trade.fxPrefill": "giá thị trường ngày {day}",
+    "office.trade.fxPrefill": "Giá thị trường ngày {day}",
     "office.trade.fxPreviewFailed": "Mình chưa đọc được tỷ giá ngày đó nên chưa ghi được.",
     "office.trade.badRate": "Tỷ giá bạn đã trả phải là số lớn hơn 0.",
     "office.trade.badDelta": "Số cổ phiếu phải là số nguyên khác 0."
