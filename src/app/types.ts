@@ -1,5 +1,6 @@
 import type { DeliveryHub } from '@/app/delivery'
 import type { LiveFeed } from '@/app/server/feed/live'
+import type { SignInCodes } from '@/app/server/http/sign-in-codes'
 import type { ChannelDefinition } from '@/channels/api'
 import type { Command, Group } from '@/cli/api'
 import type { KeyValidator } from '@/commands/api'
@@ -45,6 +46,13 @@ export interface ApiRouteContext {
   readonly app: App
   readonly token: string
   readonly live: LiveFeed
+  readonly ip: string | null
+  /** The origin of the page the request belongs to, as `resolvePageOrigin` found it. */
+  readonly pageOrigin: string
+  readonly cookieName: string
+  readonly codes: SignInCodes
+  /** The browser session the request came from; absent for the bearer token and on open routes. */
+  readonly browserSessionId?: string
 }
 
 /** A section whose backing store may be absent. A route naming one answers 503 until it exists —

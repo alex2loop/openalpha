@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -15,10 +15,12 @@ const LOCKOUT_MS = 30_000
 /** Exponential-backoff ceiling: 1h. */
 const MAX_LOCKOUT_MS = 3_600_000
 const MAX_PEERS = 1024
+const SECRET_BYTES = 32
 
 const LOOPBACK_ADDRESSES: readonly string[] = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
 const LOOPBACK_HOSTNAMES: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
 const PAGE_SCHEME = 'http://'
+const BEARER_PREFIX = 'Bearer '
 
 interface PeerState {
   fails: number
@@ -50,39 +52,21 @@ function isTokenEqual(got: string, token: string): boolean {
 }
 
 /** What a request offered: a matching token, a token that does not match, or nothing at all. */
-type Credential = 'valid' | 'wrong' | 'absent'
+export type Credential = 'valid' | 'wrong' | 'absent'
 
-function toCredential(presented: readonly string[], token: string): Credential {
-  if (presented.length === 0) {
+export function resolveBearerCredential(header: string | null, token: string): Credential {
+  if (header?.startsWith(BEARER_PREFIX) !== true) {
     return 'absent'
   }
 
-  return presented.some((got) => isTokenEqual(got, token)) ? 'valid' : 'wrong'
-}
-
-function bearerOf(header: string | null): string[] {
-  return header?.startsWith('Bearer ') === true ? [header.slice('Bearer '.length)] : []
-}
-
-export function resolveBearerCredential(header: string | null, token: string): Credential {
-  return toCredential(bearerOf(header), token)
-}
-
-/** The socket can carry the token in the header or in `?token=` — a browser WebSocket sets no headers. */
-export function resolveWebSocketCredential(req: Request, token: string): Credential {
-  const query = new URL(req.url).searchParams.get('token')
-
-  return toCredential(
-    [...bearerOf(req.headers.get('authorization')), ...(query === null ? [] : [query])],
-    token
-  )
+  return isTokenEqual(header.slice(BEARER_PREFIX.length), token) ? 'valid' : 'wrong'
 }
 
 export type AuthOutcome = 'ok' | 'locked' | 'unauthorized'
 
-// One lockout accounting for HTTP and WS auth. Every peer is loopback, so the lockout is one shared
-// key: a valid token is never refused because of it (and clears it), and only a request that
-// presents a wrong token counts toward it.
+// One lockout accounting for HTTP, WS and the code exchange. Every peer is loopback, so the lockout
+// is one shared key: a valid token, code or session is never refused because of it (and clears it),
+// and only a wrong token or a wrong or used code counts toward it.
 export function resolveAuthOutcome(
   ip: string | null,
   credential: Credential,
@@ -109,20 +93,42 @@ export function resolveAuthOutcome(
   return 'unauthorized'
 }
 
-/** A rebinding page reaches the loopback port under its own name, so only a loopback name passes.
- *  Any port does: an SSH tunnel serves the daemon on a local port of its own. */
-export function isHostAllowed(host: string | null): boolean {
-  return host !== null && LOOPBACK_HOSTNAMES.includes(toPageUrl(host)?.hostname ?? '')
-}
+/** The origin of the page a request belongs to, from its `Host`: `http://<host>` for a loopback
+ *  name on any port (an SSH tunnel serves the daemon on a local port of its own), `publicUrl` for
+ *  its own host, else `undefined`. A rebinding page reaches the loopback port under its own name,
+ *  so it gets none. */
+export function resolvePageOrigin(
+  host: string | null,
+  publicUrl: string | undefined
+): string | undefined {
+  const page = host === null ? undefined : toPageUrl(host)
 
-/** Native clients send no Origin; a browser's WebSocket must come from the page it was opened on,
- *  so another local web app (a dev server on another port) is refused. */
-export function isOriginAllowed(origin: string | null, host: string | null): boolean {
-  if (origin === null) {
-    return true
+  if (page === undefined) {
+    return undefined
   }
 
-  return host !== null && origin === toPageUrl(host)?.origin
+  if (LOOPBACK_HOSTNAMES.includes(page.hostname)) {
+    return page.origin
+  }
+
+  return publicUrl !== undefined && page.host === new URL(publicUrl).host ? publicUrl : undefined
+}
+
+/** Native clients send no Origin; a browser must come from the page it was opened on, so another
+ *  local web app (a dev server on another port) is refused. */
+export function isOriginAllowed(origin: string | null, pageOrigin: string): boolean {
+  return origin === null || origin === pageOrigin
+}
+
+/** A fresh random secret: a sign-in code or a browser session's cookie value. */
+export function buildSecret(): string {
+  return randomBytes(SECRET_BYTES).toString('base64url')
+}
+
+/** What is kept of a code or a session secret. Keyed by the API token, so a token change ends
+ *  every browser session. */
+export function toSecretHash(secret: string, token: string): string {
+  return createHmac('sha256', token).update(secret).digest('hex')
 }
 
 function toPageUrl(host: string): URL | undefined {

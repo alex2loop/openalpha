@@ -1,4 +1,5 @@
 import type { AuthOutcome } from '@/app/server/http/auth'
+import type { Caller } from '@/app/server/http/caller'
 import type {
   ApiError,
   ApiErrorCode,
@@ -8,7 +9,8 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
-import { isLoopback, resolveAuthOutcome, resolveBearerCredential } from '@/app/server/http/auth'
+import { isLoopback, resolveAuthOutcome } from '@/app/server/http/auth'
+import { resolveCaller, SET_COOKIE } from '@/app/server/http/caller'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
@@ -74,10 +76,7 @@ function isCapabilityDenied(app: App, route: ApiRouteSpec): boolean {
   return !buildCapabilities(app)[route.capability]
 }
 
-export async function handleHttp(
-  req: Request,
-  ctx: ApiRouteContext & { readonly ip: string | null }
-): Promise<Response> {
+export async function handleHttp(req: Request, ctx: ApiRouteContext): Promise<Response> {
   // Defence in depth: Bun.serve already binds 127.0.0.1, so a non-loopback peer should be impossible.
   if (!isLoopback(ctx.ip)) {
     return apiError('forbidden')
@@ -93,18 +92,41 @@ export async function handleHttp(
   }
 
   if (route.auth) {
-    const refusal = resolveAuthRefusal(req, ctx)
+    return runAuthorized(route, req, ctx)
+  }
 
-    if (refusal !== null) {
-      return refusal
-    }
+  return isCapabilityDenied(ctx.app, route) ? apiError('unavailable') : runHandler(route, req, ctx)
+}
+
+/** A route behind auth: the bearer token or the session cookie, then the capability, then the
+ *  handler with the browser session it came from. */
+async function runAuthorized(
+  route: ApiRouteSpec,
+  req: Request,
+  ctx: ApiRouteContext
+): Promise<Response> {
+  const caller = await resolveAuthorizedCaller(req, ctx)
+
+  if (caller instanceof Response) {
+    return caller
   }
 
   if (isCapabilityDenied(ctx.app, route)) {
     return apiError('unavailable')
   }
 
-  return runHandler(route, req, { app: ctx.app, token: ctx.token, live: ctx.live })
+  const { browserSessionId, renewCookie } = caller
+  const response = await runHandler(route, req, {
+    ...ctx,
+    ...(browserSessionId === undefined ? {} : { browserSessionId }),
+  })
+
+  // A cookie the handler set (sign-out) is the answer; a renewal would overwrite it.
+  if (renewCookie !== undefined && !response.headers.has(SET_COOKIE)) {
+    response.headers.append(SET_COOKIE, renewCookie)
+  }
+
+  return response
 }
 
 /** The one error boundary for the whole route table. Without it a throwing handler answers with a
@@ -213,15 +235,25 @@ export function toErrorCode(err: unknown): ApiErrorCode {
   return err instanceof ChannelError ? 'upstream_failed' : 'internal'
 }
 
-function resolveAuthRefusal(
+/** Who sent the request, or the refusal to answer instead. HTTP and the socket upgrade both ask
+ *  here, so a cookie and a token are judged alike on each. */
+export async function resolveAuthorizedCaller(
   req: Request,
-  ctx: { readonly token: string; readonly ip: string | null }
-): Response | null {
-  // One clock read per request: the lockout window and the failure it records must agree.
+  ctx: Pick<ApiRouteContext, 'app' | 'token' | 'ip' | 'pageOrigin' | 'cookieName'>
+): Promise<Caller | Response> {
+  // One clock read per request: the lockout window, the failure it records and the session's
+  // idle cutoff must agree.
   const now = Date.now()
-  const credential = resolveBearerCredential(req.headers.get('authorization'), ctx.token)
+  const caller = await resolveCaller(req, {
+    token: ctx.token,
+    sessions: ctx.app.resolve('browserSessionStore'),
+    pageOrigin: ctx.pageOrigin,
+    cookieName: ctx.cookieName,
+    now,
+    logger: ctx.app.resolve('logger'),
+  })
 
-  return toAuthRefusal(resolveAuthOutcome(ctx.ip, credential, now))
+  return toAuthRefusal(resolveAuthOutcome(ctx.ip, caller.credential, now)) ?? caller
 }
 
 /** The one place an auth verdict becomes a status. HTTP and the WebSocket upgrade refuse alike, so

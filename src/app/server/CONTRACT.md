@@ -28,29 +28,42 @@ this document — neither imports the other.
   steering, and binary dictation audio). No SSE.
 - **Bind:** `127.0.0.1` only (loopback). The `/v1` HTTP routes also verify the request **peer** is
   loopback (defense in depth); `GET /`, its chunks and the `/v1/ws` handshake are answered before
-  that check, so the bind alone guards them (the handshake adds the Origin allow-list below). No
-  remote surface, ever.
+  that check, so the bind alone guards them (the handshake adds the Origin allow-list below). A
+  reverse proxy may front the daemon only with `[api] public_url` set to its `https` address.
 - **Host:** every request MUST carry a `Host` whose hostname is `127.0.0.1`, `localhost` or `[::1]`
-  (any port, so an SSH tunnel's local port passes); any other is `403 forbidden`, which stops a
-  DNS-rebinding page. A reverse proxy passes the daemon's own address as `Host`. A compiled binary
-  serves `GET /` and its chunks behind this check; a source run (`bun run`) serves the page through
-  Bun's `routes`, which answer before it (the page holds no data). A `/v1` request with
+  (any port, so an SSH tunnel's local port passes), or the host of `[api] public_url` (compared
+  without case, default port dropped); any other is `403 forbidden`, which stops a DNS-rebinding
+  page. While `public_url` is unset, a request carrying `X-Forwarded-For` or `Forwarded` is
+  `403 forbidden` with a `message` naming `public_url`. A compiled binary serves `GET /` and its
+  chunks behind these checks; a source run (`bun run`) serves the page through Bun's `routes`,
+  which answer before them (the page holds no data). A `/v1` request with
   `Sec-Fetch-Site: cross-site` is `403 forbidden`; native clients send no `Sec-Fetch-Site` and pass.
-- **Auth:** `Authorization: Bearer <token>` on every route except `GET /v1/health` and `GET /`.
-  `GET /` serves the office page and its content-hashed chunks, unauthenticated: they hold no data,
-  and the page asks for the token before it reads any `/v1` route. Its route cannot carry headers,
-  so it sends no `frame-ancestors` or `X-Frame-Options`; instead the page renders nothing and
-  never reads the token when it is loaded inside a frame. The `/v1/ws`
-  **handshake** takes the same bearer header (native `URLSessionWebSocketTask` sets it) **or**, because
-  browsers cannot set headers on a WS handshake, a `?token=<token>` query param. Token at
-  `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod `0600`,
-  generated on first enable. Compared constant-time.
-  The `/v1/ws` handshake also enforces an **Origin allow-list**: a present `Origin` header MUST
-  be `http://` plus the request's own `Host` (scheme, host and port), so only the page the daemon
-  served opens the socket and another local web app is refused; native clients send no `Origin`
-  and pass. Requests presenting a wrong token, on HTTP and WS alike, count toward the same per-peer
-  lockout (5 failures → 30s backoff, doubling to 1h). A request with no credentials is refused
-  without counting, and a valid token is never refused by the lockout (it also clears it).
+  The **page origin** is `http://` plus the request's `Host` on loopback, or `public_url`.
+- **Auth:** `Authorization: Bearer <token>` or the browser session cookie on every route except
+  `GET /v1/health`, `POST /v1/session` and `GET /`. `GET /` serves the office page and its
+  content-hashed chunks, unauthenticated: they hold no data, and the page signs in before it reads
+  any `/v1` route. The compiled binary sends `frame-ancestors 'none'`, and the page also refuses to
+  render in a frame. Token at `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor
+  `OPENALPHA_DATA_DIR`), chmod `0600`, generated on first enable. Compared constant-time. When a
+  request carries `Authorization`, the cookie is not read.
+  - **Session cookie:** `oa_session_<port>` on loopback (so a local daemon and a tunnelled one on
+    another port keep separate cookies), `oa_session` through `public_url`; `HttpOnly`,
+    `SameSite=Strict`, `Path=/`, `Secure` through `public_url`. A session ends after 30 days
+    unused; each use renews it, and the cookie is sent again with a fresh `Max-Age` (at most once
+    an hour). The cookie counts only on a request with `Sec-Fetch-Site: same-origin`; a write
+    (any method but `GET`/`HEAD`) and the `/v1/ws` handshake also need `Origin` equal to the page
+    origin. The daemon keeps only a hash of the cookie keyed by the token, so a token change
+    (`api rotate`, a new `token_env` value) ends every session at the restart. Signing out and
+    `DELETE /v1/sessions/:id` close that session's sockets with WS code 4401 `signed_out`.
+  - **WebSocket:** the `/v1/ws` handshake takes the bearer header (native `URLSessionWebSocketTask`
+    sets it) or the session cookie; there is no query-string token. It also enforces an **Origin
+    allow-list**: a present `Origin` header MUST equal the page origin, so only the page the daemon
+    served opens the socket and another local web app is refused; native clients send no `Origin`
+    and pass.
+  - **Lockout:** a wrong token (HTTP and WS alike) and a wrong or used sign-in code count toward
+    the same per-peer lockout (5 failures → 30s backoff, doubling to 1h). A request with no
+    credentials or an unknown cookie is refused without counting, and a valid token, code or
+    session is never refused by the lockout (it also clears it).
 - **Opt-in:** off by default (`[api].enabled = false`). When off, no socket is bound and the daemon is
   byte-for-byte unchanged.
 - **Encoding:** JSON, `camelCase` keys, UTF-8. No snake_case on the wire. WS **text** frames are JSON
@@ -154,7 +167,12 @@ this document — neither imports the other.
 | POST | `/v1/trade/halt` | yes (`orders`) | `HaltBody` | `TradeActionResponse` | — |
 | POST | `/v1/trade/reconcile` | yes (`orders`) | — | `ReconcileOrdersResponse` (`orphanExits`: exits resting at a venue that no row tracks, listed and never cancelled; `unreadExitVenues`: venues whose exits could not be listed, so an empty `orphanExits` says nothing about them) | — |
 | DELETE | `/v1/trade/unmirrored/:token` | yes (`orders`) | — | `TradeActionResponse` | — |
-| GET | `/v1/ws` | yes (header or `?token=`) | WebSocket upgrade | 101 → §4 (feed) + §5 (chat) | `event.samples.json`, `chat.frames.json`, `chat.done.json`, `chat.error.json` |
+| POST | `/v1/session/code` | yes (token only) | — | `BrowserSignInCode` `{ code }`: a one-time code for `POST /v1/session`, good for `SIGN_IN_CODE_TTL_MS` (5 minutes); at most 16 wait at once, the oldest dropped first. A browser session is `unauthorized`: only the token mints codes | `session.code.json` |
+| POST | `/v1/session` | no | `BrowserSignInBody` `{ code }` | `BrowserSignInResult` `{ ok: true }` with the session cookie in `Set-Cookie`. A wrong, used or expired code is `unauthorized` and counts toward the lockout; a valid one clears it. At most 20 sessions are kept; a new one drops the least recently used | — |
+| POST | `/v1/session/logout` | yes | — | `BrowserSessionEndResult` `{ ended }` and a `Set-Cookie` that clears the cookie; the calling browser's session is removed and its sockets closed. `ended` is false for the token, which has no session | — |
+| GET | `/v1/sessions` | yes | — | `BrowserSessionList` (`sessions`: the signed-in browsers, last used first; `label` is "<browser>, <os>" from the User-Agent, `''` when neither is known; `current` marks the browser that asked) | `sessions.json` |
+| DELETE | `/v1/sessions/:id` | yes | — | `BrowserSessionEndResult` `{ ended }`: the session is removed and its sockets closed; false for an unknown id | — |
+| GET | `/v1/ws` | yes (header or cookie) | WebSocket upgrade | 101 → §4 (feed) + §5 (chat) | `event.samples.json`, `chat.frames.json`, `chat.done.json`, `chat.error.json` |
 
 The trading shapes are in `wire/trading.ts`. The realtime feed and chat are **not** HTTP routes —
 they are messages on the single `/v1/ws` socket (§4, §5). The `event.samples.json` / `chat.*.json`
@@ -252,7 +270,10 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client
   can tell a daemon too old for it before opening the socket. `brand` is the product's display name,
   so a page's sign-in screen names it before the token is entered, with no `package.json` bundled.
-- **Office page link**: `api link` prints `http://127.0.0.1:<port>/#token=<token>` with the token passed through `encodeURIComponent`; the page reads the fragment and applies `decodeURIComponent`.
+- **Browser sign-in**: a terminal holding the token mints a code with `POST /v1/session/code` and
+  opens the page at `/#code=<code>`; the page trades it once with `POST /v1/session` for the
+  session cookie. A code is single use and lapses after `SIGN_IN_CODE_TTL_MS`; codes live in
+  memory, so a restart drops them, while sessions are stored and survive it.
 - **`/v1/state` degraded**: what the daemon started without, one entry per item, worded in the
   daemon's language: `channel` (a chat channel left down, `subject` its id), `api`, `key` (an unset
   key variable or an exchange with no keys, with what waits for it) and `optional-key` (a feature with

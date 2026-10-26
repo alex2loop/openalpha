@@ -41,8 +41,10 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 
 const MAX_SOCKETS = 8
-// Defense-in-depth: reject before JSON.parse regardless of the server-level maxPayloadLength.
-const MAX_WS_FRAME_BYTES = 1_048_576
+// The server's maxPayloadLength, and a second check before JSON.parse.
+export const MAX_WS_FRAME_BYTES = 1_048_576
+const SIGNED_OUT_CLOSE_CODE = 4401
+const SIGNED_OUT_REASON = 'signed_out'
 
 const CHAT_CLIENT_ID_RE = /^[A-Za-z0-9_-]+$/
 const CHAT_FIELDS = {
@@ -84,6 +86,8 @@ export interface WsServices {
 export interface WsData {
   readonly services: WsServices
   readonly token: string
+  /** The browser session that opened the socket; absent for a bearer-token client. */
+  readonly browserSessionId?: string
   readonly activeRuns: Map<SessionId, Set<AbortController>>
   /** The slash commands among `activeRuns`, so a chat reset stops them without stopping the agent turn
    *  that shares the session's set. The value is the lane entry id of a self-contained command. */
@@ -298,6 +302,16 @@ export function closeAllSockets(): void {
   for (const ws of [...sockets]) {
     closeSocket(ws)
     ws.close(1001, 'shutdown')
+  }
+}
+
+/** Closes the sockets a browser session opened, once it has ended. */
+export function closeSocketsOf(browserSessionId: string): void {
+  for (const ws of [...sockets]) {
+    if (ws.data.browserSessionId === browserSessionId) {
+      closeSocket(ws)
+      ws.close(SIGNED_OUT_CLOSE_CODE, SIGNED_OUT_REASON)
+    }
   }
 }
 

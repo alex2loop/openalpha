@@ -11,6 +11,8 @@ export type {
 } from '@/core/types/session'
 export type { Dialect, DialectName, FtsSearch, Storage, Transaction } from '@/core/types/storage'
 export type {
+  BrowserSessionRow,
+  BrowserSessionStore,
   LLMAttempt,
   LLMAttemptStore,
   Migration,

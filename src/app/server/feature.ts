@@ -5,6 +5,7 @@ import { withApiRunLimits } from '@/app/server/exposure'
 import { createLiveFeed, type LiveFeed } from '@/app/server/feed/live'
 import { ensureApiToken } from '@/app/server/http/auth'
 import { startApi } from '@/app/server/http/server'
+import { createSignInCodes } from '@/app/server/http/sign-in-codes'
 import { startIdeaWatch } from '@/app/server/push/ideas'
 import { attachAppSurface } from '@/app/server/push/notices'
 import { ACTIVITY_ROUTES } from '@/app/server/routes/activity'
@@ -25,6 +26,7 @@ import { ORDER_ROUTES } from '@/app/server/routes/orders'
 import { OUTBOUND_ROUTES } from '@/app/server/routes/outbound'
 import { RESTART_ROUTES } from '@/app/server/routes/restart'
 import { RUN_ROUTES } from '@/app/server/routes/runs'
+import { SESSION_ROUTES } from '@/app/server/routes/session'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
 import { TASK_ROUTES } from '@/app/server/routes/tasks'
@@ -63,6 +65,7 @@ const ROUTES = [
   ...OUTBOUND_ROUTES,
   ...TASK_ROUTES,
   ...JOB_ROUTES,
+  ...SESSION_ROUTES,
 ] as const
 
 // The HTTP/WS API: the last canonical provider (src/app/providers.ts); the daemon starts it only
@@ -103,7 +106,7 @@ async function startApiSurface(
   // The port can be taken, and a failure after it is bound must release it, or the next start
   // finds it taken. Either way no bus listener of the feed outlives the failed start.
   try {
-    const api = startApi(app, token, live)
+    const api = startApi(app, { token, live, codes: createSignInCodes(token) })
 
     server = api
     detachAppSurface = attachAppSurface(app)
