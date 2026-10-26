@@ -16,6 +16,7 @@ import {
 } from '@/web/scene/sim/street/ped-walk'
 import { spawn } from '@/web/scene/sim/street/spawn'
 import { DELIVERY_DWELL_MS } from '@/web/scene/sim/street/traffic-step'
+import { arriveAtShelter } from '@/web/scene/sim/street/weather-fx'
 import { WORLD } from '@/web/scene/types'
 import { isShopOpen, isWithin, type RegionPack, shopDoorOf } from '@/web/scene/world/regions'
 import { NORTH } from '@/web/scene/world/street-layout'
@@ -50,6 +51,8 @@ const CAFE_MAX = 3
 const CAFE_STAY_MS = Object.freeze({ min: 30_000, span: 110_000 })
 const CAFE_WALK_FROM_PX = 70
 const CAFE_CUP_SHARE = 0.6
+// In the heat the café's shaded seats fill: all four, sought this many times as often.
+const HEAT_CAFE_PULL = 4
 
 /** The clock's due scenes: a waiter now and then outside the night, pupils out of school, a
  *  sitter at the café, someone out to every delivery that stopped. */
@@ -72,8 +75,8 @@ export function scheduleScenes(peds: Peds, at: PedStep): void {
 
   if (
     isWithin(hours.cafe, at.minute) &&
-    countTask(peds, 'sit') < CAFE_MAX &&
-    rng.next() < CHANCES.cafe
+    countTask(peds, 'sit') < (peds.weather.isHeat ? CAFE_SEATS.length : CAFE_MAX) &&
+    rng.next() < CHANCES.cafe * (peds.weather.isHeat ? HEAT_CAFE_PULL : 1)
   ) {
     arriveSitter(peds, at)
   }
@@ -81,9 +84,13 @@ export function scheduleScenes(peds: Peds, at: PedStep): void {
   serveDeliveries(peds, at)
 }
 
-// At the route's end: a waiter takes the spot, a sitter the seat, a receiver waits for the bag
-// then goes back in; everyone else leaves the street.
+// At the route's end: a walker reaches cover, a waiter takes the spot, a sitter the seat, a
+// receiver waits for the bag then goes back in; everyone else leaves the street.
 export function arrive(peds: Peds, ped: Ped, nowMs: number): void {
+  if (arriveAtShelter(peds, ped, nowMs)) {
+    return
+  }
+
   if (ped.spot >= 0 && ped.task === 'walk' && ped.kind === 'waiter') {
     ped.task = 'wait'
     ped.facing = 'south'

@@ -2,6 +2,7 @@ import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { LightRow } from '@/web/scene/sprites/daylight'
 import type { StreetFrame } from '@/web/scene/street-types'
+import { pageMinute } from '@/web/scene/clock/clock'
 import { agenda } from '@/web/scene/data/agenda'
 import { indexDrop } from '@/web/scene/data/board'
 import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
@@ -13,6 +14,7 @@ import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
 import { paintLighting } from '@/web/scene/render2d/lights'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
+import { paintSkyFx } from '@/web/scene/render2d/sky-fx'
 import { blitStreet } from '@/web/scene/render2d/street/blit'
 import {
   buildTeamPieces,
@@ -24,8 +26,9 @@ import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
 import { isCharacterMotionOn, isOnFloor } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
-import { DAY_LIGHT_HOUR, lightAt } from '@/web/scene/sprites/daylight'
+import { lightOf } from '@/web/scene/sprites/daylight'
 import { boardNotes, createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
+import { isGlassMoving } from '@/web/scene/sprites/sky-glass'
 import {
   type FloorId,
   type Point,
@@ -34,7 +37,7 @@ import {
   type Size,
   WORLD,
 } from '@/web/scene/types'
-import { clampPan, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'
+import { clampPan, reportProjection, view, visibleRect, ZOOM_STEP } from '@/web/scene/view'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { roomById } from '@/web/scene/world/rooms'
@@ -42,7 +45,6 @@ import { breakpoint } from '@/web/state/breakpoints'
 import { selectedActor } from '@/web/state/focus'
 import { unread } from '@/web/state/notices'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const CANVAS_CLASS = 'scene-canvas'
 const STAGE_TOKEN = '--stage'
@@ -178,7 +180,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
 
   const fit = placeCamera(surface, pane, dpr)
   const scene = buildPaintScene(surface, sim, fit.scale)
-  const light = lightAt(sim.light.followsHour ? sim.light.hour : DAY_LIGHT_HOUR)
+  const light = lightOf(sim.light)
   const motion = {
     isOn: isCharacterMotionOn(sim.actors, { floor: sim.floor, now }),
     isReduced: reducedMotion.value,
@@ -193,6 +195,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
     motion.isOn ||
     sim.life.animatedFloors.includes(sim.floor) ||
     isFeeding ||
+    isGlassMoving(sim.weather, now, visibleRect()) ||
     (sim.floor === TEAM_FLOOR && isTeamMoving(sim.team, motion.isReduced))
   )
 }
@@ -237,7 +240,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
   return {
     lit: sim.props.lit,
     isAnyLit: sim.props.lit.size > 0,
-    minuteOfDay: sim.light.hour * MINUTES_PER_HOUR,
+    minuteOfDay: pageMinute.value.minute,
     scale,
     isPrinting: isPrintingRun(lib),
     notes: boardNotes.value,
@@ -246,6 +249,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     screens: surface.screens,
     life: sim.life,
     detail: detailOf(scale),
+    isRaining: sim.weather.rain > 0,
   }
 }
 
@@ -292,6 +296,12 @@ function paintFloor(surface: Surface, job: FloorJob): void {
     lampGlow: job.sim.props.lampGlow,
     isClosed: job.sim.props.isClosed,
     ...(dropPct === undefined ? {} : { dropPct }),
+  })
+  paintSkyFx(g, {
+    floor: job.sim.floor,
+    light: job.sim.light,
+    weather: job.sim.weather,
+    now: job.now,
   })
 
   if (job.sim.floor === TEAM_FLOOR) {

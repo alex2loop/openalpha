@@ -1,5 +1,4 @@
 import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { type Shelter, sheltersOf } from '@/web/scene/sim/street/flows'
@@ -71,7 +70,7 @@ const BUS_SIGN_POLE = 3.6
  *  lit at night, and the bus-stop sign beside it. Their waiters are the pedestrians'. */
 export const SHELTERS_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
-    const dark = darknessOf(minute.minute)
+    const dark = minute.light.dark
 
     for (const [index, shelter] of sheltersOf(pack).entries()) {
       const at = { x: shelter.x, y: shelter.stop.side === 'far' ? FAR_Y : NEAR_Y }

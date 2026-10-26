@@ -1,13 +1,14 @@
 import type { MovingScene, PaintPart } from '@/web/scene/render2d/street/paint'
 import type { StreetView } from '@/web/scene/street-types'
 import type { Point } from '@/web/scene/types'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { drawCritter } from '@/web/scene/render2d/street/critters'
 import { drawFlowerBike } from '@/web/scene/render2d/street/flower-bike'
 import { drawPerson } from '@/web/scene/render2d/street/people'
 import { drawVehicle, paintLot, paintSays } from '@/web/scene/render2d/street/vehicles'
 import { isInside } from '@/web/scene/world/rooms'
 
+// Fog turns the headlights on by day.
+const FOG_LAMPS_DARK = 0.6
 const NOWHERE = Number.POSITIVE_INFINITY
 
 /** Everything that moves on the street, in depth order: the parked lot first, then vehicles,
@@ -28,7 +29,9 @@ function paintInDepth(g: CanvasRenderingContext2D, view: StreetView, scene: Movi
   const pass: Pass = {
     view,
     scene,
-    dark: darknessOf(scene.minute.minute),
+    dark: scene.minute.weather.fog
+      ? Math.max(FOG_LAMPS_DARK, scene.minute.light.dark)
+      : scene.minute.light.dark,
     v: 0,
     p: 0,
     c: 0,

@@ -59,10 +59,17 @@ import {
   syncTeamPieces,
   type TeamPieces,
 } from '@/web/scene/render3d/team'
+import {
+  createWeather3d,
+  disposeWeather3d,
+  syncWeather3d,
+  type Weather3d,
+} from '@/web/scene/render3d/weather'
 import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
 import { isActorWalking, isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
-import { DAY_LIGHT_HOUR, type LightRow, lightAt } from '@/web/scene/sprites/daylight'
+import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
+import { flashOf } from '@/web/scene/sprites/sky-glass'
 import { selectedActor } from '@/web/state/focus'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
 
@@ -92,6 +99,7 @@ interface Stage extends CameraRig {
   readonly faces: ScreenFaces
   readonly desks: DeskItems
   readonly street: StreetPlanes
+  readonly weather: Weather3d
   floor: FloorScene | undefined
   scheme: string
   lastAt: number | undefined
@@ -189,6 +197,7 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
     faces: createScreenFaces(root, lighting),
     desks: createDeskItems(shapes, lighting.materials, root),
     street: createStreetPlanes(scene),
+    weather: createWeather3d(root, lighting.materials),
     floor: undefined,
     shot: undefined,
     placement: { scale: 1, originX: 0, originY: 0 },
@@ -218,6 +227,7 @@ function releaseStage(stage: Stage | undefined): void {
   disposeScreenFaces(stage.faces)
   disposeDeskItems(stage.desks)
   disposeStreetPlanes(stage.street)
+  disposeWeather3d(stage.weather)
 
   for (const one of [...stage.lighting.disposables, ...stage.shapes.disposables]) {
     one.dispose()
@@ -286,7 +296,7 @@ function syncScene(
   job: SceneJob
 ): { readonly isChanged: boolean; readonly isAnimating: boolean } {
   const { sim, now, dtMs, isReduced } = job
-  const row = lightAt(sim.light.followsHour ? sim.light.hour : DAY_LIGHT_HOUR)
+  const row = lightOf(sim.light)
   const isMotionOn = isCharacterMotionOn(sim.actors, { floor: sim.floor, now })
   const { lit, lampGlow, isClosed } = sim.props
   const isLightEasing = syncLighting(stage.lighting, {
@@ -295,6 +305,8 @@ function syncScene(
     lampGlow,
     isClosed,
     row,
+    sun: sim.light.sun,
+    flash: flashOf(sim.weather, now),
     dtMs,
     isReduced,
   })
@@ -313,12 +325,13 @@ function syncScene(
     syncSeeThrough(stage.floor.walls, { people: people.standing, dtMs, isReduced })
   const dressing = syncDressing(stage, { job, row, standing: people.standing })
   const isSmall = !isReduced && (isMotionOn || sim.life.animatedFloors.includes(sim.floor))
+  const sky = syncWeather3d(stage.weather, sim, now)
   const isMoving = isLightEasing || people.isSettling || dressing.isMoving || isWallFading
   const isWalking = people.standing.some(({ actor }) => isActorWalking(actor))
 
   return {
-    isChanged: isMoving || isSmall || dressing.isChanged || isWalking,
-    isAnimating: isMoving || isSmall,
+    isChanged: isMoving || isSmall || dressing.isChanged || isWalking || sky.isChanged,
+    isAnimating: isMoving || isSmall || sky.isAnimating,
   }
 }
 

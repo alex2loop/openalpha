@@ -1,12 +1,18 @@
 import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { ErrandItem, PersonView } from '@/web/scene/street-types'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
+import {
+  GEAR_BOX,
+  HAT_KINDS,
+  paintHat,
+  paintUmbrella,
+} from '@/web/scene/render2d/street/people-gear'
 import { PERSON_BOX } from '@/web/scene/render2d/street/rider-art'
+import { paintGroundShadow } from '@/web/scene/render2d/street/shadow'
 import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/sprite-key'
 import { DARK_STEPS } from '@/web/scene/render2d/street/tone'
 import { fill, toneOf } from '@/web/scene/render2d/street/vehicle-art'
-import { HELD_TONES, PALETTE, RAMP } from '@/web/scene/sprites/palette'
+import { HELD_TONES, PALETTE, RAMP, UMBRELLA_TONES } from '@/web/scene/sprites/palette'
 import {
   type HairTone,
   LOOK_PARTS,
@@ -14,7 +20,7 @@ import {
   PANTS_OF,
   type PantsTone,
 } from '@/web/scene/sprites/parts'
-import { ERRAND_ITEMS, HEADINGS, PERSON_KINDS } from '@/web/scene/street-types'
+import { ERRAND_ITEMS, HEADINGS, PERSON_KINDS, STREET_FIGURE_H } from '@/web/scene/street-types'
 
 type Rect4 = readonly [number, number, number, number]
 
@@ -33,7 +39,6 @@ const WAVE_FRAME = 5
 // Bits of a passer-by's look seed each colour is drawn from.
 const LOOK_BITS = Object.freeze({ hair: 2, shirt: 4, pants: 7, pack: 9 })
 const TONES = Object.freeze({
-  shadow: 'rgba(0,0,0,.16)',
   shoe: '#1F2230',
   stool: '#C9544A',
   stoolLeg: '#7A3A34',
@@ -41,7 +46,6 @@ const TONES = Object.freeze({
 // The figure, in world px from its feet: legs standing, the walking legs from the hip, torso,
 // head and hair, a pupil's backpack, arms from the middle detail up, eyes close up.
 const BODY = Object.freeze({
-  shadow: [-1.4, -0.2, 2.8, 0.45],
   legs: [
     [-0.75, -1.8, 0.65, 1.8],
     [0.1, -1.8, 0.65, 1.8],
@@ -136,8 +140,9 @@ export function drawPerson(
   scene: MovingScene
 ): void {
   const detail = scene.minute.detail
-  const darkStep = Math.round(darknessOf(scene.minute.minute) * DARK_STEPS)
+  const darkStep = Math.round(scene.minute.light.dark * DARK_STEPS)
 
+  paintGroundShadow(g, scene.minute, { at: person.at, w: 2.8, h: STREET_FIGURE_H })
   tonesOf(person, drawn)
 
   const held = heldKeyOf(person, {
@@ -150,6 +155,8 @@ export function drawPerson(
   }
 
   const tones = { ...drawn }
+  const isTall = person.umbrella > 0 || person.hat > 0
+  const box = isTall ? GEAR_BOX : PERSON_BOX
 
   drawSprite(
     g,
@@ -157,8 +164,8 @@ export function drawPerson(
       key: held.key,
       box: {
         w: PERSON_BOX.w,
-        h: PERSON_BOX.h,
-        anchor: { x: PERSON_BOX.w / 2, y: PERSON_BOX.anchorY },
+        h: box.h,
+        anchor: { x: PERSON_BOX.w / 2, y: box.anchorY },
         pxPerWorld: SPRITE_PX[detail],
       },
       at: person.at,
@@ -205,6 +212,8 @@ function sigOf(
   sig = sig * FRAMES + Math.min(FRAMES - 1, person.frame)
   sig = sig * (ERRAND_ITEMS.length + 1) + itemIndexOf(person.item)
   sig = sig * (DARK_STEPS + 1) + at.darkStep
+  sig = sig * (UMBRELLA_TONES.length + 1) + person.umbrella
+  sig = sig * HAT_KINDS + person.hat
 
   return sig * SPRITE_PX.length + at.detail
 }
@@ -216,8 +225,6 @@ function itemIndexOf(item: ErrandItem | undefined): number {
 function paintPerson(figure: Figure): void {
   const { g, person } = figure
   const frame = person.frame >= WAVE_FRAME ? 0 : person.frame
-
-  fill(g, TONES.shadow, BODY.shadow)
 
   if (person.kind === 'sitter') {
     paintSeated(figure)
@@ -231,8 +238,10 @@ function paintPerson(figure: Figure): void {
   g.translate(0, bob)
   paintTorso(figure, frame)
   paintHead(figure)
+  paintHat(g, person, (hex) => colourOf(figure, hex))
   paintWave(figure)
   paintItem(figure)
+  paintUmbrella(g, person, (hex) => colourOf(figure, hex))
   g.restore()
 }
 

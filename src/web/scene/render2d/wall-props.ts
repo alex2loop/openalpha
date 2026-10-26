@@ -33,6 +33,7 @@ export interface PaintScene {
   readonly screens: ScreenCache
   readonly life: LifeView
   readonly detail: DetailLevel
+  readonly isRaining: boolean
 }
 
 export type Painter = (g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene) => void

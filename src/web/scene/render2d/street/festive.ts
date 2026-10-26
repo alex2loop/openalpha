@@ -1,7 +1,6 @@
 import type { PaintPart } from '@/web/scene/render2d/street/paint'
 import type { Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { STREET_LEFT, STREET_RIGHT } from '@/web/scene/render2d/street/city-ground'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
@@ -46,7 +45,7 @@ const FRUIT_SPOTS = [
 export const FESTIVE_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     const holiday = holidayOf(pack, minute.day)
-    const dark = darknessOf(minute.minute)
+    const dark = minute.light.dark
 
     if (holiday === 'tet') {
       paintTet(g, pack, dark)

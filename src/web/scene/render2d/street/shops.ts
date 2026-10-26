@@ -1,8 +1,8 @@
 import type { MessageKey } from '@/i18n'
 import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { FrontView, ShopKind } from '@/web/scene/street-types'
+import type { Point } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { paintShop } from '@/web/scene/render2d/street/shop-art'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { isLateNight, SHOP_RISE, shopSpansOf } from '@/web/scene/world/frontage'
@@ -52,11 +52,11 @@ export const SHOPS_PART: PaintPart = {
     paintRow(g, pack, minute)
 
     if (isLateNight(minute.clock)) {
-      paintStall(g, pack, darknessOf(minute.minute))
+      paintStall(g, pack, minute.light.dark)
     }
   },
   paintMoving: (g, view, scene) => {
-    const dark = darknessOf(scene.minute.minute)
+    const dark = scene.minute.light.dark
 
     paintShutters(g, { pack: scene.pack, front: view.front, minute: scene.minute, dark })
     paintGuard(g, view.front, dark)
@@ -69,7 +69,7 @@ function paintRow(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetM
   const spans = shopSpansOf(pack.shops)
   const first = spans[0]
   const last = spans.at(-1)
-  const dark = darknessOf(minute.minute)
+  const dark = minute.light.dark
 
   if (first === undefined || last === undefined) {
     return
@@ -102,16 +102,24 @@ function paintRow(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetM
   }
 }
 
-// A noodle cart under a hanging bulb at the row's west end, clear of the shelters.
-function paintStall(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
+/** Where the late stall stands: at the shop row's west end, out on the pavement. */
+export function lateStallOf(pack: RegionPack): Point | undefined {
   const first = shopSpansOf(pack.shops)[0]
 
-  if (first === undefined) {
+  return first === undefined
+    ? undefined
+    : { x: first.x + STALL.inset, y: NORTH.farTop + STALL.depth }
+}
+
+// A noodle cart under a hanging bulb at the row's west end, clear of the shelters.
+function paintStall(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
+  const at = lateStallOf(pack)
+
+  if (at === undefined) {
     return
   }
 
-  const x = first.x + STALL.inset
-  const y = NORTH.farTop + STALL.depth
+  const { x, y } = at
 
   g.fillStyle = STALL.shadow
   g.fillRect(x - 4.4, y, 8.8, 1.6)

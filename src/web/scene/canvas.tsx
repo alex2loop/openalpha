@@ -12,6 +12,7 @@ import { ledItems, startLed } from '@/web/scene/data/led'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
 import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
 import { todayRuns } from '@/web/scene/data/today-runs'
+import { startWeather, weather } from '@/web/scene/data/weather'
 import { AddDesk } from '@/web/scene/overlay/add-desk'
 import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
@@ -62,7 +63,6 @@ import { findRun, pending, runs } from '@/web/state/live'
 import { hasUnreadAlert, unread } from '@/web/state/notices'
 import { colorScheme, colourPair, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 
 import './canvas.css'
@@ -117,7 +117,7 @@ function createRenderers(): Renderers {
 // painter, the overlay, loop, input, observer, listeners and the renderer.
 function mountScene(element: HTMLElement, renderers: Renderers): () => void {
   const renderer = renderers.host
-  const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda(), startTeamCalls()]
+  const stops = startReads()
   const sims = createCrew()
 
   renderer.mount(element)
@@ -164,6 +164,18 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
   }
 }
 
+// The scene's own data reads, each returning its stop.
+function startReads(): (() => void)[] {
+  return [
+    startHome(),
+    startBoard(),
+    startRoomStatus(),
+    startAgenda(),
+    startTeamCalls(),
+    startWeather(),
+  ]
+}
+
 interface LoopParts extends Crew {
   readonly renderer: SceneRenderer
   readonly overlay: OverlayPass
@@ -201,7 +213,7 @@ function createSceneLoop(parts: LoopParts): {
       syncTwin(drawn, markers.value)
 
       // The street was painted for the camera before this draw placed it: once more if it moved.
-      return isAnimating || !parts.painter.isCurrent(visibleRect())
+      return isAnimating || parts.sky.isEasing(now) || !parts.painter.isCurrent(visibleRect())
     },
     resume: () => {
       director.resume()
@@ -251,7 +263,8 @@ function buildSimView(parts: Crew, alpha: number): SimView {
     ...office,
     actors: [...actors, ...parts.team.actors()],
     props: { lit, lampGlow: lampGlowOf(), isClosed: isClosedPhase(homePhase.value) },
-    light: { hour: pageMinute.value.minute / MINUTES_PER_HOUR, followsHour: lightByHour.value },
+    light: parts.sky.view(performance.now(), reducedMotion.value),
+    weather: parts.street.view().weather,
     life: parts.life.view(),
     team: parts.team.view(performance.now()),
     street: parts.painter.paint(parts.street.view(), visibleRect(), pageMinute.value),
@@ -298,6 +311,7 @@ function readSceneInputs(): void {
   coolerOffer.value
   todayRuns.value
   ledItems.value
+  weather.value
   regionPack.value
   locale.value
   readOverlayInputs()

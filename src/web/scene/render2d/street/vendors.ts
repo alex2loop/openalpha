@@ -7,6 +7,7 @@ import { citySceneOf } from '@/web/scene/render2d/street/city'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import { shadeOf } from '@/web/scene/render2d/street/park-props'
 import { drawPerson } from '@/web/scene/render2d/street/people'
+import { paintCartCover } from '@/web/scene/render2d/street/weather'
 import {
   BANH_MI_CART,
   isOpen,
@@ -93,6 +94,8 @@ function vendorAt(x: number, y: number): PersonView {
     staff: undefined,
     prev: { x, y },
     at: { x, y },
+    umbrella: 0,
+    hat: 0,
   })
 }
 
@@ -224,6 +227,10 @@ function paintPhoCart(
   g.fillStyle = shadeOf(scene, TONES.phoSign)
   g.fillRect(x - 3.7, y - 7.6, 3.4, 1.4)
   paintWord(scene, { key: WORDS.pho, x: x - 2, y: y - 6.9, maxW: 3.2 })
+
+  if (scene.minute.weather.rain > 0) {
+    paintCartCover(g, { at: { x, y }, w: 3.6, h: 5, dark: scene.dark })
+  }
 }
 
 function paintCooler(

@@ -192,7 +192,11 @@ export const PROP_TONES = Object.freeze({
   threadOn: '#4E6CA8',
   burst: '#32D74B',
   cloud: ['#B6B7C9', '#C9CAD8'],
+  umbrellaStand: '#5C6474',
 } as const)
+/** Umbrella canopies, in the office's stand and over walkers in the rain: one per
+ *  `UMBRELLA_LOOKS`. */
+export const UMBRELLA_TONES = ['#3F7FC5', '#C9544A', '#2E3440', '#E0A13A'] as const
 
 /** The body of the prop an own agent's desk carries, by its focus. */
 export const FOCUS_TONES = Object.freeze({

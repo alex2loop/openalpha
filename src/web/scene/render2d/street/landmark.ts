@@ -13,11 +13,9 @@ import {
   type TowerPaint,
 } from '@/web/scene/render2d/street/landmark-shape'
 import { mixTone } from '@/web/scene/render2d/street/tone'
-import { lightAt } from '@/web/scene/sprites/daylight'
 import { STREET_RECT } from '@/web/scene/view'
 import { isLightsOut } from '@/web/scene/world/frontage'
 import { createRng, seedOf } from '@/web/scene/world/rng'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const ROW_STEP = 3
 const NIGHT_MIN_DARK = 0.3
@@ -40,7 +38,7 @@ export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
     dark,
     lit,
     haze,
-    sky: lightAt(minute.minute / MINUTES_PER_HOUR).sky,
+    sky: minute.light.sky,
     isNight: dark > NIGHT_MIN_DARK,
     isLobbyLit: dark > NIGHT_MIN_DARK && !isLightsOut(minute.minute),
   }

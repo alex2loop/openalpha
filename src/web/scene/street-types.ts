@@ -1,4 +1,5 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
+import type { WeatherFxView } from '@/web/scene/sky-types'
 import type { ActorId, Point, Rect, RoleId } from '@/web/scene/types'
 
 /** One moving thing of the street: `prev` and `at` its place at the last two sim steps. */
@@ -72,6 +73,9 @@ export const PERSON_KINDS = [
 ] as const
 export type PersonKind = (typeof PERSON_KINDS)[number]
 
+/** How many umbrella canopies the street has to open. */
+export const UMBRELLA_LOOKS = 4
+
 /** A person on the street stands this many world px tall, feet to the top of the head. */
 export const STREET_FIGURE_H = 5
 
@@ -92,6 +96,10 @@ export interface PersonView extends StreetEntity {
   readonly look: number
   readonly item: ErrandItem | undefined
   readonly staff: StaffLook | undefined
+  /** An open umbrella's tone, 1 up; 0 for none. */
+  readonly umbrella: number
+  /** 0 bare-headed, 1 a conical hat, 2 a cap. */
+  readonly hat: number
 }
 
 /** A rider's clothes: plain, a sun coat with a mask, or a plain ride-hailing jacket. */
@@ -214,6 +222,7 @@ export interface StreetView {
   readonly lot: LotView
   readonly front: FrontView
   readonly vendors: VendorView
+  readonly weather: WeatherFxView
 }
 
 /** The street as painted for both renderers: the static canvas over `STREET_RECT` and the moving

@@ -1,6 +1,6 @@
 import type { PaintPart } from '@/web/scene/render2d/street/paint'
 import type { Frontage } from '@/web/scene/world/frontage'
-import { darknessOf, litShareOf } from '@/web/scene/render2d/street/city'
+import { litShareOf } from '@/web/scene/render2d/street/city'
 import { paintBoard } from '@/web/scene/render2d/street/led-board'
 import { LED } from '@/web/scene/render2d/street/led-face'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
@@ -41,7 +41,7 @@ export const FRONTAGE_PART: PaintPart = {
     const frontage = frontageOf(pack.shops)
 
     if (frontage !== undefined) {
-      paintBuilding(g, frontage, { dark: darknessOf(minute.minute), minute: minute.minute })
+      paintBuilding(g, frontage, { dark: minute.light.dark, minute: minute.minute })
     }
   },
   paintMoving: (g, view, scene) => {

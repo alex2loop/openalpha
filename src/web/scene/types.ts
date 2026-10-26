@@ -1,4 +1,5 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
+import type { SunView, WeatherFxView } from '@/web/scene/sky-types'
 import type { ErrandView, StreetFrame } from '@/web/scene/street-types'
 
 /** World pixels of one floor. */
@@ -163,9 +164,11 @@ export interface PaperView {
   readonly k: number
 }
 
-/** The light the office keeps: the page hour, or the day row when the light does not follow it. */
-interface LightView {
-  readonly hour: number
+/** The light the office keeps: the sun and the cloud cover, or the sun held at solar noon under a
+ *  clear sky when the light does not follow the hour. */
+export interface LightView {
+  readonly sun: SunView
+  readonly cloud: number
   readonly followsHour: boolean
 }
 
@@ -362,6 +365,7 @@ export interface SimView {
   readonly tray: number
   readonly props: PropsView
   readonly light: LightView
+  readonly weather: WeatherFxView
   readonly life: LifeView
   readonly team: TeamView
   readonly street: StreetFrame

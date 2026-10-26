@@ -3,6 +3,7 @@ import type { Point } from '@/web/scene/types'
 import type { HolidayId } from '@/web/scene/world/regions'
 import { drawSprite, staticPxOf } from '@/web/scene/render2d/street/detail'
 import { blossomOf, paintCrownLights } from '@/web/scene/render2d/street/festive-trees'
+import { paintGroundShadow } from '@/web/scene/render2d/street/shadow'
 import { DARK_STEPS, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { HEIGHT_K } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
@@ -121,6 +122,11 @@ export function paintBlock(scene: CityScene, block: Block): void {
   const top = block.base - rise
   const rng = createRng(block.seed)
 
+  paintGroundShadow(g, scene.minute, {
+    at: { x: block.x + block.w / 2, y: block.base },
+    w: block.w,
+    h: block.height,
+  })
   g.fillStyle = shade(scene, block.tone, BODY_NIGHT)
   g.fillRect(block.x, top, block.w, rise)
   g.fillStyle = shade(scene, mixTone(block.tone, WHITE, ROOF_LIGHTEN), ROOF_NIGHT)
@@ -182,6 +188,7 @@ export function paintTree(scene: CityScene, at: Point, kind: number): void {
   const darkStep = Math.round(scene.dark * DARK_STEPS)
   const blossom = blossomOf(scene.holiday, look)
 
+  paintGroundShadow(g, scene.minute, { at, w: radius * 1.6, h: at.y - crownY + radius })
   g.fillStyle = mixTone(TREE_TRUNK, TREE_TRUNK_NIGHT, scene.dark * TRUNK_NIGHT)
   g.fillRect(at.x - 0.9, crownY + radius * 0.3, 1.8, at.y - crownY - radius * 0.3)
   drawSprite(
