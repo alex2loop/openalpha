@@ -19,7 +19,7 @@ import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { ASSISTANT, ROSTER } from '@/web/scene/sim/actors/roster'
-import { createWalker, isWalking } from '@/web/scene/sim/actors/walk'
+import { createWalker, isWalking, placeWalker } from '@/web/scene/sim/actors/walk'
 import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
@@ -39,6 +39,13 @@ import {
   tickPeople,
   toActorView,
 } from '@/web/scene/sim/people'
+import {
+  createErrands,
+  type Errands,
+  endErrands,
+  errandOf,
+  isOut,
+} from '@/web/scene/sim/street/errands'
 import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
 import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
@@ -80,6 +87,8 @@ type PeopleView = Pick<SimView, 'actors' | 'papers' | 'tray'>
 type PoseMarks = ReadonlyMap<ActorId, Pick<ActorView, 'pose' | 'poseSince'>>
 
 export interface Director {
+  /** The office's errands to the shops: a life goal inside, off the floor once out. */
+  readonly errands: Errands
   step(index: number): boolean
   view(): PeopleView
   actors(): ReadonlyMap<ActorId, ActorState>
@@ -96,8 +105,8 @@ export interface Director {
   /** What stands on a floor for a while (the dessert cart): walks go round it. */
   setObstacles(floor: FloorId, rects: readonly Rect[]): void
   actorsOfRun(runId: string): readonly ActorId[]
-  /** Re-derives every goal from the live store and ends every walk in progress: each person
-   *  stands where their goal puts them. */
+  /** Ends every errand, re-derives every goal from the live store and ends every walk in
+   *  progress: each person stands where their goal puts them. */
   resume(): void
   /** The earliest beat or wait deadline, a `performance.now()` instant; `Infinity` when none. */
   nextDueAt(): number
@@ -134,23 +143,22 @@ export function createDirector(deps: DirectorDeps): Director {
   })
   const offBeats = subscribeBeats(deps.hub, toBeatTarget(people))
   const poses: { marks: PoseMarks } = { marks: new Map() }
+  const errands = createErrandsOf(people)
   let isDisposed = false
 
   return {
-    step: () => !isDisposed && stepAll(people, papers, poses),
+    errands,
+    step: () => !isDisposed && stepAll(people, { papers, poses, errands }),
     view: () => ({
-      actors: people.list.map((person) =>
-        toActorView(
-          people,
-          person,
-          poses.marks.get(person.def.id) ?? { pose: poseOf(person), poseSince: 0 }
-        )
-      ),
+      actors: actorViewsOf(people, { marks: poses.marks, errands }),
       papers: papers.views(),
       tray: trayCount(deps, papers),
     }),
     ...lifeHooksOf(people),
-    resume: () => resumePeople(people, performance.now()),
+    resume: () => {
+      endErrands(errands)
+      resumePeople(people, performance.now())
+    },
     nextDueAt: () => nextDueOf(people, { nowMs: performance.now(), isOpen: isOfficeOpen() }),
     dispose: () => {
       if (!isDisposed) {
@@ -205,6 +213,50 @@ function lifeHooksOf(
   }
 }
 
+// The errands drive the people's life goals and walkers, and put someone back at their seat.
+function createErrandsOf(people: People): Errands {
+  return createErrands({
+    setLife: (id, goal) => setGoalIn(people.life, id, goal),
+    walkerOf: (id) => people.byId.get(id)?.walker,
+    placeAtSeat: (id) => {
+      const person = people.byId.get(id)
+
+      if (person !== undefined) {
+        placeWalker(person.walker, person.def.seat.at)
+      }
+    },
+  })
+}
+
+function actorViewsOf(
+  people: People,
+  at: { readonly marks: PoseMarks; readonly errands: Errands }
+): ActorView[] {
+  return people.list.map((person) =>
+    withErrand(
+      at.errands,
+      toActorView(
+        people,
+        person,
+        at.marks.get(person.def.id) ?? { pose: poseOf(person), poseSince: 0 }
+      )
+    )
+  )
+}
+
+// Someone on an errand says where; past the street door they stand where the street has them.
+function withErrand(errands: Errands, view: ActorView): ActorView {
+  const errand = errandOf(errands, view.id)
+
+  if (errand === undefined) {
+    return view
+  }
+
+  return errand.view.isOut
+    ? { ...view, errand: errand.view, prev: errand.ped.prev, at: errand.ped.at }
+    : { ...view, errand: errand.view }
+}
+
 function setGoalIn(layer: Map<ActorId, Goal>, id: ActorId, goal: Goal | undefined): void {
   if (goal === undefined) {
     layer.delete(id)
@@ -233,14 +285,25 @@ function react(
 }
 
 // Every person's walk among the others on their floor, the sheets in flight, then the poses.
-function stepAll(people: People, papers: Papers, poses: { marks: PoseMarks }): boolean {
+// Someone out on an errand is off the floor: they neither walk nor stand in anyone's way.
+function stepAll(
+  people: People,
+  held: { readonly papers: Papers; readonly poses: { marks: PoseMarks }; readonly errands: Errands }
+): boolean {
+  const { papers, poses, errands } = held
   const nowMs = performance.now()
   const isChanged = tickPeople(people, { nowMs, isOpen: isOfficeOpen() })
   let isMoving = false
 
   for (const person of people.list) {
+    if (isOut(errands, person.def.id)) {
+      continue
+    }
+
     const others = people.list
-      .filter((other) => other !== person && other.floor === person.floor)
+      .filter(
+        (other) => other !== person && other.floor === person.floor && !isOut(errands, other.def.id)
+      )
       .map((other) => other.walker)
 
     const extra = people.obstacles.get(person.floor)

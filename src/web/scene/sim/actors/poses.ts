@@ -94,6 +94,7 @@ const HELD_OF: Readonly<Record<HeldItem, HeldKind | undefined>> = Object.freeze(
   wallet: 'item',
   box: 'box',
   cup: 'cup',
+  bag: 'bag',
 })
 
 /** The whole pose vocabulary; `cheer` is the mascot's alone. */
@@ -187,7 +188,7 @@ export function isCharacterMotionOn(
   actors: readonly ActorView[],
   at: { readonly floor: FloorId; readonly now: number }
 ): boolean {
-  const here = actors.filter((actor) => actor.floor === at.floor)
+  const here = actors.filter((actor) => isOnFloor(actor, at.floor))
 
   if (here.length === 0) {
     return false
@@ -198,6 +199,11 @@ export function isCharacterMotionOn(
   )
 
   return isBusy || isAmbientBout(at.floor, at.now)
+}
+
+/** The person stands on `floor` now; someone out on an errand stands on none. */
+export function isOnFloor(actor: ActorView, floor: FloorId): boolean {
+  return actor.floor === floor && actor.errand?.isOut !== true
 }
 
 /** The person moved between the last two sim steps. */

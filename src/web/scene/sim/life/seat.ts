@@ -11,6 +11,7 @@ import {
   type LifeStep,
   seatPoseOf,
 } from '@/web/scene/sim/life/state'
+import { isOnErrand } from '@/web/scene/sim/street/errands'
 import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
@@ -25,8 +26,12 @@ export function stepPostures(state: LifeState, step: LifeStep): void {
   const free = new Set(step.free.map((actor) => actor.def.id))
 
   for (const actor of step.actors.values()) {
-    // A gesture plays over the posture and leaves it as it was.
-    if (!state.moments.has(actor.def.id) && actor.beats.length === 0) {
+    // A gesture plays over the posture and leaves it as it was; a moment or an errand keeps its
+    // own goal.
+    const isOwnGoal =
+      state.moments.has(actor.def.id) || isOnErrand(state.director.errands, actor.def.id)
+
+    if (!isOwnGoal && actor.beats.length === 0) {
       state.director.setLife(
         actor.def.id,
         postureOf(state, step, { actor, isFree: free.has(actor.def.id) })

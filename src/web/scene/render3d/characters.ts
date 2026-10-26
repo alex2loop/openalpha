@@ -30,6 +30,7 @@ import {
   isActorWalking,
   isBlinking,
   isBreathDown,
+  isOnFloor,
   poseFrameAt,
 } from '@/web/scene/sim/actors/poses'
 import { OUTLINE, WORK_RIM } from '@/web/scene/sprites/palette'
@@ -120,7 +121,7 @@ export function syncCast(
   cast: Cast,
   frame: CastFrame
 ): { readonly standing: Standing[]; readonly isSettling: boolean } {
-  const here = frame.actors.filter((actor) => actor.floor === frame.floor)
+  const here = frame.actors.filter((actor) => isOnFloor(actor, frame.floor))
   const ids = new Set(here.map((actor) => actor.id))
   const standing: Standing[] = []
   let isSettling = false

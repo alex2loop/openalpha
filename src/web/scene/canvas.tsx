@@ -40,7 +40,7 @@ import { syncTwin } from '@/web/scene/overlay/twin'
 import { ViewNote } from '@/web/scene/overlay/view-note'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
-import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
+import { isOnFloor, nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isChildActorId } from '@/web/scene/sim/actors/roster'
 import { lampGlowOf } from '@/web/scene/sim/life/life'
 import { createSimLoop } from '@/web/scene/sim/loop'
@@ -220,7 +220,7 @@ function createSceneLoop(parts: LoopParts): {
 function nextDueOf(parts: LoopParts, drawn: SimView): number {
   const floor = view.value.floor
   const nowMs = performance.now()
-  const hasPeople = drawn.actors.some((actor) => actor.floor === floor)
+  const hasPeople = drawn.actors.some((actor) => isOnFloor(actor, floor))
   const ambientAt = hasPeople ? nextAmbientAt(floor, nowMs) : Infinity
 
   return Math.min(

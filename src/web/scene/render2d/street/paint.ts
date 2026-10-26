@@ -13,6 +13,7 @@ import {
 import { FESTIVE_PART } from '@/web/scene/render2d/street/festive'
 import { FRONTAGE_PART } from '@/web/scene/render2d/street/frontage'
 import { releaseLedFaces } from '@/web/scene/render2d/street/led-board'
+import { PEOPLE_PART } from '@/web/scene/render2d/street/people'
 import { SHELTERS_PART } from '@/web/scene/render2d/street/shelters'
 import { SHOPS_PART } from '@/web/scene/render2d/street/shops'
 import { SIGNALS_PART } from '@/web/scene/render2d/street/signals'
@@ -63,6 +64,7 @@ const PAINT_PARTS: readonly PaintPart[] = [
   SIGNALS_PART,
   SHELTERS_PART,
   VEHICLES_PART,
+  PEOPLE_PART,
 ]
 const MOVING_PAINTS: readonly MovingPaint[] = PAINT_PARTS.flatMap((part) =>
   part.paintMoving === undefined ? [] : [part.paintMoving]

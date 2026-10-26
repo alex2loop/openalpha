@@ -1,9 +1,11 @@
 import type { MessageKey } from '@/i18n'
-import type { BikeShape, CarSize, ChatterId } from '@/web/scene/street-types'
+import type { BikeShape, CarSize, ChatterId, ErrandItem, ShopKind } from '@/web/scene/street-types'
 import { type ActorId, type Point, WORLD } from '@/web/scene/types'
 import { VN_PACK } from '@/web/scene/world/regions/vn'
 import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
 import { MINUTES_PER_DAY } from '@/web/text/time-units'
+
+export type { ShopKind }
 
 type RegionPackId = 'vn'
 
@@ -80,17 +82,6 @@ export interface BusStop {
   readonly side: 'far' | 'near'
 }
 
-export type ShopKind =
-  | 'cafe'
-  | 'store'
-  | 'pharmacy'
-  | 'food'
-  | 'bank'
-  | 'lobby'
-  | 'alley'
-  | 'shutter'
-  | 'fence'
-
 /** One front of the block face, in street order, left to right. Open `hours`: a closed `shutter`
  *  is `[0, 0]`; a day and night shop is `[0, 1440]`, so it never closes when `hours[0] === 0 &&
  *  hours[1] >= 1440` (`hours[1] >= 1440` alone would also match a shop that closes at midnight).
@@ -99,7 +90,7 @@ export interface ShopRow {
   readonly kind: ShopKind
   readonly frontageM: number
   readonly hours: MinuteRange
-  readonly item?: 'cup' | 'bag' | 'box'
+  readonly item?: ErrandItem
 }
 
 /** The traffic, as shares (each group sums to one): vehicles by kind, motorbikes by shape, cars

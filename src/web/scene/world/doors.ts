@@ -29,3 +29,9 @@ export const DOORS: Readonly<Record<FloorId, readonly Door[]>> = Object.freeze({
     { at: { x: 32, y: 250 }, width: 24, to: 'lift' },
   ],
 } satisfies Record<FloorId, readonly Door[]>)
+
+/** The point outside the west exit where a walker leaves the office floor for the street. */
+export const STREET_DOOR: Point = DOORS.office.find((door) => door.to === 'street')?.at ?? {
+  x: 0,
+  y: 0,
+}

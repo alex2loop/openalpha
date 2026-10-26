@@ -1,5 +1,5 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
-import type { StreetFrame } from '@/web/scene/street-types'
+import type { ErrandView, StreetFrame } from '@/web/scene/street-types'
 
 /** World pixels of one floor. */
 export const WORLD = Object.freeze({ w: 640, h: 384 })
@@ -119,6 +119,7 @@ export type HeldItem =
   | 'wallet'
   | 'box'
   | 'cup'
+  | 'bag'
 
 /** A sheet in hand; once stamped it carries the call's action, its stamp in the action's hue. */
 export interface SheetView {
@@ -146,6 +147,8 @@ export interface ActorView {
    *  while it works (the work rim says so). */
   readonly status?: ActorStatus
   readonly react?: ReactionKind
+  /** Out on an errand to a shop; past the street door the street draws them, at `at`. */
+  readonly errand?: ErrandView
 }
 
 export type ActorStatus = 'free' | 'waiting' | 'failed'

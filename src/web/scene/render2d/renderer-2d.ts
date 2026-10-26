@@ -21,7 +21,7 @@ import {
   paintTeamTop,
 } from '@/web/scene/render2d/team'
 import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
-import { isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
+import { isCharacterMotionOn, isOnFloor } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { DAY_LIGHT_HOUR, lightAt } from '@/web/scene/sprites/daylight'
@@ -336,7 +336,7 @@ function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
       draw: () => paintProp(g, prop, job.scene),
     }))
   const actors = job.sim.actors
-    .filter((actor) => actor.floor === job.sim.floor)
+    .filter((actor) => isOnFloor(actor, job.sim.floor))
     .map((actor) => ({
       sortY: actor.at.y,
       tie: ACTOR_TIE_RANK,

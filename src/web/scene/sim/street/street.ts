@@ -1,10 +1,12 @@
 import { effect, type ReadonlySignal, untracked } from '@preact/signals'
 
-import type { SignalHeadId, SignalState, StreetView } from '@/web/scene/street-types'
+import type { PersonView, SignalHeadId, SignalState, StreetView } from '@/web/scene/street-types'
 import type { Point, Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
+import { stepErrandsStreet } from '@/web/scene/sim/street/errand-walk'
+import { type Errands, endErrands } from '@/web/scene/sim/street/errands'
 import {
   createFront,
   type Front,
@@ -15,6 +17,8 @@ import {
   stepFront,
 } from '@/web/scene/sim/street/front'
 import { createLot, type Lot, resetLot, stepLot } from '@/web/scene/sim/street/lot'
+import { hasPedChanged, type Ped, type Peds } from '@/web/scene/sim/street/ped-walk'
+import { createPeds, resetPeds, stepPeds } from '@/web/scene/sim/street/peds'
 import {
   isSameSignal,
   nextSignalChangeAt,
@@ -24,6 +28,7 @@ import {
 } from '@/web/scene/sim/street/signals'
 import {
   createTraffic,
+  insertByY,
   resetTraffic,
   stepTraffic,
   type Traffic,
@@ -60,6 +65,7 @@ export interface Street {
 interface StreetDeps {
   readonly pack: ReadonlySignal<RegionPack>
   readonly reduced: ReadonlySignal<boolean>
+  readonly errands: Errands
 }
 
 interface StreetState {
@@ -67,6 +73,9 @@ interface StreetState {
   readonly traffic: Traffic
   readonly lot: Lot
   readonly front: Front
+  readonly peds: Peds
+  /** Everyone walking the street now, north to south: the pool's and anyone out on an errand. */
+  readonly people: Ped[]
   readonly view: StreetView & {
     step: number
     heads: StreetView['heads']
@@ -81,30 +90,14 @@ interface StreetState {
   isFrontShown: boolean
   isFrontMoving: boolean
   hasFrontChanged: boolean
+  /** Someone came back in from an errand while the loop slept: the floor walks them in. */
+  hasErrandCome: boolean
 }
 
 /** The street of the home region's pack; a day, region or zone change rebuilds it. Under reduced
  *  motion it stands still as the clock placed it. */
 export function createStreet(deps: StreetDeps): Street {
-  const traffic = createTraffic(deps.pack.peek())
-  const lot = createLot()
-  const front = createFront()
-  const state: StreetState = {
-    deps,
-    traffic,
-    lot,
-    front,
-    view: createView({ traffic, lot, front, pack: deps.pack.peek() }),
-    stepMs: 0,
-    lastStepAt: 0,
-    isLotMoving: false,
-    isShowing: false,
-    isHeadShown: false,
-    hasSignalChanged: false,
-    isFrontShown: false,
-    isFrontMoving: false,
-    hasFrontChanged: false,
-  }
+  const state = createStreetState(deps)
   let placeKey = ''
 
   const resume = (): void => resumeStreet(state)
@@ -128,11 +121,39 @@ export function createStreet(deps: StreetDeps): Street {
   }
 }
 
+// Every pool empty and every flag down, until the first resume places the street.
+function createStreetState(deps: StreetDeps): StreetState {
+  const traffic = createTraffic(deps.pack.peek())
+  const lot = createLot()
+  const front = createFront()
+  const people: Ped[] = []
+  return {
+    deps,
+    traffic,
+    lot,
+    front,
+    peds: createPeds(),
+    people,
+    view: createView({ traffic, lot, front, people, pack: deps.pack.peek() }),
+    stepMs: 0,
+    lastStepAt: 0,
+    isLotMoving: false,
+    isShowing: false,
+    isHeadShown: false,
+    hasSignalChanged: false,
+    isFrontShown: false,
+    isFrontMoving: false,
+    hasFrontChanged: false,
+    hasErrandCome: false,
+  }
+}
+
 // The snapshot the painter reads: the pools' own arrays, filled in place by each step.
 function createView(at: {
   readonly traffic: Traffic
   readonly lot: Lot
   readonly front: Front
+  readonly people: readonly PersonView[]
   readonly pack: RegionPack
 }): StreetState['view'] {
   const { traffic, lot, front } = at
@@ -140,7 +161,7 @@ function createView(at: {
   return {
     step: 0,
     heads: signalHeadsOf(at.pack),
-    pools: { vehicles: traffic.shown, people: NOBODY, critters: NOBODY },
+    pools: { vehicles: traffic.shown, people: at.people, critters: NOBODY },
     signals: {
       north: signalOf('north', 0),
       side: signalOf('side', 0),
@@ -157,9 +178,12 @@ function resumeStreet(state: StreetState): void {
   const { day, minute } = pageMinute.peek()
   const pack = state.deps.pack.peek()
 
+  endErrands(state.deps.errands)
   resetTraffic(state.traffic, { pack, day, minute, nowMs })
   resetLot(state.lot, { pack, minute })
   resetFront(state.front, { pack, day, nowMs })
+  resetPeds(state.peds, { pack, day, minute, nowMs })
+  syncPeople(state)
   state.view.heads = signalHeadsOf(pack)
   syncSignals(state.view.signals, state.deps.reduced.peek() ? 0 : nowMs)
   state.lastStepAt = nowMs
@@ -228,6 +252,11 @@ function stepAll(state: StreetState, nowMs: number): void {
   const { minute } = pageMinute.peek()
 
   stepTraffic(traffic, { minute, nowMs })
+  stepPeds(state.peds, { traffic, minute, nowMs, dt: traffic.tick.dt })
+  state.hasErrandCome =
+    stepErrandsStreet(state.deps.errands, { traffic, minute, nowMs, dt: traffic.tick.dt }) ||
+    state.hasErrandCome
+  syncPeople(state)
   state.hasSignalChanged = syncSignals(state.view.signals, nowMs)
   state.isLotMoving = stepLot(state.lot, { pack: traffic.pack, minute, nowMs, dt: traffic.tick.dt })
   state.hasFrontChanged = stepFront(state.front, { pack: traffic.pack, nowMs, isReduced: false })
@@ -244,11 +273,12 @@ function watchArrivals(state: StreetState, wake: () => void): () => void {
       return
     }
 
+    state.hasErrandCome = false
     catchUp(state, nowMs)
 
     const rect = movingRectOf(visibleRect())
 
-    if (isMovingInView(state, rect) || isFrontMoving(state.front, rect)) {
+    if (state.hasErrandCome || isMovingInView(state, rect) || isFrontMoving(state.front, rect)) {
       wake()
     }
   }, ARRIVAL_CHECK_MS)
@@ -265,15 +295,41 @@ function catchUp(state: StreetState, nowMs: number): void {
   }
 }
 
-// A vehicle in view, or the attendant walking there; parked bikes alone never keep it awake.
+// A vehicle in view, someone walking or waving there, or the attendant walking there; parked
+// bikes and people standing still never keep it awake.
 function isMovingInView(state: StreetState, rect: Rect): boolean {
   if (isAnyIn(state.traffic.shown, rect)) {
     return true
   }
 
+  for (const person of state.people) {
+    if (hasPedChanged(person) && isInside(rect, person.at)) {
+      return true
+    }
+  }
+
   const { attendant } = state.lot.view
 
   return state.isLotMoving && attendant !== undefined && isInside(rect, attendant.at)
+}
+
+// The pool's people and anyone out on an errand, north to south, the order they are drawn in.
+function syncPeople(state: StreetState): void {
+  const { people } = state
+
+  people.length = 0
+
+  for (const ped of state.peds.pool) {
+    if (ped.on) {
+      insertByY(people, ped)
+    }
+  }
+
+  for (const errand of state.deps.errands.slots) {
+    if (errand.ped.on) {
+      insertByY(people, errand.ped)
+    }
+  }
 }
 
 // True when any head now shows another lamp or another second.

@@ -1,4 +1,5 @@
-import type { Point, Rect } from '@/web/scene/types'
+import type { AgentLookWire } from '@/app/server/wire/agents'
+import type { ActorId, Point, Rect, RoleId } from '@/web/scene/types'
 
 /** One moving thing of the street: `prev` and `at` its place at the last two sim steps. */
 interface StreetEntity {
@@ -29,6 +30,66 @@ export type VehicleKind = (typeof VEHICLE_KINDS)[number]
 
 export const HEADINGS = ['east', 'west', 'north', 'south'] as const
 export type Heading = (typeof HEADINGS)[number]
+
+export type ShopKind =
+  | 'cafe'
+  | 'store'
+  | 'pharmacy'
+  | 'food'
+  | 'bank'
+  | 'lobby'
+  | 'alley'
+  | 'shutter'
+  | 'fence'
+
+/** The shops an errand goes to. */
+export const ERRAND_SHOPS = ['cafe', 'store', 'pharmacy', 'food'] as const
+export type ErrandShop = (typeof ERRAND_SHOPS)[number]
+
+/** What a shop hands over: a drink, a bag of things, a takeaway box. */
+export const ERRAND_ITEMS = ['cup', 'bag', 'box'] as const
+export type ErrandItem = (typeof ERRAND_ITEMS)[number]
+
+/** Where an office person's errand stands: on the way, in the queue, at the counter, back. `isOut`
+ *  once past the street door, where the street draws them and the floor does not. */
+export interface ErrandView {
+  readonly stage: 'going' | 'queue' | 'buying' | 'back'
+  readonly shop: ErrandShop
+  readonly item?: ErrandItem
+  readonly isOut: boolean
+}
+
+/** Who walks the street: a passer-by, a jogger, a pupil, someone waiting at a shelter, sitting at
+ *  the café, taking a delivery at a shop door, or an office person on an errand. */
+export const PERSON_KINDS = [
+  'walker',
+  'jogger',
+  'pupil',
+  'waiter',
+  'sitter',
+  'receiver',
+  'staff',
+] as const
+export type PersonKind = (typeof PERSON_KINDS)[number]
+
+/** The office person an errand takes outside, drawn in their own clothes. */
+export interface StaffLook {
+  readonly id: ActorId
+  readonly role?: RoleId
+  readonly look?: AgentLookWire
+}
+
+/** A person on the street: who, which way they face, the gait frame (0 standing, 1 to 4 walking,
+ *  5 and 6 waving), the seed their clothes come from, what they carry, and the office person's own
+ *  look when on an errand. */
+export interface PersonView extends StreetEntity {
+  readonly kind: PersonKind
+  readonly facing: Heading
+  readonly frame: number
+  readonly look: number
+  readonly item: ErrandItem | undefined
+  readonly staff: StaffLook | undefined
+}
 
 /** A rider's clothes: plain, a sun coat with a mask, or a plain ride-hailing jacket. */
 export const RIDER_GEARS = ['plain', 'sunCoat', 'rideHailing'] as const
@@ -114,7 +175,7 @@ export interface StreetView {
   readonly step: number
   readonly pools: {
     readonly vehicles: readonly VehicleView[]
-    readonly people: readonly StreetEntity[]
+    readonly people: readonly PersonView[]
     readonly critters: readonly StreetEntity[]
   }
   readonly signals: Readonly<Record<SignalHeadId, SignalState>>

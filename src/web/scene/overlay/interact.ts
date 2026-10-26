@@ -21,6 +21,7 @@ import {
   TOUCH,
 } from '@/web/scene/overlay/pointer'
 import { closeMenu, menuActor } from '@/web/scene/overlay/radial-menu'
+import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { leaveRoom, panBy, stopFollow, view, zoomBy } from '@/web/scene/view'
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 
@@ -158,7 +159,7 @@ function stepInput(input: InputState, nowMs: number): boolean {
 
   if (
     open !== undefined &&
-    !sim.actors.some((actor) => actor.id === open && actor.floor === sim.floor)
+    !sim.actors.some((actor) => actor.id === open && isOnFloor(actor, sim.floor))
   ) {
     closeMenu(isFocusInRing())
   }

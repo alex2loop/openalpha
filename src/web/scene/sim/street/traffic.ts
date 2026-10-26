@@ -1,4 +1,5 @@
-import type { StreetSayView, VehicleKind } from '@/web/scene/street-types'
+import type { ChatterId, StreetSayView, VehicleKind } from '@/web/scene/street-types'
+import type { Point } from '@/web/scene/types'
 import { type Flow, flowsOf, type StreetId, type Vehicle } from '@/web/scene/sim/street/flows'
 import { createVehicle, pickFrom, spawn } from '@/web/scene/sim/street/spawn'
 import { type StepWorld, stepFlows } from '@/web/scene/sim/street/traffic-step'
@@ -53,8 +54,9 @@ const SEED_STEP_S = 0.2
 const SEED_FROM_JAM = 0.2
 
 interface Say extends StreetSayView {
-  by: Vehicle | undefined
+  by: { readonly on: boolean; readonly at: Point } | undefined
   until: number
+  chatter: ChatterId
   readonly at: { x: number; y: number }
 }
 
@@ -205,7 +207,8 @@ function targetOf(pack: RegionPack, minute: number): number {
   return isWithin(hours.quiet, minute) ? TARGETS.day - QUIET_DROP : TARGETS.day
 }
 
-function isWithin(ranges: MinuteRanges, minute: number): boolean {
+/** The minute of the day falls in one of `ranges`. */
+export function isWithin(ranges: MinuteRanges, minute: number): boolean {
   const at = minute % MINUTES_PER_DAY
 
   for (const range of ranges) {
@@ -367,9 +370,22 @@ function sayHonk(traffic: Traffic, nowMs: number): void {
   const by = traffic.pool.find((vehicle) => vehicle.on && vehicle.waitMs >= HONK_WAIT_MS)
 
   if (by !== undefined) {
-    say.by = by
-    say.until = nowMs + SAY_MS
+    sayOver(traffic, { by, chatter: 'honk', nowMs })
     traffic.lastSayAt = nowMs
+  }
+}
+
+/** A word in a free bubble over `by` for a moment; none when both bubbles are taken. */
+export function sayOver(
+  traffic: Traffic,
+  word: { readonly by: NonNullable<Say['by']>; readonly chatter: ChatterId; readonly nowMs: number }
+): void {
+  const say = freeSayOf(traffic.says)
+
+  if (say !== undefined) {
+    say.by = word.by
+    say.chatter = word.chatter
+    say.until = word.nowMs + SAY_MS
   }
 }
 
@@ -409,17 +425,18 @@ function syncShown(traffic: Traffic, nowMs: number): void {
   }
 }
 
-function insertByY(shown: Vehicle[], vehicle: Vehicle): void {
+/** Adds `item` to `shown`, kept north to south. */
+export function insertByY<T extends { readonly at: Point }>(shown: T[], item: T): void {
   let index = shown.length
 
-  shown.push(vehicle)
+  shown.push(item)
 
-  while (index > 0 && (shown[index - 1]?.at.y ?? 0) > vehicle.at.y) {
-    shown[index] = shown[index - 1] ?? vehicle
+  while (index > 0 && (shown[index - 1]?.at.y ?? 0) > item.at.y) {
+    shown[index] = shown[index - 1] ?? item
     index--
   }
 
-  shown[index] = vehicle
+  shown[index] = item
 }
 
 function countOn(pool: readonly Vehicle[]): number {

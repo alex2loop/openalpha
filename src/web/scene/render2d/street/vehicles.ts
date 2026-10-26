@@ -40,8 +40,8 @@ import { isInside } from '@/web/scene/world/rooms'
 import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
-// Sprites are painted at these px per world px by detail level: sharp at each zoom band's top.
-const SPRITE_PX = [2, 5, 10] as const
+/** Sprites are painted at these px per world px by detail level: sharp at each zoom band's top. */
+export const SPRITE_PX = [2, 5, 10] as const
 // Lamps light from this darkness; their dots grow brighter with it.
 const LIGHTS_FROM_DARK = 0.3
 const LIGHTS_GAIN = 1.2
@@ -56,6 +56,7 @@ const LAMP_SINGLE = [0] as const
 // The bubble over whoever says a word, and its lettering.
 const SAY = Object.freeze({ w: 9, h: 4, rise: 8, size: 2, pad: 1, tail: 1 })
 const SAY_TONES = Object.freeze({ fill: '#FFFFFF', edge: '#2B2433', ink: '#2B2433' })
+const LOOK_PREFIX = 'look'
 const SAY_KEYS: Readonly<Record<ChatterId, MessageKey>> = Object.freeze({
   honk: 'ui.office.street.say.honk',
   eh: 'ui.office.street.say.eh',
@@ -144,7 +145,7 @@ function drawStanding(
 function drawLook(g: CanvasRenderingContext2D, view: VehicleView, scene: MovingScene): void {
   const detail = scene.minute.detail
   const darkStep = Math.round(darknessOf(scene.minute.minute) * DARK_STEPS)
-  const held = heldKeyOf(view, sigOf(view, { detail, darkStep }))
+  const held = heldKeyOf(view, { sig: sigOf(view, { detail, darkStep }), prefix: LOOK_PREFIX })
 
   if (drawHeldSprite(g, held.fullKey, view.at)) {
     return
@@ -169,17 +170,23 @@ function drawLook(g: CanvasRenderingContext2D, view: VehicleView, scene: MovingS
   )
 }
 
-function heldKeyOf(view: object, sig: number): HeldKey {
-  const held = heldKeys.get(view)
+/** The sprite key of `owner`'s look while its signature stays `sig` (with the detail level as its
+ *  lowest digit), held per owner so a hot path builds no string. */
+export function heldKeyOf(
+  owner: object,
+  at: { readonly sig: number; readonly prefix: string }
+): HeldKey {
+  const { sig } = at
+  const held = heldKeys.get(owner)
 
   if (held !== undefined && held.sig === sig) {
     return held
   }
 
-  const key = `look|${sig}`
+  const key = `${at.prefix}|${sig}`
   const next = { sig, key, fullKey: spriteKeyOf(key, pxOfSig(sig)), language: '' }
 
-  heldKeys.set(view, next)
+  heldKeys.set(owner, next)
 
   return next
 }

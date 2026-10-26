@@ -9,6 +9,7 @@ import type {
   SimView,
 } from '@/web/scene/types'
 import { overlayView } from '@/web/scene/overlay/overlay'
+import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { FIGURE } from '@/web/scene/types'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
@@ -104,6 +105,6 @@ function petBoxOf(pet: PetView): Rect {
 // The front-most person on the floor shown: the one standing lowest.
 function actorAt(view: SimView, at: Point): ActorView | undefined {
   return view.actors
-    .filter((actor) => actor.floor === view.floor && isInside(figureOf(actor, view.alpha), at))
+    .filter((actor) => isOnFloor(actor, view.floor) && isInside(figureOf(actor, view.alpha), at))
     .sort((a, b) => b.at.y - a.at.y)[0]
 }
