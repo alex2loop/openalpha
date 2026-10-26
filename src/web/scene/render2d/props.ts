@@ -12,7 +12,7 @@ import {
   paintStandby,
   paintStudio,
 } from '@/web/scene/render2d/desk-devices'
-import { paintFish } from '@/web/scene/render2d/pets'
+import { paintTank } from '@/web/scene/render2d/pets'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
 import {
   CARD,
@@ -365,19 +365,6 @@ function paintLamp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene
   framed(g, [cx - 1, y + 13, 2, h - 16], METAL[2])
   framed(g, [x, y, w, 7], isOn ? PROP_TONES.lampLit : PROP_TONES.lampOff)
   fill(g, [x, y + 7, w, 6], isOn ? LAMP_LIT_FRONT : LAMP_SHADE_FRONT)
-}
-
-function paintTank(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w } = prop.draw
-  const isOn = scene.lit.has(prop.room)
-
-  drawBlock(g, [x, y + 17, w, 2], { front: 7, tones: DARKWOOD })
-  framed(g, [x, y + 2, w, 13], isOn ? '#BFE6F5' : '#5E8399')
-  fill(g, [x, y, w, 2], isOn ? '#FFF7C2' : '#7A7F8C')
-  fill(g, [x, y + 13, w, 2], isOn ? '#E6D3A3' : '#9C8E6E')
-  fill(g, [x + 7, y + 6, 1, 7], '#4FA373')
-  fill(g, [x + 25, y + 8, 1, 5], '#3F9163')
-  paintFish(g, { x, y: y + 2, w, h: 13 }, { fish: scene.life.fish, level: scene.detail })
 }
 
 function paintCabinet(g: CanvasRenderingContext2D, prop: PropDef): void {
