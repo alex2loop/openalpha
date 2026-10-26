@@ -46,8 +46,10 @@ export interface MemoryWriteBody {
   readonly sessionId?: string
 }
 
+/** `scope` is the key of the scope the note went to, as `MemoryResponse` names it. */
 export interface MemoryWriteResult {
   readonly key: string
+  readonly scope: string
 }
 
 export interface MemoryForgetResult {

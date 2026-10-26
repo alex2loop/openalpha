@@ -8,12 +8,11 @@ import { formatDay } from '@/i18n'
 import { ApiFailure } from '@/web/api/client'
 import { onWireEvent } from '@/web/state/events'
 import {
-  forgetNote,
   hiddenRows,
-  hideRow,
+  holdForget,
   type MemoryScope,
+  memoryChanges,
   readMemory,
-  showRow,
   toAttributeName,
   toRowId,
 } from '@/web/state/memory'
@@ -77,7 +76,8 @@ export function MemorySection({ reopen }: SectionProps) {
   )
 }
 
-// A read on mount and on each saved preference; a later read that fails keeps the rows on screen.
+// A read on mount (the subscribe calls it at once), on each saved preference and on each forget or
+// save answered; a later read that fails keeps the rows on screen.
 function useMemoryRead(): ReadonlySignal<LoadState<MemoryResponse>> {
   const result = useSignal<LoadState<MemoryResponse>>({ status: 'loading' })
 
@@ -98,12 +98,13 @@ function useMemoryRead(): ReadonlySignal<LoadState<MemoryResponse>> {
         }
       )
     }
-    const off = onWireEvent('preference_saved', load)
-
-    load()
+    const offs = [onWireEvent('preference_saved', load), memoryChanges.subscribe(load)]
 
     return () => {
-      off()
+      for (const off of offs) {
+        off()
+      }
+
       reading.abort()
     }
   }, [])
@@ -214,17 +215,11 @@ function forgetRow(target: {
   readonly row: MemoryRowView
 }): void {
   const { scope, head, row } = target
-  const id = toRowId(scope.scope, row.key)
-  const bringBack = (): void => showRow(id)
+  const { commit, restore } = holdForget(scope.scope, row.key)
 
-  hideRow(id)
   showUndo(tr('ui.office.memory.forgotScope', { key: row.name, scope: head }), {
-    commit: async () => {
-      await forgetNote(scope.scope, row.key)
-
-      return undefined
-    },
-    restore: bringBack,
-    onRefused: bringBack,
+    commit,
+    restore,
+    onRefused: restore,
   })
 }

@@ -1,11 +1,11 @@
 import type { ChatHistoryMessage } from '@/app/server/wire/chat'
+import { USER_ROLE } from '@/web/state/chat'
 import { canRemember } from '@/web/state/memory'
 import { tr } from '@/web/text/tr'
 import { openRememberDialog } from '@/web/ui/dialogs/remember-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { Markdown } from '@/web/ui/markdown/markdown'
 
-const USER_ROLE = 'user'
 const PARAGRAPH_BREAK = /\n{2,}/
 
 interface ReplyTextProps {

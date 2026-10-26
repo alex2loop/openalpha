@@ -13,11 +13,16 @@ import type { MemoryScope, MemoryScopeEntries } from '@/memory/api'
 import { configuredEntryAgent } from '@/app/chat-commands'
 import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
-import { channelNameOf } from '@/app/server/routes/chat'
-import { localeOf, readJsonBody } from '@/app/server/routes/params'
+import { channelNameOf, parseSessionId } from '@/app/server/routes/chat'
+import {
+  localeOf,
+  parseLimit,
+  parseOptionalBranded,
+  readJsonBody,
+} from '@/app/server/routes/params'
 import { ValidationError } from '@/core/errors'
 import { FieldValidationError } from '@/core/field-errors'
-import { agentId, sessionId as brandSessionId, LOCAL_USER_ID, userId } from '@/core/ids'
+import { agentId, LOCAL_USER_ID, userId } from '@/core/ids'
 import { isMemoryKey, MEMORY_KEY_MAX_LEN } from '@/core/memory-key'
 import { ASKED_PREFIX, PENDING_PREFIX, PREFS_PREFIX } from '@/engine/api'
 import { bindLocale, translateDisplayText } from '@/i18n'
@@ -37,11 +42,15 @@ const WRITE_BODY: z.ZodType<MemoryWriteBody> = z.object({
 
 type MemoryScopeWire = MemoryResponse['scopes'][number]
 
-async function handleMemory(_req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const groups = await ctx.app
-    .resolve('memory')
-    .listScopes({ limit: MEMORY_ROUTE_MAX + 1, now: Date.now() })
-  const truncated = groups.reduce((sum, group) => sum + group.entries.length, 0) > MEMORY_ROUTE_MAX
+async function handleMemory(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const limit = parseLimit(new URL(req.url).searchParams.get('limit'), MEMORY_ROUTE_MAX)
+
+  if (limit === null) {
+    return apiError('invalid_body')
+  }
+
+  const groups = await ctx.app.resolve('memory').listScopes({ limit: limit + 1, now: Date.now() })
+  const truncated = groups.reduce((sum, group) => sum + group.entries.length, 0) > limit
   const kept = truncated ? withoutLastRow(groups) : groups
   const labels = kept.some((group) => group.scope.userId !== LOCAL_USER_ID)
     ? await resolveUserLabels(ctx)
@@ -156,9 +165,11 @@ async function handleMemoryWrite(req: Request, ctx: ApiRouteContext): Promise<Re
     return agent
   }
 
-  await storeNote({ agentId: agent, userId: LOCAL_USER_ID }, { ctx, key, value })
+  const scope = { agentId: agent, userId: LOCAL_USER_ID }
 
-  return json({ key } satisfies MemoryWriteResult)
+  await storeNote(scope, { ctx, key, value })
+
+  return json({ key, scope: toScopeKey(scope) } satisfies MemoryWriteResult)
 }
 
 /** The agent the web chat `raw` names talks to; a refusal for an unknown or another channel's chat. */
@@ -170,17 +181,22 @@ async function resolveWebAgent(
     return configuredEntryAgent(ctx.app, API_CHANNEL)
   }
 
-  const id = parseSessionId(raw)
-  const channel = id === undefined ? undefined : await ctx.app.resolve('sessionStore').channelOf(id)
+  const id = parseOptionalBranded(raw, parseSessionId)
 
-  if (id === undefined || channel === undefined) {
+  if (id === null || id === undefined) {
+    return apiError('invalid_body')
+  }
+
+  const channel = await ctx.app.resolve('sessionStore').channelOf(id)
+
+  if (channel === undefined) {
     return apiError('not_found')
   }
 
   if (!isApiChannel(channel)) {
     return apiError(
       'conflict',
-      bindLocale(localeOf(ctx)).translate('errors.chatSessionNotWeb', {
+      bindLocale(localeOf(ctx)).translate('errors.memorySessionNotWeb', {
         channel: channelNameOf(channel),
       })
     )
@@ -192,14 +208,6 @@ async function resolveWebAgent(
   return binding !== null && ctx.app.resolve('agents').has(binding.agentId)
     ? binding.agentId
     : configuredEntryAgent(ctx.app, API_CHANNEL)
-}
-
-function parseSessionId(raw: string): ReturnType<typeof brandSessionId> | undefined {
-  try {
-    return brandSessionId(raw)
-  } catch {
-    return undefined
-  }
 }
 
 async function storeNote(
@@ -230,15 +238,17 @@ async function handleMemoryForget(req: Request, ctx: ApiRouteContext): Promise<R
   }
 
   const memory = ctx.app.resolve('memory')
-  const removed = await memory.remove(scope, key)
 
-  if (removed > 0 && key.startsWith(PREFS_PREFIX)) {
+  // The open question goes first, so a retry after a failure here still finishes the job.
+  if (key.startsWith(PREFS_PREFIX)) {
     const attribute = key.slice(PREFS_PREFIX.length)
 
     await Promise.all(
       HIDDEN_PREFIXES.map((prefix) => memory.remove(scope, `${prefix}${attribute}`))
     )
   }
+
+  const removed = await memory.remove(scope, key)
 
   return json({ removed } satisfies MemoryForgetResult)
 }

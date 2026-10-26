@@ -15,6 +15,8 @@ const MAX_CHAT_STEPS = 20
 const MAX_TURN_PREFERENCES = 5
 /** What starts a command rather than a question. */
 export const COMMAND_PREFIX = '/'
+/** The role of a message the operator wrote. */
+export const USER_ROLE = 'user'
 
 /** The channel of this app's own sessions: the only one that takes a new message or is deleted
  *  here; every other channel's session is read-only history. */

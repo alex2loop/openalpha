@@ -91,7 +91,7 @@ async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Re
   } satisfies ChatHistoryResponse)
 }
 
-function parseSessionId(raw: string): SessionId {
+export function parseSessionId(raw: string): SessionId {
   if (!(CHAT_ID_RE.test(raw) || UUID_RE.test(raw))) {
     throw new ValidationError('not a session id')
   }
