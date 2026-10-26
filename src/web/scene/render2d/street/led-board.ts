@@ -1,19 +1,11 @@
-import type { LedItem } from '@/web/scene/data/led'
+import type { BandItem, LedItem } from '@/web/scene/data/led'
 import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { BoardView } from '@/web/scene/street-types'
 import type { Rect } from '@/web/scene/types'
-import { ledItems } from '@/web/scene/data/led'
-import {
-  LED,
-  lastMoveOf,
-  paintFace,
-  paintStrip,
-  stripWidthOf,
-} from '@/web/scene/render2d/street/led-face'
+import { bandItems, ledItems } from '@/web/scene/data/led'
+import { LED, paintFace, paintStrip, stripWidthOf } from '@/web/scene/render2d/street/led-face'
 import { zeroCanvas } from '@/web/scene/renderer'
-import { FONT } from '@/web/scene/sprites/screens'
 import { brand, locale } from '@/web/state/session'
-import { tr } from '@/web/text/tr'
 
 /** Close zoom keeps at most this many finished board faces; the oldest is dropped and zeroed. */
 const MAX_LED_FACES = 24
@@ -23,9 +15,6 @@ const HALO_ALPHA = 0.2
 const HALO_PAD = 3
 const PULSE = Object.freeze({ rgb: '159,176,255', alpha: 0.5, reach: 16 })
 const BAND_INSET = 0.8
-const BAND_ROW_FONT = 4.6
-const BAND_ROW_SHARE = 0.82
-const NAME_GAP_PX = 1.4
 
 /** What the face memo holds: the picture and what it was painted for. */
 interface FaceMemo {
@@ -39,7 +28,7 @@ interface FaceMemo {
 }
 
 interface StripMemo {
-  readonly items: readonly LedItem[]
+  readonly items: readonly BandItem[]
   readonly scale: number
   readonly language: string
   readonly canvas: HTMLCanvasElement
@@ -53,7 +42,7 @@ let stripMemo: StripMemo | undefined
 
 /** The board's live parts over the frontage's static housing: the halo and the hour's pulse, the
  *  face (the panel now showing, a cached vector picture at the zoom's scale) and the ticker band
- *  (scrolling while a market is open, the last closes standing otherwise). */
+ *  (the page tape's names, scrolling while one of their markets is open, standing otherwise). */
 export function paintBoard(
   g: CanvasRenderingContext2D,
   at: { readonly scene: MovingScene; readonly board: BoardView; readonly rects: BoardRects }
@@ -77,7 +66,7 @@ export function paintBoard(
     g.drawImage(face, at.rects.board.x, at.rects.board.y, at.rects.board.w, at.rects.board.h)
   }
 
-  paintBand(g, { rect: at.rects.band, items, scale, scrollPx: board.scrollPx })
+  paintBand(g, { rect: at.rects.band, items: bandItems.value, scale, scrollPx: board.scrollPx })
 }
 
 /** The board's and the band's rects on the frontage's face. */
@@ -219,13 +208,12 @@ function signatureOf(items: readonly LedItem[]): string {
     .join(';')
 }
 
-// The band: its frame, then the scrolling strip while a market is open, else the last closes in
-// two columns with the closing-prices (or lunch) note after them.
+// The band: its frame, then the strip, `scrollPx` along (none while it stands).
 function paintBand(
   g: CanvasRenderingContext2D,
   at: {
     readonly rect: Rect
-    readonly items: readonly LedItem[]
+    readonly items: readonly BandItem[]
     readonly scale: number
     readonly scrollPx: number
   }
@@ -246,13 +234,7 @@ function paintBand(
   g.beginPath()
   g.rect(rect.x + BAND_INSET, rect.y + BAND_INSET, rect.w - 2 * BAND_INSET, rect.h - 2 * BAND_INSET)
   g.clip()
-
-  if (at.items.some((item) => item.state === 'open')) {
-    paintScroll(g, at)
-  } else {
-    paintClosed(g, at)
-  }
-
+  paintScroll(g, at)
   g.restore()
 }
 
@@ -260,7 +242,7 @@ function paintScroll(
   g: CanvasRenderingContext2D,
   at: {
     readonly rect: Rect
-    readonly items: readonly LedItem[]
+    readonly items: readonly BandItem[]
     readonly scale: number
     readonly scrollPx: number
   }
@@ -285,7 +267,7 @@ function paintScroll(
 // One cycle of the strip, painted once per figures, language and scale.
 function stripOf(
   g: CanvasRenderingContext2D,
-  want: { readonly items: readonly LedItem[]; readonly scale: number; readonly h: number }
+  want: { readonly items: readonly BandItem[]; readonly scale: number; readonly h: number }
 ): StripMemo | undefined {
   const language = locale.value
   const held = stripMemo
@@ -320,39 +302,4 @@ function stripOf(
   stripMemo = { items: want.items, scale: want.scale, language, canvas, w }
 
   return stripMemo
-}
-
-function paintClosed(
-  g: CanvasRenderingContext2D,
-  at: { readonly rect: Rect; readonly items: readonly LedItem[] }
-): void {
-  const { rect, items } = at
-  const rows = Math.ceil((items.length + 1) / 2)
-  const rowH = (rect.h - 2 * BAND_INSET) / rows
-  const size = Math.min(BAND_ROW_FONT, rowH * BAND_ROW_SHARE)
-  const colW = (rect.w - 2 * BAND_INSET) / 2
-  const note = items.some((item) => item.state === 'break')
-    ? tr('ui.office.life.lunch')
-    : tr('ui.office.led.lastClose')
-
-  g.font = `700 ${size}px ${FONT}`
-  g.textBaseline = 'middle'
-  g.textAlign = 'left'
-
-  for (const [index, text] of [...items.map((held) => held.label), note].entries()) {
-    const x = rect.x + 2.2 + (index % 2) * colW
-    const y = rect.y + BAND_INSET + rowH * (Math.floor(index / 2) + 0.5) + 0.2
-
-    g.fillStyle = index < items.length ? LED.name : LED.dim
-    g.fillText(text, x, y)
-
-    const held = items[index]
-
-    if (held !== undefined) {
-      const move = lastMoveOf(held)
-
-      g.fillStyle = move.colour
-      g.fillText(move.move, x + g.measureText(text).width + NAME_GAP_PX, y)
-    }
-  }
 }

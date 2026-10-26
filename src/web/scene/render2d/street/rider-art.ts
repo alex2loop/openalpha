@@ -1,21 +1,32 @@
 import type { BikeShape, RiderGear } from '@/web/scene/street-types'
+import { paintBikeEnd } from '@/web/scene/render2d/street/bike-end'
+import {
+  type BikeArt,
+  type BikeBuild,
+  CM_ALONG,
+  CM_UP,
+  type HelmetStyle,
+  type Pillion,
+  paintBikeSide,
+} from '@/web/scene/render2d/street/bike-model'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import { type Art, dirOf, fill, isAlongX, toneOf } from '@/web/scene/render2d/street/vehicle-art'
-import { PALETTE, RAMP } from '@/web/scene/sprites/palette'
+import { PALETTE } from '@/web/scene/sprites/palette'
 import { tr } from '@/web/text/tr'
 
-type Rect4 = readonly [number, number, number, number]
-
 // Plain colours only: no maker's paint, no mark on a jacket or a box.
-const BIKE_TONES = [
-  '#E8E6E0',
-  '#B33A3A',
-  '#2F5D9E',
-  '#2B2E36',
-  '#9AA3AE',
-  '#C9B98A',
-  '#3C8A5C',
-] as const
+const BODY_TONES: Readonly<Record<BikeShape, readonly string[]>> = Object.freeze({
+  'step-through': ['#C23B3B', '#2B2E36', '#2F5D9E', '#E8E6E0', '#3C8A5C'],
+  scooter: ['#E8E6E0', '#B33A3A', '#2F5D9E', '#2B2E36', '#9AA3AE', '#C9B98A'],
+  maxi: ['#F2F2EE', '#2B2E36', '#C0393B', '#8FB6D6', '#9CC7B0'],
+  sport: ['#2F5D9E', '#3A3F4A', '#C9A227', '#C23B3B', '#8C949E'],
+})
+const BUILDS: Readonly<Record<BikeShape, BikeBuild>> = Object.freeze({
+  'step-through': 'underbone',
+  scooter: 'scooter',
+  maxi: 'scooter',
+  sport: 'sport',
+})
 const HELMET_TONES = [
   '#23262E',
   '#E9E6DD',
@@ -24,31 +35,60 @@ const HELMET_TONES = [
   '#E3B73B',
   '#8B9099',
   '#E58AB0',
+  '#4B8F6B',
+  '#E26A2C',
 ] as const
-const COAT_TONES = ['#E56E9B', '#4FA3C7', '#8E6FC0', '#F0A24A', '#53B28A', '#D95D5D'] as const
+const RIDER_TONES = [
+  '#3E5C8A',
+  '#B5483F',
+  '#4B7F5E',
+  '#D9A93A',
+  '#6B6F7A',
+  '#E7E4DC',
+  '#2E3340',
+  '#8A5A8C',
+  '#C57A3E',
+] as const
+const COAT_TONES = [
+  '#E56E9B',
+  '#4FA3C7',
+  '#8E6FC0',
+  '#F0A24A',
+  '#53B28A',
+  '#D95D5D',
+  '#2F3E66',
+  '#A9AEB6',
+] as const
 const HAILING_TONES = ['#4DAE78', '#35A5B2', '#E56A3E'] as const
-const MASK_TONES = ['#E9E6DD', '#7FB3D9', '#2E3340'] as const
-const SHIRTS = Object.values(RAMP.shirt).map((ramp) => ramp[1])
+const MASK_TONES = ['#E9E6DD', '#7FB3D9', '#2E3340', '#E9E6DD'] as const
+const PANT_TONES = ['#2E3340', '#3B4458', '#5B6272', '#2D3A4F', '#7A6E5C'] as const
+const PUPIL = Object.freeze({ shirt: '#F2F0EA', pants: '#2D3A4F' })
+// Shares out of a hundred: helmets (a sport rider favours a full face), side-saddle pillions.
+const HELMET_ROLL = Object.freeze({ fullSport: 60, half: 50, visor: 78 })
+const SIDE_SADDLE_ROLL = 27
+const ROLL_MIX = 2654435761
 const JACKETS: Readonly<Record<RiderGear, readonly string[]>> = Object.freeze({
-  plain: SHIRTS,
+  plain: RIDER_TONES,
   sunCoat: COAT_TONES,
   rideHailing: HAILING_TONES,
 })
-const SKINS = Object.values(RAMP.skin).map((ramp) => ramp[1])
-const PANTS = Object.values(RAMP.pants).map((ramp) => ramp[1])
+/** The street's people: skins, shirts, trousers and hair of passers-by, riders and workers. */
+export const STREET_PEOPLE = Object.freeze({
+  skins: ['#E8C4A0', '#D9AE86', '#C99A74', '#B98562'],
+  shirts: ['#7EA7C9', '#C98A8A', '#8FB89A', '#D9C27A', '#9C8FC0', '#E0E0DC', '#6D7F99', '#C9A27A'],
+  pants: ['#3B4458', '#5B6272', '#8A7C68', '#2D3A4F'],
+  hairs: ['#2B2433', '#4A3A32', '#6A5A4A', '#C9C4B8'],
+})
+const SKINS = STREET_PEOPLE.skins
+const PANTS = STREET_PEOPLE.pants
 const TONES = Object.freeze({
-  tyre: '#171A22',
-  seat: '#262932',
-  bars: '#23262F',
-  head: '#FFF3C4',
-  tail: '#D8453B',
   vest: '#E8892B',
   vestBand: '#F4F1E8',
   cart: '#3F8A5C',
   broom: '#9B7A52',
   ticket: PALETTE.paper,
-  pupil: PALETTE.paper,
   ink: '#FFFFFF',
+  fallback: '#262932',
 })
 // Bits of the look seed each colour is drawn from.
 const LOOK_BITS = Object.freeze({
@@ -59,75 +99,15 @@ const LOOK_BITS = Object.freeze({
   passenger: 13,
   mask: 15,
 })
-// A two-wheeler from the side, facing east, from the ground under its middle.
-const WHEELS = Object.freeze({ x: 1.7, y: -0.7, r: 0.7 })
-const SIDE_BODIES: Readonly<Record<BikeShape, readonly Rect4[]>> = Object.freeze({
-  'step-through': [
-    [-2.3, -1.7, 3.3, 0.45],
-    [0.9, -2.6, 0.35, 1.9],
-  ],
-  scooter: [
-    [-2.5, -2.1, 2.4, 1.1],
-    [-0.2, -1.4, 1, 0.35],
-    [0.8, -2.8, 0.6, 2.1],
-  ],
-  maxi: [
-    [-2.7, -2.4, 2.8, 1.4],
-    [0.1, -1.5, 0.9, 0.4],
-    [0.9, -3, 0.7, 2.3],
-  ],
-  sport: [
-    [-2.4, -2.2, 1.6, 0.6],
-    [-0.6, -2.7, 1.8, 0.9],
-    [0.9, -2.8, 0.35, 2.1],
-  ],
+// The delivery box's word, close up: where it sits on the box from the side and from the back.
+const BOX_WORD = Object.freeze({
+  along: -84,
+  up: -100,
+  endAlong: -102,
+  endUp: 107,
+  size: 0.55,
+  w: 40,
 })
-const SIDE = Object.freeze({
-  seat: [-2.1, -2.55, 1.9, 0.35],
-  lamp: [1.2, -2.7, 0.35, 0.35],
-  bars: [1, -3.6, 0.3, 0.9],
-  thigh: [-0.9, -2.6, 1.3, 0.5],
-  shin: [0.2, -2.4, 0.45, 1.1],
-  footDown: [0.3, -2.4, 0.45, 2.4],
-  torso: [-1.4, -4.7, 1.1, 2.2],
-  coat: [-1.5, -4.7, 1.5, 3],
-  arm: [-0.6, -4.2, 1.8, 0.4],
-  head: [-0.85, -5.3, 0.55],
-  mask: [-0.55, -5.25, 0.45, 0.3],
-  rider: [-2.6, -4.4, 1, 1.9],
-  riderHead: [-2.1, -5, 0.5],
-  pupil: [-2.5, -4, 0.9, 1.5],
-  pupilHead: [-2.05, -4.6, 0.45],
-  box: [-3.3, -4.3, 1.5, 1.6],
-  boxWord: 0.45,
-} as const)
-// The same from the front or the back, from the ground under it.
-const END = Object.freeze({
-  wheel: [-0.25, -1.4, 0.5, 1.4],
-  body: [-0.7, -2.7, 1.4, 1.4],
-  lamp: [-0.2, -2.5, 0.4, 0.3],
-  bars: [-1.2, -3.3, 2.4, 0.25],
-  torso: [-0.8, -4.6, 1.6, 2],
-  coat: [-0.85, -4.6, 1.7, 2.6],
-  arms: [
-    [-1.2, -3.9, 0.4, 0.9],
-    [0.8, -3.9, 0.4, 0.9],
-  ],
-  legs: [
-    [-0.9, -2.4, 0.4, 1],
-    [0.5, -2.4, 0.4, 1],
-  ],
-  feetDown: [
-    [-1.1, -2.4, 0.4, 2.4],
-    [0.7, -2.4, 0.4, 2.4],
-  ],
-  head: [0, -5.2, 0.55],
-  mask: [-0.3, -5.15, 0.6, 0.3],
-  rider: [-0.7, -5.2, 1.4, 0.8],
-  riderHead: [0, -5.8, 0.5],
-  box: [-0.75, -4.9, 1.5, 1.4],
-  seat: [-0.5, -2.9, 1, 0.3],
-} as const)
 // A sweeper with a cart and a broom, and the lot's attendant, standing.
 const SWEEPER = Object.freeze({
   cart: [-2.2, -2.2, 1.8, 1.6],
@@ -153,8 +133,10 @@ const ATTENDANT = Object.freeze({
   arm: [0.5, -3.4, 1.2, 0.35],
   ticket: [1.6, -3.6, 0.5, 0.6],
 } as const)
-const HELMET_SHELL = 1.08
-const BIKE_BOX = Object.freeze({ side: 9, end: 4, h: 7.6, anchorY: 6.6 })
+const BIKE_BOX = Object.freeze({
+  side: { w: 9, h: 7.6, anchorY: 6.6 },
+  end: { w: 4, h: 10.6, anchorY: 7.6 },
+})
 /** The sprite box of a standing person. */
 export const PERSON_BOX = Object.freeze({ w: 6, h: 7, anchorY: 6.2 })
 
@@ -164,148 +146,34 @@ export function bikeBoxOf(art: { readonly vehicle: Art['vehicle'] }): {
   readonly h: number
   readonly anchorY: number
 } {
-  return {
-    w: isAlongX(art.vehicle.heading) ? BIKE_BOX.side : BIKE_BOX.end,
-    h: BIKE_BOX.h,
-    anchorY: BIKE_BOX.anchorY,
-  }
+  return isAlongX(art.vehicle.heading) ? BIKE_BOX.side : BIKE_BOX.end
 }
 
 /** A motorbike with its rider in a helmet, a sun coat and mask or a plain ride-hailing jacket,
  *  maybe a passenger or a pupil behind, a delivery box; a foot down when stopped. */
 export function paintBike(art: Art): void {
-  if (isAlongX(art.vehicle.heading)) {
-    const { g } = art
-    const dir = dirOf(art.vehicle.heading)
+  const model = modelOf(art)
+  const dir = dirOf(art.vehicle.heading)
 
-    g.save()
-    g.scale(dir, 1)
-    paintBikeSide(art)
-    g.restore()
-    paintBoxWord(art, {
-      x: (SIDE.box[0] + SIDE.box[2] / 2) * dir,
-      y: SIDE.box[1] + SIDE.box[3] / 2,
-    })
+  if (isAlongX(art.vehicle.heading)) {
+    art.g.save()
+    art.g.scale(dir, 1)
+    paintBikeSide(model)
+    art.g.restore()
+    paintBoxWord(art, { x: -dir * BOX_WORD.along * CM_ALONG, y: BOX_WORD.up * CM_UP + 0.1 })
     return
   }
 
-  paintBikeEnd(art)
-}
+  paintBikeEnd(model, { dir, isParked: false })
 
-function paintBikeSide(art: Art): void {
-  const { g, vehicle } = art
-  const look = looksOf(art)
-
-  if (vehicle.kind === 'delivery') {
-    fill(g, toneOf(art, look.jacket), SIDE.box)
-  }
-
-  if (vehicle.passenger) {
-    const isPupil = vehicle.kind === 'school'
-
-    fill(g, toneOf(art, isPupil ? TONES.pupil : look.passenger), isPupil ? SIDE.pupil : SIDE.rider)
-    paintHead(art, {
-      at: isPupil ? SIDE.pupilHead : SIDE.riderHead,
-      skin: look.skin,
-      helmet: look.helmet,
-    })
-  }
-
-  paintMachineSide(art, look.body)
-  fill(g, toneOf(art, look.pants), SIDE.thigh)
-  fill(g, toneOf(art, look.pants), vehicle.footDown ? SIDE.footDown : SIDE.shin)
-  fill(g, toneOf(art, look.jacket), vehicle.gear === 'sunCoat' ? SIDE.coat : SIDE.torso)
-  fill(g, toneOf(art, look.jacket), SIDE.arm)
-  paintHead(art, { at: SIDE.head, skin: look.skin, helmet: look.helmet })
-
-  if (vehicle.gear === 'sunCoat') {
-    fill(g, toneOf(art, look.mask), SIDE.mask)
-  }
-}
-
-function paintMachineSide(art: Art, body: string): void {
-  const { g } = art
-
-  g.fillStyle = toneOf(art, TONES.tyre)
-
-  for (const side of [-1, 1]) {
-    g.beginPath()
-    g.arc(side * WHEELS.x, WHEELS.y, WHEELS.r, 0, Math.PI * 2)
-    g.fill()
-  }
-
-  for (const rect of SIDE_BODIES[art.vehicle.bike]) {
-    fill(g, toneOf(art, body), rect)
-  }
-
-  fill(g, toneOf(art, TONES.seat), SIDE.seat)
-  fill(g, toneOf(art, TONES.bars), SIDE.bars)
-
-  if (art.detail > 0) {
-    fill(g, toneOf(art, TONES.head), SIDE.lamp)
-  }
-}
-
-// End on: what is behind the rider is drawn first, so a bike heading away shows its box and
-// passenger over the rider's back.
-function paintBikeEnd(art: Art): void {
-  const { g, vehicle } = art
-  const look = looksOf(art)
-  const isTowardViewer = vehicle.heading === 'south'
-
-  if (isTowardViewer) {
-    paintBehind(art, look)
-  }
-
-  fill(g, toneOf(art, TONES.tyre), END.wheel)
-  fill(g, toneOf(art, look.body), END.body)
-  fill(g, toneOf(art, isTowardViewer ? TONES.head : TONES.tail), END.lamp)
-  fill(g, toneOf(art, TONES.bars), END.bars)
-
-  for (const leg of vehicle.footDown ? END.feetDown : END.legs) {
-    fill(g, toneOf(art, look.pants), leg)
-  }
-
-  fill(g, toneOf(art, look.jacket), vehicle.gear === 'sunCoat' ? END.coat : END.torso)
-
-  for (const arm of END.arms) {
-    fill(g, toneOf(art, look.jacket), arm)
-  }
-
-  paintHead(art, { at: END.head, skin: look.skin, helmet: look.helmet })
-
-  if (vehicle.gear === 'sunCoat' && isTowardViewer) {
-    fill(g, toneOf(art, look.mask), END.mask)
-  }
-
-  if (!isTowardViewer) {
-    paintBehind(art, look)
-  }
-}
-
-function paintBehind(art: Art, look: Looks): void {
-  const { g, vehicle } = art
-
-  if (vehicle.passenger) {
-    fill(g, toneOf(art, vehicle.kind === 'school' ? TONES.pupil : look.passenger), END.rider)
-    paintHead(art, { at: END.riderHead, skin: look.skin, helmet: look.helmet })
-  }
-
-  if (vehicle.kind === 'delivery') {
-    fill(g, toneOf(art, look.jacket), END.box)
+  if (dir < 0) {
+    paintBoxWord(art, { x: 0, y: -BOX_WORD.endAlong * CM_ALONG - BOX_WORD.endUp * CM_UP })
   }
 }
 
 /** A motorbike parked head-in: no rider, seen from the back. */
 export function paintParkedBike(art: Art): void {
-  const { g } = art
-  const look = looksOf(art)
-
-  fill(g, toneOf(art, TONES.tyre), END.wheel)
-  fill(g, toneOf(art, look.body), END.body)
-  fill(g, toneOf(art, TONES.seat), END.seat)
-  fill(g, toneOf(art, TONES.bars), END.bars)
-  fill(g, toneOf(art, TONES.tail), END.lamp)
+  paintBikeEnd(modelOf(art), { dir: -1, isParked: true })
 }
 
 /** A street sweeper in a vest and a conical hat, pushing a cart with a broom out in front. */
@@ -354,14 +222,10 @@ export function paintAttendant(art: Art, isHanding: boolean): void {
   }
 }
 
-// A head, under a helmet's shell when one is given.
+// A bare head.
 function paintHead(
   art: Art,
-  at: {
-    readonly at: readonly [number, number, number]
-    readonly skin: string
-    readonly helmet?: string
-  }
+  at: { readonly at: readonly [number, number, number]; readonly skin: string }
 ): void {
   const { g } = art
   const [x, y, r] = at.at
@@ -370,13 +234,6 @@ function paintHead(
   g.beginPath()
   g.arc(x, y, r, 0, Math.PI * 2)
   g.fill()
-
-  if (at.helmet !== undefined) {
-    g.fillStyle = toneOf(art, at.helmet)
-    g.beginPath()
-    g.arc(x, y, r * HELMET_SHELL, Math.PI, Math.PI * 2)
-    g.fill()
-  }
 }
 
 // A delivery box's word, close up, drawn unmirrored over the side view.
@@ -388,39 +245,95 @@ function paintBoxWord(art: Art, at: { readonly x: number; readonly y: number }):
   paintLabel(art.g, tr(art.pack.words.delivery), {
     x: at.x,
     y: at.y,
-    size: SIDE.boxWord,
+    size: BOX_WORD.size,
     colour: TONES.ink,
-    maxW: SIDE.box[2],
+    maxW: BOX_WORD.w * CM_ALONG,
   })
 }
 
 interface Looks {
-  readonly body: string
-  readonly helmet: string
-  readonly jacket: string
   readonly skin: string
   readonly pants: string
-  readonly passenger: string
-  readonly mask: string
 }
 
-// Every colour from the look seed; a ride-hailing or delivery rider wears a plain jacket.
+// A standing person's colours from the look seed.
 function looksOf(art: Art): Looks {
-  const { look, gear } = art.vehicle
-  const at = (bits: number): number => look >>> bits
-  const jackets = JACKETS[gear]
+  const { look } = art.vehicle
 
   return {
-    body: pickTone(BIKE_TONES, look),
-    helmet: pickTone(HELMET_TONES, at(LOOK_BITS.helmet)),
-    jacket: pickTone(jackets, at(LOOK_BITS.jacket)),
-    skin: pickTone(SKINS, at(LOOK_BITS.skin)),
-    pants: pickTone(PANTS, at(LOOK_BITS.pants)),
-    passenger: pickTone(SHIRTS, at(LOOK_BITS.passenger)),
-    mask: pickTone(MASK_TONES, at(LOOK_BITS.mask)),
+    skin: pickTone(SKINS, look >>> LOOK_BITS.skin),
+    pants: pickTone(PANTS, look >>> LOOK_BITS.pants),
   }
 }
 
+// The model art for a motorbike: every colour from the look seed; a ride-hailing or delivery
+// rider wears a plain jacket, a delivery box in its colour.
+function modelOf(art: Art): BikeArt {
+  const { vehicle } = art
+  const { look, gear } = vehicle
+  const at = (bits: number): number => look >>> bits
+  const jacket = pickTone(JACKETS[gear], at(LOOK_BITS.jacket))
+  const pillion = vehicle.passenger ? pillionOf(art) : undefined
+
+  return {
+    g: art.g,
+    detail: art.detail,
+    tone: (hex) => toneOf(art, hex),
+    look: {
+      build: BUILDS[vehicle.bike],
+      body: pickTone(BODY_TONES[vehicle.bike], look),
+      jacket,
+      helmet: pickTone(HELMET_TONES, at(LOOK_BITS.helmet)),
+      helmetStyle: helmetStyleOf(vehicle),
+      skin: pickTone(SKINS, at(LOOK_BITS.skin)),
+      pants: pickTone(PANT_TONES, at(LOOK_BITS.pants)),
+      mask: pickTone(MASK_TONES, at(LOOK_BITS.mask)),
+      isCoated: gear === 'sunCoat',
+      isFootDown: vehicle.footDown,
+      ...(pillion === undefined ? {} : { pillion }),
+      ...(vehicle.kind === 'delivery' ? { box: jacket } : {}),
+    },
+  }
+}
+
+function pillionOf(art: Art): Pillion {
+  const { look, kind } = art.vehicle
+  const isPupil = kind === 'school'
+  const roll = look >>> LOOK_BITS.passenger
+
+  return {
+    jacket: isPupil ? PUPIL.shirt : pickTone(RIDER_TONES, roll),
+    pants: isPupil ? PUPIL.pants : pickTone(PANT_TONES, roll >>> 2),
+    helmet: pickTone(HELMET_TONES, roll >>> 1),
+    skin: pickTone(SKINS, roll >>> 3),
+    isSideSaddle: !isPupil && rollOf(look, 1) < SIDE_SADDLE_ROLL,
+    isPupil,
+  }
+}
+
+function helmetStyleOf(vehicle: Art['vehicle']): HelmetStyle {
+  const roll = rollOf(vehicle.look, 2)
+
+  if (vehicle.bike === 'sport') {
+    return roll < HELMET_ROLL.fullSport ? 'full' : 'half'
+  }
+
+  if (vehicle.gear === 'sunCoat') {
+    return roll < HELMET_ROLL.half ? 'half' : 'visor'
+  }
+
+  if (roll < HELMET_ROLL.half) {
+    return 'half'
+  }
+
+  return roll < HELMET_ROLL.visor ? 'visor' : 'full'
+}
+
+// A share out of a hundred drawn from the look seed, a different one per `salt`.
+function rollOf(look: number, salt: number): number {
+  return (Math.imul(look + salt, ROLL_MIX) >>> 0) % 100
+}
+
 function pickTone(tones: readonly string[], roll: number): string {
-  return tones[roll % tones.length] ?? TONES.seat
+  return tones[roll % tones.length] ?? TONES.fallback
 }

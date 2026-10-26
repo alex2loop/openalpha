@@ -255,7 +255,6 @@
     "office.rhythm.overtime": "vẫn đang chạy {what}",
     "office.led.closed": "đóng cửa",
     "office.led.at": "giá lúc {time}",
-    "office.led.lastClose": "giá đóng cửa",
     "office.tip.printer": "Máy in",
     "office.tip.printerLine": "Đang in báo cáo {topic}",
     "office.tip.storeLine": "Giá {done}/{total} mã {market} đã cập nhật",
