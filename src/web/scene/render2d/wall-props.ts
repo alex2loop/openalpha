@@ -1,4 +1,5 @@
 import type { AgendaModel } from '@/web/scene/data/agenda'
+import type { AlertStrip, StripTone } from '@/web/scene/data/alert-strip'
 import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
 import type { BoardNotes, ScreenCache } from '@/web/scene/sprites/screens'
 import type { LifeView, LiftView, RoomId } from '@/web/scene/types'
@@ -20,6 +21,21 @@ const MARKER_TONES = ['#7C93D6', '#A596D9', '#6F7388'] as const
 const HOURS_ON_DIAL = 12
 const HOUR_HAND_PX = 3
 const MINUTE_HAND_PX = 5
+const STRIP_VARIANT = 4
+// The lobby's lower agenda board stands on two legs.
+const STANDING_BOARD_VARIANT = 2
+const BOARD_LEG_PX = 12
+const STRIP_LEG_PX = 26
+const STRIP_GROUND = '#0E1020'
+const STRIP_SHINE = 'rgba(255,255,255,.08)'
+const STRIP_PX_PER_CHAR = 1.2
+const STRIP_GAP_PX = 4
+const STRIP_GAP_TONE = '#5B6A99'
+const STRIP_TONES: Readonly<Record<StripTone, string>> = Object.freeze({
+  problem: '#FF8A8E',
+  caution: '#FFD98A',
+  plain: '#FFE9B0',
+})
 const SQUIGGLE_INSET = 0.07
 const SQUIGGLE_WIDTH = 0.022
 const SQUIGGLE_STEP = 0.05
@@ -41,7 +57,7 @@ export interface PaintScene {
   readonly scale: number
   readonly isPrinting: boolean
   readonly notes: BoardNotes
-  readonly unread: number
+  readonly strip: AlertStrip
   readonly agenda: AgendaModel
   readonly screens: ScreenCache
   readonly life: LifeView
@@ -172,15 +188,60 @@ function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
       g.drawImage(face.canvas, x, y, w, h)
     }
 
+    if (prop.variant === STANDING_BOARD_VARIANT) {
+      fill(g, [x + 4, y + h, 2, BOARD_LEG_PX], INK)
+      fill(g, [x + w - 4, y + h, 2, BOARD_LEG_PX], INK)
+    }
+
+    return
+  }
+
+  if (prop.variant === STRIP_VARIANT) {
+    paintStrip(g, prop.draw, scene.strip)
     return
   }
 
   fill(g, [x, y, w, h], '#171A2B')
+}
 
-  // The LED strip over the alert desk shows one bar a notice still unread.
-  if (prop.variant === 4 && scene.unread > 0) {
-    fill(g, [x + 2, y + 3, Math.min(w - 4, scene.unread * 6), 2], '#FFD98A')
+// The LED strip on its two legs over the alert desk: a bar a word of each headline in its tone,
+// a gap between headlines, held still and repeated along the strip.
+function paintStrip(g: CanvasRenderingContext2D, rect: PropDef['draw'], strip: AlertStrip): void {
+  const { x, y, w, h } = rect
+  const words = strip.lines.flatMap((line) => [
+    ...line.title
+      .split(' ')
+      .filter((word) => word !== '')
+      .map(
+        (word) =>
+          [
+            Math.max(2, Math.round(word.length * STRIP_PX_PER_CHAR)),
+            STRIP_TONES[line.tone],
+          ] as const
+      ),
+    [STRIP_GAP_PX, STRIP_GAP_TONE] as const,
+  ])
+  const total = words.reduce((sum, [width]) => sum + width + 1, 0)
+
+  fill(g, [x + 3, y + h, 2, STRIP_LEG_PX], INK)
+  fill(g, [x + w - 5, y + h, 2, STRIP_LEG_PX], INK)
+  fill(g, [x, y, w, h], STRIP_GROUND)
+  g.save()
+  g.beginPath()
+  g.rect(x, y, w, h)
+  g.clip()
+
+  for (let left = x; total > 0 && left < x + w; left += total) {
+    let at = left
+
+    for (const [width, tone] of words) {
+      fill(g, [at, y + 3, width, 2], tone)
+      at += width + 1
+    }
   }
+
+  g.restore()
+  fill(g, [x, y, w, 1], STRIP_SHINE)
 }
 
 function paintClock(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {

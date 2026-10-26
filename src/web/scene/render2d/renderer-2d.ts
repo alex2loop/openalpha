@@ -4,6 +4,7 @@ import type { LightRow } from '@/web/scene/sprites/daylight'
 import type { StreetFrame } from '@/web/scene/street-types'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { agenda } from '@/web/scene/data/agenda'
+import { alertStrip } from '@/web/scene/data/alert-strip'
 import { indexDrop } from '@/web/scene/data/board'
 import { homeIndex } from '@/web/scene/data/led'
 import { boardCaptions, isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
@@ -45,7 +46,6 @@ import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 import { selectedActor } from '@/web/state/focus'
 import { APPROVAL_KIND, pending } from '@/web/state/live'
-import { unread } from '@/web/state/notices'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
 import { toneOfPercent } from '@/web/text/figures'
 
@@ -248,7 +248,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     scale,
     isPrinting: isPrintingRun(lib),
     notes: boardNotes.value,
-    unread: unread.value ?? 0,
+    strip: alertStrip.value,
     agenda: agenda.value,
     screens: surface.screens,
     life: sim.life,
