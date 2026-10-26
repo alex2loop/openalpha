@@ -49,7 +49,8 @@ const MOVING_PAINTS: readonly MovingPaint[] = PAINT_PARTS.flatMap((part) =>
 export interface StreetPainter {
   paint(view: StreetView, visible: Rect, minute: ClockParts): StreetFrame
   /** The frame just drawn still fits the camera its draw placed: the detail level, and the
-   *  moving canvas still covers `visible`. False after a zoom or pan the paint ran ahead of. */
+   *  moving canvas's rect is the one `visible` asks for. False after a zoom or pan the paint ran
+   *  ahead of. */
   isCurrent(visible: Rect): boolean
   paintMs(): number
   release(): void
@@ -97,7 +98,7 @@ export function createStreetPainter(): StreetPainter {
     },
     isCurrent: (visible) =>
       state.detail === detailOfPx(projection.value.scale * devicePixelRatio) &&
-      (state.movingCanvas.width === 0 || isInside(visible, state.movingRect)),
+      (state.movingCanvas.width === 0 || isSameRect(toMovingRect(visible), state.movingRect)),
     paintMs: () => state.paintMs,
     release() {
       zeroCanvas(state.staticCanvas)
@@ -191,13 +192,8 @@ function hasMovers(view: StreetView): boolean {
   return MOVING_PAINTS.length > 0 && hasStreetEntities(view.pools)
 }
 
-function isInside(inner: Rect, outer: Rect): boolean {
-  return (
-    inner.x >= outer.x &&
-    inner.y >= outer.y &&
-    inner.x + inner.w <= outer.x + outer.w &&
-    inner.y + inner.h <= outer.y + outer.h
-  )
+function isSameRect(a: Rect, b: Rect): boolean {
+  return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
 }
 
 function clearMoving(state: PainterState): void {
