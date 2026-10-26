@@ -79,6 +79,17 @@ export const TABLE_POOLS: Readonly<
     [533, 200, 70],
   ],
 })
+/** The monitors' cool light, and where it falls on the office desks: x, y, radius. */
+export const SCREEN_RGB = '150,205,255'
+export const SCREEN_POOLS: readonly (readonly [number, number, number])[] = Object.freeze([
+  [182, 120, 16],
+  [230, 120, 16],
+  [278, 120, 16],
+  [528, 292, 16],
+  [560, 292, 16],
+  [370, 292, 16],
+  [58, 338, 34],
+])
 /** The lobby's red glow after an index drop: x, y, radius. */
 export const DROP_POOL: readonly [number, number, number] = Object.freeze([60, 292, 70])
 /** The room that dims once the home market has shut for the day. */
