@@ -1,7 +1,9 @@
 import type { WeatherFxView } from '@/web/scene/sky-types'
 import type { FloorId, LightView } from '@/web/scene/types'
+import { DEG } from '@/web/scene/clock/sun'
 import {
   blindClosureOf,
+  blindSpansOf,
   flashOf,
   isHazeOn,
   NORTH_GLASS,
@@ -9,10 +11,8 @@ import {
   paintGlassRain,
 } from '@/web/scene/sprites/sky-glass'
 import { WORLD } from '@/web/scene/types'
-import { DOORS } from '@/web/scene/world/doors'
 import { WALL_BAND_PX } from '@/web/scene/world/rooms'
 
-const DEG = Math.PI / 180
 // The sun through the glass: a warm patch on the floor beside the wall it falls through, longer
 // the lower the sun, fading in over its first degrees and under cloud.
 const PATCH = Object.freeze({
@@ -125,16 +125,9 @@ function paintBlinds(
     return
   }
 
-  const door = DOORS[at.floor].find((each) => each.isWest === true)
-  const gapFrom = door?.at.y ?? WORLD.h
-  const gapTo = door === undefined ? WORLD.h : door.at.y + door.width
-
   g.globalAlpha = at.closure
 
-  for (const [from, to] of [
-    [WALL_BAND_PX, gapFrom],
-    [gapTo, WORLD.h],
-  ] as const) {
+  for (const [from, to] of blindSpansOf(at.floor)) {
     g.fillStyle = BLIND.tone
     g.fillRect(0, from, BLIND.w, to - from)
     g.fillStyle = BLIND.slat

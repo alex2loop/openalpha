@@ -2,7 +2,7 @@ import type { MessageKey } from '@/i18n'
 import type { WeatherNow } from '@/web/scene/sky-types'
 import { sceneZone } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
-import { raining, weather, weatherReadAt } from '@/web/scene/data/weather'
+import { weather, weatherReadAt } from '@/web/scene/data/weather'
 import { breakpoint } from '@/web/state/breakpoints'
 import { DEGREE_C } from '@/web/text/glyphs'
 import { formatClock } from '@/web/text/time'
@@ -65,7 +65,7 @@ function conditionOf(now: WeatherNow): Condition {
     return 'storm'
   }
 
-  if (raining()) {
+  if (now.rain > 0) {
     return 'rain'
   }
 

@@ -1,7 +1,7 @@
 import type { Ped, Peds } from '@/web/scene/sim/street/ped-walk'
 import type { WeatherFxView } from '@/web/scene/sky-types'
 import type { Point } from '@/web/scene/types'
-import { weather } from '@/web/scene/data/weather'
+import { raining, weather } from '@/web/scene/data/weather'
 import { skyNow } from '@/web/scene/sim/sky'
 import { sheltersOf } from '@/web/scene/sim/street/flows'
 import {
@@ -89,7 +89,7 @@ export function syncWeatherFx(
 ): boolean {
   const now = weather.peek()
   const isSunUp = skyNow.peek().light.sun.altitudeDeg > 0
-  const isRaining = now.rain > 0
+  const isRaining = raining()
   const isHeat = now.tempC !== undefined && now.tempC >= HEAT_C && isSunUp
   const thunder = now.thunder && isRaining && !at.isReduced
   const { view } = fx

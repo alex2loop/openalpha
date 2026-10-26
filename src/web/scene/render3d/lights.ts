@@ -19,6 +19,7 @@ import {
 
 import type { SunView } from '@/web/scene/sky-types'
 import type { FloorId, RoomId } from '@/web/scene/types'
+import { DEG } from '@/web/scene/clock/sun'
 import { toUnits } from '@/web/scene/render3d/space'
 import { CLOSED_ROOM, type LightRow } from '@/web/scene/sprites/daylight'
 import { TOON_BANDS } from '@/web/scene/sprites/palette'
@@ -75,7 +76,6 @@ const HEMI_INTENSITY = 0.5 * Math.PI
 // these angles, so a low sun still lights the tops.
 const SUN_REACH = 52
 const SUN_ANGLE_DEG = Object.freeze({ min: 12, max: 50 })
-const DEG = Math.PI / 180
 // A flash brings this much more sky light.
 const FLASH_HEMI = 2.4 * Math.PI
 const GROUND_TONE = '#C9C2D6'
@@ -91,7 +91,7 @@ const TINT_WEIGHT = 1.5
 // The tint's own hue keeps this share against white in the light's colour.
 const TINT_HUE_SHARE = 0.4
 const TINT_RGB = /\d+,\d+,\d+/
-const LIGHT_EASE_MS = 300
+const ROOM_FILL_EASE_MS = 300
 const SETTLED = 0.004
 const GLASS_OPACITY = 0.34
 const CURTAIN_OPACITY = 0.12
@@ -200,7 +200,7 @@ function placeSun(sun: DirectionalLight, at: SunView): void {
 }
 
 function ease(held: number, target: number, dtMs: number): number {
-  return held + (target - held) * (1 - Math.exp(-dtMs / LIGHT_EASE_MS))
+  return held + (target - held) * (1 - Math.exp(-dtMs / ROOM_FILL_EASE_MS))
 }
 
 function clearSlots(lighting: Lighting, from: number): void {

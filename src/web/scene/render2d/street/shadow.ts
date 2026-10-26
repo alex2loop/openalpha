@@ -1,7 +1,7 @@
 import type { StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { Point } from '@/web/scene/types'
+import { DEG } from '@/web/scene/clock/sun'
 
-const DEG = Math.PI / 180
 // Shadows show once the sun is this high, full by twice that; never longer than this many
 // heights; this dark under a clear sky.
 const RISE_DEG = 4

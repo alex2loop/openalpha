@@ -45,8 +45,8 @@ this document — neither imports the other.
   any `/v1` route. In the compiled binary the page and its chunks answer with
   `Content-Security-Policy` (`default-src 'none'`, `'self'` for scripts, styles, fonts and
   connections, plus `https://api.open-meteo.com` for the page's own weather reading,
-  `data:`/`blob:` images, `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'none'`), `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`; a
-  source run serves it through Bun's `routes`, which carry none, and the page's own frame guard
+  `data:`/`blob:` images, `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'none'`),
+  `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`; a source run serves it through Bun's `routes`, which carry none, and the page's own frame guard
   (it renders nothing inside a frame) covers both. Token at
   `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod
   `0600`, generated on first enable. Compared constant-time. When a request carries a

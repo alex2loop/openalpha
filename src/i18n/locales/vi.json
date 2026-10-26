@@ -1052,7 +1052,7 @@
     "office.data.refresh": "Làm mới",
     "office.data.outbound": "Máy chủ ngoài mà daemon gọi",
     "office.data.outboundNote": "Đây là mọi nơi cấu hình hiện tại có thể gửi yêu cầu tới, và nội dung gửi đi.",
-    "office.data.pageCalls": "Trang này gọi api.open-meteo.com, chỉ gửi tọa độ thành phố của bạn, mỗi 30 phút. Không gọi được thì văn phòng dùng thời tiết tự tạo.",
+    "office.data.pageCalls": "Trang này gọi api.open-meteo.com, chỉ gửi tọa độ thành phố của bạn, mỗi {minutes} phút. Không gọi được thì văn phòng dùng thời tiết tự tạo.",
     "office.doctor.stillRuns": "Mọi thứ khác vẫn chạy bình thường.",
     "office.doctor.optional": "tùy chọn",
     "office.doctor.cliOnly": "Chạy {brand} doctor trong terminal trên máy chủ để kiểm tra mục này.",

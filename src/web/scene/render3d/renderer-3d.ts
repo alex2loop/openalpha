@@ -325,7 +325,7 @@ function syncScene(
     syncSeeThrough(stage.floor.walls, { people: people.standing, dtMs, isReduced })
   const dressing = syncDressing(stage, { job, row, standing: people.standing })
   const isSmall = !isReduced && (isMotionOn || sim.life.animatedFloors.includes(sim.floor))
-  const sky = syncWeather3d(stage.weather, { sim, now })
+  const sky = syncWeather3d(stage.weather, sim, now)
   const isMoving = isLightEasing || people.isSettling || dressing.isMoving || isWallFading
   const isWalking = people.standing.some(({ actor }) => isActorWalking(actor))
 

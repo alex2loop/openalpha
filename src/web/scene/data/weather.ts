@@ -10,7 +10,8 @@ import { reducedMotion } from '@/web/state/prefs'
 /** The forecast API the page itself calls; it sends only the city's latitude and longitude. */
 export const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast'
 const WEATHER_CURRENT = 'temperature_2m,precipitation,rain,cloud_cover,weather_code'
-const WEATHER_POLL_MS = 1_800_000
+/** How often the page asks for the weather. */
+export const WEATHER_POLL_MS = 1_800_000
 const WEATHER_TIMEOUT_MS = 8_000
 const WEATHER_MAX_AGE_MS = 10_800_000
 const PERCENT = 100
@@ -63,14 +64,14 @@ const reading = signal<Reading | undefined>(undefined)
 // One call at most a poll period apart, however often the poll is restarted.
 let lastCallAt = Number.NEGATIVE_INFINITY
 
-/** The weather the office shows: the last live reading in real time while it is under
- *  `WEATHER_MAX_AGE_MS` old, else the day's seeded weather. */
+/** The weather the office shows: the last live reading in real time with motion not reduced
+ *  while it is under `WEATHER_MAX_AGE_MS` old, else the day's seeded weather. */
 export const weather: ReadonlySignal<WeatherNow> = computed(() => {
   const held = reading.value
   const { day, minute } = pageMinute.value
   const isFresh = held !== undefined && Date.now() - held.atMs <= WEATHER_MAX_AGE_MS
 
-  return clockMode.value.kind === 'real' && isFresh
+  return clockMode.value.kind === 'real' && !reducedMotion.value && isFresh
     ? held.now
     : seededAt(seededDayOf(day, regionPack.value.id), minute)
 })
@@ -146,6 +147,7 @@ async function loadWeather(
 }
 
 function toWeather(body: unknown): WeatherNow | undefined {
+  // An unknown body: every field read below is checked for a finite number before use.
   const current = (body as { current?: Record<string, unknown> } | null)?.current
   const temp = current?.temperature_2m
   const mm = current?.precipitation
@@ -159,10 +161,11 @@ function toWeather(body: unknown): WeatherNow | undefined {
   }
 
   const isWetCode = WET_CODE_RANGES.some(([from, to]) => code >= from && code <= to)
-  const isRaining = mm > RAINING_FROM_MM || isWetCode
+  const water = Math.max(0, mm)
+  const isRaining = water > RAINING_FROM_MM || isWetCode
 
   return {
-    rain: isRaining ? Math.max(RAIN_CODE_FLOOR, rainOf(mm)) : 0,
+    rain: isRaining ? Math.max(RAIN_CODE_FLOOR, rainOf(water)) : 0,
     thunder: code >= THUNDER_CODES.from && code <= THUNDER_CODES.to,
     tempC: temp,
     cloud: Math.min(1, Math.max(0, cloud / PERCENT)),

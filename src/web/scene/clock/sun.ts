@@ -13,7 +13,10 @@ const DAYS_PER_CENTURY = 36_525
 const MINUTES_PER_DEGREE = 4
 const HALF_DAY_MINUTES = MINUTES_PER_DAY / 2
 const NOON_MS = 12 * MS_PER_HOUR
-const DEG = Math.PI / 180
+/** Radians in one degree. */
+export const DEG = Math.PI / 180
+/** The bearing due south: the sun is in the east, the morning's, before it. */
+const SOUTH_DEG = 180
 
 /** The sun over `geo` at `epochMs`, from the NOAA solar position formula (no refraction). */
 export function sunAt(epochMs: number, geo: Geo): SunView {
@@ -36,6 +39,11 @@ export function sunAt(epochMs: number, geo: Geo): SunView {
   const azimuthDeg = hourAngle > 0 ? mod(fromNorth + 180, 360) : mod(540 - fromNorth, 360)
 
   return { altitudeDeg: 90 - zenith / DEG, azimuthDeg }
+}
+
+/** The sun stands in the eastern half of the sky: the morning's light. */
+export function isMorningSun(sun: SunView): boolean {
+  return sun.azimuthDeg < SOUTH_DEG
 }
 
 /** The epoch ms of solar noon over `geo` on the calendar `day` (`YYYY-MM-DD`). */

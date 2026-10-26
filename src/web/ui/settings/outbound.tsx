@@ -1,8 +1,9 @@
 import type { OutboundResponse } from '@/app/server/wire/outbound'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { WEATHER_URL } from '@/web/scene/data/weather'
+import { WEATHER_POLL_MS, WEATHER_URL } from '@/web/scene/data/weather'
 import { ABSENT_CELL } from '@/web/text/glyphs'
+import { MS_PER_MINUTE } from '@/web/text/time-units'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
@@ -30,7 +31,9 @@ export function Outbound() {
         ))}
       <div class="setting-job">
         <b class="mono">{WEATHER_HOST}</b>
-        <p class="meta">{tr('ui.office.data.pageCalls')}</p>
+        <p class="meta">
+          {tr('ui.office.data.pageCalls', { minutes: WEATHER_POLL_MS / MS_PER_MINUTE })}
+        </p>
       </div>
     </section>
   )

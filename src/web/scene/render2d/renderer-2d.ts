@@ -195,7 +195,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
     motion.isOn ||
     sim.life.animatedFloors.includes(sim.floor) ||
     isFeeding ||
-    isGlassMoving(sim.weather, { now, visible: visibleRect() }) ||
+    isGlassMoving(sim.weather, now, visibleRect()) ||
     (sim.floor === TEAM_FLOOR && isTeamMoving(sim.team, motion.isReduced))
   )
 }

@@ -1,7 +1,10 @@
 import type { WeatherFxView } from '@/web/scene/sky-types'
 import type { LightView, Rect } from '@/web/scene/types'
-import { WORLD } from '@/web/scene/types'
+import { isMorningSun } from '@/web/scene/clock/sun'
+import { type FloorId, WORLD } from '@/web/scene/types'
+import { DOORS } from '@/web/scene/world/doors'
 import { createRng, seedOf } from '@/web/scene/world/rng'
+import { WALL_BAND_PX } from '@/web/scene/world/rooms'
 
 /** The north glass's pane in 2D: under the frame, down to the sill. */
 export const NORTH_GLASS: Rect = Object.freeze({ x: 0, y: 4, w: WORLD.w, h: 24 })
@@ -28,9 +31,12 @@ const BLINDS = Object.freeze({
   setAltitudeDeg: -1,
   underCloud: 0.75,
 })
-const SOUTH_DEG = 180
 // Every streak's own place, speed and length, fixed once.
 const STREAKS = buildStreaks()
+const BLIND_SPANS: Readonly<Record<FloorId, readonly (readonly [number, number])[]>> = {
+  office: westSpansOf('office'),
+  team: westSpansOf('team'),
+}
 
 /** How far the west blinds are drawn, 0 open to 1 closed. */
 export function blindClosureOf(light: LightView): number {
@@ -54,20 +60,20 @@ export function flashOf(weather: WeatherFxView, now: number): number {
 
 /** A soft haze lies over the windows on a foggy morning. */
 export function isHazeOn(light: LightView, weather: WeatherFxView): boolean {
-  return (
-    weather.fog && light.sun.azimuthDeg < SOUTH_DEG && light.sun.altitudeDeg < HAZE.untilAltitudeDeg
-  )
+  return weather.fog && isMorningSun(light.sun) && light.sun.altitudeDeg < HAZE.untilAltitudeDeg
 }
 
 /** Something on the glass moves: the rain running down it while the glass is within `visible`,
  *  or a flash fading. */
-export function isGlassMoving(
-  weather: WeatherFxView,
-  at: { readonly now: number; readonly visible: Rect }
-): boolean {
-  const isGlassShown = at.visible.y < NORTH_GLASS.y + NORTH_GLASS.h
+export function isGlassMoving(weather: WeatherFxView, now: number, visible: Rect): boolean {
+  const isGlassShown = visible.y < NORTH_GLASS.y + NORTH_GLASS.h
 
-  return (weather.falling > 0 && isGlassShown) || flashOf(weather, at.now) > 0
+  return (weather.falling > 0 && isGlassShown) || flashOf(weather, now) > 0
+}
+
+/** The runs of the west glass the blinds hang along, either side of its doorway: from and to. */
+export function blindSpansOf(floor: FloorId): readonly (readonly [number, number])[] {
+  return BLIND_SPANS[floor]
 }
 
 /** Rain running down the glass over `pane` (its own px), by intensity; `t` the time in ms, held
@@ -117,4 +123,16 @@ function buildStreaks(): Float32Array {
   }
 
   return out
+}
+
+function westSpansOf(floor: FloorId): readonly (readonly [number, number])[] {
+  const door = DOORS[floor].find((each) => each.isWest === true)
+  const gapFrom = door?.at.y ?? WORLD.h
+  const gapTo = door === undefined ? WORLD.h : door.at.y + door.width
+  const spans: (readonly [number, number])[] = [
+    [WALL_BAND_PX, gapFrom],
+    [gapTo, WORLD.h],
+  ]
+
+  return spans.filter(([from, to]) => to > from)
 }

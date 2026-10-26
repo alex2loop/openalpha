@@ -16,6 +16,7 @@ import { toUnits, WALL_PX } from '@/web/scene/render3d/space'
 import { PROP_TONES, UMBRELLA_TONES } from '@/web/scene/sprites/palette'
 import {
   blindClosureOf,
+  blindSpansOf,
   flashOf,
   isGlassMoving,
   isHazeOn,
@@ -25,7 +26,6 @@ import {
 } from '@/web/scene/sprites/sky-glass'
 import { WORLD } from '@/web/scene/types'
 import { visibleRect } from '@/web/scene/view'
-import { DOORS } from '@/web/scene/world/doors'
 import { EXIT_MAT, propsOn } from '@/web/scene/world/props'
 import { WALL_BAND_PX } from '@/web/scene/world/rooms'
 
@@ -42,6 +42,13 @@ const BLIND = Object.freeze({
 })
 const MAT_TONE = '#3E4250'
 const STAND_FLOOR: FloorId = 'office'
+const BLIND_FLOORS: readonly FloorId[] = ['office', 'team']
+
+/** What a sync changed this frame; one object, filled in place. */
+interface WeatherSync {
+  isChanged: boolean
+  isAnimating: boolean
+}
 
 /** The weather indoors in 3D: rain and haze on the north glass, the west blinds, and the
  *  umbrella stand and mat by the street exit with an umbrella opened to dry in the rain. */
@@ -58,6 +65,7 @@ export interface Weather3d {
   paintedRain: number
   paintedHaze: boolean
   closure: number
+  readonly sync: WeatherSync
 }
 
 export function createWeather3d(root: Group, materials: Materials): Weather3d {
@@ -96,6 +104,7 @@ export function createWeather3d(root: Group, materials: Materials): Weather3d {
     paintedRain: -1,
     paintedHaze: false,
     closure: -1,
+    sync: { isChanged: false, isAnimating: false },
   }
 }
 
@@ -127,13 +136,9 @@ function createPane(): Pick<Weather3d, 'pane' | 'canvas' | 'texture'> {
 
 /** Places the weather for this frame; `isChanged` when something drawn moved, `isAnimating`
  *  while rain runs down the glass or a flash fades. */
-export function syncWeather3d(
-  weather3d: Weather3d,
-  at: { readonly sim: SimView; readonly now: number }
-): { readonly isChanged: boolean; readonly isAnimating: boolean } {
-  const { sim, now } = at
+export function syncWeather3d(weather3d: Weather3d, sim: SimView, now: number): WeatherSync {
   const fx = sim.weather
-  const isPaneChanged = syncPane(weather3d, { sim, now })
+  const isPaneChanged = syncPane(weather3d, sim, now)
   const closure = blindClosureOf(sim.light)
   const isBlindChanged = closure !== weather3d.closure
   const isStandFloor = sim.floor === STAND_FLOOR
@@ -145,17 +150,18 @@ export function syncWeather3d(
   weather3d.stand.visible = isStandFloor
   weather3d.open.visible = isOpen
 
-  for (const floor of ['office', 'team'] as const) {
+  for (const floor of BLIND_FLOORS) {
     const mesh = weather3d.blinds[floor]
 
     mesh.visible = floor === sim.floor && closure > 0
     mesh.scale.y = Math.max(closure, Number.EPSILON) * BLIND.drop
   }
 
-  return {
-    isChanged: isPaneChanged || isBlindChanged || isStandChanged || flashOf(fx, now) > 0,
-    isAnimating: isGlassMoving(fx, { now, visible: visibleRect() }),
-  }
+  weather3d.sync.isChanged =
+    isPaneChanged || isBlindChanged || isStandChanged || flashOf(fx, now) > 0
+  weather3d.sync.isAnimating = isGlassMoving(fx, now, visibleRect())
+
+  return weather3d.sync
 }
 
 export function disposeWeather3d(weather3d: Weather3d): void {
@@ -182,14 +188,11 @@ export function disposeWeather3d(weather3d: Weather3d): void {
 }
 
 // Repainted when the rain or haze changes, and while rain falls at most every `STREAK_FRAME_MS`.
-function syncPane(
-  weather3d: Weather3d,
-  at: { readonly sim: SimView; readonly now: number }
-): boolean {
-  const fx = at.sim.weather
-  const isHaze = isHazeOn(at.sim.light, fx)
+function syncPane(weather3d: Weather3d, sim: SimView, now: number): boolean {
+  const fx = sim.weather
+  const isHaze = isHazeOn(sim.light, fx)
   const isShown = fx.rain > 0 || isHaze
-  const isDue = fx.falling > 0 && at.now - weather3d.paintedAt >= STREAK_FRAME_MS
+  const isDue = fx.falling > 0 && now - weather3d.paintedAt >= STREAK_FRAME_MS
 
   if (!isShown) {
     const wasShown = weather3d.pane.visible
@@ -217,7 +220,7 @@ function syncPane(
   g.setTransform(PANE.px, 0, 0, PANE.px, 0, 0)
 
   if (fx.rain > 0) {
-    paintGlassRain(g, pane, { rain: fx.rain, t: fx.falling > 0 ? at.now : 0 })
+    paintGlassRain(g, pane, { rain: fx.rain, t: fx.falling > 0 ? now : 0 })
   }
 
   if (isHaze) {
@@ -228,23 +231,16 @@ function syncPane(
   weather3d.pane.visible = true
   weather3d.paintedRain = fx.rain
   weather3d.paintedHaze = isHaze
-  weather3d.paintedAt = at.now
+  weather3d.paintedAt = now
 
   return true
 }
 
 // One slab each side of the west doorway, 1 px tall from 0 down: the mesh's y scale drops it.
 function blindBoxesOf(floor: FloorId) {
-  const door = DOORS[floor].find((each) => each.isWest === true)
-  const gapFrom = door?.at.y ?? WORLD.h
-  const gapTo = door === undefined ? WORLD.h : door.at.y + door.width
-
-  return [
-    [WALL_BAND_PX, gapFrom],
-    [gapTo, WORLD.h],
-  ]
-    .filter(([from = 0, to = 0]) => to > from)
-    .map(([from = 0, to = 0]) => box([BLIND.x, from, BLIND.w, to - from, -1, 1], BLIND.tone))
+  return blindSpansOf(floor).map(([from, to]) =>
+    box([BLIND.x, from, BLIND.w, to - from, -1, 1], BLIND.tone)
+  )
 }
 
 // The stand with two closed umbrellas, and the dark mat inside the exit.

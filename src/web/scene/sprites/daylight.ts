@@ -1,4 +1,5 @@
 import type { FloorId, LightView, RoomId } from '@/web/scene/types'
+import { isMorningSun } from '@/web/scene/clock/sun'
 
 /** The office light now: the tint over the floor (none by day), how strongly lamps and pools
  *  glow, the sky's top and bottom colours, and how dark it is outside (0 day, 1 night). */
@@ -40,8 +41,6 @@ const DAY: LightKey = { tint: [255, 255, 255, 0], glow: 0.12, sky: ['#CFE4F5', '
 // Night below the civil twilight's -6 degrees, the golden hour under 10.
 const NIGHT_BELOW_DEG = -6
 const GOLDEN_BELOW_DEG = 10
-// The sun is in the east before this bearing: the dawn's colours, else the dusk's.
-const SOUTH_DEG = 180
 // A full cloud cover greys the tint and the sky and darkens the day a little.
 const CLOUD = Object.freeze({
   tint: [96, 104, 124] as const,
@@ -92,8 +91,8 @@ const DROP_MAX_ALPHA = 0.34
  *  horizon, the golden hour under 10 degrees in the dawn's or the dusk's colours, then day; cloud
  *  greys the tint and the sky. */
 export function lightOf(light: LightView): LightRow {
-  const { altitudeDeg, azimuthDeg } = light.sun
-  const isMorning = azimuthDeg < SOUTH_DEG
+  const { altitudeDeg } = light.sun
+  const isMorning = isMorningSun(light.sun)
   const altitudeStep = Math.round(altitudeDeg / ALTITUDE_STEP_DEG)
   const key =
     (altitudeStep * 2 + (isMorning ? 1 : 0)) * (1 / CLOUD_STEP + 1) +

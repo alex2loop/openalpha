@@ -161,7 +161,7 @@ function paintTarps(
   g: CanvasRenderingContext2D,
   at: { readonly pack: RegionPack; readonly minute: StreetMinute }
 ): void {
-  const shade = at.minute.light.dark * 0.4
+  const shade = at.minute.light.dark * COVER_NIGHT
 
   for (const span of shopSpansOf(at.pack.shops)) {
     if (span.row.kind === 'cafe' && isShopOpen(span.row, at.minute.clock)) {
@@ -169,7 +169,7 @@ function paintTarps(
       const stripeW = span.w / stripes
 
       for (let index = 0; index < stripes; index++) {
-        g.fillStyle = mixTone(TARP[index % TARP.length] ?? COVER, '#10131F', shade)
+        g.fillStyle = mixTone(TARP[index % TARP.length] ?? COVER, NIGHT_TONE, shade)
         g.fillRect(span.x + index * stripeW, NORTH.farTop, stripeW + 0.05, TARP_DEPTH)
       }
 
