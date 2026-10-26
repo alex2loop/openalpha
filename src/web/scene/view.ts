@@ -17,10 +17,10 @@ export const STREET_RECT: Rect = Object.freeze({
   w: FRAME_RECT.w + 2 * STREET_SIDE_PX,
   h: FRAME_RECT.h + STREET_NORTH_PX + STREET_SOUTH_PX,
 })
-/** The fixed 3D camera looks north and down at this angle. */
 // The moving street canvas reaches this share of the visible rect past each of its sides, so a
 // small pan between two steps stays inside it.
 const MOVING_MARGIN = 0.25
+/** The fixed 3D camera looks north and down at this angle. */
 export const ELEVATION = (52 * Math.PI) / 180
 /** A point this many px up shows `HEIGHT_K` times as far up the screen as a step north does, in
  *  3D and in the 2D street's facades alike. */
