@@ -22,33 +22,11 @@ const STREAK = Object.freeze({
 const STREAK_RGB = '226,236,248'
 const HAZE = Object.freeze({ rgb: '232,236,242', alpha: 0.42, untilAltitudeDeg: 25 })
 const FLASH = Object.freeze({ ms: 260, alpha: 0.34 })
-// West blinds close while the sun is low in the west of the afternoon sky under a broken cloud,
-// fully at the horizon; they are open again once it sets.
-const BLINDS = Object.freeze({
-  fromAzimuthDeg: 200,
-  untilAzimuthDeg: 340,
-  belowAltitudeDeg: 32,
-  setAltitudeDeg: -1,
-  underCloud: 0.75,
-})
 // Every streak's own place, speed and length, fixed once.
 const STREAKS = buildStreaks()
 const BLIND_SPANS: Readonly<Record<FloorId, readonly (readonly [number, number])[]>> = {
   office: westSpansOf('office'),
   team: westSpansOf('team'),
-}
-
-/** How far the west blinds are drawn, 0 open to 1 closed. */
-export function blindClosureOf(light: LightView): number {
-  const { altitudeDeg, azimuthDeg } = light.sun
-  const isWestLow =
-    azimuthDeg > BLINDS.fromAzimuthDeg &&
-    azimuthDeg < BLINDS.untilAzimuthDeg &&
-    altitudeDeg > BLINDS.setAltitudeDeg &&
-    altitudeDeg < BLINDS.belowAltitudeDeg &&
-    light.cloud < BLINDS.underCloud
-
-  return isWestLow ? Math.min(1, 1 - altitudeDeg / BLINDS.belowAltitudeDeg) : 0
 }
 
 /** The lightning flash's strength at `now` (`performance.now()`), 0 to its full alpha. */

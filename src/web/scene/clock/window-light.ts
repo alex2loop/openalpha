@@ -8,7 +8,7 @@ export type GlassSide = 'w' | 'e' | 'n' | 's'
  *  are drawn (only the west and east glass has them; 0 open to 1), how strong the warm patch the
  *  sun throws on the floor inside each side is (0 to 1), and how deep into the room it reaches
  *  (world px). */
-interface WindowLight {
+export interface WindowLight {
   readonly blind: Readonly<Record<'w' | 'e', number>>
   readonly patch: Readonly<Record<GlassSide, number>>
   readonly depth: Readonly<Record<GlassSide, number>>

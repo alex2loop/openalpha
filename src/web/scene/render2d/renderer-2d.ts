@@ -28,6 +28,7 @@ import {
 import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
 import { isCharacterMotionOn, isOnFloor } from '@/web/scene/sim/actors/poses'
 import { feedKOf } from '@/web/scene/sim/life/events'
+import { releaseAnimalSprites } from '@/web/scene/sprites/animal-sprite'
 import { lightOf } from '@/web/scene/sprites/daylight'
 import { createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
 import { isGlassMoving } from '@/web/scene/sprites/sky-glass'
@@ -165,6 +166,7 @@ function releaseSurface(surface: Surface | undefined): void {
   surface.screens.release()
   releaseCharacterSprites()
   releaseDeskItems()
+  releaseAnimalSprites()
 }
 
 // Paints one frame; true while the people's small motion runs.
@@ -319,7 +321,11 @@ function paintOverPieces(g: CanvasRenderingContext2D, job: FloorJob): void {
   paintStatusDots(
     g,
     job.sim.actors.filter((actor) => isOnFloor(actor, job.sim.floor)),
-    { alpha: job.sim.alpha, scale: job.scene.scale }
+    {
+      alpha: job.sim.alpha,
+      scale: job.scene.scale,
+      marked: new Set(job.sim.marks.map((mark) => mark.actor)),
+    }
   )
   paintDust(g, job.scene.fx)
 }

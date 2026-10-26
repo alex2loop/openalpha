@@ -1,12 +1,19 @@
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import { fill, INK } from '@/web/scene/render2d/building'
 import { paintStandby } from '@/web/scene/render2d/standby'
+import { FONT } from '@/web/scene/sprites/face-text'
 import { DEVICE_TONES, PALETTE } from '@/web/scene/sprites/palette'
 import { paintPixelText, pixelTextWidth } from '@/web/scene/sprites/pixel-font'
 import { seedOf } from '@/web/scene/world/rng'
+import { formatPercent } from '@/web/text/figures'
+import { tr } from '@/web/text/tr'
 
 type Box = readonly [number, number, number, number]
 
+// A wall screen's line is this share of the glass's height; under this many CSS px it shows bars.
+const SCREEN_TEXT_SHARE = 0.3
+const SCREEN_TEXT_MIN_PX = 5.5
+const PERCENT_OF = 100
 const SCREEN_DOTS = ['#FF6259', '#F2C46C', '#6FE3D6'] as const
 // The approval light breathes between these on the ambient clock, steady at full under reduced
 // motion; its glow is this share of the light.
@@ -62,27 +69,90 @@ export function paintWallMonitor(
 ): void {
   const { x, y, w, h } = rect
   const screen = [x + 3, y + 3, w - 6, h - 8] as const
-  const progress = scene.life.isQuiet ? undefined : scene.refreshShare
+  const isQuiet = scene.life.isQuiet
+  const progress = isQuiet ? undefined : scene.refreshShare
 
   fill(g, [x + 1, y + 1, w - 2, h - 2], INK)
   fill(g, [x + 2, y + 2, w - 4, h - 4], DEVICE_TONES.bezel2)
 
-  if (progress === undefined) {
-    paintIdleScreen(g, screen, scene.life.isQuiet)
+  if (isQuiet) {
+    paintIdleScreen(g, screen, true)
     return
   }
 
+  paintScreenTop(g, screen)
+
+  if (!paintRefreshText(g, { screen, scene, progress })) {
+    paintRefreshBars(g, screen, progress)
+  }
+
+  // An idle prompt sits dimmed, as the mockup's monitor does while its owner is not working.
+  if (progress === undefined) {
+    fill(g, screen, DEVICE_TONES.screenDim)
+  }
+}
+
+type ScreenBox = readonly [number, number, number, number]
+
+// The bar screen for a monitor too small to read: the command as a bar and the progress bar.
+function paintRefreshBars(g: CanvasRenderingContext2D, screen: ScreenBox, progress?: number): void {
   const [sx, sy, sw, sh] = screen
   const inner = sw - 2
 
-  paintScreenTop(g, screen)
   fill(g, [sx + 1, sy + Math.floor(sh / 2), inner, 2], DEVICE_TONES.track)
   fill(
     g,
-    [sx + 1, sy + Math.floor(sh / 2), Math.round(inner * progress), 2],
+    [sx + 1, sy + Math.floor(sh / 2), Math.round(inner * (progress ?? 0)), 2],
     DEVICE_TONES.trackFill
   )
   fill(g, [sx + 1, sy + 2, Math.round(inner / 2), 1], DEVICE_TONES.trackTitle)
+}
+
+// The mockup's refresh screen once its text reads (at least `SCREEN_TEXT_MIN_PX` CSS px): the
+// command, its percent on the right while it runs, and the progress bar under it. False when
+// too small, so the bars show instead.
+function paintRefreshText(
+  g: CanvasRenderingContext2D,
+  at: {
+    readonly screen: ScreenBox
+    readonly scene: PaintScene
+    readonly progress: number | undefined
+  }
+): boolean {
+  const [sx, sy, sw, sh] = at.screen
+  const fontPx = sh * SCREEN_TEXT_SHARE
+  const market = at.scene.refreshMarket
+
+  if (fontPx * at.scene.scale < SCREEN_TEXT_MIN_PX || market === undefined) {
+    return false
+  }
+
+  const pad = 1
+  const top = sy + 3
+  const bar = Math.max(1, Math.round(fontPx * 0.3))
+  const inner = sw - pad * 2
+  const percent =
+    at.progress === undefined ? '' : formatPercent(Math.round(at.progress * PERCENT_OF))
+
+  g.font = `600 ${fontPx}px ${FONT}`
+  g.textBaseline = 'top'
+  g.textAlign = 'right'
+  g.fillStyle = DEVICE_TONES.screenText
+  g.fillText(percent, sx + sw - pad, top)
+
+  const percentW = g.measureText(percent).width
+
+  g.textAlign = 'left'
+  g.fillStyle = DEVICE_TONES.trackTitle
+  g.fillText(tr('ui.office.store.screenLine', { market }), sx + pad, top, inner - percentW - pad)
+  fill(g, [sx + pad, top + fontPx * 1.4, inner, bar], DEVICE_TONES.track)
+  fill(
+    g,
+    [sx + pad, top + fontPx * 1.4, Math.round(inner * (at.progress ?? 0)), bar],
+    DEVICE_TONES.trackFill
+  )
+
+  return true
 }
 
 /** The keyboard on a desk whose top is at `top`: before the standing monitor centred on `cx`, or

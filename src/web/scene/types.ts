@@ -424,4 +424,6 @@ export interface LiftView {
   readonly floor: FloorId
   readonly doors: number
   readonly called: readonly FloorId[]
+  /** Which way the car rides now; `still` while it stands at a floor. */
+  readonly direction: 'up' | 'down' | 'still'
 }

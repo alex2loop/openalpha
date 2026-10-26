@@ -1,3 +1,4 @@
+import type { AmbientFx } from '@/web/scene/render2d/ambient-fx'
 import type { Painter, PaintScene } from '@/web/scene/render2d/wall-props'
 import type { FloorId, LifeView, LiftView, Point } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
@@ -19,6 +20,8 @@ const PLAQUE_TEXT_W = 13
 // A lift leaf's width while the doors are shut, and how far the floor panel sits over the frame.
 const LIFT_LEAF_PX = 10
 const LIFT_PANEL_RISE = 7
+const LIFT_BLINK_MS = 400
+const LIFT_ARROW_ROWS = 3
 const CREW_TONES = Object.freeze({
   page: '#FBF9F3',
   pageInk: '#8E8497',
@@ -111,7 +114,7 @@ function paintLiftDoor(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintS
   }
 
   fill(g, [x + 2, top + cabin - 1, w - 4, 1], CREW_TONES.sill)
-  paintLiftPanel(g, { x, y: y - LIFT_PANEL_RISE, w, floor: prop.floor, lift })
+  paintLiftPanel(g, { x, y: y - LIFT_PANEL_RISE, w, floor: prop.floor, lift, fx: scene.fx })
 }
 
 function paintLiftPanel(
@@ -122,6 +125,7 @@ function paintLiftPanel(
     readonly w: number
     readonly floor: FloorId
     readonly lift: LiftView
+    readonly fx: AmbientFx | undefined
   }
 ): void {
   const { x, y, w, lift } = at
@@ -138,9 +142,26 @@ function paintLiftPanel(
     })
   })
 
-  if (lift.called.includes(at.floor)) {
+  // While the car rides its arrow blinks on the ambient clock, steady under reduced motion; else
+  // the call dot shows while this floor waits.
+  if (lift.direction !== 'still') {
+    if (at.fx === undefined || Math.floor(at.fx.ms / LIFT_BLINK_MS) % 2 === 0) {
+      paintLiftArrow(g, { cx, y, isUp: lift.direction === 'up' })
+    }
+  } else if (lift.called.includes(at.floor)) {
     fill(g, [cx - 1, y + 2, 3, 3], PROP_TONES.liftLamp[1])
     fill(g, [cx, y + 3, 1, 1], PROP_TONES.liftPanel)
+  }
+}
+
+function paintLiftArrow(
+  g: CanvasRenderingContext2D,
+  at: { readonly cx: number; readonly y: number; readonly isUp: boolean }
+): void {
+  for (let row = 0; row < LIFT_ARROW_ROWS; row++) {
+    const half = at.isUp ? row : LIFT_ARROW_ROWS - 1 - row
+
+    fill(g, [at.cx - half, at.y + 2 + row, 2 * half + 1, 1], PROP_TONES.liftLamp[1])
   }
 }
 

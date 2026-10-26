@@ -58,7 +58,8 @@ export function buildMascot(frame: FrameSpec): Cells<string> {
     px: createCells(),
     frame,
     b: riseOf(frame),
-    isTalking: frame.arms === 'type',
+    // The mockup types on its second beat only; the first shows the resting face, so the two alternate.
+    isTalking: frame.arms === 'type' && frame.beat === 1,
   }
 
   paintEgg(egg)
@@ -182,6 +183,8 @@ function paintCallPhone(egg: Egg): void {
   put(egg.px, [22, 6 + egg.b], edge)
   put(egg.px, [23, 6 + egg.b], edge)
   put(egg.px, [23, 7 + egg.b], plate)
+  put(egg.px, [22, 7 + egg.b], MASCOT_TONES.phoneGlass)
+  put(egg.px, [22, 9 + egg.b], MASCOT_TONES.phoneGlass)
 }
 
 function paintPhone(egg: Egg): void {

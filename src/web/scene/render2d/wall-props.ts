@@ -98,6 +98,8 @@ export interface PaintScene {
   readonly seated: ReadonlySet<string>
   /** How far the store's refresh has come, 0 to 1; absent while it does not count its prices. */
   readonly refreshShare?: number
+  /** The market the store refreshes, or would refresh next: the home market. */
+  readonly refreshMarket?: string
   /** Each lobby wall clock's minute of its own zone's day, by the clock's `variant`. */
   readonly wallClocks: readonly number[]
   /** What each room's whiteboard says while a run counts its steps there. */

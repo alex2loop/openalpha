@@ -4,7 +4,7 @@ import type { SimView } from '@/web/scene/types'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { agenda } from '@/web/scene/data/agenda'
 import { alertStrip } from '@/web/scene/data/alert-strip'
-import { wallClockMinutes } from '@/web/scene/data/home'
+import { homeMarket, wallClockMinutes } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
 import { boardCaptions, isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { sourceLights } from '@/web/scene/data/source-lights'
@@ -35,7 +35,10 @@ export function buildPaintScene(input: {
   const { sim, scale } = input
   const indexChange = homeIndex.value?.changePct
   const indexMoveText = indexChange === undefined ? undefined : formatSignedPercent(indexChange)
-  const refreshShare = shareOf(roomStatus.value.get('store')?.runs[0]?.progress?.params)
+  const storeParams = roomStatus.value.get('store')?.runs[0]?.progress?.params
+  const refreshShare = shareOf(storeParams)
+  const named = storeParams?.market
+  const refreshMarket = typeof named === 'string' ? named : homeMarket.value?.market
   const lib = roomStatus.value.get('lib')?.runs[0]
 
   return {
@@ -60,6 +63,7 @@ export function buildPaintScene(input: {
     sources: sourceLights.value,
     isRefreshing: roomStatus.value.get('store')?.runs[0] !== undefined,
     ...(refreshShare === undefined ? {} : { refreshShare }),
+    ...(refreshMarket === undefined ? {} : { refreshMarket }),
     fx: resolveAmbientFx(sim, input.nowMs),
     seated: seatedDesksOf(sim),
     stretch: input.stretch,
