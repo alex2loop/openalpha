@@ -42,15 +42,18 @@ export const chosenRequestId: ReadonlySignal<string | undefined> = computed(() =
 /** The latest Y or N; the chosen card's buttons answer it once. */
 export const keyedAnswer: ReadonlySignal<KeyedAnswer | undefined> = keyed
 
-/** Up (-1) or Down (1) moves the outline, wrapping at either end. */
-export function stepChosenRequest(step: 1 | -1): void {
+/** Up (-1) or Down (1) moves the outline, wrapping at either end; false when nothing can be
+ *  answered here, so the arrows keep scrolling the bell. */
+export function stepChosenRequest(step: 1 | -1): boolean {
   const ids = answerableIds.value
 
   if (ids.length === 0) {
-    return
+    return false
   }
 
   chosenId.value = ids[stepWrapped(ids.indexOf(chosenRequestId.value ?? ''), step, ids.length)]
+
+  return true
 }
 
 /** Only the outlined request takes a key; with none outlined the key does nothing. */

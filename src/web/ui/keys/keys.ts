@@ -178,8 +178,7 @@ function handleBellKey(key: string): boolean {
   const decision = DECISION_BY_KEY[key.toLowerCase()]
 
   if (step !== undefined) {
-    stepChosenRequest(step)
-    return true
+    return stepChosenRequest(step)
   }
 
   if (decision !== undefined) {

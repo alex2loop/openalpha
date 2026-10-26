@@ -82,7 +82,7 @@ function WaitingSection() {
       </h3>
       <div class="pending-list">
         {entries.map((entry) => (
-          <PendingCard key={pendingRequestId(entry)} entry={entry} />
+          <PendingCard key={pendingRequestId(entry)} entry={entry} isKeyed />
         ))}
       </div>
       {entries.some((entry) => entry.kind === 'approval') && (
