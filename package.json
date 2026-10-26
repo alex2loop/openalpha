@@ -37,7 +37,7 @@
     "db:snapshot": "bun run src/app/main.ts db export --out ./.backup --force --config ./config.toml"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@preact/signals": "2.11.3",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
@@ -54,10 +54,10 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@types/node": "^26.6.5",
-    "@types/pg": "^8.20.0",
+    "@types/pg": "^8.23.1",
     "@types/three": "0.186.0",
     "@types/turndown": "^5.0.6",
-    "bun-types": "^1.4.3",
+    "bun-types": "^1.4.4",
     "typescript": "^7.0.2"
   }
 }
