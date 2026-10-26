@@ -89,6 +89,8 @@ leave, because one failed turn is not a failed session.
 | `onboard` | First setup, or change the model, Telegram bot, budget or language | none |
 | `setup` | Desktop app only. A client app's first run: provider catalog, and a starter config with the API on (one JSON line) | `catalog`, `write <provider> <model>` |
 | `api` | The `/v1` API's bearer token | `token`, `rotate` |
+| `web` | Open the office page, signed in with a one-time link | none |
+| `connect` | Print the connection line the desktop app pastes | none |
 | `agent` | Agents and chat bindings | `list`, `show`, `add`, `edit`, `remove`, `pause`, `resume`, `bind`, `unbind`, `bindings` |
 | `social` | Your agents on agent social networks | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Resolved configuration | `show`, `get`, `path`, `validate`, `edit` |
@@ -272,7 +274,7 @@ error message and exit code, and the command exits non-zero. After 90 seconds a 
 running but not ready yet (a slow data source) is left running: the command says how to follow it
 and exits zero; one that never came up exits non-zero. `stop` and `status` work the same in both
 modes. A start prints the version it runs, the model, the channels it opens, the API port and a
-line naming `api link` when `[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
+line naming `web` when `[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
 starts answering once market data has loaded; the log records when the channels open.
 `restart` takes the same `--background` flag.
 
@@ -367,15 +369,36 @@ replace an existing config.
 
 ```text
 openalpha api token
-openalpha api link
 openalpha api rotate
+openalpha web
+openalpha connect
 ```
 
-`api token` prints the bearer token the app and other `/v1` clients send. `api link` prints the link
-to the office page with that token in it; it is a secret, so share it with no one (the `start` summary
-only names the command). `api rotate` replaces the token,
-and the daemon needs a restart to use the new one. With `[api] token_env` set, the token is that
-variable and `rotate` leaves it alone. While `[api]` is off, `api token` and `api link` say so instead of printing anything.
+`api token` prints the bearer token the app and other `/v1` clients send. `api rotate` replaces it,
+prints the new one and signs every browser out; the daemon needs a restart before the old token
+stops working. With `[api] token_env` set, the token is that variable and `rotate` leaves it alone.
+While `[api]` is off, `api token` and `api rotate` say so instead of printing anything.
+
+`web` opens the office page. It needs the daemon running and `[api]` on, and asks the daemon for a
+one-time link that works once, within 5 minutes. It never prints the token. What you see depends
+on where you run it:
+
+- On the machine's own screen (macOS, or Linux with a display), it opens your browser and prints the
+  link in case that did not work.
+- Over SSH, it prints the tunnel command to run on your own machine, then the link to open. The
+  tunnel uses the server's port plus 10000 (18765 for 8765), so it never lands on a daemon you run
+  locally, and `ssh` stops with an error if that port is taken instead of quietly using another.
+  If it cannot tell the address you SSH to, it uses the server's host name and says so; swap in the
+  address you actually use.
+- With `[api] public_url` set, it prints only the `https://` link, wherever you run it.
+
+Run it again whenever you need a new link: a used or expired one is refused. After a few wrong tries
+the daemon pauses sign-ins from that machine for a moment; `web` says so.
+
+`connect` is for the desktop app. It prints one line holding the address and the token: your
+`public_url` when it is set, otherwise an `openalpha+ssh://user@server?api=<port>` line the app opens
+through SSH. It does not need the daemon to be running, but it does need `[api]` on. The line carries
+the token, so paste it only into your own app.
 
 ## Provider logins
 

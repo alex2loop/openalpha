@@ -90,6 +90,8 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `onboard` | Thiết lập lần đầu, hoặc đổi mô hình, bot Telegram, mức chi hay ngôn ngữ | không có |
 | `setup` | Chỉ dành cho ứng dụng desktop. Lần chạy đầu của một ứng dụng khách: danh mục nhà cung cấp, và tệp cấu hình khởi điểm có bật API (một dòng JSON) | `catalog`, `write <nhà cung cấp> <mô hình>` |
 | `api` | Mã API (bearer token) của `/v1` | `token`, `rotate` |
+| `web` | Mở trang văn phòng, đăng nhập bằng liên kết dùng một lần | không có |
+| `connect` | In dòng kết nối để ứng dụng desktop dán vào | không có |
 | `agent` | Agent và ràng buộc chat | `list`, `show`, `add`, `edit`, `remove`, `pause`, `resume`, `bind`, `unbind`, `bindings` |
 | `social` | Agent của bạn trên mạng xã hội của agent | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Cấu hình đã phân giải | `show`, `get`, `path`, `validate`, `edit` |
@@ -269,7 +271,7 @@ chừng khi khởi động (ví dụ cổng API đã có tiến trình khác dù
 mã thoát, rồi lệnh thoát với mã khác 0. Chờ quá 90 giây mà daemon vẫn chạy nhưng chưa sẵn sàng (nguồn dữ
 liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và thoát với mã 0; daemon không chạy lên được thì
 thoát với mã khác 0. `stop` và `status` hoạt động như nhau ở cả hai chế độ. `start` in phiên bản đang
-chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `api link` khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
+chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
 được cấu hình, nó còn báo bot chỉ bắt đầu trả lời sau khi dữ liệu thị trường tải xong; nhật ký ghi lại lúc
 các kênh mở. `restart` nhận cùng cờ `--background`.
 
@@ -357,15 +359,33 @@ làm mất các dòng chú thích trong tệp, nên tệp cũ được sao lưu 
 
 ```text
 openalpha api token
-openalpha api link
 openalpha api rotate
+openalpha web
+openalpha connect
 ```
 
-`api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm. `api link` in liên kết mở trang văn
-phòng, đã kèm mã đó; liên kết là bí mật nên đừng gửi cho ai (phần tóm tắt của `start` chỉ nhắc tên
-lệnh). `api rotate` thay mã mới, và daemon cần
-khởi động lại để dùng mã mới. Khi đặt `[api] token_env`, mã là giá trị của biến đó và `rotate` không đụng
-tới nó. Khi `[api]` đang tắt, `api token` và `api link` báo là đang tắt thay vì in ra gì cả.
+`api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm. `api rotate` thay mã mới, in mã đó ra và
+đăng xuất mọi trình duyệt; daemon cần khởi động lại thì mã cũ mới hết dùng được. Khi đặt `[api] token_env`,
+mã là giá trị của biến đó và `rotate` không đụng tới nó. Khi `[api]` đang tắt, `api token` và `api rotate`
+báo là đang tắt thay vì in ra gì cả.
+
+`web` mở trang văn phòng. Lệnh cần daemon đang chạy và `[api]` đang bật, rồi xin daemon một liên kết dùng
+một lần, chỉ có hiệu lực một lần trong 5 phút. Nó không bao giờ in mã API. Bạn thấy gì tùy nơi chạy lệnh:
+
+- Trên chính màn hình của máy (macOS, hoặc Linux có màn hình), nó mở trình duyệt và in liên kết phòng khi
+  trình duyệt không bật lên.
+- Qua SSH, nó in lệnh đường hầm để bạn chạy trên máy của mình, rồi in liên kết để mở. Đường hầm dùng cổng
+  của máy chủ cộng 10000 (18765 cho 8765), nên không bao giờ rơi vào daemon bạn chạy ở máy mình, và nếu
+  cổng đó đã bận thì `ssh` dừng với lỗi chứ không lặng lẽ dùng cổng khác. Nếu không biết địa chỉ bạn SSH
+  tới, nó dùng tên máy chủ và nói rõ điều đó; hãy thay bằng địa chỉ bạn thật sự dùng.
+- Khi đã đặt `[api] public_url`, nó chỉ in liên kết `https://`, chạy ở đâu cũng vậy.
+
+Cần liên kết mới thì chạy lại: liên kết đã dùng hoặc đã hết hạn sẽ bị từ chối. Sau vài lần đăng nhập sai,
+daemon tạm dừng đăng nhập từ máy đó một lúc; `web` sẽ nói điều này.
+
+`connect` dành cho ứng dụng desktop. Nó in một dòng gồm địa chỉ và mã API: `public_url` nếu đã đặt, nếu không
+thì một dòng `openalpha+ssh://user@server?api=<cổng>` để ứng dụng mở qua SSH. Lệnh không cần daemon đang chạy,
+nhưng cần `[api]` đang bật. Dòng này mang mã API, nên chỉ dán vào ứng dụng của chính bạn.
 
 ## Đăng nhập nhà cung cấp
 

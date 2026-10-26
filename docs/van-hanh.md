@@ -343,22 +343,52 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    Chạy `systemctl --user enable --now openalpha`, rồi `loginctl enable-linger $USER` để nó vẫn chạy
    khi bạn đăng xuất. Để nâng cấp, chạy `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
    daemon do dịch vụ quản lý thì `upgrade` không tự khởi động lại.
-4. **Lấy mã API.** `openalpha api token` in mã ra (mã được tạo ở lần chạy đầu). `openalpha api link` in liên kết
-   mở trang văn phòng với mã đã nằm sẵn trong đó; giữ kín như giữ mã.
-5. **Nối vào.** API chỉ nghe trên `127.0.0.1` của máy chủ. Chọn một cách:
-   - **Đường hầm SSH**, không cần tên miền: `ssh -N -L 18765:127.0.0.1:8765 user@server`, rồi dùng
-     địa chỉ `http://127.0.0.1:18765`. Dùng cổng khác 8765 ở máy bạn để không đụng daemon đang chạy
-     trên chính máy đó.
-   - **HTTPS qua Caddy** trên máy chủ:
-     `alpha.example.com { reverse_proxy 127.0.0.1:8765 { header_up Host {upstream_hostport} } }`, rồi dùng
-     `https://alpha.example.com`. Daemon chỉ trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc
-     `[::1]` (cổng nào cũng được, nên đường hầm SSH dùng như cũ), để chặn trang web giở trò DNS rebinding;
-     `header_up Host` giúp proxy chuyển đúng địa chỉ của daemon. Khi đó mọi yêu cầu đều đến từ `127.0.0.1`, nên năm lần sai mã sẽ khóa
-     mọi máy gửi mã sai trong 30 giây, tăng gấp đôi mỗi lần, tối đa một giờ. Yêu cầu mang đúng mã không
-     bao giờ bị khóa chặn và còn xóa khóa đó.
-6. **Nối ứng dụng khách.** Nhập địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
+4. **Mở trang văn phòng.** Chạy `openalpha web` trên máy chủ (daemon phải đang chạy). Trên chính màn hình của
+   máy chủ, nó mở trình duyệt cho bạn. Qua SSH, nó in hai thứ thay vào đó: một lệnh đường hầm để chạy trên máy của
+   bạn, chẳng hạn `ssh -N -o ExitOnForwardFailure=yes -L 18765:127.0.0.1:8765 user@server`, và một liên kết
+   (`http://127.0.0.1:18765/#code=...`) để mở khi đường hầm đã lên. Cổng đầu máy bạn của đường hầm là cổng của
+   máy chủ cộng 10000, nên không đụng daemon đang chạy trên máy bạn, và nếu cổng đó đã bận thì `ssh` dừng với
+   lỗi. Liên kết chỉ dùng được một lần, trong 5 phút; cần liên kết mới thì chạy lại `openalpha web`. Với ứng dụng
+   desktop, chạy `openalpha connect`: nó in một dòng gồm địa chỉ và mã API. Hãy đưa cho ứng dụng địa chỉ và mã
+   đó, và giữ kín dòng này.
+5. **Nối từ bên ngoài.** API chỉ nghe trên `127.0.0.1` của máy chủ, nên đường hầm SSH ở trên không cần gì thêm.
+   Muốn nối mà không qua đường hầm, chọn một cách theo thứ tự này:
+   - **SSH**, không cần tên miền: không phải cài gì. `openalpha web` in sẵn đường hầm.
+   - **Tailscale**: chạy `tailscale serve --bg 8765` trên máy chủ, rồi đặt `[api] public_url` là địa chỉ
+     `https://<máy>.<tailnet>.ts.net` mà nó hiện ra và khởi động lại daemon.
+   - **Caddy** với tên miền: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, rồi đặt
+     `[api] public_url = "https://alpha.example.com"` và khởi động lại daemon.
+
+   Phía sau bất kỳ proxy nào đều phải có `public_url`. Thiếu nó, daemon từ chối mọi yêu cầu đi qua proxy, kèm
+   một câu nêu tên `public_url`; tự nó không phân biệt được khách qua proxy với người dùng ngay trên máy. Ngoài
+   ra daemon chỉ trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]` (cổng nào cũng được, nên đường
+   hầm SSH dùng như cũ), để chặn trang web giở trò DNS rebinding. Khi đã đặt `public_url`, `openalpha web` in
+   liên kết `https://` thay vì đường hầm. Mọi yêu cầu qua proxy đều đến daemon từ `127.0.0.1`, nên năm lần sai
+   mã API hoặc mã đăng nhập sẽ tạm dừng đăng nhập của mọi người trong 30 giây, tăng gấp đôi mỗi lần, tối đa một
+   giờ. Mã đúng không bao giờ bị khoảng dừng đó chặn và còn xóa nó.
+6. **Nối ứng dụng khách.** Đưa cho ứng dụng địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
    `Authorization: Bearer <mã>`. Tối đa 8 luồng ứng dụng (`/v1/ws`) mở cùng lúc; lần bắt tay thứ chín bị từ
    chối với 503 `too_many_streams`.
+
+**`public_url` thay đổi điều gì.** Khi daemon đã với tới được từ bên ngoài, ứng dụng được tin ít hơn, nên đặt
+`public_url` còn:
+
+- tắt việc đặt lệnh: các đường đặt lệnh của API và `/trade` từ ứng dụng bị từ chối (tắt chức năng mua từ ứng
+  dụng cũng đi kèm) cho tới khi bạn đặt `[api] orders = true`. Telegram và dòng lệnh vẫn tắt chức năng mua được;
+- giữ câu lệnh, việc ghi tệp, công cụ MCP đã kết nối và công cụ mạng xã hội ra khỏi các chat từ ứng dụng và từ
+  trang;
+- cho ứng dụng tạo công việc chỉ trả lời trong ứng dụng; công việc cho chat khác thì tạo trên máy chủ
+  (`openalpha schedule add ... --to`);
+- để việc duyệt ghép nối và các khóa truy cập của từng kênh chỉ làm được trên máy chủ: duyệt bằng
+  `openalpha pair approve <mã>` và đổi `allowed_ids` cùng các khóa tương tự trong tệp cấu hình.
+
+Khóa sàn cũng nên cẩn thận như vậy: chỉ cấp quyền giao dịch, không bao giờ cho rút tiền, và gắn với địa chỉ
+IP của máy chủ trên sàn, để khóa lộ ra cũng không rút được tiền đi.
+
+**Nâng cấp.** Nếu bạn đang chạy Caddy với `header_up Host`, hãy xóa dòng đó và đặt `public_url`: proxy giờ chuyển
+đúng tên công khai như mặc định. Sau đó ai cũng chạy `openalpha api rotate` một lần rồi khởi động lại daemon,
+để mã mà trang cũ đã lưu trong trình duyệt trở nên vô dụng. Sau khi khởi động lại, `openalpha web` đăng nhập lại
+từng trình duyệt.
 
 Khi đã nối, trang văn phòng được cho thấy daemon đang làm gì ngay lúc nó diễn ra: từng câu trả lời và câu lệnh chạy
 lâu đang chạy cùng bước mới nhất của nó, mọi yêu cầu phê duyệt và câu hỏi còn chờ trên bất kỳ kênh nào, một
@@ -380,12 +410,15 @@ Khi API bật, daemon còn phục vụ một trang web ngay tại địa chỉ c
 
 ### Mở trang
 
-`openalpha api link` in ra một liên kết đã kèm sẵn mã truy cập. Mở nó ngay trên máy chạy daemon, hoặc qua đường hầm SSH hay địa chỉ HTTPS ở mục [Chạy API trên máy chủ](#chạy-api-trên-máy-chủ). Không có liên kết thì trang hỏi mã truy cập (`openalpha api token`) và hỏi bạn có muốn nhớ lại không.
+Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy-chủ)). Lệnh in một liên kết dùng một lần và, trên máy để bàn, tự mở trình duyệt cho bạn. Trang đổi mã trong liên kết lấy một lần đăng nhập cho trình duyệt đó và xóa mã khỏi thanh địa chỉ. Không có liên kết thì trang hiện lệnh cần chạy thay vì hỏi mã.
 
-- Trang lấy mã ra khỏi địa chỉ ngay khi tải, nên mã không nằm lại trên thanh địa chỉ hay trong lịch sử.
-- Mã mở từ liên kết chỉ sống trong thẻ đó và mất khi bạn đóng thẻ. Dán mã vào ô đăng nhập cũng giữ cho thẻ đó, còn "Nhớ trên trình duyệt này" (mặc định đã tick) giữ thêm trong trình duyệt này, để lần sau khỏi đăng nhập. Đăng xuất, trong Cài đặt > Hiển thị, xóa cả hai.
-- Trang không bao giờ in mã ra, không ghi mã vào nhật ký và chỉ gửi mã cho daemon. Trang từ chối chạy bên trong một khung (frame).
-- Daemon chỉ trả lời địa chỉ trên chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`), từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
+- Liên kết chỉ dùng một lần và hết hạn sau 5 phút. Liên kết đã dùng hay đã hết hạn cho một dòng nhắc bạn chạy lại lệnh, và vài lần sai liên tiếp khiến daemon tạm dừng đăng nhập một lúc.
+- Một lần đăng nhập kéo dài 30 ngày kể từ lần dùng cuối, và mỗi lần ghé thăm lại gia hạn nó. Trình duyệt chỉ giữ một cookie đăng nhập mà mã trong trang không đọc được; mã API không bao giờ tới nó.
+- Cài đặt > Hiển thị, mục "Kết nối của trang này", liệt kê các trình duyệt đang đăng nhập, lúc đăng nhập và lần cuối thấy, cùng nút đăng xuất từng cái, kể cả cái đang dùng. Trình duyệt bị đăng xuất theo cách này rời khỏi trang ngay.
+- `openalpha api rotate` đăng xuất mọi trình duyệt. Hãy khởi động lại daemon sau đó để mã cũ cũng hết dùng được, rồi chạy `openalpha web` lại.
+- Trang từ chối chạy bên trong một khung (frame), và không gửi gì tới địa chỉ nào ngoài daemon.
+- Daemon chỉ trả lời địa chỉ trên chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`) hoặc `public_url` của bạn, từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
+- Safari trước 16.4 không gửi tiêu đề mà daemon dựa vào, nên trang báo "cookie bị chặn" dù bạn đã cho phép. Hãy cập nhật Safari.
 - Nếu không nối được daemon, trang nói thẳng bằng một dòng. Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở daemon. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn daemon thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
 
 ### Trên màn hình có gì

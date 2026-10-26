@@ -351,22 +351,54 @@ Run the daemon on a server you own and point a client app at it.
    Run `systemctl --user enable --now openalpha`, then `loginctl enable-linger $USER` so it outlives
    your login. To upgrade, run `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
    a daemon the service owns is never restarted by `upgrade` itself.
-4. **Copy the token.** `openalpha api token` prints it (created on the first start). `openalpha api link` prints
-   the link to the office page with the token already in it; treat it like the token.
-5. **Reach it.** The API listens on the server's `127.0.0.1` only. Pick one:
-   - **SSH tunnel**, no domain needed: `ssh -N -L 18765:127.0.0.1:8765 user@server`, then use
-     `http://127.0.0.1:18765` as the address. A local port other than 8765 keeps it clear of a daemon
-     on your own machine.
-   - **HTTPS through Caddy** on the server:
-     `alpha.example.com { reverse_proxy 127.0.0.1:8765 { header_up Host {upstream_hostport} } }`, then
-     use `https://alpha.example.com`. The daemon answers only a request addressed to `127.0.0.1`,
-     `localhost` or `[::1]` (any port, so a tunnel works as is), which stops a DNS-rebinding page;
-     `header_up Host` makes the proxy pass the daemon's own address. Every request then reaches the daemon from `127.0.0.1`, so five
-     wrong tokens lock out every client that sends a wrong one for 30 seconds, doubling up to an
-     hour. A request with the right token is never refused by the lockout and clears it.
-6. **Connect the client.** Give it the address and the token; every request carries the token as
-   `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
+4. **Open the office page.** Run `openalpha web` on the server (the daemon must be running). On the
+   server's own screen it opens the browser. Over SSH it prints two things instead: a tunnel command
+   to run on your own machine, such as
+   `ssh -N -o ExitOnForwardFailure=yes -L 18765:127.0.0.1:8765 user@server`, and a link
+   (`http://127.0.0.1:18765/#code=...`) to open once the tunnel is up. The tunnel's local port is the
+   server's port plus 10000, so it stays clear of a daemon on your own machine, and `ssh` stops with
+   an error if that port is taken. The link works once and for 5 minutes; run `openalpha web` again
+   for a new one. For the desktop app, run `openalpha connect`: it prints one line holding the
+   address and the token. Give the app that address and token, and keep the line private.
+5. **Reach it from outside.** The API listens on the server's `127.0.0.1` only, so the SSH tunnel
+   above needs nothing more. To reach it without a tunnel, pick one in this order:
+   - **SSH**, no domain needed: nothing to set up. `openalpha web` prints the tunnel.
+   - **Tailscale**: `tailscale serve --bg 8765` on the server, then set `[api] public_url` to the
+     `https://<machine>.<tailnet>.ts.net` address it shows and restart the daemon.
+   - **Caddy** with a domain: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, then set
+     `[api] public_url = "https://alpha.example.com"` and restart the daemon.
+
+   Behind any proxy, `public_url` is required. Without it the daemon refuses every request that came
+   through a proxy, with a line naming `public_url`; it cannot tell a proxy's visitor from a local
+   one by itself. The daemon otherwise answers only a request addressed to `127.0.0.1`, `localhost`
+   or `[::1]` (any port, so a tunnel works as is), which stops a DNS-rebinding page. With
+   `public_url` set, `openalpha web` prints the `https://` link instead of a tunnel. Every request
+   through a proxy reaches the daemon from `127.0.0.1`, so five wrong tokens or sign-in codes pause
+   sign-ins for everyone for 30 seconds, doubling up to an hour. A right token or code is never
+   refused by that pause and clears it.
+6. **Connect the client.** Give the app the address and the token; every request carries the token
+   as `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
    handshake is refused with 503 `too_many_streams`.
+
+**What `public_url` changes.** Once the daemon is reachable from outside, the app is trusted with
+less, so setting `public_url` also:
+
+- turns orders off: the API's order routes and `/trade` from the app are refused (halting buys from
+  the app goes with them) until you set `[api] orders = true`. Telegram and the CLI still halt;
+- keeps commands, file writes and connected MCP tools, and the social network tools, out of chats
+  from the app and the page;
+- lets the app make jobs that answer only in the app; a job for another chat is made on the server
+  (`openalpha schedule add ... --to`);
+- makes pairing approval and each channel's access keys server-only: approve with
+  `openalpha pair approve <code>` and change `allowed_ids` and the like in the config file.
+
+Exchange keys deserve the same care: make them trading-only, never allow withdrawals, and pin them to
+the server's IP address on the exchange, so a leaked key cannot move money out.
+
+**Upgrading.** If you ran Caddy with `header_up Host`, remove that line and set `public_url`: the
+proxy now passes the public name as it does by default. Everyone then runs `openalpha api rotate`
+once and restarts the daemon, so a token an older page saved in a browser stops working. After the
+restart, `openalpha web` signs each browser in again.
 
 Once connected, the office page is shown what the daemon is doing as it happens: each answer and long command that is
 running with its latest step, every approval and question still waiting on any channel, a fill (a resting
@@ -388,12 +420,15 @@ With the API on, the daemon also serves a web page at its own address, `http://1
 
 ### Opening it
 
-`openalpha api link` prints a link with the access token already in it. Open it on the machine that runs the daemon, or through the SSH tunnel or HTTPS address from [Run the API on a server](#run-the-api-on-a-server). Without the link, the page asks for the token (`openalpha api token`) and offers to remember it.
+Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). It prints a one-time link and, on a desktop, opens your browser for you. The page swaps the code in the link for a sign-in on that browser and removes it from the address bar. Without a link, the page shows the command to run instead of asking for a token.
 
-- The page takes the token out of the address the moment it loads, so it is never left in the address bar or the history.
-- A token opened from a link lives in that tab only and is gone when you close it. Pasting it into the sign-in form keeps it for the tab too, and "Remember on this browser" (ticked by default) also keeps it in this browser, so the next visit skips the sign-in. Sign out, under Settings > Display, forgets both.
-- The page never prints the token, never writes it to a log and sends it only to the daemon. It refuses to run inside a frame.
-- The daemon answers only an address on this machine (`127.0.0.1`, `localhost` or `[::1]`), refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
+- The link works once and expires after 5 minutes. A used or expired one shows a line asking you to run the command again, and a handful of wrong tries makes the daemon pause sign-ins for a moment.
+- A sign-in lasts 30 days from the last time you used it, and each visit renews it. The browser holds only a sign-in cookie that page scripts cannot read; the API token never reaches it.
+- Settings > Display, under "This page's connection", lists the browsers signed in, with when each signed in and was last seen, and a button to sign any of them out, this one included. A browser signed out this way is dropped from the page at once.
+- `openalpha api rotate` signs every browser out. Restart the daemon afterwards so the old token stops working too, then run `openalpha web` again.
+- The page refuses to run inside a frame, and it sends nothing to any address but the daemon's.
+- The daemon answers only an address on this machine (`127.0.0.1`, `localhost` or `[::1]`) or your `public_url`, refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
+- Safari before 16.4 does not send the header the daemon relies on, so the page reads "cookies blocked" even though they are allowed. Update Safari.
 - If the daemon cannot be reached, the page says so in one plain line. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
 
 ### What is on the screen
