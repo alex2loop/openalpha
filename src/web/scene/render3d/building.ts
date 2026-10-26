@@ -7,20 +7,37 @@ import {
   SRGBColorSpace,
 } from 'three'
 
-import type { FloorId } from '@/web/scene/types'
+import type { FloorId, Point } from '@/web/scene/types'
 import { type Box, box } from '@/web/scene/render3d/boxes'
-import { toUnits, WALL_PX } from '@/web/scene/render3d/space'
+import { HEIGHT_K, toUnits, WALL_PX } from '@/web/scene/render3d/space'
 import { FLOOR_TONES, WALL_TONES } from '@/web/scene/sprites/palette'
 import { WORLD } from '@/web/scene/types'
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS, type Wall } from '@/web/scene/world/floors'
 import { type RoomDef, roomAt, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
-/** The floor's building, by material: walls and frames, glass partitions, curtain glass. */
+/** The floor's building, by material: walls and frames, glass partitions, curtain glass, and the
+ *  bottom-row rooms' north walls apart, so each can clear over someone it hides. */
 interface BuildingBoxes {
   readonly solid: Box[]
   readonly glass: Box[]
   readonly curtain: Box[]
+  readonly north: NorthWall[]
+}
+
+/** One north wall segment: its span along x, the z of its south face, and its boxes. */
+interface NorthWall {
+  readonly x0: number
+  readonly x1: number
+  readonly z0: number
+  readonly boxes: Box[]
+}
+
+/** A north wall as drawn, with its own material, and how solid it shows now. */
+export interface SeeThroughWall {
+  readonly wall: NorthWall
+  readonly material: MeshLambertMaterial
+  opacity: number
 }
 
 const WALL_DEPTH = 4
@@ -47,6 +64,15 @@ const LOBBY_FACE = '#2D3245'
 const PLINTH = ['#DCCBB2', '#C4B199'] as const
 const PLINTH_PX = 12
 const FLOOR_TEXTURE_SCALE = 2
+// A north wall clears to this while someone stands behind it: within the strip its full height
+// hides on screen, and its span with a body's half width either side.
+const SEE_THROUGH_OPACITY = 0.3
+const HIDDEN_DEPTH_PX = WALL_PX * HEIGHT_K
+const HIDDEN_MARGIN_PX = 6
+const SEE_THROUGH_EASE_MS = 120
+const SEE_THROUGH_SETTLED = 0.01
+// A wall nearly solid writes depth again, so nothing behind it shows through.
+const SOLID_FROM = 0.98
 const ANISOTROPY = 8
 const SEAM_STEP: Readonly<Record<RoomDef['surface'], number>> = Object.freeze({
   wood: 8,
@@ -57,7 +83,7 @@ const SEAM_STEP: Readonly<Record<RoomDef['surface'], number>> = Object.freeze({
 })
 
 export function buildingBoxes(floor: FloorId): BuildingBoxes {
-  const out: BuildingBoxes = { solid: [], glass: [], curtain: [] }
+  const out: BuildingBoxes = { solid: [], glass: [], curtain: [], north: [] }
   const tops = new Set(
     roomsOn(floor)
       .filter((room) => room.rect.y > 0)
@@ -89,24 +115,23 @@ function northWall(out: BuildingBoxes, wall: Wall, floor: FloorId): void {
   const w = wall.to.x - wall.from.x
   const isLobby = roomAt(floor, { x, y: z0 })?.id === LOBBY
 
-  out.solid.push(
-    box(
-      [x, z0 - WALL_DEPTH, w, WALL_DEPTH, 0, WALL_PX - UNDER_CAP_PX],
-      isLobby ? LOBBY_FACE : WALL_TONES.face
-    )
-  )
-  out.solid.push(
-    box(
-      [x, z0 - WALL_DEPTH, w, WALL_DEPTH + PROUD_PX, 0, LOW_BAND_PX],
-      isLobby ? LOBBY_FACE : WALL_TONES.low
-    )
-  )
-  out.solid.push(
-    box([x, z0 - WALL_DEPTH, w, WALL_DEPTH + PROUD_PX * 2, 0, SKIRT_PX], WALL_TONES.dark)
-  )
-  out.solid.push(
-    box([x, z0 - WALL_DEPTH - 1, w, WALL_DEPTH + 2, WALL_PX - CAP_PX, CAP_PX], WALL_TONES.dark)
-  )
+  out.north.push({
+    x0: x,
+    x1: x + w,
+    z0,
+    boxes: [
+      box(
+        [x, z0 - WALL_DEPTH, w, WALL_DEPTH, 0, WALL_PX - UNDER_CAP_PX],
+        isLobby ? LOBBY_FACE : WALL_TONES.face
+      ),
+      box(
+        [x, z0 - WALL_DEPTH, w, WALL_DEPTH + PROUD_PX, 0, LOW_BAND_PX],
+        isLobby ? LOBBY_FACE : WALL_TONES.low
+      ),
+      box([x, z0 - WALL_DEPTH, w, WALL_DEPTH + PROUD_PX * 2, 0, SKIRT_PX], WALL_TONES.dark),
+      box([x, z0 - WALL_DEPTH - 1, w, WALL_DEPTH + 2, WALL_PX - CAP_PX, CAP_PX], WALL_TONES.dark),
+    ],
+  })
 }
 
 // Over each doorway of a bottom-row wall, the wall carries on above the door, on two jambs.
@@ -239,6 +264,40 @@ function sideCurtain(
 
     from = gz + gw
   }
+}
+
+/** Eases each north wall toward `SEE_THROUGH_OPACITY` while it hides someone standing behind it,
+ *  and back to solid once they leave; true while one still changes. */
+export function syncSeeThrough(
+  walls: readonly SeeThroughWall[],
+  spec: { readonly people: readonly Point[]; readonly dtMs: number; readonly isReduced: boolean }
+): boolean {
+  const k = spec.isReduced ? 1 : 1 - Math.exp(-spec.dtMs / SEE_THROUGH_EASE_MS)
+  let isChanged = false
+
+  for (const one of walls) {
+    const target = spec.people.some((at) => isHiddenBy(one.wall, at)) ? SEE_THROUGH_OPACITY : 1
+    const eased = one.opacity + (target - one.opacity) * k
+    const next = Math.abs(target - eased) < SEE_THROUGH_SETTLED ? target : eased
+
+    if (next !== one.opacity) {
+      one.opacity = next
+      one.material.opacity = next
+      one.material.depthWrite = next > SOLID_FROM
+      isChanged = true
+    }
+  }
+
+  return isChanged
+}
+
+function isHiddenBy(wall: NorthWall, at: Point): boolean {
+  return (
+    at.x > wall.x0 - HIDDEN_MARGIN_PX &&
+    at.x < wall.x1 + HIDDEN_MARGIN_PX &&
+    at.y < wall.z0 &&
+    at.y > wall.z0 - HIDDEN_DEPTH_PX
+  )
 }
 
 /** The floor's surface: each room's own, the corridor between; mipmapped so a far floor never

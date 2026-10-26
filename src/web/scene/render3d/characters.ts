@@ -9,7 +9,7 @@ import {
   SkinnedMesh,
 } from 'three'
 
-import type { HeldKind } from '@/web/scene/sim/actors/poses'
+import type { HeldKind, PoseFrame } from '@/web/scene/sim/actors/poses'
 import type { ActorId, ActorView, Point } from '@/web/scene/types'
 import { createPartKit } from '@/web/scene/render3d/bake'
 import {
@@ -289,12 +289,18 @@ function poseRig(rig: Rig, job: PoseJob): boolean {
   })
   const isBreathing = read.isAnimated && !read.isWalking && actor.working
 
-  rig.held = syncHeld(rig.held, {
+  const held = syncHeld(rig.held, {
     hold: read.hold,
+    phone: read.phone,
+    sheet: actor.sheet === undefined ? undefined : (actor.sheet.action ?? 'blank'),
+    seed: read.seed,
     hand: rig.figure.joints.faR,
     arm: rig.figure.joints.uaR,
     cast,
   })
+  const isHeldNew = held !== rig.held
+
+  rig.held = held
   rig.root.position.set(
     toUnits(at.x),
     toUnits(read.targets.hop * UNIT_PX * FIGURE_SCALE),
@@ -305,7 +311,7 @@ function poseRig(rig: Rig, job: PoseJob): boolean {
   showEyes(rig, read.targets.isShut || (frame.isMotionOn && isBlinking(read.seed, frame.now)))
   outline(rig, { scale: frame.scale, isWorking: actor.working })
 
-  return eased || frame.now - rig.walkedAt < FULL_TAIL_MS
+  return eased || isHeldNew || frame.now - rig.walkedAt < FULL_TAIL_MS
 }
 
 interface ReadPose {
@@ -314,6 +320,7 @@ interface ReadPose {
   readonly isAnimated: boolean
   readonly isSeated: boolean
   readonly hold: HeldKind | undefined
+  readonly phone: PoseFrame['phone']
   readonly targets: JointTargets
   readonly wantYaw: number
 }
@@ -348,6 +355,7 @@ function readPose(rig: Rig, job: PoseJob): ReadPose {
     isAnimated,
     isSeated: seat !== undefined,
     hold,
+    phone: pose.phone,
     targets: targetsOf(pose, {
       swing,
       sit: rig.sit,

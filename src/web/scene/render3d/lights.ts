@@ -9,6 +9,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshLambertMaterial,
+  type MeshLambertMaterialParameters,
   MeshToonMaterial,
   NearestFilter,
   PlaneGeometry,
@@ -157,6 +158,15 @@ export function syncLighting(lighting: Lighting, spec: LightSpec): boolean {
   syncSky(lighting, spec.row.sky)
 
   return isEasing
+}
+
+/** A lit material of its own that dims and brightens with its room, as the shared ones do, for a
+ *  surface that changes apart from the rest; the caller disposes it. */
+export function createRoomMaterial(
+  lighting: Lighting,
+  params: MeshLambertMaterialParameters
+): MeshLambertMaterial {
+  return withPatch(new MeshLambertMaterial(params), roomPatch(lighting.uniforms, false), 'room')
 }
 
 // An unlit room keeps the daylight through its glass; a lit one's lamp makes up most of what the

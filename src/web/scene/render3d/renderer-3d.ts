@@ -3,6 +3,7 @@ import { Group, OrthographicCamera, Scene, Sprite, Vector2, WebGLRenderer } from
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { SimView, Size } from '@/web/scene/types'
 import { indexDrop } from '@/web/scene/data/board'
+import { syncSeeThrough } from '@/web/scene/render3d/building'
 import {
   type CameraRig,
   type Placement,
@@ -31,8 +32,15 @@ import {
 } from '@/web/scene/render3d/fixtures'
 import { buildFloor, disposeFloor, type FloorScene } from '@/web/scene/render3d/floor'
 import { createShapes, type Shapes } from '@/web/scene/render3d/instancing'
+import { createLamps, disposeLamps, type Lamps, syncLamps } from '@/web/scene/render3d/lamps'
 import { createLighting, type Lighting, syncLighting } from '@/web/scene/render3d/lights'
 import { createPets, disposePets, type Pets, syncPets } from '@/web/scene/render3d/pets'
+import {
+  createScreenFaces,
+  disposeScreenFaces,
+  type ScreenFaces,
+  syncScreenFaces,
+} from '@/web/scene/render3d/screen-faces'
 import {
   createTeamPieces,
   disposeTeamPieces,
@@ -68,6 +76,8 @@ interface Stage extends CameraRig {
   readonly team: TeamPieces
   readonly cast: Cast
   readonly pets: Pets
+  readonly lamps: Lamps
+  readonly faces: ScreenFaces
   floor: FloorScene | undefined
   scheme: string
   lastAt: number | undefined
@@ -161,6 +171,8 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
     team: createTeamPieces(shapes, lighting.materials, root),
     cast,
     pets,
+    lamps: createLamps(scene),
+    faces: createScreenFaces(root, lighting),
     floor: undefined,
     shot: undefined,
     placement: { scale: 1, originX: 0, originY: 0 },
@@ -186,6 +198,8 @@ function releaseStage(stage: Stage | undefined): void {
   disposeTeamPieces(stage.team)
   disposeCast(stage.cast)
   disposePets(stage.pets)
+  disposeLamps(stage.lamps)
+  disposeScreenFaces(stage.faces)
 
   for (const one of [...stage.lighting.disposables, ...stage.shapes.disposables]) {
     one.dispose()
@@ -268,8 +282,15 @@ function syncScene(
     isReduced,
   })
   const dressing = syncDressing(stage, { job, row, standing: people.standing })
+  const isWallFading =
+    stage.floor !== undefined &&
+    syncSeeThrough(stage.floor.walls, {
+      people: people.standing.map(({ at }) => at),
+      dtMs,
+      isReduced,
+    })
   const isSmall = !isReduced && (isMotionOn || sim.life.animatedFloors.includes(sim.floor))
-  const isMoving = isLightEasing || people.isSettling || dressing.isMoving
+  const isMoving = isLightEasing || people.isSettling || dressing.isMoving || isWallFading
   const isWalking = people.standing.some(({ actor }) => isActorWalking(actor))
 
   return {
@@ -278,7 +299,8 @@ function syncScene(
   }
 }
 
-// The fixtures, the office life's effects and the pets, around the people just placed.
+// The fixtures, the office life's effects, the faces and lamps, and the pets, around the people
+// just placed.
 function syncDressing(
   stage: Stage,
   at: { readonly job: SceneJob; readonly row: LightRow; readonly standing: readonly Standing[] }
@@ -301,6 +323,7 @@ function syncDressing(
   const effectFrame = { sim, now, level, isReduced }
   const effects = syncEffects(stage.effects, effectFrame)
   const team = syncTeamPieces(stage.team, effectFrame)
+  const isShown = syncFacesAndLamps(stage, sim)
 
   const isPetMoved = syncPets(stage.pets, sim.life, {
     floor: sim.floor,
@@ -310,9 +333,25 @@ function syncDressing(
   })
 
   return {
-    isChanged: isFixed || effects.isChanged || team.isChanged || isPetMoved,
+    isChanged: isFixed || effects.isChanged || team.isChanged || isPetMoved || isShown,
     isMoving: effects.isMoving || team.isMoving,
   }
+}
+
+// The screen faces and cork boards, and the lamps' lights nearest the camera's centre.
+function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
+  const isFaceChanged = syncScreenFaces(stage.faces, {
+    floor: sim.floor,
+    scale: stage.placement.scale,
+  })
+  const isLampChanged = syncLamps(stage.lamps, {
+    lamps: stage.floor?.props.lamps ?? [],
+    lit: sim.props.lit,
+    lampGlow: sim.props.lampGlow,
+    focus: stage.shot?.center,
+  })
+
+  return isFaceChanged || isLampChanged
 }
 
 function syncFloor(stage: Stage, sim: SimView): boolean {
@@ -324,7 +363,7 @@ function syncFloor(stage: Stage, sim: SimView): boolean {
     disposeFloor(stage.floor, stage.lighting.materials)
   }
 
-  stage.floor = buildFloor(sim.floor, stage.lighting.materials)
+  stage.floor = buildFloor(sim.floor, stage.lighting)
   stage.scene.add(stage.floor.group)
 
   return true
