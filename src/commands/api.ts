@@ -2,7 +2,7 @@
 
 export type { ConfigSummary, ConfigSummaryReader } from '@/commands/config'
 export type { ContinueNudge } from '@/commands/continue'
-export type { SpendCommandDeps, SpendReader } from '@/commands/cost'
+export type { JobsSpend, SpendCommandDeps, SpendReader } from '@/commands/cost'
 export type {
   ChannelHealth,
   HealthCode,

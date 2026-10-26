@@ -9,10 +9,18 @@ export const MS_PER_DAY = MS_PER_HOUR * HOURS_PER_DAY
 export const MINUTES_PER_DAY = MINUTES_PER_HOUR * HOURS_PER_DAY
 // `YYYY-MM-DD`.
 const DAY_KEY_LENGTH = 10
+// `YYYY-MM-` of a day key.
+const MONTH_PREFIX_LENGTH = 8
+const MONTH_START_DAY = '01'
 
 /** The `YYYY-MM-DD` day `days` after (or before) `day`, on the calendar. */
 export function shiftDay(day: string, days: number): string {
   const shifted = new Date(Date.parse(`${day}T00:00:00Z`) + days * MS_PER_DAY)
 
   return shifted.toISOString().slice(0, DAY_KEY_LENGTH)
+}
+
+/** The first `YYYY-MM-DD` day of the month `day` falls in. */
+export function buildMonthStart(day: string): string {
+  return `${day.slice(0, MONTH_PREFIX_LENGTH)}${MONTH_START_DAY}`
 }

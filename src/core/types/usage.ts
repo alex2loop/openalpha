@@ -103,6 +103,16 @@ export interface DaySpend {
   readonly costUsd: number
 }
 
+/** A range's billed attempts grouped by the top-level run each belongs to, then by that run's job.
+ *  The one row with no `kind` and `name` holds every attempt whose top-level run has no `runs` row
+ *  (none written, still running, or pruned). */
+export interface RootRunCostRow {
+  readonly kind?: 'command' | 'agent'
+  readonly name?: string
+  readonly runs: number
+  readonly costUsd: number
+}
+
 /** What one run costs on one model: the mean over that model's most recent runs. */
 export interface ModelRunCost {
   readonly provider: string

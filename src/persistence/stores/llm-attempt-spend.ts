@@ -1,6 +1,12 @@
 import type { AgentId } from '@/core/ids'
 import type { Dialect, Storage } from '@/core/types/storage'
-import type { CostRange, DaySpend, ModelRunCost, SpendBreakdownRow } from '@/core/types/usage'
+import type {
+  CostRange,
+  DaySpend,
+  ModelRunCost,
+  RootRunCostRow,
+  SpendBreakdownRow,
+} from '@/core/types/usage'
 import type { EpochRange } from '@/core/utils/time'
 import type { LLMAttemptStore } from '@/persistence/types'
 import { StorageError } from '@/core/errors'
@@ -15,6 +21,7 @@ import {
 } from '@/core/utils/time'
 import { fromNanoUsd } from '@/persistence/money'
 import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
+import { runRootCtes } from '@/persistence/stores/run-tree-sql'
 
 const ANSWERED_OUTCOME = 'success'
 const BILLED_SEARCH_KIND = 'external'
@@ -38,6 +45,7 @@ type SpendReads = Pick<
   | 'dailyRange'
   | 'breakdownFor'
   | 'breakdownRange'
+  | 'rootRunsForRange'
   | 'totalForBillingAgent'
   | 'totalsForBillingAgents'
   | 'perRunCostByModel'
@@ -57,6 +65,13 @@ interface SpendBreakdownDbRow {
   readonly output_total: number
   readonly reasoning_total: number
   readonly latency_average: number | null
+}
+
+interface RootRunDbRow {
+  readonly kind: 'command' | 'agent' | null
+  readonly name: string | null
+  readonly runs: number
+  readonly total: number
 }
 
 interface SpendDeps {
@@ -79,6 +94,7 @@ export function createSpendReads(db: Storage, dialect: Dialect, timeZone: string
     breakdownFor: async (period, nowMs) =>
       breakdownBetween(deps, periodBounds(deps, period, nowMs)),
     breakdownRange: async (range) => breakdownBetween(deps, rangeBounds(deps, range)),
+    rootRunsForRange: async (range) => rootRunsBetween(deps, rangeBounds(deps, range)),
     totalForBillingAgent: async (id, nowMs) =>
       sumForAgent(deps, id, dayBoundsInZone(nowMs, deps.timeZone)),
     totalsForBillingAgents: async (nowMs) =>
@@ -214,6 +230,22 @@ async function breakdownBetween(
   return rows.map(toSpendBreakdownRow)
 }
 
+async function rootRunsBetween(
+  deps: SpendDeps,
+  bounds: EpochRange
+): Promise<readonly RootRunCostRow[]> {
+  const rows = await deps.db.query<RootRunDbRow>(deps.sql.rootRunsBetween, [
+    bounds.fromMs,
+    bounds.toMs,
+  ])
+
+  return rows.map((row) => ({
+    ...(row.kind === null || row.name === null ? {} : { kind: row.kind, name: row.name }),
+    runs: row.runs,
+    costUsd: fromNanoUsd(row.total),
+  }))
+}
+
 function toSpendBreakdownRow(row: SpendBreakdownDbRow): SpendBreakdownRow {
   return {
     billingAgentId: agentId(row.billing_agent_id),
@@ -268,7 +300,21 @@ function buildSpendSql(d: Dialect) {
       `FROM llm_attempts WHERE settled_at >= ${d.param(1)} AND settled_at < ${d.param(2)} ` +
       `GROUP BY ${BILLING_AGENT_SQL}, agent_id, provider, model ` +
       `ORDER BY cost_total DESC, ${BILLING_AGENT_SQL}, agent_id, provider, model`,
+    rootRunsBetween: buildRootRunsSql(d),
   }
+}
+
+// The same `settled_at` window `sumBetween` reads, so the groups add up to its total; an attempt
+// whose root has no `runs` row lands in the one group with no kind or name.
+function buildRootRunsSql(d: Dialect): string {
+  return (
+    `${runRootCtes(d)}SELECT r.kind AS kind, r.name AS name, ` +
+    `COUNT(DISTINCT x.root) AS runs, CAST(SUM(a.cost_nano_usd) AS BIGINT) AS total ` +
+    `FROM llm_attempts a LEFT JOIN roots x ON x.run_id = a.run_id ` +
+    `LEFT JOIN runs r ON r.run_id = x.root ` +
+    `WHERE a.settled_at >= ${d.param(1)} AND a.settled_at < ${d.param(2)} ` +
+    `GROUP BY r.kind, r.name ORDER BY total DESC, r.kind, r.name`
+  )
 }
 
 // A run's cost on a model is the sum of its attempts on it, ranked newest run first per model so the

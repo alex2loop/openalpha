@@ -27,7 +27,7 @@ export function AgentDay() {
       icon={<ClockIcon />}
       reading={reading}
       action={
-        <Button kind="tertiary" size="small" onClick={openActivityDialog}>
+        <Button kind="tertiary" size="small" onClick={() => openActivityDialog()}>
           {tr('ui.office.today.seeAll')}
         </Button>
       }

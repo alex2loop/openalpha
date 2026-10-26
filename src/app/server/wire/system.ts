@@ -154,6 +154,15 @@ interface CostRow {
   readonly averageLatencyMs?: number
 }
 
+interface CostJobWire {
+  readonly kind: 'command' | 'agent'
+  /** The command name, or the agent id. */
+  readonly name: string
+  /** How many top-level runs of this job billed in the range. */
+  readonly runs: number
+  readonly costUsd: number
+}
+
 /** GET /v1/update — whether a newer daemon release is out. `enabled` false: checks are off (config,
  *  or a source checkout that updates with git), and `latest` is null. The feed is read once a day. */
 export interface UpdateResponse {
@@ -196,6 +205,12 @@ export interface CostReport {
   /** One total per calendar day, oldest first, zero days included. */
   readonly days: readonly { readonly day: string; readonly costUsd: number }[]
   readonly rows: readonly CostRow[]
+  /** The same calls by the top-level run each belongs to (child runs included), one row per job,
+   *  costliest first. */
+  readonly jobs: readonly CostJobWire[]
+  /** The calls whose top-level run has no run row (none written, still running, or pruned), so
+   *  the jobs and this add up to `totalUsd`. */
+  readonly otherUsd: number
 }
 
 /** The check a doctor row belongs to: the CLI's `doctor <check>` name, or `api` for the API token. */

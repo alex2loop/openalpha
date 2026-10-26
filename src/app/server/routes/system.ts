@@ -321,10 +321,11 @@ async function handleCost(req: Request, ctx: ApiRouteContext): Promise<Response>
   }
 
   const spend = ctx.app.resolve('spendReader')
-  const [totalUsd, rows, days] = await Promise.all([
+  const [totalUsd, rows, days, byJob] = await Promise.all([
     spend.forRange(range),
     spend.breakdownForRange(range),
     spend.dailyForRange(range),
+    spend.jobsForRange(range),
   ])
   const budget = ctx.app.config.budget
 
@@ -338,6 +339,8 @@ async function handleCost(req: Request, ctx: ApiRouteContext): Promise<Response>
     },
     days,
     rows: rows.map((row) => ({ ...row })),
+    jobs: byJob.jobs.map((job) => ({ ...job })),
+    otherUsd: byJob.otherUsd,
   } satisfies CostReport)
 }
 

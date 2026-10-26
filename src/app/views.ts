@@ -5,11 +5,18 @@ import type {
   ConfigSummaryReader,
   HealthCode,
   HealthSummaryReader,
+  JobsSpend,
   SpendReader,
 } from '@/commands/api'
 import type { ChannelId } from '@/core/channels'
 import type { App } from '@/core/container'
-import type { LLMUsageTotals, RunAttempt, RunCalls, SpendBreakdownRow } from '@/core/types/usage'
+import type {
+  LLMUsageTotals,
+  RootRunCostRow,
+  RunAttempt,
+  RunCalls,
+  SpendBreakdownRow,
+} from '@/core/types/usage'
 
 // A corrupt persisted row must not render as a nonsense balance.
 const MAX_PERSISTED_USAGE_VALUE = Number.MAX_SAFE_INTEGER
@@ -33,6 +40,7 @@ export function createSpendReader(app: App): SpendReader {
       (await attempts.breakdownFor(period, nowMs)).map(boundedBreakdownRow),
     breakdownForRange: async (range) =>
       (await attempts.breakdownRange(range)).map(boundedBreakdownRow),
+    jobsForRange: async (range) => toJobsSpend(await attempts.rootRunsForRange(range)),
     callsForRun: async (id, limit) => boundedCalls(await attempts.attemptsForRun(id, limit)),
   }
 }
@@ -143,6 +151,20 @@ function boundedAttempt(attempt: RunAttempt): RunAttempt {
     reasoningTokens: boundedCount(attempt.reasoningTokens),
     costUsd: boundedUsage(attempt.costUsd),
     latencyMs: boundedCount(attempt.latencyMs),
+  }
+}
+
+// The store folds every attempt whose top-level run left no run row into its one row with no job.
+function toJobsSpend(rows: readonly RootRunCostRow[]): JobsSpend {
+  const other = rows.find((row) => row.kind === undefined || row.name === undefined)
+
+  return {
+    jobs: rows.flatMap(({ kind, name, runs, costUsd }) =>
+      kind === undefined || name === undefined
+        ? []
+        : [{ kind, name, runs: boundedCount(runs), costUsd: boundedUsage(costUsd) }]
+    ),
+    otherUsd: boundedUsage(other?.costUsd ?? 0),
   }
 }
 

@@ -44,5 +44,10 @@
       "reasoningTokens": 0,
       "averageLatencyMs": 2100
     }
-  ]
+  ],
+  "jobs": [
+    { "kind": "command", "name": "suggest", "runs": 6, "costUsd": 1.52 },
+    { "kind": "agent", "name": "chat", "runs": 9, "costUsd": 0.29 }
+  ],
+  "otherUsd": 0.03
 }

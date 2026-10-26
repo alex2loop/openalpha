@@ -8,11 +8,9 @@ import { createSingleFlight } from '@/web/api/single-flight'
 import { onWireEvent } from '@/web/state/events'
 import { state } from '@/web/state/session'
 import { buildDayKey } from '@/web/text/time'
+import { buildMonthStart } from '@/web/text/time-units'
 
 const COST_POLL_MS = 60_000
-const MONTH_START_DAY = '01'
-// `YYYY-MM-` of a day key.
-const MONTH_PREFIX_LENGTH = 8
 const REFETCH_KINDS = ['run_finished', 'budget_warning', 'budget_exhausted'] as const
 
 /** The month so far against the caps, with today's spend picked out of it. */
@@ -86,7 +84,7 @@ async function loadCost(abortSignal: AbortSignal): Promise<void> {
 
   try {
     const report = await getJson(ROUTES.cost, {
-      query: { from: `${day.slice(0, MONTH_PREFIX_LENGTH)}${MONTH_START_DAY}`, to: day },
+      query: { from: buildMonthStart(day), to: day },
       signal: abortSignal,
     })
 

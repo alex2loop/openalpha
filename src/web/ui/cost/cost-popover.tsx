@@ -10,6 +10,8 @@ import { formatUsd } from '@/web/text/figures'
 import { formatRunName } from '@/web/text/run-name'
 import { formatClock } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
+import { openCostDialog } from '@/web/ui/cost/cost-dialog'
+import { formatSpent } from '@/web/ui/cost/spent'
 import { Button } from '@/web/ui/kit/button'
 import { Popover } from '@/web/ui/kit/popover'
 import { type LoadState, useLoad } from '@/web/ui/kit/use-load'
@@ -21,11 +23,17 @@ export const COST_POPOVER_ID = 'cost'
 
 const PERCENT = 100
 
-/** Today and the month against their caps, today's spend by job, and when the daemon warns. */
+/** Today and the month against their caps, today's spend by job, when the daemon warns, and the way
+ *  to the full report. */
 export function CostPopover({ anchor }: { readonly anchor: RefObject<HTMLElement | null> }) {
   return (
     <Popover id={COST_POPOVER_ID} anchor={anchor} label={tr('ui.office.cost.title')}>
       <CostBody />
+      <div class="popover-foot">
+        <Button kind="tertiary" size="small" onClick={openCostDialog}>
+          {tr('ui.office.cost.full')}
+        </Button>
+      </div>
     </Popover>
   )
 }
@@ -150,13 +158,4 @@ function CostRow({ row }: { readonly row: ActivityRowWire }) {
       <span class="cost-row-figure">{formatUsd(row.costUsd)}</span>
     </div>
   )
-}
-
-/** "{spent} / {cap} USD", or "{spent} USD" with no cap. Shared with the header chip. */
-export function formatSpent(spentUsd: number | undefined, capUsd: number | undefined): string {
-  const spent = formatUsd(spentUsd)
-
-  return capUsd === undefined || capUsd === 0
-    ? tr('ui.office.cost.spentUncapped', { spent })
-    : tr('ui.office.cost.spent', { spent, cap: formatUsd(capUsd) })
 }
