@@ -33,6 +33,7 @@ interface AgentFormRequest {
 
 const list = signal<readonly AgentWire[]>([])
 const isRead = signal(false)
+const isFailed = signal(false)
 const formRequest = signal<AgentFormRequest | undefined>(undefined)
 const selected = signal<string | undefined>(undefined)
 // The running roster read, so a save is seen at once; absent while signed out.
@@ -42,6 +43,8 @@ let refetchRoster: (() => Promise<void>) | undefined
 export const agents: ReadonlySignal<readonly AgentWire[]> = list
 /** The roster has been read once: an empty `agents` then means there are none. */
 export const agentsRead: ReadonlySignal<boolean> = isRead
+/** The latest roster read failed; the poll asks again. */
+export const agentsFailed: ReadonlySignal<boolean> = isFailed
 /** The latest ask to open the agent form; the form opens on each new one. */
 export const agentFormRequest: ReadonlySignal<AgentFormRequest | undefined> = formRequest
 /** The agent typing goes to on this page, as the daemon last accepted; absent is the assistant or
@@ -176,7 +179,9 @@ async function loadAgents(abortSignal: AbortSignal): Promise<void> {
   try {
     list.value = (await getJson(ROUTES.agents, { signal: abortSignal })).agents
     isRead.value = true
+    isFailed.value = false
   } catch {
-    // The who-chip keeps the roster it last read.
+    // The who-chip keeps the roster it last read; a stopped read is no failure.
+    isFailed.value = !abortSignal.aborted
   }
 }

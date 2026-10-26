@@ -287,6 +287,7 @@
     "office.role.child": "tạm - {role}",
     "office.team.add": "+ Thêm agent",
     "office.team.emptyTitle": "Tạo agent đầu tiên của bạn",
+    "office.team.readFailed": "Mình chưa đọc được danh sách agent của bạn, lát nữa mình thử lại nhé.",
     "office.team.scratch": "Tạo từ đầu",
     "office.team.tplDividend": "Săn cổ tức",
     "office.team.tplDividendPrompt": "Tìm cổ phiếu Việt Nam trả cổ tức tiền mặt đều 5 năm, tỷ suất trên 6%, nợ vay thấp. Mỗi sáng đưa tối đa 3 mã đáng xem.",

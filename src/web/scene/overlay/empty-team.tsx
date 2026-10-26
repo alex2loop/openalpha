@@ -2,7 +2,7 @@ import type { MessageKey } from '@/i18n'
 import type { AgentDraft } from '@/web/state/agents'
 import { view } from '@/web/scene/view'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
-import { agents, agentsRead, requestAgentForm } from '@/web/state/agents'
+import { agents, agentsFailed, agentsRead, requestAgentForm } from '@/web/state/agents'
 import { tr } from '@/web/text/tr'
 
 import './empty-team.css'
@@ -36,10 +36,21 @@ const TEMPLATES: readonly Template[] = Object.freeze([
   },
 ])
 
-/** The team floor with no agent yet: three templates that prefill the agent form, and a blank one. */
+/** The team floor with no agent yet: three templates that prefill the agent form, and a blank one.
+ *  Before the first good read a failed one says so rather than leaving the floor blank. */
 export function EmptyTeam() {
-  if (view.value.floor !== TEAM_FLOOR || !agentsRead.value || agents.value.length > 0) {
+  if (view.value.floor !== TEAM_FLOOR || agents.value.length > 0) {
     return null
+  }
+
+  if (!agentsRead.value) {
+    return agentsFailed.value ? (
+      <section class="empty-team glass">
+        <p class="failure-line" role="alert">
+          {tr('ui.office.team.readFailed')}
+        </p>
+      </section>
+    ) : null
   }
 
   return (

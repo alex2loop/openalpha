@@ -287,6 +287,7 @@
     "office.role.child": "temp - {role}",
     "office.team.add": "+ Add an agent",
     "office.team.emptyTitle": "Create your first agent",
+    "office.team.readFailed": "I could not read your agents yet; I will try again in a moment.",
     "office.team.scratch": "Start from scratch",
     "office.team.tplDividend": "Dividend hunter",
     "office.team.tplDividendPrompt": "Find Vietnamese shares that have paid cash dividends for 5 years running, yield above 6%, low debt. Each morning give me at most 3 names worth a look.",

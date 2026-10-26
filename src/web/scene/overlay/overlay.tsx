@@ -8,8 +8,10 @@ import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { CardPlace } from '@/web/scene/overlay/team-pass'
 import type { ActorId, Rect } from '@/web/scene/types'
 import { HoverLabel } from '@/web/scene/overlay/hover-label'
-import { NameTags, roleTitleOf } from '@/web/scene/overlay/name-tags'
-import { rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { NameTags, roleTitleOf, tagTextOf } from '@/web/scene/overlay/name-tags'
+import { childRunIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { childRoleOf } from '@/web/scene/sim/team/goals'
+import { findRun } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
 import { ATTENTION_MARK } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -193,9 +195,8 @@ function BubbleView({ placed }: { readonly placed: Placed }) {
 
 // The whole of a cut line, with its footer, under its speaker's name.
 function openWhole({ bubble }: Placed): void {
-  const def = rosterDefOf(bubble.actor)
   const handle = openModal({
-    title: def === undefined ? '' : roleTitleOf(def.role),
+    title: speakerOf(bubble.actor),
     body: (
       <div class="bubble-whole">
         <p>{bubble.full}</p>
@@ -208,6 +209,20 @@ function openWhole({ bubble }: Placed): void {
       </Button>
     ),
   })
+}
+
+// A built-in person by its role; an own agent or a child as its name tag reads.
+function speakerOf(actor: ActorId): string {
+  const def = rosterDefOf(actor)
+
+  if (def !== undefined) {
+    return roleTitleOf(def.role)
+  }
+
+  const runId = childRunIdOf(actor)
+  const title = runId === undefined ? undefined : findRun(runId)?.title
+
+  return tagTextOf(actor, false, title === undefined ? undefined : childRoleOf(title))
 }
 
 function boxStyle(rect: Rect): Record<string, string> {

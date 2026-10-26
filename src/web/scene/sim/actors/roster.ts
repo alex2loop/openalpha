@@ -72,6 +72,11 @@ export function isChildActorId(id: string): boolean {
   return id.startsWith(CHILD_PREFIX)
 }
 
+/** The run a child stands for; absent for anyone else. */
+export function childRunIdOf(actor: string): string | undefined {
+  return isChildActorId(actor) ? actor.slice(CHILD_PREFIX.length) : undefined
+}
+
 /** `id` names someone in the office: a built-in person, an own agent or a child. */
 export function isActorId(id: string): id is ActorId {
   return id.startsWith(OWN_PREFIX) || isChildActorId(id) || rosterDefOf(id) !== undefined
