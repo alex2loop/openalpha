@@ -20,7 +20,7 @@ type StopRow = StopsResponse['stops'][number]
 
 const TRADING_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'break'])
 
-const marketsBlock = createRouteBlock(ROUTES.markets)
+export const marketsBlock = createRouteBlock(ROUTES.markets)
 export const overviewBlock = createRouteBlock(ROUTES.overview)
 export const holdingsBlock = createRouteBlock(ROUTES.portfolio)
 export const quotesBlock = createRouteBlock(ROUTES.quotes)

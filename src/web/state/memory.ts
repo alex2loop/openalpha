@@ -91,7 +91,7 @@ export async function rememberNote(key: string, value: string): Promise<void> {
     } satisfies MemoryWriteBody,
   })
 
-  savesInFlight = Promise.allSettled([savesInFlight, saving])
+  savesInFlight = Promise.allSettled([savesInFlight, saving]).then(() => undefined)
 
   const saved = await saving
   const id = toRowId(saved.scope, key)
