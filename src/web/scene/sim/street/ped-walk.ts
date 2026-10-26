@@ -161,11 +161,11 @@ export function placePed(ped: Ped, at: { readonly x: number; readonly y: number 
   ped.task = 'walk'
 }
 
-// A free slot, dressed as a passer-by at `at`.
-export function takePed(
-  peds: Peds,
+// A free slot of a pool, dressed as a passer-by at `at`.
+export function takePed<T extends Ped>(
+  peds: { readonly pool: readonly T[]; readonly rng: Rng },
   at: { readonly x: number; readonly y: number }
-): Ped | undefined {
+): T | undefined {
   const ped = peds.pool.find((candidate) => !candidate.on)
 
   if (ped === undefined) {
@@ -183,7 +183,7 @@ export function takePed(
 
 // From the route's first point, or somewhere along its first leg when placed by the clock.
 export function startOn(
-  peds: Peds,
+  peds: { readonly rng: Rng },
   ped: Ped,
   at: { readonly nowMs: number; readonly isPlaced: boolean }
 ): void {

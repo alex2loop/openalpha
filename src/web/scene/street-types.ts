@@ -161,6 +161,33 @@ export interface BoardView {
   readonly pulse: number
 }
 
+/** The street's animals: kerb pigeons, sparrows from the far trees, the stray cat on the park wall
+ *  and the dog on its walk. */
+export const CRITTER_KINDS = ['pigeon', 'sparrow', 'cat', 'dog'] as const
+export type CritterKind = (typeof CRITTER_KINDS)[number]
+
+export const CRITTER_POSES = ['stand', 'walk', 'peck', 'fly', 'sit', 'groom', 'sniff'] as const
+export type CritterPose = (typeof CRITTER_POSES)[number]
+
+/** An animal on the street: `at` on the ground (a bird in a tree or the air is drawn `lift` px
+ *  above it), its pose and frame, which way it faces, and the walker's hand a dog's lead runs to. */
+export interface CritterView extends StreetEntity {
+  readonly kind: CritterKind
+  readonly pose: CritterPose
+  readonly frame: number
+  readonly facing: -1 | 1
+  readonly lift: number
+  readonly lead: Point | undefined
+}
+
+/** The pavement's vendors as they move: the flower bicycle while it rides (`frame` turns the
+ *  pedal), and the pot whose steam rises at `steam` (0 to 1 of a puff's climb) while it cooks. */
+export interface VendorView {
+  readonly bike: (StreetEntity & { readonly facing: -1 | 1; readonly frame: number }) | undefined
+  readonly pot: Point | undefined
+  readonly steam: number
+}
+
 /** The shop row and the frontage building: shutters on the move, the guard walking the frontage
  *  after the shops close, the board's clock, and the rects the shop row and the board with its band
  *  cover (absent without a frontage). */
@@ -179,13 +206,14 @@ export interface StreetView {
   readonly pools: {
     readonly vehicles: readonly VehicleView[]
     readonly people: readonly PersonView[]
-    readonly critters: readonly StreetEntity[]
+    readonly critters: readonly CritterView[]
   }
   readonly signals: Readonly<Record<SignalHeadId, SignalState>>
   readonly heads: readonly SignalHeadView[]
   readonly says: readonly StreetSayView[]
   readonly lot: LotView
   readonly front: FrontView
+  readonly vendors: VendorView
 }
 
 /** The street as painted for both renderers: the static canvas over `STREET_RECT` and the moving

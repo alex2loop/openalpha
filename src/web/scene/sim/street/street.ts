@@ -16,6 +16,13 @@ import {
   resetFront,
   stepFront,
 } from '@/web/scene/sim/street/front'
+import {
+  createLife,
+  isLifeMovingIn,
+  resetLife,
+  type StreetLife,
+  stepLife,
+} from '@/web/scene/sim/street/life'
 import { createLot, type Lot, resetLot, stepLot } from '@/web/scene/sim/street/lot'
 import { hasPedChanged, type Ped, type Peds } from '@/web/scene/sim/street/ped-walk'
 import { createPeds, resetPeds, stepPeds } from '@/web/scene/sim/street/peds'
@@ -42,7 +49,6 @@ const KEY_SEPARATOR = '|'
 const ARRIVAL_CHECK_MS = 1_000
 // The most steps one arrival check catches up; older time is dropped, never replayed.
 const MAX_CATCH_UP_STEPS = 20
-const NOBODY: readonly never[] = Object.freeze([])
 
 /** The one street both renderers show: its pools, stepped with the office; `stepMs` is the last
  *  step's time. */
@@ -74,7 +80,8 @@ interface StreetState {
   readonly lot: Lot
   readonly front: Front
   readonly peds: Peds
-  /** Everyone walking the street now, north to south: the pool's and anyone out on an errand. */
+  readonly life: StreetLife
+  /** Everyone on the street now, north to south: the pools' people and anyone out on an errand. */
   readonly people: Ped[]
   readonly view: StreetView & {
     step: number
@@ -127,14 +134,16 @@ function createStreetState(deps: StreetDeps): StreetState {
   const lot = createLot()
   const front = createFront()
   const people: Ped[] = []
+  const life = createLife(traffic, people)
   return {
     deps,
     traffic,
     lot,
     front,
     peds: createPeds(),
+    life,
     people,
-    view: createView({ traffic, lot, front, people, pack: deps.pack.peek() }),
+    view: createView({ traffic, lot, front, people, life, pack: deps.pack.peek() }),
     stepMs: 0,
     lastStepAt: 0,
     isLotMoving: false,
@@ -154,6 +163,7 @@ function createView(at: {
   readonly lot: Lot
   readonly front: Front
   readonly people: readonly PersonView[]
+  readonly life: StreetLife
   readonly pack: RegionPack
 }): StreetState['view'] {
   const { traffic, lot, front } = at
@@ -161,7 +171,7 @@ function createView(at: {
   return {
     step: 0,
     heads: signalHeadsOf(at.pack),
-    pools: { vehicles: traffic.shown, people: at.people, critters: NOBODY },
+    pools: { vehicles: traffic.shown, people: at.people, critters: at.life.critters.shown },
     signals: {
       north: signalOf('north', 0),
       side: signalOf('side', 0),
@@ -170,6 +180,7 @@ function createView(at: {
     says: traffic.saying,
     lot: lot.view,
     front: front.view,
+    vendors: at.life.vendors.view,
   }
 }
 
@@ -183,6 +194,7 @@ function resumeStreet(state: StreetState): void {
   resetLot(state.lot, { pack, minute })
   resetFront(state.front, { pack, day, nowMs })
   resetPeds(state.peds, { pack, day, minute, nowMs })
+  resetLife(state.life, { pack, day, minute, nowMs })
   syncPeople(state)
   state.view.heads = signalHeadsOf(pack)
   syncSignals(state.view.signals, state.deps.reduced.peek() ? 0 : nowMs)
@@ -256,6 +268,7 @@ function stepAll(state: StreetState, nowMs: number): void {
   state.hasErrandCome =
     stepErrandsStreet(state.deps.errands, { traffic, minute, nowMs, dt: traffic.tick.dt }) ||
     state.hasErrandCome
+  stepLife(state.life, traffic)
   syncPeople(state)
   state.hasSignalChanged = syncSignals(state.view.signals, nowMs)
   state.isLotMoving = stepLot(state.lot, { pack: traffic.pack, minute, nowMs, dt: traffic.tick.dt })
@@ -295,10 +308,11 @@ function catchUp(state: StreetState, nowMs: number): void {
   }
 }
 
-// A vehicle in view, someone walking or waving there, or the attendant walking there; parked
-// bikes and people standing still never keep it awake.
+// A vehicle in view, someone walking or waving there, an animal or the flower bicycle moving
+// there, steam over a pot there, or the attendant walking there; parked bikes and people standing
+// still never keep it awake.
 function isMovingInView(state: StreetState, rect: Rect): boolean {
-  if (isAnyIn(state.traffic.shown, rect)) {
+  if (isAnyIn(state.traffic.shown, rect) || isLifeMovingIn(state.life, rect)) {
     return true
   }
 
@@ -313,7 +327,7 @@ function isMovingInView(state: StreetState, rect: Rect): boolean {
   return state.isLotMoving && attendant !== undefined && isInside(rect, attendant.at)
 }
 
-// The pool's people and anyone out on an errand, north to south, the order they are drawn in.
+// The pools' people and anyone out on an errand, north to south, the order they are drawn in.
 function syncPeople(state: StreetState): void {
   const { people } = state
 
@@ -322,6 +336,14 @@ function syncPeople(state: StreetState): void {
   for (const ped of state.peds.pool) {
     if (ped.on) {
       insertByY(people, ped)
+    }
+  }
+
+  for (const crowd of state.life.crowds) {
+    for (const ped of crowd) {
+      if (ped.on) {
+        insertByY(people, ped)
+      }
     }
   }
 
@@ -346,16 +368,18 @@ function syncSignals(signals: Record<SignalHeadId, SignalState>, nowMs: number):
   return hasChanged
 }
 
-/** Something stands on the street within `rect`: a vehicle, a person, an animal, a parked
- *  motorbike, the lot's attendant, a signal head, or the board, a shutter on the move or the guard
- *  on the front. */
+/** Something stands on the street within `rect`: a vehicle, a person, an animal, the flower
+ *  bicycle or a steaming pot, a parked motorbike, the lot's attendant, a signal head, or the
+ *  board, a shutter on the move or the guard on the front. */
 export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
-  const { pools, lot } = view
+  const { pools, lot, vendors } = view
 
   if (
     isAnyIn(pools.vehicles, rect) ||
     isAnyIn(pools.people, rect) ||
-    isAnyIn(pools.critters, rect)
+    isAnyIn(pools.critters, rect) ||
+    (vendors.bike !== undefined && isInside(rect, vendors.bike.at)) ||
+    (vendors.pot !== undefined && isInside(rect, vendors.pot))
   ) {
     return true
   }

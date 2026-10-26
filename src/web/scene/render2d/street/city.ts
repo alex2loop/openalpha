@@ -1,4 +1,4 @@
-import type { PaintPart } from '@/web/scene/render2d/street/paint'
+import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { RegionPack, RoadLayout } from '@/web/scene/world/regions'
 import {
   type CityScene,
@@ -23,7 +23,7 @@ import { STREET_RECT } from '@/web/scene/view'
 import { shopRowSpanOf } from '@/web/scene/world/frontage'
 import { holidayOf } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
-import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
+import { FAR_TREE_Y, FAR_TREES, METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
 import { MINUTES_PER_DAY, MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 // The share of a building's windows lit through the day: minute of the day and share, linear
@@ -59,31 +59,16 @@ const TONES = Object.freeze({
   tactile: { day: '#B6A878', night: '#2A2A3A', share: 0.6 },
   tactileDot: { day: '#9C8E60', night: '#2A2A3A', share: 0.6 },
 })
-const FAR_TREE_Y = -24
-const FAR_TREE_GAP = 44
-const FAR_TREE_GAP_SPREAD = 18
 const TILE_JOINT = 'rgba(70,62,52,.075)'
 const STAR = '#FFFFFF'
-
-/** The street trees along the far pavement, west to east, as a seed fixes them: where each stands
- *  and which crown it wears. The shop row skips the ones in front of it. */
-export const FAR_TREES: readonly { readonly x: number; readonly kind: number }[] = farTreesOf()
 
 /** The city itself: the sky and skyline, the north road, both side streets out to the canvas
  *  edge, the plaza south of the building, and the hazy blocks beyond the parks. */
 export const CITY_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
-    const light = lightAt(minute.minute / MINUTES_PER_HOUR)
-    const scene: CityScene = {
-      g,
-      minute,
-      dark: darknessOf(minute.minute),
-      lit: litShareOf(minute.minute),
-      horizon: light.sky[1],
-      holiday: holidayOf(pack, minute.day),
-    }
+    const scene = citySceneOf(g, pack, minute)
 
-    paintSky(scene, light.sky)
+    paintSky(scene, lightAt(minute.minute / MINUTES_PER_HOUR).sky)
     paintBackdrop(scene, pack)
     paintSkyline(scene)
     paintNorthStreet(scene, pack)
@@ -91,6 +76,22 @@ export const CITY_PART: PaintPart = {
     paintSideStreet(scene, { side: 1, street: pack.road.east })
     paintSouth(scene)
   },
+}
+
+/** What the city painters read at `minute`: its darkness, lit windows, horizon and holiday. */
+export function citySceneOf(
+  g: CanvasRenderingContext2D,
+  pack: RegionPack,
+  minute: StreetMinute
+): CityScene {
+  return {
+    g,
+    minute,
+    dark: darknessOf(minute.minute),
+    lit: litShareOf(minute.minute),
+    horizon: lightAt(minute.minute / MINUTES_PER_HOUR).sky[1],
+    holiday: holidayOf(pack, minute.day),
+  }
 }
 
 /** The share of a street building's windows lit at `minute` of the day. */
@@ -301,19 +302,4 @@ function paintFront(scene: CityScene): void {
   for (let x = 34; x < WORLD.w; x += 72) {
     paintLamp(scene, { x, y: 13 }, 1)
   }
-}
-
-function farTreesOf(): { readonly x: number; readonly kind: number }[] {
-  const rng = createRng(seedOf('far-trees'))
-  const trees: { readonly x: number; readonly kind: number }[] = []
-
-  for (
-    let x = STREET_LEFT + 10;
-    x < STREET_RIGHT;
-    x += FAR_TREE_GAP + rng.next() * FAR_TREE_GAP_SPREAD
-  ) {
-    trees.push({ x, kind: rng.int(0, 2) })
-  }
-
-  return trees
 }
