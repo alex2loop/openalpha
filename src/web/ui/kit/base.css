@@ -71,8 +71,13 @@ p {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--focusRing);
   outline-offset: 2px;
+}
+
+/* A field shows focus on its own edge, not a ring around it. */
+:is(input, select, textarea):focus-visible {
+  outline-offset: -1px;
 }
 
 /* Read by a screen reader, never shown. */

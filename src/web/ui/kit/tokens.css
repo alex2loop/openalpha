@@ -49,6 +49,7 @@
   --tapeScrollMs: 70s;
   --flashMs: 0.9s;
   --popoverGutter: 8px;
+  --focusRing: var(--tc-blue);
   --zPopover: 26;
   --zModal: 30;
   --zUndo: 32;
