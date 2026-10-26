@@ -1,9 +1,9 @@
 import type { MessageKey } from '@/i18n'
-import type { ActorId, ActorStatus, Rect, RoleId } from '@/web/scene/types'
+import type { ActorId, Rect, RoleId } from '@/web/scene/types'
 import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
 import { agents } from '@/web/state/agents'
 import { locale } from '@/web/state/session'
-import { joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
+import { TRUNCATION_MARK } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
 /** Each role's name: debate roles by the daemon's own names, the rest by the office's. */
@@ -25,13 +25,6 @@ const ROLE_NAME_KEYS: Readonly<Record<RoleId, MessageKey>> = Object.freeze({
   clerk: 'ui.office.role.clerk',
 } satisfies Record<RoleId, MessageKey>)
 
-/** What the dot over a head means, in words, so its colour is never the only cue. */
-const STATUS_KEYS: Readonly<Record<ActorStatus, MessageKey>> = Object.freeze({
-  free: 'ui.office.status.free',
-  waiting: 'ui.office.status.waiting',
-  failed: 'ui.office.status.failed',
-} satisfies Record<ActorStatus, MessageKey>)
-
 /** A placed name tag: under its person's feet; `isMore` when its bubble found no room. */
 export interface PlacedTag {
   readonly actor: ActorId
@@ -50,13 +43,6 @@ export function roleTitleOf(role: RoleId): string {
   const name = roleNameOf(role)
 
   return `${name.charAt(0).toLocaleUpperCase(locale.value)}${name.slice(1)}`
-}
-
-/** The hovered person's label: the role's name and what their dot means, when they show one. */
-export function hoverTextOf(actor: ActorId, status: ActorStatus | undefined): string {
-  const name = tagTextOf(actor, false)
-
-  return status === undefined ? name : joinInline([name, tr(STATUS_KEYS[status])])
 }
 
 /** A person's tag text: the role's name, an own agent's name, or "temp - role" for a child given

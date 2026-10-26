@@ -104,6 +104,10 @@ export type PoseId =
   | 'look-down'
   | 'sit-up'
 
+/** What a person shows the operator for a moment: a look up at the pointer, a wave when free, a
+ *  glance up from busy work. */
+export type ReactionKind = 'look' | 'greet' | 'busy-glance'
+
 /** Something a person holds besides a sheet. */
 export type HeldItem =
   | 'card'
@@ -140,6 +144,7 @@ export interface ActorView {
   /** The dot over the head: free, waiting on you or its turn, or its last run hit an error. None
    *  while it works (the work rim says so). */
   readonly status?: ActorStatus
+  readonly react?: ReactionKind
 }
 
 export type ActorStatus = 'free' | 'waiting' | 'failed'

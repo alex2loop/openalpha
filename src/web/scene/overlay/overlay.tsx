@@ -1,11 +1,13 @@
 import { type ReadonlySignal, signal } from '@preact/signals'
 
+import type { ActorNow } from '@/web/scene/overlay/actor-state'
 import type { Marker } from '@/web/scene/overlay/markers'
 import type { PlacedTag } from '@/web/scene/overlay/name-tags'
 import type { Placed } from '@/web/scene/overlay/placement'
 import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { CardPlace } from '@/web/scene/overlay/team-pass'
 import type { ActorId, Rect } from '@/web/scene/types'
+import { HoverLabel } from '@/web/scene/overlay/hover-label'
 import { NameTags, roleTitleOf } from '@/web/scene/overlay/name-tags'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { reducedMotion } from '@/web/state/prefs'
@@ -33,7 +35,20 @@ export interface OverlayView {
   readonly cards: readonly CardPlace[]
   /** "+ Thêm agent" on the next free desk of the team floor. */
   readonly addDesk?: Rect
-  readonly hover?: { readonly actor: ActorId; readonly rect: Rect; readonly text: string }
+  readonly hover?: {
+    readonly actor: ActorId
+    readonly name: string
+    readonly rect: Rect
+    readonly now: ActorNow
+  }
+  /** Rings under the feet of the people picked for a meeting and the one the keyboard is on. */
+  readonly rings: readonly {
+    readonly actor: ActorId
+    readonly rect: Rect
+    readonly isKey: boolean
+  }[]
+  /** The person whose radial menu is open, by their figure. */
+  readonly menu?: { readonly actor: ActorId; readonly rect: Rect }
 }
 
 export const EMPTY_OVERLAY: OverlayView = Object.freeze({
@@ -42,15 +57,20 @@ export const EMPTY_OVERLAY: OverlayView = Object.freeze({
   markers: [],
   screens: [],
   cards: [],
+  rings: [],
 })
 
 const shown = signal<OverlayView>(EMPTY_OVERLAY)
 const hovered = signal<ActorId | undefined>(undefined)
+const keyed = signal<ActorId | undefined>(undefined)
+const spoken = signal('')
 
 /** What the overlay shows; written only by its layout pass, read by the hit test. */
 export const overlayView: ReadonlySignal<OverlayView> = shown
 /** The person under the pointer, whose name label shows beside them. */
 export const hoveredActor: ReadonlySignal<ActorId | undefined> = hovered
+/** The person Tab or an arrow key stepped to on the canvas. */
+export const keyedActor: ReadonlySignal<ActorId | undefined> = keyed
 
 export function showOverlay(next: OverlayView): void {
   shown.value = next
@@ -60,6 +80,15 @@ export function hoverActor(id: ActorId | undefined): void {
   if (hovered.value !== id) {
     hovered.value = id
   }
+}
+
+export function keyActor(id: ActorId | undefined): void {
+  keyed.value = id
+}
+
+/** Says `text` to screen readers once, through the scene's live region. */
+export function announce(text: string): void {
+  spoken.value = text
 }
 
 /** The scene's DOM overlay: lit screens, markers, name tags, the hover label and the bubbles.
@@ -82,15 +111,23 @@ export function SceneOverlay() {
           {ATTENTION_MARK}
         </span>
       ))}
+      {view.rings.map((ring) => (
+        <span
+          key={ring.actor}
+          class={ring.isKey ? 'pick-ring is-key' : 'pick-ring'}
+          style={boxStyle(ring.rect)}
+        />
+      ))}
       <NameTags tags={view.tags} />
       {view.hover !== undefined && (
-        <span class="name-tag glass is-hover" style={boxStyle(view.hover.rect)}>
-          {view.hover.text}
-        </span>
+        <HoverLabel name={view.hover.name} now={view.hover.now} rect={view.hover.rect} />
       )}
       {view.bubbles.map((placed) => (
         <BubbleView key={placed.bubble.id} placed={placed} />
       ))}
+      <p class="scene-announce" role="status" aria-live="polite">
+        {spoken.value}
+      </p>
     </div>
   )
 }

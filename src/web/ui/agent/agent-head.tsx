@@ -13,7 +13,7 @@ import { describeEvent } from '@/web/text/schedule-event'
 import { formatClock } from '@/web/text/time'
 import { toErrorText, tr } from '@/web/text/tr'
 import { clearSavedNote, savedNote } from '@/web/ui/agent/form/agent-form'
-import { askStop } from '@/web/ui/jobs/job-row'
+import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { Portrait } from '@/web/ui/kit/portrait'
 

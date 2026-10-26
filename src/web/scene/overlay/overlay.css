@@ -189,3 +189,25 @@
 .bubble-whole p {
   margin: 0 0 var(--s1);
 }
+
+.pick-ring {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--tc-blue);
+  border-radius: 50%;
+}
+
+.pick-ring.is-key {
+  border-style: dashed;
+  border-color: var(--ink);
+}
+
+.scene-announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

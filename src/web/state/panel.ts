@@ -3,10 +3,12 @@ import { signal } from '@preact/signals'
 const BACK_MAX = 20
 
 export type PanelTab = 'today' | 'book' | 'ideas'
+/** A part of an agent's tab: its steps now, its result, profile and work. */
+export type AgentSection = 'progress' | 'result' | 'profile' | 'work'
 
 export type PanelView =
   | { readonly tab: PanelTab }
-  | { readonly agent: string }
+  | { readonly agent: string; readonly section?: AgentSection }
   | { readonly ticker: string; readonly market: string }
 
 /** What the info panel shows now. */

@@ -11,14 +11,19 @@ import { requestSeries, screenSeries, startDeskReads } from '@/web/scene/data/de
 import { homeMarket } from '@/web/scene/data/home'
 import { pastCalls, startPastCalls } from '@/web/scene/data/past-calls'
 import { breachedStops } from '@/web/scene/data/room-status'
+import { sceneGoals, wantedGoals } from '@/web/scene/overlay/actor-state'
 import { buildBubbles, said, startSpeech } from '@/web/scene/overlay/bubbles'
 import { figureOf } from '@/web/scene/overlay/hit'
+import { hoverPlaceOf } from '@/web/scene/overlay/hover-label'
 import { buildMarkers, markerRectOf } from '@/web/scene/overlay/markers'
-import { hoverTextOf, tagTextOf } from '@/web/scene/overlay/name-tags'
+import { meetingBar, ringsOf } from '@/web/scene/overlay/meeting'
+import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import {
   EMPTY_OVERLAY,
   hoverActor,
   hoveredActor,
+  keyActor,
+  keyedActor,
   type OverlayView,
   showOverlay,
 } from '@/web/scene/overlay/overlay'
@@ -29,6 +34,7 @@ import {
   sizeBubble,
   sizeTag,
 } from '@/web/scene/overlay/placement'
+import { menuActor, menuPlaceOf } from '@/web/scene/overlay/radial-menu'
 import { analystSeriesOf, buildScreens } from '@/web/scene/overlay/screens'
 import {
   addDeskOf,
@@ -36,10 +42,8 @@ import {
   isTeamFloor,
   isTeamTagged,
   kidRoleIn,
-  teamGoals,
 } from '@/web/scene/overlay/team-pass'
 import { isActorId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
-import { goalsFor } from '@/web/scene/sim/vocabulary'
 import { projection, view } from '@/web/scene/view'
 import { roomsOn } from '@/web/scene/world/rooms'
 import { onWireEvent } from '@/web/state/events'
@@ -54,7 +58,7 @@ const OVERLAY_REFRESH_MS = 250
 const OFF_SCREEN_PX = 16
 // The boards, room tags and toolbar pieces other overlays draw; no bubble covers them.
 const FIXED_SELECTOR =
-  '.room-tag-row, .board-line, .scene-floors, .scene-zoom, .scene-crumb, .scene-lamps, .scene-pan, .scene-hint'
+  '.room-tag-row, .board-line, .scene-floors, .scene-zoom, .scene-crumb, .scene-lamps, .scene-pan, .scene-hint, .meeting-bar'
 
 /** Everything the layout reads from one frame. Figures are in CSS px of the scene host. */
 interface PassInput {
@@ -66,6 +70,11 @@ interface PassInput {
   readonly isZoomed: boolean
   readonly selected?: ActorId
   readonly hovered?: ActorId
+  /** The people picked for a meeting, and the one the keyboard is on. */
+  readonly picks: readonly ActorId[]
+  readonly keyed?: ActorId
+  /** The person whose radial menu is open. */
+  readonly menu?: ActorId
 }
 
 interface PassState {
@@ -91,10 +100,6 @@ interface PassDeps {
   readonly scene: HTMLElement
 }
 
-// What the live store calls for, as the director reads it: who works on which run, who waits.
-const wantedGoals = computed(() => goalsFor(runs.value, pending.value))
-// The office crew's goals and the team floor's, for whatever stands over a person.
-const sceneGoals = computed(() => new Map([...wantedGoals.value, ...teamGoals.value]))
 const litScreens = computed(() =>
   buildScreens({
     goals: wantedGoals.value,
@@ -128,6 +133,7 @@ export function startOverlay(deps: PassDeps): OverlayPass {
 
       showOverlay(EMPTY_OVERLAY)
       hoverActor(undefined)
+      keyActor(undefined)
       releaseMeasure()
     },
   }
@@ -140,6 +146,9 @@ export function readOverlayInputs(): void {
   said.value
   pastCalls.value
   hoveredActor.value
+  keyedActor.value
+  menuActor.value
+  meetingBar.value
 }
 
 // The analyst's ticker is read once per run and ticker, on the page's day.
@@ -184,6 +193,8 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
   const shown = view.value
   const selected = toActorId(selectedActor.value)
   const hovered = hoveredActor.value
+  const keyed = keyedActor.value
+  const menu = menuActor.value
   const figures = new Map<ActorId, Rect>()
 
   for (const actor of sim.actors) {
@@ -211,6 +222,9 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
     isZoomed: shown.room !== undefined || shown.zoomSteps > 0,
     ...(selected === undefined ? {} : { selected }),
     ...(hovered === undefined ? {} : { hovered }),
+    picks: meetingBar.value.picks,
+    ...(keyed === undefined ? {} : { keyed }),
+    ...(menu === undefined ? {} : { menu }),
   }
 }
 
@@ -223,6 +237,9 @@ function signatureOf(input: PassInput): string {
     ...input.markers.map((marker) => marker.actor),
     ...(input.selected === undefined ? [] : [input.selected]),
     ...(input.hovered === undefined ? [] : [input.hovered]),
+    ...input.picks,
+    ...(input.keyed === undefined ? [] : [input.keyed]),
+    ...(input.menu === undefined ? [] : [input.menu]),
     ...[...input.figures.keys()].filter((actor) => ownAgentIdOf(actor) !== undefined),
   ])
   const people = [...input.figures]
@@ -235,6 +252,10 @@ function signatureOf(input: PassInput): string {
     `${input.isZoomed}`,
     input.selected ?? '',
     input.hovered ?? '',
+    hoverPlaceOf(input.view, { actor: input.hovered, figures: input.figures })?.text ?? '',
+    input.picks.join(','),
+    input.keyed ?? '',
+    input.menu ?? '',
     ...input.bubbles.map((bubble) => `${bubble.actor}:${bubble.kind}:${bubble.text}`),
     ...input.markers.map((marker) => `${marker.actor}:${marker.tone}`),
     ...input.screens.map((screen) => `${screen.actor}:${JSON.stringify(screen.content)}`),
@@ -265,7 +286,7 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     ...(team.addDesk === undefined ? [] : [team.addDesk]),
   ]
   const tags = layoutTags(tagAsks(input), { actors: input.figures, taken: fixed })
-  const hover = hoverOf(input, tags)
+  const hover = hoverPlaceOf(input.view, { actor: input.hovered, figures: input.figures })
   const layout = layoutOverlay({
     bubbles: shownBubbles(input).map((bubble) => sizeBubble(bubble, actionsOf(bubble))),
     fixed,
@@ -284,7 +305,18 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     ...team,
     ...(hover === undefined || layout.hover === undefined
       ? {}
-      : { hover: { actor: hover.actor, rect: layout.hover, text: hover.text } }),
+      : { hover: { actor: hover.actor, name: hover.name, rect: layout.hover, now: hover.now } }),
+    ...marksOf(input),
+  }
+}
+
+// The rings under the picked and the keyboard-focused, and where the open radial menu stands.
+function marksOf(input: PassInput): Pick<OverlayView, 'rings' | 'menu'> {
+  const keyed = input.keyed === undefined ? {} : { keyed: input.keyed }
+
+  return {
+    rings: ringsOf(input.figures, { picks: input.picks, ...keyed }),
+    ...menuPlaceOf(input.figures, input.menu),
   }
 }
 
@@ -347,26 +379,6 @@ function zoomOf(): number {
   const { scale, baseScale } = projection.value
 
   return baseScale > 0 ? scale / baseScale : 1
-}
-
-// The hovered person's name, beside them, when they carry no tag already.
-function hoverOf(
-  input: PassInput,
-  tags: ReadonlyMap<ActorId, Rect>
-):
-  | { readonly actor: ActorId; readonly text: string; readonly label: { anchor: Rect; size: Size } }
-  | undefined {
-  const actor = input.hovered
-  const figure = actor === undefined ? undefined : input.figures.get(actor)
-
-  if (actor === undefined || figure === undefined || tags.has(actor)) {
-    return undefined
-  }
-
-  const status = input.view.actors.find((each) => each.id === actor)?.status
-  const text = hoverTextOf(actor, status)
-
-  return { actor, text, label: { anchor: figure, size: sizeTag(text) } }
 }
 
 interface TagSet {

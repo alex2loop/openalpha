@@ -52,7 +52,13 @@ function PanelContent() {
   const view = panelView.value
 
   if ('agent' in view) {
-    return <AgentTab key={view.agent} agentId={view.agent} />
+    return (
+      <AgentTab
+        key={`${view.agent}:${view.section ?? ''}`}
+        agentId={view.agent}
+        {...(view.section === undefined ? {} : { section: view.section })}
+      />
+    )
   }
 
   if ('ticker' in view) {

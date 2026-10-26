@@ -13,11 +13,13 @@ import { AddDesk } from '@/web/scene/overlay/add-desk'
 import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
 import { EmptyTeam } from '@/web/scene/overlay/empty-team'
-import { attachInteraction } from '@/web/scene/overlay/interact'
+import { attachInteraction, type Interaction } from '@/web/scene/overlay/interact'
+import { MeetingBar } from '@/web/scene/overlay/meeting-bar'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
 import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
+import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
@@ -69,6 +71,8 @@ export function SceneCanvas() {
       <AddDesk />
       <EmptyTeam />
       <ObjectTip />
+      <MeetingBar />
+      <RadialMenu />
       <Toolbar />
       <PerfReadout renderer={renderer} />
     </div>
@@ -85,11 +89,10 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   renderer.mount(element)
 
   const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
-  const { loop, readView } = createSceneLoop({ director, life, team, renderer, overlay })
+  const input: InputSlot = { current: undefined }
+  const { loop, readView } = createSceneLoop({ director, life, team, renderer, overlay, input })
   const resize = new ResizeObserver(() => loop.wake())
-  const canvas = element.querySelector('canvas')
-  const detach =
-    canvas === null ? () => undefined : attachInteraction(canvas, { renderer, readView })
+  input.current = attachInput(element, { renderer, readView, director, wake: loop.wake })
   const offs = [
     effect(() => {
       readSceneInputs()
@@ -109,7 +112,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
       off()
     }
 
-    detach()
+    input.current?.detach()
     loop.stop()
     overlay.stop()
     life.dispose()
@@ -126,6 +129,16 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   }
 }
 
+// The canvas's input, once the renderer has put its canvas in.
+function attachInput(
+  element: HTMLElement,
+  deps: Parameters<typeof attachInteraction>[1]
+): Interaction | undefined {
+  const canvas = element.querySelector('canvas')
+
+  return canvas === null ? undefined : attachInteraction(canvas, deps)
+}
+
 // The office's people, the office life over them and the team floor; the caller disposes each.
 function createCrew(): Pick<LoopParts, 'director' | 'life' | 'team'> {
   const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
@@ -135,12 +148,18 @@ function createCrew(): Pick<LoopParts, 'director' | 'life' | 'team'> {
   return { director, life: createLife({ director, teamDesks, reduced: reducedMotion }), team }
 }
 
+// The canvas's input, attached once the loop it steps on exists.
+interface InputSlot {
+  current: Interaction | undefined
+}
+
 interface LoopParts {
   readonly director: Director
   readonly life: Life
   readonly team: Team
   readonly renderer: SceneRenderer
   readonly overlay: OverlayPass
+  readonly input: InputSlot
 }
 
 // The sim loop over the director; each drawn frame lays the overlay out after it, and the
@@ -149,14 +168,16 @@ function createSceneLoop(parts: LoopParts): {
   readonly loop: ReturnType<typeof createSimLoop>
   readonly readView: () => SimView
 } {
-  const { director, life, team, renderer, overlay } = parts
+  const { director, life, team, renderer, overlay, input } = parts
   let drawn = buildSimView(parts, 0)
   const loop = createSimLoop({
     step: (index) => {
+      const nowMs = performance.now()
       const isDirected = director.step(index)
       const isLiving = life.step(index)
+      const isTeamed = team.step(nowMs)
 
-      return team.step(performance.now()) || isLiving || isDirected
+      return (input.current?.step(nowMs) ?? false) || isTeamed || isLiving || isDirected
     },
     draw: (alpha, now) => {
       drawn = buildSimView(parts, alpha)
@@ -184,6 +205,7 @@ function createSceneLoop(parts: LoopParts): {
         life.nextDueAt(),
         team.nextDueAt(nowMs),
         overlay.nextDueAt(),
+        input.current?.nextDueAt() ?? Infinity,
         ambientAt
       )
     },
@@ -305,11 +327,13 @@ function answerFocusRequest(director: Director): void {
 }
 
 // A new run the office can place: the camera goes to its room, unless the operator moved the
-// camera in the last few seconds.
+// camera in the last few seconds or it follows someone.
 function followRun(director: Director, runId: string | undefined): void {
   const actor = runId === undefined ? undefined : actorOfRun(director, runId)
+  const isFree =
+    view.value.follow === undefined && canFollow(readLastInteractionAt(), performance.now())
 
-  if (actor !== undefined && canFollow(readLastInteractionAt(), performance.now())) {
+  if (actor !== undefined && isFree) {
     showRoom(actor.def.room)
   }
 }

@@ -4,6 +4,7 @@ import { useEffect } from 'preact/hooks'
 import type { AgentDetailWire } from '@/app/server/wire/agents'
 import type { MessageKey } from '@/i18n'
 import type { BlockReading } from '@/web/state/block'
+import type { AgentSection } from '@/web/state/panel'
 import { loadDetail } from '@/web/state/agents'
 import { useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
@@ -25,20 +26,24 @@ const AGENT_DAY_POLL_MS = 60_000
 /** The office's alert-desk keeper: it runs no AI, so its tab is the alert desk alone. */
 const ALERT_DESK_ID = 'clerk'
 
-type Section = 'progress' | 'result' | 'profile' | 'work'
-
 const SECTION_LABELS = Object.freeze({
   progress: 'ui.office.agent.progress',
   result: 'ui.office.agent.result',
   profile: 'ui.office.agent.profile',
   work: 'ui.office.agent.work',
-} as const satisfies Record<Section, MessageKey>)
+} as const satisfies Record<AgentSection, MessageKey>)
 
-const SECTIONS: readonly Section[] = ['progress', 'result', 'profile', 'work']
+const SECTIONS: readonly AgentSection[] = ['progress', 'result', 'profile', 'work']
+
+interface AgentTabProps {
+  readonly agentId: string
+  /** The part it opens on; its steps when none is asked for. */
+  readonly section?: AgentSection
+}
 
 /** One person's panel: who they are and what they do now, then their steps, result, profile and
  *  work. The alert desk shows what it watches. Every read stops when the tab closes. */
-export function AgentTab({ agentId }: { readonly agentId: string }) {
+export function AgentTab({ agentId, section }: AgentTabProps) {
   if (agentId === ALERT_DESK_ID) {
     return (
       <div class="agent-tab">
@@ -48,11 +53,11 @@ export function AgentTab({ agentId }: { readonly agentId: string }) {
     )
   }
 
-  return <PersonTab agentId={agentId} />
+  return <PersonTab agentId={agentId} section={section ?? 'progress'} />
 }
 
-function PersonTab({ agentId }: { readonly agentId: string }) {
-  const section = useSignal<Section>('progress')
+function PersonTab({ agentId, section: opening }: Required<AgentTabProps>) {
+  const section = useSignal<AgentSection>(opening)
   const detail = useBlockRead((abort) => loadDetail(agentId, abort))
   const day = useBlockRead(loadTodayActivity, { everyMs: AGENT_DAY_POLL_MS })
   const view = buildAgentView(agentId, detail.data, day.data?.rows ?? [])
@@ -77,7 +82,7 @@ function PersonTab({ agentId }: { readonly agentId: string }) {
 }
 
 interface SectionBodyProps {
-  readonly section: Section
+  readonly section: AgentSection
   readonly view: AgentView
   readonly detail: BlockReading<AgentDetailWire>
 }

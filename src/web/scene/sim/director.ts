@@ -5,7 +5,15 @@ import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { WalkerState } from '@/web/scene/sim/actors/walk'
 import type { Beat, BeatTarget } from '@/web/scene/sim/beats'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, ActorView, FloorId, PoseId, Rect, SimView } from '@/web/scene/types'
+import type {
+  ActorId,
+  ActorView,
+  FloorId,
+  PoseId,
+  ReactionKind,
+  Rect,
+  SimView,
+} from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
@@ -24,7 +32,6 @@ import {
   type People,
   type Person,
   playBeat,
-  type ReactionKind,
   resumePeople,
   setWanted,
   stampSheet,
@@ -75,7 +82,11 @@ export interface Director {
   step(index: number): boolean
   view(): PeopleView
   actors(): ReadonlyMap<ActorId, ActorState>
-  requestReaction(id: ActorId, kind: ReactionKind): void
+  /** A reaction to the operator; `undefined` ends a look still held. A look lasts until it is
+   *  ended and never covers a wave or a glance. */
+  requestReaction(id: ActorId, kind: ReactionKind | undefined): void
+  /** Where the meeting the operator called seats a person; `undefined` sends them back. */
+  setMeeting(id: ActorId, goal: Goal | undefined): void
   /** The office life's goal for a person, under every goal the live store calls for; `undefined`
    *  hands them back to it (their seat when it calls for nothing). */
   setLife(id: ActorId, goal: Goal | undefined): void
@@ -93,7 +104,16 @@ export interface Director {
 }
 
 const TRAY_MAX = 8
-const REACTION_MS = 1_800
+const REACTION_MS: Readonly<Record<ReactionKind, number>> = Object.freeze({
+  look: Number.POSITIVE_INFINITY,
+  greet: 2_600,
+  'busy-glance': 1_800,
+})
+const REACTION_POSES: Readonly<Record<ReactionKind, PoseId>> = Object.freeze({
+  look: 'look',
+  greet: 'wave',
+  'busy-glance': 'busy-glance',
+})
 const APPROVAL_KIND = 'approval'
 const ASSISTANT: ActorId = 'assistant'
 const LIFE_BEAT = 'life'
@@ -169,13 +189,14 @@ function lifeHooksOf(
   people: People
 ): Pick<
   Director,
-  'actors' | 'requestReaction' | 'setLife' | 'play' | 'setObstacles' | 'actorsOfRun'
+  'actors' | 'requestReaction' | 'setMeeting' | 'setLife' | 'play' | 'setObstacles' | 'actorsOfRun'
 > {
   return {
     actors: () =>
       new Map(people.list.map((person) => [person.def.id, toActorState(people, person)])),
     requestReaction: (id, kind) => react(people, { id, kind }),
-    setLife: (id, goal) => setLife(people, id, goal),
+    setMeeting: (id, goal) => setGoalIn(people.meeting, id, goal),
+    setLife: (id, goal) => setGoalIn(people.life, id, goal),
     play: (id, gesture) =>
       playBeat(people, id, { kind: LIFE_BEAT, ...gesture, atMs: performance.now() }),
     setObstacles: (floor, rects) => {
@@ -185,20 +206,31 @@ function lifeHooksOf(
   }
 }
 
-function setLife(people: People, id: ActorId, goal: Goal | undefined): void {
+function setGoalIn(layer: Map<ActorId, Goal>, id: ActorId, goal: Goal | undefined): void {
   if (goal === undefined) {
-    people.life.delete(id)
+    layer.delete(id)
   } else {
-    people.life.set(id, goal)
+    layer.set(id, goal)
   }
 }
 
-function react(people: People, ask: { readonly id: ActorId; readonly kind: ReactionKind }): void {
+function react(
+  people: People,
+  ask: { readonly id: ActorId; readonly kind: ReactionKind | undefined }
+): void {
   const person = people.byId.get(ask.id)
+  const held = person?.react?.kind
 
-  if (person !== undefined) {
-    person.react = { kind: ask.kind, untilMs: performance.now() + REACTION_MS }
+  if (person === undefined || (ask.kind === 'look' && held !== undefined && held !== 'look')) {
+    return
   }
+
+  if (ask.kind === undefined) {
+    person.react = held === 'look' ? undefined : person.react
+    return
+  }
+
+  person.react = { kind: ask.kind, untilMs: performance.now() + REACTION_MS[ask.kind] }
 }
 
 // Every person's walk among the others on their floor, the sheets in flight, then the poses.
@@ -295,8 +327,8 @@ function settlePoses(
   return { marks, isChanged }
 }
 
-// A beat plays over everything; walking reads as a walk; at rest the goal's pose, else seated at
-// a desk or standing.
+// A beat plays over everything; walking reads as a walk; a reaction to the operator over the
+// goal's pose at rest, else seated at a desk or standing.
 function poseOf(person: Person): PoseId {
   const beat = person.beats.at(-1)
 
@@ -306,6 +338,10 @@ function poseOf(person: Person): PoseId {
 
   if (isWalking(person.walker) || person.phase === 'rising') {
     return 'walk'
+  }
+
+  if (person.react !== undefined) {
+    return REACTION_POSES[person.react.kind]
   }
 
   if (person.goal !== undefined && person.phase === 'still') {

@@ -21,6 +21,8 @@ import { tr } from '@/web/text/tr'
 
 /** How long a spoken line stays, unless the speaker's next bubble replaces it first. */
 const SPEECH_MS = 8_000
+// A person's short answer to the operator's click stays this long.
+const REPLY_MS = 3_600
 const BUBBLE_MAX_CHARS = 80
 // One line per speaker is kept, so this is the roster's size.
 const MAX_SAID = 16
@@ -143,9 +145,14 @@ function hearFallback(event: WireEvent): void {
   }
 }
 
+/** A person answers the operator's click with a line from what they really do. */
+export function sayAs(actor: ActorId, text: string): void {
+  hear({ actor, text }, REPLY_MS)
+}
+
 // A speaker's newer line replaces its older one.
-function hear(line: Omit<Said, 'heardAt' | 'untilMs'>): void {
-  const entry: Said = { ...line, heardAt: Date.now(), untilMs: performance.now() + SPEECH_MS }
+function hear(line: Omit<Said, 'heardAt' | 'untilMs'>, ms = SPEECH_MS): void {
+  const entry: Said = { ...line, heardAt: Date.now(), untilMs: performance.now() + ms }
   const others = saidList.value.filter(
     (held) => held.actor !== line.actor || held.runId !== line.runId
   )
@@ -341,7 +348,8 @@ function lifeLines(input: BubbleInput): Candidate[] {
   }))
 }
 
-function lifeTextOf(line: LifeLine): string {
+/** What an office life moment says, in words. */
+export function lifeTextOf(line: LifeLine): string {
   switch (line.label) {
     case 'due':
       return tr('ui.office.idle.due', { time: line.time, what: line.what })

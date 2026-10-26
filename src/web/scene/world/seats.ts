@@ -172,3 +172,18 @@ export const BOARD_SPOTS: readonly Point[] = Object.freeze([
   { x: 440, y: 104 },
   { x: 414, y: 116 },
 ])
+
+/** Where a meeting the operator called seats its audience, round the table's ends, and the table's
+ *  middle they turn to. */
+export const MEET_AUDIENCE: Readonly<{ readonly spots: readonly Point[]; readonly look: Point }> =
+  Object.freeze({
+    spots: [
+      { x: 596, y: 96 },
+      { x: 622, y: 100 },
+      { x: 596, y: 128 },
+      { x: 622, y: 132 },
+      { x: 418, y: 132 },
+      { x: 440, y: 136 },
+    ],
+    look: { x: 512, y: 146 },
+  })

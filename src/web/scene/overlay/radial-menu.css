@@ -1,0 +1,31 @@
+.radial-menu {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.radial-menu-pill {
+  position: absolute;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 15px;
+  background: var(--surface);
+  box-shadow: var(--pop);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+
+.radial-menu-pill:hover,
+.radial-menu-pill:focus-visible {
+  box-shadow:
+    var(--pop),
+    inset 0 0 0 2px var(--ink);
+  outline: none;
+}

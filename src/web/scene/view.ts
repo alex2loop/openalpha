@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals'
 
-import type { FloorId, Point, Rect, RoomId, Size } from '@/web/scene/types'
+import type { ActorId, FloorId, Point, Rect, RoomId, Size } from '@/web/scene/types'
 
 /** What both renderers frame at floor zoom: the floor plus the margin the 3D camera shows around
  *  it (the street to the sides and below, the sky over the north glass). */
@@ -18,12 +18,22 @@ const FRAME_CENTER: Point = Object.freeze({
 const EDGE_SLACK_PX = 1
 // The camera follows a new run only after the operator has left it alone this long.
 const FOLLOW_IDLE_MS = 10_000
+// Following someone holds the camera at least this many zoom steps above the fitted floor.
+const FOLLOW_ZOOM_STEPS = 2
 
 interface SceneView {
   readonly floor: FloorId
   readonly room?: RoomId
   readonly zoomSteps: number
   readonly center: Point
+  /** The person the camera keeps centred, across floors, until the operator moves it. */
+  readonly follow?: ActorId
+}
+
+/** A person's feet on their floor. */
+interface ActorPlace {
+  readonly floor: FloorId
+  readonly point: Point
 }
 
 /** What the mounted renderer shows: its pane in CSS px, CSS px per world px now and at the fitted
@@ -89,11 +99,11 @@ export function leaveRoom(): void {
   setFloor(view.value.floor)
 }
 
-/** Moves the picture by `dx`, `dy` CSS px, as far as the frame goes. */
+/** Moves the picture by `dx`, `dy` CSS px, as far as the frame goes; a follow ends. */
 export function panBy(dx: number, dy: number): void {
   noteInteraction()
 
-  const held = view.value
+  const { follow: _ended, ...held } = view.value
   const { scale, pane } = projection.value
   const center = { x: held.center.x - dx / scale, y: held.center.y - dy / scale }
 
@@ -162,6 +172,55 @@ export function bringIntoView(target: ViewTarget): void {
   }
 }
 
+/** The camera keeps `actor` centred from here on, a little closer than the floor view; any move
+ *  of the operator's own (a drag, a wheel, a zoom, a floor or a room) ends it. */
+export function startFollow(actor: ActorId, at: ActorPlace): void {
+  noteInteraction()
+
+  const held = view.value
+  const steps = Math.max(held.room === undefined ? held.zoomSteps : 0, FOLLOW_ZOOM_STEPS)
+
+  view.value = {
+    floor: at.floor,
+    zoomSteps: steps,
+    center: centerAt(at.point, steps),
+    follow: actor,
+  }
+}
+
+/** The followed person stands at `at` now: the camera takes their floor and centres on them. */
+export function keepFollowing(at: ActorPlace): void {
+  const held = view.value
+  const center = centerAt(at.point, held.zoomSteps)
+
+  if (
+    held.follow === undefined ||
+    (held.floor === at.floor && center.x === held.center.x && center.y === held.center.y)
+  ) {
+    return
+  }
+
+  view.value = { ...held, floor: at.floor, center }
+}
+
+export function stopFollow(): void {
+  const { follow, ...held } = view.value
+
+  if (follow !== undefined) {
+    view.value = held
+  }
+}
+
+/** Centres the picture on a point of the floor shown, at the zoom it holds; a follow ends. */
+export function centerOn(point: Point): void {
+  noteInteraction()
+
+  const { follow: _ended, ...held } = view.value
+  const { scale, pane } = projection.value
+
+  view.value = { ...held, center: clampPan(point, scale, pane) }
+}
+
 /** The camera may follow a new run: the operator has not moved it for `FOLLOW_IDLE_MS`. */
 export function canFollow(lastAt: number, now: number): boolean {
   return now - lastAt >= FOLLOW_IDLE_MS
@@ -182,6 +241,12 @@ export function canPanToward(dir: -1 | 1): boolean {
 
 function noteInteraction(): void {
   lastInteractionAt = performance.now()
+}
+
+function centerAt(point: Point, steps: number): Point {
+  const { baseScale, pane } = projection.value
+
+  return clampPan(point, baseScale * ZOOM_STEP ** steps, pane)
 }
 
 function showRoom(room: RoomId, rect: Rect): void {

@@ -1,0 +1,31 @@
+.meeting-bar {
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: max-content;
+  max-width: min(560px, calc(100% - 2 * var(--s3)));
+  padding: 6px 8px 6px 12px;
+  border-radius: 12px;
+  box-shadow: var(--pop);
+  color: var(--ink);
+  font-size: 12px;
+  transform: translateX(-50%);
+}
+
+.meeting-bar-text {
+  min-width: 0;
+  line-height: 16px;
+}
+
+.meeting-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed var(--ink);
+  border-radius: 4px;
+  background: var(--glass);
+  opacity: 0.6;
+  pointer-events: none;
+}

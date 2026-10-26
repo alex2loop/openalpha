@@ -10,7 +10,7 @@ import { kidOutcomeKey } from '@/web/text/kid-outcome'
 import { formatRunName } from '@/web/text/run-name'
 import { tr } from '@/web/text/tr'
 import { StepList } from '@/web/ui/agent/steps'
-import { askStop } from '@/web/ui/jobs/job-row'
+import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 
 // More children than one parent run shows; the oldest leave first.

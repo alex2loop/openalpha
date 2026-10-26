@@ -1,5 +1,4 @@
 import type { Run } from '@/web/state/live'
-import { stopRun } from '@/web/state/approvals'
 import { useNow } from '@/web/state/clock'
 import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
@@ -7,8 +6,8 @@ import { formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
 import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
+import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
-import { askConfirm } from '@/web/ui/kit/confirm'
 
 const ELAPSED_TICK_MS = 1_000
 
@@ -53,21 +52,4 @@ export function JobRow({ run, childRuns }: JobRowProps) {
       </Button>
     </div>
   )
-}
-
-/** Asks before stopping the run; "Chạy tiếp" is the safe, main button, so Enter keeps it going. */
-export function askStop(run: Run, hasChildren: boolean): void {
-  const who = run.agentId ?? formatRunName(run)
-
-  askConfirm({
-    title: tr('ui.office.jobs.stopAsk', { what: formatRunName(run) }),
-    lines: [
-      tr('ui.office.jobs.stopBody', { who }),
-      ...(hasChildren ? [tr('ui.office.common.stopChildren')] : []),
-    ],
-    confirmLabel: tr('ui.office.common.stop'),
-    isDestructive: true,
-    keepLabel: tr('ui.office.common.keepGoing'),
-    confirm: () => stopRun(run.runId),
-  })
 }
