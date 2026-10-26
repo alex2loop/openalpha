@@ -42,7 +42,7 @@ interface Spawn {
   readonly flow: Flow
   readonly kind: VehicleKind
   readonly pos?: number | undefined
-  readonly stops?: readonly number[]
+  readonly stops?: readonly number[] | undefined
   readonly route?: string | undefined
 }
 
@@ -130,7 +130,7 @@ function place(traffic: SpawnWorld, vehicle: Vehicle, spec: Spawn): void {
   vehicle.squeezes = vehicle.squeezes && flow.street === 'north' && spec.stops === undefined
   vehicle.lateral = vehicle.squeezes || vehicle.kind === 'sweeper' ? flow.columns[0] : 0
   vehicle.stops = spec.stops ?? []
-  vehicle.stopIndex = 0
+  vehicle.stopIndex = stopsBehind(vehicle)
   vehicle.dwellUntil = 0
   vehicle.waitMs = 0
   vehicle.route = spec.route ?? ''
@@ -193,4 +193,15 @@ export function createVehicle(flow: Flow): Vehicle {
     route: '',
     footDown: false,
   }
+}
+
+// A vehicle placed along its way skips the stops it has already passed.
+function stopsBehind(vehicle: Vehicle): number {
+  let index = 0
+
+  while (((vehicle.stops[index] ?? vehicle.pos) - vehicle.pos) * vehicle.flow.dir < 0) {
+    index++
+  }
+
+  return index
 }

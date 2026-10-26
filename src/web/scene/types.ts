@@ -322,22 +322,27 @@ export type BikeShape = (typeof BIKE_SHAPES)[number]
 export const CAR_SIZES = ['small', 'mid', 'large'] as const
 export type CarSize = (typeof CAR_SIZES)[number]
 
-export type ChatterId = 'honk' | 'eh' | 'hello' | 'hey'
+export const CHATTER_IDS = ['honk', 'eh', 'hello', 'hey'] as const
+export type ChatterId = (typeof CHATTER_IDS)[number]
 
-export type VehicleKind =
-  | 'car'
-  | 'taxi'
-  | 'bus'
-  | 'motorbike'
-  | 'delivery'
-  | 'school'
-  | 'sweeper'
-  | 'garbage'
+export const VEHICLE_KINDS = [
+  'car',
+  'taxi',
+  'bus',
+  'motorbike',
+  'delivery',
+  'school',
+  'sweeper',
+  'garbage',
+] as const
+export type VehicleKind = (typeof VEHICLE_KINDS)[number]
 
-export type Heading = 'east' | 'west' | 'north' | 'south'
+export const HEADINGS = ['east', 'west', 'north', 'south'] as const
+export type Heading = (typeof HEADINGS)[number]
 
 /** A rider's clothes: plain, a sun coat with a mask, or a plain ride-hailing jacket. */
-export type RiderGear = 'plain' | 'sunCoat' | 'rideHailing'
+export const RIDER_GEARS = ['plain', 'sunCoat', 'rideHailing'] as const
+export type RiderGear = (typeof RIDER_GEARS)[number]
 
 /** A vehicle on the street: its kind and heading, the car's size and the motorbike's shape (each
  *  read by its own kind), the rider's gear and passenger, the seed its colours come from, the

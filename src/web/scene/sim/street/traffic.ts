@@ -297,12 +297,14 @@ function spawnDelivery(traffic: Traffic, minute: number): void {
   }
 }
 
-// A side street's own traffic comes in from its far end, heading for the north street.
+// The north street's traffic takes either way at random; a side street's own traffic comes in
+// from its far end, heading for the north street, and only a placed one may stand on either way.
 function spawnAny(traffic: Traffic, isPlaced: boolean): void {
   const { rng, flows } = traffic
   const street = pickStreet(rng)
   const ways = flows.all.filter((way) => way.street === street)
-  const flow = isPlaced ? pickFrom(rng, ways) : (ways.find((way) => way.dir < 0) ?? ways[0])
+  const isEitherWay = isPlaced || street === 'north'
+  const flow = isEitherWay ? pickFrom(rng, ways) : (ways.find((way) => way.dir < 0) ?? ways[0])
 
   if (flow === undefined) {
     return
@@ -314,6 +316,7 @@ function spawnAny(traffic: Traffic, isPlaced: boolean): void {
     flow,
     kind,
     pos: isPlaced ? flow.from + rng.next() * (flow.to - flow.from) : undefined,
+    stops: kind === 'bus' ? flow.stops : undefined,
     route: kind === 'bus' ? pickRoute(traffic, flow) : undefined,
   })
 }

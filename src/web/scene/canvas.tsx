@@ -138,6 +138,7 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
     }),
     effect(() => answerFocusRequest(sims.director)),
     onWireEvent('any', loop.wake),
+    sims.street.watchArrivals(loop.wake),
     onWireEvent('run_started', (event) => followRun(sims.director, event.runId)),
   ]
 
@@ -223,7 +224,7 @@ function nextDueOf(parts: LoopParts, drawn: SimView): number {
     parts.director.nextDueAt(),
     parts.life.nextDueAt(),
     parts.team.nextDueAt(nowMs),
-    parts.street.nextDueAt(nowMs),
+    parts.street.nextDueAt(),
     parts.overlay.nextDueAt(),
     parts.input.current?.nextDueAt() ?? Infinity,
     ambientAt

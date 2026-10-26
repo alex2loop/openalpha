@@ -15,15 +15,12 @@ import { VEHICLES_PART } from '@/web/scene/render2d/street/vehicles'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { hasStreetEntities } from '@/web/scene/sim/street/street'
 import { DAY_LIGHT_HOUR } from '@/web/scene/sprites/daylight'
-import { projection, STREET_RECT } from '@/web/scene/view'
+import { movingRectOf, projection, STREET_RECT } from '@/web/scene/view'
 import { lightByHour } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const MAX_MOVING_CANVAS_PX = 2048
-// The moving canvas reaches this share of the visible rect past each of its sides, so a small pan
-// between two steps stays inside it.
-const MOVING_MARGIN = 0.25
 const KEY_SEPARATOR = '|'
 const NO_RECT: Rect = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
 
@@ -100,7 +97,7 @@ export function createStreetPainter(): StreetPainter {
     },
     isCurrent: (visible) =>
       state.detail === detailOfPx(projection.value.scale * devicePixelRatio) &&
-      (state.movingCanvas.width === 0 || isSameRect(toMovingRect(visible), state.movingRect)),
+      (state.movingCanvas.width === 0 || isSameRect(movingRectOf(visible), state.movingRect)),
     paintMs: () => state.paintMs,
     release() {
       zeroCanvas(state.staticCanvas)
@@ -181,8 +178,8 @@ function syncMoving(
   state: PainterState,
   job: { readonly view: StreetView; readonly visible: Rect; readonly devicePx: number }
 ): void {
-  const rect = toMovingRect(job.visible)
-  const isEmpty = rect.w <= 0 || rect.h <= 0 || !hasMovers(job.view)
+  const rect = movingRectOf(job.visible)
+  const isEmpty = rect.w <= 0 || rect.h <= 0 || !hasMovers(job.view, rect)
 
   if (isEmpty) {
     clearMoving(state)
@@ -213,8 +210,8 @@ function syncMoving(
   state.movingVersion++
 }
 
-function hasMovers(view: StreetView): boolean {
-  return MOVING_PAINTS.length > 0 && hasStreetEntities(view)
+function hasMovers(view: StreetView, rect: Rect): boolean {
+  return MOVING_PAINTS.length > 0 && hasStreetEntities(view, rect)
 }
 
 function isSameRect(a: Rect, b: Rect): boolean {
@@ -230,16 +227,6 @@ function clearMoving(state: PainterState): void {
   state.movingRect = NO_RECT
   state.movingKey = ''
   state.movingVersion++
-}
-
-// The visible rect with its margin, inside the street.
-function toMovingRect(visible: Rect): Rect {
-  const x0 = Math.max(STREET_RECT.x, visible.x - visible.w * MOVING_MARGIN)
-  const y0 = Math.max(STREET_RECT.y, visible.y - visible.h * MOVING_MARGIN)
-  const x1 = Math.min(STREET_RECT.x + STREET_RECT.w, visible.x + visible.w * (1 + MOVING_MARGIN))
-  const y1 = Math.min(STREET_RECT.y + STREET_RECT.h, visible.y + visible.h * (1 + MOVING_MARGIN))
-
-  return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) }
 }
 
 function resizeCanvas(

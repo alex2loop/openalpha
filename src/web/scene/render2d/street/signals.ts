@@ -1,11 +1,12 @@
 import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
-import type { Point, Rect, SignalHeadId, SignalLamp, StreetView } from '@/web/scene/types'
+import type { Point, SignalHeadId, SignalLamp, StreetView } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import { darknessOf } from '@/web/scene/render2d/street/city'
 import { GROUND_TONES } from '@/web/scene/render2d/street/city-ground'
 import { FURNITURE, paintSigns, paintTurnPlate } from '@/web/scene/render2d/street/signs'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { type Flow, flowsOf } from '@/web/scene/sim/street/flows'
+import { isInside } from '@/web/scene/world/rooms'
 import { CROSSING, JUNCTION, NORTH } from '@/web/scene/world/street-layout'
 
 const HEAD_KERB_PX = 2
@@ -105,7 +106,7 @@ export const SIGNALS_PART: PaintPart = {
   },
   paintMoving: (g, view, scene) => {
     for (const head of headsOf(scene.pack)) {
-      if (isInside(head.at, scene.rect)) {
+      if (isInside(scene.rect, head.at)) {
         paintLamps(g, { head, view, detail: scene.minute.detail })
       }
     }
@@ -157,10 +158,6 @@ function northHeadOf(flow: Flow): Head {
   const x = CROSSING.x - flow.dir * (CROSSING.carLine - NORTH_HEAD_BACK)
 
   return { head: 'north', kind: 'car', at: { x, y: FURNITURE.farY } }
-}
-
-function isInside(at: Point, rect: Rect): boolean {
-  return at.x >= rect.x && at.x <= rect.x + rect.w && at.y >= rect.y && at.y <= rect.y + rect.h
 }
 
 // The zebra across the north street, each way's stop line before it, and each side street's

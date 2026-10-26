@@ -1,6 +1,6 @@
 import type { MessageKey } from '@/i18n'
 import type { MovingScene, PaintPart } from '@/web/scene/render2d/street/paint'
-import type { Point, StreetSayView, VehicleKind, VehicleView } from '@/web/scene/types'
+import type { Point, StreetSayView, VehicleView } from '@/web/scene/types'
 import { darknessOf } from '@/web/scene/render2d/street/city'
 import { drawHeldSprite, drawSprite, spriteKeyOf } from '@/web/scene/render2d/street/detail'
 import { paintLabel } from '@/web/scene/render2d/street/label'
@@ -28,17 +28,19 @@ import { LOOK_SEEDS, vehicleSizeOf } from '@/web/scene/sim/street/spawn'
 import {
   BIKE_SHAPES,
   CAR_SIZES,
+  CHATTER_IDS,
   type ChatterId,
+  HEADINGS,
   type Heading,
-  type RiderGear,
+  RIDER_GEARS,
+  VEHICLE_KINDS,
 } from '@/web/scene/types'
+import { isInside } from '@/web/scene/world/rooms'
 import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
 // Sprites are painted at these px per world px by detail level: sharp at each zoom band's top.
 const SPRITE_PX = [2, 5, 10] as const
-// Past the moving canvas's edge by this much, a vehicle is not drawn.
-const CULL_PX = 16
 // Lamps light from this darkness; their dots grow brighter with it.
 const LIGHTS_FROM_DARK = 0.3
 const LIGHTS_GAIN = 1.2
@@ -62,19 +64,6 @@ const SAY_KEYS: Readonly<Record<ChatterId, MessageKey>> = Object.freeze({
 // Parked bikes come in a few looks, from a seed per look.
 const PARKED_LOOKS = 12
 const PARKED_SEED_STEP = 7_919
-const KINDS: readonly VehicleKind[] = [
-  'car',
-  'taxi',
-  'bus',
-  'motorbike',
-  'delivery',
-  'school',
-  'sweeper',
-  'garbage',
-]
-const HEADINGS: readonly Heading[] = ['east', 'west', 'north', 'south']
-const GEARS: readonly RiderGear[] = ['plain', 'sunCoat', 'rideHailing']
-const CHATTER: readonly ChatterId[] = ['honk', 'eh', 'hello', 'hey']
 // A parked bike's looks and the attendant's two (standing, handing a ticket over), seeded past
 // every moving vehicle's look so no sprite key is shared.
 const PARKED: readonly Standing[] = Array.from({ length: PARKED_LOOKS }, (_, index) =>
@@ -126,7 +115,7 @@ export const VEHICLES_PART: PaintPart = {
     }
 
     for (const vehicle of view.pools.vehicles) {
-      if (isNear(vehicle.at, scene)) {
+      if (isInside(scene.rect, vehicle.at)) {
         drawLook(g, vehicle, scene)
         paintLights(g, vehicle, dark)
       }
@@ -143,22 +132,11 @@ function drawStanding(
   standing: Standing,
   place: { readonly at: Point; readonly scene: MovingScene }
 ): void {
-  if (isNear(place.at, place.scene)) {
+  if (isInside(place.scene.rect, place.at)) {
     standing.at.x = place.at.x
     standing.at.y = place.at.y
     drawLook(g, standing.view, place.scene)
   }
-}
-
-function isNear(at: Point, scene: MovingScene): boolean {
-  const { rect } = scene
-
-  return (
-    at.x > rect.x - CULL_PX &&
-    at.x < rect.x + rect.w + CULL_PX &&
-    at.y > rect.y - CULL_PX &&
-    at.y < rect.y + rect.h + CULL_PX
-  )
 }
 
 // Draws the cached sprite of the look at its place; paints it first when the look is new.
@@ -213,10 +191,10 @@ function sigOf(
 ): number {
   let sig = view.look
 
-  sig = sig * KINDS.length + KINDS.indexOf(view.kind)
+  sig = sig * VEHICLE_KINDS.length + VEHICLE_KINDS.indexOf(view.kind)
   sig = sig * CAR_SIZES.length + CAR_SIZES.indexOf(view.car)
   sig = sig * BIKE_SHAPES.length + BIKE_SHAPES.indexOf(view.bike)
-  sig = sig * GEARS.length + GEARS.indexOf(view.gear)
+  sig = sig * RIDER_GEARS.length + RIDER_GEARS.indexOf(view.gear)
   sig = sig * 2 + (view.passenger ? 1 : 0)
   sig = sig * 2 + (view.footDown ? 1 : 0)
   sig = sig * HEADINGS.length + HEADINGS.indexOf(view.heading)
@@ -298,12 +276,12 @@ function paintLights(g: CanvasRenderingContext2D, vehicle: VehicleView, dark: nu
 
 // A word in a bubble over the vehicle that says it.
 function paintSay(g: CanvasRenderingContext2D, say: StreetSayView, scene: MovingScene): void {
-  if (!isNear(say.at, scene)) {
+  if (!isInside(scene.rect, say.at)) {
     return
   }
 
   const detail = scene.minute.detail
-  const sig = CHATTER.indexOf(say.chatter) * SPRITE_PX.length + detail
+  const sig = CHATTER_IDS.indexOf(say.chatter) * SPRITE_PX.length + detail
   const held = sayKeyOf(say, sig)
 
   sayAt.x = say.at.x
