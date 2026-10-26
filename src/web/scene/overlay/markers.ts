@@ -3,7 +3,7 @@ import type { BreachedStop } from '@/web/scene/data/room-status'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, Rect } from '@/web/scene/types'
 import { holderOf } from '@/web/scene/sim/vocabulary'
-import { pendingRequestId } from '@/web/state/live'
+import { APPROVAL_KIND, pendingRequestId } from '@/web/state/live'
 import { openView } from '@/web/state/panel'
 import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
 
@@ -11,7 +11,6 @@ import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
 const MARKER_W = 10
 const MARKER_H = 13
 const MARKER_RISE = 3
-const APPROVAL_KIND = 'approval'
 const CLERK: ActorId = 'clerk'
 
 /** An "!" over a person: amber over the one who brought an approval, red over the clerk while a

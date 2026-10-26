@@ -15,6 +15,8 @@ interface FloorDef {
   readonly corridor?: Rect
 }
 
+/** The own agents' floor, upstairs from the office. */
+export const TEAM_FLOOR: FloorId = 'team'
 // The corridor's north wall, with the store, library and meeting-room doorways left open.
 const CORRIDOR_Y = 192
 // The bottom row's north wall, with each room's door left open.

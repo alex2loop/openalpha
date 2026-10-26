@@ -2,6 +2,7 @@ import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, FloorId, HeldItem, LifeLine, Point, PoseId } from '@/web/scene/types'
 import { isWalking } from '@/web/scene/sim/actors/walk'
+import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 
 export type MomentKind =
   | 'idle'
@@ -44,8 +45,6 @@ export interface StopSpec {
   readonly item?: HeldItem
   readonly floor?: FloorId
 }
-
-const SEAT_TARGET = 'seat'
 
 export function toStop(spec: StopSpec, sinceMs: number): MomentStop {
   const goal: Goal = {

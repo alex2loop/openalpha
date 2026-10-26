@@ -11,6 +11,8 @@ export interface ActorDef {
   readonly seat: Seat
 }
 
+/** The operator's assistant: the one person every chat turn without an agent belongs to. */
+export const ASSISTANT: ActorId = 'assistant'
 // The operator's own agents and the temporary children runs start join the crew under these.
 const OWN_PREFIX = 'agent:'
 const KID_PREFIX = 'kid:'
@@ -38,7 +40,7 @@ export const ROSTER: readonly ActorDef[] = Object.freeze(
     office({ id: 'reviewer', role: 'reviewer', room: 'lib' }, STATIONS['lib-review']),
     office({ id: 'theme', role: 'theme', room: 'lib' }, STATIONS['lib-theme']),
     office({ id: 'keeper', role: 'keeper', room: 'store' }, STATIONS.store),
-    office({ id: 'assistant', role: 'assistant', room: 'assist' }, ASSISTANT_DESK),
+    office({ id: ASSISTANT, role: 'assistant', room: 'assist' }, ASSISTANT_DESK),
     office({ id: 'clerk', role: 'clerk', room: 'alerts' }, STATIONS.alerts),
   ].filter((def): def is ActorDef => def !== undefined)
 )

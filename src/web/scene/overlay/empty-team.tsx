@@ -1,6 +1,7 @@
 import type { MessageKey } from '@/i18n'
 import type { AgentDraft } from '@/web/state/agents'
 import { view } from '@/web/scene/view'
+import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { agents, agentsRead, requestAgentForm } from '@/web/state/agents'
 import { tr } from '@/web/text/tr'
 
@@ -13,7 +14,6 @@ interface Template {
   readonly focus: NonNullable<AgentDraft['focus']>
 }
 
-const TEAM_FLOOR = 'team'
 // Three ways to start, each a draft the form opens with; the operator edits it before saving.
 const TEMPLATES: readonly Template[] = Object.freeze([
   {

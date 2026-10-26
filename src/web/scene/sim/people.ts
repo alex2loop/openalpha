@@ -5,6 +5,7 @@ import type { Papers } from '@/web/scene/sim/papers'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, ActorView, FloorId, Point, Rect, SheetView } from '@/web/scene/types'
 import { distance } from '@/web/scene/sim/actors/nav'
+import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import {
   isWalking,
   placeWalker,
@@ -31,6 +32,7 @@ import {
 } from '@/web/scene/sim/desk'
 import { handOff } from '@/web/scene/sim/handoff'
 import { destOf, facingOf, takeLift } from '@/web/scene/sim/places'
+import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 import { navGridOf } from '@/web/scene/world/nav-grid'
 import { propsOn } from '@/web/scene/world/props'
 import { isInside } from '@/web/scene/world/rooms'
@@ -89,8 +91,6 @@ const CHAIR_PUSH_MS = 400
 const ARRIVE_PAUSE_MS = 500
 // Under this a person still sits on their own chair.
 const SEATED_PX = 1
-const SEAT_TARGET = 'seat'
-const ASSISTANT: ActorId = 'assistant'
 
 export function createPeople(
   seeds: readonly { readonly def: ActorDef; readonly walker: WalkerState }[],

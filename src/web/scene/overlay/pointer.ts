@@ -8,24 +8,24 @@ import { engage } from '@/web/scene/overlay/actor-focus'
 import { actorNowOf } from '@/web/scene/overlay/actor-state'
 import { type Hit, pickAt } from '@/web/scene/overlay/hit'
 import { hoverTextOf, personNameOf } from '@/web/scene/overlay/hover-label'
-import { MEET_FLOOR } from '@/web/scene/overlay/meeting'
+import { MEET_FLOOR, MEET_ROOM } from '@/web/scene/overlay/meeting'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
 import { hoverActor, keyedActor, overlayView } from '@/web/scene/overlay/overlay'
 import { closeMenu } from '@/web/scene/overlay/radial-menu'
 import { openScreen } from '@/web/scene/overlay/screen-panel'
 import { isActorId } from '@/web/scene/sim/actors/roster'
 import { stopFollow, view, zoomToRoom } from '@/web/scene/view'
+import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { ROOM_IDS, roomById } from '@/web/scene/world/rooms'
 import { toggleAllLamps, toggleLamp } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 
-const TOUCH = 'touch'
+/** The pointer type a finger reports. */
+export const TOUCH = 'touch'
 const CLICKABLE_CURSOR = 'pointer'
 const PET_TIPS: readonly TipSource[] = Object.freeze(['cat', 'corgi'])
 // The team floor is one room that fits: a click never zooms into it.
-const TEAM_FLOOR = 'team'
-const MEET_ROOM = 'meet'
 
 /** What the canvas's input reads and drives. */
 export interface PointerDeps {

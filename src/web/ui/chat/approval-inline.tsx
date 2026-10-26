@@ -1,6 +1,6 @@
 import type { PendingWire } from '@/app/server/wire/live'
 import { sessionId, thread } from '@/web/state/chat'
-import { findRun, pending, pendingRequestId } from '@/web/state/live'
+import { APPROVAL_KIND, findRun, pending, pendingRequestId } from '@/web/state/live'
 import { PendingCard } from '@/web/ui/bell/approval-card'
 
 /** The approvals and questions of a run this chat started, answered as in the bell; one answer
@@ -26,7 +26,7 @@ function isOfThisChat(
   session: string | undefined,
   runIds: ReadonlySet<string>
 ): boolean {
-  const runId = entry.kind === 'approval' ? entry.event.runId : entry.runId
+  const runId = entry.kind === APPROVAL_KIND ? entry.event.runId : entry.runId
 
   if (runId !== undefined && runIds.has(runId)) {
     return true

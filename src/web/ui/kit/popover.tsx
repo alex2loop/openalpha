@@ -2,6 +2,8 @@ import type { ComponentChildren, RefObject } from 'preact'
 import { type ReadonlySignal, signal } from '@preact/signals'
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks'
 
+import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
+
 import './popover.css'
 
 interface PopoverProps {
@@ -124,7 +126,7 @@ function armDismiss(
   document.addEventListener(
     'keydown',
     (event) => {
-      if (event.key === 'Escape') {
+      if (event.key === ESCAPE_KEY) {
         closePopover()
         anchor.current?.focus()
       }

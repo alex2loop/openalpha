@@ -16,7 +16,7 @@ import { tr } from '@/web/text/tr'
 
 /** The meeting room's floor: only its people are picked for a meeting. */
 export const MEET_FLOOR: FloorId = 'office'
-const MEET_ROOM: RoomId = 'meet'
+export const MEET_ROOM: RoomId = 'meet'
 // A box smaller than this on both sides was a click, not a drag.
 const BOX_MIN_PX = 5
 const AUDIENCE_POSE = 'watch'

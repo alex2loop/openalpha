@@ -1,7 +1,7 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { Decision } from '@/app/server/wire/chat'
-import { pending, pendingRequestId } from '@/web/state/live'
+import { APPROVAL_KIND, pending, pendingRequestId } from '@/web/state/live'
 import { stepWrapped } from '@/web/ui/kit/step'
 
 /** The answers a key gives; "always" widens a permission and stays a click. */
@@ -24,7 +24,7 @@ export const DECISION_KEYS = Object.freeze({
 const answerableIds = computed(() =>
   pending.value.flatMap((entry) => {
     const requestId = pendingRequestId(entry)
-    const isAnswerable = entry.kind === 'approval' && entry.event.approval?.answerable === true
+    const isAnswerable = entry.kind === APPROVAL_KIND && entry.event.approval?.answerable === true
 
     return isAnswerable && requestId !== undefined ? [requestId] : []
   })

@@ -18,9 +18,11 @@ import {
   type PointerDeps,
   type PointerState,
   setHovered,
+  TOUCH,
 } from '@/web/scene/overlay/pointer'
 import { closeMenu, menuActor } from '@/web/scene/overlay/radial-menu'
 import { leaveRoom, panBy, stopFollow, view, zoomBy } from '@/web/scene/view'
+import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 
 /** A press that moves further than this is a drag, never a click. */
 const DRAG_PX = 6
@@ -39,9 +41,7 @@ const ARROW_STEPS: Readonly<Record<string, 1 | -1>> = Object.freeze({
   ArrowRight: 1,
 })
 const ENGAGE_KEYS: ReadonlySet<string> = new Set(['Enter', ' '])
-const ESCAPE_KEY = 'Escape'
 const TAB_KEY = 'Tab'
-const TOUCH = 'touch'
 const MOUSE = 'mouse'
 const GRAB_CURSOR = 'grabbing'
 const RING_SELECTOR = '.radial-menu'

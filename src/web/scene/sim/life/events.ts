@@ -1,9 +1,10 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ActorState } from '@/web/scene/sim/director'
-import type { ActorId, LifeView } from '@/web/scene/types'
+import type { LifeView } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { distance } from '@/web/scene/sim/actors/nav'
+import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { begin } from '@/web/scene/sim/life/schedule'
 import {
   drawBetween,
@@ -41,7 +42,6 @@ const WATCH_FROM_PX = 260
 // Behind the chair: beside it and a step back from where the seat looks.
 const BEHIND_SIDE_PX = 10
 const BEHIND_BACK_PX = 18
-const MASCOT: ActorId = 'assistant'
 const MINUTE_KEY_SEPARATOR = ':'
 
 /** Hears the wire for the office life; the returned stop unsubscribes. Each handler only records:
@@ -175,10 +175,10 @@ function afterRun(
 // gave no verdict.
 function cheer(state: LifeState, step: LifeStep, done: { owner: ActorState; runId: string }): void {
   const { owner } = done
-  const isMascot = owner.def.id === MASCOT
+  const isAssistant = owner.def.id === ASSISTANT
 
-  if (!(isMascot && state.verdicts.has(done.runId))) {
-    state.director.play(owner.def.id, { pose: isMascot ? 'cheer' : 'hands-up', ms: HANDS_MS })
+  if (!(isAssistant && state.verdicts.has(done.runId))) {
+    state.director.play(owner.def.id, { pose: isAssistant ? 'cheer' : 'hands-up', ms: HANDS_MS })
   }
 
   const neighbour = nearestFree(step, { to: owner, withinPx: NEIGHBOUR_PX })

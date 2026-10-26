@@ -1,10 +1,11 @@
 import type { ActorState } from '@/web/scene/sim/director'
 import type { StopSpec } from '@/web/scene/sim/life/moments'
-import type { ActorId, DeskView, FloorId, Point, RoomId } from '@/web/scene/types'
+import type { DeskView, Point, RoomId } from '@/web/scene/types'
+import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { begin } from '@/web/scene/sim/life/schedule'
 import { drawBetween, isAtSeat, type LifeState, type LifeStep } from '@/web/scene/sim/life/state'
 import { DOORS } from '@/web/scene/world/doors'
-import { FLOORS } from '@/web/scene/world/floors'
+import { FLOORS, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
 import { LIFT_EXITS, TEAM_SEATS } from '@/web/scene/world/seats'
 import { MS_PER_MINUTE } from '@/web/text/time'
@@ -17,8 +18,6 @@ const QUIET_ROUNDS_GAP_MS = QUIET_ROUNDS_MINUTES * MS_PER_MINUTE
 const ROUND_STOP_MS = Object.freeze({ min: 2_000, max: 4_000 })
 // Every this many rounds, one takes the lift up to the own agents' desks.
 const LIFT_EVERY = 3
-const ASSISTANT: ActorId = 'assistant'
-const TEAM_FLOOR: FloorId = 'team'
 // A door's stop stands this far out from the wall, in the corridor.
 const DOOR_STEP_PX = 14
 // A desk's stop stands behind its agent's chair, a little to the side.

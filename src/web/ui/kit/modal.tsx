@@ -3,7 +3,7 @@ import { signal } from '@preact/signals'
 import { useEffect, useLayoutEffect } from 'preact/hooks'
 
 import { tr } from '@/web/text/tr'
-import { listFocusable, trapFocus } from '@/web/ui/kit/focus-trap'
+import { ESCAPE_KEY, listFocusable, trapFocus } from '@/web/ui/kit/focus-trap'
 import { CloseIcon } from '@/web/ui/kit/icons'
 import { closePopover, resolveFocusReturn } from '@/web/ui/kit/popover'
 
@@ -154,7 +154,7 @@ function dismissOnScrim(entry: OpenModal, event: TargetedMouseEvent<HTMLDivEleme
 }
 
 function onKey(entry: OpenModal, event: KeyboardEvent): void {
-  if (event.key === 'Escape') {
+  if (event.key === ESCAPE_KEY) {
     event.preventDefault()
     dismiss(entry)
     return

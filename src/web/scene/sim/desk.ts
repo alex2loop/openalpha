@@ -4,7 +4,7 @@ import type { ActorId } from '@/web/scene/types'
 import { pageNow } from '@/web/scene/clock/clock'
 import { askedAtOf } from '@/web/scene/sim/vocabulary'
 import { setCapped } from '@/web/state/capped-map'
-import { pendingRequestId } from '@/web/state/live'
+import { APPROVAL_KIND, pendingRequestId } from '@/web/state/live'
 
 /** A request one person waits on at your desk: when the page first saw it, when the foot taps. */
 interface DeskWait {
@@ -88,7 +88,7 @@ export function deskDues(desk: Desk): number[] {
 // The foot tap counts from `askedAt` (from the page's first sight when the wire has none).
 function toDeskWait(actor: ActorId, entry: PendingWire | undefined, nowMs: number): DeskWait {
   const askedAt = entry === undefined ? undefined : askedAtOf(entry)
-  const expiresAt = entry?.kind === 'approval' ? entry.event.approval?.expiresAt : undefined
+  const expiresAt = entry?.kind === APPROVAL_KIND ? entry.event.approval?.expiresAt : undefined
   const waited = askedAt === undefined ? 0 : pageNow() - askedAt
   const age = Math.min(FOOT_TAP_AFTER_MS, Math.max(0, waited))
 

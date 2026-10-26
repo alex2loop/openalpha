@@ -16,7 +16,7 @@ import { type AgendaRow, agenda } from '@/web/scene/data/agenda'
 import { regionPack } from '@/web/scene/data/home'
 import { breachedStops } from '@/web/scene/data/room-status'
 import { distance } from '@/web/scene/sim/actors/nav'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, ROSTER } from '@/web/scene/sim/actors/roster'
 import { isOfficeOpen } from '@/web/scene/sim/director'
 import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
 import { stepAsks, subscribeLife } from '@/web/scene/sim/life/events'
@@ -70,7 +70,6 @@ const QUIET_AFTER_MS = 900_000
 const PANTRY_LIVE_PX = 28
 const BRIEF_ROW_KEY = 'brief'
 const BRIEF_OWNER: ActorId = 'pm'
-const MASCOT: ActorId = 'assistant'
 const CLERK: ActorId = 'clerk'
 // The moments that are a break: an idle walk, a coffee, a dessert, a chat.
 const BREAK_KINDS: ReadonlySet<MomentKind> = new Set(['idle', 'coffee', 'dessert', 'chat'])
@@ -149,7 +148,7 @@ function isFree(actor: ActorState): boolean {
   const hasBeat = actor.beats.some((beat) => beat.kind !== 'life')
 
   return (
-    id !== MASCOT &&
+    id !== ASSISTANT &&
     isStaffId(id) &&
     (actor.goal === undefined || actor.isLife) &&
     !hasBeat &&
@@ -209,7 +208,8 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
 function stepMoments(state: LifeState, step: LifeStep): void {
   for (const [id, moment] of state.moments) {
     const actor = step.actors.get(id)
-    const isStillFree = actor !== undefined && (id === MASCOT ? isRoundFree(actor) : isFree(actor))
+    const isStillFree =
+      actor !== undefined && (id === ASSISTANT ? isRoundFree(actor) : isFree(actor))
 
     if (actor === undefined || !isStillFree || !step.canWalk) {
       endMoment(state, id)

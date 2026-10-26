@@ -1,3 +1,5 @@
+/** The key that closes whatever has the page's focus: a modal, a popover, a menu, a follow. */
+export const ESCAPE_KEY = 'Escape'
 const FOCUSABLE =
   'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 

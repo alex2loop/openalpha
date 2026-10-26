@@ -5,7 +5,7 @@ import type { PropKind } from '@/web/scene/world/props'
 import { FETCH_ACTIVITY_PREFIX, QUESTION_ACTIVITY_KEY } from '@/web/scene/data/desk-reads'
 import { roomOfRun } from '@/web/scene/data/room-status'
 import { DESK_WAIT_SPOTS } from '@/web/scene/world/seats'
-import { pendingRequestId, type Run } from '@/web/state/live'
+import { APPROVAL_KIND, pendingRequestId, type Run } from '@/web/state/live'
 
 /** What a person is after. A `work` goal always carries the `runId` behind it; `idle` and `life`
  *  never do and never aim at a work object. `target` is a place, a kind of prop (the nearest free
@@ -44,9 +44,11 @@ interface VocabRow {
   readonly cast: readonly Cast[]
 }
 
-const SEAT_TARGET = 'seat'
+/** A goal target naming the person's own seat. */
+export const SEAT_TARGET = 'seat'
 const STAGE_DETAIL_KEY = 'progress.researchStageDetail'
-const CRAWLERS: readonly ActorId[] = ['crawler-1', 'crawler-2']
+/** The library's two page readers. */
+export const CRAWLERS: readonly ActorId[] = Object.freeze(['crawler-1', 'crawler-2'])
 const CRAWL_ROW_KEY = 'progress.researchStageCrawl'
 // The theme analyst works the library apart from the research crew: its own queue.
 const THEMES_KEY_PREFIX = 'trading.progress.themes.'
@@ -324,12 +326,12 @@ export function holderOf(
 }
 
 function runIdOf(entry: PendingWire): string | undefined {
-  return entry.kind === 'approval' ? entry.event.runId : entry.runId
+  return entry.kind === APPROVAL_KIND ? entry.event.runId : entry.runId
 }
 
 /** When the request was asked (epoch ms), if the wire says. */
 export function askedAtOf(entry: PendingWire): number | undefined {
-  return entry.kind === 'approval' ? entry.event.approval?.askedAt : entry.askedAt
+  return entry.kind === APPROVAL_KIND ? entry.event.approval?.askedAt : entry.askedAt
 }
 
 // A stage line wraps its stage in `progress.researchStageDetail`; the stage's own key is inside.

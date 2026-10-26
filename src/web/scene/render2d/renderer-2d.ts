@@ -31,6 +31,7 @@ import {
   WORLD,
 } from '@/web/scene/types'
 import { clampPan, FRAME_RECT, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'
+import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
@@ -47,7 +48,6 @@ const MAX_RENDER_SAMPLES = 240
 const ACTOR_TIE_RANK = 2
 // The operator's tray sits on your desk, on the office floor; the own agents work upstairs.
 const TRAY_FLOOR: FloorId = 'office'
-const TEAM_FLOOR: FloorId = 'team'
 const IDENTITY_FIT: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
 /** Where the floor sits in the pane: CSS px per world px and the CSS px of world (0, 0). */

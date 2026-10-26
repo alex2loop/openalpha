@@ -6,7 +6,7 @@ import { pluralKey } from '@/i18n'
 import { fillInput } from '@/web/state/command'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
-import { trapFocus } from '@/web/ui/kit/focus-trap'
+import { ESCAPE_KEY, trapFocus } from '@/web/ui/kit/focus-trap'
 import { CloseIcon } from '@/web/ui/kit/icons'
 import { closePopover, resolveFocusReturn } from '@/web/ui/kit/popover'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -116,7 +116,7 @@ function dismissOnScrim(event: TargetedMouseEvent<HTMLDivElement>): void {
 }
 
 function onKey(event: KeyboardEvent): void {
-  if (event.key === 'Escape') {
+  if (event.key === ESCAPE_KEY) {
     event.preventDefault()
     closeReader()
     return

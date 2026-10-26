@@ -5,7 +5,7 @@ import { useLayoutEffect } from 'preact/hooks'
 import type { NoticeWire } from '@/app/server/wire/notices'
 import { pluralKey } from '@/i18n'
 import { ApiFailure } from '@/web/api/client'
-import { pending, pendingRequestId } from '@/web/state/live'
+import { APPROVAL_KIND, pending, pendingRequestId } from '@/web/state/live'
 import { isWaitingNotice, markRead, notices, noticesFailure, unread } from '@/web/state/notices'
 import { state } from '@/web/state/session'
 import { buildDayKey } from '@/web/text/time'
@@ -85,7 +85,7 @@ function WaitingSection() {
           <PendingCard key={pendingRequestId(entry)} entry={entry} isKeyed />
         ))}
       </div>
-      {entries.some((entry) => entry.kind === 'approval') && (
+      {entries.some((entry) => entry.kind === APPROVAL_KIND) && (
         <p class="meta pending-timeout">{tr('ui.office.bell.timeout')}</p>
       )}
     </>

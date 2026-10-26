@@ -3,12 +3,12 @@ import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, DeskFocus } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { kidActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
+import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 
 /** At most this many temporary children are drawn at once; the oldest come first. */
 export const MAX_CHILD_ACTORS = 12
 // A spawned child's title is "role: goal".
 const TITLE_SEPARATOR = ': '
-const SEAT_TARGET = 'seat'
 const BANK_SECTOR = 'banks'
 const CRYPTO_MARKET = 'crypto'
 const GOLD_MARKETS: ReadonlySet<string> = new Set(['gold', 'gold-vn'])

@@ -22,6 +22,7 @@ import {
 } from '@/web/ui/command/suggest-popover'
 import { WhoChip } from '@/web/ui/command/who-chip'
 import { Button } from '@/web/ui/kit/button'
+import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 import { ChatIcon } from '@/web/ui/kit/icons'
 
 import './command.css'
@@ -177,7 +178,7 @@ function handleKey(key: string, { list, options }: KeyContext): boolean {
         sendFromInput()
       }
       return true
-    case 'Escape':
+    case ESCAPE_KEY:
       resetList(list, false)
       return true
     default:

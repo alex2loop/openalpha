@@ -22,6 +22,7 @@ import {
   pressDecision,
   stepChosenRequest,
 } from '@/web/ui/bell/bell-keys'
+import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 import {
   BELL_POPOVER_ID,
   JOBS_POPOVER_ID,
@@ -65,7 +66,6 @@ const DECISION_BY_KEY: Readonly<Record<string, KeyedDecision>> = Object.freeze({
   [DECISION_KEYS.approve.toLowerCase()]: 'approve',
   [DECISION_KEYS.deny.toLowerCase()]: 'deny',
 })
-const ESCAPE_KEY = 'Escape'
 // Keys the office canvas answers itself while it has focus.
 const CANVAS_KEYS: ReadonlySet<string> = new Set([
   'ArrowUp',

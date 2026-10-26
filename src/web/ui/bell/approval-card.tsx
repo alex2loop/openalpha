@@ -10,7 +10,7 @@ import { ApiFailure } from '@/web/api/client'
 import { answerApproval, answerOnLine, decisionLabel } from '@/web/state/approvals'
 import { useNow } from '@/web/state/clock'
 import { focusRun } from '@/web/state/focus'
-import { findRun } from '@/web/state/live'
+import { APPROVAL_KIND, findRun } from '@/web/state/live'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
@@ -45,7 +45,7 @@ interface PendingCardProps {
 /** One request waiting for the operator. Only one asked on this page can be answered here; any
  *  other names where it is answered instead. */
 export function PendingCard({ entry, isKeyed }: PendingCardProps) {
-  return entry.kind === 'approval' ? (
+  return entry.kind === APPROVAL_KIND ? (
     <ApprovalCard event={entry.event} isKeyed={isKeyed === true} />
   ) : (
     <QuestionCard question={entry} />

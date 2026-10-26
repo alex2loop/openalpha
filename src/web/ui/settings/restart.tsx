@@ -2,7 +2,7 @@ import { type Signal, signal } from '@preact/signals'
 
 import type { RestartWhen } from '@/app/server/wire/vocab'
 import { pluralKey } from '@/i18n'
-import { pending, runningCount } from '@/web/state/live'
+import { APPROVAL_KIND, pending, runningCount } from '@/web/state/live'
 import { dismissRestart, requestRestart, restartPhase } from '@/web/state/restart'
 import { state } from '@/web/state/session'
 import { pendingRestart, type RestartRow, type SettingsSection } from '@/web/state/settings'
@@ -47,7 +47,7 @@ export function openRestartDialog(request: RestartRequest): void {
 function RestartBody({ open }: { readonly open: OpenRestart }) {
   const rows = pendingRestart.value
   const running = runningCount.value
-  const approvals = pending.value.filter((entry) => entry.kind === 'approval').length
+  const approvals = pending.value.filter((entry) => entry.kind === APPROVAL_KIND).length
 
   return (
     <div class="dialog-form">

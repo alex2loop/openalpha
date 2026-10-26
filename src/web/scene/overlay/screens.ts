@@ -6,11 +6,10 @@ import type { Run } from '@/web/state/live'
 import { hostOf, seriesKeyOf } from '@/web/scene/data/desk-reads'
 import { toParamText } from '@/web/scene/data/room-status'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
-import { scoutOf } from '@/web/scene/sim/vocabulary'
+import { CRAWLERS, scoutOf } from '@/web/scene/sim/vocabulary'
 import { propsOn } from '@/web/scene/world/props'
 
 const ANALYST: ActorId = 'analyst'
-const CRAWLERS: ReadonlySet<ActorId> = new Set(['crawler-1', 'crawler-2'])
 // A desk's computer stands within this far of its person's seat, in world px.
 const SCREEN_REACH_PX = 30
 // The computer's stand under its screen.
@@ -89,7 +88,7 @@ function contentOf(def: ActorDef, input: ScreenInput): ScreenContent | undefined
     return undefined
   }
 
-  if (CRAWLERS.has(def.id)) {
+  if (CRAWLERS.includes(def.id)) {
     const host = run.progress === undefined ? undefined : hostOf(run.progress)
     const isOwn = run.progress !== undefined && scoutOf(run.progress) === def.id
 
@@ -129,7 +128,7 @@ function screenRectOf(def: ActorDef): Rect | undefined {
     }
   }
 
-  if (!CRAWLERS.has(def.id)) {
+  if (!CRAWLERS.includes(def.id)) {
     return undefined
   }
 

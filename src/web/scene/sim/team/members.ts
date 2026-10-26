@@ -10,11 +10,11 @@ import {
   type WalkerState,
 } from '@/web/scene/sim/actors/walk'
 import { toDir } from '@/web/scene/sim/places'
+import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { navGridOf } from '@/web/scene/world/nav-grid'
 import { seedOf } from '@/web/scene/world/rng'
 import { reducedMotion } from '@/web/state/prefs'
 
-const TEAM_FLOOR = 'team'
 // A child wears no prop of its own: the plain look.
 const PLAIN_LOOK: AgentLookWire = Object.freeze({ prop: 'none' })
 

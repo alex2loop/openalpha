@@ -6,16 +6,14 @@ import type { ActorId, ActorStatus, SimView } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { lifeTextOf } from '@/web/scene/overlay/bubbles'
 import { teamGoals } from '@/web/scene/overlay/team-pass'
-import { ownActorIdOf, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, ownActorIdOf, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { goalsFor, holderOf } from '@/web/scene/sim/vocabulary'
 import { agents, selectedAgentId } from '@/web/state/agents'
 import { thread } from '@/web/state/chat'
-import { findRun, pending, runs } from '@/web/state/live'
+import { APPROVAL_KIND, findRun, pending, runs } from '@/web/state/live'
 import { TRUNCATION_MARK } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 
-const ASSISTANT: ActorId = 'assistant'
-const APPROVAL_KIND = 'approval'
 // A queued question shows this much of itself.
 const QUEUED_TEXT_MAX = 40
 

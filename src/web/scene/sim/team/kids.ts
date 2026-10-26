@@ -1,7 +1,7 @@
 import type { Member } from '@/web/scene/sim/team/members'
 import type { Point } from '@/web/scene/types'
 import { toFreePoint } from '@/web/scene/sim/actors/nav'
-import { DESK_SLOTS } from '@/web/scene/world/floors'
+import { DESK_SLOTS, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { navGridOf } from '@/web/scene/world/nav-grid'
 import {
   LOUNGE_BENCH,
@@ -11,7 +11,6 @@ import {
   TEAM_SEATS,
 } from '@/web/scene/world/seats'
 
-const TEAM_FLOOR = 'team'
 // A new child steps out this far beside its parent, and hands its answer over this far below.
 const BESIDE_DX = 14
 const BESIDE_DY = 16

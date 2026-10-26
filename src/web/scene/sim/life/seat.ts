@@ -12,12 +12,12 @@ import {
   type LifeStep,
   seatPoseOf,
 } from '@/web/scene/sim/life/state'
+import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 import { seedOf } from '@/web/scene/world/rng'
 
 const NAP_PICK_PERCENT = 75
 const FIDGET_PERIOD_MS = Object.freeze({ min: 30_000, max: 60_000 })
 const FIDGET_HOLD_MS = Object.freeze({ min: 2_000, max: 4_000 })
-const SEAT_TARGET = 'seat'
 
 /** What a person at their seat does with no moment under way: sit up for a job about to run, nap
  *  over lunch, lean back in a quiet office, or keep the mug they came back with. */

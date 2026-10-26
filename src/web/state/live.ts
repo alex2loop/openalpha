@@ -3,6 +3,8 @@ import { computed, type ReadonlySignal, signal } from '@preact/signals'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/server/wire/live'
 
+/** The pending entry an approval is; the other kind is a question. */
+export const APPROVAL_KIND = 'approval'
 const MAX_RUNS = 200
 const MAX_PERSISTENT_STEPS = 20
 const MAX_PENDING = 50
@@ -139,7 +141,7 @@ export function replacePending(
 export function applyPendingEvent(event: WireEvent): void {
   switch (event.kind) {
     case 'approval_requested':
-      upsertPending({ kind: 'approval', event }, event.requestId)
+      upsertPending({ kind: APPROVAL_KIND, event }, event.requestId)
       return
     case 'approval_resolved':
       removePending(event.requestId)
@@ -203,5 +205,5 @@ function toQuestion(event: WireEvent): QuestionPendingWire | undefined {
 
 /** The key a snapshot entry and its live events share. */
 export function pendingRequestId(entry: PendingWire): string | undefined {
-  return entry.kind === 'approval' ? entry.event.requestId : entry.requestId
+  return entry.kind === APPROVAL_KIND ? entry.event.requestId : entry.requestId
 }

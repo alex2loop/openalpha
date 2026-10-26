@@ -1,10 +1,10 @@
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { ScreenPoint } from '@/web/scene/types'
+import { TOUCH } from '@/web/scene/overlay/pointer'
 import { ZOOM_STEP, zoomBy } from '@/web/scene/view'
 
 // Two fingers pinch; a third is ignored.
 const PINCH_TOUCHES = 2
-const TOUCH = 'touch'
 
 type TouchPair = readonly [ScreenPoint, ScreenPoint]
 

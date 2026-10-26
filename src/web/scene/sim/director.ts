@@ -18,7 +18,7 @@ import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking } from '@/web/scene/sim/actors/walk'
 import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
@@ -42,6 +42,7 @@ import {
 import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
 import { seedOf } from '@/web/scene/world/rng'
 import { TRAY_AT } from '@/web/scene/world/seats'
+import { APPROVAL_KIND } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
 
@@ -114,8 +115,6 @@ const REACTION_POSES: Readonly<Record<ReactionKind, PoseId>> = Object.freeze({
   greet: 'wave',
   'busy-glance': 'busy-glance',
 })
-const APPROVAL_KIND = 'approval'
-const ASSISTANT: ActorId = 'assistant'
 const LIFE_BEAT = 'life'
 
 /** The one director of the office's people: real events become goals, goals become walks. One

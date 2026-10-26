@@ -6,7 +6,7 @@ import type { ActorNow } from '@/web/scene/overlay/actor-state'
 import type { ActorId, Rect, Size } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { overlayView } from '@/web/scene/overlay/overlay'
-import { ownAgentIdOf } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection } from '@/web/scene/view'
 import { selectAgent } from '@/web/state/agents'
 import { setChatOpen } from '@/web/state/chat'
@@ -15,6 +15,7 @@ import { runs } from '@/web/state/live'
 import { type AgentSection, openView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { askStop } from '@/web/ui/kit/ask-stop'
+import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 
 import './radial-menu.css'
 
@@ -23,14 +24,12 @@ const RING_RX_PX = 96
 const RING_RY_PX = 60
 const PILL_HALF_W_PX = 64
 const PILL_HALF_H_PX = 15
-const ESCAPE_KEY = 'Escape'
 const STEP_KEYS: Readonly<Record<string, 1 | -1>> = Object.freeze({
   ArrowRight: 1,
   ArrowDown: 1,
   ArrowLeft: -1,
   ArrowUp: -1,
 })
-const ASSISTANT: ActorId = 'assistant'
 // The built-in people with a tab of their own: the assistant's desk and the alert desk.
 const STAFF_TABS: ReadonlySet<ActorId> = new Set(['assistant', 'clerk'])
 

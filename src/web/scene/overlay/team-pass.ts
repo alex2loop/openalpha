@@ -3,7 +3,7 @@ import { computed } from '@preact/signals'
 import type { ActorId, Rect, SimView } from '@/web/scene/types'
 import { ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { teamGoalsFor } from '@/web/scene/sim/team/goals'
-import { DESK_SLOTS } from '@/web/scene/world/floors'
+import { DESK_SLOTS, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { agents } from '@/web/state/agents'
 import { runs } from '@/web/state/live'
 
@@ -23,7 +23,6 @@ export const CARD_W_PX = 150
 export const CARD_H_PX = 74
 // The card stands this far over its agent's head.
 const CARD_GAP_PX = 4
-const TEAM_FLOOR = 'team'
 // "+ Thêm agent" covers the free desk and its chair, from the desk top's corner.
 const ADD_DESK_INSET = 4
 const ADD_DESK_RISE = 14

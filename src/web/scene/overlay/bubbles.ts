@@ -13,7 +13,7 @@ import { roomTagOf } from '@/web/scene/overlay/room-tags'
 import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
 import { holderOf } from '@/web/scene/sim/vocabulary'
 import { brightened } from '@/web/state/attention'
-import { pendingRequestId } from '@/web/state/live'
+import { APPROVAL_KIND, pendingRequestId } from '@/web/state/live'
 import { locale, state } from '@/web/state/session'
 import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
 import { kidOutcomeKey } from '@/web/text/kid-outcome'
@@ -28,7 +28,6 @@ const BUBBLE_MAX_CHARS = 80
 // One line per speaker is kept, so this is the roster's size.
 const MAX_SAID = 16
 const MANAGER: ActorId = 'pm'
-const APPROVAL_KIND = 'approval'
 const ACTION_KEYS = Object.freeze({
   buy: 'trading.action.buy',
   reduce: 'trading.action.reduce',
