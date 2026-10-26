@@ -42,6 +42,18 @@ const SERVER_ONLY_KEYS = Object.freeze({
   saved: 'errors.credentialsServerOnlySaved',
 } as const)
 
+// One env-file read-modify-write at a time: two saves at once would each rewrite the file from
+// the same read and lose one key.
+let envWriteTail: Promise<unknown> = Promise.resolve()
+
+function serializeEnvWrite<T>(op: () => Promise<T>): Promise<T> {
+  const run = envWriteTail.then(op, op)
+
+  envWriteTail = run
+
+  return run
+}
+
 interface Credential {
   readonly name: string
   readonly group: CredentialGroup
@@ -80,11 +92,13 @@ async function handleCredentialWrite(req: Request, ctx: ApiRouteContext): Promis
   }
 
   try {
-    await writeEnvFileValue({
-      path: ctx.app.resolve('keyFile').path,
-      name,
-      value: parsed.data.value,
-    })
+    await serializeEnvWrite(() =>
+      writeEnvFileValue({
+        path: ctx.app.resolve('keyFile').path,
+        name,
+        value: parsed.data.value,
+      })
+    )
   } catch (err: unknown) {
     ctx.app.resolve('logger').error('api.credentials_write_failed', {
       name,
@@ -105,7 +119,9 @@ async function handleCredentialRemove(req: Request, ctx: ApiRouteContext): Promi
   }
 
   const name = parseAllowedName(req, ctx)
-  const removed = await removeEnvFileValue(ctx.app.resolve('keyFile').path, name)
+  const removed = await serializeEnvWrite(() =>
+    removeEnvFileValue(ctx.app.resolve('keyFile').path, name)
+  )
 
   return json({ removed } satisfies CredentialRemoveResult)
 }
