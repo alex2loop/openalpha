@@ -14,6 +14,8 @@ const CLAIM_PX = NAV_CELL_PX * 2
 const WAIT_GAP_PX = 8
 // Within this of the lift door a person waits for the car; a second rider stands a step aside.
 const LANDING_PX = 14
+// Under this a person stands on their own seat.
+const SEATED_PX = 1
 
 /** Where a person's goal puts them: their floor's lift door while it lies on another floor, a
  *  place, the nearest free prop of a kind, else their seat. */
@@ -73,6 +75,13 @@ export function takeLift(person: Person, lift: Lift): 'boarded' | 'landed' | und
  *  car yet. */
 export function isBoundForLift(person: Person): boolean {
   return !person.isRiding && (person.goal?.floor ?? person.def.floor) !== person.floor
+}
+
+/** On their own floor, standing on their own seat. */
+export function isAtOwnSeat(person: Person): boolean {
+  return (
+    person.floor === person.def.floor && distance(person.walker.pos, person.def.seat.at) < SEATED_PX
+  )
 }
 
 function isAtLanding(person: Person): boolean {

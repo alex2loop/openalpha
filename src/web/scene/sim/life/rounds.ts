@@ -4,8 +4,10 @@ import type { DeskView, Point, RoomId } from '@/web/scene/types'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { begin } from '@/web/scene/sim/life/schedule'
 import { drawBetween, isAtSeat, type LifeState, type LifeStep } from '@/web/scene/sim/life/state'
+import { view } from '@/web/scene/view'
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS, TEAM_FLOOR } from '@/web/scene/world/floors'
+import { createRng, seedOf } from '@/web/scene/world/rng'
 import { roomAt } from '@/web/scene/world/rooms'
 import { LIFT_EXITS, TEAM_SEATS } from '@/web/scene/world/seats'
 import { MS_PER_MINUTE } from '@/web/text/time-units'
@@ -16,6 +18,8 @@ const QUIET_ROUNDS_MINUTES = 25
 // at most one per as long again, so the page sleeps between them.
 const QUIET_ROUNDS_GAP_MS = QUIET_ROUNDS_MINUTES * MS_PER_MINUTE
 const ROUND_STOP_MS = Object.freeze({ min: 2_000, max: 4_000 })
+// A round stops at this many doors in a row along the corridor, drawn per day and round.
+const ROUND_DOOR_STOPS = Object.freeze({ min: 2, max: 3 })
 // Every this many rounds, one takes the lift up to the own agents' desks.
 const LIFT_EVERY = 3
 // A door's stop stands this far out from the wall, in the corridor.
@@ -56,13 +60,18 @@ export const ROUND_DOORS: readonly {
     .sort((a, b) => a.at.x - b.at.x)
 )
 
-/** The assistant's rounds: free at its desk for `ROUNDS_IDLE_MS`, it walks the corridor and stops
- *  at each room's door; every third round it then takes the lift to the team floor and stops at
- *  each own agent's desk. Any work, question or approval for it ends the round at once (the step's
- *  freedom check), and it walks back to its desk, by the lift from upstairs. */
+/** The assistant's rounds: free at its desk for `ROUNDS_IDLE_MS` while its floor is shown, it
+ *  walks the corridor and stops at a few rooms' doors; every third round it then takes the lift to
+ *  the team floor and stops at each own agent's desk. Any work, question or approval for it ends
+ *  the round at once (the step's freedom check), and it walks back to its desk, by the lift from
+ *  upstairs. */
 export function stepRounds(state: LifeState, step: LifeStep): void {
   const actor = step.actors.get(ASSISTANT)
-  const isIdle = actor !== undefined && isRoundFree(actor) && isAtSeat(actor)
+  const isIdle =
+    actor !== undefined &&
+    isRoundFree(actor) &&
+    isAtSeat(actor) &&
+    view.peek().floor === actor.def.floor
 
   if (!(isIdle && step.canWalk) || state.moments.has(ASSISTANT)) {
     state.round.freeSince = undefined
@@ -81,7 +90,7 @@ export function stepRounds(state: LifeState, step: LifeStep): void {
   begin(
     state,
     { actor, kind: 'round', nowMs: step.nowMs, line: { actor: ASSISTANT, label: 'rounds' } },
-    roundStops(state.round.count, state.teamDesks())
+    roundStops({ day: step.clock.day, count: state.round.count }, state.teamDesks())
   )
 }
 
@@ -115,8 +124,12 @@ export function isRoundFree(actor: ActorState): boolean {
   return (actor.goal === undefined || actor.isLife) && !actor.isOwed && actor.beats.length === 0
 }
 
-function roundStops(count: number, desks: readonly DeskView[]): readonly [StopSpec, ...StopSpec[]] {
-  const doors: StopSpec[] = ROUND_DOORS.map((door, i) => ({
+function roundStops(
+  round: { readonly day: string; readonly count: number },
+  desks: readonly DeskView[]
+): readonly [StopSpec, ...StopSpec[]] {
+  const { count } = round
+  const doors: StopSpec[] = doorsOf(round).map((door, i) => ({
     at: door.at,
     pose: 'idle',
     holdMs: drawBetween(ROUND_STOP_MS, 'round', String(count), String(i)),
@@ -133,6 +146,15 @@ function roundStops(count: number, desks: readonly DeskView[]): readonly [StopSp
   const [first, ...rest] = stops
 
   return first === undefined ? [liftStop] : [first, ...rest]
+}
+
+// A run of doors along the corridor, its length and start drawn per day and round.
+function doorsOf(round: { readonly day: string; readonly count: number }): typeof ROUND_DOORS {
+  const rng = createRng(seedOf('round-doors', round.day, String(round.count)))
+  const length = Math.min(rng.int(ROUND_DOOR_STOPS.min, ROUND_DOOR_STOPS.max), ROUND_DOORS.length)
+  const start = rng.int(0, ROUND_DOORS.length - length)
+
+  return ROUND_DOORS.slice(start, start + length)
 }
 
 // Each on-duty own agent's desk on the team floor, from the lift and back to it.

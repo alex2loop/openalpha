@@ -41,7 +41,7 @@ import {
   stepPerson,
   tickPeople,
 } from '@/web/scene/sim/people'
-import { isBoundForLift } from '@/web/scene/sim/places'
+import { isAtOwnSeat, isBoundForLift } from '@/web/scene/sim/places'
 import { createErrands, type Errands, endErrands, isOut } from '@/web/scene/sim/street/errands'
 import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
 import { view as sceneView } from '@/web/scene/view'
@@ -423,7 +423,7 @@ function settlePoses(
 }
 
 // A beat plays over everything; walking reads as a walk; a reaction to the operator over the
-// goal's pose at rest, else seated at a desk or standing.
+// goal's pose at rest, else seated on its own desk chair or standing.
 function poseOf(person: Person): PoseId {
   const beat = person.beats.at(-1)
 
@@ -443,5 +443,5 @@ function poseOf(person: Person): PoseId {
     return person.goal.pose
   }
 
-  return person.def.seat.desk === true ? 'sit' : 'idle'
+  return person.def.seat.desk === true && isAtOwnSeat(person) ? 'sit' : 'idle'
 }
