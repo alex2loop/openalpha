@@ -71,6 +71,9 @@ export interface PaintScene {
   readonly isAwaitingYou: boolean
   /** Today's day of the month, as your desk calendar prints it. */
   readonly dayOfMonth: string
+  /** The rack's lights, a data source each, and whether the store refreshes now. */
+  readonly sources: readonly ('fresh' | 'stale')[]
+  readonly isRefreshing: boolean
   /** Each lobby wall clock's minute of its own zone's day, by the clock's `variant`. */
   readonly wallClocks: readonly number[]
   /** What each room's whiteboard says while a run counts its steps there. */

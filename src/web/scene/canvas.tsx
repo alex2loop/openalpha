@@ -10,6 +10,7 @@ import { exDividends, startExDividends } from '@/web/scene/data/ex-dividends'
 import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
 import { ledItems, startLed } from '@/web/scene/data/led'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
+import { startSourceLights } from '@/web/scene/data/source-lights'
 import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
 import { todayRuns } from '@/web/scene/data/today-runs'
 import { startWeather, weather } from '@/web/scene/data/weather'
@@ -184,6 +185,7 @@ function startReads(): (() => void)[] {
     startTeamCalls(),
     startWeather(),
     startExDividends(),
+    startSourceLights(),
   ]
 }
 

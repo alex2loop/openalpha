@@ -2,19 +2,14 @@ import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { LightRow } from '@/web/scene/sprites/daylight'
 import type { StreetFrame } from '@/web/scene/street-types'
-import { pageMinute } from '@/web/scene/clock/clock'
-import { agenda } from '@/web/scene/data/agenda'
-import { alertStrip } from '@/web/scene/data/alert-strip'
 import { indexDrop } from '@/web/scene/data/board'
-import { wallClockMinutes } from '@/web/scene/data/home'
-import { homeIndex } from '@/web/scene/data/led'
-import { boardCaptions, isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitAt, fitFloor, fitRoom } from '@/web/scene/render2d/camera'
 import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
 import { releaseDeskItems } from '@/web/scene/render2d/desk-items'
 import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
 import { paintLighting } from '@/web/scene/render2d/lights'
+import { buildPaintScene } from '@/web/scene/render2d/paint-scene'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
 import { paintSkyFx } from '@/web/scene/render2d/sky-fx'
@@ -27,10 +22,9 @@ import {
 } from '@/web/scene/render2d/team'
 import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
 import { isCharacterMotionOn, isOnFloor } from '@/web/scene/sim/actors/poses'
-import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { lightOf } from '@/web/scene/sprites/daylight'
-import { boardNotes, createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
+import { createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
 import { isGlassMoving } from '@/web/scene/sprites/sky-glass'
 import {
   type FloorId,
@@ -46,17 +40,13 @@ import { propsOn } from '@/web/scene/world/props'
 import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 import { selectedActor } from '@/web/state/focus'
-import { APPROVAL_KIND, pending } from '@/web/state/live'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
-import { toneOfPercent } from '@/web/text/figures'
 
 const CANVAS_CLASS = 'scene-canvas'
 const STAGE_TOKEN = '--stage'
 const ACTOR_TIE_RANK = 2
 // The operator's tray sits on your desk, on the office floor; the own agents work upstairs.
 const TRAY_FLOOR: FloorId = 'office'
-// Where the day of the month starts in a `YYYY-MM-DD` day.
-const DAY_OF_MONTH_AT = 8
 const IDENTITY_FIT: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
 /** Where the floor sits in the pane: CSS px per world px and the CSS px of world (0, 0). */
@@ -185,7 +175,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   resizeCanvas(surface.canvas, pane, dpr)
 
   const fit = placeCamera(surface, pane, dpr)
-  const scene = buildPaintScene(surface, sim, fit.scale)
+  const scene = buildPaintScene({ sim, scale: fit.scale, screens: surface.screens })
   const light = lightOf(sim.light)
   const motion = {
     isOn: isCharacterMotionOn(sim.actors, { floor: sim.floor, now }),
@@ -237,31 +227,6 @@ function resolveFit(spec: {
   }
 
   return spec.steps === 0 ? spec.base : fitAt(spec.base.scale * ZOOM_STEP ** spec.steps, spec.dpr)
-}
-
-function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintScene {
-  const lib = roomStatus.value.get('lib')?.runs[0]
-
-  return {
-    lit: sim.props.lit,
-    isAnyLit: sim.props.lit.size > 0,
-    minuteOfDay: pageMinute.value.minute,
-    scale,
-    isPrinting: isPrintingRun(lib),
-    notes: boardNotes.value,
-    strip: alertStrip.value,
-    agenda: agenda.value,
-    screens: surface.screens,
-    life: sim.life,
-    detail: detailOf(scale),
-    isRaining: sim.weather.rain > 0,
-    lift: sim.lift,
-    indexMove: toneOfPercent(homeIndex.value?.changePct),
-    isAwaitingYou: pending.value.some((entry) => entry.kind === APPROVAL_KIND),
-    dayOfMonth: String(Number(pageMinute.value.day.slice(DAY_OF_MONTH_AT))),
-    captions: boardCaptions.value,
-    wallClocks: wallClockMinutes.value,
-  }
 }
 
 interface FloorJob {
