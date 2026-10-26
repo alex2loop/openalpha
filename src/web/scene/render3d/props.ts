@@ -1,6 +1,5 @@
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import { type Box, box, type Spot } from '@/web/scene/render3d/boxes'
-import { HEIGHT_K } from '@/web/scene/render3d/space'
 import {
   CARD,
   DARKWOOD,
@@ -11,6 +10,7 @@ import {
   PROP_TONES,
   WOOD,
 } from '@/web/scene/sprites/palette'
+import { HEIGHT_K } from '@/web/scene/view'
 import { isWallMounted, type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
 import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { SEATS, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'

@@ -2,8 +2,15 @@ import type { OrthographicCamera } from 'three'
 import { Vector3 } from 'three'
 
 import type { Point, ScreenPoint, Size } from '@/web/scene/types'
-import { ELEVATION, toUnits, UNIT_PX } from '@/web/scene/render3d/space'
-import { clampPan, MAX_ZOOM_3D_PX, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'
+import { toUnits, UNIT_PX } from '@/web/scene/render3d/space'
+import {
+  clampPan,
+  ELEVATION,
+  MAX_ZOOM_3D_PX,
+  reportProjection,
+  view,
+  ZOOM_STEP,
+} from '@/web/scene/view'
 import { fitFloorScale, fitRoomScale, NARROW_MIN_SCALE } from '@/web/scene/world/framing'
 import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'

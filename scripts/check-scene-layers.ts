@@ -32,6 +32,8 @@ const SCENE_LAYERS: Readonly<Record<string, number>> = Object.freeze({
 })
 // Root files every layer may import; the composer is a root file no layer imports.
 const ROOT_FILES: ReadonlySet<string> = new Set(['types', 'renderer', 'budgets', 'view'])
+// The composer and the crew it builds: root files no layer imports, free to reach every layer.
+const COMPOSER_FILES: ReadonlySet<string> = new Set([COMPOSER, 'crew'])
 // Same-rank reaches allowed by name: importer layer -> path prefixes under `scene/`.
 const SIDE_REACHES: Readonly<Record<string, readonly string[]>> = Object.freeze({
   render2d: ['sprites/'],
@@ -103,12 +105,16 @@ function issueOf(importer: string, specifier: string, isDynamic: boolean): strin
 }
 
 function layerIssue(from: Place, to: Place, specifier: string): string | undefined {
+  const isComposer = from.layer === 'root' && COMPOSER_FILES.has(from.path)
+
   if (to.layer === 'root') {
-    return ROOT_FILES.has(to.path) ? undefined : `'${specifier}' is the composer; no scene file imports it`
+    return ROOT_FILES.has(to.path) || isComposer
+      ? undefined
+      : `'${specifier}' is the composer; no scene file imports it`
   }
 
   if (from.layer === 'root') {
-    return from.path === COMPOSER ? undefined : `scene root file may import only root files, not '${specifier}'`
+    return isComposer ? undefined : `scene root file may import only root files, not '${specifier}'`
   }
 
   const fromRank = SCENE_LAYERS[from.layer]

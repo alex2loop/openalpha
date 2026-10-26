@@ -13,7 +13,6 @@ import {
   type Shapes,
 } from '@/web/scene/render3d/instancing'
 import { LAMP_SHADE_SIZE } from '@/web/scene/render3d/props'
-import { ELEVATION } from '@/web/scene/render3d/space'
 import {
   ALERT_RGB,
   DROP_POOL,
@@ -23,6 +22,7 @@ import {
   WARM_RGB,
 } from '@/web/scene/sprites/daylight'
 import { OUTLINE, PROP_TONES, STATUS_TONES } from '@/web/scene/sprites/palette'
+import { ELEVATION } from '@/web/scene/view'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
 

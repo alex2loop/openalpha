@@ -1,18 +1,15 @@
 import {
-  BufferAttribute,
   Color,
   DataTexture,
   DirectionalLight,
   DoubleSide,
   HemisphereLight,
   type Material,
-  Mesh,
   MeshBasicMaterial,
   MeshLambertMaterial,
   type MeshLambertMaterialParameters,
   MeshToonMaterial,
   NearestFilter,
-  PlaneGeometry,
   RedFormat,
   type Scene,
   Vector3,
@@ -24,7 +21,6 @@ import type { FloorId, RoomId } from '@/web/scene/types'
 import { toUnits } from '@/web/scene/render3d/space'
 import { CLOSED_ROOM, type LightRow } from '@/web/scene/sprites/daylight'
 import { TOON_BANDS } from '@/web/scene/sprites/palette'
-import { FRAME_RECT } from '@/web/scene/view'
 import { roomsOn } from '@/web/scene/world/rooms'
 
 /** Every material the 3D office draws with; each instanced one reads its room at the instance. */
@@ -38,16 +34,14 @@ export interface Materials {
   readonly toon: MeshToonMaterial
 }
 
-/** The lights, the rooms' fill uniforms and the sky behind the north glass. */
+/** The lights and the rooms' fill uniforms. */
 export interface Lighting {
   readonly materials: Materials
   readonly hemi: HemisphereLight
   readonly sun: DirectionalLight
-  readonly sky: Mesh<PlaneGeometry, MeshBasicMaterial>
   readonly uniforms: RoomUniforms
   readonly factors: Map<RoomId, number>
   readonly disposables: readonly { dispose(): void }[]
-  skyKey: string
 }
 
 /** What the lights follow this frame. */
@@ -92,8 +86,6 @@ const SETTLED = 0.004
 const GLASS_OPACITY = 0.34
 const CURTAIN_OPACITY = 0.12
 const CURTAIN_TONE = '#CFE6FF'
-const SKY_PX = 320
-const SKY_Z_PX = -6
 
 export function createLighting(scene: Scene): Lighting {
   const uniforms: RoomUniforms = {
@@ -110,20 +102,17 @@ export function createLighting(scene: Scene): Lighting {
   const materials = createMaterials(uniforms, gradient)
   const hemi = new HemisphereLight(0xffffff, GROUND_TONE, HEMI_INTENSITY)
   const sun = new DirectionalLight(0xffffff, SUN_INTENSITY)
-  const sky = createSky()
 
   sun.position.set(SUN_AT.x, SUN_AT.y, SUN_AT.z)
-  scene.add(hemi, sun, sky)
+  scene.add(hemi, sun)
 
   return {
     materials,
     hemi,
     sun,
-    sky,
     uniforms,
     factors: new Map(),
-    disposables: [...Object.values(materials), gradient, sky.geometry, sky.material],
-    skyKey: '',
+    disposables: [...Object.values(materials), gradient],
   }
 }
 
@@ -155,7 +144,6 @@ export function syncLighting(lighting: Lighting, spec: LightSpec): boolean {
     )
   })
   clearSlots(lighting, roomsOn(spec.floor).length)
-  syncSky(lighting, spec.row.sky)
 
   return isEasing
 }
@@ -211,42 +199,6 @@ function tintOf(row: LightRow): Color {
   return rgb === undefined
     ? new Color(0xffffff)
     : new Color(`rgb(${rgb})`).lerp(new Color(0xffffff), 1 - TINT_HUE_SHARE)
-}
-
-function syncSky(lighting: Lighting, sky: readonly [string, string]): void {
-  const key = sky.join()
-
-  if (lighting.skyKey === key) {
-    return
-  }
-
-  const colors = lighting.sky.geometry.getAttribute('color')
-  const [top, bottom] = sky.map((hex) => new Color(hex))
-
-  for (let v = 0; v < colors.count; v++) {
-    const tone = v < 2 ? top : bottom
-
-    colors.setXYZ(v, tone?.r ?? 1, tone?.g ?? 1, tone?.b ?? 1)
-  }
-
-  colors.needsUpdate = true
-  lighting.skyKey = key
-}
-
-// A tall plane behind the north glass, its top the sky's top colour and its foot the horizon's.
-function createSky(): Mesh<PlaneGeometry, MeshBasicMaterial> {
-  const geometry = new PlaneGeometry(toUnits(FRAME_RECT.w), toUnits(SKY_PX))
-  const material = new MeshBasicMaterial({
-    vertexColors: true,
-    toneMapped: false,
-    side: DoubleSide,
-  })
-  const sky = new Mesh(geometry, material)
-
-  geometry.setAttribute('color', new BufferAttribute(new Float32Array(4 * 3).fill(1), 3))
-  sky.position.set(toUnits(FRAME_RECT.x + FRAME_RECT.w / 2), toUnits(SKY_PX / 2), toUnits(SKY_Z_PX))
-
-  return sky
 }
 
 function createToonGradient(): DataTexture {

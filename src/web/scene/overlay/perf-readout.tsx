@@ -25,21 +25,23 @@ interface StreetTimes {
   readonly paintMs: number
 }
 
-/** Where the mounted street's times are read; nothing while none is mounted. */
-export interface StreetReader {
-  read(): StreetTimes | undefined
-}
-
 interface PerfReadoutProps {
   readonly renderer: SceneRenderer
-  readonly street: StreetReader
+}
+
+// The mounted street's times; none while no street is mounted.
+let readStreetTimes: (() => StreetTimes) | undefined
+
+/** The crew lends its street's times while mounted and takes them back (`undefined`) on unmount. */
+export function lendStreetTimes(read: (() => StreetTimes) | undefined): void {
+  readStreetTimes = read
 }
 
 /** The renderer's figures against their budgets, only on an address with `?perf=1`. */
-export function PerfReadout({ renderer, street }: PerfReadoutProps) {
+export function PerfReadout({ renderer }: PerfReadoutProps) {
   const [isShown] = useState(() => new URLSearchParams(location.search).get(PERF_PARAM) === PERF_ON)
 
-  return isShown ? <PerfPanel renderer={renderer} street={street} /> : null
+  return isShown ? <PerfPanel renderer={renderer} /> : null
 }
 
 // The 2D frame against its budget; the 3D frame has no budget of its own, so it reads bare.
@@ -64,7 +66,7 @@ function FrameLine({ stats }: { readonly stats: RendererStats | undefined }) {
   )
 }
 
-function PerfPanel({ renderer, street }: PerfReadoutProps) {
+function PerfPanel({ renderer }: PerfReadoutProps) {
   const [stats, setStats] = useState<RendererStats | undefined>(undefined)
   const [times, setTimes] = useState<StreetTimes | undefined>(undefined)
 
@@ -72,9 +74,9 @@ function PerfPanel({ renderer, street }: PerfReadoutProps) {
     () =>
       pollStats(() => {
         setStats(renderer.stats())
-        setTimes(street.read())
+        setTimes(readStreetTimes?.())
       }),
-    [renderer, street]
+    [renderer]
   )
 
   return (

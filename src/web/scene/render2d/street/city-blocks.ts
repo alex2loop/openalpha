@@ -2,14 +2,13 @@ import type { StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { Point } from '@/web/scene/types'
 import { drawSprite, staticPxOf } from '@/web/scene/render2d/street/detail'
 import { mixTone } from '@/web/scene/render2d/street/tone'
+import { HEIGHT_K } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 /** What night mixes every daylight tone toward. */
 const NIGHT = '#0A0E1C'
 const WHITE = '#FFFFFF'
-// A facade's height shows this share of itself up the map, as under the 3D camera's tilt.
-const FACADE_RISE = 0.78
 const BODY_NIGHT = 0.55
 const ROOF_NIGHT = 0.5
 const ROOF_LIGHTEN = 0.16
@@ -118,7 +117,7 @@ interface Band {
 
 export function paintBlock(scene: CityScene, block: Block): void {
   const { g } = scene
-  const rise = block.height * FACADE_RISE
+  const rise = block.height * HEIGHT_K
   const top = block.base - rise
   const rng = createRng(block.seed)
 
@@ -155,10 +154,10 @@ export function paintFarBand(scene: CityScene, band: Band): void {
         Math.min(
           17 + rng.next() * (20 + (row % 3) * 5),
           BAND_MAX_RISE,
-          (base - band.capTop - BAND_DEPTH) / FACADE_RISE
+          (base - band.capTop - BAND_DEPTH) / HEIGHT_K
         )
       )
-      const rise = height * FACADE_RISE
+      const rise = height * HEIGHT_K
 
       g.fillStyle = body
       g.fillRect(x, base - rise, w, rise)
@@ -179,7 +178,7 @@ export function paintTree(scene: CityScene, at: Point, kind: number): void {
   const { g } = scene
   const look = kind % CROWN_RADII.length
   const radius = CROWN_RADII[look] ?? CROWN_RADII[0]
-  const crownY = at.y - (TRUNK_PX + look * TRUNK_STEP_PX) * FACADE_RISE - radius * 0.4
+  const crownY = at.y - (TRUNK_PX + look * TRUNK_STEP_PX) * HEIGHT_K - radius * 0.4
   const darkStep = Math.round(scene.dark * DARK_STEPS)
 
   g.fillStyle = mixTone(TREE_TRUNK, TREE_TRUNK_NIGHT, scene.dark * TRUNK_NIGHT)
@@ -204,7 +203,7 @@ export function paintTree(scene: CityScene, at: Point, kind: number): void {
  *  darkness passes its own threshold. */
 export function paintLamp(scene: CityScene, at: Point, side: -1 | 1): void {
   const { g, dark } = scene
-  const top = at.y - LAMP_HEIGHT_PX * FACADE_RISE
+  const top = at.y - LAMP_HEIGHT_PX * HEIGHT_K
   const threshold =
     LAMP_ON_FROM + LAMP_ON_SPAN * createRng(seedOf('lamp', String(at.x), String(at.y))).next()
   const headX = at.x + side * LAMP_ARM_PX

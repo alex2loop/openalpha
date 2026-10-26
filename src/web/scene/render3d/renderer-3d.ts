@@ -41,6 +41,7 @@ import {
   type ScreenFaces,
   syncScreenFaces,
 } from '@/web/scene/render3d/screen-faces'
+import {
   createStreetPlanes,
   disposeStreetPlanes,
   type StreetPlanes,
@@ -164,8 +165,6 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
   const pets = createPets()
 
   scene.add(root, cast.root, pets.root)
-  // The street canvas carries the sky.
-  lighting.sky.visible = false
 
   return {
     canvas,

@@ -17,6 +17,11 @@ export const STREET_RECT: Rect = Object.freeze({
   w: FRAME_RECT.w + 2 * STREET_SIDE_PX,
   h: FRAME_RECT.h + STREET_NORTH_PX + STREET_SOUTH_PX,
 })
+/** The fixed 3D camera looks north and down at this angle. */
+export const ELEVATION = (52 * Math.PI) / 180
+/** A point this many px up shows `HEIGHT_K` times as far up the screen as a step north does, in
+ *  3D and in the 2D street's facades alike. */
+export const HEIGHT_K = Math.cos(ELEVATION) / Math.sin(ELEVATION)
 /** One zoom step multiplies the fitted floor's scale by this. */
 export const ZOOM_STEP = 1.4
 const MAX_ZOOM_STEPS = 4

@@ -49,7 +49,7 @@ export function createStreet(deps: {
   return {
     step() {
       const startedAt = performance.now()
-      const isMoving = !deps.reduced.value && hasEntities(pools)
+      const isMoving = !deps.reduced.value && hasStreetEntities(pools)
 
       if (isMoving) {
         step++
@@ -71,6 +71,7 @@ function emptyPools(): Pools {
   return { vehicles: [], people: [], critters: [] }
 }
 
-function hasEntities(held: Pools): boolean {
+/** Something stands in one of the pools. */
+export function hasStreetEntities(held: Pools): boolean {
   return Object.values(held).some((pool) => pool.length > 0)
 }

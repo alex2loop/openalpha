@@ -9,9 +9,10 @@ import {
 
 import type { FloorId, Point } from '@/web/scene/types'
 import { type Box, box } from '@/web/scene/render3d/boxes'
-import { HEIGHT_K, toUnits, WALL_PX } from '@/web/scene/render3d/space'
+import { toUnits, WALL_PX } from '@/web/scene/render3d/space'
 import { FLOOR_TONES, WALL_TONES } from '@/web/scene/sprites/palette'
 import { WORLD } from '@/web/scene/types'
+import { HEIGHT_K } from '@/web/scene/view'
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS, type Wall } from '@/web/scene/world/floors'
 import { type RoomDef, roomAt, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'

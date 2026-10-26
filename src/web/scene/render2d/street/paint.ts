@@ -10,6 +10,7 @@ import {
   staticPxOf,
 } from '@/web/scene/render2d/street/detail'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { hasStreetEntities } from '@/web/scene/sim/street/street'
 import { DAY_LIGHT_HOUR } from '@/web/scene/sprites/daylight'
 import { projection, STREET_RECT } from '@/web/scene/view'
 import { lightByHour } from '@/web/state/prefs'
@@ -47,6 +48,9 @@ const MOVING_PAINTS: readonly MovingPaint[] = PAINT_PARTS.flatMap((part) =>
  *  the frame; `paintMs` is the last static repaint's time. */
 export interface StreetPainter {
   paint(view: StreetView, visible: Rect, minute: ClockParts): StreetFrame
+  /** The frame just drawn still fits the camera its draw placed: the detail level, and the
+   *  moving canvas still covers `visible`. False after a zoom or pan the paint ran ahead of. */
+  isCurrent(visible: Rect): boolean
   paintMs(): number
   release(): void
 }
@@ -55,6 +59,7 @@ interface PainterState {
   readonly staticCanvas: HTMLCanvasElement
   readonly movingCanvas: HTMLCanvasElement
   staticKey: string
+  detail: StreetDetail | undefined
   staticVersion: number
   movingKey: string
   movingVersion: number
@@ -67,6 +72,7 @@ export function createStreetPainter(): StreetPainter {
     staticCanvas: document.createElement('canvas'),
     movingCanvas: document.createElement('canvas'),
     staticKey: '',
+    detail: undefined,
     staticVersion: 0,
     movingKey: '',
     movingVersion: 0,
@@ -89,6 +95,9 @@ export function createStreetPainter(): StreetPainter {
         movingVersion: state.movingVersion,
       }
     },
+    isCurrent: (visible) =>
+      state.detail === detailOfPx(projection.value.scale * devicePixelRatio) &&
+      (state.movingCanvas.width === 0 || isInside(visible, state.movingRect)),
     paintMs: () => state.paintMs,
     release() {
       zeroCanvas(state.staticCanvas)
@@ -96,6 +105,7 @@ export function createStreetPainter(): StreetPainter {
       releaseStreetSprites()
       state.staticKey = ''
       state.movingKey = ''
+      state.detail = undefined
     },
   }
 }
@@ -115,7 +125,13 @@ function syncStatic(state: PainterState, minute: StreetMinute): void {
   )
   const g = state.staticCanvas.getContext('2d')
 
-  if (key === state.staticKey || g === null) {
+  if (key === state.staticKey) {
+    return
+  }
+
+  state.detail = minute.detail
+
+  if (g === null) {
     return
   }
 
@@ -172,7 +188,16 @@ function syncMoving(
 }
 
 function hasMovers(view: StreetView): boolean {
-  return MOVING_PAINTS.length > 0 && Object.values(view.pools).some((pool) => pool.length > 0)
+  return MOVING_PAINTS.length > 0 && hasStreetEntities(view.pools)
+}
+
+function isInside(inner: Rect, outer: Rect): boolean {
+  return (
+    inner.x >= outer.x &&
+    inner.y >= outer.y &&
+    inner.x + inner.w <= outer.x + outer.w &&
+    inner.y + inner.h <= outer.y + outer.h
+  )
 }
 
 function clearMoving(state: PainterState): void {
