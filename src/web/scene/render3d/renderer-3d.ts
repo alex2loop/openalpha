@@ -46,6 +46,7 @@ import { buildFloor, disposeFloor, type FloorScene } from '@/web/scene/render3d/
 import { createShapes, type Shapes } from '@/web/scene/render3d/instancing'
 import { createLamps, disposeLamps, type Lamps, syncLamps } from '@/web/scene/render3d/lamps'
 import { createLift3d, disposeLift3d, type Lift3d, syncLift3d } from '@/web/scene/render3d/lift'
+import { isNightSun } from '@/web/scene/render3d/light-model'
 import { createLighting, type Lighting, syncLighting } from '@/web/scene/render3d/lights'
 import { createPets, disposePets, type Pets, syncPets } from '@/web/scene/render3d/pets'
 import {
@@ -180,7 +181,7 @@ function createStage(host: HTMLElement): Stage {
 function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
   const scene = new Scene()
   const root = new Group()
-  const lighting = createLighting(scene)
+  const lighting = createLighting(scene, renderer)
   const shapes = createShapes()
   const cast = createCast(lighting.materials.toon)
   const pets = createPets()
@@ -314,8 +315,10 @@ function syncScene(
     lit,
     lampGlow,
     isClosed,
-    row,
     sun: sim.light.sun,
+    cloud: sim.light.cloud,
+    rain: sim.weather.rain,
+    isQuiet: sim.life.isQuiet,
     flash: flashOf(sim.weather, now),
     dtMs,
     isReduced,
@@ -407,6 +410,7 @@ function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
     props: stage.floor?.props,
     scale: stage.placement.scale,
     walls: stage.floor?.walls ?? [],
+    mood: { lift: sim.lift, isQuiet: sim.life.isQuiet, isNight: isNightSun(sim.light.sun) },
   })
   const isLampChanged = syncLamps(stage.lamps, {
     lamps: stage.floor?.props.lamps ?? [],
@@ -429,6 +433,7 @@ function syncFloor(stage: Stage, sim: SimView): boolean {
 
   stage.floor = buildFloor(sim.floor, stage.lighting)
   stage.scene.add(stage.floor.group)
+  stage.renderer.shadowMap.needsUpdate = true
 
   return true
 }

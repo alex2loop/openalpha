@@ -2,6 +2,7 @@ import type { Build, FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId } from '@/web/scene/types'
 import { type Box, box } from '@/web/scene/render3d/boxes'
 import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
+import { ELEVATION } from '@/web/scene/view'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
 import { roomById } from '@/web/scene/world/rooms'
 
@@ -15,7 +16,6 @@ const STANDBY_FACE = Object.freeze({ w: 14.6, h: 9.1 })
 const CALENDAR_FACE = Object.freeze({ size: 7, tilt: -1.05 })
 
 const SILVER = '#A3AAB8'
-const MONITOR_BACK = '#2A2F3F'
 const KEYBOARD = '#F4F0E8'
 const KEY_ROW = '#C9CDD6'
 const STUDIO = Object.freeze({ w: 6.4, h: 3.2, base: '#3B404B', body: '#C7CCD4', top: '#E4E7EC' })
@@ -32,12 +32,20 @@ const GLASS_WATER = '#BFE0F2'
 const PLACARD_LINE = '#8E8497'
 const CABLE = Object.freeze({ tray: '#B9C0CC', rail: '#AAB1BD', y: 36, gap: 22 })
 const BRASS = '#D9B25C'
+// A junior's phone (the mockup's silver finish) and mug.
+const PHONE = Object.freeze({ w: 5, d: 10.4, body: '#C9CCD3', edge: '#E6E8EC', glass: '#050608' })
+const MUG = Object.freeze({ r: 2, h: 3.6, cup: '#F7F5EF', coffee: '#4A2C17' })
 const BANKER_SHADE = Object.freeze({ off: '#5FA878', on: '#A8EBC0' })
 // The seat a screen's worker sits at stands this far south of the computer's foot.
 const SCREEN_SEAT_DZ = 8
 // The monitor stands this far in from its desk's back edge, its face this far in front of that.
 const MONITOR_BACK_INSET = 1.5
 const MONITOR_FACE_PROUD = 1.2
+const MONITOR_FACE_D = 0.3
+// The back's centre sits this far behind the face.
+const MONITOR_BACK_OUT = 0.7
+// The mockup's lean: back from upright until the face looks straight at the camera.
+const MONITOR_TILT = -(Math.PI / 2 - ELEVATION)
 // A computer stands on the desk whose footprint holds it, give or take this.
 const ON_DESK_SLACK_PX = 4
 // The operator desk's top sits this high in the mockup; its pieces keep their rise above it.
@@ -90,43 +98,56 @@ export function deskThings(job: Build): void {
 
   juniorThings(job)
 
-  if (job.prop.room === ASSISTANT_ROOM) {
-    const { x, y, w } = job.prop.rect
+  const { x, y, w } = job.prop.rect
+  const top = job.prop.height
 
-    standby(job, { x: x + w - 16, z: y + 0.5, top: job.prop.height, kind: 'standby-flow' })
+  if (job.prop.room === ASSISTANT_ROOM) {
+    standby(job, { x: x + w - 16, z: y + 0.5, top, kind: 'standby-flow' })
+    return
   }
+
+  deskPhone(job.out, { x: x + w - 13, z: y + 1, top })
+  mug(job.out, { x: x + w - 5, z: y + 7, top })
 }
 
-/** A monitor on its silver stand at the back of its desk, the face drawn apart so it can light. */
+/** A monitor on its silver stand at the back of its desk, leaning back until its face looks at the
+ *  camera; its face and back are placed by `fixtures` so the face can light. */
 export function monitorOf({ prop, out, floor }: Build): void {
   const cx = prop.rect.x + prop.rect.w / 2
   const desk = deskUnder(prop)
   const z = (desk?.rect.y ?? prop.rect.y) + MONITOR_BACK_INSET
   const top = desk?.height ?? prop.height
   const { w, h } = MONITOR_FACE
+  const pivot = { y: MONITOR_BASE_PX, z: z + MONITOR_FACE_PROUD }
+  const face = leaned(pivot, { up: h / 2, out: MONITOR_FACE_D / 2 })
+  const back = leaned(pivot, { up: h / 2, out: -MONITOR_BACK_OUT })
 
   out.push(
     box([cx - 0.9, z - 0.2, 1.8, 1.6, top, MONITOR_BASE_PX - top + 0.4], SILVER),
-    box([cx - 3.5, z - 0.6, 7, 3, top, 0.8], SILVER, true),
-    box(
-      [
-        cx - (w + 0.8) / 2,
-        z + MONITOR_FACE_PROUD - 0.7,
-        w + 0.8,
-        1,
-        MONITOR_BASE_PX - 0.4,
-        h + 0.8,
-      ],
-      MONITOR_BACK,
-      true
-    )
+    box([cx - 3.5, z - 0.6, 7, 3, top, 0.8], SILVER, true)
   )
   floor.screens.push({
-    at: [cx, MONITOR_BASE_PX + h / 2, z + MONITOR_FACE_PROUD + 0.5],
-    size: [w, h, 0.3],
+    at: [cx, face.y, face.z],
+    size: [w, h, MONITOR_FACE_D],
+    tilt: MONITOR_TILT,
+    back: { at: [cx, back.y, back.z], size: [w + 0.8, h + 0.8, 1] },
     seat: { x: cx, y: prop.rect.y + prop.rect.h + SCREEN_SEAT_DZ },
     slot: { x: cx, y: prop.rect.y + prop.rect.h },
   })
+}
+
+// A point `up` along a leaning monitor and `out` in front of it, from its foot.
+function leaned(
+  pivot: { readonly y: number; readonly z: number },
+  local: { readonly up: number; readonly out: number }
+): { readonly y: number; readonly z: number } {
+  const cos = Math.cos(MONITOR_TILT)
+  const sin = Math.sin(MONITOR_TILT)
+
+  return {
+    y: pivot.y + local.up * cos - local.out * sin,
+    z: pivot.z + local.up * sin + local.out * cos,
+  }
 }
 
 /** The meeting table's papers, pad, glass, pitcher and cups, the role placards and two StandBy
@@ -360,6 +381,32 @@ function bankerLamp(built: FloorProps, desk: PropDef): void {
     off: BANKER_SHADE.off,
     on: BANKER_SHADE.on,
   })
+}
+
+// A phone lying screen up: a silver body, its bright edge and the dark glass.
+function deskPhone(out: Box[], at: Place): void {
+  const { x, z, top } = at
+  const { w, d } = PHONE
+
+  out.push(
+    box([x, z, w, d, top, 0.8], PHONE.body, true),
+    box([x + 0.15, z + 0.15, w - 0.3, d - 0.3, top + 0.8, 0.07], PHONE.edge),
+    box([x + 0.35, z + 0.35, w - 0.7, d - 0.7, top + 0.87, 0.04], PHONE.glass)
+  )
+}
+
+// A mug of coffee: the cup, the coffee under its rim and a handle on the right.
+function mug(out: Box[], at: Place): void {
+  const { x, z, top } = at
+
+  out.push(
+    box([x - MUG.r, z - MUG.r, MUG.r * 2, MUG.r * 2, top, MUG.h], MUG.cup, true),
+    box(
+      [x - MUG.r * 0.8, z - MUG.r * 0.8, MUG.r * 1.6, MUG.r * 1.6, top + MUG.h - 0.7, 0.05],
+      MUG.coffee
+    ),
+    box([x + MUG.r, z - 0.3, 1.2, 0.6, top + 1, 1.8], MUG.cup)
+  )
 }
 
 function pitcher(out: Box[], at: Place): void {

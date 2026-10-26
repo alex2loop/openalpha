@@ -941,6 +941,8 @@
     "office.crew.receptionist": "Receptionist",
     "office.crew.guard": "Security guard",
     "office.crew.cleaner": "Cleaner",
+    "office.copier.ready": "Ready",
+    "office.copier.printing": "Printing",
     "office.crew.wetFloor": "Wet floor",
     "office.errand.going": "Heading to {shop} for {thing}",
     "office.errand.queue": "Queuing at {shop}",

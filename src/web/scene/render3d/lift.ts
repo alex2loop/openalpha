@@ -10,7 +10,7 @@ import {
   type Shapes,
 } from '@/web/scene/render3d/instancing'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
-import { LIFT_LAMP_FLOORS, LIFT_LEAF_SLIDE } from '@/web/scene/sprites/lift-look'
+import { LIFT_LEAF_SLIDE } from '@/web/scene/sprites/lift-look'
 import { PROP_TONES } from '@/web/scene/sprites/palette'
 import { GROUND_FLOOR, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
@@ -19,76 +19,69 @@ import { type PropDef, propsOn } from '@/web/scene/world/props'
 const LEAF_PROUD = 0.3
 const LEAF_D = 0.4
 const PANEL = Object.freeze({ inset: 3, rise: 1.2, h: 3, d: 0.6 })
-const LAMP = Object.freeze({ w: 2, h: 1.6, inset: 2 })
-const CALL_W = 1.6
 const LIFTS: Readonly<Record<FloorId, PropDef | undefined>> = Object.freeze({
   office: propsOn(GROUND_FLOOR).find((prop) => prop.kind === 'lift-door'),
   team: propsOn(TEAM_FLOOR).find((prop) => prop.kind === 'lift-door'),
 })
 
-/** The lift on the floor shown: its two leaves and the panel over them (lit), the floor lamps
- *  and the call lamp (unlit). Placed again only when the car, its doors or a call change. */
+/** The lift on the floor shown: its two leaves and the panel over them; the panel's indicator is
+ *  a painted face (`screen-faces`). Placed again only when the car or its doors change. */
 export interface Lift3d {
   readonly leaves: Pool
-  readonly lamps: Pool
-  shown: { floor: FloorId | undefined; at: FloorId; doors: number; calls: number }
+  shown: { floor: FloorId | undefined; at: FloorId; doors: number }
 }
 
 export function createLift3d(shapes: Shapes, materials: Materials, root: Group): Lift3d {
   const leaves = createPool(shapes.box, materials.litI, { cap: 3 })
-  const lamps = createPool(shapes.box, materials.unlitI, { cap: LIFT_LAMP_FLOORS.length + 1 })
 
-  root.add(leaves.mesh, lamps.mesh)
+  root.add(leaves.mesh)
 
-  return { leaves, lamps, shown: { floor: undefined, at: GROUND_FLOOR, doors: -1, calls: -1 } }
+  return { leaves, shown: { floor: undefined, at: GROUND_FLOOR, doors: -1 } }
 }
 
 /** True when the lift on `floor` changed its picture. */
 export function syncLift3d(lift: Lift3d, at: { floor: FloorId; view: LiftView }): boolean {
   const { view, floor } = at
   const doors = view.floor === floor ? view.doors : 0
-  const calls = view.called.includes(floor) ? 1 : 0
   const { shown } = lift
 
-  if (
-    shown.floor === floor &&
-    shown.at === view.floor &&
-    shown.doors === doors &&
-    shown.calls === calls
-  ) {
+  if (shown.floor === floor && shown.at === view.floor && shown.doors === doors) {
     return false
   }
 
-  lift.shown = { floor, at: view.floor, doors, calls }
+  lift.shown = { floor, at: view.floor, doors }
   lift.leaves.count = 0
-  lift.lamps.count = 0
 
   const prop = LIFTS[floor]
 
   if (prop !== undefined) {
-    placeLift(lift, { prop, doors, isCalled: calls > 0, at: view.floor })
+    placeLift(lift, { prop, doors })
   }
 
   endPool(lift.leaves)
-  endPool(lift.lamps)
 
   return true
 }
 
-function placeLift(
-  lift: Lift3d,
-  spec: {
-    readonly prop: PropDef
-    readonly doors: number
-    readonly isCalled: boolean
-    readonly at: FloorId
+/** The panel over the lift doors: its centre and size, where the indicator face lies. */
+export function liftPanelOf(prop: PropDef): {
+  readonly at: readonly [x: number, y: number, z: number]
+  readonly size: readonly [w: number, h: number]
+} {
+  const [x, z, w, d, base, tall] = wallSpotsOf(prop).face
+
+  return {
+    at: [x + w / 2, base + tall + PANEL.rise + PANEL.h / 2, z + d + LEAF_PROUD + PANEL.d / 2],
+    size: [w - PANEL.inset * 2, PANEL.h],
   }
-): void {
+}
+
+function placeLift(lift: Lift3d, spec: { readonly prop: PropDef; readonly doors: number }): void {
   const [x, z, w, d, base, tall] = wallSpotsOf(spec.prop).face
   const leafW = (w / 2) * (1 - spec.doors * LIFT_LEAF_SLIDE)
   const front = z + d + LEAF_PROUD
   const y = base + tall / 2
-  const top = base + tall + PANEL.rise + PANEL.h / 2
+  const panel = liftPanelOf(spec.prop)
 
   for (const left of [x, x + w - leafW]) {
     placeInstance(lift.leaves, {
@@ -101,37 +94,14 @@ function placeLift(
   }
 
   placeInstance(lift.leaves, {
-    x: x + w / 2,
-    y: top,
-    z: front,
-    size: [w - PANEL.inset * 2, PANEL.h, PANEL.d],
+    x: panel.at[0],
+    y: panel.at[1],
+    z: panel.at[2],
+    size: [panel.size[0], panel.size[1], PANEL.d],
     color: PROP_TONES.liftPanel,
   })
-
-  LIFT_LAMP_FLOORS.forEach((floor, i) => {
-    const lampX = x + PANEL.inset + LAMP.inset + i * (w - 2 * (PANEL.inset + LAMP.inset))
-
-    placeInstance(lift.lamps, {
-      x: lampX,
-      y: top,
-      z: front + PANEL.d,
-      size: [LAMP.w, LAMP.h, LEAF_D],
-      color: PROP_TONES.liftLamp[floor === spec.at ? 1 : 0],
-    })
-  })
-
-  if (spec.isCalled) {
-    placeInstance(lift.lamps, {
-      x: x + w / 2,
-      y: top,
-      z: front + PANEL.d,
-      size: [CALL_W, LAMP.h, LEAF_D],
-      color: PROP_TONES.callLamp,
-    })
-  }
 }
 
 export function disposeLift3d(lift: Lift3d): void {
   lift.leaves.mesh.dispose()
-  lift.lamps.mesh.dispose()
 }

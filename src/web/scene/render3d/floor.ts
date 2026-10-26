@@ -39,8 +39,11 @@ export function buildFloor(id: FloorId, lighting: Lighting): FloorScene {
 
     const geometry = mergeBoxes(boxes)
     const mesh = new Mesh(geometry, material)
+    const isSolid = order === 0
 
     mesh.renderOrder = order
+    mesh.castShadow = isSolid
+    mesh.receiveShadow = isSolid
     geometries.push(geometry)
     group.add(mesh)
   }
@@ -51,6 +54,7 @@ export function buildFloor(id: FloorId, lighting: Lighting): FloorScene {
 
   const plane = createFloorPlane(id, materials.floor)
 
+  plane.receiveShadow = true
   geometries.push(plane.geometry)
   group.add(plane)
   add(building.solid, materials.lit)

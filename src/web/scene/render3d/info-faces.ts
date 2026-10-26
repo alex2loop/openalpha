@@ -14,6 +14,13 @@ import {
   type StandByView,
   type TapeRow,
 } from '@/web/scene/render3d/face-paint'
+import {
+  type SignFace,
+  type SignFrame,
+  signFacesOf,
+  signInputsOf,
+  signJobOf,
+} from '@/web/scene/render3d/sign-faces'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import { faceKindOf } from '@/web/scene/sprites/screens'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
@@ -42,7 +49,7 @@ type StandByKind = Exclude<DeskFace['kind'], 'calendar'>
 
 /** A face painted from the page's data: what it shows, where it stands and how it takes light. */
 export interface InfoFace {
-  readonly kind: 'board' | 'tape' | 'clock' | DeskFace['kind']
+  readonly kind: 'board' | 'tape' | 'clock' | DeskFace['kind'] | SignFace['kind']
   readonly room: RoomId
   readonly at: readonly [x: number, y: number, z: number]
   readonly size: readonly [w: number, h: number]
@@ -60,6 +67,13 @@ interface InfoJob {
   readonly paint: (c: CanvasRenderingContext2D) => void
 }
 
+/** What the faces read from the frame besides the page's signals: the lift, whether the office is
+ *  quiet (StandBy screens dim) and whether it is night (they turn red). */
+export interface FaceMood extends SignFrame {
+  readonly isQuiet: boolean
+  readonly isNight: boolean
+}
+
 /** The floor's data faces: whiteboards, the alert desk's price board and the wall clocks, plus the
  *  StandBy phones and the calendar on desks. A prop the shared face painters already cover is left
  *  to them. */
@@ -72,13 +86,19 @@ export function infoFacesOf(floor: FloorId, props: FloorProps | undefined): Info
   const onDesks = (props?.faces ?? []).map(
     (face): InfoFace => ({ ...face, isGlowing: face.kind !== 'calendar', seed: 0 })
   )
+  const signs = signFacesOf(floor).map(
+    (face): InfoFace => ({ ...face, isGlowing: face.kind !== 'plaque', seed: 0 })
+  )
 
-  return [...onWalls, ...onDesks]
+  return [...onWalls, ...onDesks, ...signs]
 }
 
 /** Everything the data faces read, by reference: while none moved, no face needs asking again. */
-export function infoInputsOf(scale: number): readonly unknown[] {
+export function infoInputsOf(scale: number, mood: FaceMood): readonly unknown[] {
   return [
+    ...signInputsOf(mood),
+    mood.isQuiet,
+    mood.isNight,
     scale,
     pageMinute.value,
     roomStatus.value,
@@ -90,7 +110,12 @@ export function infoInputsOf(scale: number): readonly unknown[] {
 }
 
 /** What `face` shows this frame, at `scale` CSS px per world px. */
-export function infoJobOf(face: InfoFace, scale: number): InfoJob {
+export function infoJobOf(
+  face: InfoFace,
+  at: { readonly scale: number; readonly mood: FaceMood }
+): InfoJob {
+  const { scale, mood } = at
+
   switch (face.kind) {
     case 'board': {
       const count = boardCountOf(face.room)
@@ -113,8 +138,13 @@ export function infoJobOf(face: InfoFace, scale: number): InfoJob {
 
       return { key: day, paint: (c) => paintCalendar(c, day) }
     }
+    case 'lift':
+    case 'vending':
+    case 'plaque':
+    case 'copier':
+      return signJobOf({ ...face, kind: face.kind }, mood)
     default: {
-      const view = standByOf(face.kind)
+      const view = standByOf(face.kind, mood)
 
       return { key: JSON.stringify(view), paint: (c) => paintStandBy(c, view) }
     }
@@ -180,7 +210,7 @@ function toRow(name: string, changePct: number | undefined): TapeRow {
   return { name, move: formatSignedPercent(changePct), tone: toneOfPercent(changePct) }
 }
 
-function standByOf(kind: StandByKind): StandByView {
+function standByOf(kind: StandByKind, mood: FaceMood): StandByView {
   const { minute, day } = pageMinute.value
   const index = homeIndex.value
   const view = STANDBY_VIEWS[kind]
@@ -190,6 +220,8 @@ function standByOf(kind: StandByKind): StandByView {
     time: formatHourOfDay(minute / MINUTES_PER_HOUR),
     date: formatDay(locale.value, day),
     minute,
+    isNight: mood.isNight,
+    isDim: mood.isQuiet,
     ...(view !== 'index' || index === undefined
       ? {}
       : {

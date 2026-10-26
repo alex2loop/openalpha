@@ -49,6 +49,13 @@ interface HungPiece {
 interface Screen {
   readonly at: readonly [x: number, y: number, z: number]
   readonly size: readonly [w: number, h: number, d: number]
+  /** How far the face leans back, radians about x. */
+  readonly tilt: number
+  /** The monitor's back, leaning with its face. */
+  readonly back: {
+    readonly at: readonly [x: number, y: number, z: number]
+    readonly size: readonly [w: number, h: number, d: number]
+  }
   readonly seat: Point
   /** The computer's foot on the floor, where a desk piece names the monitor it covers. */
   readonly slot: Point
@@ -81,14 +88,16 @@ const PHONE_ON_DESK_PX = 4.5
 const PHONE_PX = 1.6
 const COUNTER_PX = 13
 const MACHINE_TONE = '#9DB0CC'
+const COPIER_SCREEN_BASE = '#7C8394'
 const TANK_WATER = '#8CCBEA'
 const DESK_TOP_PX = 2
 const LEG_PX = 2
 const SEAT_PX = 7
 const CHAIR_BACK_PX = 14
-const LAMP_SHADE = Object.freeze({ w: 10, h: 8, y: 50 })
-const LAMP_BASE = Object.freeze({ w: 8, h: 2 })
-const LAMP_POLE = 1.6
+// The mockup's floor lamp: the shade's centre stands at 52 px.
+const LAMP_SHADE = Object.freeze({ w: 12.8, h: 8.8, y: 47.6 })
+const LAMP_BASE = Object.freeze({ w: 8, h: 1.5 })
+const LAMP_POLE = 2
 
 /** The furniture of `floor`, built once per floor from `world/props`. */
 export function buildFloorProps(floor: FloorId): FloorProps {
@@ -157,6 +166,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
   copier: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height]), PROP_TONES.copier[1], true))
     out.push(box(spot(prop, [prop.height - 3, 3], 1), PROP_TONES.copier[0], true))
+    out.push(box([prop.rect.x + 9, prop.rect.y + 8, 8, 5, prop.height, 1.4], COPIER_SCREEN_BASE))
   },
   rack: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height]), RACK_TONE, true))

@@ -2,7 +2,7 @@ import {
   CanvasTexture,
   LinearMipmapLinearFilter,
   Mesh,
-  type MeshLambertMaterial,
+  type MeshStandardMaterial,
   PlaneGeometry,
   SRGBColorSpace,
 } from 'three'
@@ -37,7 +37,7 @@ interface NorthWall {
 /** A north wall as drawn, with its own material, and how solid it shows now. */
 export interface SeeThroughWall {
   readonly wall: NorthWall
-  readonly material: MeshLambertMaterial
+  readonly material: MeshStandardMaterial
   opacity: number
 }
 
@@ -317,7 +317,7 @@ function isHiddenBy(wall: NorthWall, at: Point): boolean {
 
 /** The floor's surface: each room's own, the corridor between; mipmapped so a far floor never
  *  shimmers. The floor plane starts under the north glass. */
-export function createFloorPlane(floor: FloorId, material: MeshLambertMaterial): Mesh {
+export function createFloorPlane(floor: FloorId, material: MeshStandardMaterial): Mesh {
   const texture = new CanvasTexture(paintFloor(floor))
   const geometry = new PlaneGeometry(toUnits(WORLD.w), toUnits(WORLD.h - WALL_BAND_PX))
   const uv = geometry.getAttribute('uv')

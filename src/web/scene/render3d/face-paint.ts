@@ -14,7 +14,8 @@ const CLOCK = Object.freeze({ rim: '#D9CBB8', face: '#FFFDF8', tick: '#8E8497', 
 const CALENDAR = Object.freeze({ page: '#FBF9F3', band: '#D8514B', ink: '#2B2433' })
 // The StandBy screen is laid out on the mockup's 256 by 160 canvas and scaled to the face.
 const STANDBY_W = 256
-const STANDBY = Object.freeze({
+// By night the screen turns red, as StandBy does in the dark.
+const STANDBY_DAY = Object.freeze({
   bezel: '#04050A',
   top: '#3A5A9E',
   bottom: '#1F2C66',
@@ -24,12 +25,32 @@ const STANDBY = Object.freeze({
   dim: '#9FB0DC',
   flowFrom: '#1B1E4B',
   flowTo: '#3C1E5A',
-})
-const FLOW_BLOBS = [
-  ['rgba(120,170,255,.55)', 0.3, 0.4],
-  ['rgba(255,140,200,.5)', 0.7, 0.5],
-  ['rgba(120,240,210,.45)', 0.5, 0.7],
-] as const
+  move: undefined,
+  blobs: [
+    ['rgba(120,170,255,.55)', 0.3, 0.4],
+    ['rgba(255,140,200,.5)', 0.7, 0.5],
+    ['rgba(120,240,210,.45)', 0.5, 0.7],
+  ],
+} as const)
+const STANDBY_NIGHT = Object.freeze({
+  bezel: '#04050A',
+  top: '#2A0707',
+  bottom: '#1A0303',
+  well: '#2A0808',
+  tick: '#8A2A2A',
+  ink: '#FF6A5A',
+  dim: '#B04040',
+  flowFrom: '#2A0606',
+  flowTo: '#1A0303',
+  move: '#FF6A5A',
+  blobs: [
+    ['rgba(255,70,50,.35)', 0.3, 0.4],
+    ['rgba(255,90,60,.3)', 0.7, 0.5],
+    ['rgba(200,50,40,.28)', 0.5, 0.7],
+  ],
+} as const)
+// A quiet office dims the screen under this veil.
+const STANDBY_VEIL = 'rgba(0,0,0,.55)'
 // Each hand's length as a share of the dial's radius and its width in mockup px.
 const CLOCK_HANDS = Object.freeze({ hour: [0.45, 7], minute: [0.68, 5] } as const)
 const STANDBY_HANDS = Object.freeze({ hour: [0.5, 6], minute: [0.78, 4] } as const)
@@ -53,7 +74,11 @@ export interface StandByView {
   readonly date: string
   readonly minute: number
   readonly index?: { readonly label: string; readonly level: string; readonly move: TapeRow }
+  readonly isNight: boolean
+  readonly isDim: boolean
 }
+
+type StandByLook = typeof STANDBY_DAY | typeof STANDBY_NIGHT
 
 /** A face's canvas for `w` by `h` world px. */
 export function sizeFace(canvas: HTMLCanvasElement, size: readonly [w: number, h: number]): void {
@@ -185,8 +210,9 @@ export function paintCalendar(c: CanvasRenderingContext2D, day: string): void {
 export function paintStandBy(c: CanvasRenderingContext2D, face: StandByView): void {
   const { width: w, height: h } = c.canvas
   const k = w / STANDBY_W
+  const look = face.isNight ? STANDBY_NIGHT : STANDBY_DAY
 
-  c.fillStyle = STANDBY.bezel
+  c.fillStyle = look.bezel
   c.fillRect(0, 0, w, h)
   c.save()
   c.beginPath()
@@ -195,39 +221,50 @@ export function paintStandBy(c: CanvasRenderingContext2D, face: StandByView): vo
 
   const ground = c.createLinearGradient(0, 0, 0, h)
 
-  ground.addColorStop(0, STANDBY.top)
-  ground.addColorStop(1, STANDBY.bottom)
+  ground.addColorStop(0, look.top)
+  ground.addColorStop(1, look.bottom)
   c.fillStyle = ground
   c.fillRect(0, 0, w, h)
   c.textBaseline = 'middle'
 
   if (face.view === 'index') {
-    paintIndexView(c, face, k)
+    paintIndexView(c, face, { k, look })
   } else if (face.view === 'clock') {
     c.textAlign = 'center'
-    c.fillStyle = STANDBY.ink
+    c.fillStyle = look.ink
     c.font = `700 ${78 * k}px ${FONT}`
     c.fillText(face.time, w / 2, 70 * k)
-    c.fillStyle = STANDBY.dim
+    c.fillStyle = look.dim
     c.font = `500 ${20 * k}px ${FONT}`
     c.fillText(face.date, w / 2, 124 * k)
   } else {
-    paintFlowView(c, face, k)
+    paintFlowView(c, face, { k, look })
+  }
+
+  if (face.isDim) {
+    c.fillStyle = STANDBY_VEIL
+    c.fillRect(0, 0, w, h)
   }
 
   c.restore()
 }
 
-function paintIndexView(c: CanvasRenderingContext2D, face: StandByView, k: number): void {
+interface LookAt {
+  readonly k: number
+  readonly look: StandByLook
+}
+
+function paintIndexView(c: CanvasRenderingContext2D, face: StandByView, at: LookAt): void {
+  const { k, look } = at
   const r = 56 * k
 
-  disc(c, { x: 66 * k, y: 82 * k, r, colour: STANDBY.well })
+  disc(c, { x: 66 * k, y: 82 * k, r, colour: look.well })
   dialTicks(c, {
     x: 66 * k,
     y: 82 * k,
     from: r - 9 * k,
     to: r - 3 * k,
-    colour: STANDBY.tick,
+    colour: look.tick,
     unit: k,
   })
   hands(c, {
@@ -235,7 +272,7 @@ function paintIndexView(c: CanvasRenderingContext2D, face: StandByView, k: numbe
     y: 82 * k,
     r,
     minute: face.minute,
-    colour: STANDBY.ink,
+    colour: look.ink,
     unit: k,
     look: STANDBY_HANDS,
   })
@@ -246,33 +283,34 @@ function paintIndexView(c: CanvasRenderingContext2D, face: StandByView, k: numbe
     return
   }
 
-  c.fillStyle = STANDBY.well
+  c.fillStyle = look.well
   c.beginPath()
   c.roundRect(134 * k, 24 * k, 114 * k, 116 * k, 14 * k)
   c.fill()
   c.textAlign = 'left'
-  c.fillStyle = STANDBY.dim
+  c.fillStyle = look.dim
   c.font = `600 ${15 * k}px ${FONT}`
   c.fillText(index.label, 146 * k, 48 * k, 96 * k)
-  c.fillStyle = STANDBY.ink
+  c.fillStyle = look.ink
   c.font = `700 ${25 * k}px ${FONT}`
   c.fillText(index.level, 146 * k, 84 * k, 92 * k)
-  c.fillStyle = toneColour(index.move.tone)
+  c.fillStyle = look.move ?? toneColour(index.move.tone)
   c.font = `700 ${18 * k}px ${FONT}`
   c.fillText(index.move.move, 146 * k, 116 * k, 92 * k)
 }
 
 // The flow view stands still: a still frame keeps the face from asking for renders.
-function paintFlowView(c: CanvasRenderingContext2D, face: StandByView, k: number): void {
+function paintFlowView(c: CanvasRenderingContext2D, face: StandByView, at: LookAt): void {
+  const { k, look } = at
   const { width: w, height: h } = c.canvas
   const ground = c.createLinearGradient(0, 0, w, h)
 
-  ground.addColorStop(0, STANDBY.flowFrom)
-  ground.addColorStop(1, STANDBY.flowTo)
+  ground.addColorStop(0, look.flowFrom)
+  ground.addColorStop(1, look.flowTo)
   c.fillStyle = ground
   c.fillRect(0, 0, w, h)
 
-  for (const [colour, bx, by] of FLOW_BLOBS) {
+  for (const [colour, bx, by] of look.blobs) {
     const glow = c.createRadialGradient(w * bx, h * by, 0, w * bx, h * by, w * 0.42)
 
     glow.addColorStop(0, colour)
@@ -282,7 +320,7 @@ function paintFlowView(c: CanvasRenderingContext2D, face: StandByView, k: number
   }
 
   c.textAlign = 'center'
-  c.fillStyle = STANDBY.ink
+  c.fillStyle = look.ink
   c.font = `600 ${26 * k}px ${FONT}`
   c.fillText(face.time, w / 2, h - 26 * k)
 }

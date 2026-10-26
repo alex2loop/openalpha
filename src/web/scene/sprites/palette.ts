@@ -155,12 +155,6 @@ export const STATUS_TONES = Object.freeze({
   failed: '#E5484D',
 } satisfies Record<ActorStatus, string>)
 
-/** How bright each cel band reads, shade to lit, as a share of full light: the 3D toon gradient
- *  steps through these, the way each ramp above steps from shade to lit. */
-export const TOON_BANDS: readonly [shade: number, body: number, lit: number] = Object.freeze([
-  0.42, 0.72, 0.95,
-])
-
 /** The building: wall bodies and caps, the wall face's bands, the corridor, glass and mullions. */
 export const WALL_TONES = Object.freeze({
   dark: '#3E4356',
