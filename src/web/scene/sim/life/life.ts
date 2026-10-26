@@ -32,13 +32,13 @@ import { isRoundFree, roundDueOf, stepRounds } from '@/web/scene/sim/life/rounds
 import {
   resetIdle,
   scheduleDueOf,
-  stepChat,
   stepCoffee,
   stepDessert,
   stepIdle,
   stepYawn,
 } from '@/web/scene/sim/life/schedule'
 import { fidgetDueOf, postureLineOf, stepFidgets, stepPostures } from '@/web/scene/sim/life/seat'
+import { stepChat } from '@/web/scene/sim/life/talk'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { approachOf } from '@/web/scene/sim/places'
 import { isKept, moment as marketMoment, stepBell } from '@/web/scene/sim/rhythm'

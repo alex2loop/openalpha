@@ -30,6 +30,8 @@ export function lifeTextOf(line: LifeLine): string {
       return tr('ui.office.rhythm.exDividend', { ticker: line.ticker })
     case 'overtime':
       return tr('ui.office.rhythm.overtime', { what: line.what })
+    case 'talk':
+      return tr('ui.office.talk.say', { line: tr(line.key), topic: tr(LIFE_KEYS[line.topic]) })
     default:
       return tr(LIFE_KEYS[line.label])
   }
