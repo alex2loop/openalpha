@@ -1,4 +1,4 @@
-import type { ActorId, FloorId, Rect } from '@/web/scene/types'
+import type { ActorId, FloorId, Point, Rect } from '@/web/scene/types'
 
 /** An "!" over a person: amber over the one who brought an approval, red over the clerk while a
  *  stop is breached. */
@@ -23,5 +23,7 @@ export interface DeskScreenView {
   readonly actor: ActorId
   readonly floor: FloorId
   readonly rect: Rect
+  /** Where its person sits, which a renderer places a laptop by. */
+  readonly seat: Point
   readonly content: DeskScreenContent
 }

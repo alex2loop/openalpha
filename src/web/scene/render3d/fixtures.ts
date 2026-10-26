@@ -19,6 +19,7 @@ import {
   POOL_Y,
   syncLamps,
 } from '@/web/scene/render3d/lamp-glow'
+import { createLaptop, disposeLaptop, type Laptop, syncLaptop } from '@/web/scene/render3d/laptop'
 import { createMarks, disposeMarks, type Marks, syncMarks } from '@/web/scene/render3d/marks'
 import {
   createMonitorFaces,
@@ -56,6 +57,7 @@ export interface Fixtures {
   readonly ring: Pool
   readonly monitors: MonitorFaces
   readonly marks: Marks
+  readonly laptop: Laptop
   readonly owned: readonly { dispose(): void }[]
 }
 
@@ -126,6 +128,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     ring: createPool(shapes.box, ink, { cap: 1 }),
     monitors: createMonitorFaces(root),
     marks: createMarks(shapes, glow, root),
+    laptop: createLaptop(root, materials.lit),
     owned: [glow, lampGlow, shadow, dot, ink],
   }
 
@@ -143,6 +146,7 @@ export function syncFixtures(fixtures: Fixtures, frame: FixtureFrame): boolean {
     syncWarm(fixtures.warm, frame),
     syncCool(fixtures.cool, frame),
     syncPeople(fixtures, frame),
+    syncLaptop(fixtures.laptop, { floor: frame.sim.floor, screens: frame.sim.deskScreens }),
     syncMarks(fixtures.marks, {
       marks: frame.sim.marks,
       standing: frame.standing,
@@ -161,6 +165,7 @@ export function disposeFixtures(fixtures: Fixtures): void {
 
   disposeMonitorFaces(fixtures.monitors)
   disposeMarks(fixtures.marks)
+  disposeLaptop(fixtures.laptop)
 
   for (const one of fixtures.owned) {
     one.dispose()
