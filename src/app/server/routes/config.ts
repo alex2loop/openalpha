@@ -11,6 +11,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { FieldValidationError } from '@/core/field-errors'
 import { validateBootConfigTree } from '@/app/config-tree'
 import { buildProviderCatalog } from '@/app/server/cli/catalog'
+import { isApiExposed } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import {
   cliOnlyChanges,
@@ -118,7 +119,7 @@ function isExposed(
   body: Record<string, unknown>,
   disk: Record<string, unknown>
 ): boolean {
-  return ctx.app.config.api.publicUrl !== undefined || [body, disk].some(hasPublicUrl)
+  return isApiExposed(ctx.app.config.api) || [body, disk].some(hasPublicUrl)
 }
 
 function hasPublicUrl(tree: Record<string, unknown>): boolean {

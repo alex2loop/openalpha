@@ -39,8 +39,8 @@ interface LabelRule {
 const BROWSERS: readonly LabelRule[] = Object.freeze([
   { name: 'Edge', pattern: /Edg\// },
   { name: 'Opera', pattern: /OPR\// },
-  { name: 'Firefox', pattern: /Firefox\// },
-  { name: 'Chrome', pattern: /Chrome\// },
+  { name: 'Firefox', pattern: /Firefox\/|FxiOS\// },
+  { name: 'Chrome', pattern: /Chrome\/|CriOS\// },
   { name: 'Safari', pattern: /Safari\// },
 ])
 const SYSTEMS: readonly LabelRule[] = Object.freeze([
@@ -54,7 +54,7 @@ const SYSTEMS: readonly LabelRule[] = Object.freeze([
 /** A browser session's page asking for a code would let a stolen cookie mint more sessions. */
 function handleCode(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   if (ctx.browserSessionId !== undefined) {
-    return Promise.resolve(apiError('unauthorized'))
+    return Promise.resolve(apiError('forbidden'))
   }
 
   return Promise.resolve(json({ code: ctx.codes.issue(Date.now()) } satisfies BrowserSignInCode))

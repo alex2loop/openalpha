@@ -5,6 +5,7 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { Job, JobEvent, JobSchedule } from '@/scheduler/api'
 import { createAlertRetirer } from '@/app/event-jobs'
 import { API_CHANNEL, APP_CHAT_ID, isApiChannel } from '@/app/server/channel'
+import { isApiExposed } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { JOB_CREATE_BODY, toScheduleRowWire } from '@/app/server/mappers/jobs'
 import {
@@ -229,9 +230,9 @@ async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
 // Behind `public_url` an untargeted job runs on the app's channel, so the app-run limits hold for it;
 // otherwise it keeps the scheduler's own channel, as one added from the CLI.
 function toDefaultTarget(ctx: ApiRouteContext): Job['target'] {
-  return ctx.app.config.api.publicUrl === undefined
-    ? undefined
-    : { channel: API_CHANNEL, chatId: APP_CHAT_ID }
+  return isApiExposed(ctx.app.config.api)
+    ? { channel: API_CHANNEL, chatId: APP_CHAT_ID }
+    : undefined
 }
 
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -239,7 +240,7 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   // A job aimed at another chat runs on that channel, past the app-channel run limits.
   if (
-    ctx.app.config.api.publicUrl !== undefined &&
+    isApiExposed(ctx.app.config.api) &&
     body.target !== undefined &&
     !isApiChannel(body.target.channel)
   ) {

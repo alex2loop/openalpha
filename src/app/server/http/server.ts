@@ -25,7 +25,16 @@ const WS_PATH = '/v1/ws'
 const API_PREFIX = '/v1/'
 const CROSS_SITE = 'cross-site'
 // Headers a reverse proxy adds; without `public_url` the daemon refuses to be fronted by one.
-const PROXY_HEADERS: readonly string[] = ['x-forwarded-for', 'forwarded']
+const PROXY_HEADERS: readonly string[] = [
+  'x-forwarded-for',
+  'forwarded',
+  'x-forwarded-host',
+  'x-forwarded-proto',
+  'x-real-ip',
+  'via',
+  'cf-connecting-ip',
+  'true-client-ip',
+]
 export const LOOPBACK_HOST = '127.0.0.1'
 // Bound the buffer/parse cost of HTTP bodies before schema validation.
 const MAX_HTTP_BODY_BYTES = 2_097_152

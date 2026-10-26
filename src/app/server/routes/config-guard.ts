@@ -28,7 +28,7 @@ const CHANNEL_ACCESS_KEYS: readonly string[] = [
 ]
 const MCP_SECTION = 'mcp'
 const MCP_SERVERS_PATH: readonly string[] = [MCP_SECTION, 'servers']
-const MCP_SERVER_CLI_ONLY_KEYS: readonly string[] = ['transport', 'command', 'args', 'env']
+const MCP_SERVER_CLI_ONLY_KEYS: readonly string[] = ['transport', 'command', 'args', 'env', 'url']
 /** Anywhere in the tree. A write may drop one (the provider's own address and key variable take
  *  over), never add or change it. */
 const ENDPOINT_KEYS: ReadonlySet<string> = new Set(['base_url', 'fallback_base_url'])

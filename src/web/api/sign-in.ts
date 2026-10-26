@@ -3,21 +3,24 @@ import { ApiFailure, sendJson, UNAUTHORIZED_STATUS } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 
 const CODE_HASH_PARAM = 'code'
+const TOKEN_HASH_PARAM = 'token'
 // The daemon's answer while wrong codes have locked sign-in for this address.
 const LOCKED_STATUS = 403
 
 /** The `#code=` of a sign-in link. The hash leaves the address without a history entry, so neither
- *  the address bar nor the back button keeps the code. */
+ *  the address bar nor the back button keeps the code. A `#token=` is dropped the same way, never
+ *  read or sent: the page never holds the API token. */
 export function takeCodeFromHash(): string | undefined {
-  const code = new URLSearchParams(location.hash.slice(1)).get(CODE_HASH_PARAM)?.trim()
+  const params = new URLSearchParams(location.hash.slice(1))
+  const code = params.get(CODE_HASH_PARAM)?.trim()
 
-  if (code === undefined) {
+  if (code === undefined && !params.has(TOKEN_HASH_PARAM)) {
     return undefined
   }
 
   history.replaceState(null, '', location.pathname + location.search)
 
-  return code === '' ? undefined : code
+  return code === undefined || code === '' ? undefined : code
 }
 
 /** Trades a code for the session cookie. A refusal sets the screen that explains it; the session

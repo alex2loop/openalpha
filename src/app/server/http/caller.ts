@@ -50,14 +50,15 @@ export function toSessionCookieName(pageOrigin: string, publicUrl: string | unde
   return `${SESSION_COOKIE_PREFIX}_${new URL(pageOrigin).port || DEFAULT_HTTP_PORT}`
 }
 
-/** The bearer header wins when present; otherwise the session cookie, accepted only from the page
- *  itself. An unknown cookie is `absent`, so it never counts toward the lockout. A store read that
- *  throws is not caught: the request fails closed. */
+/** A bearer header wins when present; any other `Authorization` (a proxy's basic auth) is ignored
+ *  and the session cookie is read, accepted only from the page itself. An unknown cookie is
+ *  `absent`, so it never counts toward the lockout. A store read that throws is not caught: the
+ *  request fails closed. */
 export async function resolveCaller(req: Request, deps: CallerDeps): Promise<Caller> {
-  const authorization = req.headers.get('authorization')
+  const bearer = resolveBearerCredential(req.headers.get('authorization'), deps.token)
 
-  if (authorization !== null) {
-    return { credential: resolveBearerCredential(authorization, deps.token) }
+  if (bearer !== 'absent') {
+    return { credential: bearer }
   }
 
   const secret = new Bun.CookieMap(req.headers.get('cookie') ?? '').get(deps.cookieName)

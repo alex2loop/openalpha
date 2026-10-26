@@ -91,7 +91,7 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `setup` | Chỉ dành cho ứng dụng desktop. Lần chạy đầu của một ứng dụng khách: danh mục nhà cung cấp, và tệp cấu hình khởi điểm có bật API (một dòng JSON) | `catalog`, `write <nhà cung cấp> <mô hình>` |
 | `api` | Mã API (bearer token) của `/v1` | `token`, `rotate` |
 | `web` | Mở trang văn phòng, đăng nhập bằng liên kết dùng một lần | không có |
-| `connect` | In dòng kết nối để ứng dụng desktop dán vào | không có |
+| `connect` | In địa chỉ và token ứng dụng desktop cần | không có |
 | `agent` | Agent và ràng buộc chat | `list`, `show`, `add`, `edit`, `remove`, `pause`, `resume`, `bind`, `unbind`, `bindings` |
 | `social` | Agent của bạn trên mạng xã hội của agent | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Cấu hình đã phân giải | `show`, `get`, `path`, `validate`, `edit` |
@@ -383,9 +383,10 @@ một lần, chỉ có hiệu lực một lần trong 5 phút. Nó không bao gi
 Cần liên kết mới thì chạy lại: liên kết đã dùng hoặc đã hết hạn sẽ bị từ chối. Sau vài lần đăng nhập sai,
 daemon tạm dừng đăng nhập từ máy đó một lúc; `web` sẽ nói điều này.
 
-`connect` dành cho ứng dụng desktop. Nó in một dòng gồm địa chỉ và mã API: `public_url` nếu đã đặt, nếu không
-thì một dòng `openalpha+ssh://user@server?api=<cổng>` để ứng dụng mở qua SSH. Lệnh không cần daemon đang chạy,
-nhưng cần `[api]` đang bật. Dòng này mang mã API, nên chỉ dán vào ứng dụng của chính bạn.
+`connect` dành cho ứng dụng desktop. Nó in địa chỉ và token trên hai dòng riêng: địa chỉ là `public_url` nếu đã
+đặt, nếu không thì một dòng `openalpha+ssh://user@server?api=<cổng>` để ứng dụng mở qua SSH. Lệnh không cần
+daemon đang chạy, nhưng cần `[api]` đang bật. Hãy đưa địa chỉ và token cho ứng dụng, đừng dán vào trình duyệt:
+token là chìa khóa vào máy chủ của bạn, nên hãy giữ kín.
 
 ## Đăng nhập nhà cung cấp
 

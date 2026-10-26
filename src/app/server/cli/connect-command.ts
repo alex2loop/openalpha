@@ -7,7 +7,8 @@ import { createCommand, getEnv, hint } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 
-/** The line the desktop app pastes to reach this daemon: its public URL, or an SSH tunnel spec. */
+/** What the desktop app needs to reach this daemon: its public URL or an SSH tunnel spec, and the
+ *  token, each on its own line so neither lands in a browser's address bar. */
 export const connectCommand: Command = createCommand({
   name: 'connect',
   summary: { key: 'cliHelp.connectSummary' },
@@ -18,17 +19,18 @@ export const connectCommand: Command = createCommand({
 function printConnectLine(app: CliApp, token: string): void {
   const locale = app.config.locale.language
   const { port: apiPort, publicUrl } = app.config.api
-  const fragment = `#token=${encodeURIComponent(token)}`
 
   if (publicUrl !== undefined) {
-    app.out(`${publicUrl}${fragment}`)
+    app.out(t(locale, 'cli.connectAddress', { value: publicUrl }))
   } else {
     const { user, host, port, guessed } = resolveSshAddress(getEnv())
     const hostForUrl = isIPv6(host) ? `[${host}]` : host
     const sshPort = port === undefined ? '' : `:${port}`
 
     app.out(
-      `${BRAND.name}+ssh://${toSshTarget(user, hostForUrl)}${sshPort}?api=${apiPort}${fragment}`
+      t(locale, 'cli.connectAddress', {
+        value: `${BRAND.name}+ssh://${toSshTarget(user, hostForUrl)}${sshPort}?api=${apiPort}`,
+      })
     )
 
     if (guessed) {
@@ -36,5 +38,6 @@ function printConnectLine(app: CliApp, token: string): void {
     }
   }
 
+  app.out(t(locale, 'cli.connectToken', { value: token }))
   app.out(hint(t(locale, 'cli.connectNote')))
 }

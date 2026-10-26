@@ -4,13 +4,18 @@ import { isApiChannel } from '@/app/server/channel'
 import { isClientApprovalWithheld } from '@/engine/api'
 import { ORDER_TOOL_NAME } from '@/trading/api'
 
+/** Behind `public_url` nobody at the page is known to be the operator. */
+export function isApiExposed(api: { readonly publicUrl?: string | undefined }): boolean {
+  return api.publicUrl !== undefined
+}
+
 /** Limits every run on the app's channel - a chat, a steer, a job aimed at the app, and the
  *  delegate and research children that inherit its channel. Behind `public_url` nobody at the
  *  page is known to be the operator, so the tools whose approval a client program would answer
  *  are never offered; `[api] orders` off drops the order tool. */
 export function withApiRunLimits(runner: Runner, app: App): Runner {
-  const { orders, publicUrl } = app.config.api
-  const exposed = publicUrl !== undefined
+  const { orders } = app.config.api
+  const exposed = isApiExposed(app.config.api)
 
   app.resolve('logger').info('api.run_limits', { exposed, orders })
 

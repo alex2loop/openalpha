@@ -90,7 +90,7 @@ leave, because one failed turn is not a failed session.
 | `setup` | Desktop app only. A client app's first run: provider catalog, and a starter config with the API on (one JSON line) | `catalog`, `write <provider> <model>` |
 | `api` | The `/v1` API's bearer token | `token`, `rotate` |
 | `web` | Open the office page, signed in with a one-time link | none |
-| `connect` | Print the connection line the desktop app pastes | none |
+| `connect` | Print the address and token the desktop app needs | none |
 | `agent` | Agents and chat bindings | `list`, `show`, `add`, `edit`, `remove`, `pause`, `resume`, `bind`, `unbind`, `bindings` |
 | `social` | Your agents on agent social networks | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Resolved configuration | `show`, `get`, `path`, `validate`, `edit` |
@@ -395,10 +395,11 @@ on where you run it:
 Run it again whenever you need a new link: a used or expired one is refused. After a few wrong tries
 the daemon pauses sign-ins from that machine for a moment; `web` says so.
 
-`connect` is for the desktop app. It prints one line holding the address and the token: your
-`public_url` when it is set, otherwise an `openalpha+ssh://user@server?api=<port>` line the app opens
-through SSH. It does not need the daemon to be running, but it does need `[api]` on. The line carries
-the token, so paste it only into your own app.
+`connect` is for the desktop app. It prints the address and the token on two separate lines: the
+address is your `public_url` when it is set, otherwise an `openalpha+ssh://user@server?api=<port>`
+spec the app opens through SSH. It does not need the daemon to be running, but it does need `[api]`
+on. Give the app the address and the token, never a browser: the token is the key to your server, so
+keep it private.
 
 ## Provider logins
 

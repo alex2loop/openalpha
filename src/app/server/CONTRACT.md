@@ -49,16 +49,16 @@ this document — neither imports the other.
   source run serves it through Bun's `routes`, which carry none, and the page's own frame guard
   (it renders nothing inside a frame) covers both. Token at
   `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod
-  `0600`, generated on first enable. Compared constant-time. When a request carries
-  `Authorization`, the cookie is not read.
+  `0600`, generated on first enable. Compared constant-time. When a request carries a
+  `Bearer` `Authorization`, the cookie is not read; any other scheme (a proxy's basic auth) is ignored.
   - **Session cookie:** `oa_session_<port>` on loopback (so a local daemon and a tunnelled one on
     another port keep separate cookies), `__Host-oa_session` through `public_url` (so a sibling
     subdomain cannot plant one); `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`, `Secure`
     through `public_url`. A session ends after 30 days
     unused; each use renews it, and the cookie is sent again with a fresh `Max-Age` (at most once
-    an hour). The cookie counts only on a request with `Sec-Fetch-Site: same-origin`; a write
-    (any method but `GET`/`HEAD`) and the `/v1/ws` handshake also need `Origin` equal to the page
-    origin. The daemon keeps only a hash of the cookie keyed by the token, so a token change
+    an hour). On HTTP the cookie counts only on a request with `Sec-Fetch-Site: same-origin`, and
+    a write (any method but `GET`/`HEAD`) also needs `Origin` equal to the page origin; the `/v1/ws`
+    handshake counts it on `Origin` equal to the page origin alone. The daemon keeps only a hash of the cookie keyed by the token, so a token change
     (`api rotate`, a new `token_env` value) ends every session at the restart. Signing out and
     `DELETE /v1/sessions/:id` close that session's sockets with WS code 4401 `signed_out`, a socket
     whose handshake was under way at that moment included.
