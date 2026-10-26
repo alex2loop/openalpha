@@ -11,6 +11,7 @@ import {
   TABLE_POOLS,
   WARM_RGB,
 } from '@/web/scene/sprites/daylight'
+import { FLOORS } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { roomAt, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
@@ -58,6 +59,12 @@ export function paintLighting(g: CanvasRenderingContext2D, spec: LightingSpec): 
 
 function paintRoomShade(g: CanvasRenderingContext2D, spec: LightingSpec): void {
   const { tint } = spec.light
+  const corridor = FLOORS[spec.floor].corridor
+
+  // The corridor has no lamp of its own: it takes the hour's full tint, as the mockup shades it.
+  if (tint !== undefined && corridor !== undefined) {
+    fill(g, [corridor.x, corridor.y, corridor.w, corridor.h], tint)
+  }
 
   for (const room of roomsOn(spec.floor)) {
     const { x, y, w, h } = room.rect
