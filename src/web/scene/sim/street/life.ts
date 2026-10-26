@@ -40,7 +40,7 @@ interface LifeClock {
 }
 
 /** The life of `traffic`'s street; the animals mind `people`, the street's merged list. */
-export function createLife(traffic: Traffic, people: readonly PersonView[]): StreetLife {
+export function createStreetLife(traffic: Traffic, people: readonly PersonView[]): StreetLife {
   const parks = createParks()
   const vendors = createVendors()
   const critters = createCritters()
@@ -55,7 +55,7 @@ export function createLife(traffic: Traffic, people: readonly PersonView[]): Str
 }
 
 /** Rebuilds the parks, vendors and animals from the clock. */
-export function resetLife(
+export function resetStreetLife(
   life: StreetLife,
   at: {
     readonly pack: RegionPack
@@ -71,7 +71,7 @@ export function resetLife(
 
 /** One sim step on the traffic's clock, just stepped; the animals see where everyone stood after
  *  the last step. */
-export function stepLife(life: StreetLife, traffic: Traffic): void {
+export function stepStreetLife(life: StreetLife, traffic: Traffic): void {
   const { clock } = life
 
   clock.pack = traffic.pack

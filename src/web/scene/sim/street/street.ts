@@ -18,11 +18,11 @@ import {
   stepFront,
 } from '@/web/scene/sim/street/front'
 import {
-  createLife,
+  createStreetLife,
   isLifeMovingIn,
-  resetLife,
+  resetStreetLife,
   type StreetLife,
-  stepLife,
+  stepStreetLife,
 } from '@/web/scene/sim/street/life'
 import { createLot, type Lot, resetLot, stepLot } from '@/web/scene/sim/street/lot'
 import { hasPedChanged, type Ped, type Peds } from '@/web/scene/sim/street/ped-walk'
@@ -150,7 +150,7 @@ function createStreetState(deps: StreetDeps): StreetState {
   const lot = createLot()
   const front = createFront()
   const people: Ped[] = []
-  const life = createLife(traffic, people)
+  const life = createStreetLife(traffic, people)
   const weather = createWeatherFx()
 
   return {
@@ -223,7 +223,7 @@ function resumeStreet(state: StreetState): void {
   resetLot(state.lot, { pack, minute })
   resetFront(state.front, { pack, day, nowMs })
   resetPeds(state.peds, { pack, day, minute, nowMs })
-  resetLife(state.life, { pack, day, minute, nowMs })
+  resetStreetLife(state.life, { pack, day, minute, nowMs })
   resetWeatherFx(state.weather, { pack, day, minute })
   syncWeatherFx(state.weather, { peds: state.peds, nowMs, isReduced: state.deps.reduced.peek() })
   syncPeople(state)
@@ -302,7 +302,7 @@ function stepAll(state: StreetState, nowMs: number): void {
   state.hasErrandCome =
     stepErrandsStreet(state.deps.errands, { traffic, minute, nowMs, dt: traffic.tick.dt }) ||
     state.hasErrandCome
-  stepLife(state.life, traffic)
+  stepStreetLife(state.life, traffic)
   syncPeople(state)
   state.hasSignalChanged = syncSignals(state.view.signals, nowMs)
   state.isLotMoving = stepLot(state.lot, { pack: traffic.pack, minute, nowMs, dt: traffic.tick.dt })
