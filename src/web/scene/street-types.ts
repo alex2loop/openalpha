@@ -61,13 +61,15 @@ export interface ErrandView {
 }
 
 /** Who walks the street: a passer-by, a jogger, a pupil, someone waiting at a shelter, sitting at
- *  the café, taking a delivery at a shop door, or an office person on an errand. */
+ *  the café or on a park bench, taking a delivery at a shop door, or an office person on an
+ *  errand. */
 export const PERSON_KINDS = [
   'walker',
   'jogger',
   'pupil',
   'waiter',
   'sitter',
+  'bench-sitter',
   'receiver',
   'staff',
 ] as const

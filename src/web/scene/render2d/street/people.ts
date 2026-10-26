@@ -231,8 +231,8 @@ function paintPerson(figure: Figure): void {
   const { g, person } = figure
   const frame = person.frame >= WAVE_FRAME ? 0 : person.frame
 
-  if (person.kind === 'sitter') {
-    paintSeated(figure)
+  if (person.kind === 'sitter' || person.kind === 'bench-sitter') {
+    paintSeated(figure, person.kind === 'sitter')
   } else {
     paintLegs(figure, frame)
   }
@@ -317,15 +317,18 @@ function paintLeg(
   fill(g, TONES.shoe, [leg.foot - shoeW / 2, -leg.lift - shoeH, shoeW, shoeH])
 }
 
-// On a low stool by the café, legs forward.
-function paintSeated(figure: Figure): void {
+// Legs forward, on a low stool by the café or on a park bench, which the park paints itself.
+function paintSeated(figure: Figure, isOnStool: boolean): void {
   const { g } = figure
   const pants = colourOf(figure, PANTS[figure.tones.pants])
   const dir = facingDirOf(figure.person)
   const { shin } = SEAT
 
-  fill(g, colourOf(figure, TONES.stoolLeg), SEAT.leg)
-  fill(g, colourOf(figure, TONES.stool), SEAT.stool)
+  if (isOnStool) {
+    fill(g, colourOf(figure, TONES.stoolLeg), SEAT.leg)
+    fill(g, colourOf(figure, TONES.stool), SEAT.stool)
+  }
+
   fill(g, pants, SEAT.thigh)
   fill(g, pants, [dir * shin.reach - shin.w / 2, shin.top, shin.w, shin.h])
 }

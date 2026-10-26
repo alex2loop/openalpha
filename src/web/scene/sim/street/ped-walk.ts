@@ -300,7 +300,9 @@ export function gaitOf(ped: Ped, nowMs: number): number {
     return WAVE_FRAME + (Math.floor(nowMs / WAVE_FRAME_MS) % 2)
   }
 
-  if (ped.kind === 'sitter' || nowMs - ped.movedAt > STAND_AFTER_MS) {
+  const isSeated = ped.kind === 'sitter' || ped.kind === 'bench-sitter'
+
+  if (isSeated || nowMs - ped.movedAt > STAND_AFTER_MS) {
     return 0
   }
 
