@@ -249,7 +249,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('gate-post', 'lobby', { at: [5, 279, 8, 3], draw: [5, 266, 8, 16] }),
   stand('sofa', 'lobby', { at: [24, 354, 72, 14], draw: [24, 340, 72, 30] }),
   stand('plant', 'lobby', { at: [136, 352, 8, 8], draw: [134, 344, 12, 16] }),
-  stand('lamp', 'lobby', { at: [100, 368, 8, 8], draw: [98, 321, 12, 51] }),
+  stand('lamp', 'lobby', { at: [8, 368, 8, 8], draw: [6, 321, 12, 51] }),
   wall('frame', 'alerts', { at: [232, 230, 16, 12], variant: 1 }),
   wall('wall-screen', 'alerts', { at: [174, 260, 42, 24], tip: 'alerts', variant: 3 }),
   wall('wall-screen', 'alerts', { at: [226, 236, 56, 8], variant: 4 }),
