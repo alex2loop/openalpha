@@ -27,6 +27,12 @@ export type ConfigTree = Readonly<Record<string, unknown>>
 
 type ConfigIssues = NonNullable<ConfigValidation['issues']>
 
+/** The tree as GET /v1/config holds it, and what each hidden secret reads as in it. */
+export interface ConfigRead {
+  readonly tree: ConfigTree
+  readonly redacted: string
+}
+
 const pending = signal<readonly RestartRow[]>(readPending())
 
 /** The rows saved to `config.toml` since the daemon last restarted, kept for the tab's life. */
@@ -55,13 +61,21 @@ export async function saveConfigTree(tree: ConfigTree, row: RestartRow): Promise
 
 /** Reads the tree as the daemon holds it; throws `ApiFailure`. */
 export async function readConfigTree(abort?: AbortSignal): Promise<ConfigTree> {
-  const { config } = await getJson(ROUTES.config, abort === undefined ? {} : { signal: abort })
+  return (await readConfig(abort)).tree
+}
+
+/** As `readConfigTree`, with the placeholder the daemon shows its secrets as. */
+export async function readConfig(abort?: AbortSignal): Promise<ConfigRead> {
+  const { config, redacted } = await getJson(
+    ROUTES.config,
+    abort === undefined ? {} : { signal: abort }
+  )
 
   if (!isTree(config)) {
     throw new ApiFailure(0, 'bad_response')
   }
 
-  return config
+  return { tree: config, redacted }
 }
 
 /** The daemon restarted: whatever waited for it has been applied. */
