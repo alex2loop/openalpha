@@ -69,11 +69,13 @@ function HoldingRow({ position, stop, isBreach }: HoldingRowProps) {
   ]
 
   return (
-    <div class={isBreach ? 'row is-breach' : 'row'}>
-      <b>
-        <TickerLink ticker={instrument.ticker} market={instrument.market} />
-      </b>
-      <span class="holding-facts">{joinInline(facts)}</span>
+    <div class={isBreach ? 'row holding-row is-breach' : 'row holding-row'}>
+      <span class="holding-main">
+        <b>
+          <TickerLink ticker={instrument.ticker} market={instrument.market} />
+        </b>
+        <span class="holding-facts">{joinInline(facts)}</span>
+      </span>
       <span class={`pill is-${toneOfPercent(move)}`}>{formatSignedPercent(move)}</span>
     </div>
   )
