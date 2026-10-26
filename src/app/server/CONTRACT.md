@@ -44,8 +44,8 @@ this document — neither imports the other.
   content-hashed chunks, unauthenticated: they hold no data, and the page signs in before it reads
   any `/v1` route. In the compiled binary the page and its chunks answer with
   `Content-Security-Policy` (`default-src 'none'`, `'self'` for scripts, styles, fonts and
-  connections, `data:`/`blob:` images, `frame-ancestors 'none'`, `base-uri 'none'`,
-  `form-action 'none'`), `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`; a
+  connections, plus `https://api.open-meteo.com` for the page's own weather reading,
+  `data:`/`blob:` images, `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'none'`), `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`; a
   source run serves it through Bun's `routes`, which carry none, and the page's own frame guard
   (it renders nothing inside a frame) covers both. Token at
   `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod

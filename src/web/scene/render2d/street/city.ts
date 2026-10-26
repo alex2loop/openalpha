@@ -17,14 +17,13 @@ import {
 import { paintSideStreet, paintSouth } from '@/web/scene/render2d/street/city-sides'
 import { paintBackdrop } from '@/web/scene/render2d/street/landmark'
 import { mixTone } from '@/web/scene/render2d/street/tone'
-import { lightAt } from '@/web/scene/sprites/daylight'
 import { WORLD } from '@/web/scene/types'
 import { STREET_RECT } from '@/web/scene/view'
 import { shopRowSpanOf } from '@/web/scene/world/frontage'
 import { holidayOf } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { FAR_TREE_Y, FAR_TREES, METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
-import { MINUTES_PER_DAY, MINUTES_PER_HOUR } from '@/web/text/time-units'
+import { MINUTES_PER_DAY } from '@/web/text/time-units'
 
 // The share of a building's windows lit through the day: minute of the day and share, linear
 // between two points.
@@ -39,9 +38,6 @@ const LIT_CURVE: readonly (readonly [number, number])[] = [
   [1380, 0.18],
   [1440, 0.12],
 ]
-// Full night before dawn and after dusk, eased over each (minutes of the day).
-const DAWN = [330, 420] as const
-const DUSK = [1020, 1140] as const
 const TILE_PX = 0.4 / METRES_PER_PX
 // The skyline north of the street, far row first: base line, roof depth, facade height and width
 // ranges, its tone, how far it leans to the horizon and the share of the lit curve it follows.
@@ -68,7 +64,7 @@ export const CITY_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     const scene = citySceneOf(g, pack, minute)
 
-    paintSky(scene, lightAt(minute.minute / MINUTES_PER_HOUR).sky)
+    paintSky(scene, minute.light.sky)
     paintBackdrop(scene, pack)
     paintSkyline(scene)
     paintNorthStreet(scene, pack)
@@ -87,9 +83,9 @@ export function citySceneOf(
   return {
     g,
     minute,
-    dark: darknessOf(minute.minute),
-    lit: litShareOf(minute.minute),
-    horizon: lightAt(minute.minute / MINUTES_PER_HOUR).sky[1],
+    dark: minute.light.dark,
+    lit: litShareOf(minute.minute) * minute.light.dark,
+    horizon: minute.light.sky[1],
     holiday: holidayOf(pack, minute.day),
   }
 }
@@ -102,19 +98,6 @@ export function litShareOf(minute: number): number {
   const [b0, b1] = LIT_CURVE[next] ?? [a0, a1]
 
   return b0 === a0 ? a1 : a1 + ((b1 - a1) * (at - a0)) / (b0 - a0)
-}
-
-/** How dark the street is at `minute` of the day: 0 by day, 1 at night. */
-export function darknessOf(minute: number): number {
-  if (minute < DAWN[0] || minute >= DUSK[1]) {
-    return 1
-  }
-
-  if (minute < DAWN[1]) {
-    return 1 - (minute - DAWN[0]) / (DAWN[1] - DAWN[0])
-  }
-
-  return minute < DUSK[0] ? 0 : (minute - DUSK[0]) / (DUSK[1] - DUSK[0])
 }
 
 // The sky down to the far pavement, the stars after dark, then the ground under everything south.

@@ -2,7 +2,6 @@ import type { MessageKey } from '@/i18n'
 import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { StreetSayView, StreetView, VehicleView } from '@/web/scene/street-types'
 import type { Point } from '@/web/scene/types'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import {
@@ -103,7 +102,7 @@ export function paintLot(g: CanvasRenderingContext2D, view: StreetView, scene: M
   }
 }
 
-/** One vehicle at its place, with its lamps after dusk (`dark`, from `darknessOf`). */
+/** One vehicle at its place, with its lamps after dusk (`dark`, from the light row). */
 export function drawVehicle(
   g: CanvasRenderingContext2D,
   vehicle: VehicleView,
@@ -135,7 +134,7 @@ function drawStanding(
 // Draws the cached sprite of the look at its place; paints it first when the look is new.
 function drawLook(g: CanvasRenderingContext2D, view: VehicleView, scene: MovingScene): void {
   const detail = scene.minute.detail
-  const darkStep = Math.round(darknessOf(scene.minute.minute) * DARK_STEPS)
+  const darkStep = Math.round(scene.minute.light.dark * DARK_STEPS)
   const held = heldKeyOf(view, { sig: sigOf(view, { detail, darkStep }), prefix: LOOK_PREFIX })
 
   if (drawHeldSprite(g, held.fullKey, view.at)) {

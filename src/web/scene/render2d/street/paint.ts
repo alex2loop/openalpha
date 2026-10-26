@@ -1,8 +1,10 @@
+import type { SunView, WeatherNow } from '@/web/scene/sky-types'
 import type { StreetFrame, StreetView } from '@/web/scene/street-types'
 import type { Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
 import { regionPack } from '@/web/scene/data/home'
+import { weather } from '@/web/scene/data/weather'
 import { CITY_PART } from '@/web/scene/render2d/street/city'
 import {
   detailOfPx,
@@ -19,23 +21,28 @@ import { SHELTERS_PART } from '@/web/scene/render2d/street/shelters'
 import { SHOPS_PART } from '@/web/scene/render2d/street/shops'
 import { SIGNALS_PART } from '@/web/scene/render2d/street/signals'
 import { VENDORS_PART } from '@/web/scene/render2d/street/vendors'
+import { WEATHER_PART } from '@/web/scene/render2d/street/weather'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { type SkyNow, skyNow } from '@/web/scene/sim/sky'
 import { hasStreetEntities } from '@/web/scene/sim/street/street'
-import { DAY_LIGHT_HOUR } from '@/web/scene/sprites/daylight'
+import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
 import { movingRectOf, projection, STREET_RECT } from '@/web/scene/view'
-import { lightByHour } from '@/web/state/prefs'
+import { reducedMotion } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const MAX_MOVING_CANVAS_PX = 2048
 const KEY_SEPARATOR = '|'
 const NO_RECT: Rect = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
 
-/** The minute a part paints at (the light's minute, held at the day row when the light does not
- *  follow the hour), the page minute `clock` that opening hours follow, and the detail level. */
+/** The minute a part paints at (the light's minute, held at solar noon when the light does not
+ *  follow the hour), the page minute `clock` that opening hours follow, the detail level, the
+ *  light and the sun it comes from, and the weather. */
 export interface StreetMinute extends ClockParts {
   readonly clock: number
   readonly detail: StreetDetail
+  readonly light: LightRow
+  readonly sun: SunView
+  readonly weather: WeatherNow
 }
 
 /** What a moving part paints over: the moving canvas's rect and its px per world px, the minute
@@ -67,6 +74,7 @@ const PAINT_PARTS: readonly PaintPart[] = [
   SHELTERS_PART,
   VENDORS_PART,
   MOVERS_PART,
+  WEATHER_PART,
 ]
 const MOVING_PAINTS: readonly MovingPaint[] = PAINT_PARTS.flatMap((part) =>
   part.paintMoving === undefined ? [] : [part.paintMoving]
@@ -86,6 +94,9 @@ export interface StreetPainter {
 
 interface PainterState {
   readonly moving: { rect: Rect; px: number; minute: StreetMinute; pack: RegionPack }
+  /** The sky the light row was read for, so it is read once a page minute. */
+  sky: SkyNow | undefined
+  light: LightRow
   readonly staticCanvas: HTMLCanvasElement
   readonly movingCanvas: HTMLCanvasElement
   staticKey: string
@@ -104,7 +115,7 @@ export function createStreetPainter(): StreetPainter {
     paint(view, visible, minute) {
       const devicePx = projection.value.scale * devicePixelRatio
 
-      syncStatic(state, toStreetMinute(minute, detailOfPx(devicePx)))
+      syncStatic(state, toStreetMinute(state, { minute, detail: detailOfPx(devicePx) }))
       syncMoving(state, { view, visible, devicePx })
 
       return {
@@ -136,9 +147,20 @@ function createPainterState(): PainterState {
     moving: {
       rect: NO_RECT,
       px: 1,
-      minute: { day: '', minute: 0, clock: 0, dow: 0, detail: 0 },
+      minute: {
+        day: '',
+        minute: 0,
+        clock: 0,
+        dow: 0,
+        detail: 0,
+        light: lightOf(skyNow.peek().light),
+        sun: skyNow.peek().light.sun,
+        weather: weather.peek(),
+      },
       pack: regionPack.value,
     },
+    sky: undefined,
+    light: lightOf(skyNow.peek().light),
     staticCanvas: document.createElement('canvas'),
     movingCanvas: document.createElement('canvas'),
     staticKey: '',
@@ -151,16 +173,31 @@ function createPainterState(): PainterState {
   }
 }
 
-// The street keeps the office's light: with the light not following the hour, its day row.
-function toStreetMinute(minute: ClockParts, detail: StreetDetail): StreetMinute {
-  const clock = minute.minute
+// The street keeps the sky's light un-eased, read once a page minute, and its minute.
+function toStreetMinute(
+  state: PainterState,
+  at: { readonly minute: ClockParts; readonly detail: StreetDetail }
+): StreetMinute {
+  const sky = skyNow.value
 
-  return lightByHour.value
-    ? { ...minute, clock, detail }
-    : { ...minute, minute: DAY_LIGHT_HOUR * MINUTES_PER_HOUR, clock, detail }
+  if (sky !== state.sky) {
+    state.sky = sky
+    state.light = lightOf(sky.light)
+  }
+
+  return {
+    ...at.minute,
+    minute: sky.minute,
+    clock: at.minute.minute,
+    detail: at.detail,
+    light: state.light,
+    sun: sky.light.sun,
+    weather: weather.value,
+  }
 }
 
-// Repainted when the minute, the day, the pack, the language or the detail level changes.
+// Repainted when the minute, the day, the pack, the language, the detail level, the sky or the
+// weather changes.
 function syncStatic(state: PainterState, minute: StreetMinute): void {
   const pack = regionPack.value
   const key = [
@@ -170,10 +207,15 @@ function syncStatic(state: PainterState, minute: StreetMinute): void {
     pack.id,
     locale.value,
     minute.detail,
+    reducedMotion.value,
   ].join(KEY_SEPARATOR)
   const g = state.staticCanvas.getContext('2d')
+  const isSame =
+    key === state.staticKey &&
+    minute.light === state.moving.minute.light &&
+    minute.weather === state.moving.minute.weather
 
-  if (key === state.staticKey) {
+  if (isSame) {
     return
   }
 

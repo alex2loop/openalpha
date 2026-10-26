@@ -49,7 +49,7 @@ export const PAVEMENT = Object.freeze({
  *  building (the crossing's line) and the one past the side street. */
 export const SIDE_WALKS = Object.freeze({ near: -CROSSING.x, far: SIDE_ROAD.to + 3 })
 
-type PedTask = 'walk' | 'wait' | 'sit' | 'pickup' | 'receive'
+type PedTask = 'walk' | 'wait' | 'sit' | 'pickup' | 'receive' | 'shelter'
 
 type Rng = ReturnType<typeof createRng>
 
@@ -85,6 +85,11 @@ export interface Ped extends PersonView {
   task: PedTask
   spot: number
   vehicle: Vehicle | undefined
+  umbrella: number
+  hat: number
+  /** The weather epoch this person was last dressed for. */
+  dressed: number
+  isHurried: boolean
 }
 
 /** The street's walkers: the pool, the stream of chance they draw on, and the greeting clock. */
@@ -94,6 +99,8 @@ export interface Peds {
   rng: Rng
   greetCheckAt: number
   greetReadyAt: number
+  /** The weather the walkers keep to, set by the street's weather. */
+  readonly weather: { isRaining: boolean; isHeat: boolean }
 }
 
 /** A walk step's clock and whether the zebra may be started now; one per group of walkers, moved
@@ -138,6 +145,10 @@ export function createPed(): Ped {
     task: 'walk',
     spot: -1,
     vehicle: undefined,
+    umbrella: 0,
+    hat: 0,
+    dressed: -1,
+    isHurried: false,
   }
 }
 
@@ -159,6 +170,10 @@ export function placePed(ped: Ped, at: { readonly x: number; readonly y: number 
   ped.vehicle = undefined
   ped.spot = -1
   ped.task = 'walk'
+  ped.umbrella = 0
+  ped.hat = 0
+  ped.dressed = -1
+  ped.isHurried = false
 }
 
 // A free slot of a pool, dressed as a passer-by at `at`.

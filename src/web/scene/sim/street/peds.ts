@@ -52,6 +52,7 @@ export function createPeds(): Peds {
     rng: createRng(0),
     greetCheckAt: 0,
     greetReadyAt: 0,
+    weather: { isRaining: false, isHeat: false },
   }
 }
 
@@ -255,9 +256,9 @@ function stepPed(peds: Peds, ped: Ped, step: PedStep): void {
 }
 
 // Two walkers who pass close on the far pavement stop, turn and wave, one says hello half the
-// time; then nobody greets for a while.
+// time; then nobody greets for a while. Nobody stops to greet in the rain.
 function greet(peds: Peds, at: PedStep): void {
-  if (at.nowMs < peds.greetCheckAt || at.nowMs < peds.greetReadyAt) {
+  if (peds.weather.isRaining || at.nowMs < peds.greetCheckAt || at.nowMs < peds.greetReadyAt) {
     return
   }
 

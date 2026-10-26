@@ -185,3 +185,47 @@ export function GearIcon({ class: className }: IconProps) {
     </svg>
   )
 }
+
+export function SunIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
+  )
+}
+
+export function CloudIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+    </svg>
+  )
+}
+
+export function RainIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+      <path d="M16 14v6M8 14v6M12 16v6" />
+    </svg>
+  )
+}
+
+export function StormIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M6 16.326A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 .5 8.973" />
+      <path d="m13 12-3 5h4l-3 5" />
+    </svg>
+  )
+}
+
+export function FogIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+      <path d="M16 17H7M17 21H9" />
+    </svg>
+  )
+}

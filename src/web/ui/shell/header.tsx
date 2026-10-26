@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef } from 'preact/hooks'
 import { pluralKey } from '@/i18n'
 import { ClockControl } from '@/web/scene/overlay/clock-control'
 import { ViewSwitch } from '@/web/scene/overlay/view-switch'
+import { WeatherChip } from '@/web/scene/overlay/weather-chip'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
@@ -44,6 +45,7 @@ export function Header() {
       <FocusButton />
       {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       <ClockControl />
+      <WeatherChip />
       <BellButton anchor={bellAnchor} />
       <KeysButton />
       <GearButton />

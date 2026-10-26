@@ -2,10 +2,11 @@ import type { Tones } from '@/web/scene/sprites/palette'
 import type { FloorId, Rect } from '@/web/scene/types'
 import { FLOOR_TONES, WALL_TONES } from '@/web/scene/sprites/palette'
 import { faceKindOf } from '@/web/scene/sprites/screens'
+import { NORTH_GLASS } from '@/web/scene/sprites/sky-glass'
 import { WORLD } from '@/web/scene/types'
 import { DOORS, type Door } from '@/web/scene/world/doors'
 import { DESK_SLOTS, FLOORS, type Wall } from '@/web/scene/world/floors'
-import { type PropDef, propsOn } from '@/web/scene/world/props'
+import { EXIT_MAT, type PropDef, propsOn } from '@/web/scene/world/props'
 import { type RoomDef, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
 /** x, y, w, h in world pixels. */
@@ -22,7 +23,7 @@ const GLASS_SHINE = '#EAF4FC'
 const MULLION_STEP = 32
 const CORRIDOR_TOP = 192
 const CORRIDOR_DEPTH = 32
-const NORTH_GLASS_DEPTH = 28
+const NORTH_GLASS_DEPTH = NORTH_GLASS.y + NORTH_GLASS.h
 const TILE_PX = 16
 const PLANK_PX = 8
 // The pale mat under each team desk, from the desk top's corner.
@@ -31,12 +32,14 @@ const DESK_MAT_RISE = 30
 const DESK_MAT_W = 68
 const DESK_MAT_H = 70
 const DESK_MAT_TONES = ['#F1F2F5', '#DDE0E7'] as const
-// Rugs under the meeting table, the operator's desk and the team's lounge, then the desk mats.
+// Rugs under the meeting table, the operator's desk, the lift and the street exit, the team's
+// lounge, then the desk mats.
 const RUGS: Readonly<Record<FloorId, readonly (readonly [Box, string, string])[]>> = Object.freeze({
   office: [
     [[416, 92, 192, 92], '#B9C5D2', '#97A6B6'],
     [[494, 272, 132, 100], '#D8C7A8', '#BCA886'],
     [[114, 262, 40, 16], '#E8D6BE', '#C9B79F'],
+    [[EXIT_MAT.x, EXIT_MAT.y, EXIT_MAT.w, EXIT_MAT.h], '#4C5160', '#363A46'],
   ],
   team: [
     [[16, 92, 480, 284], '#E2E5EB', '#D7DBE2'],

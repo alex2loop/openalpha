@@ -39,6 +39,7 @@ export type PropKind =
   | 'coat-rack'
   | 'ladder'
   | 'lift-door'
+  | 'umbrella-stand'
 
 /** The live figure a prop answers with on hover. */
 export type TipSource =
@@ -125,6 +126,7 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   'coat-rack': 44,
   ladder: 34,
   'lift-door': 30,
+  'umbrella-stand': 9,
 } satisfies Record<PropKind, number>)
 
 // Pieces hung on a wall: their `rect` is the wall area, nothing stands on it.
@@ -228,6 +230,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('cooler', 'lobby', { at: [134, 292, 12, 8], draw: [134, 276, 12, 24] }),
   stand('coffee', 'lobby', { at: [114, 291, 16, 9], draw: [114, 280, 16, 19] }),
   stand('cat-bed', 'lobby', { at: [136, 315, 24, 14], draw: [136, 315, 24, 14] }),
+  stand('umbrella-stand', 'lobby', { at: [6, 286, 6, 5], draw: [5, 272, 8, 19] }),
   stand('guest-desk', 'lobby', { at: [112, 323, 18, 10], draw: [112, 310, 18, 23] }),
   stand('sofa', 'lobby', { at: [24, 354, 72, 14], draw: [24, 340, 72, 30] }),
   stand('plant', 'lobby', { at: [136, 352, 8, 8], draw: [134, 344, 12, 16] }),
@@ -295,6 +298,9 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
 ])
 
 const PROPS: readonly PropDef[] = Object.freeze(PROP_SPECS.map(toProp))
+
+/** The dark mat inside the street exit, flat on the floor, where nothing is blocked. */
+export const EXIT_MAT: Rect = Object.freeze({ x: 3, y: 254, w: 16, h: 28 })
 
 export function propsOn(floor: FloorId): readonly PropDef[] {
   return PROPS.filter((prop) => prop.floor === floor)

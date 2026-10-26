@@ -17,6 +17,7 @@ import {
   type WebGLProgramParametersWithUniforms,
 } from 'three'
 
+import type { SunView } from '@/web/scene/sky-types'
 import type { FloorId, RoomId } from '@/web/scene/types'
 import { toUnits } from '@/web/scene/render3d/space'
 import { CLOSED_ROOM, type LightRow } from '@/web/scene/sprites/daylight'
@@ -51,6 +52,9 @@ interface LightSpec {
   readonly lampGlow: number
   readonly isClosed: boolean
   readonly row: LightRow
+  readonly sun: SunView
+  /** A lightning flash's strength now, 0 to 1. */
+  readonly flash: number
   readonly dtMs: number
   readonly isReduced: boolean
 }
@@ -67,7 +71,13 @@ const NO_ROOM = 1e9
 // Lambert divides by pi: the sun and the sky together bring a lit top face to full colour.
 const SUN_INTENSITY = 0.6 * Math.PI
 const HEMI_INTENSITY = 0.5 * Math.PI
-const SUN_AT = Object.freeze({ x: -12, y: 40, z: 30 })
+// The sun light stands this far out along the real sun's bearing, never lower or higher than
+// these angles, so a low sun still lights the tops.
+const SUN_REACH = 52
+const SUN_ANGLE_DEG = Object.freeze({ min: 12, max: 50 })
+const DEG = Math.PI / 180
+// A flash brings this much more sky light.
+const FLASH_HEMI = 2.4 * Math.PI
 const GROUND_TONE = '#C9C2D6'
 // An unlit room's fill (the north rooms keep more of the glass's light), and a shut lobby's.
 const FILL = Object.freeze({ unlitNorth: 0.8, unlitSouth: 0.66, closed: 0.86 })
@@ -103,7 +113,6 @@ export function createLighting(scene: Scene): Lighting {
   const hemi = new HemisphereLight(0xffffff, GROUND_TONE, HEMI_INTENSITY)
   const sun = new DirectionalLight(0xffffff, SUN_INTENSITY)
 
-  sun.position.set(SUN_AT.x, SUN_AT.y, SUN_AT.z)
   scene.add(hemi, sun)
 
   return {
@@ -124,8 +133,9 @@ export function syncLighting(lighting: Lighting, spec: LightSpec): boolean {
 
   lighting.hemi.color.copy(tint)
   lighting.sun.color.copy(tint)
-  lighting.hemi.intensity = HEMI_INTENSITY * (1 - darkness)
+  lighting.hemi.intensity = HEMI_INTENSITY * (1 - darkness) + FLASH_HEMI * spec.flash
   lighting.sun.intensity = SUN_INTENSITY * (1 - darkness)
+  placeSun(lighting.sun, spec.sun)
   roomsOn(spec.floor).forEach((room, slot) => {
     const target = targetFill(room.id, room.rect.y === 0, { spec, darkness })
     const held = lighting.factors.get(room.id) ?? target
@@ -174,6 +184,19 @@ function targetFill(
   const closed = spec.isClosed && room === CLOSED_ROOM ? FILL.closed : 1
 
   return (lamp * closed * (1 - LIT_NIGHT_SHARE * darkness)) / (1 - darkness)
+}
+
+// Toward the sun from the floor: x east, z south, y up.
+function placeSun(sun: DirectionalLight, at: SunView): void {
+  const angle = Math.min(SUN_ANGLE_DEG.max, Math.max(SUN_ANGLE_DEG.min, at.altitudeDeg)) * DEG
+  const bearing = at.azimuthDeg * DEG
+  const ground = Math.cos(angle) * SUN_REACH
+
+  sun.position.set(
+    Math.sin(bearing) * ground,
+    Math.sin(angle) * SUN_REACH,
+    -Math.cos(bearing) * ground
+  )
 }
 
 function ease(held: number, target: number, dtMs: number): number {

@@ -1,6 +1,5 @@
 import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { VendorView } from '@/web/scene/street-types'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import { shadeOf } from '@/web/scene/render2d/street/park-props'
 import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/sprite-key'
@@ -38,7 +37,7 @@ export function drawFlowerBike(
   scene: MovingScene
 ): void {
   const detail = scene.minute.detail
-  const darkStep = Math.round(darknessOf(scene.minute.minute) * DARK_STEPS)
+  const darkStep = Math.round(scene.minute.light.dark * DARK_STEPS)
   const sig =
     ((darkStep * 2 + bike.frame) * 2 + (bike.facing > 0 ? 1 : 0)) * SPRITE_PX.length + detail
   const held = heldKeyOf(bike, { sig, prefix: BIKE_PREFIX })

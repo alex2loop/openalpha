@@ -3,7 +3,6 @@ import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { BoardView } from '@/web/scene/street-types'
 import type { Rect } from '@/web/scene/types'
 import { ledItems } from '@/web/scene/data/led'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import {
   LED,
   lastMoveOf,
@@ -61,7 +60,7 @@ export function paintBoard(
 ): void {
   const items = ledItems.value
   const { board, scene } = at
-  const dark = darknessOf(scene.minute.minute)
+  const dark = scene.minute.light.dark
 
   paintHalo(g, { rect: at.rects.board, dark, pulse: board.pulse })
 

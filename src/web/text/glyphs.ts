@@ -23,6 +23,8 @@ export const ABSENT_CELL = '—'
 /** Leads a rise and a fall; a move that rounds to zero carries neither. */
 export const UP_GLYPH = '▲'
 export const DOWN_GLYPH = '▼'
+/** The unit after a temperature. */
+export const DEGREE_C = '°C'
 /** Separates the segments of one line. */
 const INLINE_SEPARATOR = '·'
 const INLINE_JOINER = ` ${INLINE_SEPARATOR} `

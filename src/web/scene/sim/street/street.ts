@@ -1,5 +1,6 @@
 import { effect, type ReadonlySignal, untracked } from '@preact/signals'
 
+import type { WeatherFxView } from '@/web/scene/sky-types'
 import type { PersonView, SignalHeadId, SignalState, StreetView } from '@/web/scene/street-types'
 import type { Point, Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
@@ -40,6 +41,15 @@ import {
   stepTraffic,
   type Traffic,
 } from '@/web/scene/sim/street/traffic'
+import {
+  createWeatherFx,
+  nextFlashAt,
+  resetWeatherFx,
+  stepWeatherPeds,
+  syncWeatherFx,
+  type WeatherFx,
+} from '@/web/scene/sim/street/weather-fx'
+import { WORLD } from '@/web/scene/types'
 import { movingRectOf, visibleRect } from '@/web/scene/view'
 import { isInside } from '@/web/scene/world/rooms'
 
@@ -81,6 +91,7 @@ interface StreetState {
   readonly front: Front
   readonly peds: Peds
   readonly life: StreetLife
+  readonly weather: WeatherFx
   /** Everyone on the street now, north to south: the pools' people and anyone out on an errand. */
   readonly people: Ped[]
   readonly view: StreetView & {
@@ -135,6 +146,8 @@ function createStreetState(deps: StreetDeps): StreetState {
   const front = createFront()
   const people: Ped[] = []
   const life = createLife(traffic, people)
+  const weather = createWeatherFx()
+
   return {
     deps,
     traffic,
@@ -142,8 +155,17 @@ function createStreetState(deps: StreetDeps): StreetState {
     front,
     peds: createPeds(),
     life,
+    weather,
     people,
-    view: createView({ traffic, lot, front, people, life, pack: deps.pack.peek() }),
+    view: createView({
+      traffic,
+      lot,
+      front,
+      people,
+      life,
+      weather: weather.view,
+      pack: deps.pack.peek(),
+    }),
     stepMs: 0,
     lastStepAt: 0,
     isLotMoving: false,
@@ -164,6 +186,7 @@ function createView(at: {
   readonly front: Front
   readonly people: readonly PersonView[]
   readonly life: StreetLife
+  readonly weather: WeatherFxView
   readonly pack: RegionPack
 }): StreetState['view'] {
   const { traffic, lot, front } = at
@@ -181,6 +204,7 @@ function createView(at: {
     lot: lot.view,
     front: front.view,
     vendors: at.life.vendors.view,
+    weather: at.weather,
   }
 }
 
@@ -195,6 +219,8 @@ function resumeStreet(state: StreetState): void {
   resetFront(state.front, { pack, day, nowMs })
   resetPeds(state.peds, { pack, day, minute, nowMs })
   resetLife(state.life, { pack, day, minute, nowMs })
+  resetWeatherFx(state.weather, { pack, day, minute })
+  syncWeatherFx(state.weather, { peds: state.peds, nowMs, isReduced: state.deps.reduced.peek() })
   syncPeople(state)
   state.view.heads = signalHeadsOf(pack)
   syncSignals(state.view.signals, state.deps.reduced.peek() ? 0 : nowMs)
@@ -207,6 +233,8 @@ function stepStreet(state: StreetState, nowMs: number): boolean {
   const startedAt = performance.now()
   const isReduced = state.deps.reduced.peek()
   const rect = movingRectOf(visibleRect())
+
+  const hasStruck = syncWeatherFx(state.weather, { peds: state.peds, nowMs, isReduced })
 
   state.isShowing = false
   state.isHeadShown = false
@@ -238,7 +266,7 @@ function stepStreet(state: StreetState, nowMs: number): boolean {
 
   state.stepMs = performance.now() - startedAt
 
-  return isRepaint
+  return isRepaint || hasStruck
 }
 
 // The next step while traffic or the front moves in view; else the sooner of a head's next lamp
@@ -256,7 +284,7 @@ function nextDueOf(state: StreetState): number {
   const headAt = state.isHeadShown ? nextSignalChangeAt(nowMs) : Number.POSITIVE_INFINITY
   const panelAt = state.isFrontShown ? nextPanelAt(state.front, nowMs) : Number.POSITIVE_INFINITY
 
-  return Math.min(headAt, panelAt)
+  return Math.min(headAt, panelAt, nextFlashAt(state.weather))
 }
 
 function stepAll(state: StreetState, nowMs: number): void {
@@ -265,6 +293,7 @@ function stepAll(state: StreetState, nowMs: number): void {
 
   stepTraffic(traffic, { minute, nowMs })
   stepPeds(state.peds, { traffic, minute, nowMs, dt: traffic.tick.dt })
+  stepWeatherPeds(state.weather, { peds: state.peds, pack: traffic.pack, minute, nowMs })
   state.hasErrandCome =
     stepErrandsStreet(state.deps.errands, { traffic, minute, nowMs, dt: traffic.tick.dt }) ||
     state.hasErrandCome
@@ -312,7 +341,11 @@ function catchUp(state: StreetState, nowMs: number): void {
 // there, steam over a pot there, or the attendant walking there; parked bikes and people standing
 // still never keep it awake.
 function isMovingInView(state: StreetState, rect: Rect): boolean {
-  if (isAnyIn(state.traffic.shown, rect) || isLifeMovingIn(state.life, rect)) {
+  if (
+    isAnyIn(state.traffic.shown, rect) ||
+    isLifeMovingIn(state.life, rect) ||
+    isRainIn(state.view.weather, rect)
+  ) {
     return true
   }
 
@@ -369,8 +402,8 @@ function syncSignals(signals: Record<SignalHeadId, SignalState>, nowMs: number):
 }
 
 /** Something stands on the street within `rect`: a vehicle, a person, an animal, the flower
- *  bicycle or a steaming pot, a parked motorbike, the lot's attendant, a signal head, or the
- *  board, a shutter on the move or the guard on the front. */
+ *  bicycle or a steaming pot, a parked motorbike, the lot's attendant, a signal head, the board,
+ *  a shutter on the move or the guard on the front, or rain falling outside the building. */
 export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
   const { pools, lot, vendors } = view
 
@@ -379,7 +412,8 @@ export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
     isAnyIn(pools.people, rect) ||
     isAnyIn(pools.critters, rect) ||
     (vendors.bike !== undefined && isInside(rect, vendors.bike.at)) ||
-    (vendors.pot !== undefined && isInside(rect, vendors.pot))
+    (vendors.pot !== undefined && isInside(rect, vendors.pot)) ||
+    isRainIn(view.weather, rect)
   ) {
     return true
   }
@@ -397,6 +431,14 @@ export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
     isAnyIn(view.heads, rect) ||
     isFrontShown(view.front, rect)
   )
+}
+
+// Rain falls where `rect` reaches past the building, whose floor hides the street under it.
+function isRainIn(weather: WeatherFxView, rect: Rect): boolean {
+  const isUnderFloor =
+    rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= WORLD.w && rect.y + rect.h <= WORLD.h
+
+  return weather.falling > 0 && !isUnderFloor
 }
 
 function isAnyIn(pool: readonly { readonly at: Point }[], rect: Rect): boolean {

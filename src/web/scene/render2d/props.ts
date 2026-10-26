@@ -9,6 +9,7 @@ import {
   METAL,
   PALETTE,
   PROP_TONES,
+  UMBRELLA_TONES,
   WOOD,
 } from '@/web/scene/sprites/palette'
 import { isWallMounted } from '@/web/scene/world/props'
@@ -59,6 +60,7 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   'news-rack': paintNewsRack,
   'coat-rack': paintCoatRack,
   ladder: paintLadder,
+  'umbrella-stand': paintUmbrellaStand,
 } satisfies Record<PropKind, Painter>)
 
 export function paintProp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -327,4 +329,24 @@ function paintLadder(g: CanvasRenderingContext2D, prop: PropDef): void {
   for (let rung = 0; rung < 6; rung++) {
     fill(g, [x, y + 3 + rung * 5, w, 1], WOOD[1])
   }
+}
+
+// Two closed umbrellas in the stand by the street exit; in the rain one lies open on the mat.
+function paintUmbrellaStand(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
+  const { x, y, w, h } = prop.draw
+  const [first, second] = UMBRELLA_TONES
+
+  if (scene.isRaining) {
+    g.fillStyle = first
+    g.beginPath()
+    g.arc(x + w + 4, y - 4, 6, Math.PI, Math.PI * 2)
+    g.fill()
+    fill(g, [x + w + 3.5, y - 4, 1, 5], INK)
+  } else {
+    fill(g, [x + 2, y, 2, h - 6], first)
+  }
+
+  fill(g, [x + 5, y + 1, 2, h - 7], second)
+  castShadow(g, [x, y + h - 3, w, 3])
+  framed(g, [x + 1, y + h - 8, w - 2, 6], PROP_TONES.umbrellaStand)
 }

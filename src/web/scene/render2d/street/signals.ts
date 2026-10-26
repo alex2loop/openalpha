@@ -1,6 +1,5 @@
 import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { SignalHeadView, SignalLamp, StreetView } from '@/web/scene/street-types'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { GROUND_TONES } from '@/web/scene/render2d/street/city-ground'
 import { FURNITURE, paintSigns, paintTurnPlate } from '@/web/scene/render2d/street/signs'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
@@ -74,7 +73,7 @@ const MAX_SHOWN_SECONDS = 99
  *  main street's name plates. The lit lamps and the digits follow the street's step. */
 export const SIGNALS_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
-    const dark = darknessOf(minute.minute) * FURNITURE.night
+    const dark = minute.light.dark * FURNITURE.night
     const flows = flowsOf(pack)
 
     paintCrossing(g, { flows: flows.all, dark })

@@ -1,6 +1,5 @@
 import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { CritterKind, CritterView } from '@/web/scene/street-types'
-import { darknessOf } from '@/web/scene/render2d/street/city'
 import { paintCat, paintDog } from '@/web/scene/render2d/street/critter-pets'
 import { type Art, ellipse, line, poly, STRIDE } from '@/web/scene/render2d/street/critter-shapes'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
@@ -65,7 +64,7 @@ export function drawCritter(
   scene: MovingScene
 ): void {
   const detail = scene.minute.detail
-  const darkStep = Math.round(darknessOf(scene.minute.minute) * DARK_STEPS)
+  const darkStep = Math.round(scene.minute.light.dark * DARK_STEPS)
   const held = heldKeyOf(critter, { sig: sigOf(critter, { detail, darkStep }), prefix: PREFIX })
   const box = BOXES[critter.kind]
 
