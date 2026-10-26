@@ -22,6 +22,9 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const BROWSER_SESSIONS_MIGRATION_ID = '2026_10_26_132705_add_browser_sessions'
+const BROWSER_SESSIONS_TABLE = 'browser_sessions'
+const BROWSER_SESSIONS_INDEX = 'idx_browser_sessions_last_seen_at'
 const DEBATE_MODELS_MIGRATION_ID = '2026_10_24_083308_add_suggestion_debate_models'
 const SUGGESTIONS_TABLE = 'suggestions'
 const TRIGGERS_MIGRATION_ID = '2026_10_24_052558_add_job_event_triggers'
@@ -189,6 +192,33 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
+/** Browser sign-ins go with their table and its one index. */
+async function assertBrowserSessionsRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasTable(db, BROWSER_SESSIONS_TABLE),
+    'browser_sessions migration did not add the table'
+  )
+  assertState(
+    (await indexNames(db)).has(BROWSER_SESSIONS_INDEX),
+    'browser_sessions migration did not add the index'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: BROWSER_SESSIONS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'browser_sessions rollback did not complete')
+  assertState(
+    !(await hasTable(db, BROWSER_SESSIONS_TABLE)),
+    'browser_sessions rollback kept the table'
+  )
+  assertState(
+    !(await indexNames(db)).has(BROWSER_SESSIONS_INDEX),
+    'browser_sessions rollback kept the index'
+  )
+}
+
 /** The column is the only thing the migration adds, so rolling back must leave it gone. */
 async function assertDebateModelsRollback(db: Storage): Promise<void> {
   assertState(
@@ -305,6 +335,7 @@ async function main(): Promise<void> {
   await assertDownCoversUp(`${RUNS_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${NOTICES_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${TRIGGERS_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${BROWSER_SESSIONS_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -315,6 +346,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertBrowserSessionsRollback(db)
     await assertDebateModelsRollback(db)
     await assertTriggersRollback(db)
     await assertNoticesRollback(db)
