@@ -149,8 +149,10 @@ export function unregisterSocketRun(
   controllers.delete(controller)
   ws.data.commandRuns.delete(controller)
 
+  // A steer can only be dropped by a run still under way, so its id leaves with the last one.
   if (controllers.size === 0) {
     ws.data.activeRuns.delete(sessionId)
+    ws.data.steerIds.delete(sessionId)
   }
 }
 

@@ -87,7 +87,7 @@ export interface WsData {
    *  that shares the session's set. The value is the lane entry id of a self-contained command. */
   readonly commandRuns: Map<AbortController, string | undefined>
   /** The id of the last tagged steer each session's running turn took, so a later `steer_dropped`
-   *  names it. One per session, read once, cleared on close. */
+   *  names it. One per session, read once, cleared when the session's last run ends. */
   readonly steerIds: Map<SessionId, string>
   closed: boolean
   off?: () => void
