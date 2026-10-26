@@ -8,6 +8,7 @@ import { digest, resultsLanded, todayCalls } from '@/web/scene/data/board'
 import { debateLine, roomStatus, toParamText } from '@/web/scene/data/room-status'
 import { projection, view } from '@/web/scene/view'
 import { focusRun } from '@/web/state/focus'
+import { openIdeas } from '@/web/state/ideas'
 import { runningCount } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
 import { formatUsd } from '@/web/text/figures'
@@ -132,7 +133,12 @@ function ResultsBoard({ renderer }: { readonly renderer: SceneRenderer }) {
   }
 
   return (
-    <Board at={RESULTS_BOARD_AT} renderer={renderer} isRinging={isRinging}>
+    <Board
+      at={RESULTS_BOARD_AT}
+      renderer={renderer}
+      onClick={() => openIdeas('open')}
+      isRinging={isRinging}
+    >
       {tr(pluralKey(fresh, 'ui.office.board.freshOne', 'ui.office.board.fresh'), { count: fresh })}
       <span class="board-all">
         {tr(pluralKey(calls.length, 'ui.office.board.allOne', 'ui.office.board.all'), {
