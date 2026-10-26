@@ -111,13 +111,21 @@ export function priceDisplayOf(market: string): MarketWire['priceDisplay'] {
   return findMarket(market)?.priceDisplay
 }
 
-function homeRegion(): string | undefined {
+/** The operator's region (`[locale] region`); absent until the markets are read. */
+export function homeRegion(): string | undefined {
   return marketsBlock.view.value.data?.homeRegion
 }
 
 /** A market in this phase still trades today: open, or in its lunch break. */
 export function isTradingPhase(phase: SessionPhase): boolean {
   return TRADING_PHASES.has(phase)
+}
+
+/** The overview's markets in `region`, in the daemon's order. */
+export function selectRegionOverview(region: string): OverviewResponse['markets'] {
+  return (overviewBlock.view.value.data?.markets ?? []).filter(
+    (block) => findMarket(block.market)?.region === region
+  )
 }
 
 /** The overview's markets in the home region, or in every other region. */

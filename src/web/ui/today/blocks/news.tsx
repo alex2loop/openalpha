@@ -1,10 +1,12 @@
 import type { TradingNewsItemWire } from '@/app/server/wire/trading'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
+import { openMarketTab } from '@/web/state/market-tab'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatWhen } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
 import { NewsIcon } from '@/web/ui/kit/icons'
 import { toSafeHref } from '@/web/ui/markdown/inline'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -22,6 +24,11 @@ export function News() {
       colour="teal"
       icon={<NewsIcon />}
       reading={reading}
+      action={
+        <Button kind="tertiary" size="small" onClick={() => openMarketTab('news')}>
+          {tr('ui.office.market.seeAll')}
+        </Button>
+      }
     >
       {(news) =>
         news.items.length === 0 ? (
@@ -34,7 +41,8 @@ export function News() {
   )
 }
 
-function NewsItem({ item }: { readonly item: TradingNewsItemWire }) {
+/** One headline with its sources and time; it opens the article in a new tab. */
+export function NewsItem({ item }: { readonly item: TradingNewsItemWire }) {
   const timeZone = state.value?.timeZone
   const facts = [
     ...item.sourceIds,

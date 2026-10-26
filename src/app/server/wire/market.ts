@@ -164,8 +164,10 @@ export type MacroResponse =
         readonly bullishAt: number
         readonly contribution: number
       }[]
+      /** The drivers with no reading, left out of the score; `label` in the operator's language. */
       readonly missing: readonly {
         readonly id: string
+        readonly label: string
         readonly reason: 'no-observation' | 'observation-only' | 'fetch-error'
       }[]
       readonly caveats: readonly TradingWireCaveat[]
@@ -175,6 +177,14 @@ export type MacroResponse =
       readonly status: 'unavailable'
       readonly caveats: readonly TradingWireCaveat[]
     }
+
+/** GET /v1/market?region — what `/market` prints for the region's last closed session and the next
+ *  report, in the daemon's language, one entry per line. It reads the sources, so it may take
+ *  seconds; no model runs. */
+export interface MarketSessionResponse {
+  readonly region: string
+  readonly text: readonly string[]
+}
 
 interface AlertWireBase {
   readonly id: string

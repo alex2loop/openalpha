@@ -60,6 +60,12 @@ export interface TradingServices {
   isSessionOpen(now: number, signal: AbortSignal): Promise<boolean>
   /** Whether the intraday report is on and when it next fires. */
   nextIntraday(now: number, signal: AbortSignal): Promise<IntradayNext>
+  /** What `/market` prints for a region: its last session's report and the next send. */
+  marketSession(request: {
+    readonly region: Region
+    readonly locale: Locale
+    readonly signal: AbortSignal
+  }): Promise<string>
   readonly daemonTasks: readonly DaemonTask[]
   /** The configured default region. It lives on the aggregate so no surface carries a fallback of
    *  its own — a slash-command default and a route default that disagree are two products. */

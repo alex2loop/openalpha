@@ -5,6 +5,7 @@ import type { LedgerMethods } from '@/trading/wiring/host/ledger'
 import type { MarketMethods } from '@/trading/wiring/host/market'
 import type { OrderMethods } from '@/trading/wiring/host/order'
 import type { ProfileMethods } from '@/trading/wiring/host/profile'
+import type { ThemeMethods } from '@/trading/wiring/host/themes'
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import type { HeldStopView } from '@/trading/wiring/host/view-types'
 import { reconcileSentences } from '@/trading/features/portfolio/render/reconcile'
@@ -21,6 +22,7 @@ type AccountMethods = Omit<
   | keyof OrderMethods
   | keyof AgentMethods
   | keyof ProfileMethods
+  | keyof ThemeMethods
 >
 type AlertMethods = Pick<
   AccountMethods,

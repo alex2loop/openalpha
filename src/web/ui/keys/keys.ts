@@ -53,7 +53,7 @@ export const LIST_KEY = '?'
 
 const INPUT_KEY = '/'
 const PALETTE_KEY = 'k'
-const BACK_KEY = '4'
+const BACK_KEY = 'r'
 const BELL_KEY = 'b'
 const JOBS_KEY = 'j'
 const CHAT_KEY = 'c'
@@ -62,6 +62,7 @@ const TAB_KEYS: Readonly<Record<string, PanelTab>> = Object.freeze({
   1: 'today',
   2: 'book',
   3: 'ideas',
+  4: 'market',
 })
 const AGENT_STEPS: Readonly<Record<string, 1 | -1>> = Object.freeze({ '[': -1, ']': 1 })
 const CHOOSE_STEPS: Readonly<Record<string, 1 | -1>> = Object.freeze({
@@ -95,7 +96,7 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = Object.freeze([
     does: 'ui.office.keys.focusInput',
   },
   { caps: Object.keys(TAB_KEYS), does: 'ui.office.keys.tabs' },
-  { caps: [BACK_KEY], does: 'ui.office.keys.back' },
+  { caps: [BACK_KEY.toUpperCase()], does: 'ui.office.keys.back' },
   { caps: [BELL_KEY.toUpperCase()], does: 'ui.office.keys.bell' },
   { caps: [JOBS_KEY.toUpperCase()], does: 'ui.office.keys.jobs' },
   { caps: [CHAT_KEY.toUpperCase()], does: 'ui.office.keys.chat' },

@@ -1,0 +1,97 @@
+.market-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+  margin-bottom: var(--s2);
+}
+
+.market-sub {
+  margin: var(--s2) 0 6px;
+  color: var(--title);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.market-filter {
+  width: 100%;
+  margin-bottom: var(--s1);
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--canvas);
+}
+
+.market-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+  margin-bottom: var(--s2);
+}
+
+.market-run p {
+  flex-basis: 100%;
+}
+
+.macro-drivers {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.macro-drivers th {
+  color: var(--ink2);
+  font-weight: 500;
+  text-align: start;
+}
+
+.macro-drivers th,
+.macro-drivers td {
+  padding: 4px 6px 4px 0;
+  vertical-align: middle;
+}
+
+.macro-drivers .num {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.macro-track {
+  position: relative;
+  display: block;
+  min-width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--sunken);
+}
+
+.macro-dot {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+}
+
+.theme-row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.theme-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.theme-head b {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}

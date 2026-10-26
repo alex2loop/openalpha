@@ -303,7 +303,11 @@ export function toMacroWire(view: TradingMacroView, locale: Locale): MacroRespon
       bullishAt: driver.bullishAt,
       contribution: driver.contribution,
     })),
-    missing: macro.missing.map((driver) => ({ id: driver.id, reason: driver.reason })),
+    missing: macro.missing.map((driver) => ({
+      id: driver.id,
+      label: view.labels[driver.id] ?? driver.id,
+      reason: driver.reason,
+    })),
     caveats: toCaveatWires([...macro.caveats, ...result.caveats], locale),
   }
 }

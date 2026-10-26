@@ -32,6 +32,7 @@ import { SESSION_ROUTES } from '@/app/server/routes/session'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
 import { TASK_ROUTES } from '@/app/server/routes/tasks'
+import { THEME_ROUTES } from '@/app/server/routes/themes'
 import { TRADING_ROUTES } from '@/app/server/routes/trading'
 import { WATCHLIST_ROUTES } from '@/app/server/routes/watchlist'
 import { broadcast } from '@/app/server/ws/socket'
@@ -61,6 +62,7 @@ const ROUTES = [
   ...DIGEST_ROUTES,
   ...MARKET_ROUTES,
   ...MARKET_EXTRA_ROUTES,
+  ...THEME_ROUTES,
   ...MODEL_ROUTES,
   ...MONEY_ROUTES,
   ...NOTICE_ROUTES,

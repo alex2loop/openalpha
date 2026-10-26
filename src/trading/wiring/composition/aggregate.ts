@@ -21,9 +21,11 @@ import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
 import { isVenueFillBooked } from '@/trading/features/ledger/sync'
 import { runVenueSync } from '@/trading/features/ledger/sync-run'
+import { renderMarketShow } from '@/trading/features/market-data/command/market'
 import { createHeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
 import { sessionPhase } from '@/trading/markets/calendar'
+import { NOTICE_SURFACE } from '@/trading/render/format'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
@@ -89,7 +91,24 @@ export function toAggregate(
     appViews: buildAppViews(parts.services, options.tradingConfig),
     daemonTasks: buildDaemonTasks(parts, options, registries),
     syncVenue: buildVenueSync(parts, registries),
+    marketSession: buildMarketSession(parts, options.tradingConfig, registries),
   })
+}
+
+/** The same text `/market` prints, laid out as a notice is: in lines, at a phone's width. */
+function buildMarketSession(
+  parts: AggregateParts,
+  config: TradingConfig,
+  registries: Registries
+): TradingServices['marketSession'] {
+  const deps = {
+    report: toReportDeps(parts, config, registries.venues),
+    markets: registries.markets,
+    config,
+    settings: parts.stores.intradaySettings,
+  }
+
+  return (request) => renderMarketShow(deps, { ...request, surface: NOTICE_SURFACE })
 }
 
 /** The same function `/record sync` runs, so one fill is booked once whichever surface asks. */

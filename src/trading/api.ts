@@ -205,6 +205,7 @@ export {
   SUGGESTION_LIST_STATUSES,
   suggestionId,
 } from '@/trading/features/suggestion/types'
+export { THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 export {
   buildInstrumentKey,
   marketRef,

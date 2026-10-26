@@ -9,6 +9,8 @@ import { renderDeclaredValue, renderProvidedValue } from '@/trading/render/forma
 import { renderMarketName, renderRegionName } from '@/trading/render/tool-detail'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
 
+const LINE_BREAK = '\n'
+
 export type MarketMethods = Pick<
   TradingHost,
   | 'getQuotes'
@@ -20,6 +22,7 @@ export type MarketMethods = Pick<
   | 'screen'
   | 'getOverview'
   | 'getMacroRisk'
+  | 'readMarketSession'
   | 'describeMarkets'
   | 'getSectors'
   | 'listSources'
@@ -28,6 +31,8 @@ export type MarketMethods = Pick<
 type SeriesMethods = Pick<MarketMethods, 'getOhlcv' | 'getEvents'>
 
 type ListingMethods = Pick<MarketMethods, 'getSectors' | 'listSources'>
+
+type SessionMethods = Pick<MarketMethods, 'readMarketSession'>
 
 type PriceMethods = Pick<
   MarketMethods,
@@ -183,10 +188,30 @@ function listingMethods(deps: TradingHostDeps): ListingMethods {
   }
 }
 
+/** What `/market` prints: it reads the sources for a whole session, so it gets the slow ceiling. */
+function sessionMethods(deps: TradingHostDeps): SessionMethods {
+  return {
+    readMarketSession: (request) =>
+      scopedSlow(deps, request.signal, async (scope) => {
+        const region = resolveRegion(deps, request.region)
+        const text = await deps.services.marketSession({
+          region,
+          locale: request.locale,
+          signal: scope.signal,
+        })
+
+        return { region, text: text.split(LINE_BREAK) }
+      }),
+  }
+}
+
 /** The whole-market reads: each may refresh a cold market first, so each gets the slow ceiling. */
 function boardMethods(
   deps: TradingHostDeps
-): Omit<MarketMethods, keyof PriceMethods | keyof SeriesMethods | keyof ListingMethods> {
+): Omit<
+  MarketMethods,
+  keyof PriceMethods | keyof SeriesMethods | keyof ListingMethods | keyof SessionMethods
+> {
   return {
     // An unregistered market is refused inside the service, the one holder of the registry.
     screen: (request) =>
@@ -236,6 +261,7 @@ export function marketMethods(deps: TradingHostDeps): MarketMethods {
     ...seriesMethods(deps),
     ...priceMethods(deps),
     ...listingMethods(deps),
+    ...sessionMethods(deps),
     ...boardMethods(deps),
   }
 }

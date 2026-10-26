@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact'
 import { unseenCalls } from '@/web/state/ideas'
 import { openView, type PanelTab, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
-import { BulbIcon, CalendarIcon, PieIcon } from '@/web/ui/kit/icons'
+import { BulbIcon, CalendarIcon, GlobeIcon, PieIcon } from '@/web/ui/kit/icons'
 
 interface TabSpec {
   readonly tab: PanelTab
@@ -15,9 +15,11 @@ export const PANEL_TABS: readonly TabSpec[] = Object.freeze([
   { tab: 'today', icon: <CalendarIcon />, label: () => tr('ui.office.common.today') },
   { tab: 'book', icon: <PieIcon />, label: () => tr('trading.render.affordance.portfolio') },
   { tab: 'ideas', icon: <BulbIcon />, label: () => tr('ui.office.panel.ideas') },
+  { tab: 'market', icon: <GlobeIcon />, label: () => tr('ui.office.panel.market') },
 ])
 
-/** Hôm nay, Danh mục and Đề xuất; with a person or ticker open they drop to icon and count. */
+/** Hôm nay, Danh mục, Đề xuất and Thị trường; with a person or ticker open they drop to icon and
+ *  count. */
 export function Tabs({ isCompact }: { readonly isCompact: boolean }) {
   const view = panelView.value
   const active = 'tab' in view ? view.tab : undefined
