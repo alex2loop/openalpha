@@ -1,5 +1,5 @@
 import type { PaintPart } from '@/web/scene/render2d/street/paint'
-import type { RoadLayout } from '@/web/scene/world/regions'
+import type { RegionPack, RoadLayout } from '@/web/scene/world/regions'
 import {
   type CityScene,
   paintBlock,
@@ -15,10 +15,13 @@ import {
   toneOf,
 } from '@/web/scene/render2d/street/city-ground'
 import { paintSideStreet, paintSouth } from '@/web/scene/render2d/street/city-sides'
+import { paintBackdrop } from '@/web/scene/render2d/street/landmark'
 import { mixTone } from '@/web/scene/render2d/street/tone'
 import { lightAt } from '@/web/scene/sprites/daylight'
 import { WORLD } from '@/web/scene/types'
 import { STREET_RECT } from '@/web/scene/view'
+import { shopRowSpanOf } from '@/web/scene/world/frontage'
+import { holidayOf } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
 import { MINUTES_PER_DAY, MINUTES_PER_HOUR } from '@/web/text/time-units'
@@ -56,8 +59,15 @@ const TONES = Object.freeze({
   tactile: { day: '#B6A878', night: '#2A2A3A', share: 0.6 },
   tactileDot: { day: '#9C8E60', night: '#2A2A3A', share: 0.6 },
 })
+const FAR_TREE_Y = -24
+const FAR_TREE_GAP = 44
+const FAR_TREE_GAP_SPREAD = 18
 const TILE_JOINT = 'rgba(70,62,52,.075)'
 const STAR = '#FFFFFF'
+
+/** The street trees along the far pavement, west to east, as a seed fixes them: where each stands
+ *  and which crown it wears. The shop row skips the ones in front of it. */
+export const FAR_TREES: readonly { readonly x: number; readonly kind: number }[] = farTreesOf()
 
 /** The city itself: the sky and skyline, the north road, both side streets out to the canvas
  *  edge, the plaza south of the building, and the hazy blocks beyond the parks. */
@@ -70,11 +80,13 @@ export const CITY_PART: PaintPart = {
       dark: darknessOf(minute.minute),
       lit: litShareOf(minute.minute),
       horizon: light.sky[1],
+      holiday: holidayOf(pack, minute.day),
     }
 
     paintSky(scene, light.sky)
+    paintBackdrop(scene, pack)
     paintSkyline(scene)
-    paintNorthStreet(scene, pack.road)
+    paintNorthStreet(scene, pack)
     paintSideStreet(scene, { side: -1, street: pack.road.west })
     paintSideStreet(scene, { side: 1, street: pack.road.east })
     paintSouth(scene)
@@ -82,7 +94,7 @@ export const CITY_PART: PaintPart = {
 }
 
 /** The share of a street building's windows lit at `minute` of the day. */
-function litShareOf(minute: number): number {
+export function litShareOf(minute: number): number {
   const at = ((minute % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY
   const next = LIT_CURVE.findIndex(([from]) => from > at)
   const [a0, a1] = LIT_CURVE[next - 1] ?? [0, 0]
@@ -175,7 +187,10 @@ function paintSkyline(scene: CityScene): void {
   }
 }
 
-function paintNorthStreet(scene: CityScene, road: RoadLayout): void {
+function paintNorthStreet(scene: CityScene, pack: RegionPack): void {
+  const { road } = pack
+  const row = shopRowSpanOf(pack.shops)
+
   paintFarPavement(scene)
   fillTone(scene, GROUND_TONES.road, [
     STREET_LEFT,
@@ -187,10 +202,10 @@ function paintNorthStreet(scene: CityScene, road: RoadLayout): void {
   fillTone(scene, GROUND_TONES.kerb, [STREET_LEFT, NORTH.roadBottom, STREET_RECT.w, 1.4])
   paintRoadMarks(scene, road.north)
 
-  const rng = createRng(seedOf('far-trees'))
-
-  for (let x = STREET_LEFT + 10; x < STREET_RIGHT; x += 44 + rng.next() * 18) {
-    paintTree(scene, { x, y: -24 }, rng.int(0, 2))
+  for (const tree of FAR_TREES) {
+    if (row === undefined || tree.x < row[0] || tree.x > row[1]) {
+      paintTree(scene, { x: tree.x, y: FAR_TREE_Y }, tree.kind)
+    }
   }
 
   paintFront(scene)
@@ -286,4 +301,19 @@ function paintFront(scene: CityScene): void {
   for (let x = 34; x < WORLD.w; x += 72) {
     paintLamp(scene, { x, y: 13 }, 1)
   }
+}
+
+function farTreesOf(): { readonly x: number; readonly kind: number }[] {
+  const rng = createRng(seedOf('far-trees'))
+  const trees: { readonly x: number; readonly kind: number }[] = []
+
+  for (
+    let x = STREET_LEFT + 10;
+    x < STREET_RIGHT;
+    x += FAR_TREE_GAP + rng.next() * FAR_TREE_GAP_SPREAD
+  ) {
+    trees.push({ x, kind: rng.int(0, 2) })
+  }
+
+  return trees
 }

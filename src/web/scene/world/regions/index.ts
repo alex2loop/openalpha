@@ -198,6 +198,7 @@ export interface RegionPack {
 }
 
 const DEFAULT_PACK: RegionPackId = 'vn'
+const HOLIDAYS: readonly HolidayId[] = ['tet', 'trung-thu', 'quoc-khanh', 'noel']
 const REGION_PACKS: Readonly<Record<RegionPackId, RegionPack>> = Object.freeze({
   vn: VN_PACK,
 } satisfies Record<RegionPackId, RegionPack>)
@@ -226,7 +227,17 @@ export function shopDoorOf(shops: readonly ShopRow[], index: number): Point {
 
 /** The shop serves at `minute` of the page day: a day and night shop always, a shutter never. */
 export function isShopOpen(row: ShopRow, minute: number): boolean {
-  return (row.hours[0] === 0 && row.hours[1] >= MINUTES_PER_DAY) || isInRange(minute, row.hours)
+  return isAllDay(row) || isInRange(minute, row.hours)
+}
+
+/** The shop never closes: it opens at midnight and runs to the next midnight. */
+export function isAllDay(row: ShopRow): boolean {
+  return row.hours[0] === 0 && row.hours[1] >= MINUTES_PER_DAY
+}
+
+/** The holiday `day` (`YYYY-MM-DD`) falls in, by the pack's dates; the first match wins. */
+export function holidayOf(pack: RegionPack, day: string): HolidayId | undefined {
+  return HOLIDAYS.find((id) => pack.holidayDates[id].some(([from, to]) => day >= from && day <= to))
 }
 
 function isPackId(region: string): region is RegionPackId {

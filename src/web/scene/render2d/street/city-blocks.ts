@@ -1,6 +1,8 @@
 import type { StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { Point } from '@/web/scene/types'
+import type { HolidayId } from '@/web/scene/world/regions'
 import { drawSprite, staticPxOf } from '@/web/scene/render2d/street/detail'
+import { blossomOf, paintCrownLights } from '@/web/scene/render2d/street/festive-trees'
 import { DARK_STEPS, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { HEIGHT_K } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
@@ -75,13 +77,15 @@ const BAND_MIN_RISE = 9
 const BAND_MAX_RISE = 41
 
 /** What every city painter reads: the static canvas, the minute painted, how dark it is (0 day,
- *  1 night), the share of windows lit, and the sky's horizon colour the haze leans to. */
+ *  1 night), the share of windows lit, the sky's horizon colour the haze leans to, and the
+ *  holiday the day falls in. */
 export interface CityScene {
   readonly g: CanvasRenderingContext2D
   readonly minute: StreetMinute
   readonly dark: number
   readonly lit: number
   readonly horizon: string
+  readonly holiday: HolidayId | undefined
 }
 
 /** One building seen from the south: its facade `height` (before the rise), its roof `depth`,
@@ -176,13 +180,14 @@ export function paintTree(scene: CityScene, at: Point, kind: number): void {
   const radius = CROWN_RADII[look] ?? CROWN_RADII[0]
   const crownY = at.y - (TRUNK_PX + look * TRUNK_STEP_PX) * HEIGHT_K - radius * 0.4
   const darkStep = Math.round(scene.dark * DARK_STEPS)
+  const blossom = blossomOf(scene.holiday, look)
 
   g.fillStyle = mixTone(TREE_TRUNK, TREE_TRUNK_NIGHT, scene.dark * TRUNK_NIGHT)
   g.fillRect(at.x - 0.9, crownY + radius * 0.3, 1.8, at.y - crownY - radius * 0.3)
   drawSprite(
     g,
     {
-      key: `crown|${look}|${darkStep}`,
+      key: `crown|${look}|${darkStep}|${blossom ?? ''}`,
       box: {
         w: radius * 3,
         h: radius * 3,
@@ -191,8 +196,12 @@ export function paintTree(scene: CityScene, at: Point, kind: number): void {
       },
       at: { x: at.x, y: crownY },
     },
-    (sprite) => paintCrown(sprite, { look, radius, dark: darkStep / DARK_STEPS })
+    (sprite) => paintCrown(sprite, { look, radius, dark: darkStep / DARK_STEPS, blossom })
   )
+
+  if (scene.holiday === 'noel') {
+    paintCrownLights(g, { x: at.x, y: crownY, radius, look, dark: scene.dark })
+  }
 }
 
 /** A street lamp at `at`, its arm reaching to `side` (-1 west, 1 east); it lights once the
@@ -353,9 +362,14 @@ function paintBandWindows(
 
 function paintCrown(
   g: CanvasRenderingContext2D,
-  crown: { readonly look: number; readonly radius: number; readonly dark: number }
+  crown: {
+    readonly look: number
+    readonly radius: number
+    readonly dark: number
+    readonly blossom: string | undefined
+  }
 ): void {
-  const base = TREE_TONES[crown.look] ?? TREE_TONES[0]
+  const base = crown.blossom ?? TREE_TONES[crown.look] ?? TREE_TONES[0]
   const body = mixTone(base, TREE_NIGHT, crown.dark * 0.8)
   const blobs = CROWN_BLOBS[crown.look] ?? CROWN_BLOBS[0]
 

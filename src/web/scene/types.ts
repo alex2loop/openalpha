@@ -244,12 +244,24 @@ interface DeskMess {
   readonly sheets: number
 }
 
+/** The home index on the live monitors: its name, the levels polled since the page opened, the
+ *  previous close they are drawn against and the move as the wire gave it. */
+export interface DeskTrace {
+  readonly label: string
+  readonly line: readonly number[]
+  readonly close: number
+  readonly changePct: number
+}
+
 /** What the desks show of the day's work; `signature` moves only when something drawn changed. */
 export interface DeskItemsView {
   readonly mess: ReadonlyMap<ActorId, DeskMess>
   /** Each desk owner's screens; absent while the owner works, where the work screen shows. */
   readonly monitors: ReadonlyMap<ActorId, MonitorState>
   readonly session: DeskSession
+  /** The home index's day: absent while its move is absent or its read is stale, so the live
+   *  monitors then show no line. */
+  readonly trace: DeskTrace | undefined
   /** A fired price alert is unread: the alert desk's lamp glows amber. */
   readonly isAlertOn: boolean
   readonly saverStep: number

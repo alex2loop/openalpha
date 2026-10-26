@@ -1,5 +1,6 @@
 import type { DeskItemsView, MonitorState, Rect } from '@/web/scene/types'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { paintTrace } from '@/web/scene/sprites/desk-trace'
 import { OUTLINE, PALETTE } from '@/web/scene/sprites/palette'
 import { FONT } from '@/web/scene/sprites/screens'
 import { DESK_PROPS, type DeskProp, type DeskPropType } from '@/web/scene/world/desk-props'
@@ -195,16 +196,18 @@ function paintMonitor(c: CanvasRenderingContext2D, job: ScreenJob): void {
   }
 
   const isRest = job.state === 'rest'
-  const baseY = inner.y + inner.h * 0.6
+  const { trace } = job.view
 
-  c.strokeStyle = isRest ? SCREEN.rest : SCREEN.grid
-  c.lineWidth = 1
-  c.setLineDash([3, 3])
-  c.beginPath()
-  c.moveTo(inner.x + 8, baseY)
-  c.lineTo(inner.x + inner.w - 6, baseY)
-  c.stroke()
-  c.setLineDash([])
+  if (trace === undefined) {
+    paintBaseline(c, inner, isRest)
+  } else {
+    paintTrace(c, inner, {
+      trace,
+      kind: job.row.type === 'monitor-candles' ? 'candles' : 'line',
+      isRest,
+      isFine: job.isFine,
+    })
+  }
 
   if (isRest && job.isFine) {
     const words = tr(
@@ -216,6 +219,20 @@ function paintMonitor(c: CanvasRenderingContext2D, job: ScreenJob): void {
     c.textAlign = 'left'
     c.fillText(words, inner.x + 6, inner.y + inner.h - 9, inner.w - 12)
   }
+}
+
+// With no index line to draw, a dashed baseline across the lit screen.
+function paintBaseline(c: CanvasRenderingContext2D, inner: Rect, isRest: boolean): void {
+  const baseY = inner.y + inner.h * 0.6
+
+  c.strokeStyle = isRest ? SCREEN.rest : SCREEN.grid
+  c.lineWidth = 1
+  c.setLineDash([3, 3])
+  c.beginPath()
+  c.moveTo(inner.x + 8, baseY)
+  c.lineTo(inner.x + inner.w - 6, baseY)
+  c.stroke()
+  c.setLineDash([])
 }
 
 // Three soft dots drifting a step every saver step.

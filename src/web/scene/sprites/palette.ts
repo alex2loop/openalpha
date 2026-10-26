@@ -126,6 +126,9 @@ export const MASCOT_TONES = Object.freeze({
   screen: '#2F3F78',
 } as const)
 
+/** The LED board's title: the app mark's blue and violet, lightened to read on a dark screen. */
+export const LED_TITLE_TONES = Object.freeze(['#8FC0FF', '#A99BFF', '#D69BFF'] as const)
+
 /** The furniture's materials, the same in both renderers. */
 export const WOOD: Tones = ['#E2B47A', '#C99A5C', '#9E7444']
 export const METAL: Tones = ['#DDE1E8', '#B4BAC5', '#8A919E']

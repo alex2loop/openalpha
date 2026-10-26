@@ -1,9 +1,10 @@
 import type { ActivityResponse } from '@/app/server/wire/activity'
 import type { ActorState } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
-import type { ActorId, DeskSession, MonitorState, RoomId } from '@/web/scene/types'
+import type { ActorId, DeskSession, DeskTrace, MonitorState, RoomId } from '@/web/scene/types'
 import type { ClockParts } from '@/web/text/time'
 import { pageMinute } from '@/web/scene/clock/clock'
+import { homeIndex, type LedItem } from '@/web/scene/data/led'
 import { roomOfRun } from '@/web/scene/data/room-status'
 import { todayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
@@ -17,6 +18,7 @@ import {
 } from '@/web/scene/world/desk-props'
 import { setCapped } from '@/web/state/capped-map'
 import { hasUnreadAlert } from '@/web/state/notices'
+import { PERCENT } from '@/web/text/figures'
 import { MINUTES_PER_HOUR, shiftDay } from '@/web/text/time-units'
 
 /** A screensaver steps this often; under reduced motion it stays still. */
@@ -47,6 +49,7 @@ interface ShownDesks {
   readonly mess: Map<ActorId, Tally>
   readonly monitors: Map<ActorId, MonitorState>
   session: DeskSession
+  trace: DeskTrace | undefined
   isAlertOn: boolean
   saverStep: number
   signature: number
@@ -60,6 +63,7 @@ export interface Desks {
   readonly shown: ShownDesks
   day: string | undefined
   seeded: ActivityResponse | undefined
+  indexItem: LedItem | undefined
   hasSaver: boolean
 }
 
@@ -71,12 +75,14 @@ export function createDesks(): Desks {
       mess: new Map(DESK_OWNERS.map((owner) => [owner, { cups: 0, sheets: 0 }])),
       monitors: new Map(),
       session: 'closed',
+      trace: undefined,
       isAlertOn: false,
       saverStep: 0,
       signature: 0,
     },
     day: undefined,
     seeded: undefined,
+    indexItem: undefined,
     hasSaver: false,
   }
 }
@@ -211,7 +217,8 @@ function syncScreens(desks: Desks, step: LifeStep): boolean {
   const { shown } = desks
   const session = sessionOf()
   const isAlertOn = hasUnreadAlert.value
-  let isChanged = shown.session !== session || shown.isAlertOn !== isAlertOn
+  const isTraceChanged = syncTrace(desks)
+  let isChanged = isTraceChanged || shown.session !== session || shown.isAlertOn !== isAlertOn
 
   shown.session = session
   shown.isAlertOn = isAlertOn
@@ -255,6 +262,40 @@ function monitorOf(
   }
 
   return at.session === 'open' ? 'live' : 'rest'
+}
+
+// True when the home index read changed what the live monitors draw.
+function syncTrace(desks: Desks): boolean {
+  const item = homeIndex.value
+
+  if (item === desks.indexItem) {
+    return false
+  }
+
+  desks.indexItem = item
+  desks.shown.trace = traceOf(item)
+
+  return true
+}
+
+// A move the wire left out, or a read that went stale, draws no line.
+function traceOf(item: LedItem | undefined): DeskTrace | undefined {
+  if (
+    item === undefined ||
+    item.stale ||
+    item.level === undefined ||
+    item.changePct === undefined ||
+    item.line.length < 2
+  ) {
+    return undefined
+  }
+
+  return {
+    label: item.label,
+    line: item.line,
+    close: item.level / (1 + item.changePct / PERCENT),
+    changePct: item.changePct,
+  }
 }
 
 function syncSaver(desks: Desks, step: LifeStep): boolean {

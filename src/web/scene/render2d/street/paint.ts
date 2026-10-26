@@ -10,7 +10,11 @@ import {
   type StreetDetail,
   staticPxOf,
 } from '@/web/scene/render2d/street/detail'
+import { FESTIVE_PART } from '@/web/scene/render2d/street/festive'
+import { FRONTAGE_PART } from '@/web/scene/render2d/street/frontage'
+import { releaseLedFaces } from '@/web/scene/render2d/street/led-board'
 import { SHELTERS_PART } from '@/web/scene/render2d/street/shelters'
+import { SHOPS_PART } from '@/web/scene/render2d/street/shops'
 import { SIGNALS_PART } from '@/web/scene/render2d/street/signals'
 import { VEHICLES_PART } from '@/web/scene/render2d/street/vehicles'
 import { zeroCanvas } from '@/web/scene/renderer'
@@ -25,15 +29,18 @@ const MAX_MOVING_CANVAS_PX = 2048
 const KEY_SEPARATOR = '|'
 const NO_RECT: Rect = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
 
-/** The page minute a part paints, and the detail level it paints at. */
+/** The minute a part paints at (the light's minute, held at the day row when the light does not
+ *  follow the hour), the page minute `clock` that opening hours follow, and the detail level. */
 export interface StreetMinute extends ClockParts {
+  readonly clock: number
   readonly detail: StreetDetail
 }
 
-/** What a moving part paints over: the moving canvas's rect, the minute the static canvas last
- *  painted, and the pack. */
+/** What a moving part paints over: the moving canvas's rect and its px per world px, the minute
+ *  the static canvas last painted, and the pack. */
 export interface MovingScene {
   readonly rect: Rect
+  readonly px: number
   readonly minute: StreetMinute
   readonly pack: RegionPack
 }
@@ -48,7 +55,15 @@ export interface PaintPart {
 type MovingPaint = NonNullable<PaintPart['paintMoving']>
 
 // Every part of the street, in draw order.
-const PAINT_PARTS: readonly PaintPart[] = [CITY_PART, SIGNALS_PART, SHELTERS_PART, VEHICLES_PART]
+const PAINT_PARTS: readonly PaintPart[] = [
+  CITY_PART,
+  SHOPS_PART,
+  FRONTAGE_PART,
+  FESTIVE_PART,
+  SIGNALS_PART,
+  SHELTERS_PART,
+  VEHICLES_PART,
+]
 const MOVING_PAINTS: readonly MovingPaint[] = PAINT_PARTS.flatMap((part) =>
   part.paintMoving === undefined ? [] : [part.paintMoving]
 )
@@ -66,7 +81,7 @@ export interface StreetPainter {
 }
 
 interface PainterState {
-  readonly moving: { rect: Rect; minute: StreetMinute; pack: RegionPack }
+  readonly moving: { rect: Rect; px: number; minute: StreetMinute; pack: RegionPack }
   readonly staticCanvas: HTMLCanvasElement
   readonly movingCanvas: HTMLCanvasElement
   staticKey: string
@@ -104,6 +119,7 @@ export function createStreetPainter(): StreetPainter {
       zeroCanvas(state.staticCanvas)
       zeroCanvas(state.movingCanvas)
       releaseStreetSprites()
+      releaseLedFaces()
       state.staticKey = ''
       state.movingKey = ''
       state.detail = undefined
@@ -115,7 +131,8 @@ function createPainterState(): PainterState {
   return {
     moving: {
       rect: NO_RECT,
-      minute: { day: '', minute: 0, dow: 0, detail: 0 },
+      px: 1,
+      minute: { day: '', minute: 0, clock: 0, dow: 0, detail: 0 },
       pack: regionPack.value,
     },
     staticCanvas: document.createElement('canvas'),
@@ -132,17 +149,24 @@ function createPainterState(): PainterState {
 
 // The street keeps the office's light: with the light not following the hour, its day row.
 function toStreetMinute(minute: ClockParts, detail: StreetDetail): StreetMinute {
+  const clock = minute.minute
+
   return lightByHour.value
-    ? { ...minute, detail }
-    : { ...minute, minute: DAY_LIGHT_HOUR * MINUTES_PER_HOUR, detail }
+    ? { ...minute, clock, detail }
+    : { ...minute, minute: DAY_LIGHT_HOUR * MINUTES_PER_HOUR, clock, detail }
 }
 
 // Repainted when the minute, the day, the pack, the language or the detail level changes.
 function syncStatic(state: PainterState, minute: StreetMinute): void {
   const pack = regionPack.value
-  const key = [Math.floor(minute.minute), minute.day, pack.id, locale.value, minute.detail].join(
-    KEY_SEPARATOR
-  )
+  const key = [
+    Math.floor(minute.minute),
+    Math.floor(minute.clock),
+    minute.day,
+    pack.id,
+    locale.value,
+    minute.detail,
+  ].join(KEY_SEPARATOR)
   const g = state.staticCanvas.getContext('2d')
 
   if (key === state.staticKey) {
@@ -188,7 +212,16 @@ function syncMoving(
   }
 
   const px = Math.min(job.devicePx, MAX_MOVING_CANVAS_PX / Math.max(rect.w, rect.h))
-  const key = [job.view.step, rect.x, rect.y, rect.w, rect.h, px].join(KEY_SEPARATOR)
+  const key = [
+    job.view.step,
+    rect.x,
+    rect.y,
+    rect.w,
+    rect.h,
+    px,
+    Math.floor(state.moving.minute.minute),
+    locale.value,
+  ].join(KEY_SEPARATOR)
   const g = state.movingCanvas.getContext('2d')
 
   if (key === state.movingKey || g === null) {
@@ -201,6 +234,7 @@ function syncMoving(
   g.setTransform(px, 0, 0, px, -rect.x * px, -rect.y * px)
 
   state.moving.rect = rect
+  state.moving.px = px
 
   for (const paintMoving of MOVING_PAINTS) {
     paintMoving(g, job.view, state.moving)

@@ -82,6 +82,32 @@ interface LotView {
   readonly attendant: (StreetEntity & { readonly handing: boolean }) | undefined
 }
 
+/** A shop whose roller shutter is moving: its place in the pack's row, and how far down the
+ *  shutter is (0 up, 1 down). */
+export interface ShutterView {
+  readonly shop: number
+  readonly drop: number
+}
+
+/** The LED board's clock: which panel shows, how far the ticker band has scrolled (px) and the
+ *  hourly light pulse (0 none, 1 full). */
+export interface BoardView {
+  readonly panel: number
+  readonly scrollPx: number
+  readonly pulse: number
+}
+
+/** The shop row and the frontage building: shutters on the move, the guard walking the frontage
+ *  after the shops close, the board's clock, and the rects the shop row and the board with its band
+ *  cover (absent without a frontage). */
+export interface FrontView {
+  readonly shutters: readonly ShutterView[]
+  readonly guard: (StreetEntity & { readonly heading: -1 | 1 }) | undefined
+  readonly board: BoardView
+  readonly row: Rect | undefined
+  readonly face: Rect | undefined
+}
+
 /** The street sim's snapshot the painter reads: `step` moves whenever its pools did, so the
  *  moving layer is redrawn only then. Vehicles come north to south, in draw order. */
 export interface StreetView {
@@ -95,6 +121,7 @@ export interface StreetView {
   readonly heads: readonly SignalHeadView[]
   readonly says: readonly StreetSayView[]
   readonly lot: LotView
+  readonly front: FrontView
 }
 
 /** The street as painted for both renderers: the static canvas over `STREET_RECT` and the moving
