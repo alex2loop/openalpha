@@ -45,7 +45,7 @@ import {
   isTeamTagged,
 } from '@/web/scene/overlay/team-pass'
 import { isOnFloor } from '@/web/scene/sim/actors/poses'
-import { isActorId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
+import { isActorId, isCrewId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection, view } from '@/web/scene/view'
 import { roomsOn } from '@/web/scene/world/rooms'
 import { onWireEvent } from '@/web/state/events'
@@ -359,11 +359,11 @@ function actionsOf(bubble: Bubble): string[] {
   ]
 }
 
-// Zoomed in, everyone has a tag; at floor zoom only the selected person and the team floor's
-// children do. An own agent wears its card instead.
+// Zoomed in, the staff all have a tag, at floor zoom only the selected person and the team floor's
+// children; an own agent wears its card, and the building crew show their role only on hover.
 function tagAsks(input: PassInput): { actor: ActorId; size: Size; isForced: boolean }[] {
   return [...input.figures.keys()]
-    .filter((actor) => ownAgentIdOf(actor) === undefined)
+    .filter((actor) => ownAgentIdOf(actor) === undefined && !isCrewId(actor))
     .filter(
       (actor) => input.isZoomed || actor === input.selected || isTeamTagged(input.view, actor)
     )
