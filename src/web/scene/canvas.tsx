@@ -5,12 +5,13 @@ import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { RoomId, SimView } from '@/web/scene/types'
 import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
+import { alertStrip } from '@/web/scene/data/alert-strip'
 import { heldNewsPins, indexDrop, startBoard } from '@/web/scene/data/board'
 import { exDividends, startExDividends } from '@/web/scene/data/ex-dividends'
 import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
 import { ledItems, startLed } from '@/web/scene/data/led'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
-import { startSourceLights } from '@/web/scene/data/source-lights'
+import { sourceLights, startSourceLights } from '@/web/scene/data/source-lights'
 import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
 import { todayRuns } from '@/web/scene/data/today-runs'
 import { startWeather, weather } from '@/web/scene/data/weather'
@@ -49,6 +50,7 @@ import { lampGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { homePhase, isClosedPhase, moment } from '@/web/scene/sim/rhythm'
 import { createSims, disposeSims, type Sims } from '@/web/scene/sims'
+import { tapeBoard } from '@/web/scene/sprites/tape-face'
 import {
   bringIntoView,
   canFollow,
@@ -340,6 +342,9 @@ function readSceneInputs(): void {
   coolerOffer.value
   todayRuns.value
   ledItems.value
+  tapeBoard.value
+  alertStrip.value
+  sourceLights.value
   weather.value
   regionPack.value
   locale.value
