@@ -117,7 +117,7 @@ function buildJob(ctx: ApiRouteContext, body: JobCreateBody): Job {
         : toTimedSchedule(ctx, body.schedule, now)
     const target =
       body.target === undefined
-        ? undefined
+        ? toDefaultTarget(ctx)
         : { channel: channelId(body.target.channel), chatId: body.target.chatId }
 
     return {
@@ -224,6 +224,14 @@ async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
   }
 
   return json(toScheduleRowWire(job))
+}
+
+// Behind `public_url` an untargeted job runs on the app's channel, so the app-run limits hold for it;
+// otherwise it keeps the scheduler's own channel, as one added from the CLI.
+function toDefaultTarget(ctx: ApiRouteContext): Job['target'] {
+  return ctx.app.config.api.publicUrl === undefined
+    ? undefined
+    : { channel: API_CHANNEL, chatId: APP_CHAT_ID }
 }
 
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
