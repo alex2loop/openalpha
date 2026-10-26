@@ -22,7 +22,8 @@ import './board-buttons.css'
 const MEET_BOARD_AT: Point = Object.freeze({ x: 398, y: 40 })
 const LIB_BOARD_AT: Point = Object.freeze({ x: 328, y: 40 })
 const STORE_BOARD_AT: Point = Object.freeze({ x: 44, y: 30 })
-const RESULTS_BOARD_AT: Point = Object.freeze({ x: 414, y: 256 })
+// The new-calls note hangs by its top edge inside the assistant's room, under its tag, over the desk.
+const RESULTS_BOARD_AT: Point = Object.freeze({ x: 394, y: 260 })
 // The day's note hangs by its top edge under the lobby's lower board, as the mockup pins it.
 const DIGEST_AT: Point = Object.freeze({ x: 20, y: 340 })
 // How long the three rings play after a result lands.
@@ -138,9 +139,9 @@ function ResultsBoard({ renderer }: { readonly renderer: SceneRenderer }) {
       renderer={renderer}
       onClick={() => openIdeas('open')}
       isRinging={isRinging}
+      isNote
     >
       {tr(pluralKey(fresh, 'ui.office.board.freshOne', 'ui.office.board.fresh'), { count: fresh })}
-      <span class="board-all">{tr('ui.office.today.seeAll')}</span>
     </Board>
   )
 }

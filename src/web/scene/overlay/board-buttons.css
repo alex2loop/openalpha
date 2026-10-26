@@ -21,7 +21,8 @@
   pointer-events: auto;
 }
 
-/* The lobby's day note: the mockup's yellow paper, pinned by its top edge. */
+/* A paper note, the mockup's yellow cork style, pinned by its top edge: the day's digest, the new
+   calls. */
 .board-note {
   --note-paper: #fff7c2;
   --note-ink: #1b1b29;
@@ -43,10 +44,6 @@ button.board-line {
 
 .board-odometer {
   font-variant-numeric: tabular-nums;
-}
-
-.board-all {
-  color: var(--ink3);
 }
 
 .board-rings {
