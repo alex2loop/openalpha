@@ -23,6 +23,7 @@ const CAT_AWAKE_MS = 8_000
 const MAX_WOKEN = 200
 const MAX_VERDICTS = 32
 const MAX_ASKS = 16
+const MAX_FINISHES = 32
 const MAX_SHEETS = 6
 // A sheet slides out of the printer over this long, then joins the stack.
 const PRINT_FEED_MS = 900
@@ -84,6 +85,10 @@ function onStarted(state: LifeState, event: WireEvent): void {
 function onFinished(state: LifeState, event: WireEvent): void {
   if (event.runId === undefined || event.outcome === undefined) {
     return
+  }
+
+  if (event.source.agentId !== '') {
+    setCapped(state.finishes, [event.source.agentId, performance.now()], MAX_FINISHES)
   }
 
   if (event.outcome === COMPLETED && state.runNames.get(event.runId) === RESEARCH_NAME) {

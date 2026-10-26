@@ -143,6 +143,7 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
     woken: new Map(),
     asks: [],
     runNames: new Map(),
+    finishes: new Map(),
     cart: { at: undefined, rollFrom: undefined, isLeaving: false, isBlocking: false },
     blocks: new Map(),
     crew: createCrewState(),

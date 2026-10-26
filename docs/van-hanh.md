@@ -475,7 +475,7 @@ Cách đọc khung cảnh:
 
 Khi chưa ai giao việc gì, văn phòng không đứng im, nhưng cũng không giả vờ làm việc. Những người đang rảnh làm vài việc nhỏ: nghỉ trưa, cà phê buổi chiều, trò chuyện bên bình nước, chiều thứ Sáu thong thả, hoặc họp nhanh trong lúc bản tin sáng chạy. Chỉ người đang rảnh mới làm vậy. Ai mà một phiên chạy cần tới, hoặc còn nợ một lần giao hay một câu trả lời, thì bỏ dở mọi thứ và đi làm việc. Không điều nào trong đó đụng tới dữ liệu của bạn hay tốn một xu.
 
-- Trong giờ làm việc, trợ lý đi một vòng các phòng sau khi rảnh một lúc ngắn, dừng ở hai hoặc ba cửa liền nhau dọc hành lang, và cứ ba vòng thì một vòng đi thang lên ngó bàn các agent của bạn. Nó chỉ bắt đầu một vòng khi đang xem tầng văn phòng, không bao giờ vào ban đêm hay khi bật giảm chuyển động. Có việc, câu hỏi hay yêu cầu duyệt cho nó thì vòng đi dừng ngay.
+- Trong giờ làm việc, trợ lý đi một vòng các phòng sau khi rảnh một lúc ngắn, dừng ở hai hoặc ba cửa liền nhau dọc hành lang, và khi một agent của bạn vừa chạy xong trong 5 phút qua, nó đi thang lên dừng ở bàn agent đó rồi quay về. Nó chỉ bắt đầu một vòng khi đang xem tầng văn phòng, không bao giờ vào ban đêm hay khi bật giảm chuyển động. Có việc, câu hỏi hay yêu cầu duyệt cho nó thì vòng đi dừng ngay.
 - Thỉnh thoảng, trong giờ làm, một người đã rảnh một lúc sẽ ghé một cửa hàng đang mở bên kia đường: ra bằng cửa phía phố, qua đường khi đèn đi bộ bật, xếp hàng, mua rồi mang về đồ uống, ít đồ hoặc hộp đồ ăn (đồ uống thì để lại trên bàn). Mỗi lúc chỉ một người ra ngoài, không ai đi khi còn việc chờ bạn, vào ban đêm hay khi bật giảm chuyển động, và có việc mới là bạn ấy quay về ngay. Lúc ở ngoài, họ không ở trên tầng: nhãn và danh sách dạng chữ cho biết họ đang ở đâu. Ẩn trang thì họ về lại chỗ ngồi.
 - Khi không có gì đang chạy, không có gì chờ bạn và không ai đang gõ trong khoảng 15 phút, văn phòng chìm vào yên lặng: mọi người ngả người ra ghế, màn hình tối đi, các cử động vặt dừng và trang gần như không làm gì. Trong một văn phòng yên lặng, một vòng đi chỉ diễn ra tối đa 25 phút rảnh một lần.
 - Thẻ trình duyệt bạn không nhìn tới thì dừng hẳn mọi chuyển động và bắt kịp khi bạn quay lại.
@@ -522,7 +522,7 @@ Cái gì là thật và cái gì chỉ là cảnh:
 
 **Nhân viên tòa nhà.** Một lễ tân ở quầy trước vào ngày giao dịch, một nhân viên vệ sinh đổ thùng rác và lau hành lang lúc chiều muộn (biển "Sàn ướt" đi theo cây lau, và người đi bộ đi vòng qua nó), và một bảo vệ ở cổng đi một vòng tuần tra khi trời tối. Họ là cảnh, không phải agent: không có menu, không có chấm trạng thái, không bấm vào được; Tab bỏ qua họ, danh sách dạng chữ không có họ và nhãn của họ chỉ ghi vai trò.
 
-**Thang máy.** Một buồng thang chạy giữa hai tầng. Ai đi thang thì bấm nút gọi, chờ cửa mở, và bảng số tầng chạy theo buồng thang; cứ ba vòng đi thì một vòng của trợ lý lên tầng trên theo cách này.
+**Thang máy.** Một buồng thang chạy giữa hai tầng. Ai đi thang thì bấm nút gọi, chờ cửa mở, và bảng số tầng chạy theo buồng thang; trợ lý lên thăm bàn một agent vừa chạy xong cũng đi theo cách này.
 
 **Chuyện phiếm.** Hai đồng nghiệp đang rảnh ngồi ghế sofa nói vài câu hợp với lúc đó, như trời mưa, giờ nghỉ trưa, một ngày thị trường giảm, chiều thứ Sáu hay một dịp lễ. Các câu đến từ bảng câu cố định, không bao giờ từ mô hình; không lặp lại cặp câu vừa nói và không bao giờ nói một con số.
 

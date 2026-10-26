@@ -32,7 +32,7 @@ export type LifeAsk =
  *  once-only moments, or its own named cap. */
 export interface LifeState {
   readonly director: Director
-  /** The team floor's desks, which every third round visits. */
+  /** The team floor's desks, where a round visits an agent whose run just ended. */
   readonly teamDesks: () => readonly DeskView[]
   readonly pets: Pets
   readonly moments: Map<ActorId, Moment>
@@ -46,6 +46,8 @@ export interface LifeState {
   readonly woken: Map<string, true>
   readonly asks: LifeAsk[]
   readonly runNames: Map<string, string>
+  /** When each own agent's latest run ended (a `performance.now()` instant), oldest first. */
+  readonly finishes: Map<string, number>
   readonly cart: CartState
   readonly blocks: Map<BlockKey, Rect>
   readonly crew: CrewState

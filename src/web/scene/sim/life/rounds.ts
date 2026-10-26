@@ -20,8 +20,8 @@ const QUIET_ROUNDS_GAP_MS = QUIET_ROUNDS_MINUTES * MS_PER_MINUTE
 const ROUND_STOP_MS = Object.freeze({ min: 2_000, max: 4_000 })
 // A round stops at this many doors in a row along the corridor, drawn per day and round.
 const ROUND_DOOR_STOPS = Object.freeze({ min: 2, max: 3 })
-// Every this many rounds, one takes the lift up to the own agents' desks.
-const LIFT_EVERY = 3
+// An own agent whose run ended this recently is visited at its desk on the next round.
+const RECENT_FINISH_MS = 5 * MS_PER_MINUTE
 // A door's stop stands this far out from the wall, in the corridor.
 const DOOR_STEP_PX = 14
 // A desk's stop stands behind its agent's chair, a little to the side.
@@ -61,10 +61,10 @@ export const ROUND_DOORS: readonly {
 )
 
 /** The assistant's rounds: free at its desk for `ROUNDS_IDLE_MS` while its floor is shown, it
- *  walks the corridor and stops at a few rooms' doors; every third round it then takes the lift to
- *  the team floor and stops at each own agent's desk. Any work, question or approval for it ends
- *  the round at once (the step's freedom check), and it walks back to its desk, by the lift from
- *  upstairs. */
+ *  walks the corridor and stops at a few rooms' doors; when an own agent's run ended within
+ *  `RECENT_FINISH_MS`, it then takes the lift to the team floor and stops at that agent's desk.
+ *  Any work, question or approval for it ends the round at once (the step's freedom check), and it
+ *  walks back to its desk, by the lift from upstairs. */
 export function stepRounds(state: LifeState, step: LifeStep): void {
   const actor = step.actors.get(ASSISTANT)
   const isIdle =
@@ -90,7 +90,7 @@ export function stepRounds(state: LifeState, step: LifeStep): void {
   begin(
     state,
     { actor, kind: 'round', nowMs: step.nowMs, line: { actor: ASSISTANT, label: 'rounds' } },
-    roundStops({ day: step.clock.day, count: state.round.count }, state.teamDesks())
+    roundStops({ day: step.clock.day, count: state.round.count }, takeVisit(state, step.nowMs))
   )
 }
 
@@ -126,7 +126,7 @@ export function isRoundFree(actor: ActorState): boolean {
 
 function roundStops(
   round: { readonly day: string; readonly count: number },
-  desks: readonly DeskView[]
+  visit: DeskView | undefined
 ): readonly [StopSpec, ...StopSpec[]] {
   const { count } = round
   const doors: StopSpec[] = doorsOf(round).map((door, i) => ({
@@ -140,9 +140,8 @@ function roundStops(
     pose: 'idle',
     holdMs: drawBetween(ROUND_STOP_MS, 'round-lift', String(count)),
   }
-  const upstairs = deskStops(count, desks)
-  const stops =
-    count % LIFT_EVERY === 0 && upstairs.length > 0 ? [...doors, liftStop, ...upstairs] : doors
+  const upstairs = visit === undefined ? [] : deskStops(count, visit)
+  const stops = upstairs.length > 0 ? [...doors, liftStop, ...upstairs] : doors
   const [first, ...rest] = stops
 
   return first === undefined ? [liftStop] : [first, ...rest]
@@ -157,13 +156,29 @@ function doorsOf(round: { readonly day: string; readonly count: number }): typeo
   return ROUND_DOORS.slice(start, start + length)
 }
 
-// Each on-duty own agent's desk on the team floor, from the lift and back to it.
-function deskStops(count: number, desks: readonly DeskView[]): StopSpec[] {
-  const stops: StopSpec[] = desks.flatMap((desk) => {
-    const isOnDuty = desk.agentId !== undefined && desk.isTaken
-    const seat = isOnDuty ? TEAM_SEATS[desk.slot] : undefined
+// The desk of the own agent whose run ended last within `RECENT_FINISH_MS`, if it is on duty; the
+// finish is spent by the visit.
+function takeVisit(state: LifeState, nowMs: number): DeskView | undefined {
+  const desks = state.teamDesks()
+  const recent = [...state.finishes].filter(([, at]) => nowMs - at <= RECENT_FINISH_MS).reverse()
 
-    return seat === undefined
+  for (const [agentId] of recent) {
+    const desk = desks.find((held) => held.agentId === agentId && held.isTaken)
+
+    if (desk !== undefined) {
+      state.finishes.delete(agentId)
+      return desk
+    }
+  }
+
+  return undefined
+}
+
+// The visited agent's desk on the team floor, from the lift and back to it.
+function deskStops(count: number, desk: DeskView): StopSpec[] {
+  const seat = TEAM_SEATS[desk.slot]
+  const stops: StopSpec[] =
+    seat === undefined
       ? []
       : [
           {
@@ -174,7 +189,6 @@ function deskStops(count: number, desks: readonly DeskView[]): StopSpec[] {
             holdMs: drawBetween(ROUND_STOP_MS, 'round-desk', String(count), String(desk.slot)),
           },
         ]
-  })
 
   return stops.length === 0
     ? []

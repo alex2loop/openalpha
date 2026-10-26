@@ -485,7 +485,7 @@ How to read it:
 
 When no one has asked for anything, the office is not frozen, but it never pretends to work. People who are free get on with small things: a lunch break, an afternoon coffee, a chat by the cooler, a quieter Friday afternoon, a quick huddle while the morning brief runs. Only free people do this. Anyone a run needs, or who owes a delivery or an answer, drops what they are doing and goes to work. None of it touches your data or spends a cent.
 
-- The assistant walks a round of the rooms after it has been free for a short while during office hours, stopping at two or three doors in a row along the corridor, and every third round takes the lift up to look in at your agents' desks. It starts a round only while the office floor is shown, never at night or with reduced motion. Any work, question or approval for it ends the round at once.
+- The assistant walks a round of the rooms after it has been free for a short while during office hours, stopping at two or three doors in a row along the corridor, and when one of your agents finished a run in the last 5 minutes, it then takes the lift up and stops at that agent's desk before coming back. It starts a round only while the office floor is shown, never at night or with reduced motion. Any work, question or approval for it ends the round at once.
 - Now and then, during office hours, one person who has been free for a while pops out to an open shop across the street: they leave by the street door, cross on the walk signal, queue, buy and come back with a drink, a bag or a takeaway box (a drink stays on their desk). Only one is out at a time, nobody leaves while anything waits for you, at night or with reduced motion, and any new work brings them straight back. While out they are off the floor: their label and the text list say where they are. Hiding the page puts them back at their seat.
 - When nothing is running, nothing waits for you and no one is typing for about 15 minutes, the office goes quiet: people lean back, screens go dark, the small fidgets stop and the page does almost nothing. In a quiet office a round happens at most once every 25 idle minutes.
 - A tab you are not looking at stops animating altogether and catches up when you return.
@@ -532,7 +532,7 @@ What is real and what is ambience:
 
 **The building crew.** A receptionist at the front desk on trading days, a cleaner who empties the bins and mops the corridor late in the afternoon (the "Wet floor" sign moves with the mop, and walkers go round it), and a guard at the gates who walks a round after dark. They are scenery, not agents: no menu, no status dot, no click; Tab skips them, the text list leaves them out and their label shows only their role.
 
-**The lift.** One car runs between the two floors. Whoever rides it presses the call button, waits for the doors, and the floor indicator follows the car; the assistant's every-third round goes up this way.
+**The lift.** One car runs between the two floors. Whoever rides it presses the call button, waits for the doors, and the floor indicator follows the car; the assistant's visit to an agent that just finished goes up this way.
 
 **Small talk.** Two free colleagues on the sofa trade lines picked to fit the moment, such as rain, the lunch break, a down day, a Friday or a holiday. The lines come from fixed phrase tables, never a model; they never repeat the last pair and never say a number.
 
