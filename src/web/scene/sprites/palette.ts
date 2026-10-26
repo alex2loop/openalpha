@@ -240,8 +240,7 @@ export const DEVICE_TONES = Object.freeze({
   flat: '#E9ECF8',
   operator: {
     tray: '#C9D0DC',
-    cue: 'rgba(255,176,32,1)',
-    cueGlow: 'rgba(255,176,32,.3)',
+    cueRgb: '255,176,32',
     mug: '#C9505A',
     mugShade: '#A8404A',
     snack: '#FFD65A',

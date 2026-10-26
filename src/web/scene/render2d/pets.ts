@@ -13,9 +13,12 @@ import { DARKWOOD, SHADOW } from '@/web/scene/sprites/palette'
 const PET_SHADOW = Object.freeze({ w: 10, h: 2 })
 // The tank's water starts this far under its drawn box's top, below the hood.
 const TANK_GLASS_TOP = 3
+// A bubble climbs a px each this many ms while a run works.
+const BUBBLE_RISE_MS = 160
 const TANK_TONES = Object.freeze({
   knob: '#C9A878',
   glare: 'rgba(255,255,255,.16)',
+  bubble: 'rgba(255,255,255,.8)',
   on: {
     water: '#BFE6F5',
     hood: '#FFF7C2',
@@ -80,6 +83,14 @@ export function paintTank(g: CanvasRenderingContext2D, prop: PropDef, scene: Pai
   fill(g, [x + 25, y + 6, 1, 5], look.weedDark)
   fill(g, [x + 17, y + 9, 3, 2], look.stone)
   paintFish(g, { x, y, w, h: 13 }, { fish: scene.life.fish, level: scene.detail })
+
+  if (scene.fx?.bubbles === true) {
+    for (let i = 0; i < 2; i++) {
+      const rise = Math.floor((scene.fx.ms / BUBBLE_RISE_MS + i * 5) % 10)
+
+      fill(g, [x + w - 6 + i * 2, y + 10 - rise, 1, 1], TANK_TONES.bubble)
+    }
+  }
 
   if (isOn) {
     fill(g, [x, y, w, 13], TANK_TONES.glare)

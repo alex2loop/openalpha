@@ -12,6 +12,12 @@ type StandbyView = 'flow' | 'widgets' | 'clocks'
 
 const STANDBY_PHASES = 6
 const SCREEN_DOTS = ['#FF6259', '#F2C46C', '#6FE3D6'] as const
+// The approval light breathes between these on the ambient clock, steady at full under reduced
+// motion; its glow is this share of the light.
+const CUE_REST = 0.675
+const CUE_SWING = 0.325
+const CUE_PERIOD_MS = 1100
+const CUE_GLOW = 0.3
 
 /** A monitor standing on a desk at `x`, its outlined screen `w` wide from `y`: dark once the
  *  office is quiet, else its idle screen; a working screen's content is the overlay's. */
@@ -288,8 +294,11 @@ export function paintOperatorDesk(
   fill(g, [x + 9, y + 4, 8, 7], op.tray)
 
   if (scene.isAwaitingYou) {
-    fill(g, [x + 15, y + 3, 4, 4], op.cueGlow)
-    fill(g, [x + 16, y + 4, 2, 2], op.cue)
+    const cue =
+      scene.fx?.cue === true ? CUE_REST + CUE_SWING * Math.sin(scene.fx.ms / CUE_PERIOD_MS) : 1
+
+    fill(g, [x + 15, y + 3, 4, 4], `rgba(${op.cueRgb},${(CUE_GLOW * cue).toFixed(2)})`)
+    fill(g, [x + 16, y + 4, 2, 2], `rgba(${op.cueRgb},${(0.5 + 0.5 * cue).toFixed(2)})`)
   }
 
   fill(g, [x + 32, y + 4, 4, 4], op.mug)

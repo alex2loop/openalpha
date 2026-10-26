@@ -41,6 +41,7 @@ import {
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { syncTwin } from '@/web/scene/overlay/twin'
 import { ViewNote } from '@/web/scene/overlay/view-note'
+import { nextAmbientFxAt } from '@/web/scene/render2d/ambient-fx'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { isOnFloor, nextAmbientAt } from '@/web/scene/sim/actors/poses'
@@ -251,7 +252,6 @@ function nextDueOf(parts: LoopParts, drawn: SimView): number {
   const floor = view.value.floor
   const nowMs = performance.now()
   const hasPeople = drawn.actors.some((actor) => isOnFloor(actor, floor))
-  const ambientAt = hasPeople ? nextAmbientAt(floor, nowMs) : Infinity
 
   return Math.min(
     parts.director.nextDueAt(),
@@ -261,7 +261,8 @@ function nextDueOf(parts: LoopParts, drawn: SimView): number {
     parts.street.nextDueAt(),
     parts.overlay.nextDueAt(),
     parts.input.current?.nextDueAt() ?? Infinity,
-    ambientAt
+    hasPeople ? nextAmbientAt(floor, nowMs) : Infinity,
+    nextAmbientFxAt(drawn, nowMs)
   )
 }
 

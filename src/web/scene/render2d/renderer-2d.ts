@@ -3,6 +3,7 @@ import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { LightRow } from '@/web/scene/sprites/daylight'
 import type { StreetFrame } from '@/web/scene/street-types'
 import { indexDrop } from '@/web/scene/data/board'
+import { paintDust } from '@/web/scene/render2d/ambient-fx'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitAt, fitFloor, fitRoom } from '@/web/scene/render2d/camera'
 import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
@@ -175,7 +176,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   resizeCanvas(surface.canvas, pane, dpr)
 
   const fit = placeCamera(surface, pane, dpr)
-  const scene = buildPaintScene({ sim, scale: fit.scale, screens: surface.screens })
+  const scene = buildPaintScene({ sim, scale: fit.scale, screens: surface.screens, nowMs: now })
   const light = lightOf(sim.light)
   const motion = {
     isOn: isCharacterMotionOn(sim.actors, { floor: sim.floor, now }),
@@ -262,6 +263,7 @@ function paintFloor(surface: Surface, job: FloorJob): void {
   }
 
   paintOverPieces(g, job)
+  paintDust(g, job.scene.fx)
 
   const dropPct = indexDrop.value?.movePct
 

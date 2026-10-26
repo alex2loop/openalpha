@@ -8,6 +8,7 @@ import { wallClockMinutes } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
 import { boardCaptions, isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { sourceLights } from '@/web/scene/data/source-lights'
+import { resolveAmbientFx } from '@/web/scene/render2d/ambient-fx'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { boardNotes } from '@/web/scene/sprites/screens'
 import { APPROVAL_KIND, pending } from '@/web/state/live'
@@ -21,6 +22,7 @@ export function buildPaintScene(input: {
   readonly sim: SimView
   readonly scale: number
   readonly screens: ScreenCache
+  readonly nowMs: number
 }): PaintScene {
   const { sim, scale } = input
   const refreshShare = shareOf(roomStatus.value.get('store')?.runs[0]?.progress?.params)
@@ -48,6 +50,7 @@ export function buildPaintScene(input: {
     sources: sourceLights.value,
     isRefreshing: roomStatus.value.get('store')?.runs[0] !== undefined,
     ...(refreshShare === undefined ? {} : { refreshShare }),
+    fx: resolveAmbientFx(sim, input.nowMs),
   }
 }
 

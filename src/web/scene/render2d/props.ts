@@ -27,12 +27,15 @@ import {
 } from '@/web/scene/sprites/palette'
 import { HEIGHT_K } from '@/web/scene/view'
 import { isWallMounted } from '@/web/scene/world/props'
+import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const SCREEN_EDGE = '#5C6474'
 const NOTE_INK = '#8E8497'
 // The desk looks a desk prop's `variant` picks.
 const DESK_LOOK = Object.freeze({ plain: 0, counter: 1, operator: 2, senior: 3 })
 const BANKER_LAMP = 1
+const RACK_SEED = 'rack'
+const RACK_BEAT_MS = 180
 const RACK_TONES = Object.freeze({
   body: '#C9D1DE',
   top: '#E4E9F2',
@@ -258,17 +261,24 @@ function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSc
 function paintRack(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
   const isAwake = !scene.life.isQuiet
+  // While the store refreshes, the lights flicker on the ambient clock, a new draw every beat.
+  const flicker =
+    scene.fx?.rack === true
+      ? createRng(seedOf(RACK_SEED, String(Math.floor(scene.fx.ms / RACK_BEAT_MS))))
+      : undefined
 
   framed(g, [x, y, w, h], RACK_TONES.body)
   fill(g, [x, y, w, 1], RACK_TONES.top)
 
   for (let i = 0, row = y + 3; row + 4 <= y + h - 2; i++, row += 5) {
     const source = scene.sources[i]
+    const isLit = isAwake && source !== undefined && (flicker === undefined || flicker.next() > 0.3)
+    const isBusy = isAwake && scene.isRefreshing && (flicker === undefined || flicker.next() > 0.5)
 
     fill(g, [x + 2, row, w - 4, 4], RACK_TONES.slot)
     fill(g, [x + 13, row + 1, 6, 2], LED_OFF)
-    fill(g, [x + 3, row + 1, 2, 2], isAwake && source !== undefined ? RACK_TONES[source] : LED_OFF)
-    fill(g, [x + 7, row + 1, 1, 2], isAwake && scene.isRefreshing ? RACK_TONES.busy : LED_OFF)
+    fill(g, [x + 3, row + 1, 2, 2], isLit && source !== undefined ? RACK_TONES[source] : LED_OFF)
+    fill(g, [x + 7, row + 1, 1, 2], isBusy ? RACK_TONES.busy : LED_OFF)
   }
 }
 
