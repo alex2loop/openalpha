@@ -6,6 +6,7 @@ import { toMinute } from '@/web/scene/data/agenda'
 import { indexDrop } from '@/web/scene/data/board'
 import { homeMarket } from '@/web/scene/data/home'
 import { distance } from '@/web/scene/sim/actors/nav'
+import { OFFICE_FLOOR } from '@/web/scene/sim/life/presence'
 import { begin } from '@/web/scene/sim/life/schedule'
 import {
   drawBetween,
@@ -22,8 +23,9 @@ import { isInRange } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { MS_PER_MINUTE } from '@/web/text/time-units'
 
-const OFFICE_FLOOR = 'office'
 const LIBRARY_ROOM = 'lib'
+const LIBRARY_PROP = 'shelf'
+const LIBRARY_TAG = 'library'
 // A drop in the home index gathers 2 or 3 free people at the lobby screens for a minute or so, and
 // not twice within half an hour of page time.
 const MOOD_GATHER_COUNT = Object.freeze({ min: 2, max: 3 })
@@ -51,7 +53,7 @@ const SCREEN_SPOTS: readonly Point[] = LOBBY_SCREENS.flatMap((prop) => {
   ]
 })
 const LIBRARY_SPOTS: readonly Point[] = propsOn(OFFICE_FLOOR)
-  .filter((prop) => prop.kind === 'shelf' && prop.room === LIBRARY_ROOM)
+  .filter((prop) => prop.kind === LIBRARY_PROP && prop.room === LIBRARY_ROOM)
   .map(approachOf)
 
 /** The moments of the market's day that gather people: the closing auction, a drop in the index,
@@ -146,7 +148,7 @@ function stepLibrary(state: LifeState, step: LifeStep): void {
     return
   }
 
-  if (momentsOn(state, { step, floor: OFFICE_FLOOR, kind: 'library' }) > 0) {
+  if (momentsOn(state, { step, floor: OFFICE_FLOOR, kind: LIBRARY_TAG }) > 0) {
     return
   }
 
@@ -154,7 +156,7 @@ function stepLibrary(state: LifeState, step: LifeStep): void {
   const people = seatedFree(step, OFFICE_FLOOR).filter(
     (candidate) =>
       candidate.def.room !== LIBRARY_ROOM &&
-      isPicked({ actor: candidate.def.id, tag: 'library', day }, LIBRARY_PICK_PERCENT)
+      isPicked({ actor: candidate.def.id, tag: LIBRARY_TAG, day }, LIBRARY_PICK_PERCENT)
   )
   const [first, ...rest] = people
 
@@ -162,17 +164,17 @@ function stepLibrary(state: LifeState, step: LifeStep): void {
     return
   }
 
-  const rng = createRng(seedOf('library', day, String(step.nowMs)))
+  const rng = createRng(seedOf(LIBRARY_TAG, day, String(step.nowMs)))
   const actor = rng.pick([first, ...rest])
   const spot = rng.pick([firstSpot, ...otherSpots])
-  const holdMs = drawBetween(LIBRARY_HOLD_MS, 'library', actor.def.id, String(step.nowMs))
+  const holdMs = drawBetween(LIBRARY_HOLD_MS, LIBRARY_TAG, actor.def.id, String(step.nowMs))
 
   state.gaps.set(LIBRARY_GAP_KEY, step.nowMs + drawBetween(LIBRARY_GAP_MS, LIBRARY_GAP_KEY, day))
   begin(
     state,
     {
       actor,
-      kind: 'library',
+      kind: LIBRARY_TAG,
       nowMs: step.nowMs,
       line: { actor: actor.def.id, label: 'earnings' },
     },

@@ -114,18 +114,6 @@ function createRenderers(): Renderers {
   return { flat, host: createRendererHost(flat) }
 }
 
-// The data the scene reads while it is up; each stop releases its own.
-function startReads(): (() => void)[] {
-  return [
-    startHome(),
-    startBoard(),
-    startRoomStatus(),
-    startAgenda(),
-    startTeamCalls(),
-    startExDividends(),
-  ]
-}
-
 // Everything it arms, the returned stop releases: data reads, the director, the street and its
 // painter, the overlay, loop, input, observer, listeners and the renderer.
 function mountScene(element: HTMLElement, renderers: Renderers): () => void {
@@ -186,6 +174,7 @@ function startReads(): (() => void)[] {
     startAgenda(),
     startTeamCalls(),
     startWeather(),
+    startExDividends(),
   ]
 }
 

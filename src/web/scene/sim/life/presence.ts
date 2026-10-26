@@ -1,7 +1,7 @@
 import type { ActorState } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, LifeLine, RoomId } from '@/web/scene/types'
+import type { ActorId, FloorId, LifeLine, RoomId } from '@/web/scene/types'
 import type { OfficeLife } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
 import { pageMinute } from '@/web/scene/clock/clock'
@@ -23,7 +23,8 @@ const TRIP_LEG_MS = 30_000
 // A clock that moves more than this between two steps was set, not run: the office follows it at
 // once.
 const JUMP_MINUTES = 5
-const OFFICE_FLOOR = 'office'
+/** The floor the office's staff work on. */
+export const OFFICE_FLOOR: FloorId = 'office'
 const TEAM_ROOM: RoomId = 'team'
 const NAP_DIM = 0.72
 
@@ -119,9 +120,10 @@ function isAfterHours(): boolean {
   return !moment.value.tradingDay || minute < arrive[0] || minute >= leave[1]
 }
 
-// Staff are always in; a real run (a goal the live store calls for) keeps its person in.
+// On a rest day the pack's staff are in; a real run (a goal the live store calls for) keeps its
+// person in any day.
 function isFixture(actor: ActorState): boolean {
-  return regionPack.value.restDayStaff.includes(actor.def.id)
+  return !moment.value.tradingDay && regionPack.value.restDayStaff.includes(actor.def.id)
 }
 
 function hasRealRun(actor: ActorState): boolean {

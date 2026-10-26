@@ -19,7 +19,7 @@ export function stepErrands(
 
   stepErrandsOffice(errands, {
     actors: step.actors,
-    isFree: (actor) => at.isFree(actor) && !state.director.away.has(actor.def.id),
+    isFree: at.isFree,
     isBusyWithLife: (id) => state.moments.has(id),
     nowMs: step.nowMs,
     pageMs: pageNow(),
