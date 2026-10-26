@@ -230,7 +230,7 @@ function buildSendRow(text: string): SuggestOption {
 }
 
 /** "Gửi", or "Gửi cho {agent}" while an own agent receives what is typed. */
-function resolveSendLabel(): string {
+export function resolveSendLabel(): string {
   const selected = agents.value.find((agent) => agent.id === selectedAgentId.value)
 
   return selected === undefined
