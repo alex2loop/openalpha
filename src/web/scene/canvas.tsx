@@ -51,7 +51,7 @@ import { onWireEvent } from '@/web/state/events'
 import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
 import { findRun, pending, runs } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
-import { colorScheme, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
+import { colorScheme, colourPair, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
 import { state } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
@@ -282,6 +282,7 @@ function readSceneInputs(): void {
   lightByHour.value
   pageMinute.value
   colorScheme.value
+  colourPair.value
   breakpoint.value
   agenda.value
   roomStatus.value
