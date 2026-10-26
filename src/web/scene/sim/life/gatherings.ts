@@ -178,7 +178,7 @@ function stepLibrary(state: LifeState, step: LifeStep): void {
       nowMs: step.nowMs,
       line: { actor: actor.def.id, label: 'earnings' },
     },
-    [{ at: spot, pose: 'idle', holdMs }]
+    [{ at: spot, pose: 'stand', holdMs }]
   )
 }
 
@@ -204,7 +204,7 @@ function watch(
 
   if (place !== undefined) {
     begin(state, { actor: at.actor, kind: at.kind, nowMs: at.step.nowMs, line: at.line }, [
-      { at: place, pose: 'watch', look: BELL_LOOK_AT, holdMs: at.holdMs },
+      { at: place, pose: 'stand', look: BELL_LOOK_AT, holdMs: at.holdMs },
     ])
   }
 }

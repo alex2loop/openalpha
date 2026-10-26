@@ -249,7 +249,7 @@ function gatherStandup(state: LifeState, step: LifeStep): void {
     begin(
       state,
       { actor, kind: 'standup', nowMs: step.nowMs, ...(line === undefined ? {} : { line }) },
-      [{ at, pose: i === 0 ? 'point' : 'idle', holdMs: holdMs + i * STANDUP_STAGGER_MS }]
+      [{ at, pose: i === 0 ? 'point' : 'stand', holdMs: holdMs + i * STANDUP_STAGGER_MS }]
     )
   })
 }

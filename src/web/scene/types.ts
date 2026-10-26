@@ -82,6 +82,7 @@ export type Dir = 'up' | 'down' | 'left' | 'right'
 /** Every pose a person can take; the vocabulary names them, the renderers draw them. */
 export type PoseId =
   | 'idle'
+  | 'stand'
   | 'walk'
   | 'sit'
   | 'type'
