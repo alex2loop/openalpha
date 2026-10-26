@@ -1,16 +1,8 @@
+import { hasMessage, type MessageKey } from '@/i18n'
+import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
 const COMMAND_PREFIX = '/'
-// The debate personas, whose names the daemon's catalog already carries.
-const DEBATE_ROLES = [
-  'bull-researcher',
-  'bear-researcher',
-  'portfolio-manager',
-  'trader',
-  'risk-analyst',
-  'claim-verifier',
-  'market-analyst',
-] as const
 
 interface Named {
   readonly kind: 'agent' | 'command'
@@ -28,10 +20,10 @@ export function commandOf(run: Named): string | undefined {
   return run.kind === 'command' ? `${COMMAND_PREFIX}${run.name}` : undefined
 }
 
-/** An agent's name: a debate persona by its catalog name, any other by its id (an own agent's id
+/** An agent's name: a persona the catalog names by that name, any other by its id (an own agent's id
  *  is its name). */
 export function formatAgentName(agentId: string): string {
-  const role = DEBATE_ROLES.find((held) => held === agentId)
+  const key = `trading.debate.role.${agentId}`
 
-  return role === undefined ? agentId : tr(`trading.debate.role.${role}`)
+  return hasMessage(locale.value, key) ? tr(key as MessageKey) : agentId
 }
