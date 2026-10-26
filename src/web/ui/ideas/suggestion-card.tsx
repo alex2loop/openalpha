@@ -4,6 +4,7 @@ import type { SuggestionCardWire, SuggestionWire } from '@/app/server/wire/tradi
 import { formatDay } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { isAdvanced } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
 import { citationsOf } from '@/web/text/card-sources'
 import { joinInline } from '@/web/text/glyphs'
@@ -94,7 +95,7 @@ function CardText({
       <Lines lines={card.reasons} />
       <Lines lines={card.levels} />
       <DebateFolds call={call} />
-      {citations.length > 0 && (
+      {isAdvanced.value && citations.length > 0 && (
         <Fold
           title={tr(
             citations.length === 1

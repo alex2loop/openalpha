@@ -6,11 +6,15 @@ import {
   COLOUR_PAIRS,
   type ColourPair,
   colourPair,
+  DETAIL_LEVELS,
+  type DetailLevel,
+  detailLevel,
   lightByHour,
   MOTIONS,
   type Motion,
   motion,
   setColourPair,
+  setDetailLevel,
   setLightByHour,
   setMotion,
   setTheme,
@@ -43,6 +47,10 @@ const COLOUR_LABELS = Object.freeze({
   'green-up': 'ui.office.settings.coloursGreenUp',
   'red-up': 'ui.office.settings.coloursRedUp',
 } as const satisfies Record<ColourPair, MessageKey>)
+const DETAIL_LABELS = Object.freeze({
+  simple: 'ui.office.settings.detailSimple',
+  advanced: 'ui.office.settings.detailAdvanced',
+} as const satisfies Record<DetailLevel, MessageKey>)
 const MOTION_LABELS = Object.freeze({
   system: 'ui.office.common.followSystem',
   reduced: 'ui.office.settings.motionReduced',
@@ -77,6 +85,13 @@ export function DisplaySection({ reopen }: SectionProps) {
         value={motion.value}
         options={MOTIONS.map((value) => ({ value, label: tr(MOTION_LABELS[value]) }))}
         onChange={setMotion}
+      />
+      <PreferenceRow
+        title={tr('ui.office.settings.detail')}
+        note={tr('ui.office.settings.detailNote')}
+        value={detailLevel.value}
+        options={DETAIL_LEVELS.map((value) => ({ value, label: tr(DETAIL_LABELS[value]) }))}
+        onChange={setDetailLevel}
       />
       <LightByHourRow />
       <AttentionRows />

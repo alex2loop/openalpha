@@ -4,6 +4,7 @@ import type { SourcesResponse } from '@/app/server/wire/market'
 import type { DoctorCheck, DoctorCheckId, DoctorReport } from '@/app/server/wire/system'
 import type { MessageKey } from '@/i18n'
 import { pluralKey } from '@/i18n'
+import { isAdvanced } from '@/web/state/prefs'
 import { brand } from '@/web/state/session'
 import { SECTION_TITLES, type SettingsSection } from '@/web/state/settings'
 import { tr } from '@/web/text/tr'
@@ -121,7 +122,7 @@ function CheckRow({
 
   return (
     <RowFrame title={check.name} pill={PILLS[check.status]}>
-      {check.detail !== undefined && (
+      {isAdvanced.value && check.detail !== undefined && (
         <details class="meta">
           <summary>{tr('ui.office.doctor.details')}</summary>
           {check.detail}

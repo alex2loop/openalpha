@@ -6,7 +6,9 @@ import { estimateText } from '@/web/state/estimates'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
+import { isAdvanced } from '@/web/state/prefs'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
+import { joinInline, splitInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -115,17 +117,29 @@ function BoardBody({ board }: { readonly board: ScreenResponse }) {
 
 type Row = ScreenResponse['card']['rows'][number]
 
+// The score is one segment of the daemon's row line; simple drops it and keeps every other.
+function lineOf(row: Row): string {
+  if (isAdvanced.value) {
+    return row.line
+  }
+
+  const scoreLead = tr('trading.render.screen.score', { score: '' }).trim()
+
+  return joinInline(splitInline(row.line).filter((segment) => !segment.startsWith(scoreLead)))
+}
+
 function Opportunity({ row }: { readonly row: Row }) {
   const [market, ticker] = row.key.split(MARKET_SEPARATOR)
+  const head = lineOf(row)
 
   return (
     <div class="opportunity">
       <div class="opportunity-main">
         {ticker === undefined ? (
-          <b>{row.line}</b>
+          <b>{head}</b>
         ) : (
           <button type="button" class="opportunity-line" onClick={() => openTicker(ticker, market)}>
-            {row.line}
+            {head}
           </button>
         )}
         {row.evidence.map((line) => (
