@@ -1,4 +1,5 @@
 import { locale } from '@/web/state/session'
+import { isAmbiguousGrouping } from '@/web/text/decimal'
 import { ABSENT_CELL, DOWN_GLYPH, UP_GLYPH } from '@/web/text/glyphs'
 
 /** Percent per whole: a fraction times this is a percent. */
@@ -65,6 +66,23 @@ export function formatQuantity(value: number | undefined): string {
   }
 
   return buildFormatter('quantity', { maximumFractionDigits: QUANTITY_DIGITS_MAX }).format(value)
+}
+
+/** A stored figure as a form field starts with it: the page's decimal mark, no grouping, up to a
+ *  satoshi; empty when absent. One a thousands reading could misread ("2,125") takes a trailing
+ *  zero, so the field reads back as the same number. */
+export function formatFieldFigure(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return ''
+  }
+
+  const field = buildFormatter('field', {
+    useGrouping: false,
+    maximumFractionDigits: QUANTITY_DIGITS_MAX,
+  })
+  const text = field.format(value)
+
+  return isAmbiguousGrouping(field.format(Math.abs(value))) ? `${text}0` : text
 }
 
 /** A cash amount in its own currency: whole units from `AMOUNT_WHOLE_FROM`, else cents. */

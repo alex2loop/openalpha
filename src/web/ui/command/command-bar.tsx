@@ -3,7 +3,7 @@ import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { selectAgent } from '@/web/state/agents'
-import { isChatOpen, setChatOpen, unread } from '@/web/state/chat'
+import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
 import {
   inputText,
   isNotSent,
@@ -15,6 +15,7 @@ import {
 } from '@/web/state/command'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
+import { ReadOnlyLine } from '@/web/ui/chat/session-view'
 import {
   resolveSendLabel,
   type SuggestOption,
@@ -40,8 +41,22 @@ interface ListState {
 }
 
 /** The box at the bottom: who receives it, what is typed, what it would do, and the chat toggle. A
- *  chat tab keeps only the box: it reads no agent roster, and its chat never closes. */
+ *  chat tab keeps only the box: it reads no agent roster, and its chat never closes. While another
+ *  channel's session is open in the chat, a line says it is read-only here instead. */
 export function CommandBar() {
+  const viewed = viewedSession.value
+  const readOnly =
+    isChatOpen.value && viewed !== undefined && viewed.channel !== APP_CHANNEL ? viewed : undefined
+
+  return (
+    <footer class="command-bar glass">
+      {readOnly === undefined ? <Composer /> : <ReadOnlyLine session={readOnly} />}
+      {!isChatOnly.value && <ChatToggle />}
+    </footer>
+  )
+}
+
+function Composer() {
   const input = useRef<HTMLInputElement>(null)
   const list: ListState = {
     activeIndex: useSignal(undefined),
@@ -53,7 +68,7 @@ export function CommandBar() {
   useEffect(() => (input.current === null ? undefined : registerInput(input.current)), [])
 
   return (
-    <footer class="command-bar glass">
+    <>
       {!isChatOnly.value && <WhoChip />}
       <div class="command-box">
         {list.isOpen.value && options.length > 0 && (
@@ -76,8 +91,7 @@ export function CommandBar() {
           ? tr('ui.office.command.run')
           : resolveSendLabel()}
       </Button>
-      {!isChatOnly.value && <ChatToggle />}
-    </footer>
+    </>
   )
 }
 

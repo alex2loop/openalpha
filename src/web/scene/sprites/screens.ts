@@ -4,9 +4,10 @@ import type { AgendaModel, AgendaRow } from '@/web/scene/data/agenda'
 import type { Size } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
 import { pluralKey } from '@/i18n'
-import { heldNewsPins, todayCalls } from '@/web/scene/data/board'
+import { heldNewsPins } from '@/web/scene/data/board'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { OUTLINE, PALETTE } from '@/web/scene/sprites/palette'
+import { unseenCalls } from '@/web/state/ideas'
 import { formatDuration } from '@/web/text/time'
 import { MS_PER_MINUTE } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -72,9 +73,9 @@ interface FaceView {
 
 /** Today's notes on the boards, derived once per change of the board's signals. */
 export const boardNotes: ReadonlySignal<BoardNotes> = computed(() => {
-  const landed = todayCalls.value?.filter((call) => call.action !== 'hold').length ?? 0
+  const unseen = unseenCalls.value.length
 
-  return { calls: Math.min(MAX_RESULT_NOTES, landed), pins: heldNewsPins.value.length }
+  return { calls: Math.min(MAX_RESULT_NOTES, unseen), pins: heldNewsPins.value.length }
 })
 
 /** The faces both renderers show, each a canvas repainted only when what it shows or its zoom

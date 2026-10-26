@@ -56,12 +56,6 @@ export const digest = computed(() => {
 
   return yesterday === undefined ? undefined : { wire: yesterday, isToday: false }
 })
-/** The page clock's day's calls (it rolls over at the scene's midnight), newest first; absent until `/v1/suggestions` answers. */
-export const todayCalls: ReadonlySignal<readonly SuggestionWire[] | undefined> = computed(() => {
-  const day = pageMinute.value.day
-
-  return calls.value?.filter((call) => call.at === day)
-})
 /** Held-news headlines pinned on the library board, newest first; a new day clears them. */
 export const heldNewsPins: ReadonlySignal<readonly NoticeWire[]> = computed(() =>
   notices.value.filter((notice) => isTodaysNotice(notice, HELD_NEWS_KIND)).slice(0, MAX_PINS)

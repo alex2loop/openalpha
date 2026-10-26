@@ -16,7 +16,6 @@ import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
 import { Button } from '@/web/ui/kit/button'
 import { Pager } from '@/web/ui/kit/pager'
-import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 
 const LEDGER_PAGE = 6
@@ -63,8 +62,8 @@ export function History() {
         <Button size="small" onClick={openReconcileDialog}>
           {tr('ui.office.reconcile.open')}
         </Button>
+        <FilterMenu filter={filter} page={page} />
       </div>
-      <FilterBar filter={filter} page={page} />
       <LedgerBody
         ledger={ledger}
         shown={shown}
@@ -76,7 +75,8 @@ export function History() {
   )
 }
 
-function FilterBar({
+// The many kinds read as one menu at any width, as the trade dialog's other kinds do.
+function FilterMenu({
   filter,
   page,
 }: {
@@ -84,19 +84,25 @@ function FilterBar({
   readonly page: Signal<number>
 }) {
   return (
-    <Segmented
-      label={tr('ui.office.book.history')}
+    <select
+      aria-label={tr('ui.office.book.filterKind')}
+      title={tr('ui.office.book.filterKind')}
       value={filter.value}
-      options={KIND_FILTERS.map((value) => ({
-        value,
-        label:
-          value === 'all' ? tr('ui.office.book.filterAll') : tr(`trading.ledger.kind.${value}`),
-      }))}
-      onChange={(value) => {
-        filter.value = value
-        page.value = 0
+      onChange={(event) => {
+        const picked = KIND_FILTERS.find((value) => value === event.currentTarget.value)
+
+        if (picked !== undefined) {
+          filter.value = picked
+          page.value = 0
+        }
       }}
-    />
+    >
+      {KIND_FILTERS.map((value) => (
+        <option key={value} value={value}>
+          {value === 'all' ? tr('ui.office.book.filterAll') : tr(`trading.ledger.kind.${value}`)}
+        </option>
+      ))}
+    </select>
   )
 }
 

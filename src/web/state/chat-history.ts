@@ -80,6 +80,15 @@ export function clearOpenedSession(): void {
   opened.value = undefined
 }
 
+/** Makes an app session the current one, as the sessions list opens it: typing goes to it and its
+ *  newest page loads in place of the last session's. */
+export function resumeAppSession(session: ChatSession): void {
+  view.value = EMPTY
+  resumeSession(session.sessionId, session.agentId)
+  // `loadOlder` keeps its own failure in the view, so it never rejects.
+  loadOlder().catch(() => undefined)
+}
+
 /** The next older page of the current session; a call while one loads is ignored. */
 export async function loadOlder(): Promise<void> {
   const session = historySession

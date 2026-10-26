@@ -3,10 +3,11 @@ import type { ComponentChildren } from 'preact'
 import type { SourcesResponse } from '@/app/server/wire/market'
 import type { DoctorCheck, DoctorCheckId, DoctorReport } from '@/app/server/wire/system'
 import type { MessageKey } from '@/i18n'
-import { pluralKey } from '@/i18n'
+import { hasMessage, pluralKey } from '@/i18n'
 import { isAdvanced } from '@/web/state/prefs'
-import { brand } from '@/web/state/session'
+import { brand, locale } from '@/web/state/session'
 import { SECTION_TITLES, type SettingsSection } from '@/web/state/settings'
+import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 
@@ -77,13 +78,26 @@ export function DoctorRows({ report, troubled, openSection }: DoctorRowsProps) {
           <CheckRow key={`${check.check}:${index}`} check={check} openSection={openSection} />
         ))}
         {troubled.map((source) => (
-          <RowFrame key={source.id} title={source.id} pill={SOURCE_PILL}>
+          <RowFrame
+            key={`${source.id}:${source.kind}`}
+            title={joinInline([source.id, formatSourceKind(source.kind)])}
+            pill={SOURCE_PILL}
+          >
             {source.failure !== undefined && <p class="meta">{source.failure}</p>}
           </RowFrame>
         ))}
       </div>
     </>
   )
+}
+
+/** What a source reads, in plain words: one provider serves several kinds (okx: quote, fx). A kind
+ *  the catalog does not name prints as it comes. */
+export function formatSourceKind(kind: string): string {
+  const key = `trading.source.kind.${kind}`
+
+  // Safe: `hasMessage` just resolved it.
+  return hasMessage(locale.value, key) ? tr(key as MessageKey) : kind
 }
 
 function isProblem(check: DoctorCheck): boolean {

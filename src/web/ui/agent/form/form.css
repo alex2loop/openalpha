@@ -23,8 +23,7 @@
 .form-field input[type="text"],
 .form-field input[type="number"],
 .form-field input[type="time"],
-.form-field textarea,
-.form-field select {
+.form-field textarea {
   padding: 6px var(--s1);
   border: 1px solid var(--border);
   border-radius: 6px;

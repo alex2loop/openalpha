@@ -23,7 +23,7 @@
 .who-chip select {
   max-width: 150px;
   border: 0;
-  background: transparent;
+  background-color: transparent;
   font-size: 12px;
   outline: 0;
 }
