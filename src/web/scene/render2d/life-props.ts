@@ -4,16 +4,14 @@ import { paintPet } from '@/web/scene/render2d/pets'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
-import { METAL } from '@/web/scene/sprites/palette'
+import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
 
-const PAPER = '#F7F5EF'
 const PAPER_EDGE = '#D9D4C7'
 const CART_W = 20
 const CART_TOP_H = 4
 const CART_FRONT_H = 6
 const CART_WHEEL = '#2B2433'
-const CUP_TONES = ['#F6C6D6', '#FFFFFF', '#BFD3EE'] as const
 const STEAM = 'rgba(255,255,255,.7)'
 const BUBBLE = 'rgba(217,239,251,.95)'
 const STEAM_RISE_PX = 5
@@ -94,7 +92,7 @@ function paintCart(g: CanvasRenderingContext2D, at: Point): void {
   fill(g, [x + 1, y + CART_TOP_H + CART_FRONT_H, 3, 2], CART_WHEEL)
   fill(g, [x + CART_W - 4, y + CART_TOP_H + CART_FRONT_H, 3, 2], CART_WHEEL)
 
-  CUP_TONES.forEach((tone, i) => {
+  PROP_TONES.cups.forEach((tone, i) => {
     framed(g, [x + 3 + i * 6, y - 2, 3, 3], tone)
   })
 }
@@ -110,7 +108,7 @@ function paintSheets(
     const slide = isFeeding ? Math.round((1 - stack.feedK) * FEED_SLIDE_PX) : 0
     const y = Math.round(tray.y - i * SHEET_STEP_PX - slide)
 
-    fill(g, [Math.round(tray.x - SHEET_W / 2), y, SHEET_W, 2], PAPER)
+    fill(g, [Math.round(tray.x - SHEET_W / 2), y, SHEET_W, 2], PALETTE.paper)
     fill(g, [Math.round(tray.x - SHEET_W / 2), y + 2, SHEET_W, 1], PAPER_EDGE)
   }
 }

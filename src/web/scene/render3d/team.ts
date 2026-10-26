@@ -11,7 +11,7 @@ import {
   placeInstance,
   type Shapes,
 } from '@/web/scene/render3d/instancing'
-import { OUTLINE } from '@/web/scene/sprites/palette'
+import { FOCUS_TONES, OUTLINE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 
 /** The team floor's own pieces: the dotted threads and scored bursts, and each desk's prop. */
@@ -20,10 +20,7 @@ export interface TeamPieces {
   readonly focus: Pool
 }
 
-const THREAD_ON = '#4E6CA8'
 const THREAD_OFF = '#B7C3DD'
-const BURST_TONE = '#32D74B'
-const CLOUD_TONES = ['#B6B7C9', '#C9CAD8'] as const
 const MAX_SPARKS = 240
 const MAX_FOCUS = 12
 const THREAD = Object.freeze({ step: 6, dot: 2.2, rise: 22, arc: 8, tick: 120, phases: 3 })
@@ -40,10 +37,10 @@ const BURST_SPARKS: readonly (readonly [number, number])[] = Object.freeze([
 ])
 const FOCUS_AT = Object.freeze({ dx: 28, dz: -6, y: 14 })
 const FOCUS_LOOKS: Readonly<Record<DeskFocus, readonly [string, number]>> = Object.freeze({
-  safe: ['#9296AA', 8],
-  candles: ['#1E2230', 8],
-  gold: ['#D9A23E', 4],
-  piggy: ['#ECBED8', 6],
+  safe: [FOCUS_TONES.safe, 8],
+  candles: [FOCUS_TONES.candles, 8],
+  gold: [FOCUS_TONES.gold, 4],
+  piggy: [FOCUS_TONES.piggy, 6],
 })
 
 export function createTeamPieces(shapes: Shapes, materials: Materials, root: Group): TeamPieces {
@@ -117,7 +114,7 @@ function threadDots(pool: Pool, thread: ThreadView, phase: number): void {
       y: THREAD.rise + Math.sin(k * Math.PI) * THREAD.arc,
       z: thread.from.y + (thread.to.y - thread.from.y) * k,
       size: [THREAD.dot, THREAD.dot, THREAD.dot],
-      color: (i + phase) % THREAD.phases === 0 ? THREAD_ON : THREAD_OFF,
+      color: (i + phase) % THREAD.phases === 0 ? PROP_TONES.threadOn : THREAD_OFF,
     })
   }
 }
@@ -133,7 +130,7 @@ function burstAt(
   const { at, spread } = spec
 
   if (spec.tone === 'stop') {
-    for (const [i, tone] of CLOUD_TONES.entries()) {
+    for (const [i, tone] of PROP_TONES.cloud.entries()) {
       placeInstance(pool, {
         x: at.x,
         y: BURST.y + 6 + i * 6,
@@ -152,7 +149,7 @@ function burstAt(
       y: BURST.y - dz * 0.4 * spread,
       z: at.y + dz * spread,
       size: [BURST.size, BURST.size, BURST.size],
-      color: BURST_TONE,
+      color: PROP_TONES.burst,
     })
   }
 }

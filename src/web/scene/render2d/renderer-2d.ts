@@ -115,6 +115,7 @@ export function createRenderer2d(): SceneRenderer {
     toScreen: (p) => toScreen(surface, p),
     toWorld: (s) => toWorld(surface, s),
     stats: (): RendererStats => ({
+      view: '2d',
       frameMs,
       rendersPerSecond: countRecent(renderTimes, performance.now()),
     }),

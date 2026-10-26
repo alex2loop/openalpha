@@ -3,8 +3,7 @@ import { roomTagOf } from '@/web/scene/overlay/room-tags'
 import {
   canPanToward,
   leaveRoom,
-  MAX_ZOOM_3D_PX,
-  MAX_ZOOM_STEPS,
+  maxZoomSteps,
   panBy,
   projection,
   setFloor,
@@ -13,7 +12,7 @@ import {
 } from '@/web/scene/view'
 import { ROOM_IDS } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
-import { lampsOff, sceneView, toggleAllLamps } from '@/web/state/prefs'
+import { lampsOff, toggleAllLamps } from '@/web/state/prefs'
 import {
   ESCAPE_KEY_CAP,
   NEXT_GLYPH,
@@ -126,7 +125,7 @@ function ZoomControls({
         class="scene-tool"
         aria-label={tr('ui.office.floor.zoomIn')}
         title={tr('ui.office.floor.zoomIn')}
-        disabled={zoomSteps >= MAX_ZOOM_STEPS || isAtDeepZoom()}
+        disabled={zoomSteps >= maxZoomSteps()}
         onClick={() => zoomBy(1)}
       >
         {ZOOM_IN_GLYPH}
@@ -138,11 +137,6 @@ function ZoomControls({
       )}
     </fieldset>
   )
-}
-
-// The 3D view stops at its closest zoom before the steps run out.
-function isAtDeepZoom(): boolean {
-  return sceneView.value === '3d' && projection.value.scale * devicePixelRatio >= MAX_ZOOM_3D_PX
 }
 
 // One switch for every lamp: any lamp on turns them all off, else all on.

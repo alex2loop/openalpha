@@ -1,5 +1,5 @@
 import type { Body, HairTone, PantsTone, Shirt } from '@/web/scene/sprites/parts'
-import type { ActorStatus } from '@/web/scene/types'
+import type { ActorStatus, DeskFocus } from '@/web/scene/types'
 
 /** A part's three cel bands: lit top, body, shade. */
 type Ramp = readonly [lit: string, body: string, shade: string]
@@ -152,3 +152,32 @@ export const WALL_TONES = Object.freeze({
   mullion: '#363D4D',
   frame: '#4A5265',
 })
+
+/** Furniture and office-life details both renderers paint alike. */
+export const PROP_TONES = Object.freeze({
+  leaf: ['#8CCB98', '#5FA872', '#3E7E52'],
+  pot: '#C9845A',
+  books: ['#8C9EC2', '#C9A86A', '#9AB5A8', '#B98AA8', '#D2B48C', '#7F8FA6', '#A88C6A'],
+  copier: ['#F7F4EC', '#E9E6DF', '#CFCBC2'],
+  ledOn: '#7FD49A',
+  screenOff: '#3E4452',
+  screenLit: '#9FC2FF',
+  lampOff: '#E9DFC6',
+  lampLit: '#FFF3C4',
+  vending: '#D8D0E8',
+  catBed: ['#E6B7A8', '#F9E3DA'],
+  cups: ['#F6C6D6', '#FFFFFF', '#BFD3EE'],
+  liftFrame: '#C9C2B8',
+  liftLeaf: '#C9D0DB',
+  threadOn: '#4E6CA8',
+  burst: '#32D74B',
+  cloud: ['#B6B7C9', '#C9CAD8'],
+} as const)
+
+/** The body of the prop an own agent's desk carries, by its focus. */
+export const FOCUS_TONES = Object.freeze({
+  safe: '#9296AA',
+  candles: '#1E2230',
+  gold: '#D9A23E',
+  piggy: '#ECBED8',
+} satisfies Record<DeskFocus, string>)

@@ -1,7 +1,7 @@
 import type { PaperView } from '@/web/scene/types'
+import { PALETTE } from '@/web/scene/sprites/palette'
 import { TRAY_AT } from '@/web/scene/world/seats'
 
-const SHEET = '#F7F5EF'
 const SHEET_EDGE = '#B4BAC5'
 const SHEET_W = 4
 const SHEET_H = 4
@@ -35,6 +35,6 @@ export function paintTray(g: CanvasRenderingContext2D, count: number): void {
 function sheet(g: CanvasRenderingContext2D, x: number, y: number): void {
   g.fillStyle = SHEET_EDGE
   g.fillRect(x - SHEET_W / 2, y, SHEET_W, SHEET_H)
-  g.fillStyle = SHEET
+  g.fillStyle = PALETTE.paper
   g.fillRect(x - SHEET_W / 2, y - 1, SHEET_W, SHEET_H)
 }

@@ -7,7 +7,7 @@ import type { FloorId, Point, Rect, RoomId, Size } from '@/web/scene/types'
 export const FRAME_RECT: Rect = Object.freeze({ x: -112, y: -146, w: 864, h: 570 })
 /** One zoom step multiplies the fitted floor's scale by this. */
 export const ZOOM_STEP = 1.4
-export const MAX_ZOOM_STEPS = 4
+const MAX_ZOOM_STEPS = 4
 /** The 3D view zooms no closer than this many device px per world px. */
 export const MAX_ZOOM_3D_PX = 6.5
 
@@ -18,6 +18,8 @@ const FRAME_CENTER: Point = Object.freeze({
 })
 // Under a world pixel of slack, an edge counts as reached.
 const EDGE_SLACK_PX = 1
+// A step that lands within this share of a step from the cap counts as reaching it.
+const ZOOM_SLACK = 0.01
 // The camera follows a new run only after the operator has left it alone this long.
 const FOLLOW_IDLE_MS = 10_000
 
@@ -36,6 +38,8 @@ interface Projection {
   readonly baseScale: number
   readonly originX: number
   readonly originY: number
+  /** The closest the shown renderer zooms, CSS px per world px; absent, the steps run out first. */
+  readonly maxScale?: number
 }
 
 /** A thing to show: where it stands, and the room it stands in. */
@@ -69,7 +73,8 @@ export function reportProjection(next: Projection): void {
     held.scale === next.scale &&
     held.baseScale === next.baseScale &&
     held.originX === next.originX &&
-    held.originY === next.originY
+    held.originY === next.originY &&
+    held.maxScale === next.maxScale
 
   if (!isSame) {
     projection.value = next
@@ -110,7 +115,7 @@ export function zoomBy(steps: number, at?: Point): void {
   const held = view.value
   const { scale, baseScale, pane } = projection.value
   const current = held.room === undefined ? held.zoomSteps : stepsOf(scale / baseScale)
-  const next = Math.min(MAX_ZOOM_STEPS, Math.max(0, current + steps))
+  const next = Math.min(maxZoomSteps(), Math.max(0, current + steps))
 
   if (next === current && held.room === undefined) {
     return
@@ -125,6 +130,20 @@ export function zoomBy(steps: number, at?: Point): void {
   }
 
   view.value = { floor: held.floor, zoomSteps: next, center: clampPan(center, nextScale, pane) }
+}
+
+/** The zoom steps above the fitted floor: all of them, or as many as reach the shown renderer's
+ *  closest zoom. */
+export function maxZoomSteps(): number {
+  const { baseScale, maxScale } = projection.value
+
+  if (maxScale === undefined || baseScale <= 0) {
+    return MAX_ZOOM_STEPS
+  }
+
+  const reach = Math.ceil(Math.log(maxScale / baseScale) / Math.log(ZOOM_STEP) - ZOOM_SLACK)
+
+  return Math.min(MAX_ZOOM_STEPS, Math.max(0, reach))
 }
 
 /** Keeps the pane inside the frame; an axis the frame does not fill stays centred on it. */

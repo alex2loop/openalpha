@@ -150,6 +150,7 @@
     "office.clock.reducedNote": "Motion is reduced, so the office runs at normal speed.",
     "office.perf.title": "Office performance",
     "office.perf.frame2d": "2D frame: {ms} ms (budget {budget} ms)",
+    "office.perf.frame3d": "3D frame: {ms} ms",
     "office.perf.renders": "Renders: {renders} a second (budget {budget})",
     "office.perf.drawCalls": "Draw calls: {calls} (max {max})",
     "office.scene.view": "Office view",

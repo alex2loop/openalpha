@@ -1,6 +1,6 @@
 import { type BufferGeometry, Group, type Material, Mesh } from 'three'
 
-import type { FloorId, LifeView, PetKind, PetPose } from '@/web/scene/types'
+import type { FloorId, LifeView, PetKind, PetPose, PetView } from '@/web/scene/types'
 import { type Box, box, mergeBoxes } from '@/web/scene/render3d/boxes'
 import { toUnits } from '@/web/scene/render3d/space'
 import { ANIMAL_TONES, type DetailLevel, petPartsOf } from '@/web/scene/sim/life/animal-model'
@@ -11,17 +11,19 @@ export interface Pets {
   readonly root: Group
   readonly meshes: Mesh[]
   readonly shapes: Map<string, BufferGeometry>
+  /** What the pets showed last; unchanged, nothing is rewritten. */
+  key: string
 }
 
 // How deep each animal's body is, across its side view.
 const DEPTH_PX: Readonly<Record<PetKind, number>> = Object.freeze({ cat: 6, corgi: 8 })
 
 export function createPets(): Pets {
-  return { root: new Group(), meshes: [], shapes: new Map() }
+  return { root: new Group(), meshes: [], shapes: new Map(), key: '' }
 }
 
 /** Shows the pets on `floor` between their last two steps; a pose that no pet shows any more
- *  drops its geometry. */
+ *  drops its geometry. True when a pet moved, turned, changed pose or detail. */
 export function syncPets(
   pets: Pets,
   life: LifeView,
@@ -31,8 +33,16 @@ export function syncPets(
     readonly level: DetailLevel
     readonly material: Material
   }
-): void {
+): boolean {
   const shown = frame.floor === PET_FLOOR ? life.pets : []
+  const shownKey = `${frame.level}|${shown.map((pet) => petKeyOf(pet, frame.alpha)).join('|')}`
+
+  if (shownKey === pets.key) {
+    return false
+  }
+
+  pets.key = shownKey
+
   const used = new Set<string>()
 
   shown.forEach((pet, i) => {
@@ -54,12 +64,29 @@ export function syncPets(
     mesh.visible = false
   }
 
-  for (const [key, shape] of pets.shapes) {
-    if (!used.has(key)) {
+  for (const [shapeKey, shape] of pets.shapes) {
+    if (!used.has(shapeKey)) {
       shape.dispose()
-      pets.shapes.delete(key)
+      pets.shapes.delete(shapeKey)
     }
   }
+
+  return true
+}
+
+// A walking pet's key carries the frame's step fraction, so each in-between frame is drawn.
+function petKeyOf(pet: PetView, alpha: number): string {
+  const isMoving = pet.prev.x !== pet.at.x || pet.prev.y !== pet.at.y
+
+  return [
+    pet.kind,
+    pet.pose,
+    pet.at.x,
+    pet.at.y,
+    pet.lift,
+    pet.isFlipped,
+    isMoving ? alpha : '',
+  ].join()
 }
 
 export function disposePets(pets: Pets): void {

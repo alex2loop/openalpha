@@ -1,7 +1,16 @@
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import { type Box, box, type Spot } from '@/web/scene/render3d/boxes'
 import { HEIGHT_K } from '@/web/scene/render3d/space'
-import { CARD, DARKWOOD, FABRIC, METAL, OUTLINE, WOOD } from '@/web/scene/sprites/palette'
+import {
+  CARD,
+  DARKWOOD,
+  FABRIC,
+  METAL,
+  OUTLINE,
+  PALETTE,
+  PROP_TONES,
+  WOOD,
+} from '@/web/scene/sprites/palette'
 import { isWallMounted, type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
 import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { SEATS, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'
@@ -36,17 +45,12 @@ interface Build {
 
 type Recipe = (job: Build) => void
 
-const PAPER = '#F7F5EF'
 const SCREEN_BEZEL = '#2B2433'
 const BOARD_FRAME = '#C9CDD6'
-const LEAF = ['#8CCB98', '#5FA872', '#3E7E52'] as const
-const POT = '#C9845A'
-const BOOK_TONES = ['#8C9EC2', '#C9A86A', '#9AB5A8', '#B98AA8', '#D2B48C', '#7F8FA6'] as const
 const ART = ['#D9B98F', '#C9B9D9', '#E8C9A0', '#BFD3EE'] as const
 const RACK_TONE = '#3A3F52'
 const COOLER_BODY = '#D9DEE8'
 const COOLER_WATER = '#8FD3F4'
-const VENDING_BODY = '#D8D0E8'
 const VENDING_FACE = '#2F3F78'
 const PHONE_TONE = '#D86A66'
 // A desk phone's height counts the desk under it.
@@ -54,10 +58,7 @@ const PHONE_ON_DESK_PX = 4.5
 const PHONE_PX = 1.6
 const COUNTER_PX = 13
 const MACHINE_TONE = '#9DB0CC'
-const LIFT_FRAME = '#C9C2B8'
-const LIFT_LEAF = '#C9D0DB'
 const TANK_WATER = '#8CCBEA'
-const BED_TONES = ['#E6B7A8', '#F9E3DA'] as const
 const DESK_TOP_PX = 2
 const LEG_PX = 2
 const SEAT_PX = 7
@@ -103,7 +104,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
   chair: chair,
   shelf: shelf,
   books: ({ prop, out }) => {
-    for (const [i, tone] of BOOK_TONES.slice(0, 3).entries()) {
+    for (const [i, tone] of PROP_TONES.books.slice(0, 3).entries()) {
       out.push(box(spot(prop, [i * 2, 2], i), tone, true))
     }
   },
@@ -113,14 +114,17 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     out.push(box(spot(prop, [prop.height - 2, 2], 1), METAL[0], true))
   },
   copier: ({ prop, out }) => {
-    out.push(box(spot(prop, [0, prop.height]), '#E9E6DF', true))
-    out.push(box(spot(prop, [prop.height - 3, 3], 1), '#F7F4EC', true))
+    out.push(box(spot(prop, [0, prop.height]), PROP_TONES.copier[1], true))
+    out.push(box(spot(prop, [prop.height - 3, 3], 1), PROP_TONES.copier[0], true))
   },
   rack: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height]), RACK_TONE, true))
     for (let row = 6; row < prop.height - 4; row += 6) {
       out.push(
-        box([prop.rect.x + 2, prop.rect.y + prop.rect.h, prop.rect.w - 4, 0.6, row, 1], '#7FD49A')
+        box(
+          [prop.rect.x + 2, prop.rect.y + prop.rect.h, prop.rect.w - 4, 0.6, row, 1],
+          PROP_TONES.ledOn
+        )
       )
     }
   },
@@ -161,10 +165,10 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
   },
   drinks: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height - 3]), WOOD[1], true))
-    out.push(box([prop.rect.x + 2, prop.rect.y + 2, 3, 3, prop.height - 3, 3], PAPER, true))
+    out.push(box([prop.rect.x + 2, prop.rect.y + 2, 3, 3, prop.height - 3, 3], PALETTE.paper, true))
   },
   vending: ({ prop, out }) => {
-    out.push(box(spot(prop, [0, prop.height]), VENDING_BODY, true))
+    out.push(box(spot(prop, [0, prop.height]), PROP_TONES.vending, true))
     out.push(
       box(
         [prop.rect.x + 2, prop.rect.y + prop.rect.h, prop.rect.w - 4, 0.6, 6, prop.height - 12],
@@ -174,9 +178,9 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
   },
   sofa: sofa,
   plant: ({ prop, out }) => {
-    out.push(box(spot(prop, [0, 6], 1), POT, true))
-    out.push(box(spot(prop, [6, 6], -1), LEAF[1], true))
-    out.push(box(spot(prop, [11, 5], 1), LEAF[0], true))
+    out.push(box(spot(prop, [0, 6], 1), PROP_TONES.pot, true))
+    out.push(box(spot(prop, [6, 6], -1), PROP_TONES.leaf[1], true))
+    out.push(box(spot(prop, [11, 5], 1), PROP_TONES.leaf[0], true))
   },
   lamp: lamp,
   tank: ({ prop, out, floor }) => {
@@ -185,8 +189,8 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     out.push(box(spot(prop, [17.2, 1], -0.4), '#E7E9EE'))
   },
   'cat-bed': ({ prop, out }) => {
-    out.push(box(spot(prop, [0, 2]), BED_TONES[0], true))
-    out.push(box(spot(prop, [2, 0.6], 3), BED_TONES[1], true))
+    out.push(box(spot(prop, [0, 2]), PROP_TONES.catBed[0], true))
+    out.push(box(spot(prop, [2, 0.6], 3), PROP_TONES.catBed[1], true))
   },
   cabinet: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height]), METAL[1], true))
@@ -209,7 +213,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     out.push(
       box(
         [prop.rect.x + 2, prop.rect.y + prop.rect.h, prop.rect.w - 4, 0.6, prop.height - 10, 8],
-        PAPER
+        PALETTE.paper
       )
     )
   },
@@ -282,8 +286,8 @@ function shelf({ prop, out }: Build): void {
   out.push(box(spot(prop, [0, prop.height]), WOOD[2], true))
 
   for (let row = 2; row < prop.height - 4; row += 9) {
-    BOOK_TONES.forEach((tone, i) => {
-      const w = (prop.rect.w - 4) / BOOK_TONES.length
+    PROP_TONES.books.forEach((tone, i) => {
+      const w = (prop.rect.w - 4) / PROP_TONES.books.length
 
       out.push(
         box(
@@ -369,7 +373,7 @@ function wallPiece({ prop, out, floor }: Build): void {
   const z = isHung ? wallZ : y + h
   const base = isHung ? (wallZ - (y + h)) / HEIGHT_K : 0
   const tall = h / HEIGHT_K
-  const [frame, plate] = WALL_LOOKS[prop.kind] ?? [BOARD_FRAME, PAPER]
+  const [frame, plate] = WALL_LOOKS[prop.kind] ?? [BOARD_FRAME, PALETTE.paper]
   const face = prop.kind === 'frame' ? (ART[(prop.variant ?? 0) % ART.length] ?? plate) : plate
 
   const faceList = prop.kind === 'window' ? floor.glass : out
@@ -384,9 +388,9 @@ const WALL_LOOKS: Readonly<Partial<Record<PropKind, readonly [string, string]>>>
   whiteboard: [BOARD_FRAME, '#FAFAFC'],
   'results-board': [SCREEN_BEZEL, '#3E4C78'],
   'wall-screen': [SCREEN_BEZEL, '#27356A'],
-  clock: [OUTLINE, PAPER],
-  frame: [WOOD[2], PAPER],
+  clock: [OUTLINE, PALETTE.paper],
+  frame: [WOOD[2], PALETTE.paper],
   'light-switch': ['#F7F3EA', '#C9CDD6'],
-  'lift-door': [LIFT_FRAME, LIFT_LEAF],
+  'lift-door': [PROP_TONES.liftFrame, PROP_TONES.liftLeaf],
   window: [BOARD_FRAME, '#CFE6FF'],
 })

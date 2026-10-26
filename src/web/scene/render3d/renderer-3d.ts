@@ -110,6 +110,7 @@ export function createRenderer3d(): SceneRenderer {
     toScreen: (p) => toScreen(stage?.placement ?? IDENTITY, p),
     toWorld: (s) => toWorld(stage?.placement ?? IDENTITY, s),
     stats: (): RendererStats => ({
+      view: '3d',
       frameMs,
       rendersPerSecond: renderTimes.filter((at) => performance.now() - at < RENDER_WINDOW_MS)
         .length,
@@ -119,10 +120,29 @@ export function createRenderer3d(): SceneRenderer {
 }
 
 // The WebGL renderer is made on a canvas not yet in the page: without WebGL its constructor
-// throws, and nothing is left behind for the composer's fallback to clean up.
+// throws, and nothing is left behind for the composer's fallback to clean up. A throw after it
+// releases the context before it goes on; the canvas joins the page only once all is built.
 function createStage(host: HTMLElement): Stage {
   const canvas = document.createElement('canvas')
   const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' })
+
+  try {
+    const stage = buildStage(canvas, renderer)
+
+    canvas.className = CANVAS_CLASS
+    canvas.tabIndex = 0
+    host.append(canvas)
+
+    return stage
+  } catch (error) {
+    renderer.dispose()
+    renderer.forceContextLoss()
+
+    throw error
+  }
+}
+
+function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
   const scene = new Scene()
   const root = new Group()
   const lighting = createLighting(scene)
@@ -130,9 +150,6 @@ function createStage(host: HTMLElement): Stage {
   const cast = createCast(lighting.materials.toon)
   const pets = createPets()
 
-  canvas.className = CANVAS_CLASS
-  canvas.tabIndex = 0
-  host.append(canvas)
   scene.add(root, cast.root, pets.root)
 
   return {
@@ -288,7 +305,7 @@ function syncDressing(
   const effects = syncEffects(stage.effects, effectFrame)
   const team = syncTeamPieces(stage.team, effectFrame)
 
-  syncPets(stage.pets, sim.life, {
+  const isPetMoved = syncPets(stage.pets, sim.life, {
     floor: sim.floor,
     alpha: sim.alpha,
     level,
@@ -296,7 +313,7 @@ function syncDressing(
   })
 
   return {
-    isChanged: isFixed || effects.isChanged || team.isChanged,
+    isChanged: isFixed || effects.isChanged || team.isChanged || isPetMoved,
     isMoving: effects.isMoving || team.isMoving,
   }
 }

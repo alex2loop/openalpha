@@ -14,7 +14,7 @@ import {
 import { UNIT_PX } from '@/web/scene/render3d/space'
 import { ANIMAL_TONES, type DetailLevel, fishPartsOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
-import { METAL } from '@/web/scene/sprites/palette'
+import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
 import { TRAY_AT } from '@/web/scene/world/seats'
 
@@ -37,7 +37,6 @@ export interface EffectFrame {
   readonly isReduced: boolean
 }
 
-const PAPER = '#F7F5EF'
 const STEAM_TONE = '#FFFFFF'
 const BUBBLE_TONE = '#D9EFFB'
 const MAX_PAPERS = 12
@@ -54,7 +53,6 @@ const STEAM_MS = 900
 const BUBBLE_MS = 1_200
 const PUFF_PX = 1.4
 const CART = Object.freeze({ w: 20, d: 10, h: 10 })
-const CART_TONES = ['#F6C6D6', '#FFFFFF', '#BFD3EE'] as const
 const FISH_DEPTH_PX = 1.5
 const FISH_WATER = Object.freeze({ inset: 4, y: 10, depth: 6 })
 const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
@@ -71,7 +69,7 @@ export function createEffects(shapes: Shapes, materials: Materials, root: Group)
     papers: createPool(shapes.box, materials.litI, { cap: MAX_PAPERS }),
     stacks: createPool(shapes.box, materials.litI, { cap: MAX_STACK }),
     steam: createPool(shapes.box, materials.unlitI, { cap: MAX_STEAM }),
-    cart: createPool(shapes.box, materials.litI, { cap: CART_TONES.length + 1 }),
+    cart: createPool(shapes.box, materials.litI, { cap: PROP_TONES.cups.length + 1 }),
     fish: createPool(fishGeometry, materials.litI, { cap: MAX_FISH }),
     fishShape: { level: 0, geometry: fishGeometry },
   }
@@ -129,7 +127,7 @@ function syncPapers(pool: Pool, frame: EffectFrame): boolean {
       y: PAPER_FROM_PX + Math.sin(k * Math.PI) * PAPER_ARC_PX,
       z: paper.from.y + (paper.to.y - paper.from.y) * k,
       size: [SHEET.w, SHEET.h, SHEET.d],
-      color: PAPER,
+      color: PALETTE.paper,
     })
   }
 
@@ -156,7 +154,7 @@ function syncStacks(pool: Pool, frame: EffectFrame): boolean {
       y: TRAY.y + i * TRAY.step,
       z: TRAY_AT.y + TRAY.d,
       size: [TRAY.w, TRAY.step - 0.05, TRAY.d],
-      color: PAPER,
+      color: PALETTE.paper,
     })
   }
 
@@ -172,7 +170,7 @@ function syncStacks(pool: Pool, frame: EffectFrame): boolean {
         y: PRINT.y + i * PRINT.step,
         z: cz - slide,
         size: [PRINT.w, PRINT.step - 0.05, PRINT.d],
-        color: PAPER,
+        color: PALETTE.paper,
       })
     }
   }
@@ -241,7 +239,7 @@ function syncCart(pool: Pool, frame: EffectFrame): boolean {
       size: [CART.w, CART.h, CART.d],
       color: METAL[1],
     })
-    CART_TONES.forEach((tone, i) => {
+    PROP_TONES.cups.forEach((tone, i) => {
       placeInstance(pool, {
         x: cart.at.x - 6 + i * 6,
         y: CART.h + 1.5,
@@ -280,7 +278,7 @@ function syncFish(pool: Pool, frame: EffectFrame): boolean {
       z: y + h / 2,
       size: FISH_SIZE,
       yaw: one.isFlipped ? Math.PI : 0,
-      color: ANIMAL_TONES.fish[i % ANIMAL_TONES.fish.length]?.fur ?? PAPER,
+      color: ANIMAL_TONES.fish[i % ANIMAL_TONES.fish.length]?.fur ?? PALETTE.paper,
     })
   })
   endPool(pool)

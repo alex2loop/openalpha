@@ -22,7 +22,7 @@ import {
   TABLE_POOLS,
   WARM_RGB,
 } from '@/web/scene/sprites/daylight'
-import { OUTLINE, STATUS_TONES } from '@/web/scene/sprites/palette'
+import { OUTLINE, PROP_TONES, STATUS_TONES } from '@/web/scene/sprites/palette'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
 
@@ -56,10 +56,6 @@ const MAX_SCREENS = 24
 const MAX_LAMPS = 12
 const MAX_POOLS = 16
 const MAX_PEOPLE = 48
-const SCREEN_LIT = '#9FC2FF'
-const SCREEN_OFF = '#3E4452'
-const SHADE_ON = '#FFF3C4'
-const SHADE_OFF = '#E9DFC6'
 const COOL_RGB = '120,160,255'
 const SHADOW_TONE = '#4A3A44'
 const SHADOW_OPACITY = 0.5
@@ -161,7 +157,7 @@ function syncScreens(pool: Pool, frame: FixtureFrame): boolean {
       y,
       z,
       size: screen.size,
-      color: lit[i] === true ? SCREEN_LIT : SCREEN_OFF,
+      color: lit[i] === true ? PROP_TONES.screenLit : PROP_TONES.screenOff,
     })
   })
   endPool(pool)
@@ -187,7 +183,7 @@ function syncLamps(fixtures: Fixtures, frame: FixtureFrame): boolean {
       y: lamp.shadeY,
       z: lamp.at.y,
       size: LAMP_SHADE_SIZE,
-      color: isOn ? SHADE_ON : SHADE_OFF,
+      color: isOn ? PROP_TONES.lampLit : PROP_TONES.lampOff,
     })
 
     if (isOn) {

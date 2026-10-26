@@ -4,9 +4,9 @@ import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
 import type { LifeView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
+import { PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
 
-const PAPER = '#F7F5EF'
 const SWITCH_ON = '#FFB340'
 const SWITCH_OFF = '#8E8497'
 const NOTE_TONES = ['#FFF6C9', '#FFFFFF', '#E3F0FF', '#FFE3EE', '#E6F2EA'] as const
@@ -84,7 +84,11 @@ function paintCork(g: CanvasRenderingContext2D, rect: PropDef['draw'], notes: nu
     const nx = x + 2 + (i % 3) * (noteW + 1) + (i >= 3 ? 2 : 0)
     const ny = y + 2 + (i >= 3 ? Math.floor(h / 2) : 0)
 
-    fill(g, [nx, ny, noteW, Math.floor(h / 2) - 3], NOTE_TONES[i % NOTE_TONES.length] ?? PAPER)
+    fill(
+      g,
+      [nx, ny, noteW, Math.floor(h / 2) - 3],
+      NOTE_TONES[i % NOTE_TONES.length] ?? PALETTE.paper
+    )
     fill(g, [nx + 1, ny + 2, noteW - 3, 1], '#9AA0B4')
   }
 }
@@ -174,8 +178,8 @@ function paintSwitch(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSce
 function paintLiftDoor(g: CanvasRenderingContext2D, prop: PropDef): void {
   const { x, y, w, h } = prop.draw
 
-  framed(g, [x, y, w, h], '#C9C2B8')
-  fill(g, [x + 2, y + 2, w - 4, h - 2], '#C9D0DB')
+  framed(g, [x, y, w, h], PROP_TONES.liftFrame)
+  fill(g, [x + 2, y + 2, w - 4, h - 2], PROP_TONES.liftLeaf)
   fill(g, [x + w / 2, y + 2, 1, h - 2], '#9AA3B2')
   framed(g, [x + 3, y - 8, w - 6, 5], '#262A3A')
 }

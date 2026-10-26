@@ -2,31 +2,23 @@ import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
 import { paintFish } from '@/web/scene/render2d/pets'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
-import { CARD, DARKWOOD, FABRIC, METAL, type Tones, WOOD } from '@/web/scene/sprites/palette'
+import {
+  CARD,
+  DARKWOOD,
+  FABRIC,
+  METAL,
+  PALETTE,
+  PROP_TONES,
+  WOOD,
+} from '@/web/scene/sprites/palette'
 import { isWallMounted } from '@/web/scene/world/props'
 
-const PAPER = '#F7F5EF'
-const SCREEN_OFF = '#3E4452'
 const SCREEN_EDGE = '#5C6474'
 const SCREEN_STANDBY = '#46557A'
 const LED_OFF = '#4B5370'
-const LED_ON = '#7FD49A'
-const LAMP_SHADE = '#E9DFC6'
 const LAMP_SHADE_FRONT = '#CFC4A8'
-const LAMP_LIT = '#FFF3C4'
 const LAMP_LIT_FRONT = '#F2D58B'
-const BOOK_TONES = [
-  '#8C9EC2',
-  '#C9A86A',
-  '#9AB5A8',
-  '#B98AA8',
-  '#D2B48C',
-  '#7F8FA6',
-  '#A88C6A',
-] as const
 const PASTEL = ['#C9B9D9', '#F2C9C2', '#BFD3EE', '#F6E3A8', '#B9D9B5'] as const
-const COPIER_TONES: Tones = ['#F7F4EC', '#E9E6DF', '#CFCBC2']
-const LEAF = ['#8CCB98', '#5FA872', '#3E7E52'] as const
 // Flat on the floor: under furniture and people standing at the same depth.
 const DECAL_KINDS: ReadonlySet<PropKind> = new Set(['cat-bed', 'tray'])
 
@@ -38,11 +30,12 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   books: paintBooks,
   computer: paintComputer,
   printer: paintPrinter,
-  copier: (g, p) => drawBlock(g, [p.draw.x, p.draw.y, 17, 8], { front: 16, tones: COPIER_TONES }),
+  copier: (g, p) =>
+    drawBlock(g, [p.draw.x, p.draw.y, 17, 8], { front: 16, tones: PROP_TONES.copier }),
   rack: paintRack,
   tray: (g, p) => framed(g, [p.draw.x, p.draw.y, p.draw.w, 5], METAL[2]),
   box: paintBox,
-  phone: (g, p) => framed(g, [p.draw.x, p.draw.y, p.draw.w, p.draw.h - 1], SCREEN_OFF),
+  phone: (g, p) => framed(g, [p.draw.x, p.draw.y, p.draw.w, p.draw.h - 1], PROP_TONES.screenOff),
   table: paintTable,
   cooler: paintCooler,
   coffee: paintCoffee,
@@ -57,8 +50,8 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   lamp: paintLamp,
   tank: paintTank,
   'cat-bed': (g, p) => {
-    fill(g, [p.draw.x, p.draw.y, p.draw.w, p.draw.h], '#E6B7A8')
-    fill(g, [p.draw.x + 3, p.draw.y + 3, p.draw.w - 6, p.draw.h - 6], '#F9E3DA')
+    fill(g, [p.draw.x, p.draw.y, p.draw.w, p.draw.h], PROP_TONES.catBed[0])
+    fill(g, [p.draw.x + 3, p.draw.y + 3, p.draw.w - 6, p.draw.h - 6], PROP_TONES.catBed[1])
   },
   'guest-desk': (g, p) =>
     drawBlock(g, [p.draw.x, p.draw.y, p.draw.w, 10], { front: 13, tones: WOOD }),
@@ -89,7 +82,7 @@ function paintDesk(g: CanvasRenderingContext2D, prop: PropDef): void {
   drawBlock(g, [x, y, w, h - 8], { front: 8, tones: WOOD })
   fill(g, [x + 1, y + h, 2, 3], INK)
   fill(g, [x + w - 3, y + h, 2, 3], INK)
-  fill(g, [x + 6, y + 2, 10, 6], PAPER)
+  fill(g, [x + 6, y + 2, 10, 6], PALETTE.paper)
 }
 
 function paintChair(g: CanvasRenderingContext2D, prop: PropDef): void {
@@ -118,7 +111,7 @@ function paintShelf(g: CanvasRenderingContext2D, prop: PropDef): void {
       fill(
         g,
         [x + 2 + i, row + 10 - tall, 2, tall],
-        BOOK_TONES[(i / 3 + row) % BOOK_TONES.length] ?? INK
+        PROP_TONES.books[(i / 3 + row) % PROP_TONES.books.length] ?? INK
       )
     }
 
@@ -135,7 +128,7 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
   for (let i = 0; i < PASTEL.length; i++) {
     const shift = prop.variant === 1 ? i : i * 2
 
-    fill(g, [x + (i % 2), base - shift, 12 + (i % 3), 5], PASTEL[i] ?? PAPER)
+    fill(g, [x + (i % 2), base - shift, 12 + (i % 3), 5], PASTEL[i] ?? PALETTE.paper)
   }
 }
 
@@ -145,8 +138,8 @@ function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintS
   const { x, y, w, h } = prop.draw
   const isAsleep = scene.life.isQuiet
 
-  framed(g, [x, y, w, h - 4], isAsleep ? SCREEN_OFF : SCREEN_STANDBY)
-  fill(g, [x + w - 3, y + h - 7, 1, 1], isAsleep ? SCREEN_EDGE : LED_ON)
+  framed(g, [x, y, w, h - 4], isAsleep ? PROP_TONES.screenOff : SCREEN_STANDBY)
+  fill(g, [x + w - 3, y + h - 7, 1, 1], isAsleep ? SCREEN_EDGE : PROP_TONES.ledOn)
   fill(g, [x + 1, y + 1, w - 2, 1], SCREEN_EDGE)
   fill(g, [x + w / 2 - 1, y + h - 4, 2, 3], SCREEN_EDGE)
   fill(g, [x + w / 2 - 4, y + h - 1, 8, 1], SCREEN_EDGE)
@@ -157,10 +150,10 @@ function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSc
 
   drawBlock(g, [x, y, 22, 8], { front: 10, tones: METAL })
   fill(g, [x + 4, y + 2, 14, 3], SCREEN_EDGE)
-  fill(g, [x + 17, y + 11, 2, 2], scene.isPrinting ? LED_ON : SCREEN_EDGE)
+  fill(g, [x + 17, y + 11, 2, 2], scene.isPrinting ? PROP_TONES.ledOn : SCREEN_EDGE)
 
   if (scene.isPrinting) {
-    fill(g, [x + 5, y - 3, 12, 4], PAPER)
+    fill(g, [x + 5, y - 3, 12, 4], PALETTE.paper)
   }
 }
 
@@ -180,7 +173,7 @@ function paintBox(g: CanvasRenderingContext2D, prop: PropDef): void {
 
   drawBlock(g, [x, y, w, 8], { front: h - 9, tones: CARD })
   fill(g, [x + w / 2 - 1, y, 2, 8], '#F1DDB4')
-  fill(g, [x + 3, y + 10, 6, 3], PAPER)
+  fill(g, [x + 3, y + 10, 6, 3], PALETTE.paper)
 }
 
 function paintTable(g: CanvasRenderingContext2D, prop: PropDef): void {
@@ -219,14 +212,14 @@ function paintCoffee(g: CanvasRenderingContext2D, prop: PropDef): void {
 
 function cup(g: CanvasRenderingContext2D, x: number, y: number): void {
   fill(g, [x, y, 4, 1], '#4A2C17')
-  fill(g, [x, y + 1, 4, 2], PAPER)
-  fill(g, [x + 4, y + 1, 1, 2], PAPER)
+  fill(g, [x, y + 1, 4, 2], PALETTE.paper)
+  fill(g, [x + 4, y + 1, 1, 2], PALETTE.paper)
 }
 
 function paintVending(g: CanvasRenderingContext2D, prop: PropDef): void {
   const { x, y, w, h } = prop.draw
 
-  framed(g, [x, y, w, h], '#D8D0E8')
+  framed(g, [x, y, w, h], PROP_TONES.vending)
   fill(g, [x + 1, y + 1, w - 2, h - 12], '#2B3050')
 
   for (let row = 0; row < 3; row++) {
@@ -247,10 +240,10 @@ function paintPlant(g: CanvasRenderingContext2D, prop: PropDef): void {
   const { x, y } = prop.draw
 
   castShadow(g, [x, y + 14, 12, 3])
-  framed(g, [x + 2, y + 9, 8, 6], '#C9845A')
-  framed(g, [x, y - 1, 12, 9], LEAF[1])
-  framed(g, [x + 3, y - 4, 6, 4], LEAF[0])
-  fill(g, [x + 1, y + 4, 4, 3], LEAF[2])
+  framed(g, [x + 2, y + 9, 8, 6], PROP_TONES.pot)
+  framed(g, [x, y - 1, 12, 9], PROP_TONES.leaf[1])
+  framed(g, [x + 3, y - 4, 6, 4], PROP_TONES.leaf[0])
+  fill(g, [x + 1, y + 4, 4, 3], PROP_TONES.leaf[2])
 }
 
 // The room's floor lamp, lit exactly while its switch is on.
@@ -263,7 +256,7 @@ function paintLamp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene
   castShadow(g, [cx - 6, base - 1, 12, 3])
   framed(g, [cx - 4, base - 3, 8, 2], METAL[2])
   framed(g, [cx - 1, y + 13, 2, h - 16], METAL[2])
-  framed(g, [x, y, w, 7], isOn ? LAMP_LIT : LAMP_SHADE)
+  framed(g, [x, y, w, 7], isOn ? PROP_TONES.lampLit : PROP_TONES.lampOff)
   fill(g, [x, y + 7, w, 6], isOn ? LAMP_LIT_FRONT : LAMP_SHADE_FRONT)
 }
 
@@ -311,7 +304,7 @@ function paintNewsRack(g: CanvasRenderingContext2D, prop: PropDef): void {
   fill(g, [x, y + h - 2, w, 2], DARKWOOD[2])
 
   for (let i = 0; i < 3; i++) {
-    fill(g, [x + 1 + i * 4, y + 2, 3, 15 - i], PASTEL[(i + 1) % PASTEL.length] ?? PAPER)
+    fill(g, [x + 1 + i * 4, y + 2, 3, 15 - i], PASTEL[(i + 1) % PASTEL.length] ?? PALETTE.paper)
   }
 }
 

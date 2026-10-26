@@ -1,16 +1,10 @@
 import type { OrthographicCamera } from 'three'
 import { Vector3 } from 'three'
 
-import type { Point, Rect, ScreenPoint, Size } from '@/web/scene/types'
+import type { Point, ScreenPoint, Size } from '@/web/scene/types'
 import { ELEVATION, toUnits, UNIT_PX } from '@/web/scene/render3d/space'
-import {
-  clampPan,
-  FRAME_RECT,
-  MAX_ZOOM_3D_PX,
-  reportProjection,
-  view,
-  ZOOM_STEP,
-} from '@/web/scene/view'
+import { clampPan, MAX_ZOOM_3D_PX, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'
+import { fitFloorScale, fitRoomScale, PHONE_MIN_SCALE } from '@/web/scene/world/framing'
 import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 
@@ -35,9 +29,6 @@ export interface CameraRig {
 }
 
 const CAMERA_DISTANCE = 80
-const FRAME_FILL = 0.98
-const ROOM_PAD = 1.1
-const PHONE_MIN_SCALE = 1
 // The camera eases to a new framing over about this long; a gap under `SETTLED` has arrived.
 const CAMERA_EASE_MS = 180
 const SETTLED = 0.002
@@ -66,7 +57,14 @@ export function placeCamera(
 
   rig.shot = next
   rig.placement = { scale: next.scale, originX, originY }
-  reportProjection({ pane, scale: next.scale, baseScale: base, originX, originY })
+  reportProjection({
+    pane,
+    scale: next.scale,
+    baseScale: base,
+    originX,
+    originY,
+    maxScale: maxScaleOf(base),
+  })
   aim(rig.camera, next, pane)
 
   return { isMoved, isGliding }
@@ -91,8 +89,9 @@ export function toWorld(placement: Placement, s: ScreenPoint): Point {
 function wantedShot(pane: Size, base: number): Shot {
   const held = view.value
   const room = held.room === undefined ? undefined : roomById(held.room)
-  const want = room === undefined ? base * ZOOM_STEP ** held.zoomSteps : fitRoom(room.rect, pane)
-  const scale = Math.min(Math.max(base, MAX_ZOOM_3D_PX / devicePixelRatio), want)
+  const want =
+    room === undefined ? base * ZOOM_STEP ** held.zoomSteps : fitRoomScale(room.rect, pane)
+  const scale = Math.min(maxScaleOf(base), want)
 
   return { scale, center: clampPan(held.center, scale, pane) }
 }
@@ -125,12 +124,13 @@ function aim(camera: OrthographicCamera, shot: Shot, pane: Size): void {
   camera.updateProjectionMatrix()
 }
 
-function fitFloor(pane: Size): number {
-  const raw = Math.min(pane.w / FRAME_RECT.w, pane.h / FRAME_RECT.h) * FRAME_FILL
-
-  return breakpoint.value === 'phone' ? Math.max(PHONE_MIN_SCALE, raw) : raw
+// The 3D view's closest zoom in CSS px per world px, never under the floor's own fit.
+function maxScaleOf(base: number): number {
+  return Math.max(base, MAX_ZOOM_3D_PX / devicePixelRatio)
 }
 
-function fitRoom(room: Rect, pane: Size): number {
-  return Math.min(pane.w / (room.w * ROOM_PAD), pane.h / (room.h * ROOM_PAD))
+function fitFloor(pane: Size): number {
+  const raw = fitFloorScale(pane)
+
+  return breakpoint.value === 'phone' ? Math.max(PHONE_MIN_SCALE, raw) : raw
 }

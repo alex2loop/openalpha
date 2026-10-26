@@ -1,6 +1,8 @@
 import type { Point, ScreenPoint, SimView } from '@/web/scene/types'
 
 export interface RendererStats {
+  /** Which renderer measured these: the frame budget is the 2D one's alone. */
+  readonly view: '2d' | '3d'
   readonly frameMs: number
   readonly rendersPerSecond: number
   readonly drawCalls?: number
