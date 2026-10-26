@@ -10,7 +10,7 @@ import {
   type Mover,
   replanAroundPeople,
 } from '@/web/scene/sim/actors/nav'
-import { MS_PER_SECOND } from '@/web/text/time'
+import { MS_PER_SECOND } from '@/web/text/time-units'
 
 /** One person's walk: where they stand now and one sim step ago, the route and its leg, and the
  *  net-movement watch that replans a walker stepping in place. */

@@ -40,11 +40,11 @@ import {
   toActorView,
 } from '@/web/scene/sim/people'
 import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
+import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
 import { TRAY_AT } from '@/web/scene/world/seats'
 import { APPROVAL_KIND } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
-import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 /** The director's record of one person, the one the life layer and interaction read. */
 export interface ActorState {
@@ -258,10 +258,7 @@ function stepAll(people: People, papers: Papers, poses: { marks: PoseMarks }): b
 
 /** Office hours by the page clock and the home region's pack. */
 export function isOfficeOpen(): boolean {
-  const hour = pageMinute.value.minute / MINUTES_PER_HOUR
-  const { open, close } = regionPack.value.officeHours
-
-  return hour >= open && hour < close
+  return isInRange(pageMinute.value.minute, regionPack.value.officeHours)
 }
 
 function sendToTray(people: People, actor: ActorId): void {

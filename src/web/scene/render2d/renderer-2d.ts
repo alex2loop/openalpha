@@ -39,7 +39,7 @@ import { breakpoint } from '@/web/state/breakpoints'
 import { selectedActor } from '@/web/state/focus'
 import { unread } from '@/web/state/notices'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
-import { MINUTES_PER_HOUR } from '@/web/text/time'
+import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const CANVAS_CLASS = 'scene-canvas'
 const STAGE_TOKEN = '--stage'

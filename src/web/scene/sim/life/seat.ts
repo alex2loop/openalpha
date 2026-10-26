@@ -3,7 +3,6 @@ import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, LifeLine, PoseId } from '@/web/scene/types'
 import { fidgetPoseOf } from '@/web/scene/sim/actors/poses'
 import { isWalking } from '@/web/scene/sim/actors/walk'
-import { isInRange } from '@/web/scene/sim/life/schedule'
 import {
   drawBetween,
   isAtSeat,
@@ -13,6 +12,7 @@ import {
   seatPoseOf,
 } from '@/web/scene/sim/life/state'
 import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
+import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
 
 const NAP_PICK_PERCENT = 75

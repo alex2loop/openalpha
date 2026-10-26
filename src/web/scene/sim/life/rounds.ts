@@ -8,7 +8,7 @@ import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
 import { LIFT_EXITS, TEAM_SEATS } from '@/web/scene/world/seats'
-import { MS_PER_MINUTE } from '@/web/text/time'
+import { MS_PER_MINUTE } from '@/web/text/time-units'
 
 const ROUNDS_IDLE_MS = 25_000
 const QUIET_ROUNDS_MINUTES = 25
