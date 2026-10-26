@@ -105,14 +105,14 @@ export interface ShopSign {
 }
 
 /** The traffic, as shares (each group sums to one): vehicles by kind, motorbikes by shape, cars
- *  by size, and the share of cars that are taxis; plain body colours, no brand. */
+ *  by size, and the share of cars that are taxis; plain body colours per car size, no brand. */
 export interface VehicleMix {
   readonly kinds: { readonly motorbike: number; readonly car: number; readonly bus: number }
   readonly bikeShapes: Readonly<Record<BikeShape, number>>
   readonly carSizes: Readonly<Record<CarSize, number>>
   readonly taxiShare: number
   readonly colours: {
-    readonly car: readonly string[]
+    readonly car: Readonly<Record<CarSize, readonly string[]>>
     readonly taxi: string
     readonly bus: readonly string[]
     readonly truck: string

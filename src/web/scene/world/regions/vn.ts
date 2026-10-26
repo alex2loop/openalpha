@@ -223,7 +223,21 @@ export const VN_PACK = Object.freeze({
     carSizes: { small: 0.2, mid: 0.6, large: 0.2 },
     taxiShare: 0.2,
     colours: {
-      car: ['#8FA3B8', '#B8A58F', '#9DB59A', '#B59AA6', '#A7A7B5', '#C9C4B8', '#7E8FA6'],
+      car: {
+        small: ['#9DB59A', '#C9C4B8', '#B59AA6', '#8FA3B8', '#D6C58A'],
+        mid: [
+          '#E3E1DB',
+          '#C9C4B8',
+          '#7E8FA6',
+          '#B5736B',
+          '#8FA3B8',
+          '#B8A58F',
+          '#9DB59A',
+          '#B59AA6',
+          '#A7A7B5',
+        ],
+        large: ['#2F3440', '#E3E1DB', '#A7A7B5', '#4E6A93', '#7E8FA6'],
+      },
       taxi: '#EDEEE8',
       bus: ['#6D9BB5', '#E3C14A'],
       truck: '#3F8A5C',
