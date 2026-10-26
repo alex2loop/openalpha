@@ -2,6 +2,7 @@ import type { TargetedSubmitEvent } from 'preact'
 import { useSignal } from '@preact/signals'
 import { useEffect, useMemo } from 'preact/hooks'
 
+import { UNAUTHORIZED_STATUS } from '@/web/api/client'
 import { authState, saveToken } from '@/web/api/token'
 import { loadSession, sessionFailure } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -62,11 +63,12 @@ export function SignIn() {
   )
 }
 
-// The latest attempt wins: a timeout after a refusal shows the timeout, not "not accepted".
+// The latest attempt wins: a timeout after a refusal shows the timeout, not "not accepted". A 401
+// reads as refused whatever its body says.
 function resolveFailureText(): string | undefined {
   const failure = sessionFailure.value
 
-  if (failure !== undefined && failure.code !== 'unauthorized') {
+  if (failure !== undefined && failure.status !== UNAUTHORIZED_STATUS) {
     return toFailureText(failure)
   }
 

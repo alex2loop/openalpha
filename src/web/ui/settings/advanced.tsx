@@ -99,10 +99,15 @@ function CheckControls({ draft, tree, check }: CheckControlsProps) {
       size="small"
       disabled={isBusy.value}
       onClick={() => {
+        const text = draft.value
+
         isBusy.value = true
-        validateText(draft.value, tree)
+        validateText(text, tree)
           .then((result) => {
             check.value = result
+          })
+          .catch((error: unknown) => {
+            check.value = { kind: 'refused', text, lines: [toErrorText(error)] }
           })
           .finally(() => {
             isBusy.value = false

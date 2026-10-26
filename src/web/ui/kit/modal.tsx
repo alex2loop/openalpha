@@ -37,6 +37,8 @@ interface ModalSpec {
 export interface ModalHandle {
   /** Closes this dialog if it is still the one open. */
   close(): void
+  /** Whether this dialog is still the one open. */
+  isOpen(): boolean
 }
 
 interface OpenModal {
@@ -73,6 +75,7 @@ export function openModal(spec: ModalSpec): ModalHandle {
         closeModal()
       }
     },
+    isOpen: () => current.value === entry,
   }
 }
 

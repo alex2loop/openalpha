@@ -173,10 +173,16 @@ function submit(open: OpenForm): void {
   saveAgent(draft, form.existing?.id)
     .then(
       () => {
+        // A form closed while it saved does not pull the operator back to the desk.
+        const isOpen = open.handle?.isOpen() === true
+
         saved.value = { agentId: draft.id, name: draft.name }
         open.handle?.close()
         open.request.onSaved?.()
-        openView({ agent: draft.id })
+
+        if (isOpen) {
+          openView({ agent: draft.id })
+        }
       },
       (error: unknown) => {
         const failed = describeFailure(error, AGENT_PATHS)

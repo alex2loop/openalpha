@@ -95,9 +95,7 @@ function HealthRow({
     <div class="setting-job">
       <div class="setting-actions">
         <b>{title}</b>
-        <span class={level === 'ok' ? 'pill is-up' : 'pill is-down'}>
-          {tr(LEVEL_LABELS[level])}
-        </span>
+        <span class={`level-pill is-${level}`}>{tr(LEVEL_LABELS[level])}</span>
       </div>
       {hint !== undefined && <p class="meta">{hint}</p>}
     </div>

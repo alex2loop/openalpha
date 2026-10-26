@@ -3,7 +3,8 @@ import type { RouteDef } from '@/web/api/routes'
 import { authState, clearToken, readToken } from '@/web/api/token'
 
 const REQUEST_TIMEOUT_MS = 20_000
-const UNAUTHORIZED_STATUS = 401
+/** The status of a request the daemon refused for its access code. */
+export const UNAUTHORIZED_STATUS = 401
 // A request that got no answer has no HTTP status.
 const NO_STATUS = 0
 const JSON_CONTENT_TYPE = 'application/json'
