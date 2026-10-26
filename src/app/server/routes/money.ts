@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { LedgerPageResponse } from '@/app/server/wire/money'
+import type { LedgerPageResponse, LedgerPreviewResponse } from '@/app/server/wire/money'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { TypedPrice } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -28,6 +28,8 @@ const LEDGER_BODY = z.object({
   draft: z.unknown(),
   typedPrice: z.enum(TYPED_PRICES).exactOptional(),
 })
+// An edit previews against the book without the row it replaces.
+const PREVIEW_BODY = z.object({ draft: z.unknown(), replacing: z.string().exactOptional() })
 
 async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const query = new URL(req.url).searchParams
@@ -62,6 +64,36 @@ async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Res
     entries: page.items.map(toLedgerEntryWire),
     ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
   } satisfies LedgerPageResponse)
+}
+
+/** The row as it would be written, stored nowhere: the day's market rate where a rate applies. */
+async function handleLedgerPreview(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const parsed = PREVIEW_BODY.safeParse(await readJsonBody(req))
+  const replacing = parseOptionalBranded(parsed.data?.replacing ?? null, ledgerEntryId)
+
+  if (!parsed.success || parsed.data.draft === undefined || replacing === null) {
+    return apiError('invalid_body')
+  }
+
+  const preview = await hostOf(ctx).previewLedger({
+    draft: parsed.data.draft,
+    ...(replacing === undefined ? {} : { entryId: replacing }),
+    signal: req.signal,
+  })
+  const { transaction } = preview
+  const asks = preview.fxRateApplies && 'conversion' in transaction && 'currency' in transaction
+
+  return json(
+    (asks
+      ? {
+          fxRate: {
+            currency: transaction.currency,
+            rate: transaction.conversion.rate,
+            day: transaction.at,
+          },
+        }
+      : {}) satisfies LedgerPreviewResponse
+  )
 }
 
 /** The key is the client's, one per user action: a retried POST with the same key records nothing
@@ -164,6 +196,13 @@ export const MONEY_ROUTES = [
     auth: true,
     capability: 'portfolio',
     handler: handleLedgerRecord,
+  },
+  {
+    method: 'POST',
+    path: '/v1/ledger/preview',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleLedgerPreview,
   },
   {
     method: 'PATCH',

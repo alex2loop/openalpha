@@ -77,6 +77,7 @@ type LedgerMutation =
       readonly idempotencyKey: string
       readonly fillSource?: FillSource
       readonly typedPrice?: TypedPrice
+      readonly requiresStatedRate?: true
       readonly now: number
       readonly signal: AbortSignal
     }
@@ -299,6 +300,7 @@ async function recordEntry(
   await assertFxRateUsed(deps, {
     draft: mutation.draft,
     transaction: entry.transaction,
+    ...(mutation.requiresStatedRate === undefined ? {} : { requiresStatedRate: true }),
     signal: mutation.signal,
   })
 

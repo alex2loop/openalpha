@@ -2,16 +2,16 @@ import { type Signal, useSignal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import type { LedgerEntryWire } from '@/app/server/wire/money'
-import type { MessageKey } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { state } from '@/web/state/session'
-import { clearFlashedEntry, flashedEntry } from '@/web/state/trade'
+import { clearFlashedEntry, flashedEntry, type LedgerKind } from '@/web/state/trade'
 import { boardScaleNotes } from '@/web/text/market-price'
 import { toFailureText, tr } from '@/web/text/tr'
 import { EmptyBookActions } from '@/web/ui/book/empty-actions'
 import { LedgerRow } from '@/web/ui/book/ledger-row'
 import { useLedger } from '@/web/ui/book/use-ledger'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
+import { OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
 import { Button } from '@/web/ui/kit/button'
 import { Pager } from '@/web/ui/kit/pager'
 import { Segmented } from '@/web/ui/kit/segmented'
@@ -21,15 +21,14 @@ const LEDGER_PAGE = 6
 // The row just saved stays marked this long, which covers the read that brings it in.
 const FLASH_CLEAR_MS = 4_000
 
-type KindFilter = 'all' | 'buy' | 'sell' | 'dividend'
+type KindFilter = 'all' | LedgerKind
 
-const KIND_FILTERS: readonly { readonly value: KindFilter; readonly label: MessageKey }[] =
-  Object.freeze([
-    { value: 'all', label: 'ui.office.book.filterAll' },
-    { value: 'buy', label: 'trading.ledger.kind.buy' },
-    { value: 'sell', label: 'trading.ledger.kind.sell' },
-    { value: 'dividend', label: 'trading.ledger.kind.dividend' },
-  ])
+const KIND_FILTERS: readonly KindFilter[] = Object.freeze([
+  'all',
+  'buy',
+  'sell',
+  ...OTHER_KINDS.map((other) => other.kind),
+])
 
 /** Lịch sử: the ledger, newest first, six lines a page, filtered by what happened. */
 export function History() {
@@ -83,9 +82,10 @@ function FilterBar({
     <Segmented
       label={tr('ui.office.book.history')}
       value={filter.value}
-      options={KIND_FILTERS.map((option) => ({
-        value: option.value,
-        label: tr(option.label),
+      options={KIND_FILTERS.map((value) => ({
+        value,
+        label:
+          value === 'all' ? tr('ui.office.book.filterAll') : tr(`trading.ledger.kind.${value}`),
       }))}
       onChange={(value) => {
         filter.value = value

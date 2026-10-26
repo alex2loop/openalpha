@@ -167,11 +167,6 @@ interface TradingSuggestionsRequest {
   readonly signal: AbortSignal
 }
 
-interface TradingSuggestionCardRequest {
-  readonly suggestionId: SuggestionId
-  readonly signal: AbortSignal
-}
-
 interface TradingBriefRescheduleRequest {
   /** `HH:mm`, read in the market's own timezone. */
   readonly sendTime: string
@@ -371,13 +366,17 @@ export interface TradingHost {
   getRebalance(request: TradingRebalanceRequest): Promise<RebalanceView>
   getReconcile(request: TradingSignalRequest): Promise<ReconcileView>
   listLedger(request: TradingLedgerPageRequest): Promise<Page<LedgerEntry, LedgerEntryId>>
+  previewLedger(
+    request: Pick<TradingLedgerRecordRequest, 'draft' | 'signal'> &
+      Partial<TradingLedgerDeleteRequest>
+  ): ReturnType<TradingServices['portfolio']['previewRecord']>
   recordLedger(request: TradingLedgerRecordRequest): Promise<LedgerWriteResult>
   updateLedgerEntry(request: TradingLedgerUpdateRequest): Promise<LedgerWriteResult>
   deleteLedgerEntry(request: TradingLedgerDeleteRequest): Promise<LedgerWriteResult>
   listSuggestions(request: TradingSuggestionsRequest): Promise<Page<StoredSuggestion, SuggestionId>>
   /** The decision card for one stored suggestion, in the operator's language; `null` for an id the
    *  store does not hold. */
-  getSuggestionCard(request: TradingSuggestionCardRequest): Promise<SuggestionCard | null>
+  getSuggestionCard(request: TradingSuggestionRequest): Promise<SuggestionCard | null>
   /** One stored suggestion as it was written; `null` for an id the store does not hold. */
   getSuggestion(request: TradingSuggestionRequest): Promise<StoredSuggestion | null>
   getTrackRecord(request: TradingTrackRecordRequest): Promise<TradingTrackRecordView>

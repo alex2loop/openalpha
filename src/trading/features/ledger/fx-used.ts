@@ -15,19 +15,22 @@ interface FxUsedDeps {
 
 /** A named rate the row cannot use is refused rather than dropped, or the operator would believe it
  *  was booked. An edit restates the whole row, so one that names no rate is refused where the rate
- *  applies; a record asks earlier, by preview. The ledger is read again only when the rate matters. */
+ *  applies, as is a record that asks for it; any other record asks earlier, by preview. The ledger is read again only when the rate matters. */
 export async function assertFxRateUsed(
   deps: FxUsedDeps,
   input: {
     readonly draft: LedgerTxnDraft
     readonly transaction: LedgerTxn
     readonly replacing?: LedgerEntryId
+    /** A new row asked for its rate the way an edit is, rather than by a preview it may skip. */
+    readonly requiresStatedRate?: true
     readonly signal: AbortSignal
   }
 ): Promise<void> {
   const { draft, transaction, replacing } = input
   const named = namesFxRate(draft)
-  const unstated = replacing !== undefined && asksForFxRate(draft, deps.baseCurrency)
+  const isRestated = replacing !== undefined || input.requiresStatedRate === true
+  const unstated = isRestated && asksForFxRate(draft, deps.baseCurrency)
 
   if (!('currency' in transaction && (named || unstated))) {
     return
