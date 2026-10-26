@@ -1,4 +1,8 @@
 import type { ChatHistoryMessage } from '@/app/server/wire/chat'
+import { canRemember } from '@/web/state/memory'
+import { tr } from '@/web/text/tr'
+import { openRememberDialog } from '@/web/ui/dialogs/remember-dialog'
+import { Button } from '@/web/ui/kit/button'
 import { Markdown } from '@/web/ui/markdown/markdown'
 
 const USER_ROLE = 'user'
@@ -35,12 +39,28 @@ export function ReplyText({ text, isProse = true, scope }: ReplyTextProps) {
 /** One stored message: what the operator typed, or an answer. */
 export function HistoryMessage({ message }: { readonly message: ChatHistoryMessage }) {
   if (message.role === USER_ROLE) {
-    return <div class="chat-user">{message.content}</div>
+    return (
+      <>
+        <div class="chat-user">{message.content}</div>
+        {canRemember(message) && <RememberThis text={message.content} />}
+      </>
+    )
   }
 
   return (
     <div class="chat-card">
       <ReplyText text={message.content} />
+    </div>
+  )
+}
+
+/** Opens + Ghi nhớ with the operator's own words; only offered where `canRemember` says so. */
+export function RememberThis({ text }: { readonly text: string }) {
+  return (
+    <div class="chat-actions">
+      <Button kind="tertiary" size="small" onClick={() => openRememberDialog({ value: text })}>
+        {tr('ui.office.memory.rememberThis')}
+      </Button>
     </div>
   )
 }

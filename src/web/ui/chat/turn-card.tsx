@@ -1,18 +1,28 @@
-import { canStop, isFinished, steer, stopTurn, type Turn, thread } from '@/web/state/chat'
+import {
+  canStop,
+  isFinished,
+  type SavedPreference,
+  steer,
+  stopTurn,
+  type Turn,
+  thread,
+} from '@/web/state/chat'
 import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
 import { findRun, hasChildren } from '@/web/state/live'
+import { canRemember, toAttributeName } from '@/web/state/memory'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { commandWordOf, resolveCommandLink } from '@/web/ui/chat/command-link'
-import { ReplyText } from '@/web/ui/chat/history-message'
+import { RememberThis, ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { isResearchTurn, ResearchReportLink, ResearchSteps } from '@/web/ui/chat/research-steps'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
+import { openSettings } from '@/web/ui/settings/settings'
 import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
 
 /** What the operator sent and the card that answers it. */
@@ -24,6 +34,7 @@ export function TurnCard({ turn }: { readonly turn: Turn }) {
   return (
     <>
       <div class="chat-user">{turn.text}</div>
+      {isFinished(turn) && canRemember(turn) && <RememberThis text={turn.text} />}
       <AnswerCard turn={turn} />
     </>
   )
@@ -58,6 +69,7 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
         scope={isResearchTurn(turn) ? turn.localId : undefined}
       />
       <SteerLine turn={turn} />
+      <PreferenceLines preferences={turn.preferences} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
       {isFinished(turn) && turn.runId !== undefined && (
         <RunCalls
@@ -117,6 +129,43 @@ function SteerLine({ turn }: { readonly turn: Turn }) {
   }
 
   return <p class="meta chat-steer">{joinInline([note.text, tr('ui.office.chat.steered')])}</p>
+}
+
+// What the chat just learned about the operator, with the way to see all of it.
+function PreferenceLines({
+  preferences,
+}: {
+  readonly preferences: readonly SavedPreference[] | undefined
+}) {
+  if (preferences === undefined || preferences.length === 0) {
+    return null
+  }
+
+  return (
+    <>
+      {preferences.map((preference, index) => (
+        <p key={index} class="meta">
+          {toPreferenceLine(preference)}
+        </p>
+      ))}
+      <div class="chat-actions">
+        <Button kind="tertiary" size="small" onClick={() => openSettings('memory')}>
+          {tr('ui.office.memory.see')}
+        </Button>
+      </div>
+    </>
+  )
+}
+
+function toPreferenceLine(preference: SavedPreference): string {
+  switch (preference.change) {
+    case 'added':
+      return tr('ui.office.memory.remembered', { value: preference.value })
+    case 'updated':
+      return tr('ui.office.memory.updated', { value: preference.value })
+    case 'removed':
+      return tr('ui.office.memory.removed', { attribute: toAttributeName(preference.attribute) })
+  }
 }
 
 function RunningActions({ turn }: { readonly turn: Turn }) {

@@ -33,6 +33,11 @@ import type {
   SectorsResponse,
   SourcesResponse,
 } from '@/app/server/wire/market'
+import type {
+  MemoryForgetResult,
+  MemoryResponse,
+  MemoryWriteResult,
+} from '@/app/server/wire/memory'
 import type { ModelsResponse } from '@/app/server/wire/models'
 import type {
   LedgerPageResponse,
@@ -202,6 +207,10 @@ export const ROUTES = Object.freeze({
   alertCreate: route<AlertWire>('/v1/alerts'),
   alertRow: (alertId: string) =>
     route<AlertDisableResponse>(`/v1/alerts/${encodeURIComponent(alertId)}`),
+  memory: route<MemoryResponse>('/v1/memory'),
+  memoryWrite: route<MemoryWriteResult>('/v1/memory'),
+  memoryForget: (scope: string, key: string) =>
+    route<MemoryForgetResult>(`/v1/memory?${new URLSearchParams({ scope, key })}`),
 })
 
 function route<T>(

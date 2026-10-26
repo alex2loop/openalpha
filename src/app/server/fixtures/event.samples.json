@@ -423,5 +423,17 @@
     "weight": "quiet",
     "source": { "channel": "api", "agentId": "" },
     "unread": 3
+  },
+  {
+    "v": 1,
+    "kind": "preference_saved",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "chat" },
+    "preference": {
+      "attribute": "constraints",
+      "value": "không dùng margin",
+      "change": "added",
+      "sessionId": "chat_0123456789abcdef0123456789"
+    }
   }
 ]

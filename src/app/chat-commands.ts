@@ -196,7 +196,7 @@ async function discardFreshSession(app: App, freshSessionId: SessionId): Promise
   }
 }
 
-function configuredEntryAgent(app: App, channel: SlashContext['channel']): AgentId {
+export function configuredEntryAgent(app: App, channel: SlashContext['channel']): AgentId {
   const settings = resolveRegisteredChannelSettings(
     app.resolve('channels'),
     app.config.channels,

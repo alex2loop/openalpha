@@ -19,6 +19,7 @@ import { ProvidersSection } from '@/web/ui/settings/credentials/providers'
 import { ToolsSection } from '@/web/ui/settings/credentials/tools'
 import { DataSection } from '@/web/ui/settings/data-section'
 import { DisplaySection } from '@/web/ui/settings/display'
+import { MemorySection } from '@/web/ui/settings/memory'
 import { ProfileSection } from '@/web/ui/settings/profile-forms'
 import { openRestartDialog } from '@/web/ui/settings/restart'
 import { describeRows } from '@/web/ui/settings/restart-rows'
@@ -85,6 +86,8 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
   switch (section) {
     case 'profile':
       return <ProfileSection reopen={reopen} />
+    case 'memory':
+      return <MemorySection reopen={reopen} />
     case 'schedule':
       return <ScheduleSection reopen={reopen} />
     case 'agents':

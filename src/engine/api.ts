@@ -169,7 +169,12 @@ export { canRequireApproval } from '@/engine/hooks/dangerous'
 export { createSessionPersistenceHooks } from '@/engine/hooks/persistence'
 export { languageName, reminderModifier } from '@/engine/hooks/prompt-blocks'
 export { appendSystemBlock } from '@/engine/hooks/system-block'
-export { createUserPreferencesHooks } from '@/engine/hooks/user-preferences'
+export {
+  ASKED_PREFIX,
+  createUserPreferencesHooks,
+  PENDING_PREFIX,
+  PREFS_PREFIX,
+} from '@/engine/hooks/user-preferences'
 export { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
 export { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/loop/preflight'
 export {
