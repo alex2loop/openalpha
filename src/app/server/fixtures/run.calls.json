@@ -1,0 +1,56 @@
+{
+  "runId": "9f1c2a40-5b7e-4c1d-8a63-2d0e7b41c5a1",
+  "calls": [
+    {
+      "at": 1792910412000,
+      "runId": "3b8e6d52-0c47-4f9a-b1e5-7a2c9d4e8f10",
+      "parentRunId": "9f1c2a40-5b7e-4c1d-8a63-2d0e7b41c5a1",
+      "agentId": "trader",
+      "kind": "turn",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet",
+      "inputTokens": 5200,
+      "outputTokens": 640,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0,
+      "costUsd": 0.0252,
+      "latencyMs": 7800,
+      "outcome": "success"
+    },
+    {
+      "at": 1792910398000,
+      "runId": "9f1c2a40-5b7e-4c1d-8a63-2d0e7b41c5a1",
+      "agentId": "suggest",
+      "kind": "turn",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet",
+      "inputTokens": 4100,
+      "outputTokens": 380,
+      "cacheReadTokens": 1800,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0,
+      "costUsd": 0.0178,
+      "latencyMs": 6400,
+      "outcome": "success"
+    },
+    {
+      "at": 1792910380000,
+      "runId": "9f1c2a40-5b7e-4c1d-8a63-2d0e7b41c5a1",
+      "agentId": "suggest",
+      "kind": "turn",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0,
+      "costUsd": 0,
+      "latencyMs": 30000,
+      "outcome": "retry",
+      "errorCode": "timeout"
+    }
+  ],
+  "truncated": false
+}

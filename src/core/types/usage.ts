@@ -81,6 +81,10 @@ type LLMAttemptResult =
 type LLMAttemptFields = LLMAttemptBase & LLMAttemptResult
 
 export type LLMAttemptInput = LLMAttemptFields & { readonly sessionId: SessionId | null }
+
+/** One stored attempt as a run's calls list reads it: the fact without its session. */
+export type RunAttempt = LLMAttemptFields
+
 export interface CostRange {
   readonly fromDay: string
   readonly toDay: string
