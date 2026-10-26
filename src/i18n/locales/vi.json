@@ -913,6 +913,7 @@
     "office.orders.exitHint": "Muốn đặt hoặc dời lệnh thoát, bạn dùng /trade exit trong chat nhé.",
     "office.orders.unbooked": "Sàn đã nhận các lệnh này, sổ của bạn chưa có",
     "office.orders.unbookedHint": "Lệnh này sẽ được ghi khi bạn bấm Đồng bộ lệnh khớp ở Lịch sử › Đối chiếu với sàn.",
+    "office.orders.unbookedReason": "sàn đã nhận nhưng sổ chưa ghi được",
     "office.orders.unbookedNoId": "Sàn không trả về mã lệnh nên mình chưa biết có khớp gì không. Bạn xem trên sàn rồi gõ /trade reconcile {token} trong chat nhé.",
     "office.orders.copyToken": "Sao chép lệnh",
     "office.orders.side.buy": "Mua",

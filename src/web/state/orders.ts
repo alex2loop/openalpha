@@ -11,8 +11,10 @@ import { ROUTES } from '@/web/api/routes'
 import { state } from '@/web/state/session'
 import { markLedgerChanged } from '@/web/state/trade'
 
-// A refusal is a 4xx: the daemon read the request and did nothing. No status, or a 5xx, may have
-// come after the daemon acted.
+// A 4xx carries the daemon's own sentence; on a confirm it can come after the order went out (a
+// fill it could not book), so the page shows it and re-reads, never re-sends. No status, or a 5xx,
+// is no answer at all.
+const NO_ANSWER_STATUS = 0
 const REFUSAL_STATUS_MIN = 400
 const REFUSAL_STATUS_MAX = 499
 
@@ -124,7 +126,8 @@ async function sendSync(venue: string): Promise<SyncAnswer> {
 
     return { kind: 'answered', text: answer.text }
   } catch (error: unknown) {
-    return isRefusal(error) ? { kind: 'refused', failure: error } : { kind: 'slow' }
+    // A 5xx is the daemon answering that the sync failed; only no answer may still be running.
+    return isAnswered(error) ? { kind: 'refused', failure: error } : { kind: 'slow' }
   }
 }
 
@@ -145,6 +148,10 @@ function isRefusal(error: unknown): error is ApiFailure {
     error.status >= REFUSAL_STATUS_MIN &&
     error.status <= REFUSAL_STATUS_MAX
   )
+}
+
+function isAnswered(error: unknown): error is ApiFailure {
+  return error instanceof ApiFailure && error.status !== NO_ANSWER_STATUS
 }
 
 function withKey(keys: ReadonlySet<string>, key: string): ReadonlySet<string> {

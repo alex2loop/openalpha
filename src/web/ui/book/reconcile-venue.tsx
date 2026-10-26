@@ -8,7 +8,7 @@ import {
   toCashKind,
 } from '@/web/state/orders'
 import { formatAmount, formatQuantity } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
+import { joinInline, joinList } from '@/web/text/glyphs'
 import { toFailureText, tr } from '@/web/text/tr'
 import { toVenueName } from '@/web/text/venue'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
@@ -56,7 +56,7 @@ function VenueState({ venue, recheck }: VenueProps) {
           <span>
             {tr('ui.office.reconcile.keyless', {
               venue: name,
-              variables: (venue.missingCredentials ?? []).join(', '),
+              variables: joinList(venue.missingCredentials ?? []),
             })}
           </span>
           <Button size="small" onClick={() => openSettings('exchanges')}>

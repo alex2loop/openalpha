@@ -265,7 +265,8 @@ interface TradingNewsView {
 /** The only trading surface the server sees. It closes over one app-supplied operator identity, so
  *  no request can select or spoof a user — that is why this exists instead of routes calling
  *  services directly. It holds no store, registry, market switch, renderer, cache, or
- *  authorization logic, and every method makes exactly one service call. */
+ *  authorization logic, and every method makes exactly one service call (a guard may read a
+ *  registry list first, as `syncLedger` does to refuse an unknown venue). */
 export interface TradingHost {
   getQuotes(signal: AbortSignal): Promise<QuoteBoard>
   getOhlcv(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly Candle[]>>

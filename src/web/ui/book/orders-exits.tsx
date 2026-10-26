@@ -3,9 +3,11 @@ import type {
   TradeStatusResponse,
   UnmirroredOrderWire,
 } from '@/app/server/wire/orders'
+import { translateDisplayText } from '@/i18n'
 import { cancelExit } from '@/web/state/orders'
+import { locale } from '@/web/state/session'
 import { formatQuantity } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
+import { joinInline, joinList } from '@/web/text/glyphs'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { toVenueName } from '@/web/text/venue'
@@ -44,7 +46,7 @@ export function OrderExits({ status, reread }: ExitsProps) {
       ))}
       {status.unguardedResidue.length > 0 && (
         <p class="meta">
-          {tr('ui.office.orders.residue', { names: status.unguardedResidue.join(', ') })}
+          {tr('ui.office.orders.residue', { names: joinList(status.unguardedResidue) })}
         </p>
       )}
       {hasProtection && <p class="meta">{tr('ui.office.orders.exitHint')}</p>}
@@ -90,10 +92,8 @@ function askCancel(exit: RestingExitWire, reread: () => void): void {
     lines: [tr('ui.office.orders.cancelAsk', { ticker, venue: toVenueName(exit.venue) })],
     confirmLabel: tr('ui.office.orders.cancelExit'),
     isDestructive: true,
-    confirm: async () => {
-      await cancelExit(ticker, exit.venue)
-      reread()
-    },
+    // Read again whatever the answer: a cancel that timed out may still have gone through.
+    confirm: () => cancelExit(ticker, exit.venue).finally(reread),
   })
 }
 
@@ -112,7 +112,7 @@ function Unbooked({ rows }: { readonly rows: readonly UnmirroredOrderWire[] }) {
               toVenueName(row.venue),
             ])}
           </span>
-          <span class="meta">{row.failure}</span>
+          <span class="meta">{toUnbookedReason(row.failure)}</span>
           {row.orderId === undefined ? (
             <UnbookedNoId token={row.token} />
           ) : (
@@ -136,4 +136,13 @@ function UnbookedNoId({ token }: { readonly token: string }) {
       </div>
     </>
   )
+}
+
+// The sentence `/trade` prints for the code; a code this page does not know reads as the generic
+// line, never as the code itself.
+function toUnbookedReason(code: string): string {
+  return translateDisplayText(locale.value, {
+    key: `trading.order.unmirrored.reason.${code}`,
+    fallback: tr('ui.office.orders.unbookedReason'),
+  })
 }

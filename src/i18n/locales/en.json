@@ -913,6 +913,7 @@
     "office.orders.exitHint": "To set or move an exit, use /trade exit in chat.",
     "office.orders.unbooked": "The exchange took these, your ledger doesn't have them yet",
     "office.orders.unbookedHint": "This one gets booked by Sync fills under History › Check against venues.",
+    "office.orders.unbookedReason": "the exchange took it and the ledger could not record it",
     "office.orders.unbookedNoId": "The exchange never named an order, so I can't tell whether anything filled. Check the exchange, then type /trade reconcile {token} in chat.",
     "office.orders.copyToken": "Copy command",
     "office.orders.side.buy": "Buy",

@@ -27,6 +27,7 @@ import {
   parsePathId,
   readJsonBody,
 } from '@/app/server/routes/params'
+import { ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ledgerEntryId, SURFACE_LIMITS, TYPED_PRICES, tradingDay, venueRef } from '@/trading/api'
 
@@ -168,7 +169,10 @@ async function handleLedgerSync(req: Request, ctx: ApiRouteContext): Promise<Res
 
     return json(outcome satisfies LedgerSyncResponse)
   } catch (err: unknown) {
-    ctx.app.resolve('logger').warn('api.ledger_sync_failed', { venue, err: formatErrForLog(err) })
+    // A refusal is the caller's answer, logged once at the dispatch boundary.
+    if (!(err instanceof ValidationError)) {
+      ctx.app.resolve('logger').warn('api.ledger_sync_failed', { venue, err: formatErrForLog(err) })
+    }
 
     throw err
   }
