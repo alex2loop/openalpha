@@ -13,6 +13,8 @@ const WEATHER_CURRENT = 'temperature_2m,precipitation,rain,cloud_cover,weather_c
 /** How often the page asks for the weather. */
 export const WEATHER_POLL_MS = 1_800_000
 const WEATHER_TIMEOUT_MS = 8_000
+// The poll runs on a different clock from the guard's, so a run landing just short still calls.
+const WEATHER_CALL_SLACK_MS = 60_000
 const WEATHER_MAX_AGE_MS = 10_800_000
 const PERCENT = 100
 // Rain intensity from mm an hour: a drizzle under 0.5, heavy over 4; a rain code with less water
@@ -115,7 +117,7 @@ async function loadWeather(
 ): Promise<void> {
   const nowMs = Date.now()
 
-  if (nowMs - lastCallAt < WEATHER_POLL_MS) {
+  if (nowMs - lastCallAt < WEATHER_POLL_MS - WEATHER_CALL_SLACK_MS) {
     return
   }
 
