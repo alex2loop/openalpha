@@ -1,9 +1,9 @@
-import { clearAgentChoice } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
-import { isChatOpen, setChatOpen, startSession, unread } from '@/web/state/chat'
+import { isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
+import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { MessageList } from '@/web/ui/chat/message-list'
-import { SessionView, viewedSession } from '@/web/ui/chat/session-view'
+import { SessionView, startNewSession } from '@/web/ui/chat/session-view'
 import { openSessionsDialog } from '@/web/ui/chat/sessions-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
@@ -58,15 +58,17 @@ function ChatHead() {
       <Button size="small" onClick={askNewSession}>
         {tr('ui.office.chat.newSession')}
       </Button>
-      <button
-        type="button"
-        class="icon-button"
-        title={closeLabel}
-        aria-label={closeLabel}
-        onClick={() => setChatOpen(false)}
-      >
-        <CloseIcon />
-      </button>
+      {!isChatOnly.value && (
+        <button
+          type="button"
+          class="icon-button"
+          title={closeLabel}
+          aria-label={closeLabel}
+          onClick={() => setChatOpen(false)}
+        >
+          <CloseIcon />
+        </button>
+      )}
     </div>
   )
 }
@@ -76,10 +78,6 @@ function askNewSession(): void {
     title: tr('ui.office.chat.newAsk'),
     lines: [tr('ui.office.chat.newBody')],
     confirmLabel: tr('ui.office.chat.newSession'),
-    confirm: () => {
-      viewedSession.value = undefined
-      startSession()
-      clearAgentChoice()
-    },
+    confirm: startNewSession,
   })
 }

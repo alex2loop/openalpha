@@ -1,11 +1,13 @@
-import { type Signal, signal, useSignal } from '@preact/signals'
+import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import type { ChatHistoryMessage, ChatSessionsResponse } from '@/app/server/wire/chat'
+import type { ChatHistoryMessage } from '@/app/server/wire/chat'
 import { pluralKey } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { HISTORY_PAGE_SIZE, MAX_EARLIER } from '@/web/state/chat-history'
+import { clearAgentChoice } from '@/web/state/agents'
+import { type ChatSession, startSession, viewedSession } from '@/web/state/chat'
+import { clearOpenedSession, HISTORY_PAGE_SIZE, MAX_EARLIER } from '@/web/state/chat-history'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { sourceLabel } from '@/web/text/source'
@@ -13,8 +15,6 @@ import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { HistoryMessage } from '@/web/ui/chat/history-message'
 import { Button } from '@/web/ui/kit/button'
-
-export type ChatSession = ChatSessionsResponse['sessions'][number]
 
 /** Oldest first; `nextBefore` absent once the first message is in view or the view holds all it
  *  keeps (`isCapped`). */
@@ -28,10 +28,13 @@ interface Pages {
 
 const FIRST_PAGE: Pages = Object.freeze({ messages: [], isLoading: true })
 
-const viewed = signal<ChatSession | undefined>(undefined)
-
-/** The earlier session open read-only in the panel; absent shows the current one. */
-export const viewedSession: Signal<ChatSession | undefined> = viewed
+/** The column moves to a new session, as "Phiên chat mới" does once confirmed. */
+export function startNewSession(): void {
+  viewedSession.value = undefined
+  startSession()
+  clearAgentChoice()
+  clearOpenedSession()
+}
 
 /** An earlier session, read-only: typing still goes to the current one. Its reads stop on unmount. */
 export function SessionView({ session }: { readonly session: ChatSession }) {
@@ -88,7 +91,7 @@ function ReadingBanner({ session }: { readonly session: ChatSession }) {
         })}
       </p>
       <p class="meta">{tr('ui.office.sessions.note')}</p>
-      <Button size="small" onClick={() => (viewed.value = undefined)}>
+      <Button size="small" onClick={() => (viewedSession.value = undefined)}>
         {tr('ui.office.sessions.back')}
       </Button>
     </div>

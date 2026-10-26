@@ -4,17 +4,28 @@ import type {
   ChatHistoryMessage,
   ChatHistoryResponse,
   ChatRecentResponse,
+  ChatSessionDeletedWire,
   RespondBody,
 } from '@/app/server/wire/chat'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
+import type { SessionId } from '@/core/ids'
 import type { LLMMessage } from '@/core/llm'
+import type { DisplayParam } from '@/i18n'
 import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
 import { CHAT_ID_RE } from '@/app/server/chat-id'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toChatSessionsWire } from '@/app/server/mappers/chat'
-import { localeOf, parseLimit, parsePageQuery, readJsonBody } from '@/app/server/routes/params'
+import {
+  localeOf,
+  parseLimit,
+  parseOptionalBranded,
+  parsePageQuery,
+  parsePathId,
+  readJsonBody,
+} from '@/app/server/routes/params'
 import { type ChannelId, channelId } from '@/core/channels'
+import { ValidationError } from '@/core/errors'
 import { sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
@@ -58,27 +69,35 @@ const SESSION_CHANNELS_MAX = 20
 
 async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const url = new URL(req.url)
-  const raw = url.pathname.slice(url.pathname.lastIndexOf('/') + 1)
+  const id = parsePathId(req, parseSessionId)
   const rawLimit = url.searchParams.get('limit')
   const limit =
     rawLimit === null ? DEFAULT_LIMIT : parseLimit(rawLimit, ctx.app.config.loop.sessionMessageCap)
 
-  if (!(CHAT_ID_RE.test(raw) || UUID_RE.test(raw)) || limit === null) {
+  if (id === null || limit === null) {
     return apiError('invalid_body')
   }
 
   const before = parseIndex(url.searchParams.get('before'))
-  const page = await ctx.app.resolve('sessionStore').loadHistoryPage(brandSessionId(raw), {
+  const page = await ctx.app.resolve('sessionStore').loadHistoryPage(id, {
     limit,
     ...(before === undefined ? {} : { before }),
   })
 
   return json({
-    sessionId: raw,
+    sessionId: id,
     hasMore: page.hasMore,
     nextBefore: page.nextBefore,
     messages: page.messages.flatMap(toHistoryMessage),
   } satisfies ChatHistoryResponse)
+}
+
+function parseSessionId(raw: string): SessionId {
+  if (!(CHAT_ID_RE.test(raw) || UUID_RE.test(raw))) {
+    throw new ValidationError('not a session id')
+  }
+
+  return brandSessionId(raw)
 }
 
 function parseIndex(value: string | null): number | undefined {
@@ -115,10 +134,12 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
   })
   const query = params.get('query')?.trim()
   const channels = parseChannels(params.getAll('channel'))
+  const id = parseOptionalBranded(params.get('sessionId'), parseSessionId)
 
   if (
     page === null ||
     channels === null ||
+    id === null ||
     (query !== undefined &&
       (query.length < SESSION_QUERY_MIN_CHARS || query.length > SESSION_QUERY_MAX_CHARS))
   ) {
@@ -130,10 +151,45 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
     ...(query === undefined ? {} : { query }),
     ...(page.before === undefined ? {} : { before: page.before }),
     ...(page.beforeId === undefined ? {} : { beforeId: brandSessionId(page.beforeId) }),
+    ...(id === undefined ? {} : { id }),
     limit: page.limit,
   })
 
   return json(toChatSessionsWire(listings, page.limit))
+}
+
+/** Deletes an app chat. Another channel's session is refused, and so is one whose turn is running;
+ *  an id already gone answers `deleted: false`. */
+async function handleChatSessionDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const id = parsePathId(req, parseSessionId)
+
+  if (id === null) {
+    return apiError('invalid_body')
+  }
+
+  const store = ctx.app.resolve('sessionStore')
+  const channel = await store.channelOf(id)
+
+  if (channel === undefined) {
+    return json({ deleted: false } satisfies ChatSessionDeletedWire)
+  }
+
+  const { translate } = bindLocale(localeOf(ctx))
+
+  if (!isApiChannel(channel)) {
+    return apiError(
+      'conflict',
+      translate('errors.chatSessionNotWeb', { channel: channelNameOf(channel) })
+    )
+  }
+
+  const removal = await store.remove(id)
+
+  if (removal === 'active') {
+    return apiError('conflict', translate('errors.chatSessionRunning'))
+  }
+
+  return json({ deleted: removal === 'removed' } satisfies ChatSessionDeletedWire)
 }
 
 /** `null` when there are too many or any of them is not a channel id (400). */
@@ -170,8 +226,7 @@ async function handleRespond(req: Request, ctx: ApiRouteContext): Promise<Respon
     return apiError(
       'conflict',
       bindLocale(localeOf(ctx)).translate('errors.approvalOtherChannel', {
-        // The channel's own name where the catalog has one, else the id it was asked on.
-        channel: { key: `ui.channelName.${origin}`, fallback: origin },
+        channel: channelNameOf(origin),
       })
     )
   }
@@ -186,9 +241,20 @@ async function handleRespond(req: Request, ctx: ApiRouteContext): Promise<Respon
   return json({ ok: true })
 }
 
+// The channel's own name where the catalog has one, else its raw id.
+function channelNameOf(channel: string): DisplayParam {
+  return { key: `ui.channelName.${channel}`, fallback: channel }
+}
+
 export const CHAT_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'POST', path: '/v1/respond', auth: true, handler: handleRespond },
   { method: 'GET', path: '/v1/chat/recent', auth: true, handler: handleChatRecent },
   { method: 'GET', path: '/v1/chat/sessions', auth: true, handler: handleChatSessions },
+  {
+    method: 'DELETE',
+    path: '/v1/chat/sessions/:id',
+    auth: true,
+    handler: handleChatSessionDelete,
+  },
   { method: 'GET', path: '/v1/chat/history/:sessionId', auth: true, handler: handleChatHistory },
 ]

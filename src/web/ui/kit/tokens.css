@@ -50,8 +50,8 @@
   --flashMs: 0.9s;
   --popoverGutter: 8px;
   --zPopover: 26;
-  --zOfflineBar: 28;
   --zModal: 30;
+  --zUndo: 32;
   --scrim: rgba(10, 10, 18, 0.45);
   --badgeNeed: #f2b33d;
   --badgeNeedInk: #2b2433;

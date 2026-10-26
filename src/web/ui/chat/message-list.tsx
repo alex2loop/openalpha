@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks'
 
 import { thread } from '@/web/state/chat'
-import { history, loadOlder } from '@/web/state/chat-history'
+import { history, isOpenedGone, loadOlder } from '@/web/state/chat-history'
 import { toFailureText, tr } from '@/web/text/tr'
 import { ApprovalInline } from '@/web/ui/chat/approval-inline'
 import { HistoryMessage } from '@/web/ui/chat/history-message'
@@ -41,6 +41,7 @@ export function MessageList() {
           element.scrollHeight - element.scrollTop - element.clientHeight <= PIN_SLACK_PX
       }}
     >
+      {isOpenedGone.value && <p class="meta chat-start">{tr('ui.office.sessions.unknown')}</p>}
       <HistoryHead />
       {earlier.map((message, index) => (
         // Counted from the newest, so an older page prepended never shifts a key.

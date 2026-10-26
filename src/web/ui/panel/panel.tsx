@@ -5,7 +5,6 @@ import { AgentTab } from '@/web/ui/agent/agent-tab'
 import { Book } from '@/web/ui/book/book'
 import { Ideas } from '@/web/ui/ideas/ideas'
 import { PanelIcon } from '@/web/ui/kit/icons'
-import { UndoBar } from '@/web/ui/kit/undo-bar'
 import { BackRow } from '@/web/ui/panel/back-row'
 import { Rail } from '@/web/ui/panel/rail'
 import { Tabs } from '@/web/ui/panel/tabs'
@@ -47,7 +46,6 @@ export function Panel() {
       </div>
       {backStack.value.length > 0 && <BackRow />}
       <div class="panel-body">
-        <UndoBar />
         <TickerNotice />
         <PanelContent />
       </div>

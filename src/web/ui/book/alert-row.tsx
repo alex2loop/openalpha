@@ -105,10 +105,9 @@ function remove(
   disableAlert(alert.id).then(
     (result) => {
       if (result === 'disabled') {
-        showUndo(
-          tr('ui.office.book.undoAlert', { ticker: alert.instrument.ticker, ...words }),
-          () => restoreAlert(alert).then(() => undefined)
-        )
+        showUndo(tr('ui.office.book.undoAlert', { ticker: alert.instrument.ticker, ...words }), {
+          undo: () => restoreAlert(alert).then(() => undefined),
+        })
       }
     },
     (error: unknown) => {

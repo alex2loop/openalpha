@@ -7,16 +7,17 @@ import { disposeClock } from '@/web/scene/clock/clock'
 import { startAgents } from '@/web/state/agents'
 import { pageTitle, startAttention } from '@/web/state/attention'
 import { disposeBreakpoints } from '@/web/state/breakpoints'
-import { startChat } from '@/web/state/chat'
-import { startChatHistory } from '@/web/state/chat-history'
+import { sessionTitleOf, startChat } from '@/web/state/chat'
+import { openedSession, startChatHistory } from '@/web/state/chat-history'
 import { startCost } from '@/web/state/cost'
 import { startEstimates } from '@/web/state/estimates'
 import { startFeed } from '@/web/state/feed'
 import { startMarket } from '@/web/state/market'
 import { startNotices } from '@/web/state/notices'
+import { CHAT_TAB_PARAM, setChatOnly } from '@/web/state/pane'
 import { disposePrefs } from '@/web/state/prefs'
 import { startRestartWatch } from '@/web/state/restart'
-import { loadUntilReady, locale, state } from '@/web/state/session'
+import { brand, loadUntilReady, locale, state } from '@/web/state/session'
 import { removeStorage } from '@/web/state/storage'
 import { startAgentFormRequests } from '@/web/ui/agent/form/agent-form'
 import { createKeyHandler } from '@/web/ui/keys/keys'
@@ -27,6 +28,11 @@ const ROOT_ID = 'root'
 // An older page kept the API token under this key; it must not linger in this browser.
 const RETIRED_TOKEN_KEY = 'office.token'
 
+/** `chatTab` is the session a tab opened for one chat (`?chat=`) shows. */
+interface LiveOptions {
+  readonly chatTab?: string
+}
+
 const root = document.getElementById(ROOT_ID)
 
 // A source run serves the page through Bun's `routes`, which carry no headers, so the page itself
@@ -36,19 +42,24 @@ if (root !== null && window.top === window.self) {
   removeStorage('session', RETIRED_TOKEN_KEY)
   // Before anything can read or log the address: the code leaves the URL at once.
   const code = takeCodeFromHash()
+  const chatTab = new URLSearchParams(location.search).get(CHAT_TAB_PARAM) ?? undefined
+
+  if (chatTab !== undefined) {
+    setChatOnly()
+  }
 
   render(<App />, root)
   // A page restored from the back-forward cache has no socket, polls or loads left: start over.
   addEventListener('pageshow', (event) => (event.persisted ? location.reload() : undefined))
-  boot(code)
+  boot(code, { ...(chatTab === undefined ? {} : { chatTab }) })
 }
 
 /** One page life, undone by one stop on `pagehide`: the feed runs while a session is signed in. */
-function boot(code: string | undefined): void {
+function boot(code: string | undefined, options: LiveOptions): void {
   const controller = new AbortController()
   const isSignedIn = computed(() => authState.value === 'ok' && state.value !== undefined)
   const stopDocumentSync = effect(() => {
-    const title = pageTitle.value
+    const title = options.chatTab === undefined ? pageTitle.value : resolveChatTabTitle()
 
     document.documentElement.lang = locale.value
 
@@ -56,7 +67,9 @@ function boot(code: string | undefined): void {
       document.title = title
     }
   })
-  const stopFeedSync = effect(() => (isSignedIn.value ? untracked(startLive) : undefined))
+  const stopFeedSync = effect(() =>
+    isSignedIn.value ? untracked(() => startLive(options)) : undefined
+  )
 
   addEventListener(
     'pagehide',
@@ -74,21 +87,24 @@ function boot(code: string | undefined): void {
   loadUntilReady(controller.signal, code).catch(() => undefined)
 }
 
-// Untracked: what a start reads must never restart the feed when it changes.
-function startLive(): () => void {
+// A chat tab keeps its chat's name, not the count that needs the operator.
+function resolveChatTabTitle(): string | undefined {
+  const session = openedSession.value
+
+  return session === undefined ? brand.value : sessionTitleOf(session)
+}
+
+// Untracked: what a start reads must never restart the feed when it changes. A chat tab starts only
+// what its chat, its approvals and its title read.
+function startLive({ chatTab }: LiveOptions): () => void {
   const stops = [
     startFeed(),
     startNotices(),
-    startCost(),
     startChat(),
-    startChatHistory(),
-    startAgents(),
-    startAgentFormRequests(),
+    startChatHistory(chatTab),
     startEstimates(),
-    startMarket(),
-    startRestartWatch(),
     startAttention(),
-    createKeyHandler({ openList: openKeysDialog }),
+    ...(chatTab === undefined ? startOffice() : []),
   ]
 
   return () => {
@@ -96,4 +112,15 @@ function startLive(): () => void {
       stop()
     }
   }
+}
+
+function startOffice(): readonly (() => void)[] {
+  return [
+    startCost(),
+    startAgents(),
+    startAgentFormRequests(),
+    startMarket(),
+    startRestartWatch(),
+    createKeyHandler({ openList: openKeysDialog }),
+  ]
 }

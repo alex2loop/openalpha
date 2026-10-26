@@ -44,23 +44,7 @@ export async function listSessionsByChannels(
 
     return deps.dialect.param(params.length)
   }
-  const conditions = [
-    ...(query.channels === undefined
-      ? []
-      : [`s.channel IN (${query.channels.map(bind).join(', ')})`]),
-    ...(query.before === undefined ? [] : [toBeforeCondition(query.before, query.beforeId, bind)]),
-    ...(query.query === undefined
-      ? []
-      : [
-          // Only the rows the page displays can match. Folding is ASCII-only on sqlite and follows
-          // the collation on postgres, so the text as typed matches too: "Đầu tư" is found by
-          // "Đầu" even where "đầu" misses it.
-          `EXISTS (SELECT 1 FROM session_messages m WHERE m.session_id = s.id ` +
-            `AND m.role IN ${DISPLAYED_ROLES} ` +
-            `AND (LOWER(m.content) LIKE ${bind(toLikeContainsPattern(query.query.toLowerCase()))} ESCAPE '\\' ` +
-            `OR m.content LIKE ${bind(toLikeContainsPattern(query.query))} ESCAPE '\\'))`,
-        ]),
-  ]
+  const conditions = buildConditions(query, bind)
   const where = conditions.length === 0 ? '' : `WHERE ${conditions.join(' AND ')} `
   // The page is cut first, so the correlated reads below run on its rows alone.
   const sql =
@@ -78,6 +62,31 @@ export async function listSessionsByChannels(
   const rows = await deps.db.query<ListingRow>(sql, params)
 
   return rows.map(toSessionListing)
+}
+
+// Every filter the query names, its values bound in order.
+function buildConditions(
+  query: SessionListQuery,
+  bind: (value: string | number) => string
+): readonly string[] {
+  return [
+    ...(query.channels === undefined
+      ? []
+      : [`s.channel IN (${query.channels.map(bind).join(', ')})`]),
+    ...(query.before === undefined ? [] : [toBeforeCondition(query.before, query.beforeId, bind)]),
+    ...(query.id === undefined ? [] : [`s.id = ${bind(query.id)}`]),
+    ...(query.query === undefined
+      ? []
+      : [
+          // Only the rows the page displays can match. Folding is ASCII-only on sqlite and follows
+          // the collation on postgres, so the text as typed matches too: "Đầu tư" is found by
+          // "Đầu" even where "đầu" misses it.
+          `EXISTS (SELECT 1 FROM session_messages m WHERE m.session_id = s.id ` +
+            `AND m.role IN ${DISPLAYED_ROLES} ` +
+            `AND (LOWER(m.content) LIKE ${bind(toLikeContainsPattern(query.query.toLowerCase()))} ESCAPE '\\' ` +
+            `OR m.content LIKE ${bind(toLikeContainsPattern(query.query))} ESCAPE '\\'))`,
+        ]),
+  ]
 }
 
 /** Strictly older, and with a cursor id also the sessions of that same instant that sort after it. */

@@ -198,7 +198,9 @@ function askDelete(entry: TradeEntry): void {
       // One key per undo: a retry after a timeout must not record the row twice.
       const restoreKey = newIdempotencyKey()
 
-      showUndo(tr('ui.office.book.undoTrade', words), () => restoreTrade(entry, restoreKey))
+      showUndo(tr('ui.office.book.undoTrade', words), {
+        undo: () => restoreTrade(entry, restoreKey),
+      })
     },
   })
 }

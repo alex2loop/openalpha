@@ -1,16 +1,9 @@
-/* It sits over the stage, just above the command bar. */
+/* It sits in the bottom stack, just above the command bar. */
 .offline-bar {
-  position: fixed;
-  right: var(--s3);
-  bottom: calc(var(--commandBarH) + var(--s2));
-  left: var(--s3);
-  z-index: var(--zOfflineBar);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s1);
-  width: fit-content;
-  margin-inline: auto;
   padding: 8px 10px 8px 14px;
   border-radius: 12px;
   background: var(--offlineBg);
