@@ -35,6 +35,7 @@ export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
 export { loadPluginSourceModules } from '@/trading/sources/plugin-module'
+export { HOST_SLOW_REQUEST_TIMEOUT_MS } from '@/trading/wiring/composition/host-seams'
 export {
   createTradingRegistrationProvider,
   createTradingStoresProvider,

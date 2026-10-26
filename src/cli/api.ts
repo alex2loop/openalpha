@@ -1,6 +1,7 @@
 // Public API of cli/.
 
 export type { Command, CommandDef, Group, Needs } from '@/cli/command'
+export type { CheckedProbe } from '@/cli/commands/doctor/types'
 export type { ArgIssue } from '@/cli/parsing/args'
 export type { GlobalFlags } from '@/cli/parsing/global-flags'
 export type { PreBootOptions } from '@/cli/preboot'
@@ -11,6 +12,12 @@ export { admitCommand, createCommand, createGroup, lazyCommand } from '@/cli/com
 export { readCommandCacheStubs, writeCommandCache } from '@/cli/command-cache'
 export { spawnRestartProcess, spawnUpgradeProcess } from '@/cli/commands/daemon/background'
 export { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
+export {
+  CLI_ONLY_CHECK_NAMES,
+  collectDoctorProbes,
+  WEB_CHECK_NAMES,
+} from '@/cli/commands/doctor/checks'
+export { checkLabel } from '@/cli/commands/doctor/labels'
 export {
   isConfigPresent,
   saveEditedConfig,

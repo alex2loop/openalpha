@@ -1,6 +1,7 @@
 import { type ReadonlySignal, signal } from '@preact/signals'
 
 import type { ConfigValidation } from '@/app/server/wire/config'
+import type { MessageKey } from '@/i18n'
 import { ApiFailure, getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { readStorage, removeStorage, writeStorage } from '@/web/state/storage'
@@ -17,6 +18,17 @@ export const SETTINGS_SECTIONS = [
   'display',
   'advanced',
 ] as const
+
+/** Each section's name in the nav, its heading, and wherever a line points to it. */
+export const SECTION_TITLES = Object.freeze({
+  profile: 'ui.office.common.profile',
+  schedule: 'ui.office.settings.schedule',
+  agents: 'ui.office.settings.agents',
+  channels: 'ui.office.settings.channels',
+  data: 'ui.office.settings.data',
+  display: 'ui.office.settings.display',
+  advanced: 'ui.office.settings.advanced',
+} as const satisfies Record<SettingsSection, MessageKey>)
 
 /** The settings the daemon reads once at boot: a saved change waits for a restart. */
 const RESTART_ROWS = ['models', 'budget', 'language', 'timeZone', 'raw'] as const

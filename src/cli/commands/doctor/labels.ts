@@ -1,27 +1,6 @@
+import type { CheckName } from '@/core/types/doctor'
 import type { Locale } from '@/core/types/locale'
 import { type MessageKey, t } from '@/i18n'
-
-export const CHECK_NAMES = [
-  'config',
-  'models',
-  'data-dir',
-  'logging',
-  'database',
-  'daemon',
-  'channels',
-  'delivery',
-  'sources',
-  'trading',
-  'safety',
-  'venues',
-  'web-search',
-  'providers',
-  'telegram',
-  'zalo',
-  'version',
-] as const
-
-export type CheckName = (typeof CHECK_NAMES)[number]
 
 const CHECK_LABEL_KEYS = {
   config: 'cli.doctorLabelConfig',

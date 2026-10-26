@@ -84,6 +84,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'types/budget',
   'types/cli-command',
   'types/command',
+  'types/doctor',
   'types/event-job',
   'types/exact',
   'types/locale',

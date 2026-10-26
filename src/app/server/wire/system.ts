@@ -3,6 +3,7 @@
 
 import type { JobEventWire } from '@/app/server/wire/jobs'
 import type { RestartWhen } from '@/app/server/wire/vocab'
+import type { CheckName, DoctorStatus } from '@/core/types/doctor'
 import type { Locale } from '@/core/types/locale'
 
 /** How many of the latest runs a cost estimate reads: the command estimate below and the per-run
@@ -121,6 +122,8 @@ export interface StatePayload {
   /** The longest one child agent an agent spawned may run. */
   readonly childRunMaxMs: number
   readonly firstRun: FirstRunWire
+  /** The longest the daemon lets its slow routes run, so a client waits for them that long. */
+  readonly slowRequestMs: number
 }
 
 /** POST /v1/restart. */
@@ -162,6 +165,19 @@ export interface UpdateResponse {
   readonly url: string | null
   /** When the feed last answered or failed; 0 before the first check. */
   readonly checkedAt: number
+  /** `latest` is newer than `current`. */
+  readonly newer: boolean
+  /** The releases newer than `current` up to `latest`, newest first; empty while their notes are
+   *  unread. `summary` is in the daemon's language, absent when the release has none in it. */
+  readonly notes: readonly UpdateNoteWire[]
+  /** What to run on the daemon's machine to upgrade. */
+  readonly upgradeCommand: string
+}
+
+interface UpdateNoteWire {
+  readonly version: string
+  readonly important: boolean
+  readonly summary?: string
 }
 
 /** GET /v1/cost?from&to — AI spend over an inclusive range of `YYYY-MM-DD` days, at most 366.
@@ -182,17 +198,28 @@ export interface CostReport {
   readonly rows: readonly CostRow[]
 }
 
-/** GET /v1/doctor — one diagnostic row (config / storage / provider auth) for the More tab. */
+/** The check a doctor row belongs to: the CLI's `doctor <check>` name, or `api` for the API token. */
+export type DoctorCheckId = CheckName | 'api'
+
+/** GET /v1/doctor — one row of a check, worded as the CLI's `doctor` words it. */
 export interface DoctorCheck {
-  /** e.g. 'config', 'database', 'provider: openrouter'. */
+  readonly check: DoctorCheckId
+  /** The row label, in the daemon's language. */
   readonly name: string
+  /** `cliOnly`: a check only `doctor` in a terminal on the server can run; it has no status. */
+  readonly status: DoctorStatus | 'cliOnly'
+  /** `status` is `ok` or `info`. */
   readonly ok: boolean
   /** Short human line; never a stack trace. */
   readonly detail?: string
 }
 
+/** `?online=1` adds the network probes except any model call; `?check=<id>` runs one check. */
 export interface DoctorReport {
   readonly checks: readonly DoctorCheck[]
+  /** When the daemon ran these checks. */
+  readonly checkedAt: number
+  readonly online: boolean
 }
 
 /** GET /v1/commands — one slash command for chat completion. The same registry the CLI and channels

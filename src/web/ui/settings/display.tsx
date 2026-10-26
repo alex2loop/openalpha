@@ -21,10 +21,12 @@ import {
 import { state } from '@/web/state/session'
 import { isTree, saveConfig } from '@/web/state/settings'
 import { tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { AttentionRows } from '@/web/ui/settings/attention-rows'
 import { BrowserSessionsRow } from '@/web/ui/settings/browser-sessions'
-import { ActionRow, SettingRow, useDraft } from '@/web/ui/settings/row'
+import { ActionRow, type SectionProps, SettingRow, useDraft } from '@/web/ui/settings/row'
+import { openUpdateDialog } from '@/web/ui/settings/update-dialog'
 
 type Language = StatePayload['locale']
 
@@ -49,11 +51,12 @@ const MOTION_LABELS = Object.freeze({
 // why-safe: the keys of a `Record<Language, ...>` are exactly `Language`.
 const LANGUAGES = Object.keys(LANGUAGE_LABELS) as readonly Language[]
 
-/** Hiển thị: the language and time zone the daemon uses (read once at start), and how this page
- *  looks in this browser (applies at once). */
-export function DisplaySection() {
+/** Hiển thị: the daemon's version, the language and time zone it uses (read once at start), and
+ *  how this page looks in this browser (applies at once). */
+export function DisplaySection({ reopen }: SectionProps) {
   return (
     <>
+      <VersionRow reopen={reopen} />
       <LanguageRow />
       <TimeZoneRow />
       <PreferenceRow
@@ -79,6 +82,19 @@ export function DisplaySection() {
       <AttentionRows />
       <BrowserSessionsRow />
     </>
+  )
+}
+
+// The daemon's version; the dialog says whether a newer one is out.
+function VersionRow({ reopen }: SectionProps) {
+  const title = tr('ui.office.update.version')
+
+  return (
+    <ActionRow title={title} summary={state.value?.version ?? ''}>
+      <Button size="small" onClick={() => openUpdateDialog({ onBack: reopen })}>
+        {tr('ui.office.update.notes')}
+      </Button>
+    </ActionRow>
   )
 }
 

@@ -179,3 +179,17 @@
   background: var(--dangerTint);
   color: var(--dangerText);
 }
+
+.update-strip {
+  padding: var(--s1) 10px;
+  border-radius: 8px;
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.update-command {
+  padding: var(--s1) 10px;
+  border-radius: 8px;
+  background: var(--sunken);
+  user-select: all;
+}

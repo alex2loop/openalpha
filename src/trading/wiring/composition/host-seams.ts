@@ -10,7 +10,7 @@ import { createTradingHost } from '@/trading/wiring/host/host'
 const HOST_REQUEST_TIMEOUT_MS = 30_000
 /** The same ceiling for a screen, a rebalance or an overview: each can refresh a cold market first,
  *  which the boot refresh budgets a minute for. */
-const HOST_SLOW_REQUEST_TIMEOUT_MS = 120_000
+export const HOST_SLOW_REQUEST_TIMEOUT_MS = 120_000
 
 interface HostSeamOptions {
   readonly tradingConfig: TradingConfig
