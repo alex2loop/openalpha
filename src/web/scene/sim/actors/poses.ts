@@ -202,9 +202,15 @@ export function isCharacterMotionOn(
   return isBusy || isAmbientBout(at.floor, at.now)
 }
 
-/** The person stands on `floor` now; someone out on an errand or gone home stands on none. */
+/** The person stands on `floor` now; someone out on an errand, gone home or in the lift car
+ *  stands on none. */
 export function isOnFloor(actor: ActorView, floor: FloorId): boolean {
-  return actor.floor === floor && actor.errand?.isOut !== true && actor.isAway !== true
+  return (
+    actor.floor === floor &&
+    actor.errand?.isOut !== true &&
+    actor.isAway !== true &&
+    actor.isRiding !== true
+  )
 }
 
 /** The person moved between the last two sim steps. */

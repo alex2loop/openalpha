@@ -56,7 +56,8 @@ interface ClickPress {
 
 // A marker, a person, a lit screen and a tag act where they stand, never moving the camera closer;
 // a lamp or the wall switch acts at once; an object with somewhere to go goes there; from the
-// floor view, a room zooms in. A Shift-click picks a person for a meeting.
+// floor view, a room zooms in. A Shift-click picks a person for a meeting. The building crew and
+// the wet-floor sign take no click.
 export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPress): void {
   const hit = pickAt(point, input.deps.renderer, input.deps.readView())
 
@@ -81,6 +82,9 @@ export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPre
       return
     case 'pet':
       tipActionOf(toPetTip(hit.id))?.()
+      return
+    case 'crew':
+    case 'sign':
       return
     default:
       clickFloor(input, hit, press)

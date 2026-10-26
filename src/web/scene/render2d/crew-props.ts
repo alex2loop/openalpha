@@ -2,13 +2,10 @@ import type { Painter, PaintScene } from '@/web/scene/render2d/wall-props'
 import type { FloorId, LifeView, Point } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
+import { LIFT_LAMP_FLOORS, LIFT_LEAF_SLIDE } from '@/web/scene/sprites/lift-look'
 import { DARKWOOD, METAL, PALETTE, PROP_TONES, WOOD } from '@/web/scene/sprites/palette'
-import { GROUND_FLOOR, TEAM_FLOOR } from '@/web/scene/world/floors'
+import { GROUND_FLOOR } from '@/web/scene/world/floors'
 
-// The lift's floor lamps, left to right over its doors.
-const LAMP_FLOORS: readonly FloorId[] = Object.freeze([GROUND_FLOOR, TEAM_FLOOR])
-// Each leaf slides this share of its width into the jamb when open.
-const LEAF_SLIDE = 0.85
 const SIGN_TIE = 1
 
 /** The front desk with its monitor, bell and plaque, the bins, and the badge gates. */
@@ -61,7 +58,7 @@ function paintLiftDoor(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintS
   const { x, y, w, h } = prop.draw
   const { lift } = scene
   const open = lift.floor === prop.floor ? lift.doors : 0
-  const leaf = Math.round(((w - 4) / 2) * (1 - open * LEAF_SLIDE))
+  const leaf = Math.round(((w - 4) / 2) * (1 - open * LIFT_LEAF_SLIDE))
 
   framed(g, [x, y, w, h], PROP_TONES.liftFrame)
   fill(g, [x + 2, y + 2, w - 4, h - 2], PROP_TONES.liftCabin)
@@ -74,7 +71,7 @@ function paintLiftDoor(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintS
 
   framed(g, [x + 3, y - 8, w - 6, 5], PROP_TONES.liftPanel)
 
-  LAMP_FLOORS.forEach((floor, i) => {
+  LIFT_LAMP_FLOORS.forEach((floor, i) => {
     const tone = PROP_TONES.liftLamp[floor === lift.floor ? 1 : 0]
 
     fill(g, [x + 5 + i * (w - 13), y - 7, 3, 3], tone)

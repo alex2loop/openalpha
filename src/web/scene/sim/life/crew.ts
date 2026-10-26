@@ -2,6 +2,7 @@ import type { ActorState } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, CrewRole, Point } from '@/web/scene/types'
+import type { ClockParts } from '@/web/text/time'
 import { homeMarket, regionPack } from '@/web/scene/data/home'
 import { CREW_IDS } from '@/web/scene/sim/actors/roster'
 import { isWalking } from '@/web/scene/sim/actors/walk'
@@ -13,13 +14,15 @@ import {
   stepMoment,
   toStop,
 } from '@/web/scene/sim/life/moments'
+import { goneHome, isJump, TRIP_LEG_MS } from '@/web/scene/sim/life/presence'
 import { ROUND_DOORS } from '@/web/scene/sim/life/rounds'
 import { isAtSeat } from '@/web/scene/sim/life/state'
+import { approachOf } from '@/web/scene/sim/places'
 import { moment as marketMoment } from '@/web/scene/sim/rhythm'
 import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
-import { STREET_DOOR } from '@/web/scene/world/doors'
+import { DOORS, STREET_DOOR } from '@/web/scene/world/doors'
 import { FLOORS, GROUND_FLOOR } from '@/web/scene/world/floors'
-import { wetSignRectOf } from '@/web/scene/world/props'
+import { propsOn, wetSignRectOf } from '@/web/scene/world/props'
 import { isWithin } from '@/web/scene/world/regions'
 import { CREW_POSTS } from '@/web/scene/world/seats'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
@@ -37,17 +40,18 @@ const ROUND_START_MINUTES = 5
 const BIN_MS = 2_200
 const BAG_MS = 900
 const MOP_REST_MS = 1_800
-// A walk out to the street door that takes longer ends where it stands.
-const LEAVE_MS = 30_000
-// A clock that moves more than this between two steps was set, not run: the crew follow at once.
-const JUMP_MINUTES = 5
-// The west doorway's zone the front desk watches.
-const WEST_ZONE = Object.freeze({ maxX: 46, minY: 248, maxY: 288 })
+// The front desk watches the west doorway, this far into the lobby and either side of it.
+const WATCH_PX = Object.freeze({ depth: 46, side: 6 })
+const WEST_DOOR = DOORS.office.find((door) => door.isWest === true)
 // Five spans of the corridor, mopped west to east, the sign hopping ahead on its south edge.
 const MOP = Object.freeze({ spans: 5, fromX: 40, spanPx: 110, rowDy: 9, signDy: 27, signBack: 6 })
 const CORRIDOR = FLOORS.office.corridor ?? { x: 0, y: 0, w: 0, h: 0 }
-// The operator room's bin, approached from the west.
-const DESK_BIN: Point = Object.freeze({ x: 488, y: 316 })
+// The operator room's bin, where the shift ends.
+const DESK_BIN_PROP = propsOn(GROUND_FLOOR).find(
+  (prop) => prop.kind === 'bin' && prop.room === 'desk'
+)
+const DESK_BIN: Point =
+  DESK_BIN_PROP === undefined ? CREW_POSTS.cleaner.at : approachOf(DESK_BIN_PROP)
 
 /** What the building crew keep between steps: the guard's round and the cleaner's shift under
  *  way (with the sign's place at each stop), whom the receptionist nodded to last, the hour of
@@ -62,7 +66,7 @@ export interface CrewState {
   roundHour: string | undefined
   mopDay: string | undefined
   turnUntil: number
-  seen: { readonly day: string; readonly minute: number } | undefined
+  seen: ClockParts | undefined
 }
 
 export function createCrewState(): CrewState {
@@ -88,8 +92,10 @@ export function stepCrew(state: LifeState, step: LifeStep): void {
     return
   }
 
-  const crew = state.director.actors()
-  const canMove = !(step.isReduced || document.hidden || isJump(state, step))
+  const { crew } = step
+  const canMove = !(step.isReduced || document.hidden || isJump(state.crew.seen, step.clock))
+
+  state.crew.seen = step.clock
 
   for (const id of CREW_IDS) {
     const actor = crew.get(id)
@@ -102,15 +108,6 @@ export function stepCrew(state: LifeState, step: LifeStep): void {
   stepMoments(state, { crew, step, canMove })
   stepNods(state, { crew, step })
   syncSign(state)
-}
-
-function isJump(state: LifeState, step: LifeStep): boolean {
-  const { seen } = state.crew
-  const { day, minute } = step.clock
-
-  state.crew.seen = { day, minute }
-
-  return seen === undefined || seen.day !== day || Math.abs(seen.minute - minute) > JUMP_MINUTES
 }
 
 function isWanted(state: LifeState, id: CrewRole, step: LifeStep): boolean {
@@ -148,18 +145,21 @@ function stepPresence(state: LifeState, at: CrewAt): void {
     director.enter(at.id, !at.canMove)
   } else if (!(isGone || wanted) && trip === undefined) {
     leave(state, at)
-  } else if (trip !== undefined && (isOut(at.actor, trip.goal) || !at.canMove)) {
-    goneHome(state, at.id)
-  } else if (trip !== undefined && at.step.nowMs - trip.sinceMs > LEAVE_MS) {
-    goneHome(state, at.id)
+  } else if (trip !== undefined && isTripOver(at, trip)) {
+    goOut(state, at.id)
   }
+}
+
+// At the street door, too long on the way, or no motion to walk it.
+function isTripOver(at: CrewAt, trip: { readonly goal: Goal; readonly sinceMs: number }): boolean {
+  return !at.canMove || isOut(at.actor, trip.goal) || at.step.nowMs - trip.sinceMs > TRIP_LEG_MS
 }
 
 function leave(state: LifeState, at: CrewAt): void {
   endMoment(state, at.id)
 
   if (!at.canMove) {
-    goneHome(state, at.id)
+    goOut(state, at.id)
     return
   }
 
@@ -179,10 +179,9 @@ function isOut(actor: ActorState, goal: Goal): boolean {
   return actor.goal === goal && actor.isSettled && !isWalking(actor.walker)
 }
 
-function goneHome(state: LifeState, id: CrewRole): void {
+function goOut(state: LifeState, id: CrewRole): void {
   state.crew.leaving.delete(id)
-  state.director.away.set(id, 'gone')
-  state.director.setLife(id, undefined)
+  goneHome(state, id)
 }
 
 interface CrewStep {
@@ -405,11 +404,12 @@ function isCrossing(actor: ActorState): boolean {
   const { x, y } = actor.walker.pos
 
   return (
+    WEST_DOOR !== undefined &&
     actor.floor === GROUND_FLOOR &&
     isWalking(actor.walker) &&
-    x <= WEST_ZONE.maxX &&
-    y >= WEST_ZONE.minY &&
-    y <= WEST_ZONE.maxY
+    x <= WEST_DOOR.at.x + WATCH_PX.depth &&
+    y >= WEST_DOOR.at.y - WATCH_PX.side &&
+    y <= WEST_DOOR.at.y + WEST_DOOR.width + WATCH_PX.side
   )
 }
 

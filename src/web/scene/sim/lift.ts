@@ -10,6 +10,8 @@ const LIFT_DOOR_MS = 2_000
 const LIFT_DOOR_MOVE_MS = 300
 // Small motion steps at about this rate while the doors move.
 const DOOR_FRAME_MS = 16
+// A step after a long sleep moves the doors no further than this, so they slide, never snap.
+const MAX_DOOR_STEP_MS = DOOR_FRAME_MS * 4
 
 interface Car {
   /** The floor it stands at, or rides from. */
@@ -151,7 +153,7 @@ function moveDoors(car: Car, at: { readonly isOpening: boolean; readonly dtMs: n
     return false
   }
 
-  const by = reducedMotion.value ? 1 : at.dtMs / LIFT_DOOR_MOVE_MS
+  const by = reducedMotion.value ? 1 : Math.min(at.dtMs, MAX_DOOR_STEP_MS) / LIFT_DOOR_MOVE_MS
 
   car.shown.doors = goal > held ? Math.min(goal, held + by) : Math.max(goal, held - by)
 

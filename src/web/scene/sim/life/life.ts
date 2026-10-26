@@ -1,6 +1,6 @@
 import type { ReadonlySignal } from '@preact/signals'
 
-import type { Director } from '@/web/scene/sim/director'
+import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type {
   ActorId,
@@ -146,7 +146,7 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
 
 function readStep(state: LifeState, deps: LifeDeps): LifeStep {
   const nowMs = performance.now()
-  const actors = new Map([...deps.director.actors()].filter(([id]) => !isCrewId(id)))
+  const { actors, crew } = splitCrew(deps.director.actors())
   const isReduced = deps.reduced.value
   const isQuiet = nowMs - state.lastBusyAt >= QUIET_AFTER_MS
   const canWalk = !(isReduced || document.hidden) && isOfficeOpen()
@@ -157,6 +157,7 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
     nowMs,
     clock: pageMinute.value,
     actors,
+    crew,
     free: [...actors.values()].filter(
       (actor) => isFree(actor, deps.director.errands) && !state.moments.has(actor.def.id)
     ),
@@ -168,6 +169,22 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
     isReduced,
     due,
   }
+}
+
+// The office's own people and the building crew, in one pass over the director's.
+function splitCrew(all: ReadonlyMap<ActorId, ActorState>): Pick<LifeStep, 'actors' | 'crew'> {
+  const actors = new Map<ActorId, ActorState>()
+  const crew = new Map<ActorId, ActorState>()
+
+  for (const [id, actor] of all) {
+    if (isCrewId(id)) {
+      crew.set(id, actor)
+    } else {
+      actors.set(id, actor)
+    }
+  }
+
+  return { actors, crew }
 }
 
 function stepLife(state: LifeState, step: LifeStep): boolean {
@@ -240,8 +257,6 @@ function endAll(state: LifeState): void {
   for (const id of state.director.actors().keys()) {
     state.director.setLife(id, undefined)
   }
-
-  state.director.setObstacles(CART_FLOOR, [])
 }
 
 // Anything running, any request waiting or anyone typing keeps the office from going quiet.

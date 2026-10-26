@@ -10,13 +10,11 @@ import {
   type Shapes,
 } from '@/web/scene/render3d/instancing'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
+import { LIFT_LAMP_FLOORS, LIFT_LEAF_SLIDE } from '@/web/scene/sprites/lift-look'
 import { PROP_TONES } from '@/web/scene/sprites/palette'
 import { GROUND_FLOOR, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
 
-// The lamps over the doors, left to right, one per floor.
-const LAMP_FLOORS: readonly FloorId[] = Object.freeze([GROUND_FLOOR, TEAM_FLOOR])
-const LEAF_SLIDE = 0.85
 // The leaves stand this far proud of the cabin face; the panel and its lamps over the frame.
 const LEAF_PROUD = 0.3
 const LEAF_D = 0.4
@@ -38,7 +36,7 @@ export interface Lift3d {
 
 export function createLift3d(shapes: Shapes, materials: Materials, root: Group): Lift3d {
   const leaves = createPool(shapes.box, materials.litI, { cap: 3 })
-  const lamps = createPool(shapes.box, materials.unlitI, { cap: LAMP_FLOORS.length + 1 })
+  const lamps = createPool(shapes.box, materials.unlitI, { cap: LIFT_LAMP_FLOORS.length + 1 })
 
   root.add(leaves.mesh, lamps.mesh)
 
@@ -87,7 +85,7 @@ function placeLift(
   }
 ): void {
   const [x, z, w, d, base, tall] = wallSpotsOf(spec.prop).face
-  const leafW = (w / 2) * (1 - spec.doors * LEAF_SLIDE)
+  const leafW = (w / 2) * (1 - spec.doors * LIFT_LEAF_SLIDE)
   const front = z + d + LEAF_PROUD
   const y = base + tall / 2
   const top = base + tall + PANEL.rise + PANEL.h / 2
@@ -110,7 +108,7 @@ function placeLift(
     color: PROP_TONES.liftPanel,
   })
 
-  LAMP_FLOORS.forEach((floor, i) => {
+  LIFT_LAMP_FLOORS.forEach((floor, i) => {
     const lampX = x + PANEL.inset + LAMP.inset + i * (w - 2 * (PANEL.inset + LAMP.inset))
 
     placeInstance(lift.lamps, {

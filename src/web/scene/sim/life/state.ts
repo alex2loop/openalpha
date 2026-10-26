@@ -66,6 +66,8 @@ export interface LifeStep {
   readonly nowMs: number
   readonly clock: ClockParts
   readonly actors: ReadonlyMap<ActorId, ActorState>
+  /** The building crew, apart from the office's own people. */
+  readonly crew: ReadonlyMap<ActorId, ActorState>
   readonly free: readonly ActorState[]
   readonly pack: OfficeLife
   readonly canWalk: boolean

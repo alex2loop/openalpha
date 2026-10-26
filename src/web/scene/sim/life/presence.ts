@@ -19,7 +19,7 @@ import { formatRunName } from '@/web/text/run-name'
 // At most this many people are on the way through the street door at once.
 const MAX_TRIPS = 3
 // A walk to or from the street door that takes longer ends where it stands.
-const TRIP_LEG_MS = 30_000
+export const TRIP_LEG_MS = 30_000
 // A clock that moves more than this between two steps was set, not run: the office follows it at
 // once.
 const JUMP_MINUTES = 5
@@ -105,7 +105,7 @@ export function stepPresence(state: LifeState, step: LifeStep): void {
   rhythm.lines = linesOf(state, step)
 }
 
-function isJump(seen: ClockParts | undefined, clock: ClockParts): boolean {
+export function isJump(seen: ClockParts | undefined, clock: ClockParts): boolean {
   return (
     seen === undefined ||
     seen.day !== clock.day ||
@@ -232,7 +232,7 @@ function isCalled(actor: ActorState, trip: Trip): boolean {
   return actor.goal !== trip.goal || actor.beats.some((beat) => beat.kind !== 'life')
 }
 
-function goneHome(state: LifeState, id: ActorId): void {
+export function goneHome(state: LifeState, id: ActorId): void {
   state.director.away.set(id, 'gone')
   state.director.setLife(id, undefined)
 }
