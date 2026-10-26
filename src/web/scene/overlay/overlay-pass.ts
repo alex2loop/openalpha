@@ -35,7 +35,7 @@ import {
   sizeBubble,
   sizeTag,
 } from '@/web/scene/overlay/placement'
-import { menuActor, menuPlaceOf } from '@/web/scene/overlay/radial-menu'
+import { menuActor, menuPillRects, menuPlaceOf } from '@/web/scene/overlay/radial-menu'
 import { analystSeriesOf, buildScreens } from '@/web/scene/overlay/screens'
 import {
   addDeskOf,
@@ -289,6 +289,7 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     ...screenPlaces.map((place) => place.rect),
     ...team.cards.map((place) => place.rect),
     ...(team.addDesk === undefined ? [] : [team.addDesk]),
+    ...menuPillRects(input.figures, input.menu),
   ]
   const tags = layoutTags(tagAsks(input), { actors: input.figures, taken: fixed })
   const hover = hoverPlaceOf(input.view, { actor: input.hovered, figures: input.figures })
@@ -330,7 +331,9 @@ function teamPlacesOf(
   input: PassInput,
   renderer: SceneRenderer
 ): Pick<OverlayView, 'cards' | 'addDesk'> {
-  const cards = cardPlacesOf(input.view, { figures: input.figures, zoom: zoomOf() })
+  const { scale, baseScale } = projection.value
+  const zoom = baseScale > 0 ? scale / baseScale : 1
+  const cards = cardPlacesOf(input.view, { figures: input.figures, zoom })
   const addDesk = addDeskOf(input.view)
 
   return addDesk === undefined ? { cards } : { cards, addDesk: toScreenRect(renderer, addDesk) }
@@ -359,11 +362,13 @@ function actionsOf(bubble: Bubble): string[] {
   ]
 }
 
-// Zoomed in, the staff all have a tag, at floor zoom only the selected person and the team floor's
-// children; an own agent wears its card, and the building crew show their role only on hover.
+// Zoomed in the staff have tags, at floor zoom the selected and team children; own agents wear a
+// card, the crew show their role on hover, and a hovered person's one label is the hover card.
 function tagAsks(input: PassInput): { actor: ActorId; size: Size; isForced: boolean }[] {
   return [...input.figures.keys()]
-    .filter((actor) => ownAgentIdOf(actor) === undefined && !isCrewId(actor))
+    .filter(
+      (actor) => actor !== input.hovered && ownAgentIdOf(actor) === undefined && !isCrewId(actor)
+    )
     .filter(
       (actor) => input.isZoomed || actor === input.selected || isTeamTagged(input.view, actor)
     )
@@ -376,13 +381,6 @@ function tagAsks(input: PassInput): { actor: ActorId; size: Size; isForced: bool
 
 function textOf(input: PassInput, actor: ActorId, isMore: boolean): string {
   return tagTextOf(actor, isMore, childRoleIn(input.view, actor))
-}
-
-// How far the cards grow with the zoom: the scale over the fitted floor's.
-function zoomOf(): number {
-  const { scale, baseScale } = projection.value
-
-  return baseScale > 0 ? scale / baseScale : 1
 }
 
 interface TagSet {

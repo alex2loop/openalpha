@@ -111,6 +111,31 @@ export function menuPlaceOf(
   return actor === undefined || figure === undefined ? {} : { menu: { actor, rect: figure } }
 }
 
+/** The open ring's pills round `actor`'s figure, as boxes (CSS px) the layout keeps clear. */
+export function menuPillRects(
+  figures: ReadonlyMap<ActorId, Rect>,
+  actor: ActorId | undefined
+): readonly Rect[] {
+  const figure = actor === undefined ? undefined : figures.get(actor)
+  const count = opened.peek()?.actions.length ?? 0
+  const { pane } = projection.value
+
+  if (figure === undefined) {
+    return []
+  }
+
+  return Array.from({ length: count }, (_, index) => {
+    const at = pillCenterOf(ringCenterOf(figure, pane), { index, count, pane })
+
+    return {
+      x: at.x - PILL_HALF_W_PX,
+      y: at.y - PILL_HALF_H_PX,
+      w: PILL_HALF_W_PX * 2,
+      h: PILL_HALF_H_PX * 2,
+    }
+  })
+}
+
 /** Opens the ring round `actor`; a person with nothing to do now gets none. */
 export function openMenu(spec: Omit<OpenMenu, 'seq'>): void {
   if (spec.actions.length === 0) {
@@ -176,7 +201,7 @@ function MenuRing({ menu, figure }: { readonly menu: OpenMenu; readonly figure: 
           type="button"
           role="menuitem"
           class="radial-menu-pill"
-          style={pillStyle(center, { index, count })}
+          style={pillStyle(pillCenterOf(center, { index, count, pane: projection.value.pane }))}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => pick(action)}
         >
@@ -242,17 +267,21 @@ function ringRxOf(pane: Size): number {
 }
 
 // The first pill at the top, the rest evenly round the ring clockwise.
-function pillStyle(
+function pillCenterOf(
   center: { x: number; y: number },
-  at: { readonly index: number; readonly count: number }
-): Record<string, string> {
+  at: { readonly index: number; readonly count: number; readonly pane: Size }
+): { x: number; y: number } {
   const angle = -Math.PI / 2 + (at.index * 2 * Math.PI) / at.count
-  const rx = ringRxOf(projection.value.pane)
+  const rx = ringRxOf(at.pane)
 
   return {
-    left: `${Math.round(center.x + Math.cos(angle) * rx)}px`,
-    top: `${Math.round(center.y + Math.sin(angle) * RING_RY_PX)}px`,
+    x: Math.round(center.x + Math.cos(angle) * rx),
+    y: Math.round(center.y + Math.sin(angle) * RING_RY_PX),
   }
+}
+
+function pillStyle(at: { x: number; y: number }): Record<string, string> {
+  return { left: `${at.x}px`, top: `${at.y}px` }
 }
 
 // Talking to someone picks them in the who-chip (no AI cost), opens the chat and puts the caret in
