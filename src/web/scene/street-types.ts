@@ -72,6 +72,9 @@ export const PERSON_KINDS = [
 ] as const
 export type PersonKind = (typeof PERSON_KINDS)[number]
 
+/** A person on the street stands this many world px tall, feet to the top of the head. */
+export const STREET_FIGURE_H = 5
+
 /** The office person an errand takes outside, drawn in their own clothes. */
 export interface StaffLook {
   readonly id: ActorId

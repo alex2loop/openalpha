@@ -25,9 +25,9 @@ import {
   WALK_REACH_PX,
   walkPed,
 } from '@/web/scene/sim/street/ped-walk'
-import { isWithin, sayOver } from '@/web/scene/sim/street/traffic'
+import { sayOver } from '@/web/scene/sim/street/traffic'
 import { WORLD } from '@/web/scene/types'
-import { type RegionPack, shopDoorOf } from '@/web/scene/world/regions'
+import { isWithin, type RegionPack, shopDoorOf } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { sideX } from '@/web/scene/world/street-layout'
 

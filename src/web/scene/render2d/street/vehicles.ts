@@ -1,9 +1,9 @@
 import type { MessageKey } from '@/i18n'
-import type { MovingScene, PaintPart } from '@/web/scene/render2d/street/paint'
-import type { StreetSayView, VehicleView } from '@/web/scene/street-types'
+import type { MovingScene } from '@/web/scene/render2d/street/paint'
+import type { StreetSayView, StreetView, VehicleView } from '@/web/scene/street-types'
 import type { Point } from '@/web/scene/types'
 import { darknessOf } from '@/web/scene/render2d/street/city'
-import { drawHeldSprite, drawSprite, spriteKeyOf } from '@/web/scene/render2d/street/detail'
+import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import {
   bikeBoxOf,
@@ -13,6 +13,7 @@ import {
   paintParkedBike,
   paintSweeper,
 } from '@/web/scene/render2d/street/rider-art'
+import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/sprite-key'
 import { DARK_STEPS } from '@/web/scene/render2d/street/tone'
 import {
   type Art,
@@ -40,8 +41,6 @@ import { isInside } from '@/web/scene/world/rooms'
 import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
-/** Sprites are painted at these px per world px by detail level: sharp at each zoom band's top. */
-export const SPRITE_PX = [2, 5, 10] as const
 // Lamps light from this darkness; their dots grow brighter with it.
 const LIGHTS_FROM_DARK = 0.3
 const LIGHTS_GAIN = 1.2
@@ -57,6 +56,7 @@ const LAMP_SINGLE = [0] as const
 const SAY = Object.freeze({ w: 9, h: 4, rise: 8, size: 2, pad: 1, tail: 1 })
 const SAY_TONES = Object.freeze({ fill: '#FFFFFF', edge: '#2B2433', ink: '#2B2433' })
 const LOOK_PREFIX = 'look'
+const SAY_PREFIX = 'say'
 const SAY_KEYS: Readonly<Record<ChatterId, MessageKey>> = Object.freeze({
   honk: 'ui.office.street.say.honk',
   eh: 'ui.office.street.say.eh',
@@ -80,53 +80,44 @@ interface Standing {
   readonly at: { x: number; y: number }
 }
 
-/** The key a sprite is cached under, held per thing drawn while its look stays the same. */
-interface HeldKey {
-  sig: number
-  key: string
-  fullKey: string
-  language: string
-}
-
-// Keyed by the pools' own slots, so it never holds more than they do.
-const heldKeys = new WeakMap<object, HeldKey>()
 // Where the bubble being drawn floats; set before each draw.
 const sayAt = { x: 0, y: 0 }
 
-/** The moving traffic: the parked lot and its attendant, every vehicle north to south, their
- *  lamps after dusk and the words they say. */
-export const VEHICLES_PART: PaintPart = {
-  paintStatic: () => undefined,
-  paintMoving: (g, view, scene) => {
-    const { lot } = view
-    const dark = darknessOf(scene.minute.minute)
+/** The parked lot and its attendant, drawn before anything that moves. */
+export function paintLot(g: CanvasRenderingContext2D, view: StreetView, scene: MovingScene): void {
+  const { lot } = view
 
-    for (let index = 0; index < lot.parked; index++) {
-      const slot = lot.slots[index]
-      const parked = PARKED[index % PARKED_LOOKS]
+  for (let index = 0; index < lot.parked; index++) {
+    const slot = lot.slots[index]
+    const parked = PARKED[index % PARKED_LOOKS]
 
-      if (slot !== undefined && parked !== undefined) {
-        drawStanding(g, parked, { at: slot, scene })
-      }
+    if (slot !== undefined && parked !== undefined) {
+      drawStanding(g, parked, { at: slot, scene })
     }
+  }
 
-    if (lot.attendant !== undefined) {
-      const attendant = lot.attendant.handing ? HANDING_ATTENDANT : STANDING_ATTENDANT
+  if (lot.attendant !== undefined) {
+    const attendant = lot.attendant.handing ? HANDING_ATTENDANT : STANDING_ATTENDANT
 
-      drawStanding(g, attendant, { at: lot.attendant.at, scene })
-    }
+    drawStanding(g, attendant, { at: lot.attendant.at, scene })
+  }
+}
 
-    for (const vehicle of view.pools.vehicles) {
-      if (isInside(scene.rect, vehicle.at)) {
-        drawLook(g, vehicle, scene)
-        paintLights(g, vehicle, dark)
-      }
-    }
+/** One vehicle at its place, with its lamps after dusk (`dark`, from `darknessOf`). */
+export function drawVehicle(
+  g: CanvasRenderingContext2D,
+  vehicle: VehicleView,
+  at: { readonly scene: MovingScene; readonly dark: number }
+): void {
+  drawLook(g, vehicle, at.scene)
+  paintLights(g, vehicle, at.dark)
+}
 
-    for (const say of view.says) {
-      paintSay(g, say, scene)
-    }
-  },
+/** The words said on the street, over whoever says them, drawn over everything else. */
+export function paintSays(g: CanvasRenderingContext2D, view: StreetView, scene: MovingScene): void {
+  for (const say of view.says) {
+    paintSay(g, say, scene)
+  }
 }
 
 function drawStanding(
@@ -170,27 +161,6 @@ function drawLook(g: CanvasRenderingContext2D, view: VehicleView, scene: MovingS
   )
 }
 
-/** The sprite key of `owner`'s look while its signature stays `sig` (with the detail level as its
- *  lowest digit), held per owner so a hot path builds no string. */
-export function heldKeyOf(
-  owner: object,
-  at: { readonly sig: number; readonly prefix: string }
-): HeldKey {
-  const { sig } = at
-  const held = heldKeys.get(owner)
-
-  if (held !== undefined && held.sig === sig) {
-    return held
-  }
-
-  const key = `${at.prefix}|${sig}`
-  const next = { sig, key, fullKey: spriteKeyOf(key, pxOfSig(sig)), language: '' }
-
-  heldKeys.set(owner, next)
-
-  return next
-}
-
 // Everything a look's picture depends on, packed into one number, with the detail level as its
 // lowest digit so the key names its resolution.
 function sigOf(
@@ -209,10 +179,6 @@ function sigOf(
   sig = sig * (DARK_STEPS + 1) + at.darkStep
 
   return sig * SPRITE_PX.length + at.detail
-}
-
-function pxOfSig(sig: number): number {
-  return SPRITE_PX[sig % SPRITE_PX.length] ?? SPRITE_PX[0]
 }
 
 function spriteBoxOf(view: VehicleView): {
@@ -290,7 +256,7 @@ function paintSay(g: CanvasRenderingContext2D, say: StreetSayView, scene: Moving
 
   const detail = scene.minute.detail
   const sig = CHATTER_IDS.indexOf(say.chatter) * SPRITE_PX.length + detail
-  const held = sayKeyOf(say, sig)
+  const held = heldKeyOf(say, { sig, prefix: SAY_PREFIX, language: locale.value })
 
   sayAt.x = say.at.x
   sayAt.y = say.at.y - SAY.rise
@@ -313,23 +279,6 @@ function paintSay(g: CanvasRenderingContext2D, say: StreetSayView, scene: Moving
     },
     (sprite) => paintBubble(sprite, tr(SAY_KEYS[say.chatter]))
   )
-}
-
-// A bubble's key names the language its word is in.
-function sayKeyOf(say: StreetSayView, sig: number): HeldKey {
-  const language = locale.value
-  const held = heldKeys.get(say)
-
-  if (held !== undefined && held.sig === sig && held.language === language) {
-    return held
-  }
-
-  const key = `say|${sig}|${language}`
-  const next = { sig, key, fullKey: spriteKeyOf(key, pxOfSig(sig)), language }
-
-  heldKeys.set(say, next)
-
-  return next
 }
 
 function paintBubble(g: CanvasRenderingContext2D, word: string): void {

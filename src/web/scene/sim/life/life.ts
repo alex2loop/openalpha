@@ -20,7 +20,7 @@ import { distance } from '@/web/scene/sim/actors/nav'
 import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { isOfficeOpen } from '@/web/scene/sim/director'
 import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
-import { addCup, createDesks, deskDueOf, stepDesks } from '@/web/scene/sim/life/desks'
+import { createDesks, deskDueOf, keepCup, stepDesks } from '@/web/scene/sim/life/desks'
 import { stepErrands } from '@/web/scene/sim/life/errand-home'
 import { stepAsks, subscribeLife } from '@/web/scene/sim/life/events'
 import { lineOf, type MomentKind, momentDueOf, stepMoment } from '@/web/scene/sim/life/moments'
@@ -234,8 +234,7 @@ function stepMoments(state: LifeState, step: LifeStep): void {
       endMoment(state, id)
 
       if (moment.item === 'cup') {
-        state.mugs.add(id)
-        addCup(state.desks, id)
+        keepCup(state, id)
       }
 
       if (moment.kind === 'idle') {

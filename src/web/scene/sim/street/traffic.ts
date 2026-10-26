@@ -4,14 +4,14 @@ import { type Flow, flowsOf, type StreetId, type Vehicle } from '@/web/scene/sim
 import { createVehicle, pickFrom, spawn } from '@/web/scene/sim/street/spawn'
 import { type StepWorld, stepFlows } from '@/web/scene/sim/street/traffic-step'
 import {
-  isInRange,
   isShopOpen,
+  isWithin,
   type MinuteRanges,
   type RegionPack,
   shopDoorOf,
 } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
-import { MINUTES_PER_DAY, MS_PER_SECOND } from '@/web/text/time-units'
+import { MS_PER_SECOND } from '@/web/text/time-units'
 
 const MAX_VEHICLES = 22
 const MAX_SAYS = 2
@@ -205,19 +205,6 @@ function targetOf(pack: RegionPack, minute: number): number {
   }
 
   return isWithin(hours.quiet, minute) ? TARGETS.day - QUIET_DROP : TARGETS.day
-}
-
-/** The minute of the day falls in one of `ranges`. */
-export function isWithin(ranges: MinuteRanges, minute: number): boolean {
-  const at = minute % MINUTES_PER_DAY
-
-  for (const range of ranges) {
-    if (isInRange(at, range)) {
-      return true
-    }
-  }
-
-  return false
 }
 
 // The clock's due vehicles: the traffic it wants, the garbage truck and the sweeper along the

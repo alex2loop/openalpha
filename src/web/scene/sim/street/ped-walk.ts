@@ -294,8 +294,6 @@ export function gaitOf(ped: Ped, nowMs: number): number {
   return 1 + (Math.floor(ped.dist / perFrame) % WALK_FRAMES)
 }
 
-/** Walkers may step onto the zebra: the walk lamp is lit (an errand may also start while it
- *  flashes, until `leadMs` before the cars' green) and no car stands on it. */
 /** Moves the tick on to this step; the zebra may be started until `leadMs` before the cars' green
  *  (never once the walk lamp flashes, for `Infinity`). */
 export function syncWalkTick(tick: WalkTick, step: PedStep, leadMs: number): void {
@@ -304,6 +302,7 @@ export function syncWalkTick(tick: WalkTick, step: PedStep, leadMs: number): voi
   tick.canCross = canCrossAt(step.traffic.pool, step.nowMs, leadMs)
 }
 
+// The walk lamp is lit (or flashing with more than `leadMs` left) and no car stands on the zebra.
 function canCrossAt(vehicles: readonly Vehicle[], nowMs: number, leadMs: number): boolean {
   const walk = signalOf('walk', nowMs)
   const isLit =

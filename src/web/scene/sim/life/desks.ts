@@ -87,8 +87,14 @@ export function createDesks(): Desks {
   }
 }
 
+/** A cup brought back to the seat stays in hand and lands on the desk, until the next idle walk. */
+export function keepCup(state: LifeState, owner: ActorId): void {
+  state.mugs.add(owner)
+  addCup(state.desks, owner)
+}
+
 /** Someone came back from a break with a cup: it joins their desk. */
-export function addCup(desks: Desks, owner: ActorId): void {
+function addCup(desks: Desks, owner: ActorId): void {
   rollDay(desks, pageMinute.value)
 
   const tally = desks.tallies.get(owner)

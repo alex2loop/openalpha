@@ -2,7 +2,7 @@ import type { ActorState } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import { pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
-import { addCup } from '@/web/scene/sim/life/desks'
+import { keepCup } from '@/web/scene/sim/life/desks'
 import { stepErrandsOffice } from '@/web/scene/sim/street/errands'
 import { pending } from '@/web/state/live'
 
@@ -30,8 +30,7 @@ export function stepErrands(
 
   for (const back of errands.home) {
     if (back.item === 'cup') {
-      state.mugs.add(back.actor)
-      addCup(state.desks, back.actor)
+      keepCup(state, back.actor)
     }
   }
 

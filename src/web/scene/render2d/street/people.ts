@@ -1,11 +1,11 @@
-import type { MovingScene, PaintPart } from '@/web/scene/render2d/street/paint'
+import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { ErrandItem, PersonView } from '@/web/scene/street-types'
 import { darknessOf } from '@/web/scene/render2d/street/city'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import { PERSON_BOX } from '@/web/scene/render2d/street/rider-art'
+import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/sprite-key'
 import { DARK_STEPS } from '@/web/scene/render2d/street/tone'
 import { fill, toneOf } from '@/web/scene/render2d/street/vehicle-art'
-import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/vehicles'
 import { HELD_TONES, PALETTE, RAMP } from '@/web/scene/sprites/palette'
 import {
   type HairTone,
@@ -15,7 +15,6 @@ import {
   type PantsTone,
 } from '@/web/scene/sprites/parts'
 import { ERRAND_ITEMS, HEADINGS, PERSON_KINDS } from '@/web/scene/street-types'
-import { isInside } from '@/web/scene/world/rooms'
 
 type Rect4 = readonly [number, number, number, number]
 
@@ -129,20 +128,13 @@ const drawn: { -readonly [K in keyof Tones]: number } = {
   pack: 0,
 }
 
-/** The street's people, north to south: walkers with their gait, waiters, sitters at the café,
- *  pupils with backpacks and anyone from the office out on an errand, each with what they carry. */
-export const PEOPLE_PART: PaintPart = {
-  paintStatic: () => undefined,
-  paintMoving: (g, view, scene) => {
-    for (const person of view.pools.people) {
-      if (isInside(scene.rect, person.at)) {
-        drawPerson(g, person, scene)
-      }
-    }
-  },
-}
-
-function drawPerson(g: CanvasRenderingContext2D, person: PersonView, scene: MovingScene): void {
+/** One person at their place: a walker with their gait, a waiter, a sitter at the café, a pupil
+ *  with a backpack, or someone from the office out on an errand, with what they carry. */
+export function drawPerson(
+  g: CanvasRenderingContext2D,
+  person: PersonView,
+  scene: MovingScene
+): void {
   const detail = scene.minute.detail
   const darkStep = Math.round(darknessOf(scene.minute.minute) * DARK_STEPS)
 

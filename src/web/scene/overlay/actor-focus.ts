@@ -6,6 +6,7 @@ import { hoverTextOf, personNameOf, replyTextOf } from '@/web/scene/overlay/hove
 import { announce, hoverActor, keyActor, keyedActor } from '@/web/scene/overlay/overlay'
 import { closeMenu, menuActionsFor, openMenu } from '@/web/scene/overlay/radial-menu'
 import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
+import { STREET_FIGURE_H } from '@/web/scene/street-types'
 import { FIGURE } from '@/web/scene/types'
 import { centerOn, keepFollowing, startFollow, stopFollow, view } from '@/web/scene/view'
 import { STREET_DOOR } from '@/web/scene/world/doors'
@@ -145,7 +146,7 @@ export function frameFollow(sim: SimView): void {
     y: held.prev.y + (held.at.y - held.prev.y) * sim.alpha,
   }
 
-  keepFollowing({ floor: held.floor, point: { x: at.x, y: at.y - FIGURE.h / 2 } })
+  keepFollowing({ floor: held.floor, point: chestOf({ ...held, at }) })
 }
 
 function focusOn(deps: FocusDeps, actor: ActorView): void {
@@ -188,6 +189,9 @@ function rankOf(sim: SimView, actor: ActorId): number {
   return slot >= 0 ? ROSTER.length + slot : ROSTER.length + sim.team.desks.length
 }
 
-function chestOf(actor: Pick<ActorView, 'at'>): Point {
-  return { x: actor.at.x, y: actor.at.y - FIGURE.h / 2 }
+// Half a figure above the feet: an office figure's, or the smaller street one while out.
+function chestOf(actor: Pick<ActorView, 'at' | 'errand'>): Point {
+  const height = actor.errand?.isOut === true ? STREET_FIGURE_H : FIGURE.h
+
+  return { x: actor.at.x, y: actor.at.y - height / 2 }
 }

@@ -15,9 +15,9 @@ import {
   WALK_REACH_PX,
 } from '@/web/scene/sim/street/ped-walk'
 import { spawn } from '@/web/scene/sim/street/spawn'
-import { isWithin } from '@/web/scene/sim/street/traffic'
+import { DELIVERY_DWELL_MS } from '@/web/scene/sim/street/traffic-step'
 import { WORLD } from '@/web/scene/types'
-import { isShopOpen, type RegionPack, shopDoorOf } from '@/web/scene/world/regions'
+import { isShopOpen, isWithin, type RegionPack, shopDoorOf } from '@/web/scene/world/regions'
 import { NORTH } from '@/web/scene/world/street-layout'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 
@@ -39,8 +39,10 @@ const PUPIL_PX_PER_S = 3.2
 const PICKUP_SHARE = 0.55
 const PICKUP_SPREAD_PX = 32
 const PICKUP_REACH_PX = 4
-// A delivery handed over at a shop door: the wait at the kerb.
+// A delivery handed over at a shop door: the wait at the kerb, and how early in the rider's dwell
+// someone comes out for it.
 const HANDOVER_MS = 2_600
+const RECEIVER_WINDOW_MS = 1_000
 // The café: its seats either side of its door, at most 3 taken, each for 30 to 140 s.
 const CAFE_SEATS = [-12.2, -5.8, 5.8, 12.2] as const
 const CAFE_SEAT_Y = PAVEMENT.far - 0.8
@@ -278,11 +280,14 @@ export function hopOn(ped: Ped): boolean {
   return false
 }
 
-// A rider stopped at a shop: someone steps out of the door to the kerb, takes the bag and goes
-// back in.
+// A rider just stopped at a shop: someone steps out of the door to the kerb, takes the bag and
+// goes back in. Only the dwell's first moment calls one, so a rider is served once.
 function serveDeliveries(peds: Peds, at: PedStep): void {
   for (const vehicle of at.traffic.pool) {
-    const isWaiting = vehicle.on && vehicle.kind === 'delivery' && vehicle.dwellUntil > 0
+    const isWaiting =
+      vehicle.on &&
+      vehicle.kind === 'delivery' &&
+      vehicle.dwellUntil - at.nowMs > DELIVERY_DWELL_MS - RECEIVER_WINDOW_MS
 
     if (isWaiting && !isServed(peds, vehicle)) {
       const ped = takePed(peds, { x: vehicle.pos, y: PAVEMENT.door })

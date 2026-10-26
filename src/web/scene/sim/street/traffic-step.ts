@@ -12,7 +12,8 @@ import { CROSSING, JUNCTION, NORTH } from '@/web/scene/world/street-layout'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 
 const BUS_DWELL_MS = 10_000
-const DELIVERY_DWELL_MS = 9_000
+/** How long a delivery rider stands at the shop door. */
+export const DELIVERY_DWELL_MS = 9_000
 const TURN_SHARE = 0.45
 // Px a second each second: braking, a car pulling away, a motorbike pulling away first.
 const BRAKE = 70

@@ -10,6 +10,9 @@ export interface Door {
   readonly isWest?: true
 }
 
+/** The point outside the west exit where a walker leaves the office floor for the street. */
+export const STREET_DOOR: Point = Object.freeze({ x: -8, y: 266 })
+
 // The lobby's north doorway sits beside the lift (x 130-154), so both read from inside the lobby.
 export const DOORS: Readonly<Record<FloorId, readonly Door[]>> = Object.freeze({
   office: [
@@ -21,7 +24,7 @@ export const DOORS: Readonly<Record<FloorId, readonly Door[]>> = Object.freeze({
     { at: { x: 328, y: 224 }, width: 24 },
     { at: { x: 584, y: 224 }, width: 24 },
     { at: { x: 0, y: 254 }, width: 28, isWest: true },
-    { at: { x: -8, y: 266 }, width: 0, to: 'street' },
+    { at: STREET_DOOR, width: 0, to: 'street' },
     { at: { x: 130, y: 256 }, width: 24, to: 'lift' },
   ],
   team: [
@@ -29,9 +32,3 @@ export const DOORS: Readonly<Record<FloorId, readonly Door[]>> = Object.freeze({
     { at: { x: 32, y: 250 }, width: 24, to: 'lift' },
   ],
 } satisfies Record<FloorId, readonly Door[]>)
-
-/** The point outside the west exit where a walker leaves the office floor for the street. */
-export const STREET_DOOR: Point = DOORS.office.find((door) => door.to === 'street')?.at ?? {
-  x: 0,
-  y: 0,
-}

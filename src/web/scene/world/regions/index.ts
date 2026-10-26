@@ -5,8 +5,6 @@ import { VN_PACK } from '@/web/scene/world/regions/vn'
 import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
 import { MINUTES_PER_DAY } from '@/web/text/time-units'
 
-export type { ShopKind }
-
 type RegionPackId = 'vn'
 
 /** From one minute of the page day to another, the end excluded. */
@@ -201,6 +199,19 @@ export function packOf(homeRegion: string | undefined): RegionPack {
 
 export function isInRange(minute: number, range: MinuteRange): boolean {
   return minute >= range[0] && minute < range[1]
+}
+
+/** The minute of the day falls in one of `ranges`. */
+export function isWithin(ranges: MinuteRanges, minute: number): boolean {
+  const at = minute % MINUTES_PER_DAY
+
+  for (const range of ranges) {
+    if (isInRange(at, range)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 /** The door of `shops[index]` on the far pavement: the row runs left to right with its lobby
