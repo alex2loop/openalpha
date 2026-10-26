@@ -1,7 +1,6 @@
 import { Group, Mesh, type MeshToonMaterial, type Object3D } from 'three'
 
-import type { HeldKind, PoseFrame } from '@/web/scene/sim/actors/poses'
-import type { SheetView } from '@/web/scene/types'
+import type { HeldKind, InHand } from '@/web/scene/sim/actors/poses'
 import { type Bake, createBake, type Kit } from '@/web/scene/render3d/bake'
 import { HELD_TONES, PALETTE, PHONE_FINISHES, stampToneOf } from '@/web/scene/sprites/palette'
 
@@ -9,22 +8,6 @@ import { HELD_TONES, PALETTE, PHONE_FINISHES, stampToneOf } from '@/web/scene/sp
 export interface HeldState {
   readonly key: string
   readonly mesh?: Mesh
-}
-
-/** What the hand holds this frame: a pose's or an item's held kind, a phone read or at the ear,
- *  or a sheet, `blank` until it is stamped. */
-interface InHand {
-  readonly hold: HeldKind | undefined
-  readonly phone: PoseFrame['phone']
-  readonly sheet: SheetView['action'] | 'blank' | undefined
-  /** Picks the phone's finish, as 2D does. */
-  readonly seed: number
-}
-
-/** One thing to hang from the hand: its key and how it is baked. */
-interface Shown {
-  readonly key: string
-  readonly shape: (bake: Bake) => void
 }
 
 type Shape = (bake: Bake, tones: readonly [string, string]) => void
@@ -69,19 +52,22 @@ const SHEET = Object.freeze({
  *  arm swings; the old piece's geometry goes with it. */
 export function syncHeld(
   held: HeldState,
-  spec: InHand & {
+  spec: {
+    readonly inHand: InHand
+    /** Picks the phone's finish, as 2D does. */
+    readonly seed: number
     readonly hand: Object3D
     readonly arm: Object3D
     readonly cast: { readonly kit: Kit; readonly toon: MeshToonMaterial }
   }
 ): HeldState {
-  const shown = shownOf(spec)
-  const key = shown?.key ?? ''
+  const { inHand, seed } = spec
+  const key = heldKeyOf(inHand, seed)
   let next = held
 
   if (held.key !== key) {
     releaseHeld(held, spec.hand)
-    next = { key, ...(shown === undefined ? {} : { mesh: heldMesh(shown, spec.cast) }) }
+    next = { key, ...(key === '' ? {} : { mesh: heldMesh(inHand, { seed, cast: spec.cast }) }) }
 
     if (next.mesh !== undefined) {
       spec.hand.add(next.mesh)
@@ -104,36 +90,43 @@ export function releaseHeld(held: HeldState, hand: Object3D | undefined): void {
   }
 }
 
-// The phone the arms pose for comes first, then a held kind, then a sheet, as 2D draws them.
-function shownOf(spec: InHand): Shown | undefined {
-  if (spec.phone !== undefined) {
-    const finish = spec.seed % PHONE_FINISHES.length
+// What the hands show, as a key: empty when they show nothing.
+function heldKeyOf(inHand: InHand, seed: number): string {
+  const { phone, hold, sheet } = inHand
 
-    return { key: `phone:${spec.phone}:${finish}`, shape: (b) => phoneShape(b, spec, finish) }
+  if (phone === undefined && hold === undefined && sheet === undefined) {
+    return ''
   }
 
-  if (spec.hold !== undefined) {
-    const hold = spec.hold
+  const stamp = sheet === undefined || sheet === 'blank' ? sheet : stampToneOf(sheet)
 
-    return { key: hold, shape: (b) => HELD_SHAPES[hold](b, HELD_TONES[hold]) }
-  }
-
-  if (spec.sheet === undefined) {
-    return undefined
-  }
-
-  const stamp = spec.sheet === 'blank' ? undefined : stampToneOf(spec.sheet)
-
-  return { key: `sheet:${stamp ?? ''}`, shape: (b) => sheetShape(b, stamp) }
+  return `${phone ?? ''}:${seed % PHONE_FINISHES.length}|${hold ?? ''}|${stamp ?? ''}`
 }
 
-function phoneShape(b: Bake, spec: InHand, finish: number): void {
+// Everything `inHandOf` puts in the hands, baked as one piece, as 2D draws them together.
+function bakeInHand(b: Bake, inHand: InHand, seed: number): void {
+  const { phone, hold, sheet } = inHand
+
+  if (phone !== undefined) {
+    phoneShape(b, phone, seed % PHONE_FINISHES.length)
+  }
+
+  if (hold !== undefined) {
+    HELD_SHAPES[hold](b, HELD_TONES[hold])
+  }
+
+  if (sheet !== undefined) {
+    sheetShape(b, sheet === 'blank' ? undefined : stampToneOf(sheet))
+  }
+}
+
+function phoneShape(b: Bake, phone: NonNullable<InHand['phone']>, finish: number): void {
   const [body, edge, plate] = PHONE_FINISHES[finish] ?? PHONE_FINISHES[0]
 
   part(b, PHONE.body, body)
   part(b, PHONE.edge, edge)
 
-  if (spec.phone === 'read') {
+  if (phone === 'read') {
     part(b, PHONE.screen, PALETTE.screen)
     part(b, PHONE.text, PALETTE.text)
   } else {
@@ -159,16 +152,19 @@ function part(
 }
 
 function heldMesh(
-  shown: Shown,
-  cast: { readonly kit: Kit; readonly toon: MeshToonMaterial }
+  inHand: InHand,
+  spec: {
+    readonly seed: number
+    readonly cast: { readonly kit: Kit; readonly toon: MeshToonMaterial }
+  }
 ): Mesh {
   const holder = new Group()
-  const bake = createBake(cast.kit, holder)
+  const bake = createBake(spec.cast.kit, holder)
 
   bake.at(holder, 0)
-  shown.shape(bake)
+  bakeInHand(bake, inHand, spec.seed)
 
-  const mesh = new Mesh(bake.done(false), cast.toon)
+  const mesh = new Mesh(bake.done(false), spec.cast.toon)
 
   mesh.position.set(...HELD_AT)
 

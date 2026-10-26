@@ -1,3 +1,5 @@
+import { computed, type ReadonlySignal } from '@preact/signals'
+
 import type { AgendaModel, AgendaRow } from '@/web/scene/data/agenda'
 import type { Size } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
@@ -60,11 +62,18 @@ export interface BoardNotes {
 type FaceKind = 'agenda' | 'calls' | 'pins'
 
 /** What the faces read this frame: the agenda, the zoom in CSS px per world px, the boards' notes. */
-export interface FaceView {
+interface FaceView {
   readonly model: AgendaModel
   readonly scale: number
   readonly notes: BoardNotes
 }
+
+/** Today's notes on the boards, derived once per change of the board's signals. */
+export const boardNotes: ReadonlySignal<BoardNotes> = computed(() => {
+  const landed = todayCalls.value?.filter((call) => call.action !== 'hold').length ?? 0
+
+  return { calls: Math.min(MAX_RESULT_NOTES, landed), pins: heldNewsPins.value.length }
+})
 
 /** The faces both renderers show, each a canvas repainted only when what it shows or its zoom
  *  step changes. */
@@ -142,13 +151,6 @@ export function faceKindOf(prop: PropDef): FaceKind | undefined {
   }
 
   return prop.kind === 'frame' && prop.variant === CORK_VARIANT ? 'pins' : undefined
-}
-
-/** Today's notes on the boards, read from the board's signals. */
-export function boardNotesOf(): BoardNotes {
-  const landed = todayCalls.value?.filter((call) => call.action !== 'hold').length ?? 0
-
-  return { calls: Math.min(MAX_RESULT_NOTES, landed), pins: heldNewsPins.value.length }
 }
 
 /** A cork board in its frame with `notes` pinned notes, three to a row. */

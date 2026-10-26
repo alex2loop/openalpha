@@ -6,11 +6,17 @@ import { toUnits } from '@/web/scene/render3d/space'
 import { WARM_RGB } from '@/web/scene/sprites/daylight'
 
 /** The lamps' warm point lights; a spare one stays in the scene with no intensity, so the count
- *  every material compiled for never changes. */
+ *  every material compiled for never changes. `shown` is the lamp each light sits on and `glow`
+ *  its brightness; `near` and `gaps` are scratch the pick reuses every frame. */
 export interface Lamps {
   readonly lights: readonly PointLight[]
-  key: string
+  readonly shown: (Lamp | undefined)[]
+  readonly near: (Lamp | undefined)[]
+  readonly gaps: number[]
+  glow: number
 }
+
+type Lamp = FloorProps['lamps'][number]
 
 /** What the lamps follow: the floor's lamps, the rooms lit and how bright, and the camera's
  *  centre on the floor. */
@@ -34,38 +40,82 @@ export function createLamps(scene: Scene): Lamps {
 
   scene.add(...lights)
 
-  return { lights, key: '' }
+  return {
+    lights,
+    shown: Array.from({ length: MAX_POINT_LIGHTS }, () => undefined),
+    near: Array.from({ length: MAX_POINT_LIGHTS }, () => undefined),
+    gaps: Array.from({ length: MAX_POINT_LIGHTS }, () => Number.POSITIVE_INFINITY),
+    glow: 0,
+  }
 }
 
 /** Lights the lamps of the lit rooms nearest the camera's centre, dimmed with the lamps; true
- *  when a light moved or changed. */
+ *  when a light moved or changed. Allocates nothing. */
 export function syncLamps(lamps: Lamps, spec: LampSpec): boolean {
-  const { focus } = spec
-  const near = spec.lamps
-    .filter((lamp) => spec.lit.has(lamp.room))
-    .map((lamp) => ({
-      lamp,
-      gap: focus === undefined ? 0 : Math.hypot(lamp.at.x - focus.x, lamp.at.y - focus.y),
-    }))
-    .sort((a, b) => a.gap - b.gap)
-    .slice(0, MAX_POINT_LIGHTS)
-    .map(({ lamp }) => lamp)
-  const key = `${near.map((lamp) => `${lamp.at.x},${lamp.at.y}`).join(';')}|${spec.lampGlow}`
+  pickNearest(lamps, spec)
 
-  if (lamps.key === key) {
+  if (lamps.glow === spec.lampGlow && isSamePick(lamps)) {
     return false
   }
 
-  lamps.key = key
-  lamps.lights.forEach((light, i) => {
-    const lamp = near[i]
+  lamps.glow = spec.lampGlow
 
-    light.intensity = lamp === undefined ? 0 : LAMP_LIGHT.intensity * spec.lampGlow
+  for (let i = 0; i < MAX_POINT_LIGHTS; i++) {
+    const lamp = lamps.near[i]
+    const light = lamps.lights[i]
 
-    if (lamp !== undefined) {
+    lamps.shown[i] = lamp
+
+    if (light !== undefined) {
+      light.intensity = lamp === undefined ? 0 : LAMP_LIGHT.intensity * spec.lampGlow
+    }
+
+    if (light !== undefined && lamp !== undefined) {
       light.position.set(toUnits(lamp.at.x), toUnits(lamp.shadeY), toUnits(lamp.at.y))
     }
-  })
+  }
+
+  return true
+}
+
+// Keeps the nearest lit lamps in `near`, nearest first; a tie keeps the props' order.
+function pickNearest(lamps: Lamps, spec: LampSpec): void {
+  const { near, gaps } = lamps
+  const { focus } = spec
+
+  near.fill(undefined)
+  gaps.fill(Number.POSITIVE_INFINITY)
+
+  for (const lamp of spec.lamps) {
+    if (!spec.lit.has(lamp.room)) {
+      continue
+    }
+
+    const gap = focus === undefined ? 0 : Math.hypot(lamp.at.x - focus.x, lamp.at.y - focus.y)
+    let slot = MAX_POINT_LIGHTS
+
+    while (slot > 0 && gap < (gaps[slot - 1] ?? Number.POSITIVE_INFINITY)) {
+      slot--
+    }
+
+    for (let i = MAX_POINT_LIGHTS - 1; i > slot; i--) {
+      near[i] = near[i - 1]
+      gaps[i] = gaps[i - 1] ?? Number.POSITIVE_INFINITY
+    }
+
+    if (slot < MAX_POINT_LIGHTS) {
+      near[slot] = lamp
+      gaps[slot] = gap
+    }
+  }
+}
+
+function isSamePick(lamps: Lamps): boolean {
+  for (let i = 0; i < MAX_POINT_LIGHTS; i++) {
+    if (lamps.near[i] !== lamps.shown[i]) {
+      return false
+    }
+  }
 
   return true
 }

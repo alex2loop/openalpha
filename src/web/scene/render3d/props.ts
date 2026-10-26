@@ -23,6 +23,15 @@ export interface FloorProps {
   readonly screens: Screen[]
   /** Each lamp's shade and the room whose switch it follows. */
   readonly lamps: Lamp[]
+  /** The pieces hung on a wall's band, apart, so each can fade with the wall that holds it. */
+  readonly hung: HungPiece[]
+}
+
+/** A piece hung on a wall: its left edge, the z of the wall's south face, and its boxes. */
+interface HungPiece {
+  readonly x: number
+  readonly wallZ: number
+  readonly boxes: Box[]
 }
 
 interface Screen {
@@ -75,7 +84,7 @@ const SCREEN_SEAT_DZ = 8
 
 /** The furniture of `floor`, built once per floor from `world/props`. */
 export function buildFloorProps(floor: FloorId): FloorProps {
-  const built: FloorProps = { rooms: new Map(), glass: [], screens: [], lamps: [] }
+  const built: FloorProps = { rooms: new Map(), glass: [], screens: [], lamps: [], hung: [] }
 
   for (const prop of propsOn(floor)) {
     const out = built.rooms.get(prop.room) ?? []
@@ -368,16 +377,30 @@ function wallPiece({ prop, out, floor }: Build): void {
   const [frame, plate] = WALL_LOOKS[prop.kind] ?? [BOARD_FRAME, PALETTE.paper]
   const face = prop.kind === 'frame' ? (ART[(prop.variant ?? 0) % ART.length] ?? plate) : plate
 
-  const faceList = prop.kind === 'window' ? floor.glass : out
+  if (prop.kind === 'window') {
+    out.push(box(spots.frame, frame))
+    floor.glass.push(box(spots.face, face))
+    return
+  }
 
-  out.push(box(spots.frame, frame))
-  faceList.push(box(spots.face, face))
+  const boxes = [box(spots.frame, frame), box(spots.face, face)]
+
+  if (spots.wallZ === undefined) {
+    out.push(...boxes)
+  } else {
+    floor.hung.push({ x: prop.rect.x, wallZ: spots.wallZ, boxes })
+  }
 }
 
 /** A wall piece's frame and the face plate in front of it. One on a wall's band hangs on the north
  *  wall at the height that lines it up with 2D; one below the band stands on the floor facing the
  *  camera, its foot at the drawn box's bottom, so its face covers what 2D draws. */
-export function wallSpotsOf(prop: PropDef): { readonly frame: Spot; readonly face: Spot } {
+export function wallSpotsOf(prop: PropDef): {
+  readonly frame: Spot
+  readonly face: Spot
+  /** The z of the wall it hangs on; absent for a piece standing on the floor. */
+  readonly wallZ?: number
+} {
   const room = roomById(prop.room)
   const wallZ = (room?.rect.y ?? 0) + WALL_BAND_PX
   const { x, y, w, h } = prop.rect
@@ -389,6 +412,7 @@ export function wallSpotsOf(prop: PropDef): { readonly frame: Spot; readonly fac
   return {
     frame: [x, z - (isHung ? 0 : WALL_FACE_PROUD), w, WALL_FACE_PROUD, base, tall],
     face: [x + 1, z + (isHung ? WALL_FACE_PROUD : 0), w - 2, FACE_PLATE_PX, base + 1, tall - 2],
+    ...(isHung ? { wallZ } : {}),
   }
 }
 

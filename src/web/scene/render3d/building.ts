@@ -270,13 +270,17 @@ function sideCurtain(
  *  and back to solid once they leave; true while one still changes. */
 export function syncSeeThrough(
   walls: readonly SeeThroughWall[],
-  spec: { readonly people: readonly Point[]; readonly dtMs: number; readonly isReduced: boolean }
+  spec: {
+    readonly people: readonly { readonly at: Point }[]
+    readonly dtMs: number
+    readonly isReduced: boolean
+  }
 ): boolean {
   const k = spec.isReduced ? 1 : 1 - Math.exp(-spec.dtMs / SEE_THROUGH_EASE_MS)
   let isChanged = false
 
   for (const one of walls) {
-    const target = spec.people.some((at) => isHiddenBy(one.wall, at)) ? SEE_THROUGH_OPACITY : 1
+    const target = spec.people.some(({ at }) => isHiddenBy(one.wall, at)) ? SEE_THROUGH_OPACITY : 1
     const eased = one.opacity + (target - one.opacity) * k
     const next = Math.abs(target - eased) < SEE_THROUGH_SETTLED ? target : eased
 
@@ -289,6 +293,16 @@ export function syncSeeThrough(
   }
 
   return isChanged
+}
+
+/** The north wall a piece hangs on, by its left edge and the z of the wall's face. */
+export function wallHolding<T extends { readonly wall: NorthWall }>(
+  walls: readonly T[],
+  piece: { readonly x: number; readonly wallZ: number }
+): T | undefined {
+  return walls.find(
+    ({ wall }) => wall.z0 === piece.wallZ && piece.x >= wall.x0 && piece.x < wall.x1
+  )
 }
 
 function isHiddenBy(wall: NorthWall, at: Point): boolean {

@@ -3,7 +3,12 @@ import { type BufferGeometry, Group, type Material, Mesh } from 'three'
 import type { Lighting, Materials } from '@/web/scene/render3d/lights'
 import type { FloorId } from '@/web/scene/types'
 import { type Box, mergeBoxes } from '@/web/scene/render3d/boxes'
-import { buildingBoxes, createFloorPlane, type SeeThroughWall } from '@/web/scene/render3d/building'
+import {
+  buildingBoxes,
+  createFloorPlane,
+  type SeeThroughWall,
+  wallHolding,
+} from '@/web/scene/render3d/building'
 import { createRoomMaterial } from '@/web/scene/render3d/lights'
 import { buildFloorProps, type FloorProps } from '@/web/scene/render3d/props'
 
@@ -53,15 +58,43 @@ export function buildFloor(id: FloorId, lighting: Lighting): FloorScene {
   add([...building.glass, ...props.glass], materials.glass, GLASS_ORDER)
   add(building.curtain, materials.curtain, CURTAIN_ORDER)
 
-  const walls = building.north.map((wall) => {
-    const material = createRoomMaterial(lighting, { vertexColors: true, transparent: true })
-
-    add(wall.boxes, material)
-
-    return { wall, material, opacity: 1 }
-  })
+  const walls = buildWalls(lighting, { north: building.north, props, add })
 
   return { id, group, props, walls, geometries }
+}
+
+// Each north wall with the pieces hung on it, under its own material so they fade together; a
+// piece on no fading wall joins the rest.
+function buildWalls(
+  lighting: Lighting,
+  at: {
+    readonly north: ReturnType<typeof buildingBoxes>['north']
+    readonly props: FloorProps
+    readonly add: (boxes: readonly Box[], material: Material) => void
+  }
+): SeeThroughWall[] {
+  const walls = at.north.map((wall) => ({
+    wall,
+    material: createRoomMaterial(lighting, { vertexColors: true, transparent: true }),
+    opacity: 1,
+  }))
+  const held = new Map(walls.map((one) => [one, [...one.wall.boxes]]))
+  const loose: Box[] = []
+
+  for (const piece of at.props.hung) {
+    const wall = wallHolding(walls, piece)
+    const boxes = (wall === undefined ? undefined : held.get(wall)) ?? loose
+
+    boxes.push(...piece.boxes)
+  }
+
+  at.add(loose, lighting.materials.lit)
+
+  for (const [one, boxes] of held) {
+    at.add(boxes, one.material)
+  }
+
+  return walls
 }
 
 /** Frees the floor's geometries, its walls' materials and its surface texture. */

@@ -281,14 +281,10 @@ function syncScene(
     isMotionOn,
     isReduced,
   })
-  const dressing = syncDressing(stage, { job, row, standing: people.standing })
   const isWallFading =
     stage.floor !== undefined &&
-    syncSeeThrough(stage.floor.walls, {
-      people: people.standing.map(({ at }) => at),
-      dtMs,
-      isReduced,
-    })
+    syncSeeThrough(stage.floor.walls, { people: people.standing, dtMs, isReduced })
+  const dressing = syncDressing(stage, { job, row, standing: people.standing })
   const isSmall = !isReduced && (isMotionOn || sim.life.animatedFloors.includes(sim.floor))
   const isMoving = isLightEasing || people.isSettling || dressing.isMoving || isWallFading
   const isWalking = people.standing.some(({ actor }) => isActorWalking(actor))
@@ -343,6 +339,7 @@ function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
   const isFaceChanged = syncScreenFaces(stage.faces, {
     floor: sim.floor,
     scale: stage.placement.scale,
+    walls: stage.floor?.walls ?? [],
   })
   const isLampChanged = syncLamps(stage.lamps, {
     lamps: stage.floor?.props.lamps ?? [],

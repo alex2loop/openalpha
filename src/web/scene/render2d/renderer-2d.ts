@@ -22,7 +22,7 @@ import { isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { DAY_LIGHT_HOUR, lightAt } from '@/web/scene/sprites/daylight'
-import { boardNotesOf, createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
+import { boardNotes, createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
 import {
   type FloorId,
   type Point,
@@ -236,7 +236,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     minuteOfDay: sim.light.hour * MINUTES_PER_HOUR,
     scale,
     isPrinting: isPrintingRun(lib),
-    notes: boardNotesOf(),
+    notes: boardNotes.value,
     unread: unread.value ?? 0,
     agenda: agenda.value,
     screens: surface.screens,

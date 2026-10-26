@@ -1,5 +1,4 @@
 import type { FrameSpec, Material } from '@/web/scene/render2d/figure-spec'
-import type { PoseFrame } from '@/web/scene/sim/actors/poses'
 import type { ActorStatus, ActorView } from '@/web/scene/types'
 import { buildFigure } from '@/web/scene/render2d/figure'
 import { buildMascot } from '@/web/scene/render2d/mascot'
@@ -14,7 +13,7 @@ import {
 } from '@/web/scene/render2d/pixel-grid'
 import { zeroCanvas } from '@/web/scene/renderer'
 import {
-  heldKindOf,
+  inHandOf,
   isActorWalking,
   isBlinking,
   isBreathDown,
@@ -177,32 +176,13 @@ function toFrameSpec(actor: ActorView, frame: CharacterFrame): FrameSpec {
   return {
     ...pose,
     ...(gait === undefined ? {} : { gait }),
-    ...heldOf(actor, pose),
+    ...inHandOf(actor, pose),
     isBack: actor.facing === 'up' && pose.isFront !== true,
     isBob: isAnimated && !isMoving && isBreathDown(seed, frame.now),
     isBlink: frame.motion.isOn && isBlinking(seed, frame.now),
     isWorking: actor.working,
     finish: seed % PHONE_FINISHES.length,
   }
-}
-
-// A sheet in hand, else what the actor carries: a phone is read in both hands unless the pose
-// already holds one.
-function heldOf(actor: ActorView, pose: PoseFrame): Pick<FrameSpec, 'hold' | 'phone' | 'sheet'> {
-  const sheet: Pick<FrameSpec, 'sheet'> =
-    actor.sheet === undefined ? {} : { sheet: actor.sheet.action ?? 'blank' }
-
-  if (pose.hold !== undefined || actor.item === undefined) {
-    return sheet
-  }
-
-  if (actor.item === 'phone') {
-    return pose.phone === undefined ? { ...sheet, phone: 'read' } : sheet
-  }
-
-  const hold = heldKindOf(actor.item)
-
-  return hold === undefined ? sheet : { ...sheet, hold }
 }
 
 function spriteKey(look: Look, frame: FrameSpec): string {
