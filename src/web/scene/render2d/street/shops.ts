@@ -37,6 +37,7 @@ const GUARD = Object.freeze({
   pants: '#252C3A',
   coat: '#2F4466',
   strip: '#F4E7B0',
+  badge: '#D9B44A',
   skin: '#D9AE86',
   cap: '#1F2C44',
   night: 0.3,
@@ -195,6 +196,8 @@ function paintGuard(g: CanvasRenderingContext2D, front: FrontView, dark: number)
   g.fillRect(x - 1, y - 4.8, 2, 2.7)
   g.fillStyle = GUARD.strip
   g.fillRect(x - 0.2, y - 4.8, 0.4, 2.7)
+  g.fillStyle = tone(GUARD.badge)
+  g.fillRect(x - 0.7, y - 4.5, 0.35, 0.35)
   g.fillStyle = tone(GUARD.skin)
   g.beginPath()
   g.arc(x, y - 5.6, 0.85, 0, Math.PI * 2)
