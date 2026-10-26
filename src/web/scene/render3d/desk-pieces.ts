@@ -1,3 +1,4 @@
+import type { PropDef } from '@/web/scene/world/props'
 import { type Box, box } from '@/web/scene/render3d/boxes'
 import { PALETTE } from '@/web/scene/sprites/palette'
 import { seedOf } from '@/web/scene/world/rng'
@@ -16,6 +17,15 @@ const PHONE_FINISHES = [
 ] as const
 const GLASS_WATER = '#BFE0F2'
 const PLACARD_LINE = '#8E8497'
+// The mockup's air conditioner on a north wall: body, vent and lower lip, 24 px up the wall.
+const AIR_CON = Object.freeze({
+  y: 24,
+  d: 3,
+  h: 6,
+  body: '#EEF0F4',
+  vent: '#CBD0DA',
+  lip: '#B9BEC9',
+})
 const CABLE = Object.freeze({ tray: '#B9C0CC', rail: '#AAB1BD', y: 36, gap: 22 })
 
 /** Where a desk piece stands: its floor corner and the top it stands on. */
@@ -108,4 +118,16 @@ export function inTray(out: Box[], at: Place): void {
     box([x, z, 0.8, d, top + 0.8, 2], TRAY.rim),
     box([x + w - 0.8, z, 0.8, d, top + 0.8, 2], TRAY.rim)
   )
+}
+
+/** The air conditioner's boxes against the wall whose face stands at `wallZ`; its ribbons are
+ *  placed by `effects`. */
+export function airConBoxes(prop: PropDef, wallZ: number): Box[] {
+  const { x, w } = prop.rect
+
+  return [
+    box([x, wallZ, w, AIR_CON.d, AIR_CON.y, AIR_CON.h], AIR_CON.body, true),
+    box([x + 2, wallZ + 0.2, w - 4, AIR_CON.d + 0.2, AIR_CON.y + 2.6, 0.8], AIR_CON.vent),
+    box([x, wallZ + AIR_CON.d - 0.1, w, 0.3, AIR_CON.y, 0.8], AIR_CON.lip),
+  ]
 }

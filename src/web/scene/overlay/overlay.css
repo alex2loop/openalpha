@@ -155,6 +155,10 @@
   animation: none;
 }
 
+.marker.is-in-scene {
+  opacity: 0;
+}
+
 @keyframes marker-bob {
   50% {
     transform: translateY(-1px);

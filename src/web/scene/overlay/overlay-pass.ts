@@ -1,4 +1,4 @@
-import { computed, effect, untracked } from '@preact/signals'
+import { effect, untracked } from '@preact/signals'
 
 import type { Bubble } from '@/web/scene/overlay/bubbles'
 import type { Marker } from '@/web/scene/overlay/markers'
@@ -7,15 +7,15 @@ import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { ActorId, Rect, RoomId, SimView, Size } from '@/web/scene/types'
 import { pageMinute } from '@/web/scene/clock/clock'
-import { requestSeries, screenSeries, startDeskReads } from '@/web/scene/data/desk-reads'
+import { requestSeries, startDeskReads } from '@/web/scene/data/desk-reads'
 import { homeMarket } from '@/web/scene/data/home'
 import { pastCalls, startPastCalls } from '@/web/scene/data/past-calls'
-import { breachedStops } from '@/web/scene/data/room-status'
 import { sceneGoals, wantedGoals } from '@/web/scene/overlay/actor-state'
 import { bubbleSignatureOf, buildBubbles, said, startSpeech } from '@/web/scene/overlay/bubbles'
+import { sceneHandOff } from '@/web/scene/overlay/hand-off'
 import { figureOf } from '@/web/scene/overlay/hit'
 import { hoverPlaceOf } from '@/web/scene/overlay/hover-label'
-import { buildMarkers, markerRectOf } from '@/web/scene/overlay/markers'
+import { markerRectOf } from '@/web/scene/overlay/markers'
 import { meetingBar, ringsOf } from '@/web/scene/overlay/meeting'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import {
@@ -36,7 +36,7 @@ import {
   sizeTag,
 } from '@/web/scene/overlay/placement'
 import { menuActor, menuPillRects, menuPlaceOf } from '@/web/scene/overlay/radial-menu'
-import { analystSeriesOf, buildScreens } from '@/web/scene/overlay/screens'
+import { analystSeriesOf } from '@/web/scene/overlay/screens'
 import {
   addDeskOf,
   cardPlacesOf,
@@ -101,19 +101,6 @@ interface PassDeps {
   readonly scene: HTMLElement
 }
 
-const litScreens = computed(() =>
-  buildScreens({
-    goals: wantedGoals.value,
-    runs: runs.value,
-    series: screenSeries.value,
-    market: homeMarket.value?.market,
-  })
-)
-/** The "!" over each person something waits on, wherever they stand. */
-export const markers = computed(() =>
-  buildMarkers({ goals: sceneGoals.value, pending: pending.value, breached: breachedStops.value })
-)
-
 /** Starts the overlay's listeners and reads; the returned pass's `stop` releases all of them. */
 export function startOverlay(deps: PassDeps): OverlayPass {
   const state: PassState = {
@@ -145,8 +132,7 @@ export function startOverlay(deps: PassDeps): OverlayPass {
 
 /** The signals the overlay reads besides the sim, for the scene to draw a frame when one moves. */
 export function readOverlayInputs(): void {
-  litScreens.value
-  markers.value
+  sceneHandOff.value
   said.value
   pastCalls.value
   hoveredActor.value
@@ -220,8 +206,8 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
       nowMs,
       epochMs: Date.now(),
     }),
-    markers: markers.value,
-    screens: litScreens.value.filter((screen) => screen.floor === sim.floor),
+    markers: sceneHandOff.value.marks,
+    screens: sceneHandOff.value.deskScreens.filter((screen) => screen.floor === sim.floor),
     figures,
     isZoomed: shown.room !== undefined || shown.zoomSteps > 0,
     ...(selected === undefined ? {} : { selected }),

@@ -19,6 +19,7 @@ import {
   POOL_Y,
   syncLamps,
 } from '@/web/scene/render3d/lamp-glow'
+import { createMarks, disposeMarks, type Marks, syncMarks } from '@/web/scene/render3d/marks'
 import {
   createMonitorFaces,
   disposeMonitorFaces,
@@ -54,6 +55,7 @@ export interface Fixtures {
   readonly dots: Pool
   readonly ring: Pool
   readonly monitors: MonitorFaces
+  readonly marks: Marks
   readonly owned: readonly { dispose(): void }[]
 }
 
@@ -123,6 +125,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     dots: createPool(shapes.dot, dot, { cap: MAX_PEOPLE, order: ORDER.dot }),
     ring: createPool(shapes.box, ink, { cap: 1 }),
     monitors: createMonitorFaces(root),
+    marks: createMarks(shapes, glow, root),
     owned: [glow, lampGlow, shadow, dot, ink],
   }
 
@@ -140,6 +143,12 @@ export function syncFixtures(fixtures: Fixtures, frame: FixtureFrame): boolean {
     syncWarm(fixtures.warm, frame),
     syncCool(fixtures.cool, frame),
     syncPeople(fixtures, frame),
+    syncMarks(fixtures.marks, {
+      marks: frame.sim.marks,
+      standing: frame.standing,
+      now: frame.now,
+      isReduced: frame.isReduced,
+    }),
   ]
 
   return changes.some(Boolean)
@@ -151,6 +160,7 @@ export function disposeFixtures(fixtures: Fixtures): void {
   }
 
   disposeMonitorFaces(fixtures.monitors)
+  disposeMarks(fixtures.marks)
 
   for (const one of fixtures.owned) {
     one.dispose()
@@ -180,6 +190,7 @@ function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
     floor: frame.sim.floor,
     props: frame.props,
     lit,
+    deskScreens: frame.sim.deskScreens,
     now: frame.now,
     isReduced: frame.isReduced,
   })
@@ -205,7 +216,8 @@ function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
   return true
 }
 
-// The monitors' backs lean with their faces; they change only with the floor.
+// The monitors' backs lean with their faces, the StandBy phones' upper halves on their folds; they
+// change only with the floor.
 function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
   if (!beginPool(pool, frame.sim.floor)) {
     return false
@@ -215,6 +227,12 @@ function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
     const [x, y, z] = back.at
 
     placeInstance(pool, { x, y, z, size: back.size, tilt, color: MONITOR_BACK })
+  }
+
+  for (const lean of frame.props.leans) {
+    const [x, y, z] = lean.at
+
+    placeInstance(pool, { x, y, z, size: lean.size, tilt: lean.tilt, color: lean.color })
   }
 
   endPool(pool)

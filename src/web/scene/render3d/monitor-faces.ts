@@ -9,8 +9,9 @@ import {
 } from 'three'
 
 import type { MessageKey } from '@/i18n'
+import type { DeskScreenView } from '@/web/scene/overlay-types'
 import type { FloorProps } from '@/web/scene/render3d/props'
-import type { FloorId, RoomId } from '@/web/scene/types'
+import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { roomStatus } from '@/web/scene/data/room-status'
@@ -44,6 +45,8 @@ const DOTS = ['#FF6259', '#F2C46C', '#6FE3D6'] as const
 const TYPE_TICK_MS = 65
 const CHARS_PER_TICK = 2
 const FACE_LIFT_PX = 0.06
+// A lit desk screen's bottom stands within this of its computer's foot.
+const SLOT_MATCH_PX = 6
 const APP_KEYS: Readonly<Partial<Record<RoomId, MessageKey>>> = Object.freeze({
   lib: 'ui.office.room.lib',
   meet: 'ui.office.room.meet',
@@ -62,6 +65,8 @@ export interface MonitorFaces {
 
 interface MonitorFace {
   readonly room: RoomId | undefined
+  /** The computer's foot, where a lit desk screen names the monitor it shows on. */
+  readonly slot: Point
   readonly mesh: Mesh<PlaneGeometry, MeshBasicMaterial>
   readonly canvas: HTMLCanvasElement
   readonly texture: CanvasTexture
@@ -83,6 +88,8 @@ export function syncMonitorFaces(
     readonly floor: FloorId
     readonly props: FloorProps
     readonly lit: readonly boolean[]
+    /** The desk screens real work lights; each shows on the monitor at its computer. */
+    readonly deskScreens: readonly DeskScreenView[]
     readonly now: number
     readonly isReduced: boolean
   }
@@ -105,7 +112,9 @@ export function syncMonitorFaces(
       isChanged = true
     }
 
-    isChanged = (isLit && paintFace(face, at)) || isChanged
+    const host = isLit ? hostOn(face, at.deskScreens) : undefined
+
+    isChanged = (isLit && paintFace(face, { ...at, host })) || isChanged
   })
 
   return isChanged
@@ -145,6 +154,7 @@ function createFace(
 
   return {
     room: roomAt(at.floor, screen.seat)?.id,
+    slot: screen.slot,
     mesh,
     canvas,
     texture,
@@ -159,7 +169,7 @@ function createFace(
 // what it shows moved.
 function paintFace(
   face: MonitorFace,
-  at: { readonly now: number; readonly isReduced: boolean }
+  at: { readonly now: number; readonly isReduced: boolean; readonly host: string | undefined }
 ): boolean {
   const run = face.room === undefined ? undefined : roomStatus.value.get(face.room)?.runs[0]
   const target = run?.progress?.text ?? ''
@@ -180,14 +190,22 @@ function paintFace(
   }
 
   const clock = formatHourOfDay(pageMinute.value.minute / MINUTES_PER_HOUR)
-  const key = [run?.runId, run?.title, run?.persistent.length, target, face.typed, clock].join('|')
+  const key = [
+    run?.runId,
+    run?.title,
+    run?.persistent.length,
+    target,
+    face.typed,
+    clock,
+    at.host,
+  ].join('|')
 
   if (key === face.key) {
     return false
   }
 
   face.key = key
-  drawScreen(face, { run, clock })
+  drawScreen(face, { run, clock, title: at.host ?? run?.title ?? run?.name ?? '' })
   face.texture.needsUpdate = true
 
   return true
@@ -195,7 +213,7 @@ function paintFace(
 
 function drawScreen(
   face: MonitorFace,
-  at: { readonly run: Run | undefined; readonly clock: string }
+  at: { readonly run: Run | undefined; readonly clock: string; readonly title: string }
 ): void {
   const c = face.canvas.getContext('2d')
 
@@ -218,13 +236,13 @@ function drawScreen(
   c.fillRect(bar, h - bar - status, inner, status)
   c.fillStyle = TONE.title
   c.fillRect(bar, bar + menu, inner, title)
-  drawChrome(c, { face, run: at.run, clock: at.clock })
+  drawChrome(c, { face, title: at.title, clock: at.clock })
   drawLines(c, face, at.run)
 }
 
 function drawChrome(
   c: CanvasRenderingContext2D,
-  at: { readonly face: MonitorFace; readonly run: Run | undefined; readonly clock: string }
+  at: { readonly face: MonitorFace; readonly title: string; readonly clock: string }
 ): void {
   const { w, bar, menu, title } = SCREEN
   const menuY = bar + menu / 2 + 0.3
@@ -249,7 +267,7 @@ function drawChrome(
   c.fillText(at.clock, w - bar - 4, menuY)
   c.textAlign = 'left'
   c.fillStyle = TONE.titleInk
-  c.fillText(at.run?.title ?? at.run?.name ?? '', bar + 27, titleY, w - bar * 2 - 30)
+  c.fillText(at.title, bar + 27, titleY, w - bar * 2 - 30)
 }
 
 // The run's last finished lines, then its step as typed so far with a cursor after it.
@@ -276,6 +294,17 @@ function drawLines(c: CanvasRenderingContext2D, face: MonitorFace, run: Run | un
   c.font = `500 6.5px ${FONT}`
   c.fillStyle = TONE.status
   c.fillText(run?.name ?? '', bar + 4, h - bar - status / 2 + 0.3, w * 0.55)
+}
+
+// The page a scout reads on this monitor, the host in its title bar as the overlay showed it.
+function hostOn(face: MonitorFace, screens: readonly DeskScreenView[]): string | undefined {
+  const shown = screens.find(
+    ({ rect }) =>
+      Math.abs(rect.x + rect.w / 2 - face.slot.x) <= SLOT_MATCH_PX &&
+      Math.abs(rect.y + rect.h - face.slot.y) <= SLOT_MATCH_PX
+  )
+
+  return shown?.content.kind === 'host' ? shown.content.host : undefined
 }
 
 function releaseFaces(monitors: MonitorFaces): void {
