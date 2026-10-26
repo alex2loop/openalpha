@@ -277,9 +277,9 @@ function tabQuadOf(
   at: { readonly props: FloorProps | undefined; readonly cell: Rect }
 ): Quad | undefined {
   const screen = at.props?.screens.find(
-    ({ at: spot }) =>
-      Math.abs(spot[0] - row.at.x) <= SCREEN_MATCH_PX &&
-      Math.abs(spot[2] - row.at.y) <= SCREEN_MATCH_PX
+    ({ slot }) =>
+      Math.abs(slot.x - row.at.x) <= SCREEN_MATCH_PX &&
+      Math.abs(slot.y - row.at.y) <= SCREEN_MATCH_PX
   )
 
   if (screen === undefined) {
@@ -288,19 +288,20 @@ function tabQuadOf(
 
   const [x, y, z] = screen.at
   const [w, h, d] = screen.size
-  const front = z + d / 2 + FACE_LIFT_PX
+  const up = { y: Math.cos(screen.tilt), z: Math.sin(screen.tilt) }
+  const out = { y: -Math.sin(screen.tilt), z: Math.cos(screen.tilt) }
+  const lift = d / 2 + FACE_LIFT_PX
+  const front = { y: y + out.y * lift, z: z + out.z * lift }
 
   return {
     x: [x - w / 2, x + w / 2],
-    y: [y - h / 2, y + h / 2],
-    z: [front, front],
+    y: [front.y - (up.y * h) / 2, front.y + (up.y * h) / 2],
+    z: [front.z - (up.z * h) / 2, front.z + (up.z * h) / 2],
     isUpright: true,
     cell: at.cell,
   }
 }
 
-// Corners counter-clockwise as the camera sees them; the atlas's top row is the face's top (or its
-// far edge, lying down).
 function writeQuad(out: { readonly position: number[]; readonly uv: number[] }, quad: Quad): void {
   const [x0, x1] = [toUnits(quad.x[0]), toUnits(quad.x[1])]
   const [y0, y1] = [toUnits(quad.y[0]), toUnits(quad.y[1])]
@@ -310,7 +311,7 @@ function writeQuad(out: { readonly position: number[]; readonly uv: number[] }, 
   const vTop = 1 - quad.cell.y / DESK_ATLAS.h
   const vBottom = 1 - (quad.cell.y + quad.cell.h) / DESK_ATLAS.h
   const corners = quad.isUpright
-    ? [x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0]
+    ? [x0, y0, z0, x1, y0, z0, x1, y1, z1, x0, y1, z1]
     : [x0, y0, z0, x0, y0, z1, x1, y0, z1, x1, y0, z0]
   const uvs = quad.isUpright
     ? [u0, vBottom, u1, vBottom, u1, vTop, u0, vTop]

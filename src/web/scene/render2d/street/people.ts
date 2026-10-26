@@ -7,7 +7,7 @@ import {
   paintHat,
   paintUmbrella,
 } from '@/web/scene/render2d/street/people-gear'
-import { PERSON_BOX } from '@/web/scene/render2d/street/rider-art'
+import { PERSON_BOX, STREET_PEOPLE } from '@/web/scene/render2d/street/rider-art'
 import { paintGroundShadow } from '@/web/scene/render2d/street/shadow'
 import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/sprite-key'
 import { DARK_STEPS } from '@/web/scene/render2d/street/tone'
@@ -31,15 +31,23 @@ import {
 type Rect4 = readonly [number, number, number, number]
 
 const PERSON_PREFIX = 'person'
-const SKINS = LOOK_PARTS.body.map((body) => RAMP.skin[body][1])
-const SHIRTS = LOOK_PARTS.shirt.map((shirt) => RAMP.shirt[shirt][1])
+// A passer-by's colours come from the street palette; an office person keeps their own, listed
+// first in each palette.
+const STREET = STREET_PEOPLE
+const OWN_SKINS = LOOK_PARTS.body.map((body) => RAMP.skin[body][1])
+const OWN_SHIRTS = LOOK_PARTS.shirt.map((shirt) => RAMP.shirt[shirt][1])
 const HAIR_TONES = Object.keys(RAMP.hair) as readonly HairTone[]
-const HAIRS = HAIR_TONES.map((tone) => RAMP.hair[tone][1])
+const OWN_HAIRS = HAIR_TONES.map((tone) => RAMP.hair[tone][1])
 const PANTS_TONES = Object.keys(RAMP.pants) as readonly PantsTone[]
-const PANTS = PANTS_TONES.map((tone) => RAMP.pants[tone][1])
+const OWN_PANTS = PANTS_TONES.map((tone) => RAMP.pants[tone][1])
+const SKINS = [...OWN_SKINS, ...STREET.skins]
+const SHIRTS = [...OWN_SHIRTS, ...STREET.shirts]
+const HAIRS = [...OWN_HAIRS, ...STREET.hairs]
+const PANTS = [...OWN_PANTS, ...STREET.pants]
 // Plain backpacks; pupils wear a white shirt and dark trousers.
 const PACKS = ['#C9544A', '#3F7FC5', '#E0A13A', '#5CA27A', '#8E5BB5'] as const
-const PUPIL_PANTS = 1
+// A pupil wears the street's navy trousers.
+const PUPIL_PANTS = OWN_PANTS.length + 3
 const FRAMES = 7
 // Bits of a passer-by's look seed each colour is drawn from.
 const LOOK_BITS = Object.freeze({ hair: 2, shirt: 4, pants: 7, pack: 9 })
@@ -195,10 +203,13 @@ function tonesOf(person: PersonView, into: { -readonly [K in keyof Tones]: numbe
     return
   }
 
-  into.skin = look % SKINS.length
-  into.hair = (look >>> LOOK_BITS.hair) % HAIRS.length
-  into.shirt = (look >>> LOOK_BITS.shirt) % SHIRTS.length
-  into.pants = person.kind === 'pupil' ? PUPIL_PANTS : (look >>> LOOK_BITS.pants) % PANTS.length
+  into.skin = OWN_SKINS.length + (look % STREET.skins.length)
+  into.hair = OWN_HAIRS.length + ((look >>> LOOK_BITS.hair) % STREET.hairs.length)
+  into.shirt = OWN_SHIRTS.length + ((look >>> LOOK_BITS.shirt) % STREET.shirts.length)
+  into.pants =
+    person.kind === 'pupil'
+      ? PUPIL_PANTS
+      : OWN_PANTS.length + ((look >>> LOOK_BITS.pants) % STREET.pants.length)
 }
 
 // Everything the picture depends on, packed into one number, the detail level its lowest digit.

@@ -1,19 +1,19 @@
+/* In a column it spans the row with even options (the mockup's sub-tabs); in a flex row, such as
+   the header, it takes its options' width. */
 .seg {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
-  min-height: var(--controlH);
   min-inline-size: 0;
   margin: 0 0 var(--s2);
   padding: 2px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--controlRadius);
   background: var(--sunken);
 }
 
 .seg button {
   flex: 1;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border: 0;
   border-radius: 6px;
   background: none;
@@ -31,6 +31,29 @@
 }
 
 .seg button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* A person's sections: the mockup's underlined tabs over a rule. */
+.seg.is-tabs {
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.seg.is-tabs button {
+  flex: none;
+  padding: 6px 10px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+
+.seg.is-tabs button.is-on {
+  border-bottom-color: var(--ink);
+  background: none;
+  box-shadow: none;
 }

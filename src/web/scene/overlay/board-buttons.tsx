@@ -53,7 +53,7 @@ function RoomBoards({ renderer }: { readonly renderer: SceneRenderer }) {
   const libRun = status.get('lib')?.runs[0]
   const storeRun = status.get('store')?.runs[0]
   const meetLine = debateLine(meetRun)
-  const libLine = questionLine(libRun?.progress?.params)
+  const libLine = questionLine(libRun)
   const storeLine = storeBoardLine(storeRun?.progress?.params, status.get('store')?.subject)
 
   return (

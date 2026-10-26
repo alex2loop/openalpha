@@ -83,7 +83,9 @@ export function disposeStreetPlanes(planes: StreetPlanes): void {
 }
 
 function createPlane(spec: { readonly isTransparent: boolean }): StreetPlane {
+  // The street is the world outside the glass: no fog over it, as the mockup paints it apart.
   const material = new MeshBasicMaterial({
+    fog: false,
     toneMapped: false,
     transparent: spec.isTransparent,
     depthWrite: !spec.isTransparent,

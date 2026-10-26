@@ -19,6 +19,19 @@
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--pop);
+  animation: modal-in 0.16s ease-out both;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-dialog {
+    animation: none;
+  }
 }
 
 .modal-dialog.is-wide {
@@ -56,8 +69,9 @@
 .modal-foot {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: var(--s1);
+  gap: 6px;
   padding: var(--s2) var(--s3);
   border-top: 1px solid var(--border);
 }
@@ -65,8 +79,8 @@
 .icon-button {
   display: grid;
   place-items: center;
-  width: var(--controlH);
-  height: var(--controlH);
+  width: var(--headerControlH);
+  height: var(--headerControlH);
   border: 0;
   border-radius: 8px;
   background: none;

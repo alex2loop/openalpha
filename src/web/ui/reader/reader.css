@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--s3);
-  background: var(--scrim);
+  background: var(--readerScrim);
 }
 
 .reader-paper {

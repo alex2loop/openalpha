@@ -36,7 +36,8 @@
 
 .popover-foot {
   display: flex;
-  padding: var(--s1) 14px;
+  gap: var(--s1);
+  padding: 10px 14px;
   border-top: 1px solid var(--border);
 }
 

@@ -1,6 +1,14 @@
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import { type Box, box, type Spot } from '@/web/scene/render3d/boxes'
 import { CREW_RECIPES, frontDeskThings } from '@/web/scene/render3d/crew-props'
+import {
+  type DeskFace,
+  type DeskLamp,
+  deskThings,
+  dressFloor,
+  meetingThings,
+  monitorOf,
+} from '@/web/scene/render3d/desk-dressing'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import {
   CARD,
@@ -25,6 +33,10 @@ export interface FloorProps {
   readonly lamps: Lamp[]
   /** The pieces hung on a wall's band, apart, so each can fade with the wall that holds it. */
   readonly hung: HungPiece[]
+  /** The desk lamps, whose shades light with their room. */
+  readonly deskLamps: DeskLamp[]
+  /** The small painted faces on desks: StandBy phones and the calendar. */
+  readonly faces: DeskFace[]
 }
 
 /** A piece hung on a wall: its left edge, the z of the wall's south face, and its boxes. */
@@ -37,7 +49,16 @@ interface HungPiece {
 interface Screen {
   readonly at: readonly [x: number, y: number, z: number]
   readonly size: readonly [w: number, h: number, d: number]
+  /** How far the face leans back, radians about x. */
+  readonly tilt: number
+  /** The monitor's back, leaning with its face. */
+  readonly back: {
+    readonly at: readonly [x: number, y: number, z: number]
+    readonly size: readonly [w: number, h: number, d: number]
+  }
   readonly seat: Point
+  /** The computer's foot on the floor, where a desk piece names the monitor it covers. */
+  readonly slot: Point
 }
 
 interface Lamp {
@@ -67,22 +88,28 @@ const PHONE_ON_DESK_PX = 4.5
 const PHONE_PX = 1.6
 const COUNTER_PX = 13
 const MACHINE_TONE = '#9DB0CC'
+const COPIER_SCREEN_BASE = '#7C8394'
 const TANK_WATER = '#8CCBEA'
 const DESK_TOP_PX = 2
 const LEG_PX = 2
 const SEAT_PX = 7
 const CHAIR_BACK_PX = 14
-const MONITOR_BASE_PX = 15
-const MONITOR_PX = 9
-const LAMP_SHADE = Object.freeze({ w: 10, h: 8, y: 50 })
-const LAMP_BASE = Object.freeze({ w: 8, h: 2 })
-const LAMP_POLE = 1.6
-// The seat a screen's worker sits at stands this far south of the monitor.
-const SCREEN_SEAT_DZ = 8
+// The mockup's floor lamp: the shade's centre stands at 52 px.
+const LAMP_SHADE = Object.freeze({ w: 12.8, h: 8.8, y: 47.6 })
+const LAMP_BASE = Object.freeze({ w: 8, h: 1.5 })
+const LAMP_POLE = 2
 
 /** The furniture of `floor`, built once per floor from `world/props`. */
 export function buildFloorProps(floor: FloorId): FloorProps {
-  const built: FloorProps = { rooms: new Map(), glass: [], screens: [], lamps: [], hung: [] }
+  const built: FloorProps = {
+    rooms: new Map(),
+    glass: [],
+    screens: [],
+    lamps: [],
+    hung: [],
+    deskLamps: [],
+    faces: [],
+  }
 
   for (const prop of propsOn(floor)) {
     const out = built.rooms.get(prop.room) ?? []
@@ -95,6 +122,8 @@ export function buildFloorProps(floor: FloorId): FloorProps {
       RECIPES[prop.kind]?.({ prop, out, floor: built })
     }
   }
+
+  dressFloor(floor, built)
 
   return built
 }
@@ -111,8 +140,17 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     deskOf(WOOD)(job)
     frontDeskThings(job)
   },
-  desk: deskOf(WOOD),
-  table: (job) => deskOf(tableTones(job.prop))(job),
+  desk: (job) => {
+    deskOf(WOOD)(job)
+    deskThings(job)
+  },
+  table: (job) => {
+    deskOf(tableTones(job.prop))(job)
+
+    if (job.prop.room === 'meet') {
+      meetingThings(job)
+    }
+  },
   chair: chair,
   shelf: shelf,
   books: ({ prop, out }) => {
@@ -120,7 +158,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
       out.push(box(spot(prop, [i * 2, 2], i), tone, true))
     }
   },
-  computer: computer,
+  computer: monitorOf,
   printer: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height - 2]), METAL[1], true))
     out.push(box(spot(prop, [prop.height - 2, 2], 1), METAL[0], true))
@@ -128,6 +166,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
   copier: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height]), PROP_TONES.copier[1], true))
     out.push(box(spot(prop, [prop.height - 3, 3], 1), PROP_TONES.copier[0], true))
+    out.push(box([prop.rect.x + 9, prop.rect.y + 8, 8, 5, prop.height, 1.4], COPIER_SCREEN_BASE))
   },
   rack: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height]), RACK_TONE, true))
@@ -309,20 +348,6 @@ function shelf({ prop, out }: Build): void {
       )
     })
   }
-}
-
-// A monitor on its stand; the screen face is drawn apart so it can light up.
-function computer({ prop, out, floor }: Build): void {
-  const { x, y, w, h } = prop.rect
-  const cx = x + w / 2
-
-  out.push(box([cx - 1, y, 2, h, MONITOR_BASE_PX - 1, 2], SCREEN_BEZEL))
-  out.push(box([x, y, w, h, MONITOR_BASE_PX, MONITOR_PX], SCREEN_BEZEL, true))
-  floor.screens.push({
-    at: [cx, MONITOR_BASE_PX + MONITOR_PX / 2, y + h + 0.2],
-    size: [w - 2, MONITOR_PX - 2, 0.4],
-    seat: { x: cx, y: y + h + SCREEN_SEAT_DZ },
-  })
 }
 
 function sofa({ prop, out }: Build): void {

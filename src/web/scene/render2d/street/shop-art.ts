@@ -3,7 +3,7 @@ import type { ShopKind } from '@/web/scene/street-types'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import { isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { SHOP_RISE, type ShopSpan } from '@/web/scene/world/frontage'
-import { isAllDay } from '@/web/scene/world/regions'
+import { isAllDay, type ShopSign } from '@/web/scene/world/regions'
 import { formatHourOfDay } from '@/web/text/time'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -38,23 +38,27 @@ const GOODS = ['#E8643A', '#4E9FD1', '#F2C94C', '#6FBF73', '#C95A8A'] as const
 const SHELF = '#7C7468'
 const NOTE = Object.freeze({ paper: '#F3F0E6', ink: '#2A2F3F', minWidth: 8, maxWidth: 8.8 })
 const OPEN247 = '#D8453B'
+// A pharmacy's sign carries a cross before its word.
+const CROSS_SHIFT = 1.6
 
-/** A shop front's colours: its sign band and the ink on it, its awning stripes, and the tube
- *  that lights round its sign after dusk. */
+// The tube that lights round a sign after dusk, by kind.
+const NEON: Readonly<Partial<Record<ShopKind, string>>> = Object.freeze({
+  bar: '#FF5FA2',
+  cafe: '#FFC24A',
+  pharmacy: '#4DFF9A',
+  bank: '#7DE3A6',
+  food: '#FF8A4D',
+  store: '#FFFFFF',
+})
+const PLAIN_SIGN: ShopSign = Object.freeze({ band: '#8A93A6', ink: '#FFFFFF' })
+const TABLE = Object.freeze({ leg: '#6B6B75', top: '#F2EFE6', minWidth: 10, at: [0.27, 0.74] })
+
+/** A shop front's colours: its sign band and the ink on it, and its awning stripes. */
 interface KindLook {
   readonly band: string
   readonly ink: string
   readonly awning: readonly [string, string]
-  readonly neon?: string
 }
-
-const KIND_LOOKS: Readonly<Partial<Record<ShopKind, KindLook>>> = Object.freeze({
-  cafe: { band: '#6B4A35', ink: '#FFF3DC', awning: ['#8A5A3C', '#F2E6CF'], neon: '#FFC24A' },
-  store: { band: '#2A9D8F', ink: '#FFFFFF', awning: ['#2A9D8F', '#F4F1E8'], neon: '#FFFFFF' },
-  pharmacy: { band: '#2E9E57', ink: '#FFFFFF', awning: ['#2E9E57', '#FFFFFF'], neon: '#4DFF9A' },
-  food: { band: '#C94A2B', ink: '#FFF3E0', awning: ['#C94A2B', '#F6E7CB'], neon: '#FF8A4D' },
-  bank: { band: '#2F4C7E', ink: '#FFFFFF', awning: ['#2F4C7E', '#8A93A6'], neon: '#7DE3A6' },
-})
 
 /** One shop front to paint, with `g` standing at the front's foot (its left end, on the pavement
  *  line): the span, whether it serves, the dark, the detail, and the front's word (none for a
@@ -72,7 +76,7 @@ interface ShopFront {
   readonly g: CanvasRenderingContext2D
   readonly shop: ShopPaint
   readonly w: number
-  readonly look: KindLook | undefined
+  readonly look: KindLook
   readonly isLit: boolean
   tone(hex: string, share: number): string
 }
@@ -87,7 +91,7 @@ export function paintShop(g: CanvasRenderingContext2D, shop: ShopPaint): void {
     g,
     shop,
     w: span.w,
-    look: KIND_LOOKS[kind],
+    look: lookOf(span.row.sign ?? PLAIN_SIGN),
     isLit: shop.isOpen && shop.dark > LIT_FROM_DARK + (Math.round(span.x) % LIT_BUCKETS) * LIT_STEP,
     tone: (hex, share) => mixTone(hex, NIGHT_TONE, shop.dark * share),
   }
@@ -100,9 +104,7 @@ export function paintShop(g: CanvasRenderingContext2D, shop: ShopPaint): void {
     return
   }
 
-  if (front.look !== undefined) {
-    paintSign(front)
-  }
+  paintSign(front)
 
   const isMoving = shop.drop !== undefined && shop.drop > 0
 
@@ -116,6 +118,35 @@ export function paintShop(g: CanvasRenderingContext2D, shop: ShopPaint): void {
 
   g.fillStyle = 'rgba(0,0,0,.18)'
   g.fillRect(0, 1.4, span.w, 0.6)
+
+  if (span.row.tables === true && shop.isOpen && shop.detail > 0 && span.w >= TABLE.minWidth) {
+    paintTables(front)
+  }
+}
+
+function lookOf(sign: ShopSign): KindLook {
+  return { band: sign.band, ink: sign.ink, awning: sign.awning ?? [sign.band, sign.ink] }
+}
+
+// Two café tables out on the pavement, a stool either side of each.
+function paintTables(front: ShopFront): void {
+  const { g, w, look } = front
+
+  for (const share of TABLE.at) {
+    const x = w * share
+
+    g.fillStyle = front.tone(TABLE.leg, 0.5)
+    g.fillRect(x - 0.15, 3.4, 0.3, 1.2)
+    g.fillStyle = front.tone(look.awning[0], 0.5)
+    g.fillRect(x - 2.4, 3.6, 0.8, 0.9)
+    g.fillRect(x - 2.4, 2.8, 0.8, 0.5)
+    g.fillRect(x + 1.6, 3.6, 0.8, 0.9)
+    g.fillRect(x + 1.6, 2.8, 0.8, 0.5)
+    g.fillStyle = front.tone(TABLE.top, 0.5)
+    g.beginPath()
+    g.ellipse(x, 3.4, 1.4, 0.7, 0, 0, Math.PI * 2)
+    g.fill()
+  }
 }
 
 // A dark opening between two fronts; a light far in after dusk.
@@ -137,11 +168,6 @@ function paintAlley(front: ShopFront): void {
 // and, lit, a glow and the kind's tube.
 function paintSign(front: ShopFront): void {
   const { g, w, look, shop } = front
-
-  if (look === undefined) {
-    return
-  }
-
   const tone = signTone(front)
 
   if (front.isLit) {
@@ -154,16 +180,24 @@ function paintSign(front: ShopFront): void {
   g.fillStyle = tone(look.band)
   g.fillRect(0, TOP, w, SIGN_H)
 
-  if (shop.detail === 0 || shop.word === undefined) {
+  if (shop.detail === 0) {
     g.fillStyle = tone(look.ink)
     g.fillRect(w * 0.22, TOP + SIGN_H / 2 - 0.4, w * 0.56, 0.8)
-  } else {
+  } else if (shop.word !== undefined) {
+    const cross = shop.span.row.kind === 'pharmacy' ? CROSS_SHIFT : 0
+
+    if (cross > 0) {
+      g.fillStyle = tone(look.ink)
+      g.fillRect(1.1, TOP + SIGN_H / 2 - 1, 0.5, 2)
+      g.fillRect(0.35, TOP + SIGN_H / 2 - 0.25, 2, 0.5)
+    }
+
     paintLabel(g, shop.word, {
-      x: w / 2,
+      x: w / 2 + cross,
       y: TOP + SIGN_H / 2 + 0.1,
       size: Math.min(2.3, ((w - 1.6) / Math.max(4, shop.word.length)) * 1.9),
       colour: tone(look.ink),
-      maxW: w - 1.6,
+      maxW: w - 1.6 - cross,
     })
   }
 
@@ -180,11 +214,11 @@ function signTone(front: ShopFront): (hex: string) => string {
   return (hex) => (isLit ? hex : mixTone(hex, NIGHT_TONE, share + shop.dark * 0.5))
 }
 
-// A glow on the pavement under the sign, then the kind's tube round it: neon for a café or food
+// A glow on the pavement under the sign, then the kind's tube round it: neon for a café or bar
 // front, the green cross of a pharmacy, a strip on a bank.
 function paintNeon(front: ShopFront): void {
-  const { g, w, look, shop } = front
-  const colour = look?.neon
+  const { g, w, shop } = front
+  const colour = NEON[shop.span.row.kind]
 
   if (colour === undefined) {
     return
@@ -201,10 +235,18 @@ function paintNeon(front: ShopFront): void {
 
   switch (shop.span.row.kind) {
     case 'cafe':
-    case 'food':
+    case 'bar':
       g.strokeStyle = colour
       g.lineWidth = 0.35
+      g.lineJoin = 'round'
       g.strokeRect(0.7, TOP + 0.5, w - 1.4, SIGN_H - 1)
+
+      if (shop.detail > 0) {
+        g.globalAlpha = 0.4
+        g.lineWidth = 1
+        g.strokeRect(0.7, TOP + 0.5, w - 1.4, SIGN_H - 1)
+        g.globalAlpha = 1
+      }
       return
     case 'pharmacy':
       g.fillRect(0.9, cy - 1.15, 0.8, 2.3)
@@ -226,7 +268,7 @@ function paintOpenFront(front: ShopFront): void {
   const kind = shop.span.row.kind
   const windowH = -WINDOW_TOP
 
-  if (look !== undefined && kind !== 'bank') {
+  if (kind !== 'bank') {
     const stripes = Math.max(2, Math.round(w / 2.4))
 
     for (let i = 0; i < stripes; i++) {
@@ -272,17 +314,21 @@ function paintInterior(front: ShopFront, windowH: number): void {
       g.fillRect(w - 4.2, WINDOW_TOP + 0.8, 3, windowH - 1.6)
       g.fillStyle = front.isLit ? '#7DE3A6' : front.tone('#3F6F55', 0.5)
       g.fillRect(w - 3.7, WINDOW_TOP + 1.4, 2, 1.2)
+      g.fillStyle = front.tone('#8A93A6', 0.5)
+      g.fillRect(1.4, WINDOW_TOP + windowH - 1.2, w - 6.4, 0.5)
       return
     case 'pharmacy':
       g.fillStyle = front.tone('#E9EEF0', 0.5)
       g.fillRect(1.4, WINDOW_TOP + 0.9, w - 2.8, 0.45)
       g.fillRect(1.4, WINDOW_TOP + 2.9, w - 2.8, 0.45)
-      g.fillStyle = front.tone(look?.band ?? shelf, 0.5)
+      g.fillStyle = front.tone(look.band, 0.5)
       g.fillRect(2, WINDOW_TOP + 1.6, w * 0.3, 0.35)
       return
     default:
       g.fillStyle = front.tone('#2A2F3F', 0.5)
       g.fillRect(1.8, WINDOW_TOP + 0.8, Math.max(2, w / 2 - 3.2), 1.7)
+      g.fillStyle = front.tone(look.awning[0], 0.5)
+      g.fillRect(2.3, WINDOW_TOP + 1.2, Math.max(1, w / 2 - 4.2), 0.35)
       g.fillStyle = front.tone('#8A6B4E', 0.5)
       g.fillRect(1, WINDOW_TOP + windowH - 1.6, w - 2, 1.6)
   }

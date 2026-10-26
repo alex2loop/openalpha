@@ -23,27 +23,11 @@
   margin-top: 8px;
 }
 
-.tile {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--c) var(--tile-mix), transparent);
-  color: var(--c);
-}
-
-.tile svg {
-  width: 12px;
-  height: 12px;
-}
-
 .strip {
   display: flex;
   align-items: center;
   gap: var(--s1);
-  margin-bottom: var(--s1);
+  margin: -2px 0 10px;
   padding: 7px 10px;
   border-radius: 8px;
   font-size: 12px;
@@ -72,28 +56,29 @@
   color: var(--ink2);
 }
 
+.close-note {
+  margin-bottom: 10px;
+}
+
 .needs-bar {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--s1);
   width: 100%;
   margin-bottom: var(--s2);
   padding: 10px var(--s2);
-  border: 1px solid var(--caution);
+  border: 1px solid var(--badgeStop);
   border-radius: 12px;
-  background: var(--cautionBg);
-  color: var(--caution);
-  font-size: 12.5px;
+  background: var(--problemTint);
+  color: var(--problemText);
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
 
 .needs-bar:hover {
   filter: brightness(0.97);
-}
-
-.needs-bar span:last-child {
-  font-weight: 600;
 }
 
 .row-list {
@@ -111,6 +96,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.row b {
+  font-weight: 500;
+}
+
 .row:first-child {
   border-top: 0;
 }
@@ -126,6 +115,39 @@
 .row-note {
   color: var(--ink2);
   font-size: 12px;
+}
+
+.todo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: var(--s1) 0;
+  border-top: 1px solid var(--border);
+}
+
+.todo:first-child {
+  border-top: 0;
+}
+
+.todo b {
+  display: block;
+  font-weight: 500;
+}
+
+.todo .tile {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--controlSmRadius);
+}
+
+.todo .tile svg.icon {
+  width: 14px;
+  height: 14px;
+}
+
+.todo.is-breach,
+.todo.is-breach .meta {
+  color: var(--problemText);
 }
 
 .pill {
@@ -147,6 +169,11 @@
   color: var(--down);
 }
 
+.pill.is-flat {
+  background: var(--sunken);
+  color: var(--ink2);
+}
+
 .market-section + .market-section {
   margin-top: var(--s2);
 }
@@ -159,8 +186,8 @@
 }
 
 .big-figure {
-  font-size: 20px;
-  font-weight: 650;
+  font-size: 22px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -177,7 +204,7 @@
 }
 
 .news-item b {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 a.news-item:hover b {
@@ -187,7 +214,7 @@ a.news-item:hover b {
 .regime-tag {
   display: inline-block;
   margin-bottom: 4px;
-  padding: 2px 9px;
+  padding: 2px 8px;
   border-radius: 10px;
   background: var(--sunken);
   font-size: 12px;
@@ -207,29 +234,35 @@ a.news-item:hover b {
 .steps {
   display: flex;
   flex-direction: column;
-  gap: var(--s2);
 }
 
 .step {
   display: flex;
-  gap: 10px;
+  gap: var(--s2);
+  padding: var(--s2) 0;
+  border-top: 1px solid var(--border);
+}
+
+.step:first-child {
+  border-top: 0;
 }
 
 .step-num {
   display: grid;
   flex: none;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--sunken);
+  color: var(--ink2);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .step.is-done .step-num {
-  background: var(--upTint);
-  color: var(--up);
+  background: var(--ink);
+  color: var(--canvas);
 }
 
 .step-num svg {
@@ -253,8 +286,8 @@ a.news-item:hover b {
 }
 
 .step-optional {
-  margin-left: 6px;
-  color: var(--ink3);
-  font-size: 11px;
+  margin-left: 4px;
+  color: var(--ink2);
+  font-size: 11.5px;
   font-weight: 400;
 }

@@ -7,7 +7,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 9px 0;
+  padding: 7px 0;
   border-top: 1px solid var(--border);
   font-size: 12.5px;
 }
@@ -20,6 +20,13 @@
 .activity-entry > .fold {
   margin-top: 0;
   border-top: 0;
+}
+
+.activity-time {
+  flex: none;
+  width: 38px;
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
 }
 
 .activity-main {

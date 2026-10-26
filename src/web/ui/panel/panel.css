@@ -12,61 +12,58 @@
   width: auto;
 }
 
-.panel-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: var(--panelRailW);
-  padding-top: var(--s1);
-  border-left: 1px solid var(--border);
-  background: var(--surface);
-}
-
+/* The tabs as sidebar pills, the collapse arrow at the end, and the way back under them. */
 .panel-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  padding: 0 var(--s1) 0 var(--s2);
+  padding: 4px 14px 0;
   border-bottom: 1px solid var(--border);
 }
 
 .panel-tabs {
   display: flex;
   flex: 1;
+  align-items: center;
   gap: 2px;
   min-width: 0;
+  margin-top: var(--s1);
+  padding-bottom: var(--s1);
   container-type: inline-size;
 }
 
 .panel-tab {
   display: inline-flex;
-  flex: none;
   align-items: center;
-  gap: 4px;
-  padding: 10px 6px;
-  white-space: nowrap;
+  gap: 5px;
+  padding: 5px 10px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--controlSmRadius);
   background: none;
   color: var(--ink2);
   font-size: 12.5px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .panel-tab:hover {
-  color: var(--ink);
+  background: var(--sunken);
 }
 
 .panel-tab.is-active {
-  border-bottom-color: var(--ink);
+  background: var(--sunken);
   color: var(--ink);
   font-weight: 600;
 }
 
-.panel-tab svg {
-  width: 15px;
-  height: 15px;
+.panel-tab svg.icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ink);
+}
+
+.panel-tabs.is-compact .panel-tab {
+  padding-inline: 5px;
 }
 
 .panel-tabs.is-compact .panel-tab-label {
@@ -82,50 +79,100 @@
 }
 
 .panel-tab-count {
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: var(--badgeNeed);
-  color: var(--badgeNeedInk);
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--sunken);
+  color: var(--ink2);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 18px;
-  text-align: center;
 }
 
-.back-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px var(--s2);
+.panel-tab.is-active .panel-tab-count {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.panel-collapse {
+  margin-left: auto;
+  padding: 6px;
   border: 0;
-  border-bottom: 1px solid var(--border);
   background: none;
-  color: var(--ink2);
-  font-size: 12.5px;
+  color: var(--ink3);
   cursor: pointer;
 }
 
-.back-row:hover {
-  color: var(--ink);
+.back-row {
+  flex-basis: 100%;
+  padding: 6px 0 var(--s1);
 }
 
-.back-row svg {
-  width: 15px;
-  height: 15px;
+.back-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 4px;
+  border: 0;
+  border-radius: var(--controlSmRadius);
+  background: none;
+  color: var(--ink2);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.back-row button:hover {
+  background: var(--sunken);
+  color: var(--ink);
 }
 
 .panel-body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: var(--s2);
+  padding: var(--s3);
 }
 
 .panel-body > * {
   max-width: var(--panelContentMaxW);
   margin-inline: auto;
+}
+
+/* Folded to a strip of icons, the active one on a sunken pill. */
+.panel-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: var(--panelRailW);
+  padding: var(--s1) 0;
+  border-left: 1px solid var(--border);
+  background: var(--canvas);
+}
+
+.panel-rail .panel-tabs {
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.panel-rail .panel-tabs .panel-tab {
+  position: relative;
+  padding: var(--s1);
+  border-radius: var(--controlRadius);
+}
+
+.panel-rail .panel-tab .panel-tab-count {
+  position: absolute;
+  top: 0;
+  right: -4px;
+}
+
+.panel-rail .panel-collapse {
+  margin: 0;
+  transform: rotate(180deg);
 }
 
 /* The pane bar takes the collapse arrow's place. */

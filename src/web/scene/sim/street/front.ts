@@ -2,7 +2,7 @@ import type { BoardView, FrontView, ShutterView } from '@/web/scene/street-types
 import type { Rect } from '@/web/scene/types'
 import type { RegionPack, ShopRow } from '@/web/scene/world/regions'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
-import { type LedItem, ledItems } from '@/web/scene/data/led'
+import { type BandItem, bandItems, type LedItem, ledItems } from '@/web/scene/data/led'
 import {
   frontageOf,
   isLateNight,
@@ -52,6 +52,7 @@ export interface Front {
   readonly board: { -readonly [K in keyof BoardView]: BoardView[K] }
   readonly guard: GuardState
   items: readonly LedItem[]
+  band: readonly BandItem[]
   range: readonly [number, number]
   lastStepAt: number
   isAnimating: boolean
@@ -67,6 +68,7 @@ export function createFront(): Front {
     board,
     guard: { prev: { x: 0, y: 0 }, at: { x: 0, y: 0 }, heading: 1 },
     items: [],
+    band: [],
     range: [0, 0],
     lastStepAt: 0,
     isAnimating: false,
@@ -107,6 +109,7 @@ export function resetFront(
   front.lastStepAt = at.nowMs
   front.shutters.length = 0
   front.items = ledItems.peek()
+  front.band = bandItems.peek()
 }
 
 /** Moves the shutters, the guard and the board's clock one step; true when something drawn
@@ -117,8 +120,9 @@ export function stepFront(
 ): boolean {
   const minute = minuteNow()
   const items = ledItems.peek()
+  const band = bandItems.peek()
   const dt = Math.min(MAX_STEP_S, Math.max(0, (at.nowMs - front.lastStepAt) / MS_PER_SECOND))
-  const isItemsChanged = items !== front.items
+  const isItemsChanged = items !== front.items || band !== front.band
   const isShutterChanged = at.isReduced
     ? clearShutters(front)
     : syncShutters(front, at.pack.shops, minute)
@@ -127,12 +131,14 @@ export function stepFront(
     : syncGuard(front, { pack: at.pack, minute, dt })
   const isBoardChanged = syncBoard(front, {
     items,
+    band,
     nowMs: at.nowMs,
     minute,
     isReduced: at.isReduced,
   })
 
   front.items = items
+  front.band = band
   front.lastStepAt = at.nowMs
   front.isAnimating =
     front.shutters.length > 0 || isGuardMoved || front.board.pulse > 0 || front.board.scrollPx > 0
@@ -267,13 +273,14 @@ function syncBoard(
   front: Front,
   at: {
     readonly items: readonly LedItem[]
+    readonly band: readonly BandItem[]
     readonly nowMs: number
     readonly minute: number
     readonly isReduced: boolean
   }
 ): boolean {
   const { board } = front
-  const isScrolling = !at.isReduced && at.items.some((item) => item.state === 'open')
+  const isScrolling = !at.isReduced && at.band.some((item) => item.state === 'open')
   const panel =
     at.isReduced || at.items.length < 2 ? 0 : Math.floor(at.nowMs / LED_PANEL_MS) % at.items.length
   const scrollPx = isScrolling ? Math.floor((at.nowMs / MS_PER_SECOND) * LED_SCROLL_PX_S) : 0

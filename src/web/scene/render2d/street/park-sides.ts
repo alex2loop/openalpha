@@ -1,6 +1,6 @@
 import type { CityScene } from '@/web/scene/render2d/street/city-blocks'
 import type { Park } from '@/web/scene/sim/street/park-layout'
-import { paintLamp, paintTree } from '@/web/scene/render2d/street/city-blocks'
+import { paintTree } from '@/web/scene/render2d/street/city-blocks'
 import { paintPond } from '@/web/scene/render2d/street/park-pond'
 import {
   paintBench,
@@ -11,6 +11,14 @@ import {
   shadeOf,
 } from '@/web/scene/render2d/street/park-props'
 import {
+  paintBigTree,
+  paintLawnTexture,
+  paintParkLamp,
+  scatterBigTrees,
+  type TreeArea,
+} from '@/web/scene/render2d/street/park-trees'
+import { mixTone } from '@/web/scene/render2d/street/tone'
+import {
   GYM_MACHINES,
   PARK_FEATURES,
   PARKS,
@@ -18,10 +26,10 @@ import {
   SIDE_PARK,
   SIDE_RINGS,
   SOUTH_PARK,
+  SOUTH_RING,
 } from '@/web/scene/sim/street/park-layout'
 import { WORLD } from '@/web/scene/types'
 import { STREET_BOTTOM } from '@/web/scene/view'
-import { createRng, seedOf } from '@/web/scene/world/rng'
 import { tr } from '@/web/text/tr'
 
 type Side = -1 | 1
@@ -37,24 +45,34 @@ const BED = Object.freeze({
   count: 22,
   turn: 2.399,
 })
-// Trees scattered over each park's far half, clear of its rings and of each other.
-const SCATTER = Object.freeze({
-  side: { count: 12, u0: 50, inset: 8, top: 36 },
-  south: { count: 9, inset: 14, below: 28, above: 60 },
-  tries: 300,
-  apart: 14,
-  ringPad: 8,
-  kinds: 3,
+// Big trees over each park, their crowns clear of the spine, the gates, the rings and the gym.
+const TREES = Object.freeze({
+  side: {
+    count: 30,
+    inset: 8,
+    top: 36,
+    bottom: 8,
+    spine: { u0: 12, u1: 44 },
+    gateU: 14,
+    gateHalf: 9,
+  },
+  south: {
+    count: 16,
+    inset: 14,
+    below: 28,
+    end: 60,
+    endPad: 8,
+    band: { above: 12, below: 16 },
+    stemHalf: 9,
+  },
+  ringPad: { x: 8, top: 10, bottom: 4 },
 })
+const INNER_HEDGE = Object.freeze({ tone: '#4E9568', night: '#1A3226', share: 0.8, in: 1.6 })
+const INNER_HEDGE_STEP = 4.6
+const INNER_HEDGE_R = 2.7
 const HEDGE_IN = 1.4
 
-/** A box trees keep off: centre and half sizes. */
-interface Keep {
-  readonly x: number
-  readonly y: number
-  readonly rx: number
-  readonly ry: number
-}
+type KeepBox = readonly [number, number, number, number]
 
 /** The west park with its pond and tai chi plaza, and the east one with its outdoor gym. */
 export function paintSideParks(scene: CityScene): void {
@@ -65,33 +83,32 @@ export function paintSideParks(scene: CityScene): void {
 function paintSidePark(scene: CityScene, at: { readonly side: Side; readonly park: Park }): void {
   const { side, park } = at
   const x = (u: number): number => parkX(side, u)
-  const { pond, sideBed } = PARK_FEATURES
-  const isWest = side < 0
+  const a = x(0)
+  const b = x(SIDE_PARK.depth)
 
-  if (isWest) {
-    paintPlaza(scene, side)
-  } else {
-    paintGymPad(scene, side)
-  }
-
-  paintPaths(scene, park)
-
-  if (isWest) {
-    paintPond(scene, { x: x(pond.u), y: pond.y, rx: pond.rx, ry: pond.ry })
-  } else {
-    paintBed(scene, { x: x(sideBed.u), y: sideBed.y, rx: sideBed.rx, ry: sideBed.ry })
-    paintGym(scene, side)
-  }
+  paintLawnTexture(
+    scene,
+    { x0: Math.min(a, b), x1: Math.max(a, b), y0: SIDE_PARK.top, y1: STREET_BOTTOM },
+    side < 0 ? 'west' : 'east'
+  )
+  paintFeatures(scene, at)
 
   for (const bench of park.benches) {
     paintBench(scene, bench)
   }
 
+  paintHedgeRow(scene, {
+    from: SIDE_PARK.top,
+    to: STREET_BOTTOM,
+    line: x(SIDE_PARK.depth - INNER_HEDGE.in),
+    isAlongX: false,
+  })
+
   for (const y of SIDE_LAMPS.ys) {
-    paintLamp(scene, { x: x(SIDE_LAMPS.u), y }, side < 0 ? 1 : -1)
+    paintParkLamp(scene, { x: x(SIDE_LAMPS.u), y })
   }
 
-  paintScatter(scene, sideScatterOf(side))
+  paintBigTrees(scene, sideTreesOf(side, park))
   paintHedgeRail(scene, {
     line: x(HEDGE_IN),
     from: SIDE_PARK.top,
@@ -99,6 +116,26 @@ function paintSidePark(scene: CityScene, at: { readonly side: Side; readonly par
     isAlongX: false,
     gaps: park.gates.map((gate) => park.nodes[gate]?.y ?? 0),
   })
+}
+
+// The west park's plaza and pond, or the east park's gym pad, flower bed and machines, round the
+// paths.
+function paintFeatures(scene: CityScene, at: { readonly side: Side; readonly park: Park }): void {
+  const { side } = at
+  const x = (u: number): number => parkX(side, u)
+  const { pond, sideBed } = PARK_FEATURES
+
+  if (side < 0) {
+    paintPlaza(scene, side)
+    paintPaths(scene, at.park)
+    paintPond(scene, { x: x(pond.u), y: pond.y, rx: pond.rx, ry: pond.ry })
+    return
+  }
+
+  paintGymPad(scene, side)
+  paintPaths(scene, at.park)
+  paintBed(scene, { x: x(sideBed.u), y: sideBed.y, rx: sideBed.rx, ry: sideBed.ry, tree: 1 })
+  paintGym(scene, side)
 }
 
 function paintPlaza(scene: CityScene, side: Side): void {
@@ -161,28 +198,24 @@ export function paintSouthPark(scene: CityScene): void {
   const park = PARKS[3]
   const { southBed } = PARK_FEATURES
   const { top, promenade } = SOUTH_PARK
-  const { south } = SCATTER
 
+  const end = STREET_BOTTOM - TREES.south.end
+
+  paintLawnTexture(scene, { x0: 0, x1: WORLD.w, y0: top, y1: end }, 'south')
   paintPaths(scene, park)
-  paintBed(scene, { x: southBed.x, y: promenade, rx: southBed.rx, ry: southBed.ry })
+  paintBed(scene, { x: southBed.x, y: promenade, rx: southBed.rx, ry: southBed.ry, tree: 2 })
 
   for (const bench of park.benches) {
     paintBench(scene, bench)
   }
 
+  paintHedgeRow(scene, { from: 1, to: WORLD.w, line: end - INNER_HEDGE.in, isAlongX: true })
+
   for (const x of SOUTH_LAMPS.xs) {
-    paintLamp(scene, { x, y: promenade + SOUTH_LAMPS.dy }, 1)
+    paintParkLamp(scene, { x, y: promenade + SOUTH_LAMPS.dy })
   }
 
-  paintScatter(scene, {
-    seed: park.id,
-    count: south.count,
-    x0: south.inset,
-    x1: WORLD.w - south.inset,
-    y0: promenade + south.below,
-    y1: STREET_BOTTOM - south.above,
-    keep: [],
-  })
+  paintBigTrees(scene, southTreesOf(park))
   paintHedgeRail(scene, {
     line: top + HEDGE_IN,
     from: 1,
@@ -192,10 +225,16 @@ export function paintSouthPark(scene: CityScene): void {
   })
 }
 
-// An oval flower bed with a small tree in it.
+// An oval flower bed with a small tree of look `tree` in it.
 function paintBed(
   scene: CityScene,
-  bed: { readonly x: number; readonly y: number; readonly rx: number; readonly ry: number }
+  bed: {
+    readonly x: number
+    readonly y: number
+    readonly rx: number
+    readonly ry: number
+    readonly tree: number
+  }
 ): void {
   const { g } = scene
 
@@ -224,20 +263,71 @@ function paintBed(
     g.fill()
   }
 
-  paintTree(scene, { x: bed.x, y: bed.y + bed.ry * 0.4 }, 1)
+  paintTree(scene, { x: bed.x, y: bed.y + bed.ry * 0.4 }, bed.tree)
 }
 
-// A side park's far half, clear of the ring round its bed and (west) its pond.
-function sideScatterOf(side: Side): Scatter {
-  const { pond, sideBed } = PARK_FEATURES
-  const { side: area } = SCATTER
-  const a = parkX(side, area.u0)
-  const b = parkX(side, SIDE_PARK.depth - area.inset)
-  const keep: Keep[] = [{ x: parkX(side, sideBed.u), y: sideBed.y, ...SIDE_RINGS.bed }]
+// A row of hedge along a park's inner edge.
+function paintHedgeRow(
+  scene: CityScene,
+  row: {
+    readonly from: number
+    readonly to: number
+    readonly line: number
+    readonly isAlongX: boolean
+  }
+): void {
+  const { g } = scene
+
+  g.fillStyle = mixTone(INNER_HEDGE.tone, INNER_HEDGE.night, scene.dark * INNER_HEDGE.share)
+
+  for (let along = row.from; along < row.to; along += INNER_HEDGE_STEP) {
+    g.beginPath()
+    g.arc(
+      row.isAlongX ? along : row.line,
+      row.isAlongX ? row.line : along,
+      INNER_HEDGE_R,
+      0,
+      Math.PI * 2
+    )
+    g.fill()
+  }
+}
+
+function paintBigTrees(scene: CityScene, area: TreeArea): void {
+  for (const tree of scatterBigTrees(area)) {
+    paintBigTree(scene, tree)
+  }
+}
+
+// A side park's trees keep off its spine path and benches, its gates, the rings round its bed and
+// (west) its pond, and (east) the gym pad.
+function sideTreesOf(side: Side, park: Park): TreeArea {
+  const { pond, sideBed, gymPad } = PARK_FEATURES
+  const { side: area } = TREES
+  const band = (u: readonly [number, number], y: readonly [number, number]): KeepBox => {
+    const a = parkX(side, u[0])
+    const b = parkX(side, u[1])
+
+    return [Math.min(a, b), Math.max(a, b), y[0], y[1]]
+  }
+  const keep: KeepBox[] = [
+    band([area.spine.u0, area.spine.u1], [SIDE_PARK.top, STREET_BOTTOM]),
+    ringBox(parkX(side, sideBed.u), sideBed.y, SIDE_RINGS.bed),
+    ...park.gates.map((gate) => {
+      const y = park.nodes[gate]?.y ?? 0
+
+      return band([0, area.gateU], [y - area.gateHalf, y + area.gateHalf])
+    }),
+  ]
 
   if (side < 0) {
-    keep.push({ x: parkX(side, pond.u), y: pond.y, ...SIDE_RINGS.pond })
+    keep.push(ringBox(parkX(side, pond.u), pond.y, SIDE_RINGS.pond))
+  } else {
+    keep.push(band([gymPad.u0 - 1, gymPad.u1], [gymPad.y0 - 3, gymPad.y1 + 1]))
   }
+
+  const a = parkX(side, area.inset)
+  const b = parkX(side, SIDE_PARK.depth - area.inset)
 
   return {
     seed: side < 0 ? 'west' : 'east',
@@ -245,44 +335,42 @@ function sideScatterOf(side: Side): Scatter {
     x0: Math.min(a, b),
     x1: Math.max(a, b),
     y0: SIDE_PARK.top + area.top,
-    y1: STREET_BOTTOM,
+    y1: STREET_BOTTOM - area.bottom,
     keep,
   }
 }
 
-/** Where a park's trees may stand. */
-interface Scatter {
-  readonly seed: string
-  readonly count: number
-  readonly x0: number
-  readonly x1: number
-  readonly y0: number
-  readonly y1: number
-  readonly keep: readonly Keep[]
+// The south park's trees keep off the promenade, the gates' stems and the garden's ring.
+function southTreesOf(park: Park): TreeArea {
+  const { top, promenade } = SOUTH_PARK
+  const { south } = TREES
+  const keep: KeepBox[] = [
+    [0, WORLD.w, promenade - south.band.above, promenade + south.band.below],
+    ringBox(PARK_FEATURES.southBed.x, promenade, SOUTH_RING),
+    ...park.gates.map((gate): KeepBox => {
+      const x = park.nodes[gate]?.x ?? 0
+
+      return [x - south.stemHalf, x + south.stemHalf, top, promenade]
+    }),
+  ]
+
+  return {
+    seed: 'south',
+    count: south.count,
+    x0: south.inset,
+    x1: WORLD.w - south.inset,
+    y0: promenade + south.below,
+    y1: STREET_BOTTOM - south.end - south.endPad,
+    keep,
+  }
 }
 
-// Seeded places, each clear of the kept boxes and of the trees already placed; north to south.
-function paintScatter(scene: CityScene, area: Scatter): void {
-  const rng = createRng(seedOf('park-trees', area.seed))
-  const trees: { readonly x: number; readonly y: number; readonly kind: number }[] = []
+function ringBox(
+  x: number,
+  y: number,
+  ring: { readonly rx: number; readonly ry: number }
+): KeepBox {
+  const pad = TREES.ringPad
 
-  for (let tries = 0; tries < SCATTER.tries && trees.length < area.count; tries++) {
-    const x = area.x0 + rng.next() * (area.x1 - area.x0)
-    const y = area.y0 + rng.next() * (area.y1 - area.y0)
-    const kind = rng.int(0, SCATTER.kinds - 1)
-    const isKept = area.keep.some(
-      (box) =>
-        Math.abs(x - box.x) < box.rx + SCATTER.ringPad &&
-        Math.abs(y - box.y) < box.ry + SCATTER.ringPad
-    )
-    const isCrowded = trees.some((tree) => Math.hypot(tree.x - x, tree.y - y) < SCATTER.apart)
-
-    if (!(isKept || isCrowded)) {
-      trees.push({ x, y, kind })
-    }
-  }
-
-  for (const tree of trees.sort((a, b) => a.y - b.y)) {
-    paintTree(scene, tree, tree.kind)
-  }
+  return [x - ring.rx - pad.x, x + ring.rx + pad.x, y - ring.ry - pad.top, y + ring.ry + pad.bottom]
 }

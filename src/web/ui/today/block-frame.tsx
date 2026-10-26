@@ -95,10 +95,10 @@ function FailedStrip<T>({ title, reading, failedText }: FailedStripProps<T>) {
   return (
     <div class="strip is-problem" role="alert">
       <span>{failedText ?? failureSentence(title, reading)}</span>
-      <Button size="small" onClick={reading.retry}>
+      <Button kind="tertiary" onClick={reading.retry}>
         {tr('ui.office.common.retry')}
       </Button>
-      <Button size="small" onClick={() => openSettings('data')}>
+      <Button kind="tertiary" onClick={() => openSettings('data')}>
         {tr('ui.office.today.doctor')}
       </Button>
     </div>

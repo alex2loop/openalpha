@@ -1,15 +1,13 @@
 /* One button system: commit (the form's one main action, Ink fill), ai (the brand gradient),
-   secondary (bordered), tertiary (text), destructive (Problem text). Every kind shares the
-   fields' height, radius and type, so a row of fields and buttons lines up. */
+   secondary (bordered), ghost (no frame until hovered), tertiary (a text link with its arrow), destructive (Problem text). A
+   regular button is a field's height; a small one sits inside a row. */
 .btn {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: var(--controlH);
   border: 1px solid var(--border);
-  border-radius: var(--controlRadius);
   background: var(--surface);
   color: var(--ink);
   font-weight: 500;
@@ -19,22 +17,21 @@
 }
 
 .btn-regular {
-  padding: 0 calc(var(--controlPadX) + 4px);
+  height: var(--controlH);
+  padding: 0 var(--controlPadX);
+  border-radius: var(--controlRadius);
   font-size: var(--controlFont);
 }
 
-/* Inside a row: the same height, a tighter label. */
 .btn-small {
-  padding: 0 var(--controlPadX);
+  height: var(--controlSmH);
+  padding: 0 var(--controlSmPadX);
+  border-radius: var(--controlSmRadius);
   font-size: 12px;
 }
 
 .btn:not(:disabled):hover {
   background: var(--sunken);
-}
-
-.btn:not(:disabled):active {
-  transform: translateY(1px);
 }
 
 .btn-commit {
@@ -59,14 +56,28 @@
   filter: brightness(1.08);
 }
 
-.btn-tertiary {
+.btn-ghost {
   border-color: transparent;
   background: transparent;
   color: var(--ink2);
 }
 
+.btn-ghost:not(:disabled):hover {
+  color: var(--ink);
+}
+
+.btn-tertiary {
+  gap: 4px;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink2);
+  font-size: var(--controlFont);
+}
+
 .btn-tertiary:not(:disabled):hover {
-  background: transparent;
+  background: none;
   color: var(--ink);
 }
 
@@ -78,8 +89,13 @@
   background: var(--dangerTint);
 }
 
-/* A button that cannot be pressed keeps its kind, faded, so a main action still reads as one. */
 .btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  border-color: var(--border);
+  background: var(--sunken);
+  color: var(--ink3);
+  cursor: default;
+}
+
+.btn-tertiary:disabled {
+  background: none;
 }

@@ -1,35 +1,24 @@
-import { collapsed, openView, PANEL_ELEMENT_ID } from '@/web/state/panel'
+import { collapsed, PANEL_ELEMENT_ID } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
-import { PanelIcon } from '@/web/ui/kit/icons'
-import { PANEL_TABS } from '@/web/ui/panel/tabs'
+import { CollapseIcon } from '@/web/ui/kit/icons'
+import { Tabs } from '@/web/ui/panel/tabs'
 
-/** The 52 px strip the panel folds into: the way back open, then one icon per tab. */
+/** The 52 px strip the panel folds into: one icon per tab, then the arrow that opens it again. */
 export function Rail() {
   return (
     <div id={PANEL_ELEMENT_ID} class="panel-rail" tabIndex={-1}>
+      <Tabs isCompact={true} />
       <button
         type="button"
-        class="icon-button"
+        class="panel-collapse"
         title={tr('ui.office.panel.expand')}
         aria-label={tr('ui.office.panel.expand')}
         onClick={() => {
           collapsed.value = false
         }}
       >
-        <PanelIcon />
+        <CollapseIcon />
       </button>
-      {PANEL_TABS.map((spec) => (
-        <button
-          key={spec.tab}
-          type="button"
-          class="icon-button"
-          title={spec.label()}
-          aria-label={spec.label()}
-          onClick={() => openView({ tab: spec.tab }, { fresh: true })}
-        >
-          {spec.icon}
-        </button>
-      ))}
     </div>
   )
 }

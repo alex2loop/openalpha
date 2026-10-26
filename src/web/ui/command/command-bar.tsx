@@ -3,6 +3,7 @@ import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { selectAgent } from '@/web/state/agents'
+import { breakpoint } from '@/web/state/breakpoints'
 import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
 import {
   inputText,
@@ -25,7 +26,7 @@ import {
 import { WhoChip } from '@/web/ui/command/who-chip'
 import { Button } from '@/web/ui/kit/button'
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
-import { ChatIcon } from '@/web/ui/kit/icons'
+import { ChatIcon, SlashIcon } from '@/web/ui/kit/icons'
 
 import './command.css'
 
@@ -79,19 +80,30 @@ function Composer() {
             onPick={(option) => pick(option, list)}
           />
         )}
-        <CommandInput inputRef={input} list={list} options={options} />
+        <div class="command-field">
+          <SlashIcon class="command-mark" />
+          <CommandInput inputRef={input} list={list} options={options} />
+          <kbd class="command-key">{COMMAND_PREFIX}</kbd>
+        </div>
         {isNotSent.value && (
           <p class="command-not-sent" role="alert">
             {tr('ui.office.command.notSent')}
           </p>
         )}
       </div>
-      <Button kind="commit" disabled={inputText.value.trim() === ''} onClick={() => send(list)}>
-        {inputText.value.trim().startsWith(COMMAND_PREFIX)
-          ? tr('ui.office.command.run')
-          : resolveSendLabel()}
-      </Button>
+      {breakpoint.value === 'phone' && <SendButton list={list} />}
     </>
+  )
+}
+
+// A phone has no Enter key on every keyboard, so it keeps a button for the same send.
+function SendButton({ list }: { readonly list: ListState }) {
+  const typed = inputText.value.trim()
+
+  return (
+    <Button kind="commit" disabled={typed === ''} onClick={() => send(list)}>
+      {typed.startsWith(COMMAND_PREFIX) ? tr('ui.office.command.run') : resolveSendLabel()}
+    </Button>
   )
 }
 
@@ -129,13 +141,13 @@ function ChatToggle() {
   return (
     <button
       type="button"
-      class="icon-button command-chat"
+      class="btn btn-secondary btn-regular command-chat"
       title={tr('ui.office.chat.toggle')}
-      aria-label={tr('ui.office.chat.toggle')}
       aria-pressed={isChatOpen.value}
       onClick={() => setChatOpen(!isChatOpen.value)}
     >
       <ChatIcon />
+      {tr('ui.office.chat.title')}
       {unread.value && <span class="chat-unread" aria-hidden="true" />}
     </button>
   )

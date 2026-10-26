@@ -38,6 +38,8 @@ export type ShopKind =
   | 'pharmacy'
   | 'food'
   | 'bank'
+  | 'bar'
+  | 'agency'
   | 'lobby'
   | 'alley'
   | 'shutter'

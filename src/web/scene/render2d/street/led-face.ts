@@ -1,8 +1,8 @@
-import type { LedItem } from '@/web/scene/data/led'
+import type { BandItem, LedItem } from '@/web/scene/data/led'
 import { sceneZone } from '@/web/scene/clock/clock'
 import { FONT } from '@/web/scene/sprites/face-text'
 import { LED_TITLE_TONES, stampToneOf } from '@/web/scene/sprites/palette'
-import { formatFixed, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { formatFixed, formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
@@ -43,7 +43,7 @@ interface Reading {
 
 /** The words of the move: its signed percent while the market trades, the lunch word at its
  *  break, "closed" outside its session; a move the wire left out reads as nothing. */
-function readingOf(item: LedItem): Reading {
+function readingOf(item: Pick<LedItem, 'state' | 'changePct'>): Reading {
   if (item.state === 'break') {
     return { move: tr('ui.office.life.lunch'), colour: LED.dim }
   }
@@ -58,16 +58,8 @@ function readingOf(item: LedItem): Reading {
   }
 }
 
-/** The last session's move in its direction colour, for the band's closing prices. */
-export function lastMoveOf(item: LedItem): Reading {
-  return {
-    move: item.changePct === undefined ? '' : formatSignedPercent(item.changePct),
-    colour: directionOf(item),
-  }
-}
-
 // Colour tells the direction only: the page's up and down colours, or dim when flat or unknown.
-function directionOf(item: LedItem): string {
+function directionOf(item: Pick<LedItem, 'changePct'>): string {
   const tone = toneOfPercent(item.changePct)
 
   if (tone === 'flat') {
@@ -260,7 +252,7 @@ function paintLine(
  *  and move in a row, `h` high. Size the canvas with `stripWidthOf` first. */
 export function paintStrip(
   g: CanvasRenderingContext2D,
-  strip: { readonly items: readonly LedItem[]; readonly h: number }
+  strip: { readonly items: readonly BandItem[]; readonly h: number }
 ): void {
   g.font = `${STRIP.weight} ${STRIP.px}px ${FONT}`
   g.textBaseline = 'middle'
@@ -282,7 +274,7 @@ export function paintStrip(
 }
 
 /** The width of one cycle of the scrolling ticker, measured on `g`. */
-export function stripWidthOf(g: CanvasRenderingContext2D, items: readonly LedItem[]): number {
+export function stripWidthOf(g: CanvasRenderingContext2D, items: readonly BandItem[]): number {
   g.font = `${STRIP.weight} ${STRIP.px}px ${FONT}`
 
   return items.reduce((sum, item) => {
@@ -294,7 +286,7 @@ export function stripWidthOf(g: CanvasRenderingContext2D, items: readonly LedIte
 
 function stripPartsOf(
   g: CanvasRenderingContext2D,
-  item: LedItem
+  item: BandItem
 ): {
   readonly level: string
   readonly reading: Reading
@@ -302,7 +294,7 @@ function stripPartsOf(
   readonly levelW: number
   readonly moveW: number
 } {
-  const level = formatFixed(item.level, LEVEL_DIGITS)
+  const level = formatPrice(item.price, item.display)
   const reading = readingOf(item)
 
   return {

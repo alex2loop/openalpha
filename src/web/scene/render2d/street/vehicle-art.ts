@@ -23,14 +23,19 @@ const HEIGHTS = Object.freeze({
 const LIFT = 0.8
 const SHADOW_SHIFT = [0.4, 0.6] as const
 // The cabin as shares of the body: along it, across it, and how far back it sits.
-const CABIN = Object.freeze({ long: 0.56, wide: 0.72, back: 0.05, roofLighten: 0.3 })
 const BUS_CABIN = Object.freeze({ long: 0.92, wide: 0.82, roofLighten: 0.34 })
-const GLASS_H = 1.3
 const BUS_GLASS_H = 2.1
+const BUS_ROUND = Object.freeze({ body: 1.6, roof: 1.2 })
+const BUS_DOOR = Object.freeze({ at: 0.36, w: 0.9, tone: '#10141E' })
+const BUS_SIDE_ROUTE = Object.freeze({
+  back: 1.5,
+  rise: 1.1,
+  size: 1.2,
+  ink: 'rgba(255,255,255,.92)',
+})
 const BUS_WINDOWS = 7
 const WHEEL = Object.freeze({ at: 0.3, r: 0.95, up: 0.95 })
 const LAMP = Object.freeze({ inset: 0.6, w: 0.6, h: 0.9, face: 0.34, faceW: 1, faceH: 0.5 })
-const TAXI_SIGN = Object.freeze({ w: 2.4, h: 0.9, word: 0.55 })
 const ROUTE_BOX = Object.freeze({ w: 2.4, h: 1, word: 0.8, back: 2.6 })
 const TRUCK = Object.freeze({ cab: 4.4, stripe: 0.7, word: 1 })
 const TONES = Object.freeze({
@@ -38,8 +43,6 @@ const TONES = Object.freeze({
   wheel: '#171B26',
   head: '#FFF3C4',
   tail: '#D8453B',
-  taxiSign: '#F4D35E',
-  taxiInk: '#1A1C22',
   routeBox: '#0E1424',
   routeInk: '#FFB84A',
   cab: '#F2F1EC',
@@ -59,31 +62,6 @@ export interface Art {
 }
 
 type Rect4 = readonly [number, number, number, number]
-
-/** A car or taxi seen from the side on the north street, or end on in a side street: body,
- *  cabin and glass, then wheels and lamps from the middle detail up. */
-export function paintCar(art: Art): void {
-  const { vehicle, pack } = art
-  const colours = pack.vehicles.colours
-  const body =
-    vehicle.kind === 'taxi'
-      ? colours.taxi
-      : (colours.car[vehicle.look % colours.car.length] ?? WHITE)
-  const height = vehicle.kind === 'taxi' ? HEIGHTS.taxi : HEIGHTS[vehicle.car]
-  const shape = shapeOf(vehicle, height)
-  const cabin = cabinOf(shape, CABIN)
-
-  paintBody(art, { shape, body, cabin, glassH: GLASS_H, lighten: CABIN.roofLighten })
-
-  if (art.detail > 0) {
-    paintWheels(art, shape)
-    paintLamps(art, shape)
-  }
-
-  if (vehicle.kind === 'taxi') {
-    paintTaxiSign(art, { x: cabin[0] + cabin[2] / 2, y: cabin[1] + cabin[3] / 2 })
-  }
-}
 
 /** A bus: a long body, a band of windows, and its route on the destination box close up. */
 export function paintBus(art: Art): void {
@@ -188,7 +166,7 @@ export function fill(g: CanvasRenderingContext2D, colour: string, rect: Rect4): 
   g.fillRect(rect[0], rect[1], rect[2], rect[3])
 }
 
-interface Shape {
+export interface Shape {
   readonly isSide: boolean
   readonly dir: 1 | -1
   readonly across: number
@@ -197,7 +175,7 @@ interface Shape {
 }
 
 // The drawn extent: along the street on the north street, across it end on in a side street.
-function shapeOf(vehicle: VehicleView, height: number): Shape {
+export function shapeOf(vehicle: VehicleView, height: number): Shape {
   const [len, width] = vehicleSizeOf(vehicle)
   const isSide = isAlongX(vehicle.heading)
   const dir = dirOf(vehicle.heading)
@@ -238,9 +216,15 @@ function paintBody(
   const [x, y, w, h] = at.cabin
 
   fill(g, SHADOW, [-across / 2 + SHADOW_SHIFT[0], -deep / 2 + SHADOW_SHIFT[1], across, deep])
-  fill(g, toneOf(art, at.body), [-across / 2, -deep / 2 - LIFT, across, deep])
+  g.fillStyle = toneOf(art, at.body)
+  g.beginPath()
+  g.roundRect(-across / 2, -deep / 2 - LIFT, across, deep, BUS_ROUND.body)
+  g.fill()
   fill(g, toneOf(art, TONES.glass), [x, y + h, w, at.glassH])
-  fill(g, toneOf(art, mixTone(at.body, WHITE, at.lighten)), [x, y, w, h])
+  g.fillStyle = toneOf(art, mixTone(at.body, WHITE, at.lighten))
+  g.beginPath()
+  g.roundRect(x, y, w, h, BUS_ROUND.roof)
+  g.fill()
 }
 
 function paintWheels(art: Art, shape: Shape): void {
@@ -326,26 +310,26 @@ function paintRoute(art: Art, at: { readonly shape: Shape; readonly cabin: Rect4
     colour: TONES.routeInk,
     maxW: ROUTE_BOX.w,
   })
+
+  if (!shape.isSide) {
+    return
+  }
+
+  const [cx, cy, cw, ch] = at.cabin
+
+  fill(g, toneOf(art, BUS_DOOR.tone), [
+    cx + cw * BUS_DOOR.at,
+    cy + ch + 0.2,
+    BUS_DOOR.w,
+    BUS_GLASS_H - 0.2,
+  ])
+  paintLabel(g, vehicle.route, {
+    x: -shape.dir * BUS_SIDE_ROUTE.back,
+    y: shape.deep / 2 - LIFT - BUS_SIDE_ROUTE.rise - 0.2,
+    size: BUS_SIDE_ROUTE.size,
+    colour: BUS_SIDE_ROUTE.ink,
+    maxW: shape.across / 2,
+  })
 }
 
 // A plain roof sign, its word only close up.
-function paintTaxiSign(art: Art, at: { readonly x: number; readonly y: number }): void {
-  const { g } = art
-
-  fill(g, toneOf(art, TONES.taxiSign), [
-    at.x - TAXI_SIGN.w / 2,
-    at.y - TAXI_SIGN.h / 2,
-    TAXI_SIGN.w,
-    TAXI_SIGN.h,
-  ])
-
-  if (art.detail === 2) {
-    paintLabel(g, tr(art.pack.words.taxi), {
-      x: at.x,
-      y: at.y,
-      size: TAXI_SIGN.word,
-      colour: TONES.taxiInk,
-      maxW: TAXI_SIGN.w,
-    })
-  }
-}

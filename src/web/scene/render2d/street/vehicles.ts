@@ -2,6 +2,8 @@ import type { MessageKey } from '@/i18n'
 import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { StreetSayView, StreetView, VehicleView } from '@/web/scene/street-types'
 import type { Point } from '@/web/scene/types'
+import { CM_ALONG, CM_UP } from '@/web/scene/render2d/street/bike-model'
+import { paintCar } from '@/web/scene/render2d/street/car-art'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import {
@@ -21,7 +23,6 @@ import {
   heightOf,
   isAlongX,
   paintBus,
-  paintCar,
   paintTruck,
 } from '@/web/scene/render2d/street/vehicle-art'
 import { isTwoWheeler } from '@/web/scene/sim/street/flows'
@@ -50,7 +51,12 @@ const HEAD_LIGHT = '#FFF3C4'
 const TAIL_LIGHT = '#FF5A4D'
 const LAMP_ENDS = [1, -1] as const
 const LAMP_PAIR = [-1, 1] as const
-const LAMP_SINGLE = [0] as const
+// A two-wheeler's lamps on the model, in cm along it (side and end on) and up it.
+const BIKE_LAMPS = Object.freeze({
+  head: { along: 64, endAlong: 58, up: 88, dot: 1.4 },
+  tail: { along: -100, endAlong: -100, up: 68, dot: 1 },
+  lift: 0.1,
+})
 // The bubble over whoever says a word, and its lettering.
 const SAY = Object.freeze({ w: 9, h: 4, rise: 8, size: 2, pad: 1, tail: 1 })
 const SAY_TONES = Object.freeze({ fill: '#FFFFFF', edge: '#2B2433', ink: '#2B2433' })
@@ -224,11 +230,16 @@ function paintLights(g: CanvasRenderingContext2D, vehicle: VehicleView, dark: nu
     return
   }
 
+  if (isTwoWheeler(vehicle.kind)) {
+    paintBikeLights(g, vehicle, dark)
+    return
+  }
+
   const [len, width] = vehicleSizeOf(vehicle)
   const isSide = isAlongX(vehicle.heading)
   const ahead = dirOf(vehicle.heading) * len * 0.5
   const across = width * LAMP_SPREAD
-  const sides = isTwoWheeler(vehicle.kind) ? LAMP_SINGLE : LAMP_PAIR
+  const sides = LAMP_PAIR
   const y = vehicle.at.y - LAMP_RISE
 
   g.globalAlpha = Math.min(1, dark * LIGHTS_GAIN)
@@ -242,6 +253,30 @@ function paintLights(g: CanvasRenderingContext2D, vehicle: VehicleView, dark: nu
 
       g.fillRect(vehicle.at.x + dx - LAMP_DOT / 2, y + dy - LAMP_DOT / 2, LAMP_DOT, LAMP_DOT)
     }
+  }
+
+  g.globalAlpha = 1
+}
+
+// A two-wheeler's one headlamp and its tail lamp, where the model carries them.
+function paintBikeLights(g: CanvasRenderingContext2D, vehicle: VehicleView, dark: number): void {
+  const dir = dirOf(vehicle.heading)
+  const isSide = isAlongX(vehicle.heading)
+  const { x, y } = vehicle.at
+
+  g.globalAlpha = Math.min(1, dark * LIGHTS_GAIN)
+
+  for (const lamp of [BIKE_LAMPS.head, BIKE_LAMPS.tail]) {
+    const along = dir * (isSide ? lamp.along : lamp.endAlong) * CM_ALONG
+    const up = lamp.up * CM_UP + BIKE_LAMPS.lift
+
+    g.fillStyle = lamp === BIKE_LAMPS.head ? HEAD_LIGHT : TAIL_LIGHT
+    g.fillRect(
+      (isSide ? x + along : x) - lamp.dot / 2,
+      (isSide ? y : y + along) - up - lamp.dot / 2,
+      lamp.dot,
+      lamp.dot
+    )
   }
 
   g.globalAlpha = 1

@@ -4,11 +4,18 @@
   --s2: 12px;
   --s3: 16px;
   --s4: 24px;
-  /* Every field, menu, button and chip on a row shares this height, edge and type. */
-  --controlH: 32px;
+  /* The mockup's control sizes: a field or button on a row is 30 px, a small one inside a row
+     26 px, the header's chips and buttons 32 px. */
+  --controlH: 30px;
+  --controlSmH: 26px;
+  --headerControlH: 32px;
   --controlRadius: 8px;
-  --controlPadX: 10px;
-  --controlFont: 13px;
+  --controlSmRadius: 7px;
+  --controlPadX: 12px;
+  --controlSmPadX: 9px;
+  --fieldPadX: 8px;
+  --controlFont: 12.5px;
+  --fieldFont: 13px;
   --canvas: #f2f2f6;
   --surface: #ffffff;
   --sunken: #e7e7ee;
@@ -25,6 +32,9 @@
   --cautionBg: #fbf3db;
   --dangerTint: #fdebec;
   --dangerText: #9f2f2d;
+  /* What needs the operator now (a stop through, a needs bar): Problem tint, a deeper red in dark. */
+  --problemTint: var(--dangerTint);
+  --problemText: var(--dangerText);
   --lift: 0 1px 2px rgba(27, 27, 41, 0.07);
   --pop: 0 8px 28px rgba(27, 27, 41, 0.16);
   --stage: #e4e4ec;
@@ -45,7 +55,7 @@
   --offlineInk2: #b6b7c9;
   --headerH: 48px;
   --commandBarH: 62px;
-  --chatPanelW: 380px;
+  --chatPanelW: 340px;
   --panelW: 440px;
   --panelRailW: 52px;
   --panelContentMaxW: 720px;
@@ -53,11 +63,12 @@
   --tapeScrollMs: 70s;
   --flashMs: 0.9s;
   --popoverGutter: 8px;
-  --focusRing: var(--tc-blue);
+  --focusRing: var(--ink);
   --zPopover: 26;
   --zModal: 30;
   --zUndo: 32;
   --scrim: rgba(10, 10, 18, 0.45);
+  --readerScrim: rgba(10, 10, 18, 0.55);
   --badgeNeed: #f2b33d;
   --badgeNeedInk: #2b2433;
   --badgeStop: #e5484d;
@@ -88,6 +99,8 @@
     --cautionBg: rgba(255, 179, 64, 0.14);
     --dangerTint: rgba(255, 98, 89, 0.16);
     --dangerText: #ff8a80;
+    --problemTint: rgba(229, 72, 77, 0.16);
+    --problemText: #ff9b9e;
     --lift: none;
     --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
     --stage: #13151f;
@@ -127,6 +140,8 @@
   --cautionBg: rgba(255, 179, 64, 0.14);
   --dangerTint: rgba(255, 98, 89, 0.16);
   --dangerText: #ff8a80;
+  --problemTint: rgba(229, 72, 77, 0.16);
+  --problemText: #ff9b9e;
   --lift: none;
   --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
   --stage: #13151f;

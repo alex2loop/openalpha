@@ -14,39 +14,56 @@
   background: var(--badgeNeed);
 }
 
+/* The mockup's settings sheet: a fixed frame, the section list on Canvas down the left. */
 .modal-dialog.is-wide:has(.settings) {
-  width: min(980px, 100%);
+  width: min(900px, 100%);
+  height: min(640px, 84vh);
+}
+
+.modal-body:has(> .settings) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
 }
 
 .settings {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  gap: var(--s3);
+  flex: 1;
+  grid-template-columns: 200px minmax(0, 1fr);
+  min-height: 0;
 }
 
 .settings-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 10px var(--s1);
+  border-right: 1px solid var(--border);
+  background: var(--canvas);
 }
 
 .settings-nav button {
-  padding: 7px var(--s1);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--controlSmRadius);
   background: none;
   color: var(--ink2);
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
 
 .settings-nav button:hover {
   background: var(--sunken);
-  color: var(--ink);
 }
 
 .settings-nav button.is-on {
-  background: var(--sunken);
+  background: var(--surface);
+  box-shadow: var(--lift);
   color: var(--ink);
   font-weight: 600;
 }
@@ -56,10 +73,12 @@
   flex-direction: column;
   gap: var(--s2);
   min-width: 0;
+  overflow: auto;
+  padding: var(--s3) 20px;
 }
 
 .settings-section {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .setting-row {
@@ -132,12 +151,14 @@
 /* Below the narrow width the section list becomes a scrolling row above the form. */
 :root:not([data-layout="wide"]) .settings {
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--s2);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 :root:not([data-layout="wide"]) .settings-nav {
   flex-direction: row;
   overflow-x: auto;
+  border-right: 0;
+  border-bottom: 1px solid var(--border);
 }
 
 :root:not([data-layout="wide"]) .settings-nav button {
@@ -159,15 +180,16 @@
 }
 
 .level-pill {
+  flex: none;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: 9px;
   font-size: 11px;
   font-weight: 600;
 }
 
 .level-pill.is-ok {
-  background: color-mix(in srgb, var(--tc-green) var(--tile-mix), transparent);
-  color: var(--tc-green);
+  background: var(--sunken);
+  color: var(--ink2);
 }
 
 .level-pill.is-warn {

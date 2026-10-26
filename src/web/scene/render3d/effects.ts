@@ -3,6 +3,7 @@ import type { BufferGeometry, Group } from 'three'
 import type { Materials } from '@/web/scene/render3d/lights'
 import type { SimView } from '@/web/scene/types'
 import { type Box, box, mergeBoxes } from '@/web/scene/render3d/boxes'
+import { operatorTrayOf } from '@/web/scene/render3d/desk-dressing'
 import {
   beginPool,
   createPool,
@@ -16,7 +17,6 @@ import { ANIMAL_TONES, type DetailLevel, fishPartsOf } from '@/web/scene/sim/lif
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
-import { TRAY_AT } from '@/web/scene/world/seats'
 
 /** The office life's moving pieces, each kind one instanced mesh: sheets in flight, the tray and
  *  printer stacks, steam, the cart and the fish. */
@@ -46,7 +46,7 @@ const MAX_FISH = 6
 const SHEET = Object.freeze({ w: 8, h: 0.6, d: 6 })
 const PAPER_ARC_PX = 14
 const PAPER_FROM_PX = 18
-const TRAY = Object.freeze({ y: 15.4, step: 0.55, cap: 8, w: 10.6, d: 5.6 })
+const TRAY = Object.freeze({ step: 1.4, h: 1.2, cap: 6, w: 10.6, d: 5.6, jog: 0.3 })
 const PRINT = Object.freeze({ y: 5.8, step: 0.42, w: 12, d: 6, slide: 5 })
 const STEAM_RISE_PX = 6
 const STEAM_MS = 900
@@ -55,6 +55,7 @@ const PUFF_PX = 1.4
 const CART = Object.freeze({ w: 20, d: 10, h: 10 })
 const FISH_DEPTH_PX = 1.5
 const FISH_WATER = Object.freeze({ inset: 4, y: 10, depth: 6 })
+const OPERATOR_TRAY = operatorTrayOf()
 const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
 const TANK = propsOn('office').find((prop) => prop.kind === 'tank')
 const BREAK_PROPS = [...propsOn('office'), ...propsOn('team')].filter(
@@ -140,7 +141,7 @@ function syncPapers(pool: Pool, frame: EffectFrame): boolean {
 function syncStacks(pool: Pool, frame: EffectFrame): boolean {
   const { sim } = frame
   const isOffice = sim.floor === 'office'
-  const tray = isOffice ? Math.min(TRAY.cap, sim.tray) : 0
+  const tray = isOffice && OPERATOR_TRAY !== undefined ? Math.min(TRAY.cap, sim.tray) : 0
   const sheets = isOffice && PRINT_TRAY !== undefined ? sim.life.sheets : 0
   const feedK = frame.isReduced ? 1 : feedKOf(sim.life, frame.now)
 
@@ -148,12 +149,12 @@ function syncStacks(pool: Pool, frame: EffectFrame): boolean {
     return false
   }
 
-  for (let i = 0; i < tray; i++) {
+  for (let i = 0; i < tray && OPERATOR_TRAY !== undefined; i++) {
     placeInstance(pool, {
-      x: TRAY_AT.x + TRAY.w / 2,
-      y: TRAY.y + i * TRAY.step,
-      z: TRAY_AT.y + TRAY.d,
-      size: [TRAY.w, TRAY.step - 0.05, TRAY.d],
+      x: OPERATOR_TRAY.x + (i % 2) * TRAY.jog + TRAY.w / 2,
+      y: OPERATOR_TRAY.y + i * TRAY.step + TRAY.h / 2,
+      z: OPERATOR_TRAY.z + TRAY.d / 2,
+      size: [TRAY.w, TRAY.h, TRAY.d],
       color: PALETTE.paper,
     })
   }

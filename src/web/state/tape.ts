@@ -12,7 +12,7 @@ import {
 } from '@/web/state/market'
 import { isSegmentOn } from '@/web/state/profile'
 
-/** One name on the price tape: a market's benchmark or a watched quote. */
+/** One name on the price tape. */
 export interface TapeRow {
   readonly key: string
   readonly market: string
@@ -23,12 +23,9 @@ export interface TapeRow {
   readonly display?: MarketWire['priceDisplay']
 }
 
-/** The tape's rows, read by the strip under the header and the alert desk's wall board. */
-export const tapeRows: ReadonlySignal<readonly TapeRow[]> = computed(buildRows)
-
-// The benchmark (VN-Index, BTC) of each market whose segment is on, off the overview, then the
-// watchlist names it does not already carry. No benchmark shows before the profile is read.
-function buildRows(): readonly TapeRow[] {
+/** The benchmark (VN-Index, BTC) of each market whose segment is on, off the overview, then the
+ *  watchlist names it does not already carry. No benchmark shows before the profile is read. */
+export const tapeRows: ReadonlySignal<readonly TapeRow[]> = computed(() => {
   const profile = profileBlock.view.value.data
   const traded = knownMarkets.value.filter(
     (market) => profile !== undefined && isSegmentOn(profile, market.segment)
@@ -40,7 +37,7 @@ function buildRows(): readonly TapeRow[] {
     .filter((row) => !known.has(row.key))
 
   return [...benchmarks, ...watched]
-}
+})
 
 function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
   const { benchmark } = market

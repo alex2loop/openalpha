@@ -12,12 +12,13 @@
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   height: var(--controlH);
-  padding: 0 6px;
+  padding: 0 6px 0 4px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
+  cursor: pointer;
 }
 
 .who-chip select {
@@ -36,19 +37,34 @@
   min-width: 0;
 }
 
-.command-input {
-  width: 100%;
-  padding: 8px 12px;
+.command-field {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s2);
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--canvas);
-  font-size: 14px;
-  outline: 0;
 }
 
-.command-input:focus {
+.command-field:focus-within {
   border-color: var(--ink3);
   background: var(--surface);
+}
+
+.command-mark {
+  color: var(--ink3);
+}
+
+.command-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  outline: 0;
 }
 
 .command-not-sent {
@@ -69,32 +85,39 @@
   z-index: var(--zPopover);
   max-height: 50vh;
   overflow: auto;
-  padding: 4px 6px 6px;
+  padding: 6px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--pop);
 }
 
-.suggest-hint,
-.suggest-keys {
-  padding: 6px 8px;
+.suggest-hint {
+  padding: 6px 10px;
 }
 
 .suggest-keys {
+  margin-top: 4px;
+  padding: 6px 10px 2px;
   border-top: 1px solid var(--border);
+  color: var(--ink3);
+  font-size: 11px;
 }
 
 .suggest-popover .popover-section {
-  margin: 8px 8px 4px;
+  margin: 6px 10px 4px;
+  color: var(--ink3);
+  font-size: 11px;
 }
 
 .suggest-row {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: var(--s1) 10px;
+  border-radius: var(--controlRadius);
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -104,6 +127,7 @@
 }
 
 .suggest-row .meta {
+  color: var(--ink3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -111,6 +135,10 @@
 
 /* The pane bar takes the chat button's place. */
 :root:not([data-layout="wide"]) .command-chat {
+  display: none;
+}
+
+:root[data-layout="phone"] .command-key {
   display: none;
 }
 

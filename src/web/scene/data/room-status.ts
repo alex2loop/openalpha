@@ -73,7 +73,7 @@ export const roomStatus: ReadonlySignal<ReadonlyMap<RoomId, RoomStatus>> = compu
 export const boardCaptions: ReadonlySignal<Partial<Record<RoomId, string>>> = computed(() => {
   const status = roomStatus.value
   const meet = debateLine(status.get('meet')?.runs[0])
-  const lib = questionLine(status.get('lib')?.runs[0]?.progress?.params)
+  const lib = questionLine(status.get('lib')?.runs[0])
 
   return {
     ...(meet === undefined ? {} : { meet }),
@@ -207,7 +207,7 @@ export function debateLine(run: Run | undefined): string | undefined {
   }
 
   const ticker = toParamText(progress.params?.ticker) ?? run?.tickers[0]
-  const n = toParamText(progress.params?.step)
+  const n = debateStepOf(run)
   const total = toParamText(progress.params?.total)
 
   return ticker === undefined || n === undefined || total === undefined
@@ -215,12 +215,28 @@ export function debateLine(run: Run | undefined): string | undefined {
     : tr('ui.office.board.meet', { ticker, n, total })
 }
 
+/** The debate step a meeting run is at, as its whiteboard counts it; absent outside a debate. */
+export function debateStepOf(run: Run | undefined): string | undefined {
+  const progress = run?.progress
+
+  if (progress === undefined || !progress.key.startsWith(DEBATE_STEP_PREFIX)) {
+    return undefined
+  }
+
+  return toParamText(progress.params?.step)
+}
+
+/** The question a research run is on, as the library's whiteboard counts it. */
+export function questionNumberOf(run: Run | undefined): string | undefined {
+  const params = run?.progress?.params
+
+  return toParamText(params?.index ?? params?.done)
+}
+
 /** The library board's line: the question the research is on, of how many. */
-export function questionLine(
-  params: Readonly<Record<string, unknown>> | undefined
-): string | undefined {
-  const n = toParamText(params?.index ?? params?.done)
-  const total = toParamText(params?.total)
+export function questionLine(run: Run | undefined): string | undefined {
+  const n = questionNumberOf(run)
+  const total = toParamText(run?.progress?.params?.total)
 
   return n === undefined || total === undefined
     ? undefined

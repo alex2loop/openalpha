@@ -1,59 +1,82 @@
 import {
-  Color,
+  ACESFilmicToneMapping,
+  type Color,
   DataTexture,
   DirectionalLight,
   DoubleSide,
+  Fog,
   HemisphereLight,
   type Material,
   MeshBasicMaterial,
-  MeshLambertMaterial,
-  type MeshLambertMaterialParameters,
+  MeshStandardMaterial,
+  type MeshStandardMaterialParameters,
   MeshToonMaterial,
   NearestFilter,
+  PCFShadowMap,
+  PMREMGenerator,
   RedFormat,
   type Scene,
+  type Texture,
   Vector3,
   Vector4,
   type WebGLProgramParametersWithUniforms,
+  type WebGLRenderer,
 } from 'three'
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 
 import type { SunView } from '@/web/scene/sky-types'
 import type { FloorId, RoomId } from '@/web/scene/types'
-import { DEG } from '@/web/scene/clock/sun'
+import {
+  isNightSun,
+  type LightKey,
+  lightKeyOf,
+  NIGHT_BASE,
+  roomLevelOf,
+  setRoomFill,
+} from '@/web/scene/render3d/light-model'
 import { toUnits } from '@/web/scene/render3d/space'
-import { CLOSED_ROOM, type LightRow } from '@/web/scene/sprites/daylight'
-import { TOON_BANDS } from '@/web/scene/sprites/palette'
+import { CLOSED_ROOM } from '@/web/scene/sprites/daylight'
 import { roomsOn } from '@/web/scene/world/rooms'
 
 /** Every material the 3D office draws with; each instanced one reads its room at the instance. */
 export interface Materials {
-  readonly floor: MeshLambertMaterial
-  readonly lit: MeshLambertMaterial
-  readonly litI: MeshLambertMaterial
-  readonly glass: MeshLambertMaterial
-  readonly curtain: MeshLambertMaterial
+  readonly floor: MeshStandardMaterial
+  readonly lit: MeshStandardMaterial
+  readonly litI: MeshStandardMaterial
+  readonly glass: MeshStandardMaterial
+  readonly curtain: MeshStandardMaterial
   readonly unlitI: MeshBasicMaterial
   readonly toon: MeshToonMaterial
 }
 
-/** The lights and the rooms' fill uniforms. */
+/** The lights, the room environment and the rooms' fill uniforms; `key` is the light now, eased
+ *  toward the hour's. */
 export interface Lighting {
   readonly materials: Materials
+  readonly renderer: WebGLRenderer
+  readonly scene: Scene
   readonly hemi: HemisphereLight
   readonly sun: DirectionalLight
+  readonly fog: Fog
   readonly uniforms: RoomUniforms
   readonly factors: Map<RoomId, number>
   readonly disposables: readonly { dispose(): void }[]
+  key: LightKey | undefined
 }
 
 /** What the lights follow this frame. */
 interface LightSpec {
   readonly floor: FloorId
   readonly lit: ReadonlySet<RoomId>
+  /** How bright the lamps burn: 1 untouched, less over the lunch nap. */
   readonly lampGlow: number
-  readonly isClosed: boolean
-  readonly row: LightRow
   readonly sun: SunView
+  readonly cloud: number
+  readonly rain: number
+  /** The office is quiet: every light keeps `QUIET_SHARE` of itself. */
+  readonly isQuiet: boolean
+  /** The home market is shut for the day: its lobby keeps `CLOSED_SHARE` of its fill. */
+  readonly isClosed: boolean
   /** A lightning flash's strength now, 0 to 1. */
   readonly flash: number
   readonly dtMs: number
@@ -69,35 +92,33 @@ interface RoomUniforms {
 const ROOM_SLOTS = 8
 // Far outside the floor: an unused slot matches no point.
 const NO_ROOM = 1e9
-// Lambert divides by pi: the sun and the sky together bring a lit top face to full colour.
-const SUN_INTENSITY = 0.6 * Math.PI
-const HEMI_INTENSITY = 0.5 * Math.PI
-// The sun light stands this far out along the real sun's bearing, never lower or higher than
-// these angles, so a low sun still lights the tops.
-const SUN_REACH = 52
-const SUN_ANGLE_DEG = Object.freeze({ min: 12, max: 50 })
-// A flash brings this much more sky light.
-const FLASH_HEMI = 2.4 * Math.PI
-const GROUND_TONE = '#C9C2D6'
-// An unlit room's fill (the north rooms keep more of the glass's light), and a shut lobby's.
-const FILL = Object.freeze({ unlitNorth: 0.8, unlitSouth: 0.66, closed: 0.86 })
-const LIT_NIGHT_SHARE = 0.45
-// A lamp dimmed over the nap keeps at least this much of its fill.
-const LAMP_FLOOR = 0.82
-// A tint at full alpha leaves this much of the daylight.
-const TINT_DARKEST = 0.25
-// The 3D light loses this much more than the 2D tint's alpha, which also colours.
-const TINT_WEIGHT = 1.5
-// The tint's own hue keeps this share against white in the light's colour.
-const TINT_HUE_SHARE = 0.4
-const TINT_RGB = /\d+,\d+,\d+/
-const ROOM_FILL_EASE_MS = 300
-const SETTLED = 0.004
-const GLASS_OPACITY = 0.34
-const CURTAIN_OPACITY = 0.12
-const CURTAIN_TONE = '#CFE6FF'
+// A room's fill starts under the north wall's band.
+const ROOM_FROM_PX = 28
+const QUIET_SHARE = 0.82
+// The mockup's cel bands, shade to lit, as bytes of the toon gradient.
+const TOON_BANDS = [80, 150, 215] as const
+const CLOSED_SHARE = 0.86
+const FLASH_HEMI = 1.8
+const ROOM_FILL_EASE_MS = 100
+const LIGHT_EASE_MS = 450
+const SETTLED = 0.002
+const ROUGHNESS = 0.9
+const GLASS = Object.freeze({ opacity: 0.34, roughness: 0.25 })
+const CURTAIN = Object.freeze({ tone: '#CFE6FF', opacity: 0.12, roughness: 0.1 })
+const ENV_BLUR = 0.04
+// One modest shadow map over the floor, from the sun's place round the floor's centre.
+const SHADOW = Object.freeze({
+  mapPx: 1024,
+  reach: 32,
+  near: 1,
+  far: 160,
+  bias: -0.0006,
+  normalBias: 0.04,
+})
+const FLOOR_CENTRE = Object.freeze({ x: 20, z: 12 })
+const FOG = Object.freeze({ near: 72, far: 160 })
 
-export function createLighting(scene: Scene): Lighting {
+export function createLighting(scene: Scene, renderer: WebGLRenderer): Lighting {
   const uniforms: RoomUniforms = {
     uRoomK: { value: Array.from({ length: ROOM_SLOTS }, () => new Vector3(1, 1, 1)) },
     uRoomRect: {
@@ -108,99 +129,162 @@ export function createLighting(scene: Scene): Lighting {
     },
     uRoomBase: { value: new Vector3(1, 1, 1) },
   }
+  const environment = createEnvironment(renderer)
   const gradient = createToonGradient()
-  const materials = createMaterials(uniforms, gradient)
-  const hemi = new HemisphereLight(0xffffff, GROUND_TONE, HEMI_INTENSITY)
-  const sun = new DirectionalLight(0xffffff, SUN_INTENSITY)
+  const materials = createMaterials(uniforms, { gradient, environment: environment.texture })
+  const hemi = new HemisphereLight(0xffffff, 0xffffff, 1)
+  const sun = createSun()
+  const fog = new Fog(0xffffff, FOG.near, FOG.far)
 
-  scene.add(hemi, sun)
+  renderer.toneMapping = ACESFilmicToneMapping
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = PCFShadowMap
+  // Only the furniture casts, and it never moves: the map is drawn again when the sun or the floor
+  // moves, not every frame.
+  renderer.shadowMap.autoUpdate = false
+  scene.fog = fog
+  scene.add(hemi, sun, sun.target)
 
   return {
     materials,
+    renderer,
+    scene,
     hemi,
     sun,
+    fog,
     uniforms,
     factors: new Map(),
-    disposables: [...Object.values(materials), gradient],
+    disposables: [...Object.values(materials), gradient, environment],
+    key: undefined,
   }
 }
 
-/** Eases each room's fill toward its lamp and the hour's light; true while one still moves. */
+/** Eases the light toward the hour's key and each room's fill toward its lamp; true while one
+ *  still moves. */
 export function syncLighting(lighting: Lighting, spec: LightSpec): boolean {
-  const darkness = darknessOf(spec.row)
-  const tint = tintOf(spec.row)
+  const isNight = isNightSun(spec.sun)
+  const isKeyEasing = syncKey(lighting, spec)
   let isEasing = false
 
-  lighting.hemi.color.copy(tint)
-  lighting.sun.color.copy(tint)
-  lighting.hemi.intensity = HEMI_INTENSITY * (1 - darkness) + FLASH_HEMI * spec.flash
-  lighting.sun.intensity = SUN_INTENSITY * (1 - darkness)
-  placeSun(lighting.sun, spec.sun)
   roomsOn(spec.floor).forEach((room, slot) => {
-    const target = targetFill(room.id, room.rect.y === 0, { spec, darkness })
-    const held = lighting.factors.get(room.id) ?? target
+    const closed = spec.isClosed && room.id === CLOSED_ROOM ? CLOSED_SHARE : 1
+    const level = roomLevelOf(room, { lit: spec.lit, lampGlow: spec.lampGlow, isNight }) * closed
+    const held = lighting.factors.get(room.id) ?? level
     const next =
-      spec.isReduced || Math.abs(target - held) < SETTLED ? target : ease(held, target, spec.dtMs)
+      spec.isReduced || Math.abs(level - held) < SETTLED
+        ? level
+        : ease(held, level, spec.dtMs / ROOM_FILL_EASE_MS)
     const { x, y, w, h } = room.rect
 
-    isEasing ||= next !== target
+    isEasing ||= next !== level
     lighting.factors.set(room.id, next)
-    lighting.uniforms.uRoomK.value[slot]?.setScalar(next)
+    setRoomFill(lighting.uniforms.uRoomK.value[slot], { room, fill: next, isNight })
     lighting.uniforms.uRoomRect.value[slot]?.set(
       toUnits(x),
-      toUnits(y),
+      toUnits(y + ROOM_FROM_PX),
       toUnits(x + w),
       toUnits(y + h)
     )
   })
   clearSlots(lighting, roomsOn(spec.floor).length)
+  lighting.uniforms.uRoomBase.value.setScalar(isNight ? NIGHT_BASE : 1)
 
-  return isEasing
+  return isEasing || isKeyEasing
 }
 
 /** A lit material of its own that dims and brightens with its room, as the shared ones do, for a
  *  surface that changes apart from the rest; the caller disposes it. */
 export function createRoomMaterial(
   lighting: Lighting,
-  params: MeshLambertMaterialParameters
-): MeshLambertMaterial {
-  return withPatch(new MeshLambertMaterial(params), roomPatch(lighting.uniforms, false), 'room')
-}
-
-// An unlit room keeps the daylight through its glass; a lit one's lamp makes up most of what the
-// night takes, as the 2D tint keeps a share of it over a lit room.
-function targetFill(
-  room: RoomId,
-  isNorth: boolean,
-  at: { readonly spec: LightSpec; readonly darkness: number }
-): number {
-  const { spec, darkness } = at
-
-  if (!spec.lit.has(room)) {
-    return isNorth ? FILL.unlitNorth : FILL.unlitSouth
-  }
-
-  const lamp = LAMP_FLOOR + (1 - LAMP_FLOOR) * spec.lampGlow
-  const closed = spec.isClosed && room === CLOSED_ROOM ? FILL.closed : 1
-
-  return (lamp * closed * (1 - LIT_NIGHT_SHARE * darkness)) / (1 - darkness)
-}
-
-// Toward the sun from the floor: x east, z south, y up.
-function placeSun(sun: DirectionalLight, at: SunView): void {
-  const angle = Math.min(SUN_ANGLE_DEG.max, Math.max(SUN_ANGLE_DEG.min, at.altitudeDeg)) * DEG
-  const bearing = at.azimuthDeg * DEG
-  const ground = Math.cos(angle) * SUN_REACH
-
-  sun.position.set(
-    Math.sin(bearing) * ground,
-    Math.sin(angle) * SUN_REACH,
-    -Math.cos(bearing) * ground
+  params: MeshStandardMaterialParameters
+): MeshStandardMaterial {
+  return withPatch(
+    new MeshStandardMaterial({
+      roughness: ROUGHNESS,
+      envMap: lighting.materials.lit.envMap,
+      envMapIntensity: lighting.materials.lit.envMapIntensity,
+      ...params,
+    }),
+    roomPatch(lighting.uniforms, false),
+    'room'
   )
 }
 
-function ease(held: number, target: number, dtMs: number): number {
-  return held + (target - held) * (1 - Math.exp(-dtMs / ROOM_FILL_EASE_MS))
+// The hour's key under the sky and the quiet office, eased over about half a second (at once
+// under reduced motion); the flash adds to the sky light without easing.
+function syncKey(lighting: Lighting, spec: LightSpec): boolean {
+  const target = lightKeyOf(spec.sun, { cloud: spec.cloud, rain: spec.rain })
+  const held = lighting.key
+  const k = spec.isReduced || held === undefined ? 1 : 1 - Math.exp(-spec.dtMs / LIGHT_EASE_MS)
+  const key = held === undefined ? target : easeKey(held, { target, k })
+  const quiet = spec.isQuiet ? QUIET_SHARE : 1
+
+  lighting.key = key
+  lighting.hemi.color.copy(key.sky)
+  lighting.hemi.groundColor.copy(key.ground)
+  lighting.hemi.intensity = key.hemi * quiet + FLASH_HEMI * spec.flash
+  lighting.sun.color.copy(key.sun)
+  lighting.sun.intensity = key.sunI * quiet
+  const sunX = FLOOR_CENTRE.x + key.at[0]
+  const sunZ = FLOOR_CENTRE.z + key.at[2]
+  const { position } = lighting.sun
+
+  if (position.x !== sunX || position.y !== key.at[1] || position.z !== sunZ) {
+    position.set(sunX, key.at[1], sunZ)
+    lighting.renderer.shadowMap.needsUpdate = true
+  }
+
+  lighting.renderer.toneMappingExposure = key.exposure
+  lighting.fog.color.copy(key.top).lerp(key.bottom, 0.5)
+
+  for (const material of [
+    lighting.materials.lit,
+    lighting.materials.litI,
+    lighting.materials.floor,
+  ]) {
+    material.envMapIntensity = key.env * quiet
+  }
+
+  return !isSameKey(key, target)
+}
+
+function easeKey(held: LightKey, at: { readonly target: LightKey; readonly k: number }): LightKey {
+  const { target, k } = at
+  const step = (from: number, to: number): number =>
+    Math.abs(to - from) < SETTLED ? to : from + (to - from) * k
+  const tone = (from: Color, to: Color): Color => from.clone().lerp(to, k)
+
+  return {
+    sky: tone(held.sky, target.sky),
+    ground: tone(held.ground, target.ground),
+    hemi: step(held.hemi, target.hemi),
+    env: step(held.env, target.env),
+    sun: tone(held.sun, target.sun),
+    sunI: step(held.sunI, target.sunI),
+    exposure: step(held.exposure, target.exposure),
+    at: [
+      step(held.at[0], target.at[0]),
+      step(held.at[1], target.at[1]),
+      step(held.at[2], target.at[2]),
+    ],
+    top: tone(held.top, target.top),
+    bottom: tone(held.bottom, target.bottom),
+  }
+}
+
+function isSameKey(key: LightKey, target: LightKey): boolean {
+  return (
+    key.hemi === target.hemi &&
+    key.sunI === target.sunI &&
+    key.exposure === target.exposure &&
+    key.at.every((value, i) => value === target.at[i]) &&
+    key.sky.equals(target.sky) &&
+    key.sun.equals(target.sun)
+  )
+}
+
+function ease(held: number, target: number, steps: number): number {
+  return held + (target - held) * (1 - Math.exp(-steps))
 }
 
 function clearSlots(lighting: Lighting, from: number): void {
@@ -209,28 +293,46 @@ function clearSlots(lighting: Lighting, from: number): void {
   }
 }
 
-// The 2D tint's alpha, as a share of the daylight it takes away.
-function darknessOf(row: LightRow): number {
-  const alpha = Number(row.tint?.split(',').at(-1)?.replace(')', '') ?? 0)
+// The sun casts the floor's one shadow map, aimed at the floor's centre.
+function createSun(): DirectionalLight {
+  const sun = new DirectionalLight(0xffffff, 1)
+  const camera = sun.shadow.camera
 
-  return Math.min(1 - TINT_DARKEST, alpha * TINT_WEIGHT)
+  sun.castShadow = true
+  sun.shadow.mapSize.set(SHADOW.mapPx, SHADOW.mapPx)
+  sun.shadow.bias = SHADOW.bias
+  sun.shadow.normalBias = SHADOW.normalBias
+  camera.left = -SHADOW.reach
+  camera.right = SHADOW.reach
+  camera.top = SHADOW.reach
+  camera.bottom = -SHADOW.reach
+  camera.near = SHADOW.near
+  camera.far = SHADOW.far
+  sun.target.position.set(FLOOR_CENTRE.x, 0, FLOOR_CENTRE.z)
+
+  return sun
 }
 
-function tintOf(row: LightRow): Color {
-  const rgb = row.tint?.match(TINT_RGB)?.[0]
+// The soft all-round fill of a room environment, prefiltered once; the generator goes at once.
+function createEnvironment(renderer: WebGLRenderer): {
+  readonly texture: Texture
+  dispose(): void
+} {
+  const generator = new PMREMGenerator(renderer)
+  const room = new RoomEnvironment()
 
-  return rgb === undefined
-    ? new Color(0xffffff)
-    : new Color(`rgb(${rgb})`).lerp(new Color(0xffffff), 1 - TINT_HUE_SHARE)
+  try {
+    const target = generator.fromScene(room, ENV_BLUR)
+
+    return { texture: target.texture, dispose: () => target.dispose() }
+  } finally {
+    room.dispose()
+    generator.dispose()
+  }
 }
 
 function createToonGradient(): DataTexture {
-  const texture = new DataTexture(
-    new Uint8Array(TOON_BANDS.map((band) => Math.round(band * 255))),
-    TOON_BANDS.length,
-    1,
-    RedFormat
-  )
+  const texture = new DataTexture(new Uint8Array(TOON_BANDS), TOON_BANDS.length, 1, RedFormat)
 
   texture.minFilter = NearestFilter
   texture.magFilter = NearestFilter
@@ -239,47 +341,43 @@ function createToonGradient(): DataTexture {
   return texture
 }
 
-function createMaterials(uniforms: RoomUniforms, gradient: DataTexture): Materials {
+function createMaterials(
+  uniforms: RoomUniforms,
+  maps: { readonly gradient: DataTexture; readonly environment: Texture }
+): Materials {
   const patch = roomPatch(uniforms, false)
-  const lit = withPatch(new MeshLambertMaterial({ vertexColors: true }), patch, 'room')
-  const litI = withPatch(
-    new MeshLambertMaterial({ vertexColors: true }),
-    roomPatch(uniforms, true),
-    'room-instanced'
-  )
-  const glass = withPatch(
-    new MeshLambertMaterial({
-      vertexColors: true,
-      transparent: true,
-      opacity: GLASS_OPACITY,
-      depthWrite: false,
-    }),
-    patch,
-    'room'
-  )
-  const curtain = new MeshLambertMaterial({
-    color: CURTAIN_TONE,
-    transparent: true,
-    opacity: CURTAIN_OPACITY,
-    depthWrite: false,
-    side: DoubleSide,
-  })
-  const toon = withPatch(
-    new MeshToonMaterial({ vertexColors: true, gradientMap: gradient }),
-    patch,
-    'room-toon'
-  )
-
-  const floor = withPatch(new MeshLambertMaterial(), patch, 'room-floor')
+  const standard = (params: MeshStandardMaterialParameters): MeshStandardMaterial =>
+    new MeshStandardMaterial({ roughness: ROUGHNESS, envMap: maps.environment, ...params })
 
   return {
-    floor,
-    lit,
-    litI,
-    glass,
-    curtain,
+    floor: withPatch(standard({}), patch, 'room-floor'),
+    lit: withPatch(standard({ vertexColors: true }), patch, 'room'),
+    litI: withPatch(standard({ vertexColors: true }), roomPatch(uniforms, true), 'room-instanced'),
+    glass: withPatch(
+      standard({
+        vertexColors: true,
+        transparent: true,
+        opacity: GLASS.opacity,
+        depthWrite: false,
+        roughness: GLASS.roughness,
+      }),
+      patch,
+      'room'
+    ),
+    curtain: standard({
+      color: CURTAIN.tone,
+      transparent: true,
+      opacity: CURTAIN.opacity,
+      depthWrite: false,
+      roughness: CURTAIN.roughness,
+      side: DoubleSide,
+    }),
     unlitI: new MeshBasicMaterial({ toneMapped: false }),
-    toon,
+    toon: withPatch(
+      new MeshToonMaterial({ vertexColors: true, gradientMap: maps.gradient }),
+      patch,
+      'room-toon'
+    ),
   }
 }
 
