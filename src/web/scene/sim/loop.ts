@@ -23,6 +23,8 @@ interface SimLoop {
   stop(): void
   /** Something outside the sim changed: draw at once and step again. */
   wake(): void
+  /** The stage left the page (a hidden pane) or came back; while it is away nothing runs. */
+  show(isShown: boolean): void
 }
 
 // One loop's mutable state; `listeners` is set exactly while it is started.
@@ -38,10 +40,12 @@ interface LoopState {
   isIdle: boolean
   isDirty: boolean
   isAnimating: boolean
+  isShown: boolean
 }
 
 /** Fixed steps under an accumulator, frames only while something moves, small motion at a capped
- *  rate, and one timeout to the next deadline while nothing moves. A hidden tab runs nothing. */
+ *  rate, and one timeout to the next deadline while nothing moves. A hidden tab or stage runs
+ *  nothing. */
 export function createSimLoop(deps: SimLoopDeps): SimLoop {
   const loop: LoopState = {
     deps,
@@ -55,12 +59,14 @@ export function createSimLoop(deps: SimLoopDeps): SimLoop {
     isIdle: true,
     isDirty: false,
     isAnimating: false,
+    isShown: true,
   }
 
   return {
     start: () => start(loop),
     stop: () => stop(loop),
     wake: () => wake(loop),
+    show: (isShown) => show(loop, isShown),
   }
 }
 
@@ -82,8 +88,26 @@ function stop(loop: LoopState): void {
   halt(loop)
 }
 
+function show(loop: LoopState, isShown: boolean): void {
+  if (isShown === loop.isShown) {
+    return
+  }
+
+  loop.isShown = isShown
+
+  if (!isShown) {
+    halt(loop)
+    return
+  }
+
+  if (loop.listeners !== undefined && !document.hidden) {
+    loop.deps.resume()
+    wake(loop)
+  }
+}
+
 function wake(loop: LoopState): void {
-  if (loop.listeners === undefined || document.hidden) {
+  if (loop.listeners === undefined || document.hidden || !loop.isShown) {
     return
   }
 
@@ -156,8 +180,11 @@ function onVisibility(loop: LoopState): void {
     return
   }
 
-  loop.deps.resume()
-  wake(loop)
+  // A stage hidden by its pane resumes when it is shown again.
+  if (loop.isShown) {
+    loop.deps.resume()
+    wake(loop)
+  }
 }
 
 function halt(loop: LoopState): void {

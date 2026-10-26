@@ -268,7 +268,7 @@ function syncScene(
     isReduced,
   })
   const dressing = syncDressing(stage, { job, row, standing: people.standing })
-  const isSmall = !isReduced && (isMotionOn || sim.life.isAnimating)
+  const isSmall = !isReduced && (isMotionOn || sim.life.animatedFloors.includes(sim.floor))
   const isMoving = isLightEasing || people.isSettling || dressing.isMoving
   const isWalking = people.standing.some(({ actor }) => isActorWalking(actor))
 

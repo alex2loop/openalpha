@@ -128,7 +128,9 @@ export function zoomBy(steps: number, at?: Point): void {
   const current = held.room === undefined ? held.zoomSteps : stepsOf(scale / baseScale)
   const next = Math.min(maxZoomSteps(), Math.max(0, current + steps))
 
+  // At the limit nothing moves, but a zoom still ends a follow, as every other zoom does.
   if (next === current && held.room === undefined) {
+    stopFollow()
     return
   }
 

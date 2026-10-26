@@ -126,7 +126,7 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
       pointer: { renderer, readView, director, wake: loop.wake },
       load3d: loadRenderer3d,
     }),
-    watchPane(element, loop.wake),
+    watchPane(element, loop),
     effect(() => {
       readSceneInputs()
       untracked(loop.wake)
@@ -186,8 +186,9 @@ function createSceneLoop(parts: LoopParts): {
   const loop = createSimLoop({
     step: (index) => {
       const nowMs = performance.now()
-      const isDirected = director.step(index)
+      // Life first, so a goal it sets walks in this step rather than waiting for the next wake.
       const isLiving = life.step(index)
+      const isDirected = director.step(index)
       const isTeamed = team.step(nowMs)
 
       return (input.current?.step(nowMs) ?? false) || isTeamed || isLiving || isDirected
@@ -299,12 +300,19 @@ async function loadRenderer3d(): Promise<() => SceneRenderer> {
 }
 
 // A resize or a move to a screen of another density draws again; the returned stop releases both.
-function watchPane(element: HTMLElement, wake: () => void): () => void {
-  const resize = new ResizeObserver(() => wake())
+// A pane hidden by `display: none` measures zero: the loop rests until it has a size again.
+function watchPane(
+  element: HTMLElement,
+  loop: Pick<ReturnType<typeof createSimLoop>, 'wake' | 'show'>
+): () => void {
+  const resize = new ResizeObserver(() => {
+    loop.show(element.clientWidth > 0 && element.clientHeight > 0)
+    loop.wake()
+  })
   const listeners = new AbortController()
 
   resize.observe(element)
-  watchResolution(wake, listeners.signal)
+  watchResolution(loop.wake, listeners.signal)
 
   return () => {
     resize.disconnect()

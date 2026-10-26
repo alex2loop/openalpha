@@ -318,7 +318,12 @@ function viewOf(state: LifeState, step: LifeStep): LifeView {
     fish: state.pets.fish(),
     sheets: state.sheets.count,
     steam,
-    isAnimating: steam.length > 0 || state.pets.isSwimming(world),
+    animatedFloors: [
+      ...new Set([
+        ...steam.map((one) => one.floor),
+        ...(state.pets.isSwimming(world) ? [PET_FLOOR] : []),
+      ]),
+    ],
     isQuiet: step.isQuiet,
     lines: linesOf(state, step),
     ...(cart === undefined ? {} : { cart: { floor: CART_FLOOR, at: cart } }),

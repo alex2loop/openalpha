@@ -225,8 +225,8 @@ export interface LifeView {
   readonly steam: readonly SteamView[]
   readonly isQuiet: boolean
   readonly lines: readonly LifeLine[]
-  /** Steam rises or a fish swims: small motion, drawn at the capped rate. */
-  readonly isAnimating: boolean
+  /** The floors where steam rises or a fish swims: small motion there draws at the capped rate. */
+  readonly animatedFloors: readonly FloorId[]
 }
 
 /** The prop an own agent's desk carries, read off its focus. */
