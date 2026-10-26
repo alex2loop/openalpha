@@ -1,8 +1,9 @@
-import { type ReadonlySignal, signal } from '@preact/signals'
+import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
 import type { AgentDetailWire } from '@/app/server/wire/agents'
 import type { MessageKey } from '@/i18n'
-import { type AgentDraft, removeAgent, saveAgent } from '@/web/state/agents'
+import { type AgentDraft, agentFormRequest, removeAgent, saveAgent } from '@/web/state/agents'
+import { knownMarkets } from '@/web/state/market'
 import { openView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/web/ui/agent/form/fields'
 import {
   type AgentForm,
+  applyDraft,
   buildDraft,
   createAgentForm,
   snapshotForm,
@@ -46,6 +48,8 @@ const AGENT_PATHS = [
 interface FormRequest {
   /** The agent to edit; absent creates one. */
   readonly detail?: AgentDetailWire
+  /** What a new agent starts with, a template's fields; the operator edits it before saving. */
+  readonly draft?: Partial<AgentDraft>
   readonly onSaved?: () => void
 }
 
@@ -74,7 +78,17 @@ export function clearSavedNote(agentId: string): void {
  *  sentence on top; a good one closes it and opens the agent's desk. */
 export function openAgentForm(request: FormRequest = {}): void {
   const form = createAgentForm(request.detail)
-  const open: OpenForm = { form, request, initial: snapshotForm(form) }
+  const initial = snapshotForm(form)
+
+  if (request.detail === undefined && request.draft !== undefined) {
+    applyDraft(
+      form,
+      request.draft,
+      knownMarkets.value.map((market) => market.market)
+    )
+  }
+
+  const open: OpenForm = { form, request, initial }
   const name = request.detail?.name
 
   open.handle = openModal({
@@ -84,6 +98,22 @@ export function openAgentForm(request: FormRequest = {}): void {
     footer: <FormFooter open={open} />,
     dirty: () => snapshotForm(form) !== open.initial,
     wide: true,
+  })
+}
+
+/** Opens the form on each new `requestAgentForm` ask from the scene; the returned stop ends it. */
+export function startAgentFormRequests(): () => void {
+  let seen = agentFormRequest.peek()?.seq
+
+  return effect(() => {
+    const request = agentFormRequest.value
+
+    if (request === undefined || request.seq === seen) {
+      return
+    }
+
+    seen = request.seq
+    untracked(() => openAgentForm(request.draft === undefined ? {} : { draft: request.draft }))
   })
 }
 

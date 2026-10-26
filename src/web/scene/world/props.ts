@@ -1,5 +1,5 @@
 import type { FloorId, Rect, RoomId } from '@/web/scene/types'
-import { FLOORS } from '@/web/scene/world/floors'
+import { DESK_SLOTS, FLOORS } from '@/web/scene/world/floors'
 import { roomById } from '@/web/scene/world/rooms'
 
 /** Everything the office draws besides its people and the desk items. */
@@ -260,6 +260,11 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 286, 16, 14] }),
   stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
   wall('lift-door', 'team', { at: [LIFT_TEAM.x, LIFT_TEAM.y, LIFT_TEAM.w, LIFT_TEAM.h] }),
+  ...DESK_SLOTS.flatMap(({ x, y }) => [
+    stand('chair', 'team', { at: seatFoot(x + 20, y + 8, 'desk'), draw: [x + 12, y - 15, 16, 11] }),
+    stand('desk', 'team', { at: [x, y - 9, 40, 12], draw: [x, y, 40, 20] }),
+    stand('computer', 'team', { at: [x + 12, y, 16, 3], draw: [x + 12, y - 14, 16, 14] }),
+  ]),
   stand('shelf', 'team', { at: [520, 66, 48, 10], draw: [520, 40, 48, 36], height: 36 }),
   stand('shelf', 'team', { at: [576, 66, 48, 10], draw: [576, 40, 48, 36], height: 36 }),
   ...[76, 236, 396].map((x, i) => wall('frame', 'team', { at: [x, 8, 16, 12], variant: i })),

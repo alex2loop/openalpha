@@ -15,6 +15,12 @@ import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
 import { createScreenCache, type ScreenCache } from '@/web/scene/render2d/screens'
 import {
+  buildTeamPieces,
+  isTeamMoving,
+  paintTeamGlow,
+  paintTeamTop,
+} from '@/web/scene/render2d/team'
+import {
   type FloorId,
   type Point,
   type ScreenPoint,
@@ -37,8 +43,9 @@ const RENDER_WINDOW_MS = 1_000
 // Above any display's refresh rate, so the window never drops a render it should count.
 const MAX_RENDER_SAMPLES = 240
 const ACTOR_TIE_RANK = 2
-// The operator's tray sits on your desk, on the office floor.
+// The operator's tray sits on your desk, on the office floor; the own agents work upstairs.
 const TRAY_FLOOR: FloorId = 'office'
+const TEAM_FLOOR: FloorId = 'team'
 const IDENTITY_FIT: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
 /** Where the floor sits in the pane: CSS px per world px and the CSS px of world (0, 0). */
@@ -180,7 +187,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   paintFloor(surface, { sim, scene, light, stretch: fit.stretch, now, motion })
   blitFloor(surface, { sky: light.sky, dpr })
 
-  return motion.isOn
+  return motion.isOn || (sim.floor === TEAM_FLOOR && isTeamMoving(sim.team, motion.isReduced))
 }
 
 // The camera's fit for this pane, clamped and rounded to device pixels, reported to the overlays.
@@ -284,6 +291,11 @@ function paintFloor(surface: Surface, job: FloorJob): void {
     light: job.light,
     ...(dropPct === undefined ? {} : { dropPct }),
   })
+
+  if (job.sim.floor === TEAM_FLOOR) {
+    paintTeamGlow(g, job.sim.team)
+    paintTeamTop(g, job.sim.team, { now: job.now, isReduced: job.motion.isReduced })
+  }
 }
 
 // Back props first in their list order, then props and people by their bottom edge.
@@ -316,7 +328,12 @@ function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
         }),
     }))
 
-  return [...back, ...[...standing, ...actors].sort((a, b) => a.sortY - b.sortY || a.tie - b.tie)]
+  const team = job.sim.floor === TEAM_FLOOR ? buildTeamPieces(g, job.sim.team) : []
+
+  return [
+    ...back,
+    ...[...standing, ...team, ...actors].sort((a, b) => a.sortY - b.sortY || a.tie - b.tie),
+  ]
 }
 
 // The floor never moves under its props: rebuilt only when the floor shown changes.

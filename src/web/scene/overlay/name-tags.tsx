@@ -1,6 +1,7 @@
 import type { MessageKey } from '@/i18n'
 import type { ActorId, Rect, RoleId } from '@/web/scene/types'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
+import { agents } from '@/web/state/agents'
 import { locale } from '@/web/state/session'
 import { TRUNCATION_MARK } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -27,6 +28,7 @@ const ROLE_NAME_KEYS: Readonly<Record<RoleId, MessageKey>> = Object.freeze({
 /** A placed name tag: under its person's feet; `isMore` when its bubble found no room. */
 export interface PlacedTag {
   readonly actor: ActorId
+  readonly text: string
   readonly rect: Rect
   readonly isSelected: boolean
   readonly isMore: boolean
@@ -43,12 +45,23 @@ export function roleTitleOf(role: RoleId): string {
   return `${name.charAt(0).toLocaleUpperCase(locale.value)}${name.slice(1)}`
 }
 
-/** A person's tag text: the role's name, and "..." when its bubble is hidden for room. */
-export function tagTextOf(actor: ActorId, isMore: boolean): string {
-  const def = ROSTER.find((held) => held.id === actor)
-  const name = def === undefined ? '' : roleNameOf(def.role)
+/** A person's tag text: the role's name, an own agent's name, or "temp - role" for a child given
+ *  `kidRole`; and "..." when its bubble is hidden for room. */
+export function tagTextOf(actor: ActorId, isMore: boolean, kidRole?: string): string {
+  const name = kidRole === undefined ? nameOf(actor) : tr('ui.office.role.child', { role: kidRole })
 
   return isMore ? `${name} ${TRUNCATION_MARK}` : name
+}
+
+function nameOf(actor: ActorId): string {
+  const def = ROSTER.find((held) => held.id === actor)
+  const agentId = ownAgentIdOf(actor)
+
+  if (def !== undefined) {
+    return roleNameOf(def.role)
+  }
+
+  return agents.value.find((agent) => agent.id === agentId)?.name ?? agentId ?? ''
 }
 
 /** The placed tags; clicks reach them through the canvas's hit test, so they take no pointer. */
@@ -61,7 +74,7 @@ export function NameTags({ tags }: { readonly tags: readonly PlacedTag[] }) {
           class={tag.isSelected ? 'name-tag glass is-selected' : 'name-tag glass'}
           style={{ left: `${tag.rect.x}px`, top: `${tag.rect.y}px` }}
         >
-          {tagTextOf(tag.actor, tag.isMore)}
+          {tag.text}
         </span>
       ))}
     </>

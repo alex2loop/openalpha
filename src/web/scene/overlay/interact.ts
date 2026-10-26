@@ -5,11 +5,12 @@ import { type Hit, pickAt } from '@/web/scene/overlay/hit'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
 import { hoverActor, overlayView } from '@/web/scene/overlay/overlay'
 import { openScreen } from '@/web/scene/overlay/screen-panel'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { isActorId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { leaveRoom, panBy, view, zoomBy, zoomToRoom } from '@/web/scene/view'
 import { propsOn } from '@/web/scene/world/props'
 import { ROOM_IDS, roomById } from '@/web/scene/world/rooms'
 import { selectActor } from '@/web/state/focus'
+import { openView } from '@/web/state/panel'
 import { toggleAllLamps, toggleLamp } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 
@@ -28,6 +29,8 @@ const ARROW_PANS: Readonly<Record<string, readonly [number, number]>> = Object.f
 const ESCAPE_KEY = 'Escape'
 const CLICKABLE_CURSOR = 'pointer'
 const GRAB_CURSOR = 'grabbing'
+// The team floor is one room that fits: a click never zooms into it.
+const TEAM_FLOOR = 'team'
 
 interface InteractionDeps {
   readonly renderer: SceneRenderer
@@ -187,6 +190,7 @@ function click(input: InputState, point: ScreenPoint): void {
     case 'actor':
     case 'tag':
       selectActor(hit.id)
+      openOwnAgent(input.deps.readView(), hit.id)
       return
     case 'screen':
       openLitScreen(hit.id)
@@ -199,6 +203,16 @@ function click(input: InputState, point: ScreenPoint): void {
       return
     default:
       return
+  }
+}
+
+// An own agent opens its desk in the panel; a child opens its parent's.
+function openOwnAgent(sim: SimView, actor: string): void {
+  const agentId =
+    ownAgentIdOf(actor) ?? sim.team.kids.find((kid) => kid.actor === actor)?.parentAgentId
+
+  if (agentId !== undefined) {
+    openView({ agent: agentId })
   }
 }
 
@@ -227,7 +241,8 @@ function clickProp(prop: PropDef | undefined): void {
 }
 
 function enterRoom(input: InputState, id: string): void {
-  const room = view.value.room === undefined ? ROOM_IDS.find((held) => held === id) : undefined
+  const isZoomable = view.value.room === undefined && view.value.floor !== TEAM_FLOOR
+  const room = isZoomable ? ROOM_IDS.find((held) => held === id) : undefined
   const def = room === undefined ? undefined : roomById(room)
 
   if (def !== undefined) {
@@ -242,7 +257,7 @@ function hover(input: InputState, event: PointerEvent): void {
   const prop = hit?.kind === 'object' ? propOf(hit) : undefined
 
   hoverObject(prop, screen)
-  hoverActor(hit?.kind === 'actor' ? ROSTER.find((def) => def.id === hit.id)?.id : undefined)
+  hoverActor(hit?.kind === 'actor' && isActorId(hit.id) ? hit.id : undefined)
   input.canvas.style.cursor = isClickable(hit, prop) ? CLICKABLE_CURSOR : ''
   input.canvas.title = switchTitleOf(prop)
 }
@@ -259,7 +274,7 @@ function isClickable(hit: Hit | undefined, prop: PropDef | undefined): boolean {
     case 'object':
       return prop !== undefined && (isSwitch(prop) || tipActionOf(prop) !== undefined)
     case 'room':
-      return view.value.room === undefined
+      return view.value.room === undefined && view.value.floor !== TEAM_FLOOR
     default:
       return true
   }

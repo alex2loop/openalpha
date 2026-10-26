@@ -4,6 +4,7 @@ import type { Marker } from '@/web/scene/overlay/markers'
 import type { PlacedTag } from '@/web/scene/overlay/name-tags'
 import type { Placed } from '@/web/scene/overlay/placement'
 import type { LitScreen } from '@/web/scene/overlay/screens'
+import type { CardPlace } from '@/web/scene/overlay/team-pass'
 import type { ActorId, Rect } from '@/web/scene/types'
 import { NameTags, roleTitleOf, tagTextOf } from '@/web/scene/overlay/name-tags'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
@@ -28,6 +29,10 @@ export interface OverlayView {
   readonly tags: readonly PlacedTag[]
   readonly markers: readonly { readonly marker: Marker; readonly rect: Rect }[]
   readonly screens: readonly { readonly screen: LitScreen; readonly rect: Rect }[]
+  /** An own agent's card over its head, on the team floor. */
+  readonly cards: readonly CardPlace[]
+  /** "+ Thêm agent" on the next free desk of the team floor. */
+  readonly addDesk?: Rect
   readonly hover?: { readonly actor: ActorId; readonly rect: Rect }
 }
 
@@ -36,6 +41,7 @@ export const EMPTY_OVERLAY: OverlayView = Object.freeze({
   tags: [],
   markers: [],
   screens: [],
+  cards: [],
 })
 
 const shown = signal<OverlayView>(EMPTY_OVERLAY)

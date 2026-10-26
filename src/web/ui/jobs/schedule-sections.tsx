@@ -1,4 +1,3 @@
-import type { JobEventWire } from '@/app/server/wire/jobs'
 import type { ScheduleRow } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import type { LoadState } from '@/web/ui/kit/use-load'
@@ -7,6 +6,7 @@ import { fillInput } from '@/web/state/command'
 import { state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
 import { ABSENT_CELL } from '@/web/text/glyphs'
+import { describeEvent } from '@/web/text/schedule-event'
 import { formatWhen, MS_PER_SECOND } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -139,14 +139,4 @@ export function formatAlertSeconds(tasks: LoadState<TasksResponse>): string | nu
       : undefined
 
   return everyMs === undefined ? ABSENT_CELL : Math.round(everyMs / MS_PER_SECOND)
-}
-
-/** "FPT thủng mức cắt lỗ", or "một mã ..." for a job that runs for any name. */
-export function describeEvent(trigger: Pick<JobEventWire, 'event' | 'ticker'>): string {
-  const subject = trigger.ticker ?? tr('scheduler.event.anyName')
-
-  return tr('ui.office.jobs.eventWhen', {
-    subject,
-    event: tr(`scheduler.event.${trigger.event}`),
-  })
 }

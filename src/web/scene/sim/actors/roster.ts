@@ -11,6 +11,10 @@ export interface ActorDef {
   readonly seat: Seat
 }
 
+// The operator's own agents and the temporary children runs start join the crew under these.
+const OWN_PREFIX = 'agent:'
+const KID_PREFIX = 'kid:'
+
 const [BULL_SEAT, PM_SEAT, BEAR_SEAT, ANALYST_SEAT, VERIFIER_SEAT, TRADER_SEAT, RISK_SEAT] =
   SEATS.meet
 const [LEFT_DESK, MIDDLE_DESK, RIGHT_DESK] = SEATS.lib
@@ -44,4 +48,26 @@ function office(
   seat: Seat | undefined
 ): ActorDef | undefined {
   return seat === undefined ? undefined : { ...who, floor: 'office', seat }
+}
+
+/** The person an own agent is in the office. */
+export function ownActorIdOf(agentId: string): ActorId {
+  return `${OWN_PREFIX}${agentId}`
+}
+
+/** The person a temporary child agent's run is in the office. */
+export function kidActorIdOf(runId: string): ActorId {
+  return `${KID_PREFIX}${runId}`
+}
+
+/** The own agent a person stands for; absent for anyone else. */
+export function ownAgentIdOf(actor: string): string | undefined {
+  return actor.startsWith(OWN_PREFIX) ? actor.slice(OWN_PREFIX.length) : undefined
+}
+
+/** `id` names someone in the office: a built-in person, an own agent or a child. */
+export function isActorId(id: string): id is ActorId {
+  return (
+    id.startsWith(OWN_PREFIX) || id.startsWith(KID_PREFIX) || ROSTER.some((def) => def.id === id)
+  )
 }

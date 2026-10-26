@@ -1,12 +1,12 @@
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import type { MessageKey } from '@/i18n'
 import { pluralKey } from '@/i18n'
 import { onWireEvent } from '@/web/state/events'
 import { type Run, runs } from '@/web/state/live'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL } from '@/web/text/glyphs'
+import { kidOutcomeKey } from '@/web/text/kid-outcome'
 import { formatRunName } from '@/web/text/run-name'
 import { tr } from '@/web/text/tr'
 import { StepList } from '@/web/ui/agent/steps'
@@ -16,15 +16,6 @@ import { Button } from '@/web/ui/kit/button'
 // More children than one parent run shows; the oldest leave first.
 const MAX_KIDS = 20
 const MS_PER_MINUTE = 60_000
-// A child that ended any other way than these finished its work.
-const UNFINISHED_KEYS: Readonly<Record<string, MessageKey>> = Object.freeze({
-  turn_limit: 'ui.office.agent.kidPartial',
-  timeout: 'ui.office.agent.kidPartial',
-  loop: 'ui.office.agent.kidPartial',
-  aborted: 'ui.office.agent.kidStopped',
-  budget: 'ui.office.agent.kidStopped',
-  error: 'ui.office.agent.kidFailed',
-})
 
 /** A child as last seen, with how it ended once it has. */
 interface Kid {
@@ -71,7 +62,7 @@ export function KidNest({ parent, maxSpawn }: KidNestProps) {
 }
 
 function KidRow({ kid }: { readonly kid: Kid }) {
-  const reason = kid.outcome === undefined ? undefined : UNFINISHED_KEYS[kid.outcome]
+  const reason = kid.outcome === undefined ? undefined : kidOutcomeKey(kid.outcome)
 
   return (
     <div class="kid">

@@ -8,7 +8,11 @@ import { agenda, startAgenda } from '@/web/scene/data/agenda'
 import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/data/board'
 import { homeMarket, startHome } from '@/web/scene/data/home'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
+import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
+import { AddDesk } from '@/web/scene/overlay/add-desk'
+import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
+import { EmptyTeam } from '@/web/scene/overlay/empty-team'
 import { attachInteraction } from '@/web/scene/overlay/interact'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
@@ -20,8 +24,10 @@ import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
 import { createSimLoop } from '@/web/scene/sim/loop'
+import { createTeam, type Team } from '@/web/scene/sim/team/team'
 import { bringIntoView, canFollow, readLastInteractionAt, view } from '@/web/scene/view'
 import { ROOMS, roomById } from '@/web/scene/world/rooms'
+import { agents } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
 import { onWireEvent } from '@/web/state/events'
 import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
@@ -56,6 +62,9 @@ export function SceneCanvas() {
       <RoomTags renderer={renderer} />
       <BoardButtons renderer={renderer} />
       <SceneOverlay />
+      <AgentCards />
+      <AddDesk />
+      <EmptyTeam />
       <ObjectTip />
       <Toolbar />
       <PerfReadout renderer={renderer} />
@@ -67,13 +76,14 @@ export function SceneCanvas() {
 // input, observer, listeners and the renderer.
 function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   const listeners = new AbortController()
-  const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda()]
+  const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda(), startTeamCalls()]
   const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
+  const team = createTeam({ agents, runs, offers: coolerOffer, hub: onWireEvent })
 
   renderer.mount(element)
 
   const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
-  const { loop, readView } = createSceneLoop({ director, renderer, overlay })
+  const { loop, readView } = createSceneLoop({ director, team, renderer, overlay })
   const resize = new ResizeObserver(() => loop.wake())
   const canvas = element.querySelector('canvas')
   const detach =
@@ -101,6 +111,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
     loop.stop()
     overlay.stop()
     director.dispose()
+    team.dispose()
     selectActor(undefined)
     resize.disconnect()
     listeners.abort()
@@ -114,6 +125,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
 
 interface LoopParts {
   readonly director: Director
+  readonly team: Team
   readonly renderer: SceneRenderer
   readonly overlay: OverlayPass
 }
@@ -124,12 +136,16 @@ function createSceneLoop(parts: LoopParts): {
   readonly loop: ReturnType<typeof createSimLoop>
   readonly readView: () => SimView
 } {
-  const { director, renderer, overlay } = parts
-  let drawn = buildSimView(director, 0)
+  const { director, team, renderer, overlay } = parts
+  let drawn = buildSimView(parts, 0)
   const loop = createSimLoop({
-    step: (index) => director.step(index),
+    step: (index) => {
+      const isOfficeMoving = director.step(index)
+
+      return team.step(performance.now()) || isOfficeMoving
+    },
     draw: (alpha, now) => {
-      drawn = buildSimView(director, alpha)
+      drawn = buildSimView(parts, alpha)
 
       const isAnimating = renderer.draw(drawn, now)
 
@@ -137,29 +153,36 @@ function createSceneLoop(parts: LoopParts): {
 
       return isAnimating
     },
-    resume: () => director.resume(),
+    resume: () => {
+      director.resume()
+      team.resume()
+    },
     nextDueAt: () => {
       const floor = view.value.floor
+      const nowMs = performance.now()
       const hasPeople = drawn.actors.some((actor) => actor.floor === floor)
-      const ambientAt = hasPeople ? nextAmbientAt(floor, performance.now()) : Infinity
+      const ambientAt = hasPeople ? nextAmbientAt(floor, nowMs) : Infinity
 
-      return Math.min(director.nextDueAt(), overlay.nextDueAt(), ambientAt)
+      return Math.min(director.nextDueAt(), team.nextDueAt(nowMs), overlay.nextDueAt(), ambientAt)
     },
   })
 
   return { loop, readView: () => drawn }
 }
 
-function buildSimView(director: Director, alpha: number): SimView {
+function buildSimView(parts: Pick<LoopParts, 'director' | 'team'>, alpha: number): SimView {
   const off = lampsOff.value
   const lit = new Set<RoomId>(ROOMS.filter((room) => !off.has(room.id)).map((room) => room.id))
+  const office = parts.director.view()
 
   return {
     floor: view.value.floor,
     alpha,
-    ...director.view(),
+    ...office,
+    actors: [...office.actors, ...parts.team.actors()],
     props: { lit },
     light: { hour: pageMinute.value.minute / MINUTES_PER_HOUR, followsHour: lightByHour.value },
+    team: parts.team.view(performance.now()),
   }
 }
 
@@ -183,6 +206,8 @@ function readSceneInputs(): void {
   heldNewsPins.value
   indexDrop.value
   unread.value
+  agents.value
+  coolerOffer.value
   readOverlayInputs()
 }
 

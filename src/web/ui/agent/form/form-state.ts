@@ -61,6 +61,22 @@ export function createAgentForm(existing: AgentDetailWire | undefined): AgentFor
   }
 }
 
+/** Fills a new agent's form from a template's fields; a market `known` does not list is left out. */
+export function applyDraft(
+  form: AgentForm,
+  draft: Partial<AgentDraft>,
+  known: readonly string[]
+): void {
+  const sectors = draft.focus?.sectors ?? []
+
+  form.name.value = draft.name ?? form.name.value
+  form.prompt.value = draft.systemPrompt ?? form.prompt.value
+  form.markets.value = (draft.focus?.markets ?? []).filter((market) => known.includes(market))
+  form.sectors.value = sectors
+  form.sectorChoices.value = sectors
+  form.horizon.value = draft.focus?.horizon
+}
+
 /** What the operator has set so far, to tell an edited form from an untouched one. */
 export function snapshotForm(form: AgentForm): string {
   return JSON.stringify([

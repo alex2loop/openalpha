@@ -14,6 +14,7 @@ import { startNotices } from '@/web/state/notices'
 import { disposePrefs } from '@/web/state/prefs'
 import { startRestartWatch } from '@/web/state/restart'
 import { brand, loadUntilReady, locale, state } from '@/web/state/session'
+import { startAgentFormRequests } from '@/web/ui/agent/form/agent-form'
 import { App } from '@/web/ui/shell/app'
 
 const ROOT_ID = 'root'
@@ -68,6 +69,7 @@ function startLive(): () => void {
     startChat(),
     startChatHistory(),
     startAgents(),
+    startAgentFormRequests(),
     startEstimates(),
     startMarket(),
     startRestartWatch(),

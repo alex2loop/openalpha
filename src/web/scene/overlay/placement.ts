@@ -32,6 +32,7 @@ const TAIL_INSET_PX = 8
 const PRIORITY: Readonly<Record<BubbleKind, number>> = Object.freeze({
   wait: 0,
   say: 1,
+  caution: 1,
   think: 2,
   life: 3,
   due: 4,

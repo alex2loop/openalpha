@@ -77,7 +77,8 @@ function approachOf(prop: PropDef): Point {
   return { x: prop.rect.x + prop.rect.w / 2, y: bottom + NAV_CLEARANCE_PX + NAV_CELL_PX }
 }
 
-function toDir(dx: number, dy: number): Dir {
+/** The way a step of `dx`, `dy` faces. */
+export function toDir(dx: number, dy: number): Dir {
   if (Math.abs(dx) > Math.abs(dy)) {
     return dx < 0 ? 'left' : 'right'
   }
