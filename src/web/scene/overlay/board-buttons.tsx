@@ -23,12 +23,13 @@ const MEET_BOARD_AT: Point = Object.freeze({ x: 398, y: 40 })
 const LIB_BOARD_AT: Point = Object.freeze({ x: 328, y: 40 })
 const STORE_BOARD_AT: Point = Object.freeze({ x: 44, y: 30 })
 const RESULTS_BOARD_AT: Point = Object.freeze({ x: 414, y: 256 })
-const DIGEST_AT: Point = Object.freeze({ x: 20, y: 330 })
+// The day's note hangs by its top edge under the lobby's lower board, as the mockup pins it.
+const DIGEST_AT: Point = Object.freeze({ x: 20, y: 340 })
 // How long the three rings play after a result lands.
 const RINGS_MS = 2_400
 
-/** The boards' one-line buttons. The floor view keeps only the results board; the room boards and
- *  the lobby digest show once a room is zoomed. */
+/** The boards' one-line buttons. The floor view keeps the results board and the lobby's day note;
+ *  the room boards show once a room is zoomed. */
 export function BoardButtons({ renderer }: { readonly renderer: SceneRenderer }) {
   const shown = view.value
   const isZoomed = shown.room !== undefined || shown.zoomSteps > 0
@@ -40,6 +41,7 @@ export function BoardButtons({ renderer }: { readonly renderer: SceneRenderer })
   return (
     <div class="board-buttons">
       <ResultsBoard renderer={renderer} />
+      <DigestBoard renderer={renderer} />
       {isZoomed && <RoomBoards renderer={renderer} />}
     </div>
   )
@@ -81,7 +83,6 @@ function RoomBoards({ renderer }: { readonly renderer: SceneRenderer }) {
           {storeLine}
         </Board>
       )}
-      <DigestBoard renderer={renderer} />
     </>
   )
 }
@@ -92,16 +93,18 @@ interface BoardProps {
   readonly onClick?: () => void
   readonly isOdometer?: boolean
   readonly isRinging?: boolean
+  /** A paper note pinned by its top edge, rather than a glass line standing on the point. */
+  readonly isNote?: boolean
   readonly children: ComponentChildren
 }
 
 // A board with somewhere to go is a button; one that only tells is a note.
-function Board({ at, renderer, onClick, isOdometer, isRinging, children }: BoardProps) {
+function Board({ at, renderer, onClick, isOdometer, isRinging, isNote, children }: BoardProps) {
   const point = placeOnPane(renderer, at)
   const style = { left: `${point.x}px`, top: `${point.y}px` }
   const classes = [
     'board-line',
-    'glass',
+    isNote === true ? 'board-note' : 'glass',
     isOdometer === true ? 'board-odometer' : '',
     isRinging === true ? 'board-rings' : '',
   ]
@@ -176,7 +179,7 @@ function DigestBoard({ renderer }: { readonly renderer: SceneRenderer }) {
   })
 
   return (
-    <Board at={DIGEST_AT} renderer={renderer} onClick={() => openDigest(day)}>
+    <Board at={DIGEST_AT} renderer={renderer} onClick={() => openDigest(day)} isNote>
       {line}
     </Board>
   )
