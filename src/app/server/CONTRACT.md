@@ -47,9 +47,10 @@ this document — neither imports the other.
   connections, `data:`/`blob:` images, `frame-ancestors 'none'`, `base-uri 'none'`,
   `form-action 'none'`), `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`; a
   source run serves it through Bun's `routes`, which carry none, and the page's own frame guard
-  (it renders nothing inside a frame) covers both. Token at `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor
-  `OPENALPHA_DATA_DIR`), chmod `0600`, generated on first enable. Compared constant-time. When a
-  request carries `Authorization`, the cookie is not read.
+  (it renders nothing inside a frame) covers both. Token at
+  `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod
+  `0600`, generated on first enable. Compared constant-time. When a request carries
+  `Authorization`, the cookie is not read.
   - **Session cookie:** `oa_session_<port>` on loopback (so a local daemon and a tunnelled one on
     another port keep separate cookies), `__Host-oa_session` through `public_url` (so a sibling
     subdomain cannot plant one); `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`, `Secure`

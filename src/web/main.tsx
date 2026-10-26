@@ -1,7 +1,8 @@
 import { computed, effect, untracked } from '@preact/signals'
 import { render } from 'preact'
 
-import { authState, takeCodeFromHash } from '@/web/api/sign-in'
+import { authState } from '@/web/api/auth-state'
+import { takeCodeFromHash } from '@/web/api/sign-in'
 import { disposeClock } from '@/web/scene/clock/clock'
 import { startAgents } from '@/web/state/agents'
 import { pageTitle, startAttention } from '@/web/state/attention'

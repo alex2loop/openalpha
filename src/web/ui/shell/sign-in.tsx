@@ -1,13 +1,10 @@
+import { type AuthState, authState } from '@/web/api/auth-state'
 import { UNAUTHORIZED_STATUS } from '@/web/api/client'
-import { type AuthState, authState } from '@/web/api/sign-in'
 import { brand, sessionFailure } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
 import { SignInIntro } from '@/web/ui/shell/sign-in-intro'
 
 import './sign-in.css'
-
-// The daemon's sign-in code lifetime, for the line that says why a used link stopped working.
-const CODE_LIFETIME_MINUTES = 5
 
 /** Shown while this browser holds no session: how to open the page, and why the last try failed. */
 export function SignIn() {
@@ -40,7 +37,11 @@ function resolveFailureText(auth: AuthState): string | undefined {
 
   switch (auth) {
     case 'code-refused':
-      return tr('ui.office.signIn.codeRefused', { minutes: CODE_LIFETIME_MINUTES })
+      return tr('ui.office.signIn.codeRefused')
+    case 'locked':
+      return tr('ui.office.signIn.locked', { brand: command })
+    case 'sign-in-failed':
+      return tr('ui.office.error.generic')
     case 'cookie-blocked':
       return tr('ui.office.signIn.cookieBlocked', { brand: command })
     case 'ended':

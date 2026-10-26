@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'preact/hooks'
 import type { BrowserSessionWire } from '@/app/server/wire/sign-in'
 import { ApiFailure, getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { authState } from '@/web/api/sign-in'
+import { signOutThisBrowser } from '@/web/api/sign-in'
 import { state } from '@/web/state/session'
 import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -119,8 +119,7 @@ async function endSession({
 }: SessionLineProps): Promise<string | undefined> {
   try {
     if (session.current) {
-      await sendJson('POST', ROUTES.sessionLogout, { signal })
-      authState.value = 'signed-out'
+      await signOutThisBrowser(signal)
       return undefined
     }
 

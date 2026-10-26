@@ -1,6 +1,6 @@
 import type { ApiErrorCode, ApiFieldError, UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { RouteDef } from '@/web/api/routes'
-import { noteRefused } from '@/web/api/sign-in'
+import { noteRefused } from '@/web/api/auth-state'
 
 const REQUEST_TIMEOUT_MS = 20_000
 /** The status of a request the daemon refused for want of a signed-in session. */

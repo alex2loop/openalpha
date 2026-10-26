@@ -2,9 +2,10 @@ import { computed, signal } from '@preact/signals'
 
 import type { StatePayload } from '@/app/server/wire/system'
 import type { ConnectionStatus } from '@/web/api/socket'
+import { noteSignedIn } from '@/web/api/auth-state'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { noteSignedIn, signInWithCode } from '@/web/api/sign-in'
+import { signInWithCode } from '@/web/api/sign-in'
 
 const FALLBACK_UI_LOCALE: UiLocale = 'vi'
 // A booting daemon answers `/v1/health` with `starting`; the page asks again until it is ready.
