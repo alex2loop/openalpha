@@ -3,6 +3,8 @@ const FNV_PRIME = 16_777_619
 const KEY_SEPARATOR = '|'
 const MULBERRY_STEP = 0x6d_2b_79_f5
 const UINT32_RANGE = 4_294_967_296
+const LCG_MULTIPLIER = 1_664_525
+const LCG_INCREMENT = 1_013_904_223
 
 /** A short-lived stream of chance for one decision, keyed by what it decides. */
 export interface Rng {
@@ -40,6 +42,24 @@ export function createRng(seed: number): Rng {
     return ((t ^ (t >>> 14)) >>> 0) / UINT32_RANGE
   }
 
+  return toRng(next)
+}
+
+/** A linear congruential stream from `seed`: the draws the mockup's hand-drawn marks were laid out
+ *  on, kept so those marks come out the same. */
+export function createLcgRng(seed: number): Rng {
+  let state = seed >>> 0
+
+  const next = (): number => {
+    state = (Math.imul(state, LCG_MULTIPLIER) + LCG_INCREMENT) >>> 0
+
+    return state / UINT32_RANGE
+  }
+
+  return toRng(next)
+}
+
+function toRng(next: () => number): Rng {
   return {
     next,
     int: (lo, hi) => lo + Math.floor(next() * (hi - lo + 1)),

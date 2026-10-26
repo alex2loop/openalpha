@@ -9,7 +9,7 @@ import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
 import { paintWallMonitor } from '@/web/scene/render2d/desk-devices'
 import { FONT } from '@/web/scene/sprites/face-text'
 import { faceKindOf, paintCork } from '@/web/scene/sprites/screens'
-import { createRng } from '@/web/scene/world/rng'
+import { createLcgRng } from '@/web/scene/world/rng'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const SWITCH_ON = '#FFB340'
@@ -136,7 +136,7 @@ function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
 // The three marker squiggles under the title, the same for a board every frame.
 function paintSquiggles(g: CanvasRenderingContext2D, prop: PropDef): void {
   const { x, y, w, h } = prop.draw
-  const rng = createRng(prop.variant ?? 0)
+  const rng = createLcgRng(prop.variant ?? 0)
   const left = w * SQUIGGLE_INSET
 
   g.lineWidth = h * SQUIGGLE_WIDTH
