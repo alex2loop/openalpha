@@ -552,14 +552,18 @@ cấu hình trên trang văn phòng không đổi được plugin, câu lệnh k
 `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` hay `[trading.orders]
 allow_unattended`; những mục đó bạn sửa ngay trong file này.
 
-Phía sau bất kỳ proxy nào (Caddy, `tailscale serve`, nginx), hãy đặt `public_url` là địa chỉ trình duyệt
-mở. Khi chưa đặt, mọi yêu cầu đi qua proxy đều bị từ chối, kèm một câu nêu tên `public_url`; daemon không
-đoán xem ai đang ở đầu bên kia. Đặt `public_url` cũng thu hẹp việc ứng dụng làm được, vì lúc này ứng dụng
-với tới được từ bên ngoài: các đường đặt lệnh của API và `/trade` vẫn tắt cho tới khi đặt `orders = true`;
-chat từ ứng dụng không chạy được câu lệnh, không ghi tệp và không dùng công cụ MCP đã kết nối hay công cụ
-mạng xã hội; công việc tạo từ ứng dụng chỉ trả lời trong ứng dụng; còn việc duyệt ghép nối cùng
-`allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng kênh chỉ đổi được trên máy chủ: bằng
-câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+Bất cứ thứ gì đứng trước daemon (proxy như Caddy hay nginx, `tailscale serve`, một tên miền) đều cần `public_url`
+đặt là địa chỉ trình duyệt mở. Chính nó bật các giới hạn khi bị phơi ra ngoài và cookie đăng nhập `__Host-`.
+Khi chưa đặt, daemon chỉ bắt được proxy gửi `X-Forwarded-For` hoặc `Forwarded`, hay một `Host` không phải
+tên cục bộ, và từ chối chúng kèm một câu nêu tên `public_url`. Proxy không gửi cả hai (một `proxy_pass`
+nginx trần gửi `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào) trông như yêu cầu cục bộ, nên
+hãy đặt `public_url` trước khi mở ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
+`proxy_set_header X-Forwarded-For $remote_addr;`. Đặt `public_url` cũng thu hẹp việc ứng dụng làm được, vì
+lúc này ứng dụng với tới được từ bên ngoài: các đường đặt lệnh của API và `/trade` vẫn tắt cho tới khi đặt
+`orders = true`; chat từ ứng dụng không chạy được lệnh shell, không ghi tệp và không dùng công cụ của máy
+chủ MCP hay plugin, cũng không dùng công cụ mạng xã hội; công việc tạo từ ứng dụng chỉ trả lời trong ứng
+dụng; còn việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng
+kênh chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu

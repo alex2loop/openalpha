@@ -375,7 +375,7 @@ một lần, chỉ có hiệu lực một lần trong 5 phút. Nó không bao gi
 - Trên chính màn hình của máy (macOS, hoặc Linux có màn hình), nó mở trình duyệt và in liên kết phòng khi
   trình duyệt không bật lên.
 - Qua SSH, nó in lệnh đường hầm để bạn chạy trên máy của mình, rồi in liên kết để mở. Đường hầm dùng cổng
-  của máy chủ cộng 10000 (18765 cho 8765), nên không bao giờ rơi vào daemon bạn chạy ở máy mình, và nếu
+  của máy chủ cộng 10000 (18765 cho 8765; trừ đi, nếu vượt cổng 55535), nên không bao giờ rơi vào daemon bạn chạy ở máy mình, và nếu
   cổng đó đã bận thì `ssh` dừng với lỗi chứ không lặng lẽ dùng cổng khác. Nếu không biết địa chỉ bạn SSH
   tới, nó dùng tên máy chủ và nói rõ điều đó; hãy thay bằng địa chỉ bạn thật sự dùng.
 - Khi đã đặt `[api] public_url`, nó chỉ in liên kết `https://`, chạy ở đâu cũng vậy.

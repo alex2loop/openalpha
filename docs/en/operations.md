@@ -356,7 +356,7 @@ Run the daemon on a server you own and point a client app at it.
    to run on your own machine, such as
    `ssh -N -o ExitOnForwardFailure=yes -L 18765:127.0.0.1:8765 user@server`, and a link
    (`http://127.0.0.1:18765/#code=...`) to open once the tunnel is up. The tunnel's local port is the
-   server's port plus 10000, so it stays clear of a daemon on your own machine, and `ssh` stops with
+   server's port plus 10000 (minus, past port 55535), so it stays clear of a daemon on your own machine, and `ssh` stops with
    an error if that port is taken. The link works once and for 5 minutes; run `openalpha web` again
    for a new one. For the desktop app, run `openalpha connect`: it prints one line holding the
    address and the token. Give the app that address and token, and keep the line private.
@@ -368,14 +368,18 @@ Run the daemon on a server you own and point a client app at it.
    - **Caddy** with a domain: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, then set
      `[api] public_url = "https://alpha.example.com"` and restart the daemon.
 
-   Behind any proxy, `public_url` is required. Without it the daemon refuses every request that came
-   through a proxy, with a line naming `public_url`; it cannot tell a proxy's visitor from a local
-   one by itself. The daemon otherwise answers only a request addressed to `127.0.0.1`, `localhost`
-   or `[::1]` (any port, so a tunnel works as is), which stops a DNS-rebinding page. With
-   `public_url` set, `openalpha web` prints the `https://` link instead of a tunnel. Every request
-   through a proxy reaches the daemon from `127.0.0.1`, so five wrong tokens or sign-in codes pause
-   sign-ins for everyone for 30 seconds, doubling up to an hour. A right token or code is never
-   refused by that pause and clears it.
+   Anything in front of the daemon (a proxy, a tunnel, a domain) needs `public_url`: it is what turns on
+   the exposure limits below and the `__Host-` sign-in cookie. Without it the daemon only catches a proxy
+   that sends `X-Forwarded-For` or `Forwarded`, or a `Host` that is not a local name, and refuses those
+   with a line naming `public_url`. A proxy that passes neither looks local. A bare nginx `proxy_pass`
+   is one: it sends `Host: 127.0.0.1:<port>` and no forwarded header. So set `public_url` before you
+   expose the daemon, and have nginx send `proxy_set_header Host $host;` and
+   `proxy_set_header X-Forwarded-For $remote_addr;`. The daemon otherwise answers only a request
+   addressed to `127.0.0.1`, `localhost` or `[::1]` (any port, so a tunnel works as is), which stops a
+   DNS-rebinding page. With `public_url` set, `openalpha web` prints the `https://` link instead of a
+   tunnel. Every request through a proxy reaches the daemon from `127.0.0.1`, so five wrong tokens or
+   sign-in codes pause sign-ins for everyone for 30 seconds, doubling up to an hour. A right token or
+   code is never refused by that pause and clears it.
 6. **Connect the client.** Give the app the address and the token; every request carries the token
    as `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
    handshake is refused with 503 `too_many_streams`.
@@ -385,8 +389,8 @@ less, so setting `public_url` also:
 
 - turns orders off: the API's order routes and `/trade` from the app are refused (halting buys from
   the app goes with them) until you set `[api] orders = true`. Telegram and the CLI still halt;
-- keeps commands, file writes and connected MCP tools, and the social network tools, out of chats
-  from the app and the page;
+- keeps shell commands, file writes, tools from MCP servers or plugins, and the social network tools,
+  out of chats from the app and the page;
 - lets the app make jobs that answer only in the app; a job for another chat is made on the server
   (`openalpha schedule add ... --to`);
 - makes pairing approval and each channel's access keys server-only: approve with
@@ -426,9 +430,9 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 - A sign-in lasts 30 days from the last time you used it, and each visit renews it. The browser holds only a sign-in cookie that page scripts cannot read; the API token never reaches it.
 - Settings > Display, under "This page's connection", lists the browsers signed in, with when each signed in and was last seen, and a button to sign any of them out, this one included. A browser signed out this way is dropped from the page at once.
 - `openalpha api rotate` signs every browser out. Restart the daemon afterwards so the old token stops working too, then run `openalpha web` again.
-- The page refuses to run inside a frame, and it sends nothing to any address but the daemon's.
+- The page refuses to run inside a frame, and in the released binary it may talk only to the daemon that served it.
 - The daemon answers only an address on this machine (`127.0.0.1`, `localhost` or `[::1]`) or your `public_url`, refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
-- Safari before 16.4 does not send the header the daemon relies on, so the page reads "cookies blocked" even though they are allowed. Update Safari.
+- Safari before 16.4 does not send the header the daemon relies on, so the page says this browser blocks cookies for the address even though it does not. Update Safari.
 - If the daemon cannot be reached, the page says so in one plain line. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
 
 ### What is on the screen

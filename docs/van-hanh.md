@@ -347,7 +347,7 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    máy chủ, nó mở trình duyệt cho bạn. Qua SSH, nó in hai thứ thay vào đó: một lệnh đường hầm để chạy trên máy của
    bạn, chẳng hạn `ssh -N -o ExitOnForwardFailure=yes -L 18765:127.0.0.1:8765 user@server`, và một liên kết
    (`http://127.0.0.1:18765/#code=...`) để mở khi đường hầm đã lên. Cổng đầu máy bạn của đường hầm là cổng của
-   máy chủ cộng 10000, nên không đụng daemon đang chạy trên máy bạn, và nếu cổng đó đã bận thì `ssh` dừng với
+   máy chủ cộng 10000 (trừ đi, nếu vượt cổng 55535), nên không đụng daemon đang chạy trên máy bạn, và nếu cổng đó đã bận thì `ssh` dừng với
    lỗi. Liên kết chỉ dùng được một lần, trong 5 phút; cần liên kết mới thì chạy lại `openalpha web`. Với ứng dụng
    desktop, chạy `openalpha connect`: nó in một dòng gồm địa chỉ và mã API. Hãy đưa cho ứng dụng địa chỉ và mã
    đó, và giữ kín dòng này.
@@ -359,13 +359,18 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    - **Caddy** với tên miền: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, rồi đặt
      `[api] public_url = "https://alpha.example.com"` và khởi động lại daemon.
 
-   Phía sau bất kỳ proxy nào đều phải có `public_url`. Thiếu nó, daemon từ chối mọi yêu cầu đi qua proxy, kèm
-   một câu nêu tên `public_url`; tự nó không phân biệt được khách qua proxy với người dùng ngay trên máy. Ngoài
-   ra daemon chỉ trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]` (cổng nào cũng được, nên đường
-   hầm SSH dùng như cũ), để chặn trang web giở trò DNS rebinding. Khi đã đặt `public_url`, `openalpha web` in
-   liên kết `https://` thay vì đường hầm. Mọi yêu cầu qua proxy đều đến daemon từ `127.0.0.1`, nên năm lần sai
-   mã API hoặc mã đăng nhập sẽ tạm dừng đăng nhập của mọi người trong 30 giây, tăng gấp đôi mỗi lần, tối đa một
-   giờ. Mã đúng không bao giờ bị khoảng dừng đó chặn và còn xóa nó.
+   Bất cứ thứ gì đứng trước daemon (proxy, đường hầm, tên miền) đều cần `public_url`: chính nó bật các giới
+   hạn bên dưới và cookie đăng nhập `__Host-`. Khi chưa đặt, daemon chỉ bắt được proxy gửi `X-Forwarded-For`
+   hoặc `Forwarded`, hay một `Host` không phải tên cục bộ, và từ chối chúng kèm một câu nêu tên `public_url`.
+   Proxy không gửi cả hai thì trông như yêu cầu cục bộ. Một `proxy_pass` nginx trần là trường hợp đó: nó gửi
+   `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào. Vì vậy hãy đặt `public_url` trước khi mở
+   daemon ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
+   `proxy_set_header X-Forwarded-For $remote_addr;`. Ngoài ra daemon chỉ trả lời yêu cầu gửi tới `127.0.0.1`,
+   `localhost` hoặc `[::1]` (cổng nào cũng được, nên đường hầm SSH dùng như cũ), để chặn trang web giở trò
+   DNS rebinding. Khi đã đặt `public_url`, `openalpha web` in liên kết `https://` thay vì đường hầm. Mọi yêu
+   cầu qua proxy đều đến daemon từ `127.0.0.1`, nên năm lần sai mã API hoặc mã đăng nhập sẽ tạm dừng đăng nhập
+   của mọi người trong 30 giây, tăng gấp đôi mỗi lần, tối đa một giờ. Mã đúng không bao giờ bị khoảng dừng
+   đó chặn và còn xóa nó.
 6. **Nối ứng dụng khách.** Đưa cho ứng dụng địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
    `Authorization: Bearer <mã>`. Tối đa 8 luồng ứng dụng (`/v1/ws`) mở cùng lúc; lần bắt tay thứ chín bị từ
    chối với 503 `too_many_streams`.
@@ -375,8 +380,8 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
 
 - tắt việc đặt lệnh: các đường đặt lệnh của API và `/trade` từ ứng dụng bị từ chối (tắt chức năng mua từ ứng
   dụng cũng đi kèm) cho tới khi bạn đặt `[api] orders = true`. Telegram và dòng lệnh vẫn tắt chức năng mua được;
-- giữ câu lệnh, việc ghi tệp, công cụ MCP đã kết nối và công cụ mạng xã hội ra khỏi các chat từ ứng dụng và từ
-  trang;
+- giữ lệnh shell, việc ghi tệp, công cụ của máy chủ MCP hay plugin và công cụ mạng xã hội ra khỏi các chat từ
+  ứng dụng và từ trang;
 - cho ứng dụng tạo công việc chỉ trả lời trong ứng dụng; công việc cho chat khác thì tạo trên máy chủ
   (`openalpha schedule add ... --to`);
 - để việc duyệt ghép nối và các khóa truy cập của từng kênh chỉ làm được trên máy chủ: duyệt bằng
@@ -416,9 +421,9 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 - Một lần đăng nhập kéo dài 30 ngày kể từ lần dùng cuối, và mỗi lần ghé thăm lại gia hạn nó. Trình duyệt chỉ giữ một cookie đăng nhập mà mã trong trang không đọc được; mã API không bao giờ tới nó.
 - Cài đặt > Hiển thị, mục "Kết nối của trang này", liệt kê các trình duyệt đang đăng nhập, lúc đăng nhập và lần cuối thấy, cùng nút đăng xuất từng cái, kể cả cái đang dùng. Trình duyệt bị đăng xuất theo cách này rời khỏi trang ngay.
 - `openalpha api rotate` đăng xuất mọi trình duyệt. Hãy khởi động lại daemon sau đó để mã cũ cũng hết dùng được, rồi chạy `openalpha web` lại.
-- Trang từ chối chạy bên trong một khung (frame), và không gửi gì tới địa chỉ nào ngoài daemon.
+- Trang từ chối chạy bên trong một khung (frame), và ở bản phát hành thì nó chỉ được nói chuyện với đúng daemon đã phục vụ nó.
 - Daemon chỉ trả lời địa chỉ trên chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`) hoặc `public_url` của bạn, từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
-- Safari trước 16.4 không gửi tiêu đề mà daemon dựa vào, nên trang báo "cookie bị chặn" dù bạn đã cho phép. Hãy cập nhật Safari.
+- Safari trước 16.4 không gửi tiêu đề mà daemon dựa vào, nên trang báo trình duyệt đang chặn cookie cho địa chỉ này dù thực ra không. Hãy cập nhật Safari.
 - Nếu không nối được daemon, trang nói thẳng bằng một dòng. Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở daemon. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn daemon thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
 
 ### Trên màn hình có gì

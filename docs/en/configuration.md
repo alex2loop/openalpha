@@ -554,14 +554,18 @@ client on another machine connects through an SSH tunnel or a reverse proxy on t
 server's command, every `*_env` key, `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
 `[update]` or `[trading.orders] allow_unattended`; change those here.
 
-Behind any proxy (Caddy, `tailscale serve`, nginx), set `public_url` to the address the browser
-opens. Without it a request that came through a proxy is refused, with a line naming `public_url`;
-the daemon never guesses who is on the other end. Setting it also limits what the app can do, because
-the app is now reachable from outside: the API's order routes and `/trade` stay off until
-`orders = true`; chats from the app cannot run commands, write files or use connected MCP tools or
-the social network tools; jobs made from the app answer only in the app; and pairing approval plus
-each channel's `allowed_ids`, `operator_user_ids`, `pairing` and `dm_policy` are server-only: they
-change from the CLI or this file, never from the app.
+Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain) needs
+`public_url` set to the address the browser opens. That is what turns on the exposure limits and the
+`__Host-` sign-in cookie. Without it the daemon only catches a proxy that sends `X-Forwarded-For` or
+`Forwarded`, or a `Host` that is not a local name, and refuses those with a line naming `public_url`.
+A proxy that passes neither (a bare nginx `proxy_pass` sends `Host: 127.0.0.1:<port>` and no forwarded
+header) looks local, so set `public_url` before you expose it, and have nginx send
+`proxy_set_header Host $host;` and `proxy_set_header X-Forwarded-For $remote_addr;`. Setting
+`public_url` also limits what the app can do, because it is now reachable from outside: the API's order
+routes and `/trade` stay off until `orders = true`; chats from the app cannot run shell commands, write
+files or use tools from MCP servers or plugins, nor the social network tools; jobs made from the app
+answer only in the app; and pairing approval plus each channel's `allowed_ids`, `operator_user_ids`,
+`pairing` and `dm_policy` are server-only: they change from the CLI or this file, never from the app.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32

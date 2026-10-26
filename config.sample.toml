@@ -470,12 +470,17 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # its own address (http://127.0.0.1:<port>/), which shows that feed.
 # Binds 127.0.0.1 only; on a server, reach it through an SSH tunnel or a reverse
 # proxy on the same host (docs/en/operations.md).
-# Behind any proxy (Caddy, `tailscale serve`, nginx), set public_url to the address the
-# browser opens. Without it a request through a proxy is refused, with a line naming
-# public_url. Setting it keeps the order routes and /trade from the app off until
-# orders = true, keeps commands, file writes, connected MCP tools and social network
-# tools out of chats from the app, makes jobs made from the app answer only there, and
-# makes pairing approval and the channel access keys server-only. The office page's config
+# Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain)
+# needs public_url set to the address the browser opens: it turns on the exposure limits and
+# the __Host- sign-in cookie. Without it the daemon only catches a proxy that sends
+# X-Forwarded-For or Forwarded, or a Host that is not a local name, and refuses those with a line
+# naming public_url. A proxy that sends neither (a bare nginx proxy_pass) looks local, so set
+# public_url first and have nginx send `proxy_set_header Host $host;` and
+# `proxy_set_header X-Forwarded-For $remote_addr;`.
+# Setting it keeps the order routes and /trade from the app off until orders = true, keeps
+# shell commands, file writes, tools from MCP servers or plugins and social network tools out of
+# chats from the app, keeps jobs made from the app answering only in the app, and makes pairing
+# approval and the channel access keys server-only. The office page's config
 # editor leaves plugins, MCP commands, *_env keys, base_url, [paths], [log] file, [storage],
 # [api], [update] and [trading.orders] allow_unattended to this file.
 # Bearer token at <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with

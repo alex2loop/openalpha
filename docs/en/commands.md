@@ -386,7 +386,7 @@ on where you run it:
 - On the machine's own screen (macOS, or Linux with a display), it opens your browser and prints the
   link in case that did not work.
 - Over SSH, it prints the tunnel command to run on your own machine, then the link to open. The
-  tunnel uses the server's port plus 10000 (18765 for 8765), so it never lands on a daemon you run
+  tunnel uses the server's port plus 10000 (18765 for 8765; minus, past port 55535), so it never lands on a daemon you run
   locally, and `ssh` stops with an error if that port is taken instead of quietly using another.
   If it cannot tell the address you SSH to, it uses the server's host name and says so; swap in the
   address you actually use.
