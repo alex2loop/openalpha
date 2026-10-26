@@ -43,10 +43,10 @@ import {
   syncFixtures,
 } from '@/web/scene/render3d/fixtures'
 import { buildFloor, disposeFloor, type FloorScene } from '@/web/scene/render3d/floor'
+import { faceMoodOf } from '@/web/scene/render3d/info-faces'
 import { createShapes, type Shapes } from '@/web/scene/render3d/instancing'
 import { createLamps, disposeLamps, type Lamps, syncLamps } from '@/web/scene/render3d/lamps'
 import { createLift3d, disposeLift3d, type Lift3d, syncLift3d } from '@/web/scene/render3d/lift'
-import { isNightSun } from '@/web/scene/render3d/light-model'
 import { createLighting, type Lighting, syncLighting } from '@/web/scene/render3d/lights'
 import { createPets, disposePets, type Pets, syncPets } from '@/web/scene/render3d/pets'
 import {
@@ -412,7 +412,7 @@ function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
     props: stage.floor?.props,
     scale: stage.placement.scale,
     walls: stage.floor?.walls ?? [],
-    mood: { lift: sim.lift, isQuiet: sim.life.isQuiet, isNight: isNightSun(sim.light.sun) },
+    mood: faceMoodOf(sim),
   })
   const isLampChanged = syncLamps(stage.lamps, {
     props: stage.floor?.props,

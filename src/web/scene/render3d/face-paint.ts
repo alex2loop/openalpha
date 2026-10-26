@@ -26,10 +26,12 @@ const STANDBY_DAY = Object.freeze({
   flowFrom: '#1B1E4B',
   flowTo: '#3C1E5A',
   move: undefined,
+  banner: 'rgba(250,250,252,.96)',
+  bannerInk: '#22263A',
   blobs: [
-    ['rgba(120,170,255,.55)', 0.3, 0.4],
-    ['rgba(255,140,200,.5)', 0.7, 0.5],
-    ['rgba(120,240,210,.45)', 0.5, 0.7],
+    ['rgba(120,170,255,.55)', 0.3, 0.4, 0.5],
+    ['rgba(255,140,200,.5)', 0.7, 0.5, 0.9],
+    ['rgba(120,240,210,.45)', 0.5, 0.7, 1.3],
   ],
 } as const)
 const STANDBY_NIGHT = Object.freeze({
@@ -43,12 +45,23 @@ const STANDBY_NIGHT = Object.freeze({
   flowFrom: '#2A0606',
   flowTo: '#1A0303',
   move: '#FF6A5A',
+  banner: 'rgba(90,20,20,.96)',
+  bannerInk: '#FFB0A0',
   blobs: [
-    ['rgba(255,70,50,.35)', 0.3, 0.4],
-    ['rgba(255,90,60,.3)', 0.7, 0.5],
-    ['rgba(200,50,40,.28)', 0.5, 0.7],
+    ['rgba(255,70,50,.35)', 0.3, 0.4, 0.5],
+    ['rgba(255,90,60,.3)', 0.7, 0.5, 0.9],
+    ['rgba(200,50,40,.28)', 0.5, 0.7, 1.3],
   ],
 } as const)
+// The flow's soft blobs drift this far round their place, as shares of the screen.
+const FLOW_DRIFT = Object.freeze({
+  x: 0.18,
+  y: 0.16,
+  xRate: 0.35,
+  yRate: 0.3,
+  xPhase: 9,
+  yPhase: 7,
+})
 // A quiet office dims the screen under this veil.
 const STANDBY_VEIL = 'rgba(0,0,0,.55)'
 // Each hand's length as a share of the dial's radius and its width in mockup px.
@@ -76,6 +89,10 @@ export interface StandByView {
   readonly index?: { readonly label: string; readonly level: string; readonly move: TapeRow }
   readonly isNight: boolean
   readonly isDim: boolean
+  /** Seconds the flow has drifted; 0 holds it still. */
+  readonly flowSeconds: number
+  /** A notice for the phone's desk, shown across its top for a few seconds after it arrives. */
+  readonly banner?: string
 }
 
 type StandByLook = typeof STANDBY_DAY | typeof STANDBY_NIGHT
@@ -246,7 +263,25 @@ export function paintStandBy(c: CanvasRenderingContext2D, face: StandByView): vo
     c.fillRect(0, 0, w, h)
   }
 
+  if (face.banner !== undefined) {
+    paintBanner(c, { text: face.banner, k, look })
+  }
+
   c.restore()
+}
+
+function paintBanner(c: CanvasRenderingContext2D, at: LookAt & { readonly text: string }): void {
+  const { k, look } = at
+  const { width: w } = c.canvas
+
+  c.fillStyle = look.banner
+  c.beginPath()
+  c.roundRect(14 * k, 10 * k, w - 28 * k, 34 * k, 12 * k)
+  c.fill()
+  c.fillStyle = look.bannerInk
+  c.font = `600 ${15 * k}px ${FONT}`
+  c.textAlign = 'left'
+  c.fillText(at.text, 28 * k, 27.5 * k, w - 60 * k)
 }
 
 interface LookAt {
@@ -299,7 +334,7 @@ function paintIndexView(c: CanvasRenderingContext2D, face: StandByView, at: Look
   c.fillText(index.move.move, 146 * k, 116 * k, 92 * k)
 }
 
-// The flow view stands still: a still frame keeps the face from asking for renders.
+// The flow view: a slow gradient whose soft blobs drift with the face's seconds, the time under it.
 function paintFlowView(c: CanvasRenderingContext2D, face: StandByView, at: LookAt): void {
   const { k, look } = at
   const { width: w, height: h } = c.canvas
@@ -310,8 +345,14 @@ function paintFlowView(c: CanvasRenderingContext2D, face: StandByView, at: LookA
   c.fillStyle = ground
   c.fillRect(0, 0, w, h)
 
-  for (const [colour, bx, by] of look.blobs) {
-    const glow = c.createRadialGradient(w * bx, h * by, 0, w * bx, h * by, w * 0.42)
+  const t = face.flowSeconds
+
+  for (const [colour, bx, by, rate] of look.blobs) {
+    const px =
+      w * (bx + FLOW_DRIFT.x * Math.sin(t * FLOW_DRIFT.xRate * rate + bx * FLOW_DRIFT.xPhase))
+    const py =
+      h * (by + FLOW_DRIFT.y * Math.cos(t * FLOW_DRIFT.yRate * rate + by * FLOW_DRIFT.yPhase))
+    const glow = c.createRadialGradient(px, py, 0, px, py, w * 0.42)
 
     glow.addColorStop(0, colour)
     glow.addColorStop(1, 'rgba(0,0,0,0)')

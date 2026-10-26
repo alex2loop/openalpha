@@ -1,6 +1,6 @@
 import type { DeskFace } from '@/web/scene/render3d/desk-dressing'
 import type { FloorProps } from '@/web/scene/render3d/props'
-import type { FloorId, RoomId } from '@/web/scene/types'
+import type { FloorId, RoomId, SimView } from '@/web/scene/types'
 import { formatDay } from '@/i18n'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { homeIndex, ledItems } from '@/web/scene/data/led'
@@ -14,6 +14,7 @@ import {
   type StandByView,
   type TapeRow,
 } from '@/web/scene/render3d/face-paint'
+import { isNightSun } from '@/web/scene/render3d/light-model'
 import {
   type SignFace,
   type SignFrame,
@@ -25,10 +26,13 @@ import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import { faceKindOf } from '@/web/scene/sprites/screens'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
 import { quotesBlock } from '@/web/state/market'
+import { notices } from '@/web/state/notices'
+import { reducedMotion } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
 import { formatFixed, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { toNoticeText } from '@/web/text/notice'
 import { formatHourOfDay } from '@/web/text/time'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
+import { MINUTES_PER_HOUR, MS_PER_SECOND } from '@/web/text/time-units'
 
 /** The alert desk's price board is wall screen variant 3. */
 const TAPE_VARIANT = 3
@@ -37,6 +41,11 @@ const TAPE_ROWS = 4
 const MIN_ROW_PX = 9
 const INDEX_DIGITS = 2
 const DAY_DIGITS_FROM = 8
+// The StandBy phones that carry the operator's notices: your desk's and the assistant's.
+const BANNER_ROOMS: ReadonlySet<RoomId> = new Set(['desk', 'assist'])
+// The mockup's banner stays this long; the flow drifts in steps of this.
+const BANNER_MS = 4_000
+const FLOW_STEP_MS = 200
 // A face stands this far in front of the plate it covers, so the two never share a plane.
 const FACE_LIFT_PX = 0.06
 const STANDBY_VIEWS = Object.freeze({
@@ -72,6 +81,10 @@ interface InfoJob {
 export interface FaceMood extends SignFrame {
   readonly isQuiet: boolean
   readonly isNight: boolean
+  /** Seconds of the StandBy flow's drift, in its steps; 0 under reduced motion. */
+  readonly flowSeconds: number
+  /** The newest notice's title while it is fresh. */
+  readonly banner?: string
 }
 
 /** The floor's data faces: whiteboards, the alert desk's price board and the wall clocks, plus the
@@ -93,12 +106,30 @@ export function infoFacesOf(floor: FloorId, props: FloorProps | undefined): Info
   return [...onWalls, ...onDesks, ...signs]
 }
 
+/** What the faces read from this frame's snapshot, the page's notices and the clock. */
+export function faceMoodOf(sim: SimView): FaceMood {
+  const newest = notices.value[0]
+  const isFresh = newest !== undefined && Date.now() - newest.createdAt < BANNER_MS
+  const banner = isFresh ? toNoticeText(newest.event)?.title : undefined
+  const flowStep = Math.floor(performance.now() / FLOW_STEP_MS) * FLOW_STEP_MS
+
+  return {
+    lift: sim.lift,
+    isQuiet: sim.life.isQuiet,
+    isNight: isNightSun(sim.light.sun),
+    flowSeconds: reducedMotion.value ? 0 : flowStep / MS_PER_SECOND,
+    ...(banner === undefined ? {} : { banner }),
+  }
+}
+
 /** Everything the data faces read, by reference: while none moved, no face needs asking again. */
 export function infoInputsOf(scale: number, mood: FaceMood): readonly unknown[] {
   return [
     ...signInputsOf(mood),
     mood.isQuiet,
     mood.isNight,
+    mood.flowSeconds,
+    mood.banner,
     scale,
     pageMinute.value,
     roomStatus.value,
@@ -144,7 +175,7 @@ export function infoJobOf(
     case 'copier':
       return signJobOf({ ...face, kind: face.kind }, mood)
     default: {
-      const view = standByOf(face.kind, mood)
+      const view = standByOf({ ...face, kind: face.kind }, mood)
 
       return { key: JSON.stringify(view), paint: (c) => paintStandBy(c, view) }
     }
@@ -210,10 +241,11 @@ function toRow(name: string, changePct: number | undefined): TapeRow {
   return { name, move: formatSignedPercent(changePct), tone: toneOfPercent(changePct) }
 }
 
-function standByOf(kind: StandByKind, mood: FaceMood): StandByView {
+function standByOf(face: InfoFace & { readonly kind: StandByKind }, mood: FaceMood): StandByView {
   const { minute, day } = pageMinute.value
   const index = homeIndex.value
-  const view = STANDBY_VIEWS[kind]
+  const view = STANDBY_VIEWS[face.kind]
+  const banner = BANNER_ROOMS.has(face.room) ? mood.banner : undefined
 
   return {
     view,
@@ -222,6 +254,8 @@ function standByOf(kind: StandByKind, mood: FaceMood): StandByView {
     minute,
     isNight: mood.isNight,
     isDim: mood.isQuiet,
+    flowSeconds: view === 'flow' ? mood.flowSeconds : 0,
+    ...(banner === undefined ? {} : { banner }),
     ...(view !== 'index' || index === undefined
       ? {}
       : {
