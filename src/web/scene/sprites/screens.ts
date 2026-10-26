@@ -1,8 +1,12 @@
+import { computed, type ReadonlySignal } from '@preact/signals'
+
 import type { AgendaModel, AgendaRow } from '@/web/scene/data/agenda'
 import type { Size } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
 import { pluralKey } from '@/i18n'
+import { heldNewsPins, todayCalls } from '@/web/scene/data/board'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { OUTLINE, PALETTE } from '@/web/scene/sprites/palette'
 import { formatDuration } from '@/web/text/time'
 import { MS_PER_MINUTE } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -10,6 +14,8 @@ import { tr } from '@/web/text/tr'
 // Text cached at the first of these canvas pixels per world pixel that covers the zoom.
 const CACHE_STEPS = [2, 4, 8] as const
 const FINEST_STEP = 16
+// A cork board is pixel art: one fixed step keeps its pins sharp on a 3D face.
+const CORK_STEP = 8
 // A line of a screen's text is about a tenth of its height; under this many CSS px it cannot be
 // read, and the screen shows only the time and the label.
 const MIN_TEXT_PX = 9
@@ -29,52 +35,162 @@ const ROW_COLORS: Readonly<Record<AgendaRow['state'], string>> = Object.freeze({
   todo: TEXT,
 })
 const CARD_VARIANT = 1
+const AGENDA_VARIANTS: ReadonlySet<number> = new Set([CARD_VARIANT, 2])
+const CORK_VARIANT = 3
 const LIST_ROWS = 4
+const CORK_FRAME = '#B88A5C'
+const CORK = '#C99B6A'
+const NOTE_LINE = '#9AA0B4'
+const NOTE_TONES = ['#FFF6C9', '#FFFFFF', '#E3F0FF', '#FFE3EE', '#E6F2EA'] as const
+const NOTES_PER_ROW = 3
+const MAX_RESULT_NOTES = 3
 
-interface CachedScreen {
+/** A face's canvas and the signature it was last painted for. */
+interface ScreenFace {
   readonly canvas: HTMLCanvasElement
   key: string
 }
 
-/** The lobby's two agenda screens, each a canvas redrawn only when the agenda or the zoom step
- *  changes, then blitted onto the floor. */
+/** What the boards pin today: one note per call the day landed (at most three) and the held-news
+ *  headlines on the library's cork. */
+export interface BoardNotes {
+  readonly calls: number
+  readonly pins: number
+}
+
+/** Which face a prop shows: a lobby agenda screen, the results board's calls or the library's
+ *  news pins. */
+type FaceKind = 'agenda' | 'calls' | 'pins'
+
+/** What the faces read this frame: the agenda, the zoom in CSS px per world px, the boards' notes. */
+interface FaceView {
+  readonly model: AgendaModel
+  readonly scale: number
+  readonly notes: BoardNotes
+}
+
+/** Today's notes on the boards, derived once per change of the board's signals. */
+export const boardNotes: ReadonlySignal<BoardNotes> = computed(() => {
+  const landed = todayCalls.value?.filter((call) => call.action !== 'hold').length ?? 0
+
+  return { calls: Math.min(MAX_RESULT_NOTES, landed), pins: heldNewsPins.value.length }
+})
+
+/** The faces both renderers show, each a canvas repainted only when what it shows or its zoom
+ *  step changes. */
 export interface ScreenCache {
-  drawAgenda(
-    g: CanvasRenderingContext2D,
-    prop: PropDef,
-    view: { readonly model: AgendaModel; readonly scale: number }
-  ): void
+  faceOf(prop: PropDef, view: FaceView): ScreenFace | undefined
   release(): void
 }
 
 export function createScreenCache(): ScreenCache {
-  const screens = new Map<string, CachedScreen>()
+  const faces = new Map<string, ScreenFace>()
 
   return {
-    drawAgenda(g, prop, view) {
-      const { x, y, w, h } = prop.draw
-      const isTiny = h * LINE_SHARE * view.scale < MIN_TEXT_PX
-      const step = CACHE_STEPS.find((candidate) => candidate >= view.scale) ?? FINEST_STEP
-      const key = `${view.model.sig}|${step}|${isTiny}`
-      const screen = screens.get(prop.id) ?? { canvas: document.createElement('canvas'), key: '' }
+    faceOf(prop, view) {
+      const job = faceJobOf(prop, view)
 
-      screens.set(prop.id, screen)
-
-      if (screen.key !== key) {
-        repaint(screen.canvas, { prop, model: view.model, step, isTiny })
-        screen.key = key
+      if (job === undefined) {
+        return undefined
       }
 
-      g.drawImage(screen.canvas, x, y, w, h)
+      const face = faces.get(prop.id) ?? { canvas: document.createElement('canvas'), key: '' }
+
+      faces.set(prop.id, face)
+
+      if (face.key !== job.key) {
+        job.paint(face.canvas)
+        face.key = job.key
+      }
+
+      return face
     },
     release() {
-      for (const screen of screens.values()) {
-        zeroCanvas(screen.canvas)
+      for (const face of faces.values()) {
+        zeroCanvas(face.canvas)
       }
 
-      screens.clear()
+      faces.clear()
     },
   }
+}
+
+// The face's signature and its painter: an agenda screen by agenda and zoom step, a cork by its
+// note count.
+function faceJobOf(
+  prop: PropDef,
+  view: FaceView
+): { readonly key: string; readonly paint: (canvas: HTMLCanvasElement) => void } | undefined {
+  const kind = faceKindOf(prop)
+
+  if (kind === undefined) {
+    return undefined
+  }
+
+  if (kind === 'agenda') {
+    const isTiny = prop.draw.h * LINE_SHARE * view.scale < MIN_TEXT_PX
+    const step = CACHE_STEPS.find((candidate) => candidate >= view.scale) ?? FINEST_STEP
+
+    return {
+      key: `${view.model.sig}|${step}|${isTiny}`,
+      paint: (canvas) => repaint(canvas, { prop, model: view.model, step, isTiny }),
+    }
+  }
+
+  const notes = kind === 'calls' ? view.notes.calls : view.notes.pins
+
+  return { key: `${notes}`, paint: (canvas) => paintCorkFace(canvas, prop.draw, notes) }
+}
+
+export function faceKindOf(prop: PropDef): FaceKind | undefined {
+  if (prop.kind === 'wall-screen') {
+    return AGENDA_VARIANTS.has(prop.variant ?? 0) ? 'agenda' : undefined
+  }
+
+  if (prop.kind === 'results-board') {
+    return 'calls'
+  }
+
+  return prop.kind === 'frame' && prop.variant === CORK_VARIANT ? 'pins' : undefined
+}
+
+/** A cork board in its frame with `notes` pinned notes, three to a row. */
+export function paintCork(g: CanvasRenderingContext2D, rect: PropDef['draw'], notes: number): void {
+  const { x, y, w, h } = rect
+  const noteW = Math.floor(w / NOTES_PER_ROW) - 2
+
+  fillBox(g, [x - 1, y - 1, w + 2, h + 2], OUTLINE)
+  fillBox(g, [x, y, w, h], CORK_FRAME)
+  fillBox(g, [x + 1, y + 1, w - 2, h - 2], CORK)
+
+  for (let i = 0; i < notes; i++) {
+    const isSecondRow = i >= NOTES_PER_ROW
+    const nx = x + 2 + (i % NOTES_PER_ROW) * (noteW + 1) + (isSecondRow ? 2 : 0)
+    const ny = y + 2 + (isSecondRow ? Math.floor(h / 2) : 0)
+
+    fillBox(
+      g,
+      [nx, ny, noteW, Math.floor(h / 2) - 3],
+      NOTE_TONES[i % NOTE_TONES.length] ?? PALETTE.paper
+    )
+    fillBox(g, [nx + 1, ny + 2, noteW - 3, 1], NOTE_LINE)
+  }
+}
+
+// The cork drawn at its own world rectangle, so the same painter fills a face's canvas.
+function paintCorkFace(canvas: HTMLCanvasElement, rect: PropDef['draw'], notes: number): void {
+  const c = canvas.getContext('2d')
+
+  canvas.width = Math.ceil(rect.w * CORK_STEP)
+  canvas.height = Math.ceil(rect.h * CORK_STEP)
+
+  if (c === null) {
+    return
+  }
+
+  c.scale(CORK_STEP, CORK_STEP)
+  c.translate(-rect.x, -rect.y)
+  paintCork(c, rect, notes)
 }
 
 interface PaintJob {
@@ -296,4 +412,13 @@ function clip(c: CanvasRenderingContext2D, text: string, maxW: number): string {
   }
 
   return `${text.slice(0, length)}${CLIP_MARK}`
+}
+
+function fillBox(
+  g: CanvasRenderingContext2D,
+  box: readonly [number, number, number, number],
+  color: string
+): void {
+  g.fillStyle = color
+  g.fillRect(box[0], box[1], box[2], box[3])
 }

@@ -1,6 +1,7 @@
 import type { Tones } from '@/web/scene/sprites/palette'
 import type { FloorId, Rect } from '@/web/scene/types'
 import { FLOOR_TONES, WALL_TONES } from '@/web/scene/sprites/palette'
+import { faceKindOf } from '@/web/scene/sprites/screens'
 import { WORLD } from '@/web/scene/types'
 import { DOORS, type Door } from '@/web/scene/world/doors'
 import { DESK_SLOTS, FLOORS, type Wall } from '@/web/scene/world/floors'
@@ -51,7 +52,6 @@ const RUGS: Readonly<Record<FloorId, readonly (readonly [Box, string, string])[]
 })
 // Wall-mounted pieces that never change: painted once into the cached floor.
 const BAKED_KINDS: ReadonlySet<PropDef['kind']> = new Set(['shelf', 'ladder', 'books', 'window'])
-const CORK_VARIANT = 3
 
 export function fill(g: CanvasRenderingContext2D, box: Box, color: string): void {
   g.fillStyle = color
@@ -89,7 +89,7 @@ export function drawBlock(
 
 /** Whether a prop is painted into the cached floor rather than every frame. */
 export function isBaked(prop: PropDef): boolean {
-  return BAKED_KINDS.has(prop.kind) || (prop.kind === 'frame' && prop.variant !== CORK_VARIANT)
+  return BAKED_KINDS.has(prop.kind) || (prop.kind === 'frame' && faceKindOf(prop) !== 'pins')
 }
 
 /** The floor that never moves: surfaces, walls, glass, doorways, rugs and the baked props, drawn

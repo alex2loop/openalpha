@@ -1,4 +1,4 @@
-import type { ActorView, FloorId, HeldItem, PoseId } from '@/web/scene/types'
+import type { ActorView, FloorId, HeldItem, PoseId, SheetView } from '@/web/scene/types'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const GAIT_STEP_MS = 250
@@ -43,6 +43,13 @@ export type Arms =
 
 /** Something in the right hand besides a phone or a sheet. */
 export type HeldKind = 'cup' | 'bag' | 'box' | 'item'
+
+/** What the hands show: a phone, a held kind and a sheet may show together. */
+export interface InHand {
+  readonly phone?: 'call' | 'read'
+  readonly hold?: HeldKind
+  readonly sheet?: NonNullable<SheetView['action']> | 'blank'
+}
 
 /** One picture of a pose, what the sprite builders draw on top of the look. */
 export interface PoseFrame {
@@ -198,9 +205,21 @@ export function isActorWalking(actor: ActorView): boolean {
   return actor.prev.x !== actor.at.x || actor.prev.y !== actor.at.y
 }
 
-/** How `item` sits in the hand; a phone has no held kind of its own. */
-export function heldKindOf(item: HeldItem): HeldKind | undefined {
-  return HELD_OF[item]
+/** What a person's hands show this frame, in both renderers: the pose's phone or held kind, else
+ *  what they carry (a phone is read in both hands unless the pose holds something or has its own
+ *  phone), and a sheet beside either, `blank` until it is stamped. */
+export function inHandOf(actor: ActorView, pose: PoseFrame): InHand {
+  const sheet: Pick<InHand, 'sheet'> =
+    actor.sheet === undefined ? {} : { sheet: actor.sheet.action ?? 'blank' }
+  const item = pose.hold === undefined ? actor.item : undefined
+  const phone = pose.phone ?? (item === 'phone' ? 'read' : undefined)
+  const hold = pose.hold ?? (item === undefined ? undefined : HELD_OF[item])
+
+  return {
+    ...sheet,
+    ...(phone === undefined ? {} : { phone }),
+    ...(hold === undefined ? {} : { hold }),
+  }
 }
 
 /** The fidget `seed` picks. */

@@ -23,6 +23,15 @@ export interface FloorProps {
   readonly screens: Screen[]
   /** Each lamp's shade and the room whose switch it follows. */
   readonly lamps: Lamp[]
+  /** The pieces hung on a wall's band, apart, so each can fade with the wall that holds it. */
+  readonly hung: HungPiece[]
+}
+
+/** A piece hung on a wall: its left edge, the z of the wall's south face, and its boxes. */
+interface HungPiece {
+  readonly x: number
+  readonly wallZ: number
+  readonly boxes: Box[]
 }
 
 interface Screen {
@@ -66,6 +75,7 @@ const CHAIR_BACK_PX = 14
 const MONITOR_BASE_PX = 15
 const MONITOR_PX = 9
 const WALL_FACE_PROUD = 0.8
+const FACE_PLATE_PX = 0.3
 const LAMP_SHADE = Object.freeze({ w: 10, h: 8, y: 50 })
 const LAMP_BASE = Object.freeze({ w: 8, h: 2 })
 const LAMP_POLE = 1.6
@@ -74,7 +84,7 @@ const SCREEN_SEAT_DZ = 8
 
 /** The furniture of `floor`, built once per floor from `world/props`. */
 export function buildFloorProps(floor: FloorId): FloorProps {
-  const built: FloorProps = { rooms: new Map(), glass: [], screens: [], lamps: [] }
+  const built: FloorProps = { rooms: new Map(), glass: [], screens: [], lamps: [], hung: [] }
 
   for (const prop of propsOn(floor)) {
     const out = built.rooms.get(prop.room) ?? []
@@ -362,10 +372,35 @@ export const LAMP_SHADE_SIZE: readonly [number, number, number] = [
   LAMP_SHADE.w,
 ]
 
-// A piece on a wall's band hangs on the north wall at the height that lines it up with 2D; one
-// below the band stands on the floor facing the camera, its foot at the drawn box's bottom, so
-// its face covers what 2D draws.
 function wallPiece({ prop, out, floor }: Build): void {
+  const spots = wallSpotsOf(prop)
+  const [frame, plate] = WALL_LOOKS[prop.kind] ?? [BOARD_FRAME, PALETTE.paper]
+  const face = prop.kind === 'frame' ? (ART[(prop.variant ?? 0) % ART.length] ?? plate) : plate
+
+  if (prop.kind === 'window') {
+    out.push(box(spots.frame, frame))
+    floor.glass.push(box(spots.face, face))
+    return
+  }
+
+  const boxes = [box(spots.frame, frame), box(spots.face, face)]
+
+  if (spots.wallZ === undefined) {
+    out.push(...boxes)
+  } else {
+    floor.hung.push({ x: prop.rect.x, wallZ: spots.wallZ, boxes })
+  }
+}
+
+/** A wall piece's frame and the face plate in front of it. One on a wall's band hangs on the north
+ *  wall at the height that lines it up with 2D; one below the band stands on the floor facing the
+ *  camera, its foot at the drawn box's bottom, so its face covers what 2D draws. */
+export function wallSpotsOf(prop: PropDef): {
+  readonly frame: Spot
+  readonly face: Spot
+  /** The z of the wall it hangs on; absent for a piece standing on the floor. */
+  readonly wallZ?: number
+} {
   const room = roomById(prop.room)
   const wallZ = (room?.rect.y ?? 0) + WALL_BAND_PX
   const { x, y, w, h } = prop.rect
@@ -373,15 +408,12 @@ function wallPiece({ prop, out, floor }: Build): void {
   const z = isHung ? wallZ : y + h
   const base = isHung ? (wallZ - (y + h)) / HEIGHT_K : 0
   const tall = h / HEIGHT_K
-  const [frame, plate] = WALL_LOOKS[prop.kind] ?? [BOARD_FRAME, PALETTE.paper]
-  const face = prop.kind === 'frame' ? (ART[(prop.variant ?? 0) % ART.length] ?? plate) : plate
 
-  const faceList = prop.kind === 'window' ? floor.glass : out
-
-  out.push(box([x, z - (isHung ? 0 : WALL_FACE_PROUD), w, WALL_FACE_PROUD, base, tall], frame))
-  faceList.push(
-    box([x + 1, z + (isHung ? WALL_FACE_PROUD : 0), w - 2, 0.3, base + 1, tall - 2], face)
-  )
+  return {
+    frame: [x, z - (isHung ? 0 : WALL_FACE_PROUD), w, WALL_FACE_PROUD, base, tall],
+    face: [x + 1, z + (isHung ? WALL_FACE_PROUD : 0), w - 2, FACE_PLATE_PX, base + 1, tall - 2],
+    ...(isHung ? { wallZ } : {}),
+  }
 }
 
 const WALL_LOOKS: Readonly<Partial<Record<PropKind, readonly [string, string]>>> = Object.freeze({

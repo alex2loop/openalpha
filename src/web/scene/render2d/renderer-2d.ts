@@ -2,7 +2,7 @@ import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { LightRow } from '@/web/scene/sprites/daylight'
 import { agenda } from '@/web/scene/data/agenda'
-import { heldNewsPins, indexDrop, todayCalls } from '@/web/scene/data/board'
+import { indexDrop } from '@/web/scene/data/board'
 import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitFloor, fitRoom, toSnappedFit } from '@/web/scene/render2d/camera'
@@ -11,7 +11,6 @@ import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
 import { paintLighting } from '@/web/scene/render2d/lights'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
-import { createScreenCache, type ScreenCache } from '@/web/scene/render2d/screens'
 import {
   buildTeamPieces,
   isTeamMoving,
@@ -23,6 +22,7 @@ import { isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { DAY_LIGHT_HOUR, lightAt } from '@/web/scene/sprites/daylight'
+import { boardNotes, createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
 import {
   type FloorId,
   type Point,
@@ -236,8 +236,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     minuteOfDay: sim.light.hour * MINUTES_PER_HOUR,
     scale,
     isPrinting: isPrintingRun(lib),
-    pins: heldNewsPins.value.length,
-    fresh: todayCalls.value?.filter((call) => call.action !== 'hold').length ?? 0,
+    notes: boardNotes.value,
     unread: unread.value ?? 0,
     agenda: agenda.value,
     screens: surface.screens,

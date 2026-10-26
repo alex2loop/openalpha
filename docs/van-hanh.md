@@ -481,7 +481,7 @@ Phím mũi tên đi quanh vòng tròn, Esc đóng lại, và chuyển tiêu đi�
 
 ### Hai cách xem cùng một văn phòng
 
-Một công tắc "2D | 3D" trên đầu trang, đứng trước nút Tập trung, đổi cách vẽ văn phòng. Mặc định là 2D. 3D được tải lần đầu bạn chọn, và lựa chọn của bạn được giữ trong trình duyệt này. Vẫn là một văn phòng: vị trí, camera, lựa chọn, bong bóng và mọi thứ ở trên đều dùng được ở cả hai, chỉ khác là chuyển chế độ thì dừng việc đi theo một người và đóng vòng hành động đang mở. Hiện 3D thể hiện ít chi tiết hơn 2D: màn hình và bảng chỉ là những tấm phẳng một màu, không có hình và chữ nhỏ mà 2D vẽ lên đó, và còn thiếu vài chi tiết tinh hơn. Nếu thiết bị không vẽ được 3D thì nút bị khóa và nói rõ lý do; nếu 3D tải không được hoặc mất ngữ cảnh đồ họa, trang quay về 2D và báo cho bạn.
+Một công tắc "2D | 3D" trên đầu trang, đứng trước nút Tập trung, đổi cách vẽ văn phòng. Mặc định là 2D. 3D được tải lần đầu bạn chọn, và lựa chọn của bạn được giữ trong trình duyệt này. Vẫn là một văn phòng: vị trí, camera, lựa chọn, bong bóng và mọi thứ ở trên đều dùng được ở cả hai, chỉ khác là chuyển chế độ thì dừng việc đi theo một người và đóng vòng hành động đang mở. 3D thể hiện như 2D: màn hình lịch, bảng kết quả và bảng tin ghim mang cùng nội dung, điện thoại hay tờ giấy đã đóng dấu hiện trên tay, bức tường phía sau trở nên trong suốt khi che khuất người đứng sau nó, và đèn của các phòng đang bật tỏa ánh sáng ấm. Nếu thiết bị không vẽ được 3D thì nút bị khóa và nói rõ lý do; nếu 3D tải không được hoặc mất ngữ cảnh đồ họa, trang quay về 2D và báo cho bạn.
 
 ### Phím tắt, trình đọc màn hình và mức báo
 

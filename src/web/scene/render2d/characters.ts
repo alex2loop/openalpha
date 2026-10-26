@@ -1,5 +1,4 @@
 import type { FrameSpec, Material } from '@/web/scene/render2d/figure-spec'
-import type { PoseFrame } from '@/web/scene/sim/actors/poses'
 import type { ActorStatus, ActorView } from '@/web/scene/types'
 import { buildFigure } from '@/web/scene/render2d/figure'
 import { buildMascot } from '@/web/scene/render2d/mascot'
@@ -14,7 +13,7 @@ import {
 } from '@/web/scene/render2d/pixel-grid'
 import { zeroCanvas } from '@/web/scene/renderer'
 import {
-  heldKindOf,
+  inHandOf,
   isActorWalking,
   isBlinking,
   isBreathDown,
@@ -29,11 +28,11 @@ import {
   RAMP,
   SHADOW,
   STATUS_TONES,
+  stampToneOf,
   WORK_RIM,
 } from '@/web/scene/sprites/palette'
 import { type Look, lookOf, PANTS_OF } from '@/web/scene/sprites/parts'
 import { seedOf } from '@/web/scene/world/rng'
-import { colorScheme, colourPair } from '@/web/state/prefs'
 
 // Enough for every person on a busy floor in every frame they cycle through, with room to spare.
 const MAX_SPRITES = 640
@@ -42,10 +41,6 @@ const SELECT_RING_W = 14
 const SHADOW_W = 14
 const SHADOW_H = 3
 const SELECT_RING = OUTLINE
-// A stamped sheet takes the action's hue: a buy in the page's up colour, a reduce in its down
-// colour (both follow the theme and the red-up choice), a hold in ink.
-const UP_TOKEN = '--up'
-const DOWN_TOKEN = '--down'
 const STATUS_DOT_PX = 3
 const STATUS_RISE_PX = 2
 // Face details shade with the skin under them, so a dot eye never splits the head's bands.
@@ -64,15 +59,7 @@ const SKIN_DETAILS: ReadonlySet<Material> = new Set([
 
 type Band = 0 | 1 | 2
 
-/** The stamp hues the page's tokens set now; `key` names the theme and colour pair read. */
-interface StampTones {
-  readonly key: string
-  readonly buy: string
-  readonly reduce: string
-}
-
 const sprites = new Map<string, HTMLCanvasElement>()
-let stampTones: StampTones | undefined
 
 /** Whether the people's small motion runs this frame, and whether the operator asked for less. */
 interface CharacterMotion {
@@ -189,32 +176,13 @@ function toFrameSpec(actor: ActorView, frame: CharacterFrame): FrameSpec {
   return {
     ...pose,
     ...(gait === undefined ? {} : { gait }),
-    ...heldOf(actor, pose),
+    ...inHandOf(actor, pose),
     isBack: actor.facing === 'up' && pose.isFront !== true,
     isBob: isAnimated && !isMoving && isBreathDown(seed, frame.now),
     isBlink: frame.motion.isOn && isBlinking(seed, frame.now),
     isWorking: actor.working,
     finish: seed % PHONE_FINISHES.length,
   }
-}
-
-// A sheet in hand, else what the actor carries: a phone is read in both hands unless the pose
-// already holds one.
-function heldOf(actor: ActorView, pose: PoseFrame): Pick<FrameSpec, 'hold' | 'phone' | 'sheet'> {
-  const sheet: Pick<FrameSpec, 'sheet'> =
-    actor.sheet === undefined ? {} : { sheet: actor.sheet.action ?? 'blank' }
-
-  if (pose.hold !== undefined || actor.item === undefined) {
-    return sheet
-  }
-
-  if (actor.item === 'phone') {
-    return pose.phone === undefined ? { ...sheet, phone: 'read' } : sheet
-  }
-
-  const hold = heldKindOf(actor.item)
-
-  return hold === undefined ? sheet : { ...sheet, hold }
 }
 
 function spriteKey(look: Look, frame: FrameSpec): string {
@@ -238,7 +206,7 @@ function spriteKey(look: Look, frame: FrameSpec): string {
     frame.phone,
     frame.hold,
     frame.sheet,
-    frame.sheet === 'buy' || frame.sheet === 'reduce' ? resolveStampTones().key : '',
+    frame.sheet === 'buy' || frame.sheet === 'reduce' ? stampToneOf(frame.sheet) : '',
     frame.isBack,
     frame.isBob,
     frame.isBlink,
@@ -361,27 +329,6 @@ function colourOf(
     default:
       return isFlat(material) ? PALETTE[material] : RAMP[material][band]
   }
-}
-
-function stampToneOf(action: 'buy' | 'reduce' | 'hold'): string {
-  return action === 'hold' ? OUTLINE : resolveStampTones()[action]
-}
-
-// Read from the page's tokens once per theme and colour pair, never per sprite.
-function resolveStampTones(): StampTones {
-  const key = `${colorScheme.value}${KEY_SEPARATOR}${colourPair.value}`
-
-  if (stampTones?.key !== key) {
-    const style = getComputedStyle(document.documentElement)
-
-    stampTones = {
-      key,
-      buy: style.getPropertyValue(UP_TOKEN).trim(),
-      reduce: style.getPropertyValue(DOWN_TOKEN).trim(),
-    }
-  }
-
-  return stampTones
 }
 
 function isFlat(material: Material): material is keyof typeof PALETTE {

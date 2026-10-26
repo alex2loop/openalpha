@@ -491,7 +491,7 @@ Arrow keys move around the ring, Esc closes it, and so does moving focus away. A
 
 ### Two views of the same office
 
-A "2D | 3D" switch in the header, before the Focus button, changes how the office is drawn. 2D is the default. 3D is loaded the first time you ask for it, and your choice is kept in this browser. It is the same office: positions, camera, selection, bubbles and everything above work in both, except that switching drops a follow and closes an open ring. 3D shows less than 2D for now: screens and boards are flat coloured panels without the small pictures and text 2D draws on them, and a few finer details are missing. If the device cannot draw 3D the button is disabled and says why; if 3D fails to load or the graphics context is lost, the page returns to 2D and tells you.
+A "2D | 3D" switch in the header, before the Focus button, changes how the office is drawn. 2D is the default. 3D is loaded the first time you ask for it, and your choice is kept in this browser. It is the same office: positions, camera, selection, bubbles and everything above work in both, except that switching drops a follow and closes an open ring. 3D shows what 2D shows: the agenda screens, the results board and the news pins carry the same faces, a phone or a stamped sheet shows in hand, a back wall clears while it hides someone standing behind it, and the lamps of lit rooms cast a warm light. If the device cannot draw 3D the button is disabled and says why; if 3D fails to load or the graphics context is lost, the page returns to 2D and tells you.
 
 ### Keys, screen readers and attention
 

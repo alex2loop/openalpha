@@ -1,10 +1,26 @@
 import type { Body, HairTone, PantsTone, Shirt } from '@/web/scene/sprites/parts'
-import type { ActorStatus, DeskFocus } from '@/web/scene/types'
+import type { ActorStatus, DeskFocus, SheetView } from '@/web/scene/types'
+import { colorScheme, colourPair } from '@/web/state/prefs'
 
 /** A part's three cel bands: lit top, body, shade. */
 type Ramp = readonly [lit: string, body: string, shade: string]
 /** A material's light, mid and dark tone. */
 export type Tones = readonly [string, string, string]
+
+// A stamped sheet takes the action's hue: a buy in the page's up colour, a reduce in its down
+// colour (both follow the theme and the red-up choice), a hold in ink.
+const UP_TOKEN = '--up'
+const DOWN_TOKEN = '--down'
+
+/** The stamp hues the page's tokens set for one theme and colour pair. */
+interface StampTones {
+  readonly scheme: string
+  readonly pair: string
+  readonly buy: string
+  readonly reduce: string
+}
+
+let stampTones: StampTones | undefined
 
 export const OUTLINE = '#2B2433'
 /** The outline along a figure's top edge, a step lighter so the head does not look cut out. */
@@ -182,3 +198,27 @@ export const FOCUS_TONES = Object.freeze({
   gold: '#D9A23E',
   piggy: '#ECBED8',
 } satisfies Record<DeskFocus, string>)
+
+/** A stamped sheet's hue in both renderers, read from the page's tokens once per theme and colour
+ *  pair, never per sprite or per frame. */
+export function stampToneOf(action: NonNullable<SheetView['action']>): string {
+  if (action === 'hold') {
+    return OUTLINE
+  }
+
+  const scheme = colorScheme.value
+  const pair = colourPair.value
+
+  if (stampTones?.scheme !== scheme || stampTones.pair !== pair) {
+    const style = getComputedStyle(document.documentElement)
+
+    stampTones = {
+      scheme,
+      pair,
+      buy: style.getPropertyValue(UP_TOKEN).trim(),
+      reduce: style.getPropertyValue(DOWN_TOKEN).trim(),
+    }
+  }
+
+  return stampTones[action]
+}

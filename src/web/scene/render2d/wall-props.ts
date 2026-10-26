@@ -1,15 +1,15 @@
 import type { AgendaModel } from '@/web/scene/data/agenda'
-import type { ScreenCache } from '@/web/scene/render2d/screens'
 import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
+import type { BoardNotes, ScreenCache } from '@/web/scene/sprites/screens'
 import type { LifeView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
-import { PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
+import { PROP_TONES } from '@/web/scene/sprites/palette'
+import { faceKindOf, paintCork } from '@/web/scene/sprites/screens'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const SWITCH_ON = '#FFB340'
 const SWITCH_OFF = '#8E8497'
-const NOTE_TONES = ['#FFF6C9', '#FFFFFF', '#E3F0FF', '#FFE3EE', '#E6F2EA'] as const
 const ART = [
   ['#D9B98F', '#BFE0F2', '#F6D69B', '#B9D9B5'],
   ['#C9B9D9', '#F2C9C2', '#BFD3EE', '#F6E3A8'],
@@ -19,9 +19,6 @@ const MARKER_TONES = ['#7C93D6', '#A596D9', '#6F7388'] as const
 const HOURS_ON_DIAL = 12
 const HOUR_HAND_PX = 3
 const MINUTE_HAND_PX = 5
-const CORK_VARIANT = 3
-const MAX_RESULT_NOTES = 3
-const AGENDA_VARIANTS: ReadonlySet<number> = new Set([1, 2])
 
 /** What the props show this frame: the lamps on, the clock, the zoom, and what the boards read. */
 export interface PaintScene {
@@ -30,8 +27,7 @@ export interface PaintScene {
   readonly minuteOfDay: number
   readonly scale: number
   readonly isPrinting: boolean
-  readonly pins: number
-  readonly fresh: number
+  readonly notes: BoardNotes
   readonly unread: number
   readonly agenda: AgendaModel
   readonly screens: ScreenCache
@@ -68,29 +64,8 @@ function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 }
 
-// The results board: one pinned note per call the day landed, at most three.
 function paintResults(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  paintCork(g, prop.draw, Math.min(MAX_RESULT_NOTES, scene.fresh))
-}
-
-function paintCork(g: CanvasRenderingContext2D, rect: PropDef['draw'], notes: number): void {
-  const { x, y, w, h } = rect
-  const noteW = Math.floor(w / 3) - 2
-
-  framed(g, [x, y, w, h], '#B88A5C')
-  fill(g, [x + 1, y + 1, w - 2, h - 2], '#C99B6A')
-
-  for (let i = 0; i < notes; i++) {
-    const nx = x + 2 + (i % 3) * (noteW + 1) + (i >= 3 ? 2 : 0)
-    const ny = y + 2 + (i >= 3 ? Math.floor(h / 2) : 0)
-
-    fill(
-      g,
-      [nx, ny, noteW, Math.floor(h / 2) - 3],
-      NOTE_TONES[i % NOTE_TONES.length] ?? PALETTE.paper
-    )
-    fill(g, [nx + 1, ny + 2, noteW - 3, 1], '#9AA0B4')
-  }
+  paintCork(g, prop.draw, scene.notes.calls)
 }
 
 function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -98,8 +73,17 @@ function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
 
   fill(g, [x - 1, y - 1, w + 2, h + 2], INK)
 
-  if (AGENDA_VARIANTS.has(prop.variant ?? 0)) {
-    scene.screens.drawAgenda(g, prop, { model: scene.agenda, scale: scene.scale })
+  if (faceKindOf(prop) === 'agenda') {
+    const face = scene.screens.faceOf(prop, {
+      model: scene.agenda,
+      scale: scene.scale,
+      notes: scene.notes,
+    })
+
+    if (face !== undefined) {
+      g.drawImage(face.canvas, x, y, w, h)
+    }
+
     return
   }
 
@@ -154,8 +138,8 @@ function hand(
 function paintFrame(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
 
-  if (prop.variant === CORK_VARIANT) {
-    paintCork(g, prop.draw, scene.pins)
+  if (faceKindOf(prop) === 'pins') {
+    paintCork(g, prop.draw, scene.notes.pins)
     return
   }
 

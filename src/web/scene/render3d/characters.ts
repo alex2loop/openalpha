@@ -9,7 +9,7 @@ import {
   SkinnedMesh,
 } from 'three'
 
-import type { HeldKind } from '@/web/scene/sim/actors/poses'
+import type { InHand } from '@/web/scene/sim/actors/poses'
 import type { ActorId, ActorView, Point } from '@/web/scene/types'
 import { createPartKit } from '@/web/scene/render3d/bake'
 import {
@@ -26,7 +26,7 @@ import { type JointTargets, targetsOf, yawOf } from '@/web/scene/render3d/joints
 import { buildMascot } from '@/web/scene/render3d/mascot'
 import { toUnits, UNIT_PX } from '@/web/scene/render3d/space'
 import {
-  heldKindOf,
+  inHandOf,
   isActorWalking,
   isBlinking,
   isBreathDown,
@@ -289,12 +289,16 @@ function poseRig(rig: Rig, job: PoseJob): boolean {
   })
   const isBreathing = read.isAnimated && !read.isWalking && actor.working
 
-  rig.held = syncHeld(rig.held, {
-    hold: read.hold,
+  const held = syncHeld(rig.held, {
+    inHand: read.inHand,
+    seed: read.seed,
     hand: rig.figure.joints.faR,
     arm: rig.figure.joints.uaR,
     cast,
   })
+  const isHeldNew = held !== rig.held
+
+  rig.held = held
   rig.root.position.set(
     toUnits(at.x),
     toUnits(read.targets.hop * UNIT_PX * FIGURE_SCALE),
@@ -305,7 +309,7 @@ function poseRig(rig: Rig, job: PoseJob): boolean {
   showEyes(rig, read.targets.isShut || (frame.isMotionOn && isBlinking(read.seed, frame.now)))
   outline(rig, { scale: frame.scale, isWorking: actor.working })
 
-  return eased || frame.now - rig.walkedAt < FULL_TAIL_MS
+  return eased || isHeldNew || frame.now - rig.walkedAt < FULL_TAIL_MS
 }
 
 interface ReadPose {
@@ -313,7 +317,7 @@ interface ReadPose {
   readonly isWalking: boolean
   readonly isAnimated: boolean
   readonly isSeated: boolean
-  readonly hold: HeldKind | undefined
+  readonly inHand: InHand
   readonly targets: JointTargets
   readonly wantYaw: number
 }
@@ -330,14 +334,14 @@ function readPose(rig: Rig, job: PoseJob): ReadPose {
     sinceMs: actor.poseSince,
     nowMs: isAnimated ? frame.now : actor.poseSince,
   })
+  const inHand = inHandOf(actor, shown)
   const pose =
-    actor.item === 'phone' && shown.phone === undefined
-      ? { ...shown, phone: 'read' as const }
-      : shown
+    inHand.phone === undefined || inHand.phone === shown.phone
+      ? shown
+      : { ...shown, phone: inHand.phone }
   const seat = isWalking
     ? undefined
     : SEATS_ALL.find((one) => Math.hypot(one.at.x - at.x, one.at.y - at.y) <= SEAT_REACH_PX)
-  const hold = pose.hold ?? (actor.item === undefined ? undefined : heldKindOf(actor.item))
   const swing = isWalking && !frame.isReduced ? Math.sin((frame.now / GAIT_MS) * Math.PI * 2) : 0
   const step: readonly [number, number] = [actor.at.x - actor.prev.x, actor.at.y - actor.prev.y]
   const facing = yawOf({ facing: actor.facing, step, isFront: pose.isFront === true })
@@ -347,12 +351,12 @@ function readPose(rig: Rig, job: PoseJob): ReadPose {
     isWalking,
     isAnimated,
     isSeated: seat !== undefined,
-    hold,
+    inHand,
     targets: targetsOf(pose, {
       swing,
       sit: rig.sit,
       side: seed % 2 === 0 ? 1 : -1,
-      isHolding: hold !== undefined && hold !== 'bag',
+      isHolding: inHand.hold !== undefined && inHand.hold !== 'bag',
       isWalking,
     }),
     wantYaw: seat?.desk === true ? Math.PI : facing,
