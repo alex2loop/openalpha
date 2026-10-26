@@ -1,0 +1,401 @@
+import type { Build, FloorProps } from '@/web/scene/render3d/props'
+import type { FloorId } from '@/web/scene/types'
+import { type Box, box } from '@/web/scene/render3d/boxes'
+import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
+import { type PropDef, propsOn } from '@/web/scene/world/props'
+import { roomById } from '@/web/scene/world/rooms'
+
+/** A monitor face in world px: 1.6 to 1, like the mockup's 320 by 200 screen. */
+const MONITOR_FACE = Object.freeze({ w: 18, h: 11.25 })
+/** Where a monitor's face starts: a seated head stays below the lower half of the screen. */
+const MONITOR_BASE_PX = 19
+/** The StandBy phone's lit screen, standing on its fold. */
+const STANDBY_FACE = Object.freeze({ w: 14.6, h: 9.1 })
+/** The desk calendar's page, leaning back on its stand. */
+const CALENDAR_FACE = Object.freeze({ size: 7, tilt: -1.05 })
+
+const SILVER = '#A3AAB8'
+const MONITOR_BACK = '#2A2F3F'
+const KEYBOARD = '#F4F0E8'
+const KEY_ROW = '#C9CDD6'
+const STUDIO = Object.freeze({ w: 6.4, h: 3.2, base: '#3B404B', body: '#C7CCD4', top: '#E4E7EC' })
+const PORT = '#1F222A'
+const STANDBY_RIM = '#ECEEF2'
+const STANDBY_GLASS = '#1B2552'
+const TRAY = Object.freeze({ w: 13, d: 8, base: '#C9D0DC', rim: '#B9C1CE' })
+const STAMP = Object.freeze({ ink: '#C9505A', grip: '#9E7444' })
+const DUCK = Object.freeze({ body: '#FFD65A', beak: '#F29B4B' })
+const STICKY_TONES = ['#FFF4A8', '#FFC9DE', '#BFE3FF'] as const
+const CALENDAR_STAND = '#2B2433'
+const PAD = '#5D6577'
+const GLASS_WATER = '#BFE0F2'
+const PLACARD_LINE = '#8E8497'
+const CABLE = Object.freeze({ tray: '#B9C0CC', rail: '#AAB1BD', y: 36, gap: 22 })
+const BRASS = '#D9B25C'
+const BANKER_SHADE = Object.freeze({ off: '#5FA878', on: '#A8EBC0' })
+// The seat a screen's worker sits at stands this far south of the computer's foot.
+const SCREEN_SEAT_DZ = 8
+// The monitor stands this far in from its desk's back edge, its face this far in front of that.
+const MONITOR_BACK_INSET = 1.5
+const MONITOR_FACE_PROUD = 1.2
+// A computer stands on the desk whose footprint holds it, give or take this.
+const ON_DESK_SLACK_PX = 4
+// The operator desk's top sits this high in the mockup; its pieces keep their rise above it.
+const MOCKUP_TOP_PX = 14.5
+const OPERATOR_ROOM = 'desk'
+// The assistant's desk is the senior one: a StandBy phone stands where a junior keeps its mug.
+const ASSISTANT_ROOM = 'assist'
+
+/** A lamp on a desk: its shade's centre and size, and its tones off and lit. */
+export interface DeskLamp {
+  readonly room: PropDef['room']
+  readonly at: readonly [x: number, y: number, z: number]
+  readonly size: readonly [w: number, h: number, d: number]
+  readonly off: string
+  readonly on: string
+}
+
+/** A small lit face on a desk, painted by `screen-faces`: its centre, size and lean. */
+export interface DeskFace {
+  readonly kind: 'calendar' | 'standby-clock' | 'standby-index' | 'standby-flow'
+  readonly room: PropDef['room']
+  readonly at: readonly [x: number, y: number, z: number]
+  readonly size: readonly [w: number, h: number]
+  readonly tilt: number
+}
+
+/** Where the operator's in-tray holds its stack: the floor corner of its inside and the height of
+ *  its bottom. */
+interface TraySpot {
+  readonly x: number
+  readonly z: number
+  readonly y: number
+}
+
+/** What a desk carries besides its top and legs: the operator's whole dressing, or a junior's
+ *  keyboard and Mac Studio under its monitor. */
+export function deskThings(job: Build): void {
+  if (isOperatorDesk(job.prop)) {
+    operatorThings(job)
+    return
+  }
+
+  const computer = propsOn(job.prop.floor).find(
+    (one) => one.kind === 'computer' && deskUnder(one)?.id === job.prop.id
+  )
+
+  if (computer === undefined) {
+    return
+  }
+
+  juniorThings(job)
+
+  if (job.prop.room === ASSISTANT_ROOM) {
+    const { x, y, w } = job.prop.rect
+
+    standby(job, { x: x + w - 16, z: y + 0.5, top: job.prop.height, kind: 'standby-flow' })
+  }
+}
+
+/** A monitor on its silver stand at the back of its desk, the face drawn apart so it can light. */
+export function monitorOf({ prop, out, floor }: Build): void {
+  const cx = prop.rect.x + prop.rect.w / 2
+  const desk = deskUnder(prop)
+  const z = (desk?.rect.y ?? prop.rect.y) + MONITOR_BACK_INSET
+  const top = desk?.height ?? prop.height
+  const { w, h } = MONITOR_FACE
+
+  out.push(
+    box([cx - 0.9, z - 0.2, 1.8, 1.6, top, MONITOR_BASE_PX - top + 0.4], SILVER),
+    box([cx - 3.5, z - 0.6, 7, 3, top, 0.8], SILVER, true),
+    box(
+      [
+        cx - (w + 0.8) / 2,
+        z + MONITOR_FACE_PROUD - 0.7,
+        w + 0.8,
+        1,
+        MONITOR_BASE_PX - 0.4,
+        h + 0.8,
+      ],
+      MONITOR_BACK,
+      true
+    )
+  )
+  floor.screens.push({
+    at: [cx, MONITOR_BASE_PX + h / 2, z + MONITOR_FACE_PROUD + 0.5],
+    size: [w, h, 0.3],
+    seat: { x: cx, y: prop.rect.y + prop.rect.h + SCREEN_SEAT_DZ },
+    slot: { x: cx, y: prop.rect.y + prop.rect.h },
+  })
+}
+
+/** The meeting table's papers, pad, glass, pitcher and cups, the role placards and two StandBy
+ *  phones (one with the home index, one a clock). */
+export function meetingThings({ prop, out, floor }: Build): void {
+  const { x, y } = prop.rect
+  const top = prop.height + 0.4
+
+  out.push(
+    box([x + 14, y + 5, 16, 10, top, 0.6], PALETTE.paper),
+    box([x + 94, y + 5, 14, 10, top, 0.6], PALETTE.paper),
+    box([x + 128, y + 6, 8, 6, top, 2], PAD, true),
+    box([x + 60, y + 8, 3, 3, top, 3], PALETTE.paper, true)
+  )
+  pitcher(out, { x: x + 98, z: y + 9, top: top + 0.1 })
+
+  for (const dx of [36, 68, 100]) {
+    placard(out, { x: x + dx, z: y + 17, top: top + 0.1 })
+  }
+
+  for (const dx of [20, 52, 84, 116]) {
+    placard(out, { x: x + dx, z: y + 3, top: top + 0.1 })
+  }
+
+  standby({ out, floor, prop }, { x: x + 58, z: y + 2, top: top + 0.1, kind: 'standby-index' })
+  standby({ out, floor, prop }, { x: x + 112, z: y + 2, top: top + 0.1, kind: 'standby-clock' })
+}
+
+/** The floor's pieces no prop row carries: the library's banker's lamp on the middle desk and the
+ *  store's two cable trays overhead. */
+export function dressFloor(floor: FloorId, built: FloorProps): void {
+  const desks = propsOn(floor)
+    .filter((prop) => prop.kind === 'desk' && prop.room === 'lib')
+    .sort((a, b) => a.rect.x - b.rect.x)
+  const middle = desks[Math.floor(desks.length / 2)]
+
+  if (middle !== undefined) {
+    bankerLamp(built, middle)
+  }
+
+  const store = roomById('store')
+
+  if (store?.floor === floor) {
+    const out = built.rooms.get('store') ?? []
+
+    built.rooms.set('store', out)
+
+    for (const dz of [64, 112]) {
+      cableTray(out, { x: store.rect.x + 8, z: store.rect.y + dz, w: store.rect.w - 16 })
+    }
+  }
+}
+
+function isOperatorDesk(prop: PropDef): boolean {
+  return prop.kind === 'desk' && prop.room === OPERATOR_ROOM
+}
+
+/** The operator's in-tray on its desk; absent where no floor carries the desk. */
+export function operatorTrayOf(): TraySpot | undefined {
+  const desk = propsOn('office').find(isOperatorDesk)
+
+  if (desk === undefined) {
+    return undefined
+  }
+
+  return { x: desk.rect.x + 3.2, z: desk.rect.y + 10.2, y: rise(desk, 14.8) }
+}
+
+// A mockup height on the operator desk, on this desk's own top.
+function rise(desk: PropDef, mockupY: number): number {
+  return desk.height + mockupY - MOCKUP_TOP_PX
+}
+
+// The desk or table whose footprint holds a computer's foot.
+function deskUnder(computer: PropDef): PropDef | undefined {
+  const cx = computer.rect.x + computer.rect.w / 2
+  const foot = computer.rect.y + computer.rect.h
+
+  return propsOn(computer.floor).find(
+    (one) =>
+      (one.kind === 'desk' || one.kind === 'table') &&
+      isWithin(cx, one.rect.x, one.rect.w) &&
+      foot >= one.rect.y - ON_DESK_SLACK_PX &&
+      foot <= one.rect.y + one.rect.h + ON_DESK_SLACK_PX
+  )
+}
+
+function isWithin(value: number, from: number, length: number): boolean {
+  return value >= from && value <= from + length
+}
+
+// The mockup's operator desk: keyboard and paper, the Mac Studio, the StandBy flow phone, the
+// in-tray, a stamp, a duck, sticky notes, the calendar and the desk lamp.
+function operatorThings({ prop, out, floor }: Build): void {
+  const { x, y } = prop.rect
+  const at = (mockupY: number): number => rise(prop, mockupY)
+
+  out.push(
+    box([x + 30, y + 9, 14, 3.6, at(14.5), 1], KEYBOARD, true),
+    box([x + 62, y + 10, 5, 3, at(14.5), 0.6], PALETTE.paper)
+  )
+  studio(out, { x: x + 84.5, z: y + 2.8, top: at(14.5) })
+  standby({ out, floor, prop }, { x: x + 44, z: y + 2, top: at(14.5), kind: 'standby-flow' })
+  inTray(out, { x: x + 2, z: y + 9, top: at(14) })
+  out.push(
+    box([x + 17, y + 10.5, 5, 5, at(14), 2], STAMP.ink, true),
+    box([x + 18.5, y + 12, 2, 2, at(16), 4], STAMP.grip),
+    box([x + 24, y + 10.5, 4.2, 3.4, at(14), 3], DUCK.body, true),
+    box([x + 26.6, y + 10.7, 2.6, 2.6, at(16.6), 2.4], DUCK.body, true),
+    box([x + 28.6, y + 11.5, 1.4, 1, at(17.4), 0.8], DUCK.beak)
+  )
+  STICKY_TONES.forEach((tone, i) => {
+    out.push(box([x + 74 + i * 3.6, y + 9.5 + (i % 2) * 0.8, 3, 3, at(14), 0.4], tone))
+  })
+  calendar({ out, floor, prop }, { x: x + 63.4, z: y + 8.8, top: at(14.5) })
+  deskLamp(out, floor, { prop, x: x + 2, z: y + 1.5, top: at(14.5) })
+}
+
+function juniorThings({ prop, out }: Build): void {
+  const { x, y, w } = prop.rect
+  const top = prop.height
+
+  out.push(
+    box([x + w / 2 - 5, y + 6, 10, 4, top, 1], KEYBOARD, true),
+    box([x + w / 2 - 5, y + 8, 10, 0.6, top + 0.9, 0.3], KEY_ROW)
+  )
+  studio(out, { x: x + 3, z: y + 3.4, top })
+}
+
+interface Place {
+  readonly x: number
+  readonly z: number
+  readonly top: number
+}
+
+// A Mac Studio: a darker base ring, the brushed body, its top, two front ports and the SD slot.
+function studio(out: Box[], at: Place): void {
+  const { x, z, top } = at
+  const { w, h } = STUDIO
+
+  out.push(
+    box([x + 0.25, z + 0.25, w - 0.5, w - 0.5, top, 0.5], STUDIO.base),
+    box([x, z, w, w, top + 0.5, h - 0.5], STUDIO.body, true),
+    box([x + 0.6, z + 0.6, w - 1.2, w - 1.2, top + h - 0.2, 0.3], STUDIO.top),
+    box([x + 1, z + w - 0.1, 0.55, 0.2, top + 1.1, 0.4], PORT),
+    box([x + 1.9, z + w - 0.1, 0.55, 0.2, top + 1.1, 0.4], PORT),
+    box([x + 3.1, z + w - 0.1, 1.1, 0.2, top + 1.29, 0.22], PORT)
+  )
+}
+
+// A phone open on its fold: the lower half flat, the upper half standing with its lit screen.
+function standby(
+  job: Pick<Build, 'out' | 'floor' | 'prop'>,
+  at: Place & { readonly kind: DeskFace['kind'] }
+): void {
+  const { x, z, top } = at
+
+  job.out.push(
+    box([x, z + 6, 16, 5, top, 1.1], STANDBY_RIM, true),
+    box([x + 0.6, z + 6.4, 14.8, 4.2, top + 1.1, 0.05], STANDBY_GLASS),
+    box([x, z + 5.45, 16, 1.1, top + 1.1, 10], STANDBY_RIM, true)
+  )
+  job.floor.faces.push({
+    kind: at.kind,
+    room: job.prop.room,
+    at: [x + 8, top + 1.1 + 5, z + 6.6],
+    size: [STANDBY_FACE.w, STANDBY_FACE.h],
+    tilt: 0,
+  })
+}
+
+function calendar(job: Pick<Build, 'out' | 'floor' | 'prop'>, at: Place): void {
+  job.out.push(box([at.x, at.z, 7.2, 3, at.top, 0.9], CALENDAR_STAND))
+  job.floor.faces.push({
+    kind: 'calendar',
+    room: job.prop.room,
+    at: [at.x + 3.6, at.top + 3.2, at.z + 1.7],
+    size: [CALENDAR_FACE.size, CALENDAR_FACE.size],
+    tilt: CALENDAR_FACE.tilt,
+  })
+}
+
+// The in-tray: a base and four low sides; its stack is placed by `effects`.
+function inTray(out: Box[], at: Place): void {
+  const { x, z, top } = at
+  const { w, d } = TRAY
+
+  out.push(
+    box([x, z, w, d, top, 0.8], TRAY.base),
+    box([x, z, w, 0.8, top + 0.8, 2], TRAY.rim),
+    box([x, z + d - 0.8, w, 0.8, top + 0.8, 2], TRAY.rim),
+    box([x, z, 0.8, d, top + 0.8, 2], TRAY.rim),
+    box([x + w - 0.8, z, 0.8, d, top + 0.8, 2], TRAY.rim)
+  )
+}
+
+// The operator's desk lamp: a foot, a stem and an arm; the shade lights with the room.
+function deskLamp(out: Box[], floor: FloorProps, at: Place & { readonly prop: PropDef }): void {
+  const { x, z, top } = at
+
+  out.push(
+    box([x, z, 4, 4, top, 0.8], METAL[2], true),
+    box([x + 1.5, z + 1.5, 1, 1, top + 0.8, 5.5], METAL[2]),
+    box([x + 1.5, z + 1.5, 5, 1, top + 6, 0.9], METAL[2])
+  )
+  floor.deskLamps.push({
+    room: at.prop.room,
+    at: [x + 7, top + 5.9, z + 2],
+    size: [5, 2.2, 4],
+    off: PROP_TONES.lampOff,
+    on: PROP_TONES.lampLit,
+  })
+}
+
+// The green banker's lamp on a library desk: a brass foot and stem, the shade lights with the room.
+function bankerLamp(built: FloorProps, desk: PropDef): void {
+  const out = built.rooms.get(desk.room) ?? []
+  const x = desk.rect.x + 32
+  const z = desk.rect.y + 2
+  const top = desk.height
+
+  built.rooms.set(desk.room, out)
+  out.push(
+    box([x, z, 5, 5, top, 1.2], BRASS, true),
+    box([x + 1.7, z + 1.7, 1.6, 1.6, top + 1.2, 3.5], BRASS)
+  )
+  built.deskLamps.push({
+    room: desk.room,
+    at: [x + 2.5, top + 6, z + 2.5],
+    size: [8, 3, 6],
+    off: BANKER_SHADE.off,
+    on: BANKER_SHADE.on,
+  })
+}
+
+function pitcher(out: Box[], at: Place): void {
+  const { x, z, top } = at
+
+  out.push(
+    box([x, z, 3.6, 3.6, top, 6.5], GLASS_WATER, true),
+    box([x + 3.4, z + 1, 1.4, 1.4, top + 3.5, 1], GLASS_WATER)
+  )
+
+  for (let i = 0; i < 3; i++) {
+    out.push(box([x + 7 + i * 4, z + 0.5, 2.6, 2.6, top, 3], PALETTE.paper, true))
+  }
+}
+
+function placard(out: Box[], at: Place): void {
+  out.push(
+    box([at.x, at.z, 8, 1.4, at.top, 3.6], PALETTE.paper),
+    box([at.x + 1.2, at.z + 1.45, 5.6, 0.3, at.top + 1, 0.6], PLACARD_LINE)
+  )
+}
+
+// A cable tray overhead on posts every `CABLE.gap` px.
+function cableTray(
+  out: Box[],
+  at: { readonly x: number; readonly z: number; readonly w: number }
+): void {
+  const { x, z, w } = at
+
+  out.push(
+    box([x, z, w, 4, CABLE.y, 1.5], CABLE.tray),
+    box([x, z, w, 0.8, CABLE.y + 1.5, 2.2], CABLE.rail),
+    box([x, z + 3.2, w, 0.8, CABLE.y + 1.5, 2.2], CABLE.rail)
+  )
+
+  for (let i = 0; i < w; i += CABLE.gap) {
+    out.push(box([x + i, z + 1, 2, 2, 0, CABLE.y], CABLE.rail))
+  }
+}

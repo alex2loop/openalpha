@@ -53,7 +53,7 @@ interface FixtureFrame {
 }
 
 const MAX_SCREENS = 24
-const MAX_LAMPS = 12
+const MAX_LAMPS = 16
 const MAX_POOLS = 16
 const MAX_PEOPLE = 48
 const COOL_RGB = '120,160,255'
@@ -67,6 +67,7 @@ const ORDER = Object.freeze({ shadow: 1, warm: 2, cool: 2.1, lamp: 2.2, dot: 6 }
 const POOL_Y = 0.5
 const LAMP_POOL_RADIUS = 48
 const LAMP_POOL_ALPHA = 0.34
+const DESK_LAMP_POOL_RADIUS = 18
 const DESK_GLOW = Object.freeze({ dx: 20, dy: -6, radius: 28, alpha: 0.32 })
 const DOT_RISE_PX = 6
 const DOT_PX = Object.freeze({ max: 3.4, min: 1.5, screen: 5 })
@@ -199,10 +200,33 @@ function syncLamps(fixtures: Fixtures, frame: FixtureFrame): boolean {
     }
   }
 
+  placeDeskLamps(fixtures, frame)
   endPool(fixtures.shades)
   endPool(fixtures.lampPools)
 
   return true
+}
+
+// The desk lamps' shades, lit with their room, each with a small pool under it.
+function placeDeskLamps(fixtures: Fixtures, frame: FixtureFrame): void {
+  const { lit, lampGlow } = frame.sim.props
+
+  for (const lamp of frame.props.deskLamps) {
+    const isOn = lit.has(lamp.room)
+    const [x, y, z] = lamp.at
+
+    placeInstance(fixtures.shades, { x, y, z, size: lamp.size, color: isOn ? lamp.on : lamp.off })
+
+    if (isOn) {
+      glowAt(fixtures.lampPools, {
+        x,
+        z,
+        radius: DESK_LAMP_POOL_RADIUS,
+        rgb: WARM_RGB,
+        alpha: LAMP_POOL_ALPHA * lampGlow,
+      })
+    }
+  }
 }
 
 // The warm pools over the tables of every lit room, and the lobby's red after an index drop.

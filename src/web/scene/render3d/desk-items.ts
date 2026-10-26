@@ -277,9 +277,9 @@ function tabQuadOf(
   at: { readonly props: FloorProps | undefined; readonly cell: Rect }
 ): Quad | undefined {
   const screen = at.props?.screens.find(
-    ({ at: spot }) =>
-      Math.abs(spot[0] - row.at.x) <= SCREEN_MATCH_PX &&
-      Math.abs(spot[2] - row.at.y) <= SCREEN_MATCH_PX
+    ({ slot }) =>
+      Math.abs(slot.x - row.at.x) <= SCREEN_MATCH_PX &&
+      Math.abs(slot.y - row.at.y) <= SCREEN_MATCH_PX
   )
 
   if (screen === undefined) {
