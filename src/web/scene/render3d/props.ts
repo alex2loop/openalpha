@@ -37,6 +37,8 @@ export interface FloorProps {
   readonly deskLamps: DeskLamp[]
   /** The small painted faces on desks: StandBy phones and the calendar. */
   readonly faces: DeskFace[]
+  /** Each turned mug's foot. */
+  readonly mugs: [x: number, y: number, z: number][]
 }
 
 /** A piece hung on a wall: its left edge, the z of the wall's south face, and its boxes. */
@@ -109,6 +111,7 @@ export function buildFloorProps(floor: FloorId): FloorProps {
     hung: [],
     deskLamps: [],
     faces: [],
+    mugs: [],
   }
 
   for (const prop of propsOn(floor)) {

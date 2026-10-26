@@ -1,4 +1,4 @@
-import { type BufferGeometry, Group, type Material, Mesh } from 'three'
+import { type BufferGeometry, DoubleSide, Group, type Material, Mesh } from 'three'
 
 import type { Lighting, Materials } from '@/web/scene/render3d/lights'
 import type { FloorId } from '@/web/scene/types'
@@ -11,6 +11,7 @@ import {
 } from '@/web/scene/render3d/building'
 import { addDeskBoxes } from '@/web/scene/render3d/desk-items'
 import { createRoomMaterial } from '@/web/scene/render3d/lights'
+import { buildMugsGeometry } from '@/web/scene/render3d/mug-shape'
 import { buildFloorProps, type FloorProps } from '@/web/scene/render3d/props'
 
 /** One floor's static picture: the building merged once, each room's furniture merged once, the
@@ -22,11 +23,14 @@ export interface FloorScene {
   readonly props: FloorProps
   readonly walls: readonly SeeThroughWall[]
   readonly geometries: readonly BufferGeometry[]
+  /** Materials made for this floor alone. */
+  readonly materials: readonly Material[]
 }
 
 // Glass draws after everything solid, the curtain glass last.
 const GLASS_ORDER = 1
 const CURTAIN_ORDER = 1.5
+const MUG_ROUGHNESS = 0.45
 
 export function buildFloor(id: FloorId, lighting: Lighting): FloorScene {
   const { materials } = lighting
@@ -66,9 +70,11 @@ export function buildFloor(id: FloorId, lighting: Lighting): FloorScene {
   add([...building.glass, ...props.glass], materials.glass, GLASS_ORDER)
   add(building.curtain, materials.curtain, CURTAIN_ORDER)
 
+  const mugs = addMugs(lighting, { group, geometries, spots: props.mugs })
+
   const walls = buildWalls(lighting, { north: building.north, props, add })
 
-  return { id, group, props, walls, geometries }
+  return { id, group, props, walls, geometries, materials: mugs === undefined ? [] : [mugs] }
 }
 
 // Each north wall with the pieces hung on it, under its own material so they fade together; a
@@ -105,6 +111,36 @@ function buildWalls(
   return walls
 }
 
+// The floor's turned mugs as one mesh: open cups show their inside, so both faces draw.
+function addMugs(
+  lighting: Lighting,
+  at: {
+    readonly group: Group
+    readonly geometries: BufferGeometry[]
+    readonly spots: FloorProps['mugs']
+  }
+): Material | undefined {
+  const geometry = buildMugsGeometry(at.spots)
+
+  if (geometry === undefined) {
+    return undefined
+  }
+
+  const material = createRoomMaterial(lighting, {
+    vertexColors: true,
+    roughness: MUG_ROUGHNESS,
+    side: DoubleSide,
+  })
+  const mesh = new Mesh(geometry, material)
+
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  at.geometries.push(geometry)
+  at.group.add(mesh)
+
+  return material
+}
+
 /** Frees the floor's geometries, its walls' materials and its surface texture. */
 export function disposeFloor(floor: FloorScene, materials: Materials): void {
   floor.group.removeFromParent()
@@ -115,6 +151,10 @@ export function disposeFloor(floor: FloorScene, materials: Materials): void {
 
   for (const one of floor.walls) {
     one.material.dispose()
+  }
+
+  for (const material of floor.materials) {
+    material.dispose()
   }
 
   materials.floor.map?.dispose()

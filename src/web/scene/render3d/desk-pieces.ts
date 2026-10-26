@@ -1,12 +1,19 @@
 import { type Box, box } from '@/web/scene/render3d/boxes'
 import { PALETTE } from '@/web/scene/sprites/palette'
+import { seedOf } from '@/web/scene/world/rng'
 
 const STUDIO = Object.freeze({ w: 6.4, h: 3.2, base: '#3B404B', body: '#C7CCD4', top: '#E4E7EC' })
 const PORT = '#1F222A'
 const TRAY = Object.freeze({ w: 13, d: 8, base: '#C9D0DC', rim: '#B9C1CE' })
-// A junior's phone (the mockup's silver finish) and mug.
-const PHONE = Object.freeze({ w: 5, d: 10.4, body: '#C9CCD3', edge: '#E6E8EC', glass: '#050608' })
-const MUG = Object.freeze({ r: 2, h: 3.6, cup: '#F7F5EF', coffee: '#4A2C17' })
+// A junior's phone lying screen up; its finish is kept by its desk.
+const PHONE = Object.freeze({ w: 5, d: 10.4, glass: '#050608' })
+// The mockup's four phone finishes (silver, black, glacier, burgundy): body and bright edge.
+const PHONE_FINISHES = [
+  ['#C9CCD3', '#E6E8EC'],
+  ['#2B2D33', '#4A4D55'],
+  ['#A9C0D4', '#CBDAE7'],
+  ['#6E2638', '#8F3A4F'],
+] as const
 const GLASS_WATER = '#BFE0F2'
 const PLACARD_LINE = '#8E8497'
 const CABLE = Object.freeze({ tray: '#B9C0CC', rail: '#AAB1BD', y: 36, gap: 22 })
@@ -33,30 +40,22 @@ export function studio(out: Box[], at: Place): void {
   )
 }
 
-// A phone lying screen up: a silver body, its bright edge and the dark glass.
-export function deskPhone(out: Box[], at: Place): void {
+// A phone lying screen up: its body and bright edge in its desk's finish, and the dark glass.
+export function deskPhone(out: Box[], at: Place & { readonly key: string }): void {
   const { x, z, top } = at
   const { w, d } = PHONE
+  const [body, edge] = PHONE_FINISHES[seedOf(at.key) % PHONE_FINISHES.length] ?? PHONE_FINISHES[0]
 
   out.push(
-    box([x, z, w, d, top, 0.8], PHONE.body, true),
-    box([x + 0.15, z + 0.15, w - 0.3, d - 0.3, top + 0.8, 0.07], PHONE.edge),
+    box([x, z, w, d, top, 0.8], body, true),
+    box([x + 0.15, z + 0.15, w - 0.3, d - 0.3, top + 0.8, 0.07], edge),
     box([x + 0.35, z + 0.35, w - 0.7, d - 0.7, top + 0.87, 0.04], PHONE.glass)
   )
 }
 
-// A mug of coffee: the cup, the coffee under its rim and a handle on the right.
-export function mug(out: Box[], at: Place): void {
-  const { x, z, top } = at
-
-  out.push(
-    box([x - MUG.r, z - MUG.r, MUG.r * 2, MUG.r * 2, top, MUG.h], MUG.cup, true),
-    box(
-      [x - MUG.r * 0.8, z - MUG.r * 0.8, MUG.r * 1.6, MUG.r * 1.6, top + MUG.h - 0.7, 0.05],
-      MUG.coffee
-    ),
-    box([x + MUG.r, z - 0.3, 1.2, 0.6, top + 1, 1.8], MUG.cup)
-  )
+// A turned mug of coffee, drawn with the floor's other mugs as one mesh.
+export function mug(mugs: [number, number, number][], at: Place): void {
+  mugs.push([at.x, at.top, at.z])
 }
 
 export function pitcher(out: Box[], at: Place): void {

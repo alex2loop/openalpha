@@ -26,6 +26,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 
 import type { SunView } from '@/web/scene/sky-types'
 import type { FloorId, RoomId } from '@/web/scene/types'
+import { type ClosedVeil, createClosedVeil, syncClosedVeil } from '@/web/scene/render3d/closed-veil'
 import {
   isNightSun,
   type LightKey,
@@ -35,7 +36,6 @@ import {
   setRoomFill,
 } from '@/web/scene/render3d/light-model'
 import { toUnits } from '@/web/scene/render3d/space'
-import { CLOSED_ROOM } from '@/web/scene/sprites/daylight'
 import { roomsOn } from '@/web/scene/world/rooms'
 
 /** Every material the 3D office draws with; each instanced one reads its room at the instance. */
@@ -58,6 +58,7 @@ export interface Lighting {
   readonly hemi: HemisphereLight
   readonly sun: DirectionalLight
   readonly fog: Fog
+  readonly veil: ClosedVeil
   readonly uniforms: RoomUniforms
   readonly factors: Map<RoomId, number>
   readonly disposables: readonly { dispose(): void }[]
@@ -75,7 +76,7 @@ interface LightSpec {
   readonly rain: number
   /** The office is quiet: every light keeps `QUIET_SHARE` of itself. */
   readonly isQuiet: boolean
-  /** The home market is shut for the day: its lobby keeps `CLOSED_SHARE` of its fill. */
+  /** The home market is shut for the day: a dark veil hangs over its lobby. */
   readonly isClosed: boolean
   /** A lightning flash's strength now, 0 to 1. */
   readonly flash: number
@@ -97,7 +98,6 @@ const ROOM_FROM_PX = 28
 const QUIET_SHARE = 0.82
 // The mockup's cel bands, shade to lit, as bytes of the toon gradient.
 const TOON_BANDS = [80, 150, 215] as const
-const CLOSED_SHARE = 0.86
 const FLASH_HEMI = 1.8
 const ROOM_FILL_EASE_MS = 100
 const LIGHT_EASE_MS = 450
@@ -135,6 +135,7 @@ export function createLighting(scene: Scene, renderer: WebGLRenderer): Lighting 
   const hemi = new HemisphereLight(0xffffff, 0xffffff, 1)
   const sun = createSun()
   const fog = new Fog(0xffffff, FOG.near, FOG.far)
+  const veil = createClosedVeil(scene)
 
   renderer.toneMapping = ACESFilmicToneMapping
   renderer.shadowMap.enabled = true
@@ -152,9 +153,10 @@ export function createLighting(scene: Scene, renderer: WebGLRenderer): Lighting 
     hemi,
     sun,
     fog,
+    veil,
     uniforms,
     factors: new Map(),
-    disposables: [...Object.values(materials), gradient, environment],
+    disposables: [...Object.values(materials), gradient, environment, veil],
     key: undefined,
   }
 }
@@ -167,8 +169,7 @@ export function syncLighting(lighting: Lighting, spec: LightSpec): boolean {
   let isEasing = false
 
   roomsOn(spec.floor).forEach((room, slot) => {
-    const closed = spec.isClosed && room.id === CLOSED_ROOM ? CLOSED_SHARE : 1
-    const level = roomLevelOf(room, { lit: spec.lit, lampGlow: spec.lampGlow, isNight }) * closed
+    const level = roomLevelOf(room, { lit: spec.lit, lampGlow: spec.lampGlow, isNight })
     const held = lighting.factors.get(room.id) ?? level
     const next =
       spec.isReduced || Math.abs(level - held) < SETTLED
@@ -189,7 +190,12 @@ export function syncLighting(lighting: Lighting, spec: LightSpec): boolean {
   clearSlots(lighting, roomsOn(spec.floor).length)
   lighting.uniforms.uRoomBase.value.setScalar(isNight ? NIGHT_BASE : 1)
 
-  return isEasing || isKeyEasing
+  const isVeilChanged = syncClosedVeil(lighting.veil, {
+    floor: spec.floor,
+    isClosed: spec.isClosed,
+  })
+
+  return isEasing || isKeyEasing || isVeilChanged
 }
 
 /** A lit material of its own that dims and brightens with its room, as the shared ones do, for a

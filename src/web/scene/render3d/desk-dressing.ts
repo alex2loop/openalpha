@@ -122,8 +122,8 @@ export function deskThings(job: Build): void {
     return
   }
 
-  deskPhone(job.out, { x: x + w - 13, z: y + 1, top })
-  mug(job.out, { x: x + w - 5, z: y + 7, top })
+  deskPhone(job.out, { x: x + w - 13, z: y + 1, top, key: job.prop.id })
+  mug(job.floor.mugs, { x: x + w - 5, z: y + 7, top })
 }
 
 /** A monitor on its silver stand at the back of its desk, leaning back until its face looks at the
