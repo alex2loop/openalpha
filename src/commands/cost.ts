@@ -1,11 +1,17 @@
-import type { SessionId } from '@/core/ids'
+import type { RunId, SessionId } from '@/core/ids'
 import type {
   CommandMessage,
   CommandMessageKey,
   SlashCommand,
   SlashResult,
 } from '@/core/types/command'
-import type { CostRange, DaySpend, LLMUsageTotals, SpendBreakdownRow } from '@/core/types/usage'
+import type {
+  CostRange,
+  DaySpend,
+  LLMUsageTotals,
+  RunCalls,
+  SpendBreakdownRow,
+} from '@/core/types/usage'
 import { formatUsd } from '@/core/utils/cost'
 
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
@@ -29,6 +35,9 @@ export interface SpendReader {
   breakdownForRange(range: CostRange): Promise<readonly SpendBreakdownRow[]>
   /** Everything one session has accumulated — what `/cost` reports and a run footer prints. */
   forSession(sessionId: SessionId): Promise<LLMUsageTotals>
+  /** One run's attempts and everything beneath it, newest first, at most `limit`, with the totals
+   *  of all of them: every billed call, a billed search and each retried attempt included. */
+  callsForRun(runId: RunId, limit: number): Promise<RunCalls>
 }
 
 export interface SpendCommandDeps {

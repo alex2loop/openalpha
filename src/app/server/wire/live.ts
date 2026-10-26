@@ -2,6 +2,7 @@
 // shapes ride GET /v1/live and the run_* wire events, so a client folds both into one view.
 
 import type { WireEvent } from '@/app/server/wire/events'
+import type { LLMAttemptKind, RunAttempt } from '@/core/types/usage'
 
 /** One progress line a run reported. `text` is the line rendered in the daemon's `[locale]`;
  *  `params` are the keyed message's values, credential-scrubbed. */
@@ -31,6 +32,38 @@ export interface RunStartWire {
 /** 202 from POST /v1/runs/:runId/stop: the run was told to stop. It ends as `run_finished`. */
 export interface RunStopWire {
   readonly stopped: true
+}
+
+/** One billed call of a run: metadata only, no prompt or answer. `at` is when it settled, epoch ms. */
+export interface RunCallWire {
+  readonly at: number
+  readonly runId: string
+  readonly parentRunId?: string
+  readonly agentId: string
+  readonly kind: LLMAttemptKind
+  readonly provider: string
+  readonly model: string
+  readonly inputTokens: number
+  readonly outputTokens: number
+  readonly cacheReadTokens: number
+  readonly cacheWriteTokens: number
+  readonly reasoningTokens: number
+  readonly costUsd: number
+  readonly latencyMs: number
+  readonly outcome: RunAttempt['outcome']
+  /** The stored code of a failed attempt. */
+  readonly errorCode?: NonNullable<RunAttempt['errorCode']>
+}
+
+/** GET /v1/runs/:runId/calls: the run's calls and everything beneath it, newest first. `truncated`
+ *  when more exist than the page shows; `totalCalls` and `totalUsd` count all of them, as
+ *  `/v1/activity` prices the run, so a cut list never undercounts. */
+export interface RunCallsWire {
+  readonly runId: string
+  readonly calls: readonly RunCallWire[]
+  readonly truncated: boolean
+  readonly totalCalls: number
+  readonly totalUsd: number
 }
 
 export interface LiveRunWire extends RunStartWire {
