@@ -1,9 +1,13 @@
+import { type Signal, useSignal } from '@preact/signals'
+import { useEffect, useLayoutEffect, useRef } from 'preact/hooks'
+
 import type { MessageKey } from '@/i18n'
 import type { AgentDraft } from '@/web/state/agents'
 import { view } from '@/web/scene/view'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { agents, agentsFailed, agentsRead, requestAgentForm } from '@/web/state/agents'
 import { tr } from '@/web/text/tr'
+import { armDismiss } from '@/web/ui/kit/popover'
 
 import './empty-team.css'
 
@@ -37,9 +41,17 @@ const TEMPLATES: readonly Template[] = Object.freeze([
 ])
 
 /** The team floor with no agent yet: three templates that prefill the agent form, and a blank one.
- *  Before the first good read a failed one says so rather than leaving the floor blank. */
+ *  Before the first good read a failed one says so rather than leaving the floor blank. Esc or a
+ *  press outside puts the templates away until the floor is entered again. */
 export function EmptyTeam() {
-  if (view.value.floor !== TEAM_FLOOR || agents.value.length > 0) {
+  const isEmptyFloor = view.value.floor === TEAM_FLOOR && agents.value.length === 0
+  const isDismissed = useSignal(false)
+
+  useEffect(() => {
+    isDismissed.value = false
+  }, [isEmptyFloor, isDismissed])
+
+  if (!isEmptyFloor) {
     return null
   }
 
@@ -53,8 +65,25 @@ export function EmptyTeam() {
     ) : null
   }
 
+  return isDismissed.value ? null : <Templates isDismissed={isDismissed} />
+}
+
+function Templates({ isDismissed }: { readonly isDismissed: Signal<boolean> }) {
+  const panel = useRef<HTMLElement>(null)
+
+  useLayoutEffect(
+    () =>
+      armDismiss({
+        panel,
+        onDismiss: () => {
+          isDismissed.value = true
+        },
+      }),
+    [isDismissed]
+  )
+
   return (
-    <section class="empty-team glass">
+    <section ref={panel} class="empty-team glass">
       <h3>{tr('ui.office.team.emptyTitle')}</h3>
       <div class="empty-team-templates">
         {TEMPLATES.map((template) => (

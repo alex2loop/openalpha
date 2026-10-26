@@ -92,7 +92,7 @@ interface PopoverPanelProps {
 function PopoverPanel({ anchor, label, className, takesFocus, children }: PopoverPanelProps) {
   const panel = useRef<HTMLDivElement>(null)
 
-  useLayoutEffect(() => armDismiss(panel, anchor), [anchor])
+  useLayoutEffect(() => armPopover(panel, anchor), [anchor])
   useEffect(() => {
     if (takesFocus === true) {
       panel.current?.focus()
@@ -112,23 +112,56 @@ function PopoverPanel({ anchor, label, className, takesFocus, children }: Popove
   )
 }
 
-// Esc and a press outside both close it; the listeners live exactly as long as the panel.
-function armDismiss(
+// Esc returns focus to the anchor; the panel is the open one for exactly as long as it is mounted.
+function armPopover(
   panel: RefObject<HTMLElement | null>,
   anchor: RefObject<HTMLElement | null>
 ): () => void {
-  const listeners = new AbortController()
-  const { signal: listenerSignal } = listeners
   const entry: OpenPanel = { panel, anchor }
+  const disarm = armDismiss({
+    panel,
+    anchor,
+    onDismiss: (cause) => {
+      closePopover()
+
+      if (cause === 'escape') {
+        anchor.current?.focus()
+      }
+    },
+  })
 
   openPanel = entry
+
+  return () => {
+    disarm()
+
+    if (openPanel === entry) {
+      openPanel = undefined
+    }
+  }
+}
+
+/** What ended it: Esc, or a press outside the panel and its anchor. */
+type DismissCause = 'escape' | 'outside'
+
+interface DismissTarget {
+  readonly panel: RefObject<HTMLElement | null>
+  /** The button that opened it: a press on it is not an outside press. */
+  readonly anchor?: RefObject<HTMLElement | null>
+  readonly onDismiss: (cause: DismissCause) => void
+}
+
+/** Calls `onDismiss` on Esc or a press outside `panel`; the returned stop removes both listeners.
+ *  A panel that floats over the page arms it for exactly as long as it is shown. */
+export function armDismiss({ panel, anchor, onDismiss }: DismissTarget): () => void {
+  const listeners = new AbortController()
+  const { signal: listenerSignal } = listeners
 
   document.addEventListener(
     'keydown',
     (event) => {
       if (event.key === ESCAPE_KEY) {
-        closePopover()
-        anchor.current?.focus()
+        onDismiss('escape')
       }
     },
     { signal: listenerSignal }
@@ -139,19 +172,13 @@ function armDismiss(
       const target = event.target
 
       if (target instanceof Node && !isInside(panel, target) && !isInside(anchor, target)) {
-        closePopover()
+        onDismiss('outside')
       }
     },
     { signal: listenerSignal }
   )
 
-  return () => {
-    listeners.abort()
-
-    if (openPanel === entry) {
-      openPanel = undefined
-    }
-  }
+  return () => listeners.abort()
 }
 
 function isInside(ref: RefObject<HTMLElement | null> | undefined, target: Node): boolean {
