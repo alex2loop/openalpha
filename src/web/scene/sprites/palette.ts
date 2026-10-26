@@ -92,8 +92,10 @@ export const PALETTE = Object.freeze({
   screen: '#27356A',
   text: '#E9ECF8',
   flash: '#EEF0F4',
-  vest: '#D7E84A',
-  vestBand: '#F2F4F0',
+  vest: '#F28C28',
+  vestBand: '#F5F0B0',
+  epaulette: '#D9A23E',
+  belt: '#2B2433',
 })
 
 /** What a held cup, bag or box is made of: its body and its band. */
@@ -150,9 +152,9 @@ export const FLOOR_TONES = Object.freeze({
 
 /** The dot over a head: green free, amber waiting, red after an error. */
 export const STATUS_TONES = Object.freeze({
-  free: '#3FB06A',
-  waiting: '#F2A93B',
-  failed: '#E5484D',
+  free: '#32D74B',
+  waiting: '#F2B33D',
+  failed: '#FF6259',
 } satisfies Record<ActorStatus, string>)
 
 /** The building: wall bodies and caps, the wall face's bands, the corridor, glass and mullions. */
@@ -240,8 +242,7 @@ export const DEVICE_TONES = Object.freeze({
   flat: '#E9ECF8',
   operator: {
     tray: '#C9D0DC',
-    cue: 'rgba(255,176,32,1)',
-    cueGlow: 'rgba(255,176,32,.3)',
+    cueRgb: '255,176,32',
     mug: '#C9505A',
     mugShade: '#A8404A',
     snack: '#FFD65A',

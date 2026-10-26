@@ -1,12 +1,11 @@
 import type { PaperView } from '@/web/scene/types'
-import { DEVICE_TONES, PALETTE } from '@/web/scene/sprites/palette'
+import { DEVICE_TONES, OUTLINE } from '@/web/scene/sprites/palette'
 import { TRAY_STACK } from '@/web/scene/world/seats'
 
-const SHEET_EDGE = '#B4BAC5'
-const SHEET_W = 4
-const SHEET_H = 4
+const SHEET_FACE = '#FFFFFF'
+const SHEET_RULE = '#9AA0B4'
 // A flying sheet arcs this high at mid-flight.
-const ARC_PX = 8
+const ARC_PX = 12
 // Each sheet on the tray sits this much above the one below.
 const STACK_STEP_PX = 1
 const TRAY_SHEETS_MAX = 6
@@ -41,9 +40,13 @@ export function paintTray(g: CanvasRenderingContext2D, count: number): void {
   }
 }
 
+// A flying sheet as the mockup's: a white page in its outline with two ruled lines.
 function sheet(g: CanvasRenderingContext2D, x: number, y: number): void {
-  g.fillStyle = SHEET_EDGE
-  g.fillRect(x - SHEET_W / 2, y, SHEET_W, SHEET_H)
-  g.fillStyle = PALETTE.paper
-  g.fillRect(x - SHEET_W / 2, y - 1, SHEET_W, SHEET_H)
+  g.fillStyle = OUTLINE
+  g.fillRect(x - 4, y - 3, 8, 7)
+  g.fillStyle = SHEET_FACE
+  g.fillRect(x - 3, y - 2, 6, 5)
+  g.fillStyle = SHEET_RULE
+  g.fillRect(x - 2, y - 1, 4, 1)
+  g.fillRect(x - 2, y + 1, 3, 1)
 }

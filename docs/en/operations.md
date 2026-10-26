@@ -554,7 +554,7 @@ Touch works as a mouse does: drag with one finger to pan and pinch with two to z
 
 ### Display preferences
 
-Theme (light, dark or follow the system), the colours for up and down (green up or red up), motion (full, reduced or follow the system), the level of detail (above) and the office light are kept in this browser and apply at once. Reduced motion stills the characters and pets except for blinking, stops the ticker scroll, pings and flashing prices, and runs the clock preview at normal speed; bubbles still update. Language and time zone are the daemon's own settings (they change the brief and Telegram too) and need a restart. The browser also remembers the lamps you switched off, the 2D or 3D choice, the Market tab's region, an update you put off, and the chime and notification choices; none of it goes to the daemon.
+Theme (light, dark or follow the system), the colours for up and down (green up or red up), motion (full, reduced or follow the system), the level of detail (above) and the office light are kept in this browser and apply at once. Reduced motion stills the characters and pets except for blinking, holds the office's dust, ribbons, LED strip, rack lights, approval light and bubbles still, stops the ticker scroll, pings and flashing prices, and runs the clock preview at normal speed; bubbles still update. Language and time zone are the daemon's own settings (they change the brief and Telegram too) and need a restart. The browser also remembers the lamps you switched off, the 2D or 3D choice, the Market tab's region, an update you put off, and the chime and notification choices; none of it goes to the daemon.
 
 Internals: [dev/operations.md](dev/operations.md).
 

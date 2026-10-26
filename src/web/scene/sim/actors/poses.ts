@@ -101,6 +101,7 @@ const HELD_OF: Readonly<Record<HeldItem, HeldKind | undefined>> = Object.freeze(
 /** The whole pose vocabulary; `cheer` is the mascot's alone. */
 const POSES: Readonly<Record<PoseId, PoseDef>> = Object.freeze({
   idle: { frames: [{}, { isAside: true }] },
+  stand: { frames: [{}] },
   walk: { frames: [{ gait: 1 }, { gait: 0 }, { gait: 3 }, { gait: 2 }], frameMs: GAIT_STEP_MS },
   sit: { frames: [{}, { isDown: true }] },
   type: {
@@ -150,21 +151,11 @@ const POSES: Readonly<Record<PoseId, PoseDef>> = Object.freeze({
       { arms: 'nap', isShut: true, headDrop: 5 },
     ],
   },
-  yawn: {
-    frames: [
-      { arms: 'cheer', isYawn: true, isShut: true },
-      { arms: 'relax', isYawn: true, isShut: true },
-    ],
-  },
+  yawn: { frames: [{ arms: 'cheer', isYawn: true, isShut: true }] },
   'hands-up': { frames: [{ arms: 'cheer' }, { arms: 'cheer', isAside: true }] },
-  point: { frames: [{ arms: 'hand' }, { arms: 'hand', isAside: true }] },
-  watch: { frames: [{ arms: 'cross', isDown: true }, { arms: 'cross' }] },
-  chat: {
-    frames: [
-      { arms: 'cross', isAside: true, isFront: true },
-      { arms: 'cross', isFront: true },
-    ],
-  },
+  point: { frames: [{ arms: 'hand' }] },
+  watch: { frames: [{ arms: 'cross', isDown: true }] },
+  chat: { frames: [{ arms: 'cross', isAside: true, isFront: true }] },
   wave: {
     frames: [
       { arms: 'hand', isFront: true },

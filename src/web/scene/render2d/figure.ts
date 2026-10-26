@@ -1,5 +1,10 @@
-import type { Hair, Look, Prop } from '@/web/scene/sprites/parts'
-import { paintArms, paintHeld, paintTorsoProp } from '@/web/scene/render2d/figure-arms'
+import type { Hair, Look } from '@/web/scene/sprites/parts'
+import {
+  paintArms,
+  paintHeld,
+  paintStaffGear,
+  paintTorsoProp,
+} from '@/web/scene/render2d/figure-arms'
 import {
   type Figure,
   type FrameSpec,
@@ -34,8 +39,6 @@ const BACK_HAIR_H: Readonly<Record<Exclude<Hair, 'bald'>, number>> = Object.free
 })
 // The arms' swing at each step of a walk: back with the left foot up, forward with the right.
 const ARM_SWING = [0, -1, 0, 1] as const
-// Nothing covers the brows and the glint but these.
-const BROWLESS_PROPS: ReadonlySet<Prop> = new Set(['glasses', 'visor', 'bear'])
 
 /** The G anatomy: 3 px legs, a 10 by 9 torso, a 12 by 10 rounded head with a dot face. */
 export function buildFigure(look: Look, frame: FrameSpec): Cells<Material> {
@@ -47,6 +50,7 @@ export function buildFigure(look: Look, frame: FrameSpec): Cells<Material> {
   paintArms(f)
   paintHeld(f)
   paintTorsoProp(f)
+  paintStaffGear(f)
   rect(f.cells, [10, 11 + f.hb, 4, 2], skinOf(f))
   rounded(f.cells, { box: [6, 2 + f.hb, 12, 10], r: HEAD_R }, skinOf(f))
   paintHair(f)
@@ -209,30 +213,24 @@ function paintFace(f: Figure): void {
   paintMouth(f)
 }
 
-// Dot eyes with a glint, brows in the hair's darkest shade; both hidden under glasses, a visor,
-// a cap or a bear's head.
+// Dot eyes with a glint, as the mockup draws them; a bear's eyes sit a row higher and never glint.
 function paintEyes(f: Figure): void {
   const { cells, hb, frame } = f
   const ey = (f.isFur ? 5 : 6) + (frame.isDown === true ? 1 : 0) + hb
   const gx = frame.isAside === true ? 1 : 0
-  const isBrowless = BROWLESS_PROPS.has(f.look.prop) || f.look.hair === 'cap'
 
   if (frame.isBlink || frame.isShut === true) {
     put(cells, [9 + gx, ey + 1], 'eye')
     put(cells, [14 + gx, ey + 1], 'eye')
-  } else {
-    rect(cells, [9 + gx, ey, 1, 2], 'eye')
-    rect(cells, [14 + gx, ey, 1, 2], 'eye')
-
-    if (!isBrowless && frame.isDown !== true) {
-      put(cells, [10 + gx, ey], 'glint')
-      put(cells, [15 + gx, ey], 'glint')
-    }
+    return
   }
 
-  if (!isBrowless) {
-    rect(cells, [8 + gx, ey - 1, 2, 1], 'brow')
-    rect(cells, [14 + gx, ey - 1, 2, 1], 'brow')
+  rect(cells, [9 + gx, ey, 1, 2], 'eye')
+  rect(cells, [14 + gx, ey, 1, 2], 'eye')
+
+  if (!f.isFur && frame.isDown !== true) {
+    put(cells, [10 + gx, ey], 'glint')
+    put(cells, [15 + gx, ey], 'glint')
   }
 }
 

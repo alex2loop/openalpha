@@ -22,7 +22,6 @@ export type Material =
   | keyof typeof PALETTE
   | 'skin'
   | 'hair'
-  | 'brow'
   | 'shirt'
   | 'pants'
   | 'phoneBody'

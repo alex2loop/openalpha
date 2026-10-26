@@ -7,12 +7,13 @@ import type { Turn } from '@/web/state/chat'
 import { pluralKey } from '@/i18n'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import { isOnFloor } from '@/web/scene/sim/actors/poses'
-import { rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { isActorId, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { isInside } from '@/web/scene/world/rooms'
 import { MEET_AUDIENCE } from '@/web/scene/world/seats'
 import { isFinished, thread } from '@/web/state/chat'
 import { fillInput, SUGGEST_COMMAND } from '@/web/state/command'
 import { onWireEvent } from '@/web/state/events'
+import { selectedActor } from '@/web/state/focus'
 import { joinList } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
@@ -23,7 +24,9 @@ export const MEET_ROOM: RoomId = 'meet'
 const BOX_MIN_PX = 5
 const AUDIENCE_POSE = 'watch'
 // A ring under the feet is this much as tall as it is wide.
-const RING_ASPECT = 0.4
+// A ring is the mockup's fixed ellipse under the feet, in CSS px with its 2 px border.
+const RING_W = 30
+const RING_H = 16
 
 /** What the meeting bar shows: the people picked, the hint the room offers, a note on the last
  *  meeting, and the box a Shift-drag draws (CSS px of the scene host). */
@@ -109,13 +112,15 @@ export function createMeeting(deps: MeetingDeps): Meeting {
   }
 }
 
-/** A ring under the feet of each person picked, and of the one the keyboard is on (`isKey`), by
- *  their figures in CSS px. */
+/** A ring under the feet of the person selected and each one picked, and of the one the keyboard
+ *  is on (`isKey`), by their figures in CSS px. */
 export function ringsOf(
   figures: ReadonlyMap<ActorId, Rect>,
   at: { readonly picks: readonly ActorId[]; readonly keyed?: ActorId }
 ): { readonly actor: ActorId; readonly rect: Rect; readonly isKey: boolean }[] {
-  const actors = new Set([...at.picks, ...(at.keyed === undefined ? [] : [at.keyed])])
+  const chosen = selectedActor.value
+  const selected = chosen !== undefined && isActorId(chosen) ? [chosen] : []
+  const actors = new Set([...at.picks, ...selected, ...(at.keyed === undefined ? [] : [at.keyed])])
 
   return [...actors].flatMap((actor) => {
     const figure = figures.get(actor)
@@ -124,10 +129,11 @@ export function ringsOf(
       return []
     }
 
-    const h = figure.w * RING_ASPECT
-    const rect = { x: figure.x, y: figure.y + figure.h - h / 2, w: figure.w, h }
+    const feetX = figure.x + figure.w / 2
+    const feetY = figure.y + figure.h
+    const rect = { x: feetX - RING_W / 2, y: feetY - RING_H / 2, w: RING_W, h: RING_H }
 
-    return [{ actor, rect, isKey: !at.picks.includes(actor) }]
+    return [{ actor, rect, isKey: !(at.picks.includes(actor) || selected.includes(actor)) }]
   })
 }
 

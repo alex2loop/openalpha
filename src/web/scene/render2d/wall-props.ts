@@ -1,5 +1,6 @@
 import type { AgendaModel } from '@/web/scene/data/agenda'
 import type { AlertStrip, StripTone } from '@/web/scene/data/alert-strip'
+import type { AmbientFx } from '@/web/scene/render2d/ambient-fx'
 import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
 import type { BoardNotes, ScreenCache } from '@/web/scene/sprites/screens'
 import type { LifeView, LiftView, RoomId } from '@/web/scene/types'
@@ -8,7 +9,7 @@ import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
 import { paintWallMonitor } from '@/web/scene/render2d/desk-devices'
 import { FONT } from '@/web/scene/sprites/face-text'
 import { faceKindOf, paintCork } from '@/web/scene/sprites/screens'
-import { createRng } from '@/web/scene/world/rng'
+import { createLcgRng } from '@/web/scene/world/rng'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const SWITCH_ON = '#FFB340'
@@ -25,6 +26,9 @@ const MINUTE_HAND_PX = 5
 const CLOCK_TICK = '#8E8497'
 const STRIP_VARIANT = 4
 const AIR_CON_RIBBONS = 3
+const RIBBON_SWAY_MS = 420
+const RIBBON_PHASE = 1.7
+const RIBBON_SWAY_PX = 1.4
 const AIR_CON_TONES = Object.freeze({
   body: '#EEF0F4',
   vent: '#B9BEC9',
@@ -40,6 +44,7 @@ const STRIP_GROUND = '#0E1020'
 const STRIP_SHINE = 'rgba(255,255,255,.08)'
 const STRIP_PX_PER_CHAR = 1.2
 const STRIP_GAP_PX = 4
+const STRIP_SCROLL_PX_PER_MS = 0.012
 const STRIP_GAP_TONE = '#5B6A99'
 const STRIP_TONES: Readonly<Record<StripTone, string>> = Object.freeze({
   problem: '#FF8A8E',
@@ -83,6 +88,14 @@ export interface PaintScene {
   /** The rack's lights, a data source each, and whether the store refreshes now. */
   readonly sources: readonly ('fresh' | 'stale')[]
   readonly isRefreshing: boolean
+  /** The ambient effects on their one clock; absent when every effect draws its still frame. */
+  readonly fx: AmbientFx | undefined
+  /** The floor's canvas px per world px, the whole zoom it is painted at. */
+  readonly stretch: number
+  /** The home index's move as the page prints it, for the StandBy widgets; absent unread. */
+  readonly indexMoveText?: string
+  /** The desks someone sits at, by `deskSpotOf`: their screens lie flat on the desk. */
+  readonly seated: ReadonlySet<string>
   /** How far the store's refresh has come, 0 to 1; absent while it does not count its prices. */
   readonly refreshShare?: number
   /** Each lobby wall clock's minute of its own zone's day, by the clock's `variant`. */
@@ -129,7 +142,7 @@ function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
 // The three marker squiggles under the title, the same for a board every frame.
 function paintSquiggles(g: CanvasRenderingContext2D, prop: PropDef): void {
   const { x, y, w, h } = prop.draw
-  const rng = createRng(prop.variant ?? 0)
+  const rng = createLcgRng(prop.variant ?? 0)
   const left = w * SQUIGGLE_INSET
 
   g.lineWidth = h * SQUIGGLE_WIDTH
@@ -220,7 +233,7 @@ function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
   }
 
   if (prop.variant === STRIP_VARIANT) {
-    paintStrip(g, prop.draw, scene.strip)
+    paintStrip(g, prop.draw, { strip: scene.strip, fx: scene.fx })
     return
   }
 
@@ -229,8 +242,13 @@ function paintWallScreen(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
 
 // The LED strip on its two legs over the alert desk: a bar a word of each headline in its tone,
 // a gap between headlines, held still and repeated along the strip.
-function paintStrip(g: CanvasRenderingContext2D, rect: PropDef['draw'], strip: AlertStrip): void {
+function paintStrip(
+  g: CanvasRenderingContext2D,
+  rect: PropDef['draw'],
+  at: { readonly strip: AlertStrip; readonly fx: AmbientFx | undefined }
+): void {
   const { x, y, w, h } = rect
+  const { strip } = at
   const words = strip.lines.flatMap((line) => [
     ...line.title
       .split(' ')
@@ -254,12 +272,16 @@ function paintStrip(g: CanvasRenderingContext2D, rect: PropDef['draw'], strip: A
   g.rect(x, y, w, h)
   g.clip()
 
-  for (let left = x; total > 0 && left < x + w; left += total) {
-    let at = left
+  // While a headline is new the words scroll on the ambient clock; otherwise they hold still.
+  const offset =
+    at.fx?.strip === true && total > 0 ? Math.floor(at.fx.ms * STRIP_SCROLL_PX_PER_MS) % total : 0
+
+  for (let left = x - offset; total > 0 && left < x + w; left += total) {
+    let wordX = left
 
     for (const [width, tone] of words) {
-      fill(g, [at, y + 3, width, 2], tone)
-      at += width + 1
+      fill(g, [wordX, y + 3, width, 2], tone)
+      wordX += width + 1
     }
   }
 
@@ -349,8 +371,8 @@ function paintSwitch(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSce
   fill(g, [x + 3, scene.isAnyLit ? y + 3 : y + 5, 2, 2], scene.isAnyLit ? SWITCH_ON : SWITCH_OFF)
 }
 
-// The meeting room's wall unit with its three ribbons hanging still under it.
-function paintAirCon(g: CanvasRenderingContext2D, prop: PropDef): void {
+// The meeting room's wall unit; its three ribbons flutter while someone is in the room.
+function paintAirCon(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w } = prop.draw
 
   fill(g, [x - 1, y - 1, w + 2, 8], INK)
@@ -360,9 +382,13 @@ function paintAirCon(g: CanvasRenderingContext2D, prop: PropDef): void {
 
   for (let i = 0; i < AIR_CON_RIBBONS; i++) {
     const rx = x + 6 + i * 11
+    const sway =
+      scene.fx?.ribbons === true
+        ? Math.round(Math.sin(scene.fx.ms / RIBBON_SWAY_MS + i * RIBBON_PHASE) * RIBBON_SWAY_PX)
+        : 0
 
-    fill(g, [rx, y + 7, 1, 2], AIR_CON_TONES.ribbon)
-    fill(g, [rx, y + 9, 1, 2], AIR_CON_TONES.ribbon)
-    fill(g, [rx, y + 11, 1, 1], AIR_CON_TONES.ribbon)
+    fill(g, [rx + sway, y + 7, 1, 2], AIR_CON_TONES.ribbon)
+    fill(g, [rx + sway * 2, y + 9, 1, 2], AIR_CON_TONES.ribbon)
+    fill(g, [rx + sway * 3, y + 11, 1, 1], AIR_CON_TONES.ribbon)
   }
 }
