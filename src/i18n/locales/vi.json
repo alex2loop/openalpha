@@ -948,6 +948,7 @@
     "office.copier.printing": "Đang in",
     "office.crew.wetFloor": "Sàn ướt",
     "office.crew.plaque": "LỄ TÂN",
+    "office.store.screenLine": "$ refresh {market}",
     "office.crew.liftFloor.office": "1",
     "office.crew.liftFloor.team": "2",
     "office.errand.going": "Đang ra {shop} mua {thing}",

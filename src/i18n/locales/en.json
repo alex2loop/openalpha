@@ -948,6 +948,7 @@
     "office.copier.printing": "Printing",
     "office.crew.wetFloor": "Wet floor",
     "office.crew.plaque": "RECEPTION",
+    "office.store.screenLine": "$ refresh {market}",
     "office.crew.liftFloor.office": "1",
     "office.crew.liftFloor.team": "2",
     "office.errand.going": "Heading to {shop} for {thing}",
