@@ -44,6 +44,7 @@ import { propsOn } from '@/web/scene/world/props'
 import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 import { selectedActor } from '@/web/state/focus'
+import { APPROVAL_KIND, pending } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
 
@@ -52,6 +53,8 @@ const STAGE_TOKEN = '--stage'
 const ACTOR_TIE_RANK = 2
 // The operator's tray sits on your desk, on the office floor; the own agents work upstairs.
 const TRAY_FLOOR: FloorId = 'office'
+// Where the day of the month starts in a `YYYY-MM-DD` day.
+const DAY_OF_MONTH_AT = 8
 const IDENTITY_FIT: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
 /** Where the floor sits in the pane: CSS px per world px and the CSS px of world (0, 0). */
@@ -252,6 +255,8 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     isRaining: sim.weather.rain > 0,
     lift: sim.lift,
     indexMove: tapeBoard.value.rows[0]?.tone ?? 'flat',
+    isAwaitingYou: pending.value.some((entry) => entry.kind === APPROVAL_KIND),
+    dayOfMonth: String(Number(pageMinute.value.day.slice(DAY_OF_MONTH_AT))),
   }
 }
 

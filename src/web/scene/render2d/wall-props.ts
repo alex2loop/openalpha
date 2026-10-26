@@ -36,6 +36,10 @@ export interface PaintScene {
   readonly lift: LiftView
   /** Which way the tape's first name, the home index, moved: the StandBy widgets' bar. */
   readonly indexMove: 'up' | 'down' | 'flat'
+  /** An approval waits for you: the amber light on your tray. */
+  readonly isAwaitingYou: boolean
+  /** Today's day of the month, as your desk calendar prints it. */
+  readonly dayOfMonth: string
 }
 
 export type Painter = (g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene) => void

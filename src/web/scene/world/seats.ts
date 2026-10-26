@@ -113,8 +113,10 @@ export const LIFT_EXITS: Readonly<Record<FloorId, Point>> = Object.freeze({
   team: TEAM_LIFT_EXIT,
 } satisfies Record<FloorId, Point>)
 
-/** The operator's in-tray on your desk, where delivered results land. */
+/** The operator's in-tray on your desk, where delivered results land and their carrier stands. */
 export const TRAY_AT: Point = Object.freeze({ x: 512, y: 300 })
+/** The bottom sheet's top-left corner in the tray on your desk; the stack rises from it. */
+export const TRAY_STACK: Point = Object.freeze({ x: 520, y: 308 })
 
 /** Each floor's break spot: where a coffee or a dessert is fetched, nearest first, and the dessert
  *  cart's resting place with the path it rolls in on (from the corridor). */

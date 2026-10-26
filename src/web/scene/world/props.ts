@@ -43,6 +43,8 @@ export type PropKind =
   | 'bin'
   | 'gate-post'
   | 'podium'
+  | 'desk-lamp'
+  | 'cable-tray'
 
 /** The live figure a prop answers with on hover. */
 export type TipSource =
@@ -136,6 +138,8 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   bin: 8,
   'gate-post': 16,
   podium: 18,
+  'desk-lamp': 12,
+  'cable-tray': 5,
 } satisfies Record<PropKind, number>)
 
 // Pieces hung on a wall: their `rect` is the wall area, nothing stands on it.
@@ -150,6 +154,9 @@ const WALL_KINDS: ReadonlySet<PropKind> = new Set([
   'window',
 ])
 
+// Pieces hung under the ceiling: their `rect` is the floor they hang over, which stays walkable.
+const OVERHEAD_KINDS: ReadonlySet<PropKind> = new Set(['cable-tray'])
+
 // Pieces thin enough to pass beside: the nav grid blocks their footprint with no clearance, so the
 // badge gates keep two lanes open through the west doorway.
 const TIGHT_KINDS: ReadonlySet<PropKind> = new Set(['gate-post', 'podium'])
@@ -161,6 +168,8 @@ const CHAIR_SET_BACK: Readonly<Record<SeatFacing, number>> = Object.freeze({
   back: -4,
   front: -12,
 })
+// Hung under the ceiling: painted over everyone on the floor.
+const OVERHEAD_SORT_Y = 10_000
 const LIFT_OFFICE = FLOORS.office.lift
 const LIFT_TEAM = FLOORS.team.lift
 
@@ -200,6 +209,13 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('box', 'store', { at: [126, 174, 12, 10], draw: [126, 172, 12, 18], height: 10 }),
   stand('box', 'store', { at: [136, 176, 12, 10], draw: [136, 174, 12, 18], height: 10 }),
   stand('lamp', 'store', { at: [8, 180, 8, 8], draw: [6, 133, 12, 51] }),
+  ...[60, 108].map((y) =>
+    stand('cable-tray', 'store', {
+      at: [8, y, 144, 5],
+      draw: [8, y, 144, 5],
+      sortY: OVERHEAD_SORT_Y,
+    })
+  ),
   stand('shelf', 'lib', { at: [174, 44, 64, 10], draw: [174, 14, 64, 40], tip: 'shelf' }),
   stand('shelf', 'lib', { at: [254, 44, 64, 10], draw: [254, 14, 64, 40], tip: 'shelf' }),
   wall('frame', 'lib', { at: [322, 6, 28, 18], variant: 3 }),
@@ -213,6 +229,12 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
     stand('desk', 'lib', { at: [x, 119, 40, 12], draw: [x, 128, 40, 20] }),
     stand('computer', 'lib', { at: [x + 12, 128, 16, 3], draw: [x + 12, 119, 16, 14], sortY: 148 }),
   ]),
+  stand('desk-lamp', 'lib', {
+    at: [255, 120, 8, 4],
+    draw: [254, 114, 10, 12],
+    sortY: 149,
+    variant: 1,
+  }),
   stand('copier', 'lib', { at: [318, 142, 18, 14], draw: [318, 128, 24, 24] }),
   stand('printer', 'lib', { at: [334, 148, 22, 12], draw: [334, 140, 22, 18], tip: 'printer' }),
   stand('tray', 'lib', { at: [337, 160, 16, 5], draw: [336, 155, 18, 7] }),
@@ -246,7 +268,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('umbrella-stand', 'lobby', { at: [6, 286, 6, 5], draw: [5, 272, 8, 19] }),
   stand('guest-desk', 'lobby', { at: [112, 323, 18, 10], draw: [112, 310, 18, 23] }),
   stand('chair', 'lobby', { at: seatFoot(121, 316, 'back'), draw: [113, 293, 16, 11] }),
-  stand('bin', 'lobby', { at: [129, 305, 7, 7], draw: [129, 301, 7, 11] }),
+  stand('bin', 'lobby', { at: [130, 301, 5, 5], draw: [130, 300, 5, 6] }),
   stand('gate-post', 'lobby', { at: [5, 254, 8, 3], draw: [5, 241, 8, 16] }),
   stand('podium', 'lobby', { at: [5, 264, 8, 8], draw: [5, 253, 8, 19] }),
   stand('gate-post', 'lobby', { at: [5, 279, 8, 3], draw: [5, 266, 8, 16] }),
@@ -280,7 +302,8 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   wall('clock', 'desk', { at: [496, 236, 12, 12], tip: 'clock' }),
   stand('plant', 'desk', { at: [612, 270, 8, 8], draw: [610, 262, 12, 16] }),
   stand('desk', 'desk', { at: [510, 308, 96, 14], draw: [510, 300, 96, 22], variant: 2 }),
-  stand('bin', 'desk', { at: [496, 312, 7, 7], draw: [496, 308, 7, 11] }),
+  stand('bin', 'desk', { at: [604, 323, 5, 5], draw: [604, 322, 5, 6] }),
+  stand('desk-lamp', 'desk', { at: [512, 309, 6, 4], draw: [511, 296, 14, 14], sortY: 323 }),
   stand('computer', 'desk', { at: [526, 319, 16, 3], draw: [526, 291, 16, 14], sortY: 322 }),
   stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 291, 16, 14], sortY: 322 }),
   stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
@@ -334,6 +357,11 @@ export function propsOn(floor: FloorId): readonly PropDef[] {
 
 export function isWallMounted(prop: PropDef): boolean {
   return WALL_KINDS.has(prop.kind)
+}
+
+/** A piece hung under the ceiling: nothing blocks under it and the 2D floor paints it over all. */
+export function isOverhead(prop: PropDef): boolean {
+  return OVERHEAD_KINDS.has(prop.kind)
 }
 
 /** A piece walkers may brush past: its footprint blocks with no clearance round it. */

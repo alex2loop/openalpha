@@ -240,6 +240,20 @@ export const DEVICE_TONES = Object.freeze({
   standbyGlass: '#1B2552',
   quietVeil: 'rgba(0,0,0,.55)',
   flat: '#E9ECF8',
+  operator: {
+    tray: '#C9D0DC',
+    cue: 'rgba(255,176,32,1)',
+    cueGlow: 'rgba(255,176,32,.3)',
+    mug: '#C9505A',
+    mugShade: '#A8404A',
+    snack: '#FFD65A',
+    snackTip: '#F29B4B',
+    notes: [
+      [62, 5, '#FFF4A8'],
+      [64, 6, '#FFC9DE'],
+      [61, 7, '#BFE3FF'],
+    ],
+  },
   standbyDay: {
     screen: '#2A4180',
     flowGround: '#1B1E4B',

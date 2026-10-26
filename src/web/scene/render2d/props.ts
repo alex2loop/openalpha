@@ -2,10 +2,11 @@ import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
 import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
 import {
-  paintDeskBin,
+  paintBin,
   paintKeyboard,
   paintMonitor,
   paintMug,
+  paintOperatorDesk,
   paintPhone,
   paintStandby,
   paintStudio,
@@ -29,6 +30,14 @@ const SCREEN_EDGE = '#5C6474'
 const NOTE_INK = '#8E8497'
 // The desk looks a desk prop's `variant` picks.
 const DESK_LOOK = Object.freeze({ plain: 0, counter: 1, operator: 2, senior: 3 })
+const BANKER_LAMP = 1
+const TRAY_HANGER_STEP = 22
+const LAMP_TONES = Object.freeze({
+  bankerOn: ['#D9B25C', '#9CFFC0', '#E6FFF0'],
+  bankerOff: ['#D9B25C', '#5FA878', '#8CCB98'],
+  deskOn: '#FFE9A8',
+  tray: ['#B9C0CC', '#AAB1BD'],
+} as const)
 const LED_OFF = '#4B5370'
 const LAMP_SHADE_FRONT = '#CFC4A8'
 const LAMP_LIT_FRONT = '#F2D58B'
@@ -74,6 +83,8 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   'coat-rack': paintCoatRack,
   ladder: paintLadder,
   'umbrella-stand': paintUmbrellaStand,
+  'desk-lamp': paintDeskLamp,
+  'cable-tray': paintCableTray,
 } satisfies Record<PropKind, Painter>)
 
 export function paintProp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -83,6 +94,42 @@ export function paintProp(g: CanvasRenderingContext2D, prop: PropDef, scene: Pai
 /** Wall-mounted pieces are drawn over the cached floor and under everything that stands on it. */
 export function isBackProp(prop: PropDef): boolean {
   return isWallMounted(prop)
+}
+
+// A desk lamp lit exactly while its room's switch is on: your angled lamp, or the library's green
+// banker's lamp.
+function paintDeskLamp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
+  const { x, y } = prop.draw
+  const isOn = scene.lit.has(prop.room)
+
+  if (prop.variant === BANKER_LAMP) {
+    const [brass, shade, rim] = isOn ? LAMP_TONES.bankerOn : LAMP_TONES.bankerOff
+
+    fill(g, [x + 2, y + 9, 6, 3], brass)
+    fill(g, [x + 4, y + 4, 1, 6], brass)
+    fill(g, [x, y, 10, 5], INK)
+    fill(g, [x + 1, y + 1, 8, 3], shade)
+    fill(g, [x + 1, y + 1, 8, 1], rim)
+    return
+  }
+
+  fill(g, [x, y + 12, 6, 2], METAL[2])
+  fill(g, [x + 2, y + 3, 1, 9], METAL[2])
+  fill(g, [x + 2, y + 3, 7, 1], METAL[2])
+  fill(g, [x + 5, y, 9, 5], INK)
+  fill(g, [x + 6, y + 1, 7, 3], isOn ? LAMP_TONES.deskOn : PROP_TONES.lampOff)
+}
+
+// A cable tray across the store's ceiling with a hanger every few steps.
+function paintCableTray(g: CanvasRenderingContext2D, prop: PropDef): void {
+  const { x, y, w } = prop.draw
+
+  fill(g, [x, y, w, 2], LAMP_TONES.tray[0])
+  fill(g, [x, y + 2, w, 1], METAL[2])
+
+  for (let i = 0; i < w; i += TRAY_HANGER_STEP) {
+    fill(g, [x + i, y + 2, 1, 3], LAMP_TONES.tray[1])
+  }
 }
 
 /** The y-sort tie order: a decal under furniture under a person at the same depth. */
@@ -105,6 +152,7 @@ function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene
 
   if (prop.variant === DESK_LOOK.operator) {
     drawBlock(g, [x, y, w, 14], { front: h - 14, tones: WOOD })
+    paintOperatorDesk(g, { x, y }, scene)
     return
   }
 
@@ -113,7 +161,7 @@ function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene
   drawBlock(g, [x, y, w, 12], { front: h - 12, tones: WOOD })
   fill(g, [x + 1, y + h, 2, 4], INK)
   fill(g, [x + w - 3, y + h, 2, 4], INK)
-  paintDeskBin(g, x - 6, y + 8)
+  paintBin(g, x - 6, y + 8)
   paintKeyboard(g, cx, y + 5)
   paintStudio(g, x + 1, y + 1)
 

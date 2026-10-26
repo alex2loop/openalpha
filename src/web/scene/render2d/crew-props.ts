@@ -2,6 +2,7 @@ import type { Painter, PaintScene } from '@/web/scene/render2d/wall-props'
 import type { FloorId, LifeView, Point } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
+import { paintBin } from '@/web/scene/render2d/desk-devices'
 import { LIFT_LAMP_FLOORS, LIFT_LEAF_SLIDE } from '@/web/scene/sprites/lift-look'
 import { DARKWOOD, METAL, PALETTE, PROP_TONES, WOOD } from '@/web/scene/sprites/palette'
 import { GROUND_FLOOR } from '@/web/scene/world/floors'
@@ -11,7 +12,7 @@ const SIGN_TIE = 1
 /** The front desk with its monitor, bell and plaque, the bins, and the badge gates. */
 export const CREW_PAINTERS = Object.freeze({
   'guest-desk': paintFrontDesk,
-  bin: paintBin,
+  bin: (g, p) => paintBin(g, p.draw.x, p.draw.y),
   'gate-post': paintGatePost,
   podium: paintPodium,
   'lift-door': paintLiftDoor,
@@ -26,14 +27,6 @@ function paintFrontDesk(g: CanvasRenderingContext2D, prop: PropDef): void {
   fill(g, [x + 12, y + 4, 3, 2], PROP_TONES.bell)
   fill(g, [x + 13, y + 3, 1, 1], PROP_TONES.bell)
   framed(g, [x + 5, y + 13, 8, 3], PALETTE.paper)
-}
-
-function paintBin(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y, w, h } = prop.draw
-
-  castShadow(g, [x + 1, y + h, w, 2])
-  framed(g, [x, y + 1, w, h - 1], PROP_TONES.bin)
-  fill(g, [x, y + 1, w, 1], METAL[0])
 }
 
 // A pedestal with its reader lamp, and the glass flap turned toward the lane beside it.

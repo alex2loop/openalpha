@@ -1,7 +1,7 @@
 import { type FloorId, type Point, type Rect, WORLD } from '@/web/scene/types'
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS, type Wall } from '@/web/scene/world/floors'
-import { isTight, isWallMounted, propsOn } from '@/web/scene/world/props'
+import { isOverhead, isTight, isWallMounted, propsOn } from '@/web/scene/world/props'
 import { roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { setCapped } from '@/web/state/capped-map'
 
@@ -130,7 +130,7 @@ function openRectsOf(floor: FloorId): Rect[] {
 function blockRectsOf(floor: FloorId): Rect[] {
   const def = FLOORS[floor]
   const feet = propsOn(floor)
-    .filter((prop) => !(isWallMounted(prop) || isTight(prop)))
+    .filter((prop) => !(isWallMounted(prop) || isTight(prop) || isOverhead(prop)))
     .map((prop) => prop.rect)
 
   const walls = def.walls.flatMap((wall) => toWallRects(wall, roomTopsOf(floor)))

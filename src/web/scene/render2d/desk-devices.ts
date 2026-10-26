@@ -1,6 +1,7 @@
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import { fill, INK } from '@/web/scene/render2d/building'
 import { DEVICE_TONES, moveToneOf, PALETTE } from '@/web/scene/sprites/palette'
+import { paintPixelText, pixelTextWidth } from '@/web/scene/sprites/pixel-font'
 import { seedOf } from '@/web/scene/world/rng'
 
 type Box = readonly [number, number, number, number]
@@ -107,11 +108,27 @@ export function paintMug(g: CanvasRenderingContext2D, x: number, y: number): voi
   fill(g, [x + 2, y + 1, 2, 1], PALETTE.paper)
 }
 
-/** A desk bin. */
-export function paintDeskBin(g: CanvasRenderingContext2D, x: number, y: number): void {
+/** A bin: beside a desk, at the front desk and by yours. */
+export function paintBin(g: CanvasRenderingContext2D, x: number, y: number): void {
   fill(g, [x, y, 5, 6], INK)
   fill(g, [x + 1, y + 1, 3, 4], DEVICE_TONES.bin[1])
   fill(g, [x, y, 5, 1], DEVICE_TONES.bin[0])
+}
+
+/** A desk calendar whose page shows `day`. */
+function paintCalendar(g: CanvasRenderingContext2D, at: { x: number; y: number; day: string }) {
+  const { x, y, day } = at
+
+  fill(g, [x - 1, y - 1, 10, 11], INK)
+  fill(g, [x, y, 8, 9], DEVICE_TONES.page)
+  fill(g, [x, y, 8, 2], DEVICE_TONES.calendarHead)
+  fill(g, [x + 1, y - 1, 1, 1], INK)
+  fill(g, [x + 6, y - 1, 1, 1], INK)
+  paintPixelText(g, day, {
+    x: x + Math.floor((8 - pixelTextWidth(day)) / 2),
+    y: y + 3,
+    color: INK,
+  })
 }
 
 /** A phone propped open on its stand: the lower half flat on the desk, the upper half the lit
@@ -212,4 +229,42 @@ function paintBigClock(
   fill(g, [x + 7, y + 2, 3, 3], tones.ink)
   fill(g, [x + 3, y + 3, 1, 1], tones.hole)
   fill(g, [x + 8, y + 3, 1, 1], tones.hole)
+}
+
+/** Your desk's things, from its top-left corner: the desktop box, both keyboards, the in-tray
+ *  (its stack is the tray painter's) with the amber light while an approval waits, a red mug, a
+ *  snack, a StandBy stand, sticky notes and today's calendar page. */
+export function paintOperatorDesk(
+  g: CanvasRenderingContext2D,
+  at: { readonly x: number; readonly y: number },
+  scene: PaintScene
+): void {
+  const { x, y } = at
+  const op = DEVICE_TONES.operator
+
+  paintStudio(g, x + 82, y + 1)
+
+  for (const dx of [19, 67]) {
+    fill(g, [x + dx, y + 5, 12, 3], DEVICE_TONES.keys)
+  }
+
+  fill(g, [x + 8, y + 3, 10, 9], INK)
+  fill(g, [x + 9, y + 4, 8, 7], op.tray)
+
+  if (scene.isAwaitingYou) {
+    fill(g, [x + 15, y + 3, 4, 4], op.cueGlow)
+    fill(g, [x + 16, y + 4, 2, 2], op.cue)
+  }
+
+  fill(g, [x + 32, y + 4, 4, 4], op.mug)
+  fill(g, [x + 33, y + 8, 2, 1], op.mugShade)
+  fill(g, [x + 40, y + 5, 4, 3], INK)
+  fill(g, [x + 41, y + 5, 3, 2], op.snack)
+  fill(g, [x + 43, y + 4, 2, 1], op.snackTip)
+  paintCalendar(g, { x: x + 70, y: y + 6, day: scene.dayOfMonth })
+  paintStandby(g, { x: x + 46, y: y + 3, view: 'flow' }, scene)
+
+  for (const [dx, dy, tone] of op.notes) {
+    fill(g, [x + dx, y + dy, 2, 2], tone)
+  }
 }
