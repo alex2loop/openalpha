@@ -29,6 +29,12 @@ export const ELEVATION = (52 * Math.PI) / 180
 export const HEIGHT_K = Math.cos(ELEVATION) / Math.sin(ELEVATION)
 /** One zoom step multiplies the fitted floor's scale by this. */
 export const ZOOM_STEP = 1.4
+/** The keys that zoom the focused canvas a step in or out. */
+export const ZOOM_KEYS: Readonly<Record<string, 1 | -1>> = Object.freeze({
+  '+': 1,
+  '=': 1,
+  '-': -1,
+})
 const MAX_ZOOM_STEPS = 4
 // The 3D view zooms out at most this many steps below the fitted floor.
 const MAX_ZOOM_OUT_STEPS = 4

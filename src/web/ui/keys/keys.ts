@@ -2,7 +2,7 @@ import { effect } from '@preact/signals'
 
 import type { MessageKey } from '@/i18n'
 import type { PanelTab, PanelView } from '@/web/state/panel'
-import { stopFollow, view } from '@/web/scene/view'
+import { stopFollow, view, ZOOM_KEYS } from '@/web/scene/view'
 import { agents } from '@/web/state/agents'
 import { isChatOpen, setChatOpen } from '@/web/state/chat'
 import { focusInput } from '@/web/state/command'
@@ -13,8 +13,13 @@ import {
   DOWN_KEY_CAP,
   ENTER_KEY_CAP,
   ESCAPE_KEY_CAP,
+  LEFT_KEY_CAP,
+  RIGHT_KEY_CAP,
+  SHIFT_KEY_CAP,
   TAB_KEY_CAP,
   UP_KEY_CAP,
+  ZOOM_IN_GLYPH,
+  ZOOM_OUT_GLYPH,
 } from '@/web/text/glyphs'
 import {
   DECISION_KEYS,
@@ -79,6 +84,7 @@ const CANVAS_KEYS: ReadonlySet<string> = new Set([
   'ArrowDown',
   'ArrowLeft',
   'ArrowRight',
+  ...Object.keys(ZOOM_KEYS),
   'Tab',
   'Enter',
   ' ',
@@ -103,6 +109,15 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = Object.freeze([
   { caps: [FOCUS_KEY.toUpperCase()], does: 'ui.office.keys.focus' },
   { caps: Object.keys(AGENT_STEPS), does: 'ui.office.keys.agents' },
   { caps: [TAB_KEY_CAP, ENTER_KEY_CAP], does: 'ui.office.keys.canvas' },
+  {
+    caps: [
+      `${SHIFT_KEY_CAP} ${LEFT_KEY_CAP}`,
+      `${SHIFT_KEY_CAP} ${RIGHT_KEY_CAP}`,
+      ZOOM_IN_GLYPH,
+      ZOOM_OUT_GLYPH,
+    ],
+    does: 'ui.office.keys.canvasMove',
+  },
   { caps: [UP_KEY_CAP, DOWN_KEY_CAP], does: 'ui.office.keys.choose' },
   { caps: [DECISION_KEYS.approve, DECISION_KEYS.deny], does: 'ui.office.keys.approve' },
   { caps: [ESCAPE_KEY_CAP], does: 'ui.office.keys.close' },

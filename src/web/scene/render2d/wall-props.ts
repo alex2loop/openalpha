@@ -24,6 +24,13 @@ const HOUR_HAND_PX = 3
 const MINUTE_HAND_PX = 5
 const CLOCK_TICK = '#8E8497'
 const STRIP_VARIANT = 4
+const AIR_CON_RIBBONS = 3
+const AIR_CON_TONES = Object.freeze({
+  body: '#EEF0F4',
+  vent: '#B9BEC9',
+  line: '#CBD0DA',
+  ribbon: '#F2C9C2',
+})
 const STORE_MONITOR_VARIANT = 0
 // The lobby's lower agenda board stands on two legs.
 const STANDING_BOARD_VARIANT = 2
@@ -94,6 +101,7 @@ export const WALL_PAINTERS = Object.freeze({
   clock: paintClock,
   frame: paintFrame,
   'light-switch': paintSwitch,
+  'air-con': paintAirCon,
 } satisfies Partial<Record<PropKind, Painter>>)
 
 function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -339,4 +347,22 @@ function paintSwitch(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSce
   framed(g, [x + 1, y + 1, w - 2, h - 2], '#F7F3EA')
   fill(g, [x + 2, y + 2, w - 4, 5], '#C9CDD6')
   fill(g, [x + 3, scene.isAnyLit ? y + 3 : y + 5, 2, 2], scene.isAnyLit ? SWITCH_ON : SWITCH_OFF)
+}
+
+// The meeting room's wall unit with its three ribbons hanging still under it.
+function paintAirCon(g: CanvasRenderingContext2D, prop: PropDef): void {
+  const { x, y, w } = prop.draw
+
+  fill(g, [x - 1, y - 1, w + 2, 8], INK)
+  fill(g, [x, y, w, 6], AIR_CON_TONES.body)
+  fill(g, [x, y + 5, w, 1], AIR_CON_TONES.vent)
+  fill(g, [x + 2, y + 2, w - 4, 1], AIR_CON_TONES.line)
+
+  for (let i = 0; i < AIR_CON_RIBBONS; i++) {
+    const rx = x + 6 + i * 11
+
+    fill(g, [rx, y + 7, 1, 2], AIR_CON_TONES.ribbon)
+    fill(g, [rx, y + 9, 1, 2], AIR_CON_TONES.ribbon)
+    fill(g, [rx, y + 11, 1, 1], AIR_CON_TONES.ribbon)
+  }
 }

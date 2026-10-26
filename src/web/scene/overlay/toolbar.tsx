@@ -1,15 +1,13 @@
 import type { FloorId, RoomId } from '@/web/scene/types'
 import { roomTagOf } from '@/web/scene/overlay/room-tags'
 import { ZoomStack } from '@/web/scene/overlay/zoom-stack'
-import { canPanToward, leaveRoom, panBy, projection, setFloor, view } from '@/web/scene/view'
+import { canPanToward, leaveRoom, projection, setFloor, view } from '@/web/scene/view'
 import { breakpoint } from '@/web/state/breakpoints'
-import { ESCAPE_KEY_CAP, NEXT_GLYPH, PREVIOUS_GLYPH } from '@/web/text/glyphs'
+import { ESCAPE_KEY_CAP, PREVIOUS_GLYPH } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
 import './toolbar.css'
 
-// One arrow press pans by this share of the pane.
-const ARROW_PAN_SHARE = 0.5
 const FLOORS: readonly {
   readonly id: FloorId
   readonly key: 'ui.office.floor.office' | 'ui.office.common.yourAgents'
@@ -30,7 +28,8 @@ export function FloorRow() {
   )
 }
 
-/** The scene's controls over the canvas: panning, the map controls and the hint. */
+/** The scene's controls over the canvas: the map controls and the hint. Panning is a drag, or
+ *  the arrow keys on the canvas. */
 export function Toolbar() {
   const shown = view.value
   const isZoomed = shown.room !== undefined || shown.zoomSteps > 0
@@ -41,7 +40,6 @@ export function Toolbar() {
 
   return (
     <>
-      <PanArrows />
       <ZoomStack />
       {(isZoomed || (!isWide && isPannable())) && (
         <p class="scene-hint glass">
@@ -92,34 +90,5 @@ function Crumb({ floor, room }: { readonly floor: FloorId; readonly room: RoomId
       </button>
       <b>{roomTagOf(room, undefined).name}</b>
     </div>
-  )
-}
-
-function PanArrows() {
-  const { pane } = projection.value
-
-  return (
-    <>
-      {canPanToward(-1) && (
-        <button
-          type="button"
-          class="scene-pan scene-pan-left glass"
-          aria-label={tr('ui.office.floor.panLeft')}
-          onClick={() => panBy(pane.w * ARROW_PAN_SHARE, 0)}
-        >
-          {PREVIOUS_GLYPH}
-        </button>
-      )}
-      {canPanToward(1) && (
-        <button
-          type="button"
-          class="scene-pan scene-pan-right glass"
-          aria-label={tr('ui.office.floor.panRight')}
-          onClick={() => panBy(-pane.w * ARROW_PAN_SHARE, 0)}
-        >
-          {NEXT_GLYPH}
-        </button>
-      )}
-    </>
   )
 }

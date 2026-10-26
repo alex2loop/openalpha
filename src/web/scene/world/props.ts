@@ -45,6 +45,7 @@ export type PropKind =
   | 'podium'
   | 'desk-lamp'
   | 'cable-tray'
+  | 'air-con'
 
 /** The live figure a prop answers with on hover. */
 export type TipSource =
@@ -140,10 +141,12 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   podium: 18,
   'desk-lamp': 12,
   'cable-tray': 5,
+  'air-con': 6,
 } satisfies Record<PropKind, number>)
 
 // Pieces hung on a wall: their `rect` is the wall area, nothing stands on it.
 const WALL_KINDS: ReadonlySet<PropKind> = new Set([
+  'air-con',
   'clock',
   'wall-screen',
   'whiteboard',
@@ -241,6 +244,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('plant', 'lib', { at: [362, 158, 8, 8], draw: [360, 150, 12, 16] }),
   stand('lamp', 'lib', { at: [368, 180, 8, 8], draw: [366, 133, 12, 51] }),
   stand('plant', 'meet', { at: [612, 48, 8, 8], draw: [610, 40, 12, 16] }),
+  wall('air-con', 'meet', { at: [590, 5, 34, 6] }),
   wall('whiteboard', 'meet', { at: [398, 44, 40, 30], tip: 'meet', variant: 11 }),
   ...[480, 512, 544].map((x) =>
     stand('chair', 'meet', { at: seatFoot(x, 120, 'back'), draw: [x - 8, 97, 16, 11] })
