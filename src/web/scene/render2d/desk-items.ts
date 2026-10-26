@@ -1,6 +1,11 @@
-import type { DeskItemsView, FloorId, Rect } from '@/web/scene/types'
+import type { CalendarView, DeskItemsView, FloorId, Point, Rect } from '@/web/scene/types'
 import { INK } from '@/web/scene/render2d/building'
-import { createDeskAtlas, type DeskAtlas, deskFaceCellOf } from '@/web/scene/sprites/desk-items'
+import {
+  CALENDAR_CELL,
+  createDeskAtlas,
+  type DeskAtlas,
+  deskFaceCellOf,
+} from '@/web/scene/sprites/desk-items'
 import {
   CUP_LOOK,
   DESK_FACES,
@@ -20,6 +25,7 @@ import {
   deskSlotOf,
   isPinned,
 } from '@/web/scene/world/desk-props'
+import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
 import { isInside } from '@/web/scene/world/rooms'
 
@@ -68,6 +74,8 @@ const DESK_FRONT_PX = 8
 // The monitor's stand under a computer's screen, in its drawn box.
 const COMPUTER_STAND_PX = 4
 const FRONT_SHADE = 0.8
+// The team floor's calendar lies on the left of a desk top, from the desk's top-left corner.
+const CALENDAR_PX = Object.freeze({ dx: 3, dy: 1, w: 8, h: 10 })
 const SHEET_SHADOW = 'rgba(43,36,51,.25)'
 const SHEET_SHADOW_DROP = 0.6
 // After the desk under them, before a person at the same depth.
@@ -99,21 +107,55 @@ interface DeskPiece {
 }
 
 /** The desk pieces of the floor shown, sorted among the furniture and the people; the faces'
- *  atlas is repainted first when what they show changed. */
+ *  atlas is repainted first when what they show changed, also on the team floor while it carries
+ *  the calendar. */
 export function deskPiecesOf(
   g: CanvasRenderingContext2D,
-  at: { readonly floor: FloorId; readonly view: DeskItemsView; readonly detail: number }
+  at: {
+    readonly floor: FloorId
+    readonly view: DeskItemsView
+    readonly detail: number
+    readonly calendar: CalendarView | undefined
+  }
 ): readonly DeskPiece[] {
-  if (at.floor !== DESK_FLOOR) {
+  const isCalendarShown = at.floor === TEAM_FLOOR && at.calendar !== undefined
+
+  if (at.floor !== DESK_FLOOR && !isCalendarShown) {
     return NO_PIECES
   }
 
   held.atlas ??= createDeskAtlas()
-  held.atlas.sync(at.view, at.detail)
+  held.atlas.sync(at.view, at.detail, at.calendar)
   held.g = g
   held.view = at.view
 
-  return PIECES
+  return at.floor === DESK_FLOOR ? PIECES : NO_PIECES
+}
+
+/** The calendar on the desk whose top-left corner is `desk`, cut from the atlas `deskPiecesOf`
+ *  painted just before. */
+export function paintCalendarAt(g: CanvasRenderingContext2D, desk: Point): void {
+  const canvas = held.atlas?.canvas
+
+  if (canvas === undefined) {
+    return
+  }
+
+  const { x, y, w, h } = CALENDAR_CELL
+
+  g.imageSmoothingEnabled = true
+  g.drawImage(
+    canvas,
+    x,
+    y,
+    w,
+    h,
+    desk.x + CALENDAR_PX.dx,
+    desk.y + CALENDAR_PX.dy,
+    CALENDAR_PX.w,
+    CALENDAR_PX.h
+  )
+  g.imageSmoothingEnabled = false
 }
 
 /** Frees the atlas when the renderer goes. */

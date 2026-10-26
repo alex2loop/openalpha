@@ -8,10 +8,13 @@ import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
 import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
-import { homeMarket } from '@/web/scene/data/home'
+import { exDividendToday } from '@/web/scene/data/ex-dividends'
+import { homeMarket, regionPack } from '@/web/scene/data/home'
 import { alertCounts } from '@/web/scene/data/room-status'
+import { specialDaysOf } from '@/web/scene/world/regions'
 import { locale, state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
+import { joinInline } from '@/web/text/glyphs'
 import { formatHourOfDay, zoneParts } from '@/web/text/time'
 import { MINUTES_PER_DAY, MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -47,6 +50,8 @@ export interface AgendaModel {
   readonly remaining: number
   readonly watching?: number
   readonly closedLine?: string
+  /** What sets today apart: a report season, the expiry, a name going ex-dividend. */
+  readonly noteLine?: string
 }
 
 interface TimedItem {
@@ -86,6 +91,7 @@ function buildAgenda(): AgendaModel {
   const next = rows.find((row) => row.state === 'next')
   const watching = alertCounts.value.alerts
   const closedLine = closedTodayLine(homeMarket.value)
+  const noteLine = noteLineOf()
   const remaining = items.filter(
     (item) => item.minute > now && item.minute < MINUTES_PER_DAY
   ).length
@@ -96,6 +102,7 @@ function buildAgenda(): AgendaModel {
       locale.value,
       watching,
       closedLine,
+      noteLine,
       ...rows.map((row) => `${row.key}${row.state}`),
     ].join('|'),
     rows,
@@ -103,6 +110,7 @@ function buildAgenda(): AgendaModel {
     ...(next === undefined ? {} : { next, untilNextMs: (next.minute - now) * MS_PER_MINUTE }),
     ...(watching === undefined ? {} : { watching }),
     ...(closedLine === undefined ? {} : { closedLine }),
+    ...(noteLine === undefined ? {} : { noteLine }),
   }
 }
 
@@ -236,6 +244,22 @@ function closedTodayLine(market: MarketWire | undefined): string | undefined {
     market: market.label,
     day: formatDay(locale.value, session.nextTradingDay),
   })
+}
+
+// The day's own marks, from the pack's calendar and the held names' ex-dividend dates.
+function noteLineOf(): string | undefined {
+  const tradesToday = homeMarket.value?.session?.tradesToday !== false
+  const days = specialDaysOf(pageMinute.value.day, regionPack.value, tradesToday)
+  const tickers = [...new Set(exDividendToday.value.map((held) => held.ticker))]
+  const notes = [
+    ...(days.includes('earnings') ? [tr('ui.office.rhythm.earnings')] : []),
+    ...(days.includes('expiry') ? [tr('ui.office.rhythm.expiry')] : []),
+    ...(tradesToday && tickers.length > 0
+      ? [tr('ui.office.rhythm.exDividend', { ticker: tickers.join(', ') })]
+      : []),
+  ]
+
+  return notes.length === 0 ? undefined : joinInline(notes)
 }
 
 /** A session's `HH:MM` as minutes of its day. */

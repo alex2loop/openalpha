@@ -1,7 +1,18 @@
 import type { Member } from '@/web/scene/sim/team/members'
-import type { BurstView, ChildView, DeskView, Point, TeamView, ThreadView } from '@/web/scene/types'
+import type {
+  BurstView,
+  CalendarView,
+  ChildView,
+  DeskView,
+  Point,
+  TeamView,
+  ThreadView,
+} from '@/web/scene/types'
+import { nextExDate } from '@/web/scene/data/ex-dividends'
+import { ownActorIdOf } from '@/web/scene/sim/actors/roster'
+import { incomeAgent } from '@/web/scene/sim/rhythm'
 import { deskFocusOf } from '@/web/scene/sim/team/goals'
-import { agentMemberOf, isWorking, type TeamState } from '@/web/scene/sim/team/state'
+import { agentMemberOf, isOnDuty, isWorking, type TeamState } from '@/web/scene/sim/team/state'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 
 // A thread leaves the parent's desk at its screen, and reaches the child at its chest.
@@ -13,8 +24,10 @@ const THREAD_TO_RISE = 20
 export function buildTeamView(state: TeamState, nowMs: number): TeamView {
   const members = [...state.members.values()]
   const children = members.filter((member) => member.child !== undefined)
+  const calendar = calendarOf(state)
 
   return {
+    ...(calendar === undefined ? {} : { calendar }),
     desks: DESK_SLOTS.map((_, slot) => toDesk(state, { slot, members, children })),
     children: children.flatMap(toChildView),
     threads: children.flatMap((child) => toThread(state, child)),
@@ -42,12 +55,22 @@ function toDesk(state: TeamState, job: DeskJob): DeskView {
   return {
     slot: job.slot,
     ...(agent === undefined ? {} : { agentId: agent.id, focus: deskFocusOf(agent) }),
-    isGlowing: agent !== undefined && !agent.paused,
-    isTaken: seated.some((member) => member.task !== 'exit'),
+    isGlowing:
+      agent !== undefined && !agent.paused && (owner === undefined || isOnDuty(state, owner)),
+    isTaken: seated.some((member) => member.task !== 'exit' && isOnDuty(state, member)),
     isLit: seated.some((member) => isWorking(state, member)),
     childrenOpen: own.filter((child) => child.outcome === undefined).length,
     childrenBack: own.filter((child) => child.task === 'carry').length,
   }
+}
+
+// The income agent's desk keeps a calendar with the next ex-dividend date of a held name circled.
+function calendarOf(state: TeamState): CalendarView | undefined {
+  const agent = incomeAgent.value
+  const slot = agent === undefined ? undefined : state.members.get(ownActorIdOf(agent.id))?.slot
+  const next = nextExDate.value
+
+  return slot === undefined || next === undefined ? undefined : { slot, day: next.day }
 }
 
 function toChildView(member: Member): ChildView[] {

@@ -4,6 +4,7 @@ import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { Desks } from '@/web/scene/sim/life/desks'
 import type { Moment, MomentKind } from '@/web/scene/sim/life/moments'
 import type { Pets } from '@/web/scene/sim/life/pets'
+import type { RhythmState } from '@/web/scene/sim/life/presence'
 import type { ActorId, DeskView, FloorId, Point } from '@/web/scene/types'
 import type { OfficeLife } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
@@ -45,6 +46,7 @@ export interface LifeState {
   readonly runNames: Map<string, string>
   readonly cart: CartState
   readonly desks: Desks
+  readonly rhythm: RhythmState
   readonly round: { freeSince: number | undefined; lastAt: number | undefined; count: number }
   sheets: { hour: string; count: number; feedAt: number | undefined }
   catAwakeUntil: number
@@ -55,7 +57,7 @@ export interface LifeState {
 
 /** One step's reading of the office: the people, who of them is free with no moment of their
  *  own, the page clock, and what may happen (`canWalk`: not reduced motion, office hours; `isCalm`:
- *  that, and not a quiet office). */
+ *  that, and not a quiet office, the first minutes after the open or the closing auction). */
 export interface LifeStep {
   readonly nowMs: number
   readonly clock: ClockParts
@@ -65,6 +67,8 @@ export interface LifeStep {
   readonly canWalk: boolean
   readonly isCalm: boolean
   readonly isQuiet: boolean
+  /** After the close, before the office empties: the coffee window opens and chats come sooner. */
+  readonly isRelaxed: boolean
   readonly isReduced: boolean
   /** The job each owner runs within `JOB_DUE_MS`. */
   readonly due: ReadonlyMap<ActorId, AgendaRow>

@@ -1,4 +1,4 @@
-import type { FloorId, LifeView, Point, SteamView } from '@/web/scene/types'
+import type { FloorId, LifeView, Point, SimView, SteamView } from '@/web/scene/types'
 import { drawBlock, fill, framed } from '@/web/scene/render2d/building'
 import { deskPiecesOf } from '@/web/scene/render2d/desk-items'
 import { paintPet } from '@/web/scene/render2d/pets'
@@ -37,26 +37,27 @@ interface LifePiece {
 /** The pets, the dessert cart and the desks' pieces, sorted among the people and the furniture. */
 export function buildLifePieces(
   g: CanvasRenderingContext2D,
-  at: {
-    readonly life: LifeView
-    readonly floor: FloorId
-    readonly alpha: number
-    readonly scale: number
-  }
+  at: { readonly sim: SimView; readonly scale: number }
 ): LifePiece[] {
+  const { life, floor, alpha } = at.sim
   const level = detailOf(at.scale)
   const pets: LifePiece[] =
-    at.floor === PET_FLOOR
-      ? at.life.pets.map((pet) => ({
+    floor === PET_FLOOR
+      ? life.pets.map((pet) => ({
           sortY: pet.at.y,
           tie: PET_TIE,
-          draw: () => paintPet(g, pet, { alpha: at.alpha, level }),
+          draw: () => paintPet(g, pet, { alpha, level }),
         }))
       : []
-  const cart = at.life.cart
-  const desks = deskPiecesOf(g, { floor: at.floor, view: at.life.deskItems, detail: level })
+  const cart = life.cart
+  const desks = deskPiecesOf(g, {
+    floor,
+    view: life.deskItems,
+    detail: level,
+    calendar: at.sim.team.calendar,
+  })
 
-  return cart === undefined || cart.floor !== at.floor
+  return cart === undefined || cart.floor !== floor
     ? [...pets, ...desks]
     : [...pets, ...desks, { sortY: cart.at.y, tie: CART_TIE, draw: () => paintCart(g, cart.at) }]
 }

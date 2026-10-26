@@ -26,10 +26,12 @@ export function stepPostures(state: LifeState, step: LifeStep): void {
   const free = new Set(step.free.map((actor) => actor.def.id))
 
   for (const actor of step.actors.values()) {
-    // A gesture plays over the posture and leaves it as it was; a moment or an errand keeps its
-    // own goal.
+    // A gesture plays over the posture and leaves it as it was; a moment, an errand or a way
+    // through the street door keeps its own goal.
     const isOwnGoal =
-      state.moments.has(actor.def.id) || isOnErrand(state.director.errands, actor.def.id)
+      state.moments.has(actor.def.id) ||
+      isOnErrand(state.director.errands, actor.def.id) ||
+      state.director.away.has(actor.def.id)
 
     if (!isOwnGoal && actor.beats.length === 0) {
       state.director.setLife(

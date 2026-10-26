@@ -1,4 +1,4 @@
-import type { DeskItemsView, MonitorState, Rect } from '@/web/scene/types'
+import type { CalendarView, DeskItemsView, MonitorState, Rect } from '@/web/scene/types'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { paintTrace } from '@/web/scene/sprites/desk-trace'
 import { OUTLINE, PALETTE } from '@/web/scene/sprites/palette'
@@ -10,7 +10,15 @@ import { tr } from '@/web/text/tr'
 /** The atlas every desk face is painted on, in canvas px. */
 export const DESK_ATLAS = Object.freeze({ w: 512, h: 256 })
 
-type FaceCell = 'candles' | 'line' | 'tabs-1' | 'tabs-2' | 'checklist' | 'photo' | 'phone'
+type FaceCell =
+  | 'candles'
+  | 'line'
+  | 'tabs-1'
+  | 'tabs-2'
+  | 'checklist'
+  | 'calendar'
+  | 'photo'
+  | 'phone'
 
 // A monitor's bezel, also the edge a tab strip leaves round a monitor it covers.
 const BEZEL_PX = 5
@@ -20,6 +28,7 @@ const CELLS: Readonly<Record<FaceCell, Rect>> = Object.freeze({
   'tabs-1': { x: 256, y: 0, w: 128, h: 80 },
   'tabs-2': { x: 384, y: 0, w: 128, h: 80 },
   checklist: { x: 0, y: 88, w: 112, h: 128 },
+  calendar: { x: 112, y: 88, w: 96, h: 120 },
   photo: { x: 240, y: 88, w: 96, h: 72 },
   phone: { x: 336, y: 88, w: 48, h: 96 },
 })
@@ -61,6 +70,20 @@ const CHECK_ROWS = 6
 const TICKED_ROWS = 4
 const PHOTO = Object.freeze({ frame: '#D9B98F', sky: '#BFE0F2', sun: '#F6D69B', hill: '#B9D9B5' })
 const PHONE = Object.freeze({ dark: '#0B0D14', lit: '#1B2442', alert: '#FF6259', card: '#8FA3E8' })
+const CALENDAR = Object.freeze({
+  page: '#FBF9F3',
+  head: '#D8514B',
+  headInk: '#FFFFFF',
+  ink: '#5A5F73',
+  dot: '#B7BBD0',
+  headH: 22,
+  rows: 6,
+  top: 28,
+})
+const WEEK_DAYS = 7
+
+/** The atlas cell the team floor's calendar is cut from. */
+export const CALENDAR_CELL: Rect = CELLS.calendar
 
 /** The atlas cell a piece's face is cut from; a tab strip takes its cell inside the bezel. */
 export function deskFaceCellOf(row: DeskProp): Rect | undefined {
@@ -81,25 +104,30 @@ function cellOf(row: DeskProp): FaceCell | undefined {
 export interface DeskAtlas {
   readonly canvas: HTMLCanvasElement
   /** True when it was repainted. */
-  sync(view: DeskItemsView, detail: number): boolean
+  sync(view: DeskItemsView, detail: number, calendar: CalendarView | undefined): boolean
   release(): void
 }
 
 export function createDeskAtlas(): DeskAtlas {
   const canvas = document.createElement('canvas')
-  let painted: { signature: number; isFine: boolean } | undefined
+  let painted: { signature: number; isFine: boolean; day: string | undefined } | undefined
 
   return {
     canvas,
-    sync(view, detail) {
+    sync(view, detail, calendar) {
       const isFine = detail >= 1
+      const day = calendar?.day
 
-      if (painted?.signature === view.signature && painted.isFine === isFine) {
+      if (
+        painted?.signature === view.signature &&
+        painted.isFine === isFine &&
+        painted.day === day
+      ) {
         return false
       }
 
-      painted = { signature: view.signature, isFine }
-      paintAtlas(canvas, view, isFine)
+      painted = { signature: view.signature, isFine, day }
+      paintAtlas(canvas, { view, isFine, day })
 
       return true
     },
@@ -110,7 +138,12 @@ export function createDeskAtlas(): DeskAtlas {
   }
 }
 
-function paintAtlas(canvas: HTMLCanvasElement, view: DeskItemsView, isFine: boolean): void {
+function paintAtlas(
+  canvas: HTMLCanvasElement,
+  at: { readonly view: DeskItemsView; readonly isFine: boolean; readonly day: string | undefined }
+): void {
+  const { view, isFine, day } = at
+
   canvas.width = DESK_ATLAS.w
   canvas.height = DESK_ATLAS.h
 
@@ -121,6 +154,11 @@ function paintAtlas(canvas: HTMLCanvasElement, view: DeskItemsView, isFine: bool
   }
 
   c.textBaseline = 'middle'
+
+  if (day !== undefined) {
+    paintCalendar(c, { cell: CELLS.calendar, day, isFine })
+  }
+
   DESK_PROPS.forEach((row, seed) => {
     const cell = cellOf(row)
 
@@ -374,6 +412,53 @@ function paintPhone(c: CanvasRenderingContext2D, cell: Rect, isLit: boolean): vo
   c.fillRect(x + 9, y + 28, w - 18, 3)
   c.fillStyle = PHONE.card
   c.fillRect(x + 5, y + 44, w - 10, 12)
+}
+
+// A month page: the month's number on a red band, each day a dot (its number from room zoom), the
+// ex-dividend day circled.
+function paintCalendar(
+  c: CanvasRenderingContext2D,
+  at: { readonly cell: Rect; readonly day: string; readonly isFine: boolean }
+): void {
+  const { cell } = at
+  const [year = 0, month = 1, date = 1] = at.day.split('-').map(Number)
+  const first = new Date(Date.UTC(year, month - 1, 1)).getUTCDay()
+  const length = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const colW = cell.w / WEEK_DAYS
+  const rowH = (cell.h - CALENDAR.top - 4) / CALENDAR.rows
+
+  c.fillStyle = CALENDAR.page
+  c.fillRect(cell.x, cell.y, cell.w, cell.h)
+  c.fillStyle = CALENDAR.head
+  c.fillRect(cell.x, cell.y, cell.w, CALENDAR.headH)
+  c.fillStyle = CALENDAR.headInk
+  c.font = `700 14px ${FONT}`
+  c.textAlign = 'center'
+  c.fillText(String(month), cell.x + cell.w / 2, cell.y + CALENDAR.headH / 2)
+  c.font = `600 9px ${FONT}`
+
+  for (let day = 1; day <= length; day++) {
+    const slot = first + day - 1
+    const x = cell.x + colW * ((slot % WEEK_DAYS) + 0.5)
+    const y = cell.y + CALENDAR.top + rowH * (Math.floor(slot / WEEK_DAYS) + 0.5)
+
+    c.fillStyle = CALENDAR.ink
+
+    if (at.isFine) {
+      c.fillText(String(day), x, y)
+    } else {
+      c.fillStyle = CALENDAR.dot
+      c.fillRect(x - 1.5, y - 1.5, 3, 3)
+    }
+
+    if (day === date) {
+      c.strokeStyle = CALENDAR.head
+      c.lineWidth = 2
+      c.beginPath()
+      c.arc(x, y, colW * 0.52, 0, Math.PI * 2)
+      c.stroke()
+    }
+  }
 }
 
 function insetOf(rect: Rect, by: number): Rect {

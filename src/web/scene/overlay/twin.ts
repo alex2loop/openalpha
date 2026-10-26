@@ -42,15 +42,19 @@ export function syncTwin(sim: SimView | undefined, markers: readonly Marker[]): 
   rows.value =
     sim === undefined
       ? []
-      : sim.actors.map((actor) => {
-          const line = toLine(sim, actor.id, markers)
+      : sim.actors
+          .filter((actor) => actor.isAway !== true)
+          .map((actor) => {
+            const line = toLine(sim, actor.id, markers)
 
-          return { actor: line.actor, text: line.text, open: openerOf(sim, line) }
-        })
+            return { actor: line.actor, text: line.text, open: openerOf(sim, line) }
+          })
 }
 
 function inputsOf(sim: SimView, markers: readonly Marker[]): readonly unknown[] {
-  const people = sim.actors.map((actor) => `${actor.id}:${actor.status ?? ''}`).join('|')
+  const people = sim.actors
+    .map((actor) => `${actor.id}:${actor.status ?? ''}:${actor.isAway === true}`)
+    .join('|')
   const children = sim.team.children.map((child) => `${child.actor}:${child.role}`).join('|')
 
   return [

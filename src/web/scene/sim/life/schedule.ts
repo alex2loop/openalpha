@@ -40,6 +40,8 @@ const YAWN_GAP_MS = Object.freeze({ min: 8_000, max: 40_000 })
 const CHAT_GAP_MS = 240_000
 const CHAT_HOLD_MS = 9_400
 const COFFEE_LINE = 'coffee'
+const COFFEE_TAG = 'coffee'
+const COFFEE_CLOSE_TAG = 'coffee-close'
 const DESSERT_LINE = 'friday'
 const CHAT_LINE = 'chat'
 
@@ -96,12 +98,15 @@ export function resetIdle(state: LifeState, actor: ActorId, nowMs: number): void
 
 /** The afternoon coffee: up to two free people a floor fetch a mug from the pantry. */
 export function stepCoffee(state: LifeState, step: LifeStep): void {
-  if (!(step.isCalm && isInRange(step.clock.minute, step.pack.coffee))) {
+  const isAfternoon = isInRange(step.clock.minute, step.pack.coffee)
+
+  if (!(step.isCalm && (isAfternoon || step.isRelaxed))) {
     return
   }
 
   fetchFromPantry(state, step, {
     kind: 'coffee',
+    tag: isAfternoon ? COFFEE_TAG : COFFEE_CLOSE_TAG,
     max: COFFEE_MAX,
     percent: COFFEE_PICK_PERCENT,
     holdMs: COFFEE_HOLD_MS,
@@ -127,6 +132,7 @@ export function stepDessert(state: LifeState, step: LifeStep): void {
 
   fetchFromPantry(state, step, {
     kind: 'dessert',
+    tag: 'dessert',
     max: DESSERT_MAX,
     percent: COFFEE_PICK_PERCENT,
     holdMs: DESSERT_HOLD_MS,
@@ -137,6 +143,9 @@ export function stepDessert(state: LifeState, step: LifeStep): void {
 
 interface PantryRun {
   readonly kind: Extract<MomentKind, 'coffee' | 'dessert'>
+  /** What each person is picked and counted done by for the day: the after-close coffee is its own
+   *  round. */
+  readonly tag: string
   readonly max: number
   readonly percent: number
   readonly holdMs: { readonly min: number; readonly max: number }
@@ -163,7 +172,7 @@ function fetchFromPantry(state: LifeState, step: LifeStep, run: PantryRun): void
     }
 
     const actor = seatedFree(step, floor).find((candidate) => {
-      const at = { actor: candidate.def.id, tag: run.kind, day }
+      const at = { actor: candidate.def.id, tag: run.tag, day }
 
       return isPicked(at, run.percent) && !isDoneToday(state, at)
     })
@@ -172,7 +181,7 @@ function fetchFromPantry(state: LifeState, step: LifeStep, run: PantryRun): void
       continue
     }
 
-    markDone(state, { actor: actor.def.id, tag: run.kind, day })
+    markDone(state, { actor: actor.def.id, tag: run.tag, day })
     state.gaps.set(gapKey, step.nowMs + drawBetween(run.gapMs, gapKey, String(step.nowMs)))
     const line: LifeLine = { actor: actor.def.id, label: run.line }
 
@@ -218,21 +227,23 @@ export function stepChat(state: LifeState, step: LifeStep): void {
     return
   }
 
+  const gapMs = step.isRelaxed ? CHAT_GAP_MS / 2 : CHAT_GAP_MS
+
   for (const floor of floorsOf(step)) {
     const gapKey = `${floor}:chat`
     const [a, b] = seatedFree(step, floor)
     const seats = SOFA_SEATS[floor]
-    const isWaiting = step.nowMs < (state.gaps.get(gapKey) ?? step.nowMs + CHAT_GAP_MS)
+    const isWaiting = step.nowMs < (state.gaps.get(gapKey) ?? step.nowMs + gapMs)
 
     if (!state.gaps.has(gapKey)) {
-      state.gaps.set(gapKey, step.nowMs + CHAT_GAP_MS)
+      state.gaps.set(gapKey, step.nowMs + gapMs)
     }
 
     if (a === undefined || b === undefined || isWaiting || momentsOn(state, { step, floor }) > 0) {
       continue
     }
 
-    state.gaps.set(gapKey, step.nowMs + CHAT_GAP_MS)
+    state.gaps.set(gapKey, step.nowMs + gapMs)
 
     for (const [actor, partner, seat] of [
       [a, b, seats[0]],
@@ -279,7 +290,7 @@ export function begin(
   const id = start.actor.def.id
   const { line } = start
 
-  if (state.moments.has(id)) {
+  if (state.moments.has(id) || state.director.away.has(id)) {
     return
   }
   const moment = beginMoment(state.director, {

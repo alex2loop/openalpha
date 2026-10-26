@@ -22,6 +22,7 @@ import { ASSISTANT, ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking, placeWalker } from '@/web/scene/sim/actors/walk'
 import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
+import { enterPerson } from '@/web/scene/sim/entrance'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { createPapers, type Papers } from '@/web/scene/sim/papers'
 import {
@@ -53,6 +54,10 @@ import { TRAY_AT } from '@/web/scene/world/seats'
 import { APPROVAL_KIND } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
 
+/** Where a person is between the office and the street: on the way out, past the street door, or
+ *  on the way in. Absent while they are simply in. */
+type AwayStage = 'leaving' | 'gone' | 'arriving'
+
 /** The director's record of one person, the one the life layer and interaction read. */
 export interface ActorState {
   readonly def: ActorDef
@@ -71,6 +76,7 @@ export interface ActorState {
   readonly isOwed: boolean
   /** Its seat is a chair (a desk or the meeting table), not a standing place. */
   readonly hasChair: boolean
+  readonly away?: AwayStage
 }
 
 interface DirectorDeps {
@@ -89,6 +95,11 @@ type PoseMarks = ReadonlyMap<ActorId, Pick<ActorView, 'pose' | 'poseSince'>>
 export interface Director {
   /** The office's errands to the shops: a life goal inside, off the floor once out. */
   readonly errands: Errands
+  /** Who is on the way through the street door, set by the office life; a `gone` person is not
+   *  stepped or drawn. */
+  readonly away: Map<ActorId, AwayStage>
+  /** Back through the street door: they walk to their seat, or stand there at once. */
+  enter(id: ActorId, isInstant: boolean): void
   step(index: number): boolean
   view(): PeopleView
   actors(): ReadonlyMap<ActorId, ActorState>
@@ -144,17 +155,18 @@ export function createDirector(deps: DirectorDeps): Director {
   const offBeats = subscribeBeats(deps.hub, toBeatTarget(people))
   const poses: { marks: PoseMarks } = { marks: new Map() }
   const errands = createErrandsOf(people)
+  const away = new Map<ActorId, AwayStage>()
   let isDisposed = false
 
   return {
     errands,
-    step: () => !isDisposed && stepAll(people, { papers, poses, errands }),
+    step: () => !isDisposed && stepAll(people, { papers, poses, errands, away }),
     view: () => ({
-      actors: actorViewsOf(people, { marks: poses.marks, errands }),
+      actors: actorViewsOf(people, { marks: poses.marks, errands, away }),
       papers: papers.views(),
       tray: trayCount(deps, papers),
     }),
-    ...lifeHooksOf(people),
+    ...lifeHooksOf(people, away),
     resume: () => {
       endErrands(errands)
       resumePeople(people, performance.now())
@@ -191,16 +203,27 @@ function toBeatTarget(people: People): BeatTarget {
 }
 
 // Who is who, and what the scene and the office life drive through the director: reactions,
-// life goals, gestures and obstacles.
+// life goals, gestures, obstacles and the way through the street door.
 function lifeHooksOf(
-  people: People
+  people: People,
+  away: Map<ActorId, AwayStage>
 ): Pick<
   Director,
-  'actors' | 'requestReaction' | 'setMeeting' | 'setLife' | 'play' | 'setObstacles' | 'actorsOfRun'
+  | 'actors'
+  | 'requestReaction'
+  | 'setMeeting'
+  | 'setLife'
+  | 'play'
+  | 'setObstacles'
+  | 'actorsOfRun'
+  | 'away'
+  | 'enter'
 > {
   return {
+    away,
+    enter: (id, isInstant) => enterPerson(people, { id, isInstant }),
     actors: () =>
-      new Map(people.list.map((person) => [person.def.id, toActorState(people, person)])),
+      new Map(people.list.map((person) => [person.def.id, toActorState(people, person, away)])),
     requestReaction: (id, kind) => react(people, { id, kind }),
     setMeeting: (id, goal) => setGoalIn(people.meeting, id, goal),
     setLife: (id, goal) => setGoalIn(people.life, id, goal),
@@ -230,10 +253,14 @@ function createErrandsOf(people: People): Errands {
 
 function actorViewsOf(
   people: People,
-  at: { readonly marks: PoseMarks; readonly errands: Errands }
+  at: {
+    readonly marks: PoseMarks
+    readonly errands: Errands
+    readonly away: ReadonlyMap<ActorId, AwayStage>
+  }
 ): ActorView[] {
-  return people.list.map((person) =>
-    withErrand(
+  return people.list.map((person) => {
+    const view = withErrand(
       at.errands,
       toActorView(
         people,
@@ -241,7 +268,9 @@ function actorViewsOf(
         at.marks.get(person.def.id) ?? { pose: poseOf(person), poseSince: 0 }
       )
     )
-  )
+
+    return at.away.get(person.def.id) === 'gone' ? { ...view, isAway: true } : view
+  })
 }
 
 // Someone on an errand says where; past the street door they stand where the street has them.
@@ -285,24 +314,30 @@ function react(
 }
 
 // Every person's walk among the others on their floor, the sheets in flight, then the poses.
-// Someone out on an errand is off the floor: they neither walk nor stand in anyone's way.
+// Someone out on an errand or gone home is off the floor, in no one's way.
 function stepAll(
   people: People,
-  held: { readonly papers: Papers; readonly poses: { marks: PoseMarks }; readonly errands: Errands }
+  held: {
+    readonly papers: Papers
+    readonly poses: { marks: PoseMarks }
+    readonly errands: Errands
+    readonly away: ReadonlyMap<ActorId, AwayStage>
+  }
 ): boolean {
-  const { papers, poses, errands } = held
+  const { papers, poses, errands, away } = held
   const nowMs = performance.now()
   const isChanged = tickPeople(people, { nowMs, isOpen: isOfficeOpen() })
+  const isHidden = (id: ActorId): boolean => isOut(errands, id) || away.get(id) === 'gone'
   let isMoving = false
 
   for (const person of people.list) {
-    if (isOut(errands, person.def.id)) {
+    if (isHidden(person.def.id)) {
       continue
     }
 
     const others = people.list
       .filter(
-        (other) => other !== person && other.floor === person.floor && !isOut(errands, other.def.id)
+        (other) => other !== person && other.floor === person.floor && !isHidden(other.def.id)
       )
       .map((other) => other.walker)
 
@@ -344,8 +379,13 @@ function trayCount(deps: DirectorDeps, papers: Papers): number {
   return Math.max(0, stacked - papers.flyingToTray())
 }
 
-function toActorState(people: People, person: Person): ActorState {
+function toActorState(
+  people: People,
+  person: Person,
+  away: ReadonlyMap<ActorId, AwayStage>
+): ActorState {
   const isAssistant = person.def.id === ASSISTANT
+  const stage = away.get(person.def.id)
 
   return {
     def: person.def,
@@ -359,6 +399,7 @@ function toActorState(people: People, person: Person): ActorState {
     hasChair: person.hasChair,
     ...(person.goal === undefined ? {} : { goal: person.goal }),
     ...(person.react === undefined ? {} : { react: person.react.kind }),
+    ...(stage === undefined ? {} : { away: stage }),
   }
 }
 

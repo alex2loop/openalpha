@@ -8,8 +8,8 @@ import type { ActorId, CoolerCall, LifeLine, TeamLine, TeamSay } from '@/web/sce
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { formatDay, type MessageKey, pluralKey } from '@/i18n'
+import { lifeTextOf } from '@/web/scene/overlay/life-text'
 import { roleNameOf } from '@/web/scene/overlay/name-tags'
-import { roomTagOf } from '@/web/scene/overlay/room-tags'
 import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
 import { holderOf } from '@/web/scene/sim/vocabulary'
 import { brightened } from '@/web/state/attention'
@@ -33,14 +33,6 @@ const ACTION_KEYS = Object.freeze({
   reduce: 'trading.action.reduce',
   hold: 'trading.action.hold',
 } satisfies Record<CoolerCall['action'], MessageKey>)
-const LIFE_KEYS = Object.freeze({
-  lunch: 'ui.office.life.lunch',
-  coffee: 'ui.office.life.coffee',
-  friday: 'ui.office.life.friday',
-  standup: 'ui.office.life.standup',
-  chat: 'ui.office.life.chat',
-  rounds: 'ui.office.life.rounds',
-} satisfies Record<Exclude<LifeLine['label'], 'roundCheck' | 'due'>, MessageKey>)
 const OUTCOME_KEYS = Object.freeze({
   target: 'trading.outcome.target',
   stop: 'trading.outcome.stop',
@@ -370,18 +362,6 @@ function lifeLines(input: BubbleInput): Candidate[] {
     full: lifeTextOf(line),
     at: Number.NEGATIVE_INFINITY,
   }))
-}
-
-/** What an office life moment says, in words. */
-export function lifeTextOf(line: LifeLine): string {
-  switch (line.label) {
-    case 'due':
-      return tr('ui.office.idle.due', { time: line.time, what: line.what })
-    case 'roundCheck':
-      return tr('ui.office.life.roundCheck', { room: roomTagOf(line.room, undefined).name })
-    default:
-      return tr(LIFE_KEYS[line.label])
-  }
 }
 
 // An approval waiting on the operator, over the person who brought it.

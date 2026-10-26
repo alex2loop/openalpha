@@ -3,6 +3,7 @@ import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import { pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { keepCup } from '@/web/scene/sim/life/desks'
+import { moment } from '@/web/scene/sim/rhythm'
 import { stepErrandsOffice } from '@/web/scene/sim/street/errands'
 import { pending } from '@/web/state/live'
 
@@ -14,17 +15,18 @@ export function stepErrands(
 ): void {
   const { step } = at
   const { errands } = state.director
+  const { noTrips, closingAuction } = moment.value
 
   stepErrandsOffice(errands, {
     actors: step.actors,
-    isFree: at.isFree,
+    isFree: (actor) => at.isFree(actor) && !state.director.away.has(actor.def.id),
     isBusyWithLife: (id) => state.moments.has(id),
     nowMs: step.nowMs,
     pageMs: pageNow(),
     minute: step.clock.minute,
     day: step.clock.day,
     pack: regionPack.value,
-    canLeave: step.canWalk && pending.value.length === 0,
+    canLeave: step.canWalk && pending.value.length === 0 && !noTrips && !closingAuction,
     isReduced: step.isReduced,
   })
 

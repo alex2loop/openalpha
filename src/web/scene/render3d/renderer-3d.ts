@@ -365,6 +365,7 @@ function syncDressing(
     props,
     view: sim.life.deskItems,
     detail: level,
+    calendar: sim.team.calendar,
   })
 
   const isPetMoved = syncPets(stage.pets, sim.life, {

@@ -171,7 +171,7 @@ function focusOn(deps: FocusDeps, actor: ActorView): void {
 // their desk, children by id.
 function orderOn(sim: SimView): ActorView[] {
   return sim.actors
-    .filter((actor) => actor.floor === sim.floor)
+    .filter((actor) => actor.floor === sim.floor && actor.isAway !== true)
     .map((actor) => ({ actor, rank: rankOf(sim, actor.id) }))
     .sort((a, b) => a.rank - b.rank || a.actor.id.localeCompare(b.actor.id))
     .map((held) => held.actor)

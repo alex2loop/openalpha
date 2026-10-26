@@ -150,6 +150,8 @@ export interface ActorView {
   readonly react?: ReactionKind
   /** Out on an errand to a shop; past the street door the street draws them, at `at`. */
   readonly errand?: ErrandView
+  /** Not in the office now (past the street door, not yet back): neither floor draws them. */
+  readonly isAway?: true
 }
 
 export type ActorStatus = 'free' | 'waiting' | 'failed'
@@ -211,6 +213,16 @@ export type LifeLine =
     }
   | { readonly actor: ActorId; readonly label: 'roundCheck'; readonly room: RoomId }
   | { readonly actor: ActorId; readonly label: 'due'; readonly time: string; readonly what: string }
+  | { readonly actor: ActorId; readonly label: 'earnings' | 'expiry' }
+  | {
+      readonly actor: ActorId
+      readonly label: 'closingAuction'
+      readonly from: string
+      readonly to: string
+    }
+  | { readonly actor: ActorId; readonly label: 'drop'; readonly index: string }
+  | { readonly actor: ActorId; readonly label: 'exDividend'; readonly ticker: string }
+  | { readonly actor: ActorId; readonly label: 'overtime'; readonly what: string }
 
 /** Steam over a pantry mug, or bubbles in a water cooler, at the top of that prop. */
 export interface SteamView {
@@ -235,6 +247,8 @@ export interface LifeView {
   /** The floors where steam rises or a fish swims: small motion there draws at the capped rate. */
   readonly animatedFloors: readonly FloorId[]
   readonly deskItems: DeskItemsView
+  /** The rooms someone really stands in: after hours or on a rest day only these keep a lamp lit. */
+  readonly occupied: ReadonlySet<RoomId>
 }
 
 /** A desk screen while its owner does not work: dark with the owner away or the office quiet, a
@@ -346,8 +360,16 @@ export interface TeamLine {
   readonly untilMs: number
 }
 
+/** The calendar on the desk at `slot`: a month page with the held name's ex-dividend `day`
+ *  (`YYYY-MM-DD`) circled. */
+export interface CalendarView {
+  readonly slot: number
+  readonly day: string
+}
+
 /** The team floor's own state: its desks, its children, threads, scored bursts and lines. */
 export interface TeamView {
+  readonly calendar?: CalendarView
   readonly desks: readonly DeskView[]
   readonly children: readonly ChildView[]
   readonly threads: readonly ThreadView[]

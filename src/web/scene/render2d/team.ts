@@ -1,5 +1,6 @@
 import type { DeskFocus, DeskView, TeamView } from '@/web/scene/types'
 import { fill, INK } from '@/web/scene/render2d/building'
+import { paintCalendarAt } from '@/web/scene/render2d/desk-items'
 import { FOCUS_TONES, PROP_TONES } from '@/web/scene/sprites/palette'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 
@@ -83,10 +84,14 @@ const FOCUS_PAINTERS: Readonly<Record<DeskFocus, Painter>> = Object.freeze({
 /** Each own agent's desk prop, and the screen of a desk where someone works, y-sorted with the
  *  rest of the floor. */
 export function buildTeamPieces(g: CanvasRenderingContext2D, team: TeamView): TeamPiece[] {
-  return team.desks.flatMap((desk) => deskPieces(g, desk))
+  return team.desks.flatMap((desk) => deskPieces(g, desk, team.calendar?.slot === desk.slot))
 }
 
-function deskPieces(g: CanvasRenderingContext2D, desk: DeskView): TeamPiece[] {
+function deskPieces(
+  g: CanvasRenderingContext2D,
+  desk: DeskView,
+  hasCalendar: boolean
+): TeamPiece[] {
   const slot = DESK_SLOTS[desk.slot]
 
   if (slot === undefined) {
@@ -106,6 +111,14 @@ function deskPieces(g: CanvasRenderingContext2D, desk: DeskView): TeamPiece[] {
       sortY: y + DESK_BOTTOM + ITEM_SORT_LIFT,
       tie: PIECE_TIE,
       draw: () => FOCUS_PAINTERS[focus](g, x + ITEM_DX, y + ITEM_DY),
+    })
+  }
+
+  if (hasCalendar) {
+    pieces.push({
+      sortY: y + DESK_BOTTOM + ITEM_SORT_LIFT,
+      tie: PIECE_TIE,
+      draw: () => paintCalendarAt(g, slot),
     })
   }
 

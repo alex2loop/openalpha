@@ -4,7 +4,7 @@ import { arriveAtCooler, closeTalk, tryTalk } from '@/web/scene/sim/team/cooler'
 import { listenTeam } from '@/web/scene/sim/team/events'
 import { type Member, settlePose, stepMember, toTeamActorView } from '@/web/scene/sim/team/members'
 import { syncMembers } from '@/web/scene/sim/team/roster-sync'
-import { isWorking, type TeamDeps, type TeamState } from '@/web/scene/sim/team/state'
+import { isOnDuty, isWorking, type TeamDeps, type TeamState } from '@/web/scene/sim/team/state'
 import { finishTasks } from '@/web/scene/sim/team/tasks'
 import { buildTeamView } from '@/web/scene/sim/team/view'
 
@@ -40,7 +40,10 @@ export function createTeam(deps: TeamDeps): Team {
 
   return {
     step: (nowMs) => !isDisposed && stepTeam(state, nowMs),
-    actors: () => [...state.members.values()].map((member) => toView(state, member)),
+    actors: () =>
+      [...state.members.values()]
+        .filter((member) => isOnDuty(state, member))
+        .map((member) => toView(state, member)),
     view: (nowMs) => buildTeamView(state, nowMs),
     resume: () => syncMembers(state, { nowMs: performance.now(), isResume: true }),
     nextDueAt: (nowMs) => nextDueOf(state, nowMs),
