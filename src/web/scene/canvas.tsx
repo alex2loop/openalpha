@@ -280,17 +280,20 @@ function buildSimView(parts: Sims, alpha: number): SimView {
   }
 }
 
-// A child who left the floor is no longer anyone to look at.
+// A child who left the floor, or someone gone home, is no longer anyone to look at.
 function dropGoneSelection(sim: SimView): void {
   const selected = selectedActor.peek()
 
-  if (selected !== undefined && isChildActorId(selected) && !isPresent(sim, selected)) {
+  if (selected === undefined) {
+    return
+  }
+
+  const held = sim.actors.find((actor) => actor.id === selected)
+  const isGone = held === undefined ? isChildActorId(selected) : held.isAway === true
+
+  if (isGone) {
     selectActor(undefined)
   }
-}
-
-function isPresent(sim: SimView, actor: string): boolean {
-  return sim.actors.some((held) => held.id === actor)
 }
 
 // What the picture shows besides the sim, and what retargets it (the live store, the clock's
