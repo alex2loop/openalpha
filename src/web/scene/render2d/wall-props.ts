@@ -21,6 +21,7 @@ const MARKER_TONES = ['#7C93D6', '#A596D9', '#6F7388'] as const
 const HOURS_ON_DIAL = 12
 const HOUR_HAND_PX = 3
 const MINUTE_HAND_PX = 5
+const CLOCK_TICK = '#8E8497'
 const STRIP_VARIANT = 4
 // The lobby's lower agenda board stands on two legs.
 const STANDING_BOARD_VARIANT = 2
@@ -70,6 +71,8 @@ export interface PaintScene {
   readonly isAwaitingYou: boolean
   /** Today's day of the month, as your desk calendar prints it. */
   readonly dayOfMonth: string
+  /** Each lobby wall clock's minute of its own zone's day, by the clock's `variant`. */
+  readonly wallClocks: readonly number[]
   /** What each room's whiteboard says while a run counts its steps there. */
   readonly captions: Partial<Record<RoomId, string>>
 }
@@ -244,20 +247,38 @@ function paintStrip(g: CanvasRenderingContext2D, rect: PropDef['draw'], strip: A
   fill(g, [x, y, w, 1], STRIP_SHINE)
 }
 
+// A wall clock: a lobby clock keeps its pack zone's time, any other the page clock.
 function paintClock(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w } = prop.draw
   const cx = x + w / 2
   const cy = y + w / 2
-  const minute = scene.minuteOfDay % MINUTES_PER_HOUR
-  const hour = (scene.minuteOfDay / MINUTES_PER_HOUR) % HOURS_ON_DIAL
+  const minuteOfDay = wallMinuteOf(prop, scene)
+  const minute = minuteOfDay % MINUTES_PER_HOUR
+  const hour = (minuteOfDay / MINUTES_PER_HOUR) % HOURS_ON_DIAL
   const hourAngle = (hour / HOURS_ON_DIAL) * Math.PI * 2
-  const minuteAngle = (minute / MINUTES_PER_HOUR) * Math.PI * 2
+  const minuteAngle = (Math.floor(minute) / MINUTES_PER_HOUR) * Math.PI * 2
 
   framed(g, [x, y, w, w], '#FFFDF8')
   fill(g, [x, y, w, 1], '#D9CBB8')
+
+  for (const [dx, dy] of [
+    [w / 2, 0],
+    [w / 2, w - 1],
+    [0, w / 2],
+    [w - 1, w / 2],
+  ] as const) {
+    fill(g, [x + dx, y + dy, 1, 1], CLOCK_TICK)
+  }
+
   hand(g, { cx, cy, angle: hourAngle, length: HOUR_HAND_PX, color: INK })
   hand(g, { cx, cy, angle: minuteAngle, length: MINUTE_HAND_PX, color: '#3A3F58' })
   fill(g, [Math.floor(cx), Math.floor(cy), 1, 1], '#C9505A')
+}
+
+function wallMinuteOf(prop: PropDef, scene: PaintScene): number {
+  const zoned = prop.room === 'lobby' ? scene.wallClocks[prop.variant ?? 0] : undefined
+
+  return zoned ?? scene.minuteOfDay
 }
 
 function hand(

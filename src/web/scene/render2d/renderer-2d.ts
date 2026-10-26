@@ -6,6 +6,7 @@ import { pageMinute } from '@/web/scene/clock/clock'
 import { agenda } from '@/web/scene/data/agenda'
 import { alertStrip } from '@/web/scene/data/alert-strip'
 import { indexDrop } from '@/web/scene/data/board'
+import { wallClockMinutes } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
 import { boardCaptions, isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
@@ -259,6 +260,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     isAwaitingYou: pending.value.some((entry) => entry.kind === APPROVAL_KIND),
     dayOfMonth: String(Number(pageMinute.value.day.slice(DAY_OF_MONTH_AT))),
     captions: boardCaptions.value,
+    wallClocks: wallClockMinutes.value,
   }
 }
 

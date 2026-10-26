@@ -258,7 +258,9 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('lamp', 'meet', { at: [616, 162, 8, 8], draw: [614, 115, 12, 51] }),
   wall('lift-door', 'lobby', { at: [LIFT_OFFICE.x, LIFT_OFFICE.y, LIFT_OFFICE.w, LIFT_OFFICE.h] }),
   wall('light-switch', 'lobby', { at: [98, 232, 8, 11] }),
-  ...[24, 56, 88].map((x) => wall('clock', 'lobby', { at: [x, 226, 12, 12], tip: 'clock' })),
+  ...[24, 56, 88].map((x, i) =>
+    wall('clock', 'lobby', { at: [x, 226, 12, 12], tip: 'clock', variant: i })
+  ),
   wall('wall-screen', 'lobby', { at: [28, 242, 84, 36], tip: 'agenda', variant: 1 }),
   wall('wall-screen', 'lobby', { at: [20, 286, 92, 42], tip: 'agenda', variant: 2 }),
   stand('coat-rack', 'lobby', { at: [146, 312, 8, 8], draw: [146, 272, 12, 45] }),

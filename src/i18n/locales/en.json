@@ -265,6 +265,7 @@
     "office.tip.resultsLineOne": "{count} new call you have not seen",
     "office.tip.clock": "Clock",
     "office.tip.clockLine": "{job} - {when}",
+    "office.tip.clockAt": "{place} · {time}",
     "office.tip.alertsLine": "{alerts} price alerts, {stops} stops - checked every {seconds} s",
     "office.role.crawler": "Scout",
     "office.role.planner": "Planner",

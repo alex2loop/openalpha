@@ -236,4 +236,9 @@ export const VN_PACK = Object.freeze({
   ],
   expiryRule: 'third-thursday',
   restDayStaff: ['clerk', 'assistant'],
+  wallClocks: [
+    { label: 'HOSE', zone: 'Asia/Ho_Chi_Minh' },
+    { label: 'NYSE', zone: 'America/New_York' },
+    { label: 'UTC', zone: 'UTC' },
+  ],
 } as const satisfies RegionPack)

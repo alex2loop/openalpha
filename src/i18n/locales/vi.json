@@ -265,6 +265,7 @@
     "office.tip.resultsLineOne": "{count} đề xuất mới bạn chưa xem",
     "office.tip.clock": "Đồng hồ",
     "office.tip.clockLine": "{job} - {when}",
+    "office.tip.clockAt": "{place} · {time}",
     "office.tip.alertsLine": "{alerts} cảnh báo giá, {stops} mức cắt lỗ - kiểm tra mỗi {seconds} giây",
     "office.role.crawler": "Tìm tin",
     "office.role.planner": "Lập kế hoạch",

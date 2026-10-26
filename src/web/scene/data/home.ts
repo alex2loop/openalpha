@@ -4,7 +4,9 @@ import type { MarketsResponse, MarketWire } from '@/app/server/wire/market'
 import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
+import { pageMinute } from '@/web/scene/clock/clock'
 import { packOf, type RegionPack } from '@/web/scene/world/regions'
+import { zoneParts } from '@/web/text/time'
 
 // The session phase moves a few times a day; a minute is soon enough to follow it.
 const MARKETS_POLL_MS = 60_000
@@ -25,6 +27,13 @@ export const marketList: ReadonlySignal<readonly MarketWire[]> = computed(
 export const regionPack: ReadonlySignal<RegionPack> = computed(() =>
   packOf(markets.value?.homeRegion)
 )
+
+/** Each lobby wall clock's minute of its own day, read again at each page minute. */
+export const wallClockMinutes: ReadonlySignal<readonly number[]> = computed(() => {
+  const { at } = pageMinute.value
+
+  return regionPack.value.wallClocks.map((clock) => zoneParts(at, clock.zone).minute)
+})
 
 /** Reads `/v1/markets` now and every `MARKETS_POLL_MS` while the scene is up. */
 export function startHome(): () => void {
