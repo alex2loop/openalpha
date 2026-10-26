@@ -319,7 +319,11 @@ function paintOverPieces(g: CanvasRenderingContext2D, job: FloorJob): void {
   paintStatusDots(
     g,
     job.sim.actors.filter((actor) => isOnFloor(actor, job.sim.floor)),
-    { alpha: job.sim.alpha, scale: job.scene.scale }
+    {
+      alpha: job.sim.alpha,
+      scale: job.scene.scale,
+      marked: new Set(job.sim.marks.map((mark) => mark.actor)),
+    }
   )
   paintDust(g, job.scene.fx)
 }

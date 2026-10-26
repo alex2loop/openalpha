@@ -1,5 +1,5 @@
 import type { FrameSpec, Material } from '@/web/scene/render2d/figure-spec'
-import type { ActorView } from '@/web/scene/types'
+import type { ActorId, ActorView } from '@/web/scene/types'
 import { buildFigure } from '@/web/scene/render2d/figure'
 import { buildMascot } from '@/web/scene/render2d/mascot'
 import {
@@ -46,6 +46,8 @@ const DOT_MIN_R = 1.5
 const DOT_MAX_R = 3.4
 const DOT_CORE = 0.66
 const DOT_GAP_PX = 2
+const DOT_MARK_SIDE_PX = 9
+const DOT_MARK_RISE_PX = 1
 // Face details shade with the skin under them, so a dot eye never splits the head's bands.
 const SKIN_DETAILS: ReadonlySet<Material> = new Set([
   'glint',
@@ -108,7 +110,7 @@ export function drawCharacter(
 export function paintStatusDots(
   g: CanvasRenderingContext2D,
   actors: readonly ActorView[],
-  at: { readonly alpha: number; readonly scale: number }
+  at: { readonly alpha: number; readonly scale: number; readonly marked: ReadonlySet<ActorId> }
 ): void {
   const r = Math.min(DOT_MAX_R, Math.max(DOT_MIN_R, DOT_CSS_R / at.scale))
 
@@ -119,10 +121,13 @@ export function paintStatusDots(
 
     const x = Math.round(actor.prev.x + (actor.at.x - actor.prev.x) * at.alpha)
     const y = Math.round(actor.prev.y + (actor.at.y - actor.prev.y) * at.alpha)
-    const cy = y - SPRITE_H - (Math.round(r) + DOT_GAP_PX)
+    // Beside an "!" the dot steps aside, as the mockup moves it, so the two never overlap.
+    const isMarked = at.marked.has(actor.id)
+    const cx = isMarked ? x + DOT_MARK_SIDE_PX : x
+    const cy = y - SPRITE_H - (isMarked ? DOT_MARK_RISE_PX : Math.round(r) + DOT_GAP_PX)
 
-    disc(g, { x, y: cy, r, color: OUTLINE })
-    disc(g, { x, y: cy, r: r * DOT_CORE, color: STATUS_TONES[actor.status] })
+    disc(g, { x: cx, y: cy, r, color: OUTLINE })
+    disc(g, { x: cx, y: cy, r: r * DOT_CORE, color: STATUS_TONES[actor.status] })
   }
 }
 
