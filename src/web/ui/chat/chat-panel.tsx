@@ -7,7 +7,7 @@ import { SessionView, startNewSession } from '@/web/ui/chat/session-view'
 import { openSessionsDialog } from '@/web/ui/chat/sessions-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
-import { CloseIcon } from '@/web/ui/kit/icons'
+import { CloseIcon, HistoryIcon, PlusIcon } from '@/web/ui/kit/icons'
 
 import './chat.css'
 
@@ -36,16 +36,18 @@ function ChatHead() {
   return (
     <div class="chat-head glass">
       <h2>{tr('ui.office.chat.title')}</h2>
-      <Button size="small" onClick={openSessionsDialog}>
+      <Button kind="ghost" size="small" onClick={openSessionsDialog}>
+        <HistoryIcon />
         {tr('ui.office.chat.oldSessions')}
       </Button>
-      <Button size="small" onClick={askNewSession}>
+      <Button kind="ghost" size="small" onClick={askNewSession}>
+        <PlusIcon />
         {tr('ui.office.chat.newSession')}
       </Button>
       {!isChatOnly.value && (
         <button
           type="button"
-          class="icon-button"
+          class="btn btn-ghost btn-small"
           title={closeLabel}
           aria-label={closeLabel}
           onClick={() => setChatOpen(false)}
