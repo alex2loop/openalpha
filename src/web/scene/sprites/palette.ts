@@ -152,9 +152,9 @@ export const FLOOR_TONES = Object.freeze({
 
 /** The dot over a head: green free, amber waiting, red after an error. */
 export const STATUS_TONES = Object.freeze({
-  free: '#3FB06A',
-  waiting: '#F2A93B',
-  failed: '#E5484D',
+  free: '#32D74B',
+  waiting: '#F2B33D',
+  failed: '#FF6259',
 } satisfies Record<ActorStatus, string>)
 
 /** The building: wall bodies and caps, the wall face's bands, the corridor, glass and mullions. */

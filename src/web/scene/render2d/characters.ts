@@ -1,5 +1,5 @@
 import type { FrameSpec, Material } from '@/web/scene/render2d/figure-spec'
-import type { ActorStatus, ActorView } from '@/web/scene/types'
+import type { ActorView } from '@/web/scene/types'
 import { buildFigure } from '@/web/scene/render2d/figure'
 import { buildMascot } from '@/web/scene/render2d/mascot'
 import {
@@ -37,12 +37,15 @@ import { seedOf } from '@/web/scene/world/rng'
 // Enough for every person on a busy floor in every frame they cycle through, with room to spare.
 const MAX_SPRITES = 640
 const KEY_SEPARATOR = '|'
-const SELECT_RING_W = 14
 const SHADOW_W = 14
 const SHADOW_H = 3
-const SELECT_RING = OUTLINE
-const STATUS_DOT_PX = 3
-const STATUS_RISE_PX = 2
+// The status dot's radius: a fixed CSS size, kept between these world px; its colour fills this
+// share of it inside the outline, the dot this far over the head.
+const DOT_CSS_R = 5
+const DOT_MIN_R = 1.5
+const DOT_MAX_R = 3.4
+const DOT_CORE = 0.66
+const DOT_GAP_PX = 2
 // Face details shade with the skin under them, so a dot eye never splits the head's bands.
 const SKIN_DETAILS: ReadonlySet<Material> = new Set([
   'glint',
@@ -72,7 +75,6 @@ interface CharacterFrame {
   readonly now: number
   /** How far the frame sits between the last two sim steps. */
   readonly alpha: number
-  readonly isSelected: boolean
   readonly motion: CharacterMotion
 }
 
@@ -90,11 +92,6 @@ export function drawCharacter(
   g.fillStyle = SHADOW
   g.fillRect(x - SHADOW_W / 2, y - 1, SHADOW_W, SHADOW_H)
 
-  if (frame.isSelected) {
-    g.fillStyle = SELECT_RING
-    g.fillRect(x - SELECT_RING_W / 2, y, SELECT_RING_W, 1)
-  }
-
   if (actor.facing === 'left') {
     g.save()
     g.translate(x * 2, 0)
@@ -104,26 +101,39 @@ export function drawCharacter(
   } else {
     g.drawImage(image, x - SPRITE_W / 2, y - SPRITE_H)
   }
-
-  paintStatus(g, actor.status, { x, y })
 }
 
-function paintStatus(
+/** Each person's status dot over the head, round as the mockup's, drawn over everything on the
+ *  floor: small at floor zoom, readable close. */
+export function paintStatusDots(
   g: CanvasRenderingContext2D,
-  status: ActorStatus | undefined,
-  at: { readonly x: number; readonly y: number }
+  actors: readonly ActorView[],
+  at: { readonly alpha: number; readonly scale: number }
 ): void {
-  if (status === undefined) {
-    return
+  const r = Math.min(DOT_MAX_R, Math.max(DOT_MIN_R, DOT_CSS_R / at.scale))
+
+  for (const actor of actors) {
+    if (actor.status === undefined) {
+      continue
+    }
+
+    const x = Math.round(actor.prev.x + (actor.at.x - actor.prev.x) * at.alpha)
+    const y = Math.round(actor.prev.y + (actor.at.y - actor.prev.y) * at.alpha)
+    const cy = y - SPRITE_H - (Math.round(r) + DOT_GAP_PX)
+
+    disc(g, { x, y: cy, r, color: OUTLINE })
+    disc(g, { x, y: cy, r: r * DOT_CORE, color: STATUS_TONES[actor.status] })
   }
+}
 
-  const top = at.y - SPRITE_H - STATUS_RISE_PX - STATUS_DOT_PX
-  const left = at.x - Math.ceil(STATUS_DOT_PX / 2)
-
-  g.fillStyle = OUTLINE
-  g.fillRect(left - 1, top - 1, STATUS_DOT_PX + 2, STATUS_DOT_PX + 2)
-  g.fillStyle = STATUS_TONES[status]
-  g.fillRect(left, top, STATUS_DOT_PX, STATUS_DOT_PX)
+function disc(
+  g: CanvasRenderingContext2D,
+  at: { readonly x: number; readonly y: number; readonly r: number; readonly color: string }
+): void {
+  g.fillStyle = at.color
+  g.beginPath()
+  g.arc(at.x, at.y, at.r, 0, Math.PI * 2)
+  g.fill()
 }
 
 /** One 24 by 32 sprite of `look` in `frame`, from a bounded cache: the least recently drawn goes

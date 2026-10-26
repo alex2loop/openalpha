@@ -6,7 +6,11 @@ import { indexDrop } from '@/web/scene/data/board'
 import { paintDust } from '@/web/scene/render2d/ambient-fx'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitAt, fitFloor, fitRoom } from '@/web/scene/render2d/camera'
-import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
+import {
+  drawCharacter,
+  paintStatusDots,
+  releaseCharacterSprites,
+} from '@/web/scene/render2d/characters'
 import { releaseDeskItems } from '@/web/scene/render2d/desk-items'
 import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
 import { paintLighting } from '@/web/scene/render2d/lights'
@@ -40,7 +44,6 @@ import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
-import { selectedActor } from '@/web/state/focus'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
 
 const CANVAS_CLASS = 'scene-canvas'
@@ -269,7 +272,6 @@ function paintFloor(surface: Surface, job: FloorJob): void {
   }
 
   paintOverPieces(g, job)
-  paintDust(g, job.scene.fx)
 
   const dropPct = indexDrop.value?.movePct
 
@@ -295,7 +297,8 @@ function paintFloor(surface: Surface, job: FloorJob): void {
   }
 }
 
-// The tray, the printer's stack and the steam, and the papers in flight, over everything standing.
+// The tray, the printer's stack and the steam, the papers in flight, the status dots and the dust,
+// over everything standing.
 function paintOverPieces(g: CanvasRenderingContext2D, job: FloorJob): void {
   if (job.sim.floor === TRAY_FLOOR) {
     paintTray(g, job.sim.tray)
@@ -313,6 +316,12 @@ function paintOverPieces(g: CanvasRenderingContext2D, job: FloorJob): void {
     job.sim.papers.filter((paper) => paper.floor === job.sim.floor),
     job.sim.alpha
   )
+  paintStatusDots(
+    g,
+    job.sim.actors.filter((actor) => isOnFloor(actor, job.sim.floor)),
+    { alpha: job.sim.alpha, scale: job.scene.scale }
+  )
+  paintDust(g, job.scene.fx)
 }
 
 // Back props first in their list order, then props and people by their bottom edge.
@@ -340,7 +349,6 @@ function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
           scale: job.scene.scale,
           now: job.now,
           alpha: job.sim.alpha,
-          isSelected: actor.id === selectedActor.value,
           motion: job.motion,
         }),
     }))

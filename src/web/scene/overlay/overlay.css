@@ -204,13 +204,20 @@
 }
 
 .pick-ring {
+  --ring-edge: #f9e2af;
+  --ring-fill: rgba(249, 226, 175, 0.18);
+  --ring-key-fill: rgba(127, 127, 160, 0.18);
+
   position: absolute;
   box-sizing: border-box;
-  border: 2px solid var(--tc-blue);
+  border: 2px solid var(--ring-edge);
   border-radius: 50%;
+  background: var(--ring-fill);
+  pointer-events: none;
 }
 
 .pick-ring.is-key {
-  border-style: dashed;
   border-color: var(--ink);
+  background: var(--ring-key-fill);
+  box-shadow: 0 0 0 2px var(--canvas);
 }
