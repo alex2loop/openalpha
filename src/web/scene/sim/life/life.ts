@@ -23,9 +23,11 @@ import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
 import { createDesks, deskDueOf, keepCup, stepDesks } from '@/web/scene/sim/life/desks'
 import { stepErrands } from '@/web/scene/sim/life/errand-home'
 import { stepAsks, subscribeLife } from '@/web/scene/sim/life/events'
+import { stepGatherings } from '@/web/scene/sim/life/gatherings'
 import { lineOf, type MomentKind, momentDueOf, stepMoment } from '@/web/scene/sim/life/moments'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { createPets } from '@/web/scene/sim/life/pets'
+import { createRhythmState, stepPresence } from '@/web/scene/sim/life/presence'
 import { isRoundFree, roundDueOf, stepRounds } from '@/web/scene/sim/life/rounds'
 import {
   resetIdle,
@@ -39,10 +41,9 @@ import {
 import { fidgetDueOf, postureLineOf, stepFidgets, stepPostures } from '@/web/scene/sim/life/seat'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { approachOf } from '@/web/scene/sim/places'
-import { stepBell } from '@/web/scene/sim/rhythm'
+import { isKept, moment as marketMoment, stepBell } from '@/web/scene/sim/rhythm'
 import { type Errands, isOnErrand } from '@/web/scene/sim/street/errands'
 import { propsOn } from '@/web/scene/world/props'
-import { isInRange } from '@/web/scene/world/regions'
 import { onWireEvent } from '@/web/state/events'
 import { pending, runs } from '@/web/state/live'
 import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time-units'
@@ -69,7 +70,6 @@ export interface Life {
 
 /** A job within this of its run sits its owner up. */
 const JOB_DUE_MS = 600_000
-const NAP_DIM = 0.72
 const QUIET_AFTER_MS = 900_000
 const PANTRY_LIVE_PX = 28
 const BRIEF_ROW_KEY = 'brief'
@@ -107,6 +107,7 @@ export function createLife(deps: LifeDeps): Life {
     statuses: (views) => statusesOf(state, views),
     resume: () => {
       state.asks.length = 0
+      state.rhythm.seenAt = undefined
     },
     dispose: () => {
       if (!isDisposed) {
@@ -137,6 +138,7 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
     runNames: new Map(),
     cart: { at: undefined, rollFrom: undefined, isLeaving: false, isBlocking: false },
     desks: createDesks(),
+    rhythm: createRhythmState(),
     round: { freeSince: undefined, lastAt: undefined, count: 0 },
     sheets: { hour: '', count: 0, feedAt: undefined },
     catAwakeUntil: 0,
@@ -148,8 +150,8 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
 
 /** Free for the office life: no goal the live store calls for (no work, no approval or question,
  *  no walk to your desk), no gesture of a real event, no marker over the head, no job due within
- *  `JOB_DUE_MS`, not out on an errand, not the mascot; staff only, never a temporary child or an
- *  own agent. */
+ *  `JOB_DUE_MS`, not out on an errand, not on the way in or out of the office, not kept at the desk
+ *  by the day, not the mascot; staff only, never a temporary child or an own agent. */
 function isFree(actor: ActorState, errands: Errands): boolean {
   const id = actor.def.id
   const isMarked = id === CLERK && (breachedStops.value?.length ?? 0) > 0
@@ -162,7 +164,9 @@ function isFree(actor: ActorState, errands: Errands): boolean {
     !hasBeat &&
     !isMarked &&
     !dueOwners().has(id) &&
-    !isOnErrand(errands, id)
+    !isOnErrand(errands, id) &&
+    actor.away === undefined &&
+    !isKept(id)
   )
 }
 
@@ -172,6 +176,7 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
   const isReduced = deps.reduced.value
   const isQuiet = nowMs - state.lastBusyAt >= QUIET_AFTER_MS
   const canWalk = !(isReduced || document.hidden) && isOfficeOpen()
+  const { noTrips, closingAuction, relaxed } = marketMoment.value
   const due = dueOwners()
 
   return {
@@ -183,8 +188,9 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
     ),
     pack: regionPack.value.officeLife,
     canWalk,
-    isCalm: canWalk && !isQuiet,
+    isCalm: canWalk && !isQuiet && !noTrips && !closingAuction,
     isQuiet,
+    isRelaxed: relaxed,
     isReduced,
     due,
   }
@@ -194,6 +200,7 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
   noteBusy(state, step)
   clearSheets(state, step)
   clearFailed(state, step)
+  stepPresence(state, step)
 
   const isMoving = stepCart(state, step)
 
@@ -202,6 +209,7 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
   stepMoments(state, step)
   stepRounds(state, step)
   stepBell(state, step)
+  stepGatherings(state, step)
   stepIdle(state, step)
   stepCoffee(state, step)
   stepDessert(state, step)
@@ -342,6 +350,7 @@ function viewOf(state: LifeState, step: LifeStep): LifeView {
     isQuiet: step.isQuiet,
     lines: linesOf(state, step),
     deskItems: state.desks.shown,
+    occupied: state.rhythm.occupied,
     ...(cart === undefined ? {} : { cart: { floor: CART_FLOOR, at: cart } }),
     ...(state.sheets.feedAt === undefined ? {} : { feedAt: state.sheets.feedAt }),
   }
@@ -374,7 +383,7 @@ function linesOf(state: LifeState, step: LifeStep): LifeLine[] {
     }
   }
 
-  return lines
+  return [...lines, ...state.rhythm.lines]
 }
 
 // No dot while someone works or walks to their work (the rim and the walk say so); red after an
@@ -438,11 +447,4 @@ function dueOwners(): ReadonlyMap<ActorId, AgendaRow> {
 
 function isStaffId(id: string): id is ActorId {
   return rosterDefOf(id) !== undefined
-}
-
-/** How far the lamps that are on glow: dimmed over the lunch nap by the page clock. */
-export function lampGlowOf(): number {
-  const isNap = isInRange(pageMinute.value.minute, regionPack.value.officeLife.nap)
-
-  return isNap ? NAP_DIM : 1
 }

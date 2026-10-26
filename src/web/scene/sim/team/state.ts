@@ -6,7 +6,9 @@ import type { Member } from '@/web/scene/sim/team/members'
 import type { ActorId, BurstView, TeamLine, TeamSay } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
+import { marketList } from '@/web/scene/data/home'
 import { childActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
+import { isKept, moment } from '@/web/scene/sim/rhythm'
 import { agentRunOf } from '@/web/scene/sim/team/goals'
 import { isAtHome } from '@/web/scene/sim/team/members'
 
@@ -107,6 +109,28 @@ export function isWorking(state: TeamState, member: Member): boolean {
   return member.outcome === undefined && runs.some((run) => run.runId === runId)
 }
 
+/** The person is in today: everyone on a trading day; on a rest day only an agent with a run
+ *  under way or one whose focus names a market that trades that day (crypto). */
+export function isOnDuty(state: TeamState, member: Member): boolean {
+  const { agentId } = member
+
+  if (agentId === undefined || moment.value.tradingDay) {
+    return true
+  }
+
+  if (agentRunOf(state.deps.runs.value, agentId) !== undefined) {
+    return true
+  }
+
+  const markets = state.deps.agents.value.find((agent) => agent.id === agentId)?.focus?.markets
+
+  return (markets ?? []).some((id) => {
+    const held = marketList.value.find((market) => market.market === id)
+
+    return held !== undefined && (held.session?.tradesToday ?? true)
+  })
+}
+
 /** An agent at its desk with nothing under way: the only one the cooler may call over. */
 export function isFree(state: TeamState, member: Member): boolean {
   const { agentId } = member
@@ -119,6 +143,8 @@ export function isFree(state: TeamState, member: Member): boolean {
     isAtHome(member) &&
     !member.isNewcomer &&
     !hasChildAtWork &&
+    isOnDuty(state, member) &&
+    !isKept(member.id) &&
     agentRunOf(state.deps.runs.value, agentId) === undefined
   )
 }

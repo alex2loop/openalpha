@@ -7,6 +7,7 @@ import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
 import { type Crew, createCrew, disposeCrew } from '@/web/scene/crew'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
 import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/data/board'
+import { exDividends, startExDividends } from '@/web/scene/data/ex-dividends'
 import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
 import { ledItems, startLed } from '@/web/scene/data/led'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
@@ -43,9 +44,9 @@ import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { isOnFloor, nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isChildActorId } from '@/web/scene/sim/actors/roster'
-import { lampGlowOf } from '@/web/scene/sim/life/life'
+import { isRoomLit, lampGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
-import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
+import { homePhase, isClosedPhase, moment } from '@/web/scene/sim/rhythm'
 import {
   bringIntoView,
   canFollow,
@@ -173,6 +174,7 @@ function startReads(): (() => void)[] {
     startAgenda(),
     startTeamCalls(),
     startWeather(),
+    startExDividends(),
   ]
 }
 
@@ -247,8 +249,10 @@ function nextDueOf(parts: LoopParts, drawn: SimView): number {
 }
 
 function buildSimView(parts: Crew, alpha: number): SimView {
-  const off = lampsOff.value
-  const lit = new Set<RoomId>(ROOMS.filter((room) => !off.has(room.id)).map((room) => room.id))
+  const life = parts.life.view()
+  const lit = new Set<RoomId>(
+    ROOMS.filter((room) => isRoomLit(room.id, life.occupied)).map((room) => room.id)
+  )
   const office = parts.director.view()
   const statuses = parts.life.statuses(office.actors)
   const actors = office.actors.map((actor) => {
@@ -265,7 +269,7 @@ function buildSimView(parts: Crew, alpha: number): SimView {
     props: { lit, lampGlow: lampGlowOf(), isClosed: isClosedPhase(homePhase.value) },
     light: parts.sky.view(performance.now(), reducedMotion.value),
     weather: parts.street.view().weather,
-    life: parts.life.view(),
+    life,
     team: parts.team.view(performance.now()),
     street: parts.painter.paint(parts.street.view(), visibleRect(), pageMinute.value),
   }
@@ -307,6 +311,8 @@ function readSceneInputs(): void {
   unread.value
   hasUnreadAlert.value
   homePhase.value
+  moment.value
+  exDividends.value
   agents.value
   coolerOffer.value
   todayRuns.value

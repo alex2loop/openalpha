@@ -12,7 +12,7 @@ import {
 import type { Box } from '@/web/scene/render3d/boxes'
 import type { Materials } from '@/web/scene/render3d/lights'
 import type { FloorProps } from '@/web/scene/render3d/props'
-import type { DeskItemsView, FloorId, Rect, RoomId } from '@/web/scene/types'
+import type { CalendarView, DeskItemsView, FloorId, Rect, RoomId } from '@/web/scene/types'
 import { box } from '@/web/scene/render3d/boxes'
 import {
   createPool,
@@ -23,6 +23,7 @@ import {
 } from '@/web/scene/render3d/instancing'
 import { toUnits } from '@/web/scene/render3d/space'
 import {
+  CALENDAR_CELL,
   createDeskAtlas,
   DESK_ATLAS,
   type DeskAtlas,
@@ -45,6 +46,7 @@ import {
   deskSlotOf,
   isPinned,
 } from '@/web/scene/world/desk-props'
+import { DESK_SLOTS, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
 
 /** The desk pieces that change while the floor shows: the faces on one atlas mesh, and the cups,
@@ -54,7 +56,8 @@ export interface DeskItems {
   readonly texture: CanvasTexture
   readonly faces: Mesh<BufferGeometry, MeshBasicMaterial>
   readonly pool: Pool
-  floor: FloorId | undefined
+  /** Which faces the mesh holds: the office's, the team floor's calendar at a slot, or none. */
+  faceKey: string | undefined
   /** The signature the instances were placed for. */
   placed: number | undefined
 }
@@ -65,6 +68,7 @@ interface DeskFrame {
   readonly props: FloorProps | undefined
   readonly view: DeskItemsView
   readonly detail: number
+  readonly calendar: CalendarView | undefined
 }
 
 /** A face's quad: its corners in world px and the atlas cell it shows. */
@@ -80,6 +84,9 @@ interface Quad {
 const MAX_INSTANCES = 128
 // A face stands this far proud of what it covers, so the two never share a plane.
 const FACE_LIFT_PX = 0.05
+// The team floor's calendar lies on the left of a desk top, from the desk's corner; the desk top
+// stands this high.
+const CALENDAR_AT = Object.freeze({ dx: 3, dz: -10.5, w: 8, d: 9, rise: 14 })
 // A tab strip covers the monitor whose screen is within this of its spot.
 const SCREEN_MATCH_PX = 3
 const COFFEE = Object.freeze({ w: 1.4, h: 0.2 })
@@ -102,7 +109,7 @@ export function createDeskItems(shapes: Shapes, materials: Materials, root: Grou
 
   root.add(faces, pool.mesh)
 
-  return { atlas, texture, faces, pool, floor: undefined, placed: undefined }
+  return { atlas, texture, faces, pool, faceKey: undefined, placed: undefined }
 }
 
 /** The static boxes of the floor's desk pieces, merged with the furniture of the room each stands
@@ -122,34 +129,42 @@ export function addDeskBoxes(rooms: Map<RoomId, Box[]>, floor: FloorId): void {
   }
 }
 
-/** Builds the faces when the floor changes, repaints the atlas and re-places the instances when
- *  what the desks show changed; true when anything did. */
+/** Builds the faces when the floor (or the calendar's desk) changes, repaints the atlas and
+ *  re-places the instances when what the desks show changed; true when anything did. */
 export function syncDeskItems(items: DeskItems, frame: DeskFrame): boolean {
-  const isNewFloor = items.floor !== frame.floor
   const isShown = frame.floor === DESK_FLOOR
+  const calendar = frame.floor === TEAM_FLOOR ? frame.calendar : undefined
+  const key = faceKeyOf(frame.floor, calendar)
+  const isNewFaces = items.faceKey !== key
 
-  if (isNewFloor) {
-    items.floor = frame.floor
+  if (isNewFaces) {
+    items.faceKey = key
     items.placed = undefined
     items.faces.geometry.dispose()
-    items.faces.geometry = isShown ? buildFaces(frame.props) : new BufferGeometry()
+    items.faces.geometry = isShown ? buildFaces(frame.props) : calendarFace(calendar)
   }
 
-  items.faces.visible = isShown
+  items.faces.visible = key !== ''
 
-  if (!isShown) {
+  if (key === '') {
     items.pool.mesh.visible = false
 
-    return isNewFloor
+    return isNewFaces
   }
 
-  const isPainted = items.atlas.sync(frame.view, frame.detail)
+  const isPainted = items.atlas.sync(frame.view, frame.detail, frame.calendar)
 
   if (isPainted) {
     items.texture.needsUpdate = true
   }
 
-  return placeItems(items, frame.view) || isPainted || isNewFloor
+  if (!isShown) {
+    items.pool.mesh.visible = false
+
+    return isNewFaces || isPainted
+  }
+
+  return placeItems(items, frame.view) || isPainted || isNewFaces
 }
 
 export function disposeDeskItems(items: DeskItems): void {
@@ -163,11 +178,47 @@ export function disposeDeskItems(items: DeskItems): void {
 }
 
 function buildFaces(props: FloorProps | undefined): BufferGeometry {
-  const quads = DESK_PROPS.flatMap((row) => {
-    const quad = quadOf(row, props)
+  return geometryOf(
+    DESK_PROPS.flatMap((row) => {
+      const quad = quadOf(row, props)
 
-    return quad === undefined ? [] : [quad]
-  })
+      return quad === undefined ? [] : [quad]
+    })
+  )
+}
+
+function faceKeyOf(floor: FloorId, calendar: CalendarView | undefined): string {
+  if (floor === DESK_FLOOR) {
+    return DESK_FLOOR
+  }
+
+  return calendar === undefined ? '' : `${TEAM_FLOOR}:${calendar.slot}`
+}
+
+// The calendar lying on its desk top, its page towards the camera.
+function calendarFace(calendar: CalendarView | undefined): BufferGeometry {
+  const slot = calendar === undefined ? undefined : DESK_SLOTS[calendar.slot]
+
+  if (slot === undefined) {
+    return new BufferGeometry()
+  }
+
+  const x = slot.x + CALENDAR_AT.dx
+  const z = slot.y + CALENDAR_AT.dz
+  const y = CALENDAR_AT.rise + FACE_LIFT_PX
+
+  return geometryOf([
+    {
+      x: [x, x + CALENDAR_AT.w],
+      y: [y, y],
+      z: [z, z + CALENDAR_AT.d],
+      isUpright: false,
+      cell: CALENDAR_CELL,
+    },
+  ])
+}
+
+function geometryOf(quads: readonly Quad[]): BufferGeometry {
   const position: number[] = []
   const uv: number[] = []
   const index: number[] = []

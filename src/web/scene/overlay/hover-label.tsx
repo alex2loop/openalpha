@@ -106,7 +106,10 @@ function lineOf(now: ActorNow, epochMs: number): string {
     case 'queued':
       return tr('ui.office.label.queued', { what: now.what })
     case 'busy':
-      return runLineOf(now.run, epochMs)
+      return joinInline([
+        runLineOf(now.run, epochMs),
+        ...(now.overtime === undefined ? [] : [now.overtime]),
+      ])
     case 'errand':
     case 'life':
       return now.line

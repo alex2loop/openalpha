@@ -186,7 +186,13 @@ export interface RegionPack {
   readonly restDayStaff: readonly ActorId[]
 }
 
+/** What sets a day apart: a report season, the derivatives' expiry, a festive stretch. */
+export type SpecialDay = 'earnings' | 'expiry' | 'festive'
+
 const DEFAULT_PACK: RegionPackId = 'vn'
+const THURSDAY = 4
+// The third Thursday of a month is always one of these dates.
+const THIRD_WEEK = Object.freeze({ from: 15, to: 21 })
 const HOLIDAYS: readonly HolidayId[] = ['tet', 'trung-thu', 'quoc-khanh', 'noel']
 const REGION_PACKS: Readonly<Record<RegionPackId, RegionPack>> = Object.freeze({
   vn: VN_PACK,
@@ -240,6 +246,30 @@ export function isAllDay(row: ShopRow): boolean {
 /** The holiday `day` (`YYYY-MM-DD`) falls in, by the pack's dates; the first match wins. */
 export function holidayOf(pack: RegionPack, day: string): HolidayId | undefined {
   return HOLIDAYS.find((id) => pack.holidayDates[id].some(([from, to]) => day >= from && day <= to))
+}
+
+/** What sets `day` (`YYYY-MM-DD`) apart by the pack: a report season and the expiry only on a day
+ *  the market trades (`tradesToday`), a festive stretch whatever the market does. */
+export function specialDaysOf(
+  day: string,
+  pack: RegionPack,
+  tradesToday: boolean
+): readonly SpecialDay[] {
+  const [, month, date] = day.split('-').map(Number)
+  const isSeason = pack.earningsSeasons.some(
+    (season) => season.month === month && (date ?? 0) >= season.from && (date ?? 0) <= season.to
+  )
+  const isExpiry =
+    pack.expiryRule === 'third-thursday' &&
+    new Date(`${day}T00:00:00Z`).getUTCDay() === THURSDAY &&
+    (date ?? 0) >= THIRD_WEEK.from &&
+    (date ?? 0) <= THIRD_WEEK.to
+
+  return [
+    ...(tradesToday && isSeason ? (['earnings'] as const) : []),
+    ...(tradesToday && isExpiry ? (['expiry'] as const) : []),
+    ...(holidayOf(pack, day) === undefined ? [] : (['festive'] as const)),
+  ]
 }
 
 function isPackId(region: string): region is RegionPackId {

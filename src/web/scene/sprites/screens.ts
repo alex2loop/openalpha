@@ -284,7 +284,7 @@ function paintList(c: CanvasRenderingContext2D, size: Size, job: PaintJob): void
   const pad = h * 0.08
   const head = h * 0.19
   const rowH = (h - pad * 2 - head) / LIST_ROWS
-  const title = model.closedLine ?? tr('ui.office.agenda.title')
+  const title = model.closedLine ?? model.noteLine ?? tr('ui.office.agenda.title')
   const left = tr(pluralKey(model.remaining, 'ui.office.agenda.leftOne', 'ui.office.agenda.left'), {
     count: model.remaining,
   })

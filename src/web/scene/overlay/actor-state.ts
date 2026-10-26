@@ -6,7 +6,7 @@ import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ErrandItem, ErrandShop, ErrandView } from '@/web/scene/street-types'
 import type { ActorId, ActorStatus, SimView } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
-import { lifeTextOf } from '@/web/scene/overlay/bubbles'
+import { lifeTextOf } from '@/web/scene/overlay/life-text'
 import { teamGoals } from '@/web/scene/overlay/team-pass'
 import { ASSISTANT, ownActorIdOf, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { goalsFor, holderOf } from '@/web/scene/sim/vocabulary'
@@ -43,7 +43,8 @@ export type ActorNow =
   /** An approval or a question waits on the operator; `isAtDesk` once they carry it to your desk. */
   | { readonly kind: 'asking'; readonly what: string; readonly isAtDesk: boolean }
   | { readonly kind: 'queued'; readonly what: string }
-  | { readonly kind: 'busy'; readonly run: Run }
+  /** Running a command; `overtime` says so when it outlasts their day. */
+  | { readonly kind: 'busy'; readonly run: Run; readonly overtime?: string }
   /** Out to a shop and back: where they are, and that any new work brings them back. */
   | { readonly kind: 'errand'; readonly line: string }
   | { readonly kind: 'life'; readonly line: string }
@@ -73,7 +74,9 @@ export function actorNowOf(sim: SimView, actor: ActorId): ActorNow {
   const run = actorRunOf(actor)
 
   if (run !== undefined) {
-    return { kind: 'busy', run }
+    const late = sim.life.lines.find((line) => line.actor === actor && line.label === 'overtime')
+
+    return { kind: 'busy', run, ...(late === undefined ? {} : { overtime: lifeTextOf(late) }) }
   }
 
   return queuedOf(actor) ?? restingOf(sim, actor)

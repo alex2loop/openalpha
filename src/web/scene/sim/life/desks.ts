@@ -9,6 +9,7 @@ import { roomOfRun } from '@/web/scene/data/room-status'
 import { todayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { isPresent } from '@/web/scene/sim/life/presence'
 import { homePhase } from '@/web/scene/sim/rhythm'
 import {
   DESK_CUP_SLOTS,
@@ -250,11 +251,15 @@ function syncScreens(desks: Desks, step: LifeStep): boolean {
   return syncSaver(desks, step) || isChanged
 }
 
-// Absent while the owner works: the work screen shows.
+// Absent while the owner works: the work screen shows. Dark for anyone gone home.
 function monitorOf(
   actor: ActorState,
   at: { readonly step: LifeStep; readonly session: DeskSession }
 ): MonitorState | undefined {
+  if (!isPresent(actor)) {
+    return 'off'
+  }
+
   if (actor.goal?.kind === 'work') {
     return undefined
   }
