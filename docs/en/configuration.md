@@ -549,7 +549,10 @@ A provider call times out after 15 seconds and retries transient failures up to 
 The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it when `enabled = true`;
 a one-off command never opens the port. It binds `127.0.0.1` only and refuses every other peer, so a
 client on another machine connects through an SSH tunnel or a reverse proxy on the same host (see
-[Operations](operations.md)).
+[Operations](operations.md)). It answers only a request addressed to `127.0.0.1`, `localhost` or
+`[::1]`, so a proxy passes the daemon's own address as the host. The office page's config editor
+cannot change plugins, an MCP server's command, every `*_env` key, `base_url`, `[paths]`, `[log] file`
+or `[storage]`; change those here.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32

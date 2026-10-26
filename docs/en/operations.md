@@ -357,8 +357,11 @@ Run the daemon on a server you own and point a client app at it.
    - **SSH tunnel**, no domain needed: `ssh -N -L 18765:127.0.0.1:8765 user@server`, then use
      `http://127.0.0.1:18765` as the address. A local port other than 8765 keeps it clear of a daemon
      on your own machine.
-   - **HTTPS through Caddy** on the server: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, then
-     use `https://alpha.example.com`. Every request then reaches the daemon from `127.0.0.1`, so five
+   - **HTTPS through Caddy** on the server:
+     `alpha.example.com { reverse_proxy 127.0.0.1:8765 { header_up Host {upstream_hostport} } }`, then
+     use `https://alpha.example.com`. The daemon answers only a request addressed to `127.0.0.1`,
+     `localhost` or `[::1]` (any port, so a tunnel works as is), which stops a DNS-rebinding page;
+     `header_up Host` makes the proxy pass the daemon's own address. Every request then reaches the daemon from `127.0.0.1`, so five
      wrong tokens lock out every client that sends a wrong one for 30 seconds, doubling up to an
      hour. A request with the right token is never refused by the lockout and clears it.
 6. **Connect the client.** Give it the address and the token; every request carries the token as
@@ -390,6 +393,7 @@ With the API on, the daemon also serves a web page at its own address, `http://1
 - The page takes the token out of the address the moment it loads, so it is never left in the address bar or the history.
 - A token opened from a link lives in that tab only and is gone when you close it. Pasting it into the sign-in form keeps it for the tab too, and "Remember on this browser" (ticked by default) also keeps it in this browser, so the next visit skips the sign-in. Sign out, under Settings > Display, forgets both.
 - The page never prints the token, never writes it to a log and sends it only to the daemon. It refuses to run inside a frame.
+- The daemon answers only an address on this machine (`127.0.0.1`, `localhost` or `[::1]`), refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
 - If the daemon cannot be reached, the page says so in one plain line. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
 
 ### What is on the screen
@@ -402,7 +406,7 @@ With the API on, the daemon also serves a web page at its own address, `http://1
 - **Command bar.** At the bottom: who receives what you type, the box, and Send. See [Commands](commands.md#the-command-bar-in-the-office-page).
 - **Bell and jobs.** The bell lists notices and the requests waiting for you. An approval asked from this page is answered right in the bell: approve once, remember, or deny. A countdown shows when it times out, and a request that times out unanswered is refused. A request is answered once: if it shows in both the bell and the chat, only one answer is sent, and the other card shows that answer and says it was already answered if you chose differently there. One asked on Telegram or another channel is listed but answered where it was asked. The jobs list shows what is running (stop it, after a confirm), what is coming up, what is waiting for an event (checked on a timer at no AI cost) and the automatic upkeep jobs, with a way to fix one that is failing.
 - **Cost.** The chip shows today's spend against the daily cap; click for the month, the split by job and the budget row. See [Budgets](budgets.md#in-the-office-page).
-- **Settings.** The gear: schedules and watching, agents and AI, messaging channels, data and connections, display, and a raw `config.toml` editor. Each row says whether saving applies at once or needs a restart; the gear counts the changes waiting for one, and the page can restart a daemon started with `--background` (see above). API keys, tokens and exchange credentials are never typed on this page.
+- **Settings.** The gear: schedules and watching, agents and AI, messaging channels, data and connections, display, and a raw `config.toml` editor. The editor shows each secret (an MCP server's `env` values, any token, secret, password or API key written in the file) as `********`; leave it as it is and the saved value stays. What decides what the daemon runs, which files it uses or where a key goes changes only from the CLI or in `config.toml` itself: plugins, an MCP server's command, arguments, `env` and transport, every `*_env` key, `base_url` and `fallback_base_url`, `[paths]`, `[log] file` and `[storage]`. A save that changes one is refused with a line naming it; the model picker can still switch provider, which sets that provider's own key variable and drops the old address. Each row says whether saving applies at once or needs a restart; the gear counts the changes waiting for one, and the page can restart a daemon started with `--background` (see above). API keys, tokens and exchange credentials are never typed on this page.
 
 ### The office
 
@@ -432,7 +436,7 @@ When no one has asked for anything, the office is not frozen, but it never prete
 
 ### Talking to a person
 
-Point at a person for their name and one live line: what they are running and from where, which step they are on, that they are waiting for you or for their turn, that they are paused, or that they are free. Reaching someone with the keyboard shows the same label. Click them and they react (a wave when free, a glance up when busy), say a short line from real state, and a small ring of actions opens with only what is possible right now. Right-click, Enter or Space on a person the keyboard has reached, or a long press on a touch screen, opens the same ring with its first action focused. A person with nothing to offer right now gets no ring.
+Point at a person for their name and one live line: what they are running and from where, which step they are on, that they are waiting for you or for their turn, that they are paused, or that they are free. Reaching someone with the keyboard shows the same label. Click them and they react (a wave when free, a glance up when busy), say a short line from real state, and a small ring of actions opens with only what is possible right now. Right-click, Enter or Space on a person the keyboard has reached, or a long press on a touch screen, opens the same ring with its first action focused.
 
 - *Chat*, for your agents and the assistant: picks them in the command bar and opens the chat.
 - *Give work*, for the same people and not while an agent is paused: picks them as the receiver and puts the cursor in the command box. Nothing is sent.
@@ -440,10 +444,11 @@ Point at a person for their name and one live line: what they are running and fr
 - *Work*: the Work tab of your agents and the assistant.
 - *Stop the work*, only while their run is going: stops the run after a confirm.
 - *Profile*: the profile of your own agents.
+- *Follow*, for everyone: the camera follows them (below).
 
 Arrow keys move around the ring, Esc closes it, and so does moving focus away. A person waiting at your desk opens the approval in the bell instead.
 
-**Following someone.** Double-click a person with a mouse and the camera keeps them centred, across floors and the lift, until you move the camera yourself (drag, scroll, zoom or the arrow keys), press Esc, click empty floor, step to someone else with the keyboard, or switch between 2D and 3D.
+**Following someone.** Double-click a person with a mouse, or choose "Follow" in their ring, and the camera keeps them centred, across floors and the lift, until you move the camera yourself (drag, scroll, zoom or the arrow keys), press Esc, click empty floor, step to someone else with the keyboard, or switch between 2D and 3D.
 
 **Stepping through people.** Tab into the scene and it lands on its first person. Tab and Shift+Tab move through everyone on the floor shown in a fixed order: the office crew first, then your agents by desk, then their helpers. The left and right arrows step the same way and wrap round. Each step centres the camera and announces the name and status, and Enter or Space opens the ring of the person it is on. Tab leaves the scene past either end.
 
@@ -465,7 +470,7 @@ How loudly the page tells you something follows the weight the daemon gives the 
 
 Below 900 px wide the page shows one pane at a time, switched with a bar under the header: Office, Information, Chat. A wider screen keeps the chat docked beside the rest. Opening a card (a ticker, an agent, a tab) brings Information forward; "See" on a run brings the Office forward, zoomed into that run's room; sending a message or choosing Chat brings the chat forward, and its close button goes back to the pane you came from. Nothing switches panes by itself, so a live event never pulls you away. Focus mode and its button are off at this width. Below 600 px, on a phone, the header trims to what fits (the brand word and chip icons go, the running chip shortens and the clock stays as a compact button), popovers fill the width, Settings goes full screen and the reader drops its contents column. On any narrow screen the floor is never drawn smaller than one screen pixel per world pixel, so you reach the rest by panning, and a hint says so.
 
-Touch works as a mouse does: drag with one finger to pan and pinch with two to zoom. A first tap on a person, their tag or anything with a tip shows what hover would show, and a person greets; a second tap on the same thing, or a long press on a person, opens the ring. A tap on empty floor closes the label, the ring and a follow. Following someone and picking people for a meeting need a mouse; everything you read on hover has a tap.
+Touch works as a mouse does: drag with one finger to pan and pinch with two to zoom. A first tap on a person, their tag or anything with a tip shows what hover would show, and a person greets; a second tap on the same thing, or a long press on a person, opens the ring. A tap on empty floor closes the label, the ring and a follow. Follow someone from their ring; picking people for a meeting needs a mouse; everything you read on hover has a tap.
 
 ### Display preferences
 

@@ -109,7 +109,7 @@ For context when you assess a finding — these are enforced, not aspirational:
 | | |
 |---|---|
 | Credentials | environment or the `0600` key file; endpoints code-owned so no setting can redirect a request |
-| Local API | loopback bind, bearer token at `0600`, origin allowlist, peer check |
+| Local API | loopback bind, bearer token at `0600`, loopback Host check, same-origin socket, peer check, CLI-only config keys |
 | Untrusted text | prompt-injection scanning before it can steer a run or reach memory |
 | Logs and errors | scrubbed at the boundary |
 | Network | pinned fetch over an IPv4/IPv6/DNS network policy |
