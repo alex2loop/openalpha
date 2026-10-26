@@ -104,6 +104,7 @@ The [office page](operations.md#the-office-page) keeps cost in view without a co
 - **The budget row.** Settings > Agents and AI has the daily and monthly caps in USD (`0` means no limit). It writes `[budget]` in `config.toml` and, like the file, takes effect after a restart; the page offers the restart.
 - **Before a run.** The command bar shows each command's usual cost beside it, and what is left of today's cap. See [Commands](commands.md#the-command-bar-in-the-office-page). A button on the page only ever fills the box, so nothing that costs money starts until you send it.
 - **Per agent.** On the team floor an agent's card shows what it has spent today against its own daily budget, the one you set in the agent form (or `max_daily_usd` in its file).
+- **Per run.** Every run on the page has a closed "AI calls" fold: in an agent's *Result*, on a job's row and under a finished chat answer. Open it for the run's head line (how many calls, what they cost, the slowest) and, call by call, the model, the tokens, the cost, how long it took and how it ended, with a plain reason when an attempt failed. A run that handed work to child agents lists their calls too, and every retried attempt counts, since each one is billed. The head total is the cost the activity list shows for the run. Only the latest 200 calls are listed; the head still counts them all. A command that cost more than its usual estimate says so. It reads stored figures and costs nothing, and none of it is ever shown to a model.
 
 ## How a call gets admitted
 
