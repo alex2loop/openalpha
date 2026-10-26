@@ -9,10 +9,12 @@ import {
   knownMarkets,
   overviewBlock,
   priceDisplayOf,
+  profileBlock,
   quotesBlock,
   stopBreaches,
 } from '@/web/state/market'
 import { reducedMotion } from '@/web/state/prefs'
+import { isSegmentOn } from '@/web/state/profile'
 import { isFirstRun } from '@/web/state/session'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
@@ -134,10 +136,14 @@ function useFlash(price: number | undefined): {
   }
 }
 
-// Each market's benchmark (VN-Index, BTC) off the overview, then the watchlist names it does not
-// already carry.
+// The benchmark (VN-Index, BTC) of each market whose segment is on, off the overview, then the
+// watchlist names it does not already carry. No benchmark shows before the profile is read.
 function buildRows(): readonly TapeRow[] {
-  const benchmarks = knownMarkets.value.flatMap(toBenchmarkRows)
+  const profile = profileBlock.view.value.data
+  const traded = knownMarkets.value.filter(
+    (market) => profile !== undefined && isSegmentOn(profile, market.segment)
+  )
+  const benchmarks = traded.flatMap(toBenchmarkRows)
   const known = new Set(benchmarks.map((row) => row.key))
   const watched = (quotesBlock.view.value.data?.quotes ?? [])
     .map(toQuoteRow)
