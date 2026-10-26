@@ -63,6 +63,10 @@
   --badgeStop: #e5484d;
   --badgeStopInk: #ffffff;
   --lampOn: #e8a317;
+  /* Room tags are dark pills in both themes, as on a real office sign. */
+  --roomTag: rgba(22, 24, 36, 0.8);
+  --roomTagInk: #c9ccd8;
+  --roomTagName: #ffffff;
   color-scheme: light;
 }
 
