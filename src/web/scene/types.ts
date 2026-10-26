@@ -1,5 +1,6 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
 import type { MessageKey } from '@/i18n'
+import type { DeskScreenView, SceneMark } from '@/web/scene/overlay-types'
 import type { SunView, WeatherFxView } from '@/web/scene/sky-types'
 import type { ErrandView, StreetFrame } from '@/web/scene/street-types'
 
@@ -410,6 +411,10 @@ export interface SimView {
   readonly team: TeamView
   readonly street: StreetFrame
   readonly lift: LiftView
+  /** The "!" over each person something waits on, for a renderer that draws them in the scene. */
+  readonly marks: readonly SceneMark[]
+  /** The desk screens real work lights, with what each shows. */
+  readonly deskScreens: readonly DeskScreenView[]
 }
 
 /** The one lift car: the floor it is at (the far one from halfway through a ride), how far its

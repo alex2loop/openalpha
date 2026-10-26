@@ -1,4 +1,5 @@
 import type { SeriesRef } from '@/web/scene/data/desk-reads'
+import type { DeskScreenContent } from '@/web/scene/overlay-types'
 import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, FloorId, Rect, RoomId } from '@/web/scene/types'
@@ -19,17 +20,6 @@ const LAPTOP_W = 14
 const LAPTOP_H = 9
 const LAPTOP_RISE = 52
 
-/** What a lit screen shows: the host a scout's page read names, or the closes of the ticker the
- *  analyst works on. */
-type ScreenContent =
-  | { readonly kind: 'host'; readonly host: string }
-  | {
-      readonly kind: 'line'
-      readonly closes: readonly number[]
-      readonly ticker: string
-      readonly market: string
-    }
-
 /** A desk screen lit by its person's run; `rect` is the screen in world px. */
 export interface LitScreen {
   readonly actor: ActorId
@@ -37,7 +27,7 @@ export interface LitScreen {
   readonly floor: FloorId
   readonly room: RoomId
   readonly rect: Rect
-  readonly content: ScreenContent
+  readonly content: DeskScreenContent
 }
 
 interface ScreenInput {
@@ -81,7 +71,7 @@ export function analystSeriesOf(
   return { runId: run.runId, market: input.market, ticker, day }
 }
 
-function contentOf(def: ActorDef, input: ScreenInput): ScreenContent | undefined {
+function contentOf(def: ActorDef, input: ScreenInput): DeskScreenContent | undefined {
   const run = workRunOf(def.id, input)
 
   if (run === undefined) {

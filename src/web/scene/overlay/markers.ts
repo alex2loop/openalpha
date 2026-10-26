@@ -1,5 +1,6 @@
 import type { PendingWire } from '@/app/server/wire/live'
 import type { BreachedStop } from '@/web/scene/data/room-status'
+import type { SceneMark } from '@/web/scene/overlay-types'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, Rect } from '@/web/scene/types'
 import { holderOf } from '@/web/scene/sim/vocabulary'
@@ -17,7 +18,7 @@ const CLERK: ActorId = 'clerk'
  *  stop is breached. `open` goes to what it is about. */
 export interface Marker {
   readonly actor: ActorId
-  readonly tone: 'need' | 'stop'
+  readonly tone: SceneMark['tone']
   readonly open: () => void
 }
 

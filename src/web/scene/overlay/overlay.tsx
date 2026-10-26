@@ -12,7 +12,7 @@ import { NameTags, roleTitleOf, tagTextOf } from '@/web/scene/overlay/name-tags'
 import { childRunIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { childRoleOf } from '@/web/scene/sim/team/goals'
 import { findRun } from '@/web/state/live'
-import { reducedMotion } from '@/web/state/prefs'
+import { reducedMotion, sceneView } from '@/web/state/prefs'
 import { ATTENTION_MARK } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -100,21 +100,18 @@ export function announce(text: string): void {
  *  test. */
 export function SceneOverlay() {
   const view = shown.value
+  // The 3D scene draws the scouts' screens and the marks itself (a mark's text stays for
+  // readers); the analyst's laptop has no 3D face, so its line stays on the page.
+  const isInScene = sceneView.value === '3d'
 
   return (
     <div class="scene-overlay">
-      {view.screens.map(({ screen, rect }) => (
-        <DeskScreen key={screen.actor} screen={screen} rect={rect} />
-      ))}
-      {view.markers.map(({ marker, rect }) => (
-        <span
-          key={marker.actor}
-          class={`marker marker-${marker.tone}${reducedMotion.value ? ' is-still' : ''}`}
-          style={boxStyle(rect)}
-        >
-          {ATTENTION_MARK}
-        </span>
-      ))}
+      {view.screens
+        .filter(({ screen }) => !isInScene || screen.content.kind === 'line')
+        .map(({ screen, rect }) => (
+          <DeskScreen key={screen.actor} screen={screen} rect={rect} />
+        ))}
+      <Marks markers={view.markers} isInScene={isInScene} />
       {view.rings.map((ring) => (
         <span
           key={ring.actor}
@@ -131,6 +128,32 @@ export function SceneOverlay() {
       ))}
     </div>
   )
+}
+
+// Each "!" over a person; in 3D the scene draws it, and the page keeps its text for readers.
+function Marks({
+  markers,
+  isInScene,
+}: {
+  readonly markers: OverlayView['markers']
+  readonly isInScene: boolean
+}) {
+  return markers.map(({ marker, rect }) => (
+    <span
+      key={marker.actor}
+      class={[
+        'marker',
+        `marker-${marker.tone}`,
+        reducedMotion.value ? 'is-still' : '',
+        isInScene ? 'is-in-scene' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={boxStyle(rect)}
+    >
+      {ATTENTION_MARK}
+    </span>
+  ))
 }
 
 function DeskScreen({ screen, rect }: { readonly screen: LitScreen; readonly rect: Rect }) {

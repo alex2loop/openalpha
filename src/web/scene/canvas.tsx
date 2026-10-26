@@ -19,15 +19,11 @@ import { AddDesk } from '@/web/scene/overlay/add-desk'
 import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
 import { EmptyTeam } from '@/web/scene/overlay/empty-team'
+import { sceneHandOff } from '@/web/scene/overlay/hand-off'
 import { MeetingBar } from '@/web/scene/overlay/meeting-bar'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
-import {
-  markers,
-  type OverlayPass,
-  readOverlayInputs,
-  startOverlay,
-} from '@/web/scene/overlay/overlay-pass'
+import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
@@ -228,7 +224,7 @@ function createSceneLoop(parts: LoopParts): {
       const isAnimating = renderer.draw(drawn, now)
 
       overlay.frame(drawn, now)
-      syncTwin(drawn, markers.value)
+      syncTwin(drawn, sceneHandOff.value.marks)
 
       // The street was painted for the camera before this draw placed it: once more if it moved.
       return isAnimating || parts.sky.isEasing(now) || !parts.painter.isCurrent(visibleRect())
@@ -292,6 +288,7 @@ function buildSimView(parts: Sims, alpha: number): SimView {
     team: parts.team.view(performance.now()),
     street: parts.painter.paint(parts.street.view(), visibleRect(), pageMinute.value),
     lift: parts.lift.view(),
+    ...sceneHandOff.value,
   }
 }
 
