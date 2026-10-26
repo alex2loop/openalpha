@@ -7,6 +7,7 @@ import {
   type DeskLamp,
   deskLampOf,
   deskThings,
+  type Lean,
   meetingThings,
   monitorOf,
 } from '@/web/scene/render3d/desk-dressing'
@@ -39,6 +40,8 @@ export interface FloorProps {
   readonly deskLamps: DeskLamp[]
   /** The small painted faces on desks: StandBy phones and the calendar. */
   readonly faces: DeskFace[]
+  /** Pieces leaning back from upright, placed by `fixtures`: the StandBy phones' upper halves. */
+  readonly leans: Lean[]
   /** Each turned mug's foot. */
   readonly mugs: [x: number, y: number, z: number][]
 }
@@ -113,6 +116,7 @@ export function buildFloorProps(floor: FloorId): FloorProps {
     deskLamps: [],
     faces: [],
     mugs: [],
+    leans: [],
   }
 
   for (const prop of propsOn(floor)) {

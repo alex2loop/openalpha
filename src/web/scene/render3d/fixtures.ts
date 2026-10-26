@@ -216,7 +216,8 @@ function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
   return true
 }
 
-// The monitors' backs lean with their faces; they change only with the floor.
+// The monitors' backs lean with their faces, the StandBy phones' upper halves on their folds; they
+// change only with the floor.
 function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
   if (!beginPool(pool, frame.sim.floor)) {
     return false
@@ -226,6 +227,12 @@ function syncBacks(pool: Pool, frame: FixtureFrame): boolean {
     const [x, y, z] = back.at
 
     placeInstance(pool, { x, y, z, size: back.size, tilt, color: MONITOR_BACK })
+  }
+
+  for (const lean of frame.props.leans) {
+    const [x, y, z] = lean.at
+
+    placeInstance(pool, { x, y, z, size: lean.size, tilt: lean.tilt, color: lean.color })
   }
 
   endPool(pool)

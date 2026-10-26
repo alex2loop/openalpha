@@ -53,6 +53,8 @@ const MONITOR_FACE_D = 0.3
 const MONITOR_BACK_OUT = 0.7
 // The mockup's lean: back from upright until the face looks straight at the camera.
 const MONITOR_TILT = -(Math.PI / 2 - ELEVATION)
+// The StandBy phone's upper half stands at 65 degrees on its fold, as the mockup's.
+const STANDBY_TILT = -(25 * Math.PI) / 180
 // A computer stands on the desk whose footprint holds it, give or take this.
 const ON_DESK_SLACK_PX = 4
 // The operator desk's top sits this high in the mockup; its pieces keep their rise above it.
@@ -75,6 +77,14 @@ export interface DeskLamp {
     readonly distancePx: number
     readonly heightPx: number
   }
+}
+
+/** A box leaning back from upright by `tilt` (radians about x), round its centre. */
+export interface Lean {
+  readonly at: readonly [x: number, y: number, z: number]
+  readonly size: readonly [w: number, h: number, d: number]
+  readonly tilt: number
+  readonly color: string
 }
 
 /** A small lit face on a desk, painted by `screen-faces`: its centre, size and lean. */
@@ -133,8 +143,8 @@ export function monitorOf({ prop, out, floor }: Build): void {
   const top = desk?.height ?? prop.height
   const { w, h } = MONITOR_FACE
   const pivot = { y: MONITOR_BASE_PX, z: z + MONITOR_FACE_PROUD }
-  const face = leaned(pivot, { up: h / 2, out: MONITOR_FACE_D / 2 })
-  const back = leaned(pivot, { up: h / 2, out: -MONITOR_BACK_OUT })
+  const face = leaned(pivot, { up: h / 2, out: MONITOR_FACE_D / 2 }, MONITOR_TILT)
+  const back = leaned(pivot, { up: h / 2, out: -MONITOR_BACK_OUT }, MONITOR_TILT)
 
   out.push(
     box([cx - 0.9, z - 0.2, 1.8, 1.6, top, MONITOR_BASE_PX - top + 0.4], SILVER),
@@ -150,13 +160,14 @@ export function monitorOf({ prop, out, floor }: Build): void {
   })
 }
 
-// A point `up` along a leaning monitor and `out` in front of it, from its foot.
+// A point `up` along a piece leaning back by `tilt` and `out` in front of it, from its foot.
 function leaned(
   pivot: { readonly y: number; readonly z: number },
-  local: { readonly up: number; readonly out: number }
+  local: { readonly up: number; readonly out: number },
+  tilt: number
 ): { readonly y: number; readonly z: number } {
-  const cos = Math.cos(MONITOR_TILT)
-  const sin = Math.sin(MONITOR_TILT)
+  const cos = Math.cos(tilt)
+  const sin = Math.sin(tilt)
 
   return {
     y: pivot.y + local.up * cos - local.out * sin,
@@ -308,18 +319,26 @@ function standby(
   at: Place & { readonly kind: DeskFace['kind'] }
 ): void {
   const { x, z, top } = at
+  const fold = { y: top + 1.1, z: z + 6 }
+  const slab = leaned(fold, { up: 5, out: 0 }, STANDBY_TILT)
+  const face = leaned(fold, { up: 5, out: 0.58 }, STANDBY_TILT)
 
   job.out.push(
     box([x, z + 6, 16, 5, top, 1.1], STANDBY_RIM, true),
-    box([x + 0.6, z + 6.4, 14.8, 4.2, top + 1.1, 0.05], STANDBY_GLASS),
-    box([x, z + 5.45, 16, 1.1, top + 1.1, 10], STANDBY_RIM, true)
+    box([x + 0.6, z + 6.4, 14.8, 4.2, top + 1.1, 0.05], STANDBY_GLASS)
   )
+  job.floor.leans.push({
+    at: [x + 8, slab.y, slab.z],
+    size: [16, 10, 1.1],
+    tilt: STANDBY_TILT,
+    color: STANDBY_RIM,
+  })
   job.floor.faces.push({
     kind: at.kind,
     room: job.prop.room,
-    at: [x + 8, top + 1.1 + 5, z + 6.6],
+    at: [x + 8, face.y, face.z],
     size: [STANDBY_FACE.w, STANDBY_FACE.h],
-    tilt: 0,
+    tilt: STANDBY_TILT,
   })
 }
 
