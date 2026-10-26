@@ -8,6 +8,7 @@ import type {
   ProviderTestResult,
 } from '@/app/server/wire/config'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
+import type { FieldValidationError } from '@/core/field-errors'
 import { validateBootConfigTree } from '@/app/config-tree'
 import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -23,6 +24,7 @@ import { saveEditedConfig } from '@/cli/api'
 import { probeConfig } from '@/core/config/load'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { isPlainRecord } from '@/core/utils/collections'
+import { bindLocale } from '@/i18n'
 
 const MAX_CONFIG_BYTES = 512 * 1024
 const CLI_ONLY_KIND = 'config_cli_only'
@@ -36,15 +38,31 @@ async function handleConfigGet(_req: Request, ctx: ApiRouteContext): Promise<Res
   return json({ config, configPath, redacted: REDACTED_SECRET } satisfies ConfigResponse)
 }
 
+// Answers what a save of the same body would: the boot check, then every field a write refuses.
 async function handleConfigValidate(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const body: unknown = await readJsonBody(req, MAX_CONFIG_BYTES)
   const { configPath } = await probeConfig({ configPath: ctx.app.configPath })
+  const disk = await readDiskConfig(configPath)
+  const restored = toRestoredConfig(body, disk)
+  const checked = validateBootConfigTree(restored)
+  const refusals = isPlainRecord(restored) ? writeRefusals(restored, disk) : []
 
-  return json(
-    validateBootConfigTree(
-      toRestoredConfig(body, await readDiskConfig(configPath))
-    ) satisfies ConfigValidation
+  if (refusals.length === 0) {
+    return json(checked satisfies ConfigValidation)
+  }
+
+  const { translate } = bindLocale(ctx.app.config.locale.language)
+  const refused = refusals.flatMap((refusal) =>
+    refusal.fields.map(({ path, message }) => ({
+      path,
+      message: translate(message.key, message.params),
+    }))
   )
+
+  return json({
+    ok: false,
+    issues: [...(checked.ok ? [] : checked.issues), ...refused],
+  } satisfies ConfigValidation)
 }
 
 async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -63,7 +81,11 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     return apiError('invalid_body')
   }
 
-  assertWritable(body, disk)
+  const [refusal] = writeRefusals(body, disk)
+
+  if (refusal !== undefined) {
+    throw refusal
+  }
 
   const after = stringifyToml(body)
 
@@ -84,18 +106,18 @@ async function readDiskConfig(configPath: string): Promise<Record<string, unknow
   return (await file.exists()) ? parseToml(await file.text()) : {}
 }
 
-function assertWritable(body: Record<string, unknown>, disk: Record<string, unknown>): void {
+// What a write may not carry, a secret still hidden first: each refusal names all its fields.
+function writeRefusals(
+  body: Record<string, unknown>,
+  disk: Record<string, unknown>
+): readonly FieldValidationError[] {
   const hidden = redactedPaths(body)
-
-  if (hidden.length > 0) {
-    throw fieldsRefusal(hidden, SECRET_HIDDEN_KIND)
-  }
-
   const changed = cliOnlyChanges(body, disk)
 
-  if (changed.length > 0) {
-    throw fieldsRefusal(changed, CLI_ONLY_KIND)
-  }
+  return [
+    ...(hidden.length > 0 ? [fieldsRefusal(hidden, SECRET_HIDDEN_KIND)] : []),
+    ...(changed.length > 0 ? [fieldsRefusal(changed, CLI_ONLY_KIND)] : []),
+  ]
 }
 
 // The catalog is static data, so this route holds no async work and no app access.
