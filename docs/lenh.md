@@ -96,7 +96,7 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `social` | Agent của bạn trên mạng xã hội của agent | `list`, `add`, `update`, `rollback`, `remove`, `pause`, `resume`, `join`, `leave`, `rekey`, `review`, `drafts`, `approve`, `discard`, `log` |
 | `config` | Cấu hình đã phân giải | `show`, `get`, `path`, `validate`, `edit` |
 | `provider` | Danh mục nhà cung cấp và mô hình | `list`, `models` |
-| `key` | Lưu, xem và xóa các khóa OpenAlpha dùng, trong `<thư mục dữ liệu>/env` | `set <TÊN>` (gõ ẩn hoặc qua pipe, không bao giờ làm đối số), `list` (mặc định; tên, nguồn và 4 ký tự cuối của khóa dài), `unset <TÊN>` |
+| `key` | Lưu, xem và xóa các khóa OpenAlpha dùng, trong `<thư mục dữ liệu>/env` | `set <TÊN>` (gõ ẩn hoặc qua pipe, không bao giờ làm đối số), `list` (mặc định; mọi tên trong tệp cùng mọi biến mà cấu hình của bạn đọc, kể cả khóa nguồn dữ liệu như `FRED_API_KEY`, mỗi tên kèm nguồn và 4 ký tự cuối của khóa dài), `unset <TÊN>` |
 | `autostart` | Tự chạy OpenAlpha khi bạn đăng nhập | `enable`, `disable`, `status` (mặc định) |
 | `auth` | Đăng nhập cho nhà cung cấp theo thuê bao | `login`, `status`, `logout` |
 | `plugin` | Plugin đã cài | `list`, `install` (`--yes`), `update`, `uninstall` |

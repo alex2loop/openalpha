@@ -142,7 +142,7 @@ Một agent lỗi không bao giờ chặn daemon khởi động. Mỗi tệp h�
 ### Ranh giới lúc chạy
 
 Mỗi agent chạy với các công cụ tệp đặt gốc tại `<data_dir>/workspaces/<id>/` và phạm vi bộ nhớ riêng. Một shell đã
-được duyệt bắt đầu ở thư mục đó, nhưng đó là thư mục làm việc, không phải sandbox của hệ điều hành.
+được duyệt bắt đầu ở thư mục đó, nhưng đó là thư mục làm việc, không phải sandbox của hệ điều hành. Trang văn phòng liệt kê những gì mỗi agent nhớ, theo từng người nó đã trò chuyện cùng, ở Cài đặt > Bộ nhớ, nơi bạn thêm hoặc quên được một ghi chú (xem [Vận hành](van-hanh.md#những-mục-cài-đặt-nên-biết)).
 
 ### Phạm vi, ngân sách và tạm dừng
 
@@ -659,6 +659,8 @@ mã tài khoản và thông tin gói đọc từ chính token. Token tự làm m
 
 Các lệnh `auth` không khởi động runtime và không cần tệp cấu hình. Không có cấu hình thì token nằm ở thư mục dữ liệu mặc
 định; dùng `--data-dir` để đặt chỗ khác.
+
+Trang văn phòng cũng đăng nhập được: Cài đặt > Nhà cung cấp > "+ Thêm nhà cung cấp" > "Đăng nhập ChatGPT" hiện một mã và liên kết để nhập mã đó, và lưu đúng tệp đăng nhập ấy khi bạn xong. Đăng xuất ở đó hỏi lại một lần. Khi đã đặt `[api] public_url`, trang không đăng nhập được; hãy làm trên máy chủ bằng `openalpha auth login chatgpt`.
 
 Phiên chạy theo thuê bao được tính giá `$0`, với `pricing_subscription` làm nguồn giá. Số token vẫn được ghi và các giới
 hạn lượt, thời lượng vẫn áp, nhưng khoản chi đó không bao giờ tính vào hạn mức ngày, tháng hay mỗi phiên chạy.

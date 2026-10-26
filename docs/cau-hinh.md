@@ -492,7 +492,7 @@ tối đa 3 lần mỗi phiên chạy.
 |---|---|---|---|
 | `ttl_days` | số nguyên | `90` | Thời gian sống mặc định của các quan sát có hạn. |
 
-Một giá trị bộ nhớ được lưu bị chặn ở 16 KiB.
+Một giá trị bộ nhớ được lưu bị chặn ở 16 KiB. Trang văn phòng liệt kê các ghi chú ở Cài đặt > Bộ nhớ, theo từng agent và từng người nó đã trò chuyện cùng, thêm ghi chú bằng "+ Ghi nhớ" và quên một ghi chú với nút hoàn tác; một ghi chú tự quên sau `ttl_days` ngày kể từ lần cập nhật cuối.
 
 ### `[web_search]`
 
@@ -529,7 +529,9 @@ yêu cầu về độ mới được báo là chưa kiểm chứng.
 
 `deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng. DeepSeek chỉ nhận truy vấn ngắn (128 ký tự). Truy vấn dài bị cắt bớt từ cuối nhưng vẫn giữ danh sách trang bạn chọn; chỉ khi danh sách dài tới mức gần hết chỗ cho câu hỏi thì nó mới chuyển sang lọc trên kết quả. Trang loại trừ luôn được lọc trên kết quả, nên bạn vẫn chỉ nhận đúng các trang đã chọn. DeepSeek không nhận tham số ngôn ngữ, nên bản dịch máy của một trang (đường dẫn kiểu `/nl/`, `/de/`) bị bỏ khỏi kết quả, chỉ giữ trang đúng ngôn ngữ của bạn. Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
 
-Khóa chỉ lấy từ biến môi trường mà `api_key_env` và `fallback_api_key_env` nêu tên. Một lời gọi nhà
+Khóa chỉ lấy từ biến môi trường mà `api_key_env` và `fallback_api_key_env` nêu tên.
+Cài đặt > Công cụ trên trang văn phòng đổi được `provider` (sau khi khởi động lại) và lưu chính khóa, còn
+tên biến và `base_url` vẫn nằm trong file này. Một lời gọi nhà
 cung cấp hết giờ sau 15 giây và thử lại lỗi tạm thời tối đa 3 lần, độ lùi cơ sở 800 ms. Nhà cung cấp
 hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục mỗi TTL, và mỗi đoạn trích kết quả bị cắt
 ở 400 ký tự.
@@ -551,7 +553,8 @@ trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]`, ho�
 cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa `*_env`
 cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`, `[trading.venues.<id>] credentials`),
 `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` hay `[trading.orders]
-allow_unattended`; những mục đó bạn sửa ngay trong file này.
+allow_unattended`; những mục đó bạn sửa ngay trong file này. Bản thân giá trị khóa thì lưu được từ
+Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ, các mục này ghi `<thư mục dữ liệu>/env` giống `openalpha key set`.
 
 Bất cứ thứ gì đứng trước daemon (proxy như Caddy hay nginx, `tailscale serve`, một tên miền) đều cần `public_url`
 đặt là địa chỉ trình duyệt mở. Chính nó bật các giới hạn khi bị phơi ra ngoài và cookie đăng nhập `__Host-`.
@@ -565,6 +568,8 @@ lúc này ứng dụng với tới được từ bên ngoài: các đường đ�
 chủ MCP hay plugin, cũng không dùng công cụ mạng xã hội; công việc tạo từ ứng dụng chỉ trả lời trong ứng
 dụng; còn việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng
 kênh chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhập ChatGPT: hãy dùng `openalpha key set` và
+`openalpha auth login chatgpt` trên máy chủ.
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
