@@ -26,7 +26,7 @@ export function BellPopover({ anchor }: { readonly anchor: RefObject<HTMLElement
         <TodaySection />
       </div>
       <div class="popover-foot">
-        <Button kind="tertiary" size="small" onClick={openActivityDialog}>
+        <Button kind="tertiary" size="small" onClick={() => openActivityDialog()}>
           {tr('ui.office.bell.all')}
         </Button>
       </div>

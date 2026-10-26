@@ -12,8 +12,13 @@
   font-size: 12.5px;
 }
 
-.activity-list > .activity-line:first-child,
-.activity-list > .activity-item:first-child .activity-line {
+.activity-entry:first-child > .activity-line,
+.activity-entry:first-child > .activity-item > summary > .activity-line {
+  border-top: 0;
+}
+
+.activity-entry > .fold {
+  margin-top: 0;
   border-top: 0;
 }
 

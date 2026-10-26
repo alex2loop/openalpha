@@ -1,33 +1,45 @@
 import type { ActivityResponse, ActivityRowWire } from '@/app/server/wire/activity'
+import { formatDay } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { state } from '@/web/state/session'
+import { locale, state } from '@/web/state/session'
 import { formatChildrenLine } from '@/web/text/activity'
 import { formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
-import { formatRunName } from '@/web/text/run-name'
+import { commandOf, formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
 import { formatClock } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { useLoad } from '@/web/ui/kit/use-load'
+import { RunCalls } from '@/web/ui/run/calls/run-calls'
 
 import './activity.css'
 
-/** Today's finished runs, newest first, each with what it cost; delegated children fold under
- *  their parent. */
-export function openActivityDialog(): void {
+interface ActivityOptions {
+  /** The daemon's `YYYY-MM-DD` day; today when absent. */
+  readonly day?: string
+}
+
+/** A day's finished runs, newest first, each with what it cost and its AI calls one fold away;
+ *  delegated children fold under their parent. */
+export function openActivityDialog(options: ActivityOptions = {}): void {
+  const { day } = options
+
   openModal({
-    title: tr('ui.office.activity.title'),
-    body: <ActivityList />,
+    title:
+      day === undefined
+        ? tr('ui.office.activity.title')
+        : tr('ui.office.activity.titleDay', { day: formatDay(locale.value, day) }),
+    body: <ActivityList day={day} />,
     footer: <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>,
     wide: true,
   })
 }
 
-function ActivityList() {
-  const activity = useLoad(loadActivity).value
+function ActivityList({ day }: { readonly day: string | undefined }) {
+  const activity = useLoad((signal) => loadActivity(signal, day)).value
 
   if (activity.status === 'loading') {
     return null
@@ -44,14 +56,17 @@ function ActivityList() {
   return (
     <div class="activity-list">
       {activity.value.rows.map((row) => (
-        <ActivityItem key={row.runId} row={row} />
+        <div key={row.runId} class="activity-entry">
+          <ActivityItem row={row} />
+          <RunCalls runId={row.runId} isRunning={false} command={commandOf(row)} />
+        </div>
       ))}
     </div>
   )
 }
 
-function loadActivity(signal: AbortSignal): Promise<ActivityResponse> {
-  return getJson(ROUTES.activity, { signal })
+function loadActivity(signal: AbortSignal, day: string | undefined): Promise<ActivityResponse> {
+  return getJson(ROUTES.activity, { ...(day === undefined ? {} : { query: { day } }), signal })
 }
 
 function ActivityItem({ row }: { readonly row: ActivityRowWire }) {

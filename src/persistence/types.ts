@@ -11,6 +11,7 @@ import type {
   LLMAttemptInput,
   LLMUsageTotals,
   ModelRunCost,
+  RootRunCostRow,
   RunCalls,
   SpendBreakdownRow,
 } from '@/core/types/usage'
@@ -201,6 +202,8 @@ export interface LLMAttemptStore {
   dailyRange(range: CostRange): Promise<readonly DaySpend[]>
   breakdownFor(period: 'day' | 'month', nowMs: number): Promise<readonly SpendBreakdownRow[]>
   breakdownRange(range: CostRange): Promise<readonly SpendBreakdownRow[]>
+  /** The same attempts `totalRange` sums, by top-level run and job, costliest first. */
+  rootRunsForRange(range: CostRange): Promise<readonly RootRunCostRow[]>
   /** What one billing agent has spent today, on the operator's calendar. Counts every run an
    *  agent started: its own, its delegates', and the debates it asked for. */
   totalForBillingAgent(agentId: AgentId, nowMs: number): Promise<number>

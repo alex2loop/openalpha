@@ -21,6 +21,18 @@ const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   'slash.costSession',
 ]
 
+interface JobSpend {
+  readonly kind: 'command' | 'agent'
+  readonly name: string
+  readonly runs: number
+  readonly costUsd: number
+}
+
+export interface JobsSpend {
+  readonly jobs: readonly JobSpend[]
+  readonly otherUsd: number
+}
+
 /** The one spend source every surface reads, so the CLI and a channel answer with the same number. */
 export interface SpendReader {
   /** Global spend for the calendar day or month containing `nowMs`. */
@@ -33,6 +45,9 @@ export interface SpendReader {
   breakdownForPeriod(period: 'day' | 'month', nowMs: number): Promise<readonly SpendBreakdownRow[]>
   /** Where `forRange`'s total went, per agent and model, most expensive first. */
   breakdownForRange(range: CostRange): Promise<readonly SpendBreakdownRow[]>
+  /** Where `forRange`'s total went, per top-level run's job, costliest first; `otherUsd` is the
+   *  attempts whose top-level run has no run row, so the jobs and it add up to that total. */
+  jobsForRange(range: CostRange): Promise<JobsSpend>
   /** Everything one session has accumulated — what `/cost` reports and a run footer prints. */
   forSession(sessionId: SessionId): Promise<LLMUsageTotals>
   /** One run's attempts and everything beneath it, newest first, at most `limit`, with the totals
