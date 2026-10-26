@@ -4,6 +4,7 @@ import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
 import {
   paintBin,
   paintKeyboard,
+  paintMeetingTable,
   paintMonitor,
   paintMug,
   paintOperatorDesk,
@@ -257,16 +258,25 @@ function paintBox(g: CanvasRenderingContext2D, prop: PropDef): void {
   fill(g, [x + 3, y + 10, 6, 3], PALETTE.paper)
 }
 
-function paintTable(g: CanvasRenderingContext2D, prop: PropDef): void {
+// The store's cart on wheels, the meeting room's dark table with its things, the team floor's
+// table with two papers.
+function paintTable(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
   const isCart = prop.variant === 1
+  const isMeeting = prop.room === 'meet'
   const front = isCart ? 6 : 8
+  const wood = isMeeting ? DARKWOOD : WOOD
 
-  drawBlock(g, [x, y, w, h - front], { front, tones: isCart ? METAL : DARKWOOD })
+  drawBlock(g, [x, y, w, h - front], { front, tones: isCart ? METAL : wood })
 
   if (isCart) {
     fill(g, [x + 2, y + h, 4, 3], INK)
     fill(g, [x + w - 6, y + h, 4, 3], INK)
+  } else if (isMeeting) {
+    paintMeetingTable(g, { x, y }, scene)
+  } else {
+    fill(g, [x + 10, y + 2, 10, 6], PALETTE.paper)
+    fill(g, [x + 54, y + 3, 12, 5], PALETTE.paper)
   }
 }
 

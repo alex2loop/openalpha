@@ -5,6 +5,7 @@ import type { StreetFrame } from '@/web/scene/street-types'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { agenda } from '@/web/scene/data/agenda'
 import { indexDrop } from '@/web/scene/data/board'
+import { homeIndex } from '@/web/scene/data/led'
 import { boardCaptions, isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitAt, fitFloor, fitRoom } from '@/web/scene/render2d/camera'
@@ -29,7 +30,6 @@ import { feedKOf } from '@/web/scene/sim/life/events'
 import { lightOf } from '@/web/scene/sprites/daylight'
 import { boardNotes, createScreenCache, type ScreenCache } from '@/web/scene/sprites/screens'
 import { isGlassMoving } from '@/web/scene/sprites/sky-glass'
-import { tapeBoard } from '@/web/scene/sprites/tape-face'
 import {
   type FloorId,
   type Point,
@@ -47,6 +47,7 @@ import { selectedActor } from '@/web/state/focus'
 import { APPROVAL_KIND, pending } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
 import { colorScheme, reducedMotion } from '@/web/state/prefs'
+import { toneOfPercent } from '@/web/text/figures'
 
 const CANVAS_CLASS = 'scene-canvas'
 const STAGE_TOKEN = '--stage'
@@ -254,7 +255,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     detail: detailOf(scale),
     isRaining: sim.weather.rain > 0,
     lift: sim.lift,
-    indexMove: tapeBoard.value.rows[0]?.tone ?? 'flat',
+    indexMove: toneOfPercent(homeIndex.value?.changePct),
     isAwaitingYou: pending.value.some((entry) => entry.kind === APPROVAL_KIND),
     dayOfMonth: String(Number(pageMinute.value.day.slice(DAY_OF_MONTH_AT))),
     captions: boardCaptions.value,

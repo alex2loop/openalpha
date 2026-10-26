@@ -268,3 +268,33 @@ export function paintOperatorDesk(
     fill(g, [x + dx, y + dy, 2, 2], tone)
   }
 }
+
+/** The meeting table's things, from its top-left corner: two papers, a dark pad, the name
+ *  placards round it, a glass, notepads and two StandBy stands, a widgets one and a clock. */
+export function paintMeetingTable(
+  g: CanvasRenderingContext2D,
+  at: { readonly x: number; readonly y: number },
+  scene: PaintScene
+): void {
+  const { x, y } = at
+  const meet = DEVICE_TONES.meeting
+
+  fill(g, [x + 14, y + 4, 16, 10], PALETTE.paper)
+  fill(g, [x + 94, y + 4, 14, 10], PALETTE.paper)
+  fill(g, [x + 128, y + 4, 8, 6], meet.pad)
+
+  for (const [dx, dy] of meet.placards) {
+    fill(g, [x + dx, y + dy, 7, 2], INK)
+    fill(g, [x + dx + 1, y + dy, 5, 1], DEVICE_TONES.page)
+  }
+
+  fill(g, [x + 32, y + 5, 3, 6], meet.glass)
+  fill(g, [x + 35, y + 7, 1, 2], meet.glass)
+
+  for (let i = 0; i < 3; i++) {
+    fill(g, [x + 38 + i * 4, y + 8, 3, 3], DEVICE_TONES.page)
+  }
+
+  paintStandby(g, { x: x + 58, y: y + 2, view: 'widgets' }, scene)
+  paintStandby(g, { x: x + 112, y: y + 2, view: 'clocks' }, scene)
+}

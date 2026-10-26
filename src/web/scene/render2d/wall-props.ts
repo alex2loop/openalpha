@@ -48,7 +48,7 @@ export interface PaintScene {
   readonly detail: DetailLevel
   readonly isRaining: boolean
   readonly lift: LiftView
-  /** Which way the tape's first name, the home index, moved: the StandBy widgets' bar. */
+  /** Which way the home index moved in its session: the StandBy widgets' bar. */
   readonly indexMove: 'up' | 'down' | 'flat'
   /** An approval waits for you: the amber light on your tray. */
   readonly isAwaitingYou: boolean

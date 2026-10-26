@@ -254,6 +254,19 @@ export const DEVICE_TONES = Object.freeze({
       [61, 7, '#BFE3FF'],
     ],
   },
+  meeting: {
+    pad: '#3E4452',
+    glass: '#BFE0F2',
+    placards: [
+      [36, 12],
+      [68, 12],
+      [100, 12],
+      [20, 1],
+      [52, 1],
+      [84, 1],
+      [116, 1],
+    ],
+  },
   standbyDay: {
     screen: '#2A4180',
     flowGround: '#1B1E4B',
