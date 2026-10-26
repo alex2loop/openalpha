@@ -160,6 +160,8 @@ export interface DeskView {
   readonly focus?: DeskFocus
   /** Its agent is not paused: the screen casts a cool glow. */
   readonly isGlowing: boolean
+  /** Someone sits at it: its agent, or a child that took the free desk. */
+  readonly isTaken: boolean
   /** Someone at it works on a run now: its screen is lit. */
   readonly isLit: boolean
   /** Its agent's child agents still working, and those carrying their answer back. */

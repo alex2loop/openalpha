@@ -43,6 +43,7 @@ function toDesk(state: TeamState, job: DeskJob): DeskView {
     slot: job.slot,
     ...(agent === undefined ? {} : { agentId: agent.id, focus: deskFocusOf(agent) }),
     isGlowing: agent !== undefined && !agent.paused,
+    isTaken: seated.some((member) => member.task !== 'exit'),
     isLit: seated.some((member) => isWorking(state, member)),
     kidsOpen: own.filter((kid) => kid.outcome === undefined).length,
     kidsBack: own.filter((kid) => kid.task === 'carry').length,

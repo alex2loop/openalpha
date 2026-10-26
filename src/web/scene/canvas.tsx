@@ -22,6 +22,7 @@ import { RoomTags } from '@/web/scene/overlay/room-tags'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
+import { isKidActorId } from '@/web/scene/sim/actors/roster'
 import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { createTeam, type Team } from '@/web/scene/sim/team/team'
@@ -146,6 +147,7 @@ function createSceneLoop(parts: LoopParts): {
     },
     draw: (alpha, now) => {
       drawn = buildSimView(parts, alpha)
+      dropGoneSelection(drawn)
 
       const isAnimating = renderer.draw(drawn, now)
 
@@ -184,6 +186,19 @@ function buildSimView(parts: Pick<LoopParts, 'director' | 'team'>, alpha: number
     light: { hour: pageMinute.value.minute / MINUTES_PER_HOUR, followsHour: lightByHour.value },
     team: parts.team.view(performance.now()),
   }
+}
+
+// A child who left the floor is no longer anyone to look at.
+function dropGoneSelection(sim: SimView): void {
+  const selected = selectedActor.peek()
+
+  if (selected !== undefined && isKidActorId(selected) && !isPresent(sim, selected)) {
+    selectActor(undefined)
+  }
+}
+
+function isPresent(sim: SimView, actor: string): boolean {
+  return sim.actors.some((held) => held.id === actor)
 }
 
 // What the picture shows besides the sim, and what retargets it (the live store, the clock's

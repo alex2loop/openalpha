@@ -65,9 +65,12 @@ export function ownAgentIdOf(actor: string): string | undefined {
   return actor.startsWith(OWN_PREFIX) ? actor.slice(OWN_PREFIX.length) : undefined
 }
 
+/** `id` names a temporary child agent. */
+export function isKidActorId(id: string): boolean {
+  return id.startsWith(KID_PREFIX)
+}
+
 /** `id` names someone in the office: a built-in person, an own agent or a child. */
 export function isActorId(id: string): id is ActorId {
-  return (
-    id.startsWith(OWN_PREFIX) || id.startsWith(KID_PREFIX) || ROSTER.some((def) => def.id === id)
-  )
+  return id.startsWith(OWN_PREFIX) || isKidActorId(id) || ROSTER.some((def) => def.id === id)
 }

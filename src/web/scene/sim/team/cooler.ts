@@ -54,7 +54,8 @@ export function arriveAtCooler(state: TeamState, nowMs: number): void {
   b.taskUntil = nowMs + COOLER_TALK_MS
 }
 
-/** The talk is over once neither stands at the cooler any more. */
+/** The talk is over once neither stands at the cooler any more; when one of the two left the
+ *  roster meanwhile, it ends at once and the other goes home. */
 export function closeTalk(state: TeamState): void {
   const talk = state.talk
 
@@ -62,9 +63,19 @@ export function closeTalk(state: TeamState): void {
     return
   }
 
-  const isOver = [talk.a, talk.b].every((id) => state.members.get(id)?.task !== 'cooler')
+  const pair = [state.members.get(talk.a), state.members.get(talk.b)]
+  const isBroken = pair.some((member) => member === undefined)
 
-  if (isOver) {
+  if (isBroken) {
+    for (const member of pair) {
+      if (member?.task === 'cooler') {
+        member.face = undefined
+        sendTo(member, 'home', member.seat.at)
+      }
+    }
+  }
+
+  if (isBroken || pair.every((member) => member?.task !== 'cooler')) {
     state.talk = undefined
   }
 }

@@ -75,11 +75,11 @@ export function isTeamFloor(sim: SimView): boolean {
   return sim.floor === TEAM_FLOOR
 }
 
-/** The next free desk, where "+ Thêm agent" stands, in world px; none on an empty floor (its
- *  templates say it) or once every desk is taken. */
+/** The next desk nobody sits at, where "+ Thêm agent" stands, in world px; none on an empty
+ *  floor (its templates say it) or once every desk is taken. */
 export function addDeskOf(sim: SimView): Rect | undefined {
   const desks = sim.team.desks
-  const free = desks.find((desk) => desk.agentId === undefined)
+  const free = desks.find((desk) => desk.agentId === undefined && !desk.isTaken)
   const slot = free === undefined ? undefined : DESK_SLOTS[free.slot]
 
   if (
