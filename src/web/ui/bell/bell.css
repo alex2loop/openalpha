@@ -1,25 +1,5 @@
 .bell-button {
   position: relative;
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--ink2);
-  cursor: pointer;
-}
-
-.bell-button:hover {
-  background: var(--sunken);
-  color: var(--ink);
-}
-
-.bell-button svg {
-  width: 17px;
-  height: 17px;
 }
 
 .bell-badge {
@@ -101,8 +81,7 @@
 }
 
 .pending-card.is-chosen {
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
+  box-shadow: 0 0 0 2px var(--caution);
 }
 
 .pending-card-head {
@@ -205,6 +184,14 @@
 
 .notice-row:not(.is-unread) .notice-main b {
   color: var(--ink2);
+}
+
+.notice-row.is-stop.is-unread {
+  margin: 0 calc(var(--s1) * -1);
+  padding-inline: var(--s1);
+  border-radius: var(--controlRadius);
+  background: var(--dangerTint);
+  color: var(--dangerText);
 }
 
 .notice-row.is-stop.is-unread .notice-main b {

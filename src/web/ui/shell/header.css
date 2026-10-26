@@ -4,7 +4,7 @@
   z-index: var(--zPopover);
   display: flex;
   align-items: center;
-  gap: var(--s1);
+  gap: 10px;
   padding: 0 var(--s2);
   border-bottom: 1px solid var(--border);
 }
@@ -19,6 +19,12 @@
 .header-logo {
   width: 24px;
   height: 24px;
+  border-radius: 6px;
+}
+
+/* Every header control stands at the header's own height. */
+.header .btn {
+  height: var(--headerControlH);
 }
 
 .header-grow {
@@ -26,6 +32,7 @@
 }
 
 .header-keys {
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -36,8 +43,8 @@
 
 /* A phone keeps the logo without the word; the pills shrink before the buttons do. */
 :root[data-layout="phone"] .header {
-  gap: 4px;
-  padding: 0 var(--s3);
+  gap: 6px;
+  padding: 0 var(--s1);
 }
 
 :root[data-layout="phone"] .header-brand {
@@ -48,13 +55,10 @@
 :root[data-layout="phone"] .header .chip {
   flex-shrink: 1;
   min-width: 0;
-  padding: 0 var(--s1);
+  padding: 0 9px;
   overflow: hidden;
 }
 
-:root[data-layout="phone"] .header .chip svg {
-  display: none;
-}
 :root[data-layout="phone"] .header .view-switch {
   flex: none;
 }

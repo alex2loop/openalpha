@@ -34,7 +34,7 @@ export function BellButton({ anchor }: { readonly anchor: RefObject<HTMLButtonEl
     <button
       ref={anchor}
       type="button"
-      class="bell-button"
+      class="icon-button bell-button"
       title={label}
       aria-label={label}
       aria-haspopup="dialog"
