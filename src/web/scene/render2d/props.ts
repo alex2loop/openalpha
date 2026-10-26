@@ -1,19 +1,8 @@
 import type { PropDef, PropKind } from '@/web/scene/world/props'
-import {
-  CARD,
-  castShadow,
-  DARKWOOD,
-  drawBlock,
-  FABRIC,
-  fill,
-  framed,
-  INK,
-  METAL,
-  type Tones,
-  WOOD,
-} from '@/web/scene/render2d/building'
+import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
 import { paintFish } from '@/web/scene/render2d/pets'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
+import { CARD, DARKWOOD, FABRIC, METAL, type Tones, WOOD } from '@/web/scene/sprites/palette'
 import { isWallMounted } from '@/web/scene/world/props'
 
 const PAPER = '#F7F5EF'

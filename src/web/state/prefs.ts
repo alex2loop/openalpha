@@ -11,16 +11,19 @@ const COLOURS_KEY = 'office.colours'
 const MOTION_KEY = 'office.motion'
 const LIGHT_BY_HOUR_KEY = 'office.lightByHour'
 const LAMPS_OFF_KEY = 'office.lampsOff'
+const SCENE_VIEW_KEY = 'office.sceneView'
 const STORED_ON = '1'
 const STORED_OFF = '0'
 
 export const THEMES = ['system', 'light', 'dark'] as const
 export const COLOUR_PAIRS = ['green-up', 'red-up'] as const
 export const MOTIONS = ['system', 'reduced', 'full'] as const
+export const SCENE_VIEWS = ['2d', '3d'] as const
 
 export type Theme = (typeof THEMES)[number]
 export type ColourPair = (typeof COLOUR_PAIRS)[number]
 export type Motion = (typeof MOTIONS)[number]
+export type SceneView = (typeof SCENE_VIEWS)[number]
 type ColorScheme = 'light' | 'dark'
 
 const reducedMotionQuery = matchMedia(REDUCED_MOTION_QUERY)
@@ -32,6 +35,7 @@ const lifetime = new AbortController()
 const themeChoice = signal<Theme>(readChoice(THEME_KEY, THEMES))
 const colourChoice = signal<ColourPair>(readChoice(COLOURS_KEY, COLOUR_PAIRS))
 const motionChoice = signal<Motion>(readChoice(MOTION_KEY, MOTIONS))
+const sceneViewChoice = signal<SceneView>(readChoice(SCENE_VIEW_KEY, SCENE_VIEWS))
 const lightByHourChoice = signal(readStorage('local', LIGHT_BY_HOUR_KEY) !== STORED_OFF)
 const switchedOff = signal<ReadonlySet<string>>(readLampsOff())
 
@@ -57,6 +61,8 @@ const stopDocumentSync = effect(() => {
 export const theme: ReadonlySignal<Theme> = themeChoice
 export const colourPair: ReadonlySignal<ColourPair> = colourChoice
 export const motion: ReadonlySignal<Motion> = motionChoice
+/** How the office is drawn: flat 2D, or the 3D view; blocked or unknown reads as 2D. */
+export const sceneView: ReadonlySignal<SceneView> = sceneViewChoice
 
 /** Bumps, pings and flashes stop: the browser asks for less motion, or the operator chose it. */
 export const reducedMotion: ReadonlySignal<boolean> = computed(() =>
@@ -79,6 +85,10 @@ export function setColourPair(value: ColourPair): void {
 
 export function setMotion(value: Motion): void {
   keep(motionChoice, MOTION_KEY, value)
+}
+
+export function setSceneView(value: SceneView): void {
+  keep(sceneViewChoice, SCENE_VIEW_KEY, value)
 }
 
 export function setLightByHour(value: boolean): void {

@@ -1,7 +1,10 @@
 import type { Body, HairTone, PantsTone, Shirt } from '@/web/scene/sprites/parts'
+import type { ActorStatus } from '@/web/scene/types'
 
 /** A part's three cel bands: lit top, body, shade. */
 type Ramp = readonly [lit: string, body: string, shade: string]
+/** A material's light, mid and dark tone. */
+export type Tones = readonly [string, string, string]
 
 export const OUTLINE = '#2B2433'
 /** The outline along a figure's top edge, a step lighter so the head does not look cut out. */
@@ -106,3 +109,46 @@ export const MASCOT_TONES = Object.freeze({
   spark: '#FFD166',
   screen: '#2F3F78',
 } as const)
+
+/** The furniture's materials, the same in both renderers. */
+export const WOOD: Tones = ['#E2B47A', '#C99A5C', '#9E7444']
+export const METAL: Tones = ['#DDE1E8', '#B4BAC5', '#8A919E']
+export const CARD: Tones = ['#E8C38A', '#CDA064', '#A27A44']
+export const FABRIC: Tones = ['#A9B6CC', '#8794AE', '#66718A']
+export const DARKWOOD: Tones = ['#B07F4E', '#8E6238', '#6B4626']
+
+/** Each room surface's base, line and seam tones. */
+export const FLOOR_TONES = Object.freeze({
+  wood: ['#E9DCC6', '#DFD0B6', '#D2C1A3'],
+  carpet: ['#C2CEDB', '#B8C5D3'],
+  lilac: ['#D2CCDD', '#C9C3D5'],
+  tile: ['#E9E4DB', '#DCD5C9'],
+  concrete: ['#D2D6DB', '#C8CCD2'],
+} as const)
+
+/** The dot over a head: green free, amber waiting, red after an error. */
+export const STATUS_TONES = Object.freeze({
+  free: '#3FB06A',
+  waiting: '#F2A93B',
+  failed: '#E5484D',
+} satisfies Record<ActorStatus, string>)
+
+/** How bright each cel band reads, shade to lit, as a share of full light: the 3D toon gradient
+ *  steps through these, the way each ramp above steps from shade to lit. */
+export const TOON_BANDS: readonly [shade: number, body: number, lit: number] = Object.freeze([
+  0.42, 0.72, 0.95,
+])
+
+/** The building: wall bodies and caps, the wall face's bands, the corridor, glass and mullions. */
+export const WALL_TONES = Object.freeze({
+  dark: '#3E4356',
+  edge: '#6B7186',
+  face: '#EEF0F4',
+  low: '#E1E4EB',
+  skirt: '#B4B9C6',
+  corridor: '#E4E6EB',
+  corridorLine: '#D8DBE2',
+  glass: '#A9CBE6',
+  mullion: '#363D4D',
+  frame: '#4A5265',
+})

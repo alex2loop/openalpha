@@ -8,6 +8,8 @@ export const FRAME_RECT: Rect = Object.freeze({ x: -112, y: -146, w: 864, h: 570
 /** One zoom step multiplies the fitted floor's scale by this. */
 export const ZOOM_STEP = 1.4
 export const MAX_ZOOM_STEPS = 4
+/** The 3D view zooms no closer than this many device px per world px. */
+export const MAX_ZOOM_3D_PX = 6.5
 
 const INITIAL_FLOOR: FloorId = 'office'
 const FRAME_CENTER: Point = Object.freeze({

@@ -19,6 +19,8 @@ const resolveMod = (from: string, spec: string): string | null => {
 }
 const graph = new Map<string, Set<string>>()
 const importRe = /(?:import|export)\s+(type\s+)?[^;]*?from\s+['"]([^'"]+)['"]/g
+// A lazy `import('...')` with a literal specifier is a value edge as well.
+const dynamicRe = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g
 for (const f of files) {
   const src = readFileSync(f, 'utf8')
   const deps = new Set<string>()
@@ -26,6 +28,10 @@ for (const f of files) {
   while ((m = importRe.exec(src))) {
     if (m[1]) continue
     const t = resolveMod(f, m[2]!)
+    if (t && t !== f) deps.add(t)
+  }
+  for (const d of src.matchAll(dynamicRe)) {
+    const t = resolveMod(f, d[1]!)
     if (t && t !== f) deps.add(t)
   }
   graph.set(f, deps)

@@ -7,21 +7,9 @@ import {
 } from '@/web/scene/sim/life/animal-model'
 import { SHADOW } from '@/web/scene/sprites/palette'
 
-// The zoom (CSS px per world px) from which a room's and a close-up's details show.
-const ROOM_DETAIL_SCALE = 2.5
-const CLOSE_DETAIL_SCALE = 5
 const PET_SHADOW = Object.freeze({ w: 10, h: 2 })
 // The water inside the tank's glass, where the fish swim.
 const WATER_INSET = Object.freeze({ x: 4, top: 4, bottom: 4 })
-
-/** The detail level a zoom draws at. */
-export function detailOf(scale: number): DetailLevel {
-  if (scale >= CLOSE_DETAIL_SCALE) {
-    return 2
-  }
-
-  return scale >= ROOM_DETAIL_SCALE ? 1 : 0
-}
 
 /** One pet between its last two steps, its shadow on the floor under it. */
 export function paintPet(

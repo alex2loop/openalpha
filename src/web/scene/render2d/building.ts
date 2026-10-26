@@ -1,4 +1,6 @@
+import type { Tones } from '@/web/scene/sprites/palette'
 import type { FloorId, Rect } from '@/web/scene/types'
+import { FLOOR_TONES, WALL_TONES } from '@/web/scene/sprites/palette'
 import { WORLD } from '@/web/scene/types'
 import { DOORS, type Door } from '@/web/scene/world/doors'
 import { DESK_SLOTS, FLOORS, type Wall } from '@/web/scene/world/floors'
@@ -7,45 +9,21 @@ import { type RoomDef, roomsOn, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
 /** x, y, w, h in world pixels. */
 type Box = readonly [number, number, number, number]
-/** A material's light, mid and dark tone. */
-export type Tones = readonly [string, string, string]
 
 export const INK = '#2B2433'
-export const WOOD: Tones = ['#E2B47A', '#C99A5C', '#9E7444']
-export const METAL: Tones = ['#DDE1E8', '#B4BAC5', '#8A919E']
-export const CARD: Tones = ['#E8C38A', '#CDA064', '#A27A44']
-export const FABRIC: Tones = ['#A9B6CC', '#8794AE', '#66718A']
-export const DARKWOOD: Tones = ['#B07F4E', '#8E6238', '#6B4626']
 
 const SHADOW = 'rgba(43,36,51,.16)'
 const CONTACT = 'rgba(43,36,51,.18)'
 const BASE_FILL = '#3A3F52'
-const WALL_DARK = '#3E4356'
-const WALL_EDGE = '#6B7186'
-const FACE_TOP = '#EEF0F4'
-const FACE_LOW = '#E1E4EB'
-const FACE_SKIRT = '#B4B9C6'
 const FACE_SHADE = 'rgba(43,36,51,.12)'
-const CORRIDOR = '#E4E6EB'
-const CORRIDOR_LINE = '#D8DBE2'
 const GLASS_TINT = 'rgba(207,230,255,.16)'
-const GLASS_WALL = '#A9CBE6'
 const GLASS_SHINE = '#EAF4FC'
-const MULLION = '#363D4D'
-const GLASS_FRAME = '#4A5265'
 const MULLION_STEP = 32
 const CORRIDOR_TOP = 192
 const CORRIDOR_DEPTH = 32
 const NORTH_GLASS_DEPTH = 28
 const TILE_PX = 16
 const PLANK_PX = 8
-const SURFACE_TONES: Readonly<Record<RoomDef['surface'], readonly string[]>> = Object.freeze({
-  wood: ['#E9DCC6', '#DFD0B6', '#D2C1A3'],
-  carpet: ['#C2CEDB', '#B8C5D3'],
-  lilac: ['#D2CCDD', '#C9C3D5'],
-  tile: ['#E9E4DB', '#DCD5C9'],
-  concrete: ['#D2D6DB', '#C8CCD2'],
-})
 // The pale mat under each team desk, from the desk top's corner.
 const DESK_MAT_INSET_X = 14
 const DESK_MAT_RISE = 30
@@ -147,7 +125,7 @@ export function paintBuilding(
 }
 
 function paintSurface(g: CanvasRenderingContext2D, room: RoomDef): void {
-  const tones = SURFACE_TONES[room.surface]
+  const tones: readonly string[] = FLOOR_TONES[room.surface]
   const { x, y, w, h } = room.rect
   const top = y + WALL_BAND_PX
   const [base = BASE_FILL, line = base, seam = line] = tones
@@ -204,10 +182,10 @@ function paintSpeckle(g: CanvasRenderingContext2D, box: Box, color: string): voi
 }
 
 function paintWallFace(g: CanvasRenderingContext2D, rect: Rect): void {
-  fill(g, [rect.x, rect.y, rect.w, WALL_BAND_PX], FACE_TOP)
-  fill(g, [rect.x, rect.y + 20, rect.w, 12], FACE_LOW)
-  fill(g, [rect.x, rect.y + 30, rect.w, 2], FACE_SKIRT)
-  fill(g, [rect.x, rect.y, rect.w, 4], WALL_DARK)
+  fill(g, [rect.x, rect.y, rect.w, WALL_BAND_PX], WALL_TONES.face)
+  fill(g, [rect.x, rect.y + 20, rect.w, 12], WALL_TONES.low)
+  fill(g, [rect.x, rect.y + 30, rect.w, 2], WALL_TONES.skirt)
+  fill(g, [rect.x, rect.y, rect.w, 4], WALL_TONES.dark)
   fill(g, [rect.x, rect.y + WALL_BAND_PX, rect.w, 2], FACE_SHADE)
 }
 
@@ -215,20 +193,20 @@ function paintWallFace(g: CanvasRenderingContext2D, rect: Rect): void {
 function paintNorthGlass(g: CanvasRenderingContext2D, rect: Rect): void {
   g.clearRect(rect.x, 4, rect.w, NORTH_GLASS_DEPTH - 4)
   fill(g, [rect.x, 4, rect.w, NORTH_GLASS_DEPTH - 4], GLASS_TINT)
-  fill(g, [rect.x, 0, rect.w, 4], GLASS_FRAME)
-  fill(g, [rect.x, NORTH_GLASS_DEPTH - 2, rect.w, 2], GLASS_FRAME)
+  fill(g, [rect.x, 0, rect.w, 4], WALL_TONES.frame)
+  fill(g, [rect.x, NORTH_GLASS_DEPTH - 2, rect.w, 2], WALL_TONES.frame)
 
   for (let x = rect.x; x < rect.x + rect.w; x += MULLION_STEP) {
-    fill(g, [x, 4, 2, NORTH_GLASS_DEPTH - 6], MULLION)
+    fill(g, [x, 4, 2, NORTH_GLASS_DEPTH - 6], WALL_TONES.mullion)
     fill(g, [x + 2, 4, 1, NORTH_GLASS_DEPTH - 6], 'rgba(255,255,255,.35)')
   }
 }
 
 function paintCorridor(g: CanvasRenderingContext2D): void {
-  fill(g, [0, CORRIDOR_TOP, WORLD.w, CORRIDOR_DEPTH], CORRIDOR)
+  fill(g, [0, CORRIDOR_TOP, WORLD.w, CORRIDOR_DEPTH], WALL_TONES.corridor)
 
   for (let x = 0; x < WORLD.w; x += TILE_PX) {
-    fill(g, [x, CORRIDOR_TOP, 1, CORRIDOR_DEPTH], CORRIDOR_LINE)
+    fill(g, [x, CORRIDOR_TOP, 1, CORRIDOR_DEPTH], WALL_TONES.corridorLine)
   }
 }
 
@@ -250,8 +228,12 @@ function paintWalls(g: CanvasRenderingContext2D, walls: readonly Wall[]): void {
     if (wall.kind === 'glass') {
       paintGlassWall(g, box)
     } else {
-      fill(g, box, WALL_DARK)
-      fill(g, isVertical ? [box[0], box[1], 1, box[3]] : [box[0], box[1], box[2], 1], WALL_EDGE)
+      fill(g, box, WALL_TONES.dark)
+      fill(
+        g,
+        isVertical ? [box[0], box[1], 1, box[3]] : [box[0], box[1], box[2], 1],
+        WALL_TONES.edge
+      )
     }
   }
 }
@@ -259,14 +241,14 @@ function paintWalls(g: CanvasRenderingContext2D, walls: readonly Wall[]): void {
 function paintGlassWall(g: CanvasRenderingContext2D, box: Box): void {
   const [x, y, w, h] = box
 
-  fill(g, box, GLASS_WALL)
+  fill(g, box, WALL_TONES.glass)
   fill(g, [x, y, w, 1], GLASS_SHINE)
 
   for (let at = x; at < x + w; at += MULLION_STEP) {
-    fill(g, [at, y, 2, h], WALL_DARK)
+    fill(g, [at, y, 2, h], WALL_TONES.dark)
   }
 
-  fill(g, [x + w - 2, y, 2, h], WALL_DARK)
+  fill(g, [x + w - 2, y, 2, h], WALL_TONES.dark)
 }
 
 // A door in a room's north wall face is open to the corridor behind it, with a jamb each side.
@@ -276,9 +258,9 @@ function paintDoorways(g: CanvasRenderingContext2D, doors: readonly Door[]): voi
       continue
     }
 
-    fill(g, [door.at.x, door.at.y + 2, door.width, WALL_BAND_PX - 2], CORRIDOR)
-    fill(g, [door.at.x - 2, door.at.y + 2, 2, WALL_BAND_PX - 2], WALL_DARK)
-    fill(g, [door.at.x + door.width, door.at.y + 2, 2, WALL_BAND_PX - 2], WALL_DARK)
+    fill(g, [door.at.x, door.at.y + 2, door.width, WALL_BAND_PX - 2], WALL_TONES.corridor)
+    fill(g, [door.at.x - 2, door.at.y + 2, 2, WALL_BAND_PX - 2], WALL_TONES.dark)
+    fill(g, [door.at.x + door.width, door.at.y + 2, 2, WALL_BAND_PX - 2], WALL_TONES.dark)
   }
 }
 
@@ -295,14 +277,14 @@ function paintEdges(g: CanvasRenderingContext2D, doors: readonly Door[]): void {
     [0, WORLD.h - 3, WORLD.w, 3],
   ] satisfies Box[]) {
     fill(g, [x, y, w, h], GLASS_TINT)
-    fill(g, w > h ? [x, y + h - 1, w, 1] : [x === 0 ? 0 : x + w - 1, y, 1, h], GLASS_FRAME)
+    fill(g, w > h ? [x, y + h - 1, w, 1] : [x === 0 ? 0 : x + w - 1, y, 1, h], WALL_TONES.frame)
   }
 
   for (let y = WALL_BAND_PX; y < WORLD.h; y += MULLION_STEP) {
     if (y < gapFrom - 1 || y > gapTo + 1) {
-      fill(g, [0, y, 3, 2], MULLION)
+      fill(g, [0, y, 3, 2], WALL_TONES.mullion)
     }
 
-    fill(g, [WORLD.w - 3, y, 3, 2], MULLION)
+    fill(g, [WORLD.w - 3, y, 3, 2], WALL_TONES.mullion)
   }
 }

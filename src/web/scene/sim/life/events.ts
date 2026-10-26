@@ -1,6 +1,6 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ActorState } from '@/web/scene/sim/director'
-import type { ActorId } from '@/web/scene/types'
+import type { ActorId, LifeView } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { distance } from '@/web/scene/sim/actors/nav'
@@ -22,6 +22,8 @@ const MAX_WOKEN = 200
 const MAX_VERDICTS = 32
 const MAX_ASKS = 16
 const MAX_SHEETS = 6
+// A sheet slides out of the printer over this long, then joins the stack.
+const PRINT_FEED_MS = 900
 const BRIEF_NAME = 'brief'
 const RESEARCH_NAME = 'research'
 const COMPLETED = 'completed'
@@ -257,4 +259,11 @@ function nearestFree(
         distance(actor.walker.pos, at) < near.withinPx
     )
     .sort((a, b) => distance(a.walker.pos, at) - distance(b.walker.pos, at))[0]
+}
+
+/** How far the newest sheet has come out of the printer (1 once it lies on the stack). */
+export function feedKOf(life: LifeView, now: number): number {
+  const feedAt = life.feedAt
+
+  return feedAt === undefined ? 1 : Math.min(1, Math.max(0, (now - feedAt) / PRINT_FEED_MS))
 }

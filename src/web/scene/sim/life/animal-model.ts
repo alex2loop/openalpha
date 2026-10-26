@@ -18,6 +18,10 @@ interface AnimalPart {
 
 type Box = readonly [number, number, number, number]
 
+// The zoom from which a room's and a close-up's details show.
+const ROOM_DETAIL_SCALE = 2.5
+const CLOSE_DETAIL_SCALE = 5
+
 /** The office's animals as one model of parts, poses and detail levels; every renderer builds its
  *  own picture of the same parts. */
 const CAT_POSES: Readonly<Record<PetPose, readonly AnimalPart[]>> = Object.freeze({
@@ -111,6 +115,15 @@ export const ANIMAL_TONES: Readonly<{
     tones(['#F2D05A', '#D3AE33', '#FFF8DC', '#5C4A10', '#F6E3A8', '#1B1416']),
   ],
 })
+
+/** The detail level a zoom (CSS px per world px) draws at. */
+export function detailOf(scale: number): DetailLevel {
+  if (scale >= CLOSE_DETAIL_SCALE) {
+    return 2
+  }
+
+  return scale >= ROOM_DETAIL_SCALE ? 1 : 0
+}
 
 /** The parts of a pet in a pose at a detail level; a cat's stand reads as its sit, its lie as its
  *  sleep. */

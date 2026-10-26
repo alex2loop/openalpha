@@ -1,7 +1,6 @@
 import { computed, effect, untracked } from '@preact/signals'
 import { useEffect, useRef, useState } from 'preact/hooks'
 
-import type { SceneRenderer } from '@/web/scene/renderer'
 import type { RoomId, SimView } from '@/web/scene/types'
 import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
@@ -20,7 +19,9 @@ import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/o
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
+import { showViewNote, ViewNote } from '@/web/scene/overlay/view-note'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
+import { createRendererHost, type RendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isKidActorId } from '@/web/scene/sim/actors/roster'
 import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
@@ -36,7 +37,14 @@ import { onWireEvent } from '@/web/state/events'
 import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
 import { findRun, pending, runs } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
-import { colorScheme, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
+import {
+  colorScheme,
+  lampsOff,
+  lightByHour,
+  reducedMotion,
+  sceneView,
+  setSceneView,
+} from '@/web/state/prefs'
 import { state } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
 
@@ -44,18 +52,27 @@ import './canvas.css'
 
 // The tray counts unread notices; before the first read there are none to count.
 const unreadCount = computed(() => unread.value ?? 0)
+// How long the line about falling back to 2D stays up.
+const FALLBACK_NOTE_MS = 6_000
+const CONTEXT_LOST_EVENT = 'webglcontextlost'
+
+interface Renderers {
+  readonly flat: SceneRenderer
+  readonly host: RendererHost
+}
 
 /** The office scene: the mounted renderer driven by the sim loop, sized to its pane, with its
  *  overlays on top. */
 export function SceneCanvas() {
   const host = useRef<HTMLDivElement>(null)
-  const [renderer] = useState(createRenderer2d)
+  const [renderers] = useState(createRenderers)
+  const renderer = renderers.host
 
   useEffect(() => {
     const element = host.current
 
-    return element === null ? undefined : mountScene(element, renderer)
-  }, [renderer])
+    return element === null ? undefined : mountScene(element, renderers)
+  }, [renderers])
 
   useEffect(() => effect(syncSceneZone), [])
 
@@ -71,13 +88,21 @@ export function SceneCanvas() {
       <ObjectTip />
       <Toolbar />
       <PerfReadout renderer={renderer} />
+      <ViewNote />
     </div>
   )
 }
 
+function createRenderers(): Renderers {
+  const flat = createRenderer2d()
+
+  return { flat, host: createRendererHost(flat) }
+}
+
 // Everything it arms, the returned stop releases: data reads, the director, the overlay, loop,
 // input, observer, listeners and the renderer.
-function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
+function mountScene(element: HTMLElement, renderers: Renderers): () => void {
+  const renderer = renderers.host
   const listeners = new AbortController()
   const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda(), startTeamCalls()]
   const { director, life, team } = createCrew()
@@ -87,9 +112,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
   const { loop, readView } = createSceneLoop({ director, life, team, renderer, overlay })
   const resize = new ResizeObserver(() => loop.wake())
-  const canvas = element.querySelector('canvas')
-  const detach =
-    canvas === null ? () => undefined : attachInteraction(canvas, { renderer, readView })
+  const stopViews = startViews({ renderers, element, readView, wake: loop.wake })
   const offs = [
     effect(() => {
       readSceneInputs()
@@ -109,7 +132,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
       off()
     }
 
-    detach()
+    stopViews()
     loop.stop()
     overlay.stop()
     life.dispose()
@@ -124,6 +147,108 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
       stop()
     }
   }
+}
+
+interface ViewDeps {
+  readonly renderers: Renderers
+  readonly element: HTMLElement
+  readonly readView: () => SimView
+  readonly wake: () => void
+}
+
+// The renderer the operator chose, behind the host, with the input on its canvas. 3D loads once by
+// `import()`; a failed load, a mount without WebGL or a lost context falls back to 2D with its line.
+function startViews(deps: ViewDeps): () => void {
+  const views: ViewState = {
+    canvas: new AbortController(),
+    detach: () => undefined,
+    isStopped: false,
+    noteTimer: undefined,
+  }
+  const off = effect(() => {
+    const chosen = sceneView.value
+
+    untracked(() => (chosen === '2d' ? showFlat(deps, views) : showDeep(deps, views)))
+  })
+
+  return () => {
+    views.isStopped = true
+    off()
+    clearTimeout(views.noteTimer)
+    showViewNote(undefined)
+    views.canvas.abort()
+    views.detach()
+  }
+}
+
+function showFlat(deps: ViewDeps, views: ViewState): void {
+  showViewNote(undefined)
+  showView(deps, views, deps.renderers.flat)
+}
+
+function showDeep(deps: ViewDeps, views: ViewState): void {
+  const fallback = () => fallBack(deps, views)
+
+  showViewNote('loading')
+  loadRenderer3d()
+    .then((create) => {
+      if (views.isStopped || sceneView.peek() !== '3d') {
+        return
+      }
+
+      showView(deps, views, create())
+      watchContext(deps.element, views.canvas.signal, fallback)
+      showViewNote(undefined)
+    })
+    .catch(() => {
+      if (!views.isStopped) {
+        fallback()
+      }
+    })
+}
+
+function fallBack(deps: ViewDeps, views: ViewState): void {
+  setSceneView('2d')
+  showView(deps, views, deps.renderers.flat)
+  showViewNote('fallback')
+  clearTimeout(views.noteTimer)
+  views.noteTimer = setTimeout(() => showViewNote(undefined), FALLBACK_NOTE_MS)
+}
+
+interface ViewState {
+  canvas: AbortController
+  detach: () => void
+  isStopped: boolean
+  noteTimer: ReturnType<typeof setTimeout> | undefined
+}
+
+// The listeners on the old canvas go before its renderer unmounts (a 3D unmount loses its context
+// on purpose), and the input follows the new canvas.
+function showView(deps: ViewDeps, views: ViewState, next: SceneRenderer): void {
+  views.canvas.abort()
+  views.canvas = new AbortController()
+  views.detach()
+  deps.renderers.host.swap(next)
+  views.detach = armCanvas(deps)
+  deps.wake()
+}
+
+function armCanvas(deps: ViewDeps): () => void {
+  const canvas = deps.element.querySelector('canvas')
+
+  return canvas === null
+    ? () => undefined
+    : attachInteraction(canvas, { renderer: deps.renderers.host, readView: deps.readView })
+}
+
+function watchContext(element: HTMLElement, signal: AbortSignal, onLost: () => void): void {
+  element
+    .querySelector('canvas')
+    ?.addEventListener(CONTEXT_LOST_EVENT, onLost, { signal, once: true })
+}
+
+async function loadRenderer3d(): Promise<() => SceneRenderer> {
+  return (await import('./render3d/renderer-3d')).createRenderer3d
 }
 
 // The office's people, the office life over them and the team floor; the caller disposes each.

@@ -1,7 +1,10 @@
 import type { FloorId, LifeView, Point, SteamView } from '@/web/scene/types'
-import { drawBlock, fill, framed, METAL } from '@/web/scene/render2d/building'
-import { detailOf, paintPet } from '@/web/scene/render2d/pets'
+import { drawBlock, fill, framed } from '@/web/scene/render2d/building'
+import { paintPet } from '@/web/scene/render2d/pets'
+import { detailOf } from '@/web/scene/sim/life/animal-model'
+import { feedKOf } from '@/web/scene/sim/life/events'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
+import { METAL } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
 
 const PAPER = '#F7F5EF'
@@ -16,8 +19,6 @@ const BUBBLE = 'rgba(217,239,251,.95)'
 const STEAM_RISE_PX = 5
 const STEAM_MS = 900
 const BUBBLE_MS = 1_200
-// A sheet slides out of the printer over this long, then joins the stack.
-const PRINT_FEED_MS = 900
 // The printer's out-tray, where delivered sheets stack.
 const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
 const SHEET_W = 12
@@ -82,13 +83,6 @@ export function paintLifeOver(
   for (const steam of life.steam.filter((each) => each.floor === at.floor)) {
     paintSteam(g, steam, at.now)
   }
-}
-
-/** How far the newest sheet has come out of the printer (1 once it lies on the stack). */
-export function feedKOf(life: LifeView, now: number): number {
-  const feedAt = life.feedAt
-
-  return feedAt === undefined ? 1 : Math.min(1, Math.max(0, (now - feedAt) / PRINT_FEED_MS))
 }
 
 /** The dessert cart, its wheels under it, a few cups on top. */

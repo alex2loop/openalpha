@@ -1,19 +1,15 @@
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
+import type { LightRow } from '@/web/scene/sprites/daylight'
 import { agenda } from '@/web/scene/data/agenda'
 import { heldNewsPins, indexDrop, todayCalls } from '@/web/scene/data/board'
 import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
 import { type Fit, fitFloor, fitRoom, toSnappedFit } from '@/web/scene/render2d/camera'
-import {
-  drawCharacter,
-  isCharacterMotionOn,
-  releaseCharacterSprites,
-} from '@/web/scene/render2d/characters'
-import { buildLifePieces, feedKOf, paintLifeOver } from '@/web/scene/render2d/life-props'
-import { DAY_LIGHT_HOUR, lightAt, paintLighting } from '@/web/scene/render2d/lights'
+import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
+import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
+import { paintLighting } from '@/web/scene/render2d/lights'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
-import { detailOf } from '@/web/scene/render2d/pets'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
 import { createScreenCache, type ScreenCache } from '@/web/scene/render2d/screens'
 import {
@@ -22,6 +18,10 @@ import {
   paintTeamGlow,
   paintTeamTop,
 } from '@/web/scene/render2d/team'
+import { isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
+import { detailOf } from '@/web/scene/sim/life/animal-model'
+import { feedKOf } from '@/web/scene/sim/life/events'
+import { DAY_LIGHT_HOUR, lightAt } from '@/web/scene/sprites/daylight'
 import {
   type FloorId,
   type Point,
@@ -255,7 +255,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
 interface FloorJob {
   readonly sim: SimView
   readonly scene: PaintScene
-  readonly light: ReturnType<typeof lightAt>
+  readonly light: LightRow
   readonly stretch: number
   readonly now: number
   readonly motion: { readonly isOn: boolean; readonly isReduced: boolean }
