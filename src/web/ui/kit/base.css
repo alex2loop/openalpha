@@ -80,6 +80,11 @@ p {
   outline-offset: -1px;
 }
 
+/* A text field with suggestions looks like a text field; the list still opens as it is typed in. */
+input[list]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
 /* Read by a screen reader, never shown. */
 .sr {
   position: absolute;
