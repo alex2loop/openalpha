@@ -3,7 +3,6 @@ import { Color, PointLight, type Scene } from 'three'
 import type { FloorProps } from '@/web/scene/render3d/props'
 import type { Point, RoomId } from '@/web/scene/types'
 import { toUnits } from '@/web/scene/render3d/space'
-import { WARM_RGB } from '@/web/scene/sprites/daylight'
 
 /** The lamps' warm point lights; a spare one stays in the scene with no intensity, so the count
  *  every material compiled for never changes. `shown` is the lamp each light sits on and `glow`
@@ -29,10 +28,17 @@ interface LampSpec {
 
 // More point lights cost every lit fragment; the nearest lit rooms take them.
 const MAX_POINT_LIGHTS = 4
-const LAMP_LIGHT = Object.freeze({ intensity: 10, distancePx: 192, decay: 2 })
+// The mockup's lamp light: a warm bulb under the shade's height, 48 strong, reaching 192 px.
+const LAMP_LIGHT = Object.freeze({
+  tone: 0xffc870,
+  intensity: 48,
+  distancePx: 192,
+  decay: 1.5,
+  heightPx: 51.2,
+})
 
 export function createLamps(scene: Scene): Lamps {
-  const color = new Color(`rgb(${WARM_RGB})`)
+  const color = new Color(LAMP_LIGHT.tone)
   const lights = Array.from(
     { length: MAX_POINT_LIGHTS },
     () => new PointLight(color, 0, toUnits(LAMP_LIGHT.distancePx), LAMP_LIGHT.decay)
@@ -71,7 +77,7 @@ export function syncLamps(lamps: Lamps, spec: LampSpec): boolean {
     }
 
     if (light !== undefined && lamp !== undefined) {
-      light.position.set(toUnits(lamp.at.x), toUnits(lamp.shadeY), toUnits(lamp.at.y))
+      light.position.set(toUnits(lamp.at.x), toUnits(LAMP_LIGHT.heightPx), toUnits(lamp.at.y))
     }
   }
 

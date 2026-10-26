@@ -180,7 +180,7 @@ function createStage(host: HTMLElement): Stage {
 function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
   const scene = new Scene()
   const root = new Group()
-  const lighting = createLighting(scene)
+  const lighting = createLighting(scene, renderer)
   const shapes = createShapes()
   const cast = createCast(lighting.materials.toon)
   const pets = createPets()
@@ -314,8 +314,10 @@ function syncScene(
     lit,
     lampGlow,
     isClosed,
-    row,
     sun: sim.light.sun,
+    cloud: sim.light.cloud,
+    rain: sim.weather.rain,
+    isQuiet: sim.life.isQuiet,
     flash: flashOf(sim.weather, now),
     dtMs,
     isReduced,
@@ -429,6 +431,7 @@ function syncFloor(stage: Stage, sim: SimView): boolean {
 
   stage.floor = buildFloor(sim.floor, stage.lighting)
   stage.scene.add(stage.floor.group)
+  stage.renderer.shadowMap.needsUpdate = true
 
   return true
 }

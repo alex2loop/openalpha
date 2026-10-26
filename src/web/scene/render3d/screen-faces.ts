@@ -4,7 +4,7 @@ import {
   LinearFilter,
   Mesh,
   MeshBasicMaterial,
-  type MeshLambertMaterial,
+  type MeshStandardMaterial,
   PlaneGeometry,
   SRGBColorSpace,
 } from 'three'
@@ -56,7 +56,7 @@ interface Seen {
 
 interface Quad {
   readonly prop: PropDef
-  readonly mesh: Mesh<PlaneGeometry, MeshBasicMaterial | MeshLambertMaterial>
+  readonly mesh: Mesh<PlaneGeometry, MeshBasicMaterial | MeshStandardMaterial>
   /** The north wall a hung board fades with. */
   readonly wall?: SeeThroughWall
   key: string
@@ -65,7 +65,7 @@ interface Quad {
 /** A data face: its own canvas, painted again only when what it shows changes. */
 interface InfoQuad {
   readonly face: InfoFace
-  readonly mesh: Mesh<PlaneGeometry, MeshBasicMaterial | MeshLambertMaterial>
+  readonly mesh: Mesh<PlaneGeometry, MeshBasicMaterial | MeshStandardMaterial>
   readonly wall?: SeeThroughWall
   readonly canvas: HTMLCanvasElement
   key: string
