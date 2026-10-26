@@ -2,12 +2,13 @@ import type { Run } from '@/web/state/live'
 import { useNow } from '@/web/state/clock'
 import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
-import { formatRunName } from '@/web/text/run-name'
+import { commandOf, formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
 import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
+import { RunCalls } from '@/web/ui/run/calls/run-calls'
 
 const ELAPSED_TICK_MS = 1_000
 
@@ -43,6 +44,7 @@ export function JobRow({ run, childRuns }: JobRowProps) {
             ])}
           </p>
         ))}
+        <RunCalls key={run.runId} runId={run.runId} isRunning command={commandOf(run)} />
       </div>
       <Button kind="tertiary" size="small" onClick={() => focusRun(run.runId)}>
         {tr('ui.office.common.view')}

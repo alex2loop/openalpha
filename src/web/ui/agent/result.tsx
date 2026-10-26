@@ -1,3 +1,5 @@
+import type { ComponentChildren } from 'preact'
+
 import type { ActivityRowWire, ResearchReportWire } from '@/app/server/wire/activity'
 import type { BoardEntryWire } from '@/app/server/wire/notices'
 import type { AgentView } from '@/web/ui/agent/agent-view'
@@ -11,6 +13,7 @@ import { Button } from '@/web/ui/kit/button'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { Markdown } from '@/web/ui/markdown/markdown'
 import { openReader } from '@/web/ui/reader/reader'
+import { RunCalls } from '@/web/ui/run/calls/run-calls'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 // The research page a run of today is looked up in.
@@ -43,15 +46,39 @@ function LatestRun({ view }: { readonly view: AgentView }) {
     const report = reading.data.reports.find((held) => held.runId === row.runId)
 
     if (entry !== undefined) {
-      return <BoardResult entry={entry} />
+      return (
+        <WithCalls row={row}>
+          <BoardResult entry={entry} />
+        </WithCalls>
+      )
     }
 
     if (report !== undefined) {
-      return <ReportResult report={report} row={row} />
+      return (
+        <WithCalls row={row}>
+          <ReportResult report={report} row={row} />
+        </WithCalls>
+      )
     }
   }
 
   return <StoredCall view={view} />
+}
+
+// The run's AI calls sit under whatever it answered.
+function WithCalls({
+  row,
+  children,
+}: {
+  readonly row: ActivityRowWire
+  readonly children: ComponentChildren
+}) {
+  return (
+    <>
+      {children}
+      <RunCalls key={row.runId} runId={row.runId} isRunning={false} />
+    </>
+  )
 }
 
 function BoardResult({ entry }: { readonly entry: BoardEntryWire }) {
