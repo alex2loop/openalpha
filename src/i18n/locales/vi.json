@@ -524,6 +524,7 @@
     "office.book.sinceStart": "Từ đầu năm",
     "office.book.pnl": "Lãi / lỗ",
     "office.book.filterAll": "Tất cả",
+    "office.book.filterKind": "Loại giao dịch",
     "office.book.actualVsTarget": "Thực tế so với mục tiêu",
     "office.book.rebalanceNote": "Mình nhích dần về mục tiêu qua nhiều phiên chạy, không cân một lần. Lệnh ở sàn do bạn tự đặt.",
     "office.book.watchTitle": "Danh sách theo dõi",

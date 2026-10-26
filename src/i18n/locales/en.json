@@ -524,6 +524,7 @@
     "office.book.sinceStart": "Since the start of the year",
     "office.book.pnl": "Profit / loss",
     "office.book.filterAll": "All",
+    "office.book.filterKind": "Kind of trade",
     "office.book.actualVsTarget": "Actual versus target",
     "office.book.rebalanceNote": "I move toward the target step by step over many runs, not in one go. You place the orders at the exchange yourself.",
     "office.book.watchTitle": "Watchlist",
