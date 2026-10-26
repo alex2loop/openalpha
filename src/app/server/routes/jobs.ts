@@ -4,7 +4,7 @@ import type { JobCreateBody, JobEventScheduleBody } from '@/app/server/wire/jobs
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { Job, JobEvent, JobSchedule } from '@/scheduler/api'
 import { createAlertRetirer } from '@/app/event-jobs'
-import { API_CHANNEL, APP_CHAT_ID } from '@/app/server/channel'
+import { API_CHANNEL, APP_CHAT_ID, isApiChannel } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { JOB_CREATE_BODY, toScheduleRowWire } from '@/app/server/mappers/jobs'
 import {
@@ -16,6 +16,7 @@ import {
   readJsonBody,
   toBodyFieldLabel,
 } from '@/app/server/routes/params'
+import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { operatorMessageOf, ValidationError } from '@/core/errors'
 import { toFieldValidationError } from '@/core/field-errors'
@@ -227,6 +228,19 @@ async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
 
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const body = await parseBody(req)
+
+  // A job aimed at another chat runs on that channel, past the app-channel run limits.
+  if (
+    ctx.app.config.api.publicUrl !== undefined &&
+    body.target !== undefined &&
+    !isApiChannel(body.target.channel)
+  ) {
+    return apiError(
+      'conflict',
+      t(localeOf(ctx), 'errors.jobTargetServerOnly', { brand: BRAND.name })
+    )
+  }
+
   const armed = await armPriceAlert(req, ctx, { body, job: buildJob(ctx, body) })
 
   return await storeJob(ctx, armed)

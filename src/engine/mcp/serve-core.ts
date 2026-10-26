@@ -19,14 +19,9 @@ const MCP_EXCLUDED_CAPABILITIES: ReadonlySet<Capability> = new Set(['delegate', 
 // wants. memory_store and memory_remove rewrite the operator's durable memory. order_place is
 // irreversible at a real exchange, and a client program answering the approval is not the human the
 // gate exists for. web_search and web_fetch: the host brings its own, and this server reads no
-// search configuration. social_request and social_skill act as one of the operator's own agents on
-// a public network: a client program on this server must never speak as one, and `net` and `read`
-// are not capabilities this server withholds. Other domain writes stay exposed - this server
-// validates those itself.
+// search configuration. Other domain writes stay exposed - this server validates those itself.
 const MCP_TOOL_DENYLIST: ReadonlySet<string> = new Set([
   'ask_clarification',
-  'social_request',
-  'social_skill',
   'todo_write',
   'file_read',
   'file_list',
@@ -38,14 +33,21 @@ const MCP_TOOL_DENYLIST: ReadonlySet<string> = new Set([
   'web_fetch',
 ])
 
-const FILE_WRITERS: ReadonlySet<string> = new Set(['file_write', 'file_edit'])
+// The file writers change the host's disk. social_request and social_skill act as one of the
+// operator's own agents on a public network, and `net` and `read` are not capabilities withheld.
+const CLIENT_WITHHELD_TOOLS: ReadonlySet<string> = new Set([
+  'file_write',
+  'file_edit',
+  'social_request',
+  'social_skill',
+])
 
-/** Tools whose approval a client program would answer as a program, not as the person the gate
- *  exists for: shell runs code and the file writers change the host's disk. A plugin- or
+/** Tools a client program must never drive, since it would answer their approval as a program, not
+ *  as the person the gate exists for: shell runs code, and the named tools above. A plugin- or
  *  MCP-contributed tool is external: re-offering it would put another server's tools behind this
  *  one's name, and the host can connect that server itself. */
 export function isClientApprovalWithheld(name: string, tool: ToolDefinition): boolean {
-  return tool.capability === 'shell' || tool.isExternal === true || FILE_WRITERS.has(name)
+  return tool.capability === 'shell' || tool.isExternal === true || CLIENT_WITHHELD_TOOLS.has(name)
 }
 
 /** One entry as `tools/list` sends it, for every transport that serves this surface. */

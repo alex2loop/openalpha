@@ -1331,6 +1331,7 @@
     "apiBehindProxy": "Yêu cầu này đi qua proxy nhưng [api] public_url chưa đặt. Đặt public_url là địa chỉ https của proxy trong config trên máy chủ rồi khởi động lại daemon.",
     "apiOrdersOff": "Đặt lệnh qua ứng dụng đang tắt ([api] orders). Bật trong config trên máy chủ nếu bạn muốn.",
     "pairingApproveServerOnly": "Khi API mở ra ngoài, chỉ duyệt ghép nối được trên máy chủ: chạy {brand} pair approve {code} ở đó.",
+    "jobTargetServerOnly": "Khi API mở ra ngoài, ứng dụng chỉ tạo được công việc định kỳ trả lời ngay tại đây. Công việc gửi tới chat khác thì tạo trên máy chủ: chạy {brand} schedule add kèm --to ở đó.",
     "setupPathUnusable": "Mình không dùng được {path}. Kiểm tra đó là thư mục của bạn và ghi được, rồi chạy lại nhé.",
     "onboardConfigUnreadable": "Mình không đọc được {path} theo định dạng TOML, nên sẽ không sửa nó. Bạn sửa tay bằng `{brand} config edit`, rồi chạy lại phần thiết lập.",
     "daemonAlreadyRunning": "Daemon đang chạy rồi (pid {pid}). Dừng nó trước, hoặc cứ dùng bản đang chạy.",

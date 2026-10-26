@@ -1331,6 +1331,7 @@
     "apiBehindProxy": "This request came through a proxy, but [api] public_url is not set. Set public_url to the proxy's https address in the config on the server, then restart the daemon.",
     "apiOrdersOff": "Placing orders from the app is off ([api] orders). Turn it on in the config on the server if you want it.",
     "pairingApproveServerOnly": "While the API is open to the outside, a pairing is approved only on the server: run {brand} pair approve {code} there.",
+    "jobTargetServerOnly": "While the API is open to the outside, the app can only make jobs that answer here. A job for another chat is made on the server: run {brand} schedule add with --to there.",
     "setupPathUnusable": "I could not use {path}. Check that it exists as a folder you own and can write to, then run again.",
     "onboardConfigUnreadable": "I can't read {path} as TOML, so I won't change it. Fix it by hand with `{brand} config edit`, then run setup again.",
     "daemonAlreadyRunning": "The daemon is already running (pid {pid}). Stop it first, or keep using the one that is running.",

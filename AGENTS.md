@@ -359,7 +359,7 @@ Reduce reasons:
 - Memory rejects secrets and injection.
 - Untrusted plugins contribute no code unless `plugins.allow_code`; tools and hooks stay forbidden regardless; a source module is the one code contribution that flag opens.
 - Config is merged once at boot and frozen. Channel access is allow-listed/paired, fail-closed.
-- While `[api] public_url` is set, app-channel runs are never offered what `isClientApprovalWithheld` names (shell, file writes, external tools), and pairing is approved and chat access granted only on the server. `[api] orders` gates the order routes, `/trade` and `order_place` for app runs.
+- While `[api] public_url` is set, app-channel runs are never offered what `isClientApprovalWithheld` names (shell, file writes, social tools, external tools), and pairing is approved, chat access granted and jobs for other chats made only on the server. `[api] orders` gates the order routes, `/trade` and `order_place` for app runs.
 
 ## Coding rules
 
