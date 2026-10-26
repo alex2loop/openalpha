@@ -190,6 +190,7 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
       pending: pending.value,
       said: said.value,
       recalls: pastCalls.value,
+      life: sim.life.lines,
       nowMs,
       epochMs: Date.now(),
     }),

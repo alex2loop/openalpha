@@ -19,7 +19,9 @@ import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
+import { createLife, type Life, lampGlowOf } from '@/web/scene/sim/life/life'
 import { createSimLoop } from '@/web/scene/sim/loop'
+import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
 import { bringIntoView, canFollow, readLastInteractionAt, view } from '@/web/scene/view'
 import { ROOMS, roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
@@ -69,11 +71,12 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   const listeners = new AbortController()
   const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda()]
   const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
+  const life = createLife({ director, reduced: reducedMotion })
 
   renderer.mount(element)
 
   const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
-  const { loop, readView } = createSceneLoop({ director, renderer, overlay })
+  const { loop, readView } = createSceneLoop({ director, life, renderer, overlay })
   const resize = new ResizeObserver(() => loop.wake())
   const canvas = element.querySelector('canvas')
   const detach =
@@ -100,6 +103,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
     detach()
     loop.stop()
     overlay.stop()
+    life.dispose()
     director.dispose()
     selectActor(undefined)
     resize.disconnect()
@@ -114,6 +118,7 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
 
 interface LoopParts {
   readonly director: Director
+  readonly life: Life
   readonly renderer: SceneRenderer
   readonly overlay: OverlayPass
 }
@@ -124,12 +129,16 @@ function createSceneLoop(parts: LoopParts): {
   readonly loop: ReturnType<typeof createSimLoop>
   readonly readView: () => SimView
 } {
-  const { director, renderer, overlay } = parts
-  let drawn = buildSimView(director, 0)
+  const { director, life, renderer, overlay } = parts
+  let drawn = buildSimView(parts, 0)
   const loop = createSimLoop({
-    step: (index) => director.step(index),
+    step: (index) => {
+      const isDirected = director.step(index)
+
+      return life.step(index) || isDirected
+    },
     draw: (alpha, now) => {
-      drawn = buildSimView(director, alpha)
+      drawn = buildSimView(parts, alpha)
 
       const isAnimating = renderer.draw(drawn, now)
 
@@ -143,23 +152,32 @@ function createSceneLoop(parts: LoopParts): {
       const hasPeople = drawn.actors.some((actor) => actor.floor === floor)
       const ambientAt = hasPeople ? nextAmbientAt(floor, performance.now()) : Infinity
 
-      return Math.min(director.nextDueAt(), overlay.nextDueAt(), ambientAt)
+      return Math.min(director.nextDueAt(), life.nextDueAt(), overlay.nextDueAt(), ambientAt)
     },
   })
 
   return { loop, readView: () => drawn }
 }
 
-function buildSimView(director: Director, alpha: number): SimView {
+function buildSimView(parts: Pick<LoopParts, 'director' | 'life'>, alpha: number): SimView {
   const off = lampsOff.value
   const lit = new Set<RoomId>(ROOMS.filter((room) => !off.has(room.id)).map((room) => room.id))
+  const people = parts.director.view()
+  const statuses = parts.life.statuses(people.actors)
+  const actors = people.actors.map((actor) => {
+    const status = statuses.get(actor.id)
+
+    return status === undefined ? actor : { ...actor, status }
+  })
 
   return {
     floor: view.value.floor,
     alpha,
-    ...director.view(),
-    props: { lit },
+    ...people,
+    actors,
+    props: { lit, lampGlow: lampGlowOf(), isClosed: isClosedPhase(homePhase.value) },
     light: { hour: pageMinute.value.minute / MINUTES_PER_HOUR, followsHour: lightByHour.value },
+    life: parts.life.view(),
   }
 }
 
@@ -183,6 +201,7 @@ function readSceneInputs(): void {
   heldNewsPins.value
   indexDrop.value
   unread.value
+  homePhase.value
   readOverlayInputs()
 }
 

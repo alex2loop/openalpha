@@ -5,20 +5,21 @@ import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { WalkerState } from '@/web/scene/sim/actors/walk'
 import type { Beat, BeatTarget } from '@/web/scene/sim/beats'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, ActorView, PoseId, SimView } from '@/web/scene/types'
+import type { ActorId, ActorView, FloorId, PoseId, Rect, SimView } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking } from '@/web/scene/sim/actors/walk'
-import { endTrip, startTrip } from '@/web/scene/sim/assistant'
+import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
 import { subscribeBeats } from '@/web/scene/sim/beats'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { createPapers, type Papers } from '@/web/scene/sim/papers'
 import {
   actorsOfRun,
   createPeople,
+  isLifeHeld,
   nextDueOf,
   type People,
   type Person,
@@ -45,6 +46,14 @@ export interface ActorState {
   readonly beats: readonly Beat[]
   readonly pose: PoseId
   readonly react?: ReactionKind
+  /** It stands where its goal puts it, done pushing a chair back or pausing on arrival. */
+  readonly isSettled: boolean
+  /** The goal it holds is the office life's, not one the live store calls for. */
+  readonly isLife: boolean
+  /** The assistant owes a carry or a read's trip. */
+  readonly isOwed: boolean
+  /** Its seat is a chair (a desk or the meeting table), not a standing place. */
+  readonly hasChair: boolean
 }
 
 interface DirectorDeps {
@@ -65,6 +74,14 @@ export interface Director {
   view(): PeopleView
   actors(): ReadonlyMap<ActorId, ActorState>
   requestReaction(id: ActorId, kind: ReactionKind): void
+  /** The office life's goal for a person, under every goal the live store calls for; `undefined`
+   *  hands them back to it (their seat when it calls for nothing). */
+  setLife(id: ActorId, goal: Goal | undefined): void
+  /** A gesture of the office life, played over the person's goal for `ms`. */
+  play(id: ActorId, gesture: { readonly pose: PoseId; readonly ms: number }): void
+  /** What stands on a floor for a while (the dessert cart): walks go round it. */
+  setObstacles(floor: FloorId, rects: readonly Rect[]): void
+  actorsOfRun(runId: string): readonly ActorId[]
   /** Re-derives every goal from the live store and ends every walk in progress: each person
    *  stands where their goal puts them. */
   resume(): void
@@ -77,6 +94,7 @@ const TRAY_MAX = 8
 const REACTION_MS = 1_800
 const APPROVAL_KIND = 'approval'
 const ASSISTANT: ActorId = 'assistant'
+const LIFE_BEAT = 'life'
 
 /** The one director of the office's people: real events become goals, goals become walks. One
  *  `effect` over the live store and one set of hub subscriptions; `dispose` releases both. */
@@ -110,8 +128,7 @@ export function createDirector(deps: DirectorDeps): Director {
       papers: papers.views(),
       tray: trayCount(deps, papers),
     }),
-    actors: () => new Map(people.list.map((person) => [person.def.id, toActorState(person)])),
-    requestReaction: (id, kind) => react(people, { id, kind }),
+    ...lifeHooksOf(people),
     resume: () => resumePeople(people, performance.now()),
     nextDueAt: () => nextDueOf(people, { nowMs: performance.now(), isOpen: isOfficeOpen() }),
     dispose: () => {
@@ -144,6 +161,36 @@ function toBeatTarget(people: People): BeatTarget {
   }
 }
 
+// Who is who, and what the scene and the office life drive through the director: reactions,
+// life goals, gestures and obstacles.
+function lifeHooksOf(
+  people: People
+): Pick<
+  Director,
+  'actors' | 'requestReaction' | 'setLife' | 'play' | 'setObstacles' | 'actorsOfRun'
+> {
+  return {
+    actors: () =>
+      new Map(people.list.map((person) => [person.def.id, toActorState(people, person)])),
+    requestReaction: (id, kind) => react(people, { id, kind }),
+    setLife: (id, goal) => setLife(people, id, goal),
+    play: (id, gesture) =>
+      playBeat(people, id, { kind: LIFE_BEAT, ...gesture, atMs: performance.now() }),
+    setObstacles: (floor, rects) => {
+      people.obstacles.set(floor, rects)
+    },
+    actorsOfRun: (runId) => actorsOfRun(people, runId),
+  }
+}
+
+function setLife(people: People, id: ActorId, goal: Goal | undefined): void {
+  if (goal === undefined) {
+    people.life.delete(id)
+  } else {
+    people.life.set(id, goal)
+  }
+}
+
 function react(people: People, ask: { readonly id: ActorId; readonly kind: ReactionKind }): void {
   const person = people.byId.get(ask.id)
 
@@ -163,7 +210,10 @@ function stepAll(people: People, papers: Papers, poses: { marks: PoseMarks }): b
       .filter((other) => other !== person && other.def.floor === person.def.floor)
       .map((other) => other.walker)
 
-    isMoving = stepPerson(person, others, { nowMs, dtMs: SIM_STEP_MS }) || isMoving
+    const extra = people.obstacles.get(person.def.floor)
+    const step = { nowMs, dtMs: SIM_STEP_MS, ...(extra === undefined ? {} : { extra }) }
+
+    isMoving = stepPerson(person, others, step) || isMoving
   }
 
   const settled = settlePoses(people.list, { marks: poses.marks, nowMs })
@@ -173,8 +223,8 @@ function stepAll(people: People, papers: Papers, poses: { marks: PoseMarks }): b
   return papers.step(nowMs) || isMoving || isChanged || settled.isChanged
 }
 
-// Office hours by the page clock and the home region's pack.
-function isOfficeOpen(): boolean {
+/** Office hours by the page clock and the home region's pack. */
+export function isOfficeOpen(): boolean {
   const hour = pageMinute.value.minute / MINUTES_PER_HOUR
   const { open, close } = regionPack.value.officeHours
 
@@ -201,12 +251,18 @@ function trayCount(deps: DirectorDeps, papers: Papers): number {
   return Math.max(0, stacked - papers.flyingToTray())
 }
 
-function toActorState(person: Person): ActorState {
+function toActorState(people: People, person: Person): ActorState {
+  const isAssistant = person.def.id === ASSISTANT
+
   return {
     def: person.def,
     walker: person.walker,
     beats: person.beats,
     pose: poseOf(person),
+    isSettled: person.phase === 'still',
+    isLife: isLifeHeld(people, person),
+    isOwed: isAssistant && isAssistantOwed(people.walks, people.orphans),
+    hasChair: person.hasChair,
     ...(person.goal === undefined ? {} : { goal: person.goal }),
     ...(person.react === undefined ? {} : { react: person.react.kind }),
   }

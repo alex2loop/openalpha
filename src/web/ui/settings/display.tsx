@@ -186,12 +186,14 @@ function LightByHourRow() {
 
   return (
     <ActionRow title={title}>
-      <input
-        type="checkbox"
-        aria-label={title}
-        checked={lightByHour.value}
-        onChange={(event) => setLightByHour(event.currentTarget.checked)}
-      />
+      <label>
+        <input
+          type="checkbox"
+          checked={lightByHour.value}
+          onChange={(event) => setLightByHour(event.currentTarget.checked)}
+        />
+        {tr('ui.office.settings.lightByHourOn')}
+      </label>
     </ActionRow>
   )
 }

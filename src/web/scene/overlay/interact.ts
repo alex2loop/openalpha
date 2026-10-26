@@ -1,6 +1,6 @@
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Point, ScreenPoint, SimView } from '@/web/scene/types'
-import type { PropDef } from '@/web/scene/world/props'
+import type { PropDef, TipSource } from '@/web/scene/world/props'
 import { type Hit, pickAt } from '@/web/scene/overlay/hit'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
 import { hoverActor, overlayView } from '@/web/scene/overlay/overlay'
@@ -28,6 +28,7 @@ const ARROW_PANS: Readonly<Record<string, readonly [number, number]>> = Object.f
 const ESCAPE_KEY = 'Escape'
 const CLICKABLE_CURSOR = 'pointer'
 const GRAB_CURSOR = 'grabbing'
+const PET_TIPS: readonly TipSource[] = Object.freeze(['cat', 'corgi'])
 
 interface InteractionDeps {
   readonly renderer: SceneRenderer
@@ -194,6 +195,9 @@ function click(input: InputState, point: ScreenPoint): void {
     case 'object':
       clickProp(propOf(hit))
       return
+    case 'pet':
+      tipActionOf(toPetTip(hit.id))?.()
+      return
     case 'room':
       enterRoom(input, hit.id)
       return
@@ -221,9 +225,7 @@ function clickProp(prop: PropDef | undefined): void {
     return
   }
 
-  const go = prop === undefined ? undefined : tipActionOf(prop)
-
-  go?.()
+  tipActionOf(prop?.tip)?.()
 }
 
 function enterRoom(input: InputState, id: string): void {
@@ -241,7 +243,7 @@ function hover(input: InputState, event: PointerEvent): void {
   const hit = pickAt(screen, input.deps.renderer, input.deps.readView())
   const prop = hit?.kind === 'object' ? propOf(hit) : undefined
 
-  hoverObject(prop, screen)
+  hoverObject(hit?.kind === 'pet' ? toPetTip(hit.id) : prop?.tip, screen)
   hoverActor(hit?.kind === 'actor' ? ROSTER.find((def) => def.id === hit.id)?.id : undefined)
   input.canvas.style.cursor = isClickable(hit, prop) ? CLICKABLE_CURSOR : ''
   input.canvas.title = switchTitleOf(prop)
@@ -257,7 +259,9 @@ function isClickable(hit: Hit | undefined, prop: PropDef | undefined): boolean {
     case undefined:
       return false
     case 'object':
-      return prop !== undefined && (isSwitch(prop) || tipActionOf(prop) !== undefined)
+      return prop !== undefined && (isSwitch(prop) || tipActionOf(prop.tip) !== undefined)
+    case 'pet':
+      return tipActionOf(toPetTip(hit.id)) !== undefined
     case 'room':
       return view.value.room === undefined
     default:
@@ -275,6 +279,10 @@ function switchTitleOf(prop: PropDef | undefined): string {
   }
 
   return prop?.kind === 'light-switch' ? tr('ui.office.lights.switch') : ''
+}
+
+function toPetTip(id: string): TipSource | undefined {
+  return PET_TIPS.find((tip) => tip === id)
 }
 
 function propOf(hit: Hit): PropDef | undefined {

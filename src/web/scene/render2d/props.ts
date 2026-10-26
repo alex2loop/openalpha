@@ -12,6 +12,7 @@ import {
   type Tones,
   WOOD,
 } from '@/web/scene/render2d/building'
+import { paintFish } from '@/web/scene/render2d/pets'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
 import { isWallMounted } from '@/web/scene/world/props'
 
@@ -283,6 +284,7 @@ function paintTank(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene
   fill(g, [x, y + 13, w, 2], isOn ? '#E6D3A3' : '#9C8E6E')
   fill(g, [x + 7, y + 6, 1, 7], '#4FA373')
   fill(g, [x + 25, y + 8, 1, 5], '#3F9163')
+  paintFish(g, { x, y: y + 2, w, h: 13 }, { fish: scene.life.fish, level: scene.detail })
 }
 
 function paintCabinet(g: CanvasRenderingContext2D, prop: PropDef): void {

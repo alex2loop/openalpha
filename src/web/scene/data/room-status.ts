@@ -14,8 +14,9 @@ import { tr } from '@/web/text/tr'
 
 // A fired alert or a broken stop reads the counts again at once; this is the backstop.
 const ALERTS_POLL_MS = 60_000
-// One row is enough: the answer carries the active count of the whole book.
-const ALERTS_PAGE_LIMIT = 1
+// The answer carries the active count of the whole book; the page's rows name the markets watched,
+// up to the daemon's own cap.
+const ALERTS_PAGE_LIMIT = 100
 // The command or agent behind a run, and the room its crew works in.
 const RUN_ROOMS: Readonly<Record<string, RoomId>> = Object.freeze({
   refresh: 'store',
@@ -43,6 +44,7 @@ export interface RoomStatus {
   readonly waiting?: number
   readonly alerts?: number
   readonly stops?: number
+  readonly markets?: ReadonlySet<string>
 }
 
 type StopRow = StopsResponse['stops'][number]
@@ -53,12 +55,14 @@ export type BreachedStop = StopRow['instrument']
 interface AlertCounts {
   readonly alerts?: number
   readonly stops?: number
+  /** The markets the alerts and planned stops are on. */
+  readonly markets?: ReadonlySet<string>
 }
 
 const counts = signal<AlertCounts>({})
 const breached = signal<readonly BreachedStop[] | undefined>(undefined)
 
-/** Active price alerts and planned stops; each absent until read. */
+/** Active price alerts and planned stops, and the markets they watch; each absent until read. */
 export const alertCounts: ReadonlySignal<AlertCounts> = counts
 /** The holdings `/v1/stops` shows through their stop; absent until read. A fund's review level is
  *  not a stop and never counts. */
@@ -155,9 +159,12 @@ async function loadCounts(abortSignal: AbortSignal): Promise<void> {
       getJson(ROUTES.stops, { signal: abortSignal }),
     ])
 
+    const planned = stops.stops.filter((stop) => stop.plan === 'distance')
+
     counts.value = {
       alerts: alerts.activeCount,
-      stops: stops.stops.filter((stop) => stop.plan === 'distance').length,
+      stops: planned.length,
+      markets: new Set([...alerts.alerts, ...planned].map((row) => row.instrument.market)),
     }
     breached.value = stops.stops.filter(isBreached).map((stop) => stop.instrument)
   } catch {

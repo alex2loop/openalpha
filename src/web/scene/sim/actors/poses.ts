@@ -1,4 +1,4 @@
-import type { FloorId, PoseId } from '@/web/scene/types'
+import type { PoseId } from '@/web/scene/types'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const GAIT_STEP_MS = 250
@@ -24,6 +24,8 @@ const AMBIENT_REST_MS = Object.freeze({ min: 20_000, max: 40_000 })
 const AMBIENT_JITTER_MS = (AMBIENT_REST_MS.max - AMBIENT_REST_MS.min) / 2
 const AMBIENT_SLOT_MS = AMBIENT_BOUT_MS + (AMBIENT_REST_MS.min + AMBIENT_REST_MS.max) / 2
 const AMBIENT_POOL = 'ambient'
+// A fidget at the seat: a glance aside, a look down, hands behind the head.
+const FIDGET_POSES: readonly [PoseId, ...PoseId[]] = ['glance', 'look-down', 'lean-back']
 const POSE_POOL = 'pose'
 
 /** Where the arms are; `down` hangs them, swinging with the gait. */
@@ -156,7 +158,14 @@ const POSES: Readonly<Record<PoseId, PoseDef>> = Object.freeze({
     ],
   },
   'busy-glance': { frames: [{ isAside: true }, { isAside: true, isDown: true }] },
+  'look-down': { frames: [{ isDown: true }] },
+  'sit-up': { frames: [{}] },
 } satisfies Record<PoseId, PoseDef>)
+
+/** The fidget `seed` picks. */
+export function fidgetPoseOf(seed: number): PoseId {
+  return createRng(seed).pick(FIDGET_POSES)
+}
 
 /** Whether the pose moves on its own, so it asks for frames while it shows. */
 export function isPoseMoving(pose: PoseId): boolean {
@@ -195,27 +204,28 @@ export function isBreathDown(seed: number, nowMs: number): boolean {
   return Math.floor((nowMs + offsetMs) / (BREATH_MS / 2)) % 2 === 1
 }
 
-/** Whether a quiet floor's blink and breath run now: in bouts, with a rest between them. */
-export function isAmbientBout(floor: FloorId, nowMs: number): boolean {
-  const bout = boutIn(floor, slotOf(nowMs))
+/** Whether a quiet floor's blink and breath (or a pet's or a fish's moves, by its own `pool`) run
+ *  now: in bouts, with a rest between them. */
+export function isAmbientBout(pool: string, nowMs: number): boolean {
+  const bout = boutIn(pool, slotOf(nowMs))
 
   return nowMs >= bout.startMs && nowMs < bout.endMs
 }
 
-/** The next instant a quiet floor's bout starts or ends. */
-export function nextAmbientAt(floor: FloorId, nowMs: number): number {
+/** The next instant a bout of `pool` starts or ends. */
+export function nextAmbientAt(pool: string, nowMs: number): number {
   const slot = slotOf(nowMs)
-  const bout = boutIn(floor, slot)
+  const bout = boutIn(pool, slot)
 
   if (nowMs < bout.startMs) {
     return bout.startMs
   }
 
-  return nowMs < bout.endMs ? bout.endMs : boutIn(floor, slot + 1).startMs
+  return nowMs < bout.endMs ? bout.endMs : boutIn(pool, slot + 1).startMs
 }
 
-function boutIn(floor: FloorId, slot: number): { startMs: number; endMs: number } {
-  const jitter = createRng(seedOf(AMBIENT_POOL, floor, String(slot))).next()
+function boutIn(pool: string, slot: number): { startMs: number; endMs: number } {
+  const jitter = createRng(seedOf(AMBIENT_POOL, pool, String(slot))).next()
   const startMs = slot * AMBIENT_SLOT_MS + jitter * AMBIENT_JITTER_MS
 
   return { startMs, endMs: startMs + AMBIENT_BOUT_MS }

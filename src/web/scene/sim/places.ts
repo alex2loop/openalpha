@@ -39,6 +39,12 @@ export function facingOf(person: Person, byId: ReadonlyMap<ActorId, Person>): Di
     return toDir(face.walker.pos.x - pos.x, face.walker.pos.y - pos.y)
   }
 
+  const look = person.goal?.look
+
+  if (look !== undefined) {
+    return toDir(look.x - pos.x, look.y - pos.y)
+  }
+
   return person.dest === person.def.seat.at ? person.def.seat.face : 'up'
 }
 
@@ -68,8 +74,8 @@ function propSpotOf(
   )
 }
 
-// One step south of the prop's footprint, clear of the wall band for a piece hung on the wall.
-function approachOf(prop: PropDef): Point {
+/** One step south of the prop's footprint, clear of the wall band for a piece hung on the wall. */
+export function approachOf(prop: PropDef): Point {
   const room = roomById(prop.room)
   const floorTop = room === undefined ? 0 : room.rect.y + WALL_BAND_PX
   const bottom = Math.max(prop.rect.y + prop.rect.h, floorTop)

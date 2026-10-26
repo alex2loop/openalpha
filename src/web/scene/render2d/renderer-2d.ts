@@ -10,10 +10,13 @@ import {
   isCharacterMotionOn,
   releaseCharacterSprites,
 } from '@/web/scene/render2d/characters'
+import { feedKOf, paintCart, paintLifeOver } from '@/web/scene/render2d/life-props'
 import { DAY_LIGHT_HOUR, lightAt, paintLighting } from '@/web/scene/render2d/lights'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
+import { detailOf, paintPet } from '@/web/scene/render2d/pets'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
 import { createScreenCache, type ScreenCache } from '@/web/scene/render2d/screens'
+import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import {
   type FloorId,
   type Point,
@@ -177,10 +180,12 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
     isReduced: reducedMotion.value,
   }
 
+  const isFeeding = !motion.isReduced && feedKOf(sim.life, now) < 1
+
   paintFloor(surface, { sim, scene, light, stretch: fit.stretch, now, motion })
   blitFloor(surface, { sky: light.sky, dpr })
 
-  return motion.isOn
+  return motion.isOn || sim.life.isAnimating || isFeeding
 }
 
 // The camera's fit for this pane, clamped and rounded to device pixels, reported to the overlays.
@@ -231,6 +236,8 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     unread: unread.value ?? 0,
     agenda: agenda.value,
     screens: surface.screens,
+    life: sim.life,
+    detail: detailOf(scale),
   }
 }
 
@@ -270,6 +277,13 @@ function paintFloor(surface: Surface, job: FloorJob): void {
     paintTray(g, job.sim.tray)
   }
 
+  paintLifeOver(g, {
+    life: job.sim.life,
+    floor: job.sim.floor,
+    now: job.now,
+    isReduced: job.motion.isReduced,
+  })
+
   paintPapers(
     g,
     job.sim.papers.filter((paper) => paper.floor === job.sim.floor),
@@ -282,6 +296,8 @@ function paintFloor(surface: Surface, job: FloorJob): void {
     floor: job.sim.floor,
     lit: job.sim.props.lit,
     light: job.light,
+    lampGlow: job.sim.props.lampGlow,
+    isClosed: job.sim.props.isClosed,
     ...(dropPct === undefined ? {} : { dropPct }),
   })
 }
@@ -316,7 +332,31 @@ function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
         }),
     }))
 
-  return [...back, ...[...standing, ...actors].sort((a, b) => a.sortY - b.sortY || a.tie - b.tie)]
+  const life = buildLifePieces(g, job)
+
+  return [
+    ...back,
+    ...[...standing, ...actors, ...life].sort((a, b) => a.sortY - b.sortY || a.tie - b.tie),
+  ]
+}
+
+// The pets and the dessert cart, sorted among the people and the furniture.
+function buildLifePieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
+  const { life } = job.sim
+  const level = detailOf(job.scene.scale)
+  const pets: Piece[] =
+    job.sim.floor === PET_FLOOR
+      ? life.pets.map((pet) => ({
+          sortY: pet.at.y,
+          tie: ACTOR_TIE_RANK,
+          draw: () => paintPet(g, pet, { alpha: job.sim.alpha, level }),
+        }))
+      : []
+  const cart = life.cart
+
+  return cart === undefined || cart.floor !== job.sim.floor
+    ? pets
+    : [...pets, { sortY: cart.at.y, tie: 1, draw: () => paintCart(g, cart.at) }]
 }
 
 // The floor never moves under its props: rebuilt only when the floor shown changes.

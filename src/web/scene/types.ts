@@ -97,9 +97,19 @@ export type PoseId =
   | 'wave'
   | 'look'
   | 'busy-glance'
+  | 'look-down'
+  | 'sit-up'
 
 /** Something a person holds besides a sheet. */
-export type HeldItem = 'card' | 'calculator' | 'pen' | 'phone' | 'headset' | 'wallet' | 'box'
+export type HeldItem =
+  | 'card'
+  | 'calculator'
+  | 'pen'
+  | 'phone'
+  | 'headset'
+  | 'wallet'
+  | 'box'
+  | 'cup'
 
 /** A sheet in hand; once stamped it carries the call's action, its stamp in the action's hue. */
 export interface SheetView {
@@ -120,7 +130,12 @@ export interface ActorView {
   readonly poseSince: number
   readonly item?: HeldItem
   readonly sheet?: SheetView
+  /** The dot over the head: free, waiting on you or its turn, or its last run hit an error. None
+   *  while it works (the work rim says so). */
+  readonly status?: ActorStatus
 }
+
+export type ActorStatus = 'free' | 'waiting' | 'failed'
 
 /** A sheet flying between two people, or to the tray: `k` is how far it has come (0 to 1) at the
  *  last sim step, `prevK` at the one before. */
@@ -138,9 +153,68 @@ interface LightView {
   readonly followsHour: boolean
 }
 
-/** What the props show: the rooms whose lamp is on. */
+/** What the props show: the rooms whose lamp is on, how far their lamps glow (1 untouched, less
+ *  over the lunch nap), and whether the home market is shut for the day. */
 interface PropsView {
   readonly lit: ReadonlySet<RoomId>
+  readonly lampGlow: number
+  readonly isClosed: boolean
+}
+
+export type PetKind = 'cat' | 'corgi'
+export type PetPose = 'sleep' | 'sit' | 'walk' | 'stand' | 'lie'
+
+/** A pet as the renderers draw it: `prev` and `at` its feet at the last two sim steps, `lift` how
+ *  far above the floor (a perch, a jump), `isFlipped` facing left. */
+export interface PetView {
+  readonly kind: PetKind
+  readonly prev: Point
+  readonly at: Point
+  readonly lift: number
+  readonly pose: PetPose
+  readonly isFlipped: boolean
+}
+
+/** One fish in the tank: how far along its sweep (0 to 1), its height in the water (0 to 1), and
+ *  which way it swims. */
+export interface FishView {
+  readonly k: number
+  readonly depth: number
+  readonly isFlipped: boolean
+}
+
+/** What a scheduled or real moment says over a person: its label, the room a round just
+ *  checked, or the job about to run. */
+export type LifeLine =
+  | {
+      readonly actor: ActorId
+      readonly label: 'lunch' | 'coffee' | 'friday' | 'standup' | 'chat' | 'rounds'
+    }
+  | { readonly actor: ActorId; readonly label: 'roundCheck'; readonly room: RoomId }
+  | { readonly actor: ActorId; readonly label: 'due'; readonly time: string; readonly what: string }
+
+/** Steam over a pantry mug, or bubbles in a water cooler, at the top of that prop. */
+export interface SteamView {
+  readonly floor: FloorId
+  readonly kind: 'mug' | 'cooler'
+  readonly at: Point
+}
+
+/** What the office life shows besides its people's goals: the lobby pets and the fish, the
+ *  dessert cart, the printer's stack (`feedAt` when its newest sheet came out, a
+ *  `performance.now()` instant), steam and bubbles, a quiet office's sleeping screens, and the
+ *  lines its moments say. */
+export interface LifeView {
+  readonly pets: readonly PetView[]
+  readonly fish: readonly FishView[]
+  readonly cart?: { readonly floor: FloorId; readonly at: Point }
+  readonly sheets: number
+  readonly feedAt?: number
+  readonly steam: readonly SteamView[]
+  readonly isQuiet: boolean
+  readonly lines: readonly LifeLine[]
+  /** Steam rises or a fish swims: small motion, drawn at the capped rate. */
+  readonly isAnimating: boolean
 }
 
 /** The snapshot every renderer reads; `alpha` is how far the frame sits between two sim steps. */
@@ -153,4 +227,5 @@ export interface SimView {
   readonly tray: number
   readonly props: PropsView
   readonly light: LightView
+  readonly life: LifeView
 }

@@ -1,14 +1,12 @@
 import type { OverviewResponse } from '@/app/server/wire/market'
 import { formatDay } from '@/i18n'
-import { findMarket, priceDisplayOf } from '@/web/state/market'
+import { findMarket, isTradingPhase, priceDisplayOf } from '@/web/state/market'
 import { locale } from '@/web/state/session'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 const ROWS_SHOWN = 5
-// A market still trading prints no close note; every other phase shows the last close.
-const TRADING_PHASES: ReadonlySet<string> = new Set(['open', 'break'])
 
 type OverviewBlock = OverviewResponse['markets'][number]
 
@@ -60,7 +58,7 @@ export function selectBoard(blocks: OverviewResponse['markets']): OverviewBlock 
 export function closeNoteOf(block: OverviewBlock | undefined): string | undefined {
   const session = block === undefined ? undefined : findMarket(block.market)?.session
 
-  if (block === undefined || session === undefined || TRADING_PHASES.has(session.phase)) {
+  if (block === undefined || session === undefined || isTradingPhase(session.phase)) {
     return undefined
   }
 

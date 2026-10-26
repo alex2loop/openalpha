@@ -17,6 +17,10 @@ export const homeMarket: ReadonlySignal<MarketWire | undefined> = computed(() =>
 
   return read?.markets.find((market) => market.region === read.homeRegion && market.ownsRegion)
 })
+/** Every market the daemon trades; empty until `/v1/markets` answers. */
+export const marketList: ReadonlySignal<readonly MarketWire[]> = computed(
+  () => markets.value?.markets ?? []
+)
 /** The region pack of the home region, the default pack until it is known. */
 export const regionPack: ReadonlySignal<RegionPack> = computed(() =>
   packOf(markets.value?.homeRegion)

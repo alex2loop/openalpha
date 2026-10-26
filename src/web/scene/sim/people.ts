@@ -3,7 +3,7 @@ import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { Beat } from '@/web/scene/sim/beats'
 import type { Papers } from '@/web/scene/sim/papers'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, ActorView, Point, SheetView } from '@/web/scene/types'
+import type { ActorId, ActorView, FloorId, Point, Rect, SheetView } from '@/web/scene/types'
 import { distance } from '@/web/scene/sim/actors/nav'
 import {
   isWalking,
@@ -74,6 +74,10 @@ export interface People {
   readonly stages: Map<string, { readonly stage: string; readonly actors: readonly ActorId[] }>
   readonly runActors: Map<string, readonly ActorId[]>
   readonly walks: AssistantWalks
+  /** The office life's goals, under every goal the live store calls for. */
+  readonly life: Map<ActorId, Goal>
+  /** What stands on a floor for a while besides its furniture (the dessert cart). */
+  readonly obstacles: Map<FloorId, readonly Rect[]>
   wanted: ReadonlyMap<ActorId, Goal>
   orphans: readonly Orphan[]
 }
@@ -101,6 +105,8 @@ export function createPeople(
     stages: new Map(),
     runActors: new Map(),
     walks: createAssistantWalks(),
+    life: new Map(),
+    obstacles: new Map(),
     wanted: new Map(),
     orphans: [],
   }
@@ -174,7 +180,7 @@ export function tickPeople(
 export function stepPerson(
   person: Person,
   others: readonly WalkerState[],
-  step: { readonly nowMs: number; readonly dtMs: number }
+  step: { readonly nowMs: number; readonly dtMs: number; readonly extra?: readonly Rect[] }
 ): boolean {
   if (person.phase === 'walking') {
     if (stepWalk(person.walker, others, step.dtMs) === 'arrived') {
@@ -192,7 +198,7 @@ export function stepPerson(
   }
 
   if (person.phase === 'rising') {
-    beginWalk(person)
+    beginWalk(person, step.extra)
   } else {
     person.phase = 'still'
   }
@@ -215,6 +221,13 @@ export function playBeat(people: People, actor: ActorId, beat: BeatPlay): void {
   }
 
   person.beats = [...person.beats, played].slice(-MAX_BEATS_PER_ACTOR)
+}
+
+/** The person holds the office life's goal: nothing the live store calls for comes first. */
+export function isLifeHeld(people: People, person: Person): boolean {
+  const life = people.life.get(person.def.id)
+
+  return life !== undefined && person.goal !== undefined && isSameGoal(person.goal, life)
 }
 
 /** The people a run moves now, else the ones it moved last. */
@@ -351,7 +364,7 @@ function applyGoals(people: People, nowMs: number): boolean {
 // A desk walk waits `DESK_WALK_AFTER_MS` (the hand goes up at the seat meanwhile); the assistant
 // has walks of its own.
 function effectiveGoal(people: People, id: ActorId, nowMs: number): Goal | undefined {
-  const goal = people.wanted.get(id)
+  const goal = people.wanted.get(id) ?? people.life.get(id)
 
   if (goal?.requestId !== undefined) {
     return isDeskDue(people.desk.waits.get(goal.requestId), nowMs)
@@ -391,6 +404,7 @@ function isSameGoal(a: Goal | undefined, b: Goal | undefined): boolean {
     a.stage === b.stage &&
     a.requestId === b.requestId &&
     a.face === b.face &&
+    a.look === b.look &&
     a.item === b.item &&
     a.hasSheet === b.hasSheet &&
     targetKeyOf(a) === targetKeyOf(b)
@@ -416,11 +430,14 @@ function retarget(
   }
 
   person.dest = dest
-  moveTo(person, next.nowMs)
+  moveTo(person, { nowMs: next.nowMs, extra: people.obstacles.get(person.def.floor) })
 }
 
 // Walking already: turn toward the new place at once. Seated: push the chair back first.
-function moveTo(person: Person, nowMs: number): void {
+function moveTo(
+  person: Person,
+  at: { readonly nowMs: number; readonly extra: readonly Rect[] | undefined }
+): void {
   if (reducedMotion.value) {
     placeWalker(person.walker, person.dest)
     person.phase = 'still'
@@ -431,15 +448,15 @@ function moveTo(person: Person, nowMs: number): void {
 
   if (!isWalking(person.walker) && isSeated) {
     person.phase = 'rising'
-    person.phaseUntil = nowMs + CHAIR_PUSH_MS
+    person.phaseUntil = at.nowMs + CHAIR_PUSH_MS
     return
   }
 
-  beginWalk(person)
+  beginWalk(person, at.extra)
 }
 
-function beginWalk(person: Person): void {
-  const isStarted = startWalk(person.walker, navGridOf(person.def.floor), person.dest)
+function beginWalk(person: Person, extra: readonly Rect[] | undefined): void {
+  const isStarted = startWalk(person.walker, navGridOf(person.def.floor, extra), person.dest)
 
   person.phase = isStarted ? 'walking' : 'still'
 }

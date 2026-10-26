@@ -2,7 +2,7 @@ import { signal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import type { RoomId, ScreenPoint } from '@/web/scene/types'
-import type { PropDef, TipSource } from '@/web/scene/world/props'
+import type { TipSource } from '@/web/scene/world/props'
 import type { Run } from '@/web/state/live'
 import { pluralKey } from '@/i18n'
 import { agenda, alertsTask } from '@/web/scene/data/agenda'
@@ -19,6 +19,7 @@ import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock, MS_PER_SECOND } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
+import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
 
 import './object-tip.css'
 
@@ -40,7 +41,7 @@ interface TipContent {
 }
 
 interface Shown {
-  readonly prop: PropDef
+  readonly source: TipSource
   readonly at: ScreenPoint
 }
 
@@ -58,29 +59,36 @@ const TIP_READERS: Readonly<Record<TipSource, TipReader>> = Object.freeze({
   clock: clockTip,
   alerts: alertsTip,
   agenda: agendaTip,
+  cat: () => ({
+    title: tr('ui.office.pet.cat'),
+    lines: [tr('ui.office.pet.catTip')],
+    go: { label: tr('ui.office.pet.catGo'), run: () => openPopover(BELL_POPOVER_ID) },
+  }),
+  corgi: () => ({ title: tr('ui.office.pet.corgi'), lines: [tr('ui.office.pet.corgiTip')] }),
+  fish: () => ({ title: tr('ui.office.pet.fish'), lines: [] }),
 } satisfies Record<TipSource, TipReader>)
 
-/** The pointer is over `prop` (or over nothing) at `at`: a prop with a live figure shows its tip; a
- *  prop with none, or no prop, hides it after a beat. */
-export function hoverObject(prop: PropDef | undefined, at: ScreenPoint): void {
-  if (prop?.tip === undefined || tipOf(prop) === undefined) {
+/** The pointer is over something with a tip (or over nothing) at `at`: a live figure shows its
+ *  tip; nothing to say, or nothing there, hides it after a beat. */
+export function hoverObject(source: TipSource | undefined, at: ScreenPoint): void {
+  if (source === undefined || TIP_READERS[source]() === undefined) {
     scheduleHide()
     return
   }
 
   cancelHide()
-  shown.value = { prop, at }
+  shown.value = { source, at }
 }
 
-/** Where a click on `prop` goes, when its tip names a place. */
-export function tipActionOf(prop: PropDef): (() => void) | undefined {
-  return tipOf(prop)?.go?.run
+/** Where a click on what the tip is about goes, when its tip names a place. */
+export function tipActionOf(source: TipSource | undefined): (() => void) | undefined {
+  return source === undefined ? undefined : TIP_READERS[source]()?.go?.run
 }
 
 /** The one object tip; its hide timer belongs to it and ends with it. */
 export function ObjectTip() {
   const held = shown.value
-  const tip = held === undefined ? undefined : tipOf(held.prop)
+  const tip = held === undefined ? undefined : TIP_READERS[held.source]()
 
   useEffect(() => clearTip, [])
 
@@ -109,10 +117,6 @@ export function ObjectTip() {
       )}
     </div>
   )
-}
-
-function tipOf(prop: PropDef): TipContent | undefined {
-  return prop.tip === undefined ? undefined : TIP_READERS[prop.tip]()
 }
 
 function scheduleHide(): void {

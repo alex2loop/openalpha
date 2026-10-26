@@ -1,6 +1,6 @@
 import type { FrameSpec, Material } from '@/web/scene/render2d/figure-spec'
 import type { HeldKind, PoseFrame } from '@/web/scene/sim/actors/poses'
-import type { ActorView, FloorId, HeldItem } from '@/web/scene/types'
+import type { ActorStatus, ActorView, FloorId, HeldItem } from '@/web/scene/types'
 import { buildFigure } from '@/web/scene/render2d/figure'
 import { buildMascot } from '@/web/scene/render2d/mascot'
 import {
@@ -41,6 +41,14 @@ const SHADOW_H = 3
 const SELECT_RING = OUTLINE
 // A stamped sheet takes the action's hue: a buy in Up, a reduce in Down, a hold in Ink.
 const STAMP_TONES = Object.freeze({ buy: '#0B7532', reduce: '#C1231A', hold: OUTLINE })
+// The dot over a head: green free, amber waiting, red after an error.
+const STATUS_TONES = Object.freeze({
+  free: '#3FB06A',
+  waiting: '#F2A93B',
+  failed: '#E5484D',
+} satisfies Record<ActorStatus, string>)
+const STATUS_DOT_PX = 3
+const STATUS_RISE_PX = 2
 // Face details shade with the skin under them, so a dot eye never splits the head's bands.
 const SKIN_DETAILS: ReadonlySet<Material> = new Set([
   'brow',
@@ -62,6 +70,7 @@ const HELD_OF: Readonly<Record<HeldItem, HeldKind | undefined>> = Object.freeze(
   headset: 'item',
   wallet: 'item',
   box: 'box',
+  cup: 'cup',
 })
 
 type Band = 0 | 1 | 2
@@ -120,16 +129,35 @@ export function drawCharacter(
     g.fillRect(x - SELECT_RING_W / 2, y, SELECT_RING_W, 1)
   }
 
-  if (actor.facing !== 'left') {
+  if (actor.facing === 'left') {
+    g.save()
+    g.translate(x * 2, 0)
+    g.scale(-1, 1)
     g.drawImage(image, x - SPRITE_W / 2, y - SPRITE_H)
+    g.restore()
+  } else {
+    g.drawImage(image, x - SPRITE_W / 2, y - SPRITE_H)
+  }
+
+  paintStatus(g, actor.status, { x, y })
+}
+
+function paintStatus(
+  g: CanvasRenderingContext2D,
+  status: ActorStatus | undefined,
+  at: { readonly x: number; readonly y: number }
+): void {
+  if (status === undefined) {
     return
   }
 
-  g.save()
-  g.translate(x * 2, 0)
-  g.scale(-1, 1)
-  g.drawImage(image, x - SPRITE_W / 2, y - SPRITE_H)
-  g.restore()
+  const top = at.y - SPRITE_H - STATUS_RISE_PX - STATUS_DOT_PX
+  const left = at.x - Math.ceil(STATUS_DOT_PX / 2)
+
+  g.fillStyle = OUTLINE
+  g.fillRect(left - 1, top - 1, STATUS_DOT_PX + 2, STATUS_DOT_PX + 2)
+  g.fillStyle = STATUS_TONES[status]
+  g.fillRect(left, top, STATUS_DOT_PX, STATUS_DOT_PX)
 }
 
 /** One 24 by 32 sprite of `look` in `frame`, from a bounded cache: the least recently drawn goes

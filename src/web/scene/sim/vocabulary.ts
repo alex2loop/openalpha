@@ -16,6 +16,8 @@ export interface Goal {
   readonly target: string | PropKind | Point
   readonly pose: PoseId
   readonly face?: ActorId
+  /** A place the person turns toward (the lobby screens at the bell). */
+  readonly look?: Point
   readonly runId?: string
   readonly since: number
   readonly item?: HeldItem

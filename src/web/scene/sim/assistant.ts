@@ -93,6 +93,13 @@ export function stepCarry(
   }
 }
 
+/** A carry is under way or owed, or a read's trip is: the assistant has somewhere to be. */
+export function isAssistantOwed(walks: AssistantWalks, orphans: readonly Orphan[]): boolean {
+  const isCarryOwed = orphans.some((orphan) => !walks.carried.has(orphan.requestId))
+
+  return walks.carry !== undefined || walks.trip !== undefined || isCarryOwed
+}
+
 /** When to look again for a carry that waits on the assistant: soon while one is owed. */
 export function carryDueOf(
   walks: AssistantWalks,

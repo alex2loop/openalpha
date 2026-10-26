@@ -50,6 +50,9 @@ export type TipSource =
   | 'clock'
   | 'alerts'
   | 'agenda'
+  | 'cat'
+  | 'corgi'
+  | 'fish'
 
 /** Two boxes, one meaning each: `rect` is the footprint on the floor as the 3D layout stands it
  *  (the nav grid blocks it; a wall piece's is the wall area it hangs on), `draw` the box the 2D
@@ -248,7 +251,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('chair', 'assist', { at: seatFoot(384, 306, 'desk'), draw: [376, 283, 16, 11] }),
   stand('desk', 'assist', { at: [364, 291, 40, 12], draw: [364, 300, 40, 20] }),
   stand('computer', 'assist', { at: [376, 300, 16, 3], draw: [376, 286, 16, 14] }),
-  stand('tank', 'assist', { at: [434, 298, 36, 13], draw: [434, 295, 36, 27] }),
+  stand('tank', 'assist', { at: [434, 298, 36, 13], draw: [434, 295, 36, 27], tip: 'fish' }),
   stand('plant', 'assist', { at: [332, 348, 8, 8], draw: [330, 340, 12, 16] }),
   stand('plant', 'assist', { at: [452, 352, 8, 8], draw: [450, 344, 12, 16] }),
   stand('lamp', 'assist', { at: [464, 266, 8, 8], draw: [462, 219, 12, 51] }),

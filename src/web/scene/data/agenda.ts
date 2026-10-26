@@ -35,6 +35,8 @@ export interface AgendaRow {
   readonly time: string
   readonly label: string
   readonly state: 'done' | 'next' | 'todo'
+  /** The agent a scheduled job runs, when the row is one. */
+  readonly agentId?: string
 }
 
 /** What the two lobby screens draw; `sig` changes whenever anything drawn does. */
@@ -52,6 +54,7 @@ interface TimedItem {
   readonly key: string
   readonly minute: number
   readonly label: string
+  readonly agentId?: string
 }
 
 const tasks = signal<TasksResponse | undefined>(undefined)
@@ -114,6 +117,7 @@ function toRow(item: TimedItem, nextItem: TimedItem | undefined, now: number): A
     time: isTomorrow ? tr('ui.office.agenda.tomorrow', { time: clock }) : clock,
     label: item.label,
     state: rowState(item, nextItem, now),
+    ...(item.agentId === undefined ? {} : { agentId: item.agentId }),
   }
 }
 
@@ -152,7 +156,10 @@ function jobItems(row: ScheduleRow): TimedItem[] {
     what: readText(row.prompt) ?? String(row.id),
   })
 
-  return atItems({ key: `job:${String(row.id)}`, atMs: row.nextRunAt, label })
+  const agentId = readText(row.agentId)
+  const items = atItems({ key: `job:${String(row.id)}`, atMs: row.nextRunAt, label })
+
+  return agentId === undefined ? items : items.map((item) => ({ ...item, agentId }))
 }
 
 // An instant today or tomorrow in the scene's zone; any other day is not on the screens.
@@ -232,7 +239,8 @@ function closedTodayLine(market: MarketWire | undefined): string | undefined {
   })
 }
 
-function toMinute(clock: string): number {
+/** A session's `HH:MM` as minutes of its day. */
+export function toMinute(clock: string): number {
   const [hours = 0, minutes = 0] = clock.split(CLOCK_SEPARATOR).map(Number)
 
   return hours * MINUTES_PER_HOUR + minutes

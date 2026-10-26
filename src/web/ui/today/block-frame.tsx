@@ -20,9 +20,8 @@ interface BlockFrameProps<T> {
   readonly colour: TileColour
   readonly icon: ComponentChildren
   readonly reading: BlockReading<T>
-  /** The trading day the figures describe (`YYYY-MM-DD`), or the market's close note. */
+  /** The trading day the figures describe (`YYYY-MM-DD`). */
   readonly dataTo?: string | undefined
-  readonly closeNote?: string | undefined
   /** The words "{time}" follows on the read line; "Đọc lúc" unless the figures are valuations. */
   readonly readKey?: MessageKey
   /** A link or button in the head, at the right. */
@@ -55,14 +54,7 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
   )
 }
 
-function BlockBody<T>({
-  title,
-  reading,
-  dataTo,
-  closeNote,
-  readKey,
-  children,
-}: BlockFrameProps<T>) {
+function BlockBody<T>({ title, reading, dataTo, readKey, children }: BlockFrameProps<T>) {
   const { data } = reading
 
   return (
@@ -78,12 +70,7 @@ function BlockBody<T>({
       ) : (
         <>
           {children(data)}
-          <ReadLine
-            readAt={reading.readAt}
-            dataTo={dataTo}
-            closeNote={closeNote}
-            readKey={readKey}
-          />
+          <ReadLine readAt={reading.readAt} dataTo={dataTo} readKey={readKey} />
         </>
       )}
     </>
@@ -119,16 +106,10 @@ function FailedStrip<T>({ title, reading }: Pick<BlockFrameProps<T>, 'title' | '
 interface ReadLineProps {
   readonly readAt: number | undefined
   readonly dataTo: string | undefined
-  readonly closeNote: string | undefined
   readonly readKey: MessageKey | undefined
 }
 
-function ReadLine({
-  readAt,
-  dataTo,
-  closeNote,
-  readKey = 'ui.office.today.readAt',
-}: ReadLineProps) {
+function ReadLine({ readAt, dataTo, readKey = 'ui.office.today.readAt' }: ReadLineProps) {
   const timeZone = state.value?.timeZone
 
   if (readAt === undefined || timeZone === undefined) {
@@ -136,8 +117,7 @@ function ReadLine({
   }
 
   const facts = [
-    ...(closeNote === undefined ? [] : [closeNote]),
-    ...(dataTo === undefined || closeNote !== undefined
+    ...(dataTo === undefined
       ? []
       : [tr('ui.office.today.dataTo', { time: formatDay(locale.value, dataTo) })]),
     tr(readKey, { time: formatClock(readAt, timeZone) }),

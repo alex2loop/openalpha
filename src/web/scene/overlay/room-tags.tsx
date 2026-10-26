@@ -3,10 +3,13 @@ import { signal } from '@preact/signals'
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { RoomId } from '@/web/scene/types'
 import { type MessageKey, pluralKey } from '@/i18n'
+import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
+import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
 import { projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
 import { focusRun } from '@/web/state/focus'
+import { isTradingPhase } from '@/web/state/market'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
@@ -162,10 +165,26 @@ function statusLine(room: RoomId, status: RoomStatus | undefined): string | unde
 function alertsLine(status: RoomStatus | undefined): string | undefined {
   const alerts = status?.alerts
   const stops = status?.stops
+  const trading = isClosedPhase(homePhase.value) ? tradingWatched(status) : undefined
+
+  if (trading !== undefined) {
+    return tr('ui.office.room.alerts.closed', { market: trading })
+  }
 
   return alerts === undefined || stops === undefined
     ? undefined
     : tr('ui.office.room.alerts.status', { alerts, stops })
+}
+
+// With the home market shut, the first market an alert or a stop watches that still trades.
+function tradingWatched(status: RoomStatus | undefined): string | undefined {
+  const watched = status?.markets
+
+  return marketList.value.find(
+    (market) =>
+      watched?.has(market.market) === true &&
+      (market.session === undefined || isTradingPhase(market.session.phase))
+  )?.label
 }
 
 function deskLine(waiting: number | undefined): string | undefined {

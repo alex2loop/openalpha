@@ -4,11 +4,12 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { PendingWire } from '@/app/server/wire/live'
 import type { PastCall, Recall } from '@/web/scene/data/past-calls'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId } from '@/web/scene/types'
+import type { ActorId, LifeLine } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
 import { formatDay, type MessageKey, pluralKey } from '@/i18n'
 import { roleNameOf } from '@/web/scene/overlay/name-tags'
+import { roomTagOf } from '@/web/scene/overlay/room-tags'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { holderOf } from '@/web/scene/sim/vocabulary'
 import { pendingRequestId } from '@/web/state/live'
@@ -29,6 +30,14 @@ const ACTION_KEYS = Object.freeze({
   buy: 'trading.action.buy',
   reduce: 'trading.action.reduce',
 } satisfies Record<PastCall['action'], MessageKey>)
+const LIFE_KEYS = Object.freeze({
+  lunch: 'ui.office.life.lunch',
+  coffee: 'ui.office.life.coffee',
+  friday: 'ui.office.life.friday',
+  standup: 'ui.office.life.standup',
+  chat: 'ui.office.life.chat',
+  rounds: 'ui.office.life.rounds',
+} satisfies Record<Exclude<LifeLine['label'], 'roundCheck' | 'due'>, MessageKey>)
 const OUTCOME_KEYS = Object.freeze({
   target: 'trading.outcome.target',
   stop: 'trading.outcome.stop',
@@ -66,6 +75,8 @@ interface BubbleInput {
   readonly pending: readonly PendingWire[]
   readonly said: readonly Said[]
   readonly recalls: ReadonlyMap<string, Recall>
+  /** What the office life's moments say. */
+  readonly life: readonly LifeLine[]
   /** `performance.now()` and the epoch, read once for the pass. */
   readonly nowMs: number
   readonly epochMs: number
@@ -143,7 +154,12 @@ function hear(line: Omit<Said, 'heardAt' | 'untilMs'>): void {
  *  else the newer of its spoken and its thinking line. */
 export function buildBubbles(input: BubbleInput): readonly Bubble[] {
   const chosen = new Map<ActorId, Candidate>()
-  const candidates = [...thinkLines(input), ...spokenLines(input), ...waitLines(input)]
+  const candidates = [
+    ...lifeLines(input),
+    ...thinkLines(input),
+    ...spokenLines(input),
+    ...waitLines(input),
+  ]
 
   for (const candidate of candidates) {
     const held = chosen.get(candidate.actor)
@@ -233,6 +249,27 @@ function memoryText(calls: readonly PastCall[]): string | undefined {
         day: formatDay(locale.value, before.day),
         outcome: tr(OUTCOME_KEYS[before.outcome]),
       })}`
+}
+
+// The office life's lines rank under anything real the person says or thinks.
+function lifeLines(input: BubbleInput): Candidate[] {
+  return input.life.map((line) => ({
+    actor: line.actor,
+    kind: line.label === 'due' ? 'due' : 'life',
+    full: lifeTextOf(line),
+    at: Number.NEGATIVE_INFINITY,
+  }))
+}
+
+function lifeTextOf(line: LifeLine): string {
+  switch (line.label) {
+    case 'due':
+      return tr('ui.office.idle.due', { time: line.time, what: line.what })
+    case 'roundCheck':
+      return tr('ui.office.life.roundCheck', { room: roomTagOf(line.room, undefined).name })
+    default:
+      return tr(LIFE_KEYS[line.label])
+  }
 }
 
 // An approval waiting on the operator, over the person who brought it.

@@ -15,6 +15,7 @@ type BeatKind =
   | 'foot-tap'
   | 'headset'
   | 'wallet'
+  | 'life'
 
 /** A one-shot gesture a real event plays over a person's goal, dropped when it ends. */
 export interface Beat {

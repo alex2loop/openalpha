@@ -1,6 +1,15 @@
 import type { SceneRenderer } from '@/web/scene/renderer'
-import type { ActorView, FloorId, Point, Rect, ScreenPoint, SimView } from '@/web/scene/types'
+import type {
+  ActorView,
+  FloorId,
+  PetView,
+  Point,
+  Rect,
+  ScreenPoint,
+  SimView,
+} from '@/web/scene/types'
 import { overlayView } from '@/web/scene/overlay/overlay'
+import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { FIGURE } from '@/web/scene/types'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
 import { isInside, roomAt } from '@/web/scene/world/rooms'
@@ -8,9 +17,12 @@ import { isInside, roomAt } from '@/web/scene/world/rooms'
 /** What a point on the scene is over, front to back. `id` is an actor id for a marker, an actor,
  *  a screen and a tag, a prop id for an object, a room id for a room. */
 export interface Hit {
-  readonly kind: 'marker' | 'actor' | 'screen' | 'object' | 'tag' | 'room'
+  readonly kind: 'marker' | 'actor' | 'pet' | 'screen' | 'object' | 'tag' | 'room'
   readonly id: string
 }
+
+// A pet's box over its feet, in world px.
+const PET_BOX = Object.freeze({ w: 16, h: 14 })
 
 /** The front-most thing under `point` (CSS px of the scene host): a marker, a person, a lit
  *  screen, a prop, a name tag, then a room. */
@@ -31,6 +43,15 @@ export function pickAt(
 
   if (actor !== undefined) {
     return { kind: 'actor', id: actor.id }
+  }
+
+  const pet =
+    view.floor === PET_FLOOR
+      ? view.life.pets.find((each) => isInside(petBoxOf(each), at))
+      : undefined
+
+  if (pet !== undefined) {
+    return { kind: 'pet', id: pet.kind }
   }
 
   const screen = shown.screens.find((held) => isWithin(held.rect, point))
@@ -69,6 +90,15 @@ export function figureOf(actor: ActorView, alpha: number): Rect {
   const y = actor.prev.y + (actor.at.y - actor.prev.y) * alpha
 
   return { x: x - FIGURE.w / 2, y: y - FIGURE.h, w: FIGURE.w, h: FIGURE.h }
+}
+
+function petBoxOf(pet: PetView): Rect {
+  return {
+    x: pet.at.x - PET_BOX.w / 2,
+    y: pet.at.y - pet.lift - PET_BOX.h,
+    w: PET_BOX.w,
+    h: PET_BOX.h,
+  }
 }
 
 // The front-most person on the floor shown: the one standing lowest.

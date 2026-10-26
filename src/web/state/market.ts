@@ -8,6 +8,7 @@ import type {
   SuggestionWire,
   TradingQuoteWire,
 } from '@/app/server/wire/trading'
+import type { SessionPhase } from '@/app/server/wire/vocab'
 import { ROUTES } from '@/web/api/routes'
 import { createRouteBlock } from '@/web/state/block'
 
@@ -16,6 +17,8 @@ const OVERVIEW_POLL_MS = 60_000
 const QUOTES_POLL_MS = 60_000
 
 type StopRow = StopsResponse['stops'][number]
+
+const TRADING_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'break'])
 
 const marketsBlock = createRouteBlock(ROUTES.markets)
 export const overviewBlock = createRouteBlock(ROUTES.overview)
@@ -110,6 +113,11 @@ export function priceDisplayOf(market: string): MarketWire['priceDisplay'] {
 
 function homeRegion(): string | undefined {
   return marketsBlock.view.value.data?.homeRegion
+}
+
+/** A market in this phase still trades today: open, or in its lunch break. */
+export function isTradingPhase(phase: SessionPhase): boolean {
+  return TRADING_PHASES.has(phase)
 }
 
 /** The overview's markets in the home region, or in every other region. */

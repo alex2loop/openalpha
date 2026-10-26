@@ -1,4 +1,4 @@
-import type { Dir, Point } from '@/web/scene/types'
+import type { Dir, FloorId, Point, RoomId } from '@/web/scene/types'
 
 /** Where a person sits or stands at rest: `at` is the chair's own point (a seated figure stands
  *  there), `face` the way it looks, `desk` set when it works at a desk in front of it. */
@@ -54,3 +54,69 @@ export const DESK_WAIT_SPOTS: Readonly<{ readonly agents: readonly Point[] }> = 
 
 /** The operator's in-tray on your desk, where delivered results land. */
 export const TRAY_AT: Point = Object.freeze({ x: 512, y: 300 })
+
+/** Each floor's break spot: where a coffee or a dessert is fetched, nearest first, and the dessert
+ *  cart's resting place with the path it rolls in on (from the corridor). */
+interface Pantry {
+  readonly room: RoomId
+  readonly spots: readonly Seat[]
+  readonly cart: { readonly rest: Point; readonly path: readonly Point[] }
+}
+
+export const PANTRY: Readonly<Record<FloorId, Pantry>> = Object.freeze({
+  office: {
+    room: 'meet',
+    spots: [
+      { at: { x: 404, y: 168 }, face: 'down' },
+      { at: { x: 392, y: 184 }, face: 'up' },
+      { at: { x: 436, y: 184 }, face: 'up' },
+      { at: { x: 420, y: 196 }, face: 'up' },
+    ],
+    cart: {
+      rest: { x: 432, y: 168 },
+      path: [
+        { x: 512, y: 198 },
+        { x: 512, y: 184 },
+        { x: 432, y: 184 },
+        { x: 432, y: 168 },
+      ],
+    },
+  },
+  team: {
+    room: 'team',
+    spots: [
+      { at: { x: 530, y: 336 }, face: 'up' },
+      { at: { x: 550, y: 336 }, face: 'up' },
+      { at: { x: 570, y: 336 }, face: 'up' },
+      { at: { x: 590, y: 336 }, face: 'up' },
+    ],
+    cart: {
+      rest: { x: 608, y: 338 },
+      path: [
+        { x: 470, y: 366 },
+        { x: 608, y: 366 },
+        { x: 608, y: 338 },
+      ],
+    },
+  },
+} satisfies Record<FloorId, Pantry>)
+
+/** The two sofa seats of each floor, turned toward each other by `turn`. */
+export const SOFA_SEATS: Readonly<Record<FloorId, readonly [Seat, Seat]>> = Object.freeze({
+  office: [
+    { at: { x: 42, y: 366 }, face: 'down', turn: 0.75 },
+    { at: { x: 78, y: 366 }, face: 'down', turn: -0.75 },
+  ],
+  team: [
+    { at: { x: 552, y: 254 }, face: 'down', turn: 0.75 },
+    { at: { x: 588, y: 254 }, face: 'down', turn: -0.75 },
+  ],
+} satisfies Record<FloorId, readonly [Seat, Seat]>)
+
+/** The standing places before the meeting room's whiteboard, for a stand-up. */
+export const BOARD_SPOTS: readonly Point[] = Object.freeze([
+  { x: 404, y: 104 },
+  { x: 422, y: 106 },
+  { x: 440, y: 104 },
+  { x: 414, y: 116 },
+])

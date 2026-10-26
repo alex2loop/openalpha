@@ -1,6 +1,7 @@
 import type { AgendaModel } from '@/web/scene/data/agenda'
 import type { ScreenCache } from '@/web/scene/render2d/screens'
-import type { RoomId } from '@/web/scene/types'
+import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
+import type { LifeView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
@@ -34,6 +35,8 @@ export interface PaintScene {
   readonly unread: number
   readonly agenda: AgendaModel
   readonly screens: ScreenCache
+  readonly life: LifeView
+  readonly detail: DetailLevel
 }
 
 export type Painter = (g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene) => void

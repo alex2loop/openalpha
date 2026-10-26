@@ -52,6 +52,9 @@ const TABLE_POOLS: Readonly<Record<FloorId, readonly (readonly [number, number, 
 const DROP_FULL_PCT = 3
 const DROP_MAX_ALPHA = 0.34
 const DROP_POOL: readonly [number, number, number] = [60, 292, 70]
+// The lobby once the home market has shut for the day.
+const CLOSED_ROOM: RoomId = 'lobby'
+const CLOSED_SHADE = '#C4C6D2'
 
 /** The light of `hour`: a tint over the floor (none by day), how strongly lamps and pools glow, and
  *  the sky's top and bottom colours. */
@@ -67,6 +70,10 @@ interface LightingSpec {
   readonly light: LightRow
   /** The index's session move behind the lobby's red glow, a percent; absent without one. */
   readonly dropPct?: number
+  /** How far the lamps that are on glow: 1 untouched, less over the lunch nap. */
+  readonly lampGlow: number
+  /** The home market has shut for the day: the lobby dims. */
+  readonly isClosed: boolean
 }
 
 /** One light pass over the sprites: each room's tint and darkness, then the warm pools in
@@ -93,12 +100,26 @@ function paintRoomShade(g: CanvasRenderingContext2D, spec: LightingSpec): void {
       g.globalAlpha = 1
     }
 
-    if (!isLit) {
+    const shade = shadeOf(spec, { room: room.id, isLit, isNorth })
+
+    if (shade !== undefined) {
       g.globalCompositeOperation = 'multiply'
-      fill(g, box, isNorth ? UNLIT_NORTH_SHADE : UNLIT_SHADE)
+      fill(g, box, shade)
       g.globalCompositeOperation = 'source-over'
     }
   }
+}
+
+// An unlit room darkens; a lit lobby still dims once the home market has shut.
+function shadeOf(
+  spec: LightingSpec,
+  at: { readonly room: RoomId; readonly isLit: boolean; readonly isNorth: boolean }
+): string | undefined {
+  if (!at.isLit) {
+    return at.isNorth ? UNLIT_NORTH_SHADE : UNLIT_SHADE
+  }
+
+  return spec.isClosed && at.room === CLOSED_ROOM ? CLOSED_SHADE : undefined
 }
 
 function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: number): void {
@@ -106,7 +127,7 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
     const room = roomAt(spec.floor, { x, y })
 
     if (room !== undefined && spec.lit.has(room.id)) {
-      pool(g, { x, y, radius, rgb: WARM, alpha: glow })
+      pool(g, { x, y, radius, rgb: WARM, alpha: glow * spec.lampGlow })
     }
   }
 
@@ -121,14 +142,14 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
       y: rect.y + 4,
       radius: LAMP_HEAD_RADIUS,
       rgb: WARM,
-      alpha: LAMP_HEAD_ALPHA,
+      alpha: LAMP_HEAD_ALPHA * spec.lampGlow,
     })
     pool(g, {
       x: cx,
       y: rect.y + rect.h,
       radius: LAMP_FLOOR_RADIUS,
       rgb: WARM,
-      alpha: LAMP_FLOOR_ALPHA,
+      alpha: LAMP_FLOOR_ALPHA * spec.lampGlow,
     })
   }
 
