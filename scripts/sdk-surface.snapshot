@@ -19,6 +19,8 @@ cli:DoctorInput
 cli:EnvFileLoad
 cli:GlobalFlags
 cli:Group
+cli:KeyEnvGroup
+cli:KeyFile
 cli:Needs
 cli:PendingUpgrade
 cli:PreBootOptions
@@ -45,8 +47,10 @@ cli:hint
 cli:isBackgroundLaunch
 cli:isCompiledBinary
 cli:isConfigPresent
+cli:isRuntimeEnvName
 cli:isUpdateCheckEnabled
 cli:isVerbose
+cli:keyEnvGroups
 cli:lazyCommand
 cli:loadEnvFile
 cli:newerVersionOf
@@ -58,11 +62,13 @@ cli:preflightCommand
 cli:printError
 cli:readCommandCacheStubs
 cli:readDaemonDegraded
+cli:readEnvFile
 cli:readFreshUpdateState
 cli:readReleaseStatus
 cli:readUpdateLine
 cli:readUpdateState
 cli:refreshUpdateState
+cli:removeEnvFileValue
 cli:reportKeyFile
 cli:resolveContributedCliCommands
 cli:runCli
@@ -76,6 +82,7 @@ cli:takeChatNotice
 cli:toChatText
 cli:usage
 cli:writeCommandCache
+cli:writeEnvFileValue
 core/brand
 core/channels
 core/command-lane

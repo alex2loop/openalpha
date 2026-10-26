@@ -14,6 +14,9 @@ import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { AdvancedSection } from '@/web/ui/settings/advanced'
 import { AgentsSection } from '@/web/ui/settings/agents-section'
 import { ChannelsSection } from '@/web/ui/settings/channels'
+import { ExchangesSection } from '@/web/ui/settings/credentials/exchanges'
+import { ProvidersSection } from '@/web/ui/settings/credentials/providers'
+import { ToolsSection } from '@/web/ui/settings/credentials/tools'
 import { DataSection } from '@/web/ui/settings/data-section'
 import { DisplaySection } from '@/web/ui/settings/display'
 import { ProfileSection } from '@/web/ui/settings/profile-forms'
@@ -88,6 +91,12 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
       return <AgentsSection />
     case 'channels':
       return <ChannelsSection />
+    case 'providers':
+      return <ProvidersSection reopen={reopen} openSection={openSection} />
+    case 'exchanges':
+      return <ExchangesSection reopen={reopen} />
+    case 'tools':
+      return <ToolsSection reopen={reopen} />
     case 'data':
       return <DataSection openSection={openSection} />
     case 'display':

@@ -8,13 +8,19 @@ export const REDACTED_SECRET = '********'
 
 /** Changed only from the CLI or config.toml, never through the API: each one decides what the
  *  daemon runs, which files it touches or where a key is sent, so a leaked page token must not
- *  reach them. A value equal to the file's passes. */
+ *  reach them. Every field naming an environment variable is one: the names on disk are what
+ *  `/v1/credentials` may write. A value equal to the file's passes. */
 const CLI_ONLY_SECTIONS: readonly string[] = ['plugins', 'paths', 'storage', 'api', 'update']
 const CLI_ONLY_PATHS: readonly (readonly string[])[] = [
   ...CLI_ONLY_SECTIONS.map((section) => [section]),
   ['log', 'file'],
   ['trading', 'orders', 'allow_unattended'],
+  // Each value names the variable a source key is read from, as a `*_env` key does.
+  ['trading', 'sources'],
 ]
+/** `[trading.venues.<id>] credentials`: the variables a venue's keys are read from. */
+const VENUES_PATH: readonly string[] = ['trading', 'venues']
+const VENUE_CREDENTIALS_KEY = 'credentials'
 const CHANNELS_SECTION = 'channels'
 /** Who may talk to the daemon through a channel. While the API is reachable from outside
  *  (`[api] public_url`) they change only on the server; the other channel keys grant no chat:
@@ -90,8 +96,25 @@ export function cliOnlyChanges(body: ConfigTree, disk: ConfigTree): readonly str
       (path) => !Bun.deepEquals(valueAt(body, path), valueAt(disk, path))
     ).map((path) => path.join('.')),
     ...mcpServerChanges(body, disk),
+    ...venueCredentialChanges(body, disk),
     ...endpointChanges(body, disk, ''),
   ]
+}
+
+function venueCredentialChanges(body: ConfigTree, disk: ConfigTree): readonly string[] {
+  const venues = valueAt(body, VENUES_PATH)
+  const before = valueAt(disk, VENUES_PATH)
+  const ids = new Set([...recordKeys(venues), ...recordKeys(before)])
+
+  return [...ids]
+    .filter(
+      (id) =>
+        !Bun.deepEquals(
+          valueAt(venues, [id, VENUE_CREDENTIALS_KEY]),
+          valueAt(before, [id, VENUE_CREDENTIALS_KEY])
+        )
+    )
+    .map((id) => [...VENUES_PATH, id, VENUE_CREDENTIALS_KEY].join('.'))
 }
 
 /** Every channel access key `body` changes against the file, by its path in the body. */

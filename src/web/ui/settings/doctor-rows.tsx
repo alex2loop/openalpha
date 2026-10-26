@@ -48,11 +48,11 @@ const FIX_KEYS: Partial<Record<DoctorCheckId, MessageKey>> = Object.freeze({
 
 /** Where the page itself can fix a check; a bot token is set on the server, so it has none. */
 const DOCTOR_FIX_SECTION: Partial<Record<DoctorCheckId, SettingsSection>> = Object.freeze({
-  models: 'data',
-  providers: 'data',
-  venues: 'data',
-  sources: 'data',
-  'web-search': 'data',
+  models: 'providers',
+  providers: 'providers',
+  venues: 'exchanges',
+  sources: 'tools',
+  'web-search': 'tools',
   delivery: 'advanced',
   channels: 'channels',
 })

@@ -1,12 +1,34 @@
+import type { ApiRouteContext } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Runner, RunOptions } from '@/engine/api'
 import { isApiChannel } from '@/app/server/channel'
 import { isClientApprovalWithheld } from '@/engine/api'
+import { type MessageKey, t } from '@/i18n'
 import { ORDER_TOOL_NAME } from '@/trading/api'
 
 /** Behind `public_url` nobody at the page is known to be the operator. */
 export function isApiExposed(api: { readonly publicUrl?: string | undefined }): boolean {
   return api.publicUrl !== undefined
+}
+
+/** A server-only refusal's two sentences: the one naming the booted `public_url`, and the one for
+ *  a `public_url` saved in `config.toml` that the running daemon has not booted with yet. */
+interface ServerOnlyKeys {
+  readonly booted: MessageKey
+  readonly saved: MessageKey
+}
+
+export function buildServerOnlyText(
+  ctx: ApiRouteContext,
+  keys: ServerOnlyKeys,
+  params: Readonly<Record<string, string>>
+): string {
+  const url = ctx.app.config.api.publicUrl
+  const locale = ctx.app.config.locale.language
+
+  return url === undefined
+    ? t(locale, keys.saved, params)
+    : t(locale, keys.booted, { ...params, url })
 }
 
 /** Limits every run on the app's channel - a chat, a steer, a job aimed at the app, and the

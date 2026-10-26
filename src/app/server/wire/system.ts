@@ -124,6 +124,8 @@ export interface StatePayload {
   readonly firstRun: FirstRunWire
   /** The longest the daemon lets its slow routes run, so a client waits for them that long. */
   readonly slowRequestMs: number
+  /** `[api] public_url` is set: keys and the ChatGPT sign-in change only on the server. */
+  readonly exposed: boolean
 }
 
 /** POST /v1/restart. */

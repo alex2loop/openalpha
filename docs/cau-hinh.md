@@ -548,7 +548,8 @@ API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở A
 chạy một lần không bao giờ mở cổng. API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác, nên máy khác
 phải nối qua đường hầm SSH hoặc một reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ
 trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]`, hoặc tới `public_url` khi đã đặt. Ô sửa
-cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa `*_env`,
+cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa `*_env`
+cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`, `[trading.venues.<id>] credentials`),
 `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` hay `[trading.orders]
 allow_unattended`; những mục đó bạn sửa ngay trong file này.
 

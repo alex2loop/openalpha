@@ -1,4 +1,4 @@
-import { type Signal, useSignal } from '@preact/signals'
+import { type Signal, signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import type { ProviderCatalogResponse } from '@/app/server/wire/config'
@@ -24,6 +24,9 @@ const PROVIDER_BOUND_KEYS: ReadonlySet<string> = new Set([
   'provider_allow_fallbacks',
 ])
 
+// A provider "Thêm mô hình" named: the editor adds a line for it the next time it opens.
+const preselected = signal<string | undefined>(undefined)
+
 interface ChainRead {
   readonly entries: readonly ConfigTree[]
   readonly defaults: ConfigTree
@@ -39,6 +42,11 @@ interface ModelChoice {
 type TestResult =
   | { readonly kind: 'ok'; readonly seconds: number }
   | { readonly kind: 'failed'; readonly reason: string }
+
+/** Opens the chain editor, next time it shows, with a new line served by `provider`. */
+export function preselectModelProvider(provider: string): void {
+  preselected.value = provider
+}
 
 /** Nhà cung cấp và model: the models the daemon tries in order. A change is written to the
  *  config file and applies when the daemon next starts. */
@@ -56,10 +64,10 @@ export function ModelChainRow() {
   return <ChainEditor chain={chain.value} />
 }
 
-async function loadChain(signal: AbortSignal): Promise<ChainRead> {
+async function loadChain(abort: AbortSignal): Promise<ChainRead> {
   const [tree, catalog] = await Promise.all([
-    readConfigTree(signal),
-    getJson(ROUTES.providers, { signal }),
+    readConfigTree(abort),
+    getJson(ROUTES.providers, { signal: abort }),
   ])
   const models = Array.isArray(tree.models) ? tree.models : []
 
@@ -78,6 +86,17 @@ function ChainEditor({ chain }: { readonly chain: ChainRead }) {
       model: readText(entry.model) ?? '',
     }))
   )
+
+  useEffect(() => {
+    const provider = preselected.peek()
+
+    if (provider === undefined) {
+      return
+    }
+
+    preselected.value = undefined
+    draft.value = [...draft.value, { provider, model: defaultModelOf(catalog, provider) }]
+  }, [])
 
   return (
     <SettingRow
@@ -103,6 +122,10 @@ function ChainEditor({ chain }: { readonly chain: ChainRead }) {
       ))}
     </SettingRow>
   )
+}
+
+function defaultModelOf(catalog: ProviderCatalogResponse, provider: string): string {
+  return catalog.providers.find((entry) => entry.id === provider)?.defaultModel ?? ''
 }
 
 interface ChoiceLineProps {
@@ -234,15 +257,23 @@ function withChoices(
   const defaults = isTree(tree.model_defaults) ? tree.model_defaults : {}
   const models = Array.isArray(tree.models) ? tree.models : []
 
+  // A line past the file's entries is a model "Thêm mô hình" added.
+  const added = choices
+    .slice(models.length)
+    .map((choice) => withChoice({}, choice, { defaults, catalog }))
+
   return {
     ...tree,
-    models: models.map((entry: unknown, index) => {
-      const choice = choices[index]
+    models: [
+      ...models.map((entry: unknown, index) => {
+        const choice = choices[index]
 
-      return isTree(entry) && choice !== undefined
-        ? withChoice(entry, choice, { defaults, catalog })
-        : entry
-    }),
+        return isTree(entry) && choice !== undefined
+          ? withChoice(entry, choice, { defaults, catalog })
+          : entry
+      }),
+      ...added,
+    ],
   }
 }
 

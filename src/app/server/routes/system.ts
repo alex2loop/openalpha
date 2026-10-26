@@ -15,6 +15,7 @@ import type { CheckName } from '@/core/types/doctor'
 import type { Locale } from '@/core/types/locale'
 import { createTokenFile, findProviderById } from '@/ai/api'
 import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
+import { isApiExposed } from '@/app/server/exposure'
 import { apiTokenPath } from '@/app/server/http/auth'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -98,6 +99,7 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     childRunMaxMs: resolveChildMaxDurationMs(app.config.loop),
     firstRun,
     slowRequestMs: HOST_SLOW_REQUEST_TIMEOUT_MS,
+    exposed: isApiExposed(app.config.api),
   } satisfies StatePayload)
 }
 

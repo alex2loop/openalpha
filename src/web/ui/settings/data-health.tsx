@@ -163,8 +163,8 @@ function useHealth(): Health {
   }
 }
 
-// One read at a time: a newer one aborts the one in flight, and so does leaving the section.
-function useLatestRead(): {
+/** One read at a time: a newer one aborts the one in flight, and so does leaving the section. */
+export function useLatestRead(): {
   readonly failure: Signal<string | undefined>
   readonly isBusy: Signal<boolean>
   readonly run: (read: (signal: AbortSignal) => Promise<void>) => void
