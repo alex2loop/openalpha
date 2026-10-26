@@ -3,6 +3,7 @@ import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { selectAgent } from '@/web/state/agents'
+import { breakpoint } from '@/web/state/breakpoints'
 import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
 import {
   inputText,
@@ -17,11 +18,13 @@ import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { ReadOnlyLine } from '@/web/ui/chat/session-view'
 import {
+  resolveSendLabel,
   type SuggestOption,
   SuggestPopover,
   useSuggestions,
 } from '@/web/ui/command/suggest-popover'
 import { WhoChip } from '@/web/ui/command/who-chip'
+import { Button } from '@/web/ui/kit/button'
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 import { ChatIcon, SlashIcon } from '@/web/ui/kit/icons'
 
@@ -88,7 +91,19 @@ function Composer() {
           </p>
         )}
       </div>
+      {breakpoint.value === 'phone' && <SendButton list={list} />}
     </>
+  )
+}
+
+// A phone has no Enter key on every keyboard, so it keeps a button for the same send.
+function SendButton({ list }: { readonly list: ListState }) {
+  const typed = inputText.value.trim()
+
+  return (
+    <Button kind="commit" disabled={typed === ''} onClick={() => send(list)}>
+      {typed.startsWith(COMMAND_PREFIX) ? tr('ui.office.command.run') : resolveSendLabel()}
+    </Button>
   )
 }
 
