@@ -25,7 +25,6 @@ import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { createPets } from '@/web/scene/sim/life/pets'
 import { isRoundFree, roundDueOf, stepRounds } from '@/web/scene/sim/life/rounds'
 import {
-  isInRange,
   resetIdle,
   scheduleDueOf,
   stepChat,
@@ -39,6 +38,7 @@ import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { approachOf } from '@/web/scene/sim/places'
 import { stepBell } from '@/web/scene/sim/rhythm'
 import { propsOn } from '@/web/scene/world/props'
+import { isInRange } from '@/web/scene/world/regions'
 import { onWireEvent } from '@/web/state/events'
 import { pending, runs } from '@/web/state/live'
 import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time'

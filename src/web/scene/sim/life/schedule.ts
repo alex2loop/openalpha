@@ -1,6 +1,5 @@
 import type { ActorState } from '@/web/scene/sim/director'
 import type { ActorId, FloorId, LifeLine, Point } from '@/web/scene/types'
-import type { MinuteRange } from '@/web/scene/world/regions'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { beginMoment, type MomentKind, type StopSpec, toStop } from '@/web/scene/sim/life/moments'
 import {
@@ -15,6 +14,7 @@ import {
 } from '@/web/scene/sim/life/state'
 import { approachOf } from '@/web/scene/sim/places'
 import { type PropKind, propsOn } from '@/web/scene/world/props'
+import { isInRange } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { PANTRY, SOFA_SEATS } from '@/web/scene/world/seats'
 
@@ -293,10 +293,6 @@ export function begin(
   })
 
   state.moments.set(id, moment)
-}
-
-export function isInRange(minute: number, range: MinuteRange): boolean {
-  return minute >= range[0] && minute < range[1]
 }
 
 /** The floors that have people on them. */
