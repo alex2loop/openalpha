@@ -186,6 +186,17 @@ subscription login, the generated API token, social network keys and the Zalo pe
 do not travel with `db export` or `db backup`; see
 [Storage](storage.md#files-outside-the-database).
 
+Keys typed on the office page (Settings > Providers, Exchanges and Tools) go to the same key file
+`openalpha key set` writes, `<data dir>/env`, mode `0600`, replaced atomically. The daemon never sends
+a saved value back: the page learns only whether a name is saved, and a refused value is not echoed
+in the error, the log or the field's sentence. The page may set only the variables your models,
+exchanges, web search and data sources read: the API token, a channel's bot token, an MCP server's
+variables, the product's own control variables (such as `OPENALPHA_DATA_DIR`) and the names that steer how programs start
+are refused, and so is a value with a line break, an edge space or more than 4,096 characters. Which
+variable a key lives in (`api_key_env`, `[trading.sources]`, a venue's `credentials`) is set only from
+the CLI or the file, so the page cannot point a key somewhere new. While `[api] public_url` is set,
+saved on disk or running, the page changes no key and starts no ChatGPT sign-in.
+
 Credential detection covers authorization headers, provider tokens, JWTs, private keys,
 certificates and URLs that carry credentials. It is used three ways:
 
@@ -242,6 +253,13 @@ already keeps other accounts out.
 
 An external MCP server's HTTP endpoint is rechecked on every request and follows no redirect, but it
 is not address-pinned, so the rebind window between check and call stays open.
+
+The office page makes one outside call of its own, from your browser rather than the daemon: the
+current weather for the region's city from `api.open-meteo.com`, every 30 minutes, sending only the
+city's latitude and longitude, with no cookie and no referrer. It never runs in a preview hour or under
+reduced motion, and a failed call falls back to a made-up sky. The compiled page's security policy
+lets it reach the daemon and that one host, nothing else; Settings > Data and connections names it beside the hosts the
+daemon calls.
 
 An agent's `hosts` list is a capability boundary for `web_fetch` and for the pages `research` reads
 directly: adding a host deliberately widens what that agent can reach. A research page on a host outside

@@ -493,7 +493,7 @@ times per run.
 |---|---|---|---|
 | `ttl_days` | int | `90` | Default lifetime of expiring observations. |
 
-A stored memory value is capped at 16 KiB.
+A stored memory value is capped at 16 KiB. The office page lists the notes under Settings > Memory, per agent and per person it talked to, adds one with "+ Remember" and forgets one with undo; a note is forgotten `ttl_days` after its last update.
 
 ### `[web_search]`
 
@@ -532,6 +532,8 @@ requested recency is reported as unverified.
 `deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set `cost_per_search_usd = 0.00075` so the spend shows in your totals. DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the sites you chose; only a site list long enough to crowd out the question moves to filtering the results. Excluded sites are always filtered from the results, so you still get only the sites you asked for. DeepSeek takes no language, so a page's machine-translated copies (paths like `/nl/`, `/de/`) are dropped and only pages in your language are kept. Searches are paced to DeepSeek's limit of 5 a second.
 
 Keys come only from the environment variables named by `api_key_env` and `fallback_api_key_env`.
+The office page's Settings > Tools switches `provider` (after a restart) and saves the key itself, but the
+variable names and `base_url` stay in this file.
 A provider call times out after 15 seconds and retries transient failures up to 3 times from an
 800 ms base backoff. A provider that fails 3 times in a row is skipped for 1 minute. The cache holds
 100 entries per TTL, and each result snippet is capped at 400 characters.
@@ -553,7 +555,8 @@ client on another machine connects through an SSH tunnel or a reverse proxy on t
 `[::1]`, or to `public_url` when set. The office page's config editor cannot change plugins, an MCP
 server's command, every `*_env` key and every other field naming an environment variable (`[trading.sources]`,
 `[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
-`[update]` or `[trading.orders] allow_unattended`; change those here.
+`[update]` or `[trading.orders] allow_unattended`; change those here. The key values themselves can be
+saved from Settings > Providers, Exchanges and Tools, which write `<data dir>/env` as `openalpha key set` does.
 
 Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain) needs
 `public_url` set to the address the browser opens. That is what turns on the exposure limits and the
@@ -567,6 +570,8 @@ routes and `/trade` stay off until `orders = true`; chats from the app cannot ru
 files or use tools from MCP servers or plugins, nor the social network tools; jobs made from the app
 answer only in the app; and pairing approval plus each channel's `allowed_ids`, `operator_user_ids`,
 `pairing` and `dm_policy` are server-only: they change from the CLI or this file, never from the app.
+The page then saves no key and starts no ChatGPT sign-in either: use `openalpha key set` and
+`openalpha auth login chatgpt` on the server.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32

@@ -143,7 +143,7 @@ One bad agent never stops the daemon from booting. Each file fails on its own an
 ### Runtime boundary
 
 Each agent runs with file tools rooted at `<data_dir>/workspaces/<id>/` and its own memory scope. An approved
-shell starts in that folder, but it is a working directory, not an operating-system sandbox.
+shell starts in that folder, but it is a working directory, not an operating-system sandbox. The office page lists what each agent remembers, per person it talked to, under Settings > Memory, where a note can be added or forgotten (see [Operations](operations.md#settings-worth-knowing)).
 
 ### Focus, spend and pause
 
@@ -664,6 +664,8 @@ next entry.
 
 `auth` commands do not boot the runtime and need no config file. Without one, tokens land in the default data
 directory; pass `--data-dir` to put them elsewhere.
+
+The office page signs in too: Settings > Providers > "+ Add provider" > "Sign in to ChatGPT" shows a code and a link to enter it at, and saves the same login file once you finish. Sign out there asks once. While `[api] public_url` is set the page cannot sign in; do it on the server with `openalpha auth login chatgpt`.
 
 Subscription turns are priced at `$0`, with `pricing_subscription` as the cost source. Tokens are still counted and
 turn and duration limits still apply, but the spend never counts against daily, monthly or per-run caps.

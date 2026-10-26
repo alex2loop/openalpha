@@ -157,6 +157,10 @@ Mọi kết quả hoàn tất cũng mang một kết cục và một mức bằn
 Reviewer chỉ duyệt khi mọi chiều điểm đạt từ 0,4 trở lên, điểm tổng hợp từ 0,7 trở lên, không luận
 điểm nào thiếu hậu thuẫn và không còn vấn đề tồn đọng.
 
+### Trên trang văn phòng
+
+Gửi `/research <câu hỏi>` từ ô câu lệnh của [trang văn phòng](van-hanh.md#trang-văn-phòng) thì khung chat liệt kê các bước của lần chạy ngay khi chúng diễn ra. Nút Dừng hỏi lại trước, nhắc rằng phần AI đã dùng vẫn tính vào hạn mức hôm nay, và dừng luôn các agent con của nó. Câu trả lời cuối cùng chính là báo cáo: mỗi số chú thích nhảy tới nguồn được đánh số ngay dưới câu trả lời đó, và hai câu trả lời nghiên cứu trong cùng một phiên chat giữ số của riêng mình. Khi lần chạy đã có trong danh sách, "Mở dạng báo cáo" mở nó trong trình đọc, và thẻ Đề xuất giữ nó cùng các kết quả nghiên cứu khác. Lần chạy bị dừng hoặc thất bại thì hiện câu của daemon ở chỗ các bước.
+
 ## Khi nghiên cứu thất bại
 
 Một lần chạy hỏng với `insufficient_evidence` khi không trích đoạn nào được nhận, khi không gì sống sót

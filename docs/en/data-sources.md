@@ -13,14 +13,14 @@ Nothing, to get started. Two providers take a key you can add later:
 | `coingecko` | `COINGECKO_API_KEY` | The last fallback for the crypto market-cap board is gone, and so is the only lookup for a coin ranked past every board. It also drops out of the FX list for a settlement coin against a fiat currency. |
 | `fred` | `FRED_API_KEY` | You lose the series only FRED publishes. US macro still reads from `treasury` and `bls`, which need no key. |
 
-Set the variable in your shell or environment, never in a config file. OpenAlpha also reads the same name with the product prefix (`OPENALPHA_FRED_API_KEY`). A variable that is set but empty counts as unset. To use a different variable name, rename it in `config.toml`:
+Save the key with `openalpha key set <NAME>` (or under Settings > Tools on the office page) and restart the daemon, or set the variable in your shell or environment; never write the key in a config file. `openalpha key list` shows both variables and whether each is set. OpenAlpha also reads the same name with the product prefix (`OPENALPHA_FRED_API_KEY`). A variable that is set but empty counts as unset. To use a different variable name, rename it in `config.toml`:
 
 ```toml
 [trading.sources]
 coingecko = "OPENALPHA_COINGECKO_API_KEY"
 ```
 
-The key is a provider id and the value is a variable name, never a secret. Naming a provider that takes no key is a startup error.
+The key is a provider id and the value is a variable name, never a secret. Naming a provider that takes no key is a startup error. Only the CLI or the file can rename a variable; the office page cannot.
 
 A provider whose key is missing is simply not used, and its data falls through to the next provider. At startup OpenAlpha logs one `trading.source.skipped` warning naming each skipped provider and the variable it wanted. To check without starting anything:
 
@@ -185,6 +185,10 @@ Little is cached, and each cache is there for a measured reason.
 - **Identical simultaneous requests** share one download for as long as they are in flight, and nothing is answered from an earlier read.
 
 Every figure carries `live` or `cached` with its provider. Live and stored are different jobs: prices, news, sentiment, funding, FX and the live board are read fresh each time, while history, fundamentals, flows, macro and accounts are fetched by a refresh, kept in your database and read from there, so evidence stays stable through a session. A refresh swaps a market's whole stock list or none of it.
+
+## Weather on the office page
+
+The office page reads the current weather for its city from Open-Meteo (`api.open-meteo.com`, no key), straight from your browser. It is scenery: the sky, rain and light in the office. Nothing stores it, and no suggestion, score or brief ever uses it as evidence. See [Operations](operations.md#the-street-and-the-city).
 
 ## Plugins
 

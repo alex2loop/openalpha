@@ -13,14 +13,14 @@ Không cần làm gì để bắt đầu. Hai nhà cung cấp nhận một khóa
 | `coingecko` | `COINGECKO_API_KEY` | Mất bên dự phòng cuối cho bảng vốn hóa crypto, và mất luôn cách tra riêng một coin nằm ngoài mọi bảng. Nó cũng không còn trong danh sách FX cho một coin thanh toán so với tiền pháp định. |
 | `fred` | `FRED_API_KEY` | Bạn mất các chuỗi chỉ FRED công bố. Vĩ mô Mỹ vẫn đọc được từ `treasury` và `bls`, hai bên không cần khóa. |
 
-Đặt biến trong shell hoặc môi trường, không bao giờ trong tệp cấu hình. OpenAlpha cũng đọc cùng tên đó với tiền tố sản phẩm (`OPENALPHA_FRED_API_KEY`). Biến đã đặt nhưng để trống thì coi như chưa đặt. Muốn dùng tên biến khác thì đổi tên trong `config.toml`:
+Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng) rồi khởi động lại daemon, hoặc đặt biến trong shell hay môi trường; đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy cả hai biến và biến nào đã đặt. OpenAlpha cũng đọc cùng tên đó với tiền tố sản phẩm (`OPENALPHA_FRED_API_KEY`). Biến đã đặt nhưng để trống thì coi như chưa đặt. Muốn dùng tên biến khác thì đổi tên trong `config.toml`:
 
 ```toml
 [trading.sources]
 coingecko = "OPENALPHA_COINGECKO_API_KEY"
 ```
 
-Khóa là mã nhà cung cấp, giá trị là tên biến, không bao giờ là bí mật. Ghi tên một nhà cung cấp không nhận khóa là lỗi lúc khởi động.
+Khóa là mã nhà cung cấp, giá trị là tên biến, không bao giờ là bí mật. Ghi tên một nhà cung cấp không nhận khóa là lỗi lúc khởi động. Chỉ câu lệnh hoặc sửa tệp mới đổi được tên biến; trang văn phòng thì không.
 
 Nhà cung cấp thiếu khóa đơn giản là không được dùng, và dữ liệu của nó chuyển sang nhà cung cấp kế tiếp. Lúc khởi động, OpenAlpha ghi một cảnh báo `trading.source.skipped` nêu tên từng nhà cung cấp bị bỏ qua và biến nó cần. Muốn kiểm tra mà không khởi động gì:
 
@@ -185,6 +185,10 @@ Có rất ít thứ được cache, và mỗi cái đều có lý do đo đượ
 - **Các yêu cầu giống hệt nhau cùng lúc** dùng chung một lần tải trong lúc chúng còn đang chạy, và không gì được trả lời từ một lần đọc cũ.
 
 Mỗi con số mang theo `live` hoặc `cached` cùng nhà cung cấp của nó. Trực tiếp và đã lưu là hai việc khác nhau: giá, tin tức, tâm lý, funding, FX và bảng giá trực tiếp được đọc mới mỗi lần, còn lịch sử, dữ liệu cơ bản, dòng tiền, vĩ mô và báo cáo tài chính được một lượt refresh tải về, lưu trong cơ sở dữ liệu của bạn và đọc từ đó, để bằng chứng ổn định suốt một phiên. Một lượt refresh thay cả danh sách mã của một thị trường hoặc không thay gì.
+
+## Thời tiết trên trang văn phòng
+
+Trang văn phòng đọc thời tiết hiện tại của thành phố từ Open-Meteo (`api.open-meteo.com`, không cần khóa), ngay từ trình duyệt của bạn. Đó chỉ là cảnh: bầu trời, mưa và ánh sáng trong văn phòng. Không gì lưu nó lại, và không đề xuất, điểm số hay bản tin nào dùng nó làm bằng chứng. Xem [Vận hành](van-hanh.md#con-phố-và-thành-phố).
 
 ## Plugin
 

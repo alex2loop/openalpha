@@ -190,6 +190,17 @@ Một vài thông tin đăng nhập là tệp riêng dưới thư mục dữ li�
 của nhà cung cấp mô hình, token API tự sinh, khóa mạng xã hội và phiên Zalo cá nhân. Chúng không đi
 theo `db export` hay `db backup`; xem [Lưu trữ](luu-tru.md#tệp-nằm-ngoài-cơ-sở-dữ-liệu).
 
+Khóa nhập trên trang văn phòng (Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ) được ghi vào đúng tệp
+khóa mà `openalpha key set` ghi, `<thư mục dữ liệu>/env`, quyền `0600`, thay thế nguyên khối. Daemon không
+bao giờ gửi lại giá trị đã lưu: trang chỉ biết một tên đã được lưu hay chưa, và giá trị bị từ chối không
+xuất hiện lại trong lỗi, trong log hay trong câu báo của ô nhập. Trang chỉ đặt được những biến mà mô hình,
+sàn, tìm kiếm web và nguồn dữ liệu của bạn đọc: mã API, token bot của từng kênh, biến của máy chủ MCP,
+các biến điều khiển của chính sản phẩm (như `OPENALPHA_DATA_DIR`) và những tên quyết định cách chương trình khởi chạy đều
+bị từ chối, cũng như giá trị có xuống dòng, có khoảng trắng ở đầu hay cuối, hoặc dài quá 4.096 ký tự.
+Khóa nằm trong biến nào (`api_key_env`, `[trading.sources]`, `credentials` của một sàn) chỉ đặt được bằng
+câu lệnh hoặc sửa tệp, nên trang không thể trỏ một khóa sang chỗ mới. Khi đã đặt `[api] public_url`, dù mới
+lưu trên đĩa hay đang chạy, trang không đổi khóa nào và không bắt đầu đăng nhập ChatGPT.
+
 Việc nhận diện thông tin đăng nhập bao gồm header authorization, token của nhà cung cấp, JWT, khóa
 riêng, chứng chỉ và URL có mang thông tin đăng nhập. Nó được dùng theo ba hướng:
 
@@ -247,6 +258,12 @@ Windows không có các bit quyền này: ở đó thư mục dữ liệu nằm 
 
 Endpoint của một server MCP qua HTTP được kiểm lại ở mỗi yêu cầu và không đi theo chuyển hướng nào,
 nhưng không được ghim địa chỉ, nên khoảng hở rebind giữa lúc kiểm và lúc gọi vẫn còn.
+
+Trang văn phòng tự gọi ra ngoài đúng một chỗ, từ trình duyệt của bạn chứ không phải từ daemon: thời tiết
+hiện tại của thành phố thuộc vùng nhà từ `api.open-meteo.com`, mỗi 30 phút, chỉ gửi vĩ độ và kinh độ của
+thành phố, không kèm cookie hay referrer. Nó không bao giờ chạy khi xem thử giờ khác hay khi giảm chuyển
+động, và gọi lỗi thì văn phòng dùng thời tiết tự tạo. Chính sách bảo mật của trang đã biên dịch chỉ cho nó nối tới daemon
+và đúng máy chủ đó; Cài đặt > Dữ liệu và kết nối ghi tên nó cạnh các máy chủ mà daemon gọi.
 
 Danh sách `hosts` của agent là một ranh giới năng lực cho `web_fetch` và cho các trang `research` đọc
 trực tiếp: thêm một host là cố ý nới phạm vi agent đó với tới được. Trang research nằm ngoài danh sách bị bỏ
