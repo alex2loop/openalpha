@@ -142,8 +142,8 @@ this document — neither imports the other.
 | POST | `/v1/mcp` | yes | MCP JSON-RPC | MCP result (tools only) | — |
 | GET | `/v1/quotes` | yes | — | `TradingQuotesResponse` | `quotes.json` |
 | GET | `/v1/ohlcv` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingOhlcvResponse` | `ohlcv.json` |
-| GET | `/v1/events` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingEventsResponse` (ex-dates, meetings, splits, listings; `title` and `detail` are the source's own words; a market no event source covers answers an empty list) | `events.json` |
-| GET | `/v1/news` | yes | `?region&limit` (optional) | `TradingNewsResponse` | `news.json` |
+| GET | `/v1/events` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingEventsResponse` (ex-dates, meetings, splits, listings; `title` and `detail` are the source's own words; a market no event source covers, or a window with no event in it, answers an empty list with no caveat for the empty window; a source that could not answer is `upstream_failed` or `unavailable`) | `events.json` |
+| GET | `/v1/news` | yes | `?region&limit` (optional) | `TradingNewsResponse` (a region's `items` take one headline from each of its markets in turn, each market's own ranking, so one market's feed cannot fill the limit; the list is then ranked as one) | `news.json` |
 | GET | `/v1/profile` | yes | — | `TradingProfileResponse` | `profile.json` |
 | POST | `/v1/profile` | yes | `{ patch }` | `TradingProfileResponse` | `profile.json` |
 | GET | `/v1/portfolio` | yes | — | `TradingPortfolioResponse` (`unitCostNative`: the buy price in the market's own currency, fees included; `shares.segments`: `[{segment, weight, target, gap}]` as fractions of NAV, `gap` is `weight - target` and positive is over, rounded together with the same `apportion` and `FRACTION_QUANTUM` `/portfolio` prints with, so the page shows the chat's digits; a segment at zero held and zero wanted is left out; holdings carry no shares and print `weightPctNav` as `/portfolio` does) | `portfolio.json` |

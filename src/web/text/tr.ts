@@ -6,6 +6,8 @@ const FAILURE_KEYS: Readonly<Partial<Record<ApiFailure['code'], MessageKey>>> = 
   unreachable: 'ui.office.error.unreachable',
   timeout: 'ui.office.error.timeout',
   bad_response: 'ui.office.error.badResponse',
+  unavailable: 'ui.office.error.unavailable',
+  upstream_failed: 'ui.office.error.upstreamFailed',
 })
 
 /** Reads `locale` and `brand` signals, so a component calling it re-renders when either changes. */

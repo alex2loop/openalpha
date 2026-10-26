@@ -55,6 +55,10 @@ import {
 } from '@/trading/api'
 
 const AMBIGUOUS_SYMBOL = 'source.ambiguous-symbol'
+const EMPTY_WINDOW = 'source.empty-window'
+// What leaves an events read with nothing to list rather than failed: a market no event source
+// covers, or a window every source answered with nothing.
+const NO_EVENTS_REASONS: ReadonlySet<string> = new Set(['unsupported', 'empty'])
 
 /** Every handler: parse the query, call exactly one host method, project through one mapper. The
  *  host owns the operator identity and the numeric bounds, so a route holds no authorization, no
@@ -108,8 +112,7 @@ async function handleTradingEvents(req: Request, ctx: ApiRouteContext): Promise<
 
   const result = await hostOf(ctx).getEvents({ instrument, fromDay, toDay, signal: req.signal })
 
-  // A market no event source covers has no events to show, which is an answer, not a failure.
-  if (result.kind === 'unavailable' && result.reason !== 'unsupported') {
+  if (result.kind === 'unavailable' && !NO_EVENTS_REASONS.has(result.reason)) {
     return sourceError(ctx, result, instrument.ticker)
   }
 
@@ -120,7 +123,11 @@ async function handleTradingEvents(req: Request, ctx: ApiRouteContext): Promise<
     ticker: instrument.ticker,
     events: found ? result.value.map(toMarketEventWire) : [],
     provenance: found ? toProvenanceWires(result.provenance) : [],
-    caveats: toCaveatWires(result.caveats, localeOf(ctx)),
+    // An empty window is the answer, not a caution about it.
+    caveats: toCaveatWires(
+      result.caveats.filter((caveat) => caveat.code !== EMPTY_WINDOW),
+      localeOf(ctx)
+    ),
   } satisfies TradingEventsResponse)
 }
 
