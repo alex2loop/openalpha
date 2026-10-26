@@ -1,4 +1,4 @@
-import { authState } from '@/web/api/token'
+import { authState } from '@/web/api/sign-in'
 import {
   brand,
   connection,

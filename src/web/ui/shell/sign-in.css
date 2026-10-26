@@ -1,4 +1,4 @@
-/* The card centres by its own margin, so a short viewport scrolls to the button instead of
+/* The card centres by its own margin, so a short viewport scrolls to the command instead of
    cutting off the top. */
 .sign-in {
   display: grid;
@@ -36,7 +36,6 @@
 }
 
 .sign-in-command {
-  margin-bottom: var(--s3);
   padding: var(--s1) 10px;
   border-radius: 8px;
   background: var(--sunken);
@@ -44,43 +43,8 @@
   user-select: all;
 }
 
-.sign-in-label {
-  margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.sign-in-field {
-  width: 100%;
-  padding: 6px var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--canvas);
-}
-
-.sign-in-remember {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 10px 0 14px;
-  font-size: 12.5px;
-  color: var(--ink2);
-}
-
 .sign-in-failure {
   margin-bottom: var(--s2);
   color: var(--dangerText);
   font-size: 12px;
-}
-
-.sign-in-card .btn {
-  width: 100%;
-  height: 36px;
-}
-
-.sign-in-note {
-  margin-top: 10px;
-  color: var(--ink3);
-  font-size: 12px;
-  text-align: center;
 }

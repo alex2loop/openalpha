@@ -48,7 +48,7 @@ interface SocketState {
 
 /** The page's one socket. It says hello, goes `live` on a matching welcome, and on any drop asks the
  *  daemon why: a browser exposes no handshake status, so `/v1/health` then `/v1/state` tell an
- *  absent daemon (`offline`, retried with backoff) from a refused token (`refused`, never retried). */
+ *  absent daemon (`offline`, retried with backoff) from an ended sign-in (`refused`, never retried). */
 export function createFeedSocket(deps: FeedSocketDeps): FeedSocket {
   const state: SocketState = {
     deps,

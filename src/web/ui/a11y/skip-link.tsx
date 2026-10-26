@@ -14,7 +14,7 @@ export function SkipLink() {
   )
 }
 
-// Focus moves without the address changing, so the hash never fights the token's own use of it.
+// Focus moves without the address changing, so the hash never fights a sign-in link's use of it.
 function skip(event: TargetedMouseEvent<HTMLAnchorElement>): void {
   event.preventDefault()
   document.getElementById(PANEL_ELEMENT_ID)?.focus()

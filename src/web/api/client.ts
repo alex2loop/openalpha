@@ -1,9 +1,9 @@
 import type { ApiErrorCode, ApiFieldError, UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { RouteDef } from '@/web/api/routes'
-import { authState, clearToken, readToken } from '@/web/api/token'
+import { noteRefused } from '@/web/api/sign-in'
 
 const REQUEST_TIMEOUT_MS = 20_000
-/** The status of a request the daemon refused for its access code. */
+/** The status of a request the daemon refused for want of a signed-in session. */
 export const UNAUTHORIZED_STATUS = 401
 // A request that got no answer has no HTTP status.
 const NO_STATUS = 0
@@ -88,18 +88,18 @@ export function sendJson<T>(
 async function request<T>(def: RouteDef<T>, init: ApiRequest): Promise<T> {
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const signal = init.signal === undefined ? timeout : AbortSignal.any([init.signal, timeout])
-  const token = readToken()
 
   try {
     const response = await fetch(buildUrl(def.path, init.query), {
       method: init.method,
-      headers: buildHeaders(token, init),
+      credentials: 'same-origin',
+      headers: buildHeaders(init),
       body: init.body === undefined ? null : JSON.stringify(init.body),
       signal,
     })
 
     if (!response.ok) {
-      throw await toApiFailure(response, token)
+      throw await toApiFailure(response)
     }
 
     return await readJson<T>(response)
@@ -124,22 +124,16 @@ function buildUrl(path: string, query: GetInit['query']): string {
   return `${path}?${params}`
 }
 
-function buildHeaders(token: string | undefined, init: ApiRequest): Record<string, string> {
+function buildHeaders(init: ApiRequest): Record<string, string> {
   return {
     ...init.headers,
-    ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }),
     ...(init.body === undefined ? {} : { 'Content-Type': JSON_CONTENT_TYPE }),
   }
 }
 
-// A refusal of a token the operator has since replaced says nothing about the new one.
-async function toApiFailure(
-  response: Response,
-  sentToken: string | undefined
-): Promise<ApiFailure> {
-  if (response.status === UNAUTHORIZED_STATUS && sentToken === readToken()) {
-    clearToken()
-    authState.value = 'refused'
+async function toApiFailure(response: Response): Promise<ApiFailure> {
+  if (response.status === UNAUTHORIZED_STATUS) {
+    noteRefused()
   }
 
   const body: unknown = await response.json().catch(() => undefined)

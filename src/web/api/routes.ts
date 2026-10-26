@@ -38,6 +38,9 @@ import type {
 import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type { OutboundResponse } from '@/app/server/wire/outbound'
 import type {
+  BrowserSessionEndResult,
+  BrowserSessionList,
+  BrowserSignInResult,
   PairingDecisionResult,
   PairingList,
   PairingRevokeResult,
@@ -157,6 +160,11 @@ export const ROUTES = Object.freeze({
     route<PairingRevokeResult>(
       `/v1/pairing/${encodeURIComponent(channel)}/${encodeURIComponent(chatId)}`
     ),
+  sessionExchange: route<BrowserSignInResult>('/v1/session'),
+  sessionLogout: route<BrowserSessionEndResult>('/v1/session/logout'),
+  sessions: route<BrowserSessionList>('/v1/sessions'),
+  sessionEnd: (sessionId: string) =>
+    route<BrowserSessionEndResult>(`/v1/sessions/${encodeURIComponent(sessionId)}`),
   sources: route<SourcesResponse>('/v1/sources'),
   outbound: route<OutboundResponse>('/v1/outbound'),
   doctor: route<DoctorReport>('/v1/doctor'),

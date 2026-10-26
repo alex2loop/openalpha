@@ -62,6 +62,10 @@ const RULES: readonly Rule[] = [
     exemptFile: (path) => !path.startsWith('src/cli/'),
   },
   {
+    label: 'dangerouslySetInnerHTML - render JSX nodes; nothing reaches innerHTML',
+    pattern: /dangerouslySetInnerHTML/,
+  },
+  {
     label: 'duplicated CLI registry metadata — spread the canonical CLI_COMMAND_METADATA entry',
     pattern: /\b(?:name|summary):\s*['"`]/,
     exemptFile: (path) => path !== 'src/cli/registry.ts',

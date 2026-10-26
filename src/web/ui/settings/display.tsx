@@ -2,7 +2,6 @@ import { useMemo } from 'preact/hooks'
 
 import type { StatePayload } from '@/app/server/wire/system'
 import type { MessageKey } from '@/i18n'
-import { authState, clearToken } from '@/web/api/token'
 import {
   COLOUR_PAIRS,
   type ColourPair,
@@ -22,9 +21,9 @@ import {
 import { state } from '@/web/state/session'
 import { isTree, saveConfig } from '@/web/state/settings'
 import { tr } from '@/web/text/tr'
-import { Button } from '@/web/ui/kit/button'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { AttentionRows } from '@/web/ui/settings/attention-rows'
+import { BrowserSessionsRow } from '@/web/ui/settings/browser-sessions'
 import { ActionRow, SettingRow, useDraft } from '@/web/ui/settings/row'
 
 type Language = StatePayload['locale']
@@ -78,7 +77,7 @@ export function DisplaySection() {
       />
       <LightByHourRow />
       <AttentionRows />
-      <ConnectionRow />
+      <BrowserSessionsRow />
     </>
   )
 }
@@ -196,23 +195,6 @@ function LightByHourRow() {
         />
         {tr('ui.office.settings.lightByHourOn')}
       </label>
-    </ActionRow>
-  )
-}
-
-function ConnectionRow() {
-  return (
-    <ActionRow title={tr('ui.office.settings.connection')}>
-      <Button
-        size="small"
-        kind="destructive"
-        onClick={() => {
-          clearToken()
-          authState.value = 'missing'
-        }}
-      >
-        {tr('ui.office.settings.signOut')}
-      </Button>
     </ActionRow>
   )
 }
