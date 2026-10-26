@@ -21,6 +21,7 @@ const DEFAULT_MAX_PER_RUN_USD = 0
 const DEFAULT_SOFT_WARN_RATIO = 0.8
 const DEFAULT_LANGUAGE = 'vi'
 const FALLBACK_TIMEZONE = 'UTC'
+const HTTPS_PROTOCOL = 'https:'
 const DEFAULT_TICK_SECONDS = 30
 const DEFAULT_MAX_PER_TICK = 5
 const DEFAULT_MAX_GLOBAL = 50
@@ -92,6 +93,10 @@ export interface ResolvedApi {
   readonly enabled: boolean
   readonly port: number
   readonly tokenEnv?: string
+  /** Order routes and the order tool over the API; off by default once `publicUrl` is set. */
+  readonly orders: boolean
+  /** The origin the daemon is reached at through a proxy: `https://host[:port]`, no path. */
+  readonly publicUrl?: string
 }
 
 export interface ResolvedNotices {
@@ -197,11 +202,48 @@ export function resolveLlm(raw: RawLlm | undefined): ResolvedLlm {
 }
 
 export function resolveApi(raw: RawApi | undefined): ResolvedApi {
+  const publicUrl = raw?.public_url === undefined ? undefined : resolvePublicUrl(raw.public_url)
+
   return {
     enabled: raw?.enabled ?? false,
     port: raw?.port ?? DEFAULT_API_PORT,
     ...(raw?.token_env === undefined ? {} : { tokenEnv: raw.token_env }),
+    orders: raw?.orders ?? publicUrl === undefined,
+    ...(publicUrl === undefined ? {} : { publicUrl }),
   }
+}
+
+function resolvePublicUrl(raw: string): string {
+  const origin = toPublicOrigin(raw)
+
+  if (origin === undefined) {
+    throw new OperatorConfigError(
+      `invalid api.public_url: "${raw}"`,
+      { key: 'errors.configApiPublicUrl', params: { value: raw } },
+      { path: ['api', 'public_url'] }
+    )
+  }
+
+  return origin
+}
+
+// A spelling the browser would send back differently (path, query, userinfo, http) cannot be the
+// page's origin, so it is refused rather than trimmed.
+function toPublicOrigin(raw: string): string | undefined {
+  if (!URL.canParse(raw)) {
+    return undefined
+  }
+
+  const url = new URL(raw)
+  const isOriginOnly =
+    url.protocol === HTTPS_PROTOCOL &&
+    url.username === '' &&
+    url.password === '' &&
+    url.search === '' &&
+    url.hash === '' &&
+    url.pathname === '/'
+
+  return isOriginOnly ? url.origin : undefined
 }
 
 export function resolveNotices(raw: RawNotices | undefined): ResolvedNotices {

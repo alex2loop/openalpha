@@ -550,9 +550,16 @@ The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it wh
 a one-off command never opens the port. It binds `127.0.0.1` only and refuses every other peer, so a
 client on another machine connects through an SSH tunnel or a reverse proxy on the same host (see
 [Operations](operations.md)). It answers only a request addressed to `127.0.0.1`, `localhost` or
-`[::1]`, so a proxy passes the daemon's own address as the host. The office page's config editor
-cannot change plugins, an MCP server's command, every `*_env` key, `base_url`, `[paths]`, `[log] file`
-or `[storage]`; change those here.
+`[::1]`, or to `public_url` when set. The office page's config editor cannot change plugins, an MCP
+server's command, every `*_env` key, `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
+`[update]` or `[trading.orders] allow_unattended`; change those here.
+
+Behind Caddy or `tailscale serve`, set `public_url` to the address the browser opens; the proxy
+passes that name as the host (both do by default). A request that came through a proxy is refused
+while `public_url` is unset. Setting it turns orders off unless `orders = true`, keeps commands, file
+writes and connected MCP tools out of chats from the app, and makes pairing approval and each
+channel's `allowed_ids`, `operator_user_ids`, `pairing` and `dm_policy` server-only: they change from
+the CLI or this file, never from the app.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
@@ -566,6 +573,8 @@ replaces the token.
 | `enabled` | bool | `false` | Master switch. |
 | `port` | int | `8765` | TCP port, 1024-65535. |
 | `token_env` | string | - | Environment variable holding the bearer token. When set, the file token is ignored. |
+| `orders` | bool | `true`, or `false` once `public_url` is set | Lets the app place, cancel and halt orders. |
+| `public_url` | string | - | The `https://` address the daemon is reached at through a proxy: a host name and, if needed, a port, with no path. `https://<machine>.<tailnet>.ts.net` for `tailscale serve`. |
 
 ### `[[mcp.servers]]`
 

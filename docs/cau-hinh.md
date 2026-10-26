@@ -547,10 +547,17 @@ hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục m�
 API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở API khi `enabled = true`; một lệnh
 chạy một lần không bao giờ mở cổng. API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác, nên máy khác
 phải nối qua đường hầm SSH hoặc một reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ
-trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]`, nên proxy phải chuyển đúng địa chỉ của
-daemon làm host. Ô sửa cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ
-MCP, mọi khóa `*_env`, `base_url`, `[paths]`, `[log] file` hay `[storage]`; những mục đó bạn sửa ngay
-trong file này.
+trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]`, hoặc tới `public_url` khi đã đặt. Ô sửa
+cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa `*_env`,
+`base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` hay `[trading.orders]
+allow_unattended`; những mục đó bạn sửa ngay trong file này.
+
+Khi đặt sau Caddy hoặc `tailscale serve`, hãy đặt `public_url` là địa chỉ trình duyệt mở; proxy chuyển
+đúng tên đó làm host (cả hai đều làm vậy theo mặc định). Khi chưa đặt `public_url`, mọi yêu cầu đi qua
+proxy đều bị từ chối. Đặt `public_url` thì lệnh giao dịch bị tắt trừ khi `orders = true`, chat từ ứng
+dụng không chạy được câu lệnh, không ghi tệp và không dùng công cụ MCP đã kết nối, còn việc duyệt ghép
+nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng kênh chỉ đổi được trên
+máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
@@ -563,6 +570,8 @@ không được dùng thay) và `start` in cảnh báo, phần còn lại của 
 | `enabled` | bool | `false` | Công tắc chính. |
 | `port` | số nguyên | `8765` | Cổng TCP, 1024-65535. |
 | `token_env` | chuỗi | - | Biến môi trường chứa bearer token. Khi được đặt, token trong tệp bị bỏ qua. |
+| `orders` | bool | `true`, hoặc `false` khi đã đặt `public_url` | Cho ứng dụng đặt lệnh, hủy lệnh và tắt chức năng mua. |
+| `public_url` | chuỗi | - | Địa chỉ `https://` mà daemon được truy cập qua proxy: chỉ tên máy và cổng nếu cần, không kèm đường dẫn. Dùng `https://<machine>.<tailnet>.ts.net` với `tailscale serve`. |
 
 ### `[[mcp.servers]]`
 

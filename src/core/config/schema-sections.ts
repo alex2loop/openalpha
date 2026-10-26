@@ -194,6 +194,8 @@ export const ApiSchema = z.strictObject({
   enabled: z.boolean().optional(),
   port: z.number().int().min(1024).max(65_535).optional(),
   token_env: z.string().min(1).optional(),
+  orders: z.boolean().optional(),
+  public_url: z.string().min(1).optional(),
 })
 
 const POSTGRES_SCHEMA_NAME = z.string().regex(/^[a-z_][a-z0-9_]{0,62}$/)

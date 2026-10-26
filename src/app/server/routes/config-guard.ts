@@ -9,10 +9,21 @@ export const REDACTED_SECRET = '********'
 /** Changed only from the CLI or config.toml, never through the API: each one decides what the
  *  daemon runs, which files it touches or where a key is sent, so a leaked page token must not
  *  reach them. A value equal to the file's passes. */
-const CLI_ONLY_SECTIONS: readonly string[] = ['plugins', 'paths', 'storage']
+const CLI_ONLY_SECTIONS: readonly string[] = ['plugins', 'paths', 'storage', 'api', 'update']
 const CLI_ONLY_PATHS: readonly (readonly string[])[] = [
   ...CLI_ONLY_SECTIONS.map((section) => [section]),
   ['log', 'file'],
+  ['trading', 'orders', 'allow_unattended'],
+]
+const CHANNELS_SECTION = 'channels'
+/** Who may talk to the daemon through a channel. While the API is reachable from outside
+ *  (`[api] public_url`) they change only on the server; the other channel keys grant no chat:
+ *  a channel with no allowlist pairs, and pairing approval is server-only then too. */
+const CHANNEL_ACCESS_KEYS: readonly string[] = [
+  'allowed_ids',
+  'operator_user_ids',
+  'pairing',
+  'dm_policy',
 ]
 const MCP_SECTION = 'mcp'
 const MCP_SERVERS_PATH: readonly string[] = [MCP_SECTION, 'servers']
@@ -80,6 +91,23 @@ export function cliOnlyChanges(body: ConfigTree, disk: ConfigTree): readonly str
     ...mcpServerChanges(body, disk),
     ...endpointChanges(body, disk, ''),
   ]
+}
+
+/** Every channel access key `body` changes against the file, by its path in the body. */
+export function exposedOnlyChanges(body: ConfigTree, disk: ConfigTree): readonly string[] {
+  const channels = memberOf(body, CHANNELS_SECTION)
+  const before = memberOf(disk, CHANNELS_SECTION)
+  const ids = new Set([...recordKeys(channels), ...recordKeys(before)])
+
+  return [...ids].flatMap((id) =>
+    CHANNEL_ACCESS_KEYS.filter(
+      (key) => !Bun.deepEquals(valueAt(channels, [id, key]), valueAt(before, [id, key]))
+    ).map((key) => [CHANNELS_SECTION, id, key].join('.'))
+  )
+}
+
+function recordKeys(value: unknown): readonly string[] {
+  return isPlainRecord(value) ? Object.keys(value) : []
 }
 
 function toRedacted(value: unknown, isSecret: boolean): unknown {

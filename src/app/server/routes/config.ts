@@ -14,6 +14,7 @@ import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import { apiError, json } from '@/app/server/http/dispatch'
 import {
   cliOnlyChanges,
+  exposedOnlyChanges,
   REDACTED_SECRET,
   redactedPaths,
   toRedactedConfig,
@@ -29,6 +30,7 @@ import { bindLocale } from '@/i18n'
 const MAX_CONFIG_BYTES = 512 * 1024
 const CLI_ONLY_KIND = 'config_cli_only'
 const SECRET_HIDDEN_KIND = 'config_secret_hidden'
+const SERVER_ONLY_KIND = 'config_server_only'
 const TESTED_MODEL_KEYS = ['base_url', 'api_key_env'] as const
 
 async function handleConfigGet(_req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -45,7 +47,7 @@ async function handleConfigValidate(req: Request, ctx: ApiRouteContext): Promise
   const disk = await readDiskConfig(configPath)
   const restored = toRestoredConfig(body, disk)
   const checked = validateBootConfigTree(restored)
-  const refusals = isPlainRecord(restored) ? writeRefusals(restored, disk) : []
+  const refusals = isPlainRecord(restored) ? writeRefusals(restored, disk, isExposed(ctx)) : []
 
   if (refusals.length === 0) {
     return json(checked satisfies ConfigValidation)
@@ -82,7 +84,7 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     return apiError('invalid_body')
   }
 
-  const [refusal] = writeRefusals(body, disk)
+  const [refusal] = writeRefusals(body, disk, isExposed(ctx))
 
   if (refusal !== undefined) {
     throw refusal
@@ -107,17 +109,24 @@ async function readDiskConfig(configPath: string): Promise<Record<string, unknow
   return (await file.exists()) ? parseToml(await file.text()) : {}
 }
 
+function isExposed(ctx: ApiRouteContext): boolean {
+  return ctx.app.config.api.publicUrl !== undefined
+}
+
 // What a write may not carry, a secret still hidden first: each refusal names all its fields.
 function writeRefusals(
   body: Record<string, unknown>,
-  disk: Record<string, unknown>
+  disk: Record<string, unknown>,
+  exposed: boolean
 ): readonly FieldValidationError[] {
   const hidden = redactedPaths(body)
   const changed = cliOnlyChanges(body, disk)
+  const serverOnly = exposed ? exposedOnlyChanges(body, disk) : []
 
   return [
     ...(hidden.length > 0 ? [fieldsRefusal(hidden, SECRET_HIDDEN_KIND)] : []),
     ...(changed.length > 0 ? [fieldsRefusal(changed, CLI_ONLY_KIND)] : []),
+    ...(serverOnly.length > 0 ? [fieldsRefusal(serverOnly, SERVER_ONLY_KIND)] : []),
   ]
 }
 

@@ -208,14 +208,17 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   no value for is `invalid_body` with `fields`.
 - **`POST /v1/config`** refuses, as `invalid_body` with one `fields` entry per path, any change
   against the file to what only the CLI or `config.toml` may change: `plugins`, `paths`, `storage`,
-  `log.file`, an MCP server's `transport`, `command`, `args` and `env` (servers matched by `name`, so
-  a new stdio server counts as a change), and every `*_env`, `base_url` and `fallback_base_url` key
-  anywhere. An equal value passes; dropping a `*_env`, `base_url` or `fallback_base_url` key passes
+  `api`, `update`, `log.file`, `trading.orders.allow_unattended`, an MCP server's `transport`,
+  `command`, `args` and `env` (servers matched by `name`, so a new stdio server counts as a change),
+  and every `*_env`, `base_url` and `fallback_base_url` key anywhere. While `[api] public_url` is set
+  it also refuses a change to any channel's `allowed_ids`, `operator_user_ids`, `pairing` or
+  `dm_policy` (`channels.<id>.<key>`, with its own server-only sentence). An equal value passes;
+  dropping a `*_env`, `base_url` or `fallback_base_url` key passes
   (the provider's own address and key variable take over), and so does an `api_key_env` set to the
   key variable the provider catalog names for the entry's `provider`. The list is
   `routes/config-guard.ts`. `/v1/config/validate` runs the same refusals and answers `ok: false`
-  with one issue per refused path (a hidden secret and a CLI-only change alike, each marked
-  `refused: true`; its message already names the field), so a check and a
+  with one issue per refused path (a hidden secret, a CLI-only and a server-only change alike, each
+  marked `refused: true`; its message already names the field), so a check and a
   save of one body agree.
 - **Before a daemon exists**, the app runs `openalpha setup catalog` (the provider list as
   `SetupResult`) and `openalpha setup write <provider> <model>` (the starter config) with the
