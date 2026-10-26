@@ -142,7 +142,7 @@ this document — neither imports the other.
 | POST | `/v1/mcp` | yes | MCP JSON-RPC | MCP result (tools only) | — |
 | GET | `/v1/quotes` | yes | — | `TradingQuotesResponse` | `quotes.json` |
 | GET | `/v1/ohlcv` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingOhlcvResponse` | `ohlcv.json` |
-| GET | `/v1/events` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingEventsResponse` (ex-dates, meetings, splits, listings; `title` and `detail` are the source's own words; a market no event source covers answers an empty list) | `events.json` |
+| GET | `/v1/events` | yes | `?market&ticker&fromDay&toDay` (all required) | `TradingEventsResponse` (ex-dates, meetings, splits, listings; `title` and `detail` are the source's own words; a market no event source covers, or a window with no event in it, answers an empty list with no caveat for the empty window; a source that could not answer is `upstream_failed` or `unavailable`) | `events.json` |
 | GET | `/v1/news` | yes | `?region&limit` (optional) | `TradingNewsResponse` | `news.json` |
 | GET | `/v1/profile` | yes | — | `TradingProfileResponse` | `profile.json` |
 | POST | `/v1/profile` | yes | `{ patch }` | `TradingProfileResponse` | `profile.json` |
