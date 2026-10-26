@@ -1261,6 +1261,7 @@
     "office.settings.tools": "Công cụ",
     "office.credentials.set": "đã lưu",
     "office.credentials.unset": "chưa có",
+    "office.credentials.fromEnvironment": "từ môi trường",
     "office.credentials.change": "Đổi",
     "office.credentials.paste": "Dán khóa vào đây",
     "office.credentials.remove": "Bỏ",

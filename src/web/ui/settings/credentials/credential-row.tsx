@@ -40,7 +40,7 @@ export function CredentialRow({ credential, reopen }: CredentialRowProps) {
     <div class="setting-job credential-row">
       <div class="setting-actions">
         <b class="mono">{name}</b>
-        <StatePill isSet={isSet} />
+        <StatePill isSet={isSet} fromShell={credential.fromShell} />
         {!isEditing.value && (
           <RowActions
             name={name}
@@ -64,25 +64,26 @@ export function CredentialRow({ credential, reopen }: CredentialRowProps) {
           }}
         />
       )}
-      <RowNotes name={name} isSaved={isSaved.value} fromShell={credential.fromShell} />
+      <RowNotes name={name} isSaved={isSaved.value} winsOver={isSet && credential.fromShell} />
     </div>
   )
 }
 
-// What the operator should know after a save, and when the server's own environment wins.
+// What the operator should know after a save, and when the server's own environment wins over the
+// saved key.
 function RowNotes({
   name,
   isSaved,
-  fromShell,
+  winsOver,
 }: {
   readonly name: string
   readonly isSaved: boolean
-  readonly fromShell: boolean
+  readonly winsOver: boolean
 }) {
   return (
     <>
       {isSaved && <p class="meta">{tr('ui.office.credentials.saved')}</p>}
-      {fromShell && <p class="meta">{tr('ui.office.credentials.fromShell', { name })}</p>}
+      {winsOver && <p class="meta">{tr('ui.office.credentials.fromShell', { name })}</p>}
     </>
   )
 }
@@ -120,7 +121,7 @@ function ServerOnlyRow({ credential }: { readonly credential: Credential }) {
     <div class="setting-job credential-row">
       <div class="setting-actions">
         <b class="mono">{credential.name}</b>
-        <StatePill isSet={credential.set} />
+        <StatePill isSet={credential.set} fromShell={credential.fromShell} />
       </div>
       <div class="setting-actions">
         <code class="credential-command">{command}</code>
@@ -154,11 +155,16 @@ export function buildServerCommand(words: string): string {
   return `${(brand.value ?? '').toLowerCase()} ${words}`
 }
 
-function StatePill({ isSet }: { readonly isSet: boolean }) {
-  return (
-    <span class={`level-pill is-${isSet ? 'ok' : 'warn'}`}>
-      {tr(isSet ? 'ui.office.credentials.set' : 'ui.office.credentials.unset')}
-    </span>
+/** Saved in the key file, else from the server's environment, else missing. */
+function StatePill({ isSet, fromShell }: { readonly isSet: boolean; readonly fromShell: boolean }) {
+  if (isSet) {
+    return <span class="level-pill is-ok">{tr('ui.office.credentials.set')}</span>
+  }
+
+  return fromShell ? (
+    <span class="level-pill is-ok">{tr('ui.office.credentials.fromEnvironment')}</span>
+  ) : (
+    <span class="level-pill is-warn">{tr('ui.office.credentials.unset')}</span>
   )
 }
 
