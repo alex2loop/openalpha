@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals'
 
-import type { ActorId, FloorId, Point, Rect, RoomId, Size } from '@/web/scene/types'
+import type { SceneRenderer } from '@/web/scene/renderer'
+import type { ActorId, FloorId, Point, Rect, RoomId, ScreenPoint, Size } from '@/web/scene/types'
 
 /** What both renderers frame at floor zoom: the floor plus the margin the 3D camera shows around
  *  it (the street to the sides and below, the sky over the north glass). */
@@ -110,6 +111,14 @@ export function reportProjection(next: Projection): void {
   if (!isSame) {
     projection.value = next
   }
+}
+
+/** Where a floor point shows on the pane now. Reading the projection subscribes the caller, so a
+ *  component placed by it follows every camera move, not only a change of its own props. */
+export function placeOnPane(renderer: Pick<SceneRenderer, 'toScreen'>, p: Point): ScreenPoint {
+  projection.value
+
+  return renderer.toScreen(p)
 }
 
 export function setFloor(floor: FloorId): void {
