@@ -12,7 +12,7 @@ import { formatWhen } from '@/web/text/time'
 import { toErrorText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { Skeleton } from '@/web/ui/kit/skeleton'
-import { DoctorRows } from '@/web/ui/settings/doctor-rows'
+import { DoctorRows, formatSourceKind } from '@/web/ui/settings/doctor-rows'
 
 type Source = SourcesResponse['sources'][number]
 
@@ -102,7 +102,7 @@ function SourcesList({ health }: { readonly health: Health }) {
             <b class="mono">{source.id}</b>
             <span class="meta">
               {joinInline([
-                source.kind,
+                formatSourceKind(source.kind),
                 source.lastSuccessAt === undefined || timeZone === undefined
                   ? ABSENT_CELL
                   : tr('ui.office.data.lastRead', {
