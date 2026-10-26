@@ -426,6 +426,8 @@
     "office.sessions.reading": "Đang xem phiên chat {when} - {channel} - chỉ đọc",
     "office.sessions.back": "Về phiên chat hiện tại",
     "office.sessions.note": "Câu bạn gõ ở ô dưới vẫn gửi vào phiên chat hiện tại.",
+    "office.sessions.readOnly": "Phiên này mở từ {channel}, ở đây chỉ xem được.",
+    "office.sessions.continueNew": "Tiếp tục trong phiên mới",
     "office.sessions.end": "Hết phiên chat - {count} tin nhắn",
     "office.sessions.endOne": "Hết phiên chat - {count} tin nhắn",
     "office.sessions.none": "Chưa có phiên chat nào khớp.",

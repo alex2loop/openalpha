@@ -6,7 +6,7 @@ import { pluralKey } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { clearAgentChoice } from '@/web/state/agents'
-import { type ChatSession, startSession, viewedSession } from '@/web/state/chat'
+import { APP_CHANNEL, type ChatSession, startSession, viewedSession } from '@/web/state/chat'
 import { clearOpenedSession, HISTORY_PAGE_SIZE, MAX_EARLIER } from '@/web/state/chat-history'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL } from '@/web/text/glyphs'
@@ -90,11 +90,26 @@ function ReadingBanner({ session }: { readonly session: ChatSession }) {
           channel: sourceLabel(session.channel),
         })}
       </p>
-      <p class="meta">{tr('ui.office.sessions.note')}</p>
+      {session.channel === APP_CHANNEL && <p class="meta">{tr('ui.office.sessions.note')}</p>}
       <Button size="small" onClick={() => (viewedSession.value = undefined)}>
         {tr('ui.office.sessions.back')}
       </Button>
     </div>
+  )
+}
+
+/** In place of the box while another channel's session is open: it is read here, never continued,
+ *  since the daemon takes new messages only into a session this page started. */
+export function ReadOnlyLine({ session }: { readonly session: ChatSession }) {
+  return (
+    <>
+      <p class="meta command-box">
+        {tr('ui.office.sessions.readOnly', { channel: sourceLabel(session.channel) })}
+      </p>
+      <Button kind="commit" onClick={startNewSession}>
+        {tr('ui.office.sessions.continueNew')}
+      </Button>
+    </>
   )
 }
 
