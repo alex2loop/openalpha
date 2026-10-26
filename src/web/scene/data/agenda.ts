@@ -28,6 +28,13 @@ const BRIEF_LABEL_KEY: MessageKey = 'ui.task.trading.briefs'
 const ROWS_DONE = 1
 const ROWS_SHOWN = 4
 const CLOCK_SEPARATOR = ':'
+// A session row names its market this short, so the event itself fits the lobby screens.
+const MARKET_SHORT_KEYS: Readonly<Record<string, MessageKey>> = Object.freeze({
+  'equity-vn': 'ui.office.agenda.market.equity-vn',
+  gold: 'ui.office.agenda.market.gold',
+  'gold-vn': 'ui.office.agenda.market.gold-vn',
+  crypto: 'ui.office.agenda.market.crypto',
+})
 
 /** One timed row of the day: `minute` counts from the scene's midnight today, past
  *  `MINUTES_PER_DAY` for tomorrow. */
@@ -201,7 +208,10 @@ function sessionItems(market: MarketWire | undefined): TimedItem[] {
     ...(session.nextTradingDay === nextDay(today) ? [MINUTES_PER_DAY] : []),
   ]
 
-  return days.flatMap((offset) => sessionTimes(session, market.label, offset))
+  const shortKey = MARKET_SHORT_KEYS[market.market]
+  const name = shortKey === undefined ? market.label : tr(shortKey)
+
+  return days.flatMap((offset) => sessionTimes(session, name, offset))
 }
 
 function sessionTimes(session: MarketSessionWire, market: string, offset: number): TimedItem[] {
@@ -211,24 +221,24 @@ function sessionTimes(session: MarketSessionWire, market: string, offset: number
     {
       key: `open:${offset}`,
       minute: offset + toMinute(session.open),
-      label: tr('ui.office.agenda.open', { market }),
+      label: joinInline([tr('ui.office.agenda.open'), market]),
     },
     ...breaks.flatMap((gap, i) => [
       {
         key: `break:${offset}:${i}`,
         minute: offset + toMinute(gap.from),
-        label: tr('ui.office.agenda.break', { market }),
+        label: joinInline([tr('ui.office.agenda.break'), market]),
       },
       {
         key: `reopen:${offset}:${i}`,
         minute: offset + toMinute(gap.to),
-        label: tr('ui.office.agenda.reopen', { market }),
+        label: joinInline([tr('ui.office.agenda.reopen'), market]),
       },
     ]),
     {
       key: `close:${offset}`,
       minute: offset + toMinute(session.close),
-      label: tr('ui.office.agenda.close', { market }),
+      label: joinInline([tr('ui.office.agenda.close'), market]),
     },
   ]
 }

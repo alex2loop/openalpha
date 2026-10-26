@@ -7,7 +7,7 @@ import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
 import { toOverlayFont } from '@/web/scene/overlay/placement'
 import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
-import { projection, view, zoomToRoom } from '@/web/scene/view'
+import { placeOnPane, projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
 import { focusRun } from '@/web/state/focus'
 import { isTradingPhase } from '@/web/state/market'
@@ -80,7 +80,10 @@ function Tag({ room, renderer, width }: TagProps) {
   const status = roomStatus.value.get(room.id)
   const tag = roomTagOf(room.id, status)
   const runs = status?.runs ?? []
-  const at = renderer.toScreen({ x: room.rect.x + TAG_INSET_PX, y: room.rect.y + TAG_INSET_PX })
+  const at = placeOnPane(renderer, {
+    x: room.rect.x + TAG_INSET_PX,
+    y: room.rect.y + TAG_INSET_PX,
+  })
   const full = tag.status === undefined ? tag.name : joinInline([tag.name, tag.status])
   const fits = textWidth(full) + TAG_CHROME_PX <= width
 

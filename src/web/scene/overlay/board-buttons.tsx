@@ -6,7 +6,7 @@ import type { Point } from '@/web/scene/types'
 import { pluralKey } from '@/i18n'
 import { digest, resultsLanded } from '@/web/scene/data/board'
 import { debateLine, roomStatus, toParamText } from '@/web/scene/data/room-status'
-import { projection, view } from '@/web/scene/view'
+import { placeOnPane, view } from '@/web/scene/view'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas, unseenCalls } from '@/web/state/ideas'
 import { runningCount } from '@/web/state/live'
@@ -32,9 +32,6 @@ const RINGS_MS = 2_400
 export function BoardButtons({ renderer }: { readonly renderer: SceneRenderer }) {
   const shown = view.value
   const isZoomed = shown.room !== undefined || shown.zoomSteps > 0
-
-  // Read so the boards follow the camera.
-  projection.value
 
   if (shown.floor !== 'office') {
     return null
@@ -100,7 +97,7 @@ interface BoardProps {
 
 // A board with somewhere to go is a button; one that only tells is a note.
 function Board({ at, renderer, onClick, isOdometer, isRinging, children }: BoardProps) {
-  const point = renderer.toScreen(at)
+  const point = placeOnPane(renderer, at)
   const style = { left: `${point.x}px`, top: `${point.y}px` }
   const classes = [
     'board-line',

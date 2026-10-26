@@ -86,23 +86,27 @@ export function formatElapsed(spanMs: number): string {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`
 }
 
-/** A cadence in its largest whole unit: "12 giờ", "30 phút", "45 giây"; under a second, "dưới 1
- *  giây". */
+/** A span in whole hours and minutes ("10 giờ 23 phút", "12 giờ", "30 phút"), else in seconds
+ *  ("45 giây"); under a second, "dưới 1 giây". */
 export function formatDuration(spanMs: number): string {
   if (spanMs > 0 && spanMs < MS_PER_SECOND) {
     return tr('ui.office.time.underSecond')
   }
 
-  if (spanMs >= MS_PER_HOUR && spanMs % MS_PER_HOUR === 0) {
-    const count = spanMs / MS_PER_HOUR
+  if (spanMs >= MS_PER_HOUR && spanMs % MS_PER_MINUTE === 0) {
+    const hours = Math.floor(spanMs / MS_PER_HOUR)
+    const minutes = (spanMs % MS_PER_HOUR) / MS_PER_MINUTE
+    const hoursText = tr(pluralKey(hours, 'ui.office.time.hoursOne', 'ui.office.time.hours'), {
+      count: hours,
+    })
 
-    return tr(pluralKey(count, 'ui.office.time.hoursOne', 'ui.office.time.hours'), { count })
+    return minutes === 0
+      ? hoursText
+      : tr('ui.office.time.hoursMinutes', { hours: hoursText, minutes: formatMinutes(minutes) })
   }
 
   if (spanMs >= MS_PER_MINUTE && spanMs % MS_PER_MINUTE === 0) {
-    const count = spanMs / MS_PER_MINUTE
-
-    return tr(pluralKey(count, 'ui.office.time.minutesOne', 'ui.office.time.minutes'), { count })
+    return formatMinutes(spanMs / MS_PER_MINUTE)
   }
 
   const count = Math.max(0, Math.round(spanMs / MS_PER_SECOND))
@@ -164,4 +168,8 @@ function buildFormatter(parts: Intl.DateTimeFormatOptions, timeZone: string): In
 
 function pad(value: number): string {
   return String(value).padStart(2, '0')
+}
+
+function formatMinutes(count: number): string {
+  return tr(pluralKey(count, 'ui.office.time.minutesOne', 'ui.office.time.minutes'), { count })
 }

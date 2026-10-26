@@ -10,7 +10,7 @@ import { ASSISTANT, isCrewId, ownAgentIdOf } from '@/web/scene/sim/actors/roster
 import { projection } from '@/web/scene/view'
 import { selectAgent } from '@/web/state/agents'
 import { setChatOpen } from '@/web/state/chat'
-import { fillInput } from '@/web/state/command'
+import { fillInput, focusInput } from '@/web/state/command'
 import { hasChildren } from '@/web/state/live'
 import { type AgentSection, openView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
@@ -255,10 +255,12 @@ function pillStyle(
   }
 }
 
-// Talking to someone picks them in the who-chip (no AI cost) and opens the chat.
+// Talking to someone picks them in the who-chip (no AI cost), opens the chat and puts the caret in
+// the box, keeping what is typed there; a chat already open would otherwise show no change.
 function openChat(agentId: string | undefined): void {
   selectAgent(agentId)
   setChatOpen(true)
+  focusInput()
 }
 
 // The empty box waits for what the operator types; nothing is sent.

@@ -141,9 +141,11 @@ export function frameFollow(sim: SimView): void {
     return
   }
 
+  // On the whole world pixel the figure is drawn at: a camera on the unrounded point slides under
+  // a figure that snaps, so the followed person shakes against the floor on every step.
   const at = {
-    x: held.prev.x + (held.at.x - held.prev.x) * sim.alpha,
-    y: held.prev.y + (held.at.y - held.prev.y) * sim.alpha,
+    x: Math.round(held.prev.x + (held.at.x - held.prev.x) * sim.alpha),
+    y: Math.round(held.prev.y + (held.at.y - held.prev.y) * sim.alpha),
   }
 
   keepFollowing({ floor: held.floor, point: chestOf({ ...held, at }) })
