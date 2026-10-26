@@ -413,7 +413,7 @@ function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
     mood: { lift: sim.lift, isQuiet: sim.life.isQuiet, isNight: isNightSun(sim.light.sun) },
   })
   const isLampChanged = syncLamps(stage.lamps, {
-    lamps: stage.floor?.props.lamps ?? [],
+    props: stage.floor?.props,
     lit: sim.props.lit,
     lampGlow: sim.props.lampGlow,
     focus: stage.shot?.center,

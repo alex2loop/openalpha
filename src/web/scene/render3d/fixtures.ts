@@ -1,4 +1,4 @@
-import { AdditiveBlending, type Group, MeshBasicMaterial } from 'three'
+import { AdditiveBlending, type Group, MeshBasicMaterial, NormalBlending } from 'three'
 
 import type { Standing } from '@/web/scene/render3d/characters'
 import type { Materials } from '@/web/scene/render3d/lights'
@@ -36,6 +36,8 @@ export interface Fixtures {
   readonly warm: Pool
   readonly cool: Pool
   readonly lampPools: Pool
+  /** The lamp pools' own material: blended over the floor by day, added to it by night. */
+  readonly lampGlow: MeshBasicMaterial
   readonly halos: Pool
   readonly shadows: Pool
   readonly dots: Pool
@@ -77,7 +79,6 @@ const LAMP_GLOW = Object.freeze({
   day: { pool: 0.42, halo: 0.6 },
   night: { pool: 0.32, halo: 0.75 },
 })
-const LAMP_POOL_ALPHA = LAMP_GLOW.day.pool
 const DESK_LAMP_POOL_RADIUS = 18
 const DESK_GLOW = Object.freeze({ dx: 20, dy: -6, radius: 28, alpha: 0.32 })
 const DOT_RISE_PX = 6
@@ -104,6 +105,13 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     depthWrite: false,
     toneMapped: false,
   })
+  const lampGlow = new MeshBasicMaterial({
+    map: shapes.glow,
+    transparent: true,
+    depthWrite: false,
+    blending: NormalBlending,
+    toneMapped: false,
+  })
   const dot = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
   const ink = new MeshBasicMaterial({ color: OUTLINE, toneMapped: false })
   const fixtures: Fixtures = {
@@ -112,12 +120,13 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     shades: createPool(shapes.box, materials.unlitI, { cap: MAX_LAMPS }),
     warm: createPool(shapes.flat, glow, { cap: MAX_POOLS, order: ORDER.warm }),
     cool: createPool(shapes.flat, glow, { cap: MAX_POOLS, order: ORDER.cool }),
-    lampPools: createPool(shapes.flat, glow, { cap: MAX_LAMPS, order: ORDER.lamp }),
+    lampPools: createPool(shapes.flat, lampGlow, { cap: MAX_LAMPS, order: ORDER.lamp }),
+    lampGlow,
     halos: createPool(shapes.flat, glow, { cap: MAX_LAMPS, order: ORDER.halo }),
     shadows: createPool(shapes.flat, shadow, { cap: MAX_PEOPLE, order: ORDER.shadow }),
     dots: createPool(shapes.dot, dot, { cap: MAX_PEOPLE, order: ORDER.dot }),
     ring: createPool(shapes.box, ink, { cap: 1 }),
-    owned: [glow, shadow, dot, ink],
+    owned: [glow, lampGlow, shadow, dot, ink],
   }
 
   root.add(...poolsOf(fixtures).map((pool) => pool.mesh))
@@ -215,6 +224,7 @@ function syncLamps(fixtures: Fixtures, frame: FixtureFrame): boolean {
     return false
   }
 
+  blendLampPools(fixtures.lampGlow, { isNight, lampGlow })
   placeFloorLamps(fixtures, { frame, isNight })
   placeDeskLamps(fixtures, frame)
   endPool(fixtures.shades)
@@ -222,6 +232,23 @@ function syncLamps(fixtures: Fixtures, frame: FixtureFrame): boolean {
   endPool(fixtures.halos)
 
   return true
+}
+
+// As the mockup's: every pool shares one strength, blended over the floor by day and added to it
+// by night; the instances carry the bare warm colour.
+function blendLampPools(
+  material: MeshBasicMaterial,
+  at: { readonly isNight: boolean; readonly lampGlow: number }
+): void {
+  const blending = at.isNight ? AdditiveBlending : NormalBlending
+  const glow = at.isNight ? LAMP_GLOW.night : LAMP_GLOW.day
+
+  material.opacity = glow.pool * at.lampGlow
+
+  if (material.blending !== blending) {
+    material.blending = blending
+    material.needsUpdate = true
+  }
 }
 
 // Each floor lamp's shade, lit with its room, its light pool on the floor and the halo round the
@@ -253,7 +280,7 @@ function placeFloorLamps(
       z: lamp.at.y,
       radius: LAMP_GLOW.poolRadius,
       rgb: LAMP_GLOW.poolRgb,
-      alpha: glow.pool * lampGlow,
+      alpha: 1,
     })
     glowAt(fixtures.halos, {
       x: lamp.at.x,
@@ -267,9 +294,10 @@ function placeFloorLamps(
   }
 }
 
-// The desk lamps' shades, lit with their room, each with a small pool under it.
+// The desk lamps' shades, lit with their room, each with a small pool under it in the lamp pools'
+// strength.
 function placeDeskLamps(fixtures: Fixtures, frame: FixtureFrame): void {
-  const { lit, lampGlow } = frame.sim.props
+  const { lit } = frame.sim.props
 
   for (const lamp of frame.props.deskLamps) {
     const isOn = lit.has(lamp.room)
@@ -283,7 +311,7 @@ function placeDeskLamps(fixtures: Fixtures, frame: FixtureFrame): void {
         z,
         radius: DESK_LAMP_POOL_RADIUS,
         rgb: WARM_RGB,
-        alpha: LAMP_POOL_ALPHA * lampGlow,
+        alpha: 1,
       })
     }
   }
