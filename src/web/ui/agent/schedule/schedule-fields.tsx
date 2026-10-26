@@ -8,6 +8,7 @@ import {
   type ScheduleForm,
 } from '@/web/ui/agent/schedule/schedule-state'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
+import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 
 const REPEATS: readonly Repeat[] = ['daily', 'weekly', 'once']
 
@@ -75,6 +76,7 @@ export function EventFields({ form }: FieldsProps) {
         <input
           type="text"
           class="mono"
+          {...IDENTIFIER_INPUT}
           value={form.ticker.value}
           onInput={(event) => {
             form.ticker.value = event.currentTarget.value

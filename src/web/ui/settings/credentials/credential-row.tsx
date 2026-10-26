@@ -12,6 +12,7 @@ import { toErrorText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { CopyButton } from '@/web/ui/kit/copy-button'
+import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 
 import './credentials.css'
 
@@ -196,7 +197,7 @@ function KeyField({ name, onSaved, onClose }: KeyFieldProps) {
           type="password"
           class="mono"
           autocomplete="off"
-          spellcheck={false}
+          {...IDENTIFIER_INPUT}
           aria-label={tr('ui.office.credentials.paste')}
           placeholder={tr('ui.office.credentials.paste')}
           value={value.value}
