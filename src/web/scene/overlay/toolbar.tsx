@@ -1,5 +1,6 @@
 import type { FloorId, RoomId } from '@/web/scene/types'
 import { roomTagOf } from '@/web/scene/overlay/room-tags'
+import { litRooms, toggleAllLamps } from '@/web/scene/sim/lamps'
 import {
   canPanToward,
   leaveRoom,
@@ -12,7 +13,6 @@ import {
 } from '@/web/scene/view'
 import { ROOM_IDS } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
-import { lampsOff, toggleAllLamps } from '@/web/state/prefs'
 import {
   ESCAPE_KEY_CAP,
   NEXT_GLYPH,
@@ -145,8 +145,7 @@ function ZoomControls({
 
 // One switch for every lamp: any lamp on turns them all off, else all on.
 function LampsButton() {
-  const off = lampsOff.value
-  const isAnyOn = ROOM_IDS.some((room) => !off.has(room))
+  const isAnyOn = litRooms.value.size > 0
 
   return (
     <button

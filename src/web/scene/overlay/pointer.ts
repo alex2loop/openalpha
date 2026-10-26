@@ -14,11 +14,11 @@ import { hoverActor, keyedActor, overlayView } from '@/web/scene/overlay/overlay
 import { closeMenu } from '@/web/scene/overlay/radial-menu'
 import { openScreen } from '@/web/scene/overlay/screen-panel'
 import { isActorId } from '@/web/scene/sim/actors/roster'
+import { toggleAllLamps, toggleLamp } from '@/web/scene/sim/lamps'
 import { stopFollow, view, zoomToRoom } from '@/web/scene/view'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { ROOM_IDS, roomById } from '@/web/scene/world/rooms'
-import { toggleAllLamps, toggleLamp } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 
 /** The pointer type a finger reports. */

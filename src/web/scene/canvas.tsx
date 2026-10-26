@@ -43,7 +43,8 @@ import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { isOnFloor, nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isChildActorId } from '@/web/scene/sim/actors/roster'
-import { isRoomLit, lampGlowOf } from '@/web/scene/sim/life/presence'
+import { isLampNight, isRoomLit, noteLitRooms } from '@/web/scene/sim/lamps'
+import { lampGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { homePhase, isClosedPhase, moment } from '@/web/scene/sim/rhythm'
 import { createSims, disposeSims, type Sims } from '@/web/scene/sims'
@@ -63,7 +64,14 @@ import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
 import { unseenCalls } from '@/web/state/ideas'
 import { findRun, pending, runs } from '@/web/state/live'
 import { hasUnreadAlert, unread } from '@/web/state/notices'
-import { colorScheme, colourPair, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
+import {
+  colorScheme,
+  colourPair,
+  lampsOff,
+  lightByHour,
+  nightLamps,
+  reducedMotion,
+} from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
@@ -258,6 +266,8 @@ function buildSimView(parts: Sims, alpha: number): SimView {
   const lit = new Set<RoomId>(
     ROOMS.filter((room) => isRoomLit(room.id, life.occupied)).map((room) => room.id)
   )
+
+  noteLitRooms(lit)
   const office = parts.director.view()
   const statuses = parts.life.statuses(office.actors)
   const actors = office.actors.map((actor) => {
@@ -307,6 +317,8 @@ function readSceneInputs(): void {
   selectedActor.value
   view.value
   lampsOff.value
+  nightLamps.value
+  isLampNight.value
   lightByHour.value
   pageMinute.value
   colorScheme.value

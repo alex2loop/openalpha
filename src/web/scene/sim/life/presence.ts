@@ -7,13 +7,14 @@ import type { ClockParts } from '@/web/text/time'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { homeMarket, regionPack } from '@/web/scene/data/home'
 import { isWalking } from '@/web/scene/sim/actors/walk'
+import { isLampNight } from '@/web/scene/sim/lamps'
 import { drawBetween } from '@/web/scene/sim/life/state'
 import { deskHolds, moment } from '@/web/scene/sim/rhythm'
 import { STREET_DOOR } from '@/web/scene/world/doors'
 import { isInRange } from '@/web/scene/world/regions'
 import { roomAt } from '@/web/scene/world/rooms'
 import { findRun } from '@/web/state/live'
-import { lampsOff } from '@/web/state/prefs'
+import { forgetNightLamps } from '@/web/state/prefs'
 import { formatRunName } from '@/web/text/run-name'
 
 // At most this many people are on the way through the street door at once.
@@ -53,6 +54,8 @@ export interface RhythmState {
   seenAt: ClockParts | undefined
   moodNoticeId: string | undefined
   moodAt: number
+  /** Whether the lamps were on their night rules at the last step. */
+  lampNight: boolean | undefined
 }
 
 export function createRhythmState(): RhythmState {
@@ -65,18 +68,13 @@ export function createRhythmState(): RhythmState {
     seenAt: undefined,
     moodNoticeId: undefined,
     moodAt: Number.NEGATIVE_INFINITY,
+    lampNight: undefined,
   }
 }
 
 /** The person is in the office (or walking in or out of it), not gone home. */
 export function isPresent(actor: ActorState): boolean {
   return actor.away !== 'gone'
-}
-
-/** Before the office fills and after it empties, and all of a rest day, a lamp is lit only where
- *  someone really is; by day it follows its own switch. A switched-off lamp stays off. */
-export function isRoomLit(room: RoomId, occupied: ReadonlySet<RoomId>): boolean {
-  return !lampsOff.value.has(room) && (!isAfterHours() || occupied.has(room))
 }
 
 /** How far the lamps that are on glow: dimmed over the lunch nap by the page clock. */
@@ -102,6 +100,7 @@ export function stepPresence(state: LifeState, step: LifeStep): void {
   }
 
   noteRooms(state, step)
+  syncLampNight(rhythm)
   rhythm.lines = linesOf(state, step)
 }
 
@@ -111,13 +110,6 @@ export function isJump(seen: ClockParts | undefined, clock: ClockParts): boolean
     seen.day !== clock.day ||
     Math.abs(seen.minute - clock.minute) > JUMP_MINUTES
   )
-}
-
-function isAfterHours(): boolean {
-  const { arrive, leave } = regionPack.value.officeLife
-  const { minute } = pageMinute.value
-
-  return !moment.value.tradingDay || minute < arrive[0] || minute >= leave[1]
 }
 
 // On a rest day the pack's staff are in; a real run (a goal the live store calls for) keeps its
@@ -293,6 +285,17 @@ function sendHome(
   rhythm.trips.set(at.id, { goal, sinceMs: at.nowMs })
 }
 
+// Dawn or dusk forgets the lamps switched over the night, as the page's own lamps do.
+function syncLampNight(rhythm: RhythmState): void {
+  const isNight = isLampNight.peek()
+
+  if (rhythm.lampNight !== undefined && rhythm.lampNight !== isNight) {
+    forgetNightLamps()
+  }
+
+  rhythm.lampNight = isNight
+}
+
 // The rooms someone stands in, for the lamps.
 function noteRooms(state: LifeState, step: LifeStep): void {
   const { occupied } = state.rhythm
@@ -310,7 +313,7 @@ function noteRooms(state: LifeState, step: LifeStep): void {
     }
   }
 
-  if (isAfterHours() && state.teamDesks().some((desk) => desk.isTaken)) {
+  if (isLampNight.peek() && state.teamDesks().some((desk) => desk.isTaken)) {
     occupied.add(TEAM_ROOM)
   }
 }
