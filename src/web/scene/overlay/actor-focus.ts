@@ -5,6 +5,7 @@ import { sayAs } from '@/web/scene/overlay/bubbles'
 import { hoverTextOf, personNameOf, replyTextOf } from '@/web/scene/overlay/hover-label'
 import { announce, hoverActor, keyActor, keyedActor } from '@/web/scene/overlay/overlay'
 import { closeMenu, menuActionsFor, openMenu } from '@/web/scene/overlay/radial-menu'
+import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
 import { FIGURE } from '@/web/scene/types'
 import { centerOn, keepFollowing, startFollow, stopFollow, view } from '@/web/scene/view'
 import { selectActor } from '@/web/state/focus'
@@ -118,8 +119,9 @@ export function followActor(deps: FocusDeps, actor: ActorId): void {
   announce(tr('ui.office.follow.on', { name: personNameOf(sim, actor) }))
 }
 
-/** One sim step of a follow: the camera keeps up with its person, and lets go of one who left. */
-export function stepFollow(sim: SimView): void {
+/** One drawn frame of a follow: the camera keeps the person where the frame draws them, and lets
+ *  go of one who left. */
+export function frameFollow(sim: SimView): void {
   const actor = view.value.follow
 
   if (actor === undefined) {
@@ -133,7 +135,12 @@ export function stepFollow(sim: SimView): void {
     return
   }
 
-  keepFollowing({ floor: held.floor, point: chestOf(held) })
+  const at = {
+    x: held.prev.x + (held.at.x - held.prev.x) * sim.alpha,
+    y: held.prev.y + (held.at.y - held.prev.y) * sim.alpha,
+  }
+
+  keepFollowing({ floor: held.floor, point: { x: at.x, y: at.y - FIGURE.h / 2 } })
 }
 
 function focusOn(deps: FocusDeps, actor: ActorView): void {
@@ -154,10 +161,26 @@ function focusOn(deps: FocusDeps, actor: ActorView): void {
   deps.wake()
 }
 
+// A fixed order, so people who walk never reorder it: the office crew by roster, own agents by
+// their desk, children by id.
 function orderOn(sim: SimView): ActorView[] {
   return sim.actors
     .filter((actor) => actor.floor === sim.floor)
-    .sort((a, b) => a.at.x - b.at.x || a.at.y - b.at.y)
+    .map((actor) => ({ actor, rank: rankOf(sim, actor.id) }))
+    .sort((a, b) => a.rank - b.rank || a.actor.id.localeCompare(b.actor.id))
+    .map((held) => held.actor)
+}
+
+function rankOf(sim: SimView, actor: ActorId): number {
+  const staff = ROSTER.findIndex((def) => def.id === actor)
+  const agentId = ownAgentIdOf(actor)
+  const slot = sim.team.desks.findIndex((desk) => agentId !== undefined && desk.agentId === agentId)
+
+  if (staff >= 0) {
+    return staff
+  }
+
+  return slot >= 0 ? ROSTER.length + slot : ROSTER.length + sim.team.desks.length
 }
 
 function chestOf(actor: ActorView): Point {

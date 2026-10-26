@@ -173,6 +173,7 @@ function MenuRing({ menu, figure }: { readonly menu: OpenMenu; readonly figure: 
           role="menuitem"
           class="radial-menu-pill"
           style={pillStyle(center, { index, count })}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => pick(action)}
         >
           {tr(ACTION_KEYS[action.id])}
@@ -182,8 +183,9 @@ function MenuRing({ menu, figure }: { readonly menu: OpenMenu; readonly figure: 
   )
 }
 
+// Focus goes back to the canvas first; an action that opens somewhere (the input) takes it on.
 function pick(action: MenuAction): void {
-  closeMenu(false)
+  closeMenu(true)
   action.run()
 }
 

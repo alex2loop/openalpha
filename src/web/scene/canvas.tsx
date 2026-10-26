@@ -182,6 +182,7 @@ function createSceneLoop(parts: LoopParts): {
     draw: (alpha, now) => {
       drawn = buildSimView(parts, alpha)
       dropGoneSelection(drawn)
+      input.current?.frame(drawn)
 
       const isAnimating = renderer.draw(drawn, now)
 

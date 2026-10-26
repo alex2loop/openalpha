@@ -1,11 +1,11 @@
-import type { ActorId, Point } from '@/web/scene/types'
+import type { ActorId, Point, SimView } from '@/web/scene/types'
 import {
   engage,
   type FocusDeps,
   followActor,
+  frameFollow,
   leaveFocus,
   stepFocus,
-  stepFollow,
 } from '@/web/scene/overlay/actor-focus'
 import { createMeeting, MEET_FLOOR } from '@/web/scene/overlay/meeting'
 import { hoverObject } from '@/web/scene/overlay/object-tip'
@@ -51,6 +51,8 @@ const RING_SELECTOR = '.radial-menu'
  *  on the sim step. */
 export interface Interaction {
   step(nowMs: number): boolean
+  /** A frame was drawn from `sim`: the follow camera keeps up with what it shows. */
+  frame(sim: SimView): void
   nextDueAt(): number
   detach(): void
 }
@@ -103,6 +105,7 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps):
 
   return {
     step: (nowMs) => stepInput(input, nowMs),
+    frame: (sim) => frameFollow(sim),
     nextDueAt: () => longPressDueOf(input.press),
     detach: () => {
       listeners.abort()
@@ -133,8 +136,7 @@ function listen(input: InputState, signal: AbortSignal): void {
   canvas.addEventListener('blur', (event) => onBlur(input, event), { signal })
 }
 
-// A touch held on a person opens their ring; the follow keeps up; a ring whose person left the
-// floor shown closes.
+// A touch held on a person opens their ring; a ring whose person left the floor shown closes.
 function stepInput(input: InputState, nowMs: number): boolean {
   const { press } = input
   const sim = input.deps.readView()
@@ -149,22 +151,20 @@ function stepInput(input: InputState, nowMs: number): boolean {
     engage(input.focus, { actor: press.longPress.actor, isFocused: true, withMenu: true })
   }
 
-  stepFollow(sim)
-
   const open = menuActor.value
 
   if (
     open !== undefined &&
     !sim.actors.some((actor) => actor.id === open && actor.floor === sim.floor)
   ) {
-    closeMenu(false)
+    closeMenu(isFocusInRing())
   }
 
   return isLong
 }
 
 function longPressDueOf(press: Press | undefined): number {
-  return press?.longPress === undefined || press.isFired
+  return press?.longPress === undefined || press.isFired || press.isDragging
     ? Number.POSITIVE_INFINITY
     : press.longPress.at
 }
@@ -343,8 +343,14 @@ function onKey(input: InputState, event: KeyboardEvent): void {
   }
 }
 
-// Esc lets go of one thing at a time: the picks and the meeting bar, a follow, then the room.
+// Esc lets go of one thing at a time: the ring, the picks and the meeting bar, a follow, then the
+// room.
 function stepBack(input: InputState): void {
+  if (menuActor.value !== undefined) {
+    closeMenu(false)
+    return
+  }
+
   if (input.meeting.clearPicks()) {
     return
   }
@@ -371,8 +377,13 @@ function onBlur(input: InputState, event: FocusEvent): void {
   const next = event.relatedTarget
 
   if (!(next instanceof Element && next.closest(RING_SELECTOR) !== null)) {
+    closeMenu(false)
     leaveFocus(input.focus)
   }
+}
+
+function isFocusInRing(): boolean {
+  return document.activeElement?.closest(RING_SELECTOR) != null
 }
 
 function leaveCanvas(input: InputState): void {
