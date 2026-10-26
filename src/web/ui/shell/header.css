@@ -1,4 +1,7 @@
+/* Its blur makes it the stacking context of the popovers it holds, so it sits at their level. */
 .header {
+  position: relative;
+  z-index: var(--zPopover);
   display: flex;
   align-items: center;
   gap: var(--s1);
