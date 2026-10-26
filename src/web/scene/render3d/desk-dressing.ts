@@ -1,8 +1,6 @@
-import type { Build, FloorProps } from '@/web/scene/render3d/props'
-import type { FloorId } from '@/web/scene/types'
-import { type Box, box } from '@/web/scene/render3d/boxes'
+import type { Build } from '@/web/scene/render3d/props'
+import { box } from '@/web/scene/render3d/boxes'
 import {
-  cableTray,
   deskPhone,
   inTray,
   mug,
@@ -14,7 +12,6 @@ import {
 import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { ELEVATION } from '@/web/scene/view'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
-import { roomById } from '@/web/scene/world/rooms'
 
 /** A monitor face in world px: 1.6 to 1, like the mockup's 320 by 200 screen. */
 const MONITOR_FACE = Object.freeze({ w: 18, h: 11.25 })
@@ -36,6 +33,7 @@ const STICKY_TONES = ['#FFF4A8', '#FFC9DE', '#BFE3FF'] as const
 const CALENDAR_STAND = '#2B2433'
 const PAD = '#5D6577'
 const BRASS = '#D9B25C'
+const BANKER_VARIANT = 1
 const BANKER_SHADE = Object.freeze({ off: '#5FA878', on: '#A8EBC0' })
 // The mockup's small lights under the banker's green shade and the operator's desk lamp.
 const BANKER_LIGHT = Object.freeze({ tone: 0x9cffc0, intensity: 14, distancePx: 80, heightPx: 35 })
@@ -192,33 +190,45 @@ export function meetingThings({ prop, out, floor }: Build): void {
   standby({ out, floor, prop }, { x: x + 112, z: y + 2, top: top + 0.1, kind: 'standby-clock' })
 }
 
-/** The floor's pieces no prop row carries: the library's banker's lamp on the middle desk and the
- *  store's two cable trays overhead. */
-export function dressFloor(floor: FloorId, built: FloorProps): void {
-  const desks = propsOn(floor)
-    .filter((prop) => prop.kind === 'desk' && prop.room === 'lib')
-    .sort((a, b) => a.rect.x - b.rect.x)
-  const middle = desks[Math.floor(desks.length / 2)]
-
-  if (middle !== undefined) {
-    bankerLamp(built, middle)
-  }
-
-  const store = roomById('store')
-
-  if (store?.floor === floor) {
-    const out = built.rooms.get('store') ?? []
-
-    built.rooms.set('store', out)
-
-    for (const dz of [64, 112]) {
-      cableTray(out, { x: store.rect.x + 8, z: store.rect.y + dz, w: store.rect.w - 16 })
-    }
-  }
-}
-
 function isOperatorDesk(prop: PropDef): boolean {
   return prop.kind === 'desk' && prop.room === OPERATOR_ROOM
+}
+
+/** A desk lamp standing on its desk: the library's green banker's lamp (variant 1) or the
+ *  operator's articulated lamp; its shade lights with the room and holds one of the four lights. */
+export function deskLampOf({ prop, out, floor }: Build): void {
+  const { x, y } = prop.rect
+  const top = deskUnder(prop)?.height ?? 0
+
+  if (prop.variant === BANKER_VARIANT) {
+    out.push(
+      box([x + 1, y + 1, 5, 5, top, 1.2], BRASS, true),
+      box([x + 2.7, y + 2.7, 1.6, 1.6, top + 1.2, 3.5], BRASS)
+    )
+    floor.deskLamps.push({
+      room: prop.room,
+      at: [x + 3.5, top + 6, y + 3.5],
+      size: [8, 3, 6],
+      off: BANKER_SHADE.off,
+      on: BANKER_SHADE.on,
+      light: BANKER_LIGHT,
+    })
+    return
+  }
+
+  out.push(
+    box([x, y + 0.5, 4, 4, top, 0.8], METAL[2], true),
+    box([x + 1.5, y + 2, 1, 1, top + 0.8, 5.5], METAL[2]),
+    box([x + 1.5, y + 2, 5, 1, top + 6, 0.9], METAL[2])
+  )
+  floor.deskLamps.push({
+    room: prop.room,
+    at: [x + 7, top + 5.9, y + 2.5],
+    size: [5, 2.2, 4],
+    off: PROP_TONES.lampOff,
+    on: PROP_TONES.lampLit,
+    light: OPERATOR_LIGHT,
+  })
 }
 
 /** The operator's in-tray on its desk; absent where no floor carries the desk. */
@@ -279,7 +289,6 @@ function operatorThings({ prop, out, floor }: Build): void {
     out.push(box([x + 74 + i * 3.6, y + 9.5 + (i % 2) * 0.8, 3, 3, at(14), 0.4], tone))
   })
   calendar({ out, floor, prop }, { x: x + 63.4, z: y + 8.8, top: at(14.5) })
-  deskLamp(out, floor, { prop, x: x + 2, z: y + 1.5, top: at(14.5) })
 }
 
 function juniorThings({ prop, out }: Build): void {
@@ -322,46 +331,5 @@ function calendar(job: Pick<Build, 'out' | 'floor' | 'prop'>, at: Place): void {
     at: [at.x + 3.6, at.top + 3.2, at.z + 1.7],
     size: [CALENDAR_FACE.size, CALENDAR_FACE.size],
     tilt: CALENDAR_FACE.tilt,
-  })
-}
-
-// The operator's desk lamp: a foot, a stem and an arm; the shade lights with the room.
-function deskLamp(out: Box[], floor: FloorProps, at: Place & { readonly prop: PropDef }): void {
-  const { x, z, top } = at
-
-  out.push(
-    box([x, z, 4, 4, top, 0.8], METAL[2], true),
-    box([x + 1.5, z + 1.5, 1, 1, top + 0.8, 5.5], METAL[2]),
-    box([x + 1.5, z + 1.5, 5, 1, top + 6, 0.9], METAL[2])
-  )
-  floor.deskLamps.push({
-    room: at.prop.room,
-    at: [x + 7, top + 5.9, z + 2],
-    size: [5, 2.2, 4],
-    off: PROP_TONES.lampOff,
-    on: PROP_TONES.lampLit,
-    light: OPERATOR_LIGHT,
-  })
-}
-
-// The green banker's lamp on a library desk: a brass foot and stem, the shade lights with the room.
-function bankerLamp(built: FloorProps, desk: PropDef): void {
-  const out = built.rooms.get(desk.room) ?? []
-  const x = desk.rect.x + 32
-  const z = desk.rect.y + 2
-  const top = desk.height
-
-  built.rooms.set(desk.room, out)
-  out.push(
-    box([x, z, 5, 5, top, 1.2], BRASS, true),
-    box([x + 1.7, z + 1.7, 1.6, 1.6, top + 1.2, 3.5], BRASS)
-  )
-  built.deskLamps.push({
-    room: desk.room,
-    at: [x + 2.5, top + 6, z + 2.5],
-    size: [8, 3, 6],
-    off: BANKER_SHADE.off,
-    on: BANKER_SHADE.on,
-    light: BANKER_LIGHT,
   })
 }

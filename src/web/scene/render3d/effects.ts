@@ -18,6 +18,7 @@ import { ANIMAL_TONES, type DetailLevel, fishPartsOf } from '@/web/scene/sim/lif
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
+import { roomAt, roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 
 /** The office life's moving pieces, each kind one instanced mesh: sheets in flight, the tray and
  *  printer stacks, steam, the cart and the fish. */
@@ -28,6 +29,7 @@ export interface Effects {
   readonly cart: Pool
   readonly fish: Pool
   readonly copier: Pool
+  readonly ribbons: Pool
   readonly copierRun: CopierRun
   fishShape: { level: DetailLevel; geometry: BufferGeometry }
 }
@@ -46,6 +48,23 @@ const MAX_PAPERS = 12
 const MAX_STACK = 16
 const MAX_STEAM = 24
 const MAX_FISH = 6
+// The mockup's ribbons under the air conditioner: they flutter while someone is in its room.
+const RIBBON = Object.freeze({
+  count: 3,
+  dx: 6,
+  gap: 11,
+  y: 24,
+  proud: 3.6,
+  w: 0.5,
+  h: 5.5,
+  d: 0.2,
+  tone: '#F2C9C2',
+  swing: 0.42,
+  rest: 0.04,
+  periodMs: 420,
+  phase: 1.7,
+})
+const AIR_CON = propsOn('office').find((prop) => prop.kind === 'air-con')
 // The scanner light, a full output tray, the printer's light and its sheet.
 const COPIER_PIECES = 11
 const SHEET = Object.freeze({ w: 8, h: 0.6, d: 6 })
@@ -80,6 +99,7 @@ export function createEffects(shapes: Shapes, materials: Materials, root: Group)
     cart: createPool(shapes.box, materials.litI, { cap: PROP_TONES.cups.length + 1 }),
     fish: createPool(fishGeometry, materials.litI, { cap: MAX_FISH }),
     copier: createPool(shapes.box, materials.unlitI, { cap: COPIER_PIECES }),
+    ribbons: createPool(shapes.box, materials.unlitI, { cap: RIBBON.count }),
     copierRun: createCopierRun(),
     fishShape: { level: 0, geometry: fishGeometry },
   }
@@ -102,6 +122,7 @@ export function syncEffects(
     syncSteam(effects.steam, frame),
     syncCart(effects.cart, frame),
     syncFish(effects.fish, frame),
+    syncRibbons(effects.ribbons, frame),
   ].some(Boolean)
   const { sim } = frame
   const isFeeding = feedKOf(sim.life, frame.now) < 1
@@ -127,7 +148,15 @@ export function disposeEffects(effects: Effects): void {
 }
 
 function pools(effects: Effects): Pool[] {
-  return [effects.papers, effects.stacks, effects.steam, effects.cart, effects.fish, effects.copier]
+  return [
+    effects.papers,
+    effects.stacks,
+    effects.steam,
+    effects.cart,
+    effects.fish,
+    effects.copier,
+    effects.ribbons,
+  ]
 }
 
 function syncPapers(pool: Pool, frame: EffectFrame): boolean {
@@ -334,4 +363,42 @@ function syncFishShape(effects: Effects, level: DetailLevel): void {
   effects.fishShape = { level, geometry: fishShapeOf(level) }
   effects.fish.mesh.geometry = effects.fishShape.geometry
   effects.fish.key = ''
+}
+
+// Each ribbon hangs from the unit's lip and swings about its top while the room is in use; it
+// rests nearly still otherwise and under reduced motion. It moves only on frames already drawn.
+function syncRibbons(pool: Pool, frame: EffectFrame): boolean {
+  const { sim } = frame
+  const room = AIR_CON === undefined ? undefined : roomById(AIR_CON.room)
+  const isBlowing =
+    !(frame.isReduced || sim.life.isQuiet) &&
+    sim.actors.some(
+      (actor) => actor.floor === sim.floor && roomAt(sim.floor, actor.at)?.id === AIR_CON?.room
+    )
+  const t = isBlowing ? frame.now : 0
+
+  if (AIR_CON === undefined || room === undefined || !beginPool(pool, `${sim.floor}|${t}`)) {
+    return false
+  }
+
+  if (room.floor === sim.floor) {
+    for (let i = 0; i < RIBBON.count; i++) {
+      const roll = isBlowing
+        ? Math.sin(t / RIBBON.periodMs + i * RIBBON.phase) * RIBBON.swing
+        : RIBBON.rest
+
+      placeInstance(pool, {
+        x: AIR_CON.rect.x + RIBBON.dx + i * RIBBON.gap + (Math.sin(roll) * RIBBON.h) / 2,
+        y: RIBBON.y - (Math.cos(roll) * RIBBON.h) / 2,
+        z: room.rect.y + WALL_BAND_PX + RIBBON.proud,
+        size: [RIBBON.w, RIBBON.h, RIBBON.d],
+        roll,
+        color: RIBBON.tone,
+      })
+    }
+  }
+
+  endPool(pool)
+
+  return true
 }

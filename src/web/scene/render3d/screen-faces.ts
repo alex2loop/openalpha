@@ -29,6 +29,7 @@ import {
   faceKindOf,
   type ScreenCache,
 } from '@/web/scene/sprites/screens'
+import { tapeBoard } from '@/web/scene/sprites/tape-face'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
 
 /** The floor's agenda screens and cork boards as quads over their props' face plates, painted by
@@ -51,6 +52,7 @@ export interface ScreenFaces {
 interface Seen {
   model: AgendaModel | undefined
   notes: BoardNotes | undefined
+  tape: (typeof tapeBoard)['value'] | undefined
   scale: number
 }
 
@@ -89,7 +91,7 @@ export function createScreenFaces(root: Group, lighting: Lighting): ScreenFaces 
     lighting,
     cache: createScreenCache(),
     plane: new PlaneGeometry(1, 1),
-    seen: { model: undefined, notes: undefined, scale: 0 },
+    seen: { model: undefined, notes: undefined, tape: undefined, scale: 0 },
     quads: [],
     infos: [],
     infoInputs: [],
@@ -116,7 +118,7 @@ export function syncScreenFaces(faces: ScreenFaces, frame: FaceFrame): boolean {
   }
 
   const isRepainted = syncPaint(faces, frame.scale)
-  const isInfoPainted = syncInfoPaint(faces, { scale: frame.scale, mood: frame.mood })
+  const isInfoPainted = syncInfoPaint(faces, frame.mood)
   let isFaded = false
 
   for (const quad of [...faces.quads, ...faces.infos]) {
@@ -132,13 +134,15 @@ export function disposeScreenFaces(faces: ScreenFaces): void {
   faces.plane.dispose()
 }
 
-// Asks the cache for each face only when the agenda, the notes or the zoom moved.
+// Asks the cache for each face only when the agenda, the notes, the tape or the zoom moved.
 function syncPaint(faces: ScreenFaces, scale: number): boolean {
   const { seen } = faces
   const model = agenda.value
   const notes = boardNotes.value
 
-  if (seen.model === model && seen.notes === notes && seen.scale === scale) {
+  const tape = tapeBoard.value
+
+  if (seen.model === model && seen.notes === notes && seen.tape === tape && seen.scale === scale) {
     return false
   }
 
@@ -147,6 +151,7 @@ function syncPaint(faces: ScreenFaces, scale: number): boolean {
 
   seen.model = model
   seen.notes = notes
+  seen.tape = tape
   seen.scale = scale
 
   for (const quad of faces.quads) {
@@ -165,11 +170,8 @@ function syncPaint(faces: ScreenFaces, scale: number): boolean {
 
 // Once what they read moved, each data face asks what it shows now; one whose signature moved is
 // painted and uploaded again.
-function syncInfoPaint(
-  faces: ScreenFaces,
-  at: { readonly scale: number; readonly mood: FaceMood }
-): boolean {
-  const inputs = infoInputsOf(at.scale, at.mood)
+function syncInfoPaint(faces: ScreenFaces, mood: FaceMood): boolean {
+  const inputs = infoInputsOf(mood)
 
   if (inputs.every((input, i) => input === faces.infoInputs[i])) {
     return false
@@ -180,7 +182,7 @@ function syncInfoPaint(
   let isChanged = false
 
   for (const info of faces.infos) {
-    const job = infoJobOf(info.face, at)
+    const job = infoJobOf(info.face, mood)
     const c = info.canvas.getContext('2d')
 
     if (job.key === info.key || c === null) {

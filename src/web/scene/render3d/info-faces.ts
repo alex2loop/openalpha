@@ -3,14 +3,14 @@ import type { FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId, RoomId, SimView } from '@/web/scene/types'
 import { formatDay } from '@/i18n'
 import { pageMinute } from '@/web/scene/clock/clock'
-import { homeIndex, ledItems } from '@/web/scene/data/led'
+import { regionPack, wallClockMinutes } from '@/web/scene/data/home'
+import { homeIndex } from '@/web/scene/data/led'
 import { debateStepOf, questionNumberOf, roomStatus } from '@/web/scene/data/room-status'
 import {
   paintBoard,
   paintCalendar,
   paintClock,
   paintStandBy,
-  paintTape,
   type StandByView,
   type TapeRow,
 } from '@/web/scene/render3d/face-paint'
@@ -25,7 +25,6 @@ import {
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import { faceKindOf } from '@/web/scene/sprites/screens'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
-import { quotesBlock } from '@/web/state/market'
 import { notices } from '@/web/state/notices'
 import { reducedMotion } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
@@ -34,13 +33,11 @@ import { toNoticeText } from '@/web/text/notice'
 import { formatHourOfDay } from '@/web/text/time'
 import { MINUTES_PER_HOUR, MS_PER_SECOND } from '@/web/text/time-units'
 
-/** The alert desk's price board is wall screen variant 3. */
-const TAPE_VARIANT = 3
-const TAPE_ROWS = 4
-// Under this many CSS px a tape row cannot be read, and the board shows the up and down counts.
-const MIN_ROW_PX = 9
 const INDEX_DIGITS = 2
 const DAY_DIGITS_FROM = 8
+// The lobby's clocks keep the region's zones; their face is this much taller for the label.
+const ZONED_ROOM: RoomId = 'lobby'
+const LABELLED_CLOCK_SHARE = 1.25
 // The StandBy phones that carry the operator's notices: your desk's and the assistant's.
 const BANNER_ROOMS: ReadonlySet<RoomId> = new Set(['desk', 'assist'])
 // The mockup's banner stays this long; the flow drifts in steps of this.
@@ -58,7 +55,7 @@ type StandByKind = Exclude<DeskFace['kind'], 'calendar'>
 
 /** A face painted from the page's data: what it shows, where it stands and how it takes light. */
 export interface InfoFace {
-  readonly kind: 'board' | 'tape' | 'clock' | DeskFace['kind'] | SignFace['kind']
+  readonly kind: 'board' | 'clock' | DeskFace['kind'] | SignFace['kind']
   readonly room: RoomId
   readonly at: readonly [x: number, y: number, z: number]
   readonly size: readonly [w: number, h: number]
@@ -123,46 +120,33 @@ export function faceMoodOf(sim: SimView): FaceMood {
 }
 
 /** Everything the data faces read, by reference: while none moved, no face needs asking again. */
-export function infoInputsOf(scale: number, mood: FaceMood): readonly unknown[] {
+export function infoInputsOf(mood: FaceMood): readonly unknown[] {
   return [
     ...signInputsOf(mood),
     mood.isQuiet,
     mood.isNight,
     mood.flowSeconds,
     mood.banner,
-    scale,
     pageMinute.value,
     roomStatus.value,
-    ledItems.value,
+    wallClockMinutes.value,
     homeIndex.value,
-    quotesBlock.view.value,
     locale.value,
   ]
 }
 
-/** What `face` shows this frame, at `scale` CSS px per world px. */
-export function infoJobOf(
-  face: InfoFace,
-  at: { readonly scale: number; readonly mood: FaceMood }
-): InfoJob {
-  const { scale, mood } = at
-
+/** What `face` shows this frame. */
+export function infoJobOf(face: InfoFace, mood: FaceMood): InfoJob {
   switch (face.kind) {
     case 'board': {
       const count = boardCountOf(face.room)
 
       return { key: count ?? '', paint: (c) => paintBoard(c, { count, seed: face.seed }) }
     }
-    case 'tape': {
-      const rows = tapeRows()
-      const isTiny = (face.size[1] / Math.max(1, rows.length)) * scale < MIN_ROW_PX
-
-      return { key: JSON.stringify([rows, isTiny]), paint: (c) => paintTape(c, { rows, isTiny }) }
-    }
     case 'clock': {
-      const { minute } = pageMinute.value
+      const clock = clockOf(face)
 
-      return { key: `${minute}`, paint: (c) => paintClock(c, minute) }
+      return { key: JSON.stringify(clock), paint: (c) => paintClock(c, clock) }
     }
     case 'calendar': {
       const day = String(Number(pageMinute.value.day.slice(DAY_DIGITS_FROM)))
@@ -182,7 +166,7 @@ export function infoJobOf(
   }
 }
 
-function wallKindOf(prop: PropDef): 'board' | 'tape' | 'clock' | undefined {
+function wallKindOf(prop: PropDef): 'board' | 'clock' | undefined {
   if (faceKindOf(prop) !== undefined) {
     return undefined
   }
@@ -191,27 +175,37 @@ function wallKindOf(prop: PropDef): 'board' | 'tape' | 'clock' | undefined {
     return 'board'
   }
 
-  if (prop.kind === 'clock') {
-    return 'clock'
-  }
-
-  return prop.kind === 'wall-screen' && prop.variant === TAPE_VARIANT ? 'tape' : undefined
+  return prop.kind === 'clock' ? 'clock' : undefined
 }
 
-function wallFace(prop: PropDef, kind: 'board' | 'tape' | 'clock'): InfoFace {
+function wallFace(prop: PropDef, kind: 'board' | 'clock'): InfoFace {
   const spots = wallSpotsOf(prop)
   const [x, z, w, d, y, h] = spots.face
+  // A lobby clock carries its zone's label in a strip under the dial, as the mockup's.
+  const tall = kind === 'clock' && prop.room === ZONED_ROOM ? h * LABELLED_CLOCK_SHARE : h
 
   return {
     kind,
     room: prop.room,
-    at: [x + w / 2, y + h / 2, z + d + FACE_LIFT_PX],
-    size: [w, h],
+    at: [x + w / 2, y + h - tall / 2, z + d + FACE_LIFT_PX],
+    size: [w, tall],
     tilt: 0,
-    isGlowing: kind === 'tape',
+    isGlowing: false,
     ...(spots.wallZ === undefined ? {} : { wallAt: { x: prop.rect.x, wallZ: spots.wallZ } }),
     seed: prop.variant ?? 0,
   }
+}
+
+// A lobby clock reads its region's zone and carries its label; any other reads the page clock.
+function clockOf(face: InfoFace): { readonly minute: number; readonly label?: string } {
+  const zoned = face.room === ZONED_ROOM ? regionPack.value.wallClocks[face.seed] : undefined
+  const minute = zoned === undefined ? undefined : wallClockMinutes.value[face.seed]
+
+  if (zoned === undefined || minute === undefined) {
+    return { minute: pageMinute.value.minute }
+  }
+
+  return { minute, label: zoned.label }
 }
 
 // The counter the room's whiteboard holds while a run works there.
@@ -223,18 +217,6 @@ function boardCountOf(room: RoomId): string | undefined {
   }
 
   return room === 'lib' ? questionNumberOf(run) : undefined
-}
-
-// The tape's first rows, as the strip under the header lists them: the benchmarks, then the
-// watchlist names they do not already carry.
-function tapeRows(): readonly TapeRow[] {
-  const benchmarks = ledItems.value.map((item) => toRow(item.label, item.changePct))
-  const named = new Set(benchmarks.map((row) => row.name))
-  const watched = (quotesBlock.view.value.data?.quotes ?? [])
-    .filter((quote) => !named.has(quote.ticker))
-    .map((quote) => toRow(quote.ticker, quote.changePct))
-
-  return [...benchmarks, ...watched].slice(0, TAPE_ROWS)
 }
 
 function toRow(name: string, changePct: number | undefined): TapeRow {

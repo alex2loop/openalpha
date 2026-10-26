@@ -5,11 +5,12 @@ import { CREW_RECIPES, frontDeskThings } from '@/web/scene/render3d/crew-props'
 import {
   type DeskFace,
   type DeskLamp,
+  deskLampOf,
   deskThings,
-  dressFloor,
   meetingThings,
   monitorOf,
 } from '@/web/scene/render3d/desk-dressing'
+import { airConBoxes, cableTray } from '@/web/scene/render3d/desk-pieces'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import {
   CARD,
@@ -126,8 +127,6 @@ export function buildFloorProps(floor: FloorId): FloorProps {
     }
   }
 
-  dressFloor(floor, built)
-
   return built
 }
 
@@ -162,6 +161,9 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     }
   },
   computer: monitorOf,
+  'desk-lamp': deskLampOf,
+  'cable-tray': ({ prop, out }) =>
+    cableTray(out, { x: prop.rect.x, z: prop.rect.y, w: prop.rect.w }),
   printer: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height - 2]), METAL[1], true))
     out.push(box(spot(prop, [prop.height - 2, 2], 1), METAL[0], true))
@@ -409,7 +411,10 @@ function wallPiece({ prop, out, floor }: Build): void {
     return
   }
 
-  const boxes = [box(spots.frame, frame), box(spots.face, face)]
+  const boxes =
+    prop.kind === 'air-con' && spots.wallZ !== undefined
+      ? airConBoxes(prop, spots.wallZ)
+      : [box(spots.frame, frame), box(spots.face, face)]
 
   if (spots.wallZ === undefined) {
     out.push(...boxes)

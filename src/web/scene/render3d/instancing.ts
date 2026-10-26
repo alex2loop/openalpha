@@ -33,6 +33,8 @@ interface Placement {
   readonly size: readonly [w: number, h: number, d: number]
   readonly yaw?: number
   readonly tilt?: number
+  /** A turn about the view axis (z), radians. */
+  readonly roll?: number
   readonly color?: string
 }
 
@@ -82,7 +84,7 @@ export function placeInstance(pool: Pool, place: Placement): void {
 
   at.set(toUnits(place.x), toUnits(place.y), toUnits(place.z))
   scale.set(toUnits(w), toUnits(h), toUnits(d))
-  turn.setFromEuler(euler.set(place.tilt ?? 0, place.yaw ?? 0, 0))
+  turn.setFromEuler(euler.set(place.tilt ?? 0, place.yaw ?? 0, place.roll ?? 0))
   pool.mesh.setMatrixAt(pool.count, matrix.compose(at, turn, scale))
 
   if (place.color !== undefined) {

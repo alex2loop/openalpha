@@ -9,7 +9,8 @@ const FACE_PX_PER_PX = 4
 const FACE_MIN_PX = 256
 const BOARD = Object.freeze({ paper: '#FCFBF8', edge: '#E3DFD8', ink: '#3A3F58' })
 const MARKERS = ['#7C93D6', '#A596D9', '#6F7388'] as const
-const TAPE = Object.freeze({ panel: '#171A2B', edge: '#2C3250', name: '#EEF0FA', flat: '#E9ECF8' })
+// A move that rounds away reads in this neutral tone.
+const FLAT_TONE = '#E9ECF8'
 const CLOCK = Object.freeze({ rim: '#D9CBB8', face: '#FFFDF8', tick: '#8E8497', hand: '#3A3F58' })
 const CALENDAR = Object.freeze({ page: '#FBF9F3', band: '#D8514B', ink: '#2B2433' })
 // The StandBy screen is laid out on the mockup's 256 by 160 canvas and scaled to the face.
@@ -73,7 +74,7 @@ const FULL_TURN = Math.PI * 2
 
 type Tone = ReturnType<typeof toneOfPercent>
 
-/** A row of the alert desk's price board: a name, its signed move and the move's direction. */
+/** A name with its signed move and the move's direction. */
 export interface TapeRow {
   readonly name: string
   readonly move: string
@@ -148,63 +149,32 @@ export function paintBoard(
   }
 }
 
-/** The alert desk's price board: a row per tape name with its move, or, too small to read, how
- *  many names are up and down. */
-export function paintTape(
+/** A wall clock's round face at `minute` of the day, with its zone's label under it on a lobby
+ *  clock (a face taller than wide). */
+export function paintClock(
   c: CanvasRenderingContext2D,
-  tape: { readonly rows: readonly TapeRow[]; readonly isTiny: boolean }
+  clock: { readonly minute: number; readonly label?: string }
 ): void {
   const { width: w, height: h } = c.canvas
-
-  c.fillStyle = TAPE.panel
-  c.fillRect(0, 0, w, h)
-  c.strokeStyle = TAPE.edge
-  c.lineWidth = Math.max(2, h * 0.02)
-  c.strokeRect(1, 1, w - 2, h - 2)
-  c.textBaseline = 'middle'
-
-  if (tape.isTiny) {
-    const up = tape.rows.filter((row) => row.tone === 'up').length
-    const down = tape.rows.filter((row) => row.tone === 'down').length
-
-    c.font = `700 ${h * 0.38}px ${FONT}`
-    c.textAlign = 'center'
-    c.fillStyle = toneColour('up')
-    c.fillText(`▲${up}`, w * 0.28, h / 2)
-    c.fillStyle = toneColour('down')
-    c.fillText(`▼${down}`, w * 0.72, h / 2)
-    return
-  }
-
-  const pad = h * 0.07
-  const rowH = (h - pad * 2) / Math.max(1, tape.rows.length)
-  const size = rowH * 0.5
-
-  for (const [i, row] of tape.rows.entries()) {
-    const y = pad + rowH * (i + 0.5)
-
-    c.font = `700 ${size}px ${FONT}`
-    c.textAlign = 'left'
-    c.fillStyle = TAPE.name
-    c.fillText(row.name, pad, y)
-    c.font = `600 ${size * 0.85}px ${FONT}`
-    c.textAlign = 'right'
-    c.fillStyle = toneColour(row.tone)
-    c.fillText(row.move, w - pad, y)
-  }
-}
-
-/** A wall clock's round face at `minute` of the day. */
-export function paintClock(c: CanvasRenderingContext2D, minute: number): void {
-  const { width: w } = c.canvas
   const r = w / 2
+  const unit = w / 128
 
-  c.clearRect(0, 0, w, c.canvas.height)
+  c.clearRect(0, 0, w, h)
   disc(c, { x: r, y: r, r: r - 2, colour: CLOCK.rim })
-  disc(c, { x: r, y: r, r: r - 10 * (w / 128), colour: CLOCK.face })
-  dialTicks(c, { x: r, y: r, from: r * 0.69, to: r * 0.78, colour: CLOCK.tick, unit: w / 128 })
-  hands(c, { x: r, y: r, r, minute, colour: CLOCK.hand, unit: w / 128, look: CLOCK_HANDS })
-  disc(c, { x: r, y: r, r: 5 * (w / 128), colour: CLOCK.hand })
+  disc(c, { x: r, y: r, r: r - 10 * unit, colour: CLOCK.face })
+  dialTicks(c, { x: r, y: r, from: r * 0.69, to: r * 0.78, colour: CLOCK.tick, unit })
+  hands(c, { x: r, y: r, r, minute: clock.minute, colour: CLOCK.hand, unit, look: CLOCK_HANDS })
+  disc(c, { x: r, y: r, r: 5 * unit, colour: CLOCK.hand })
+
+  if (clock.label !== undefined && h > w) {
+    c.fillStyle = CLOCK.face
+    c.fillRect(r * 0.2, w + 4 * unit, w * 0.8, h - w - 6 * unit)
+    c.fillStyle = CLOCK.hand
+    c.font = `700 ${(h - w) * 0.7}px ${FONT}`
+    c.textAlign = 'center'
+    c.textBaseline = 'middle'
+    c.fillText(clock.label, r, w + (h - w) / 2 + unit)
+  }
 }
 
 /** A desk calendar's page: a red band and today's day number. */
@@ -368,7 +338,7 @@ function paintFlowView(c: CanvasRenderingContext2D, face: StandByView, at: LookA
 
 function toneColour(tone: Tone): string {
   if (tone === 'flat') {
-    return TAPE.flat
+    return FLAT_TONE
   }
 
   return stampToneOf(tone === 'up' ? 'buy' : 'reduce')
