@@ -150,7 +150,7 @@ export interface StreetHours {
 /** Where a region's tower foot stands in the street canvas, its scale about the foot and how
  *  hazed it is. */
 export interface Landmark {
-  readonly shape: 'bitexco'
+  readonly shape: 'tower'
   readonly foot: Point
   readonly scale: number
   readonly haze: number

@@ -86,6 +86,8 @@ provider's terms ask for a line of credit, this is that line:
   individuals and non-profits.
 - **Yahoo** - Yahoo! and Yahoo! Finance are trademarks of Yahoo, Inc. OpenAlpha is not affiliated
   with Yahoo and reads its public chart endpoint for personal research only.
+- **Open-Meteo** - Weather data by [Open-Meteo.com](https://open-meteo.com/), licensed CC BY 4.0.
+  The office page asks it for the weather from your browser and sends your city's coordinates only.
 
 ## Name and logo are not licensed
 
@@ -124,6 +126,59 @@ ISC licence:
 > WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 > NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 > THIS SOFTWARE.
+
+## Map data and reference photos
+
+- **Street facts** - the street names and layout of the Vietnam city pack come from
+  © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), under the Open
+  Database Licence (ODbL).
+- **Reference photos** - the office's streets were drawn by eye from photos on Wikimedia Commons,
+  among them photos of the Bitexco Financial Tower. No photo ships with OpenAlpha; this is the credit
+  for the people who took them, with each photo's Commons page:
+
+| Photographer | Licence | Photos |
+|---|---|---|
+| Adam Jones | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=134067021) |
+| Andy C | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=8658063) |
+| Biodin | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=28802643) |
+| Busition | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=176158761) |
+| CaptJayRuffins | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=73653399) |
+| David Ackerman | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=139613687) |
+| David McKelvey | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=105760704) |
+| Diego Delso | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=30089027) [2](https://commons.wikimedia.org/?curid=30089036) |
+| Dietmar Rabich | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=30454359) [2](https://commons.wikimedia.org/?curid=125644831) |
+| Duyenphan0298 | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=106354584) |
+| Elvert Barnes | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=20214454) |
+| Epicgenius | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=86742880) |
+| Gary Todd | CC0 | [1](https://commons.wikimedia.org/?curid=108935342) |
+| Gigi alt | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=21845395) |
+| Giorgio Galeotti | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=50934532) |
+| GV | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=93905450) |
+| hijirin | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=53460841) |
+| Hisi21 | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=31493151) |
+| Jean-Etienne Minh-Duy Poirrier | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=127208456) |
+| Jean-Marie Hullot | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=34592371) |
+| Jim.henderson | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=100093134) |
+| Jim.henderson | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=86879200) |
+| Jim.henderson | Public domain | [1](https://commons.wikimedia.org/?curid=12475969) |
+| Ken Lund | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=84810017) |
+| King of Hearts | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=21073689) |
+| Lu The Vy | CC0 | [1](https://commons.wikimedia.org/?curid=122475757) |
+| Marc Mongenet | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=192255173) |
+| Martin Furtschegger | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=54823056) |
+| Metropolitan Transportation Authority of the State of New York | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=33086217) |
+| Mkoff | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=48705102) [2](https://commons.wikimedia.org/?curid=200427125) |
+| Nick-philly | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=84618900) |
+| Phương Huy | CC0 | [1](https://commons.wikimedia.org/?curid=147525102) [2](https://commons.wikimedia.org/?curid=147157032) |
+| RG72 | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=98773046) [2](https://commons.wikimedia.org/?curid=98861245) [3](https://commons.wikimedia.org/?curid=98670489) [4](https://commons.wikimedia.org/?curid=98670910) |
+| Rudolph.A.Furtado | CC0 | [1](https://commons.wikimedia.org/?curid=30723703) |
+| stanislav baranov | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=139727705) |
+| Steffen Schmitz | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=88858180) |
+| Syced | CC0 | [1](https://commons.wikimedia.org/?curid=134022463) |
+| Timback | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=86375078) |
+| Tri Nguyen | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=29738457) [2](https://commons.wikimedia.org/?curid=127208419) [3](https://commons.wikimedia.org/?curid=127208428) |
+| trungydang | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=58727100) [2](https://commons.wikimedia.org/?curid=58812039) [3](https://commons.wikimedia.org/?curid=57962449) [4](https://commons.wikimedia.org/?curid=58914895) [5](https://commons.wikimedia.org/?curid=56705865) [6](https://commons.wikimedia.org/?curid=57666463) [7](https://commons.wikimedia.org/?curid=56918694) |
+| 源義信 | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=143674772) |
 
 ## Not financial advice
 

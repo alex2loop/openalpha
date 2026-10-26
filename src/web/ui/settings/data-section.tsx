@@ -1,4 +1,5 @@
 import type { SettingsSection } from '@/web/state/settings'
+import { Credits } from '@/web/ui/settings/credits'
 import { DataHealth } from '@/web/ui/settings/data-health'
 import { Outbound } from '@/web/ui/settings/outbound'
 
@@ -12,6 +13,7 @@ export function DataSection({
     <>
       <DataHealth openSection={openSection} />
       <Outbound />
+      <Credits />
     </>
   )
 }
