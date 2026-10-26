@@ -4,7 +4,7 @@ import type { HolidayId } from '@/web/scene/world/regions'
 import { drawSprite, staticPxOf } from '@/web/scene/render2d/street/detail'
 import { blossomOf, paintCrownLights } from '@/web/scene/render2d/street/festive-trees'
 import { paintGroundShadow } from '@/web/scene/render2d/street/shadow'
-import { DARK_STEPS, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
+import { DARK_STEPS, isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { HEIGHT_K } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
@@ -335,7 +335,7 @@ function paintBandWindows(
 ): void {
   const { g } = scene
 
-  g.fillStyle = scene.dark > 0.3 ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'
+  g.fillStyle = isNightDark(scene.dark) ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'
 
   for (let y = at.base - at.rise + 4; y < at.base - 3; y += 6) {
     g.fillRect(at.x + 2, y, at.w - 4, 2)
