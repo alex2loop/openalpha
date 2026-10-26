@@ -1,5 +1,6 @@
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import { type Box, box, type Spot } from '@/web/scene/render3d/boxes'
+import { copierOf } from '@/web/scene/render3d/copier'
 import { CREW_RECIPES, frontDeskThings } from '@/web/scene/render3d/crew-props'
 import {
   type DeskFace,
@@ -90,7 +91,6 @@ const PHONE_ON_DESK_PX = 4.5
 const PHONE_PX = 1.6
 const COUNTER_PX = 13
 const MACHINE_TONE = '#9DB0CC'
-const COPIER_SCREEN_BASE = '#7C8394'
 const TANK_WATER = '#8CCBEA'
 const DESK_TOP_PX = 2
 const LEG_PX = 2
@@ -166,11 +166,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     out.push(box(spot(prop, [0, prop.height - 2]), METAL[1], true))
     out.push(box(spot(prop, [prop.height - 2, 2], 1), METAL[0], true))
   },
-  copier: ({ prop, out }) => {
-    out.push(box(spot(prop, [0, prop.height]), PROP_TONES.copier[1], true))
-    out.push(box(spot(prop, [prop.height - 3, 3], 1), PROP_TONES.copier[0], true))
-    out.push(box([prop.rect.x + 9, prop.rect.y + 8, 8, 5, prop.height, 1.4], COPIER_SCREEN_BASE))
-  },
+  copier: copierOf,
   rack: ({ prop, out }) => {
     out.push(box(spot(prop, [0, prop.height]), RACK_TONE, true))
     for (let row = 6; row < prop.height - 4; row += 6) {
