@@ -16,3 +16,8 @@
   /* Drags and pinches pan and zoom the office, never the page. */
   touch-action: none;
 }
+
+/* Inside the clipped stage the ring is drawn within the canvas, whichever renderer made it. */
+.scene-host canvas:focus-visible {
+  outline-offset: -2px;
+}

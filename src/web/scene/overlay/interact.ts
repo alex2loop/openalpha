@@ -21,7 +21,6 @@ import {
 } from '@/web/scene/overlay/pointer'
 import { closeMenu, menuActor } from '@/web/scene/overlay/radial-menu'
 import { leaveRoom, panBy, stopFollow, view, zoomBy } from '@/web/scene/view'
-import { tr } from '@/web/text/tr'
 
 /** A press that moves further than this is a drag, never a click. */
 const DRAG_PX = 6
@@ -45,7 +44,6 @@ const TAB_KEY = 'Tab'
 const TOUCH = 'touch'
 const MOUSE = 'mouse'
 const GRAB_CURSOR = 'grabbing'
-const LABEL_ATTRIBUTE = 'aria-label'
 const RING_SELECTOR = '.radial-menu'
 
 /** The canvas's input on the scene's one loop: no timer of its own, its long-press and follow run
@@ -107,7 +105,6 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps):
   }
 
   listen(input, listeners.signal)
-  canvas.setAttribute(LABEL_ATTRIBUTE, tr('ui.office.canvas.label'))
 
   return {
     step: (nowMs) => stepInput(input, nowMs),
@@ -122,7 +119,6 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps):
       closeMenu(false)
       stopFollow()
       meeting.dispose()
-      canvas.removeAttribute(LABEL_ATTRIBUTE)
     },
   }
 }

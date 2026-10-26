@@ -1,5 +1,6 @@
 import type { RefObject } from 'preact'
 import { useSignal } from '@preact/signals'
+import { useEffect } from 'preact/hooks'
 
 import type { NoticeWire } from '@/app/server/wire/notices'
 import { pluralKey } from '@/i18n'
@@ -11,13 +12,14 @@ import { buildDayKey } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { openActivityDialog } from '@/web/ui/activity/activity-dialog'
 import { PendingCard } from '@/web/ui/bell/approval-card'
+import { clearChosenRequest } from '@/web/ui/bell/bell-keys'
 import { NoticeRow } from '@/web/ui/bell/notice-row'
 import { Button } from '@/web/ui/kit/button'
 import { BELL_POPOVER_ID, Popover } from '@/web/ui/kit/popover'
 
 export function BellPopover({ anchor }: { readonly anchor: RefObject<HTMLElement> }) {
   return (
-    <Popover id={BELL_POPOVER_ID} anchor={anchor} label={tr('ui.office.bell.title')}>
+    <Popover id={BELL_POPOVER_ID} anchor={anchor} label={tr('ui.office.bell.title')} takesFocus>
       <BellHead />
       <div class="popover-scroll">
         <WaitingSection />
@@ -67,6 +69,8 @@ function WaitingSection() {
   const entries = pending.value
   const count = entries.length
 
+  useEffect(() => clearChosenRequest, [])
+
   if (count === 0) {
     return null
   }
@@ -78,7 +82,7 @@ function WaitingSection() {
       </h3>
       <div class="pending-list">
         {entries.map((entry) => (
-          <PendingCard key={pendingRequestId(entry)} entry={entry} />
+          <PendingCard key={pendingRequestId(entry)} entry={entry} isKeyed />
         ))}
       </div>
       {entries.some((entry) => entry.kind === 'approval') && (

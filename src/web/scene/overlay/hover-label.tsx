@@ -108,8 +108,13 @@ function lineOf(now: ActorNow, epochMs: number): string {
     case 'life':
       return now.line
     case 'dot':
-      return tr(STATUS_KEYS[now.status])
+      return statusTextOf(now.status)
   }
+}
+
+/** What a person's dot means, in words. */
+export function statusTextOf(status: ActorStatus): string {
+  return tr(STATUS_KEYS[status])
 }
 
 // A run that counts its steps says which one and for how long; any other says where it came from.

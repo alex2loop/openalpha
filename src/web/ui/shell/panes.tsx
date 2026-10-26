@@ -2,6 +2,7 @@ import { SceneCanvas } from '@/web/scene/canvas'
 import { breakpoint } from '@/web/state/breakpoints'
 import { pane } from '@/web/state/pane'
 import { isFocus } from '@/web/state/panel'
+import { SceneTwin } from '@/web/ui/a11y/scene-twin'
 import { ChatPanel } from '@/web/ui/chat/chat-panel'
 import { Panel } from '@/web/ui/panel/panel'
 
@@ -17,6 +18,7 @@ export function Panes() {
       <div class="stage">
         <SceneCanvas />
       </div>
+      <SceneTwin />
       <Panel />
       <ChatPanel />
     </main>

@@ -12,7 +12,7 @@ import { homeMarket } from '@/web/scene/data/home'
 import { pastCalls, startPastCalls } from '@/web/scene/data/past-calls'
 import { breachedStops } from '@/web/scene/data/room-status'
 import { sceneGoals, wantedGoals } from '@/web/scene/overlay/actor-state'
-import { buildBubbles, said, startSpeech } from '@/web/scene/overlay/bubbles'
+import { bubbleSignatureOf, buildBubbles, said, startSpeech } from '@/web/scene/overlay/bubbles'
 import { figureOf } from '@/web/scene/overlay/hit'
 import { hoverPlaceOf } from '@/web/scene/overlay/hover-label'
 import { buildMarkers, markerRectOf } from '@/web/scene/overlay/markers'
@@ -108,7 +108,8 @@ const litScreens = computed(() =>
     market: homeMarket.value?.market,
   })
 )
-const markers = computed(() =>
+/** The "!" over each person something waits on, wherever they stand. */
+export const markers = computed(() =>
   buildMarkers({ goals: sceneGoals.value, pending: pending.value, breached: breachedStops.value })
 )
 
@@ -256,7 +257,7 @@ function signatureOf(input: PassInput): string {
     input.picks.join(','),
     input.keyed ?? '',
     input.menu ?? '',
-    ...input.bubbles.map((bubble) => `${bubble.actor}:${bubble.kind}:${bubble.text}`),
+    ...input.bubbles.map(bubbleSignatureOf),
     ...input.markers.map((marker) => `${marker.actor}:${marker.tone}`),
     ...input.screens.map((screen) => `${screen.actor}:${JSON.stringify(screen.content)}`),
     ...input.view.team.desks.map(

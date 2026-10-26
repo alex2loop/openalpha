@@ -4,6 +4,9 @@ import { showPane } from '@/web/state/pane'
 
 const BACK_MAX = 20
 
+/** The info panel's element, open or folded: where the skip link lands. */
+export const PANEL_ELEMENT_ID = 'info-panel'
+
 export type PanelTab = 'today' | 'book' | 'ideas'
 /** A part of an agent's tab: its steps now, its result, profile and work. */
 export type AgentSection = 'progress' | 'result' | 'profile' | 'work'

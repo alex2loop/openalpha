@@ -15,12 +15,24 @@ import { EmptyTeam } from '@/web/scene/overlay/empty-team'
 import { MeetingBar } from '@/web/scene/overlay/meeting-bar'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
-import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
+import {
+  markers,
+  type OverlayPass,
+  readOverlayInputs,
+  startOverlay,
+} from '@/web/scene/overlay/overlay-pass'
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
-import { type InputSlot, type Renderers, startViews } from '@/web/scene/overlay/scene-views'
+import {
+  type InputSlot,
+  type Renderers,
+  SCENE_KEYS_ID,
+  SCENE_LABEL_ID,
+  startViews,
+} from '@/web/scene/overlay/scene-views'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
+import { syncTwin } from '@/web/scene/overlay/twin'
 import { ViewNote } from '@/web/scene/overlay/view-note'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
@@ -42,6 +54,7 @@ import { unread } from '@/web/state/notices'
 import { colorScheme, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
 import { state } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time'
+import { tr } from '@/web/text/tr'
 
 import './canvas.css'
 
@@ -64,6 +77,12 @@ export function SceneCanvas() {
 
   return (
     <div class="scene">
+      <p id={SCENE_LABEL_ID} class="sr">
+        {tr('ui.office.a11y.scene')}
+      </p>
+      <p id={SCENE_KEYS_ID} class="sr">
+        {tr('ui.office.a11y.canvasKeys')}
+      </p>
       <div ref={host} class="scene-host" />
       <RoomTags renderer={renderer} />
       <BoardButtons renderer={renderer} />
@@ -181,6 +200,7 @@ function createSceneLoop(parts: LoopParts): {
       const isAnimating = renderer.draw(drawn, now)
 
       overlay.frame(drawn, now)
+      syncTwin(drawn, markers.value)
 
       return isAnimating
     },

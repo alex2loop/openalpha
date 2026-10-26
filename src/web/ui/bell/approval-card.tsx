@@ -1,4 +1,6 @@
-import { type Signal, useSignal } from '@preact/signals'
+import type { RefObject } from 'preact'
+import { type Signal, useSignal, useSignalEffect } from '@preact/signals'
+import { useEffect, useRef } from 'preact/hooks'
 
 import type { Decision } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
@@ -15,6 +17,7 @@ import { formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
 import { formatClock, formatElapsed } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
+import { chosenRequestId, DECISION_KEYS, keyedAnswer } from '@/web/ui/bell/bell-keys'
 import { Button } from '@/web/ui/kit/button'
 
 const COUNTDOWN_TICK_MS = 1_000
@@ -26,25 +29,38 @@ const DECISION_KINDS = Object.freeze({
   deny: 'destructive',
 } as const satisfies Record<Decision, 'commit' | 'secondary' | 'destructive'>)
 
-type Outcome = 'approved' | 'denied'
+type Outcome = 'approved' | 'denied' | 'alreadyApproved' | 'alreadyDenied'
 
 interface Asker {
   readonly who: string
   readonly sourceLine: string
 }
 
+interface PendingCardProps {
+  readonly entry: PendingWire
+  /** The bell's card: it takes Y and N while outlined and prints them on its buttons. */
+  readonly isKeyed?: true
+}
+
 /** One request waiting for the operator. Only one asked on this page can be answered here; any
  *  other names where it is answered instead. */
-export function PendingCard({ entry }: { readonly entry: PendingWire }) {
+export function PendingCard({ entry, isKeyed }: PendingCardProps) {
   return entry.kind === 'approval' ? (
-    <ApprovalCard event={entry.event} />
+    <ApprovalCard event={entry.event} isKeyed={isKeyed === true} />
   ) : (
     <QuestionCard question={entry} />
   )
 }
 
-function ApprovalCard({ event }: { readonly event: WireEvent }) {
+function ApprovalCard({
+  event,
+  isKeyed,
+}: {
+  readonly event: WireEvent
+  readonly isKeyed: boolean
+}) {
   const { approval, requestId } = event
+  const { card, isChosen } = useChosenCard(isKeyed, requestId)
 
   if (approval === undefined || requestId === undefined) {
     return null
@@ -59,7 +75,11 @@ function ApprovalCard({ event }: { readonly event: WireEvent }) {
   const detail = approvalDetail(locale.value, approval.argsSummary, approval.truncated)
 
   return (
-    <div class="pending-card">
+    <div
+      ref={card}
+      class={isChosen ? 'pending-card is-chosen' : 'pending-card'}
+      aria-current={isChosen ? 'true' : undefined}
+    >
       <div class="pending-card-head">
         <b>{joinInline([asker.who, approval.label])}</b>
         <Countdown expiresAt={approval.expiresAt} />
@@ -71,12 +91,29 @@ function ApprovalCard({ event }: { readonly event: WireEvent }) {
       <p class="meta">{asker.sourceLine}</p>
       {event.runId !== undefined && <SeeRun runId={event.runId} />}
       {approval.answerable === true ? (
-        <Decisions requestId={requestId} decisions={approval.decisions} />
+        <Decisions requestId={requestId} decisions={approval.decisions} isKeyed={isKeyed} />
       ) : (
         <p class="pending-card-elsewhere">{answerOnLine(channelId)}</p>
       )}
     </div>
   )
+}
+
+// The bell's outlined card comes into view as the arrows reach it.
+function useChosenCard(
+  isKeyed: boolean,
+  requestId: string | undefined
+): { readonly card: RefObject<HTMLDivElement>; readonly isChosen: boolean } {
+  const card = useRef<HTMLDivElement>(null)
+  const isChosen = isKeyed && requestId !== undefined && chosenRequestId.value === requestId
+
+  useEffect(() => {
+    if (isChosen) {
+      card.current?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [isChosen])
+
+  return { card, isChosen }
 }
 
 // "Xem": the run behind the request comes into view in the office.
@@ -122,13 +159,17 @@ function Countdown({ expiresAt }: { readonly expiresAt: number }) {
 interface DecisionsProps {
   readonly requestId: string
   readonly decisions: readonly Decision[]
+  readonly isKeyed: boolean
 }
 
 // The answer is sent once; the card itself leaves only on the daemon's `approval_resolved`.
-function Decisions({ requestId, decisions }: DecisionsProps) {
+function Decisions({ requestId, decisions, isKeyed }: DecisionsProps) {
   const outcome = useSignal<Outcome | undefined>(undefined)
   const failure = useSignal<string | undefined>(undefined)
   const isBusy = useSignal(false)
+  const isChosen = isKeyed && chosenRequestId.value === requestId
+
+  useKeyedAnswer({ requestId, decisions, isKeyed, isBusy, outcome, failure })
 
   if (outcome.value !== undefined) {
     return <p class="pending-card-outcome">{tr(`ui.office.bell.${outcome.value}`)}</p>
@@ -145,7 +186,12 @@ function Decisions({ requestId, decisions }: DecisionsProps) {
             disabled={isBusy.value}
             onClick={() => answer({ requestId, decision, isBusy, outcome, failure })}
           >
-            {decisionLabel(decision)}
+            {isChosen && decision !== 'always'
+              ? tr('ui.office.keys.onButton', {
+                  label: decisionLabel(decision),
+                  key: DECISION_KEYS[decision],
+                })
+              : decisionLabel(decision)}
           </Button>
         ))}
       </div>
@@ -156,6 +202,28 @@ function Decisions({ requestId, decisions }: DecisionsProps) {
       )}
     </>
   )
+}
+
+// Y or N on this outlined card answers it like its button would, once; a press made before the
+// card mounted is never taken.
+function useKeyedAnswer(input: Omit<AnswerInput, 'decision'> & DecisionsProps): void {
+  const handledSeq = useRef(keyedAnswer.peek()?.seq)
+
+  useSignalEffect(() => {
+    const press = keyedAnswer.value
+
+    if (!input.isKeyed || press === undefined || press.seq === handledSeq.current) {
+      return
+    }
+
+    handledSeq.current = press.seq
+
+    const isOpen = input.outcome.peek() === undefined && !input.isBusy.peek()
+
+    if (press.requestId === input.requestId && isOpen && input.decisions.includes(press.decision)) {
+      answer({ ...input, decision: press.decision })
+    }
+  })
 }
 
 interface AnswerInput {
@@ -171,8 +239,8 @@ function answer({ requestId, decision, isBusy, outcome, failure }: AnswerInput):
   failure.value = undefined
   answerApproval(requestId, decision)
     .then(
-      () => {
-        outcome.value = decision === 'deny' ? 'denied' : 'approved'
+      (sent) => {
+        outcome.value = outcomeOf(sent, decision)
       },
       (error: unknown) => {
         // A `conflict` carries the daemon's sentence: answered elsewhere, or asked on another channel.
@@ -182,6 +250,17 @@ function answer({ requestId, decision, isBusy, outcome, failure }: AnswerInput):
     .finally(() => {
       isBusy.value = false
     })
+}
+
+// A card that joined another card's send shows what that send decided, and that it came first.
+function outcomeOf(sent: Decision, asked: Decision): Outcome {
+  const isDenied = sent === 'deny'
+
+  if (sent === asked) {
+    return isDenied ? 'denied' : 'approved'
+  }
+
+  return isDenied ? 'alreadyDenied' : 'alreadyApproved'
 }
 
 interface AskerInput {

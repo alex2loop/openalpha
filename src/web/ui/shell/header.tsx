@@ -13,10 +13,12 @@ import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
 import { BellPopover } from '@/web/ui/bell/bell-popover'
 import { COST_POPOVER_ID, CostPopover, formatSpent } from '@/web/ui/cost/cost-popover'
-import { JOBS_POPOVER_ID, JobsPopover } from '@/web/ui/jobs/jobs-popover'
+import { JobsPopover } from '@/web/ui/jobs/jobs-popover'
+import { LIST_KEY } from '@/web/ui/keys/keys'
+import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { Chip } from '@/web/ui/kit/chip'
 import { CoinIcon, FocusIcon } from '@/web/ui/kit/icons'
-import { closePopover, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
+import { closePopover, JOBS_POPOVER_ID, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
 import { GearButton } from '@/web/ui/settings/gear-button'
 
 import './header.css'
@@ -42,6 +44,7 @@ export function Header() {
       {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       <ClockControl />
       <BellButton anchor={bellAnchor} />
+      <KeysButton />
       <GearButton />
       <JobsPopover anchor={jobsAnchor} />
       <CostPopover anchor={costAnchor} />
@@ -98,6 +101,20 @@ function FocusButton() {
     >
       <FocusIcon />
       {isFocus.value ? tr('ui.office.header.office') : tr('ui.office.header.focus')}
+    </button>
+  )
+}
+
+function KeysButton() {
+  return (
+    <button
+      type="button"
+      class="icon-button header-keys"
+      title={tr('ui.office.header.keys')}
+      aria-label={tr('ui.office.header.keys')}
+      onClick={openKeysDialog}
+    >
+      {LIST_KEY}
     </button>
   )
 }

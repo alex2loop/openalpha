@@ -8,6 +8,8 @@ import {
   state,
 } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
+import { Announcer } from '@/web/ui/a11y/announcer'
+import { SkipLink } from '@/web/ui/a11y/skip-link'
 import { CommandBar } from '@/web/ui/command/command-bar'
 import { ModalHost } from '@/web/ui/kit/modal'
 import { ReaderHost } from '@/web/ui/reader/reader'
@@ -46,6 +48,7 @@ export function App() {
 
   return (
     <div class={connection.value.status === 'offline' ? 'app is-offline' : 'app'}>
+      <SkipLink />
       <Header />
       <PaneBar />
       <Tape />
@@ -54,6 +57,7 @@ export function App() {
       <CommandBar />
       <ModalHost />
       <ReaderHost />
+      <Announcer />
     </div>
   )
 }

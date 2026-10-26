@@ -10,6 +10,8 @@ interface PopoverProps {
   readonly anchor: RefObject<HTMLElement>
   readonly label: string
   readonly class?: string
+  /** Focus moves into it as it opens, so its keys work whatever opened it. */
+  readonly takesFocus?: true
   readonly children: ComponentChildren
 }
 
@@ -20,6 +22,8 @@ interface OpenPanel {
 
 /** The bell's popover, which the office also opens: from an approval's marker or bubble. */
 export const BELL_POPOVER_ID = 'bell'
+/** The running jobs' popover, which a notice row and the J key also open. */
+export const JOBS_POPOVER_ID = 'jobs'
 
 const openId = signal<string | undefined>(undefined)
 // The mounted panel and its anchor, so a dialog opened from inside it can return focus there.
@@ -56,13 +60,20 @@ export function resolveFocusReturn(active: Element | null): HTMLElement | undefi
 }
 
 /** Its children mount only while it is open, so whatever they load is released when it closes. */
-export function Popover({ id, anchor, label, class: className, children }: PopoverProps) {
+export function Popover({
+  id,
+  anchor,
+  label,
+  class: className,
+  takesFocus,
+  children,
+}: PopoverProps) {
   if (openId.value !== id) {
     return null
   }
 
   return (
-    <PopoverPanel anchor={anchor} label={label} className={className}>
+    <PopoverPanel anchor={anchor} label={label} className={className} takesFocus={takesFocus}>
       {children}
     </PopoverPanel>
   )
@@ -72,13 +83,19 @@ interface PopoverPanelProps {
   readonly anchor: RefObject<HTMLElement>
   readonly label: string
   readonly className: string | undefined
+  readonly takesFocus: true | undefined
   readonly children: ComponentChildren
 }
 
-function PopoverPanel({ anchor, label, className, children }: PopoverPanelProps) {
+function PopoverPanel({ anchor, label, className, takesFocus, children }: PopoverPanelProps) {
   const panel = useRef<HTMLDivElement>(null)
 
   useEffect(() => armDismiss(panel, anchor), [anchor])
+  useEffect(() => {
+    if (takesFocus === true) {
+      panel.current?.focus()
+    }
+  }, [takesFocus])
 
   return (
     <div
@@ -86,6 +103,7 @@ function PopoverPanel({ anchor, label, className, children }: PopoverPanelProps)
       class={className === undefined ? 'popover' : `popover ${className}`}
       role="dialog"
       aria-label={label}
+      tabIndex={takesFocus === true ? -1 : undefined}
     >
       {children}
     </div>

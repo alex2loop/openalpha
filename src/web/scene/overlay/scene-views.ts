@@ -3,12 +3,22 @@ import { effect, untracked } from '@preact/signals'
 import type { PointerDeps } from '@/web/scene/overlay/pointer'
 import type { RendererHost, SceneRenderer } from '@/web/scene/renderer'
 import { attachInteraction, type Interaction } from '@/web/scene/overlay/interact'
+import { syncTwin } from '@/web/scene/overlay/twin'
 import { showViewNote } from '@/web/scene/overlay/view-note'
 import { sceneView, setSceneView } from '@/web/state/prefs'
 
 // How long the line about falling back to 2D stays up.
 const FALLBACK_NOTE_MS = 6_000
 const CONTEXT_LOST_EVENT = 'webglcontextlost'
+/** The hidden lines that name and describe the canvas. */
+export const SCENE_LABEL_ID = 'scene-label'
+export const SCENE_KEYS_ID = 'scene-keys'
+// Each canvas shown is one keyboard application, named and described by the hidden lines beside it.
+const CANVAS_A11Y: Readonly<Record<string, string>> = Object.freeze({
+  role: 'application',
+  'aria-labelledby': SCENE_LABEL_ID,
+  'aria-describedby': SCENE_KEYS_ID,
+})
 
 /** The 2D renderer, kept for every return to it, and the host that shows the chosen one. */
 export interface Renderers {
@@ -51,6 +61,8 @@ export function startViews(deps: ViewDeps): () => void {
     showViewNote(undefined)
     views.canvas.abort()
     detachInput(deps.input)
+    undescribeCanvas(deps.element)
+    syncTwin(undefined, [])
   }
 }
 
@@ -95,13 +107,15 @@ interface ViewState {
   noteTimer: ReturnType<typeof setTimeout> | undefined
 }
 
-// The listeners on the old canvas go before its renderer unmounts (a 3D unmount loses its context
-// on purpose), and the input follows the new canvas.
+// The listeners and names on the old canvas go before its renderer unmounts (a 3D unmount loses its
+// context on purpose), and the input and names follow the new canvas.
 function showView(deps: ViewDeps, views: ViewState, next: SceneRenderer): void {
   views.canvas.abort()
   views.canvas = new AbortController()
   detachInput(deps.input)
+  undescribeCanvas(deps.element)
   deps.renderers.host.swap(next)
+  describeCanvas(deps.element)
   deps.input.current = attachInput(deps.element, deps.pointer)
   deps.pointer.wake()
 }
@@ -111,6 +125,23 @@ function attachInput(element: HTMLElement, deps: PointerDeps): Interaction | und
   const canvas = element.querySelector('canvas')
 
   return canvas === null ? undefined : attachInteraction(canvas, deps)
+}
+
+// The shown canvas's screen-reader names.
+function describeCanvas(element: HTMLElement): void {
+  const canvas = element.querySelector('canvas')
+
+  for (const [name, value] of Object.entries(CANVAS_A11Y)) {
+    canvas?.setAttribute(name, value)
+  }
+}
+
+function undescribeCanvas(element: HTMLElement): void {
+  const canvas = element.querySelector('canvas')
+
+  for (const name of Object.keys(CANVAS_A11Y)) {
+    canvas?.removeAttribute(name)
+  }
 }
 
 function detachInput(input: InputSlot): void {

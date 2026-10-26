@@ -22,6 +22,10 @@
   flex: 1;
 }
 
+.header-keys {
+  font-weight: 600;
+}
+
 /* The pane bar takes the focus toggle's place. */
 :root:not([data-layout="wide"]) .header-focus {
   display: none;
@@ -54,6 +58,6 @@
 :root[data-layout="phone"] .header .view-switch button {
   padding: 4px 6px;
 }
-:root[data-layout="phone"] .header :is(.bell-button, .gear-button) {
+:root[data-layout="phone"] .header :is(.bell-button, .header-keys, .gear-button) {
   flex: none;
 }

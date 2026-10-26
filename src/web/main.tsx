@@ -4,6 +4,7 @@ import { render } from 'preact'
 import { authState, takeTokenFromHash } from '@/web/api/token'
 import { disposeClock } from '@/web/scene/clock/clock'
 import { startAgents } from '@/web/state/agents'
+import { pageTitle, startAttention } from '@/web/state/attention'
 import { disposeBreakpoints } from '@/web/state/breakpoints'
 import { startChat } from '@/web/state/chat'
 import { startChatHistory } from '@/web/state/chat-history'
@@ -14,8 +15,10 @@ import { startMarket } from '@/web/state/market'
 import { startNotices } from '@/web/state/notices'
 import { disposePrefs } from '@/web/state/prefs'
 import { startRestartWatch } from '@/web/state/restart'
-import { brand, loadUntilReady, locale, state } from '@/web/state/session'
+import { loadUntilReady, locale, state } from '@/web/state/session'
 import { startAgentFormRequests } from '@/web/ui/agent/form/agent-form'
+import { createKeyHandler } from '@/web/ui/keys/keys'
+import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { App } from '@/web/ui/shell/app'
 
 const ROOT_ID = 'root'
@@ -38,10 +41,12 @@ function boot(): void {
   const controller = new AbortController()
   const isSignedIn = computed(() => authState.value === 'ok' && state.value !== undefined)
   const stopDocumentSync = effect(() => {
+    const title = pageTitle.value
+
     document.documentElement.lang = locale.value
 
-    if (brand.value !== undefined) {
-      document.title = brand.value
+    if (title !== undefined && document.title !== title) {
+      document.title = title
     }
   })
   const stopFeedSync = effect(() => (isSignedIn.value ? untracked(startLive) : undefined))
@@ -75,6 +80,8 @@ function startLive(): () => void {
     startEstimates(),
     startMarket(),
     startRestartWatch(),
+    startAttention(),
+    createKeyHandler({ openList: openKeysDialog }),
   ]
 
   return () => {

@@ -19,15 +19,34 @@ const ANSWER_ON_KEYS: Readonly<Record<string, MessageKey>> = Object.freeze({
   cli: 'ui.answerOn.cli',
 })
 
+// One send per request at a time; each entry leaves once its answer settles.
+const inFlight = new Map<string, Promise<Decision>>()
+
 /** The decision's label, as the CLI and the chats word it, less its leading mark. */
 export function decisionLabel(decision: Decision): string {
   return approvalDecisionLabel(locale.value, DECISION_BY_WIRE[decision]).replace(LABEL_GLYPH_RE, '')
 }
 
-/** Throws `ApiFailure`: a `conflict` carries the daemon's sentence. The card stays until the
- *  daemon's `approval_resolved`, so every surface clears it together. */
-export async function answerApproval(requestId: string, decision: Decision): Promise<void> {
-  await sendJson('POST', ROUTES.respond, { body: { requestId, decision } satisfies RespondBody })
+/** Resolves to the decision actually sent. Throws `ApiFailure`: a `conflict` carries the daemon's
+ *  sentence. The card stays until the daemon's `approval_resolved`, so every surface clears it
+ *  together. A request already being answered (its card in the bell and in the chat) shares that
+ *  one send, so the decision it resolves to can differ from the one this caller asked. */
+export function answerApproval(requestId: string, decision: Decision): Promise<Decision> {
+  const held = inFlight.get(requestId)
+
+  if (held !== undefined) {
+    return held
+  }
+
+  const sent = sendJson('POST', ROUTES.respond, {
+    body: { requestId, decision } satisfies RespondBody,
+  })
+    .then(() => decision)
+    .finally(() => inFlight.delete(requestId))
+
+  inFlight.set(requestId, sent)
+
+  return sent
 }
 
 /** Where a request the page cannot answer is answered instead. */

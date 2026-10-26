@@ -57,6 +57,19 @@
     inset 0 0 0 1px var(--badgeNeed);
 }
 
+.bubble.is-bright {
+  box-shadow:
+    var(--pop),
+    0 0 0 2px var(--tc-blue);
+  transition: box-shadow 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble.is-bright {
+    transition: none;
+  }
+}
+
 .bubble-text {
   display: -webkit-box;
   margin: 0;
@@ -200,14 +213,4 @@
 .pick-ring.is-key {
   border-style: dashed;
   border-color: var(--ink);
-}
-
-.scene-announce {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }

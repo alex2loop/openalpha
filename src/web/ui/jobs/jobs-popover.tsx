@@ -9,15 +9,13 @@ import { tr } from '@/web/text/tr'
 import { JobRow } from '@/web/ui/jobs/job-row'
 import { UpcomingSection, WaitingSection } from '@/web/ui/jobs/schedule-sections'
 import { UpkeepSection } from '@/web/ui/jobs/upkeep-section'
-import { Popover } from '@/web/ui/kit/popover'
+import { JOBS_POPOVER_ID, Popover } from '@/web/ui/kit/popover'
 import { useLoad } from '@/web/ui/kit/use-load'
 
 import './jobs.css'
 
-export const JOBS_POPOVER_ID = 'jobs'
-
 /** What runs now, what runs next, what waits on an event, and the daemon's own upkeep. Opened by
- *  a click only. The schedules are read again on open. */
+ *  a click or the J key. The schedules are read again on open. */
 export function JobsPopover({ anchor }: { readonly anchor: RefObject<HTMLElement> }) {
   return (
     <Popover

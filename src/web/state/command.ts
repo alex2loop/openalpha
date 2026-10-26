@@ -41,7 +41,7 @@ export function fillInput(text: string, opts: { readonly agentId?: string } = {}
   focusInput()
 }
 
-function focusInput(): void {
+export function focusInput(): void {
   inputElement?.focus()
 }
 

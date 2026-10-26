@@ -1,5 +1,5 @@
 import { breakpoint } from '@/web/state/breakpoints'
-import { backStack, collapsed, isFocus, panelView } from '@/web/state/panel'
+import { backStack, collapsed, isFocus, PANEL_ELEMENT_ID, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { AgentTab } from '@/web/ui/agent/agent-tab'
 import { Book } from '@/web/ui/book/book'
@@ -23,7 +23,12 @@ export function Panel() {
   }
 
   return (
-    <aside class="panel" aria-label={tr('ui.office.panel.label')}>
+    <aside
+      id={PANEL_ELEMENT_ID}
+      class="panel"
+      aria-label={tr('ui.office.panel.label')}
+      tabIndex={-1}
+    >
       <div class="panel-head glass">
         <Tabs isCompact={!('tab' in panelView.value)} />
         {!isFocus.value && (
