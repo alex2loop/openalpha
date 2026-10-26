@@ -25,7 +25,7 @@ export function NameField({ form }: FieldProps) {
 
   return (
     <div class="form-field">
-      <label class="form-label">
+      <label class="form-field form-label">
         {tr('ui.office.form.name')}
         <input
           type="text"
