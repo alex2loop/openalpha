@@ -2,7 +2,7 @@ import type { BandItem, LedItem } from '@/web/scene/data/led'
 import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { BoardView } from '@/web/scene/street-types'
 import type { Rect } from '@/web/scene/types'
-import { bandItems, ledItems } from '@/web/scene/data/led'
+import { bandItems, boardItems } from '@/web/scene/data/led'
 import { LED, paintFace, paintStrip, stripWidthOf } from '@/web/scene/render2d/street/led-face'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { brand, locale } from '@/web/state/session'
@@ -47,7 +47,7 @@ export function paintBoard(
   g: CanvasRenderingContext2D,
   at: { readonly scene: MovingScene; readonly board: BoardView; readonly rects: BoardRects }
 ): void {
-  const items = ledItems.value
+  const items = boardItems.value
   const { board, scene } = at
   const dark = scene.minute.light.dark
 

@@ -156,7 +156,10 @@ function paintPanel(
   const { item } = at
   const u = at.unit * PANEL_SHRINK
   const reading = readingOf(item)
-  const level = formatFixed(item.level, LEVEL_DIGITS)
+  const level =
+    item.display === undefined
+      ? formatFixed(item.level, LEVEL_DIGITS)
+      : formatPrice(item.level, item.display)
   const hasLine = !item.stale && item.line.length > 1
 
   g.textAlign = 'left'

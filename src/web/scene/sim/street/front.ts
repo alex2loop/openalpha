@@ -2,7 +2,7 @@ import type { BoardView, FrontView, ShutterView } from '@/web/scene/street-types
 import type { Rect } from '@/web/scene/types'
 import type { RegionPack, ShopRow } from '@/web/scene/world/regions'
 import { pageMinute, pageNow } from '@/web/scene/clock/clock'
-import { type BandItem, bandItems, type LedItem, ledItems } from '@/web/scene/data/led'
+import { type BandItem, bandItems, boardItems, type LedItem } from '@/web/scene/data/led'
 import {
   frontageOf,
   isLateNight,
@@ -108,7 +108,7 @@ export function resetFront(
   front.guard.heading = rng.next() < 0.5 ? -1 : 1
   front.lastStepAt = at.nowMs
   front.shutters.length = 0
-  front.items = ledItems.peek()
+  front.items = boardItems.peek()
   front.band = bandItems.peek()
 }
 
@@ -119,7 +119,7 @@ export function stepFront(
   at: { readonly pack: RegionPack; readonly nowMs: number; readonly isReduced: boolean }
 ): boolean {
   const minute = minuteNow()
-  const items = ledItems.peek()
+  const items = boardItems.peek()
   const band = bandItems.peek()
   const dt = Math.min(MAX_STEP_S, Math.max(0, (at.nowMs - front.lastStepAt) / MS_PER_SECOND))
   const isItemsChanged = items !== front.items || band !== front.band

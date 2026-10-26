@@ -24,6 +24,8 @@ export interface LedItem {
   readonly line: readonly number[]
   readonly at?: number
   readonly stale: boolean
+  /** How a priced benchmark prints; absent for an index level. */
+  readonly display?: MarketWire['priceDisplay']
 }
 
 /** One name on the board's ticker band: the page tape's row, with its market's phase. */
@@ -33,6 +35,7 @@ export interface BandItem {
   readonly display?: MarketWire['priceDisplay']
   readonly changePct?: number
   readonly state: LedState
+  readonly isBenchmark?: true
 }
 
 interface LedEntry {
@@ -63,7 +66,31 @@ export const bandItems: ReadonlySignal<readonly BandItem[]> = computed(() => {
     ...(row.display === undefined ? {} : { display: row.display }),
     ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
     state: stateOf(markets.find((market) => market.market === row.market)),
+    ...(row.isBenchmark === true ? { isBenchmark: true } : {}),
   }))
+})
+
+/** The panels the frontage board turns through: the index levels, then every other market's
+ *  benchmark off the tape (a coin, a gold board), those whose market trades now first. */
+export const boardItems: ReadonlySignal<readonly LedItem[]> = computed(() => {
+  const indices = ledItems.value
+  const held = new Set(indices.map((item) => item.label))
+  const priced = bandItems.value
+    .filter((item) => item.isBenchmark === true && !held.has(item.label))
+    .map(
+      (item): LedItem => ({
+        label: item.label,
+        ...(item.price === undefined ? {} : { level: item.price }),
+        ...(item.changePct === undefined ? {} : { changePct: item.changePct }),
+        ...(item.display === undefined ? {} : { display: item.display }),
+        state: item.state,
+        line: [],
+        stale: false,
+      })
+    )
+  const all = [...indices, ...priced]
+
+  return [...all.filter(isTrading), ...all.filter((item) => !isTrading(item))]
 })
 
 /** The home market's benchmark among the items; absent until the overview carries it. */
@@ -155,6 +182,10 @@ function trackOf(job: ReadJob, key: string, level: number | undefined): Track {
   }
 
   return { day, line: [...line.slice(1 - MAX_LED_POINTS), level] }
+}
+
+function isTrading(item: LedItem): boolean {
+  return item.state === 'open'
 }
 
 // A market with no session hours never closes.
