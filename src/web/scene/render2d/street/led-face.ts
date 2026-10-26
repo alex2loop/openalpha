@@ -17,6 +17,7 @@ export const LED = Object.freeze({
   bandBg: '#0B0E1B',
   bandLine: '#2C3250',
   glow: 'rgba(140,124,255,.65)',
+  emptyBrand: '#C9B8FF',
 })
 // The face is laid out for a 44 px high board and scaled to the board's height; the title is 1.75
 // times the old 6.4 px.
@@ -94,7 +95,7 @@ export function paintFace(
   if (item === undefined) {
     g.font = `${MID_FONT_WEIGHT} ${12 * unit}px ${FONT}`
     g.textAlign = 'center'
-    g.fillStyle = LED_TITLE_TONES[1]
+    g.fillStyle = LED.emptyBrand
     g.fillText(face.brand, face.w / 2, face.h / 2 + 4 * unit)
   } else {
     paintPanel(g, { item, w: face.w, head, unit })
