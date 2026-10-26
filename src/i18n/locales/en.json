@@ -577,6 +577,8 @@
     "office.reader.missing": "I could not find this report's text.",
     "office.reader.loading": "Opening the report...",
     "office.reader.truncated": "This report is very long, so I am showing only the first part.",
+    "office.research.stopNote": "Press Stop to cancel; the AI already used still counts toward today's limit.",
+    "office.research.openReader": "Open as a report",
     "office.why.plan": "Why {action} {ticker}?",
     "office.why.opinion": "Why does {agent} say \"{verdict}\" on {ticker}?",
     "office.why.past": "Looking back at the {action} call on {ticker} from {day}",

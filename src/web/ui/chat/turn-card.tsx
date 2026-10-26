@@ -1,12 +1,15 @@
 import { canStop, isFinished, steer, stopTurn, type Turn, thread } from '@/web/state/chat'
 import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
+import { findRun, hasChildren } from '@/web/state/live'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { commandWordOf, resolveCommandLink } from '@/web/ui/chat/command-link'
 import { ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
+import { isResearchTurn, ResearchReportLink, ResearchSteps } from '@/web/ui/chat/research-steps'
+import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
@@ -49,7 +52,11 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
   return (
     <div class="chat-card">
       {!isFinished(turn) && <RunningStep turn={turn} />}
-      <ReplyText text={turn.reply} isProse={turn.kind !== 'slash'} />
+      <ReplyText
+        text={turn.reply}
+        isProse={turn.kind !== 'slash' || isResearchTurn(turn)}
+        scope={isResearchTurn(turn) ? turn.localId : undefined}
+      />
       <SteerLine turn={turn} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
       {isFinished(turn) && turn.runId !== undefined && (
@@ -65,6 +72,12 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
 }
 
 function RunningStep({ turn }: { readonly turn: Turn }) {
+  const researchId = isResearchTurn(turn) ? turn.runId : undefined
+
+  if (researchId !== undefined && findRun(researchId) !== undefined) {
+    return <ResearchSteps runId={researchId} />
+  }
+
   const fallback = turn.kind === 'slash' ? 'ui.office.chat.working' : 'ui.office.chat.answering'
   const alongside = resolveAlongside(turn)
 
@@ -139,6 +152,13 @@ function addNote(turn: Turn, typed: string): void {
 
 // A command stops by its run; an agent turn stops what runs in this chat.
 function askStopTurn(turn: Turn): void {
+  const run = isResearchTurn(turn) && turn.runId !== undefined ? findRun(turn.runId) : undefined
+
+  if (run !== undefined) {
+    askStop(run, hasChildren(run.runId))
+    return
+  }
+
   askConfirm({
     title: tr('ui.office.jobs.stopAsk', { what: turn.text }),
     lines: [
@@ -174,6 +194,9 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
           <Button kind="tertiary" size="small" onClick={link.open}>
             {tr(link.label, link.params)}
           </Button>
+        )}
+        {isResearchTurn(turn) && turn.runId !== undefined && (
+          <ResearchReportLink runId={turn.runId} />
         )}
         <NextSteps tickers={turn.tickers} />
       </div>

@@ -95,9 +95,10 @@ export function parseReport(text: string): ReportDoc {
   }
 }
 
-/** The element id of source `n`, which a `[n]` mark jumps to. */
-export function sourceAnchor(n: number): string {
-  return `${SOURCE_ID_PREFIX}${n}`
+/** The element id of source `n`, which a `[n]` mark jumps to. A `scope` keeps the ids of one chat
+ *  answer apart from another's. */
+export function sourceAnchor(n: number, scope?: string): string {
+  return scope === undefined ? `${SOURCE_ID_PREFIX}${n}` : `${SOURCE_ID_PREFIX}-${scope}-${n}`
 }
 
 /** Every word of the report, for finding the names it mentions. */

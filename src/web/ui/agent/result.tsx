@@ -8,6 +8,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock, useBlockRead } from '@/web/state/block'
 import { formatRunName } from '@/web/text/run-name'
 import { toFailureText, tr } from '@/web/text/tr'
+import { RESEARCH_LOOKUP } from '@/web/ui/chat/research-steps'
 import { SuggestionCard } from '@/web/ui/ideas/suggestion-card'
 import { Button } from '@/web/ui/kit/button'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -15,9 +16,6 @@ import { Markdown } from '@/web/ui/markdown/markdown'
 import { openReader } from '@/web/ui/reader/reader'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
-
-// The research page a run of today is looked up in.
-const RESEARCH_LOOKUP = 20
 
 interface Finished {
   readonly board: readonly BoardEntryWire[]

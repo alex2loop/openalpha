@@ -9,12 +9,14 @@ interface ReplyTextProps {
   /** An agent's prose: markdown, known tickers linked. Off for a command's answer, whose lines are
    *  data laid out by the daemon. */
   readonly isProse?: boolean
+  /** A research answer: its footnotes jump to its own sources list. */
+  readonly scope?: string | undefined
 }
 
 /** A reply as the daemon wrote it. */
-export function ReplyText({ text, isProse = true }: ReplyTextProps) {
+export function ReplyText({ text, isProse = true, scope }: ReplyTextProps) {
   if (isProse) {
-    return <Markdown text={text} />
+    return <Markdown text={text} scope={scope} />
   }
 
   const paragraphs = text.split(PARAGRAPH_BREAK).filter((part) => part.trim() !== '')
