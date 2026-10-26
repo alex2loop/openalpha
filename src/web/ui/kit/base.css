@@ -96,8 +96,10 @@ p {
   outline-offset: -1px;
 }
 
-/* A text field with suggestions looks like a text field; the list still opens as it is typed in. */
-input[list]::-webkit-calendar-picker-indicator {
+/* A text field with suggestions looks like a text field (Chrome draws the first marker, Safari the
+   second; Firefox none); the list still opens as it is typed in. */
+input[list]::-webkit-calendar-picker-indicator,
+input[list]::-webkit-list-button {
   display: none;
 }
 
