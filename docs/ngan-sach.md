@@ -95,6 +95,16 @@ agent), và hiện từ 0 đến 0 khi các lần gần đây đều không dùn
 con, hay một agent đã sinh chúng, cho thấy cả hóa đơn trong một con số, không chỉ phần nó tự chạy. Ở trang mô hình, mỗi
 mô hình cho thấy chi phí thường lệ của một phiên chạy trên nó trong tháng qua, khi nó đã chạy trong khoảng đó.
 
+### Trên trang văn phòng
+
+[Trang văn phòng](van-hanh.md#trang-văn-phòng) giữ chi phí trước mắt bạn mà không cần câu lệnh nào:
+
+- **Chip.** Chip chi phí AI trên đầu trang cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày, ví dụ "0,42 / 2,00 USD", hoặc chỉ số đã tiêu khi chưa đặt mức trần. Chip chuyển sang màu cảnh báo khi chi tiêu vượt tỷ lệ cảnh báo (`soft_warn_ratio`) của mức trần ngày hoặc tháng, hoặc khi hôm nay đã có một cảnh báo hay một lần dừng vì ngân sách.
+- **Cửa sổ chi tiết.** Bấm vào chip để xem hôm nay và cả tháng so với mức trần, cùng mục "Theo việc hôm nay": mỗi việc của hôm nay kèm số nó tốn, việc cha đã gồm phần của các agent con. Cửa sổ nhắc lại quy tắc quan trọng: chuông báo cho bạn ở tỷ lệ cảnh báo, và chạm mức trần thì các phiên chạy mới dừng lại. "Đổi ngân sách" đưa thẳng tới dòng ngân sách.
+- **Dòng ngân sách.** Cài đặt > Agent và AI có mức trần ngày và tháng tính bằng USD (`0` nghĩa là không giới hạn). Nó ghi `[budget]` trong `config.toml` và, như chính tệp, có hiệu lực sau khi khởi động lại; trang đề nghị khởi động lại giúp bạn.
+- **Trước khi chạy.** Ô câu lệnh hiện cạnh mỗi câu lệnh mức nó thường tốn, và phần còn lại của mức trần hôm nay. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng). Nút trên trang chỉ điền vào ô, nên không có gì tốn tiền được khởi động cho tới khi bạn gửi.
+- **Theo từng agent.** Ở tầng đội riêng, thẻ của agent cho thấy hôm nay nó đã tiêu bao nhiêu so với ngân sách ngày riêng của nó, đặt trong biểu mẫu agent (hoặc `max_daily_usd` trong tệp).
+
 ## Một lời gọi được chấp nhận như thế nào
 
 Trước mỗi lời gọi, runtime ước lượng chi phí trong trường hợp xấu nhất và kiểm tra phiên chạy, ngày và tháng còn chỗ hay

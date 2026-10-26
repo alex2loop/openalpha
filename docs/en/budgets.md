@@ -95,6 +95,16 @@ run beneath it: a command that started children, or an agent that spawned them, 
 not only the part it ran itself. On the models page, each model shows its own usual cost per run over the last
 month, once it has run in that window.
 
+### In the office page
+
+The [office page](operations.md#the-office-page) keeps cost in view without a command:
+
+- **The chip.** The AI cost chip in the header shows today's spend against the daily cap, for example "0.42 / 2.00 USD", or the spend alone when no cap is set. It turns to caution once spend passes the warning share (`soft_warn_ratio`) of the daily or monthly cap, or once a budget warning or stop has fired today.
+- **The popover.** Click the chip for today and the month against their caps, and "By job today": each job of today with what it cost, a parent including its child agents' share. It repeats the rule that matters: the bell tells you at the warning share, and at the cap new runs stop. "Change budget" goes straight to the budget row.
+- **The budget row.** Settings > Agents and AI has the daily and monthly caps in USD (`0` means no limit). It writes `[budget]` in `config.toml` and, like the file, takes effect after a restart; the page offers the restart.
+- **Before a run.** The command bar shows each command's usual cost beside it, and what is left of today's cap. See [Commands](commands.md#the-command-bar-in-the-office-page). A button on the page only ever fills the box, so nothing that costs money starts until you send it.
+- **Per agent.** On the team floor an agent's card shows what it has spent today against its own daily budget, the one you set in the agent form (or `max_daily_usd` in its file).
+
 ## How a call gets admitted
 
 Before each call the runtime estimates its worst-case cost and checks that the run, the day and the month all have

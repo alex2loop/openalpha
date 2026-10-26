@@ -371,6 +371,95 @@ lượt chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các 
 
 Trang văn phòng cũng khởi động lại được một daemon đã bật bằng `--background`: chọn khởi động lại khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Daemon dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; trang văn phòng báo các yêu cầu phê duyệt đó trước. Khi daemon chạy lại, chuông hiện "Đã khởi động lại daemon." và không có gì gửi tới chat. Nếu một lần khởi động lại đã được nhận mà thất bại, daemon vẫn chạy như cũ và chuông báo điều đó, kèm chỉ dẫn xem nhật ký restart trong thư mục dữ liệu. Daemon chạy trong cửa sổ terminal hoặc do một dịch vụ quản lý thì trang văn phòng không khởi động lại thay bạn được: dừng bằng Ctrl+C hoặc trình quản lý dịch vụ rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay daemon đang dừng, thì yêu cầu mới bị từ chối.
 
+## Trang văn phòng
+
+Khi API bật, daemon còn phục vụ một trang web ngay tại địa chỉ của nó, `http://127.0.0.1:<cổng>/` (cổng 8765 nếu bạn không đổi). Cứ hình dung đó là một bức tường kính nhìn vào daemon: một văn phòng nhỏ nơi trợ lý, nhóm nghiên cứu và các agent của bạn làm việc cùng lúc với daemon. Mọi chuyển động bạn thấy đều là một phiên chạy, một bước hay một câu hỏi đang chờ bạn có thật; không có gì được dựng sẵn cho có vẻ bận rộn. Trang không bao giờ đặt lệnh và không tự khởi động một phiên chạy AI nào. Một nút hoặc mở ra một thứ gì đó, hoặc điền chữ vào ô câu lệnh để bạn đọc rồi tự gửi.
+
+### Mở trang
+
+`openalpha api link` in ra một liên kết đã kèm sẵn mã truy cập. Mở nó ngay trên máy chạy daemon, hoặc qua đường hầm SSH hay địa chỉ HTTPS ở mục [Chạy API trên máy chủ](#chạy-api-trên-máy-chủ). Không có liên kết thì trang hỏi mã truy cập (`openalpha api token`) và hỏi bạn có muốn nhớ lại không.
+
+- Trang lấy mã ra khỏi địa chỉ ngay khi tải, nên mã không nằm lại trên thanh địa chỉ hay trong lịch sử.
+- Mã mở từ liên kết chỉ sống trong thẻ đó và mất khi bạn đóng thẻ. Dán mã vào ô đăng nhập cũng giữ cho thẻ đó, còn "Nhớ trên trình duyệt này" (mặc định đã tick) giữ thêm trong trình duyệt này, để lần sau khỏi đăng nhập. Đăng xuất, trong Cài đặt > Hiển thị, xóa cả hai.
+- Trang không bao giờ in mã ra, không ghi mã vào nhật ký và chỉ gửi mã cho daemon. Trang từ chối chạy bên trong một khung (frame).
+- Nếu không nối được daemon, trang nói thẳng bằng một dòng. Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở daemon. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn daemon thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
+
+### Trên màn hình có gì
+
+- **Đầu trang.** Chip việc đang chạy (cái gì đang chạy và cái gì tiếp theo: dừng một phiên chạy, hoặc chạy lại một việc theo lịch), nút Tập trung (ẩn văn phòng, chỉ còn thông tin), chip chi phí AI, đồng hồ văn phòng, chuông thông báo và Cài đặt.
+- **Dải giá.** Ngay dưới đầu trang, danh sách theo dõi và các mã bạn đang giữ chạy ngang qua. Mã thủng cắt lỗ và đề xuất mua mới được đánh dấu.
+- **Văn phòng.** Khung cảnh bên trái, mô tả ở dưới.
+- **Bảng thông tin.** Ba thẻ. *Hôm nay* mở đầu bằng những gì cần bạn (việc chờ duyệt, mã thủng cắt lỗ), rồi tới những gì đáng xem, thị trường Việt Nam và các thị trường khác, sự kiện sắp tới, tin nổi bật, và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá; giao dịch được ghi, sửa, xóa ngay tại đây và có hoàn tác. *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề xuất mới bạn chưa xem. Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá và các mức của kế hoạch, mã bạn đang giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì. Bấm một agent của bạn trong văn phòng thì thẻ của nó mở ra (xem [Agent](tro-ly.md#từ-trang-văn-phòng)). Hàng quay lại đưa bạn về chỗ vừa xem, và bảng thu gọn được thành một dải biểu tượng.
+- **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Các phiên chat trước, kể cả của Telegram, tìm được và chỉ đọc; chỉ những cuộc chat do trang mở mới nói tiếp được.
+- **Ô câu lệnh.** Ở cuối trang: ai nhận câu bạn gõ, ô nhập và nút Gửi. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
+- **Chuông và việc đang chạy.** Chuông liệt kê thông báo và các yêu cầu đang chờ bạn. Yêu cầu duyệt hỏi từ trang này được trả lời ngay trong chuông: duyệt một lần, ghi nhớ hoặc từ chối. Đồng hồ đếm lùi cho biết khi nào hết hạn, và yêu cầu hết giờ mà chưa trả lời thì bị từ chối. Yêu cầu hỏi trên Telegram hay kênh khác vẫn được liệt kê nhưng trả lời ở nơi nó được hỏi. Danh sách việc cho thấy cái đang chạy (dừng được, sau một bước xác nhận), cái sắp chạy, cái đang chờ một sự kiện (kiểm tra theo chu kỳ, không tốn AI) và các việc bảo trì tự chạy, kèm cách sửa việc nào đang lỗi.
+- **Chi phí.** Chip cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày; bấm để xem cả tháng, chi phí theo từng việc và dòng ngân sách. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).
+- **Cài đặt.** Biểu tượng bánh răng: lịch và theo dõi, agent và AI, kênh nhắn tin, dữ liệu và kết nối, hiển thị, và ô sửa `config.toml` thô. Mỗi dòng nói rõ lưu xong có hiệu lực ngay hay cần khởi động lại; bánh răng đếm các thay đổi đang chờ khởi động lại, và trang khởi động lại được một daemon bật bằng `--background` (xem ở trên). Khóa API, mã truy cập và thông tin đăng nhập sàn không bao giờ nhập trên trang này.
+
+### Văn phòng
+
+Hai tầng, chuyển ở đầu khung cảnh. Tầng **Văn phòng** là đội có sẵn trong các phòng của họ: Kho dữ liệu (Thủ kho làm mới dữ liệu), Thư viện (nhóm tìm tin, lập kế hoạch, tổng hợp, rà soát và phân tích chủ đề làm nghiên cứu), Phòng họp (bàn tranh luận sau `/suggest`), Sảnh (lịch hôm nay và bản tin trong ngày), Quầy cảnh báo (người trực theo dõi cảnh báo giá và mức cắt lỗ), Phòng trợ lý và Bàn của bạn. Tầng **Agent của bạn** là tầng đội riêng: mỗi agent của bạn một bàn, kèm thẻ cho biết nó đang chạy, tạm dừng hay rảnh, lịch của nó, đề xuất gần nhất và hôm nay nó đã tiêu bao nhiêu. Chưa có agent nào thì tầng này gợi ý ba cách bắt đầu và một mẫu trống, còn bàn trống kế tiếp mang nút "+ Thêm agent".
+
+Cách đọc khung cảnh:
+
+- Một người chỉ di chuyển khi daemon nói vậy. Một phiên chạy bắt đầu thì đúng người đi tới đúng phòng; các bước và công cụ của nó quyết định họ làm gì ở đó; phiên chạy xong thì họ về chỗ. Phiên chạy nào trang không gắn được vào khung cảnh thì ngồi ở bàn gõ máy, kèm tên phiên chạy; trang không bao giờ bịa thêm bước.
+- Dấu "!" màu hổ phách trên đầu một người nghĩa là họ mang tới cho bạn một yêu cầu duyệt; bấm vào để mở chuông. Dấu "!" đỏ trên đầu người trực cảnh báo nghĩa là một mức cắt lỗ đã bị thủng; bấm vào để mở thẻ của mã đó.
+- Bong bóng thoại mang những câu có thật: việc nào cần bạn duyệt, một vai trong cuộc tranh luận vừa nói gì, một đề xuất cũ mà ai đó còn nhớ. Màn hình sáng cho thấy người tìm tin đang đọc trang nào hay giá đóng cửa mà nhà phân tích đang xem; bấm vào để xem lớn hơn.
+- Các bảng cho thấy tiến độ (vòng tranh luận, câu hỏi nghiên cứu, số giá đã làm mới) và bảng đề xuất đếm các đề xuất mới. Máy in, kệ nguồn, đồng hồ và quầy cảnh báo hiện một chú thích khi bạn trỏ vào, kèm liên kết tới nơi liên quan.
+- Bấm vào một chiếc đèn để bật hoặc tắt đèn phòng đó, hoặc bấm công tắc trên tường (hay nút đèn trên thanh công cụ) để bật tắt tất cả. Mặc định ánh sáng văn phòng đi theo đồng hồ văn phòng; Cài đặt > Hiển thị tắt được việc này.
+- Mèo ngủ khi không có gì cần bạn, và thức dậy khi có việc cần duyệt, mã bạn giữ thủng cắt lỗ hoặc chạm chốt lời, lệnh khớp ở sàn, cảnh báo giá bạn đặt, hoặc hết ngân sách AI trong ngày. Corgi và bể cá chỉ là cảnh, không báo gì cả.
+- Kéo để di chuyển, cuộn hoặc dùng nút phóng to để zoom, phím mũi tên để di chuyển, Esc hoặc "Xem cả tầng" để lùi lại. Từ góc nhìn cả tầng, bấm vào một phòng thì zoom vào phòng đó.
+
+**Đồng hồ văn phòng.** Đồng hồ trên đầu trang cho biết giờ trong văn phòng. Bấm vào để xem văn phòng ở một giờ khác: giờ thật, hoặc một mốc có sẵn (sáng sớm, sáng, trưa, chiều, tối, đêm) ở tốc độ thường, x10 hoặc x60. Chỉ cảnh văn phòng đổi; số liệu, thông báo và giờ chạy việc vẫn theo giờ thật. Giờ thử không được lưu, nên tải lại trang là về giờ thật. Khi bạn đang giảm chuyển động, giờ thử chạy ở tốc độ thường. Khi văn phòng chạy theo giờ của một thị trường chứ không phải giờ của bạn, đồng hồ hiện cả hai.
+
+**Bảng hiệu năng.** Thêm `?perf=1` vào địa chỉ trang để xem chi phí mỗi khung hình và tốc độ vẽ của khung cảnh so với mức cho phép. Dùng để tìm hiểu một máy chậm, không đổi gì khác.
+
+### Đời sống văn phòng
+
+Khi chưa ai giao việc gì, văn phòng không đứng im, nhưng cũng không giả vờ làm việc. Những người đang rảnh làm vài việc nhỏ: nghỉ trưa, cà phê buổi chiều, trò chuyện bên bình nước, chiều thứ Sáu thong thả, hoặc họp nhanh trong lúc bản tin sáng chạy. Chỉ người đang rảnh mới làm vậy. Ai mà một phiên chạy cần tới, hoặc còn nợ một lần giao hay một câu trả lời, thì bỏ dở mọi thứ và đi làm việc. Không điều nào trong đó đụng tới dữ liệu của bạn hay tốn một xu.
+
+- Trợ lý đi một vòng các phòng sau khi rảnh một lúc ngắn, dừng ở từng cửa, và cứ ba vòng thì một vòng đi thang lên ngó bàn các agent của bạn. Có việc, câu hỏi hay yêu cầu duyệt cho nó thì vòng đi dừng ngay.
+- Khi không có gì đang chạy, không có gì chờ bạn và không ai đang gõ trong một lúc lâu, văn phòng chìm vào yên lặng: màn hình tối đi, các cử động vặt dừng và trang gần như không làm gì. Trong một văn phòng yên lặng, một vòng đi chỉ diễn ra tối đa 25 phút rảnh một lần.
+- Thẻ trình duyệt bạn không nhìn tới thì dừng hẳn mọi chuyển động và bắt kịp khi bạn quay lại.
+
+### Trò chuyện với một người
+
+Trỏ vào một người để thấy tên và một dòng trạng thái trực tiếp: họ đang chạy gì và từ đâu, đang ở bước nào, đang chờ bạn hay chờ tới lượt, hay đang rảnh. Bấm vào họ (bấm chuột phải, nhấn Enter khi đang chọn, hoặc nhấn giữ trên màn hình cảm ứng) thì họ phản ứng, nói một câu ngắn từ trạng thái thật, rồi một vòng tròn hành động nhỏ mở ra, chỉ có những gì làm được lúc này:
+
+- *Trò chuyện*, cho agent của bạn và trợ lý: chọn họ ở ô câu lệnh và mở khung chat.
+- *Giao việc*: chọn họ làm người nhận và đưa con trỏ vào ô câu lệnh. Không gửi gì cả.
+- *Đang làm gì* và *Việc*: thẻ Tiến độ và thẻ Việc của họ.
+- *Dừng việc*, chỉ khi họ đang chạy: dừng phiên chạy sau một bước xác nhận.
+- *Hồ sơ*: hồ sơ của agent riêng của bạn.
+
+Phím mũi tên đi quanh vòng tròn và Esc đóng lại. Bấm vào người đang chờ ở bàn của bạn thì mở yêu cầu duyệt trong chuông.
+
+**Đi theo một người.** Bấm đúp vào một người, camera giữ họ ở giữa, qua các tầng và thang máy, cho tới khi bạn kéo, cuộn, zoom, nhấn Esc hoặc bấm vào sàn trống.
+
+**Duyệt từng người.** Khi khung cảnh đang được chọn, Tab và Shift+Tab (hoặc mũi tên trái phải) đi qua từng người trên tầng, đặt camera vào họ và đọc to tên cùng trạng thái. Tab thoát khỏi khung cảnh ở cả hai đầu.
+
+**Gọi họp.** Shift-click vào các người, hoặc Shift-kéo một khung, để chọn họ; một thanh hiện nút "Gọi họp". Nó hỏi mã nào, rồi điền `/suggest <mã>` vào ô câu lệnh kèm chi phí ước tính. Không gửi gì: bạn xem chi phí rồi tự nhấn Enter. Khi bạn gửi và phiên chạy bắt đầu, những người được chọn mà đang rảnh sẽ đi vào phòng họp làm khán giả, ai đang bận thì được nêu tên và ở lại bàn, và tất cả quay về khi phiên chạy kết thúc. Khi giảm chuyển động, họ được đặt thẳng vào chỗ.
+
+### Hai cách xem cùng một văn phòng
+
+Một công tắc "2D | 3D" trên đầu trang, đứng trước nút Tập trung, đổi cách vẽ văn phòng. Mặc định là 2D. 3D được tải lần đầu bạn chọn, và lựa chọn của bạn được giữ trong trình duyệt này. Vẫn là một văn phòng: vị trí, camera, lựa chọn, bong bóng và mọi thứ ở trên đều dùng được ở cả hai. Nếu thiết bị không vẽ được 3D thì nút bị khóa và nói rõ lý do; nếu 3D tải không được hoặc mất ngữ cảnh đồ họa, trang quay về 2D và báo cho bạn.
+
+### Phím tắt, trình đọc màn hình và mức báo
+
+Phím đơn dùng được khi con trỏ không nằm trong ô nhập và không giữ phím bổ trợ: `/` hoặc Cmd/Ctrl+K vào ô câu lệnh; `1`, `2`, `3` mở Hôm nay, Danh mục, Đề xuất; `4` quay lại người hoặc mã bạn đang xem; `B` chuông; `J` việc đang chạy; `C` khung chat; `F` chế độ tập trung; `[` và `]` agent trước và sau; `?` liệt kê tất cả; Esc đóng thứ đang mở. Khi chuông đang mở, mũi tên lên xuống chọn một yêu cầu, rồi `Y` duyệt một lần hoặc `N` từ chối, chỉ trên yêu cầu đang được viền. "Ghi nhớ" không có phím, và một phím gõ nhầm ở bất cứ chỗ nào khác không duyệt gì cả.
+
+Trang được làm để dùng được không cần chuột: mọi nút đều hiện viền khi được chọn bằng phím, một liên kết nhảy sẽ đưa thẳng tới bảng thông tin, khung cảnh có danh sách chữ về ai đang làm gì (mỗi dòng mở người đó), và một yêu cầu duyệt mới hay một mức cắt lỗ bị thủng được đọc to cho trình đọc màn hình. Hộp thoại giữ tiêu điểm trong nó rồi trả lại.
+
+Trang báo to hay nhỏ tùy trọng lượng daemon gán cho sự kiện: sự kiện nhẹ chỉ làm khung cảnh chuyển động; mức cao hơn một chút làm bong bóng của người đó sáng lên; mức kế tiếp thêm chấm trên chuông và khung chat; mức cao nhất còn đặt số đếm lên tiêu đề thẻ, một chấm lên biểu tượng thẻ và, nếu bạn bật trong Cài đặt > Hiển thị, phát một tiếng chuông nhẹ hai nốt (không bao giờ hai lần trong vài giây, chỉ cho một yêu cầu duyệt hay một mức cắt lỗ bị thủng) và gửi thông báo của trình duyệt (trình duyệt chỉ hỏi quyền khi bạn bật). Cả hai đều tắt sẵn và lưu trên trình duyệt này.
+
+### Màn hình hẹp và cảm ứng
+
+Dưới độ rộng cỡ máy tính bảng, trang chỉ hiện một khung mỗi lần, chuyển bằng một thanh dưới đầu trang: Văn phòng, Thông tin, Trò chuyện. Mở một người, phòng, bảng hay thẻ thì đưa khung thông tin lên trước; không có gì tự chuyển khung. Trên điện thoại, đầu trang rút gọn cho vừa (đồng hồ vẫn còn dưới dạng một nút nhỏ), cửa sổ nổi phủ hết chiều ngang, Cài đặt thành toàn màn hình và trình đọc bỏ cột mục lục. Cảm ứng dùng như chuột: kéo để di chuyển, chụm hai ngón để zoom, chạm lần đầu hiện thứ mà trỏ chuột sẽ hiện, chạm lần hai hoặc nhấn giữ mở vòng hành động. Không có gì chỉ dùng được khi trỏ chuột.
+
+### Tùy chọn hiển thị
+
+Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xanh tăng hay đỏ tăng), chuyển động (đầy đủ, giảm hoặc theo hệ thống) và ánh sáng văn phòng được lưu trong trình duyệt này và có hiệu lực ngay. Giảm chuyển động làm nhân vật và thú cưng đứng yên, trừ chớp mắt, dừng dải giá chạy, các hiệu ứng báo và nhấp nháy giá, và cho giờ thử của đồng hồ chạy ở tốc độ thường; bong bóng vẫn cập nhật. Ngôn ngữ và múi giờ là thiết lập của chính daemon (chúng cũng đổi bản tin và Telegram) và cần khởi động lại. Trình duyệt còn nhớ những đèn bạn đã tắt, lựa chọn 2D hay 3D, lựa chọn tiếng chuông và thông báo; không thứ nào được gửi cho daemon.
+
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 
 Xem thêm [an toàn và phê duyệt](an-toan.md), [ngân sách](ngan-sach.md), [giao dịch](giao-dich.md),

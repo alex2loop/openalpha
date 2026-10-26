@@ -406,9 +406,9 @@ Suggestions written that way are scored separately in `/reflect` under `client:<
 </details>
 
 <details>
-<summary><b>Connect your own app (API)</b></summary>
+<summary><b>The office page and your own app (API)</b></summary>
 
-Set `[api] enabled = true` and the daemon serves a local HTTP and WebSocket API on `127.0.0.1`, behind a token. A client app gets your book, quotes, suggestions and chat, plus a live feed of what the daemon is running right now: each run and its steps, approvals and questions waiting on any channel, fills, and spend caps reached. How to turn it on and reach it from another machine: [docs/en/operations.md](docs/en/operations.md#run-the-api-on-a-server)
+Set `[api] enabled = true` and the daemon serves a local HTTP and WebSocket API on `127.0.0.1`, behind a token. A client app gets your book, quotes, suggestions and chat, plus a live feed of what the daemon is running right now: each run and its steps, approvals and questions waiting on any channel, fills, and spend caps reached. The same address serves the office page: a small office where your assistant, the research crew and your own agents work as the daemon works, with your portfolio, ideas, chat and command bar beside it. Open the link `openalpha api link` prints. The page shows and never decides: it places no orders and starts no AI run on its own. How to turn it on and reach it from another machine: [docs/en/operations.md](docs/en/operations.md#run-the-api-on-a-server). What the page shows and how to use it: [docs/en/operations.md](docs/en/operations.md#the-office-page)
 
 </details>
 
