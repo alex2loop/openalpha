@@ -5,7 +5,6 @@ import type { Lift } from '@/web/scene/sim/lift'
 import type { Papers } from '@/web/scene/sim/papers'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, ActorView, FloorId, Point, Rect, SheetView } from '@/web/scene/types'
-import { distance } from '@/web/scene/sim/actors/nav'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import {
   isWalking,
@@ -32,7 +31,7 @@ import {
   syncDesk,
 } from '@/web/scene/sim/desk'
 import { handOff } from '@/web/scene/sim/handoff'
-import { destOf, facingOf, takeLift } from '@/web/scene/sim/places'
+import { destOf, facingOf, isAtOwnSeat, takeLift } from '@/web/scene/sim/places'
 import { isSameGoal, SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 import { navGridOf } from '@/web/scene/world/nav-grid'
 import { propsOn } from '@/web/scene/world/props'
@@ -93,8 +92,6 @@ const FOOT_TAP_MS = 1_200
 const MAX_BEATS_PER_ACTOR = 4
 const CHAIR_PUSH_MS = 400
 const ARRIVE_PAUSE_MS = 500
-// Under this a person still sits on their own chair.
-const SEATED_PX = 1
 
 export function createPeople(
   seeds: readonly { readonly def: ActorDef; readonly walker: WalkerState }[],
@@ -451,7 +448,7 @@ function moveTo(
     return
   }
 
-  const isSeated = person.hasChair && distance(person.walker.pos, person.def.seat.at) < SEATED_PX
+  const isSeated = person.hasChair && isAtOwnSeat(person)
 
   if (!isWalking(person.walker) && isSeated) {
     person.phase = 'rising'
