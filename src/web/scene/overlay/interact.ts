@@ -22,7 +22,7 @@ import {
 } from '@/web/scene/overlay/pointer'
 import { closeMenu, menuActor } from '@/web/scene/overlay/radial-menu'
 import { isOnFloor } from '@/web/scene/sim/actors/poses'
-import { leaveRoom, panBy, stopFollow, view, zoomBy } from '@/web/scene/view'
+import { leaveRoom, panBy, stopFollow, view, ZOOM_KEYS, zoomBy } from '@/web/scene/view'
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 
 /** A press that moves further than this is a drag, never a click. */
@@ -31,8 +31,13 @@ const DRAG_PX = 6
 const LONG_PRESS_MS = 550
 // A wheel's travel per zoom step; a trackpad's small deltas add up to one.
 const WHEEL_STEP_PX = 100
-// Up and down pan this far; left and right step through the people.
+// Up and down pan this far, and Shift with left or right; left and right alone step through the
+// people.
 const ARROW_PAN_PX = 48
+const SIDE_PANS: Readonly<Record<string, number>> = Object.freeze({
+  ArrowLeft: ARROW_PAN_PX,
+  ArrowRight: -ARROW_PAN_PX,
+})
 const ARROW_PANS: Readonly<Record<string, number>> = Object.freeze({
   ArrowUp: ARROW_PAN_PX,
   ArrowDown: -ARROW_PAN_PX,
@@ -350,12 +355,20 @@ function onKey(input: InputState, event: KeyboardEvent): void {
   }
 
   const pan = ARROW_PANS[event.key]
+  const sidePan = event.shiftKey ? SIDE_PANS[event.key] : undefined
+  const zoom = ZOOM_KEYS[event.key]
   const step = ARROW_STEPS[event.key]
   const keyed = keyedActor.value
 
   if (pan !== undefined) {
     event.preventDefault()
     panBy(0, pan)
+  } else if (sidePan !== undefined) {
+    event.preventDefault()
+    panBy(sidePan, 0)
+  } else if (zoom !== undefined) {
+    event.preventDefault()
+    zoomBy(zoom)
   } else if (step !== undefined) {
     event.preventDefault()
     stepFocus(input.focus, { by: step, isWrapping: true })

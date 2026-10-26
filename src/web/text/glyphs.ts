@@ -15,6 +15,9 @@ export const CONTROL_KEY_CAP = 'Ctrl'
 export const COMMAND_KEY_CAP = '⌘'
 export const UP_KEY_CAP = '↑'
 export const DOWN_KEY_CAP = '↓'
+export const LEFT_KEY_CAP = '←'
+export const RIGHT_KEY_CAP = '→'
+export const SHIFT_KEY_CAP = 'Shift'
 /** The mark over a person when something needs a look. */
 export const ATTENTION_MARK = '!'
 /** Ends a line cut short; the whole of it is a click away. */

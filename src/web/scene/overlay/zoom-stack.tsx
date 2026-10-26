@@ -21,30 +21,19 @@ interface ZoomButtonProps {
   readonly children: ComponentChildren
 }
 
-/** The map controls floating at the scene's bottom right, from the bottom: zoom out, zoom in, back
- *  to the whole floor and the master lamp switch; 3D adds a bar that shows the zoom. */
+/** The map controls floating at the scene's bottom right, from the bottom: back to the whole floor
+ *  and the master lamp switch, as the mockup's 2D has them (2D zooms by wheel, pinch or the + and -
+ *  keys); 3D adds zoom out, zoom in and a bar that shows the zoom. */
 export function ZoomStack() {
-  const { zoomSteps, room } = view.value
+  const { zoomSteps } = view.value
   const maxSteps = maxZoomSteps()
   const minSteps = minZoomSteps()
   const span = maxSteps - minSteps
+  const is3d = sceneView.value === '3d'
 
   return (
     <div class="scene-zoomstack">
-      <ZoomButton
-        label={tr('ui.office.floor.zoomOut')}
-        isDisabled={room === undefined && zoomSteps <= minSteps}
-        onClick={() => zoomBy(-1)}
-      >
-        {ZOOM_OUT_GLYPH}
-      </ZoomButton>
-      <ZoomButton
-        label={tr('ui.office.floor.zoomIn')}
-        isDisabled={zoomSteps >= maxSteps}
-        onClick={() => zoomBy(1)}
-      >
-        {ZOOM_IN_GLYPH}
-      </ZoomButton>
+      {is3d && <ZoomSteps />}
       <ZoomButton label={tr('ui.office.floor.leave')} kind="scene-zoomreset" onClick={leaveRoom}>
         {RESET_VIEW_GLYPH}
       </ZoomButton>
@@ -56,12 +45,36 @@ export function ZoomStack() {
       >
         <LampIcon class="scene-bulb" />
       </ZoomButton>
-      {sceneView.value === '3d' && (
+      {is3d && (
         <span class="scene-zoombar glass" aria-hidden="true">
           <i style={{ bottom: `${span > 0 ? ((zoomSteps - minSteps) / span) * PERCENT : 0}%` }} />
         </span>
       )}
     </div>
+  )
+}
+
+// The 3D view's zoom out and zoom in.
+function ZoomSteps() {
+  const { zoomSteps, room } = view.value
+
+  return (
+    <>
+      <ZoomButton
+        label={tr('ui.office.floor.zoomOut')}
+        isDisabled={room === undefined && zoomSteps <= minZoomSteps()}
+        onClick={() => zoomBy(-1)}
+      >
+        {ZOOM_OUT_GLYPH}
+      </ZoomButton>
+      <ZoomButton
+        label={tr('ui.office.floor.zoomIn')}
+        isDisabled={zoomSteps >= maxZoomSteps()}
+        onClick={() => zoomBy(1)}
+      >
+        {ZOOM_IN_GLYPH}
+      </ZoomButton>
+    </>
   )
 }
 
