@@ -83,7 +83,7 @@ export interface BusStop {
 /** One front of the block face, in street order, left to right. Open `hours`: a closed `shutter`
  *  is `[0, 0]`; a day and night shop is `[0, 1440]`, so it never closes when `hours[0] === 0 &&
  *  hours[1] >= 1440` (`hours[1] >= 1440` alone would also match a shop that closes at midnight).
- *  `item`, when set, is what an errand there brings back. `name` is the shop's own name, never
+ *  `item`, when set, is what an errand there brings back. `name` is the shop's own invented name (no real business), never
  *  translated (absent: the sign reads its kind's word); `sign` its colours; `tables`, café
  *  tables out on the pavement while it serves. */
 export interface ShopRow {
@@ -105,14 +105,14 @@ export interface ShopSign {
 }
 
 /** The traffic, as shares (each group sums to one): vehicles by kind, motorbikes by shape, cars
- *  by size, and the share of cars that are taxis; plain body colours, no brand. */
+ *  by size, and the share of cars that are taxis; plain body colours per car size, no brand. */
 export interface VehicleMix {
   readonly kinds: { readonly motorbike: number; readonly car: number; readonly bus: number }
   readonly bikeShapes: Readonly<Record<BikeShape, number>>
   readonly carSizes: Readonly<Record<CarSize, number>>
   readonly taxiShare: number
   readonly colours: {
-    readonly car: readonly string[]
+    readonly car: Readonly<Record<CarSize, readonly string[]>>
     readonly taxi: string
     readonly bus: readonly string[]
     readonly truck: string

@@ -5,6 +5,7 @@ import type { Point } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import { paintShop } from '@/web/scene/render2d/street/shop-art'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
+import { paintLateCart } from '@/web/scene/render2d/street/vendor-carts'
 import { isLateNight, SHOP_RISE, shopSpansOf } from '@/web/scene/world/frontage'
 import { isShopOpen, type ShopRow } from '@/web/scene/world/regions'
 import { NORTH } from '@/web/scene/world/street-layout'
@@ -20,23 +21,14 @@ const SHOP_WORDS: Readonly<Partial<Record<ShopKind, MessageKey>>> = Object.freez
 const BACKING = '#B4AD9F'
 const BACKING_NIGHT = 0.5
 const SEAM = '#8F8878'
-// The late stall stands at the row's west end, a little way out on the pavement.
-const STALL = Object.freeze({
-  inset: 14,
-  depth: 6,
-  shadow: 'rgba(0,0,0,.16)',
-  body: '#8A6B4E',
-  roof: '#C94A2B',
-  glass: '#FFE3A6',
-  bulb: '255,226,160',
-  bulbAlpha: 0.5,
-  glowR: 5,
-})
+// The late stall stands at the row's west end, a little way out on the pavement; its cook.
+const STALL = Object.freeze({ inset: 14, depth: 6, skin: '#C99A78' })
 const GUARD = Object.freeze({
   shadow: 'rgba(0,0,0,.16)',
   pants: '#252C3A',
   coat: '#2F4466',
   strip: '#F4E7B0',
+  badge: '#D9B44A',
   skin: '#D9AE86',
   cap: '#1F2C44',
   night: 0.3,
@@ -52,7 +44,7 @@ export const SHOPS_PART: PaintPart = {
     paintRow(g, pack, minute)
 
     if (isLateNight(pack, minute.clock)) {
-      paintStall(g, pack, minute.light.dark)
+      paintStall(g, { pack, minute })
     }
   },
   paintMoving: (g, view, scene) => {
@@ -110,30 +102,18 @@ export function lateStallOf(pack: RegionPack): Point | undefined {
 }
 
 // A noodle cart under a hanging bulb at the row's west end, clear of the shelters.
-function paintStall(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
-  const at = lateStallOf(pack)
+function paintStall(
+  g: CanvasRenderingContext2D,
+  at: { readonly pack: RegionPack; readonly minute: StreetMinute }
+): void {
+  const place = lateStallOf(at.pack)
 
-  if (at === undefined) {
-    return
+  if (place !== undefined) {
+    paintLateCart(
+      { g, dark: at.minute.light.dark, detail: at.minute.detail },
+      { ...place, skin: STALL.skin }
+    )
   }
-
-  const { x, y } = at
-
-  g.fillStyle = STALL.shadow
-  g.fillRect(x - 4.4, y, 8.8, 1.6)
-  g.fillStyle = mixTone(STALL.body, NIGHT_TONE, dark * 0.4)
-  g.fillRect(x - 4, y - 3.4, 8, 3.4)
-  g.fillStyle = mixTone(STALL.roof, NIGHT_TONE, dark * 0.4)
-  g.fillRect(x - 4.4, y - 6.6, 8.8, 0.9)
-  g.fillStyle = STALL.glass
-  g.fillRect(x - 3, y - 3, 3.4, 1.8)
-
-  const glow = g.createRadialGradient(x, y - 6, 0, x, y - 6, STALL.glowR)
-
-  glow.addColorStop(0, `rgba(${STALL.bulb},${STALL.bulbAlpha})`)
-  glow.addColorStop(1, `rgba(${STALL.bulb},0)`)
-  g.fillStyle = glow
-  g.fillRect(x - STALL.glowR, y - 6 - STALL.glowR, STALL.glowR * 2, STALL.glowR * 2)
 }
 
 interface ShutterJob {
@@ -195,6 +175,8 @@ function paintGuard(g: CanvasRenderingContext2D, front: FrontView, dark: number)
   g.fillRect(x - 1, y - 4.8, 2, 2.7)
   g.fillStyle = GUARD.strip
   g.fillRect(x - 0.2, y - 4.8, 0.4, 2.7)
+  g.fillStyle = tone(GUARD.badge)
+  g.fillRect(x - 0.7, y - 4.5, 0.35, 0.35)
   g.fillStyle = tone(GUARD.skin)
   g.beginPath()
   g.arc(x, y - 5.6, 0.85, 0, Math.PI * 2)

@@ -2,17 +2,23 @@ import type { MovingScene } from '@/web/scene/render2d/street/paint'
 import type { ErrandItem, PersonView } from '@/web/scene/street-types'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import {
+  facingDirOf,
   GEAR_BOX,
   HAT_KINDS,
+  isSideOn,
+  paintArms,
+  paintFace,
   paintHat,
   paintUmbrella,
+  paintWave,
+  STREET_UMBRELLAS,
 } from '@/web/scene/render2d/street/people-gear'
 import { PERSON_BOX, STREET_PEOPLE } from '@/web/scene/render2d/street/rider-art'
 import { paintGroundShadow } from '@/web/scene/render2d/street/shadow'
 import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/sprite-key'
-import { DARK_STEPS } from '@/web/scene/render2d/street/tone'
+import { DARK_STEPS, mixTone } from '@/web/scene/render2d/street/tone'
 import { fill, toneOf } from '@/web/scene/render2d/street/vehicle-art'
-import { HELD_TONES, PALETTE, RAMP, UMBRELLA_TONES } from '@/web/scene/sprites/palette'
+import { HELD_TONES, PALETTE, RAMP } from '@/web/scene/sprites/palette'
 import {
   type HairTone,
   LOOK_PARTS,
@@ -52,6 +58,7 @@ const FRAMES = 7
 // Bits of a passer-by's look seed each colour is drawn from.
 const LOOK_BITS = Object.freeze({ hair: 2, shirt: 4, pants: 7, pack: 9 })
 const TONES = Object.freeze({
+  black: '#000000',
   shoe: '#1F2230',
   stool: '#C9544A',
   stoolLeg: '#7A3A34',
@@ -74,11 +81,13 @@ const BODY = Object.freeze({
   packBack: [-0.85, -3.3, 1.7, 1.6],
   packSide: [-0.35, -3.2, 0.8, 1.5],
   packStraps: [-1, -3.2, 0.25, 1],
-  arm: [-1.25, -3.1, 0.35, 1.3],
-  armSwing: 0.3,
-  eyes: [-0.45, 0.25],
-  eyeY: -4.05,
-  eye: 0.22,
+  sleeveShade: 0.15,
+  shoes: [
+    [-0.8, -0.25, 0.7, 0.25],
+    [0.1, -0.25, 0.7, 0.25],
+  ],
+  shine: [0.2, -3.2, 0.24, 0.5],
+  shineLighten: 0.25,
 } as const)
 // A stride: the step's reach (wider at the far detail, so it reads), the passing foot's place
 // and lift, the bounce on each contact, a jogger's longer reach.
@@ -90,12 +99,6 @@ const GAIT = Object.freeze({
   bob: 0.3,
   jog: 1.35,
 })
-const WAVE = Object.freeze({
-  x: 1.3,
-  lift: 0.35,
-  arm: [-0.22, -5.3, 0.45, 2.2],
-  hand: 0.42,
-} as const)
 const SEAT = Object.freeze({
   stool: [-1.1, -1, 2.2, 0.5],
   leg: [-0.9, -0.5, 1.8, 0.5],
@@ -228,7 +231,7 @@ function sigOf(
   sig = sig * FRAMES + Math.min(FRAMES - 1, person.frame)
   sig = sig * (ERRAND_ITEMS.length + 1) + itemIndexOf(person.item)
   sig = sig * (DARK_STEPS + 1) + at.darkStep
-  sig = sig * (UMBRELLA_TONES.length + 1) + person.umbrella
+  sig = sig * (STREET_UMBRELLAS.length + 1) + person.umbrella
   sig = sig * HAT_KINDS + person.hat
 
   return sig * SPRITE_PX.length + at.detail
@@ -254,8 +257,10 @@ function paintPerson(figure: Figure): void {
   g.translate(0, bob)
   paintTorso(figure, frame)
   paintHead(figure)
-  paintHat(g, person, (hex) => colourOf(figure, hex))
-  paintWave(figure)
+  paintHat(g, { person, detail: figure.detail, seed: figure.tones.shirt }, (hex) =>
+    colourOf(figure, hex)
+  )
+  paintWave(g, { frame: person.frame, hand: colourOf(figure, SKINS[figure.tones.skin]) })
   paintItem(figure)
   paintUmbrella(g, person, (hex) => colourOf(figure, hex))
   g.restore()
@@ -302,14 +307,6 @@ function strideOf(frame: number): -1 | 0 | 1 {
   return frame === 3 ? -1 : 0
 }
 
-function isSideOn(person: PersonView): boolean {
-  return person.facing === 'east' || person.facing === 'west'
-}
-
-function facingDirOf(person: PersonView): -1 | 1 {
-  return person.facing === 'west' ? -1 : 1
-}
-
 function paintLeg(
   g: CanvasRenderingContext2D,
   leg: { readonly foot: number; readonly lift: number; readonly colour: string }
@@ -354,13 +351,32 @@ function paintTorso(figure: Figure, frame: number): void {
 
   fill(g, colourOf(figure, shirt), BODY.torso)
 
-  if (figure.detail >= 1 && !isSideOn(person)) {
-    const swing = strideOf(frame) * BODY.armSwing
-    const sleeve = colourOf(figure, shirt)
-    const [x, y, w, h] = BODY.arm
+  if (figure.detail === 0) {
+    return
+  }
 
-    fill(g, sleeve, [x, y, w, h + swing])
-    fill(g, sleeve, [-x - w, y, w, h - swing])
+  paintArms(g, {
+    person,
+    stride: strideOf(frame),
+    sleeve: colourOf(figure, mixTone(shirt, TONES.black, BODY.sleeveShade)),
+    hand: colourOf(figure, SKINS[tones.skin]),
+  })
+
+  if (frame === 0) {
+    for (const shoe of BODY.shoes) {
+      fill(g, colourOf(figure, TONES.shoe), shoe)
+    }
+  }
+
+  if (figure.detail === 2 && isSideOn(person)) {
+    const [x, y, w, h] = BODY.shine
+
+    fill(g, colourOf(figure, mixTone(shirt, PALETTE.glint, BODY.shineLighten)), [
+      -facingDirOf(person) * x - w / 2,
+      y,
+      w,
+      h,
+    ])
   }
 }
 
@@ -383,34 +399,21 @@ function paintHead(figure: Figure): void {
   g.arc(headX, headY, headR, 0, Math.PI * 2)
   g.fill()
 
-  if (person.facing !== 'south' || figure.detail >= 1) {
+  if (person.kind !== 'jogger' && (person.facing !== 'south' || figure.detail >= 1)) {
     g.fillStyle = colourOf(figure, HAIRS[tones.hair])
     g.beginPath()
     g.arc(hairX, hairY, hairR, Math.PI, Math.PI * 2)
+
+    if (person.facing === 'north') {
+      g.arc(hairX, headY, hairR, 0, Math.PI * 2)
+    }
+
     g.fill()
   }
 
-  if (figure.detail >= 2 && person.facing === 'south') {
-    for (const x of BODY.eyes) {
-      fill(g, PALETTE.eye, [x, BODY.eyeY, BODY.eye, BODY.eye])
-    }
+  if (figure.detail === 2) {
+    paintFace(g, { person, eye: colourOf(figure, PALETTE.eye) })
   }
-}
-
-function paintWave(figure: Figure): void {
-  const { g, person } = figure
-
-  if (person.frame < WAVE_FRAME) {
-    return
-  }
-
-  const x = WAVE.x + (person.frame > WAVE_FRAME ? WAVE.lift : 0)
-
-  g.fillStyle = colourOf(figure, SKINS[figure.tones.skin])
-  g.fillRect(x + WAVE.arm[0], WAVE.arm[1], WAVE.arm[2], WAVE.arm[3])
-  g.beginPath()
-  g.arc(x, WAVE.arm[1], WAVE.hand, 0, Math.PI * 2)
-  g.fill()
 }
 
 // A cup, a bag or a box in the hand, in its held tones.

@@ -21,6 +21,8 @@ export interface TapeRow {
   readonly changePct?: number
   /** Absent for an index level, which prints bare. */
   readonly display?: MarketWire['priceDisplay']
+  /** The row is its market's benchmark, not a watched name. */
+  readonly isBenchmark?: true
 }
 
 /** The benchmark (VN-Index, BTC) of each market whose segment is on, off the overview, then the
@@ -61,6 +63,7 @@ function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
       ...(row.price === undefined ? {} : { price: row.price }),
       ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
       ...(display === undefined ? {} : { display }),
+      isBenchmark: true,
     },
   ]
 }

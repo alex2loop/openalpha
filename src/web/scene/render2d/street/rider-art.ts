@@ -82,10 +82,14 @@ export const STREET_PEOPLE = Object.freeze({
 const SKINS = STREET_PEOPLE.skins
 const PANTS = STREET_PEOPLE.pants
 const TONES = Object.freeze({
-  vest: '#E8892B',
-  vestBand: '#F4F1E8',
+  vest: '#F08A24',
+  vestBand: '#F4E7B0',
+  sweeperShirt: '#E8803A',
+  sweeperBand: '#F6F2D6',
+  hat: '#DCC896',
   cart: '#3F8A5C',
-  broom: '#9B7A52',
+  broom: '#8A6B3E',
+  broomHead: '#C9A55A',
   ticket: PALETTE.paper,
   ink: '#FFFFFF',
   fallback: '#262932',
@@ -113,7 +117,9 @@ const SWEEPER = Object.freeze({
   cart: [-2.2, -2.2, 1.8, 1.6],
   legs: [0, -1.8, 0.8, 1.8],
   vest: [-0.2, -4.4, 1.2, 2.6],
+  band: [-0.2, -3.4, 1.2, 0.25],
   head: [0.4, -4.9, 0.5],
+  broomHead: [1.9, -0.3, 1.2, 0.3],
   hat: [
     [-0.4, -5.1],
     [0.4, -5.9],
@@ -176,7 +182,8 @@ export function paintParkedBike(art: Art): void {
   paintBikeEnd(modelOf(art), { dir: -1, isParked: true })
 }
 
-/** A street sweeper in a vest and a conical hat, pushing a cart with a broom out in front. */
+/** A street sweeper in an orange shirt with a reflective band and a conical hat, pushing a cart
+ *  with a broom out in front. */
 export function paintSweeper(art: Art): void {
   const { g } = art
   const dir = dirOf(art.vehicle.heading)
@@ -186,9 +193,14 @@ export function paintSweeper(art: Art): void {
   g.scale(dir, 1)
   fill(g, toneOf(art, TONES.cart), SWEEPER.cart)
   fill(g, toneOf(art, look.pants), SWEEPER.legs)
-  fill(g, toneOf(art, TONES.vest), SWEEPER.vest)
+  fill(g, toneOf(art, TONES.sweeperShirt), SWEEPER.vest)
+
+  if (art.detail > 0) {
+    fill(g, toneOf(art, TONES.sweeperBand), SWEEPER.band)
+  }
+
   paintHead(art, { at: SWEEPER.head, skin: look.skin })
-  g.fillStyle = toneOf(art, TONES.broom)
+  g.fillStyle = toneOf(art, TONES.hat)
   g.beginPath()
 
   for (const [x, y] of SWEEPER.hat) {
@@ -202,6 +214,7 @@ export function paintSweeper(art: Art): void {
   g.moveTo(SWEEPER.broom[0][0], SWEEPER.broom[0][1])
   g.lineTo(SWEEPER.broom[1][0], SWEEPER.broom[1][1])
   g.stroke()
+  fill(g, toneOf(art, TONES.broomHead), SWEEPER.broomHead)
   g.restore()
 }
 

@@ -98,7 +98,7 @@ export function paintCar(art: Art): void {
   const isTaxi = vehicle.kind === 'taxi'
   const body = isTaxi
     ? colours.taxi
-    : (colours.car[vehicle.look % colours.car.length] ?? TONES.white)
+    : (colours.car[vehicle.car][vehicle.look % colours.car[vehicle.car].length] ?? TONES.white)
   const cabin = paintCarModel(art, {
     shape: shapeOf(vehicle, heightOf(vehicle)),
     body,

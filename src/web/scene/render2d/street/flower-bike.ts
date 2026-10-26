@@ -3,7 +3,7 @@ import type { VendorView } from '@/web/scene/street-types'
 import { drawHeldSprite, drawSprite } from '@/web/scene/render2d/street/detail'
 import { shadeOf } from '@/web/scene/render2d/street/park-props'
 import { heldKeyOf, SPRITE_PX } from '@/web/scene/render2d/street/sprite-key'
-import { DARK_STEPS } from '@/web/scene/render2d/street/tone'
+import { DARK_STEPS, mixTone } from '@/web/scene/render2d/street/tone'
 
 const TONES = Object.freeze({
   shadow: 'rgba(0,0,0,.15)',
@@ -12,11 +12,20 @@ const TONES = Object.freeze({
   rack: '#8A6B3E',
   leaves: '#4E9A5E',
   flowers: ['#E8648F', '#D8453B', '#F2C94C', '#F6F2EA', '#9C6BC0', '#F28C4A'],
-  hat: '#E6D3A0',
+  spoke: '#B8BEC9',
+  saddle: '#2A2D36',
+  centre: '#F2C94C',
+  hat: '#DCC896',
   shirt: '#E8B4C4',
+  sleeve: '#000000',
   skin: '#D9AE86',
   trousers: '#4A4F66',
+  shoe: '#1F2230',
+  eye: '#2B2433',
 })
+// The seller sits on the saddle, this far back and up from the bike's middle.
+const SEAT_AT = Object.freeze({ x: -0.7, y: -1.5 })
+const SLEEVE_SHADE = 0.15
 // The flower bicycle's sprite: its box about the kerb point, the pedal frames, and its key.
 const BIKE_BOX = Object.freeze({ w: 16, h: 12, anchorX: 8, anchorY: 10 })
 const BIKE_PREFIX = 'flower-bike'
@@ -27,6 +36,11 @@ const BLOOMS = [
   [-4.6, -5.6, 1.1, 3],
   [-3.2, -5.8, 1.15, 4],
   [-5.4, -3.6, 0.9, 5],
+  [-2.3, -5, 0.9, 1],
+] as const
+const CENTRES = [
+  [-4.4, -4.8],
+  [-3.1, -5.2],
 ] as const
 
 /** The flower seller's bicycle at the kerb: a rack heaped with flowers behind, the seller in a
@@ -59,13 +73,23 @@ export function drawFlowerBike(
       at: bike.at,
     },
     (sprite) =>
-      paintBike(sprite, { frame: bike.frame, facing: bike.facing, dark: darkStep / DARK_STEPS })
+      paintBike(sprite, {
+        frame: bike.frame,
+        facing: bike.facing,
+        dark: darkStep / DARK_STEPS,
+        detail,
+      })
   )
 }
 
 function paintBike(
   g: CanvasRenderingContext2D,
-  at: { readonly frame: number; readonly facing: -1 | 1; readonly dark: number }
+  at: {
+    readonly frame: number
+    readonly facing: -1 | 1
+    readonly dark: number
+    readonly detail: number
+  }
 ): void {
   const tone = (hex: string): string => shadeOf(at, hex)
 
@@ -83,6 +107,10 @@ function paintBike(
     g.stroke()
   }
 
+  if (at.detail > 0) {
+    paintSpokes(g, { tone, frame: at.frame })
+  }
+
   g.strokeStyle = tone(TONES.bike)
   g.lineWidth = 0.38
   g.beginPath()
@@ -93,13 +121,48 @@ function paintBike(
   g.moveTo(-0.9, -3.5)
   g.lineTo(0.3, -1.4)
   g.lineTo(-3, -1.4)
+  g.moveTo(2.1, -3.5)
+  g.lineTo(2.5, -4.6)
+  g.lineTo(3.4, -4.8)
   g.stroke()
-  paintLoad(g, tone)
-  paintRider(g, { tone, frame: at.frame })
+  g.fillStyle = tone(TONES.saddle)
+  g.fillRect(-1.6, -3.9, 1.6, 0.4)
+  paintLoad(g, { tone, detail: at.detail })
+  g.save()
+  g.translate(SEAT_AT.x, SEAT_AT.y)
+  paintSeller(g, { tone, detail: at.detail })
+  g.restore()
+  paintPedal(g, { tone, frame: at.frame })
 }
 
-// The rack behind the saddle, heaped with bunches of flowers.
-function paintLoad(g: CanvasRenderingContext2D, tone: (hex: string) => string): void {
+// Two crossed spokes in each wheel, turned a little on the second pedal frame.
+function paintSpokes(
+  g: CanvasRenderingContext2D,
+  at: { readonly tone: (hex: string) => string; readonly frame: number }
+): void {
+  const turn = at.frame > 0 ? 0.8 : 0
+
+  g.strokeStyle = at.tone(TONES.spoke)
+  g.lineWidth = 0.13
+  g.beginPath()
+
+  for (const x of [-3, 3]) {
+    for (const angle of [turn, turn + Math.PI / 2]) {
+      g.moveTo(x + Math.cos(angle) * 1.2, -1.4 + Math.sin(angle) * 1.2)
+      g.lineTo(x - Math.cos(angle) * 1.2, -1.4 - Math.sin(angle) * 1.2)
+    }
+  }
+
+  g.stroke()
+}
+
+// The rack behind the saddle, heaped with bunches of flowers, their yellow hearts close up.
+function paintLoad(
+  g: CanvasRenderingContext2D,
+  at: { readonly tone: (hex: string) => string; readonly detail: number }
+): void {
+  const { tone } = at
+
   g.fillStyle = tone(TONES.rack)
   g.fillRect(-5.6, -3.1, 3.6, 0.4)
   g.fillStyle = tone(TONES.leaves)
@@ -111,28 +174,71 @@ function paintLoad(g: CanvasRenderingContext2D, tone: (hex: string) => string): 
     g.arc(x, y, r, 0, Math.PI * 2)
     g.fill()
   }
+
+  if (at.detail > 0) {
+    g.fillStyle = tone(TONES.centre)
+
+    for (const [x, y] of CENTRES) {
+      g.beginPath()
+      g.arc(x, y, 0.25, 0, Math.PI * 2)
+      g.fill()
+    }
+  }
 }
 
-// The seller on the saddle in a conical hat, one leg on the turning pedal.
-function paintRider(
+// The seller side on, facing the way the bike rides: legs, shirt, the near arm to the bars, the
+// head and the conical hat; an eye closest.
+function paintSeller(
   g: CanvasRenderingContext2D,
-  at: { readonly tone: (hex: string) => string; readonly frame: number }
+  at: { readonly tone: (hex: string) => string; readonly detail: number }
 ): void {
   const { tone } = at
 
   g.fillStyle = tone(TONES.trousers)
-  g.fillRect(-0.3 + (at.frame > 0 ? 0.5 : -0.2), -3.4, 0.5, 2)
+  g.fillRect(-0.75, -1.8, 0.65, 1.8)
+  g.fillRect(0.1, -1.8, 0.65, 1.8)
   g.fillStyle = tone(TONES.shirt)
-  g.fillRect(-1.2, -6.1, 1.8, 2.4)
+  g.fillRect(-0.95, -3.3, 1.9, 1.6)
+
+  if (at.detail > 0) {
+    g.strokeStyle = tone(mixTone(TONES.shirt, TONES.sleeve, SLEEVE_SHADE))
+    g.lineWidth = 0.55
+    g.lineCap = 'round'
+    g.beginPath()
+    g.moveTo(0, -3.05)
+    g.lineTo(0, -1.95)
+    g.stroke()
+    g.fillStyle = tone(TONES.skin)
+    g.fillRect(-0.2, -2.05, 0.4, 0.35)
+  }
+
   g.fillStyle = tone(TONES.skin)
   g.beginPath()
-  g.arc(-0.3, -6.8, 0.75, 0, Math.PI * 2)
+  g.arc(0, -4, 0.85, 0, Math.PI * 2)
   g.fill()
   g.fillStyle = tone(TONES.hat)
   g.beginPath()
-  g.moveTo(-2, -7)
-  g.lineTo(-0.3, -8.4)
-  g.lineTo(1.4, -7)
+  g.moveTo(-1.7, -4.3)
+  g.lineTo(0, -5.9)
+  g.lineTo(1.7, -4.3)
   g.closePath()
   g.fill()
+
+  if (at.detail === 2) {
+    g.fillStyle = tone(TONES.eye)
+    g.fillRect(0.35, -4.05, 0.22, 0.22)
+  }
+}
+
+// The leg on the turning pedal and its shoe.
+function paintPedal(
+  g: CanvasRenderingContext2D,
+  at: { readonly tone: (hex: string) => string; readonly frame: number }
+): void {
+  const isDown = at.frame > 0
+
+  g.fillStyle = at.tone(TONES.trousers)
+  g.fillRect(-0.3 + (isDown ? 0.5 : -0.2), -1.9, 0.5, 1.5)
+  g.fillStyle = at.tone(TONES.shoe)
+  g.fillRect(-0.1 + (isDown ? 0.6 : -0.2), -0.5, 0.9, 0.3)
 }

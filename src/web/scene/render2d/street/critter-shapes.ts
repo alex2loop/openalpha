@@ -60,3 +60,33 @@ export function poly(g: CanvasRenderingContext2D, tone: string, points: readonly
   g.closePath()
   g.fill()
 }
+
+/** A stroke through quadratic segments: a start point, then control and end pairs. */
+export function curve(
+  g: CanvasRenderingContext2D,
+  at: { readonly points: readonly number[]; readonly w: number; readonly tone: string }
+): void {
+  const p = at.points
+
+  g.strokeStyle = at.tone
+  g.lineWidth = at.w
+  g.lineCap = 'round'
+  g.lineJoin = 'round'
+  g.beginPath()
+  g.moveTo(p[0] ?? 0, p[1] ?? 0)
+
+  for (let index = 2; index + 3 < p.length; index += 4) {
+    g.quadraticCurveTo(p[index] ?? 0, p[index + 1] ?? 0, p[index + 2] ?? 0, p[index + 3] ?? 0)
+  }
+
+  g.stroke()
+}
+
+/** An ellipse from `[x, y, rx, ry, rot]`. */
+export function oval(
+  g: CanvasRenderingContext2D,
+  at: readonly [number, number, number, number, number?],
+  tone: string
+): void {
+  ellipse(g, { x: at[0], y: at[1], rx: at[2], ry: at[3], rot: at[4] ?? 0, tone })
+}
