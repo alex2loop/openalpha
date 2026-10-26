@@ -14,7 +14,7 @@ import { breachedStops } from '@/web/scene/data/room-status'
 import { buildBubbles, said, startSpeech } from '@/web/scene/overlay/bubbles'
 import { figureOf } from '@/web/scene/overlay/hit'
 import { buildMarkers, markerRectOf } from '@/web/scene/overlay/markers'
-import { tagTextOf } from '@/web/scene/overlay/name-tags'
+import { hoverTextOf, tagTextOf } from '@/web/scene/overlay/name-tags'
 import {
   EMPTY_OVERLAY,
   hoverActor,
@@ -265,7 +265,7 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     screens: screenPlaces,
     ...(hover === undefined || layout.hover === undefined
       ? {}
-      : { hover: { actor: hover.actor, rect: layout.hover } }),
+      : { hover: { actor: hover.actor, rect: layout.hover, text: hover.text } }),
   }
 }
 
@@ -304,7 +304,9 @@ function tagAsks(input: PassInput): { actor: ActorId; size: Size; isForced: bool
 function hoverOf(
   input: PassInput,
   tags: ReadonlyMap<ActorId, Rect>
-): { readonly actor: ActorId; readonly label: { anchor: Rect; size: Size } } | undefined {
+):
+  | { readonly actor: ActorId; readonly text: string; readonly label: { anchor: Rect; size: Size } }
+  | undefined {
   const actor = input.hovered
   const figure = actor === undefined ? undefined : input.figures.get(actor)
 
@@ -312,7 +314,10 @@ function hoverOf(
     return undefined
   }
 
-  return { actor, label: { anchor: figure, size: sizeTag(tagTextOf(actor, false)) } }
+  const status = input.view.actors.find((each) => each.id === actor)?.status
+  const text = hoverTextOf(actor, status)
+
+  return { actor, text, label: { anchor: figure, size: sizeTag(text) } }
 }
 
 interface TagSet {

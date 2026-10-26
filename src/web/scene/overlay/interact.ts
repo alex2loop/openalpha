@@ -2,6 +2,7 @@ import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Point, ScreenPoint, SimView } from '@/web/scene/types'
 import type { PropDef, TipSource } from '@/web/scene/world/props'
 import { type Hit, pickAt } from '@/web/scene/overlay/hit'
+import { hoverTextOf } from '@/web/scene/overlay/name-tags'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
 import { hoverActor, overlayView } from '@/web/scene/overlay/overlay'
 import { openScreen } from '@/web/scene/overlay/screen-panel'
@@ -246,7 +247,14 @@ function hover(input: InputState, event: PointerEvent): void {
   hoverObject(hit?.kind === 'pet' ? toPetTip(hit.id) : prop?.tip, screen)
   hoverActor(hit?.kind === 'actor' ? ROSTER.find((def) => def.id === hit.id)?.id : undefined)
   input.canvas.style.cursor = isClickable(hit, prop) ? CLICKABLE_CURSOR : ''
-  input.canvas.title = switchTitleOf(prop)
+  input.canvas.title = hit?.kind === 'actor' ? actorTitleOf(input, hit.id) : switchTitleOf(prop)
+}
+
+// A person under the pointer is named with what their dot means, for the tooltip and readers.
+function actorTitleOf(input: InputState, id: string): string {
+  const actor = input.deps.readView().actors.find((each) => each.id === id)
+
+  return actor === undefined ? '' : hoverTextOf(actor.id, actor.status)
 }
 
 function leaveCanvas(): void {

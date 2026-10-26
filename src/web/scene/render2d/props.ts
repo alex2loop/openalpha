@@ -19,8 +19,9 @@ import { isWallMounted } from '@/web/scene/world/props'
 const PAPER = '#F7F5EF'
 const SCREEN_OFF = '#3E4452'
 const SCREEN_EDGE = '#5C6474'
+const SCREEN_STANDBY = '#46557A'
 const LED_OFF = '#4B5370'
-const LED_PRINT = '#7FD49A'
+const LED_ON = '#7FD49A'
 const LAMP_SHADE = '#E9DFC6'
 const LAMP_SHADE_FRONT = '#CFC4A8'
 const LAMP_LIT = '#FFF3C4'
@@ -149,11 +150,14 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 }
 
-// Dark unless someone works at it: no one does until the crew sits down.
-function paintComputer(g: CanvasRenderingContext2D, prop: PropDef): void {
+// On standby, a dim glow and its power light, until the office goes quiet and it sleeps; the
+// working screen's content is the overlay's.
+function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
+  const isAsleep = scene.life.isQuiet
 
-  framed(g, [x, y, w, h - 4], SCREEN_OFF)
+  framed(g, [x, y, w, h - 4], isAsleep ? SCREEN_OFF : SCREEN_STANDBY)
+  fill(g, [x + w - 3, y + h - 7, 1, 1], isAsleep ? SCREEN_EDGE : LED_ON)
   fill(g, [x + 1, y + 1, w - 2, 1], SCREEN_EDGE)
   fill(g, [x + w / 2 - 1, y + h - 4, 2, 3], SCREEN_EDGE)
   fill(g, [x + w / 2 - 4, y + h - 1, 8, 1], SCREEN_EDGE)
@@ -164,7 +168,7 @@ function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSc
 
   drawBlock(g, [x, y, 22, 8], { front: 10, tones: METAL })
   fill(g, [x + 4, y + 2, 14, 3], SCREEN_EDGE)
-  fill(g, [x + 17, y + 11, 2, 2], scene.isPrinting ? LED_PRINT : SCREEN_EDGE)
+  fill(g, [x + 17, y + 11, 2, 2], scene.isPrinting ? LED_ON : SCREEN_EDGE)
 
   if (scene.isPrinting) {
     fill(g, [x + 5, y - 3, 12, 4], PAPER)

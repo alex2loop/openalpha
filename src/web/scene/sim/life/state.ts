@@ -41,7 +41,7 @@ export interface LifeState {
   readonly asks: LifeAsk[]
   readonly runNames: Map<string, string>
   readonly cart: CartState
-  readonly round: { freeSince: number | undefined; count: number }
+  readonly round: { freeSince: number | undefined; lastAt: number | undefined; count: number }
   sheets: { hour: string; count: number; feedAt: number | undefined }
   catAwakeUntil: number
   lastBusyAt: number

@@ -146,7 +146,10 @@ function createSceneLoop(parts: LoopParts): {
 
       return isAnimating
     },
-    resume: () => director.resume(),
+    resume: () => {
+      director.resume()
+      life.resume()
+    },
     nextDueAt: () => {
       const floor = view.value.floor
       const hasPeople = drawn.actors.some((actor) => actor.floor === floor)

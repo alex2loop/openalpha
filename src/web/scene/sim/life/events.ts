@@ -87,7 +87,18 @@ function onFinished(state: LifeState, event: WireEvent): void {
     feedSheet(state)
   }
 
+  // The red dot is a record, kept even while the tab is hidden; the gestures are the step's.
+  if (isFailure(event.outcome)) {
+    for (const id of state.director.actorsOfRun(event.runId)) {
+      state.failed.add(id)
+    }
+  }
+
   ask(state.asks, { kind: 'finished', runId: event.runId, outcome: event.outcome })
+}
+
+function isFailure(outcome: string): boolean {
+  return outcome !== COMPLETED && outcome !== ABORTED
 }
 
 function ask(asks: LifeAsk[], next: LifeAsk): void {
@@ -145,14 +156,6 @@ function afterRun(
   done: Extract<LifeAsk, { kind: 'finished' }>
 ): void {
   const owners = state.director.actorsOfRun(done.runId)
-  const isFailure = done.outcome !== COMPLETED && done.outcome !== ABORTED
-
-  for (const id of owners) {
-    if (isFailure) {
-      state.failed.add(id)
-    }
-  }
-
   const owner = owners[0] === undefined ? undefined : step.actors.get(owners[0])
 
   if (owner === undefined || !step.canWalk) {
@@ -161,7 +164,7 @@ function afterRun(
 
   if (done.outcome === COMPLETED) {
     cheer(state, step, { owner, runId: done.runId })
-  } else if (isFailure) {
+  } else if (isFailure(done.outcome)) {
     sendWatcher(state, step, owner)
   }
 }

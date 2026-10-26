@@ -54,6 +54,8 @@ export interface Life {
   /** The next moment something of the office life is due, a `performance.now()` instant. */
   nextDueAt(): number
   view(): LifeView
+  /** Back from a hidden spell: what the wire asked meanwhile is dropped, never replayed. */
+  resume(): void
   /** The dot over each person's head, for those who show one. */
   statuses(views: readonly ActorView[]): ReadonlyMap<ActorId, ActorStatus>
   dispose(): void
@@ -88,9 +90,31 @@ const BREAK_PROPS = (['office', 'team'] as const).flatMap((floor) =>
 )
 
 export function createLife(deps: LifeDeps): Life {
-  const nowMs = performance.now()
-  const state: LifeState = {
-    director: deps.director,
+  const state = createLifeState(deps.director, performance.now())
+  const off = subscribeLife(onWireEvent, state)
+  let isDisposed = false
+
+  return {
+    step: () => !isDisposed && stepLife(state, readStep(state, deps)),
+    nextDueAt: () => (isDisposed ? Number.POSITIVE_INFINITY : dueOf(state, readStep(state, deps))),
+    view: () => viewOf(state, readStep(state, deps)),
+    statuses: (views) => statusesOf(state, views),
+    resume: () => {
+      state.asks.length = 0
+    },
+    dispose: () => {
+      if (!isDisposed) {
+        isDisposed = true
+        off()
+        endAll(state)
+      }
+    },
+  }
+}
+
+function createLifeState(director: Director, nowMs: number): LifeState {
+  return {
+    director,
     pets: createPets(nowMs),
     moments: new Map(),
     done: new Map(),
@@ -104,28 +128,12 @@ export function createLife(deps: LifeDeps): Life {
     asks: [],
     runNames: new Map(),
     cart: { at: undefined, rollFrom: undefined, isLeaving: false, isBlocking: false },
-    round: { freeSince: undefined, count: 0 },
+    round: { freeSince: undefined, lastAt: undefined, count: 0 },
     sheets: { hour: '', count: 0, feedAt: undefined },
     catAwakeUntil: 0,
     lastBusyAt: nowMs,
     lastPhase: undefined,
     idleCheckAt: nowMs,
-  }
-  const off = subscribeLife(onWireEvent, state)
-  let isDisposed = false
-
-  return {
-    step: () => !isDisposed && stepLife(state, readStep(state, deps)),
-    nextDueAt: () => (isDisposed ? Number.POSITIVE_INFINITY : dueOf(state, readStep(state, deps))),
-    view: () => viewOf(state, readStep(state, deps)),
-    statuses: (views) => statusesOf(state, views),
-    dispose: () => {
-      if (!isDisposed) {
-        isDisposed = true
-        off()
-        endAll(state)
-      }
-    },
   }
 }
 
@@ -286,7 +294,7 @@ function dueOf(state: LifeState, step: LifeStep): number {
     ...[...state.moments.values()].map(momentDueOf),
     ...fidgets,
     scheduleDueOf(state, step),
-    roundDueOf(state),
+    roundDueOf(state, step),
     state.catAwakeUntil,
     state.lastBusyAt + QUIET_AFTER_MS,
     state.pets.nextDueAt(petWorldOf(state, step)),

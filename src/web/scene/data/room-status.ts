@@ -160,11 +160,12 @@ async function loadCounts(abortSignal: AbortSignal): Promise<void> {
     ])
 
     const planned = stops.stops.filter((stop) => stop.plan === 'distance')
+    const active = alerts.alerts.filter((alert) => alert.state === 'active')
 
     counts.value = {
       alerts: alerts.activeCount,
       stops: planned.length,
-      markets: new Set([...alerts.alerts, ...planned].map((row) => row.instrument.market)),
+      markets: new Set([...active, ...planned].map((row) => row.instrument.market)),
     }
     breached.value = stops.stops.filter(isBreached).map((stop) => stop.instrument)
   } catch {

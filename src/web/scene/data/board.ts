@@ -12,6 +12,7 @@ import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
 import { homeMarket } from '@/web/scene/data/home'
 import { zoneParts } from '@/web/state/clock'
 import { onWireEvent } from '@/web/state/events'
+import { isTradingPhase } from '@/web/state/market'
 import { notices } from '@/web/state/notices'
 import { state } from '@/web/state/session'
 import { buildDayKey } from '@/web/text/time'
@@ -25,8 +26,6 @@ const SUGGESTIONS_LIMIT = 30
 const HELD_NEWS_KIND = 'held-news'
 const INDEX_DROP_KIND = 'index-drop'
 const MS_PER_DAY = 86_400_000
-// The phases a session's index move happens in.
-const IN_SESSION_PHASES: ReadonlySet<SessionPhase> = new Set<SessionPhase>(['open', 'break'])
 
 interface DigestPair {
   readonly today?: DigestWire
@@ -160,7 +159,7 @@ function syncIndexDrop(): void {
     newest === undefined ||
     movePct === undefined ||
     newest.id === endedDropId ||
-    !IN_SESSION_PHASES.has(phase)
+    !isTradingPhase(phase)
   ) {
     return
   }

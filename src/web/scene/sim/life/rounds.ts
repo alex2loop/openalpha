@@ -6,8 +6,12 @@ import { drawBetween, isAtSeat, type LifeState, type LifeStep } from '@/web/scen
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
+import { SECONDS_PER_MINUTE } from '@/web/text/time'
 
 const ROUNDS_IDLE_MS = 25_000
+// In a quiet office the rounds slow from seconds to minutes: the first after this many idle
+// minutes, then at most one per as many again, so the page sleeps between them.
+const QUIET_ROUNDS_GAP_MS = ROUNDS_IDLE_MS * SECONDS_PER_MINUTE
 const ROUND_STOP_MS = Object.freeze({ min: 2_000, max: 4_000 })
 // Every this many rounds, one ends at the lift.
 const LIFT_EVERY = 3
@@ -55,11 +59,12 @@ export function stepRounds(state: LifeState, step: LifeStep): void {
 
   state.round.freeSince ??= step.nowMs
 
-  if (step.nowMs - state.round.freeSince < ROUNDS_IDLE_MS) {
+  if (step.nowMs < roundDueOf(state, step)) {
     return
   }
 
   state.round.freeSince = undefined
+  state.round.lastAt = step.nowMs
   state.round.count++
   begin(
     state,
@@ -68,11 +73,29 @@ export function stepRounds(state: LifeState, step: LifeStep): void {
   )
 }
 
-/** When a free assistant's round is due. */
-export function roundDueOf(state: LifeState): number {
-  return state.round.freeSince === undefined
-    ? Number.POSITIVE_INFINITY
-    : state.round.freeSince + ROUNDS_IDLE_MS
+/** When a free assistant's round is due: `ROUNDS_IDLE_MS` at its desk, and in a quiet office
+ *  also `QUIET_ROUNDS_GAP_MS` since the office's last work and since the last round. */
+export function roundDueOf(
+  state: LifeState,
+  step: { readonly isQuiet: boolean; readonly nowMs: number }
+): number {
+  const { freeSince, lastAt } = state.round
+
+  if (freeSince === undefined) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  const atDesk = freeSince + ROUNDS_IDLE_MS
+
+  if (!step.isQuiet) {
+    return atDesk
+  }
+
+  return Math.max(
+    atDesk,
+    state.lastBusyAt + QUIET_ROUNDS_GAP_MS,
+    (lastAt ?? Number.NEGATIVE_INFINITY) + QUIET_ROUNDS_GAP_MS
+  )
 }
 
 /** Nothing for it to do: no goal of the live store's, no carry or trip owed, no gesture. */

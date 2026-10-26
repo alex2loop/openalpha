@@ -5,7 +5,7 @@ import type { PlacedTag } from '@/web/scene/overlay/name-tags'
 import type { Placed } from '@/web/scene/overlay/placement'
 import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { ActorId, Rect } from '@/web/scene/types'
-import { NameTags, roleTitleOf, tagTextOf } from '@/web/scene/overlay/name-tags'
+import { NameTags, roleTitleOf } from '@/web/scene/overlay/name-tags'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { reducedMotion } from '@/web/state/prefs'
 import { ATTENTION_MARK } from '@/web/text/glyphs'
@@ -28,7 +28,7 @@ export interface OverlayView {
   readonly tags: readonly PlacedTag[]
   readonly markers: readonly { readonly marker: Marker; readonly rect: Rect }[]
   readonly screens: readonly { readonly screen: LitScreen; readonly rect: Rect }[]
-  readonly hover?: { readonly actor: ActorId; readonly rect: Rect }
+  readonly hover?: { readonly actor: ActorId; readonly rect: Rect; readonly text: string }
 }
 
 export const EMPTY_OVERLAY: OverlayView = Object.freeze({
@@ -79,7 +79,7 @@ export function SceneOverlay() {
       <NameTags tags={view.tags} />
       {view.hover !== undefined && (
         <span class="name-tag glass is-hover" style={boxStyle(view.hover.rect)}>
-          {tagTextOf(view.hover.actor, false)}
+          {view.hover.text}
         </span>
       )}
       {view.bubbles.map((placed) => (
