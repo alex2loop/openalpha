@@ -19,10 +19,11 @@ import {
 } from '@/engine/hooks/user-preference-prompts'
 import { streamSettledTurn } from '@/engine/llm-turn'
 import { TODO_RESTORED_NOTICE } from '@/engine/loop/todo'
+import '@/engine/events'
 
-const PREFS_PREFIX = 'prefs:'
-const PENDING_PREFIX = 'prefs-pending:'
-const ASKED_PREFIX = 'prefs-asked:'
+export const PREFS_PREFIX = 'prefs:'
+export const PENDING_PREFIX = 'prefs-pending:'
+export const ASKED_PREFIX = 'prefs-asked:'
 const PREFS_LIST_MAX = Object.keys(PREF_ATTRS).length
 const MESSAGE_MAX_CHARS = 2_000
 const EXTRACT_MAX_TOKENS = 256
@@ -113,8 +114,8 @@ async function extractPrefs(memory: Memory, run: RunView): Promise<void> {
 
     const write = toPrefWrite(atom, state, attended)
 
-    if (write !== undefined) {
-      await writePref(memory, run, write)
+    if (write !== undefined && (await writePref(memory, run, write))) {
+      announceSaved(run, write, state)
     }
   }
 }
@@ -342,7 +343,8 @@ function isSameValue(left: string | undefined, right: string): boolean {
   )
 }
 
-async function writePref(memory: Memory, run: RunView, write: PrefWrite): Promise<void> {
+/** True once the write landed; a refusal is logged and answers false. */
+async function writePref(memory: Memory, run: RunView, write: PrefWrite): Promise<boolean> {
   const scope = scopeOf(run)
 
   try {
@@ -351,6 +353,8 @@ async function writePref(memory: Memory, run: RunView, write: PrefWrite): Promis
     } else {
       await memory.store(scope, write.key, { value: write.value, importance: write.importance })
     }
+
+    return true
   } catch (err: unknown) {
     if (run.state.abort.signal.aborted) {
       throw abortError(run.state.abort.signal)
@@ -358,7 +362,35 @@ async function writePref(memory: Memory, run: RunView, write: PrefWrite): Promis
 
     // memory.store rejects secrets by throwing; that is a refusal, not a run failure.
     run.services.logger.warn('prefs.store_failed', { key: write.key, err: formatErrForLog(err) })
+
+    return false
   }
+}
+
+// Only a saved preference is told; a pending proposal waits for the operator's answer.
+function announceSaved(run: RunView, write: PrefWrite, state: PrefState): void {
+  if (!write.key.startsWith(PREFS_PREFIX)) {
+    return
+  }
+
+  const attribute = write.key.slice(PREFS_PREFIX.length)
+
+  run.services.bus.emit('preference_saved', {
+    sessionId: run.identity.sessionId,
+    agentId: run.identity.agentId,
+    channel: run.identity.channel,
+    attribute,
+    value: write.kind === 'remove' ? '' : write.value,
+    change: toPrefChange(write, state.saved.has(attribute)),
+  })
+}
+
+function toPrefChange(write: PrefWrite, wasSaved: boolean): 'added' | 'updated' | 'removed' {
+  if (write.kind === 'remove') {
+    return 'removed'
+  }
+
+  return wasSaved ? 'updated' : 'added'
 }
 
 function parseAtoms(text: string): readonly Atom[] {

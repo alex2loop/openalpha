@@ -31,6 +31,7 @@ type WireTopic =
   | 'alerts_checked'
   | 'daemon_notice'
   | 'notices_changed'
+  | 'preference_saved'
 
 /** The progress topics: their wire line is rendered (and may be dropped) before the event is built,
  *  so the normaliser takes it ready. */
@@ -212,6 +213,19 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     weight: 'quiet',
     source: APP_SOURCE,
     unread: e.unread,
+  }),
+  // Quiet and kept off the bell: a page says it under the answer in that chat.
+  preference_saved: (e) => ({
+    v: 1,
+    kind: 'preference_saved',
+    weight: 'quiet',
+    source: { channel: wireChannel(e.channel), agentId: e.agentId },
+    preference: {
+      attribute: e.attribute,
+      value: e.value,
+      change: e.change,
+      sessionId: e.sessionId,
+    },
   }),
 }
 

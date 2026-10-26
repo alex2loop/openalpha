@@ -48,6 +48,7 @@ export function ProfileSection({ reopen }: SectionProps) {
   return (
     <>
       <p class="meta">{tr('ui.office.settings.profileNote')}</p>
+      <p class="meta">{tr('ui.office.memory.learned')}</p>
       <RiskRow profile={data} />
       <GoalRow profile={data} />
       <HorizonRow profile={data} />

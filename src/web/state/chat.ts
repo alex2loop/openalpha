@@ -1,6 +1,7 @@
 import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
 import type { ChatSessionsResponse } from '@/app/server/wire/chat'
+import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import { stopRun } from '@/web/state/approvals'
 import { onWireEvent } from '@/web/state/events'
@@ -10,13 +11,21 @@ import { connection } from '@/web/state/session'
 
 const MAX_TURNS = 200
 const MAX_CHAT_STEPS = 20
-const COMMAND_PREFIX = '/'
+// One line per preference the hook keeps, of which there are five.
+const MAX_TURN_PREFERENCES = 5
+/** What starts a command rather than a question. */
+export const COMMAND_PREFIX = '/'
+/** The role of a message the operator wrote. */
+export const USER_ROLE = 'user'
 
 /** The channel of this app's own sessions: the only one that takes a new message or is deleted
  *  here; every other channel's session is read-only history. */
 export const APP_CHANNEL = 'api'
 
 export type ChatSession = ChatSessionsResponse['sessions'][number]
+
+/** A preference the answer's chat stored or dropped, as the daemon told it. */
+export type SavedPreference = NonNullable<WireEvent['preference']>
 
 type TurnStatus = 'sending' | 'queued' | 'running' | 'done' | 'error' | 'dropped' | 'stopped'
 
@@ -53,6 +62,7 @@ export interface Turn {
   readonly isSystem?: true
   readonly steer?: SteerNote
   readonly tickers?: readonly string[]
+  readonly preferences?: readonly SavedPreference[]
 }
 
 interface SendOptions {
@@ -87,6 +97,7 @@ export function startChat(): () => void {
   const offs = [
     onChatFrame(receiveFrame),
     onWireEvent('run_finished', (event) => attachTickers(event.runId, event.tickers)),
+    onWireEvent('preference_saved', (event) => attachPreference(event.preference)),
     // A dropped socket aborts the turns it ran, so none is left waiting for a frame.
     effect(() => {
       if (connection.value.status !== 'live') {
@@ -390,5 +401,24 @@ function attachTickers(runId: string | undefined, tickers: readonly string[] | u
 
   if (turn !== undefined) {
     updateTurn(turn.localId, (held) => ({ ...held, tickers }))
+  }
+}
+
+// Told under the latest question asked in that chat; a chat this page shows no question of is left
+// to Bộ nhớ.
+function attachPreference(preference: SavedPreference | undefined): void {
+  if (preference === undefined) {
+    return
+  }
+
+  const turn = turns.value.findLast(
+    (held) => held.kind === 'ask' && resolveSession(held) === preference.sessionId
+  )
+
+  if (turn !== undefined) {
+    updateTurn(turn.localId, (held) => ({
+      ...held,
+      preferences: [...(held.preferences ?? []), preference].slice(-MAX_TURN_PREFERENCES),
+    }))
   }
 }

@@ -4,11 +4,14 @@ import type {
   MemoryEntry,
   MemoryImportance,
   MemoryListOptions,
+  MemoryRow,
   MemoryScope,
+  MemoryScopeEntries,
   MemoryWrite,
 } from '@/core/types/memory'
 import type { Dialect, FtsSearch, Storage } from '@/core/types/storage'
 import { ValidationError } from '@/core/errors'
+import { type AgentId, LOCAL_USER_ID, type UserId } from '@/core/ids'
 import { isMemoryKey } from '@/core/memory-key'
 import { rejectIfSecret } from '@/core/security/credentials'
 import { hasBlockingThreat, scanOutput } from '@/core/security/sanitize'
@@ -30,6 +33,12 @@ interface EntryRow {
   readonly key: string
   readonly value: string
   readonly updated_at: number
+}
+
+interface ScopedRow extends EntryRow {
+  readonly agent_id: AgentId
+  readonly user_id: UserId
+  readonly expires_at: number | null
 }
 
 interface StoreMemoryInput {
@@ -117,6 +126,14 @@ export function createMemory(
     list: (scope, listOptions) => listMemories({ db, sql, scope, options: listOptions }),
 
     remove: (scope, key) => removeMemory({ db, sql: sql.remove, scope, key }),
+
+    listScopes: async ({ limit, now }) => {
+      if (!Number.isSafeInteger(limit) || limit < 1) {
+        throw new ValidationError('memory scope list limit must be a positive safe integer')
+      }
+
+      return groupByScope(await db.query<ScopedRow>(sql.listScopes, [now, LOCAL_USER_ID, limit]))
+    },
 
     // biome-ignore lint/complexity/useMaxParams: this is the public Memory interface contract.
     async search(scope: MemoryScope, query: string, limit: number, keyPrefix?: string) {
@@ -233,6 +250,12 @@ function buildSql(d: Dialect) {
     listPrefixed:
       `SELECT key, value, updated_at FROM memory_kv WHERE ${scoped} AND ${live} ` +
       `AND substr(key, 1, ${d.param(4)}) = ${d.param(5)} ORDER BY key LIMIT ${d.param(6)}`,
+    // The local user's rows sort first, so the limit never cuts them before another user's.
+    listScopes:
+      `SELECT agent_id, user_id, key, value, updated_at, expires_at FROM memory_kv ` +
+      `WHERE deleted_at IS NULL AND (expires_at IS NULL OR expires_at > ${d.param(1)}) ` +
+      `ORDER BY CASE WHEN user_id = ${d.param(2)} THEN 0 ELSE 1 END, agent_id, user_id, ` +
+      `updated_at DESC LIMIT ${d.param(3)}`,
     remove:
       `UPDATE memory_kv SET deleted_at = ${d.param(1)} ` +
       `WHERE agent_id = ${d.param(2)} AND user_id = ${d.param(3)} AND key = ${d.param(4)} ` +
@@ -275,6 +298,24 @@ function assertNoPromptInjection(key: string, value: string): void {
   if (hasBlockingThreat(scanOutput(key)) || hasBlockingThreat(scanOutput(value))) {
     throw new ValidationError('memory contains prompt injection')
   }
+}
+
+// Rows arrive ordered by scope, so each scope is one run of consecutive rows.
+function groupByScope(rows: readonly ScopedRow[]): readonly MemoryScopeEntries[] {
+  const groups: { scope: MemoryScopeEntries['scope']; entries: MemoryRow[] }[] = []
+
+  for (const row of rows) {
+    const last = groups.at(-1)
+    const entry = { ...toEntry(row), expiresAt: row.expires_at }
+
+    if (last?.scope.agentId === row.agent_id && last.scope.userId === row.user_id) {
+      last.entries.push(entry)
+    } else {
+      groups.push({ scope: { agentId: row.agent_id, userId: row.user_id }, entries: [entry] })
+    }
+  }
+
+  return groups
 }
 
 function toEntry(row: EntryRow): MemoryEntry {

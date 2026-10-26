@@ -132,6 +132,16 @@ declare module '@/core/events' {
       readonly reason: RunResultReason
       readonly errorMessage?: string
     }
+    // A `prefs:` preference was stored or removed for the run's scope, so a page can say so under
+    // the answer. `value` is empty on a removal.
+    preference_saved: {
+      readonly sessionId: SessionId
+      readonly agentId: AgentId
+      readonly channel: ChannelId
+      readonly attribute: string
+      readonly value: string
+      readonly change: 'added' | 'updated' | 'removed'
+    }
     // Session-scoped state the engine holds in memory outlives the row otherwise: `app` owns the
     // session lifecycle, so it announces the end and the engine drops what it remembered.
     session_ended: {

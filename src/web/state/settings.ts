@@ -11,6 +11,7 @@ const ISSUE_SEPARATOR = '; '
 
 export const SETTINGS_SECTIONS = [
   'profile',
+  'memory',
   'schedule',
   'agents',
   'channels',
@@ -25,6 +26,7 @@ export const SETTINGS_SECTIONS = [
 /** Each section's name in the nav, its heading, and wherever a line points to it. */
 export const SECTION_TITLES = Object.freeze({
   profile: 'ui.office.common.profile',
+  memory: 'ui.office.settings.memory',
   schedule: 'ui.office.settings.schedule',
   agents: 'ui.office.settings.agents',
   channels: 'ui.office.settings.channels',

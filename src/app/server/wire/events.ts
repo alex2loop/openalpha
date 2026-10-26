@@ -44,6 +44,7 @@ type WireEventKind =
   | 'notice'
   | 'daemon_notice'
   | 'notices_changed'
+  | 'preference_saved'
 
 export interface WireEvent {
   readonly v: 1
@@ -209,6 +210,15 @@ export interface WireEvent {
     readonly summary?: string
     readonly citations: number
     readonly unsupported: boolean
+  }
+  /** 'preference_saved': a preference the operator told in a chat was stored (`added`, `updated`) or
+   *  dropped (`removed`, with an empty `value`), in the scope of the agent in `source.agentId`.
+   *  `sessionId` is the chat it was told in. */
+  readonly preference?: {
+    readonly attribute: string
+    readonly value: string
+    readonly change: 'added' | 'updated' | 'removed'
+    readonly sessionId: string
   }
   /** 'agent_added': an agent was created and is on the roster; read it with GET /v1/agents/:id. */
   readonly agent?: { readonly agentId: string; readonly name: string }

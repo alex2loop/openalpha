@@ -16,6 +16,7 @@ import {
 } from '@/app/server/feed/board'
 import { followBudget } from '@/app/server/feed/budget'
 import { followFills } from '@/app/server/feed/fills'
+import { followPreferences } from '@/app/server/feed/memory'
 import { followNotices } from '@/app/server/feed/notices'
 import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
@@ -77,6 +78,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
     ...followFills(deps),
     ...followBudget(deps),
     ...followNotices(deps),
+    ...followPreferences(deps),
   ]
 
   return {

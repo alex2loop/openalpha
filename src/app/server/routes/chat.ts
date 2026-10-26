@@ -10,7 +10,6 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { SessionId } from '@/core/ids'
 import type { LLMMessage } from '@/core/llm'
-import type { DisplayParam } from '@/i18n'
 import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
 import { CHAT_ID_RE } from '@/app/server/chat-id'
 import { ENGINE_DECISION } from '@/app/server/decision'
@@ -92,7 +91,7 @@ async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Re
   } satisfies ChatHistoryResponse)
 }
 
-function parseSessionId(raw: string): SessionId {
+export function parseSessionId(raw: string): SessionId {
   if (!(CHAT_ID_RE.test(raw) || UUID_RE.test(raw))) {
     throw new ValidationError('not a session id')
   }
@@ -242,7 +241,10 @@ async function handleRespond(req: Request, ctx: ApiRouteContext): Promise<Respon
 }
 
 // The channel's own name where the catalog has one, else its raw id.
-function channelNameOf(channel: string): DisplayParam {
+export function channelNameOf(channel: string): {
+  readonly key: string
+  readonly fallback: string
+} {
   return { key: `ui.channelName.${channel}`, fallback: channel }
 }
 
