@@ -129,12 +129,10 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
 // The office's people, the office life over them and the team floor; the caller disposes each.
 function createCrew(): Pick<LoopParts, 'director' | 'life' | 'team'> {
   const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
+  const team = createTeam({ agents, runs, offers: coolerOffer, hub: onWireEvent })
+  const teamDesks = () => team.view(performance.now()).desks
 
-  return {
-    director,
-    life: createLife({ director, reduced: reducedMotion }),
-    team: createTeam({ agents, runs, offers: coolerOffer, hub: onWireEvent }),
-  }
+  return { director, life: createLife({ director, teamDesks, reduced: reducedMotion }), team }
 }
 
 interface LoopParts {

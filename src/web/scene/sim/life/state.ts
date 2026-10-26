@@ -3,7 +3,7 @@ import type { AgendaRow } from '@/web/scene/data/agenda'
 import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { Moment, MomentKind } from '@/web/scene/sim/life/moments'
 import type { Pets } from '@/web/scene/sim/life/pets'
-import type { ActorId, FloorId, Point } from '@/web/scene/types'
+import type { ActorId, DeskView, FloorId, Point } from '@/web/scene/types'
 import type { OfficeLife } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/state/clock'
 import { distance } from '@/web/scene/sim/actors/nav'
@@ -28,6 +28,8 @@ export type LifeAsk =
  *  once-only moments, or its own named cap. */
 export interface LifeState {
   readonly director: Director
+  /** The team floor's desks, which every third round visits. */
+  readonly teamDesks: () => readonly DeskView[]
   readonly pets: Pets
   readonly moments: Map<ActorId, Moment>
   readonly done: Map<string, true>

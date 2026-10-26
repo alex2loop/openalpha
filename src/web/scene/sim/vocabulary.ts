@@ -1,6 +1,6 @@
 import type { PendingWire, ProgressWire } from '@/app/server/wire/live'
 import type { Orphan } from '@/web/scene/sim/assistant'
-import type { ActorId, HeldItem, Point, PoseId, RoomId } from '@/web/scene/types'
+import type { ActorId, FloorId, HeldItem, Point, PoseId, RoomId } from '@/web/scene/types'
 import type { PropKind } from '@/web/scene/world/props'
 import { FETCH_ACTIVITY_PREFIX, QUESTION_ACTIVITY_KEY } from '@/web/scene/data/desk-reads'
 import { roomOfRun } from '@/web/scene/data/room-status'
@@ -24,6 +24,8 @@ export interface Goal {
   readonly hasSheet?: true
   readonly stage?: string
   readonly requestId?: string
+  /** A `life` goal on another floor than the person's own: they take the lift to it. */
+  readonly floor?: FloorId
 }
 
 /** One person's part in a row: at its seat or at the nearest prop of a kind, in a pose. */

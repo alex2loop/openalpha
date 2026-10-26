@@ -1,9 +1,11 @@
 import type { Person } from '@/web/scene/sim/people'
 import type { ActorId, Dir, Point } from '@/web/scene/types'
 import { distance, toFreePoint } from '@/web/scene/sim/actors/nav'
+import { placeWalker } from '@/web/scene/sim/actors/walk'
 import { NAV_CELL_PX, NAV_CLEARANCE_PX, navGridOf } from '@/web/scene/world/nav-grid'
 import { isPropKind, type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
 import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
+import { LIFT_EXITS } from '@/web/scene/world/seats'
 
 // A prop spot is taken when someone's goal puts them this close to it; the next waits further.
 const CLAIM_PX = NAV_CELL_PX * 2
@@ -18,10 +20,21 @@ export function destOf(person: Person, people: readonly Person[]): Point {
   }
 
   if (typeof target !== 'string') {
-    return toFreePoint(navGridOf(person.def.floor), target)
+    return toFreePoint(navGridOf(person.floor), target)
   }
 
   return isPropKind(target) ? propSpotOf(person, { people, kind: target }) : person.def.seat.at
+}
+
+/** A goal on another floor: the person steps out of that floor's lift and walks on from there. */
+export function takeLift(person: Person): void {
+  const floor = person.goal?.floor ?? person.def.floor
+
+  if (floor !== person.floor) {
+    person.floor = floor
+    person.phase = 'still'
+    placeWalker(person.walker, LIFT_EXITS[floor])
+  }
 }
 
 /** The way a person looks: where they walk, else at whoever their goal faces, else their seat's
@@ -55,8 +68,8 @@ function propSpotOf(
   want: { readonly people: readonly Person[]; readonly kind: PropKind }
 ): Point {
   const seat = person.def.seat.at
-  const grid = navGridOf(person.def.floor)
-  const spots = propsOn(person.def.floor)
+  const grid = navGridOf(person.floor)
+  const spots = propsOn(person.floor)
     .filter((prop) => prop.kind === want.kind)
     .map((prop) => toFreePoint(grid, approachOf(prop)))
     .sort((a, b) => distance(a, seat) - distance(b, seat))

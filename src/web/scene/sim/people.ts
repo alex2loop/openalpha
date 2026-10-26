@@ -30,7 +30,7 @@ import {
   syncDesk,
 } from '@/web/scene/sim/desk'
 import { handOff } from '@/web/scene/sim/handoff'
-import { destOf, facingOf } from '@/web/scene/sim/places'
+import { destOf, facingOf, takeLift } from '@/web/scene/sim/places'
 import { navGridOf } from '@/web/scene/world/nav-grid'
 import { propsOn } from '@/web/scene/world/props'
 import { isInside } from '@/web/scene/world/rooms'
@@ -47,6 +47,8 @@ export interface Person {
   readonly def: ActorDef
   readonly walker: WalkerState
   readonly hasChair: boolean
+  /** The floor they stand on: their own, unless a life goal took them up the lift. */
+  floor: FloorId
   goal: Goal | undefined
   dest: Point
   phase: Phase
@@ -121,6 +123,7 @@ function toPerson(seed: { readonly def: ActorDef; readonly walker: WalkerState }
   return {
     ...seed,
     hasChair,
+    floor: seed.def.floor,
     goal: undefined,
     dest: seat,
     phase: 'still',
@@ -258,6 +261,7 @@ export function resumePeople(people: People, nowMs: number): void {
 
   for (const person of people.list) {
     person.goal = effectiveGoal(people, person.def.id, nowMs)
+    person.floor = person.goal?.floor ?? person.def.floor
     person.dest = destOf(person, people.list)
     person.phase = 'still'
     person.beats = []
@@ -303,7 +307,7 @@ export function toActorView(
   return {
     id: person.def.id,
     role: person.def.role,
-    floor: person.def.floor,
+    floor: person.floor,
     prev: person.walker.prev,
     at: person.walker.pos,
     facing: facingOf(person, people.byId),
@@ -407,6 +411,7 @@ function isSameGoal(a: Goal | undefined, b: Goal | undefined): boolean {
     a.look === b.look &&
     a.item === b.item &&
     a.hasSheet === b.hasSheet &&
+    a.floor === b.floor &&
     targetKeyOf(a) === targetKeyOf(b)
   )
 }
@@ -422,6 +427,7 @@ function retarget(
 ): void {
   person.goal = next.goal
   person.stamp = next.goal?.hasSheet === true ? person.stamp : undefined
+  takeLift(person)
 
   const dest = destOf(person, people.list)
 
@@ -430,7 +436,7 @@ function retarget(
   }
 
   person.dest = dest
-  moveTo(person, { nowMs: next.nowMs, extra: people.obstacles.get(person.def.floor) })
+  moveTo(person, { nowMs: next.nowMs, extra: people.obstacles.get(person.floor) })
 }
 
 // Walking already: turn toward the new place at once. Seated: push the chair back first.
@@ -456,7 +462,7 @@ function moveTo(
 }
 
 function beginWalk(person: Person, extra: readonly Rect[] | undefined): void {
-  const isStarted = startWalk(person.walker, navGridOf(person.def.floor, extra), person.dest)
+  const isStarted = startWalk(person.walker, navGridOf(person.floor, extra), person.dest)
 
   person.phase = isStarted ? 'walking' : 'still'
 }

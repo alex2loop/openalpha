@@ -6,6 +6,7 @@ import type {
   ActorId,
   ActorStatus,
   ActorView,
+  DeskView,
   LifeLine,
   LifeView,
   SteamView,
@@ -44,6 +45,7 @@ import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time'
 
 interface LifeDeps {
   readonly director: Director
+  readonly teamDesks: () => readonly DeskView[]
   readonly reduced: ReadonlySignal<boolean>
 }
 
@@ -90,7 +92,7 @@ const BREAK_PROPS = (['office', 'team'] as const).flatMap((floor) =>
 )
 
 export function createLife(deps: LifeDeps): Life {
-  const state = createLifeState(deps.director, performance.now())
+  const state = createLifeState(deps, performance.now())
   const off = subscribeLife(onWireEvent, state)
   let isDisposed = false
 
@@ -112,9 +114,10 @@ export function createLife(deps: LifeDeps): Life {
   }
 }
 
-function createLifeState(director: Director, nowMs: number): LifeState {
+function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
   return {
-    director,
+    director: deps.director,
+    teamDesks: deps.teamDesks,
     pets: createPets(nowMs),
     moments: new Map(),
     done: new Map(),
@@ -139,7 +142,7 @@ function createLifeState(director: Director, nowMs: number): LifeState {
 
 /** Free for the office life: no goal the live store calls for (no work, no approval or question,
  *  no walk to your desk), no gesture of a real event, no marker over the head, no job due within
- *  `JOB_DUE_MS`, not the mascot. */
+ *  `JOB_DUE_MS`, not the mascot; staff only, never a temporary child or an own agent. */
 function isFree(actor: ActorState): boolean {
   const id = actor.def.id
   const isMarked = id === CLERK && (breachedStops.value?.length ?? 0) > 0
@@ -147,6 +150,7 @@ function isFree(actor: ActorState): boolean {
 
   return (
     id !== MASCOT &&
+    isStaffId(id) &&
     (actor.goal === undefined || actor.isLife) &&
     !hasBeat &&
     !isMarked &&
@@ -274,7 +278,7 @@ function petWorldOf(state: LifeState, step: LifeStep): Parameters<LifeState['pet
     nowMs: step.nowMs,
     dtMs: SIM_STEP_MS,
     people: [...step.actors.values()]
-      .filter((actor) => actor.def.floor === PET_FLOOR)
+      .filter((actor) => actor.floor === PET_FLOOR)
       .map((actor) => actor.walker.pos),
     isQuiet: step.isQuiet,
     isCatAwake: step.nowMs < state.catAwakeUntil,
@@ -403,7 +407,7 @@ function dueOwners(): ReadonlyMap<ActorId, AgendaRow> {
     const untilMs = (row.minute - now) * MS_PER_MINUTE
     const owner = row.key === BRIEF_ROW_KEY ? BRIEF_OWNER : row.agentId
 
-    if (owner !== undefined && untilMs > 0 && untilMs <= JOB_DUE_MS && isActorId(owner)) {
+    if (owner !== undefined && untilMs > 0 && untilMs <= JOB_DUE_MS && isStaffId(owner)) {
       owners.set(owner, row)
     }
   }
@@ -411,7 +415,7 @@ function dueOwners(): ReadonlyMap<ActorId, AgendaRow> {
   return owners
 }
 
-function isActorId(id: string): id is ActorId {
+function isStaffId(id: string): id is ActorId {
   return ROSTER.some((def) => def.id === id)
 }
 

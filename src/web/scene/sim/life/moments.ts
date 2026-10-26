@@ -1,6 +1,6 @@
 import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, HeldItem, LifeLine, Point, PoseId } from '@/web/scene/types'
+import type { ActorId, FloorId, HeldItem, LifeLine, Point, PoseId } from '@/web/scene/types'
 import { isWalking } from '@/web/scene/sim/actors/walk'
 
 export type MomentKind =
@@ -42,6 +42,7 @@ export interface StopSpec {
   readonly holdMs: number
   readonly line?: LifeLine
   readonly item?: HeldItem
+  readonly floor?: FloorId
 }
 
 const SEAT_TARGET = 'seat'
@@ -55,6 +56,7 @@ export function toStop(spec: StopSpec, sinceMs: number): MomentStop {
     ...(spec.face === undefined ? {} : { face: spec.face }),
     ...(spec.look === undefined ? {} : { look: spec.look }),
     ...(spec.item === undefined ? {} : { item: spec.item }),
+    ...(spec.floor === undefined ? {} : { floor: spec.floor }),
   }
 
   return { goal, holdMs: spec.holdMs, ...(spec.line === undefined ? {} : { line: spec.line }) }

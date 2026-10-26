@@ -1,11 +1,12 @@
 import type { ActorState } from '@/web/scene/sim/director'
 import type { StopSpec } from '@/web/scene/sim/life/moments'
-import type { ActorId, Point, RoomId } from '@/web/scene/types'
+import type { ActorId, DeskView, FloorId, Point, RoomId } from '@/web/scene/types'
 import { begin } from '@/web/scene/sim/life/schedule'
 import { drawBetween, isAtSeat, type LifeState, type LifeStep } from '@/web/scene/sim/life/state'
 import { DOORS } from '@/web/scene/world/doors'
 import { FLOORS } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
+import { LIFT_EXITS, TEAM_SEATS } from '@/web/scene/world/seats'
 import { SECONDS_PER_MINUTE } from '@/web/text/time'
 
 const ROUNDS_IDLE_MS = 25_000
@@ -13,12 +14,15 @@ const ROUNDS_IDLE_MS = 25_000
 // minutes, then at most one per as many again, so the page sleeps between them.
 const QUIET_ROUNDS_GAP_MS = ROUNDS_IDLE_MS * SECONDS_PER_MINUTE
 const ROUND_STOP_MS = Object.freeze({ min: 2_000, max: 4_000 })
-// Every this many rounds, one ends at the lift.
+// Every this many rounds, one takes the lift up to the own agents' desks.
 const LIFT_EVERY = 3
 const ASSISTANT: ActorId = 'assistant'
+const TEAM_FLOOR: FloorId = 'team'
 // A door's stop stands this far out from the wall, in the corridor.
 const DOOR_STEP_PX = 14
-const LIFT_STEP_PX = 10
+// A desk's stop stands behind its agent's chair, a little to the side.
+const DESK_SIDE_PX = 10
+const DESK_BACK_PX = 18
 
 /** The rooms' doors along the corridor, west to east, each with the room it opens on. */
 const ROUND_DOORS: readonly { readonly room: RoomId; readonly at: Point }[] = Object.freeze(
@@ -46,8 +50,9 @@ const ROUND_DOORS: readonly { readonly room: RoomId; readonly at: Point }[] = Ob
 )
 
 /** The assistant's rounds: free at its desk for `ROUNDS_IDLE_MS`, it walks the corridor and stops
- *  at each room's door; every third round it ends at the lift. Any work, question or approval for
- *  it ends the round at once (the step's freedom check), and it walks back to its desk. */
+ *  at each room's door; every third round it then takes the lift to the team floor and stops at
+ *  each own agent's desk. Any work, question or approval for it ends the round at once (the step's
+ *  freedom check), and it walks back to its desk, by the lift from upstairs. */
 export function stepRounds(state: LifeState, step: LifeStep): void {
   const actor = step.actors.get(ASSISTANT)
   const isIdle = actor !== undefined && isRoundFree(actor) && isAtSeat(actor)
@@ -69,7 +74,7 @@ export function stepRounds(state: LifeState, step: LifeStep): void {
   begin(
     state,
     { actor, kind: 'round', nowMs: step.nowMs, line: { actor: ASSISTANT, label: 'rounds' } },
-    roundStops(state.round.count)
+    roundStops(state.round.count, state.teamDesks())
   )
 }
 
@@ -103,21 +108,53 @@ export function isRoundFree(actor: ActorState): boolean {
   return (actor.goal === undefined || actor.isLife) && !actor.isOwed && actor.beats.length === 0
 }
 
-function roundStops(count: number): readonly [StopSpec, ...StopSpec[]] {
+function roundStops(count: number, desks: readonly DeskView[]): readonly [StopSpec, ...StopSpec[]] {
   const doors: StopSpec[] = ROUND_DOORS.map((door, i) => ({
     at: door.at,
     pose: 'idle',
     holdMs: drawBetween(ROUND_STOP_MS, 'round', String(count), String(i)),
     line: { actor: ASSISTANT, label: 'roundCheck', room: door.room },
   }))
-  const lift = FLOORS.office.lift
   const liftStop: StopSpec = {
-    at: { x: lift.x + lift.w / 2, y: lift.y + lift.h + LIFT_STEP_PX },
+    at: LIFT_EXITS.office,
     pose: 'idle',
     holdMs: drawBetween(ROUND_STOP_MS, 'round-lift', String(count)),
   }
-  const stops = count % LIFT_EVERY === 0 ? [...doors, liftStop] : doors
+  const upstairs = deskStops(count, desks)
+  const stops =
+    count % LIFT_EVERY === 0 && upstairs.length > 0 ? [...doors, liftStop, ...upstairs] : doors
   const [first, ...rest] = stops
 
   return first === undefined ? [liftStop] : [first, ...rest]
+}
+
+// Each own agent's desk on the team floor, from the lift and back to it.
+function deskStops(count: number, desks: readonly DeskView[]): StopSpec[] {
+  const stops: StopSpec[] = desks.flatMap((desk) => {
+    const seat = desk.agentId === undefined ? undefined : TEAM_SEATS[desk.slot]
+
+    return seat === undefined
+      ? []
+      : [
+          {
+            at: { x: seat.at.x + DESK_SIDE_PX, y: seat.at.y + DESK_BACK_PX },
+            look: seat.at,
+            pose: 'idle',
+            floor: TEAM_FLOOR,
+            holdMs: drawBetween(ROUND_STOP_MS, 'round-desk', String(count), String(desk.slot)),
+          },
+        ]
+  })
+
+  return stops.length === 0
+    ? []
+    : [
+        ...stops,
+        {
+          at: LIFT_EXITS.team,
+          pose: 'idle',
+          floor: TEAM_FLOOR,
+          holdMs: drawBetween(ROUND_STOP_MS, 'round-lift-up', String(count)),
+        },
+      ]
 }

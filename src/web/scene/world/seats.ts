@@ -1,5 +1,5 @@
 import type { Dir, FloorId, Point, RoomId } from '@/web/scene/types'
-import { DESK_SLOTS } from '@/web/scene/world/floors'
+import { DESK_SLOTS, FLOORS } from '@/web/scene/world/floors'
 
 /** Where a person sits or stands at rest: `at` is the chair's own point (a seated figure stands
  *  there), `face` the way it looks, `desk` set when it works at a desk in front of it. */
@@ -90,6 +90,19 @@ export const COOLER_SPOTS: readonly [Seat, Seat] = Object.freeze([
 
 /** Where a person steps out of the team floor's lift. */
 export const TEAM_LIFT_EXIT: Point = Object.freeze({ x: 44, y: 262 })
+
+const OFFICE_LIFT = FLOORS.office.lift
+// The office lift's landing stands this far south of its doors.
+const OFFICE_LIFT_STEP_PX = 10
+
+/** Where a person steps out of each floor's lift. */
+export const LIFT_EXITS: Readonly<Record<FloorId, Point>> = Object.freeze({
+  office: {
+    x: OFFICE_LIFT.x + OFFICE_LIFT.w / 2,
+    y: OFFICE_LIFT.y + OFFICE_LIFT.h + OFFICE_LIFT_STEP_PX,
+  },
+  team: TEAM_LIFT_EXIT,
+} satisfies Record<FloorId, Point>)
 
 /** The operator's in-tray on your desk, where delivered results land. */
 export const TRAY_AT: Point = Object.freeze({ x: 512, y: 300 })

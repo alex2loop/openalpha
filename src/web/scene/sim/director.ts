@@ -41,6 +41,8 @@ import { MINUTES_PER_HOUR } from '@/web/text/time'
 /** The director's record of one person, the one the life layer and interaction read. */
 export interface ActorState {
   readonly def: ActorDef
+  /** The floor it stands on now, which a round can take up the lift. */
+  readonly floor: FloorId
   readonly goal?: Goal
   readonly walker: WalkerState
   readonly beats: readonly Beat[]
@@ -207,10 +209,10 @@ function stepAll(people: People, papers: Papers, poses: { marks: PoseMarks }): b
 
   for (const person of people.list) {
     const others = people.list
-      .filter((other) => other !== person && other.def.floor === person.def.floor)
+      .filter((other) => other !== person && other.floor === person.floor)
       .map((other) => other.walker)
 
-    const extra = people.obstacles.get(person.def.floor)
+    const extra = people.obstacles.get(person.floor)
     const step = { nowMs, dtMs: SIM_STEP_MS, ...(extra === undefined ? {} : { extra }) }
 
     isMoving = stepPerson(person, others, step) || isMoving
@@ -236,7 +238,7 @@ function sendToTray(people: People, actor: ActorId): void {
 
   if (person !== undefined && !reducedMotion.value) {
     people.papers.launch(
-      { floor: person.def.floor, from: person.walker.pos, to: TRAY_AT },
+      { floor: person.floor, from: person.walker.pos, to: TRAY_AT },
       performance.now()
     )
   }
@@ -256,6 +258,7 @@ function toActorState(people: People, person: Person): ActorState {
 
   return {
     def: person.def,
+    floor: person.floor,
     walker: person.walker,
     beats: person.beats,
     pose: poseOf(person),

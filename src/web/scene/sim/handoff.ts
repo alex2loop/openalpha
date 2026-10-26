@@ -54,11 +54,8 @@ function flyBetween(
     const from = fromId === undefined ? undefined : people.byId.get(fromId)
     const to = toId === undefined ? undefined : people.byId.get(toId)
 
-    if (from !== undefined && to !== undefined && from !== to && from.def.floor === to.def.floor) {
-      people.papers.launch(
-        { floor: from.def.floor, from: from.walker.pos, to: to.walker.pos },
-        nowMs
-      )
+    if (from !== undefined && to !== undefined && from !== to && from.floor === to.floor) {
+      people.papers.launch({ floor: from.floor, from: from.walker.pos, to: to.walker.pos }, nowMs)
     }
   }
 }
