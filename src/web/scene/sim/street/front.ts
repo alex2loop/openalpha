@@ -250,6 +250,7 @@ function syncGuard(
   }
 
   const [from, to] = front.range
+  const shownX = Math.round(guard.at.x)
 
   guard.prev.x = guard.at.x
   guard.at.x += guard.heading * GUARD_PX_S * at.dt
@@ -259,7 +260,7 @@ function syncGuard(
     guard.heading = guard.heading === 1 ? -1 : 1
   }
 
-  return at.dt > 0
+  return Math.round(guard.at.x) !== shownX
 }
 
 function syncBoard(
