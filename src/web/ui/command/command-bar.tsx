@@ -86,7 +86,7 @@ function Composer() {
           </p>
         )}
       </div>
-      <Button kind="commit" disabled={inputText.value.trim() === ''} onClick={sendFromInput}>
+      <Button kind="commit" disabled={inputText.value.trim() === ''} onClick={() => send(list)}>
         {inputText.value.trim().startsWith(COMMAND_PREFIX)
           ? tr('ui.office.command.run')
           : resolveSendLabel()}
@@ -147,11 +147,16 @@ function resetList(list: ListState, isOpen: boolean): void {
   list.isOpen.value = isOpen
 }
 
+// Sending hands the turn to the chat it opens, so the list over the box goes with it.
+function send(list: ListState): void {
+  sendFromInput()
+  resetList(list, false)
+}
+
 // A fill row puts its text in the box; the send row sends what is typed.
 function pick(option: SuggestOption, list: ListState): void {
   if (option.fill === undefined) {
-    sendFromInput()
-    resetList(list, true)
+    send(list)
     return
   }
 
@@ -191,7 +196,7 @@ function handleKey(key: string, { list, options }: KeyContext): boolean {
       if (chosen !== undefined) {
         pick(chosen, list)
       } else {
-        sendFromInput()
+        send(list)
       }
       return true
     case ESCAPE_KEY:
