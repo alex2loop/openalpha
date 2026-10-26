@@ -1261,6 +1261,7 @@
     "office.settings.tools": "Tools",
     "office.credentials.set": "saved",
     "office.credentials.unset": "not set",
+    "office.credentials.fromEnvironment": "from environment",
     "office.credentials.change": "Change",
     "office.credentials.paste": "Paste the key here",
     "office.credentials.remove": "Remove",
