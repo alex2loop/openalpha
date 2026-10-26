@@ -3,14 +3,14 @@ import type { Point } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import { measureLabel, paintLabel } from '@/web/scene/render2d/street/label'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
-import { CROSSING, NORTH, sideX } from '@/web/scene/world/street-layout'
+import { CROSSING, KERB_Y, sideX } from '@/web/scene/world/street-layout'
 import { tr } from '@/web/text/tr'
 
 /** Where the street's furniture stands, on the far and the near kerb, and how much of the
  *  night's darkness it takes. */
 export const FURNITURE = Object.freeze({
-  farY: NORTH.roadTop - 1.5,
-  nearY: NORTH.roadBottom + 2.2,
+  farY: KERB_Y.far,
+  nearY: KERB_Y.near,
   night: 0.5,
 })
 // Road signs: where they stand, and on which kerb.

@@ -1,19 +1,14 @@
 import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
-import type { Point, SignalHeadId, SignalLamp, StreetView } from '@/web/scene/types'
-import type { RegionPack } from '@/web/scene/world/regions'
+import type { SignalHeadView, SignalLamp, StreetView } from '@/web/scene/types'
 import { darknessOf } from '@/web/scene/render2d/street/city'
 import { GROUND_TONES } from '@/web/scene/render2d/street/city-ground'
 import { FURNITURE, paintSigns, paintTurnPlate } from '@/web/scene/render2d/street/signs'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { type Flow, flowsOf } from '@/web/scene/sim/street/flows'
+import { signalHeadsOf } from '@/web/scene/sim/street/signals'
 import { isInside } from '@/web/scene/world/rooms'
 import { CROSSING, JUNCTION, NORTH } from '@/web/scene/world/street-layout'
 
-const HEAD_KERB_PX = 2
-const JUNCTION_HEAD_Y = NORTH.roadBottom + 6
-// The heads face the cars a little before their stop line, on the far kerb.
-const NORTH_HEAD_BACK = 1
-const WALK_HEAD_X = 6.4
 const ZEBRA_PITCH = 1.2
 const ZEBRA_BAR = 0.6
 const LINE_W = 0.6
@@ -75,14 +70,6 @@ const DIGIT_GAP = 0.2
 const DIGIT_SCALE = 0.85
 const MAX_SHOWN_SECONDS = 99
 
-type HeadKind = 'car' | 'walk'
-
-interface Head {
-  readonly head: SignalHeadId
-  readonly kind: HeadKind
-  readonly at: Point
-}
-
 /** The crossing, the stop lines, the signal heads with their countdowns, the road signs and the
  *  main street's name plates. The lit lamps and the digits follow the street's step. */
 export const SIGNALS_PART: PaintPart = {
@@ -92,72 +79,23 @@ export const SIGNALS_PART: PaintPart = {
 
     paintCrossing(g, { flows: flows.all, dark })
 
-    for (const head of headsOf(pack)) {
+    for (const head of signalHeadsOf(pack)) {
       paintHousing(g, head, dark)
-    }
 
-    if (pack.road.turnSign) {
-      for (const flow of flows.north) {
-        paintTurnPlate(g, northHeadOf(flow).at, dark)
+      if (pack.road.turnSign && head.head === 'north') {
+        paintTurnPlate(g, head.at, dark)
       }
     }
 
     paintSigns(g, { pack, minute, dark })
   },
   paintMoving: (g, view, scene) => {
-    for (const head of headsOf(scene.pack)) {
+    for (const head of view.heads) {
       if (isInside(scene.rect, head.at)) {
         paintLamps(g, { head, view, detail: scene.minute.detail })
       }
     }
   },
-}
-
-// The heads of each pack's road, built once per pack.
-const HEADS_BY_PACK = new WeakMap<RegionPack, readonly Head[]>()
-
-function headsOf(pack: RegionPack): readonly Head[] {
-  const held = HEADS_BY_PACK.get(pack)
-
-  if (held !== undefined) {
-    return held
-  }
-
-  const heads = buildHeads(flowsOf(pack).all)
-
-  HEADS_BY_PACK.set(pack, heads)
-
-  return heads
-}
-
-function buildHeads(flows: readonly Flow[]): readonly Head[] {
-  const heads: Head[] = []
-
-  for (const flow of flows) {
-    if (flow.street === 'north') {
-      heads.push(northHeadOf(flow))
-    } else if (flow.dir < 0) {
-      heads.push({
-        head: 'side',
-        kind: 'car',
-        at: { x: flow.line + flow.halfWidth + HEAD_KERB_PX, y: JUNCTION_HEAD_Y },
-      })
-    }
-  }
-
-  for (const y of [FURNITURE.farY, FURNITURE.nearY]) {
-    for (const side of [-1, 1]) {
-      heads.push({ head: 'walk', kind: 'walk', at: { x: CROSSING.x + side * WALK_HEAD_X, y } })
-    }
-  }
-
-  return heads
-}
-
-function northHeadOf(flow: Flow): Head {
-  const x = CROSSING.x - flow.dir * (CROSSING.carLine - NORTH_HEAD_BACK)
-
-  return { head: 'north', kind: 'car', at: { x, y: FURNITURE.farY } }
 }
 
 // The zebra across the north street, each way's stop line before it, and each side street's
@@ -185,7 +123,7 @@ function paintCrossing(
   }
 }
 
-function paintHousing(g: CanvasRenderingContext2D, head: Head, dark: number): void {
+function paintHousing(g: CanvasRenderingContext2D, head: SignalHeadView, dark: number): void {
   const spec = head.kind === 'car' ? CAR_HEAD : WALK_HEAD
   const { x, y } = head.at
   const tone = (hex: string): string => mixTone(hex, NIGHT_TONE, dark)
@@ -208,7 +146,11 @@ function paintHousing(g: CanvasRenderingContext2D, head: Head, dark: number): vo
 // The lit lamp with its glow and, from the middle detail up, the seconds left.
 function paintLamps(
   g: CanvasRenderingContext2D,
-  at: { readonly head: Head; readonly view: StreetView; readonly detail: StreetMinute['detail'] }
+  at: {
+    readonly head: SignalHeadView
+    readonly view: StreetView
+    readonly detail: StreetMinute['detail']
+  }
 ): void {
   const { head } = at
   const state = at.view.signals[head.head]
@@ -247,7 +189,7 @@ function paintLamps(
 
 // Which lamp of the head is on: a flashing walk lamp blinks with the seconds.
 function litLampOf(
-  head: Head,
+  head: SignalHeadView,
   lamp: SignalLamp,
   seconds: number
 ): { readonly colour: string; readonly y: number } | undefined {

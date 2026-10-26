@@ -5,7 +5,13 @@ import type { RegionPack } from '@/web/scene/world/regions'
 import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { createLot, type Lot, resetLot, stepLot } from '@/web/scene/sim/street/lot'
-import { signalOf } from '@/web/scene/sim/street/signals'
+import {
+  isSameSignal,
+  nextSignalChangeAt,
+  SIGNAL_HEADS,
+  signalHeadsOf,
+  signalOf,
+} from '@/web/scene/sim/street/signals'
 import {
   createTraffic,
   resetTraffic,
@@ -21,7 +27,6 @@ const KEY_SEPARATOR = '|'
 const ARRIVAL_CHECK_MS = 1_000
 // The most steps one arrival check catches up; older time is dropped, never replayed.
 const MAX_CATCH_UP_STEPS = 20
-const SIGNAL_HEADS: readonly SignalHeadId[] = ['north', 'side', 'walk']
 const NOBODY: readonly never[] = Object.freeze([])
 
 /** The one street both renderers show: its pools, stepped with the office; `stepMs` is the last
@@ -53,12 +58,15 @@ interface StreetState {
   readonly lot: Lot
   readonly view: StreetView & {
     step: number
+    heads: StreetView['heads']
     readonly signals: Record<SignalHeadId, SignalState>
   }
   stepMs: number
   lastStepAt: number
   isLotMoving: boolean
   isShowing: boolean
+  isHeadShown: boolean
+  hasSignalChanged: boolean
 }
 
 /** The street of the home region's pack; a day, region or zone change rebuilds it. Under reduced
@@ -70,11 +78,13 @@ export function createStreet(deps: StreetDeps): Street {
     deps,
     traffic,
     lot,
-    view: createView(traffic, lot),
+    view: createView({ traffic, lot, pack: deps.pack.peek() }),
     stepMs: 0,
     lastStepAt: 0,
     isLotMoving: false,
     isShowing: false,
+    isHeadShown: false,
+    hasSignalChanged: false,
   }
   let placeKey = ''
 
@@ -93,19 +103,23 @@ export function createStreet(deps: StreetDeps): Street {
     view: () => state.view,
     resume,
     stepMs: () => state.stepMs,
-    nextDueAt: () =>
-      state.isShowing && !deps.reduced.peek()
-        ? state.lastStepAt + SIM_STEP_MS
-        : Number.POSITIVE_INFINITY,
+    nextDueAt: () => nextDueOf(state),
     watchArrivals: (wake) => watchArrivals(state, wake),
     dispose: stopWatch,
   }
 }
 
 // The snapshot the painter reads: the pools' own arrays, filled in place by each step.
-function createView(traffic: Traffic, lot: Lot): StreetState['view'] {
+function createView(at: {
+  readonly traffic: Traffic
+  readonly lot: Lot
+  readonly pack: RegionPack
+}): StreetState['view'] {
+  const { traffic, lot } = at
+
   return {
     step: 0,
+    heads: signalHeadsOf(at.pack),
     pools: { vehicles: traffic.shown, people: NOBODY, critters: NOBODY },
     signals: {
       north: signalOf('north', 0),
@@ -124,6 +138,7 @@ function resumeStreet(state: StreetState): void {
 
   resetTraffic(state.traffic, { pack, day, minute, nowMs })
   resetLot(state.lot, { pack, minute })
+  state.view.heads = signalHeadsOf(pack)
   syncSignals(state.view.signals, state.deps.reduced.peek() ? 0 : nowMs)
   state.lastStepAt = nowMs
   state.isShowing = false
@@ -133,20 +148,41 @@ function resumeStreet(state: StreetState): void {
 function stepStreet(state: StreetState, nowMs: number): boolean {
   const startedAt = performance.now()
 
+  let isRepaint = false
+
   state.isShowing = false
+  state.isHeadShown = false
 
   if (!state.deps.reduced.peek()) {
+    const rect = movingRectOf(visibleRect())
+
     stepAll(state, nowMs)
-    state.isShowing = isMovingInView(state, movingRectOf(visibleRect()))
+    state.isShowing = isMovingInView(state, rect)
+    state.isHeadShown = isAnyIn(state.view.heads, rect)
+    isRepaint = state.isShowing || (state.isHeadShown && state.hasSignalChanged)
   }
 
-  if (state.isShowing) {
+  if (isRepaint) {
     state.view.step++
   }
 
   state.stepMs = performance.now() - startedAt
 
-  return state.isShowing
+  return isRepaint
+}
+
+// The next step while traffic moves in view; with only a head in view, its next lamp or digit
+// change; else none.
+function nextDueOf(state: StreetState): number {
+  if (state.deps.reduced.peek()) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  if (state.isShowing) {
+    return state.lastStepAt + SIM_STEP_MS
+  }
+
+  return state.isHeadShown ? nextSignalChangeAt(performance.now()) : Number.POSITIVE_INFINITY
 }
 
 function stepAll(state: StreetState, nowMs: number): void {
@@ -154,7 +190,7 @@ function stepAll(state: StreetState, nowMs: number): void {
   const { minute } = pageMinute.peek()
 
   stepTraffic(traffic, { minute, nowMs })
-  syncSignals(state.view.signals, nowMs)
+  state.hasSignalChanged = syncSignals(state.view.signals, nowMs)
   state.isLotMoving = stepLot(state.lot, { pack: traffic.pack, minute, nowMs, dt: traffic.tick.dt })
   state.lastStepAt = nowMs
 }
@@ -199,14 +235,22 @@ function isMovingInView(state: StreetState, rect: Rect): boolean {
   return state.isLotMoving && attendant !== undefined && isInside(rect, attendant.at)
 }
 
-function syncSignals(signals: Record<SignalHeadId, SignalState>, nowMs: number): void {
+// True when any head now shows another lamp or another second.
+function syncSignals(signals: Record<SignalHeadId, SignalState>, nowMs: number): boolean {
+  let hasChanged = false
+
   for (const head of SIGNAL_HEADS) {
-    signals[head] = signalOf(head, nowMs)
+    const next = signalOf(head, nowMs)
+
+    hasChanged = hasChanged || !isSameSignal(signals[head], next)
+    signals[head] = next
   }
+
+  return hasChanged
 }
 
 /** Something stands on the street within `rect`: a vehicle, a person, an animal, a parked
- *  motorbike or the lot's attendant. */
+ *  motorbike, the lot's attendant or a signal head. */
 export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
   const { pools, lot } = view
 
@@ -226,7 +270,9 @@ export function hasStreetEntities(view: StreetView, rect: Rect): boolean {
     }
   }
 
-  return lot.attendant !== undefined && isInside(rect, lot.attendant.at)
+  return (
+    (lot.attendant !== undefined && isInside(rect, lot.attendant.at)) || isAnyIn(view.heads, rect)
+  )
 }
 
 function isAnyIn(pool: readonly { readonly at: Point }[], rect: Rect): boolean {

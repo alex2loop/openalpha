@@ -1,4 +1,7 @@
-import type { SignalHeadId, SignalLamp, SignalState } from '@/web/scene/types'
+import type { SignalHeadId, SignalHeadView, SignalLamp, SignalState } from '@/web/scene/types'
+import type { RegionPack } from '@/web/scene/world/regions'
+import { flowsOf } from '@/web/scene/sim/street/flows'
+import { CROSSING, KERB_Y, NORTH } from '@/web/scene/world/street-layout'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 
 // The north street's phases; the side streets and the crossing run off the same cycle.
@@ -9,6 +12,14 @@ const CYCLE_MS = GREEN_MS + AMBER_MS + RED_MS
 // Walkers step off a moment after the north turns red; the walk lamp flashes for the last stretch.
 const WALK_LEAD_MS = 300
 const FLASH_MS = 8_000
+// Where the heads stand: a side head beside its kerb by the junction, a north head a little
+// before its stop line on the far kerb, walk heads either side of the zebra on both kerbs.
+const HEAD_KERB_PX = 2
+const JUNCTION_HEAD_Y = NORTH.roadBottom + 6
+const NORTH_HEAD_BACK = 1
+const WALK_HEAD_X = 6.4
+/** Every phase a head follows. */
+export const SIGNAL_HEADS: readonly SignalHeadId[] = ['north', 'side', 'walk']
 // The cycle is read in steps this long, so a sim step reuses the state it read before.
 const TABLE_STEP_MS = 100
 
@@ -36,6 +47,60 @@ export function signalOf(head: SignalHeadId, now: number): SignalState {
   table[index] = state
 
   return state
+}
+
+// The heads of each pack's road, built once per pack.
+const HEADS_BY_PACK = new WeakMap<RegionPack, readonly SignalHeadView[]>()
+
+/** Every signal head of the pack's road: one per north way and per side way heading for the
+ *  north street, and the four walk heads at the crossing. */
+export function signalHeadsOf(pack: RegionPack): readonly SignalHeadView[] {
+  const held = HEADS_BY_PACK.get(pack)
+
+  if (held !== undefined) {
+    return held
+  }
+
+  const heads: SignalHeadView[] = []
+
+  for (const flow of flowsOf(pack).all) {
+    if (flow.street === 'north') {
+      const x = CROSSING.x - flow.dir * (CROSSING.carLine - NORTH_HEAD_BACK)
+
+      heads.push({ head: 'north', kind: 'car', at: { x, y: KERB_Y.far } })
+    } else if (flow.dir < 0) {
+      const x = flow.line + flow.halfWidth + HEAD_KERB_PX
+
+      heads.push({ head: 'side', kind: 'car', at: { x, y: JUNCTION_HEAD_Y } })
+    }
+  }
+
+  for (const y of [KERB_Y.far, KERB_Y.near]) {
+    for (const side of [-1, 1]) {
+      heads.push({ head: 'walk', kind: 'walk', at: { x: CROSSING.x + side * WALK_HEAD_X, y } })
+    }
+  }
+
+  HEADS_BY_PACK.set(pack, heads)
+
+  return heads
+}
+
+/** The first sim instant after `now` at which some head changes its lamp or its seconds. */
+export function nextSignalChangeAt(now: number): number {
+  const from = Math.floor(now / TABLE_STEP_MS) * TABLE_STEP_MS
+
+  for (let at = from + TABLE_STEP_MS; at <= from + CYCLE_MS; at += TABLE_STEP_MS) {
+    if (SIGNAL_HEADS.some((head) => !isSameSignal(signalOf(head, at), signalOf(head, from)))) {
+      return at
+    }
+  }
+
+  return from + CYCLE_MS
+}
+
+export function isSameSignal(a: SignalState, b: SignalState): boolean {
+  return a.lamp === b.lamp && a.seconds === b.seconds
 }
 
 function stateAt(head: SignalHeadId, phase: number): SignalState {

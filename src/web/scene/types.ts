@@ -364,6 +364,14 @@ export type SignalHeadId = 'north' | 'side' | 'walk'
 
 export type SignalLamp = 'green' | 'amber' | 'red' | 'walk' | 'flash'
 
+/** A signal head standing on the street: which phase it follows, a car head or a walk head, and
+ *  its foot. */
+export interface SignalHeadView {
+  readonly head: SignalHeadId
+  readonly kind: 'car' | 'walk'
+  readonly at: Point
+}
+
 /** What a head shows: its lamp and the whole seconds left on it. */
 export interface SignalState {
   readonly lamp: SignalLamp
@@ -394,6 +402,7 @@ export interface StreetView {
     readonly critters: readonly StreetEntity[]
   }
   readonly signals: Readonly<Record<SignalHeadId, SignalState>>
+  readonly heads: readonly SignalHeadView[]
   readonly says: readonly StreetSayView[]
   readonly lot: LotView
 }
