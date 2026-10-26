@@ -6,7 +6,6 @@ import type { TipSource } from '@/web/scene/world/props'
 import type { Run } from '@/web/state/live'
 import { pluralKey } from '@/i18n'
 import { agenda, alertsTask } from '@/web/scene/data/agenda'
-import { todayCalls } from '@/web/scene/data/board'
 import {
   alertCounts,
   debateLine,
@@ -15,6 +14,7 @@ import {
   toParamText,
 } from '@/web/scene/data/room-status'
 import { focusRun } from '@/web/state/focus'
+import { unseenCalls } from '@/web/state/ideas'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock } from '@/web/text/time'
@@ -195,7 +195,7 @@ function meetTip(): TipContent | undefined {
 }
 
 function resultsTip(): TipContent | undefined {
-  const count = todayCalls.value?.filter((call) => call.action !== 'hold').length ?? 0
+  const count = unseenCalls.value.length
 
   if (count === 0) {
     return undefined

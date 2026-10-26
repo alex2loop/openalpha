@@ -5,7 +5,7 @@ import type { ActorState, Director } from '@/web/scene/sim/director'
 import type { RoomId, SimView } from '@/web/scene/types'
 import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
-import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/data/board'
+import { heldNewsPins, indexDrop, startBoard } from '@/web/scene/data/board'
 import { exDividends, startExDividends } from '@/web/scene/data/ex-dividends'
 import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
 import { ledItems, startLed } from '@/web/scene/data/led'
@@ -60,6 +60,7 @@ import { agents } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
 import { onWireEvent } from '@/web/state/events'
 import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
+import { unseenCalls } from '@/web/state/ideas'
 import { findRun, pending, runs } from '@/web/state/live'
 import { hasUnreadAlert, unread } from '@/web/state/notices'
 import { colorScheme, colourPair, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
@@ -313,7 +314,7 @@ function readSceneInputs(): void {
   breakpoint.value
   agenda.value
   roomStatus.value
-  todayCalls.value
+  unseenCalls.value
   heldNewsPins.value
   indexDrop.value
   unread.value

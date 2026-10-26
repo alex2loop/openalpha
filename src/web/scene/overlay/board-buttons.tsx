@@ -4,11 +4,11 @@ import { useEffect, useState } from 'preact/hooks'
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Point } from '@/web/scene/types'
 import { pluralKey } from '@/i18n'
-import { digest, resultsLanded, todayCalls } from '@/web/scene/data/board'
+import { digest, resultsLanded } from '@/web/scene/data/board'
 import { debateLine, roomStatus, toParamText } from '@/web/scene/data/room-status'
 import { projection, view } from '@/web/scene/view'
 import { focusRun } from '@/web/state/focus'
-import { openIdeas } from '@/web/state/ideas'
+import { openIdeas, unseenCalls } from '@/web/state/ideas'
 import { runningCount } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
 import { formatUsd } from '@/web/text/figures'
@@ -122,13 +122,13 @@ function Board({ at, renderer, onClick, isOdometer, isRinging, children }: Board
   )
 }
 
-// Today's new calls; three rings play when a result lands while the page is open.
+// The buy calls Đề xuất marks as not yet looked at, the same count as its tab; they clear once the
+// operator has been there. Three rings play when a result lands while the page is open.
 function ResultsBoard({ renderer }: { readonly renderer: SceneRenderer }) {
-  const calls = todayCalls.value
-  const fresh = calls?.filter((call) => call.action !== 'hold').length ?? 0
+  const fresh = unseenCalls.value.length
   const isRinging = useRings(resultsLanded.value)
 
-  if (calls === undefined || fresh === 0) {
+  if (fresh === 0) {
     return null
   }
 
@@ -140,11 +140,7 @@ function ResultsBoard({ renderer }: { readonly renderer: SceneRenderer }) {
       isRinging={isRinging}
     >
       {tr(pluralKey(fresh, 'ui.office.board.freshOne', 'ui.office.board.fresh'), { count: fresh })}
-      <span class="board-all">
-        {tr(pluralKey(calls.length, 'ui.office.board.allOne', 'ui.office.board.all'), {
-          count: calls.length,
-        })}
-      </span>
+      <span class="board-all">{tr('ui.office.today.seeAll')}</span>
     </Board>
   )
 }

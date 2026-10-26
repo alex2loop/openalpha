@@ -217,8 +217,6 @@
     "office.board.store": "Giá {market} {done}/{total}",
     "office.board.fresh": "{count} đề xuất mới",
     "office.board.freshOne": "{count} đề xuất mới",
-    "office.board.all": "Xem tất cả ({count})",
-    "office.board.allOne": "Xem tất cả ({count})",
     "office.board.firstCommand": "Gõ /research <chủ đề> để giao việc",
     "office.board.digest": "{day}: {ideas} đề xuất - {reports} báo cáo",
     "office.board.digestYesterday": "Hôm qua",

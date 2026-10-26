@@ -217,8 +217,6 @@
     "office.board.store": "{market} prices {done}/{total}",
     "office.board.fresh": "{count} new calls",
     "office.board.freshOne": "{count} new call",
-    "office.board.all": "See all ({count})",
-    "office.board.allOne": "See all ({count})",
     "office.board.firstCommand": "Type /research <topic> to give it work",
     "office.board.digest": "{day}: {ideas} calls - {reports} reports",
     "office.board.digestYesterday": "Yesterday",
