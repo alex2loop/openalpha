@@ -26,6 +26,10 @@ interface BlockFrameProps<T> {
   readonly readKey?: MessageKey
   /** A link or button in the head, at the right. */
   readonly action?: ComponentChildren
+  /** Said under the skeleton while the first read runs, for a read that takes seconds. */
+  readonly loadingText?: string | undefined
+  /** Said in place of the generic failure, where a failed read must not pass for an empty one. */
+  readonly failedText?: string | undefined
   /** The block's figures; called only when there is a read to show. */
   readonly children: (data: T) => ComponentChildren
 }
@@ -54,7 +58,8 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
   )
 }
 
-function BlockBody<T>({ title, reading, dataTo, readKey, children }: BlockFrameProps<T>) {
+function BlockBody<T>(props: BlockFrameProps<T>) {
+  const { title, reading, dataTo, readKey, loadingText, failedText, children } = props
   const { data } = reading
 
   return (
@@ -64,9 +69,16 @@ function BlockBody<T>({ title, reading, dataTo, readKey, children }: BlockFrameP
           {text}
         </p>
       ))}
-      {reading.state === 'failed' && <FailedStrip title={title} reading={reading} />}
+      {reading.state === 'failed' && (
+        <FailedStrip title={title} reading={reading} failedText={failedText} />
+      )}
       {data === undefined ? (
-        reading.state === 'loading' && <Skeleton />
+        reading.state === 'loading' && (
+          <>
+            <Skeleton />
+            {loadingText !== undefined && <p class="meta">{loadingText}</p>}
+          </>
+        )
       ) : (
         <>
           {children(data)}
@@ -77,22 +89,12 @@ function BlockBody<T>({ title, reading, dataTo, readKey, children }: BlockFrameP
   )
 }
 
-function FailedStrip<T>({ title, reading }: Pick<BlockFrameProps<T>, 'title' | 'reading'>) {
-  const { error, readAt } = reading
-  const reason = error === undefined ? '' : toFailureText(error)
-  const timeZone = state.value?.timeZone
+type FailedStripProps<T> = Pick<BlockFrameProps<T>, 'title' | 'reading' | 'failedText'>
 
+function FailedStrip<T>({ title, reading, failedText }: FailedStripProps<T>) {
   return (
     <div class="strip is-problem" role="alert">
-      <span>
-        {readAt === undefined || timeZone === undefined
-          ? tr('ui.office.today.failedNone', { what: title, reason })
-          : tr('ui.office.today.failed', {
-              what: title,
-              reason,
-              time: formatClock(readAt, timeZone),
-            })}
-      </span>
+      <span>{failedText ?? failureSentence(title, reading)}</span>
       <Button size="small" onClick={reading.retry}>
         {tr('ui.office.common.retry')}
       </Button>
@@ -101,6 +103,18 @@ function FailedStrip<T>({ title, reading }: Pick<BlockFrameProps<T>, 'title' | '
       </Button>
     </div>
   )
+}
+
+function failureSentence<T>(title: string, reading: BlockReading<T>): string {
+  const { error, readAt } = reading
+  const reason = error === undefined ? '' : toFailureText(error)
+  const timeZone = state.value?.timeZone
+
+  if (readAt === undefined || timeZone === undefined) {
+    return tr('ui.office.today.failedNone', { what: title, reason })
+  }
+
+  return tr('ui.office.today.failed', { what: title, reason, time: formatClock(readAt, timeZone) })
 }
 
 interface ReadLineProps {

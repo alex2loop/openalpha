@@ -2,7 +2,7 @@ import { useSignal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import { useBlockRead } from '@/web/state/block'
-import { onWireEvent } from '@/web/state/events'
+import { onCommandFinished, onWireEvent } from '@/web/state/events'
 import { readTrade, setBuyingHalted } from '@/web/state/orders'
 import { toErrorText, tr } from '@/web/text/tr'
 import { FailureStrip } from '@/web/ui/book/failure-strip'
@@ -13,7 +13,6 @@ import { Skeleton } from '@/web/ui/kit/skeleton'
 
 // The command whose runs stage, place and cancel orders.
 const TRADE_COMMAND = 'trade'
-const COMMAND_RUN = 'command'
 
 /** Lệnh: orders staged in chat waiting for the operator, exits resting at the exchange, and fills
  *  the ledger lacks. It acts only through confirm, discard, exit cancel and the buy switch. */
@@ -49,22 +48,7 @@ export function Orders() {
 // No timer: a fill, or a `/trade` run ending, is when the list changes.
 function useTradeRereads(reread: () => void): void {
   useEffect(() => {
-    const tradeRuns = new Set<string>()
-    const offs = [
-      onWireEvent('order_filled', reread),
-      onWireEvent('run_started', (event) => {
-        const { run, runId } = event
-
-        if (runId !== undefined && run?.kind === COMMAND_RUN && run.name === TRADE_COMMAND) {
-          tradeRuns.add(runId)
-        }
-      }),
-      onWireEvent('run_finished', (event) => {
-        if (event.runId !== undefined && tradeRuns.delete(event.runId)) {
-          reread()
-        }
-      }),
-    ]
+    const offs = [onWireEvent('order_filled', reread), onCommandFinished(TRADE_COMMAND, reread)]
 
     return () => {
       for (const off of offs) {

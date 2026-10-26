@@ -56,10 +56,12 @@
   "missing": [
     {
       "id": "vn-index-trend",
+      "label": "Xu hướng VN-Index so với trung bình 200 phiên",
       "reason": "no-observation"
     },
     {
       "id": "vn-breadth",
+      "label": "Tỷ lệ mã trên trung bình 50 phiên",
       "reason": "no-observation"
     }
   ],

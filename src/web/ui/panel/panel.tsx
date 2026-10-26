@@ -5,6 +5,7 @@ import { AgentTab } from '@/web/ui/agent/agent-tab'
 import { Book } from '@/web/ui/book/book'
 import { Ideas } from '@/web/ui/ideas/ideas'
 import { PanelIcon } from '@/web/ui/kit/icons'
+import { Market } from '@/web/ui/market/market'
 import { BackRow } from '@/web/ui/panel/back-row'
 import { Rail } from '@/web/ui/panel/rail'
 import { Tabs } from '@/web/ui/panel/tabs'
@@ -77,6 +78,8 @@ function PanelContent() {
       return <Book />
     case 'ideas':
       return <Ideas />
+    case 'market':
+      return <Market />
     case 'today':
       return <Today />
   }

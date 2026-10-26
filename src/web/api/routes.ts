@@ -27,6 +27,7 @@ import type {
   AlertWire,
   InstrumentSearchResponse,
   MacroResponse,
+  MarketSessionResponse,
   MarketsResponse,
   OverviewResponse,
   ScreenResponse,
@@ -74,6 +75,11 @@ import type {
   UpdateResponse,
 } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
+import type {
+  ThemesResponse,
+  ThemeTransitionResult,
+  ThemeTransitionWire,
+} from '@/app/server/wire/themes'
 import type {
   SuggestionCardResponse,
   TradingBriefResponse,
@@ -189,6 +195,13 @@ export const ROUTES = Object.freeze({
   trackRecord: route<TradingTrackRecordResponse>('/v1/track-record', 'suggestions'),
   research: route<ResearchResponse>('/v1/research'),
   macro: route<MacroResponse>('/v1/macro'),
+  // It reads the sources for the session, so the daemon may run it to its slow ceiling.
+  marketSession: route<MarketSessionResponse>('/v1/market', undefined, { timeout: 'slow' }),
+  themes: route<ThemesResponse>('/v1/themes'),
+  themeTransition: (themeId: string, transition: ThemeTransitionWire) =>
+    route<ThemeTransitionResult>(
+      `/v1/themes/${encodeURIComponent(themeId)}/${encodeURIComponent(transition)}`
+    ),
   ohlcv: route<TradingOhlcvResponse>('/v1/ohlcv', 'ohlcv'),
   events: route<TradingEventsResponse>('/v1/events', 'ohlcv'),
   news: route<TradingNewsResponse>('/v1/news'),

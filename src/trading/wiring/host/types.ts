@@ -26,6 +26,7 @@ import type {
   SuggestionId,
   SuggestionListStatus,
 } from '@/trading/features/suggestion/types'
+import type { ThemeId, ThemeTransition } from '@/trading/features/themes/types'
 import type {
   CurrencyCode,
   InstrumentKind,
@@ -49,7 +50,12 @@ import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Page } from '@/trading/kernel/store/page'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { SURFACE_LIMITS } from '@/trading/surface-limits'
-import type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/composition/app-views'
+import type {
+  BriefRescheduleView,
+  DayDigestView,
+  ThemeChangeView,
+  ThemesView,
+} from '@/trading/wiring/composition/app-views'
 import type { IntradayNext } from '@/trading/wiring/composition/intraday-next'
 import type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
@@ -130,6 +136,23 @@ interface TradingAlertDisableRequest {
 
 interface TradingRegionRequest {
   readonly region?: Region
+  readonly signal: AbortSignal
+}
+
+interface TradingMarketSessionRequest {
+  readonly region?: Region
+  readonly locale: Locale
+  readonly signal: AbortSignal
+}
+
+interface TradingThemesRequest {
+  readonly locale: Locale
+  readonly signal: AbortSignal
+}
+
+interface TradingThemeChangeRequest {
+  readonly themeId: ThemeId
+  readonly transition: ThemeTransition
   readonly signal: AbortSignal
 }
 
@@ -278,6 +301,17 @@ export interface TradingHost {
   searchInstruments(request: TradingSearchRequest): Promise<readonly InstrumentMatch[]>
   getOverview(signal: AbortSignal): Promise<readonly MarketDataOverview[]>
   getMacroRisk(request: TradingRegionRequest): Promise<TradingMacroView>
+  /** What `/market` prints for the region's last closed session, one entry per line; reads the
+   *  sources, no model. */
+  readMarketSession(
+    request: TradingMarketSessionRequest
+  ): Promise<{ readonly region: Region; readonly text: readonly string[] }>
+  /** The open themes and `/themes show`'s lines for them; no model. */
+  readThemes(
+    request: TradingThemesRequest
+  ): Promise<{ readonly themes: ThemesView['themes']; readonly text: readonly string[] }>
+  /** Approves, rejects or retires one theme, as `/themes <transition> <id>`. */
+  changeTheme(request: TradingThemeChangeRequest): Promise<ThemeChangeView>
   describeMarkets(now: number): TradingMarketsView
   /** The market's sectors, strongest first; a market that files none answers empty with a caveat. */
   getSectors(request: TradingSectorsRequest): Promise<TradingSectorsView>

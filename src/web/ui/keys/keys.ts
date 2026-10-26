@@ -62,6 +62,7 @@ const TAB_KEYS: Readonly<Record<string, PanelTab>> = Object.freeze({
   1: 'today',
   2: 'book',
   3: 'ideas',
+  4: 'market',
 })
 const AGENT_STEPS: Readonly<Record<string, 1 | -1>> = Object.freeze({ '[': -1, ']': 1 })
 const CHOOSE_STEPS: Readonly<Record<string, 1 | -1>> = Object.freeze({
