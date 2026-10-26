@@ -522,7 +522,7 @@ A "2D | 3D" switch in the header, before the Focus button, changes how the offic
 
 ### The street and the city
 
-The office sits on a real block of the home region's city. One city is drawn today: Ho Chi Minh City's financial district, with Hàm Nghi running past the front door, the landmark tower one block behind the frontage across the road, and Bến Bạch Đằng park on the near side; every home region the daemon knows today draws it. Street, stop and park names are the city's own and never translated; shops, vehicles and uniforms carry no real brand or logo.
+The office sits on a real block of the home region's city. One city is drawn today: Ho Chi Minh City's financial district, with Hàm Nghi running past the front door, the landmark tower one block behind the frontage across the road, and Bến Bạch Đằng park on the near side; every home region the daemon knows today draws it. Street, stop and park names are the city's own and never translated; shops, vehicles and uniforms carry no real brand or logo. Drag to look along the whole street at any zoom: the parks on both sides, the blocks beyond and the tower to its crown. In 3D, − zooms out past the floor until the whole street fits.
 
 What is real and what is ambience:
 

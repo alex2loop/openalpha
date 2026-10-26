@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact'
 
 import { litRooms, toggleAllLamps } from '@/web/scene/sim/lamps'
-import { leaveRoom, maxZoomSteps, view, zoomBy } from '@/web/scene/view'
+import { leaveRoom, maxZoomSteps, minZoomSteps, view, zoomBy } from '@/web/scene/view'
 import { ROOM_IDS } from '@/web/scene/world/rooms'
 import { sceneView } from '@/web/state/prefs'
 import { RESET_VIEW_GLYPH, ZOOM_IN_GLYPH, ZOOM_OUT_GLYPH } from '@/web/text/glyphs'
@@ -23,15 +23,17 @@ interface ZoomButtonProps {
 
 /** The map controls floating at the scene's bottom right, from the bottom: zoom out, zoom in, back
  *  to the whole floor and the master lamp switch; 3D adds a bar that shows the zoom. */
-export function ZoomStack({ isZoomed }: { readonly isZoomed: boolean }) {
-  const { zoomSteps } = view.value
+export function ZoomStack() {
+  const { zoomSteps, room } = view.value
   const maxSteps = maxZoomSteps()
+  const minSteps = minZoomSteps()
+  const span = maxSteps - minSteps
 
   return (
     <div class="scene-zoomstack">
       <ZoomButton
         label={tr('ui.office.floor.zoomOut')}
-        isDisabled={!isZoomed}
+        isDisabled={room === undefined && zoomSteps <= minSteps}
         onClick={() => zoomBy(-1)}
       >
         {ZOOM_OUT_GLYPH}
@@ -56,7 +58,7 @@ export function ZoomStack({ isZoomed }: { readonly isZoomed: boolean }) {
       </ZoomButton>
       {sceneView.value === '3d' && (
         <span class="scene-zoombar glass" aria-hidden="true">
-          <i style={{ bottom: `${maxSteps > 0 ? (zoomSteps / maxSteps) * PERCENT : 0}%` }} />
+          <i style={{ bottom: `${span > 0 ? ((zoomSteps - minSteps) / span) * PERCENT : 0}%` }} />
         </span>
       )}
     </div>

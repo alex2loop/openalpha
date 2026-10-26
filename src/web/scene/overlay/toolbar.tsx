@@ -35,7 +35,7 @@ export function Toolbar() {
         <span class="scene-toolbar-grow" />
       </div>
       <PanArrows />
-      <ZoomStack isZoomed={isZoomed} />
+      <ZoomStack />
       {(isZoomed || (!isWide && isPannable())) && (
         <p class="scene-hint glass">
           {isWide ? tr('ui.office.floor.hint') : tr('ui.office.floor.hintNear')}

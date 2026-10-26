@@ -30,6 +30,8 @@ export const HEIGHT_K = Math.cos(ELEVATION) / Math.sin(ELEVATION)
 /** One zoom step multiplies the fitted floor's scale by this. */
 export const ZOOM_STEP = 1.4
 const MAX_ZOOM_STEPS = 4
+// The 3D view zooms out at most this many steps below the fitted floor.
+const MAX_ZOOM_OUT_STEPS = 4
 /** The 3D view zooms no closer than this many device px per world px. */
 export const MAX_ZOOM_3D_PX = 6.5
 
@@ -72,6 +74,8 @@ interface Projection {
   readonly originY: number
   /** The closest the shown renderer zooms, CSS px per world px; absent, the steps run out first. */
   readonly maxScale?: number
+  /** The farthest it zooms out, below the fitted floor; absent, it never goes below it. */
+  readonly minScale?: number
 }
 
 /** A thing to show: where it stands, and the room it stands in. */
@@ -106,7 +110,8 @@ export function reportProjection(next: Projection): void {
     held.baseScale === next.baseScale &&
     held.originX === next.originX &&
     held.originY === next.originY &&
-    held.maxScale === next.maxScale
+    held.maxScale === next.maxScale &&
+    held.minScale === next.minScale
 
   if (!isSame) {
     projection.value = next
@@ -156,7 +161,7 @@ export function zoomBy(steps: number, at?: Point): void {
   const held = view.value
   const { scale, baseScale, pane } = projection.value
   const current = held.room === undefined ? held.zoomSteps : stepsOf(scale / baseScale)
-  const next = Math.min(maxZoomSteps(), Math.max(0, current + steps))
+  const next = Math.min(maxZoomSteps(), Math.max(minZoomSteps(), current + steps))
 
   // At the limit nothing moves, but a zoom still ends a follow, as every other zoom does.
   if (next === current && held.room === undefined) {
@@ -189,14 +194,26 @@ export function maxZoomSteps(): number {
   return Math.min(MAX_ZOOM_STEPS, Math.max(0, reach))
 }
 
-/** Keeps the pane inside the range `scale` pans over; an axis the range does not fill stays
- *  centred on it. */
-export function clampPan(center: Point, scale: number, pane: Size): Point {
-  const range = panRangeOf(scale)
+/** The zoom steps below the fitted floor: none in 2D; in 3D as far out as the renderer reaches, the
+ *  last step landing on its farthest. */
+export function minZoomSteps(): number {
+  const { baseScale, minScale } = projection.value
 
+  if (minScale === undefined || baseScale <= 0 || minScale >= baseScale) {
+    return 0
+  }
+
+  const reach = Math.floor(Math.log(minScale / baseScale) / Math.log(ZOOM_STEP) + ZOOM_SLACK)
+
+  return Math.max(-MAX_ZOOM_OUT_STEPS, Math.min(0, reach))
+}
+
+/** Keeps the pane inside the whole street at any zoom, as the mockup pans; an axis the street does
+ *  not fill stays centred on it. */
+export function clampPan(center: Point, scale: number, pane: Size): Point {
   return {
-    x: clampAxis(center.x, [range.x, range.w], pane.w / 2 / scale),
-    y: clampAxis(center.y, [range.y, range.h], pane.h / 2 / scale),
+    x: clampAxis(center.x, [STREET_RECT.x, STREET_RECT.w], pane.w / 2 / scale),
+    y: clampAxis(center.y, [STREET_RECT.y, STREET_RECT.h], pane.h / 2 / scale),
   }
 }
 
@@ -290,31 +307,13 @@ export function readLastInteractionAt(): number {
 /** More of the pan range lies that way (-1 left, 1 right) beyond the pane. */
 export function canPanToward(dir: -1 | 1): boolean {
   const seen = visibleRect()
-  const range = panRangeOf(projection.value.scale)
-
   return dir < 0
-    ? seen.x > range.x + EDGE_SLACK_PX
-    : seen.x + seen.w < range.x + range.w - EDGE_SLACK_PX
+    ? seen.x > STREET_RECT.x + EDGE_SLACK_PX
+    : seen.x + seen.w < STREET_RECT.x + STREET_RECT.w - EDGE_SLACK_PX
 }
 
 function noteInteraction(): void {
   lastInteractionAt = performance.now()
-}
-
-// The frame at the fitted floor, the whole street from one zoom step up, and between the two while
-// the 3D camera eases, so zooming out eases back to the default framing.
-function panRangeOf(scale: number): Rect {
-  const { baseScale } = projection.value
-  const steps =
-    baseScale > 0 && scale > baseScale ? Math.log(scale / baseScale) / Math.log(ZOOM_STEP) : 0
-  const k = Math.min(1, steps)
-
-  return {
-    x: FRAME_RECT.x + (STREET_RECT.x - FRAME_RECT.x) * k,
-    y: FRAME_RECT.y + (STREET_RECT.y - FRAME_RECT.y) * k,
-    w: FRAME_RECT.w + (STREET_RECT.w - FRAME_RECT.w) * k,
-    h: FRAME_RECT.h + (STREET_RECT.h - FRAME_RECT.h) * k,
-  }
 }
 
 function centerAt(point: Point, steps: number): Point {
