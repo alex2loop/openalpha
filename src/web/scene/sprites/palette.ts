@@ -12,15 +12,15 @@ export type Tones = readonly [string, string, string]
 const UP_TOKEN = '--up'
 const DOWN_TOKEN = '--down'
 
-/** The stamp hues the page's tokens set for one theme and colour pair. */
-interface StampTones {
+/** The up and down hues the page's tokens set for one theme and colour pair. */
+interface MoveTones {
   readonly scheme: string
   readonly pair: string
-  readonly buy: string
-  readonly reduce: string
+  readonly up: string
+  readonly down: string
 }
 
-let stampTones: StampTones | undefined
+let moveTones: MoveTones | undefined
 
 export const OUTLINE = '#2B2433'
 /** The outline along a figure's top edge, a step lighter so the head does not look cut out. */
@@ -200,6 +200,91 @@ export const PROP_TONES = Object.freeze({
   cloud: ['#B6B7C9', '#C9CAD8'],
   umbrellaStand: '#5C6474',
 } as const)
+
+/** The desk devices': monitors, the desktop box, phones, StandBy stands, calendars and bins. */
+export const DEVICE_TONES = Object.freeze({
+  stand: '#5C6474',
+  screenDark: '#0B0E1B',
+  screenIdle: '#141A36',
+  screenBar: '#2B3566',
+  screenDim: 'rgba(8,11,24,.4)',
+  bezel2: '#3E4452',
+  track: '#232C52',
+  trackFill: '#7FB6E8',
+  trackTitle: '#8DB4FF',
+  keys: '#ECEEF2',
+  keysEdge: '#B9BDC8',
+  studio: ['#E4E7EC', '#F4F6F9', '#B7BDC9', '#3B404B'],
+  studioMark: '#5A5F6B',
+  port: '#1F222A',
+  portWide: '#2B2F38',
+  statusOff: '#4A4E5A',
+  phoneFrames: [
+    ['#C9CCD3', '#E6E8EC'],
+    ['#2B2D33', '#4A4D55'],
+    ['#A9C0D4', '#CBDAE7'],
+    ['#6E2638', '#8F3A4F'],
+  ],
+  contact: '#6E5030',
+  bezel: '#050608',
+  phoneOff: '#26335E',
+  glint: '#4D60A0',
+  coffee: '#4A2C17',
+  bin: ['#AEB9CC', '#C5CEDD'],
+  page: '#FBF9F3',
+  calendarHead: '#D8514B',
+  titanium: '#F2F4F7',
+  titaniumEdge: '#AEB4C0',
+  standbyGlass: '#1B2552',
+  quietVeil: 'rgba(0,0,0,.55)',
+  flat: '#E9ECF8',
+  operator: {
+    tray: '#C9D0DC',
+    cue: 'rgba(255,176,32,1)',
+    cueGlow: 'rgba(255,176,32,.3)',
+    mug: '#C9505A',
+    mugShade: '#A8404A',
+    snack: '#FFD65A',
+    snackTip: '#F29B4B',
+    notes: [
+      [62, 5, '#FFF4A8'],
+      [64, 6, '#FFC9DE'],
+      [61, 7, '#BFE3FF'],
+    ],
+  },
+  meeting: {
+    pad: '#3E4452',
+    glass: '#BFE0F2',
+    placards: [
+      [36, 12],
+      [68, 12],
+      [100, 12],
+      [20, 1],
+      [52, 1],
+      [84, 1],
+      [116, 1],
+    ],
+  },
+  standbyDay: {
+    screen: '#2A4180',
+    flowGround: '#1B1E4B',
+    flow: ['rgba(120,170,255,.6)', 'rgba(255,140,200,.55)', 'rgba(120,240,210,.5)'],
+    well: '#161A2E',
+    ink: '#FFFFFF',
+    colon: '#9FB0DC',
+    hole: '#07080F',
+  },
+  standbyNight: {
+    screen: '#140303',
+    flowGround: '#2A0606',
+    flow: ['rgba(255,70,50,.4)', 'rgba(255,90,60,.35)', 'rgba(200,50,40,.3)'],
+    well: '#2A0808',
+    ink: '#FF6A5A',
+    colon: '#B04040',
+    hole: '#140303',
+  },
+} as const)
+
 /** Umbrella canopies, in the office's stand and over walkers in the rain: one per
  *  `UMBRELLA_LOOKS`. */
 export const UMBRELLA_TONES = ['#3F7FC5', '#C9544A', '#2E3440', '#E0A13A'] as const
@@ -215,23 +300,24 @@ export const FOCUS_TONES = Object.freeze({
 /** A stamped sheet's hue in both renderers, read from the page's tokens once per theme and colour
  *  pair, never per sprite or per frame. */
 export function stampToneOf(action: NonNullable<SheetView['action']>): string {
-  if (action === 'hold') {
-    return OUTLINE
-  }
+  return action === 'hold' ? OUTLINE : moveToneOf(action === 'buy' ? 'up' : 'down')
+}
 
+/** The page's up or down colour, as its tokens set it for the theme and the red-up choice. */
+export function moveToneOf(direction: 'up' | 'down'): string {
   const scheme = colorScheme.value
   const pair = colourPair.value
 
-  if (stampTones?.scheme !== scheme || stampTones.pair !== pair) {
+  if (moveTones?.scheme !== scheme || moveTones.pair !== pair) {
     const style = getComputedStyle(document.documentElement)
 
-    stampTones = {
+    moveTones = {
       scheme,
       pair,
-      buy: style.getPropertyValue(UP_TOKEN).trim(),
-      reduce: style.getPropertyValue(DOWN_TOKEN).trim(),
+      up: style.getPropertyValue(UP_TOKEN).trim(),
+      down: style.getPropertyValue(DOWN_TOKEN).trim(),
     }
   }
 
-  return stampTones[action]
+  return moveTones[direction]
 }

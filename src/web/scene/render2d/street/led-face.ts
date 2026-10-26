@@ -1,7 +1,7 @@
 import type { BandItem, LedItem } from '@/web/scene/data/led'
 import { sceneZone } from '@/web/scene/clock/clock'
+import { FONT } from '@/web/scene/sprites/face-text'
 import { LED_TITLE_TONES, stampToneOf } from '@/web/scene/sprites/palette'
-import { FONT } from '@/web/scene/sprites/screens'
 import { formatFixed, formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'

@@ -6,6 +6,7 @@ import { type MessageKey, pluralKey } from '@/i18n'
 import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
 import { toOverlayFont } from '@/web/scene/overlay/placement'
+import { isOfficeOpen } from '@/web/scene/sim/director'
 import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
 import { placeOnPane, projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
@@ -32,6 +33,13 @@ const ROOM_NAME_KEYS: Readonly<Record<RoomId, MessageKey>> = Object.freeze({
   desk: 'ui.office.room.desk',
   team: 'ui.office.common.yourAgents',
 } satisfies Record<RoomId, MessageKey>)
+
+// The rooms that rest once the office has closed, and what their tag says then.
+const REST_KEYS: Readonly<Partial<Record<RoomId, MessageKey>>> = Object.freeze({
+  store: 'ui.office.room.store.closed',
+  lib: 'ui.office.room.lib.closed',
+  meet: 'ui.office.room.meet.closed',
+})
 
 interface RoomTag {
   readonly name: string
@@ -146,8 +154,15 @@ function cycleFocus(room: RoomId, runIds: readonly string[]): void {
   }
 }
 
+// A room with no run in it says so after hours, as the mockup's night tags do; a run always wins.
 function statusLine(room: RoomId, status: RoomStatus | undefined): string | undefined {
   const subject = status?.subject
+  const isIdle = (status?.runs.length ?? 0) === 0
+  const restKey = isIdle && !isOfficeOpen() ? REST_KEYS[room] : undefined
+
+  if (restKey !== undefined) {
+    return tr(restKey)
+  }
 
   switch (room) {
     case 'store':

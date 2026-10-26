@@ -1,20 +1,12 @@
-import type { WireEvent } from '@/app/server/wire/events'
 import type { NoticeWire } from '@/app/server/wire/notices'
 import { markRead } from '@/web/state/notices'
 import { state } from '@/web/state/session'
-import { sourceLabel } from '@/web/text/source'
+import { toNoticeText } from '@/web/text/notice'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { JOBS_POPOVER_ID, togglePopover } from '@/web/ui/kit/popover'
 import { LinkedText } from '@/web/ui/ticker/linked-text'
-
-const LINE_BREAK = '\n'
-
-interface NoticeText {
-  readonly title: string
-  readonly detail?: string
-}
 
 /** One bell entry: its first line as the title, the rest below; read ones greyed. */
 export function NoticeRow({ notice }: { readonly notice: NoticeWire }) {
@@ -74,35 +66,4 @@ function NoticeAction({ notice }: { readonly notice: NoticeWire }) {
       {tr('ui.office.bell.openJobs')}
     </Button>
   )
-}
-
-/** A notice as the bell words it: its first line, then the rest. */
-export function toNoticeText(event: WireEvent): NoticeText | undefined {
-  if (event.note !== undefined && event.note.trim() !== '') {
-    const [title = '', ...rest] = event.note.trim().split(LINE_BREAK)
-    const detail = rest.join(LINE_BREAK).trim()
-
-    return detail === '' ? { title } : { title, detail }
-  }
-
-  if (event.approval !== undefined) {
-    const { label, argsSummary } = event.approval
-
-    return argsSummary === '' ? { title: label } : { title: label, detail: argsSummary }
-  }
-
-  if (event.clarification !== undefined) {
-    return { title: event.clarification.text }
-  }
-
-  if (event.pairing !== undefined) {
-    return {
-      title: tr('ui.office.bell.pairing', {
-        channel: sourceLabel(event.pairing.channel),
-        code: event.pairing.code,
-      }),
-    }
-  }
-
-  return undefined
 }

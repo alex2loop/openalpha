@@ -4,6 +4,9 @@ import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Director } from '@/web/scene/sim/director'
 import type { ActorId, ScreenPoint, SimView } from '@/web/scene/types'
 import type { PropDef, TipSource } from '@/web/scene/world/props'
+import type { WallClock } from '@/web/scene/world/regions'
+import { pageNow } from '@/web/scene/clock/clock'
+import { regionPack } from '@/web/scene/data/home'
 import { engage } from '@/web/scene/overlay/actor-focus'
 import { actorNowOf } from '@/web/scene/overlay/actor-state'
 import { type Hit, pickAt } from '@/web/scene/overlay/hit'
@@ -19,6 +22,7 @@ import { stopFollow, view, zoomToRoom } from '@/web/scene/view'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { ROOM_IDS, roomById } from '@/web/scene/world/rooms'
+import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
 /** The pointer type a finger reports. */
@@ -266,12 +270,21 @@ function isSwitch(prop: PropDef): boolean {
 
 // A lamp or the wall switch says what a click does; the wet-floor sign says what it says.
 function thingTitleOf(hit: Hit | undefined, prop: PropDef | undefined): string {
-  return hit?.kind === 'sign' ? tr('ui.office.crew.wetFloor') : switchTitleOf(prop)
+  return hit?.kind === 'sign' ? tr('ui.office.crew.wetFloor') : propTitleOf(prop)
 }
 
-function switchTitleOf(prop: PropDef | undefined): string {
+function propTitleOf(prop: PropDef | undefined): string {
   if (prop?.kind === 'lamp') {
     return tr('ui.office.lights.lamp')
+  }
+
+  const clock = prop?.kind === 'clock' && prop.room === 'lobby' ? wallClockOf(prop) : undefined
+
+  if (clock !== undefined) {
+    return tr('ui.office.tip.clockAt', {
+      place: clock.label,
+      time: formatClock(pageNow(), clock.zone),
+    })
   }
 
   return prop?.kind === 'light-switch' ? tr('ui.office.lights.switch') : ''
@@ -283,6 +296,10 @@ export function actorAt(input: PointerState, point: ScreenPoint): ActorId | unde
   const isPerson = hit?.kind === 'actor' || hit?.kind === 'tag'
 
   return isPerson && isActorId(hit.id) ? hit.id : undefined
+}
+
+function wallClockOf(prop: PropDef): WallClock | undefined {
+  return regionPack.value.wallClocks[prop.variant ?? 0]
 }
 
 function toPetTip(id: string): TipSource | undefined {

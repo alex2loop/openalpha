@@ -21,6 +21,22 @@
   pointer-events: auto;
 }
 
+/* The lobby's day note: the mockup's yellow paper, pinned by its top edge. */
+.board-note {
+  --note-paper: #fff7c2;
+  --note-ink: #1b1b29;
+  --note-edge: #2b2433;
+  --note-drop: rgba(43, 36, 51, 0.35);
+
+  padding: 2px 7px;
+  border: 2px solid var(--note-edge);
+  color: var(--note-ink);
+  background: var(--note-paper);
+  box-shadow: 0 2px 0 var(--note-drop);
+  font-weight: 700;
+  transform: none;
+}
+
 button.board-line {
   cursor: pointer;
 }

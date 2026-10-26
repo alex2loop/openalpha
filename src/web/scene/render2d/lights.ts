@@ -19,10 +19,19 @@ const LIT_NIGHT_SHARE = 0.45
 const UNLIT_SHADE = '#A4A8BC'
 const UNLIT_NORTH_SHADE = '#CDD0DA'
 const LAMP_HEAD_RADIUS = 28
+// The shade's glow sits this far over the lamp's foot, as the mockup pools it.
+const LAMP_HEAD_RISE = 38
 const LAMP_FLOOR_RADIUS = 48
 const LAMP_HEAD_ALPHA = 0.36
 const LAMP_FLOOR_ALPHA = 0.34
 const CLOSED_SHADE = '#C4C6D2'
+const DESK_LAMP_ALPHA = 0.5
+// Each desk lamp's pool by its `variant`, from its drawn box's corner: your warm lamp, the
+// library's green banker's lamp.
+const DESK_LAMP_POOLS = [
+  { dx: 9, dy: 8, radius: 26, rgb: '255,216,144' },
+  { dx: 4, dy: 6, radius: 18, rgb: '156,255,192' },
+] as const
 
 interface LightingSpec {
   readonly floor: FloorId
@@ -101,7 +110,7 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
 
     pool(g, {
       x: cx,
-      y: rect.y + 4,
+      y: rect.y + rect.h - LAMP_HEAD_RISE,
       radius: LAMP_HEAD_RADIUS,
       rgb: WARM_RGB,
       alpha: LAMP_HEAD_ALPHA * spec.lampGlow,
@@ -115,6 +124,8 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
     })
   }
 
+  paintDeskLampPools(g, spec)
+
   if (spec.floor === 'office' && !spec.isQuiet) {
     for (const [x, y, radius] of SCREEN_POOLS) {
       pool(g, { x, y, radius, rgb: SCREEN_RGB, alpha: glow })
@@ -125,6 +136,22 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
     const [x, y, radius] = DROP_POOL
 
     pool(g, { x, y, radius, rgb: ALERT_RGB, alpha: dropAlphaOf(spec.dropPct) })
+  }
+}
+
+function paintDeskLampPools(g: CanvasRenderingContext2D, spec: LightingSpec): void {
+  for (const prop of propsOn(spec.floor).filter(
+    (each) => each.kind === 'desk-lamp' && spec.lit.has(each.room)
+  )) {
+    const look = DESK_LAMP_POOLS[prop.variant ?? 0] ?? DESK_LAMP_POOLS[0]
+
+    pool(g, {
+      x: prop.draw.x + look.dx,
+      y: prop.draw.y + look.dy,
+      radius: look.radius,
+      rgb: look.rgb,
+      alpha: DESK_LAMP_ALPHA * spec.lampGlow,
+    })
   }
 }
 

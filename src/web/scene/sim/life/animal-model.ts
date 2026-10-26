@@ -94,14 +94,19 @@ const CORGI_POSES: Readonly<Record<PetPose, readonly AnimalPart[]>> = Object.fre
   stand: CORGI_STAND,
   lie: CORGI_LIE,
 })
+// The mockup's fish, about eight px nose to tail: the tail fin, the body over its pale belly, the
+// head, then the eye and the back fin, and a spot when close.
 const FISH_PARTS: readonly AnimalPart[] = Object.freeze([
-  part([-2, -1, 4, 2], 'fur'),
-  part([-3, -1, 1, 2], 'shade'),
-  part([1, -1, 1, 1], 'eye', 1),
-  part([0, 0, 2, 1], 'light', 2),
+  part([-4, -1, 1, 3], 'pink'),
+  part([-3, -1, 5, 2], 'fur'),
+  part([-2, 1, 4, 1], 'light'),
+  part([2, -1, 2, 2], 'shade'),
+  part([3, -1, 1, 1], 'eye', 1),
+  part([-1, -2, 2, 1], 'pink', 1),
+  part([0, -1, 1, 1], 'dark', 2),
 ])
 
-/** The colours of each animal; the three fish each wear their own. */
+/** The colours of each animal; the three fish each wear their own: gold, pale and koi. */
 export const ANIMAL_TONES: Readonly<{
   cat: Readonly<Record<AnimalTone, string>>
   corgi: Readonly<Record<AnimalTone, string>>
@@ -110,9 +115,9 @@ export const ANIMAL_TONES: Readonly<{
   cat: tones(['#E49A4F', '#CF7F36', '#F7DFBB', '#B0622B', '#E89B9B', '#1B1416']),
   corgi: tones(['#CB8841', '#B5743A', '#F5EADB', '#1C1517', '#E9C7A6', '#2A1B17']),
   fish: [
-    tones(['#F28C38', '#D96A1E', '#FFF1E0', '#4A2C17', '#F6B7A0', '#1B1416']),
-    tones(['#5AAAE9', '#3F86C6', '#E3F3FF', '#1D3A5C', '#BFD9F2', '#101820']),
-    tones(['#F2D05A', '#D3AE33', '#FFF8DC', '#5C4A10', '#F6E3A8', '#1B1416']),
+    tones(['#FF8B2E', '#F0601E', '#FFD9A8', '#F0601E', '#FF9F45', '#1B1517']),
+    tones(['#F7D25B', '#F2C23E', '#FFF3CF', '#F2C23E', '#F9DF86', '#1B1517']),
+    tones(['#F8F4EA', '#E0452C', '#FFFFFF', '#2B2433', '#E9E4D6', '#1B1517']),
   ],
 })
 

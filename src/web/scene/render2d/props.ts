@@ -1,11 +1,23 @@
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
 import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
-import { paintFish } from '@/web/scene/render2d/pets'
+import {
+  paintBin,
+  paintKeyboard,
+  paintMeetingTable,
+  paintMonitor,
+  paintMug,
+  paintOperatorDesk,
+  paintPhone,
+  paintStandby,
+  paintStudio,
+} from '@/web/scene/render2d/desk-devices'
+import { paintTank } from '@/web/scene/render2d/pets'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
 import {
   CARD,
   DARKWOOD,
+  DEVICE_TONES,
   FABRIC,
   METAL,
   PALETTE,
@@ -13,9 +25,34 @@ import {
   UMBRELLA_TONES,
   WOOD,
 } from '@/web/scene/sprites/palette'
+import { HEIGHT_K } from '@/web/scene/view'
 import { isWallMounted } from '@/web/scene/world/props'
 
 const SCREEN_EDGE = '#5C6474'
+const NOTE_INK = '#8E8497'
+// The desk looks a desk prop's `variant` picks.
+const DESK_LOOK = Object.freeze({ plain: 0, counter: 1, operator: 2, senior: 3 })
+const BANKER_LAMP = 1
+const RACK_TONES = Object.freeze({
+  body: '#C9D1DE',
+  top: '#E4E9F2',
+  slot: '#343B55',
+  fresh: '#32D74B',
+  stale: '#FFB340',
+  busy: '#7FD6FF',
+})
+const TRAY_HANGER_STEP = 22
+const LAMP_TONES = Object.freeze({
+  bankerOn: ['#D9B25C', '#9CFFC0', '#E6FFF0'],
+  bankerOff: ['#D9B25C', '#5FA878', '#8CCB98'],
+  deskOn: '#FFE9A8',
+  tray: ['#B9C0CC', '#AAB1BD'],
+  shadeRimOn: '#FFFFFF',
+  shadeRimOff: '#F6EFDD',
+} as const)
+// The mockup's floor lamp in world px: the shade's width, height and how high its middle hangs,
+// and the pole's height; 2D foreshortens heights by the camera's angle.
+const FLOOR_LAMP = Object.freeze({ shadeW: 12.8, shadeH: 8.8, shadeY: 52, poleH: 48 })
 const LED_OFF = '#4B5370'
 const LAMP_SHADE_FRONT = '#CFC4A8'
 const LAMP_LIT_FRONT = '#F2D58B'
@@ -61,6 +98,8 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   'coat-rack': paintCoatRack,
   ladder: paintLadder,
   'umbrella-stand': paintUmbrellaStand,
+  'desk-lamp': paintDeskLamp,
+  'cable-tray': paintCableTray,
 } satisfies Record<PropKind, Painter>)
 
 export function paintProp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -72,18 +111,82 @@ export function isBackProp(prop: PropDef): boolean {
   return isWallMounted(prop)
 }
 
+// A desk lamp lit exactly while its room's switch is on: your angled lamp, or the library's green
+// banker's lamp.
+function paintDeskLamp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
+  const { x, y } = prop.draw
+  const isOn = scene.lit.has(prop.room)
+
+  if (prop.variant === BANKER_LAMP) {
+    const [brass, shade, rim] = isOn ? LAMP_TONES.bankerOn : LAMP_TONES.bankerOff
+
+    fill(g, [x + 2, y + 9, 6, 3], brass)
+    fill(g, [x + 4, y + 4, 1, 6], brass)
+    fill(g, [x, y, 10, 5], INK)
+    fill(g, [x + 1, y + 1, 8, 3], shade)
+    fill(g, [x + 1, y + 1, 8, 1], rim)
+    return
+  }
+
+  fill(g, [x, y + 12, 6, 2], METAL[2])
+  fill(g, [x + 2, y + 3, 1, 9], METAL[2])
+  fill(g, [x + 2, y + 3, 7, 1], METAL[2])
+  fill(g, [x + 5, y, 9, 5], INK)
+  fill(g, [x + 6, y + 1, 7, 3], isOn ? LAMP_TONES.deskOn : PROP_TONES.lampOff)
+}
+
+// A cable tray across the store's ceiling with a hanger every few steps.
+function paintCableTray(g: CanvasRenderingContext2D, prop: PropDef): void {
+  const { x, y, w } = prop.draw
+
+  fill(g, [x, y, w, 2], LAMP_TONES.tray[0])
+  fill(g, [x, y + 2, w, 1], METAL[2])
+
+  for (let i = 0; i < w; i += TRAY_HANGER_STEP) {
+    fill(g, [x + i, y + 2, 1, 3], LAMP_TONES.tray[1])
+  }
+}
+
 /** The y-sort tie order: a decal under furniture under a person at the same depth. */
 export function tieRankOf(prop: PropDef): number {
   return DECAL_KINDS.has(prop.kind) ? 0 : 1
 }
 
-function paintDesk(g: CanvasRenderingContext2D, prop: PropDef): void {
+// The mockup's desk: the top and its legs, a bin beside it, the desktop box, the keyboard, and a
+// phone and mug, or a StandBy stand on a senior desk; the alert desk is a long counter.
+function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
 
-  drawBlock(g, [x, y, w, h - 8], { front: 8, tones: WOOD })
-  fill(g, [x + 1, y + h, 2, 3], INK)
-  fill(g, [x + w - 3, y + h, 2, 3], INK)
-  fill(g, [x + 6, y + 2, 10, 6], PALETTE.paper)
+  if (prop.variant === DESK_LOOK.counter) {
+    drawBlock(g, [x, y, w, 10], { front: h - 10, tones: WOOD })
+    fill(g, [x + 14, y + 2, 10, 6], PALETTE.paper)
+    fill(g, [x + 38, y + 3, 8, 2], DEVICE_TONES.page)
+    fill(g, [x + 39, y + 4, 6, 1], NOTE_INK)
+    return
+  }
+
+  if (prop.variant === DESK_LOOK.operator) {
+    drawBlock(g, [x, y, w, 14], { front: h - 14, tones: WOOD })
+    paintOperatorDesk(g, { x, y }, scene)
+    return
+  }
+
+  const cx = x + w / 2
+
+  drawBlock(g, [x, y, w, 12], { front: h - 12, tones: WOOD })
+  fill(g, [x + 1, y + h, 2, 4], INK)
+  fill(g, [x + w - 3, y + h, 2, 4], INK)
+  paintBin(g, x - 6, y + 8)
+  paintKeyboard(g, cx, y + 5)
+  paintStudio(g, x + 1, y + 1)
+
+  if (prop.variant === DESK_LOOK.senior) {
+    paintStandby(g, { x: x + w - 14, y: y + 2, view: 'flow' }, scene)
+    return
+  }
+
+  paintPhone(g, { x: x + w - 13, y: y + 1, owner: prop.id })
+  paintMug(g, x + w - 5, y + 7)
 }
 
 function paintChair(g: CanvasRenderingContext2D, prop: PropDef): void {
@@ -133,17 +236,9 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 }
 
-// On standby, a dim glow and its power light, until the office goes quiet and it sleeps; the
-// working screen's content is the overlay's.
+// The monitor stands on its desk and sorts with it, in front of whoever sits there.
 function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w, h } = prop.draw
-  const isAsleep = scene.life.isQuiet
-
-  framed(g, [x, y, w, h - 4], isAsleep ? PROP_TONES.screenOff : PROP_TONES.screenStandby)
-  fill(g, [x + w - 3, y + h - 7, 1, 1], isAsleep ? SCREEN_EDGE : PROP_TONES.ledOn)
-  fill(g, [x + 1, y + 1, w - 2, 1], SCREEN_EDGE)
-  fill(g, [x + w / 2 - 1, y + h - 4, 2, 3], SCREEN_EDGE)
-  fill(g, [x + w / 2 - 4, y + h - 1, 8, 1], SCREEN_EDGE)
+  paintMonitor(g, prop.draw, scene)
 }
 
 function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -158,14 +253,22 @@ function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSc
   }
 }
 
-function paintRack(g: CanvasRenderingContext2D, prop: PropDef): void {
+// The store's rack: a slot a row, a light a data source, green while it answers and amber once it
+// fails, its activity light lit while the store refreshes; all dark once the office is quiet.
+function paintRack(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
+  const isAwake = !scene.life.isQuiet
 
-  framed(g, [x, y, w, h], '#C9D1DE')
+  framed(g, [x, y, w, h], RACK_TONES.body)
+  fill(g, [x, y, w, 1], RACK_TONES.top)
 
-  for (let row = y + 3; row + 4 <= y + h - 2; row += 5) {
-    fill(g, [x + 2, row, w - 4, 4], '#343B55')
-    fill(g, [x + 3, row + 1, 2, 2], LED_OFF)
+  for (let i = 0, row = y + 3; row + 4 <= y + h - 2; i++, row += 5) {
+    const source = scene.sources[i]
+
+    fill(g, [x + 2, row, w - 4, 4], RACK_TONES.slot)
+    fill(g, [x + 13, row + 1, 6, 2], LED_OFF)
+    fill(g, [x + 3, row + 1, 2, 2], isAwake && source !== undefined ? RACK_TONES[source] : LED_OFF)
+    fill(g, [x + 7, row + 1, 1, 2], isAwake && scene.isRefreshing ? RACK_TONES.busy : LED_OFF)
   }
 }
 
@@ -177,16 +280,25 @@ function paintBox(g: CanvasRenderingContext2D, prop: PropDef): void {
   fill(g, [x + 3, y + 10, 6, 3], PALETTE.paper)
 }
 
-function paintTable(g: CanvasRenderingContext2D, prop: PropDef): void {
+// The store's cart on wheels, the meeting room's dark table with its things, the team floor's
+// table with two papers.
+function paintTable(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
   const isCart = prop.variant === 1
+  const isMeeting = prop.room === 'meet'
   const front = isCart ? 6 : 8
+  const wood = isMeeting ? DARKWOOD : WOOD
 
-  drawBlock(g, [x, y, w, h - front], { front, tones: isCart ? METAL : DARKWOOD })
+  drawBlock(g, [x, y, w, h - front], { front, tones: isCart ? METAL : wood })
 
   if (isCart) {
     fill(g, [x + 2, y + h, 4, 3], INK)
     fill(g, [x + w - 6, y + h, 4, 3], INK)
+  } else if (isMeeting) {
+    paintMeetingTable(g, { x, y }, scene)
+  } else {
+    fill(g, [x + 10, y + 2, 10, 6], PALETTE.paper)
+    fill(g, [x + 54, y + 3, 12, 5], PALETTE.paper)
   }
 }
 
@@ -247,31 +359,28 @@ function paintPlant(g: CanvasRenderingContext2D, prop: PropDef): void {
   fill(g, [x + 1, y + 4, 4, 3], PROP_TONES.leaf[2])
 }
 
-// The room's floor lamp, lit exactly while its switch is on.
+// The room's floor lamp as the mockup draws it, from the same look as 3D: a dark base, a thin pole
+// and a box shade seen from above (its top face, then its front), lit exactly while its switch is on.
 function paintLamp(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
   const cx = x + w / 2
-  const base = y + h
+  const z = y + h
   const isOn = scene.lit.has(prop.room)
+  const shade = Math.round(FLOOR_LAMP.shadeW)
+  const half = shade >> 1
+  const front = Math.round(FLOOR_LAMP.shadeH * HEIGHT_K)
+  const pole = Math.round(FLOOR_LAMP.poleH * HEIGHT_K)
+  const top = Math.round(z - (FLOOR_LAMP.shadeY + FLOOR_LAMP.shadeH / 2) * HEIGHT_K - shade / 2)
 
-  castShadow(g, [cx - 6, base - 1, 12, 3])
-  framed(g, [cx - 4, base - 3, 8, 2], METAL[2])
-  framed(g, [cx - 1, y + 13, 2, h - 16], METAL[2])
-  framed(g, [x, y, w, 7], isOn ? PROP_TONES.lampLit : PROP_TONES.lampOff)
-  fill(g, [x, y + 7, w, 6], isOn ? LAMP_LIT_FRONT : LAMP_SHADE_FRONT)
-}
-
-function paintTank(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w } = prop.draw
-  const isOn = scene.lit.has(prop.room)
-
-  drawBlock(g, [x, y + 17, w, 2], { front: 7, tones: DARKWOOD })
-  framed(g, [x, y + 2, w, 13], isOn ? '#BFE6F5' : '#5E8399')
-  fill(g, [x, y, w, 2], isOn ? '#FFF7C2' : '#7A7F8C')
-  fill(g, [x, y + 13, w, 2], isOn ? '#E6D3A3' : '#9C8E6E')
-  fill(g, [x + 7, y + 6, 1, 7], '#4FA373')
-  fill(g, [x + 25, y + 8, 1, 5], '#3F9163')
-  paintFish(g, { x, y: y + 2, w, h: 13 }, { fish: scene.life.fish, level: scene.detail })
+  castShadow(g, [cx - 6, z - 1, 12, 3])
+  fill(g, [cx - 5, z - 3, 10, 3], INK)
+  fill(g, [cx - 4, z - 3, 8, 2], METAL[2])
+  fill(g, [cx - 2, z - 3 - pole, 4, pole], INK)
+  fill(g, [cx - 1, z - 3 - pole, 2, pole], METAL[2])
+  fill(g, [cx - half - 1, top - 1, shade + 2, shade + front + 2], INK)
+  fill(g, [cx - half, top, shade, shade], isOn ? PROP_TONES.lampLit : PROP_TONES.lampOff)
+  fill(g, [cx - half, top + shade, shade, front], isOn ? LAMP_LIT_FRONT : LAMP_SHADE_FRONT)
+  fill(g, [cx - half, top, shade, 1], isOn ? LAMP_TONES.shadeRimOn : LAMP_TONES.shadeRimOff)
 }
 
 function paintCabinet(g: CanvasRenderingContext2D, prop: PropDef): void {

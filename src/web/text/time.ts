@@ -28,9 +28,9 @@ const ZONE_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
   hourCycle: 'h23',
 })
 const WEEKDAYS: readonly string[] = Object.freeze(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])
-// The page reads one or two zones (the operator's and the home market's); a few spare slots cover a
-// changed setting without letting the cache grow.
-const MAX_ZONE_FORMATTERS = 4
+// The page reads a few zones (the operator's, the home market's and the lobby's wall clocks); a few
+// spare slots cover a changed setting without letting the cache grow.
+const MAX_ZONE_FORMATTERS = 8
 
 /** An instant as one zone counts it: `day` is `YYYY-MM-DD`, `minute` the minutes since that day's
  *  midnight (fractional), `dow` 0 for Sunday. */

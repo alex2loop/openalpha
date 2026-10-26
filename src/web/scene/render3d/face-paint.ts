@@ -1,6 +1,6 @@
 import type { toneOfPercent } from '@/web/text/figures'
+import { FONT } from '@/web/scene/sprites/face-text'
 import { stampToneOf } from '@/web/scene/sprites/palette'
-import { FONT } from '@/web/scene/sprites/screens'
 import { createRng } from '@/web/scene/world/rng'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 

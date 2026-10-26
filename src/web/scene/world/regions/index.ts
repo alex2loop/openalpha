@@ -181,6 +181,13 @@ export interface Landmark {
   readonly haze: number
 }
 
+/** A lobby wall clock: the exchange or standard it keeps (a proper name, untranslated) and the
+ *  zone it reads. */
+export interface WallClock {
+  readonly label: string
+  readonly zone: string
+}
+
 /** What the office knows of the city around it, keyed by the home region. Proper names (the
  *  street, stops, routes, park) are written here, untranslated; every generic word is a catalog
  *  key. `street` is the main street; `sideStreets` name the two that run down the building's sides;
@@ -211,6 +218,8 @@ export interface RegionPack {
   readonly expiryRule: 'third-thursday'
   /** The people who are in on a day the market is shut (alerts and chat run every day). */
   readonly restDayStaff: readonly ActorId[]
+  /** The lobby's wall clocks, left to right. */
+  readonly wallClocks: readonly WallClock[]
 }
 
 /** What sets a day apart: a report season, the derivatives' expiry, a festive stretch. */

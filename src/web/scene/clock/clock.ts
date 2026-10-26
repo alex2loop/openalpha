@@ -17,6 +17,11 @@ export type ClockMode =
   | { readonly kind: 'preview'; readonly hour: number; readonly speed: ClockSpeed }
 
 /** A preview's start: `dayMs` into the day at `since` (`performance.now()`), running `speed` times. */
+/** The page clock in the scene zone, and the page instant it was read at (epoch ms). */
+interface PageMinute extends ClockParts {
+  readonly at: number
+}
+
 interface PreviewBase {
   readonly dayMs: number
   readonly since: number
@@ -32,7 +37,8 @@ interface RealDay {
 const mode = signal<ClockMode>({ kind: 'real' })
 // The zone the scene lives in: the home market's, else the operator's `[locale] timezone`.
 const zone = signal(Intl.DateTimeFormat().resolvedOptions().timeZone)
-const minute = signal<ClockParts>(zoneParts(Date.now(), zone.value))
+const loadedAt = Date.now()
+const minute = signal<PageMinute>({ ...zoneParts(loadedAt, zone.value), at: loadedAt })
 const lifetime = new AbortController()
 let preview: PreviewBase | undefined
 let realDay: RealDay | undefined
@@ -41,7 +47,7 @@ let minuteTimer: ReturnType<typeof setTimeout> | undefined
 /** Real time, or a preview hour running at a speed; never stored, so a reload is real time. */
 export const clockMode: ReadonlySignal<ClockMode> = mode
 /** The page clock in the scene zone, refreshed at each page-minute boundary. */
-export const pageMinute: ReadonlySignal<ClockParts> = minute
+export const pageMinute: ReadonlySignal<PageMinute> = minute
 /** The zone the scene keeps: the home market's, else the operator's `[locale] timezone`. */
 export const sceneZone: ReadonlySignal<string> = zone
 
@@ -126,7 +132,7 @@ function syncMinute(): void {
   const nowMs = pageNow()
   const speed = preview?.speed ?? REAL_SPEED
 
-  minute.value = zoneParts(nowMs, zone.value)
+  minute.value = pageMinuteAt(nowMs)
   minuteTimer = setTimeout(
     syncMinute,
     (MS_PER_MINUTE - (nowMs % MS_PER_MINUTE)) / speed + MINUTE_EDGE_MS
@@ -150,4 +156,8 @@ function resolveRealDayStart(realMs: number): number {
   realDay = { zone: zone.value, startMs }
 
   return startMs
+}
+
+function pageMinuteAt(nowMs: number): PageMinute {
+  return { ...zoneParts(nowMs, zone.value), at: nowMs }
 }

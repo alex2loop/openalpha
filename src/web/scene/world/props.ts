@@ -43,6 +43,8 @@ export type PropKind =
   | 'bin'
   | 'gate-post'
   | 'podium'
+  | 'desk-lamp'
+  | 'cable-tray'
 
 /** The live figure a prop answers with on hover. */
 export type TipSource =
@@ -60,7 +62,8 @@ export type TipSource =
 
 /** Two boxes, one meaning each: `rect` is the footprint on the floor as the 3D layout stands it
  *  (the nav grid blocks it; a wall piece's is the wall area it hangs on), `draw` the box the 2D
- *  renderer paints and the pointer hits. `sortY` is `draw`'s bottom edge, the 2D paint order;
+ *  renderer paints and the pointer hits. `sortY` is the 2D paint order, `draw`'s bottom edge unless
+ *  the piece stands on another and sorts with it;
  *  `height` how tall it stands (world px); `variant` picks a look among a kind's. */
 export interface PropDef {
   readonly id: string
@@ -79,6 +82,8 @@ type Box = readonly [number, number, number, number]
 
 interface PropLook {
   readonly height?: number
+  /** The 2D paint order when it is not the drawn box's bottom: a monitor sorts with its desk. */
+  readonly sortY?: number
   readonly tip?: TipSource
   readonly variant?: number
 }
@@ -133,6 +138,8 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   bin: 8,
   'gate-post': 16,
   podium: 18,
+  'desk-lamp': 12,
+  'cable-tray': 5,
 } satisfies Record<PropKind, number>)
 
 // Pieces hung on a wall: their `rect` is the wall area, nothing stands on it.
@@ -147,6 +154,9 @@ const WALL_KINDS: ReadonlySet<PropKind> = new Set([
   'window',
 ])
 
+// Pieces hung under the ceiling: their `rect` is the floor they hang over, which stays walkable.
+const OVERHEAD_KINDS: ReadonlySet<PropKind> = new Set(['cable-tray'])
+
 // Pieces thin enough to pass beside: the nav grid blocks their footprint with no clearance, so the
 // badge gates keep two lanes open through the west doorway.
 const TIGHT_KINDS: ReadonlySet<PropKind> = new Set(['gate-post', 'podium'])
@@ -158,6 +168,8 @@ const CHAIR_SET_BACK: Readonly<Record<SeatFacing, number>> = Object.freeze({
   back: -4,
   front: -12,
 })
+// Hung under the ceiling: painted over everyone on the floor.
+const OVERHEAD_SORT_Y = 10_000
 const LIFT_OFFICE = FLOORS.office.lift
 const LIFT_TEAM = FLOORS.team.lift
 
@@ -197,6 +209,13 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('box', 'store', { at: [126, 174, 12, 10], draw: [126, 172, 12, 18], height: 10 }),
   stand('box', 'store', { at: [136, 176, 12, 10], draw: [136, 174, 12, 18], height: 10 }),
   stand('lamp', 'store', { at: [8, 180, 8, 8], draw: [6, 133, 12, 51] }),
+  ...[60, 108].map((y) =>
+    stand('cable-tray', 'store', {
+      at: [8, y, 144, 5],
+      draw: [8, y, 144, 5],
+      sortY: OVERHEAD_SORT_Y,
+    })
+  ),
   stand('shelf', 'lib', { at: [174, 44, 64, 10], draw: [174, 14, 64, 40], tip: 'shelf' }),
   stand('shelf', 'lib', { at: [254, 44, 64, 10], draw: [254, 14, 64, 40], tip: 'shelf' }),
   wall('frame', 'lib', { at: [322, 6, 28, 18], variant: 3 }),
@@ -208,8 +227,14 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   ...[176, 224, 272].flatMap((x) => [
     stand('chair', 'lib', { at: seatFoot(x + 20, 136, 'desk'), draw: [x + 12, 113, 16, 11] }),
     stand('desk', 'lib', { at: [x, 119, 40, 12], draw: [x, 128, 40, 20] }),
-    stand('computer', 'lib', { at: [x + 12, 128, 16, 3], draw: [x + 12, 114, 16, 14] }),
+    stand('computer', 'lib', { at: [x + 12, 128, 16, 3], draw: [x + 12, 119, 16, 14], sortY: 148 }),
   ]),
+  stand('desk-lamp', 'lib', {
+    at: [255, 120, 8, 4],
+    draw: [254, 114, 10, 12],
+    sortY: 149,
+    variant: 1,
+  }),
   stand('copier', 'lib', { at: [318, 142, 18, 14], draw: [318, 128, 24, 24] }),
   stand('printer', 'lib', { at: [334, 148, 22, 12], draw: [334, 140, 22, 18], tip: 'printer' }),
   stand('tray', 'lib', { at: [337, 160, 16, 5], draw: [336, 155, 18, 7] }),
@@ -233,7 +258,9 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('lamp', 'meet', { at: [616, 162, 8, 8], draw: [614, 115, 12, 51] }),
   wall('lift-door', 'lobby', { at: [LIFT_OFFICE.x, LIFT_OFFICE.y, LIFT_OFFICE.w, LIFT_OFFICE.h] }),
   wall('light-switch', 'lobby', { at: [98, 232, 8, 11] }),
-  ...[24, 56, 88].map((x) => wall('clock', 'lobby', { at: [x, 226, 12, 12], tip: 'clock' })),
+  ...[24, 56, 88].map((x, i) =>
+    wall('clock', 'lobby', { at: [x, 226, 12, 12], tip: 'clock', variant: i })
+  ),
   wall('wall-screen', 'lobby', { at: [28, 242, 84, 36], tip: 'agenda', variant: 1 }),
   wall('wall-screen', 'lobby', { at: [20, 286, 92, 42], tip: 'agenda', variant: 2 }),
   stand('coat-rack', 'lobby', { at: [146, 312, 8, 8], draw: [146, 272, 12, 45] }),
@@ -243,13 +270,13 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('umbrella-stand', 'lobby', { at: [6, 286, 6, 5], draw: [5, 272, 8, 19] }),
   stand('guest-desk', 'lobby', { at: [112, 323, 18, 10], draw: [112, 310, 18, 23] }),
   stand('chair', 'lobby', { at: seatFoot(121, 316, 'back'), draw: [113, 293, 16, 11] }),
-  stand('bin', 'lobby', { at: [129, 305, 7, 7], draw: [129, 301, 7, 11] }),
+  stand('bin', 'lobby', { at: [130, 301, 5, 5], draw: [130, 300, 5, 6] }),
   stand('gate-post', 'lobby', { at: [5, 254, 8, 3], draw: [5, 241, 8, 16] }),
   stand('podium', 'lobby', { at: [5, 264, 8, 8], draw: [5, 253, 8, 19] }),
   stand('gate-post', 'lobby', { at: [5, 279, 8, 3], draw: [5, 266, 8, 16] }),
   stand('sofa', 'lobby', { at: [24, 354, 72, 14], draw: [24, 340, 72, 30] }),
   stand('plant', 'lobby', { at: [136, 352, 8, 8], draw: [134, 344, 12, 16] }),
-  stand('lamp', 'lobby', { at: [8, 368, 8, 8], draw: [6, 321, 12, 51] }),
+  stand('lamp', 'lobby', { at: [100, 368, 8, 8], draw: [98, 321, 12, 51] }),
   wall('frame', 'alerts', { at: [232, 230, 16, 12], variant: 1 }),
   wall('wall-screen', 'alerts', { at: [174, 260, 42, 24], tip: 'alerts', variant: 3 }),
   wall('wall-screen', 'alerts', { at: [226, 236, 56, 8], variant: 4 }),
@@ -267,8 +294,8 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('lamp', 'alerts', { at: [308, 372, 8, 8], draw: [306, 325, 12, 51] }),
   wall('results-board', 'assist', { at: [414, 232, 52, 22], tip: 'results' }),
   stand('chair', 'assist', { at: seatFoot(384, 306, 'desk'), draw: [376, 283, 16, 11] }),
-  stand('desk', 'assist', { at: [364, 291, 40, 12], draw: [364, 300, 40, 20] }),
-  stand('computer', 'assist', { at: [376, 300, 16, 3], draw: [376, 286, 16, 14] }),
+  stand('desk', 'assist', { at: [364, 291, 40, 12], draw: [364, 300, 40, 20], variant: 3 }),
+  stand('computer', 'assist', { at: [376, 300, 16, 3], draw: [376, 291, 16, 14], sortY: 320 }),
   stand('tank', 'assist', { at: [434, 298, 36, 13], draw: [434, 295, 36, 27], tip: 'fish' }),
   stand('plant', 'assist', { at: [332, 348, 8, 8], draw: [330, 340, 12, 16] }),
   stand('plant', 'assist', { at: [452, 352, 8, 8], draw: [450, 344, 12, 16] }),
@@ -277,15 +304,20 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   wall('clock', 'desk', { at: [496, 236, 12, 12], tip: 'clock' }),
   stand('plant', 'desk', { at: [612, 270, 8, 8], draw: [610, 262, 12, 16] }),
   stand('desk', 'desk', { at: [510, 308, 96, 14], draw: [510, 300, 96, 22], variant: 2 }),
-  stand('bin', 'desk', { at: [496, 312, 7, 7], draw: [496, 308, 7, 11] }),
-  stand('computer', 'desk', { at: [526, 319, 16, 3], draw: [526, 286, 16, 14] }),
-  stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 286, 16, 14] }),
+  stand('bin', 'desk', { at: [604, 323, 5, 5], draw: [604, 322, 5, 6] }),
+  stand('desk-lamp', 'desk', { at: [512, 309, 6, 4], draw: [511, 296, 14, 14], sortY: 323 }),
+  stand('computer', 'desk', { at: [526, 319, 16, 3], draw: [526, 291, 16, 14], sortY: 322 }),
+  stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 291, 16, 14], sortY: 322 }),
   stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
   wall('lift-door', 'team', { at: [LIFT_TEAM.x, LIFT_TEAM.y, LIFT_TEAM.w, LIFT_TEAM.h] }),
   ...DESK_SLOTS.flatMap(({ x, y }) => [
     stand('chair', 'team', { at: seatFoot(x + 20, y + 8, 'desk'), draw: [x + 12, y - 15, 16, 11] }),
     stand('desk', 'team', { at: [x, y - 9, 40, 12], draw: [x, y, 40, 20] }),
-    stand('computer', 'team', { at: [x + 12, y, 16, 3], draw: [x + 12, y - 14, 16, 14] }),
+    stand('computer', 'team', {
+      at: [x + 12, y, 16, 3],
+      draw: [x + 12, y - 9, 16, 14],
+      sortY: y + 20,
+    }),
   ]),
   stand('shelf', 'team', { at: [520, 66, 48, 10], draw: [520, 40, 48, 36], height: 36 }),
   stand('shelf', 'team', { at: [576, 66, 48, 10], draw: [576, 40, 48, 36], height: 36 }),
@@ -329,6 +361,11 @@ export function isWallMounted(prop: PropDef): boolean {
   return WALL_KINDS.has(prop.kind)
 }
 
+/** A piece hung under the ceiling: nothing blocks under it and the 2D floor paints it over all. */
+export function isOverhead(prop: PropDef): boolean {
+  return OVERHEAD_KINDS.has(prop.kind)
+}
+
 /** A piece walkers may brush past: its footprint blocks with no clearance round it. */
 export function isTight(prop: PropDef): boolean {
   return TIGHT_KINDS.has(prop.kind)
@@ -355,7 +392,7 @@ function toProp(spec: PropSpec, index: number): PropDef {
     rect: { x, y, w, h },
     draw: { x: dx, y: dy, w: dw, h: dh },
     height: spec.height ?? HEIGHT_OF[spec.kind],
-    sortY: dy + dh,
+    sortY: spec.sortY ?? dy + dh,
     ...(spec.tip === undefined ? {} : { tip: spec.tip }),
     ...(spec.variant === undefined ? {} : { variant: spec.variant }),
   }

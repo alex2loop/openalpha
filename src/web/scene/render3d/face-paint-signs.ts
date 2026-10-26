@@ -1,4 +1,4 @@
-import { FONT } from '@/web/scene/sprites/screens'
+import { FONT } from '@/web/scene/sprites/face-text'
 
 // The mockup's lift indicator, laid out on its 144 by 40 canvas.
 const LIFT_W = 144

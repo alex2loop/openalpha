@@ -1,6 +1,6 @@
 import type { PaperView } from '@/web/scene/types'
-import { PALETTE } from '@/web/scene/sprites/palette'
-import { TRAY_AT } from '@/web/scene/world/seats'
+import { DEVICE_TONES, PALETTE } from '@/web/scene/sprites/palette'
+import { TRAY_STACK } from '@/web/scene/world/seats'
 
 const SHEET_EDGE = '#B4BAC5'
 const SHEET_W = 4
@@ -9,6 +9,9 @@ const SHEET_H = 4
 const ARC_PX = 8
 // Each sheet on the tray sits this much above the one below.
 const STACK_STEP_PX = 1
+const TRAY_SHEETS_MAX = 6
+const TRAY_SHEET_W = 6
+const TRAY_SHEET_EDGE = '#E2E5EC'
 
 /** The sheets in flight between the last two sim steps, each on a small arc. */
 export function paintPapers(
@@ -25,10 +28,16 @@ export function paintPapers(
   }
 }
 
-/** The operator's tray stack, one sheet per waiting approval and unread notice. */
+/** The operator's tray stack, one sheet per waiting approval and unread notice, as high as the
+ *  tray holds. */
 export function paintTray(g: CanvasRenderingContext2D, count: number): void {
-  for (let i = 0; i < count; i++) {
-    sheet(g, TRAY_AT.x, TRAY_AT.y - i * STACK_STEP_PX)
+  for (let i = 0; i < Math.min(TRAY_SHEETS_MAX, count); i++) {
+    const y = TRAY_STACK.y - i * STACK_STEP_PX
+
+    g.fillStyle = DEVICE_TONES.page
+    g.fillRect(TRAY_STACK.x, y, TRAY_SHEET_W, 2)
+    g.fillStyle = TRAY_SHEET_EDGE
+    g.fillRect(TRAY_STACK.x, y, TRAY_SHEET_W, 1)
   }
 }
 
