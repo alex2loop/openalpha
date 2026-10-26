@@ -111,6 +111,7 @@ function whatOf(now: ActorNow): string {
       return tr('ui.office.label.queued', { what: now.what })
     case 'busy':
       return formatRunName(now.run)
+    case 'errand':
     case 'life':
       return now.line
     case 'dot':

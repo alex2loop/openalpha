@@ -20,7 +20,8 @@ import { distance } from '@/web/scene/sim/actors/nav'
 import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { isOfficeOpen } from '@/web/scene/sim/director'
 import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
-import { addCup, createDesks, deskDueOf, stepDesks } from '@/web/scene/sim/life/desks'
+import { createDesks, deskDueOf, keepCup, stepDesks } from '@/web/scene/sim/life/desks'
+import { stepErrands } from '@/web/scene/sim/life/errand-home'
 import { stepAsks, subscribeLife } from '@/web/scene/sim/life/events'
 import { lineOf, type MomentKind, momentDueOf, stepMoment } from '@/web/scene/sim/life/moments'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
@@ -39,6 +40,7 @@ import { fidgetDueOf, postureLineOf, stepFidgets, stepPostures } from '@/web/sce
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { approachOf } from '@/web/scene/sim/places'
 import { stepBell } from '@/web/scene/sim/rhythm'
+import { type Errands, isOnErrand } from '@/web/scene/sim/street/errands'
 import { propsOn } from '@/web/scene/world/props'
 import { isInRange } from '@/web/scene/world/regions'
 import { onWireEvent } from '@/web/state/events'
@@ -146,8 +148,9 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
 
 /** Free for the office life: no goal the live store calls for (no work, no approval or question,
  *  no walk to your desk), no gesture of a real event, no marker over the head, no job due within
- *  `JOB_DUE_MS`, not the mascot; staff only, never a temporary child or an own agent. */
-function isFree(actor: ActorState): boolean {
+ *  `JOB_DUE_MS`, not out on an errand, not the mascot; staff only, never a temporary child or an
+ *  own agent. */
+function isFree(actor: ActorState, errands: Errands): boolean {
   const id = actor.def.id
   const isMarked = id === CLERK && (breachedStops.value?.length ?? 0) > 0
   const hasBeat = actor.beats.some((beat) => beat.kind !== 'life')
@@ -158,7 +161,8 @@ function isFree(actor: ActorState): boolean {
     (actor.goal === undefined || actor.isLife) &&
     !hasBeat &&
     !isMarked &&
-    !dueOwners().has(id)
+    !dueOwners().has(id) &&
+    !isOnErrand(errands, id)
   )
 }
 
@@ -174,7 +178,9 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
     nowMs,
     clock: pageMinute.value,
     actors,
-    free: [...actors.values()].filter((actor) => isFree(actor) && !state.moments.has(actor.def.id)),
+    free: [...actors.values()].filter(
+      (actor) => isFree(actor, deps.director.errands) && !state.moments.has(actor.def.id)
+    ),
     pack: regionPack.value.officeLife,
     canWalk,
     isCalm: canWalk && !isQuiet,
@@ -191,6 +197,7 @@ function stepLife(state: LifeState, step: LifeStep): boolean {
 
   const isMoving = stepCart(state, step)
 
+  stepErrands(state, { step, isFree: (actor) => isFree(actor, state.director.errands) })
   stepAsks(state, step)
   stepMoments(state, step)
   stepRounds(state, step)
@@ -215,7 +222,8 @@ function stepMoments(state: LifeState, step: LifeStep): void {
   for (const [id, moment] of state.moments) {
     const actor = step.actors.get(id)
     const isStillFree =
-      actor !== undefined && (id === ASSISTANT ? isRoundFree(actor) : isFree(actor))
+      actor !== undefined &&
+      (id === ASSISTANT ? isRoundFree(actor) : isFree(actor, state.director.errands))
 
     if (actor === undefined || !isStillFree || !step.canWalk) {
       endMoment(state, id)
@@ -226,8 +234,7 @@ function stepMoments(state: LifeState, step: LifeStep): void {
       endMoment(state, id)
 
       if (moment.item === 'cup') {
-        state.mugs.add(id)
-        addCup(state.desks, id)
+        keepCup(state, id)
       }
 
       if (moment.kind === 'idle') {

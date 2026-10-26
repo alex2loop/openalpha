@@ -53,12 +53,13 @@ export function vehicleSizeOf(vehicle: {
   return SIZES[vehicle.kind === 'car' ? vehicle.car : vehicle.kind]
 }
 
-/** A new vehicle of `spec` at its way's entry, or where `spec` places it, when there is room. */
-export function spawn(traffic: SpawnWorld, spec: Spawn): void {
+/** A new vehicle of `spec` at its way's entry, or where `spec` places it, when there is room;
+ *  the vehicle placed, if one was. */
+export function spawn(traffic: SpawnWorld, spec: Spawn): Vehicle | undefined {
   const vehicle = traffic.pool.find((candidate) => !candidate.on)
 
   if (vehicle === undefined) {
-    return
+    return undefined
   }
 
   dress(traffic, vehicle, spec.kind)
@@ -68,9 +69,13 @@ export function spawn(traffic: SpawnWorld, spec: Spawn): void {
 
   vehicle.pos = spec.pos ?? entry - flow.dir * EDGE_GAP_PX
 
-  if (isClear(traffic.pool, { flow, pos: vehicle.pos, len: vehicle.len })) {
-    place(traffic, vehicle, spec)
+  if (!isClear(traffic.pool, { flow, pos: vehicle.pos, len: vehicle.len })) {
+    return undefined
   }
+
+  place(traffic, vehicle, spec)
+
+  return vehicle
 }
 
 function isClear(

@@ -6,6 +6,7 @@ import type { ActorId, FloorId, Point, Rect, RoomId, ScreenPoint, SimView } from
 import type { Turn } from '@/web/state/chat'
 import { pluralKey } from '@/i18n'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
+import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { isInside } from '@/web/scene/world/rooms'
 import { MEET_AUDIENCE } from '@/web/scene/world/seats'
@@ -165,7 +166,7 @@ export function clearMeeting(): void {
 function isPickable(sim: SimView, actor: ActorId): boolean {
   const held = sim.actors.find((each) => each.id === actor)
 
-  return held?.floor === MEET_FLOOR && rosterDefOf(actor) !== undefined
+  return held !== undefined && isOnFloor(held, MEET_FLOOR) && rosterDefOf(actor) !== undefined
 }
 
 function toggle(state: MeetingState, at: { readonly sim: SimView; readonly actor: ActorId }): void {

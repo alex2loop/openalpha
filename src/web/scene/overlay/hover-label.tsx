@@ -90,6 +90,8 @@ export function replyTextOf(now: ActorNow): string {
       return tr('ui.office.ix.queued')
     case 'busy':
       return tr('ui.office.ix.busy', { what: formatRunName(now.run) })
+    case 'errand':
+      return now.line
     default:
       return tr('ui.office.ix.free')
   }
@@ -105,6 +107,7 @@ function lineOf(now: ActorNow, epochMs: number): string {
       return tr('ui.office.label.queued', { what: now.what })
     case 'busy':
       return runLineOf(now.run, epochMs)
+    case 'errand':
     case 'life':
       return now.line
     case 'dot':

@@ -44,6 +44,7 @@ import {
   isTeamFloor,
   isTeamTagged,
 } from '@/web/scene/overlay/team-pass'
+import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { isActorId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection, view } from '@/web/scene/view'
 import { roomsOn } from '@/web/scene/world/rooms'
@@ -202,7 +203,7 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
   const figures = new Map<ActorId, Rect>()
 
   for (const actor of sim.actors) {
-    if (actor.floor === sim.floor) {
+    if (isOnFloor(actor, sim.floor)) {
       figures.set(actor.id, toScreenRect(renderer, figureOf(actor, sim.alpha)))
     }
   }
@@ -335,8 +336,7 @@ function teamPlacesOf(
   return addDesk === undefined ? { cards } : { cards, addDesk: toScreenRect(renderer, addDesk) }
 }
 
-// At floor zoom only the waits show, unless their speaker is selected or on the team floor; a
-// speaker off screen shows none.
+// At floor zoom only waits show, unless the speaker is selected or on the team floor; none off screen.
 function shownBubbles(input: PassInput): Bubble[] {
   const { pane } = projection.value
 

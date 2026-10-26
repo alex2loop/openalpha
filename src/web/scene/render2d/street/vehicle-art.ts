@@ -179,7 +179,7 @@ export function dirOf(heading: Heading): 1 | -1 {
   return heading === 'east' || heading === 'south' ? 1 : -1
 }
 
-export function toneOf(art: Art, hex: string): string {
+export function toneOf(art: { readonly dark: number }, hex: string): string {
   return mixTone(hex, NIGHT_TONE, art.dark * NIGHT_SHARE)
 }
 

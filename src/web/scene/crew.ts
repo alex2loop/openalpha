@@ -32,7 +32,11 @@ export function createCrew(): Crew {
   const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
   const team = createTeam({ agents, runs, offers: coolerOffer, hub: onWireEvent })
   const teamDesks = () => team.view(performance.now()).desks
-  const street = createStreet({ pack: regionPack, reduced: reducedMotion })
+  const street = createStreet({
+    pack: regionPack,
+    reduced: reducedMotion,
+    errands: director.errands,
+  })
   const painter = createStreetPainter()
 
   lendStreetTimes(() => ({ stepMs: street.stepMs(), paintMs: painter.paintMs() }))

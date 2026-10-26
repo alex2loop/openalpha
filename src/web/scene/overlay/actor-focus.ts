@@ -6,8 +6,10 @@ import { hoverTextOf, personNameOf, replyTextOf } from '@/web/scene/overlay/hove
 import { announce, hoverActor, keyActor, keyedActor } from '@/web/scene/overlay/overlay'
 import { closeMenu, menuActionsFor, openMenu } from '@/web/scene/overlay/radial-menu'
 import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
+import { STREET_FIGURE_H } from '@/web/scene/street-types'
 import { FIGURE } from '@/web/scene/types'
 import { centerOn, keepFollowing, startFollow, stopFollow, view } from '@/web/scene/view'
+import { STREET_DOOR } from '@/web/scene/world/doors'
 import { selectActor } from '@/web/state/focus'
 import { tr } from '@/web/text/tr'
 import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
@@ -34,7 +36,7 @@ export function engage(deps: FocusDeps, reach: Reach): void {
   const sim = deps.readView()
   const { actor } = reach
   const now = actorNowOf(sim, actor)
-  const isFree = now.kind === 'dot' || now.kind === 'life'
+  const isFree = now.kind === 'dot' || now.kind === 'life' || now.kind === 'errand'
 
   deps.director.requestReaction(actor, isFree ? 'greet' : 'busy-glance')
   sayAs(actor, replyTextOf(now))
@@ -144,7 +146,7 @@ export function frameFollow(sim: SimView): void {
     y: held.prev.y + (held.at.y - held.prev.y) * sim.alpha,
   }
 
-  keepFollowing({ floor: held.floor, point: { x: at.x, y: at.y - FIGURE.h / 2 } })
+  keepFollowing({ floor: held.floor, point: chestOf({ ...held, at }) })
 }
 
 function focusOn(deps: FocusDeps, actor: ActorView): void {
@@ -159,7 +161,7 @@ function focusOn(deps: FocusDeps, actor: ActorView): void {
   closeMenu(false)
   keyActor(actor.id)
   hoverActor(actor.id)
-  centerOn(chestOf(actor))
+  centerOn(actor.errand?.isOut === true ? chestOf({ at: STREET_DOOR }) : chestOf(actor))
   deps.director.requestReaction(actor.id, 'look')
   announce(hoverTextOf(personNameOf(sim, actor.id), actorNowOf(sim, actor.id), Date.now()))
   deps.wake()
@@ -187,6 +189,9 @@ function rankOf(sim: SimView, actor: ActorId): number {
   return slot >= 0 ? ROSTER.length + slot : ROSTER.length + sim.team.desks.length
 }
 
-function chestOf(actor: ActorView): Point {
-  return { x: actor.at.x, y: actor.at.y - FIGURE.h / 2 }
+// Half a figure above the feet: an office figure's, or the smaller street one while out.
+function chestOf(actor: Pick<ActorView, 'at' | 'errand'>): Point {
+  const height = actor.errand?.isOut === true ? STREET_FIGURE_H : FIGURE.h
+
+  return { x: actor.at.x, y: actor.at.y - height / 2 }
 }

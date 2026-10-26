@@ -1,5 +1,5 @@
 import type { MessageKey } from '@/i18n'
-import type { BikeShape, CarSize, ChatterId } from '@/web/scene/street-types'
+import type { BikeShape, CarSize, ChatterId, ErrandItem, ShopKind } from '@/web/scene/street-types'
 import { type ActorId, type Point, WORLD } from '@/web/scene/types'
 import { VN_PACK } from '@/web/scene/world/regions/vn'
 import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
@@ -80,17 +80,6 @@ export interface BusStop {
   readonly side: 'far' | 'near'
 }
 
-export type ShopKind =
-  | 'cafe'
-  | 'store'
-  | 'pharmacy'
-  | 'food'
-  | 'bank'
-  | 'lobby'
-  | 'alley'
-  | 'shutter'
-  | 'fence'
-
 /** One front of the block face, in street order, left to right. Open `hours`: a closed `shutter`
  *  is `[0, 0]`; a day and night shop is `[0, 1440]`, so it never closes when `hours[0] === 0 &&
  *  hours[1] >= 1440` (`hours[1] >= 1440` alone would also match a shop that closes at midnight).
@@ -99,7 +88,7 @@ export interface ShopRow {
   readonly kind: ShopKind
   readonly frontageM: number
   readonly hours: MinuteRange
-  readonly item?: 'cup' | 'bag' | 'box'
+  readonly item?: ErrandItem
 }
 
 /** The traffic, as shares (each group sums to one): vehicles by kind, motorbikes by shape, cars
@@ -210,6 +199,19 @@ export function packOf(homeRegion: string | undefined): RegionPack {
 
 export function isInRange(minute: number, range: MinuteRange): boolean {
   return minute >= range[0] && minute < range[1]
+}
+
+/** The minute of the day falls in one of `ranges`. */
+export function isWithin(ranges: MinuteRanges, minute: number): boolean {
+  const at = minute % MINUTES_PER_DAY
+
+  for (const range of ranges) {
+    if (isInRange(at, range)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 /** The door of `shops[index]` on the far pavement: the row runs left to right with its lobby
