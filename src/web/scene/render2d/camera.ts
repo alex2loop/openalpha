@@ -1,16 +1,10 @@
 import type { Rect, Size } from '@/web/scene/types'
 import type { Breakpoint } from '@/web/state/breakpoints'
-import { FRAME_RECT } from '@/web/scene/view'
+import { fitFloorScale, fitRoomScale, NARROW_MIN_SCALE } from '@/web/scene/world/framing'
 
-// Leaves a sliver of the pane around the frame.
-const FRAME_FILL = 0.98
-// A room fills the pane with a tenth of itself to spare round its walls.
-const ROOM_PAD = 1.1
 // From this density up, eighth steps are too fine to see uneven art pixels.
 const FINE_DPR = 2
 const FINE_STEPS = 8
-// Below the narrow width the floor never draws under one CSS pixel per world pixel; the rest pans.
-const NARROW_MIN_SCALE = 1
 // The floor is painted at a whole zoom of at most this, then stretched to the true scale.
 const MAX_STRETCH = 6
 
@@ -22,7 +16,7 @@ export interface Fit {
 
 /** The framing rectangle fitted to the pane, snapped so art pixels stay even. */
 export function fitFloor(viewport: Size, dpr: number, breakpoint: Breakpoint): Fit {
-  const raw = Math.min(viewport.w / FRAME_RECT.w, viewport.h / FRAME_RECT.h) * FRAME_FILL
+  const raw = fitFloorScale(viewport)
   const snapped = snapScale(raw, dpr)
 
   return toFit(breakpoint === 'wide' ? snapped : Math.max(NARROW_MIN_SCALE, snapped), dpr)
@@ -31,7 +25,7 @@ export function fitFloor(viewport: Size, dpr: number, breakpoint: Breakpoint): F
 /** A room with its walls and a tenth to spare, in whole steps below `FINE_DPR`, so two partitions
  *  of one wall never draw at different widths. */
 export function fitRoom(room: Rect, viewport: Size, dpr: number): Fit {
-  const raw = Math.min(viewport.w / (room.w * ROOM_PAD), viewport.h / (room.h * ROOM_PAD))
+  const raw = fitRoomScale(room, viewport)
 
   return toFit(snapScale(raw, dpr), dpr)
 }

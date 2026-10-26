@@ -1,5 +1,6 @@
 import type { DeskFocus, DeskView, TeamView } from '@/web/scene/types'
 import { fill, INK } from '@/web/scene/render2d/building'
+import { FOCUS_TONES, PROP_TONES } from '@/web/scene/sprites/palette'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 
 /** One thing the team floor adds to the y-sorted paint. */
@@ -27,7 +28,6 @@ const SCREEN_SORT_LIFT = 0.5
 const DESK_BOTTOM = 20
 const ITEM_SORT_LIFT = 0.5
 const PIECE_TIE = 1
-const SCREEN_LIT = '#9FC2FF'
 const SCREEN_LINE = '#E8F0FF'
 const GLOW_RGB = '120,160,255'
 const GLOW_RADIUS = 22
@@ -36,9 +36,7 @@ const THREAD_STEP_PX = 6
 const THREAD_DOT = 2
 const THREAD_PHASES = 3
 const THREAD_TICK_MS = 120
-const THREAD_ON = '#4E6CA8'
 const THREAD_OFF = 'rgba(78,108,168,.35)'
-const BURST_TONE = '#32D74B'
 const BURST_PHASES = 4
 const BURST_TICK_MS = 140
 const BURST_SPARKS: readonly (readonly [number, number])[] = Object.freeze([
@@ -51,33 +49,31 @@ const BURST_SPARKS: readonly (readonly [number, number])[] = Object.freeze([
   [8, 5],
   [0, 7],
 ])
-const CLOUD_BACK = '#B6B7C9'
-const CLOUD_FRONT = '#C9CAD8'
 
 type Painter = (g: CanvasRenderingContext2D, x: number, y: number) => void
 
 const FOCUS_PAINTERS: Readonly<Record<DeskFocus, Painter>> = Object.freeze({
   safe: (g, x, y) => {
     fill(g, [x, y, 9, 8], INK)
-    fill(g, [x + 1, y + 1, 7, 6], '#9296AA')
+    fill(g, [x + 1, y + 1, 7, 6], FOCUS_TONES.safe)
     fill(g, [x + 3, y + 3, 3, 2], '#D9DCE6')
     fill(g, [x + 6, y + 3, 1, 2], INK)
   },
   candles: (g, x, y) => {
     fill(g, [x, y, 10, 8], INK)
-    fill(g, [x + 1, y + 1, 8, 6], '#1E2230')
+    fill(g, [x + 1, y + 1, 8, 6], FOCUS_TONES.candles)
     fill(g, [x + 2, y + 3, 1, 3], '#32D74B')
     fill(g, [x + 4, y + 2, 1, 3], '#FF6259')
     fill(g, [x + 6, y + 2, 1, 4], '#32D74B')
   },
   gold: (g, x, y) => {
     fill(g, [x, y + 3, 10, 5], INK)
-    fill(g, [x + 1, y + 4, 8, 3], '#D9A23E')
+    fill(g, [x + 1, y + 4, 8, 3], FOCUS_TONES.gold)
     fill(g, [x + 2, y + 4, 6, 1], '#F4DA9C')
   },
   piggy: (g, x, y) => {
     fill(g, [x + 1, y + 2, 8, 6], INK)
-    fill(g, [x + 2, y + 3, 6, 4], '#ECBED8')
+    fill(g, [x + 2, y + 3, 6, 4], FOCUS_TONES.piggy)
     fill(g, [x + 7, y + 4, 2, 2], '#CB8EB3')
     fill(g, [x + 4, y + 1, 2, 1], INK)
     fill(g, [x + 3, y + 4, 1, 1], INK)
@@ -117,7 +113,7 @@ function deskPieces(g: CanvasRenderingContext2D, desk: DeskView): TeamPiece[] {
 }
 
 function paintScreen(g: CanvasRenderingContext2D, x: number, y: number): void {
-  fill(g, [x + SCREEN_DX, y + SCREEN_DY, SCREEN_W, SCREEN_H], SCREEN_LIT)
+  fill(g, [x + SCREEN_DX, y + SCREEN_DY, SCREEN_W, SCREEN_H], PROP_TONES.screenLit)
   fill(g, [x + SCREEN_DX + 2, y + SCREEN_DY + 2, SCREEN_W - 6, 1], SCREEN_LINE)
   fill(g, [x + SCREEN_DX + 2, y + SCREEN_DY + 5, SCREEN_W - 8, 1], SCREEN_LINE)
 }
@@ -163,7 +159,7 @@ export function paintTeamTop(g: CanvasRenderingContext2D, team: TeamView, frame:
       fill(
         g,
         [x, y, THREAD_DOT, THREAD_DOT],
-        (i + phase) % THREAD_PHASES === 0 ? THREAD_ON : THREAD_OFF
+        (i + phase) % THREAD_PHASES === 0 ? PROP_TONES.threadOn : THREAD_OFF
       )
     }
   }
@@ -181,8 +177,8 @@ function paintBurst(
   const { x, y } = burst.at
 
   if (burst.tone === 'stop') {
-    fill(g, [x - 8, y - 2, 16, 5], CLOUD_BACK)
-    fill(g, [x - 5, y - 5, 10, 4], CLOUD_FRONT)
+    fill(g, [x - 8, y - 2, 16, 5], PROP_TONES.cloud[0])
+    fill(g, [x - 5, y - 5, 10, 4], PROP_TONES.cloud[1])
     return
   }
 
@@ -192,7 +188,7 @@ function paintBurst(
   const spread = 1 + step / (BURST_PHASES - 1)
 
   for (const [dx, dy] of BURST_SPARKS) {
-    fill(g, [Math.round(x + dx * spread), Math.round(y + dy * spread), 3, 3], BURST_TONE)
+    fill(g, [Math.round(x + dx * spread), Math.round(y + dy * spread), 3, 3], PROP_TONES.burst)
   }
 }
 

@@ -24,6 +24,28 @@ export function PerfReadout({ renderer }: PerfReadoutProps) {
   return isShown ? <PerfPanel renderer={renderer} /> : null
 }
 
+// The 2D frame against its budget; the 3D frame has no budget of its own, so it reads bare.
+function FrameLine({ stats }: { readonly stats: RendererStats | undefined }) {
+  if (stats?.view === '3d') {
+    return (
+      <PerfLine
+        isOver={false}
+        text={tr('ui.office.perf.frame3d', { ms: formatFixed(stats.frameMs, MS_DIGITS) })}
+      />
+    )
+  }
+
+  return (
+    <PerfLine
+      isOver={stats !== undefined && stats.frameMs > FRAME_2D_BUDGET_MS}
+      text={tr('ui.office.perf.frame2d', {
+        ms: formatFixed(stats?.frameMs, MS_DIGITS),
+        budget: formatFixed(FRAME_2D_BUDGET_MS, MS_DIGITS),
+      })}
+    />
+  )
+}
+
 function PerfPanel({ renderer }: PerfReadoutProps) {
   const [stats, setStats] = useState<RendererStats | undefined>(undefined)
 
@@ -32,13 +54,7 @@ function PerfPanel({ renderer }: PerfReadoutProps) {
   return (
     <div class="perf-readout glass" role="status">
       <p class="perf-title">{tr('ui.office.perf.title')}</p>
-      <PerfLine
-        isOver={stats !== undefined && stats.frameMs > FRAME_2D_BUDGET_MS}
-        text={tr('ui.office.perf.frame2d', {
-          ms: formatFixed(stats?.frameMs, MS_DIGITS),
-          budget: formatFixed(FRAME_2D_BUDGET_MS, MS_DIGITS),
-        })}
-      />
+      <FrameLine stats={stats} />
       <PerfLine
         isOver={stats !== undefined && stats.rendersPerSecond > SMALL_MOTION_RENDERS_PER_S}
         text={tr('ui.office.perf.renders', {

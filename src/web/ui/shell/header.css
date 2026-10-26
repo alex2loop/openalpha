@@ -48,3 +48,12 @@
 :root[data-layout="phone"] .header .chip svg {
   display: none;
 }
+:root[data-layout="phone"] .header .view-switch {
+  flex: none;
+}
+:root[data-layout="phone"] .header .view-switch button {
+  padding: 4px 6px;
+}
+:root[data-layout="phone"] .header :is(.bell-button, .gear-button) {
+  flex: none;
+}

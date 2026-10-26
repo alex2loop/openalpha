@@ -1,4 +1,4 @@
-import type { PoseId } from '@/web/scene/types'
+import type { ActorView, FloorId, HeldItem, PoseId } from '@/web/scene/types'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const GAIT_STEP_MS = 250
@@ -76,6 +76,18 @@ interface PoseClock {
   readonly sinceMs: number
   readonly nowMs: number
 }
+
+// What each carried thing is held as; a phone is held its own way.
+const HELD_OF: Readonly<Record<HeldItem, HeldKind | undefined>> = Object.freeze({
+  card: 'item',
+  calculator: 'item',
+  pen: 'item',
+  phone: undefined,
+  headset: 'item',
+  wallet: 'item',
+  box: 'box',
+  cup: 'cup',
+})
 
 /** The whole pose vocabulary; `cheer` is the mascot's alone. */
 const POSES: Readonly<Record<PoseId, PoseDef>> = Object.freeze({
@@ -162,13 +174,42 @@ const POSES: Readonly<Record<PoseId, PoseDef>> = Object.freeze({
   'sit-up': { frames: [{}] },
 } satisfies Record<PoseId, PoseDef>)
 
+/** Whether a floor's people blink and breathe now: always while one works, walks or plays a
+ *  moving pose, otherwise only inside an ambient bout, so a quiet floor asks for no frame. */
+export function isCharacterMotionOn(
+  actors: readonly ActorView[],
+  at: { readonly floor: FloorId; readonly now: number }
+): boolean {
+  const here = actors.filter((actor) => actor.floor === at.floor)
+
+  if (here.length === 0) {
+    return false
+  }
+
+  const isBusy = here.some(
+    (actor) => actor.working || isActorWalking(actor) || isPoseMoving(actor.pose)
+  )
+
+  return isBusy || isAmbientBout(at.floor, at.now)
+}
+
+/** The person moved between the last two sim steps. */
+export function isActorWalking(actor: ActorView): boolean {
+  return actor.prev.x !== actor.at.x || actor.prev.y !== actor.at.y
+}
+
+/** How `item` sits in the hand; a phone has no held kind of its own. */
+export function heldKindOf(item: HeldItem): HeldKind | undefined {
+  return HELD_OF[item]
+}
+
 /** The fidget `seed` picks. */
 export function fidgetPoseOf(seed: number): PoseId {
   return createRng(seed).pick(FIDGET_POSES)
 }
 
 /** Whether the pose moves on its own, so it asks for frames while it shows. */
-export function isPoseMoving(pose: PoseId): boolean {
+function isPoseMoving(pose: PoseId): boolean {
   return POSES[pose].frameMs !== undefined
 }
 

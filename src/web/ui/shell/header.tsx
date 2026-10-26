@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
 import { ClockControl } from '@/web/scene/overlay/clock-control'
+import { ViewSwitch } from '@/web/scene/overlay/view-switch'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
@@ -36,6 +37,7 @@ export function Header() {
       </div>
       <RunningChip anchor={jobsAnchor} />
       <span class="header-grow" />
+      <ViewSwitch />
       <FocusButton />
       {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       <ClockControl />

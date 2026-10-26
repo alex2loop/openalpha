@@ -1,7 +1,6 @@
 import { computed, effect, untracked } from '@preact/signals'
 import { useEffect, useRef, useState } from 'preact/hooks'
 
-import type { SceneRenderer } from '@/web/scene/renderer'
 import type { RoomId, SimView } from '@/web/scene/types'
 import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
@@ -13,7 +12,6 @@ import { AddDesk } from '@/web/scene/overlay/add-desk'
 import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
 import { EmptyTeam } from '@/web/scene/overlay/empty-team'
-import { attachInteraction, type Interaction } from '@/web/scene/overlay/interact'
 import { MeetingBar } from '@/web/scene/overlay/meeting-bar'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
@@ -21,8 +19,11 @@ import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/o
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
+import { type InputSlot, type Renderers, startViews } from '@/web/scene/overlay/scene-views'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
+import { ViewNote } from '@/web/scene/overlay/view-note'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
+import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isKidActorId } from '@/web/scene/sim/actors/roster'
 import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
@@ -46,18 +47,18 @@ import './canvas.css'
 
 // The tray counts unread notices; before the first read there are none to count.
 const unreadCount = computed(() => unread.value ?? 0)
-
 /** The office scene: the mounted renderer driven by the sim loop, sized to its pane, with its
  *  overlays on top. */
 export function SceneCanvas() {
   const host = useRef<HTMLDivElement>(null)
-  const [renderer] = useState(createRenderer2d)
+  const [renderers] = useState(createRenderers)
+  const renderer = renderers.host
 
   useEffect(() => {
     const element = host.current
 
-    return element === null ? undefined : mountScene(element, renderer)
-  }, [renderer])
+    return element === null ? undefined : mountScene(element, renderers)
+  }, [renderers])
 
   useEffect(() => effect(syncSceneZone), [])
 
@@ -75,14 +76,21 @@ export function SceneCanvas() {
       <RadialMenu />
       <Toolbar />
       <PerfReadout renderer={renderer} />
+      <ViewNote />
     </div>
   )
 }
 
+function createRenderers(): Renderers {
+  const flat = createRenderer2d()
+
+  return { flat, host: createRendererHost(flat) }
+}
+
 // Everything it arms, the returned stop releases: data reads, the director, the overlay, loop,
 // input, observer, listeners and the renderer.
-function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
-  const listeners = new AbortController()
+function mountScene(element: HTMLElement, renderers: Renderers): () => void {
+  const renderer = renderers.host
   const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda(), startTeamCalls()]
   const { director, life, team } = createCrew()
 
@@ -91,9 +99,15 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
   const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
   const input: InputSlot = { current: undefined }
   const { loop, readView } = createSceneLoop({ director, life, team, renderer, overlay, input })
-  const resize = new ResizeObserver(() => loop.wake())
-  input.current = attachInput(element, { renderer, readView, director, wake: loop.wake })
   const offs = [
+    startViews({
+      renderers,
+      element,
+      input,
+      pointer: { renderer, readView, director, wake: loop.wake },
+      load3d: loadRenderer3d,
+    }),
+    watchPane(element, loop.wake),
     effect(() => {
       readSceneInputs()
       untracked(loop.wake)
@@ -103,8 +117,6 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
     onWireEvent('run_started', (event) => followRun(director, event.runId)),
   ]
 
-  resize.observe(element)
-  watchResolution(loop.wake, listeners.signal)
   loop.start()
 
   return () => {
@@ -112,31 +124,18 @@ function mountScene(element: HTMLElement, renderer: SceneRenderer): () => void {
       off()
     }
 
-    input.current?.detach()
     loop.stop()
     overlay.stop()
     life.dispose()
     director.dispose()
     team.dispose()
     selectActor(undefined)
-    resize.disconnect()
-    listeners.abort()
     renderer.unmount()
 
     for (const stop of stops) {
       stop()
     }
   }
-}
-
-// The canvas's input, once the renderer has put its canvas in.
-function attachInput(
-  element: HTMLElement,
-  deps: Parameters<typeof attachInteraction>[1]
-): Interaction | undefined {
-  const canvas = element.querySelector('canvas')
-
-  return canvas === null ? undefined : attachInteraction(canvas, deps)
 }
 
 // The office's people, the office life over them and the team floor; the caller disposes each.
@@ -146,11 +145,6 @@ function createCrew(): Pick<LoopParts, 'director' | 'life' | 'team'> {
   const teamDesks = () => team.view(performance.now()).desks
 
   return { director, life: createLife({ director, teamDesks, reduced: reducedMotion }), team }
-}
-
-// The canvas's input, attached once the loop it steps on exists.
-interface InputSlot {
-  current: Interaction | undefined
 }
 
 interface LoopParts {
@@ -278,6 +272,24 @@ function readSceneInputs(): void {
   agents.value
   coolerOffer.value
   readOverlayInputs()
+}
+
+async function loadRenderer3d(): Promise<() => SceneRenderer> {
+  return (await import('./render3d/renderer-3d')).createRenderer3d
+}
+
+// A resize or a move to a screen of another density draws again; the returned stop releases both.
+function watchPane(element: HTMLElement, wake: () => void): () => void {
+  const resize = new ResizeObserver(() => wake())
+  const listeners = new AbortController()
+
+  resize.observe(element)
+  watchResolution(wake, listeners.signal)
+
+  return () => {
+    resize.disconnect()
+    listeners.abort()
+  }
 }
 
 // A move to a screen of another pixel density redraws at the new density; the query is re-armed for

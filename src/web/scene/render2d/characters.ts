@@ -1,6 +1,6 @@
 import type { FrameSpec, Material } from '@/web/scene/render2d/figure-spec'
-import type { HeldKind, PoseFrame } from '@/web/scene/sim/actors/poses'
-import type { ActorStatus, ActorView, FloorId, HeldItem } from '@/web/scene/types'
+import type { PoseFrame } from '@/web/scene/sim/actors/poses'
+import type { ActorStatus, ActorView } from '@/web/scene/types'
 import { buildFigure } from '@/web/scene/render2d/figure'
 import { buildMascot } from '@/web/scene/render2d/mascot'
 import {
@@ -13,10 +13,10 @@ import {
   SPRITE_W,
 } from '@/web/scene/render2d/pixel-grid'
 import {
-  isAmbientBout,
+  heldKindOf,
+  isActorWalking,
   isBlinking,
   isBreathDown,
-  isPoseMoving,
   poseFrameAt,
 } from '@/web/scene/sim/actors/poses'
 import {
@@ -27,6 +27,7 @@ import {
   PHONE_FINISHES,
   RAMP,
   SHADOW,
+  STATUS_TONES,
   WORK_RIM,
 } from '@/web/scene/sprites/palette'
 import { type Look, lookOf, PANTS_OF } from '@/web/scene/sprites/parts'
@@ -41,12 +42,6 @@ const SHADOW_H = 3
 const SELECT_RING = OUTLINE
 // A stamped sheet takes the action's hue: a buy in Up, a reduce in Down, a hold in Ink.
 const STAMP_TONES = Object.freeze({ buy: '#0B7532', reduce: '#C1231A', hold: OUTLINE })
-// The dot over a head: green free, amber waiting, red after an error.
-const STATUS_TONES = Object.freeze({
-  free: '#3FB06A',
-  waiting: '#F2A93B',
-  failed: '#E5484D',
-} satisfies Record<ActorStatus, string>)
 const STATUS_DOT_PX = 3
 const STATUS_RISE_PX = 2
 // Face details shade with the skin under them, so a dot eye never splits the head's bands.
@@ -62,16 +57,6 @@ const SKIN_DETAILS: ReadonlySet<Material> = new Set([
   'frame',
   'gold',
 ])
-const HELD_OF: Readonly<Record<HeldItem, HeldKind | undefined>> = Object.freeze({
-  card: 'item',
-  calculator: 'item',
-  pen: 'item',
-  phone: undefined,
-  headset: 'item',
-  wallet: 'item',
-  box: 'box',
-  cup: 'cup',
-})
 
 type Band = 0 | 1 | 2
 
@@ -91,23 +76,6 @@ interface CharacterFrame {
   readonly alpha: number
   readonly isSelected: boolean
   readonly motion: CharacterMotion
-}
-
-/** Whether the floor's people blink and breathe now: always while one works, walks or plays a
- *  moving pose, otherwise only inside an ambient bout, so a quiet floor asks for no frame. */
-export function isCharacterMotionOn(
-  actors: readonly ActorView[],
-  at: { readonly floor: FloorId; readonly now: number }
-): boolean {
-  const here = actors.filter((actor) => actor.floor === at.floor)
-
-  if (here.length === 0) {
-    return false
-  }
-
-  const isBusy = here.some((actor) => actor.working || isWalking(actor) || isPoseMoving(actor.pose))
-
-  return isBusy || isAmbientBout(at.floor, at.now)
 }
 
 /** Draws one person standing on its feet between `actor.prev` and `actor.at`, a ring under the
@@ -200,7 +168,7 @@ export function releaseCharacterSprites(): void {
 
 function toFrameSpec(actor: ActorView, frame: CharacterFrame): FrameSpec {
   const seed = seedOf(actor.id)
-  const isMoving = isWalking(actor)
+  const isMoving = isActorWalking(actor)
   const isAnimated = frame.motion.isOn && !frame.motion.isReduced
   const clock = { seed, sinceMs: actor.poseSince, nowMs: isAnimated ? frame.now : actor.poseSince }
   const pose = poseFrameAt(actor.pose, clock)
@@ -218,10 +186,6 @@ function toFrameSpec(actor: ActorView, frame: CharacterFrame): FrameSpec {
   }
 }
 
-function isWalking(actor: ActorView): boolean {
-  return actor.prev.x !== actor.at.x || actor.prev.y !== actor.at.y
-}
-
 // A sheet in hand, else what the actor carries: a phone is read in both hands unless the pose
 // already holds one.
 function heldOf(actor: ActorView, pose: PoseFrame): Pick<FrameSpec, 'hold' | 'phone' | 'sheet'> {
@@ -236,7 +200,7 @@ function heldOf(actor: ActorView, pose: PoseFrame): Pick<FrameSpec, 'hold' | 'ph
     return pose.phone === undefined ? { ...sheet, phone: 'read' } : sheet
   }
 
-  const hold = HELD_OF[actor.item]
+  const hold = heldKindOf(actor.item)
 
   return hold === undefined ? sheet : { ...sheet, hold }
 }

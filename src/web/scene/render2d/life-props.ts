@@ -1,23 +1,22 @@
 import type { FloorId, LifeView, Point, SteamView } from '@/web/scene/types'
-import { drawBlock, fill, framed, METAL } from '@/web/scene/render2d/building'
-import { detailOf, paintPet } from '@/web/scene/render2d/pets'
+import { drawBlock, fill, framed } from '@/web/scene/render2d/building'
+import { paintPet } from '@/web/scene/render2d/pets'
+import { detailOf } from '@/web/scene/sim/life/animal-model'
+import { feedKOf } from '@/web/scene/sim/life/events'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
+import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
 
-const PAPER = '#F7F5EF'
 const PAPER_EDGE = '#D9D4C7'
 const CART_W = 20
 const CART_TOP_H = 4
 const CART_FRONT_H = 6
 const CART_WHEEL = '#2B2433'
-const CUP_TONES = ['#F6C6D6', '#FFFFFF', '#BFD3EE'] as const
 const STEAM = 'rgba(255,255,255,.7)'
 const BUBBLE = 'rgba(217,239,251,.95)'
 const STEAM_RISE_PX = 5
 const STEAM_MS = 900
 const BUBBLE_MS = 1_200
-// A sheet slides out of the printer over this long, then joins the stack.
-const PRINT_FEED_MS = 900
 // The printer's out-tray, where delivered sheets stack.
 const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
 const SHEET_W = 12
@@ -84,13 +83,6 @@ export function paintLifeOver(
   }
 }
 
-/** How far the newest sheet has come out of the printer (1 once it lies on the stack). */
-export function feedKOf(life: LifeView, now: number): number {
-  const feedAt = life.feedAt
-
-  return feedAt === undefined ? 1 : Math.min(1, Math.max(0, (now - feedAt) / PRINT_FEED_MS))
-}
-
 /** The dessert cart, its wheels under it, a few cups on top. */
 function paintCart(g: CanvasRenderingContext2D, at: Point): void {
   const x = Math.round(at.x - CART_W / 2)
@@ -100,7 +92,7 @@ function paintCart(g: CanvasRenderingContext2D, at: Point): void {
   fill(g, [x + 1, y + CART_TOP_H + CART_FRONT_H, 3, 2], CART_WHEEL)
   fill(g, [x + CART_W - 4, y + CART_TOP_H + CART_FRONT_H, 3, 2], CART_WHEEL)
 
-  CUP_TONES.forEach((tone, i) => {
+  PROP_TONES.cups.forEach((tone, i) => {
     framed(g, [x + 3 + i * 6, y - 2, 3, 3], tone)
   })
 }
@@ -116,7 +108,7 @@ function paintSheets(
     const slide = isFeeding ? Math.round((1 - stack.feedK) * FEED_SLIDE_PX) : 0
     const y = Math.round(tray.y - i * SHEET_STEP_PX - slide)
 
-    fill(g, [Math.round(tray.x - SHEET_W / 2), y, SHEET_W, 2], PAPER)
+    fill(g, [Math.round(tray.x - SHEET_W / 2), y, SHEET_W, 2], PALETTE.paper)
     fill(g, [Math.round(tray.x - SHEET_W / 2), y + 2, SHEET_W, 1], PAPER_EDGE)
   }
 }

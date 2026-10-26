@@ -17,7 +17,7 @@ interface PinchDeps {
  *  canvas's input owns the listeners and hands each touch event here. */
 export interface Pinch {
   /** A finger went down: true when it starts the pinch or is a finger past two, which no press
-   *  takes. */
+   *  takes. A first finger starts afresh, so a lift the canvas never saw leaves no stale point. */
   down(event: PointerEvent): boolean
   /** A finger moved: true when the pinch took the move. */
   move(event: PointerEvent): boolean
@@ -36,16 +36,17 @@ export function createPinch(deps: PinchDeps): Pinch {
         return false
       }
 
+      if (event.isPrimary) {
+        points.clear()
+      }
+
       if (points.size >= PINCH_TOUCHES) {
         return true
       }
 
       points.set(event.pointerId, { x: event.clientX, y: event.clientY })
-
-      const pair = pairOf(points)
-
-      spreadPx = pair === undefined ? undefined : spreadOf(pair)
-      return pair !== undefined
+      spreadPx = pairSpreadOf(points)
+      return spreadPx !== undefined
     },
     move: (event) => {
       if (!points.has(event.pointerId)) {
@@ -109,6 +110,12 @@ function pairOf(points: ReadonlyMap<number, ScreenPoint>): TouchPair | undefined
   const [a, b] = [...points.values()]
 
   return a === undefined || b === undefined ? undefined : [a, b]
+}
+
+function pairSpreadOf(points: ReadonlyMap<number, ScreenPoint>): number | undefined {
+  const pair = pairOf(points)
+
+  return pair === undefined ? undefined : spreadOf(pair)
 }
 
 function spreadOf([a, b]: TouchPair): number {

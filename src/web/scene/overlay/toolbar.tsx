@@ -3,7 +3,7 @@ import { roomTagOf } from '@/web/scene/overlay/room-tags'
 import {
   canPanToward,
   leaveRoom,
-  MAX_ZOOM_STEPS,
+  maxZoomSteps,
   panBy,
   projection,
   setFloor,
@@ -129,7 +129,7 @@ function ZoomControls({
         class="scene-tool"
         aria-label={tr('ui.office.floor.zoomIn')}
         title={tr('ui.office.floor.zoomIn')}
-        disabled={zoomSteps >= MAX_ZOOM_STEPS}
+        disabled={zoomSteps >= maxZoomSteps()}
         onClick={() => zoomBy(1)}
       >
         {ZOOM_IN_GLYPH}
