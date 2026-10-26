@@ -30,6 +30,12 @@ this document — neither imports the other.
   loopback (defense in depth); `GET /`, its chunks and the `/v1/ws` handshake are answered before
   that check, so the bind alone guards them (the handshake adds the Origin allow-list below). No
   remote surface, ever.
+- **Host:** every request MUST carry a `Host` whose hostname is `127.0.0.1`, `localhost` or `[::1]`
+  (any port, so an SSH tunnel's local port passes); any other is `403 forbidden`, which stops a
+  DNS-rebinding page. A reverse proxy passes the daemon's own address as `Host`. A compiled binary
+  serves `GET /` and its chunks behind this check; a source run (`bun run`) serves the page through
+  Bun's `routes`, which answer before it (the page holds no data). A `/v1` request with
+  `Sec-Fetch-Site: cross-site` is `403 forbidden`; native clients send no `Sec-Fetch-Site` and pass.
 - **Auth:** `Authorization: Bearer <token>` on every route except `GET /v1/health` and `GET /`.
   `GET /` serves the office page and its content-hashed chunks, unauthenticated: they hold no data,
   and the page asks for the token before it reads any `/v1` route. Its route cannot carry headers,
@@ -40,7 +46,8 @@ this document — neither imports the other.
   `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod `0600`,
   generated on first enable. Compared constant-time.
   The `/v1/ws` handshake also enforces an **Origin allow-list**: a present `Origin` header MUST
-  have a loopback hostname (`127.0.0.1`, `localhost`, `[::1]`); native clients send no `Origin`
+  be `http://` plus the request's own `Host` (scheme, host and port), so only the page the daemon
+  served opens the socket and another local web app is refused; native clients send no `Origin`
   and pass. Requests presenting a wrong token, on HTTP and WS alike, count toward the same per-peer
   lockout (5 failures → 30s backoff, doubling to 1h). A request with no credentials is refused
   without counting, and a valid token is never refused by the lockout (it also clears it).
@@ -100,7 +107,7 @@ this document — neither imports the other.
 | DELETE | `/v1/pairing/:channel/:chatId` | yes | — | `PairingRevokeResult` `{ revoked }`: the chat's pairing is taken back and its next message is asked for a code again; false when it was not paired and held no code. A malformed channel or chat id is `invalid_body` | `pairing.revoke.json` |
 | POST | `/v1/runs/:runId/stop` | yes | — | 202 `RunStopWire` `{ stopped: true }`: the run was told to stop, whatever channel started it (stopping is safe, answering is not), and ends as `run_finished` with `outcome` `aborted` (an agent run or a command). A run that has finished or never existed is `not_found` with a `message` in the daemon's language; a malformed id is `invalid_body` | `run.stop.json` |
 | POST | `/v1/respond` | yes | `RespondBody` | `{ "ok": true }` | `respond.approval.json` |
-| GET · POST | `/v1/config`, `/v1/config/validate` | yes | raw config (POST) | config / validation / write result | — |
+| GET · POST | `/v1/config`, `/v1/config/validate` | yes | raw config (POST) | config / validation / write result (see the notes below) | — |
 | GET | `/v1/providers` | yes | — | provider catalog | — |
 | POST | `/v1/providers/test` | yes | `{}` | `ProviderTestResult` (`{ok, model}` or `{ok:false, code}`) | — |
 | GET · POST · DELETE | `/v1/auth/chatgpt` | yes | `{ method: 'browser' \| 'device' }` (POST) | `ChatgptAuthStatus` | `chatgpt.json`, `chatgpt.login.json` |
@@ -190,8 +197,23 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   `horizons` map changes only the markets it names.
 - **`preferredLocale`** in a profile response is `[locale] language`, the one language every reply
   uses; the profile has none of its own, so it is not a patch key.
-- **`/v1/providers/test`** makes one tiny call through the primary model. `code` is the provider's
-  error class (`auth` = key refused, `billing` = no credit, `rate`, `timeout`, `not_found`).
+- **`/v1/providers/test`** makes one tiny call through the saved primary model. `code` is the provider's
+  error class (`auth` = key refused, `billing` = no credit, `rate`, `timeout`, `not_found`). A body
+  naming `base_url` or `api_key_env` other than the primary model's is `invalid_body` with `fields`.
+- **`GET /v1/config`** returns the raw `config.toml` as JSON with every literal secret (each value of
+  an MCP server's `env`, and any string under a key matching `token`, `secret`, `password` or
+  `api_key` that is not a `*_env` variable name) replaced by `redacted`, the placeholder the response
+  carries. `POST /v1/config` and `/v1/config/validate` put the file's value back wherever the body
+  still holds `redacted` (an array item is matched by its `name`, else its place); one the file has
+  no value for is `invalid_body` with `fields`.
+- **`POST /v1/config`** refuses, as `invalid_body` with one `fields` entry per path, any change
+  against the file to what only the CLI or `config.toml` may change: `plugins`, `paths`, `storage`,
+  `log.file`, an MCP server's `transport`, `command`, `args` and `env` (servers matched by `name`, so
+  a new stdio server counts as a change), and every `*_env`, `base_url` and `fallback_base_url` key
+  anywhere. An equal value passes; dropping a `*_env`, `base_url` or `fallback_base_url` key passes
+  (the provider's own address and key variable take over), and so does an `api_key_env` set to the
+  key variable the provider catalog names for the entry's `provider`. The list is
+  `routes/config-guard.ts`.
 - **Before a daemon exists**, the app runs `openalpha setup catalog` (the provider list as
   `SetupResult`) and `openalpha setup write <provider> <model>` (the starter config) with the
   bundled binary; both print one JSON line.
@@ -384,7 +406,7 @@ stable code, never a leaked internal message. `message` is set only when the run
 sentence written for the operator (a ledger row the book cannot hold, say), in the daemon's
 language; show it as is. Codes and statuses are `wire/errors.ts` (`API_ERROR_STATUS`):
 `unauthorized`(401) `forbidden`(403) `not_found`(404) `invalid_body`(400) `conflict`(409) `price_unconfirmed`(422) `upstream_failed`(502) `too_many_streams`/`unavailable`(503) `timeout`(504)
-`internal`(500). `invalid_body` is every malformed request: JSON that does not parse, a body over its size cap, a path id that is malformed, a refused field. For a ledger draft, a job or an agent it also carries `fields`: `[{path, message}]`, one per refused field, `path` the field in the body you sent (`quantity`, `instrument.ticker`; empty for the body as a whole, which the sentence calls "this entry" or "the request") and `message` its sentence in the daemon's language, with the first repeated as `message`; mark each field and show the sentences as they are. `price_unconfirmed` also carries `unconfirmedPrice` (`UnconfirmedPriceWire`): the
+`internal`(500). `invalid_body` is every malformed request: JSON that does not parse, a body over its size cap, a path id that is malformed, a refused field. For a ledger draft, a job, an agent, a config write or a key test it also carries `fields`: `[{path, message}]`, one per refused field, `path` the field in the body you sent (`quantity`, `instrument.ticker`; empty for the body as a whole, which the sentence calls "this entry" or "the request") and `message` its sentence in the daemon's language, with the first repeated as `message`; mark each field and show the sentences as they are. `price_unconfirmed` also carries `unconfirmedPrice` (`UnconfirmedPriceWire`): the
 typed price, the market's latest price and the day it stands for. Fixtures: `error.unauthorized.json`,
 `error.price-unconfirmed.json`, `error.fields.json`.
 

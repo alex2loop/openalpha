@@ -5,11 +5,13 @@ import type { WsData, WsServices } from '@/app/server/ws/socket'
 import type { ApiHandle } from '@/app/types'
 import type { App } from '@/core/container'
 import {
+  isHostAllowed,
   isOriginAllowed,
   resolveAuthOutcome,
   resolveWebSocketCredential,
 } from '@/app/server/http/auth'
 import { apiError, handleHttp, toAuthRefusal } from '@/app/server/http/dispatch'
+import { PAGE_ROUTES, toPageResponse } from '@/app/server/http/page'
 import {
   closeAllSockets,
   closeSocketAdmission,
@@ -19,9 +21,10 @@ import {
 import { BRAND } from '@/core/brand'
 import { isErrno, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { officePage } from '@/web/api'
 
 const WS_PATH = '/v1/ws'
+const API_PREFIX = '/v1/'
+const CROSS_SITE = 'cross-site'
 export const LOOPBACK_HOST = '127.0.0.1'
 // Bound the buffer/parse cost of HTTP bodies and WS frames before schema validation.
 const MAX_HTTP_BODY_BYTES = 2_097_152
@@ -39,16 +42,8 @@ export function startApi(app: App, token: string, live: LiveFeed): ApiHandle {
       port: app.config.api.port,
       maxRequestBodySize: MAX_HTTP_BODY_BYTES,
       idleTimeout: IDLE_TIMEOUT_SECONDS,
-      routes: { '/': officePage },
-      fetch(req, srv): Response | undefined | Promise<Response> {
-        const url = new URL(req.url)
-
-        if (url.pathname === WS_PATH) {
-          return wsUpgradeResponse(req, srv, { wsServices, token })
-        }
-
-        return handleHttp(req, { app, token, live, ip: srv.requestIP(req)?.address ?? null })
-      },
+      routes: PAGE_ROUTES,
+      fetch: (req, srv) => routeRequest(req, srv, { app, token, live, wsServices }),
       websocket: { ...wsHandlers, maxPayloadLength: MAX_WS_FRAME_BYTES },
       // Bun's default error page is HTML with the stack; every error body here is `{ error: { code } }`.
       development: false,
@@ -80,6 +75,49 @@ export function startApi(app: App, token: string, live: LiveFeed): ApiHandle {
   }
 }
 
+interface RouteDeps {
+  readonly app: App
+  readonly token: string
+  readonly live: LiveFeed
+  readonly wsServices: WsServices
+}
+
+// Every request but the source run's page passes here, so the Host check comes first.
+function routeRequest(
+  req: Request,
+  srv: Server<WsData>,
+  deps: RouteDeps
+): Response | undefined | Promise<Response> {
+  const { app, token, live, wsServices } = deps
+  const url = new URL(req.url)
+
+  if (isForeignRequest(req, url.pathname)) {
+    return apiError('forbidden')
+  }
+
+  const page = toPageResponse(req, url.pathname)
+
+  if (page !== undefined) {
+    return page
+  }
+
+  if (url.pathname === WS_PATH) {
+    return wsUpgradeResponse(req, srv, { wsServices, token })
+  }
+
+  return handleHttp(req, { app, token, live, ip: srv.requestIP(req)?.address ?? null })
+}
+
+/** A DNS-rebinding page names its own host; a cross-site page may not drive `/v1` at all. Native
+ *  clients send no `Sec-Fetch-Site` and pass. */
+function isForeignRequest(req: Request, pathname: string): boolean {
+  if (!isHostAllowed(req.headers.get('host'))) {
+    return true
+  }
+
+  return pathname.startsWith(API_PREFIX) && req.headers.get('sec-fetch-site') === CROSS_SITE
+}
+
 /** A taken port is the operator's to fix, so it reads as their sentence, not a crash. */
 function listen(app: App, serve: () => Server<WsData>): Server<WsData> {
   try {
@@ -104,7 +142,7 @@ function wsUpgradeResponse(
   srv: Server<WsData>,
   ctx: { readonly wsServices: WsServices; readonly token: string }
 ): Response | undefined {
-  if (!isOriginAllowed(req.headers.get('origin'))) {
+  if (!isOriginAllowed(req.headers.get('origin'), req.headers.get('host'))) {
     return apiError('forbidden')
   }
 
