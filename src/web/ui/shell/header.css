@@ -29,8 +29,8 @@
   font-weight: 600;
 }
 
-/* The pane bar takes the focus toggle's place. */
-:root:not([data-layout="wide"]) .header-focus {
+/* The pane bar takes the focus toggle's place, and the cost chip drops its "AI today". */
+:root:not([data-layout="wide"]) :is(.header-focus, .header-cost-label) {
   display: none;
 }
 

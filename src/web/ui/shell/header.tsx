@@ -41,9 +41,9 @@ export function Header() {
       </div>
       <RunningChip anchor={jobsAnchor} />
       <span class="header-grow" />
+      {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       <ViewSwitch />
       <FocusButton />
-      {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       <ClockControl />
       <WeatherChip />
       <BellButton anchor={bellAnchor} />
@@ -134,6 +134,7 @@ function CostChip({ anchor }: AnchorProps) {
       onClick={() => togglePopover(COST_POPOVER_ID)}
     >
       <CoinIcon />
+      <span class="header-cost-label">{tr('ui.office.cost.todayLabel')}</span>
       {formatSpent(view?.todayUsd, view?.caps.dailyUsd)}
     </Chip>
   )
