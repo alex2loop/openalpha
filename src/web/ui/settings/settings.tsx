@@ -1,3 +1,4 @@
+import type { JSX } from 'preact'
 import { signal } from '@preact/signals'
 
 import { pluralKey } from '@/i18n'
@@ -10,6 +11,19 @@ import {
 import { loadUpdate } from '@/web/state/update'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import {
+  BookIcon,
+  ChatIcon,
+  ClockIcon,
+  CoinIcon,
+  CpuIcon,
+  EyeIcon,
+  LockIcon,
+  PlugIcon,
+  TargetIcon,
+  TrendIcon,
+  UserIcon,
+} from '@/web/ui/kit/icons'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { AdvancedSection } from '@/web/ui/settings/advanced'
 import { AgentsSection } from '@/web/ui/settings/agents-section'
@@ -28,6 +42,23 @@ import { UpdateStrip } from '@/web/ui/settings/update-strip'
 
 import '@/web/ui/dialogs/dialogs.css'
 import './settings.css'
+
+// Each section's tile in the nav, by the mockup's palette.
+const SECTION_TILES: Readonly<
+  Record<SettingsSection, { readonly colour: string; readonly icon: JSX.Element }>
+> = Object.freeze({
+  profile: { colour: 'green', icon: <UserIcon /> },
+  memory: { colour: 'yellow', icon: <BookIcon /> },
+  schedule: { colour: 'blue', icon: <ClockIcon /> },
+  agents: { colour: 'peach', icon: <CpuIcon /> },
+  channels: { colour: 'pink', icon: <ChatIcon /> },
+  providers: { colour: 'yellow', icon: <CoinIcon /> },
+  exchanges: { colour: 'green', icon: <TrendIcon /> },
+  tools: { colour: 'teal', icon: <TargetIcon /> },
+  data: { colour: 'teal', icon: <PlugIcon /> },
+  display: { colour: 'gray', icon: <EyeIcon /> },
+  advanced: { colour: 'gray', icon: <LockIcon /> },
+})
 
 // The section last open, so the way back from a form lands where the operator left.
 const chosen = signal<SettingsSection>('profile')
@@ -69,6 +100,9 @@ function SettingsBody() {
               chosen.value = section
             }}
           >
+            <span class="tile" style={`--c: var(--tc-${SECTION_TILES[section].colour})`}>
+              {SECTION_TILES[section].icon}
+            </span>
             {tr(SECTION_TITLES[section])}
           </button>
         ))}

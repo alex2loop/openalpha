@@ -23,22 +23,6 @@
   margin-top: 8px;
 }
 
-.tile {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--c) var(--tile-mix), transparent);
-  color: var(--c);
-}
-
-.tile svg {
-  width: 12px;
-  height: 12px;
-}
-
 .strip {
   display: flex;
   align-items: center;

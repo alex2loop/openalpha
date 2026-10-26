@@ -201,6 +201,68 @@ export function BulbIcon({ class: className }: IconProps) {
   )
 }
 
+export function UserIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </svg>
+  )
+}
+
+export function BookIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z" />
+    </svg>
+  )
+}
+
+export function CpuIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+      <path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4" />
+    </svg>
+  )
+}
+
+export function PlugIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4" />
+    </svg>
+  )
+}
+
+export function EyeIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+export function LockIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
+}
+
+export function TargetIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1" />
+    </svg>
+  )
+}
+
 // The mockup's own gear, drawn on a 16-unit grid with a finer ring and heavier teeth.
 export function GearIcon({ class: className }: IconProps) {
   return (

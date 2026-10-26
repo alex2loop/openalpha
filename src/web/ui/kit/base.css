@@ -147,6 +147,23 @@ input[list]::-webkit-list-button {
   background: url("../../../../assets/brand/logo.svg") center / contain no-repeat;
 }
 
+/* A small icon tile: colour lives here, text stays Ink and Ink 2. */
+.tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) var(--tile-mix), transparent);
+  color: var(--c);
+}
+
+.tile svg.icon {
+  width: 12px;
+  height: 12px;
+}
+
 .meta {
   color: var(--ink2);
   font-size: 12px;
