@@ -7,7 +7,7 @@ import { agenda } from '@/web/scene/data/agenda'
 import { indexDrop } from '@/web/scene/data/board'
 import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
-import { type Fit, fitFloor, fitRoom, toSnappedFit } from '@/web/scene/render2d/camera'
+import { type Fit, fitAt, fitFloor, fitRoom } from '@/web/scene/render2d/camera'
 import { drawCharacter, releaseCharacterSprites } from '@/web/scene/render2d/characters'
 import { releaseDeskItems } from '@/web/scene/render2d/desk-items'
 import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
@@ -200,7 +200,8 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   )
 }
 
-// The camera's fit for this pane, clamped and rounded to device pixels, reported to the overlays.
+// The camera's fit for this pane, its origin clamped and rounded to device pixels, reported to the
+// overlays.
 function placeCamera(surface: Surface, pane: Size, dpr: number): Fit {
   const camera = view.value
   const base = fitFloor(pane, dpr, breakpoint.value)
@@ -226,12 +227,10 @@ function resolveFit(spec: {
   readonly dpr: number
 }): Fit {
   if (spec.room !== undefined) {
-    return fitRoom(spec.room, spec.pane, spec.dpr)
+    return fitRoom(spec.room, spec.pane, { dpr: spec.dpr, floor: spec.base })
   }
 
-  return spec.steps === 0
-    ? spec.base
-    : toSnappedFit(spec.base.scale * ZOOM_STEP ** spec.steps, spec.dpr)
+  return spec.steps === 0 ? spec.base : fitAt(spec.base.scale * ZOOM_STEP ** spec.steps, spec.dpr)
 }
 
 function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintScene {
