@@ -10,6 +10,9 @@ export const SET_COOKIE = 'Set-Cookie'
 /** A session's `lastSeenAt` moves at most this often, so a busy page writes once an hour. */
 const SESSION_TOUCH_MS = MS_PER_HOUR
 const SESSION_COOKIE_PREFIX = 'oa_session'
+// Browsers take a `__Host-` cookie only Secure, on Path=/ and with no Domain, so a sibling
+// subdomain of the public host cannot plant one under this name.
+const HOST_ONLY_PREFIX = '__Host-'
 const DEFAULT_HTTP_PORT = '80'
 const SAME_ORIGIN = 'same-origin'
 const WEBSOCKET_UPGRADE = 'websocket'
@@ -41,7 +44,7 @@ interface CallerDeps {
  *  cookies, and the one behind `public_url` has its own. */
 export function toSessionCookieName(pageOrigin: string, publicUrl: string | undefined): string {
   if (pageOrigin === publicUrl) {
-    return SESSION_COOKIE_PREFIX
+    return `${HOST_ONLY_PREFIX}${SESSION_COOKIE_PREFIX}`
   }
 
   return `${SESSION_COOKIE_PREFIX}_${new URL(pageOrigin).port || DEFAULT_HTTP_PORT}`
@@ -72,7 +75,7 @@ export async function resolveCaller(req: Request, deps: CallerDeps): Promise<Cal
     return ABSENT
   }
 
-  const caller: Caller = { credential: 'valid', browserSessionId: row.id }
+  const caller: Caller = { credential: 'session', browserSessionId: row.id }
 
   if (deps.now - row.lastSeenAt < SESSION_TOUCH_MS) {
     return caller

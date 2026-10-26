@@ -179,7 +179,6 @@ async function wsUpgradeResponse(
     ...(renewCookie === undefined ? {} : { headers: { [SET_COOKIE]: renewCookie } }),
     data: {
       services: wsServices,
-      token: ctx.token,
       ...(browserSessionId === undefined ? {} : { browserSessionId }),
       activeRuns: new Map(),
       commandRuns: new Map(),
@@ -197,6 +196,7 @@ function resolveWsServices(app: App): WsServices {
     agents: app.resolve('agents'),
     apiOrders: app.config.api.orders,
     bindings: app.resolve('chatBindingStore'),
+    browserSessions: app.resolve('browserSessionStore'),
     bus: app.resolve('bus'),
     commandLane: app.resolve('commandLane'),
     locale: app.config.locale.language,

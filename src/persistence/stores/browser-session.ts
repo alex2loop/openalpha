@@ -34,6 +34,7 @@ export function createBrowserSessionStore(db: Storage, dialect: Dialect): Browse
 
       return row === undefined ? undefined : toBrowserSessionRow(row)
     },
+    has: async (id) => (await db.query(sql.byId, [id])).length > 0,
     touch: async (id, at) => {
       await db.execute(sql.touch, [at, id])
     },
@@ -71,6 +72,7 @@ function buildSql(d: Dialect) {
     bySecret:
       `SELECT ${columns} FROM browser_sessions ` +
       `WHERE secret_hash = ${d.param(1)} AND last_seen_at >= ${d.param(2)}`,
+    byId: `SELECT id FROM browser_sessions WHERE id = ${d.param(1)}`,
     touch: `UPDATE browser_sessions SET last_seen_at = ${d.param(1)} WHERE id = ${d.param(2)}`,
     list:
       `SELECT ${columns} FROM browser_sessions WHERE last_seen_at >= ${d.param(1)} ` +

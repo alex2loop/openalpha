@@ -321,6 +321,7 @@ export interface BrowserSessionStore {
     keep: { readonly idleCutoff: number; readonly limit: number }
   ): Promise<void>
   findBySecret(secretHash: string, idleCutoff: number): Promise<BrowserSessionRow | undefined>
+  has(id: string): Promise<boolean>
   touch(id: string, at: number): Promise<void>
   /** Newest `last_seen_at` first. */
   list(idleCutoff: number, limit: number): Promise<readonly BrowserSessionRow[]>

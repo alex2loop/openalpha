@@ -17,6 +17,7 @@ import type {
   SessionQueue,
 } from '@/core/types/session'
 import type { AgentProfile, Runner } from '@/engine/api'
+import type { BrowserSessionStore } from '@/persistence/api'
 import { API_CHANNEL } from '@/app/server/channel'
 import { CHAT_CLIENT_ID_MAX } from '@/app/server/wire/chat'
 import {
@@ -72,6 +73,7 @@ export interface WsServices {
   /** `[api] orders`: whether `/trade` may run from the app. */
   readonly apiOrders: boolean
   readonly bindings: ChatBindingStore
+  readonly browserSessions: Pick<BrowserSessionStore, 'has'>
   readonly bus: EventBus
   readonly commandLane: CommandLane
   readonly locale: Locale
@@ -85,7 +87,6 @@ export interface WsServices {
 
 export interface WsData {
   readonly services: WsServices
-  readonly token: string
   /** The browser session that opened the socket; absent for a bearer-token client. */
   readonly browserSessionId?: string
   readonly activeRuns: Map<SessionId, Set<AbortController>>
@@ -125,6 +126,10 @@ export const wsHandlers: WebSocketHandler<WsData> = {
     }
 
     sockets.add(ws)
+
+    if (ws.data.browserSessionId !== undefined) {
+      closeIfSignedOut(ws, ws.data.browserSessionId)
+    }
 
     const { bus } = ws.data.services
     // Subscribed one topic at a time on purpose: iterating the union would collapse the
@@ -309,10 +314,36 @@ export function closeAllSockets(): void {
 export function closeSocketsOf(browserSessionId: string): void {
   for (const ws of [...sockets]) {
     if (ws.data.browserSessionId === browserSessionId) {
-      closeSocket(ws)
-      ws.close(SIGNED_OUT_CLOSE_CODE, SIGNED_OUT_REASON)
+      closeSignedOut(ws)
     }
   }
+}
+
+/** A sign-out that ran while this socket's handshake was being judged found no socket to close, so
+ *  an opened socket asks once more. A failed read closes it too: fail closed. */
+function closeIfSignedOut(ws: ServerWebSocket<WsData>, browserSessionId: string): void {
+  const { browserSessions, logger } = ws.data.services
+
+  browserSessions
+    .has(browserSessionId)
+    .then((live) => {
+      if (!live) {
+        closeSignedOut(ws)
+      }
+    })
+    .catch((err: unknown) => {
+      logger.warn('api.ws_session_check_failed', { err: formatErrForLog(err) })
+      closeSignedOut(ws)
+    })
+}
+
+function closeSignedOut(ws: ServerWebSocket<WsData>): void {
+  if (ws.data.closed) {
+    return
+  }
+
+  closeSocket(ws)
+  ws.close(SIGNED_OUT_CLOSE_CODE, SIGNED_OUT_REASON)
 }
 
 function closeSocket(ws: ServerWebSocket<WsData>): void {

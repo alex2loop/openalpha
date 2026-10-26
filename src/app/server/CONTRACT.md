@@ -47,14 +47,16 @@ this document — neither imports the other.
   `OPENALPHA_DATA_DIR`), chmod `0600`, generated on first enable. Compared constant-time. When a
   request carries `Authorization`, the cookie is not read.
   - **Session cookie:** `oa_session_<port>` on loopback (so a local daemon and a tunnelled one on
-    another port keep separate cookies), `oa_session` through `public_url`; `HttpOnly`,
-    `SameSite=Strict`, `Path=/`, `Secure` through `public_url`. A session ends after 30 days
+    another port keep separate cookies), `__Host-oa_session` through `public_url` (so a sibling
+    subdomain cannot plant one); `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`, `Secure`
+    through `public_url`. A session ends after 30 days
     unused; each use renews it, and the cookie is sent again with a fresh `Max-Age` (at most once
     an hour). The cookie counts only on a request with `Sec-Fetch-Site: same-origin`; a write
     (any method but `GET`/`HEAD`) and the `/v1/ws` handshake also need `Origin` equal to the page
     origin. The daemon keeps only a hash of the cookie keyed by the token, so a token change
     (`api rotate`, a new `token_env` value) ends every session at the restart. Signing out and
-    `DELETE /v1/sessions/:id` close that session's sockets with WS code 4401 `signed_out`.
+    `DELETE /v1/sessions/:id` close that session's sockets with WS code 4401 `signed_out`, a socket
+    whose handshake was under way at that moment included.
   - **WebSocket:** the `/v1/ws` handshake takes the bearer header (native `URLSessionWebSocketTask`
     sets it) or the session cookie; there is no query-string token. It also enforces an **Origin
     allow-list**: a present `Origin` header MUST equal the page origin, so only the page the daemon
@@ -62,8 +64,8 @@ this document — neither imports the other.
     and pass.
   - **Lockout:** a wrong token (HTTP and WS alike) and a wrong or used sign-in code count toward
     the same per-peer lockout (5 failures → 30s backoff, doubling to 1h). A request with no
-    credentials or an unknown cookie is refused without counting, and a valid token, code or
-    session is never refused by the lockout (it also clears it).
+    credentials or an unknown cookie is refused without counting. A valid token, code or session is
+    never refused by the lockout; a valid token or code also clears it, a session does not.
 - **Opt-in:** off by default (`[api].enabled = false`). When off, no socket is bound and the daemon is
   byte-for-byte unchanged.
 - **Encoding:** JSON, `camelCase` keys, UTF-8. No snake_case on the wire. WS **text** frames are JSON

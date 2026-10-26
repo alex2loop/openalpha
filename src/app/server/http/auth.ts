@@ -19,7 +19,7 @@ const SECRET_BYTES = 32
 
 const LOOPBACK_ADDRESSES: readonly string[] = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
 const LOOPBACK_HOSTNAMES: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
-const PAGE_SCHEME = 'http://'
+const PAGE_PROTOCOL = 'http:'
 const BEARER_PREFIX = 'Bearer '
 
 interface PeerState {
@@ -51,8 +51,9 @@ function isTokenEqual(got: string, token: string): boolean {
   return timingSafeEqual(a, b)
 }
 
-/** What a request offered: a matching token, a token that does not match, or nothing at all. */
-export type Credential = 'valid' | 'wrong' | 'absent'
+/** What a request offered: a matching token or code, a live browser session, a token or code that
+ *  does not match, or nothing at all. */
+export type Credential = 'valid' | 'session' | 'wrong' | 'absent'
 
 export function resolveBearerCredential(header: string | null, token: string): Credential {
   if (header?.startsWith(BEARER_PREFIX) !== true) {
@@ -65,8 +66,9 @@ export function resolveBearerCredential(header: string | null, token: string): C
 export type AuthOutcome = 'ok' | 'locked' | 'unauthorized'
 
 // One lockout accounting for HTTP, WS and the code exchange. Every peer is loopback, so the lockout
-// is one shared key: a valid token, code or session is never refused because of it (and clears it),
-// and only a wrong token or a wrong or used code counts toward it.
+// is one shared key: a valid token, code or session is never refused because of it, only a valid
+// token or code clears it (a session cookie proves nothing about who is guessing), and only a wrong
+// token or a wrong or used code counts toward it.
 export function resolveAuthOutcome(
   ip: string | null,
   credential: Credential,
@@ -77,6 +79,10 @@ export function resolveAuthOutcome(
   if (credential === 'valid') {
     peers.delete(addr)
 
+    return 'ok'
+  }
+
+  if (credential === 'session') {
     return 'ok'
   }
 
@@ -101,17 +107,24 @@ export function resolvePageOrigin(
   host: string | null,
   publicUrl: string | undefined
 ): string | undefined {
-  const page = host === null ? undefined : toPageUrl(host)
-
-  if (page === undefined) {
+  if (host === null) {
     return undefined
   }
 
-  if (LOOPBACK_HOSTNAMES.includes(page.hostname)) {
+  const page = toHostUrl(PAGE_PROTOCOL, host)
+
+  if (page !== undefined && LOOPBACK_HOSTNAMES.includes(page.hostname)) {
     return page.origin
   }
 
-  return publicUrl !== undefined && page.host === new URL(publicUrl).host ? publicUrl : undefined
+  if (publicUrl === undefined) {
+    return undefined
+  }
+
+  // Parsed under the public scheme, so an explicit default port (`:443`) drops as it does there.
+  const published = new URL(publicUrl)
+
+  return toHostUrl(published.protocol, host)?.host === published.host ? publicUrl : undefined
 }
 
 /** Native clients send no Origin; a browser must come from the page it was opened on, so another
@@ -131,8 +144,8 @@ export function toSecretHash(secret: string, token: string): string {
   return createHmac('sha256', token).update(secret).digest('hex')
 }
 
-function toPageUrl(host: string): URL | undefined {
-  const url = `${PAGE_SCHEME}${host}`
+function toHostUrl(protocol: string, host: string): URL | undefined {
+  const url = `${protocol}//${host}`
 
   return URL.canParse(url) ? new URL(url) : undefined
 }
