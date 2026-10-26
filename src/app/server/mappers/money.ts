@@ -259,6 +259,7 @@ export function toReconcileWire(view: ReconcileView): ReconcileResponse {
       ...(venue.missingCredentials === undefined
         ? {}
         : { missingCredentials: [...venue.missingCredentials] }),
+      canSync: venue.canSync,
     })),
   }
 }

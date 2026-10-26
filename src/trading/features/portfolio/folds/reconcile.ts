@@ -12,6 +12,8 @@ interface ReconciledAsset {
   readonly held: number
   /** Book minus venue. Positive is a holding the exchange cannot find. */
   readonly delta: number
+  /** The venue's cash currency, which a deposit or withdrawal corrects rather than a trade. */
+  readonly cash: boolean
 }
 
 export interface VenueReconciliation {
@@ -26,6 +28,8 @@ export interface VenueReconciliation {
    *  will. */
   readonly uncompared?: 'unreachable' | 'keyless' | 'unsupported'
   readonly missingCredentials?: readonly string[]
+  /** Whether the venue lists its fills, so `/record sync` can book what the ledger lacks. */
+  readonly canSync: boolean
 }
 
 interface ReconcileInput {
@@ -42,6 +46,7 @@ interface ReconcileInput {
   /** The venue's own floor under each asset it trades. Empty where no catalog answered, which
    *  reports every residue rather than hiding a break behind a lookup that failed. */
   readonly minimumSizes: ReadonlyMap<string, number>
+  readonly canSync: boolean
 }
 
 export function reconcileVenue(input: ReconcileInput): VenueReconciliation {
@@ -80,10 +85,11 @@ export function reconcileVenue(input: ReconcileInput): VenueReconciliation {
       booked: bookedQuantity,
       held: heldQuantity,
       delta,
+      cash: asset === input.cashAsset,
     })
   }
 
-  return { venue: input.venue, mismatches }
+  return { venue: input.venue, mismatches, canSync: input.canSync }
 }
 
 /** Dust the operator cannot act on: the book claims none of it, and what the venue holds is below

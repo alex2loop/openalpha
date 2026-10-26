@@ -9,6 +9,7 @@ import { boardScaleNotes } from '@/web/text/market-price'
 import { toFailureText, tr } from '@/web/text/tr'
 import { EmptyBookActions } from '@/web/ui/book/empty-actions'
 import { LedgerRow } from '@/web/ui/book/ledger-row'
+import { openReconcileDialog } from '@/web/ui/book/reconcile-dialog'
 import { useLedger } from '@/web/ui/book/use-ledger'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
@@ -57,6 +58,9 @@ export function History() {
       <div class="step-actions">
         <Button size="small" onClick={() => openTradeDialog()}>
           {tr('ui.office.common.recordTrade')}
+        </Button>
+        <Button size="small" onClick={openReconcileDialog}>
+          {tr('ui.office.reconcile.open')}
         </Button>
       </div>
       <FilterBar filter={filter} page={page} />

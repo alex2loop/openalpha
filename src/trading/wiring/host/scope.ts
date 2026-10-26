@@ -3,6 +3,11 @@ import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { TradingHostDeps } from '@/trading/wiring/host/types'
 import { ValidationError } from '@/core/errors'
 
+/** A write to an exchange or the ledger runs on no caller signal: a client hanging up mid-fill must
+ *  not abandon an order the exchange holds, split an exit's placement from the row that records it,
+ *  or stop a sync halfway through its bookings. Shutdown and the slow ceiling still bound it. */
+export const UNABORTED = new AbortController().signal
+
 interface RequestScope {
   readonly signal: AbortSignal
   readonly now: number

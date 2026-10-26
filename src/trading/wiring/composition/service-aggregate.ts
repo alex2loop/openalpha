@@ -1,6 +1,8 @@
 import type { DaemonTask } from '@/core/container'
+import type { Locale } from '@/core/types/locale'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
+import type { VenueSyncOutcome } from '@/trading/features/ledger/sync-run'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { OrderService } from '@/trading/features/order/types'
 import type { NavService } from '@/trading/features/portfolio/nav/types'
@@ -8,7 +10,7 @@ import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
 import type { FactorLogService } from '@/trading/features/suggestion/track-record/factor-log-types'
-import type { MarketRef, Region } from '@/trading/kernel/instrument'
+import type { MarketRef, Region, VenueRef } from '@/trading/kernel/instrument'
 import type {
   RefreshAllMarketDataOptions,
   RefreshMarketDataOptions,
@@ -46,6 +48,12 @@ export interface TradingServices {
   refreshMarketData(
     options: RefreshAllMarketDataOptions
   ): Promise<readonly RefreshMarketDataResult[]>
+  /** What `/record sync` does: books the venue's fills the ledger lacks; places no order. */
+  syncVenue(input: {
+    readonly venue: VenueRef
+    readonly locale: Locale
+    readonly signal: AbortSignal
+  }): Promise<VenueSyncOutcome>
   /** The markets something the operator relies on still reads (`composition/refresh.ts`). */
   marketsInUse(signal: AbortSignal): Promise<ReadonlySet<MarketRef>>
   /** Whether any market the operator relies on is trading right now. */

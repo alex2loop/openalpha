@@ -2,13 +2,12 @@ import { useSignal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import type { DoctorReport } from '@/app/server/wire/system'
-import { translateDisplayText } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { type Credential, groupBySubject, readCredentials } from '@/web/state/credentials'
-import { locale } from '@/web/state/session'
 import { pendingRestart } from '@/web/state/settings'
 import { toFailureText, tr } from '@/web/text/tr'
+import { toVenueName } from '@/web/text/venue'
 import { Button } from '@/web/ui/kit/button'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
@@ -54,11 +53,7 @@ function VenueBlock({
   readonly credentials: readonly Credential[]
   readonly reopen: () => void
 }) {
-  // A venue only the operator's config names has no catalog name: its id, as the CLI prints it.
-  const title = translateDisplayText(locale.value, {
-    key: `trading.venue.${venue}`,
-    fallback: venue.toUpperCase(),
-  })
+  const title = toVenueName(venue)
 
   return (
     <section class="setting-row">

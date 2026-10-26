@@ -4,6 +4,7 @@ import type { PortfolioViewDeps } from '@/trading/features/portfolio/view'
 import type { Book } from '@/trading/kernel/operator/book'
 import type { Venue, VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
+import { canSyncFills } from '@/trading/features/ledger/sync-run'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { reconcileVenue } from '@/trading/features/portfolio/folds/reconcile'
 import { loadBook } from '@/trading/features/portfolio/view'
@@ -25,13 +26,14 @@ interface ReconcileOneInput {
 async function reconcileOne(input: ReconcileOneInput): Promise<VenueReconciliation> {
   const { adapter } = input.venue
   const { id: venue, missingCredentials } = input.venue.manifest
+  const canSync = canSyncFills(input.venue)
 
   if (missingCredentials !== undefined) {
-    return { venue, mismatches: [], uncompared: 'keyless', missingCredentials }
+    return { venue, mismatches: [], uncompared: 'keyless', missingCredentials, canSync }
   }
 
   if (adapter?.fetchBalances === undefined) {
-    return { venue, mismatches: [], uncompared: 'unsupported' }
+    return { venue, mismatches: [], uncompared: 'unsupported', canSync }
   }
 
   try {
@@ -49,13 +51,14 @@ async function reconcileOne(input: ReconcileOneInput): Promise<VenueReconciliati
         (cash) => cash.venue === venue && cash.currency === adapter.quoteAsset
       )?.amount,
       minimumSizes,
+      canSync,
     })
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
     }
 
-    return { venue, mismatches: [], uncompared: 'unreachable' }
+    return { venue, mismatches: [], uncompared: 'unreachable', canSync }
   }
 }
 

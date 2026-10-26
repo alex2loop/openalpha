@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import type { LedgerPageResponse, LedgerPreviewResponse } from '@/app/server/wire/money'
+import type {
+  LedgerPageResponse,
+  LedgerPreviewResponse,
+  LedgerSyncBody,
+  LedgerSyncResponse,
+} from '@/app/server/wire/money'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { TypedPrice } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -22,7 +27,8 @@ import {
   parsePathId,
   readJsonBody,
 } from '@/app/server/routes/params'
-import { ledgerEntryId, SURFACE_LIMITS, TYPED_PRICES, tradingDay } from '@/trading/api'
+import { formatErrForLog } from '@/core/security/credentials'
+import { ledgerEntryId, SURFACE_LIMITS, TYPED_PRICES, tradingDay, venueRef } from '@/trading/api'
 
 const LEDGER_BODY = z.object({
   draft: z.unknown(),
@@ -30,6 +36,7 @@ const LEDGER_BODY = z.object({
 })
 // An edit previews against the book without the row it replaces.
 const PREVIEW_BODY = z.object({ draft: z.unknown(), replacing: z.string().exactOptional() })
+const SYNC_BODY: z.ZodType<LedgerSyncBody> = z.object({ venue: z.string().min(1) })
 
 async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const query = new URL(req.url).searchParams
@@ -146,6 +153,27 @@ async function handleLedgerDelete(req: Request, ctx: ApiRouteContext): Promise<R
   return json(toLedgerWriteWire(result, localeOf(ctx)))
 }
 
+/** The daemon finishes the bookings even when this request goes away; a client that lost the answer
+ *  reads the ledger again rather than sending the sync twice. */
+async function handleLedgerSync(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const parsed = SYNC_BODY.safeParse(await readJsonBody(req))
+  const venue = parsed.success ? parseOptionalBranded(parsed.data.venue, venueRef) : null
+
+  if (venue === null || venue === undefined) {
+    return apiError('invalid_body')
+  }
+
+  try {
+    const outcome = await hostOf(ctx).syncLedger({ venue })
+
+    return json(outcome satisfies LedgerSyncResponse)
+  } catch (err: unknown) {
+    ctx.app.resolve('logger').warn('api.ledger_sync_failed', { venue, err: formatErrForLog(err) })
+
+    throw err
+  }
+}
+
 async function handleStops(req: Request, ctx: ApiRouteContext): Promise<Response> {
   return json(toStopsWire(await hostOf(ctx).getStopDistances({ signal: req.signal })))
 }
@@ -203,6 +231,13 @@ export const MONEY_ROUTES = [
     auth: true,
     capability: 'portfolio',
     handler: handleLedgerPreview,
+  },
+  {
+    method: 'POST',
+    path: '/v1/ledger/sync',
+    auth: true,
+    capability: 'portfolio',
+    handler: handleLedgerSync,
   },
   {
     method: 'PATCH',

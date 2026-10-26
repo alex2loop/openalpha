@@ -2,6 +2,7 @@ import type { Locale } from '@/core/types/locale'
 import type { EpochRange } from '@/core/utils/time'
 import type { Alert, AlertListPage, DisableAlertResult } from '@/trading/features/alerts/types'
 import type { BriefDelivery } from '@/trading/features/brief/types'
+import type { VenueSyncOutcome } from '@/trading/features/ledger/sync-run'
 import type {
   LedgerDayRange,
   LedgerEntry,
@@ -225,6 +226,10 @@ interface TradingLedgerDeleteRequest {
   readonly signal: AbortSignal
 }
 
+interface TradingLedgerSyncRequest {
+  readonly venue: VenueRef
+}
+
 interface TradingOrderTokenRequest {
   /** The staged order's confirmation token, or an unmirrored row's. */
   readonly token: string
@@ -296,6 +301,8 @@ export interface TradingHost {
   recordLedger(request: TradingLedgerRecordRequest): Promise<LedgerWriteResult>
   updateLedgerEntry(request: TradingLedgerUpdateRequest): Promise<LedgerWriteResult>
   deleteLedgerEntry(request: TradingLedgerDeleteRequest): Promise<LedgerWriteResult>
+  /** Books what the venue filled that the ledger lacks, as `/record sync`; places no order. */
+  syncLedger(request: TradingLedgerSyncRequest): Promise<VenueSyncOutcome>
   listSuggestions(request: TradingSuggestionsRequest): Promise<Page<StoredSuggestion, SuggestionId>>
   /** The decision card for one stored suggestion, in the operator's language; `null` for an id the
    *  store does not hold. */
