@@ -6,35 +6,40 @@
 }
 
 .bubble {
+  /* The mockup's speech bubble: white paper, its tail a thin line down to the head. */
+  --bubble-paper: #ffffff;
+  --bubble-ink: #1b1b29;
+  --bubble-foot: #5f5f75;
+  --bubble-tail: var(--bubble-paper);
+  --bubble-drop: 0 2px 8px rgba(27, 27, 41, 0.28);
+
   position: absolute;
   box-sizing: border-box;
-  padding: 5px 8px;
+  padding: 6px 9px;
   border-radius: 8px;
-  background: var(--surface);
-  box-shadow: var(--pop);
-  color: var(--ink);
+  background: var(--bubble-paper);
+  box-shadow: var(--bubble-drop);
+  color: var(--bubble-ink);
   font-size: 12px;
   font-weight: 500;
-  line-height: 16px;
+  line-height: 1.35;
 }
 
 .bubble::after {
   position: absolute;
-  left: calc(var(--tail-x) - 5px);
-  width: 10px;
+  left: calc(var(--tail-x) - 1px);
+  width: 0;
   height: 6px;
-  background: inherit;
+  border-left: 2px solid var(--bubble-tail);
   content: "";
 }
 
 .bubble.side-above::after {
   top: 100%;
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 
 .bubble.side-below::after {
   bottom: 100%;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
 .bubble.side-beside::after {
@@ -42,19 +47,38 @@
 }
 
 .bubble-think {
-  color: var(--ink2);
+  --bubble-paper: #f4f4f8;
+  --bubble-ink: #4e4e62;
+  --bubble-tail: #c9cad8;
+
+  padding: 5px 10px;
+  border: 1px solid #dbdbe4;
+  border-radius: 14px;
   font-style: italic;
 }
 
-.bubble-caution {
-  background: linear-gradient(var(--cautionBg), var(--cautionBg)), var(--surface);
-  color: var(--caution);
+.bubble-think::after {
+  border-left-style: dotted;
 }
 
+.bubble-caution,
 .bubble-wait {
-  box-shadow:
-    var(--pop),
-    inset 0 0 0 1px var(--badgeNeed);
+  --bubble-paper: #fbf3db;
+  --bubble-ink: #8a4b00;
+  --bubble-tail: #8a4b00;
+
+  padding: 5px 9px;
+  border: 1px solid #8a4b00;
+  font-weight: 600;
+}
+
+.bubble-due {
+  --bubble-paper: #eef3fc;
+  --bubble-ink: #2f4f8a;
+  --bubble-tail: #7193d2;
+
+  padding: 5px 9px;
+  border: 1px solid #b9cbee;
 }
 
 .bubble.is-bright {
@@ -82,7 +106,7 @@
 .bubble-foot {
   margin: 0;
   overflow: hidden;
-  color: var(--ink2);
+  color: var(--bubble-foot);
   font-size: 11px;
   line-height: 15px;
   text-overflow: ellipsis;
