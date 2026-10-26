@@ -86,8 +86,13 @@ export function formatElapsed(spanMs: number): string {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`
 }
 
-/** A cadence in its largest whole unit: "12 giờ", "30 phút", "45 giây". */
+/** A cadence in its largest whole unit: "12 giờ", "30 phút", "45 giây"; under a second, "dưới 1
+ *  giây". */
 export function formatDuration(spanMs: number): string {
+  if (spanMs > 0 && spanMs < MS_PER_SECOND) {
+    return tr('ui.office.time.underSecond')
+  }
+
   if (spanMs >= MS_PER_HOUR && spanMs % MS_PER_HOUR === 0) {
     const count = spanMs / MS_PER_HOUR
 

@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'preact/hooks'
 
 import type { RunCallsWire, RunCallWire } from '@/app/server/wire/live'
+import { pluralKey } from '@/i18n'
 import { useBlockRead } from '@/web/state/block'
 import { estimateOf } from '@/web/state/estimates'
 import { onWireEvent } from '@/web/state/events'
 import { state } from '@/web/state/session'
 import { formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
-import { formatRunName } from '@/web/text/run-name'
+import { formatAgentName } from '@/web/text/run-name'
 import { formatClock, formatDuration } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -88,7 +89,7 @@ function CallList({
   return (
     <>
       <p class="calls-head">
-        {tr(calls.totalCalls === 1 ? 'ui.office.calls.headOne' : 'ui.office.calls.head', {
+        {tr(pluralKey(calls.totalCalls, 'ui.office.calls.headOne', 'ui.office.calls.head'), {
           count: calls.totalCalls,
           cost: formatUsd(calls.totalUsd),
           slowest: formatDuration(slowest),
@@ -125,10 +126,7 @@ function CallRow({
   readonly timeZone: string | undefined
 }) {
   const kind = tr(`ui.office.calls.kind.${call.kind}`)
-  const step =
-    call.runId === rootRunId
-      ? kind
-      : joinInline([formatRunName({ kind: 'agent', name: call.agentId }), kind])
+  const step = call.runId === rootRunId ? kind : joinInline([formatAgentName(call.agentId), kind])
 
   return (
     <li class="calls-row">
