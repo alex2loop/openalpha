@@ -1,0 +1,63 @@
+.scene-zoomstack {
+  position: absolute;
+  right: 10px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.scene-zoombtn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--lift);
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.scene-zoombtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.scene-zoomreset {
+  font-size: 18px;
+}
+
+.scene-bulb {
+  width: 18px;
+  height: 18px;
+}
+
+.scene-lamps[aria-pressed="true"] {
+  color: var(--lampOn);
+}
+
+.scene-zoombar {
+  position: absolute;
+  right: 42px;
+  bottom: 0;
+  width: 6px;
+  height: 114px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.scene-zoombar i {
+  position: absolute;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, 50%);
+}

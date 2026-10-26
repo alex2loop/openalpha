@@ -60,7 +60,7 @@ const OVERLAY_REFRESH_MS = 250
 const OFF_SCREEN_PX = 16
 // The boards, room tags and toolbar pieces other overlays draw; no bubble covers them.
 const FIXED_SELECTOR =
-  '.room-tag-row, .board-line, .scene-floors, .scene-zoom, .scene-crumb, .scene-lamps, .scene-pan, .scene-hint, .meeting-bar'
+  '.room-tag-row, .board-line, .scene-floors, .scene-zoombtn, .scene-crumb, .scene-pan, .scene-hint, .meeting-bar'
 
 /** Everything the layout reads from one frame. Figures are in CSS px of the scene host. */
 interface PassInput {
