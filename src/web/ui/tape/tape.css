@@ -60,10 +60,6 @@
   animation: tape-flash-down var(--flashMs) ease-out;
 }
 
-.tape-note {
-  font-weight: 600;
-}
-
 @keyframes tape-scroll {
   to {
     transform: translateX(-50%);

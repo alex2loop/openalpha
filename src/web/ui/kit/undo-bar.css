@@ -2,29 +2,16 @@
 .undo-bar {
   display: flex;
   align-items: center;
-  gap: var(--s1);
-  padding: 8px var(--s2);
+  gap: 10px;
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--offlineBg);
-  color: var(--offlineInk);
+  background: var(--surface);
+  color: var(--ink);
   font-size: 12.5px;
   box-shadow: var(--pop);
 }
 
-.undo-bar span {
+.undo-bar > span {
   flex: 1;
-}
-
-.undo-bar .link {
-  border: 0;
-  background: none;
-  color: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.undo-bar .link:disabled {
-  opacity: 0.5;
-  cursor: default;
 }

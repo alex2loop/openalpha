@@ -2,6 +2,7 @@ import { signal } from '@preact/signals'
 import { useEffect, useLayoutEffect } from 'preact/hooks'
 
 import { toErrorText, tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
 
 import './undo-bar.css'
 
@@ -67,9 +68,9 @@ export function UndoBar() {
     <div class="undo-bar" role="status">
       <span>{entry.failure ?? entry.text}</span>
       {canUndo && (
-        <button type="button" class="link" disabled={entry.isBusy} onClick={() => press(entry)}>
+        <Button kind="tertiary" disabled={entry.isBusy === true} onClick={() => press(entry)}>
           {tr('ui.office.common.undo')}
-        </button>
+        </Button>
       )}
     </div>
   )
