@@ -12,12 +12,15 @@ type OverviewBlock = OverviewResponse['markets'][number]
 /** What the market is doing now, as its own wire phase says: never the preview clock. */
 type LedState = 'open' | 'break' | 'closed'
 
-/** One index on the LED board and the desk screens. `changePct` and `level` stay absent when the
- *  wire sent none; `line` is the levels polled since the page opened; `at` is the last good read
- *  (epoch ms) and `stale` is true while the newest poll failed. */
+/** One market's benchmark on the LED board and the desk screens. `changePct` and `level` stay
+ *  absent when the wire sent none; `isPrice` marks a benchmark priced in a currency (an index
+ *  publishes a level), printed by `display` where the market scales its board; `line` is the levels polled since the page opened; `at` is the last good read (epoch
+ *  ms) and `stale` is true while the newest poll failed. */
 export interface LedItem {
   readonly label: string
   readonly level?: number
+  readonly isPrice: boolean
+  readonly display?: MarketWire['priceDisplay']
   readonly changePct?: number
   readonly state: LedState
   readonly line: readonly number[]
@@ -38,18 +41,19 @@ interface Track {
 
 const entries = signal<readonly LedEntry[]>([])
 
-/** One item per overview block whose rows are index levels, in the overview's order. */
+/** One item per overview block with a benchmark to show, in the overview's order. */
 export const ledItems: ReadonlySignal<readonly LedItem[]> = computed(() =>
   entries.value.map((entry) => entry.item)
 )
 
-/** The home market's benchmark among the items; absent until the overview carries it. */
+/** The home market's benchmark index among the items; absent until the overview carries it, and
+ *  for a home market priced in a currency. */
 export const homeIndex: ReadonlySignal<LedItem | undefined> = computed(() => {
   const market = homeMarket.value
   const ticker = market?.benchmark?.ticker
 
   return entries.value.find(
-    (entry) => entry.market === market?.market && entry.item.label === ticker
+    (entry) => entry.market === market?.market && entry.item.label === ticker && !entry.item.isPrice
   )?.item
 })
 
@@ -93,12 +97,16 @@ interface ReadJob {
   readonly isStale: boolean
 }
 
-// A block priced in a currency lists prices, not index levels; the board shows levels only.
+// An index block shows its benchmark, else its first level; a block priced in a currency shows
+// only its benchmark, printed as the tape prints it, never some other name's price.
 function readEntry(block: OverviewBlock, job: ReadJob): LedEntry | undefined {
   const benchmark = job.market?.benchmark?.ticker
-  const row = block.rows.find((held) => held.instrument.ticker === benchmark) ?? block.rows[0]
+  const isPriced = block.priceCurrency !== undefined
+  const held = block.rows.find((one) => one.instrument.ticker === benchmark)
+  const row = isPriced ? held : (held ?? block.rows[0])
+  const display = isPriced ? job.market?.priceDisplay : undefined
 
-  if (block.priceCurrency !== undefined || row === undefined) {
+  if (row === undefined) {
     return undefined
   }
 
@@ -112,6 +120,8 @@ function readEntry(block: OverviewBlock, job: ReadJob): LedEntry | undefined {
     item: {
       label: row.instrument.ticker,
       ...(row.price === undefined ? {} : { level: row.price }),
+      isPrice: isPriced,
+      ...(display === undefined ? {} : { display }),
       ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
       state: stateOf(job.market),
       line: track.line,
