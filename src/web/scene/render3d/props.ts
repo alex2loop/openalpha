@@ -10,6 +10,7 @@ import {
   type Lean,
   meetingThings,
   monitorOf,
+  type Screen,
 } from '@/web/scene/render3d/desk-dressing'
 import { airConBoxes, cableTray } from '@/web/scene/render3d/desk-pieces'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
@@ -51,21 +52,6 @@ interface HungPiece {
   readonly x: number
   readonly wallZ: number
   readonly boxes: Box[]
-}
-
-interface Screen {
-  readonly at: readonly [x: number, y: number, z: number]
-  readonly size: readonly [w: number, h: number, d: number]
-  /** How far the face leans back, radians about x. */
-  readonly tilt: number
-  /** The monitor's back, leaning with its face. */
-  readonly back: {
-    readonly at: readonly [x: number, y: number, z: number]
-    readonly size: readonly [w: number, h: number, d: number]
-  }
-  readonly seat: Point
-  /** The computer's foot on the floor, where a desk piece names the monitor it covers. */
-  readonly slot: Point
 }
 
 interface Lamp {

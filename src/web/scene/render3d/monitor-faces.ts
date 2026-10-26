@@ -10,11 +10,13 @@ import {
 
 import type { MessageKey } from '@/i18n'
 import type { DeskScreenView } from '@/web/scene/overlay-types'
+import type { Screen } from '@/web/scene/render3d/desk-dressing'
 import type { FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { roomStatus } from '@/web/scene/data/room-status'
+import { flatPoseOf } from '@/web/scene/render3d/seated'
 import { toUnits } from '@/web/scene/render3d/space'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { FONT } from '@/web/scene/sprites/face-text'
@@ -67,7 +69,10 @@ interface MonitorFace {
   readonly room: RoomId | undefined
   /** The computer's foot, where a lit desk screen names the monitor it shows on. */
   readonly slot: Point
+  readonly screen: Screen
   readonly mesh: Mesh<PlaneGeometry, MeshBasicMaterial>
+  /** Whether the face lies flat before a sitter, as last placed. */
+  isFlat: boolean
   readonly canvas: HTMLCanvasElement
   readonly texture: CanvasTexture
   target: string
@@ -88,6 +93,8 @@ export function syncMonitorFaces(
     readonly floor: FloorId
     readonly props: FloorProps
     readonly lit: readonly boolean[]
+    /** The screens laid flat before someone sitting at them. */
+    readonly seated: readonly boolean[]
     /** The desk screens real work lights; each shows on the monitor at its computer. */
     readonly deskScreens: readonly DeskScreenView[]
     readonly now: number
@@ -112,6 +119,8 @@ export function syncMonitorFaces(
       isChanged = true
     }
 
+    isChanged = placeFace(face, at.seated[i] === true) || isChanged
+
     const host = isLit ? hostOn(face, at.deskScreens) : undefined
 
     isChanged = (isLit && paintFace(face, { ...at, host })) || isChanged
@@ -127,15 +136,13 @@ export function disposeMonitorFaces(monitors: MonitorFaces): void {
 
 function createFace(
   monitors: MonitorFaces,
-  at: { readonly screen: FloorProps['screens'][number]; readonly floor: FloorId }
+  at: { readonly screen: Screen; readonly floor: FloorId }
 ): MonitorFace {
   const { screen } = at
   const canvas = document.createElement('canvas')
   const texture = new CanvasTexture(canvas)
   const mesh = new Mesh(monitors.plane, new MeshBasicMaterial({ map: texture, toneMapped: false }))
-  const [x, y, z] = screen.at
-  const [w, h, d] = screen.size
-  const lift = d / 2 + FACE_LIFT_PX
+  const [w, h] = screen.size
 
   canvas.width = SCREEN.w * SCREEN.res
   canvas.height = SCREEN.h * SCREEN.res
@@ -143,19 +150,15 @@ function createFace(
   texture.minFilter = LinearFilter
   texture.generateMipmaps = false
   mesh.scale.set(toUnits(w), toUnits(h), 1)
-  mesh.rotation.x = screen.tilt
-  mesh.position.set(
-    toUnits(x),
-    toUnits(y - Math.sin(screen.tilt) * lift),
-    toUnits(z + Math.cos(screen.tilt) * lift)
-  )
   mesh.visible = false
   monitors.root.add(mesh)
 
-  return {
+  const face: MonitorFace = {
     room: roomAt(at.floor, screen.seat)?.id,
     slot: screen.slot,
+    screen,
     mesh,
+    isFlat: true,
     canvas,
     texture,
     target: '',
@@ -163,6 +166,42 @@ function createFace(
     tickAt: 0,
     key: '',
   }
+
+  placeFace(face, false)
+
+  return face
+}
+
+// The face stands on its leaning screen, or lies on the glass laid flat before a sitter; true
+// when it moved.
+function placeFace(face: MonitorFace, isFlat: boolean): boolean {
+  if (face.isFlat === isFlat) {
+    return false
+  }
+
+  const { screen, mesh } = face
+  const lift = screen.size[2] / 2 + FACE_LIFT_PX
+
+  face.isFlat = isFlat
+
+  if (isFlat) {
+    const [x, y, z] = flatPoseOf(screen, screen.deskTop).face
+
+    mesh.rotation.x = -Math.PI / 2
+    mesh.position.set(toUnits(x), toUnits(y + lift), toUnits(z))
+    return true
+  }
+
+  const [x, y, z] = screen.at
+
+  mesh.rotation.x = screen.tilt
+  mesh.position.set(
+    toUnits(x),
+    toUnits(y - Math.sin(screen.tilt) * lift),
+    toUnits(z + Math.cos(screen.tilt) * lift)
+  )
+
+  return true
 }
 
 // The room's run on the screen: a new step starts typing again; the face is drawn again only when

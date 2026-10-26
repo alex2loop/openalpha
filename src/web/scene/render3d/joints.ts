@@ -1,4 +1,5 @@
 import type { Joint } from '@/web/scene/render3d/figure'
+import type { LifePose } from '@/web/scene/render3d/life-poses'
 import type { Arms, PoseFrame } from '@/web/scene/sim/actors/poses'
 import type { Dir } from '@/web/scene/types'
 
@@ -19,6 +20,8 @@ interface PoseContext {
   readonly side: 1 | -1
   readonly isHolding: boolean
   readonly isWalking: boolean
+  /** The mockup's life pose the person holds, read before the frame's arms. */
+  readonly life?: LifePose
 }
 
 interface ArmPose {
@@ -179,9 +182,10 @@ const FACE_YAW: Readonly<Record<Dir, number>> = Object.freeze({
 
 /** The joints' targets for one pose frame. */
 export function targetsOf(frame: PoseFrame, ctx: PoseContext): JointTargets {
-  const arms = armsOf(frame, ctx)
-  const lean = (LEAN[frame.arms ?? 'down'] ?? 0) + (ctx.sit > 0.5 ? SEATED_LEAN : 0)
-  const headX = headPitchOf(frame)
+  const { life } = ctx
+  const arms = life ?? armsOf(frame, ctx)
+  const lean = (life?.lean ?? LEAN[frame.arms ?? 'down'] ?? 0) + (ctx.sit > 0.5 ? SEATED_LEAN : 0)
+  const headX = life?.headX ?? headPitchOf(frame)
   const headY = frame.isAside === true ? ctx.side * HEAD_ASIDE : 0
 
   return {

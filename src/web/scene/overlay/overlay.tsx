@@ -100,15 +100,13 @@ export function announce(text: string): void {
  *  test. */
 export function SceneOverlay() {
   const view = shown.value
-  // The 3D scene draws the scouts' screens and the marks itself (a mark's text stays for
-  // readers); the analyst's laptop has no 3D face, so its line stays on the page.
+  // The 3D scene draws the lit screens and the marks itself; a mark's text stays for readers.
   const isInScene = sceneView.value === '3d'
 
   return (
     <div class="scene-overlay">
-      {view.screens
-        .filter(({ screen }) => !isInScene || screen.content.kind === 'line')
-        .map(({ screen, rect }) => (
+      {!isInScene &&
+        view.screens.map(({ screen, rect }) => (
           <DeskScreen key={screen.actor} screen={screen} rect={rect} />
         ))}
       <Marks markers={view.markers} isInScene={isInScene} />
