@@ -34,3 +34,26 @@
   opacity: 0.45;
   cursor: default;
 }
+
+/* A person's sections: the mockup's underlined tabs over a rule. */
+.seg.is-tabs {
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.seg.is-tabs button {
+  flex: none;
+  padding: 6px 10px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+
+.seg.is-tabs button.is-on {
+  border-bottom-color: var(--ink);
+  background: none;
+  box-shadow: none;
+}

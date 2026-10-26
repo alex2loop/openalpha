@@ -23,8 +23,9 @@
 }
 
 .agent-note {
-  padding: 6px var(--s1);
-  border-radius: 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--caution);
+  border-radius: 8px;
   background: var(--cautionBg);
   color: var(--caution);
   font-size: 12px;
@@ -34,11 +35,11 @@
   display: inline-block;
   margin: 0 4px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: var(--sunken);
   color: var(--ink2);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .agent-tag.is-caution {
@@ -54,56 +55,63 @@
 
 .agent-facts {
   display: grid;
-  gap: 6px;
   margin: 0;
 }
 
 .agent-facts > div {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--s2);
+  gap: var(--s1);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
 }
 
 .agent-facts dt {
-  color: var(--ink2);
-  font-size: 12px;
+  color: var(--ink3);
 }
 
 .agent-facts dd {
   margin: 0;
-  font-weight: 600;
   text-align: right;
 }
 
 .run-steps {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* The mockup's step list: a 16 px mark column, one ruled row per step, the running one bold. */
 .run-step {
   display: flex;
   align-items: flex-start;
   gap: var(--s1);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
 }
 
-.run-step svg {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  margin-top: 3px;
-  stroke: var(--ink2);
+.run-step svg.icon {
+  margin-inline: 0.5px;
+  margin-top: 1px;
+  color: var(--ink);
+}
+
+.run-step.is-running {
+  font-weight: 600;
 }
 
 .run-step.is-running .spin {
-  margin-top: 3px;
+  margin: 4px 3px 0;
 }
 
 .run-step-time {
   margin-left: 6px;
+  font-weight: 400;
 }
 
 .child {
