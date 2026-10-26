@@ -53,7 +53,7 @@ import { findRun, pending, runs } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
 import { colorScheme, colourPair, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
 import { state } from '@/web/state/session'
-import { MINUTES_PER_HOUR } from '@/web/text/time'
+import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 
 import './canvas.css'

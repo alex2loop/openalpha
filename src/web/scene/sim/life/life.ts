@@ -41,7 +41,7 @@ import { propsOn } from '@/web/scene/world/props'
 import { isInRange } from '@/web/scene/world/regions'
 import { onWireEvent } from '@/web/state/events'
 import { pending, runs } from '@/web/state/live'
-import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time'
+import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time-units'
 
 interface LifeDeps {
   readonly director: Director

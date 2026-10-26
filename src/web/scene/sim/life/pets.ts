@@ -12,7 +12,7 @@ import {
   type Spot,
 } from '@/web/scene/sim/life/pet-paths'
 import { createRng, seedOf } from '@/web/scene/world/rng'
-import { MS_PER_SECOND } from '@/web/text/time'
+import { MS_PER_SECOND } from '@/web/text/time-units'
 
 /** One piece of a pet's routine, from `t0` to `t1` (`performance.now()` instants). */
 interface Leg {

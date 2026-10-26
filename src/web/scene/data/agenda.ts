@@ -12,7 +12,8 @@ import { homeMarket } from '@/web/scene/data/home'
 import { alertCounts } from '@/web/scene/data/room-status'
 import { locale, state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
-import { formatHourOfDay, MINUTES_PER_HOUR, MS_PER_MINUTE, zoneParts } from '@/web/text/time'
+import { formatHourOfDay, zoneParts } from '@/web/text/time'
+import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 
 // The brief's and the jobs' next times move only when one runs or is edited.

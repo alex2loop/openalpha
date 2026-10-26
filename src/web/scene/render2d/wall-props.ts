@@ -5,7 +5,7 @@ import type { LifeView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
 import { PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
-import { MINUTES_PER_HOUR } from '@/web/text/time'
+import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const SWITCH_ON = '#FFB340'
 const SWITCH_OFF = '#8E8497'

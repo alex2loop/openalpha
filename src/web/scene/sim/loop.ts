@@ -1,5 +1,5 @@
 import { SMALL_MOTION_RENDERS_PER_S } from '@/web/scene/budgets'
-import { MS_PER_SECOND } from '@/web/text/time'
+import { MS_PER_SECOND } from '@/web/text/time-units'
 
 export const SIM_STEP_MS = 100
 const MAX_FRAME_DT_MS = 250

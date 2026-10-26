@@ -41,8 +41,9 @@ export interface SideStreet {
   readonly oneWay: boolean
 }
 
-/** The main road along the office, and the side streets that meet it. `turnSign`: the blue plate
- *  that lets two-wheelers turn right on red. */
+/** The main road along the office, and the side streets that meet it. `north.oneWay`: the whole
+ *  road runs one way (false: it carries both ways, one `carriageways` each, split by the median);
+ *  `turnSign`: the blue plate that lets two-wheelers turn right on red. */
 export interface RoadLayout {
   readonly north: {
     readonly carriageways: 1 | 2
@@ -84,9 +85,10 @@ export type ShopKind =
   | 'shutter'
   | 'fence'
 
-/** One front of the block face, in street order, left to right. Open `hours` (a closed `shutter`
- *  is `[0, 0]`, a day and night one runs the whole day); `item`, when set, is what an errand
- *  there brings back. */
+/** One front of the block face, in street order, left to right. Open `hours`: a closed `shutter`
+ *  is `[0, 0]`; a day and night shop is `[0, 1440]`, so it never closes when `hours[0] === 0 &&
+ *  hours[1] >= 1440` (`hours[1] >= 1440` alone would also match a shop that closes at midnight).
+ *  `item`, when set, is what an errand there brings back. */
 export interface ShopRow {
   readonly kind: ShopKind
   readonly frontageM: number
@@ -113,7 +115,8 @@ export interface VehicleMix {
   }
 }
 
-export type VendorId = 'pho' | 'tea' | 'banh-mi' | 'flower-bike' | 'evening-stools'
+/** `pho`, `tea` and `banhMi` name their sign word: `ui.office.street.vendor.<id>`. */
+export type VendorId = 'pho' | 'tea' | 'banhMi' | 'flowerBike' | 'eveningStools'
 
 export type HolidayId = 'tet' | 'trung-thu' | 'quoc-khanh' | 'noel'
 

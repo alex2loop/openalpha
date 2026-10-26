@@ -3,7 +3,8 @@ import type { Size } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
 import { pluralKey } from '@/i18n'
 import { zeroCanvas } from '@/web/scene/renderer'
-import { formatDuration, MS_PER_MINUTE } from '@/web/text/time'
+import { formatDuration } from '@/web/text/time'
+import { MS_PER_MINUTE } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 
 // Text cached at the first of these canvas pixels per world pixel that covers the zoom.

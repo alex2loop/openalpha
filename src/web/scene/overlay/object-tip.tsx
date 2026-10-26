@@ -17,7 +17,8 @@ import {
 import { focusRun } from '@/web/state/focus'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
-import { formatClock, MS_PER_SECOND } from '@/web/text/time'
+import { formatClock } from '@/web/text/time'
+import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
 

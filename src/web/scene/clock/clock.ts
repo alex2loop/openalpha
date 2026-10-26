@@ -1,14 +1,8 @@
 import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
 import { reducedMotion } from '@/web/state/prefs'
-import {
-  type ClockParts,
-  MINUTES_PER_HOUR,
-  MS_PER_DAY,
-  MS_PER_HOUR,
-  MS_PER_MINUTE,
-  zoneParts,
-} from '@/web/text/time'
+import { type ClockParts, zoneParts } from '@/web/text/time'
+import { MINUTES_PER_HOUR, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time-units'
 
 export const CLOCK_SPEEDS = [1, 10, 60] as const
 export const CLOCK_PRESET_HOURS = [6, 9 + 20 / 60, 12 + 10 / 60, 16.5, 19.5, 22.5] as const

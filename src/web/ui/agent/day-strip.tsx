@@ -6,7 +6,8 @@ import { knownMarkets } from '@/web/state/market'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
-import { buildDayKey, formatClock, HOURS_PER_DAY } from '@/web/text/time'
+import { buildDayKey, formatClock } from '@/web/text/time'
+import { HOURS_PER_DAY } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 
 const NOW_TICK_MS = 60_000

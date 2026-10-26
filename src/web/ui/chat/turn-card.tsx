@@ -2,7 +2,7 @@ import { canStop, isFinished, steer, stopTurn, type Turn, thread } from '@/web/s
 import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
-import { MS_PER_SECOND } from '@/web/text/time'
+import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { resolveCommandLink } from '@/web/ui/chat/command-link'
 import { ReplyText } from '@/web/ui/chat/history-message'

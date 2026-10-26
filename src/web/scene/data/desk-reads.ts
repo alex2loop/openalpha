@@ -5,7 +5,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { setCapped } from '@/web/state/capped-map'
 import { onWireEvent } from '@/web/state/events'
-import { shiftDay } from '@/web/text/time'
+import { shiftDay } from '@/web/text/time-units'
 
 /** The step a research question reports while it searches or reads a page. */
 export const QUESTION_ACTIVITY_KEY = 'progress.researchQuestionActivity'

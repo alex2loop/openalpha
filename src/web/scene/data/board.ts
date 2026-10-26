@@ -14,7 +14,8 @@ import { onWireEvent } from '@/web/state/events'
 import { isTradingPhase } from '@/web/state/market'
 import { notices } from '@/web/state/notices'
 import { state } from '@/web/state/session'
-import { buildDayKey, MS_PER_DAY, zoneParts } from '@/web/text/time'
+import { buildDayKey, zoneParts } from '@/web/text/time'
+import { MS_PER_DAY } from '@/web/text/time-units'
 
 /** A command that lands, and every minute, the boards read again. */
 const BOARD_POLL_MS = 60_000

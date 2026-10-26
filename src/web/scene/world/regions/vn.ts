@@ -1,8 +1,9 @@
 import type { DayRange, MinuteRange, RegionPack } from '@/web/scene/world/regions'
+import { HOURS_PER_DAY, MINUTES_PER_HOUR, shiftDay } from '@/web/text/time-units'
 
 const FESTIVE_FIRST_YEAR = 2026
 const FESTIVE_LAST_YEAR = 2035
-// The day of the lunar new year and of the 15th of the eighth lunar month, per year from 2026.
+// The day of the lunar new year and of the 15th of the eighth lunar month, one per year.
 const TET_DAYS = [
   '2026-02-17',
   '2027-02-06',
@@ -36,18 +37,13 @@ const TET_DAYS_AFTER = 7
 const MID_AUTUMN_DAYS_BEFORE = 12
 const MID_AUTUMN_DAYS_AFTER = 1
 
-const hm = (hours: number, minutes = 0): number => hours * 60 + minutes
-const shifted = (day: string, days: number): string => {
-  const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
-
-  return new Date(Date.UTC(year, month - 1, date + days)).toISOString().slice(0, 10)
-}
+const hm = (hours: number, minutes = 0): number => hours * MINUTES_PER_HOUR + minutes
 const around = (day: string, daysBefore: number, daysAfter: number): DayRange => [
-  shifted(day, -daysBefore),
-  shifted(day, daysAfter),
+  shiftDay(day, -daysBefore),
+  shiftDay(day, daysAfter),
 ]
 
-const ALL_DAY: MinuteRange = [0, hm(24)]
+const ALL_DAY: MinuteRange = [0, hm(HOURS_PER_DAY)]
 const SHUT: MinuteRange = [0, 0]
 
 /** The Vietnam pack: Ho Chi Minh City's financial district, and the office's own day. */
@@ -133,7 +129,7 @@ export const VN_PACK = Object.freeze({
     ],
     quiet: [[hm(12, 30), hm(13, 30)]],
     night: [
-      [hm(21), hm(24)],
+      [hm(21), hm(HOURS_PER_DAY)],
       [0, hm(5, 30)],
     ],
     dayEdges: [
@@ -151,7 +147,7 @@ export const VN_PACK = Object.freeze({
     sweeper: [[hm(5), hm(8)]],
     garbage: [
       [hm(5), hm(6)],
-      [hm(22, 30), hm(24)],
+      [hm(22, 30), hm(HOURS_PER_DAY)],
       [0, hm(1)],
     ],
     cafe: [
@@ -176,19 +172,19 @@ export const VN_PACK = Object.freeze({
     vendors: {
       pho: [[hm(6), hm(8, 30)]],
       tea: [[hm(7), hm(22)]],
-      'banh-mi': [
+      banhMi: [
         [hm(6), hm(8)],
         [hm(11, 30), hm(13)],
         [hm(17), hm(19)],
       ],
-      'flower-bike': [[hm(6), hm(9, 30)]],
-      'evening-stools': [[hm(17, 30), hm(23)]],
+      flowerBike: [[hm(6), hm(9, 30)]],
+      eveningStools: [[hm(17, 30), hm(23)]],
     },
     crew: {
       receptionist: [[hm(8), hm(18)]],
       cleaner: [[hm(16, 30), hm(18)]],
       nightRounds: [
-        [hm(19), hm(24)],
+        [hm(19), hm(HOURS_PER_DAY)],
         [0, hm(6)],
       ],
     },
@@ -201,7 +197,7 @@ export const VN_PACK = Object.freeze({
     'quoc-khanh': FESTIVE_YEARS.map((year): DayRange => [`${year}-08-28`, `${year}-09-03`]),
     noel: FESTIVE_YEARS.map((year): DayRange => [`${year}-12-10`, `${year}-12-26`]),
   },
-  vendors: ['pho', 'tea', 'banh-mi', 'flower-bike', 'evening-stools'],
+  vendors: ['pho', 'tea', 'banhMi', 'flowerBike', 'eveningStools'],
   chatter: ['honk', 'eh', 'hello', 'hey'],
   words: {
     delivery: 'ui.office.street.delivery',

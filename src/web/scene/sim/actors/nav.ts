@@ -1,7 +1,7 @@
 import type { Point } from '@/web/scene/types'
 import { aStar, isBlockedCell } from '@/web/scene/sim/actors/a-star'
 import { NAV_CELL_PX, type NavGrid } from '@/web/scene/world/nav-grid'
-import { MS_PER_SECOND } from '@/web/text/time'
+import { MS_PER_SECOND } from '@/web/text/time-units'
 
 /** A person on the floor as the navigation moves them: `route[leg]` is the waypoint walked to,
  *  `goal` the end of the walk, `heldMs` how long others have held them up. */
