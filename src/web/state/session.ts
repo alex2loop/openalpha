@@ -3,7 +3,7 @@ import { computed, signal } from '@preact/signals'
 import type { StatePayload } from '@/app/server/wire/system'
 import type { ConnectionStatus } from '@/web/api/socket'
 import { noteSignedIn } from '@/web/api/auth-state'
-import { ApiFailure, getJson } from '@/web/api/client'
+import { ApiFailure, getJson, setSlowRequestMs } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { signInWithCode } from '@/web/api/sign-in'
 
@@ -80,7 +80,10 @@ export async function loadUntilReady(abortSignal: AbortSignal, code?: string): P
 /** Keeps the last good values when a load fails; a 401 flips `authState` in the client. */
 export async function loadSession(abortSignal: AbortSignal): Promise<void> {
   try {
-    state.value = await getJson(ROUTES.state, { signal: abortSignal })
+    const next = await getJson(ROUTES.state, { signal: abortSignal })
+
+    setSlowRequestMs(next.slowRequestMs)
+    state.value = next
     sessionFailure.value = undefined
     noteSignedIn()
   } catch (error: unknown) {

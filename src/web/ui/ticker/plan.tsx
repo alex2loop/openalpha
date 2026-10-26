@@ -1,6 +1,3 @@
-import { useSignal } from '@preact/signals'
-import { useEffect, useRef } from 'preact/hooks'
-
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import type { BlockReading } from '@/web/state/block'
 import type { ChartLevel, LevelKey } from '@/web/ui/ticker/chart'
@@ -11,11 +8,10 @@ import { joinInline } from '@/web/text/glyphs'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { CopyButton } from '@/web/ui/kit/copy-button'
 import { ListIcon } from '@/web/ui/kit/icons'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
-
-const COPIED_MS = 2_000
 
 export interface PlanRead {
   readonly plan: SuggestionWire | undefined
@@ -103,8 +99,10 @@ function PlanBody({ plan, ticker, market }: PlanBodyProps) {
           </div>
         ))}
       </dl>
-      <CopyPlan
+      {/* It places no order: the levels go on the clipboard as text. */}
+      <CopyButton
         text={joinInline([ticker, verdict, ...lines.map((line) => `${line.label} ${line.price}`)])}
+        label={tr('ui.office.ticker.copyPlan')}
       />
     </>
   )
@@ -116,32 +114,4 @@ function isReviewLevel(plan: SuggestionWire): boolean {
   const row = stopsBlock.view.value.data?.stops.find((stop) => keyOf(stop.instrument) === key)
 
   return plan.reviewOnly === true || row?.review === true
-}
-
-// Puts the levels on the clipboard as text and says so for a moment; it places no order.
-function CopyPlan({ text }: { readonly text: string }) {
-  const isCopied = useSignal(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  useEffect(() => () => clearTimeout(timer.current), [])
-
-  function copy(): void {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        isCopied.value = true
-        clearTimeout(timer.current)
-        timer.current = setTimeout(() => {
-          isCopied.value = false
-        }, COPIED_MS)
-      },
-      // A browser that refuses the clipboard leaves the button as it was: nothing was copied.
-      () => undefined
-    )
-  }
-
-  return (
-    <Button size="small" onClick={copy}>
-      {isCopied.value ? tr('ui.office.ticker.copied') : tr('ui.office.ticker.copyPlan')}
-    </Button>
-  )
 }

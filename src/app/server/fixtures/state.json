@@ -85,5 +85,6 @@
     "modelReady": true,
     "profileSaved": true,
     "bookEmpty": false
-  }
+  },
+  "slowRequestMs": 120000
 }

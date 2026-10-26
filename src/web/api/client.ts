@@ -3,6 +3,8 @@ import type { RouteDef } from '@/web/api/routes'
 import { noteRefused } from '@/web/api/auth-state'
 
 const REQUEST_TIMEOUT_MS = 20_000
+// What a slow route waits beyond the daemon's own ceiling, for the answer to travel back.
+const SLOW_MARGIN_MS = 15_000
 /** The status of a request the daemon refused for want of a signed-in session. */
 export const UNAUTHORIZED_STATUS = 401
 // A request that got no answer has no HTTP status.
@@ -71,6 +73,14 @@ export class ApiFailure extends Error {
   }
 }
 
+// The daemon's slow ceiling from `GET /v1/state`; a slow route is only reached once state loaded.
+let slowRequestMs: number | undefined
+
+/** Set from each `GET /v1/state`, so a `slow` route waits as long as the daemon may run it. */
+export function setSlowRequestMs(ms: number): void {
+  slowRequestMs = ms
+}
+
 /** Throws `ApiFailure` for every failure except the caller's own abort, which it rethrows. */
 export function getJson<T>(def: RouteDef<T>, init: GetInit = {}): Promise<T> {
   return request(def, { ...init, method: 'GET' })
@@ -86,7 +96,7 @@ export function sendJson<T>(
 }
 
 async function request<T>(def: RouteDef<T>, init: ApiRequest): Promise<T> {
-  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const timeout = AbortSignal.timeout(timeoutOf(def))
   const signal = init.signal === undefined ? timeout : AbortSignal.any([init.signal, timeout])
 
   try {
@@ -110,6 +120,12 @@ async function request<T>(def: RouteDef<T>, init: ApiRequest): Promise<T> {
 
     throw new ApiFailure(NO_STATUS, timeout.aborted ? 'timeout' : 'unreachable')
   }
+}
+
+function timeoutOf(def: RouteDef<unknown>): number {
+  return def.timeout === 'slow' && slowRequestMs !== undefined
+    ? slowRequestMs + SLOW_MARGIN_MS
+    : REQUEST_TIMEOUT_MS
 }
 
 function buildUrl(path: string, query: GetInit['query']): string {

@@ -9,10 +9,13 @@ app:main
 app:passThroughBootGate
 cli:ArgIssue
 cli:BUILT_IN_COMMANDS
+cli:CLI_ONLY_CHECK_NAMES
+cli:CheckedProbe
 cli:CliApp
 cli:Command
 cli:CommandDef
 cli:ConfigProbe
+cli:DoctorInput
 cli:EnvFileLoad
 cli:GlobalFlags
 cli:Group
@@ -24,8 +27,11 @@ cli:UPDATE_CHECK_HOST
 cli:UPGRADE_COMMAND
 cli:UpdateChat
 cli:UpdateState
+cli:WEB_CHECK_NAMES
 cli:Writer
 cli:admitCommand
+cli:checkLabel
+cli:collectDoctorProbes
 cli:createCommand
 cli:createGroup
 cli:createRoot
@@ -108,6 +114,7 @@ core/types/agent-pause
 core/types/budget
 core/types/cli-command
 core/types/command
+core/types/doctor
 core/types/event-job
 core/types/exact
 core/types/locale

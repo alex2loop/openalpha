@@ -9,8 +9,8 @@ import { t } from '@/i18n'
 import { MIGRATION_IDS_SQL, MIGRATIONS_TABLE, SQLITE_MIGRATIONS_TABLE_SQL } from '@/persistence/api'
 import { PROFILE_CURRENCY_SQL } from '@/trading/api'
 
-import type { DoctorFinding, DoctorProbe, DoctorStatus } from './types'
-import { checkLabel } from './labels'
+import type { DoctorFinding, DoctorProbe, DoctorStatus, DoctorSurface } from './types'
+import { checkLabel, offlineKey } from './labels'
 import { migrationFinding } from './local-probes'
 import { probePostgresDatabase } from './postgres-probe'
 
@@ -43,6 +43,7 @@ interface DatabaseProbeOptions {
   readonly storage: ResolvedStorageConfig
   readonly migrations: readonly Migration[]
   readonly online: boolean
+  readonly surface: DoctorSurface
   readonly locale: Locale
   /** The `[locale] currency` the book must have been opened in. */
   readonly currency?: string
@@ -59,13 +60,18 @@ async function inspectDatabase(options: DatabaseProbeOptions): Promise<DoctorFin
     return probeSqliteDatabase({
       path: options.storage.path,
       migrations: options.migrations,
+      depth: options.surface === 'terminal' ? 'full' : 'light',
       locale,
       ...(options.currency === undefined ? {} : { currency: options.currency }),
     })
   }
 
   if (!options.online) {
-    return databaseProbe('ok', postgresTarget(options.storage), t(locale, 'cli.doctorNotProbed'))
+    return databaseProbe(
+      'ok',
+      postgresTarget(options.storage),
+      t(locale, offlineKey(options.surface, 'notProbed'))
+    )
   }
 
   return probePostgresDatabase(options.storage, options.migrations, locale)
@@ -74,6 +80,9 @@ async function inspectDatabase(options: DatabaseProbeOptions): Promise<DoctorFin
 interface SqliteProbeOptions {
   readonly path: string
   readonly migrations: readonly Migration[]
+  /** `light` skips the full-file integrity scan, which blocks the process that runs it: the daemon
+   *  answers the page with only the open, the migrations and the currency. */
+  readonly depth: 'full' | 'light'
   readonly locale: Locale
   readonly currency?: string
 }
@@ -93,11 +102,10 @@ async function probeSqliteDatabase(options: SqliteProbeOptions): Promise<DoctorF
   }
 
   try {
-    const integrity = database.query<IntegrityRow, []>(INTEGRITY_CHECK_SQL).get()
-    const result = integrity?.integrity_check ?? 'unknown'
+    const integrity = options.depth === 'full' ? integrityFinding(database, path, locale) : null
 
-    if (result !== 'ok') {
-      return databaseProbe('fail', path, t(locale, 'cli.doctorIntegrityCheckFailed', { result }))
+    if (integrity !== null) {
+      return integrity
     }
 
     // A boot that failed after opening the file leaves it empty; the next good start migrates it.
@@ -114,7 +122,13 @@ async function probeSqliteDatabase(options: SqliteProbeOptions): Promise<DoctorF
     }
 
     const applied = database.query<MigrationRow, []>(MIGRATION_IDS_SQL).all()
-    const migrated = migrationProbe({ path, migrations: options.migrations, applied, locale })
+    const migrated = migrationProbe({
+      path,
+      migrations: options.migrations,
+      applied,
+      light: options.depth === 'light',
+      locale,
+    })
 
     return migrated.status === 'ok' ? currencyProbe(database, options, migrated) : migrated
   } catch {
@@ -122,6 +136,18 @@ async function probeSqliteDatabase(options: SqliteProbeOptions): Promise<DoctorF
   } finally {
     closeQuietly(database)
   }
+}
+
+function integrityFinding(database: Database, path: string, locale: Locale): DoctorFinding | null {
+  const result = database.query<IntegrityRow, []>(INTEGRITY_CHECK_SQL).get()?.integrity_check
+
+  return result === 'ok'
+    ? null
+    : databaseProbe(
+        'fail',
+        path,
+        t(locale, 'cli.doctorIntegrityCheckFailed', { result: result ?? 'unknown' })
+      )
 }
 
 /** The book's currency is fixed by its first profile; a `[locale] currency` edited since leaves
@@ -219,9 +245,14 @@ function migrationProbe(options: {
   readonly path: string
   readonly migrations: readonly Migration[]
   readonly applied: readonly MigrationRow[]
+  readonly light: boolean
   readonly locale: Locale
 }): DoctorFinding {
-  const finding = migrationFinding(options.locale, options.migrations, options.applied)
+  const finding = migrationFinding(options.locale, {
+    migrations: options.migrations,
+    applied: options.applied,
+    light: options.light,
+  })
 
   return databaseProbe(finding.status, options.path, finding.detail)
 }

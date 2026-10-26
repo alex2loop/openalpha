@@ -19,6 +19,7 @@ import { disposePrefs } from '@/web/state/prefs'
 import { startRestartWatch } from '@/web/state/restart'
 import { brand, loadUntilReady, locale, state } from '@/web/state/session'
 import { removeStorage } from '@/web/state/storage'
+import { startUpdate } from '@/web/state/update'
 import { startAgentFormRequests } from '@/web/ui/agent/form/agent-form'
 import { createKeyHandler } from '@/web/ui/keys/keys'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
@@ -121,6 +122,7 @@ function startOffice(): readonly (() => void)[] {
     startAgentFormRequests(),
     startMarket(),
     startRestartWatch(),
+    startUpdate(),
     createKeyHandler({ openList: openKeysDialog }),
   ]
 }

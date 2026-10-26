@@ -56,6 +56,7 @@ import type {
   RestartAcceptedWire,
   ScheduleRow,
   StatePayload,
+  UpdateResponse,
 } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import type {
@@ -78,6 +79,8 @@ export interface RouteDef<T> {
   readonly path: string
   /** The `state.capabilities` flag that says the daemon runs this route. */
   readonly capability?: keyof Capabilities
+  /** `slow`: the daemon may run it up to its slow ceiling, so the client waits that long. */
+  readonly timeout?: 'slow'
   // Never set: it carries `T` so a call infers the response type from the route.
   readonly response?: T
 }
@@ -85,6 +88,10 @@ export interface RouteDef<T> {
 /** What `POST /v1/respond` and the pause and resume of an agent or a job answer. */
 interface OkAnswer {
   readonly ok: true
+}
+
+interface RouteOptions {
+  readonly timeout?: 'slow'
 }
 
 export const ROUTES = Object.freeze({
@@ -171,7 +178,8 @@ export const ROUTES = Object.freeze({
     route<BrowserSessionEndResult>(`/v1/sessions/${encodeURIComponent(sessionId)}`),
   sources: route<SourcesResponse>('/v1/sources'),
   outbound: route<OutboundResponse>('/v1/outbound'),
-  doctor: route<DoctorReport>('/v1/doctor'),
+  doctor: route<DoctorReport>('/v1/doctor', undefined, { timeout: 'slow' }),
+  update: route<UpdateResponse>('/v1/update'),
   restart: route<RestartAcceptedWire>('/v1/restart'),
   venues: route<VenuesResponse>('/v1/venues', 'portfolio'),
   profile: route<TradingProfileResponse>('/v1/profile'),
@@ -182,6 +190,14 @@ export const ROUTES = Object.freeze({
     route<AlertDisableResponse>(`/v1/alerts/${encodeURIComponent(alertId)}`),
 })
 
-function route<T>(path: string, capability?: keyof Capabilities): RouteDef<T> {
-  return capability === undefined ? { path } : { path, capability }
+function route<T>(
+  path: string,
+  capability?: keyof Capabilities,
+  options: RouteOptions = {}
+): RouteDef<T> {
+  return {
+    path,
+    ...(capability === undefined ? {} : { capability }),
+    ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
+  }
 }

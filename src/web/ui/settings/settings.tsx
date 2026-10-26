@@ -1,8 +1,13 @@
 import { signal } from '@preact/signals'
 
-import type { MessageKey } from '@/i18n'
 import { pluralKey } from '@/i18n'
-import { pendingRestart, SETTINGS_SECTIONS, type SettingsSection } from '@/web/state/settings'
+import {
+  pendingRestart,
+  SECTION_TITLES,
+  SETTINGS_SECTIONS,
+  type SettingsSection,
+} from '@/web/state/settings'
+import { loadUpdate } from '@/web/state/update'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
@@ -15,19 +20,10 @@ import { ProfileSection } from '@/web/ui/settings/profile-forms'
 import { openRestartDialog } from '@/web/ui/settings/restart'
 import { describeRows } from '@/web/ui/settings/restart-rows'
 import { ScheduleSection } from '@/web/ui/settings/schedule-section'
+import { UpdateStrip } from '@/web/ui/settings/update-strip'
 
 import '@/web/ui/dialogs/dialogs.css'
 import './settings.css'
-
-const SECTION_TITLES = Object.freeze({
-  profile: 'ui.office.common.profile',
-  schedule: 'ui.office.settings.schedule',
-  agents: 'ui.office.settings.agents',
-  channels: 'ui.office.settings.channels',
-  data: 'ui.office.settings.data',
-  display: 'ui.office.settings.display',
-  advanced: 'ui.office.settings.advanced',
-} as const satisfies Record<SettingsSection, MessageKey>)
 
 // The section last open, so the way back from a form lands where the operator left.
 const chosen = signal<SettingsSection>('profile')
@@ -38,6 +34,7 @@ export function openSettings(section?: SettingsSection): void {
     chosen.value = section
   }
 
+  loadUpdate(new AbortController().signal).catch(() => undefined)
   openModal({
     title: tr('ui.office.settings.title'),
     body: <SettingsBody />,
@@ -48,6 +45,10 @@ export function openSettings(section?: SettingsSection): void {
 
 function reopen(): void {
   openSettings()
+}
+
+function openSection(section: SettingsSection): void {
+  chosen.value = section
 }
 
 function SettingsBody() {
@@ -69,6 +70,7 @@ function SettingsBody() {
         ))}
       </nav>
       <div class="settings-form">
+        <UpdateStrip reopen={reopen} />
         <h3 class="settings-section">{tr(SECTION_TITLES[chosen.value])}</h3>
         <SectionView section={chosen.value} />
       </div>
@@ -87,9 +89,9 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
     case 'channels':
       return <ChannelsSection />
     case 'data':
-      return <DataSection />
+      return <DataSection openSection={openSection} />
     case 'display':
-      return <DisplaySection />
+      return <DisplaySection reopen={reopen} />
     case 'advanced':
       return <AdvancedSection />
   }

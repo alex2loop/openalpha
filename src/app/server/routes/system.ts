@@ -9,7 +9,10 @@ import type {
   UpdateResponse,
 } from '@/app/server/wire/system'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
+import type { CheckedProbe, DoctorInput } from '@/cli/api'
 import type { App } from '@/core/container'
+import type { CheckName } from '@/core/types/doctor'
+import type { Locale } from '@/core/types/locale'
 import { createTokenFile, findProviderById } from '@/ai/api'
 import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
 import { apiTokenPath } from '@/app/server/http/auth'
@@ -21,18 +24,35 @@ import { localeOf } from '@/app/server/routes/params'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
 import { COST_ESTIMATE_SAMPLE } from '@/app/server/wire/system'
 import { RESTART_IDLE_WAIT_MS } from '@/app/update/restart'
-import { isBackgroundLaunch, readDaemonDegraded, readReleaseStatus } from '@/cli/api'
+import {
+  CLI_ONLY_CHECK_NAMES,
+  checkLabel,
+  collectDoctorProbes,
+  getEnv,
+  isBackgroundLaunch,
+  readDaemonDegraded,
+  readReleaseStatus,
+  UPGRADE_COMMAND,
+  WEB_CHECK_NAMES,
+} from '@/cli/api'
 import { describeCommand } from '@/commands/api'
 import { BRAND } from '@/core/brand'
-import { probeConfig } from '@/core/config/load'
-import { operatorMessageOf } from '@/core/errors'
-import { formatErrForLog } from '@/core/security/credentials'
+import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
+import { CHECK_NAMES } from '@/core/types/doctor'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { bindLocale } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 import { resolveChildMaxDurationMs } from '@/tools/api'
-import { MINIMUM_TRACK_RECORD_SAMPLE, tradingDay } from '@/trading/api'
+import {
+  HOST_SLOW_REQUEST_TIMEOUT_MS,
+  MINIMUM_TRACK_RECORD_SAMPLE,
+  tradingDay,
+} from '@/trading/api'
 
 const COST_ESTIMATE_MIN_RUNS = 3
+const ONLINE_FLAG = '1'
+const API_CHECK = 'api'
+// A model call costs money, so the page's only one is the model chain's own test button.
+const MODEL_CHECKS: ReadonlySet<CheckName> = new Set(['providers'])
 // Providers whose unreadable login was already logged, per app: bounded by the configured models.
 const unreadableLogins = new WeakMap<App, Set<string>>()
 
@@ -77,6 +97,7 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     trackRecordMinSample: MINIMUM_TRACK_RECORD_SAMPLE,
     childRunMaxMs: resolveChildMaxDurationMs(app.config.loop),
     firstRun,
+    slowRequestMs: HOST_SLOW_REQUEST_TIMEOUT_MS,
   } satisfies StatePayload)
 }
 
@@ -104,8 +125,17 @@ async function handleUpdate(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   return json(
     (status === null
-      ? { enabled: false, current: BRAND.version, latest: null, url: null, checkedAt: 0 }
-      : { enabled: true, ...status }) satisfies UpdateResponse
+      ? {
+          enabled: false,
+          current: BRAND.version,
+          latest: null,
+          url: null,
+          checkedAt: 0,
+          newer: false,
+          notes: [],
+          upgradeCommand: UPGRADE_COMMAND,
+        }
+      : { enabled: true, ...status, upgradeCommand: UPGRADE_COMMAND }) satisfies UpdateResponse
   )
 }
 
@@ -131,51 +161,86 @@ async function handleCommands(_req: Request, ctx: ApiRouteContext): Promise<Resp
 }
 
 type Translate = ReturnType<typeof bindLocale>['translate']
+type ProviderCheck = Pick<DoctorCheck, 'name' | 'ok' | 'detail'>
 
-/** The checks the CLI's `doctor` runs offline, with its words: `detail` is shown as written. */
-async function handleDoctor(_req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const { app } = ctx
-  const { translate } = bindLocale(app.config.locale.language)
-  const [config, database, providers, apiToken] = await Promise.all([
-    resolveConfigCheck(app, translate),
-    resolveDatabaseCheck(app, translate),
-    resolveProviderChecks(app, translate),
-    resolveApiTokenCheck(app, translate),
-  ])
+/** The CLI's `doctor` checks, with its words: `detail` is shown as written. */
+async function handleDoctor(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const query = new URL(req.url).searchParams
+  const online = query.get('online') === ONLINE_FLAG
+  const checks = await readDoctorChecks(ctx.app, { check: query.get('check'), online })
 
-  return json({ checks: [config, database, ...providers, apiToken] } satisfies DoctorReport)
-}
+  if (checks === null) {
+    const names = [...CHECK_NAMES, API_CHECK].join(', ')
 
-async function resolveConfigCheck(app: App, translate: Translate): Promise<DoctorCheck> {
-  const probed = await probeConfig({ configPath: app.configPath })
-
-  return probed.error === null
-    ? { name: 'config', ok: true, detail: probed.configPath }
-    : { name: 'config', ok: false, detail: configErrorText(probed.error, translate) }
-}
-
-function configErrorText(err: Error, translate: Translate): string {
-  const operator = operatorMessageOf(err)
-
-  return operator === undefined ? err.message : translate(operator.key, operator.params)
-}
-
-async function resolveDatabaseCheck(app: App, translate: Translate): Promise<DoctorCheck> {
-  try {
-    await app.resolve('storage').query('SELECT 1', [])
-
-    return { name: 'database', ok: true, detail: translate('cli.doctorEndpointReachable') }
-  } catch {
-    return { name: 'database', ok: false, detail: translate('cli.doctorCannotConnectDatabase') }
+    return apiError('invalid_body', t(localeOf(ctx), 'cli.doctorCheckInvalid', { names }))
   }
+
+  return json({ checks, checkedAt: Date.now(), online } satisfies DoctorReport)
+}
+
+// Null for a check id the CLI does not know.
+async function readDoctorChecks(
+  app: App,
+  options: { readonly check: string | null; readonly online: boolean }
+): Promise<readonly DoctorCheck[] | null> {
+  const { check, online } = options
+  const locale = app.config.locale.language
+  const input: DoctorInput = {
+    config: app.config,
+    env: getEnv(),
+    locale,
+    online,
+    onlineExcept: MODEL_CHECKS,
+    surface: 'page',
+  }
+  const apiToken = (): Promise<DoctorCheck> =>
+    resolveApiTokenCheck(app, bindLocale(locale).translate)
+
+  if (check === null) {
+    const [probes, token] = await Promise.all([collectDoctorProbes(input), apiToken()])
+
+    return [
+      ...probes.map(toDoctorCheck),
+      ...CLI_ONLY_CHECK_NAMES.map((name) => cliOnlyCheck(name, locale)),
+      token,
+    ]
+  }
+
+  if (check === API_CHECK) {
+    return [await apiToken()]
+  }
+
+  const shared = WEB_CHECK_NAMES.find((name) => name === check)
+
+  if (shared !== undefined) {
+    return (await collectDoctorProbes(input, shared)).map(toDoctorCheck)
+  }
+
+  const cliOnly = CLI_ONLY_CHECK_NAMES.find((name) => name === check)
+
+  return cliOnly === undefined ? null : [cliOnlyCheck(cliOnly, locale)]
+}
+
+function toDoctorCheck(probe: CheckedProbe): DoctorCheck {
+  return {
+    check: probe.check,
+    name: scrubCredentials(probe.name),
+    status: probe.status,
+    ok: probe.status === 'ok' || probe.status === 'info',
+    detail: scrubCredentials(probe.detail),
+  }
+}
+
+function cliOnlyCheck(check: CheckName, locale: Locale): DoctorCheck {
+  return { check, name: checkLabel(locale, check), status: 'cliOnly', ok: true }
 }
 
 // resolvers/model.ts rejects a *named* api_key_env whose value is unset or empty, so a standard
 // provider only ever reaches here with a real key or with apiKey entirely undefined. A subscription
 // provider carries no key at all; it is authenticated by a login, whose token file is read here.
-function resolveProviderChecks(app: App, translate: Translate): Promise<readonly DoctorCheck[]> {
+function resolveProviderChecks(app: App, translate: Translate): Promise<readonly ProviderCheck[]> {
   return Promise.all(
-    app.config.models.map(async (model): Promise<DoctorCheck> => {
+    app.config.models.map(async (model): Promise<ProviderCheck> => {
       const name = `provider: ${model.provider}`
       const params = { provider: model.provider }
 
@@ -197,7 +262,7 @@ async function resolveLoginCheck(
   app: App,
   target: { readonly name: string; readonly provider: string },
   translate: Translate
-): Promise<DoctorCheck> {
+): Promise<ProviderCheck> {
   const { name, provider } = target
   const params = { provider }
 
@@ -229,18 +294,20 @@ async function resolveLoginCheck(
 }
 
 async function resolveApiTokenCheck(app: App, translate: Translate): Promise<DoctorCheck> {
-  const name = 'api: token'
+  const row = { check: API_CHECK, name: 'api: token' } as const
   const tokenEnv = app.config.api.tokenEnv
 
   // The API refuses to start on an unset or short token_env, so a daemon answering here has it.
   if (tokenEnv !== undefined) {
-    return { name, ok: true, detail: tokenEnv }
+    return { ...row, status: 'ok', ok: true, detail: tokenEnv }
   }
 
   const path = apiTokenPath(app.config.paths.dataDir)
   const ok = await Bun.file(path).exists()
 
-  return { name, ok, detail: ok ? path : translate('cli.doctorNotCreatedYet') }
+  return ok
+    ? { ...row, status: 'ok', ok, detail: path }
+    : { ...row, status: 'fail', ok, detail: translate('cli.doctorNotCreatedYet') }
 }
 
 const MAX_RANGE_DAYS = 366
