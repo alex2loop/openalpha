@@ -98,7 +98,13 @@ function noteRestartRow(row: RestartRow): void {
 }
 
 function describeIssues(issues: ConfigIssues): string {
-  return issues.map((issue) => `${issue.path}: ${issue.message}`).join(ISSUE_SEPARATOR)
+  return issues.map(toIssueLine).join(ISSUE_SEPARATOR)
+}
+
+/** One issue as the operator reads it: a refused field's sentence names it already, so it stands
+ *  alone; any other issue leads with its path. */
+export function toIssueLine(issue: ConfigIssues[number]): string {
+  return issue.refused === true ? issue.message : `${issue.path}: ${issue.message}`
 }
 
 // A stored row this page no longer knows reads as absent.

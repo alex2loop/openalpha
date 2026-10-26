@@ -11,6 +11,8 @@ export interface ConfigResponse {
 interface ConfigIssue {
   readonly path: string
   readonly message: string
+  /** A field a write may not carry (a hidden secret, a CLI-only change); its message names it. */
+  readonly refused?: true
 }
 
 /** POST /v1/config/validate result (also the pre-write gate for POST /v1/config). */

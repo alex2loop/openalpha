@@ -214,7 +214,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   (the provider's own address and key variable take over), and so does an `api_key_env` set to the
   key variable the provider catalog names for the entry's `provider`. The list is
   `routes/config-guard.ts`. `/v1/config/validate` runs the same refusals and answers `ok: false`
-  with one issue per refused path (a hidden secret and a CLI-only change alike), so a check and a
+  with one issue per refused path (a hidden secret and a CLI-only change alike, each marked
+  `refused: true`; its message already names the field), so a check and a
   save of one body agree.
 - **Before a daemon exists**, the app runs `openalpha setup catalog` (the provider list as
   `SetupResult`) and `openalpha setup write <provider> <model>` (the starter config) with the

@@ -11,6 +11,7 @@ import {
   isTree,
   readConfig,
   saveConfigTree,
+  toIssueLine,
 } from '@/web/state/settings'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -175,7 +176,7 @@ async function validateText(text: string, before: ConfigTree): Promise<Check> {
       : {
           kind: 'refused',
           text,
-          lines: (checked.issues ?? []).map((issue) => `${issue.path}: ${issue.message}`),
+          lines: (checked.issues ?? []).map(toIssueLine),
         }
   } catch (error: unknown) {
     return { kind: 'refused', text, lines: [toErrorText(error)] }

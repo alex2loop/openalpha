@@ -56,6 +56,7 @@ async function handleConfigValidate(req: Request, ctx: ApiRouteContext): Promise
     refusal.fields.map(({ path, message }) => ({
       path,
       message: translate(message.key, message.params),
+      refused: true as const,
     }))
   )
 
