@@ -29,7 +29,7 @@ const DUST_FALL_MS = 380
 const DUST_FALL_PX = 70
 const DUST_TONE = '#FFFFFF'
 
-/** The office floor's ambient effects this frame: `ms` is the one clock they all read, stepped at
+/** The floor's ambient effects this frame: `ms` is the one clock they all read, stepped at
  *  `AMBIENT_FX_FPS`; each flag says whether its effect is on. */
 export interface AmbientFx {
   readonly ms: number
@@ -41,25 +41,30 @@ export interface AmbientFx {
   readonly bubbles: boolean
   /** The StandBy stands' drifting colour, which steps only every `STANDBY_STEP_MS`. */
   readonly standby: boolean
+  /** The lift's arrow, blinking while the car rides, on either floor. */
+  readonly lift: boolean
 }
 
-/** The ambient effects the office floor shows now; none under reduced motion or on another floor,
- *  where every effect draws its still frame. */
+/** The ambient effects the floor shows now: the office's own, and the lift's arrow on either
+ *  floor; none under reduced motion, where every effect draws its still frame. */
 export function resolveAmbientFx(sim: SimView, nowMs: number): AmbientFx | undefined {
-  if (reducedMotion.value || sim.floor !== 'office') {
+  if (reducedMotion.value) {
     return undefined
   }
 
-  const isAwake = !sim.life.isQuiet
+  const isOffice = sim.floor === 'office'
+  const isAwake = isOffice && !sim.life.isQuiet
   const fx = {
     ms: Math.floor(nowMs / AMBIENT_FX_GAP_MS) * AMBIENT_FX_GAP_MS,
-    dust: sim.light.sun.altitudeDeg >= DUST_SUN_DEG && sim.light.cloud <= DUST_CLOUD_MAX,
+    dust:
+      isOffice && sim.light.sun.altitudeDeg >= DUST_SUN_DEG && sim.light.cloud <= DUST_CLOUD_MAX,
     ribbons: isAwake && sim.life.occupied.has('meet'),
-    strip: alertStrip.value.isNew,
-    cue: pending.value.some((entry) => entry.kind === APPROVAL_KIND),
+    strip: isOffice && alertStrip.value.isNew,
+    cue: isOffice && pending.value.some((entry) => entry.kind === APPROVAL_KIND),
     rack: isAwake && roomStatus.value.get('store')?.runs[0] !== undefined,
     bubbles: isAwake && runningCount.value > 0,
     standby: isAwake,
+    lift: sim.lift.direction !== 'still',
   }
 
   return isFast(fx) || fx.standby ? fx : undefined
@@ -81,7 +86,7 @@ export function nextAmbientFxAt(sim: SimView, nowMs: number): number {
 }
 
 function isFast(fx: AmbientFx): boolean {
-  return fx.dust || fx.ribbons || fx.strip || fx.cue || fx.rack || fx.bubbles
+  return fx.dust || fx.ribbons || fx.strip || fx.cue || fx.rack || fx.bubbles || fx.lift
 }
 
 /** The dust in the window light, drifting on the ambient clock. */

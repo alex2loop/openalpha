@@ -1,5 +1,5 @@
 import type { FloorId, LiftView } from '@/web/scene/types'
-import { GROUND_FLOOR } from '@/web/scene/world/floors'
+import { GROUND_FLOOR, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { reducedMotion } from '@/web/state/prefs'
 
 /** Where an empty car waits for the next call. */
@@ -23,7 +23,12 @@ interface Car {
   restSince: number
   lastAt: number | undefined
   readonly called: Set<FloorId>
-  readonly shown: { floor: FloorId; doors: number; called: FloorId[] }
+  readonly shown: {
+    floor: FloorId
+    doors: number
+    called: FloorId[]
+    direction: LiftView['direction']
+  }
 }
 
 /** The one lift car between the two floors: a call lights a floor's button, the car rides there
@@ -47,7 +52,7 @@ export function createLift(): Lift {
     restSince: 0,
     lastAt: undefined,
     called: new Set(),
-    shown: { floor: PARK_FLOOR, doors: 0, called: [] },
+    shown: { floor: PARK_FLOOR, doors: 0, called: [], direction: 'still' },
   }
 
   return {
@@ -97,6 +102,7 @@ function stepCar(car: Car, nowMs: number): boolean {
   if (to !== undefined) {
     car.to = to
     car.rideEndsAt = nowMs + LIFT_RIDE_MS
+    car.shown.direction = to === TEAM_FLOOR ? 'up' : 'down'
   }
 
   return isMoved || to !== undefined
@@ -118,6 +124,7 @@ function stepRide(car: Car, nowMs: number): boolean {
   car.at = to
   car.to = undefined
   car.restSince = nowMs
+  car.shown.direction = 'still'
 
   if (car.called.has(to)) {
     answer(car, to)
