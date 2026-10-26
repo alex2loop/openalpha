@@ -349,8 +349,11 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    - **Đường hầm SSH**, không cần tên miền: `ssh -N -L 18765:127.0.0.1:8765 user@server`, rồi dùng
      địa chỉ `http://127.0.0.1:18765`. Dùng cổng khác 8765 ở máy bạn để không đụng daemon đang chạy
      trên chính máy đó.
-   - **HTTPS qua Caddy** trên máy chủ: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, rồi dùng
-     `https://alpha.example.com`. Khi đó mọi yêu cầu đều đến từ `127.0.0.1`, nên năm lần sai mã sẽ khóa
+   - **HTTPS qua Caddy** trên máy chủ:
+     `alpha.example.com { reverse_proxy 127.0.0.1:8765 { header_up Host {upstream_hostport} } }`, rồi dùng
+     `https://alpha.example.com`. Daemon chỉ trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc
+     `[::1]` (cổng nào cũng được, nên đường hầm SSH dùng như cũ), để chặn trang web giở trò DNS rebinding;
+     `header_up Host` giúp proxy chuyển đúng địa chỉ của daemon. Khi đó mọi yêu cầu đều đến từ `127.0.0.1`, nên năm lần sai mã sẽ khóa
      mọi máy gửi mã sai trong 30 giây, tăng gấp đôi mỗi lần, tối đa một giờ. Yêu cầu mang đúng mã không
      bao giờ bị khóa chặn và còn xóa khóa đó.
 6. **Nối ứng dụng khách.** Nhập địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
@@ -382,6 +385,7 @@ Khi API bật, daemon còn phục vụ một trang web ngay tại địa chỉ c
 - Trang lấy mã ra khỏi địa chỉ ngay khi tải, nên mã không nằm lại trên thanh địa chỉ hay trong lịch sử.
 - Mã mở từ liên kết chỉ sống trong thẻ đó và mất khi bạn đóng thẻ. Dán mã vào ô đăng nhập cũng giữ cho thẻ đó, còn "Nhớ trên trình duyệt này" (mặc định đã tick) giữ thêm trong trình duyệt này, để lần sau khỏi đăng nhập. Đăng xuất, trong Cài đặt > Hiển thị, xóa cả hai.
 - Trang không bao giờ in mã ra, không ghi mã vào nhật ký và chỉ gửi mã cho daemon. Trang từ chối chạy bên trong một khung (frame).
+- Daemon chỉ trả lời địa chỉ trên chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`), từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
 - Nếu không nối được daemon, trang nói thẳng bằng một dòng. Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở daemon. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn daemon thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
 
 ### Trên màn hình có gì
@@ -394,7 +398,7 @@ Khi API bật, daemon còn phục vụ một trang web ngay tại địa chỉ c
 - **Ô câu lệnh.** Ở cuối trang: ai nhận câu bạn gõ, ô nhập và nút Gửi. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
 - **Chuông và việc đang chạy.** Chuông liệt kê thông báo và các yêu cầu đang chờ bạn. Yêu cầu duyệt hỏi từ trang này được trả lời ngay trong chuông: duyệt một lần, ghi nhớ hoặc từ chối. Đồng hồ đếm lùi cho biết khi nào hết hạn, và yêu cầu hết giờ mà chưa trả lời thì bị từ chối. Mỗi yêu cầu chỉ được trả lời một lần: nếu nó hiện ở cả chuông lẫn khung chat thì chỉ một câu trả lời được gửi đi, và thẻ còn lại hiện đúng câu trả lời đó, kèm dòng "đã được trả lời" nếu bạn chọn khác ở thẻ này. Yêu cầu hỏi trên Telegram hay kênh khác vẫn được liệt kê nhưng trả lời ở nơi nó được hỏi. Danh sách việc cho thấy cái đang chạy (dừng được, sau một bước xác nhận), cái sắp chạy, cái đang chờ một sự kiện (kiểm tra theo chu kỳ, không tốn AI) và các việc bảo trì tự chạy, kèm cách sửa việc nào đang lỗi.
 - **Chi phí.** Chip cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày; bấm để xem cả tháng, chi phí theo từng việc và dòng ngân sách. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).
-- **Cài đặt.** Biểu tượng bánh răng: lịch và theo dõi, agent và AI, kênh nhắn tin, dữ liệu và kết nối, hiển thị, và ô sửa `config.toml` thô. Mỗi dòng nói rõ lưu xong có hiệu lực ngay hay cần khởi động lại; bánh răng đếm các thay đổi đang chờ khởi động lại, và trang khởi động lại được một daemon bật bằng `--background` (xem ở trên). Khóa API, mã truy cập và thông tin đăng nhập sàn không bao giờ nhập trên trang này.
+- **Cài đặt.** Biểu tượng bánh răng: lịch và theo dõi, agent và AI, kênh nhắn tin, dữ liệu và kết nối, hiển thị, và ô sửa `config.toml` thô. Ô sửa hiện mọi giá trị bí mật (giá trị `env` của máy chủ MCP, mọi token, secret, mật khẩu hay khóa API ghi thẳng trong file) là `********`; cứ để nguyên thì giá trị đã lưu được giữ. Những mục quyết định daemon chạy gì, dùng file nào hay gửi khóa đi đâu chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong `config.toml`: plugin, câu lệnh khởi chạy, tham số, `env` và cách kết nối của máy chủ MCP, mọi khóa `*_env`, `base_url` và `fallback_base_url`, `[paths]`, `[log] file` và `[storage]`. Lần lưu nào đổi một mục như vậy sẽ bị từ chối kèm dòng nêu tên mục; ô chọn mô hình vẫn đổi được nhà cung cấp, khi đó nó đặt biến chứa khóa của chính nhà cung cấp đó và bỏ địa chỉ cũ. Mỗi dòng nói rõ lưu xong có hiệu lực ngay hay cần khởi động lại; bánh răng đếm các thay đổi đang chờ khởi động lại, và trang khởi động lại được một daemon bật bằng `--background` (xem ở trên). Khóa API, mã truy cập và thông tin đăng nhập sàn không bao giờ nhập trên trang này.
 
 ### Văn phòng
 
@@ -424,7 +428,7 @@ Khi chưa ai giao việc gì, văn phòng không đứng im, nhưng cũng không
 
 ### Trò chuyện với một người
 
-Trỏ vào một người để thấy tên và một dòng trạng thái trực tiếp: họ đang chạy gì và từ đâu, đang ở bước nào, đang chờ bạn hay chờ tới lượt, đang tạm dừng, hay đang rảnh. Tới được ai bằng bàn phím thì nhãn đó cũng hiện. Bấm vào họ thì họ phản ứng (vẫy tay khi rảnh, ngước nhìn khi đang bận), nói một câu ngắn từ trạng thái thật, rồi một vòng tròn hành động nhỏ mở ra, chỉ có những gì làm được lúc này. Bấm chuột phải, nhấn Enter hoặc Space khi bàn phím đang ở trên một người, hoặc nhấn giữ trên màn hình cảm ứng, cũng mở vòng này và đưa tiêu điểm vào hành động đầu tiên. Người nào lúc này không có gì để làm thì không có vòng.
+Trỏ vào một người để thấy tên và một dòng trạng thái trực tiếp: họ đang chạy gì và từ đâu, đang ở bước nào, đang chờ bạn hay chờ tới lượt, đang tạm dừng, hay đang rảnh. Tới được ai bằng bàn phím thì nhãn đó cũng hiện. Bấm vào họ thì họ phản ứng (vẫy tay khi rảnh, ngước nhìn khi đang bận), nói một câu ngắn từ trạng thái thật, rồi một vòng tròn hành động nhỏ mở ra, chỉ có những gì làm được lúc này. Bấm chuột phải, nhấn Enter hoặc Space khi bàn phím đang ở trên một người, hoặc nhấn giữ trên màn hình cảm ứng, cũng mở vòng này và đưa tiêu điểm vào hành động đầu tiên.
 
 - *Trò chuyện*, cho agent của bạn và trợ lý: chọn họ ở ô câu lệnh và mở khung chat.
 - *Giao việc*, cho cùng những người đó, trừ agent đang tạm dừng: chọn họ làm người nhận và đưa con trỏ vào ô câu lệnh. Không gửi gì cả.
@@ -432,10 +436,11 @@ Trỏ vào một người để thấy tên và một dòng trạng thái trực
 - *Việc*: thẻ Việc của agent của bạn và của trợ lý.
 - *Dừng việc*, chỉ khi phiên chạy của họ đang chạy: dừng phiên chạy sau một bước xác nhận.
 - *Hồ sơ*: hồ sơ của agent riêng của bạn.
+- *Đi theo*, cho mọi người: camera đi theo họ (bên dưới).
 
 Phím mũi tên đi quanh vòng tròn, Esc đóng lại, và chuyển tiêu điểm đi chỗ khác cũng đóng lại. Bấm vào người đang chờ ở bàn của bạn thì mở yêu cầu duyệt trong chuông.
 
-**Đi theo một người.** Bấm đúp bằng chuột vào một người, camera giữ họ ở giữa, qua các tầng và thang máy, cho tới khi bạn tự dời camera (kéo, cuộn, zoom hoặc phím mũi tên), nhấn Esc, bấm vào sàn trống, dùng bàn phím sang người khác, hoặc chuyển giữa 2D và 3D.
+**Đi theo một người.** Bấm đúp bằng chuột vào một người, hoặc chọn "Đi theo" trong vòng hành động của họ, camera giữ họ ở giữa, qua các tầng và thang máy, cho tới khi bạn tự dời camera (kéo, cuộn, zoom hoặc phím mũi tên), nhấn Esc, bấm vào sàn trống, dùng bàn phím sang người khác, hoặc chuyển giữa 2D và 3D.
 
 **Duyệt từng người.** Nhấn Tab để vào khung cảnh thì tiêu điểm dừng ở người đầu tiên. Tab và Shift+Tab đi qua từng người trên tầng đang xem theo một thứ tự cố định: đội có sẵn trước, rồi agent của bạn theo bàn, rồi những người phụ việc của họ. Mũi tên trái phải đi cùng cách đó và quay vòng. Mỗi bước đặt camera vào người đó và đọc to tên cùng trạng thái; Enter hoặc Space mở vòng hành động của người đang được chọn. Tab thoát khỏi khung cảnh ở cả hai đầu.
 
@@ -457,7 +462,7 @@ Trang báo to hay nhỏ tùy trọng lượng daemon gán cho sự kiện. Sự 
 
 Dưới 900 px chiều ngang, trang chỉ hiện một khung mỗi lần, chuyển bằng một thanh dưới đầu trang: Văn phòng, Thông tin, Trò chuyện. Màn hình rộng hơn thì khung chat vẫn nằm cạnh các khung còn lại. Mở một thẻ (một mã, một agent, một thẻ tab) thì đưa khung thông tin lên trước; "Xem" một phiên chạy thì đưa văn phòng lên trước và zoom vào phòng của phiên chạy đó; gửi tin nhắn hoặc chọn Trò chuyện thì đưa khung chat lên trước, và nút đóng của nó quay về khung bạn vừa ở. Không có gì tự chuyển khung, nên một sự kiện trực tiếp không bao giờ kéo bạn đi chỗ khác. Chế độ tập trung và nút của nó tắt ở độ rộng này. Dưới 600 px, tức trên điện thoại, đầu trang rút gọn cho vừa (bỏ chữ thương hiệu và biểu tượng trên chip, chip việc đang chạy ngắn lại, đồng hồ còn dưới dạng một nút nhỏ), cửa sổ nổi phủ hết chiều ngang, Cài đặt thành toàn màn hình và trình đọc bỏ cột mục lục. Trên mọi màn hình hẹp, sàn không bao giờ được vẽ nhỏ hơn một điểm ảnh màn hình cho mỗi điểm của thế giới, nên phần còn lại xem bằng cách di chuyển, và có một dòng gợi ý nói vậy.
 
-Cảm ứng dùng như chuột: một ngón kéo để di chuyển, hai ngón chụm để zoom. Chạm lần đầu vào một người, thẻ tên của họ hay thứ có chú thích thì hiện thứ mà trỏ chuột sẽ hiện, và người đó chào; chạm lần hai vào cùng thứ đó, hoặc nhấn giữ trên một người, mở vòng hành động. Chạm vào sàn trống thì đóng nhãn, vòng hành động và việc đi theo. Đi theo một người và chọn người để họp cần chuột; mọi thứ bạn đọc được khi trỏ chuột đều có cách chạm.
+Cảm ứng dùng như chuột: một ngón kéo để di chuyển, hai ngón chụm để zoom. Chạm lần đầu vào một người, thẻ tên của họ hay thứ có chú thích thì hiện thứ mà trỏ chuột sẽ hiện, và người đó chào; chạm lần hai vào cùng thứ đó, hoặc nhấn giữ trên một người, mở vòng hành động. Chạm vào sàn trống thì đóng nhãn, vòng hành động và việc đi theo. Đi theo một người thì chọn trong vòng hành động; chọn người để họp cần chuột; mọi thứ bạn đọc được khi trỏ chuột đều có cách chạm.
 
 ### Tùy chọn hiển thị
 

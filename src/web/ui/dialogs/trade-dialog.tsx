@@ -194,12 +194,16 @@ function askDelete(entry: TradeEntry): void {
     keepLabel: tr('ui.office.trade.keep'),
     confirm: async () => {
       await deleteTrade(entry.id)
-      showUndo(tr('ui.office.book.undoTrade', words), () => restoreTrade(entry))
+
+      // One key per undo: a retry after a timeout must not record the row twice.
+      const restoreKey = newIdempotencyKey()
+
+      showUndo(tr('ui.office.book.undoTrade', words), () => restoreTrade(entry, restoreKey))
     },
   })
 }
 
 // The operator recorded this row once, so its price is theirs to stand by.
-async function restoreTrade(entry: TradeEntry): Promise<undefined> {
-  await recordTrade({ draft: toTradeDraft(entry), typedPrice: 'confirmed' }, newIdempotencyKey())
+async function restoreTrade(entry: TradeEntry, key: string): Promise<undefined> {
+  await recordTrade({ draft: toTradeDraft(entry), typedPrice: 'confirmed' }, key)
 }

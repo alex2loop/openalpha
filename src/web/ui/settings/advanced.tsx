@@ -5,7 +5,13 @@ import { parse as parseToml, stringify as stringifyToml } from 'smol-toml'
 import { pluralKey } from '@/i18n'
 import { sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { type ConfigTree, isTree, readConfigTree, saveConfigTree } from '@/web/state/settings'
+import {
+  type ConfigRead,
+  type ConfigTree,
+  isTree,
+  readConfig,
+  saveConfigTree,
+} from '@/web/state/settings'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -28,7 +34,7 @@ type Check =
 /** Nâng cao: the whole config file as text. The text lives in this component and is dropped when
  *  the dialog closes; nothing in it is logged or kept. */
 export function AdvancedSection() {
-  const read = useLoad(readConfigTree).value
+  const read = useLoad(readConfig).value
 
   if (read.status === 'loading') {
     return <Skeleton lines={4} />
@@ -37,11 +43,12 @@ export function AdvancedSection() {
   return read.status === 'failed' ? (
     <p class="failure-line">{toFailureText(read.failure)}</p>
   ) : (
-    <Editor tree={read.value} />
+    <Editor config={read.value} />
   )
 }
 
-function Editor({ tree }: { readonly tree: ConfigTree }) {
+function Editor({ config }: { readonly config: ConfigRead }) {
+  const { tree, redacted } = config
   const original = useMemo(() => stringifyToml(tree), [tree])
   const { draft, isChanged, markSaved } = useDraft(original)
   const check = useSignal<Check | undefined>(undefined)
@@ -52,6 +59,7 @@ function Editor({ tree }: { readonly tree: ConfigTree }) {
     <SettingRow
       title={tr('ui.office.advanced.title')}
       timing="restart"
+      note={tr('ui.office.advanced.note', { placeholder: redacted })}
       isChanged={isChanged}
       isReady={isChecked}
       extra={<CheckControls draft={draft} tree={tree} check={check} />}

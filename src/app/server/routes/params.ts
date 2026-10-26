@@ -66,9 +66,18 @@ export function toBodyFieldLabel(path: string): FieldLabel {
 /** A refusal of one body field, for a check only the route can make (`kind` is a key under
  *  `errors.fields`). */
 export function fieldRefusal(path: string, kind: string): FieldValidationError {
-  return new FieldValidationError(`invalid ${path}: ${kind}`, [
-    { path, message: { key: `errors.fields.${kind}`, params: { field: toBodyFieldLabel(path) } } },
-  ])
+  return fieldsRefusal([path], kind)
+}
+
+/** As `fieldRefusal`, for every field one check refused. */
+export function fieldsRefusal(paths: readonly string[], kind: string): FieldValidationError {
+  return new FieldValidationError(
+    `invalid ${paths.join(', ')}: ${kind}`,
+    paths.map((path) => ({
+      path,
+      message: { key: `errors.fields.${kind}`, params: { field: toBodyFieldLabel(path) } },
+    }))
+  )
 }
 
 /** Three outcomes, deliberately distinct: `undefined` = the caller omitted it (the host applies its

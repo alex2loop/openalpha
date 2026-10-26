@@ -546,7 +546,11 @@ hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục m�
 
 API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở API khi `enabled = true`; một lệnh
 chạy một lần không bao giờ mở cổng. API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác, nên máy khác
-phải nối qua đường hầm SSH hoặc một reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)).
+phải nối qua đường hầm SSH hoặc một reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ
+trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]`, nên proxy phải chuyển đúng địa chỉ của
+daemon làm host. Ô sửa cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ
+MCP, mọi khóa `*_env`, `base_url`, `[paths]`, `[log] file` hay `[storage]`; những mục đó bạn sửa ngay
+trong file này.
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu

@@ -17,7 +17,8 @@ const MAX_LOCKOUT_MS = 3_600_000
 const MAX_PEERS = 1024
 
 const LOOPBACK_ADDRESSES: readonly string[] = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
-const ALLOWED_ORIGIN_HOSTNAMES: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
+const LOOPBACK_HOSTNAMES: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
+const PAGE_SCHEME = 'http://'
 
 interface PeerState {
   fails: number
@@ -108,13 +109,26 @@ export function resolveAuthOutcome(
   return 'unauthorized'
 }
 
-// Native clients send no Origin; a browser's cross-origin WebSocket must name a loopback origin.
-export function isOriginAllowed(origin: string | null): boolean {
+/** A rebinding page reaches the loopback port under its own name, so only a loopback name passes.
+ *  Any port does: an SSH tunnel serves the daemon on a local port of its own. */
+export function isHostAllowed(host: string | null): boolean {
+  return host !== null && LOOPBACK_HOSTNAMES.includes(toPageUrl(host)?.hostname ?? '')
+}
+
+/** Native clients send no Origin; a browser's WebSocket must come from the page it was opened on,
+ *  so another local web app (a dev server on another port) is refused. */
+export function isOriginAllowed(origin: string | null, host: string | null): boolean {
   if (origin === null) {
     return true
   }
 
-  return URL.canParse(origin) && ALLOWED_ORIGIN_HOSTNAMES.includes(new URL(origin).hostname)
+  return host !== null && origin === toPageUrl(host)?.origin
+}
+
+function toPageUrl(host: string): URL | undefined {
+  const url = `${PAGE_SCHEME}${host}`
+
+  return URL.canParse(url) ? new URL(url) : undefined
 }
 
 function authBackoff(ip: string, now: number): AuthBackoffState {

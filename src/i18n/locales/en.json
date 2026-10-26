@@ -174,7 +174,7 @@
     "office.floor.crumbOffice": "Click a room or a person for details",
     "office.floor.crumbTeam": "Click an agent to see its work and profile",
     "office.floor.leave": "See the whole floor",
-    "office.floor.hint": "Drag, scroll or use the arrow keys to see more",
+    "office.floor.hint": "Drag or scroll to look around. Up and down pan, left and right go to the next person",
     "office.floor.hintNear": "Drag to see more",
     "office.floor.panLeft": "Pan left",
     "office.floor.panRight": "Pan right",
@@ -583,6 +583,7 @@
     "office.menu.task": "Give work",
     "office.menu.now": "What it's doing",
     "office.menu.stop": "Stop the work",
+    "office.menu.follow": "Follow",
     "office.follow.on": "Following {name}. Drag, scroll or press Esc to stop.",
     "office.title.need": "({count}) Needs you - {brand}",
     "office.title.needOne": "({count}) Needs you - {brand}",
@@ -932,6 +933,7 @@
     "office.settings.pairApprove": "Approve pairing",
     "office.settings.noAgents": "No agents of your own yet.",
     "office.advanced.notToml": "I could not read this file: {reason}",
+    "office.advanced.note": "Secrets show as {placeholder}; leave them as they are and they keep their value. Plugins, MCP commands, key variables, addresses and file paths change only from the CLI or in config.toml.",
     "office.trade.groupedNumber": "Write the number without a thousands separator, for example 1000."
   },
   "footer": {
@@ -1437,6 +1439,8 @@
     "fields.id_fixed": "{field} cannot be changed once the agent exists.",
     "fields.price_event_incomplete": "A price event needs a ticker, a condition and a threshold.",
     "fields.level_not_price": "Only a price event takes a level.",
+    "fields.config_cli_only": "{field} changes only from the CLI or in config.toml: it decides what the daemon runs, which files it uses or where your keys go.",
+    "fields.config_secret_hidden": "{field} still shows the hidden placeholder and the file has no value for it. Type the real value in config.toml.",
     "watchlistNotLoaded": "I can't tell yet which of these names are real: the market list isn't loaded, or checking it failed. Run /refresh first, then add them again.",
     "watchlistNamesInvalid": "I could not read one of those names, or there were too many at once. Write each as a ticker like FPT, or market:ticker like crypto:BTC."
   },

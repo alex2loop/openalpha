@@ -174,7 +174,7 @@
     "office.floor.crumbOffice": "Bấm vào phòng hoặc người để xem chi tiết",
     "office.floor.crumbTeam": "Bấm vào một agent để xem việc và hồ sơ",
     "office.floor.leave": "Xem cả tầng",
-    "office.floor.hint": "Kéo, cuộn hoặc dùng phím mũi tên để xem tiếp",
+    "office.floor.hint": "Kéo hoặc cuộn để xem quanh. Phím lên, xuống để dời khung; trái, phải để sang người kế tiếp",
     "office.floor.hintNear": "Kéo để xem tiếp",
     "office.floor.panLeft": "Xem bên trái",
     "office.floor.panRight": "Xem bên phải",
@@ -583,6 +583,7 @@
     "office.menu.task": "Giao việc",
     "office.menu.now": "Đang làm gì",
     "office.menu.stop": "Dừng việc",
+    "office.menu.follow": "Đi theo",
     "office.follow.on": "Đang đi theo {name}. Kéo, cuộn hoặc bấm Esc để thôi.",
     "office.title.need": "({count}) Cần bạn duyệt - {brand}",
     "office.title.needOne": "({count}) Cần bạn duyệt - {brand}",
@@ -932,6 +933,7 @@
     "office.settings.pairApprove": "Duyệt ghép nối",
     "office.settings.noAgents": "Chưa có agent riêng nào.",
     "office.advanced.notToml": "Mình chưa đọc được file này: {reason}",
+    "office.advanced.note": "Giá trị bí mật hiện là {placeholder}; cứ để nguyên thì giữ giá trị cũ. Plugin, câu lệnh của máy chủ MCP, biến chứa khóa, địa chỉ và đường dẫn file chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong config.toml.",
     "office.trade.groupedNumber": "Viết số không có dấu ngăn nghìn, ví dụ 1000."
   },
   "footer": {
@@ -1437,6 +1439,8 @@
     "fields.id_fixed": "{field} không đổi được sau khi agent đã được tạo.",
     "fields.price_event_incomplete": "Sự kiện giá cần có mã, điều kiện và ngưỡng giá.",
     "fields.level_not_price": "Chỉ sự kiện giá mới có mức giá.",
+    "fields.config_cli_only": "{field} chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong config.toml, vì mục này quyết định daemon chạy gì, dùng file nào và gửi khóa của bạn đi đâu.",
+    "fields.config_secret_hidden": "{field} vẫn đang là ký hiệu che giấu mà file chưa có giá trị cho mục này. Bạn nhập giá trị thật trong config.toml nhé.",
     "watchlistNotLoaded": "Mình chưa kiểm tra được các mã này: danh sách thị trường chưa được nạp, hoặc lần kiểm tra vừa rồi bị lỗi. Bạn chạy /refresh trước rồi thêm lại nhé.",
     "watchlistNamesInvalid": "Mình không đọc được một trong các mã này, hoặc có quá nhiều mã cùng lúc. Bạn viết mỗi mã dạng FPT, hoặc thị trường:mã như crypto:BTC nhé."
   },
