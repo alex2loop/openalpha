@@ -1,15 +1,16 @@
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
+import type { MarketWire } from '@/app/server/wire/market'
 import type { TradingQuoteWire } from '@/app/server/wire/trading'
 import {
   freshCalls,
-  heldPositions,
   keyOf,
+  knownMarkets,
+  overviewBlock,
   priceDisplayOf,
   quotesBlock,
   stopBreaches,
-  stopsBlock,
 } from '@/web/state/market'
 import { reducedMotion } from '@/web/state/prefs'
 import { isFirstRun } from '@/web/state/session'
@@ -25,11 +26,13 @@ interface TapeRow {
   readonly ticker: string
   readonly price?: number
   readonly changePct?: number
+  /** Absent for an index level, which prints bare. */
+  readonly display?: MarketWire['priceDisplay']
 }
 
 type Note = 'breach' | 'call' | undefined
 
-/** The strip under the header: the watchlist and the holdings, scrolling by CSS alone. */
+/** The strip under the header: each market's benchmark and the watchlist, scrolling by CSS alone. */
 export function Tape() {
   const rows = buildRows()
   const breached = new Set(stopBreaches.value.map((stop) => keyOf(stop.instrument)))
@@ -92,7 +95,7 @@ function TapeCell({ row, note, isCopy }: TapeCellProps) {
       <b>
         <TickerLink ticker={row.ticker} market={row.market} isHidden={isCopy} />
       </b>
-      <span class="tape-price">{formatPrice(row.price, priceDisplayOf(row.market))}</span>
+      <span class="tape-price">{formatPrice(row.price, row.display)}</span>
       <span class={`is-${toneOfPercent(row.changePct)}-text`}>
         {formatSignedPercent(row.changePct)}
       </span>
@@ -131,33 +134,53 @@ function useFlash(price: number | undefined): {
   }
 }
 
-// The watchlist first (indices are not on the tape), then the holdings it does not already carry,
-// priced at the mark their stop was measured from.
+// Each market's benchmark (VN-Index, BTC) off the overview, then the watchlist names it does not
+// already carry.
 function buildRows(): readonly TapeRow[] {
-  const quotes = (quotesBlock.view.value.data?.quotes ?? []).filter(
-    (quote) => quote.kind !== 'index'
-  )
-  const rows = quotes.map(toQuoteRow)
-  const known = new Set(rows.map((row) => row.key))
-  const marks = new Map(
-    (stopsBlock.view.value.data?.stops ?? []).map((stop) => [keyOf(stop.instrument), stop.price])
-  )
-  const held = heldPositions.value.flatMap(({ instrument }) => {
-    const key = keyOf(instrument)
-    const price = marks.get(key)
+  const benchmarks = knownMarkets.value.flatMap(toBenchmarkRows)
+  const known = new Set(benchmarks.map((row) => row.key))
+  const watched = (quotesBlock.view.value.data?.quotes ?? [])
+    .map(toQuoteRow)
+    .filter((row) => !known.has(row.key))
 
-    return known.has(key) ? [] : [{ key, ...instrument, ...(price === undefined ? {} : { price }) }]
-  })
+  return [...benchmarks, ...watched]
+}
 
-  return [...rows, ...held]
+function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
+  const { benchmark } = market
+  const block = overviewBlock.view.value.data?.markets.find((held) => held.market === market.market)
+  const row = block?.rows.find(
+    (overview) => benchmark !== undefined && keyOf(overview.instrument) === keyOf(benchmark)
+  )
+
+  if (benchmark === undefined || block === undefined || row === undefined) {
+    return []
+  }
+
+  // A block with no price currency quotes index levels.
+  const display = block.priceCurrency === undefined ? undefined : market.priceDisplay
+
+  return [
+    {
+      key: keyOf(benchmark),
+      market: benchmark.market,
+      ticker: benchmark.ticker,
+      ...(row.price === undefined ? {} : { price: row.price }),
+      ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
+      ...(display === undefined ? {} : { display }),
+    },
+  ]
 }
 
 function toQuoteRow(quote: TradingQuoteWire): TapeRow {
+  const display = quote.kind === 'index' ? undefined : priceDisplayOf(quote.market)
+
   return {
     key: keyOf(quote),
     market: quote.market,
     ticker: quote.ticker,
     price: quote.last,
     ...(quote.changePct === undefined ? {} : { changePct: quote.changePct }),
+    ...(display === undefined ? {} : { display }),
   }
 }
