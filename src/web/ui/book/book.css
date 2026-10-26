@@ -201,3 +201,7 @@
 .nav-legend i.is-target {
   border-top: 2px dashed var(--ink3);
 }
+
+.daemon-text {
+  white-space: pre-line;
+}

@@ -3,13 +3,12 @@ import type { ComponentChildren } from 'preact'
 import { useEffect } from 'preact/hooks'
 
 import type { LedgerKind } from '@/web/state/trade'
-import { translateDisplayText } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { locale } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { boardScaleNotes } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
+import { toVenueName } from '@/web/text/venue'
 import { describeFailure, type FormFailure } from '@/web/ui/dialogs/field-errors'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { fieldPathsOf, OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
@@ -221,7 +220,7 @@ export function VenueField({ form, id, label, value, path }: VenueFieldProps) {
       >
         {offerVenues(form).map((choice) => (
           <option key={choice.venue} value={choice.venue}>
-            {venueName(choice.venue)}
+            {toVenueName(choice.venue)}
           </option>
         ))}
       </select>
@@ -245,12 +244,6 @@ export function DayField({ form }: { readonly form: TradeForm }) {
       />
     </Field>
   )
-}
-
-/** A venue by its catalog name; one the catalog does not know (a broker of the operator's own)
- *  prints as its id. */
-function venueName(venue: string): string {
-  return translateDisplayText(locale.value, { key: `trading.venue.${venue}`, fallback: venue })
 }
 
 /** Any edit drops the question and the refusals about the old figures. */

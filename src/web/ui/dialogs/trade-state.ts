@@ -3,7 +3,7 @@ import { type Signal, signal } from '@preact/signals'
 import type { LedgerEntryWire, LedgerPreviewResponse } from '@/app/server/wire/money'
 import type { LedgerDraft, LedgerKind } from '@/web/state/trade'
 import type { FormFailure } from '@/web/ui/dialogs/field-errors'
-import { formatDay, translateDisplayText } from '@/i18n'
+import { formatDay } from '@/i18n'
 import {
   heldPositions,
   holdingsBlock,
@@ -17,6 +17,7 @@ import { formatPrice, formatQuantity } from '@/web/text/figures'
 import { formatMarketPrice, toWholeUnits } from '@/web/text/market-price'
 import { buildDayKey } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
+import { toVenueName } from '@/web/text/venue'
 import {
   bookedRate,
   marketCurrency,
@@ -259,10 +260,7 @@ export function describeTrade(form: TradeForm): string | undefined {
     quantity: formatQuantity(draft.quantity),
     ticker: draft.instrument.ticker,
     price: formatMarketPrice(draft.instrument.market, draft.unitPrice),
-    venue: translateDisplayText(locale.value, {
-      key: `trading.venue.${draft.venue}`,
-      fallback: draft.venue,
-    }),
+    venue: toVenueName(draft.venue),
     day: formatDay(locale.value, draft.at),
   })
 }

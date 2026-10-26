@@ -37,12 +37,20 @@ import type { ModelsResponse } from '@/app/server/wire/models'
 import type {
   LedgerPageResponse,
   LedgerPreviewResponse,
+  LedgerSyncResponse,
   LedgerWriteResponse,
   RebalanceResponse,
+  ReconcileResponse,
   StopsResponse,
   VenuesResponse,
 } from '@/app/server/wire/money'
 import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
+import type {
+  ConfirmOrderResponse,
+  ReconcileOrdersResponse,
+  TradeActionResponse,
+  TradeStatusResponse,
+} from '@/app/server/wire/orders'
 import type { OutboundResponse } from '@/app/server/wire/outbound'
 import type {
   BrowserSessionEndResult,
@@ -149,7 +157,25 @@ export const ROUTES = Object.freeze({
   ledgerPreview: route<LedgerPreviewResponse>('/v1/ledger/preview', 'portfolio'),
   ledgerRow: (entryId: string) =>
     route<LedgerWriteResponse>(`/v1/ledger/${encodeURIComponent(entryId)}`, 'portfolio'),
+  ledgerSync: route<LedgerSyncResponse>('/v1/ledger/sync', 'portfolio', { timeout: 'slow' }),
   rebalance: route<RebalanceResponse>('/v1/rebalance', 'portfolio'),
+  reconcile: route<ReconcileResponse>('/v1/reconcile', 'portfolio'),
+  trade: route<TradeStatusResponse>('/v1/trade', 'orders'),
+  // The daemon runs a confirm and an exit cancel to its slow ceiling, so the page waits as long.
+  tradeConfirm: (token: string) =>
+    route<ConfirmOrderResponse>(`/v1/trade/staged/${encodeURIComponent(token)}/confirm`, 'orders', {
+      timeout: 'slow',
+    }),
+  tradeStaged: (token: string) =>
+    route<TradeActionResponse>(`/v1/trade/staged/${encodeURIComponent(token)}`, 'orders'),
+  tradeExit: (ticker: string, venue: string) =>
+    route<TradeActionResponse>(
+      `/v1/trade/exits?${new URLSearchParams({ ticker, venue })}`,
+      'orders',
+      { timeout: 'slow' }
+    ),
+  tradeHalt: route<TradeActionResponse>('/v1/trade/halt', 'orders'),
+  tradeReconcile: route<ReconcileOrdersResponse>('/v1/trade/reconcile', 'orders'),
   stops: route<StopsResponse>('/v1/stops', 'portfolio'),
   suggestions: route<TradingSuggestionsResponse>('/v1/suggestions', 'suggestions'),
   suggestionCard: (suggestionId: string) =>

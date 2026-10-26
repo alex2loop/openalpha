@@ -127,6 +127,11 @@ export async function deleteTrade(entryId: string): Promise<void> {
   await afterWrite(undefined)
 }
 
+/** The daemon wrote rows the page did not send (a venue sync): every reader of the book reads again. */
+export async function markLedgerChanged(): Promise<void> {
+  await afterWrite(undefined)
+}
+
 /** The row has flashed; Lịch sử no longer marks it. */
 export function clearFlashedEntry(): void {
   flashed.value = undefined

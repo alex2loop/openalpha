@@ -10,7 +10,7 @@ export function EmptyBookActions() {
       <Button size="small" onClick={() => openTradeDialog()}>
         {tr('ui.office.common.recordTrade')}
       </Button>
-      <Button size="small" onClick={() => openSettings('data')}>
+      <Button size="small" onClick={() => openSettings('exchanges')}>
         {tr('ui.office.book.connectVenue')}
       </Button>
     </div>

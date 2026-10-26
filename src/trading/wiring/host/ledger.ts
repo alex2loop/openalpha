@@ -1,16 +1,22 @@
 import type { z } from 'zod'
 
+import type { VenueRef } from '@/trading/kernel/instrument'
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { ValidationError } from '@/core/errors'
 import { FieldValidationError, toFieldValidationError } from '@/core/field-errors'
 import { toFieldLabel } from '@/trading/features/ledger/fields'
 import { ledgerDraftInput, ledgerEditDraftInput } from '@/trading/features/portfolio/tools/input'
 import { marketInput } from '@/trading/kernel/surface/surface'
-import { bounded, scoped } from '@/trading/wiring/host/scope'
+import { bounded, scoped, scopedSlow, UNABORTED } from '@/trading/wiring/host/scope'
 
 export type LedgerMethods = Pick<
   TradingHost,
-  'listLedger' | 'previewLedger' | 'recordLedger' | 'updateLedgerEntry' | 'deleteLedgerEntry'
+  | 'listLedger'
+  | 'previewLedger'
+  | 'recordLedger'
+  | 'updateLedgerEntry'
+  | 'deleteLedgerEntry'
+  | 'syncLedger'
 >
 
 type DraftSchemas = ReturnType<typeof draftSchemas>
@@ -85,7 +91,22 @@ export function ledgerMethods(deps: TradingHostDeps): LedgerMethods {
       scoped(deps, request.signal, (scope) =>
         portfolio.remove({ ref: request.entryId, now: scope.now, signal: scope.signal })
       ),
+
+    syncLedger: (request) => syncLedger(deps, request.venue),
   }
+}
+
+/** Unaborted like an order confirm: a client hanging up must not stop the bookings halfway. */
+function syncLedger(deps: TradingHostDeps, venue: VenueRef): ReturnType<TradingHost['syncLedger']> {
+  const known = deps.services.portfolio.venueChoices().some((choice) => choice.venue === venue)
+
+  if (!known) {
+    return Promise.reject(new ValidationError(`venue ${venue} is not registered`))
+  }
+
+  return scopedSlow(deps, UNABORTED, (scope) =>
+    deps.services.syncVenue({ venue, locale: deps.defaultLocale, signal: scope.signal })
+  )
 }
 
 function previewLedger(

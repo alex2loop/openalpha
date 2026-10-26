@@ -20,6 +20,7 @@ import type { createDomainServices } from '@/trading/wiring/composition/services
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
 import { isVenueFillBooked } from '@/trading/features/ledger/sync'
+import { runVenueSync } from '@/trading/features/ledger/sync-run'
 import { createHeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
 import { sessionPhase } from '@/trading/markets/calendar'
@@ -87,7 +88,25 @@ export function toAggregate(
     rebalanceViews: buildRebalanceViews(parts.services, options.tradingConfig),
     appViews: buildAppViews(parts.services, options.tradingConfig),
     daemonTasks: buildDaemonTasks(parts, options, registries),
+    syncVenue: buildVenueSync(parts, registries),
   })
+}
+
+/** The same function `/record sync` runs, so one fill is booked once whichever surface asks. */
+function buildVenueSync(
+  parts: AggregateParts,
+  registries: Registries
+): TradingServices['syncVenue'] {
+  const deps = {
+    portfolio: parts.services.portfolio,
+    marketData: parts.services.marketData,
+    venues: registries.venues,
+    markets: registries.markets,
+    ledger: parts.stores.ledger,
+    logger: parts.logger,
+  }
+
+  return (input) => runVenueSync(deps, input)
 }
 
 function buildDaemonTasks(
