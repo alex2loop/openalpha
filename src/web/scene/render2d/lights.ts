@@ -19,6 +19,8 @@ const LIT_NIGHT_SHARE = 0.45
 const UNLIT_SHADE = '#A4A8BC'
 const UNLIT_NORTH_SHADE = '#CDD0DA'
 const LAMP_HEAD_RADIUS = 28
+// The shade's glow sits this far over the lamp's foot, as the mockup pools it.
+const LAMP_HEAD_RISE = 38
 const LAMP_FLOOR_RADIUS = 48
 const LAMP_HEAD_ALPHA = 0.36
 const LAMP_FLOOR_ALPHA = 0.34
@@ -108,7 +110,7 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
 
     pool(g, {
       x: cx,
-      y: rect.y + 4,
+      y: rect.y + rect.h - LAMP_HEAD_RISE,
       radius: LAMP_HEAD_RADIUS,
       rgb: WARM_RGB,
       alpha: LAMP_HEAD_ALPHA * spec.lampGlow,
