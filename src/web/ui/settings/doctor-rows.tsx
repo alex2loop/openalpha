@@ -122,12 +122,15 @@ function CheckRow({
 
   return (
     <RowFrame title={check.name} pill={PILLS[check.status]}>
-      {isAdvanced.value && check.detail !== undefined && (
-        <details class="meta">
-          <summary>{tr('ui.office.doctor.details')}</summary>
-          {check.detail}
-        </details>
-      )}
+      {check.detail !== undefined &&
+        (isAdvanced.value ? (
+          <p class="meta">{check.detail}</p>
+        ) : (
+          <details class="meta">
+            <summary>{tr('ui.office.doctor.details')}</summary>
+            {check.detail}
+          </details>
+        ))}
       {isProblem(check) && <FixLine check={check.check} openSection={openSection} />}
     </RowFrame>
   )
