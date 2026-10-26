@@ -12,6 +12,7 @@ import {
   setChatOpen,
   viewedSession,
 } from '@/web/state/chat'
+import { resumeAppSession } from '@/web/state/chat-history'
 import { CHAT_TAB_PARAM } from '@/web/state/pane'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
@@ -189,9 +190,19 @@ function closeMenu(menuId: string): void {
   }
 }
 
+// A session this page can write to becomes the current one; any other channel's is read beside it.
 function openSession(session: ChatSession): void {
   closeModal()
-  viewedSession.value = session
+
+  if (session.channel !== APP_CHANNEL) {
+    viewedSession.value = session
+  } else if (session.sessionId !== sessionId.value) {
+    startNewSession()
+    resumeAppSession(session)
+  } else {
+    viewedSession.value = undefined
+  }
+
   setChatOpen(true)
 }
 

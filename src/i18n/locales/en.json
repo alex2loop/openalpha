@@ -423,7 +423,6 @@
     "office.sessions.countOne": "{count} message",
     "office.sessions.reading": "Viewing the session from {when} - {channel} - read only",
     "office.sessions.back": "Back to the current session",
-    "office.sessions.note": "What you type below still goes to the current session.",
     "office.sessions.readOnly": "This session came from {channel}, so here you can only read it.",
     "office.sessions.continueNew": "Continue in a new session",
     "office.sessions.end": "End of session - {count} messages",
