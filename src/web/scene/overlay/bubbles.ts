@@ -126,12 +126,13 @@ function hearRole(event: WireEvent): void {
   }
 
   const text = firstSentence(role.summary)
-  const sources = tr(
-    pluralKey(role.citations, 'ui.office.common.sourcesOne', 'ui.office.common.sources'),
-    {
-      count: role.citations,
-    }
-  )
+  // A line that cites nothing says nothing about sources.
+  const sources =
+    role.citations > 0
+      ? tr(pluralKey(role.citations, 'ui.office.common.sourcesOne', 'ui.office.common.sources'), {
+          count: role.citations,
+        })
+      : undefined
   const segments = [roleNameOf(def.role), role.stance, sources].filter(
     (segment): segment is string => segment !== undefined && segment !== ''
   )

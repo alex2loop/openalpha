@@ -165,7 +165,9 @@ function SpendBar({ agent }: { readonly agent: AgentWire }) {
     return null
   }
 
-  const pct = Math.min(FULL_PCT, Math.max(MIN_BAR_PCT, (agent.spentTodayUsd / cap) * FULL_PCT))
+  const spentPct = (agent.spentTodayUsd / cap) * FULL_PCT
+  // Nothing spent draws no bar.
+  const pct = spentPct <= 0 ? 0 : Math.min(FULL_PCT, Math.max(MIN_BAR_PCT, spentPct))
   const title = tr('ui.office.team.spend', {
     spent: formatUsd(agent.spentTodayUsd),
     cap: formatUsd(cap),

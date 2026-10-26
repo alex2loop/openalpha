@@ -16,7 +16,8 @@ const PORTRAIT_FRAME: FrameSpec = Object.freeze({
   finish: 0,
 })
 
-/** One person's sprite, `size` CSS px tall, its pixels kept square at any zoom. */
+/** One person's sprite, `size` CSS px tall, its pixels kept square at any zoom. Decoration: the
+ *  name beside it says who it is. */
 export function Portrait({ look, size }: { readonly look: Look; readonly size: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
 

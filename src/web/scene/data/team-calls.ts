@@ -108,6 +108,7 @@ function onIdea(event: WireEvent, abortSignal: AbortSignal): void {
     (agent) => agent.id !== mine.id && agent.focusKey !== SHARED_FOCUS && isSeasoned(agent)
   )
 
+  // A failed read offers no cooler talk; the next idea asks again.
   findOffer({ mine, idea, others }, abortSignal).catch(() => undefined)
 }
 
