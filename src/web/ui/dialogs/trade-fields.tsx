@@ -12,26 +12,11 @@ import { boardScaleNotes } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { describeFailure, type FormFailure } from '@/web/ui/dialogs/field-errors'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
-import { OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
+import { fieldPathsOf, OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
 import { chooseVenue, marketOf, offerVenues, type TradeForm } from '@/web/ui/dialogs/trade-state'
 import { Segmented } from '@/web/ui/kit/segmented'
 
 export const PRICE_FIELD_ID = 'trade-price'
-/** The paths of the draft this dialog has a field for. */
-export const TRADE_PATHS = [
-  'instrument.ticker',
-  'instrument.market',
-  'quantity',
-  'quantityDelta',
-  'unitPrice',
-  'fee',
-  'amount',
-  'currency',
-  'operatorFxRate',
-  'at',
-  'venue',
-  'fromVenue',
-]
 const MAIN_KINDS: readonly LedgerKind[] = Object.freeze(['buy', 'sell'])
 // The menu's first line, standing for "Khác" until a kind is picked.
 const OTHER_VALUE = ''
@@ -275,6 +260,13 @@ export function touch(form: TradeForm): void {
   form.failure.value = undefined
 }
 
+/** The draft paths the form shows a field for right now; a refusal for any other goes to the top. */
+export function shownPaths(form: TradeForm): readonly string[] {
+  const paths = fieldPathsOf(form.kind.value)
+
+  return form.fxRate.value === undefined ? paths : [...paths, 'operatorFxRate']
+}
+
 export function messageFor(form: TradeForm, ...paths: readonly string[]): string | undefined {
   const failure: FormFailure | undefined = form.failure.value
 
@@ -301,7 +293,7 @@ export function useVenues(form: TradeForm): void {
       },
       (error: unknown) => {
         if (!controller.signal.aborted) {
-          form.failure.value = describeFailure(error, TRADE_PATHS)
+          form.failure.value = describeFailure(error, shownPaths(form))
         }
       }
     )

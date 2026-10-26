@@ -30,6 +30,17 @@ export const OTHER_KINDS: readonly { readonly kind: LedgerKind; readonly hint: M
     { kind: 'loss', hint: 'ui.office.trade.hint.loss' },
   ])
 
+const INSTRUMENT_PATHS = ['instrument.ticker', 'instrument.market', 'venue', 'at'] as const
+
+/** The draft paths each layout has a field for, so a refusal for any other goes to the top line. */
+const SHAPE_PATHS: Readonly<Record<KindShape, readonly string[]>> = Object.freeze({
+  priced: [...INSTRUMENT_PATHS, 'quantity', 'unitPrice', 'fee'],
+  dividend: [...INSTRUMENT_PATHS, 'amount'],
+  shares: [...INSTRUMENT_PATHS, 'quantityDelta'],
+  transfer: ['fromVenue', 'venue', 'currency', 'amount', 'fee', 'at'],
+  cash: ['venue', 'currency', 'amount', 'at', 'note'],
+})
+
 export function shapeOf(kind: LedgerKind): KindShape {
   switch (kind) {
     case 'buy':
@@ -46,6 +57,11 @@ export function shapeOf(kind: LedgerKind): KindShape {
     default:
       return 'cash'
   }
+}
+
+/** The paths the kind's layout shows a field for. */
+export function fieldPathsOf(kind: LedgerKind): readonly string[] {
+  return SHAPE_PATHS[shapeOf(kind)]
 }
 
 /** Whether the row names a holding. */
@@ -209,9 +225,14 @@ export function parseFigure(text: string): number {
 export function parseSignedFigure(text: string): number {
   const typed = text.trim()
 
-  return typed.startsWith(MINUS_SIGN)
-    ? -parseFigure(typed.slice(MINUS_SIGN.length))
-    : parseFigure(typed)
+  return typed.startsWith(MINUS_SIGN) ? -parseFigure(toUnsignedText(typed)) : parseFigure(typed)
+}
+
+/** The text without its leading minus, for the checks a figure's digits get. */
+export function toUnsignedText(text: string): string {
+  const typed = text.trim()
+
+  return typed.startsWith(MINUS_SIGN) ? typed.slice(MINUS_SIGN.length) : typed
 }
 
 /** "22/10/2026" (or with dots or dashes) as `YYYY-MM-DD`; absent for anything that is not a real day. */

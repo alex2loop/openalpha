@@ -28,6 +28,8 @@ const LEDGER_BODY = z.object({
   draft: z.unknown(),
   typedPrice: z.enum(TYPED_PRICES).exactOptional(),
 })
+// An edit previews against the book without the row it replaces.
+const PREVIEW_BODY = z.object({ draft: z.unknown(), replacing: z.string().exactOptional() })
 
 async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const query = new URL(req.url).searchParams
@@ -66,13 +68,18 @@ async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Res
 
 /** The row as it would be written, stored nowhere: the day's market rate where a rate applies. */
 async function handleLedgerPreview(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const body = await readLedgerBody(req)
+  const parsed = PREVIEW_BODY.safeParse(await readJsonBody(req))
+  const replacing = parseOptionalBranded(parsed.data?.replacing ?? null, ledgerEntryId)
 
-  if (body === undefined) {
+  if (!parsed.success || parsed.data.draft === undefined || replacing === null) {
     return apiError('invalid_body')
   }
 
-  const preview = await hostOf(ctx).previewLedger({ draft: body.draft, signal: req.signal })
+  const preview = await hostOf(ctx).previewLedger({
+    draft: parsed.data.draft,
+    ...(replacing === undefined ? {} : { entryId: replacing }),
+    signal: req.signal,
+  })
   const { transaction } = preview
   const asks = preview.fxRateApplies && 'conversion' in transaction && 'currency' in transaction
 

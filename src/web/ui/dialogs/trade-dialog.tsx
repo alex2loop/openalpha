@@ -19,7 +19,7 @@ import {
   KindRow,
   PRICE_FIELD_ID,
   PricedFields,
-  TRADE_PATHS,
+  shownPaths,
   useVenues,
 } from '@/web/ui/dialogs/trade-fields'
 import { FxFailure, RateField, useFxPreview } from '@/web/ui/dialogs/trade-fx'
@@ -199,7 +199,7 @@ function begin(open: OpenTrade, send: (draft: LedgerDraft, key: string) => Promi
       }
     })
     .catch((error: unknown) => {
-      form.failure.value = describeFailure(error, TRADE_PATHS)
+      form.failure.value = describeFailure(error, shownPaths(form))
     })
     .finally(() => {
       form.isBusy.value = false
@@ -245,7 +245,8 @@ function askDelete(entry: LedgerEntryWire): void {
 async function restoreTrade(entry: LedgerEntryWire, key: string): Promise<undefined> {
   const draft = toLedgerDraft(entry)
   const rate = bookedRate(entry)
-  const preview = rate === undefined ? {} : await previewLedger(draft, new AbortController().signal)
+  const preview =
+    rate === undefined ? {} : await previewLedger({ draft }, new AbortController().signal)
   const stated = withStatedRate(draft, preview.fxRate === undefined ? undefined : rate)
 
   await recordTrade(

@@ -14,6 +14,8 @@ export interface RecordLedgerOptions {
    *  provenance and stops the write path from asking the venue for a fill it just read. */
   readonly fillSource?: FillSource
   readonly typedPrice?: TypedPrice
+  /** Refuses a row in another currency that states no rate where one applies, as an edit is. */
+  readonly requiresStatedRate?: true
   readonly now: number
   readonly signal: AbortSignal
 }

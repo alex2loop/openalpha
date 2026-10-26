@@ -62,7 +62,9 @@ function previewKeyOf(draft: LedgerDraft | undefined, base: string | undefined):
 }
 
 function askRate(form: TradeForm, draft: LedgerDraft, signal: AbortSignal): void {
-  previewLedger(draft, signal).then(
+  const replacing = form.start.entry?.id
+
+  previewLedger({ draft, ...(replacing === undefined ? {} : { replacing }) }, signal).then(
     (answer) => {
       if (!signal.aborted) {
         applyRate(form, answer.fxRate)

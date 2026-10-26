@@ -25,6 +25,7 @@ import {
   parseFigure,
   parseSignedFigure,
   shapeOf,
+  toUnsignedText,
   validateDraft,
   withStatedRate,
 } from '@/web/ui/dialogs/trade-kinds'
@@ -69,6 +70,7 @@ export interface TradeForm {
   readonly amount: Signal<string>
   readonly currency: Signal<string>
   readonly rate: Signal<string>
+  readonly note: Signal<string>
   /** The day's market rate the daemon asked for; absent where no rate applies. */
   readonly fxRate: Signal<FxRate | undefined>
   /** Whether that ask is settled, under way, or failed: only a settled one lets the row save. */
@@ -103,6 +105,7 @@ export function createTradeForm(start: TradeStart): TradeForm {
     venue: signal(entry?.venue ?? start.venue ?? ''),
     fromVenue: signal(entry?.kind === 'transfer' ? entry.fromVenue : ''),
     day: signal(formatDay(locale.value, entry?.at ?? today())),
+    note: signal(entry?.note ?? ''),
     ...startFigures(start),
     fxRate: signal(undefined),
     fxStatus: signal('idle'),
@@ -164,6 +167,7 @@ export function snapshotTrade(form: TradeForm): string {
     form.amount.value,
     form.currency.value,
     form.rate.value,
+    form.note.value,
   ])
 }
 
@@ -285,13 +289,13 @@ export function newIdempotencyKey(): string {
 // A figure the page cannot read is NaN, which `validateDraft` refuses as out of range.
 function composeDraft(form: TradeForm): LedgerDraft | undefined {
   const at = parseDay(form.day.value)
-  const note = form.start.entry?.note
+  const note = form.note.value.trim()
 
   if (at === undefined) {
     return undefined
   }
 
-  const base = { at, ...(note === undefined ? {} : { note }) }
+  const base = { at, ...(note === '' ? {} : { note }) }
   const kind = form.kind.value
   const amount = parseFigure(form.amount.value)
   const venue = form.venue.value
@@ -401,7 +405,7 @@ function groupedTexts(form: TradeForm): readonly (readonly [string, string])[] {
     case 'priced':
       return [['quantity', form.quantity.value], ['unitPrice', form.price.value], ...rate]
     case 'shares':
-      return [['quantityDelta', form.quantity.value]]
+      return [['quantityDelta', toUnsignedText(form.quantity.value)]]
     case 'dividend':
       return [['amount', form.amount.value]]
     default:

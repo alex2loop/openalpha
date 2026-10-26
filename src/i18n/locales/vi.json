@@ -1021,7 +1021,7 @@
     "office.trade.badAmount": "Số tiền phải là số lớn hơn 0.",
     "office.trade.fxPrefill": "giá thị trường ngày {day}",
     "office.trade.fxPreviewFailed": "Mình chưa đọc được tỷ giá ngày đó nên chưa ghi được.",
-    "office.trade.badRate": "Bạn nhập tỷ giá đã trả, là số lớn hơn 0.",
+    "office.trade.badRate": "Tỷ giá bạn đã trả phải là số lớn hơn 0.",
     "office.trade.badDelta": "Số cổ phiếu phải là số nguyên khác 0."
   },
   "footer": {

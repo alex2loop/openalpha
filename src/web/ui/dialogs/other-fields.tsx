@@ -156,7 +156,28 @@ function CashFields({ form }: { readonly form: TradeForm }) {
         <AmountField form={form} />
         <DayField form={form} />
       </div>
+      <NoteField form={form} />
     </>
+  )
+}
+
+function NoteField({ form }: { readonly form: TradeForm }) {
+  return (
+    <Field
+      id="trade-note"
+      label={tr('trading.render.ledger.label.note')}
+      message={messageFor(form, 'note')}
+    >
+      <input
+        id="trade-note"
+        type="text"
+        value={form.note.value}
+        onInput={(event) => {
+          form.note.value = event.currentTarget.value
+          touch(form)
+        }}
+      />
+    </Field>
   )
 }
 

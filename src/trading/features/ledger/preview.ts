@@ -6,7 +6,7 @@ import type {
   LedgerTxnDraft,
   LedgerTxnDraftInput,
 } from '@/trading/features/ledger/types'
-import type { Book } from '@/trading/kernel/operator/book'
+import type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import { foldBook } from '@/trading/features/ledger/book'
 import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
@@ -19,6 +19,8 @@ import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
 export interface PreviewLedgerOptions {
   readonly draft: LedgerTxnDraftInput
   readonly typedPrice?: TypedPrice
+  /** The row an edit replaces: it is left out of the book the draft is checked against. */
+  readonly replacing?: LedgerEntryId
   readonly now: number
   readonly signal: AbortSignal
 }
@@ -52,7 +54,9 @@ export async function previewRecord(
     signal: options.signal,
   })
 
-  const entries = await deps.ledger.listAll(options.signal)
+  const entries = (await deps.ledger.listAll(options.signal)).filter(
+    (entry) => entry.id !== options.replacing
+  )
   const candidate: LedgerEntry = {
     id: buildLedgerEntryId(options.now),
     recordedAt: options.now,

@@ -3,7 +3,6 @@ import type { z } from 'zod'
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { ValidationError } from '@/core/errors'
 import { FieldValidationError, toFieldValidationError } from '@/core/field-errors'
-import { assertFxRateStated } from '@/trading/features/ledger/confirm'
 import { toFieldLabel } from '@/trading/features/ledger/fields'
 import { ledgerDraftInput, ledgerEditDraftInput } from '@/trading/features/portfolio/tools/input'
 import { marketInput } from '@/trading/kernel/surface/surface'
@@ -97,6 +96,7 @@ function previewLedger(
   return scoped(deps, request.signal, (scope) =>
     deps.services.portfolio.previewRecord({
       draft: parseDraft(schemas.record, request.draft),
+      ...(request.entryId === undefined ? {} : { replacing: request.entryId }),
       now: scope.now,
       signal: scope.signal,
     })
@@ -112,20 +112,20 @@ function recordLedger(
 ): ReturnType<TradingHost['recordLedger']> {
   const { portfolio } = deps.services
 
-  return scoped(deps, request.signal, (scope) => {
-    const options = {
-      draft: parseDraft(schemas.record, request.draft),
-      ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
-      now: scope.now,
-      signal: scope.signal,
-    }
-
-    return withRefusalFields(
-      assertFxRateStated({ portfolio, baseCurrency: deps.baseCurrency }, options).then(() =>
-        portfolio.record({ ...options, idempotencyKey: request.idempotencyKey })
-      )
+  // Asked inside the write, after its replay lookup: a retried request whose first answer was lost
+  // gets its row back, never a refusal from a book that already holds it.
+  return scoped(deps, request.signal, (scope) =>
+    withRefusalFields(
+      portfolio.record({
+        draft: parseDraft(schemas.record, request.draft),
+        ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+        idempotencyKey: request.idempotencyKey,
+        requiresStatedRate: true,
+        now: scope.now,
+        signal: scope.signal,
+      })
     )
-  })
+  )
 }
 
 async function withRefusalFields<T>(write: Promise<T>): Promise<T> {
