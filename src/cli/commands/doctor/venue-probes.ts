@@ -4,8 +4,8 @@ import type { VenueKeyAudit } from '@/trading/api'
 import { t } from '@/i18n'
 import { auditVenueKeys, resolveTradingConfig } from '@/trading/api'
 
-import type { DoctorEnvironment, DoctorProbe } from './types'
-import { checkLabel, subjectLabel } from './labels'
+import type { DoctorEnvironment, DoctorProbe, DoctorSurface } from './types'
+import { checkLabel, offlineKey, subjectLabel } from './labels'
 import { ONLINE_TIMEOUT_MS } from './online-probes'
 
 /** What a venue answers when it refuses the key itself: a wrong key, a demo key, or an IP outside
@@ -15,6 +15,7 @@ const AUTH_REFUSED_CODE = 'order.auth'
 export async function probeVenueKeys(options: {
   readonly config: ResolvedConfig
   readonly online: boolean
+  readonly surface: DoctorSurface
   readonly env: DoctorEnvironment
   readonly locale: Locale
 }): Promise<readonly DoctorProbe[]> {
@@ -22,7 +23,7 @@ export async function probeVenueKeys(options: {
   const name = checkLabel(locale, 'venues')
 
   if (!options.online) {
-    return [{ name, status: 'ok', detail: t(locale, 'cli.doctorNotProbed') }]
+    return [{ name, status: 'ok', detail: t(locale, offlineKey(options.surface, 'notProbed')) }]
   }
 
   const trading = resolveTradingConfig({ extensions: config.extensions, locale: config.locale })

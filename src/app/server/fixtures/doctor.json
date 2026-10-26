@@ -19,7 +19,7 @@
       "name": "database",
       "status": "ok",
       "ok": true,
-      "detail": "/Users/me/.openalpha/data/openalpha.sqlite (not probed (use --online))"
+      "detail": "/Users/me/.openalpha/data/openalpha.sqlite (opens fine and its migrations are current. Full check: run openalpha doctor in a terminal)"
     },
     {
       "check": "sources",

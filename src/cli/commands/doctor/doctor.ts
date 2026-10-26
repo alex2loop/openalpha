@@ -92,6 +92,7 @@ async function runProbes(
     locale,
     online: options.online,
     onlineExcept: new Set(),
+    surface: 'terminal',
   }
   const checks = createCheckRegistry(app, input)
   const names = options.selected === undefined ? CHECK_NAMES : [options.selected]

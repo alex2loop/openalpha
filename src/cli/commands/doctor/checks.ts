@@ -61,47 +61,42 @@ export async function runChecks(
 export function createSharedChecks(
   input: DoctorInput
 ): Readonly<Record<WebCheckName, CheckRunner>> {
-  const { config, env, locale } = input
+  const { config, env, locale, surface } = input
   const trading = tradingConfigOf(config)
-  const isOnline = (name: CheckName): boolean => input.online && !input.onlineExcept.has(name)
+  const reach = (name: CheckName) => ({
+    online: input.online && !input.onlineExcept.has(name),
+    surface,
+  })
 
   return {
     models: async () => probeModels(config, env, locale),
     'data-dir': async () => [await probeDataDirectory(config.paths.dataDir, locale)],
     logging: async () => [probeLogging(config.log.file, locale)],
-    database: async () => [
-      await probeDatabase(databaseProbeOptions(input, isOnline('database'), trading)),
-    ],
+    database: async () => [await probeDatabase(databaseProbeOptions(input, trading))],
     channels: async () => await probeChannels(config, env, locale),
     delivery: async () => [probeDeliveryAddressing(config, locale)],
     sources: async () => probeSources({ config, env, locale }),
     safety: async () => probeSafety(config, trading, locale),
-    venues: async () => probeVenueKeys({ config, online: isOnline('venues'), env, locale }),
-    'web-search': async () => [await probeWebSearch(config, isOnline('web-search'), locale)],
-    providers: async () => probeProviders({ config, online: isOnline('providers'), env, locale }),
+    venues: async () => probeVenueKeys({ config, ...reach('venues'), env, locale }),
+    'web-search': async () => [await probeWebSearch({ config, ...reach('web-search'), locale })],
+    providers: async () => probeProviders({ config, ...reach('providers'), env, locale }),
     telegram: async () =>
-      probeBotTokenCheck({
-        channel: 'telegram',
-        config,
-        online: isOnline('telegram'),
-        env,
-        locale,
-      }),
+      probeBotTokenCheck({ channel: 'telegram', config, ...reach('telegram'), env, locale }),
     zalo: async () =>
-      probeBotTokenCheck({ channel: 'zalo', config, online: isOnline('zalo'), env, locale }),
-    version: async () => [await probeVersion(config, isOnline('version'), locale)],
+      probeBotTokenCheck({ channel: 'zalo', config, ...reach('zalo'), env, locale }),
+    version: async () => [await probeVersion({ config, ...reach('version'), locale })],
   }
 }
 
 function databaseProbeOptions(
   input: DoctorInput,
-  online: boolean,
   trading: TradingConfig | undefined
 ): Parameters<typeof probeDatabase>[0] {
   return {
     storage: input.config.storage,
     migrations: MIGRATIONS,
-    online,
+    online: input.online && !input.onlineExcept.has('database'),
+    surface: input.surface,
     locale: input.locale,
     ...(trading === undefined ? {} : { currency: trading.baseCurrency }),
   }

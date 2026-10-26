@@ -13,13 +13,18 @@ let reading: Promise<void> | undefined
 /** The last good `GET /v1/update`; a failed read keeps it. */
 export const update = signal<UpdateResponse | undefined>(undefined)
 
-/** A newer release is out and the operator has not put it off in this browser. */
-export const isUpdateShown = computed(() => {
+/** A newer release is out: the gear keeps its dot until it is installed. */
+export const isUpdateNewer = computed(() => {
   const answer = update.value
 
-  return (
-    answer?.enabled && answer.newer && answer.latest !== null && !isUpdateDismissed(answer.latest)
-  )
+  return answer?.enabled && answer.newer && answer.latest !== null
+})
+
+/** As `isUpdateNewer`, unless the operator put that version off in this browser: the strip. */
+export const isUpdateShown = computed(() => {
+  const latest = update.value?.latest
+
+  return isUpdateNewer.value && typeof latest === 'string' && !isUpdateDismissed(latest)
 })
 
 /** Reads the release status; a call while one runs shares it. */

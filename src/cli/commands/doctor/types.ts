@@ -22,6 +22,10 @@ export interface CheckedProbe extends DoctorProbe {
   readonly check: CheckName
 }
 
+/** Where the report is read: a terminal can pass `--online` and wait on a full database scan; the
+ *  page has Kiểm tra lại and must not stall the daemon it runs in. */
+export type DoctorSurface = 'terminal' | 'page'
+
 /** What the checks any process can run read: no CLI app, so the daemon runs them too.
  *  `onlineExcept` keeps the named checks offline while `online` is on. */
 export interface DoctorInput {
@@ -30,6 +34,7 @@ export interface DoctorInput {
   readonly locale: Locale
   readonly online: boolean
   readonly onlineExcept: ReadonlySet<CheckName>
+  readonly surface: DoctorSurface
 }
 
 export interface ResolvedProviderModel {

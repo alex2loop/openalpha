@@ -1,6 +1,6 @@
 import { pluralKey } from '@/i18n'
 import { pendingRestart } from '@/web/state/settings'
-import { isUpdateShown } from '@/web/state/update'
+import { isUpdateNewer } from '@/web/state/update'
 import { tr } from '@/web/text/tr'
 import { GearIcon } from '@/web/ui/kit/icons'
 import { openSettings } from '@/web/ui/settings/settings'
@@ -11,7 +11,7 @@ import './settings.css'
  *  release is out. */
 export function GearButton() {
   const count = pendingRestart.value.length
-  const isBadged = count > 0 || isUpdateShown.value
+  const isBadged = count > 0 || isUpdateNewer.value
   const label = labelOf(count)
 
   return (
@@ -37,5 +37,5 @@ function labelOf(count: number): string {
     })
   }
 
-  return isUpdateShown.value ? tr('ui.office.update.dot') : tr('ui.office.settings.title')
+  return isUpdateNewer.value ? tr('ui.office.update.dot') : tr('ui.office.settings.title')
 }

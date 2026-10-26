@@ -9,7 +9,7 @@ import type {
   UpdateResponse,
 } from '@/app/server/wire/system'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
-import type { CheckedProbe } from '@/cli/api'
+import type { CheckedProbe, DoctorInput } from '@/cli/api'
 import type { App } from '@/core/container'
 import type { CheckName } from '@/core/types/doctor'
 import type { Locale } from '@/core/types/locale'
@@ -185,7 +185,14 @@ async function readDoctorChecks(
 ): Promise<readonly DoctorCheck[] | null> {
   const { check, online } = options
   const locale = app.config.locale.language
-  const input = { config: app.config, env: getEnv(), locale, online, onlineExcept: MODEL_CHECKS }
+  const input: DoctorInput = {
+    config: app.config,
+    env: getEnv(),
+    locale,
+    online,
+    onlineExcept: MODEL_CHECKS,
+    surface: 'page',
+  }
   const apiToken = (): Promise<DoctorCheck> =>
     resolveApiTokenCheck(app, bindLocale(locale).translate)
 

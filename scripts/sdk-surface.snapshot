@@ -15,6 +15,7 @@ cli:CliApp
 cli:Command
 cli:CommandDef
 cli:ConfigProbe
+cli:DoctorInput
 cli:EnvFileLoad
 cli:GlobalFlags
 cli:Group

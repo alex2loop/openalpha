@@ -100,6 +100,7 @@ async function testModel(ctx: AskContext, configPath: string): Promise<void> {
   const probes = await probeProviders({
     config: probed.config,
     online: true,
+    surface: 'terminal',
     env: getEnv(),
     locale: ctx.locale,
   })

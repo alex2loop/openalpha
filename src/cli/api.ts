@@ -1,7 +1,7 @@
 // Public API of cli/.
 
 export type { Command, CommandDef, Group, Needs } from '@/cli/command'
-export type { CheckedProbe } from '@/cli/commands/doctor/types'
+export type { CheckedProbe, DoctorInput } from '@/cli/commands/doctor/types'
 export type { ArgIssue } from '@/cli/parsing/args'
 export type { GlobalFlags } from '@/cli/parsing/global-flags'
 export type { PreBootOptions } from '@/cli/preboot'
