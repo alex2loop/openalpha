@@ -97,38 +97,6 @@
   filter: brightness(0.97);
 }
 
-.todo {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: var(--s1) 0;
-  border-top: 1px solid var(--border);
-}
-
-.todo:first-child {
-  border-top: 0;
-}
-
-.todo b {
-  display: block;
-  font-weight: 500;
-}
-
-.todo .tile {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--controlSmRadius);
-}
-
-.todo .tile svg.icon {
-  width: 14px;
-  height: 14px;
-}
-
-.todo.is-breach b {
-  color: var(--problemText);
-}
-
 .row-list {
   display: flex;
   flex-direction: column;
@@ -163,6 +131,39 @@
 .row-note {
   color: var(--ink2);
   font-size: 12px;
+}
+
+.todo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: var(--s1) 0;
+  border-top: 1px solid var(--border);
+}
+
+.todo:first-child {
+  border-top: 0;
+}
+
+.todo b {
+  display: block;
+  font-weight: 500;
+}
+
+.todo .tile {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--controlSmRadius);
+}
+
+.todo .tile svg.icon {
+  width: 14px;
+  height: 14px;
+}
+
+.todo.is-breach,
+.todo.is-breach .meta {
+  color: var(--problemText);
 }
 
 .pill {
