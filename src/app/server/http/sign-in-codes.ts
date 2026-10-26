@@ -1,7 +1,7 @@
 import { buildSecret, toSecretHash } from '@/app/server/http/auth'
 import { MS_PER_MINUTE } from '@/core/utils/time'
 
-const SIGN_IN_CODE_TTL_MS = 5 * MS_PER_MINUTE
+export const SIGN_IN_CODE_TTL_MS = 5 * MS_PER_MINUTE
 const MAX_PENDING_CODES = 16
 
 /** One-time codes a browser trades for a session. Held in memory only, so a restart drops them. */

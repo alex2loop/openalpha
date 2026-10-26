@@ -1839,9 +1839,8 @@
   },
   "cliHelp": {
     "apiAuthRotateSummary": "Rotate the API bearer token",
-    "apiAuthSummary": "Manage the API bearer token (view / link / rotate)",
+    "apiAuthSummary": "Manage the API bearer token (view / rotate)",
     "apiAuthTokenSummary": "Print the current API bearer token",
-    "apiLinkSummary": "Print the link to the office page",
     "webSummary": "Open the office page",
     "connectSummary": "Print the connection line for the desktop app",
     "rootSummary": "The {brand} command line. New here? Run `{command} onboard` to set up, then `{command} chat` to start asking.",
@@ -2063,7 +2062,6 @@
     "authTokenManagedByEnv": "The token is managed by {env}. Change that environment variable to rotate it.",
     "authTokenRestart": "Restart the daemon to use the new token: `{brand} restart --background`.",
     "apiRotateSignedOut": "Every browser is signed out ({count}). Restart the daemon so the old token stops working.",
-    "apiLinkHint": "The link carries your access token; do not share it.",
     "webOpening": "Opening the page in your browser. If it does not show, open this link:",
     "webLinkNote": "The link works once, within {minutes} minutes.",
     "webTunnelRun": "Run on your own machine:",

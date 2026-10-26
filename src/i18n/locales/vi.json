@@ -1839,9 +1839,8 @@
   },
   "cliHelp": {
     "apiAuthRotateSummary": "Xoay vòng bearer token API",
-    "apiAuthSummary": "Quản lý bearer token API (xem / liên kết / xoay vòng)",
+    "apiAuthSummary": "Quản lý bearer token API (xem / xoay vòng)",
     "apiAuthTokenSummary": "Hiển thị bearer token API hiện tại",
-    "apiLinkSummary": "In liên kết mở trang văn phòng",
     "webSummary": "Mở trang văn phòng",
     "connectSummary": "In dòng kết nối cho ứng dụng desktop",
     "rootSummary": "Giao diện dòng lệnh của {brand}. Mới dùng? Chạy `{command} onboard` để thiết lập, rồi `{command} chat` để bắt đầu hỏi.",
@@ -2063,7 +2062,6 @@
     "authTokenManagedByEnv": "Token do {env} quản lý. Muốn đổi token thì đổi biến môi trường đó.",
     "authTokenRestart": "Khởi động lại daemon để dùng token mới: `{brand} restart --background`.",
     "apiRotateSignedOut": "Mọi trình duyệt đã đăng xuất ({count}). Khởi động lại daemon để token cũ hết hiệu lực hẳn.",
-    "apiLinkHint": "Liên kết có token, đừng gửi cho ai khác.",
     "webOpening": "Đang mở trang trong trình duyệt. Chưa thấy thì mở liên kết này:",
     "webLinkNote": "Liên kết dùng được 1 lần, trong {minutes} phút.",
     "webTunnelRun": "Chạy trên máy của bạn:",

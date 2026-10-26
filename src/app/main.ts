@@ -6,7 +6,9 @@ import type { Locale } from '@/core/types/locale'
 import { boot } from '@/app/boot'
 import { bootRefusals } from '@/app/config-tree'
 import { apiCommand } from '@/app/server/cli/api-command'
+import { connectCommand } from '@/app/server/cli/connect-command'
 import { setupCommand } from '@/app/server/cli/setup-command'
+import { webCommand } from '@/app/server/cli/web-command'
 import {
   admitCommand,
   BUILT_IN_COMMANDS,
@@ -40,7 +42,12 @@ const EXIT_USAGE_DEFAULT = 2
 const NEVER_ABORTING_SIGNAL = AbortSignal.any([])
 /** The API's own commands; they need the app layer (the token path, the starter config), so they
  *  are not in the cli layer's BUILT_IN_COMMANDS. */
-const SERVER_COMMANDS: readonly (Command | Group)[] = [apiCommand, setupCommand]
+const SERVER_COMMANDS: readonly (Command | Group)[] = [
+  apiCommand,
+  setupCommand,
+  webCommand,
+  connectCommand,
+]
 
 const stdio: { out: Writer; err: Writer; write: Writer } = {
   out: (line) => {
