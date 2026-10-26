@@ -554,10 +554,11 @@ allow_unattended`; những mục đó bạn sửa ngay trong file này.
 
 Khi đặt sau Caddy hoặc `tailscale serve`, hãy đặt `public_url` là địa chỉ trình duyệt mở; proxy chuyển
 đúng tên đó làm host (cả hai đều làm vậy theo mặc định). Khi chưa đặt `public_url`, mọi yêu cầu đi qua
-proxy đều bị từ chối. Đặt `public_url` thì lệnh giao dịch bị tắt trừ khi `orders = true`, chat từ ứng
-dụng không chạy được câu lệnh, không ghi tệp và không dùng công cụ MCP đã kết nối, còn việc duyệt ghép
-nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng kênh chỉ đổi được trên
-máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+proxy đều bị từ chối. Đặt `public_url` thì các đường đặt lệnh của API và `/trade` từ ứng dụng bị từ
+chối cho tới khi đặt `orders = true`, chat từ ứng dụng không chạy được câu lệnh, không ghi tệp và
+không dùng công cụ MCP đã kết nối, còn việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`,
+`pairing` và `dm_policy` của từng kênh chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này,
+không bao giờ từ ứng dụng.
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu

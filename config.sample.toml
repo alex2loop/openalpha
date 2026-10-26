@@ -469,15 +469,16 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # approvals, fills and spend caps reached. The daemon also serves the office page at
 # its own address (http://127.0.0.1:<port>/), which shows that feed.
 # Binds 127.0.0.1 only; on a server, reach it through an SSH tunnel or a reverse
-# proxy on the same host (docs/en/operations.md). Behind Caddy or `tailscale serve`,
-# set public_url to the address the browser opens; the proxy passes that name as the
-# host (both do by default). A request through a proxy is refused while public_url is
-# unset. Setting it turns orders off unless orders = true, keeps commands, file
-# writes and connected MCP tools out of chats from the app, and makes pairing
-# approval and the channel access keys server-only. The office page's config editor
-# leaves plugins, MCP commands, *_env keys, base_url, [paths], [log] file, [storage],
-# [api], [update] and [trading.orders] allow_unattended to this file. Bearer token at
-# <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
+# proxy on the same host (docs/en/operations.md).
+# Behind Caddy or `tailscale serve`, set public_url to the address the browser opens; the proxy passes that
+# name as the host (both do by default). A request through a proxy is refused
+# while public_url is unset. Setting it refuses the API's order routes and
+# /trade from the app until orders = true, keeps commands, file writes and
+# connected MCP tools out of chats from the app, and makes pairing approval and
+# the channel access keys server-only. The office page's config editor leaves
+# plugins, MCP commands, *_env keys, base_url, [paths], [log] file, [storage],
+# [api], [update] and [trading.orders] allow_unattended to this file.
+# Bearer token at <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
 # `openalpha api token`, replace it with `openalpha api rotate`. `openalpha api link`
 # prints the link to the office page with the token in it; keep it as private as the
 # token.

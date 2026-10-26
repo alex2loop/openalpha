@@ -556,10 +556,10 @@ server's command, every `*_env` key, `base_url`, `[paths]`, `[log] file`, `[stor
 
 Behind Caddy or `tailscale serve`, set `public_url` to the address the browser opens; the proxy
 passes that name as the host (both do by default). A request that came through a proxy is refused
-while `public_url` is unset. Setting it turns orders off unless `orders = true`, keeps commands, file
-writes and connected MCP tools out of chats from the app, and makes pairing approval and each
-channel's `allowed_ids`, `operator_user_ids`, `pairing` and `dm_policy` server-only: they change from
-the CLI or this file, never from the app.
+while `public_url` is unset. Setting it refuses the API's order routes and `/trade` from the app
+until `orders = true`, keeps commands, file writes and connected MCP tools out of chats from the
+app, and makes pairing approval and each channel's `allowed_ids`, `operator_user_ids`, `pairing` and
+`dm_policy` server-only: they change from the CLI or this file, never from the app.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32

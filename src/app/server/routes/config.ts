@@ -47,7 +47,9 @@ async function handleConfigValidate(req: Request, ctx: ApiRouteContext): Promise
   const disk = await readDiskConfig(configPath)
   const restored = toRestoredConfig(body, disk)
   const checked = validateBootConfigTree(restored)
-  const refusals = isPlainRecord(restored) ? writeRefusals(restored, disk, isExposed(ctx)) : []
+  const refusals = isPlainRecord(restored)
+    ? writeRefusals(restored, disk, isExposed(ctx, restored, disk))
+    : []
 
   if (refusals.length === 0) {
     return json(checked satisfies ConfigValidation)
@@ -84,7 +86,7 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     return apiError('invalid_body')
   }
 
-  const [refusal] = writeRefusals(body, disk, isExposed(ctx))
+  const [refusal] = writeRefusals(body, disk, isExposed(ctx, body, disk))
 
   if (refusal !== undefined) {
     throw refusal
@@ -109,8 +111,18 @@ async function readDiskConfig(configPath: string): Promise<Record<string, unknow
   return (await file.exists()) ? parseToml(await file.text()) : {}
 }
 
-function isExposed(ctx: ApiRouteContext): boolean {
-  return ctx.app.config.api.publicUrl !== undefined
+// Set on disk or in the write but not yet booted counts too: a restart would expose the daemon with
+// whatever channel access the same write let through.
+function isExposed(
+  ctx: ApiRouteContext,
+  body: Record<string, unknown>,
+  disk: Record<string, unknown>
+): boolean {
+  return ctx.app.config.api.publicUrl !== undefined || [body, disk].some(hasPublicUrl)
+}
+
+function hasPublicUrl(tree: Record<string, unknown>): boolean {
+  return isPlainRecord(tree.api) && tree.api.public_url !== undefined
 }
 
 // What a write may not carry, a secret still hidden first: each refusal names all its fields.

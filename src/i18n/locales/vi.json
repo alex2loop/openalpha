@@ -1327,7 +1327,7 @@
     "configModelBaseUrlInvalid": "base_url của {model} (\"{url}\") không phải địa chỉ hợp lệ.",
     "configCurrencyLocked": "[locale] currency đang là {currency}, nhưng sổ của bạn mở bằng {profileCurrency} và không đổi được. Đặt lại [locale] currency thành {profileCurrency} nhé.",
     "configApiTokenShort": "[api] token_env trỏ tới {env}, nhưng biến này đang trống hoặc ngắn hơn {minimum} ký tự. Lưu token dài hơn bằng `{brand} key set {env}`, hoặc bỏ token_env để dùng token đã lưu, rồi chạy `{brand} restart --background` nhé. Cho tới lúc đó API chưa mở.",
-    "configApiPublicUrl": "[api] public_url phải là địa chỉ https:// chỉ gồm tên máy (thêm cổng nếu cần), không kèm đường dẫn. Hiện đang là: {value}",
+    "configApiPublicUrl": "[api] public_url phải là địa chỉ https:// chỉ gồm tên máy (thêm cổng nếu cần), không kèm đường dẫn, tham số hay tên đăng nhập.",
     "apiBehindProxy": "Yêu cầu này đi qua proxy nhưng [api] public_url chưa đặt. Đặt public_url là địa chỉ https của proxy trong config trên máy chủ rồi khởi động lại daemon.",
     "apiOrdersOff": "Đặt lệnh qua ứng dụng đang tắt ([api] orders). Bật trong config trên máy chủ nếu bạn muốn.",
     "pairingApproveServerOnly": "Khi API mở ra ngoài, chỉ duyệt ghép nối được trên máy chủ: chạy {brand} pair approve {code} ở đó.",

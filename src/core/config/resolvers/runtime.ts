@@ -203,12 +203,13 @@ export function resolveLlm(raw: RawLlm | undefined): ResolvedLlm {
 
 export function resolveApi(raw: RawApi | undefined): ResolvedApi {
   const publicUrl = raw?.public_url === undefined ? undefined : resolvePublicUrl(raw.public_url)
+  const isLocalOnly = publicUrl === undefined
 
   return {
     enabled: raw?.enabled ?? false,
     port: raw?.port ?? DEFAULT_API_PORT,
     ...(raw?.token_env === undefined ? {} : { tokenEnv: raw.token_env }),
-    orders: raw?.orders ?? publicUrl === undefined,
+    orders: raw?.orders ?? isLocalOnly,
     ...(publicUrl === undefined ? {} : { publicUrl }),
   }
 }
@@ -217,9 +218,10 @@ function resolvePublicUrl(raw: string): string {
   const origin = toPublicOrigin(raw)
 
   if (origin === undefined) {
+    // The value is never echoed: it may carry a user name, password or query secret.
     throw new OperatorConfigError(
-      `invalid api.public_url: "${raw}"`,
-      { key: 'errors.configApiPublicUrl', params: { value: raw } },
+      'invalid api.public_url',
+      { key: 'errors.configApiPublicUrl' },
       { path: ['api', 'public_url'] }
     )
   }
@@ -228,20 +230,15 @@ function resolvePublicUrl(raw: string): string {
 }
 
 // A spelling the browser would send back differently (path, query, userinfo, http) cannot be the
-// page's origin, so it is refused rather than trimmed.
+// page's origin, so it is refused rather than trimmed. `href` keeps an empty `?` or `#` that
+// `search` and `hash` drop, so it is compared whole.
 function toPublicOrigin(raw: string): string | undefined {
   if (!URL.canParse(raw)) {
     return undefined
   }
 
   const url = new URL(raw)
-  const isOriginOnly =
-    url.protocol === HTTPS_PROTOCOL &&
-    url.username === '' &&
-    url.password === '' &&
-    url.search === '' &&
-    url.hash === '' &&
-    url.pathname === '/'
+  const isOriginOnly = url.protocol === HTTPS_PROTOCOL && url.href === `${url.origin}/`
 
   return isOriginOnly ? url.origin : undefined
 }

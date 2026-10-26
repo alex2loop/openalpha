@@ -1327,7 +1327,7 @@
     "configModelBaseUrlInvalid": "The base_url of {model} (\"{url}\") is not a valid address.",
     "configCurrencyLocked": "[locale] currency is {currency}, but your book was opened in {profileCurrency} and that never changes. Set [locale] currency back to {profileCurrency}.",
     "configApiTokenShort": "[api] token_env names {env}, but that variable is empty or shorter than {minimum} characters. Save a longer token with `{brand} key set {env}`, or remove token_env to use the saved one, then run `{brand} restart --background`. Until then the API stays closed.",
-    "configApiPublicUrl": "[api] public_url must be an https:// address with only a host name (and a port if needed), no path. It is now: {value}",
+    "configApiPublicUrl": "[api] public_url must be an https:// address with only a host name (and a port if needed): no path, query or user name.",
     "apiBehindProxy": "This request came through a proxy, but [api] public_url is not set. Set public_url to the proxy's https address in the config on the server, then restart the daemon.",
     "apiOrdersOff": "Placing orders from the app is off ([api] orders). Turn it on in the config on the server if you want it.",
     "pairingApproveServerOnly": "While the API is open to the outside, a pairing is approved only on the server: run {brand} pair approve {code} there.",

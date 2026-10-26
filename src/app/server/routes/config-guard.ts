@@ -18,7 +18,8 @@ const CLI_ONLY_PATHS: readonly (readonly string[])[] = [
 const CHANNELS_SECTION = 'channels'
 /** Who may talk to the daemon through a channel. While the API is reachable from outside
  *  (`[api] public_url`) they change only on the server; the other channel keys grant no chat:
- *  a channel with no allowlist pairs, and pairing approval is server-only then too. */
+ *  a channel with no allowlist pairs, and pairing approval is server-only then too. Mirrors the
+ *  access keys in `channels/schema.ts` and each adapter's `config.ts`; a new one is added here. */
 const CHANNEL_ACCESS_KEYS: readonly string[] = [
   'allowed_ids',
   'operator_user_ids',
