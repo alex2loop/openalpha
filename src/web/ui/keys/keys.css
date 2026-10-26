@@ -21,21 +21,6 @@
   margin: 0;
 }
 
-kbd {
-  min-width: 22px;
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  background: var(--sunken);
-  font:
-    12px / 1.4 ui-monospace,
-    "SF Mono",
-    Menlo,
-    monospace;
-  text-align: center;
-}
-
 @media (max-width: 480px) {
   .key-row {
     grid-template-columns: 1fr;

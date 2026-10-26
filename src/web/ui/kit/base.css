@@ -88,6 +88,17 @@ svg.icon {
   height: 15px;
 }
 
+kbd {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--ink3);
+  font:
+    11px ui-monospace,
+    Menlo,
+    monospace;
+}
+
 .mono {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
