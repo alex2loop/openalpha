@@ -1,53 +1,61 @@
+/* One button system: commit (the form's one main action, Ink fill), ai (the brand gradient),
+   secondary (bordered), tertiary (text), destructive (Problem text). Every kind shares the
+   fields' height, radius and type, so a row of fields and buttons lines up. */
 .btn {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-height: var(--controlH);
   border: 1px solid var(--border);
+  border-radius: var(--controlRadius);
   background: var(--surface);
   color: var(--ink);
   font-weight: 500;
   white-space: nowrap;
+  text-decoration: none;
   cursor: pointer;
 }
 
-.btn:hover {
-  background: var(--sunken);
-}
-
 .btn-regular {
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 8px;
-  font-size: 12.5px;
+  padding: 0 calc(var(--controlPadX) + 4px);
+  font-size: var(--controlFont);
 }
 
+/* Inside a row: the same height, a tighter label. */
 .btn-small {
-  height: 26px;
-  padding: 0 9px;
-  border-radius: 7px;
+  padding: 0 var(--controlPadX);
   font-size: 12px;
 }
 
-.btn-commit,
-.btn-commit:hover {
-  background: var(--ink);
+.btn:not(:disabled):hover {
+  background: var(--sunken);
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.btn-commit {
   border-color: var(--ink);
+  background: var(--ink);
   color: var(--canvas);
 }
 
-.btn-commit:hover {
+.btn-commit:not(:disabled):hover {
+  background: var(--ink);
   opacity: 0.88;
 }
 
-.btn-ai,
-.btn-ai:hover {
-  background: var(--ai);
+.btn-ai {
   border-color: transparent;
+  background: var(--ai);
   color: var(--onAi);
 }
 
-.btn-ai:hover {
+.btn-ai:not(:disabled):hover {
+  background: var(--ai);
   filter: brightness(1.08);
 }
 
@@ -57,7 +65,8 @@
   color: var(--ink2);
 }
 
-.btn-tertiary:hover {
+.btn-tertiary:not(:disabled):hover {
+  background: transparent;
   color: var(--ink);
 }
 
@@ -65,16 +74,12 @@
   color: var(--dangerText);
 }
 
-.btn-destructive:hover {
+.btn-destructive:not(:disabled):hover {
   background: var(--dangerTint);
 }
 
-.btn:disabled,
-.btn:disabled:hover {
-  background: var(--sunken);
-  border-color: var(--border);
-  color: var(--ink3);
-  opacity: 1;
-  filter: none;
-  cursor: default;
+/* A button that cannot be pressed keeps its kind, faded, so a main action still reads as one. */
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
