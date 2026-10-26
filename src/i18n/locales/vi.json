@@ -59,6 +59,8 @@
     "office.error.unreachable": "Mình chưa nối được với daemon.",
     "office.error.timeout": "Daemon trả lời quá lâu, bạn thử lại nhé.",
     "office.error.badResponse": "Daemon trả lời một dạng mình chưa đọc được.",
+    "office.error.unavailable": "Phần này chưa dùng được lúc này, bạn thử lại sau ít phút nhé.",
+    "office.error.upstreamFailed": "Nguồn dữ liệu đang chưa trả lời, bạn thử lại sau ít phút nhé.",
     "office.error.generic": "Có lỗi xảy ra, bạn thử lại nhé.",
     "office.loading": "Văn phòng đang được dựng.",
     "office.signIn.title": "Mở văn phòng {brand}",

@@ -59,6 +59,8 @@
     "office.error.unreachable": "I cannot reach the daemon.",
     "office.error.timeout": "The daemon took too long to answer; try again.",
     "office.error.badResponse": "The daemon answered in a form I cannot read.",
+    "office.error.unavailable": "This is not available right now; try again in a moment.",
+    "office.error.upstreamFailed": "The data source is not answering right now; try again in a moment.",
     "office.error.generic": "Something went wrong; try again.",
     "office.loading": "The office page is on its way.",
     "office.signIn.title": "Open the {brand} office",
