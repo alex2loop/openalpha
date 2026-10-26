@@ -2,7 +2,7 @@ import { isIPv6 } from 'node:net'
 
 import type { CliApp, Command } from '@/cli/api'
 import { withApiToken } from '@/app/server/cli/api-token'
-import { resolveSshAddress } from '@/app/server/cli/ssh-address'
+import { resolveSshAddress, toSshTarget } from '@/app/server/cli/ssh-address'
 import { createCommand, getEnv, hint } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
@@ -27,7 +27,9 @@ function printConnectLine(app: CliApp, token: string): void {
     const hostForUrl = isIPv6(host) ? `[${host}]` : host
     const sshPort = port === undefined ? '' : `:${port}`
 
-    app.out(`${BRAND.name}+ssh://${user}@${hostForUrl}${sshPort}?api=${apiPort}${fragment}`)
+    app.out(
+      `${BRAND.name}+ssh://${toSshTarget(user, hostForUrl)}${sshPort}?api=${apiPort}${fragment}`
+    )
 
     if (guessed) {
       app.out(hint(t(locale, 'cli.sshHostGuess', { host })))

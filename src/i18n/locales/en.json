@@ -2094,6 +2094,7 @@
     "webApiOff": "The API is off, so the page cannot open yet. Set [api] enabled = true in the config, then run {brand} restart --background.",
     "webApiNotListening": "The daemon is running but its API is not open. Run {brand} restart --background so it reads the config again.",
     "webTokenRefused": "The daemon does not take the current token yet. Run {brand} restart --background, then try again.",
+    "webLockedOut": "The daemon is pausing sign-ins from this machine after a few wrong tries. Wait a moment, and check the token with {brand} api token.",
     "webCodeFailed": "Could not get a link from the daemon. See {brand} logs for why.",
     "sshHostGuess": "The address you reached this server by is unknown, so the line above uses its host name ({host}). Replace it with the address you SSH to if that differs.",
     "connectNote": "This line carries your token. Paste it only into your own app.",

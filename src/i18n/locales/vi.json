@@ -2094,6 +2094,7 @@
     "webApiOff": "API đang tắt nên chưa mở được trang. Đặt [api] enabled = true trong config rồi chạy {brand} restart --background.",
     "webApiNotListening": "Daemon đang chạy nhưng chưa mở API. Chạy {brand} restart --background để daemon đọc lại config.",
     "webTokenRefused": "Daemon chưa nhận token hiện tại. Chạy {brand} restart --background rồi thử lại.",
+    "webLockedOut": "Daemon đang tạm chặn đăng nhập từ máy này sau vài lần sai. Đợi một lát, và kiểm tra token bằng {brand} api token.",
     "webCodeFailed": "Chưa lấy được liên kết từ daemon. Xem {brand} logs để biết lý do.",
     "sshHostGuess": "Không đọc được địa chỉ bạn SSH vào, nên dòng trên dùng tên máy ({host}). Nếu bạn SSH bằng địa chỉ khác, thay nó vào.",
     "connectNote": "Dòng này có token, chỉ dán vào ứng dụng của bạn.",

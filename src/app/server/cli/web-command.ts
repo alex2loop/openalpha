@@ -3,7 +3,7 @@ import type { BrowserSignInCode } from '@/app/server/wire/sign-in'
 import type { CliApp, Command } from '@/cli/api'
 import type { MessageKey } from '@/i18n'
 import { readApiToken } from '@/app/server/cli/api-token'
-import { resolveSshAddress } from '@/app/server/cli/ssh-address'
+import { resolveSshAddress, toSshTarget } from '@/app/server/cli/ssh-address'
 import { LOOPBACK_HOST } from '@/app/server/http/server'
 import { SIGN_IN_CODE_TTL_MS } from '@/app/server/http/sign-in-codes'
 import { createCommand, fail, getEnv, hint } from '@/cli/api'
@@ -14,6 +14,8 @@ import { t } from '@/i18n'
 
 const EXIT_FAILED = 1
 const HTTP_UNAUTHORIZED = 401
+// From loopback with the right Host, a 403 is the auth lockout after repeated wrong tries.
+const HTTP_FORBIDDEN = 403
 const CODE_REQUEST_TIMEOUT_MS = 5_000
 // The tunnel's local end sits off the server's port, so it never lands on a daemon this machine
 // runs on that same port.
@@ -27,7 +29,7 @@ type CodeRequest =
       readonly ok: false
       readonly key: Extract<
         MessageKey,
-        'cli.webApiNotListening' | 'cli.webTokenRefused' | 'cli.webCodeFailed'
+        'cli.webApiNotListening' | 'cli.webTokenRefused' | 'cli.webLockedOut' | 'cli.webCodeFailed'
       >
     }
 
@@ -92,6 +94,10 @@ async function requestCode(port: number, token: string): Promise<CodeRequest> {
     return { ok: false, key: 'cli.webTokenRefused' }
   }
 
+  if (res.status === HTTP_FORBIDDEN) {
+    return { ok: false, key: 'cli.webLockedOut' }
+  }
+
   const code: unknown = res.ok && isPlainRecord(body) ? body.code : undefined
 
   return typeof code === 'string' && code !== ''
@@ -105,14 +111,14 @@ function isConnectionRefused(err: unknown): boolean {
 
 function printLink(app: CliApp, code: string): void {
   const { port, publicUrl } = app.config.api
-  const env = getEnv()
-  const address = resolveSshAddress(env)
-
   if (publicUrl !== undefined) {
     app.out(`${publicUrl}/#code=${code}`)
 
     return
   }
+
+  const env = getEnv()
+  const address = resolveSshAddress(env)
 
   if (address.overSsh) {
     printTunnel(app, address, code)
@@ -143,7 +149,7 @@ function printTunnel(app: CliApp, address: SshAddress, code: string): void {
 
   app.out(t(locale, 'cli.webTunnelRun'))
   app.out(
-    `ssh -N -o ExitOnForwardFailure=yes -L ${local}:${LOOPBACK_HOST}:${port}${sshPort} ${address.user}@${address.host}`
+    `ssh -N -o ExitOnForwardFailure=yes -L ${local}:${LOOPBACK_HOST}:${port}${sshPort} ${toSshTarget(address.user, address.host)}`
   )
   app.out(t(locale, 'cli.webTunnelOpen'))
   app.out(`http://${LOOPBACK_HOST}:${local}/#code=${code}`)

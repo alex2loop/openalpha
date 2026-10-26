@@ -58,10 +58,13 @@ async function rotateToken(app: CliApp): Promise<number> {
 
   await replacePrivateFileAtomic({ path, content: JSON.stringify({ token }, null, 2) })
 
-  const signedOut = await app.resolve('browserSessionStore').removeAll()
   const locale = app.config.locale.language
 
+  // Printed before the sessions go, so a failed removal never hides the new token.
   app.out(token)
+
+  const signedOut = await app.resolve('browserSessionStore').removeAll()
+
   app.out(t(locale, 'cli.apiRotateSignedOut', { count: signedOut }))
   app.out(hint(t(locale, 'cli.authTokenRestart', { brand: BRAND.name })))
 
