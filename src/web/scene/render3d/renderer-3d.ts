@@ -42,6 +42,12 @@ import {
   syncScreenFaces,
 } from '@/web/scene/render3d/screen-faces'
 import {
+  createStreetPlanes,
+  disposeStreetPlanes,
+  type StreetPlanes,
+  syncStreetPlanes,
+} from '@/web/scene/render3d/street-planes'
+import {
   createTeamPieces,
   disposeTeamPieces,
   syncTeamPieces,
@@ -78,6 +84,7 @@ interface Stage extends CameraRig {
   readonly pets: Pets
   readonly lamps: Lamps
   readonly faces: ScreenFaces
+  readonly street: StreetPlanes
   floor: FloorScene | undefined
   scheme: string
   lastAt: number | undefined
@@ -173,6 +180,7 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
     pets,
     lamps: createLamps(scene),
     faces: createScreenFaces(root, lighting),
+    street: createStreetPlanes(scene),
     floor: undefined,
     shot: undefined,
     placement: { scale: 1, originX: 0, originY: 0 },
@@ -200,6 +208,7 @@ function releaseStage(stage: Stage | undefined): void {
   disposePets(stage.pets)
   disposeLamps(stage.lamps)
   disposeScreenFaces(stage.faces)
+  disposeStreetPlanes(stage.street)
 
   for (const one of [...stage.lighting.disposables, ...stage.shapes.disposables]) {
     one.dispose()
@@ -232,18 +241,27 @@ function drawFrame(stage: Stage, sim: SimView, now: number): DrawnFrame {
   const camera = placeCamera(stage, { pane, dtMs, isReduced })
   const isNewFloor = syncFloor(stage, sim)
   const scene = syncScene(stage, { sim, now, dtMs, isReduced })
+  const street = syncStreetPlanes(stage.street, { frame: sim.street, now })
 
   stage.lastAt = now
 
   const isChanged =
-    isResized || camera.isMoved || isNewFloor || scene.isChanged || syncStageColor(stage)
+    isResized ||
+    camera.isMoved ||
+    isNewFloor ||
+    scene.isChanged ||
+    street.isChanged ||
+    syncStageColor(stage)
 
   if (isChanged) {
     stage.renderer.render(stage.scene, stage.camera)
     stage.drawCalls = stage.renderer.info.render.calls
   }
 
-  return { isRendered: isChanged, isAnimating: camera.isGliding || scene.isAnimating }
+  return {
+    isRendered: isChanged,
+    isAnimating: camera.isGliding || scene.isAnimating || street.isPending,
+  }
 }
 
 interface SceneJob {

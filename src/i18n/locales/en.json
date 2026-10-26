@@ -155,6 +155,8 @@
     "office.perf.frame3d": "3D frame: {ms} ms",
     "office.perf.renders": "Renders: {renders} a second (budget {budget})",
     "office.perf.drawCalls": "Draw calls: {calls} (max {max})",
+    "office.perf.street": "Street step: {ms} ms (budget {budget} ms)",
+    "office.perf.streetPaint": "Street repaint: {ms} ms (budget {budget} ms)",
     "office.scene.view": "Office view",
     "office.scene.viewTip": "3D needs a graphics card; 2D is lighter.",
     "office.scene.mode2d": "2D",

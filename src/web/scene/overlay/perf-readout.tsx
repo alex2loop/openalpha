@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'preact/hooks'
 
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
-import { DRAW_CALLS_MAX, FRAME_2D_BUDGET_MS, SMALL_MOTION_RENDERS_PER_S } from '@/web/scene/budgets'
+import {
+  DRAW_CALLS_MAX,
+  FRAME_2D_BUDGET_MS,
+  SMALL_MOTION_RENDERS_PER_S,
+  STREET_PAINT_BUDGET_MS,
+  STREET_STEP_BUDGET_MS,
+} from '@/web/scene/budgets'
 import { formatFixed } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 
@@ -13,8 +19,22 @@ const PERF_READ_MS = 1_000
 const MS_DIGITS = 2
 const COUNT_DIGITS = 0
 
+/** The street's last sim step and last static repaint. */
+interface StreetTimes {
+  readonly stepMs: number
+  readonly paintMs: number
+}
+
 interface PerfReadoutProps {
   readonly renderer: SceneRenderer
+}
+
+// The mounted street's times; none while no street is mounted.
+let readStreetTimes: (() => StreetTimes) | undefined
+
+/** The crew lends its street's times while mounted and takes them back (`undefined`) on unmount. */
+export function lendStreetTimes(read: (() => StreetTimes) | undefined): void {
+  readStreetTimes = read
 }
 
 /** The renderer's figures against their budgets, only on an address with `?perf=1`. */
@@ -48,8 +68,16 @@ function FrameLine({ stats }: { readonly stats: RendererStats | undefined }) {
 
 function PerfPanel({ renderer }: PerfReadoutProps) {
   const [stats, setStats] = useState<RendererStats | undefined>(undefined)
+  const [times, setTimes] = useState<StreetTimes | undefined>(undefined)
 
-  useEffect(() => pollStats(() => setStats(renderer.stats())), [renderer])
+  useEffect(
+    () =>
+      pollStats(() => {
+        setStats(renderer.stats())
+        setTimes(readStreetTimes?.())
+      }),
+    [renderer]
+  )
 
   return (
     <div class="perf-readout glass" role="status">
@@ -71,7 +99,29 @@ function PerfPanel({ renderer }: PerfReadoutProps) {
           })}
         />
       )}
+      <StreetLines times={times} />
     </div>
+  )
+}
+
+function StreetLines({ times }: { readonly times: StreetTimes | undefined }) {
+  return (
+    <>
+      <PerfLine
+        isOver={times !== undefined && times.stepMs > STREET_STEP_BUDGET_MS}
+        text={tr('ui.office.perf.street', {
+          ms: formatFixed(times?.stepMs, MS_DIGITS),
+          budget: formatFixed(STREET_STEP_BUDGET_MS, MS_DIGITS),
+        })}
+      />
+      <PerfLine
+        isOver={times !== undefined && times.paintMs > STREET_PAINT_BUDGET_MS}
+        text={tr('ui.office.perf.streetPaint', {
+          ms: formatFixed(times?.paintMs, MS_DIGITS),
+          budget: formatFixed(STREET_PAINT_BUDGET_MS, MS_DIGITS),
+        })}
+      />
+    </>
   )
 }
 
