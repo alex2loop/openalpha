@@ -11,10 +11,12 @@ export function BackRow() {
   }
 
   return (
-    <button type="button" class="back-row" onClick={goBack}>
-      <ChevronLeftIcon />
-      {tr('ui.office.common.back', { place: placeOf(previous) })}
-    </button>
+    <div class="back-row">
+      <button type="button" onClick={goBack}>
+        <ChevronLeftIcon />
+        {tr('ui.office.common.back', { place: placeOf(previous) })}
+      </button>
+    </div>
   )
 }
 

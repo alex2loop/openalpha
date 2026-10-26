@@ -65,8 +65,8 @@
 .icon-button {
   display: grid;
   place-items: center;
-  width: var(--controlH);
-  height: var(--controlH);
+  width: var(--headerControlH);
+  height: var(--headerControlH);
   border: 0;
   border-radius: 8px;
   background: none;
