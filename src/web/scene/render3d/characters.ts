@@ -199,7 +199,10 @@ function buildRig(cast: Cast, look: ReturnType<typeof lookOf>, key: string): Rig
   }
 
   for (const part of figure.parts ?? []) {
-    part.parent.add(new Mesh(part.geometry, cast.toon), new Mesh(part.geometry, hull))
+    const solid = new Mesh(part.geometry, cast.toon)
+
+    solid.receiveShadow = true
+    part.parent.add(solid, new Mesh(part.geometry, hull))
     owned.push(part.geometry)
   }
 
@@ -240,6 +243,9 @@ function skinBody(
   const body = new SkinnedMesh(geometry, materials.toon)
   const hull = new SkinnedMesh(geometry, materials.hull)
 
+  // A figure takes the furniture's shadow; its own is the contact shadow under its feet, so the
+  // shadow map never has to follow a walker.
+  body.receiveShadow = true
   body.frustumCulled = false
   hull.frustumCulled = false
   pivot.add(body, hull)

@@ -21,7 +21,7 @@ import {
   TABLE_POOLS,
   WARM_RGB,
 } from '@/web/scene/sprites/daylight'
-import { OUTLINE, PROP_TONES, STATUS_TONES } from '@/web/scene/sprites/palette'
+import { OUTLINE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { ELEVATION } from '@/web/scene/view'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
@@ -70,6 +70,8 @@ const LAMP_POOL_ALPHA = 0.34
 const DESK_LAMP_POOL_RADIUS = 18
 const DESK_GLOW = Object.freeze({ dx: 20, dy: -6, radius: 28, alpha: 0.32 })
 const DOT_RISE_PX = 6
+// The mockup's 3D status dots: green free, amber waiting, red after an error.
+const DOT_TONES = Object.freeze({ free: '#32D74B', waiting: '#F2B33D', failed: '#FF6259' })
 const DOT_PX = Object.freeze({ max: 3.4, min: 1.5, screen: 5 })
 const RING = Object.freeze({ w: 16, d: 10, h: 0.3 })
 const FLAT_TILT = -Math.PI / 2
@@ -341,7 +343,7 @@ function syncPeople(fixtures: Fixtures, frame: FixtureFrame): boolean {
         z: at.y,
         size: [dotPx, dotPx, 1],
         tilt: -ELEVATION,
-        color: STATUS_TONES[actor.status],
+        color: DOT_TONES[actor.status],
       })
     }
 

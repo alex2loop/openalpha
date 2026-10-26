@@ -35,7 +35,6 @@ import {
 } from '@/web/scene/render3d/light-model'
 import { toUnits } from '@/web/scene/render3d/space'
 import { CLOSED_ROOM } from '@/web/scene/sprites/daylight'
-import { TOON_BANDS } from '@/web/scene/sprites/palette'
 import { roomsOn } from '@/web/scene/world/rooms'
 
 /** Every material the 3D office draws with; each instanced one reads its room at the instance. */
@@ -97,6 +96,8 @@ const NIGHT_FROM_DEG = -6
 // A room's fill starts under the north wall's band.
 const ROOM_FROM_PX = 28
 const QUIET_SHARE = 0.82
+// The mockup's cel bands, shade to lit, as bytes of the toon gradient.
+const TOON_BANDS = [80, 150, 215] as const
 const CLOSED_SHARE = 0.86
 const FLASH_HEMI = 1.8
 const ROOM_FILL_EASE_MS = 100
@@ -332,12 +333,7 @@ function createEnvironment(renderer: WebGLRenderer): {
 }
 
 function createToonGradient(): DataTexture {
-  const texture = new DataTexture(
-    new Uint8Array(TOON_BANDS.map((band) => Math.round(band * 255))),
-    TOON_BANDS.length,
-    1,
-    RedFormat
-  )
+  const texture = new DataTexture(new Uint8Array(TOON_BANDS), TOON_BANDS.length, 1, RedFormat)
 
   texture.minFilter = NearestFilter
   texture.magFilter = NearestFilter
