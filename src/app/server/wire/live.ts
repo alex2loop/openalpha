@@ -55,12 +55,15 @@ export interface RunCallWire {
   readonly errorCode?: NonNullable<RunAttempt['errorCode']>
 }
 
-/** GET /v1/runs/:runId/calls: the run's calls and its direct children's, newest first. `truncated`
- *  when more exist than the page shows. */
+/** GET /v1/runs/:runId/calls: the run's calls and everything beneath it, newest first. `truncated`
+ *  when more exist than the page shows; `totalCalls` and `totalUsd` count all of them, as
+ *  `/v1/activity` prices the run, so a cut list never undercounts. */
 export interface RunCallsWire {
   readonly runId: string
   readonly calls: readonly RunCallWire[]
   readonly truncated: boolean
+  readonly totalCalls: number
+  readonly totalUsd: number
 }
 
 export interface LiveRunWire extends RunStartWire {

@@ -11,7 +11,7 @@ import type {
   LLMAttemptInput,
   LLMUsageTotals,
   ModelRunCost,
-  RunAttempt,
+  RunCalls,
   SpendBreakdownRow,
 } from '@/core/types/usage'
 import type { EpochRange } from '@/core/utils/time'
@@ -211,9 +211,10 @@ export interface LLMAttemptStore {
     sample: number,
     nowMs: number
   ): Promise<readonly ModelRunCost[]>
-  /** The attempts of one run and of its direct children (a child names it as `parentRunId`),
-   *  newest first, at most `limit`. A run with none, or an unknown one, answers an empty list. */
-  attemptsForRun(runId: RunId, limit: number): Promise<readonly RunAttempt[]>
+  /** The attempts of one run and everything beneath it, as `/v1/activity` prices a run, newest
+   *  first, at most `limit`; the totals cover them all. A run with none, or an unknown one,
+   *  answers an empty list. */
+  attemptsForRun(runId: RunId, limit: number): Promise<RunCalls>
   /** Which of these attempts are already durable — a write whose acknowledgement was lost is. */
   recordedIds(ids: readonly LLMAttemptId[]): Promise<ReadonlySet<LLMAttemptId>>
 }

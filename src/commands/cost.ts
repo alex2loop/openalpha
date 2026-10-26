@@ -9,7 +9,7 @@ import type {
   CostRange,
   DaySpend,
   LLMUsageTotals,
-  RunAttempt,
+  RunCalls,
   SpendBreakdownRow,
 } from '@/core/types/usage'
 import { formatUsd } from '@/core/utils/cost'
@@ -35,9 +35,9 @@ export interface SpendReader {
   breakdownForRange(range: CostRange): Promise<readonly SpendBreakdownRow[]>
   /** Everything one session has accumulated — what `/cost` reports and a run footer prints. */
   forSession(sessionId: SessionId): Promise<LLMUsageTotals>
-  /** One run's attempts and its direct children's, newest first, at most `limit`: every billed
-   *  call, a billed search and each retried attempt included. */
-  callsForRun(runId: RunId, limit: number): Promise<readonly RunAttempt[]>
+  /** One run's attempts and everything beneath it, newest first, at most `limit`, with the totals
+   *  of all of them: every billed call, a billed search and each retried attempt included. */
+  callsForRun(runId: RunId, limit: number): Promise<RunCalls>
 }
 
 export interface SpendCommandDeps {

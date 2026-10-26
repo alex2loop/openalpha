@@ -6,6 +6,7 @@ import type {
   LLMAttemptInput,
   LLMAttemptKind,
   RunAttempt,
+  RunCalls,
   UsageSource,
 } from '@/core/types/usage'
 import type { LLMAttempt, LLMAttemptStore } from '@/persistence/types'
@@ -14,6 +15,7 @@ import { agentId, llmAttemptId, runId, sessionId } from '@/core/ids'
 import { fromNanoUsd, toNanoUsd } from '@/persistence/money'
 import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
 import { createSpendReads } from '@/persistence/stores/llm-attempt-spend'
+import { runTreeCtes } from '@/persistence/stores/run-tree-sql'
 
 // The column list has one owner: the insert, the idempotent-retry read, and the detail read in
 // stores/session.ts all enumerate exactly these, in this order.
@@ -131,15 +133,24 @@ function toRunAttempt(row: LLMAttemptRow): RunAttempt {
   return { ...base, outcome: row.outcome, errorCode: row.error_code }
 }
 
-// Each end of the OR has its own index; the id tie-break keeps equal instants in a stable order.
-async function attemptsForRun(
-  store: StoreDeps,
-  id: RunId,
-  limit: number
-): Promise<readonly RunAttempt[]> {
-  const rows = await store.db.query<LLMAttemptRow>(store.sql.forRun, [id, id, limit])
+// A list under `limit` is the whole subtree, so its totals come from the rows; a full one may be cut
+// and asks the tree once more. The id tie-break keeps equal instants in a stable order.
+async function attemptsForRun(store: StoreDeps, id: RunId, limit: number): Promise<RunCalls> {
+  const rows = await store.db.query<LLMAttemptRow>(store.sql.forRun, [id, limit])
+  const calls = rows.map(toRunAttempt)
 
-  return rows.map(toRunAttempt)
+  if (rows.length < limit) {
+    const nano = rows.reduce((sum, row) => sum + row.cost_nano_usd, 0)
+
+    return { calls, totalCalls: rows.length, totalUsd: fromNanoUsd(nano) }
+  }
+
+  const [total] = await store.db.query<{ readonly calls: number; readonly total: number }>(
+    store.sql.totalForRun,
+    [id]
+  )
+
+  return { calls, totalCalls: total?.calls ?? 0, totalUsd: fromNanoUsd(total?.total ?? 0) }
 }
 
 // One transaction: a failed write leaves neither an attempt fact nor a misleading total. The
@@ -258,8 +269,13 @@ function buildSql(d: Dialect) {
       `ON CONFLICT (id) DO NOTHING`,
     loadById: `SELECT ${columns} FROM llm_attempts WHERE id = ${d.param(1)}`,
     forRun:
-      `SELECT ${columns} FROM llm_attempts WHERE run_id = ${d.param(1)} ` +
-      `OR parent_run_id = ${d.param(2)} ORDER BY settled_at DESC, id LIMIT ${d.param(3)}`,
+      `${runTreeCtes(d, 1)}SELECT ${columns} FROM llm_attempts ` +
+      `WHERE run_id IN (SELECT run_id FROM tree) ` +
+      `ORDER BY settled_at DESC, id LIMIT ${d.param(2)}`,
+    totalForRun:
+      `${runTreeCtes(d, 1)}SELECT COUNT(*) AS calls, ` +
+      `CAST(COALESCE(SUM(cost_nano_usd), 0) AS BIGINT) AS total FROM llm_attempts ` +
+      `WHERE run_id IN (SELECT run_id FROM tree)`,
     // Portable monotonic advance: MAX(current, settled_at) without dialect-specific GREATEST.
     touchActivity:
       `UPDATE sessions SET last_activity_at = ` +

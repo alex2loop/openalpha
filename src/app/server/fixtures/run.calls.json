@@ -52,5 +52,7 @@
       "errorCode": "timeout"
     }
   ],
-  "truncated": false
+  "truncated": false,
+  "totalCalls": 3,
+  "totalUsd": 0.043
 }

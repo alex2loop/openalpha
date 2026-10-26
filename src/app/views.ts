@@ -9,7 +9,7 @@ import type {
 } from '@/commands/api'
 import type { ChannelId } from '@/core/channels'
 import type { App } from '@/core/container'
-import type { LLMUsageTotals, RunAttempt, SpendBreakdownRow } from '@/core/types/usage'
+import type { LLMUsageTotals, RunAttempt, RunCalls, SpendBreakdownRow } from '@/core/types/usage'
 
 // A corrupt persisted row must not render as a nonsense balance.
 const MAX_PERSISTED_USAGE_VALUE = Number.MAX_SAFE_INTEGER
@@ -33,8 +33,7 @@ export function createSpendReader(app: App): SpendReader {
       (await attempts.breakdownFor(period, nowMs)).map(boundedBreakdownRow),
     breakdownForRange: async (range) =>
       (await attempts.breakdownRange(range)).map(boundedBreakdownRow),
-    callsForRun: async (id, limit) =>
-      (await attempts.attemptsForRun(id, limit)).map(boundedAttempt),
+    callsForRun: async (id, limit) => boundedCalls(await attempts.attemptsForRun(id, limit)),
   }
 }
 
@@ -123,6 +122,14 @@ function boundedBreakdownRow(row: SpendBreakdownRow): SpendBreakdownRow {
     ...(row.averageLatencyMs === undefined
       ? {}
       : { averageLatencyMs: boundedCount(row.averageLatencyMs) }),
+  }
+}
+
+function boundedCalls(read: RunCalls): RunCalls {
+  return {
+    calls: read.calls.map(boundedAttempt),
+    totalCalls: boundedCount(read.totalCalls),
+    totalUsd: boundedUsage(read.totalUsd),
   }
 }
 

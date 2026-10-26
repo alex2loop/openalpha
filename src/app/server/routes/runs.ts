@@ -38,12 +38,14 @@ async function handleCalls(req: Request, ctx: ApiRouteContext): Promise<Response
   }
 
   // One row past the page tells a full page from a cut one.
-  const rows = await ctx.app.resolve('spendReader').callsForRun(id, RUN_CALLS_MAX + 1)
+  const read = await ctx.app.resolve('spendReader').callsForRun(id, RUN_CALLS_MAX + 1)
 
   return json({
     runId: id,
-    calls: rows.slice(0, RUN_CALLS_MAX).map(toRunCallWire),
-    truncated: rows.length > RUN_CALLS_MAX,
+    calls: read.calls.slice(0, RUN_CALLS_MAX).map(toRunCallWire),
+    truncated: read.calls.length > RUN_CALLS_MAX,
+    totalCalls: read.totalCalls,
+    totalUsd: read.totalUsd,
   } satisfies RunCallsWire)
 }
 
