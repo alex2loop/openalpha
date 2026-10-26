@@ -6,6 +6,7 @@ import { lendStreetTimes } from '@/web/scene/overlay/perf-readout'
 import { createStreetPainter, type StreetPainter } from '@/web/scene/render2d/street/paint'
 import { createDirector, type Director } from '@/web/scene/sim/director'
 import { createLife, type Life } from '@/web/scene/sim/life/life'
+import { createLift, type Lift } from '@/web/scene/sim/lift'
 import { createSkyEase, type SkyEase } from '@/web/scene/sim/sky'
 import { createStreet, type Street } from '@/web/scene/sim/street/street'
 import { createTeam, type Team } from '@/web/scene/sim/team/team'
@@ -18,9 +19,10 @@ import { reducedMotion } from '@/web/state/prefs'
 // The tray counts unread notices; before the first read there are none to count.
 const unreadCount = computed(() => unread.value ?? 0)
 
-/** The office's people, the office life over them, the team floor, the street with its painter,
- *  and the eased light: what the composer's loop steps and draws. */
-export interface Crew {
+/** The office's people, the lift, the office life over them, the team floor, the street with its
+ *  painter, and the eased light: what the composer's loop steps and draws. */
+export interface Sims {
+  readonly lift: Lift
   readonly director: Director
   readonly life: Life
   readonly team: Team
@@ -29,9 +31,10 @@ export interface Crew {
   readonly sky: SkyEase
 }
 
-/** Makes the crew and lends the street's times to the perf readout; `disposeCrew` releases it. */
-export function createCrew(): Crew {
-  const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
+/** Makes the sims and lends the street's times to the perf readout; `disposeSims` releases them. */
+export function createSims(): Sims {
+  const lift = createLift()
+  const director = createDirector({ lift, runs, pending, unread: unreadCount, hub: onWireEvent })
   const team = createTeam({ agents, runs, offers: coolerOffer, hub: onWireEvent })
   const teamDesks = () => team.view(performance.now()).desks
   const street = createStreet({
@@ -44,6 +47,7 @@ export function createCrew(): Crew {
   lendStreetTimes(() => ({ stepMs: street.stepMs(), paintMs: painter.paintMs() }))
 
   return {
+    lift,
     director,
     life: createLife({ director, teamDesks, reduced: reducedMotion }),
     team,
@@ -53,11 +57,11 @@ export function createCrew(): Crew {
   }
 }
 
-export function disposeCrew(crew: Crew): void {
+export function disposeSims(sims: Sims): void {
   lendStreetTimes(undefined)
-  crew.life.dispose()
-  crew.director.dispose()
-  crew.team.dispose()
-  crew.street.dispose()
-  crew.painter.release()
+  sims.life.dispose()
+  sims.director.dispose()
+  sims.team.dispose()
+  sims.street.dispose()
+  sims.painter.release()
 }

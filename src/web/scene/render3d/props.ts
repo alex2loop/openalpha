@@ -1,5 +1,7 @@
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import { type Box, box, type Spot } from '@/web/scene/render3d/boxes'
+import { CREW_RECIPES, frontDeskThings } from '@/web/scene/render3d/crew-props'
+import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import {
   CARD,
   DARKWOOD,
@@ -10,9 +12,7 @@ import {
   PROP_TONES,
   WOOD,
 } from '@/web/scene/sprites/palette'
-import { HEIGHT_K } from '@/web/scene/view'
 import { isWallMounted, type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
-import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
 import { SEATS, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'
 
 /** A floor's furniture: static boxes by room, glass, and the parts that change while it shows. */
@@ -46,13 +46,13 @@ interface Lamp {
   readonly shadeY: number
 }
 
-interface Build {
+export interface Build {
   readonly prop: PropDef
   readonly out: Box[]
   readonly floor: FloorProps
 }
 
-type Recipe = (job: Build) => void
+export type Recipe = (job: Build) => void
 
 const SCREEN_BEZEL = '#2B2433'
 const BOARD_FRAME = '#C9CDD6'
@@ -74,8 +74,6 @@ const SEAT_PX = 7
 const CHAIR_BACK_PX = 14
 const MONITOR_BASE_PX = 15
 const MONITOR_PX = 9
-const WALL_FACE_PROUD = 0.8
-const FACE_PLATE_PX = 0.3
 const LAMP_SHADE = Object.freeze({ w: 10, h: 8, y: 50 })
 const LAMP_BASE = Object.freeze({ w: 8, h: 2 })
 const LAMP_POLE = 1.6
@@ -108,8 +106,12 @@ function spot(prop: PropDef, rise: readonly [y: number, h: number], inset = 0): 
 }
 
 const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
+  ...CREW_RECIPES,
+  'guest-desk': (job) => {
+    deskOf(WOOD)(job)
+    frontDeskThings(job)
+  },
   desk: deskOf(WOOD),
-  'guest-desk': deskOf(WOOD),
   table: (job) => deskOf(tableTones(job.prop))(job),
   chair: chair,
   shelf: shelf,
@@ -392,30 +394,6 @@ function wallPiece({ prop, out, floor }: Build): void {
   }
 }
 
-/** A wall piece's frame and the face plate in front of it. One on a wall's band hangs on the north
- *  wall at the height that lines it up with 2D; one below the band stands on the floor facing the
- *  camera, its foot at the drawn box's bottom, so its face covers what 2D draws. */
-export function wallSpotsOf(prop: PropDef): {
-  readonly frame: Spot
-  readonly face: Spot
-  /** The z of the wall it hangs on; absent for a piece standing on the floor. */
-  readonly wallZ?: number
-} {
-  const room = roomById(prop.room)
-  const wallZ = (room?.rect.y ?? 0) + WALL_BAND_PX
-  const { x, y, w, h } = prop.rect
-  const isHung = y + h <= wallZ + 1
-  const z = isHung ? wallZ : y + h
-  const base = isHung ? (wallZ - (y + h)) / HEIGHT_K : 0
-  const tall = h / HEIGHT_K
-
-  return {
-    frame: [x, z - (isHung ? 0 : WALL_FACE_PROUD), w, WALL_FACE_PROUD, base, tall],
-    face: [x + 1, z + (isHung ? WALL_FACE_PROUD : 0), w - 2, FACE_PLATE_PX, base + 1, tall - 2],
-    ...(isHung ? { wallZ } : {}),
-  }
-}
-
 const WALL_LOOKS: Readonly<Partial<Record<PropKind, readonly [string, string]>>> = Object.freeze({
   whiteboard: [BOARD_FRAME, '#FAFAFC'],
   'results-board': [SCREEN_BEZEL, '#3E4C78'],
@@ -423,6 +401,6 @@ const WALL_LOOKS: Readonly<Partial<Record<PropKind, readonly [string, string]>>>
   clock: [OUTLINE, PALETTE.paper],
   frame: [WOOD[2], PALETTE.paper],
   'light-switch': ['#F7F3EA', '#C9CDD6'],
-  'lift-door': [PROP_TONES.liftFrame, PROP_TONES.liftLeaf],
+  'lift-door': [PROP_TONES.liftFrame, PROP_TONES.liftCabin],
   window: [BOARD_FRAME, '#CFE6FF'],
 })

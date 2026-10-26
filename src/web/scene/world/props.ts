@@ -1,4 +1,4 @@
-import type { FloorId, Rect, RoomId } from '@/web/scene/types'
+import type { FloorId, Point, Rect, RoomId } from '@/web/scene/types'
 import { DESK_SLOTS, FLOORS } from '@/web/scene/world/floors'
 import { roomById } from '@/web/scene/world/rooms'
 
@@ -40,6 +40,9 @@ export type PropKind =
   | 'ladder'
   | 'lift-door'
   | 'umbrella-stand'
+  | 'bin'
+  | 'gate-post'
+  | 'podium'
 
 /** The live figure a prop answers with on hover. */
 export type TipSource =
@@ -127,6 +130,9 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   ladder: 34,
   'lift-door': 30,
   'umbrella-stand': 9,
+  bin: 8,
+  'gate-post': 16,
+  podium: 18,
 } satisfies Record<PropKind, number>)
 
 // Pieces hung on a wall: their `rect` is the wall area, nothing stands on it.
@@ -140,6 +146,10 @@ const WALL_KINDS: ReadonlySet<PropKind> = new Set([
   'lift-door',
   'window',
 ])
+
+// Pieces thin enough to pass beside: the nav grid blocks their footprint with no clearance, so the
+// badge gates keep two lanes open through the west doorway.
+const TIGHT_KINDS: ReadonlySet<PropKind> = new Set(['gate-post', 'podium'])
 
 // A chair is an 11 px square centred on its seat, set back by its facing (the 3D chair3 and seatsOf).
 const CHAIR_PX = 11
@@ -232,6 +242,11 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('cat-bed', 'lobby', { at: [136, 315, 24, 14], draw: [136, 315, 24, 14] }),
   stand('umbrella-stand', 'lobby', { at: [6, 286, 6, 5], draw: [5, 272, 8, 19] }),
   stand('guest-desk', 'lobby', { at: [112, 323, 18, 10], draw: [112, 310, 18, 23] }),
+  stand('chair', 'lobby', { at: seatFoot(121, 316, 'back'), draw: [113, 293, 16, 11] }),
+  stand('bin', 'lobby', { at: [129, 305, 7, 7], draw: [129, 301, 7, 11] }),
+  stand('gate-post', 'lobby', { at: [5, 254, 8, 3], draw: [5, 241, 8, 16] }),
+  stand('podium', 'lobby', { at: [5, 264, 8, 8], draw: [5, 253, 8, 19] }),
+  stand('gate-post', 'lobby', { at: [5, 279, 8, 3], draw: [5, 266, 8, 16] }),
   stand('sofa', 'lobby', { at: [24, 354, 72, 14], draw: [24, 340, 72, 30] }),
   stand('plant', 'lobby', { at: [136, 352, 8, 8], draw: [134, 344, 12, 16] }),
   stand('lamp', 'lobby', { at: [100, 368, 8, 8], draw: [98, 321, 12, 51] }),
@@ -262,6 +277,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   wall('clock', 'desk', { at: [496, 236, 12, 12], tip: 'clock' }),
   stand('plant', 'desk', { at: [612, 270, 8, 8], draw: [610, 262, 12, 16] }),
   stand('desk', 'desk', { at: [510, 308, 96, 14], draw: [510, 300, 96, 22], variant: 2 }),
+  stand('bin', 'desk', { at: [496, 312, 7, 7], draw: [496, 308, 7, 11] }),
   stand('computer', 'desk', { at: [526, 319, 16, 3], draw: [526, 286, 16, 14] }),
   stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 286, 16, 14] }),
   stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
@@ -299,6 +315,9 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
 
 const PROPS: readonly PropDef[] = Object.freeze(PROP_SPECS.map(toProp))
 
+/** The wet-floor sign and the bucket at its right, as one footprint about the sign's foot. */
+const WET_SIGN = Object.freeze({ left: 3.5, w: 14, h: 5 })
+
 /** The dark mat inside the street exit, flat on the floor, where nothing is blocked. */
 export const EXIT_MAT: Rect = Object.freeze({ x: 3, y: 254, w: 16, h: 28 })
 
@@ -308,6 +327,16 @@ export function propsOn(floor: FloorId): readonly PropDef[] {
 
 export function isWallMounted(prop: PropDef): boolean {
   return WALL_KINDS.has(prop.kind)
+}
+
+/** A piece walkers may brush past: its footprint blocks with no clearance round it. */
+export function isTight(prop: PropDef): boolean {
+  return TIGHT_KINDS.has(prop.kind)
+}
+
+/** The cleaner's wet-floor sign with its bucket beside it, standing at `at` (the sign's foot). */
+export function wetSignRectOf(at: Point): Rect {
+  return { x: at.x - WET_SIGN.left, y: at.y - WET_SIGN.h, w: WET_SIGN.w, h: WET_SIGN.h }
 }
 
 export function isPropKind(value: string): value is PropKind {

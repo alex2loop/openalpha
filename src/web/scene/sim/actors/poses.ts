@@ -42,7 +42,7 @@ export type Arms =
   | 'sip'
 
 /** Something in the right hand besides a phone or a sheet. */
-export type HeldKind = 'cup' | 'bag' | 'box' | 'item'
+export type HeldKind = 'cup' | 'bag' | 'box' | 'item' | 'mop'
 
 /** What the hands show: a phone, a held kind and a sheet may show together. */
 export interface InHand {
@@ -95,6 +95,7 @@ const HELD_OF: Readonly<Record<HeldItem, HeldKind | undefined>> = Object.freeze(
   box: 'box',
   cup: 'cup',
   bag: 'bag',
+  mop: 'mop',
 })
 
 /** The whole pose vocabulary; `cheer` is the mascot's alone. */
@@ -201,9 +202,15 @@ export function isCharacterMotionOn(
   return isBusy || isAmbientBout(at.floor, at.now)
 }
 
-/** The person stands on `floor` now; someone out on an errand or gone home stands on none. */
+/** The person stands on `floor` now; someone out on an errand, gone home or in the lift car
+ *  stands on none. */
 export function isOnFloor(actor: ActorView, floor: FloorId): boolean {
-  return actor.floor === floor && actor.errand?.isOut !== true && actor.isAway !== true
+  return (
+    actor.floor === floor &&
+    actor.errand?.isOut !== true &&
+    actor.isAway !== true &&
+    actor.isRiding !== true
+  )
 }
 
 /** The person moved between the last two sim steps. */

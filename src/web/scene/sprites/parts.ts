@@ -1,5 +1,5 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
-import type { RoleId } from '@/web/scene/types'
+import type { CrewRole, RoleId } from '@/web/scene/types'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const LOOK_POOL = 'look'
@@ -32,6 +32,8 @@ type RoleProp =
   | 'scroll'
   | 'horns'
   | 'bear'
+  | 'uniform'
+  | 'vest'
 export type Prop = (typeof LOOK_PARTS.prop)[number] | RoleProp
 export type PantsTone = 'khaki' | 'charcoal' | 'plum'
 
@@ -66,9 +68,18 @@ const MASCOT: Look = Object.freeze({
   isMascot: true,
 })
 
-/** The built-in crew. Roles differ by shape first; the looks that read as a famous game hero were
+/** The building crew: the receptionist's scarf, the guard's uniform with its cap and badge, the
+ *  cleaner's hi-vis vest (her mop is a thing in hand). */
+const CREW_LOOKS: Readonly<Record<CrewRole, Look>> = Object.freeze({
+  receptionist: person({ hair: 'bun', hairTone: 'dark', shirt: 'pink', prop: 'scarf' }),
+  guard: person({ hair: 'cap', hairTone: 'dark', shirt: 'blue', prop: 'uniform' }),
+  cleaner: person({ hair: 'bun', hairTone: 'grey', shirt: 'sand', prop: 'vest' }),
+})
+
+/** The built-in staff. Roles differ by shape first; the looks that read as a famous game hero were
  *  recoloured (the bull's hair, the second scout's shirt, the clerk's shirt). */
 const ROLE_LOOKS: Readonly<Record<RoleId, Look>> = Object.freeze({
+  ...CREW_LOOKS,
   'bull-researcher': person({ hair: 'short', hairTone: 'blond', shirt: 'teal', prop: 'horns' }),
   'portfolio-manager': person({ hair: 'bob', hairTone: 'dark', shirt: 'blue', prop: 'glasses' }),
   'bear-researcher': person({ hair: 'short', hairTone: 'brown', shirt: 'sand', prop: 'bear' }),

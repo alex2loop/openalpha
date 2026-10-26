@@ -56,7 +56,8 @@ interface ClickPress {
 
 // A marker, a person, a lit screen and a tag act where they stand, never moving the camera closer;
 // a lamp or the wall switch acts at once; an object with somewhere to go goes there; from the
-// floor view, a room zooms in. A Shift-click picks a person for a meeting.
+// floor view, a room zooms in. A Shift-click picks a person for a meeting. The building crew and
+// the wet-floor sign take no click.
 export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPress): void {
   const hit = pickAt(point, input.deps.renderer, input.deps.readView())
 
@@ -81,6 +82,9 @@ export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPre
       return
     case 'pet':
       tipActionOf(toPetTip(hit.id))?.()
+      return
+    case 'crew':
+    case 'sign':
       return
     default:
       clickFloor(input, hit, press)
@@ -201,12 +205,13 @@ function enterRoom(input: PointerState, id: string): void {
 export function hoverAt(input: PointerState, screen: ScreenPoint): void {
   const hit = pickAt(screen, input.deps.renderer, input.deps.readView())
   const prop = hit?.kind === 'object' ? propOf(hit) : undefined
-  const actor = hit?.kind === 'actor' && isActorId(hit.id) ? hit.id : undefined
+  const isPerson = hit?.kind === 'actor' || hit?.kind === 'crew'
+  const actor = isPerson && isActorId(hit.id) ? hit.id : undefined
 
   hoverObject(hit?.kind === 'pet' ? toPetTip(hit.id) : prop?.tip, screen)
   setHovered(input, actor)
   input.canvas.style.cursor = isClickable(hit, prop) ? CLICKABLE_CURSOR : ''
-  input.canvas.title = actor === undefined ? switchTitleOf(prop) : actorTitleOf(input, actor)
+  input.canvas.title = actor === undefined ? thingTitleOf(hit, prop) : actorTitleOf(input, actor)
 }
 
 // The person under the pointer looks up at it until the pointer leaves them.
@@ -247,6 +252,9 @@ function isClickable(hit: Hit | undefined, prop: PropDef | undefined): boolean {
       return tipActionOf(toPetTip(hit.id)) !== undefined
     case 'room':
       return view.value.room === undefined && view.value.floor !== TEAM_FLOOR
+    case 'crew':
+    case 'sign':
+      return false
     default:
       return true
   }
@@ -254,6 +262,11 @@ function isClickable(hit: Hit | undefined, prop: PropDef | undefined): boolean {
 
 function isSwitch(prop: PropDef): boolean {
   return prop.kind === 'lamp' || prop.kind === 'light-switch'
+}
+
+// A lamp or the wall switch says what a click does; the wet-floor sign says what it says.
+function thingTitleOf(hit: Hit | undefined, prop: PropDef | undefined): string {
+  return hit?.kind === 'sign' ? tr('ui.office.crew.wetFloor') : switchTitleOf(prop)
 }
 
 function switchTitleOf(prop: PropDef | undefined): string {

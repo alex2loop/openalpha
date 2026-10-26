@@ -357,3 +357,29 @@ function keyOf(value: unknown): string | undefined {
 function toNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined
 }
+
+/** Two goals ask the same of a person: the same kind, run, pose, stage, request, face, look, item,
+ *  sheet, floor and target. */
+export function isSameGoal(a: Goal | undefined, b: Goal | undefined): boolean {
+  if (a === undefined || b === undefined) {
+    return a === b
+  }
+
+  return (
+    a.kind === b.kind &&
+    a.runId === b.runId &&
+    a.pose === b.pose &&
+    a.stage === b.stage &&
+    a.requestId === b.requestId &&
+    a.face === b.face &&
+    a.look === b.look &&
+    a.item === b.item &&
+    a.hasSheet === b.hasSheet &&
+    a.floor === b.floor &&
+    targetKeyOf(a) === targetKeyOf(b)
+  )
+}
+
+function targetKeyOf(goal: Goal): string {
+  return typeof goal.target === 'string' ? goal.target : `${goal.target.x},${goal.target.y}`
+}

@@ -1,5 +1,6 @@
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
+import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
 import { paintFish } from '@/web/scene/render2d/pets'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
 import {
@@ -24,6 +25,7 @@ const DECAL_KINDS: ReadonlySet<PropKind> = new Set(['cat-bed', 'tray'])
 
 const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   ...WALL_PAINTERS,
+  ...CREW_PAINTERS,
   desk: paintDesk,
   chair: paintChair,
   shelf: paintShelf,
@@ -53,8 +55,6 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
     fill(g, [p.draw.x, p.draw.y, p.draw.w, p.draw.h], PROP_TONES.catBed[0])
     fill(g, [p.draw.x + 3, p.draw.y + 3, p.draw.w - 6, p.draw.h - 6], PROP_TONES.catBed[1])
   },
-  'guest-desk': (g, p) =>
-    drawBlock(g, [p.draw.x, p.draw.y, p.draw.w, 10], { front: 13, tones: WOOD }),
   cabinet: paintCabinet,
   catalogue: paintCatalogue,
   'news-rack': paintNewsRack,

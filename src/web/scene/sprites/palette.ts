@@ -92,6 +92,8 @@ export const PALETTE = Object.freeze({
   screen: '#27356A',
   text: '#E9ECF8',
   flash: '#EEF0F4',
+  vest: '#D7E84A',
+  vestBand: '#F2F4F0',
 })
 
 /** What a held cup, bag or box is made of: its body and its band. */
@@ -100,6 +102,7 @@ export const HELD_TONES = Object.freeze({
   bag: ['#CBB28E', '#9E8763'],
   box: ['#B8864E', '#8E6238'],
   item: ['#6B7280', '#4A5266'],
+  mop: ['#8E6238', '#C9CED8'],
 } as const)
 
 /** The four phone finishes (body, bright edge, back plate), one per owner by seed. */
@@ -189,6 +192,15 @@ export const PROP_TONES = Object.freeze({
   cups: ['#F6C6D6', '#FFFFFF', '#BFD3EE'],
   liftFrame: '#C9C2B8',
   liftLeaf: '#C9D0DB',
+  liftCabin: '#4A5265',
+  liftPanel: '#262A3A',
+  liftLamp: ['#4B5370', '#FFB340'],
+  callLamp: '#7FD49A',
+  wetSign: '#F2C94C',
+  bucket: '#3F7FC5',
+  bin: '#5C6474',
+  gate: ['#C9CED8', '#7C8494'],
+  bell: '#D9A23E',
   threadOn: '#4E6CA8',
   burst: '#32D74B',
   cloud: ['#B6B7C9', '#C9CAD8'],

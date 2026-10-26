@@ -15,8 +15,8 @@ import type { FloorId } from '@/web/scene/types'
 import { agenda } from '@/web/scene/data/agenda'
 import { type SeeThroughWall, wallHolding } from '@/web/scene/render3d/building'
 import { createRoomMaterial } from '@/web/scene/render3d/lights'
-import { wallSpotsOf } from '@/web/scene/render3d/props'
 import { toUnits } from '@/web/scene/render3d/space'
+import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import {
   type BoardNotes,
   boardNotes,

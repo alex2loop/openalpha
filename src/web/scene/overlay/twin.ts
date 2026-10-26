@@ -43,7 +43,7 @@ export function syncTwin(sim: SimView | undefined, markers: readonly Marker[]): 
     sim === undefined
       ? []
       : sim.actors
-          .filter((actor) => actor.isAway !== true)
+          .filter((actor) => actor.isAway !== true && actor.isCrew !== true)
           .map((actor) => {
             const line = toLine(sim, actor.id, markers)
 
@@ -115,6 +115,8 @@ function whatOf(now: ActorNow): string {
       return tr('ui.office.label.queued', { what: now.what })
     case 'busy':
       return formatRunName(now.run)
+    case 'crew':
+      return ''
     case 'errand':
     case 'life':
       return now.line

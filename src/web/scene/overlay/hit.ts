@@ -10,20 +10,26 @@ import type {
 } from '@/web/scene/types'
 import { overlayView } from '@/web/scene/overlay/overlay'
 import { isOnFloor } from '@/web/scene/sim/actors/poses'
+import { isCrewId } from '@/web/scene/sim/actors/roster'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { FIGURE } from '@/web/scene/types'
-import { type PropDef, propsOn } from '@/web/scene/world/props'
+import { GROUND_FLOOR } from '@/web/scene/world/floors'
+import { type PropDef, propsOn, wetSignRectOf } from '@/web/scene/world/props'
 import { isInside, roomAt } from '@/web/scene/world/rooms'
 
 /** What a point on the scene is over, front to back. `id` is an actor id for a marker, an actor,
- *  a screen and a tag, a prop id for an object, a room id for a room. */
+ *  one of the building crew (or their tag), a screen and a tag, a prop id for an object, a room id
+ *  for a room; the wet-floor sign is the only `sign`. */
 export interface Hit {
-  readonly kind: 'marker' | 'actor' | 'pet' | 'screen' | 'object' | 'tag' | 'room'
+  readonly kind: 'marker' | 'actor' | 'crew' | 'pet' | 'sign' | 'screen' | 'object' | 'tag' | 'room'
   readonly id: string
 }
 
 // A pet's box over its feet, in world px.
 const PET_BOX = Object.freeze({ w: 16, h: 14 })
+// The wet-floor sign stands this tall over its footprint.
+const SIGN_TALL_PX = 10
+const SIGN_ID = 'wet-floor'
 
 /** The front-most thing under `point` (CSS px of the scene host): a marker, a person, a lit
  *  screen, a prop, a name tag, then a room. */
@@ -43,7 +49,7 @@ export function pickAt(
   const actor = actorAt(view, at)
 
   if (actor !== undefined) {
-    return { kind: 'actor', id: actor.id }
+    return { kind: actor.isCrew === true ? 'crew' : 'actor', id: actor.id }
   }
 
   const pet =
@@ -53,6 +59,10 @@ export function pickAt(
 
   if (pet !== undefined) {
     return { kind: 'pet', id: pet.kind }
+  }
+
+  if (isOverSign(view, at)) {
+    return { kind: 'sign', id: SIGN_ID }
   }
 
   const screen = shown.screens.find((held) => isInside(held.rect, point))
@@ -70,7 +80,7 @@ export function pickAt(
   const tag = shown.tags.find((held) => isInside(held.rect, point))
 
   if (tag !== undefined) {
-    return { kind: 'tag', id: tag.actor }
+    return { kind: isCrewId(tag.actor) ? 'crew' : 'tag', id: tag.actor }
   }
 
   const room = roomAt(view.floor, at)
@@ -91,6 +101,18 @@ export function figureOf(actor: ActorView, alpha: number): Rect {
   const y = actor.prev.y + (actor.at.y - actor.prev.y) * alpha
 
   return { x: x - FIGURE.w / 2, y: y - FIGURE.h, w: FIGURE.w, h: FIGURE.h }
+}
+
+function isOverSign(view: SimView, at: Point): boolean {
+  const sign = view.floor === GROUND_FLOOR ? view.life.wetSign : undefined
+
+  if (sign === undefined) {
+    return false
+  }
+
+  const foot = wetSignRectOf(sign)
+
+  return isInside({ ...foot, y: sign.y - SIGN_TALL_PX, h: SIGN_TALL_PX }, at)
 }
 
 function petBoxOf(pet: PetView): Rect {

@@ -1,6 +1,7 @@
 import type { PendingWire } from '@/app/server/wire/live'
 import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { Beat } from '@/web/scene/sim/beats'
+import type { Lift } from '@/web/scene/sim/lift'
 import type { Papers } from '@/web/scene/sim/papers'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, ActorView, FloorId, Point, Rect, SheetView } from '@/web/scene/types'
@@ -32,7 +33,7 @@ import {
 } from '@/web/scene/sim/desk'
 import { handOff } from '@/web/scene/sim/handoff'
 import { destOf, facingOf, takeLift } from '@/web/scene/sim/places'
-import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
+import { isSameGoal, SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 import { navGridOf } from '@/web/scene/world/nav-grid'
 import { propsOn } from '@/web/scene/world/props'
 import { isInside } from '@/web/scene/world/rooms'
@@ -46,8 +47,10 @@ export interface Person {
   readonly def: ActorDef
   readonly walker: WalkerState
   readonly hasChair: boolean
-  /** The floor they stand on: their own, unless a life goal took them up the lift. */
+  /** The floor they stand on: their own, unless a life goal took them up the lift; in the car, the
+   *  floor they boarded on. */
   floor: FloorId
+  isRiding: boolean
   goal: Goal | undefined
   dest: Point
   phase: Phase
@@ -71,6 +74,7 @@ export interface People {
   readonly list: readonly Person[]
   readonly byId: ReadonlyMap<ActorId, Person>
   readonly papers: Papers
+  readonly lift: Lift
   readonly desk: Desk
   readonly stages: Map<string, { readonly stage: string; readonly actors: readonly ActorId[] }>
   readonly runActors: Map<string, readonly ActorId[]>
@@ -94,14 +98,14 @@ const SEATED_PX = 1
 
 export function createPeople(
   seeds: readonly { readonly def: ActorDef; readonly walker: WalkerState }[],
-  papers: Papers
+  held: { readonly papers: Papers; readonly lift: Lift }
 ): People {
   const list = seeds.map(toPerson)
 
   return {
     list,
     byId: new Map(list.map((person) => [person.def.id, person])),
-    papers,
+    ...held,
     desk: createDesk(),
     stages: new Map(),
     runActors: new Map(),
@@ -124,6 +128,7 @@ function toPerson(seed: { readonly def: ActorDef; readonly walker: WalkerState }
     ...seed,
     hasChair,
     floor: seed.def.floor,
+    isRiding: false,
     goal: undefined,
     dest: seat,
     phase: 'still',
@@ -176,7 +181,26 @@ export function tickPeople(
 
   const isRetargeted = applyGoals(people, nowMs)
 
-  return isChanged || isTapped || isRetargeted
+  return stepRides(people, nowMs) || isChanged || isTapped || isRetargeted
+}
+
+// Who waits at a lift door boards the car standing open there; who rides steps out at the other
+// floor and walks on to where their goal puts them.
+function stepRides(people: People, nowMs: number): boolean {
+  let isChanged = false
+
+  for (const person of people.list) {
+    const ride = takeLift(person, people.lift)
+
+    if (ride === 'landed') {
+      person.dest = destOf(person, people.list)
+      moveTo(person, { nowMs, extra: people.obstacles.get(person.floor) })
+    }
+
+    isChanged = isChanged || ride !== undefined
+  }
+
+  return isChanged
 }
 
 /** One sim step of one person's walk among `others`; true while it moves or its phase changed. */
@@ -262,6 +286,7 @@ export function resumePeople(people: People, nowMs: number): void {
   for (const person of people.list) {
     person.goal = effectiveGoal(people, person.def.id, nowMs)
     person.floor = person.goal?.floor ?? person.def.floor
+    person.isRiding = false
     person.dest = destOf(person, people.list)
     person.phase = 'still'
     person.beats = []
@@ -397,30 +422,6 @@ function stepAssistantCarry(
   })
 }
 
-function isSameGoal(a: Goal | undefined, b: Goal | undefined): boolean {
-  if (a === undefined || b === undefined) {
-    return a === b
-  }
-
-  return (
-    a.kind === b.kind &&
-    a.runId === b.runId &&
-    a.pose === b.pose &&
-    a.stage === b.stage &&
-    a.requestId === b.requestId &&
-    a.face === b.face &&
-    a.look === b.look &&
-    a.item === b.item &&
-    a.hasSheet === b.hasSheet &&
-    a.floor === b.floor &&
-    targetKeyOf(a) === targetKeyOf(b)
-  )
-}
-
-function targetKeyOf(goal: Goal): string {
-  return typeof goal.target === 'string' ? goal.target : `${goal.target.x},${goal.target.y}`
-}
-
 function retarget(
   people: People,
   person: Person,
@@ -428,11 +429,10 @@ function retarget(
 ): void {
   person.goal = next.goal
   person.stamp = next.goal?.hasSheet === true ? person.stamp : undefined
-  takeLift(person)
 
   const dest = destOf(person, people.list)
 
-  if (dest.x === person.dest.x && dest.y === person.dest.y) {
+  if (person.isRiding || (dest.x === person.dest.x && dest.y === person.dest.y)) {
     return
   }
 

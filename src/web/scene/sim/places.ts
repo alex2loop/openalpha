@@ -1,7 +1,9 @@
+import type { Lift } from '@/web/scene/sim/lift'
 import type { Person } from '@/web/scene/sim/people'
 import type { ActorId, Dir, Point } from '@/web/scene/types'
 import { distance, toFreePoint } from '@/web/scene/sim/actors/nav'
-import { placeWalker } from '@/web/scene/sim/actors/walk'
+import { isWalking, placeWalker } from '@/web/scene/sim/actors/walk'
+import { otherFloorOf } from '@/web/scene/world/floors'
 import { NAV_CELL_PX, NAV_CLEARANCE_PX, navGridOf } from '@/web/scene/world/nav-grid'
 import { isPropKind, type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
 import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
@@ -10,10 +12,17 @@ import { LIFT_EXITS } from '@/web/scene/world/seats'
 // A prop spot is taken when someone's goal puts them this close to it; the next waits further.
 const CLAIM_PX = NAV_CELL_PX * 2
 const WAIT_GAP_PX = 8
+// Within this of the lift door a person waits for the car; a second rider stands a step aside.
+const LANDING_PX = 14
 
-/** Where a person's goal puts them: a place, the nearest free prop of a kind, else their seat. */
+/** Where a person's goal puts them: their floor's lift door while it lies on another floor, a
+ *  place, the nearest free prop of a kind, else their seat. */
 export function destOf(person: Person, people: readonly Person[]): Point {
   const target = person.goal?.target
+
+  if (isBoundForLift(person)) {
+    return LIFT_EXITS[person.floor]
+  }
 
   if (target === undefined) {
     return person.def.seat.at
@@ -26,15 +35,50 @@ export function destOf(person: Person, people: readonly Person[]): Point {
   return isPropKind(target) ? propSpotOf(person, { people, kind: target }) : person.def.seat.at
 }
 
-/** A goal on another floor: the person steps out of that floor's lift and walks on from there. */
-export function takeLift(person: Person): void {
-  const floor = person.goal?.floor ?? person.def.floor
+/** A goal on another floor: at their lift door the person calls the car and waits, the call lit;
+ *  they board once it stands open there, and step out at the other floor's door once it opens
+ *  there (`landed`: they walk on from it). */
+export function takeLift(person: Person, lift: Lift): 'boarded' | 'landed' | undefined {
+  const exit = otherFloorOf(person.floor)
 
-  if (floor !== person.floor) {
-    person.floor = floor
-    person.phase = 'still'
-    placeWalker(person.walker, LIFT_EXITS[floor])
+  if (person.isRiding) {
+    if (!lift.isOpenOn(exit)) {
+      lift.call(exit)
+      return undefined
+    }
+
+    person.isRiding = false
+    person.floor = exit
+    placeWalker(person.walker, LIFT_EXITS[exit])
+
+    return 'landed'
   }
+
+  if (!(isBoundForLift(person) && isAtLanding(person))) {
+    return undefined
+  }
+
+  if (!lift.isOpenOn(person.floor)) {
+    lift.call(person.floor)
+    return undefined
+  }
+
+  person.isRiding = true
+  lift.call(exit)
+
+  return 'boarded'
+}
+
+/** The person's goal lies on another floor than the one they stand on, and they are not in the
+ *  car yet. */
+export function isBoundForLift(person: Person): boolean {
+  return !person.isRiding && (person.goal?.floor ?? person.def.floor) !== person.floor
+}
+
+function isAtLanding(person: Person): boolean {
+  return (
+    !isWalking(person.walker) && distance(person.walker.pos, LIFT_EXITS[person.floor]) <= LANDING_PX
+  )
 }
 
 /** The way a person looks: where they walk, else at whoever their goal faces, else their seat's

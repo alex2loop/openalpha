@@ -55,6 +55,7 @@ export type ActorId =
   | 'keeper'
   | 'assistant'
   | 'clerk'
+  | CrewRole
   | `agent:${string}`
   | `child:${string}`
 /** What a person does; debate roles carry the daemon's own role names (`trading.debate.role.*`). */
@@ -74,6 +75,9 @@ export type RoleId =
   | 'keeper'
   | 'assistant'
   | 'clerk'
+  | CrewRole
+/** The building crew: people of the office floor who are not agents. */
+export type CrewRole = 'receptionist' | 'guard' | 'cleaner'
 export type Dir = 'up' | 'down' | 'left' | 'right'
 /** Every pose a person can take; the vocabulary names them, the renderers draw them. */
 export type PoseId =
@@ -122,6 +126,7 @@ export type HeldItem =
   | 'box'
   | 'cup'
   | 'bag'
+  | 'mop'
 
 /** A sheet in hand; once stamped it carries the call's action, its stamp in the action's hue. */
 export interface SheetView {
@@ -153,6 +158,10 @@ export interface ActorView {
   readonly errand?: ErrandView
   /** Not in the office now (past the street door, not yet back): neither floor draws them. */
   readonly isAway?: true
+  /** In the lift car between the floors: neither floor draws them. */
+  readonly isRiding?: true
+  /** One of the building crew: no dot, no ring, no selection, left out of Tab and the text twin. */
+  readonly isCrew?: true
 }
 
 export type ActorStatus = 'free' | 'waiting' | 'failed'
@@ -256,6 +265,8 @@ export interface LifeView {
   readonly deskItems: DeskItemsView
   /** The rooms someone really stands in: after hours or on a rest day only these keep a lamp lit. */
   readonly occupied: ReadonlySet<RoomId>
+  /** Where the cleaner's wet-floor sign stands, with the bucket beside it, while she mops. */
+  readonly wetSign?: Point
 }
 
 /** A desk screen while its owner does not work: dark with the owner away or the office quiet, a
@@ -398,4 +409,13 @@ export interface SimView {
   readonly life: LifeView
   readonly team: TeamView
   readonly street: StreetFrame
+  readonly lift: LiftView
+}
+
+/** The one lift car: the floor it is at (the far one from halfway through a ride), how far its
+ *  doors stand open there (0 shut, 1 open), and the floors whose call button is lit. */
+export interface LiftView {
+  readonly floor: FloorId
+  readonly doors: number
+  readonly called: readonly FloorId[]
 }

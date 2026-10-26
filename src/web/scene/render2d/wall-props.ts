@@ -1,10 +1,9 @@
 import type { AgendaModel } from '@/web/scene/data/agenda'
 import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
 import type { BoardNotes, ScreenCache } from '@/web/scene/sprites/screens'
-import type { LifeView, RoomId } from '@/web/scene/types'
+import type { LifeView, LiftView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
-import { PROP_TONES } from '@/web/scene/sprites/palette'
 import { faceKindOf, paintCork } from '@/web/scene/sprites/screens'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
@@ -34,11 +33,12 @@ export interface PaintScene {
   readonly life: LifeView
   readonly detail: DetailLevel
   readonly isRaining: boolean
+  readonly lift: LiftView
 }
 
 export type Painter = (g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene) => void
 
-/** The painters of what hangs on the walls: boards, screens, clocks, frames, the switch, the lift. */
+/** The painters of what hangs on the walls: boards, screens, clocks, frames, the switch. */
 export const WALL_PAINTERS = Object.freeze({
   whiteboard: paintWhiteboard,
   'results-board': paintResults,
@@ -46,7 +46,6 @@ export const WALL_PAINTERS = Object.freeze({
   clock: paintClock,
   frame: paintFrame,
   'light-switch': paintSwitch,
-  'lift-door': paintLiftDoor,
 } satisfies Partial<Record<PropKind, Painter>>)
 
 function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef): void {
@@ -158,13 +157,4 @@ function paintSwitch(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintSce
   framed(g, [x + 1, y + 1, w - 2, h - 2], '#F7F3EA')
   fill(g, [x + 2, y + 2, w - 4, 5], '#C9CDD6')
   fill(g, [x + 3, scene.isAnyLit ? y + 3 : y + 5, 2, 2], scene.isAnyLit ? SWITCH_ON : SWITCH_OFF)
-}
-
-function paintLiftDoor(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y, w, h } = prop.draw
-
-  framed(g, [x, y, w, h], PROP_TONES.liftFrame)
-  fill(g, [x + 2, y + 2, w - 4, h - 2], PROP_TONES.liftLeaf)
-  fill(g, [x + w / 2, y + 2, 1, h - 2], '#9AA3B2')
-  framed(g, [x + 3, y - 8, w - 6, 5], '#262A3A')
 }

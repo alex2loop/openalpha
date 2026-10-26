@@ -1,5 +1,5 @@
-import type { ActorId, FloorId, RoleId, RoomId } from '@/web/scene/types'
-import { SEATS, type Seat, STATIONS } from '@/web/scene/world/seats'
+import type { ActorId, CrewRole, FloorId, RoleId, RoomId } from '@/web/scene/types'
+import { CREW_POSTS, SEATS, type Seat, STATIONS } from '@/web/scene/world/seats'
 
 /** One built-in person: who they are, where they work and the seat they return to. The renderers
  *  resolve their look. */
@@ -45,6 +45,19 @@ export const ROSTER: readonly ActorDef[] = Object.freeze(
   ].filter((def): def is ActorDef => def !== undefined)
 )
 
+/** The building crew, in the lobby: not agents, moved only by the crew's own hours. */
+export const CREW_IDS: readonly CrewRole[] = Object.freeze(['receptionist', 'guard', 'cleaner'])
+export const CREW: readonly ActorDef[] = Object.freeze(
+  CREW_IDS.map(
+    (id): ActorDef => ({ id, role: id, floor: 'office', room: 'lobby', seat: CREW_POSTS[id] })
+  )
+)
+
+/** `id` names one of the building crew. */
+export function isCrewId(id: string): id is CrewRole {
+  return CREW_IDS.some((crew) => crew === id)
+}
+
 function office(
   who: { readonly id: ActorId; readonly role: RoleId; readonly room: RoomId },
   seat: Seat | undefined
@@ -77,12 +90,15 @@ export function childRunIdOf(actor: string): string | undefined {
   return isChildActorId(actor) ? actor.slice(CHILD_PREFIX.length) : undefined
 }
 
-/** `id` names someone in the office: a built-in person, an own agent or a child. */
+/** `id` names someone in the office: a built-in person, one of the crew, an own agent or a
+ *  child. */
 export function isActorId(id: string): id is ActorId {
-  return id.startsWith(OWN_PREFIX) || isChildActorId(id) || rosterDefOf(id) !== undefined
+  return (
+    id.startsWith(OWN_PREFIX) || isChildActorId(id) || rosterDefOf(id) !== undefined || isCrewId(id)
+  )
 }
 
-/** The built-in person `id` names; absent for an own agent, a child or no one. */
+/** The built-in person `id` names; absent for the crew, an own agent, a child or no one. */
 export function rosterDefOf(id: string): ActorDef | undefined {
   return ROSTER.find((def) => def.id === id)
 }

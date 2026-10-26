@@ -16,6 +16,7 @@ export type MomentKind =
   | 'auction'
   | 'gather'
   | 'library'
+  | 'crew'
 
 /** One stop of a moment: where its goal puts the person, held `holdMs` once they stand there, and
  *  what they say meanwhile. */

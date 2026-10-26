@@ -250,6 +250,7 @@ function buildPaintScene(surface: Surface, sim: SimView, scale: number): PaintSc
     life: sim.life,
     detail: detailOf(scale),
     isRaining: sim.weather.rain > 0,
+    lift: sim.lift,
   }
 }
 
