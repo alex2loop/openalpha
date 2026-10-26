@@ -87,7 +87,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 5,
       hours: [hm(6), hm(21)],
       item: 'cup',
-      name: 'Cà Phê Thanh',
+      name: 'Cà Phê Gió Chiều',
       sign: sign('#7A4A2B', '#F4E7C8'),
     },
     {
@@ -95,7 +95,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 5,
       hours: [hm(6, 30), hm(22)],
       item: 'box',
-      name: 'Bún Chả Hồ Gươm',
+      name: 'Bún Chả Ngõ Mây',
       sign: sign('#B8472E', '#FFF2D6'),
     },
     {
@@ -103,7 +103,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 5,
       hours: [hm(6), hm(22)],
       item: 'box',
-      name: 'Phở Sol Sol',
+      name: 'Phở Nhịp Phố',
       sign: sign('#C9A24A', '#3B2A14'),
     },
     {
@@ -133,7 +133,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 4.5,
       hours: [hm(6), hm(22)],
       item: 'box',
-      name: 'Quán Ăn Cô Tấm',
+      name: 'Cơm Nhà Bảy Gian',
       sign: sign('#C98A3B', '#3B1F14'),
     },
     {
@@ -141,7 +141,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 4.5,
       hours: [hm(5, 30), hm(21, 30)],
       item: 'bag',
-      name: 'Bánh Mì Như Lan',
+      name: 'Bánh Mì Góc Nắng',
       sign: sign('#D8A93B', '#7A1F1F'),
     },
     {
@@ -158,14 +158,14 @@ export const VN_PACK = Object.freeze({
       kind: 'agency',
       frontageM: 5,
       hours: [hm(8, 30), hm(17, 30)],
-      name: 'Les Rives',
+      name: 'Lữ Hành Sông Sao',
       sign: sign('#2F6F7A', '#FFFFFF'),
     },
     {
       kind: 'bar',
       frontageM: 6,
       hours: [hm(17), hm(HOURS_PER_DAY)],
-      name: 'Drinking & Healing',
+      name: 'Quán Đêm Lặng',
       sign: sign('#3A2F5E', '#F2D98A'),
     },
     { kind: 'alley', frontageM: 3, hours: ALL_DAY },
@@ -197,7 +197,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 5,
       hours: [hm(6, 30), hm(21, 30)],
       item: 'box',
-      name: 'Baozi',
+      name: 'Bánh Bao Mây Trắng',
       sign: sign('#B03A2E', '#FFF1D0'),
     },
     {
@@ -205,7 +205,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 4,
       hours: [hm(6), hm(21, 30)],
       item: 'bag',
-      name: 'Cửa Hàng Dung',
+      name: 'Tạp Hóa Ngõ Nhỏ',
       sign: sign('#4E7FB5', '#FFFFFF'),
     },
     {
@@ -213,7 +213,7 @@ export const VN_PACK = Object.freeze({
       frontageM: 4.5,
       hours: [hm(7), hm(21)],
       item: 'box',
-      name: 'Grand Castella',
+      name: 'Bông Lan Đồi Gió',
       sign: sign('#E0B84A', '#5A3A12'),
     },
   ],

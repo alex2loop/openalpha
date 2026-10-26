@@ -83,7 +83,7 @@ export interface BusStop {
 /** One front of the block face, in street order, left to right. Open `hours`: a closed `shutter`
  *  is `[0, 0]`; a day and night shop is `[0, 1440]`, so it never closes when `hours[0] === 0 &&
  *  hours[1] >= 1440` (`hours[1] >= 1440` alone would also match a shop that closes at midnight).
- *  `item`, when set, is what an errand there brings back. `name` is the shop's own name, never
+ *  `item`, when set, is what an errand there brings back. `name` is the shop's own invented name (no real business), never
  *  translated (absent: the sign reads its kind's word); `sign` its colours; `tables`, café
  *  tables out on the pavement while it serves. */
 export interface ShopRow {
