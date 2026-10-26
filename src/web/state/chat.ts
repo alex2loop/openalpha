@@ -1,5 +1,6 @@
 import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
+import type { ChatSessionsResponse } from '@/app/server/wire/chat'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import { stopRun } from '@/web/state/approvals'
 import { onWireEvent } from '@/web/state/events'
@@ -10,6 +11,12 @@ import { connection } from '@/web/state/session'
 const MAX_TURNS = 200
 const MAX_CHAT_STEPS = 20
 const COMMAND_PREFIX = '/'
+
+/** The channel of this app's own sessions: the only one that takes a new message or is deleted
+ *  here; every other channel's session is read-only history. */
+export const APP_CHANNEL = 'api'
+
+export type ChatSession = ChatSessionsResponse['sessions'][number]
 
 type TurnStatus = 'sending' | 'queued' | 'running' | 'done' | 'error' | 'dropped' | 'stopped'
 
@@ -67,6 +74,8 @@ export const sessionId = signal<string | undefined>(undefined)
 /** A frame arrived while the panel was closed. */
 export const unread = signal(false)
 export const isChatOpen: ReadonlySignal<boolean> = isOpen
+/** The earlier session open read-only in the chat column; absent shows the current one. */
+export const viewedSession = signal<ChatSession | undefined>(undefined)
 
 export function isFinished(turn: Turn): boolean {
   return FINISHED.has(turn.status)
@@ -91,6 +100,11 @@ export function startChat(): () => void {
       off()
     }
   }
+}
+
+/** What names a session in a list or a tab: its first message, else its last answer, else its id. */
+export function sessionTitleOf(session: ChatSession): string {
+  return session.title ?? session.lastReply ?? session.sessionId
 }
 
 export function setChatOpen(open: boolean): void {

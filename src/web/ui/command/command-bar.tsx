@@ -13,6 +13,7 @@ import {
   sendFromInput,
   setInput,
 } from '@/web/state/command'
+import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import {
   resolveSendLabel,
@@ -38,7 +39,8 @@ interface ListState {
   readonly isOpen: Signal<boolean>
 }
 
-/** The box at the bottom: who receives it, what is typed, what it would do, and the chat toggle. */
+/** The box at the bottom: who receives it, what is typed, what it would do, and the chat toggle. A
+ *  chat tab keeps only the box: it reads no agent roster, and its chat never closes. */
 export function CommandBar() {
   const input = useRef<HTMLInputElement>(null)
   const list: ListState = {
@@ -52,7 +54,7 @@ export function CommandBar() {
 
   return (
     <footer class="command-bar glass">
-      <WhoChip />
+      {!isChatOnly.value && <WhoChip />}
       <div class="command-box">
         {list.isOpen.value && options.length > 0 && (
           <SuggestPopover
@@ -74,7 +76,7 @@ export function CommandBar() {
           ? tr('ui.office.command.run')
           : resolveSendLabel()}
       </Button>
-      <ChatToggle />
+      {!isChatOnly.value && <ChatToggle />}
     </footer>
   )
 }

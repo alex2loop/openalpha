@@ -134,6 +134,8 @@ export interface SessionListQuery {
   /** With `before`, pages by `(lastActivityAt, id)`: sessions sharing `before` come after this id,
    *  so none is skipped at a page edge. */
   readonly beforeId?: SessionId
+  /** Only this one session. */
+  readonly id?: SessionId
   readonly limit: number
 }
 
@@ -169,6 +171,8 @@ export interface SessionStore extends SessionActivity {
   /** Sessions newest activity first, across the named channels, cut in SQL. */
   listByChannels(query: SessionListQuery): Promise<readonly SessionListing[]>
   latestIdForChannel(channel: ChannelId): Promise<SessionId | null>
+  /** The channel the session belongs to; absent for an unknown id. */
+  channelOf(id: SessionId): Promise<string | undefined>
   /** Cumulative totals folded from the session's durable attempts; zeros when it has none. */
   loadTotals(id: SessionId): Promise<LLMUsageTotals>
   /** Append-only write of the messages a run produced since its last flush (engine's SessionSink). */

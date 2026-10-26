@@ -99,9 +99,9 @@ function unwatch(instrument: InstrumentRefWire, failure: Signal<string | undefin
   failure.value = undefined
   removeWatch(instrument).then(
     () =>
-      showUndo(tr('ui.office.book.undoWatch', { ticker: instrument.ticker }), () =>
-        addWatch(qualifyName(instrument))
-      ),
+      showUndo(tr('ui.office.book.undoWatch', { ticker: instrument.ticker }), {
+        undo: () => addWatch(qualifyName(instrument)),
+      }),
     (error: unknown) => {
       failure.value = toErrorText(error)
     }

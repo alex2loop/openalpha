@@ -3,6 +3,7 @@ import type { AgentDeletedWire, AgentDetailWire, AgentsResponse } from '@/app/se
 import type {
   ChatHistoryResponse,
   ChatRecentResponse,
+  ChatSessionDeletedWire,
   ChatSessionsResponse,
 } from '@/app/server/wire/chat'
 import type {
@@ -122,6 +123,8 @@ export const ROUTES = Object.freeze({
   chatHistory: (sessionId: string) =>
     route<ChatHistoryResponse>(`/v1/chat/history/${encodeURIComponent(sessionId)}`),
   chatSessions: route<ChatSessionsResponse>('/v1/chat/sessions'),
+  chatSessionDelete: (sessionId: string) =>
+    route<ChatSessionDeletedWire>(`/v1/chat/sessions/${encodeURIComponent(sessionId)}`),
   overview: route<OverviewResponse>('/v1/overview'),
   markets: route<MarketsResponse>('/v1/markets'),
   quotes: route<TradingQuotesResponse>('/v1/quotes', 'quotes'),

@@ -146,13 +146,19 @@ interface ChatSessionWire {
   readonly lastReply?: string
 }
 
-/** GET /v1/chat/sessions?channel&query&before&beforeId&limit — newest activity first. `channel`
- *  repeats to name several and defaults to all. `query` (at least two characters, any case) keeps the
- *  sessions with a message containing it, which may match inside a stored tool call too. The next
- *  page is `before=<nextBefore>&beforeId=<nextBeforeId>` (both null on the last page); `before`
- *  alone takes only sessions strictly older. */
+/** GET /v1/chat/sessions?channel&query&sessionId&before&beforeId&limit — newest activity first.
+ *  `channel` repeats to name several and defaults to all. `query` (at least two characters, any
+ *  case) keeps the sessions with a message containing it, which may match inside a stored tool call
+ *  too. `sessionId` keeps that one session, none when it is unknown. The next page is
+ *  `before=<nextBefore>&beforeId=<nextBeforeId>` (both null on the last page); `before` alone takes
+ *  only sessions strictly older. */
 export interface ChatSessionsResponse {
   readonly sessions: readonly ChatSessionWire[]
   readonly nextBefore: number | null
   readonly nextBeforeId: string | null
+}
+
+/** DELETE /v1/chat/sessions/:id — false when the session was already gone. */
+export interface ChatSessionDeletedWire {
+  readonly deleted: boolean
 }

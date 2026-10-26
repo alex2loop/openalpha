@@ -5,11 +5,13 @@ import { useEffect, useLayoutEffect } from 'preact/hooks'
 import { tr } from '@/web/text/tr'
 import { ESCAPE_KEY, listFocusable, trapFocus } from '@/web/ui/kit/focus-trap'
 import { CloseIcon } from '@/web/ui/kit/icons'
-import { closePopover, resolveFocusReturn } from '@/web/ui/kit/popover'
+import { closePopover, openPopoverId, resolveFocusReturn } from '@/web/ui/kit/popover'
 
 import './modal.css'
 
 const DIALOG_ID = 'modal-dialog'
+// The undo bar sits above the dialog, so Tab reaches its Undo too.
+const FOCUS_RING = '.modal, .undo-bar'
 const TITLE_ID = 'modal-title'
 // The dialog's main action: Enter presses it, and it takes focus when the body has no field. A
 // destructive button never is one.
@@ -157,6 +159,11 @@ function dismissOnScrim(entry: OpenModal, event: TargetedMouseEvent<HTMLDivEleme
 }
 
 function onKey(entry: OpenModal, event: KeyboardEvent): void {
+  // A popover open over the dialog (a row's menu) takes Esc for itself.
+  if (event.key === ESCAPE_KEY && openPopoverId.value !== undefined) {
+    return
+  }
+
   if (event.key === ESCAPE_KEY) {
     event.preventDefault()
     dismiss(entry)
@@ -164,7 +171,7 @@ function onKey(entry: OpenModal, event: KeyboardEvent): void {
   }
 
   if (event.key === 'Tab') {
-    trapFocus(event, `#${DIALOG_ID}`)
+    trapFocus(event, FOCUS_RING)
     return
   }
 

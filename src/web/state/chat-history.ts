@@ -4,7 +4,7 @@ import type { ChatHistoryMessage } from '@/app/server/wire/chat'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { resumeAgentChoice } from '@/web/state/agents'
-import { sessionId } from '@/web/state/chat'
+import { APP_CHANNEL, type ChatSession, sessionId, viewedSession } from '@/web/state/chat'
 
 export const HISTORY_PAGE_SIZE = 30
 // Past this many earlier messages the panel stops offering more; the sessions dialog reads the rest.
@@ -26,6 +26,8 @@ const EMPTY: HistoryView = Object.freeze({ messages: [], status: 'idle' })
 const FRESH: HistoryView = Object.freeze({ messages: [], status: 'start' })
 
 const view = signal<HistoryView>(EMPTY)
+const opened = signal<ChatSession | undefined>(undefined)
+const isGone = signal(false)
 // The session the history was read for: only the one `/v1/chat/recent` named has earlier messages.
 let historySession: string | undefined
 let nextBefore: number | undefined
@@ -33,9 +35,14 @@ let lifetime: AbortController | undefined
 
 /** The current session's earlier messages, above the turns sent on this page. */
 export const history: ReadonlySignal<HistoryView> = view
+/** The session a chat tab opened, which names the tab. */
+export const openedSession: ReadonlySignal<ChatSession | undefined> = opened
+/** The chat tab's session is gone, so the latest app session opened instead. */
+export const isOpenedGone: ReadonlySignal<boolean> = isGone
 
-/** Resumes the latest app session with its newest page; another session clears the history. */
-export function startChatHistory(): () => void {
+/** Resumes the latest app session with its newest page, or on a chat tab the session it names;
+ *  another session clears the history. */
+export function startChatHistory(sessionToOpen?: string): () => void {
   const controller = new AbortController()
 
   lifetime = controller
@@ -50,8 +57,13 @@ export function startChatHistory(): () => void {
     }
   })
 
-  // `loadRecent` keeps its own failure, so it never rejects.
-  loadRecent(controller.signal).catch(() => undefined)
+  const opening =
+    sessionToOpen === undefined
+      ? loadRecent(controller.signal)
+      : openSessionById(sessionToOpen, controller.signal)
+
+  // Each keeps its own failure, so neither rejects.
+  opening.catch(() => undefined)
 
   return () => {
     controller.abort()
@@ -124,13 +136,57 @@ async function loadRecent(abortSignal: AbortSignal): Promise<void> {
       return
     }
 
-    historySession = recent.sessionId
-    sessionId.value = recent.sessionId
-    resumeAgentChoice(recent.agentId)
+    resumeSession(recent.sessionId, recent.agentId)
     await loadOlder()
   } catch (error: unknown) {
     if (error instanceof ApiFailure) {
       view.value = { messages: [], status: 'failed', failure: error }
     }
+  }
+}
+
+function resumeSession(id: string, agentId: string | undefined): void {
+  historySession = id
+  nextBefore = undefined
+  sessionId.value = id
+  resumeAgentChoice(agentId)
+}
+
+// An app session takes new messages; another channel's opens read-only beside the latest app
+// session, as from the sessions list; an unknown one leaves the latest app session with a note.
+async function openSessionById(id: string, abortSignal: AbortSignal): Promise<void> {
+  const session = await findSession(id, abortSignal)
+
+  opened.value = session
+
+  if (session?.channel === APP_CHANNEL) {
+    resumeSession(session.sessionId, undefined)
+    await loadOlder()
+    return
+  }
+
+  if (session !== undefined) {
+    viewedSession.value = session
+  }
+
+  await loadRecent(abortSignal)
+}
+
+// Absent when it is gone (a malformed id names none either) or could not be read, which the latest
+// session's own read then shows.
+async function findSession(id: string, abortSignal: AbortSignal): Promise<ChatSession | undefined> {
+  try {
+    const { sessions } = await getJson(ROUTES.chatSessions, {
+      query: { sessionId: id },
+      signal: abortSignal,
+    })
+
+    isGone.value = sessions[0] === undefined
+
+    return sessions[0]
+  } catch (error: unknown) {
+    isGone.value = error instanceof ApiFailure && error.code === 'invalid_body'
+
+    return undefined
   }
 }

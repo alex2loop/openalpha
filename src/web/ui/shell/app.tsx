@@ -1,4 +1,5 @@
 import { authState } from '@/web/api/auth-state'
+import { isChatOnly } from '@/web/state/pane'
 import {
   brand,
   connection,
@@ -10,8 +11,10 @@ import {
 import { toFailureText, tr } from '@/web/text/tr'
 import { Announcer } from '@/web/ui/a11y/announcer'
 import { SkipLink } from '@/web/ui/a11y/skip-link'
+import { ChatPanel } from '@/web/ui/chat/chat-panel'
 import { CommandBar } from '@/web/ui/command/command-bar'
 import { ModalHost } from '@/web/ui/kit/modal'
+import { UndoBar } from '@/web/ui/kit/undo-bar'
 import { ReaderHost } from '@/web/ui/reader/reader'
 import { Header } from '@/web/ui/shell/header'
 import { OfflineBar } from '@/web/ui/shell/offline-bar'
@@ -24,7 +27,8 @@ import { Tape } from '@/web/ui/tape/tape'
 import './app.css'
 
 /** The page grid (header | pane bar when narrow | tape | main | command bar), behind the loading,
- *  failure and sign-in screens. A loaded session stays on screen when a later load fails. */
+ *  failure and sign-in screens. A loaded session stays on screen when a later load fails. A chat
+ *  tab is its chat pane and the command bar alone: no scene, panel or header mounts. */
 export function App() {
   if (isUnreachable.value) {
     return <StatusLine text={tr('ui.office.error.unreachable')} />
@@ -46,18 +50,41 @@ export function App() {
     )
   }
 
+  const appClass = connection.value.status === 'offline' ? 'app is-offline' : 'app'
+
+  if (isChatOnly.value) {
+    return (
+      <div class={`${appClass} is-chat-only`}>
+        <main class="panes" data-pane="chat">
+          <ChatPanel />
+        </main>
+        <PageBottom />
+      </div>
+    )
+  }
+
   return (
-    <div class={connection.value.status === 'offline' ? 'app is-offline' : 'app'}>
+    <div class={appClass}>
       <SkipLink />
       <Header />
       <PaneBar />
       <Tape />
       <Panes />
+      <PageBottom />
+    </div>
+  )
+}
+
+// What every page keeps: the box to type in, and the hosts that float over the panes.
+function PageBottom() {
+  return (
+    <>
       <OfflineBar />
       <CommandBar />
       <ModalHost />
       <ReaderHost />
+      <UndoBar />
       <Announcer />
-    </div>
+    </>
   )
 }

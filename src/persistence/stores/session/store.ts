@@ -60,6 +60,7 @@ export function createSessionStore(db: Storage, dialect: Dialect): SessionStore 
     listByChannels: (query) => listSessionsByChannels({ db, dialect }, query),
 
     latestIdForChannel: (channel) => latestIdForChannel(store, channel),
+    channelOf: (id) => channelOf(store, id),
 
     async lastMessageAt(id: SessionId): Promise<number | null> {
       const rows = await db.query<{ readonly created_at: number }>(sql.lastMessageAt, [id])
@@ -99,6 +100,12 @@ async function latestIdForChannel(store: StoreDeps, channel: ChannelId): Promise
   const row = rows[0]
 
   return row === undefined ? null : sessionId(row.id)
+}
+
+async function channelOf(store: StoreDeps, id: SessionId): Promise<string | undefined> {
+  const rows = await store.db.query<{ readonly channel: string }>(store.sql.channelOf, [id])
+
+  return rows[0]?.channel
 }
 
 async function createSession(store: StoreDeps, record: OpenedSession): Promise<void> {

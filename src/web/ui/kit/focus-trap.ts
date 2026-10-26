@@ -3,18 +3,18 @@ export const ESCAPE_KEY = 'Escape'
 const FOCUSABLE =
   'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
-/** The focusable elements inside the first element `within` selects, in document order. */
+/** The focusable elements inside every element the selector list `within` names, in document
+ *  order. */
 export function listFocusable(within: string): HTMLElement[] {
-  const container = document.querySelector(within)
-
-  return container === null
-    ? []
-    : [...container.querySelectorAll(FOCUSABLE)].filter(
-        (element): element is HTMLElement => element instanceof HTMLElement
-      )
+  return [...document.querySelectorAll(within)].flatMap((container) =>
+    [...container.querySelectorAll(FOCUSABLE)].filter(
+      (element): element is HTMLElement => element instanceof HTMLElement
+    )
+  )
 }
 
-/** Tab cycles inside `within`; from outside or from the container itself it enters at the near end. */
+/** Tab cycles inside what `within` names (a selector list: several containers make one ring); from
+ *  outside or from a container itself it enters at the near end. */
 export function trapFocus(event: KeyboardEvent, within: string): void {
   const focusable = listFocusable(within)
   const first = focusable[0]

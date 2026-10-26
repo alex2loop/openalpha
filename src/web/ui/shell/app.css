@@ -8,3 +8,14 @@
 :root:not([data-layout="wide"]) .app {
   grid-template-rows: var(--headerH) auto auto minmax(0, 1fr) auto;
 }
+
+/* A chat tab: the chat pane over the whole page, then the command bar. */
+:root .app.is-chat-only {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.app.is-chat-only .chat-panel {
+  flex: 1;
+  width: auto;
+  border-left: 0;
+}

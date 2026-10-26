@@ -49,6 +49,16 @@ export function ChatIcon({ class: className }: IconProps) {
   )
 }
 
+export function MoreIcon({ class: className }: IconProps) {
+  return (
+    <svg class={className} aria-hidden="true" {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
+    </svg>
+  )
+}
+
 export function CheckIcon({ class: className }: IconProps) {
   return (
     <svg class={className} aria-hidden="true" {...SVG_PROPS}>
