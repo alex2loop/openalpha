@@ -182,6 +182,18 @@ Phần giao dịch thêm `/setup`, `/record`, `/update`, `/delete`, `/transactio
 lệnh đặt được lệnh khi có sàn đã khai khóa giao dịch. Chúng nằm ở [Chat giao dịch](#chat-giao-dịch)
 bên dưới, và ở [Cẩm nang sử dụng](cam-nang.md) theo góc nhìn người dùng.
 
+### Ô câu lệnh trên trang văn phòng
+
+Ô ở cuối [trang văn phòng](van-hanh.md#trang-văn-phòng) nhận mọi thứ mà chat nhận: câu hỏi thường, mã cổ phiếu và các câu lệnh gạch chéo ở trên. Một chip bên trái cho biết ai nhận câu bạn gõ, trợ lý hay một agent của bạn (agent đang tạm dừng được đánh dấu); nút Gửi đổi thành "Gửi cho <agent>" khi đã chọn một agent, và thành "Chạy câu lệnh" khi chữ bắt đầu bằng `/`.
+
+- **Gõ.** Chữ thường là một câu hỏi. Một mã cổ phiếu thì được tra. Gõ `/`, hoặc nhấn Tab khi ô đang trống, để xem các câu lệnh; Tab khi đã có chữ thì hoàn tất mã hoặc câu lệnh khớp đầu tiên. Mũi tên lên xuống chọn một dòng (khi ô trống, mũi tên lên gọi lại những gì bạn đã gửi), Enter gửi, Esc đóng danh sách. Nếu mất kết nối, chữ vẫn nằm trong ô và một dòng báo là chưa gửi được.
+- **Nó gợi ý gì.** Ô trống đang được chọn gợi ý những khởi đầu quen thuộc: đọc bản tin sáng, xem danh mục, đề xuất cho một mã, nghiên cứu một chủ đề. Khi đang mở thẻ một mã, nó gợi ý đề xuất lại, đặt cảnh báo giá hoặc thêm mã vào danh sách theo dõi; khi đang mở một agent của bạn, nó gợi ý gửi câu tiếp theo cho agent đó, hoặc xem các lịch của nó.
+- **Ước tính chi phí.** Cạnh mỗi câu lệnh, và trên dòng "Chạy câu lệnh", trang cho biết nó thường tốn bao nhiêu (ví dụ "khoảng 0,05-0,20 USD"), hoặc "không tốn AI" với câu lệnh trả lời từ dữ liệu cục bộ, cùng với phần còn lại của mức trần hôm nay nếu bạn có đặt. Con số là nửa giữa của chi phí vài phiên chạy gần nhất của câu lệnh đó, nên chỉ hiện sau vài phiên chạy, và không bao giờ hiện với câu lệnh giao lượt cho một agent. Câu lệnh mà chi phí tùy theo thứ bạn gõ, như `/suggest` trên những mã khác nhau, được gộp mọi lần dùng làm một, nên hãy đọc nó như con số tham khảo. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).
+- **Hàng chờ.** Các câu lệnh tự chạy được thì không đứng đợi nhau, trong giới hạn nêu ở trên. Trong khung chat, câu lệnh phải chờ sẽ nói nó đứng thứ mấy trong hàng và đang có mấy câu lệnh chạy cùng lúc, và bỏ khỏi hàng được. Câu lệnh chạy song song với câu lệnh khác thì nói nó chạy cùng câu lệnh nào.
+- **Dừng và bổ sung.** Câu trả lời hay câu lệnh đang chạy hiện "Xem trong văn phòng" và nút Dừng; nút Dừng hỏi xác nhận và giữ phần đã làm trong nhật ký. Khi một câu trả lời (không phải câu lệnh) đang chạy, bạn gõ thêm một ý rồi bấm "Bổ sung": câu trả lời đọc ý đó ở bước tiếp theo. Dòng bắt đầu bằng `/` là câu lệnh, không bao giờ là phần bổ sung.
+
+Nút và menu trên trang không bao giờ tự gửi câu lệnh thay bạn: chúng chỉ điền vào ô (hoặc chọn người nhận) và để bạn tự gửi, nên bạn luôn thấy câu lệnh cùng chi phí ước tính của nó trước khi nó tốn bất cứ thứ gì.
+
 ## Nghiên cứu
 
 Không có lệnh nghiên cứu riêng. Nghiên cứu chạy bên trong các lượt `chat` bình thường - một phát, REPL

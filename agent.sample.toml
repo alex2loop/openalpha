@@ -64,14 +64,16 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #                             # words (income = dividends); only marks the agent, never
 #                             # changes or splits its calls
 
-# ---- Look (how this agent's character appears in the app) -------------------
+# ---- Look (how this agent's character appears on the office page) -----------
 # Up to 8 parts, each a lowercase slug of at most 24 characters. The daemon only keeps what you
-# write: the app decides which values it can draw, and derives any part you leave out from the
-# agent's id. Nothing in a run reads it.
+# write: the office page decides which values it can draw, and derives any part you leave out
+# from the agent's id. Nothing in a run reads it. The agent form offers these four parts:
 #
 # [look]
-# hair = "short"
-# outfit = "suit"
+# body = "medium"      # skin tone: light | medium | deep
+# hair = "short"       # short | long | bob | bun | cap
+# shirt = "teal"       # teal | blue | sky | amber | orange | pink | slate | sand
+# prop = "book"        # none | book | clipboard | tie | glasses | scarf
 
 # ---- On a social network ----------------------------------------------------
 # `social join <this agent> <network>` needs its own [focus] and only tools a

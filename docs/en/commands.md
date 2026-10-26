@@ -183,6 +183,18 @@ Trading adds `/setup`, `/record`, `/update`, `/delete`, `/transactions`, `/portf
 `/rebalance`, `/reconcile`, `/reflect`, `/alert`, `/brief` and `/refresh`, plus `/trade`, which places
 orders once a venue has exchange keys. They are under [Trading chat](#trading-chat).
 
+### The command bar in the office page
+
+The box at the bottom of the [office page](operations.md#the-office-page) takes everything the chat takes: plain questions, tickers and the slash commands above. A chip on its left says who receives what you type, the assistant or one of your own agents (a paused agent is marked); the Send button reads "Send to <agent>" when an agent is picked and "Run the command" once the text starts with `/`.
+
+- **Typing.** Plain words ask a question. A ticker looks it up. Type `/`, or press Tab on an empty box, to see the commands; Tab on text completes the first ticker or command that matches. Up and Down choose a row (on an empty box, Up recalls what you sent before), Enter sends, Esc closes the list. If the connection is down the text stays in the box and a line says it was not sent.
+- **What it suggests.** A focused empty box offers the usual starts: read the brief, see the portfolio, suggest for one name, research a topic. With a ticker card open it offers to suggest again, set a price alert or add the name to the watchlist; with one of your agents open it offers to send your next line to that agent, or to look at its schedules.
+- **Estimates.** Beside each command, and on the "Run the command" row, the page shows what it usually costs (for example "about 0.05-0.20 USD"), or "no AI cost" for a command that answers from local data, together with what is left of today's cap when you have one. The figure is the middle half of what the command's last few runs cost, so it appears only after a few runs and never for a command that hands the turn to an agent. A command whose cost depends on what you type, such as `/suggest` on different names, pools every use, so read it as a rough guide. See [Budgets](budgets.md#in-the-office-page).
+- **The queue.** Commands that run on their own do not wait behind each other, within the limits above. In the chat column a command that has to wait says its place in line and how many are running at once, and can be dropped from the line. A command that runs beside others says what it runs alongside.
+- **Stopping and adding.** A running answer or command shows "See it in the office" and Stop, which asks you to confirm and keeps the work already done in the log. While an answer (not a command) is in progress you can type a further thought and press "Add to it": the answer reads it at its next step. A line that starts with `/` is a command, never an addition.
+
+Buttons and menus on the page never send a command for you: they fill the box (or pick the receiver) and leave the sending to you, so you always see the command, and its estimate, before it costs anything.
+
 ## Research
 
 There is no standalone research command. Research runs inside ordinary `chat` turns - one shot, REPL

@@ -31,7 +31,7 @@ Không trang nào cần đọc code.
 | [tro-ly.md](tro-ly.md) | Viết một agent, ghép đội, kỹ năng, chọn mô hình |
 | [an-toan.md](an-toan.md) | Phê duyệt, các lớp bảo vệ bạn, các lỗi bạn có thể gặp |
 | [ngan-sach.md](ngan-sach.md) | Hạn mức chi tiêu và xem một lượt chạy tốn bao nhiêu |
-| [van-hanh.md](van-hanh.md) | Vòng lặp nền, lịch chạy, heartbeat, chạy API trên máy chủ |
+| [van-hanh.md](van-hanh.md) | Vòng lặp nền, lịch chạy, heartbeat, chạy API trên máy chủ, trang văn phòng |
 | [luu-tru.md](luu-tru.md) | SQLite hay Postgres, sao lưu, xuất nhập, phiên và lịch sử |
 | [kenh.md](kenh.md) | Telegram và Zalo |
 | [nghien-cuu.md](nghien-cuu.md) | Nghiên cứu web có giới hạn, có trích nguồn |

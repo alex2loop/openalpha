@@ -379,6 +379,95 @@ requests already running finish. A chat or command sent on an open stream is ans
 
 The office page can also restart a daemon that was started with `--background`: choose to restart once nothing is working (it waits a couple of minutes at most, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the grace it gets while stopping is cut off, and the office page warns about the approvals first. When the daemon is back, the bell shows "The daemon restarted." and nothing goes to a chat. If an accepted restart fails, the daemon keeps running as before and the bell says so, pointing to the restart log in the data folder. A daemon running in a terminal or under a service cannot be restarted from the office page: stop it with Ctrl+C or the service manager and start it again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
 
+## The office page
+
+With the API on, the daemon also serves a web page at its own address, `http://127.0.0.1:<port>/` (port 8765 unless you changed it). Think of it as a glass wall into the daemon: a small office where your assistant, the research crew and your own agents work while the daemon works. Everything you see moving is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. The page never places an order and never starts an AI run by itself. A button either opens something or puts text in the command box for you to read and send.
+
+### Opening it
+
+`openalpha api link` prints a link with the access token already in it. Open it on the machine that runs the daemon, or through the SSH tunnel or HTTPS address from [Run the API on a server](#run-the-api-on-a-server). Without the link, the page asks for the token (`openalpha api token`) and offers to remember it.
+
+- The page takes the token out of the address the moment it loads, so it is never left in the address bar or the history.
+- A token opened from a link lives in that tab only and is gone when you close it. Pasting it into the sign-in form keeps it for the tab too, and "Remember on this browser" (ticked by default) also keeps it in this browser, so the next visit skips the sign-in. Sign out, under Settings > Display, forgets both.
+- The page never prints the token, never writes it to a log and sends it only to the daemon. It refuses to run inside a frame.
+- If the daemon cannot be reached, the page says so in one plain line. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
+
+### What is on the screen
+
+- **Header.** The running chip (what is running and what is next: stop a run, or run a scheduled job again), the Focus button (hides the office and leaves only the information), the AI cost chip, the office clock, the bell and Settings.
+- **Tape.** Under the header, your watchlist and holdings scroll past. A name past its stop and a fresh buy call are marked.
+- **The office.** The scene on the left, described below.
+- **Information panel.** Three tabs. *Today* opens with what needs you (approvals waiting, names past their stop), then what is worth a look, the Vietnamese and other markets, upcoming events, top headlines, and what the agents did today, including work that ran while the page was closed. *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price alerts; trades are recorded, edited and deleted here, with undo. *Ideas* holds open plans, the opportunities screen, the track record and research results, with a count of new calls you have not seen. Click a ticker anywhere and its card opens: price and plan levels, your holding, "Why?" for the reasoning behind a call, earlier calls and what your own agents think. Click one of your agents in the office and its tab opens (see [Agents](agents.md#from-the-office-page)). A back row returns to where you were, and the panel collapses to an icon strip.
+- **Chat.** The conversation with the assistant, docked on the right. Earlier sessions, Telegram's included, are searchable and read-only; only chats the page started can be continued.
+- **Command bar.** At the bottom: who receives what you type, the box, and Send. See [Commands](commands.md#the-command-bar-in-the-office-page).
+- **Bell and jobs.** The bell lists notices and the requests waiting for you. An approval asked from this page is answered right in the bell: approve once, remember, or deny. A countdown shows when it times out, and a request that times out unanswered is refused. One asked on Telegram or another channel is listed but answered where it was asked. The jobs list shows what is running (stop it, after a confirm), what is coming up, what is waiting for an event (checked on a timer at no AI cost) and the automatic upkeep jobs, with a way to fix one that is failing.
+- **Cost.** The chip shows today's spend against the daily cap; click for the month, the split by job and the budget row. See [Budgets](budgets.md#in-the-office-page).
+- **Settings.** The gear: schedules and watching, agents and AI, messaging channels, data and connections, display, and a raw `config.toml` editor. Each row says whether saving applies at once or needs a restart; the gear counts the changes waiting for one, and the page can restart a daemon started with `--background` (see above). API keys, tokens and exchange credentials are never typed on this page.
+
+### The office
+
+Two floors, switched at the top of the scene. **Office** holds the built-in crew in their rooms: the data store (the stock keeper refreshing data), the library (the scouts, planner, writer, reviewer and theme analyst doing research), the meeting room (the debate table behind `/suggest`), the lobby (today's agenda and the day's digest), the alert desk (the clerk watching price alerts and stops), the assistant's room and your own desk. **Your agents** is the team floor: one desk per agent of yours, with a card showing whether it is running, paused or idle, its schedule, its latest call and what it has spent today. With no agent yet it offers three starting points and a blank one, and the next free desk carries "+ Add an agent".
+
+How to read it:
+
+- A person moves only when the daemon says so. A run starting sends the right person to the right room; its steps and tools set what they do there; a finished run sends them back. A run the page cannot map to a scene sits at its desk typing, with the run's name; the page never invents steps.
+- An amber "!" over a person means they brought you an approval; click it to open the bell. A red "!" over the clerk means a stop has been broken; click it to open that ticker's card.
+- Speech bubbles carry real lines: what needs your approval, what a debate role said, a past call a person remembers. A lit screen shows what a scout is reading or the closes the analyst is looking at; click it for a larger view.
+- The boards show progress (debate round, research question, prices refreshed so far) and the results board counts new calls. The printer, shelf, clock and alert desk show a tip when you point at them, with a link to the matching view.
+- Click a lamp to turn a room's light on or off, or the wall switch (or the lamp button in the toolbar) for all of them. By default the office light follows the office clock; Settings > Display turns that off.
+- The cat sleeps while nothing needs you and wakes for an approval, a holding past its stop or at its take-profit, an order filled at the exchange, a price alert you set, or the day's AI budget running out. The corgi and the fish are scenery and signal nothing.
+- Drag to pan, scroll or use the zoom buttons to zoom, arrow keys to pan, Esc or "See the whole floor" to step back. From the floor view, clicking a room zooms into it.
+
+**Office clock.** The clock in the header shows office time. Click it to see the office at another hour: real time, or a preset (early morning, morning, midday, afternoon, evening, night) at normal speed, x10 or x60. Only the scene changes; figures, notices and run times stay on real time. The preview is never saved, so a reload returns to real time. With reduced motion on, a preview runs at normal speed. When the office keeps a market's time rather than yours, the clock shows both.
+
+**Performance readout.** Add `?perf=1` to the page address to show the scene's frame cost and render rate against their budgets. It is for diagnosing a slow machine and changes nothing else.
+
+### Office life
+
+When no one has asked for anything, the office is not frozen, but it never pretends to work. People who are free get on with small things: a lunch break, an afternoon coffee, a chat by the cooler, a quieter Friday afternoon, a quick huddle while the morning brief runs. Only free people do this. Anyone a run needs, or who owes a delivery or an answer, drops what they are doing and goes to work. None of it touches your data or spends a cent.
+
+- The assistant walks a round of the rooms after it has been free for a short while, stopping at each door, and every third round takes the lift up to look in at your agents' desks. Any work, question or approval for it ends the round at once.
+- When nothing is running, nothing waits for you and no one is typing for a good while, the office goes quiet: screens go dark, the small fidgets stop and the page does almost nothing. In a quiet office a round happens at most once every 25 idle minutes.
+- A tab you are not looking at stops animating altogether and catches up when you return.
+
+### Talking to a person
+
+Point at a person for their name and one live line: what they are running and from where, which step they are on, that they are waiting for you or for their turn, or that they are free. Click them (right-click, Enter on a focused person, or a long press on a touch screen) and they react, say a short line from real state, and a small ring of actions opens with only what is possible right now:
+
+- *Chat*, for your agents and the assistant: picks them in the command bar and opens the chat.
+- *Give work*: picks them as the receiver and puts the cursor in the command box. Nothing is sent.
+- *What it's doing* and *Work*: their Progress and Work tabs.
+- *Stop the work*, only while they run: stops the run after a confirm.
+- *Profile*: the profile of your own agents.
+
+Arrow keys move around the ring and Esc closes it. A person waiting at your desk opens the approval in the bell instead.
+
+**Following someone.** Double-click a person and the camera keeps them centred, across floors and the lift, until you drag, scroll, zoom, press Esc or click empty floor.
+
+**Stepping through people.** With the scene focused, Tab and Shift+Tab (or the left and right arrows) move through the people on the floor, centre the camera and announce each name and status. Tab leaves the scene at either end.
+
+**Calling a meeting.** Shift-click people, or Shift-drag a box, to pick them; a bar offers "Call a meeting". It asks which ticker, then fills `/suggest <ticker>` into the command box with its estimated cost. Nothing is sent: you read the cost and press Enter. Once you send it and the run starts, the picked people who are free walk into the meeting room as an audience, those who are busy are named and stay at their desks, and everyone walks back when the run ends. With reduced motion they are simply placed.
+
+### Two views of the same office
+
+A "2D | 3D" switch in the header, before the Focus button, changes how the office is drawn. 2D is the default. 3D is loaded the first time you ask for it, and your choice is kept in this browser. It is the same office: positions, camera, selection, bubbles and everything above work in both. If the device cannot draw 3D the button is disabled and says why; if 3D fails to load or the graphics context is lost, the page returns to 2D and tells you.
+
+### Keys, screen readers and attention
+
+Single keys work when the cursor is not in a text field and no modifier is held: `/` or Cmd/Ctrl+K go to the command box; `1`, `2` and `3` open Today, Portfolio and Ideas; `4` returns to the person or ticker you were viewing; `B` the bell; `J` the jobs; `C` the chat; `F` Focus; `[` and `]` the previous and next agent; `?` lists them all; Esc closes what is open. With the bell open, Up and Down choose a request, and `Y` approves it once or `N` denies it, only on the request that is outlined. "Remember" has no key, and a stray key anywhere else approves nothing.
+
+The page is built to be used without a mouse: every control shows a focus ring, a skip link leads to the information panel, the scene has a plain-text list of who is doing what (each entry opens that person), and a new approval or a broken stop is announced to screen readers. Dialogs trap focus and give it back.
+
+How loudly the page tells you something follows the weight the daemon gives the event: a quiet event only moves the scene; a slightly louder one brightens the person's bubble; the next level adds the dots on the bell and the chat; the loudest also puts a count in the tab title and a dot on the tab icon and, if you turned them on in Settings > Display, plays a soft two-note chime (never twice in a few seconds, only for an approval or a broken stop) and sends a browser notification (the browser asks permission only when you switch it on). Both are off by default and kept in this browser.
+
+### Narrow screens and touch
+
+Below roughly tablet width the page shows one pane at a time, switched with a bar under the header: Office, Information, Chat. Opening a person, room, board or tab brings the information forward; nothing switches panes by itself. On a phone the header trims to what fits (the clock stays as a compact button), popovers fill the width, Settings goes full screen and the reader drops its contents column. Touch works as a mouse does: drag to pan, pinch to zoom, a first tap shows what hover would, and a second tap or a long press opens the ring. Nothing is available only on hover.
+
+### Display preferences
+
+Theme (light, dark or follow the system), the colours for up and down (green up or red up), motion (full, reduced or follow the system) and the office light are kept in this browser and apply at once. Reduced motion stills the characters and pets except for blinking, stops the ticker scroll, pings and flashing prices, and runs the clock preview at normal speed; bubbles still update. Language and time zone are the daemon's own settings (they change the brief and Telegram too) and need a restart. The browser also remembers the lamps you switched off, the 2D or 3D choice, and the chime and notification choices; none of it goes to the daemon.
+
 Internals: [dev/operations.md](dev/operations.md).
 
 See also [safety and approvals](safety.md), [budgets](budgets.md), [trading](trading.md), and the
