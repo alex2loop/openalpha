@@ -1,5 +1,5 @@
 import { breakpoint } from '@/web/state/breakpoints'
-import { isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
+import { isChatOpen, setChatOpen, viewedSession } from '@/web/state/chat'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { MessageList } from '@/web/ui/chat/message-list'
@@ -7,15 +7,16 @@ import { SessionView, startNewSession } from '@/web/ui/chat/session-view'
 import { openSessionsDialog } from '@/web/ui/chat/sessions-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
-import { ChatIcon, CloseIcon } from '@/web/ui/kit/icons'
+import { CloseIcon } from '@/web/ui/kit/icons'
 
 import './chat.css'
 
-/** Docked right: hidden by default, a rail with the unread dot while closed. Below the narrow width
- *  it fills its pane, and its X goes back to the pane before it. */
+/** Docked right: hidden by default, when the office takes its width and the command bar's chat
+ *  button (with the unread dot) is the one way back. Below the narrow width it fills its pane, and
+ *  its X goes back to the pane before it. */
 export function ChatPanel() {
   if (!isChatOpen.value) {
-    return <ChatRail />
+    return null
   }
 
   const viewed = viewedSession.value
@@ -25,23 +26,6 @@ export function ChatPanel() {
       <ChatHead />
       {viewed === undefined ? <MessageList /> : <SessionView session={viewed} />}
     </aside>
-  )
-}
-
-function ChatRail() {
-  return (
-    <div class="chat-rail">
-      <button
-        type="button"
-        class="icon-button"
-        title={tr('ui.office.chat.toggle')}
-        aria-label={tr('ui.office.chat.toggle')}
-        onClick={() => setChatOpen(true)}
-      >
-        <ChatIcon />
-        {unread.value && <span class="chat-unread" aria-hidden="true" />}
-      </button>
-    </div>
   )
 }
 
