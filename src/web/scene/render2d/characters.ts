@@ -45,7 +45,6 @@ const STATUS_DOT_PX = 3
 const STATUS_RISE_PX = 2
 // Face details shade with the skin under them, so a dot eye never splits the head's bands.
 const SKIN_DETAILS: ReadonlySet<Material> = new Set([
-  'brow',
   'glint',
   'eye',
   'mouth',
@@ -306,8 +305,6 @@ function colourOf(
       return RAMP.skin[look.body][band]
     case 'hair':
       return RAMP.hair[look.hairTone][band]
-    case 'brow':
-      return RAMP.hair[look.hairTone][2]
     case 'shirt':
       return RAMP.shirt[look.shirt][band]
     case 'pants':

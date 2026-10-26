@@ -92,8 +92,10 @@ export const PALETTE = Object.freeze({
   screen: '#27356A',
   text: '#E9ECF8',
   flash: '#EEF0F4',
-  vest: '#D7E84A',
-  vestBand: '#F2F4F0',
+  vest: '#F28C28',
+  vestBand: '#F5F0B0',
+  epaulette: '#D9A23E',
+  belt: '#2B2433',
 })
 
 /** What a held cup, bag or box is made of: its body and its band. */

@@ -34,7 +34,7 @@ type RoleProp =
   | 'bear'
   | 'uniform'
   | 'vest'
-export type Prop = (typeof LOOK_PARTS.prop)[number] | RoleProp
+type Prop = (typeof LOOK_PARTS.prop)[number] | RoleProp
 export type PantsTone = 'khaki' | 'charcoal' | 'plum'
 
 /** How one person is drawn, in both renderers. The mascot ignores the rest. */
