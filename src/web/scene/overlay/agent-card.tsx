@@ -91,14 +91,16 @@ function lineOf(agent: AgentWire, place: CardPlace): string {
     return tr('ui.office.team.paused')
   }
 
-  if (place.kidsOpen > 0) {
-    const count = place.kidsOpen
+  if (place.childrenOpen > 0) {
+    const count = place.childrenOpen
 
-    return tr(pluralKey(count, 'ui.office.team.kidsWaitOne', 'ui.office.team.kidsWait'), { count })
+    return tr(pluralKey(count, 'ui.office.team.childrenWaitOne', 'ui.office.team.childrenWait'), {
+      count,
+    })
   }
 
-  if (place.kidsBack > 0) {
-    return tr('ui.office.team.kidsBack')
+  if (place.childrenBack > 0) {
+    return tr('ui.office.team.childrenBack')
   }
 
   return run === undefined

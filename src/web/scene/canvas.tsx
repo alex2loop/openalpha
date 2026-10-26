@@ -37,7 +37,7 @@ import { ViewNote } from '@/web/scene/overlay/view-note'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
-import { isKidActorId } from '@/web/scene/sim/actors/roster'
+import { isChildActorId } from '@/web/scene/sim/actors/roster'
 import { type ActorState, createDirector, type Director } from '@/web/scene/sim/director'
 import { createLife, type Life, lampGlowOf } from '@/web/scene/sim/life/life'
 import { createSimLoop } from '@/web/scene/sim/loop'
@@ -259,7 +259,7 @@ function buildSimView(
 function dropGoneSelection(sim: SimView): void {
   const selected = selectedActor.peek()
 
-  if (selected !== undefined && isKidActorId(selected) && !isPresent(sim, selected)) {
+  if (selected !== undefined && isChildActorId(selected) && !isPresent(sim, selected)) {
     selectActor(undefined)
   }
 }

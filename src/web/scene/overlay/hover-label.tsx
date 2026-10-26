@@ -5,7 +5,7 @@ import type { Run } from '@/web/state/live'
 import { actorNowOf } from '@/web/scene/overlay/actor-state'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import { sizeTag } from '@/web/scene/overlay/placement'
-import { kidRoleIn } from '@/web/scene/overlay/team-pass'
+import { childRoleIn } from '@/web/scene/overlay/team-pass'
 import { useNow } from '@/web/state/clock'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
@@ -70,7 +70,7 @@ export function hoverPlaceOf(
 
 /** A person's name as their tag shows it; a child by the role its parent gave it. */
 export function personNameOf(sim: SimView, actor: ActorId): string {
-  return tagTextOf(actor, false, kidRoleIn(sim, actor))
+  return tagTextOf(actor, false, childRoleIn(sim, actor))
 }
 
 /** A person's name and what they do now: their run and where it came from (or its step and how

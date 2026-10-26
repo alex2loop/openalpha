@@ -39,9 +39,9 @@ import { analystSeriesOf, buildScreens } from '@/web/scene/overlay/screens'
 import {
   addDeskOf,
   cardPlacesOf,
+  childRoleIn,
   isTeamFloor,
   isTeamTagged,
-  kidRoleIn,
 } from '@/web/scene/overlay/team-pass'
 import { isActorId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection, view } from '@/web/scene/view'
@@ -261,7 +261,7 @@ function signatureOf(input: PassInput): string {
     ...input.markers.map((marker) => `${marker.actor}:${marker.tone}`),
     ...input.screens.map((screen) => `${screen.actor}:${JSON.stringify(screen.content)}`),
     ...input.view.team.desks.map(
-      (desk) => `${desk.slot}:${desk.agentId ?? ''}:${desk.kidsOpen}:${desk.kidsBack}`
+      (desk) => `${desk.slot}:${desk.agentId ?? ''}:${desk.childrenOpen}:${desk.childrenBack}`
     ),
     ...people,
   ].join('|')
@@ -372,7 +372,7 @@ function tagAsks(input: PassInput): { actor: ActorId; size: Size; isForced: bool
 }
 
 function textOf(input: PassInput, actor: ActorId, isMore: boolean): string {
-  return tagTextOf(actor, isMore, kidRoleIn(input.view, actor))
+  return tagTextOf(actor, isMore, childRoleIn(input.view, actor))
 }
 
 // How far the cards grow with the zoom: the scale over the fitted floor's.

@@ -103,29 +103,29 @@ function RecentRow({ row, entries }: RecentRowProps) {
         </span>
       </p>
       {tickers.length > 0 && <TickerLinks tickers={tickers} />}
-      {children.length > 0 && <KidFold kids={children} />}
+      {children.length > 0 && <ChildFold rows={children} />}
     </div>
   )
 }
 
-function KidFold({ kids }: { readonly kids: readonly ActivityRowWire[] }) {
-  const count = kids.length
-  const cost = formatUsd(kids.reduce((sum, kid) => sum + kid.costUsd, 0))
+function ChildFold({ rows }: { readonly rows: readonly ActivityRowWire[] }) {
+  const count = rows.length
+  const cost = formatUsd(rows.reduce((sum, child) => sum + child.costUsd, 0))
 
   return (
     <Fold
-      title={tr(pluralKey(count, 'ui.office.agent.kidFoldOne', 'ui.office.agent.kidFold'), {
+      title={tr(pluralKey(count, 'ui.office.agent.childFoldOne', 'ui.office.agent.childFold'), {
         count,
         cost,
       })}
     >
-      {kids.map((kid) => (
-        <div key={kid.runId} class="kid">
+      {rows.map((child) => (
+        <div key={child.runId} class="child">
           <p>
-            <b>{formatRunName(kid)}</b>
-            <span class="meta">{` ${formatUsd(kid.costUsd)}`}</span>
+            <b>{formatRunName(child)}</b>
+            <span class="meta">{` ${formatUsd(child.costUsd)}`}</span>
           </p>
-          {kid.summary !== undefined && <p class="meta">{kid.summary}</p>}
+          {child.summary !== undefined && <p class="meta">{child.summary}</p>}
         </div>
       ))}
     </Fold>

@@ -15,8 +15,8 @@ import { holderOf } from '@/web/scene/sim/vocabulary'
 import { brightened } from '@/web/state/attention'
 import { APPROVAL_KIND, pendingRequestId } from '@/web/state/live'
 import { locale, state } from '@/web/state/session'
+import { childOutcomeKey } from '@/web/text/child-outcome'
 import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
-import { kidOutcomeKey } from '@/web/text/kid-outcome'
 import { firstSentence } from '@/web/text/sentence'
 import { tr } from '@/web/text/tr'
 
@@ -252,7 +252,7 @@ function teamSaid(input: BubbleInput): Candidate[] {
     return [
       {
         actor,
-        kind: line.say.kind === 'kid-end' ? ('caution' as const) : ('say' as const),
+        kind: line.say.kind === 'child-end' ? ('caution' as const) : ('say' as const),
         ...words,
         at: input.epochMs - (input.nowMs - line.atMs),
         untilMs: line.untilMs,
@@ -275,11 +275,11 @@ function teamWordsOf(say: TeamSay): { full: string; footer?: string } | undefine
     case 'cooler-mine':
     case 'cooler-theirs':
       return coolerWordsOf(say.kind, say.call)
-    case 'kid-end':
-      return kidEndWordsOf(say.outcome)
-    case 'kids-folding':
+    case 'child-end':
+      return childEndWordsOf(say.outcome)
+    case 'children-folding':
       return {
-        full: tr('ui.office.team.kidsFolding', { partial: say.partial, stopped: say.stopped }),
+        full: tr('ui.office.team.childrenFolding', { partial: say.partial, stopped: say.stopped }),
       }
     case 'daemon':
       return { full: say.text }
@@ -310,8 +310,8 @@ function coolerWordsOf(
   }
 }
 
-function kidEndWordsOf(outcome: string): { full: string } | undefined {
-  const key = kidOutcomeKey(outcome)
+function childEndWordsOf(outcome: string): { full: string } | undefined {
+  const key = childOutcomeKey(outcome)
 
   return key === undefined ? undefined : { full: tr(key) }
 }

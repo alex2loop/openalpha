@@ -106,13 +106,13 @@
   margin-left: 6px;
 }
 
-.kid {
+.child {
   margin-left: var(--s3);
   padding-left: var(--s1);
   border-left: 2px solid var(--border);
 }
 
-.kid-name {
+.child-name {
   color: var(--ink);
 }
 

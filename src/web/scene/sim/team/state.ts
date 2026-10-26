@@ -6,7 +6,7 @@ import type { Member } from '@/web/scene/sim/team/members'
 import type { ActorId, BurstView, TeamLine, TeamSay } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
-import { kidActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
+import { childActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
 import { agentRunOf } from '@/web/scene/sim/team/goals'
 import { isAtHome } from '@/web/scene/sim/team/members'
 
@@ -83,11 +83,11 @@ export function agentMemberOf(state: TeamState, agentId: string): Member | undef
 /** The person a child works for, when it is on this floor: an own agent, or a child of a child. */
 export function parentOf(
   state: TeamState,
-  kid: { readonly parentRunId: string; readonly parentAgentId?: string }
+  child: { readonly parentRunId: string; readonly parentAgentId?: string }
 ): Member | undefined {
-  return kid.parentAgentId === undefined
-    ? state.members.get(kidActorIdOf(kid.parentRunId))
-    : agentMemberOf(state, kid.parentAgentId)
+  return child.parentAgentId === undefined
+    ? state.members.get(childActorIdOf(child.parentRunId))
+    : agentMemberOf(state, child.parentAgentId)
 }
 
 /** At home on a run under way: an agent on its own run, a child on its run until it ends. */
@@ -102,7 +102,7 @@ export function isWorking(state: TeamState, member: Member): boolean {
     return agentRunOf(runs, member.agentId) !== undefined
   }
 
-  const runId = member.kid?.runId
+  const runId = member.child?.runId
 
   return member.outcome === undefined && runs.some((run) => run.runId === runId)
 }
@@ -110,15 +110,15 @@ export function isWorking(state: TeamState, member: Member): boolean {
 /** An agent at its desk with nothing under way: the only one the cooler may call over. */
 export function isFree(state: TeamState, member: Member): boolean {
   const { agentId } = member
-  const hasKids = [...state.members.values()].some(
-    (other) => other.kid !== undefined && other.kid.parentAgentId === agentId
+  const hasChildAtWork = [...state.members.values()].some(
+    (other) => other.child !== undefined && other.child.parentAgentId === agentId
   )
 
   return (
     agentId !== undefined &&
     isAtHome(member) &&
     !member.isNewcomer &&
-    !hasKids &&
+    !hasChildAtWork &&
     agentRunOf(state.deps.runs.value, agentId) === undefined
   )
 }

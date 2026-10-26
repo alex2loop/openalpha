@@ -14,8 +14,8 @@ export interface CardPlace {
   readonly rect: Rect
   readonly zoom: number
   /** Its child agents still working, and those carrying their answer back. */
-  readonly kidsOpen: number
-  readonly kidsBack: number
+  readonly childrenOpen: number
+  readonly childrenBack: number
 }
 
 /** A card's box at floor zoom, in CSS px; it grows with the zoom. */
@@ -53,20 +53,23 @@ export function cardPlacesOf(
 
     const rect = { x: figure.x + figure.w / 2 - w / 2, y: figure.y - CARD_GAP_PX - h, w, h }
     const desk = sim.team.desks.find((held) => held.agentId === agentId)
-    const kids = { kidsOpen: desk?.kidsOpen ?? 0, kidsBack: desk?.kidsBack ?? 0 }
+    const children = {
+      childrenOpen: desk?.childrenOpen ?? 0,
+      childrenBack: desk?.childrenBack ?? 0,
+    }
 
-    return [{ agentId, actor, rect, zoom: at.zoom, ...kids }]
+    return [{ agentId, actor, rect, zoom: at.zoom, ...children }]
   })
 }
 
 /** The role a child's parent gave it, when `actor` is a child on the floor shown. */
-export function kidRoleIn(sim: SimView, actor: ActorId): string | undefined {
-  return sim.team.kids.find((kid) => kid.actor === actor)?.role
+export function childRoleIn(sim: SimView, actor: ActorId): string | undefined {
+  return sim.team.children.find((child) => child.actor === actor)?.role
 }
 
 /** On the team floor every child wears its tag and every own agent its card instead. */
 export function isTeamTagged(sim: SimView, actor: ActorId): boolean {
-  return sim.floor === TEAM_FLOOR && kidRoleIn(sim, actor) !== undefined
+  return sim.floor === TEAM_FLOOR && childRoleIn(sim, actor) !== undefined
 }
 
 /** The team floor is one room that always fits: everyone's lines show there. */

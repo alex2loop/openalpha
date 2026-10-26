@@ -1,9 +1,9 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import type { Member } from '@/web/scene/sim/team/members'
 import type { Point } from '@/web/scene/types'
-import { kidActorIdOf } from '@/web/scene/sim/actors/roster'
+import { childActorIdOf } from '@/web/scene/sim/actors/roster'
 import { placeWalker } from '@/web/scene/sim/actors/walk'
-import { handOverOf } from '@/web/scene/sim/team/kids'
+import { handOverOf } from '@/web/scene/sim/team/children'
 import { sendTo } from '@/web/scene/sim/team/members'
 import {
   addLine,
@@ -15,7 +15,7 @@ import {
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 import { TEAM_LIFT_EXIT } from '@/web/scene/world/seats'
 import { setCapped } from '@/web/state/capped-map'
-import { KID_PARTIAL_KEY, kidOutcomeKey } from '@/web/text/kid-outcome'
+import { CHILD_PARTIAL_KEY, childOutcomeKey } from '@/web/text/child-outcome'
 
 /** The parents whose children came back unfinished, kept while their children can. */
 const MAX_TALLIES = 12
@@ -113,36 +113,36 @@ function onRunFinished(state: TeamState, event: WireEvent): void {
 
   state.tallies.delete(runId)
 
-  const kid = state.members.get(kidActorIdOf(runId))
+  const child = state.members.get(childActorIdOf(runId))
 
-  if (kid?.kid === undefined) {
+  if (child?.child === undefined) {
     return
   }
 
   const nowMs = performance.now()
   const outcome = event.outcome ?? COMPLETED
-  const parent = parentOf(state, kid.kid)
+  const parent = parentOf(state, child.child)
 
-  state.missing.delete(kid.id)
-  kid.outcome = outcome
-  sayUnfinished(state, { kid, outcome }, nowMs)
+  state.missing.delete(child.id)
+  child.outcome = outcome
+  sayUnfinished(state, { child, outcome }, nowMs)
 
   if (parent === undefined) {
-    sendTo(kid, 'exit', TEAM_LIFT_EXIT)
+    sendTo(child, 'exit', TEAM_LIFT_EXIT)
     return
   }
 
-  kid.face = parent.id
-  sendTo(kid, 'carry', handOverOf(parent))
+  child.face = parent.id
+  sendTo(child, 'carry', handOverOf(parent))
 }
 
 function sayUnfinished(
   state: TeamState,
-  ended: { readonly kid: Member; readonly outcome: string },
+  ended: { readonly child: Member; readonly outcome: string },
   nowMs: number
 ): void {
-  const key = kidOutcomeKey(ended.outcome)
-  const parentRunId = ended.kid.kid?.parentRunId
+  const key = childOutcomeKey(ended.outcome)
+  const parentRunId = ended.child.child?.parentRunId
 
   if (key === undefined || parentRunId === undefined) {
     return
@@ -150,11 +150,15 @@ function sayUnfinished(
 
   const held: Tally = state.tallies.get(parentRunId) ?? { partial: 0, stopped: 0 }
   const tally: Tally =
-    key === KID_PARTIAL_KEY
+    key === CHILD_PARTIAL_KEY
       ? { ...held, partial: held.partial + 1 }
       : { ...held, stopped: held.stopped + 1 }
 
   setCapped(state.tallies, [parentRunId, tally], MAX_TALLIES)
-  addLine(state, { actor: ended.kid.id, say: { kind: 'kid-end', outcome: ended.outcome } }, nowMs)
-  addLine(state, { runId: parentRunId, say: { kind: 'kids-folding', ...tally } }, nowMs)
+  addLine(
+    state,
+    { actor: ended.child.id, say: { kind: 'child-end', outcome: ended.outcome } },
+    nowMs
+  )
+  addLine(state, { runId: parentRunId, say: { kind: 'children-folding', ...tally } }, nowMs)
 }

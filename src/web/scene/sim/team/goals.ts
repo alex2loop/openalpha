@@ -2,7 +2,7 @@ import type { AgentWire } from '@/app/server/wire/agents'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, DeskFocus } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
-import { kidActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
+import { childActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
 import { SEAT_TARGET } from '@/web/scene/sim/vocabulary'
 
 /** At most this many temporary children are drawn at once; the oldest come first. */
@@ -14,7 +14,7 @@ const CRYPTO_MARKET = 'crypto'
 const GOLD_MARKETS: ReadonlySet<string> = new Set(['gold', 'gold-vn'])
 
 /** A run a parent started with the `spawn` tool: it has a parent and a "role: goal" title. */
-type KidRun = Run & { readonly parentRunId: string; readonly title: string }
+type ChildRun = Run & { readonly parentRunId: string; readonly title: string }
 
 /** The own agent's run under way: its oldest top-level one. */
 export function agentRunOf(runs: readonly Run[], agentId: string): Run | undefined {
@@ -29,15 +29,15 @@ function isAgentRun(run: Run, agentId: string): boolean {
 }
 
 /** The temporary children at work, oldest first, at most `MAX_CHILD_ACTORS`. */
-export function kidRunsOf(runs: readonly Run[]): readonly KidRun[] {
+export function childRunsOf(runs: readonly Run[]): readonly ChildRun[] {
   return runs
-    .filter(isKidRun)
+    .filter(isChildRun)
     .sort((a, b) => a.startedAt - b.startedAt)
     .slice(0, MAX_CHILD_ACTORS)
 }
 
 /** The role a parent gave its child: the title before its goal. */
-export function kidRoleOf(title: string): string {
+export function childRoleOf(title: string): string {
   const end = title.indexOf(TITLE_SEPARATOR)
 
   return end < 0 ? title : title.slice(0, end)
@@ -59,8 +59,8 @@ export function teamGoalsFor(
     }
   }
 
-  for (const run of kidRunsOf(runs)) {
-    goals.set(kidActorIdOf(run.runId), toWorkGoal(run))
+  for (const run of childRunsOf(runs)) {
+    goals.set(childActorIdOf(run.runId), toWorkGoal(run))
   }
 
   return goals
@@ -82,7 +82,7 @@ export function deskFocusOf(agent: AgentWire): DeskFocus {
   return markets.some((market) => GOLD_MARKETS.has(market)) ? 'gold' : 'piggy'
 }
 
-function isKidRun(run: Run): run is KidRun {
+function isChildRun(run: Run): run is ChildRun {
   return run.parentRunId !== undefined && run.title !== undefined
 }
 

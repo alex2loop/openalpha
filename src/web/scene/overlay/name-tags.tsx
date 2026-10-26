@@ -46,9 +46,10 @@ export function roleTitleOf(role: RoleId): string {
 }
 
 /** A person's tag text: the role's name, an own agent's name, or "temp - role" for a child given
- *  `kidRole`; and "..." when its bubble is hidden for room. */
-export function tagTextOf(actor: ActorId, isMore: boolean, kidRole?: string): string {
-  const name = kidRole === undefined ? nameOf(actor) : tr('ui.office.role.child', { role: kidRole })
+ *  `childRole`; and "..." when its bubble is hidden for room. */
+export function tagTextOf(actor: ActorId, isMore: boolean, childRole?: string): string {
+  const name =
+    childRole === undefined ? nameOf(actor) : tr('ui.office.role.child', { role: childRole })
 
   return isMore ? `${name} ${TRUNCATION_MARK}` : name
 }

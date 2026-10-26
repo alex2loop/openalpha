@@ -53,7 +53,7 @@ export type ActorId =
   | 'assistant'
   | 'clerk'
   | `agent:${string}`
-  | `kid:${string}`
+  | `child:${string}`
 /** What a person does; debate roles carry the daemon's own role names (`trading.debate.role.*`). */
 export type RoleId =
   | 'bull-researcher'
@@ -244,12 +244,12 @@ export interface DeskView {
   /** Someone at it works on a run now: its screen is lit. */
   readonly isLit: boolean
   /** Its agent's child agents still working, and those carrying their answer back. */
-  readonly kidsOpen: number
-  readonly kidsBack: number
+  readonly childrenOpen: number
+  readonly childrenBack: number
 }
 
 /** A temporary child agent: the role its parent gave it, and the parent it works for. */
-export interface KidView {
+export interface ChildView {
   readonly actor: ActorId
   readonly role: string
   readonly parentRunId: string
@@ -286,8 +286,8 @@ export type TeamSay =
   | { readonly kind: 'hello-reply'; readonly name: string }
   | { readonly kind: 'cooler-mine'; readonly call: CoolerCall }
   | { readonly kind: 'cooler-theirs'; readonly call: CoolerCall }
-  | { readonly kind: 'kid-end'; readonly outcome: string }
-  | { readonly kind: 'kids-folding'; readonly partial: number; readonly stopped: number }
+  | { readonly kind: 'child-end'; readonly outcome: string }
+  | { readonly kind: 'children-folding'; readonly partial: number; readonly stopped: number }
   | { readonly kind: 'daemon'; readonly text: string }
 
 /** A spoken line by its person, or by the run it is about (its person found by its goal);
@@ -304,7 +304,7 @@ export interface TeamLine {
 /** The team floor's own state: its desks, its children, threads, scored bursts and lines. */
 export interface TeamView {
   readonly desks: readonly DeskView[]
-  readonly kids: readonly KidView[]
+  readonly children: readonly ChildView[]
   readonly threads: readonly ThreadView[]
   readonly bursts: readonly BurstView[]
   readonly lines: readonly TeamLine[]

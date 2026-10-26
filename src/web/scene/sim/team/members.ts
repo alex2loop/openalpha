@@ -23,7 +23,7 @@ const PLAIN_LOOK: AgentLookWire = Object.freeze({ prop: 'none' })
 type Task = 'home' | 'wave' | 'cooler' | 'carry' | 'exit'
 
 /** A child's run, and the run and own agent it works for. */
-interface KidOf {
+interface ChildOf {
   readonly runId: string
   readonly parentRunId: string
   readonly role: string
@@ -36,7 +36,7 @@ export interface Member {
   readonly id: ActorId
   readonly walker: WalkerState
   readonly agentId?: string
-  readonly kid?: KidOf
+  readonly child?: ChildOf
   readonly slot?: number
   readonly seat: Seat
   look: AgentLookWire | undefined
@@ -57,21 +57,21 @@ interface MemberSpec {
   readonly seat: Seat
   readonly slot?: number
   readonly agentId?: string
-  readonly kid?: KidOf
+  readonly child?: ChildOf
   readonly look?: AgentLookWire
 }
 
 export function createMember(spec: MemberSpec): Member {
-  const { at, seat, slot, agentId, kid } = spec
+  const { at, seat, slot, agentId, child } = spec
 
   return {
     id: spec.id,
     walker: createWalker(at, seedOf(spec.id)),
     ...(agentId === undefined ? {} : { agentId }),
-    ...(kid === undefined ? {} : { kid }),
+    ...(child === undefined ? {} : { child }),
     ...(slot === undefined ? {} : { slot }),
     seat,
-    look: kid === undefined ? spec.look : PLAIN_LOOK,
+    look: child === undefined ? spec.look : PLAIN_LOOK,
     task: 'home',
     dest: at,
     isArrived: true,

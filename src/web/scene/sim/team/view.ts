@@ -1,5 +1,5 @@
 import type { Member } from '@/web/scene/sim/team/members'
-import type { BurstView, DeskView, KidView, Point, TeamView, ThreadView } from '@/web/scene/types'
+import type { BurstView, ChildView, DeskView, Point, TeamView, ThreadView } from '@/web/scene/types'
 import { deskFocusOf } from '@/web/scene/sim/team/goals'
 import { agentMemberOf, isWorking, type TeamState } from '@/web/scene/sim/team/state'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
@@ -12,12 +12,12 @@ const THREAD_TO_RISE = 20
 /** What the renderers and overlays draw of the team floor now. */
 export function buildTeamView(state: TeamState, nowMs: number): TeamView {
   const members = [...state.members.values()]
-  const kids = members.filter((member) => member.kid !== undefined)
+  const children = members.filter((member) => member.child !== undefined)
 
   return {
-    desks: DESK_SLOTS.map((_, slot) => toDesk(state, { slot, members, kids })),
-    kids: kids.flatMap(toKidView),
-    threads: kids.flatMap((kid) => toThread(state, kid)),
+    desks: DESK_SLOTS.map((_, slot) => toDesk(state, { slot, members, children })),
+    children: children.flatMap(toChildView),
+    threads: children.flatMap((child) => toThread(state, child)),
     bursts: [...state.bursts.values()].filter((burst) => burst.untilMs > nowMs).map(toBurst),
     lines: state.lines.filter((line) => line.untilMs > nowMs),
   }
@@ -26,7 +26,7 @@ export function buildTeamView(state: TeamState, nowMs: number): TeamView {
 interface DeskJob {
   readonly slot: number
   readonly members: readonly Member[]
-  readonly kids: readonly Member[]
+  readonly children: readonly Member[]
 }
 
 function toDesk(state: TeamState, job: DeskJob): DeskView {
@@ -35,8 +35,8 @@ function toDesk(state: TeamState, job: DeskJob): DeskView {
   )
   const agent = state.deps.agents.value.find((held) => held.id === owner?.agentId)
   const seated = job.members.filter((member) => member.slot === job.slot)
-  const own = job.kids.filter(
-    (kid) => owner !== undefined && kid.kid?.parentAgentId === owner.agentId
+  const own = job.children.filter(
+    (child) => owner !== undefined && child.child?.parentAgentId === owner.agentId
   )
 
   return {
@@ -45,40 +45,40 @@ function toDesk(state: TeamState, job: DeskJob): DeskView {
     isGlowing: agent !== undefined && !agent.paused,
     isTaken: seated.some((member) => member.task !== 'exit'),
     isLit: seated.some((member) => isWorking(state, member)),
-    kidsOpen: own.filter((kid) => kid.outcome === undefined).length,
-    kidsBack: own.filter((kid) => kid.task === 'carry').length,
+    childrenOpen: own.filter((child) => child.outcome === undefined).length,
+    childrenBack: own.filter((child) => child.task === 'carry').length,
   }
 }
 
-function toKidView(member: Member): KidView[] {
-  const { kid } = member
+function toChildView(member: Member): ChildView[] {
+  const { child } = member
 
-  if (kid === undefined) {
+  if (child === undefined) {
     return []
   }
 
   return [
     {
       actor: member.id,
-      role: kid.role,
-      parentRunId: kid.parentRunId,
-      ...(kid.parentAgentId === undefined ? {} : { parentAgentId: kid.parentAgentId }),
+      role: child.role,
+      parentRunId: child.parentRunId,
+      ...(child.parentAgentId === undefined ? {} : { parentAgentId: child.parentAgentId }),
     },
   ]
 }
 
 // Only an open child of a parent at a desk on this floor has a thread.
-function toThread(state: TeamState, kid: Member): ThreadView[] {
-  const parentAgentId = kid.kid?.parentAgentId
+function toThread(state: TeamState, child: Member): ThreadView[] {
+  const parentAgentId = child.child?.parentAgentId
   const parent = parentAgentId === undefined ? undefined : agentMemberOf(state, parentAgentId)
   const desk = parent?.slot === undefined ? undefined : DESK_SLOTS[parent.slot]
 
-  if (desk === undefined || kid.outcome !== undefined) {
+  if (desk === undefined || child.outcome !== undefined) {
     return []
   }
 
   const from: Point = { x: desk.x + THREAD_FROM_DX, y: desk.y + THREAD_FROM_DY }
-  const to: Point = { x: kid.walker.pos.x, y: kid.walker.pos.y - THREAD_TO_RISE }
+  const to: Point = { x: child.walker.pos.x, y: child.walker.pos.y - THREAD_TO_RISE }
 
   return [{ from, to }]
 }

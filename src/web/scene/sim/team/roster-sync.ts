@@ -1,10 +1,10 @@
 import type { AgentWire } from '@/app/server/wire/agents'
 import type { Run } from '@/web/state/live'
-import { kidActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
+import { childActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
 import { placeWalker } from '@/web/scene/sim/actors/walk'
+import { childEntryOf, childPlaceOf } from '@/web/scene/sim/team/children'
 import { startArrival } from '@/web/scene/sim/team/events'
-import { kidRoleOf, kidRunsOf, MAX_CHILD_ACTORS } from '@/web/scene/sim/team/goals'
-import { kidEntryOf, kidPlaceOf } from '@/web/scene/sim/team/kids'
+import { childRoleOf, childRunsOf, MAX_CHILD_ACTORS } from '@/web/scene/sim/team/goals'
 import { createMember, type Member, sendTo } from '@/web/scene/sim/team/members'
 import { parentOf, type TeamState } from '@/web/scene/sim/team/state'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
@@ -20,7 +20,7 @@ interface SyncAt {
  *  the order they came, a child per spawned run. True when anyone came or went. */
 export function syncMembers(state: TeamState, at: SyncAt): boolean {
   const isAgentsChanged = syncAgents(state, at)
-  const isKidsChanged = syncKids(state, at)
+  const isChildrenChanged = syncChildren(state, at)
 
   if (at.isResume) {
     placeEveryone(state)
@@ -28,7 +28,7 @@ export function syncMembers(state: TeamState, at: SyncAt): boolean {
 
   state.isSeeded = true
 
-  return isAgentsChanged || isKidsChanged
+  return isAgentsChanged || isChildrenChanged
 }
 
 // A desk stays with its agent; a new agent takes the first free one, and past the last none.
@@ -89,7 +89,7 @@ function addAgent(
   return true
 }
 
-function syncKids(state: TeamState, at: SyncAt): boolean {
+function syncChildren(state: TeamState, at: SyncAt): boolean {
   const runs = state.deps.runs.value
   const live = new Set(runs.map((run) => run.runId))
   let isChanged = false
@@ -98,9 +98,9 @@ function syncKids(state: TeamState, at: SyncAt): boolean {
     isChanged = dropUnheard(state, { member, live, isResume: at.isResume }) || isChanged
   }
 
-  for (const run of kidRunsOf(runs)) {
-    if (!state.members.has(kidActorIdOf(run.runId)) && countKids(state) < MAX_CHILD_ACTORS) {
-      addKid(state, { run, runs, isPlaced: at.isResume || !state.isSeeded })
+  for (const run of childRunsOf(runs)) {
+    if (!state.members.has(childActorIdOf(run.runId)) && countChildren(state) < MAX_CHILD_ACTORS) {
+      addChild(state, { run, runs, isPlaced: at.isResume || !state.isSeeded })
       isChanged = true
     }
   }
@@ -115,7 +115,7 @@ function dropUnheard(
   job: { readonly member: Member; readonly live: ReadonlySet<string>; readonly isResume: boolean }
 ): boolean {
   const { member } = job
-  const runId = member.kid?.runId
+  const runId = member.child?.runId
 
   if (runId === undefined || member.outcome !== undefined || job.live.has(runId)) {
     state.missing.delete(member.id)
@@ -133,33 +133,33 @@ function dropUnheard(
   return true
 }
 
-interface KidAdd {
-  readonly run: ReturnType<typeof kidRunsOf>[number]
+interface ChildAdd {
+  readonly run: ReturnType<typeof childRunsOf>[number]
   readonly runs: readonly Run[]
   readonly isPlaced: boolean
 }
 
 // A child stands where a new one comes in, beside its parent, and walks to the seat it takes; a
 // child read from a snapshot is placed there.
-function addKid(state: TeamState, add: KidAdd): void {
+function addChild(state: TeamState, add: ChildAdd): void {
   const { run } = add
   const parentRun = add.runs.find((held) => held.runId === run.parentRunId)
   const parentAgentId = parentRun?.kind === 'agent' ? parentRun.agentId : undefined
-  const kid = {
+  const child = {
     runId: run.runId,
     parentRunId: run.parentRunId,
-    role: kidRoleOf(run.title),
+    role: childRoleOf(run.title),
     ...(parentAgentId === undefined ? {} : { parentAgentId }),
   }
-  const parent = parentOf(state, kid)
-  const place = kidPlaceOf([...state.members.values()], parent)
-  const entry = add.isPlaced ? place.seat.at : kidEntryOf(parent, countKids(state))
+  const parent = parentOf(state, child)
+  const place = childPlaceOf([...state.members.values()], parent)
+  const entry = add.isPlaced ? place.seat.at : childEntryOf(parent, countChildren(state))
   const member = createMember({
-    id: kidActorIdOf(run.runId),
+    id: childActorIdOf(run.runId),
     at: entry,
     seat: place.seat,
     ...(place.slot === undefined ? {} : { slot: place.slot }),
-    kid,
+    child,
   })
 
   state.members.set(member.id, member)
@@ -169,8 +169,8 @@ function addKid(state: TeamState, add: KidAdd): void {
   }
 }
 
-function countKids(state: TeamState): number {
-  return [...state.members.values()].filter((member) => member.kid !== undefined).length
+function countChildren(state: TeamState): number {
+  return [...state.members.values()].filter((member) => member.child !== undefined).length
 }
 
 // A child already done leaves at once; a talk or a greeting is cut short; everyone sits down.

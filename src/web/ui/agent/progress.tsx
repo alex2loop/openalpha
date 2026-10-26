@@ -3,7 +3,7 @@ import { useSignal } from '@preact/signals'
 import type { Run } from '@/web/state/live'
 import { pluralKey } from '@/i18n'
 import { tr } from '@/web/text/tr'
-import { KidNest } from '@/web/ui/agent/kid-nest'
+import { ChildNest } from '@/web/ui/agent/child-nest'
 import { StepList } from '@/web/ui/agent/steps'
 import { Pager } from '@/web/ui/kit/pager'
 import { toSafeHref } from '@/web/ui/markdown/inline'
@@ -25,7 +25,7 @@ export function Progress({ run, maxSpawn }: ProgressProps) {
   return (
     <>
       <StepList run={run} />
-      <KidNest key={run.runId} parent={run} maxSpawn={maxSpawn} />
+      <ChildNest key={run.runId} parent={run} maxSpawn={maxSpawn} />
       <SourcesRead key={run.runId} run={run} />
     </>
   )

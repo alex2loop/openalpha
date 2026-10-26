@@ -15,7 +15,7 @@ export interface ActorDef {
 export const ASSISTANT: ActorId = 'assistant'
 // The operator's own agents and the temporary children runs start join the crew under these.
 const OWN_PREFIX = 'agent:'
-const KID_PREFIX = 'kid:'
+const CHILD_PREFIX = 'child:'
 
 const [BULL_SEAT, PM_SEAT, BEAR_SEAT, ANALYST_SEAT, VERIFIER_SEAT, TRADER_SEAT, RISK_SEAT] =
   SEATS.meet
@@ -58,8 +58,8 @@ export function ownActorIdOf(agentId: string): ActorId {
 }
 
 /** The person a temporary child agent's run is in the office. */
-export function kidActorIdOf(runId: string): ActorId {
-  return `${KID_PREFIX}${runId}`
+export function childActorIdOf(runId: string): ActorId {
+  return `${CHILD_PREFIX}${runId}`
 }
 
 /** The own agent a person stands for; absent for anyone else. */
@@ -68,13 +68,13 @@ export function ownAgentIdOf(actor: string): string | undefined {
 }
 
 /** `id` names a temporary child agent. */
-export function isKidActorId(id: string): boolean {
-  return id.startsWith(KID_PREFIX)
+export function isChildActorId(id: string): boolean {
+  return id.startsWith(CHILD_PREFIX)
 }
 
 /** `id` names someone in the office: a built-in person, an own agent or a child. */
 export function isActorId(id: string): id is ActorId {
-  return id.startsWith(OWN_PREFIX) || isKidActorId(id) || rosterDefOf(id) !== undefined
+  return id.startsWith(OWN_PREFIX) || isChildActorId(id) || rosterDefOf(id) !== undefined
 }
 
 /** The built-in person `id` names; absent for an own agent, a child or no one. */

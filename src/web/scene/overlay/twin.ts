@@ -51,7 +51,7 @@ export function syncTwin(sim: SimView | undefined, markers: readonly Marker[]): 
 
 function inputsOf(sim: SimView, markers: readonly Marker[]): readonly unknown[] {
   const people = sim.actors.map((actor) => `${actor.id}:${actor.status ?? ''}`).join('|')
-  const kids = sim.team.kids.map((kid) => `${kid.actor}:${kid.role}`).join('|')
+  const children = sim.team.children.map((child) => `${child.actor}:${child.role}`).join('|')
 
   return [
     sceneGoals.value,
@@ -64,7 +64,7 @@ function inputsOf(sim: SimView, markers: readonly Marker[]): readonly unknown[] 
     locale.value,
     markers,
     people,
-    kids,
+    children,
     JSON.stringify(sim.life.lines),
   ]
 }
@@ -126,7 +126,7 @@ function openerOf(sim: SimView, { actor, now, marker }: TwinLine): () => void {
   }
 
   const run = actorRunOf(actor)
-  const parentAgentId = sim.team.kids.find((kid) => kid.actor === actor)?.parentAgentId
+  const parentAgentId = sim.team.children.find((child) => child.actor === actor)?.parentAgentId
   const actions = menuActionsFor(actor, {
     now,
     ...(run === undefined ? {} : { run }),

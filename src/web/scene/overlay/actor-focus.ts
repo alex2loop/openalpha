@@ -52,7 +52,7 @@ export function engage(deps: FocusDeps, reach: Reach): void {
   }
 
   const run = actorRunOf(actor)
-  const parentAgentId = sim.team.kids.find((kid) => kid.actor === actor)?.parentAgentId
+  const parentAgentId = sim.team.children.find((child) => child.actor === actor)?.parentAgentId
 
   openMenu({
     actor,
