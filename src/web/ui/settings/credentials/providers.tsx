@@ -100,9 +100,13 @@ function isShown(provider: CatalogProvider, read: ProvidersRead): boolean {
   return credential?.subject === provider.id && credential.set
 }
 
+// The variable the config reads for the provider; else the one it shares by catalog default.
 function credentialOf(provider: CatalogProvider, read: ProvidersRead): Credential | undefined {
-  return read.credentials.find(
-    (credential) => credential.group === 'provider' && credential.name === provider.envVar
+  const providerRows = read.credentials.filter((credential) => credential.group === 'provider')
+
+  return (
+    providerRows.find((credential) => credential.subject === provider.id) ??
+    providerRows.find((credential) => credential.name === provider.envVar)
   )
 }
 

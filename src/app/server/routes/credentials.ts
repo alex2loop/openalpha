@@ -126,30 +126,42 @@ async function handleCredentialRemove(req: Request, ctx: ApiRouteContext): Promi
   return json({ removed } satisfies CredentialRemoveResult)
 }
 
-/** Every key variable the page may set: what the config reads for each page group, then every
- *  catalog provider's own variable, each name once; never a name a server group also reads. */
+/** Every key variable the page may set: what the config reads for each page group, then the
+ *  catalog provider variables the config does not name; a provider's variable once per provider
+ *  that reads it, any other name once; never a name a server group also reads. */
 function listCredentials(config: ResolvedConfig): readonly Credential[] {
   const groups = keyEnvGroups(config)
   const serverOnly = new Set(SERVER_GROUPS.flatMap((group) => groups[group]).map((e) => e.name))
-  const catalog = buildProviderCatalog().providers.map((provider) => ({
-    name: provider.envVar,
-    subject: provider.id,
-  }))
+  const configured = groups.provider
+  const catalog = buildProviderCatalog()
+    .providers.filter(
+      (provider) =>
+        !configured.some((entry) => entry.subject === provider.id || entry.name === provider.envVar)
+    )
+    .map((provider) => ({ name: provider.envVar, subject: provider.id }))
   const listed = PAGE_GROUPS.flatMap((group) =>
     [...groups[group], ...(group === 'provider' ? catalog : [])].map((entry) => ({
       ...entry,
       group,
     }))
   )
+  const readBy = new Set(configured.map(toReadByKey))
   const seen = new Set<string>()
 
   return listed.filter((credential) => {
-    const isNew = !seen.has(credential.name)
+    // The config names a variable per provider, so two providers may read the same one.
+    const readByKey = toReadByKey(credential)
+    const key = readBy.has(readByKey) ? readByKey : credential.name
+    const isNew = !seen.has(key)
 
-    seen.add(credential.name)
+    seen.add(key)
 
     return isNew && !serverOnly.has(credential.name) && isPageEnvName(credential.name)
   })
+}
+
+function toReadByKey(entry: { readonly name: string; readonly subject: string }): string {
+  return `${entry.name}/${entry.subject}`
 }
 
 function isPageEnvName(name: string): boolean {
