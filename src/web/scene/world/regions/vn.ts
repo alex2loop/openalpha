@@ -70,7 +70,7 @@ export const VN_PACK = Object.freeze({
   },
   speed: { north: 60, side: 50 },
   stops: [
-    { name: 'Tòa nhà Bitexco', routes: ['03', '19'], side: 'far' },
+    { name: 'Tháp Tài chính', routes: ['03', '19'], side: 'far' },
     { name: 'Hồ Tùng Mậu', routes: ['45', '56'], side: 'far' },
     { name: 'Giao lộ Hàm Nghi - Tôn Thất Đạm', routes: ['01', '52'], side: 'far' },
     { name: 'Bến Bạch Đằng', routes: ['88', '93'], side: 'near' },
@@ -205,7 +205,7 @@ export const VN_PACK = Object.freeze({
     taxi: 'ui.office.street.taxi',
     truck: 'ui.office.street.truck',
   },
-  landmark: { shape: 'bitexco', foot: { x: 84, y: -72 }, scale: 0.5, haze: 0.3 },
+  landmark: { shape: 'tower', foot: { x: 84, y: -72 }, scale: 0.5, haze: 0.3 },
   earningsSeasons: [
     { month: 1, from: 10, to: 30 },
     { month: 4, from: 10, to: 30 },
