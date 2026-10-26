@@ -1,15 +1,8 @@
-/* Above the command bar and above any dialog, so Undo stays in reach. */
+/* In the bottom stack, which sits above any dialog, so Undo stays in reach. */
 .undo-bar {
-  position: fixed;
-  right: var(--s3);
-  bottom: calc(var(--commandBarH) + var(--s2));
-  left: var(--s3);
-  z-index: var(--zUndo);
   display: flex;
   align-items: center;
   gap: var(--s1);
-  width: fit-content;
-  margin-inline: auto;
   padding: 8px var(--s2);
   border-radius: 10px;
   background: var(--offlineBg);

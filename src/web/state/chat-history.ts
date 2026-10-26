@@ -75,6 +75,11 @@ export function startChatHistory(sessionToOpen?: string): () => void {
   }
 }
 
+/** A new session leaves the one the chat tab opened, so the tab no longer goes by its name. */
+export function clearOpenedSession(): void {
+  opened.value = undefined
+}
+
 /** The next older page of the current session; a call while one loads is ignored. */
 export async function loadOlder(): Promise<void> {
   const session = historySession

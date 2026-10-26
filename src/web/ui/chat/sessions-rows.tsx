@@ -1,4 +1,4 @@
-import type { Signal } from '@preact/signals'
+import { type ReadonlySignal, signal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { type MessageKey, pluralKey } from '@/i18n'
@@ -14,7 +14,7 @@ import {
 } from '@/web/state/chat'
 import { CHAT_TAB_PARAM } from '@/web/state/pane'
 import { state } from '@/web/state/session'
-import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
+import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
 import { sourceLabel } from '@/web/text/source'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
@@ -28,6 +28,8 @@ import { showUndo } from '@/web/ui/kit/undo-bar'
 // Today and the six days before it.
 const WEEK_DAYS = 7
 const MENU_ID_PREFIX = 'session-menu:'
+// Enough of a long first message to name the chat on the undo bar's one line.
+const BAR_TITLE_MAX = 60
 const GROUP_KEYS = Object.freeze({
   today: 'ui.office.sessions.groupToday',
   week: 'ui.office.sessions.groupWeek',
@@ -44,15 +46,20 @@ interface GroupDays {
   readonly weekStart: string
 }
 
+// Page-wide, not per list: a row deleted, closed and reopened inside the undo window stays gone.
+// Undo or a refusal takes its id out; a delete that went through keeps it, as the daemon does.
+const deletedIds = signal<ReadonlySet<string>>(new Set())
+
+/** The sessions deleted on this page, whose rows no list shows. */
+export const deletedSessionIds: ReadonlySignal<ReadonlySet<string>> = deletedIds
+
 interface GroupsProps {
   readonly sessions: readonly ChatSession[]
-  /** The dialog's deleted rows: a delete adds its row, Undo or a refusal takes it out again. */
-  readonly hidden: Signal<ReadonlySet<string>>
 }
 
 /** Today, the last seven days and older, by the last activity on the daemon's calendar; a group
  *  with no row is not drawn. */
-export function SessionGroups({ sessions, hidden }: GroupsProps) {
+export function SessionGroups({ sessions }: GroupsProps) {
   const timeZone = state.value?.timeZone
   const groups = toGroups(sessions, timeZone)
 
@@ -64,12 +71,7 @@ export function SessionGroups({ sessions, hidden }: GroupsProps) {
             <h3 class="sessions-head">{tr(GROUP_KEYS[id])}</h3>
             <ul class="sessions-list">
               {rows.map((session) => (
-                <SessionRow
-                  key={session.sessionId}
-                  session={session}
-                  timeZone={timeZone}
-                  hidden={hidden}
-                />
+                <SessionRow key={session.sessionId} session={session} timeZone={timeZone} />
               ))}
             </ul>
           </section>
@@ -116,10 +118,9 @@ function groupOf(atMs: number, days: GroupDays | undefined): GroupId {
 interface RowProps {
   readonly session: ChatSession
   readonly timeZone: string | undefined
-  readonly hidden: Signal<ReadonlySet<string>>
 }
 
-function SessionRow({ session, timeZone, hidden }: RowProps) {
+function SessionRow({ session, timeZone }: RowProps) {
   const count = session.messageCount
 
   return (
@@ -136,13 +137,13 @@ function SessionRow({ session, timeZone, hidden }: RowProps) {
           ])}
         </span>
       </button>
-      <RowMenu session={session} hidden={hidden} />
+      <RowMenu session={session} />
     </li>
   )
 }
 
 // Delete is offered on this app's sessions only; the daemon refuses any other channel's anyway.
-function RowMenu({ session, hidden }: Omit<RowProps, 'timeZone'>) {
+function RowMenu({ session }: { readonly session: ChatSession }) {
   const anchor = useRef<HTMLButtonElement>(null)
   const menuId = `${MENU_ID_PREFIX}${session.sessionId}`
   const label = tr('ui.office.sessions.menu')
@@ -173,7 +174,7 @@ function RowMenu({ session, hidden }: Omit<RowProps, 'timeZone'>) {
           {tr('ui.office.sessions.openTab')}
         </a>
         {session.channel === APP_CHANNEL && (
-          <button type="button" onClick={() => deleteSession(session, hidden)}>
+          <button type="button" onClick={() => deleteSession(session)}>
             {tr('ui.office.sessions.delete')}
           </button>
         )}
@@ -195,15 +196,15 @@ function openSession(session: ChatSession): void {
 }
 
 // The row goes at once; the delete is sent when the bar ends, and Undo before that sends nothing.
-function deleteSession(session: ChatSession, hidden: Signal<ReadonlySet<string>>): void {
+function deleteSession(session: ChatSession): void {
   const id = session.sessionId
   const bringBack = (): void => {
-    hidden.value = new Set([...hidden.peek()].filter((held) => held !== id))
+    deletedIds.value = new Set([...deletedIds.peek()].filter((held) => held !== id))
   }
 
   closePopover()
-  hidden.value = new Set([...hidden.peek(), id])
-  showUndo(tr('ui.office.sessions.deleted', { title: sessionTitleOf(session) }), {
+  deletedIds.value = new Set([...deletedIds.peek(), id])
+  showUndo(tr('ui.office.sessions.deleted', { title: toBarTitle(sessionTitleOf(session)) }), {
     commit: () => commitDelete(id),
     restore: bringBack,
     onRefused: bringBack,
@@ -222,4 +223,10 @@ async function commitDelete(id: string): Promise<undefined> {
   }
 
   return undefined
+}
+
+function toBarTitle(title: string): string {
+  return title.length <= BAR_TITLE_MAX
+    ? title
+    : `${title.slice(0, BAR_TITLE_MAX - TRUNCATION_MARK.length).trimEnd()}${TRUNCATION_MARK}`
 }

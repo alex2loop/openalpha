@@ -19,3 +19,23 @@
   width: auto;
   border-left: 0;
 }
+
+/* The one bottom slot over the stage: the offline bar, then the undo bar under it, never on top of
+   each other. Above any dialog, so Undo stays in reach while one is open. */
+.bottom-stack {
+  position: fixed;
+  right: var(--s3);
+  bottom: calc(var(--commandBarH) + var(--s2));
+  left: var(--s3);
+  z-index: var(--zUndo);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  pointer-events: none;
+}
+
+.bottom-stack > * {
+  max-width: 100%;
+  pointer-events: auto;
+}

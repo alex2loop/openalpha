@@ -93,6 +93,10 @@ function armWindow(entry: UndoEntry): () => void {
   let startedAt = 0
   let timer: ReturnType<typeof setTimeout> | undefined
   const resume = (): void => {
+    if (timer !== undefined) {
+      return
+    }
+
     startedAt = performance.now()
     timer = setTimeout(() => endWindow(entry), remainingMs)
   }

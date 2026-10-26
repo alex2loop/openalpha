@@ -7,7 +7,7 @@ import type { ChatSession } from '@/web/state/chat'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { toFailureText, tr } from '@/web/text/tr'
-import { SessionGroups } from '@/web/ui/chat/sessions-rows'
+import { deletedSessionIds, SessionGroups } from '@/web/ui/chat/sessions-rows'
 import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -42,8 +42,6 @@ export function openSessionsDialog(): void {
 function SessionsBody() {
   const query = useSignal('')
   const pages = useSignal<SessionPages>(FIRST_LOAD)
-  // Rows deleted on this dialog, gone at once and back on Undo or a refusal.
-  const hidden = useSignal<ReadonlySet<string>>(new Set())
   const inFlight = useRef<AbortController | undefined>(undefined)
   const text = query.value.trim()
   const search = text.length >= SEARCH_MIN_CHARS ? text : undefined
@@ -71,7 +69,7 @@ function SessionsBody() {
         value={query.value}
         onInput={(event) => (query.value = event.currentTarget.value)}
       />
-      <SessionsList pages={pages.value} search={search} hidden={hidden} onMore={loadMore} />
+      <SessionsList pages={pages.value} search={search} onMore={loadMore} />
     </>
   )
 }
@@ -79,14 +77,15 @@ function SessionsBody() {
 interface ListProps {
   readonly pages: SessionPages
   readonly search: string | undefined
-  readonly hidden: Signal<ReadonlySet<string>>
   readonly onMore: () => void
 }
 
 // A failed read keeps the rows already read under its line; Thử lại asks for the same page again.
-function SessionsList({ pages, search, hidden, onMore }: ListProps) {
+function SessionsList({ pages, search, onMore }: ListProps) {
   const { next, isLoading, failure } = pages
-  const sessions = pages.sessions.filter((session) => !hidden.value.has(session.sessionId))
+  const sessions = pages.sessions.filter(
+    (session) => !deletedSessionIds.value.has(session.sessionId)
+  )
 
   return (
     <>
@@ -101,7 +100,7 @@ function SessionsList({ pages, search, hidden, onMore }: ListProps) {
         </>
       )}
       {sessions.length > 0 ? (
-        <SessionGroups sessions={sessions} hidden={hidden} />
+        <SessionGroups sessions={sessions} />
       ) : (
         <EmptyList search={search} pages={pages} />
       )}

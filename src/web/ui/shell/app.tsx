@@ -79,11 +79,13 @@ export function App() {
 function PageBottom() {
   return (
     <>
-      <OfflineBar />
+      <div class="bottom-stack">
+        <OfflineBar />
+        <UndoBar />
+      </div>
       <CommandBar />
       <ModalHost />
       <ReaderHost />
-      <UndoBar />
       <Announcer />
     </>
   )
