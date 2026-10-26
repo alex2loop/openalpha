@@ -11,11 +11,17 @@ import {
 
 import type { Materials } from '@/web/scene/render3d/lights'
 import type { FloorId, SimView } from '@/web/scene/types'
+import { windowLightOf } from '@/web/scene/clock/window-light'
 import { box, mergeBoxes } from '@/web/scene/render3d/boxes'
 import { toUnits, WALL_PX } from '@/web/scene/render3d/space'
+import {
+  createSunPatches,
+  disposeSunPatches,
+  type SunPatches,
+  syncSunPatches,
+} from '@/web/scene/render3d/sun-patches'
 import { PROP_TONES, UMBRELLA_TONES } from '@/web/scene/sprites/palette'
 import {
-  blindClosureOf,
   blindSpansOf,
   flashOf,
   isGlassMoving,
@@ -50,7 +56,8 @@ interface WeatherSync {
   isAnimating: boolean
 }
 
-/** The weather indoors in 3D: rain and haze on the north glass, the west blinds, and the
+/** The weather indoors in 3D: rain and haze on the north glass, the west and east blinds, the
+ *  sun's patches on the floor, and the
  *  umbrella stand and mat by the street exit with an umbrella opened to dry in the rain. */
 export interface Weather3d {
   readonly pane: Mesh<PlaneGeometry, MeshBasicMaterial>
@@ -60,6 +67,8 @@ export interface Weather3d {
   readonly stand: Mesh
   readonly open: Mesh
   readonly geometries: readonly BufferGeometry[]
+  /** The sun's patches on the floor and the east blinds. */
+  readonly sun: SunPatches
   paintedAt: number
   /** The rain and haze the pane was last painted with; a negative rain for none. */
   paintedRain: number
@@ -100,6 +109,7 @@ export function createWeather3d(root: Group, materials: Materials): Weather3d {
     stand,
     open,
     geometries,
+    sun: createSunPatches(root, materials),
     paintedAt: Number.NEGATIVE_INFINITY,
     paintedRain: -1,
     paintedHaze: false,
@@ -139,7 +149,7 @@ function createPane(): Pick<Weather3d, 'pane' | 'canvas' | 'texture'> {
 export function syncWeather3d(weather3d: Weather3d, sim: SimView, now: number): WeatherSync {
   const fx = sim.weather
   const isPaneChanged = syncPane(weather3d, sim, now)
-  const closure = blindClosureOf(sim.light)
+  const closure = windowLightOf(sim.light.sun, { cloud: sim.light.cloud, rain: fx.rain }).blind.w
   const isBlindChanged = closure !== weather3d.closure
   const isStandFloor = sim.floor === STAND_FLOOR
   const isOpen = isStandFloor && fx.rain > 0
@@ -157,8 +167,10 @@ export function syncWeather3d(weather3d: Weather3d, sim: SimView, now: number): 
     mesh.scale.y = Math.max(closure, Number.EPSILON) * BLIND.drop
   }
 
+  const isSunMoved = syncSunPatches(weather3d.sun, sim)
+
   weather3d.sync.isChanged =
-    isPaneChanged || isBlindChanged || isStandChanged || flashOf(fx, now) > 0
+    isPaneChanged || isBlindChanged || isStandChanged || isSunMoved || flashOf(fx, now) > 0
   weather3d.sync.isAnimating = isGlassMoving(fx, now, visibleRect())
 
   return weather3d.sync
@@ -169,6 +181,7 @@ export function disposeWeather3d(weather3d: Weather3d): void {
   weather3d.pane.geometry.dispose()
   weather3d.pane.material.dispose()
   weather3d.texture.dispose()
+  disposeSunPatches(weather3d.sun)
 
   for (const mesh of [
     weather3d.blinds.office,
