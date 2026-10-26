@@ -90,6 +90,8 @@ export interface PaintScene {
   readonly isRefreshing: boolean
   /** The ambient effects on their one clock; absent when every effect draws its still frame. */
   readonly fx: AmbientFx | undefined
+  /** The desks someone sits at, by `deskSpotOf`: their screens lie flat on the desk. */
+  readonly seated: ReadonlySet<string>
   /** How far the store's refresh has come, 0 to 1; absent while it does not count its prices. */
   readonly refreshShare?: number
   /** Each lobby wall clock's minute of its own zone's day, by the clock's `variant`. */

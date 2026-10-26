@@ -7,7 +7,9 @@ import { hostOf, seriesKeyOf } from '@/web/scene/data/desk-reads'
 import { toParamText } from '@/web/scene/data/room-status'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { CRAWLERS, scoutOf } from '@/web/scene/sim/vocabulary'
+import { flatScreenOf } from '@/web/scene/world/desk-spots'
 import { propsOn } from '@/web/scene/world/props'
+import { sceneView } from '@/web/state/prefs'
 
 const ANALYST: ActorId = 'analyst'
 // A desk's computer stands within this far of its person's seat, in world px.
@@ -138,5 +140,12 @@ function screenRectOf(def: ActorDef): Rect | undefined {
     .filter(({ gap }) => gap <= SCREEN_REACH_PX)
     .sort((a, b) => a.gap - b.gap)[0]?.prop
 
-  return computer === undefined ? undefined : { ...computer.draw, h: computer.draw.h - STAND_PX }
+  if (computer === undefined) {
+    return undefined
+  }
+
+  // 2D lays a worked-at screen flat on the desk; 3D keeps it standing.
+  return sceneView.value === '2d'
+    ? flatScreenOf(computer)
+    : { ...computer.draw, h: computer.draw.h - STAND_PX }
 }
