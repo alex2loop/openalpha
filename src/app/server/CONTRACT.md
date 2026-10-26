@@ -42,10 +42,15 @@ this document — neither imports the other.
 - **Auth:** `Authorization: Bearer <token>` or the browser session cookie on every route except
   `GET /v1/health`, `POST /v1/session` and `GET /`. `GET /` serves the office page and its
   content-hashed chunks, unauthenticated: they hold no data, and the page signs in before it reads
-  any `/v1` route. The compiled binary sends `frame-ancestors 'none'`, and the page also refuses to
-  render in a frame. Token at `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor
-  `OPENALPHA_DATA_DIR`), chmod `0600`, generated on first enable. Compared constant-time. When a
-  request carries `Authorization`, the cookie is not read.
+  any `/v1` route. In the compiled binary the page and its chunks answer with
+  `Content-Security-Policy` (`default-src 'none'`, `'self'` for scripts, styles, fonts and
+  connections, `data:`/`blob:` images, `frame-ancestors 'none'`, `base-uri 'none'`,
+  `form-action 'none'`), `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`; a
+  source run serves it through Bun's `routes`, which carry none, and the page's own frame guard
+  (it renders nothing inside a frame) covers both. Token at
+  `${dataDir}/auth/api/token.json` (`~/.openalpha` default; honor `OPENALPHA_DATA_DIR`), chmod
+  `0600`, generated on first enable. Compared constant-time. When a request carries
+  `Authorization`, the cookie is not read.
   - **Session cookie:** `oa_session_<port>` on loopback (so a local daemon and a tunnelled one on
     another port keep separate cookies), `__Host-oa_session` through `public_url` (so a sibling
     subdomain cannot plant one); `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`, `Secure`

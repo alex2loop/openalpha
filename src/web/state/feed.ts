@@ -5,7 +5,6 @@ import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
 import { type ConnectionStatus, createFeedSocket, type FeedSocket } from '@/web/api/socket'
-import { readToken } from '@/web/api/token'
 import { publishWireEvent } from '@/web/state/events'
 import {
   appendStep,
@@ -121,9 +120,8 @@ export function onChatFrame(sink: (frame: ChatServerFrame) => void): () => void 
 
 function buildFeedUrl(): string {
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const params = new URLSearchParams({ token: readToken() ?? '' })
 
-  return `${scheme}//${location.host}${FEED_PATH}?${params}`
+  return `${scheme}//${location.host}${FEED_PATH}`
 }
 
 function setConnection(status: ConnectionStatus, retryAt?: number): void {

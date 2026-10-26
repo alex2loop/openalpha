@@ -5,6 +5,14 @@ import { officePage } from '@/web/api'
 
 const PAGE_PATH = '/'
 const URL_SEPARATOR = '/'
+/** Sent with every built page file. A source run cannot send them; the page's frame guard covers
+ *  framing there. */
+const PAGE_SECURITY_HEADERS = Object.freeze({
+  'Content-Security-Policy':
+    "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+  'Referrer-Policy': 'no-referrer',
+  'X-Content-Type-Options': 'nosniff',
+})
 
 type BuiltFile = NonNullable<HTMLBundle['files']>[number]
 
@@ -22,7 +30,9 @@ export function toPageResponse(req: Request, pathname: string): Response | undef
 
   return file === undefined
     ? undefined
-    : new Response(Bun.file(file.path), { headers: file.headers })
+    : new Response(Bun.file(file.path), {
+        headers: { ...file.headers, ...PAGE_SECURITY_HEADERS },
+      })
 }
 
 // Served at its path beside the page, the way the built HTML names it; the page itself at `/`.

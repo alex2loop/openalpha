@@ -2,9 +2,10 @@ import { computed, signal } from '@preact/signals'
 
 import type { StatePayload } from '@/app/server/wire/system'
 import type { ConnectionStatus } from '@/web/api/socket'
+import { noteSignedIn } from '@/web/api/auth-state'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { authState, readToken } from '@/web/api/token'
+import { signInWithCode } from '@/web/api/sign-in'
 
 const FALLBACK_UI_LOCALE: UiLocale = 'vi'
 // A booting daemon answers `/v1/health` with `starting`; the page asks again until it is ready.
@@ -50,9 +51,13 @@ export const isFirstRun = computed(() => {
   return firstRun !== undefined && !firstRun.profileSaved && firstRun.bookEmpty
 })
 
-/** Loads brand and session, again every `STARTING_RETRY_MS` while the daemon is starting, at most
- *  `STARTING_RETRY_LIMIT` times. */
-export async function loadUntilReady(abortSignal: AbortSignal): Promise<void> {
+/** Trades a sign-in `code` first when the address carried one, then loads brand and session, again
+ *  every `STARTING_RETRY_MS` while the daemon is starting, at most `STARTING_RETRY_LIMIT` times. */
+export async function loadUntilReady(abortSignal: AbortSignal, code?: string): Promise<void> {
+  if (code !== undefined) {
+    await signInWithCode(code, abortSignal)
+  }
+
   for (let attempt = 0; attempt <= STARTING_RETRY_LIMIT; attempt++) {
     if (attempt > 0) {
       await waitFor(STARTING_RETRY_MS, abortSignal)
@@ -72,17 +77,12 @@ export async function loadUntilReady(abortSignal: AbortSignal): Promise<void> {
   isStarting.value = false
 }
 
-/** Keeps the last good values when a load fails; a refused token flips `authState` in the client. */
+/** Keeps the last good values when a load fails; a 401 flips `authState` in the client. */
 export async function loadSession(abortSignal: AbortSignal): Promise<void> {
-  if (readToken() === undefined) {
-    authState.value = 'missing'
-    return
-  }
-
   try {
     state.value = await getJson(ROUTES.state, { signal: abortSignal })
     sessionFailure.value = undefined
-    authState.value = 'ok'
+    noteSignedIn()
   } catch (error: unknown) {
     if (error instanceof ApiFailure) {
       sessionFailure.value = error
