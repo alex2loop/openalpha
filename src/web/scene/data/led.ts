@@ -3,6 +3,7 @@ import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 import type { MarketWire, OverviewResponse } from '@/app/server/wire/market'
 import { homeMarket } from '@/web/scene/data/home'
 import { knownMarkets, overviewBlock } from '@/web/state/market'
+import { tapeRows } from '@/web/state/tape'
 
 /** The most levels one board item keeps: the polls since the page opened. */
 const MAX_LED_POINTS = 600
@@ -25,6 +26,15 @@ export interface LedItem {
   readonly stale: boolean
 }
 
+/** One name on the board's ticker band: the page tape's row, with its market's phase. */
+export interface BandItem {
+  readonly label: string
+  readonly price?: number
+  readonly display?: MarketWire['priceDisplay']
+  readonly changePct?: number
+  readonly state: LedState
+}
+
 interface LedEntry {
   readonly market: string
   readonly item: LedItem
@@ -42,6 +52,19 @@ const entries = signal<readonly LedEntry[]>([])
 export const ledItems: ReadonlySignal<readonly LedItem[]> = computed(() =>
   entries.value.map((entry) => entry.item)
 )
+
+/** The ticker band's names: the page tape's rows, in its order. */
+export const bandItems: ReadonlySignal<readonly BandItem[]> = computed(() => {
+  const markets = knownMarkets.value
+
+  return tapeRows.value.map((row) => ({
+    label: row.ticker,
+    ...(row.price === undefined ? {} : { price: row.price }),
+    ...(row.display === undefined ? {} : { display: row.display }),
+    ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
+    state: stateOf(markets.find((market) => market.market === row.market)),
+  }))
+})
 
 /** The home market's benchmark among the items; absent until the overview carries it. */
 export const homeIndex: ReadonlySignal<LedItem | undefined> = computed(() => {

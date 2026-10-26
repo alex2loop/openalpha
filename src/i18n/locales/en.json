@@ -255,7 +255,6 @@
     "office.rhythm.overtime": "still running {what}",
     "office.led.closed": "closed",
     "office.led.at": "prices at {time}",
-    "office.led.lastClose": "closing prices",
     "office.tip.printer": "Printer",
     "office.tip.printerLine": "Printing the {topic} report",
     "office.tip.storeLine": "Prices for {done}/{total} {market} names updated",

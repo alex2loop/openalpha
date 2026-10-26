@@ -1,42 +1,21 @@
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import type { MarketWire } from '@/app/server/wire/market'
-import type { TradingQuoteWire } from '@/app/server/wire/trading'
-import {
-  freshCalls,
-  keyOf,
-  knownMarkets,
-  overviewBlock,
-  priceDisplayOf,
-  profileBlock,
-  quotesBlock,
-  stopBreaches,
-} from '@/web/state/market'
+import { freshCalls, keyOf, stopBreaches } from '@/web/state/market'
 import { reducedMotion } from '@/web/state/prefs'
-import { isSegmentOn } from '@/web/state/profile'
 import { isFirstRun } from '@/web/state/session'
+import { type TapeRow, tapeRows } from '@/web/state/tape'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 import './tape.css'
 
-interface TapeRow {
-  readonly key: string
-  readonly market: string
-  readonly ticker: string
-  readonly price?: number
-  readonly changePct?: number
-  /** Absent for an index level, which prints bare. */
-  readonly display?: MarketWire['priceDisplay']
-}
-
 type Note = 'breach' | 'call' | undefined
 
 /** The strip under the header: each market's benchmark and the watchlist, scrolling by CSS alone. */
 export function Tape() {
-  const rows = buildRows()
+  const rows = tapeRows.value
   const breached = new Set(stopBreaches.value.map((stop) => keyOf(stop.instrument)))
   const called = new Set(freshCalls.value.map((call) => keyOf(call.instrument)))
   const resolveNote = (row: TapeRow): Note => {
@@ -133,60 +112,5 @@ function useFlash(price: number | undefined): {
     clearFlash: () => {
       flash.value = undefined
     },
-  }
-}
-
-// The benchmark (VN-Index, BTC) of each market whose segment is on, off the overview, then the
-// watchlist names it does not already carry. No benchmark shows before the profile is read.
-function buildRows(): readonly TapeRow[] {
-  const profile = profileBlock.view.value.data
-  const traded = knownMarkets.value.filter(
-    (market) => profile !== undefined && isSegmentOn(profile, market.segment)
-  )
-  const benchmarks = traded.flatMap(toBenchmarkRows)
-  const known = new Set(benchmarks.map((row) => row.key))
-  const watched = (quotesBlock.view.value.data?.quotes ?? [])
-    .map(toQuoteRow)
-    .filter((row) => !known.has(row.key))
-
-  return [...benchmarks, ...watched]
-}
-
-function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
-  const { benchmark } = market
-  const block = overviewBlock.view.value.data?.markets.find((held) => held.market === market.market)
-  const row = block?.rows.find(
-    (overview) => benchmark !== undefined && keyOf(overview.instrument) === keyOf(benchmark)
-  )
-
-  if (benchmark === undefined || block === undefined || row === undefined) {
-    return []
-  }
-
-  // A block with no price currency quotes index levels.
-  const display = block.priceCurrency === undefined ? undefined : market.priceDisplay
-
-  return [
-    {
-      key: keyOf(benchmark),
-      market: benchmark.market,
-      ticker: benchmark.ticker,
-      ...(row.price === undefined ? {} : { price: row.price }),
-      ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
-      ...(display === undefined ? {} : { display }),
-    },
-  ]
-}
-
-function toQuoteRow(quote: TradingQuoteWire): TapeRow {
-  const display = quote.kind === 'index' ? undefined : priceDisplayOf(quote.market)
-
-  return {
-    key: keyOf(quote),
-    market: quote.market,
-    ticker: quote.ticker,
-    price: quote.last,
-    ...(quote.changePct === undefined ? {} : { changePct: quote.changePct }),
-    ...(display === undefined ? {} : { display }),
   }
 }
