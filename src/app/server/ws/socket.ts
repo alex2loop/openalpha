@@ -67,6 +67,8 @@ interface WsRunControl {
 
 export interface WsServices {
   readonly agents: ReadonlyMap<string, AgentProfile>
+  /** `[api] orders`: whether `/trade` may run from the app. */
+  readonly apiOrders: boolean
   readonly bindings: ChatBindingStore
   readonly bus: EventBus
   readonly commandLane: CommandLane

@@ -12,6 +12,7 @@ import { resolveAgentId } from '@/app/server/ws/chat'
 import {
   registerCommandRun,
   send,
+  sendOperatorFailure,
   sendRunError,
   toLaneTag,
   toTurnTag,
@@ -24,6 +25,7 @@ import { RunHalted } from '@/core/errors'
 import { runId as brandRunId, LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale, t } from '@/i18n'
+import { TRADE_COMMAND_NAME } from '@/trading/api'
 
 type ResolvedSlash = ReturnType<SlashDispatcher['resolve']>
 
@@ -63,6 +65,12 @@ export async function runSlash(
   const controller = new AbortController()
   const resolved = ws.data.services.slashDispatcher.resolve(line)
   const longRunning = resolved?.policy.execution !== undefined
+
+  if (resolved?.command.name === TRADE_COMMAND_NAME && !ws.data.services.apiOrders) {
+    sendOperatorFailure(ws, { key: 'errors.apiOrdersOff' }, toLaneTag(input.id))
+
+    return null
+  }
 
   if (longRunning && !registerCommandRun(ws, sessionId, controller)) {
     return null

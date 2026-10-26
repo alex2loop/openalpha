@@ -13,12 +13,12 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/api'
 import { apiError, json } from '@/app/server/http/dispatch'
-import { parsePathId, readJsonBody } from '@/app/server/routes/params'
+import { localeOf, parsePathId, readJsonBody } from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 
 const LOGIN_NAME = 'chatgpt'
 /** How long a sign-in waits for the browser or the device code, as the CLI's `auth login` does. */
@@ -251,6 +251,15 @@ async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promis
 
     return json(
       (denied ? { ok: true } : { ok: false, reason: 'not_found' }) satisfies PairingDecisionResult
+    )
+  }
+
+  // Behind `public_url` nobody at the page is known to be the operator, and an approval grants a
+  // chat access to the whole agent.
+  if (ctx.app.config.api.publicUrl !== undefined) {
+    return apiError(
+      'conflict',
+      t(localeOf(ctx), 'errors.pairingApproveServerOnly', { brand: BRAND.name, code })
     )
   }
 

@@ -1,6 +1,7 @@
 import type { ApiHandle, ApiRouteSpec } from '@/app/types'
 import type { App, ServiceProvider } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import { withApiRunLimits } from '@/app/server/exposure'
 import { createLiveFeed, type LiveFeed } from '@/app/server/feed/live'
 import { ensureApiToken } from '@/app/server/http/auth'
 import { startApi } from '@/app/server/http/server'
@@ -68,7 +69,7 @@ const ROUTES = [
 // with [api] enabled.
 export const apiServiceProvider: ServiceProvider = {
   name: 'api',
-  register(bind): void {
+  register(bind, extend): void {
     bind('apiRoutes', () => {
       assertRouteList(ROUTES)
 
@@ -76,6 +77,7 @@ export const apiServiceProvider: ServiceProvider = {
     })
 
     bind('apiStarter', () => startApiSurface)
+    extend('runner', (runner, app) => withApiRunLimits(runner, app))
   },
 }
 

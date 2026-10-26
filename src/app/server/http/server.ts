@@ -179,6 +179,7 @@ function wsUpgradeResponse(
 function resolveWsServices(app: App): WsServices {
   return {
     agents: app.resolve('agents'),
+    apiOrders: app.config.api.orders,
     bindings: app.resolve('chatBindingStore'),
     bus: app.resolve('bus'),
     commandLane: app.resolve('commandLane'),

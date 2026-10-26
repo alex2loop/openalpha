@@ -195,7 +195,7 @@ export {
   REQUESTS_REPLY_KIND,
   WORKING_REPLY_KIND,
 } from '@/engine/mcp/jobs/tools'
-export { toAdvertisedTools } from '@/engine/mcp/serve-core'
+export { isClientApprovalWithheld, toAdvertisedTools } from '@/engine/mcp/serve-core'
 export { buildHostSkill } from '@/engine/mcp/skill'
 export { toAgentResearchResult } from '@/engine/research/agent-result'
 export { RESEARCH_QUERY_MAX_CHARS } from '@/engine/research/contracts'

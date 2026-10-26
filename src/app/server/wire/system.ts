@@ -17,7 +17,7 @@ export interface Capabilities {
   readonly quotes: boolean
   readonly portfolio: boolean
   readonly suggestions: boolean
-  /** A venue can place orders: the /v1/trade routes answer. */
+  /** A venue can place orders and `[api] orders` is on: the /v1/trade routes answer. */
   readonly orders: boolean
 }
 

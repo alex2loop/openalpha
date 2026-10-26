@@ -103,7 +103,7 @@ this document — neither imports the other.
 | DELETE | `/v1/jobs/:id` | yes | — | `{ "ok": true }`: a run in flight is cancelled, and a price job's alert is disabled with it. The whole id: a prefix or an unknown id is `not_found`, text that is no id at all is `invalid_body` | — |
 | POST | `/v1/jobs/:id/pause`, `/v1/jobs/:id/resume` | yes | — | `{ "ok": true }`; `not_found` for an unknown id; resume of a `price` job whose alert has fired or been removed is `conflict` with a `message`, since nothing could start it | — |
 | POST | `/v1/jobs/:id/run` | yes | — | 202 `{ "ok": true }` once the run is started, not when it ends: its answer reaches the bell as `schedule_result`. It runs under the daemon, so a client that hangs up cannot cancel it. `conflict` for a paused job; a job already running drops the second run | — |
-| GET · POST | `/v1/pairing` | yes | `PairingDecisionBody` (POST) | `PairingList` (`pending`: codes waiting; `paired`: `{channel,chatId}` for every chat already paired, at most 200 per channel, in chat id order) / `PairingDecisionResult` | `pairing.json` |
+| GET · POST | `/v1/pairing` | yes | `PairingDecisionBody` (POST) | `PairingList` (`pending`: codes waiting; `paired`: `{channel,chatId}` for every chat already paired, at most 200 per channel, in chat id order) / `PairingDecisionResult`. While `[api] public_url` is set, `approve` answers 409 `conflict` with a sentence naming `pair approve <code>` on the server; `deny` is unchanged | `pairing.json` |
 | DELETE | `/v1/pairing/:channel/:chatId` | yes | — | `PairingRevokeResult` `{ revoked }`: the chat's pairing is taken back and its next message is asked for a code again; false when it was not paired and held no code. A malformed channel or chat id is `invalid_body` | `pairing.revoke.json` |
 | POST | `/v1/runs/:runId/stop` | yes | — | 202 `RunStopWire` `{ stopped: true }`: the run was told to stop, whatever channel started it (stopping is safe, answering is not), and ends as `run_finished` with `outcome` `aborted` (an agent run or a command). A run that has finished or never existed is `not_found` with a `message` in the daemon's language; a malformed id is `invalid_body` | `run.stop.json` |
 | POST | `/v1/respond` | yes | `RespondBody` | `{ "ok": true }` | `respond.approval.json` |
@@ -231,7 +231,9 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   `screen-delta` section's rows are typed `{ ticker, direction: 'entered' | 'left' }`: the names
   that joined or left the ranked board since the session before.
 - **Orders (`/v1/trade`)** answer only with the `orders` capability: a venue with keys that can
-  place orders (crypto exchanges); otherwise 503. An order is staged in chat (`/trade spot …`) or
+  place orders (crypto exchanges) and `[api] orders` on (off by default while `public_url` is set);
+  otherwise every order route, halt included, is 503. With `[api] orders` off, a `/trade` line on
+  `/v1/ws` is a chat `error` naming the key, and app-channel runs are never offered `order_place`. An order is staged in chat (`/trade spot …`) or
   by the agent, and confirmed here. The token is the idempotency key and is spent by the claim, so a
   retried confirm answers `unknown-token` and places nothing. A confirm runs to the end even when
   the client hangs up (it may wait about 20 s for a fill); a 504 does not mean nothing was placed,

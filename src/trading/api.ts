@@ -194,6 +194,7 @@ export {
 } from '@/trading/features/market-data/ops/held-watch-notice'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
+export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
 export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
