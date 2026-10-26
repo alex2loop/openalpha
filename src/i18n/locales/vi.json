@@ -155,6 +155,8 @@
     "office.perf.frame3d": "Khung 3D: {ms} ms",
     "office.perf.renders": "Vẽ lại: {renders} lần mỗi giây (mức {budget})",
     "office.perf.drawCalls": "Số lần gọi vẽ: {calls} (tối đa {max})",
+    "office.perf.street": "Bước mô phỏng phố: {ms} ms (mức {budget} ms)",
+    "office.perf.streetPaint": "Vẽ lại phố: {ms} ms (mức {budget} ms)",
     "office.scene.view": "Cách xem văn phòng",
     "office.scene.viewTip": "3D cần máy có card đồ họa; 2D nhẹ hơn.",
     "office.scene.mode2d": "2D",

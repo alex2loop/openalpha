@@ -11,6 +11,7 @@ import { buildLifePieces, paintLifeOver } from '@/web/scene/render2d/life-props'
 import { paintLighting } from '@/web/scene/render2d/lights'
 import { paintPapers, paintTray } from '@/web/scene/render2d/papers'
 import { isBackProp, paintProp, tieRankOf } from '@/web/scene/render2d/props'
+import { blitStreet } from '@/web/scene/render2d/street/blit'
 import {
   buildTeamPieces,
   isTeamMoving,
@@ -29,12 +30,13 @@ import {
   type ScreenPoint,
   type SimView,
   type Size,
+  type StreetFrame,
   WORLD,
 } from '@/web/scene/types'
-import { clampPan, FRAME_RECT, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'
+import { clampPan, reportProjection, view, ZOOM_STEP } from '@/web/scene/view'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
-import { roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
+import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 import { selectedActor } from '@/web/state/focus'
 import { unread } from '@/web/state/notices'
@@ -183,7 +185,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   const isFeeding = !motion.isReduced && feedKOf(sim.life, now) < 1
 
   paintFloor(surface, { sim, scene, light, stretch: fit.stretch, now, motion })
-  blitFloor(surface, { sky: light.sky, dpr })
+  blitFloor(surface, { street: sim.street, dpr })
 
   return (
     motion.isOn ||
@@ -385,24 +387,19 @@ function resolveBackground(surface: Surface, job: FloorJob): HTMLCanvasElement {
   return canvas
 }
 
-// The stage behind the frame, the sky through the north glass, then the stretched floor.
+// The stage behind the frame, the street around the building, then the stretched floor.
 function blitFloor(
   surface: Surface,
-  job: { readonly sky: readonly [string, string]; readonly dpr: number }
+  job: { readonly street: StreetFrame; readonly dpr: number }
 ): void {
   const { context: g, canvas, placement } = surface
   const { scale, originX, originY } = placement
-  const { sky } = job
-  const gradient = g.createLinearGradient(0, FRAME_RECT.y, 0, WALL_BAND_PX)
 
   g.setTransform(1, 0, 0, 1, 0, 0)
   g.fillStyle = resolveTokens(surface).stage
   g.fillRect(0, 0, canvas.width, canvas.height)
-  gradient.addColorStop(0, sky[0])
-  gradient.addColorStop(1, sky[1])
   g.setTransform(scale * job.dpr, 0, 0, scale * job.dpr, originX * job.dpr, originY * job.dpr)
-  g.fillStyle = gradient
-  g.fillRect(0, FRAME_RECT.y, WORLD.w, WALL_BAND_PX - FRAME_RECT.y)
+  blitStreet(g, job.street)
   g.setTransform(1, 0, 0, 1, 0, 0)
   g.imageSmoothingEnabled = false
   g.drawImage(

@@ -5,7 +5,7 @@ import type { RoomId, SimView } from '@/web/scene/types'
 import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
 import { agenda, startAgenda } from '@/web/scene/data/agenda'
 import { heldNewsPins, indexDrop, startBoard, todayCalls } from '@/web/scene/data/board'
-import { homeMarket, startHome } from '@/web/scene/data/home'
+import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
 import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
 import { AddDesk } from '@/web/scene/overlay/add-desk'
@@ -21,7 +21,7 @@ import {
   readOverlayInputs,
   startOverlay,
 } from '@/web/scene/overlay/overlay-pass'
-import { PerfReadout } from '@/web/scene/overlay/perf-readout'
+import { PerfReadout, type StreetReader } from '@/web/scene/overlay/perf-readout'
 import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
 import {
@@ -35,6 +35,7 @@ import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { syncTwin } from '@/web/scene/overlay/twin'
 import { ViewNote } from '@/web/scene/overlay/view-note'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
+import { createStreetPainter, type StreetPainter } from '@/web/scene/render2d/street/paint'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isChildActorId } from '@/web/scene/sim/actors/roster'
@@ -42,8 +43,16 @@ import { type ActorState, createDirector, type Director } from '@/web/scene/sim/
 import { createLife, type Life, lampGlowOf } from '@/web/scene/sim/life/life'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
+import { createStreet, type Street } from '@/web/scene/sim/street/street'
 import { createTeam, type Team } from '@/web/scene/sim/team/team'
-import { bringIntoView, canFollow, readLastInteractionAt, view, zoomToRoom } from '@/web/scene/view'
+import {
+  bringIntoView,
+  canFollow,
+  readLastInteractionAt,
+  view,
+  visibleRect,
+  zoomToRoom,
+} from '@/web/scene/view'
 import { ROOMS, roomById } from '@/web/scene/world/rooms'
 import { agents } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
@@ -52,7 +61,7 @@ import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
 import { findRun, pending, runs } from '@/web/state/live'
 import { unread } from '@/web/state/notices'
 import { colorScheme, colourPair, lampsOff, lightByHour, reducedMotion } from '@/web/state/prefs'
-import { state } from '@/web/state/session'
+import { locale, state } from '@/web/state/session'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 
@@ -60,18 +69,20 @@ import './canvas.css'
 
 // The tray counts unread notices; before the first read there are none to count.
 const unreadCount = computed(() => unread.value ?? 0)
+
 /** The office scene: the mounted renderer driven by the sim loop, sized to its pane, with its
  *  overlays on top. */
 export function SceneCanvas() {
   const host = useRef<HTMLDivElement>(null)
   const [renderers] = useState(createRenderers)
+  const [streetSlot] = useState<StreetReader>(() => ({ read: readNoStreet }))
   const renderer = renderers.host
 
   useLayoutEffect(() => {
     const element = host.current
 
-    return element === null ? undefined : mountScene(element, renderers)
-  }, [renderers])
+    return element === null ? undefined : mountScene(element, renderers, streetSlot)
+  }, [renderers, streetSlot])
 
   useEffect(() => effect(syncSceneZone), [])
 
@@ -94,7 +105,7 @@ export function SceneCanvas() {
       <MeetingBar />
       <RadialMenu />
       <Toolbar />
-      <PerfReadout renderer={renderer} />
+      <PerfReadout renderer={renderer} street={streetSlot} />
       <ViewNote />
     </div>
   )
@@ -106,24 +117,28 @@ function createRenderers(): Renderers {
   return { flat, host: createRendererHost(flat) }
 }
 
-// Everything it arms, the returned stop releases: data reads, the director, the overlay, loop,
-// input, observer, listeners and the renderer.
-function mountScene(element: HTMLElement, renderers: Renderers): () => void {
+// Everything it arms, the returned stop releases: data reads, the director, the street and its
+// painter, the overlay, loop, input, observer, listeners and the renderer.
+function mountScene(
+  element: HTMLElement,
+  renderers: Renderers,
+  streetSlot: StreetReader
+): () => void {
   const renderer = renderers.host
   const stops = [startHome(), startBoard(), startRoomStatus(), startAgenda(), startTeamCalls()]
-  const { director, life, team } = createCrew()
+  const sims = createCrew()
 
   renderer.mount(element)
 
   const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
   const input: InputSlot = { current: undefined }
-  const { loop, readView } = createSceneLoop({ director, life, team, renderer, overlay, input })
+  const { loop, readView } = createSceneLoop({ ...sims, renderer, overlay, input })
   const offs = [
     startViews({
       renderers,
       element,
       input,
-      pointer: { renderer, readView, director, wake: loop.wake },
+      pointer: { renderer, readView, director: sims.director, wake: loop.wake },
       load3d: loadRenderer3d,
     }),
     watchPane(element, loop),
@@ -131,9 +146,10 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
       readSceneInputs()
       untracked(loop.wake)
     }),
-    effect(() => answerFocusRequest(director)),
+    effect(() => answerFocusRequest(sims.director)),
     onWireEvent('any', loop.wake),
-    onWireEvent('run_started', (event) => followRun(director, event.runId)),
+    onWireEvent('run_started', (event) => followRun(sims.director, event.runId)),
+    lendStreet(streetSlot, sims),
   ]
 
   loop.start()
@@ -145,9 +161,7 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
 
     loop.stop()
     overlay.stop()
-    life.dispose()
-    director.dispose()
-    team.dispose()
+    disposeCrew(sims)
     selectActor(undefined)
     renderer.unmount()
 
@@ -157,23 +171,56 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
   }
 }
 
-// The office's people, the office life over them and the team floor; the caller disposes each.
-function createCrew(): Pick<LoopParts, 'director' | 'life' | 'team'> {
+// The office's people, the office life over them, the team floor, and the street with its
+// painter; the caller disposes each.
+function createCrew(): Crew {
   const director = createDirector({ runs, pending, unread: unreadCount, hub: onWireEvent })
   const team = createTeam({ agents, runs, offers: coolerOffer, hub: onWireEvent })
   const teamDesks = () => team.view(performance.now()).desks
 
-  return { director, life: createLife({ director, teamDesks, reduced: reducedMotion }), team }
+  return {
+    director,
+    life: createLife({ director, teamDesks, reduced: reducedMotion }),
+    team,
+    street: createStreet({ pack: regionPack, reduced: reducedMotion }),
+    painter: createStreetPainter(),
+  }
+}
+
+function disposeCrew(crew: Crew): void {
+  crew.life.dispose()
+  crew.director.dispose()
+  crew.team.dispose()
+  crew.street.dispose()
+  crew.painter.release()
+}
+
+// The perf readout reads the street while it is mounted; the returned stop ends that.
+function lendStreet(slot: StreetReader, parts: Pick<LoopParts, 'street' | 'painter'>): () => void {
+  slot.read = () => ({ stepMs: parts.street.stepMs(), paintMs: parts.painter.paintMs() })
+
+  return () => {
+    slot.read = readNoStreet
+  }
+}
+
+function readNoStreet(): undefined {
+  return undefined
 }
 
 interface LoopParts {
   readonly director: Director
   readonly life: Life
   readonly team: Team
+  readonly street: Street
+  readonly painter: StreetPainter
   readonly renderer: SceneRenderer
   readonly overlay: OverlayPass
   readonly input: InputSlot
 }
+
+/** What `createCrew` makes and `disposeCrew` releases; the sim view reads them all. */
+type Crew = Pick<LoopParts, 'director' | 'life' | 'team' | 'street' | 'painter'>
 
 // The sim loop over the director; each drawn frame lays the overlay out after it, and the
 // snapshot it drew is what the hit test reads.
@@ -181,7 +228,7 @@ function createSceneLoop(parts: LoopParts): {
   readonly loop: ReturnType<typeof createSimLoop>
   readonly readView: () => SimView
 } {
-  const { director, life, team, renderer, overlay, input } = parts
+  const { director, life, team, street, renderer, overlay, input } = parts
   let drawn = buildSimView(parts, 0)
   const loop = createSimLoop({
     step: (index) => {
@@ -190,8 +237,10 @@ function createSceneLoop(parts: LoopParts): {
       const isLiving = life.step(index)
       const isDirected = director.step(index)
       const isTeamed = team.step(nowMs)
+      const isStreetMoving = street.step(nowMs)
+      const isInputMoving = input.current?.step(nowMs) ?? false
 
-      return (input.current?.step(nowMs) ?? false) || isTeamed || isLiving || isDirected
+      return isInputMoving || isTeamed || isLiving || isDirected || isStreetMoving
     },
     draw: (alpha, now) => {
       drawn = buildSimView(parts, alpha)
@@ -209,31 +258,34 @@ function createSceneLoop(parts: LoopParts): {
       director.resume()
       life.resume()
       team.resume()
+      street.resume()
     },
-    nextDueAt: () => {
-      const floor = view.value.floor
-      const nowMs = performance.now()
-      const hasPeople = drawn.actors.some((actor) => actor.floor === floor)
-      const ambientAt = hasPeople ? nextAmbientAt(floor, nowMs) : Infinity
-
-      return Math.min(
-        director.nextDueAt(),
-        life.nextDueAt(),
-        team.nextDueAt(nowMs),
-        overlay.nextDueAt(),
-        input.current?.nextDueAt() ?? Infinity,
-        ambientAt
-      )
-    },
+    nextDueAt: () => nextDueOf(parts, drawn),
   })
 
   return { loop, readView: () => drawn }
 }
 
-function buildSimView(
-  parts: Pick<LoopParts, 'director' | 'life' | 'team'>,
-  alpha: number
-): SimView {
+// The soonest of every sim's next deadline, the overlay's, the input's and the people's ambient
+// motion on the floor shown.
+function nextDueOf(parts: LoopParts, drawn: SimView): number {
+  const floor = view.value.floor
+  const nowMs = performance.now()
+  const hasPeople = drawn.actors.some((actor) => actor.floor === floor)
+  const ambientAt = hasPeople ? nextAmbientAt(floor, nowMs) : Infinity
+
+  return Math.min(
+    parts.director.nextDueAt(),
+    parts.life.nextDueAt(),
+    parts.team.nextDueAt(nowMs),
+    parts.street.nextDueAt(nowMs),
+    parts.overlay.nextDueAt(),
+    parts.input.current?.nextDueAt() ?? Infinity,
+    ambientAt
+  )
+}
+
+function buildSimView(parts: Crew, alpha: number): SimView {
   const off = lampsOff.value
   const lit = new Set<RoomId>(ROOMS.filter((room) => !off.has(room.id)).map((room) => room.id))
   const office = parts.director.view()
@@ -253,6 +305,7 @@ function buildSimView(
     light: { hour: pageMinute.value.minute / MINUTES_PER_HOUR, followsHour: lightByHour.value },
     life: parts.life.view(),
     team: parts.team.view(performance.now()),
+    street: parts.painter.paint(parts.street.view(), visibleRect(), pageMinute.value),
   }
 }
 
@@ -293,6 +346,8 @@ function readSceneInputs(): void {
   homePhase.value
   agents.value
   coolerOffer.value
+  regionPack.value
+  locale.value
   readOverlayInputs()
 }
 

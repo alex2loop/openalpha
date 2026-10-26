@@ -5,6 +5,18 @@ import type { ActorId, FloorId, Point, Rect, RoomId, Size } from '@/web/scene/ty
 /** What both renderers frame at floor zoom: the floor plus the margin the 3D camera shows around
  *  it (the street to the sides and below, the sky over the north glass). */
 export const FRAME_RECT: Rect = Object.freeze({ x: -112, y: -146, w: 864, h: 570 })
+// How far the street runs past the frame: the side parks and the blocks beyond, the landmark's top,
+// the south plaza.
+const STREET_SIDE_PX = 480
+const STREET_NORTH_PX = 154
+const STREET_SOUTH_PX = 240
+/** What the street canvas paints, and the farthest the camera pans once zoomed in. */
+export const STREET_RECT: Rect = Object.freeze({
+  x: FRAME_RECT.x - STREET_SIDE_PX,
+  y: FRAME_RECT.y - STREET_NORTH_PX,
+  w: FRAME_RECT.w + 2 * STREET_SIDE_PX,
+  h: FRAME_RECT.h + STREET_NORTH_PX + STREET_SOUTH_PX,
+})
 /** One zoom step multiplies the fitted floor's scale by this. */
 export const ZOOM_STEP = 1.4
 const MAX_ZOOM_STEPS = 4
@@ -159,11 +171,14 @@ export function maxZoomSteps(): number {
   return Math.min(MAX_ZOOM_STEPS, Math.max(0, reach))
 }
 
-/** Keeps the pane inside the frame; an axis the frame does not fill stays centred on it. */
+/** Keeps the pane inside the range `scale` pans over; an axis the range does not fill stays
+ *  centred on it. */
 export function clampPan(center: Point, scale: number, pane: Size): Point {
+  const range = panRangeOf(scale)
+
   return {
-    x: clampAxis(center.x, [FRAME_RECT.x, FRAME_RECT.w], pane.w / 2 / scale),
-    y: clampAxis(center.y, [FRAME_RECT.y, FRAME_RECT.h], pane.h / 2 / scale),
+    x: clampAxis(center.x, [range.x, range.w], pane.w / 2 / scale),
+    y: clampAxis(center.y, [range.y, range.h], pane.h / 2 / scale),
   }
 }
 
@@ -254,17 +269,34 @@ export function readLastInteractionAt(): number {
   return lastInteractionAt
 }
 
-/** More of the frame lies that way (-1 left, 1 right) beyond the pane. */
+/** More of the pan range lies that way (-1 left, 1 right) beyond the pane. */
 export function canPanToward(dir: -1 | 1): boolean {
   const seen = visibleRect()
+  const range = panRangeOf(projection.value.scale)
 
   return dir < 0
-    ? seen.x > FRAME_RECT.x + EDGE_SLACK_PX
-    : seen.x + seen.w < FRAME_RECT.x + FRAME_RECT.w - EDGE_SLACK_PX
+    ? seen.x > range.x + EDGE_SLACK_PX
+    : seen.x + seen.w < range.x + range.w - EDGE_SLACK_PX
 }
 
 function noteInteraction(): void {
   lastInteractionAt = performance.now()
+}
+
+// The frame at the fitted floor, the whole street from one zoom step up, and between the two while
+// the 3D camera eases, so zooming out eases back to the default framing.
+function panRangeOf(scale: number): Rect {
+  const { baseScale } = projection.value
+  const steps =
+    baseScale > 0 && scale > baseScale ? Math.log(scale / baseScale) / Math.log(ZOOM_STEP) : 0
+  const k = Math.min(1, steps)
+
+  return {
+    x: FRAME_RECT.x + (STREET_RECT.x - FRAME_RECT.x) * k,
+    y: FRAME_RECT.y + (STREET_RECT.y - FRAME_RECT.y) * k,
+    w: FRAME_RECT.w + (STREET_RECT.w - FRAME_RECT.w) * k,
+    h: FRAME_RECT.h + (STREET_RECT.h - FRAME_RECT.h) * k,
+  }
 }
 
 function centerAt(point: Point, steps: number): Point {
@@ -299,7 +331,8 @@ function isOnScreen(rect: Rect): boolean {
   )
 }
 
-function visibleRect(): Rect {
+/** The world rect under the shown renderer's pane, as its last draw placed it. */
+export function visibleRect(): Rect {
   const { pane, scale, originX, originY } = projection.value
 
   return { x: -originX / scale, y: -originY / scale, w: pane.w / scale, h: pane.h / scale }
