@@ -25,6 +25,8 @@ interface SimLoop {
   wake(): void
   /** The stage left the page (a hidden pane) or came back; while it is away nothing runs. */
   show(isShown: boolean): void
+  /** Started, on a visible tab and with the stage shown. */
+  isRunning(): boolean
 }
 
 // One loop's mutable state; `listeners` is set exactly while it is started.
@@ -67,6 +69,7 @@ export function createSimLoop(deps: SimLoopDeps): SimLoop {
     stop: () => stop(loop),
     wake: () => wake(loop),
     show: (isShown) => show(loop, isShown),
+    isRunning: () => isRunning(loop),
   }
 }
 
@@ -106,8 +109,12 @@ function show(loop: LoopState, isShown: boolean): void {
   }
 }
 
+function isRunning(loop: LoopState): boolean {
+  return loop.listeners !== undefined && !document.hidden && loop.isShown
+}
+
 function wake(loop: LoopState): void {
-  if (loop.listeners === undefined || document.hidden || !loop.isShown) {
+  if (!isRunning(loop)) {
     return
   }
 

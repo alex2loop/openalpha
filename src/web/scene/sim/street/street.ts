@@ -74,8 +74,13 @@ export interface Street {
   nextDueAt(): number
   /** Steps the street out of sight while the loop sleeps and calls `wake` once something comes
    *  into view; the returned stop releases its timer. */
-  watchArrivals(wake: () => void): () => void
+  watchArrivals(loop: ArrivalLoop): () => void
   dispose(): void
+}
+
+interface ArrivalLoop {
+  readonly wake: () => void
+  readonly isRunning: () => boolean
 }
 
 interface StreetDeps {
@@ -134,7 +139,7 @@ export function createStreet(deps: StreetDeps): Street {
     resume,
     stepMs: () => state.stepMs,
     nextDueAt: () => nextDueOf(state),
-    watchArrivals: (wake) => watchArrivals(state, wake),
+    watchArrivals: (loop) => watchArrivals(state, loop),
     dispose: stopWatch,
   }
 }
@@ -306,12 +311,12 @@ function stepAll(state: StreetState, nowMs: number): void {
 }
 
 // A sim-only check: it never draws, and wakes the loop only for something that came into view.
-function watchArrivals(state: StreetState, wake: () => void): () => void {
+function watchArrivals(state: StreetState, loop: ArrivalLoop): () => void {
   const timer = setInterval(() => {
     const nowMs = performance.now()
     const isLoopStepping = nowMs - state.lastStepAt < ARRIVAL_CHECK_MS
 
-    if (document.hidden || state.deps.reduced.peek() || isLoopStepping) {
+    if (!loop.isRunning() || state.deps.reduced.peek() || isLoopStepping) {
       return
     }
 
@@ -321,7 +326,7 @@ function watchArrivals(state: StreetState, wake: () => void): () => void {
     const rect = movingRectOf(visibleRect())
 
     if (state.hasErrandCome || isMovingInView(state, rect) || isFrontMoving(state.front, rect)) {
-      wake()
+      loop.wake()
     }
   }, ARRIVAL_CHECK_MS)
 
