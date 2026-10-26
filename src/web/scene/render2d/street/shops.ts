@@ -6,7 +6,7 @@ import type { RegionPack } from '@/web/scene/world/regions'
 import { paintShop } from '@/web/scene/render2d/street/shop-art'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { isLateNight, SHOP_RISE, shopSpansOf } from '@/web/scene/world/frontage'
-import { isShopOpen } from '@/web/scene/world/regions'
+import { isShopOpen, type ShopRow } from '@/web/scene/world/regions'
 import { NORTH } from '@/web/scene/world/street-layout'
 import { tr } from '@/web/text/tr'
 
@@ -44,7 +44,7 @@ const GUARD = Object.freeze({
 })
 
 /** The shop row on the far pavement either side of the frontage building: each front's sign in
- *  its kind's colours, awning, window and door, open by the page clock or behind its roller
+ *  its own colours with its name or kind's word, awning, window and door, café tables, open by the page clock or behind its roller
  *  shutter; a late stall and the guard after the shops close. A shutter on the move and the guard
  *  are drawn on the moving layer. */
 export const SHOPS_PART: PaintPart = {
@@ -80,8 +80,6 @@ function paintRow(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetM
 
   for (const span of spans) {
     if (span.row.kind !== 'lobby') {
-      const word = SHOP_WORDS[span.row.kind]
-
       g.save()
       g.translate(span.x, NORTH.farTop)
       paintShop(g, {
@@ -89,7 +87,7 @@ function paintRow(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetM
         isOpen: isShopOpen(span.row, minute.clock),
         dark,
         detail: minute.detail,
-        word: word === undefined ? undefined : tr(word),
+        word: wordOf(span.row),
       })
       g.restore()
     }
@@ -154,8 +152,6 @@ function paintShutters(g: CanvasRenderingContext2D, job: ShutterJob): void {
     const span = spans[shop]
 
     if (span !== undefined) {
-      const word = SHOP_WORDS[span.row.kind]
-
       g.save()
       g.translate(span.x, NORTH.farTop)
       paintShop(g, {
@@ -163,12 +159,19 @@ function paintShutters(g: CanvasRenderingContext2D, job: ShutterJob): void {
         isOpen: true,
         dark: job.dark,
         detail: job.minute.detail,
-        word: word === undefined ? undefined : tr(word),
+        word: wordOf(span.row),
         drop,
       })
       g.restore()
     }
   }
+}
+
+// The shop's own name, else its kind's word; a shutter or an alley shows none.
+function wordOf(row: ShopRow): string | undefined {
+  const word = SHOP_WORDS[row.kind]
+
+  return row.name ?? (word === undefined ? undefined : tr(word))
 }
 
 // The guard in a reflective coat and cap, walking the frontage; his legs swap every stride.

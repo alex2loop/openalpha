@@ -83,12 +83,25 @@ export interface BusStop {
 /** One front of the block face, in street order, left to right. Open `hours`: a closed `shutter`
  *  is `[0, 0]`; a day and night shop is `[0, 1440]`, so it never closes when `hours[0] === 0 &&
  *  hours[1] >= 1440` (`hours[1] >= 1440` alone would also match a shop that closes at midnight).
- *  `item`, when set, is what an errand there brings back. */
+ *  `item`, when set, is what an errand there brings back. `name` is the shop's own name, never
+ *  translated (absent: the sign reads its kind's word); `sign` its colours; `tables`, café
+ *  tables out on the pavement while it serves. */
 export interface ShopRow {
   readonly kind: ShopKind
   readonly frontageM: number
   readonly hours: MinuteRange
   readonly item?: ErrandItem
+  readonly name?: string
+  readonly sign?: ShopSign
+  readonly tables?: true
+}
+
+/** A front's sign: its band and the ink on it, and the awning's two stripes (absent: band and
+ *  ink). */
+export interface ShopSign {
+  readonly band: string
+  readonly ink: string
+  readonly awning?: readonly [string, string]
 }
 
 /** The traffic, as shares (each group sums to one): vehicles by kind, motorbikes by shape, cars

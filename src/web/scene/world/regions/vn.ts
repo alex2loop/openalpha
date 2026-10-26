@@ -1,4 +1,4 @@
-import type { DayRange, MinuteRange, RegionPack } from '@/web/scene/world/regions'
+import type { DayRange, MinuteRange, RegionPack, ShopSign } from '@/web/scene/world/regions'
 import { HOURS_PER_DAY, MINUTES_PER_HOUR, shiftDay } from '@/web/text/time-units'
 
 const FESTIVE_FIRST_YEAR = 2026
@@ -43,6 +43,9 @@ const around = (day: string, daysBefore: number, daysAfter: number): DayRange =>
   shiftDay(day, daysAfter),
 ]
 
+const sign = (band: string, ink: string, awning?: readonly [string, string]): ShopSign =>
+  awning === undefined ? { band, ink } : { band, ink, awning }
+
 const ALL_DAY: MinuteRange = [0, hm(HOURS_PER_DAY)]
 const SHUT: MinuteRange = [0, 0]
 
@@ -77,28 +80,141 @@ export const VN_PACK = Object.freeze({
     { name: 'Chợ Cũ', routes: ['36', '152'], side: 'near' },
   ],
   shops: [
-    { kind: 'bank', frontageM: 6, hours: [hm(7, 30), hm(17)] },
-    { kind: 'cafe', frontageM: 5, hours: [hm(6), hm(21)], item: 'cup' },
-    { kind: 'food', frontageM: 5, hours: [hm(6, 30), hm(22)], item: 'box' },
-    { kind: 'food', frontageM: 5, hours: [hm(6), hm(22)], item: 'box' },
-    { kind: 'cafe', frontageM: 7, hours: [hm(7), hm(22)], item: 'cup' },
-    { kind: 'store', frontageM: 5, hours: ALL_DAY, item: 'bag' },
-    { kind: 'pharmacy', frontageM: 5, hours: [hm(7), hm(21, 30)], item: 'bag' },
-    { kind: 'food', frontageM: 4.5, hours: [hm(6), hm(22)], item: 'box' },
-    { kind: 'food', frontageM: 4.5, hours: [hm(5, 30), hm(21, 30)], item: 'bag' },
-    { kind: 'cafe', frontageM: 4.5, hours: [hm(10), hm(22)], item: 'cup' },
-    { kind: 'shutter', frontageM: 4, hours: SHUT },
+    { kind: 'bank', frontageM: 6, hours: [hm(7, 30), hm(17)], sign: sign('#1B6B4F', '#FFFFFF') },
+    {
+      kind: 'cafe',
+      frontageM: 5,
+      hours: [hm(6), hm(21)],
+      item: 'cup',
+      name: 'Cà Phê Thanh',
+      sign: sign('#7A4A2B', '#F4E7C8'),
+    },
+    {
+      kind: 'food',
+      frontageM: 5,
+      hours: [hm(6, 30), hm(22)],
+      item: 'box',
+      name: 'Bún Chả Hồ Gươm',
+      sign: sign('#B8472E', '#FFF2D6'),
+    },
+    {
+      kind: 'food',
+      frontageM: 5,
+      hours: [hm(6), hm(22)],
+      item: 'box',
+      name: 'Phở Sol Sol',
+      sign: sign('#C9A24A', '#3B2A14'),
+    },
+    {
+      kind: 'cafe',
+      frontageM: 7,
+      hours: [hm(7), hm(22)],
+      item: 'cup',
+      sign: sign('#A6192E', '#FFFFFF'),
+      tables: true,
+    },
+    {
+      kind: 'store',
+      frontageM: 5,
+      hours: ALL_DAY,
+      item: 'bag',
+      sign: sign('#DA291C', '#FFFFFF', ['#DA291C', '#F68B1F']),
+    },
+    {
+      kind: 'pharmacy',
+      frontageM: 5,
+      hours: [hm(7), hm(21, 30)],
+      item: 'bag',
+      sign: sign('#1F8A4C', '#FFFFFF'),
+    },
+    {
+      kind: 'food',
+      frontageM: 4.5,
+      hours: [hm(6), hm(22)],
+      item: 'box',
+      name: 'Quán Ăn Cô Tấm',
+      sign: sign('#C98A3B', '#3B1F14'),
+    },
+    {
+      kind: 'food',
+      frontageM: 4.5,
+      hours: [hm(5, 30), hm(21, 30)],
+      item: 'bag',
+      name: 'Bánh Mì Như Lan',
+      sign: sign('#D8A93B', '#7A1F1F'),
+    },
+    {
+      kind: 'cafe',
+      frontageM: 4.5,
+      hours: [hm(10), hm(22)],
+      item: 'cup',
+      sign: sign('#E4002B', '#FFFFFF', ['#E4002B', '#FFFFFF']),
+    },
+    { kind: 'shutter', frontageM: 4, hours: SHUT, sign: sign('#6E7686', '#B9C0CC') },
     { kind: 'lobby', frontageM: 61, hours: ALL_DAY },
-    { kind: 'bank', frontageM: 6, hours: [hm(7, 30), hm(17)] },
-    { kind: 'shutter', frontageM: 5, hours: SHUT },
-    { kind: 'shutter', frontageM: 6, hours: SHUT },
+    { kind: 'bank', frontageM: 6, hours: [hm(7, 30), hm(17)], sign: sign('#D5202F', '#FFFFFF') },
+    {
+      kind: 'agency',
+      frontageM: 5,
+      hours: [hm(8, 30), hm(17, 30)],
+      name: 'Les Rives',
+      sign: sign('#2F6F7A', '#FFFFFF'),
+    },
+    {
+      kind: 'bar',
+      frontageM: 6,
+      hours: [hm(17), hm(HOURS_PER_DAY)],
+      name: 'Drinking & Healing',
+      sign: sign('#3A2F5E', '#F2D98A'),
+    },
     { kind: 'alley', frontageM: 3, hours: ALL_DAY },
-    { kind: 'cafe', frontageM: 7, hours: [hm(7), hm(22)], item: 'cup' },
-    { kind: 'cafe', frontageM: 7, hours: [hm(7), hm(22)], item: 'cup' },
-    { kind: 'food', frontageM: 6, hours: [hm(9), hm(22)], item: 'bag' },
-    { kind: 'food', frontageM: 5, hours: [hm(6, 30), hm(21, 30)], item: 'box' },
-    { kind: 'store', frontageM: 4, hours: [hm(6), hm(21, 30)], item: 'bag' },
-    { kind: 'food', frontageM: 4.5, hours: [hm(7), hm(21)], item: 'box' },
+    {
+      kind: 'cafe',
+      frontageM: 7,
+      hours: [hm(7), hm(22)],
+      item: 'cup',
+      sign: sign('#1E5E3A', '#F4EFD8'),
+      tables: true,
+    },
+    {
+      kind: 'cafe',
+      frontageM: 7,
+      hours: [hm(7), hm(22)],
+      item: 'cup',
+      sign: sign('#00704A', '#FFFFFF', ['#00704A', '#EDEBE3']),
+      tables: true,
+    },
+    {
+      kind: 'food',
+      frontageM: 6,
+      hours: [hm(9), hm(22)],
+      item: 'bag',
+      sign: sign('#E4002B', '#FFFFFF', ['#E4002B', '#F6F2EA']),
+    },
+    {
+      kind: 'food',
+      frontageM: 5,
+      hours: [hm(6, 30), hm(21, 30)],
+      item: 'box',
+      name: 'Baozi',
+      sign: sign('#B03A2E', '#FFF1D0'),
+    },
+    {
+      kind: 'store',
+      frontageM: 4,
+      hours: [hm(6), hm(21, 30)],
+      item: 'bag',
+      name: 'Cửa Hàng Dung',
+      sign: sign('#4E7FB5', '#FFFFFF'),
+    },
+    {
+      kind: 'food',
+      frontageM: 4.5,
+      hours: [hm(7), hm(21)],
+      item: 'box',
+      name: 'Grand Castella',
+      sign: sign('#E0B84A', '#5A3A12'),
+    },
   ],
   vehicles: {
     kinds: { motorbike: 0.6, car: 0.3, bus: 0.1 },
