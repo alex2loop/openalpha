@@ -1,8 +1,7 @@
 import type { WeatherFxView } from '@/web/scene/sky-types'
 import type { FloorId, LightView } from '@/web/scene/types'
-import { DEG } from '@/web/scene/clock/sun'
+import { type WindowLight, windowLightOf } from '@/web/scene/clock/window-light'
 import {
-  blindClosureOf,
   blindSpansOf,
   flashOf,
   isHazeOn,
@@ -13,17 +12,22 @@ import {
 import { WORLD } from '@/web/scene/types'
 import { WALL_BAND_PX } from '@/web/scene/world/rooms'
 
-// The sun through the glass: a warm patch on the floor beside the wall it falls through, longer
-// the lower the sun, fading in over its first degrees and under cloud.
-const PATCH = Object.freeze({
-  rgb: '255,214,150',
-  alpha: 0.16,
-  riseDeg: 8,
-  depthK: 22,
-  minDepth: 12,
-  maxDepth: 96,
+// The mockup's window light: a warm patch inside each sunlit glass side, added in 'lighter' blend,
+// reaching the depth the sun's height casts (the north and south a little shallower); and slatted
+// blinds two px wide down the west and east glass, the west's broken by its doorway.
+const PATCH = Object.freeze({ rgb: '255,214,140', alpha: 0.34, edgePx: 3, endShare: 0.6 })
+const PATCH_MIN = 0.01
+const BLIND = Object.freeze({
+  w: 2,
+  westX: 3,
+  eastX: WORLD.w - 5,
+  bottom: WORLD.h - 3,
+  slatPx: 3,
+  tone: '#EBE5D5',
+  slat: '#B9B2A0',
+  least: 0.03,
+  alphaK: 1.2,
 })
-const BLIND = Object.freeze({ w: 5, slatPx: 2, tone: '#EDE3CC', slat: '#CDBF9F' })
 
 interface SkyFxJob {
   readonly floor: FloorId
@@ -32,13 +36,15 @@ interface SkyFxJob {
   readonly now: number
 }
 
-/** The sky inside: the sun's patches, the west blinds, rain and haze on the north glass, and a
+/** The sky inside: the sun's patches, the west and east blinds, rain and haze on the north glass, and a
  *  lightning flash over the floor. */
 export function paintSkyFx(g: CanvasRenderingContext2D, job: SkyFxJob): void {
   const { light, weather } = job
 
-  paintSunPatches(g, light)
-  paintBlinds(g, { floor: job.floor, closure: blindClosureOf(light) })
+  const window = windowLightOf(light.sun, { cloud: light.cloud, rain: weather.rain })
+
+  paintSunPatches(g, window)
+  paintBlinds(g, { floor: job.floor, window })
 
   if (weather.rain > 0) {
     paintGlassRain(g, NORTH_GLASS, {
@@ -59,83 +65,92 @@ export function paintSkyFx(g: CanvasRenderingContext2D, job: SkyFxJob): void {
   }
 }
 
-function paintSunPatches(g: CanvasRenderingContext2D, light: LightView): void {
-  const { altitudeDeg, azimuthDeg } = light.sun
-
-  if (altitudeDeg <= 0) {
-    return
-  }
-
-  const strength = PATCH.alpha * (1 - light.cloud) * Math.min(1, altitudeDeg / PATCH.riseDeg)
-  const depth = Math.min(
-    PATCH.maxDepth,
-    Math.max(PATCH.minDepth, PATCH.depthK / Math.tan(altitudeDeg * DEG))
-  )
-  const east = Math.sin(azimuthDeg * DEG)
-  const north = Math.cos(azimuthDeg * DEG)
+function paintSunPatches(g: CanvasRenderingContext2D, window: WindowLight): void {
+  const { patch: p, depth: d } = window
   const top = WALL_BAND_PX
-  const roomH = WORLD.h - top
-  // Through the east or the west glass, and through the north or the south.
-  const side =
-    east > 0
-      ? { x0: WORLD.w, x1: WORLD.w - depth, box: [WORLD.w - depth, top, depth, roomH] as const }
-      : { x0: 0, x1: depth, box: [0, top, depth, roomH] as const }
-  const end =
-    north > 0
-      ? { y0: top, y1: top + depth, box: [0, top, WORLD.w, depth] as const }
-      : { y0: WORLD.h, y1: WORLD.h - depth, box: [0, WORLD.h - depth, WORLD.w, depth] as const }
+  const roomH = WORLD.h - top - PATCH.edgePx
+  const far = WORLD.w - PATCH.edgePx
+  const bottom = WORLD.h - PATCH.edgePx
 
-  patch(
-    g,
-    { x0: side.x0, y0: top, x1: side.x1, y1: top, alpha: strength * Math.abs(east) },
-    side.box
-  )
-  patch(g, { x0: 0, y0: end.y0, x1: 0, y1: end.y1, alpha: strength * Math.abs(north) }, end.box)
+  g.globalCompositeOperation = 'lighter'
+  sunPatch(g, { from: [PATCH.edgePx, 0], to: [PATCH.edgePx + d.w, 0], strength: p.w }, [
+    PATCH.edgePx,
+    top,
+    d.w,
+    roomH,
+  ])
+  sunPatch(g, { from: [far, 0], to: [far - d.e, 0], strength: p.e }, [far - d.e, top, d.e, roomH])
+  sunPatch(g, { from: [0, top], to: [0, top + d.n * PATCH.endShare], strength: p.n }, [
+    0,
+    top,
+    WORLD.w,
+    d.n * PATCH.endShare,
+  ])
+  sunPatch(g, { from: [0, bottom], to: [0, bottom - d.s * PATCH.endShare], strength: p.s }, [
+    0,
+    bottom - d.s * PATCH.endShare,
+    WORLD.w,
+    d.s * PATCH.endShare,
+  ])
+  g.globalCompositeOperation = 'source-over'
 }
 
-function patch(
+function sunPatch(
   g: CanvasRenderingContext2D,
   line: {
-    readonly x0: number
-    readonly y0: number
-    readonly x1: number
-    readonly y1: number
-    readonly alpha: number
+    readonly from: readonly [number, number]
+    readonly to: readonly [number, number]
+    readonly strength: number
   },
   box: readonly [number, number, number, number]
 ): void {
-  if (line.alpha <= 0) {
+  if (line.strength <= PATCH_MIN) {
     return
   }
 
-  const gradient = g.createLinearGradient(line.x0, line.y0, line.x1, line.y1)
+  const gradient = g.createLinearGradient(line.from[0], line.from[1], line.to[0], line.to[1])
 
-  gradient.addColorStop(0, `rgba(${PATCH.rgb},${line.alpha})`)
+  gradient.addColorStop(0, `rgba(${PATCH.rgb},${(PATCH.alpha * line.strength).toFixed(3)})`)
   gradient.addColorStop(1, `rgba(${PATCH.rgb},0)`)
   g.fillStyle = gradient
   g.fillRect(box[0], box[1], box[2], box[3])
 }
 
-// Slatted blinds down the west glass, either side of its doorway, as far as they are drawn.
+// Slatted blinds down the west and east glass, as far as each is drawn; the west's skip its door.
 function paintBlinds(
   g: CanvasRenderingContext2D,
-  at: { readonly floor: FloorId; readonly closure: number }
+  at: { readonly floor: FloorId; readonly window: WindowLight }
 ): void {
-  if (at.closure <= 0) {
-    return
-  }
+  const sides = [
+    { x: BLIND.westX, closure: at.window.blind.w, spans: blindSpansOf(at.floor) },
+    { x: BLIND.eastX, closure: at.window.blind.e, spans: [[WALL_BAND_PX, BLIND.bottom]] as const },
+  ]
 
-  g.globalAlpha = at.closure
+  for (const side of sides) {
+    if (side.closure < BLIND.least) {
+      continue
+    }
 
-  for (const [from, to] of blindSpansOf(at.floor)) {
-    g.fillStyle = BLIND.tone
-    g.fillRect(0, from, BLIND.w, to - from)
-    g.fillStyle = BLIND.slat
+    g.globalAlpha = Math.min(1, side.closure * BLIND.alphaK)
 
-    for (let y = from; y < to; y += BLIND.slatPx * 2) {
-      g.fillRect(0, y, BLIND.w, BLIND.slatPx / 2)
+    for (const [from, to] of side.spans) {
+      paintSlats(g, { x: side.x, from, to: Math.min(to, BLIND.bottom) })
     }
   }
 
   g.globalAlpha = 1
+}
+
+// Two px of cloth then a px of slat edge, repeated down the glass.
+function paintSlats(
+  g: CanvasRenderingContext2D,
+  at: { readonly x: number; readonly from: number; readonly to: number }
+): void {
+  g.fillStyle = BLIND.tone
+  g.fillRect(at.x, at.from, BLIND.w, at.to - at.from)
+  g.fillStyle = BLIND.slat
+
+  for (let y = at.from + BLIND.slatPx - 1; y < at.to; y += BLIND.slatPx) {
+    g.fillRect(at.x, y, BLIND.w, 1)
+  }
 }
