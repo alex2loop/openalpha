@@ -68,6 +68,7 @@
   --zModal: 30;
   --zUndo: 32;
   --scrim: rgba(10, 10, 18, 0.45);
+  --readerScrim: rgba(10, 10, 18, 0.55);
   --badgeNeed: #f2b33d;
   --badgeNeedInk: #2b2433;
   --badgeStop: #e5484d;
