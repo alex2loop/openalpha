@@ -30,7 +30,6 @@ interface Car {
  *  and opens. Stepped with the sim; it holds no timer of its own. */
 export interface Lift {
   call(floor: FloorId): void
-  floorOf(): FloorId
   isOpenOn(floor: FloorId): boolean
   /** True while the doors move or the car arrives. */
   step(nowMs: number): boolean
@@ -63,7 +62,6 @@ export function createLift(): Lift {
         car.shown.called = [...car.called]
       }
     },
-    floorOf: () => car.shown.floor,
     isOpenOn: (floor) => car.to === undefined && car.at === floor && car.shown.doors >= 1,
     step: (nowMs) => stepCar(car, nowMs),
     view: () => car.shown,
