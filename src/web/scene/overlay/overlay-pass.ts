@@ -30,6 +30,7 @@ import {
 import {
   layoutOverlay,
   layoutTags,
+  readOverlayFont,
   releaseMeasure,
   sizeBubble,
   sizeTag,
@@ -122,6 +123,8 @@ export function startOverlay(deps: PassDeps): OverlayPass {
     expiresAt: Number.POSITIVE_INFINITY,
   }
   const stops = [startSpeech(onWireEvent), startPastCalls(), startDeskReads(), effect(askSeries)]
+
+  readOverlayFont(deps.scene)
 
   return {
     frame: (sim, nowMs) => runPass({ deps, state, sim, nowMs }),

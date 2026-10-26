@@ -4,12 +4,13 @@ import { setCapped } from '@/web/state/capped-map'
 
 const MAX_BUBBLES = 4
 const MAX_MEASURE_CACHE = 200
-/** The sans stack the overlay measures text in before it draws; base.css leads with the same. */
-export const FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-// The fonts overlay.css gives a bubble's line, its footer and buttons, and a name tag.
-const BUBBLE_FONT = `500 12px ${FONT_FAMILY}`
-const FOOTER_FONT = `500 11px ${FONT_FAMILY}`
-const TAG_FONT = `600 11px ${FONT_FAMILY}`
+// The weight and size overlay.css gives a bubble's line, its footer and buttons, and a name tag;
+// the family is the one base.css sets, read off the page.
+const BUBBLE_FONT = '500 12px'
+const FOOTER_FONT = '500 11px'
+const TAG_FONT = '600 11px'
+// Until the overlay has read the page's family, measures fall back to the browser's sans.
+const FALLBACK_FAMILY = 'sans-serif'
 // A bubble's box as overlay.css draws it: text width, padding, line heights.
 const BUBBLE_TEXT_MAX_PX = 200
 const BUBBLE_PAD_X_PX = 8
@@ -88,6 +89,7 @@ interface TagAsk {
 
 const widths = new Map<string, number>()
 let measurer: CanvasRenderingContext2D | null | undefined
+let fontFamily = FALLBACK_FAMILY
 
 /** Places the hover label first, then bubbles by priority and by where their speaker stands
  *  (top first, then left), at most `MAX_BUBBLES`, each inside its speaker's room and clear of
@@ -161,6 +163,18 @@ export function sizeBubble(bubble: Bubble, actions: readonly string[]): Sized<Bu
 
 export function sizeTag(text: string): Size {
   return { w: Math.ceil(measure(text, TAG_FONT)) + TAG_PAD_X_PX * 2, h: TAG_H_PX }
+}
+
+/** Takes the font family the page renders the overlay in, once at mount; widths measured in
+ *  another family go. */
+export function readOverlayFont(root: Element): void {
+  fontFamily = getComputedStyle(root).fontFamily || FALLBACK_FAMILY
+  widths.clear()
+}
+
+/** `weightAndSize` (`600 12px`) in the overlay's font family, as the canvas wants a font. */
+export function toOverlayFont(weightAndSize: string): string {
+  return `${weightAndSize} ${fontFamily}`
 }
 
 /** Empties the width cache and lets its canvas go; the next measure makes a new one. */
@@ -282,7 +296,8 @@ function isTaken(rect: Rect, taken: readonly Rect[]): boolean {
 
 // One offscreen context measures every width, cached by font and text; a page that cannot make
 // one measures nothing, so every box takes its smallest size.
-function measure(text: string, font: string): number {
+function measure(text: string, weightAndSize: string): number {
+  const font = toOverlayFont(weightAndSize)
   const key = `${font}|${text}`
   const held = widths.get(key)
 

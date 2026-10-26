@@ -5,7 +5,7 @@ import type { RoomId } from '@/web/scene/types'
 import { type MessageKey, pluralKey } from '@/i18n'
 import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
-import { FONT_FAMILY } from '@/web/scene/overlay/placement'
+import { toOverlayFont } from '@/web/scene/overlay/placement'
 import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
 import { projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
@@ -20,8 +20,8 @@ import './room-tags.css'
 const TAG_INSET_PX = 4
 // What the tag spends besides its text: padding, the live dot and its gap.
 const TAG_CHROME_PX = 26
-// The tag's font, as its stylesheet sets it, for measuring what fits.
-const TAG_FONT = `600 12px ${FONT_FAMILY}`
+// The tag's weight and size, as its stylesheet sets them, for measuring what fits.
+const TAG_FONT = '600 12px'
 const ROOM_NAME_KEYS: Readonly<Record<RoomId, MessageKey>> = Object.freeze({
   store: 'ui.office.room.store',
   lib: 'ui.office.room.lib',
@@ -202,11 +202,14 @@ function deskLine(waiting: number | undefined): string | undefined {
 function textWidth(text: string): number {
   if (measurer === undefined) {
     measurer = document.createElement('canvas').getContext('2d')
-
-    if (measurer !== null) {
-      measurer.font = TAG_FONT
-    }
   }
 
-  return measurer === null ? 0 : measurer.measureText(text).width
+  if (measurer === null) {
+    return 0
+  }
+
+  // Set each time: the overlay reads the page's family at mount, after a first render may measure.
+  measurer.font = toOverlayFont(TAG_FONT)
+
+  return measurer.measureText(text).width
 }
