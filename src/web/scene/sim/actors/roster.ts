@@ -74,5 +74,10 @@ export function isKidActorId(id: string): boolean {
 
 /** `id` names someone in the office: a built-in person, an own agent or a child. */
 export function isActorId(id: string): id is ActorId {
-  return id.startsWith(OWN_PREFIX) || isKidActorId(id) || ROSTER.some((def) => def.id === id)
+  return id.startsWith(OWN_PREFIX) || isKidActorId(id) || rosterDefOf(id) !== undefined
+}
+
+/** The built-in person `id` names; absent for an own agent, a child or no one. */
+export function rosterDefOf(id: string): ActorDef | undefined {
+  return ROSTER.find((def) => def.id === id)
 }

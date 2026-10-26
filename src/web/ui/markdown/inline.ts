@@ -107,7 +107,8 @@ function trimAddressTail(address: string): string {
   return address.slice(0, end)
 }
 
-function toSafeHref(address: string): string | undefined {
+/** The address as a link the page follows: http and https only, else absent. */
+export function toSafeHref(address: string): string | undefined {
   try {
     const url = new URL(address)
 

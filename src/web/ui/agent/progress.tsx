@@ -6,9 +6,9 @@ import { tr } from '@/web/text/tr'
 import { KidNest } from '@/web/ui/agent/kid-nest'
 import { StepList } from '@/web/ui/agent/steps'
 import { Pager } from '@/web/ui/kit/pager'
+import { toSafeHref } from '@/web/ui/markdown/inline'
 
 const SOURCES_PAGE = 5
-const LINK_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:'])
 
 interface ProgressProps {
   readonly run: Run | undefined
@@ -80,16 +80,8 @@ function listSources(run: Run): readonly string[] {
   const urls = lines.flatMap((line) => {
     const url = line.params?.url
 
-    return typeof url === 'string' && isWebLink(url) ? [url] : []
+    return typeof url === 'string' && toSafeHref(url) !== undefined ? [url] : []
   })
 
   return [...new Set(urls)]
-}
-
-function isWebLink(url: string): boolean {
-  try {
-    return LINK_SCHEMES.has(new URL(url).protocol)
-  } catch {
-    return false
-  }
 }

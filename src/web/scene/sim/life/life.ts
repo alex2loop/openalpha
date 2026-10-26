@@ -16,7 +16,7 @@ import { type AgendaRow, agenda } from '@/web/scene/data/agenda'
 import { regionPack } from '@/web/scene/data/home'
 import { breachedStops } from '@/web/scene/data/room-status'
 import { distance } from '@/web/scene/sim/actors/nav'
-import { ASSISTANT, ROSTER } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { isOfficeOpen } from '@/web/scene/sim/director'
 import { CART_FLOOR, stepCart } from '@/web/scene/sim/life/cart'
 import { stepAsks, subscribeLife } from '@/web/scene/sim/life/events'
@@ -416,7 +416,7 @@ function dueOwners(): ReadonlyMap<ActorId, AgendaRow> {
 }
 
 function isStaffId(id: string): id is ActorId {
-  return ROSTER.some((def) => def.id === id)
+  return rosterDefOf(id) !== undefined
 }
 
 /** How far the lamps that are on glow: dimmed over the lunch nap by the page clock. */

@@ -2,6 +2,7 @@ import type { AgendaModel, AgendaRow } from '@/web/scene/data/agenda'
 import type { Size } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
 import { pluralKey } from '@/i18n'
+import { zeroCanvas } from '@/web/scene/renderer'
 import { formatDuration, MS_PER_MINUTE } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
@@ -67,8 +68,7 @@ export function createScreenCache(): ScreenCache {
     },
     release() {
       for (const screen of screens.values()) {
-        screen.canvas.width = 0
-        screen.canvas.height = 0
+        zeroCanvas(screen.canvas)
       }
 
       screens.clear()

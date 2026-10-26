@@ -1,7 +1,7 @@
 import type { LitScreen } from '@/web/scene/overlay/screens'
 import { screenHosts } from '@/web/scene/data/desk-reads'
 import { roleNameOf } from '@/web/scene/overlay/name-tags'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { bringIntoView } from '@/web/scene/view'
 import { roomById } from '@/web/scene/world/rooms'
 import { openView } from '@/web/state/panel'
@@ -25,7 +25,7 @@ export function openScreen(screen: LitScreen): void {
     return
   }
 
-  const def = ROSTER.find((held) => held.id === screen.actor)
+  const def = rosterDefOf(screen.actor)
   const name = def === undefined ? '' : roleNameOf(def.role)
   const handle = openModal({
     title: tr('ui.office.screen.title', { name }),

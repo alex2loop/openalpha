@@ -86,6 +86,11 @@ export function nextArrivalSeq(): number {
   return arrivalSeq
 }
 
+/** Whether a run the page holds was started by the run `runId`. */
+export function hasChildren(runId: string): boolean {
+  return runList.value.some((run) => run.parentRunId === runId)
+}
+
 export function findRun(runId: string): Run | undefined {
   return runList.value.find((run) => run.runId === runId)
 }

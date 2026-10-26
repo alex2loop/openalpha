@@ -2,10 +2,10 @@ import { useSignal } from '@preact/signals'
 import { useLayoutEffect } from 'preact/hooks'
 
 import type { AgentView } from '@/web/ui/agent/agent-view'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { lookOf } from '@/web/scene/sprites/parts'
 import { reputationLine, setPaused } from '@/web/state/agents'
-import { runs } from '@/web/state/live'
+import { hasChildren } from '@/web/state/live'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
@@ -102,13 +102,9 @@ function describeNow(view: AgentView): string {
 
 // A built-in person wears its role's look; one of the operator's own wears what it saved.
 function lookOfView(view: AgentView) {
-  const role = ROSTER.find((def) => def.id === view.agentId)?.role
+  const role = rosterDefOf(view.agentId)?.role
 
   return lookOf(view.agentId, role, view.agent?.look)
-}
-
-function hasChildren(runId: string): boolean {
-  return runs.value.some((held) => held.parentRunId === runId)
 }
 
 function togglePause(

@@ -39,6 +39,7 @@ import {
   syncTeamPieces,
   type TeamPieces,
 } from '@/web/scene/render3d/team'
+import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
 import { isActorWalking, isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { DAY_LIGHT_HOUR, type LightRow, lightAt } from '@/web/scene/sprites/daylight'
@@ -52,9 +53,6 @@ const MAX_PIXEL_RATIO = 2
 const CAMERA_NEAR = 1
 const CAMERA_FAR = 400
 const MAX_FRAME_DT_MS = 100
-const RENDER_WINDOW_MS = 1_000
-// Above any display's refresh rate, so the window never drops a render it should count.
-const MAX_RENDER_SAMPLES = 240
 const paneSize = new Vector2()
 const IDENTITY: Placement = Object.freeze({ scale: 1, originX: 0, originY: 0 })
 
@@ -82,7 +80,7 @@ interface Stage extends CameraRig {
 export function createRenderer3d(): SceneRenderer {
   let stage: Stage | undefined
   let frameMs = 0
-  const renderTimes: number[] = []
+  const renderRate = createRenderRate()
 
   return {
     mount(host) {
@@ -102,7 +100,7 @@ export function createRenderer3d(): SceneRenderer {
 
       if (frame.isRendered) {
         frameMs = performance.now() - startedAt
-        recordRender(renderTimes, now)
+        renderRate.note(now)
       }
 
       return frame.isAnimating
@@ -112,8 +110,7 @@ export function createRenderer3d(): SceneRenderer {
     stats: (): RendererStats => ({
       view: '3d',
       frameMs,
-      rendersPerSecond: renderTimes.filter((at) => performance.now() - at < RENDER_WINDOW_MS)
-        .length,
+      rendersPerSecond: renderRate.perSecond(performance.now()),
       drawCalls: stage?.drawCalls ?? 0,
     }),
   }
@@ -197,9 +194,9 @@ function releaseStage(stage: Stage | undefined): void {
   stage.scene.clear()
   stage.renderer.dispose()
   stage.renderer.forceContextLoss()
+  // Every sprite shares one geometry: disposing a throwaway's frees the shared one.
   new Sprite().geometry.dispose()
-  stage.canvas.width = 0
-  stage.canvas.height = 0
+  zeroCanvas(stage.canvas)
   stage.canvas.remove()
 }
 
@@ -361,12 +358,4 @@ function resize(stage: Stage, pane: Size): boolean {
   stage.renderer.setSize(pane.w, pane.h, false)
 
   return true
-}
-
-function recordRender(renderTimes: number[], now: number): void {
-  renderTimes.push(now)
-
-  if (renderTimes.length > MAX_RENDER_SAMPLES) {
-    renderTimes.shift()
-  }
 }

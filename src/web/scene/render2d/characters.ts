@@ -12,6 +12,7 @@ import {
   SPRITE_H,
   SPRITE_W,
 } from '@/web/scene/render2d/pixel-grid'
+import { zeroCanvas } from '@/web/scene/renderer'
 import {
   heldKindOf,
   isActorWalking,
@@ -352,9 +353,4 @@ function colourOf(
 
 function isFlat(material: Material): material is keyof typeof PALETTE {
   return Object.hasOwn(PALETTE, material)
-}
-
-function zeroCanvas(canvas: HTMLCanvasElement): void {
-  canvas.width = 0
-  canvas.height = 0
 }

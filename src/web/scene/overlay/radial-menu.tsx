@@ -11,7 +11,7 @@ import { projection } from '@/web/scene/view'
 import { selectAgent } from '@/web/state/agents'
 import { setChatOpen } from '@/web/state/chat'
 import { fillInput } from '@/web/state/command'
-import { runs } from '@/web/state/live'
+import { hasChildren } from '@/web/state/live'
 import { type AgentSection, openView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { askStop } from '@/web/ui/kit/ask-stop'
@@ -90,7 +90,7 @@ export function menuActionsFor(actor: ActorId, context: MenuContext): readonly M
       : undefined,
     tab === undefined ? undefined : { id: 'now', run: () => openTab(tab, 'progress') },
     canTalk && tab !== undefined ? { id: 'work', run: () => openTab(tab, 'work') } : undefined,
-    run === undefined ? undefined : { id: 'stop', run: () => askStop(run, hasChildren(run)) },
+    run === undefined ? undefined : { id: 'stop', run: () => askStop(run, hasChildren(run.runId)) },
     agentId === undefined ? undefined : { id: 'profile', run: () => openTab(agentId, 'profile') },
   ]
 
@@ -265,8 +265,4 @@ function giveWork(agentId: string | undefined): void {
 
 function openTab(agentId: string, section: AgentSection): void {
   openView({ agent: agentId, section })
-}
-
-function hasChildren(run: Run): boolean {
-  return runs.value.some((held) => held.parentRunId === run.runId)
 }

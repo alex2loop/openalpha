@@ -6,11 +6,11 @@ import { joinInline } from '@/web/text/glyphs'
 import { formatWhen } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { NewsIcon } from '@/web/ui/kit/icons'
+import { toSafeHref } from '@/web/ui/markdown/inline'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const NEWS_LIMIT = 5
 const NEWS_POLL_MS = 300_000
-const LINK_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:'])
 
 /** "Tin nổi bật": the newest headlines; a source opens in a new tab. */
 export function News() {
@@ -47,20 +47,11 @@ function NewsItem({ item }: { readonly item: TradingNewsItemWire }) {
     </>
   )
 
-  return isSafeLink(item.url) ? (
+  return toSafeHref(item.url) !== undefined ? (
     <a class="news-item" href={item.url} target="_blank" rel="noopener noreferrer">
       {body}
     </a>
   ) : (
     <div class="news-item">{body}</div>
   )
-}
-
-// A headline's address comes from a feed: only http and https are ever followed.
-function isSafeLink(url: string): boolean {
-  try {
-    return LINK_PROTOCOLS.has(new URL(url).protocol)
-  } catch {
-    return false
-  }
 }

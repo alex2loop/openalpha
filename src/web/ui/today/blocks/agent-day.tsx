@@ -14,7 +14,8 @@ import { ClockIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const AGENT_DAY_SHOWN = 4
-const AGENT_DAY_POLL_MS = 60_000
+/** How often today's agent work is read again, wherever it shows. */
+export const AGENT_DAY_POLL_MS = 60_000
 
 /** "Hôm nay agent đã làm": the latest four runs of today, schedules and chats included. */
 export function AgentDay() {

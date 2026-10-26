@@ -18,11 +18,10 @@ import { Watching } from '@/web/ui/agent/watching'
 import { Work } from '@/web/ui/agent/work'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
-import { loadTodayActivity } from '@/web/ui/today/blocks/agent-day'
+import { AGENT_DAY_POLL_MS, loadTodayActivity } from '@/web/ui/today/blocks/agent-day'
 
 import './agent.css'
 
-const AGENT_DAY_POLL_MS = 60_000
 /** The office's alert-desk keeper: it runs no AI, so its tab is the alert desk alone. */
 const ALERT_DESK_ID = 'clerk'
 

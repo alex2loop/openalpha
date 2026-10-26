@@ -9,7 +9,7 @@ import type { CardPlace } from '@/web/scene/overlay/team-pass'
 import type { ActorId, Rect } from '@/web/scene/types'
 import { HoverLabel } from '@/web/scene/overlay/hover-label'
 import { NameTags, roleTitleOf } from '@/web/scene/overlay/name-tags'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { reducedMotion } from '@/web/state/prefs'
 import { ATTENTION_MARK } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -193,7 +193,7 @@ function BubbleView({ placed }: { readonly placed: Placed }) {
 
 // The whole of a cut line, with its footer, under its speaker's name.
 function openWhole({ bubble }: Placed): void {
-  const def = ROSTER.find((held) => held.id === bubble.actor)
+  const def = rosterDefOf(bubble.actor)
   const handle = openModal({
     title: def === undefined ? '' : roleTitleOf(def.role),
     body: (

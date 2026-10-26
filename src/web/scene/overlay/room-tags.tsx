@@ -5,6 +5,7 @@ import type { RoomId } from '@/web/scene/types'
 import { type MessageKey, pluralKey } from '@/i18n'
 import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
+import { FONT_FAMILY } from '@/web/scene/overlay/placement'
 import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
 import { projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
@@ -20,7 +21,7 @@ const TAG_INSET_PX = 4
 // What the tag spends besides its text: padding, the live dot and its gap.
 const TAG_CHROME_PX = 26
 // The tag's font, as its stylesheet sets it, for measuring what fits.
-const TAG_FONT = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+const TAG_FONT = `600 12px ${FONT_FAMILY}`
 const ROOM_NAME_KEYS: Readonly<Record<RoomId, MessageKey>> = Object.freeze({
   store: 'ui.office.room.store',
   lib: 'ui.office.room.lib',

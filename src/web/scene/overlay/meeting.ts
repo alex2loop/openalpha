@@ -6,7 +6,8 @@ import type { ActorId, FloorId, Point, Rect, RoomId, ScreenPoint, SimView } from
 import type { Turn } from '@/web/state/chat'
 import { pluralKey } from '@/i18n'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
-import { ROSTER } from '@/web/scene/sim/actors/roster'
+import { rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { isInside } from '@/web/scene/world/rooms'
 import { MEET_AUDIENCE } from '@/web/scene/world/seats'
 import { isFinished, thread } from '@/web/state/chat'
 import { fillInput, SUGGEST_COMMAND } from '@/web/state/command'
@@ -164,7 +165,7 @@ export function clearMeeting(): void {
 function isPickable(sim: SimView, actor: ActorId): boolean {
   const held = sim.actors.find((each) => each.id === actor)
 
-  return held?.floor === MEET_FLOOR && ROSTER.some((def) => def.id === actor)
+  return held?.floor === MEET_FLOOR && rosterDefOf(actor) !== undefined
 }
 
 function toggle(state: MeetingState, at: { readonly sim: SimView; readonly actor: ActorId }): void {
@@ -194,7 +195,7 @@ function endBox(
   }
 
   const inside = at.sim.actors
-    .filter((actor) => isPickable(at.sim, actor.id) && isWithin(box, at.toScreen(actor.at)))
+    .filter((actor) => isPickable(at.sim, actor.id) && isInside(box, at.toScreen(actor.at)))
     .map((actor) => actor.id)
 
   pickAnew(state, [...new Set([...picking.value.picks, ...inside])])
@@ -352,13 +353,4 @@ function boxOf(from: ScreenPoint, to: ScreenPoint): Rect {
     w: Math.abs(to.x - from.x),
     h: Math.abs(to.y - from.y),
   }
-}
-
-function isWithin(rect: Rect, point: ScreenPoint): boolean {
-  return (
-    point.x >= rect.x &&
-    point.x <= rect.x + rect.w &&
-    point.y >= rect.y &&
-    point.y <= rect.y + rect.h
-  )
 }

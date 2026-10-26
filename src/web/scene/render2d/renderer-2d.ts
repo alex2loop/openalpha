@@ -18,6 +18,7 @@ import {
   paintTeamGlow,
   paintTeamTop,
 } from '@/web/scene/render2d/team'
+import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
 import { isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
@@ -42,9 +43,6 @@ import { MINUTES_PER_HOUR } from '@/web/text/time'
 
 const CANVAS_CLASS = 'scene-canvas'
 const STAGE_TOKEN = '--stage'
-const RENDER_WINDOW_MS = 1_000
-// Above any display's refresh rate, so the window never drops a render it should count.
-const MAX_RENDER_SAMPLES = 240
 const ACTOR_TIE_RANK = 2
 // The operator's tray sits on your desk, on the office floor; the own agents work upstairs.
 const TRAY_FLOOR: FloorId = 'office'
@@ -89,7 +87,7 @@ interface Piece {
 export function createRenderer2d(): SceneRenderer {
   let surface: Surface | undefined
   let frameMs = 0
-  const renderTimes: number[] = []
+  const renderRate = createRenderRate()
 
   return {
     mount(host) {
@@ -108,7 +106,7 @@ export function createRenderer2d(): SceneRenderer {
       const isAnimating = paintFrame(surface, sim, now)
 
       frameMs = performance.now() - startedAt
-      recordRender(renderTimes, now)
+      renderRate.note(now)
 
       return isAnimating
     },
@@ -117,7 +115,7 @@ export function createRenderer2d(): SceneRenderer {
     stats: (): RendererStats => ({
       view: '2d',
       frameMs,
-      rendersPerSecond: countRecent(renderTimes, performance.now()),
+      rendersPerSecond: renderRate.perSecond(performance.now()),
     }),
   }
 }
@@ -161,11 +159,6 @@ function releaseSurface(surface: Surface | undefined): void {
   surface.background = undefined
   surface.screens.release()
   releaseCharacterSprites()
-}
-
-function zeroCanvas(canvas: HTMLCanvasElement): void {
-  canvas.width = 0
-  canvas.height = 0
 }
 
 // Paints one frame; true while the people's small motion runs.
@@ -456,16 +449,4 @@ function toWorld(surface: Surface | undefined, s: ScreenPoint): Point {
   const { scale, originX, originY } = surface?.placement ?? IDENTITY_FIT
 
   return { x: (s.x - originX) / scale, y: (s.y - originY) / scale }
-}
-
-function recordRender(renderTimes: number[], now: number): void {
-  renderTimes.push(now)
-
-  if (renderTimes.length > MAX_RENDER_SAMPLES) {
-    renderTimes.shift()
-  }
-}
-
-function countRecent(renderTimes: readonly number[], now: number): number {
-  return renderTimes.filter((at) => now - at < RENDER_WINDOW_MS).length
 }

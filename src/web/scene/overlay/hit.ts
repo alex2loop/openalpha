@@ -33,7 +33,7 @@ export function pickAt(
 ): Hit | undefined {
   const shown = overlayView.value
   const at = renderer.toWorld(point)
-  const marker = shown.markers.find((held) => isWithin(held.rect, point))
+  const marker = shown.markers.find((held) => isInside(held.rect, point))
 
   if (marker !== undefined) {
     return { kind: 'marker', id: marker.marker.actor }
@@ -54,7 +54,7 @@ export function pickAt(
     return { kind: 'pet', id: pet.kind }
   }
 
-  const screen = shown.screens.find((held) => isWithin(held.rect, point))
+  const screen = shown.screens.find((held) => isInside(held.rect, point))
 
   if (screen !== undefined) {
     return { kind: 'screen', id: screen.screen.actor }
@@ -66,7 +66,7 @@ export function pickAt(
     return { kind: 'object', id: prop.id }
   }
 
-  const tag = shown.tags.find((held) => isWithin(held.rect, point))
+  const tag = shown.tags.find((held) => isInside(held.rect, point))
 
   if (tag !== undefined) {
     return { kind: 'tag', id: tag.actor }
@@ -106,13 +106,4 @@ function actorAt(view: SimView, at: Point): ActorView | undefined {
   return view.actors
     .filter((actor) => actor.floor === view.floor && isInside(figureOf(actor, view.alpha), at))
     .sort((a, b) => b.at.y - a.at.y)[0]
-}
-
-function isWithin(rect: Rect, point: ScreenPoint): boolean {
-  return (
-    point.x >= rect.x &&
-    point.x <= rect.x + rect.w &&
-    point.y >= rect.y &&
-    point.y <= rect.y + rect.h
-  )
 }

@@ -4,12 +4,11 @@ import type { ClientFrame } from '@/app/server/wire/socket'
 import { stopRun } from '@/web/state/approvals'
 import { onWireEvent } from '@/web/state/events'
 import { type ChatServerFrame, onChatFrame, sendFrame } from '@/web/state/feed'
+import { findFinishedTickers } from '@/web/state/live'
 import { connection } from '@/web/state/session'
 
 const MAX_TURNS = 200
 const MAX_CHAT_STEPS = 20
-// Tickers of the runs that ended lately, kept until the chat's `done` names its run.
-const MAX_FINISHED_RUNS = 20
 const COMMAND_PREFIX = '/'
 
 type TurnStatus = 'sending' | 'queued' | 'running' | 'done' | 'error' | 'dropped' | 'stopped'
@@ -59,7 +58,6 @@ const FINISHED: ReadonlySet<TurnStatus> = new Set(['done', 'error', 'dropped', '
 
 const turns = signal<readonly Turn[]>([])
 const isOpen = signal(false)
-const finishedTickers = new Map<string, readonly string[]>()
 // Removed when the turn finishes, so it never outgrows the unfinished turns.
 const doneCallbacks = new Map<string, () => void>()
 
@@ -79,7 +77,7 @@ export function isFinished(turn: Turn): boolean {
 export function startChat(): () => void {
   const offs = [
     onChatFrame(receiveFrame),
-    onWireEvent('run_finished', (event) => keepTickers(event.runId, event.tickers)),
+    onWireEvent('run_finished', (event) => attachTickers(event.runId, event.tickers)),
     // A dropped socket aborts the turns it ran, so none is left waiting for a frame.
     effect(() => {
       if (connection.value.status !== 'live') {
@@ -350,12 +348,13 @@ function toFinished(turn: Turn, status: TurnStatus): Turn {
 
 function toDone(turn: Turn, frameRunId: string | undefined, session: string | undefined): Turn {
   const runId = frameRunId ?? turn.runId
-  const tickers = runId === undefined ? undefined : finishedTickers.get(runId)
+  // The live store notes a finished run's tickers before the hub tells anyone of the event.
+  const tickers = runId === undefined ? [] : findFinishedTickers(runId)
 
   return {
     ...toFinished(turn, 'done'),
     ...(runId === undefined ? {} : { runId }),
-    ...(tickers === undefined ? {} : { tickers }),
+    ...(tickers.length === 0 ? {} : { tickers }),
     ...(turn.sessionId === undefined && session !== undefined ? { sessionId: session } : {}),
   }
 }
@@ -367,7 +366,8 @@ function adoptSessionId(next: string): void {
   }
 }
 
-function keepTickers(runId: string | undefined, tickers: readonly string[] | undefined): void {
+// A run that ends after its `done` frame hands its tickers to the turn it answered.
+function attachTickers(runId: string | undefined, tickers: readonly string[] | undefined): void {
   if (runId === undefined || tickers === undefined || tickers.length === 0) {
     return
   }
@@ -376,15 +376,5 @@ function keepTickers(runId: string | undefined, tickers: readonly string[] | und
 
   if (turn !== undefined) {
     updateTurn(turn.localId, (held) => ({ ...held, tickers }))
-  }
-
-  finishedTickers.set(runId, tickers)
-
-  for (const oldest of finishedTickers.keys()) {
-    if (finishedTickers.size <= MAX_FINISHED_RUNS) {
-      break
-    }
-
-    finishedTickers.delete(oldest)
   }
 }

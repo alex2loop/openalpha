@@ -4,8 +4,9 @@ import { setCapped } from '@/web/state/capped-map'
 
 const MAX_BUBBLES = 4
 const MAX_MEASURE_CACHE = 200
+/** The sans stack the overlay measures text in before it draws; base.css leads with the same. */
+export const FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
 // The fonts overlay.css gives a bubble's line, its footer and buttons, and a name tag.
-const FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
 const BUBBLE_FONT = `500 12px ${FONT_FAMILY}`
 const FOOTER_FONT = `500 11px ${FONT_FAMILY}`
 const TAG_FONT = `600 11px ${FONT_FAMILY}`
