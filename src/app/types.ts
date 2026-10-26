@@ -2,7 +2,7 @@ import type { DeliveryHub } from '@/app/delivery'
 import type { LiveFeed } from '@/app/server/feed/live'
 import type { SignInCodes } from '@/app/server/http/sign-in-codes'
 import type { ChannelDefinition } from '@/channels/api'
-import type { Command, Group } from '@/cli/api'
+import type { Command, Group, KeyFile } from '@/cli/api'
 import type { KeyValidator } from '@/commands/api'
 import type { LogLevel, ModelSource } from '@/core/config/resolve'
 import type { App, ServiceProvider } from '@/core/container'
@@ -73,6 +73,9 @@ declare module '@/core/container' {
     // The HTTP/WS API (src/app/server); the daemon starts it only with [api] enabled.
     apiStarter: ServerStarter
     apiRoutes: readonly ApiRouteSpec[]
+    /** The key file the entry loaded before boot: where `/v1/credentials` writes, and which names
+     *  it set in the environment. */
+    keyFile: KeyFile
   }
 }
 

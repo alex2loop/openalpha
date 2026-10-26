@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import type { Booted, MainOptions } from '@/app/types'
 import type { CliApp, Command, EnvFileLoad, GlobalFlags, Group, Needs, Writer } from '@/cli/api'
+import type { ServiceProvider } from '@/core/container'
 import type { LoggerResource } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import { boot } from '@/app/boot'
@@ -254,7 +255,7 @@ async function runBoot(options: RunBootOptions): Promise<number> {
       shutdownSignal: shutdown?.signal ?? NEVER_ABORTING_SIGNAL,
       ...pathFlags(flags),
       err: stdio.err,
-      ...(mainOptions?.features === undefined ? {} : { features: mainOptions.features }),
+      features: [...(mainOptions?.features ?? []), keyFileProvider(options.keyFile)],
       ...(mainOptions?.bootGate === undefined ? {} : { bootGate: mainOptions.bootGate }),
       onLoggerResource: (resource) => fatalBoundary.bind(resource),
     })
@@ -279,6 +280,14 @@ async function runBoot(options: RunBootOptions): Promise<number> {
   } finally {
     // Whatever the command did, the transports boot opened are ours to close.
     await booted?.dispose()
+  }
+}
+
+/** The key file this process loaded, for the API surface that writes keys on the server. */
+function keyFileProvider(keyFile: CliApp['keyFile']): ServiceProvider {
+  return {
+    name: 'key-file',
+    register: (bind) => bind('keyFile', () => keyFile),
   }
 }
 

@@ -13,6 +13,11 @@ import type {
   ProviderCatalogResponse,
   ProviderTestResult,
 } from '@/app/server/wire/config'
+import type {
+  CredentialRemoveResult,
+  CredentialsResponse,
+  CredentialWriteResult,
+} from '@/app/server/wire/credentials'
 import type { DebateWire } from '@/app/server/wire/debate'
 import type { DigestWire } from '@/app/server/wire/digest'
 import type { LiveSnapshotWire, RunCallsWire, RunStopWire } from '@/app/server/wire/live'
@@ -43,6 +48,7 @@ import type {
   BrowserSessionEndResult,
   BrowserSessionList,
   BrowserSignInResult,
+  ChatgptAuthStatus,
   PairingDecisionResult,
   PairingList,
   PairingRevokeResult,
@@ -167,6 +173,12 @@ export const ROUTES = Object.freeze({
   config: route<ConfigResponse>('/v1/config'),
   configWrite: route<ConfigWriteResult>('/v1/config'),
   configValidate: route<ConfigValidation>('/v1/config/validate'),
+  credentials: route<CredentialsResponse>('/v1/credentials'),
+  credentialWrite: (name: string) =>
+    route<CredentialWriteResult>(`/v1/credentials/${encodeURIComponent(name)}`),
+  credentialRemove: (name: string) =>
+    route<CredentialRemoveResult>(`/v1/credentials/${encodeURIComponent(name)}`),
+  chatgpt: route<ChatgptAuthStatus>('/v1/auth/chatgpt'),
   pairing: route<PairingList>('/v1/pairing'),
   pairingDecision: route<PairingDecisionResult>('/v1/pairing'),
   pairingDelete: (channel: string, chatId: string) =>

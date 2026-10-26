@@ -1,3 +1,4 @@
+import type { ApiRouteContext } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Runner, RunOptions } from '@/engine/api'
 import { isApiChannel } from '@/app/server/channel'
@@ -7,6 +8,12 @@ import { ORDER_TOOL_NAME } from '@/trading/api'
 /** Behind `public_url` nobody at the page is known to be the operator. */
 export function isApiExposed(api: { readonly publicUrl?: string | undefined }): boolean {
   return api.publicUrl !== undefined
+}
+
+/** The address a server-only refusal names: `public_url` as booted, else the one the page is
+ *  open through (a `public_url` saved but not yet booted). */
+export function resolvePublicAddress(ctx: ApiRouteContext): string {
+  return ctx.app.config.api.publicUrl ?? ctx.pageOrigin
 }
 
 /** Limits every run on the app's channel - a chat, a steer, a job aimed at the app, and the

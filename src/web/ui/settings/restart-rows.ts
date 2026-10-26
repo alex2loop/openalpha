@@ -9,6 +9,8 @@ const ROW_TITLES = Object.freeze({
   language: 'ui.office.settings.language',
   timeZone: 'ui.office.settings.timeZone',
   raw: 'ui.office.advanced.title',
+  credentials: 'ui.office.credentials.restartRow',
+  webSearch: 'ui.office.tools.search',
 } as const satisfies Record<RestartRow, MessageKey>)
 
 const ROW_SECTIONS = Object.freeze({
@@ -17,6 +19,8 @@ const ROW_SECTIONS = Object.freeze({
   language: 'display',
   timeZone: 'display',
   raw: 'advanced',
+  credentials: 'providers',
+  webSearch: 'tools',
 } as const satisfies Record<RestartRow, SettingsSection>)
 
 /** The rows in the operator's words, as one list. */

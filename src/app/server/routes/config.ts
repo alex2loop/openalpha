@@ -122,6 +122,18 @@ function isExposed(
   return isApiExposed(ctx.app.config.api) || [body, disk].some(hasPublicUrl)
 }
 
+/** As above, for a write that carries no config: the booted `[api]`, or the file's for the next
+ *  start. Shared by every route that writes a secret. */
+export async function isExposedOnDisk(ctx: ApiRouteContext): Promise<boolean> {
+  if (isApiExposed(ctx.app.config.api)) {
+    return true
+  }
+
+  const { configPath } = await probeConfig({ configPath: ctx.app.configPath })
+
+  return hasPublicUrl(await readDiskConfig(configPath))
+}
+
 function hasPublicUrl(tree: Record<string, unknown>): boolean {
   return isPlainRecord(tree.api) && tree.api.public_url !== undefined
 }

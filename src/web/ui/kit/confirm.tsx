@@ -12,6 +12,8 @@ interface ConfirmSpec {
   /** A destructive confirm makes "keep" the main button, so Enter loses nothing. */
   readonly isDestructive?: true
   readonly keepLabel?: string
+  /** Where both buttons return once the dialog is done, Cài đặt when it opened the question. */
+  readonly onBack?: () => void
   /** Throws `ApiFailure` to keep the dialog open with the daemon's sentence. */
   readonly confirm: () => Promise<void> | void
 }
@@ -67,7 +69,7 @@ function ConfirmFooter({ dialog }: { readonly dialog: ConfirmDialog }) {
       >
         {spec.confirmLabel}
       </Button>
-      <Button kind={isDestructive ? 'commit' : 'secondary'} onClick={() => dialog.handle?.close()}>
+      <Button kind={isDestructive ? 'commit' : 'secondary'} onClick={() => leave(dialog)}>
         {spec.keepLabel ?? tr('ui.office.common.cancel')}
       </Button>
     </>
@@ -80,7 +82,7 @@ function runConfirm(dialog: ConfirmDialog): void {
   Promise.resolve()
     .then(dialog.spec.confirm)
     .then(
-      () => dialog.handle?.close(),
+      () => leave(dialog),
       (error: unknown) => {
         dialog.failure.value = toErrorText(error)
       }
@@ -88,4 +90,18 @@ function runConfirm(dialog: ConfirmDialog): void {
     .finally(() => {
       dialog.isBusy.value = false
     })
+}
+
+// A dialog another one already replaced stays gone.
+function leave(dialog: ConfirmDialog): void {
+  if (dialog.handle?.isOpen() !== true) {
+    return
+  }
+
+  if (dialog.spec.onBack === undefined) {
+    dialog.handle.close()
+    return
+  }
+
+  dialog.spec.onBack()
 }

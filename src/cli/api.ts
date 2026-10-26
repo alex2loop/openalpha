@@ -28,9 +28,19 @@ export { resolveContributedCliCommands } from '@/cli/contributed'
 export { isBackgroundLaunch } from '@/cli/daemon-env'
 export { readDaemonDegraded } from '@/cli/daemon-ready'
 export { getEnv, isVerbose } from '@/cli/env'
-export { type EnvFileLoad, loadEnvFile, reportKeyFile } from '@/cli/env-file'
+export {
+  type EnvFileLoad,
+  isRuntimeEnvName,
+  type KeyFile,
+  loadEnvFile,
+  readEnvFile,
+  removeEnvFileValue,
+  reportKeyFile,
+  writeEnvFileValue,
+} from '@/cli/env-file'
 export { formatTerminalError, printError, usage } from '@/cli/error-output'
 export { preflightCommand, runCli } from '@/cli/main'
+export { type KeyEnvGroup, keyEnvGroups } from '@/cli/missing-keys'
 export { formatArgIssue } from '@/cli/parsing/arg-issue'
 export { parseGlobalFlags } from '@/cli/parsing/global-flags'
 export { preBootApp } from '@/cli/preboot'

@@ -14,6 +14,9 @@ export const SETTINGS_SECTIONS = [
   'schedule',
   'agents',
   'channels',
+  'providers',
+  'exchanges',
+  'tools',
   'data',
   'display',
   'advanced',
@@ -25,13 +28,24 @@ export const SECTION_TITLES = Object.freeze({
   schedule: 'ui.office.settings.schedule',
   agents: 'ui.office.settings.agents',
   channels: 'ui.office.settings.channels',
+  providers: 'ui.office.settings.providers',
+  exchanges: 'ui.office.settings.exchanges',
+  tools: 'ui.office.settings.tools',
   data: 'ui.office.settings.data',
   display: 'ui.office.settings.display',
   advanced: 'ui.office.settings.advanced',
 } as const satisfies Record<SettingsSection, MessageKey>)
 
 /** The settings the daemon reads once at boot: a saved change waits for a restart. */
-const RESTART_ROWS = ['models', 'budget', 'language', 'timeZone', 'raw'] as const
+const RESTART_ROWS = [
+  'models',
+  'budget',
+  'language',
+  'timeZone',
+  'raw',
+  'credentials',
+  'webSearch',
+] as const
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 export type RestartRow = (typeof RESTART_ROWS)[number]
@@ -100,7 +114,8 @@ export function isTree(value: unknown): value is ConfigTree {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function noteRestartRow(row: RestartRow): void {
+/** A change saved outside `config.toml` (a key) that also waits for a restart. */
+export function noteRestartRow(row: RestartRow): void {
   if (pending.value.includes(row)) {
     return
   }

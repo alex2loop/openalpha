@@ -12,8 +12,9 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/api'
-import { isApiExposed } from '@/app/server/exposure'
+import { isApiExposed, resolvePublicAddress } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { isExposedOnDisk } from '@/app/server/routes/config'
 import { localeOf, parsePathId, readJsonBody } from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
@@ -194,6 +195,17 @@ async function handleChatgptLogin(req: Request, ctx: ApiRouteContext): Promise<R
 
   if (!parsed.success) {
     return apiError('invalid_body')
+  }
+
+  // A sign-in saves a token the daemon's model calls spend on, like a key.
+  if (await isExposedOnDisk(ctx)) {
+    return apiError(
+      'conflict',
+      t(localeOf(ctx), 'errors.chatgptServerOnly', {
+        url: resolvePublicAddress(ctx),
+        brand: BRAND.name,
+      })
+    )
   }
 
   await startLogin(ctx.app, parsed.data.method)
