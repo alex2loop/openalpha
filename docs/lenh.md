@@ -186,7 +186,7 @@ bên dưới, và ở [Cẩm nang sử dụng](cam-nang.md) theo góc nhìn ngư
 
 ### Ô câu lệnh trên trang văn phòng
 
-Ô ở cuối [trang văn phòng](van-hanh.md#trang-văn-phòng) nhận mọi thứ mà chat nhận: câu hỏi thường, mã cổ phiếu và các câu lệnh gạch chéo ở trên. Một chip bên trái cho biết ai nhận câu bạn gõ, trợ lý hay một agent của bạn (agent đang tạm dừng được đánh dấu); nút Gửi đổi thành "Gửi cho <agent>" khi đã chọn một agent, và thành "Chạy câu lệnh" khi chữ bắt đầu bằng `/`.
+Ô ở cuối [trang văn phòng](van-hanh.md#trang-văn-phòng) nhận mọi thứ mà chat nhận: câu hỏi thường, mã cổ phiếu và các câu lệnh gạch chéo ở trên. Một chip bên trái cho biết ai nhận câu bạn gõ, trợ lý hay một agent của bạn (agent đang tạm dừng được đánh dấu); Enter là gửi, và danh sách mở trên ô có dòng gửi ở cuối, đọc là "Gửi cho <agent>" khi đã chọn một agent và "Chạy câu lệnh" khi chữ bắt đầu bằng `/`.
 
 - **Gõ.** Chữ thường là một câu hỏi. Một mã cổ phiếu thì được tra. Gõ `/`, hoặc nhấn Tab khi ô đang trống, để xem các câu lệnh; Tab khi đã có chữ thì hoàn tất mã hoặc câu lệnh khớp đầu tiên. Mũi tên lên xuống chọn một dòng (khi ô trống, mũi tên lên gọi lại những gì bạn đã gửi), Enter gửi, Esc đóng danh sách. Nếu mất kết nối, chữ vẫn nằm trong ô và một dòng báo là chưa gửi được.
 - **Nó gợi ý gì.** Ô trống đang được chọn gợi ý những khởi đầu quen thuộc: đọc bản tin sáng, xem danh mục, đề xuất cho một mã, nghiên cứu một chủ đề. Khi đang mở thẻ một mã, nó gợi ý đề xuất lại, đặt cảnh báo giá hoặc thêm mã vào danh sách theo dõi; khi đang mở một agent của bạn, nó gợi ý gửi câu tiếp theo cho agent đó, hoặc xem các lịch của nó.

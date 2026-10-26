@@ -187,7 +187,7 @@ orders once a venue has exchange keys. They are under [Trading chat](#trading-ch
 
 ### The command bar in the office page
 
-The box at the bottom of the [office page](operations.md#the-office-page) takes everything the chat takes: plain questions, tickers and the slash commands above. A chip on its left says who receives what you type, the assistant or one of your own agents (a paused agent is marked); the Send button reads "Send to <agent>" when an agent is picked and "Run the command" once the text starts with `/`.
+The box at the bottom of the [office page](operations.md#the-office-page) takes everything the chat takes: plain questions, tickers and the slash commands above. A chip on its left says who receives what you type, the assistant or one of your own agents (a paused agent is marked); Enter sends it, and the list that opens over the box ends with a send row that reads "Send to <agent>" when an agent is picked and "Run the command" once the text starts with `/`.
 
 - **Typing.** Plain words ask a question. A ticker looks it up. Type `/`, or press Tab on an empty box, to see the commands; Tab on text completes the first ticker or command that matches. Up and Down choose a row (on an empty box, Up recalls what you sent before), Enter sends, Esc closes the list. If the connection is down the text stays in the box and a line says it was not sent.
 - **What it suggests.** A focused empty box offers the usual starts: read the brief, see the portfolio, suggest for one name, research a topic. With a ticker card open it offers to suggest again, set a price alert or add the name to the watchlist; with one of your agents open it offers to send your next line to that agent, or to look at its schedules.
