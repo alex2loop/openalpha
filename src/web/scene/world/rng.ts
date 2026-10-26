@@ -5,7 +5,7 @@ const MULBERRY_STEP = 0x6d_2b_79_f5
 const UINT32_RANGE = 4_294_967_296
 
 /** A short-lived stream of chance for one decision, keyed by what it decides. */
-interface Rng {
+export interface Rng {
   /** In [0, 1). */
   next(): number
   /** A whole number in [lo, hi]. */

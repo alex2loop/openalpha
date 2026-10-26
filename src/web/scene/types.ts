@@ -1,4 +1,5 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
+import type { MessageKey } from '@/i18n'
 import type { SunView, WeatherFxView } from '@/web/scene/sky-types'
 import type { ErrandView, StreetFrame } from '@/web/scene/street-types'
 
@@ -205,7 +206,7 @@ export interface FishView {
 }
 
 /** What a scheduled or real moment says over a person: its label, the room a round just
- *  checked, or the job about to run. */
+ *  checked, the job about to run, or a line of small talk (a catalog `key`, under its `topic`). */
 export type LifeLine =
   | {
       readonly actor: ActorId
@@ -223,6 +224,12 @@ export type LifeLine =
   | { readonly actor: ActorId; readonly label: 'drop'; readonly index: string }
   | { readonly actor: ActorId; readonly label: 'exDividend'; readonly ticker: string }
   | { readonly actor: ActorId; readonly label: 'overtime'; readonly what: string }
+  | {
+      readonly actor: ActorId
+      readonly label: 'talk'
+      readonly key: MessageKey
+      readonly topic: 'chat' | 'lunch' | 'friday'
+    }
 
 /** Steam over a pantry mug, or bubbles in a water cooler, at the top of that prop. */
 export interface SteamView {

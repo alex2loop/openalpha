@@ -16,7 +16,7 @@ import { approachOf } from '@/web/scene/sim/places'
 import { type PropKind, propsOn } from '@/web/scene/world/props'
 import { isInRange } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
-import { PANTRY, SOFA_SEATS } from '@/web/scene/world/seats'
+import { PANTRY } from '@/web/scene/world/seats'
 
 const IDLE_CHECK_MS = 20_000
 const IDLE_WALK_GAP_MS = Object.freeze({ min: 300_000, max: 600_000 })
@@ -37,13 +37,10 @@ const YAWN_MS = 3_600
 const YAWN_MAX = 2
 const YAWN_PICK_PERCENT = 50
 const YAWN_GAP_MS = Object.freeze({ min: 8_000, max: 40_000 })
-const CHAT_GAP_MS = 240_000
-const CHAT_HOLD_MS = 9_400
 const COFFEE_LINE = 'coffee'
 const COFFEE_TAG = 'coffee'
 const COFFEE_CLOSE_TAG = 'coffee-close'
 const DESSERT_LINE = 'friday'
-const CHAT_LINE = 'chat'
 
 /** Every check, at most one free person a floor walks to a non-work place, once their own gap
  *  since the last one has passed. */
@@ -221,43 +218,6 @@ export function stepYawn(state: LifeState, step: LifeStep): void {
   }
 }
 
-/** Two free people on a floor with nothing else going on sit on the sofa, turned to each other. */
-export function stepChat(state: LifeState, step: LifeStep): void {
-  if (!step.isCalm) {
-    return
-  }
-
-  const gapMs = step.isRelaxed ? CHAT_GAP_MS / 2 : CHAT_GAP_MS
-
-  for (const floor of floorsOf(step)) {
-    const gapKey = `${floor}:chat`
-    const [a, b] = seatedFree(step, floor)
-    const seats = SOFA_SEATS[floor]
-    const isWaiting = step.nowMs < (state.gaps.get(gapKey) ?? step.nowMs + gapMs)
-
-    if (!state.gaps.has(gapKey)) {
-      state.gaps.set(gapKey, step.nowMs + gapMs)
-    }
-
-    if (a === undefined || b === undefined || isWaiting || momentsOn(state, { step, floor }) > 0) {
-      continue
-    }
-
-    state.gaps.set(gapKey, step.nowMs + gapMs)
-
-    for (const [actor, partner, seat] of [
-      [a, b, seats[0]],
-      [b, a, seats[1]],
-    ] as const) {
-      const line: LifeLine = { actor: actor.def.id, label: CHAT_LINE }
-
-      begin(state, { actor, kind: 'chat', nowMs: step.nowMs, line }, [
-        { at: seat.at, pose: 'chat', face: partner.def.id, holdMs: CHAT_HOLD_MS },
-      ])
-    }
-  }
-}
-
 /** When the next idle check or pantry departure could start something. */
 export function scheduleDueOf(state: LifeState, step: LifeStep): number {
   if (!step.isCalm) {
@@ -307,7 +267,7 @@ export function begin(
 }
 
 /** The floors that have people on them. */
-function floorsOf(step: LifeStep): FloorId[] {
+export function floorsOf(step: LifeStep): FloorId[] {
   return [...new Set([...step.actors.values()].map((actor) => actor.def.floor))]
 }
 

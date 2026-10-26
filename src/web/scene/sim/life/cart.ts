@@ -1,5 +1,7 @@
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type { FloorId, Point, Rect } from '@/web/scene/types'
+import type { OfficeLife } from '@/web/scene/world/regions'
+import type { ClockParts } from '@/web/text/time'
 import { PANTRY } from '@/web/scene/world/seats'
 
 /** The floor the cart serves: the one with the office's crew and its pantry. */
@@ -8,16 +10,20 @@ const CART_ROLL_MS = 6_000
 // The cart's footprint on the floor, centred on where it stands.
 const CART_SIZE = Object.freeze({ w: 20, h: 10 })
 
+/** The clock falls within the dessert cart's stay. */
+export function isCartStay(clock: ClockParts, dessert: OfficeLife['dessert']): boolean {
+  const sinceMin = clock.minute - dessert.at
+
+  return clock.dow === dessert.dow && sinceMin >= 0 && sinceMin < dessert.stayMin
+}
+
 /** Friday's dessert cart: it rolls in along its path when its stay begins, stands in the pantry
  *  (in everyone's way, so walks go round it) and rolls out when the stay ends. A page opened
  *  mid-stay finds it standing; reduced motion never rolls it. True while it rolls. */
 export function stepCart(state: LifeState, step: LifeStep): boolean {
   const { cart } = state
   const sinceMin = step.clock.minute - step.pack.dessert.at
-  const isStay =
-    step.clock.dow === step.pack.dessert.dow &&
-    sinceMin >= 0 &&
-    sinceMin < step.pack.dessert.stayMin
+  const isStay = isCartStay(step.clock, step.pack.dessert)
 
   startRoll(cart, { isStay, isArriving: sinceMin < 1, step })
 
