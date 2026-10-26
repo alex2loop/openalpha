@@ -177,21 +177,7 @@ export function paintBanhMiCart(scene: CartScene, at: Point & { readonly skin: s
   g.arc(x - 2.8, y + 0.1, 0.8, 0, Math.PI * 2)
   g.arc(x + 2.8, y + 0.1, 0.8, 0, Math.PI * 2)
   g.fill()
-  g.fillStyle = tone(TONES.pole)
-  g.fillRect(x - 0.1, y - 8.2, 0.3, 5)
-
-  for (let index = 0; index < 6; index++) {
-    g.fillStyle = tone(TONES.parasol[index % 2] ?? TONES.glassCase)
-    g.beginPath()
-    g.moveTo(x + 0.05, y - 8.2)
-    g.lineTo(x - 5 + index * 1.667, y - 5.8)
-    g.lineTo(x - 5 + (index + 1) * 1.667, y - 5.8)
-    g.closePath()
-    g.fill()
-  }
-
-  g.fillStyle = tone(TONES.parasolRim)
-  g.fillRect(x - 5, y - 5.9, 10, 0.35)
+  paintParasol(scene, { x, y })
 
   if (scene.detail > 0) {
     g.fillStyle = tone(TONES.glassCase)
@@ -207,6 +193,28 @@ export function paintBanhMiCart(scene: CartScene, at: Point & { readonly skin: s
     maxW: 7,
     ink: TONES.breadInk,
   })
+}
+
+// The bánh mì cart's pole and striped parasol with its rim.
+function paintParasol(scene: CartScene, at: Point): void {
+  const { g } = scene
+  const { x, y } = at
+
+  g.fillStyle = shadeOf(scene, TONES.pole)
+  g.fillRect(x - 0.1, y - 8.2, 0.3, 5)
+
+  for (let index = 0; index < 6; index++) {
+    g.fillStyle = shadeOf(scene, TONES.parasol[index % 2] ?? TONES.glassCase)
+    g.beginPath()
+    g.moveTo(x + 0.05, y - 8.2)
+    g.lineTo(x - 5 + index * 1.667, y - 5.8)
+    g.lineTo(x - 5 + (index + 1) * 1.667, y - 5.8)
+    g.closePath()
+    g.fill()
+  }
+
+  g.fillStyle = shadeOf(scene, TONES.parasolRim)
+  g.fillRect(x - 5, y - 5.9, 10, 0.35)
 }
 
 // A steel cart's shadow, the cook standing behind it, its body, top and two wheels.
@@ -230,7 +238,7 @@ function paintCartBase(scene: CartScene, at: Point & { readonly skin: string }):
 
 /** A vendor facing the street: legs, white shirt, head and white cap, shoes and an apron close
  *  up, eyes closest. */
-export function paintVendor(scene: CartScene, at: Point & { readonly skin: string }): void {
+function paintVendor(scene: CartScene, at: Point & { readonly skin: string }): void {
   const { g } = scene
   const { x, y } = at
   const tone = (hex: string): string => shadeOf(scene, hex)

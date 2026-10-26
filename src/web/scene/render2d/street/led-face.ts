@@ -168,15 +168,7 @@ function paintPanel(
   g.fillText(item.label, 4, at.head + ROWS.label * u)
 
   if (item.at !== undefined) {
-    g.font = `${MID_FONT_WEIGHT} ${SIZES.at * u}px ${FONT}`
-    g.textAlign = 'right'
-    g.fillText(
-      tr('ui.office.led.at', { time: formatClock(item.at, sceneZone.value) }),
-      at.w - 3,
-      at.head + ROWS.label * u,
-      at.w * 0.6
-    )
-    g.textAlign = 'left'
+    paintReadAt(g, { at: item.at, w: at.w, y: at.head + ROWS.label * u, unit: u })
   }
 
   g.fillStyle = LED.name
@@ -198,6 +190,22 @@ function paintPanel(
       },
     })
   }
+}
+
+// The time of the last read, right-aligned on the label row.
+function paintReadAt(
+  g: CanvasRenderingContext2D,
+  at: { readonly at: number; readonly w: number; readonly y: number; readonly unit: number }
+): void {
+  g.font = `${MID_FONT_WEIGHT} ${SIZES.at * at.unit}px ${FONT}`
+  g.textAlign = 'right'
+  g.fillText(
+    tr('ui.office.led.at', { time: formatClock(at.at, sceneZone.value) }),
+    at.w - 3,
+    at.y,
+    at.w * 0.6
+  )
+  g.textAlign = 'left'
 }
 
 // The levels polled since the page opened, against the previous close.
