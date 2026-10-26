@@ -6,6 +6,8 @@ import {
   DROP_POOL,
   dropAlphaOf,
   type LightRow,
+  SCREEN_POOLS,
+  SCREEN_RGB,
   TABLE_POOLS,
   WARM_RGB,
 } from '@/web/scene/sprites/daylight'
@@ -32,6 +34,8 @@ interface LightingSpec {
   readonly lampGlow: number
   /** The home market has shut for the day: the lobby dims. */
   readonly isClosed: boolean
+  /** The office has gone quiet: the screens are dark. */
+  readonly isQuiet: boolean
 }
 
 /** One light pass over the sprites: each room's tint and darkness, then the warm pools in
@@ -109,6 +113,12 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
       rgb: WARM_RGB,
       alpha: LAMP_FLOOR_ALPHA * spec.lampGlow,
     })
+  }
+
+  if (spec.floor === 'office' && !spec.isQuiet) {
+    for (const [x, y, radius] of SCREEN_POOLS) {
+      pool(g, { x, y, radius, rgb: SCREEN_RGB, alpha: glow })
+    }
   }
 
   if (spec.floor === 'office' && spec.dropPct !== undefined) {

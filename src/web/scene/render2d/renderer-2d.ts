@@ -296,6 +296,7 @@ function paintFloor(surface: Surface, job: FloorJob): void {
     light: job.light,
     lampGlow: job.sim.props.lampGlow,
     isClosed: job.sim.props.isClosed,
+    isQuiet: job.sim.life.isQuiet,
     ...(dropPct === undefined ? {} : { dropPct }),
   })
   paintSkyFx(g, {

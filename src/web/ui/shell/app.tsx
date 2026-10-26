@@ -22,11 +22,10 @@ import { PaneBar } from '@/web/ui/shell/pane-bar'
 import { Panes } from '@/web/ui/shell/panes'
 import { SignIn } from '@/web/ui/shell/sign-in'
 import { StatusLine } from '@/web/ui/shell/status-line'
-import { Tape } from '@/web/ui/tape/tape'
 
 import './app.css'
 
-/** The page grid (header | pane bar when narrow | tape | main | command bar), behind the loading,
+/** The page grid (header | pane bar when narrow | main | command bar), behind the loading,
  *  failure and sign-in screens. A loaded session stays on screen when a later load fails. A chat
  *  tab is its chat pane and the command bar alone: no scene, panel or header mounts. */
 export function App() {
@@ -68,7 +67,6 @@ export function App() {
       <SkipLink />
       <Header />
       <PaneBar />
-      <Tape />
       <Panes />
       <PageBottom />
     </div>

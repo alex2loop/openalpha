@@ -1,25 +1,9 @@
 import type { FloorId, RoomId } from '@/web/scene/types'
 import { roomTagOf } from '@/web/scene/overlay/room-tags'
-import {
-  canPanToward,
-  leaveRoom,
-  maxZoomSteps,
-  panBy,
-  projection,
-  setFloor,
-  view,
-  zoomBy,
-} from '@/web/scene/view'
-import { ROOM_IDS } from '@/web/scene/world/rooms'
+import { ZoomStack } from '@/web/scene/overlay/zoom-stack'
+import { canPanToward, leaveRoom, panBy, projection, setFloor, view } from '@/web/scene/view'
 import { breakpoint } from '@/web/state/breakpoints'
-import { lampsOff, toggleAllLamps } from '@/web/state/prefs'
-import {
-  ESCAPE_KEY_CAP,
-  NEXT_GLYPH,
-  PREVIOUS_GLYPH,
-  ZOOM_IN_GLYPH,
-  ZOOM_OUT_GLYPH,
-} from '@/web/text/glyphs'
+import { ESCAPE_KEY_CAP, NEXT_GLYPH, PREVIOUS_GLYPH } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
 import './toolbar.css'
@@ -34,7 +18,19 @@ const FLOORS: readonly {
   { id: 'team', key: 'ui.office.common.yourAgents' },
 ])
 
-/** The scene's controls on the shared camera: floors, where you are, zoom, panning and the lamps. */
+/** The row over the office column, above the tape: the floor switch and where you are. */
+export function FloorRow() {
+  const shown = view.value
+
+  return (
+    <div class="scene-floorrow">
+      <FloorSwitch floor={shown.floor} />
+      <Crumb floor={shown.floor} room={shown.room} />
+    </div>
+  )
+}
+
+/** The scene's controls over the canvas: panning, the map controls and the hint. */
 export function Toolbar() {
   const shown = view.value
   const isZoomed = shown.room !== undefined || shown.zoomSteps > 0
@@ -45,14 +41,8 @@ export function Toolbar() {
 
   return (
     <>
-      <div class="scene-toolbar">
-        <FloorSwitch floor={shown.floor} />
-        <Crumb floor={shown.floor} room={shown.room} />
-        <span class="scene-toolbar-grow" />
-        <ZoomControls zoomSteps={shown.zoomSteps} isZoomed={isZoomed} />
-        <LampsButton />
-      </div>
       <PanArrows />
+      <ZoomStack />
       {(isZoomed || (!isWide && isPannable())) && (
         <p class="scene-hint glass">
           {isWide ? tr('ui.office.floor.hint') : tr('ui.office.floor.hintNear')}
@@ -102,63 +92,6 @@ function Crumb({ floor, room }: { readonly floor: FloorId; readonly room: RoomId
       </button>
       <b>{roomTagOf(room, undefined).name}</b>
     </div>
-  )
-}
-
-function ZoomControls({
-  zoomSteps,
-  isZoomed,
-}: {
-  readonly zoomSteps: number
-  readonly isZoomed: boolean
-}) {
-  return (
-    <fieldset class="scene-zoom glass">
-      <button
-        type="button"
-        class="scene-tool"
-        aria-label={tr('ui.office.floor.zoomOut')}
-        title={tr('ui.office.floor.zoomOut')}
-        disabled={!isZoomed}
-        onClick={() => zoomBy(-1)}
-      >
-        {ZOOM_OUT_GLYPH}
-      </button>
-      <button
-        type="button"
-        class="scene-tool"
-        aria-label={tr('ui.office.floor.zoomIn')}
-        title={tr('ui.office.floor.zoomIn')}
-        disabled={zoomSteps >= maxZoomSteps()}
-        onClick={() => zoomBy(1)}
-      >
-        {ZOOM_IN_GLYPH}
-      </button>
-      {isZoomed && (
-        <button type="button" class="scene-tool" onClick={leaveRoom}>
-          {tr('ui.office.floor.leave')}
-        </button>
-      )}
-    </fieldset>
-  )
-}
-
-// One switch for every lamp: any lamp on turns them all off, else all on.
-function LampsButton() {
-  const off = lampsOff.value
-  const isAnyOn = ROOM_IDS.some((room) => !off.has(room))
-
-  return (
-    <button
-      type="button"
-      class="scene-tool scene-lamps glass"
-      aria-pressed={isAnyOn}
-      title={tr('ui.office.lights.all')}
-      aria-label={tr('ui.office.lights.all')}
-      onClick={() => toggleAllLamps(ROOM_IDS)}
-    >
-      <span class="scene-lamp-dot" aria-hidden="true" />
-    </button>
   )
 }
 

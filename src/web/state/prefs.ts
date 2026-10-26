@@ -45,6 +45,7 @@ const sceneViewChoice = signal<SceneView>(readChoice(SCENE_VIEW_KEY, SCENE_VIEWS
 const detailChoice = signal<DetailLevel>(readChoice(DETAIL_LEVEL_KEY, DETAIL_LEVELS))
 const lightByHourChoice = signal(readStorage('local', LIGHT_BY_HOUR_KEY) !== STORED_OFF)
 const switchedOff = signal<ReadonlySet<string>>(readLampsOff())
+const nightSwitches = signal<ReadonlyMap<string, boolean>>(new Map())
 const chimeChoice = signal(readStorage('local', CHIME_KEY) === STORED_ON)
 const notifyChoice = signal(readStorage('local', NOTIFY_KEY) === STORED_ON)
 
@@ -84,8 +85,10 @@ export const reducedMotion: ReadonlySignal<boolean> = computed(() =>
 export const colorScheme: ReadonlySignal<ColorScheme> = scheme
 /** The office light follows the page hour; off, it keeps the trading-day light. */
 export const lightByHour: ReadonlySignal<boolean> = lightByHourChoice
-/** The rooms whose lamp switch is off; every other lamp is on. Kept in this browser only. */
+/** The rooms whose day switch is off; every other lamp is on by day. Kept in this browser only. */
 export const lampsOff: ReadonlySignal<ReadonlySet<string>> = switchedOff
+/** The lamps switched on or off since dusk; unswitched, a lamp at night follows who is in. */
+export const nightLamps: ReadonlySignal<ReadonlyMap<string, boolean>> = nightSwitches
 /** A soft chime for what needs the operator; off until they turn it on. */
 export const chime: ReadonlySignal<boolean> = chimeChoice
 /** Browser notifications for what needs the operator now; off until they turn it on. */
@@ -123,21 +126,37 @@ export function setNotify(value: boolean): void {
   keepSwitch(notifyChoice, NOTIFY_KEY, value)
 }
 
-export function toggleLamp(room: string): void {
+/** Sets the saved day switch of `rooms`' lamps. */
+export function setDayLamps(rooms: readonly string[], isOn: boolean): void {
   const next = new Set(switchedOff.value)
 
-  if (!next.delete(room)) {
-    next.add(room)
+  for (const room of rooms) {
+    if (isOn) {
+      next.delete(room)
+    } else {
+      next.add(room)
+    }
   }
 
   storeLampsOff(next)
 }
 
-/** The master switch over `rooms`' lamps: every one off when any is on, else every one on. */
-export function toggleAllLamps(rooms: readonly string[]): void {
-  const isAnyOn = rooms.some((room) => !switchedOff.value.has(room))
+/** Sets `rooms`' lamps for the night under way, for this visit only. */
+export function setNightLamps(rooms: readonly string[], isOn: boolean): void {
+  const next = new Map(nightSwitches.value)
 
-  storeLampsOff(new Set(isAnyOn ? rooms : []))
+  for (const room of rooms) {
+    next.set(room, isOn)
+  }
+
+  nightSwitches.value = next
+}
+
+/** Dawn or dusk: the switches made over the night are forgotten. */
+export function forgetNightLamps(): void {
+  if (nightSwitches.value.size > 0) {
+    nightSwitches.value = new Map()
+  }
 }
 
 /** Releases the media listeners, the theme observer and the document sync; idempotent. */

@@ -3,7 +3,7 @@ import type { Point } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import { measureLabel, paintLabel } from '@/web/scene/render2d/street/label'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
-import { CROSSING, KERB_Y, sideX } from '@/web/scene/world/street-layout'
+import { CROSSING, KERB_Y, SIDE_ROAD, sideX } from '@/web/scene/world/street-layout'
 import { tr } from '@/web/text/tr'
 
 /** Where the street's furniture stands, on the far and the near kerb, and how much of the
@@ -34,11 +34,13 @@ const SIGN_TONES = Object.freeze({
   white: '#F4F1E8',
   ink: '#1A1C22',
 })
-// The name plate: the mockup's size times `STREET_PLATE_SCALE`, its pole, the lettering sizes
-// and where the plates stand along the far kerb.
+// The name plate: the mockup's size times `STREET_PLATE_SCALE`, its pole, the lettering sizes,
+// where the main street's plates stand along the far kerb, and where a side street's stands: on
+// its outer kerb, just south of the junction.
 const STREET_PLATE_SCALE = 2
 const PLATE = Object.freeze({ h: 5.8, pole: 8.6, word: 1.2, name: 2.6, pad: 2.4, inset: 0.4 })
 const PLATE_X = [-60, 660] as const
+const SIDE_PLATE = Object.freeze({ out: SIDE_ROAD.to + 6, y: 14 })
 
 interface Sign {
   readonly kind: 'speed' | 'noParking' | 'crosswalk'
@@ -46,8 +48,8 @@ interface Sign {
   readonly limit?: 'north' | 'side'
 }
 
-/** The road signs (speed limits from the pack, no parking, crosswalks) and the pack's one main
- *  street's name plates. */
+/** The road signs (speed limits from the pack, no parking, crosswalks) and the name plates of the
+ *  pack's main street and its two side streets. */
 export function paintSigns(
   g: CanvasRenderingContext2D,
   at: { readonly pack: RegionPack; readonly minute: StreetMinute; readonly dark: number }
@@ -56,8 +58,15 @@ export function paintSigns(
     paintSign(g, { sign, ...at })
   }
 
-  for (const x of PLATE_X) {
-    paintPlate(g, { at: { x, y: FURNITURE.farY }, pack: at.pack, dark: at.dark })
+  const { pack, dark } = at
+  const plates = [
+    ...PLATE_X.map((x) => ({ x, y: FURNITURE.farY, name: pack.street })),
+    { x: sideX(-1, SIDE_PLATE.out), y: SIDE_PLATE.y, name: pack.sideStreets.west },
+    { x: sideX(1, SIDE_PLATE.out), y: SIDE_PLATE.y, name: pack.sideStreets.east },
+  ]
+
+  for (const { name, ...point } of plates) {
+    paintPlate(g, { at: point, name, pack, dark })
   }
 }
 
@@ -160,16 +169,21 @@ function disc(
   g.fill()
 }
 
-// The main street's name plate in the pack's style, the street word over the name, lettered at
-// every detail level so it reads at the floor zoom.
+// A street's name plate in the pack's style, the street word over the name, lettered at every
+// detail level so it reads at the floor zoom.
 function paintPlate(
   g: CanvasRenderingContext2D,
-  at: { readonly at: Point; readonly pack: RegionPack; readonly dark: number }
+  at: {
+    readonly at: Point
+    readonly name: string
+    readonly pack: RegionPack
+    readonly dark: number
+  }
 ): void {
-  const { plate, street } = at.pack
+  const { plate } = at.pack
   const scale = STREET_PLATE_SCALE
   const h = PLATE.h * scale
-  const name = plate.caps ? street.toUpperCase() : street
+  const name = plate.caps ? at.name.toUpperCase() : at.name
   const ink = mixTone(plate.ink, NIGHT_TONE, at.dark)
   const { x } = at.at
   const pole = at.at.y - PLATE.pole

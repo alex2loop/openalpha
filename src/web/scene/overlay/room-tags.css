@@ -30,6 +30,18 @@
   pointer-events: auto;
 }
 
+.room-tag {
+  background: var(--roomTag);
+  color: var(--roomTagInk);
+  font-weight: 500;
+  backdrop-filter: blur(2px);
+}
+
+.room-tag b {
+  color: var(--roomTagName);
+  font-weight: 600;
+}
+
 .room-tag-text {
   overflow: hidden;
 }

@@ -8,6 +8,7 @@ import {
   ELEVATION,
   MAX_ZOOM_3D_PX,
   reportProjection,
+  STREET_RECT,
   view,
   ZOOM_STEP,
 } from '@/web/scene/view'
@@ -41,6 +42,8 @@ const CAMERA_EASE_MS = 180
 const SETTLED = 0.002
 const VIEW_DIR = new Vector3(0, Math.sin(ELEVATION), Math.cos(ELEVATION))
 const target = new Vector3()
+// The mockup's farthest 3D zoom-out, as a share of the fitted floor's scale.
+const MIN_ZOOM_SHARE = 0.25
 
 /** Frames the view's floor, room or zoom like 2D does, eased unless motion is reduced; the
  *  projection the overlays read follows every eased step. */
@@ -71,6 +74,7 @@ export function placeCamera(
     originX,
     originY,
     maxScale: maxScaleOf(base),
+    minScale: minScaleOf(base, pane),
   })
   aim(rig.camera, next, pane)
 
@@ -98,7 +102,7 @@ function wantedShot(pane: Size, base: number): Shot {
   const room = held.room === undefined ? undefined : roomById(held.room)
   const want =
     room === undefined ? base * ZOOM_STEP ** held.zoomSteps : fitRoomScale(room.rect, pane)
-  const scale = Math.min(maxScaleOf(base), want)
+  const scale = Math.max(minScaleOf(base, pane), Math.min(maxScaleOf(base), want))
 
   return { scale, center: clampPan(held.center, scale, pane) }
 }
@@ -134,6 +138,12 @@ function aim(camera: OrthographicCamera, shot: Shot, pane: Size): void {
 // The 3D view's closest zoom in CSS px per world px, never under the floor's own fit.
 function maxScaleOf(base: number): number {
   return Math.max(base, MAX_ZOOM_3D_PX / devicePixelRatio)
+}
+
+// As far out as shows the whole street's height, Bitexco's crown and the side parks, but never
+// under `MIN_ZOOM_SHARE` of the fitted floor.
+function minScaleOf(base: number, pane: Size): number {
+  return Math.min(base, Math.max(base * MIN_ZOOM_SHARE, pane.h / STREET_RECT.h))
 }
 
 function fitFloor(pane: Size): number {

@@ -94,12 +94,15 @@ function Tag({ room, renderer, width }: TagProps) {
     >
       <button
         type="button"
-        class="room-tag glass"
+        class="room-tag"
         title={fits ? undefined : full}
         onClick={() => zoomToRoom(room.id, room.rect)}
       >
         {runs.length > 0 && <span class="room-live" title={tr('ui.office.room.live')} />}
-        <span class="room-tag-text">{fits ? full : tag.name}</span>
+        <span class="room-tag-text">
+          <b>{tag.name}</b>
+          {fits && full.slice(tag.name.length)}
+        </span>
       </button>
       {runs.length > 1 && <QueuedChip room={room.id} status={status} />}
     </div>
