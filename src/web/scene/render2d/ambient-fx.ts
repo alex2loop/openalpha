@@ -4,6 +4,7 @@ import { alertStrip } from '@/web/scene/data/alert-strip'
 import { roomStatus } from '@/web/scene/data/room-status'
 import { fill } from '@/web/scene/render2d/building'
 import { STANDBY_STEP_MS } from '@/web/scene/render2d/standby'
+import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { APPROVAL_KIND, pending, runningCount } from '@/web/state/live'
@@ -38,10 +39,15 @@ export interface AmbientFx {
   readonly cue: boolean
   readonly rack: boolean
   readonly bubbles: boolean
+  /** The LED strip's own clock: it runs only inside the strip's ambient window, so the headlines
+   *  hold still between windows. */
+  readonly stripMs: number
   /** A pet is inside its bout: it breathes, flicks an ear, glances and wags. */
   readonly pets: boolean
-  /** The StandBy stands' drifting colour, which steps only every `STANDBY_STEP_MS`. */
+  /** The StandBy stands' drifting colour, which steps only every `STANDBY_STEP_MS` of its own
+   *  clock, `standbyMs`, which runs only inside the stands' ambient window. */
   readonly standby: boolean
+  readonly standbyMs: number
   /** The lift's arrow, blinking while the car rides, on either floor. */
   readonly lift: boolean
 }
@@ -61,15 +67,17 @@ export function resolveAmbientFx(sim: SimView, nowMs: number): AmbientFx | undef
       isOffice && sim.light.sun.altitudeDeg >= DUST_SUN_DEG && sim.light.cloud <= DUST_CLOUD_MAX,
     ribbons: isAwake && sim.life.occupied.has('meet'),
     strip: isOffice && alertStrip.value.isNew,
+    stripMs: ambientWindows.clockMs(AMBIENT_KEY.led, nowMs),
     cue: isOffice && pending.value.some((entry) => entry.kind === APPROVAL_KIND),
     rack: isAwake && roomStatus.value.get('store')?.runs[0] !== undefined,
     bubbles: isAwake && runningCount.value > 0,
     pets: isPetsStirring(sim),
     standby: isAwake,
+    standbyMs: ambientWindows.clockMs(AMBIENT_KEY.standby, nowMs),
     lift: sim.lift.direction !== 'still',
   }
 
-  return isFast(fx) || fx.standby ? fx : undefined
+  return isFast(fx) || fx.strip || fx.standby ? fx : undefined
 }
 
 /** When the ambient clock steps next, while the floor shows any effect; `Infinity` otherwise. The
@@ -85,8 +93,17 @@ export function nextAmbientFxAt(sim: SimView, nowMs: number): number {
     return Number.POSITIVE_INFINITY
   }
 
-  // With only the StandBy colour on, the loop wakes at its slower step, not every beat.
-  return nextBeatAt(nowMs, isFast(fx) ? AMBIENT_FX_GAP_MS : STANDBY_STEP_MS)
+  // The strip and the StandBy colour wake the loop only inside their own windows, the colour at
+  // its slower step.
+  return Math.min(
+    isFast(fx) ? nextBeatAt(nowMs, AMBIENT_FX_GAP_MS) : Number.POSITIVE_INFINITY,
+    fx.strip
+      ? ambientWindows.nextStepAt(AMBIENT_KEY.led, nowMs, AMBIENT_FX_GAP_MS)
+      : Number.POSITIVE_INFINITY,
+    fx.standby
+      ? ambientWindows.nextStepAt(AMBIENT_KEY.standby, nowMs, STANDBY_STEP_MS)
+      : Number.POSITIVE_INFINITY
+  )
 }
 
 // A pet inside its bout, on the floor they live on.
@@ -99,7 +116,7 @@ function nextBeatAt(nowMs: number, gapMs: number): number {
 }
 
 function isFast(fx: AmbientFx): boolean {
-  return fx.dust || fx.ribbons || fx.strip || fx.cue || fx.rack || fx.bubbles || fx.pets || fx.lift
+  return fx.dust || fx.ribbons || fx.cue || fx.rack || fx.bubbles || fx.pets || fx.lift
 }
 
 /** The dust in the window light, drifting on the ambient clock. */

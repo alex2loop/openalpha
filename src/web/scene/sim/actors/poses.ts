@@ -1,4 +1,5 @@
 import type { ActorView, FloorId, HeldItem, PoseId, SheetView } from '@/web/scene/types'
+import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const GAIT_STEP_MS = 250
@@ -17,13 +18,6 @@ const BLINK_GAP_MIN_MS = 3_000
 const BLINK_GAP_MAX_MS = 6_000
 // One breath: up for half, down for half, flipped in one step.
 const BREATH_MS = 1_100
-const AMBIENT_BOUT_MS = 6_000
-const AMBIENT_REST_MS = Object.freeze({ min: 20_000, max: 40_000 })
-// One bout per slot, its start drawn inside the jitter, so the rest between two bouts falls
-// inside `AMBIENT_REST_MS`.
-const AMBIENT_JITTER_MS = (AMBIENT_REST_MS.max - AMBIENT_REST_MS.min) / 2
-const AMBIENT_SLOT_MS = AMBIENT_BOUT_MS + (AMBIENT_REST_MS.min + AMBIENT_REST_MS.max) / 2
-const AMBIENT_POOL = 'ambient'
 // A fidget at the seat: a glance aside, a look down, hands behind the head.
 const FIDGET_POSES: readonly [PoseId, ...PoseId[]] = ['glance', 'look-down', 'lean-back']
 const POSE_POOL = 'pose'
@@ -175,7 +169,7 @@ const POSES: Readonly<Record<PoseId, PoseDef>> = Object.freeze({
 } satisfies Record<PoseId, PoseDef>)
 
 /** Whether a floor's people blink and breathe now: always while one works, walks or plays a
- *  moving pose, otherwise only inside an ambient bout, so a quiet floor asks for no frame. */
+ *  moving pose, otherwise only inside the people's ambient window, so a quiet floor asks for no frame. */
 export function isCharacterMotionOn(
   actors: readonly ActorView[],
   at: { readonly floor: FloorId; readonly now: number }
@@ -190,7 +184,7 @@ export function isCharacterMotionOn(
     (actor) => actor.working || isActorWalking(actor) || isPoseMoving(actor.pose)
   )
 
-  return isBusy || isAmbientBout(at.floor, at.now)
+  return isBusy || ambientWindows.isOn(AMBIENT_KEY.people, at.now)
 }
 
 /** The person stands on `floor` now; someone out on an errand, gone home or in the lift car
@@ -266,35 +260,4 @@ export function isBreathDown(seed: number, nowMs: number): boolean {
   const offsetMs = createRng(seed).next() * BREATH_MS
 
   return Math.floor((nowMs + offsetMs) / (BREATH_MS / 2)) % 2 === 1
-}
-
-/** Whether a quiet floor's blink and breath (by its `pool`) run now: in bouts, with a rest
- *  between them. */
-function isAmbientBout(pool: string, nowMs: number): boolean {
-  const bout = boutIn(pool, slotOf(nowMs))
-
-  return nowMs >= bout.startMs && nowMs < bout.endMs
-}
-
-/** The next instant a bout of `pool` starts or ends. */
-export function nextAmbientAt(pool: string, nowMs: number): number {
-  const slot = slotOf(nowMs)
-  const bout = boutIn(pool, slot)
-
-  if (nowMs < bout.startMs) {
-    return bout.startMs
-  }
-
-  return nowMs < bout.endMs ? bout.endMs : boutIn(pool, slot + 1).startMs
-}
-
-function boutIn(pool: string, slot: number): { startMs: number; endMs: number } {
-  const jitter = createRng(seedOf(AMBIENT_POOL, pool, String(slot))).next()
-  const startMs = slot * AMBIENT_SLOT_MS + jitter * AMBIENT_JITTER_MS
-
-  return { startMs, endMs: startMs + AMBIENT_BOUT_MS }
-}
-
-function slotOf(nowMs: number): number {
-  return Math.floor(nowMs / AMBIENT_SLOT_MS)
 }

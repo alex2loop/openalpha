@@ -4,11 +4,7 @@ import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { ScreenLine } from '@/web/scene/overlay-types'
 import type { ActorId } from '@/web/scene/types'
 import { AMBIENT_FX_GAP_MS } from '@/web/scene/budgets'
-
-// The mockup's typing: two to four characters a tick.
-const TYPE_TICK_MS = 65
-const CHARS_MIN = 2
-const CHARS_SPAN = 3
+import { charsTypedIn } from '@/web/scene/data/screen-lines'
 
 const typed = signal<ReadonlyMap<ActorId, number>>(new Map())
 
@@ -74,8 +70,7 @@ function stepTyping(
     const key = `${screen.runId}|${last.id}`
     const before = state.held.get(screen.actor)
     const own = before?.key === key ? before : { key, startMs: at.beatMs }
-    const ticks = Math.floor((at.beatMs - own.startMs) / TYPE_TICK_MS)
-    const count = at.isReduced ? last.text.length : typedAfter(last.text, ticks)
+    const count = at.isReduced ? last.text.length : charsTypedIn(last.text, at.beatMs - own.startMs)
 
     held.set(screen.actor, own)
     chars.set(screen.actor, count)
@@ -92,17 +87,6 @@ function stepTyping(
 
 function lastLineOf(screen: LitScreen): ScreenLine | undefined {
   return screen.content.kind === 'line' ? undefined : screen.content.lines.at(-1)
-}
-
-// The characters of `text` typed after `ticks` ticks.
-function typedAfter(text: string, ticks: number): number {
-  let count = 0
-
-  for (let tick = 0; tick < ticks && count < text.length; tick++) {
-    count += CHARS_MIN + ((count + tick) % CHARS_SPAN)
-  }
-
-  return Math.min(text.length, count)
 }
 
 function isSame(a: ReadonlyMap<ActorId, number>, b: ReadonlyMap<ActorId, number>): boolean {

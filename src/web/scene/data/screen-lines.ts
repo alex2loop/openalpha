@@ -8,6 +8,10 @@ import { formatRunName } from '@/web/text/run-name'
 // A screen keeps this many finished steps; what shows is cut to its rows.
 const DONE_LINES_MAX = 6
 const COMMAND_ID = 'command'
+// The mockup's typing: two to four characters a tick.
+const TYPE_TICK_MS = 65
+const CHARS_MIN = 2
+const CHARS_SPAN = 3
 
 /** The ticker a run works on: the one its progress names, else the first it has touched. */
 export function tickerOf(run: Run): string | undefined {
@@ -34,6 +38,18 @@ export function terminalLinesOf(run: Run, host?: string): readonly ScreenLine[] 
 /** What a desk screen shows for a run: its title and terminal. */
 export function runContentOf(run: Run): DeskScreenContent {
   return { kind: 'run', title: formatRunName(run), lines: terminalLinesOf(run) }
+}
+
+/** How many characters of `text` are typed `elapsedMs` after its line began, in every renderer. */
+export function charsTypedIn(text: string, elapsedMs: number): number {
+  const ticks = Math.floor(elapsedMs / TYPE_TICK_MS)
+  let count = 0
+
+  for (let tick = 0; tick < ticks && count < text.length; tick++) {
+    count += CHARS_MIN + ((count + tick) % CHARS_SPAN)
+  }
+
+  return Math.min(text.length, count)
 }
 
 function lineOf(kind: 'done' | 'step', step: ProgressWire, host?: string): ScreenLine {

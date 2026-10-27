@@ -1,5 +1,5 @@
 import type { FishView, PetKind, PetPose, PetView, Point } from '@/web/scene/types'
-import { type AnimalBouts, createAnimalBouts } from '@/web/scene/sim/life/animal-bouts'
+import { ambientWindows } from '@/web/scene/sim/ambient-windows'
 import { createFish, fishDueAt, fishViewOf, stepFish } from '@/web/scene/sim/life/fish'
 import {
   isPersonNear,
@@ -29,7 +29,6 @@ interface Leg {
 
 interface PetState {
   readonly kind: PetKind
-  readonly bouts: AnimalBouts
   legs: Leg[]
   end: number
   node: NodeId | undefined
@@ -90,9 +89,8 @@ const PET_POOL = 'pet'
 const JUMP_PITCH_STEPS = 2
 
 export function createPets(nowMs: number): Pets {
-  const bouts = createAnimalBouts()
-  const pets = (['cat', 'corgi'] as const).map((kind) => createPetState(kind, nowMs, bouts))
-  const fish = createFish(bouts)
+  const pets = (['cat', 'corgi'] as const).map((kind) => createPetState(kind, nowMs))
+  const fish = createFish()
 
   return {
     step: (world) => {
@@ -108,7 +106,7 @@ export function createPets(nowMs: number): Pets {
     nextDueAt: (world) => {
       const petDues = pets
         .filter((pet) => !isStill(pet, world))
-        .flatMap((pet) => [pet.end, pet.bouts.nextAt(pet.kind, world.nowMs)])
+        .flatMap((pet) => [pet.end, ambientWindows.nextAt(pet.kind, world.nowMs)])
         .filter((due) => due > world.nowMs)
       const fishDues = world.isReduced ? [] : fish.map((one) => fishDueAt(one, world.nowMs))
 
@@ -117,12 +115,11 @@ export function createPets(nowMs: number): Pets {
   }
 }
 
-function createPetState(kind: PetKind, nowMs: number, bouts: AnimalBouts): PetState {
+function createPetState(kind: PetKind, nowMs: number): PetState {
   const node = HOMES[kind]
   const spot = NODES[node]
   const pet: PetState = {
     kind,
-    bouts,
     legs: [],
     end: nowMs,
     node,
@@ -188,10 +185,14 @@ function decide(pet: PetState, people: readonly Point[]): void {
 
   pet.draws = (pet.draws + 1) % MAX_DRAWS
 
-  if (!pet.bouts.isOn(pet.kind, pet.end)) {
+  if (!ambientWindows.isOn(pet.kind, pet.end)) {
     const pose = pet.legs.at(-1)?.pose ?? REST_POSES[pet.kind]
 
-    pushIdle(pet, { ms: pet.bouts.nextAt(pet.kind, pet.end) - pet.end, pose, perch: pet.perch })
+    pushIdle(pet, {
+      ms: ambientWindows.nextAt(pet.kind, pet.end) - pet.end,
+      pose,
+      perch: pet.perch,
+    })
     return
   }
 
@@ -403,7 +404,7 @@ function toPetView(pet: PetState, world: PetWorld): PetView {
     lift: lerp(leg.from.lift, leg.to.lift, u) + arc,
     pose,
     isFlipped: leg.isFlipped,
-    isLive: pet.bouts.isOn(pet.kind, world.nowMs),
+    isLive: ambientWindows.isOn(pet.kind, world.nowMs),
     ...jump,
   }
 }

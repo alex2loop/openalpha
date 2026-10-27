@@ -1,5 +1,5 @@
-import type { AnimalBouts } from '@/web/scene/sim/life/animal-bouts'
 import type { FishView } from '@/web/scene/types'
+import { ambientWindows } from '@/web/scene/sim/ambient-windows'
 import { propsOn } from '@/web/scene/world/props'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 
@@ -16,7 +16,6 @@ interface FishWorld {
  *  clock, and whether it swims; both clocks run only while it does. */
 interface FishState {
   readonly key: string
-  readonly bouts: AnimalBouts
   readonly look: FishLook
   u: number
   bob: number
@@ -24,17 +23,16 @@ interface FishState {
   stepAt: number
 }
 
-// Each fish: its speed in px a second, its height in the water (0 to 1), its phase, where it
-// hangs under reduced motion.
+// Each fish: its ambient key (the mockup's name for it), its speed in px a second, its height in
+// the water (0 to 1), its phase, where it hangs under reduced motion.
 const FISH_LOOKS = Object.freeze([
-  { speed: 10, height: 0.7, phase: 0, rest: 0.2 },
-  { speed: 7, height: 0.15, phase: 2.1, rest: 1.5 },
-  { speed: 13, height: 0.42, phase: 4.2, rest: 0.8 },
+  { key: 'gold', speed: 10, height: 0.7, phase: 0, rest: 0.2 },
+  { key: 'pale', speed: 7, height: 0.15, phase: 2.1, rest: 1.5 },
+  { key: 'koi', speed: 13, height: 0.42, phase: 4.2, rest: 0.8 },
 ] as const)
 
 type FishLook = (typeof FISH_LOOKS)[number]
 
-const FISH_KEY = 'fish'
 const TANK_PROP = propsOn('office').find((prop) => prop.kind === 'tank')
 const TANK_W_PX = TANK_PROP?.rect.w ?? 36
 // A fish keeps this much of the tank's width off its sweep, which one unit of `u` crosses.
@@ -52,10 +50,9 @@ const YAW_STEPS = 16
 const HALF = Math.PI
 const SWEEP_UNITS = 2
 
-export function createFish(bouts: AnimalBouts): FishState[] {
-  return FISH_LOOKS.map((look, i) => ({
-    key: `${FISH_KEY}:${i}`,
-    bouts,
+export function createFish(): FishState[] {
+  return FISH_LOOKS.map((look) => ({
+    key: look.key,
     look,
     u: look.phase,
     bob: 0,
@@ -64,8 +61,8 @@ export function createFish(bouts: AnimalBouts): FishState[] {
   }))
 }
 
-/** A fish swims inside its own bout and hangs still outside it; a bout that ends in the
- *  middle of a turn finishes the turn first. */
+/** A fish swims inside its own ambient window and hangs still outside it; a window that ends in
+ *  the middle of a turn finishes the turn first. */
 export function stepFish(fish: FishState, world: FishWorld): void {
   fish.stepAt = world.nowMs
 
@@ -75,7 +72,7 @@ export function stepFish(fish: FishState, world: FishWorld): void {
     return
   }
 
-  if (fish.bouts.isOn(fish.key, world.nowMs)) {
+  if (ambientWindows.isOn(fish.key, world.nowMs)) {
     fish.isOn = true
   } else if (fish.isOn && !isTurning(fish.u)) {
     fish.isOn = false
@@ -89,7 +86,7 @@ export function stepFish(fish: FishState, world: FishWorld): void {
 
 /** The next instant a bout of this fish starts or ends. */
 export function fishDueAt(fish: FishState, nowMs: number): number {
-  return fish.bouts.nextAt(fish.key, nowMs)
+  return ambientWindows.nextAt(fish.key, nowMs)
 }
 
 /** The fish as drawn now: a swimming one runs on from its last step by the time since. */

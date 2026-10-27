@@ -1,5 +1,7 @@
 /** The face text's font, in every face painter. */
 export const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+/** The monospace the mockup's terminals are set in. */
+export const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
 const CLIP_MARK = '...'
 
 interface LineStyle {
@@ -33,7 +35,8 @@ export function write(c: CanvasRenderingContext2D, line: Line): number {
   return c.measureText(text).width
 }
 
-function clip(c: CanvasRenderingContext2D, text: string, maxW: number): string {
+/** `text` as it fits in `maxW` px at the font set, cut with a trailing mark. */
+export function clip(c: CanvasRenderingContext2D, text: string, maxW: number): string {
   if (c.measureText(text).width <= maxW) {
     return text
   }
