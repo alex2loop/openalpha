@@ -4,6 +4,7 @@ import { unseenCalls } from '@/web/state/ideas'
 import { backStack, openView, type PanelTab, type PanelView, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { BulbIcon, GlobeIcon, PieIcon, SunIcon } from '@/web/ui/kit/icons'
+import { Segmented } from '@/web/ui/kit/segmented'
 
 interface TabSpec {
   readonly tab: PanelTab
@@ -19,40 +20,28 @@ const PANEL_TABS: readonly TabSpec[] = Object.freeze([
 ])
 
 /** Hôm nay, Danh mục, Đề xuất and Thị trường; a person or ticker open keeps lit the tab it came
- *  from. */
+ *  from. Only "Đề xuất" carries a count: the calls the operator has not looked at yet. */
 export function Tabs() {
   const view = panelView.value
   const origin = 'tab' in view ? view : backStack.value.findLast(isTabView)
-  const active = origin?.tab
 
   return (
-    <nav class="panel-tabs">
-      {PANEL_TABS.map((spec) => (
-        <button
-          key={spec.tab}
-          type="button"
-          class={spec.tab === active ? 'panel-tab is-active' : 'panel-tab'}
-          title={spec.label()}
-          aria-label={spec.label()}
-          aria-current={spec.tab === active ? 'page' : undefined}
-          onClick={() => openView({ tab: spec.tab }, { fresh: true })}
-        >
-          {spec.icon}
-          <span class="panel-tab-label">{spec.label()}</span>
-          <TabCount tab={spec.tab} />
-        </button>
-      ))}
-    </nav>
+    <Segmented
+      isTabs
+      className="panel-tabs"
+      label={tr('ui.office.panel.label')}
+      value={origin?.tab}
+      options={PANEL_TABS.map((spec) => ({
+        value: spec.tab,
+        label: spec.label(),
+        icon: spec.icon,
+        badge: spec.tab === 'ideas' ? unseenCalls.value.length : 0,
+      }))}
+      onChange={(tab) => openView({ tab }, { fresh: true })}
+    />
   )
 }
 
 function isTabView(view: PanelView): view is { readonly tab: PanelTab } {
   return 'tab' in view
-}
-
-// Only "Đề xuất" carries a count: the calls the operator has not looked at yet.
-function TabCount({ tab }: { readonly tab: PanelTab }) {
-  const count = tab === 'ideas' ? unseenCalls.value.length : 0
-
-  return count > 0 ? <span class="panel-tab-count">{count}</span> : null
 }

@@ -1,5 +1,5 @@
-/* In a column it spans the row with even options (the mockup's sub-tabs); in a flex row, such as
-   the header, it takes its options' width. */
+/* A sunken track with the open option a light pill on it. In a column it spans the row with even
+   options; in a flex row, such as the header, it takes its options' width. */
 .seg {
   display: flex;
   flex-wrap: wrap;
@@ -12,7 +12,11 @@
 }
 
 .seg button {
+  display: inline-flex;
   flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   min-height: calc(var(--controlH) - 4px);
   padding: 0 10px;
   border: 0;
@@ -25,8 +29,10 @@
 }
 
 .seg button.is-on {
-  background: var(--surface);
-  box-shadow: var(--lift);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--segHi),
+    var(--lift);
   color: var(--ink);
   font-weight: var(--weightSemibold);
 }
@@ -36,26 +42,22 @@
   cursor: default;
 }
 
-/* A person's sections: the mockup's underlined tabs over a rule. */
-.seg.is-tabs {
-  flex-wrap: nowrap;
-  gap: 2px;
-  padding: 0;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: none;
+.seg svg.icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ink);
 }
 
-.seg.is-tabs button {
-  flex: none;
-  min-height: 0;
-  padding: 6px 10px;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
+.seg-badge {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink2);
+  font: var(--typeCaptionStrong);
+  font-variant-numeric: tabular-nums;
 }
 
-.seg.is-tabs button.is-on {
-  border-bottom-color: var(--ink);
-  background: none;
-  box-shadow: none;
+.seg button.is-on .seg-badge {
+  background: var(--ink);
+  color: var(--canvas);
 }
