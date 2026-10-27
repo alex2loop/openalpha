@@ -2,6 +2,7 @@ import type { ProgressWire } from '@/app/server/wire/live'
 import type { DeskScreenContent, ScreenLine } from '@/web/scene/overlay-types'
 import type { Run } from '@/web/state/live'
 import { toParamText } from '@/web/scene/data/room-status'
+import { stepLabelOf } from '@/web/scene/data/step-labels'
 import { DONE_GLYPH, PROMPT_GLYPH, STEP_GLYPH } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 
@@ -12,14 +13,21 @@ const COMMAND_ID = 'command'
 const TYPE_TICK_MS = 65
 const CHARS_MIN = 2
 const CHARS_SPAN = 3
+// The word a run's command line shows, as the mockup's: a verb for what it does. Another run keeps
+// its own name.
+const RUN_VERBS: Readonly<Record<string, string>> = Object.freeze({
+  suggest: 'debate',
+  research: 'search',
+  chat: 'ask',
+})
 
 /** The ticker a run works on: the one its progress names, else the first it has touched. */
 export function tickerOf(run: Run): string | undefined {
   return toParamText(run.progress?.params?.ticker) ?? run.tickers[0]
 }
 
-/** A run's terminal, as the mockup types one: `$ name ticker`, then a line for every step it has
- *  finished and the step it is on, which reads the page's host while a scout has one open. */
+/** A run's terminal, as the mockup types one: `$ verb ticker`, then a short line for every step it
+ *  has finished and the step it is on, which reads the page's host while a scout has one open. */
 export function terminalLinesOf(run: Run, host?: string): readonly ScreenLine[] {
   const running = runningStepOf(run)
   const done = run.persistent.slice(-DONE_LINES_MAX).map((step) => lineOf('done', step))
@@ -28,7 +36,7 @@ export function terminalLinesOf(run: Run, host?: string): readonly ScreenLine[] 
     {
       kind: 'command',
       id: COMMAND_ID,
-      text: [PROMPT_GLYPH, run.name, tickerOf(run)].filter(Boolean).join(' '),
+      text: [PROMPT_GLYPH, verbOf(run), subjectOf(run)].filter(Boolean).join(' '),
     },
     ...done,
     ...(running === undefined ? [] : [lineOf('step', running, host)]),
@@ -55,7 +63,16 @@ export function charsTypedIn(text: string, elapsedMs: number): number {
 function lineOf(kind: 'done' | 'step', step: ProgressWire, host?: string): ScreenLine {
   const glyph = kind === 'done' ? DONE_GLYPH : STEP_GLYPH
 
-  return { kind, id: `${step.at}:${step.key}`, text: `${glyph} ${host ?? step.text}` }
+  return { kind, id: `${step.at}:${step.key}`, text: `${glyph} ${host ?? stepLabelOf(step)}` }
+}
+
+function verbOf(run: Run): string {
+  return Object.hasOwn(RUN_VERBS, run.name) ? (RUN_VERBS[run.name] ?? run.name) : run.name
+}
+
+// What the run is about: its ticker, else the market its progress names.
+function subjectOf(run: Run): string | undefined {
+  return tickerOf(run) ?? toParamText(run.progress?.params?.market)
 }
 
 // The latest line, unless it is the persistent step already listed as done.
