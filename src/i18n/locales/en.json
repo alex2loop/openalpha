@@ -1616,6 +1616,7 @@
     "agentUnknown": "Unknown assistant: {id}. Available: {list}",
     "agentSet": "Assistant set to {id}. Started a new session.",
     "agentPausedSelected": "That agent is paused, so it will not answer until you resume it.",
+    "agentUsage": "Usage\n/agent\n/agent default\n/agent <id>\n\nWith no id it shows the assistant this chat talks to. Picking one starts a new session.",
     "agentHelp": "Show or choose the assistant for this chat. Usage: /agent [id|default].",
     "cancelYes": "Cancelled.",
     "cancelNo": "No run in flight.",

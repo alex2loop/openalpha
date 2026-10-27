@@ -64,6 +64,9 @@ export type ChatFrame =
   | ({ readonly kind: 'steer_dropped'; readonly text: string } & LaneTag)
   /** A long slash command's current step in the operator's words; each replaces the last. */
   | ({ readonly kind: 'progress'; readonly text: string } & LaneTag)
+  /** `/new` moved the chat of `sessionId` to a session of its own: a client that names its session
+   *  in every message leaves this one, so its next message opens the new one. */
+  | { readonly kind: 'reset'; readonly sessionId: string }
 
 /** The terminal frame `{ type:'chat', kind:'done', reason }`. `reason` is the run result reason, or
  *  'slash' when a leading-`/` message was handled by the dispatcher instead of a run. */

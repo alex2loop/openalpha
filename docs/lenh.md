@@ -149,7 +149,7 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn). Nó chỉ liệt kê các việc tạo từ chat này, mỗi việc theo id và nội dung. Việc tạo ở terminal hay trên trang văn phòng không thuộc chat nào nên không hiện ở đây: quản lý nó bằng `schedule` ở terminal hoặc trên trang, nơi việc chờ một cảnh báo thay vì chờ giờ hiện cảnh báo nó chờ (`khi FPT thủng mức cắt lỗ`) thay cho giờ |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
-| `/new` | Chuyển sang một phiên chat mới; các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
+| `/new` | Chuyển sang một phiên chat mới (chat trên trang văn phòng cũng chuyển theo); các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 

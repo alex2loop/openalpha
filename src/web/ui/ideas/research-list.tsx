@@ -89,7 +89,9 @@ function ReportRow({ report }: { readonly report: ResearchReportWire }) {
     <button
       type="button"
       class="research-row"
-      onClick={() => openReader({ kind: 'research', sessionId: report.sessionId })}
+      onClick={() =>
+        openReader({ kind: 'research', sessionId: report.sessionId, runId: report.runId })
+      }
     >
       <b>{report.title ?? when ?? sourceLabel(report.channelId)}</b>
       {report.title !== undefined && <span class="meta">{when}</span>}

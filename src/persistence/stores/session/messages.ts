@@ -57,15 +57,8 @@ export async function loadSessionHistoryPage(
   id: SessionId,
   query: HistoryPageQuery
 ): Promise<HistoryPage> {
-  const { before, limit } = query
-  const rows =
-    before === undefined
-      ? await store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptNewest, [id, limit + 1])
-      : await store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptBefore, [
-          id,
-          before,
-          limit + 1,
-        ])
+  const rows = await readTranscriptRows(store, id, query)
+  const { limit } = query
   const hasMore = rows.length > limit
   const page = rows.slice(0, limit).reverse()
 
@@ -74,6 +67,23 @@ export async function loadSessionHistoryPage(
     hasMore,
     nextBefore: hasMore ? (page[0]?.idx ?? null) : null,
   }
+}
+
+// One row past the page tells whether older ones remain.
+function readTranscriptRows(
+  store: StoreDeps,
+  id: SessionId,
+  query: HistoryPageQuery
+): Promise<readonly IndexedPayloadRow[]> {
+  const { before, limit, runId } = query
+
+  if (runId !== undefined) {
+    return store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptRun, [id, runId, limit + 1])
+  }
+
+  return before === undefined
+    ? store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptNewest, [id, limit + 1])
+    : store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptBefore, [id, before, limit + 1])
 }
 
 export async function loadSessionDetails(

@@ -12,7 +12,7 @@ import {
   setChatOpen,
   viewedSession,
 } from '@/web/state/chat'
-import { resumeAppSession } from '@/web/state/chat-history'
+import { resumeAppSession, startNewSession } from '@/web/state/chat-history'
 import { CHAT_TAB_PARAM } from '@/web/state/pane'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
@@ -20,7 +20,6 @@ import { sourceLabel } from '@/web/text/source'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { startNewSession } from '@/web/ui/chat/session-view'
 import { MoreIcon } from '@/web/ui/kit/icons'
 import { closeModal } from '@/web/ui/kit/modal'
 import { closePopover, openPopoverId, Popover, togglePopover } from '@/web/ui/kit/popover'

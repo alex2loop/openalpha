@@ -39,6 +39,7 @@ export interface SessionSql {
   readonly loadPayloadTail: string
   readonly loadTranscriptNewest: string
   readonly loadTranscriptBefore: string
+  readonly loadTranscriptRun: string
   readonly loadMessages: string
   readonly loadAttempts: string
   readonly loadTotals: string
@@ -122,7 +123,11 @@ export function buildSessionSql(d: Dialect): SessionSql {
 
 type TranscriptSql = Pick<
   SessionSql,
-  'loadPayloads' | 'loadPayloadTail' | 'loadTranscriptNewest' | 'loadTranscriptBefore'
+  | 'loadPayloads'
+  | 'loadPayloadTail'
+  | 'loadTranscriptNewest'
+  | 'loadTranscriptBefore'
+  | 'loadTranscriptRun'
 >
 
 // Display pages read user/assistant rows newest first; the caller asks for one row past the page.
@@ -138,6 +143,7 @@ function buildTranscriptSql(d: Dialect): TranscriptSql {
       `WHERE session_id = ${d.param(1)} ORDER BY idx DESC LIMIT ${d.param(2)}) AS tail ORDER BY idx`,
     loadTranscriptNewest: `${head}${roles}ORDER BY idx DESC LIMIT ${d.param(2)}`,
     loadTranscriptBefore: `${head}${roles}AND idx < ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
+    loadTranscriptRun: `${head}AND role = 'assistant' AND run_id = ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
   }
 }
 

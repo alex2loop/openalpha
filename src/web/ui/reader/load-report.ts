@@ -5,15 +5,13 @@ import { toPlain } from '@/web/ui/markdown/inline'
 import { parseReport, plainTextOf, type ReportDoc } from '@/web/ui/markdown/parse'
 
 const ASSISTANT_ROLE = 'assistant'
-// A page of history can hold only empty rows; the newest answer is rarely further back than this.
-const HISTORY_PAGES_MAX = 4
 const TITLE_MAX_CHARS = 80
 const ELLIPSIS = '...'
 const LINE_BREAK = /\r?\n/
 
 export type ReaderSource =
   | { readonly kind: 'brief' }
-  | { readonly kind: 'research'; readonly sessionId: string }
+  | { readonly kind: 'research'; readonly sessionId: string; readonly runId: string }
 
 export interface ReaderContent {
   readonly title: string
@@ -31,7 +29,7 @@ export async function loadReport(
     case 'brief':
       return await loadBrief(abort)
     case 'research':
-      return await loadResearch(source.sessionId, abort)
+      return await loadResearch(source, abort)
   }
 }
 
@@ -44,42 +42,17 @@ async function loadBrief(abort: AbortSignal): Promise<ReaderContent | undefined>
 }
 
 async function loadResearch(
-  sessionId: string,
+  source: Extract<ReaderSource, { readonly kind: 'research' }>,
   abort: AbortSignal
 ): Promise<ReaderContent | undefined> {
-  const text = await readNewestAnswer(sessionId, abort)
+  const answer = await getJson(ROUTES.chatHistory(source.sessionId), {
+    query: { runId: source.runId },
+    signal: abort,
+  })
+  // The run's last reply with text is the report; its earlier ones narrate the tool calls.
+  const report = answer.messages.findLast((message) => message.role === ASSISTANT_ROLE)
 
-  return text === undefined ? undefined : toContent(text, true)
-}
-
-// The run's session may carry later talk; the report is the newest answer in it.
-async function readNewestAnswer(
-  sessionId: string,
-  abort: AbortSignal
-): Promise<string | undefined> {
-  let before: number | undefined
-
-  for (let page = 0; page < HISTORY_PAGES_MAX; page++) {
-    const answer = await getJson(ROUTES.chatHistory(sessionId), {
-      ...(before === undefined ? {} : { query: { before } }),
-      signal: abort,
-    })
-    const found = answer.messages.findLast(
-      (message) => message.role === ASSISTANT_ROLE && message.content.trim() !== ''
-    )
-
-    if (found !== undefined) {
-      return found.content
-    }
-
-    if (!answer.hasMore || answer.nextBefore === null) {
-      return undefined
-    }
-
-    before = answer.nextBefore
-  }
-
-  return undefined
+  return report === undefined ? undefined : toContent(report.content, true)
 }
 
 // A first level-one heading is the title; else the first line, cut.

@@ -1616,6 +1616,7 @@
     "agentUnknown": "Không tìm thấy agent {id}. Có thể chọn: {list}",
     "agentSet": "Đã chuyển sang agent {id} và mở phiên chat mới.",
     "agentPausedSelected": "Agent này đang tạm dừng, nên sẽ không trả lời cho tới khi bạn bật lại.",
+    "agentUsage": "Cách dùng\n/agent\n/agent default\n/agent <id>\n\nKhông kèm id thì hiện agent đang trò chuyện với bạn. Chọn một agent sẽ mở phiên chat mới.",
     "agentHelp": "Xem hoặc chọn agent cho cuộc trò chuyện này. Cách dùng: /agent [id|default].",
     "cancelYes": "Đã hủy.",
     "cancelNo": "Không có phiên chạy nào.",

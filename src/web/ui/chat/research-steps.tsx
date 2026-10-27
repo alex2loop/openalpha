@@ -61,7 +61,9 @@ export function ResearchReportLink({ runId }: { readonly runId: string }) {
     <Button
       kind="tertiary"
       size="small"
-      onClick={() => openReader({ kind: 'research', sessionId: report.sessionId })}
+      onClick={() =>
+        openReader({ kind: 'research', sessionId: report.sessionId, runId: report.runId })
+      }
     >
       {tr('ui.office.research.openReader')}
     </Button>

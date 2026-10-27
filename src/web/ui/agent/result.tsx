@@ -99,7 +99,9 @@ function ReportResult({
   return (
     <Button
       kind="tertiary"
-      onClick={() => openReader({ kind: 'research', sessionId: report.sessionId })}
+      onClick={() =>
+        openReader({ kind: 'research', sessionId: report.sessionId, runId: report.runId })
+      }
     >
       {report.title ?? formatRunName(row)}
     </Button>
