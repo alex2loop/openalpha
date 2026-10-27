@@ -4,11 +4,11 @@ import { lookOf } from '@/web/scene/sprites/parts'
 import { agents, selectAgent, selectedAgentId } from '@/web/state/agents'
 import { isNotSent } from '@/web/state/command'
 import { tr } from '@/web/text/tr'
+import { ASSISTANT_ID } from '@/web/ui/agent/agent-view'
 import { Portrait } from '@/web/ui/kit/portrait'
 
 // The option standing for the assistant; agent ids are never empty.
 const ASSISTANT_VALUE = ''
-const ASSISTANT_ID = 'assistant'
 const WHO_PORTRAIT_PX = 24
 
 /** Who receives what is typed: the assistant or one of the operator's own agents. */
