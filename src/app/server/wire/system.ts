@@ -111,13 +111,13 @@ export interface StatePayload {
   readonly degraded: readonly DegradedWire[]
   /** Absent when the brief was never enabled or trading is off. */
   readonly brief?: BriefScheduleWire
-  /** The daemon runs in the background, so `POST /v1/restart` can restart it. False in a terminal
-   *  or under a service. */
+  /** `POST /v1/restart` can restart the daemon: it restarts in place (not on Windows) or runs in the
+   *  background. False in a terminal or under a service on Windows. */
   readonly restartable: boolean
   /** The longest a restart with `when: 'idle'` waits for the daemon to go quiet. */
   readonly restartIdleWaitMs: number
   /** The grace runs in flight get when the daemon stops, before they are cut. Not the downtime of a
-   *  restart: watch `/v1/health` go down, then up with a new `pid`. */
+   *  restart: watch `/v1/health` go down, then up; the `pid` stays after a restart in place. */
   readonly restartDrainMs: number
   /** Resolved calls a track record needs before its rates mean anything. */
   readonly trackRecordMinSample: number

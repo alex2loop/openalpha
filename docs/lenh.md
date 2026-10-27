@@ -86,7 +86,7 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `chat` | Chat với agent, tương tác hoặc một phát | không có |
 | `start` | Chạy kênh và bộ lập lịch | không có; `--background`/`-b` để tách nền |
 | `stop` | Dừng daemon | không có |
-| `restart` | Dừng rồi chạy lại | không có; `--background`/`-b` để tách nền |
+| `restart` | Khởi động lại daemon | không có; `--now` không chờ việc đang chạy, `--background`/`-b` để dừng rồi chạy lại ở nền |
 | `status` | Tổng quan daemon, kênh và chi tiêu | không có |
 | `version` | In phiên bản và báo nếu đã có bản mới; `--version` và `-v` cũng được | không có |
 | `help` | In trợ giúp: `help` cho danh sách, `help <lệnh> [lệnh con]` cho một lệnh | không có; tên lệnh |
@@ -265,7 +265,7 @@ trả lời thường.
 ```text
 openalpha start [--background]
 openalpha stop
-openalpha restart [--background]
+openalpha restart [--now] [--background]
 openalpha status
 openalpha doctor [check] [--online]
 ```
@@ -279,7 +279,12 @@ liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và tho
 thoát với mã khác 0. `stop` và `status` hoạt động như nhau ở cả hai chế độ. `start` in phiên bản đang
 chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
 được cấu hình, nó còn báo bot chỉ bắt đầu trả lời sau khi dữ liệu thị trường tải xong; nhật ký ghi lại lúc
-các kênh mở. `restart` nhận cùng cờ `--background`.
+các kênh mở. `restart` khi đã có daemon chạy thì nhờ chính daemon đó khởi động lại tại chỗ (cùng pid, cùng cửa sổ
+terminal), chờ nó sẵn sàng rồi in kết quả. Nó chờ việc đang chạy xong (tối đa khoảng hai phút); `--now` thì không chờ.
+Daemon dừng theo cách thông thường: yêu cầu phê duyệt còn chờ bị từ chối. `restart --background`, hoặc khi chưa có
+daemon nào chạy, thì dừng (nếu có) rồi chạy lại từ shell này, với các biến của shell đó, ở nền hoặc ngay trong cửa sổ này.
+Trên Windows daemon không khởi động lại tại chỗ được nên `restart` luôn dừng rồi chạy lại. `kill -USR2 <pid>` cũng khởi
+động lại daemon ngay, như `--now`.
 
 Thiếu khóa không chặn `start`. Biến môi trường của khóa AI (mô hình chính, các tầng và dự phòng), của
 tìm kiếm web hay của một máy chủ MCP chưa đặt, hoặc bot token Telegram/Zalo chưa đặt hay bị nền tảng từ

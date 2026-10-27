@@ -355,6 +355,7 @@ Run the daemon on a server you own and point a client app at it.
    ExecStart=%h/.local/bin/openalpha start
    # Optional: the daemon also reads keys saved with `openalpha key set` from ~/.openalpha/env.
    EnvironmentFile=-%h/.openalpha/env
+   ExecReload=/bin/kill -USR2 $MAINPID
    Restart=on-failure
 
    [Install]
@@ -362,7 +363,8 @@ Run the daemon on a server you own and point a client app at it.
    ```
 
    Run `systemctl --user enable --now openalpha`, then `loginctl enable-linger $USER` so it outlives
-   your login. To upgrade, run `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
+   your login. `systemctl --user reload openalpha` restarts the daemon in place, keeping its pid, and a
+   restart from the office page does the same. To upgrade, run `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
    a daemon the service owns is never restarted by `upgrade` itself.
 4. **Open the office page.** Run `openalpha web` on the server (the daemon must be running). On the
    server's own screen it opens the browser. Over SSH it prints two things instead: a tunnel command
@@ -430,7 +432,9 @@ When the daemon stops, the API stops accepting connections and requests first, b
 requests already running finish. A chat or command sent on an open stream is answered with an
 `unavailable` error, a run already going settles in the drain window, and the streams close after it.
 
-The office page can also restart a daemon that was started with `--background`: choose to restart once nothing is working (it waits a couple of minutes at most, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the grace it gets while stopping is cut off, and the office page warns about the approvals first. When the daemon is back, the bell shows "The daemon restarted." and nothing goes to a chat. If an accepted restart fails, the daemon keeps running as before and the bell says so, pointing to the restart log in the data folder. A daemon running in a terminal or under a service cannot be restarted from the office page: stop it with Ctrl+C or the service manager and start it again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
+The office page can also restart the daemon wherever it runs: in a terminal, in the background or under a service (macOS and Linux). Choose to restart once nothing is working (it waits a couple of minutes at most, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the grace it gets while stopping is cut off, and the office page warns about the approvals first. It then starts again in the same process: the same pid, terminal, command line and environment, with the keys saved by `openalpha key set` read again (a variable exported in the shell that started it keeps the value it had). In a terminal the log carries on in the same window. When the daemon is back, the bell shows "The daemon restarted." and nothing goes to a chat. If the new run cannot start (the binary was moved or removed, say), the daemon stays stopped and says so on its terminal, or in its error log when it runs in the background; start it again with `openalpha start`.
+
+The same restart is on the command line: `openalpha restart` asks the running daemon, waits for it to come back and prints the result, and `restart --now` does not wait for running work. `kill -USR2 <pid>` restarts it at once, like `--now`; a systemd unit can use it as `ExecReload`. `restart --background` still stops the daemon and starts it again in the background from your shell, with your shell's variables. On Windows a daemon cannot restart itself in place: the office page restarts only one started with `--background`, through a helper process (if that fails, the daemon keeps running and the bell points to the restart log in the data folder), and one in a terminal is stopped with Ctrl+C and started again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
 
 ### Commands run in the daemon
 

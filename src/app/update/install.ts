@@ -7,6 +7,7 @@ import type { Locale } from '@/core/types/locale'
 import type { DeliveryTarget } from '@/scheduler/api'
 import { logRestart, runRestart } from '@/app/update/restart'
 import {
+  canRestartInPlace,
   formatInstalledNotice,
   isBackgroundLaunch,
   type PendingUpgrade,
@@ -52,7 +53,7 @@ interface UpgradeParts {
 
 /** Held by whoever is changing this process's release. `starting` is set before the first await: two
  *  taps, or a re-delivered inbox message, never both pass the pending check; a restart holds it
- *  through its idle wait too. `restarting` is set once the restart helper runs, which stops this
+ *  through its idle wait too. `restarting` is set once the restart is under way, which stops this
  *  daemon: no upgrade or second restart may start meanwhile. */
 interface UpgradeBusy {
   starting: boolean
@@ -129,7 +130,7 @@ async function requestRestart(
     ...request,
     app: parts.app,
     isWorking: () => isWorking(parts),
-    onSpawned: () => {
+    onUnderway: () => {
       busy.restarting = true
     },
     onFailed: () => {
@@ -155,8 +156,8 @@ async function refuseRestart(
     return 'stopping'
   }
 
-  // A daemon in a terminal or under a service is not ours to restart.
-  if (!isBackgroundLaunch()) {
+  // Without in-place restart, a daemon in a terminal or under a service is not ours to restart.
+  if (!(canRestartInPlace() || isBackgroundLaunch())) {
     return 'foreground'
   }
 

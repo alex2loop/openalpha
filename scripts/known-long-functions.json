@@ -35,7 +35,6 @@
     "src/cli/commands/chat/repl.ts#singleShot": 45,
     "src/cli/commands/chat/slash.ts#runSlash": 42,
     "src/cli/commands/daemon/background.ts#runBackground": 41,
-    "src/cli/commands/daemon/daemon.ts#runDaemon": 45,
     "src/cli/commands/logs/reader.ts#printLogTail": 42,
     "src/cli/commands/logs/reader.ts#readLogSegment": 57,
     "src/cli/commands/skill.ts#writeLockedSkill": 46,

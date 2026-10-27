@@ -22,7 +22,7 @@ export interface Needs {
   readonly configFile?: 'required' | 'optional' | 'probe'
   readonly daemon?: 'running' | 'stopped' | 'any'
   readonly bootMode?: 'cli' | 'daemon'
-  readonly prepareDaemon?: 'none' | 'stop'
+  readonly prepareDaemon?: 'none' | 'restart'
   readonly modelSource?: ModelSource
   // Always runs in the terminal's own process: it reads or writes a file the operator names, or
   // manages the API itself.
