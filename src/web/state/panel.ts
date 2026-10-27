@@ -1,5 +1,6 @@
-import { signal } from '@preact/signals'
+import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
+import { breakpoint } from '@/web/state/breakpoints'
 import { showPane } from '@/web/state/pane'
 
 const BACK_MAX = 20
@@ -22,8 +23,12 @@ export const panelView = signal<PanelView>({ tab: 'today' })
 export const backStack = signal<readonly PanelView[]>([])
 /** The panel is folded into its icon strip. */
 export const collapsed = signal(false)
-/** Focus mode: the office is hidden and only the information shows. */
+/** Focus mode: the office fills the page and the info panel floats over it. */
 export const isFocus = signal(false)
+/** Focus mode as the page lays it out: a wide-screen choice. */
+export const isFocused: ReadonlySignal<boolean> = computed(
+  () => isFocus.value && breakpoint.value === 'wide'
+)
 
 /** Shows `view`, remembering the one it leaves; a tab click passes `fresh` and starts over. Every
  *  caller is a click, so a narrow screen brings the information forward. */

@@ -67,7 +67,3 @@
 .scene-twin button:hover {
   background: var(--sunken);
 }
-
-.panes.is-focus .scene-twin {
-  display: none;
-}
