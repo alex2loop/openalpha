@@ -63,7 +63,7 @@ export function MemorySection({ reopen }: SectionProps) {
           value={query.value}
           onInput={(event) => (query.value = event.currentTarget.value)}
         />
-        <Button size="small" onClick={() => openRememberDialog({ onBack: reopen })}>
+        <Button onClick={() => openRememberDialog({ onBack: reopen })}>
           {tr('ui.office.memory.add')}
         </Button>
       </div>

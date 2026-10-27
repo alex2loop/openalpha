@@ -4,6 +4,36 @@
   gap: var(--s2);
 }
 
+/* The trade form is one grid: every row's fields share three even columns, a field standing alone
+   takes the first, and a hint sits under its own field. */
+.trade-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--s2);
+}
+
+.trade-form > .form-field:not(.is-wide) {
+  width: calc((100% - 2 * var(--s2)) / 3);
+}
+
+.trade-form .form-row > .seg {
+  margin: 0;
+}
+
+.trade-form :is(input, select) {
+  width: 100%;
+  max-width: none;
+}
+
+:root[data-layout="phone"] .trade-form .form-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:root[data-layout="phone"] .trade-form > .form-field {
+  width: auto;
+}
+
 .dialog-question {
   display: flex;
   flex-direction: column;

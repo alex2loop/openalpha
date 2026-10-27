@@ -84,7 +84,7 @@ function TradeBody({ open }: { readonly open: OpenTrade }) {
   useFxPreview(form)
 
   return (
-    <div class="dialog-form">
+    <div class="dialog-form trade-form">
       {failure.value?.top !== undefined && (
         <p class="failure-line" role="alert">
           {failure.value.top}

@@ -9,7 +9,9 @@ import { FailureStrip } from '@/web/ui/book/failure-strip'
 import { OrderAnswer } from '@/web/ui/book/orders-answer'
 import { OrderExits } from '@/web/ui/book/orders-exits'
 import { StagedCard } from '@/web/ui/book/orders-staged'
+import { ListIcon } from '@/web/ui/kit/icons'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { BlockHead } from '@/web/ui/today/block-frame'
 
 // The command whose runs stage, place and cancel orders.
 const TRADE_COMMAND = 'trade'
@@ -35,7 +37,7 @@ export function Orders() {
       <BuyingSwitch isHalted={data.haltedAt !== undefined} reread={reading.retry} />
       {error !== undefined && <FailureStrip failure={error} retry={reading.retry} />}
       <OrderAnswer />
-      <h2 class="block-head">{tr('ui.office.orders.waiting')}</h2>
+      <BlockHead title={tr('ui.office.orders.waiting')} colour="blue" icon={<ListIcon />} />
       {data.staged.length === 0 && <p class="meta">{tr('ui.office.orders.none')}</p>}
       {data.staged.map((order) => (
         <StagedCard key={order.token} order={order} reread={reading.retry} />

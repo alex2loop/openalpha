@@ -205,15 +205,10 @@ function KeyField({ name, onSaved, onClose }: KeyFieldProps) {
             value.value = event.currentTarget.value
           }}
         />
-        <Button
-          size="small"
-          kind="commit"
-          disabled={isBusy.value || value.value === ''}
-          onClick={send}
-        >
+        <Button kind="commit" disabled={isBusy.value || value.value === ''} onClick={send}>
           {tr('ui.office.common.save')}
         </Button>
-        <Button size="small" disabled={isBusy.value} onClick={onClose}>
+        <Button disabled={isBusy.value} onClick={onClose}>
           {tr('ui.office.common.cancel')}
         </Button>
       </div>

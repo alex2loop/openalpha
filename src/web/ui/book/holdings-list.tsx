@@ -4,6 +4,7 @@ import { keyOf, stopBreaches, stopsBlock } from '@/web/state/market'
 import {
   formatFixedFraction,
   formatQuantity,
+  formatShortQuantity,
   formatSignedPercent,
   PERCENT,
   toneOfPercent,
@@ -16,8 +17,8 @@ import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 type StopRow = StopsResponse['stops'][number]
 
-/** One row per holding: quantity, the mark, its weight and its stop, with the unrealized move at
- *  the right. A fund's lower level reads as a review, never a stop. */
+/** One row per holding: the name and its unrealized move, then one muted line of quantity, mark,
+ *  weight and stop. A fund's lower level reads as a review, never a stop. */
 export function HoldingsList({
   positions,
 }: {
@@ -60,8 +61,7 @@ function HoldingRow({ position, stop, isBreach }: HoldingRowProps) {
   const { instrument } = position
   const move = toMovePercent(position)
   const weight = position.weightPctNav === undefined ? undefined : position.weightPctNav / PERCENT
-  const facts = [
-    formatQuantity(position.quantity),
+  const rest = [
     formatMarketPrice(instrument.market, stop?.price),
     formatFixedFraction(weight),
     ...(stop === undefined ? [] : describeStop(stop)),
@@ -70,13 +70,13 @@ function HoldingRow({ position, stop, isBreach }: HoldingRowProps) {
 
   return (
     <div class={isBreach ? 'row holding-row is-breach' : 'row holding-row'}>
-      <span class="holding-main">
-        <b>
-          <TickerLink ticker={instrument.ticker} market={instrument.market} />
-        </b>
-        <span class="holding-facts">{joinInline(facts)}</span>
-      </span>
+      <b>
+        <TickerLink ticker={instrument.ticker} market={instrument.market} />
+      </b>
       <span class={`pill is-${toneOfPercent(move)}`}>{formatSignedPercent(move)}</span>
+      <span class="holding-facts" title={joinInline([formatQuantity(position.quantity), ...rest])}>
+        {joinInline([formatShortQuantity(position.quantity), ...rest])}
+      </span>
     </div>
   )
 }

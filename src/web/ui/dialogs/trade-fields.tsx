@@ -26,6 +26,8 @@ interface FieldProps {
   readonly label: string
   readonly message: string | undefined
   readonly hint?: string
+  /** Spans the form's width; any other field standing alone takes one column. */
+  readonly isWide?: boolean
   readonly children: ComponentChildren
 }
 
@@ -96,8 +98,8 @@ export function PricedFields({ form }: { readonly form: TradeForm }) {
 
   return (
     <>
-      <TickerField form={form} />
       <div class="form-row">
+        <TickerField form={form} />
         <TextField
           form={form}
           id="trade-quantity"
@@ -129,9 +131,9 @@ export function PricedFields({ form }: { readonly form: TradeForm }) {
   )
 }
 
-export function Field({ id, label, message, hint, children }: FieldProps) {
+export function Field({ id, label, message, hint, isWide, children }: FieldProps) {
   return (
-    <div class="form-field">
+    <div class={isWide === true ? 'form-field is-wide' : 'form-field'}>
       <label class="form-label" for={id}>
         {label}
       </label>

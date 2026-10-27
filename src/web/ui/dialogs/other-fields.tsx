@@ -167,6 +167,7 @@ function NoteField({ form }: { readonly form: TradeForm }) {
       id="trade-note"
       label={tr('trading.render.ledger.label.note')}
       message={messageFor(form, 'note')}
+      isWide
     >
       <input
         id="trade-note"

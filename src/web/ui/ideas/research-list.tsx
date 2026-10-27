@@ -11,9 +11,11 @@ import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { useResearch } from '@/web/ui/ideas/use-research'
 import { Button } from '@/web/ui/kit/button'
+import { BookIcon } from '@/web/ui/kit/icons'
 import { Pager } from '@/web/ui/kit/pager'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { openReader } from '@/web/ui/reader/reader'
+import { BlockHead } from '@/web/ui/today/block-frame'
 
 const RESEARCH_PAGE = 4
 // A research run reports its steps under this progress key family.
@@ -31,7 +33,7 @@ export function ResearchList() {
 
   return (
     <section class="block">
-      <h2 class="block-head">{tr('ui.office.ideas.research')}</h2>
+      <BlockHead title={tr('ui.office.ideas.research')} colour="teal" icon={<BookIcon />} />
       {research.failure.value !== undefined && (
         <div class="strip is-problem" role="alert">
           <span>{toFailureText(research.failure.value)}</span>

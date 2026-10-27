@@ -68,11 +68,18 @@ select {
   min-height: var(--controlH);
   padding: 0 var(--fieldPadX);
   border: 1px solid var(--border);
-  border-radius: var(--controlSmRadius);
+  border-radius: var(--controlRadius);
   background-color: var(--canvas);
   color: var(--ink);
   font-size: var(--fieldFont);
   font-weight: 400;
+}
+
+/* A small field sits beside small buttons inside a row. */
+:where(input, select).is-small {
+  min-height: var(--controlSmH);
+  border-radius: var(--controlSmRadius);
+  font-size: var(--controlSmFont);
 }
 
 :where(textarea) {

@@ -5,25 +5,19 @@
   font-weight: 600;
 }
 
-/* The facts sit beside the name while they fit and wrap under it when they do not. */
+/* Name and move on the first line, the facts on one muted line under them. */
 .row.holding-row {
   grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.holding-main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 10px;
-  min-width: 0;
+  row-gap: 2px;
 }
 
 .holding-facts {
-  min-width: 0;
-  margin-left: auto;
+  grid-column: 1 / -1;
   color: var(--ink2);
   font-size: 12px;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .row-end {
@@ -60,12 +54,6 @@
 .add-name input {
   flex: 1;
   min-width: 0;
-  height: 26px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface);
-  font-size: 12.5px;
 }
 
 .segment-bars {
@@ -84,6 +72,14 @@
 .segment-bar-head b {
   flex: 1;
   font-weight: 500;
+}
+
+.segment-bar-gap {
+  color: var(--ink2);
+}
+
+.segment-bar .meta {
+  margin-top: 4px;
 }
 
 .segment-bar-track {
@@ -219,4 +215,14 @@
 
 .daemon-text {
   white-space: pre-line;
+}
+
+/* Over target reads in Caution, bar and gap alike. */
+.segment-bar.is-over .segment-bar-gap {
+  color: var(--caution);
+  font-weight: 600;
+}
+
+.segment-bar.is-over .segment-bar-track i {
+  background: var(--caution);
 }
