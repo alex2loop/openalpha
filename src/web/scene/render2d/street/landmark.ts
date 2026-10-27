@@ -10,13 +10,16 @@ import {
   ROOF_Y,
   seamAt,
   TIP_Y,
+  TOWER_BOX,
   type TowerPaint,
 } from '@/web/scene/render2d/street/landmark-shape'
+import { layerKeyOf, paintLayer } from '@/web/scene/render2d/street/layer-cache'
 import { isNightDark, mixTone } from '@/web/scene/render2d/street/tone'
 import { STREET_RECT } from '@/web/scene/view'
 import { isLightsOut } from '@/web/scene/world/frontage'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
+const TOWER_LAYER = 'tower'
 const ROW_STEP = 3
 const GLASS = Object.freeze({ body: '#7C9CC6', shade: '#2B4675' })
 const FLOOR_LIT = ['#FFE6A8', '#FFD27A'] as const
@@ -30,8 +33,38 @@ const MULLION_LED_EVERY = 4
  *  after the sky and behind every building row. The tower is drawn in its design frame, scaled
  *  about its foot, moved to the pack's `landmark.foot` and hazed by its distance. */
 export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
+  const { minute, dark, lit } = scene
+  const { foot, scale } = pack.landmark
+  const isLobbyLit = isNightDark(dark) && !isLightsOut(pack, minute.minute)
+
+  // As the mockup: the default framing shows only the low skyline; once the sky above it shows,
+  // the back rows run whole down to the far pavement, behind the low rows.
+  if (minute.isRevealed) {
+    paintCityBack(scene, foot.x)
+  }
+
+  paintLayer(
+    scene,
+    {
+      name: TOWER_LAYER,
+      key: layerKeyOf([pack.id, dark, lit, minute.light.sky[0], minute.light.sky[1], isLobbyLit]),
+      rect: {
+        x: foot.x + TOWER_BOX.x * scale,
+        y: foot.y + TOWER_BOX.y * scale,
+        w: TOWER_BOX.w * scale,
+        h: TOWER_BOX.h * scale,
+      },
+    },
+    (layered) => paintTower(layered, { pack, isLobbyLit })
+  )
+}
+
+function paintTower(
+  scene: CityScene,
+  at: { readonly pack: RegionPack; readonly isLobbyLit: boolean }
+): void {
   const { g, minute, dark, lit } = scene
-  const { foot, scale, haze } = pack.landmark
+  const { foot, scale, haze } = at.pack.landmark
   const tower: TowerPaint = {
     g,
     dark,
@@ -39,13 +72,7 @@ export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
     haze,
     sky: minute.light.sky,
     isNight: isNightDark(dark),
-    isLobbyLit: isNightDark(dark) && !isLightsOut(pack, minute.minute),
-  }
-
-  // As the mockup: the default framing shows only the low skyline; once the sky above it shows,
-  // the back rows run whole down to the far pavement, behind the low rows.
-  if (minute.isRevealed) {
-    paintCityBack(scene, foot.x)
+    isLobbyLit: at.isLobbyLit,
   }
 
   g.save()

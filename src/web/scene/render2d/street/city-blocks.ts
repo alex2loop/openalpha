@@ -1,3 +1,4 @@
+import type { StreetLayers } from '@/web/scene/render2d/street/layer-cache'
 import type { StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { Point } from '@/web/scene/types'
 import type { HolidayId } from '@/web/scene/world/regions'
@@ -25,7 +26,8 @@ const LIT_ALPHA = 0.95
 const UNLIT_ALPHA = 0.4
 const UNLIT_NIGHT_FADE = 0.6
 const UNLIT_LIGHTEN = 0.14
-const BALCONY_SLOT_MIN = 15
+/** A balcony's person steps out for one of these slots of the day, in minutes. */
+export const BALCONY_SLOT_MIN = 15
 const BALCONY_SLOTS = 4
 const BALCONY_BLOCKS = 3
 const BALCONY_MIN_RISE = 20
@@ -73,16 +75,17 @@ const BAND_DEPTH = 12
 const BAND_MIN_RISE = 9
 const BAND_MAX_RISE = 41
 
-/** What every city painter reads: the static canvas, the minute painted, how dark it is (0 day,
- *  1 night), the share of windows lit, the sky's horizon colour the haze leans to, and the
- *  holiday the day falls in. */
+/** What every city painter reads: the static canvas and the layers it may keep, the minute
+ *  painted, how dark it is (0 day, 1 night), the share of windows lit, the sky's horizon colour the
+ *  haze leans to, and the holiday the day falls in. */
 export interface CityScene {
   readonly g: CanvasRenderingContext2D
+  readonly layers: StreetLayers | undefined
   readonly minute: StreetMinute
   readonly dark: number
   readonly lit: number
-  /** The pack's hours when someone may step out onto a lit balcony. */
-  readonly isBalconyHour: boolean
+  /** The slot of the pack's balcony hours the minute falls in; none outside them. */
+  readonly balconySlot: number | undefined
   readonly horizon: string
   readonly holiday: HolidayId | undefined
 }
@@ -285,9 +288,9 @@ function paintWindows(
 }
 
 function isBalconyOut(scene: CityScene, seed: number): boolean {
-  const slot = Math.floor(scene.minute.minute / BALCONY_SLOT_MIN)
+  const slot = scene.balconySlot
 
-  return scene.isBalconyHour && (slot + seed) % BALCONY_SLOTS === 0 && seed % BALCONY_BLOCKS === 0
+  return slot !== undefined && (slot + seed) % BALCONY_SLOTS === 0 && seed % BALCONY_BLOCKS === 0
 }
 
 // A lit doorway halfway up the facade, a person in it and the railing in front.

@@ -18,6 +18,11 @@ const POND_TONES = Object.freeze({
 const POND_SHIFT_MIN = 6
 const POND_SWIMMERS = 3
 
+/** Which of the pond's placings the minute falls in. */
+export function pondSlotOf(scene: CityScene): number {
+  return Math.floor(scene.minute.clock / POND_SHIFT_MIN)
+}
+
 /** The pond: stone coping, water with a soft highlight, lily pads and reeds, and its ducks (koi
  *  under the surface close up), placed anew every few page minutes. */
 export function paintPond(
@@ -113,7 +118,7 @@ function paintSwimmers(
   pond: { readonly x: number; readonly y: number; readonly rx: number; readonly ry: number }
 ): void {
   const { g } = scene
-  const rng = createRng(seedOf('pond', String(Math.floor(scene.minute.clock / POND_SHIFT_MIN))))
+  const rng = createRng(seedOf('pond', String(pondSlotOf(scene))))
 
   for (let index = 0; index < POND_SWIMMERS * 2; index++) {
     const angle = rng.next() * Math.PI * 2

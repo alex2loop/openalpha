@@ -74,13 +74,12 @@ const HEDGE_IN = 1.4
 
 type KeepBox = readonly [number, number, number, number]
 
-/** The west park with its pond and tai chi plaza, and the east one with its outdoor gym. */
-export function paintSideParks(scene: CityScene): void {
-  paintSidePark(scene, { side: -1, park: PARKS[1] })
-  paintSidePark(scene, { side: 1, park: PARKS[2] })
-}
-
-function paintSidePark(scene: CityScene, at: { readonly side: Side; readonly park: Park }): void {
+/** A park beside a side street: the west one with its pond and tai chi plaza, the east one with its
+ *  outdoor gym. */
+export function paintSidePark(
+  scene: CityScene,
+  at: { readonly side: Side; readonly park: Park }
+): void {
   const { side, park } = at
   const x = (u: number): number => parkX(side, u)
   const a = x(0)
