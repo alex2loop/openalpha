@@ -23,8 +23,7 @@
   border-radius: 8px;
   background: var(--sunken);
   color: var(--ink2);
-  font-size: 11px;
-  font-weight: 600;
+  font: var(--typeCaptionStrong);
 }
 
 .idea-toggle {
@@ -40,7 +39,7 @@
 }
 
 .idea-action {
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .idea-action.is-buy {
@@ -53,12 +52,12 @@
 
 .idea-action.is-hold {
   color: var(--ink2);
-  font-weight: 400;
+  font-weight: var(--weightRegular);
 }
 
 .idea-conviction {
   color: var(--ink3);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .idea-body {
@@ -123,7 +122,7 @@ button.research-row {
   padding: 0;
   border: 0;
   background: none;
-  font-weight: 500;
+  font-weight: var(--weightMedium);
   text-align: left;
   cursor: pointer;
 }
@@ -131,13 +130,13 @@ button.research-row {
 .opportunity-evidence {
   margin-top: 2px;
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .funnel {
   margin: 6px 0 4px;
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .record-line {

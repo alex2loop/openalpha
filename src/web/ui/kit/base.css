@@ -34,15 +34,7 @@ body {
 body {
   background: var(--canvas);
   color: var(--ink);
-  font:
-    13px / 1.45 -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Text",
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+  font: var(--typeReading);
   overflow: hidden;
 }
 
@@ -72,7 +64,7 @@ select {
   background-color: var(--canvas);
   color: var(--ink);
   font-size: var(--fieldFont);
-  font-weight: 400;
+  font-weight: var(--weightRegular);
 }
 
 /* A small field sits beside small buttons inside a row. */
@@ -116,9 +108,7 @@ p {
 .sub-head {
   margin: var(--s3) 0 var(--s1);
   color: var(--title);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.4;
+  font: var(--typeHeading);
 }
 
 .sub-head:not(:first-child) {
@@ -137,14 +127,11 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--ink3);
-  font:
-    11px ui-monospace,
-    Menlo,
-    monospace;
+  font: var(--typeCode);
 }
 
 .mono {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--fontMono);
 }
 
 :focus-visible {
@@ -203,7 +190,7 @@ kbd {
 
 .meta {
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .is-up-text {
@@ -216,7 +203,7 @@ kbd {
 
 .failure-line {
   color: var(--dangerText);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 /* A run under way. */

@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: var(--s1);
-  font-size: 15px;
+  font: var(--typeTitle);
 }
 
 .agent-actions {
@@ -28,7 +28,7 @@
   border-radius: 8px;
   background: var(--cautionBg);
   color: var(--caution);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .agent-tag {
@@ -38,8 +38,7 @@
   border-radius: 8px;
   background: var(--sunken);
   color: var(--ink2);
-  font-size: 11px;
-  font-weight: 600;
+  font: var(--typeCaptionStrong);
 }
 
 .agent-tag.is-caution {
@@ -65,7 +64,7 @@
   gap: var(--s1);
   padding: 5px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .agent-facts dt {
@@ -92,7 +91,7 @@
   gap: var(--s1);
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .run-step svg.icon {
@@ -102,7 +101,7 @@
 }
 
 .run-step.is-running {
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .run-step.is-running .spin {
@@ -111,7 +110,7 @@
 
 .run-step-time {
   margin-left: 6px;
-  font-weight: 400;
+  font-weight: var(--weightRegular);
 }
 
 .child {
@@ -127,7 +126,7 @@
 .agent-sources {
   margin: 0;
   padding-left: 18px;
-  font-size: 12px;
+  font-size: var(--sizeBody);
   overflow-wrap: anywhere;
 }
 
@@ -149,7 +148,7 @@
 
 .agent-stop .is-breached {
   color: var(--dangerText);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .day-strip {
@@ -187,5 +186,5 @@
 
 .day-label {
   fill: var(--ink3);
-  font-size: 11px;
+  font-size: var(--sizeCaption);
 }

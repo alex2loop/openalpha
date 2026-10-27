@@ -27,7 +27,7 @@
 
 .chat-head h2 {
   flex: 1;
-  font-size: 14px;
+  font: var(--typeCardTitle);
 }
 
 .chat-messages {
@@ -86,7 +86,7 @@
 .chat-caution {
   padding: 6px 8px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .chat-reply {
@@ -98,7 +98,7 @@
   align-items: center;
   gap: 8px;
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .chat-system {

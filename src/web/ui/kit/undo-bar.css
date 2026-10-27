@@ -8,7 +8,7 @@
   border-radius: 10px;
   background: var(--surface);
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
   box-shadow: var(--pop);
 }
 

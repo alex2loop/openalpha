@@ -7,7 +7,8 @@
 .holding-facts {
   grid-column: 1 / -1;
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -35,7 +36,7 @@
 
 .alert-fired {
   color: var(--caution);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .add-name {
@@ -58,13 +59,13 @@
 .segment-bar-head {
   display: flex;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
 }
 
 .segment-bar-head b {
   flex: 1;
-  font-weight: 500;
+  font-weight: var(--weightMedium);
 }
 
 .segment-bar-gap {
@@ -124,7 +125,7 @@
   align-items: center;
   padding: 6px 0;
   border-top: 1px solid var(--border);
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
 }
 
@@ -141,7 +142,7 @@
   border: 0;
   background: none;
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
   text-align: right;
   text-decoration: underline;
   cursor: pointer;
@@ -190,7 +191,7 @@
   gap: 14px;
   margin-top: 4px;
   color: var(--ink3);
-  font-size: 11px;
+  font-size: var(--sizeCaption);
 }
 
 .nav-legend i {
@@ -213,7 +214,7 @@
 /* Over target reads in Caution, bar and gap alike. */
 .segment-bar.is-over .segment-bar-gap {
   color: var(--caution);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .segment-bar.is-over .segment-bar-track i {

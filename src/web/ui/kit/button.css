@@ -10,7 +10,7 @@
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink);
-  font-weight: 500;
+  font-weight: var(--weightMedium);
   white-space: nowrap;
   text-decoration: none;
   cursor: pointer;

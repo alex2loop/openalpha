@@ -6,8 +6,7 @@
 .fold > summary {
   padding: 6px 0;
   color: var(--ink2);
-  font-size: 12px;
-  font-weight: 600;
+  font: var(--typeHeading);
   cursor: pointer;
 }
 

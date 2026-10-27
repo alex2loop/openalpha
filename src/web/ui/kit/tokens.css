@@ -14,6 +14,29 @@
   --controlPadX: 12px;
   --controlSmPadX: 9px;
   --fieldPadX: 8px;
+  /* The desktop's type roles (its DESIGN.md section 3): the page reads at 13 px, so its sizes carry over unscaled. */
+  --fontSans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --fontMono: ui-monospace, "SF Mono", Menlo, monospace;
+  --sizeTitle: 15px;
+  --sizeReading: 13px;
+  --sizeBody: 12px;
+  --sizeCaption: 11px;
+  --typeHero: 600 var(--sizeTitle) / 1.2 var(--fontMono);
+  --typeTitle: 600 var(--sizeTitle) / 1.45 var(--fontSans);
+  --typeCardTitle: 600 var(--sizeReading) / 1.45 var(--fontSans);
+  --typeReading: 400 var(--sizeReading) / 1.45 var(--fontSans);
+  --typeHeading: 600 var(--sizeBody) / 1.45 var(--fontSans);
+  --typePriceFigure: 600 var(--sizeBody) / 1.45 var(--fontMono);
+  --typeEmphasis: 500 var(--sizeBody) / 1.45 var(--fontSans);
+  --typeBody: 400 var(--sizeBody) / 1.45 var(--fontSans);
+  --typeCaption: 400 var(--sizeCaption) / 1.45 var(--fontSans);
+  --typeCaptionStrong: 600 var(--sizeCaption) / 1.45 var(--fontSans);
+  --typeCode: 400 var(--sizeBody) / 1.45 var(--fontMono);
+  --weightRegular: 400;
+  --weightMedium: 500;
+  --weightSemibold: 600;
   --controlFont: 12.5px;
   --controlSmFont: 12px;
   --fieldFont: 13px;

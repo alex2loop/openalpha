@@ -9,7 +9,7 @@
   background: var(--offlineBg);
   color: var(--offlineInk);
   box-shadow: var(--pop);
-  font-size: 13px;
+  font-size: var(--sizeReading);
 }
 
 .offline-bar-detail {

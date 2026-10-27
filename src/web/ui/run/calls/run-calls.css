@@ -1,5 +1,5 @@
 .calls-head {
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
 }
 
 .calls-list {
@@ -14,7 +14,7 @@
   gap: 10px;
   padding: 8px 0;
   border-top: 1px solid var(--border);
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
 }
 
 .calls-row:first-child {
@@ -27,7 +27,7 @@
 }
 
 .calls-main b {
-  font-weight: 500;
+  font-weight: var(--weightMedium);
   overflow-wrap: anywhere;
 }
 

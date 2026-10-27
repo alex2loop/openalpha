@@ -35,7 +35,7 @@
 text.chart-axis,
 .chart-axis text {
   fill: var(--ink3);
-  font-size: 10px;
+  font-size: var(--sizeCaption);
 }
 
 .chart-line {
@@ -52,7 +52,7 @@ text.chart-axis,
 
 .chart-level text {
   fill: var(--ink2);
-  font-size: 11px;
+  font-size: var(--sizeCaption);
 }
 
 .chart-level.is-stop line {
@@ -85,12 +85,12 @@ text.chart-axis,
 
 .kv dt {
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .kv dd {
   margin: 0;
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -116,8 +116,7 @@ text.chart-axis,
 
 .is-caution-text {
   color: var(--caution);
-  font-size: 12px;
-  font-weight: 600;
+  font: var(--typeHeading);
 }
 
 .card-actions {
