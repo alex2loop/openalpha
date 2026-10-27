@@ -16,8 +16,8 @@ import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 
 import './credentials.css'
 
-const KEY_SET_COMMAND = 'key set'
-const RESTART_COMMAND = 'restart --background'
+export const KEY_SET_COMMAND = 'key set'
+export const RESTART_COMMAND = 'restart --background'
 
 interface CredentialRowProps {
   readonly credential: Credential

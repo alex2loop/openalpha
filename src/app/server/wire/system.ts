@@ -29,6 +29,8 @@ interface DegradedWire {
   readonly kind: 'channel' | 'api' | 'key' | 'optional-key'
   readonly subject: string
   readonly message: string
+  /** An exchange with no keys (`subject` is the venue id): the unset variables it waits for. */
+  readonly variables?: readonly string[]
 }
 
 /** GET /v1/health — the only unauthenticated route. Liveness + version + capabilities. */

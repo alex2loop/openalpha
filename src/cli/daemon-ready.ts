@@ -14,6 +14,7 @@ const DEGRADED_ENTRY: z.ZodType<DegradedEntry> = z.object({
   kind: z.enum(DEGRADED_KINDS),
   subject: z.string(),
   message: z.string(),
+  variables: z.array(z.string()).readonly().exactOptional(),
 })
 const READY_STATE = z.object({ pid: z.number(), degraded: z.array(DEGRADED_ENTRY) })
 

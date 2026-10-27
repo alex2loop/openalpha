@@ -45,6 +45,8 @@ interface Degraded<Message> {
   readonly kind: DegradedKind
   readonly subject: string
   readonly message: Message
+  /** An exchange with no keys: the unset variables it waits for, so a page can lay them out. */
+  readonly variables?: readonly string[]
 }
 
 /** Worded later, in the reader's language. */

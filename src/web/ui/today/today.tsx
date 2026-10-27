@@ -1,4 +1,4 @@
-import { isFirstRun, state } from '@/web/state/session'
+import { isFirstRun } from '@/web/state/session'
 import { AgentDay } from '@/web/ui/today/blocks/agent-day'
 import { Book } from '@/web/ui/today/blocks/book'
 import { Events } from '@/web/ui/today/blocks/events'
@@ -10,6 +10,7 @@ import { WorthWatching } from '@/web/ui/today/blocks/worth-watching'
 import { FirstRun } from '@/web/ui/today/first-run'
 import { NeedsYou } from '@/web/ui/today/needs-you'
 import { SessionLine } from '@/web/ui/today/session-line'
+import { SetupNotices } from '@/web/ui/today/setup-notices'
 
 /** Hôm nay: the home market's day, what waits for the operator, then what is worth a look, in a
  *  fixed order; what the daemon started without closes the tab. */
@@ -32,24 +33,7 @@ export function Today() {
           <AgentDay />
         </>
       )}
-      <DegradedStrip />
+      <SetupNotices />
     </>
-  )
-}
-
-// What the daemon started without, in its own words, in one grey strip.
-function DegradedStrip() {
-  const degraded = state.value?.degraded ?? []
-
-  if (degraded.length === 0) {
-    return null
-  }
-
-  return (
-    <div class="strip is-grey">
-      {degraded.map((item) => (
-        <span key={`${item.kind}:${item.subject}`}>{item.message}</span>
-      ))}
-    </div>
   )
 }
