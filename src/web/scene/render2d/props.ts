@@ -13,6 +13,7 @@ import {
   paintPhone,
   paintStudio,
 } from '@/web/scene/render2d/desk-devices'
+import { paintTabsOn } from '@/web/scene/render2d/desk-items'
 import { paintCableTray, paintDeskLamp, paintLamp } from '@/web/scene/render2d/fixtures'
 import { paintTank } from '@/web/scene/render2d/pets'
 import { paintStandby } from '@/web/scene/render2d/standby'
@@ -27,7 +28,7 @@ import {
   PROP_TONES,
   WOOD,
 } from '@/web/scene/sprites/palette'
-import { deskSpotOf, flatScreenOf } from '@/web/scene/world/desk-spots'
+import { deskSpotOf, flatScreenOf, standingScreenOf } from '@/web/scene/world/desk-spots'
 import { isWallMounted } from '@/web/scene/world/props'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
@@ -204,8 +205,10 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
 function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   if (scene.seated.has(deskSpotOf(prop))) {
     paintFlatMonitor(g, flatScreenOf(prop), scene)
+    paintTabsOn(g, prop, flatScreenOf(prop))
   } else {
     paintMonitor(g, prop.draw, scene)
+    paintTabsOn(g, prop, standingScreenOf(prop.draw))
   }
 }
 

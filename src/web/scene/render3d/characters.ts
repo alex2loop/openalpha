@@ -37,7 +37,7 @@ import {
 import { OUTLINE, WORK_RIM } from '@/web/scene/sprites/palette'
 import { lookOf } from '@/web/scene/sprites/parts'
 import { seedOf } from '@/web/scene/world/rng'
-import { LOUNGE_BENCH, SEATS, type Seat, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'
+import { DESK_SITTER_FACE, seatAt } from '@/web/scene/world/seats'
 
 /** Everyone the 3D office has built, by person; a person off the floor keeps their rig hidden. */
 export interface Cast {
@@ -94,7 +94,6 @@ const SIT_EASE_MS = 110
 const YAW_EASE_MS = 140
 const WALK_YAW_EASE_MS = 60
 const SETTLED = 0.006
-const SEAT_REACH_PX = 3
 const SEAT_H = 0.62
 const MASCOT_SEAT_RISE = 0.36
 // The mascot's egg is its torso and head, and its feet do not bend: only its arms move.
@@ -103,15 +102,6 @@ const BREATH_DIP = 0.025
 const STAND_TOP_PX = 33
 const SEATED_DROP_PX = 4
 const GAIT_MS = 500
-const SEATS_ALL: readonly Seat[] = Object.freeze([
-  ...SEATS.meet,
-  ...SEATS.lib,
-  ...SEATS.assist,
-  ...TEAM_SEATS,
-  ...LOUNGE_BENCH,
-  ...SOFA_SEATS.office,
-  ...SOFA_SEATS.team,
-])
 
 export function createCast(toon: MeshToonMaterial): Cast {
   return { root: new Group(), rigs: new Map(), kit: createPartKit(), toon }
@@ -347,12 +337,14 @@ function readPose(rig: Rig, job: PoseJob): ReadPose {
     inHand.phone === undefined || inHand.phone === shown.phone
       ? shown
       : { ...shown, phone: inHand.phone }
-  const seat = isWalking
-    ? undefined
-    : SEATS_ALL.find((one) => Math.hypot(one.at.x - at.x, one.at.y - at.y) <= SEAT_REACH_PX)
+  const seat = isWalking ? undefined : seatAt(at)
   const swing = isWalking && !frame.isReduced ? Math.sin((frame.now / GAIT_MS) * Math.PI * 2) : 0
   const step: readonly [number, number] = [actor.at.x - actor.prev.x, actor.at.y - actor.prev.y]
-  const facing = yawOf({ facing: actor.facing, step, isFront: pose.isFront === true })
+  const facing = yawOf({
+    facing: seat?.desk === true ? DESK_SITTER_FACE['3d'] : actor.facing,
+    step,
+    isFront: pose.isFront === true,
+  })
 
   return {
     seed,
@@ -368,7 +360,7 @@ function readPose(rig: Rig, job: PoseJob): ReadPose {
       isWalking,
       ...lifeOf(actor.pose, isWalking),
     }),
-    wantYaw: seat?.desk === true ? Math.PI : facing,
+    wantYaw: facing,
   }
 }
 

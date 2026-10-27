@@ -26,6 +26,8 @@ const CALENDAR_FACE = Object.freeze({ size: 7, tilt: -1.05 })
 const SILVER = '#A3AAB8'
 const KEYBOARD = '#F4F0E8'
 const KEY_ROW = '#C9CDD6'
+// The mockup's bin beside a junior desk's right end: body and rim.
+const BIN = Object.freeze({ dx: 2.5, dz: 6, w: 4.4, h: 6, body: '#C5CEDD', rim: '#AEB9CC' })
 const STANDBY_RIM = '#ECEEF2'
 const STANDBY_GLASS = '#1B2552'
 const STAMP = Object.freeze({ ink: '#C9505A', grip: '#9E7444' })
@@ -47,7 +49,7 @@ const OPERATOR_LIGHT = Object.freeze({
 // The seat a screen's worker sits at stands this far south of the computer's foot.
 const SCREEN_SEAT_DZ = 8
 // The monitor stands this far in from its desk's back edge, its face this far in front of that.
-const MONITOR_BACK_INSET = 1.5
+const MONITOR_BACK_INSET = 1
 const MONITOR_FACE_PROUD = 1.2
 const MONITOR_FACE_D = 0.3
 // The back's centre sits this far behind the face.
@@ -328,7 +330,9 @@ function juniorThings({ prop, out }: Build): void {
 
   out.push(
     box([x + w / 2 - 5, y + 6, 10, 4, top, 1], KEYBOARD, true),
-    box([x + w / 2 - 5, y + 8, 10, 0.6, top + 0.9, 0.3], KEY_ROW)
+    box([x + w / 2 - 5, y + 8, 10, 0.6, top + 0.9, 0.3], KEY_ROW),
+    box([x + w + BIN.dx, y + BIN.dz, BIN.w, BIN.w, 0, BIN.h], BIN.body, true),
+    box([x + w + BIN.dx - 0.3, y + BIN.dz - 0.3, BIN.w + 0.6, BIN.w + 0.6, BIN.h, 0.9], BIN.rim)
   )
   studio(out, { x: x + 3, z: y + 3.4, top })
 }

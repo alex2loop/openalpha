@@ -71,8 +71,6 @@ interface Group {
 const SUPPORT_KINDS: ReadonlySet<PropKind> = new Set(['desk', 'table', 'guest-desk'])
 // A desk's and a table's front face, under the top 2D draws.
 const DESK_FRONT_PX = 8
-// The monitor's stand under a computer's screen, in its drawn box.
-const COMPUTER_STAND_PX = 4
 const FRONT_SHADE = 0.8
 // The team floor's calendar lies on the left of a desk top, from the desk's top-left corner.
 const CALENDAR_PX = Object.freeze({ dx: 3, dy: 1, w: 8, h: 10 })
@@ -82,7 +80,7 @@ const SHEET_SHADOW_DROP = 0.6
 const DESK_TIE = 1.5
 const PINNED: Surface2d = Object.freeze({ base: 0, k: 1, top: 0 })
 const SUPPORTS = propsOn(DESK_FLOOR).filter((prop) => SUPPORT_KINDS.has(prop.kind))
-const COMPUTERS = propsOn(DESK_FLOOR).filter((prop) => prop.kind === 'computer')
+const TAB_ROWS = DESK_PROPS.filter((row) => row.type === 'tabs')
 const GROUPS: readonly Group[] = buildGroups()
 const NO_PIECES: readonly DeskPiece[] = []
 
@@ -236,9 +234,9 @@ function yOf(surface: Surface2d, depth: number, height: number): number {
 function buildGroups(): Group[] {
   const groups = new Map<string, { sortY: number; drawn: Drawn[] }>()
 
-  for (const row of DESK_PROPS) {
+  for (const row of DESK_PROPS.filter((one) => one.type !== 'tabs')) {
     const anchor = anchorOf(row)
-    const surface = anchor === undefined || row.type === 'tabs' ? PINNED : surfaceOf(anchor)
+    const surface = anchor === undefined ? PINNED : surfaceOf(anchor)
     const slot = deskSlotOf(row)
     const groupKey = anchor?.id ?? row.owner
     const sortY = anchor?.sortY ?? yOf(surface, row.at.y, row.height)
@@ -255,15 +253,25 @@ function buildGroups(): Group[] {
   }))
 }
 
-// The prop a piece belongs to in 2D: a tab strip its monitor, a pinned piece none, else its desk.
+// The prop a piece belongs to in 2D: a pinned piece none, else its desk.
 function anchorOf(row: DeskProp): PropDef | undefined {
-  if (isPinned(row)) {
-    return undefined
+  return isPinned(row) ? undefined : SUPPORTS.find((prop) => isInside(prop.rect, row.at))
+}
+
+/** A scout's browser strip over its computer's glass, standing or laid flat, as the mockup lays it
+ *  on whichever screen the monitor shows; cut from the atlas `deskPiecesOf` painted this frame. */
+export function paintTabsOn(g: CanvasRenderingContext2D, computer: PropDef, glass: Rect): void {
+  const canvas = held.atlas?.canvas
+  const row = TAB_ROWS.find((one) => isInside(computer.rect, one.at))
+  const cell = row === undefined ? undefined : deskFaceCellOf(row)
+
+  if (canvas === undefined || cell === undefined) {
+    return
   }
 
-  const props = row.type === 'tabs' ? COMPUTERS : SUPPORTS
-
-  return props.find((prop) => isInside(prop.rect, row.at))
+  g.imageSmoothingEnabled = true
+  g.drawImage(canvas, cell.x, cell.y, cell.w, cell.h, glass.x, glass.y, glass.w, glass.h)
+  g.imageSmoothingEnabled = false
 }
 
 function toDrawn(
@@ -384,14 +392,6 @@ function faceOf(
 
   if (cell === undefined) {
     return undefined
-  }
-
-  if (row.type === 'tabs') {
-    const screen = at.anchor?.draw
-
-    return screen === undefined
-      ? undefined
-      : { cell, at: { ...screen, h: screen.h - COMPUTER_STAND_PX } }
   }
 
   const spot = DESK_FACES[row.type]

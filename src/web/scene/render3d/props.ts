@@ -83,6 +83,7 @@ const COUNTER_PX = 13
 const MACHINE_TONE = '#9DB0CC'
 const TANK_WATER = '#8CCBEA'
 const DESK_TOP_PX = 2
+const OPERATOR_ROOM = 'desk'
 const LEG_PX = 2
 const SEAT_PX = 7
 const CHAIR_BACK_PX = 14
@@ -133,7 +134,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     frontDeskThings(job)
   },
   desk: (job) => {
-    deskOf(WOOD)(job)
+    ;(job.prop.room === OPERATOR_ROOM ? deskOf(WOOD) : juniorDesk)(job)
     deskThings(job)
   },
   table: (job) => {
@@ -295,6 +296,15 @@ function deskOf(tones: readonly [string, string, string]): Recipe {
     out.push(box([x + 1, y + 1, LEG_PX, h - 2, 0, top], tones[1]))
     out.push(box([x + w - 1 - LEG_PX, y + 1, LEG_PX, h - 2, 0, top], tones[1]))
   }
+}
+
+// The mockup's junior desk: a solid body under a top a px proud of it all round.
+function juniorDesk({ prop, out }: Build): void {
+  const { x, y, w, h } = prop.rect
+  const top = prop.height - DESK_TOP_PX
+
+  out.push(box([x, y, w, h, 0, top], WOOD[1], true))
+  out.push(box([x - 1, y - 1, w + 2, h + 2, top, DESK_TOP_PX], WOOD[0], true))
 }
 
 // A chair's back stands on the side away from where its sitter looks.

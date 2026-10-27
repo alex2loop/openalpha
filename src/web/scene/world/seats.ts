@@ -183,3 +183,28 @@ export const BOARD_SPOTS: readonly Point[] = Object.freeze([
   { x: 440, y: 104 },
   { x: 414, y: 116 },
 ])
+
+// A person within this of a chair's point sits on it.
+const SEAT_REACH_PX = 3
+const ALL_SEATS: readonly Seat[] = Object.freeze([
+  ...SEATS.meet,
+  ...SEATS.lib,
+  ...SEATS.assist,
+  ...TEAM_SEATS,
+  ...LOUNGE_BENCH,
+  ...SOFA_SEATS.office,
+  ...SOFA_SEATS.team,
+])
+
+/** The way a desk sitter looks in each view, as the mockup's two cameras show them: the 2D sprite
+ *  faces the room over its monitor laid flat, the 3D figure turns its back to the camera and faces
+ *  its monitor. */
+export const DESK_SITTER_FACE: Readonly<Record<'2d' | '3d', Dir>> = Object.freeze({
+  '2d': 'down',
+  '3d': 'up',
+})
+
+/** The chair someone at `at` sits on, if any. */
+export function seatAt(at: Point): Seat | undefined {
+  return ALL_SEATS.find((one) => Math.hypot(one.at.x - at.x, one.at.y - at.y) <= SEAT_REACH_PX)
+}

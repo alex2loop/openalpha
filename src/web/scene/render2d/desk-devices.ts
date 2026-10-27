@@ -4,6 +4,7 @@ import { paintStandby } from '@/web/scene/render2d/standby'
 import { paintCrispText } from '@/web/scene/sprites/crisp-text'
 import { DEVICE_TONES, PALETTE } from '@/web/scene/sprites/palette'
 import { paintPixelText, pixelTextWidth } from '@/web/scene/sprites/pixel-font'
+import { standingScreenOf } from '@/web/scene/world/desk-spots'
 import { seedOf } from '@/web/scene/world/rng'
 import { formatPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
@@ -32,8 +33,11 @@ export function paintMonitor(
   const { x, y, w } = box
   const cx = x + w / 2
 
+  const screen = standingScreenOf(box)
+
   fill(g, [x, y, w, 10], INK)
-  paintIdleScreen(g, [x + 1, y + 1, w - 2, 8], scene.life.isQuiet)
+  fill(g, [x + 1, y + 1, w - 2, 8], DEVICE_TONES.bezel2)
+  paintIdleScreen(g, [screen.x, screen.y, screen.w, screen.h], scene.life.isQuiet)
   fill(g, [cx - 1, y + 10, 2, 1], DEVICE_TONES.stand)
   fill(g, [cx - 3, y + 11, 6, 1], DEVICE_TONES.stand)
 }
