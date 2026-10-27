@@ -31,8 +31,8 @@ const DIGEST_AT: Point = Object.freeze({ x: 20, y: 344 })
 // How long the three rings play after a result lands.
 const RINGS_MS = 2_400
 
-/** The boards' one-line buttons. The floor view keeps the results board and the lobby's day note;
- *  the room boards show once a room is zoomed. */
+/** The boards' one-line buttons. The floor view keeps the results board; the room boards show
+ *  once a room is zoomed, and the lobby's day note only in a room's own view. */
 export function BoardButtons({ renderer }: { readonly renderer: SceneRenderer }) {
   const shown = view.value
   const isZoomed = shown.room !== undefined || shown.zoomSteps > 0
@@ -44,7 +44,7 @@ export function BoardButtons({ renderer }: { readonly renderer: SceneRenderer })
   return (
     <div class="board-buttons">
       <ResultsBoard renderer={renderer} />
-      <DigestBoard renderer={renderer} />
+      {shown.room !== undefined && <DigestBoard renderer={renderer} />}
       {isZoomed && <RoomBoards renderer={renderer} />}
     </div>
   )

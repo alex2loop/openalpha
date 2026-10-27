@@ -1,6 +1,7 @@
 import type { AmbientFx } from '@/web/scene/render2d/ambient-fx'
 import type { FloorId, LifeView, Point, SimView, SteamView } from '@/web/scene/types'
 import { drawBlock, fill, framed } from '@/web/scene/render2d/building'
+import { paintCoolerBubbles } from '@/web/scene/render2d/cooler'
 import { signPiecesOf } from '@/web/scene/render2d/crew-props'
 import { deskPiecesOf } from '@/web/scene/render2d/desk-items'
 import { paintPet } from '@/web/scene/render2d/pets'
@@ -16,10 +17,8 @@ const CART_TOP_H = 4
 const CART_FRONT_H = 6
 const CART_WHEEL = '#2B2433'
 const STEAM = 'rgba(255,255,255,.7)'
-const BUBBLE = 'rgba(217,239,251,.95)'
 const STEAM_RISE_PX = 5
 const STEAM_MS = 900
-const BUBBLE_MS = 1_200
 // The printer's out-tray, where delivered sheets stack.
 const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
 const SHEET_W = 12
@@ -92,7 +91,11 @@ export function paintLifeOver(
   }
 
   for (const steam of life.steam.filter((each) => each.floor === at.floor)) {
-    paintSteam(g, steam, at.now)
+    if (steam.kind === 'cooler') {
+      paintCoolerBubbles(g, steam.at, at.isReduced ? 0 : at.now)
+    } else {
+      paintSteam(g, steam, at.now)
+    }
   }
 }
 
@@ -126,16 +129,13 @@ function paintSheets(
   }
 }
 
-// Steam curling over a mug, or a bubble rising in a cooler's bottle.
+// Steam curling over a mug.
 function paintSteam(g: CanvasRenderingContext2D, steam: SteamView, now: number): void {
-  const isMug = steam.kind === 'mug'
-  const periodMs = isMug ? STEAM_MS : BUBBLE_MS
-  const k = (now % periodMs) / periodMs
+  const k = (now % STEAM_MS) / STEAM_MS
   const rise = Math.round(k * STEAM_RISE_PX)
-  const sway = isMug && k > 0.5 ? 1 : 0
-  const x = Math.round(steam.at.x) + sway
-  const y = Math.round(steam.at.y) + (isMug ? -rise : STEAM_RISE_PX * 2 - rise)
+  const x = Math.round(steam.at.x) + (k > 0.5 ? 1 : 0)
+  const y = Math.round(steam.at.y) - rise
 
-  fill(g, [x, y, 1, 2], isMug ? STEAM : BUBBLE)
-  fill(g, [x - 2, y + 2, 1, 1], isMug ? STEAM : BUBBLE)
+  fill(g, [x, y, 1, 2], STEAM)
+  fill(g, [x - 2, y + 2, 1, 1], STEAM)
 }

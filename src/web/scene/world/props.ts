@@ -268,7 +268,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   wall('wall-screen', 'lobby', { at: [28, 242, 84, 36], tip: 'agenda', variant: 1 }),
   wall('wall-screen', 'lobby', { at: [20, 286, 92, 42], tip: 'agenda', variant: 2 }),
   stand('coat-rack', 'lobby', { at: [146, 312, 8, 8], draw: [146, 272, 12, 45] }),
-  stand('cooler', 'lobby', { at: [134, 292, 12, 8], draw: [134, 276, 12, 24] }),
+  stand('cooler', 'lobby', { at: [134, 292, 12, 8], draw: [134, 259, 12, 45] }),
   stand('coffee', 'lobby', { at: [114, 291, 16, 9], draw: [114, 280, 16, 19] }),
   stand('cat-bed', 'lobby', { at: [136, 315, 24, 14], draw: [136, 315, 24, 14] }),
   stand('umbrella-stand', 'lobby', { at: [6, 286, 6, 5], draw: [5, 272, 8, 19] }),
@@ -337,7 +337,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
     variant: 1,
   }),
   stand('drinks', 'team', { at: [582, 290, 16, 9], draw: [582, 297, 12, 9] }),
-  stand('cooler', 'team', { at: [604, 312, 12, 8], draw: [604, 296, 12, 24] }),
+  stand('cooler', 'team', { at: [604, 312, 12, 8], draw: [604, 279, 12, 45] }),
   ...[
     [616, 112],
     [500, 350],

@@ -1,5 +1,6 @@
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, drawBlock, fill, framed, INK } from '@/web/scene/render2d/building'
+import { paintCooler } from '@/web/scene/render2d/cooler'
 import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
 import {
   paintBin,
@@ -24,7 +25,6 @@ import {
   METAL,
   PALETTE,
   PROP_TONES,
-  UMBRELLA_TONES,
   WOOD,
 } from '@/web/scene/sprites/palette'
 import { deskSpotOf, flatScreenOf } from '@/web/scene/world/desk-spots'
@@ -46,6 +46,15 @@ const RACK_TONES = Object.freeze({
   busy: '#7FD6FF',
 })
 const LED_OFF = '#4B5370'
+// The rain umbrella's stand sits this far from the prop's draw corner.
+const UMBRELLA_DX = 6
+const UMBRELLA_DY = 6
+const UMBRELLA_LOOK = Object.freeze({
+  puddle: 'rgba(169,194,232,.7)',
+  rim: '#6B7186',
+  canopy: '#4E6CA8',
+  fold: '#3E5688',
+})
 const PASTEL = ['#C9B9D9', '#F2C9C2', '#BFD3EE', '#F6E3A8', '#B9D9B5'] as const
 // Flat on the floor: under furniture and people standing at the same depth.
 const DECAL_KINDS: ReadonlySet<PropKind> = new Set(['cat-bed', 'tray'])
@@ -66,7 +75,7 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   box: paintBox,
   phone: (g, p) => framed(g, [p.draw.x, p.draw.y, p.draw.w, p.draw.h - 1], PROP_TONES.screenOff),
   table: paintTable,
-  cooler: paintCooler,
+  cooler: (g, p) => paintCooler(g, p.draw),
   coffee: paintCoffee,
   drinks: (g, p) => {
     drawBlock(g, [p.draw.x, p.draw.y + 3, p.draw.w, 4], { front: 5, tones: WOOD })
@@ -268,17 +277,6 @@ function paintTable(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScen
   }
 }
 
-function paintCooler(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y } = prop.draw
-  const body = y + 17
-
-  drawBlock(g, [x, body, 12, 6], { front: 18, tones: METAL })
-  framed(g, [x + 2, y + 1, 8, 15], '#5AAAE9')
-  fill(g, [x + 3, y + 1, 6, 4], '#D9EFFB')
-  fill(g, [x + 3, body + 9, 3, 2], '#4F8FD6')
-  fill(g, [x + 7, body + 9, 3, 2], '#D8625A')
-}
-
 function paintCoffee(g: CanvasRenderingContext2D, prop: PropDef): void {
   const { x, y, w } = prop.draw
   const isBar = prop.variant !== 1
@@ -367,8 +365,10 @@ function paintCoatRack(g: CanvasRenderingContext2D, prop: PropDef): void {
   castShadow(g, [pole - 4, y + h - 3, 10, 3])
   fill(g, [pole - 4, y + h - 3, 10, 2], METAL[2])
   fill(g, [pole, y, 2, h - 2], INK)
+  fill(g, [pole, y + 1, 1, h - 3], WOOD[2])
   fill(g, [pole - 5, y + 3, 12, 2], WOOD[2])
   framed(g, [pole + 3, y + 7, 4, 9], '#A9C2E8')
+  framed(g, [pole - 5, y + 7, 3, 8], '#F0B8AA')
 }
 
 function paintLadder(g: CanvasRenderingContext2D, prop: PropDef): void {
@@ -382,22 +382,22 @@ function paintLadder(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 }
 
-// Two closed umbrellas in the stand by the street exit; in the rain one lies open on the mat.
+// The mockup's umbrella by the street exit, only in the rain: folded in a small stand, with the
+// puddle it drips.
 function paintUmbrellaStand(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  const { x, y, w, h } = prop.draw
-  const [first, second] = UMBRELLA_TONES
-
-  if (scene.isRaining) {
-    g.fillStyle = first
-    g.beginPath()
-    g.arc(x + w + 4, y - 4, 6, Math.PI, Math.PI * 2)
-    g.fill()
-    fill(g, [x + w + 3.5, y - 4, 1, 5], INK)
-  } else {
-    fill(g, [x + 2, y, 2, h - 6], first)
+  if (!scene.isRaining) {
+    return
   }
 
-  fill(g, [x + 5, y + 1, 2, h - 7], second)
-  castShadow(g, [x, y + h - 3, w, 3])
-  framed(g, [x + 1, y + h - 8, w - 2, 6], PROP_TONES.umbrellaStand)
+  const x = prop.draw.x + UMBRELLA_DX
+  const y = prop.draw.y + UMBRELLA_DY
+
+  fill(g, [x + 6, y + 10, 10, 7], UMBRELLA_LOOK.puddle)
+  fill(g, [x, y, 6, 7], INK)
+  fill(g, [x + 1, y + 2, 4, 4], METAL[2])
+  fill(g, [x + 1, y + 1, 4, 1], UMBRELLA_LOOK.rim)
+  fill(g, [x + 1, y - 19, 4, 20], INK)
+  fill(g, [x + 2, y - 18, 2, 18], UMBRELLA_LOOK.canopy)
+  fill(g, [x + 2, y - 10, 2, 10], UMBRELLA_LOOK.fold)
+  fill(g, [x + 2, y - 21, 2, 3], INK)
 }
