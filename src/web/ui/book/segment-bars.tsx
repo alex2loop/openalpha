@@ -7,8 +7,18 @@ import './book.css'
 
 type Segment = PortfolioSharesWire['segments'][number]
 
-/** Each segment's share of the book against its target: the bar is the share, the tick the
- *  target, the gap beside the name. Over target reads in Caution. The daemon rounds the shares
+// One hue per segment, from the tile palette; green and red stay for price moves.
+const SEGMENT_HUES: Readonly<Record<string, string>> = {
+  cash: 'teal',
+  crypto: 'violet',
+  'equity-vn': 'blue',
+  gold: 'yellow',
+  'gold-vn': 'peach',
+}
+const FALLBACK_HUE = 'gray'
+
+/** Each segment's share of the book against its target: the bar is the share in the segment's
+ *  hue, the tick the target, the gap beside the name. Over target reads in Caution. The daemon rounds the shares
  *  together, so the digits are the chat's. */
 export function SegmentBars({ shares }: { readonly shares: PortfolioSharesWire }) {
   return (
@@ -29,7 +39,10 @@ function SegmentBar({ segment }: { readonly segment: Segment }) {
         <b>{segmentName(segment.segment)}</b>
         <span class="segment-bar-gap">{formatGap(segment.gap)}</span>
       </div>
-      <div class="segment-bar-track">
+      <div
+        class="segment-bar-track"
+        style={`--c: var(--tc-${SEGMENT_HUES[segment.segment] ?? FALLBACK_HUE})`}
+      >
         <i style={{ width: toWidth(segment.weight) }} />
         <b style={{ left: toWidth(segment.target) }} />
       </div>

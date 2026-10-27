@@ -131,6 +131,7 @@
   --tc-peach: #c2410c;
   --tc-teal: #0f766e;
   --tc-gray: #5f5f75;
+  --tc-violet: #7c3aed;
   --tile-mix: 14%;
   --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
   --onAi: #ffffff;
@@ -205,6 +206,7 @@
     --tc-peach: #fab387;
     --tc-teal: #94e2d5;
     --tc-gray: #a6adc8;
+    --tc-violet: #cba6f7;
     --tile-mix: 22%;
     --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
     --onAi: #ffffff;
@@ -264,6 +266,7 @@
   --tc-peach: #fab387;
   --tc-teal: #94e2d5;
   --tc-gray: #a6adc8;
+  --tc-violet: #cba6f7;
   --tile-mix: 22%;
   --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
   --onAi: #ffffff;

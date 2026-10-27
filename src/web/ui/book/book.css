@@ -88,7 +88,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 4px;
-  background: var(--ink2);
+  background: var(--c);
 }
 
 .segment-bar-track b {
@@ -214,8 +214,4 @@
 .segment-bar.is-over .segment-bar-gap {
   color: var(--caution);
   font-weight: var(--weightSemibold);
-}
-
-.segment-bar.is-over .segment-bar-track i {
-  background: var(--caution);
 }
