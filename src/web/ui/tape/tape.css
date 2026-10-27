@@ -6,7 +6,7 @@
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink);
-  font-size: 12px;
+  font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -55,7 +55,7 @@
 }
 
 .tape-cell b {
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .tape-cell.is-breach {

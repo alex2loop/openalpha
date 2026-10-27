@@ -246,7 +246,7 @@ export const VN_PACK = Object.freeze({
   crowd: {
     vehicles: { day: 14, quiet: 6, rush: 20, dayEdges: 9, night: 3 },
     walkers: { day: 11, quiet: 10, lunch: 18, rush: 16, dayEdges: 8, night: 2 },
-    lunchQueue: 3,
+    lunchQueue: 5,
   },
   officeHours: [hm(7), hm(21)],
   officeLife: {

@@ -20,11 +20,11 @@ import { propsOn } from '@/web/scene/world/props'
 // The crumpled sheets heaped over a bin's rim, first to last: offsets from the rim's middle
 // across and along, and how high each sits over the rim.
 const BALLS = [
-  [-0.9, -0.6, 0.7],
-  [1, 0.5, 0.7],
-  [0, 0, 1.9],
+  [-1, -0.6, 0.9],
+  [1.1, 0.5, 0.9],
+  [0, 0, 2.6],
 ] as const
-const BALL_PX = 1.8
+const BALL_PX = 2.6
 const RIM_PX = 0.9
 const MAX_BALLS = (DESK_SLOTS.length + propsOn('office').length) * BIN_SLOTS
 const KEY_SEPARATOR = '|'

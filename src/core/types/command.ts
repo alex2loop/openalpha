@@ -100,7 +100,8 @@ export interface ScheduledRequest<T> {
   readonly name: string
   readonly signal: AbortSignal
   work(run: ScheduledRun): Promise<T>
-  /** True when the work found nothing to do: the run then leaves no row in the activity log. */
+  /** True when the work found nothing to do. The run shows from its first stage, so such work,
+   *  reporting none, never shows as running and leaves no row in the activity log. */
   isIdle?(value: T): boolean
 }
 

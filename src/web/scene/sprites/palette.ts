@@ -82,6 +82,7 @@ export const PALETTE = Object.freeze({
   gold: '#D9A23E',
   tie: '#3E4C78',
   paper: '#F7F5EF',
+  paperEdge: '#D9D4C7',
   line: '#8DB4FF',
   badge: '#F7F5EF',
   lanyard: '#4E6CA8',

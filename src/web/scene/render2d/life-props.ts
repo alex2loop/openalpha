@@ -11,7 +11,6 @@ import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
 
-const PAPER_EDGE = '#D9D4C7'
 const CART_W = 20
 const CART_TOP_H = 4
 const CART_FRONT_H = 6
@@ -125,7 +124,7 @@ function paintSheets(
     const y = Math.round(tray.y - i * SHEET_STEP_PX - slide)
 
     fill(g, [Math.round(tray.x - SHEET_W / 2), y, SHEET_W, 2], PALETTE.paper)
-    fill(g, [Math.round(tray.x - SHEET_W / 2), y + 2, SHEET_W, 1], PAPER_EDGE)
+    fill(g, [Math.round(tray.x - SHEET_W / 2), y + 2, SHEET_W, 1], PALETTE.paperEdge)
   }
 }
 
