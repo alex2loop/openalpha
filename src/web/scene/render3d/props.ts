@@ -13,6 +13,7 @@ import {
   type Screen,
 } from '@/web/scene/render3d/desk-dressing'
 import { airConBoxes, cableTray } from '@/web/scene/render3d/desk-pieces'
+import { tankRecipe } from '@/web/scene/render3d/tank'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import {
   CARD,
@@ -81,7 +82,6 @@ const PHONE_ON_DESK_PX = 4.5
 const PHONE_PX = 1.6
 const COUNTER_PX = 13
 const MACHINE_TONE = '#9DB0CC'
-const TANK_WATER = '#8CCBEA'
 const DESK_TOP_PX = 2
 const OPERATOR_ROOM = 'desk'
 const LEG_PX = 2
@@ -226,11 +226,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     out.push(box(spot(prop, [11, 5], 1), PROP_TONES.leaf[0], true))
   },
   lamp: lamp,
-  tank: ({ prop, out, floor }) => {
-    out.push(box(spot(prop, [0, 8]), DARKWOOD[1], true))
-    floor.glass.push(box(spot(prop, [8.8, 8.6], 0.2), TANK_WATER))
-    out.push(box(spot(prop, [17.2, 1], -0.4), '#E7E9EE'))
-  },
+  tank: tankRecipe,
   'cat-bed': ({ prop, out }) => {
     out.push(box(spot(prop, [0, 2]), PROP_TONES.catBed[0], true))
     out.push(box(spot(prop, [2, 0.6], 3), PROP_TONES.catBed[1], true))

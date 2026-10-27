@@ -22,6 +22,7 @@ import {
   isSharpCurrent,
   releaseSharp,
   type SharpLayer,
+  sharpPx3d,
   syncSharp,
 } from '@/web/scene/render2d/street/sharp'
 import { SHELTERS_PART } from '@/web/scene/render2d/street/shelters'
@@ -173,6 +174,7 @@ function paintStreet(
     sharpCanvas: state.sharp.canvas,
     sharpRect: state.sharp.rect,
     staticVersion: state.staticVersion,
+    sharpVersion: state.sharp.version,
     movingVersion: state.movingVersion,
   }
 }
@@ -285,14 +287,16 @@ function paintParts(g: CanvasRenderingContext2D, pack: RegionPack, minute: Stree
   }
 }
 
-// The sharp copy is for the 2D view only; 3D lays the static canvas on its ground.
+// 2D paints the sharp copy at the device's px; 3D lays it as a texture over its ground, at the
+// zoom's band, so a glide repaints it once a band.
 function sharpJobOf(state: PainterState, visible: Rect) {
   const devicePx = projection.value.scale * devicePixelRatio
+  const staticPx = staticPxOf(detailOfPx(devicePx))
 
   return {
     visible,
-    devicePx: sceneView.value === '2d' ? devicePx : 0,
-    staticPx: staticPxOf(detailOfPx(devicePx)),
+    devicePx: sceneView.value === '2d' ? devicePx : sharpPx3d(devicePx, staticPx),
+    staticPx,
     staticVersion: state.staticVersion,
   }
 }

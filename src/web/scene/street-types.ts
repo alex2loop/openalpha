@@ -239,10 +239,11 @@ export interface StreetFrame {
   readonly staticCanvas: HTMLCanvasElement
   readonly movingCanvas: HTMLCanvasElement
   readonly movingRect: Rect
-  /** The static paint again at the device's px over `sharpRect`, at a close 2D zoom; zero-sized
-   *  otherwise. */
+  /** The static paint again at the device's px (3D: the zoom's band) over `sharpRect`, at a close
+   *  zoom; zero-sized otherwise. */
   readonly sharpCanvas: HTMLCanvasElement
   readonly sharpRect: Rect
   readonly staticVersion: number
+  readonly sharpVersion: number
   readonly movingVersion: number
 }

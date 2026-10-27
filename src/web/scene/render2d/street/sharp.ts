@@ -6,6 +6,9 @@ import { movingRectOf, STREET_RECT } from '@/web/scene/view'
 const SHARP_FROM = 1.25
 const MAX_SHARP_CANVAS_PX = 4096
 const NO_RECT: Rect = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
+// 3D uploads the copy as a texture: its px steps up through these bands, so a zoom glide repaints
+// and uploads it once a band, not every frame.
+const BANDS_3D = [2.5, 3.5, 5, 6.5] as const
 
 /** The static paint again over the visible rect and a margin, at the device's px, for a 2D zoom
  *  closer than the static canvas holds sharp: the signs and the board's lettering stay crisp. */
@@ -13,6 +16,8 @@ export interface SharpLayer {
   readonly canvas: HTMLCanvasElement
   rect: Rect
   key: string
+  /** Moves with each repaint or release, so 3D uploads only a changed copy. */
+  version: number
 }
 
 /** What the sharp copy is painted for: the camera, the zoom and the static paint it copies. */
@@ -24,7 +29,7 @@ interface SharpJob {
 }
 
 export function createSharpLayer(): SharpLayer {
-  return { canvas: document.createElement('canvas'), rect: NO_RECT, key: '' }
+  return { canvas: document.createElement('canvas'), rect: NO_RECT, key: '', version: 0 }
 }
 
 /** Repaints the copy with `paint` (in world px) when the static paint or the zoom changed or the
@@ -61,6 +66,7 @@ export function syncSharp(
   paint(g)
   layer.rect = rect
   layer.key = keyOf(job)
+  layer.version++
 }
 
 /** The copy still fits the camera: it is not needed, or painted for this zoom and static paint
@@ -81,6 +87,17 @@ export function releaseSharp(layer: SharpLayer): void {
   zeroCanvas(layer.canvas)
   layer.rect = NO_RECT
   layer.key = ''
+  layer.version++
+}
+
+/** The px 3D paints the copy at for `devicePx`: the band at or over it, or 0 while the static
+ *  canvas is sharp enough. */
+export function sharpPx3d(devicePx: number, staticPx: number): number {
+  if (devicePx < staticPx * SHARP_FROM) {
+    return 0
+  }
+
+  return BANDS_3D.find((band) => band >= devicePx) ?? devicePx
 }
 
 function isWanted(job: SharpJob): boolean {

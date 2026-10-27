@@ -203,7 +203,7 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
     lamps: createLamps(scene),
     faces: createScreenFaces(root, lighting),
     desks: createDeskItems(shapes, lighting.materials, root),
-    street: createStreetPlanes(scene),
+    street: createStreetPlanes(scene, renderer.capabilities.getMaxAnisotropy()),
     weather: createWeather3d(root, lighting.materials),
     lift: createLift3d(shapes, lighting.materials, root),
     sign: createWetSign(shapes, lighting.materials, root),
