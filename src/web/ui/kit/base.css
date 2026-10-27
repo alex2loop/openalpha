@@ -114,13 +114,6 @@ kbd {
   outline: 0;
 }
 
-/* A text field with suggestions looks like a text field (Chrome draws the first marker, Safari the
-   second; Firefox none); the list still opens as it is typed in. */
-input[list]::-webkit-calendar-picker-indicator,
-input[list]::-webkit-list-button {
-  display: none;
-}
-
 /* Read by a screen reader, never shown. */
 .sr {
   position: absolute;
