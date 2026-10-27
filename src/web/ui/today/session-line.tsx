@@ -51,7 +51,8 @@ export function SessionLine() {
 }
 
 function statusOf(market: MarketWire, session: MarketSessionWire): SessionStatus {
-  const name = { market: market.segmentLabel }
+  // The exchange that keeps the hours, else the market's own name.
+  const name = { market: session.exchange ?? market.segmentLabel }
 
   switch (session.phase) {
     case 'open':

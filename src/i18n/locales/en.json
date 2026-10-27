@@ -555,6 +555,8 @@
     "office.today.bookPnl": "Unrealized profit or loss",
     "office.today.bookHeld": "{count} holdings",
     "office.today.bookHeldOne": "{count} holding",
+    "office.today.bookTargets": "{count} take-profit orders waiting at the exchange",
+    "office.today.bookTargetsOne": "{count} take-profit order waiting at the exchange",
     "office.today.bookEmpty": "Your book is empty. Record your first trade and I will start watching.",
     "office.tape.breach": "past its stop",
     "office.tape.call": "buy call",

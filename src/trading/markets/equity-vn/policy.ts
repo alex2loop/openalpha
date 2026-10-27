@@ -55,6 +55,7 @@ export const ADMITTED_EXCHANGES: readonly VnExchange[] = Object.freeze(['HOSE', 
  *  than an ATO auction; that difference is a per-exchange calendar override in config, never an
  *  assumption baked in here. */
 export const VN_CALENDAR: CalendarPolicy = Object.freeze({
+  exchange: PRIMARY_EXCHANGE,
   timezone: 'Asia/Ho_Chi_Minh',
   sessionOpenLocalTime: '09:00',
   sessionCloseLocalTime: '14:45',

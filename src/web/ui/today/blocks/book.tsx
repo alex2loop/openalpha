@@ -1,6 +1,7 @@
 import type { TradingPortfolioResponse } from '@/app/server/wire/trading'
 import { pluralKey } from '@/i18n'
-import { readBlock } from '@/web/state/block'
+import { ROUTES } from '@/web/api/routes'
+import { readBlock, useBlock } from '@/web/state/block'
 import { openBook } from '@/web/state/book'
 import { heldPositions, holdingsBlock, stopBreaches } from '@/web/state/market'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
@@ -10,6 +11,9 @@ import { Unrealized } from '@/web/ui/book/unrealized'
 import { Button } from '@/web/ui/kit/button'
 import { PieIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
+
+// A resting order changes when an exit is placed or fills, so a slow read keeps the line current.
+const TARGETS_REFRESH_MS = 60_000
 
 /** "Danh mục của bạn hôm nay": the book's total, what it holds and which names broke their stop. */
 export function Book() {
@@ -70,6 +74,26 @@ function BookFigures({ book }: { readonly book: TradingPortfolioResponse }) {
           )}
         </p>
       )}
+      <RestingTargets />
     </>
+  )
+}
+
+/** "N lệnh chốt lời đang chờ ở sàn": the take-profit orders resting at an exchange under what you
+ *  hold. Absent where the daemon places no orders, while unread, and at none. */
+function RestingTargets() {
+  const reading = useBlock(ROUTES.trade, { everyMs: TARGETS_REFRESH_MS })
+  const resting = reading.data?.exits.filter((exit) => exit.takeProfit !== undefined).length ?? 0
+
+  if (resting === 0) {
+    return null
+  }
+
+  return (
+    <p class="meta">
+      {tr(pluralKey(resting, 'ui.office.today.bookTargetsOne', 'ui.office.today.bookTargets'), {
+        count: resting,
+      })}
+    </p>
   )
 }

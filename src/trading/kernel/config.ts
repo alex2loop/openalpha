@@ -72,6 +72,9 @@ export const DEBATE_WAVES: readonly DebateWave[] = Object.freeze([
 ])
 
 export interface CalendarPolicy {
+  /** The exchange whose hours these are, a proper noun printed as is; absent where no one exchange
+   *  sets them (crypto, gold). */
+  readonly exchange?: string
   readonly timezone: string
   readonly sessionOpenLocalTime: string
   readonly sessionCloseLocalTime: string
@@ -90,6 +93,8 @@ export interface CalendarPolicy {
 /** The hours a market trades, as `HH:MM` on its own clock: what a surface times its open, lunch
  *  and close from. A calendar that never closes has none. */
 export interface SessionHours {
+  /** The exchange whose hours these are, as its calendar names it. */
+  readonly exchange?: string
   readonly timezone: string
   readonly open: string
   readonly close: string

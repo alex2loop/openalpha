@@ -109,9 +109,10 @@ function toSessionWire({ session, day }: MarketView): MarketSessionWire | undefi
     return undefined
   }
 
-  const { timezone, open, close, breaks, closeAuction } = session
+  const { exchange, timezone, open, close, breaks, closeAuction } = session
 
   return {
+    ...(exchange === undefined ? {} : { exchange }),
     timeZone: timezone,
     open,
     close,

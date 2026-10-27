@@ -555,6 +555,8 @@
     "office.today.bookPnl": "Lãi/lỗ chưa chốt",
     "office.today.bookHeld": "{count} mã đang giữ",
     "office.today.bookHeldOne": "{count} mã đang giữ",
+    "office.today.bookTargets": "{count} lệnh chốt lời đang chờ ở sàn",
+    "office.today.bookTargetsOne": "{count} lệnh chốt lời đang chờ ở sàn",
     "office.today.bookEmpty": "Sổ chưa có mã nào. Ghi giao dịch đầu tiên để mình bắt đầu theo dõi.",
     "office.tape.breach": "thủng cắt lỗ",
     "office.tape.call": "đề xuất mua",
