@@ -1,4 +1,5 @@
 import type { toneOfPercent } from '@/web/text/figures'
+import { paintBoardCaption } from '@/web/scene/sprites/board-caption'
 import { FONT } from '@/web/scene/sprites/face-text'
 import { stampToneOf } from '@/web/scene/sprites/palette'
 import { createRng } from '@/web/scene/world/rng'
@@ -7,7 +8,7 @@ import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 /** The canvas px a face takes per world px: at least this many, and at least `FACE_MIN_PX` across. */
 const FACE_PX_PER_PX = 4
 const FACE_MIN_PX = 256
-const BOARD = Object.freeze({ paper: '#FCFBF8', edge: '#E3DFD8', ink: '#3A3F58' })
+const BOARD = Object.freeze({ paper: '#FCFBF8', edge: '#E3DFD8' })
 const MARKERS = ['#7C93D6', '#A596D9', '#6F7388'] as const
 // A move that rounds away reads in this neutral tone.
 const FLAT_TONE = '#E9ECF8'
@@ -106,11 +107,15 @@ export function sizeFace(canvas: HTMLCanvasElement, size: readonly [w: number, h
   canvas.height = Math.ceil(size[1] * k)
 }
 
-/** A whiteboard: marker scribbles seeded by the board, and the counter of the run at work in its
- *  room (the question asked, the debate step) when there is one. */
+/** A whiteboard: marker scribbles seeded by the board, and the line the room's run writes on it
+ *  (the debate round, the question asked, the day's finished result) when there is one. */
 export function paintBoard(
   c: CanvasRenderingContext2D,
-  board: { readonly count: string | undefined; readonly seed: number }
+  board: {
+    readonly caption: string | undefined
+    readonly isTiny: boolean
+    readonly seed: number
+  }
 ): void {
   const { width: w, height: h } = c.canvas
   const rng = createRng(board.seed)
@@ -121,12 +126,12 @@ export function paintBoard(
   c.lineWidth = h * 0.012
   c.strokeRect(0, 0, w, h)
 
-  if (board.count !== undefined) {
-    c.fillStyle = BOARD.ink
-    c.font = `700 ${h * 0.5}px ${FONT}`
-    c.textAlign = 'center'
-    c.textBaseline = 'middle'
-    c.fillText(board.count, w / 2, h * 0.34)
+  if (board.caption !== undefined) {
+    paintBoardCaption(c, {
+      rect: { x: 0, y: 0, w, h },
+      caption: board.caption,
+      isTiny: board.isTiny,
+    })
   }
 
   c.lineWidth = h * 0.022

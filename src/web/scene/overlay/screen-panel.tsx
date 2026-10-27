@@ -4,13 +4,14 @@ import { roleNameOf } from '@/web/scene/overlay/name-tags'
 import { rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { bringIntoView } from '@/web/scene/view'
 import { roomById } from '@/web/scene/world/rooms'
+import { focusRun } from '@/web/state/focus'
 import { openView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { openModal } from '@/web/ui/kit/modal'
 
 /** A click on a lit screen: its desk comes into view, then the scout's screen opens as a panel of
- *  the hosts read this run, and the analyst's as the ticker's card. */
+ *  the hosts read this run, the analyst's as the ticker's card and anyone else's as their run. */
 export function openScreen(screen: LitScreen): void {
   const room = roomById(screen.room)
 
@@ -22,6 +23,11 @@ export function openScreen(screen: LitScreen): void {
 
   if (screen.content.kind === 'line') {
     openView({ ticker: screen.content.ticker, market: screen.content.market })
+    return
+  }
+
+  if (screen.content.kind === 'run') {
+    focusRun(screen.runId)
     return
   }
 

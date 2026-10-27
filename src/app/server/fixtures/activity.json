@@ -37,7 +37,8 @@
           "outcome": "completed",
           "costUsd": 0.0587
         }
-      ]
+      ],
+      "tickers": ["HPG"]
     },
     {
       "runId": "cmd_4f7a",
@@ -61,6 +62,23 @@
       "endedAt": 1792470032000,
       "outcome": "completed",
       "costUsd": 0.0214
+    },
+    {
+      "runId": "run_deep1",
+      "kind": "agent",
+      "name": "deep-researcher",
+      "title": "Steel sector outlook",
+      "channelId": "api",
+      "agentId": "deep-researcher",
+      "startedAt": 1792460000000,
+      "endedAt": 1792460300000,
+      "outcome": "completed",
+      "costUsd": 0.1203,
+      "tickers": ["HPG", "HSG"],
+      "questions": {
+        "done": 5,
+        "total": 5
+      }
     }
   ]
 }

@@ -7,7 +7,7 @@ import type { LifeView, LiftView, RoomId } from '@/web/scene/types'
 import type { PropDef, PropKind } from '@/web/scene/world/props'
 import { castShadow, fill, framed, INK } from '@/web/scene/render2d/building'
 import { paintWallMonitor } from '@/web/scene/render2d/desk-devices'
-import { FONT } from '@/web/scene/sprites/face-text'
+import { isCaptionTiny, paintBoardCaption } from '@/web/scene/sprites/board-caption'
 import { faceKindOf, paintCork } from '@/web/scene/sprites/screens'
 import { createLcgRng } from '@/web/scene/world/rng'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
@@ -55,15 +55,6 @@ const SQUIGGLE_INSET = 0.07
 const SQUIGGLE_WIDTH = 0.022
 const SQUIGGLE_STEP = 0.05
 const SQUIGGLE_JITTER = 0.06
-const CAPTION_INK = '#3A3F58'
-const CAPTION_STEP = '#5E6BB0'
-// A board's subject and its step, as its line joins them.
-const CAPTION_SPLIT = ': '
-const STEP_NUMBER = /(\d+)\/\d+/
-// The title is about this share of the board's height; under this many CSS px only the number shows.
-const CAPTION_SHARE = 0.115
-const MIN_CAPTION_PX = 9
-
 /** What the props show this frame: the lamps on, the clock, the zoom, and what the boards read. */
 export interface PaintScene {
   readonly lit: ReadonlySet<RoomId>
@@ -133,11 +124,7 @@ function paintWhiteboard(g: CanvasRenderingContext2D, prop: PropDef, scene: Pain
   const caption = scene.captions[prop.room]
 
   if (caption !== undefined) {
-    paintCaption(g, {
-      rect: prop.draw,
-      caption,
-      isTiny: h * CAPTION_SHARE * scene.scale < MIN_CAPTION_PX,
-    })
+    paintBoardCaption(g, { rect: prop.draw, caption, isTiny: isCaptionTiny(h, scene.scale) })
   }
 }
 
@@ -167,36 +154,6 @@ function paintSquiggles(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 
   g.lineWidth = 1
-}
-
-// The board's title in marker: the subject, then its step; far off, only the step's number.
-function paintCaption(
-  g: CanvasRenderingContext2D,
-  at: { readonly rect: PropDef['draw']; readonly caption: string; readonly isTiny: boolean }
-): void {
-  const { x, y, w, h } = at.rect
-  const [head, step] = at.caption.split(CAPTION_SPLIT)
-
-  g.fillStyle = CAPTION_INK
-
-  if (at.isTiny) {
-    g.textAlign = 'center'
-    g.textBaseline = 'middle'
-    g.font = `700 ${h * 0.5}px ${FONT}`
-    g.fillText(STEP_NUMBER.exec(at.caption)?.[1] ?? at.caption.slice(0, 2), x + w / 2, y + h * 0.34)
-    return
-  }
-
-  g.textAlign = 'left'
-  g.textBaseline = 'alphabetic'
-  g.font = `700 ${h * 0.2}px ${FONT}`
-  g.fillText(step === undefined ? at.caption : (head ?? ''), x + w * 0.07, y + h * 0.28, w * 0.86)
-
-  if (step !== undefined) {
-    g.font = `600 ${h * 0.15}px ${FONT}`
-    g.fillStyle = CAPTION_STEP
-    g.fillText(step, x + w * 0.07, y + h * 0.48, w * 0.86)
-  }
 }
 
 function paintResults(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {

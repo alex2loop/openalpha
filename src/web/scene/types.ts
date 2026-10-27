@@ -147,6 +147,8 @@ export interface ActorView {
   readonly at: Point
   readonly facing: Dir
   readonly working: boolean
+  /** The run it works on, while it works: its desk screen shows this run, not its room's. */
+  readonly runId?: string
   readonly pose: PoseId
   /** When the pose began, a `performance.now()` instant: its frames play from there. */
   readonly poseSince: number

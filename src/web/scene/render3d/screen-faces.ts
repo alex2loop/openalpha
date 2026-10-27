@@ -22,6 +22,7 @@ import { createRoomMaterial } from '@/web/scene/render3d/lights'
 import { toUnits } from '@/web/scene/render3d/space'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { isCaptionTiny } from '@/web/scene/sprites/board-caption'
 import {
   type BoardNotes,
   boardNotes,
@@ -118,7 +119,7 @@ export function syncScreenFaces(faces: ScreenFaces, frame: FaceFrame): boolean {
   }
 
   const isRepainted = syncPaint(faces, frame.scale)
-  const isInfoPainted = syncInfoPaint(faces, frame.mood)
+  const isInfoPainted = syncInfoPaint(faces, frame)
   let isFaded = false
 
   for (const quad of [...faces.quads, ...faces.infos]) {
@@ -170,8 +171,10 @@ function syncPaint(faces: ScreenFaces, scale: number): boolean {
 
 // Once what they read moved, each data face asks what it shows now; one whose signature moved is
 // painted and uploaded again.
-function syncInfoPaint(faces: ScreenFaces, mood: FaceMood): boolean {
-  const inputs = infoInputsOf(mood)
+function syncInfoPaint(faces: ScreenFaces, frame: FaceFrame): boolean {
+  const { mood, scale } = frame
+  const tiny = faces.infos.map((info) => isCaptionTiny(info.face.size[1], scale))
+  const inputs = [...infoInputsOf(mood), ...tiny]
 
   if (inputs.every((input, i) => input === faces.infoInputs[i])) {
     return false
@@ -181,8 +184,8 @@ function syncInfoPaint(faces: ScreenFaces, mood: FaceMood): boolean {
 
   let isChanged = false
 
-  for (const info of faces.infos) {
-    const job = infoJobOf(info.face, mood)
+  for (const [i, info] of faces.infos.entries()) {
+    const job = infoJobOf(info.face, { mood, isTiny: tiny[i] === true })
     const c = info.canvas.getContext('2d')
 
     if (job.key === info.key || c === null) {

@@ -5,7 +5,6 @@ import { formatDay } from '@/i18n'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { regionPack, wallClockMinutes } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
-import { debateStepOf, questionNumberOf, roomStatus } from '@/web/scene/data/room-status'
 import {
   paintBoard,
   paintCalendar,
@@ -23,6 +22,7 @@ import {
   signJobOf,
 } from '@/web/scene/render3d/sign-faces'
 import { wallSpotsOf } from '@/web/scene/render3d/wall-spots'
+import { boardCaptions } from '@/web/scene/sim/board-captions'
 import { faceKindOf } from '@/web/scene/sprites/screens'
 import { type PropDef, propsOn } from '@/web/scene/world/props'
 import { notices } from '@/web/state/notices'
@@ -128,20 +128,29 @@ export function infoInputsOf(mood: FaceMood): readonly unknown[] {
     mood.flowSeconds,
     mood.banner,
     pageMinute.value,
-    roomStatus.value,
+    boardCaptions.value,
     wallClockMinutes.value,
     homeIndex.value,
     locale.value,
   ]
 }
 
-/** What `face` shows this frame. */
-export function infoJobOf(face: InfoFace, mood: FaceMood): InfoJob {
+/** What `face` shows this frame; `isTiny` is whether the zoom leaves a board too small for its
+ *  title. */
+export function infoJobOf(
+  face: InfoFace,
+  at: { readonly mood: FaceMood; readonly isTiny: boolean }
+): InfoJob {
+  const { mood, isTiny } = at
+
   switch (face.kind) {
     case 'board': {
-      const count = boardCountOf(face.room)
+      const caption = boardCaptions.value[face.room]
 
-      return { key: count ?? '', paint: (c) => paintBoard(c, { count, seed: face.seed }) }
+      return {
+        key: `${caption ?? ''}|${isTiny}`,
+        paint: (c) => paintBoard(c, { caption, isTiny, seed: face.seed }),
+      }
     }
     case 'clock': {
       const clock = clockOf(face)
@@ -206,17 +215,6 @@ function clockOf(face: InfoFace): { readonly minute: number; readonly label?: st
   }
 
   return { minute, label: zoned.label }
-}
-
-// The counter the room's whiteboard holds while a run works there.
-function boardCountOf(room: RoomId): string | undefined {
-  const run = roomStatus.value.get(room)?.runs[0]
-
-  if (room === 'meet') {
-    return debateStepOf(run)
-  }
-
-  return room === 'lib' ? questionNumberOf(run) : undefined
 }
 
 function toRow(name: string, changePct: number | undefined): TapeRow {

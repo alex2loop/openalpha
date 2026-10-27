@@ -22,6 +22,8 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const RUNS_ENRICHMENT_MIGRATION_ID = '2026_10_27_080926_add_runs_tickers_questions'
+const RUNS_ENRICHMENT_COLUMNS = ['tickers', 'questions_done', 'questions_total'] as const
 const BROWSER_SESSIONS_MIGRATION_ID = '2026_10_26_132705_add_browser_sessions'
 const BROWSER_SESSIONS_TABLE = 'browser_sessions'
 const BROWSER_SESSIONS_INDEX = 'idx_browser_sessions_last_seen_at'
@@ -192,6 +194,32 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
+/** The columns are the only thing the migration adds, so rolling back must leave the run log's table
+ *  and leave them gone. */
+async function assertRunsEnrichmentRollback(db: Storage): Promise<void> {
+  for (const column of RUNS_ENRICHMENT_COLUMNS) {
+    assertState(
+      await hasColumn(db, RUNS_TABLE, column),
+      `runs enrichment migration did not add ${column}`
+    )
+  }
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: RUNS_ENRICHMENT_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'runs enrichment rollback did not complete')
+  assertState(await hasTable(db, RUNS_TABLE), 'runs enrichment rollback dropped the table')
+
+  for (const column of RUNS_ENRICHMENT_COLUMNS) {
+    assertState(
+      !(await hasColumn(db, RUNS_TABLE, column)),
+      `runs enrichment rollback kept ${column}`
+    )
+  }
+}
+
 /** Browser sign-ins go with their table and its one index. */
 async function assertBrowserSessionsRollback(db: Storage): Promise<void> {
   assertState(
@@ -346,6 +374,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertRunsEnrichmentRollback(db)
     await assertBrowserSessionsRollback(db)
     await assertDebateModelsRollback(db)
     await assertTriggersRollback(db)

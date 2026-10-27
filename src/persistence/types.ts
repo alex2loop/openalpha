@@ -242,6 +242,11 @@ export interface RunLogRow {
   readonly parentRunId?: RunId
   /** The admitted sources a research run ended with. */
   readonly sources?: number
+  /** The tickers the run reported on, in the order first seen. */
+  readonly tickers?: readonly string[]
+  /** The research questions the run answered, of how many it asked. */
+  readonly questionsDone?: number
+  readonly questionsTotal?: number
   readonly startedAt: number
   readonly endedAt: number
   /** A run result reason for an agent, `completed | aborted | error` for a command. */

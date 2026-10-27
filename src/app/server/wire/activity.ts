@@ -20,6 +20,11 @@ export interface ActivityRowWire {
    *  `loop`, `timeout`), `completed | aborted | error` for a command. */
   readonly outcome: string
   readonly costUsd: number
+  /** The tickers the run reported on, in the order first seen. Absent when it named none, and on a
+   *  run finished before the daemon kept them. */
+  readonly tickers?: readonly string[]
+  /** The research questions the run answered, of how many it asked. Absent on a run with none. */
+  readonly questions?: { readonly done: number; readonly total: number }
   /** Direct children, oldest first. Absent on a child row and on a run that spawned none. */
   readonly children?: readonly ActivityRowWire[]
 }
