@@ -67,6 +67,9 @@
   --zPopover: 26;
   --zModal: 30;
   --zUndo: 32;
+  --scrollW: 8px;
+  --scrollThumb: #b8b8c8;
+  --scrollTrack: transparent;
   --scrim: rgba(10, 10, 18, 0.45);
   --readerScrim: rgba(10, 10, 18, 0.55);
   --badgeNeed: #f2b33d;
@@ -87,6 +90,7 @@
     --surface: #262637;
     --sunken: #303044;
     --border: #3a3a50;
+    --scrollThumb: #4a4a62;
     --ink: #eeeef6;
     --ink2: #b6b7c9;
     --ink3: #9c9db2;
@@ -128,6 +132,7 @@
   --surface: #262637;
   --sunken: #303044;
   --border: #3a3a50;
+  --scrollThumb: #4a4a62;
   --ink: #eeeef6;
   --ink2: #b6b7c9;
   --ink3: #9c9db2;

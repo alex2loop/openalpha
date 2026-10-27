@@ -62,14 +62,6 @@
   color: var(--ink);
 }
 
-.panel-tabs.is-compact .panel-tab {
-  padding-inline: 5px;
-}
-
-.panel-tabs.is-compact .panel-tab-label {
-  display: none;
-}
-
 /* Under the width the four labelled tabs and the count take (they fit the default panel), each tab
    keeps its icon and the label stays its title. */
 @container (width < 376px) {
@@ -162,6 +154,10 @@
   position: relative;
   padding: var(--s1);
   border-radius: var(--controlRadius);
+}
+
+.panel-rail .panel-tab-label {
+  display: none;
 }
 
 .panel-rail .panel-tab .panel-tab-count {

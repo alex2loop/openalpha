@@ -30,7 +30,7 @@ export function Panel() {
       tabIndex={-1}
     >
       <div class="panel-head glass">
-        <Tabs isCompact={!('tab' in panelView.value)} />
+        <Tabs />
         {!isFocus.value && (
           <button
             type="button"

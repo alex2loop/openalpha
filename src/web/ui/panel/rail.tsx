@@ -7,7 +7,7 @@ import { Tabs } from '@/web/ui/panel/tabs'
 export function Rail() {
   return (
     <div id={PANEL_ELEMENT_ID} class="panel-rail" tabIndex={-1}>
-      <Tabs isCompact={true} />
+      <Tabs />
       <button
         type="button"
         class="panel-collapse"
