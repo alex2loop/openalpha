@@ -323,7 +323,30 @@ khóa và bản nháp nằm ở trang đó. Ở ranh giới yêu cầu, runtime 
 - **Kiểm tra bí mật.** Nội dung giống bí mật hoặc chứa chính khóa của agent bị từ chối.
 - **MCP.** `social_request` và `social_skill` bị giữ lại khỏi bề mặt máy chủ MCP.
 
-## Hành vi khi hỏng
+### Lệnh được chuyển cho daemon
+
+Khi có daemon đang chạy, CLI chuyển các lệnh thuộc trạng thái daemon cho nó qua `/v1/exec` (xem
+[vận hành](van-hanh.md#lệnh-chạy-trong-daemon)). Socket này chạy một lệnh ngay trong daemon, nên nó chỉ
+nhận đúng terminal của bạn trên cùng máy. Mọi điều kiện sau đều phải đúng, và được kiểm trước khi kết nối
+được nâng cấp:
+
+- Token API trong tiêu đề `Authorization: Bearer`. Cookie đăng nhập của trang không bao giờ được đọc, và
+  token sai được tính vào cùng cơ chế khóa tạm như mọi lệnh gọi API khác.
+- Không có tiêu đề `Origin`. Trình duyệt luôn gửi tiêu đề này, nên không trang web nào mở được nó.
+- Đầu bên kia là loopback, và `Host` đúng bằng `127.0.0.1:<cổng>`.
+- Không có `X-Forwarded-For`, `Forwarded`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP`, `Via`,
+  `CF-Connecting-IP` hay `True-Client-IP`, dù có đặt `public_url` hay không.
+
+Reverse proxy hoặc `tailscale serve` chạy trên cùng máy đều hiện ra như một đầu loopback, nên chính các
+phép kiểm `Host` và tiêu đề mới là thứ giữ người gọi từ xa ở ngoài. Socket có mức trần riêng là 8, tách
+khỏi các luồng của trang, và socket nào im lặng 10 giây sẽ bị đóng.
+
+Lệnh được chuyển chỉ làm được đúng những gì lệnh đó làm ở terminal của bạn, không hơn. Phê duyệt vẫn
+được hỏi ngay ở terminal đó, trang không trả lời thay được, và hai terminal không bao giờ thấy phê duyệt
+của nhau. Các lệnh nhận bí mật (`key set`, `onboard`, `auth login`) vẫn chạy ở máy bạn. Daemon ghi log tên
+lệnh, mã thoát và thời gian của mỗi lệnh, không bao giờ ghi đối số, câu trả lời, văn bản đã sửa hay đầu
+ra.
+
 
 | Điều kiện | Kết quả |
 | --- | --- |

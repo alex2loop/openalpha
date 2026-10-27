@@ -47,6 +47,7 @@ Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bả
 | `--data-dir <đường dẫn>` | Đổi thư mục dữ liệu gốc và vị trí cấu hình mặc định |
 | `--log-level <mức>` | `debug`, `info`, `warn`, `error` hoặc `fatal` |
 | `--no-color` | Tắt màu ANSI |
+| `--local` | Chạy ngay trong tiến trình này dù daemon đang chạy (`--log-level` kéo theo cờ này) |
 
 Mức log lấy theo thứ tự: cờ, `OPENALPHA_LOG_LEVEL`, TOML, rồi mặc định. `NO_COLOR` tắt hẳn màu;
 `FORCE_COLOR` chỉ có tác dụng khi bạn chưa chủ động tắt màu.
@@ -64,12 +65,16 @@ Nếu bạn viết script: mã thoát cho biết **lý do** một phiên chạy 
 | `12` | `timeout` |
 | `15` | `loop` |
 | `16` | `agent_paused` |
+| `17` | `daemon_lost` |
 | `130` | `aborted` |
 
 Các lỗi khác: `2` cho lỗi cách dùng, cấu hình và kiểm tra; `5` khi LLM lỗi hẳn; `11` cho lưu trữ; `13`
 cho kênh; `14` cho công cụ; `15` khi một lần ghi bị xung đột với lần sửa khác. Các lý do dừng khác dùng
 mã liệt kê ở [An toàn](an-toan.md), nên `11` cũng là `hook_failed` và `12` cũng là `session_busy`.
 `doctor` thoát `1` khi có phép kiểm nào hỏng.
+
+`17` không phải một lý do dừng của phiên chạy: daemon đã dừng khi một lệnh được chuyển cho nó đang chạy,
+và lệnh đó không bị chạy lại. Xem [Lệnh chạy trong daemon](van-hanh.md#lệnh-chạy-trong-daemon).
 
 REPL tương tác là ngoại lệ: nó in lỗi của từng lượt ngay tại chỗ và thoát bình thường khi bạn rời đi,
 vì một lượt hỏng không phải một phiên chat hỏng.

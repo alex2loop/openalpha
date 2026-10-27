@@ -46,6 +46,7 @@ This page is the map. For the exact syntax of the version you installed, run `op
 | `--data-dir <path>` | Override the data folder and the default config location |
 | `--log-level <level>` | `debug`, `info`, `warn`, `error` or `fatal` |
 | `--no-color` | Disable ANSI color |
+| `--local` | Run in this process even when a daemon is running (`--log-level` implies it) |
 
 Log level priority: the flag, `OPENALPHA_LOG_LEVEL`, the TOML, then the default. `NO_COLOR` turns
 color off outright; `FORCE_COLOR` only applies when you have not turned color off.
@@ -63,12 +64,16 @@ If you script against the CLI: the code tells you why a run stopped, not just th
 | `12` | `timeout` |
 | `15` | `loop` |
 | `16` | `agent_paused` |
+| `17` | `daemon_lost` |
 | `130` | `aborted` |
 
 Other failures: `2` for usage, config and validation; `5` for a final LLM failure; `11` for storage;
 `13` for channels; `14` for tools; `15` for a write that conflicted with another edit. Other halt
 reasons use the code listed in [Safety](safety.md), so `11` is also `hook_failed` and `12` is also
 `session_busy`. `doctor` exits `1` when any check fails.
+
+`17` is not a run halt: the daemon stopped while a command forwarded to it was running, and the command
+was not run again. See [Commands run in the daemon](operations.md#commands-run-in-the-daemon).
 
 The interactive REPL is the exception. It prints per-turn failures inline and exits normally when you
 leave, because one failed turn is not a failed session.

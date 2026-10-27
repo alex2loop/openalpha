@@ -516,7 +516,8 @@ Daemon → terminal:
   `text`, then answer `edited`. One edit is open at a time.
 - `{ type: 'exit', code }` — the command's exit code; the daemon then closes with 1000.
 
-Daemon shutdown closes every exec socket with 1001 `shutdown` and aborts its command. A frame
+Daemon shutdown closes every exec socket with 1001 `shutdown` and aborts its command. A command that
+fails outside anything it could report itself closes with 1011 `internal`. A frame
 after `accepted` that does not parse, or is larger than the frame cap, is ignored (the daemon logs
 the first). Binary frames carry nothing. The WS layer's pings keep an idle command (a REPL at its
 prompt) open. The daemon logs each command's path (`schedule add`), exit code and duration, never
