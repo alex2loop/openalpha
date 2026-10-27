@@ -41,7 +41,7 @@
   display: none;
 }
 
-/* A phone keeps the logo without the word; the pills shrink before the buttons do. */
+/* A phone keeps the logo without the word, and its pills their short labels: none is clipped. */
 :root[data-layout="phone"] .header {
   gap: 6px;
   padding: 0 var(--s1);
@@ -53,10 +53,13 @@
 }
 
 :root[data-layout="phone"] .header .chip {
-  flex-shrink: 1;
-  min-width: 0;
+  flex: none;
   padding: 0 9px;
-  overflow: hidden;
+}
+
+:root[data-layout="phone"] .header .chip svg,
+:root[data-layout="phone"] .header .clock-market {
+  display: none;
 }
 
 :root[data-layout="phone"] .header .view-switch {
@@ -65,6 +68,11 @@
 :root[data-layout="phone"] .header .view-switch button {
   padding: 4px 6px;
 }
-:root[data-layout="phone"] .header :is(.bell-button, .header-keys, .gear-button) {
+:root[data-layout="phone"] .header :is(.bell-button, .gear-button) {
   flex: none;
+}
+
+/* The key list is a keyboard's; a phone's header has no room for it. */
+:root[data-layout="phone"] .header-keys {
+  display: none;
 }

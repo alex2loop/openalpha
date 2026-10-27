@@ -27,7 +27,7 @@ import {
   paintTeamTop,
 } from '@/web/scene/render2d/team'
 import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
-import { isCharacterMotionOn, isOnFloor } from '@/web/scene/sim/actors/poses'
+import { isCharacterBusy, isCharacterMotionOn, isOnFloor } from '@/web/scene/sim/actors/poses'
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { releaseAnimalSprites } from '@/web/scene/sprites/animal-sprite'
 import { lightOf } from '@/web/scene/sprites/daylight'
@@ -170,7 +170,8 @@ function releaseSurface(surface: Surface | undefined): void {
   releaseAnimalSprites()
 }
 
-// Paints one frame; true while the people's small motion runs.
+// Paints one frame; true while people work or walk, paper feeds, rain runs or the team moves: the
+// ambient fidgets, steam and fish draw on the ambient clock instead.
 function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   const pane = { w: surface.canvas.clientWidth, h: surface.canvas.clientHeight }
   const dpr = devicePixelRatio
@@ -201,8 +202,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
   blitFloor(surface, { street: sim.street, dpr })
 
   return (
-    motion.isOn ||
-    sim.life.animatedFloors.includes(sim.floor) ||
+    isCharacterBusy(sim.actors, sim.floor) ||
     isFeeding ||
     isGlassMoving(sim.weather, now, visibleRect()) ||
     (sim.floor === TEAM_FLOOR && isTeamMoving(sim.team, motion.isReduced))

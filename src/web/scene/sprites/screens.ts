@@ -317,10 +317,7 @@ function paintList(c: CanvasRenderingContext2D, size: Size, job: PaintJob): void
 // Too small to read four rows: the next time and its label.
 function paintTinyList(c: CanvasRenderingContext2D, size: Size, next: AgendaRow | undefined): void {
   const { w, h } = size
-  const headline =
-    next === undefined
-      ? tr('ui.office.agenda.empty')
-      : tr('ui.office.agenda.nextAt', { time: next.time })
+  const headline = next === undefined ? tr('ui.office.agenda.empty') : next.time
   const centred = { align: 'center', maxW: w - 8 } as const
 
   writeAll(c, [

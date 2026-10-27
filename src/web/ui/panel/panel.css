@@ -22,7 +22,7 @@
 .panel.is-float {
   justify-self: end;
   width: min(var(--panelW), calc(100% - var(--s2)));
-  margin: calc(var(--stageTopH) + var(--s1)) var(--s2) var(--s2) 0;
+  margin: calc(var(--stageTopH) + var(--s1)) var(--s2) var(--stageBottomH) 0;
 }
 
 .panel.is-sheet {

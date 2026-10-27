@@ -71,12 +71,19 @@ function RunningChip({ anchor }: AnchorProps) {
       onClick={() => togglePopover(JOBS_POPOVER_ID)}
     >
       {count > 0 && <span class="spin" aria-hidden="true" />}
-      {runningTextOf(count)}
+      {breakpoint.value === 'phone' ? (
+        <>
+          <span aria-hidden="true">{count}</span>
+          <span class="sr">{runningTextOf(count)}</span>
+        </>
+      ) : (
+        runningTextOf(count)
+      )}
     </Chip>
   )
 }
 
-// A phone says the count in two words, with nothing running too.
+// A phone shows the bare count and says it in two words to a screen reader, nothing running too.
 function runningTextOf(count: number): string {
   if (breakpoint.value === 'phone') {
     const key = pluralKey(

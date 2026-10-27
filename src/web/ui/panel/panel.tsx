@@ -19,6 +19,7 @@ import { Market } from '@/web/ui/market/market'
 import { BackRow } from '@/web/ui/panel/back-row'
 import { Rail } from '@/web/ui/panel/rail'
 import { Tabs } from '@/web/ui/panel/tabs'
+import { focusPaneButton } from '@/web/ui/shell/pane-bar'
 import { TickerCard } from '@/web/ui/ticker/card'
 import { TickerNotice } from '@/web/ui/ticker/ticker-notice'
 import { Today } from '@/web/ui/today/today'
@@ -76,7 +77,10 @@ function SheetHandle() {
       class="sheet-handle"
       title={tr('ui.office.panel.sheetHide')}
       aria-label={tr('ui.office.panel.sheetHide')}
-      onClick={() => showPane('office')}
+      onClick={() => {
+        showPane('office')
+        focusPaneButton('info')
+      }}
     >
       <span class="sheet-grip" aria-hidden="true" />
     </button>

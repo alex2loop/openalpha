@@ -4,6 +4,7 @@ import { alertStrip } from '@/web/scene/data/alert-strip'
 import { roomStatus } from '@/web/scene/data/room-status'
 import { fill } from '@/web/scene/render2d/building'
 import { STANDBY_STEP_MS } from '@/web/scene/render2d/standby'
+import { isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
 import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { createRng, seedOf } from '@/web/scene/world/rng'
@@ -81,28 +82,43 @@ export function resolveAmbientFx(sim: SimView, nowMs: number): AmbientFx | undef
 }
 
 /** When the ambient clock steps next, while the floor shows any effect; `Infinity` otherwise. The
- *  3D floor draws its own, but for the pets' idle moves, which ride the same clock. */
+ *  3D floor draws its own, but for the pets' idle moves, the people's fidgets, the steam and the
+ *  fish, which ride the same clock. */
 export function nextAmbientFxAt(sim: SimView, nowMs: number): number {
+  const isStirring = isFloorStirring(sim, nowMs)
+  const beatAt = nextBeatAt(nowMs, AMBIENT_FX_GAP_MS)
+
   if (sceneView.value === '3d') {
-    return isPetsStirring(sim) ? nextBeatAt(nowMs, AMBIENT_FX_GAP_MS) : Number.POSITIVE_INFINITY
+    return isStirring ? beatAt : Number.POSITIVE_INFINITY
   }
 
   const fx = resolveAmbientFx(sim, nowMs)
 
   if (fx === undefined) {
-    return Number.POSITIVE_INFINITY
+    return isStirring ? beatAt : Number.POSITIVE_INFINITY
   }
 
   // The strip and the StandBy colour wake the loop only inside their own windows, the colour at
   // its slower step.
   return Math.min(
-    isFast(fx) ? nextBeatAt(nowMs, AMBIENT_FX_GAP_MS) : Number.POSITIVE_INFINITY,
+    isFast(fx) || isStirring ? beatAt : Number.POSITIVE_INFINITY,
     fx.strip
       ? ambientWindows.nextStepAt(AMBIENT_KEY.led, nowMs, AMBIENT_FX_GAP_MS)
       : Number.POSITIVE_INFINITY,
     fx.standby
       ? ambientWindows.nextStepAt(AMBIENT_KEY.standby, nowMs, STANDBY_STEP_MS)
       : Number.POSITIVE_INFINITY
+  )
+}
+
+// Motion too small for its own frames: a pet inside its bout, people blinking and breathing inside
+// their window, steam over a mug, fish in the tank; each draws on the ambient beat.
+function isFloorStirring(sim: SimView, nowMs: number): boolean {
+  return (
+    !reducedMotion.value &&
+    (isPetsStirring(sim) ||
+      sim.life.animatedFloors.includes(sim.floor) ||
+      isCharacterMotionOn(sim.actors, { floor: sim.floor, now: nowMs }))
   )
 }
 

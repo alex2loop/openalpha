@@ -14,6 +14,13 @@ const PANES: readonly {
   { id: 'chat', key: 'ui.office.chat.title' },
 ])
 
+const BUTTON_ID_PREFIX = 'pane-bar-'
+
+/** Puts the keyboard on `id`'s pane-bar button: where focus goes when a sheet hides itself. */
+export function focusPaneButton(id: Pane): void {
+  document.getElementById(`${BUTTON_ID_PREFIX}${id}`)?.focus()
+}
+
 /** Under the header below the narrow width: one pane at a time, the chat with its unread dot. */
 export function PaneBar() {
   if (breakpoint.value === 'wide') {
@@ -29,6 +36,7 @@ export function PaneBar() {
         {PANES.map(({ id, key }) => (
           <button
             key={id}
+            id={`${BUTTON_ID_PREFIX}${id}`}
             type="button"
             class={id === current ? 'is-on' : ''}
             aria-pressed={id === current}
