@@ -14,8 +14,8 @@
   font-size: 12.5px;
 }
 
-.popover-section + .job-row,
-.popover-section + .meta {
+.sub-head + .job-row,
+.sub-head + .meta {
   border-top: 0;
 }
 

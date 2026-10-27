@@ -71,7 +71,7 @@ function TopNode({ node, isHeading, isOpen }: TopNodeProps) {
   }
 
   return isHeading ? (
-    <h3 class="market-sub">
+    <h3 class="sub-head">
       <InlineMarkdown text={node.text} />
     </h3>
   ) : (

@@ -102,7 +102,7 @@ function SuggestRow({ option, title, isActive, onPick }: SuggestRowProps) {
 
   return (
     <>
-      {title && heading !== undefined && <p class="popover-section">{tr(heading)}</p>}
+      {title && heading !== undefined && <p class="suggest-head">{tr(heading)}</p>}
       <div
         role="option"
         tabIndex={-1}

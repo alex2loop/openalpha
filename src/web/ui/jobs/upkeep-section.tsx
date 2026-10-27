@@ -16,13 +16,13 @@ export function UpkeepSection({ tasks }: { readonly tasks: LoadState<TasksRespon
   const isExpanded = useSignal(false)
 
   if (tasks.status === 'loading') {
-    return <h3 class="popover-section">{tr('ui.office.jobs.maintenance')}</h3>
+    return <h3 class="sub-head">{tr('ui.office.jobs.maintenance')}</h3>
   }
 
   if (tasks.status === 'failed') {
     return (
       <>
-        <h3 class="popover-section">{tr('ui.office.jobs.maintenance')}</h3>
+        <h3 class="sub-head">{tr('ui.office.jobs.maintenance')}</h3>
         <p class="failure-line">{toFailureText(tasks.failure)}</p>
       </>
     )
@@ -34,7 +34,7 @@ export function UpkeepSection({ tasks }: { readonly tasks: LoadState<TasksRespon
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.jobs.maintenance')}</h3>
+      <h3 class="sub-head">{tr('ui.office.jobs.maintenance')}</h3>
       <button
         type="button"
         class="upkeep-toggle"

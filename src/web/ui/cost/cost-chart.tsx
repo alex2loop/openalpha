@@ -18,7 +18,7 @@ export function CostChart({ days }: { readonly days: readonly CostDay[] }) {
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.cost.chart')}</h3>
+      <h3 class="sub-head">{tr('ui.office.cost.chart')}</h3>
       <fieldset class="cost-chart">
         <legend class="sr">{tr('ui.office.cost.chart')}</legend>
         {days.map((entry) => (

@@ -77,7 +77,7 @@ function RunningSection() {
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.jobs.running')}</h3>
+      <h3 class="sub-head">{tr('ui.office.jobs.running')}</h3>
       {tops.length === 0 && <p class="meta">{tr('ui.office.jobs.none')}</p>}
       {tops.map((run) => (
         <JobRow key={run.runId} run={run} childRuns={childrenOf(shown, run)} />

@@ -132,7 +132,7 @@ function ThemeGroup({ title, themes, context }: ThemeGroupProps) {
 
   return (
     <>
-      <h3 class="market-sub">{title}</h3>
+      <h3 class="sub-head">{title}</h3>
       {themes.map((theme) => (
         <ThemeRow key={theme.id} theme={theme} context={context} />
       ))}

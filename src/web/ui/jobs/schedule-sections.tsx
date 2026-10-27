@@ -36,7 +36,7 @@ export function UpcomingSection({ schedules, tasks }: SectionProps) {
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.jobs.upcoming')}</h3>
+      <h3 class="sub-head">{tr('ui.office.jobs.upcoming')}</h3>
       {items.length === 0 && <p class="meta">{tr('ui.office.jobs.none')}</p>}
       {items.map((item) => (
         <div key={item.key} class="job-row">
@@ -61,7 +61,7 @@ export function WaitingSection({ schedules, tasks }: SectionProps) {
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.jobs.waiting')}</h3>
+      <h3 class="sub-head">{tr('ui.office.jobs.waiting')}</h3>
       {rows.length === 0 && <p class="meta">{tr('ui.office.jobs.noWaiting')}</p>}
       {rows.map((row) => (
         <p key={String(row.id)} class="job-row meta">

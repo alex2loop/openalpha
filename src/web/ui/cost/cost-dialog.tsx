@@ -141,7 +141,7 @@ function ReportView({ report }: { readonly report: CostReport }) {
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.cost.total')}</h3>
+      <h3 class="sub-head">{tr('ui.office.cost.total')}</h3>
       <p class="cost-figure cost-total">{formatSpent(report.totalUsd, undefined)}</p>
       <HighestDay days={report.days} />
       <CostChart days={report.days} />

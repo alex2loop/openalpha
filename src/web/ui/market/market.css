@@ -6,13 +6,6 @@
   margin-bottom: var(--s2);
 }
 
-.market-sub {
-  margin: var(--s2) 0 6px;
-  color: var(--title);
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .market-filter {
   width: 100%;
   margin-bottom: var(--s1);
@@ -99,9 +92,9 @@
 
 .outline-fold.is-note > summary {
   padding: 6px 0;
-  color: var(--ink2);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--title);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .outline-body {
