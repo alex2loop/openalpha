@@ -14,6 +14,11 @@ import {
 } from '@/web/scene/render2d/street/detail'
 import { FESTIVE_PART } from '@/web/scene/render2d/street/festive'
 import { FRONTAGE_PART } from '@/web/scene/render2d/street/frontage'
+import {
+  createStreetLayers,
+  releaseStreetLayers,
+  type StreetLayers,
+} from '@/web/scene/render2d/street/layer-cache'
 import { releaseLedFaces } from '@/web/scene/render2d/street/led-board'
 import { MOVERS_PART } from '@/web/scene/render2d/street/movers'
 import { PARK_PART } from '@/web/scene/render2d/street/park'
@@ -47,9 +52,11 @@ const REVEAL_SLACK_PX = 0.5
 /** The minute a part paints at (the light's minute, held at solar noon when the light does not
  *  follow the hour), the page minute `clock` that opening hours follow, the detail level, whether
  *  the camera shows the sky above the framed view, the light and the sun it comes from, and the
- *  weather. */
+ *  weather; and the `layers` it may keep slices in between minutes, none on a canvas painted at
+ *  another px than the static one's. */
 export interface StreetMinute extends ClockParts {
   readonly clock: number
+  readonly layers: StreetLayers | undefined
   readonly detail: StreetDetail
   readonly isRevealed: boolean
   readonly light: LightRow
@@ -112,6 +119,7 @@ interface PainterState {
   readonly staticCanvas: HTMLCanvasElement
   readonly movingCanvas: HTMLCanvasElement
   readonly sharp: SharpLayer
+  readonly layers: StreetLayers
   staticKey: string
   detail: StreetDetail | undefined
   staticVersion: number
@@ -136,6 +144,7 @@ export function createStreetPainter(): StreetPainter {
       zeroCanvas(state.staticCanvas)
       zeroCanvas(state.movingCanvas)
       releaseSharp(state.sharp)
+      releaseStreetLayers(state.layers)
       releaseStreetSprites()
       releaseLedFaces()
       state.staticKey = ''
@@ -163,7 +172,7 @@ function paintStreet(
     })
   )
   syncSharp(state.sharp, sharpJobOf(state, visible), (g) =>
-    paintParts(g, state.moving.pack, state.moving.minute)
+    paintParts(g, state.moving.pack, { ...state.moving.minute, layers: undefined })
   )
   syncMoving(state, { view, visible, devicePx })
 
@@ -188,6 +197,7 @@ function createPainterState(): PainterState {
         day: '',
         minute: 0,
         clock: 0,
+        layers: undefined,
         dow: 0,
         detail: 0,
         isRevealed: false,
@@ -202,6 +212,7 @@ function createPainterState(): PainterState {
     staticCanvas: document.createElement('canvas'),
     movingCanvas: document.createElement('canvas'),
     sharp: createSharpLayer(),
+    layers: createStreetLayers(),
     staticKey: '',
     detail: undefined,
     staticVersion: 0,
@@ -228,6 +239,7 @@ function toStreetMinute(
     ...at.minute,
     minute: sky.minute,
     clock: at.minute.minute,
+    layers: state.layers,
     detail: at.detail,
     isRevealed: at.isRevealed,
     light: state.light,

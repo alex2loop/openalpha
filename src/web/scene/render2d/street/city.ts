@@ -1,6 +1,8 @@
 import type { PaintPart, StreetMinute } from '@/web/scene/render2d/street/paint'
+import type { Rect } from '@/web/scene/types'
 import type { RegionPack, RoadLayout } from '@/web/scene/world/regions'
 import {
+  BALCONY_SLOT_MIN,
   type CityScene,
   paintBlock,
   paintLamp,
@@ -15,6 +17,8 @@ import {
 } from '@/web/scene/render2d/street/city-ground'
 import { paintSideStreet, paintSouth } from '@/web/scene/render2d/street/city-sides'
 import { paintBackdrop } from '@/web/scene/render2d/street/landmark'
+import { layerKeyOf, paintLayer, reachOf } from '@/web/scene/render2d/street/layer-cache'
+import { shadowKeyOf } from '@/web/scene/render2d/street/shadow'
 import { mixTone } from '@/web/scene/render2d/street/tone'
 import { WORLD } from '@/web/scene/types'
 import { STREET_BOTTOM, STREET_RECT } from '@/web/scene/view'
@@ -32,7 +36,13 @@ const SKYLINE = [
   { base: -46, depth: 20, height: [17, 34], width: [16, 30], tone: '#7D90AA', haze: 0.3, lit: 0.8 },
   { base: -32, depth: 16, height: [20, 38], width: [18, 34], tone: '#5C6A84', haze: 0.1, lit: 1 },
 ] as const
+// The skyline layer runs from the top of the canvas to the near row's base, and its shadows reach
+// past it.
+const SKYLINE_LAYER = 'skyline'
+const SKYLINE_BASE = -32
 const POCKET_PARK_SHARE = 0.14
+// Windows light in steps of a hundredth of the share, so a layer holding them keeps for minutes.
+const LIT_STEPS = 100
 const STAR_COUNT = 46
 const STARS_FROM_DARK = 0.35
 const STAR_FADE = 0.3
@@ -52,7 +62,11 @@ export const CITY_PART: PaintPart = {
 
     paintSky(scene, minute.light.sky)
     paintBackdrop(scene, pack)
-    paintSkyline(scene)
+    paintLayer(
+      scene,
+      { name: SKYLINE_LAYER, key: skylineKeyOf(scene), rect: skylineRect() },
+      paintSkyline
+    )
     paintNorthStreet(scene, pack)
     paintSideStreet(scene, { side: -1, street: pack.road.west })
     paintSideStreet(scene, { side: 1, street: pack.road.east })
@@ -66,12 +80,17 @@ export function citySceneOf(
   pack: RegionPack,
   minute: StreetMinute
 ): CityScene {
+  const { dark } = minute.light
+
   return {
     g,
+    layers: minute.layers,
     minute,
-    dark: minute.light.dark,
-    lit: litShareOf(pack, minute.minute) * minute.light.dark,
-    isBalconyHour: isWithin(pack.hours.balconies, minute.minute),
+    dark,
+    lit: Math.round(litShareOf(pack, minute.minute) * dark * LIT_STEPS) / LIT_STEPS,
+    balconySlot: isWithin(pack.hours.balconies, minute.minute)
+      ? Math.floor(minute.minute / BALCONY_SLOT_MIN)
+      : undefined,
     horizon: minute.light.sky[1],
     holiday: holidayOf(pack, minute.day),
   }
@@ -122,6 +141,28 @@ function paintSky(scene: CityScene, sky: readonly [string, string]): void {
   }
 
   g.globalAlpha = 1
+}
+
+function skylineRect(): Rect {
+  return reachOf({
+    x: STREET_RECT.x,
+    y: STREET_RECT.y,
+    w: STREET_RECT.w,
+    h: SKYLINE_BASE - STREET_RECT.y,
+  })
+}
+
+// Everything the skyline's blocks, trees and shadows read.
+function skylineKeyOf(scene: CityScene): string {
+  return layerKeyOf([
+    scene.dark,
+    scene.lit,
+    scene.horizon,
+    scene.minute.detail,
+    scene.holiday,
+    scene.balconySlot,
+    shadowKeyOf(scene.minute),
+  ])
 }
 
 // Three hazy rows of low blocks, far to near, with a small park in a gap now and then.

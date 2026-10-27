@@ -1,8 +1,11 @@
 import type { CityScene } from '@/web/scene/render2d/street/city-blocks'
 import type { PaintPart } from '@/web/scene/render2d/street/paint'
+import type { Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import { citySceneOf } from '@/web/scene/render2d/street/city'
 import { paintLamp, paintTree } from '@/web/scene/render2d/street/city-blocks'
+import { layerKeyOf, paintLayer, reachOf } from '@/web/scene/render2d/street/layer-cache'
+import { pondSlotOf } from '@/web/scene/render2d/street/park-pond'
 import {
   paintBench,
   paintFountain,
@@ -12,9 +15,21 @@ import {
   paintSign,
   shadeOf,
 } from '@/web/scene/render2d/street/park-props'
-import { paintSideParks, paintSouthPark } from '@/web/scene/render2d/street/park-sides'
-import { CAT_WALL, NORTH_PARK, PARKS, PLAY_PIECES } from '@/web/scene/sim/street/park-layout'
+import { paintSidePark, paintSouthPark } from '@/web/scene/render2d/street/park-sides'
+import { shadowKeyOf } from '@/web/scene/render2d/street/shadow'
+import {
+  CAT_WALL,
+  NORTH_PARK,
+  PARKS,
+  PLAY_PIECES,
+  parkX,
+  SIDE_PARK,
+  SOUTH_PARK,
+} from '@/web/scene/sim/street/park-layout'
+import { WORLD } from '@/web/scene/types'
+import { STREET_BOTTOM } from '@/web/scene/view'
 import { FAR_TREE_Y, FAR_TREES } from '@/web/scene/world/street-layout'
+import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
 // The lawn's mowing stripes, the back wall and its hedge, the flower ring round the fountain.
@@ -63,6 +78,20 @@ const TREES = [
   [-30, -45, 1],
   [70, -44, 2],
 ] as const
+// Each park is kept as a layer of its own, over the rect its lawn covers.
+const PARK_LAYERS = Object.freeze({
+  north: 'park-north',
+  west: 'park-west',
+  east: 'park-east',
+  south: 'park-south',
+})
+const NORTH_RECT: Rect = {
+  x: NORTH_PARK.x0,
+  y: NORTH_PARK.y0,
+  w: NORTH_PARK.x1 - NORTH_PARK.x0,
+  h: NORTH_PARK.y1 - NORTH_PARK.y0,
+}
+const SOUTH_RECT: Rect = { x: 0, y: SOUTH_PARK.top, w: WORLD.w, h: STREET_BOTTOM - SOUTH_PARK.top }
 // Street trees in front of the park (this close west of it) are drawn again over it.
 const FRONT_TREE_REACH = 8
 
@@ -71,11 +100,44 @@ const FRONT_TREE_REACH = 8
 export const PARK_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     const scene = citySceneOf(g, pack, minute)
+    const key = layerKeyOf([
+      pack.id,
+      locale.value,
+      scene.dark,
+      scene.holiday,
+      minute.detail,
+      shadowKeyOf(minute),
+    ])
 
-    paintNorthPark(scene, pack)
-    paintSideParks(scene)
-    paintSouthPark(scene)
+    paintLayer(scene, { name: PARK_LAYERS.north, key, rect: reachOf(NORTH_RECT) }, (layered) =>
+      paintNorthPark(layered, pack)
+    )
+    paintLayer(
+      scene,
+      {
+        name: PARK_LAYERS.west,
+        key: layerKeyOf([key, pondSlotOf(scene)]),
+        rect: reachOf(sideRectOf(-1)),
+      },
+      (layered) => paintSidePark(layered, { side: -1, park: PARKS[1] })
+    )
+    paintLayer(scene, { name: PARK_LAYERS.east, key, rect: reachOf(sideRectOf(1)) }, (layered) =>
+      paintSidePark(layered, { side: 1, park: PARKS[2] })
+    )
+    paintLayer(scene, { name: PARK_LAYERS.south, key, rect: reachOf(SOUTH_RECT) }, paintSouthPark)
   },
+}
+
+function sideRectOf(side: -1 | 1): Rect {
+  const near = parkX(side, 0)
+  const far = parkX(side, SIDE_PARK.depth)
+
+  return {
+    x: Math.min(near, far),
+    y: SIDE_PARK.top,
+    w: SIDE_PARK.depth,
+    h: STREET_BOTTOM - SIDE_PARK.top,
+  }
 }
 
 // Lawn, paths, fountain, playground, benches, lamps, trees, the front hedge with its gates and the

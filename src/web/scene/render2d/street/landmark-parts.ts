@@ -1,4 +1,5 @@
 import {
+  DECK,
   DESIGN,
   halfWidthAt,
   hazeTone,
@@ -8,7 +9,6 @@ import {
 } from '@/web/scene/render2d/street/landmark-shape'
 
 const TAU = Math.PI * 2
-const DECK = Object.freeze({ rx: 34, ry: 7.2, shift: 12 })
 const AVIATION_RED = '#FF5A4D'
 const LAMP_WHITE = '#FFF1CC'
 const DECK_LAMPS = 22

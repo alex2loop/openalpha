@@ -1,3 +1,4 @@
+import type { Rect } from '@/web/scene/types'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 
 // The tower is drawn in its own design frame, 1 px to 0.5 m, with its foot centre at the origin
@@ -19,6 +20,21 @@ export const DESIGN = Object.freeze({
   bandFloors: 12,
   bandH: 8,
   helipadY: -380,
+})
+/** The helipad deck that juts out of the shaft's right side: its half width, half height and how
+ *  far it sits back from the neck. */
+export const DECK = Object.freeze({ rx: 34, ry: 7.2, shift: 12 })
+// How far the tower's glow reaches past its spire, and its parts past their edge, in design px.
+const GLOW_REACH = 48
+const EDGE_REACH = 4
+const BOX_LEFT = -DESIGN.podiumW / 2 - DESIGN.podiumPad - EDGE_REACH
+const BOX_RIGHT = DESIGN.shaftHalfW + 2 * DECK.rx + EDGE_REACH
+/** What the tower covers in its design frame, glow included. */
+export const TOWER_BOX: Rect = Object.freeze({
+  x: BOX_LEFT,
+  y: -DESIGN.height - GLOW_REACH,
+  w: BOX_RIGHT - BOX_LEFT,
+  h: DESIGN.height + GLOW_REACH + EDGE_REACH,
 })
 export const ROOF_Y = -DESIGN.podium
 export const TIP_Y = -DESIGN.height + DESIGN.spire
