@@ -6,7 +6,7 @@ import {
   keyOf,
   knownMarkets,
   overviewBlock,
-  priceDisplayOf,
+  printDisplayOf,
   profileBlock,
   quotesBlock,
 } from '@/web/state/market'
@@ -53,7 +53,7 @@ function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
   }
 
   // A block with no price currency quotes index levels.
-  const display = block.priceCurrency === undefined ? undefined : market.priceDisplay
+  const display = block.priceCurrency === undefined ? undefined : printDisplayOf(market.market)
 
   return [
     {
@@ -69,7 +69,7 @@ function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
 }
 
 function toQuoteRow(quote: TradingQuoteWire): TapeRow {
-  const display = quote.kind === 'index' ? undefined : priceDisplayOf(quote.market)
+  const display = quote.kind === 'index' ? undefined : printDisplayOf(quote.market)
 
   return {
     key: keyOf(quote),

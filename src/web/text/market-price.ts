@@ -1,4 +1,4 @@
-import { findMarket, priceDisplayOf } from '@/web/state/market'
+import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -28,7 +28,7 @@ export function formatMarketPrice(
 
 /** The figure alone, in the market's board scale, for a place the currency is said once nearby. */
 export function formatBarePrice(market: string, value: number, kind?: string): string {
-  return formatPrice(value, kind === INDEX_KIND ? undefined : priceDisplayOf(market))
+  return formatPrice(value, kind === INDEX_KIND ? undefined : printDisplayOf(market))
 }
 
 /** A price typed as the board prints it, in the whole currency units the daemon takes: a VN share

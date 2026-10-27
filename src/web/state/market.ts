@@ -11,6 +11,7 @@ import type {
 import type { SessionPhase } from '@/app/server/wire/vocab'
 import { ROUTES } from '@/web/api/routes'
 import { createRouteBlock } from '@/web/state/block'
+import { wholeUnitsDisplay } from '@/web/text/figures'
 
 const OVERVIEW_POLL_MS = 60_000
 // Each poll makes the daemon read live providers, so it stays slow.
@@ -109,6 +110,14 @@ export function findQuote(ticker: string, market?: string): TradingQuoteWire | u
 /** How the market prints a price, off `/v1/markets`; absent for a market with no board scale. */
 export function priceDisplayOf(market: string): MarketWire['priceDisplay'] {
   return findMarket(market)?.priceDisplay
+}
+
+/** How the page prints a market's price: its board scale, else whole units for a currency with no
+ *  minor unit (VND), else absent, which prints cents. */
+export function printDisplayOf(market: string): MarketWire['priceDisplay'] {
+  const found = findMarket(market)
+
+  return found === undefined ? undefined : (found.priceDisplay ?? wholeUnitsDisplay(found.currency))
 }
 
 /** The operator's region (`[locale] region`); absent until the markets are read. */

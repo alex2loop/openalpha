@@ -17,6 +17,7 @@ const QUANTITY_DIGITS_MAX = 8
 // From here a cash amount prints whole units: cents on a million are noise.
 const AMOUNT_WHOLE_FROM = 1_000
 const ZERO_TEXT = /^[^1-9]*$/
+const ISO_CURRENCY = /^[A-Z]{3}$/
 
 /** How a board prints a price: `value / divisor` at `decimals`. */
 interface PriceDisplay {
@@ -31,6 +32,24 @@ export const WHOLE_DISPLAY: PriceDisplay = Object.freeze({ divisor: 1, decimals:
 
 // One per page language and shape, so bounded by construction.
 const formatters = new Map<string, Intl.NumberFormat>()
+// One per currency code the daemon names.
+const wholeCurrencies = new Map<string, boolean>()
+
+/** `WHOLE_DISPLAY` for a currency with no minor unit (VND, JPY); absent for one with cents, or one
+ *  that is no ISO code (USDT). */
+export function wholeUnitsDisplay(currency: string): PriceDisplay | undefined {
+  let isWhole = wholeCurrencies.get(currency)
+
+  if (isWhole === undefined) {
+    isWhole =
+      ISO_CURRENCY.test(currency) &&
+      new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions()
+        .maximumFractionDigits === 0
+    wholeCurrencies.set(currency, isWhole)
+  }
+
+  return isWhole ? WHOLE_DISPLAY : undefined
+}
 
 /** A USD amount at cent precision in the page's language; one under a cent keeps two significant
  *  digits, so a model call's cost never reads as zero. A missing one prints `ABSENT_CELL`. */

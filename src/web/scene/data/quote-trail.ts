@@ -1,7 +1,7 @@
 import { computed, effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
 import type { DeskQuote } from '@/web/scene/types'
-import { keyOf, priceDisplayOf, quotesBlock } from '@/web/state/market'
+import { keyOf, printDisplayOf, quotesBlock } from '@/web/state/market'
 import { formatPrice, PERCENT } from '@/web/text/figures'
 
 /** The most prices one name's line keeps: the polls since the page opened. */
@@ -21,7 +21,7 @@ export const liveQuotes: ReadonlySignal<readonly DeskQuote[]> = computed(() =>
 
     const close = quote.last / (1 + changePct / PERCENT)
     const polled = trails.value.get(keyOf(quote)) ?? [quote.last]
-    const display = quote.kind === 'index' ? undefined : priceDisplayOf(quote.market)
+    const display = quote.kind === 'index' ? undefined : printDisplayOf(quote.market)
 
     return [
       {
