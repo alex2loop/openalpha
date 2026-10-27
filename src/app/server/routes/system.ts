@@ -1,5 +1,6 @@
 import type { LiveSnapshotWire } from '@/app/server/wire/live'
 import type {
+  CommandCompletion,
   CommandList,
   CostReport,
   DoctorCheck,
@@ -24,7 +25,7 @@ import { toScheduleRowWire } from '@/app/server/mappers/jobs'
 import { readBriefSchedule } from '@/app/server/routes/brief-schedule'
 import { localeOf } from '@/app/server/routes/params'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
-import { COST_ESTIMATE_SAMPLE } from '@/app/server/wire/system'
+import { COST_ESTIMATE_SAMPLE, MAX_COMPLETION_LINE_CHARS } from '@/app/server/wire/system'
 import { RESTART_IDLE_WAIT_MS } from '@/app/update/restart'
 import {
   CLI_ONLY_CHECK_NAMES,
@@ -37,7 +38,7 @@ import {
   UPGRADE_COMMAND,
   WEB_CHECK_NAMES,
 } from '@/cli/api'
-import { describeCommand } from '@/commands/api'
+import { completeArguments, describeCommand, renderMessages } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
 import { CHECK_NAMES } from '@/core/types/doctor'
@@ -176,6 +177,27 @@ async function handleCommands(_req: Request, ctx: ApiRouteContext): Promise<Resp
   })
 
   return json({ commands } satisfies CommandList)
+}
+
+// The CLI's Tab completion over the typed line; a name still being typed or not known answers nothing.
+async function handleCommandComplete(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const line = new URL(req.url).searchParams.get('line') ?? ''
+  const completion =
+    line.length > MAX_COMPLETION_LINE_CHARS
+      ? null
+      : completeArguments(ctx.app.resolve('commandCatalog').all(), line)
+
+  if (completion === null) {
+    return json({ candidates: [] } satisfies CommandCompletion)
+  }
+
+  const { command, candidates } = completion
+  const usage =
+    command.usage === undefined
+      ? undefined
+      : renderMessages(bindLocale(localeOf(ctx)), { kind: 'message', messages: [command.usage()] })
+
+  return json({ candidates, ...(usage === undefined ? {} : { usage }) } satisfies CommandCompletion)
 }
 
 type Translate = ReturnType<typeof bindLocale>['translate']
@@ -387,6 +409,7 @@ export const SYSTEM_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'GET', path: '/v1/state', auth: true, handler: handleState },
   { method: 'GET', path: '/v1/live', auth: true, handler: handleLive },
   { method: 'GET', path: '/v1/commands', auth: true, handler: handleCommands },
+  { method: 'GET', path: '/v1/commands/complete', auth: true, handler: handleCommandComplete },
   { method: 'GET', path: '/v1/doctor', auth: true, handler: handleDoctor },
   { method: 'GET', path: '/v1/cost', auth: true, handler: handleCost },
   { method: 'GET', path: '/v1/update', auth: true, handler: handleUpdate },

@@ -5,6 +5,7 @@ import { commands, estimateText } from '@/web/state/estimates'
 import { panelView } from '@/web/state/panel'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
+import { useArgCompletions } from '@/web/ui/command/arg-completions'
 import { type Match, useTickerMatches } from '@/web/ui/command/ticker-matches'
 
 const COMMAND_PREFIX = '/'
@@ -26,7 +27,7 @@ const STARTERS: readonly Starter[] = [
   { text: '/research ', label: 'ui.office.command.ctxResearch' },
 ]
 
-type Section = 'suggestions' | 'ticker' | 'commands' | 'send'
+type Section = 'suggestions' | 'args' | 'ticker' | 'commands' | 'send'
 
 /** One row. `fill` is the text it puts in the box; the send row has none. */
 export interface SuggestOption {
@@ -41,31 +42,48 @@ export interface SuggestOption {
 
 const SECTION_TITLES = Object.freeze({
   suggestions: 'ui.office.command.suggestions',
+  args: 'ui.office.command.arguments',
   ticker: 'ui.office.common.ticker',
   commands: 'ui.office.command.commands',
 } as const satisfies Record<Exclude<Section, 'send'>, MessageKey>)
 
-/** The rows for what is typed: tickers, then commands, then send; starters on an empty box, or
- *  every command once Tab asked for them. */
-export function useSuggestions(text: string, isAllCommands: boolean): readonly SuggestOption[] {
+/** The rows for what is typed, and the syntax lines of the command typed. */
+interface Suggestions {
+  readonly options: readonly SuggestOption[]
+  readonly usage: readonly string[]
+}
+
+/** The rows for what is typed: the command's arguments, tickers, then commands, then send; starters
+ *  on an empty box, or every command once Tab asked for them. A ticker the arguments already offer
+ *  is listed once. */
+export function useSuggestions(text: string, isAllCommands: boolean): Suggestions {
   const matches = useTickerMatches(resolveTickerQuery(text))
+  const args = useArgCompletions(text)
 
   if (text.trim() === '') {
-    return isAllCommands ? listCommands('') : listStarters()
+    return { options: isAllCommands ? listCommands('') : listStarters(), usage: [] }
   }
 
-  return [...listTickers(text, matches), ...listCommands(text), buildSendRow(text)]
+  const rows = listArgs(text, args.candidates)
+  const taken = new Set(rows.map((row) => row.label.toLowerCase()))
+  const tickers = listTickers(text, matches).filter((row) => !taken.has(row.label.toLowerCase()))
+
+  return {
+    options: [...rows, ...tickers, ...listCommands(text), buildSendRow(text)],
+    usage: args.usage,
+  }
 }
 
 interface SuggestPopoverProps {
   readonly id: string
   readonly options: readonly SuggestOption[]
+  readonly usage: readonly string[]
   readonly activeIndex: number | undefined
   readonly onPick: (option: SuggestOption) => void
 }
 
 /** The list above the box. A press must not take focus from the input. */
-export function SuggestPopover({ id, options, activeIndex, onPick }: SuggestPopoverProps) {
+export function SuggestPopover({ id, options, usage, activeIndex, onPick }: SuggestPopoverProps) {
   return (
     <div
       id={id}
@@ -73,6 +91,13 @@ export function SuggestPopover({ id, options, activeIndex, onPick }: SuggestPopo
       role="listbox"
       aria-label={tr('ui.office.command.suggestions')}
     >
+      {usage.length > 0 && (
+        <div class="suggest-usage meta">
+          {usage.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+      )}
       <div class="suggest-scroll">
         {options.length > 0 && options[0]?.section === 'suggestions' && (
           <p class="meta suggest-hint">{tr('ui.office.command.hint')}</p>
@@ -182,6 +207,18 @@ function buildTickerContext(ticker: string): readonly Starter[] {
     { text: `${ALERT_CREATE_COMMAND} ${ticker} `, label: 'ui.office.command.ctxAlert' },
     { text: `${WATCHLIST_ADD_COMMAND} ${ticker}`, label: 'ui.office.command.ctxWatch' },
   ]
+}
+
+// What follows the last word typed, kept after the words before it.
+function listArgs(text: string, candidates: readonly string[]): readonly SuggestOption[] {
+  const head = text.trimStart().split(WORD_BREAK).slice(0, -1).join(' ')
+
+  return candidates.map((candidate) => ({
+    key: `arg:${head}:${candidate}`,
+    section: 'args',
+    label: candidate,
+    fill: `${head} ${candidate} `,
+  }))
 }
 
 function listTickers(text: string, matches: readonly Match[]): readonly SuggestOption[] {

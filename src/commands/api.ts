@@ -29,6 +29,7 @@ export type {
   UpgradeRequest,
 } from '@/commands/upgrade'
 export type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+export { completeArguments, completeLine } from '@/commands/dispatcher/completion'
 export {
   buildHelpSections,
   type CommandHelpOptions,

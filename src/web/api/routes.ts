@@ -70,6 +70,7 @@ import type {
 import type {
   BriefScheduleWire,
   Capabilities,
+  CommandCompletion,
   CommandList,
   CostReport,
   DoctorReport,
@@ -133,6 +134,7 @@ export const ROUTES = Object.freeze({
   runStop: (runId: string) => route<RunStopWire>(`/v1/runs/${encodeURIComponent(runId)}/stop`),
   runCalls: (runId: string) => route<RunCallsWire>(`/v1/runs/${encodeURIComponent(runId)}/calls`),
   commands: route<CommandList>('/v1/commands'),
+  commandComplete: route<CommandCompletion>('/v1/commands/complete'),
   instruments: route<InstrumentSearchResponse>('/v1/instruments'),
   agents: route<AgentsResponse>('/v1/agents'),
   agentCreate: route<AgentDetailWire>('/v1/agents'),

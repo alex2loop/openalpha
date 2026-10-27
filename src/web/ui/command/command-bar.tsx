@@ -76,7 +76,7 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
     isAllCommands: useSignal(false),
     isOpen: useSignal(false),
   }
-  const options = useSuggestions(inputText.value, list.isAllCommands.value)
+  const { options, usage } = useSuggestions(inputText.value, list.isAllCommands.value)
 
   useEffect(() => (input.current === null ? undefined : registerInput(input.current)), [])
 
@@ -88,6 +88,7 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
           <SuggestPopover
             id={LIST_ID}
             options={options}
+            usage={usage}
             activeIndex={list.activeIndex.value}
             onPick={(option) => pick(option, list)}
           />
@@ -281,7 +282,8 @@ function complete(chosen: SuggestOption | undefined, { list, options }: KeyConte
   }
 
   const target =
-    chosen ?? options.find((option) => option.section === 'commands' || option.section === 'ticker')
+    chosen ??
+    options.find((option) => option.section !== 'send' && option.section !== 'suggestions')
 
   if (target?.fill === undefined) {
     return false

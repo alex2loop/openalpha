@@ -258,3 +258,16 @@ interface SlashCommandInfo {
 export interface CommandList {
   readonly commands: readonly SlashCommandInfo[]
 }
+
+/** GET /v1/commands/complete?line=<typed text> — what the argument being typed on a slash command
+ *  accepts, from the command's own completer (the CLI's Tab completion). */
+export interface CommandCompletion {
+  /** Every value valid at the position, starting with the partial token the line ends in. Empty for
+   *  a command that completes nothing there, a name nothing answers to, and a name still typed. */
+  readonly candidates: readonly string[]
+  /** The command's usage text in the daemon's language; absent when it has none. */
+  readonly usage?: string
+}
+
+/** The longest line the daemon completes; a longer one answers nothing. */
+export const MAX_COMPLETION_LINE_CHARS = 500

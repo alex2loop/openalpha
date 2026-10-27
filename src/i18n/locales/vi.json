@@ -446,6 +446,7 @@
     "office.command.keys": "Tab hoàn tất - Enter gửi - lên xuống chọn - Esc đóng",
     "office.command.suggestions": "Gợi ý",
     "office.command.commands": "Câu lệnh",
+    "office.command.arguments": "Đối số",
     "office.command.send": "Gửi",
     "office.command.sendTo": "Gửi cho {agent}",
     "office.command.run": "Chạy câu lệnh",
