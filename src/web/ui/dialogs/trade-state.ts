@@ -7,7 +7,7 @@ import { formatDay } from '@/i18n'
 import {
   heldPositions,
   holdingsBlock,
-  priceDisplayOf,
+  printDisplayOf,
   quotesBlock,
   watchedNames,
 } from '@/web/state/market'
@@ -128,7 +128,7 @@ function startFigures({ entry, quantity, amount, currency }: TradeStart): Figure
     quantity: signal(formatFieldFigure(held ?? quantity)),
     price: signal(
       entry !== undefined && 'unitPrice' in entry
-        ? formatPrice(entry.unitPrice, priceDisplayOf(entry.instrument.market))
+        ? formatPrice(entry.unitPrice, printDisplayOf(entry.instrument.market))
         : ''
     ),
     fee: signal(formatFieldFigure(entry !== undefined && 'fee' in entry ? entry.fee : undefined)),

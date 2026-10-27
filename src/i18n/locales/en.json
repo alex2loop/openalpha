@@ -1674,6 +1674,7 @@
     "memoryRecall": "{key}: {value}",
     "memoryHelp": "View, search, save, or remove memory entries.",
     "scheduleHelp": "List, view, pause, resume, run or remove scheduled jobs. Usage: /schedule [show|pause|resume|run|remove] <id>.",
+    "scheduleUsage": "Usage\n/schedule\n/schedule show <id>\n/schedule pause <id>\n/schedule resume <id>\n/schedule run <id>\n/schedule remove <id>\n\nAn id can be its first few characters. Add or edit a job with `schedule` in the terminal or on the office page.",
     "scheduleProgress": "Running the scheduled job…",
     "scheduleEmpty": "⏰ Nothing is scheduled yet.",
     "scheduleRow": "{id}: {prompt}",

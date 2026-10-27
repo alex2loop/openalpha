@@ -1674,6 +1674,7 @@
     "memoryRecall": "{key}: {value}",
     "memoryHelp": "Xem, tìm kiếm, lưu hoặc xóa các mục bộ nhớ.",
     "scheduleHelp": "Liệt kê, xem, tạm dừng, tiếp tục, chạy ngay hoặc xóa tác vụ đã lên lịch. Cách dùng: /schedule [show|pause|resume|run|remove] <id>.",
+    "scheduleUsage": "Cách dùng\n/schedule\n/schedule show <id>\n/schedule pause <id>\n/schedule resume <id>\n/schedule run <id>\n/schedule remove <id>\n\nId có thể chỉ là vài ký tự đầu. Thêm hoặc sửa việc bằng `schedule` ở terminal hoặc trên trang văn phòng.",
     "scheduleProgress": "Đang chạy tác vụ đã lên lịch…",
     "scheduleEmpty": "⏰ Chưa có tác vụ nào được lên lịch.",
     "scheduleRow": "{id}: {prompt}",
