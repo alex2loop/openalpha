@@ -4,7 +4,7 @@ import { useBlock } from '@/web/state/block'
 import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { formatFixed, formatFixedFraction, PERCENT } from '@/web/text/figures'
-import { joinList } from '@/web/text/glyphs'
+import { joinInline, joinList } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Fold } from '@/web/ui/kit/fold'
 import { GlobeIcon } from '@/web/ui/kit/icons'
@@ -49,23 +49,25 @@ export function MacroFull({ region }: { readonly region: string }) {
 function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
   const range = macro.scoreRange
 
+  const reading = [
+    ...(macro.missing.length === 0
+      ? []
+      : [
+          tr('ui.office.market.missing', {
+            names: joinList(macro.missing.map((driver) => driver.label)),
+          }),
+        ]),
+    ...(macro.coverage < 1
+      ? [tr('ui.office.market.coverage', { share: formatFixedFraction(macro.coverage) })]
+      : []),
+  ]
+
   return (
     <>
-      {macro.missing.length > 0 && (
-        <p class="meta">
-          {tr('ui.office.market.missing', {
-            names: joinList(macro.missing.map((driver) => driver.label)),
-          })}
-        </p>
-      )}
-      {macro.coverage < 1 && (
-        <p class="meta">
-          {tr('ui.office.market.coverage', { share: formatFixedFraction(macro.coverage) })}
-        </p>
-      )}
-      {isAdvanced.value && (
-        <>
-          <p class="meta">
+      <div class="stack meta">
+        {reading.length > 0 && <p>{joinInline(reading)}</p>}
+        {isAdvanced.value && (
+          <p>
             {tr('ui.office.market.scale', {
               score: formatFixed(macro.score, SCORE_DIGITS),
               min: formatFixed(range.min, SCORE_DIGITS),
@@ -74,9 +76,9 @@ function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
               off: formatFixed(range.riskOffAt, SCORE_DIGITS),
             })}
           </p>
-          <DriverTable drivers={macro.drivers} />
-        </>
-      )}
+        )}
+      </div>
+      {isAdvanced.value && <DriverTable drivers={macro.drivers} />}
     </>
   )
 }
@@ -87,15 +89,14 @@ function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.market.drivers')}</h3>
-      <p class="meta">{tr('ui.office.market.driversNote')}</p>
-      <table class="macro-drivers">
+      <table class="macro-drivers" title={tr('ui.office.market.driversNote')}>
         <thead>
           <tr>
             <th />
-            <th>{tr('ui.office.market.col.reading')}</th>
+            <th class="num">{tr('ui.office.market.col.reading')}</th>
             <th>{tr('ui.office.market.col.position')}</th>
-            <th>{tr('ui.office.market.col.weight')}</th>
-            <th>{tr('ui.office.market.col.contribution')}</th>
+            <th class="num">{tr('ui.office.market.col.weight')}</th>
+            <th class="num">{tr('ui.office.market.col.contribution')}</th>
           </tr>
         </thead>
         <tbody>

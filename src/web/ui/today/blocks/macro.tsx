@@ -46,9 +46,9 @@ export function MacroReading({ macro }: { readonly macro: MacroResponse }) {
   }
 
   return (
-    <>
+    <div class="stack">
       <span class={`regime-tag is-${macro.regime}`}>{tr(REGIME_KEYS[macro.regime])}</span>
-      {macro.lean !== undefined && <p>{macro.lean}</p>}
-    </>
+      {macro.lean !== undefined && <p class="lead">{macro.lean}</p>}
+    </div>
   )
 }

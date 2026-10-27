@@ -1,6 +1,9 @@
 import { useMemo } from 'preact/hooks'
 
+import { withoutLeadingIcon } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
+import { useUnstripped } from '@/web/ui/kit/cautions'
+import { Fold } from '@/web/ui/kit/fold'
 import { InlineMarkdown } from '@/web/ui/markdown/markdown'
 
 // A loose line this long is an explanation, read once: it waits behind a fold.
@@ -20,37 +23,61 @@ interface OutlineProps {
  *  (the first one open), the lines under it a label-and-rows hierarchy, a short line opening a
  *  block its heading, and a long loose line a closed note. */
 export function Outline({ lines }: OutlineProps) {
-  const blocks = useMemo(() => toBlocks(lines), [lines])
+  const shown = useUnstripped(lines)
+  const blocks = useMemo(() => toBlocks(shown), [shown])
   const firstFold = blocks.flat().find((node) => node.children.length > 0)
 
   return (
-    <div class="outline">
-      {blocks.map((block, blockIndex) =>
-        block.map((node, index) => (
-          <TopNode
-            key={`${blockIndex}:${index}`}
-            node={node}
-            isHeading={index === 0 && block.length > 1}
-            isOpen={node === firstFold}
-          />
-        ))
-      )}
+    <div class="flow">
+      {blocks.map((block, index) => (
+        <OutlineBlock key={index} block={block} firstFold={firstFold} />
+      ))}
     </div>
   )
 }
 
+interface OutlineBlockProps {
+  readonly block: readonly OutlineNode[]
+  readonly firstFold: OutlineNode | undefined
+}
+
+// A short line opening a block is its heading; the rest are folds and notes, closed but the first.
+function OutlineBlock({ block, firstFold }: OutlineBlockProps) {
+  const [first, ...rest] = block
+  const heading = first !== undefined && rest.length > 0 && isHeading(first) ? first : undefined
+  const nodes = heading === undefined ? block : rest
+
+  return (
+    <>
+      {heading !== undefined && (
+        <h3 class="sub-head">
+          <InlineMarkdown text={withoutLeadingIcon(heading.text)} />
+        </h3>
+      )}
+      <div class="row-list">
+        {nodes.map((node, index) => (
+          <TopNode key={index} node={node} isOpen={node === firstFold} />
+        ))}
+      </div>
+    </>
+  )
+}
+
+function isHeading(node: OutlineNode): boolean {
+  return node.children.length === 0 && node.text.length <= LONG_NOTE_CHARS
+}
+
 interface TopNodeProps {
   readonly node: OutlineNode
-  readonly isHeading: boolean
   readonly isOpen: boolean
 }
 
-function TopNode({ node, isHeading, isOpen }: TopNodeProps) {
+function TopNode({ node, isOpen }: TopNodeProps) {
   if (node.children.length > 0) {
     return (
       <details class="outline-fold" open={isOpen}>
         <summary>
-          <InlineMarkdown text={node.text} />
+          <InlineMarkdown text={withoutLeadingIcon(node.text)} />
         </summary>
         <div class="outline-body">
           <Nested nodes={node.children} />
@@ -61,21 +88,16 @@ function TopNode({ node, isHeading, isOpen }: TopNodeProps) {
 
   if (node.text.length > LONG_NOTE_CHARS) {
     return (
-      <details class="outline-fold is-note">
-        <summary>{tr('ui.office.market.note')}</summary>
-        <p class="outline-note">
+      <Fold title={tr('ui.office.market.note')}>
+        <p class="meta">
           <InlineMarkdown text={node.text} />
         </p>
-      </details>
+      </Fold>
     )
   }
 
-  return isHeading ? (
-    <h3 class="sub-head">
-      <InlineMarkdown text={node.text} />
-    </h3>
-  ) : (
-    <p class="outline-note">
+  return (
+    <p class="meta">
       <InlineMarkdown text={node.text} />
     </p>
   )

@@ -51,11 +51,13 @@ function Steps({ plan }: { readonly plan: RebalanceResponse }) {
 
   return (
     <>
-      {text.headline.map((line) => (
-        <p key={line} class="steps-line">
-          {line}
-        </p>
-      ))}
+      <div class="stack">
+        {text.headline.map((line) => (
+          <p key={line} class="steps-line">
+            {line}
+          </p>
+        ))}
+      </div>
       {plan.status === 'ready' && <Orders text={text} />}
       <ReportNotes lines={text.notes} />
       <p class="meta">{tr('ui.office.book.rebalanceNote')}</p>

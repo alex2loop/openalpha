@@ -4,9 +4,12 @@ import { ROUTES } from '@/web/api/routes'
 import { SHARED_FOCUS } from '@/web/state/agents'
 import { useBlock } from '@/web/state/block'
 import { formatFixedFraction } from '@/web/text/figures'
+import { isNoteLine } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { useUnstripped } from '@/web/ui/kit/cautions'
 import { ClockIcon } from '@/web/ui/kit/icons'
+import { NoteList } from '@/web/ui/markdown/report-notes'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
@@ -35,30 +38,49 @@ function RecordBody({ record }: { readonly record: TradingTrackRecordResponse })
 
   return (
     <>
-      <Lines lines={text.summary} />
-      <Hits summary={summary} />
-      <Lines lines={text.byConviction} />
+      <Lines lines={text.summary} isLead />
+      <div class="stack">
+        <Hits summary={summary} />
+        <Lines lines={text.byConviction} />
+      </div>
       <Lines lines={text.acted} />
-      {text.closed.map((closed) => (
-        <ClosedRow
-          key={closed.suggestionId}
-          line={closed.line}
-          call={findCall(record, closed.suggestionId)}
-        />
-      ))}
+      <div class="row-list">
+        {text.closed.map((closed) => (
+          <ClosedRow
+            key={closed.suggestionId}
+            line={closed.line}
+            call={findCall(record, closed.suggestionId)}
+          />
+        ))}
+      </div>
       <ByModel models={summary.byModel} />
     </>
   )
 }
 
-function Lines({ lines }: { readonly lines: readonly string[] }) {
+interface LinesProps {
+  readonly lines: readonly string[]
+  /** The first line heads the rest. */
+  readonly isLead?: boolean
+}
+
+// The daemon's figure lines as paragraphs, its cautions after them as one compact list.
+function Lines({ lines, isLead = false }: LinesProps) {
+  const shown = useUnstripped(lines)
+  const figures = shown.filter((line) => !isNoteLine(line))
+
   return (
     <>
-      {lines.map((line, index) => (
-        <p key={index} class="record-line">
-          {line}
-        </p>
-      ))}
+      {figures.length > 0 && (
+        <div class="stack">
+          {figures.map((line, index) => (
+            <p key={line} class={isLead && index === 0 ? 'lead' : undefined}>
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
+      <NoteList lines={shown.filter(isNoteLine)} />
     </>
   )
 }
@@ -73,7 +95,7 @@ function Hits({ summary }: { readonly summary: TradingTrackRecordResponse['summa
   }
 
   return (
-    <p class="record-line">
+    <p>
       {tr(pluralKey(own.resolvedCount, 'ui.office.record.hitsOne', 'ui.office.record.hits'), {
         hit: own.targetCount,
         count: own.resolvedCount,
@@ -119,13 +141,15 @@ function ByModel({
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.record.byModel')}</h3>
-      {models.map((model) => (
-        <div key={model.model} class="record-model">
-          <span>{model.model}</span>
-          <span>{`${model.winCount}/${model.resolvedCount}`}</span>
-          <span>{formatFixedFraction(model.winRate)}</span>
-        </div>
-      ))}
+      <div class="row-list">
+        {models.map((model) => (
+          <div key={model.model} class="record-model">
+            <span>{model.model}</span>
+            <span>{`${model.winCount}/${model.resolvedCount}`}</span>
+            <span>{formatFixedFraction(model.winRate)}</span>
+          </div>
+        ))}
+      </div>
     </>
   )
 }

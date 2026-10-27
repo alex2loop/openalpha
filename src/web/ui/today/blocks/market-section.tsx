@@ -22,7 +22,7 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
   const market = findMarket(block.market)
 
   return (
-    <div class="market-section">
+    <div class="flow market-section">
       <h3 class="sub-head">{market?.label ?? block.market}</h3>
       <div class="row-list">
         {block.rows.slice(0, ROWS_SHOWN).map((row) => (
@@ -34,19 +34,21 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
           />
         ))}
       </div>
-      {block.breadth !== undefined && (
-        <p class="meta">
-          {tr('ui.office.today.breadth', {
-            up: block.breadth.advancers,
-            down: block.breadth.decliners,
-          })}
-        </p>
-      )}
-      {block.foreignNetText !== undefined && (
-        <p class="meta">
-          {tr('ui.office.today.foreign')}: {block.foreignNetText}
-        </p>
-      )}
+      <div class="stack meta">
+        {block.breadth !== undefined && (
+          <p>
+            {tr('ui.office.today.breadth', {
+              up: block.breadth.advancers,
+              down: block.breadth.decliners,
+            })}
+          </p>
+        )}
+        {block.foreignNetText !== undefined && (
+          <p>
+            {tr('ui.office.today.foreign')}: {block.foreignNetText}
+          </p>
+        )}
+      </div>
     </div>
   )
 }

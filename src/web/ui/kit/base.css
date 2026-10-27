@@ -107,6 +107,9 @@ p {
    above a row. A divider and room above set it apart from the block before it. */
 .sub-head {
   margin: var(--s3) 0 var(--s1);
+}
+
+:is(.sub-head, .outline-label) {
   color: var(--title);
   font: var(--typeHeading);
 }
@@ -114,6 +117,42 @@ p {
 .sub-head:not(:first-child) {
   padding-top: var(--s2);
   border-top: 1px solid var(--border);
+}
+
+strong {
+  font-weight: var(--weightSemibold);
+}
+
+.sub-head strong {
+  font-weight: inherit;
+}
+
+/* The rhythm inside a card: a flow is a column of groups, a stack the lines of one group closer
+   together, a lead the line that heads a group. A sub-head takes its room from the flow's gap. */
+:is(.flow, .stack) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.flow {
+  gap: var(--s3);
+}
+
+.stack {
+  gap: var(--s1);
+}
+
+.stack:empty {
+  display: none;
+}
+
+.flow > .sub-head {
+  margin: 0 0 calc(var(--s1) * -1);
+}
+
+.lead {
+  color: var(--ink);
+  font: var(--typeEmphasis);
 }
 
 svg.icon {

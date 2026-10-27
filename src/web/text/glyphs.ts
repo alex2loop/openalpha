@@ -47,6 +47,20 @@ export function splitInline(line: string): readonly string[] {
   return line.split(INLINE_JOINER)
 }
 
+/** The daemon leads a caution or a by-design note with ⚠️ or ℹ️. */
+const NOTE_LINE = /^(?:\u26A0|\u2139)\uFE0F?\s/u
+const LEADING_ICON = /^\p{Extended_Pictographic}\uFE0F?\s*/u
+
+/** A caution or by-design note line, by the icon the daemon leads it with. */
+export function isNoteLine(line: string): boolean {
+  return NOTE_LINE.test(line)
+}
+
+/** A daemon line without the icon it leads with: a title reads the same in every card. */
+export function withoutLeadingIcon(line: string): string {
+  return line.replace(LEADING_ICON, '')
+}
+
 /** Names in a sentence: "Ngân hàng, Bất động sản". */
 export function joinList(items: readonly string[]): string {
   return items.join(LIST_SEPARATOR)
