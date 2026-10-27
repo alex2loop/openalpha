@@ -2,7 +2,6 @@
   display: flex;
   padding: var(--s1) var(--s2);
   border-bottom: 1px solid var(--border);
-  background: var(--canvas);
 }
 
 .pane-bar .seg {

@@ -19,7 +19,6 @@
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: var(--controlRadius);
-  background: var(--surface);
   box-shadow: var(--pop);
 }
 

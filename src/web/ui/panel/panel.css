@@ -4,7 +4,6 @@
   width: var(--panelW);
   min-height: 0;
   border-left: 1px solid var(--border);
-  background: var(--canvas);
 }
 
 .panes.is-focus .panel {

@@ -5,7 +5,7 @@
   overflow: hidden;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
-  color: var(--ink3);
+  color: var(--ink);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -27,37 +27,44 @@
 
 .tape-rows {
   display: inline-flex;
+  gap: 6px;
+  padding-right: 6px;
 }
 
+/* Each name is a price pill: market colour by the day's move, neutral when flat. */
 .tape-cell {
+  --pillBg: var(--sunken);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: var(--tapeH);
-  padding: 0 14px;
-  border-right: 1px solid var(--border);
+  height: calc(var(--tapeH) - 6px);
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--pillBg);
+  color: var(--ink);
+}
+
+.tape-cell.is-up {
+  --pillBg: var(--pillUpBg);
+  color: var(--pillUpInk);
+}
+
+.tape-cell.is-down {
+  --pillBg: var(--pillDownBg);
+  color: var(--pillDownInk);
 }
 
 .tape-cell b {
-  color: var(--ink);
   font-weight: 600;
 }
 
 .tape-cell.is-breach {
-  background: var(--dangerTint);
-  color: var(--dangerText);
+  --pillBg: var(--problemTint);
+  color: var(--problemText);
 }
 
-.tape-cell.is-breach b {
-  color: var(--dangerText);
-}
-
-.tape-cell.is-flash-up {
-  animation: tape-flash-up var(--flashMs) ease-out;
-}
-
-.tape-cell.is-flash-down {
-  animation: tape-flash-down var(--flashMs) ease-out;
+.tape-cell:is(.is-flash-up, .is-flash-down) {
+  animation: tape-flash var(--flashMs) ease-out;
 }
 
 @keyframes tape-scroll {
@@ -66,15 +73,9 @@
   }
 }
 
-@keyframes tape-flash-up {
+@keyframes tape-flash {
   from {
-    background: var(--upTint);
-  }
-}
-
-@keyframes tape-flash-down {
-  from {
-    background: var(--downTint);
+    background: color-mix(in srgb, var(--pillBg) 55%, var(--pillFlash));
   }
 }
 
@@ -83,7 +84,8 @@
     overflow-x: auto;
   }
 
-  .tape-track {
+  .tape-track,
+  .tape-cell {
     animation: none;
   }
 }

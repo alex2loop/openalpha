@@ -25,11 +25,11 @@ export function Panel() {
   return (
     <aside
       id={PANEL_ELEMENT_ID}
-      class="panel"
+      class="panel chrome-glass"
       aria-label={tr('ui.office.panel.label')}
       tabIndex={-1}
     >
-      <div class="panel-head glass">
+      <div class="panel-head">
         <Tabs />
         {!isFocus.value && (
           <button

@@ -4,7 +4,6 @@
   width: var(--chatPanelW);
   min-height: 0;
   border-left: 1px solid var(--border);
-  background: var(--surface);
 }
 
 .chat-unread {
