@@ -87,7 +87,7 @@ const FACE_LIFT_PX = 0.05
 // The team floor's calendar lies on the left of a desk top, from the desk's corner; the desk top
 // stands this high.
 const CALENDAR_AT = Object.freeze({ dx: 3, dz: DESK_SHIFT_PX - 10.5, w: 8, d: 9, rise: 14 })
-// The library desks stand behind their sitters in 3D: their pieces stand with them.
+// The library desks stand `DESK_SHIFT_PX` south of their pieces' rows: their pieces move with them.
 const SHIFTED_ROOM: RoomId = 'lib'
 // A tab strip covers the monitor whose screen is within this of its spot.
 const SCREEN_MATCH_PX = 3

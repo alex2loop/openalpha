@@ -37,7 +37,7 @@ import {
 import { OUTLINE, WORK_RIM } from '@/web/scene/sprites/palette'
 import { lookOf } from '@/web/scene/sprites/parts'
 import { seedOf } from '@/web/scene/world/rng'
-import { DESK_SITTER_FACE, seatAt } from '@/web/scene/world/seats'
+import { seatAt } from '@/web/scene/world/seats'
 
 /** Everyone the 3D office has built, by person; a person off the floor keeps their rig hidden. */
 export interface Cast {
@@ -321,7 +321,7 @@ interface ReadPose {
 }
 
 // The pose frame the person shows now, read as joint targets: seated when standing on a seat, a
-// phone read in both hands unless the pose holds one, a desk sitter turned to the desk.
+// phone read in both hands unless the pose holds one.
 function readPose(rig: Rig, job: PoseJob): ReadPose {
   const { actor, frame, at } = job
   const seed = seedOf(actor.id)
@@ -341,7 +341,7 @@ function readPose(rig: Rig, job: PoseJob): ReadPose {
   const swing = isWalking && !frame.isReduced ? Math.sin((frame.now / GAIT_MS) * Math.PI * 2) : 0
   const step: readonly [number, number] = [actor.at.x - actor.prev.x, actor.at.y - actor.prev.y]
   const facing = yawOf({
-    facing: seat?.desk === true ? DESK_SITTER_FACE['3d'] : actor.facing,
+    facing: actor.facing,
     step,
     isFront: pose.isFront === true,
   })

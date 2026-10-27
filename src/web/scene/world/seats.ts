@@ -14,7 +14,8 @@ type SeatGroup = 'meet' | 'lib' | 'assist'
 type StationId = 'store' | 'alerts' | 'lib-board' | 'lib-review' | 'lib-theme'
 
 /** The chairs, by the room they stand in: the meeting table's north row looks at the camera, its
- *  south row looks north; a desk's chair stands behind it (`DESK_SITTER_FACE` turns its sitter). */
+ *  south row looks north; a desk's chair stands south of it, its sitter's back to the camera and
+ *  their monitor's screen facing them and the camera. */
 export const SEATS: Readonly<Record<SeatGroup, readonly Seat[]>> = Object.freeze({
   meet: [
     { at: { x: 480, y: 120 }, face: 'down' },
@@ -26,11 +27,11 @@ export const SEATS: Readonly<Record<SeatGroup, readonly Seat[]>> = Object.freeze
     { at: { x: 560, y: 172 }, face: 'up' },
   ],
   lib: [
-    { at: { x: 196, y: 136 }, face: 'up', desk: true },
-    { at: { x: 244, y: 136 }, face: 'up', desk: true },
-    { at: { x: 292, y: 136 }, face: 'up', desk: true },
+    { at: { x: 196, y: 158 }, face: 'up', desk: true },
+    { at: { x: 244, y: 158 }, face: 'up', desk: true },
+    { at: { x: 292, y: 158 }, face: 'up', desk: true },
   ],
-  assist: [{ at: { x: 384, y: 306 }, face: 'up', desk: true }],
+  assist: [{ at: { x: 384, y: 330 }, face: 'up', desk: true }],
 } satisfies Record<SeatGroup, readonly Seat[]>)
 
 /** The standing places of the people who work without a chair: the store's aisle, behind the
@@ -41,7 +42,7 @@ export const STATIONS: Readonly<Record<StationId, Seat>> = Object.freeze({
   alerts: { at: { x: 230, y: 328 }, face: 'down' },
   'lib-board': { at: { x: 352, y: 110 }, face: 'up' },
   'lib-review': { at: { x: 244, y: 96 }, face: 'down' },
-  'lib-theme': { at: { x: 206, y: 173 }, face: 'left' },
+  'lib-theme': { at: { x: 182, y: 184 }, face: 'up' },
 } satisfies Record<StationId, Seat>)
 
 /** The building crew's rest places: the receptionist's chair behind the front desk, the guard's
@@ -64,7 +65,7 @@ export const DESK_WAIT_SPOTS: Readonly<{ readonly agents: readonly Point[] }> = 
 
 // A team desk's chair stands this far right of and below the desk's 2D drawn corner.
 const DESK_SEAT_DX = 20
-const DESK_SEAT_DY = 8
+const DESK_SEAT_DY = 30
 
 /** The chair at each team desk, by slot: its person faces the desk. */
 export const TEAM_SEATS: readonly Seat[] = Object.freeze(
@@ -195,13 +196,6 @@ const ALL_SEATS: readonly Seat[] = Object.freeze([
   ...SOFA_SEATS.office,
   ...SOFA_SEATS.team,
 ])
-
-/** The way a desk sitter looks in each view: both face the room and the camera from behind their
- *  desk, its monitor standing on the desk before them. */
-export const DESK_SITTER_FACE: Readonly<Record<'2d' | '3d', Dir>> = Object.freeze({
-  '2d': 'down',
-  '3d': 'down',
-})
 
 /** The chair someone at `at` sits on, if any. */
 export function seatAt(at: Point): Seat | undefined {

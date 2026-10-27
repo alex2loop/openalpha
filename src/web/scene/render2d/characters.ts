@@ -1,5 +1,5 @@
 import type { FrameSpec, Material } from '@/web/scene/render2d/figure-spec'
-import type { ActorId, ActorView, Dir } from '@/web/scene/types'
+import type { ActorId, ActorView } from '@/web/scene/types'
 import { buildFigure } from '@/web/scene/render2d/figure'
 import { buildMascot } from '@/web/scene/render2d/mascot'
 import {
@@ -33,7 +33,6 @@ import {
 } from '@/web/scene/sprites/palette'
 import { type Look, lookOf, PANTS_OF } from '@/web/scene/sprites/parts'
 import { seedOf } from '@/web/scene/world/rng'
-import { DESK_SITTER_FACE, seatAt } from '@/web/scene/world/seats'
 
 // Enough for every person on a busy floor in every frame they cycle through, with room to spare.
 const MAX_SPRITES = 640
@@ -192,20 +191,12 @@ function toFrameSpec(actor: ActorView, frame: CharacterFrame): FrameSpec {
     ...pose,
     ...(gait === undefined ? {} : { gait }),
     ...inHandOf(actor, pose),
-    isBack: facingOf(actor, isMoving) === 'up' && pose.isFront !== true,
+    isBack: actor.facing === 'up' && pose.isFront !== true,
     isBob: isAnimated && !isMoving && isBreathDown(seed, frame.now),
     isBlink: frame.motion.isOn && isBlinking(seed, frame.now),
     isWorking: actor.working,
     finish: seed % PHONE_FINISHES.length,
   }
-}
-
-// A desk sitter at rest faces the way the 2D camera shows a desk sitter; a turn the sim gives
-// them (to a partner, to what they look at) stands.
-function facingOf(actor: ActorView, isMoving: boolean): Dir {
-  const seat = isMoving ? undefined : seatAt(actor.at)
-
-  return seat?.desk === true && actor.facing === seat.face ? DESK_SITTER_FACE['2d'] : actor.facing
 }
 
 function spriteKey(look: Look, frame: FrameSpec): string {
