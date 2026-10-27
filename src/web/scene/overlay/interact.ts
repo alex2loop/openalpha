@@ -7,7 +7,6 @@ import {
   leaveFocus,
   stepFocus,
 } from '@/web/scene/overlay/actor-focus'
-import { createMeeting, MEET_FLOOR } from '@/web/scene/overlay/meeting'
 import { hoverObject } from '@/web/scene/overlay/object-tip'
 import { keyedActor } from '@/web/scene/overlay/overlay'
 import { createPinch, type Pinch } from '@/web/scene/overlay/pinch'
@@ -62,15 +61,12 @@ export interface Interaction {
   detach(): void
 }
 
-// One press from pointerdown to pointerup; a touch on a person may become a long-press, a Shift
-// press on the meeting floor draws a box.
+// One press from pointerdown to pointerup; a touch on a person may become a long-press.
 interface Press {
   readonly pointerId: number
   readonly startX: number
   readonly startY: number
   readonly pointerType: string
-  readonly isShift: boolean
-  readonly isBoxing: boolean
   readonly longPress?: { readonly actor: ActorId; readonly at: number }
   lastX: number
   lastY: number
@@ -85,9 +81,9 @@ interface InputState extends PointerState {
   lastPointerType: string
 }
 
-/** The one owner of the canvas's pointer, wheel, key and focus listeners, all on one controller,
- *  and of the meeting picks: drag to pan, wheel to zoom, hover, clicks and long-presses on people,
- *  their ring, follow, Tab stepping and the meeting. `detach` releases every one of them. */
+/** The one owner of the canvas's pointer, wheel, key and focus listeners, all on one controller:
+ *  drag to pan, wheel to zoom, hover, clicks and long-presses on people, their ring, follow and Tab
+ *  stepping. `detach` releases every one of them. */
 export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps): Interaction {
   const listeners = new AbortController()
   const focus: FocusDeps = {
@@ -96,12 +92,10 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps):
     director: deps.director,
     wake: deps.wake,
   }
-  const meeting = createMeeting({ director: deps.director, wake: deps.wake })
   const input: InputState = {
     canvas,
     deps,
     focus,
-    meeting,
     press: undefined,
     hovered: undefined,
     peeked: undefined,
@@ -124,7 +118,6 @@ export function attachInteraction(canvas: HTMLCanvasElement, deps: PointerDeps):
       leaveFocus(focus)
       closeMenu(false)
       stopFollow()
-      meeting.dispose()
     },
   }
 }
@@ -192,7 +185,6 @@ function onDown(input: InputState, event: PointerEvent): void {
   }
 
   const point = { x: event.offsetX, y: event.offsetY }
-  const isBoxing = event.shiftKey && event.pointerType === MOUSE && view.value.floor === MEET_FLOOR
   const actor = event.pointerType === TOUCH ? actorAt(input, point) : undefined
 
   input.canvas.setPointerCapture(event.pointerId)
@@ -201,17 +193,11 @@ function onDown(input: InputState, event: PointerEvent): void {
     startX: event.clientX,
     startY: event.clientY,
     pointerType: event.pointerType,
-    isShift: event.shiftKey,
-    isBoxing,
     ...(actor === undefined ? {} : { longPress: { actor, at: performance.now() + LONG_PRESS_MS } }),
     lastX: event.clientX,
     lastY: event.clientY,
     isDragging: false,
     isFired: false,
-  }
-
-  if (isBoxing) {
-    input.meeting.startBox(point)
   }
 
   input.deps.wake()
@@ -229,11 +215,6 @@ function onMove(input: InputState, event: PointerEvent): void {
       hoverAt(input, { x: event.offsetX, y: event.offsetY })
     }
 
-    return
-  }
-
-  if (press.isBoxing) {
-    input.meeting.moveBox({ x: event.offsetX, y: event.offsetY })
     return
   }
 
@@ -263,11 +244,8 @@ function onUp(input: InputState, event: PointerEvent): void {
   }
 
   const point = { x: event.offsetX, y: event.offsetY }
-  const isBoxed =
-    press.isBoxing &&
-    input.meeting.endBox(input.deps.readView(), (at) => input.deps.renderer.toScreen(at))
 
-  if (!(isBoxed || press.isDragging || press.isFired)) {
+  if (!(press.isDragging || press.isFired)) {
     clickAt(input, point, press)
   }
 
@@ -276,11 +254,6 @@ function onUp(input: InputState, event: PointerEvent): void {
 
 function cancelPress(input: InputState, event: PointerEvent): void {
   input.pinch.lift(event.pointerId)
-
-  if (input.press?.isBoxing === true) {
-    input.meeting.cancelBox()
-  }
-
   endPress(input)
 }
 
@@ -370,7 +343,7 @@ function onKey(input: InputState, event: KeyboardEvent): void {
     event.preventDefault()
     engage(input.focus, { actor: keyed, isFocused: true, withMenu: true })
   } else if (event.key === ESCAPE_KEY) {
-    stepBack(input)
+    stepBack()
   }
 }
 
@@ -391,15 +364,10 @@ function moveCamera(event: KeyboardEvent): boolean {
   return pan !== undefined || sidePan !== undefined || zoom !== undefined
 }
 
-// Esc lets go of one thing at a time: the ring, the picks and the meeting bar, a follow, then the
-// room.
-function stepBack(input: InputState): void {
+// Esc lets go of one thing at a time: the ring, a follow, then the room.
+function stepBack(): void {
   if (menuActor.value !== undefined) {
     closeMenu(false)
-    return
-  }
-
-  if (input.meeting.clearPicks()) {
     return
   }
 

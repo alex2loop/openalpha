@@ -39,7 +39,7 @@ export interface OverlayView {
     readonly rect: Rect
     readonly now: ActorNow
   }
-  /** Rings under the feet of the people picked for a meeting and the one the keyboard is on. */
+  /** Rings under the feet of the person selected and the one the keyboard is on. */
   readonly rings: readonly {
     readonly actor: ActorId
     readonly rect: Rect

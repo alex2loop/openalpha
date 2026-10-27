@@ -11,13 +11,13 @@ import { pageMinute } from '@/web/scene/clock/clock'
 import { requestSeries, startDeskReads } from '@/web/scene/data/desk-reads'
 import { homeMarket } from '@/web/scene/data/home'
 import { pastCalls, startPastCalls } from '@/web/scene/data/past-calls'
+import { ringsOf } from '@/web/scene/overlay/actor-focus'
 import { sceneGoals, wantedGoals } from '@/web/scene/overlay/actor-state'
 import { bubbleSignatureOf, buildBubbles, said, startSpeech } from '@/web/scene/overlay/bubbles'
 import { sceneHandOff } from '@/web/scene/overlay/hand-off'
 import { figureOf } from '@/web/scene/overlay/hit'
 import { hoverPlaceOf } from '@/web/scene/overlay/hover-label'
 import { markerRectOf } from '@/web/scene/overlay/markers'
-import { meetingBar, ringsOf } from '@/web/scene/overlay/meeting'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import {
   EMPTY_OVERLAY,
@@ -62,7 +62,7 @@ const OVERLAY_REFRESH_MS = 250
 // A speaker this far past the pane's edge, in CSS px, counts as off screen.
 const OFF_SCREEN_PX = 16
 // The boards, room tags and toolbar pieces other overlays draw; no bubble covers them.
-const FIXED_SELECTOR = '.room-tag-row, .board-line, .scene-zoombtn, .scene-hint, .meeting-bar'
+const FIXED_SELECTOR = '.room-tag-row, .board-line, .scene-zoombtn, .scene-hint'
 
 /** Everything the layout reads from one frame. Figures are in CSS px of the scene host. */
 interface PassInput {
@@ -74,8 +74,7 @@ interface PassInput {
   readonly isZoomed: boolean
   readonly selected?: ActorId
   readonly hovered?: ActorId
-  /** The people picked for a meeting, and the one the keyboard is on. */
-  readonly picks: readonly ActorId[]
+  /** The one the keyboard is on. */
   readonly keyed?: ActorId
   /** The person whose radial menu is open. */
   readonly menu?: ActorId
@@ -148,7 +147,6 @@ export function readOverlayInputs(): void {
   hoveredActor.value
   keyedActor.value
   menuActor.value
-  meetingBar.value
 }
 
 // The analyst's ticker is read once per run and ticker, on the page's day.
@@ -227,7 +225,6 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
     isZoomed: shown.room !== undefined || shown.zoomSteps > 0,
     ...(selected === undefined ? {} : { selected }),
     ...(hovered === undefined ? {} : { hovered }),
-    picks: meetingBar.value.picks,
     ...(keyed === undefined ? {} : { keyed }),
     ...(menu === undefined ? {} : { menu }),
   }
@@ -242,7 +239,6 @@ function signatureOf(input: PassInput): string {
     ...input.markers.map((marker) => marker.actor),
     ...(input.selected === undefined ? [] : [input.selected]),
     ...(input.hovered === undefined ? [] : [input.hovered]),
-    ...input.picks,
     ...(input.keyed === undefined ? [] : [input.keyed]),
     ...(input.menu === undefined ? [] : [input.menu]),
     ...[...input.figures.keys()].filter((actor) => ownAgentIdOf(actor) !== undefined),
@@ -258,7 +254,6 @@ function signatureOf(input: PassInput): string {
     input.selected ?? '',
     input.hovered ?? '',
     hoverPlaceOf(input.view, { actor: input.hovered, figures: input.figures })?.text ?? '',
-    input.picks.join(','),
     input.keyed ?? '',
     input.menu ?? '',
     ...input.bubbles.map(bubbleSignatureOf),
@@ -316,12 +311,10 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
   }
 }
 
-// The rings under the picked and the keyboard-focused, and where the open radial menu stands.
+// The rings under the selected and the keyboard-focused, and where the open radial menu stands.
 function marksOf(input: PassInput): Pick<OverlayView, 'rings' | 'menu'> {
-  const keyed = input.keyed === undefined ? {} : { keyed: input.keyed }
-
   return {
-    rings: ringsOf(input.figures, { picks: input.picks, ...keyed }),
+    rings: ringsOf(input.figures, input.keyed),
     ...menuPlaceOf(input.figures, input.menu),
   }
 }

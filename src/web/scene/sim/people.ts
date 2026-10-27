@@ -78,9 +78,7 @@ export interface People {
   readonly stages: Map<string, { readonly stage: string; readonly actors: readonly ActorId[] }>
   readonly runActors: Map<string, readonly ActorId[]>
   readonly walks: AssistantWalks
-  /** The meeting the operator called: who sits in as audience, under the live store's goals. */
-  readonly meeting: Map<ActorId, Goal>
-  /** The office life's goals, under every goal the live store and a meeting call for. */
+  /** The office life's goals, under every goal the live store calls for. */
   readonly life: Map<ActorId, Goal>
   /** What stands on a floor for a while besides its furniture (the dessert cart). */
   readonly obstacles: Map<FloorId, readonly Rect[]>
@@ -107,7 +105,6 @@ export function createPeople(
     stages: new Map(),
     runActors: new Map(),
     walks: createAssistantWalks(),
-    meeting: new Map(),
     life: new Map(),
     obstacles: new Map(),
     wanted: new Map(),
@@ -393,7 +390,7 @@ function applyGoals(people: People, nowMs: number): boolean {
 // A desk walk waits `DESK_WALK_AFTER_MS` (the hand goes up at the seat meanwhile); the assistant
 // has walks of its own.
 function effectiveGoal(people: People, id: ActorId, nowMs: number): Goal | undefined {
-  const goal = people.wanted.get(id) ?? people.meeting.get(id) ?? people.life.get(id)
+  const goal = people.wanted.get(id) ?? people.life.get(id)
 
   if (goal?.requestId !== undefined) {
     return isDeskDue(people.desk.waits.get(goal.requestId), nowMs)

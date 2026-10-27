@@ -1,18 +1,22 @@
 import type { Director } from '@/web/scene/sim/director'
-import type { ActorId, ActorView, Point, SimView } from '@/web/scene/types'
+import type { ActorId, ActorView, Point, Rect, SimView } from '@/web/scene/types'
 import { actorNowOf, actorRunOf } from '@/web/scene/overlay/actor-state'
 import { sayAs } from '@/web/scene/overlay/bubbles'
 import { hoverTextOf, personNameOf, replyTextOf } from '@/web/scene/overlay/hover-label'
 import { announce, hoverActor, keyActor, keyedActor } from '@/web/scene/overlay/overlay'
 import { closeMenu, menuActionsFor, openMenu } from '@/web/scene/overlay/radial-menu'
-import { ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
+import { isActorId, ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
 import { STREET_FIGURE_H } from '@/web/scene/street-types'
 import { FIGURE } from '@/web/scene/types'
 import { centerOn, keepFollowing, startFollow, stopFollow, view } from '@/web/scene/view'
 import { STREET_DOOR } from '@/web/scene/world/doors'
-import { selectActor } from '@/web/state/focus'
+import { selectActor, selectedActor } from '@/web/state/focus'
 import { tr } from '@/web/text/tr'
 import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
+
+// A ring is the mockup's fixed ellipse under the feet, in CSS px with its 2 px border.
+const RING_W = 30
+const RING_H = 16
 
 /** What reacting to and stepping through people reads and drives. */
 export interface FocusDeps {
@@ -202,4 +206,29 @@ function chestOf(actor: Pick<ActorView, 'at' | 'errand'>): Point {
   const height = actor.errand?.isOut === true ? STREET_FIGURE_H : FIGURE.h
 
   return { x: actor.at.x, y: actor.at.y - height / 2 }
+}
+
+/** A ring under the feet of the person selected and of the one the keyboard is on (`keyed`), by
+ *  their figures in CSS px. */
+export function ringsOf(
+  figures: ReadonlyMap<ActorId, Rect>,
+  keyed: ActorId | undefined
+): { readonly actor: ActorId; readonly rect: Rect; readonly isKey: boolean }[] {
+  const chosen = selectedActor.value
+  const selected = chosen !== undefined && isActorId(chosen) ? chosen : undefined
+  const actors = new Set([selected, keyed])
+
+  return [...actors].flatMap((actor) => {
+    const figure = actor === undefined ? undefined : figures.get(actor)
+
+    if (actor === undefined || figure === undefined) {
+      return []
+    }
+
+    const feetX = figure.x + figure.w / 2
+    const feetY = figure.y + figure.h
+    const rect = { x: feetX - RING_W / 2, y: feetY - RING_H / 2, w: RING_W, h: RING_H }
+
+    return [{ actor, rect, isKey: actor !== selected }]
+  })
 }
