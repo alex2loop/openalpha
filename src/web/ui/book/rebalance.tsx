@@ -2,12 +2,12 @@ import type { RebalanceResponse, RebalanceTextWire } from '@/app/server/wire/mon
 import { ROUTES } from '@/web/api/routes'
 import { readBlock, useBlock } from '@/web/state/block'
 import { fillInput } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
 import { holdingsBlock } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { SegmentBars } from '@/web/ui/book/segment-bars'
 import { Button } from '@/web/ui/kit/button'
 import { BulbIcon, PieIcon } from '@/web/ui/kit/icons'
+import { ReportNotes } from '@/web/ui/markdown/report-notes'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const REBALANCE_COMMAND = '/rebalance'
@@ -57,17 +57,12 @@ function Steps({ plan }: { readonly plan: RebalanceResponse }) {
         </p>
       ))}
       {plan.status === 'ready' && <Orders text={text} />}
-      {text.notes.map((note) => (
-        <p key={note} class="meta steps-line">
-          {note}
-        </p>
-      ))}
+      <ReportNotes lines={text.notes} />
       <p class="meta">{tr('ui.office.book.rebalanceNote')}</p>
       <div class="step-actions">
-        <Button kind="ai" size="small" onClick={() => fillInput(REBALANCE_COMMAND)}>
+        <Button size="small" onClick={() => fillInput(REBALANCE_COMMAND)}>
           {tr('ui.office.book.runRebalance')}
         </Button>
-        <span class="meta">{estimateText(REBALANCE_COMMAND)}</span>
       </div>
     </>
   )

@@ -85,3 +85,12 @@
   color: var(--ink2);
   font-weight: var(--weightSemibold);
 }
+
+.note-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: pre-line;
+}
