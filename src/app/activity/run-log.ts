@@ -7,13 +7,16 @@ import type { RunProgressMessage } from '@/engine/api'
 import type { RunLogRow } from '@/persistence/api'
 import '@/app/events'
 import { API_CHANNEL } from '@/app/server/channel'
+import { withTicker } from '@/app/server/feed/tickers'
 import { runId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { trimToSize } from '@/core/utils/collections'
+import { isResearchProgress } from '@/engine/api'
 
 /** Runs that have started and not finished. A run whose finish never arrives is dropped oldest first. */
 const MAX_OPEN_RUNS = 500
 const RESEARCH_TOTALS_KEY = 'progress.researchTotals'
+const RESEARCH_QUESTION_KEY = 'progress.researchQuestion'
 const RESTART_RUN_NAME = 'restart'
 
 /** A run's start, held until its finish says how it ended. */
@@ -81,7 +84,8 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
       }
     }),
     bus.on('command_started', (e) => remember(open, toCommandStart(e))),
-    bus.on('run_progress', (e) => noteSources(open, e.runId, e.message)),
+    bus.on('run_progress', (e) => noteProgress(open, e.runId, e.message)),
+    bus.on('command_progress', (e) => noteProgress(open, e.runId, e.message)),
     bus.on('run_finished', (e) =>
       finish(book, e.runId, {
         outcome: e.reason,
@@ -117,13 +121,43 @@ function remember(open: Map<RunId, OpenRun>, run: OpenRun): void {
   trimToSize(open, MAX_OPEN_RUNS)
 }
 
-function noteSources(open: Map<RunId, OpenRun>, id: RunId, message: RunProgressMessage): void {
+// A run's rows keep what its progress lines named: the admitted sources of a research run, the
+// tickers any run reported on, and how many research questions were answered.
+function noteProgress(open: Map<RunId, OpenRun>, id: RunId, message: RunProgressMessage): void {
   const run = open.get(id)
-  const sources = message.key === RESEARCH_TOTALS_KEY ? message.params?.admittedSources : undefined
 
-  if (run !== undefined && typeof sources === 'number') {
-    open.set(id, { ...run, sources })
+  if (run === undefined) {
+    return
   }
+
+  const sources = message.key === RESEARCH_TOTALS_KEY ? message.params?.admittedSources : undefined
+  const tickers = withTicker(run.tickers, message)
+  const questions = answeredQuestions(run, message)
+
+  open.set(id, {
+    ...run,
+    ...(typeof sources === 'number' ? { sources } : {}),
+    ...(tickers === undefined ? {} : { tickers }),
+    ...questions,
+  })
+}
+
+// A question the run finished counts once; a review follow-up and a failed question do not.
+function answeredQuestions(
+  run: OpenRun,
+  message: RunProgressMessage
+): Pick<OpenRun, 'questionsDone' | 'questionsTotal'> {
+  if (!isResearchProgress(message) || message.key !== RESEARCH_QUESTION_KEY) {
+    return {}
+  }
+
+  const { state, total, reviewFollowup } = message.params
+
+  if (state !== 'complete' || reviewFollowup !== undefined) {
+    return {}
+  }
+
+  return { questionsDone: Math.min((run.questionsDone ?? 0) + 1, total), questionsTotal: total }
 }
 
 interface RunEnd {

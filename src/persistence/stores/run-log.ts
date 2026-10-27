@@ -9,6 +9,7 @@ import { runTreeCtes } from '@/persistence/stores/run-tree-sql'
 
 const LOW_PERCENTILE = 0.25
 const HIGH_PERCENTILE = 0.75
+const TICKER_SEPARATOR = ','
 
 const RUN_COLUMNS = [
   'run_id',
@@ -22,6 +23,9 @@ const RUN_COLUMNS = [
   'session_id',
   'parent_run_id',
   'sources',
+  'tickers',
+  'questions_done',
+  'questions_total',
   'started_at',
   'ended_at',
   'outcome',
@@ -39,6 +43,9 @@ interface DbRunRow {
   readonly session_id: string | null
   readonly parent_run_id: string | null
   readonly sources: number | null
+  readonly tickers: string | null
+  readonly questions_done: number | null
+  readonly questions_total: number | null
   readonly started_at: number
   readonly ended_at: number
   readonly outcome: string
@@ -188,6 +195,11 @@ function toRunLogRow(row: DbRunRow): RunLogRow {
     ...(row.session_id === null ? {} : { sessionId: sessionId(row.session_id) }),
     ...(row.parent_run_id === null ? {} : { parentRunId: runId(row.parent_run_id) }),
     ...(row.sources === null ? {} : { sources: row.sources }),
+    ...(row.tickers === null || row.tickers === ''
+      ? {}
+      : { tickers: row.tickers.split(TICKER_SEPARATOR) }),
+    ...(row.questions_done === null ? {} : { questionsDone: row.questions_done }),
+    ...(row.questions_total === null ? {} : { questionsTotal: row.questions_total }),
     startedAt: row.started_at,
     endedAt: row.ended_at,
     outcome: row.outcome,
@@ -207,6 +219,11 @@ function toParams(row: RunLogRow): readonly unknown[] {
     row.sessionId ?? null,
     row.parentRunId ?? null,
     row.sources ?? null,
+    row.tickers === undefined || row.tickers.length === 0
+      ? null
+      : row.tickers.join(TICKER_SEPARATOR),
+    row.questionsDone ?? null,
+    row.questionsTotal ?? null,
     row.startedAt,
     row.endedAt,
     row.outcome,

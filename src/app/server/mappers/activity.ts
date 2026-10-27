@@ -33,6 +33,10 @@ function toRowWire(row: RunLogRow, costs: ReadonlyMap<RunId, number>): ActivityR
     endedAt: row.endedAt,
     outcome: row.outcome,
     costUsd: costs.get(row.runId) ?? 0,
+    ...(row.tickers === undefined ? {} : { tickers: row.tickers }),
+    ...(row.questionsDone === undefined || row.questionsTotal === undefined
+      ? {}
+      : { questions: { done: row.questionsDone, total: row.questionsTotal } }),
   }
 }
 

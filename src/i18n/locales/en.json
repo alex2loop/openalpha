@@ -218,6 +218,8 @@
     "office.room.live": "A run is going",
     "office.board.meet": "{ticker}: round {n}/{total}",
     "office.board.lib": "Question {n}/{total}",
+    "office.board.meetDone": "{ticker}: done {time}",
+    "office.board.libDone": "Question {n}/{total} · done",
     "office.board.store": "{market} prices {done}/{total}",
     "office.board.fresh": "{count} new calls",
     "office.board.freshOne": "{count} new call",

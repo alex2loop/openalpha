@@ -69,18 +69,6 @@ export const alertCounts: ReadonlySignal<AlertCounts> = counts
 export const breachedStops: ReadonlySignal<readonly BreachedStop[] | undefined> = breached
 /** Every room with something to say, keyed by room. */
 export const roomStatus: ReadonlySignal<ReadonlyMap<RoomId, RoomStatus>> = computed(buildStatus)
-/** What the meeting room's and the library's whiteboards say while a run counts its steps there. */
-export const boardCaptions: ReadonlySignal<Partial<Record<RoomId, string>>> = computed(() => {
-  const status = roomStatus.value
-  const meet = debateLine(status.get('meet')?.runs[0])
-  const lib = questionLine(status.get('lib')?.runs[0])
-
-  return {
-    ...(meet === undefined ? {} : { meet }),
-    ...(lib === undefined ? {} : { lib }),
-  }
-})
-
 /** The room a run's crew works in, running or finished; a run the page cannot place has none. */
 export function roomOfRun(run: Pick<Run, 'name' | 'parentRunId' | 'hidden'>): RoomId | undefined {
   if (run.hidden === true || run.parentRunId !== undefined) {
@@ -216,7 +204,7 @@ export function debateLine(run: Run | undefined): string | undefined {
 }
 
 /** The debate step a meeting run is at, as its whiteboard counts it; absent outside a debate. */
-export function debateStepOf(run: Run | undefined): string | undefined {
+function debateStepOf(run: Run | undefined): string | undefined {
   const progress = run?.progress
 
   if (progress === undefined || !progress.key.startsWith(DEBATE_STEP_PREFIX)) {
@@ -227,7 +215,7 @@ export function debateStepOf(run: Run | undefined): string | undefined {
 }
 
 /** The question a research run is on, as the library's whiteboard counts it. */
-export function questionNumberOf(run: Run | undefined): string | undefined {
+function questionNumberOf(run: Run | undefined): string | undefined {
   const params = run?.progress?.params
 
   return toParamText(params?.index ?? params?.done)

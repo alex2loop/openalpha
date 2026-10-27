@@ -218,6 +218,8 @@
     "office.room.live": "Có phiên chạy đang diễn ra",
     "office.board.meet": "{ticker}: vòng {n}/{total}",
     "office.board.lib": "Câu hỏi {n}/{total}",
+    "office.board.meetDone": "{ticker}: xong {time}",
+    "office.board.libDone": "Câu hỏi {n}/{total} · xong",
     "office.board.store": "Giá {market} {done}/{total}",
     "office.board.fresh": "{count} đề xuất mới",
     "office.board.freshOne": "{count} đề xuất mới",
