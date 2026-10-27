@@ -22,11 +22,6 @@ const SAY_MS = 2_400
 const HONK_WAIT_MS = 1_000
 // A step longer than this (a stalled tab) moves no further.
 const MAX_STEP_S = 0.25
-// Vehicles wanted on the street by the page clock; the midday lull takes some off the day's.
-const TARGETS = Object.freeze({ day: 14, rush: 20, dayEdges: 9, night: 3 })
-const QUIET_DROP = 8
-// A full jam fills the pool.
-const JAM_EXTRA = MAX_VEHICLES - TARGETS.rush
 const JAM_RAMP_MIN = 20
 // The rush slows everyone, a jam more; the lull is a little quicker.
 const RUSH_PACE = 0.7
@@ -189,22 +184,26 @@ function paceOf(pack: RegionPack, minute: number, jam: number): number {
   return isWithin(pack.hours.quiet, minute) ? QUIET_PACE : 1
 }
 
+// The pack's vehicles wanted on the street by the page clock; a full jam fills the pool.
 function targetOf(pack: RegionPack, minute: number): number {
   const { hours } = pack
+  const wanted = pack.crowd.vehicles
 
   if (isWithin(hours.rush, minute)) {
-    return Math.min(MAX_VEHICLES, TARGETS.rush + Math.round(jamOf(hours.rush, minute) * JAM_EXTRA))
+    const jamExtra = Math.max(0, MAX_VEHICLES - wanted.rush)
+
+    return Math.min(MAX_VEHICLES, wanted.rush + Math.round(jamOf(hours.rush, minute) * jamExtra))
   }
 
   if (isWithin(hours.night, minute)) {
-    return TARGETS.night
+    return wanted.night
   }
 
   if (isWithin(hours.dayEdges, minute)) {
-    return TARGETS.dayEdges
+    return wanted.dayEdges
   }
 
-  return isWithin(hours.quiet, minute) ? TARGETS.day - QUIET_DROP : TARGETS.day
+  return isWithin(hours.quiet, minute) ? wanted.quiet : wanted.day
 }
 
 // The clock's due vehicles: the traffic it wants, the garbage truck and the sweeper along the

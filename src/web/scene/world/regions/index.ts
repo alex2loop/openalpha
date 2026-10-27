@@ -136,6 +136,9 @@ export interface StreetWords {
 export interface StreetHours {
   readonly rush: MinuteRanges
   readonly quiet: MinuteRanges
+  /** The city's lunch hour, the home exchange's midday break: more walkers, queues at the food
+   *  shops. */
+  readonly lunch: MinuteRanges
   readonly night: MinuteRanges
   readonly dayEdges: MinuteRanges
   readonly school: MinuteRanges
@@ -172,6 +175,16 @@ export interface StreetHours {
   }
 }
 
+/** How many of each the street wants out by the hour (`StreetHours`): vehicles and walkers, and
+ *  the longest queue at a food shop's door through lunch. */
+export interface StreetCrowd {
+  readonly vehicles: Readonly<Record<'day' | 'quiet' | 'rush' | 'dayEdges' | 'night', number>>
+  readonly walkers: Readonly<
+    Record<'day' | 'quiet' | 'lunch' | 'rush' | 'dayEdges' | 'night', number>
+  >
+  readonly lunchQueue: number
+}
+
 /** Where a region's tower foot stands in the street canvas, its scale about the foot and how
  *  hazed it is. */
 export interface Landmark {
@@ -205,6 +218,7 @@ export interface RegionPack {
   readonly stops: readonly BusStop[]
   readonly shops: readonly ShopRow[]
   readonly vehicles: VehicleMix
+  readonly crowd: StreetCrowd
   /** The hours (page clock) the office's people walk errands for you, and the office is open. */
   readonly officeHours: MinuteRange
   readonly officeLife: OfficeLife

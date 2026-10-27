@@ -27,6 +27,7 @@ import { lineOf, type MomentKind, momentDueOf, stepMoment } from '@/web/scene/si
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { createPets } from '@/web/scene/sim/life/pets'
 import { createRhythmState, stepPresence } from '@/web/scene/sim/life/presence'
+import { createPrintTray, stepPrintTray } from '@/web/scene/sim/life/printer'
 import { isRoundFree, roundDueOf, stepRounds } from '@/web/scene/sim/life/rounds'
 import {
   resetIdle,
@@ -45,7 +46,6 @@ import { moment as marketMoment, stepBell } from '@/web/scene/sim/rhythm'
 import { propsOn } from '@/web/scene/world/props'
 import { onWireEvent } from '@/web/state/events'
 import { pending, runningCount, runs } from '@/web/state/live'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 interface LifeDeps {
   readonly director: Director
@@ -150,7 +150,7 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
     desks: createDesks(),
     rhythm: createRhythmState(),
     round: { freeSince: undefined, lastAt: undefined, count: 0 },
-    sheets: { hour: '', count: 0, feedAt: undefined },
+    printTray: createPrintTray(),
     catAwakeUntil: 0,
     corgiAwakeUntil: nowMs + PET_AWAKE_MS,
     lastBusyAt: nowMs,
@@ -189,7 +189,7 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
 
 function stepLife(state: LifeState, step: LifeStep): boolean {
   noteBusy(state, step)
-  clearSheets(state, step)
+  stepPrintTray(state.printTray, step.clock)
   clearFailed(state, step)
   stepPresence(state, step)
   stepCrew(state, step)
@@ -269,14 +269,6 @@ function noteBusy(state: LifeState, step: LifeStep): void {
   }
 }
 
-function clearSheets(state: LifeState, step: LifeStep): void {
-  const hour = `${step.clock.day}:${Math.floor(step.clock.minute / MINUTES_PER_HOUR)}`
-
-  if (state.sheets.hour !== hour) {
-    state.sheets = { hour, count: 0, feedAt: undefined }
-  }
-}
-
 // A red dot holds until the person's next run.
 function clearFailed(state: LifeState, step: LifeStep): void {
   for (const id of state.failed) {
@@ -334,7 +326,7 @@ function viewOf(state: LifeState, step: LifeStep): LifeView {
   return {
     pets: state.pets.views(world),
     fish: state.pets.fish(world),
-    sheets: state.sheets.count,
+    sheets: state.printTray.count,
     steam,
     animatedFloors: [
       ...new Set([
@@ -348,7 +340,7 @@ function viewOf(state: LifeState, step: LifeStep): LifeView {
     occupied: state.rhythm.occupied,
     ...(state.crew.sign === undefined ? {} : { wetSign: state.crew.sign }),
     ...(cart === undefined ? {} : { cart: { floor: CART_FLOOR, at: cart } }),
-    ...(state.sheets.feedAt === undefined ? {} : { feedAt: state.sheets.feedAt }),
+    ...(state.printTray.feedAt === undefined ? {} : { feedAt: state.printTray.feedAt }),
   }
 }
 

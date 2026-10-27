@@ -1,6 +1,8 @@
 import type { DeskFocus, DeskView, TeamView } from '@/web/scene/types'
 import { fill, INK } from '@/web/scene/render2d/building'
+import { paintBinWaste } from '@/web/scene/render2d/desk-devices'
 import { paintCalendarAt } from '@/web/scene/render2d/desk-items'
+import { binFill } from '@/web/scene/sim/bins'
 import { FOCUS_TONES, PROP_TONES } from '@/web/scene/sprites/palette'
 import { DESK_SLOTS } from '@/web/scene/world/floors'
 
@@ -29,6 +31,8 @@ const ITEM_DY = 2
 const DESK_BOTTOM = 20
 const SCREEN_SORT_DY = DESK_BOTTOM + 1.5
 const ITEM_SORT_LIFT = 0.5
+// The bin beside the desk, from the desk top's corner, as the desk paints it.
+const BIN_AT = Object.freeze({ dx: -6, dy: 8 })
 const PIECE_TIE = 1
 const SCREEN_LINE = '#E8F0FF'
 const GLOW_RGB = '120,160,255'
@@ -112,6 +116,16 @@ function deskPieces(
       sortY: y + DESK_BOTTOM + ITEM_SORT_LIFT,
       tie: PIECE_TIE,
       draw: () => FOCUS_PAINTERS[focus](g, x + ITEM_DX, y + ITEM_DY),
+    })
+  }
+
+  const waste = desk.agentId === undefined ? 0 : (binFill.value.byAgent.get(desk.agentId) ?? 0)
+
+  if (waste > 0) {
+    pieces.push({
+      sortY: y + DESK_BOTTOM + ITEM_SORT_LIFT,
+      tie: PIECE_TIE,
+      draw: () => paintBinWaste(g, { x: x + BIN_AT.dx, y: y + BIN_AT.dy }, waste),
     })
   }
 
