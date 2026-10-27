@@ -88,6 +88,10 @@ export function currentTerminal(): Terminal {
   return processTerminal
 }
 
+export function isOwnTerminal(terminal: Terminal): boolean {
+  return currentTerminal() === terminal
+}
+
 export function withTerminal<T>(terminal: Terminal, fn: () => T): T {
   return scopedTerminal.run(terminal, fn)
 }
