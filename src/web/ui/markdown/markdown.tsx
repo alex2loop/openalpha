@@ -1,9 +1,9 @@
 import { useMemo } from 'preact/hooks'
 
-import type { Inline } from '@/web/ui/markdown/inline'
 import type { Block, ReportDoc } from '@/web/ui/markdown/parse'
 import { reducedMotion } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
+import { type Inline, parseInline } from '@/web/ui/markdown/inline'
 import { parseReport, sourceAnchor } from '@/web/ui/markdown/parse'
 import { Sources } from '@/web/ui/reader/sources'
 import { LinkedText } from '@/web/ui/ticker/linked-text'
@@ -27,6 +27,12 @@ interface ReportViewProps {
   readonly scope?: string | undefined
 }
 
+const INLINE_CONTEXT: RenderContext = Object.freeze({
+  isLinked: true,
+  sourceNumbers: undefined,
+  scope: undefined,
+})
+
 interface MarkdownProps {
   readonly text: string
   readonly isLinked?: boolean
@@ -39,6 +45,13 @@ export function Markdown({ text, isLinked = true, scope }: MarkdownProps) {
   const doc = useMemo(() => parseReport(text), [text])
 
   return <ReportView doc={doc} isLinked={isLinked} isAnchored={scope !== undefined} scope={scope} />
+}
+
+/** One line of daemon text with its bold, italic, code and links, and no block around it. */
+export function InlineMarkdown({ text }: { readonly text: string }) {
+  const nodes = useMemo(() => parseInline(text), [text])
+
+  return <InlineList nodes={nodes} context={INLINE_CONTEXT} />
 }
 
 /** A parsed report: its blocks, then the sources its footnotes name. */

@@ -13,14 +13,13 @@ import { toErrorText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { BulbIcon } from '@/web/ui/kit/icons'
-import { Markdown } from '@/web/ui/markdown/markdown'
+import { Outline } from '@/web/ui/market/outline'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 // A bare `/themes` is the run that re-reads every tracked theme and looks for new ones.
 const THEMES_COMMAND = 'themes'
 const RUN_TEXT = `/${THEMES_COMMAND}`
 const PROPOSED = 'proposed'
-const LINE_BREAK = '\n'
 // Themes read the Vietnam market only.
 const THEMES_REGION = 'vn'
 
@@ -115,7 +114,7 @@ function ThemeLists({
     <>
       <ThemeGroup title={tr('ui.office.themes.proposed')} themes={proposed} context={context} />
       <ThemeGroup title={tr('ui.office.themes.tracked')} themes={tracked} context={context} />
-      <Markdown text={data.text.join(LINE_BREAK)} />
+      <Outline lines={data.text} />
     </>
   )
 }

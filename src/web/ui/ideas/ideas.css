@@ -39,6 +39,28 @@
   cursor: pointer;
 }
 
+.idea-action {
+  font-weight: 600;
+}
+
+.idea-action.is-buy {
+  color: var(--up);
+}
+
+.idea-action.is-reduce {
+  color: var(--down);
+}
+
+.idea-action.is-hold {
+  color: var(--ink2);
+  font-weight: 400;
+}
+
+.idea-conviction {
+  color: var(--ink3);
+  font-size: 12px;
+}
+
 .idea-body {
   display: flex;
   flex-direction: column;

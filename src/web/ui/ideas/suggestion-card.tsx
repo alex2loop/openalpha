@@ -45,10 +45,12 @@ export function SuggestionCard({ call, isFresh }: SuggestionCardProps) {
           }}
         >
           <span>
-            {joinInline([
-              tr(`trading.action.${call.action}`),
-              tr(`trading.conviction.${call.conviction}`),
-            ])}
+            <span class={`idea-action is-${call.action}`}>
+              {tr(`trading.action.${call.action}`)}
+            </span>
+            <span class="idea-conviction">
+              {joinInline(['', tr(`trading.conviction.${call.conviction}`)])}
+            </span>
           </span>
           <span class="meta">{formatDay(locale.value, call.at)}</span>
         </button>
