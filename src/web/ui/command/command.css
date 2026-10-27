@@ -146,6 +146,16 @@
   padding: 6px 10px;
 }
 
+.suggest-usage {
+  padding: 10px 16px 0;
+}
+
+.suggest-usage p {
+  margin: 0;
+  color: var(--ink3);
+  font-size: var(--sizeCaption);
+}
+
 .suggest-keys {
   margin-top: 4px;
   padding: 6px 10px 2px;

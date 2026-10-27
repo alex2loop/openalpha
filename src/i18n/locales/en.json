@@ -446,6 +446,7 @@
     "office.command.keys": "Tab completes - Enter sends - up and down choose - Esc closes",
     "office.command.suggestions": "Suggestions",
     "office.command.commands": "Commands",
+    "office.command.arguments": "Arguments",
     "office.command.send": "Send",
     "office.command.sendTo": "Send to {agent}",
     "office.command.run": "Run the command",
