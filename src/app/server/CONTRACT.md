@@ -300,7 +300,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
 - **`/v1/state` degraded**: what the daemon started without, one entry per item, worded in the
   daemon's language: `channel` (a chat channel left down, `subject` its id), `api`, `key` (an unset
   key variable or an exchange with no keys, with what waits for it) and `optional-key` (a feature with
-  a keyless fallback). Empty when everything is configured. It names variables, never their values,
+  a keyless fallback, or an exchange with no keys: `subject` its venue id and `variables` the unset
+  key names). Empty when everything is configured. It names variables, never their values,
   and sits behind auth rather than on `/v1/health` for that reason. The client shows each `message`
   as is.
 

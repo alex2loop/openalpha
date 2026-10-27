@@ -13,6 +13,7 @@ import { toFailureText, tr } from '@/web/text/tr'
 import { toVenueName } from '@/web/text/venue'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
+import { SetupNotice } from '@/web/ui/kit/setup-notice'
 import { openSettings } from '@/web/ui/settings/settings'
 
 type VenueReading = ReconcileResponse['venues'][number]
@@ -52,17 +53,14 @@ function VenueState({ venue, recheck }: VenueProps) {
       )
     case 'keyless':
       return (
-        <div class="strip is-grey">
-          <span>
-            {tr('ui.office.reconcile.keyless', {
-              venue: name,
-              variables: joinList(venue.missingCredentials ?? []),
-            })}
-          </span>
-          <Button size="small" onClick={() => openSettings('exchanges')}>
-            {tr('ui.office.doctor.open', { section: tr('ui.office.settings.exchanges') })}
-          </Button>
-        </div>
+        <SetupNotice tone="caution" title={tr('ui.office.reconcile.keyless', { venue: name })}>
+          <span class="setup-notice-keys">{joinList(venue.missingCredentials ?? [])}</span>
+          <p class="setup-notice-fix">
+            <Button size="small" onClick={() => openSettings('exchanges')}>
+              {tr('ui.office.doctor.open', { section: tr('ui.office.settings.exchanges') })}
+            </Button>
+          </p>
+        </SetupNotice>
       )
     case 'unsupported':
       return <p class="meta">{tr('ui.office.reconcile.unsupported', { venue: name })}</p>

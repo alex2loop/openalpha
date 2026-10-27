@@ -80,6 +80,7 @@ function toKeylessVenues(
       {
         kind: 'optional-key',
         subject: venue,
+        variables,
         message: {
           key: 'cli.keylessVenue',
           params: {

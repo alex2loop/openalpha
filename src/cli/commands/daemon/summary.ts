@@ -73,6 +73,7 @@ export function renderDegraded(app: CliApp, item: DegradedItem): DegradedEntry {
     kind: item.kind,
     subject: item.subject,
     message: bindLocale(app.config.locale.language).translate(key, params),
+    ...(item.variables === undefined ? {} : { variables: item.variables }),
   }
 }
 
