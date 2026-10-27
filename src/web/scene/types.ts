@@ -189,7 +189,7 @@ export interface LightView {
 }
 
 /** What the props show: the rooms whose lamp is on, how far their lamps glow (1 untouched, less
- *  over the lunch nap), and whether the home market is shut for the day. */
+ *  over the lunch nap), and whether the office is shut for the day. */
 interface PropsView {
   readonly lit: ReadonlySet<RoomId>
   readonly lampGlow: number

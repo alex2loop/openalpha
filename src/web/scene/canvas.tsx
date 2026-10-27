@@ -45,7 +45,7 @@ import { isChildActorId } from '@/web/scene/sim/actors/roster'
 import { isLampNight, isRoomLit, noteLitRooms } from '@/web/scene/sim/lamps'
 import { napGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
-import { homePhase, isClosedPhase, moment } from '@/web/scene/sim/rhythm'
+import { homePhase, isOfficeClosed, moment } from '@/web/scene/sim/rhythm'
 import { createSims, disposeSims, type Sims } from '@/web/scene/sims'
 import { tapeBoard } from '@/web/scene/sprites/tape-face'
 import {
@@ -284,7 +284,7 @@ function buildSimView(parts: Sims, alpha: number): SimView {
     actors: [...actors, ...parts.team.actors()],
     light: parts.sky.view(performance.now(), reducedMotion.value),
     windowLight: parts.sky.windowLight(parts.street.view().weather),
-    props: { lit, lampGlow: parts.sky.glow(napGlowOf()), isClosed: isClosedPhase(homePhase.value) },
+    props: { lit, lampGlow: parts.sky.glow(napGlowOf()), isClosed: isOfficeClosed.value },
     weather: parts.street.view().weather,
     life,
     team: parts.team.view(performance.now()),
@@ -335,6 +335,7 @@ function readSceneInputs(): void {
   unread.value
   hasUnreadAlert.value
   homePhase.value
+  isOfficeClosed.value
   moment.value
   exDividends.value
   agents.value

@@ -7,7 +7,7 @@ import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
 import { toOverlayFont } from '@/web/scene/overlay/placement'
 import { isOfficeOpen } from '@/web/scene/sim/director'
-import { homePhase, isClosedPhase } from '@/web/scene/sim/rhythm'
+import { isOfficeClosed } from '@/web/scene/sim/rhythm'
 import { placeOnPane, projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
 import { focusRun } from '@/web/state/focus'
@@ -187,7 +187,7 @@ function statusLine(room: RoomId, status: RoomStatus | undefined): string | unde
 function alertsLine(status: RoomStatus | undefined): string | undefined {
   const alerts = status?.alerts
   const stops = status?.stops
-  const trading = isClosedPhase(homePhase.value) ? tradingWatched(status) : undefined
+  const trading = isOfficeClosed.value ? tradingWatched(status) : undefined
 
   if (trading !== undefined) {
     return tr('ui.office.room.alerts.closed', { market: trading })
@@ -198,7 +198,7 @@ function alertsLine(status: RoomStatus | undefined): string | undefined {
     : tr('ui.office.room.alerts.status', { alerts, stops })
 }
 
-// With the home market shut, the first market an alert or a stop watches that still trades.
+// With the office shut, the first market an alert or a stop watches that still trades.
 function tradingWatched(status: RoomStatus | undefined): string | undefined {
   const watched = status?.markets
 

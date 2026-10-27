@@ -8,7 +8,7 @@ import type { ClockParts } from '@/web/text/time'
 import { clockMode, pageMinute } from '@/web/scene/clock/clock'
 import { toMinute } from '@/web/scene/data/agenda'
 import { exDividendToday } from '@/web/scene/data/ex-dividends'
-import { homeMarket, regionPack } from '@/web/scene/data/home'
+import { homeMarket, marketList, regionPack } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
 import { ownActorIdOf } from '@/web/scene/sim/actors/roster'
 import { begin } from '@/web/scene/sim/life/schedule'
@@ -17,6 +17,7 @@ import { propsOn } from '@/web/scene/world/props'
 import { isInRange, type SpecialDay, specialDaysOf } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { agents } from '@/web/state/agents'
+import { zoneParts } from '@/web/text/time'
 
 const INCOME_GOAL = 'income'
 const ANALYST: ActorId = 'analyst'
@@ -145,10 +146,26 @@ function phaseOf(session: MarketSessionWire, parts: ClockParts, preview: boolean
   return isInBreak ? 'break' : 'open'
 }
 
-/** The home market is shut for the day on the page clock: the lobby dims. */
-export function isClosedPhase(phase: SessionPhase | undefined): boolean {
-  return phase !== undefined && CLOSED_PHASES.has(phase)
-}
+/** The office is shut for the day on the page clock: the lobby dims. The home market is closed and
+ *  so is every other market the operator has switched on; one with no session hours (crypto) never
+ *  closes, so while it is on the office never shuts. A market that is off does not keep it open. A
+ *  preview hour is read on each market's own zone's clock. */
+export const isOfficeClosed: ReadonlySignal<boolean> = computed(() => {
+  const isPreview = clockMode.value.kind === 'preview'
+  const clock = pageMinute.value
+
+  return (
+    isClosedPhase(homePhase.value) &&
+    marketList.value.every(
+      (market) =>
+        !market.enabled ||
+        (market.session !== undefined &&
+          isClosedPhase(
+            phaseOf(market.session, zoneParts(clock.at, market.session.timeZone), isPreview)
+          ))
+    )
+  )
+})
 
 /** The market bell: when the home phase turns open or post-close, the free people of the office
  *  floor turn toward the lobby screens for `BELL_LOOK_MS`, and at a rising close one raises their
@@ -190,6 +207,10 @@ function raiseHands(state: LifeState, step: LifeStep): void {
 
     state.director.play(actor.def.id, { pose: 'hands-up', ms: CHEER_MS })
   }
+}
+
+function isClosedPhase(phase: SessionPhase | undefined): boolean {
+  return phase !== undefined && CLOSED_PHASES.has(phase)
 }
 
 // The closing auction runs inside the session while it is open.

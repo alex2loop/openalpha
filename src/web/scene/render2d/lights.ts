@@ -92,7 +92,7 @@ function paintRoomShade(g: CanvasRenderingContext2D, spec: LightingSpec): void {
   }
 }
 
-// An unlit room darkens; a lit lobby still dims once the home market has shut.
+// An unlit room darkens; a lit lobby still dims once the office has shut.
 function shadeOf(
   spec: LightingSpec,
   at: { readonly room: RoomId; readonly isLit: boolean; readonly isNorth: boolean }

@@ -124,7 +124,8 @@ function toSessionWire({ session, day }: MarketView): MarketSessionWire | undefi
   }
 }
 
-export function toMarketsWire(view: TradingMarketsView): MarketsResponse {
+/** `off` is the segments the operator switched off; their markets stay listed, as `enabled: false`. */
+export function toMarketsWire(view: TradingMarketsView, off: ReadonlySet<string>): MarketsResponse {
   return {
     homeRegion: view.homeRegion,
     markets: view.markets.map((market) => {
@@ -138,6 +139,7 @@ export function toMarketsWire(view: TradingMarketsView): MarketsResponse {
         region: market.region,
         ownsRegion: market.ownsRegion,
         segment: market.segment,
+        enabled: !off.has(market.segment),
         label: market.label,
         segmentLabel: market.segmentLabel,
         regionLabel: market.regionLabel,
