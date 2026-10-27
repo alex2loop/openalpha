@@ -1,6 +1,7 @@
 import type { FloorId, Point, Rect, RoomId } from '@/web/scene/types'
 import { DESK_SHIFT_PX, DESK_SLOTS, FLOORS } from '@/web/scene/world/floors'
 import { roomById } from '@/web/scene/world/rooms'
+import { DESK_SEAT_DX, DESK_SEAT_DY } from '@/web/scene/world/seats'
 
 /** Everything the office draws besides its people and the desk items. */
 export type PropKind =
@@ -404,7 +405,7 @@ function wall(kind: PropKind, room: RoomId, spec: PropLook & { readonly at: Box 
 // and the chair south of it, its sitter's back to the camera (`TEAM_SEATS`, `SEATS`).
 function workDesk(room: RoomId, { x, y }: Point, look: PropLook = {}): PropSpec[] {
   const foot = y - DESK_ROWS_DY + DESK_SHIFT_PX
-  const seat = { x: x + 20, y: y + 30 }
+  const seat = { x: x + DESK_SEAT_DX, y: y + DESK_SEAT_DY }
 
   return [
     stand('chair', room, {

@@ -1,12 +1,11 @@
 import type { ActivityRowWire } from '@/app/server/wire/activity'
 import type { AgentDetailWire, AgentWire } from '@/app/server/wire/agents'
+import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { agents } from '@/web/state/agents'
 import { type Run, runs } from '@/web/state/live'
 import { tr } from '@/web/text/tr'
 
-/** The assistant's panel id. The daemon knows it as its default agent, `chat`, which owns its jobs
- *  and runs. */
-export const ASSISTANT_ID = 'assistant'
+// The daemon knows the assistant as its default agent, `chat`, which owns its jobs and runs.
 const DAEMON_ASSISTANT_ID = 'chat'
 
 /** What one agent shares with every section of its tab. */
@@ -30,14 +29,14 @@ export function buildAgentView(
   rows: readonly ActivityRowWire[]
 ): AgentView {
   const agent = agents.value.find((held) => held.id === agentId)
-  const daemonId = agentId === ASSISTANT_ID ? DAEMON_ASSISTANT_ID : agentId
+  const daemonId = agentId === ASSISTANT ? DAEMON_ASSISTANT_ID : agentId
 
   return {
     agentId,
     daemonId,
     agent,
     name:
-      agentId === ASSISTANT_ID
+      agentId === ASSISTANT
         ? tr('ui.office.role.assistant')
         : (agent?.name ?? detail?.name ?? agentId),
     run: runs.value.find(

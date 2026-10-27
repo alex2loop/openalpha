@@ -592,7 +592,7 @@
     "office.book.total": "Tổng tài sản",
     "office.book.holding": "Đang giữ",
     "office.book.bySegment": "Theo nhóm",
-    "office.book.segmentShare": "Đang {weight} · mục tiêu {target}",
+    "office.book.segmentShare": "Hiện {weight} · mục tiêu {target}",
     "office.book.pricedAt": "Định giá lúc {time}",
     "office.book.sinceStart": "Từ đầu năm",
     "office.book.pnl": "Lãi / lỗ",

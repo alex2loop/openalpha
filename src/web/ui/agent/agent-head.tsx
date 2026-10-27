@@ -2,7 +2,7 @@ import { useSignal } from '@preact/signals'
 import { useLayoutEffect } from 'preact/hooks'
 
 import type { AgentView } from '@/web/ui/agent/agent-view'
-import { rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { lookOf } from '@/web/scene/sprites/parts'
 import { reputationLine, setPaused } from '@/web/state/agents'
 import { hasChildren } from '@/web/state/live'
@@ -12,7 +12,6 @@ import { formatRunName } from '@/web/text/run-name'
 import { describeEvent } from '@/web/text/schedule-event'
 import { formatClock } from '@/web/text/time'
 import { toErrorText, tr } from '@/web/text/tr'
-import { ASSISTANT_ID } from '@/web/ui/agent/agent-view'
 import { clearSavedNote, savedNote } from '@/web/ui/agent/form/agent-form'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
@@ -36,7 +35,7 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
       <h2 class="agent-name">
         <Portrait look={lookOfView(view)} size={HEAD_PORTRAIT_PX} />
         {view.name}
-        {view.agentId === ASSISTANT_ID && (
+        {view.agentId === ASSISTANT && (
           <span class="agent-tag">{tr('ui.office.agent.assistantTag')}</span>
         )}
         {agent !== undefined && minSample !== undefined && (

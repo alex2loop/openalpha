@@ -3,10 +3,11 @@ import type { RefObject } from 'preact'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { type Run, runs } from '@/web/state/live'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
-import { ASSISTANT_ID, buildAgentView } from '@/web/ui/agent/agent-view'
+import { buildAgentView } from '@/web/ui/agent/agent-view'
 import { openScheduleDialog } from '@/web/ui/agent/schedule/schedule-dialog'
 import { JobRow } from '@/web/ui/jobs/job-row'
 import {
@@ -50,7 +51,7 @@ function JobsBody() {
         size="small"
         onClick={() =>
           openScheduleDialog({
-            view: buildAgentView(ASSISTANT_ID, undefined, []),
+            view: buildAgentView(ASSISTANT, undefined, []),
             seconds: formatAlertSeconds(tasks),
           })
         }
