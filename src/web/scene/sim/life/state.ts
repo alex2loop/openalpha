@@ -7,6 +7,7 @@ import type { Desks } from '@/web/scene/sim/life/desks'
 import type { Moment, MomentKind } from '@/web/scene/sim/life/moments'
 import type { Pets } from '@/web/scene/sim/life/pets'
 import type { RhythmState } from '@/web/scene/sim/life/presence'
+import type { PrintTray } from '@/web/scene/sim/life/printer'
 import type { ActorId, DeskView, FloorId, Point, Rect } from '@/web/scene/types'
 import type { OfficeLife } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
@@ -54,7 +55,7 @@ export interface LifeState {
   readonly desks: Desks
   readonly rhythm: RhythmState
   readonly round: { freeSince: number | undefined; lastAt: number | undefined; count: number }
-  sheets: { hour: string; count: number; feedAt: number | undefined }
+  readonly printTray: PrintTray
   catAwakeUntil: number
   corgiAwakeUntil: number
   lastBusyAt: number

@@ -4,6 +4,7 @@ import { paintCooler } from '@/web/scene/render2d/cooler'
 import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
 import {
   paintBin,
+  paintBinWaste,
   paintMeetingTable,
   paintMonitor,
   paintMug,
@@ -16,6 +17,7 @@ import { paintCableTray, paintDeskLamp, paintLamp } from '@/web/scene/render2d/f
 import { paintTank } from '@/web/scene/render2d/pets'
 import { paintStandby } from '@/web/scene/render2d/standby'
 import { type Painter, type PaintScene, WALL_PAINTERS } from '@/web/scene/render2d/wall-props'
+import { binFill } from '@/web/scene/sim/bins'
 import {
   CARD,
   DARKWOOD,
@@ -136,6 +138,7 @@ function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene
   fill(g, [x + 1, y + h, 2, 4], INK)
   fill(g, [x + w - 3, y + h, 2, 4], INK)
   paintBin(g, x - 6, y + 8)
+  paintBinWaste(g, { x: x - 6, y: y + 8 }, binFill.value.byDesk.get(prop.id) ?? 0)
   paintStudio(g, x + 1, y + 1)
 
   if (prop.variant === DESK_LOOK.senior) {

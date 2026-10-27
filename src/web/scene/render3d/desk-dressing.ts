@@ -27,7 +27,7 @@ const SILVER = '#A3AAB8'
 const KEYBOARD = '#F4F0E8'
 const KEY_ROW = '#C9CDD6'
 // The mockup's bin beside a junior desk's right end: body and rim.
-const BIN = Object.freeze({ dx: 2.5, dz: 6, w: 4.4, h: 6, body: '#C5CEDD', rim: '#AEB9CC' })
+export const BIN = Object.freeze({ dx: 2.5, dz: 6, w: 4.4, h: 6, body: '#C5CEDD', rim: '#AEB9CC' })
 const STANDBY_RIM = '#ECEEF2'
 const STANDBY_GLASS = '#1B2552'
 const STAMP = Object.freeze({ ink: '#C9505A', grip: '#9E7444' })

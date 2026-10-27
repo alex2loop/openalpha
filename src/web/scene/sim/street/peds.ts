@@ -1,3 +1,4 @@
+import { seedQueues } from '@/web/scene/sim/street/ped-queue'
 import {
   arrive,
   boardIfDue,
@@ -32,8 +33,6 @@ import { createRng, seedOf } from '@/web/scene/world/rng'
 import { sideX } from '@/web/scene/world/street-layout'
 
 const MAX_PEDS = 48
-// Walkers wanted on the street by the page clock.
-const PED_TARGETS = Object.freeze({ day: 11, quiet: 10, rush: 16, dayEdges: 8, night: 2 })
 const DOOR_WALK_SHARE = 0.06
 const WALKER_CHANCE = 0.1
 // The routes a walker takes, as shares: the far pavement end to end, over the crossing and down
@@ -56,8 +55,8 @@ export function createPeds(): Peds {
   }
 }
 
-/** Rebuilds the walkers from the clock: the minute's walkers placed along their routes and the
- *  shelters' waiters, as a still if nothing steps. */
+/** Rebuilds the walkers from the clock: the minute's walkers placed along their routes, the
+ *  shelters' waiters and the lunch queues, as a still if nothing steps. */
 export function resetPeds(
   peds: Peds,
   at: {
@@ -81,6 +80,8 @@ export function resetPeds(
   if (!isWithin(at.pack.hours.night, at.minute)) {
     seedWaiters(peds, { pack: at.pack, nowMs: at.nowMs })
   }
+
+  seedQueues(peds, at)
 
   for (const ped of peds.pool) {
     ped.frame = ped.on ? gaitOf(ped, at.nowMs) : 0
@@ -115,22 +116,28 @@ function schedule(peds: Peds, at: PedStep): void {
   scheduleScenes(peds, at)
 }
 
+// The pack's walkers wanted on the street by the page clock.
 function targetOf(pack: RegionPack, minute: number): number {
   const { hours } = pack
+  const wanted = pack.crowd.walkers
 
   if (isWithin(hours.rush, minute)) {
-    return PED_TARGETS.rush
+    return wanted.rush
   }
 
   if (isWithin(hours.night, minute)) {
-    return PED_TARGETS.night
+    return wanted.night
   }
 
   if (isWithin(hours.dayEdges, minute)) {
-    return PED_TARGETS.dayEdges
+    return wanted.dayEdges
   }
 
-  return isWithin(hours.quiet, minute) ? PED_TARGETS.quiet : PED_TARGETS.day
+  if (isWithin(hours.lunch, minute)) {
+    return wanted.lunch
+  }
+
+  return isWithin(hours.quiet, minute) ? wanted.quiet : wanted.day
 }
 
 function addWalker(

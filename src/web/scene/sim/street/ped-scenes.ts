@@ -1,5 +1,6 @@
 import type { Vehicle } from '@/web/scene/sim/street/flows'
 import { sheltersOf } from '@/web/scene/sim/street/flows'
+import { arriveInQueue, scheduleQueue } from '@/web/scene/sim/street/ped-queue'
 import {
   addPoint,
   clearRoute,
@@ -55,7 +56,7 @@ const CAFE_CUP_SHARE = 0.6
 const HEAT_CAFE_PULL = 4
 
 /** The clock's due scenes: a waiter now and then outside the night, pupils out of school, a
- *  sitter at the café, someone out to every delivery that stopped. */
+ *  sitter at the café, a lunch queuer, someone out to every delivery that stopped. */
 export function scheduleScenes(peds: Peds, at: PedStep): void {
   const { pack } = at.traffic
   const { hours } = pack
@@ -81,13 +82,14 @@ export function scheduleScenes(peds: Peds, at: PedStep): void {
     arriveSitter(peds, at)
   }
 
+  scheduleQueue(peds, at)
   serveDeliveries(peds, at)
 }
 
 // At the route's end: a walker reaches cover, a waiter takes the spot, a sitter the seat, a
 // receiver waits for the bag then goes back in; everyone else leaves the street.
 export function arrive(peds: Peds, ped: Ped, nowMs: number): void {
-  if (arriveAtShelter(peds, ped, nowMs)) {
+  if (arriveAtShelter(peds, ped, nowMs) || arriveInQueue(peds, ped, nowMs)) {
     return
   }
 

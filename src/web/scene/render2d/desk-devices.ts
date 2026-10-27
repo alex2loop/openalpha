@@ -1,4 +1,5 @@
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
+import type { Point } from '@/web/scene/types'
 import { fill, INK } from '@/web/scene/render2d/building'
 import { paintStandby } from '@/web/scene/render2d/standby'
 import { paintCrispText } from '@/web/scene/sprites/crisp-text'
@@ -22,6 +23,13 @@ const CUE_REST = 0.675
 const CUE_SWING = 0.325
 const CUE_PERIOD_MS = 1100
 const CUE_GLOW = 0.3
+// The crumpled sheets heaped over a bin's rim, first to last, from its top-left corner.
+const WASTE_BALLS = [
+  [0.4, -1.2],
+  [2.6, -1.5],
+  [1.5, -2.7],
+] as const
+const WASTE_SHADE = '#D9D4C7'
 
 /** A monitor standing on a desk at `x`, its outlined screen `w` wide from `y`: dark once the
  *  office is quiet, else its idle screen; a working screen's content is the overlay's. */
@@ -226,6 +234,14 @@ export function paintBin(g: CanvasRenderingContext2D, x: number, y: number): voi
   fill(g, [x, y, 5, 6], INK)
   fill(g, [x + 1, y + 1, 3, 4], DEVICE_TONES.bin[1])
   fill(g, [x, y, 5, 1], DEVICE_TONES.bin[0])
+}
+
+/** The day's crumpled sheets over the bin at `at`, `count` of them. */
+export function paintBinWaste(g: CanvasRenderingContext2D, at: Point, count: number): void {
+  for (const [dx, dy] of WASTE_BALLS.slice(0, count)) {
+    fill(g, [at.x + dx, at.y + dy, 2, 2], PALETTE.paper)
+    fill(g, [at.x + dx, at.y + dy + 1.5, 2, 0.5], WASTE_SHADE)
+  }
 }
 
 /** A desk calendar whose page shows `day`. */

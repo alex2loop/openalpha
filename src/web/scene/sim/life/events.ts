@@ -6,6 +6,7 @@ import { pageMinute } from '@/web/scene/clock/clock'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { addRunSheets } from '@/web/scene/sim/life/desks'
+import { feedReport } from '@/web/scene/sim/life/printer'
 import { begin } from '@/web/scene/sim/life/schedule'
 import {
   drawBetween,
@@ -24,11 +25,9 @@ const MAX_WOKEN = 200
 const MAX_VERDICTS = 32
 const MAX_ASKS = 16
 const MAX_FINISHES = 32
-const MAX_SHEETS = 6
 // A sheet slides out of the printer over this long, then joins the stack.
 const PRINT_FEED_MS = 900
 const BRIEF_NAME = 'brief'
-const RESEARCH_NAME = 'research'
 const COMPLETED = 'completed'
 const ABORTED = 'aborted'
 const HANDS_MS = 1_800
@@ -57,7 +56,6 @@ export function subscribeLife(hub: typeof onWireEvent, state: LifeState): () => 
         setCapped(state.verdicts, [event.runId, true], MAX_VERDICTS)
       }
     }),
-    hub('brief_ready', () => feedSheet(state)),
     hub('agent_added', () => {
       state.corgiAwakeUntil = performance.now() + PET_AWAKE_MS
     }),
@@ -78,7 +76,10 @@ function onStarted(state: LifeState, event: WireEvent): void {
     return
   }
 
-  setCapped(state.runNames, [event.runId, run.name], MAX_VERDICTS)
+  // Only a top-level run can deliver a report to the printer.
+  if (run.parentRunId === undefined) {
+    setCapped(state.runNames, [event.runId, run.name], MAX_VERDICTS)
+  }
 
   if (run.name === BRIEF_NAME && run.parentRunId === undefined) {
     ask(state.asks, { kind: 'standup' })
@@ -94,9 +95,11 @@ function onFinished(state: LifeState, event: WireEvent): void {
     setCapped(state.finishes, [event.source.agentId, performance.now()], MAX_FINISHES)
   }
 
-  if (event.outcome === COMPLETED && state.runNames.get(event.runId) === RESEARCH_NAME) {
-    feedSheet(state)
-  }
+  feedReport(state.printTray, {
+    runId: event.runId,
+    name: state.runNames.get(event.runId),
+    outcome: event.outcome,
+  })
 
   // The red dot is a record, kept even while the tab is hidden; the gestures are the step's.
   if (isFailure(event.outcome)) {
@@ -120,15 +123,6 @@ function isFailure(outcome: string): boolean {
 function ask(asks: LifeAsk[], next: LifeAsk): void {
   asks.push(next)
   asks.splice(0, Math.max(0, asks.length - MAX_ASKS))
-}
-
-// A delivered report feeds a sheet out of the printer; the stack is cleared at the next hour.
-function feedSheet(state: LifeState): void {
-  state.sheets = {
-    hour: state.sheets.hour,
-    count: Math.min(MAX_SHEETS, state.sheets.count + 1),
-    feedAt: performance.now(),
-  }
 }
 
 // Each thing wakes the cat once: an approval, a stop or alert, a fill, a spent budget (what the

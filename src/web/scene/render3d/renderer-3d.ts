@@ -3,6 +3,7 @@ import { Group, OrthographicCamera, Scene, Sprite, WebGLRenderer } from 'three'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { SimView } from '@/web/scene/types'
 import { indexDrop } from '@/web/scene/data/board'
+import { type BinWaste3d, createBinWaste } from '@/web/scene/render3d/bin-waste'
 import { syncSeeThrough } from '@/web/scene/render3d/building'
 import {
   type CameraRig,
@@ -107,6 +108,7 @@ interface Stage extends CameraRig {
   readonly weather: Weather3d
   readonly lift: Lift3d
   readonly sign: WetSign3d
+  readonly bins: BinWaste3d
   floor: FloorScene | undefined
   scheme: string
   lastAt: number | undefined
@@ -207,6 +209,7 @@ function buildStage(canvas: HTMLCanvasElement, renderer: WebGLRenderer): Stage {
     weather: createWeather3d(root, lighting.materials),
     lift: createLift3d(shapes, lighting.materials, root),
     sign: createWetSign(shapes, lighting.materials, root),
+    bins: createBinWaste(shapes, lighting.materials, root),
     floor: undefined,
     shot: undefined,
     placement: { scale: 1, originX: 0, originY: 0 },
@@ -239,6 +242,7 @@ function releaseStage(stage: Stage | undefined): void {
   disposeWeather3d(stage.weather)
   disposeLift3d(stage.lift)
   disposeWetSign(stage.sign)
+  stage.bins.dispose()
 
   for (const one of [...stage.lighting.disposables, ...stage.shapes.disposables]) {
     one.dispose()
@@ -392,12 +396,13 @@ function syncDressing(
   }
 }
 
-// The lift on the floor shown and the cleaner's wet-floor sign.
+// The lift on the floor shown, the cleaner's wet-floor sign and the bins she empties.
 function syncCrewPieces(stage: Stage, sim: SimView): boolean {
   const isLifted = syncLift3d(stage.lift, { floor: sim.floor, view: sim.lift })
   const isSigned = syncWetSign(stage.sign, sim)
+  const isBinned = stage.bins.sync(sim)
 
-  return isLifted || isSigned
+  return isLifted || isSigned || isBinned
 }
 
 // The screen faces and cork boards, and the lamps' lights.

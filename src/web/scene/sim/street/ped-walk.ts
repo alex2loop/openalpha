@@ -49,7 +49,7 @@ export const PAVEMENT = Object.freeze({
  *  building (the crossing's line) and the one past the side street. */
 export const SIDE_WALKS = Object.freeze({ near: -CROSSING.x, far: SIDE_ROAD.to + 3 })
 
-type PedTask = 'walk' | 'wait' | 'sit' | 'pickup' | 'receive' | 'shelter'
+type PedTask = 'walk' | 'wait' | 'sit' | 'pickup' | 'receive' | 'shelter' | 'queue'
 
 type Rng = ReturnType<typeof createRng>
 
