@@ -6,7 +6,7 @@ import type { ActorNow } from '@/web/scene/overlay/actor-state'
 import type { ActorId, Rect, Size } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { overlayView } from '@/web/scene/overlay/overlay'
-import { ASSISTANT, isCrewId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
+import { isCrewId, ownAgentIdOf, takesWork } from '@/web/scene/sim/actors/roster'
 import { projection } from '@/web/scene/view'
 import { selectAgent } from '@/web/state/agents'
 import { setChatOpen } from '@/web/state/chat'
@@ -84,7 +84,7 @@ export function menuActionsFor(actor: ActorId, context: MenuContext): readonly M
   }
 
   const agentId = ownAgentIdOf(actor)
-  const canTalk = agentId !== undefined || actor === ASSISTANT
+  const canTalk = takesWork(actor)
   const tab = agentId ?? context.parentAgentId ?? (STAFF_TABS.has(actor) ? actor : undefined)
   const { run } = context
   const actions: (MenuAction | undefined)[] = [

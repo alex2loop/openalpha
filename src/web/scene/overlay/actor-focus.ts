@@ -5,7 +5,7 @@ import { sayAs } from '@/web/scene/overlay/bubbles'
 import { hoverTextOf, personNameOf, replyTextOf } from '@/web/scene/overlay/hover-label'
 import { announce, hoverActor, keyActor, keyedActor } from '@/web/scene/overlay/overlay'
 import { closeMenu, menuActionsFor, openMenu } from '@/web/scene/overlay/radial-menu'
-import { isActorId, ownAgentIdOf, ROSTER } from '@/web/scene/sim/actors/roster'
+import { isActorId, ownAgentIdOf, ROSTER, takesWork } from '@/web/scene/sim/actors/roster'
 import { STREET_FIGURE_H } from '@/web/scene/street-types'
 import { FIGURE } from '@/web/scene/types'
 import { centerOn, keepFollowing, startFollow, stopFollow, view } from '@/web/scene/view'
@@ -43,7 +43,7 @@ export function engage(deps: FocusDeps, reach: Reach): void {
   const isFree = now.kind === 'dot' || now.kind === 'life' || now.kind === 'errand'
 
   deps.director.requestReaction(actor, isFree ? 'greet' : 'busy-glance')
-  sayAs(actor, replyTextOf(now))
+  sayAs(actor, replyTextOf(now, takesWork(actor)))
   selectActor(actor)
   deps.wake()
 

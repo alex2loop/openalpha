@@ -82,8 +82,9 @@ export function hoverTextOf(name: string, now: ActorNow, epochMs: number): strin
   return now.kind === 'crew' ? name : joinInline([name, lineOf(now, epochMs)])
 }
 
-/** What a person answers when the operator clicks them, from what they really do. */
-export function replyTextOf(now: ActorNow): string {
+/** What a person answers when the operator clicks them, from what they really do; one who takes no
+ *  work points to the assistant instead of offering help. */
+export function replyTextOf(now: ActorNow, canTakeWork: boolean): string {
   switch (now.kind) {
     case 'paused':
       return tr('ui.office.ix.paused')
@@ -96,7 +97,7 @@ export function replyTextOf(now: ActorNow): string {
     case 'errand':
       return now.line
     default:
-      return tr('ui.office.ix.free')
+      return tr(canTakeWork ? 'ui.office.ix.free' : 'ui.office.ix.freeStaff')
   }
 }
 

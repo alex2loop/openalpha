@@ -80,6 +80,11 @@ export function ownAgentIdOf(actor: string): string | undefined {
   return actor.startsWith(OWN_PREFIX) ? actor.slice(OWN_PREFIX.length) : undefined
 }
 
+/** The operator talks to and hands work to an own agent or the assistant; the rest work runs. */
+export function takesWork(actor: string): boolean {
+  return ownAgentIdOf(actor) !== undefined || actor === ASSISTANT
+}
+
 /** `id` names a temporary child agent. */
 export function isChildActorId(id: string): boolean {
   return id.startsWith(CHILD_PREFIX)

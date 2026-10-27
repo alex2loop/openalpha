@@ -732,6 +732,7 @@
     "office.label.waitingYou": "{what} - waiting for you",
     "office.label.queued": "{what} - waiting for its turn",
     "office.ix.free": "I'm free - need anything?",
+    "office.ix.freeStaff": "Free for now. My part runs when a job needs it - ask the assistant for anything.",
     "office.ix.busy": "Give me a moment, I'm running {what}.",
     "office.ix.waiting": "I'm waiting for you to approve {what}.",
     "office.ix.queued": "My job is waiting for its turn.",

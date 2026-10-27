@@ -732,6 +732,7 @@
     "office.label.waitingYou": "{what} - chờ bạn duyệt",
     "office.label.queued": "{what} - chờ tới lượt",
     "office.ix.free": "Mình đang rảnh, bạn cần gì không?",
+    "office.ix.freeStaff": "Mình đang rảnh. Việc tới lượt mình thì tự chạy, bạn cần gì cứ nhắn trợ lý nhé.",
     "office.ix.busy": "Đợi mình chút, đang chạy {what}.",
     "office.ix.waiting": "Mình đang chờ bạn duyệt {what}.",
     "office.ix.queued": "Việc của mình đang chờ tới lượt.",
