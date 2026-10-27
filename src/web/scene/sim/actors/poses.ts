@@ -171,23 +171,27 @@ const POSES: Readonly<Record<PoseId, PoseDef>> = Object.freeze({
   'sit-up': { frames: [{}] },
 } satisfies Record<PoseId, PoseDef>)
 
-/** Whether a floor's people blink and breathe now: always while one works, walks or plays a
- *  moving pose, otherwise only inside the people's ambient window, so a quiet floor asks for no frame. */
+/** Whether someone on the floor works, walks or plays a moving pose: their frames draw at the
+ *  small-motion rate, where the ambient fidgets draw on the ambient clock. */
+export function isCharacterBusy(actors: readonly ActorView[], floor: FloorId): boolean {
+  return actors.some(
+    (actor) =>
+      isOnFloor(actor, floor) &&
+      (actor.working || isActorWalking(actor) || isPoseMoving(actor.pose))
+  )
+}
+
+/** Whether a floor's people blink and breathe now: always while one is busy, otherwise only
+ *  inside the people's ambient window, so a quiet floor asks for no frame. */
 export function isCharacterMotionOn(
   actors: readonly ActorView[],
   at: { readonly floor: FloorId; readonly now: number }
 ): boolean {
-  const here = actors.filter((actor) => isOnFloor(actor, at.floor))
-
-  if (here.length === 0) {
+  if (!actors.some((actor) => isOnFloor(actor, at.floor))) {
     return false
   }
 
-  const isBusy = here.some(
-    (actor) => actor.working || isActorWalking(actor) || isPoseMoving(actor.pose)
-  )
-
-  return isBusy || ambientWindows.isOn(AMBIENT_KEY.people, at.now)
+  return isCharacterBusy(actors, at.floor) || ambientWindows.isOn(AMBIENT_KEY.people, at.now)
 }
 
 /** The person stands on `floor` now; someone out on an errand, gone home or in the lift car

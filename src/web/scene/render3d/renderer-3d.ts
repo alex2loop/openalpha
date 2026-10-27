@@ -76,7 +76,7 @@ import {
   type Weather3d,
 } from '@/web/scene/render3d/weather'
 import { createRenderRate, zeroCanvas } from '@/web/scene/renderer'
-import { isActorWalking, isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
+import { isActorWalking, isCharacterBusy, isCharacterMotionOn } from '@/web/scene/sim/actors/poses'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
 import { flashOf } from '@/web/scene/sprites/sky-glass'
@@ -345,7 +345,8 @@ function syncScene(
 
   return {
     isChanged: isMoving || isSmall || dressing.isChanged || isWalking || sky.isChanged,
-    isAnimating: isMoving || isSmall || sky.isAnimating,
+    isAnimating:
+      isMoving || (!isReduced && isCharacterBusy(sim.actors, sim.floor)) || sky.isAnimating,
   }
 }
 

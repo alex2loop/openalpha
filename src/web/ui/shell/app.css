@@ -21,18 +21,24 @@
 }
 
 /* The one bottom slot over the stage: the offline bar, then the undo bar under it, never on top of
-   each other. Above any dialog, so Undo stays in reach while one is open. */
+   each other. Above any dialog, so Undo stays in reach while one is open. It keeps to the left, clear
+   of the zoom dock at the stage's corner (which moves left of the panel in focus mode). */
 .bottom-stack {
+  --dockClear: calc(var(--islandH) + var(--s2) * 3);
   position: fixed;
-  right: var(--s3);
+  right: calc(var(--s3) + var(--dockClear));
   bottom: calc(var(--commandBarH) + var(--s2));
   left: var(--s3);
   z-index: var(--zUndo);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--s1);
   pointer-events: none;
+}
+
+.app:has(.panes.is-focus) .bottom-stack {
+  right: calc(var(--s3) + var(--dockClear) + var(--panelW));
 }
 
 .bottom-stack > * {

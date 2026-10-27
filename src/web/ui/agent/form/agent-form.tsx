@@ -2,10 +2,11 @@ import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
 import type { AgentDetailWire } from '@/app/server/wire/agents'
 import type { MessageKey } from '@/i18n'
+import { ApiFailure } from '@/web/api/client'
 import { type AgentDraft, agentFormRequest, removeAgent, saveAgent } from '@/web/state/agents'
 import { knownMarkets } from '@/web/state/market'
 import { openView } from '@/web/state/panel'
-import { tr } from '@/web/text/tr'
+import { toErrorText, tr } from '@/web/text/tr'
 import {
   BudgetField,
   HorizonField,
@@ -25,11 +26,14 @@ import { LOOK_PATHS, LookPicker } from '@/web/ui/agent/form/look-picker'
 import { ModelSelect } from '@/web/ui/agent/form/model-select'
 import { SectorPills } from '@/web/ui/agent/form/sector-pills'
 import { describeFailure } from '@/web/ui/dialogs/field-errors'
+import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
 
 import './form.css'
+
+const TAKEN_ID_PATH = 'id'
 
 // The fields of the body this form has a place for.
 const AGENT_PATHS = [
@@ -120,11 +124,7 @@ export function startAgentFormRequests(): () => void {
 function FormBody({ form }: { readonly form: AgentForm }) {
   return (
     <div class="agent-form">
-      {form.failure.value !== undefined && (
-        <p class="failure-line" role="alert">
-          {form.failure.value}
-        </p>
-      )}
+      <FieldNote message={form.failure.value} />
       <NameField form={form} />
       <PromptField form={form} />
       <MarketsField form={form} />
@@ -184,19 +184,25 @@ function submit(open: OpenForm): void {
           openView({ agent: draft.id })
         }
       },
-      (error: unknown) => {
-        const failed = describeFailure(error, AGENT_PATHS)
-
-        form.fields.value = failed.fields
-        form.failure.value =
-          failed.top === undefined
-            ? undefined
-            : tr('ui.office.form.notSaved', { reason: failed.top })
-      }
+      (error: unknown) => showFailure(form, error)
     )
     .finally(() => {
       form.isBusy.value = false
     })
+}
+
+// A new agent refused as a conflict has an id already in use: said under the id field.
+function showFailure(form: AgentForm, error: unknown): void {
+  if (form.existing === undefined && error instanceof ApiFailure && error.code === 'conflict') {
+    form.fields.value = new Map([[TAKEN_ID_PATH, toErrorText(error)]])
+    return
+  }
+
+  const failed = describeFailure(error, AGENT_PATHS)
+
+  form.fields.value = failed.fields
+  form.failure.value =
+    failed.top === undefined ? undefined : tr('ui.office.form.notSaved', { reason: failed.top })
 }
 
 function findMissing(draft: AgentDraft): MessageKey | undefined {

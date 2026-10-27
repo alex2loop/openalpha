@@ -7,7 +7,7 @@ import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
 import { toOverlayFont } from '@/web/scene/overlay/placement'
 import { isOfficeOpen } from '@/web/scene/sim/director'
-import { isOfficeClosed } from '@/web/scene/sim/rhythm'
+import { isOfficeClosed, moment } from '@/web/scene/sim/rhythm'
 import { placeOnPane, projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
 import { focusRun } from '@/web/state/focus'
@@ -34,7 +34,8 @@ const ROOM_NAME_KEYS: Readonly<Record<RoomId, MessageKey>> = Object.freeze({
   team: 'ui.office.common.yourAgents',
 } satisfies Record<RoomId, MessageKey>)
 
-// The rooms that rest once the office has closed, and what their tag says then.
+// The rooms that rest outside office hours and on a day the market does not trade, and what their
+// tag says then.
 const REST_KEYS: Readonly<Partial<Record<RoomId, MessageKey>>> = Object.freeze({
   store: 'ui.office.room.store.closed',
   lib: 'ui.office.room.lib.closed',
@@ -154,11 +155,13 @@ function cycleFocus(room: RoomId, runIds: readonly string[]): void {
   }
 }
 
-// A room with no run in it says so after hours, as the mockup's night tags do; a run always wins.
+// A room with no run in it says so while the office rests, as the mockup's night tags do; a run
+// always wins. The office rests by the clock the scene's people keep: its hours on a trading day.
 function statusLine(room: RoomId, status: RoomStatus | undefined): string | undefined {
   const subject = status?.subject
   const isIdle = (status?.runs.length ?? 0) === 0
-  const restKey = isIdle && !isOfficeOpen() ? REST_KEYS[room] : undefined
+  const isResting = !(moment.value.tradingDay && isOfficeOpen())
+  const restKey = isIdle && isResting ? REST_KEYS[room] : undefined
 
   if (restKey !== undefined) {
     return tr(restKey)

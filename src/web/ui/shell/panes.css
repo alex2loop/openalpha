@@ -51,6 +51,12 @@
   grid-area: 1 / 1;
 }
 
+/* In focus mode the floating panel keeps the stage's right edge, so the zoom dock stands left of it;
+   the panel ends above the composer, which keeps the stage's whole width. */
+.panes.is-focus .scene-zoomstack {
+  right: calc(min(var(--panelW), 100% - var(--s2)) + var(--s2) * 2);
+}
+
 /* The stage stays mounted when hidden, so the scene keeps its state across pane switches. */
 :root:not([data-layout="wide"]) .panes[data-pane="office"] > :not(.stage),
 :root:not([data-layout="wide"]) .panes[data-pane="info"] > :not(.stage, .panel),
