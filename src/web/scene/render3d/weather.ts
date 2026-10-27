@@ -46,6 +46,7 @@ const BLIND = Object.freeze({
   tone: '#EDE3CC',
 })
 const MAT_TONE = '#3E4250'
+const PUDDLE = Object.freeze({ dx: 3, dz: 3, w: 10, d: 7, tone: '#A9C2E8' })
 const STAND_FLOOR: FloorId = 'office'
 const BLIND_FLOORS: readonly FloorId[] = ['office', 'team']
 
@@ -56,15 +57,15 @@ interface WeatherSync {
 }
 
 /** The weather indoors in 3D: rain and haze on the north glass, the west and east blinds, the
- *  sun's patches on the floor, and the
- *  umbrella stand and mat by the street exit with an umbrella opened to dry in the rain. */
+ *  sun's patches on the floor, the mat inside the street exit and, only in the rain, the umbrella
+ *  in its stand by it with the puddle it drips, as 2D draws them. */
 export interface Weather3d {
   readonly pane: Mesh<PlaneGeometry, MeshBasicMaterial>
   readonly canvas: HTMLCanvasElement
   readonly texture: CanvasTexture
   readonly blinds: Readonly<Record<FloorId, Mesh>>
+  readonly mat: Mesh
   readonly stand: Mesh
-  readonly open: Mesh
   readonly geometries: readonly BufferGeometry[]
   /** The sun's patches on the floor and the east blinds. */
   readonly sun: SunPatches
@@ -81,32 +82,32 @@ export function createWeather3d(root: Group, materials: Materials): Weather3d {
   const geometries = [
     mergeBoxes(blindBoxesOf('office')),
     mergeBoxes(blindBoxesOf('team')),
+    mergeBoxes([matBox()]),
     mergeBoxes(standBoxes()),
-    mergeBoxes(openUmbrellaBoxes()),
   ]
-  const [officeBlinds, teamBlinds, standGeometry, openGeometry] = geometries
+  const [officeBlinds, teamBlinds, matGeometry, standGeometry] = geometries
   const blinds = {
     office: new Mesh(officeBlinds, materials.lit),
     team: new Mesh(teamBlinds, materials.lit),
   }
+  const mat = new Mesh(matGeometry, materials.lit)
   const stand = new Mesh(standGeometry, materials.lit)
-  const open = new Mesh(openGeometry, materials.lit)
 
-  for (const mesh of [blinds.office, blinds.team, open]) {
+  for (const mesh of [blinds.office, blinds.team, stand]) {
     mesh.visible = false
   }
 
   blinds.office.position.y = toUnits(BLIND.top)
   blinds.team.position.y = toUnits(BLIND.top)
-  root.add(pane, blinds.office, blinds.team, stand, open)
+  root.add(pane, blinds.office, blinds.team, mat, stand)
 
   return {
     pane,
     canvas,
     texture,
     blinds,
+    mat,
     stand,
-    open,
     geometries,
     sun: createSunPatches(root, materials),
     paintedAt: Number.NEGATIVE_INFINITY,
@@ -151,13 +152,13 @@ export function syncWeather3d(weather3d: Weather3d, sim: SimView, now: number): 
   const closure = sim.windowLight.blind.w
   const isBlindChanged = closure !== weather3d.closure
   const isStandFloor = sim.floor === STAND_FLOOR
-  const isOpen = isStandFloor && fx.rain > 0
+  const isRaining = isStandFloor && fx.rain > 0
   const isStandChanged =
-    weather3d.stand.visible !== isStandFloor || weather3d.open.visible !== isOpen
+    weather3d.mat.visible !== isStandFloor || weather3d.stand.visible !== isRaining
 
   weather3d.closure = closure
-  weather3d.stand.visible = isStandFloor
-  weather3d.open.visible = isOpen
+  weather3d.mat.visible = isStandFloor
+  weather3d.stand.visible = isRaining
 
   for (const floor of BLIND_FLOORS) {
     const mesh = weather3d.blinds[floor]
@@ -185,8 +186,8 @@ export function disposeWeather3d(weather3d: Weather3d): void {
   for (const mesh of [
     weather3d.blinds.office,
     weather3d.blinds.team,
+    weather3d.mat,
     weather3d.stand,
-    weather3d.open,
   ]) {
     mesh.removeFromParent()
   }
@@ -255,32 +256,24 @@ function blindBoxesOf(floor: FloorId) {
   )
 }
 
-// The stand with two closed umbrellas, and the dark mat inside the exit.
+// The dark mat inside the exit.
+function matBox() {
+  return box([EXIT_MAT.x, EXIT_MAT.y, EXIT_MAT.w, EXIT_MAT.h, 0, 0.3], MAT_TONE)
+}
+
+// The stand with an umbrella folded in it, and the puddle it drips beside it.
 function standBoxes() {
   const prop = propsOn(STAND_FLOOR).find((each) => each.kind === 'umbrella-stand')
-  const mat = box([EXIT_MAT.x, EXIT_MAT.y, EXIT_MAT.w, EXIT_MAT.h, 0, 0.3], MAT_TONE)
 
   if (prop === undefined) {
-    return [mat]
+    return []
   }
 
   const { x, y, w, h } = prop.rect
 
   return [
-    mat,
+    box([x + PUDDLE.dx, y + PUDDLE.dz, PUDDLE.w, PUDDLE.d, 0, 0.2], PUDDLE.tone),
     box([x, y, w, h, 0, 6], PROP_TONES.umbrellaStand, true),
-    box([x + 1, y + 1.5, 1.2, 1.2, 4, prop.height + 4], UMBRELLA_TONES[0]),
-    box([x + 3.5, y + 2, 1.2, 1.2, 4, prop.height + 3], UMBRELLA_TONES[1]),
-  ]
-}
-
-// An umbrella opened on the mat to dry: its canopy and handle.
-function openUmbrellaBoxes() {
-  const cx = EXIT_MAT.x + EXIT_MAT.w / 2
-  const cz = EXIT_MAT.y + EXIT_MAT.h / 2
-
-  return [
-    box([cx - 6, cz - 6, 12, 12, 2, 3.5], UMBRELLA_TONES[0], true),
-    box([cx - 0.4, cz - 0.4, 0.8, 0.8, 0.3, 3], '#2E3440'),
+    box([x + 2.4, y + 1.9, 1.2, 1.2, 4, prop.height + 4], UMBRELLA_TONES[0]),
   ]
 }

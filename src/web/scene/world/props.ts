@@ -1,5 +1,5 @@
 import type { FloorId, Point, Rect, RoomId } from '@/web/scene/types'
-import { DESK_SLOTS, FLOORS } from '@/web/scene/world/floors'
+import { DESK_SHIFT_PX, DESK_SLOTS, FLOORS } from '@/web/scene/world/floors'
 import { roomById } from '@/web/scene/world/rooms'
 
 /** Everything the office draws besides its people and the desk items. */
@@ -36,7 +36,6 @@ export type PropKind =
   | 'cabinet'
   | 'catalogue'
   | 'news-rack'
-  | 'coat-rack'
   | 'ladder'
   | 'lift-door'
   | 'umbrella-stand'
@@ -96,8 +95,8 @@ interface PropSpec extends PropLook {
   readonly draw: Box
 }
 
-/** How a seat's chair sits: at a desk, or facing the room's back or front wall. */
-type SeatFacing = 'desk' | 'back' | 'front'
+/** How a seat's chair sits: facing the room's back or front wall; a desk's stands behind it. */
+type SeatFacing = 'back' | 'front'
 
 const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   desk: 14,
@@ -132,7 +131,6 @@ const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
   cabinet: 32,
   catalogue: 23,
   'news-rack': 25,
-  'coat-rack': 44,
   ladder: 34,
   'lift-door': 30,
   'umbrella-stand': 9,
@@ -167,7 +165,6 @@ const TIGHT_KINDS: ReadonlySet<PropKind> = new Set(['gate-post', 'podium'])
 // A chair is an 11 px square centred on its seat, set back by its facing (the 3D chair3 and seatsOf).
 const CHAIR_PX = 11
 const CHAIR_SET_BACK: Readonly<Record<SeatFacing, number>> = Object.freeze({
-  desk: 0,
   back: -4,
   front: -12,
 })
@@ -228,9 +225,9 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('books', 'lib', { at: [168, 98, 14, 10], draw: [168, 90, 15, 14], variant: 0 }),
   stand('catalogue', 'lib', { at: [168, 168, 28, 10], draw: [168, 156, 28, 22] }),
   ...[176, 224, 272].flatMap((x) => [
-    stand('chair', 'lib', { at: seatFoot(x + 20, 136, 'desk'), draw: [x + 12, 113, 16, 11] }),
-    stand('desk', 'lib', { at: [x, 119, 40, 12], draw: [x, 128, 40, 20] }),
-    stand('computer', 'lib', { at: [x + 12, 128, 16, 3], draw: [x + 12, 119, 16, 14], sortY: 148 }),
+    stand('chair', 'lib', { at: seatFoot(x + 20, 136, 'back'), draw: [x + 12, 113, 16, 11] }),
+    stand('desk', 'lib', { at: [x, 119 + DESK_SHIFT_PX, 40, 12], draw: [x, 128, 40, 20] }),
+    stand('computer', 'lib', { at: [x + 12, 150, 16, 3], draw: [x + 12, 126, 16, 14], sortY: 148 }),
   ]),
   stand('desk-lamp', 'lib', {
     at: [255, 120, 8, 4],
@@ -267,19 +264,15 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   ),
   wall('wall-screen', 'lobby', { at: [28, 242, 84, 36], tip: 'agenda', variant: 1 }),
   wall('wall-screen', 'lobby', { at: [20, 286, 92, 42], tip: 'agenda', variant: 2 }),
-  stand('coat-rack', 'lobby', { at: [146, 312, 8, 8], draw: [146, 272, 12, 45] }),
   stand('cooler', 'lobby', { at: [134, 292, 12, 8], draw: [134, 259, 12, 45] }),
-  stand('coffee', 'lobby', { at: [114, 291, 16, 9], draw: [114, 280, 16, 19] }),
   stand('cat-bed', 'lobby', { at: [136, 315, 24, 14], draw: [136, 315, 24, 14] }),
   stand('umbrella-stand', 'lobby', { at: [6, 286, 6, 5], draw: [5, 272, 8, 19] }),
   stand('guest-desk', 'lobby', { at: [112, 323, 18, 10], draw: [112, 310, 18, 23] }),
   stand('chair', 'lobby', { at: seatFoot(121, 316, 'back'), draw: [113, 293, 16, 11] }),
-  stand('bin', 'lobby', { at: [130, 301, 5, 5], draw: [130, 300, 5, 6] }),
   stand('gate-post', 'lobby', { at: [5, 254, 8, 3], draw: [5, 241, 8, 16] }),
   stand('podium', 'lobby', { at: [5, 264, 8, 8], draw: [5, 253, 8, 19] }),
   stand('gate-post', 'lobby', { at: [5, 279, 8, 3], draw: [5, 266, 8, 16] }),
   stand('sofa', 'lobby', { at: [24, 354, 72, 14], draw: [24, 340, 72, 30] }),
-  stand('plant', 'lobby', { at: [136, 352, 8, 8], draw: [134, 344, 12, 16] }),
   stand('lamp', 'lobby', { at: [100, 368, 8, 8], draw: [98, 321, 12, 51] }),
   wall('frame', 'alerts', { at: [232, 230, 16, 12], variant: 1 }),
   wall('wall-screen', 'alerts', { at: [174, 260, 42, 24], tip: 'alerts', variant: 3 }),
@@ -295,11 +288,20 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
     variant: 1,
   }),
   stand('phone', 'alerts', { at: [258, 334, 10, 8], draw: [258, 323, 10, 7], height: 19.5 }),
+  stand('computer', 'alerts', { at: [222, 340, 16, 3], draw: [222, 318, 16, 14], sortY: 342 }),
   stand('lamp', 'alerts', { at: [308, 372, 8, 8], draw: [306, 325, 12, 51] }),
   wall('results-board', 'assist', { at: [414, 232, 52, 22], tip: 'results' }),
-  stand('chair', 'assist', { at: seatFoot(384, 306, 'desk'), draw: [376, 283, 16, 11] }),
-  stand('desk', 'assist', { at: [364, 291, 40, 12], draw: [364, 300, 40, 20], variant: 3 }),
-  stand('computer', 'assist', { at: [376, 300, 16, 3], draw: [376, 291, 16, 14], sortY: 320 }),
+  stand('chair', 'assist', { at: seatFoot(384, 306, 'back'), draw: [376, 283, 16, 11] }),
+  stand('desk', 'assist', {
+    at: [364, 291 + DESK_SHIFT_PX, 40, 12],
+    draw: [364, 300, 40, 20],
+    variant: 3,
+  }),
+  stand('computer', 'assist', {
+    at: [376, 300 + DESK_SHIFT_PX, 16, 3],
+    draw: [376, 298, 16, 14],
+    sortY: 320,
+  }),
   stand('tank', 'assist', { at: [434, 298, 36, 13], draw: [434, 295, 36, 27], tip: 'fish' }),
   stand('plant', 'assist', { at: [332, 348, 8, 8], draw: [330, 340, 12, 16] }),
   stand('plant', 'assist', { at: [452, 352, 8, 8], draw: [450, 344, 12, 16] }),
@@ -315,11 +317,11 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
   wall('lift-door', 'team', { at: [LIFT_TEAM.x, LIFT_TEAM.y, LIFT_TEAM.w, LIFT_TEAM.h] }),
   ...DESK_SLOTS.flatMap(({ x, y }) => [
-    stand('chair', 'team', { at: seatFoot(x + 20, y + 8, 'desk'), draw: [x + 12, y - 15, 16, 11] }),
-    stand('desk', 'team', { at: [x, y - 9, 40, 12], draw: [x, y, 40, 20] }),
+    stand('chair', 'team', { at: seatFoot(x + 20, y + 8, 'back'), draw: [x + 12, y - 15, 16, 11] }),
+    stand('desk', 'team', { at: [x, y - 9 + DESK_SHIFT_PX, 40, 12], draw: [x, y, 40, 20] }),
     stand('computer', 'team', {
-      at: [x + 12, y, 16, 3],
-      draw: [x + 12, y - 9, 16, 14],
+      at: [x + 12, y + DESK_SHIFT_PX, 16, 3],
+      draw: [x + 12, y - 2, 16, 14],
       sortY: y + 20,
     }),
   ]),

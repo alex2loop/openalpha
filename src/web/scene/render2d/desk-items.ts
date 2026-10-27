@@ -258,8 +258,8 @@ function anchorOf(row: DeskProp): PropDef | undefined {
   return isPinned(row) ? undefined : SUPPORTS.find((prop) => isInside(prop.rect, row.at))
 }
 
-/** A scout's browser strip over its computer's glass, standing or laid flat, as the mockup lays it
- *  on whichever screen the monitor shows; cut from the atlas `deskPiecesOf` painted this frame. */
+/** A scout's browser strip over its computer's glass, as the mockup lays it on the screen; cut
+ *  from the atlas `deskPiecesOf` painted this frame. */
 export function paintTabsOn(g: CanvasRenderingContext2D, computer: PropDef, glass: Rect): void {
   const canvas = held.atlas?.canvas
   const row = TAB_ROWS.find((one) => isInside(computer.rect, one.at))

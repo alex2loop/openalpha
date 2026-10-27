@@ -12,7 +12,7 @@ import {
 import type { Box } from '@/web/scene/render3d/boxes'
 import type { Materials } from '@/web/scene/render3d/lights'
 import type { FloorProps } from '@/web/scene/render3d/props'
-import type { CalendarView, DeskItemsView, FloorId, Rect, RoomId } from '@/web/scene/types'
+import type { CalendarView, DeskItemsView, FloorId, Point, Rect, RoomId } from '@/web/scene/types'
 import { box } from '@/web/scene/render3d/boxes'
 import {
   createPool,
@@ -46,7 +46,7 @@ import {
   deskSlotOf,
   isPinned,
 } from '@/web/scene/world/desk-props'
-import { DESK_SLOTS, TEAM_FLOOR } from '@/web/scene/world/floors'
+import { DESK_SHIFT_PX, DESK_SLOTS, TEAM_FLOOR } from '@/web/scene/world/floors'
 import { roomAt } from '@/web/scene/world/rooms'
 
 /** The desk pieces that change while the floor shows: the faces on one atlas mesh, and the cups,
@@ -86,7 +86,9 @@ const MAX_INSTANCES = 128
 const FACE_LIFT_PX = 0.05
 // The team floor's calendar lies on the left of a desk top, from the desk's corner; the desk top
 // stands this high.
-const CALENDAR_AT = Object.freeze({ dx: 3, dz: -10.5, w: 8, d: 9, rise: 14 })
+const CALENDAR_AT = Object.freeze({ dx: 3, dz: DESK_SHIFT_PX - 10.5, w: 8, d: 9, rise: 14 })
+// The library desks stand behind their sitters in 3D: their pieces stand with them.
+const SHIFTED_ROOM: RoomId = 'lib'
 // A tab strip covers the monitor whose screen is within this of its spot.
 const SCREEN_MATCH_PX = 3
 const COFFEE = Object.freeze({ w: 1.4, h: 0.2 })
@@ -123,8 +125,10 @@ export function addDeskBoxes(rooms: Map<RoomId, Box[]>, floor: FloorId): void {
     const room = roomAt(floor, row.at)?.id
     const out = room === undefined ? undefined : rooms.get(room)
 
+    const { x, y } = atOf(row)
+
     for (const [dx, dz, w, d, rise, h, color] of DESK_SHAPES[row.type] ?? []) {
-      out?.push(box([row.at.x + dx, row.at.y + dz, w, d, row.height + rise, h], color))
+      out?.push(box([x + dx, y + dz, w, d, row.height + rise, h], color))
     }
   }
 }
@@ -255,8 +259,9 @@ function quadOf(row: DeskProp, props: FloorProps | undefined): Quad | undefined 
     return undefined
   }
 
-  const x0 = row.at.x + spot.dx
-  const z0 = row.at.y + spot.dz
+  const at = atOf(row)
+  const x0 = at.x + spot.dx
+  const z0 = at.y + spot.dz
   const y0 = row.height + spot.rise + FACE_LIFT_PX
   const x: Quad['x'] = [x0, x0 + spot.w]
 
@@ -344,7 +349,7 @@ function placeRow(pool: Pool, at: { readonly row: DeskProp; readonly view: DeskI
   const { row, view } = at
   const slot = deskSlotOf(row)
   const mess = view.mess.get(row.owner)
-  const { x, y: z } = row.at
+  const { x, y: z } = atOf(row)
 
   if (row.type === 'cup' && slot < (mess?.cups ?? 0)) {
     placeCup(pool, { row, slot })
@@ -366,8 +371,9 @@ function placeRow(pool: Pool, at: { readonly row: DeskProp; readonly view: DeskI
 // A cup in its slot's tone, its coffee showing at the top.
 function placeCup(pool: Pool, at: { readonly row: DeskProp; readonly slot: number }): void {
   const { row, slot } = at
-  const x = row.at.x + CUP_LOOK.w / 2
-  const z = row.at.y + CUP_LOOK.w / 2
+  const foot = atOf(row)
+  const x = foot.x + CUP_LOOK.w / 2
+  const z = foot.y + CUP_LOOK.w / 2
 
   placeInstance(pool, {
     x,
@@ -394,10 +400,12 @@ function placeSheet(pool: Pool, at: { readonly row: DeskProp; readonly slot: num
     return
   }
 
+  const { x, y } = atOf(row)
+
   placeInstance(pool, {
-    x: row.at.x + SHEET_LOOK.w / 2,
+    x: x + SHEET_LOOK.w / 2,
     y: row.height + SHEET_LOOK.h / 2,
-    z: row.at.y + SHEET_LOOK.d / 2,
+    z: y + SHEET_LOOK.d / 2,
     size: [SHEET_LOOK.w, SHEET_LOOK.h, SHEET_LOOK.d],
     // Clockwise on screen is a negative turn about the up axis.
     yaw: -sheetTurnOf(slot),
@@ -415,4 +423,11 @@ function placeNote(pool: Pool, at: { readonly row: DeskProp; readonly slot: numb
     size: [NOTE_LOOK.w, NOTE_LOOK.h, NOTE_LOOK.d],
     color: toneOf(NOTE_LOOK.tones, slot),
   })
+}
+
+// Where a piece stands in 3D: on a library desk, south by the desk's shift; elsewhere where it is.
+function atOf(row: DeskProp): Point {
+  const isShifted = !isPinned(row) && roomAt(DESK_FLOOR, row.at)?.id === SHIFTED_ROOM
+
+  return isShifted ? { x: row.at.x, y: row.at.y + DESK_SHIFT_PX } : row.at
 }

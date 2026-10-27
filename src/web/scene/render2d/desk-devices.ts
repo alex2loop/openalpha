@@ -166,35 +166,6 @@ function paintRefreshText(
   return true
 }
 
-/** The keyboard on a desk whose top is at `top`: before the standing monitor centred on `cx`, or
- *  pulled forward past the screen laid flat while someone sits there. */
-export function paintKeyboard(
-  g: CanvasRenderingContext2D,
-  at: { readonly cx: number; readonly top: number; readonly isSeated: boolean }
-): void {
-  const { cx, top } = at
-
-  if (at.isSeated) {
-    fill(g, [cx - 3, top + 10, 9, 2], DEVICE_TONES.keys)
-    return
-  }
-
-  fill(g, [cx - 3, top + 5, 9, 3], DEVICE_TONES.keys)
-  fill(g, [cx - 3, top + 7, 9, 1], DEVICE_TONES.keysEdge)
-}
-
-/** A monitor laid flat on its desk, its glass at `screen`, in its dark frame. */
-export function paintFlatMonitor(
-  g: CanvasRenderingContext2D,
-  screen: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
-  scene: PaintScene
-): void {
-  const { x, y, w, h } = screen
-
-  fill(g, [x - 1, y - 1, w + 2, h + 2], INK)
-  paintIdleScreen(g, [x, y, w, h], scene.life.isQuiet)
-}
-
 /** A small silver desktop box with its mark on top and its front ports. */
 export function paintStudio(g: CanvasRenderingContext2D, x: number, y: number): void {
   const [top, edge, side, base] = DEVICE_TONES.studio

@@ -1,5 +1,6 @@
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import { type Box, box, type Spot } from '@/web/scene/render3d/boxes'
+import { coolerOf } from '@/web/scene/render3d/cooler'
 import { copierOf } from '@/web/scene/render3d/copier'
 import { CREW_RECIPES, frontDeskThings } from '@/web/scene/render3d/crew-props'
 import {
@@ -26,7 +27,7 @@ import {
   WOOD,
 } from '@/web/scene/sprites/palette'
 import { isWallMounted, type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
-import { SEATS, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'
+import { DESK_SITTER_FACE, SEATS, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'
 
 /** A floor's furniture: static boxes by room, glass, and the parts that change while it shows. */
 export interface FloorProps {
@@ -73,8 +74,6 @@ const SCREEN_BEZEL = '#2B2433'
 const BOARD_FRAME = '#C9CDD6'
 const ART = ['#D9B98F', '#C9B9D9', '#E8C9A0', '#BFD3EE'] as const
 const RACK_TONE = '#3A3F52'
-const COOLER_BODY = '#D9DEE8'
-const COOLER_WATER = '#8FD3F4'
 const VENDING_FACE = '#2F3F78'
 const PHONE_TONE = '#D86A66'
 // A desk phone's height counts the desk under it.
@@ -83,7 +82,6 @@ const PHONE_PX = 1.6
 const COUNTER_PX = 13
 const MACHINE_TONE = '#9DB0CC'
 const DESK_TOP_PX = 2
-const OPERATOR_ROOM = 'desk'
 const LEG_PX = 2
 const SEAT_PX = 7
 const CHAIR_BACK_PX = 14
@@ -134,7 +132,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
     frontDeskThings(job)
   },
   desk: (job) => {
-    ;(job.prop.room === OPERATOR_ROOM ? deskOf(WOOD) : juniorDesk)(job)
+    solidDesk(job)
     deskThings(job)
   },
   table: (job) => {
@@ -190,10 +188,7 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
   },
   phone: ({ prop, out }) =>
     out.push(box(spot(prop, [prop.height - PHONE_ON_DESK_PX, PHONE_PX], 1), PHONE_TONE, true)),
-  cooler: ({ prop, out }) => {
-    out.push(box(spot(prop, [0, prop.height - 12]), COOLER_BODY, true))
-    out.push(box(spot(prop, [prop.height - 12, 12], 2), COOLER_WATER, true))
-  },
+  cooler: coolerOf,
   coffee: (job) => {
     const { rect } = job.prop
 
@@ -256,11 +251,6 @@ const RECIPES: Readonly<Partial<Record<PropKind, Recipe>>> = Object.freeze({
       )
     )
   },
-  'coat-rack': ({ prop, out }) => {
-    out.push(box(spot(prop, [0, 1.5], 1), DARKWOOD[2], true))
-    out.push(box(spot(prop, [0, prop.height], 3), DARKWOOD[1]))
-    out.push(box(spot(prop, [prop.height - 8, 1.4], 0), DARKWOOD[1]))
-  },
   ladder: ({ prop, out }) => {
     const { x, y, w, h } = prop.rect
 
@@ -294,8 +284,8 @@ function deskOf(tones: readonly [string, string, string]): Recipe {
   }
 }
 
-// The mockup's junior desk: a solid body under a top a px proud of it all round.
-function juniorDesk({ prop, out }: Build): void {
+// The mockup's desk, yours and every other: a solid body under a top a px proud of it all round.
+function solidDesk({ prop, out }: Build): void {
   const { x, y, w, h } = prop.rect
   const top = prop.height - DESK_TOP_PX
 
@@ -325,9 +315,11 @@ function seatFacing(prop: PropDef): string | undefined {
   ]
   const { x, y, w, h } = prop.rect
 
-  return all.find(
-    (seat) => seat.at.x >= x && seat.at.x <= x + w && seat.at.y >= y - 4 && seat.at.y <= y + h + 4
-  )?.face
+  const seat = all.find(
+    (one) => one.at.x >= x && one.at.x <= x + w && one.at.y >= y - 4 && one.at.y <= y + h + 4
+  )
+
+  return seat?.desk === true ? DESK_SITTER_FACE['3d'] : seat?.face
 }
 
 function shelf({ prop, out }: Build): void {

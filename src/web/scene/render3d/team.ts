@@ -12,7 +12,7 @@ import {
   type Shapes,
 } from '@/web/scene/render3d/instancing'
 import { FOCUS_TONES, OUTLINE, PROP_TONES } from '@/web/scene/sprites/palette'
-import { DESK_SLOTS } from '@/web/scene/world/floors'
+import { DESK_SHIFT_PX, DESK_SLOTS } from '@/web/scene/world/floors'
 
 /** The team floor's own pieces: the dotted threads and scored bursts, and each desk's prop. */
 export interface TeamPieces {
@@ -35,7 +35,7 @@ const BURST_SPARKS: readonly (readonly [number, number])[] = Object.freeze([
   [8, 5],
   [0, 7],
 ])
-const FOCUS_AT = Object.freeze({ dx: 28, dz: -6, y: 14 })
+const FOCUS_AT = Object.freeze({ dx: 28, dz: DESK_SHIFT_PX - 6, y: 14 })
 const FOCUS_LOOKS: Readonly<Record<DeskFocus, readonly [string, number]>> = Object.freeze({
   safe: [FOCUS_TONES.safe, 8],
   candles: [FOCUS_TONES.candles, 8],

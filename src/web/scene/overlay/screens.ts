@@ -9,7 +9,7 @@ import { hostOf, seriesKeyOf } from '@/web/scene/data/desk-reads'
 import { runContentOf, terminalLinesOf, tickerOf } from '@/web/scene/data/screen-lines'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { CRAWLERS, scoutOf } from '@/web/scene/sim/vocabulary'
-import { computerAt, flatScreenOf } from '@/web/scene/world/desk-spots'
+import { computerAt, standingScreenOf } from '@/web/scene/world/desk-spots'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { sceneView } from '@/web/state/prefs'
 
@@ -173,9 +173,9 @@ function screenRectOf(def: ActorDef): Rect | undefined {
   return computer === undefined ? undefined : computerScreenOf(computer)
 }
 
-// 2D lays a worked-at screen flat on the desk; 3D keeps it standing.
+// The monitor's glass in 2D; 3D's leaning face takes the whole box above its stand.
 function computerScreenOf(computer: PropDef): Rect {
   return sceneView.value === '2d'
-    ? flatScreenOf(computer)
+    ? standingScreenOf(computer.draw)
     : { ...computer.draw, h: computer.draw.h - STAND_PX }
 }

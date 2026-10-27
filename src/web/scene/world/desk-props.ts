@@ -126,7 +126,7 @@ export const DESK_PROPS: readonly DeskProp[] = Object.freeze([
   ...deskOf('crawler-1', LIB_TOP, {
     items: [
       ['headphones', 177, 119.4],
-      ['tabs', 196, 129.5],
+      ['tabs', 196, 151.5],
     ],
     cups: [
       [211.4, 121.2],
@@ -145,7 +145,7 @@ export const DESK_PROPS: readonly DeskProp[] = Object.freeze([
   ...deskOf('crawler-2', LIB_TOP, {
     items: [
       ['headphones', 273, 119.4],
-      ['tabs', 292, 129.5],
+      ['tabs', 292, 151.5],
     ],
     cups: [
       [307.4, 121.2],

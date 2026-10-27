@@ -4,8 +4,6 @@ import { paintCooler } from '@/web/scene/render2d/cooler'
 import { CREW_PAINTERS } from '@/web/scene/render2d/crew-props'
 import {
   paintBin,
-  paintFlatMonitor,
-  paintKeyboard,
   paintMeetingTable,
   paintMonitor,
   paintMug,
@@ -28,7 +26,7 @@ import {
   PROP_TONES,
   WOOD,
 } from '@/web/scene/sprites/palette'
-import { deskSpotOf, flatScreenOf, standingScreenOf } from '@/web/scene/world/desk-spots'
+import { standingScreenOf } from '@/web/scene/world/desk-spots'
 import { isWallMounted } from '@/web/scene/world/props'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
@@ -95,7 +93,6 @@ const PAINTERS: Readonly<Record<PropKind, Painter>> = Object.freeze({
   cabinet: paintCabinet,
   catalogue: paintCatalogue,
   'news-rack': paintNewsRack,
-  'coat-rack': paintCoatRack,
   ladder: paintLadder,
   'umbrella-stand': paintUmbrellaStand,
   'desk-lamp': paintDeskLamp,
@@ -116,8 +113,9 @@ export function tieRankOf(prop: PropDef): number {
   return DECAL_KINDS.has(prop.kind) ? 0 : 1
 }
 
-// The mockup's desk: the top and its legs, a bin beside it, the desktop box, the keyboard, and a
-// phone and mug, or a StandBy stand on a senior desk; the alert desk is a long counter.
+// The mockup's desk: the top and its legs, a bin beside it, the desktop box, and a phone and mug,
+// or a StandBy stand on a senior desk (the keyboard lies behind the monitor, before its worker);
+// the alert desk is a long counter.
 function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
 
@@ -135,13 +133,10 @@ function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene
     return
   }
 
-  const cx = x + w / 2
-
   drawBlock(g, [x, y, w, 12], { front: h - 12, tones: WOOD })
   fill(g, [x + 1, y + h, 2, 4], INK)
   fill(g, [x + w - 3, y + h, 2, 4], INK)
   paintBin(g, x - 6, y + 8)
-  paintKeyboard(g, { cx, top: y, isSeated: scene.seated.has(deskSpotOf(prop)) })
   paintStudio(g, x + 1, y + 1)
 
   if (prop.variant === DESK_LOOK.senior) {
@@ -200,16 +195,11 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 }
 
-// The monitor stands on its desk and sorts with it; someone sitting there has it laid flat on the
-// desk in front of them, as the mockup does, so it never prints on them.
+// Every desk's one monitor stands on its desk and sorts with it, before the worker sitting behind
+// the desk: their head shows over it, its screen faces the camera.
 function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
-  if (scene.seated.has(deskSpotOf(prop))) {
-    paintFlatMonitor(g, flatScreenOf(prop), scene)
-    paintTabsOn(g, prop, flatScreenOf(prop))
-  } else {
-    paintMonitor(g, prop.draw, scene)
-    paintTabsOn(g, prop, standingScreenOf(prop.draw))
-  }
+  paintMonitor(g, prop.draw, scene)
+  paintTabsOn(g, prop, standingScreenOf(prop.draw))
 }
 
 function paintPrinter(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
@@ -359,19 +349,6 @@ function paintNewsRack(g: CanvasRenderingContext2D, prop: PropDef): void {
   for (let i = 0; i < 3; i++) {
     fill(g, [x + 1 + i * 4, y + 2, 3, 15 - i], PASTEL[(i + 1) % PASTEL.length] ?? PALETTE.paper)
   }
-}
-
-function paintCoatRack(g: CanvasRenderingContext2D, prop: PropDef): void {
-  const { x, y, h } = prop.draw
-  const pole = x + 4
-
-  castShadow(g, [pole - 4, y + h - 3, 10, 3])
-  fill(g, [pole - 4, y + h - 3, 10, 2], METAL[2])
-  fill(g, [pole, y, 2, h - 2], INK)
-  fill(g, [pole, y + 1, 1, h - 3], WOOD[2])
-  fill(g, [pole - 5, y + 3, 12, 2], WOOD[2])
-  framed(g, [pole + 3, y + 7, 4, 9], '#A9C2E8')
-  framed(g, [pole - 5, y + 7, 3, 8], '#F0B8AA')
 }
 
 function paintLadder(g: CanvasRenderingContext2D, prop: PropDef): void {
