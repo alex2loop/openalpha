@@ -41,6 +41,14 @@ export function sunAt(epochMs: number, geo: Geo): SunView {
   return { altitudeDeg: 90 - zenith / DEG, azimuthDeg }
 }
 
+// Civil dusk: the sun this far under the horizon is night.
+const NIGHT_FROM_DEG = -6
+
+/** The sun is well under the horizon: the night light holds and the office is closed. */
+export function isNightSun(sun: SunView): boolean {
+  return sun.altitudeDeg < NIGHT_FROM_DEG
+}
+
 /** The sun stands in the eastern half of the sky: the morning's light. */
 export function isMorningSun(sun: SunView): boolean {
   return sun.azimuthDeg < SOUTH_DEG

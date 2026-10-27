@@ -1,10 +1,12 @@
 import { computed, type ReadonlySignal } from '@preact/signals'
 
+import type { WeatherFxView, WindowLight } from '@/web/scene/sky-types'
 import type { LightView } from '@/web/scene/types'
 import { pageMinute, pageNow, sceneZone } from '@/web/scene/clock/clock'
 import { solarNoonOf, sunAt } from '@/web/scene/clock/sun'
 import { regionPack } from '@/web/scene/data/home'
 import { weather } from '@/web/scene/data/weather'
+import { createWindowEase } from '@/web/scene/sim/window-ease'
 import { lightByHour } from '@/web/state/prefs'
 import { zoneParts } from '@/web/text/time'
 
@@ -43,9 +45,12 @@ export const skyNow: ReadonlySignal<SkyNow> = computed(() => {
 })
 
 /** The light the renderers draw: `skyNow` eased over `LIGHT_EASE_MS` from where it stood, at once
- *  under reduced motion. `view` fills one object in place. */
+ *  under reduced motion. `view` fills one object in place. `windowLight` is the window light under
+ *  the light `view` last gave and the weather `fx`, its patches and blinds easing on the same clock;
+ *  `isEasing` covers both. */
 export interface SkyEase {
   view(nowMs: number, isReduced: boolean): LightView
+  windowLight(fx: WeatherFxView): WindowLight
   isEasing(nowMs: number): boolean
 }
 
@@ -63,11 +68,15 @@ export function createSkyEase(): SkyEase {
     followsHour: first.followsHour,
   }
   const from = { altitudeDeg: 0, azimuthDeg: 0, cloud: 0 }
+  const glass = createWindowEase()
   let target = first
   let startedAt = Number.NEGATIVE_INFINITY
+  let seen = { nowMs: Number.NEGATIVE_INFINITY, isReduced: false }
 
   return {
     view(nowMs, isReduced) {
+      seen = { nowMs, isReduced }
+
       const next = skyNow.value.light
 
       if (next !== target) {
@@ -94,7 +103,8 @@ export function createSkyEase(): SkyEase {
 
       return shown
     },
-    isEasing: (nowMs) => nowMs - startedAt < LIGHT_EASE_MS,
+    windowLight: (fx) => glass.view({ ...seen, sun: shown.sun, cloud: shown.cloud, rain: fx.rain }),
+    isEasing: (nowMs) => nowMs - startedAt < LIGHT_EASE_MS || glass.isEasing(),
   }
 }
 

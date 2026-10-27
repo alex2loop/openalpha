@@ -284,6 +284,7 @@ function buildSimView(parts: Sims, alpha: number): SimView {
     actors: [...actors, ...parts.team.actors()],
     props: { lit, lampGlow: lampGlowOf(), isClosed: isClosedPhase(homePhase.value) },
     light: parts.sky.view(performance.now(), reducedMotion.value),
+    windowLight: parts.sky.windowLight(parts.street.view().weather),
     weather: parts.street.view().weather,
     life,
     team: parts.team.view(performance.now()),

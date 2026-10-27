@@ -9,8 +9,9 @@ import {
 } from 'three'
 
 import type { Materials } from '@/web/scene/render3d/lights'
+import type { GlassSide } from '@/web/scene/sky-types'
 import type { SimView } from '@/web/scene/types'
-import { GLASS_SIDES, type GlassSide, windowLightOf } from '@/web/scene/clock/window-light'
+import { GLASS_SIDES } from '@/web/scene/clock/window-light'
 import { box, mergeBoxes } from '@/web/scene/render3d/boxes'
 import { toUnits, WALL_PX } from '@/web/scene/render3d/space'
 import { WORLD } from '@/web/scene/types'
@@ -87,7 +88,7 @@ export function createSunPatches(root: Group, materials: Materials): SunPatches 
 /** Lays each patch as deep and as bright as the sun through its glass makes it, and draws the
  *  east blinds; true when something changed. */
 export function syncSunPatches(sun: SunPatches, sim: SimView): boolean {
-  const light = windowLightOf(sim.light.sun, { cloud: sim.light.cloud, rain: sim.weather.rain })
+  const light = sim.windowLight
   const key = JSON.stringify([sim.floor, light])
 
   if (key === sun.key) {

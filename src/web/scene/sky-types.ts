@@ -28,3 +28,17 @@ export interface WeatherFxView {
   readonly flashAt: number
   readonly atMs: number
 }
+
+/** A glass side of the floor: west, east, north or south. */
+export type GlassSide = 'w' | 'e' | 'n' | 's'
+
+/** What the sun does at the glass, as the mockup's sky computes it: how far each side's blinds
+ *  are drawn (only the west and east glass has them; 0 open to 1), how strong the warm patch the
+ *  sun throws on the floor inside each side is (0 to 1), and how deep into the room it reaches
+ *  (world px). From `windowLightOf` the patch is the sun's own, before the blinds cut it by
+ *  `BLIND_CUT` of their closure. */
+export interface WindowLight {
+  readonly blind: Readonly<Record<'w' | 'e', number>>
+  readonly patch: Readonly<Record<GlassSide, number>>
+  readonly depth: Readonly<Record<GlassSide, number>>
+}

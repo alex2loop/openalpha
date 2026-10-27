@@ -23,8 +23,8 @@ const LAMP_HEAD_RADIUS = 28
 // The shade's glow sits this far over the lamp's foot, as the mockup pools it.
 const LAMP_HEAD_RISE = 38
 const LAMP_FLOOR_RADIUS = 48
-// A lamp's glow by day and in the dark, as the mockup sets them: the shade brighter at night, the
-// pool on the floor softer.
+// A lamp's glow by day and at night, as the mockup sets them: the shade brighter at night, the
+// pool on the floor softer. It switches at once when the sun crosses civil dusk, never fades.
 const LAMP_HEAD_ALPHA = Object.freeze({ day: 0.36, night: 0.45 })
 const LAMP_FLOOR_ALPHA = Object.freeze({ day: 0.336, night: 0.256 })
 const CLOSED_SHADE = '#C4C6D2'
@@ -40,6 +40,8 @@ interface LightingSpec {
   readonly floor: FloorId
   readonly lit: ReadonlySet<RoomId>
   readonly light: LightRow
+  /** The sun is under civil dusk: the lamps glow their night strength. */
+  readonly isNight: boolean
   /** The index's session move behind the lobby's red glow, a percent; absent without one. */
   readonly dropPct?: number
   /** How far the lamps that are on glow: 1 untouched, less over the lunch nap. */
@@ -122,14 +124,14 @@ function paintPools(g: CanvasRenderingContext2D, spec: LightingSpec, glow: numbe
       y: rect.y + rect.h - LAMP_HEAD_RISE,
       radius: LAMP_HEAD_RADIUS,
       rgb: WARM_RGB,
-      alpha: byDark(LAMP_HEAD_ALPHA, spec.light.dark) * spec.lampGlow,
+      alpha: byHour(LAMP_HEAD_ALPHA, spec.isNight) * spec.lampGlow,
     })
     pool(g, {
       x: cx,
       y: rect.y + rect.h,
       radius: LAMP_FLOOR_RADIUS,
       rgb: WARM_RGB,
-      alpha: byDark(LAMP_FLOOR_ALPHA, spec.light.dark) * spec.lampGlow,
+      alpha: byHour(LAMP_FLOOR_ALPHA, spec.isNight) * spec.lampGlow,
     })
   }
 
@@ -164,8 +166,8 @@ function paintDeskLampPools(g: CanvasRenderingContext2D, spec: LightingSpec): vo
   }
 }
 
-function byDark(alpha: { readonly day: number; readonly night: number }, dark: number): number {
-  return alpha.day + (alpha.night - alpha.day) * dark
+function byHour(alpha: { readonly day: number; readonly night: number }, isNight: boolean): number {
+  return isNight ? alpha.night : alpha.day
 }
 
 interface Pool {

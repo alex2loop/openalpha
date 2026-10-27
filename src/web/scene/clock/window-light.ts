@@ -1,18 +1,5 @@
-import type { SunView } from '@/web/scene/sky-types'
+import type { GlassSide, SunView, WindowLight } from '@/web/scene/sky-types'
 import { DEG } from '@/web/scene/clock/sun'
-
-/** A glass side of the floor: west, east, north or south. */
-export type GlassSide = 'w' | 'e' | 'n' | 's'
-
-/** What the sun does at the glass, as the mockup's sky computes it: how far each side's blinds
- *  are drawn (only the west and east glass has them; 0 open to 1), how strong the warm patch the
- *  sun throws on the floor inside each side is (0 to 1), and how deep into the room it reaches
- *  (world px). */
-export interface WindowLight {
-  readonly blind: Readonly<Record<'w' | 'e', number>>
-  readonly patch: Readonly<Record<GlassSide, number>>
-  readonly depth: Readonly<Record<GlassSide, number>>
-}
 
 export const GLASS_SIDES: readonly GlassSide[] = Object.freeze(['w', 'e', 'n', 's'])
 
@@ -30,12 +17,12 @@ const BLIND = Object.freeze({
   span: 0.4,
   least: 0.5,
 })
-// Blinds let this share of the patch through.
-const BLIND_CUT = 0.85
+/** The share of a patch that fully drawn blinds take away. */
+export const BLIND_CUT = 0.85
 const WALL_PX = 36
 const DEPTH = Object.freeze({ lowestDeg: 3, min: 10, max: 95 })
 
-/** The window light under `sun` with `cloud` and `rain` (each 0 to 1). */
+/** The window light `sun` with `cloud` and `rain` (each 0 to 1) asks for. */
 export function windowLightOf(
   sun: SunView,
   weather: { readonly cloud: number; readonly rain: number }
@@ -65,15 +52,15 @@ export function windowLightOf(
     DEPTH.min,
     DEPTH.max
   )
-  const patchOf = (side: GlassSide): number => {
-    const cut = side === 'w' || side === 'e' ? 1 - BLIND_CUT * blind[side] : 1
-
-    return facing[side] * direct * cut
-  }
 
   return {
     blind,
-    patch: { w: patchOf('w'), e: patchOf('e'), n: patchOf('n'), s: patchOf('s') },
+    patch: {
+      w: facing.w * direct,
+      e: facing.e * direct,
+      n: facing.n * direct,
+      s: facing.s * direct,
+    },
     depth: { w: depth, e: depth, n: depth, s: depth },
   }
 }

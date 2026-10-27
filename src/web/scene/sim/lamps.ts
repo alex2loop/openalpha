@@ -1,19 +1,17 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { RoomId } from '@/web/scene/types'
+import { isNightSun } from '@/web/scene/clock/sun'
 import { moment } from '@/web/scene/sim/rhythm'
 import { skyNow } from '@/web/scene/sim/sky'
 import { lampsOff, nightLamps, setDayLamps, setNightLamps } from '@/web/state/prefs'
-
-// Civil dusk: the sun this far under the horizon closes the office.
-const NIGHT_SUN_DEG = -6
 
 const lit = signal<ReadonlySet<RoomId>>(new Set())
 
 /** After civil dusk, and all of a rest day, a lamp follows the switches made since and otherwise
  *  who is in; by day it follows its saved switch. The sun decides, never the office hours. */
 export const isLampNight: ReadonlySignal<boolean> = computed(
-  () => !moment.value.tradingDay || skyNow.value.light.sun.altitudeDeg < NIGHT_SUN_DEG
+  () => !moment.value.tradingDay || isNightSun(skyNow.value.light.sun)
 )
 /** The rooms the last drawn frame lit. */
 export const litRooms: ReadonlySignal<ReadonlySet<RoomId>> = lit

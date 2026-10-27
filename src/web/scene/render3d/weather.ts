@@ -11,7 +11,6 @@ import {
 
 import type { Materials } from '@/web/scene/render3d/lights'
 import type { FloorId, SimView } from '@/web/scene/types'
-import { windowLightOf } from '@/web/scene/clock/window-light'
 import { box, mergeBoxes } from '@/web/scene/render3d/boxes'
 import { toUnits, WALL_PX } from '@/web/scene/render3d/space'
 import {
@@ -149,7 +148,7 @@ function createPane(): Pick<Weather3d, 'pane' | 'canvas' | 'texture'> {
 export function syncWeather3d(weather3d: Weather3d, sim: SimView, now: number): WeatherSync {
   const fx = sim.weather
   const isPaneChanged = syncPane(weather3d, sim, now)
-  const closure = windowLightOf(sim.light.sun, { cloud: sim.light.cloud, rain: fx.rain }).blind.w
+  const closure = sim.windowLight.blind.w
   const isBlindChanged = closure !== weather3d.closure
   const isStandFloor = sim.floor === STAND_FLOOR
   const isOpen = isStandFloor && fx.rain > 0
