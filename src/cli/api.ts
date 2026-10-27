@@ -38,6 +38,7 @@ export {
 } from '@/cli/commands/onboard/config-file'
 export { offerOnboard } from '@/cli/commands/onboard/onboard'
 export { isBackgroundLaunch } from '@/cli/daemon-env'
+export { liveDaemon } from '@/cli/daemon-guard'
 export { readDaemonDegraded } from '@/cli/daemon-ready'
 export { getEnv, isVerbose } from '@/cli/env'
 export {
@@ -50,7 +51,13 @@ export {
   reportKeyFile,
   writeEnvFileValue,
 } from '@/cli/env-file'
-export { EXIT_TERMINATED, formatTerminalError, printError, usage } from '@/cli/error-output'
+export {
+  EXIT_TERMINATED,
+  formatTerminalError,
+  printDaemonLost,
+  printError,
+  usage,
+} from '@/cli/error-output'
 export { preflightCommand, resolveCliCommands, resolveCommandPath, runCli } from '@/cli/main'
 export { type KeyEnvGroup, keyEnvGroups } from '@/cli/missing-keys'
 export { formatArgIssue } from '@/cli/parsing/arg-issue'
@@ -64,7 +71,7 @@ export {
   toTerminalWriters,
   withTerminal,
 } from '@/cli/terminal'
-export { fail, hint } from '@/cli/ui/colors'
+export { fail, hint, warn } from '@/cli/ui/colors'
 export {
   formatInstalledNotice,
   formatUpdateNotice,

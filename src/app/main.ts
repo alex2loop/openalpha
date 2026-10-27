@@ -17,6 +17,7 @@ import { boot } from '@/app/boot'
 import { bootRefusals } from '@/app/config-tree'
 import { apiCommand } from '@/app/server/cli/api-command'
 import { connectCommand } from '@/app/server/cli/connect-command'
+import { forwardCommand } from '@/app/server/cli/exec-client'
 import { setupCommand } from '@/app/server/cli/setup-command'
 import { webCommand } from '@/app/server/cli/web-command'
 import {
@@ -79,6 +80,13 @@ interface RunCommandOptions {
   readonly fatalBoundary: FatalBoundary
 }
 
+interface RunBootCommandOptions extends RunCommandOptions {
+  readonly needs: Required<Needs>
+  readonly extraCommands: readonly (Command | Group)[]
+  /** Every command the entry knows before boot, for naming the one a lost daemon was running. */
+  readonly preBootCommands: readonly (Command | Group)[]
+}
+
 interface RunBootOptions {
   readonly flags: GlobalFlags
   readonly terminal: Terminal
@@ -128,7 +136,7 @@ export async function main(argv: readonly string[], options?: MainOptions): Prom
 }
 
 async function runCommand(options: RunCommandOptions): Promise<number> {
-  const { flags, preBoot, main: mainOptions, fatalBoundary } = options
+  const { flags, preBoot, main: mainOptions } = options
   const extraCommands = [...SERVER_COMMANDS, ...(mainOptions?.extraCommands ?? [])]
 
   if (flags.issues.length > 0) {
@@ -163,19 +171,41 @@ async function runCommand(options: RunCommandOptions): Promise<number> {
     })
   }
 
-  const preparation = await prepareBoot(preBoot, preflight.needs)
+  return await runBootCommand({
+    ...options,
+    needs: preflight.needs,
+    extraCommands,
+    preBootCommands,
+  })
+}
+
+/** A booting command runs in the daemon when one can take it, else boots here. */
+async function runBootCommand(options: RunBootCommandOptions): Promise<number> {
+  const { flags, preBoot, needs, extraCommands } = options
+  const preparation = await prepareBoot(preBoot, needs)
 
   if (preparation !== undefined) {
     return preparation
   }
 
+  const forwarded = await forwardCommand({
+    app: preBoot,
+    flags,
+    needs,
+    commands: options.preBootCommands,
+  })
+
+  if (forwarded !== undefined) {
+    return forwarded
+  }
+
   return await runBoot({
     flags,
     terminal: preBoot.terminal,
-    needs: preflight.needs,
+    needs,
     extraCommands,
-    main: mainOptions,
-    fatalBoundary,
+    main: options.main,
+    fatalBoundary: options.fatalBoundary,
     locale: preBoot.config.locale.language,
     keyFile: preBoot.keyFile,
   })

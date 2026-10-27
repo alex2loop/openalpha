@@ -61,6 +61,7 @@ cli:isUpdateCheckEnabled
 cli:isVerbose
 cli:keyEnvGroups
 cli:lazyCommand
+cli:liveDaemon
 cli:loadEnvFile
 cli:newerVersionOf
 cli:offerOnboard
@@ -68,6 +69,7 @@ cli:parseGlobalFlags
 cli:patchUpdateState
 cli:preBootApp
 cli:preflightCommand
+cli:printDaemonLost
 cli:printError
 cli:readCommandCacheStubs
 cli:readDaemonDegraded
@@ -92,6 +94,7 @@ cli:takeChatNotice
 cli:toChatText
 cli:toTerminalWriters
 cli:usage
+cli:warn
 cli:withTerminal
 cli:writeCommandCache
 cli:writeEnvFileValue
