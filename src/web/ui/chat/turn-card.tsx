@@ -9,7 +9,7 @@ import {
 } from '@/web/state/chat'
 import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
-import { findRun, hasChildren } from '@/web/state/live'
+import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
 import { canRemember, toAttributeName } from '@/web/state/memory'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
@@ -84,10 +84,10 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
 }
 
 function RunningStep({ turn }: { readonly turn: Turn }) {
-  const researchId = isResearchTurn(turn) ? turn.runId : undefined
+  const research = isResearchTurn(turn) ? findTurnRun(turn) : undefined
 
-  if (researchId !== undefined && findRun(researchId) !== undefined) {
-    return <ResearchSteps runId={researchId} />
+  if (research !== undefined) {
+    return <ResearchSteps runId={research.runId} />
   }
 
   const fallback = turn.kind === 'slash' ? 'ui.office.chat.working' : 'ui.office.chat.answering'
@@ -103,6 +103,23 @@ function RunningStep({ turn }: { readonly turn: Turn }) {
         <p class="meta">{tr('ui.office.chat.parallel', { what: alongside })}</p>
       )}
     </>
+  )
+}
+
+// A lane command names its run as it starts; a command handed to an agent runs as its session's
+// top agent run, which the daemon names only at the end.
+function findTurnRun(turn: Turn): Run | undefined {
+  if (turn.runId !== undefined) {
+    return findRun(turn.runId)
+  }
+
+  if (turn.kind !== 'slash' || turn.isInLane === true || turn.sessionId === undefined) {
+    return undefined
+  }
+
+  return runs.value.findLast(
+    (run) =>
+      run.kind === 'agent' && run.parentRunId === undefined && run.sessionId === turn.sessionId
   )
 }
 
@@ -170,7 +187,7 @@ function toPreferenceLine(preference: SavedPreference): string {
 
 function RunningActions({ turn }: { readonly turn: Turn }) {
   const typed = inputText.value.trim()
-  const runId = turn.runId
+  const runId = turn.runId ?? findTurnRun(turn)?.runId
 
   return (
     <div class="chat-actions">
@@ -201,7 +218,7 @@ function addNote(turn: Turn, typed: string): void {
 
 // A command stops by its run; an agent turn stops what runs in this chat.
 function askStopTurn(turn: Turn): void {
-  const run = isResearchTurn(turn) && turn.runId !== undefined ? findRun(turn.runId) : undefined
+  const run = isResearchTurn(turn) ? findTurnRun(turn) : undefined
 
   if (run !== undefined) {
     askStop(run, hasChildren(run.runId))
