@@ -35,6 +35,8 @@ const MOOD_GAP_MS = 1_800_000
 // The auction watchers stand at least this long, even when it is nearly over.
 const AUCTION_MIN_WATCH_MS = 8_000
 const AUCTION_TAG = 'auction'
+// Of the people at the screens only the first speaks, so a gathering shows one bubble.
+const SPEAKER_SPOT = 0
 // While it is report season, one free person from another room now and then goes to the library
 // shelves.
 const LIBRARY_PICK_PERCENT = 60
@@ -192,7 +194,9 @@ function watch(
   const place = LOBBY_WATCH_SPOTS[at.spot % LOBBY_WATCH_SPOTS.length]
 
   if (place !== undefined) {
-    begin(state, { actor: at.actor, kind: at.kind, nowMs: at.step.nowMs, line: at.line }, [
+    const line = at.spot === SPEAKER_SPOT ? { line: at.line } : {}
+
+    begin(state, { actor: at.actor, kind: at.kind, nowMs: at.step.nowMs, ...line }, [
       { at: place, pose: 'stand', look: BELL_LOOK_AT, holdMs: at.holdMs },
     ])
   }
