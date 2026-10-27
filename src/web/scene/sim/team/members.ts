@@ -136,7 +136,7 @@ export function settlePose(member: Member, at: { isWorking: boolean; nowMs: numb
 
 export function toTeamActorView(
   member: Member,
-  at: { readonly isWorking: boolean; readonly faceAt: Point | undefined }
+  at: { readonly runId: string | undefined; readonly faceAt: Point | undefined }
 ): ActorView {
   return {
     id: member.id,
@@ -144,7 +144,8 @@ export function toTeamActorView(
     prev: member.walker.prev,
     at: member.walker.pos,
     facing: facingOf(member, at.faceAt),
-    working: at.isWorking,
+    working: at.runId !== undefined,
+    ...(at.runId === undefined ? {} : { runId: at.runId }),
     pose: member.pose,
     poseSince: member.poseSince,
     ...(member.look === undefined ? {} : { look: member.look }),

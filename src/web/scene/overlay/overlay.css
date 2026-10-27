@@ -222,6 +222,98 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* The mockup's terminal: a window bar with its three dots, then the run's lines in its colours.
+   Text sets them in flow; bars set every piece by pixel of the flat screen. */
+.desk-screen.is-terminal {
+  padding: 0;
+  background: #141a36;
+  font-weight: 600;
+}
+
+.desk-titlebar {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  background: #2b3566;
+}
+
+.desk-dot {
+  display: block;
+  flex: none;
+  background: #6fe3d6;
+}
+
+.desk-dot.is-red {
+  background: #ff6259;
+}
+
+.desk-dot.is-amber {
+  background: #f2c46c;
+}
+
+.desk-titlebar.is-bars,
+.desk-titlebar.is-bars > .desk-dot,
+.desk-bar,
+.desk-cursor {
+  position: absolute;
+}
+
+.desk-rows {
+  display: block;
+  box-sizing: border-box;
+}
+
+.desk-row {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+
+.desk-screen .is-command {
+  color: #8db4ff;
+}
+
+.desk-screen .is-step {
+  color: #f2c46c;
+}
+
+.desk-screen .is-done {
+  color: #6fe3d6;
+}
+
+.desk-bar {
+  background: currentcolor;
+}
+
+.desk-cursor {
+  background: #d7e0f5;
+  animation: desk-cursor-blink 1.06s steps(1) infinite;
+}
+
+.desk-row > .desk-cursor {
+  position: static;
+  display: inline-block;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+}
+
+.desk-screen.is-still .desk-cursor {
+  animation: none;
+}
+
+@keyframes desk-cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk-cursor {
+    animation: none;
+  }
+}
+
 .screen-hosts {
   margin: 0;
   padding-left: 18px;

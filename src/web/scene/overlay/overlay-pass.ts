@@ -6,6 +6,7 @@ import type { PlacedTag } from '@/web/scene/overlay/name-tags'
 import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { ActorId, Rect, RoomId, SimView, Size } from '@/web/scene/types'
+import { ambientMsOf } from '@/web/scene/budgets'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { requestSeries, startDeskReads } from '@/web/scene/data/desk-reads'
 import { homeMarket } from '@/web/scene/data/home'
@@ -36,7 +37,8 @@ import {
   sizeTag,
 } from '@/web/scene/overlay/placement'
 import { menuActor, menuPillRects, menuPlaceOf } from '@/web/scene/overlay/radial-menu'
-import { analystSeriesOf } from '@/web/scene/overlay/screens'
+import { createScreenTyping, type ScreenTyping } from '@/web/scene/overlay/screen-typing'
+import { analystSeriesOf, buildTeamScreens } from '@/web/scene/overlay/screens'
 import {
   addDeskOf,
   cardPlacesOf,
@@ -51,6 +53,7 @@ import { roomsOn } from '@/web/scene/world/rooms'
 import { onWireEvent } from '@/web/state/events'
 import { selectedActor } from '@/web/state/focus'
 import { pending, runs } from '@/web/state/live'
+import { reducedMotion } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 
 /** However still the inputs, the layout runs again this often while frames are drawn, and once
@@ -79,6 +82,7 @@ interface PassInput {
 }
 
 interface PassState {
+  readonly typing: ScreenTyping
   signature: string
   laidAt: number
   isSettling: boolean
@@ -104,6 +108,7 @@ interface PassDeps {
 /** Starts the overlay's listeners and reads; the returned pass's `stop` releases all of them. */
 export function startOverlay(deps: PassDeps): OverlayPass {
   const state: PassState = {
+    typing: createScreenTyping(),
     signature: '',
     laidAt: Number.NEGATIVE_INFINITY,
     isSettling: false,
@@ -116,12 +121,17 @@ export function startOverlay(deps: PassDeps): OverlayPass {
   return {
     frame: (sim, nowMs) => runPass({ deps, state, sim, nowMs }),
     nextDueAt: () =>
-      Math.min(state.expiresAt, state.isSettling ? state.laidAt + OVERLAY_REFRESH_MS : Infinity),
+      Math.min(
+        state.expiresAt,
+        state.typing.nextDueAt(),
+        state.isSettling ? state.laidAt + OVERLAY_REFRESH_MS : Infinity
+      ),
     stop: () => {
       for (const stop of stops) {
         stop()
       }
 
+      state.typing.clear()
       showOverlay(EMPTY_OVERLAY)
       hoverActor(undefined)
       keyActor(undefined)
@@ -163,6 +173,8 @@ interface PassRun {
 function runPass({ deps, state, sim, nowMs }: PassRun): void {
   const input = readPass(deps.renderer, sim, nowMs)
   const signature = signatureOf(input)
+
+  state.typing.step(input.screens, { beatMs: ambientMsOf(nowMs), isReduced: reducedMotion.value })
 
   state.expiresAt = Math.min(
     ...input.bubbles.map((bubble) => bubble.untilMs ?? Number.POSITIVE_INFINITY)
@@ -207,7 +219,10 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
       epochMs: Date.now(),
     }),
     markers: sceneHandOff.value.marks,
-    screens: sceneHandOff.value.deskScreens.filter((screen) => screen.floor === sim.floor),
+    screens: [
+      ...sceneHandOff.value.deskScreens.filter((screen) => screen.floor === sim.floor),
+      ...buildTeamScreens({ floor: sim.floor, actors: sim.actors, runs: runs.value }),
+    ],
     figures,
     isZoomed: shown.room !== undefined || shown.zoomSteps > 0,
     ...(selected === undefined ? {} : { selected }),
