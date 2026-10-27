@@ -19,7 +19,7 @@ const LINE_BOX_H = 40
 // The text cursor's block, in ems of the font.
 const CURSOR_W_EM = 0.45
 const CURSOR_H_EM = 0.9
-// The title bar's three dots, left to right; each is a pixel of the flat screen, two apart.
+// The title bar's three dots, left to right; each is a pixel of the screen, two apart.
 const DOTS = ['red', 'amber', 'teal'] as const
 const DOT_PX = 1
 const DOT_STEP_PX = 2

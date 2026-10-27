@@ -217,7 +217,6 @@ export const DEVICE_TONES = Object.freeze({
   trackTitle: '#8DB4FF',
   screenText: '#D7E0F5',
   keys: '#ECEEF2',
-  keysEdge: '#B9BDC8',
   studio: ['#E4E7EC', '#F4F6F9', '#B7BDC9', '#3B404B'],
   studioMark: '#5A5F6B',
   port: '#1F222A',

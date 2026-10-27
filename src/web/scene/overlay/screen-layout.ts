@@ -1,10 +1,10 @@
 import type { ScreenLine } from '@/web/scene/overlay-types'
 import type { Rect } from '@/web/scene/types'
-import { FLAT_SCREEN_H } from '@/web/scene/world/desk-spots'
+import { GLASS_H } from '@/web/scene/world/desk-spots'
 
 // The mockup's 2D terminal. A screen big enough to read sets text: a title bar a seventh of its
 // height, the rest in two rows (else one) of the largest font that leaves eight "n" across, never
-// under the least font that reads. A smaller one sets bars, a pixel of its flat screen a row.
+// under the least font that reads. A smaller one sets bars, a pixel of its screen a row.
 const TEXT_MIN_PX = 5.5
 const TOP_SHARE = 1 / 7
 const TOP_MIN_PX = 3
@@ -35,7 +35,7 @@ export type TerminalLayout =
     }
   | {
       readonly kind: 'bars'
-      /** CSS px of one pixel of the flat screen. */
+      /** CSS px of one pixel of the screen. */
       readonly unit: number
       readonly rows: number
       /** The screen's width in those pixels. */
@@ -58,12 +58,12 @@ export function terminalLayoutOf(rect: Rect): TerminalLayout {
     }
   }
 
-  const unit = rect.h / FLAT_SCREEN_H
+  const unit = rect.h / GLASS_H
 
   return {
     kind: 'bars',
     unit,
-    rows: Math.max(1, Math.floor((FLAT_SCREEN_H - BAR_TOP_PX) / BAR_PITCH_PX)),
+    rows: Math.max(1, Math.floor((GLASS_H - BAR_TOP_PX) / BAR_PITCH_PX)),
     cols: rect.w / unit,
   }
 }
@@ -73,7 +73,7 @@ export function barRowOf(row: number): number {
   return BAR_TOP_PX + row * BAR_PITCH_PX
 }
 
-/** A line's bar, in pixels of the flat screen: wider with the line, never past the screen. */
+/** A line's bar, in pixels of the screen: wider with the line, never past the screen. */
 export function barWidthOf(text: string, cols: number): number {
   return Math.max(BAR_MIN_PX, Math.min(cols - BAR_INSET_PX, Math.round(text.length * BAR_PER_CHAR)))
 }

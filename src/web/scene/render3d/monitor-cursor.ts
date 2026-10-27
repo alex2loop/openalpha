@@ -17,7 +17,6 @@ interface CursorHost {
   readonly mesh: Mesh
   /** Where the cursor goes on the face; absent when the face has none. */
   readonly cursor: CursorRect | undefined
-  readonly isFlat: boolean
 }
 
 const world = new Matrix4()
@@ -61,10 +60,10 @@ export function syncCursors(
 }
 
 // Where a face's cursor stands, as text; empty when the face is dark or has none.
-function spotOf({ mesh, cursor, isFlat }: CursorHost): string {
+function spotOf({ mesh, cursor }: CursorHost): string {
   return !mesh.visible || cursor === undefined
     ? ''
-    : `${isFlat ? 'f' : 's'}${cursor.x},${cursor.y},${cursor.w},${cursor.h}`
+    : `${cursor.x},${cursor.y},${cursor.w},${cursor.h}`
 }
 
 // The block in the face's own space, where the plane is one unit square, then moved with the face.

@@ -233,21 +233,9 @@ function paintMonitor(c: CanvasRenderingContext2D, job: ScreenJob): void {
     return
   }
 
-  const isRest = job.state === 'rest'
-  const { trace } = job.view
+  paintIndex(c, inner, job)
 
-  if (trace === undefined) {
-    paintBaseline(c, inner, isRest)
-  } else {
-    paintTrace(c, inner, {
-      trace,
-      kind: job.row.type === 'monitor-candles' ? 'candles' : 'line',
-      isRest,
-      isFine: job.isFine,
-    })
-  }
-
-  if (isRest && job.isFine) {
+  if (job.state === 'rest' && job.isFine) {
     const words = tr(
       job.view.session === 'break' ? 'ui.office.desks.break' : 'ui.office.desks.shut'
     )
@@ -292,8 +280,8 @@ function paintSaver(c: CanvasRenderingContext2D, area: Rect, job: ScreenJob): vo
   c.globalAlpha = 1
 }
 
-// A browser strip of a dozen open tabs along the top of the monitor it covers; the rest stays
-// clear, so the monitor's own glow shows. At an empty desk the whole face is a screensaver.
+// A dozen open tabs along the top of the monitor, the home index under them while its scout sits
+// there idle (the mockup's chart screen); at an empty desk the whole face is a screensaver.
 function paintTabs(c: CanvasRenderingContext2D, job: ScreenJob): void {
   const area = insetOf(job.cell, BEZEL_PX)
 
@@ -327,6 +315,25 @@ function paintTabs(c: CanvasRenderingContext2D, job: ScreenJob): void {
       c.fillRect(x + 5, area.y + 6, Math.max(2, tabW - 8.4 - rng.next() * 3), 1.6)
     }
   }
+
+  c.fillStyle = SCREEN.live
+  c.fillRect(area.x, area.y + stripH, area.w, area.h - stripH)
+  paintIndex(c, { ...area, y: area.y + stripH, h: area.h - stripH }, job)
+}
+
+// The home index's day on a screen, its line or candles; a dashed baseline while it is unread.
+function paintIndex(c: CanvasRenderingContext2D, area: Rect, job: ScreenJob): void {
+  const isRest = job.state === 'rest'
+  const { trace } = job.view
+
+  if (trace === undefined) {
+    paintBaseline(c, area, isRest)
+    return
+  }
+
+  const kind = job.row.type === 'monitor-candles' ? 'candles' : 'line'
+
+  paintTrace(c, area, { trace, kind, isRest, isFine: job.isFine })
 }
 
 function paintChecklist(c: CanvasRenderingContext2D, cell: Rect, isFine: boolean): void {

@@ -14,7 +14,7 @@ type SeatGroup = 'meet' | 'lib' | 'assist'
 type StationId = 'store' | 'alerts' | 'lib-board' | 'lib-review' | 'lib-theme'
 
 /** The chairs, by the room they stand in: the meeting table's north row looks at the camera, its
- *  south row and every desk look north. */
+ *  south row looks north; a desk's chair stands behind it (`DESK_SITTER_FACE` turns its sitter). */
 export const SEATS: Readonly<Record<SeatGroup, readonly Seat[]>> = Object.freeze({
   meet: [
     { at: { x: 480, y: 120 }, face: 'down' },
@@ -45,7 +45,7 @@ export const STATIONS: Readonly<Record<StationId, Seat>> = Object.freeze({
 } satisfies Record<StationId, Seat>)
 
 /** The building crew's rest places: the receptionist's chair behind the front desk, the guard's
- *  post beside the badge gates, and the lobby bin's side, where the cleaner starts her round. */
+ *  post beside the badge gates, and the cooler's side, where the cleaner starts her round. */
 export const CREW_POSTS: Readonly<Record<'receptionist' | 'guard' | 'cleaner', Seat>> =
   Object.freeze({
     receptionist: { at: { x: 121, y: 316 }, face: 'down', desk: true },
@@ -62,7 +62,7 @@ export const DESK_WAIT_SPOTS: Readonly<{ readonly agents: readonly Point[] }> = 
   ],
 })
 
-// A team desk's chair stands this far right of and below the desk top's corner.
+// A team desk's chair stands this far right of and below the desk's 2D drawn corner.
 const DESK_SEAT_DX = 20
 const DESK_SEAT_DY = 8
 
@@ -196,12 +196,11 @@ const ALL_SEATS: readonly Seat[] = Object.freeze([
   ...SOFA_SEATS.team,
 ])
 
-/** The way a desk sitter looks in each view, as the mockup's two cameras show them: the 2D sprite
- *  faces the room over its monitor laid flat, the 3D figure turns its back to the camera and faces
- *  its monitor. */
+/** The way a desk sitter looks in each view: both face the room and the camera from behind their
+ *  desk, its monitor standing on the desk before them. */
 export const DESK_SITTER_FACE: Readonly<Record<'2d' | '3d', Dir>> = Object.freeze({
   '2d': 'down',
-  '3d': 'up',
+  '3d': 'down',
 })
 
 /** The chair someone at `at` sits on, if any. */

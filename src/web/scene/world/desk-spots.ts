@@ -2,25 +2,15 @@ import type { FloorId, Point, Rect } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
 import { propsOn } from '@/web/scene/world/props'
 
-// A desk monitor's box starts this far over its desk's top; laid flat it sits a px into the desk.
+// A desk monitor's box starts this far over its desk's top.
 const MONITOR_RISE = 9
-const FLAT_SCREEN_DROP = 2
-/** A desk screen's glass height in world px, standing or flat; a screen too small for text draws
- *  its bars by it. */
-export const FLAT_SCREEN_H = 7
+/** A desk screen's glass height in world px; a screen too small for text draws its bars by it. */
+export const GLASS_H = 7
 // The mockup's reach: whoever stands within this of a desk's middle, from a little above its top
 // to below its front edge, is the one at its computer.
 const AT_COMPUTER_DX = 26
 const AT_COMPUTER_ABOVE = 12
 const AT_COMPUTER_BELOW = 34
-
-/** The glass of a desk computer laid flat on its desk while someone sits at it, as the mockup lays
- *  it so the screen never prints on the sitter: 2D draws it there and its lit face goes there. */
-export function flatScreenOf(computer: PropDef): Rect {
-  const { x, y, w } = computer.draw
-
-  return { x: x + 1, y: y + MONITOR_RISE + FLAT_SCREEN_DROP, w: w - 2, h: FLAT_SCREEN_H }
-}
 
 /** The glass of a desk computer standing on its desk: inside the bezel, the mockup's 14 by 7. */
 export function standingScreenOf(computer: {
@@ -28,16 +18,7 @@ export function standingScreenOf(computer: {
   readonly y: number
   readonly w: number
 }): Rect {
-  return { x: computer.x + 1, y: computer.y + 1, w: computer.w - 2, h: FLAT_SCREEN_H }
-}
-
-/** Where a desk's top centre sits, for the desk and the computer on it alike: `x` its middle,
- *  `y` the desk top. */
-export function deskSpotOf(prop: PropDef): string {
-  const { x, y, w } = prop.draw
-  const top = prop.kind === 'computer' ? y + MONITOR_RISE : y
-
-  return `${x + w / 2}:${top}`
+  return { x: computer.x + 1, y: computer.y + 1, w: computer.w - 2, h: GLASS_H }
 }
 
 /** The computer on `floor` that someone standing at `at` works at: the nearest in line with them,

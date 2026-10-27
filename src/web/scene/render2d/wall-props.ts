@@ -85,8 +85,6 @@ export interface PaintScene {
   readonly stretch: number
   /** The home index's move as the page prints it, for the StandBy widgets; absent unread. */
   readonly indexMoveText?: string
-  /** The desks someone sits at, by `deskSpotOf`: their screens lie flat on the desk. */
-  readonly seated: ReadonlySet<string>
   /** How far the store's refresh has come, 0 to 1; absent while it does not count its prices. */
   readonly refreshShare?: number
   /** The market the store refreshes, or would refresh next: the home market. */
