@@ -26,20 +26,24 @@ import { zeroCanvas } from '@/web/scene/renderer'
 import { type SkyNow, skyNow } from '@/web/scene/sim/sky'
 import { hasStreetEntities } from '@/web/scene/sim/street/street'
 import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
-import { movingRectOf, projection, STREET_RECT } from '@/web/scene/view'
+import { FRAME_RECT, movingRectOf, projection, STREET_RECT } from '@/web/scene/view'
 import { reducedMotion } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
 
 const MAX_MOVING_CANVAS_PX = 2048
 const KEY_SEPARATOR = '|'
 const NO_RECT: Rect = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
+// Under this much of a world px above the framed view, the camera still counts as framing it.
+const REVEAL_SLACK_PX = 0.5
 
 /** The minute a part paints at (the light's minute, held at solar noon when the light does not
- *  follow the hour), the page minute `clock` that opening hours follow, the detail level, the
- *  light and the sun it comes from, and the weather. */
+ *  follow the hour), the page minute `clock` that opening hours follow, the detail level, whether
+ *  the camera shows the sky above the framed view, the light and the sun it comes from, and the
+ *  weather. */
 export interface StreetMinute extends ClockParts {
   readonly clock: number
   readonly detail: StreetDetail
+  readonly isRevealed: boolean
   readonly light: LightRow
   readonly sun: SunView
   readonly weather: WeatherNow
@@ -115,7 +119,14 @@ export function createStreetPainter(): StreetPainter {
     paint(view, visible, minute) {
       const devicePx = projection.value.scale * devicePixelRatio
 
-      syncStatic(state, toStreetMinute(state, { minute, detail: detailOfPx(devicePx) }))
+      syncStatic(
+        state,
+        toStreetMinute(state, {
+          minute,
+          detail: detailOfPx(devicePx),
+          isRevealed: isRevealedBy(visible),
+        })
+      )
       syncMoving(state, { view, visible, devicePx })
 
       return {
@@ -128,6 +139,7 @@ export function createStreetPainter(): StreetPainter {
     },
     isCurrent: (visible) =>
       state.detail === detailOfPx(projection.value.scale * devicePixelRatio) &&
+      state.moving.minute.isRevealed === isRevealedBy(visible) &&
       (state.movingCanvas.width === 0 || isSameRect(movingRectOf(visible), state.movingRect)),
     paintMs: () => state.paintMs,
     release() {
@@ -153,6 +165,7 @@ function createPainterState(): PainterState {
         clock: 0,
         dow: 0,
         detail: 0,
+        isRevealed: false,
         light: lightOf(skyNow.peek().light),
         sun: skyNow.peek().light.sun,
         weather: weather.peek(),
@@ -176,7 +189,7 @@ function createPainterState(): PainterState {
 // The street keeps the sky's light un-eased, read once a page minute, and its minute.
 function toStreetMinute(
   state: PainterState,
-  at: { readonly minute: ClockParts; readonly detail: StreetDetail }
+  at: { readonly minute: ClockParts; readonly detail: StreetDetail; readonly isRevealed: boolean }
 ): StreetMinute {
   const sky = skyNow.value
 
@@ -190,14 +203,15 @@ function toStreetMinute(
     minute: sky.minute,
     clock: at.minute.minute,
     detail: at.detail,
+    isRevealed: at.isRevealed,
     light: state.light,
     sun: sky.light.sun,
     weather: weather.value,
   }
 }
 
-// Repainted when the minute, the day, the pack, the language, the detail level, the sky or the
-// weather changes.
+// Repainted when the minute, the day, the pack, the language, the detail level, the camera's
+// reveal of the sky above the frame, the sky or the weather changes.
 function syncStatic(state: PainterState, minute: StreetMinute): void {
   const pack = regionPack.value
   const key = [
@@ -207,6 +221,7 @@ function syncStatic(state: PainterState, minute: StreetMinute): void {
     pack.id,
     locale.value,
     minute.detail,
+    minute.isRevealed,
     reducedMotion.value,
   ].join(KEY_SEPARATOR)
   const g = state.staticCanvas.getContext('2d')
@@ -289,6 +304,12 @@ function syncMoving(
   state.movingRect = rect
   state.movingKey = key
   state.movingVersion++
+}
+
+// The camera shows the sky above the framed view: the city's back rows stand there, as the mockup's
+// sky strip shows once the camera leaves its default framing.
+function isRevealedBy(visible: Rect): boolean {
+  return visible.y < FRAME_RECT.y - REVEAL_SLACK_PX
 }
 
 function hasMovers(view: StreetView, rect: Rect): boolean {

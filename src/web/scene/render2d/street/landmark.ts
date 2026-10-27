@@ -13,7 +13,7 @@ import {
   type TowerPaint,
 } from '@/web/scene/render2d/street/landmark-shape'
 import { isNightDark, mixTone } from '@/web/scene/render2d/street/tone'
-import { FRAME_RECT, STREET_RECT } from '@/web/scene/view'
+import { STREET_RECT } from '@/web/scene/view'
 import { isLightsOut } from '@/web/scene/world/frontage'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
@@ -25,10 +25,10 @@ const EDGE_WIDTH = HALF * 2
 const MULLIONS = 34
 const MULLION_LED_EVERY = 4
 
-/** The city behind the street: the city's back rows (above the framed view only), the landmark tower in front of them and its
- *  podium at its foot, painted right after the sky and behind every building row. The tower is
- *  drawn in its design frame, scaled about its foot, moved to the pack's `landmark.foot` and
- *  hazed by its distance. */
+/** The city behind the street: the city's back rows while the camera shows the sky above the
+ *  framed view, the landmark tower in front of them and its podium at its foot, painted right
+ *  after the sky and behind every building row. The tower is drawn in its design frame, scaled
+ *  about its foot, moved to the pack's `landmark.foot` and hazed by its distance. */
 export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
   const { g, minute, dark, lit } = scene
   const { foot, scale, haze } = pack.landmark
@@ -42,14 +42,12 @@ export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
     isLobbyLit: isNightDark(dark) && !isLightsOut(pack, minute.minute),
   }
 
-  // The back rows stand above the framed view, as the mockup's sky strip draws them: below the
-  // frame's top edge only the low skyline shows.
-  g.save()
-  g.beginPath()
-  g.rect(STREET_RECT.x, STREET_RECT.y, STREET_RECT.w, FRAME_RECT.y - STREET_RECT.y)
-  g.clip()
-  paintCityBack(scene, foot.x)
-  g.restore()
+  // As the mockup: the default framing shows only the low skyline; once the sky above it shows,
+  // the back rows run whole down to the far pavement, behind the low rows.
+  if (minute.isRevealed) {
+    paintCityBack(scene, foot.x)
+  }
+
   g.save()
   g.translate(foot.x, foot.y)
   g.scale(scale, scale)
