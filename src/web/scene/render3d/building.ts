@@ -64,6 +64,9 @@ const LOBBY = 'lobby'
 const LOBBY_FACE = '#2D3245'
 const PLINTH = ['#DCCBB2', '#C4B199'] as const
 const PLINTH_PX = 12
+// The floor plane rides this far over the plinth's top, in units as the mockup's: coplanar, the two
+// fought for the depth test and the whole floor blinked between them as the camera moved.
+const FLOOR_LIFT = 0.002
 const FLOOR_TEXTURE_SCALE = 2
 // A north wall clears to this while someone stands behind it: within the strip its full height
 // hides on screen, and its span with a body's half width either side.
@@ -335,7 +338,7 @@ export function createFloorPlane(floor: FloorId, material: MeshStandardMaterial)
   const plane = new Mesh(geometry, material)
 
   plane.rotation.x = -Math.PI / 2
-  plane.position.set(toUnits(WORLD.w / 2), 0, toUnits((WORLD.h + WALL_BAND_PX) / 2))
+  plane.position.set(toUnits(WORLD.w / 2), FLOOR_LIFT, toUnits((WORLD.h + WALL_BAND_PX) / 2))
 
   return plane
 }
