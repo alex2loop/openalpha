@@ -87,6 +87,7 @@
   --glassA: 0.2;
   --glassStrongA: 0.5;
   --glassFocusA: 0.62;
+  --glassTagA: 0.78;
   --glassHaloA: 0.75;
   --glassFilter: blur(8px) saturate(1.9) brightness(1.06);
   --glassSheenFill: radial-gradient(120% 90% at 20% 0%, var(--glassSheen), transparent 55%);
@@ -210,6 +211,7 @@
     --glassA: 0.36;
     --glassStrongA: 0.66;
     --glassFocusA: 0.78;
+    --glassTagA: 0.86;
     --glassRim: rgba(255, 255, 255, 0.45);
     --glassHi: rgba(255, 255, 255, 0.22);
     --glassLo: rgba(0, 0, 0, 0.35);
@@ -268,6 +270,7 @@
   --glassA: 0.36;
   --glassStrongA: 0.66;
   --glassFocusA: 0.78;
+  --glassTagA: 0.86;
   --glassRim: rgba(255, 255, 255, 0.45);
   --glassHi: rgba(255, 255, 255, 0.22);
   --glassLo: rgba(0, 0, 0, 0.35);

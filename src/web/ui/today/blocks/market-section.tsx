@@ -26,7 +26,12 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
       <h3 class="sub-head">{market?.label ?? block.market}</h3>
       <div class="row-list">
         {block.rows.slice(0, ROWS_SHOWN).map((row) => (
-          <OverviewRow key={row.instrument.ticker} row={row} currency={block.priceCurrency} />
+          <OverviewRow
+            key={row.instrument.ticker}
+            row={row}
+            currency={block.priceCurrency}
+            hasBoard={market?.hasBoard === true}
+          />
         ))}
       </div>
       {block.breadth !== undefined && (
@@ -54,9 +59,11 @@ export function selectBoard(blocks: OverviewResponse['markets']): OverviewBlock 
 interface OverviewRowProps {
   readonly row: OverviewBlock['rows'][number]
   readonly currency: string | undefined
+  /** A dealer's rows (gold) state no closing price, so they carry no day move. */
+  readonly hasBoard: boolean
 }
 
-function OverviewRow({ row, currency }: OverviewRowProps) {
+function OverviewRow({ row, currency, hasBoard }: OverviewRowProps) {
   // A level market (an index) has no price currency and prints its bare level.
   const display = currency === undefined ? undefined : priceDisplayOf(row.instrument.market)
   const price = formatPrice(row.price, display)
@@ -69,9 +76,11 @@ function OverviewRow({ row, currency }: OverviewRowProps) {
       <span class="row-price">
         {display === undefined && currency !== undefined ? `${price} ${currency}` : price}
       </span>
-      <span class={`pill is-${toneOfPercent(row.changePct)}`}>
-        {formatSignedPercent(row.changePct)}
-      </span>
+      {hasBoard && (
+        <span class={`pill is-${toneOfPercent(row.changePct)}`}>
+          {formatSignedPercent(row.changePct)}
+        </span>
+      )}
     </div>
   )
 }

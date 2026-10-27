@@ -30,6 +30,11 @@
   pointer-events: auto;
 }
 
+.room-tag.glass.is-flat,
+.room-queued.glass.is-flat {
+  --glassAlpha: var(--glassTagA);
+}
+
 .room-tag {
   color: var(--ink2);
   font-weight: 500;
