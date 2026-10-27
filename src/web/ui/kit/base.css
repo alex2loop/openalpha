@@ -172,15 +172,10 @@ kbd {
 .glass {
   --glassAlpha: var(--glassA);
   isolation: isolate;
-  background:
-    radial-gradient(120% 90% at 20% 0%, var(--glassSheen), transparent 55%),
-    rgb(var(--glassTint) / var(--glassAlpha));
+  background: var(--glassSheenFill), rgb(var(--glassTint) / var(--glassAlpha));
   backdrop-filter: var(--glassFilter);
   -webkit-backdrop-filter: var(--glassFilter);
-  box-shadow:
-    inset 0 1px 1px var(--glassHi),
-    inset 0 -8px 16px -10px var(--glassLo),
-    0 10px 26px -8px var(--glassDrop);
+  box-shadow: var(--glassShadow);
   text-shadow: 0 0 6px rgb(var(--glassTint) / var(--glassHaloA));
 }
 
@@ -198,13 +193,7 @@ kbd {
   inset: 0;
   padding: 1px;
   border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    var(--glassRim),
-    transparent 35%,
-    transparent 65%,
-    var(--glassRim)
-  );
+  background: var(--glassRimFill);
   content: "";
   pointer-events: none;
   -webkit-mask:
@@ -214,6 +203,24 @@ kbd {
   mask-composite: exclude;
 }
 
+/* A popup over the panel or header text, and every dialog: an opaque surface in the glass
+   family, with the same rim, radius and shadow. */
+.solid-pop {
+  border: 1px solid transparent;
+  border-radius: var(--popRadius);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--glassRimFill) border-box;
+  background-origin: border-box;
+  box-shadow: var(--glassShadow);
+}
+
+/* The backdrop behind a dialog, lightly blurred. */
+.scrim {
+  backdrop-filter: var(--scrimFilter);
+  -webkit-backdrop-filter: var(--scrimFilter);
+}
+
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass {
     background: var(--surface);
@@ -221,6 +228,11 @@ kbd {
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  .scrim {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .glass {
     background: var(--surface);
     backdrop-filter: none;
@@ -228,10 +240,9 @@ kbd {
   }
 }
 
-/* The page chrome over the wallpaper (header, panel, chat, menus): glass, or Canvas where the
+/* The page chrome over the wallpaper (header, panel, chat): glass, or Canvas where the
    browser cannot blur or the operator asked for less transparency. The glass is a layer behind
-   the content rather than the element's own backdrop, so a menu opened inside the chrome still
-   blurs the page under it. */
+   the content rather than the element's own backdrop. */
 :where(.chrome-glass) {
   position: relative;
 }
@@ -251,10 +262,6 @@ kbd {
   -webkit-backdrop-filter: var(--glassBlur);
   content: "";
   pointer-events: none;
-}
-
-.chrome-glass.is-menu {
-  --glassSolid: var(--surface);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

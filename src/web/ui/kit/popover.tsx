@@ -102,11 +102,7 @@ function PopoverPanel({ anchor, label, className, takesFocus, children }: Popove
   return (
     <div
       ref={panel}
-      class={
-        className === undefined
-          ? 'popover chrome-glass is-menu'
-          : `popover chrome-glass is-menu ${className}`
-      }
+      class={className === undefined ? 'popover solid-pop' : `popover solid-pop ${className}`}
       role="dialog"
       aria-label={label}
       tabIndex={takesFocus === true ? -1 : undefined}

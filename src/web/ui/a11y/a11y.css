@@ -34,10 +34,7 @@
   max-height: 50%;
   overflow: auto;
   padding: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: var(--pop);
+  border-radius: var(--popRadius);
 }
 
 .scene-twin h2 {

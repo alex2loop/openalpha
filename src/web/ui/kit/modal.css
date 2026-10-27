@@ -14,11 +14,7 @@
   flex-direction: column;
   width: min(560px, 100%);
   max-height: 82vh;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
   color: var(--ink);
-  box-shadow: var(--pop);
   animation: modal-in 0.16s ease-out both;
 }
 
