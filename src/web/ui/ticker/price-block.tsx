@@ -139,6 +139,7 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
 
   return (
     <>
+      <p class="meta block-read">{joinInline(parts)}</p>
       {facts.staleAt !== undefined && timeZone !== undefined && (
         <p class="strip is-caution">
           {tr('ui.office.ticker.stale', { time: formatWhen(facts.staleAt, timeZone) })}
@@ -152,7 +153,6 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
           </span>
         )}
       </p>
-      <p class="meta">{joinInline(parts)}</p>
     </>
   )
 }
