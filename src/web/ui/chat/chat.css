@@ -167,13 +167,6 @@
   border-left: 0;
 }
 
-.sessions-head {
-  margin: var(--s2) 0 0;
-  color: var(--ink2);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .sessions-item {
   display: flex;
   flex-wrap: wrap;

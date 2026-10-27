@@ -77,7 +77,7 @@ function WaitingSection() {
 
   return (
     <>
-      <h3 class="popover-section">
+      <h3 class="sub-head">
         {tr(pluralKey(count, 'ui.office.bell.waitingOne', 'ui.office.bell.waiting'), { count })}
       </h3>
       <div class="pending-list">
@@ -98,7 +98,7 @@ function TodaySection() {
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.common.today')}</h3>
+      <h3 class="sub-head">{tr('ui.office.common.today')}</h3>
       {failure !== undefined && today.length === 0 && (
         <p class="failure-line">{toFailureText(failure)}</p>
       )}

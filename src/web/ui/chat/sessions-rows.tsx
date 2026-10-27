@@ -69,7 +69,7 @@ export function SessionGroups({ sessions }: GroupsProps) {
       {groups.map(({ id, rows }) =>
         rows.length === 0 ? null : (
           <section key={id} class="sessions-group">
-            <h3 class="sessions-head">{tr(GROUP_KEYS[id])}</h3>
+            <h3 class="sub-head">{tr(GROUP_KEYS[id])}</h3>
             <ul class="sessions-list">
               {rows.map((session) => (
                 <SessionRow key={session.sessionId} session={session} timeZone={timeZone} />

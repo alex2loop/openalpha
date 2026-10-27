@@ -23,7 +23,7 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
 
   return (
     <div class="market-section">
-      <p class="market-name">{market?.label ?? block.market}</p>
+      <h3 class="sub-head">{market?.label ?? block.market}</h3>
       <div class="row-list">
         {block.rows.slice(0, ROWS_SHOWN).map((row) => (
           <OverviewRow key={row.instrument.ticker} row={row} currency={block.priceCurrency} />

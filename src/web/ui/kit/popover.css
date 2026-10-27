@@ -41,13 +41,6 @@
   border-top: 1px solid var(--border);
 }
 
-.popover-section {
-  margin: 14px 0 6px;
-  color: var(--ink2);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 /* Below the narrow width every popover spans the screen inside the gutter. */
 :root:not([data-layout="wide"]) .popover {
   right: var(--popoverGutter);

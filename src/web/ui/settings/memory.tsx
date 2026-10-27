@@ -159,7 +159,7 @@ function ScopeGroup({ scope, rows, ttlDays }: ScopeGroupProps) {
       <h3 class="setting-title">{head}</h3>
       {rows.told.length > 0 && (
         <div class="memory-part">
-          <h4>{tr('ui.office.memory.told')}</h4>
+          <h4 class="sub-head">{tr('ui.office.memory.told')}</h4>
           <p class="meta">{tr('ui.office.memory.toldNote')}</p>
           {rows.told.map((row) => (
             <MemoryRow key={row.key} row={row} forget={forget} />
@@ -168,7 +168,7 @@ function ScopeGroup({ scope, rows, ttlDays }: ScopeGroupProps) {
       )}
       {rows.notes.length > 0 && (
         <div class="memory-part">
-          <h4>{tr('ui.office.memory.notes')}</h4>
+          <h4 class="sub-head">{tr('ui.office.memory.notes')}</h4>
           <p class="meta">{tr('ui.office.memory.notesNote', { days: ttlDays })}</p>
           {rows.notes.map((row) => (
             <MemoryRow key={row.key} row={row} forget={forget} />

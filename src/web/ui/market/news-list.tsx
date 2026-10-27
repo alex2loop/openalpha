@@ -78,7 +78,7 @@ function NewsGroups({
     <>
       {toDayGroups(shown, timeZone).map((group) => (
         <section key={group.day}>
-          <h3 class="market-sub">{dayLabel(group.day, today)}</h3>
+          <h3 class="sub-head">{dayLabel(group.day, today)}</h3>
           <NewsItems items={group.items} />
         </section>
       ))}

@@ -104,10 +104,11 @@
   font-size: 11px;
 }
 
-.suggest-popover .popover-section {
+.suggest-head {
   margin: 6px 10px 4px;
   color: var(--ink3);
   font-size: 11px;
+  font-weight: 600;
 }
 
 .suggest-row {

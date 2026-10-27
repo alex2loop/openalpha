@@ -106,8 +106,24 @@ select {
 h1,
 h2,
 h3,
+h4,
 p {
   margin: 0;
+}
+
+/* The one heading for a block inside a card, popover or dialog: below the card title, clearly
+   above a row. A divider and room above set it apart from the block before it. */
+.sub-head {
+  margin: var(--s3) 0 var(--s1);
+  color: var(--title);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.sub-head:not(:first-child) {
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
 }
 
 svg.icon {

@@ -208,15 +208,14 @@
   color: var(--ink2);
 }
 
-.market-section + .market-section {
-  margin-top: var(--s2);
+.market-section > .sub-head {
+  margin-top: 0;
 }
 
-.market-name {
-  margin-bottom: 4px;
-  color: var(--ink2);
-  font-size: 12px;
-  font-weight: 600;
+.market-section + .market-section {
+  margin-top: var(--s3);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
 }
 
 .big-figure {

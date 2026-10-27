@@ -83,7 +83,7 @@ function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
 
   return (
     <>
-      <h3 class="market-sub">{tr('ui.office.market.drivers')}</h3>
+      <h3 class="sub-head">{tr('ui.office.market.drivers')}</h3>
       <p class="meta">{tr('ui.office.market.driversNote')}</p>
       <table class="macro-drivers">
         <thead>

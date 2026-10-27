@@ -98,7 +98,7 @@ function CapLine({ label, spentUsd, capUsd }: CapLineProps) {
 
   return (
     <>
-      <h3 class="popover-section">{label}</h3>
+      <h3 class="sub-head">{label}</h3>
       <p class="cost-figure">{formatSpent(spentUsd, capUsd)}</p>
       {hasCap && spentUsd !== undefined && (
         <div class="cost-meter" aria-hidden="true">
@@ -115,7 +115,7 @@ function ByJob() {
 
   return (
     <>
-      <h3 class="popover-section">{tr('ui.office.cost.byJob')}</h3>
+      <h3 class="sub-head">{tr('ui.office.cost.byJob')}</h3>
       <ByJobRows activity={activity} />
     </>
   )
