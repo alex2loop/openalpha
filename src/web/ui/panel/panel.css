@@ -170,10 +170,14 @@
   background: var(--canvas);
 }
 
+/* Folded, the tabs are a column of icons: the selected one keeps its pill, with no track behind. */
 .panel-rail .panel-tabs {
   flex: none;
   flex-direction: column;
+  gap: 2px;
   margin: 0;
+  padding: 0;
+  background: none;
 }
 
 .panel-rail .panel-tabs button {
