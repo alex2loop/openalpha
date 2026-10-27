@@ -62,6 +62,10 @@
   color: var(--ink2);
 }
 
+.session-line {
+  margin-bottom: var(--s2);
+}
+
 .session-line b {
   color: var(--ink);
 }
