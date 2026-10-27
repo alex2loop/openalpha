@@ -1,6 +1,6 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
 import type { MessageKey } from '@/i18n'
-import type { DeskScreenView, SceneMark } from '@/web/scene/overlay-types'
+import type { DeskQuote, DeskScreenView, DeskTrace, SceneMark } from '@/web/scene/overlay-types'
 import type { SunView, WeatherFxView, WindowLight } from '@/web/scene/sky-types'
 import type { ErrandView, StreetFrame } from '@/web/scene/street-types'
 
@@ -289,14 +289,7 @@ interface DeskMess {
   readonly sheets: number
 }
 
-/** The home index on the live monitors: its name, the levels polled since the page opened, the
- *  previous close they are drawn against and the move as the wire gave it. */
-export interface DeskTrace {
-  readonly label: string
-  readonly line: readonly number[]
-  readonly close: number
-  readonly changePct: number
-}
+export type { DeskQuote, DeskTrace } from '@/web/scene/overlay-types'
 
 /** What the desks show of the day's work; `signature` moves only when something drawn changed. */
 export interface DeskItemsView {
@@ -307,6 +300,10 @@ export interface DeskItemsView {
   /** The home index's day: absent while its move is absent or its read is stale, so the live
    *  monitors then show no line. */
   readonly trace: DeskTrace | undefined
+  /** The watched or held name each idle desk owner's screen shows now, turning every ~20 s. */
+  readonly quotes: ReadonlyMap<ActorId, DeskQuote>
+  /** Held names near their stop, on the risk desk's checklist while its owner sits idle. */
+  readonly nearStops: number | undefined
   /** A fired price alert is unread: the alert desk's lamp glows amber. */
   readonly isAlertOn: boolean
   readonly saverStep: number

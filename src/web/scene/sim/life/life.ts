@@ -12,6 +12,7 @@ import type {
 } from '@/web/scene/types'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
+import { startQuoteTrail } from '@/web/scene/data/quote-trail'
 import { startTodayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
@@ -91,7 +92,7 @@ const BREAK_PROPS = (['office', 'team'] as const).flatMap((floor) =>
 export function createLife(deps: LifeDeps): Life {
   const state = createLifeState(deps, performance.now())
   const off = subscribeLife(onWireEvent, state)
-  const stopRuns = startTodayRuns()
+  const stopReads = [startTodayRuns(), startQuoteTrail()]
   let isDisposed = false
   let last: LifeStep | undefined
   // The view and the deadline between steps read the last step's people, at the time now.
@@ -120,7 +121,11 @@ export function createLife(deps: LifeDeps): Life {
       if (!isDisposed) {
         isDisposed = true
         off()
-        stopRuns()
+
+        for (const stop of stopReads) {
+          stop()
+        }
+
         endAll(state)
       }
     },

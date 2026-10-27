@@ -8,7 +8,7 @@ import {
   SRGBColorSpace,
 } from 'three'
 
-import type { DeskScreenView } from '@/web/scene/overlay-types'
+import type { DeskScreenContent, DeskScreenView } from '@/web/scene/overlay-types'
 import type { Screen } from '@/web/scene/render3d/desk-dressing'
 import type { Pool } from '@/web/scene/render3d/instancing'
 import type { FloorProps } from '@/web/scene/render3d/props'
@@ -97,12 +97,14 @@ export function syncMonitorFaces(
       isChanged = true
     }
 
-    const host = isLit ? hostOn(face, at.deskScreens) : undefined
+    const shown = isLit ? shownOn(face.screen, at.deskScreens)?.content : undefined
+    const host = shown?.kind === 'host' ? shown.host : undefined
+    const tally = shown?.kind === 'tally' ? shown : undefined
 
     const isTiny = isMonitorTiny(face.screen.size[0], at.scale)
 
     isChanged =
-      (isLit && paintFace(face, { ...at, host, isTiny, runId: at.runIds[i] })) || isChanged
+      (isLit && paintFace(face, { ...at, host, tally, isTiny, runId: at.runIds[i] })) || isChanged
   })
 
   const isCursorChanged = syncCursors(monitors.cursors, {
@@ -175,12 +177,14 @@ function paintFace(
     readonly now: number
     readonly isReduced: boolean
     readonly host: string | undefined
+    /** An idle desk's count, shown in place of a run. */
+    readonly tally: Extract<DeskScreenContent, { kind: 'tally' }> | undefined
     readonly isTiny: boolean
     readonly runId: string | undefined
   }
 ): boolean {
   const run = at.runId === undefined ? undefined : findRun(at.runId)
-  const lines = run === undefined ? [] : terminalLinesOf(run, at.host)
+  const lines = at.tally?.lines ?? (run === undefined ? [] : terminalLinesOf(run, at.host))
   const last = lines.at(-1)
   const key = `${run?.runId}|${last?.id}`
   const beatMs = ambientMsOf(at.now)
@@ -199,6 +203,7 @@ function paintFace(
     run?.title,
     clock,
     at.host,
+    at.tally?.title,
     at.isTiny,
     typed,
     ...lines.map((line) => line.text),
@@ -215,7 +220,7 @@ function paintFace(
     typed,
     clock,
     name: run?.name,
-    title: at.host ?? run?.title ?? run?.name ?? '',
+    title: at.tally?.title ?? at.host ?? run?.title ?? run?.name ?? '',
     isTiny: at.isTiny,
   })
   face.texture.needsUpdate = true
@@ -223,15 +228,17 @@ function paintFace(
   return true
 }
 
-// The page a scout reads on this monitor, the host in its title bar as the overlay showed it: the
-// lit desk screen whose sitter sits at this monitor's seat.
-function hostOn(face: MonitorFace, screens: readonly DeskScreenView[]): string | undefined {
-  const { seat } = face.screen
-  const shown = screens.find(
+/** The lit desk screen whose sitter sits at this monitor's seat: a scout's page, as the overlay
+ *  showed it, or an idle desk's count. */
+export function shownOn(
+  screen: Pick<Screen, 'seat'>,
+  screens: readonly DeskScreenView[]
+): DeskScreenView | undefined {
+  const { seat } = screen
+
+  return screens.find(
     (one) => Math.hypot(one.seat.x - seat.x, one.seat.y - seat.y) <= SEAT_MATCH_PX
   )
-
-  return shown?.content.kind === 'host' ? shown.content.host : undefined
 }
 
 function releaseFaces(monitors: MonitorFaces): void {

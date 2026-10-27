@@ -2,6 +2,8 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { ActorId, HeldItem, PoseId, SheetView } from '@/web/scene/types'
 import type { PropKind } from '@/web/scene/world/props'
 import type { onWireEvent } from '@/web/state/events'
+import { SHARED_FOCUS } from '@/web/state/agents'
+import { reducedMotion } from '@/web/state/prefs'
 
 type BeatKind =
   | 'handoff'
@@ -16,6 +18,8 @@ type BeatKind =
   | 'headset'
   | 'wallet'
   | 'life'
+  | 'pleased'
+  | 'stretch'
 
 /** A one-shot gesture a real event plays over a person's goal, dropped when it ends. */
 export interface Beat {
@@ -39,6 +43,8 @@ export interface BeatTarget {
   endTrip(runId: string): void
   /** The page clock, for a request's `expiresAt`. */
   pageNow(): number
+  /** When a run the page has seen began (epoch ms), kept a while past its end. */
+  runStartedAt(runId: string): number | undefined
 }
 
 interface BeatSpec {
@@ -68,6 +74,14 @@ const TRIP_PROPS: readonly (readonly [string, PropKind])[] = Object.freeze([
   ['plan', 'rack'],
 ])
 const NET_CAPABILITY = 'net'
+// A scored call: the persona who made it reacts at their seat. The wire names no debate roles, so
+// the analyst, who works every call, stands for it; only the operator's own book's calls play here
+// (an own agent's play at its desk upstairs).
+const CALL_MAKER: ActorId = 'analyst'
+const CALL_REACTION_MS = 3_000
+// A run this long leaves its people stretching once, after their nod.
+const LONG_RUN_MS = 120_000
+const STRETCH_MS = 3_600
 
 /** Subscribes the one-shot beats to the hub; the returned function unsubscribes them all. */
 export function subscribeBeats(hub: typeof onWireEvent, target: BeatTarget): () => void {
@@ -84,6 +98,7 @@ export function subscribeBeats(hub: typeof onWireEvent, target: BeatTarget): () 
       playOnRun(event, target, { kind: 'wallet', pose: 'shrug', item: 'wallet', ms: BEAT_MS })
     ),
     hub('brief_ready', () => target.sendToTray(BRIEF_HOLDER)),
+    hub('call_scored', (event) => onCallScored(event, target)),
     hub('idea', (event) => onIdea(event, target)),
     hub('tool_started', (event) => onToolStarted(event, target)),
     hub('tool_result', (event) => {
@@ -125,6 +140,12 @@ function onFinished(event: WireEvent, target: BeatTarget): void {
   }
 
   const isDone = event.outcome === COMPLETED
+  const startedAt = target.runStartedAt(event.runId)
+
+  // Played first and outlasting the nod, the stretch shows once the nod ends.
+  if (startedAt !== undefined && Date.now() - startedAt > LONG_RUN_MS && !reducedMotion.peek()) {
+    playOnRun(event, target, { kind: 'stretch', pose: 'yawn', ms: BEAT_MS + STRETCH_MS })
+  }
 
   playOnRun(event, target, {
     kind: isDone ? 'nod' : 'sit',
@@ -180,4 +201,21 @@ function onToolStarted(event: WireEvent, target: BeatTarget): void {
   if (at !== undefined) {
     target.startTrip(event.runId, at)
   }
+}
+
+// A call the track record scored: a target hit pleases its maker, a stop leaves them scratching
+// their head; an expired one passes without a word.
+function onCallScored(event: WireEvent, target: BeatTarget): void {
+  const call = event.call
+
+  if (call?.focusKey !== SHARED_FOCUS || call.status === 'expired') {
+    return
+  }
+
+  target.play(
+    CALL_MAKER,
+    call.status === 'target'
+      ? { kind: 'pleased', pose: 'hands-up', ms: CALL_REACTION_MS }
+      : { kind: 'scratch', pose: 'scratch', ms: CALL_REACTION_MS }
+  )
 }

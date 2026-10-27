@@ -16,6 +16,10 @@ import { tr } from '@/web/text/tr'
 // The price line's drawing box; the svg stretches it over the screen.
 const LINE_BOX_W = 100
 const LINE_BOX_H = 40
+// A watched name and its move show over its line once the screen is this wide, in CSS px, at this
+// share of its height; its price is in the hover.
+const LABEL_MIN_W_PX = 48
+const LABEL_SHARE = 0.2
 // The text cursor's block, in ems of the font.
 const CURSOR_W_EM = 0.45
 const CURSOR_H_EM = 0.9
@@ -42,14 +46,22 @@ export function CrispFilter() {
   )
 }
 
-/** A lit screen over its computer: the analyst's price line, or a terminal that types the run's
- *  lines (a scout's reading its page's host). */
+/** A lit screen over its computer: a price line (an idle desk's watched name labelled with its
+ *  price and move), or a terminal that types the run's lines (a scout's reading its page's host,
+ *  an idle desk's count). */
 export function DeskScreen({ screen, rect }: { readonly screen: LitScreen; readonly rect: Rect }) {
   const { content } = screen
 
   if (content.kind === 'line') {
+    const isLabelled = content.label !== undefined && rect.w >= LABEL_MIN_W_PX
+
     return (
-      <span class="desk-screen" style={boxStyle(rect)} title={content.ticker}>
+      <span class="desk-screen" style={boxStyle(rect)} title={content.hover ?? content.ticker}>
+        {isLabelled && (
+          <span class="desk-quote" style={{ fontSize: `${rect.h * LABEL_SHARE}px` }}>
+            {content.label}
+          </span>
+        )}
         <svg
           viewBox={`0 0 ${LINE_BOX_W} ${LINE_BOX_H}`}
           preserveAspectRatio="none"

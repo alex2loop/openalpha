@@ -1,5 +1,6 @@
 import type { CalendarView, DeskItemsView, MonitorState, Rect } from '@/web/scene/types'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { paintChecklist } from '@/web/scene/sprites/desk-checklist'
 import { paintTrace } from '@/web/scene/sprites/desk-trace'
 import { FONT } from '@/web/scene/sprites/face-text'
 import { OUTLINE, PALETTE } from '@/web/scene/sprites/palette'
@@ -60,14 +61,6 @@ const TABS = Object.freeze({
   activeTitle: '#8A90A6',
   icons: ['#7DA7F2', '#F2B26B', '#7FD1A0', '#E58FB0', '#B7A2F0', '#F2D36B'],
 })
-const CHECKLIST = Object.freeze({
-  head: '#D8514B',
-  box: '#8E8497',
-  line: '#B7BBD0',
-  tick: '#2E9E57',
-})
-const CHECK_ROWS = 6
-const TICKED_ROWS = 4
 const PHOTO = Object.freeze({ frame: '#D9B98F', sky: '#BFE0F2', sun: '#F6D69B', hill: '#B9D9B5' })
 const PHONE = Object.freeze({ dark: '#0B0D14', lit: '#1B2442', alert: '#FF6259', card: '#8FA3E8' })
 const CALENDAR = Object.freeze({
@@ -192,7 +185,7 @@ function paintFace(c: CanvasRenderingContext2D, job: FaceJob): void {
       }
       return
     case 'checklist':
-      paintChecklist(c, cell, isFine)
+      paintChecklist(c, { cell, isFine, nearStops: view.nearStops })
       return
     case 'photo':
       paintPhoto(c, cell)
@@ -324,7 +317,9 @@ function paintTabs(c: CanvasRenderingContext2D, job: ScreenJob): void {
 // The home index's day on a screen, its line or candles; a dashed baseline while it is unread.
 function paintIndex(c: CanvasRenderingContext2D, area: Rect, job: ScreenJob): void {
   const isRest = job.state === 'rest'
-  const { trace } = job.view
+  // The trader's line monitor turns through the watched names while its owner sits idle.
+  const quote = job.row.type === 'monitor-line' ? job.view.quotes.get(job.row.owner) : undefined
+  const trace = quote ?? job.view.trace
 
   if (trace === undefined) {
     paintBaseline(c, area, isRest)
@@ -334,44 +329,6 @@ function paintIndex(c: CanvasRenderingContext2D, area: Rect, job: ScreenJob): vo
   const kind = job.row.type === 'monitor-candles' ? 'candles' : 'line'
 
   paintTrace(c, area, { trace, kind, isRest, isFine: job.isFine })
-}
-
-function paintChecklist(c: CanvasRenderingContext2D, cell: Rect, isFine: boolean): void {
-  const { x, y, w, h } = cell
-
-  c.fillStyle = PALETTE.paper
-  c.fillRect(x, y, w, h)
-  c.fillStyle = CHECKLIST.head
-  c.fillRect(x, y, w, 18)
-  c.fillStyle = PALETTE.paper
-
-  if (isFine) {
-    c.font = `700 11px ${FONT}`
-    c.textAlign = 'left'
-    c.fillText(tr('ui.office.desks.checklist'), x + 7, y + 9.5, w - 14)
-  } else {
-    c.fillRect(x + 7, y + 7, 52, 4)
-  }
-
-  for (let i = 0; i < CHECK_ROWS; i++) {
-    const rowY = y + 28 + i * 16
-
-    c.strokeStyle = CHECKLIST.box
-    c.lineWidth = 1.4
-    c.strokeRect(x + 8, rowY, 9, 9)
-    c.fillStyle = CHECKLIST.line
-    c.fillRect(x + 24, rowY + 3, 50 + ((i * 17) % 30), 3)
-
-    if (i < TICKED_ROWS) {
-      c.strokeStyle = CHECKLIST.tick
-      c.lineWidth = 2
-      c.beginPath()
-      c.moveTo(x + 9.5, rowY + 5)
-      c.lineTo(x + 12.5, rowY + 8)
-      c.lineTo(x + 19, rowY - 2)
-      c.stroke()
-    }
-  }
 }
 
 // A framed holiday snap: sky, sun, a hill and two people.

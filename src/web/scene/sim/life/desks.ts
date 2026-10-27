@@ -1,7 +1,14 @@
 import type { ActivityResponse } from '@/app/server/wire/activity'
 import type { ActorState } from '@/web/scene/sim/director'
 import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
-import type { ActorId, DeskSession, DeskTrace, MonitorState, RoomId } from '@/web/scene/types'
+import type {
+  ActorId,
+  DeskQuote,
+  DeskSession,
+  DeskTrace,
+  MonitorState,
+  RoomId,
+} from '@/web/scene/types'
 import type { ClockParts } from '@/web/text/time'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { homeIndex, type LedItem } from '@/web/scene/data/led'
@@ -10,6 +17,7 @@ import { todayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
+import { LIVE_OWNERS, liveDueOf, syncLive } from '@/web/scene/sim/life/desk-live'
 import { isPresent } from '@/web/scene/sim/life/presence'
 import { homePhase } from '@/web/scene/sim/rhythm'
 import {
@@ -35,9 +43,11 @@ const MAX_CUPS = DESK_CUP_SLOTS + 1
 const MAX_COUNTED_RUNS = 64
 const COMPLETED = 'completed'
 const DESK_OWNERS: readonly ActorId[] = [...new Set(DESK_PROPS.map((row) => row.owner))]
-const SCREEN_OWNERS: readonly ActorId[] = [
-  ...new Set(DESK_PROPS.filter(isScreen).map((row) => row.owner)),
-]
+const SCREEN_OWNERS: ReadonlySet<ActorId> = new Set(
+  DESK_PROPS.filter(isScreen).map((row) => row.owner)
+)
+// The people whose seat state the desks follow: the screen owners and the idle live screens'.
+const WATCHED_OWNERS: readonly ActorId[] = [...new Set([...SCREEN_OWNERS, ...LIVE_OWNERS])]
 // A run's room puts a sheet on the desks of the people who work there.
 const OWNERS_BY_ROOM: ReadonlyMap<RoomId, readonly ActorId[]> = ownersByRoom()
 
@@ -52,6 +62,8 @@ interface ShownDesks {
   readonly monitors: Map<ActorId, MonitorState>
   session: DeskSession
   trace: DeskTrace | undefined
+  readonly quotes: Map<ActorId, DeskQuote>
+  nearStops: number | undefined
   isAlertOn: boolean
   saverStep: number
   signature: number
@@ -78,6 +90,8 @@ export function createDesks(): Desks {
       monitors: new Map(),
       session: 'closed',
       trace: undefined,
+      quotes: new Map(),
+      nearStops: undefined,
       isAlertOn: false,
       saverStep: 0,
       signature: 0,
@@ -145,11 +159,13 @@ export function stepDesks(state: LifeState, step: LifeStep): void {
 }
 
 /** When a screensaver on show steps next, a `performance.now()` instant: while its ambient window
- *  is open, else when it opens. */
+ *  is open, else when it opens; or when an idle screen turns to its next name, if sooner. */
 export function deskDueOf(desks: Desks, nowMs: number): number {
-  return desks.hasSaver
+  const saverAt = desks.hasSaver
     ? ambientWindows.nextStepAt(AMBIENT_KEY.saver, nowMs, SAVER_STEP_MS)
     : Number.POSITIVE_INFINITY
+
+  return Math.min(saverAt, liveDueOf(desks.shown, nowMs))
 }
 
 // The desks' day runs from `DAY_START_MINUTE` to the same minute the next morning.
@@ -233,11 +249,11 @@ function syncScreens(desks: Desks, step: LifeStep): boolean {
   shown.isAlertOn = isAlertOn
   desks.hasSaver = false
 
-  for (const owner of SCREEN_OWNERS) {
+  for (const owner of WATCHED_OWNERS) {
     const actor = step.actors.get(owner)
     const next = actor === undefined ? 'off' : monitorOf(actor, { step, session })
 
-    desks.hasSaver = desks.hasSaver || next === 'saver'
+    desks.hasSaver = desks.hasSaver || (next === 'saver' && SCREEN_OWNERS.has(owner))
 
     if (shown.monitors.get(owner) !== next) {
       isChanged = true
@@ -250,7 +266,13 @@ function syncScreens(desks: Desks, step: LifeStep): boolean {
     }
   }
 
-  return syncSaver(desks, step) || isChanged
+  const isLiveChanged = syncLive(shown, {
+    monitors: shown.monitors,
+    nowMs: step.nowMs,
+    isReduced: step.isReduced,
+  })
+
+  return syncSaver(desks, step) || isLiveChanged || isChanged
 }
 
 // Absent while the owner works: the work screen shows. Dark for anyone gone home.

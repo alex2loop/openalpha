@@ -11,7 +11,8 @@ import { Button } from '@/web/ui/kit/button'
 import { openModal } from '@/web/ui/kit/modal'
 
 /** A click on a lit screen: its desk comes into view, then the scout's screen opens as a panel of
- *  the hosts read this run, the analyst's as the ticker's card and anyone else's as their run. */
+ *  the hosts read this run, a price line as the ticker's card, an idle desk's count as the book and
+ *  anyone else's as their run. */
 export function openScreen(screen: LitScreen): void {
   const room = roomById(screen.room)
 
@@ -26,8 +27,16 @@ export function openScreen(screen: LitScreen): void {
     return
   }
 
-  if (screen.content.kind === 'run') {
-    focusRun(screen.runId)
+  if (screen.content.kind === 'tally') {
+    openView({ tab: 'book' })
+    return
+  }
+
+  if (screen.content.kind === 'run' || screen.runId === undefined) {
+    if (screen.runId !== undefined) {
+      focusRun(screen.runId)
+    }
+
     return
   }
 

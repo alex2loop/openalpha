@@ -25,6 +25,7 @@ import {
   createMonitorFaces,
   disposeMonitorFaces,
   type MonitorFaces,
+  shownOn,
   syncMonitorFaces,
 } from '@/web/scene/render3d/monitor-faces'
 import {
@@ -191,7 +192,11 @@ function syncScreens(fixtures: Fixtures, frame: FixtureFrame): boolean {
           actor.working && Math.hypot(at.x - screen.seat.x, at.y - screen.seat.y) <= SCREEN_REACH_PX
       )?.actor.runId
   )
-  const lit = runIds.map((runId) => runId !== undefined)
+  // An idle desk's count lights its screen too.
+  const lit = frame.props.screens.map(
+    (screen, i) =>
+      runIds[i] !== undefined || shownOn(screen, frame.sim.deskScreens)?.content.kind === 'tally'
+  )
 
   const idle = frame.sim.life.isQuiet ? PROP_TONES.screenOff : PROP_TONES.screenStandby
 

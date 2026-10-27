@@ -17,6 +17,7 @@ import { bubbleSignatureOf, buildBubbles, said, startSpeech } from '@/web/scene/
 import { sceneHandOff } from '@/web/scene/overlay/hand-off'
 import { figureOf } from '@/web/scene/overlay/hit'
 import { hoverPlaceOf } from '@/web/scene/overlay/hover-label'
+import { withLiveScreens } from '@/web/scene/overlay/live-screens'
 import { markerRectOf } from '@/web/scene/overlay/markers'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import {
@@ -218,7 +219,9 @@ function readPass(renderer: SceneRenderer, sim: SimView, nowMs: number): PassInp
     }),
     markers: sceneHandOff.value.marks,
     screens: [
-      ...sceneHandOff.value.deskScreens.filter((screen) => screen.floor === sim.floor),
+      ...withLiveScreens(sceneHandOff.value, sim.life.deskItems).deskScreens.filter(
+        (screen) => screen.floor === sim.floor
+      ),
       ...buildTeamScreens({ floor: sim.floor, actors: sim.actors, runs: runs.value }),
     ],
     figures,
