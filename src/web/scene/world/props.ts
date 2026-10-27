@@ -263,8 +263,8 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   ...[24, 56, 88].map((x, i) =>
     wall('clock', 'lobby', { at: [x, 226, 12, 12], tip: 'clock', variant: i })
   ),
-  wall('wall-screen', 'lobby', { at: [28, 242, 84, 36], tip: 'agenda', variant: 1 }),
-  wall('wall-screen', 'lobby', { at: [20, 286, 92, 42], tip: 'agenda', variant: 2 }),
+  wall('wall-screen', 'lobby', { at: [28, 250, 84, 36], tip: 'agenda', variant: 1 }),
+  wall('wall-screen', 'lobby', { at: [20, 294, 92, 42], tip: 'agenda', variant: 2 }),
   stand('cooler', 'lobby', { at: [134, 292, 12, 8], draw: [134, 259, 12, 45] }),
   stand('cat-bed', 'lobby', { at: [136, 315, 24, 14], draw: [136, 315, 24, 14] }),
   stand('umbrella-stand', 'lobby', { at: [6, 286, 6, 5], draw: [5, 272, 8, 19] }),

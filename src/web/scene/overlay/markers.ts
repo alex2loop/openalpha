@@ -56,11 +56,23 @@ export function buildMarkers(input: MarkerInput): readonly Marker[] {
 
 /** The marker's box over a figure on screen, at the zoom the figure is drawn at (CSS px per
  *  world px). */
-export function markerRectOf(figure: Rect, scale: number): Rect {
+function markerRectOf(figure: Rect, scale: number): Rect {
   const w = MARKER_W * scale
   const h = MARKER_H * scale
 
   return { x: figure.x + figure.w / 2 - w / 2, y: figure.y - MARKER_RISE * scale - h, w, h }
+}
+
+/** Each marker with its box, for the markers whose person is on screen. */
+export function placeMarkers(
+  markers: readonly Marker[],
+  at: { readonly figures: ReadonlyMap<ActorId, Rect>; readonly scale: number }
+): { readonly marker: Marker; readonly rect: Rect }[] {
+  return markers.flatMap((marker) => {
+    const figure = at.figures.get(marker.actor)
+
+    return figure === undefined ? [] : [{ marker, rect: markerRectOf(figure, at.scale) }]
+  })
 }
 
 function openBell(): void {

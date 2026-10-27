@@ -66,6 +66,8 @@ interface LayoutInput {
   readonly hover?: HoverLabel
   readonly rooms: ReadonlyMap<RoomId, Rect>
   readonly actors: ReadonlyMap<ActorId, Rect>
+  /** The selected person: their bubble goes first and shows even where it must overlap. */
+  readonly selected?: ActorId | undefined
 }
 
 interface Layout {
@@ -91,22 +93,24 @@ const widths = new Map<string, number>()
 let measurer: CanvasRenderingContext2D | null | undefined
 let fontFamily = FALLBACK_FAMILY
 
-/** Places the hover label first, then bubbles by priority and by where their speaker stands
- *  (top first, then left), at most `MAX_BUBBLES`, each inside its speaker's room and clear of
- *  everything placed before it. A bubble with no free place is hidden. */
+/** Places the hover label first, then the selected person's bubble, then the rest by priority and
+ *  by where their speaker stands (top first, then left), at most `MAX_BUBBLES`, each inside its
+ *  speaker's room and clear of everything placed before it. A bubble with no free place is hidden,
+ *  but the selected person's takes the place that covers the least. */
 export function layoutOverlay(input: LayoutInput): Layout {
   const hover = input.hover === undefined ? undefined : placeHover(input.hover, input.fixed)
   const taken: Rect[] = [...input.fixed, ...input.tags, ...(hover === undefined ? [] : [hover])]
   const placed: Placed[] = []
   const hidden: ActorId[] = []
 
-  for (const bubble of sortBubbles(input.bubbles, input.actors)) {
+  for (const bubble of sortBubbles(input.bubbles, input)) {
     const speaker = input.actors.get(bubble.actor)
     const room = speaker === undefined ? undefined : roomOf(speaker, input.rooms)
+    const isSelected = bubble.actor === input.selected
     const spot =
-      speaker === undefined || placed.length >= MAX_BUBBLES
+      speaker === undefined || (placed.length >= MAX_BUBBLES && !isSelected)
         ? undefined
-        : candidatesOf(bubble, { speaker, room }).find((at) => !isTaken(at.rect, taken))
+        : spotOf(candidatesOf(bubble, { speaker, room }), taken, isSelected)
 
     if (speaker === undefined || spot === undefined) {
       hidden.push(bubble.actor)
@@ -209,15 +213,41 @@ function placeHover(hover: HoverLabel, fixed: readonly Rect[]): Rect {
   return free ?? { x: anchor.x + anchor.w + BUBBLE_GAP_PX, y: midY, ...size }
 }
 
+// The first place clear of everything taken; a forced bubble takes the one that covers the least.
+function spotOf(
+  candidates: readonly Candidate[],
+  taken: readonly Rect[],
+  isForced: boolean
+): Candidate | undefined {
+  const covered = (at: Candidate): number =>
+    taken.filter((held) => isOverlapping(at.rect, held)).length
+  const free = candidates.find((at) => covered(at) === 0)
+
+  if (free !== undefined || !isForced) {
+    return free
+  }
+
+  return candidates.reduce<Candidate | undefined>(
+    (best, at) => (best === undefined || covered(at) < covered(best) ? at : best),
+    undefined
+  )
+}
+
 function sortBubbles(
   bubbles: readonly Sized<Bubble>[],
-  actors: ReadonlyMap<ActorId, Rect>
+  input: Pick<LayoutInput, 'actors' | 'selected'>
 ): Sized<Bubble>[] {
+  const { actors, selected } = input
   const yOf = (bubble: Bubble): number => actors.get(bubble.actor)?.y ?? 0
   const xOf = (bubble: Bubble): number => actors.get(bubble.actor)?.x ?? 0
+  const isSelected = (bubble: Bubble): number => Number(bubble.actor === selected)
 
   return [...bubbles].sort(
-    (a, b) => PRIORITY[a.kind] - PRIORITY[b.kind] || yOf(a) - yOf(b) || xOf(a) - xOf(b)
+    (a, b) =>
+      isSelected(b) - isSelected(a) ||
+      PRIORITY[a.kind] - PRIORITY[b.kind] ||
+      yOf(a) - yOf(b) ||
+      xOf(a) - xOf(b)
   )
 }
 

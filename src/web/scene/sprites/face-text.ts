@@ -9,6 +9,8 @@ interface LineStyle {
   readonly align?: CanvasTextAlign
   readonly weight?: number
   readonly maxW?: number
+  /** Shrinks the text to fit `maxW` before cutting it. */
+  readonly isFitted?: boolean
 }
 
 /** Text, x, y and font size in world px, then how it looks. */
@@ -20,19 +22,31 @@ export function writeAll(c: CanvasRenderingContext2D, lines: readonly Line[]): v
   }
 }
 
-// Writes one line, cut with a trailing mark when it does not fit; returns the width it took.
+// Writes one line, shrunk when asked and cut with a trailing mark when it does not fit; returns
+// the width it took.
 export function write(c: CanvasRenderingContext2D, line: Line): number {
   const [raw, x, y, size, style] = line
 
-  c.font = `${style.weight ?? 500} ${size}px ${FONT}`
+  const { maxW, isFitted = false } = style
+
+  c.font = fontOf(style, size)
+
+  if (isFitted && maxW !== undefined) {
+    c.font = fontOf(style, size * Math.min(1, maxW / c.measureText(raw).width))
+  }
+
   c.fillStyle = style.color
   c.textAlign = style.align ?? 'left'
 
-  const text = style.maxW === undefined ? raw : clip(c, raw, style.maxW)
+  const text = maxW === undefined || isFitted ? raw : clip(c, raw, maxW)
 
   c.fillText(text, x, y)
 
   return c.measureText(text).width
+}
+
+function fontOf(style: LineStyle, size: number): string {
+  return `${style.weight ?? 500} ${size}px ${FONT}`
 }
 
 /** `text` as it fits in `maxW` px at the font set, cut with a trailing mark. */

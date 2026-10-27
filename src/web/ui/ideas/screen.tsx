@@ -8,7 +8,7 @@ import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
 import { isAdvanced } from '@/web/state/prefs'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
-import { joinInline, splitInline } from '@/web/text/glyphs'
+import { isInfoLine, joinInline, splitInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -101,7 +101,7 @@ function BoardBody({ board }: { readonly board: ScreenResponse }) {
         <Opportunity key={row.key} row={row} />
       ))}
       {card.caveats.map((caveat) => (
-        <p key={caveat} class="strip is-caution">
+        <p key={caveat} class={isInfoLine(caveat) ? 'meta' : 'strip is-caution'}>
           {caveat}
         </p>
       ))}

@@ -47,6 +47,7 @@
 
 .room-tag-text {
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .room-queued {
