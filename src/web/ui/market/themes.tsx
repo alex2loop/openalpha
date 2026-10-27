@@ -8,6 +8,7 @@ import { useBlock } from '@/web/state/block'
 import { fillInput } from '@/web/state/command'
 import { estimateText } from '@/web/state/estimates'
 import { onCommandFinished } from '@/web/state/events'
+import { homeRegion } from '@/web/state/market'
 import { toErrorText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
@@ -20,6 +21,8 @@ const THEMES_COMMAND = 'themes'
 const RUN_TEXT = `/${THEMES_COMMAND}`
 const PROPOSED = 'proposed'
 const LINE_BREAK = '\n'
+// Themes read the Vietnam market only.
+const THEMES_REGION = 'vn'
 
 type ThemeWire = ThemesResponse['themes'][number]
 
@@ -41,38 +44,49 @@ interface MoveContext {
 export function Themes() {
   const reading = useBlock(ROUTES.themes)
   const answer = useSignal<MoveAnswer | undefined>(undefined)
+  const isFilled = useSignal(false)
 
   useEffect(() => onCommandFinished(THEMES_COMMAND, reading.retry), [])
 
   return (
-    <>
-      <p class="meta">{tr('ui.office.themes.vnOnly')}</p>
-      <RunAgain />
-      {answer.value?.isRefused === false && <p class="meta">{answer.value.text}</p>}
-      <BlockFrame
-        title={tr('ui.office.market.tab.themes')}
-        colour="yellow"
-        icon={<BulbIcon />}
-        reading={reading}
-      >
-        {(data) =>
-          data.themes.length === 0 ? (
+    <BlockFrame
+      title={tr('ui.office.market.tab.themes')}
+      colour="yellow"
+      icon={<BulbIcon />}
+      reading={reading}
+      action={<RunAgain isFilled={isFilled} />}
+    >
+      {(data) => (
+        <>
+          <VnOnlyNote />
+          {isFilled.value && <p class="meta">{tr('ui.office.themes.filled')}</p>}
+          {answer.value?.isRefused === false && <p class="meta">{answer.value.text}</p>}
+          {data.themes.length === 0 ? (
             <p class="meta">{tr('ui.office.themes.none')}</p>
           ) : (
             <ThemeLists data={data} context={{ answer, reread: reading.retry }} />
-          )
-        }
-      </BlockFrame>
-    </>
+          )}
+        </>
+      )}
+    </BlockFrame>
   )
 }
 
-function RunAgain() {
-  const isFilled = useSignal(false)
+// Said only where the operator's home is elsewhere: a Vietnam home reads every theme here.
+function VnOnlyNote() {
+  const home = homeRegion()
+
+  return home === undefined || home === THEMES_REGION ? null : (
+    <p class="strip is-caution">{tr('ui.office.themes.vnOnly')}</p>
+  )
+}
+
+function RunAgain({ isFilled }: { readonly isFilled: Signal<boolean> }) {
   const estimate = estimateText(RUN_TEXT)
 
   return (
-    <div class="market-run">
+    <>
+      {estimate !== undefined && <span class="meta">{estimate}</span>}
       <Button
         kind="ai"
         size="small"
@@ -83,9 +97,7 @@ function RunAgain() {
       >
         {tr('ui.office.themes.rerun')}
       </Button>
-      {estimate !== undefined && <span class="meta">{estimate}</span>}
-      {isFilled.value && <p class="meta">{tr('ui.office.themes.filled')}</p>}
-    </div>
+    </>
   )
 }
 

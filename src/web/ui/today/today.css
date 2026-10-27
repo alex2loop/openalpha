@@ -15,6 +15,10 @@
   font-weight: 600;
 }
 
+.block-head .meta {
+  font-weight: 400;
+}
+
 .block-grow {
   flex: 1;
 }
@@ -56,8 +60,12 @@
   color: var(--ink2);
 }
 
-.close-note {
+.session-line {
   margin-bottom: 10px;
+}
+
+.session-line b {
+  color: var(--ink);
 }
 
 .needs-bar {
