@@ -156,7 +156,7 @@ async function loadPage(
       signal: abortSignal,
     })
 
-    const messages = [...page.messages].reverse().concat(held.messages)
+    const messages = [...page.messages, ...held.messages]
     const isCapped = messages.length >= MAX_EARLIER
 
     pages.value = {

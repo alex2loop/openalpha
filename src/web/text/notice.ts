@@ -1,6 +1,7 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import { sourceLabel } from '@/web/text/source'
 import { tr } from '@/web/text/tr'
+import { parseReport, plainTextOf } from '@/web/ui/markdown/parse'
 
 const LINE_BREAK = '\n'
 
@@ -11,8 +12,11 @@ interface NoticeText {
 
 /** A notice as the bell words it: its first line, then the rest. */
 export function toNoticeText(event: WireEvent): NoticeText | undefined {
-  if (event.note !== undefined && event.note.trim() !== '') {
-    const [title = '', ...rest] = event.note.trim().split(LINE_BREAK)
+  // A scheduled answer arrives as markdown; the bell shows its words, not its marks.
+  const note = event.note === undefined ? '' : plainTextOf(parseReport(event.note)).trim()
+
+  if (note !== '') {
+    const [title = '', ...rest] = note.split(LINE_BREAK)
     const detail = rest.join(LINE_BREAK).trim()
 
     return detail === '' ? { title } : { title, detail }

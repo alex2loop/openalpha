@@ -251,7 +251,7 @@ interface SlashCommandInfo {
   /** Sub-command names for the completion ghost (e.g. schedule: ['add','list','remove']). */
   readonly args?: readonly string[]
   /** What a run usually costs: the 25th to 75th percentile of the last runs that cost something.
-   *  Absent until enough runs exist. `0` to `0` means it has not cost AI so far. */
+   *  Absent until enough runs exist. `0` to `0` means it has not cost AI so far, and with `runs` 0 that it cannot. */
   readonly estimate?: { readonly lowUsd: number; readonly highUsd: number; readonly runs: number }
 }
 

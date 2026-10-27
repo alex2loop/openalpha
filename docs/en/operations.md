@@ -149,6 +149,12 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 can replace the prompt, schedule, timezone or target; to change the agent, remove the job and add it
 again.
 
+A prompt that starts with `/` is a command, run the way you would type it, with no model unless the
+command itself needs one (`/suggest`, `/research`): `--prompt "/health"` costs nothing. Only the first
+line is the command, and a result is delivered like any other answer. A command that changes your
+settings, orders or book (such as `/trade`, `/record sync` or `/refresh`) needs you to approve it, so `schedule add` and
+`schedule edit` refuse it, and so do the office page and an agent's schedule tool.
+
 `--allow-tools` restricts the job to the tools on *both* lists: the agent's allowed tools and the
 job's. `schedule show` prints the effective set with `(restricted)` or `(all)`.
 

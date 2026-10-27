@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 
-import type { RunResult } from '@/engine/api'
 import type {
   Job,
   JobOwner,
@@ -11,7 +10,7 @@ import type {
 } from '@/scheduler/types'
 import { withCorrelation } from '@/core/logging/correlation'
 import { formatErrForLog } from '@/core/security/credentials'
-import { createSchedulerApproval } from '@/scheduler/approval'
+import { type JobExecution, runAgent } from '@/scheduler/job/agent-run'
 import { deliverPartial, deliverText, notifyIfAutoDisabled } from '@/scheduler/job/delivery'
 import { finalizeOccurrence } from '@/scheduler/job/finalize'
 import {
@@ -22,25 +21,12 @@ import {
   SHUTDOWN_MESSAGE,
 } from '@/scheduler/job/outcome'
 
-// Exported for scheduler/runner.ts: the run-now claim staleness TTL is sized off the same cap so
-// the two never drift apart from separately-tuned constants.
-export const JOB_MAX_DURATION_MS = 900_000
 const STALLED_OUTCOME_MESSAGE = 'stalled run recovered; outcome was not recorded'
 // Wall-clock lease, independent of the engine's own duration clock (which pauses for an open
 // approval prompt): renewing on a fixed interval keeps the lease fresh for as long as a live
 // process is actually attending to the run, however long the run's real wall-clock time is.
 const OCCURRENCE_LEASE_TTL_MS = 300_000
 const OCCURRENCE_LEASE_RENEW_INTERVAL_MS = 120_000
-
-interface JobExecution {
-  readonly result: RunResult
-  readonly denied: boolean
-}
-
-interface RunAgentOptions {
-  readonly signal: AbortSignal
-  readonly onWorkStart?: () => Promise<void>
-}
 
 interface RunScheduledOccurrenceOptions {
   readonly job: Job
@@ -422,33 +408,6 @@ async function finishRunNow(
   } catch (err: unknown) {
     deps.logger.warn('scheduler.run_now_finish_failed', { runId, err: formatErrForLog(err) })
   }
-}
-
-async function runAgent(
-  job: Job,
-  deps: SchedulerDeps,
-  options: RunAgentOptions
-): Promise<JobExecution> {
-  const jobApproval = job.target === undefined ? undefined : createSchedulerApproval(job)
-  const input = deps.runInput(job)
-  const result = await deps.runner.run(
-    job.target === undefined ? input : { ...input, channel: job.target.channel },
-    {
-      approvalMode: jobApproval === undefined ? 'unavailable' : 'manual',
-      ...(jobApproval === undefined ? {} : { approval: jobApproval.approval }),
-      ...(job.target === undefined ? {} : { chatId: job.target.chatId }),
-      ...(job.allowedTools !== undefined && job.allowedTools.length > 0
-        ? { allowedTools: job.allowedTools }
-        : {}),
-      approvalTimeoutMs: deps.config.schedule.approvalTimeoutMs,
-      parentSignal: options.signal,
-      ...(options.onWorkStart === undefined ? {} : { onWorkStart: options.onWorkStart }),
-      // Caps agent work only: the engine stops this clock while an approval prompt is open.
-      maxDurationMs: JOB_MAX_DURATION_MS,
-    }
-  )
-
-  return { result, denied: jobApproval?.hasDenied() === true }
 }
 
 interface ReleaseRunNowClaimOptions {

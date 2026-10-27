@@ -42,6 +42,17 @@ export function estimateOf(name: string): SlashCommandInfo['estimate'] {
   return list.value.find((command) => command.name === name)?.estimate
 }
 
+/** Whether `name` (with its slash) is known to cost no AI: it never has, or never can. */
+export function isNoAi(name: string): boolean {
+  const estimate = estimateOf(name)
+
+  return estimate !== undefined && isFree(estimate)
+}
+
+function isFree(estimate: NonNullable<SlashCommandInfo['estimate']>): boolean {
+  return estimate.lowUsd === 0 && estimate.highUsd === 0
+}
+
 /** What `name` (with its slash) usually costs, and what is left of today's cap; absent while the
  *  daemon has no estimate for it. */
 export function estimateText(name: string): string | undefined {
@@ -51,7 +62,7 @@ export function estimateText(name: string): string | undefined {
     return undefined
   }
 
-  if (estimate.lowUsd === 0 && estimate.highUsd === 0) {
+  if (isFree(estimate)) {
     return tr('ui.office.common.noAi')
   }
 

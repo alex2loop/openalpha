@@ -114,7 +114,7 @@ export async function loadOlder(): Promise<void> {
       return
     }
 
-    const messages = [...page.messages].reverse().concat(held.messages)
+    const messages = [...page.messages, ...held.messages]
 
     nextBefore = page.nextBefore ?? undefined
     view.value = {

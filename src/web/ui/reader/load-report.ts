@@ -64,7 +64,7 @@ async function readNewestAnswer(
       ...(before === undefined ? {} : { query: { before } }),
       signal: abort,
     })
-    const found = answer.messages.find(
+    const found = answer.messages.findLast(
       (message) => message.role === ASSISTANT_ROLE && message.content.trim() !== ''
     )
 

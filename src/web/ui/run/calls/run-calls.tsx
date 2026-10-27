@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'preact/hooks'
 import type { RunCallsWire, RunCallWire } from '@/app/server/wire/live'
 import { pluralKey } from '@/i18n'
 import { useBlockRead } from '@/web/state/block'
-import { estimateOf } from '@/web/state/estimates'
+import { estimateOf, isNoAi } from '@/web/state/estimates'
 import { onWireEvent } from '@/web/state/events'
 import { state } from '@/web/state/session'
 import { formatUsd } from '@/web/text/figures'
@@ -28,6 +28,11 @@ interface RunCallsProps {
 /** "Lệnh gọi AI": every model call a run and its child runs made, read when the fold opens. A
  *  mount is for one run: key it by `runId`. */
 export function RunCalls(props: RunCallsProps) {
+  // A command that never bills a model has no calls to list.
+  if (props.command !== undefined && isNoAi(props.command)) {
+    return null
+  }
+
   return (
     <Fold title={tr('ui.office.calls.title')}>
       <CallsBody {...props} />

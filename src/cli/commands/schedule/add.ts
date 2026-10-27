@@ -1,4 +1,5 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
+import type { CliApp } from '@/cli/types'
 import type { ChannelAddress } from '@/core/channels'
 import type { AgentId, JobId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
@@ -9,6 +10,7 @@ import { renderLocalized } from '@/cli/help'
 import { flagList, flagString } from '@/cli/parsing/args'
 import { parseDurationFlag } from '@/cli/parsing/duration'
 import { success } from '@/cli/ui/colors'
+import { scheduledCommandRefusal } from '@/commands/api'
 import { parseChannelAddress } from '@/core/channels'
 import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
@@ -66,7 +68,7 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, terminalErrorMessage(err, locale))
     }
 
-    const promptError = promptRefusal(prompt, locale)
+    const promptError = promptRefusal(app, prompt, locale)
 
     if (promptError !== undefined) {
       return usage(app, promptError)
@@ -108,12 +110,14 @@ export const scheduleAddCommand: Command = createCommand({
   },
 })
 
-function promptRefusal(prompt: string, locale: Locale): string | undefined {
-  const [issue] = validateJobPrompt(prompt)
+/** What is wrong with a job's prompt, in the operator's language; undefined when it may run. */
+export function promptRefusal(app: CliApp, prompt: string, locale: Locale): string | undefined {
+  const refusal =
+    validateJobPrompt(prompt)[0] ?? scheduledCommandRefusal(app.resolve('slashDispatcher'), prompt)
 
-  return issue === undefined
+  return refusal === undefined
     ? undefined
-    : bindLocale(locale).translate(issue.operator.key, issue.operator.params)
+    : bindLocale(locale).translate(refusal.operator.key, refusal.operator.params)
 }
 
 export function resolveSchedule(args: ParsedArgs, tz: string, locale: Locale): ScheduleResult {

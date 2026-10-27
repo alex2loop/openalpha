@@ -3,7 +3,8 @@ import type { Job, SchedulerDeps } from '@/scheduler/types'
 import { reportPass } from '@/core/container'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_SECOND } from '@/core/utils/time'
-import { JOB_MAX_DURATION_MS, runScheduledOccurrence } from '@/scheduler/job/execution'
+import { JOB_MAX_DURATION_MS } from '@/scheduler/job/agent-run'
+import { runScheduledOccurrence } from '@/scheduler/job/execution'
 
 export const SCHEDULER_STOP_TIMEOUT_MS = 5_000
 // A live run-now claim's wall clock is the job's own duration cap plus however long it waited on

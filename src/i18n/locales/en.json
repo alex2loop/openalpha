@@ -2064,6 +2064,8 @@
     "agentBuildFailed": "I could not build this agent from what was sent. Check that its tools and model tier exist and that the prompt has no blocked instruction, then save again.",
     "jobPromptTooLarge": "This prompt is {bytes} bytes; a job takes up to {limit}.",
     "jobPromptBlocked": "This prompt matches a pattern used to hijack an agent, so I did not accept it.",
+    "jobCommandUnknown": "{command} is not a command I know, so a job cannot run it.",
+    "jobCommandUnattended": "{command} changes your settings, orders or book and needs your approval, so it cannot run on a schedule. Run it yourself when you want it.",
     "jobAgentUnknown": "{agent} is not an agent I know.",
     "jobCronNever": "\"{expr}\" never comes round on the calendar, so that schedule would never run.",
     "jobIntervalShort": "A repeating job runs at most once a minute; pick a longer interval.",
