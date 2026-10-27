@@ -5,6 +5,8 @@ import { ABSENT_CELL, DOWN_GLYPH, UP_GLYPH } from '@/web/text/glyphs'
 /** Percent per whole: a fraction times this is a percent. */
 export const PERCENT = 100
 const USD_DIGITS = 2
+const USD_CENT = 0.01
+const USD_SMALL_DIGITS = 2
 const PERCENT_DIGITS = 2
 const PRICE_DIGITS = 2
 // A price under 1 with no board scale keeps this many digits after its leading zeros.
@@ -30,8 +32,13 @@ export const WHOLE_DISPLAY: PriceDisplay = Object.freeze({ divisor: 1, decimals:
 // One per page language and shape, so bounded by construction.
 const formatters = new Map<string, Intl.NumberFormat>()
 
-/** A USD amount at cent precision in the page's language; a missing one prints `ABSENT_CELL`. */
+/** A USD amount at cent precision in the page's language; one under a cent keeps two significant
+ *  digits, so a model call's cost never reads as zero. A missing one prints `ABSENT_CELL`. */
 export function formatUsd(value: number | undefined): string {
+  if (value !== undefined && value !== 0 && Math.abs(value) < USD_CENT) {
+    return buildFormatter('usd-small', { maximumSignificantDigits: USD_SMALL_DIGITS }).format(value)
+  }
+
   return formatFixed(value, USD_DIGITS)
 }
 
