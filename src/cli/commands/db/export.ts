@@ -42,7 +42,7 @@ export const dbExportCommand: Command = createCommand({
       force: { type: 'boolean', describe: { key: 'cliHelp.flagDbExportForce' } },
     },
   },
-  needs: { bootScope: 'persistence', startup: 'none', daemon: 'any' },
+  needs: { bootScope: 'persistence', startup: 'none', daemon: 'any', local: true },
   async run(args, app): Promise<number> {
     const locale = app.config.locale.language
     const out = flagString(args, 'out')

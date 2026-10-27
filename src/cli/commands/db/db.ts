@@ -203,7 +203,7 @@ const dbBackupCommand = createCommand({
       force: { type: 'boolean', describe: { key: 'cliHelp.flagDbBackupForce' } },
     },
   },
-  needs: { bootScope: 'persistence', startup: 'none', daemon: 'any' },
+  needs: { bootScope: 'persistence', startup: 'none', daemon: 'any', local: true },
   async run(args, app): Promise<number> {
     const locale = app.config.locale.language
 

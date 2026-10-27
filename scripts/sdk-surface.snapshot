@@ -54,6 +54,7 @@ cli:installProcessTerminal
 cli:isBackgroundLaunch
 cli:isCompiledBinary
 cli:isConfigPresent
+cli:isForwardable
 cli:isRuntimeEnvName
 cli:isUpdateCheckEnabled
 cli:isVerbose
@@ -77,7 +78,8 @@ cli:readUpdateState
 cli:refreshUpdateState
 cli:removeEnvFileValue
 cli:reportKeyFile
-cli:resolveContributedCliCommands
+cli:resolveCliCommands
+cli:resolveCommandPath
 cli:runCli
 cli:saveEditedConfig
 cli:spawnRestartProcess

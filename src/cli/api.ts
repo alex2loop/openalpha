@@ -15,7 +15,13 @@ export type {
 export type { CliApp, ConfigProbe, Writer } from '@/cli/types'
 export type { PendingUpgrade, UpdateChat, UpdateState } from '@/cli/update/state'
 export type { ReleaseStatus } from '@/cli/update/status'
-export { admitCommand, createCommand, createGroup, lazyCommand } from '@/cli/command'
+export {
+  admitCommand,
+  createCommand,
+  createGroup,
+  isForwardable,
+  lazyCommand,
+} from '@/cli/command'
 export { readCommandCacheStubs, writeCommandCache } from '@/cli/command-cache'
 export { spawnRestartProcess, spawnUpgradeProcess } from '@/cli/commands/daemon/background'
 export { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
@@ -31,7 +37,6 @@ export {
   starterConfigToml,
 } from '@/cli/commands/onboard/config-file'
 export { offerOnboard } from '@/cli/commands/onboard/onboard'
-export { resolveContributedCliCommands } from '@/cli/contributed'
 export { isBackgroundLaunch } from '@/cli/daemon-env'
 export { readDaemonDegraded } from '@/cli/daemon-ready'
 export { getEnv, isVerbose } from '@/cli/env'
@@ -46,7 +51,7 @@ export {
   writeEnvFileValue,
 } from '@/cli/env-file'
 export { formatTerminalError, printError, usage } from '@/cli/error-output'
-export { preflightCommand, runCli } from '@/cli/main'
+export { preflightCommand, resolveCliCommands, resolveCommandPath, runCli } from '@/cli/main'
 export { type KeyEnvGroup, keyEnvGroups } from '@/cli/missing-keys'
 export { formatArgIssue } from '@/cli/parsing/arg-issue'
 export { parseGlobalFlags } from '@/cli/parsing/global-flags'

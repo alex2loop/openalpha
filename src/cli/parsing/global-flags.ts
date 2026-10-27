@@ -12,6 +12,8 @@ export interface GlobalFlags {
   readonly quiet: boolean
   readonly verbose: boolean
   readonly noColor: boolean
+  /** Run in this process, never in the daemon: `--local`, or `--log-level` given as a flag. */
+  readonly local: boolean
   readonly configPath?: string
   readonly dataDir?: string
   readonly logLevel?: LogLevel
@@ -24,6 +26,7 @@ interface Accumulator {
   quiet: boolean
   verbose: boolean
   noColor: boolean
+  local: boolean
   configPath?: string
   dataDir?: string
   logLevel?: LogLevel
@@ -34,7 +37,14 @@ export function parseGlobalFlags(
   argv: readonly string[],
   env: Readonly<Record<string, string | undefined>>
 ): GlobalFlags {
-  const acc: Accumulator = { argv: [], quiet: false, verbose: false, noColor: false, issues: [] }
+  const acc: Accumulator = {
+    argv: [],
+    quiet: false,
+    verbose: false,
+    noColor: false,
+    local: false,
+    issues: [],
+  }
   readEnvLogLevel(acc, env)
   let index = 0
 
@@ -101,6 +111,12 @@ function take(acc: Accumulator, token: string, next: string | undefined): number
     return 1
   }
 
+  if (token === '--local') {
+    acc.local = true
+
+    return 1
+  }
+
   const valued = valueFlag(token, next)
 
   if (valued !== null) {
@@ -160,6 +176,9 @@ function applyValue(acc: Accumulator, name: string, value: string): void {
   }
 
   if (name === '--log-level') {
+    // The flag asks to debug this process; the env variable alone does not.
+    acc.local = true
+
     if (isLogLevel(value)) {
       acc.logLevel = value
 

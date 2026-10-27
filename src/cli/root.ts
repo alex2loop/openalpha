@@ -34,7 +34,7 @@ function createHelpCommand(root: () => Group): Command {
 }
 
 // `--version` is the `version` command, so there is one implementation of what it prints.
-function toCommandArgv(argv: readonly string[]): readonly string[] {
+export function toCommandArgv(argv: readonly string[]): readonly string[] {
   const [head, ...rest] = argv
 
   return head !== undefined && VERSION_FLAGS.has(head)

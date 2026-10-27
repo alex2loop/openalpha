@@ -21,7 +21,6 @@ import { setupCommand } from '@/app/server/cli/setup-command'
 import { webCommand } from '@/app/server/cli/web-command'
 import {
   admitCommand,
-  BUILT_IN_COMMANDS,
   fail,
   formatArgIssue,
   formatTerminalError,
@@ -36,7 +35,7 @@ import {
   printError,
   readCommandCacheStubs,
   reportKeyFile,
-  resolveContributedCliCommands,
+  resolveCliCommands,
   runCli,
   startUpdateNotice,
   stopDaemonIfRunning,
@@ -276,14 +275,11 @@ async function runBoot(options: RunBootOptions): Promise<number> {
       keyFile: options.keyFile,
       ...(shutdown === undefined ? {} : { abortDaemon: () => shutdown.abort() }),
     }
-    const contributed = resolveContributedCliCommands(cliApp, [
-      ...BUILT_IN_COMMANDS,
-      ...extraCommands,
-    ])
+    const commands = resolveCliCommands(cliApp, extraCommands)
 
     await refreshCommandCache(cliApp)
 
-    return await runCli(cliApp, flags.argv, [...extraCommands, ...contributed])
+    return await runCli(cliApp, flags.argv, commands)
   } catch (err: unknown) {
     // boot() never catches its own ConfigError (spec §13 Pillar C) — the entry prints it, once.
     return printError(err, { write: writers.err, verbose: isVerbose(), locale })
