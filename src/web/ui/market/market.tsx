@@ -22,6 +22,7 @@ import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { MacroFull } from '@/web/ui/market/macro-full'
 import { NewsList } from '@/web/ui/market/news-list'
+import { RefreshButton } from '@/web/ui/market/refresh-button'
 import { Session } from '@/web/ui/market/session'
 import { Themes } from '@/web/ui/market/themes'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -54,6 +55,7 @@ export function Market() {
           }}
         />
         {subTab !== 'themes' && <RegionPicker />}
+        {subTab === 'market' && <RefreshButton />}
       </div>
       <SubTabBody subTab={subTab} />
     </div>

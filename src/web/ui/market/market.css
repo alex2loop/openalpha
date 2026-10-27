@@ -127,3 +127,12 @@
   font-size: var(--sizeBody);
   line-height: 1.45;
 }
+
+.market-refresh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+  margin-inline-start: auto;
+  margin-bottom: var(--s2);
+}
