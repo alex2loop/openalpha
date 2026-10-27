@@ -2064,6 +2064,8 @@
     "agentBuildFailed": "Mình chưa dựng được agent này từ nội dung bạn gửi. Bạn kiểm tra công cụ và hạng mô hình có tồn tại không và prompt có chứa chỉ dẫn bị chặn không, rồi lưu lại nhé.",
     "jobPromptTooLarge": "Prompt này dài {bytes} byte, một công việc nhận tối đa {limit} byte.",
     "jobPromptBlocked": "Prompt này giống mẫu dùng để điều khiển agent trái ý, nên mình không nhận.",
+    "jobCommandUnknown": "{command} không phải lệnh mình biết, nên công việc không chạy được lệnh này.",
+    "jobCommandUnattended": "{command} thay đổi cài đặt, lệnh đặt hoặc sổ của bạn và cần bạn duyệt, nên không chạy theo lịch được. Bạn tự chạy khi cần nhé.",
     "jobAgentUnknown": "Mình không biết agent {agent}.",
     "jobCronNever": "\"{expr}\" không bao giờ xuất hiện trên lịch, nên lịch này sẽ không bao giờ chạy.",
     "jobIntervalShort": "Công việc lặp chạy nhiều nhất mỗi phút một lần, bạn chọn khoảng dài hơn nhé.",

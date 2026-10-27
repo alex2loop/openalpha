@@ -17,6 +17,7 @@ import {
   readJsonBody,
   toBodyFieldLabel,
 } from '@/app/server/routes/params'
+import { scheduledCommandRefusal } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { operatorMessageOf, ValidationError } from '@/core/errors'
@@ -101,6 +102,14 @@ function toEventSchedule(schedule: JobEventScheduleBody): TimedSchedule {
   }
 }
 
+function assertScheduledCommand(ctx: ApiRouteContext, prompt: string): void {
+  const refusal = scheduledCommandRefusal(ctx.app.resolve('slashDispatcher'), prompt)
+
+  if (refusal !== undefined) {
+    throw new ValidationError(refusal.message, refusal.operator)
+  }
+}
+
 /** Everything the body can get wrong is checked here, before any alert is armed. A refusal the
  *  operator can fix leaves as a `ValidationError`, which the route table answers as a 400; anything
  *  else is ours and stays a 500. */
@@ -110,6 +119,7 @@ function buildJob(ctx: ApiRouteContext, body: JobCreateBody): Job {
     const now = Date.now()
 
     assertJobPrompt(body.prompt)
+    assertScheduledCommand(ctx, body.prompt)
     assertKnownAgent(agent, (id) => ctx.app.resolve('agents').has(id))
 
     const timed: TimedSchedule =

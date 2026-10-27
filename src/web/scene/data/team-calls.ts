@@ -86,7 +86,8 @@ function readMissing(
   }
 
   for (const agent of roster) {
-    if (!scope.asked.has(agent.id)) {
+    // The daemon refuses a focus nothing was called under, so an agent with no record is not asked.
+    if (agent.record !== undefined && !scope.asked.has(agent.id)) {
       scope.asked.add(agent.id)
       readLatest(agent, scope.signal)
     }

@@ -145,6 +145,12 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 `--agent` mặc định là `chat`. Muốn chạy theo chu kỳ thì dùng `--every 30m` thay cho `--cron`.
 `schedule edit` đổi được prompt, lịch, múi giờ hay đích gửi; muốn đổi agent thì xóa rồi thêm lại.
 
+Prompt bắt đầu bằng `/` là một lệnh, chạy như khi bạn gõ, không dùng mô hình trừ khi chính lệnh đó cần
+(`/suggest`, `/research`): `--prompt "/health"` không tốn gì. Chỉ dòng đầu là lệnh, và kết quả được gửi
+như mọi câu trả lời khác. Lệnh thay đổi cài đặt, lệnh đặt hoặc sổ của bạn (như `/trade`, `/record sync`
+hay `/refresh`) cần bạn duyệt, nên `schedule add` và `schedule edit` từ chối, trang văn phòng và công cụ
+lập lịch của agent cũng vậy.
+
 `--allow-tools` giới hạn việc đó vào những công cụ có ở **cả hai** danh sách: công cụ agent được phép
 và công cụ của việc. `schedule show` in tập hiệu lực kèm `(restricted)` hoặc `(all)`.
 

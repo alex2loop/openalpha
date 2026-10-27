@@ -190,6 +190,18 @@ interface SchedulerOccurrenceStore {
   markStale(nowMs: number): Promise<number>
 }
 
+/** What a job whose prompt is a slash command came to: the reply to deliver, or the turn the command
+ *  hands to an agent. */
+export type JobCommandAnswer =
+  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'agent'; readonly message: string; readonly agentId?: AgentId }
+
+export interface JobCommandRun {
+  readonly signal: AbortSignal
+  /** Told once, before the command starts. */
+  readonly onWorkStart?: () => Promise<void>
+}
+
 // Consumer-side interface: `persistence` implements it, `app` binds it (as JobStore does).
 export interface SchedulerDeps {
   /** Told each tick of the scheduler's own loop. */
@@ -201,6 +213,9 @@ export interface SchedulerDeps {
   readonly logger: Logger
   readonly config: ResolvedConfig
   readonly runInput: (job: Job) => RunInput
+  /** Runs a job whose prompt is a slash command the way a typed one runs, no model unless the
+   *  command needs one; undefined for a prompt that is not a command. */
+  readonly runCommand: (job: Job, run: JobCommandRun) => Promise<JobCommandAnswer | undefined>
   /** Surface-owned localized rendering for the operator-facing auto-disable notice. */
   readonly renderAutoDisableNotice: (jobId: JobId, consecutiveFailures: number) => string
   /** Surface-owned localized rendering for a run that stopped early with part of an answer. */

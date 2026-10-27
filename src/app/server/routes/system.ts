@@ -10,6 +10,7 @@ import type {
 } from '@/app/server/wire/system'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { CheckedProbe, DoctorInput } from '@/cli/api'
+import type { SlashCommand } from '@/commands/api'
 import type { App } from '@/core/container'
 import type { CheckName } from '@/core/types/doctor'
 import type { Locale } from '@/core/types/locale'
@@ -141,6 +142,20 @@ async function handleUpdate(req: Request, ctx: ApiRouteContext): Promise<Respons
   )
 }
 
+type CostRange = NonNullable<CommandList['commands'][number]['estimate']>
+
+const NO_AI_ESTIMATE = Object.freeze({ lowUsd: 0, highUsd: 0, runs: 0 })
+
+// A command that only reads, with a policy that never varies by argument, never bills a model call.
+function cannotCallModel(cmd: SlashCommand): boolean {
+  return cmd.policy.action === 'read' && cmd.policyFor === undefined
+}
+
+// Too few runs to say what a command usually costs is no estimate.
+function toEstimate(range: CostRange | undefined): CostRange | undefined {
+  return range === undefined || range.runs < COST_ESTIMATE_MIN_RUNS ? undefined : range
+}
+
 // The same catalog the CLI and the channels render — one registry, three surfaces.
 async function handleCommands(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const locale = bindLocale(localeOf(ctx))
@@ -151,11 +166,12 @@ async function handleCommands(_req: Request, ctx: ApiRouteContext): Promise<Resp
   )
   const commands = catalog.map((cmd) => {
     const range = ranges.get(cmd.name)
+    const estimate = cannotCallModel(cmd) ? NO_AI_ESTIMATE : toEstimate(range)
 
     return {
       name: `/${cmd.name}`,
       summary: describeCommand(locale, cmd.description),
-      ...(range === undefined || range.runs < COST_ESTIMATE_MIN_RUNS ? {} : { estimate: range }),
+      ...(estimate === undefined ? {} : { estimate }),
     }
   })
 

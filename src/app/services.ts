@@ -23,6 +23,7 @@ import type {
 } from '@/engine/api'
 import type { HeartbeatRunInput, Job, SchedulerTaskDeps } from '@/scheduler/api'
 import { createAlertLiveCheck, createAlertRetirer } from '@/app/event-jobs'
+import { runJobCommand } from '@/app/job-command'
 import { toJobSessionId } from '@/app/job-session'
 import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
@@ -237,6 +238,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
     logger: app.resolve('logger'),
     config: app.config,
     runInput: (job) => jobRunInput(job),
+    runCommand: (job, run) => runJobCommand(app, { job, input: jobRunInput(job), run }),
     renderAutoDisableNotice: (disabledJobId, consecutiveFailures) =>
       t(app.config.locale.language, 'channel.scheduleAutoDisabled', {
         id: disabledJobId,

@@ -24,7 +24,12 @@ const inFlight = new Map<string, Promise<Decision>>()
 
 /** The decision's label, as the CLI and the chats word it, less its leading mark. */
 export function decisionLabel(decision: Decision): string {
-  return approvalDecisionLabel(locale.value, DECISION_BY_WIRE[decision]).replace(LABEL_GLYPH_RE, '')
+  // A decision from a newer daemon is shown as it was sent, not a crash.
+  const label: Parameters<typeof approvalDecisionLabel>[1] | undefined = DECISION_BY_WIRE[decision]
+
+  return label === undefined
+    ? decision
+    : approvalDecisionLabel(locale.value, label).replace(LABEL_GLYPH_RE, '')
 }
 
 /** Resolves to the decision actually sent. Throws `ApiFailure`: a `conflict` carries the daemon's

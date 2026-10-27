@@ -4,7 +4,7 @@ import { ROUTES } from '@/web/api/routes'
 import { estimateText } from '@/web/state/estimates'
 import { loadSession, state } from '@/web/state/session'
 import { formatUsd } from '@/web/text/figures'
-import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
+import { joinInline } from '@/web/text/glyphs'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { describeEvent } from '@/web/text/schedule-event'
 import { tr } from '@/web/text/tr'
@@ -88,7 +88,7 @@ function ScheduleBody({ open }: { readonly open: OpenSchedule }) {
       {form.mode.value === 'event' && form.event.value === 'price' && <DirectionLine form={form} />}
       <WorkField form={form} />
       {form.mode.value === 'event' && <EventNotes open={open} />}
-      <p class="meta">{describePreview(open)}</p>
+      {form.work.value.trim() !== '' && <p class="meta">{describePreview(open)}</p>}
     </div>
   )
 }
@@ -166,7 +166,7 @@ function describePreview(open: OpenSchedule): string {
   return tr('ui.office.schedule.preview', {
     when,
     agent: request.view.name,
-    what: form.work.value.trim() === '' ? ABSENT_CELL : form.work.value.trim(),
+    what: form.work.value.trim(),
   })
 }
 

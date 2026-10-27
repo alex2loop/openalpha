@@ -74,7 +74,7 @@ function WithCalls({
   return (
     <>
       {children}
-      <RunCalls key={row.runId} runId={row.runId} isRunning={false} />
+      {row.unbilled !== true && <RunCalls key={row.runId} runId={row.runId} isRunning={false} />}
     </>
   )
 }

@@ -44,6 +44,11 @@ export {
 } from '@/commands/dispatcher/registration'
 export { describeCommand, type LocaleLookup, renderMessages } from '@/commands/dispatcher/render'
 export { commandHeadOf, HELP_COMMAND } from '@/commands/dispatcher/resolve'
+export {
+  SCHEDULED_COMMAND_SURFACE,
+  scheduledCommandLine,
+  scheduledCommandRefusal,
+} from '@/commands/dispatcher/scheduled'
 export { createSessionModelSelection } from '@/commands/model'
 export { createCommandsProvider, createCoreCommands } from '@/commands/services'
 export { UPGRADE_CHAT_COMMAND, UPGRADE_CONFIRM_COMMAND } from '@/commands/upgrade'

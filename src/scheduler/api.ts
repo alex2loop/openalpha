@@ -12,6 +12,8 @@ export type {
   DeliverySink,
   DeliveryTarget,
   Job,
+  JobCommandAnswer,
+  JobCommandRun,
   JobOwner,
   JobSchedule,
   JobStore,

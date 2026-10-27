@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { LaneTag } from '@/app/server/wire/chat'
 import type { WsData, WsServices } from '@/app/server/ws/socket'
-import type { SlashDispatcher } from '@/commands/api'
+import type { HelpRequest, SlashDispatcher } from '@/commands/api'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { SlashContext, SlashResult } from '@/core/types/command'
 import type { SessionRouteRegistration } from '@/core/types/session'
@@ -19,7 +19,7 @@ import {
   trackLaneItem,
   unregisterSocketRun,
 } from '@/app/server/ws/runs'
-import { renderMessages } from '@/commands/api'
+import { HELP_COMMAND, parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
 import { toCommandLaneKey } from '@/core/command-lane'
 import { RunHalted } from '@/core/errors'
 import { runId as brandRunId, LOCAL_USER_ID } from '@/core/ids'
@@ -77,6 +77,13 @@ export async function runSlash(
   }
 
   const run = toSlashRun({ ws, sessionId, line, resolved, controller, longRunning }, input.id)
+  const help = parseHelpLine(line)
+
+  if (help !== null) {
+    sendChat(run, renderHelp(ws.data.services, help))
+
+    return null
+  }
 
   try {
     const result = await execute(run)
@@ -94,6 +101,17 @@ export async function runSlash(
       unregisterSocketRun(ws, sessionId, controller)
     }
   }
+}
+
+// What the terminal's `/help` prints, from the same renderer: the page has no verbs of its own.
+function renderHelp(services: WsServices, request: HelpRequest): string {
+  const { locale, slashDispatcher } = services
+
+  return renderCommandHelp(bindLocale(locale), {
+    controls: [{ verb: HELP_COMMAND, description: t(locale, 'slash.helpHelp') }],
+    commands: slashDispatcher.all('repl', 'operator'),
+    ...request,
+  })
 }
 
 // A lane command is tagged with the client's id, else its own; any other line only with the client's.

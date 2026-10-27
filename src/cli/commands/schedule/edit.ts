@@ -10,7 +10,7 @@ import { parseChannelAddress } from '@/core/channels'
 import { t } from '@/i18n'
 
 import type { ScheduleResult } from './types'
-import { resolveCronSchedule, resolveSchedule } from './add'
+import { promptRefusal, resolveCronSchedule, resolveSchedule } from './add'
 import { findJob } from './show'
 
 interface EditApplied {
@@ -59,6 +59,13 @@ export const scheduleEditCommand: Command = createCommand({
       app.err(fail(found.error))
 
       return 1
+    }
+
+    const prompt = flagString(args, 'prompt')
+    const promptError = prompt === undefined ? undefined : promptRefusal(app, prompt, locale)
+
+    if (promptError !== undefined) {
+      return usage(app, promptError)
     }
 
     const edited = applyEdits({ job: found.job, args, tz: app.config.locale.timezone, locale })
