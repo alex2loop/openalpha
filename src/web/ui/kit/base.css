@@ -4,6 +4,27 @@
   box-sizing: border-box;
 }
 
+/* One thin scrollbar for every scroll container: Firefox and current Chrome read the first two
+   lines, older WebKit the pseudo-elements. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollThumb) var(--scrollTrack);
+}
+
+::-webkit-scrollbar {
+  width: var(--scrollW);
+  height: var(--scrollW);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollTrack);
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: var(--scrollW);
+  background: var(--scrollThumb);
+}
+
 html,
 body {
   margin: 0;

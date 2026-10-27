@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact'
 
 import { unseenCalls } from '@/web/state/ideas'
-import { openView, type PanelTab, panelView } from '@/web/state/panel'
+import { backStack, openView, type PanelTab, type PanelView, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { BulbIcon, GlobeIcon, PieIcon, SunIcon } from '@/web/ui/kit/icons'
 
@@ -18,14 +18,15 @@ const PANEL_TABS: readonly TabSpec[] = Object.freeze([
   { tab: 'market', icon: <GlobeIcon />, label: () => tr('ui.office.panel.market') },
 ])
 
-/** Hôm nay, Danh mục, Đề xuất and Thị trường; with a person or ticker open they drop to icon and
- *  count. */
-export function Tabs({ isCompact }: { readonly isCompact: boolean }) {
+/** Hôm nay, Danh mục, Đề xuất and Thị trường; a person or ticker open keeps lit the tab it came
+ *  from. */
+export function Tabs() {
   const view = panelView.value
-  const active = 'tab' in view ? view.tab : undefined
+  const origin = 'tab' in view ? view : backStack.value.findLast(isTabView)
+  const active = origin?.tab
 
   return (
-    <nav class={isCompact ? 'panel-tabs is-compact' : 'panel-tabs'}>
+    <nav class="panel-tabs">
       {PANEL_TABS.map((spec) => (
         <button
           key={spec.tab}
@@ -43,6 +44,10 @@ export function Tabs({ isCompact }: { readonly isCompact: boolean }) {
       ))}
     </nav>
   )
+}
+
+function isTabView(view: PanelView): view is { readonly tab: PanelTab } {
+  return 'tab' in view
 }
 
 // Only "Đề xuất" carries a count: the calls the operator has not looked at yet.
