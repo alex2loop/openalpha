@@ -7,7 +7,7 @@
   border-radius: 8px;
   background: var(--ink);
   color: var(--canvas);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
   transform: translateY(-200%);
 }
 
@@ -42,7 +42,7 @@
 
 .scene-twin h2 {
   margin-bottom: var(--s1);
-  font-size: 13px;
+  font-size: var(--sizeReading);
 }
 
 .scene-twin ul {
@@ -59,7 +59,7 @@
   border: 0;
   border-radius: 6px;
   background: none;
-  font-size: 12px;
+  font-size: var(--sizeBody);
   text-align: left;
   cursor: pointer;
 }

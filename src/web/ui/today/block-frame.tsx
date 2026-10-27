@@ -95,7 +95,7 @@ function BlockBody<T>(props: BlockFrameProps<T>) {
       {data === undefined ? (
         reading.state === 'loading' && (
           <>
-            <Skeleton />
+            <Skeleton shape="rows" />
             {loadingText !== undefined && <p class="meta">{loadingText}</p>}
           </>
         )

@@ -27,7 +27,7 @@
 
 .sign-in-title {
   margin: 14px 0 6px;
-  font-size: 20px;
+  font: var(--typeTitle);
 }
 
 .sign-in-body {
@@ -40,12 +40,12 @@
   border-radius: 8px;
   background: var(--sunken);
   margin-bottom: 14px;
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
   user-select: all;
 }
 
 .sign-in-failure {
   margin-bottom: var(--s2);
   color: var(--dangerText);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }

@@ -11,12 +11,11 @@
   gap: 8px;
   margin-bottom: 10px;
   color: var(--title);
-  font-size: 14px;
-  font-weight: 600;
+  font: var(--typeCardTitle);
 }
 
 .block-head .meta {
-  font-weight: 400;
+  font-weight: var(--weightRegular);
 }
 
 .block-grow {
@@ -34,7 +33,7 @@
   margin: -2px 0 10px;
   padding: 7px 10px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .strip > span {
@@ -80,7 +79,7 @@
   border-radius: 12px;
   background: var(--problemTint);
   color: var(--problemText);
-  font-size: 13px;
+  font-size: var(--sizeReading);
   text-align: left;
   cursor: pointer;
 }
@@ -104,8 +103,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A price in a list: monospaced, so a column of them lines up. */
+.row-price {
+  font: var(--typePriceFigure);
+}
+
 .row b {
-  font-weight: 500;
+  font-weight: var(--weightMedium);
 }
 
 .row:first-child {
@@ -122,7 +126,7 @@
 
 .row-note {
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .todo {
@@ -139,7 +143,7 @@
 
 .todo b {
   display: block;
-  font-weight: 500;
+  font-weight: var(--weightMedium);
 }
 
 .todo-text {
@@ -152,14 +156,14 @@
 .worth-head {
   margin: 0 0 4px;
   color: var(--title);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
   line-height: 1.4;
 }
 
 .worth-line {
   margin: 0;
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
 }
@@ -188,8 +192,8 @@
   min-width: 78px;
   padding: 2px 7px;
   border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
+  font: var(--typeHeading);
+  font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
@@ -219,8 +223,7 @@
 }
 
 .big-figure {
-  font-size: 22px;
-  font-weight: 600;
+  font: var(--typeHero);
   font-variant-numeric: tabular-nums;
 }
 
@@ -237,7 +240,7 @@
 }
 
 .news-item b {
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 a.news-item:hover b {
@@ -250,8 +253,7 @@ a.news-item:hover b {
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--sunken);
-  font-size: 12px;
-  font-weight: 600;
+  font: var(--typeHeading);
 }
 
 .regime-tag.is-risk-off {
@@ -284,8 +286,7 @@ a.news-item:hover b {
   border-radius: 50%;
   background: var(--sunken);
   color: var(--ink2);
-  font-size: 12px;
-  font-weight: 700;
+  font: var(--typeHeading);
 }
 
 .step.is-done .step-num {
@@ -316,6 +317,5 @@ a.news-item:hover b {
 .step-optional {
   margin-left: 4px;
   color: var(--ink2);
-  font-size: 11.5px;
-  font-weight: 400;
+  font: var(--typeCaption);
 }

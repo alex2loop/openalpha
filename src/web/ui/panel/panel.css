@@ -40,7 +40,7 @@
   border-radius: var(--controlSmRadius);
   background: none;
   color: var(--ink2);
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -52,7 +52,7 @@
 .panel-tab.is-active {
   background: var(--sunken);
   color: var(--ink);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .panel-tab svg.icon {
@@ -74,8 +74,7 @@
   border-radius: 8px;
   background: var(--sunken);
   color: var(--ink2);
-  font-size: 11px;
-  font-weight: 600;
+  font: var(--typeCaptionStrong);
   font-variant-numeric: tabular-nums;
 }
 
@@ -107,8 +106,7 @@
   border-radius: var(--controlSmRadius);
   background: none;
   color: var(--ink2);
-  font-size: 12.5px;
-  font-weight: 500;
+  font: var(--typeEmphasis);
   cursor: pointer;
 }
 
@@ -121,12 +119,24 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  overflow-x: hidden;
   padding: var(--s3);
 }
 
 .panel-body > * {
   max-width: var(--panelContentMaxW);
   margin-inline: auto;
+}
+
+.panel-view.is-entering {
+  animation: panel-enter 250ms ease-out;
+}
+
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
 }
 
 /* Folded to a strip of icons, the active one on a sunken pill. */

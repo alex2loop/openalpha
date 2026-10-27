@@ -66,7 +66,7 @@ function OverviewRow({ row, currency }: OverviewRowProps) {
       <b>
         <TickerLink ticker={row.instrument.ticker} market={row.instrument.market} />
       </b>
-      <span>
+      <span class="row-price">
         {display === undefined && currency !== undefined ? `${price} ${currency}` : price}
       </span>
       <span class={`pill is-${toneOfPercent(row.changePct)}`}>

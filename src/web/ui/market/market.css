@@ -18,12 +18,12 @@
 .macro-drivers {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .macro-drivers th {
   color: var(--ink2);
-  font-weight: 500;
+  font-weight: var(--weightMedium);
   text-align: start;
 }
 
@@ -73,7 +73,7 @@
 .theme-head b {
   flex: 1;
   min-width: 0;
-  font-weight: 500;
+  font-weight: var(--weightMedium);
   overflow-wrap: anywhere;
 }
 
@@ -84,17 +84,12 @@
 .outline-fold > summary {
   padding: 8px 0;
   color: var(--title);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
+  font: var(--typeCardTitle);
   cursor: pointer;
 }
 
 .outline-fold.is-note > summary {
   padding: 6px 0;
-  color: var(--title);
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .outline-body {
@@ -102,14 +97,14 @@
   flex-direction: column;
   gap: 3px;
   padding-bottom: var(--s2);
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
 }
 
 .outline-label {
   margin-top: 4px;
   color: var(--ink);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }
 
 .outline-kids {
@@ -129,6 +124,6 @@
 .outline-note {
   margin: 4px 0;
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
   line-height: 1.45;
 }

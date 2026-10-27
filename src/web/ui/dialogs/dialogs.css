@@ -43,7 +43,7 @@
   border-radius: 8px;
   background: var(--cautionBg);
   color: var(--caution);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .dialog-choices {
@@ -68,7 +68,7 @@
 
 .dialog-note {
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .dialog-suggest {
@@ -107,5 +107,5 @@
 }
 
 .target-total {
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }

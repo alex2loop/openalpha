@@ -11,7 +11,7 @@
   gap: 10px;
   padding: 9px 0;
   border-top: 1px solid var(--border);
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
 }
 
 .sub-head + .job-row,
@@ -25,7 +25,7 @@
 }
 
 .job-main b {
-  font-weight: 500;
+  font-weight: var(--weightMedium);
   overflow-wrap: anywhere;
 }
 
@@ -58,7 +58,7 @@
   padding: var(--s1) 0;
   border: 0;
   background: none;
-  font-size: 12.5px;
+  font-size: var(--sizeBody);
   text-align: left;
   cursor: pointer;
 }
@@ -73,8 +73,7 @@
   border-radius: 9px;
   background: var(--sunken);
   color: var(--ink2);
-  font-size: 11px;
-  font-weight: 600;
+  font: var(--typeCaptionStrong);
 }
 
 .upkeep-status.is-failing {

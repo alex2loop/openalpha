@@ -1,28 +1,67 @@
+/* Nothing for 300 ms, then the shapes fade in; one slow sheen runs over every bar. */
 .skeleton {
+  --sheen: color-mix(in srgb, var(--sunken), var(--ink) 7%);
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.skeleton:not(.is-still) {
+  animation: skeleton-in 150ms ease-out 300ms backwards;
 }
 
 .skeleton-bar {
   height: 12px;
   border-radius: 6px;
   background: var(--sunken);
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
-.skeleton-bar:last-child {
+.skeleton:not(.is-still) .skeleton-bar {
+  background:
+    linear-gradient(90deg, var(--sunken) 30%, var(--sheen) 50%, var(--sunken) 70%) 100% 0 / 300%
+    100%;
+  animation: skeleton-sheen 1.6s linear infinite;
+}
+
+.skeleton-bar.is-line:last-child {
   width: 60%;
 }
 
-@keyframes skeleton-pulse {
-  50% {
-    opacity: 0.5;
+.skeleton-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.skeleton-row:first-child {
+  border-top: 0;
+}
+
+.skeleton-bar.is-name {
+  width: 48px;
+}
+
+.skeleton-bar.is-price {
+  width: 64px;
+}
+
+.skeleton-bar.is-move {
+  width: 78px;
+  height: 20px;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-bar {
-    animation: none;
+@keyframes skeleton-sheen {
+  to {
+    background-position: 0 0;
   }
 }

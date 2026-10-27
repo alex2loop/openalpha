@@ -14,8 +14,7 @@
 .md-heading {
   margin-top: var(--s2);
   color: var(--title);
-  font-size: 13.5px;
-  font-weight: 600;
+  font: var(--typeCardTitle);
 }
 
 .md-heading:focus {
@@ -51,8 +50,7 @@
   padding: 1px 4px;
   border-radius: 4px;
   background: var(--sunken);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 12px;
+  font: var(--typeCode);
 }
 
 .md a {
@@ -85,5 +83,5 @@
 
 .md-table th {
   color: var(--ink2);
-  font-weight: 600;
+  font-weight: var(--weightSemibold);
 }

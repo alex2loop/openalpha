@@ -52,7 +52,7 @@
 
 .modal-head h2 {
   flex: 1;
-  font-size: 16px;
+  font: var(--typeTitle);
 }
 
 .modal-body {
@@ -63,7 +63,7 @@
 .modal-unsaved {
   padding: 0 var(--s3) var(--s1);
   color: var(--caution);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .modal-foot {

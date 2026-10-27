@@ -26,7 +26,7 @@
   min-height: 0;
   border: 0;
   background-color: transparent;
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .command-box {
@@ -70,7 +70,7 @@
 .command-not-sent {
   margin-top: 4px;
   color: var(--caution);
-  font-size: 12px;
+  font-size: var(--sizeBody);
 }
 
 .command-chat {
@@ -101,14 +101,13 @@
   padding: 6px 10px 2px;
   border-top: 1px solid var(--border);
   color: var(--ink3);
-  font-size: 11px;
+  font-size: var(--sizeCaption);
 }
 
 .suggest-head {
   margin: 6px 10px 4px;
   color: var(--ink3);
-  font-size: 11px;
-  font-weight: 600;
+  font: var(--typeCaptionStrong);
 }
 
 .suggest-row {
@@ -118,7 +117,7 @@
   gap: 10px;
   padding: var(--s1) 10px;
   border-radius: var(--controlRadius);
-  font-size: 13px;
+  font-size: var(--sizeReading);
   cursor: pointer;
 }
 

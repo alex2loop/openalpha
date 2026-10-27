@@ -9,7 +9,7 @@
   border-radius: 16px;
   background: var(--sunken);
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

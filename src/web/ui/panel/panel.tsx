@@ -1,5 +1,13 @@
 import { breakpoint } from '@/web/state/breakpoints'
-import { backStack, collapsed, isFocus, PANEL_ELEMENT_ID, panelView } from '@/web/state/panel'
+import {
+  backStack,
+  collapsed,
+  isFocus,
+  PANEL_ELEMENT_ID,
+  type PanelView,
+  panelView,
+} from '@/web/state/panel'
+import { reducedMotion } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 import { AgentTab } from '@/web/ui/agent/agent-tab'
 import { Book } from '@/web/ui/book/book'
@@ -48,15 +56,32 @@ export function Panel() {
       </div>
       <div class="panel-body">
         <TickerNotice />
-        <PanelContent />
+        <PanelPage />
       </div>
     </aside>
   )
 }
 
-function PanelContent() {
+/** The open view, which slides in when the tab, ticker or agent changes (not under reduced motion). */
+function PanelPage() {
   const view = panelView.value
 
+  return (
+    <div key={viewKey(view)} class={reducedMotion.value ? 'panel-view' : 'panel-view is-entering'}>
+      <PanelContent view={view} />
+    </div>
+  )
+}
+
+function viewKey(view: PanelView): string {
+  if ('agent' in view) {
+    return `agent:${view.agent}`
+  }
+
+  return 'ticker' in view ? `ticker:${view.market}:${view.ticker}` : view.tab
+}
+
+function PanelContent({ view }: { readonly view: PanelView }) {
   if ('agent' in view) {
     return (
       <AgentTab

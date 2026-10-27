@@ -10,7 +10,7 @@
   align-items: baseline;
   padding: 5px 0;
   border-top: 1px solid var(--border);
-  font-size: 13px;
+  font-size: var(--sizeReading);
 }
 
 .key-row:first-child {
