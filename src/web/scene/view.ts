@@ -35,11 +35,11 @@ export const ZOOM_KEYS: Readonly<Record<string, 1 | -1>> = Object.freeze({
   '=': 1,
   '-': -1,
 })
-const MAX_ZOOM_STEPS = 4
+const MAX_ZOOM_STEPS = 5
 // The 3D view zooms out at most this many steps below the fitted floor.
 const MAX_ZOOM_OUT_STEPS = 4
 /** The 3D view zooms no closer than this many device px per world px. */
-export const MAX_ZOOM_3D_PX = 6.5
+export const MAX_ZOOM_3D_PX = 9.1
 
 const INITIAL_FLOOR: FloorId = 'office'
 const FRAME_CENTER: Point = Object.freeze({

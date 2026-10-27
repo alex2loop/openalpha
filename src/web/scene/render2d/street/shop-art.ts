@@ -1,6 +1,6 @@
 import type { StreetDetail } from '@/web/scene/render2d/street/detail'
 import type { ShopKind } from '@/web/scene/street-types'
-import { paintLabel } from '@/web/scene/render2d/street/label'
+import { measureLabel, paintLabel } from '@/web/scene/render2d/street/label'
 import { isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { SHOP_RISE, type ShopSpan } from '@/web/scene/world/frontage'
 import { isAllDay, type ShopSign } from '@/web/scene/world/regions'
@@ -40,6 +40,12 @@ const NOTE = Object.freeze({ paper: '#F3F0E6', ink: '#2A2F3F', minWidth: 8, maxW
 const OPEN247 = '#D8453B'
 // A pharmacy's sign carries a cross before its word.
 const CROSS_SHIFT = 1.6
+// The sign's word fills its band: one line up to `size`, or, where that leaves it smaller, broken
+// at a space into two lines up to `twoLineSize`, `lineStep` apart; `inset` is the band's margin.
+const WORD = Object.freeze({ size: 2.3, twoLineSize: 1.7, lineStep: 1.85, inset: 1.6, rise: 0.1 })
+// Lettering is measured at this size and scaled, as a canvas font rounds at a world px size.
+const MEASURE_PX = 10
+const WORD_SEPARATOR = ' '
 
 // The tube that lights round a sign after dusk, by kind.
 const NEON: Readonly<Partial<Record<ShopKind, string>>> = Object.freeze({
@@ -192,18 +198,69 @@ function paintSign(front: ShopFront): void {
       g.fillRect(0.35, TOP + SIGN_H / 2 - 0.25, 2, 0.5)
     }
 
-    paintLabel(g, shop.word, {
-      x: w / 2 + cross,
-      y: TOP + SIGN_H / 2 + 0.1,
-      size: Math.min(2.3, ((w - 1.6) / Math.max(4, shop.word.length)) * 1.9),
-      colour: tone(look.ink),
-      maxW: w - 1.6 - cross,
+    const maxW = w - WORD.inset - cross
+    const { lines, size } = wordLayoutOf(g, shop.word, maxW)
+    const firstY = TOP + SIGN_H / 2 + WORD.rise - ((lines.length - 1) * WORD.lineStep) / 2
+
+    lines.forEach((line, index) => {
+      paintLabel(g, line, {
+        x: w / 2 + cross,
+        y: firstY + index * WORD.lineStep,
+        size,
+        colour: tone(look.ink),
+        maxW,
+      })
     })
   }
 
   if (front.isLit) {
     paintNeon(front)
   }
+}
+
+// The word on one line, or on two where the break letters it larger.
+function wordLayoutOf(
+  g: CanvasRenderingContext2D,
+  word: string,
+  maxW: number
+): { readonly lines: readonly string[]; readonly size: number } {
+  const oneLine = Math.min(WORD.size, fitSize(g, [word], maxW))
+  const halves = halvesOf(word)
+
+  if (halves === undefined) {
+    return { lines: [word], size: oneLine }
+  }
+
+  const twoLines = Math.min(WORD.twoLineSize, fitSize(g, halves, maxW))
+
+  return twoLines > oneLine ? { lines: halves, size: twoLines } : { lines: [word], size: oneLine }
+}
+
+// The size at which the widest of `lines` fills `maxW`.
+function fitSize(g: CanvasRenderingContext2D, lines: readonly string[], maxW: number): number {
+  const widest = Math.max(...lines.map((line) => measureLabel(g, line, MEASURE_PX)))
+
+  return widest > 0 ? (maxW / widest) * MEASURE_PX : WORD.size
+}
+
+// The word broken at the space that leaves its two halves closest in length; none for one word.
+function halvesOf(word: string): readonly [string, string] | undefined {
+  const parts = word.split(WORD_SEPARATOR)
+  let best: readonly [string, string] | undefined
+
+  for (let at = 1; at < parts.length; at++) {
+    const pair = [
+      parts.slice(0, at).join(WORD_SEPARATOR),
+      parts.slice(at).join(WORD_SEPARATOR),
+    ] as const
+    const isCloser =
+      best === undefined ||
+      Math.abs(pair[0].length - pair[1].length) < Math.abs(best[0].length - best[1].length)
+
+    best = isCloser ? pair : best
+  }
+
+  return best
 }
 
 // An open sign shows its colours, lit or not; a closed one dims further.
