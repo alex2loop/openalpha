@@ -268,9 +268,9 @@ export function isBreathDown(seed: number, nowMs: number): boolean {
   return Math.floor((nowMs + offsetMs) / (BREATH_MS / 2)) % 2 === 1
 }
 
-/** Whether a quiet floor's blink and breath (or a pet's or a fish's moves, by its own `pool`) run
- *  now: in bouts, with a rest between them. */
-export function isAmbientBout(pool: string, nowMs: number): boolean {
+/** Whether a quiet floor's blink and breath (by its `pool`) run now: in bouts, with a rest
+ *  between them. */
+function isAmbientBout(pool: string, nowMs: number): boolean {
   const bout = boutIn(pool, slotOf(nowMs))
 
   return nowMs >= bout.startMs && nowMs < bout.endMs

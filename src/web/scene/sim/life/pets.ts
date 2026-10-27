@@ -1,5 +1,5 @@
 import type { FishView, PetKind, PetPose, PetView, Point } from '@/web/scene/types'
-import { isAmbientBout, nextAmbientAt } from '@/web/scene/sim/actors/poses'
+import { type AnimalBouts, createAnimalBouts } from '@/web/scene/sim/life/animal-bouts'
 import { createFish, fishDueAt, fishViewOf, stepFish } from '@/web/scene/sim/life/fish'
 import {
   isPersonNear,
@@ -29,6 +29,7 @@ interface Leg {
 
 interface PetState {
   readonly kind: PetKind
+  readonly bouts: AnimalBouts
   legs: Leg[]
   end: number
   node: NodeId | undefined
@@ -89,8 +90,9 @@ const PET_POOL = 'pet'
 const JUMP_PITCH_STEPS = 2
 
 export function createPets(nowMs: number): Pets {
-  const pets = (['cat', 'corgi'] as const).map((kind) => createPetState(kind, nowMs))
-  const fish = createFish()
+  const bouts = createAnimalBouts()
+  const pets = (['cat', 'corgi'] as const).map((kind) => createPetState(kind, nowMs, bouts))
+  const fish = createFish(bouts)
 
   return {
     step: (world) => {
@@ -106,7 +108,7 @@ export function createPets(nowMs: number): Pets {
     nextDueAt: (world) => {
       const petDues = pets
         .filter((pet) => !isStill(pet, world))
-        .flatMap((pet) => [pet.end, nextAmbientAt(poolOf(pet.kind), world.nowMs)])
+        .flatMap((pet) => [pet.end, pet.bouts.nextAt(pet.kind, world.nowMs)])
         .filter((due) => due > world.nowMs)
       const fishDues = world.isReduced ? [] : fish.map((one) => fishDueAt(one, world.nowMs))
 
@@ -115,11 +117,12 @@ export function createPets(nowMs: number): Pets {
   }
 }
 
-function createPetState(kind: PetKind, nowMs: number): PetState {
+function createPetState(kind: PetKind, nowMs: number, bouts: AnimalBouts): PetState {
   const node = HOMES[kind]
   const spot = NODES[node]
   const pet: PetState = {
     kind,
+    bouts,
     legs: [],
     end: nowMs,
     node,
@@ -181,15 +184,14 @@ function isStill(pet: PetState, world: PetWorld): boolean {
 }
 
 function decide(pet: PetState, people: readonly Point[]): void {
-  const pool = poolOf(pet.kind)
   const rng = createRng(seedOf(PET_POOL, pet.kind, String(pet.draws)))
 
   pet.draws = (pet.draws + 1) % MAX_DRAWS
 
-  if (!isAmbientBout(pool, pet.end)) {
+  if (!pet.bouts.isOn(pet.kind, pet.end)) {
     const pose = pet.legs.at(-1)?.pose ?? REST_POSES[pet.kind]
 
-    pushIdle(pet, { ms: nextAmbientAt(pool, pet.end) - pet.end, pose, perch: pet.perch })
+    pushIdle(pet, { ms: pet.bouts.nextAt(pet.kind, pet.end) - pet.end, pose, perch: pet.perch })
     return
   }
 
@@ -401,7 +403,7 @@ function toPetView(pet: PetState, world: PetWorld): PetView {
     lift: lerp(leg.from.lift, leg.to.lift, u) + arc,
     pose,
     isFlipped: leg.isFlipped,
-    isLive: isAmbientBout(poolOf(pet.kind), world.nowMs),
+    isLive: pet.bouts.isOn(pet.kind, world.nowMs),
     ...jump,
   }
 }
@@ -445,10 +447,6 @@ function restPose(pet: PetState, draw: number): PetPose {
   const isAtBed = pet.perch === undefined && pet.node === HOMES.cat
 
   return draw < (isAtBed ? 0.25 : 0.6) ? 'sit' : 'sleep'
-}
-
-function poolOf(kind: PetKind): string {
-  return `${PET_POOL}:${kind}`
 }
 
 function between(draw: number, range: { readonly min: number; readonly max: number }): number {

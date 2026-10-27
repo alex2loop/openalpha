@@ -1,5 +1,5 @@
+import type { AnimalBouts } from '@/web/scene/sim/life/animal-bouts'
 import type { FishView } from '@/web/scene/types'
-import { isAmbientBout, nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { propsOn } from '@/web/scene/world/props'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 
@@ -15,7 +15,8 @@ interface FishWorld {
 /** One fish: how far along its sweep, `u` (a sweep across the tank and back is two), its bob
  *  clock, and whether it swims; both clocks run only while it does. */
 interface FishState {
-  readonly pool: string
+  readonly key: string
+  readonly bouts: AnimalBouts
   readonly look: FishLook
   u: number
   bob: number
@@ -33,7 +34,7 @@ const FISH_LOOKS = Object.freeze([
 
 type FishLook = (typeof FISH_LOOKS)[number]
 
-const FISH_POOL = 'fish'
+const FISH_KEY = 'fish'
 const TANK_PROP = propsOn('office').find((prop) => prop.kind === 'tank')
 const TANK_W_PX = TANK_PROP?.rect.w ?? 36
 // A fish keeps this much of the tank's width off its sweep, which one unit of `u` crosses.
@@ -51,9 +52,10 @@ const YAW_STEPS = 16
 const HALF = Math.PI
 const SWEEP_UNITS = 2
 
-export function createFish(): FishState[] {
+export function createFish(bouts: AnimalBouts): FishState[] {
   return FISH_LOOKS.map((look, i) => ({
-    pool: `${FISH_POOL}:${i}`,
+    key: `${FISH_KEY}:${i}`,
+    bouts,
     look,
     u: look.phase,
     bob: 0,
@@ -62,7 +64,7 @@ export function createFish(): FishState[] {
   }))
 }
 
-/** A fish swims inside its own ambient bout and hangs still outside it; a bout that ends in the
+/** A fish swims inside its own bout and hangs still outside it; a bout that ends in the
  *  middle of a turn finishes the turn first. */
 export function stepFish(fish: FishState, world: FishWorld): void {
   fish.stepAt = world.nowMs
@@ -73,7 +75,7 @@ export function stepFish(fish: FishState, world: FishWorld): void {
     return
   }
 
-  if (isAmbientBout(fish.pool, world.nowMs)) {
+  if (fish.bouts.isOn(fish.key, world.nowMs)) {
     fish.isOn = true
   } else if (fish.isOn && !isTurning(fish.u)) {
     fish.isOn = false
@@ -87,7 +89,7 @@ export function stepFish(fish: FishState, world: FishWorld): void {
 
 /** The next instant a bout of this fish starts or ends. */
 export function fishDueAt(fish: FishState, nowMs: number): number {
-  return nextAmbientAt(fish.pool, nowMs)
+  return fish.bouts.nextAt(fish.key, nowMs)
 }
 
 /** The fish as drawn now: a swimming one runs on from its last step by the time since. */
