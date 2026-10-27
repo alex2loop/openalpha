@@ -24,10 +24,13 @@ import { isShopOpen, type RegionPack, shopDoorOf } from '@/web/scene/world/regio
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
 const ERRAND_MAX_OUT = 1
-// Page time: how often someone may be sent, after how long free, and the gap between two trips.
+// Page time: how often someone may be sent, after how long free, and the gap between two trips;
+// after the close, when the day's work is done, people are free sooner and go out more often.
 const ERRAND_CHECK_MS = 60_000
 const ERRAND_IDLE_MS = 300_000
 const ERRAND_GAP_MS = Object.freeze({ min: 1_200_000, max: 1_800_000 })
+const ERRAND_AFTER_CLOSE_IDLE_MS = 120_000
+const ERRAND_AFTER_CLOSE_GAP_MS = Object.freeze({ min: 360_000, max: 600_000 })
 // Sim time: the walk inside at this many times the person's pace; door to door and the office
 // leg at most this long.
 const ERRAND_INDOOR_SPEED = 2.2
@@ -48,7 +51,8 @@ interface ErrandHost {
 
 /** Who is out on an errand and what they brought home: the slots, the people back at their seat
  *  with the item they carried (`home`, emptied by the office life), when each person became free,
- *  and the page-time clocks of the next check and the next trip. */
+ *  the page-time clock of the next check, and when the last trip left with the share of the gap
+ *  it rolled (a trip is due once the gap in force has passed since then). */
 export interface Errands {
   readonly host: ErrandHost
   readonly slots: readonly Errand[]
@@ -56,7 +60,8 @@ export interface Errands {
   readonly freeSince: Map<ActorId, number>
   readonly tick: WalkTick
   nextCheckAt: number
-  nextTripAt: number
+  lastTripAt: number
+  gapRoll: number
   rng: Rng
 }
 
@@ -72,6 +77,7 @@ interface OfficeStep {
   readonly day: string
   readonly pack: RegionPack
   readonly canLeave: boolean
+  readonly isRelaxed: boolean
   readonly isReduced: boolean
 }
 
@@ -83,7 +89,8 @@ export function createErrands(host: ErrandHost): Errands {
     freeSince: new Map(),
     tick: { dt: 0, nowMs: 0, canCross: false },
     nextCheckAt: 0,
-    nextTripAt: 0,
+    lastTripAt: Number.NEGATIVE_INFINITY,
+    gapRoll: 0,
     rng: createRng(0),
   }
 }
@@ -233,8 +240,13 @@ function maybeSend(errands: Errands, at: OfficeStep): void {
   errands.rng = createRng(seedOf(at.day, 'errand', String(Math.floor(at.pageMs / ERRAND_CHECK_MS))))
 
   const slot = errands.slots.find((errand) => !errand.on)
+  const { idleMs, gap } = paceOf(at)
 
-  if (!at.canLeave || slot === undefined || at.pageMs < errands.nextTripAt) {
+  if (
+    !at.canLeave ||
+    slot === undefined ||
+    at.pageMs < errands.lastTripAt + gap.min + errands.gapRoll * (gap.max - gap.min)
+  ) {
     return
   }
 
@@ -244,7 +256,7 @@ function maybeSend(errands: Errands, at: OfficeStep): void {
       candidate.floor === ERRAND_FLOOR &&
       !at.isBusyWithLife(candidate.def.id) &&
       isThere(candidate) &&
-      at.pageMs - (errands.freeSince.get(candidate.def.id) ?? at.pageMs) >= ERRAND_IDLE_MS
+      at.pageMs - (errands.freeSince.get(candidate.def.id) ?? at.pageMs) >= idleMs
   )
   const actor = ready[errands.rng.int(0, ready.length - 1)]
   const shop = actor === undefined ? undefined : pickShop(errands.rng, at)
@@ -252,6 +264,16 @@ function maybeSend(errands: Errands, at: OfficeStep): void {
   if (actor !== undefined && shop !== undefined) {
     send(errands, { errand: slot, actor, shop, at })
   }
+}
+
+// The pace in force: how long free, and the gap between trips.
+function paceOf(at: OfficeStep): {
+  readonly idleMs: number
+  readonly gap: { readonly min: number; readonly max: number }
+} {
+  return at.isRelaxed
+    ? { idleMs: ERRAND_AFTER_CLOSE_IDLE_MS, gap: ERRAND_AFTER_CLOSE_GAP_MS }
+    : { idleMs: ERRAND_IDLE_MS, gap: ERRAND_GAP_MS }
 }
 
 // An open shop that hands something over, nearer ones likelier.
@@ -308,8 +330,8 @@ function send(
   errand.ped.staff = { id: actor.def.id, role: actor.def.role }
   errand.ped.on = false
   walker.speed *= ERRAND_INDOOR_SPEED
-  errands.nextTripAt =
-    at.pageMs + ERRAND_GAP_MS.min + errands.rng.next() * (ERRAND_GAP_MS.max - ERRAND_GAP_MS.min)
+  errands.lastTripAt = at.pageMs
+  errands.gapRoll = errands.rng.next()
   errands.host.setLife(actor.def.id, errand.goal)
 }
 

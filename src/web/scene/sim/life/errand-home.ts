@@ -12,7 +12,7 @@ import { pending } from '@/web/state/live'
 export function stepErrands(state: LifeState, step: LifeStep): void {
   const { errands } = state.director
   const free = { errands, due: step.due }
-  const { noTrips, closingAuction } = moment.value
+  const { noTrips, closingAuction, relaxed } = moment.value
 
   stepErrandsOffice(errands, {
     actors: step.actors,
@@ -24,6 +24,7 @@ export function stepErrands(state: LifeState, step: LifeStep): void {
     day: step.clock.day,
     pack: regionPack.value,
     canLeave: step.canWalk && pending.value.length === 0 && !noTrips && !closingAuction,
+    isRelaxed: relaxed,
     isReduced: step.isReduced,
   })
 
