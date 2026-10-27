@@ -1,17 +1,23 @@
 import { z } from 'zod'
 
+import type { ExecRelay } from '@/app/server/cli/exec-relay'
 import type { ExecClientFrame, ExecServerFrame, ExecStartFrame } from '@/app/server/wire/exec'
 import type { CliApp, Command, GlobalFlags, Group, Needs, Terminal } from '@/cli/api'
+import { startExecRelay } from '@/app/server/cli/exec-relay'
 import { resolveExecTarget } from '@/app/server/cli/exec-target'
 import { LOOPBACK_HOST } from '@/app/server/http/auth'
 import { EXEC_PATH, EXEC_REFUSED_CLOSE_CODE } from '@/app/server/wire/exec'
 import { CONTRACT_VERSION } from '@/app/server/wire/socket'
 import { isForwardable, printDaemonLost, resolveCommandPath, TERMINAL_ENV_NAMES } from '@/cli/api'
+import { HALT_SPEC } from '@/core/errors'
 
 /** How long the loopback handshake may take before the command runs here instead. */
 const EXEC_OPEN_TIMEOUT_MS = 1_000
 /** How long the daemon may take to answer `exec`; past it the command may have started there. */
 const EXEC_ACCEPT_TIMEOUT_MS = 5_000
+/** How long an accepted command may go without a frame or a ping: two and a half times the
+ *  daemon's socket `IDLE_TIMEOUT_SECONDS`, so a silent command that still gets pings runs on. */
+const EXEC_LIVENESS_TIMEOUT_MS = 375_000
 
 const SERVER_FRAME: z.ZodType<ExecServerFrame> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('accepted') }),
@@ -41,6 +47,7 @@ interface Relay {
   readonly settle: (outcome: Outcome) => void
   phase: Phase
   timer: ReturnType<typeof setTimeout> | undefined
+  exec: ExecRelay | undefined
 }
 
 interface ForwardInput {
@@ -87,9 +94,17 @@ async function relayCommand(
     headers: { authorization: `Bearer ${target.token}` },
   })
   const done = Promise.withResolvers<Outcome>()
-  const relay: Relay = { ws, app, settle: done.resolve, phase: 'opening', timer: undefined }
+  const relay: Relay = {
+    ws,
+    app,
+    settle: done.resolve,
+    phase: 'opening',
+    timer: undefined,
+    exec: undefined,
+  }
   const onOpen = (): void => openRelay(relay, start)
   const onMessage = (event: MessageEvent): void => receiveFrame(relay, event.data)
+  const onPing = (): void => keepAlive(relay)
   const onClose = (event: CloseEvent): void => relay.settle(closedOutcome(relay.phase, event))
   // After open an error is always followed by a close, which decides.
   const onError = (): void => {
@@ -104,22 +119,25 @@ async function relayCommand(
     ws.addEventListener('message', onMessage)
     ws.addEventListener('close', onClose)
     ws.addEventListener('error', onError)
+    ws.addEventListener('ping', onPing)
 
     return await done.promise
   } finally {
     clearTimeout(relay.timer)
+    relay.exec?.close()
     ws.removeEventListener('open', onOpen)
     ws.removeEventListener('message', onMessage)
     ws.removeEventListener('close', onClose)
     ws.removeEventListener('error', onError)
+    ws.removeEventListener('ping', onPing)
     ws.close()
   }
 }
 
 function openRelay(relay: Relay, start: ExecStartFrame): void {
   relay.phase = 'sent'
-  sendFrame(relay, start)
   armTimer(relay, EXEC_ACCEPT_TIMEOUT_MS, LOST)
+  sendFrame(relay, start)
 }
 
 function receiveFrame(relay: Relay, raw: unknown): void {
@@ -139,6 +157,9 @@ function receiveFrame(relay: Relay, raw: unknown): void {
     return
   }
 
+  keepAlive(relay)
+  relay.exec?.onServerFrame(frame)
+
   if (frame.type === 'output') {
     const stream = frame.stream === 'out' ? relay.app.terminal.stdout : relay.app.terminal.stderr
 
@@ -148,16 +169,26 @@ function receiveFrame(relay: Relay, raw: unknown): void {
   }
 }
 
-/** Until stdin is relayed, a prompt reads end of input rather than waiting on it. */
+/** Stdin is read only from here, so a command that ends up running here still has all of it. */
 function acceptRelay(relay: Relay): void {
   if (relay.phase !== 'sent') {
     return
   }
 
   relay.phase = 'accepted'
-  clearTimeout(relay.timer)
-  relay.timer = undefined
-  sendFrame(relay, { type: 'input_end' })
+  keepAlive(relay)
+  relay.exec = startExecRelay({
+    terminal: relay.app.terminal,
+    send: (frame) => sendFrame(relay, frame),
+    onDoubleInterrupt: () => relay.settle({ kind: 'exit', code: HALT_SPEC.abort.exitCode }),
+  })
+}
+
+/** Any frame or ping shows the daemon still holds the command; silence past the bound is a loss. */
+function keepAlive(relay: Relay): void {
+  if (relay.phase === 'accepted') {
+    armTimer(relay, EXEC_LIVENESS_TIMEOUT_MS, LOST)
+  }
 }
 
 /** Only the daemon's own refusal before `accepted` leaves the command unrun; any other close after
