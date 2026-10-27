@@ -1,5 +1,7 @@
-// Source class: free, no key. Keyless access is capped at 25 queries per day per IP, which one
-// refresh a day fits; exhausting it costs the inflation driver and nothing else.
+// Source class: free, key optional. Keyless access is capped at 25 queries per day per IP, shared by
+// every process behind that address; a registration key lifts it to 500. The macro gate asks at most
+// once a day and not at all between releases, and exhausting the cap costs nothing the last stored
+// print cannot cover.
 import { z } from 'zod'
 
 import type { CaveatCode } from '@/trading/kernel/caveat'
@@ -7,6 +9,7 @@ import type { Region } from '@/trading/kernel/instrument'
 import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
+import type { MacroSourceProfile } from '@/trading/sources/macro-gate'
 import type { SourceFetchOutcome } from '@/trading/sources/types'
 import { ValidationError } from '@/core/errors'
 import { tradingDay } from '@/trading/kernel/instrument'
@@ -32,6 +35,22 @@ const SUCCESS_STATUS = 'REQUEST_SUCCEEDED'
 /** A spent cap and a bad query both answer `REQUEST_NOT_PROCESSED`, so the prose is the only thing
  *  separating them, and they want different fixes from the operator. */
 const THRESHOLD_PHRASE = 'threshold'
+/** The v2 API's key parameter. Optional: without one the request goes out keyless. */
+const KEY_PARAM = 'registrationkey'
+
+/** The print for a month appears in the next one, from the 10th at the earliest (the schedule runs
+ *  to the 15th). */
+const CPI_RELEASE_DAY = 10
+const CPI_RELEASE_LAG_MONTHS = 1
+/** Past the longest gap between prints, shutdown delays included, a stored print is too old to
+ *  stand in for the current one. */
+const CPI_STALE_AFTER_DAYS = 120
+
+export const BLS_MACRO_PROFILE: MacroSourceProfile = {
+  series: ['us-inflation-yoy'],
+  cadence: { kind: 'monthly', releaseDay: CPI_RELEASE_DAY, lagMonths: CPI_RELEASE_LAG_MONTHS },
+  staleAfterDays: CPI_STALE_AFTER_DAYS,
+}
 
 const RESPONSE = z.object({
   status: z.string(),
@@ -90,6 +109,7 @@ async function loadMacro(
       sourceId: BLS_ID,
       path: `/publicAPI/v2/timeseries/data/${CPI_SERIES}`,
       query: { startyear: String(year - LOOKBACK_YEARS), endyear: String(year) },
+      credential: { kind: 'query', name: KEY_PARAM, optional: true },
       signal,
     },
     (raw) => RESPONSE.parse(raw)
@@ -110,7 +130,7 @@ async function loadMacro(
 function refusalCode(payload: z.infer<typeof RESPONSE>): CaveatCode {
   const threshold = payload.message?.some((line) => line.toLowerCase().includes(THRESHOLD_PHRASE))
 
-  return threshold === true ? 'source.rate-limited' : 'source.unavailable'
+  return threshold === true ? 'source.quota-exhausted' : 'source.unavailable'
 }
 
 function toMacroSnapshot(

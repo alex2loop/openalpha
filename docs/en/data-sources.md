@@ -2,14 +2,15 @@
 
 Where OpenAlpha's market numbers come from, who answers when a provider is down, and the few things you may need to set.
 
-Short version: every provider is on by default, there is nothing to enable and no address to point at, and two providers take an optional key. The same subject from the trading side: [Trading](trading.md#market-data-and-suggestions).
+Short version: every provider is on by default, there is nothing to enable and no address to point at, and a few providers take an optional key. The same subject from the trading side: [Trading](trading.md#market-data-and-suggestions).
 
 ## What you need to do
 
-Nothing, to get started. Two providers take a key you can add later:
+Nothing, to get started. A few providers take a key you can add later:
 
 | Provider | Variable | Without it |
 |---|---|---|
+| `bls` | `BLS_API_KEY` | Nothing is lost: US inflation reads either way. Keyless, the provider allows 25 calls a day per IP address, shared by every program behind it; a key raises that to 500. |
 | `coingecko` | `COINGECKO_API_KEY` | The last fallback for the crypto market-cap board is gone, and so is the only lookup for a coin ranked past every board. It also drops out of the FX list for a settlement coin against a fiat currency. |
 | `fred` | `FRED_API_KEY` | You lose the series only FRED publishes. US macro still reads from `treasury` and `bls`, which need no key. |
 
@@ -22,7 +23,7 @@ coingecko = "OPENALPHA_COINGECKO_API_KEY"
 
 The key is a provider id and the value is a variable name, never a secret. Naming a provider that takes no key is a startup error. Only the CLI or the file can rename a variable; the office page cannot.
 
-A provider whose key is missing is simply not used, and its data falls through to the next provider. At startup OpenAlpha logs one `trading.source.skipped` warning naming each skipped provider and the variable it wanted. To check without starting anything:
+A provider whose key is missing is simply not used, and its data falls through to the next provider. `bls` is the exception: it is used without a key. At startup OpenAlpha logs one `trading.source.skipped` warning naming each skipped provider and the variable it wanted. To check without starting anything:
 
 ```bash
 openalpha doctor sources
@@ -159,7 +160,7 @@ Every provider is paced to a requests-per-minute rate that is either its publish
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |
 
-Three providers meter by a longer window that a per-minute pace cannot express: `bls` by day, `er-api` and `coingecko` by month (the `coingecko` adapter targets a Demo plan of 10,000 calls a month). In ordinary use none is close: `er-api` is last in the FX list and `bls` is asked once per macro refresh. `coinmarketcap` publishes no ceiling for its keyless use and answers `1022` once an anonymous caller has used it up; it recovers within a minute of going idle, and the next provider covers the gap.
+Three providers meter by a longer window that a per-minute pace cannot express: `bls` by day, `er-api` and `coingecko` by month (the `coingecko` adapter targets a Demo plan of 10,000 calls a month). In ordinary use none is close: `er-api` is last in the FX list, and `bls` is asked at most once a day and not at all between the monthly releases of the inflation print (see [Caching](#caching)). `coinmarketcap` publishes no ceiling for its keyless use and answers `1022` once an anonymous caller has used it up; it recovers within a minute of going idle, and the next provider covers the gap.
 
 OpenAlpha keeps no daily or monthly budget of its own for provider calls, because they are free at the tiers it targets. Spend limits exist for model calls: [Budgets](budgets.md).
 
@@ -180,6 +181,7 @@ Little is cached, and each cache is there for a measured reason.
 
 - **Finished crypto days.** Daily history for days before today from `binance`, `bybit` and `mexc` is kept in memory (up to 8,000 entries) and fetched once. Today's still-forming bar is never used as evidence, so a window cannot score differently minute to minute. A newly finished day fetches only itself, not the 200 days before it. Equity history is never served this way, because adjusted prices are restated backwards.
 - **Macro.** One merged macro read per region and day, shared by every market that scores against it. A read in which any provider did not answer is not kept, so the first pass of the day (before the US series publish) never becomes the day's answer.
+- **Macro providers.** `treasury`, `bls`, `fred` and the `vndirect` deposit rate are asked at most once a day (UTC); every other macro read that day, including a restart, takes the last answer kept in your database. `bls` is also left alone while no new inflation print can exist: the print for a month appears from about the 10th of the next one, so once it is held the provider is not asked again until then. A provider that refuses or fails (a spent daily allowance included) is replaced by its last kept answer, shown with the date it describes, for as long as that answer is recent enough to mean something; only with nothing recent kept does the read report the provider missing. When the daily allowance is the reason, the note says so and that tomorrow works.
 - **The crypto board.** The ranked board is read once an hour and shared by every price and symbol lookup.
 - **VN whole-market reads.** A refresh asks `vndirect` for one name at a time, but the provider serves a whole market per query, so the first caller reads the window and the rest take their slice. It lives 60 seconds idle and never beyond 5 minutes.
 - **Identical simultaneous requests** share one download for as long as they are in flight, and nothing is answered from an earlier read.

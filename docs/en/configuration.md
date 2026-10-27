@@ -946,7 +946,7 @@ market-data retention window are not your choice. They are provider facts or int
 they live in code. No config can point a source at another host.
 
 The one thing you can change is the name of the environment variable a source reads its key from.
-Of the built-in sources only `fred` and `coingecko` take a credential, and `[trading.sources]`
+Of the built-in sources only `bls`, `fred` and `coingecko` take a credential, and `[trading.sources]`
 renames the variable for one of them:
 
 ```toml

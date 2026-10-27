@@ -943,7 +943,7 @@ cung cấp hoặc phần chỉnh kỹ thuật bên trong, và nằm trong mã. K
 nguồn sang host khác.
 
 Thứ duy nhất bạn đổi được là tên biến môi trường mà một nguồn đọc khóa của nó. Trong các nguồn có sẵn,
-chỉ `fred` và `coingecko` cần thông tin đăng nhập, và `[trading.sources]` đổi tên biến cho một trong
+chỉ `bls`, `fred` và `coingecko` cần thông tin đăng nhập, và `[trading.sources]` đổi tên biến cho một trong
 hai:
 
 ```toml

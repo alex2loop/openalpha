@@ -7,12 +7,14 @@ import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
 import type { MacroMissingReason } from '@/trading/kernel/market/market-macro'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
+import type { MacroSourceProfile } from '@/trading/sources/macro-gate'
 import type { SourceFetchOutcome } from '@/trading/sources/types'
 import { ValidationError } from '@/core/errors'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { createSource, parsedSource } from '@/trading/sources/define'
+import { DAILY_STALE_AFTER_DAYS } from '@/trading/sources/macro-gate'
 import { finite } from '@/trading/sources/rows/normalization'
 import { COMPLEMENTARY_ATTEMPT_LIMITS } from '@/trading/sources/transport/http'
 
@@ -39,6 +41,13 @@ const MISSING_OBSERVATION = '.'
 /** A sustained optional-series outage stops being "today happened to be empty" and becomes "the
  *  pipe is sick"; the caveat flips on after this many consecutive empty reads. */
 const OPTIONAL_DEGRADE_AFTER = 3
+
+/** Every series it can publish, asked together: the gate keeps one stored reading per series. */
+export const FRED_MACRO_PROFILE: MacroSourceProfile = {
+  series: ['us-10y-yield', 'us-real-rate', 'usd-index', 'us-inflation-yoy', 'us-volatility'],
+  cadence: { kind: 'daily' },
+  staleAfterDays: DAILY_STALE_AFTER_DAYS,
+}
 
 export const FRED_DEFAULT_ENDPOINT = 'https://api.stlouisfed.org'
 

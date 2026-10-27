@@ -385,6 +385,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
       pluginModules: options.pluginModules,
       credentialEnv: options.tradingConfig.sourceCredentialEnv,
       defaultVenues: options.tradingConfig.defaultVenues,
+      macroReads: stores.marketData,
     }),
     { archive: stores.newsArchive, logger }
   )
