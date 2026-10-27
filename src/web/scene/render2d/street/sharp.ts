@@ -1,6 +1,6 @@
 import type { Rect } from '@/web/scene/types'
 import { zeroCanvas } from '@/web/scene/renderer'
-import { movingRectOf, STREET_RECT } from '@/web/scene/view'
+import { MAX_ZOOM_3D_PX, movingRectOf, STREET_RECT } from '@/web/scene/view'
 
 // The static canvas stretched past this many times its px reads blurry: the sharp copy takes over.
 const SHARP_FROM = 1.25
@@ -8,7 +8,7 @@ const MAX_SHARP_CANVAS_PX = 4096
 const NO_RECT: Rect = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
 // 3D uploads the copy as a texture: its px steps up through these bands, so a zoom glide repaints
 // and uploads it once a band, not every frame.
-const BANDS_3D = [2.5, 3.5, 5, 6.5, 9.1] as const
+const BANDS_3D = [2.5, 3.5, 5, 6.5, MAX_ZOOM_3D_PX] as const
 
 /** The static paint again over the visible rect and a margin, at the device's px, for a 2D zoom
  *  closer than the static canvas holds sharp: the signs and the board's lettering stay crisp. */

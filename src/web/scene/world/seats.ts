@@ -63,9 +63,9 @@ export const DESK_WAIT_SPOTS: Readonly<{ readonly agents: readonly Point[] }> = 
   ],
 })
 
-// A team desk's chair stands this far right of and below the desk's 2D drawn corner.
-const DESK_SEAT_DX = 20
-const DESK_SEAT_DY = 30
+// A worked desk's chair stands this far right of and below the desk's 2D drawn corner.
+export const DESK_SEAT_DX = 20
+export const DESK_SEAT_DY = 30
 
 /** The chair at each team desk, by slot: its person faces the desk. */
 export const TEAM_SEATS: readonly Seat[] = Object.freeze(
