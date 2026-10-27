@@ -5,7 +5,8 @@ import { propsOn } from '@/web/scene/world/props'
 // A desk monitor's box starts this far over its desk's top; laid flat it sits a px into the desk.
 const MONITOR_RISE = 9
 const FLAT_SCREEN_DROP = 2
-/** A flat desk screen's height in world px, which a screen too small for text draws its bars by. */
+/** A desk screen's glass height in world px, standing or flat; a screen too small for text draws
+ *  its bars by it. */
 export const FLAT_SCREEN_H = 7
 // The mockup's reach: whoever stands within this of a desk's middle, from a little above its top
 // to below its front edge, is the one at its computer.
@@ -19,6 +20,15 @@ export function flatScreenOf(computer: PropDef): Rect {
   const { x, y, w } = computer.draw
 
   return { x: x + 1, y: y + MONITOR_RISE + FLAT_SCREEN_DROP, w: w - 2, h: FLAT_SCREEN_H }
+}
+
+/** The glass of a desk computer standing on its desk: inside the bezel, the mockup's 14 by 7. */
+export function standingScreenOf(computer: {
+  readonly x: number
+  readonly y: number
+  readonly w: number
+}): Rect {
+  return { x: computer.x + 1, y: computer.y + 1, w: computer.w - 2, h: FLAT_SCREEN_H }
 }
 
 /** Where a desk's top centre sits, for the desk and the computer on it alike: `x` its middle,
