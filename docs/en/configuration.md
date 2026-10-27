@@ -299,9 +299,9 @@ Layout under `data_dir`:
   openalpha.ready                   written once the daemon is up; what it started without
   daemon.stdout.log                 a background daemon's stray output, truncated each start
   daemon.stderr.log                 a background daemon's warnings and errors, truncated each start
-  restart.json                      written when a restart is asked for, removed when the new daemon announces it
-  restart.stdout.log                stray output of a restart from the API, where a failed one says to look
-  restart.stderr.log                warnings and errors of that restart
+  restart.json                      written just before the daemon starts again, removed when the new daemon announces it
+  restart.stdout.log                Windows only: stray output of a restart from the API, where a failed one says to look
+  restart.stderr.log                Windows only: warnings and errors of that restart
   logs/daemon.log                   default global log (`[log] file`)
   logs/agents/<agentId>/agent.log   per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots

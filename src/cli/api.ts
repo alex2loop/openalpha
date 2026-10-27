@@ -24,7 +24,11 @@ export {
 } from '@/cli/command'
 export { readCommandCacheStubs, writeCommandCache } from '@/cli/command-cache'
 export { spawnRestartProcess, spawnUpgradeProcess } from '@/cli/commands/daemon/background'
-export { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
+export {
+  readRestartFlags,
+  stopDaemonIfRunning,
+  waitForRestart,
+} from '@/cli/commands/daemon/daemon'
 export {
   CLI_ONLY_CHECK_NAMES,
   collectDoctorProbes,
@@ -40,6 +44,12 @@ export { offerOnboard } from '@/cli/commands/onboard/onboard'
 export { isBackgroundLaunch } from '@/cli/daemon-env'
 export { liveDaemon } from '@/cli/daemon-guard'
 export { readDaemonDegraded } from '@/cli/daemon-ready'
+export {
+  canRestartInPlace,
+  execSelf,
+  isRestartRequested,
+  RESTART_SIGNAL,
+} from '@/cli/daemon-restart'
 export { editorFromEnv, getEnv, isVerbose } from '@/cli/env'
 export {
   type EnvFileLoad,
@@ -71,7 +81,7 @@ export {
   toTerminalWriters,
   withTerminal,
 } from '@/cli/terminal'
-export { fail, hint, warn } from '@/cli/ui/colors'
+export { fail, hint, success, warn } from '@/cli/ui/colors'
 export {
   formatInstalledNotice,
   formatUpdateNotice,

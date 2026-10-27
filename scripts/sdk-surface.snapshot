@@ -26,6 +26,7 @@ cli:KeyFile
 cli:Needs
 cli:PendingUpgrade
 cli:PreBootOptions
+cli:RESTART_SIGNAL
 cli:ReleaseStatus
 cli:Terminal
 cli:TerminalEnv
@@ -38,12 +39,14 @@ cli:UpdateState
 cli:WEB_CHECK_NAMES
 cli:Writer
 cli:admitCommand
+cli:canRestartInPlace
 cli:checkLabel
 cli:collectDoctorProbes
 cli:createCommand
 cli:createGroup
 cli:createRoot
 cli:editorFromEnv
+cli:execSelf
 cli:fail
 cli:formatArgIssue
 cli:formatInstalledNotice
@@ -56,6 +59,7 @@ cli:isBackgroundLaunch
 cli:isCompiledBinary
 cli:isConfigPresent
 cli:isForwardable
+cli:isRestartRequested
 cli:isRuntimeEnvName
 cli:isUpdateCheckEnabled
 cli:isVerbose
@@ -77,6 +81,7 @@ cli:readDaemonDegraded
 cli:readEnvFile
 cli:readFreshUpdateState
 cli:readReleaseStatus
+cli:readRestartFlags
 cli:readUpdateLine
 cli:readUpdateState
 cli:refreshUpdateState
@@ -91,10 +96,12 @@ cli:spawnUpgradeProcess
 cli:startUpdateNotice
 cli:starterConfigToml
 cli:stopDaemonIfRunning
+cli:success
 cli:takeChatNotice
 cli:toChatText
 cli:toTerminalWriters
 cli:usage
+cli:waitForRestart
 cli:warn
 cli:withTerminal
 cli:writeCommandCache

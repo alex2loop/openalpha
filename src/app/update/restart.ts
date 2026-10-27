@@ -2,7 +2,7 @@ import type { RestartWhen } from '@/app/server/wire/vocab'
 import type { App } from '@/core/container'
 import type { BusEventMap } from '@/core/events'
 import { clearRestartMarker, writeRestartMarker } from '@/app/update/restart-marker'
-import { spawnRestartProcess } from '@/cli/api'
+import { canRestartInPlace, RESTART_SIGNAL, spawnRestartProcess } from '@/cli/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_MINUTE, MS_PER_SECOND, sleep } from '@/core/utils/time'
 import { t } from '@/i18n'
@@ -14,7 +14,8 @@ const RESTART_IDLE_POLL_MS = MS_PER_SECOND
 export const RESTART_WHEN = ['idle', 'now'] as const satisfies readonly RestartWhen[]
 
 /** `busy`: a restart or an upgrade is already under way. `stopping`: this daemon is shutting down.
- *  `foreground`: it runs in a terminal or under a service, which is not ours to restart. */
+ *  `foreground`: it runs in a terminal or under a service on a system that cannot restart in place,
+ *  which is not ours to restart. */
 export type RestartStart = 'started' | 'busy' | 'stopping' | 'foreground'
 
 /** One restart request: what it asked for, and when it was asked, epoch ms. */
@@ -26,14 +27,16 @@ export interface RestartRequest {
 interface RestartRun extends RestartRequest {
   readonly app: App
   readonly isWorking: () => boolean
-  /** The helper is running and will stop this daemon. */
-  readonly onSpawned: () => void
+  /** The restart is under way and will stop this daemon. */
+  readonly onUnderway: () => void
   /** The helper exited while this daemon still runs: nothing was restarted. */
   readonly onFailed: () => void
 }
 
-/** The marker goes down before the helper starts, so the daemon it brings up knows it was a restart.
- *  A marker that cannot be written, or a helper that cannot start, is a restart that did not happen. */
+/** Where the system can restart a process in place, the daemon stops through its signal and starts
+ *  itself again (the exec step leaves the marker). Elsewhere a helper process does it, and the
+ *  marker goes down before the helper starts, so the daemon it brings up knows it was a restart. A
+ *  marker that cannot be written, or a helper that cannot start, is a restart that did not happen. */
 export async function runRestart(run: RestartRun): Promise<void> {
   const { app } = run
 
@@ -44,7 +47,11 @@ export async function runRestart(run: RestartRun): Promise<void> {
   }
 
   try {
-    await startHelper(run)
+    if (canRestartInPlace()) {
+      restartInPlace(run)
+    } else {
+      await startHelper(run)
+    }
   } catch (err: unknown) {
     app.resolve('logger').error('update.restart_start_failed', { err: formatErrForLog(err) })
     logRestart(app, run, 'error')
@@ -53,6 +60,14 @@ export async function runRestart(run: RestartRun): Promise<void> {
       // The marker expires on its own, and takeRestartMarker ignores a stale one.
     })
   }
+}
+
+/** The operator's own restart signal, so both ways in end in one handler. It is delivered after this
+ *  returns, so the stop it causes finds the listener already there. */
+function restartInPlace(run: RestartRun): void {
+  process.kill(process.pid, RESTART_SIGNAL)
+  logWhenStopping(run)
+  run.onUnderway()
 }
 
 async function startHelper(run: RestartRun): Promise<void> {
@@ -72,7 +87,7 @@ async function startHelper(run: RestartRun): Promise<void> {
   const child = await spawnRestartProcess(app)
   const stopWatching = logWhenStopping(run)
 
-  run.onSpawned()
+  run.onUnderway()
   child.exited
     .then(async (code) => {
       stopWatching()
@@ -130,7 +145,7 @@ export function logRestart(
   app.resolve('bus').emit('restart_ended', { ...request, outcome })
 }
 
-// The restart was accepted with a 202 and the page is waiting for a new pid, so a failure that is
+// The restart was accepted with a 202 and the page is waiting for the restart notice, so a failure that is
 // only logged leaves it waiting for good: the bell says it did not happen.
 function notifyFailed(app: App): void {
   app.resolve('bus').emit('daemon_notice', {

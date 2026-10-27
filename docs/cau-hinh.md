@@ -296,9 +296,9 @@ Bố cục dưới `data_dir`:
   openalpha.ready                   ghi khi daemon đã sẵn sàng; những gì nó đang thiếu
   daemon.stdout.log                 đầu ra lạc của daemon chạy nền, xóa trắng mỗi lần khởi động
   daemon.stderr.log                 cảnh báo và lỗi của daemon chạy nền, xóa trắng mỗi lần khởi động
-  restart.json                      ghi khi có yêu cầu khởi động lại, xóa khi daemon mới báo chuyện đó
-  restart.stdout.log                đầu ra lạc của một lần khởi động lại từ API, nơi cần xem khi nó thất bại
-  restart.stderr.log                cảnh báo và lỗi của lần khởi động lại đó
+  restart.json                      ghi ngay trước khi daemon chạy lại, xóa khi daemon mới báo chuyện đó
+  restart.stdout.log                chỉ trên Windows: đầu ra lạc của một lần khởi động lại từ API, nơi cần xem khi nó thất bại
+  restart.stderr.log                chỉ trên Windows: cảnh báo và lỗi của lần khởi động lại đó
   logs/daemon.log                   log chung mặc định (`[log] file`)
   logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/

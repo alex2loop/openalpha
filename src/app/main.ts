@@ -18,8 +18,10 @@ import { bootRefusals } from '@/app/config-tree'
 import { apiCommand } from '@/app/server/cli/api-command'
 import { connectCommand } from '@/app/server/cli/connect-command'
 import { forwardCommand } from '@/app/server/cli/exec-client'
+import { restartRunningDaemon } from '@/app/server/cli/restart-client'
 import { setupCommand } from '@/app/server/cli/setup-command'
 import { webCommand } from '@/app/server/cli/web-command'
+import { restartInPlaceIfRequested } from '@/app/update/exec-restart'
 import {
   admitCommand,
   fail,
@@ -47,6 +49,7 @@ import { resolveLoadDataDir } from '@/core/config/load'
 import { resolveEnvFile } from '@/core/config/resolve'
 import { formatErrForLog } from '@/core/security/credentials'
 
+const EXIT_OK = 0
 const CRASH_EXIT_CODE = 1
 /** The reader closed the pipe (`| head`): the output it wanted was written, so nothing failed. */
 const BROKEN_PIPE_CODE = 'EPIPE'
@@ -124,6 +127,11 @@ export async function main(argv: readonly string[], options?: MainOptions): Prom
     try {
       exitCode = await runCommand({ flags, preBoot, main: options, fatalBoundary })
 
+      // A clean stop that was asked to restart: nothing of this run is left open.
+      if (exitCode === EXIT_OK) {
+        exitCode = (await restartInPlaceIfRequested(preBoot)) ?? exitCode
+      }
+
       return exitCode
     } finally {
       await updateNotice.finish(exitCode)
@@ -182,7 +190,7 @@ async function runCommand(options: RunCommandOptions): Promise<number> {
 /** A booting command runs in the daemon when one can take it, else boots here. */
 async function runBootCommand(options: RunBootCommandOptions): Promise<number> {
   const { flags, preBoot, needs, extraCommands } = options
-  const preparation = await prepareBoot(preBoot, needs)
+  const preparation = await prepareBoot(preBoot, needs, flags.argv)
 
   if (preparation !== undefined) {
     return preparation
@@ -218,7 +226,11 @@ async function runPreBoot(options: RunPreBootOptions): Promise<number> {
   return blocked ?? runCli(app, argv, commands)
 }
 
-async function prepareBoot(app: CliApp, needs: Required<Needs>): Promise<number | undefined> {
+async function prepareBoot(
+  app: CliApp,
+  needs: Required<Needs>,
+  argv: readonly string[]
+): Promise<number | undefined> {
   if (needs.daemon === 'any' && needs.prepareDaemon === 'none') {
     return undefined
   }
@@ -229,7 +241,14 @@ async function prepareBoot(app: CliApp, needs: Required<Needs>): Promise<number 
     return blocked
   }
 
-  if (needs.prepareDaemon === 'stop') {
+  if (needs.prepareDaemon === 'restart') {
+    // argv[0] is the command's own name.
+    const restarted = await restartRunningDaemon(app, argv.slice(1))
+
+    if (restarted !== undefined) {
+      return restarted
+    }
+
     const stopped = await stopDaemonIfRunning(app)
 
     return stopped === 0 ? undefined : stopped

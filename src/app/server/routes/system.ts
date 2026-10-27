@@ -29,6 +29,7 @@ import { COST_ESTIMATE_SAMPLE, MAX_COMPLETION_LINE_CHARS } from '@/app/server/wi
 import { RESTART_IDLE_WAIT_MS } from '@/app/update/restart'
 import {
   CLI_ONLY_CHECK_NAMES,
+  canRestartInPlace,
   checkLabel,
   collectDoctorProbes,
   getEnv,
@@ -94,7 +95,7 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     locale: app.config.locale.language,
     degraded,
     ...(brief === undefined ? {} : { brief }),
-    restartable: isBackgroundLaunch(),
+    restartable: canRestartInPlace() || isBackgroundLaunch(),
     restartIdleWaitMs: RESTART_IDLE_WAIT_MS,
     restartDrainMs: SHUTDOWN_DRAIN_MS,
     trackRecordMinSample: MINIMUM_TRACK_RECORD_SAMPLE,

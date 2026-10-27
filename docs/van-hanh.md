@@ -348,6 +348,7 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    ExecStart=%h/.local/bin/openalpha start
    # Tùy chọn: daemon cũng tự đọc khóa lưu bằng `openalpha key set` trong ~/.openalpha/env.
    EnvironmentFile=-%h/.openalpha/env
+   ExecReload=/bin/kill -USR2 $MAINPID
    Restart=on-failure
 
    [Install]
@@ -355,7 +356,7 @@ Chạy daemon trên máy chủ của bạn rồi cho một ứng dụng khách n
    ```
 
    Chạy `systemctl --user enable --now openalpha`, rồi `loginctl enable-linger $USER` để nó vẫn chạy
-   khi bạn đăng xuất. Để nâng cấp, chạy `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
+   khi bạn đăng xuất. `systemctl --user reload openalpha` khởi động lại daemon tại chỗ, giữ nguyên pid, và khởi động lại từ trang văn phòng cũng làm như vậy. Để nâng cấp, chạy `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
    daemon do dịch vụ quản lý thì `upgrade` không tự khởi động lại.
 4. **Mở trang văn phòng.** Chạy `openalpha web` trên máy chủ (daemon phải đang chạy). Trên chính màn hình của
    máy chủ, nó mở trình duyệt cho bạn. Qua SSH, nó in hai thứ thay vào đó: một lệnh đường hầm để chạy trên máy của
@@ -421,7 +422,9 @@ Khi daemon dừng, API ngừng nhận kết nối và yêu cầu trước tiên,
 cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi `unavailable`,
 lượt chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
 
-Trang văn phòng cũng khởi động lại được một daemon đã bật bằng `--background`: chọn khởi động lại khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Daemon dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; trang văn phòng báo các yêu cầu phê duyệt đó trước. Khi daemon chạy lại, chuông hiện "Đã khởi động lại daemon." và không có gì gửi tới chat. Nếu một lần khởi động lại đã được nhận mà thất bại, daemon vẫn chạy như cũ và chuông báo điều đó, kèm chỉ dẫn xem nhật ký restart trong thư mục dữ liệu. Daemon chạy trong cửa sổ terminal hoặc do một dịch vụ quản lý thì trang văn phòng không khởi động lại thay bạn được: dừng bằng Ctrl+C hoặc trình quản lý dịch vụ rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay daemon đang dừng, thì yêu cầu mới bị từ chối.
+Trang văn phòng cũng khởi động lại được daemon dù nó chạy ở đâu: trong cửa sổ terminal, ở nền hay dưới một dịch vụ (macOS và Linux). Chọn khởi động lại khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Daemon dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; trang văn phòng báo các yêu cầu phê duyệt đó trước. Sau đó nó chạy lại ngay trong cùng tiến trình: cùng pid, cùng cửa sổ terminal, cùng dòng lệnh và cùng môi trường, khóa lưu bằng `openalpha key set` được đọc lại (biến bạn export trong shell đã bật daemon thì giữ giá trị cũ). Ở terminal, nhật ký tiếp tục ngay trong cửa sổ đó. Khi daemon chạy lại, chuông hiện "Đã khởi động lại daemon." và không có gì gửi tới chat. Nếu lần chạy mới không khởi động được (tệp chạy bị di chuyển hoặc xóa chẳng hạn), daemon vẫn dừng và báo ngay trên terminal của nó, hoặc trong nhật ký lỗi nếu nó chạy nền; bạn bật lại bằng `openalpha start`.
+
+Cũng có thể làm trên dòng lệnh: `openalpha restart` nhờ daemon đang chạy tự khởi động lại, chờ nó chạy lại rồi in kết quả, và `restart --now` không chờ việc đang chạy. `kill -USR2 <pid>` khởi động lại ngay, như `--now`; unit systemd dùng được nó làm `ExecReload`. `restart --background` vẫn dừng daemon rồi chạy lại ở nền từ shell của bạn, với các biến của shell đó. Trên Windows daemon không tự khởi động lại tại chỗ được: trang văn phòng chỉ khởi động lại daemon bật bằng `--background`, qua một tiến trình phụ (nếu thất bại, daemon vẫn chạy như cũ và chuông chỉ dẫn xem nhật ký restart trong thư mục dữ liệu), còn daemon chạy trong terminal thì dừng bằng Ctrl+C rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay daemon đang dừng, thì yêu cầu mới bị từ chối.
 
 ### Lệnh chạy trong daemon
 
