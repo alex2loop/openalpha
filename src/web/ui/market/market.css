@@ -22,18 +22,6 @@
   background: var(--canvas);
 }
 
-.market-run {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s1);
-  margin-bottom: var(--s2);
-}
-
-.market-run p {
-  flex-basis: 100%;
-}
-
 .macro-drivers {
   width: 100%;
   border-collapse: collapse;

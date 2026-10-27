@@ -1,7 +1,5 @@
 import type { OverviewResponse } from '@/app/server/wire/market'
-import { formatDay } from '@/i18n'
-import { findMarket, isTradingPhase, priceDisplayOf } from '@/web/state/market'
-import { locale } from '@/web/state/session'
+import { findMarket, priceDisplayOf } from '@/web/state/market'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
@@ -51,23 +49,6 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
 /** The first block with a board: a dealer's rows (gold) state no closing price. */
 export function selectBoard(blocks: OverviewResponse['markets']): OverviewBlock | undefined {
   return blocks.find((block) => findMarket(block.market)?.hasBoard === true)
-}
-
-/** "Giá đóng cửa {time}" for a board that is not trading; it leads with the session's day when
- *  that is not the market's today. Absent for a market that never closes. */
-export function closeNoteOf(block: OverviewBlock | undefined): string | undefined {
-  const session = block === undefined ? undefined : findMarket(block.market)?.session
-
-  if (block === undefined || session === undefined || isTradingPhase(session.phase)) {
-    return undefined
-  }
-
-  const time =
-    block.asOf === session.today
-      ? session.close
-      : `${formatDay(locale.value, block.asOf)} ${session.close}`
-
-  return tr('ui.office.today.closeNote', { time })
 }
 
 interface OverviewRowProps {
