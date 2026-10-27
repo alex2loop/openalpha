@@ -45,6 +45,7 @@ export function Market() {
     <div class="market-tab">
       <div class="market-bar">
         <Segmented
+          isTabs
           label={tr('ui.office.panel.market')}
           value={subTab}
           options={SUB_TABS.map((value) => ({ value, label: tr(SUB_TAB_KEYS[value]) }))}

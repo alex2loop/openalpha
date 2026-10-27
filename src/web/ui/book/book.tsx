@@ -34,6 +34,7 @@ export function Book() {
   return (
     <>
       <Segmented
+        isTabs
         label={tr('trading.render.affordance.portfolio')}
         value={shown}
         options={tabs.map((tab) => ({ value: tab.value, label: tr(tab.label) }))}

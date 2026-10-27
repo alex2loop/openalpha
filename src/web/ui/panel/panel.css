@@ -11,7 +11,7 @@
   width: auto;
 }
 
-/* The tabs as sidebar pills, the collapse arrow at the end, and the way back under them. */
+/* The tabs on a sunken track, the collapse arrow at the end, and the way back under them. */
 .panel-head {
   display: flex;
   flex-wrap: wrap;
@@ -21,66 +21,24 @@
 }
 
 .panel-tabs {
-  display: flex;
   flex: 1;
-  align-items: center;
+  flex-wrap: nowrap;
   gap: 2px;
-  min-width: 0;
-  margin-top: var(--s1);
-  padding-bottom: var(--s1);
+  margin: var(--s1) var(--s1) var(--s1) 0;
   container-type: inline-size;
 }
 
-.panel-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px var(--s1);
-  border: 0;
-  border-radius: var(--controlSmRadius);
-  background: none;
-  color: var(--ink2);
-  font-size: var(--sizeBody);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.panel-tab:hover {
-  background: var(--sunken);
-}
-
-.panel-tab.is-active {
-  background: var(--sunken);
-  color: var(--ink);
-  font-weight: var(--weightSemibold);
-}
-
-.panel-tab svg.icon {
-  width: 14px;
-  height: 14px;
-  color: var(--ink);
+.panel-tabs button {
+  flex: 1 1 auto;
+  padding: 0 var(--s1);
 }
 
 /* Under the width the four labelled tabs and the count take (they fit the default panel in both
    languages), each tab keeps its icon and the label stays its title. */
 @container (width < 376px) {
-  .panel-tab-label {
+  .panel-tabs .seg-label {
     display: none;
   }
-}
-
-.panel-tab-count {
-  padding: 0 6px;
-  border-radius: 8px;
-  background: var(--sunken);
-  color: var(--ink2);
-  font: var(--typeCaptionStrong);
-  font-variant-numeric: tabular-nums;
-}
-
-.panel-tab.is-active .panel-tab-count {
-  background: var(--ink);
-  color: var(--canvas);
 }
 
 .panel-collapse {
@@ -139,7 +97,7 @@
   }
 }
 
-/* Folded to a strip of icons, the active one on a sunken pill. */
+/* Folded to a strip of icons, the active one a pill on the track. */
 .panel-rail {
   display: flex;
   flex-direction: column;
@@ -154,25 +112,24 @@
 .panel-rail .panel-tabs {
   flex: none;
   flex-direction: column;
-  gap: 6px;
   margin: 0;
-  padding: 0;
 }
 
-.panel-rail .panel-tabs .panel-tab {
+.panel-rail .panel-tabs button {
   position: relative;
-  padding: var(--s1);
-  border-radius: var(--controlRadius);
+  flex: none;
+  padding: 0;
+  width: calc(var(--controlH) - 4px);
 }
 
-.panel-rail .panel-tab-label {
+.panel-rail .seg-label {
   display: none;
 }
 
-.panel-rail .panel-tab .panel-tab-count {
+.panel-rail .seg-badge {
   position: absolute;
-  top: 0;
-  right: -4px;
+  top: -2px;
+  right: -6px;
 }
 
 .panel-rail .panel-collapse {

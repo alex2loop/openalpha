@@ -20,6 +20,7 @@ export function Ideas() {
   return (
     <>
       <Segmented
+        isTabs
         label={tr('ui.office.panel.ideas')}
         value={ideasTab.value}
         options={IDEAS_TABS.map((tab) => ({ value: tab.value, label: tr(tab.label) }))}
