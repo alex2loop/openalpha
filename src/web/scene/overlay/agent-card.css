@@ -15,7 +15,6 @@
   overflow: hidden;
   border: 0;
   border-radius: 8px;
-  box-shadow: var(--lift);
   color: var(--ink);
   font: var(--typeCaption);
   line-height: 14px;

@@ -21,8 +21,9 @@ interface ZoomButtonProps {
   readonly children: ComponentChildren
 }
 
-/** The map controls floating at the scene's bottom right, from the bottom: zoom out, zoom in, back
- *  to the whole floor and the master lamp switch; 3D adds a bar that shows the zoom. */
+/** The map controls floating at the scene's bottom right as one glass column, from the bottom: zoom
+ *  out, zoom in, back to the whole floor and the master lamp switch; 3D adds a bar that shows the
+ *  zoom beside it. */
 export function ZoomStack() {
   const { zoomSteps } = view.value
   const maxSteps = maxZoomSteps()
@@ -32,18 +33,20 @@ export function ZoomStack() {
 
   return (
     <div class="scene-zoomstack">
-      <ZoomSteps />
-      <ZoomButton label={tr('ui.office.floor.leave')} kind="scene-zoomreset" onClick={leaveRoom}>
-        {RESET_VIEW_GLYPH}
-      </ZoomButton>
-      <ZoomButton
-        label={tr('ui.office.lights.all')}
-        kind="scene-lamps"
-        isPressed={litRooms.value.size > 0}
-        onClick={() => toggleAllLamps(ROOM_IDS)}
-      >
-        <LampIcon class="scene-bulb" />
-      </ZoomButton>
+      <div class="scene-dock glass">
+        <ZoomSteps />
+        <ZoomButton label={tr('ui.office.floor.leave')} kind="scene-zoomreset" onClick={leaveRoom}>
+          {RESET_VIEW_GLYPH}
+        </ZoomButton>
+        <ZoomButton
+          label={tr('ui.office.lights.all')}
+          kind="scene-lamps"
+          isPressed={litRooms.value.size > 0}
+          onClick={() => toggleAllLamps(ROOM_IDS)}
+        >
+          <LampIcon class="scene-bulb" />
+        </ZoomButton>
+      </div>
       {is3d && (
         <span class="scene-zoombar glass" aria-hidden="true">
           <i style={{ bottom: `${span > 0 ? ((zoomSteps - minSteps) / span) * PERCENT : 0}%` }} />
@@ -81,7 +84,7 @@ function ZoomButton({ label, kind, isDisabled, isPressed, onClick, children }: Z
   return (
     <button
       type="button"
-      class={['scene-zoombtn', 'glass', kind].filter(Boolean).join(' ')}
+      class={['scene-zoombtn', kind].filter(Boolean).join(' ')}
       aria-label={label}
       title={label}
       disabled={isDisabled}

@@ -10,8 +10,6 @@
   padding: 0 12px;
   border: 0;
   border-radius: 15px;
-  background: var(--surface);
-  box-shadow: var(--pop);
   color: var(--ink);
   font: inherit;
   font-size: 12px;
@@ -25,7 +23,7 @@
 .radial-menu-pill:hover,
 .radial-menu-pill:focus-visible {
   box-shadow:
-    var(--pop),
-    inset 0 0 0 2px var(--ink);
+    inset 0 0 0 2px var(--ink),
+    0 10px 26px -8px var(--glassDrop);
   outline: none;
 }

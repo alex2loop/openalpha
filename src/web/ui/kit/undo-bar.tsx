@@ -65,7 +65,7 @@ export function UndoBar() {
   const canUndo = 'undo' in entry.action || isHeldCommit(entry)
 
   return (
-    <div class="undo-bar" role="status">
+    <div class="undo-bar glass is-strong" role="status">
       <span>{entry.failure ?? entry.text}</span>
       {canUndo && (
         <Button kind="tertiary" disabled={entry.isBusy === true} onClick={() => press(entry)}>

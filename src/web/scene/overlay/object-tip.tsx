@@ -99,7 +99,7 @@ export function ObjectTip() {
 
   return (
     <div
-      class="object-tip glass"
+      class="object-tip glass is-strong"
       role="tooltip"
       style={{ left: `${held.at.x}px`, top: `${held.at.y + TIP_OFFSET_PX}px` }}
       onPointerEnter={cancelHide}

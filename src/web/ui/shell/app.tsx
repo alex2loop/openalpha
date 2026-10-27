@@ -19,15 +19,16 @@ import { ReaderHost } from '@/web/ui/reader/reader'
 import { Header } from '@/web/ui/shell/header'
 import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { PaneBar } from '@/web/ui/shell/pane-bar'
-import { Panes } from '@/web/ui/shell/panes'
+import { isStageShown, Panes } from '@/web/ui/shell/panes'
 import { SignIn } from '@/web/ui/shell/sign-in'
 import { StatusLine } from '@/web/ui/shell/status-line'
 
 import './app.css'
 
-/** The page grid (header | pane bar when narrow | main | command bar), behind the loading,
- *  failure and sign-in screens. A loaded session stays on screen when a later load fails. A chat
- *  tab is its chat pane and the command bar alone: no scene, panel or header mounts. */
+/** The page grid (header | pane bar when narrow | main | command bar unless the stage floats it),
+ *  behind the loading, failure and sign-in screens. A loaded session stays on screen when a later
+ *  load fails. A chat tab is its chat pane and the command bar alone: no scene, panel or header
+ *  mounts. */
 export function App() {
   if (isUnreachable.value) {
     return <StatusLine text={tr('ui.office.error.unreachable')} />
@@ -57,7 +58,7 @@ export function App() {
         <main class="panes" data-pane="chat">
           <ChatPanel />
         </main>
-        <PageBottom />
+        <PageBottom hasCommandBar />
       </div>
     )
   }
@@ -68,20 +69,21 @@ export function App() {
       <Header />
       <PaneBar />
       <Panes />
-      <PageBottom />
+      <PageBottom hasCommandBar={!isStageShown.value} />
     </div>
   )
 }
 
-// What every page keeps: the box to type in, and the hosts that float over the panes.
-function PageBottom() {
+// What every page keeps: the hosts that float over the panes, and the box to type in while no
+// stage shows to float it.
+function PageBottom({ hasCommandBar }: { readonly hasCommandBar: boolean }) {
   return (
     <>
       <div class="bottom-stack">
         <OfflineBar />
         <UndoBar />
       </div>
-      <CommandBar />
+      {hasCommandBar && <CommandBar />}
       <ModalHost />
       <ReaderHost />
       <Announcer />

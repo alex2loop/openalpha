@@ -6,19 +6,15 @@
 }
 
 .bubble {
-  /* The mockup's speech bubble: white paper, its tail a thin line down to the head. */
-  --bubble-paper: #ffffff;
-  --bubble-ink: #1b1b29;
-  --bubble-foot: #5f5f75;
-  --bubble-tail: var(--bubble-paper);
-  --bubble-drop: 0 2px 8px rgba(27, 27, 41, 0.28);
+  /* A glass speech bubble, its tail a thin line down to the head; a notice keeps its colour on the
+     edge and the text. */
+  --bubble-ink: var(--ink);
+  --bubble-tail: var(--glassRim);
 
   position: absolute;
   box-sizing: border-box;
   padding: 6px 9px;
   border-radius: 8px;
-  background: var(--bubble-paper);
-  box-shadow: var(--bubble-drop);
   color: var(--bubble-ink);
   font-size: 12px;
   font-weight: 500;
@@ -47,12 +43,10 @@
 }
 
 .bubble-think {
-  --bubble-paper: #f4f4f8;
-  --bubble-ink: #4e4e62;
-  --bubble-tail: #c9cad8;
+  --bubble-ink: var(--ink2);
+  --bubble-tail: var(--ink3);
 
   padding: 5px 10px;
-  border: 1px solid #dbdbe4;
   border-radius: 14px;
   font-style: italic;
 }
@@ -63,22 +57,20 @@
 
 .bubble-caution,
 .bubble-wait {
-  --bubble-paper: #fbf3db;
-  --bubble-ink: #8a4b00;
-  --bubble-tail: #8a4b00;
+  --bubble-ink: var(--caution);
+  --bubble-tail: var(--caution);
 
   padding: 5px 9px;
-  border: 1px solid #8a4b00;
+  border: 1px solid var(--caution);
   font-weight: 600;
 }
 
 .bubble-due {
-  --bubble-paper: #eef3fc;
-  --bubble-ink: #2f4f8a;
-  --bubble-tail: #7193d2;
+  --bubble-ink: var(--tc-blue);
+  --bubble-tail: var(--tc-blue);
 
   padding: 5px 9px;
-  border: 1px solid #b9cbee;
+  border: 1px solid var(--tc-blue);
 }
 
 .bubble.is-bright {
@@ -106,7 +98,7 @@
 .bubble-foot {
   margin: 0;
   overflow: hidden;
-  color: var(--bubble-foot);
+  color: var(--ink2);
   font-size: 11px;
   line-height: 15px;
   text-overflow: ellipsis;

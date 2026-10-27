@@ -2,9 +2,9 @@
   display: flex;
   align-items: center;
   height: var(--tapeH);
+  padding-left: 3px;
   overflow: hidden;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  border-radius: var(--islandRadius);
   color: var(--ink);
   font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
@@ -12,8 +12,7 @@
 }
 
 .tape.is-empty {
-  height: 0;
-  border-bottom: 0;
+  display: none;
 }
 
 .tape-track {
@@ -42,6 +41,7 @@
   border-radius: 6px;
   background: var(--pillBg);
   color: var(--ink);
+  text-shadow: none;
 }
 
 .tape-cell.is-up {

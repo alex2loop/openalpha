@@ -157,7 +157,7 @@ function BubbleView({ placed }: { readonly placed: Placed }) {
 
   return (
     <div
-      class={`bubble bubble-${bubble.kind} side-${side}${bubble.isBright === true ? ' is-bright' : ''}`}
+      class={`bubble glass is-strong bubble-${bubble.kind} side-${side}${bubble.isBright === true ? ' is-bright' : ''}`}
       style={{
         left: `${rect.x}px`,
         top: `${rect.y}px`,

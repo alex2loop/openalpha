@@ -31,14 +31,12 @@
 }
 
 .room-tag {
-  background: var(--roomTag);
-  color: var(--roomTagInk);
+  color: var(--ink2);
   font-weight: 500;
-  backdrop-filter: blur(2px);
 }
 
 .room-tag b {
-  color: var(--roomTagName);
+  color: var(--ink);
   font-weight: 600;
 }
 

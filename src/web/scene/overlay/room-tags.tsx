@@ -102,7 +102,7 @@ function Tag({ room, renderer, width }: TagProps) {
     >
       <button
         type="button"
-        class="room-tag"
+        class="room-tag glass is-flat"
         title={fits ? undefined : full}
         onClick={() => zoomToRoom(room.id, room.rect)}
       >
@@ -130,7 +130,7 @@ function QueuedChip({
   return (
     <button
       type="button"
-      class="room-queued glass"
+      class="room-queued glass is-flat"
       onClick={() =>
         cycleFocus(
           room,

@@ -6,21 +6,16 @@
   gap: var(--s1);
   padding: 8px 10px 8px 14px;
   border-radius: 12px;
-  background: var(--offlineBg);
-  color: var(--offlineInk);
-  box-shadow: var(--pop);
+  color: var(--ink);
   font-size: var(--sizeReading);
 }
 
 .offline-bar-detail {
-  color: var(--offlineInk2);
+  color: var(--ink2);
 }
 
 .offline-bar .btn {
   flex: none;
-  border-color: var(--offlineInk);
-  background: var(--offlineInk);
-  color: var(--offlineBg);
 }
 
 .app.is-offline .panes {

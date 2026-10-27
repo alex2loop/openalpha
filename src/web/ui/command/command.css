@@ -15,10 +15,13 @@
   gap: 6px;
   height: var(--controlH);
   padding: 0 6px 0 4px;
-  border: 1px solid var(--border);
   border-radius: var(--controlRadius);
-  background: var(--surface);
   cursor: pointer;
+}
+
+.who-chip:not(.glass) {
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .who-chip select {
@@ -42,12 +45,15 @@
   align-items: center;
   gap: var(--s1);
   padding: var(--s1) var(--s2);
-  border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+.command-field:not(.glass) {
+  border: 1px solid var(--border);
   background: var(--canvas);
 }
 
-.command-field:focus-within {
+.command-field:not(.glass):focus-within {
   border-color: var(--ink3);
   background: var(--surface);
 }
@@ -142,11 +148,121 @@
   display: none;
 }
 
-:root[data-layout="phone"] .command-bar {
+:root[data-layout="phone"] .command-bar:not(.is-floating) {
   gap: 6px;
   padding: 8px;
 }
 
 :root[data-layout="phone"] .who-chip select {
   max-width: 88px;
+}
+
+/* Over the stage the bar is three glass islands with the scene between them, which keeps the
+   pointer. While the field is in use the side islands shrink to their icon; a phone keeps them so. */
+.command-bar.is-floating {
+  position: absolute;
+  right: var(--s2);
+  bottom: var(--s2);
+  left: var(--s2);
+  z-index: var(--zStageBar);
+  min-height: 0;
+  padding: 0;
+  border-top: 0;
+  gap: var(--s1);
+  pointer-events: none;
+}
+
+.command-bar.is-floating > * {
+  pointer-events: auto;
+}
+
+.command-island {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  height: var(--islandH);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--islandRadius);
+  color: var(--ink);
+  font: var(--typeEmphasis);
+  cursor: pointer;
+  transition:
+    width var(--islandMs) ease,
+    padding var(--islandMs) ease;
+}
+
+.command-island:disabled {
+  color: var(--ink3);
+  cursor: default;
+}
+
+.command-field.command-island {
+  justify-content: flex-start;
+  width: 100%;
+  cursor: text;
+}
+
+.command-island .command-input::placeholder {
+  color: var(--ink3);
+}
+
+.command-field.glass:focus-within {
+  --glassAlpha: var(--glassFocusA);
+  box-shadow:
+    inset 0 1px 1px var(--glassHi),
+    inset 0 0 0 1px var(--glassFocusRim),
+    0 0 18px -2px var(--glassFocusGlow),
+    0 10px 26px -8px var(--glassDrop);
+}
+
+.command-field.glass:focus-within::before {
+  background: linear-gradient(135deg, var(--glassRim), var(--glassFocusRim) 50%, var(--glassRim));
+}
+
+.command-readonly {
+  flex: 1;
+  justify-content: space-between;
+  min-width: 0;
+  cursor: default;
+}
+
+.command-bar.is-floating .command-not-sent {
+  position: absolute;
+  bottom: calc(100% + var(--s1));
+  left: 0;
+  margin: 0;
+  padding: 4px var(--s2);
+  border-radius: var(--controlRadius);
+}
+
+/* The icon-only island: the agent list stays the tap target, laid invisibly over the portrait. */
+.command-bar.is-floating:has(.command-input:focus, .command-input:not(:placeholder-shown))
+:is(.who-chip, .command-chat),
+:root[data-layout="phone"] .command-bar.is-floating :is(.who-chip, .command-send) {
+  width: var(--islandH);
+  padding: 0;
+}
+
+.command-bar.is-floating:has(.command-input:focus, .command-input:not(:placeholder-shown))
+  .command-island-text {
+  display: none;
+}
+
+.command-bar.is-floating:has(.command-input:focus, .command-input:not(:placeholder-shown))
+  .who-chip
+  select,
+:root[data-layout="phone"] .command-bar.is-floating .who-chip select {
+  position: absolute;
+  inset: 0;
+  max-width: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-island {
+    transition: none;
+  }
 }

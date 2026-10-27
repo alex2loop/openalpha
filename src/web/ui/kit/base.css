@@ -158,11 +158,74 @@ kbd {
   border: 0;
 }
 
-/* The office overlays: Canvas at 86% over a blur. */
+/* What floats on the office scene: liquid glass. A thin tint with a sheen at the top left over a
+   light blur, a specular rim brighter at two corners, an inset highlight, a soft drop and a halo
+   behind the text; `is-strong` is the denser tint for text-heavy pieces. Each blur re-samples the
+   scene on every repaint, so a chip that repeats across the floor (room and name tags) is
+   `is-flat`: the strong tint, rim and sheen without the blur. Surface where the browser cannot
+   blur or the operator asked for less transparency. Never glass inside glass: an inner blur sees
+   only its parent. */
+:where(.glass) {
+  position: relative;
+}
+
 .glass {
-  background: var(--glass);
-  backdrop-filter: saturate(1.6) blur(20px);
-  -webkit-backdrop-filter: saturate(1.6) blur(20px);
+  --glassAlpha: var(--glassA);
+  isolation: isolate;
+  background:
+    radial-gradient(120% 90% at 20% 0%, var(--glassSheen), transparent 55%),
+    rgb(var(--glassTint) / var(--glassAlpha));
+  backdrop-filter: var(--glassFilter);
+  -webkit-backdrop-filter: var(--glassFilter);
+  box-shadow:
+    inset 0 1px 1px var(--glassHi),
+    inset 0 -8px 16px -10px var(--glassLo),
+    0 10px 26px -8px var(--glassDrop);
+  text-shadow: 0 0 6px rgb(var(--glassTint) / var(--glassHaloA));
+}
+
+.glass:is(.is-strong, .is-flat) {
+  --glassAlpha: var(--glassStrongA);
+}
+
+.glass.is-flat {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.glass::before {
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--glassRim),
+    transparent 35%,
+    transparent 65%,
+    var(--glassRim)
+  );
+  content: "";
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 /* The page chrome over the wallpaper (header, panel, chat, menus): glass, or Canvas where the

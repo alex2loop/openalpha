@@ -34,7 +34,10 @@ export function HoverLabel({ name, now, rect }: HoverLabelProps) {
   const epochMs = useNow(ELAPSED_TICK_MS).value
 
   return (
-    <span class="name-tag glass is-hover" style={{ left: `${rect.x}px`, top: `${rect.y}px` }}>
+    <span
+      class="name-tag glass is-strong is-hover"
+      style={{ left: `${rect.x}px`, top: `${rect.y}px` }}
+    >
       {hoverTextOf(name, now, epochMs)}
     </span>
   )

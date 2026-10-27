@@ -14,7 +14,8 @@ import './tape.css'
 
 type Note = 'breach' | 'call' | undefined
 
-/** The strip under the header: each market's benchmark and the watchlist, scrolling by CSS alone. */
+/** The glass strip floating over the scene's top: each market's benchmark and the watchlist,
+ *  scrolling by CSS alone. */
 export function Tape() {
   const rows = tapeRows.value
   const breached = new Set(stopBreaches.value.map((stop) => keyOf(stop.instrument)))
@@ -32,7 +33,7 @@ export function Tape() {
   }
 
   return (
-    <div class={rows.length === 0 ? 'tape is-empty' : 'tape'}>
+    <div class={rows.length === 0 ? 'tape is-empty' : 'tape glass'}>
       <div class="tape-track">
         <TapeRows rows={rows} resolveNote={resolveNote} />
         {!reducedMotion.value && <TapeRows rows={rows} resolveNote={resolveNote} isCopy />}

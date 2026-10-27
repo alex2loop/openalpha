@@ -200,7 +200,7 @@ function MenuRing({ menu, figure }: { readonly menu: OpenMenu; readonly figure: 
           key={action.id}
           type="button"
           role="menuitem"
-          class="radial-menu-pill"
+          class="radial-menu-pill glass is-strong"
           style={pillStyle(pillCenterOf(center, { index, count, pane: projection.value.pane }))}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => pick(action)}
