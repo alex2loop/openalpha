@@ -319,6 +319,29 @@ enforces:
 - **Secret check.** A body that looks like a secret or contains the agent's own key is refused.
 - **MCP.** `social_request` and `social_skill` are withheld from the MCP server surface.
 
+### Commands forwarded to the daemon
+
+With a daemon running, the CLI hands daemon-state commands to it over `/v1/exec` (see
+[operations](operations.md#commands-run-in-the-daemon)). That socket runs a command in the daemon, so
+it admits only your own terminal on the same machine. All of these must hold, checked before the
+connection upgrades:
+
+- The API token in an `Authorization: Bearer` header. The page's sign-in cookie is never read, and a
+  wrong token counts toward the same lockout as every other API call.
+- No `Origin` header. A browser always sends one, so no web page can open it.
+- A loopback peer, and a `Host` of exactly `127.0.0.1:<port>`.
+- None of `X-Forwarded-For`, `Forwarded`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP`, `Via`,
+  `CF-Connecting-IP` or `True-Client-IP`, with or without `public_url`.
+
+A reverse proxy or `tailscale serve` on the same machine presents a loopback peer, so the `Host` and
+header checks are what keep a remote caller out. The socket has its own cap of 8, apart from the
+page's streams, and one that sends no command within 10 seconds is closed.
+
+A forwarded command can do what the same command does in your terminal, no more. Approvals are still
+asked in that terminal, the page cannot answer them, and two terminals never see each other's. Commands
+that take a secret (`key set`, `onboard`, `auth login`) stay local. The daemon logs each command's name,
+exit code and duration, never its arguments, your answers, edited text or output.
+
 ## Failure behaviour
 
 | Condition | Result |

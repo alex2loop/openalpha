@@ -409,6 +409,48 @@ lượt chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các 
 
 Trang văn phòng cũng khởi động lại được một daemon đã bật bằng `--background`: chọn khởi động lại khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Daemon dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; trang văn phòng báo các yêu cầu phê duyệt đó trước. Khi daemon chạy lại, chuông hiện "Đã khởi động lại daemon." và không có gì gửi tới chat. Nếu một lần khởi động lại đã được nhận mà thất bại, daemon vẫn chạy như cũ và chuông báo điều đó, kèm chỉ dẫn xem nhật ký restart trong thư mục dữ liệu. Daemon chạy trong cửa sổ terminal hoặc do một dịch vụ quản lý thì trang văn phòng không khởi động lại thay bạn được: dừng bằng Ctrl+C hoặc trình quản lý dịch vụ rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay daemon đang dừng, thì yêu cầu mới bị từ chối.
 
+### Lệnh chạy trong daemon
+
+Khi daemon đang chạy và API bật, những lệnh đọc hoặc đổi trạng thái của nó sẽ chạy ngay bên trong nó,
+thay vì dựng một bản app thứ hai bên cạnh. Gồm `chat`, `status`, `cost`, `history`, `agent`, `memory`,
+`skill`, `plugin`, `workflow`, `social`, `schedule`, `pair` (`approve`, `deny`, `list`, `revoke`),
+`db integrity`, `db stats` và mọi lệnh do plugin thêm. Việc chỉ chạy ở một nơi, nên một cuộc chat bạn mở
+ở terminal hiện trên trang văn phòng như mọi lượt chạy khác, ở kênh `cli`. Ở dòng lệnh bạn không thấy
+khác biệt: cùng đầu ra, cùng câu hỏi, trình soạn thảo của chính bạn, Ctrl+C và cùng mã thoát.
+
+Những lệnh này vẫn chạy ngay trong terminal: `help`, `version`, `upgrade`, `doctor`, `onboard`, `start`,
+`stop`, `restart`, `autostart`, `provider`, `config`, `key`, `auth`, `zalo`, `logs`, `setup`, `connect`,
+`web`, `api`, `mcp`, và mọi lệnh cần daemon đang dừng (`schedule edit` là một). Các lệnh đọc hoặc ghi
+tệp do bạn chỉ định cũng vậy: `db backup --path`, `db export --out`, `plugin install` và `skill install`.
+Nếu không, đường dẫn tương đối sẽ được hiểu theo thư mục của daemon, mà daemon khởi động lúc đăng nhập
+thường không ghi được vào Desktop, Documents hay Downloads.
+
+Một lệnh chạy ngay trong terminal khi:
+
+- bạn thêm `--local`, để bỏ qua daemon khi nó bị treo hoặc khi cần gỡ lỗi. Thêm `--log-level` cũng có tác
+  dụng tương tự, vì cờ này hỏi về chính tiến trình này;
+- không có daemon nào đang sống giữ thư mục dữ liệu này, hoặc nó nạp một tệp cấu hình khác;
+- `[api] enabled` là `false`, daemon báo API đang suy giảm, không đọc được token hoặc token không
+  khớp với token của daemon, hoặc daemon không trả lời trong một giây;
+- daemon chạy bản khác với CLI. Chỉ trường hợp này có lên tiếng: một dòng nêu cả hai bản và bảo bạn chạy
+  `openalpha restart --background`.
+
+Lệnh được chuyển đi chạy với cấu hình, tệp khóa và biến môi trường mà daemon đã đọc lúc khởi động, giống
+như một cuộc chat từ trang văn phòng hay Telegram. Sau khi bạn sửa `config.toml`, thêm khóa vào tệp khóa
+hoặc xuất khóa nhà cung cấp ở shell này, hãy chạy `openalpha restart --background` để thay đổi có hiệu
+lực. Môi trường của terminal chỉ đi theo để dựng màu, bề rộng và trình soạn thảo.
+
+Nhấn Ctrl+C một lần là ngắt lệnh như khi chạy ở terminal. Nhấn lần hai trước khi lệnh trả lời sẽ đóng kết
+nối, daemon dừng mọi thứ lệnh đã bắt đầu, và CLI thoát `130`.
+
+Nếu daemon dừng khi một lệnh đang chạy (khởi động lại, sập, hoặc im lặng khoảng năm phút), hoặc không nhận lệnh trong vài giây sau khi kết nối mở, CLI sẽ nói rõ
+và thoát `17` (`daemon_lost`). Nó không bao giờ chạy lại lệnh đó ở đây, nên không có gì bị làm hai lần.
+Hãy xem nó đã làm tới đâu rồi mới thử lại: `openalpha history list` với một cuộc chat, rồi
+`openalpha chat --continue` để nối tiếp; với lệnh khác thì xem lệnh liệt kê của chính nó.
+
+Daemon ghi log tên lệnh, mã thoát và thời gian của mỗi lệnh được chuyển đi, không bao giờ ghi đối số, câu
+trả lời hay đầu ra.
+
 ## Trang văn phòng
 
 Khi API bật, daemon còn phục vụ một trang web ngay tại địa chỉ của nó, `http://127.0.0.1:<cổng>/` (cổng 8765 nếu bạn không đổi). Cứ hình dung đó là một bức tường kính nhìn vào daemon: một văn phòng nhỏ nơi trợ lý, nhóm nghiên cứu và các agent của bạn làm việc cùng lúc với daemon. Mọi chuyển động bạn thấy đều là một phiên chạy, một bước hay một câu hỏi đang chờ bạn có thật; không có gì được dựng sẵn cho có vẻ bận rộn. Trang không bao giờ đặt lệnh và không tự khởi động một phiên chạy AI nào. Một nút hoặc mở ra một thứ gì đó, hoặc điền chữ vào ô câu lệnh để bạn đọc rồi tự gửi.

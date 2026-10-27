@@ -43,7 +43,6 @@
     "src/cli/daemon-guard.ts#writePidFile": 43,
     "src/cli/research/plan-review.ts#printObjective": 45,
     "src/cli/research/progress-display.ts#createActivityDisplay": 55,
-    "src/cli/ui/ghost-prompt.ts#createGhostSuggestions": 42,
     "src/cli/ui/spinner.ts#createLineProgress": 45,
     "src/cli/ui/spinner.ts#createSpinner": 54,
     "src/commands/dispatcher/dispatcher.ts#admit": 44,

@@ -38,10 +38,11 @@ interface PromptOutput {
 // One readline interface serves both the input loop and the approval prompt; two would fight over stdin.
 function openCliApprovals(session: ChatSession): CliApprovals {
   const { app } = session
+  const { terminal } = app
   const scope = new AbortController()
   const { prompt, close, lineOutput, rawOutput } = multiPrompt({
     completion: visibleCompletion(session),
-    onSigint: () => process.emit('SIGINT'),
+    onSigint: () => terminal.interrupt(),
     onUnasked: (line) => noteUnsent(session, line),
   })
   const promptApp = promptAwareApp(app, { line: lineOutput, raw: rawOutput })
@@ -91,6 +92,7 @@ function promptAwareApp(app: CliApp, output: PromptOutput): CliApp {
     out: wrapLineWriter(app.out, output),
     err: wrapLineWriter(app.err, output),
     write: wrapRawWriter(app.write, output),
+    terminal: app.terminal,
     ...(app.abortDaemon === undefined ? {} : { abortDaemon: app.abortDaemon }),
     ...(app.configProbe === undefined ? {} : { configProbe: app.configProbe }),
   }
@@ -156,8 +158,8 @@ export async function repl(session: ChatSession): Promise<number> {
     approvals.close()
   }
 
-  process.on('SIGINT', onSigint)
-  process.on('SIGTERM', onSigterm)
+  const offInterrupt = app.terminal.onInterrupt(onSigint)
+  const offTerminate = app.terminal.onTerminate(onSigterm)
   const shortSession = state.sessionId.slice(0, 8)
 
   const locale = app.config.locale.language
@@ -181,8 +183,8 @@ export async function repl(session: ChatSession): Promise<number> {
   try {
     return await loop(promptedSession, approvals.prompt)
   } finally {
-    process.off('SIGINT', onSigint)
-    process.off('SIGTERM', onSigterm)
+    offInterrupt()
+    offTerminate()
     approvals.close()
     await closeIdleSession(app, state.sessionId)
   }
@@ -321,8 +323,8 @@ export async function singleShot(session: ChatSession, message: string): Promise
       state.controller?.abort()
     }
   }
-  process.on('SIGINT', onSignal)
-  process.on('SIGTERM', onSignal)
+  const offInterrupt = app.terminal.onInterrupt(onSignal)
+  const offTerminate = app.terminal.onTerminate(onSignal)
 
   try {
     const turn = message.startsWith('/') ? await runSlash(activeSession, message) : { message }
@@ -352,8 +354,8 @@ export async function singleShot(session: ChatSession, message: string): Promise
 
     return exitCodeForResult(result)
   } finally {
-    process.off('SIGINT', onSignal)
-    process.off('SIGTERM', onSignal)
+    offInterrupt()
+    offTerminate()
     approvals?.close()
 
     if (state.controller === controller) {

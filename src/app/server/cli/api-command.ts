@@ -28,6 +28,7 @@ const authRotateCommand = createCommand({
 export const apiCommand: Group = createGroup({
   name: 'api',
   summary: { key: 'cliHelp.apiAuthSummary' },
+  needs: { local: true },
   subcommands: [authTokenCommand, authRotateCommand],
 })
 

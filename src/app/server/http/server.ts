@@ -1,14 +1,23 @@
-import type { Server } from 'bun'
+import type { Server, ServerWebSocket, WebSocketHandler } from 'bun'
 
 import type { LiveFeed } from '@/app/server/feed/live'
 import type { SignInCodes } from '@/app/server/http/sign-in-codes'
-import type { WsData, WsServices } from '@/app/server/ws/socket'
+import type { ExecSocketData, SocketData, WsData, WsServices } from '@/app/server/ws/socket'
 import type { ApiHandle, ApiRouteContext } from '@/app/types'
 import type { App } from '@/core/container'
-import { isOriginAllowed, resolvePageOrigin } from '@/app/server/http/auth'
+import { admitExec, closeExecAdmission } from '@/app/server/exec/admission'
+import { closeAllExecs, execHandlers } from '@/app/server/exec/connection'
+import {
+  isOriginAllowed,
+  LOOPBACK_HOST,
+  PROXY_HEADERS,
+  resolvePageOrigin,
+} from '@/app/server/http/auth'
 import { SET_COOKIE, toSessionCookieName } from '@/app/server/http/caller'
 import { apiError, handleHttp, resolveAuthorizedCaller } from '@/app/server/http/dispatch'
 import { PAGE_ROUTES, toPageResponse } from '@/app/server/http/page'
+import { EXEC_PATH } from '@/app/server/wire/exec'
+import { SOCKET_IDLE_TIMEOUT_SECONDS } from '@/app/server/wire/socket'
 import {
   closeAllSockets,
   closeSocketAdmission,
@@ -24,18 +33,6 @@ import { t } from '@/i18n'
 const WS_PATH = '/v1/ws'
 const API_PREFIX = '/v1/'
 const CROSS_SITE = 'cross-site'
-// Headers a reverse proxy adds; without `public_url` the daemon refuses to be fronted by one.
-const PROXY_HEADERS: readonly string[] = [
-  'x-forwarded-for',
-  'forwarded',
-  'x-forwarded-host',
-  'x-forwarded-proto',
-  'x-real-ip',
-  'via',
-  'cf-connecting-ip',
-  'true-client-ip',
-]
-export const LOOPBACK_HOST = '127.0.0.1'
 // Bound the buffer/parse cost of HTTP bodies before schema validation.
 const MAX_HTTP_BODY_BYTES = 2_097_152
 // Above the host's 120 s ceiling for a whole-market read; Bun's 10 s default cut those off.
@@ -56,7 +53,12 @@ export function startApi(
       idleTimeout: IDLE_TIMEOUT_SECONDS,
       routes: PAGE_ROUTES,
       fetch: (req, srv) => routeRequest(req, srv, { app, ...surface, wsServices }),
-      websocket: { ...wsHandlers, maxPayloadLength: MAX_WS_FRAME_BYTES },
+      // Bun's pings stay on (`sendPings`), so an idle forwarded REPL is not reaped as a dead peer.
+      websocket: {
+        ...socketHandlers,
+        maxPayloadLength: MAX_WS_FRAME_BYTES,
+        idleTimeout: SOCKET_IDLE_TIMEOUT_SECONDS,
+      },
       // Bun's default error page is HTML with the stack; every error body here is `{ error: { code } }`.
       development: false,
       error(err): Response {
@@ -74,12 +76,14 @@ export function startApi(
   return {
     closeAdmission: (): void => {
       closeSocketAdmission()
+      closeExecAdmission()
       stopListening().catch((err: unknown) => {
         app.resolve('logger').warn('api.admission_close_failed', { err: formatErrForLog(err) })
       })
     },
     stop: async (): Promise<void> => {
-      // Sockets first: a client holding /v1/ws open would otherwise keep the server from closing.
+      // Sockets first: a client holding one open would otherwise keep the server from closing.
+      closeAllExecs()
       closeAllSockets()
       // Resolves once in-flight requests finish, so storage is not closed under one.
       await stopListening()
@@ -98,12 +102,17 @@ interface RouteDeps {
 // Every request but the source run's page passes here, so the proxy and Host checks come first.
 function routeRequest(
   req: Request,
-  srv: Server<WsData>,
+  srv: Server<SocketData>,
   deps: RouteDeps
 ): Response | undefined | Promise<Response | undefined> {
   const { app, wsServices, ...surface } = deps
   const { publicUrl } = app.config.api
   const url = new URL(req.url)
+
+  // Stricter than the page's rules, and checked whole before any of them.
+  if (url.pathname === EXEC_PATH) {
+    return execUpgradeResponse(req, srv, { app, token: surface.token })
+  }
 
   if (publicUrl === undefined && PROXY_HEADERS.some((name) => req.headers.has(name))) {
     return apiError('forbidden', t(app.config.locale.language, 'errors.apiBehindProxy'))
@@ -141,7 +150,7 @@ function isCrossSiteApiRequest(req: Request, pathname: string): boolean {
 }
 
 /** A taken port is the operator's to fix, so it reads as their sentence, not a crash. */
-function listen(app: App, serve: () => Server<WsData>): Server<WsData> {
+function listen(app: App, serve: () => Server<SocketData>): Server<SocketData> {
   try {
     return serve()
   } catch (err: unknown) {
@@ -162,7 +171,7 @@ function listen(app: App, serve: () => Server<WsData>): Server<WsData> {
 // Bun upgrades after an await as long as nothing has answered the request yet.
 async function wsUpgradeResponse(
   req: Request,
-  srv: Server<WsData>,
+  srv: Server<SocketData>,
   deps: { readonly ctx: ApiRouteContext; readonly wsServices: WsServices }
 ): Promise<Response | undefined> {
   const { ctx, wsServices } = deps
@@ -187,6 +196,7 @@ async function wsUpgradeResponse(
   const upgraded = srv.upgrade(req, {
     ...(renewCookie === undefined ? {} : { headers: { [SET_COOKIE]: renewCookie } }),
     data: {
+      kind: 'feed',
       services: wsServices,
       ...(browserSessionId === undefined ? {} : { browserSessionId }),
       activeRuns: new Map(),
@@ -198,6 +208,58 @@ async function wsUpgradeResponse(
 
   // False when the client went away during the await, or the request was no upgrade at all.
   return upgraded ? undefined : apiError('invalid_body')
+}
+
+/** The seat is taken in `open`, which asks again: two handshakes can both pass admission before
+ *  either socket opens. */
+function execUpgradeResponse(
+  req: Request,
+  srv: Server<SocketData>,
+  deps: { readonly app: App; readonly token: string }
+): Response | undefined {
+  const { app, token } = deps
+  const refusal = admitExec(req, { app, token, ip: srv.requestIP(req)?.address ?? null })
+
+  if (refusal !== undefined) {
+    return refusal
+  }
+
+  const data: ExecSocketData = { kind: 'exec', app, frameFailureLogged: false, closed: false }
+
+  return srv.upgrade(req, { data }) ? undefined : apiError('invalid_body')
+}
+
+// Each handler routes on the socket's kind: the page's feed and chat, or one forwarded command.
+const socketHandlers: WebSocketHandler<SocketData> = {
+  open(ws): void {
+    if (isExecSocket(ws)) {
+      execHandlers.open(ws)
+    } else if (isFeedSocket(ws)) {
+      wsHandlers.open(ws)
+    }
+  },
+  async message(ws, raw): Promise<void> {
+    if (isExecSocket(ws)) {
+      execHandlers.message(ws, raw)
+    } else if (isFeedSocket(ws)) {
+      await wsHandlers.message(ws, raw)
+    }
+  },
+  close(ws): void {
+    if (isExecSocket(ws)) {
+      execHandlers.close(ws)
+    } else if (isFeedSocket(ws)) {
+      wsHandlers.close(ws)
+    }
+  },
+}
+
+function isFeedSocket(ws: ServerWebSocket<SocketData>): ws is ServerWebSocket<WsData> {
+  return ws.data.kind === 'feed'
+}
+
+function isExecSocket(ws: ServerWebSocket<SocketData>): ws is ServerWebSocket<ExecSocketData> {
+  return ws.data.kind === 'exec'
 }
 
 function resolveWsServices(app: App): WsServices {

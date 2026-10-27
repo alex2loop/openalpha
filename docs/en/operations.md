@@ -419,6 +419,49 @@ requests already running finish. A chat or command sent on an open stream is ans
 
 The office page can also restart a daemon that was started with `--background`: choose to restart once nothing is working (it waits a couple of minutes at most, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the grace it gets while stopping is cut off, and the office page warns about the approvals first. When the daemon is back, the bell shows "The daemon restarted." and nothing goes to a chat. If an accepted restart fails, the daemon keeps running as before and the bell says so, pointing to the restart log in the data folder. A daemon running in a terminal or under a service cannot be restarted from the office page: stop it with Ctrl+C or the service manager and start it again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
 
+### Commands run in the daemon
+
+When a daemon is running with the API on, the commands that read or change its state run inside it,
+instead of starting a second copy of the app beside it. That covers `chat`, `status`, `cost`,
+`history`, `agent`, `memory`, `skill`, `plugin`, `workflow`, `social`, `schedule`, `pair`
+(`approve`, `deny`, `list`, `revoke`), `db integrity` and `db stats`, and any command a plugin adds.
+One place does the work, so a chat you start in the terminal shows on the office page like any other
+run, on the `cli` channel. You see no difference at the prompt: same output, same questions, your own
+editor, Ctrl+C, and the same exit codes.
+
+These stay in your terminal: `help`, `version`, `upgrade`, `doctor`, `onboard`, `start`, `stop`,
+`restart`, `autostart`, `provider`, `config`, `key`, `auth`, `zalo`, `logs`, `setup`, `connect`, `web`,
+`api`, `mcp`, and every command that needs the daemon stopped (`schedule edit` is one). So do the
+commands that read or write a file you name: `db backup --path`, `db export --out`, `plugin install`
+and `skill install`. A relative path would otherwise resolve in the daemon's folder, and a daemon
+started at login often cannot write to your Desktop, Documents or Downloads.
+
+A command runs in your terminal instead when:
+
+- you pass `--local`, to skip the daemon for a wedged one or to debug. Passing `--log-level` does the
+  same, since it asks about this process;
+- no live daemon owns this data folder, or it loaded a different config file;
+- `[api] enabled` is `false`, the daemon reports the API as degraded, the token cannot be read or does
+  not match the daemon's, or the daemon does not answer within a second;
+- the daemon runs a different version from the CLI. This is the only case that says anything: one
+  line names both versions and tells you to run `openalpha restart --background`.
+
+A forwarded command runs with the config, the key file and the environment the daemon read when it
+started, the same as a chat from the page or Telegram. After you edit `config.toml`, add a key to the
+key file or export a provider key in this shell, run `openalpha restart --background` for it to
+take effect. Your terminal's environment travels only for colors, width and your editor.
+
+Ctrl+C once interrupts the command as it does in the terminal. A second Ctrl+C before it answers
+closes the connection, the daemon stops everything the command started, and the CLI exits `130`.
+
+If the daemon stops while a command is running (a restart, a crash, or it stops answering for about
+five minutes), or does not take the command within a few seconds of the connection opening, the CLI says so and exits `17` (`daemon_lost`). It never runs the command again here, so
+nothing happens twice. Check how far it got before you retry: `openalpha history list` for a chat,
+then `openalpha chat --continue` to pick it up; for other commands, their own `list`.
+
+The daemon logs each forwarded command's name, exit code and duration, never its arguments, answers
+or output.
+
 ## The office page
 
 With the API on, the daemon also serves a web page at its own address, `http://127.0.0.1:<port>/` (port 8765 unless you changed it). Think of it as a glass wall into the daemon: a small office where your assistant, the research crew and your own agents work while the daemon works. Everything you see moving is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. The page never places an order and never starts an AI run by itself. A button either opens something or puts text in the command box for you to read and send.

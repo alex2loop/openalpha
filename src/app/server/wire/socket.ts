@@ -14,6 +14,9 @@ export const CONTRACT_VERSION = 1
 export const CONTRACT_REFUSED_CLOSE_CODE = 1011
 export const CONTRACT_REFUSED_REASON_PREFIX = 'contract '
 
+/** The daemon pings a socket idle this long (Bun's `websocket.idleTimeout`). */
+export const SOCKET_IDLE_TIMEOUT_SECONDS = 120
+
 /** Server → client. Clients MUST ignore an unknown `type`/`kind` rather than error. */
 export type ServerFrame =
   | ({ readonly type: 'wire_event' } & WireEvent)

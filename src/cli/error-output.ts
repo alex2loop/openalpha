@@ -1,8 +1,9 @@
-import type { Writer } from '@/cli/types'
+import type { CliApp, Writer } from '@/cli/types'
 import type { HaltCode } from '@/core/errors'
 import type { Locale } from '@/core/types/locale'
 import type { RunResultReason } from '@/core/types/run'
 import { haltDetailOf } from '@/ai/api'
+import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { fail, hint, style } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import {
@@ -29,6 +30,10 @@ const EXIT_TIMEOUT = 12
 const EXIT_CHANNEL = 13
 const EXIT_TOOL = 14
 const EXIT_CONFLICT = 15
+/** 128 + SIGTERM: a command asked to terminate while nothing in it listened. */
+export const EXIT_TERMINATED = 143
+/** The daemon went away while a forwarded command ran in it; the command was not run again here. */
+const EXIT_DAEMON_LOST = 17
 const TERMINAL_CAUSE_LIMIT = 4
 const TERMINAL_TEXT_LIMIT = 32_000
 
@@ -245,6 +250,26 @@ function safeUnknownText(_value: unknown, locale: Locale = 'en'): string {
 
 function scrubTerminalText(text: string): string {
   return scrubCredentials(text).slice(0, TERMINAL_TEXT_LIMIT)
+}
+
+/** The command may have run, in part or in full, so the line says what to check before a rerun. */
+export function printDaemonLost(
+  app: Pick<CliApp, 'err' | 'config'>,
+  path: readonly string[]
+): number {
+  const locale = app.config.locale.language
+  const command = [BRAND.name, ...path].join(' ')
+
+  app.err(fail(t(locale, 'cli.execDaemonLost', { command })))
+  app.err(
+    hint(
+      path[0] === CLI_COMMAND_METADATA.chat.name
+        ? t(locale, 'cli.execDaemonLostChat', { brand: BRAND.name })
+        : t(locale, 'cli.execDaemonLostCheck')
+    )
+  )
+
+  return EXIT_DAEMON_LOST
 }
 
 // A usage error is the operator's typo, not a crash: it prints the correction and exits 2.
