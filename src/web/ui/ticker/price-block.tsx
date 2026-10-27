@@ -65,6 +65,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
       colour="teal"
       icon={<TrendIcon />}
       reading={reading}
+      showReadLine={false}
       action={
         state.value?.capabilities.quotes !== false && (
           <Button size="small" disabled={live.isBusy} onClick={live.refresh}>
