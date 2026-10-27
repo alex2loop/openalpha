@@ -44,9 +44,7 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
       </h2>
       <p class="meta">{describeNow(view)}</p>
       {agent?.paused === true && <p class="agent-note">{tr('ui.office.agent.pausedNote')}</p>}
-      {savedNote.value?.agentId === view.agentId && (
-        <p class="agent-note">{tr('ui.office.form.saved', { name: savedNote.value.name })}</p>
-      )}
+      <SavedNote agentId={view.agentId} />
       <div class="agent-actions">
         {run !== undefined && (
           <Button
@@ -66,6 +64,16 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
       {failure.value !== undefined && <p class="failure-line">{failure.value}</p>}
     </header>
   )
+}
+
+function SavedNote({ agentId }: { readonly agentId: string }) {
+  const saved = savedNote.value
+
+  if (saved?.agentId !== agentId) {
+    return null
+  }
+
+  return <p class="agent-note is-saved">{tr('ui.office.form.saved', { name: saved.name })}</p>
 }
 
 // The run under way, else what it waits for, else its last run today, else free.

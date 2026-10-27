@@ -135,6 +135,21 @@
   border-radius: var(--popRadius);
 }
 
+/* Over the page's own text the list takes the dense tint, so nothing reads through it. */
+.command-bar:not(.is-floating) .suggest-popover {
+  --glassAlpha: var(--glassTagA);
+}
+
+/* The phone's field is narrow beside its chips: the list takes the whole bar. */
+:root[data-layout="phone"] .command-box {
+  position: static;
+}
+
+:root[data-layout="phone"] .suggest-popover {
+  right: var(--s2);
+  left: var(--s2);
+}
+
 /* The rim belongs to the popover, so only this part scrolls. */
 .suggest-scroll {
   max-height: 50vh;

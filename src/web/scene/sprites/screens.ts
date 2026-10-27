@@ -237,6 +237,9 @@ function repaint(canvas: HTMLCanvasElement, job: PaintJob): void {
   }
 }
 
+// The next row's time shrinks to its screen before it is cut.
+const NEXT_TIME = { color: HOT, weight: 700, isFitted: true } as const
+
 // The headline screen: the next row big, its countdown, and how many price alerts are watched.
 function paintCard(c: CanvasRenderingContext2D, size: Size, job: PaintJob): void {
   const { w, h } = size
@@ -259,7 +262,7 @@ function paintCard(c: CanvasRenderingContext2D, size: Size, job: PaintJob): void
 
   if (job.isTiny) {
     writeAll(c, [
-      [next.time, w / 2, h * 0.4, h * 0.4, { color: HOT, align: 'center', weight: 700 }],
+      [next.time, w / 2, h * 0.4, h * 0.4, { ...NEXT_TIME, align: 'center', maxW: w - 8 }],
       [next.label, w / 2, h * 0.78, h * 0.2, { color: TEXT, align: 'center', maxW: w - 8 }],
     ])
     return
@@ -270,7 +273,7 @@ function paintCard(c: CanvasRenderingContext2D, size: Size, job: PaintJob): void
   writeAll(c, [
     [tr('ui.office.agenda.next'), pad, h * 0.16, h * 0.115, { color: HEAD }],
     [countdownOf(job.model), w - pad, h * 0.16, h * 0.115, { color: HEAD, align: 'right' }],
-    [next.time, pad, h * 0.43, h * 0.3, { color: HOT, weight: 700, maxW: inner }],
+    [next.time, pad, h * 0.43, h * 0.3, { ...NEXT_TIME, maxW: inner }],
     [next.label, pad, h * 0.69, h * 0.15, { color: TEXT, weight: 600, maxW: inner }],
     ...(watching === undefined
       ? []
@@ -321,7 +324,7 @@ function paintTinyList(c: CanvasRenderingContext2D, size: Size, next: AgendaRow 
   const centred = { align: 'center', maxW: w - 8 } as const
 
   writeAll(c, [
-    [headline, w / 2, h * 0.36, h * 0.22, { ...centred, color: TEXT, weight: 700 }],
+    [headline, w / 2, h * 0.36, h * 0.22, { ...centred, color: TEXT, weight: 700, isFitted: true }],
     [next?.label ?? '', w / 2, h * 0.68, h * 0.2, { ...centred, color: HEAD }],
   ])
 }

@@ -18,7 +18,7 @@ import { sceneHandOff } from '@/web/scene/overlay/hand-off'
 import { figureOf } from '@/web/scene/overlay/hit'
 import { hoverPlaceOf } from '@/web/scene/overlay/hover-label'
 import { withLiveScreens } from '@/web/scene/overlay/live-screens'
-import { markerRectOf } from '@/web/scene/overlay/markers'
+import { placeMarkers } from '@/web/scene/overlay/markers'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import {
   EMPTY_OVERLAY,
@@ -270,11 +270,9 @@ function signatureOf(input: PassInput): string {
 }
 
 function layOut(input: PassInput, deps: PassDeps): OverlayView {
-  const { scale } = projection.value
-  const markerPlaces = input.markers.flatMap((marker) => {
-    const figure = input.figures.get(marker.actor)
-
-    return figure === undefined ? [] : [{ marker, rect: markerRectOf(figure, scale) }]
+  const markerPlaces = placeMarkers(input.markers, {
+    figures: input.figures,
+    scale: projection.value.scale,
   })
   const screenPlaces = input.screens.map((screen) => ({
     screen,
@@ -298,6 +296,7 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     ...(hover === undefined ? {} : { hover: hover.label }),
     rooms: roomRects(input.view, deps.renderer),
     actors: input.figures,
+    selected: input.selected,
   })
   const taken = [...fixed, ...tags.values(), ...layout.placed.map((placed) => placed.rect)]
 

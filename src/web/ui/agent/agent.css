@@ -31,6 +31,12 @@
   font-size: var(--sizeBody);
 }
 
+.agent-note.is-saved {
+  border-color: var(--border);
+  background: var(--sunken);
+  color: var(--ink2);
+}
+
 .agent-tag {
   display: inline-block;
   margin: 0 4px;
