@@ -106,6 +106,7 @@ function toSessionHours(policy: CalendarPolicy): SessionHours {
   const close = policy.sessionCloseLocalTime
 
   return {
+    ...(policy.exchange === undefined ? {} : { exchange: policy.exchange }),
     timezone: policy.timezone,
     open: policy.sessionOpenLocalTime,
     close,

@@ -271,6 +271,9 @@ export interface MarketWire {
 /** `today` is the market's trading day on its own clock and `nextTradingDay` the next one it
  *  trades, both `YYYY-MM-DD`. A closure past the market's holiday table reads as a session. */
 export interface MarketSessionWire {
+  /** The exchange whose hours these are, as a proper noun printed as is (`HOSE`); absent where no
+   *  one exchange sets them. */
+  readonly exchange?: string
   readonly timeZone: string
   readonly open: string
   readonly close: string
