@@ -52,7 +52,7 @@ interface OpenSchedule {
 /** "Thêm lịch": a time it runs at, or a thing that has to happen first. It only files the job;
  *  nothing runs, and nothing spends AI, until the time comes or the event fires. */
 export function openScheduleDialog(request: ScheduleRequest): void {
-  const form = createScheduleForm(request.view.agentId)
+  const form = createScheduleForm(request.view.daemonId)
   const open: OpenSchedule = { form, request }
 
   open.handle = openModal({

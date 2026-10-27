@@ -12,13 +12,13 @@ import { formatRunName } from '@/web/text/run-name'
 import { describeEvent } from '@/web/text/schedule-event'
 import { formatClock } from '@/web/text/time'
 import { toErrorText, tr } from '@/web/text/tr'
+import { ASSISTANT_ID } from '@/web/ui/agent/agent-view'
 import { clearSavedNote, savedNote } from '@/web/ui/agent/form/agent-form'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { Portrait } from '@/web/ui/kit/portrait'
 
 // The assistant's own desk: it wears the mascot, and says so.
-const ASSISTANT_ID = 'assistant'
 const HEAD_PORTRAIT_PX = 40
 
 /** Name, what it does now (or did last), "Dừng" for a run under way, and pause or resume for an
@@ -73,7 +73,7 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
 function describeNow(view: AgentView): string {
   const { run, rows, agent } = view
   const timeZone = state.value?.timeZone
-  const schedules = (state.value?.schedules ?? []).filter((row) => row.agentId === view.agentId)
+  const schedules = (state.value?.schedules ?? []).filter((row) => row.agentId === view.daemonId)
   const waiting = schedules.find((row) => row.event !== undefined && row.enabled !== false)?.event
   const last = rows[0]
 

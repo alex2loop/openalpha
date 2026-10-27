@@ -6,9 +6,16 @@ import { ROUTES } from '@/web/api/routes'
 import { type Run, runs } from '@/web/state/live'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
+import { ASSISTANT_ID, buildAgentView } from '@/web/ui/agent/agent-view'
+import { openScheduleDialog } from '@/web/ui/agent/schedule/schedule-dialog'
 import { JobRow } from '@/web/ui/jobs/job-row'
-import { UpcomingSection, WaitingSection } from '@/web/ui/jobs/schedule-sections'
+import {
+  formatAlertSeconds,
+  UpcomingSection,
+  WaitingSection,
+} from '@/web/ui/jobs/schedule-sections'
 import { UpkeepSection } from '@/web/ui/jobs/upkeep-section'
+import { Button } from '@/web/ui/kit/button'
 import { JOBS_POPOVER_ID, Popover } from '@/web/ui/kit/popover'
 import { useLoad } from '@/web/ui/kit/use-load'
 
@@ -39,6 +46,17 @@ function JobsBody() {
       <UpcomingSection schedules={schedules} tasks={tasks} />
       <WaitingSection schedules={schedules} tasks={tasks} />
       <UpkeepSection tasks={tasks} />
+      <Button
+        size="small"
+        onClick={() =>
+          openScheduleDialog({
+            view: buildAgentView(ASSISTANT_ID, undefined, []),
+            seconds: formatAlertSeconds(tasks),
+          })
+        }
+      >
+        {tr('ui.office.agent.addSchedule')}
+      </Button>
     </div>
   )
 }
