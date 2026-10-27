@@ -129,9 +129,9 @@ function paintBigClock(
   fill(g, [x + 8, y + 3, 1, 1], tones.hole)
 }
 
-// The drifting colour's step: on the ambient clock while it runs, else the page minute's.
+// The drifting colour's step: on the stands' ambient clock while it runs, else the page minute's.
 function flowPhaseOf(scene: PaintScene): number {
-  const step = scene.fx === undefined ? scene.minuteOfDay : scene.fx.ms / STANDBY_STEP_MS
+  const step = scene.fx?.standby === true ? scene.fx.standbyMs / STANDBY_STEP_MS : scene.minuteOfDay
 
   return Math.floor(step) % STANDBY_PHASES
 }

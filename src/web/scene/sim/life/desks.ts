@@ -9,6 +9,7 @@ import { roomOfRun } from '@/web/scene/data/room-status'
 import { todayRuns } from '@/web/scene/data/today-runs'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { rosterDefOf } from '@/web/scene/sim/actors/roster'
+import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
 import { isPresent } from '@/web/scene/sim/life/presence'
 import { homePhase } from '@/web/scene/sim/rhythm'
 import {
@@ -22,7 +23,7 @@ import { hasUnreadAlert } from '@/web/state/notices'
 import { PERCENT } from '@/web/text/figures'
 import { MINUTES_PER_HOUR, shiftDay } from '@/web/text/time-units'
 
-/** A screensaver steps this often; under reduced motion it stays still. */
+/** A screensaver steps this often of its ambient clock; under reduced motion it stays still. */
 const SAVER_STEP_MS = 2_500
 // The desks are tidied at this minute of the page clock, before the day's work starts.
 const DAY_START_MINUTE = 6 * MINUTES_PER_HOUR
@@ -143,10 +144,11 @@ export function stepDesks(state: LifeState, step: LifeStep): void {
   }
 }
 
-/** When a screensaver on show steps next, a `performance.now()` instant. */
+/** When a screensaver on show steps next, a `performance.now()` instant: while its ambient window
+ *  is open, else when it opens. */
 export function deskDueOf(desks: Desks, nowMs: number): number {
   return desks.hasSaver
-    ? (Math.floor(nowMs / SAVER_STEP_MS) + 1) * SAVER_STEP_MS
+    ? ambientWindows.nextStepAt(AMBIENT_KEY.saver, nowMs, SAVER_STEP_MS)
     : Number.POSITIVE_INFINITY
 }
 
@@ -310,7 +312,10 @@ function traceOf(item: LedItem | undefined): DeskTrace | undefined {
 }
 
 function syncSaver(desks: Desks, step: LifeStep): boolean {
-  const saverStep = desks.hasSaver && !step.isReduced ? Math.floor(step.nowMs / SAVER_STEP_MS) : 0
+  const saverStep =
+    desks.hasSaver && !step.isReduced
+      ? Math.floor(ambientWindows.clockMs(AMBIENT_KEY.saver, step.nowMs) / SAVER_STEP_MS)
+      : 0
 
   if (desks.shown.saverStep === saverStep) {
     return false

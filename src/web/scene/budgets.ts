@@ -10,8 +10,9 @@ export const DRAW_CALLS_MAX = 230
 export const STREET_STEP_BUDGET_MS = 0.2
 /** One repaint of the street's static canvas, at most once a page minute. */
 export const STREET_PAINT_BUDGET_MS = 8
-/** Frames a second of the 2D floor's ambient effects (dust, ribbons, the LED strip, the rack, the
- *  approval light, bubbles) while nothing else moves; one clock for all of them. */
+/** Frames a second of the 2D floor's ambient effects (dust, ribbons, the rack, the approval light,
+ *  bubbles) while nothing else moves; one clock for all of them. The LED strip, the StandBy
+ *  stands and the screensavers run inside their own ambient windows (`sim/ambient-windows.ts`). */
 const AMBIENT_FX_FPS = 8
 /** Milliseconds between two beats of that clock. */
 export const AMBIENT_FX_GAP_MS = MS_PER_SECOND / AMBIENT_FX_FPS

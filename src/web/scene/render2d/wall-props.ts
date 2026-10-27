@@ -231,9 +231,12 @@ function paintStrip(
   g.rect(x, y, w, h)
   g.clip()
 
-  // While a headline is new the words scroll on the ambient clock; otherwise they hold still.
+  // While a headline is new the words scroll on the strip's ambient clock, holding still between
+  // its windows; otherwise they stay where they are.
   const offset =
-    at.fx?.strip === true && total > 0 ? Math.floor(at.fx.ms * STRIP_SCROLL_PX_PER_MS) % total : 0
+    at.fx?.strip === true && total > 0
+      ? Math.floor(at.fx.stripMs * STRIP_SCROLL_PX_PER_MS) % total
+      : 0
 
   for (let left = x - offset; total > 0 && left < x + w; left += total) {
     let wordX = left

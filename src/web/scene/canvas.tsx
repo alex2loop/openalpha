@@ -40,8 +40,9 @@ import { ViewNote } from '@/web/scene/overlay/view-note'
 import { nextAmbientFxAt } from '@/web/scene/render2d/ambient-fx'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
-import { isOnFloor, nextAmbientAt } from '@/web/scene/sim/actors/poses'
+import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { isChildActorId } from '@/web/scene/sim/actors/roster'
+import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
 import { isLampNight, isRoomLit, noteLitRooms } from '@/web/scene/sim/lamps'
 import { napGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
@@ -257,7 +258,7 @@ function nextDueOf(parts: LoopParts, drawn: SimView): number {
     parts.street.nextDueAt(),
     parts.overlay.nextDueAt(),
     parts.input.current?.nextDueAt() ?? Infinity,
-    hasPeople ? nextAmbientAt(floor, nowMs) : Infinity,
+    hasPeople ? ambientWindows.nextAt(AMBIENT_KEY.people, nowMs) : Infinity,
     nextAmbientFxAt(drawn, nowMs)
   )
 }

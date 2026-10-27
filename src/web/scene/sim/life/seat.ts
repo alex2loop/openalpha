@@ -3,6 +3,7 @@ import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, LifeLine, PoseId } from '@/web/scene/types'
 import { fidgetPoseOf } from '@/web/scene/sim/actors/poses'
 import { isWalking } from '@/web/scene/sim/actors/walk'
+import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
 import {
   drawBetween,
   isAtSeat,
@@ -106,8 +107,8 @@ function seatGoal(spec: {
   }
 }
 
-/** Each free person fidgets at their own pace: a glance aside, a look down, hands behind the
- *  head, never while walking, nor in a quiet office. */
+/** Each free person fidgets at their own pace, but only inside the people's ambient window: a
+ *  glance aside, a look down, hands behind the head, never while walking, nor in a quiet office. */
 export function stepFidgets(state: LifeState, step: LifeStep): void {
   if (step.isReduced || step.isQuiet) {
     return
@@ -133,17 +134,18 @@ export function stepFidgets(state: LifeState, step: LifeStep): void {
   }
 }
 
-/** When a person's next fidget is due; the first comes a share of their own period from now. */
+/** When a person's next fidget is due: their own pace, held back to the next time the people's
+ *  window is open; the first comes a share of their own period from now. */
 export function fidgetDueOf(state: LifeState, id: ActorId, nowMs: number): number {
   const held = state.fidgetAt.get(id)
 
   if (held !== undefined) {
-    return held
+    return ambientWindows.opensAt(AMBIENT_KEY.people, nowMs, held)
   }
 
   const due = nowMs + drawBetween(FIDGET_PERIOD_MS, 'fidget-first', id)
 
   state.fidgetAt.set(id, due)
 
-  return due
+  return ambientWindows.opensAt(AMBIENT_KEY.people, nowMs, due)
 }
