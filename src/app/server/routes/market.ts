@@ -29,6 +29,7 @@ import {
   readJsonBody,
 } from '@/app/server/routes/params'
 import { cachedScreen } from '@/app/server/routes/screen-cache'
+import { formatErrForLog } from '@/core/security/credentials'
 import {
   alertId,
   disabledSegments,
@@ -99,12 +100,32 @@ async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promi
   return json(toSearchWire(matches))
 }
 
-async function handleMarkets(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const host = hostOf(ctx)
-  const profile = await host.getProfile(req.signal)
-  const view = host.describeMarkets(Date.now())
+// World gold is read for reference only and never enabled.
+const WORLD_GOLD_SEGMENT = 'gold'
 
-  return json(toMarketsWire(view, disabledSegments(profile.caps)) satisfies MarketsResponse)
+// The segments the operator switched off. When the profile cannot be read the list still answers,
+// with every market on but world gold: the page then keeps the office open, never wrongly shut.
+async function switchedOffSegments(
+  req: Request,
+  ctx: ApiRouteContext
+): Promise<ReadonlySet<string>> {
+  try {
+    return disabledSegments((await hostOf(ctx).getProfile(req.signal)).caps)
+  } catch (err: unknown) {
+    if (req.signal.aborted) {
+      throw err
+    }
+
+    ctx.app.resolve('logger').warn('api.markets_profile_unreadable', { err: formatErrForLog(err) })
+
+    return new Set([WORLD_GOLD_SEGMENT])
+  }
+}
+
+async function handleMarkets(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const off = await switchedOffSegments(req, ctx)
+
+  return json(toMarketsWire(hostOf(ctx).describeMarkets(Date.now()), off) satisfies MarketsResponse)
 }
 
 /** The home region's markets lead; the rest keep the daemon's order. */

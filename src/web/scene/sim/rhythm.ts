@@ -17,6 +17,7 @@ import { propsOn } from '@/web/scene/world/props'
 import { isInRange, type SpecialDay, specialDaysOf } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { agents } from '@/web/state/agents'
+import { zoneParts } from '@/web/text/time'
 
 const INCOME_GOAL = 'income'
 const ANALYST: ActorId = 'analyst'
@@ -147,7 +148,8 @@ function phaseOf(session: MarketSessionWire, parts: ClockParts, preview: boolean
 
 /** The office is shut for the day on the page clock: the lobby dims. The home market is closed and
  *  so is every other market the operator has switched on; one with no session hours (crypto) never
- *  closes, so while it is on the office never shuts. A market that is off does not keep it open. */
+ *  closes, so while it is on the office never shuts. A market that is off does not keep it open. A
+ *  preview hour is read on each market's own zone's clock. */
 export const isOfficeClosed: ReadonlySignal<boolean> = computed(() => {
   const isPreview = clockMode.value.kind === 'preview'
   const clock = pageMinute.value
@@ -157,7 +159,10 @@ export const isOfficeClosed: ReadonlySignal<boolean> = computed(() => {
     marketList.value.every(
       (market) =>
         !market.enabled ||
-        (market.session !== undefined && isClosedPhase(phaseOf(market.session, clock, isPreview)))
+        (market.session !== undefined &&
+          isClosedPhase(
+            phaseOf(market.session, zoneParts(clock.at, market.session.timeZone), isPreview)
+          ))
     )
   )
 })
