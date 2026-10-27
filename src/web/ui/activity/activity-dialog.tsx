@@ -59,7 +59,9 @@ function ActivityList({ day }: { readonly day: string | undefined }) {
       {activity.value.rows.map((row) => (
         <div key={row.runId} class="activity-entry">
           <ActivityItem row={row} />
-          <RunCalls runId={row.runId} isRunning={false} command={commandOf(row)} />
+          {row.unbilled !== true && (
+            <RunCalls runId={row.runId} isRunning={false} command={commandOf(row)} />
+          )}
         </div>
       ))}
     </div>
@@ -111,7 +113,8 @@ export function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
         <p class="meta">{joinInline(facts)}</p>
         {row.summary !== undefined && <p class="activity-summary">{row.summary}</p>}
       </div>
-      <span class="activity-cost">{formatUsd(row.costUsd)}</span>
+      {/* Kept empty for a run with no model call, so every row's columns still line up. */}
+      <span class="activity-cost">{row.unbilled === true ? '' : formatUsd(row.costUsd)}</span>
     </div>
   )
 }

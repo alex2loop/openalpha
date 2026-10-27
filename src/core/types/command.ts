@@ -95,13 +95,18 @@ export interface ScheduledRun {
   readonly progress: ProgressReporter
 }
 
-/** Shows work the daemon starts on its own as the command run `name`, the way a typed command
- *  shows: live with its stages, stoppable, and in the activity log once it ends. */
-export type ScheduledRunner = <T>(
-  name: string,
-  signal: AbortSignal,
-  work: (run: ScheduledRun) => Promise<T>
-) => Promise<T>
+export interface ScheduledRequest<T> {
+  /** The command the run shows as. */
+  readonly name: string
+  readonly signal: AbortSignal
+  work(run: ScheduledRun): Promise<T>
+  /** True when the work found nothing to do: the run then leaves no row in the activity log. */
+  isIdle?(value: T): boolean
+}
+
+/** Shows work the daemon starts on its own as a command run, the way a typed command shows: live
+ *  with its stages, stoppable, and in the activity log once it ends. */
+export type ScheduledRunner = <T>(request: ScheduledRequest<T>) => Promise<T>
 
 export interface SlashContext {
   readonly channel: ChannelId

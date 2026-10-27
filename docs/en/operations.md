@@ -63,8 +63,9 @@ channel failure in that refresh is a warning (`daemon.boot_refresh_failed`) whet
 Each of these passes, the boot one included, shows on the office page as a typed `/refresh` does:
 the stock keeper works in the data store with its progress on the wall monitor, the header counts it
 as running, and Activity lists it as "Data refresh · scheduled" once it ends (marked stopped or
-failed when it did not finish). It calls no model and costs nothing. A pass with no market in use
-shows nothing.
+failed when it did not finish). It calls no model, so its row shows no cost and no AI calls. A pass
+with no market in use shows nothing, and one that finds every market's data still fresh leaves no
+Activity row.
 
 A run that leaves any data kind `unavailable` (nothing fetched at all) retries after 2, 4, 8 and 16
 minutes, never past the next anchor. A fifth failure hands back to the anchor and the ladder starts

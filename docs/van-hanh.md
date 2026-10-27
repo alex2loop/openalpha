@@ -63,8 +63,9 @@ trong 60 giây hay sau đó, và daemon vẫn khởi động; lỗi nào khác t
 Mỗi lượt như vậy, kể cả lượt lúc khởi động, hiện trên trang văn phòng giống hệt khi bạn gõ
 `/refresh`: Thủ kho làm việc trong Kho dữ liệu với tiến độ trên màn hình tường, thanh đầu trang tính
 nó là một việc đang chạy, và khi xong thì mục Hoạt động ghi "Làm mới dữ liệu · tự động" (kèm "dừng"
-hoặc "lỗi" nếu lượt đó không xong). Lượt này không gọi mô hình và không tốn tiền. Lượt không có thị
-trường nào đang dùng thì không hiện gì.
+hoặc "lỗi" nếu lượt đó không xong). Lượt này không gọi mô hình nên dòng của nó không ghi chi phí và
+không có lệnh gọi AI. Lượt không có thị trường nào đang dùng thì không hiện gì, còn lượt thấy dữ liệu
+mọi thị trường vẫn mới thì không để lại dòng nào trong mục Hoạt động.
 
 Lượt nào để bất kỳ loại dữ liệu nào ở trạng thái `unavailable` (không lấy được gì) sẽ thử lại sau 2,
 4, 8 và 16 phút, không bao giờ quá mốc kế tiếp. Lần hỏng thứ năm trả việc về cho mốc, và chuỗi thử

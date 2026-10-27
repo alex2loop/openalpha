@@ -33,6 +33,8 @@ function toRowWire(row: RunLogRow, costs: ReadonlyMap<RunId, number>): ActivityR
     endedAt: row.endedAt,
     outcome: row.outcome,
     costUsd: costs.get(row.runId) ?? 0,
+    // The cost map holds only runs with a billed call beneath them.
+    ...(costs.has(row.runId) ? {} : { unbilled: true }),
     ...(row.tickers === undefined ? {} : { tickers: row.tickers }),
     ...(row.questionsDone === undefined || row.questionsTotal === undefined
       ? {}

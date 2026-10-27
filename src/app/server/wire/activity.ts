@@ -20,6 +20,8 @@ export interface ActivityRowWire {
    *  `loop`, `timeout`), `completed | aborted | error` for a command. */
   readonly outcome: string
   readonly costUsd: number
+  /** Present when neither the run nor any run beneath it made a model call. */
+  readonly unbilled?: true
   /** The tickers the run reported on, in the order first seen. Absent when it named none, and on a
    *  run finished before the daemon kept them. */
   readonly tickers?: readonly string[]

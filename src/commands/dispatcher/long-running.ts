@@ -6,6 +6,7 @@ import type { RunId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type {
   ProgressReporter,
+  ScheduledRequest,
   ScheduledRun,
   ScheduledRunner,
   SlashCommand,
@@ -68,6 +69,7 @@ interface RunBody<T> {
   work(run: TrackedRun): Promise<T>
   /** The reply the finish carries, read in-process only. */
   resultOf(value: T): SlashResult | undefined
+  isIdle?(value: T): boolean
 }
 
 export function createCommandRuns(deps: CommandRunsDeps): CommandRuns {
@@ -92,7 +94,7 @@ export function createCommandRuns(deps: CommandRunsDeps): CommandRuns {
 
   return {
     withCommandEvents: (context, command) => runWithEvents(state, context, command),
-    runScheduled: (name, signal, work) => runScheduled(state, { name, signal }, work),
+    runScheduled: (request) => runScheduled(state, request),
     abortCommand(id) {
       const controller = active.get(id)
 
@@ -135,20 +137,21 @@ async function runWithEvents(
   })
 }
 
-function runScheduled<T>(
-  state: CommandRunState,
-  start: Pick<RunStart, 'name' | 'signal'>,
-  work: (run: ScheduledRun) => Promise<T>
-): Promise<T> {
+function runScheduled<T>(state: CommandRunState, request: ScheduledRequest<T>): Promise<T> {
   const scheduled: RunStart = {
-    ...start,
+    name: request.name,
+    signal: request.signal,
     id: runId(randomUUID()),
     channel: SCHEDULE_CHANNEL,
     chatId: SCHEDULE_CHAT_ID,
     sessionId: SCHEDULE_SESSION_ID,
   }
 
-  return trackRun(state, scheduled, { work, resultOf: () => undefined })
+  return trackRun(state, scheduled, {
+    work: (run) => request.work(run),
+    resultOf: () => undefined,
+    isIdle: (value) => request.isIdle?.(value) === true,
+  })
 }
 
 /** One owner of a command run's lifecycle: registers the run so `abortCommand` can
@@ -160,16 +163,10 @@ async function trackRun<T>(state: CommandRunState, start: RunStart, body: RunBod
   const { bus } = state
   let outcome: CommandOutcome = 'error'
   let result: SlashResult | undefined
+  let idle = false
 
   state.track(id, child)
-  bus.emit('command_started', {
-    runId: id,
-    name: start.name,
-    channel,
-    chatId: start.chatId,
-    sessionId: start.sessionId,
-    startedAt: Date.now(),
-  })
+  announceStart(bus, start)
 
   try {
     const value = await body.work({
@@ -179,6 +176,7 @@ async function trackRun<T>(state: CommandRunState, start: RunStart, body: RunBod
     })
 
     result = body.resultOf(value)
+    idle = body.isIdle?.(value) === true
     outcome = 'completed'
 
     return value
@@ -195,8 +193,20 @@ async function trackRun<T>(state: CommandRunState, start: RunStart, body: RunBod
       channel,
       outcome,
       ...(result === undefined ? {} : { result }),
+      ...(idle ? { idle: true } : {}),
     })
   }
+}
+
+function announceStart(bus: EventBus, start: RunStart): void {
+  bus.emit('command_started', {
+    runId: start.id,
+    name: start.name,
+    channel: start.channel,
+    chatId: start.chatId,
+    sessionId: start.sessionId,
+    startedAt: Date.now(),
+  })
 }
 
 // Forwards to the surface's own reporter, then publishes the same stage on the bus.

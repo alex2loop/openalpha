@@ -20,7 +20,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { refreshAnchorsForMarket } from '@/trading/features/market-data/ops/refresh-schedule'
 import { applyRetention } from '@/trading/features/market-data/ops/retention'
 import { caveatSeverity, dedupeCaveats } from '@/trading/kernel/caveat'
-import { REFRESH_COMMAND_NAME, reportRefreshJoined } from '@/trading/kernel/market/refresh'
+import { reportRefreshJoined, SCHEDULED_REFRESH } from '@/trading/kernel/market/refresh'
 import { createSharedFlight, type SharedFlight } from '@/trading/kernel/shared-flight'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 
@@ -212,14 +212,15 @@ export function createRefreshTick(
     // anything reaching here that does not match is a market this process cannot refresh.
     const markets = deps.markets.filter((ref) => requested.has(ref))
 
-    // A pass with nothing to sweep is no run: the page would show work that never happened.
     if (options.scheduled !== true || markets.length === 0) {
       return await sweepMarkets(deps, markets, options)
     }
 
-    return await deps.runScheduled(REFRESH_COMMAND_NAME, options.signal, (run) =>
-      sweepMarkets(deps, markets, { ...options, ...run })
-    )
+    return await deps.runScheduled({
+      ...SCHEDULED_REFRESH,
+      signal: options.signal,
+      work: (run) => sweepMarkets(deps, markets, { ...options, ...run }),
+    })
   }
 }
 
