@@ -5,6 +5,13 @@ export type { CheckedProbe, DoctorInput } from '@/cli/commands/doctor/types'
 export type { ArgIssue } from '@/cli/parsing/args'
 export type { GlobalFlags } from '@/cli/parsing/global-flags'
 export type { PreBootOptions } from '@/cli/preboot'
+export type {
+  EditorExit,
+  Terminal,
+  TerminalEnv,
+  TerminalInput,
+  TerminalOutput,
+} from '@/cli/terminal'
 export type { CliApp, ConfigProbe, Writer } from '@/cli/types'
 export type { PendingUpgrade, UpdateChat, UpdateState } from '@/cli/update/state'
 export type { ReleaseStatus } from '@/cli/update/status'
@@ -46,6 +53,12 @@ export { parseGlobalFlags } from '@/cli/parsing/global-flags'
 export { preBootApp } from '@/cli/preboot'
 export { BUILT_IN_COMMANDS } from '@/cli/registry'
 export { createRoot } from '@/cli/root'
+export {
+  installProcessTerminal,
+  TERMINAL_ENV_NAMES,
+  toTerminalWriters,
+  withTerminal,
+} from '@/cli/terminal'
 export { fail, hint } from '@/cli/ui/colors'
 export {
   formatInstalledNotice,

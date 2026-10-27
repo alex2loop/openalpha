@@ -19,6 +19,7 @@ const ENV_ALLOWED = [
   'src/core/config/',
   'src/app/daemon-subsystems.ts',
   'src/cli/env.ts',
+  'src/cli/terminal.ts',
 ]
 
 interface Rule {

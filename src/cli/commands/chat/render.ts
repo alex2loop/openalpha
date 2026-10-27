@@ -99,7 +99,7 @@ export function printRunFooter(app: CliApp, totals: LLMUsageTotals, input: Print
 }
 
 function createRenderState(app: CliApp): RenderState {
-  const policy = resolveTerminalPolicy({ input: process.stdin, output: process.stdout })
+  const policy = resolveTerminalPolicy({ input: app.terminal.stdin, output: app.terminal.stdout })
   const state: RenderState = {
     app,
     locale: app.config.locale.language,

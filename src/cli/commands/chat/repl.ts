@@ -91,6 +91,7 @@ function promptAwareApp(app: CliApp, output: PromptOutput): CliApp {
     out: wrapLineWriter(app.out, output),
     err: wrapLineWriter(app.err, output),
     write: wrapRawWriter(app.write, output),
+    terminal: app.terminal,
     ...(app.abortDaemon === undefined ? {} : { abortDaemon: app.abortDaemon }),
     ...(app.configProbe === undefined ? {} : { configProbe: app.configProbe }),
   }

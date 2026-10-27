@@ -16,6 +16,7 @@ cli:Command
 cli:CommandDef
 cli:ConfigProbe
 cli:DoctorInput
+cli:EditorExit
 cli:EnvFileLoad
 cli:GlobalFlags
 cli:Group
@@ -25,6 +26,11 @@ cli:Needs
 cli:PendingUpgrade
 cli:PreBootOptions
 cli:ReleaseStatus
+cli:TERMINAL_ENV_NAMES
+cli:Terminal
+cli:TerminalEnv
+cli:TerminalInput
+cli:TerminalOutput
 cli:UPDATE_CHECK_HOST
 cli:UPGRADE_COMMAND
 cli:UpdateChat
@@ -44,6 +50,7 @@ cli:formatTerminalError
 cli:formatUpdateNotice
 cli:getEnv
 cli:hint
+cli:installProcessTerminal
 cli:isBackgroundLaunch
 cli:isCompiledBinary
 cli:isConfigPresent
@@ -80,7 +87,9 @@ cli:starterConfigToml
 cli:stopDaemonIfRunning
 cli:takeChatNotice
 cli:toChatText
+cli:toTerminalWriters
 cli:usage
+cli:withTerminal
 cli:writeCommandCache
 cli:writeEnvFileValue
 core/brand

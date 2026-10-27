@@ -1,6 +1,15 @@
 #!/usr/bin/env bun
 import type { Booted, MainOptions } from '@/app/types'
-import type { CliApp, Command, EnvFileLoad, GlobalFlags, Group, Needs, Writer } from '@/cli/api'
+import type {
+  CliApp,
+  Command,
+  EnvFileLoad,
+  GlobalFlags,
+  Group,
+  Needs,
+  Terminal,
+  Writer,
+} from '@/cli/api'
 import type { ServiceProvider } from '@/core/container'
 import type { LoggerResource } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
@@ -17,6 +26,7 @@ import {
   formatArgIssue,
   formatTerminalError,
   getEnv,
+  installProcessTerminal,
   isVerbose,
   loadEnvFile,
   offerOnboard,
@@ -30,6 +40,7 @@ import {
   runCli,
   startUpdateNotice,
   stopDaemonIfRunning,
+  toTerminalWriters,
   writeCommandCache,
 } from '@/cli/api'
 import { resolveLoadDataDir } from '@/core/config/load'
@@ -49,18 +60,6 @@ const SERVER_COMMANDS: readonly (Command | Group)[] = [
   webCommand,
   connectCommand,
 ]
-
-const stdio: { out: Writer; err: Writer; write: Writer } = {
-  out: (line) => {
-    process.stdout.write(`${line}\n`)
-  },
-  err: (line) => {
-    process.stderr.write(`${line}\n`)
-  },
-  write: (chunk) => {
-    process.stdout.write(chunk)
-  },
-}
 
 interface FatalBoundary {
   bind(resource: LoggerResource): void
@@ -83,6 +82,7 @@ interface RunCommandOptions {
 
 interface RunBootOptions {
   readonly flags: GlobalFlags
+  readonly terminal: Terminal
   readonly needs: Required<Needs>
   readonly extraCommands: readonly (Command | Group)[]
   readonly main: MainOptions | undefined
@@ -93,10 +93,13 @@ interface RunBootOptions {
 }
 
 export async function main(argv: readonly string[], options?: MainOptions): Promise<number> {
-  const fatalBoundary = installCrashHandlers()
+  const flags = parseGlobalFlags(argv, getEnv())
+  const { quiet, verbose, noColor } = flags
+  const terminal = installProcessTerminal({ quiet, verbose, noColor })
+  const writers = toTerminalWriters(terminal)
+  const fatalBoundary = installCrashHandlers(writers.err)
 
   try {
-    const flags = parseGlobalFlags(argv, getEnv())
     // Config resolution reads keys from `process.env`, so the key file loads first.
     const keyLoad = loadEnvFile(
       resolveEnvFile(
@@ -104,9 +107,9 @@ export async function main(argv: readonly string[], options?: MainOptions): Prom
       ),
       getEnv()
     )
-    const preBoot = await createPreBootCliApp(flags, keyLoad)
+    const preBoot = await createPreBootCliApp(flags, keyLoad, terminal)
 
-    reportKeyFile({ config: preBoot.config, err: stdio.err }, keyLoad)
+    reportKeyFile({ config: preBoot.config, err: writers.err }, keyLoad)
 
     const updateNotice = startUpdateNotice(preBoot, flags.argv[0])
     let exitCode: number | undefined
@@ -119,7 +122,7 @@ export async function main(argv: readonly string[], options?: MainOptions): Prom
       await updateNotice.finish(exitCode)
     }
   } catch (err: unknown) {
-    return printError(err, { write: stdio.err, verbose: isVerbose() })
+    return printError(err, { write: writers.err, verbose: isVerbose() })
   } finally {
     fatalBoundary.dispose()
   }
@@ -169,6 +172,7 @@ async function runCommand(options: RunCommandOptions): Promise<number> {
 
   return await runBoot({
     flags,
+    terminal: preBoot.terminal,
     needs: preflight.needs,
     extraCommands,
     main: mainOptions,
@@ -213,9 +217,13 @@ function pathFlags(flags: GlobalFlags): Pick<GlobalFlags, 'configPath' | 'dataDi
   }
 }
 
-function createPreBootCliApp(flags: GlobalFlags, keyLoad: EnvFileLoad): Promise<CliApp> {
+function createPreBootCliApp(
+  flags: GlobalFlags,
+  keyLoad: EnvFileLoad,
+  terminal: Terminal
+): Promise<CliApp> {
   return preBootApp({
-    ...stdio,
+    terminal,
     keyFile: keyLoad.file,
     bootRefusals,
     assertComposes: () => composeOnce(flags),
@@ -240,6 +248,7 @@ async function composeOnce(flags: GlobalFlags): Promise<void> {
 
 async function runBoot(options: RunBootOptions): Promise<number> {
   const { flags, needs, extraCommands, main: mainOptions, fatalBoundary, locale } = options
+  const writers = toTerminalWriters(options.terminal)
   const isDaemon = needs.bootMode === 'daemon'
   const shutdown = isDaemon ? new AbortController() : undefined
   let booted: Booted | undefined
@@ -254,7 +263,7 @@ async function runBoot(options: RunBootOptions): Promise<number> {
       modelSource: needs.modelSource,
       shutdownSignal: shutdown?.signal ?? NEVER_ABORTING_SIGNAL,
       ...pathFlags(flags),
-      err: stdio.err,
+      err: writers.err,
       features: [...(mainOptions?.features ?? []), keyFileProvider(options.keyFile)],
       ...(mainOptions?.bootGate === undefined ? {} : { bootGate: mainOptions.bootGate }),
       onLoggerResource: (resource) => fatalBoundary.bind(resource),
@@ -262,7 +271,8 @@ async function runBoot(options: RunBootOptions): Promise<number> {
 
     const cliApp: CliApp = {
       ...booted.app,
-      ...stdio,
+      ...writers,
+      terminal: options.terminal,
       keyFile: options.keyFile,
       ...(shutdown === undefined ? {} : { abortDaemon: () => shutdown.abort() }),
     }
@@ -276,7 +286,7 @@ async function runBoot(options: RunBootOptions): Promise<number> {
     return await runCli(cliApp, flags.argv, [...extraCommands, ...contributed])
   } catch (err: unknown) {
     // boot() never catches its own ConfigError (spec §13 Pillar C) — the entry prints it, once.
-    return printError(err, { write: stdio.err, verbose: isVerbose(), locale })
+    return printError(err, { write: writers.err, verbose: isVerbose(), locale })
   } finally {
     // Whatever the command did, the transports boot opened are ours to close.
     await booted?.dispose()
@@ -303,7 +313,7 @@ async function refreshCommandCache(app: CliApp): Promise<void> {
 
 // The process entry is the one place that owns "the whole thing died": past here there is no run,
 // no command, and no caller left to report it.
-function installCrashHandlers(): FatalBoundary {
+function installCrashHandlers(writeError: Writer): FatalBoundary {
   let resource: LoggerResource | undefined
   let terminating = false
   const die = (err: unknown): void => {
@@ -317,7 +327,7 @@ function installCrashHandlers(): FatalBoundary {
       process.exit(0)
     }
 
-    terminate(err, resource).catch(() => process.exit(CRASH_EXIT_CODE))
+    terminate(err, resource, writeError).catch(() => process.exit(CRASH_EXIT_CODE))
   }
   const onUncaught = (err: Error): void => die(err)
   const onRejected = (err: unknown): void => die(err)
@@ -340,22 +350,26 @@ function isBrokenPipe(err: unknown): boolean {
   return err instanceof Error && 'code' in err && err.code === BROKEN_PIPE_CODE
 }
 
-async function terminate(err: unknown, resource: LoggerResource | undefined): Promise<never> {
+async function terminate(
+  err: unknown,
+  resource: LoggerResource | undefined,
+  writeError: Writer
+): Promise<never> {
   if (resource?.isAvailable()) {
     resource.logger.fatal('process.crashed', { err: formatErrForLog(err) })
   }
 
   if (resource === undefined || !resource.isAvailable()) {
-    writeFatalFallback(err)
+    writeFatalFallback(err, writeError)
   }
 
   await resource?.close()
   process.exit(CRASH_EXIT_CODE)
 }
 
-function writeFatalFallback(err: unknown): void {
+function writeFatalFallback(err: unknown, writeError: Writer): void {
   for (const line of formatTerminalError(err, { verbose: true })) {
-    stdio.err(line)
+    writeError(line)
   }
 }
 

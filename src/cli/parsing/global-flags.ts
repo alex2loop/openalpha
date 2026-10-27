@@ -1,5 +1,4 @@
 import type { LogLevel } from '@/core/config/resolve'
-import { setNoColor, setQuiet, setVerbose } from '@/cli/env'
 import { type ArgIssue, END_OF_OPTIONS } from '@/cli/parsing/args'
 import { BRAND } from '@/core/brand'
 
@@ -59,10 +58,6 @@ export function parseGlobalFlags(
   if (acc.quiet && acc.verbose) {
     acc.issues.push({ token: '--quiet/--verbose', code: 'conflicting_flags' })
   }
-
-  setQuiet(acc.quiet)
-  setVerbose(acc.verbose)
-  setNoColor(acc.noColor)
 
   return acc
 }
