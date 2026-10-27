@@ -1,7 +1,7 @@
 import type { AgentLookWire } from '@/app/server/wire/agents'
 import type { MessageKey } from '@/i18n'
 import type { DeskScreenView, SceneMark } from '@/web/scene/overlay-types'
-import type { SunView, WeatherFxView } from '@/web/scene/sky-types'
+import type { SunView, WeatherFxView, WindowLight } from '@/web/scene/sky-types'
 import type { ErrandView, StreetFrame } from '@/web/scene/street-types'
 
 /** World pixels of one floor. */
@@ -409,6 +409,8 @@ export interface SimView {
   readonly tray: number
   readonly props: PropsView
   readonly light: LightView
+  /** The sun's patches and the blinds at the glass, eased. */
+  readonly windowLight: WindowLight
   readonly weather: WeatherFxView
   readonly life: LifeView
   readonly team: TeamView

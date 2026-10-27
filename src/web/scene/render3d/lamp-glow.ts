@@ -2,8 +2,8 @@ import { AdditiveBlending, type CanvasTexture, MeshBasicMaterial, NormalBlending
 
 import type { FloorProps } from '@/web/scene/render3d/props'
 import type { SimView } from '@/web/scene/types'
+import { isNightSun } from '@/web/scene/clock/sun'
 import { beginPool, endPool, type Pool, placeInstance } from '@/web/scene/render3d/instancing'
-import { isNightSun } from '@/web/scene/render3d/light-model'
 import { LAMP_SHADE_SIZE } from '@/web/scene/render3d/props'
 import { WARM_RGB } from '@/web/scene/sprites/daylight'
 import { PROP_TONES } from '@/web/scene/sprites/palette'

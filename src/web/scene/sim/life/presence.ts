@@ -77,8 +77,9 @@ export function isPresent(actor: ActorState): boolean {
   return actor.away !== 'gone'
 }
 
-/** How far the lamps that are on glow: dimmed over the lunch nap by the page clock. */
-export function lampGlowOf(): number {
+/** How far the lamps that are on should glow: dimmed over the lunch nap by the page clock. The sky
+ *  ease fades the glow to it. */
+export function napGlowOf(): number {
   const isNap = isInRange(pageMinute.value.minute, regionPack.value.officeLife.nap)
 
   return isNap ? NAP_DIM : 1

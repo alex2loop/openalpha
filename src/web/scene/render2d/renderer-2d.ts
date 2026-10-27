@@ -2,6 +2,7 @@ import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { RendererStats, SceneRenderer } from '@/web/scene/renderer'
 import type { LightRow } from '@/web/scene/sprites/daylight'
 import type { StreetFrame } from '@/web/scene/street-types'
+import { isNightSun } from '@/web/scene/clock/sun'
 import { indexDrop } from '@/web/scene/data/board'
 import { paintDust } from '@/web/scene/render2d/ambient-fx'
 import { isBaked, paintBuilding } from '@/web/scene/render2d/building'
@@ -281,6 +282,7 @@ function paintFloor(surface: Surface, job: FloorJob): void {
     floor: job.sim.floor,
     lit: job.sim.props.lit,
     light: job.light,
+    isNight: isNightSun(job.sim.light.sun),
     lampGlow: job.sim.props.lampGlow,
     isClosed: job.sim.props.isClosed,
     isQuiet: job.sim.life.isQuiet,
@@ -289,6 +291,7 @@ function paintFloor(surface: Surface, job: FloorJob): void {
   paintSkyFx(g, {
     floor: job.sim.floor,
     light: job.sim.light,
+    windowLight: job.sim.windowLight,
     weather: job.sim.weather,
     now: job.now,
   })

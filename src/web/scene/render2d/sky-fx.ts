@@ -1,6 +1,5 @@
-import type { WeatherFxView } from '@/web/scene/sky-types'
+import type { WeatherFxView, WindowLight } from '@/web/scene/sky-types'
 import type { FloorId, LightView } from '@/web/scene/types'
-import { type WindowLight, windowLightOf } from '@/web/scene/clock/window-light'
 import {
   blindSpansOf,
   flashOf,
@@ -32,6 +31,7 @@ const BLIND = Object.freeze({
 interface SkyFxJob {
   readonly floor: FloorId
   readonly light: LightView
+  readonly windowLight: WindowLight
   readonly weather: WeatherFxView
   readonly now: number
 }
@@ -41,10 +41,8 @@ interface SkyFxJob {
 export function paintSkyFx(g: CanvasRenderingContext2D, job: SkyFxJob): void {
   const { light, weather } = job
 
-  const window = windowLightOf(light.sun, { cloud: light.cloud, rain: weather.rain })
-
-  paintSunPatches(g, window)
-  paintBlinds(g, { floor: job.floor, window })
+  paintSunPatches(g, job.windowLight)
+  paintBlinds(g, { floor: job.floor, window: job.windowLight })
 
   if (weather.rain > 0) {
     paintGlassRain(g, NORTH_GLASS, {

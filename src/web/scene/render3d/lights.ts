@@ -26,9 +26,9 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 
 import type { SunView } from '@/web/scene/sky-types'
 import type { FloorId, RoomId } from '@/web/scene/types'
+import { isNightSun } from '@/web/scene/clock/sun'
 import { type ClosedVeil, createClosedVeil, syncClosedVeil } from '@/web/scene/render3d/closed-veil'
 import {
-  isNightSun,
   type LightKey,
   lightKeyOf,
   NIGHT_BASE,

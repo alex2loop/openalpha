@@ -3,6 +3,7 @@ import type { FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId, RoomId, SimView } from '@/web/scene/types'
 import { formatDay } from '@/i18n'
 import { pageMinute } from '@/web/scene/clock/clock'
+import { isNightSun } from '@/web/scene/clock/sun'
 import { regionPack, wallClockMinutes } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
 import {
@@ -13,7 +14,6 @@ import {
   type StandByView,
   type TapeRow,
 } from '@/web/scene/render3d/face-paint'
-import { isNightSun } from '@/web/scene/render3d/light-model'
 import {
   type SignFace,
   type SignFrame,

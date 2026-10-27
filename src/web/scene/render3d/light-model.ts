@@ -17,11 +17,6 @@ const ROOM_LEVEL = Object.freeze({
   cool: [0.8, 1, 1.9],
   coolNight: [0.9, 1, 1.3],
 } as const)
-/** The sun is well under the horizon: the night light, levels and screens hold. */
-export function isNightSun(sun: SunView): boolean {
-  return sun.altitudeDeg < NIGHT_FROM_DEG
-}
-
 /** The floor outside the rooms at night. */
 export const NIGHT_BASE = ROOM_LEVEL.nightBase
 
@@ -76,7 +71,6 @@ const KEY_ROWS: readonly KeyRow[] = [
 const SUN_REACH = 48
 const SUN_ANGLE_DEG = Object.freeze({ min: 12, max: 50 })
 const MOON_FROM_DEG = -8
-const NIGHT_FROM_DEG = -6
 // Cloud and rain grey the sky, soften the sun and lift the sky light, less as the sun sets.
 const OVERCAST = Object.freeze({
   cloud: 0.8,
