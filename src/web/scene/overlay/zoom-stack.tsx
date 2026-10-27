@@ -21,9 +21,8 @@ interface ZoomButtonProps {
   readonly children: ComponentChildren
 }
 
-/** The map controls floating at the scene's bottom right, from the bottom: back to the whole floor
- *  and the master lamp switch, as the mockup's 2D has them (2D zooms by wheel, pinch or the + and -
- *  keys); 3D adds zoom out, zoom in and a bar that shows the zoom. */
+/** The map controls floating at the scene's bottom right, from the bottom: zoom out, zoom in, back
+ *  to the whole floor and the master lamp switch; 3D adds a bar that shows the zoom. */
 export function ZoomStack() {
   const { zoomSteps } = view.value
   const maxSteps = maxZoomSteps()
@@ -33,7 +32,7 @@ export function ZoomStack() {
 
   return (
     <div class="scene-zoomstack">
-      {is3d && <ZoomSteps />}
+      <ZoomSteps />
       <ZoomButton label={tr('ui.office.floor.leave')} kind="scene-zoomreset" onClick={leaveRoom}>
         {RESET_VIEW_GLYPH}
       </ZoomButton>
@@ -54,7 +53,7 @@ export function ZoomStack() {
   )
 }
 
-// The 3D view's zoom out and zoom in.
+// Zoom out and zoom in about the view's centre, each off at its limit.
 function ZoomSteps() {
   const { zoomSteps, room } = view.value
 
