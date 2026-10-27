@@ -1,6 +1,7 @@
 import type { Key } from 'node:readline'
 import type { createInterface } from 'node:readline/promises'
 
+import type { Terminal } from '@/cli/terminal'
 import type { CompletionSource } from '@/cli/types'
 import { stripControls } from '@/core/utils/text'
 
@@ -24,7 +25,17 @@ interface GhostSuggestions {
   rawOutput(chunk: string, write: () => void): void
 }
 
+const INERT_GHOST: GhostSuggestions = {
+  beginPlainQuestion: () => undefined,
+  beginSuggestedQuestion: () => undefined,
+  close: () => undefined,
+  finishQuestion: () => undefined,
+  lineOutput: (write) => write(),
+  rawOutput: (_chunk, write) => write(),
+}
+
 interface GhostState {
+  readonly terminal: Terminal
   acceptedSuffix: string
   closed: boolean
   prompt: string
@@ -56,21 +67,16 @@ interface GhostCloseOptions {
 }
 
 export function createGhostSuggestions(
+  terminal: Terminal,
   rl: ReturnType<typeof createInterface>,
   completion?: CompletionSource
 ): GhostSuggestions {
-  if (!isInteractiveTerminal()) {
-    return {
-      beginPlainQuestion: () => undefined,
-      beginSuggestedQuestion: () => undefined,
-      close: () => undefined,
-      finishQuestion: () => undefined,
-      lineOutput: (write) => write(),
-      rawOutput: (_chunk, write) => write(),
-    }
+  if (!isInteractiveTerminal(terminal)) {
+    return INERT_GHOST
   }
 
   const state: GhostState = {
+    terminal,
     acceptedSuffix: '',
     closed: false,
     prompt: '',
@@ -94,8 +100,8 @@ export function createGhostSuggestions(
     redraw()
   }
 
-  process.stdin.prependListener('keypress', onKeypress)
-  process.stdout.prependListener('resize', onResize)
+  terminal.stdin.prependListener('keypress', onKeypress)
+  terminal.stdout.prependListener('resize', onResize)
 
   return {
     beginPlainQuestion: (prompt) => beginQuestion(state, prompt),
@@ -107,8 +113,8 @@ export function createGhostSuggestions(
   }
 }
 
-export function isInteractiveTerminal(): boolean {
-  return process.stdin.isTTY === true && process.stdout.isTTY === true
+export function isInteractiveTerminal(terminal: Terminal): boolean {
+  return terminal.stdin.isTTY === true && terminal.stdout.isTTY === true
 }
 
 export function completionToken(line: string): string {
@@ -136,7 +142,8 @@ function renderGhost(
   }
 
   state.acceptedSuffix = suggestionSuffix(rl.line, completion)
-  const columns = Number.isFinite(process.stdout.columns) ? process.stdout.columns : MIN_COLUMNS
+  const { columns: width } = state.terminal.stdout
+  const columns = Number.isFinite(width) ? width : MIN_COLUMNS
   const remainingColumns = Math.max(MIN_COLUMNS, columns - rl.getCursorPos().cols - 1)
   state.renderedSuffix = truncateDisplay(state.acceptedSuffix, remainingColumns)
 
@@ -144,7 +151,7 @@ function renderGhost(
     return
   }
 
-  process.stdout.write(
+  state.terminal.stdout.write(
     `${SAVE_CURSOR}${DIM_TEXT}${state.renderedSuffix}${CLEAR_TO_LINE_END}${RESTORE_CURSOR}`
   )
 }
@@ -242,7 +249,7 @@ function finishRawOutput(state: GhostState): void {
   }
 
   if (state.rawNeedsNewline) {
-    process.stdout.write('\n')
+    state.terminal.stdout.write('\n')
   }
 
   state.promptSuspended = false
@@ -254,14 +261,14 @@ function clearPromptLine(state: GhostState, rl: ReturnType<typeof createInterfac
   const { rows } = rl.getCursorPos()
   const moveUp = rows === 0 ? '' : `\u001B[${rows}A`
 
-  process.stdout.write(`\r${moveUp}${CLEAR_SCREEN_DOWN}`)
+  state.terminal.stdout.write(`\r${moveUp}${CLEAR_SCREEN_DOWN}`)
 }
 
 function restorePromptLine(state: GhostState, rl: ReturnType<typeof createInterface>): void {
   const beforeCursor = rl.line.slice(0, rl.cursor)
   const afterCursor = rl.line.slice(rl.cursor)
 
-  process.stdout.write(
+  state.terminal.stdout.write(
     `${state.prompt}${beforeCursor}${SAVE_CURSOR}${afterCursor}${RESTORE_CURSOR}`
   )
 }
@@ -275,8 +282,8 @@ function closeGhost(options: GhostCloseOptions): void {
 
   state.closed = true
   finishQuestion(state)
-  process.stdin.off('keypress', onKeypress)
-  process.stdout.off('resize', onResize)
+  state.terminal.stdin.off('keypress', onKeypress)
+  state.terminal.stdout.off('resize', onResize)
 }
 
 function clearGhost(state: GhostState): void {
@@ -284,7 +291,7 @@ function clearGhost(state: GhostState): void {
     return
   }
 
-  process.stdout.write(CLEAR_TO_LINE_END)
+  state.terminal.stdout.write(CLEAR_TO_LINE_END)
   state.renderedSuffix = ''
 }
 

@@ -1,3 +1,4 @@
+import type { TerminalInput } from '@/cli/terminal'
 import type { PromptFn } from '@/cli/ui/prompt'
 import type { Locale } from '@/core/types/locale'
 import { suspendKeypressListeners } from '@/cli/ui/prompt'
@@ -13,7 +14,7 @@ type PlanSelectOutcome =
 
 interface PlanSelectDeps {
   readonly locale: Locale
-  readonly input: NodeJS.ReadStream
+  readonly input: TerminalInput
   readonly signal: AbortSignal
   readonly write: (line: string) => void
   readonly canEdit: boolean

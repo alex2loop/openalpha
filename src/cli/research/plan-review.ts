@@ -1,6 +1,8 @@
+import type { TerminalInput } from '@/cli/terminal'
 import type { PromptFn } from '@/cli/ui/prompt'
 import type { Locale } from '@/core/types/locale'
 import type { ResearchPlan, ResearchPlanDecision, ResearchPlanReview } from '@/engine/api'
+import { currentTerminal } from '@/cli/terminal'
 import { formatUsd } from '@/core/utils/cost'
 import { formatDuration } from '@/core/utils/duration'
 import { RESEARCH_FRESHNESS_FIELD_KEYS } from '@/engine/api'
@@ -31,11 +33,14 @@ interface CliPlanReviewerDeps {
 export function createCliPlanReviewer(
   deps: CliPlanReviewerDeps
 ): (input: ResearchPlanReview) => Promise<ResearchPlanDecision> {
-  return async (input) => runPlanReview(deps, input)
+  const { stdin } = currentTerminal()
+
+  return async (input) => runPlanReview(deps, stdin, input)
 }
 
 async function runPlanReview(
   deps: CliPlanReviewerDeps,
+  stdin: TerminalInput,
   input: ResearchPlanReview
 ): Promise<ResearchPlanDecision> {
   deps.pause()
@@ -44,7 +49,7 @@ async function runPlanReview(
   try {
     const outcome = await selectPlanAction({
       locale: deps.locale,
-      input: process.stdin,
+      input: stdin,
       signal: input.signal,
       write: deps.write,
       canEdit: input.canEdit,

@@ -105,14 +105,14 @@ async function followWithProcessSignals(
   const onSignal = (): void => controller.abort()
   const signal = AbortSignal.any([app.signal, controller.signal])
 
-  process.on('SIGINT', onSignal)
-  process.on('SIGTERM', onSignal)
+  const offInterrupt = app.terminal.onInterrupt(onSignal)
+  const offTerminate = app.terminal.onTerminate(onSignal)
 
   try {
     await followLog({ ...app, signal }, options)
   } finally {
-    process.off('SIGINT', onSignal)
-    process.off('SIGTERM', onSignal)
+    offInterrupt()
+    offTerminate()
   }
 }
 
