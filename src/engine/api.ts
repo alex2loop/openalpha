@@ -232,5 +232,6 @@ export { runWorkflow, startScheduledWorkflows } from '@/engine/workflows/run'
 export {
   applyWorkspaceScratchCleanup,
   planWorkspaceScratchCleanup,
+  pruneExpiredRunCaches,
   pruneExpiredWorkspaceTmp,
 } from '@/engine/workspace/cleanup'

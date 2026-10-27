@@ -23,6 +23,7 @@ import {
   type ScanContext,
   scanAgentWorkspace,
 } from './scan'
+import { RUN_CACHE_AREAS } from './types'
 
 interface WorkspaceCleanupRequest {
   readonly dataDir: string
@@ -56,15 +57,39 @@ export async function applyWorkspaceScratchCleanup(
   return { agents: results }
 }
 
-export async function pruneExpiredWorkspaceTmp(input: {
+interface ExpiryRequest {
   readonly dataDir: string
   readonly cutoffAt: number
-}): Promise<WorkspaceCleanupResult> {
+}
+
+export async function pruneExpiredWorkspaceTmp(
+  input: ExpiryRequest
+): Promise<WorkspaceCleanupResult> {
+  return pruneExpiredAreas(input, ['tmp'])
+}
+
+/** One pass per cache, so a cache past the scan's entry budget leaves the others swept. */
+export async function pruneExpiredRunCaches(
+  input: ExpiryRequest
+): Promise<readonly WorkspaceCleanupResult[]> {
+  const results: WorkspaceCleanupResult[] = []
+
+  for (const area of RUN_CACHE_AREAS) {
+    results.push(await pruneExpiredAreas(input, [area]))
+  }
+
+  return results
+}
+
+async function pruneExpiredAreas(
+  input: ExpiryRequest,
+  areas: readonly WorkspaceFixedArea[]
+): Promise<WorkspaceCleanupResult> {
   const plan = await planWorkspaceScratchCleanupInternal({
     dataDir: input.dataDir,
     scope: { kind: 'all' },
     cutoffAt: input.cutoffAt,
-    areas: ['tmp'],
+    areas,
   })
 
   return applyWorkspaceScratchCleanup(plan)

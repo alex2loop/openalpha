@@ -15,7 +15,10 @@ export interface RetentionStatement {
 }
 
 /** A short page means the scope is drained; a full one means there is more behind it. */
-export async function drainPages(deletePage: () => Promise<number>): Promise<number> {
+export async function drainPages(
+  deletePage: () => Promise<number>,
+  limit: number = RETENTION_DELETE_LIMIT
+): Promise<number> {
   let deleted = 0
 
   for (let pass = 0; pass < RETENTION_MAX_PASSES; pass += 1) {
@@ -23,7 +26,7 @@ export async function drainPages(deletePage: () => Promise<number>): Promise<num
 
     deleted += page
 
-    if (page < RETENTION_DELETE_LIMIT) {
+    if (page < limit) {
       break
     }
   }

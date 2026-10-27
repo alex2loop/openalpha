@@ -64,6 +64,7 @@ export {
   SQLITE_MIGRATIONS_TABLE_SQL,
 } from '@/persistence/migrations/runner'
 export { countRetention, type RetentionCounts, runRetention } from '@/persistence/retention'
+export { effectiveHistoryDays } from '@/persistence/retention-history'
 export { drainPages, RETENTION_DELETE_LIMIT } from '@/persistence/retention-pages'
 export { createPersistenceProvider } from '@/persistence/services'
 export { bindChunkSize } from '@/persistence/sql/syntax'

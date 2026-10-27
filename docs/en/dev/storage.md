@@ -164,7 +164,11 @@ So a domain table missing after a reset means its migration was not registered a
 
 `persistence/retention.ts`. Constants: `SCHEDULER_RUNS_KEEP_PER_JOB` 200,
 `BRIEF_SNAPSHOTS_KEEP_PER_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 days. `RetentionConfig` carries
-`retentionDays` and `inboxRetentionDays`. The daemon sweeps once at start, then on a schedule; the
+`retentionDays` and `inboxRetentionDays`, plus `historyFloors`: the days each history scope's readers
+look back (trading's `HISTORY_FLOOR_DAYS`: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`, `MACRO_WINDOW_DAYS`,
+`MACRO_BACKFILL_DAYS`), which `effectiveHistoryDays` takes the larger of with `historyRetentionDays`.
+`persistence/retention-evidence.ts` empties `factorScores[].provenance` on scored calls past the
+general window outside each name's newest ten, in pages of 200 read and rewritten as raw JSON. The daemon sweeps once at start, then on a schedule; the
 manual `db cleanup` runs the same policy. `runRetention` runs each scope's delete (`toScopes`) in its own
 transaction, so one slow or failing scope neither holds the SQLite connection for the whole sweep nor
 rolls the others back on PostgreSQL's statement timeout; a failed scope logs `retention.scope_failed`

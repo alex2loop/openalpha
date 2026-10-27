@@ -194,10 +194,12 @@ The windows are set by [`[retention]`](configuration.md#retention): `days` is th
 | Scheduler jobs | A one-shot job that ran and was switched off is removed after `days` from its run time, with its run history. A paused one-shot that never ran, and every recurring or event job, stays. |
 | Resting exits | Settled or closed rows are removed after `days` from when they were placed. Live ones are never pruned. |
 | Theme runs and their reads | Removed after `days`, except a run an outcome still cites, each theme's two newest runs, and the newest run and newest full run. |
-| Suggestions | A scored call is removed after `history_days` from when it resolved, a hold after `history_days` from when it was made. An unscored call is never removed, and each name keeps its newest ten rows per action and focus, so the standing plan and exit plan always survive. |
+| Suggestions | A scored call is removed after `history_days` from when it resolved, a hold after `history_days` from when it was made. An unscored call is never removed, and each name keeps its newest ten rows per action and focus, so the standing plan and exit plan always survive. Suggestions, `factor_log` and `theme_outcomes` are kept at least a year, however short `history_days` is, because the track record looks back that far. |
+| Factor sources on a scored call | Once a scored call resolved more than `days` ago and is not among its name's newest ten, the source stamps under each factor are emptied. Its scores, weights, outcome, thesis, debate and levels stay, and the call still lists its sources once. |
 | `factor_log`, `theme_outcomes` | Resolved rows are removed after `history_days` from when they resolved. Pending rows are never pruned. |
-| `nav_snapshots`, `series_points`, `series_provenance` | Removed after `history_days`, from when they were recorded, fetched or extracted. |
-| `macro_documents` | Removed after `history_days`, but kept at least 800 days. |
+| `nav_snapshots` | Removed after `history_days`, from when it was recorded. |
+| `series_points`, `series_provenance` | Removed after `history_days`, from when they were fetched or extracted, but kept at least as long as the macro year-on-year read looks back (about 500 days). |
+| `macro_documents` | Removed after `history_days`, but kept at least as long as the report backfill reaches (about 25 months). |
 | Ledger, order intents, live resting exits | Never pruned by age: the ledger is the book of record. An order intent leaves when it expires or settles, or when you clear a failed one. |
 | Market data | Not touched by `db cleanup`. Each market's refresh trims its own old rows by fetch time after a pass that wrote. News ages out the same way, on its own window. |
 
@@ -205,7 +207,9 @@ The daemon applies retention once at startup and then on a schedule. `db cleanup
 <duration>` runs the same policy by hand, needs the daemon stopped, and with `--dry-run` only
 counts. `--older-than` is required, overrides the general window for that command only and must be
 at least `1d`. Inbox entries still use `inbox_days`, the track record `history_days` (never below
-`--older-than`), and `llm_attempts` keeps its own 400 days.
+`--older-than`), and `llm_attempts` keeps its own 400 days. Where a table is kept longer than
+`history_days` because its readers need it, the command prints that table's window under the history
+window, and it counts the scored calls whose factor sources it emptied.
 
 Rows are deleted in pages of 5,000, each page its own transaction, so a large backlog never holds
 the write lock for long; one sweep takes at most 20 pages per kind and leaves the rest for the next.

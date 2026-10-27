@@ -160,7 +160,11 @@ Vậy nếu một bảng nghiệp vụ biến mất sau khi reset, nghĩa là mi
 
 `persistence/retention.ts`. Hằng số: `SCHEDULER_RUNS_KEEP_PER_JOB` 200,
 `BRIEF_SNAPSHOTS_KEEP_PER_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 ngày. `RetentionConfig` mang
-`retentionDays` và `inboxRetentionDays`. Daemon dọn một lần lúc khởi động rồi theo chu kỳ; `db cleanup`
+`retentionDays` và `inboxRetentionDays`, cùng `historyFloors`: số ngày nơi đọc của từng phạm vi lịch sử
+nhìn lại (`HISTORY_FLOOR_DAYS` của trading: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`, `MACRO_WINDOW_DAYS`,
+`MACRO_BACKFILL_DAYS`), `effectiveHistoryDays` lấy số lớn hơn giữa nó và `historyRetentionDays`.
+`persistence/retention-evidence.ts` làm rỗng `factorScores[].provenance` của gợi ý đã chấm quá cửa sổ
+chung, ngoài mười dòng mới nhất của mỗi mã, theo trang 200 dòng đọc và ghi lại dưới dạng JSON thô. Daemon dọn một lần lúc khởi động rồi theo chu kỳ; `db cleanup`
 chạy tay đúng chính sách đó. `runRetention` chạy câu xóa của từng phạm vi (`toScopes`) trong giao dịch riêng,
 nên một phạm vi chậm hoặc hỏng không giữ kết nối SQLite suốt cả lượt dọn và không làm PostgreSQL hoàn tác
 các phạm vi khác khi hết `statement_timeout`; phạm vi hỏng log `retention.scope_failed` và trả 0 trong

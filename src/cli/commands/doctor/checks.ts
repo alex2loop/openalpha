@@ -15,6 +15,7 @@ import { probeBotTokenCheck, probeProviders, probeWebSearch } from './online-pro
 import { probeSafety } from './safety-probe'
 import { probeVenueKeys } from './venue-probes'
 import { probeVersion } from './version-probe'
+import { probeRunDirectories } from './workspace-probe'
 
 /** The checks that read the CLI process itself: its config probe, the PID file, a composition dry
  *  run. */
@@ -70,7 +71,10 @@ export function createSharedChecks(
 
   return {
     models: async () => probeModels(config, env, locale),
-    'data-dir': async () => [await probeDataDirectory(config.paths.dataDir, locale)],
+    'data-dir': async () => [
+      await probeDataDirectory(config.paths.dataDir, locale),
+      ...(await probeRunDirectories(config.paths.dataDir, locale)),
+    ],
     logging: async () => [probeLogging(config.log.file, locale)],
     database: async () => [await probeDatabase(databaseProbeOptions(input, trading))],
     channels: async () => await probeChannels(config, env, locale),
