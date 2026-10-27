@@ -4,7 +4,13 @@ import { arriveAtCooler, closeTalk, tryTalk } from '@/web/scene/sim/team/cooler'
 import { listenTeam } from '@/web/scene/sim/team/events'
 import { type Member, settlePose, stepMember, toTeamActorView } from '@/web/scene/sim/team/members'
 import { syncMembers } from '@/web/scene/sim/team/roster-sync'
-import { isOnDuty, isWorking, type TeamDeps, type TeamState } from '@/web/scene/sim/team/state'
+import {
+  isOnDuty,
+  isWorking,
+  type TeamDeps,
+  type TeamState,
+  workRunIdOf,
+} from '@/web/scene/sim/team/state'
 import { finishTasks } from '@/web/scene/sim/team/tasks'
 import { buildTeamView } from '@/web/scene/sim/team/view'
 
@@ -87,7 +93,7 @@ function toView(state: TeamState, member: Member): ActorView {
   const faceAt = member.face === undefined ? undefined : state.members.get(member.face)
 
   return toTeamActorView(member, {
-    isWorking: isWorking(state, member),
+    runId: workRunIdOf(state, member),
     faceAt: faceAt?.walker.pos,
   })
 }

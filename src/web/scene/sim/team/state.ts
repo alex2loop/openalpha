@@ -92,21 +92,27 @@ export function parentOf(
     : agentMemberOf(state, child.parentAgentId)
 }
 
-/** At home on a run under way: an agent on its own run, a child on its run until it ends. */
-export function isWorking(state: TeamState, member: Member): boolean {
+/** The run a member works on: at home on a run under way, an agent on its own run, a child on its
+ *  run until it ends. */
+export function workRunIdOf(state: TeamState, member: Member): string | undefined {
   if (!isAtHome(member)) {
-    return false
+    return undefined
   }
 
   const runs = state.deps.runs.value
 
   if (member.agentId !== undefined) {
-    return agentRunOf(runs, member.agentId) !== undefined
+    return agentRunOf(runs, member.agentId)?.runId
   }
 
   const runId = member.child?.runId
 
-  return member.outcome === undefined && runs.some((run) => run.runId === runId)
+  return member.outcome === undefined && runs.some((run) => run.runId === runId) ? runId : undefined
+}
+
+/** At home on a run under way. */
+export function isWorking(state: TeamState, member: Member): boolean {
+  return workRunIdOf(state, member) !== undefined
 }
 
 /** The person is in today: everyone on a trading day; on a rest day only an agent with a run

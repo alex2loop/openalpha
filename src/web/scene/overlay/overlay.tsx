@@ -7,6 +7,8 @@ import type { Placed } from '@/web/scene/overlay/placement'
 import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { CardPlace } from '@/web/scene/overlay/team-pass'
 import type { ActorId, Rect } from '@/web/scene/types'
+import { boxStyle } from '@/web/scene/overlay/box-style'
+import { DeskScreen } from '@/web/scene/overlay/desk-screen'
 import { HoverLabel } from '@/web/scene/overlay/hover-label'
 import { NameTags, roleTitleOf, tagTextOf } from '@/web/scene/overlay/name-tags'
 import { childRunIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
@@ -20,12 +22,6 @@ import { openModal } from '@/web/ui/kit/modal'
 import { BELL_POPOVER_ID, openPopover } from '@/web/ui/kit/popover'
 
 import './overlay.css'
-
-// Below this width a lit screen glows without its words.
-const SCREEN_TEXT_MIN_PX = 64
-// The price line's drawing box; the svg stretches it over the screen.
-const LINE_BOX_W = 100
-const LINE_BOX_H = 40
 
 /** Everything the overlay shows, in CSS px of the scene host, as the last layout placed it. */
 export interface OverlayView {
@@ -154,40 +150,6 @@ function Marks({
   ))
 }
 
-function DeskScreen({ screen, rect }: { readonly screen: LitScreen; readonly rect: Rect }) {
-  const { content } = screen
-
-  if (content.kind === 'line') {
-    return (
-      <span class="desk-screen" style={boxStyle(rect)} title={content.ticker}>
-        <svg
-          viewBox={`0 0 ${LINE_BOX_W} ${LINE_BOX_H}`}
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <polyline points={toPoints(content.closes)} />
-        </svg>
-      </span>
-    )
-  }
-
-  if (content.kind === 'run') {
-    return (
-      <span class="desk-screen" style={boxStyle(rect)} title={content.title}>
-        {rect.w >= SCREEN_TEXT_MIN_PX ? (content.step ?? content.title) : null}
-      </span>
-    )
-  }
-
-  const line = tr('ui.office.screen.reading', { host: content.host })
-
-  return (
-    <span class="desk-screen" style={boxStyle(rect)} title={line}>
-      {rect.w >= SCREEN_TEXT_MIN_PX ? line : null}
-    </span>
-  )
-}
-
 function BubbleView({ placed }: { readonly placed: Placed }) {
   const { bubble, rect, side, tailX } = placed
   const isCut = bubble.full !== bubble.text
@@ -252,24 +214,4 @@ function speakerOf(actor: ActorId): string {
   const title = runId === undefined ? undefined : findRun(runId)?.title
 
   return tagTextOf(actor, false, title === undefined ? undefined : childRoleOf(title))
-}
-
-function boxStyle(rect: Rect): Record<string, string> {
-  return {
-    left: `${rect.x}px`,
-    top: `${rect.y}px`,
-    width: `${rect.w}px`,
-    height: `${rect.h}px`,
-  }
-}
-
-// The closes scaled into the line's box, the lowest at the bottom.
-function toPoints(closes: readonly number[]): string {
-  const low = Math.min(...closes)
-  const span = Math.max(...closes) - low || 1
-  const stepX = LINE_BOX_W / Math.max(1, closes.length - 1)
-
-  return closes
-    .map((close, index) => `${index * stepX},${LINE_BOX_H - ((close - low) / span) * LINE_BOX_H}`)
-    .join(' ')
 }

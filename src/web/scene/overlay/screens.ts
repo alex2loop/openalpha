@@ -2,20 +2,18 @@ import type { SeriesRef } from '@/web/scene/data/desk-reads'
 import type { DeskScreenContent } from '@/web/scene/overlay-types'
 import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { Goal } from '@/web/scene/sim/vocabulary'
-import type { ActorId, FloorId, Point, Rect, RoomId } from '@/web/scene/types'
+import type { ActorId, ActorView, FloorId, Point, Rect, RoomId } from '@/web/scene/types'
+import type { PropDef } from '@/web/scene/world/props'
 import type { Run } from '@/web/state/live'
 import { hostOf, seriesKeyOf } from '@/web/scene/data/desk-reads'
-import { toParamText } from '@/web/scene/data/room-status'
+import { runContentOf, terminalLinesOf, tickerOf } from '@/web/scene/overlay/screen-lines'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { CRAWLERS, scoutOf } from '@/web/scene/sim/vocabulary'
-import { flatScreenOf } from '@/web/scene/world/desk-spots'
-import { propsOn } from '@/web/scene/world/props'
+import { computerAt, flatScreenOf } from '@/web/scene/world/desk-spots'
+import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { sceneView } from '@/web/state/prefs'
-import { formatRunName } from '@/web/text/run-name'
 
 const ANALYST: ActorId = 'analyst'
-// A desk's computer stands within this far of its person's seat, in world px.
-const SCREEN_REACH_PX = 30
 // The computer's stand under its screen.
 const STAND_PX = 4
 // The analyst works on a laptop on the meeting table, just in front of its seat.
@@ -69,6 +67,37 @@ export function buildScreens(input: ScreenInput): readonly LitScreen[] {
   return screens
 }
 
+/** The team floor's screens: an own agent or a child at work at its desk lights the computer in
+ *  line with it with the terminal of its own run. */
+export function buildTeamScreens(input: {
+  readonly floor: FloorId
+  readonly actors: readonly ActorView[]
+  readonly runs: readonly Run[]
+}): readonly LitScreen[] {
+  if (input.floor !== TEAM_FLOOR) {
+    return []
+  }
+
+  return input.actors.flatMap((actor) => {
+    const run = input.runs.find((held) => held.runId === actor.runId)
+    const computer = actor.working ? computerAt(actor.floor, actor.at) : undefined
+
+    return run === undefined || computer === undefined
+      ? []
+      : [
+          {
+            actor: actor.id,
+            runId: run.runId,
+            floor: actor.floor,
+            room: 'team',
+            rect: computerScreenOf(computer),
+            seat: actor.at,
+            content: runContentOf(run),
+          },
+        ]
+  })
+}
+
 /** The price line the analyst's work calls for, to read once per run and ticker. */
 export function analystSeriesOf(
   input: Omit<ScreenInput, 'series'>,
@@ -95,10 +124,7 @@ function contentOf(def: ActorDef, input: ScreenInput): DeskScreenContent | undef
     return lineContentOf(run, input)
   }
 
-  const host = CRAWLERS.includes(def.id) ? hostContentOf(def, run) : undefined
-  const step = run.progress?.text
-
-  return host ?? { kind: 'run', title: formatRunName(run), ...(step === undefined ? {} : { step }) }
+  return (CRAWLERS.includes(def.id) ? hostContentOf(def, run) : undefined) ?? runContentOf(run)
 }
 
 // A scout's screen names the page its own question reads; the other scout's has none.
@@ -106,7 +132,9 @@ function hostContentOf(def: ActorDef, run: Run): DeskScreenContent | undefined {
   const host = run.progress === undefined ? undefined : hostOf(run.progress)
   const isOwn = run.progress !== undefined && scoutOf(run.progress) === def.id
 
-  return host !== undefined && isOwn ? { kind: 'host', host } : undefined
+  return host !== undefined && isOwn
+    ? { kind: 'host', host, lines: terminalLinesOf(run, host) }
+    : undefined
 }
 
 function lineContentOf(run: Run, input: ScreenInput): DeskScreenContent | undefined {
@@ -127,12 +155,9 @@ function workRunOf(actor: ActorId, input: Pick<ScreenInput, 'goals' | 'runs'>): 
     : undefined
 }
 
-function tickerOf(run: Run): string | undefined {
-  return toParamText(run.progress?.params?.ticker) ?? run.tickers[0]
-}
-
-// A person's screen is their desk computer's (the one nearest their seat, less the stand); the
-// analyst's is the laptop in front of the seat. Someone with no computer by their seat has none.
+// A person's screen is the computer they sit in line with, so one two people share lights only for
+// the one at it; the analyst's is the laptop in front of the seat. Someone with no computer to sit
+// at has none.
 function screenRectOf(def: ActorDef): Rect | undefined {
   if (def.id === ANALYST) {
     return {
@@ -143,17 +168,13 @@ function screenRectOf(def: ActorDef): Rect | undefined {
     }
   }
 
-  const computer = propsOn(def.floor)
-    .filter((prop) => prop.kind === 'computer' && prop.room === def.room)
-    .map((prop) => ({ prop, gap: Math.abs(prop.draw.x + prop.draw.w / 2 - def.seat.at.x) }))
-    .filter(({ gap }) => gap <= SCREEN_REACH_PX)
-    .sort((a, b) => a.gap - b.gap)[0]?.prop
+  const computer = computerAt(def.floor, def.seat.at)
 
-  if (computer === undefined) {
-    return undefined
-  }
+  return computer === undefined ? undefined : computerScreenOf(computer)
+}
 
-  // 2D lays a worked-at screen flat on the desk; 3D keeps it standing.
+// 2D lays a worked-at screen flat on the desk; 3D keeps it standing.
+function computerScreenOf(computer: PropDef): Rect {
   return sceneView.value === '2d'
     ? flatScreenOf(computer)
     : { ...computer.draw, h: computer.draw.h - STAND_PX }
