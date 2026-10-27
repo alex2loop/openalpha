@@ -180,7 +180,7 @@ function stepOffice(
   }
 }
 
-// Called back: a goal the live store or a meeting gives them, or a real event's gesture. Past the
+// Called back: a goal the live store gives them, or a real event's gesture. Past the
 // door the walk home's goal reaches the director a step later than the street sets it.
 function isCalledBack(errand: Errand, actor: ActorState): boolean {
   const isPending = errand.phase === 'entering' && actor.goal === errand.doorGoal

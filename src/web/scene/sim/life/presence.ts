@@ -160,7 +160,7 @@ function shiftOf(rhythm: RhythmState, at: { actor: ActorState; step: LifeStep })
   return shift
 }
 
-// A person on the way out who is called away (a run, a meeting, a gesture) turns back to their
+// A person on the way out who is called away (a run, a gesture) turns back to their
 // goal; one who reaches the door, or takes too long, is gone. One on the way in is in once they
 // stand at their seat.
 function settleTrips(state: LifeState, step: LifeStep): void {

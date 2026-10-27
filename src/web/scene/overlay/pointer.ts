@@ -1,5 +1,4 @@
 import type { FocusDeps } from '@/web/scene/overlay/actor-focus'
-import type { Meeting } from '@/web/scene/overlay/meeting'
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { Director } from '@/web/scene/sim/director'
 import type { ActorId, ScreenPoint, SimView } from '@/web/scene/types'
@@ -11,7 +10,6 @@ import { engage } from '@/web/scene/overlay/actor-focus'
 import { actorNowOf } from '@/web/scene/overlay/actor-state'
 import { type Hit, pickAt } from '@/web/scene/overlay/hit'
 import { hoverTextOf, personNameOf } from '@/web/scene/overlay/hover-label'
-import { MEET_FLOOR, MEET_ROOM } from '@/web/scene/overlay/meeting'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
 import { hoverActor, keyedActor, overlayView } from '@/web/scene/overlay/overlay'
 import { closeMenu } from '@/web/scene/overlay/radial-menu'
@@ -46,22 +44,19 @@ export interface PointerState {
   readonly canvas: HTMLCanvasElement
   readonly deps: PointerDeps
   readonly focus: FocusDeps
-  readonly meeting: Meeting
   hovered: ActorId | undefined
   /** What the last touch tap showed the label or tip of; the next tap on it acts. */
   peeked: string | undefined
 }
 
-/** How a click was made: with Shift held, and by which kind of pointer. */
+/** How a click was made: by which kind of pointer. */
 interface ClickPress {
-  readonly isShift: boolean
   readonly pointerType: string
 }
 
 // A marker, a person, a lit screen and a tag act where they stand, never moving the camera closer;
 // a lamp or the wall switch acts at once; an object with somewhere to go goes there; from the
-// floor view, a room zooms in. A Shift-click picks a person for a meeting. The building crew and
-// the wet-floor sign take no click.
+// floor view, a room zooms in. The building crew and the wet-floor sign take no click.
 export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPress): void {
   const hit = pickAt(point, input.deps.renderer, input.deps.readView())
 
@@ -76,7 +71,7 @@ export function clickAt(input: PointerState, point: ScreenPoint, press: ClickPre
       return
     case 'actor':
     case 'tag':
-      clickActor(input, hit.id, press)
+      clickActor(input, hit.id)
       return
     case 'screen':
       openLitScreen(hit.id)
@@ -136,21 +131,15 @@ function peekAt(input: PointerState, point: ScreenPoint, hit: Hit | undefined): 
   }
 }
 
-function clickActor(input: PointerState, id: string, press: ClickPress): void {
+function clickActor(input: PointerState, id: string): void {
   if (!isActorId(id)) {
-    return
-  }
-
-  if (press.isShift) {
-    input.meeting.toggle(input.deps.readView(), id)
     return
   }
 
   engage(input.focus, { actor: id, isFocused: false, withMenu: true })
 }
 
-// Empty floor lets go of a follow and the ring; the meeting room offers the meeting bar, any other
-// place drops the picks; from the floor view a room zooms in.
+// Empty floor lets go of a follow and the ring; from the floor view a room zooms in.
 function clickFloor(input: PointerState, hit: Hit | undefined, press: ClickPress): void {
   stopFollow()
   closeMenu(false)
@@ -158,12 +147,6 @@ function clickFloor(input: PointerState, hit: Hit | undefined, press: ClickPress
   if (press.pointerType === TOUCH) {
     hoverObject(undefined, { x: 0, y: 0 })
     setHovered(input, undefined)
-  }
-
-  if (hit?.id === MEET_ROOM && view.value.floor === MEET_FLOOR) {
-    input.meeting.showHint()
-  } else if (!press.isShift) {
-    input.meeting.clearPicks()
   }
 
   if (hit?.kind === 'room') {

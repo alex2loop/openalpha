@@ -112,8 +112,6 @@ export interface Director {
   /** A reaction to the operator; `undefined` ends a look still held. A look lasts until it is
    *  ended and never covers a wave or a glance. */
   requestReaction(id: ActorId, kind: ReactionKind | undefined): void
-  /** Where the meeting the operator called seats a person; `undefined` sends them back. */
-  setMeeting(id: ActorId, goal: Goal | undefined): void
   /** The office life's goal for a person, under every goal the live store calls for; `undefined`
    *  hands them back to it (their seat when it calls for nothing). */
   setLife(id: ActorId, goal: Goal | undefined): void
@@ -218,7 +216,6 @@ function lifeHooksOf(
   | 'actors'
   | 'staffAndCrew'
   | 'requestReaction'
-  | 'setMeeting'
   | 'setLife'
   | 'play'
   | 'setObstacles'
@@ -233,7 +230,6 @@ function lifeHooksOf(
       new Map(people.list.map((person) => [person.def.id, toActorState(people, person, away)])),
     staffAndCrew: () => staffAndCrewOf(people, away),
     requestReaction: (id, kind) => react(people, { id, kind }),
-    setMeeting: (id, goal) => setGoalIn(people.meeting, id, goal),
     setLife: (id, goal) => setGoalIn(people.life, id, goal),
     play: (id, gesture) =>
       playBeat(people, id, { kind: LIFE_BEAT, ...gesture, atMs: performance.now() }),

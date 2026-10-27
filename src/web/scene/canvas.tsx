@@ -20,7 +20,6 @@ import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
 import { EmptyTeam } from '@/web/scene/overlay/empty-team'
 import { sceneHandOff } from '@/web/scene/overlay/hand-off'
-import { MeetingBar } from '@/web/scene/overlay/meeting-bar'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
 import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
@@ -109,7 +108,6 @@ export function SceneCanvas() {
       <AddDesk />
       <EmptyTeam />
       <ObjectTip />
-      <MeetingBar />
       <RadialMenu />
       <Toolbar />
       <PerfReadout renderer={renderer} />
