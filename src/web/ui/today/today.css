@@ -198,13 +198,13 @@
 }
 
 .pill.is-up {
-  background: var(--upTint);
-  color: var(--up);
+  background: var(--pillUpBg);
+  color: var(--pillUpInk);
 }
 
 .pill.is-down {
-  background: var(--downTint);
-  color: var(--down);
+  background: var(--pillDownBg);
+  color: var(--pillDownInk);
 }
 
 .pill.is-flat {

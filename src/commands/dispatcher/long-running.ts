@@ -70,6 +70,9 @@ interface RunBody<T> {
   /** The reply the finish carries, read in-process only. */
   resultOf(value: T): SlashResult | undefined
   isIdle?(value: T): boolean
+  /** Announced at its first stage rather than at once, so work that finds nothing to do never
+   *  shows as running. */
+  readonly startsAtFirstStage?: true
 }
 
 export function createCommandRuns(deps: CommandRunsDeps): CommandRuns {
@@ -151,28 +154,33 @@ function runScheduled<T>(state: CommandRunState, request: ScheduledRequest<T>): 
     work: (run) => request.work(run),
     resultOf: () => undefined,
     isIdle: (value) => request.isIdle?.(value) === true,
+    startsAtFirstStage: true,
   })
 }
 
 /** One owner of a command run's lifecycle: registers the run so `abortCommand` can
  *  stop it, and publishes its start, its stages and how it ended on the bus. */
 async function trackRun<T>(state: CommandRunState, start: RunStart, body: RunBody<T>): Promise<T> {
-  const { id, channel } = start
+  const { id } = start
   const child = new AbortController()
   const unlink = linkAbort(start.signal, child)
   const { bus } = state
+  const shown = createAnnouncer(bus, start)
   let outcome: CommandOutcome = 'error'
   let result: SlashResult | undefined
   let idle = false
 
   state.track(id, child)
-  announceStart(bus, start)
+
+  if (body.startsAtFirstStage !== true) {
+    shown.announce()
+  }
 
   try {
     const value = await body.work({
       runId: id,
       signal: child.signal,
-      progress: reportProgress(bus, start),
+      progress: reportProgress(bus, { start, announce: shown.announce }),
     })
 
     result = body.resultOf(value)
@@ -188,30 +196,78 @@ async function trackRun<T>(state: CommandRunState, start: RunStart, body: RunBod
   } finally {
     unlink()
     state.active.delete(id)
-    bus.emit('command_finished', {
-      runId: id,
-      channel,
-      outcome,
-      ...(result === undefined ? {} : { result }),
-      ...(idle ? { idle: true } : {}),
-    })
+    announceFinish(bus, { start, shown, outcome, result, idle })
   }
 }
 
-function announceStart(bus: EventBus, start: RunStart): void {
+interface Announcer {
+  /** Publishes the start once, stamped with when the run began. */
+  announce(): void
+  isAnnounced(): boolean
+}
+
+function createAnnouncer(bus: EventBus, start: RunStart): Announcer {
+  const startedAt = Date.now()
+  let announced = false
+
+  return {
+    announce() {
+      if (!announced) {
+        announced = true
+        announceStart(bus, start, startedAt)
+      }
+    },
+    isAnnounced: () => announced,
+  }
+}
+
+function announceStart(bus: EventBus, start: RunStart, startedAt: number): void {
   bus.emit('command_started', {
     runId: start.id,
     name: start.name,
     channel: start.channel,
     chatId: start.chatId,
     sessionId: start.sessionId,
-    startedAt: Date.now(),
+    startedAt,
   })
 }
 
-// Forwards to the surface's own reporter, then publishes the same stage on the bus.
-function reportProgress(bus: EventBus, start: RunStart): ProgressReporter {
+interface RunFinish {
+  readonly start: RunStart
+  readonly shown: Announcer
+  readonly outcome: CommandOutcome
+  readonly result: SlashResult | undefined
+  readonly idle: boolean
+}
+
+// A quiet start that found nothing to do was never shown, so it leaves no trace.
+function announceFinish(bus: EventBus, finish: RunFinish): void {
+  const { shown, idle, result } = finish
+
+  if (!shown.isAnnounced() && idle) {
+    return
+  }
+
+  shown.announce()
+  bus.emit('command_finished', {
+    runId: finish.start.id,
+    channel: finish.start.channel,
+    outcome: finish.outcome,
+    ...(result === undefined ? {} : { result }),
+    ...(idle ? { idle: true } : {}),
+  })
+}
+
+// Forwards to the surface's own reporter, then publishes the same stage on the bus, announcing a
+// quiet start first.
+function reportProgress(
+  bus: EventBus,
+  run: { readonly start: RunStart; readonly announce: () => void }
+): ProgressReporter {
+  const { start } = run
+
   return (key, params) => {
+    run.announce()
     start.progress?.(key, params)
     bus.emit('command_progress', {
       runId: start.id,

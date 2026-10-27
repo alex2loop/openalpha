@@ -1,5 +1,6 @@
 import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { ActorId, DeskItemsView } from '@/web/scene/types'
+import { pluralKey } from '@/i18n'
 import { alertCounts } from '@/web/scene/data/room-status'
 import { screenRectOf } from '@/web/scene/overlay/screens'
 import { rosterDefOf } from '@/web/scene/sim/actors/roster'
@@ -49,7 +50,10 @@ function clerkScreen(desks: DeskItemsView): LitScreen | undefined {
     return undefined
   }
 
-  const text = tr('ui.office.screen.alerts', { count })
+  // The count leads: a small screen cuts its line from the end.
+  const text = tr(pluralKey(count, 'ui.office.screen.alertsOne', 'ui.office.screen.alerts'), {
+    count,
+  })
 
   return screenOf(CLERK, {
     kind: 'tally',

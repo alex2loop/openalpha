@@ -23,13 +23,15 @@ const CUE_REST = 0.675
 const CUE_SWING = 0.325
 const CUE_PERIOD_MS = 1100
 const CUE_GLOW = 0.3
-// The crumpled sheets heaped over a bin's rim, first to last, from its top-left corner.
+// The crumpled sheets heaped over a bin's rim, first to last, from its top-left corner, each this
+// wide: big enough to read as a heap from the room zoom.
 const WASTE_BALLS = [
-  [0.4, -1.2],
-  [2.6, -1.5],
-  [1.5, -2.7],
+  [-0.5, -2],
+  [2.5, -2.4],
+  [1, -4.2],
 ] as const
-const WASTE_SHADE = '#D9D4C7'
+const WASTE_BALL_PX = 3
+const WASTE_SHADE_PX = 0.8
 
 /** A monitor standing on a desk at `x`, its outlined screen `w` wide from `y`: dark once the
  *  office is quiet, else its idle screen; a working screen's content is the overlay's. */
@@ -239,8 +241,12 @@ export function paintBin(g: CanvasRenderingContext2D, x: number, y: number): voi
 /** The day's crumpled sheets over the bin at `at`, `count` of them. */
 export function paintBinWaste(g: CanvasRenderingContext2D, at: Point, count: number): void {
   for (const [dx, dy] of WASTE_BALLS.slice(0, count)) {
-    fill(g, [at.x + dx, at.y + dy, 2, 2], PALETTE.paper)
-    fill(g, [at.x + dx, at.y + dy + 1.5, 2, 0.5], WASTE_SHADE)
+    fill(g, [at.x + dx, at.y + dy, WASTE_BALL_PX, WASTE_BALL_PX], PALETTE.paper)
+    fill(
+      g,
+      [at.x + dx, at.y + dy + WASTE_BALL_PX - WASTE_SHADE_PX, WASTE_BALL_PX, WASTE_SHADE_PX],
+      PALETTE.paperEdge
+    )
   }
 }
 

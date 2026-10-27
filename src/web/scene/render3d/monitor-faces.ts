@@ -33,6 +33,8 @@ import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 const FACE_LIFT_PX = 0.06
 // A lit desk screen's sitter sits within this of its monitor's seat.
 const SEAT_MATCH_PX = 12
+// A monitor's foot stands within this below its computer's drawn box.
+const FOOT_REACH_PX = 20
 /** One canvas per monitor on the floor shown, drawn only while the monitor is lit by someone at
  *  work; it shows that person's run: its title, its lines and the step it is typing. */
 export interface MonitorFaces {
@@ -228,16 +230,29 @@ function paintFace(
   return true
 }
 
-/** The lit desk screen whose sitter sits at this monitor's seat: a scout's page, as the overlay
- *  showed it, or an idle desk's count. */
+/** The lit desk screen shown on this monitor: a scout's page, as the overlay showed it, whose
+ *  sitter sits at its seat, or an idle desk's count, on the computer it stands over (the alert
+ *  clerk sits behind the counter, not at the seat a desk's worker takes). */
 export function shownOn(
-  screen: Pick<Screen, 'seat'>,
+  screen: Pick<Screen, 'seat' | 'slot'>,
   screens: readonly DeskScreenView[]
 ): DeskScreenView | undefined {
-  const { seat } = screen
+  const { seat, slot } = screen
 
-  return screens.find(
-    (one) => Math.hypot(one.seat.x - seat.x, one.seat.y - seat.y) <= SEAT_MATCH_PX
+  return screens.find((one) =>
+    one.content.kind === 'tally'
+      ? isOver(one.rect, slot)
+      : Math.hypot(one.seat.x - seat.x, one.seat.y - seat.y) <= SEAT_MATCH_PX
+  )
+}
+
+// The computer's box stands over the monitor's foot.
+function isOver(rect: DeskScreenView['rect'], foot: Screen['slot']): boolean {
+  return (
+    foot.x >= rect.x &&
+    foot.x <= rect.x + rect.w &&
+    foot.y >= rect.y &&
+    foot.y <= rect.y + rect.h + FOOT_REACH_PX
   )
 }
 

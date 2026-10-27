@@ -127,11 +127,15 @@ const dbCleanupCommand = createCommand({
     printRetentionCounts(app, counts, config)
     app.out(
       success(
-        t(locale, 'cli.dbPrunedSummary', {
-          general: retentionDays,
-          history: config.historyRetentionDays,
-          inbox: config.inboxRetentionDays,
-        })
+        t(
+          locale,
+          flooredScopes(config).length > 0 ? 'cli.dbPrunedSummaryFloored' : 'cli.dbPrunedSummary',
+          {
+            general: retentionDays,
+            history: config.historyRetentionDays,
+            inbox: config.inboxRetentionDays,
+          }
+        )
       )
     )
 
@@ -177,18 +181,23 @@ const FLOORED_WINDOWS = [
   ['macroDocuments', 'cli.dbFieldMacroDocumentsWindow'],
 ] as const satisfies readonly (readonly [keyof RetentionConfig['historyFloors'], MessageKey])[]
 
-/** Only the scopes whose readers hold them past the history window. */
 function printFlooredWindows(app: CliApp, config: RetentionConfig): void {
   const locale = app.config.locale.language
+
+  for (const { key, value } of flooredScopes(config)) {
+    app.out(t(locale, key, { value }))
+  }
+}
+
+/** Only the scopes whose readers hold them past the history window, with the window they keep. */
+function flooredScopes(
+  config: RetentionConfig
+): readonly { readonly key: MessageKey; readonly value: number }[] {
   const windows = effectiveHistoryDays(config)
 
-  for (const [scope, key] of FLOORED_WINDOWS) {
-    const value = windows[scope]
-
-    if (value > config.historyRetentionDays) {
-      app.out(t(locale, key, { value }))
-    }
-  }
+  return FLOORED_WINDOWS.flatMap(([scope, key]) =>
+    windows[scope] > config.historyRetentionDays ? [{ key, value: windows[scope] }] : []
+  )
 }
 
 const dbStatsCommand = createCommand({

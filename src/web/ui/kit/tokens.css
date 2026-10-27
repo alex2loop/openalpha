@@ -14,16 +14,18 @@
   --controlPadX: 12px;
   --controlSmPadX: 9px;
   --fieldPadX: 8px;
-  /* The desktop's type roles (its DESIGN.md section 3): the page reads at 13 px, so its sizes carry over unscaled. */
+  /* The desktop's type roles (its DESIGN.md section 3): the page reads at 13 px, so its sizes carry
+     over unscaled, except the hero, which the wider page sets larger so it leads its card. */
   --fontSans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial,
     sans-serif;
   --fontMono: ui-monospace, "SF Mono", Menlo, monospace;
+  --sizeHero: 20px;
   --sizeTitle: 15px;
   --sizeReading: 13px;
   --sizeBody: 12px;
   --sizeCaption: 11px;
-  --typeHero: 600 var(--sizeTitle) / 1.2 var(--fontMono);
+  --typeHero: 600 var(--sizeHero) / 1.2 var(--fontMono);
   --typeTitle: 600 var(--sizeTitle) / 1.45 var(--fontSans);
   --typeCardTitle: 600 var(--sizeReading) / 1.45 var(--fontSans);
   --typeReading: 400 var(--sizeReading) / 1.45 var(--fontSans);
@@ -52,9 +54,6 @@
   --upTint: #e6f2ea;
   --down: #c1231a;
   --downTint: #fbe9e7;
-  --ceiling: #8a2fc9;
-  --floor: #006899;
-  --ref: #7a5f00;
   /* The price pill: a solid market colour with white figures in light, a flat tint in dark. */
   --pillUpBg: var(--up);
   --pillUpInk: #ffffff;
@@ -139,9 +138,6 @@
     --upTint: color-mix(in srgb, var(--up) 15%, var(--canvas));
     --down: #ff6259;
     --downTint: color-mix(in srgb, var(--down) 15%, var(--canvas));
-    --ceiling: #cb7cf5;
-    --floor: #64d2ff;
-    --ref: #ffd60a;
     --pillUpBg: var(--upTint);
     --pillUpInk: var(--up);
     --pillDownBg: var(--downTint);
@@ -194,9 +190,6 @@
   --upTint: color-mix(in srgb, var(--up) 15%, var(--canvas));
   --down: #ff6259;
   --downTint: color-mix(in srgb, var(--down) 15%, var(--canvas));
-  --ceiling: #cb7cf5;
-  --floor: #64d2ff;
-  --ref: #ffd60a;
   --pillUpBg: var(--upTint);
   --pillUpInk: var(--up);
   --pillDownBg: var(--downTint);
