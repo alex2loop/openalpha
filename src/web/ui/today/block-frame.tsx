@@ -84,6 +84,9 @@ function BlockBody<T>(props: BlockFrameProps<T>) {
 
   return (
     <>
+      {data !== undefined && showReadLine && (
+        <ReadLine readAt={reading.readAt} dataTo={dataTo} readKey={readKey} />
+      )}
       {reading.cautions.map((text) => (
         <p key={text} class="strip is-caution">
           {text}
@@ -92,19 +95,14 @@ function BlockBody<T>(props: BlockFrameProps<T>) {
       {reading.state === 'failed' && (
         <FailedStrip title={title} reading={reading} failedText={failedText} />
       )}
-      {data === undefined ? (
-        reading.state === 'loading' && (
-          <>
-            <Skeleton shape="rows" />
-            {loadingText !== undefined && <p class="meta">{loadingText}</p>}
-          </>
-        )
-      ) : (
-        <>
-          {children(data)}
-          {showReadLine && <ReadLine readAt={reading.readAt} dataTo={dataTo} readKey={readKey} />}
-        </>
-      )}
+      {data === undefined
+        ? reading.state === 'loading' && (
+            <>
+              <Skeleton shape="rows" />
+              {loadingText !== undefined && <p class="meta">{loadingText}</p>}
+            </>
+          )
+        : children(data)}
     </>
   )
 }
