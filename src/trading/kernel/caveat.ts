@@ -5,6 +5,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'source.unavailable', severity: 'warn' },
   { code: 'source.timeout', severity: 'warn' },
   { code: 'source.rate-limited', severity: 'warn' },
+  { code: 'source.quota-exhausted', severity: 'warn' },
   { code: 'source.breaker-open', severity: 'warn' },
   { code: 'source.recovered', severity: 'info' },
   { code: 'source.futures-proxy', severity: 'info' },
@@ -246,6 +247,7 @@ type SourcedCaveatCode = Extract<
   | 'source.unavailable'
   | 'source.timeout'
   | 'source.rate-limited'
+  | 'source.quota-exhausted'
   | 'source.breaker-open'
   | 'source.stale-cache'
   | 'source.symbol-not-found'

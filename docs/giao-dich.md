@@ -68,7 +68,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `nso` | báo cáo kinh tế - xã hội hằng tháng của cơ quan thống kê, đọc bởi việc `trading.macro-extract` | không |
 | `fred-csv` | các chuỗi hàng hóa hằng tháng mà không feed hằng ngày nào mang (than, gạo, thịt lợn, thép), đứng sau `vndirect` | không |
 | `vietcap-statements` | báo cáo tài chính VN: năm đầy đủ cộng các quý riêng (xem bên dưới) | không |
-| `treasury` `bls` `fred` | các chuỗi vĩ mô Mỹ, trộn lại chứ không dự phòng cho nhau | `fred` cần `FRED_API_KEY` |
+| `treasury` `bls` `fred` | các chuỗi vĩ mô Mỹ, trộn lại chứ không dự phòng cho nhau | `fred` cần `FRED_API_KEY`; `bls` nhận `BLS_API_KEY` tùy chọn |
 | `coinpaprika` | bảng crypto xếp hạng và mức đổi bảy ngày, không khóa, trong một yêu cầu; dự phòng đầu tiên sau `coinmarketcap`; nguồn này đo khối lượng 24 giờ thấp hơn, nên `/screen crypto` báo khi thứ hạng lấy từ nó hoặc từ bất kỳ nguồn dự phòng nào khác | không |
 | `coinmarketcap` `coinlore` | bảng crypto xếp hạng mà khâu sàng lọc chọn tập công cụ từ đó, không khóa, trong một yêu cầu; `coinlore` đứng thứ ba | không |
 | `coinbase` | giá USD của một coin thanh toán, từ một sàn có giao dịch cặp đó | không |

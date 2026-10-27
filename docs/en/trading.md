@@ -68,7 +68,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `nso` | the statistics office's monthly socio-economic reports, read by the `trading.macro-extract` job | no |
 | `fred-csv` | monthly commodity series no daily feed carries (coal, rice, pork, steel), behind `vndirect` | no |
 | `vietcap-statements` | VN financial statements: full years plus discrete quarters (below) | no |
-| `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY` |
+| `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY`; `bls` takes an optional `BLS_API_KEY` |
 | `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap`; it measures 24-hour volume lower, so `/screen crypto` says when the ranking came from it or any other fallback | no |
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
 | `coinbase` | the USD price of a settlement coin, from a venue that trades the pair | no |

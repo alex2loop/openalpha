@@ -197,11 +197,13 @@ route failover across providers. Each host gets its own attempt deadline, so a p
 its turn. `buildEndpointMaps` keeps the origin (the trusted-host list) and the endpoint's path prefix separately, so
 CoinGecko's `/api/v3` is not lost.
 
-Credentials: `SOURCE_CREDENTIALS` declares, per source, the default variable *name* (`COINGECKO_API_KEY`, `FRED_API_KEY`) and the catalog line saying what setting it adds (`trading.source.credential.<id>`, which `doctor` prints); `SOURCE_CREDENTIAL_ENV` is derived from it.
+Credentials: `SOURCE_CREDENTIALS` declares, per source, the default variable *name* (`COINGECKO_API_KEY`, `FRED_API_KEY`, `BLS_API_KEY`) and the catalog line saying what setting it adds (`trading.source.credential.<id>`, which `doctor` prints); `SOURCE_CREDENTIAL_ENV` is derived from it.
 `[trading.sources]` may rename a variable, never name a value or a host. A rename aimed at a source that takes no credential is
 a boot-time `OperatorConfigError` (`errors.configSourceNoCredential`). `resolveCredential` (`core/security/credentials.ts`) reads
 the variable, then the same name with the product prefix (`OPENALPHA_FRED_API_KEY`). A request that declares a credential
-placement (`header` with an optional prefix, or `query`) with no secret resolved is an `OperatorConfigError`.
+placement (`header` with an optional prefix, or `query`) with no secret resolved is an `OperatorConfigError`, unless it is marked
+`optional` (`bls` sends `registrationkey` only when `BLS_API_KEY` is set). A source whose facts say `keylessTier` registers either way,
+and `unavailableSources` still lists it so `doctor` and `key list` name the variable.
 
 A source that needs a key and has none is not registered, so its kind falls through to the next provider. Boot logs one
 `trading.source.skipped` warning naming each skipped source and the variable it wanted. A keyless install is a supported reduced
@@ -367,7 +369,7 @@ unpaced primary was routed first for.
   Most merge because no single provider covers the subject:
 
   - `macro` - no provider publishes every series; the keyless `treasury`/`bls` pair leads so an unkeyed install still reads
-    macro.
+    macro. Each macro source is fronted by one gate (see Macro under Caches).
   - `goldBoard` - no vendor quotes every domestic form, so the first usable board would drop any form only a later vendor
     carries. `giavang` leads because it carries SJC's own quote; the SJC bar `pnj` resells is used only when `giavang` does not
     answer.
@@ -478,8 +480,8 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
 caught there instead of as a 429 in production.
 
 Three figures limit a burst rather than the quota that binds them, because a token bucket cannot express a day or a month: `bls`
-(per day), `er-api` and `coingecko` (per month). None is near its allowance in ordinary use (`bls` is asked once per macro
-refresh; `er-api` is last in the `fx` route). The numbers prevent a breaker storm spending an allowance in an afternoon. Set far
+(per day), `er-api` and `coingecko` (per month). None is near its allowance in ordinary use (`bls` is asked at most once a UTC day and not between
+releases, by the macro gate; `er-api` is last in the `fx` route). The numbers prevent a breaker storm spending an allowance in an afternoon. Set far
 above the real peak they prevent nothing: a runaway at hundreds of requests a minute empties a monthly quota in an hour, whereas a
 figure near the peak leaves half a day for the breaker and a human to react. `coinmarketcap` (30) publishes no ceiling for its
 keyless subset and answers `1022` once an anonymous caller has used it up (measured recovering within a minute of going idle); the
@@ -598,6 +600,25 @@ coverage is checked over calendar days: a market with weekends would never hit.
 in-flight promise, so callers arriving together share one fan-out. It holds two entries (today and the adjacent day, for a run
 crossing midnight). A failed or aborted read clears its own slot, and so does a read in which any provider did not answer: the
 day's first pass runs before the US series publish, and only a complete read is served to later callers.
+
+**Macro gate** (`sources/macro-gate.ts`) - fronts every `macro` source that declares a `MacroSourceProfile` (`MACRO_SOURCE_PROFILES` in
+`source-facts.ts`: `bls`, `fred`, `treasury`, `vndirect`; a plugin declares none and is read as before). `gateMacroSource` wraps the
+source at registration, so failover (`resolve`) and the merged read (`resolveAll`) both pass it. The last good read is stored per
+source and series in `series_points` under `<source>:<series>` (the observation day, the value and the write instant; no
+migration). On each fetch:
+
+1. Stored and written the same UTC day, or `cadence` is monthly and the stored observation is already the newest period a print can
+   describe by today (`lagMonths` back, one more before `releaseDay`): serve the stored reading, `freshness: 'cached'` with its real
+   `fetchedAt`, no HTTP.
+2. Otherwise fetch. An answer is written back (`replace`); a failed write is logged (`trading.macro_read_unsaved`) and never fails the
+   read, as an unreadable store is (`trading.macro_read_unreadable`).
+3. A refusal or failure serves the stored reading with its observation date and no caveat, while the newest observation is within
+   `staleAfterDays`; with nothing stored or past it the failure stands and its caveat is shown.
+
+The profile is the whole per-source surface: `series`, `cadence` (`daily`, or `monthly` with `releaseDay` and `lagMonths`) and
+`staleAfterDays`. `bls` declares monthly, release day 10, lag 1, stale after 120 days; `fred` and `treasury` daily and 10 days (a
+weekend plus a holiday); `vndirect` daily and 180 days (the deposit rate moves a few times a year). A daily allowance spent at `bls`
+answers with the distinct `source.quota-exhausted` code instead of `source.rate-limited`.
 
 **Universe** (`sources/adapters/crypto-universe.ts`) - one ranked board read per hour of work (`UNIVERSE_ROWS_TTL_MS`). A ranked
 board reorders by a few places an hour and every quote and symbol lookup reads the same sweep. Five minutes cost one 750-row

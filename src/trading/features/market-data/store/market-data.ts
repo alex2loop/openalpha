@@ -22,6 +22,10 @@ import type {
   TradeSidesDayOptions,
 } from '@/trading/features/market-data/store/market-snapshot'
 import type { ListRefreshAttemptsOptions } from '@/trading/features/market-data/store/refresh-attempt'
+import type {
+  FindLatestSeriesPointOptions,
+  StoredSeriesPoint,
+} from '@/trading/features/market-data/store/series-point'
 import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type {
   AnnualAccounts,
@@ -83,6 +87,7 @@ import {
   listRefreshAttempts,
   upsertRefreshAttempt,
 } from '@/trading/features/market-data/store/refresh-attempt'
+import { findLatestSeriesPoint } from '@/trading/features/market-data/store/series-point'
 import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { BAR_ADJUSTMENTS } from '@/trading/kernel/market/market-data'
 import { sourceId } from '@/trading/kernel/source/source-id'
@@ -279,6 +284,9 @@ export interface MarketDataStore {
   /** The stored history for a series, ascending by day and window-bounded — the input a percentile
    *  ranks a new reading against. */
   listSeriesPoints(options: ListSeriesPointsOptions): Promise<readonly SeriesPoint[]>
+  /** The newest-day point of a series with the instant it was last written, or null for a series
+   *  nothing has stored. */
+  findLatestSeriesPoint(options: FindLatestSeriesPointOptions): Promise<StoredSeriesPoint | null>
 }
 
 export function createMarketDataStore(deps: StoreDeps): MarketDataStore {
@@ -317,6 +325,7 @@ export function createMarketDataStore(deps: StoreDeps): MarketDataStore {
     deleteExpired: (options) => deleteExpired(deps, options),
     upsertSeriesPoint: (options) => upsertSeriesPoint(deps, options),
     listSeriesPoints: (options) => listSeriesPoints(deps, options),
+    findLatestSeriesPoint: (options) => findLatestSeriesPoint(deps, options),
   }
 }
 

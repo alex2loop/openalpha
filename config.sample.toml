@@ -341,10 +341,11 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # [trading.refresh]
 # interval_ms = 43200000             # ~12h ceiling; refresh anchors to each session's open and close
 
-# Rename a source's credential env var. Only coingecko and fred take credentials.
+# Rename a source's credential env var. Only bls, coingecko and fred take credentials.
 # Set here or from the CLI only; the office page saves the keys (Settings > Tools),
 # never these names.
 # [trading.sources]
+# bls = "MY_BLS_KEY"                   # default: BLS_API_KEY; optional, 500 calls a day instead of 25
 # coingecko = "MY_COINGECKO_KEY"     # default: COINGECKO_API_KEY
 # fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
 

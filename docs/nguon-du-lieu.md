@@ -2,14 +2,15 @@
 
 Số liệu thị trường của OpenAlpha đến từ đâu, ai trả lời khi một nhà cung cấp gặp sự cố, và vài thứ bạn có thể cần cài đặt.
 
-Tóm tắt: mọi nhà cung cấp đều bật sẵn, bạn không cần bật gì hay trỏ tới địa chỉ nào, và hai nhà cung cấp nhận một khóa tùy chọn. Cùng chủ đề nhưng nhìn từ phía giao dịch: [Giao dịch](giao-dich.md#dữ-liệu-thị-trường-và-đề-xuất).
+Tóm tắt: mọi nhà cung cấp đều bật sẵn, bạn không cần bật gì hay trỏ tới địa chỉ nào, và một vài nhà cung cấp nhận một khóa tùy chọn. Cùng chủ đề nhưng nhìn từ phía giao dịch: [Giao dịch](giao-dich.md#dữ-liệu-thị-trường-và-đề-xuất).
 
 ## Bạn cần làm gì
 
-Không cần làm gì để bắt đầu. Hai nhà cung cấp nhận một khóa mà bạn có thể thêm sau:
+Không cần làm gì để bắt đầu. Một vài nhà cung cấp nhận một khóa mà bạn có thể thêm sau:
 
 | Nhà cung cấp | Biến | Nếu không có |
 |---|---|---|
+| `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó; có khóa thì lên 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Mất bên dự phòng cuối cho bảng vốn hóa crypto, và mất luôn cách tra riêng một coin nằm ngoài mọi bảng. Nó cũng không còn trong danh sách FX cho một coin thanh toán so với tiền pháp định. |
 | `fred` | `FRED_API_KEY` | Bạn mất các chuỗi chỉ FRED công bố. Vĩ mô Mỹ vẫn đọc được từ `treasury` và `bls`, hai bên không cần khóa. |
 
@@ -22,7 +23,7 @@ coingecko = "OPENALPHA_COINGECKO_API_KEY"
 
 Khóa là mã nhà cung cấp, giá trị là tên biến, không bao giờ là bí mật. Ghi tên một nhà cung cấp không nhận khóa là lỗi lúc khởi động. Chỉ câu lệnh hoặc sửa tệp mới đổi được tên biến; trang văn phòng thì không.
 
-Nhà cung cấp thiếu khóa đơn giản là không được dùng, và dữ liệu của nó chuyển sang nhà cung cấp kế tiếp. Lúc khởi động, OpenAlpha ghi một cảnh báo `trading.source.skipped` nêu tên từng nhà cung cấp bị bỏ qua và biến nó cần. Muốn kiểm tra mà không khởi động gì:
+Nhà cung cấp thiếu khóa đơn giản là không được dùng, và dữ liệu của nó chuyển sang nhà cung cấp kế tiếp. `bls` là ngoại lệ: không khóa vẫn được dùng. Lúc khởi động, OpenAlpha ghi một cảnh báo `trading.source.skipped` nêu tên từng nhà cung cấp bị bỏ qua và biến nó cần. Muốn kiểm tra mà không khởi động gì:
 
 ```bash
 openalpha doctor sources
@@ -159,7 +160,7 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |
 
-Ba nhà cung cấp tính hạn mức theo cửa sổ dài hơn mà nhịp theo phút không diễn đạt được: `bls` theo ngày, `er-api` và `coingecko` theo tháng (bộ nối `coingecko` nhắm tới gói Demo 10.000 lời gọi mỗi tháng). Dùng bình thường thì không bên nào gần chạm: `er-api` đứng cuối danh sách FX và `bls` chỉ được hỏi một lần mỗi lượt refresh vĩ mô. `coinmarketcap` không công bố trần cho phần dùng không khóa và trả `1022` khi một người gọi ẩn danh đã dùng hết; nó hồi lại trong vòng một phút sau khi nghỉ, và nhà cung cấp kế tiếp lấp chỗ trống.
+Ba nhà cung cấp tính hạn mức theo cửa sổ dài hơn mà nhịp theo phút không diễn đạt được: `bls` theo ngày, `er-api` và `coingecko` theo tháng (bộ nối `coingecko` nhắm tới gói Demo 10.000 lời gọi mỗi tháng). Dùng bình thường thì không bên nào gần chạm: `er-api` đứng cuối danh sách FX và `bls` chỉ được hỏi tối đa một lần mỗi ngày và hoàn toàn không được hỏi giữa hai kỳ công bố hằng tháng của chỉ số lạm phát (xem [Cache](#cache)). `coinmarketcap` không công bố trần cho phần dùng không khóa và trả `1022` khi một người gọi ẩn danh đã dùng hết; nó hồi lại trong vòng một phút sau khi nghỉ, và nhà cung cấp kế tiếp lấp chỗ trống.
 
 OpenAlpha không giữ hạn mức theo ngày hay theo tháng nào của riêng nó cho lời gọi nhà cung cấp, vì các lời gọi đó miễn phí ở những gói mà nó nhắm tới. Trần chi tiêu có cho lời gọi model: [Ngân sách](ngan-sach.md).
 
@@ -179,6 +180,7 @@ Một số lệnh giới hạn lượng đọc: bảng giá hiện tối đa 12 
 Có rất ít thứ được cache, và mỗi cái đều có lý do đo được.
 
 - **Các ngày crypto đã chốt.** Lịch sử theo ngày của các ngày trước hôm nay từ `binance`, `bybit` và `mexc` được giữ trong bộ nhớ (tối đa 8.000 mục) và chỉ tải một lần. Cây nến hôm nay đang hình thành không bao giờ được dùng làm bằng chứng, nên một cửa sổ không chấm điểm khác nhau từng phút. Một ngày vừa chốt chỉ tải đúng ngày đó, không tải lại 200 ngày trước. Lịch sử cổ phiếu không bao giờ đi qua đường này, vì giá điều chỉnh bị sửa ngược về quá khứ.
+- **Nhà cung cấp vĩ mô.** `treasury`, `bls`, `fred` và lãi suất tiền gửi của `vndirect` được hỏi tối đa một lần mỗi ngày (giờ UTC); mọi lần đọc vĩ mô khác trong ngày, kể cả sau khi khởi động lại, lấy câu trả lời gần nhất đã lưu trong cơ sở dữ liệu của bạn. `bls` còn được để yên khi chưa thể có kỳ lạm phát mới: số của một tháng xuất hiện từ khoảng ngày 10 tháng sau, nên khi đã có số đó thì không hỏi lại cho tới lúc ấy. Nhà cung cấp từ chối hoặc lỗi (kể cả hết lượt gọi trong ngày) được thay bằng câu trả lời đã lưu gần nhất, kèm ngày mà nó mô tả, chừng nào câu trả lời đó còn đủ mới để có nghĩa; chỉ khi không còn gì đủ mới thì lần đọc mới báo thiếu nhà cung cấp. Nếu lý do là hết lượt trong ngày thì ghi chú nói rõ điều đó và rằng mai gọi lại được.
 - **Vĩ mô.** Một lần đọc vĩ mô đã trộn cho mỗi khu vực và mỗi ngày, dùng chung cho mọi thị trường chấm điểm dựa trên nó. Lần đọc mà có nhà cung cấp không trả lời thì không được giữ, nên lượt đầu tiên trong ngày (trước khi các chuỗi Mỹ được công bố) không bao giờ thành câu trả lời của cả ngày.
 - **Bảng crypto.** Bảng xếp hạng được đọc một lần mỗi giờ và dùng chung cho mọi lần tra giá và ký hiệu.
 - **Lần đọc toàn thị trường VN.** Một lượt refresh hỏi `vndirect` từng mã một, nhưng nhà cung cấp trả cả thị trường cho mỗi truy vấn, nên bên gọi đầu tiên đọc cả cửa sổ và những bên sau lấy phần của mình. Nó sống 60 giây khi nhàn rỗi và không bao giờ quá 5 phút.

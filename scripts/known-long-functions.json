@@ -172,7 +172,6 @@
     "src/trading/wiring/catalog/tools.ts#createTradingTools": 46,
     "src/trading/wiring/composition/registration.ts#buildTrading": 45,
     "src/trading/wiring/composition/services.ts#createDomainServices": 52,
-    "src/trading/wiring/composition/source-registry.ts#createConfiguredSourceRegistry": 44,
     "src/trading/wiring/composition/themes.ts#buildThemeService": 41,
     "src/trading/wiring/host/market.ts#priceMethods": 45,
     "src/trading/wiring/host/order.ts#orderWrites": 41
