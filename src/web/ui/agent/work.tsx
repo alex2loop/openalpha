@@ -27,7 +27,7 @@ import { useLoad } from '@/web/ui/kit/use-load'
 export function Work({ view }: { readonly view: AgentView }) {
   const tasks = useLoad((signal) => getJson(ROUTES.tasks, { signal })).value
   const board = useBlock(ROUTES.board)
-  const schedules = (state.value?.schedules ?? []).filter((row) => row.agentId === view.agentId)
+  const schedules = (state.value?.schedules ?? []).filter((row) => row.agentId === view.daemonId)
   const seconds = formatAlertSeconds(tasks)
 
   return (
