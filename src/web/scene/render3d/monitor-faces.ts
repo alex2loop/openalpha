@@ -15,12 +15,12 @@ import type { FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { pageMinute } from '@/web/scene/clock/clock'
-import { roomStatus } from '@/web/scene/data/room-status'
 import { flatPoseOf } from '@/web/scene/render3d/seated'
 import { toUnits } from '@/web/scene/render3d/space'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { FONT } from '@/web/scene/sprites/face-text'
 import { roomAt } from '@/web/scene/world/rooms'
+import { findRun } from '@/web/state/live'
 import { formatHourOfDay } from '@/web/text/time'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -57,7 +57,7 @@ const APP_KEYS: Readonly<Partial<Record<RoomId, MessageKey>>> = Object.freeze({
 })
 
 /** One canvas per monitor on the floor shown, drawn only while the monitor is lit by someone at
- *  work; it shows the room's run: its title, its lines and the step it is typing. */
+ *  work; it shows that person's run: its title, its lines and the step it is typing. */
 export interface MonitorFaces {
   readonly root: Group
   readonly plane: PlaneGeometry
@@ -93,6 +93,8 @@ export function syncMonitorFaces(
     readonly floor: FloorId
     readonly props: FloorProps
     readonly lit: readonly boolean[]
+    /** The run each lit screen's worker is on. */
+    readonly runIds: readonly (string | undefined)[]
     /** The screens laid flat before someone sitting at them. */
     readonly seated: readonly boolean[]
     /** The desk screens real work lights; each shows on the monitor at its computer. */
@@ -123,7 +125,7 @@ export function syncMonitorFaces(
 
     const host = isLit ? hostOn(face, at.deskScreens) : undefined
 
-    isChanged = (isLit && paintFace(face, { ...at, host })) || isChanged
+    isChanged = (isLit && paintFace(face, { ...at, host, runId: at.runIds[i] })) || isChanged
   })
 
   return isChanged
@@ -204,13 +206,18 @@ function placeFace(face: MonitorFace, isFlat: boolean): boolean {
   return true
 }
 
-// The room's run on the screen: a new step starts typing again; the face is drawn again only when
+// The worker's run on the screen: a new step starts typing again; the face is drawn again only when
 // what it shows moved.
 function paintFace(
   face: MonitorFace,
-  at: { readonly now: number; readonly isReduced: boolean; readonly host: string | undefined }
+  at: {
+    readonly now: number
+    readonly isReduced: boolean
+    readonly host: string | undefined
+    readonly runId: string | undefined
+  }
 ): boolean {
-  const run = face.room === undefined ? undefined : roomStatus.value.get(face.room)?.runs[0]
+  const run = at.runId === undefined ? undefined : findRun(at.runId)
   const target = run?.progress?.text ?? ''
 
   if (target !== face.target) {

@@ -181,16 +181,18 @@ function poolsOf(fixtures: Fixtures): Pool[] {
   return [screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring]
 }
 
-// The screens lit by someone at work at their seat glow and show their room's run; the rest stand
+// The screens lit by someone at work at their seat glow and show that person's run; the rest stand
 // by, or sleep while the office is quiet.
 function syncScreens(fixtures: Fixtures, frame: SeatedFrame): boolean {
   const pool = fixtures.screens
-  const lit = frame.props.screens.map((screen) =>
-    frame.standing.some(
-      ({ actor, at }) =>
-        actor.working && Math.hypot(at.x - screen.seat.x, at.y - screen.seat.y) <= SCREEN_REACH_PX
-    )
+  const runIds = frame.props.screens.map(
+    (screen) =>
+      frame.standing.find(
+        ({ actor, at }) =>
+          actor.working && Math.hypot(at.x - screen.seat.x, at.y - screen.seat.y) <= SCREEN_REACH_PX
+      )?.actor.runId
   )
+  const lit = runIds.map((runId) => runId !== undefined)
 
   const idle = frame.sim.life.isQuiet ? PROP_TONES.screenOff : PROP_TONES.screenStandby
 
@@ -198,6 +200,7 @@ function syncScreens(fixtures: Fixtures, frame: SeatedFrame): boolean {
     floor: frame.sim.floor,
     props: frame.props,
     lit,
+    runIds,
     seated: frame.seated,
     deskScreens: frame.sim.deskScreens,
     now: frame.now,

@@ -171,6 +171,14 @@ function DeskScreen({ screen, rect }: { readonly screen: LitScreen; readonly rec
     )
   }
 
+  if (content.kind === 'run') {
+    return (
+      <span class="desk-screen" style={boxStyle(rect)} title={content.title}>
+        {rect.w >= SCREEN_TEXT_MIN_PX ? (content.step ?? content.title) : null}
+      </span>
+    )
+  }
+
   const line = tr('ui.office.screen.reading', { host: content.host })
 
   return (

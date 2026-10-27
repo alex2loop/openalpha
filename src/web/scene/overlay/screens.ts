@@ -11,6 +11,7 @@ import { CRAWLERS, scoutOf } from '@/web/scene/sim/vocabulary'
 import { flatScreenOf } from '@/web/scene/world/desk-spots'
 import { propsOn } from '@/web/scene/world/props'
 import { sceneView } from '@/web/state/prefs'
+import { formatRunName } from '@/web/text/run-name'
 
 const ANALYST: ActorId = 'analyst'
 // A desk's computer stands within this far of its person's seat, in world px.
@@ -42,7 +43,8 @@ interface ScreenInput {
 }
 
 /** Every desk screen with real work on it: a scout's while its question reads a page, the
- *  analyst's once its ticker's closes are read. An idle screen is not listed: it shows nothing. */
+ *  analyst's once its ticker's closes are read, anyone else's while they work a run. Each shows the
+ *  run of the person at it. An idle screen is not listed: it shows nothing. */
 export function buildScreens(input: ScreenInput): readonly LitScreen[] {
   const screens: LitScreen[] = []
 
@@ -89,14 +91,26 @@ function contentOf(def: ActorDef, input: ScreenInput): DeskScreenContent | undef
     return undefined
   }
 
-  if (CRAWLERS.includes(def.id)) {
-    const host = run.progress === undefined ? undefined : hostOf(run.progress)
-    const isOwn = run.progress !== undefined && scoutOf(run.progress) === def.id
-
-    return host !== undefined && isOwn ? { kind: 'host', host } : undefined
+  if (def.id === ANALYST) {
+    return lineContentOf(run, input)
   }
 
-  const ticker = def.id === ANALYST ? tickerOf(run) : undefined
+  const host = CRAWLERS.includes(def.id) ? hostContentOf(def, run) : undefined
+  const step = run.progress?.text
+
+  return host ?? { kind: 'run', title: formatRunName(run), ...(step === undefined ? {} : { step }) }
+}
+
+// A scout's screen names the page its own question reads; the other scout's has none.
+function hostContentOf(def: ActorDef, run: Run): DeskScreenContent | undefined {
+  const host = run.progress === undefined ? undefined : hostOf(run.progress)
+  const isOwn = run.progress !== undefined && scoutOf(run.progress) === def.id
+
+  return host !== undefined && isOwn ? { kind: 'host', host } : undefined
+}
+
+function lineContentOf(run: Run, input: ScreenInput): DeskScreenContent | undefined {
+  const ticker = tickerOf(run)
   const closes =
     ticker === undefined ? undefined : input.series.get(seriesKeyOf({ runId: run.runId, ticker }))
 
@@ -117,8 +131,8 @@ function tickerOf(run: Run): string | undefined {
   return toParamText(run.progress?.params?.ticker) ?? run.tickers[0]
 }
 
-// A scout's screen is its desk computer's (the one nearest its seat, less the stand); the
-// analyst's is the laptop in front of its seat. Anyone else has no screen of their own.
+// A person's screen is their desk computer's (the one nearest their seat, less the stand); the
+// analyst's is the laptop in front of the seat. Someone with no computer by their seat has none.
 function screenRectOf(def: ActorDef): Rect | undefined {
   if (def.id === ANALYST) {
     return {
@@ -127,10 +141,6 @@ function screenRectOf(def: ActorDef): Rect | undefined {
       w: LAPTOP_W,
       h: LAPTOP_H,
     }
-  }
-
-  if (!CRAWLERS.includes(def.id)) {
-    return undefined
   }
 
   const computer = propsOn(def.floor)

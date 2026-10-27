@@ -325,6 +325,7 @@ export function toActorView(
 ): ActorView {
   const item = person.beats.at(-1)?.item ?? person.goal?.item
   const sheet = person.goal?.hasSheet === true ? toSheet(person) : undefined
+  const runId = isWorking(person) ? person.goal?.runId : undefined
 
   return {
     id: person.def.id,
@@ -334,6 +335,7 @@ export function toActorView(
     at: person.walker.pos,
     facing: facingOf(person, people.byId),
     working: isWorking(person),
+    ...(runId === undefined ? {} : { runId }),
     ...pose,
     ...(item === undefined ? {} : { item }),
     ...(sheet === undefined ? {} : { sheet }),

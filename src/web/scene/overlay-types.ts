@@ -7,10 +7,11 @@ export interface SceneMark {
   readonly tone: 'need' | 'stop'
 }
 
-/** What a lit desk screen shows: the host a scout's page read names, or the closes of the ticker
- *  the analyst works on. */
+/** What a lit desk screen shows: the host a scout's page read names, the closes of the ticker the
+ *  analyst works on, or, for anyone else at work, the run itself and the step it is on. */
 export type DeskScreenContent =
   | { readonly kind: 'host'; readonly host: string }
+  | { readonly kind: 'run'; readonly title: string; readonly step?: string }
   | {
       readonly kind: 'line'
       readonly closes: readonly number[]
