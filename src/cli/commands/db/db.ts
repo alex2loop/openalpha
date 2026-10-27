@@ -106,8 +106,10 @@ const dbCleanupCommand = createCommand({
     const storage = app.resolve('storage')
     const dialect = app.resolve('dialect')
     const logger = app.resolve('logger')
+    // `--older-than` sets the general window only; the history window never drops below it.
     const config = {
       retentionDays,
+      historyRetentionDays: Math.max(app.config.retention.historyDays, retentionDays),
       inboxRetentionDays: app.config.retention.inboxDays,
     }
 
@@ -124,6 +126,7 @@ const dbCleanupCommand = createCommand({
       success(
         t(locale, 'cli.dbPrunedSummary', {
           general: retentionDays,
+          history: config.historyRetentionDays,
           inbox: config.inboxRetentionDays,
         })
       )
@@ -136,6 +139,7 @@ const dbCleanupCommand = createCommand({
 function printRetentionCounts(app: CliApp, counts: RetentionCounts, config: RetentionConfig): void {
   const locale = app.config.locale.language
   app.out(t(locale, 'cli.dbFieldGeneralWindow', { value: config.retentionDays }))
+  app.out(t(locale, 'cli.dbFieldHistoryWindow', { value: config.historyRetentionDays }))
   app.out(t(locale, 'cli.dbFieldInboxWindow', { value: config.inboxRetentionDays }))
   app.out(t(locale, 'cli.dbFieldSessions', { value: counts.sessions }))
   app.out(t(locale, 'cli.dbFieldSessionRoutes', { value: counts.sessionRoutes }))
@@ -149,6 +153,17 @@ function printRetentionCounts(app: CliApp, counts: RetentionCounts, config: Rete
   app.out(t(locale, 'cli.dbFieldLlmAttempts', { value: counts.llmAttempts }))
   app.out(t(locale, 'cli.dbFieldRuns', { value: counts.runs }))
   app.out(t(locale, 'cli.dbFieldNotices', { value: counts.notices }))
+  app.out(t(locale, 'cli.dbFieldRestingExits', { value: counts.restingExits }))
+  app.out(t(locale, 'cli.dbFieldSpentJobs', { value: counts.spentJobs }))
+  app.out(t(locale, 'cli.dbFieldSuggestions', { value: counts.suggestions }))
+  app.out(t(locale, 'cli.dbFieldFactorLog', { value: counts.factorLog }))
+  app.out(t(locale, 'cli.dbFieldThemeOutcomes', { value: counts.themeOutcomes }))
+  app.out(t(locale, 'cli.dbFieldThemeReads', { value: counts.themeReads }))
+  app.out(t(locale, 'cli.dbFieldThemeRuns', { value: counts.themeRuns }))
+  app.out(t(locale, 'cli.dbFieldNavSnapshots', { value: counts.navSnapshots }))
+  app.out(t(locale, 'cli.dbFieldSeriesPoints', { value: counts.seriesPoints }))
+  app.out(t(locale, 'cli.dbFieldSeriesProvenance', { value: counts.seriesProvenance }))
+  app.out(t(locale, 'cli.dbFieldMacroDocuments', { value: counts.macroDocuments }))
 }
 
 const dbStatsCommand = createCommand({

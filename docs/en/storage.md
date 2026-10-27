@@ -172,8 +172,8 @@ no snapshot on either path, and `db migrate down` says so before it asks.
 
 ### Retention
 
-The windows are set by [`[retention]`](configuration.md#retention): `days` is the general window
-and `inbox_days` is the inbox's own. An inbox entry may be claimed 3 times before it is dead-lettered.
+The windows are set by [`[retention]`](configuration.md#retention): `days` is the general window,
+`history_days` the track record's and `inbox_days` the inbox's own. An inbox entry may be claimed 3 times before it is dead-lettered.
 
 | Data | Retention behaviour |
 | --- | --- |
@@ -191,12 +191,25 @@ and `inbox_days` is the inbox's own. An inbox entry may be claimed 3 times befor
 | Pending pairings | Removed after `days`, from creation. |
 | Fired or disabled alerts | Removed after `days`, from the time they fired or were disabled. Live alerts are never pruned. |
 | `brief_snapshots` | Removed after `days`, except the newest snapshot per locale, which always survives. |
+| Scheduler jobs | A one-shot job that ran and was switched off is removed after `days` from its run time, with its run history. A paused one-shot that never ran, and every recurring or event job, stays. |
+| Resting exits | Settled or closed rows are removed after `days` from when they were placed. Live ones are never pruned. |
+| Theme runs and their reads | Removed after `days`, except a run an outcome still cites, each theme's two newest runs, and the newest run and newest full run. |
+| Suggestions | A scored call is removed after `history_days` from when it resolved, a hold after `history_days` from when it was made. An unscored call is never removed, and each name keeps its newest ten rows per action and focus, so the standing plan and exit plan always survive. |
+| `factor_log`, `theme_outcomes` | Resolved rows are removed after `history_days` from when they resolved. Pending rows are never pruned. |
+| `nav_snapshots`, `series_points`, `series_provenance` | Removed after `history_days`, from when they were recorded, fetched or extracted. |
+| `macro_documents` | Removed after `history_days`, but kept at least 800 days. |
+| Ledger, order intents, live resting exits | Never pruned by age: the ledger is the book of record. An order intent leaves when it expires or settles, or when you clear a failed one. |
 | Market data | Not touched by `db cleanup`. Each market's refresh trims its own old rows by fetch time after a pass that wrote. News ages out the same way, on its own window. |
 
 The daemon applies retention once at startup and then on a schedule. `db cleanup --older-than
 <duration>` runs the same policy by hand, needs the daemon stopped, and with `--dry-run` only
 counts. `--older-than` is required, overrides the general window for that command only and must be
-at least `1d`. Inbox entries still use `inbox_days`, and `llm_attempts` keeps its own 400 days.
+at least `1d`. Inbox entries still use `inbox_days`, the track record `history_days` (never below
+`--older-than`), and `llm_attempts` keeps its own 400 days.
+
+Rows are deleted in pages of 5,000, each page its own transaction, so a large backlog never holds
+the write lock for long; one sweep takes at most 20 pages per kind and leaves the rest for the next.
+SQLite reuses the freed pages for new rows, so the file stops growing rather than shrinking.
 
 Each kind of data is pruned in its own transaction. A kind that fails or runs slow is logged as
 `retention.scope_failed` and counted as zero, the other kinds are still pruned, and its rows wait for

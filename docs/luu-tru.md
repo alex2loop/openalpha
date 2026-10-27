@@ -170,8 +170,8 @@ tác được. `upgrade --rollback` dùng lệnh này để đưa schema về d�
 
 ### Lưu giữ
 
-Cửa sổ lưu giữ do [`[retention]`](cau-hinh.md#retention) đặt: `days` là cửa sổ chung và `inbox_days`
-là cửa sổ riêng của inbox. Một mục inbox được nhận việc tối đa 3 lần trước khi bị đưa vào hàng chết.
+Cửa sổ lưu giữ do [`[retention]`](cau-hinh.md#retention) đặt: `days` là cửa sổ chung, `history_days`
+là cửa sổ của kết quả theo dõi và `inbox_days` là cửa sổ riêng của inbox. Một mục inbox được nhận việc tối đa 3 lần trước khi bị đưa vào hàng chết.
 
 | Dữ liệu | Hành vi lưu giữ |
 | --- | --- |
@@ -189,12 +189,25 @@ là cửa sổ riêng của inbox. Một mục inbox được nhận việc tố
 | Ghép nối đang chờ | Bị xóa sau `days`, tính từ lúc tạo. |
 | Cảnh báo đã nổ hoặc đã tắt | Bị xóa sau `days`, tính từ lúc nổ hoặc lúc bị tắt. Cảnh báo còn sống không bao giờ bị cắt. |
 | `brief_snapshots` | Bị xóa sau `days`, trừ ảnh chụp mới nhất của mỗi ngôn ngữ, cái đó luôn sống sót. |
+| Việc lập lịch | Việc chạy một lần đã chạy xong và đã tắt bị xóa sau `days` tính từ giờ chạy, cùng lịch sử chạy của nó. Việc chạy một lần bị tạm dừng khi chưa chạy, và mọi việc lặp lại hay theo sự kiện, được giữ. |
+| Lệnh thoát đang chờ | Dòng đã khớp hoặc đã đóng bị xóa sau `days` tính từ lúc đặt. Dòng còn sống không bao giờ bị cắt. |
+| Lượt chạy chủ đề và các nhận định | Bị xóa sau `days`, trừ lượt mà một kết quả còn dẫn tới, hai lượt mới nhất của mỗi chủ đề, lượt mới nhất và lượt đầy đủ mới nhất. |
+| Gợi ý | Gợi ý đã chấm bị xóa sau `history_days` tính từ lúc chốt, lệnh giữ sau `history_days` tính từ lúc tạo. Gợi ý chưa chấm không bao giờ bị xóa, và mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động và trọng tâm, nên kế hoạch đang đứng và kế hoạch thoát luôn còn. |
+| `factor_log`, `theme_outcomes` | Dòng đã chốt bị xóa sau `history_days` tính từ lúc chốt. Dòng đang chờ không bao giờ bị cắt. |
+| `nav_snapshots`, `series_points`, `series_provenance` | Bị xóa sau `history_days`, tính từ lúc ghi, tải hoặc trích xuất. |
+| `macro_documents` | Bị xóa sau `history_days`, nhưng được giữ ít nhất 800 ngày. |
+| Sổ cái, ý định đặt lệnh, lệnh thoát còn sống | Không bao giờ bị cắt theo tuổi: sổ cái là sổ gốc. Ý định đặt lệnh rời đi khi hết hạn hoặc đã xong, hoặc khi bạn xóa một ý định lỗi. |
 | Dữ liệu thị trường | `db cleanup` không đụng tới. Mỗi lần refresh của một thị trường tự cắt các dòng cũ của nó theo thời điểm tải, sau một lượt đã ghi dữ liệu. Tin tức cũng vậy, theo cửa sổ riêng. |
 
 Daemon tự dọn một lần lúc khởi động rồi theo chu kỳ. `db cleanup --older-than <khoảng>` chạy đúng chính
 sách đó bằng tay, cần daemon đã dừng, và thêm `--dry-run` thì chỉ đếm chứ không xóa. `--older-than` bắt
 buộc, ghi đè cửa sổ chung chỉ cho lệnh đó và phải ít nhất `1d`. Các mục inbox vẫn dùng `inbox_days`,
-còn `llm_attempts` giữ cửa sổ 400 ngày riêng.
+kết quả theo dõi dùng `history_days` (không bao giờ dưới `--older-than`), còn `llm_attempts` giữ cửa
+sổ 400 ngày riêng.
+
+Các dòng được xóa theo trang 5.000 dòng, mỗi trang một giao dịch, nên tồn đọng lớn không giữ khóa ghi
+lâu; mỗi lượt dọn tối đa 20 trang cho mỗi loại và để phần còn lại cho lượt sau. SQLite dùng lại các
+trang đã giải phóng cho dòng mới, nên tệp ngừng phình ra chứ không co lại.
 
 Mỗi loại dữ liệu được dọn trong một giao dịch riêng. Loại nào hỏng hoặc chạy chậm thì được log
 `retention.scope_failed` và tính là không dọn được gì, các loại khác vẫn được dọn, còn các dòng của
