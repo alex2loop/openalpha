@@ -30,7 +30,7 @@ const BELL_LOOK_MS = 3_000
 const BELL_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'post-close'])
 const CLOSED_PHASES: ReadonlySet<SessionPhase> = new Set(['post-close', 'non-session'])
 // The lobby screens everyone turns to at the bell: the agenda's two screens.
-export const LOBBY_SCREENS = propsOn('office').filter((prop) => prop.tip === 'agenda')
+const LOBBY_SCREENS = propsOn('office').filter((prop) => prop.tip === 'agenda')
 export const BELL_LOOK_AT = Object.freeze({
   x: averageOf(LOBBY_SCREENS.map((prop) => prop.rect.x + prop.rect.w / 2)),
   y: averageOf(LOBBY_SCREENS.map((prop) => prop.rect.y + prop.rect.h)),

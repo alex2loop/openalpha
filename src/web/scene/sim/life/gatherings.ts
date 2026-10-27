@@ -17,10 +17,11 @@ import {
   seatedFree,
 } from '@/web/scene/sim/life/state'
 import { approachOf } from '@/web/scene/sim/places'
-import { BELL_LOOK_AT, LOBBY_SCREENS, moment } from '@/web/scene/sim/rhythm'
+import { BELL_LOOK_AT, moment } from '@/web/scene/sim/rhythm'
 import { propsOn } from '@/web/scene/world/props'
 import { isInRange } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
+import { LOBBY_WATCH_SPOTS } from '@/web/scene/world/seats'
 import { MS_PER_MINUTE } from '@/web/text/time-units'
 
 const LIBRARY_ROOM = 'lib'
@@ -40,18 +41,6 @@ const LIBRARY_PICK_PERCENT = 60
 const LIBRARY_GAP_MS = Object.freeze({ min: 60_000, max: 150_000 })
 const LIBRARY_HOLD_MS = Object.freeze({ min: 6_000, max: 11_000 })
 const LIBRARY_GAP_KEY = 'office:library'
-// Where the people stand at the lobby screens: below each screen, and a step to either side.
-const SPOT_SPREAD_PX = 9
-const SPOT_ROW_PX = 6
-const SCREEN_SPOTS: readonly Point[] = LOBBY_SCREENS.flatMap((prop) => {
-  const at = approachOf(prop)
-
-  return [
-    at,
-    { x: at.x - SPOT_SPREAD_PX, y: at.y + SPOT_ROW_PX },
-    { x: at.x + SPOT_SPREAD_PX, y: at.y + SPOT_ROW_PX },
-  ]
-})
 const LIBRARY_SPOTS: readonly Point[] = propsOn(OFFICE_FLOOR)
   .filter((prop) => prop.kind === LIBRARY_PROP && prop.room === LIBRARY_ROOM)
   .map(approachOf)
@@ -83,7 +72,7 @@ function stepAuction(state: LifeState, step: LifeStep): void {
   )
 
   for (const [at, actor] of people
-    .slice(0, Math.max(0, SCREEN_SPOTS.length - watching))
+    .slice(0, Math.max(0, LOBBY_WATCH_SPOTS.length - watching))
     .entries()) {
     const line: LifeLine = {
       actor: actor.def.id,
@@ -200,7 +189,7 @@ function watch(
     readonly step: LifeStep
   }
 ): void {
-  const place = SCREEN_SPOTS[at.spot % SCREEN_SPOTS.length]
+  const place = LOBBY_WATCH_SPOTS[at.spot % LOBBY_WATCH_SPOTS.length]
 
   if (place !== undefined) {
     begin(state, { actor: at.actor, kind: at.kind, nowMs: at.step.nowMs, line: at.line }, [

@@ -177,6 +177,17 @@ export const SOFA_SEATS: Readonly<Record<FloorId, readonly [Seat, Seat]>> = Obje
   ],
 } satisfies Record<FloorId, readonly [Seat, Seat]>)
 
+/** The standing places at the lobby screens: east of the boards and south of them, a sprite's
+ *  height clear of both, so nobody stands in front of a screen. */
+export const LOBBY_WATCH_SPOTS: readonly Point[] = Object.freeze([
+  { x: 130, y: 344 },
+  { x: 146, y: 344 },
+  { x: 130, y: 356 },
+  { x: 146, y: 356 },
+  { x: 108, y: 362 },
+  { x: 118, y: 364 },
+])
+
 /** The standing places before the meeting room's whiteboard, for a stand-up. */
 export const BOARD_SPOTS: readonly Point[] = Object.freeze([
   { x: 404, y: 104 },
