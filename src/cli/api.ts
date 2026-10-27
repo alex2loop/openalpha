@@ -40,7 +40,7 @@ export { offerOnboard } from '@/cli/commands/onboard/onboard'
 export { isBackgroundLaunch } from '@/cli/daemon-env'
 export { liveDaemon } from '@/cli/daemon-guard'
 export { readDaemonDegraded } from '@/cli/daemon-ready'
-export { getEnv, isVerbose } from '@/cli/env'
+export { editorFromEnv, getEnv, isVerbose } from '@/cli/env'
 export {
   type EnvFileLoad,
   isRuntimeEnvName,
@@ -67,7 +67,7 @@ export { BUILT_IN_COMMANDS } from '@/cli/registry'
 export { createRoot } from '@/cli/root'
 export {
   installProcessTerminal,
-  TERMINAL_ENV_NAMES,
+  pickTerminalEnv,
   toTerminalWriters,
   withTerminal,
 } from '@/cli/terminal'

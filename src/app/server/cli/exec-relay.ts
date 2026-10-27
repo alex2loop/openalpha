@@ -4,7 +4,10 @@ import { basename, join } from 'node:path'
 
 import type { ExecClientFrame, ExecServerFrame } from '@/app/server/wire/exec'
 import type { EditorExit, Terminal } from '@/cli/api'
+import { editorFromEnv } from '@/cli/api'
 import { BRAND } from '@/core/brand'
+
+const FOREIGN_EDITOR_MESSAGE = "the editor is not this terminal's VISUAL or EDITOR"
 
 interface ExecRelayInput {
   readonly terminal: Terminal
@@ -110,8 +113,12 @@ function closeRelay(state: RelayState): void {
   stdin.off('data', state.onData)
   stdin.off('end', state.onEnd)
   state.sized.off('resize', state.onResize)
-  setRaw(state, false)
-  stdin.pause()
+
+  try {
+    setRaw(state, false)
+  } finally {
+    stdin.pause()
+  }
 }
 
 function receiveFrame(state: RelayState, frame: ExecServerFrame): void {
@@ -142,7 +149,7 @@ async function editFile(state: RelayState, frame: EditFrame): Promise<void> {
     const path = join(dir, basename(frame.fileName))
 
     await writeFile(path, frame.text, 'utf8')
-    state.send(await toEditedFrame(await state.terminal.openEditor(frame.editor, path), path))
+    state.send(await toEditedFrame(await openOwnEditor(state.terminal, frame.editor, path), path))
   } catch (err: unknown) {
     state.send({ type: 'edited', kind: 'failed', message: toMessage(err) })
   } finally {
@@ -157,6 +164,17 @@ async function editFile(state: RelayState, frame: EditFrame): Promise<void> {
       stdin.resume()
     }
   }
+}
+
+/** Only the editor this terminal names runs here: the daemon never chooses a shell command for it. */
+function openOwnEditor(terminal: Terminal, editor: string, path: string): Promise<EditorExit> {
+  const own = editorFromEnv(terminal.env)?.trim()
+
+  if (own !== editor) {
+    return Promise.resolve({ kind: 'failed', message: FOREIGN_EDITOR_MESSAGE })
+  }
+
+  return terminal.openEditor(own, path)
 }
 
 type EditedFrame = Extract<ExecClientFrame, { readonly type: 'edited' }>

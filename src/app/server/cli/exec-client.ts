@@ -7,17 +7,19 @@ import { startExecRelay } from '@/app/server/cli/exec-relay'
 import { resolveExecTarget } from '@/app/server/cli/exec-target'
 import { LOOPBACK_HOST } from '@/app/server/http/auth'
 import { EXEC_PATH, EXEC_REFUSED_CLOSE_CODE } from '@/app/server/wire/exec'
-import { CONTRACT_VERSION } from '@/app/server/wire/socket'
-import { isForwardable, printDaemonLost, resolveCommandPath, TERMINAL_ENV_NAMES } from '@/cli/api'
+import { CONTRACT_VERSION, SOCKET_IDLE_TIMEOUT_SECONDS } from '@/app/server/wire/socket'
+import { isForwardable, pickTerminalEnv, printDaemonLost, resolveCommandPath } from '@/cli/api'
 import { HALT_SPEC } from '@/core/errors'
 
 /** How long the loopback handshake may take before the command runs here instead. */
 const EXEC_OPEN_TIMEOUT_MS = 1_000
 /** How long the daemon may take to answer `exec`; past it the command may have started there. */
 const EXEC_ACCEPT_TIMEOUT_MS = 5_000
-/** How long an accepted command may go without a frame or a ping: two and a half times the
- *  daemon's socket `IDLE_TIMEOUT_SECONDS`, so a silent command that still gets pings runs on. */
-const EXEC_LIVENESS_TIMEOUT_MS = 375_000
+/** Pings the daemon may miss before an accepted command counts as lost. */
+const LIVENESS_IDLE_MULTIPLE = 2.5
+/** How long an accepted command may go without a frame or a ping: the daemon pings an idle socket
+ *  every `SOCKET_IDLE_TIMEOUT_SECONDS`, so a silent command that still gets pings runs on. */
+const EXEC_LIVENESS_TIMEOUT_MS = SOCKET_IDLE_TIMEOUT_SECONDS * LIVENESS_IDLE_MULTIPLE * 1000
 
 const SERVER_FRAME: z.ZodType<ExecServerFrame> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('accepted') }),
@@ -124,13 +126,22 @@ async function relayCommand(
     return await done.promise
   } finally {
     clearTimeout(relay.timer)
-    relay.exec?.close()
     ws.removeEventListener('open', onOpen)
     ws.removeEventListener('message', onMessage)
     ws.removeEventListener('close', onClose)
     ws.removeEventListener('error', onError)
     ws.removeEventListener('ping', onPing)
     ws.close()
+    closeExecRelay(relay)
+  }
+}
+
+/** Last in cleanup, so a throw restoring the terminal cannot leave the socket open. */
+function closeExecRelay(relay: Relay): void {
+  try {
+    relay.exec?.close()
+  } catch {
+    // Restoring the terminal failed; the command's outcome stands.
   }
 }
 
@@ -239,7 +250,7 @@ function toExecFrame(terminal: Terminal, flags: GlobalFlags): ExecStartFrame {
       columns: toSize(sized.isTTY, sized.columns),
       rows: toSize(sized.isTTY, sized.rows),
     },
-    env: toExecEnv(terminal),
+    env: pickTerminalEnv(terminal.env),
     quiet: flags.quiet,
     verbose: flags.verbose,
     noColor: flags.noColor,
@@ -251,18 +262,4 @@ function toExecFrame(terminal: Terminal, flags: GlobalFlags): ExecStartFrame {
 // type says; the frame needs a boolean and a whole number.
 function toSize(isTTY: boolean, size: number): number {
   return isTTY === true && Number.isInteger(size) && size > 0 ? size : 0
-}
-
-function toExecEnv(terminal: Terminal): Record<string, string> {
-  const env: Record<string, string> = {}
-
-  for (const name of TERMINAL_ENV_NAMES) {
-    const value = terminal.env[name]
-
-    if (value !== undefined) {
-      env[name] = value
-    }
-  }
-
-  return env
 }

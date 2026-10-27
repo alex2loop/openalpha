@@ -23,9 +23,7 @@ export function getEnv(): Record<string, string | undefined> {
   return process.env
 }
 
-export function editorFromEnv(): string | undefined {
-  const { env } = currentTerminal()
-
+export function editorFromEnv(env: TerminalEnv = currentTerminal().env): string | undefined {
   for (const name of EDITOR_ENV_NAMES) {
     const value = env[name]
 

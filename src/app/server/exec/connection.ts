@@ -161,6 +161,11 @@ function startExec(ws: ServerWebSocket<ExecSocketData>, raw: string | Buffer): v
 
   ws.data.terminal = terminal
   sendFrame(ws, { type: 'accepted' })
+
+  if (ws.data.closed) {
+    return
+  }
+
   runExec(app, terminal, frame.argv).catch((err: unknown) => {
     app.resolve('logger').error('api.exec_failed', { err: formatErrForLog(err) })
     closeWith(ws, INTERNAL_CLOSE_CODE, INTERNAL_REASON)

@@ -17,6 +17,7 @@ import { SET_COOKIE, toSessionCookieName } from '@/app/server/http/caller'
 import { apiError, handleHttp, resolveAuthorizedCaller } from '@/app/server/http/dispatch'
 import { PAGE_ROUTES, toPageResponse } from '@/app/server/http/page'
 import { EXEC_PATH } from '@/app/server/wire/exec'
+import { SOCKET_IDLE_TIMEOUT_SECONDS } from '@/app/server/wire/socket'
 import {
   closeAllSockets,
   closeSocketAdmission,
@@ -53,7 +54,11 @@ export function startApi(
       routes: PAGE_ROUTES,
       fetch: (req, srv) => routeRequest(req, srv, { app, ...surface, wsServices }),
       // Bun's pings stay on (`sendPings`), so an idle forwarded REPL is not reaped as a dead peer.
-      websocket: { ...socketHandlers, maxPayloadLength: MAX_WS_FRAME_BYTES },
+      websocket: {
+        ...socketHandlers,
+        maxPayloadLength: MAX_WS_FRAME_BYTES,
+        idleTimeout: SOCKET_IDLE_TIMEOUT_SECONDS,
+      },
       // Bun's default error page is HTML with the stack; every error body here is `{ error: { code } }`.
       development: false,
       error(err): Response {

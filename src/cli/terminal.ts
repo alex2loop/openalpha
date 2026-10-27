@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 
 import { BRAND } from '@/core/brand'
 
-export const TERMINAL_ENV_NAMES = [
+const TERMINAL_ENV_NAMES = [
   'NO_COLOR',
   'FORCE_COLOR',
   'TERM',
@@ -15,16 +15,17 @@ export const TERMINAL_ENV_NAMES = [
   'VISUAL',
   'EDITOR',
 ] as const
+
+type TerminalEnvName = (typeof TERMINAL_ENV_NAMES)[number]
+
 // PowerShell cannot take the file as a positional argument, so it reads it from the environment.
 const FILE_ENV = BRAND.controlEnv.editorFile
-const NO_FLAGS = { quiet: false, verbose: false, noColor: false }
+const NO_FLAGS: TerminalFlags = { quiet: false, verbose: false, noColor: false }
 
 // Process-wide, one per process: the terminal the entry installed. A forwarded command runs inside
 // `withTerminal`, so the store scopes its terminal to that command's async context.
 const scopedTerminal = new AsyncLocalStorage<Terminal>()
 let processTerminal: Terminal | undefined
-
-type TerminalEnvName = (typeof TERMINAL_ENV_NAMES)[number]
 
 export type TerminalEnv = Readonly<Partial<Record<TerminalEnvName, string>>>
 
@@ -64,12 +65,6 @@ export interface Terminal {
   openEditor(editor: string, path: string): Promise<EditorExit>
 }
 
-interface TerminalWriters {
-  readonly out: (line: string) => void
-  readonly err: (line: string) => void
-  readonly write: (chunk: string) => void
-}
-
 export function installProcessTerminal(flags: TerminalFlags): Terminal {
   processTerminal = createProcessTerminal(flags)
 
@@ -96,6 +91,12 @@ export function withTerminal<T>(terminal: Terminal, fn: () => T): T {
   return scopedTerminal.run(terminal, fn)
 }
 
+interface TerminalWriters {
+  readonly out: (line: string) => void
+  readonly err: (line: string) => void
+  readonly write: (chunk: string) => void
+}
+
 export function toTerminalWriters(terminal: Terminal): TerminalWriters {
   return {
     out: (line) => {
@@ -108,6 +109,23 @@ export function toTerminalWriters(terminal: Terminal): TerminalWriters {
       terminal.stdout.write(chunk)
     },
   }
+}
+
+/** The variables a terminal hands a forwarded command, as set values only. */
+export function pickTerminalEnv(
+  env: Readonly<Record<string, string | undefined>>
+): Partial<Record<TerminalEnvName, string>> {
+  const picked: Partial<Record<TerminalEnvName, string>> = {}
+
+  for (const name of TERMINAL_ENV_NAMES) {
+    const value = env[name]
+
+    if (value !== undefined) {
+      picked[name] = value
+    }
+  }
+
+  return picked
 }
 
 function createProcessTerminal(flags: TerminalFlags): Terminal {

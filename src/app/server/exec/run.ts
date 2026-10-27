@@ -31,13 +31,15 @@ export async function runExec(
   const startedAt = performance.now()
   const logger = app.resolve('logger')
   const execApp = toExecApp(app, terminal)
-  const commands = resolveCliCommands(execApp, app.resolve('extraCliCommands'))
-  const command = (await resolveCommandPath(argv, commands)).join(' ')
+  let command = ''
   let exitCode: number | undefined
 
-  logger.info('api.exec_started', { command })
-
   try {
+    const commands = resolveCliCommands(execApp, app.resolve('extraCliCommands'))
+
+    command = (await resolveCommandPath(argv, commands)).join(' ')
+    logger.info('api.exec_started', { command })
+
     // The whole command runs inside its terminal, so colour, width and prompts read the connection.
     const code = await withTerminal(terminal, () => runCli(execApp, argv, commands))
 
@@ -69,6 +71,7 @@ function toExecApp(app: App, terminal: ExecTerminal): CliApp {
     has: app.has,
     signal: AbortSignal.any([app.signal, terminal.aborted]),
     keyFile: app.resolve('keyFile'),
+    // The same object runExec passes to withTerminal: isOwnTerminal compares identity.
     terminal,
     ...toTerminalWriters(terminal),
   }

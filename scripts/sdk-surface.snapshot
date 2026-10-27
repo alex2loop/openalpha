@@ -27,7 +27,6 @@ cli:Needs
 cli:PendingUpgrade
 cli:PreBootOptions
 cli:ReleaseStatus
-cli:TERMINAL_ENV_NAMES
 cli:Terminal
 cli:TerminalEnv
 cli:TerminalInput
@@ -44,6 +43,7 @@ cli:collectDoctorProbes
 cli:createCommand
 cli:createGroup
 cli:createRoot
+cli:editorFromEnv
 cli:fail
 cli:formatArgIssue
 cli:formatInstalledNotice
@@ -67,6 +67,7 @@ cli:newerVersionOf
 cli:offerOnboard
 cli:parseGlobalFlags
 cli:patchUpdateState
+cli:pickTerminalEnv
 cli:preBootApp
 cli:preflightCommand
 cli:printDaemonLost

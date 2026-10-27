@@ -4,8 +4,8 @@ import { PassThrough, Writable } from 'node:stream'
 import { StringDecoder } from 'node:string_decoder'
 
 import type { ExecClientFrame, ExecServerFrame, ExecStartFrame } from '@/app/server/wire/exec'
-import type { EditorExit, Terminal, TerminalEnv, TerminalInput, TerminalOutput } from '@/cli/api'
-import { EXIT_TERMINATED, TERMINAL_ENV_NAMES } from '@/cli/api'
+import type { EditorExit, Terminal, TerminalInput, TerminalOutput } from '@/cli/api'
+import { EXIT_TERMINATED, pickTerminalEnv } from '@/cli/api'
 import { HALT_SPEC } from '@/core/errors'
 
 /** The longest text one `output` frame carries. */
@@ -112,7 +112,7 @@ export function createExecTerminal(start: ExecStartFrame, send: Send): ExecTermi
 
   return {
     ...io,
-    env: toTerminalEnv(start.env),
+    env: pickTerminalEnv(start.env),
     flags: { quiet: start.quiet, verbose: start.verbose, noColor: start.noColor },
     suspendable: false,
     aborted: life.aborted,
@@ -357,20 +357,6 @@ function toChunkEnd(text: string): number {
 // guard (`Number.isFinite`, `||`), so a piped command renders as it does in-process.
 function toSize(isTTY: boolean, size: number): number {
   return isTTY && size > 0 ? size : Number.NaN
-}
-
-function toTerminalEnv(env: Readonly<Record<string, string>>): TerminalEnv {
-  const kept: Partial<Record<(typeof TERMINAL_ENV_NAMES)[number], string>> = {}
-
-  for (const name of TERMINAL_ENV_NAMES) {
-    const value = env[name]
-
-    if (value !== undefined) {
-      kept[name] = value
-    }
-  }
-
-  return kept
 }
 
 function endInput(stdin: ExecInput): void {

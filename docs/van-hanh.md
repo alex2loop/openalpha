@@ -430,8 +430,8 @@ Một lệnh chạy ngay trong terminal khi:
 - bạn thêm `--local`, để bỏ qua daemon khi nó bị treo hoặc khi cần gỡ lỗi. Thêm `--log-level` cũng có tác
   dụng tương tự, vì cờ này hỏi về chính tiến trình này;
 - không có daemon nào đang sống giữ thư mục dữ liệu này, hoặc nó nạp một tệp cấu hình khác;
-- `[api] enabled` là `false`, daemon báo API đang suy giảm, không đọc được token, hoặc daemon không trả
-  lời trong một giây;
+- `[api] enabled` là `false`, daemon báo API đang suy giảm, không đọc được token hoặc token không
+  khớp với token của daemon, hoặc daemon không trả lời trong một giây;
 - daemon chạy bản khác với CLI. Chỉ trường hợp này có lên tiếng: một dòng nêu cả hai bản và bảo bạn chạy
   `openalpha restart --background`.
 
@@ -443,7 +443,7 @@ lực. Môi trường của terminal chỉ đi theo để dựng màu, bề rộ
 Nhấn Ctrl+C một lần là ngắt lệnh như khi chạy ở terminal. Nhấn lần hai trước khi lệnh trả lời sẽ đóng kết
 nối, daemon dừng mọi thứ lệnh đã bắt đầu, và CLI thoát `130`.
 
-Nếu daemon dừng khi một lệnh đang chạy (khởi động lại, sập, hoặc im lặng khoảng sáu phút), hoặc không nhận lệnh trong vài giây sau khi kết nối mở, CLI sẽ nói rõ
+Nếu daemon dừng khi một lệnh đang chạy (khởi động lại, sập, hoặc im lặng khoảng năm phút), hoặc không nhận lệnh trong vài giây sau khi kết nối mở, CLI sẽ nói rõ
 và thoát `17` (`daemon_lost`). Nó không bao giờ chạy lại lệnh đó ở đây, nên không có gì bị làm hai lần.
 Hãy xem nó đã làm tới đâu rồi mới thử lại: `openalpha history list` với một cuộc chat, rồi
 `openalpha chat --continue` để nối tiếp; với lệnh khác thì xem lệnh liệt kê của chính nó.
