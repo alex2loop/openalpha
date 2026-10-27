@@ -3,6 +3,7 @@ import type {
   CommandExchange,
   CommandRole,
   CommandSurface,
+  ScheduledRunner,
   SlashCommand,
   SlashContext,
   SlashInvocationPolicy,
@@ -45,6 +46,9 @@ export interface SlashDispatcher {
 
   /** Run ids of the long-running commands in flight. */
   activeCommands(): readonly RunId[]
+
+  /** Shows work the daemon starts on its own as a long-running command run. */
+  readonly runScheduled: ScheduledRunner
 }
 
 export interface CommandCatalog {

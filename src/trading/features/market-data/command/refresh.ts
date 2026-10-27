@@ -11,6 +11,7 @@ import type {
 } from '@/trading/kernel/market/refresh'
 import { isWord } from '@/core/utils/text'
 import { renderRefreshText } from '@/trading/features/market-data/render/refresh'
+import { REFRESH_COMMAND_NAME } from '@/trading/kernel/market/refresh'
 import { parseRegisteredMarket, usage } from '@/trading/kernel/surface/surface'
 import { resolveRenderContext } from '@/trading/render/format'
 
@@ -39,7 +40,7 @@ interface RefreshArgs {
 
 export function createRefreshCommand(deps: RefreshCommandDeps): SlashCommand {
   return {
-    name: 'refresh',
+    name: REFRESH_COMMAND_NAME,
     description: { kind: 'localized', key: 'slash.tradingRefreshHelp' },
     messageKeys: [USAGE, LIVE_ONLY],
     policy: {

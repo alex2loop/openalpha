@@ -1,5 +1,6 @@
 import type { App, Bind, Extend, ServiceProvider, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
@@ -82,6 +83,8 @@ interface TradingRegistrationOptions {
   onAlertsChecked(app: App): (at: number) => void
   /** Bound with the app in hand: the page shows each loop's last and next pass. */
   onTaskPass(app: App): TaskPassListener
+  /** Bound with the app in hand: the page shows a scheduled refresh as the `/refresh` run. */
+  runScheduled(app: App): ScheduledRunner
   /** Bound with the app in hand: the page shows what each debate role said. */
   onRoleOutput(app: App): RoleOutputListener
   /** Bound with the app in hand: the page shows an own agent's call being scored. */
@@ -102,6 +105,7 @@ type BoundOptions = Omit<
   | 'onAlertFired'
   | 'onAlertsChecked'
   | 'onTaskPass'
+  | 'runScheduled'
   | 'onRoleOutput'
   | 'onFocusCallScored'
 > & {
@@ -110,6 +114,7 @@ type BoundOptions = Omit<
   readonly onAlertFired: AlertFiredListener
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
+  readonly runScheduled: ScheduledRunner
   readonly onRoleOutput: RoleOutputListener
   readonly onFocusCallScored: CallScoredNotices['onFocusScored']
 }
@@ -230,7 +235,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     logger,
     createSuggestionBudget: budget,
   })
-  const refreshMarketData = buildRefreshTick({
+  const refreshMarketData = buildRefreshTick(options, {
     markets: registries.markets,
     stores,
     book: createTradeableBook({ portfolio: services.portfolio, venues: registries.venues }),
@@ -273,6 +278,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     onAlertFired: provided.onAlertFired(app),
     onAlertsChecked: provided.onAlertsChecked(app),
     onTaskPass: provided.onTaskPass(app),
+    runScheduled: provided.runScheduled(app),
     onRoleOutput: provided.onRoleOutput(app),
     onFocusCallScored: provided.onFocusCallScored(app),
   }

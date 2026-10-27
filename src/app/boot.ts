@@ -221,6 +221,9 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       onAlertFired: createAlertFiredListener,
       onAlertsChecked: (app) => (at) => app.resolve('bus').emit('alerts_checked', { at }),
       onTaskPass: (app) => app.resolve('taskStatus').listener,
+      // Resolved per pass, not at bind: the dispatcher's commands are built from trading itself.
+      runScheduled: (app) => (name, signal, work) =>
+        app.resolve('slashDispatcher').runScheduled(name, signal, work),
       onRoleOutput: (app) => (output) => app.resolve('bus').emit('role_output', output),
       onFocusCallScored: (app) => (scored) => app.resolve('bus').emit('focus_call_scored', scored),
       recipient: () => input.delivery.defaultRecipient(),

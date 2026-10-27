@@ -1,4 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
+import type { ScheduledRunner } from '@/core/types/command'
 import type { TradeSidesSweep } from '@/trading/features/market-data/ops/trade-sides'
 import type { MarketDataStore } from '@/trading/features/market-data/store/market-data'
 import type { NewsArchiveStore } from '@/trading/features/market-data/store/news-archive'
@@ -19,7 +20,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { refreshAnchorsForMarket } from '@/trading/features/market-data/ops/refresh-schedule'
 import { applyRetention } from '@/trading/features/market-data/ops/retention'
 import { caveatSeverity, dedupeCaveats } from '@/trading/kernel/caveat'
-import { reportRefreshJoined } from '@/trading/kernel/market/refresh'
+import { REFRESH_COMMAND_NAME, reportRefreshJoined } from '@/trading/kernel/market/refresh'
 import { createSharedFlight, type SharedFlight } from '@/trading/kernel/shared-flight'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 
@@ -193,6 +194,8 @@ interface RefreshOperationDeps {
   /** Rides the refresh rather than a clock of its own: every path that refreshes market data —
    *  boot, the daemon loop, and `/refresh` — is a path that should fill a missing settled session. */
   readonly recordTradeSides: TradeSidesSweep
+  /** Shows a scheduled pass as the `/refresh` run, so the page sees the daemon's own sweeps. */
+  readonly runScheduled: ScheduledRunner
   readonly logger: Logger
 }
 
@@ -204,28 +207,43 @@ export function createRefreshTick(
   deps: RefreshOperationDeps
 ): (options: RefreshAllMarketDataOptions) => Promise<readonly RefreshMarketDataResult[]> {
   return async (options) => {
-    const now = Date.now()
-    const forced = options.forced ?? false
     const requested = new Set(options.markets ?? (await marketsInUse(deps, options.signal)))
     // An unknown ref simply matches nothing: the command validated against the same registry, so
     // anything reaching here that does not match is a market this process cannot refresh.
     const markets = deps.markets.filter((ref) => requested.has(ref))
-    const results = await Promise.all(
-      markets.map((market) =>
-        deps.refresh({
-          market,
-          now,
-          ...(options.forced === undefined ? {} : { forced: options.forced }),
-          signal: options.signal,
-          ...(options.progress === undefined ? {} : { progress: options.progress }),
-        })
-      )
+
+    // A pass with nothing to sweep is no run: the page would show work that never happened.
+    if (options.scheduled !== true || markets.length === 0) {
+      return await sweepMarkets(deps, markets, options)
+    }
+
+    return await deps.runScheduled(REFRESH_COMMAND_NAME, options.signal, (run) =>
+      sweepMarkets(deps, markets, { ...options, ...run })
     )
-
-    logRefreshed(deps.logger, forced, results)
-
-    return deps.recordTradeSides(results, options.signal)
   }
+}
+
+async function sweepMarkets(
+  deps: RefreshOperationDeps,
+  markets: readonly MarketRef[],
+  options: RefreshAllMarketDataOptions
+): Promise<readonly RefreshMarketDataResult[]> {
+  const now = Date.now()
+  const results = await Promise.all(
+    markets.map((market) =>
+      deps.refresh({
+        market,
+        now,
+        ...(options.forced === undefined ? {} : { forced: options.forced }),
+        signal: options.signal,
+        ...(options.progress === undefined ? {} : { progress: options.progress }),
+      })
+    )
+  )
+
+  logRefreshed(deps.logger, options.forced ?? false, results)
+
+  return deps.recordTradeSides(results, options.signal)
 }
 
 /** Refreshing a market nobody reads costs only time; skipping one a holding reads leaves its stop

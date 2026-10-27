@@ -340,6 +340,7 @@
     "office.jobs.from.cli": "CLI",
     "office.jobs.from.cron": "a schedule",
     "office.jobs.from.other": "the {channel} channel",
+    "office.run.scheduled.refresh": "Data refresh · scheduled",
     "office.jobs.stopAsk": "Stop {what}?",
     "office.jobs.stopBody": "{who} stops at the current step. Finished steps stay in the log, but the result is not saved.",
     "office.jobs.rerun": "Run again",

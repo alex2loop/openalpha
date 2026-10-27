@@ -81,6 +81,7 @@ export function createSlashDispatcher(deps: SlashDispatcherDeps): SlashDispatche
       }),
     abortCommand: (id: RunId) => state.runs.abortCommand(id),
     activeCommands: () => state.runs.activeCommands(),
+    runScheduled: state.runs.runScheduled,
   }
 }
 

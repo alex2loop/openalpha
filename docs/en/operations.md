@@ -60,6 +60,12 @@ the background with a warning. With no network at boot, the loop waits for it. A
 channel failure in that refresh is a warning (`daemon.boot_refresh_failed`) whether it lands inside the
 60 seconds or after them, and the daemon boots on; any other error stops the boot.
 
+Each of these passes, the boot one included, shows on the office page as a typed `/refresh` does:
+the stock keeper works in the data store with its progress on the wall monitor, the header counts it
+as running, and Activity lists it as "Data refresh · scheduled" once it ends (marked stopped or
+failed when it did not finish). It calls no model and costs nothing. A pass with no market in use
+shows nothing.
+
 A run that leaves any data kind `unavailable` (nothing fetched at all) retries after 2, 4, 8 and 16
 minutes, never past the next anchor. A fifth failure hands back to the anchor and the ladder starts
 over. A run that only fell short (`partial`) waits for the next anchor; the missing names are
@@ -508,7 +514,7 @@ The Market tab has three parts. *Market* shows the macro reading in full for the
 
 ### The office
 
-Two floors, switched in the row above the scene's tape. **Office** holds the built-in crew in their rooms: the data store (the stock keeper refreshing data), the library (the scouts, planner, writer, reviewer and theme analyst doing research), the meeting room (the debate table behind `/suggest`), the lobby (today's agenda and the day's digest), the alert desk (the clerk watching price alerts and stops), the assistant's room and your own desk. **Your agents** is the team floor: one desk per agent of yours, with a card showing whether it is running, paused or idle, its schedule, its latest call and what it has spent today. With no agent yet it offers three starting points and a blank one, and the next free desk carries "+ Add an agent".
+Two floors, switched in the row above the scene's tape. **Office** holds the built-in crew in their rooms: the data store (the stock keeper refreshing data, on your `/refresh` and on the daemon's scheduled passes alike), the library (the scouts, planner, writer, reviewer and theme analyst doing research), the meeting room (the debate table behind `/suggest`), the lobby (today's agenda and the day's digest), the alert desk (the clerk watching price alerts and stops), the assistant's room and your own desk. **Your agents** is the team floor: one desk per agent of yours, with a card showing whether it is running, paused or idle, its schedule, its latest call and what it has spent today. With no agent yet it offers three starting points and a blank one, and the next free desk carries "+ Add an agent".
 
 How to read it:
 

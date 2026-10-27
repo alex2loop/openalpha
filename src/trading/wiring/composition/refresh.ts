@@ -1,5 +1,6 @@
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import type { ScheduledRunner } from '@/core/types/command'
 import type { BriefDelivery } from '@/trading/features/brief/types'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { RestatementDeps } from '@/trading/features/suggestion/exit-plan/restatement'
@@ -83,8 +84,13 @@ interface RefreshTickParts {
   readonly logger: Logger
 }
 
+interface ScheduledRuns {
+  readonly runScheduled: ScheduledRunner
+}
+
 /** Built after the services: the trade-sides sweep it carries reads the book. */
 export function buildRefreshTick(
+  scheduled: ScheduledRuns,
   parts: RefreshTickParts
 ): (options: RefreshAllMarketDataOptions) => Promise<readonly RefreshMarketDataResult[]> {
   const { markets, stores, logger } = parts
@@ -100,6 +106,7 @@ export function buildRefreshTick(
       marketDataStore: stores.marketData,
       logger,
     }),
+    runScheduled: scheduled.runScheduled,
     logger,
   })
 }

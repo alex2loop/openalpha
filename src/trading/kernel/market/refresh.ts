@@ -4,6 +4,8 @@ import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 
+/** The command the operator types, and the run a scheduled pass shows as, so both read as one. */
+export const REFRESH_COMMAND_NAME = 'refresh'
 export const REFRESH_DATA_KINDS = Object.freeze([
   'instruments',
   'bars',
@@ -104,6 +106,9 @@ export interface RefreshAllMarketDataOptions {
   readonly markets?: readonly MarketRef[]
   readonly signal: AbortSignal
   readonly progress?: StageReporter
+  /** Started by the daemon rather than typed: a pass with a market to sweep shows as the `/refresh`
+   *  run would, on the schedule's channel. */
+  readonly scheduled?: boolean
 }
 
 export const REFRESH_ANCHOR_KINDS = Object.freeze(['tape-final', 'pre-open'] as const)

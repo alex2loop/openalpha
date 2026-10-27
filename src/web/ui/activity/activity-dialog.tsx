@@ -4,6 +4,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { locale, state } from '@/web/state/session'
 import { formatChildrenLine } from '@/web/text/activity'
+import { childOutcomeKey } from '@/web/text/child-outcome'
 import { formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { commandOf, formatRunName } from '@/web/text/run-name'
@@ -93,7 +94,12 @@ function ActivityItem({ row }: { readonly row: ActivityRowWire }) {
 
 export function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
   const timeZone = state.value?.timeZone
-  const facts = [...(row.agentId === undefined ? [] : [row.agentId]), sourceLabel(row.channelId)]
+  const unfinished = childOutcomeKey(row.outcome)
+  const facts = [
+    ...(row.agentId === undefined ? [] : [row.agentId]),
+    sourceLabel(row.channelId),
+    ...(unfinished === undefined ? [] : [tr(unfinished)]),
+  ]
 
   return (
     <div class="activity-line">

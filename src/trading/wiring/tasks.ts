@@ -325,7 +325,7 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
     reachability: deps.config.operations,
     onTaskPass: deps.onTaskPass,
     tick: async (signal) => {
-      const results = await deps.refreshMarketData({ signal })
+      const results = await deps.refreshMarketData({ signal, scheduled: true })
       const degradations = refreshDegradations(results)
       const emptied = results.some((result) =>
         result.results.some((kind) => kind.status === 'unavailable')
