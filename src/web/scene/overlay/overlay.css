@@ -261,6 +261,12 @@
 .desk-rows {
   display: block;
   box-sizing: border-box;
+  /* The filter in `CrispFilter`: text pixels wholly ink or clear, as the mockup's monitors. */
+  filter: url(#desk-crisp);
+}
+
+.desk-crisp {
+  position: absolute;
 }
 
 .desk-row {

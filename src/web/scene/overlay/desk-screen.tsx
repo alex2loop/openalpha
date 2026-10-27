@@ -24,6 +24,24 @@ const DOTS = ['red', 'amber', 'teal'] as const
 const DOT_PX = 1
 const DOT_STEP_PX = 2
 
+// The terminal text's filter, shared through the css: every antialiased pixel at least this
+// opaque becomes ink, as the mockup's monitor text does.
+const CRISP_ALPHA_MIN = 100
+const ALPHA_STEPS = 255
+
+/** The filter the terminals' text runs through to land on solid pixels; it takes no room. */
+export function CrispFilter() {
+  return (
+    <svg class="desk-crisp" width="0" height="0" aria-hidden="true" focusable="false">
+      <filter id="desk-crisp">
+        <feComponentTransfer>
+          <feFuncA type="linear" slope={ALPHA_STEPS} intercept={1 - CRISP_ALPHA_MIN} />
+        </feComponentTransfer>
+      </filter>
+    </svg>
+  )
+}
+
 /** A lit screen over its computer: the analyst's price line, or a terminal that types the run's
  *  lines (a scout's reading its page's host). */
 export function DeskScreen({ screen, rect }: { readonly screen: LitScreen; readonly rect: Rect }) {
