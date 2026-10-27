@@ -197,11 +197,6 @@
   border-top: 1px solid var(--border);
 }
 
-.big-figure {
-  font: var(--typeHero);
-  font-variant-numeric: tabular-nums;
-}
-
 .news-item {
   display: block;
   padding: 7px 0;

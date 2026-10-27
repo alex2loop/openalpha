@@ -20,7 +20,7 @@ interface CostGroup {
 /** Where a period's spend went: by job (with "Khác" for calls no run holds), by agent, by model. */
 export function CostBreakdown({ report }: { readonly report: CostReport }) {
   return (
-    <>
+    <div>
       <Fold title={tr('ui.office.cost.jobs')}>
         <JobRows report={report} />
       </Fold>
@@ -44,7 +44,7 @@ export function CostBreakdown({ report }: { readonly report: CostReport }) {
           />
         ))}
       </Fold>
-    </>
+    </div>
   )
 }
 

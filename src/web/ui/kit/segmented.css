@@ -11,6 +11,10 @@
   background: var(--sunken);
 }
 
+:is(.flow, .stack) > .seg {
+  margin-bottom: 0;
+}
+
 .seg button {
   display: inline-flex;
   flex: 1;
