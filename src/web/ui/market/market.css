@@ -83,3 +83,59 @@
   font-weight: 500;
   overflow-wrap: anywhere;
 }
+
+.outline-fold {
+  border-top: 1px solid var(--border);
+}
+
+.outline-fold > summary {
+  padding: 8px 0;
+  color: var(--title);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.outline-fold.is-note > summary {
+  padding: 6px 0;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.outline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: var(--s2);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.outline-label {
+  margin-top: 4px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.outline-kids {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--sunken);
+}
+
+.outline-line {
+  color: var(--ink2);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.outline-note {
+  margin: 4px 0;
+  color: var(--ink2);
+  font-size: 12px;
+  line-height: 1.45;
+}

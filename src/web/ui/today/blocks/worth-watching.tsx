@@ -62,16 +62,14 @@ function WorthList({ verdict }: { readonly verdict: readonly string[] }) {
 
   return (
     <>
-      {verdict.map((line) => (
-        <p key={line}>{line}</p>
-      ))}
+      <Verdict lines={verdict} />
       <div class="row-list">
         {rows.map((row) => (
           <div key={row.key} class={row.isBreach ? 'todo is-breach' : 'todo'}>
             <span class="tile" style={`--c: var(--tc-${row.isBreach ? 'yellow' : 'peach'})`}>
               {row.isBreach ? <BellIcon /> : <BulbIcon />}
             </span>
-            <div>
+            <div class="todo-text">
               <b>
                 <TickerLink ticker={row.ticker} market={row.market} />
               </b>
@@ -80,6 +78,19 @@ function WorthList({ verdict }: { readonly verdict: readonly string[] }) {
           </div>
         ))}
       </div>
+    </>
+  )
+}
+
+// The brief's verdict: its first line as the headline, the figures under it muted.
+function Verdict({ lines }: { readonly lines: readonly string[] }) {
+  return (
+    <>
+      {lines.map((line, index) => (
+        <p key={line} class={index === 0 ? 'worth-head' : 'worth-line'}>
+          {line}
+        </p>
+      ))}
     </>
   )
 }

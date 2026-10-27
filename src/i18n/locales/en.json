@@ -1210,6 +1210,7 @@
     "office.market.session": "Last closed session",
     "office.market.sessionLoading": "Reading the session from the sources; this takes a few seconds.",
     "office.market.refresh": "Refresh",
+    "office.market.note": "Note",
     "office.market.moreMarkets": "Turn on more markets in Settings › Profile",
     "office.market.seeAll": "See the full reading",
     "office.news.filter": "Filter loaded news",

@@ -127,9 +127,9 @@
 
 .todo {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
-  padding: var(--s1) 0;
+  padding: 6px 0;
   border-top: 1px solid var(--border);
 }
 
@@ -140,6 +140,32 @@
 .todo b {
   display: block;
   font-weight: 500;
+}
+
+.todo-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--s1);
+}
+
+.worth-head {
+  margin: 0 0 4px;
+  color: var(--title);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.worth-line {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.worth-line:last-of-type {
+  margin-bottom: var(--s1);
 }
 
 .todo .tile {
