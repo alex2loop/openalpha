@@ -7,6 +7,7 @@ import { formatDay } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { locale, state } from '@/web/state/session'
+import { joinInline } from '@/web/text/glyphs'
 import { buildDayKey } from '@/web/text/time'
 import { buildMonthStart, shiftDay } from '@/web/text/time-units'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -63,7 +64,7 @@ function CostReportBody() {
   const failure = read.failure.value
 
   return (
-    <>
+    <div class="flow">
       <Segmented
         label={tr('ui.office.cost.title')}
         value={period.value}
@@ -74,8 +75,8 @@ function CostReportBody() {
       />
       {failure !== undefined && <p class="failure-line">{toFailureText(failure)}</p>}
       {report === undefined && failure === undefined && <Skeleton />}
-      {report !== undefined && <ReportView report={report} />}
-    </>
+      {report !== undefined && <ReportView report={report} period={period.value} />}
+    </div>
   )
 }
 
@@ -134,16 +135,26 @@ function resolvePeriodStart(period: CostPeriod, today: string): string {
   }
 }
 
-function ReportView({ report }: { readonly report: CostReport }) {
+function ReportView({
+  report,
+  period,
+}: {
+  readonly report: CostReport
+  readonly period: CostPeriod
+}) {
   if (report.totalUsd === 0) {
     return <p class="meta">{tr('ui.office.cost.empty')}</p>
   }
 
   return (
     <>
-      <h3 class="sub-head">{tr('ui.office.cost.total')}</h3>
-      <p class="cost-figure cost-total">{formatSpent(report.totalUsd, undefined)}</p>
-      <HighestDay days={report.days} />
+      <h3 class="sub-head">
+        {joinInline([tr('ui.office.cost.total'), tr(PERIOD_LABELS[period])])}
+      </h3>
+      <div class="stack">
+        <p class="big-figure cost-figure">{formatSpent(report.totalUsd, undefined)}</p>
+        <HighestDay days={report.days} />
+      </div>
       <CostChart days={report.days} />
       <CostBreakdown report={report} />
     </>

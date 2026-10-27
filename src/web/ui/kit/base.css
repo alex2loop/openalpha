@@ -150,6 +150,12 @@ strong {
   margin: 0 0 calc(var(--s1) * -1);
 }
 
+/* The big amount that leads a card, popover or dialog. */
+.big-figure {
+  font: var(--typeHero);
+  font-variant-numeric: tabular-nums;
+}
+
 .lead {
   color: var(--ink);
   font: var(--typeEmphasis);

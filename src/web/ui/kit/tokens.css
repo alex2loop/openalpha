@@ -145,6 +145,8 @@
   --flashMs: 0.6s;
   --popoverGutter: 8px;
   --focusRing: var(--ink);
+  /* What the AI costs: one calm colour for every cost figure and bar, never a market move's. */
+  --spend: var(--ink2);
   --zPopover: 26;
   --zModal: 30;
   --zUndo: 32;
