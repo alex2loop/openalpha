@@ -2,6 +2,7 @@ import type { MacroResponse } from '@/app/server/wire/market'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { isAdvanced } from '@/web/state/prefs'
+import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { formatFixed, formatFixedFraction, PERCENT } from '@/web/text/figures'
 import { joinList } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -23,6 +24,8 @@ type MacroDriver = ReadyMacro['drivers'][number]
  *  much of the model read in; in Nâng cao also the scale and the drivers behind the score. */
 export function MacroFull({ region }: { readonly region: string }) {
   const reading = useBlock(ROUTES.macro, { query: { region }, everyMs: MACRO_POLL_MS })
+
+  useRereadAfterRefresh(reading.retry)
 
   return (
     <BlockFrame

@@ -5,6 +5,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
 import { fillInput } from '@/web/state/command'
 import { findMarket, findQuote, keyOf, stopsBlock } from '@/web/state/market'
+import { REFRESH_COMMAND } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
@@ -22,7 +23,6 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 // Calendar days read, enough to hold the sessions shown across weekends and holidays.
 const CHART_DAYS = 70
 const CHART_SESSIONS = 30
-const REFRESH_COMMAND = '/refresh'
 
 interface BarsRead {
   readonly bars: readonly TradingCandleWire[]
