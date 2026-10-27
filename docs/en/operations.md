@@ -32,7 +32,7 @@ nothing to do returns at once.
 | `trading.intents` | 5 min | Settles orders the book already holds; the rest wait for `/trade reconcile`. Same condition as `trading.exits`. |
 | `trading.refresh` | after each market's close, 12 h at most | Refreshes market data for every market you still use and logs what degraded. Then it captures each market's factor board once its session settles and scores earlier boards that reached the end of their window. It also writes the day's portfolio snapshot (value, cash, net deposits). If a holding has no price, the snapshot is skipped and `trading.nav_snapshot_skipped` names the instruments; any other failure logs `trading.nav_snapshot_failed`. No model call. |
 | `trading.intraday` | your send times | Sends the intraday report. **Off until `[trading.intraday] send_times` names a time.** |
-| retention sweep | 6 h | Deletes rows past `[retention] days` / `inbox_days`, workspace temp files, and log folders of agents you no longer configure. Takes the daily SQLite backup into `backups/daily/` when the newest is about a day old (`daily_backups`; PostgreSQL skipped). Also runs once at boot. |
+| retention sweep | 6 h | Deletes rows past `[retention] days` / `history_days` / `inbox_days`, workspace temp files, and log folders of agents you no longer configure. Takes the daily SQLite backup into `backups/daily/` when the newest is about a day old (`daily_backups`; PostgreSQL skipped). Also runs once at boot. |
 | workflow check | 30 s | Fires workflows that have a cron trigger. A failed pass replays its window, so no trigger is lost. |
 | heartbeat check | 30 s | Scans each workspace's `HEARTBEAT.md`. |
 | schedule check | 30 s | Looks for scheduled jobs that are due. |
@@ -71,7 +71,7 @@ that loads several kinds also gives the time of each kind, so a slow refresh poi
 ### What you can tune
 
 One cadence: `[trading.refresh] interval_ms`, defaulting to the 12-hour ceiling above. Retention is
-`days` and `inbox_days` under `[retention]`. Everything else is fixed. Keys and defaults:
+`days`, `history_days` and `inbox_days` under `[retention]`. Everything else is fixed. Keys and defaults:
 [Configuration](configuration.md#trading). Each run handles 50 rows, except `trading.macro-extract`
 at 3, because each of its items is a model call. Restart the daemon after changing any of these.
 

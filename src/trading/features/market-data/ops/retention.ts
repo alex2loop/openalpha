@@ -2,28 +2,14 @@ import type { MarketDataStore } from '@/trading/features/market-data/store/marke
 import type { NewsArchiveStore } from '@/trading/features/market-data/store/news-archive'
 import type { RefreshMarketDataOptions } from '@/trading/kernel/market/refresh'
 import type { Market } from '@/trading/markets/types'
+import { drainPages, RETENTION_DELETE_LIMIT } from '@/persistence/api'
 import { RETENTION_SCOPES, retentionMsOf } from '@/trading/features/market-data/store/market-data'
 import { NEWS_RETENTION_MS } from '@/trading/features/market-data/store/news-archive'
 import { resolveRetentionMs } from '@/trading/markets/retention'
 
-/** Retention deletes in bounded pages so one long-neglected market cannot hold a write lock for
- *  the whole sweep. */
-const RETENTION_DELETE_LIMIT = 5_000
-/** Bounds one sweep so a very large backlog cannot hold the write lock for an unbounded time. */
-const RETENTION_MAX_PASSES = 20
-
 interface RetentionDeps {
   readonly newsArchive: Pick<NewsArchiveStore, 'deleteFetchedBefore'>
   readonly marketDataStore: Pick<MarketDataStore, 'deleteExpired' | 'deleteMacroRiskBefore'>
-}
-
-/** A short page means the scope is drained; a full one means there is more behind it. */
-async function drainPages(deletePage: () => Promise<number>): Promise<void> {
-  for (let pass = 0; pass < RETENTION_MAX_PASSES; pass += 1) {
-    if ((await deletePage()) < RETENTION_DELETE_LIMIT) {
-      return
-    }
-  }
 }
 
 /** Swept after a pass that actually wrote, so a degraded result still ages out old rows while a

@@ -65,6 +65,7 @@ async function runRetentionSweep(app: App, logger: Logger): Promise<void> {
   await runRetention(app.resolve('storage'), app.resolve('dialect'), {
     config: {
       retentionDays: app.config.retention.days,
+      historyRetentionDays: app.config.retention.historyDays,
       inboxRetentionDays: app.config.retention.inboxDays,
     },
     logger,

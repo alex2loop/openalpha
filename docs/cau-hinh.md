@@ -355,6 +355,7 @@ vào cấu hình bạn xem.
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, lượt chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
+| `history_days` | số nguyên | `1095` | Số dương, không nhỏ hơn `days` (đặt nhỏ hơn thì cấu hình bị từ chối khi nạp; bỏ trống thì không bao giờ dưới `days`). Giữ bao lâu kết quả theo dõi: gợi ý đã chấm và lệnh giữ (mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động, gợi ý chưa chấm thì không bao giờ bị xóa), dòng factor log và kết quả chủ đề đã chốt, ảnh chụp NAV, điểm số liệu vĩ mô cùng nguồn của chúng. Tài liệu vĩ mô được giữ ít nhất 800 ngày, để bộ trích xuất không phải trả tiền đọc lại một tháng. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
 | `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
 

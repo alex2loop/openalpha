@@ -87,6 +87,7 @@ const DEFAULT_MAX_VALUE_BYTES = 16_384
 const DEFAULT_MEMORY_TTL_DAYS = 90
 const DEFAULT_COMMANDS_RATE_PER_MINUTE = 20
 const DEFAULT_RETENTION_DAYS = 90
+const DEFAULT_HISTORY_RETENTION_DAYS = 1095
 const DEFAULT_INBOX_MAX_ATTEMPTS = 3
 const DEFAULT_UPDATE_CHECK = true
 const DEFAULT_UPDATE_AUTO = false
@@ -134,6 +135,7 @@ interface ResolvedCommands {
 
 interface ResolvedRetention {
   readonly days: number
+  readonly historyDays: number
   readonly inboxDays: number
   readonly dailyBackups: number
 }
@@ -226,8 +228,21 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
 }
 
 function resolveRetention(raw: RawConfig['retention']): ResolvedRetention {
+  const days = raw?.days ?? DEFAULT_RETENTION_DAYS
+  const historyDays = raw?.history_days ?? Math.max(DEFAULT_HISTORY_RETENTION_DAYS, days)
+
+  // The history window keeps what the general one would; a shorter one would sweep evidence first.
+  if (historyDays < days) {
+    throw new OperatorConfigError(
+      `retention history_days ${historyDays} is shorter than days ${days}`,
+      { key: 'errors.configRetentionHistoryShort', params: { history: historyDays, days } },
+      { path: ['retention', 'history_days'] }
+    )
+  }
+
   return {
-    days: raw?.days ?? DEFAULT_RETENTION_DAYS,
+    days,
+    historyDays,
     inboxDays: raw?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
     dailyBackups: raw?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
   }

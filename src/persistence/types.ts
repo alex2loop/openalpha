@@ -348,5 +348,7 @@ export interface BrowserSessionStore {
 
 export interface RetentionConfig {
   readonly retentionDays: number
+  /** Track-record and calibration rows; never shorter than `retentionDays`. */
+  readonly historyRetentionDays: number
   readonly inboxRetentionDays: number
 }
