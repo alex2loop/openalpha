@@ -114,6 +114,8 @@ export interface SessionClaim {
 export interface HistoryPageQuery {
   /** Transcript index (`idx`): only rows strictly older than it. Newest rows when absent. */
   readonly before?: number
+  /** Only the assistant rows this run wrote, the newest `limit` of them; `before` is not read. */
+  readonly runId?: RunId
   readonly limit: number
 }
 
@@ -135,7 +137,8 @@ export interface SessionListQuery {
   /** With `before`, pages by `(lastActivityAt, id)`: sessions sharing `before` come after this id,
    *  so none is skipped at a page edge. */
   readonly beforeId?: SessionId
-  /** Only this one session. */
+  /** Only this one session, empty or not; every other listing leaves out a session with no
+   *  user or assistant row. */
   readonly id?: SessionId
   readonly limit: number
 }

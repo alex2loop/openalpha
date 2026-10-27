@@ -53,8 +53,8 @@ export type ChatServerFrame = Extract<ServerFrame, { readonly type: 'chat' }>
 
 // The running feed, for the offline bar's retry and the chat's sends.
 let activeFeed: FeedState | undefined
-// The one reader of chat frames; none registered drops them.
-let chatSink: ((frame: ChatServerFrame) => void) | undefined
+// Every reader of chat frames; none registered drops them.
+const chatSinks = new Set<(frame: ChatServerFrame) => void>()
 
 /** Opens the socket and the snapshot poll. Every (re)connect takes a fresh snapshot and reloads the
  *  session, since language, zone and capabilities can change across a restart. */
@@ -109,12 +109,10 @@ export function sendFrame(frame: ClientFrame): boolean {
 
 /** Hands every chat frame to `sink` until the returned function is called. */
 export function onChatFrame(sink: (frame: ChatServerFrame) => void): () => void {
-  chatSink = sink
+  chatSinks.add(sink)
 
   return () => {
-    if (chatSink === sink) {
-      chatSink = undefined
-    }
+    chatSinks.delete(sink)
   }
 }
 
@@ -130,7 +128,10 @@ function setConnection(status: ConnectionStatus, retryAt?: number): void {
 
 function routeFrame(feed: FeedState, frame: ServerFrame): void {
   if (frame.type === 'chat') {
-    chatSink?.(frame)
+    for (const sink of chatSinks) {
+      sink(frame)
+    }
+
     return
   }
 

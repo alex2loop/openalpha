@@ -70,6 +70,13 @@ function buildConditions(
   bind: (value: string | number) => string
 ): readonly string[] {
   return [
+    // A session nothing was said in has nothing to open; one asked for by id is still found.
+    ...(query.id === undefined
+      ? [
+          `EXISTS (SELECT 1 FROM session_messages d WHERE d.session_id = s.id ` +
+            `AND d.role IN ${DISPLAYED_ROLES})`,
+        ]
+      : []),
     ...(query.channels === undefined
       ? []
       : [`s.channel IN (${query.channels.map(bind).join(', ')})`]),

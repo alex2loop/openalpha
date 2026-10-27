@@ -186,10 +186,15 @@ export const wsHandlers = {
         }
       }),
       // `/new` moves the chat to a session of its own: the commands still running for the old one
-      // stop, and the ones waiting were already dropped by the lane.
+      // stop, the ones waiting were already dropped by the lane, and every page on it is told to
+      // leave it.
       bus.on('chat_session_reset', (e) => {
         if (e.channel === API_CHANNEL) {
           abortCommandRuns(ws, brandSessionId(e.chatId))
+
+          if (e.cause === 'new') {
+            send(ws, { type: 'chat', kind: 'reset', sessionId: e.chatId })
+          }
         }
       }),
       bus.on('provider_fallback', (e) => {

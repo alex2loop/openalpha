@@ -3,8 +3,15 @@ import { effect, type ReadonlySignal, signal } from '@preact/signals'
 import type { ChatHistoryMessage } from '@/app/server/wire/chat'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { resumeAgentChoice } from '@/web/state/agents'
-import { APP_CHANNEL, type ChatSession, sessionId, viewedSession } from '@/web/state/chat'
+import { clearAgentChoice, resumeAgentChoice } from '@/web/state/agents'
+import {
+  APP_CHANNEL,
+  type ChatSession,
+  sessionId,
+  startSession,
+  viewedSession,
+} from '@/web/state/chat'
+import { onChatFrame } from '@/web/state/feed'
 
 export const HISTORY_PAGE_SIZE = 30
 // Past this many earlier messages the panel stops offering more; the sessions dialog reads the rest.
@@ -65,9 +72,17 @@ export function startChatHistory(sessionToOpen?: string): () => void {
   // Each keeps its own failure, so neither rejects.
   opening.catch(() => undefined)
 
+  // `/new` typed in the box moves the daemon's chat on; the page leaves the session it named.
+  const stopReset = onChatFrame((frame) => {
+    if (frame.kind === 'reset' && frame.sessionId === sessionId.value) {
+      startNewSession()
+    }
+  })
+
   return () => {
     controller.abort()
     stopSync()
+    stopReset()
 
     if (lifetime === controller) {
       lifetime = undefined
@@ -75,8 +90,16 @@ export function startChatHistory(sessionToOpen?: string): () => void {
   }
 }
 
+/** The column moves to a new session, as "Phiên chat mới" does once confirmed. */
+export function startNewSession(): void {
+  viewedSession.value = undefined
+  startSession()
+  clearAgentChoice()
+  clearOpenedSession()
+}
+
 /** A new session leaves the one the chat tab opened, so the tab no longer goes by its name. */
-export function clearOpenedSession(): void {
+function clearOpenedSession(): void {
   opened.value = undefined
 }
 

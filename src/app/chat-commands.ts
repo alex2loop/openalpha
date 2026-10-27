@@ -25,6 +25,7 @@ interface EntryAgentSelectionOptions {
 interface FreshSessionOptions {
   readonly app: App
   readonly ctx: SlashContext
+  readonly cause: 'new' | 'agent'
   readonly agentId: AgentId
   /** The agent to leave bound to the chat; omitting it clears the binding. */
   readonly binding?: AgentId
@@ -35,6 +36,7 @@ interface FreshSessionOptions {
 export function coreCommands(app: App): readonly SlashCommand[] {
   return createCoreCommands({
     agents: toAgentRegistry(app.resolve('agents')),
+    ownAgentIds: app.resolve('userAgentIds'),
     memory: app.resolve('memory'),
     spend: {
       reader: app.resolve('spendReader'),
@@ -105,6 +107,7 @@ async function applyEntryAgentSelection(options: EntryAgentSelectionOptions): Pr
   await startFreshSession({
     app,
     ctx,
+    cause: 'agent',
     agentId: targetAgentId,
     ...(target === 'default' ? {} : { binding: target }),
     invalidate,
@@ -121,6 +124,7 @@ async function resetChatSession(app: App, ctx: SlashContext): Promise<SessionId>
       return await startFreshSession({
         app,
         ctx,
+        cause: 'new',
         agentId: binding?.agentId ?? configuredEntryAgent(app, ctx.channel),
         ...(binding === null ? {} : { binding: binding.agentId }),
         invalidate,
@@ -130,13 +134,13 @@ async function resetChatSession(app: App, ctx: SlashContext): Promise<SessionId>
 
 // Cancels whatever the chat had in flight, then routes it to a new session.
 async function startFreshSession(options: FreshSessionOptions): Promise<SessionId> {
-  const { app, ctx, agentId, binding, invalidate } = options
+  const { app, ctx, cause, agentId, binding, invalidate } = options
 
   invalidate()
   app.resolve('sessionQueue').cancelSession(ctx.sessionId)
   app.resolve('commandLane').cancel(toCommandLaneKey(ctx.channel, ctx.chatId))
   app.resolve('runRegistry').abortChat(ctx.channel, ctx.chatId)
-  app.resolve('bus').emit('chat_session_reset', { channel: ctx.channel, chatId: ctx.chatId })
+  app.resolve('bus').emit('chat_session_reset', { channel: ctx.channel, chatId: ctx.chatId, cause })
   app.resolve('bus').emit('session_ended', { sessionId: ctx.sessionId })
 
   const freshSessionId = brandSessionId(randomUUID())

@@ -53,9 +53,9 @@ interface Suggestions {
   readonly usage: readonly string[]
 }
 
-/** The rows for what is typed: the command's arguments, tickers, then commands, then send; starters
- *  on an empty box, or every command once Tab asked for them. A ticker the arguments already offer
- *  is listed once. */
+/** The rows for what is typed: the command's arguments, else tickers, then commands, then send;
+ *  starters on an empty box, or every command once Tab asked for them. A position the command
+ *  lists its own words for takes no ticker. */
 export function useSuggestions(text: string, isAllCommands: boolean): Suggestions {
   const matches = useTickerMatches(resolveTickerQuery(text))
   const args = useArgCompletions(text)
@@ -65,8 +65,7 @@ export function useSuggestions(text: string, isAllCommands: boolean): Suggestion
   }
 
   const rows = listArgs(text, args.candidates)
-  const taken = new Set(rows.map((row) => row.label.toLowerCase()))
-  const tickers = listTickers(text, matches).filter((row) => !taken.has(row.label.toLowerCase()))
+  const tickers = rows.length === 0 ? listTickers(text, matches) : []
 
   return {
     options: [...rows, ...tickers, ...listCommands(text), buildSendRow(text)],

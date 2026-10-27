@@ -5,9 +5,8 @@ import type { ChatHistoryMessage } from '@/app/server/wire/chat'
 import { pluralKey } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { clearAgentChoice } from '@/web/state/agents'
-import { type ChatSession, startSession, viewedSession } from '@/web/state/chat'
-import { clearOpenedSession, HISTORY_PAGE_SIZE, MAX_EARLIER } from '@/web/state/chat-history'
+import { type ChatSession, viewedSession } from '@/web/state/chat'
+import { HISTORY_PAGE_SIZE, MAX_EARLIER, startNewSession } from '@/web/state/chat-history'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { sourceLabel } from '@/web/text/source'
@@ -27,14 +26,6 @@ interface Pages {
 }
 
 const FIRST_PAGE: Pages = Object.freeze({ messages: [], isLoading: true })
-
-/** The column moves to a new session, as "Phiên chat mới" does once confirmed. */
-export function startNewSession(): void {
-  viewedSession.value = undefined
-  startSession()
-  clearAgentChoice()
-  clearOpenedSession()
-}
 
 /** An earlier session, read-only: typing still goes to the current one. Its reads stop on unmount. */
 export function SessionView({ session }: { readonly session: ChatSession }) {

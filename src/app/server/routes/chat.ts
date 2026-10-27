@@ -25,7 +25,7 @@ import {
 } from '@/app/server/routes/params'
 import { type ChannelId, channelId } from '@/core/channels'
 import { ValidationError } from '@/core/errors'
-import { sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
+import { runId as brandRunId, sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 
@@ -77,10 +77,17 @@ async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Re
     return apiError('invalid_body')
   }
 
+  const run = parseOptionalBranded(url.searchParams.get('runId'), brandRunId)
+
+  if (run === null) {
+    return apiError('invalid_body')
+  }
+
   const before = parseIndex(url.searchParams.get('before'))
   const page = await ctx.app.resolve('sessionStore').loadHistoryPage(id, {
     limit,
     ...(before === undefined ? {} : { before }),
+    ...(run === undefined ? {} : { runId: run }),
   })
 
   return json({

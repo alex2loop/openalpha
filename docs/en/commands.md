@@ -149,7 +149,7 @@ so a command behaves the same in the REPL and in a group chat.
 | `/cost` | Show this chat's usage and today's spend against the cap |
 | `/schedule` | List, inspect, pause, resume, run or remove one of your jobs (`/schedule remove <id>` deletes it). It lists only the jobs made from this chat, each by its id and what it does. A job made in the terminal or on the office page belongs to no chat, so it does not appear here: manage it with `schedule` in the terminal or on the page, where one that waits for an alert instead of a time shows the alert it waits for (`when FPT broke its stop`) in place of a time |
 | `/config` | Show the live language, model, budget and channels |
-| `/new` | Switch to a fresh chat session; commands waiting in the chat's line are dropped and the ones running are stopped |
+| `/new` | Switch to a fresh chat session (the office page's chat moves to it too); commands waiting in the chat's line are dropped and the ones running are stopped |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
 

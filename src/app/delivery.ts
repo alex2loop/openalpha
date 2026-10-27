@@ -169,11 +169,10 @@ function createSenders(
         const surface = surfaces.find(target.channel)
 
         if (surface !== undefined) {
-          if (surface.deliver({ text }) !== 'accepted') {
-            throw new ChannelError('send_failed', `notification dropped for ${target.channel}`)
-          }
+          // With no page open the bell still holds it, so the next page to open reads the result.
+          const reached = surface.deliver({ text }) === 'accepted' ? [target.channel] : []
 
-          delivered.emit({ text }, [target.channel])
+          delivered.emit({ text }, reached)
 
           return
         }
