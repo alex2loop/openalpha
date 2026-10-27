@@ -11,7 +11,7 @@ import { readText } from '@/web/text/fields'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
-import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
+import { Combobox } from '@/web/ui/kit/combobox'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
 import { SettingRow, useDraft } from '@/web/ui/settings/row'
@@ -137,17 +137,20 @@ interface ChoiceLineProps {
 }
 
 function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
-  const listId = `model-options-${index}`
   const providers = catalog.providers.some((entry) => entry.id === choice.provider)
     ? catalog.providers
     : [...catalog.providers, { id: choice.provider, displayName: choice.provider }]
+
+  const models = catalog.catalogModels
+    .filter((entry) => entry.provider === choice.provider)
+    .map((entry) => entry.model)
 
   function edit(next: Partial<ModelChoice>): void {
     draft.value = draft.value.map((held, at) => (at === index ? { ...held, ...next } : held))
   }
 
   return (
-    <div class="form-row">
+    <div class="model-choice">
       <select
         aria-label={tr('ui.office.settings.models')}
         value={choice.provider}
@@ -159,21 +162,13 @@ function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
           </option>
         ))}
       </select>
-      <input
-        type="text"
-        {...IDENTIFIER_INPUT}
-        list={listId}
-        aria-label={tr('ui.office.form.model')}
+      <Combobox
+        id={`model-options-${index}`}
+        label={tr('ui.office.form.model')}
         value={choice.model}
-        onInput={(event) => edit({ model: event.currentTarget.value })}
+        options={models}
+        onInput={(model) => edit({ model })}
       />
-      <datalist id={listId}>
-        {catalog.catalogModels
-          .filter((entry) => entry.provider === choice.provider)
-          .map((entry) => (
-            <option key={entry.model} value={entry.model} />
-          ))}
-      </datalist>
     </div>
   )
 }

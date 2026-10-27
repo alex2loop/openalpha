@@ -123,6 +123,21 @@
   gap: var(--s1);
 }
 
+/* Provider and model share the row: the model id is the longer text, so it takes twice the room. */
+.model-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--s1);
+}
+
+.model-choice select {
+  width: 100%;
+}
+
+:root[data-layout="phone"] .model-choice {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .setting-pair {
   display: flex;
   flex-wrap: wrap;
