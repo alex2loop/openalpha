@@ -6,10 +6,11 @@ import type { Point } from '@/web/scene/types'
 import { pluralKey } from '@/i18n'
 import { digest, resultsLanded } from '@/web/scene/data/board'
 import { debateLine, questionLine, roomStatus, toParamText } from '@/web/scene/data/room-status'
+import { boardCaptions } from '@/web/scene/sim/board-captions'
 import { placeOnPane, view } from '@/web/scene/view'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas, unseenCalls } from '@/web/state/ideas'
-import { runningCount } from '@/web/state/live'
+import { type Run, runningCount } from '@/web/state/live'
 import { reducedMotion } from '@/web/state/prefs'
 import { formatUsd } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
@@ -51,26 +52,27 @@ export function BoardButtons({ renderer }: { readonly renderer: SceneRenderer })
 
 function RoomBoards({ renderer }: { readonly renderer: SceneRenderer }) {
   const status = roomStatus.value
+  const captions = boardCaptions.value
   const meetRun = status.get('meet')?.runs[0]
   const libRun = status.get('lib')?.runs[0]
   const storeRun = status.get('store')?.runs[0]
-  const meetLine = debateLine(meetRun)
-  const libLine = questionLine(libRun)
   const storeLine = storeBoardLine(storeRun?.progress?.params, status.get('store')?.subject)
 
   return (
     <>
-      {meetRun !== undefined && meetLine !== undefined && (
-        <Board at={MEET_BOARD_AT} renderer={renderer} onClick={() => focusRun(meetRun.runId)}>
-          {meetLine}
-        </Board>
-      )}
-      {libRun !== undefined && libLine !== undefined && (
-        <Board at={LIB_BOARD_AT} renderer={renderer} onClick={() => focusRun(libRun.runId)}>
-          {libLine}
-        </Board>
-      )}
-      {runningCount.value === 0 && (
+      <RunBoard
+        at={MEET_BOARD_AT}
+        renderer={renderer}
+        run={debateLine(meetRun) === undefined ? undefined : meetRun}
+        line={captions.meet}
+      />
+      <RunBoard
+        at={LIB_BOARD_AT}
+        renderer={renderer}
+        run={questionLine(libRun) === undefined ? undefined : libRun}
+        line={captions.lib}
+      />
+      {runningCount.value === 0 && captions.lib === undefined && (
         <Board at={LIB_BOARD_AT} renderer={renderer}>
           {tr('ui.office.board.firstCommand')}
         </Board>
@@ -86,6 +88,30 @@ function RoomBoards({ renderer }: { readonly renderer: SceneRenderer }) {
         </Board>
       )}
     </>
+  )
+}
+
+interface RunBoardProps {
+  readonly at: Point
+  readonly renderer: SceneRenderer
+  readonly run: Run | undefined
+  readonly line: string | undefined
+}
+
+// A run counting its steps takes you to that run; the day's finished result stands in once it is over.
+function RunBoard({ at, renderer, run, line }: RunBoardProps) {
+  if (line === undefined) {
+    return null
+  }
+
+  return run === undefined ? (
+    <Board at={at} renderer={renderer}>
+      {line}
+    </Board>
+  ) : (
+    <Board at={at} renderer={renderer} onClick={() => focusRun(run.runId)}>
+      {line}
+    </Board>
   )
 }
 

@@ -1,7 +1,7 @@
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import { fill, INK } from '@/web/scene/render2d/building'
 import { paintStandby } from '@/web/scene/render2d/standby'
-import { FONT } from '@/web/scene/sprites/face-text'
+import { paintCrispText } from '@/web/scene/sprites/crisp-text'
 import { DEVICE_TONES, PALETTE } from '@/web/scene/sprites/palette'
 import { paintPixelText, pixelTextWidth } from '@/web/scene/sprites/pixel-font'
 import { seedOf } from '@/web/scene/world/rng'
@@ -134,17 +134,24 @@ function paintRefreshText(
   const percent =
     at.progress === undefined ? '' : formatPercent(Math.round(at.progress * PERCENT_OF))
 
-  g.font = `600 ${fontPx}px ${FONT}`
-  g.textBaseline = 'top'
-  g.textAlign = 'right'
-  g.fillStyle = DEVICE_TONES.screenText
-  g.fillText(percent, sx + sw - pad, top)
+  const perPx = at.scene.stretch
+  const percentW = paintCrispText(g, percent, {
+    x: sx + sw - pad,
+    y: top,
+    fontPx,
+    perPx,
+    color: DEVICE_TONES.screenText,
+    align: 'right',
+  })
 
-  const percentW = g.measureText(percent).width
-
-  g.textAlign = 'left'
-  g.fillStyle = DEVICE_TONES.trackTitle
-  g.fillText(tr('ui.office.store.screenLine', { market }), sx + pad, top, inner - percentW - pad)
+  paintCrispText(g, tr('ui.office.store.screenLine', { market }), {
+    x: sx + pad,
+    y: top,
+    fontPx,
+    perPx,
+    color: DEVICE_TONES.trackTitle,
+    maxW: inner - percentW - pad,
+  })
   fill(g, [sx + pad, top + fontPx * 1.4, inner, bar], DEVICE_TONES.track)
   fill(
     g,

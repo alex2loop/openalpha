@@ -8,7 +8,7 @@ import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { CardPlace } from '@/web/scene/overlay/team-pass'
 import type { ActorId, Rect } from '@/web/scene/types'
 import { boxStyle } from '@/web/scene/overlay/box-style'
-import { DeskScreen } from '@/web/scene/overlay/desk-screen'
+import { CrispFilter, DeskScreen } from '@/web/scene/overlay/desk-screen'
 import { HoverLabel } from '@/web/scene/overlay/hover-label'
 import { NameTags, roleTitleOf, tagTextOf } from '@/web/scene/overlay/name-tags'
 import { childRunIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
@@ -101,6 +101,7 @@ export function SceneOverlay() {
 
   return (
     <div class="scene-overlay">
+      {!isInScene && <CrispFilter />}
       {!isInScene &&
         view.screens.map(({ screen, rect }) => (
           <DeskScreen key={screen.actor} screen={screen} rect={rect} />

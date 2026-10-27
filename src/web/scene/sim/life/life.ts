@@ -1,7 +1,6 @@
 import type { ReadonlySignal } from '@preact/signals'
 
 import type { Director } from '@/web/scene/sim/director'
-import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type {
   ActorId,
   ActorStatus,
@@ -38,6 +37,7 @@ import {
   stepYawn,
 } from '@/web/scene/sim/life/schedule'
 import { fidgetDueOf, postureLineOf, stepFidgets, stepPostures } from '@/web/scene/sim/life/seat'
+import { type LifeState, type LifeStep, PET_AWAKE_MS } from '@/web/scene/sim/life/state'
 import { stepChat } from '@/web/scene/sim/life/talk'
 import { SIM_STEP_MS } from '@/web/scene/sim/loop'
 import { approachOf } from '@/web/scene/sim/places'
@@ -152,6 +152,7 @@ function createLifeState(deps: LifeDeps, nowMs: number): LifeState {
     round: { freeSince: undefined, lastAt: undefined, count: 0 },
     sheets: { hour: '', count: 0, feedAt: undefined },
     catAwakeUntil: 0,
+    corgiAwakeUntil: nowMs + PET_AWAKE_MS,
     lastBusyAt: nowMs,
     lastPhase: undefined,
     idleCheckAt: nowMs,
@@ -294,6 +295,7 @@ function petWorldOf(state: LifeState, step: LifeStep): Parameters<LifeState['pet
       .map((actor) => actor.walker.pos),
     isQuiet: step.isQuiet,
     isCatAwake: step.nowMs < state.catAwakeUntil,
+    isCorgiAwake: step.nowMs < state.corgiAwakeUntil,
     isWorking: runningCount.value > 0 && !step.isQuiet,
     isReduced: step.isReduced || document.hidden,
   }
@@ -313,6 +315,7 @@ function dueOf(state: LifeState, step: LifeStep): number {
     scheduleDueOf(state, step),
     roundDueOf(state, step),
     state.catAwakeUntil,
+    state.corgiAwakeUntil,
     state.lastBusyAt + QUIET_AFTER_MS,
     state.pets.nextDueAt(petWorldOf(state, step)),
     deskDueOf(state.desks, step.nowMs),

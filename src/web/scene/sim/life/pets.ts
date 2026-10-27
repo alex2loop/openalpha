@@ -41,7 +41,7 @@ interface PetState {
 }
 
 /** What a pet's step reads: where the office's people stand, the office being quiet (the corgi
- *  sleeps), the cat woken, a run working (the fish swim faster), and reduced motion (everyone
+ *  sleeps), the pets woken, a run working (the fish swim faster), and reduced motion (everyone
  *  keeps still at home). */
 interface PetWorld {
   readonly nowMs: number
@@ -49,6 +49,7 @@ interface PetWorld {
   readonly people: readonly Point[]
   readonly isQuiet: boolean
   readonly isCatAwake: boolean
+  readonly isCorgiAwake: boolean
   readonly isWorking: boolean
   readonly isReduced: boolean
 }
@@ -68,6 +69,10 @@ export interface Pets {
 
 const HOMES: Readonly<Record<PetKind, NodeId>> = Object.freeze({ cat: 'bed', corgi: 'home' })
 const REST_POSES: Readonly<Record<PetKind, PetPose>> = Object.freeze({ cat: 'sleep', corgi: 'lie' })
+const AWAKE_POSES: Readonly<Record<PetKind, PetPose>> = Object.freeze({
+  cat: 'sit',
+  corgi: 'stand',
+})
 const PX_PER_S: Readonly<Record<PetKind, number>> = Object.freeze({ cat: 20, corgi: 16 })
 const JUMP_MS: Readonly<Record<PetKind, number>> = Object.freeze({ cat: 650, corgi: 850 })
 const PERCH_CHANCE: Readonly<Record<PetKind, number>> = Object.freeze({ cat: 0.24, corgi: 0.08 })
@@ -374,7 +379,7 @@ function push(
 function toPetView(pet: PetState, world: PetWorld): PetView {
   if (isStill(pet, world)) {
     const home = NODES[HOMES[pet.kind]]
-    const pose = pet.kind === 'corgi' ? 'sleep' : restOrAwake(pet, REST_POSES.cat, world)
+    const pose = stillPoseOf(pet, world)
 
     return {
       kind: pet.kind,
@@ -417,9 +422,18 @@ function jumpOf(u: number): { readonly air: number; readonly pitch: number } {
   }
 }
 
-// A woken cat sits up wherever it rests.
+// A woken cat sits up and a woken corgi stands wherever they rest.
 function restOrAwake(pet: PetState, pose: PetPose, world: PetWorld): PetPose {
-  return pet.kind === 'cat' && world.isCatAwake ? 'sit' : pose
+  const isAwake = pet.kind === 'cat' ? world.isCatAwake : world.isCorgiAwake
+
+  return isAwake ? AWAKE_POSES[pet.kind] : pose
+}
+
+// Keeping still: the corgi sleeps through a quiet office, else lies or stands at home.
+function stillPoseOf(pet: PetState, world: PetWorld): PetPose {
+  return pet.kind === 'corgi' && world.isQuiet
+    ? 'sleep'
+    : restOrAwake(pet, REST_POSES[pet.kind], world)
 }
 
 function legAt(pet: PetState, nowMs: number): Leg {

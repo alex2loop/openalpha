@@ -49,8 +49,9 @@ export const skyNow: ReadonlySignal<SkyNow> = computed(() => {
 
 /** The light the renderers draw: `skyNow` eased over `LIGHT_EASE_MS` from where it stood, at once
  *  under reduced motion. `view` fills one object in place. `windowLight` is the window light under
- *  the light `view` last gave and the weather `fx`, its patches and blinds easing on the same clock,
- *  and `glow` the lamps' glow `target` faded the same way; `isEasing` covers all three. */
+ *  the sun and cloud `skyNow` asks for (not the eased ones, so a jump eases once) and the weather
+ *  `fx`, its patches and blinds easing on the same clock, and `glow` the lamps' glow `target`
+ *  faded the same way; `isEasing` covers all three. */
 export interface SkyEase {
   view(nowMs: number, isReduced: boolean): LightView
   windowLight(fx: WeatherFxView): WindowLight
@@ -105,7 +106,7 @@ export function createSkyEase(): SkyEase {
 
       return shown
     },
-    windowLight: (fx) => glass.view({ dtMs, sun: shown.sun, cloud: shown.cloud, rain: fx.rain }),
+    windowLight: (fx) => glass.view({ dtMs, sun: target.sun, cloud: target.cloud, rain: fx.rain }),
     glow: (to) => lamps.view(to, dtMs),
     isEasing: (nowMs) => nowMs - startedAt < LIGHT_EASE_MS || glass.isEasing() || lamps.isMoving(),
   }

@@ -88,13 +88,13 @@ export function createEffects(shapes: Shapes, materials: Materials, root: Group)
     stacks: createPool(shapes.box, materials.litI, { cap: MAX_STACK }),
     steam: createPool(shapes.box, materials.unlitI, { cap: MAX_STEAM }),
     cart: createPool(shapes.box, materials.litI, { cap: PROP_TONES.cups.length + 1 }),
-    fish: createFish(materials),
+    fish: createFish(materials.lit),
     copier: createPool(shapes.box, materials.unlitI, { cap: COPIER_PIECES }),
     ribbons: createPool(shapes.box, materials.unlitI, { cap: RIBBON.count }),
     copierRun: createCopierRun(),
   }
 
-  root.add(...pools(effects).map((pool) => pool.mesh))
+  root.add(...pools(effects).map((pool) => pool.mesh), effects.fish.root)
 
   return effects
 }
@@ -141,8 +141,6 @@ function pools(effects: Effects): Pool[] {
     effects.stacks,
     effects.steam,
     effects.cart,
-    effects.fish.body,
-    effects.fish.tail,
     effects.copier,
     effects.ribbons,
   ]

@@ -56,6 +56,7 @@ export interface LifeState {
   readonly round: { freeSince: number | undefined; lastAt: number | undefined; count: number }
   sheets: { hour: string; count: number; feedAt: number | undefined }
   catAwakeUntil: number
+  corgiAwakeUntil: number
   lastBusyAt: number
   lastPhase: SessionPhase | undefined
   idleCheckAt: number
@@ -82,6 +83,8 @@ export interface LifeStep {
   readonly due: ReadonlyMap<ActorId, AgendaRow>
 }
 
+/** How long a woken pet stays up. */
+export const PET_AWAKE_MS = 8_000
 // A day's once-only moments, a few each for the roster.
 const MAX_DONE = 256
 const PERCENT = 100

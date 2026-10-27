@@ -13,13 +13,13 @@ import {
   type LifeAsk,
   type LifeState,
   type LifeStep,
+  PET_AWAKE_MS,
   seatPoseOf,
 } from '@/web/scene/sim/life/state'
 import { roomAt } from '@/web/scene/world/rooms'
 import { BOARD_SPOTS } from '@/web/scene/world/seats'
 import { setCapped } from '@/web/state/capped-map'
 
-const CAT_AWAKE_MS = 8_000
 const MAX_WOKEN = 200
 const MAX_VERDICTS = 32
 const MAX_ASKS = 16
@@ -58,6 +58,9 @@ export function subscribeLife(hub: typeof onWireEvent, state: LifeState): () => 
       }
     }),
     hub('brief_ready', () => feedSheet(state)),
+    hub('agent_added', () => {
+      state.corgiAwakeUntil = performance.now() + PET_AWAKE_MS
+    }),
     hub('any', (event) => wakeCat(state, event)),
   ]
 
@@ -142,7 +145,7 @@ function wakeCat(state: LifeState, event: WireEvent): void {
   }
 
   setCapped(state.woken, [key, true], MAX_WOKEN)
-  state.catAwakeUntil = performance.now() + CAT_AWAKE_MS
+  state.catAwakeUntil = performance.now() + PET_AWAKE_MS
 }
 
 function minuteKeyOf(event: WireEvent): string {
