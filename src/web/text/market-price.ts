@@ -18,15 +18,17 @@ export function formatMarketPrice(
     return ABSENT_CELL
   }
 
-  if (kind === INDEX_KIND) {
-    return formatPrice(value, undefined)
-  }
-
-  const display = priceDisplayOf(market)
-  const price = formatPrice(value, display)
+  const price = formatBarePrice(market, value, kind)
   const currency = findMarket(market)?.currency
 
-  return display === undefined && currency !== undefined ? `${price} ${currency}` : price
+  return kind !== INDEX_KIND && priceDisplayOf(market) === undefined && currency !== undefined
+    ? `${price} ${currency}`
+    : price
+}
+
+/** The figure alone, in the market's board scale, for a place the currency is said once nearby. */
+export function formatBarePrice(market: string, value: number, kind?: string): string {
+  return formatPrice(value, kind === INDEX_KIND ? undefined : priceDisplayOf(market))
 }
 
 /** A price typed as the board prints it, in the whole currency units the daemon takes: a VN share

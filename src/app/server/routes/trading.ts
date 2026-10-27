@@ -64,8 +64,15 @@ const NO_EVENTS_REASONS: ReadonlySet<string> = new Set(['unsupported', 'empty'])
  *  host owns the operator identity and the numeric bounds, so a route holds no authorization, no
  *  registry lookup, and no default of its own. Codes and data only — rendering is the client's. */
 
+// The watchlist's board, or one named instrument's live quote when the caller names one.
 async function handleTradingQuotes(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const quoteBoard = await hostOf(ctx).getQuotes(req.signal)
+  const instrument = parseOptionalInstrument(new URL(req.url).searchParams)
+
+  if (instrument === null) {
+    return apiError('invalid_body')
+  }
+
+  const quoteBoard = await hostOf(ctx).getQuotes(req.signal, instrument)
 
   return json(toQuotesResponse(quoteBoard, localeOf(ctx)))
 }
