@@ -24,6 +24,8 @@ interface BlockFrameProps<T> {
   readonly dataTo?: string | undefined
   /** The words "{time}" follows on the read line; "Đọc lúc" unless the figures are valuations. */
   readonly readKey?: MessageKey
+  /** False where the figures say their own read time, so it is not said twice. */
+  readonly showReadLine?: boolean
   /** A link or button in the head, at the right. */
   readonly action?: ComponentChildren
   /** Said under the skeleton while the first read runs, for a read that takes seconds. */
@@ -60,6 +62,7 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
 
 function BlockBody<T>(props: BlockFrameProps<T>) {
   const { title, reading, dataTo, readKey, loadingText, failedText, children } = props
+  const { showReadLine = true } = props
   const { data } = reading
 
   return (
@@ -82,7 +85,7 @@ function BlockBody<T>(props: BlockFrameProps<T>) {
       ) : (
         <>
           {children(data)}
-          <ReadLine readAt={reading.readAt} dataTo={dataTo} readKey={readKey} />
+          {showReadLine && <ReadLine readAt={reading.readAt} dataTo={dataTo} readKey={readKey} />}
         </>
       )}
     </>

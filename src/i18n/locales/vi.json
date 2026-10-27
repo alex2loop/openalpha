@@ -654,6 +654,8 @@
     "office.ticker.since": "Giữ từ",
     "office.ticker.weight": "Tỷ trọng",
     "office.ticker.sessions": "{count} phiên gần nhất",
+    "office.ticker.refresh": "Lấy giá mới",
+    "office.ticker.refreshNone": "Chưa lấy được giá mới cho mã này.",
     "office.ticker.pastSummaryEnough": "{scored} lần đã chấm, {hit} chạm mục tiêu trước mức cắt lỗ.",
     "office.chat.link.brief": "Đọc bản tin",
     "office.chat.link.screen": "Xem cơ hội",

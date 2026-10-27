@@ -654,6 +654,8 @@
     "office.ticker.since": "Held since",
     "office.ticker.weight": "Weight",
     "office.ticker.sessions": "Last {count} sessions",
+    "office.ticker.refresh": "Refresh price",
+    "office.ticker.refreshNone": "No new price came back for this ticker.",
     "office.ticker.pastSummaryEnough": "{scored} scored, {hit} reached the target before the stop.",
     "office.chat.link.brief": "Read the brief",
     "office.chat.link.screen": "See the opportunities",

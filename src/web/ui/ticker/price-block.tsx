@@ -9,13 +9,14 @@ import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
-import { boardScaleNotes, formatMarketPrice } from '@/web/text/market-price'
+import { boardScaleNotes, formatBarePrice, formatMarketPrice } from '@/web/text/market-price'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart'
+import { useLiveQuote } from '@/web/ui/ticker/live-quote'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 // Calendar days read, enough to hold the sessions shown across weekends and holidays.
@@ -46,13 +47,17 @@ interface PriceFacts {
 }
 
 /** The name, its price with the session it belongs to, and the last 30 sessions with the plan's
- *  levels on them. Without any price it says so and offers `/refresh`. */
+ *  levels on them. Without any price it says so and offers `/refresh`; its head button reads this
+ *  one name's price live, then the bars again. */
 export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const reading = useBlockRead(readBars(ticker, market), { capability: ROUTES.ohlcv.capability })
+  const live = useLiveQuote(ticker, market, reading.retry)
 
   useRetryWhenKnown(state.value?.timeZone !== undefined, reading.retry)
 
-  const label = findQuote(ticker, market)?.label
+  const board = findQuote(ticker, market)
+  const quote = newerQuote(live.quote, board)
+  const label = board?.label
 
   return (
     <BlockFrame
@@ -60,18 +65,32 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
       colour="teal"
       icon={<TrendIcon />}
       reading={reading}
+      showReadLine={false}
+      action={
+        state.value?.capabilities.quotes !== false && (
+          <Button size="small" disabled={live.isBusy} onClick={live.refresh}>
+            {tr('ui.office.ticker.refresh')}
+          </Button>
+        )
+      }
     >
-      {({ bars }) => <PriceBody ticker={ticker} market={market} bars={bars} levels={levels} />}
+      {({ bars }) => (
+        <>
+          {live.failure !== undefined && <p class="failure-line">{live.failure}</p>}
+          <PriceBody ticker={ticker} market={market} bars={bars} levels={levels} quote={quote} />
+        </>
+      )}
     </BlockFrame>
   )
 }
 
 interface PriceBodyProps extends PriceBlockProps {
   readonly bars: readonly TradingCandleWire[]
+  readonly quote: TradingQuoteWire | undefined
 }
 
-function PriceBody({ ticker, market, bars, levels }: PriceBodyProps) {
-  const facts = resolvePrice(ticker, market, bars)
+function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
+  const facts = resolvePrice({ ticker, market }, quote, bars)
 
   if (facts === undefined) {
     return (
@@ -89,7 +108,12 @@ function PriceBody({ ticker, market, bars, levels }: PriceBodyProps) {
       <PriceHead market={market} facts={facts} />
       {bars.length > 1 && (
         <>
-          <PriceChart closes={bars.map((bar) => bar.close)} levels={levels} />
+          <PriceChart
+            bars={bars}
+            levels={levels}
+            formatPrice={(value) => formatBarePrice(market, value, facts.kind)}
+            formatDay={(day) => formatDay(locale.value, day)}
+          />
           <p class="meta">
             {joinInline([
               tr('ui.office.ticker.sessions', { count: bars.length }),
@@ -161,15 +185,25 @@ function readBars(ticker: string, market: string): (abort: AbortSignal) => Promi
   }
 }
 
-// The quote when the name is on the board, else the mark a holding's stop was measured from, else
-// the last close the bars carry, dated.
+// The newer of the price read on request and the board's, by when each was taken.
+function newerQuote(
+  live: TradingQuoteWire | undefined,
+  board: TradingQuoteWire | undefined
+): TradingQuoteWire | undefined {
+  if (live === undefined || board === undefined) {
+    return live ?? board
+  }
+
+  return (toQuoteTimes(live).readAt ?? 0) >= (toQuoteTimes(board).readAt ?? 0) ? live : board
+}
+
+// The quote when there is one, else the mark a holding's stop was measured from, else the last
+// close the bars carry, dated.
 function resolvePrice(
-  ticker: string,
-  market: string,
+  { ticker, market }: { readonly ticker: string; readonly market: string },
+  quote: TradingQuoteWire | undefined,
   bars: readonly TradingCandleWire[]
 ): PriceFacts | undefined {
-  const quote = findQuote(ticker, market)
-
   if (quote !== undefined) {
     return {
       value: quote.last,

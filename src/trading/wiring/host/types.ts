@@ -291,7 +291,8 @@ interface TradingNewsView {
  *  authorization logic, and every method makes exactly one service call (a guard may read a
  *  registry list first, as `syncLedger` does to refuse an unknown venue). */
 export interface TradingHost {
-  getQuotes(signal: AbortSignal): Promise<QuoteBoard>
+  /** The watchlist's board; with `instrument`, that one name's board row, read live. */
+  getQuotes(signal: AbortSignal, instrument?: InstrumentRef): Promise<QuoteBoard>
   getOhlcv(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly Candle[]>>
   /** Ex-dates, meetings, splits and listings; a market with no event source answers unavailable. */
   getEvents(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly MarketEvent[]>>

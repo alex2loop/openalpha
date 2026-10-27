@@ -20,7 +20,22 @@
 .price-chart {
   display: block;
   width: 100%;
-  margin-top: var(--s1);
+  margin: var(--s1) 0;
+}
+
+.price-chart text {
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-axis line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+text.chart-axis,
+.chart-axis text {
+  fill: var(--ink3);
+  font-size: 10px;
 }
 
 .chart-line {

@@ -111,12 +111,11 @@ function priceMethods(deps: TradingHostDeps): PriceMethods {
       }),
     }),
 
-    getQuotes: (signal) =>
+    getQuotes: (signal, instrument) =>
       scoped(deps, signal, async (scope) => {
-        const profile = await profileOf(deps, scope)
-
         return deps.services.marketData.quoteBoard({
-          instruments: profile.watchlist,
+          instruments:
+            instrument === undefined ? (await profileOf(deps, scope)).watchlist : [instrument],
           signal: scope.signal,
         })
       }),
