@@ -27,7 +27,7 @@ import {
   WOOD,
 } from '@/web/scene/sprites/palette'
 import { isWallMounted, type PropDef, type PropKind, propsOn } from '@/web/scene/world/props'
-import { DESK_SITTER_FACE, SEATS, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'
+import { SEATS, SOFA_SEATS, TEAM_SEATS } from '@/web/scene/world/seats'
 
 /** A floor's furniture: static boxes by room, glass, and the parts that change while it shows. */
 export interface FloorProps {
@@ -315,11 +315,9 @@ function seatFacing(prop: PropDef): string | undefined {
   ]
   const { x, y, w, h } = prop.rect
 
-  const seat = all.find(
+  return all.find(
     (one) => one.at.x >= x && one.at.x <= x + w && one.at.y >= y - 4 && one.at.y <= y + h + 4
-  )
-
-  return seat?.desk === true ? DESK_SITTER_FACE['3d'] : seat?.face
+  )?.face
 }
 
 function shelf({ prop, out }: Build): void {

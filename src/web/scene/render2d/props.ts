@@ -114,8 +114,7 @@ export function tieRankOf(prop: PropDef): number {
 }
 
 // The mockup's desk: the top and its legs, a bin beside it, the desktop box, and a phone and mug,
-// or a StandBy stand on a senior desk (the keyboard lies behind the monitor, before its worker);
-// the alert desk is a long counter.
+// or a StandBy stand on a senior desk; the alert desk is a long counter.
 function paintDesk(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   const { x, y, w, h } = prop.draw
 
@@ -195,8 +194,8 @@ function paintBooks(g: CanvasRenderingContext2D, prop: PropDef): void {
   }
 }
 
-// Every desk's one monitor stands on its desk and sorts with it, before the worker sitting behind
-// the desk: their head shows over it, its screen faces the camera.
+// Every desk's one monitor stands at the back of its desk, its screen to the camera, and sorts
+// over the desk, behind the worker sitting south of it: their head shows under the screen.
 function paintComputer(g: CanvasRenderingContext2D, prop: PropDef, scene: PaintScene): void {
   paintMonitor(g, prop.draw, scene)
   paintTabsOn(g, prop, standingScreenOf(prop.draw))

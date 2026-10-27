@@ -48,12 +48,10 @@ const OPERATOR_LIGHT = Object.freeze({
 })
 // Your desk's screens face you, the camera; its seat stands this far south of the computer's foot.
 const SCREEN_SEAT_DZ = 8
-// Every other desk's worker sits behind it, facing the room, this far north of its top's edge.
-const SITTER_GAP_PX = 5
-// The monitor stands this far in from its desk's edge, its face this far in front of that; at a
-// sitter's desk its foot takes this much of the top at the far edge.
+// Every other desk's worker sits south of it, back to the camera, this far from its near edge.
+const SITTER_GAP_PX = 10
+// The monitor stands this far in from its desk's back edge, its face this far in front of that.
 const MONITOR_BACK_INSET = 1
-const MONITOR_FOOT_D = 3
 const MONITOR_FACE_PROUD = 1.2
 const MONITOR_FACE_D = 0.3
 // The back's centre sits this far behind the face.
@@ -159,17 +157,15 @@ export function deskThings(job: Build): void {
   mug(job.floor.mugs, { x: x + w - 5, z: y + 7, top })
 }
 
-/** A monitor on its silver stand: at the back of your desk, leaning back until its face looks at
- *  the camera; upright at the far edge of every other desk from its worker, who sits behind it
- *  facing the room, so their face shows over it. Its screen stays on the side the camera sees, so
- *  the worker's terminal reads. Its face and back are placed by `fixtures` so the face can light. */
+/** A monitor on its silver stand at the back of its desk, its screen to the camera so the terminal
+ *  reads: on your desk leaning back until its face looks at the camera; upright on every other,
+ *  facing its worker, who sits south of the desk with their back to the camera. Its face and back
+ *  are placed by `fixtures` so the face can light. */
 export function monitorOf({ prop, out, floor }: Build): void {
   const cx = prop.rect.x + prop.rect.w / 2
   const desk = deskUnder(prop) ?? prop
   const isSitters = !isOperatorDesk(desk)
-  const z = isSitters
-    ? desk.rect.y + desk.rect.h - MONITOR_BACK_INSET - MONITOR_FOOT_D
-    : desk.rect.y + MONITOR_BACK_INSET
+  const z = desk.rect.y + MONITOR_BACK_INSET
   const top = desk.height
   const tilt = isSitters ? 0 : MONITOR_TILT
   const { w, h } = MONITOR_FACE
@@ -187,7 +183,7 @@ export function monitorOf({ prop, out, floor }: Build): void {
     tilt,
     back: { at: [cx, back.y, back.z], size: [w + 0.8, h + 0.8, 1] },
     seat: isSitters
-      ? { x: cx, y: desk.rect.y - SITTER_GAP_PX }
+      ? { x: cx, y: desk.rect.y + desk.rect.h + SITTER_GAP_PX }
       : { x: cx, y: prop.rect.y + prop.rect.h + SCREEN_SEAT_DZ },
     slot: { x: cx, y: prop.rect.y + prop.rect.h },
   })
@@ -335,14 +331,14 @@ function operatorThings({ prop, out, floor }: Build): void {
   calendar({ out, floor, prop }, { x: x + 63.4, z: y + 8.8, top: at(14.5) })
 }
 
-// The keyboard lies on the near half, before the worker sitting behind the desk.
+// The keyboard lies on the near half, before the worker sitting south of the desk.
 function juniorThings({ prop, out }: Build): void {
   const { x, y, w } = prop.rect
   const top = prop.height
 
   out.push(
-    box([x + w / 2 - 5, y + 2, 10, 4, top, 1], KEYBOARD, true),
-    box([x + w / 2 - 5, y + 3.4, 10, 0.6, top + 0.9, 0.3], KEY_ROW),
+    box([x + w / 2 - 5, y + 6, 10, 4, top, 1], KEYBOARD, true),
+    box([x + w / 2 - 5, y + 8, 10, 0.6, top + 0.9, 0.3], KEY_ROW),
     box([x + w + BIN.dx, y + BIN.dz, BIN.w, BIN.w, 0, BIN.h], BIN.body, true),
     box([x + w + BIN.dx - 0.3, y + BIN.dz - 0.3, BIN.w + 0.6, BIN.w + 0.6, BIN.h, 0.9], BIN.rim)
   )

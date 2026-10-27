@@ -95,7 +95,7 @@ interface PropSpec extends PropLook {
   readonly draw: Box
 }
 
-/** How a seat's chair sits: facing the room's back or front wall; a desk's stands behind it. */
+/** How a seat's chair sits: facing the room's back or front wall, a desk's facing its desk. */
 type SeatFacing = 'back' | 'front'
 
 const HEIGHT_OF: Readonly<Record<PropKind, number>> = Object.freeze({
@@ -170,6 +170,10 @@ const CHAIR_SET_BACK: Readonly<Record<SeatFacing, number>> = Object.freeze({
 })
 // Hung under the ceiling: painted over everyone on the floor.
 const OVERHEAD_SORT_Y = 10_000
+// A worked desk's pieces' rows (`desk-props`) start this far north of its 2D drawn corner; the
+// assistant's is the senior desk look.
+const DESK_ROWS_DY = 9
+const DESK_LOOK_SENIOR = 3
 const LIFT_OFFICE = FLOORS.office.lift
 const LIFT_TEAM = FLOORS.team.lift
 
@@ -224,11 +228,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('books', 'lib', { at: [166, 72, 14, 10], draw: [166, 66, 15, 12], variant: 1 }),
   stand('books', 'lib', { at: [168, 98, 14, 10], draw: [168, 90, 15, 14], variant: 0 }),
   stand('catalogue', 'lib', { at: [168, 168, 28, 10], draw: [168, 156, 28, 22] }),
-  ...[176, 224, 272].flatMap((x) => [
-    stand('chair', 'lib', { at: seatFoot(x + 20, 136, 'back'), draw: [x + 12, 113, 16, 11] }),
-    stand('desk', 'lib', { at: [x, 119 + DESK_SHIFT_PX, 40, 12], draw: [x, 128, 40, 20] }),
-    stand('computer', 'lib', { at: [x + 12, 150, 16, 3], draw: [x + 12, 126, 16, 14], sortY: 148 }),
-  ]),
+  ...[176, 224, 272].flatMap((x) => workDesk('lib', { x, y: 128 })),
   stand('desk-lamp', 'lib', {
     at: [255, 120, 8, 4],
     draw: [254, 114, 10, 12],
@@ -291,17 +291,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('computer', 'alerts', { at: [222, 340, 16, 3], draw: [222, 318, 16, 14], sortY: 342 }),
   stand('lamp', 'alerts', { at: [308, 372, 8, 8], draw: [306, 325, 12, 51] }),
   wall('results-board', 'assist', { at: [414, 232, 52, 22], tip: 'results' }),
-  stand('chair', 'assist', { at: seatFoot(384, 306, 'back'), draw: [376, 283, 16, 11] }),
-  stand('desk', 'assist', {
-    at: [364, 291 + DESK_SHIFT_PX, 40, 12],
-    draw: [364, 300, 40, 20],
-    variant: 3,
-  }),
-  stand('computer', 'assist', {
-    at: [376, 300 + DESK_SHIFT_PX, 16, 3],
-    draw: [376, 298, 16, 14],
-    sortY: 320,
-  }),
+  ...workDesk('assist', { x: 364, y: 300 }, { variant: DESK_LOOK_SENIOR }),
   stand('tank', 'assist', { at: [434, 298, 36, 13], draw: [434, 295, 36, 27], tip: 'fish' }),
   stand('plant', 'assist', { at: [332, 348, 8, 8], draw: [330, 340, 12, 16] }),
   stand('plant', 'assist', { at: [452, 352, 8, 8], draw: [450, 344, 12, 16] }),
@@ -316,15 +306,7 @@ const PROP_SPECS: readonly PropSpec[] = Object.freeze([
   stand('computer', 'desk', { at: [574, 319, 16, 3], draw: [574, 291, 16, 14], sortY: 322 }),
   stand('lamp', 'desk', { at: [618, 350, 8, 8], draw: [616, 303, 12, 51] }),
   wall('lift-door', 'team', { at: [LIFT_TEAM.x, LIFT_TEAM.y, LIFT_TEAM.w, LIFT_TEAM.h] }),
-  ...DESK_SLOTS.flatMap(({ x, y }) => [
-    stand('chair', 'team', { at: seatFoot(x + 20, y + 8, 'back'), draw: [x + 12, y - 15, 16, 11] }),
-    stand('desk', 'team', { at: [x, y - 9 + DESK_SHIFT_PX, 40, 12], draw: [x, y, 40, 20] }),
-    stand('computer', 'team', {
-      at: [x + 12, y + DESK_SHIFT_PX, 16, 3],
-      draw: [x + 12, y - 2, 16, 14],
-      sortY: y + 20,
-    }),
-  ]),
+  ...DESK_SLOTS.flatMap((corner) => workDesk('team', corner)),
   stand('shelf', 'team', { at: [520, 66, 48, 10], draw: [520, 40, 48, 36], height: 36 }),
   stand('shelf', 'team', { at: [576, 66, 48, 10], draw: [576, 40, 48, 36], height: 36 }),
   ...[76, 236, 396].map((x, i) => wall('frame', 'team', { at: [x, 8, 16, 12], variant: i })),
@@ -416,6 +398,27 @@ function stand(
 // A piece hung on a wall: one box serves both.
 function wall(kind: PropKind, room: RoomId, spec: PropLook & { readonly at: Box }): PropSpec {
   return { kind, room, draw: spec.at, ...spec }
+}
+
+// A desk someone works at, from its 2D drawn corner: the monitor at its back, screen to the camera,
+// and the chair south of it, its sitter's back to the camera (`TEAM_SEATS`, `SEATS`).
+function workDesk(room: RoomId, { x, y }: Point, look: PropLook = {}): PropSpec[] {
+  const foot = y - DESK_ROWS_DY + DESK_SHIFT_PX
+  const seat = { x: x + 20, y: y + 30 }
+
+  return [
+    stand('chair', room, {
+      at: seatFoot(seat.x, seat.y, 'back'),
+      draw: [seat.x - 8, seat.y - 13, 16, 13],
+      variant: 1,
+    }),
+    stand('desk', room, { at: [x, foot, 40, 12], draw: [x, y, 40, 20], ...look }),
+    stand('computer', room, {
+      at: [x + 12, foot, 16, 3],
+      draw: [x + 12, y - 11, 16, 14],
+      sortY: y + 21,
+    }),
+  ]
 }
 
 function seatFoot(x: number, y: number, facing: SeatFacing): Box {

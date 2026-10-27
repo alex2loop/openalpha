@@ -17,16 +17,17 @@ interface TeamFrame {
   readonly isReduced: boolean
 }
 
-// The desk's computer screen and the focus prop on the desk top, from the desk top's corner.
+// The desk's computer screen (the glass of the monitor at the desk's back) and the focus prop on
+// the desk top, from the desk top's corner.
 const SCREEN_DX = 13
-const SCREEN_DY = -13
+const SCREEN_DY = -10
 const SCREEN_W = 14
-const SCREEN_H = 8
+const SCREEN_H = 7
 const ITEM_DX = 28
 const ITEM_DY = 2
-// Drawn just over the computer and the desk they stand on.
-const SCREEN_SORT_LIFT = 0.5
+// Drawn just over the desk and the computer, which sorts a px under the desk's bottom.
 const DESK_BOTTOM = 20
+const SCREEN_SORT_DY = DESK_BOTTOM + 1.5
 const ITEM_SORT_LIFT = 0.5
 const PIECE_TIE = 1
 const SCREEN_LINE = '#E8F0FF'
@@ -103,7 +104,7 @@ function deskPieces(
   const focus = desk.focus
 
   if (desk.isLit) {
-    pieces.push({ sortY: y + SCREEN_SORT_LIFT, tie: PIECE_TIE, draw: () => paintScreen(g, x, y) })
+    pieces.push({ sortY: y + SCREEN_SORT_DY, tie: PIECE_TIE, draw: () => paintScreen(g, x, y) })
   }
 
   if (focus !== undefined) {

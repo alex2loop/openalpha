@@ -26,10 +26,10 @@ const BOTTOM_ROW_Y = 224
 const TOP_ROW_BOTTOM = 192
 const FLOOR_BOTTOM = 384
 
-/** How far south of its 2D drawn place a desk someone sits at stands as a footprint (3D and the
- *  nav grid): its worker sits behind it facing the room, the 2D view drawing them over its top and
- *  its monitor low on its front edge, under their face. */
-export const DESK_SHIFT_PX = 22
+/** How far south of its desk pieces' rows (`desk-props`) a desk someone sits at stands as a
+ *  footprint (3D and the nav grid): under its 2D drawn front, its worker sitting south of it with
+ *  their back to the camera, its monitor at the far edge facing them and the camera. */
+export const DESK_SHIFT_PX = 17
 
 /** The team floor's six desks, one per own agent, in the order they are given out: each desk
  *  top's left corner. The lounge (shelves, sofa, coffee, water) fills the east side. */
