@@ -7,9 +7,7 @@ import type { WallClock } from '@/web/scene/world/regions'
 import { pageNow } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { engage } from '@/web/scene/overlay/actor-focus'
-import { actorNowOf } from '@/web/scene/overlay/actor-state'
 import { type Hit, pickAt } from '@/web/scene/overlay/hit'
-import { hoverTextOf, personNameOf } from '@/web/scene/overlay/hover-label'
 import { hoverObject, tipActionOf } from '@/web/scene/overlay/object-tip'
 import { hoverActor, keyedActor, overlayView } from '@/web/scene/overlay/overlay'
 import { closeMenu } from '@/web/scene/overlay/radial-menu'
@@ -188,7 +186,7 @@ function enterRoom(input: PointerState, id: string): void {
 }
 
 /** The pointer over the scene: an object's tip, a person's look and label, the cursor and the
- *  canvas's title. */
+ *  canvas's title, left empty over a person since their hover label already names them. */
 export function hoverAt(input: PointerState, screen: ScreenPoint): void {
   const hit = pickAt(screen, input.deps.renderer, input.deps.readView())
   const prop = hit?.kind === 'object' ? propOf(hit) : undefined
@@ -198,7 +196,7 @@ export function hoverAt(input: PointerState, screen: ScreenPoint): void {
   hoverObject(hit?.kind === 'pet' ? toPetTip(hit.id) : prop?.tip, screen)
   setHovered(input, actor)
   input.canvas.style.cursor = isClickable(hit, prop) ? CLICKABLE_CURSOR : ''
-  input.canvas.title = actor === undefined ? thingTitleOf(hit, prop) : actorTitleOf(input, actor)
+  input.canvas.title = actor === undefined ? thingTitleOf(hit, prop) : ''
 }
 
 // The person under the pointer looks up at it until the pointer leaves them.
@@ -223,12 +221,6 @@ export function setHovered(input: PointerState, actor: ActorId | undefined): voi
 }
 
 // A person under the pointer is named with what they do now, for the tooltip and readers.
-function actorTitleOf(input: PointerState, actor: ActorId): string {
-  const sim = input.deps.readView()
-
-  return hoverTextOf(personNameOf(sim, actor), actorNowOf(sim, actor), Date.now())
-}
-
 function isClickable(hit: Hit | undefined, prop: PropDef | undefined): boolean {
   switch (hit?.kind) {
     case undefined:
