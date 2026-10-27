@@ -1,52 +1,63 @@
-import {
-  BoxGeometry,
-  type BufferGeometry,
-  Group,
-  type Material,
-  Mesh,
-  MeshBasicMaterial,
-} from 'three'
+import { BoxGeometry, Group, type Material, Mesh, MeshBasicMaterial } from 'three'
 
 import type { ModelPose } from '@/web/scene/render3d/animal-parts'
+import type { PetRig } from '@/web/scene/render3d/pet-rig'
 import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
+import type { AnimalMotion } from '@/web/scene/sim/life/animal-motion'
 import type { PetKind, PetPose, PetView, SimView } from '@/web/scene/types'
+import { ambientMsOf } from '@/web/scene/budgets'
 import { catShape } from '@/web/scene/render3d/animal-cat'
 import { corgiShape } from '@/web/scene/render3d/animal-corgi'
-import { buildAnimalGeometry } from '@/web/scene/render3d/animal-mesh'
+import { createPetRig, disposeRig, poseRig } from '@/web/scene/render3d/pet-rig'
 import { toUnits } from '@/web/scene/render3d/space'
+import { petMotionOf } from '@/web/scene/sim/life/animal-motion'
 import { PET_FLOOR } from '@/web/scene/sim/life/pet-paths'
 import { OUTLINE } from '@/web/scene/sprites/palette'
 
-/** The lobby's pets as the mockup's ellipsoid animals, one geometry per pose, detail level and leg
- *  step in use, and the "z z" over a sleeper. */
+/** The lobby's pets as the mockup's ellipsoid animals, one skinned rig per pose and detail level
+ *  in use, and the "z z" over a sleeper. */
 export interface Pets {
   readonly root: Group
-  readonly meshes: Mesh[]
+  readonly rigs: Map<string, PetRig>
   readonly sleeps: Mesh[]
-  readonly shapes: Map<string, BufferGeometry>
   readonly mark: { readonly geometry: BoxGeometry; readonly material: MeshBasicMaterial }
   /** What the pets showed last; unchanged, nothing is rewritten. */
   key: string
 }
 
-// The mockup's model is in units a fifth of a world px.
-const MODEL_PX = 0.2
 // A walking pet steps through these leg swings, one every this many ms.
 const STEPS = [0, 1, 0, -1] as const
 const STEP_MS: Readonly<Record<PetKind, number>> = Object.freeze({ cat: 120, corgi: 150 })
-// The sleeper's "z": a small dark square over its head, shown every other beat.
+// The sleeper's "z": a small dark square over its head, up while it rests and every other beat
+// while its bout is on.
 const SLEEP_MARK = Object.freeze({
   size: [2, 2, 0.4] as const,
   beatMs: 1_800,
   at: { cat: [2, 17, -14], corgi: [8, 18, -15] } as const,
 })
 
+/** What a frame shows the pets: the sim, the detail level, the lit material, the clock. */
+interface PetFrame {
+  readonly sim: SimView
+  readonly level: DetailLevel
+  readonly material: Material
+  readonly now: number
+  readonly isReduced: boolean
+}
+
+// One pet as drawn this frame.
+interface ShownPet {
+  readonly pet: PetView
+  readonly pose: ModelPose
+  readonly motion: AnimalMotion
+  readonly isZShown: boolean
+}
+
 export function createPets(): Pets {
   return {
     root: new Group(),
-    meshes: [],
+    rigs: new Map(),
     sleeps: [],
-    shapes: new Map(),
     mark: {
       geometry: new BoxGeometry(1, 1, 1),
       material: new MeshBasicMaterial({ color: OUTLINE, toneMapped: false }),
@@ -55,26 +66,13 @@ export function createPets(): Pets {
   }
 }
 
-/** Shows the pets on `floor` between their last two steps; a shape no pet shows any more drops
- *  its geometry. True when a pet moved, turned, changed pose, step or detail. */
-export function syncPets(
-  pets: Pets,
-  frame: {
-    readonly sim: SimView
-    readonly level: DetailLevel
-    readonly material: Material
-    readonly now: number
-    readonly isReduced: boolean
-  }
-): boolean {
+/** Shows the pets on `floor` between their last two steps, breathing, flicking and wagging on the
+ *  ambient clock; a rig no pet shows any more is dropped. True when a pet moved, turned, changed
+ *  pose, step or detail. */
+export function syncPets(pets: Pets, frame: PetFrame): boolean {
   const { sim } = frame
-  const shown = (sim.floor === PET_FLOOR ? sim.life.pets : []).map((pet) => ({
-    pet,
-    pose: modelPoseOf(pet),
-    step: stepOf(pet, frame),
-  }))
-  const beat = frame.isReduced ? 0 : Math.floor(frame.now / SLEEP_MARK.beatMs) % 2
-  const shownKey = `${frame.level}|${beat}|${shown.map(({ pet, step }) => `${petKeyOf(pet, sim.alpha)}${step}`).join('|')}`
+  const shown = (sim.floor === PET_FLOOR ? sim.life.pets : []).map((pet) => shownOf(pet, frame))
+  const shownKey = `${frame.level}|${shown.map((one) => keyOf(one, sim.alpha)).join('|')}`
 
   if (shownKey === pets.key) {
     return false
@@ -84,27 +82,20 @@ export function syncPets(
 
   const used = new Set<string>()
 
-  shown.forEach(({ pet, pose, step }, i) => {
-    const key = `${pet.kind}|${pose}|${frame.level}|${step}`
-    const mesh = meshAt(pets, i, frame.material)
+  shown.forEach((one, i) => {
+    const rig = rigFor(pets, one, frame)
+    const { pet } = one
     const x = pet.prev.x + (pet.at.x - pet.prev.x) * sim.alpha
     const z = pet.prev.y + (pet.at.y - pet.prev.y) * sim.alpha
 
-    used.add(key)
-    mesh.geometry = shapeOf(pets, { kind: pet.kind, pose, level: frame.level, step, key })
-    mesh.visible = true
-    mesh.position.set(toUnits(x), toUnits(pet.lift), toUnits(z))
-    mesh.rotation.y = pet.isFlipped ? Math.PI : 0
-    placeSleepMark(sleepAt(pets, i), {
-      kind: pet.kind,
-      x,
-      z,
-      lift: pet.lift,
-      isShown: pose === 'sleep' && beat === 1,
-    })
+    used.add(rigKeyOf(one, frame.level))
+    poseRig(rig, pet.kind, one.motion)
+    rig.mesh.position.set(toUnits(x), toUnits(pet.lift), toUnits(z))
+    rig.mesh.rotation.y = pet.isFlipped ? Math.PI : 0
+    placeSleepMark(sleepAt(pets, i), { pet, x, z, isShown: one.isZShown })
   })
 
-  for (const mesh of [...pets.meshes.slice(shown.length), ...pets.sleeps.slice(shown.length)]) {
+  for (const mesh of pets.sleeps.slice(shown.length)) {
     mesh.visible = false
   }
 
@@ -113,24 +104,69 @@ export function syncPets(
   return true
 }
 
-// A shape no pet shows any more drops its geometry.
+// A rig no pet shows any more drops its geometry.
 function dropUnused(pets: Pets, used: ReadonlySet<string>): void {
-  for (const [shapeKey, shape] of pets.shapes) {
-    if (!used.has(shapeKey)) {
-      shape.dispose()
-      pets.shapes.delete(shapeKey)
+  for (const [key, rig] of pets.rigs) {
+    if (!used.has(key)) {
+      disposeRig(rig)
+      pets.rigs.delete(key)
     }
   }
 }
 
 export function disposePets(pets: Pets): void {
-  for (const shape of pets.shapes.values()) {
-    shape.dispose()
+  for (const rig of pets.rigs.values()) {
+    disposeRig(rig)
   }
 
-  pets.shapes.clear()
+  pets.rigs.clear()
   pets.mark.geometry.dispose()
   pets.mark.material.dispose()
+}
+
+function shownOf(pet: PetView, frame: PetFrame): ShownPet {
+  const pose = modelPoseOf(pet)
+  const ms = ambientMsOf(frame.now)
+  const beat = Math.floor(ms / SLEEP_MARK.beatMs) % 2 === 1
+
+  return {
+    pet,
+    pose,
+    motion: petMotionOf({
+      kind: pet.kind,
+      pose,
+      level: frame.level,
+      ms,
+      isLive: pet.isLive,
+      step: stepOf(pet, frame),
+      air: pet.air,
+      pitch: pet.pitch,
+    }),
+    // Under reduced motion no "z" shows, as the mockup's.
+    isZShown: pose === 'sleep' && !frame.isReduced && (!pet.isLive || beat),
+  }
+}
+
+function rigKeyOf(one: ShownPet, level: DetailLevel): string {
+  return `${one.pet.kind}|${one.pose}|${level}`
+}
+
+function rigFor(pets: Pets, one: ShownPet, frame: PetFrame): PetRig {
+  const key = rigKeyOf(one, frame.level)
+  const held = pets.rigs.get(key)
+
+  if (held !== undefined) {
+    return held
+  }
+
+  const model =
+    one.pet.kind === 'corgi' ? corgiShape(one.pose, frame.level) : catShape(one.pose, frame.level)
+  const rig = createPetRig(model, { level: frame.level, material: frame.material })
+
+  pets.rigs.set(key, rig)
+  pets.root.add(rig.mesh)
+
+  return rig
 }
 
 // The mockup's cat sits, sleeps or walks; its corgi stands (walking too), lies or sleeps.
@@ -163,7 +199,8 @@ function stepOf(
 }
 
 // A walking pet's key carries the frame's step fraction, so each in-between frame is drawn.
-function petKeyOf(pet: PetView, alpha: number): string {
+function keyOf(one: ShownPet, alpha: number): string {
+  const { pet } = one
   const isMoving = pet.prev.x !== pet.at.x || pet.prev.y !== pet.at.y
 
   return [
@@ -174,43 +211,26 @@ function petKeyOf(pet: PetView, alpha: number): string {
     pet.lift,
     pet.isFlipped,
     isMoving ? alpha : '',
+    Object.values(one.motion).join(),
+    one.isZShown,
   ].join()
 }
 
 function placeSleepMark(
   mark: Mesh,
   at: {
-    readonly kind: PetKind
+    readonly pet: PetView
     readonly x: number
     readonly z: number
-    readonly lift: number
     readonly isShown: boolean
   }
 ): void {
-  const [dx, dy, dz] = SLEEP_MARK.at[at.kind]
+  const [dx, dy, dz] = SLEEP_MARK.at[at.pet.kind]
   const [w, h, d] = SLEEP_MARK.size
 
   mark.visible = at.isShown
   mark.scale.set(toUnits(w), toUnits(h), toUnits(d))
-  mark.position.set(toUnits(at.x + dx), toUnits(at.lift + dy), toUnits(at.z + dz))
-}
-
-function meshAt(pets: Pets, index: number, material: Material): Mesh {
-  const held = pets.meshes[index]
-
-  if (held !== undefined) {
-    return held
-  }
-
-  const mesh = new Mesh(undefined, material)
-
-  mesh.scale.setScalar(toUnits(MODEL_PX))
-  mesh.castShadow = true
-  mesh.receiveShadow = true
-  pets.meshes.push(mesh)
-  pets.root.add(mesh)
-
-  return mesh
+  mark.position.set(toUnits(at.x + dx), toUnits(at.pet.lift + dy), toUnits(at.z + dz))
 }
 
 function sleepAt(pets: Pets, index: number): Mesh {
@@ -226,29 +246,4 @@ function sleepAt(pets: Pets, index: number): Mesh {
   pets.root.add(mesh)
 
   return mesh
-}
-
-function shapeOf(
-  pets: Pets,
-  spec: {
-    readonly kind: PetKind
-    readonly pose: ModelPose
-    readonly level: DetailLevel
-    readonly step: number
-    readonly key: string
-  }
-): BufferGeometry {
-  const held = pets.shapes.get(spec.key)
-
-  if (held !== undefined) {
-    return held
-  }
-
-  const model =
-    spec.kind === 'corgi' ? corgiShape(spec.pose, spec.level) : catShape(spec.pose, spec.level)
-  const shape = buildAnimalGeometry(model, spec)
-
-  pets.shapes.set(spec.key, shape)
-
-  return shape
 }

@@ -20,10 +20,12 @@ type Box = readonly [number, number, number, number]
 const ROOM_DETAIL_SCALE = 2.5
 const CLOSE_DETAIL_SCALE = 5
 
-// The mockup's fish, about eight px nose to tail: the tail fin, the body over its pale belly, the
-// head, then the eye and the back fin, and a spot when close.
+/** The fish's tail fin, which beats on its own; it hangs from the body's rear edge. */
+export const FISH_TAIL: AnimalPart = part([-4, -1, 1, 3], 'pink')
+
+// The mockup's fish, about eight px nose to tail: the body over its pale belly, the head, then the
+// eye and the back fin, and a spot when close.
 const FISH_PARTS: readonly AnimalPart[] = Object.freeze([
-  part([-4, -1, 1, 3], 'pink'),
   part([-3, -1, 5, 2], 'fur'),
   part([-2, 1, 4, 1], 'light'),
   part([2, -1, 2, 2], 'shade'),
@@ -52,6 +54,7 @@ export function detailOf(scale: number): DetailLevel {
   return scale >= ROOM_DETAIL_SCALE ? 1 : 0
 }
 
+/** The fish's parts but its tail at `level`. */
 export function fishPartsOf(level: DetailLevel): readonly AnimalPart[] {
   return FISH_PARTS.filter((one) => one.level <= level)
 }

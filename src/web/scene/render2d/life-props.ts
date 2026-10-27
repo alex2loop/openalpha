@@ -1,3 +1,4 @@
+import type { AmbientFx } from '@/web/scene/render2d/ambient-fx'
 import type { FloorId, LifeView, Point, SimView, SteamView } from '@/web/scene/types'
 import { drawBlock, fill, framed } from '@/web/scene/render2d/building'
 import { signPiecesOf } from '@/web/scene/render2d/crew-props'
@@ -39,7 +40,7 @@ interface LifePiece {
  *  and the furniture. */
 export function buildLifePieces(
   g: CanvasRenderingContext2D,
-  at: { readonly sim: SimView; readonly scale: number }
+  at: { readonly sim: SimView; readonly scale: number; readonly fx: AmbientFx | undefined }
 ): LifePiece[] {
   const { life, floor, alpha } = at.sim
   const level = detailOf(at.scale)
@@ -48,7 +49,7 @@ export function buildLifePieces(
       ? life.pets.map((pet) => ({
           sortY: pet.at.y,
           tie: PET_TIE,
-          draw: () => paintPet(g, pet, { alpha, level }),
+          draw: () => paintPet(g, pet, { alpha, level, fx: at.fx }),
         }))
       : []
   const cart = life.cart

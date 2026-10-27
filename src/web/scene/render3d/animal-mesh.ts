@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, Float32BufferAttribute } from 'three'
+import { BufferGeometry, Color, Float32BufferAttribute, Uint16BufferAttribute } from 'three'
 
 import type { AnimalPart, Ellipsoid } from '@/web/scene/render3d/animal-parts'
 import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
@@ -13,33 +13,30 @@ const RINGS: Readonly<Record<DetailLevel, number>> = Object.freeze({ 0: 8, 1: 12
 const SHADE = 0.82
 // A band stands this much proud of its ellipsoid, over this many rings.
 const BAND = Object.freeze({ grow: 1.07, rings: 3 })
-// A leg swings this far each walking step, the two diagonals opposite.
-const LEG_SWING = 0.45
 const IDENTITY: Rotation = [1, 0, 0, 0, 1, 0, 0, 0, 1]
 
-/** Every ellipsoid of the model in one vertex-coloured geometry, in the model's units, with its
- *  legs swung by `step` (-1, 0 or 1); the caller disposes it. */
+/** Every ellipsoid of the model at rest in one vertex-coloured geometry, in the model's units;
+ *  each vertex is skinned to its part, the bone at that part's index in `parts`. The caller
+ *  disposes it. */
 export function buildAnimalGeometry(
   parts: readonly AnimalPart[],
-  at: { readonly level: DetailLevel; readonly step: number }
+  at: { readonly level: DetailLevel }
 ): BufferGeometry {
-  const out = {
-    position: [] as number[],
-    normal: [] as number[],
-    color: [] as number[],
-    index: [] as number[],
+  const out: Arrays = {
+    position: [],
+    normal: [],
+    color: [],
+    index: [],
+    skinIndex: [],
   }
   const frames = new Map<string, { readonly rotation: Rotation; readonly origin: Vec }>()
 
-  for (const part of parts) {
+  parts.forEach((part, bone) => {
     const parent = (part.parent === undefined ? undefined : frames.get(part.parent)) ?? {
       rotation: IDENTITY,
       origin: [0, 0, 0] as const,
     }
-    const rotation = multiply(
-      parent.rotation,
-      turnOf(part.turn[0] + legSwingOf(part.name, at.step), part.turn[1])
-    )
+    const rotation = multiply(parent.rotation, turnOf(part.turn[0], part.turn[1]))
     const offset = apply(parent.rotation, part.at)
     const origin: Vec = [
       offset[0] + parent.origin[0],
@@ -50,27 +47,27 @@ export function buildAnimalGeometry(
     frames.set(part.name, { rotation, origin })
 
     for (const prim of part.prims) {
-      addEllipsoid(out, { prim, rotation, origin, rings: RINGS[at.level] })
+      addEllipsoid(out, { prim, rotation, origin, rings: RINGS[at.level], bone })
     }
-  }
+  })
 
   const geometry = new BufferGeometry()
 
   geometry.setAttribute('position', new Float32BufferAttribute(out.position, 3))
   geometry.setAttribute('normal', new Float32BufferAttribute(out.normal, 3))
   geometry.setAttribute('color', new Float32BufferAttribute(out.color, 3))
+  geometry.setAttribute('skinIndex', new Uint16BufferAttribute(out.skinIndex, 4))
+  geometry.setAttribute(
+    'skinWeight',
+    new Float32BufferAttribute(
+      out.skinIndex.map((_, i) => (i % 4 === 0 ? 1 : 0)),
+      4
+    )
+  )
   geometry.setIndex(out.index)
   geometry.computeBoundingSphere()
 
   return geometry
-}
-
-function legSwingOf(name: string, step: number): number {
-  if (!name.startsWith('leg')) {
-    return 0
-  }
-
-  return step * (name === 'legFa' || name === 'legBb' ? LEG_SWING : -LEG_SWING)
 }
 
 interface Arrays {
@@ -78,6 +75,8 @@ interface Arrays {
   readonly normal: number[]
   readonly color: number[]
   readonly index: number[]
+  // Four slots a vertex; only the first is used, with the whole weight.
+  readonly skinIndex: number[]
 }
 
 function addEllipsoid(
@@ -87,13 +86,14 @@ function addEllipsoid(
     readonly rotation: Rotation
     readonly origin: Vec
     readonly rings: number
+    readonly bone: number
   }
 ): void {
   const { prim } = at
   const turn = multiply(at.rotation, turnOf(prim.turn[0], prim.turn[1]))
   const local = apply(at.rotation, prim.c)
   const centre: Vec = [local[0] + at.origin[0], local[1] + at.origin[1], local[2] + at.origin[2]]
-  const ring = { prim, turn, centre, rings: at.rings }
+  const ring = { prim, turn, centre, rings: at.rings, bone: at.bone }
 
   addRings(out, { ...ring, tone: prim.tone, from: 0, to: Math.PI, grow: 1, steps: at.rings })
 
@@ -117,6 +117,7 @@ function addRings(
     readonly turn: Rotation
     readonly centre: Vec
     readonly rings: number
+    readonly bone: number
     readonly tone: string
     readonly from: number
     readonly to: number
@@ -149,6 +150,7 @@ function addRings(
       out.position.push(p[0] + at.centre[0], p[1] + at.centre[1], p[2] + at.centre[2])
       out.normal.push(n[0], n[1], n[2])
       out.color.push(tone.r, tone.g, tone.b)
+      out.skinIndex.push(at.bone, 0, 0, 0)
     }
   }
 

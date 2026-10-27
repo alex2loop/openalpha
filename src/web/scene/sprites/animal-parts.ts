@@ -24,14 +24,6 @@ export interface AnimalPart {
 
 export type AnimalKind = 'cat' | 'corgi' | 'gold' | 'pale' | 'koi'
 
-/** How the parts swing in this frame: a walk's step, the fish's turn (sixteenths of a circle) and
- *  its tail's beat. */
-export interface AnimalMotion {
-  readonly step: number
-  readonly yaw: number
-  readonly tail: number
-}
-
 export const NO_TURN: Turn = [0, 0]
 export const WHITE = '#FFFFFF'
 export const INK = '#2B2433'

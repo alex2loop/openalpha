@@ -1,11 +1,8 @@
-import type {
-  AnimalKind,
-  AnimalMotion,
-  AnimalPart,
-  Ellipsoid,
-} from '@/web/scene/sprites/animal-parts'
+import type { AnimalMotion } from '@/web/scene/sim/life/animal-motion'
+import type { AnimalKind, AnimalPart, Ellipsoid } from '@/web/scene/sprites/animal-parts'
 import { zeroCanvas } from '@/web/scene/renderer'
-import { animalShape, partMotion } from '@/web/scene/sprites/animal-shapes'
+import { partTurnOf } from '@/web/scene/sim/life/animal-motion'
+import { animalShape } from '@/web/scene/sprites/animal-shapes'
 
 /** World px per model cm. */
 export const ANIMAL_UNIT = 0.2
@@ -61,7 +58,7 @@ export function animalSprite(spec: {
   readonly isDim: boolean
 }): AnimalSprite {
   const { kind, pose, level, motion } = spec
-  const key = `${kind}|${pose}|${level}|${motion.step}|${motion.yaw}|${motion.tail}|${spec.isDim}`
+  const key = `${kind}|${pose}|${level}|${Object.values(motion).join(',')}|${spec.isDim}`
   const held = sprites.get(key)
 
   if (held !== undefined) {
@@ -73,7 +70,7 @@ export function animalSprite(spec: {
   }
 
   const placed = placeParts(animalShape(kind, pose, level), (name) =>
-    partMotion(kind, name, motion)
+    partTurnOf(kind, name, motion)
   )
   const sprite = raster(placed, { res: LEVEL_RES[level] ?? 1, isDim: spec.isDim })
 

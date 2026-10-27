@@ -1,10 +1,11 @@
-import type { BufferGeometry, Group } from 'three'
+import type { Group } from 'three'
 
 import type { Materials } from '@/web/scene/render3d/lights'
+import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
 import type { SimView } from '@/web/scene/types'
-import { type Box, box, mergeBoxes } from '@/web/scene/render3d/boxes'
 import { type CopierRun, createCopierRun, syncCopierRun } from '@/web/scene/render3d/copier'
 import { operatorTrayOf } from '@/web/scene/render3d/desk-dressing'
+import { createFish, disposeFish, type Fish, syncFish } from '@/web/scene/render3d/fish'
 import {
   beginPool,
   createPool,
@@ -13,8 +14,6 @@ import {
   placeInstance,
   type Shapes,
 } from '@/web/scene/render3d/instancing'
-import { UNIT_PX } from '@/web/scene/render3d/space'
-import { ANIMAL_TONES, type DetailLevel, fishPartsOf } from '@/web/scene/sim/life/animal-model'
 import { feedKOf } from '@/web/scene/sim/life/events'
 import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
 import { propsOn } from '@/web/scene/world/props'
@@ -27,11 +26,10 @@ export interface Effects {
   readonly stacks: Pool
   readonly steam: Pool
   readonly cart: Pool
-  readonly fish: Pool
+  readonly fish: Fish
   readonly copier: Pool
   readonly ribbons: Pool
   readonly copierRun: CopierRun
-  fishShape: { level: DetailLevel; geometry: BufferGeometry }
 }
 
 /** What the effects read this frame. */
@@ -47,7 +45,6 @@ const BUBBLE_TONE = '#D9EFFB'
 const MAX_PAPERS = 12
 const MAX_STACK = 16
 const MAX_STEAM = 24
-const MAX_FISH = 6
 // The mockup's ribbons under the air conditioner: they flutter while someone is in its room.
 const RIBBON = Object.freeze({
   count: 3,
@@ -79,29 +76,22 @@ const STEAM_MS = 900
 const BUBBLE_MS = 1_200
 const PUFF_PX = 1.4
 const CART = Object.freeze({ w: 20, d: 10, h: 10 })
-const FISH_DEPTH_PX = 1.5
-const FISH_WATER = Object.freeze({ inset: 4, y: 10, depth: 6 })
 const OPERATOR_TRAY = operatorTrayOf()
 const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
-const TANK = propsOn('office').find((prop) => prop.kind === 'tank')
 const BREAK_PROPS = [...propsOn('office'), ...propsOn('team')].filter(
   (prop) => prop.kind === 'coffee' || prop.kind === 'cooler'
 )
-// The fish's shape is built in units already: an instance keeps it at one to one.
-const FISH_SIZE: readonly [number, number, number] = [UNIT_PX, UNIT_PX, UNIT_PX]
 
 export function createEffects(shapes: Shapes, materials: Materials, root: Group): Effects {
-  const fishGeometry = fishShapeOf(0)
   const effects: Effects = {
     papers: createPool(shapes.box, materials.unlitI, { cap: MAX_PAPERS }),
     stacks: createPool(shapes.box, materials.litI, { cap: MAX_STACK }),
     steam: createPool(shapes.box, materials.unlitI, { cap: MAX_STEAM }),
     cart: createPool(shapes.box, materials.litI, { cap: PROP_TONES.cups.length + 1 }),
-    fish: createPool(fishGeometry, materials.litI, { cap: MAX_FISH }),
+    fish: createFish(materials),
     copier: createPool(shapes.box, materials.unlitI, { cap: COPIER_PIECES }),
     ribbons: createPool(shapes.box, materials.unlitI, { cap: RIBBON.count }),
     copierRun: createCopierRun(),
-    fishShape: { level: 0, geometry: fishGeometry },
   }
 
   root.add(...pools(effects).map((pool) => pool.mesh))
@@ -114,8 +104,6 @@ export function syncEffects(
   effects: Effects,
   frame: EffectFrame
 ): { readonly isChanged: boolean; readonly isMoving: boolean } {
-  syncFishShape(effects, frame.level)
-
   const isChanged = [
     syncPapers(effects.papers, frame),
     syncStacks(effects.stacks, frame),
@@ -144,7 +132,7 @@ export function disposeEffects(effects: Effects): void {
     pool.mesh.dispose()
   }
 
-  effects.fishShape.geometry.dispose()
+  disposeFish(effects.fish)
 }
 
 function pools(effects: Effects): Pool[] {
@@ -153,7 +141,8 @@ function pools(effects: Effects): Pool[] {
     effects.stacks,
     effects.steam,
     effects.cart,
-    effects.fish,
+    effects.fish.body,
+    effects.fish.tail,
     effects.copier,
     effects.ribbons,
   ]
@@ -301,68 +290,6 @@ function syncCart(pool: Pool, frame: EffectFrame): boolean {
   endPool(pool)
 
   return true
-}
-
-function syncFish(pool: Pool, frame: EffectFrame): boolean {
-  const fish = frame.sim.floor === 'office' && TANK !== undefined ? frame.sim.life.fish : []
-
-  if (
-    !beginPool(
-      pool,
-      fish.map((one) => `${one.k}${one.depth}${one.isFlipped}`).join() + frame.level
-    ) ||
-    TANK === undefined
-  ) {
-    return false
-  }
-
-  const { x, y, w, h } = TANK.rect
-  const span = w - FISH_WATER.inset * 2
-
-  fish.forEach((one, i) => {
-    placeInstance(pool, {
-      x: x + FISH_WATER.inset + one.k * span,
-      y: FISH_WATER.y + (1 - one.depth) * FISH_WATER.depth,
-      z: y + h / 2,
-      size: FISH_SIZE,
-      yaw: one.isFlipped ? Math.PI : 0,
-      color: ANIMAL_TONES.fish[i % ANIMAL_TONES.fish.length]?.fur ?? PALETTE.paper,
-    })
-  })
-  endPool(pool)
-
-  return true
-}
-
-// The fish's own parts as one shape in white and greys, tinted by each fish's colour.
-function fishShapeOf(level: DetailLevel): BufferGeometry {
-  const grey: Readonly<Record<string, string>> = {
-    fur: '#FFFFFF',
-    shade: '#CCCCCC',
-    light: '#FFFFFF',
-    dark: '#333333',
-    pink: '#F0D0D0',
-    eye: '#222222',
-  }
-  const boxes: Box[] = fishPartsOf(level).map((part) =>
-    box(
-      [part.x, -FISH_DEPTH_PX / 2, part.w, FISH_DEPTH_PX, -part.y - part.h, part.h],
-      grey[part.tone] ?? '#FFFFFF'
-    )
-  )
-
-  return mergeBoxes(boxes)
-}
-
-function syncFishShape(effects: Effects, level: DetailLevel): void {
-  if (effects.fishShape.level === level) {
-    return
-  }
-
-  effects.fishShape.geometry.dispose()
-  effects.fishShape = { level, geometry: fishShapeOf(level) }
-  effects.fish.mesh.geometry = effects.fishShape.geometry
-  effects.fish.key = ''
 }
 
 // Each ribbon hangs from the unit's lip and swings about its top while the room is in use; it

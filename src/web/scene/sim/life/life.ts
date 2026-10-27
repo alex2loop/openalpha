@@ -44,7 +44,7 @@ import { approachOf } from '@/web/scene/sim/places'
 import { moment as marketMoment, stepBell } from '@/web/scene/sim/rhythm'
 import { propsOn } from '@/web/scene/world/props'
 import { onWireEvent } from '@/web/state/events'
-import { pending, runs } from '@/web/state/live'
+import { pending, runningCount, runs } from '@/web/state/live'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 interface LifeDeps {
@@ -294,6 +294,7 @@ function petWorldOf(state: LifeState, step: LifeStep): Parameters<LifeState['pet
       .map((actor) => actor.walker.pos),
     isQuiet: step.isQuiet,
     isCatAwake: step.nowMs < state.catAwakeUntil,
+    isWorking: runningCount.value > 0 && !step.isQuiet,
     isReduced: step.isReduced || document.hidden,
   }
 }
@@ -329,13 +330,13 @@ function viewOf(state: LifeState, step: LifeStep): LifeView {
 
   return {
     pets: state.pets.views(world),
-    fish: state.pets.fish(),
+    fish: state.pets.fish(world),
     sheets: state.sheets.count,
     steam,
     animatedFloors: [
       ...new Set([
         ...steam.map((one) => one.floor),
-        ...(state.pets.isSwimming(world) ? [PET_FLOOR] : []),
+        ...(state.pets.isSwimming() ? [PET_FLOOR] : []),
       ]),
     ],
     isQuiet: step.isQuiet,
