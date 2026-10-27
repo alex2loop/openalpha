@@ -8,64 +8,39 @@ import {
   SRGBColorSpace,
 } from 'three'
 
-import type { MessageKey } from '@/i18n'
-import type { DeskScreenView, ScreenLine } from '@/web/scene/overlay-types'
+import type { DeskScreenView } from '@/web/scene/overlay-types'
 import type { Screen } from '@/web/scene/render3d/desk-dressing'
+import type { Pool } from '@/web/scene/render3d/instancing'
 import type { FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
 import { ambientMsOf } from '@/web/scene/budgets'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { charsTypedIn, terminalLinesOf } from '@/web/scene/data/screen-lines'
+import { isCursorShown, syncCursors } from '@/web/scene/render3d/monitor-cursor'
+import {
+  type CursorRect,
+  drawScreen,
+  isMonitorTiny,
+  SCREEN,
+} from '@/web/scene/render3d/monitor-screen'
 import { flatPoseOf } from '@/web/scene/render3d/seated'
 import { toUnits } from '@/web/scene/render3d/space'
 import { zeroCanvas } from '@/web/scene/renderer'
-import { clip, FONT, MONO } from '@/web/scene/sprites/face-text'
 import { roomAt } from '@/web/scene/world/rooms'
 import { findRun } from '@/web/state/live'
 import { formatHourOfDay } from '@/web/text/time'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
-import { tr } from '@/web/text/tr'
 
-// The mockup's monitor screen: a 160 by 100 logical window drawn at twice that, with a menu bar,
-// a title bar with three dots, typed lines and a status bar.
-const SCREEN = Object.freeze({ w: 160, h: 100, res: 2, bar: 4, menu: 10, title: 12, status: 10 })
-// The terminal's rows, as the mockup sets them: 15 px mono lines 17 apart, as many as fit between
-// the title bar and the status bar.
-const LINE = Object.freeze({ px: 15, lead: 17, rows: 3, pad: 4 })
-const TONE = Object.freeze({
-  rim: '#262B3D',
-  edge: '#3A4260',
-  body: '#141A36',
-  menu: '#0B0F22',
-  title: '#2B3566',
-  menuInk: '#E9ECF8',
-  clock: '#C9D3F0',
-  titleInk: '#B9C4EE',
-  status: '#8FA0C8',
-  cursor: '#D7E0F5',
-})
-// A line's colour by what it is: the command, a step done, the step under way.
-const LINE_TONE: Readonly<Record<ScreenLine['kind'], string>> = Object.freeze({
-  command: '#8DB4FF',
-  done: '#6FE3D6',
-  step: '#F2C46C',
-})
-const DOTS = ['#FF6259', '#F2C46C', '#6FE3D6'] as const
 const FACE_LIFT_PX = 0.06
 // A lit desk screen's bottom stands within this of its computer's foot.
 const SLOT_MATCH_PX = 6
-const APP_KEYS: Readonly<Partial<Record<RoomId, MessageKey>>> = Object.freeze({
-  lib: 'ui.office.room.lib',
-  meet: 'ui.office.room.meet',
-  assist: 'ui.office.room.assist',
-  desk: 'ui.office.room.desk',
-})
-
 /** One canvas per monitor on the floor shown, drawn only while the monitor is lit by someone at
  *  work; it shows that person's run: its title, its lines and the step it is typing. */
 export interface MonitorFaces {
   readonly root: Group
   readonly plane: PlaneGeometry
+  /** The cursors of the lit faces: one instanced mesh, blinking without a repaint. */
+  readonly cursors: Pool
   faces: MonitorFace[]
   floor: FloorId | undefined
 }
@@ -83,10 +58,12 @@ interface MonitorFace {
   /** The line being typed and the ambient beat it began on; a new line types afresh. */
   typing: { key: string; startMs: number }
   key: string
+  /** Where the cursor goes on the face, as last drawn. */
+  cursor: CursorRect | undefined
 }
 
-export function createMonitorFaces(root: Group): MonitorFaces {
-  return { root, plane: new PlaneGeometry(1, 1), faces: [], floor: undefined }
+export function createMonitorFaces(root: Group, cursors: Pool): MonitorFaces {
+  return { root, plane: new PlaneGeometry(1, 1), cursors, faces: [], floor: undefined }
 }
 
 /** Builds the floor's faces once, shows each lit one and types its step on; true when a face was
@@ -103,6 +80,8 @@ export function syncMonitorFaces(
     readonly seated: readonly boolean[]
     /** The desk screens real work lights; each shows on the monitor at its computer. */
     readonly deskScreens: readonly DeskScreenView[]
+    /** CSS px per world px: a monitor too small on screen sets its lines as bars. */
+    readonly scale: number
     readonly now: number
     readonly isReduced: boolean
   }
@@ -129,10 +108,19 @@ export function syncMonitorFaces(
 
     const host = isLit ? hostOn(face, at.deskScreens) : undefined
 
-    isChanged = (isLit && paintFace(face, { ...at, host, runId: at.runIds[i] })) || isChanged
+    const isTiny = isMonitorTiny(face.screen.size[0], at.scale)
+
+    isChanged =
+      (isLit && paintFace(face, { ...at, host, isTiny, runId: at.runIds[i] })) || isChanged
   })
 
-  return isChanged
+  const isCursorChanged = syncCursors(monitors.cursors, {
+    floor: at.floor,
+    faces: monitors.faces,
+    isShown: isCursorShown(at.now, at.isReduced),
+  })
+
+  return isCursorChanged || isChanged
 }
 
 export function disposeMonitorFaces(monitors: MonitorFaces): void {
@@ -169,6 +157,7 @@ function createFace(
     texture,
     typing: { key: '', startMs: 0 },
     key: '',
+    cursor: undefined,
   }
 
   placeFace(face, false)
@@ -216,6 +205,7 @@ function paintFace(
     readonly now: number
     readonly isReduced: boolean
     readonly host: string | undefined
+    readonly isTiny: boolean
     readonly runId: string | undefined
   }
 ): boolean {
@@ -239,6 +229,7 @@ function paintFace(
     run?.title,
     clock,
     at.host,
+    at.isTiny,
     typed,
     ...lines.map((line) => line.text),
   ].join('|')
@@ -248,122 +239,18 @@ function paintFace(
   }
 
   face.key = shown
-  drawScreen(face, {
+  face.cursor = drawScreen(face.canvas, {
+    room: face.room,
     lines,
     typed,
     clock,
     name: run?.name,
     title: at.host ?? run?.title ?? run?.name ?? '',
+    isTiny: at.isTiny,
   })
   face.texture.needsUpdate = true
 
   return true
-}
-
-function drawScreen(
-  face: MonitorFace,
-  at: {
-    readonly lines: readonly ScreenLine[]
-    readonly typed: number
-    readonly clock: string
-    readonly name: string | undefined
-    readonly title: string
-  }
-): void {
-  const c = face.canvas.getContext('2d')
-
-  if (c === null) {
-    return
-  }
-
-  const { w, h, bar, menu, title, status } = SCREEN
-  const inner = w - bar * 2
-
-  c.setTransform(SCREEN.res, 0, 0, SCREEN.res, 0, 0)
-  c.fillStyle = TONE.rim
-  c.fillRect(0, 0, w, h)
-  c.fillStyle = TONE.edge
-  c.fillRect(1.5, 1.5, w - 3, h - 3)
-  c.fillStyle = TONE.body
-  c.fillRect(bar, bar, inner, h - bar * 2)
-  c.fillStyle = TONE.menu
-  c.fillRect(bar, bar, inner, menu)
-  c.fillRect(bar, h - bar - status, inner, status)
-  c.fillStyle = TONE.title
-  c.fillRect(bar, bar + menu, inner, title)
-  drawChrome(c, { face, title: at.title, clock: at.clock })
-  drawLines(c, at)
-}
-
-function drawChrome(
-  c: CanvasRenderingContext2D,
-  at: { readonly face: MonitorFace; readonly title: string; readonly clock: string }
-): void {
-  const { w, bar, menu, title } = SCREEN
-  const menuY = bar + menu / 2 + 0.3
-  const titleY = bar + menu + title / 2 + 0.3
-  const appKey = at.face.room === undefined ? undefined : APP_KEYS[at.face.room]
-
-  for (const [i, tone] of DOTS.entries()) {
-    c.fillStyle = tone
-    c.beginPath()
-    c.arc(bar + 6 + i * 6, titleY, 1.7, 0, Math.PI * 2)
-    c.fill()
-  }
-
-  c.textBaseline = 'middle'
-  c.font = `700 7px ${FONT}`
-  c.textAlign = 'left'
-  c.fillStyle = TONE.menuInk
-  c.fillText(appKey === undefined ? '' : tr(appKey), bar + 4, menuY, w * 0.6)
-  c.textAlign = 'right'
-  c.font = `600 7px ${FONT}`
-  c.fillStyle = TONE.clock
-  c.fillText(at.clock, w - bar - 4, menuY)
-  c.textAlign = 'left'
-  c.fillStyle = TONE.titleInk
-  c.fillText(at.title, bar + 27, titleY, w - bar * 2 - 30)
-}
-
-// The terminal's last rows, the line under way typed so far with a cursor after it, and the run's
-// name in the status bar.
-function drawLines(
-  c: CanvasRenderingContext2D,
-  at: {
-    readonly lines: readonly ScreenLine[]
-    readonly typed: number
-    readonly name: string | undefined
-  }
-): void {
-  const { w, h, bar, menu, title, status } = SCREEN
-  const rows = at.lines.slice(-LINE.rows)
-  const top = bar + menu + title + 3 + LINE.lead / 2
-  const left = bar + LINE.pad
-  const maxW = w - left * 2
-  let endX = left
-
-  c.font = `500 ${LINE.px}px ${MONO}`
-  c.textAlign = 'left'
-
-  for (const [i, line] of rows.entries()) {
-    const text = i === rows.length - 1 ? line.text.slice(0, at.typed) : line.text
-    const fitted = clip(c, text, maxW)
-
-    c.fillStyle = LINE_TONE[line.kind]
-    c.fillText(fitted, left, top + i * LINE.lead)
-    endX = left + c.measureText(fitted).width
-  }
-
-  c.fillStyle = TONE.cursor
-  c.fillRect(
-    Math.min(endX + 1, w - left - LINE.pad),
-    top + (rows.length - 1) * LINE.lead - LINE.lead / 2 + 3,
-    c.measureText('M').width,
-    LINE.lead - 6
-  )
-  c.font = `500 6.5px ${FONT}`
-  c.fillStyle = TONE.status
-  c.fillText(at.name ?? '', bar + 4, h - bar - status / 2 + 0.3, w * 0.55)
 }
 
 // The page a scout reads on this monitor, the host in its title bar as the overlay showed it.

@@ -56,6 +56,7 @@ export interface Fixtures {
   readonly shadows: Pool
   readonly dots: Pool
   readonly ring: Pool
+  readonly cursors: Pool
   readonly monitors: MonitorFaces
   readonly marks: Marks
   readonly laptop: Laptop
@@ -116,6 +117,7 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
   const lampGlow = createLampGlow(shapes.glow)
   const dot = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
   const ink = new MeshBasicMaterial({ color: OUTLINE, toneMapped: false })
+  const cursors = createPool(shapes.box, materials.unlitI, { cap: MAX_SCREENS })
   const fixtures: Fixtures = {
     screens: createPool(shapes.box, materials.unlitI, { cap: MAX_SCREENS }),
     backs: createPool(shapes.box, materials.litI, { cap: MAX_SCREENS }),
@@ -128,7 +130,8 @@ export function createFixtures(shapes: Shapes, materials: Materials, root: Group
     shadows: createPool(shapes.flat, shadow, { cap: MAX_PEOPLE, order: ORDER.shadow }),
     dots: createPool(shapes.dot, dot, { cap: MAX_PEOPLE, order: ORDER.dot }),
     ring: createPool(shapes.box, ink, { cap: 1 }),
-    monitors: createMonitorFaces(root),
+    cursors,
+    monitors: createMonitorFaces(root, cursors),
     marks: createMarks(shapes, glow, root),
     laptop: createLaptop(root, materials.lit),
     owned: [glow, lampGlow, shadow, dot, ink],
@@ -176,9 +179,10 @@ export function disposeFixtures(fixtures: Fixtures): void {
 }
 
 function poolsOf(fixtures: Fixtures): Pool[] {
-  const { screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring } = fixtures
+  const { screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring, cursors } =
+    fixtures
 
-  return [screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring]
+  return [screens, backs, shades, warm, cool, lampPools, halos, shadows, dots, ring, cursors]
 }
 
 // The screens lit by someone at work at their seat glow and show that person's run; the rest stand
@@ -203,6 +207,7 @@ function syncScreens(fixtures: Fixtures, frame: SeatedFrame): boolean {
     runIds,
     seated: frame.seated,
     deskScreens: frame.sim.deskScreens,
+    scale: frame.scale,
     now: frame.now,
     isReduced: frame.isReduced,
   })

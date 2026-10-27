@@ -4,6 +4,7 @@ import type { ActorId, FloorId, HeldItem, Point, PoseId, RoomId } from '@/web/sc
 import type { PropKind } from '@/web/scene/world/props'
 import { FETCH_ACTIVITY_PREFIX, QUESTION_ACTIVITY_KEY } from '@/web/scene/data/desk-reads'
 import { roomOfRun } from '@/web/scene/data/room-status'
+import { stepOf } from '@/web/scene/data/step-labels'
 import { DESK_WAIT_SPOTS } from '@/web/scene/world/seats'
 import { APPROVAL_KIND, pendingRequestId, type Run } from '@/web/state/live'
 
@@ -46,7 +47,6 @@ interface VocabRow {
 
 /** A goal target naming the person's own seat. */
 export const SEAT_TARGET = 'seat'
-const STAGE_DETAIL_KEY = 'progress.researchStageDetail'
 /** The library's two page readers. */
 export const CRAWLERS: readonly ActorId[] = Object.freeze(['crawler-1', 'crawler-2'])
 const CRAWL_ROW_KEY = 'progress.researchStageCrawl'
@@ -334,15 +334,8 @@ export function askedAtOf(entry: PendingWire): number | undefined {
   return entry.kind === APPROVAL_KIND ? entry.event.approval?.askedAt : entry.askedAt
 }
 
-// A stage line wraps its stage in `progress.researchStageDetail`; the stage's own key is inside.
 function effectiveKey(progress: ProgressWire | undefined): string | undefined {
-  if (progress === undefined) {
-    return undefined
-  }
-
-  return progress.key === STAGE_DETAIL_KEY
-    ? (keyOf(progress.params?.stage) ?? progress.key)
-    : progress.key
+  return progress === undefined ? undefined : stepOf(progress).key
 }
 
 function keyOf(value: unknown): string | undefined {
